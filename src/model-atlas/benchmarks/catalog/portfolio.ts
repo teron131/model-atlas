@@ -36,8 +36,22 @@ function requiredBenchmarkCountMedian(values: readonly number[]): number {
   return median;
 }
 
+/** Index sources with directly reported reasoning-variant results, eligible for variant score and resource comparisons. */
+export const EFFORT_INDEX_BENCHMARK_KEYS: ReadonlySet<string> = new Set(["aa_intelligence_index"]);
+
+/** Catalogued standalone metrics matching components of AA Intelligence Index v4.2. */
+export const AA_INDEX_STANDALONE_COMPONENT_KEYS: ReadonlySet<string> = new Set([
+  "briefcase",
+  "gdpval_normalized",
+  "tau_banking",
+  "scicode",
+  "hle",
+  "gdp_pdf",
+  "critpt",
+]);
+
 const REPORTED_INDEX_BENCHMARK_COUNTS = {
-  aa_intelligence_index: 9,
+  aa_intelligence_index: 10,
   surge_intelligence_index: 8,
   vals_index: 7,
 } as const;

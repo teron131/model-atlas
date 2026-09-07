@@ -34,11 +34,14 @@ import {
   frontierBenchmarkRows,
   frontierScoreAxisScale,
   frontierXAxisScale,
+  isIndexProxy,
   positiveMetric,
   selectedFrontierBenchmarkAxisKey,
   selectedFrontierBenchmarkRows,
 } from "./analysis";
 import { BenchmarkSelect } from "./BenchmarkSelect";
+import { sharedFrontierBenchmarkComparison } from "./common-evidence";
+import { CommonEvidence } from "./CommonEvidence";
 import { EmptyFrontierBenchmarkScatterPlot, FrontierBenchmarkScatterPlot } from "./ScatterPlot";
 
 import styles from "../graphs.module.css";
@@ -92,7 +95,7 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
         : benchmarkKeys.filter((key) => benchmarkKeySet.has(key)),
     [benchmarkKeySet, benchmarkKeys, benchmarkOptions],
   );
-  const selectedRows = useMemo(
+  const availableRows = useMemo(
     () => selectedFrontierBenchmarkRows(benchmarkRows, referenceBenchmarkRows, activeBenchmarkKeys),
     [activeBenchmarkKeys, benchmarkRows, referenceBenchmarkRows],
   );
@@ -103,10 +106,30 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
   const usesNormalizedBenchmarkScore =
     activeBenchmarkKeys.length === 1 && selectedBenchmarkKey === "ale_bench";
   const axisOptions = useMemo(
-    () => frontierBenchmarkAxisOptions(selectedRows, isAggregateView),
-    [isAggregateView, selectedRows],
+    () => frontierBenchmarkAxisOptions(availableRows, isAggregateView),
+    [isAggregateView, availableRows],
   );
   const selectedAxisKey = selectedFrontierBenchmarkAxisKey(axisKey, axisOptions);
+  const comparison = useMemo(
+    () =>
+      sharedFrontierBenchmarkComparison(
+        benchmarkRows,
+        referenceBenchmarkRows,
+        activeBenchmarkKeys,
+        selectedAxisKey,
+      ),
+    [benchmarkRows, referenceBenchmarkRows, activeBenchmarkKeys, selectedAxisKey],
+  );
+  const selectedRows = comparison.rows;
+  const sharedResourceView = isAggregateView && selectedAxisKey !== "speedValue";
+  const commonBenchmarkLegend = sharedResourceView ? (
+    <CommonEvidence
+      comparison={comparison}
+      benchmarkOptions={benchmarkOptions}
+      activeBenchmarkKeys={activeBenchmarkKeys}
+      axisKey={selectedAxisKey}
+    />
+  ) : null;
   let selectedBenchmarkLabel = "none";
   if (isAllBenchmarkView) {
     selectedBenchmarkLabel = "all";
@@ -125,8 +148,11 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
   ].join("-");
   const axisConfig = frontierBenchmarkAxisConfigFor(selectedAxisKey, isAggregateView);
   const chartRows = useMemo(
-    () => selectedRows.filter((row) => positiveMetric(axisConfig.get(row))),
-    [axisConfig, selectedRows],
+    () =>
+      selectedRows.filter((row) =>
+        positiveMetric(axisConfig.get(row), isAggregateView || selectedAxisKey === "speedValue"),
+      ),
+    [axisConfig, selectedRows, selectedAxisKey, isAggregateView],
   );
   const xMetricLabel = frontierAxisMetricLabel(axisConfig, isAggregateView, selectedRows);
   const chartMetric = useMemo(
@@ -175,6 +201,7 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
         wide
       >
         {controls}
+        {commonBenchmarkLegend}
         <EmptyFrontierBenchmarkScatterPlot
           compactLayout={compactLayout}
           xAxisLabel={xMetricLabel}
@@ -189,9 +216,13 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
   }
 
   const axisValues = chartRows.map(axisConfig.get).filter(finite);
-  const xAxis = frontierXAxisScale(axisValues, selectedAxisKey, axisConfig);
+  const xAxis = frontierXAxisScale(axisValues, selectedAxisKey, axisConfig, isAggregateView);
   const scoreValues = chartRows.map((row) => row.score).filter(finite);
-  const scoreAxis = frontierScoreAxisScale(scoreValues, isAggregateView);
+  const indexProxyView = !isAggregateView && isIndexProxy(selectedBenchmarkKey ?? "");
+  const scoreFormat = indexProxyView
+    ? (value: number) => `${value.toFixed(2)} points`
+    : fmtPercentScore;
+  const scoreAxis = frontierScoreAxisScale(scoreValues, isAggregateView, indexProxyView);
   const scoreDistribution = valueDistribution(
     graphReferenceItems(chartRows, (row) => row.model).map((row) => row.score),
   );
@@ -200,7 +231,9 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
     ? "Mean Normalized Benchmark Score"
     : usesNormalizedBenchmarkScore
       ? "Normalized Benchmark Score"
-      : "Benchmark Score";
+      : indexProxyView
+        ? "Index Score"
+        : "Benchmark Score";
   const axisDescription = frontierAxisDescription(selectedAxisKey, isAggregateView, leader);
   let scoreMetricLabel = `${leader.benchmarkLabel} Score`;
   if (isAggregateView) {
@@ -220,14 +253,15 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
           label={yAxisLabel}
           distribution={scoreDistribution}
           domainMax={100}
-          formatValue={fmtPercentScore}
+          formatValue={scoreFormat}
           showDomainEndpoints
         />
       }
-      note={`The frontier line traces the best displayed tradeoffs between ${scoreMetricLabel} and ${xMetricLabel}. ${axisDescription}`}
+      note={`${showVariants ? "Lines connect consecutive displayed variants within each model, ordered by reasoning effort." : `The frontier line traces the best displayed tradeoffs between ${scoreMetricLabel} and ${xMetricLabel}.`} ${axisDescription}`}
       wide
     >
       {controls}
+      {commonBenchmarkLegend}
       <FrontierBenchmarkScatterPlot
         rows={plotRows}
         metric={chartMetric}
@@ -236,6 +270,9 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
         yDomain={scoreAxis.domain}
         yTicks={scoreAxis.ticks}
         yAxisLabel={yAxisLabel}
+        formatScore={
+          indexProxyView ? (value) => value.toFixed(1) : (value) => `${value.toFixed(0)}%`
+        }
         keyPrefix={`frontier-benchmarks-${activeBenchmarkKeys.join("-") || "all"}-${selectedAxisKey}`}
         ariaLabel={`${axisConfig.label} frontier scatter plot`}
         getScore={(row) => row.score}

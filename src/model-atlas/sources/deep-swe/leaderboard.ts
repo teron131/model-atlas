@@ -57,7 +57,7 @@ export type DeepSWERawLeaderboardRow = DeepSWELeaderboardRow & {
   source_version: DeepSWESourceVersion | null;
 };
 
-export type DeepSWEModelScoreRow = DeepSWELeaderboardRow;
+export type DeepSWEModelScoreRow = DeepSWELeaderboardRow & { base_model: string };
 
 export type DeepSWERowsByModelName = Map<string, DeepSWEModelScoreRow>;
 
@@ -119,23 +119,6 @@ export function asDeepSWERawLeaderboardRow(value: unknown): DeepSWERawLeaderboar
   };
 }
 
-/** Selects each model's source-default observation while preserving every raw effort row. */
-export function summarizeDeepSWESourceDefaultRows(
-  rows: DeepSWELeaderboardRow[],
-): DeepSWEModelScoreRow[] {
-  const defaultByModel = new Map<string, DeepSWEModelScoreRow>();
-  for (const row of rows) {
-    const existing = defaultByModel.get(row.model);
-    if (
-      existing == null ||
-      reasoningEffortRank(row.reasoning_effort) > reasoningEffortRank(existing.reasoning_effort)
-    ) {
-      defaultByModel.set(row.model, row);
-    }
-  }
-  return [...defaultByModel.values()].sort((left, right) => right.pass_at_1 - left.pass_at_1);
-}
-
 export function preferredDeepSWELeaderboardRows(
   rows: DeepSWERawLeaderboardRow[],
 ): DeepSWELeaderboardRow[] {
@@ -148,11 +131,15 @@ export function preferredDeepSWELeaderboardRows(
   return preferredRows.map(stripDeepSWESourceVersion);
 }
 
-/** Indexes normalized source labels while retaining the default highest-effort row on collisions. */
-export function buildDeepSWEMap(rows: DeepSWEModelScoreRow[]): DeepSWERowsByModelName {
+/** Retain exact effort keys alongside the highest-effort base-model default. */
+export function buildDeepSWEMap(rows: DeepSWELeaderboardRow[]): DeepSWERowsByModelName {
   const rowsByModelName: DeepSWERowsByModelName = new Map();
-  for (const row of rows) {
+  for (const sourceRow of rows) {
+    const row = { ...sourceRow, base_model: sourceRow.model };
     const key = normalizeModelToken(row.model);
+    if (key.length > 0 && row.reasoning_effort != null) {
+      rowsByModelName.set(normalizeModelToken(`${row.model} (${row.reasoning_effort})`), row);
+    }
     const existing = rowsByModelName.get(key);
     if (
       key.length > 0 &&

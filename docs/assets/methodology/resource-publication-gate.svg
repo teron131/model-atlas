@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 373" role="img" aria-labelledby="title desc">
+<title id="title">Cost and time have separate four-pair publication gates</title>
+<desc id="desc">Four direct quality-cost pairs permit Value. Three direct quality-time pairs do not permit Speed. Estimated pairs never count toward either gate.</desc>
+<style>
+text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; }
+@media (prefers-color-scheme:dark) {
+text { fill:#ffffff; }
+[fill="#63706e"] { fill:#a6b2ae; } [stroke="#63706e"] { stroke:#a6b2ae; }
+[fill="#b5bfbc"] { fill:#3c4846; } [stroke="#b5bfbc"] { stroke:#3c4846; }
+[fill="#146cba"] { fill:#85bfff; } [stroke="#146cba"] { stroke:#85bfff; }
+[fill="#a64d0c"] { fill:#ffbc7d; } [stroke="#a64d0c"] { stroke:#ffbc7d; }
+}
+</style>
+<text x="40" y="35" font-size="22" fill="#000000" text-anchor="start" font-weight="600">A score estimate cannot unlock publication</text>
+<text x="40" y="62" font-size="16" fill="#000000" text-anchor="start" font-weight="400">Illustrative variant: enough quality evidence, different cost and time coverage.</text>
+<text x="40" y="149" font-size="18" fill="#000000" text-anchor="start" font-weight="600">Cost</text>
+<circle cx="170" cy="143" r="8" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="1"/>
+<circle cx="214" cy="143" r="8" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="1"/>
+<circle cx="258" cy="143" r="8" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="1"/>
+<circle cx="302" cy="143" r="8" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="1"/>
+<circle cx="346" cy="143" r="8" fill="none" stroke="#146cba" stroke-width="2" opacity="1"/>
+<line x1="386" y1="143" x2="438" y2="143" stroke="#63706e" stroke-width="1.5"/>
+<path d="M431.86 146.36 L438 143 L431.86 139.64" fill="none" stroke="#63706e" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" opacity="1"/>
+<text x="455" y="149" font-size="19" fill="#000000" text-anchor="start" font-weight="600">Value available</text>
+<text x="455" y="174" font-size="16" fill="#000000" text-anchor="start" font-weight="400">4 direct pairs / 4 required</text>
+<text x="40" y="253" font-size="18" fill="#000000" text-anchor="start" font-weight="600">Time</text>
+<circle cx="170" cy="247" r="8" fill="#a64d0c" stroke="#a64d0c" stroke-width="2" opacity="1"/>
+<circle cx="214" cy="247" r="8" fill="#a64d0c" stroke="#a64d0c" stroke-width="2" opacity="1"/>
+<circle cx="258" cy="247" r="8" fill="#a64d0c" stroke="#a64d0c" stroke-width="2" opacity="1"/>
+<circle cx="302" cy="247" r="8" fill="none" stroke="#a64d0c" stroke-width="2" opacity="1"/>
+<circle cx="346" cy="247" r="8" fill="none" stroke="#a64d0c" stroke-width="2" opacity="1"/>
+<line x1="386" y1="247" x2="438" y2="247" stroke="#63706e" stroke-width="1.5"/>
+<path d="M431.86 250.36 L438 247 L431.86 243.64" fill="none" stroke="#63706e" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" opacity="1"/>
+<text x="455" y="253" font-size="19" fill="#000000" text-anchor="start" font-weight="600">Speed unavailable</text>
+<text x="455" y="278" font-size="16" fill="#000000" text-anchor="start" font-weight="400">3 direct pairs / 4 required</text>
+<circle cx="48" cy="334" r="6" fill="#63706e" stroke="#63706e" stroke-width="2" opacity="1"/>
+<text x="64" y="340" font-size="16" fill="#000000" text-anchor="start" font-weight="400">Observed quality + resource</text>
+<circle cx="402" cy="334" r="6" fill="none" stroke="#63706e" stroke-width="2" opacity="1"/>
+<text x="418" y="340" font-size="16" fill="#000000" text-anchor="start" font-weight="400">Estimate: not counted</text>
+</svg>

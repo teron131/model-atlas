@@ -20,10 +20,12 @@ Writing, modifying, testing, debugging, and delivering software primarily test A
 | Setting | Role |
 | --- | --- |
 | Group | Classifies the benchmark as `frontier` or `baseline` for portfolio interpretation |
-| Importance | Controls influence relative to other tasks or other indexes in the same group |
-| Dimension loading | Allocates that importance between Intelligence and Agentic; the two loadings sum to 100% |
+| Importance | Leaves contribution unchanged at 1, or deliberately dampens it below 1 for a stated reason |
+| Dimension loading | Splits the contribution between Intelligence and Agentic; the two loadings sum to 100% |
 
-The importance $i_b$ sets a benchmark's influence within the task or index group, and its loading $\lambda_{b,d}$ assigns a share to dimension $d$. Their product gives the effective weight $\omega_{b,d}=i_b\lambda_{b,d}$. For example, importance 2 with 25% Intelligence and 75% Agentic loading gives weights 0.5 and 1.5. The benchmark keeps its total importance rather than receiving full weight in both dimensions.
+Importance is a damping factor, not a priority scale. A value of 1 leaves the benchmark’s contribution unchanged; a lower value deliberately reduces it for the reason recorded in the portfolio.
+
+Dimension loading separately determines how much of that contribution belongs to Intelligence and Agentic. The effective weight is $\omega_{b,d}=i_b\lambda_{b,d}$: damping reduces the contribution, while loading divides it between the two dimensions.
 
 Loadings use the five-level scale in [Standards](standards.md): 100/0, 75/25, 50/50, 25/75, or 0/100. This keeps the judgment coarse enough to explain. Coding tasks are primarily Agentic evidence; an Intelligence share depends on substantial reasoning in the task's actual demands.
 
@@ -70,7 +72,7 @@ An aggregate index summarizes several evaluations. It offers broad coverage, but
 | Surge Intelligence Index | Baseline | 0.5 | 50% | 50% | Retained as neutral fallback evidence because professional reasoning, writing, and agent evaluations are aggregated under incompatible source scales; half importance limits overlap. |
 | Vals Index | Baseline | 0.5 | 50% | 50% | Retained as neutral fallback evidence because finance, legal, and coding tasks mix domain reasoning with execution without recoverable component weights; the opaque aggregate is not reweighted from its coding label alone. |
 
-When direct task coverage is incomplete, observed aggregate indexes stand in for broader capability evidence. Their represented counts are 9 for Artificial Analysis, 8 for Epoch, 8 for Surge, and 7 for Vals; Epoch uses the median of the other three because its per-model component count is unavailable. Index weights interpolate from represented breadth to a group-normalized endpoint as directly observed weighted task coverage increases. Tasks retain their configured importance and dimension loading. At complete task coverage, the combined quality mean is 70% task benchmarks and 30% aggregate indexes. Configured index importance 0.5 and its dimension loading allocate weight within the 30% index group, rather than setting that group’s total share. Represented breadth changes the quality estimate, not the number of independent observations or the displayed evidence share.
+Observed aggregate indexes support sparse variants. Effort-labelled variants use only indexes that report effort-specific results, currently Artificial Analysis; other index observations remain visible and retain their separate admission role. Each quality dimension starts with 20% task influence at one direct task and rises smoothly to 80% at eight direct tasks; indexes supply the remaining share. With no direct tasks, indexes carry 100%. Task importance and dimension loading determine the task mean; represented breadth, index importance, and dimension loading determine the index mean. Imputed values and sibling observations never advance the task count. The same rule applies to previews and ordinary variants, independently of admission and displayed evidence support.
 
 ### Frontier Benchmarks
 
@@ -177,7 +179,7 @@ Only non-default source, metric, selection, exclusion, and resource rules are de
 
 AnalystAgent uses headline pass^5 across 80 private questions; its published totals are normalized per question before resource scoring. APEX Agents uses Artificial Analysis when available, with Mercor Loop Pass@1 as a same-model-and-effort fallback only after the [validated additive source crosswalk](methodology.md#validated-additive-source-crosswalk) reaches three effective overlap and held-out models with median absolute error at most `0.02`; projections are clamped to `[0,1]`.
 
-Briefcase and GDPval-AA v2 retain raw page Elo but normalize it with `clamp((Elo - 500) / 2000)` for scoring and linear resource comparison. GDPval may use the main-table normalized value as a compatible fallback after overlap validates the conversion. ITBench divides aggregate cost and tokens by 177 task runs, and SciCode divides them by 288 task runs.
+Briefcase and GDPval-AA v2 retain raw page Elo but normalize it with `clamp((Elo - 500) / 2000)` for scoring and linear resource comparison. GDPval may use the main-table normalized value as a compatible fallback after overlap validates the conversion. ITBench divides aggregate cost and tokens by 177 task runs, and SciCode divides them by 288 task runs. Missing benchmark-specific telemetry stays missing in observed graphs; the overall Artificial Analysis Intelligence Index cost or token average cannot replace it. Validated sibling-effort resource estimates may contribute discounted scoring evidence without becoming observed graph points.
 
 **ARC Prize benchmark family:** ARC-AGI-2 and ARC-AGI-3 use only the official verified semi-private leaderboard and discard public-demo, community, competition, custom, refinement, and synthesis systems. ARC-AGI-2 uses task success and reported task cost. These costs affect Value only within their respective benchmarks.
 
@@ -209,9 +211,9 @@ FrontierMath Erdős accepts only the fixed Epoch task `FrontierMath-Erdos`: one 
 
 **AutomationBench** uses Zapier's official `task_completed_correctly` rate, which requires every final-state assertion for a task to pass. Partial credit remains diagnostic only. Model-effort rows remain distinct, combined fallback systems are excluded from standalone assignment, and only the official row's comparable per-task cost can affect Value.
 
-**CursorBench** uses the source-default row or, when every row is effort-labelled, the highest reported effort as one complete observation. Grok 4.5 remains raw but non-scoring because Cursor discloses possible benchmark-snapshot training overlap; private Composer models are excluded because they are not independently available. Eligible per-task cost and tokens can affect Value and Speed.
+**CursorBench** retains every eligible explicitly reported effort. The source-default or highest labelled effort remains one complete default observation; exact variants receive their own quality and resource measurements. Grok 4.5 remains raw but non-scoring because Cursor discloses possible benchmark-snapshot training overlap; private Composer models are excluded because they are not independently available. Eligible per-task cost and tokens can affect Value and Speed.
 
-**DeepSWE** uses pass@1 and one complete source-default or highest-labelled-effort observation per model. Mean duration and cost can affect Speed and Value; mean output tokens can supply the task-time fallback and the quality-adjusted Agentic token modifier.
+**DeepSWE** uses pass@1 at each explicitly reported reasoning effort, attaching quality and resources from the same observation. The highest labelled effort remains the source default, but does not replace other reported efforts or fill an unreported effort. Mean duration and cost can affect Speed and Value; mean output tokens can supply the task-time fallback and the quality-adjusted Agentic token modifier.
 
 **FrontierCode** uses Cognition 1.1 Main `new_score`; Main per-task cost can affect Value and token averages can supply Speed's task-time fallback. Explicit efforts match only their variants, the default follows the ordinary highest-labelled-effort rule, and proprietary SWE-1.7 and Composer 2.5 rows remain non-scoring.
 

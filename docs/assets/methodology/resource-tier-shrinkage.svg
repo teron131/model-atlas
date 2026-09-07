@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 474" role="img" aria-labelledby="title desc">
+<title id="title">Evidence scopes narrow while shrinkage limits local influence</title>
+<desc id="desc">The hierarchy progresses from global to lab, nearby releases in the same lab, and the target model. The curves show n divided by n plus k for local shrinkage four and lab shrinkage sixteen.</desc>
+<style>
+text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; }
+@media (prefers-color-scheme:dark) {
+text { fill:#ffffff; }
+[fill="#63706e"] { fill:#a6b2ae; } [stroke="#63706e"] { stroke:#a6b2ae; }
+[fill="#b5bfbc"] { fill:#3c4846; } [stroke="#b5bfbc"] { stroke:#3c4846; }
+[fill="#146cba"] { fill:#85bfff; } [stroke="#146cba"] { stroke:#85bfff; }
+[fill="#a64d0c"] { fill:#ffbc7d; } [stroke="#a64d0c"] { stroke:#ffbc7d; }
+}
+</style>
+<text x="40" y="35" font-size="22" fill="#000000" text-anchor="start" font-weight="600">Narrower evidence refines the broader estimate</text>
+<text x="40" y="86" font-size="18" fill="#000000" text-anchor="start" font-weight="600">Global</text>
+<text x="40" y="109" font-size="14" fill="#000000" text-anchor="start" font-weight="400">Other models</text>
+<line x1="165" y1="81" x2="204" y2="81" stroke="#63706e" stroke-width="1.5"/>
+<path d="M197.86 84.36 L204 81 L197.86 77.64" fill="none" stroke="#63706e" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" opacity="1"/>
+<text x="220" y="86" font-size="18" fill="#000000" text-anchor="start" font-weight="600">Lab</text>
+<text x="220" y="109" font-size="14" fill="#000000" text-anchor="start" font-weight="400">Same provider</text>
+<line x1="345" y1="81" x2="384" y2="81" stroke="#63706e" stroke-width="1.5"/>
+<path d="M377.86 84.36 L384 81 L377.86 77.64" fill="none" stroke="#63706e" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" opacity="1"/>
+<text x="400" y="86" font-size="18" fill="#000000" text-anchor="start" font-weight="600">Nearby releases</text>
+<text x="400" y="109" font-size="14" fill="#000000" text-anchor="start" font-weight="400">Within that lab</text>
+<line x1="545" y1="81" x2="564" y2="81" stroke="#63706e" stroke-width="1.5"/>
+<path d="M557.86 84.36 L564 81 L557.86 77.64" fill="none" stroke="#63706e" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" opacity="1"/>
+<text x="580" y="86" font-size="18" fill="#000000" text-anchor="start" font-weight="600">Model</text>
+<text x="580" y="109" font-size="14" fill="#000000" text-anchor="start" font-weight="400">Other paired tasks</text>
+<line x1="82" y1="344" x2="515" y2="344" stroke="#b5bfbc" stroke-width="1"/>
+<text x="68" y="350" font-size="16" fill="#000000" text-anchor="end" font-weight="400">0%</text>
+<line x1="82" y1="259" x2="515" y2="259" stroke="#b5bfbc" stroke-width="1"/>
+<text x="68" y="265" font-size="16" fill="#000000" text-anchor="end" font-weight="400">50%</text>
+<line x1="82" y1="174" x2="515" y2="174" stroke="#b5bfbc" stroke-width="1"/>
+<text x="68" y="180" font-size="16" fill="#000000" text-anchor="end" font-weight="400">100%</text>
+<line x1="82" y1="344" x2="82" y2="350" stroke="#63706e" stroke-width="1"/>
+<text x="82" y="371" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">0</text>
+<line x1="190.25" y1="344" x2="190.25" y2="350" stroke="#63706e" stroke-width="1"/>
+<text x="190.25" y="371" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">4</text>
+<line x1="298.5" y1="344" x2="298.5" y2="350" stroke="#63706e" stroke-width="1"/>
+<text x="298.5" y="371" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">8</text>
+<line x1="406.75" y1="344" x2="406.75" y2="350" stroke="#63706e" stroke-width="1"/>
+<text x="406.75" y="371" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">12</text>
+<line x1="515" y1="344" x2="515" y2="350" stroke="#63706e" stroke-width="1"/>
+<text x="515" y="371" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">16</text>
+<line x1="82" y1="344" x2="515" y2="344" stroke="#63706e" stroke-width="1"/>
+<path d="M82 344 L84.71 339.85 L87.41 335.9 L90.12 332.14 L92.83 328.55 L95.53 325.11 L98.24 321.83 L100.94 318.68 L103.65 315.67 L106.36 312.78 L109.06 310 L111.77 307.33 L114.48 304.77 L117.18 302.3 L119.89 299.93 L122.59 297.64 L125.3 295.43 L128.01 293.3 L130.71 291.24 L133.42 289.25 L136.13 287.33 L138.83 285.48 L141.54 283.68 L144.24 281.94 L146.95 280.25 L149.66 278.62 L152.36 277.03 L155.07 275.49 L157.77 274 L160.48 272.55 L163.19 271.14 L165.89 269.77 L168.6 268.44 L171.31 267.15 L174.01 265.89 L176.72 264.67 L179.43 263.47 L182.13 262.31 L184.84 261.18 L187.54 260.08 L190.25 259 L192.96 257.95 L195.66 256.93 L198.37 255.93 L201.07 254.95 L203.78 254 L206.49 253.07 L209.19 252.16 L211.9 251.27 L214.61 250.4 L217.31 249.56 L220.02 248.73 L222.72 247.91 L225.43 247.12 L228.14 246.34 L230.84 245.58 L233.55 244.83 L236.26 244.1 L238.96 243.39 L241.67 242.69 L244.38 242 L247.08 241.33 L249.79 240.67 L252.49 240.02 L255.2 239.38 L257.91 238.76 L260.61 238.15 L263.32 237.55 L266.02 236.96 L268.73 236.39 L271.44 235.82 L274.14 235.26 L276.85 234.71 L279.56 234.18 L282.26 233.65 L284.97 233.13 L287.68 232.62 L290.38 232.12 L293.09 231.63 L295.79 231.14 L298.5 230.67 L301.21 230.2 L303.91 229.74 L306.62 229.28 L309.32 228.84 L312.03 228.4 L314.74 227.97 L317.44 227.54 L320.15 227.13 L322.86 226.71 L325.56 226.31 L328.27 225.91 L330.98 225.52 L333.68 225.13 L336.39 224.75 L339.09 224.37 L341.8 224 L344.51 223.64 L347.21 223.28 L349.92 222.92 L352.63 222.57 L355.33 222.23 L358.04 221.89 L360.74 221.55 L363.45 221.22 L366.16 220.9 L368.86 220.58 L371.57 220.26 L374.27 219.95 L376.98 219.64 L379.69 219.33 L382.39 219.03 L385.1 218.74 L387.81 218.44 L390.51 218.16 L393.22 217.87 L395.93 217.59 L398.63 217.31 L401.34 217.04 L404.04 216.77 L406.75 216.5 L409.46 216.24 L412.16 215.98 L414.87 215.72 L417.57 215.46 L420.28 215.21 L422.99 214.96 L425.69 214.72 L428.4 214.48 L431.11 214.24 L433.81 214 L436.52 213.77 L439.23 213.53 L441.93 213.31 L444.64 213.08 L447.34 212.86 L450.05 212.64 L452.76 212.42 L455.46 212.2 L458.17 211.99 L460.88 211.78 L463.58 211.57 L466.29 211.36 L468.99 211.16 L471.7 210.96 L474.41 210.76 L477.11 210.56 L479.82 210.36 L482.52 210.17 L485.23 209.98 L487.94 209.79 L490.64 209.6 L493.35 209.42 L496.06 209.23 L498.76 209.05 L501.47 208.87 L504.18 208.69 L506.88 208.52 L509.59 208.34 L512.29 208.17 L515 208" fill="none" stroke="#146cba" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" opacity="1"/>
+<path d="M82 344 L84.71 342.94 L87.41 341.9 L90.12 340.87 L92.83 339.85 L95.53 338.85 L98.24 337.86 L100.94 336.87 L103.65 335.9 L106.36 334.95 L109.06 334 L111.77 333.06 L114.48 332.14 L117.18 331.23 L119.89 330.32 L122.59 329.43 L125.3 328.55 L128.01 327.67 L130.71 326.81 L133.42 325.96 L136.13 325.11 L138.83 324.28 L141.54 323.45 L144.24 322.63 L146.95 321.83 L149.66 321.03 L152.36 320.24 L155.07 319.45 L157.77 318.68 L160.48 317.92 L163.19 317.16 L165.89 316.41 L168.6 315.67 L171.31 314.93 L174.01 314.21 L176.72 313.49 L179.43 312.78 L182.13 312.07 L184.84 311.37 L187.54 310.68 L190.25 310 L192.96 309.32 L195.66 308.65 L198.37 307.99 L201.07 307.33 L203.78 306.68 L206.49 306.04 L209.19 305.4 L211.9 304.77 L214.61 304.14 L217.31 303.52 L220.02 302.91 L222.72 302.3 L225.43 301.7 L228.14 301.1 L230.84 300.51 L233.55 299.93 L236.26 299.35 L238.96 298.77 L241.67 298.2 L244.38 297.64 L247.08 297.08 L249.79 296.52 L252.49 295.97 L255.2 295.43 L257.91 294.89 L260.61 294.35 L263.32 293.82 L266.02 293.3 L268.73 292.78 L271.44 292.26 L274.14 291.75 L276.85 291.24 L279.56 290.74 L282.26 290.24 L284.97 289.74 L287.68 289.25 L290.38 288.77 L293.09 288.29 L295.79 287.81 L298.5 287.33 L301.21 286.86 L303.91 286.4 L306.62 285.93 L309.32 285.48 L312.03 285.02 L314.74 284.57 L317.44 284.12 L320.15 283.68 L322.86 283.24 L325.56 282.8 L328.27 282.37 L330.98 281.94 L333.68 281.51 L336.39 281.09 L339.09 280.67 L341.8 280.25 L344.51 279.84 L347.21 279.43 L349.92 279.02 L352.63 278.62 L355.33 278.21 L358.04 277.82 L360.74 277.42 L363.45 277.03 L366.16 276.64 L368.86 276.26 L371.57 275.87 L374.27 275.49 L376.98 275.12 L379.69 274.74 L382.39 274.37 L385.1 274 L387.81 273.63 L390.51 273.27 L393.22 272.91 L395.93 272.55 L398.63 272.19 L401.34 271.84 L404.04 271.49 L406.75 271.14 L409.46 270.8 L412.16 270.45 L414.87 270.11 L417.57 269.77 L420.28 269.44 L422.99 269.1 L425.69 268.77 L428.4 268.44 L431.11 268.12 L433.81 267.79 L436.52 267.47 L439.23 267.15 L441.93 266.83 L444.64 266.52 L447.34 266.2 L450.05 265.89 L452.76 265.58 L455.46 265.28 L458.17 264.97 L460.88 264.67 L463.58 264.37 L466.29 264.07 L468.99 263.77 L471.7 263.47 L474.41 263.18 L477.11 262.89 L479.82 262.6 L482.52 262.31 L485.23 262.03 L487.94 261.74 L490.64 261.46 L493.35 261.18 L496.06 260.9 L498.76 260.62 L501.47 260.35 L504.18 260.08 L506.88 259.8 L509.59 259.53 L512.29 259.27 L515 259" fill="none" stroke="#a64d0c" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" opacity="1" stroke-dasharray="7 5"/>
+<text x="540" y="214" font-size="17" fill="#000000" text-anchor="start" font-weight="400">Local: k = 4</text>
+<text x="540" y="265" font-size="17" fill="#000000" text-anchor="start" font-weight="400">Lab: k = 16</text>
+<text x="82" y="150" font-size="17" fill="#000000" text-anchor="start" font-weight="400">Influence of the narrower correction</text>
+<text x="295" y="408" font-size="18" fill="#000000" text-anchor="middle" font-weight="400">Evidence support n</text>
+<text x="40" y="447" font-size="16" fill="#000000" text-anchor="start" font-weight="400">Cost, time, and tokens each learn from their own measurements.</text>
+</svg>

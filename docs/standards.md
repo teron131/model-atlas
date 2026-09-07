@@ -179,6 +179,8 @@ A benchmark's merit and the ability to ingest it are separate judgments. Access 
 
 Portfolio entry requires a maintainable definition of the scored metric, task version, units, aggregation, model identities, reasoning efforts, and source precedence. Missing operational requirements are adoption blockers. They describe limitations in using the results while preserving the separate judgment of benchmark merit.
 
+![Merit and adoption readiness are separate judgments. A useful evaluation can have operational blockers, while easy ingestion does not make weak evidence suitable for the portfolio.](assets/methodology/merit-and-readiness.svg)
+
 ## Watchlist Requirements
 
 A promising benchmark can remain outside the scoring portfolio while evidence develops. Watchlist status is not a fourth classification and contributes no score.

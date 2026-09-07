@@ -215,7 +215,11 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
           showDomainEndpoints
         />
       }
-      note="The frontier line traces the best displayed tradeoffs between Intelligence and Value."
+      note={
+        showVariants
+          ? "Lines connect consecutive displayed variants within each model, ordered by reasoning effort."
+          : "The frontier line traces the best displayed tradeoffs between Intelligence and Value."
+      }
       wide
     >
       {controls}
@@ -292,21 +296,23 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
               />
             )),
           )}
-          <ParetoEnvelope
-            frontier={frontier}
-            getX={valueScore}
-            getY={intelligenceScore}
-            xPoint={xPoint}
-            yPoint={yPoint}
-            getColor={(model) => providerChartColor(model.provider)}
-            idPrefix="pareto-frontier"
-            className={[
-              styles.frontier,
-              activeVariantKey == null ? "" : styles.reasoningContextMuted,
-            ]
-              .filter(Boolean)
-              .join(" ")}
-          />
+          {!showVariants ? (
+            <ParetoEnvelope
+              frontier={frontier}
+              getX={valueScore}
+              getY={intelligenceScore}
+              xPoint={xPoint}
+              yPoint={yPoint}
+              getColor={(model) => providerChartColor(model.provider)}
+              idPrefix="pareto-frontier"
+              className={[
+                styles.frontier,
+                activeVariantKey == null ? "" : styles.reasoningContextMuted,
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            />
+          ) : null}
           {plottedCandidates.map((model) => {
             const cx = xPoint(Number(model.scores.value_score));
             const cy = yPoint(intelligenceScore(model));

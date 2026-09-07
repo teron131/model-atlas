@@ -102,6 +102,7 @@ export type BenchmarkResourceQualityCoordinate = "linear" | "logit";
 type BenchmarkDimensionLoadings = Readonly<Record<BenchmarkDimension, number>>;
 
 export type BenchmarkResourcePolicy = {
+  /** Source classification only; resources must still belong to the named benchmark. */
   source: "artificial_analysis" | "benchmark";
   unit: "per_task" | "total";
   tokenMeasure: "tokens" | "output_tokens";

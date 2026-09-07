@@ -1,4 +1,4 @@
-/** Benchmark imputation and quality normalization context for Model Atlas scoring. */
+/** Benchmark imputation learns and validates contextual predictions from direct evidence while retaining separate confidence and observation maps. */
 
 import {
   calibrationObservations,
@@ -19,8 +19,14 @@ import {
   weightedQuantileRank,
 } from "../../../math-utils";
 import { asFiniteNumber, asRecord, type JsonObject } from "../../../runtime";
-import { clampScore, minMaxRange, type MinMaxRange, minMaxScale } from "../normalization";
-import { benchmarkMetricValue, type BenchmarkTokenMeasure } from "../resource-metrics";
+import { type MinMaxRange, minMaxScale } from "../normalization";
+import {
+  buildQualityScoringContext,
+  normalizedMetricValue,
+  observedRangesByBenchmark,
+  type QualityScoringContext,
+} from "../quality-context";
+import { benchmarkMetricValue } from "../resource-metrics";
 
 export type BenchmarkImputationByModel = ReadonlyMap<JsonObject, ReadonlyMap<string, number>>;
 
@@ -34,19 +40,6 @@ type BenchmarkImputationDiagnostic = {
   effectiveModelCount: number;
   normalizedMedianAbsoluteError: number | null;
   imputationAllowed: boolean;
-};
-
-export type QualityScoringContext = {
-  benchmarkRangesByKey: ReadonlyMap<string, MinMaxRange | null>;
-  agenticTokenAdjustments?: ReadonlyMap<
-    string,
-    {
-      resourceKey: string;
-      measure: BenchmarkTokenMeasure;
-      range: MinMaxRange | null;
-      multipliersByObservation: ReadonlyMap<string, number>;
-    }
-  >;
 };
 
 type BenchmarkScoringModelIdentity = {
@@ -196,15 +189,6 @@ function buildMercorApexImputation(models: JsonObject[]): MutableImputationMaps 
   };
 }
 
-export function normalizedMetricValue(
-  rangesByKey: ReadonlyMap<string, MinMaxRange | null>,
-  key: string,
-  value: number | null,
-): number | null {
-  const normalized = minMaxScale(rangesByKey.get(key) ?? null, value);
-  return normalized == null ? null : clampScore(normalized);
-}
-
 function observedEvidenceSupport(
   model: JsonObject,
   benchmarkKeys: readonly string[],
@@ -345,23 +329,6 @@ type WeightedBenchmarkPredictor = {
   weight: number;
 };
 
-function selectedBenchmarkKeys(scoringConfig: ScoringConfig): string[] {
-  return [
-    ...new Set([...scoringConfig.intelligenceBenchmarkKeys, ...scoringConfig.agenticBenchmarkKeys]),
-  ];
-}
-
-function observedRangesByBenchmark(
-  models: JsonObject[],
-  benchmarkKeys: readonly string[],
-): Map<string, MinMaxRange | null> {
-  return new Map(
-    benchmarkKeys.map(
-      (key) => [key, minMaxRange(models.map((model) => benchmarkMetricValue(model, key)))] as const,
-    ),
-  );
-}
-
 function buildWeightedPredictors(
   models: JsonObject[],
   targetBenchmarkKey: string,
@@ -478,7 +445,9 @@ function prepareImputation(
   models: JsonObject[],
   scoringConfig: ScoringConfig,
 ): ImputationPreparation {
-  const benchmarkKeys = selectedBenchmarkKeys(scoringConfig);
+  const benchmarkKeys = [
+    ...new Set([...scoringConfig.intelligenceBenchmarkKeys, ...scoringConfig.agenticBenchmarkKeys]),
+  ];
   const mercorApexImputation: MutableImputationMaps = benchmarkKeys.includes(APEX_AGENTS_KEY)
     ? buildMercorApexImputation(models)
     : {
@@ -549,21 +518,6 @@ export function buildBenchmarkImputationDiagnosticsByKey(
   scoringConfig: ScoringConfig,
 ): Map<string, BenchmarkImputationDiagnostic> {
   return prepareImputation(models, scoringConfig).imputationDiagnosticsByKey;
-}
-
-/** Precompute finite comparison ranges used to normalize quality fields before averaging. */
-export function buildQualityScoringContext(
-  models: JsonObject[],
-  scoringConfig: ScoringConfig,
-): QualityScoringContext {
-  const benchmarkKeys = [
-    ...new Set([
-      ...selectedBenchmarkKeys(scoringConfig),
-      ...scoringConfig.previewAdditionalIntelligenceBenchmarkKeys,
-    ]),
-  ];
-  const benchmarkRangesByKey = observedRangesByBenchmark(models, benchmarkKeys);
-  return { benchmarkRangesByKey };
 }
 
 /** Prepare benchmark imputations and quality normalization context in dependency order. */

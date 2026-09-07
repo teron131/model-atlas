@@ -10,7 +10,7 @@ export const PARETO_PANEL_CONTENT = {
   sectionId: "pareto-analysis",
   sectionLabel: "Score tradeoffs",
   title: "Pareto Analysis",
-  copy: "Each point is a visible model variant. The selected score basis is plotted against its comparison axis; the frontier traces the best displayed tradeoffs.",
+  copy: "Each point is a visible model variant. Expanded views connect variants in reasoning-effort order; collapsed views trace the best displayed tradeoffs.",
 } as const;
 
 export function ParetoControlSet({

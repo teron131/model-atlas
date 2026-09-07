@@ -5,7 +5,6 @@ export type {
   BenchmarkScoringPreparation,
   EffortResourceImputation,
   ImputedTaskResource,
-  QualityScoringContext,
   TaskResourceKind,
 } from "./imputation";
 export {
@@ -14,7 +13,6 @@ export {
   benchmarkQualityEvidence,
   buildBenchmarkImputationByModel,
   buildBenchmarkImputationDiagnosticsByKey,
-  buildQualityScoringContext,
   imputedTaskResource,
   prepareEffortResourceImputation,
 } from "./imputation";
@@ -26,3 +24,5 @@ export {
   buildSpeedComponentScore,
   deriveSpeedOutputTokenAnchors,
 } from "./score-builders";
+export { buildQualityScoringContext } from "./quality-context";
+export type { QualityScoringContext } from "./quality-context";

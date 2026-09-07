@@ -24,12 +24,15 @@ import { prepareVersionReplacementBenchmarkRows } from "../src/model-atlas/pipel
 import type { AgentArenaModelScoreRow } from "../src/model-atlas/sources/agent-arena/leaderboard";
 import type { AleBenchModelScoreRow } from "../src/model-atlas/sources/ale-bench/leaderboard";
 import type { ArtificialAnalysisBenchmarkResourceRow } from "../src/model-atlas/sources/artificial-analysis/benchmark-resources";
+import { buildCursorBenchMap } from "../src/model-atlas/sources/cursorbench/leaderboard";
+import { buildDeepSWEMap } from "../src/model-atlas/sources/deep-swe/leaderboard";
 import type { FrontierCodeModelEffortRow } from "../src/model-atlas/sources/frontier-code/leaderboard";
 import type { MercorApexAgentsRow } from "../src/model-atlas/sources/mercor-apex-agents/leaderboard";
 import type { TerminalBench4ModelAgentRow } from "../src/model-atlas/sources/terminal-bench-4/leaderboard";
 import type { VendingBench2ModelScoreRow } from "../src/model-atlas/sources/vending-bench-2/leaderboard";
 
 const deepSWERow = {
+  base_model: "Example Model Preview",
   model: "Example Model Preview",
   reasoning_effort: null,
   config: null,
@@ -365,16 +368,20 @@ const observationAssignment = buildObservationBenchmarks(["Example Model"], look
   hle: 0.4,
 });
 assert.deepEqual(observationAssignment.benchmarks, {
+  agent_arena: 0.14,
   ale_bench: 700,
   analyst_agent: 0.5,
   briefcase: 0.5,
+  cursorbench: 0.52,
+  deep_swe: 0.72,
   frontier_code: 0.535,
   hle: 0.4,
   itbench_sre: 0.56,
   terminal_bench_4: 0.4353,
+  vending_bench_2: 9_000,
 });
-assert.equal((observationAssignment.benchmarks as Record<string, unknown>).deep_swe, undefined);
-assert.equal((observationAssignment.benchmarks as Record<string, unknown>).cursorbench, undefined);
+assert.equal((observationAssignment.benchmarks as Record<string, unknown>).deep_swe, 0.72);
+assert.equal((observationAssignment.benchmarks as Record<string, unknown>).cursorbench, 0.52);
 assert.equal((observationAssignment.benchmarks as Record<string, unknown>).arc_agi_3, undefined);
 
 const effortObservationAssignment = buildObservationBenchmarks(
@@ -964,3 +971,84 @@ assert.equal(
 function emptyLookup(): Map<string, never> {
   return new Map<string, never>();
 }
+
+// DeepSWE retains exact lower efforts and their own resource measurements.
+const deepEffortRows = [
+  { ...deepSWERow, reasoning_effort: "low", pass_at_1: 0.5, mean_cost_usd: 1 },
+  { ...deepSWERow, reasoning_effort: "max", pass_at_1: 0.7, mean_cost_usd: 5 },
+];
+const deepEffortLookups = {
+  ...lookups,
+  deepSWE: { rowsByModelName: buildDeepSWEMap(deepEffortRows) },
+};
+for (const row of deepEffortRows) {
+  const assigned = buildObservationBenchmarks(
+    [row.model],
+    deepEffortLookups,
+    {},
+    row.reasoning_effort,
+  );
+  assert.equal(assigned.benchmarks.deep_swe, row.pass_at_1);
+  assert.equal(buildTaskMetrics(null, assigned.scoringSources)?.deep_swe?.cost, row.mean_cost_usd);
+}
+assert.equal(
+  buildObservationBenchmarks([deepSWERow.model], deepEffortLookups, {}, "medium").benchmarks
+    .deep_swe,
+  undefined,
+  "An unreported effort cannot borrow the default observation",
+);
+
+const effortAwareLookups = {
+  ...lookups,
+  cursorBench: {
+    rowsByModelName: buildCursorBenchMap([
+      { ...cursorBenchRow, model: "Example Model Low", reasoning_effort: "Low", score: 0.3 },
+      {
+        ...cursorBenchRow,
+        model: "Example Model Extra High",
+        reasoning_effort: "Extra High",
+        score: 0.6,
+      },
+    ]),
+  },
+  agentArena: {
+    rowsByModelName: buildBenchmarkModelMap([
+      { ...agentArenaRow, model: "Example Model (low)", reasoning_effort: "low", score: 0.1 },
+      { ...agentArenaRow, model: "Example Model (max)", reasoning_effort: "max", score: 0.2 },
+    ]),
+  },
+  vendingBench2: {
+    rowsByModelName: buildBenchmarkModelMap([
+      {
+        ...vendingBench2Row,
+        model: "Example Model (low)",
+        reasoning_effort: "low",
+        final_balance_usd: 100,
+      },
+      {
+        ...vendingBench2Row,
+        model: "Example Model (max)",
+        reasoning_effort: "max",
+        final_balance_usd: 200,
+      },
+    ]),
+  },
+};
+const lowerEffort = buildObservationBenchmarks(["Example Model"], effortAwareLookups, {}, "low");
+assert.equal(lowerEffort.benchmarks.cursorbench, 0.3);
+assert.equal(lowerEffort.benchmarks.agent_arena, 0.1);
+assert.equal(lowerEffort.benchmarks.vending_bench_2, 100);
+assert.equal(
+  buildObservationBenchmarks(["Example Model"], effortAwareLookups, {}, "xhigh").benchmarks
+    .cursorbench,
+  0.6,
+  "Cursor's Extra High label resolves to canonical xhigh",
+);
+const unreportedEffort = buildObservationBenchmarks(
+  ["Example Model"],
+  effortAwareLookups,
+  {},
+  "medium",
+);
+for (const key of ["cursorbench", "agent_arena", "vending_bench_2"])
+  assert.equal(unreportedEffort.benchmarks[key], undefined);

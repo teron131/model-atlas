@@ -147,16 +147,19 @@ export function qualityAdjustedResourceMultipliers<T extends { id?: unknown; nam
   logResources: readonly (number | null)[],
   cap: number,
   qualityCoordinate: BenchmarkResourceQualityCoordinate,
+  calibrationMask?: readonly boolean[],
 ): number[] {
   const observations = observationsFromValues(
     models,
     logResources.map((value, index) => (qualityCoordinates[index] == null ? null : value)),
+    calibrationMask,
   );
   const comparisons = qualityLocalResourceComparisons(
     models,
     qualityCoordinates,
     logResources,
     qualityCoordinate,
+    calibrationMask,
   );
   return boundedResidualMultipliers(comparisons, observations, cap);
 }

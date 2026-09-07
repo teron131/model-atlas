@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 770" role="img" aria-labelledby="title desc">
+<title id="title">Actual full-batch matching scores and highlighted identities</title>
+<desc id="desc">Replay of all 643 cached source rows from the saved snapshot using current matching code. The 370 pre-cutoff winners range from 4.12 to 54.71, giving cutoff 21.83. The minimum is discarded, the maximum retained, exact Inkling identity retained below cutoff, and reordered Claude Sonnet 4.5 retained. The batch has 47 cutoff rejections and 273 rows without compatible winners.</desc>
+<style>
+text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; }
+@media (prefers-color-scheme:dark) {
+text { fill:#ffffff; }
+[fill="#63706e"] { fill:#a6b2ae; } [stroke="#63706e"] { stroke:#a6b2ae; }
+[fill="#b5bfbc"] { fill:#3c4846; } [stroke="#b5bfbc"] { stroke:#3c4846; }
+[fill="#146cba"] { fill:#85bfff; } [stroke="#146cba"] { stroke:#85bfff; }
+[fill="#a64d0c"] { fill:#ffbc7d; } [stroke="#a64d0c"] { stroke:#ffbc7d; }
+}
+</style>
+<text x="40" y="35" font-size="22" fill="#000000" text-anchor="start" font-weight="600">Actual matches from the complete source batch</text>
+<text x="40" y="62" font-size="16" fill="#000000" text-anchor="start" font-weight="400">643 source rows · complete cached batch</text>
+<rect x="40" y="81" width="16" height="16" fill="#146cba" opacity="0.17"/>
+<text x="64" y="94" font-size="14" fill="#000000" text-anchor="start" font-weight="400">Matching identity</text>
+<rect x="241" y="81" width="16" height="16" fill="#a64d0c" opacity="0.17"/>
+<text x="265" y="94" font-size="14" fill="#000000" text-anchor="start" font-weight="400">Different identity</text>
+<line x1="460" y1="89" x2="482" y2="89" stroke="#146cba" stroke-width="1.3" stroke-dasharray="3 3"/>
+<text x="490" y="94" font-size="14" fill="#000000" text-anchor="start" font-weight="400">Corresponding parts</text>
+<text x="580" y="126" font-size="14" fill="#000000" text-anchor="start" font-weight="600">SCORE</text>
+<text x="660" y="126" font-size="14" fill="#000000" text-anchor="start" font-weight="600">RESULT</text>
+<line x1="40" y1="137" x2="725" y2="137" stroke="#b5bfbc" stroke-width="1"/>
+<line x1="104.4" y1="175" x2="171.6" y2="190" stroke="#146cba" stroke-width="1.2" stroke-dasharray="3 3"/>
+<text x="40" y="165" font-size="12" fill="#000000" text-anchor="start" font-weight="400">From</text>
+<text x="40" y="211" font-size="12" fill="#000000" text-anchor="start" font-weight="400">To</text>
+<rect x="88" y="148" width="32.8" height="24" fill="#146cba" opacity="0.17"/>
+<text x="90" y="165" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="28.799999999999997" lengthAdjust="spacingAndGlyphs">gpt</text>
+<text x="118.8" y="165" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="9.6" lengthAdjust="spacingAndGlyphs">-</text>
+<rect x="126.4" y="148" width="157.6" height="24" fill="#a64d0c" opacity="0.17"/>
+<text x="128.4" y="165" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="153.6" lengthAdjust="spacingAndGlyphs">4o-chatgpt-03-25</text>
+<text x="90" y="211" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="67.2" lengthAdjust="spacingAndGlyphs">openai/</text>
+<rect x="155.2" y="194" width="32.8" height="24" fill="#146cba" opacity="0.17"/>
+<text x="157.2" y="211" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="28.799999999999997" lengthAdjust="spacingAndGlyphs">gpt</text>
+<text x="186" y="211" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="9.6" lengthAdjust="spacingAndGlyphs">-</text>
+<rect x="193.6" y="194" width="167.2" height="24" fill="#a64d0c" opacity="0.17"/>
+<text x="195.6" y="211" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="163.2" lengthAdjust="spacingAndGlyphs">oss-safeguard-20b</text>
+<text x="40" y="242" font-size="14" fill="#000000" text-anchor="start" font-weight="400">Global minimum: shared gpt prefix, different identity; discarded.</text>
+<text x="604" y="165" font-size="17" fill="#000000" text-anchor="middle" font-weight="400">4.12</text>
+<text x="690" y="165" font-size="15" fill="#000000" text-anchor="middle" font-weight="600">Rejected</text>
+<line x1="40" y1="262" x2="725" y2="262" stroke="#b5bfbc" stroke-width="1"/>
+<line x1="238.8" y1="301" x2="334.8" y2="316" stroke="#146cba" stroke-width="1.2" stroke-dasharray="3 3"/>
+<line x1="186" y1="301" x2="282" y2="316" stroke="#146cba" stroke-width="1.2" stroke-dasharray="3 3"/>
+<text x="40" y="291" font-size="12" fill="#000000" text-anchor="start" font-weight="400">From</text>
+<text x="40" y="337" font-size="12" fill="#000000" text-anchor="start" font-weight="400">To</text>
+<rect x="88" y="274" width="61.6" height="24" fill="#146cba" opacity="0.17"/>
+<text x="90" y="291" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="57.599999999999994" lengthAdjust="spacingAndGlyphs">claude</text>
+<text x="147.6" y="291" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="9.6" lengthAdjust="spacingAndGlyphs">-</text>
+<rect x="155.2" y="274" width="61.6" height="24" fill="#146cba" opacity="0.17"/>
+<text x="157.2" y="291" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="57.599999999999994" lengthAdjust="spacingAndGlyphs">sonnet</text>
+<text x="214.79999999999998" y="291" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="9.6" lengthAdjust="spacingAndGlyphs">-</text>
+<rect x="222.4" y="274" width="32.8" height="24" fill="#146cba" opacity="0.17"/>
+<text x="224.39999999999998" y="291" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="28.799999999999997" lengthAdjust="spacingAndGlyphs">4-6</text>
+<text x="90" y="337" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="96" lengthAdjust="spacingAndGlyphs">anthropic/</text>
+<rect x="184" y="320" width="61.6" height="24" fill="#146cba" opacity="0.17"/>
+<text x="186" y="337" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="57.599999999999994" lengthAdjust="spacingAndGlyphs">claude</text>
+<text x="243.6" y="337" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="9.6" lengthAdjust="spacingAndGlyphs">-</text>
+<rect x="251.2" y="320" width="61.6" height="24" fill="#146cba" opacity="0.17"/>
+<text x="253.2" y="337" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="57.599999999999994" lengthAdjust="spacingAndGlyphs">sonnet</text>
+<text x="310.79999999999995" y="337" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="9.6" lengthAdjust="spacingAndGlyphs">-</text>
+<rect x="318.4" y="320" width="32.8" height="24" fill="#146cba" opacity="0.17"/>
+<text x="320.4" y="337" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="28.799999999999997" lengthAdjust="spacingAndGlyphs">4.6</text>
+<text x="40" y="368" font-size="14" fill="#000000" text-anchor="start" font-weight="400">Global maximum: family, tier and version agree.</text>
+<text x="604" y="291" font-size="17" fill="#000000" text-anchor="middle" font-weight="400">54.71</text>
+<text x="690" y="291" font-size="15" fill="#000000" text-anchor="middle" font-weight="600">Kept</text>
+<line x1="40" y1="388" x2="725" y2="388" stroke="#b5bfbc" stroke-width="1"/>
+<line x1="123.6" y1="427" x2="286.8" y2="442" stroke="#146cba" stroke-width="1.2" stroke-dasharray="3 3"/>
+<text x="40" y="417" font-size="12" fill="#000000" text-anchor="start" font-weight="400">From</text>
+<text x="40" y="463" font-size="12" fill="#000000" text-anchor="start" font-weight="400">To</text>
+<rect x="88" y="400" width="71.2" height="24" fill="#146cba" opacity="0.17"/>
+<text x="90" y="417" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="67.2" lengthAdjust="spacingAndGlyphs">inkling</text>
+<text x="90" y="463" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="163.2" lengthAdjust="spacingAndGlyphs">thinkingmachines/</text>
+<rect x="251.2" y="446" width="71.2" height="24" fill="#146cba" opacity="0.17"/>
+<text x="253.2" y="463" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="67.2" lengthAdjust="spacingAndGlyphs">inkling</text>
+<text x="40" y="494" font-size="14" fill="#000000" text-anchor="start" font-weight="400">Below cutoff, but retained by the exact-identity exemption.</text>
+<text x="604" y="417" font-size="17" fill="#000000" text-anchor="middle" font-weight="400">16.41</text>
+<text x="690" y="417" font-size="15" fill="#000000" text-anchor="middle" font-weight="600">Kept</text>
+<line x1="40" y1="514" x2="725" y2="514" stroke="#b5bfbc" stroke-width="1"/>
+<line x1="171.6" y1="553" x2="334.8" y2="568" stroke="#146cba" stroke-width="1.2" stroke-dasharray="3 3"/>
+<line x1="224.4" y1="553" x2="282" y2="568" stroke="#146cba" stroke-width="1.2" stroke-dasharray="3 3"/>
+<text x="40" y="543" font-size="12" fill="#000000" text-anchor="start" font-weight="400">From</text>
+<text x="40" y="589" font-size="12" fill="#000000" text-anchor="start" font-weight="400">To</text>
+<rect x="88" y="526" width="61.6" height="24" fill="#146cba" opacity="0.17"/>
+<text x="90" y="543" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="57.599999999999994" lengthAdjust="spacingAndGlyphs">claude</text>
+<text x="147.6" y="543" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="9.6" lengthAdjust="spacingAndGlyphs">-</text>
+<rect x="155.2" y="526" width="32.8" height="24" fill="#146cba" opacity="0.17"/>
+<text x="157.2" y="543" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="28.799999999999997" lengthAdjust="spacingAndGlyphs">4-5</text>
+<text x="186" y="543" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="9.6" lengthAdjust="spacingAndGlyphs">-</text>
+<rect x="193.6" y="526" width="61.6" height="24" fill="#146cba" opacity="0.17"/>
+<text x="195.6" y="543" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="57.599999999999994" lengthAdjust="spacingAndGlyphs">sonnet</text>
+<text x="253.2" y="543" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="86.39999999999999" lengthAdjust="spacingAndGlyphs">-thinking</text>
+<text x="90" y="589" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="96" lengthAdjust="spacingAndGlyphs">anthropic/</text>
+<rect x="184" y="572" width="61.6" height="24" fill="#146cba" opacity="0.17"/>
+<text x="186" y="589" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="57.599999999999994" lengthAdjust="spacingAndGlyphs">claude</text>
+<text x="243.6" y="589" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="9.6" lengthAdjust="spacingAndGlyphs">-</text>
+<rect x="251.2" y="572" width="61.6" height="24" fill="#146cba" opacity="0.17"/>
+<text x="253.2" y="589" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="57.599999999999994" lengthAdjust="spacingAndGlyphs">sonnet</text>
+<text x="310.79999999999995" y="589" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="9.6" lengthAdjust="spacingAndGlyphs">-</text>
+<rect x="318.4" y="572" width="32.8" height="24" fill="#146cba" opacity="0.17"/>
+<text x="320.4" y="589" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="28.799999999999997" lengthAdjust="spacingAndGlyphs">4.5</text>
+<text x="40" y="620" font-size="14" fill="#000000" text-anchor="start" font-weight="400">Reordered tier and version agree; thinking describes configuration.</text>
+<text x="604" y="543" font-size="17" fill="#000000" text-anchor="middle" font-weight="400">34.37</text>
+<text x="690" y="543" font-size="15" fill="#000000" text-anchor="middle" font-weight="600">Kept</text>
+<line x1="40" y1="640" x2="725" y2="640" stroke="#b5bfbc" stroke-width="1"/>
+<text x="40" y="685" font-size="17" fill="#000000" text-anchor="start" font-weight="600">Global cutoff: 4.12 + 0.35 × (54.71 − 4.12) ≈ 21.83</text>
+<text x="40" y="716" font-size="16" fill="#000000" text-anchor="start" font-weight="400">370 pre-cutoff winners: 47 discarded, 323 retained.</text>
+<text x="40" y="744" font-size="16" fill="#000000" text-anchor="start" font-weight="400">273 rows had no compatible winner and do not enter the range.</text>
+</svg>

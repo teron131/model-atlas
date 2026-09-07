@@ -8,6 +8,7 @@ import { type ModelAtlasPayload, rankedModels } from "../../src/model-atlas/stat
 import { ModelAtlasHeader } from "../shared/ModelAtlasHeader";
 import { DashboardLeaderboard } from "./DashboardLeaderboard";
 import { DashboardGraphs } from "./graphs/DashboardGraphs";
+import { isGraphEligible } from "./graphs/model-series";
 import { useLivePayload } from "./live-payload";
 import {
   type CostFilter,
@@ -40,16 +41,13 @@ export function Dashboard({ initialPayload }: { initialPayload: ModelAtlasPayloa
     return {
       ...payload,
       models: modelsForVariantDisplay(
-        payload.models,
+        payload.models.filter(isGraphEligible),
         showReasoningVariants,
         payload.benchmark_observations,
       ),
     };
   }, [payload, showReasoningVariants]);
-  const providerChoices = useMemo(
-    () => providerOptions(displayPayload?.models ?? []),
-    [displayPayload],
-  );
+  const providerChoices = useMemo(() => providerOptions(payload?.models ?? []), [payload]);
   const isInitialLoading = payload == null && errorMessage == null;
 
   return (

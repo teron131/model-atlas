@@ -1660,6 +1660,123 @@
   margin-top: 12px;
 }
 
+.commonEvidence {
+  margin-top: 16px;
+  border-block: 1px solid var(--line);
+}
+
+.commonEvidence > summary {
+  align-items: center;
+  padding: 10px 0;
+  list-style: none;
+  cursor: pointer;
+}
+
+.commonEvidence > summary::-webkit-details-marker {
+  display: none;
+}
+
+.commonEvidence > summary span:last-child {
+  margin-left: auto;
+}
+
+.commonEvidence > summary::after {
+  content: "+";
+}
+
+.commonEvidence[open] > summary::after {
+  content: "−";
+}
+
+.commonEvidence > summary:hover,
+.commonEvidence > summary:focus-visible {
+  color: var(--ink);
+}
+
+.commonEvidence .note p {
+  margin: 0 0 8px;
+}
+
+.evidenceTableWrap {
+  max-height: 420px;
+  overflow: auto;
+  margin-top: 12px;
+}
+
+.evidenceTable {
+  width: 100%;
+  min-width: 660px;
+  border-collapse: collapse;
+  font-size: var(--type-caption-size);
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.evidenceTable th,
+.evidenceTable td {
+  height: auto;
+  padding: 10px 12px;
+  vertical-align: top;
+  text-align: left;
+}
+
+.evidenceTable thead th {
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  background: var(--paper);
+  font-size: var(--type-micro-size);
+  text-transform: uppercase;
+}
+
+.evidenceTable tbody th {
+  font-size: inherit;
+  letter-spacing: inherit;
+  background: transparent;
+  border-bottom-color: var(--line);
+  color: var(--ink);
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.evidenceModel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.evidenceModel :global(.provider-logo) {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.evidenceTable :global(.preview-row) .evidenceModel {
+  font-style: italic;
+}
+
+.evidenceTable td:not(:last-child) {
+  white-space: nowrap;
+  text-align: right;
+}
+
+.evidenceTable td:last-child {
+  width: 100%;
+}
+
+.missingEvidence {
+  margin-top: 4px;
+  font-size: var(--type-micro-size);
+}
+
+.missingEvidence summary {
+  cursor: pointer;
+}
+
+.missingEvidence p {
+  margin-top: 6px;
+}
+
 .shapeScaleLegend {
   display: inline-flex;
   align-items: center;

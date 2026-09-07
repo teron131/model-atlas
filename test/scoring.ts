@@ -25,16 +25,15 @@ import {
   buildComponentScoreResult,
   buildPreviewComponentScoreResult,
   buildPreviewResourceScoreResults,
-  buildQualityScoringContext,
   imputedTaskResource,
   prepareEffortResourceImputation,
 } from "../src/model-atlas/pipeline/scores";
 import {
   benchmarkImputationValues,
-  normalizedMetricValue,
   prepareBenchmarkScoring,
   withoutBenchmarkImputationForModels,
 } from "../src/model-atlas/pipeline/scores/imputation";
+import { prepareSiblingQualityScoringContext } from "../src/model-atlas/pipeline/scores/imputation/sibling-quality";
 import {
   evidenceMassConfidence,
   logInputMinMaxScores,
@@ -45,6 +44,11 @@ import {
   winsorizedMinMaxScores,
 } from "../src/model-atlas/pipeline/scores/normalization";
 import {
+  buildQualityScoringContext,
+  normalizedMetricValue,
+} from "../src/model-atlas/pipeline/scores/quality-context";
+import { buildAgenticTokenScoringContext } from "../src/model-atlas/pipeline/scores/quality-context";
+import {
   benchmarkResourceEfficiencyScores,
   modelBalancedMinMaxScores,
   qualityAdjustedResourceMultipliers,
@@ -54,10 +58,7 @@ import {
   benchmarkMetricValue,
   benchmarkTaskMetrics,
 } from "../src/model-atlas/pipeline/scores/resource-metrics";
-import {
-  buildAgenticTokenScoringContext,
-  calibrateSparseEffortQualityScores,
-} from "../src/model-atlas/pipeline/scores/score-builders";
+import {} from "../src/model-atlas/pipeline/scores/score-builders";
 import { isRecentPreviewCandidate } from "../src/model-atlas/pipeline/selection/builder";
 import { buildCurrentModelAtlasMetadata } from "../src/model-atlas/stats/payload/metadata";
 import type { BenchmarkPortfolio, ModelAtlasCandidate } from "../src/model-atlas/stats/types";
@@ -225,8 +226,8 @@ const previewScoreResult = buildPreviewComponentScoreResult(
     ]),
   },
 );
-assertClose(previewScoreResult.componentScores?.intelligence_score, 90.250696);
-assertClose(previewScoreResult.componentScores?.agentic_score, 96.522655);
+assertClose(previewScoreResult.componentScores?.intelligence_score, 84.05247813411079);
+assertClose(previewScoreResult.componentScores?.agentic_score, 95.00208246563932);
 assert.equal(
   (previewScoreResult.confidence.intelligence ?? 1) < 1,
   true,
@@ -252,8 +253,8 @@ const indexOnlyPreviewScoreResult = buildPreviewComponentScoreResult(
     ]),
   },
 );
-assertClose(indexOnlyPreviewScoreResult.componentScores?.intelligence_score, 56.25);
-assertClose(indexOnlyPreviewScoreResult.componentScores?.agentic_score, 56.25);
+assertClose(indexOnlyPreviewScoreResult.componentScores?.intelligence_score, (100 * 10) / 17);
+assertClose(indexOnlyPreviewScoreResult.componentScores?.agentic_score, (100 * 10) / 17);
 const previewResourceCandidates = [
   modelCandidate({
     id: "test/preview-resource-slow",
@@ -306,24 +307,24 @@ const previewSpecOnlyScores = buildPreviewResourceScoreResults(
   previewQualityByModel,
   STAGE_CONFIG.scoring,
 );
-assertClose(previewSpecOnlyScores[1]?.confidence.speed, (0.7 * 2) / 3);
-assertClose(previewSpecOnlyScores[1]?.confidence.value, 0.7);
-assertClose(previewResourceScores[1]?.confidence.speed, (0.7 * 2) / 3 + 0.3);
+assertClose(previewSpecOnlyScores[1]?.confidence.speed, (0.8 * 2) / 3);
+assertClose(previewSpecOnlyScores[1]?.confidence.value, 0.8);
+assertClose(previewResourceScores[1]?.confidence.speed, (0.8 * 2) / 3 + 0.2);
 assertClose(previewResourceScores[1]?.confidence.value, 1);
 assert.notEqual(
   previewResourceScores[1]?.scores.speed_score,
   previewSpecOnlyScores[1]?.scores.speed_score,
-  "direct task timing should contribute 30% when preview benchmark resources are available",
+  "direct task timing should contribute smoothly with observed preview resource coverage",
 );
 assert.notEqual(
   previewResourceScores[1]?.scores.value_score,
   previewSpecOnlyScores[1]?.scores.value_score,
-  "direct task cost should contribute 30% when preview benchmark resources are available",
+  "direct task cost should contribute smoothly with observed preview resource coverage",
 );
 for (const key of STAGE_CONFIG.final.benchmarkAdmission.indexBenchmarkKeys) {
   assert.equal(STAGE_CONFIG.scoring.benchmarkPortfolio[key]?.benchmarkImportance, 0.5);
 }
-assert.equal(INDEX_REPRESENTED_BENCHMARK_COUNTS.aa_intelligence_index, 9);
+assert.equal(INDEX_REPRESENTED_BENCHMARK_COUNTS.aa_intelligence_index, 10);
 assert.equal(INDEX_REPRESENTED_BENCHMARK_COUNTS.surge_intelligence_index, 8);
 assert.equal(INDEX_REPRESENTED_BENCHMARK_COUNTS.vals_index, 7);
 assert.equal(
@@ -545,7 +546,7 @@ const aaOnlyResourceMetadata = buildCurrentModelAtlasMetadata({
     {
       benchmarks: { hle: 0.9 },
       task_metrics: {
-        artificial_analysis: { cost: 0.1, seconds: 10 },
+        hle: { cost: 0.1, seconds: 10 },
       },
     },
   ],
@@ -577,7 +578,7 @@ const mixedResourceMetadata = buildCurrentModelAtlasMetadata({
     {
       benchmarks: { hle: 0.9, deep_swe: 0.8 },
       task_metrics: {
-        artificial_analysis: { cost: 0.1, seconds: 10 },
+        hle: { cost: 0.1, seconds: 10 },
         deep_swe: { cost: 0.2, seconds: 20 },
       },
     },
@@ -625,10 +626,9 @@ assert.deepEqual(
       },
     },
     "hle",
-    STAGE_CONFIG.scoring.benchmarkPortfolio.hle?.resourcePolicy,
   ),
-  { cost: 0.1, seconds: 5 },
-  "Direct benchmark telemetry should override individual shared-source fields without discarding the fallback",
+  { seconds: 5 },
+  "Missing benchmark cost must not borrow an unrelated source-wide average",
 );
 assert.deepEqual(
   benchmarkTaskMetrics(
@@ -640,7 +640,6 @@ assert.deepEqual(
       },
     },
     "arc_agi_3",
-    STAGE_CONFIG.scoring.benchmarkPortfolio.arc_agi_3?.resourcePolicy,
   ),
   { cost: 99 },
   "Per-task benchmarks should consume the normalized cost field",
@@ -675,8 +674,8 @@ const broadAAResourceOnlyModels = attachFinalScores(
   ],
   STAGE_CONFIG.scoring,
 );
-assertClose(broadAAResourceOnlyModels[0]?.scores.value_score, 50);
-assertClose(broadAAResourceOnlyModels[1]?.scores.value_score, 50);
+assertEqual(broadAAResourceOnlyModels[0]?.scores.value_score, null);
+assertEqual(broadAAResourceOnlyModels[1]?.scores.value_score, null);
 
 const tokenProxySpeedModels = attachFinalScores(
   [
@@ -2137,25 +2136,53 @@ const siblingCalibrationModels = [
     benchmarks: { b1: 100, b2: 100, b3: 100, b4: 100 },
   },
 ];
-const calibratedSiblingModels = calibrateSparseEffortQualityScores(
+const siblingContext = prepareSiblingQualityScoringContext(
   siblingCalibrationModels,
   siblingCalibrationConfig,
   buildQualityScoringContext(siblingCalibrationModels, siblingCalibrationConfig),
 );
-assertClose(calibratedSiblingModels[0]?.component_scores?.intelligence_score, 80);
-assertClose(calibratedSiblingModels[1]?.component_scores?.intelligence_score, 70);
-assertClose(calibratedSiblingModels[2]?.component_scores?.intelligence_score, 90);
-assertClose(calibratedSiblingModels[1]?.confidence.intelligence, 0.75);
-assertClose(calibratedSiblingModels[2]?.confidence.intelligence, 0.5);
-
-const insufficientSiblingOverlap = calibrateSparseEffortQualityScores(
-  siblingCalibrationModels.map((model, index) =>
-    index === 1 ? { ...model, benchmarks: { b1: 40, b2: 40 } } : model,
-  ),
+const siblingSpeed = {
+  throughput_tokens_per_second_median: null,
+  latency_seconds_median: null,
+  e2e_latency_seconds_median: null,
+};
+const siblingScore = (model: (typeof siblingCalibrationModels)[number], context = siblingContext) =>
+  buildComponentScoreResult(
+    model,
+    siblingSpeed,
+    [],
+    {
+      ...siblingCalibrationConfig,
+      qualityCoverage: { intelligence: { floor: 0, full: 1 }, agentic: { floor: 0, full: 1 } },
+    },
+    context,
+  );
+assertClose(siblingScore(siblingCalibrationModels[0]!).componentScores?.intelligence_score, 50);
+assertClose(siblingScore(siblingCalibrationModels[1]!).componentScores?.intelligence_score, 40);
+assertClose(siblingScore(siblingCalibrationModels[2]!).componentScores?.intelligence_score, 60);
+assertClose(siblingScore(siblingCalibrationModels[1]!).confidence.intelligence, 0.75);
+assertClose(siblingScore(siblingCalibrationModels[2]!).confidence.intelligence, 0.75);
+assert.equal("b4" in siblingCalibrationModels[1]!.benchmarks, false);
+const sparseSiblings = siblingCalibrationModels.map((model, index) =>
+  index === 1 ? { ...model, benchmarks: { b1: 40, b2: 40 } } : model,
+);
+const insufficientSiblingContext = prepareSiblingQualityScoringContext(
+  sparseSiblings,
   siblingCalibrationConfig,
   buildQualityScoringContext(siblingCalibrationModels, siblingCalibrationConfig),
 );
-assertClose(insufficientSiblingOverlap[1]?.component_scores?.intelligence_score, 99);
+assert.ok(
+  !insufficientSiblingContext.siblingQualityEstimates?.has(
+    JSON.stringify(["sibling-calibration", "xhigh", "intelligence"]),
+  ),
+);
+assertClose(
+  siblingScore(
+    sparseSiblings[1] as (typeof siblingCalibrationModels)[number],
+    insufficientSiblingContext,
+  ).confidence.intelligence,
+  0.5,
+);
 
 const undercoveredBenchmarkKeys = Array.from(
   { length: INDEX_REPRESENTED_BENCHMARK_MEDIAN },
@@ -2223,12 +2250,12 @@ const undercoveredScore = buildComponentScoreResult(
   undercoveredConfig,
   undercoveredContext,
 ).componentScores?.intelligence_score;
-// One of eight tasks is observed: represented breadth tapers toward a shared index endpoint of 8 * 3/7.
-assertClose(undercoveredScore, 5855 / 108);
+// One direct task starts at 20%; index breadth sets relative weights within the remaining 80%.
+assertClose(undercoveredScore, 0.2 * 80 + (0.8 * (70 * 10 + 30 * 7)) / 17);
 assertClose(
   buildPreviewComponentScoreResult(undercoveredModel, undercoveredConfig, undercoveredContext)
     .componentScores?.intelligence_score,
-  5855 / 108,
+  0.2 * 80 + (0.8 * (70 * 10 + 30 * 7)) / 17,
 );
 const lowImportanceIndexConfig = {
   ...undercoveredConfig,
@@ -2254,7 +2281,7 @@ assertClose(
     lowImportanceIndexConfig,
     buildQualityScoringContext(undercoveredModels, lowImportanceIndexConfig),
   ).componentScores?.intelligence_score,
-  5855 / 108,
+  0.2 * 80 + (0.8 * (70 * 10 + 30 * 7)) / 17,
 );
 const coveredScore = buildComponentScoreResult(
   coveredModel,
@@ -2263,7 +2290,7 @@ const coveredScore = buildComponentScoreResult(
   undercoveredConfig,
   undercoveredContext,
 ).componentScores?.intelligence_score;
-assertClose(coveredScore, 72);
+assertClose(coveredScore, 68);
 
 const nearlyCoveredModel = {
   ...coveredModel,
@@ -2276,7 +2303,7 @@ const nearlyCoveredScore = buildComponentScoreResult(
   undercoveredConfig,
   undercoveredContext,
 ).componentScores?.intelligence_score;
-assertClose(nearlyCoveredScore, 920 / 12);
+assertClose(nearlyCoveredScore, 100 - 40 * (0.2 + 0.6 * (6 / 7) ** 2 * (3 - 2 * (6 / 7))));
 assert.ok(
   Math.abs(nearlyCoveredScore! - coveredScore!) < 10,
   "the last agreeing task must not switch every index from full proxy breadth at once",
@@ -2303,8 +2330,79 @@ const afterLastTask = buildComponentScoreResult(
   undercoveredContext,
 ).componentScores?.intelligence_score;
 assert.ok(
-  Math.abs(beforeLastTask! - afterLastTask!) < 1e-4,
-  "proxy strength must approach the 70/30 endpoint continuously with weighted task coverage",
+  Math.abs(beforeLastTask! - afterLastTask!) < 2,
+  "the eighth direct task completes the count-based taper even when its importance is small",
+);
+
+// Configured thresholds affect the blend independently of regularization and portfolio size.
+const fourTaskModel = {
+  ...coveredModel,
+  benchmarks: { vals_index: 100, b1: 60, b2: 60, b3: 60, b4: 60 },
+};
+const fourTaskConfig = { ...undercoveredConfig, qualityTaskFullCount: 4 };
+assertClose(
+  buildComponentScoreResult(
+    fourTaskModel,
+    qualityTestSpeed,
+    [],
+    fourTaskConfig,
+    undercoveredContext,
+  ).componentScores?.intelligence_score,
+  68,
+);
+assertClose(
+  buildPreviewComponentScoreResult(fourTaskModel, fourTaskConfig, undercoveredContext)
+    .componentScores?.intelligence_score,
+  68,
+);
+const noTaskModel = { ...coveredModel, benchmarks: { vals_index: 100 } };
+assertClose(
+  buildComponentScoreResult(
+    noTaskModel,
+    qualityTestSpeed,
+    [],
+    undercoveredConfig,
+    undercoveredContext,
+  ).componentScores?.intelligence_score,
+  100,
+);
+assertClose(
+  buildComponentScoreResult(
+    undercoveredModel,
+    qualityTestSpeed,
+    [],
+    { ...undercoveredConfig, qualityTaskFullCount: 1 },
+    undercoveredContext,
+  ).componentScores?.intelligence_score,
+  0.8 * 80 + (0.2 * (70 * 10 + 30 * 7)) / 17,
+);
+const fakeTaskEstimates = new Map(
+  undercoveredBenchmarkKeys.filter((k) => k !== "b1").map((k) => [k, 100]),
+);
+assertClose(
+  buildComponentScoreResult(
+    undercoveredModel,
+    qualityTestSpeed,
+    [],
+    undercoveredConfig,
+    undercoveredContext,
+    fakeTaskEstimates,
+    new Map([...fakeTaskEstimates.keys()].map((k) => [k, 1])),
+  ).componentScores?.intelligence_score,
+  undercoveredScore!,
+);
+const extendedConfig = {
+  ...undercoveredConfig,
+  intelligenceBenchmarkKeys: [...undercoveredConfig.intelligenceBenchmarkKeys, "missing-task"],
+  benchmarkPortfolio: {
+    ...undercoveredConfig.benchmarkPortfolio,
+    "missing-task": intelligenceBenchmarkEntry(),
+  },
+};
+assertClose(
+  buildComponentScoreResult(coveredModel, qualityTestSpeed, [], extendedConfig, undercoveredContext)
+    .componentScores?.intelligence_score,
+  coveredScore!,
 );
 
 function resourceModel(
@@ -2547,3 +2645,48 @@ const duplicateTokenScores = tokenAgenticScores(duplicateTokenRows);
 assert(duplicateTokenScores[1]! > duplicateTokenScores.at(-1)!);
 const reversedTokenScores = tokenAgenticScores([...duplicateTokenRows].reverse()).reverse();
 duplicateTokenScores.forEach((score, index) => assertClose(reversedTokenScores[index], score!));
+
+// Estimated token use affects only its target and is discounted toward neutral; it cannot become peer evidence.
+const tokenEstimateTarget = {
+  ...tokenModels[2]!,
+  id: "test/estimated-token",
+  name: "Estimated Token",
+  reasoning_effort: "low",
+  task_metrics: null,
+};
+const tokenEstimatePopulation = [...tokenModels, tokenEstimateTarget];
+const tokenEstimateBase = buildQualityScoringContext(tokenEstimatePopulation, tokenConfig);
+const tokenEstimateKey = "name:estimated-token\u0000low";
+const estimatedTokenContext = (confidence: number) =>
+  buildAgenticTokenScoringContext(tokenEstimatePopulation, tokenConfig, tokenEstimateBase, {
+    byVariant: new Map([
+      [tokenEstimateKey, new Map([["deep_swe", { output_tokens: { amount: 10, confidence } }]])],
+    ]),
+  });
+const tokenEstimateScore = (context: ReturnType<typeof estimatedTokenContext>) =>
+  buildPreviewComponentScoreResult(tokenEstimateTarget, tokenConfig, context).componentScores!
+    .agentic_score!;
+const noTokenEstimate = buildAgenticTokenScoringContext(
+  tokenEstimatePopulation,
+  tokenConfig,
+  tokenEstimateBase,
+);
+const fullTokenEstimate = estimatedTokenContext(1),
+  halfTokenEstimate = estimatedTokenContext(0.5);
+assert.ok(tokenEstimateScore(fullTokenEstimate) > tokenEstimateScore(noTokenEstimate));
+assertClose(
+  tokenEstimateScore(halfTokenEstimate),
+  (tokenEstimateScore(fullTokenEstimate) + tokenEstimateScore(noTokenEstimate)) / 2,
+);
+for (const m of tokenModels)
+  assert.equal(
+    buildPreviewComponentScoreResult(m, tokenConfig, fullTokenEstimate).componentScores!
+      .agentic_score,
+    buildPreviewComponentScoreResult(m, tokenConfig, noTokenEstimate).componentScores!
+      .agentic_score,
+  );
+assert.deepEqual(
+  buildPreviewComponentScoreResult(tokenEstimateTarget, tokenConfig, fullTokenEstimate).confidence,
+  buildPreviewComponentScoreResult(tokenEstimateTarget, tokenConfig, noTokenEstimate).confidence,
+);
+assert.equal(tokenEstimateTarget.task_metrics, null);

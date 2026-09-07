@@ -36,10 +36,11 @@ const QUALITY_COVERAGE_FULL_WEIGHT = INDEX_REPRESENTED_BENCHMARK_MEDIAN;
 const QUALITY_COVERAGE_FLOOR_WEIGHT = QUALITY_COVERAGE_FULL_WEIGHT * QUALITY_COVERAGE_FLOOR_SHARE;
 const MINIMUM_OBSERVED_BENCHMARKS = INDEX_REPRESENTED_BENCHMARK_MEDIAN;
 export const MAX_NORMALIZED_IMPUTATION_ERROR = 25;
+export const MINIMUM_RESOURCE_BENCHMARKS = 4;
 /** Capability convergence groups direct task benchmarks and aggregate index signals. */
 export const QUALITY_SCORE_BUCKET_WEIGHTS = {
-  benchmark: 0.7,
-  nonBenchmark: 0.3,
+  benchmark: 0.8,
+  nonBenchmark: 0.2,
 } as const;
 export const RESOURCE_SCORE_BUCKET_WEIGHTS = {
   benchmark: 0.7,
@@ -117,6 +118,7 @@ export type ScoringConfig = {
   speedAnchorQuantiles: readonly number[];
   benchmarkPortfolio: BenchmarkPortfolio;
   qualityCoverage: QualityCoverageThresholds;
+  qualityTaskFullCount: number;
 };
 
 export type ModelAtlasStageConfig = {
@@ -180,5 +182,6 @@ export const STAGE_CONFIG = {
     speedAnchorQuantiles: [0.25, 0.5, 0.75],
     benchmarkPortfolio: BENCHMARK_PORTFOLIO,
     qualityCoverage: QUALITY_COVERAGE,
+    qualityTaskFullCount: INDEX_REPRESENTED_BENCHMARK_MEDIAN,
   },
 } satisfies ModelAtlasStageConfig;

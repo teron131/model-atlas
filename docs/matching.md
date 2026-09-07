@@ -4,6 +4,8 @@ The same model can appear under different names on benchmark pages, catalogs, an
 
 A mistaken join can give one model another model's evidence. The matcher therefore leaves uncertain associations unmatched. A rejected catalog match does not erase a separately identified benchmark model; it leaves catalog metadata unavailable.
 
+![A catalog match adds compatible metadata while preserving the source’s variant observations. A qualified source identity can survive without an accepted catalog match.](assets/methodology/matching-boundary.svg)
+
 ## Identity Sources
 
 A benchmark identity can exist before a public catalog entry. A qualified Artificial Analysis provider/model ID, a nonempty name, and confirmed text output can keep that model in the pipeline even when no catalog candidate is accepted. It retains only source-reported metadata, and other benchmark results can attach through the same identity and effort checks.
@@ -74,7 +76,15 @@ $$
 s_{\text{cutoff}}=s_{\min}+0.35(s_{\max}-s_{\min}).
 $$
 
-For an illustrative batch ranging from 20 to 100, the cutoff is $20+0.35(100-20)=48$. A winner below 48 is discarded. Because the threshold depends on the current batch, the same raw score need not pass every batch. It is not a universal confidence probability.
+The example below replays the complete cached source batch from the saved snapshot, using the current matcher and its normal catalog selection, provider preference, and version-replacement rules. All **643 source rows** enter the run against **572 selected catalog candidates**. This is a full cached-data replay, not a hand-picked matching batch or a fresh live scrape.
+
+Of those source rows, **370 have a compatible candidate before the relative cutoff**. Their global minimum score is **4.12** and their global maximum is **54.71**, giving **21.83** as the cutoff. Here “global” means across all pre-cutoff winners in this run; it does not mean fixed bounds of the scoring algorithm. The 273 rows without a compatible winner contribute no score, rather than zero.
+
+![Highlighted examples from the complete 643-row replay: the actual minimum and maximum, an exact identity retained below cutoff, and a reordered identity retained above it.](assets/methodology/matching-relative-cutoff.svg)
+
+The filter discards **47** winners and retains **323**. The weak `gpt-4o-chatgpt-03-25` candidate shares a family prefix with `openai/gpt-oss-safeguard-20b`, but its score is the batch minimum and the cutoff removes it. The matching `claude-sonnet-4-6` identity supplies the maximum. `inkling` scores only **16.41**, yet remains matched because exact normalized identities are exempt from relative rejection. These are actual outputs of this replay; passing the matcher is not an independent guarantee of identity correctness.
+
+The highlighted examples are selected after the full run and do not determine its minimum or maximum. Changing the complete source batch or catalog can change the range and cutoff. Structural alias recognition and exact normalized identity are distinct checks, so not every recognized alias receives the exemption.
 
 ## Variant Guardrail
 
@@ -94,6 +104,14 @@ The tiers `haiku`, `sonnet`, `opus`, and `fable` are mutually exclusive. When th
 
 Dates and route labels do not define the base model. Reasoning and configuration labels remain separate observations. A missing source `reasoning_effort` stays null; the matcher does not infer an effort from a display name or choose among unlabelled observations by benchmark score.
 
+## Release Proximity for Resource Estimation
+
+The [tiered resource fallback](methodology.md#tiered-resource-fallback) narrows its evidence from all models to the same lab, then to nearby releases within that lab, and finally to the target model's own effort measurements. Each tier narrows the preceding scope while retaining a regularized fallback to broader evidence. This makes the policy applicable across labs without name-specific classifications, even when its measured predictions are similar. It does not merge identities or attach another model's measurements.
+
+Release proximity uses a Gaussian weight centered on the target model's release date, with a standard deviation of 60 days. Both earlier and later releases can contribute; the weight depends on their distance from the target date, not their age today. There is no hard date cutoff or model-name classification. Missing or invalid dates leave the broader lab correction intact. Missing lab identity prevents both lab and release-neighborhood corrections.
+
+The target model's entire family is excluded from external donors. Exact model and reasoning-effort identity still determine which measurements form an effort ratio; release proximity does not relax those matching requirements.
+
 ## Selected Identity
 
 An accepted catalog match uses the winning provider and model ID as its public identity and attaches catalog metadata from `models.dev`. An unmatched qualified Artificial Analysis identity instead retains only source-reported metadata, leaving genuinely missing prices, limits, and serving measurements unknown.
@@ -106,6 +124,6 @@ Both paths attach benchmark evidence before applying the publication rules descr
 
 Serving aliases such as fast, free, latest, preview, high-effort, or dated routes do not automatically become separate public models. Aliases that point to the same underlying model share one canonical identity. Explicit reasoning-effort observations remain separate scored configurations.
 
-An unlabelled observation represents the source-default configuration. If all observations name an effort, the highest reported effort supplies the default. Storage preserves every reported effort. A sparse effort's capability score can later use a well-measured sibling's score plus their gap on common benchmarks, without forcing effort order to be monotonic.
+An unlabelled observation represents the source-default configuration. If all observations name an effort, the highest reported effort supplies the default. Storage preserves every reported effort. Missing quality tasks can later use a sibling's direct result plus their measured gap on common tasks. These scoring-only estimates preserve exact source observations and never force effort order to be monotonic.
 
 Expanded views keep exact-effort results. Compact views use the highest-Intelligence representative and can fill its missing benchmark fields from the highest available direct effort, while retaining the distinction between a model-level display and an exact-effort observation.

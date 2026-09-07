@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 370" role="img" aria-labelledby="title desc">
+<title id="title">Variant counts share one model reference weight</title>
+<desc id="desc">One variant receives weight one; four variants receive one quarter each. Both models carry equal total calibration weight.</desc>
+<style>
+text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; }
+@media (prefers-color-scheme:dark) {
+text { fill:#ffffff; }
+[fill="#63706e"] { fill:#a6b2ae; } [stroke="#63706e"] { stroke:#a6b2ae; }
+[fill="#b5bfbc"] { fill:#3c4846; } [stroke="#b5bfbc"] { stroke:#3c4846; }
+[fill="#146cba"] { fill:#85bfff; } [stroke="#146cba"] { stroke:#85bfff; }
+[fill="#a64d0c"] { fill:#ffbc7d; } [stroke="#a64d0c"] { stroke:#ffbc7d; }
+}
+</style>
+<text x="40" y="35" font-size="22" fill="#000000" text-anchor="start" font-weight="600">More variants do not create more independent models</text>
+<text x="40" y="62" font-size="16" fill="#000000" text-anchor="start" font-weight="400">Each base model contributes one unit to a reference distribution.</text>
+<text x="40" y="117" font-size="18" fill="#000000" text-anchor="start" font-weight="600">One observed variant</text>
+<rect x="40" y="135" width="300" height="44" fill="#146cba" opacity="0.22"/>
+<text x="190" y="164" font-size="18" fill="#000000" text-anchor="middle" font-weight="600">1</text>
+<text x="40" y="239" font-size="18" fill="#000000" text-anchor="start" font-weight="600">Four observed variants</text>
+<rect x="40" y="257" width="72" height="44" fill="#146cba" opacity="0.22"/>
+<text x="76" y="286" font-size="18" fill="#000000" text-anchor="middle" font-weight="600">¼</text>
+<rect x="116" y="257" width="72" height="44" fill="#146cba" opacity="0.22"/>
+<text x="152" y="286" font-size="18" fill="#000000" text-anchor="middle" font-weight="600">¼</text>
+<rect x="192" y="257" width="72" height="44" fill="#146cba" opacity="0.22"/>
+<text x="228" y="286" font-size="18" fill="#000000" text-anchor="middle" font-weight="600">¼</text>
+<rect x="268" y="257" width="72" height="44" fill="#146cba" opacity="0.22"/>
+<text x="304" y="286" font-size="18" fill="#000000" text-anchor="middle" font-weight="600">¼</text>
+<text x="396" y="164" font-size="18" fill="#000000" text-anchor="start" font-weight="600">Total weight = 1</text>
+<text x="396" y="286" font-size="18" fill="#000000" text-anchor="start" font-weight="600">Total weight = 1</text>
+<text x="40" y="345" font-size="16" fill="#000000" text-anchor="start" font-weight="400">Balancing is recalculated for each available measurement.</text>
+</svg>
