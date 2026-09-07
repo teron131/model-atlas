@@ -54,7 +54,7 @@ export function LeaderboardCapture({
   return (
     <div className={styles.leaderboardCapture} data-capture-exclude>
       <button
-        className={styles.leaderboardButton}
+        className={styles.actionButton}
         type="button"
         aria-label={label}
         aria-busy={captureStageMounted || state === "rendering"}

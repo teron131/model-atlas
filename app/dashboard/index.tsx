@@ -2,7 +2,7 @@
 
 /** Client dashboard composition for live payloads, global model controls, graphs, and leaderboard. */
 
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { type ModelAtlasPayload, rankedModels } from "../../src/model-atlas/stats/types";
 import { ModelAtlasHeader } from "../shared/ModelAtlasHeader";
@@ -10,27 +10,19 @@ import { DashboardLeaderboard } from "./DashboardLeaderboard";
 import { DashboardGraphs } from "./graphs/DashboardGraphs";
 import { isGraphEligible } from "./graphs/model-series";
 import { useLivePayload } from "./live-payload";
-import {
-  type CostFilter,
-  DEFAULT_MODEL_RANK_FILTER,
-  DEFAULT_RECENCY_FILTER,
-  type ModelRankFilter,
-  modelsForVariantDisplay,
-  type ProviderFilters,
-  providerOptions,
-  type RecencyFilter,
-} from "./shared/model-display";
+import { modelsForVariantDisplay, providerOptions } from "./shared/model-display";
+import { providerFilterKey } from "./shared/provider-theme";
+import { useUrlState } from "./use-url-state";
 
 const REASONING_VARIANT_STORAGE_KEY = "model-atlas:expand-reasoning-variants";
 
 export function Dashboard({ initialPayload }: { initialPayload: ModelAtlasPayload | null }) {
   const [showReasoningVariants, setShowReasoningVariants] = useReasoningVariantDisplay();
-  const [selectedProviders, setSelectedProviders] = useState<ProviderFilters>([]);
-  const [maxCostFilter, setMaxCostFilter] = useState<CostFilter>("all");
-  const [modelRankFilter, setModelRankFilter] =
-    useState<ModelRankFilter>(DEFAULT_MODEL_RANK_FILTER);
-  const [recencyFilter, setRecencyFilter] = useState<RecencyFilter>(DEFAULT_RECENCY_FILTER);
-  const [globalModelFilterQuery, setGlobalModelFilterQuery] = useState("");
+  const [requestedProviders, setSelectedProviders] = useUrlState("provider");
+  const [maxCostFilter, setMaxCostFilter] = useUrlState("max-cost");
+  const [modelRankFilter, setModelRankFilter] = useUrlState("rank");
+  const [recencyFilter, setRecencyFilter] = useUrlState("days");
+  const [globalModelFilterQuery, setGlobalModelFilterQuery] = useUrlState("q");
   const { payload, errorMessage } = useLivePayload(initialPayload);
 
   const referenceModels = useMemo(() => rankedModels(payload?.models ?? []), [payload]);
@@ -48,6 +40,10 @@ export function Dashboard({ initialPayload }: { initialPayload: ModelAtlasPayloa
     };
   }, [payload, showReasoningVariants]);
   const providerChoices = useMemo(() => providerOptions(payload?.models ?? []), [payload]);
+  const selectedProviders = useMemo(() => {
+    const providers = new Set(payload?.models.map((model) => providerFilterKey(model.provider)));
+    return requestedProviders.filter((slug) => providers.has(slug));
+  }, [requestedProviders, payload]);
   const isInitialLoading = payload == null && errorMessage == null;
 
   return (
@@ -107,5 +103,13 @@ function useReasoningVariantDisplay() {
     } catch {}
   }, [showReasoningVariants]);
 
-  return [showReasoningVariants, setShowReasoningVariants] as const;
+  const [urlVariants, setUrlVariants] = useUrlState("graph-variants", showReasoningVariants);
+  const setVariants = useCallback(
+    (expanded: boolean) => {
+      setShowReasoningVariants(expanded);
+      setUrlVariants(expanded);
+    },
+    [setUrlVariants],
+  );
+  return [urlVariants, setVariants] as const;
 }

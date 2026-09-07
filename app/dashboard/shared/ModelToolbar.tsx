@@ -1,9 +1,9 @@
 "use client";
 
-/** Shared model search, provider filtering, display, and capture toolbar. */
+/** Shared model search, provider selection, and display limits, with matching-row feedback. */
 
 import { Boxes } from "lucide-react";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { DisplayControls, type DisplayControlsProps } from "./DisplayControls";
 import { toggleProviderFilter } from "./model-display";
@@ -32,7 +32,6 @@ export function ModelToolbar({
   rowCountLabel,
   provider,
   display,
-  screenshotControl,
   onFilterQueryChange,
 }: {
   filterQuery: string;
@@ -40,7 +39,6 @@ export function ModelToolbar({
   /** Omitted where an owning surface already exposes provider filtering for the same state. */
   provider?: ProviderControl;
   display: DisplayControlsProps;
-  screenshotControl: ReactNode;
   onFilterQueryChange: (value: string) => void;
 }) {
   return (
@@ -63,10 +61,11 @@ export function ModelToolbar({
         <div className={styles.display}>
           <DisplayControls {...display} />
         </div>
-        <div className={styles.meta}>
-          {rowCountLabel == null ? null : <div className={styles.count}>{rowCountLabel}</div>}
-          {screenshotControl}
-        </div>
+        {rowCountLabel == null ? null : (
+          <div className={styles.meta}>
+            <div className={styles.count}>{rowCountLabel}</div>
+          </div>
+        )}
       </div>
     </div>
   );

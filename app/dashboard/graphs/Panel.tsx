@@ -1,12 +1,14 @@
-/** Section wrapper used by dashboard graph panels. */
+/** Graph section layout owns its heading actions and the element captured for PNG export. */
 
-import { type CSSProperties, type ReactNode, type RefObject, useRef } from "react";
+import { type CSSProperties, type ReactNode, useRef } from "react";
 
 import { CaptureButton } from "../capture/CaptureButton";
+import { CopyDashboardLink } from "../CopyDashboardLink";
 import { type ResearchRegionId, researchRegionOrdinal } from "./research-index";
 
 import styles from "./graphs.module.css";
 
+/** Keep section actions out of exported images while the capture ref always targets the complete panel. */
 export function Panel({
   sectionId,
   sectionLabel,
@@ -18,8 +20,6 @@ export function Panel({
   wide = false,
   captureWidth,
   captureFileName,
-  captureEnabled = true,
-  panelRef,
 }: {
   sectionId: ResearchRegionId;
   sectionLabel: string;
@@ -31,11 +31,8 @@ export function Panel({
   wide?: boolean;
   captureWidth: number;
   captureFileName?: string;
-  captureEnabled?: boolean;
-  panelRef?: RefObject<HTMLElement | null>;
 }) {
-  const fallbackPanelRef = useRef<HTMLElement>(null);
-  const resolvedPanelRef = panelRef ?? fallbackPanelRef;
+  const panelRef = useRef<HTMLElement>(null);
   const artifactWidth = captureWidth + 48;
   const captureStyle = {
     "--capture-artifact-width": `${artifactWidth}px`,
@@ -47,28 +44,30 @@ export function Panel({
     <article
       id={sectionId}
       className={wide ? `${styles.panel} ${styles.wide}` : styles.panel}
-      ref={resolvedPanelRef}
+      ref={panelRef}
       style={captureStyle}
       aria-labelledby={titleId}
     >
       <div className={styles.panelHead}>
-        {/* The rail already names the sequence for screen readers. */}
-        <p className={styles.sectionMarker}>
-          <b aria-hidden="true">{ordinal}</b>
-          <span>{sectionLabel}</span>
-        </p>
+        <div className="dashboard-section-top" data-capture-exclude>
+          <p className={`dashboard-section-marker ${styles.sectionMarker}`}>
+            <b aria-hidden="true">{ordinal}</b>
+            <span>{sectionLabel}</span>
+          </p>
+          <div className="dashboard-section-actions">
+            <CaptureButton
+              captureWidth={artifactWidth}
+              fileName={captureFileName}
+              targetRef={panelRef}
+              title={title}
+            />
+            <CopyDashboardLink sectionId={sectionId} />
+          </div>
+        </div>
         {summary == null ? null : <div className={styles.panelSide}>{summary}</div>}
         <div className={styles.panelTitleBlock}>
           <div className={styles.panelTitleWrap}>
             <h2 id={titleId}>{title}</h2>
-            {captureEnabled ? (
-              <CaptureButton
-                captureWidth={artifactWidth}
-                fileName={captureFileName}
-                targetRef={resolvedPanelRef}
-                title={title}
-              />
-            ) : null}
           </div>
           {copy == null ? null : <p className={styles.panelCopy}>{copy}</p>}
         </div>

@@ -17,8 +17,9 @@ import type {
   ModelAtlasColumnTooltips,
 } from "../../src/model-atlas/config/tooltips";
 import { canonicalModelKey } from "../../src/model-atlas/identity/normalization";
-import { isPreviewModel, type ModelAtlasPayload } from "../../src/model-atlas/stats/types";
+import type { ModelAtlasPayload } from "../../src/model-atlas/stats/types";
 import { LeaderboardCapture } from "./capture/LeaderboardCapture";
+import { CopyDashboardLink } from "./CopyDashboardLink";
 import { researchRegionOrdinal } from "./graphs/research-index";
 import {
   ColumnTooltip,
@@ -54,12 +55,13 @@ import {
   sortedRows,
   sorters,
   type SortKey,
-  type SortState,
   type TableColumnKey,
 } from "./table/models";
 import { ModelTable, reverseDirection } from "./table/ModelTable";
 import type { ScoreChangeHandler } from "./table/Rows";
 import { scoreChangeTooltip, tableColumnTooltip } from "./table/tooltips";
+import type { DashboardUrlPatch } from "./url-state";
+import { updateDashboardUrl, useUrlState } from "./use-url-state";
 
 const emptyColumnTooltips: ModelAtlasColumnTooltips = {};
 const TOOLTIP_FADE_OUT_MS = 1_000;
@@ -89,17 +91,23 @@ export function DashboardLeaderboard({
 }) {
   const tooltipFadeTimeoutRef = useRef<number | null>(null);
   const collapsedLimitRef = useRef(DEFAULT_DISPLAY_ITEMS);
-  const [sortState, setSortState] = useState<SortState>({
-    key: "intelligence",
-    direction: "descending",
-  });
-  const [filterQuery, setFilterQuery] = useState("");
-  const [columnFilterQuery, setColumnFilterQuery] = useState("");
-  const [columnPreset, setColumnPreset] = useState<TableColumnPreset>("all");
-  const [benchmarkColumnOrder, setBenchmarkColumnOrder] =
-    useState<BenchmarkColumnOrder>("portfolio");
+  const [requestedSort, setSortState] = useUrlState("sort");
+  const [filterQuery, setFilterQuery] = useUrlState("table-q");
+  const [columnFilterQuery] = useUrlState("columns");
+  const [columnPreset] = useUrlState("view");
+  const [benchmarkColumnOrder, setBenchmarkColumnOrder] = useUrlState("column-order");
   const [tooltip, setTooltip] = useState<DashboardTooltipState | null>(null);
-  const [showVariants, setShowVariants] = useState(false);
+  const [showVariants, setShowVariants] = useUrlState("table-variants");
+  const columnTooltips = payload?.metadata?.scoring?.column_tooltips ?? emptyColumnTooltips;
+  const portfolioColumnKeys = useMemo(
+    () => tableColumnKeysForView(columnPreset, columnFilterQuery, columnTooltips),
+    [columnFilterQuery, columnPreset, columnTooltips],
+  );
+  const sortState = useMemo(() => {
+    if (portfolioColumnKeys.includes(requestedSort.key)) return requestedSort;
+    const key = tableColumnSortKey(columnPreset, columnFilterQuery, portfolioColumnKeys);
+    return { key, direction: sorters[key].direction };
+  }, [requestedSort, columnPreset, columnFilterQuery, portfolioColumnKeys]);
   const deferredFilterQuery = useDeferredValue(filterQuery);
   const deferredShowVariants = useDeferredValue(showVariants);
   const deferredSelectedProviders = useDeferredValue(selectedProviders);
@@ -149,7 +157,6 @@ export function DashboardLeaderboard({
       ),
     [modelRankFilter, payload?.models, recencyFilteredRows],
   );
-  const maximumLimit = scopedRows.length;
   const expandedTableRows = useMemo(
     () =>
       dedupeDisplayModels(
@@ -170,8 +177,6 @@ export function DashboardLeaderboard({
       filterByModelQuery(filteredExpandedRows, (row) => row.model, deferredGlobalModelFilterQuery),
     [deferredGlobalModelFilterQuery, filteredExpandedRows],
   );
-  const [effectiveLimit, setLimit] = useDisplayLimit(maximumLimit);
-  const deferredLimit = useDeferredValue(effectiveLimit);
   const matchingRows = useMemo(
     () =>
       sortedRows(scopedRows, deferredFilterQuery, {
@@ -180,17 +185,13 @@ export function DashboardLeaderboard({
       }),
     [deferredFilterQuery, scopedRows],
   );
-  const limitedRows = useMemo(() => {
-    // Previews remain visible without consuming official top-N slots.
-    let officialCount = 0;
-    return matchingRows.filter((row) => {
-      if (isPreviewModel(row.model)) {
-        return true;
-      }
-      officialCount += 1;
-      return officialCount <= deferredLimit;
-    });
-  }, [deferredLimit, matchingRows]);
+  const maximumLimit = matchingRows.length;
+  const [effectiveLimit, setLimit] = useDisplayLimit(maximumLimit);
+  const deferredLimit = useDeferredValue(effectiveLimit);
+  const limitedRows = useMemo(
+    () => matchingRows.slice(0, deferredLimit),
+    [deferredLimit, matchingRows],
+  );
   const expandedVariantCount = useMemo(() => {
     const selectedModels = new Set(limitedRows.map((row) => canonicalModelKey(row.model)));
     return filterByModelQuery(
@@ -202,11 +203,6 @@ export function DashboardLeaderboard({
   const visibleRows = useMemo(
     () => sortedRows(limitedRows, "", sortState),
     [limitedRows, sortState],
-  );
-  const columnTooltips = payload?.metadata?.scoring?.column_tooltips ?? emptyColumnTooltips;
-  const portfolioColumnKeys = useMemo(
-    () => tableColumnKeysForView(columnPreset, columnFilterQuery, columnTooltips),
-    [columnFilterQuery, columnPreset, columnTooltips],
   );
   const activeBenchmarkColumnOrder: BenchmarkColumnOrder =
     columnPreset === "scores" &&
@@ -248,31 +244,24 @@ export function DashboardLeaderboard({
   const emptyMessage = errorMessage ?? (payload == null ? "Loading stats" : "No models");
 
   useEffect(() => {
-    setLimit(maximumLimit);
-  }, [maximumLimit, setLimit]);
+    setLimit(scopedRows.length);
+  }, [scopedRows.length, setLimit]);
 
-  useEffect(() => {
-    setSortState((current) => {
-      if (visibleColumnKeys.includes(current.key)) {
-        return current;
-      }
-      const key = tableColumnSortKey(columnPreset, columnFilterQuery, visibleColumnKeys);
-      return { key, direction: sorters[key].direction };
-    });
-  }, [columnFilterQuery, columnPreset, visibleColumnKeys]);
-
-  const handleSort = useCallback((key: SortKey) => {
-    const defaultDirection = sorters[key].direction;
-    startSortTransition(() => {
-      setSortState((current) => ({
-        key,
-        direction:
-          current.key === key && current.direction === defaultDirection
-            ? reverseDirection(defaultDirection)
-            : defaultDirection,
-      }));
-    });
-  }, []);
+  const handleSort = useCallback(
+    (key: SortKey) => {
+      const defaultDirection = sorters[key].direction;
+      startSortTransition(() => {
+        setSortState({
+          key,
+          direction:
+            sortState.key === key && sortState.direction === defaultDirection
+              ? reverseDirection(defaultDirection)
+              : defaultDirection,
+        });
+      });
+    },
+    [sortState, setSortState],
+  );
 
   const handleVariantDisplay = useCallback(
     (expanded: boolean) => {
@@ -284,13 +273,40 @@ export function DashboardLeaderboard({
       }
       setShowVariants(expanded);
     },
-    [effectiveLimit, expandedVariantCount, setLimit],
+    [effectiveLimit, expandedVariantCount, setLimit, setShowVariants],
   );
 
-  const handleColumnPresetChange = useCallback((preset: TableColumnPreset) => {
-    setColumnPreset(preset);
-    setColumnFilterQuery("");
-  }, []);
+  /** Keep a column change and any required sort fallback in one navigable action. */
+  const changeColumnView = useCallback(
+    (patch: Pick<DashboardUrlPatch, "view" | "columns">) => {
+      const preset = patch.view ?? columnPreset;
+      const query = patch.columns ?? columnFilterQuery;
+      const keys = tableColumnKeysForView(preset, query, columnTooltips);
+      const key = keys.includes(sortState.key)
+        ? sortState.key
+        : tableColumnSortKey(preset, query, keys);
+      updateDashboardUrl(
+        {
+          ...patch,
+          ...(key !== requestedSort.key
+            ? { sort: { key, direction: sorters[key].direction } }
+            : {}),
+        },
+        patch.view == null,
+      );
+    },
+    [columnPreset, columnFilterQuery, columnTooltips, sortState, requestedSort],
+  );
+  const handleColumnPresetChange = useCallback(
+    (preset: TableColumnPreset) => {
+      changeColumnView({ view: preset, ...(columnFilterQuery ? { columns: "" } : {}) });
+    },
+    [changeColumnView, columnFilterQuery],
+  );
+  const handleColumnQueryChange = useCallback(
+    (query: string) => changeColumnView({ columns: query }),
+    [changeColumnView],
+  );
 
   const clearTooltipFadeTimeout = useCallback(() => {
     if (tooltipFadeTimeoutRef.current != null) {
@@ -386,10 +402,16 @@ export function DashboardLeaderboard({
       aria-labelledby="leaderboard-title"
     >
       <header className="dashboard-section-head">
-        <p className="dashboard-section-marker">
-          <b aria-hidden="true">{researchRegionOrdinal("leaderboard")}</b>
-          <span>Working view · Sortable model catalogue</span>
-        </p>
+        <div className="dashboard-section-top">
+          <p className="dashboard-section-marker">
+            <b aria-hidden="true">{researchRegionOrdinal("leaderboard")}</b>
+            <span>Working view · Sortable model catalogue</span>
+          </p>
+          <div className="dashboard-section-actions" data-capture-exclude>
+            <LeaderboardCapture rows={visibleRows} rowKind={rowKind} sortState={sortState} />
+            <CopyDashboardLink sectionId="leaderboard" />
+          </div>
+        </div>
         <h2 id="leaderboard-title">Model Leaderboard</h2>
       </header>
       <ModelToolbar
@@ -407,9 +429,6 @@ export function DashboardLeaderboard({
             onShowVariantsChange: handleVariantDisplay,
           },
         }}
-        screenshotControl={
-          <LeaderboardCapture rows={visibleRows} rowKind={rowKind} sortState={sortState} />
-        }
         onFilterQueryChange={setFilterQuery}
       />
       <ColumnViewControls
@@ -419,7 +438,7 @@ export function DashboardLeaderboard({
         searchMatchCount={columnSearchMatchCount}
         onBenchmarkOrderChange={setBenchmarkColumnOrder}
         onPresetChange={handleColumnPresetChange}
-        onQueryChange={setColumnFilterQuery}
+        onQueryChange={handleColumnQueryChange}
       />
       <ModelTable
         sortState={sortState}

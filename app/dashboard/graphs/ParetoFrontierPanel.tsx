@@ -109,7 +109,7 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
     x: { get: valueScore, goal: "maximize" },
     y: { get: intelligenceScore, goal: "maximize" },
   });
-  const scoreDistribution = valueDistribution(referenceScores);
+  const scoreDistribution = valueDistribution(scores);
   const valueAxis = scoreAxisScale(values, SCORE_AXIS_FORMAT_OPTIONS);
   const intelligenceAxis = scoreAxisScale(scores, SCORE_AXIS_FORMAT_OPTIONS);
   const xDomain = valueAxis.domain;
@@ -211,6 +211,7 @@ export const ParetoFrontierPanel = memo(function ParetoFrontierPanel({
         <BoxWhiskerSummary
           label="Intelligence Score"
           distribution={scoreDistribution}
+          countLabel={showVariants ? "variants" : "models"}
           domainMax={100}
           showDomainEndpoints
         />

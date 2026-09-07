@@ -38,7 +38,7 @@ export function CaptureButton({
 
   return (
     <button
-      className={styles.graphButton}
+      className={styles.actionButton}
       type="button"
       aria-label={label}
       aria-busy={state === "rendering"}
