@@ -361,6 +361,7 @@ const lookups = {
     rowsByModelName: new Map([["example-model", vendingBench2Row]]),
   },
   vibeCode: { rowsByModelName: emptyLookup() },
+  voxelBench: { rowsByModelName: emptyLookup() },
   weirdMl: { rowsByModelName: new Map() },
 } satisfies BenchmarkAssignmentLookups;
 

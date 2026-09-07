@@ -330,6 +330,11 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0, agentic: 1 },
   },
+  voxelbench: {
+    group: "baseline",
+    benchmarkImportance: 1,
+    dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
+  },
   weirdml: {
     group: "baseline",
     benchmarkImportance: 1,

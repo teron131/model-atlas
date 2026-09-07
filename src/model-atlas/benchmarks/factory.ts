@@ -64,6 +64,7 @@ export type BenchmarkObservationLoader =
       includeReasoningEffortInModel?: boolean;
       eligibility?: "exclude_aristotle";
     }
+  | { kind: "voxelbench"; sourceUrl: string }
   | { kind: "weirdml" }
   | { kind: "automation_bench"; sourceUrl: string }
   | {

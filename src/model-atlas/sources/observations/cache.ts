@@ -1,7 +1,6 @@
 /** Benchmark-observation runtime owns cache reconstruction, catalog-driven snapshots, and raw-row serialization. */
 
 import {
-  type BenchmarkObservationPayload,
   type BenchmarkObservationRow,
   parseBenchmarkObservationMetadata,
 } from "../../benchmarks/observation";
@@ -44,18 +43,15 @@ export async function benchmarkObservationSnapshots(
   return Promise.all(
     BENCHMARK_OBSERVATION_BINDINGS.map(async (binding) => {
       const source = binding.benchmark;
-      const { fetchRows } = benchmarkObservationSource(binding);
       return {
         binding,
         snapshot: await benchmarkObservationSnapshot(
+          binding,
           caches[binding.sourceDataKey] ?? null,
           statuses[source],
           options,
           previousMissingSince[source],
           nowEpochSeconds,
-          source,
-          binding.sourceDataKey,
-          fetchRows,
         ),
       };
     }),
@@ -122,18 +118,19 @@ export function insertBenchmarkObservationRows(
   }
 }
 
+/** Resolve fetch and merge policy from the binding while retaining cached evidence and missing-row tracking. */
 async function benchmarkObservationSnapshot(
+  binding: BenchmarkObservationBinding,
   cached: { rows: BenchmarkObservationRow[]; fetchedAt: number | null } | null,
   status: RawSourceCacheStatus,
   options: SourceRefreshOptions,
   previousMissingSince: ReadonlyMap<string, number>,
   nowEpochSeconds: number,
-  source: RawSourceName,
-  fetchedAtKey: keyof SourceSnapshots["fetchedAt"],
-  fetchRows: () => Promise<BenchmarkObservationPayload>,
 ): Promise<BenchmarkObservationSnapshot> {
+  const { fetchRows, mergeRow = mergeBenchmarkObservationRow } =
+    benchmarkObservationSource(binding);
   const snapshot = await snapshotSourceRows({
-    source,
+    source: binding.benchmark,
     cached,
     status,
     options,
@@ -142,16 +139,16 @@ async function benchmarkObservationSnapshot(
     fetchRows,
     rowKey: benchmarkObservationRowKey,
     rowLabel: (row) => `${row.benchmark_key}: ${row.model}`,
-    mergeRow: mergeBenchmarkObservationRow,
+    mergeRow,
   });
   return {
     rows: snapshot.rows,
     sourceStatus: {
-      source,
+      source: binding.benchmark,
       fetchedAt: snapshot.fetchedAt,
       sourceInputCount: snapshot.rows.length,
       sourceRowStates: snapshot.sourceRowStates,
-      fetchedAtKey,
+      fetchedAtKey: binding.sourceDataKey,
     },
   };
 }

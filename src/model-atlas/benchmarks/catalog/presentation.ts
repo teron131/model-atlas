@@ -472,6 +472,16 @@ export const BENCHMARK_TOOLTIPS = {
       ["Role", "software product construction"],
     ],
   },
+  voxelbench: {
+    title: "VoxelBench",
+    body: "Construct coherent 3D voxel scenes from text prompts, judged through anonymous community comparisons. Spatial reasoning and construction execution contribute equally; generation and voting methodology remain less transparent than verifier-based benchmarks.",
+    rows: [
+      ["Source", "VoxelBench"],
+      ["Metric", "text-prompt Glicko-2 rating; at least 50 votes"],
+      ["Scoring", "observed-range normalization to 0–100"],
+      ["Role", "spatial reasoning and construction"],
+    ],
+  },
   weirdml: {
     title: "WeirdML",
     body: "Train PyTorch models on novel datasets and iteratively improve them using execution feedback.",
@@ -546,6 +556,7 @@ export const BENCHMARK_LABELS = {
   vals_index: "Vals Index",
   vending_bench_2: "Vending-Bench 2",
   vibe_code: "Vibe Code",
+  voxelbench: "VoxelBench",
   weirdml: "WeirdML",
 } as const satisfies Readonly<Record<BenchmarkKey, string>>;
 
@@ -615,6 +626,7 @@ const BASELINE_BENCHMARK_DISPLAY_ORDER = [
   "toolathlon",
   "vending_bench_2",
   "vibe_code",
+  "voxelbench",
   "weirdml",
 ] as const satisfies readonly BenchmarkKey[];
 
@@ -1295,6 +1307,12 @@ export const BENCHMARK_COLUMNS = {
     key: "vibeCode",
     label: "Vibe",
     format: "percent",
+    defaultSort: "descending",
+  },
+  voxelbench: {
+    key: "voxelBench",
+    label: "VoxelBench",
+    format: "score",
     defaultSort: "descending",
   },
   weirdml: {
