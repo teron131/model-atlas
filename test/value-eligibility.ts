@@ -13,7 +13,10 @@ import { priceEfficiencyRows } from "../app/dashboard/graphs/price-efficiency/ro
 import { modelsForVariantDisplay } from "../app/dashboard/shared/model-display";
 import { publicJsonPayload } from "../app/leaderboard/public-json";
 import { STAGE_CONFIG } from "../src/model-atlas/config/stage";
-import { applyResourceEvidenceRequirements } from "../src/model-atlas/pipeline/scores/resource-metrics";
+import {
+  applyResourceEvidenceRequirements,
+  observedResourceEvidenceCounts,
+} from "../src/model-atlas/pipeline/scores/resource-metrics";
 import type { ModelAtlasPayload } from "../src/model-atlas/stats/types";
 import { minimalModelAtlasModel, minimalModelAtlasPayload } from "./model-atlas-fixtures";
 
@@ -185,4 +188,57 @@ assert.equal(
   priceEfficiencyRows([sparseEffort], coverageReferences, portfolio, true)[0]!.costEfficiencyScore,
   coverageRows.find((row) => row.model.reasoning_effort === "low")!.costEfficiencyScore,
   "Filtering the source-default effort must not alter the shared coverage reference",
+);
+
+// Observed AA resource coverage can qualify a variant without manufacturing standalone task measurements.
+const aaOnly = {
+  ...model,
+  benchmarks: { aa_intelligence_index: 50 },
+  intelligence: {},
+  task_metrics: { artificial_analysis: { cost: 1, seconds: 100 } },
+};
+assert.equal(applyResourceEvidenceRequirements(aaOnly, portfolio), aaOnly);
+assert.equal(
+  applyResourceEvidenceRequirements({ ...aaOnly, preview: true }, portfolio).scores.value_score,
+  70,
+);
+assert.equal(
+  applyResourceEvidenceRequirements({ ...aaOnly, benchmarks: {} }, portfolio).scores.value_score,
+  null,
+);
+assert.equal(
+  applyResourceEvidenceRequirements(
+    { ...aaOnly, task_metrics: { artificial_analysis: { cost: 1 } } },
+    portfolio,
+  ).scores.speed_score,
+  null,
+);
+assert.equal(
+  applyResourceEvidenceRequirements(
+    { ...aaOnly, task_metrics: { artificial_analysis: { seconds: 100, output_tokens: 1000 } } },
+    portfolio,
+  ).scores.value_score,
+  null,
+);
+const { aa_intelligence_index: _aa, ...withoutAA } = portfolio;
+assert.equal(applyResourceEvidenceRequirements(aaOnly, withoutAA).scores.value_score, null);
+assert.deepEqual(aaOnly.task_metrics, { artificial_analysis: { cost: 1, seconds: 100 } });
+
+const aaWithTasks = {
+  ...aaOnly,
+  benchmarks: { ...model.benchmarks, aa_intelligence_index: 50 },
+  task_metrics: { ...model.task_metrics, ...aaOnly.task_metrics },
+};
+assert.deepEqual(
+  observedResourceEvidenceCounts(aaWithTasks, portfolio),
+  { cost: 11, time: 11 },
+  "Three overlapping AA components count once; the separate ARC task adds one",
+);
+assert.deepEqual(
+  observedResourceEvidenceCounts(
+    { ...aaWithTasks, task_metrics: { ...aaWithTasks.task_metrics, scicode: { cost: 1 } } },
+    portfolio,
+  ),
+  { cost: 11, time: 11 },
+  "Missing component runtime leaves that runtime covered by AA rather than subtracting it",
 );

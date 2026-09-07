@@ -1,5 +1,9 @@
 /** Shared resource-metric rules for benchmark cost, speed, and availability scoring. */
 
+import {
+  AA_INDEX_STANDALONE_COMPONENT_KEYS,
+  INDEX_REPRESENTED_BENCHMARK_COUNTS,
+} from "../../benchmarks/catalog/portfolio";
 import type { BenchmarkPortfolio } from "../../benchmarks/factory";
 import { benchmarkValueLocation } from "../../benchmarks/registry";
 import { MINIMUM_RESOURCE_BENCHMARKS } from "../../config/stage";
@@ -17,18 +21,47 @@ export type ResourceMetricModel = BenchmarkMetricModel & {
   task_metrics?: unknown;
 };
 
-/** Publish resource scores only with enough direct task pairs, counted independently without altering scoring references. */
+/** Publish resource scores with enough observed task or index coverage, counting overlapping components once for each resource. */
 export function applyResourceEvidenceRequirements<
   T extends ResourceMetricModel & {
     scores: { speed_score: number | null; value_score: number | null };
   },
 >(model: T, portfolio: BenchmarkPortfolio): T {
-  const counts = observedResourceBenchmarkCounts(model, portfolio);
+  const counts = observedResourceEvidenceCounts(model, portfolio);
   const valueScore = counts.cost >= MINIMUM_RESOURCE_BENCHMARKS ? model.scores.value_score : null;
   const speedScore = counts.time >= MINIMUM_RESOURCE_BENCHMARKS ? model.scores.speed_score : null;
   return valueScore === model.scores.value_score && speedScore === model.scores.speed_score
     ? model
     : { ...model, scores: { ...model.scores, speed_score: speedScore, value_score: valueScore } };
+}
+
+/** AA supplies only residual breadth and only for its own measured quality/resource pair; standalone task telemetry stays untouched. */
+export function observedResourceEvidenceCounts(
+  model: ResourceMetricModel,
+  portfolio: BenchmarkPortfolio,
+): { cost: number; time: number } {
+  const direct = observedResourceBenchmarkCounts(model, portfolio);
+  const counts = { cost: direct.cost, time: direct.time };
+  if (
+    portfolio.aa_intelligence_index == null ||
+    benchmarkMetricValue(model, "aa_intelligence_index") == null
+  )
+    return counts;
+  const metrics = benchmarkTaskMetrics(model, "artificial_analysis");
+  for (const [kind, field] of [
+    ["cost", "cost"],
+    ["time", "seconds"],
+  ] as const) {
+    if (positiveFiniteNumber(metrics?.[field]) == null) continue;
+    const overlap = [...AA_INDEX_STANDALONE_COMPONENT_KEYS].filter(
+      (key) =>
+        portfolio[key]?.resourcePolicy != null &&
+        benchmarkMetricValue(model, key) != null &&
+        positiveFiniteNumber(benchmarkTaskMetrics(model, key)?.[field]) != null,
+    ).length;
+    counts[kind] += Math.max(0, INDEX_REPRESENTED_BENCHMARK_COUNTS.aa_intelligence_index - overlap);
+  }
+  return counts;
 }
 
 /** Direct quality-resource pairs drive both publication gates and preview tapering; selected tasks without a pair remain in the denominator. */

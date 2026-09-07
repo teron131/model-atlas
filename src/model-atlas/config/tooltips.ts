@@ -321,7 +321,7 @@ export function columnTooltipsForActiveComponents(
         ],
         [
           "Speed availability",
-          "at least 4 observed benchmark time-and-quality pairs at this effort; estimated runtimes do not count",
+          "at least 4 benchmarks of observed time-and-quality coverage, including residual AA index breadth; estimates do not count",
         ],
         ["Model coverage", "shared source-default multiplier; full from 60% coverage"],
         [
@@ -356,7 +356,7 @@ export function columnTooltipsForActiveComponents(
         ],
         [
           "Value availability",
-          "at least 4 observed benchmark cost-and-quality pairs at this effort",
+          "at least 4 benchmarks of observed cost-and-quality coverage, including residual AA index breadth",
         ],
         ["Without eligible Value", "quality remains in the table; excluded from all graphs"],
         ["Model coverage", "shared source-default multiplier; full from 60% coverage"],
