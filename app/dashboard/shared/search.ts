@@ -23,26 +23,35 @@ type ScoredSearchDocument<T> = {
   score: number;
 };
 
-/** Filter target documents through one weighted keyword policy while preserving the target owner's display order. */
+/** Match comma-separated alternatives independently under the weighted keyword policy, preserving display order without duplicates. */
 export function filterSearchDocuments<T>(
   query: string,
   documents: readonly SearchDocument<T>[],
 ): T[] {
-  const search = buildSearchQuery(query);
-  if (search == null) {
+  const searches = query
+    .split(",")
+    .map(buildSearchQuery)
+    .filter((search) => search != null);
+  if (searches.length === 0) {
     return documents.map(({ value }) => value);
   }
-  const scored = documents
-    .map((document) => scoreSearchDocument(document, search.query, search.patterns))
-    .filter((candidate) => candidate.coverage >= MIN_QUERY_TERM_COVERAGE && candidate.score > 0);
-  const maxScore = Math.max(0, ...scored.map(({ score }) => score));
-  return scored
-    .filter(({ score }) => score >= maxScore * MIN_RELATIVE_SEARCH_SCORE)
-    .map(({ document }) => document.value);
+  const matches = new Set<SearchDocument<T>>();
+  for (const search of searches) {
+    const scored = documents
+      .map((document) => scoreSearchDocument(document, search.query, search.patterns))
+      .filter((candidate) => candidate.coverage >= MIN_QUERY_TERM_COVERAGE && candidate.score > 0);
+    const maxScore = Math.max(0, ...scored.map(({ score }) => score));
+    for (const { document, score } of scored) {
+      if (score >= maxScore * MIN_RELATIVE_SEARCH_SCORE) {
+        matches.add(document);
+      }
+    }
+  }
+  return documents.filter((document) => matches.has(document)).map(({ value }) => value);
 }
 
 export function hasSearchQuery(query: string): boolean {
-  return buildSearchQuery(query) != null;
+  return query.split(",").some((alternative) => buildSearchQuery(alternative) != null);
 }
 
 function buildSearchQuery(query: string): { patterns: SearchPattern[]; query: string } | null {
