@@ -1,6 +1,6 @@
 /** Price-efficiency comparison panel controls, model selection, summaries, and graph composition. */
 
-import { memo, useDeferredValue, useMemo, useRef, useState } from "react";
+import { memo, useDeferredValue, useMemo } from "react";
 
 import {
   type BenchmarkPortfolio,
@@ -8,7 +8,6 @@ import {
   type ModelAtlasModel,
   type ModelAtlasPublishedModel,
 } from "../../../../src/model-atlas/stats/types";
-import { CaptureButton } from "../../capture/CaptureButton";
 import { captureFileToken } from "../../capture/png";
 import { useDisplayLimit } from "../../shared/DisplayControls";
 import {
@@ -25,13 +24,11 @@ import {
   type RecencyFilter,
 } from "../../shared/model-display";
 import { ModelToolbar } from "../../shared/ModelToolbar";
+import { useUrlState } from "../../use-url-state";
 import { BoxWhiskerSummary } from "../BoxWhiskerSummary";
 import { bestByScore, valueDistribution } from "../chart-stats";
 import { EmptyChart, PreviewLabelLegend, SummaryCard } from "../ChartComponents";
-import {
-  filterGraphPreviewsByIntelligenceFloor,
-  limitGraphItemsByOfficialCount,
-} from "../model-series";
+import { filterGraphPreviewsByIntelligenceFloor } from "../model-series";
 import { Panel } from "../Panel";
 import type { HoverSetter } from "../types";
 import { useCompactChartLayout } from "../use-media-query";
@@ -75,9 +72,8 @@ export const PriceEfficiencyPanel = memo(function PriceEfficiencyPanel({
   referenceModels: ModelAtlasModel[];
   setHover: HoverSetter;
 }) {
-  const [filterQuery, setFilterQuery] = useState("");
+  const [filterQuery, setFilterQuery] = useUrlState("price-q");
   const deferredFilterQuery = useDeferredValue(filterQuery);
-  const panelRef = useRef<HTMLElement>(null);
   const compactChartLayout = useCompactChartLayout();
   const chartWidth = priceEfficiencyChartWidth(compactChartLayout);
   const displayModels = useMemo(() => {
@@ -128,13 +124,13 @@ export const PriceEfficiencyPanel = memo(function PriceEfficiencyPanel({
     referenceModels,
     selectedProviders,
   ]);
-  const maximumLimit = availableRows.filter((row) => !isPreviewModel(row.model)).length;
-  const [effectiveLimit, setDisplayLimit] = useDisplayLimit(maximumLimit);
   const matchingRows = useMemo(
     () => filterByModelQuery(availableRows, (row) => row.model, deferredFilterQuery),
     [availableRows, deferredFilterQuery],
   );
-  const rows = limitGraphItemsByOfficialCount(matchingRows, (row) => row.model, effectiveLimit);
+  const maximumLimit = matchingRows.length;
+  const [effectiveLimit, setDisplayLimit] = useDisplayLimit(maximumLimit);
+  const rows = matchingRows.slice(0, effectiveLimit);
   const itemKind = showVariants ? "variants" : "models";
   const captureFileName = [
     `model-atlas-price-vs-cost-efficiency-top-${effectiveLimit}-${itemKind}`,
@@ -171,23 +167,14 @@ export const PriceEfficiencyPanel = memo(function PriceEfficiencyPanel({
           onShowVariantsChange,
         },
       }}
-      screenshotControl={
-        <CaptureButton
-          targetRef={panelRef}
-          title={PANEL_TITLE}
-          captureWidth={chartWidth + 48}
-          fileName={captureFileName}
-        />
-      }
       onFilterQueryChange={setFilterQuery}
     />
   );
   if (rows.length === 0) {
     return (
       <Panel
-        captureEnabled={false}
+        captureFileName={captureFileName}
         captureWidth={chartWidth}
-        panelRef={panelRef}
         sectionId="price-efficiency"
         sectionLabel="Cost view · Quality-adjusted efficiency"
         title={PANEL_TITLE}
@@ -207,13 +194,12 @@ export const PriceEfficiencyPanel = memo(function PriceEfficiencyPanel({
   const efficiencyLeader = bestByScore(officialRows, (row) => row.costEfficiencyScore);
   const bestLift = bestByScore(officialRows, (row) => row.deltaScore);
   const worstDrop = bestByScore(officialRows, (row) => -row.deltaScore);
-  const scoreDistribution = valueDistribution(officialRows.map((row) => row.costEfficiencyScore));
+  const scoreDistribution = valueDistribution(rows.map((row) => row.costEfficiencyScore));
 
   return (
     <Panel
-      captureEnabled={false}
+      captureFileName={captureFileName}
       captureWidth={chartWidth}
-      panelRef={panelRef}
       sectionId="price-efficiency"
       sectionLabel="Cost view · Quality-adjusted efficiency"
       title={PANEL_TITLE}

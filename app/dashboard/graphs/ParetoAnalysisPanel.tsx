@@ -1,20 +1,16 @@
 /** Unified owner for switching between model-score and benchmark-evidence Pareto analysis. */
 
-import { useState } from "react";
-
 import type {
   ModelAtlasModel,
   ModelAtlasPayload,
   ModelAtlasPublishedModel,
 } from "../../../src/model-atlas/stats/types";
-import type { FrontierBenchmarkAxisKey } from "./frontier-benchmarks/analysis";
+import { useUrlState } from "../use-url-state";
 import { FrontierBenchmarksPanel } from "./frontier-benchmarks/Panel";
 import { GraphToggle } from "./GraphToggle";
 import { ParetoFrontierPanel } from "./ParetoFrontierPanel";
 import type { HoverSetter } from "./types";
 import { useCompactChartLayout } from "./use-media-query";
-
-type ParetoAnalysisView = "scores" | "benchmarks";
 
 export function ParetoAnalysisPanel({
   payload,
@@ -30,9 +26,9 @@ export function ParetoAnalysisPanel({
   setHover: HoverSetter;
 }) {
   const compactLayout = useCompactChartLayout();
-  const [view, setView] = useState<ParetoAnalysisView>("scores");
-  const [benchmarkKeys, setBenchmarkKeys] = useState<string[] | null>(null);
-  const [benchmarkAxisKey, setBenchmarkAxisKey] = useState<FrontierBenchmarkAxisKey>("speedValue");
+  const [view, setView] = useUrlState("pareto");
+  const [benchmarkKeys, setBenchmarkKeys] = useUrlState("benchmark");
+  const [benchmarkAxisKey, setBenchmarkAxisKey] = useUrlState("axes");
   const scoreBasisControl = (
     <GraphToggle
       legend="Score basis"

@@ -15,7 +15,7 @@ import { valueDistribution } from "../chart-stats";
 import { PreviewLabelLegend } from "../ChartComponents";
 import { finite, fmtPercentScore } from "../format";
 import { GraphToggle } from "../GraphToggle";
-import { graphModelLabel, graphReferenceItems } from "../model-series";
+import { graphModelLabel } from "../model-series";
 import { Panel } from "../Panel";
 import { PARETO_PANEL_CONTENT, ParetoControlSet } from "../ParetoControlSet";
 import { SCATTER_CHART_WIDTH } from "../plot/Primitives";
@@ -223,9 +223,7 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
     ? (value: number) => `${value.toFixed(2)} points`
     : fmtPercentScore;
   const scoreAxis = frontierScoreAxisScale(scoreValues, isAggregateView, indexProxyView);
-  const scoreDistribution = valueDistribution(
-    graphReferenceItems(chartRows, (row) => row.model).map((row) => row.score),
-  );
+  const scoreDistribution = valueDistribution(chartRows.map((row) => row.score));
   const plotRows = [...chartRows].sort((left, right) => left.score - right.score);
   const yAxisLabel = isAggregateView
     ? "Mean Normalized Benchmark Score"
@@ -252,6 +250,7 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
         <BoxWhiskerSummary
           label={yAxisLabel}
           distribution={scoreDistribution}
+          countLabel={showVariants ? "variants" : "models"}
           domainMax={100}
           formatValue={scoreFormat}
           showDomainEndpoints

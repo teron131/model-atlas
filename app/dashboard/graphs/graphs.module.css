@@ -553,27 +553,8 @@
   content: "";
 }
 
-.sectionMarker {
-  grid-column: 1 / -1;
-  grid-row: 1;
-  display: grid;
-  grid-template-columns: 2.5ch minmax(0, 1fr);
-  align-items: center;
-  gap: 10px;
-  margin: 0 0 4px;
-  color: var(--muted);
-  font-family: var(--font-mono);
-  font-size: var(--type-caption-size);
-  font-weight: var(--type-label-weight);
-  letter-spacing: var(--type-label-tracking);
-  line-height: 1;
-  text-transform: uppercase;
-}
-
-.sectionMarker b {
-  color: var(--ink);
-  font: inherit;
-  font-variant-numeric: tabular-nums;
+.sectionMarker:global(.dashboard-section-marker) {
+  margin-bottom: 4px;
 }
 
 .panelSide {

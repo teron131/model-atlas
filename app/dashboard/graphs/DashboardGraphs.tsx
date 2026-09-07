@@ -27,6 +27,7 @@ import {
   toggleProviderFilter,
 } from "../shared/model-display";
 import { ModelSignature } from "../signature/ModelSignature";
+import { dashboardUrlSection } from "../url-state";
 import { FilterButton, HoverCard } from "./ChartComponents";
 import { finite, fmtCompact, fmtMoney } from "./format";
 import { filterGraphPreviewsByIntelligenceFloor, isGraphEligible } from "./model-series";
@@ -441,14 +442,11 @@ function modelRankValueLabel(
   return `Rank ≤${rankFilter} · ${fmtCompact(visibleModelCount)} of ${fmtCompact(filteredModelCount)} models${variantLabel}`;
 }
 
-/** Report the last research region to enter the upper viewport band below the sticky index. */
+/** Align deep links when sections become available and report the region entering the upper viewport band. */
 function useCurrentResearchSection(hasPanels: boolean) {
   const [currentSection, setCurrentSection] = useState<ResearchRegionId | null>(null);
 
   useEffect(() => {
-    if (!hasPanels) {
-      return;
-    }
     const sections = RESEARCH_REGION_IDS.flatMap((id) => {
       const element = document.getElementById(id);
       return element == null ? [] : [{ element, id }];
@@ -474,18 +472,29 @@ function useCurrentResearchSection(hasPanels: boolean) {
         updateFrame = window.requestAnimationFrame(updateCurrentSection);
       }
     };
-    const initialSection = window.location.hash.slice(1);
-    const alignmentFrame = window.requestAnimationFrame(() => {
-      if (RESEARCH_REGION_IDS.some((id) => id === initialSection)) {
-        document.getElementById(initialSection)?.scrollIntoView({ block: "start" });
-      }
-      scheduleUpdate();
-    });
+    let alignmentFrame: number | null = null;
+    const alignSection = () => {
+      if (alignmentFrame != null) window.cancelAnimationFrame(alignmentFrame);
+      // URL-backed controls hydrate before measuring the selected panel's final position.
+      alignmentFrame = window.requestAnimationFrame(() => {
+        alignmentFrame = window.requestAnimationFrame(() => {
+          alignmentFrame = null;
+          const section = dashboardUrlSection(new URL(window.location.href));
+          if (section != null) document.getElementById(section)?.scrollIntoView({ block: "start" });
+          scheduleUpdate();
+        });
+      });
+    };
+    alignSection();
+    window.addEventListener("popstate", alignSection);
+    window.addEventListener("hashchange", alignSection);
     window.addEventListener("resize", scheduleUpdate);
     window.addEventListener("scroll", scheduleUpdate, { passive: true });
     scheduleUpdate();
     return () => {
-      window.cancelAnimationFrame(alignmentFrame);
+      if (alignmentFrame != null) window.cancelAnimationFrame(alignmentFrame);
+      window.removeEventListener("popstate", alignSection);
+      window.removeEventListener("hashchange", alignSection);
       if (updateFrame != null) {
         window.cancelAnimationFrame(updateFrame);
       }

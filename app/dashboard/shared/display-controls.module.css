@@ -203,26 +203,9 @@
 
 @container (max-width: 25rem) {
   .controls {
-    gap: 8px;
-  }
-
-  .range {
-    min-width: 72px;
-  }
-
-  .variants {
-    padding-left: 8px;
-  }
-
-  .variantOptions {
-    gap: 8px;
-  }
-}
-
-@container (max-width: 20.5rem) {
-  .controls {
     width: 100%;
     flex-wrap: wrap;
+    gap: 8px;
   }
 
   .range {
@@ -237,6 +220,10 @@
     margin-left: 0;
     padding-left: 0;
     border-left: 0;
+  }
+
+  .variantOptions {
+    gap: 8px;
   }
 }
 

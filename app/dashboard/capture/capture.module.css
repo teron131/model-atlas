@@ -1,7 +1,6 @@
-/** Direct PNG actions and the export-only leaderboard surface. */
+/** Shared section-action button styling and the export-only leaderboard surface. */
 
-.graphButton,
-.leaderboardButton {
+.actionButton {
   font-family: var(--font-mono);
   font-weight: var(--type-label-weight);
   text-transform: uppercase;
@@ -11,12 +10,9 @@
     border-color 0.16s ease,
     color 0.16s ease,
     transform 0.16s ease;
-}
-
-.graphButton {
   display: inline-grid;
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   padding: 0;
   place-items: center;
   border: 0;
@@ -25,39 +21,34 @@
   color: var(--muted);
 }
 
-.graphButton:hover,
-.graphButton:focus-visible,
-.graphButton[data-state="saved"] {
+.actionButton:hover,
+.actionButton:focus-visible,
+.actionButton[data-state="saved"] {
   background: var(--hover);
   color: var(--ink);
   outline: 0;
 }
 
-.graphButton:focus-visible,
-.leaderboardButton:focus-visible {
+.actionButton:focus-visible {
   box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
-.graphButton:active,
-.leaderboardButton:active {
+.actionButton:active {
   transform: translateY(1px);
 }
 
-.graphButton:disabled,
-.leaderboardButton:disabled {
+.actionButton:disabled {
   cursor: wait;
   opacity: 0.58;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .graphButton,
-  .leaderboardButton {
+  .actionButton {
     transition: none;
   }
 }
 
-.graphButton svg,
-.leaderboardButton svg {
+.actionButton svg {
   width: 16px;
   height: 16px;
   stroke: currentColor;
@@ -70,29 +61,8 @@
   flex: 0 0 auto;
 }
 
-.leaderboardButton {
-  display: inline-grid;
-  width: 34px;
-  height: 34px;
-  place-items: center;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  color: var(--muted);
-}
-
-.leaderboardButton:hover,
-.leaderboardButton:focus-visible,
-.leaderboardButton[data-state="saved"] {
-  background: var(--hover);
-  color: var(--ink);
-  outline: 0;
-}
-
 @media (max-width: 720px) {
-  .graphButton,
-  .leaderboardButton {
+  .actionButton {
     width: var(--dashboard-icon-button-size);
     height: var(--dashboard-icon-button-size);
   }

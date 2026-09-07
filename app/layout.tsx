@@ -10,13 +10,6 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Model Atlas",
   description: "Independent model rankings for Intelligence, Agentic capability, Speed, and Value.",
-  icons: {
-    icon: [
-      { url: "/favicon.ico", sizes: "64x64", type: "image/x-icon" },
-      { url: "/icons/icon-128.png", sizes: "128x128", type: "image/png" },
-    ],
-    shortcut: "/favicon.ico",
-  },
 };
 
 export default function RootLayout({

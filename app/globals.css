@@ -174,8 +174,8 @@ main {
   height: 29px;
   flex: 0 0 auto;
   background: var(--ink);
-  mask: url("/icons/icon-128.png") center / contain no-repeat;
-  -webkit-mask: url("/icons/icon-128.png") center / contain no-repeat;
+  mask: url("/icon.svg") center / contain no-repeat;
+  -webkit-mask: url("/icon.svg") center / contain no-repeat;
 }
 
 .brand-lockup h1,
@@ -516,6 +516,23 @@ html[data-model-atlas-theme="light"] .theme-icon-dark {
   height: 3px;
   background: var(--ink);
   content: "";
+}
+
+.dashboard-section-top {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+}
+
+.dashboard-section-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 4px;
 }
 
 .dashboard-section-marker {

@@ -64,22 +64,6 @@ export function filterGraphPreviewsByIntelligenceFloor<T>(
   });
 }
 
-/** Apply an official-row display limit without hiding previews. */
-export function limitGraphItemsByOfficialCount<T>(
-  items: T[],
-  getModel: (item: T) => ModelAtlasPublishedModel,
-  limit: number,
-): T[] {
-  let officialCount = 0;
-  return items.filter((item) => {
-    if (isPreviewModel(getModel(item))) {
-      return true;
-    }
-    officialCount += 1;
-    return officialCount <= limit;
-  });
-}
-
 function finiteNumber(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
