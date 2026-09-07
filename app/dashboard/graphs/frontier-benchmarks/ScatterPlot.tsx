@@ -60,9 +60,13 @@ export function EmptyFrontierBenchmarkScatterPlot({
   compactLayout,
   xAxisLabel,
   xHigherIsBetter,
+  yAxisLabel,
+  formatScore,
 }: {
   compactLayout: boolean;
   xAxisLabel: string;
+  yAxisLabel: string;
+  formatScore: (value: number) => string;
   xHigherIsBetter?: boolean;
 }) {
   const width = SCATTER_CHART_WIDTH;
@@ -88,7 +92,7 @@ export function EmptyFrontierBenchmarkScatterPlot({
           ticks={EMPTY_CHART_TICKS}
           yPoint={yPoint}
           x={plot.left}
-          format={(tick) => `${tick}%`}
+          format={formatScore}
           keyPrefix="empty-frontier-benchmarks"
         />
         <XAxisTicks
@@ -103,7 +107,7 @@ export function EmptyFrontierBenchmarkScatterPlot({
           height={height}
           margin={margin}
           x={xAxisLabel}
-          y="Mean Normalized Benchmark Score"
+          y={yAxisLabel}
           compact={compactLayout}
           xTitleOffset={50}
         />

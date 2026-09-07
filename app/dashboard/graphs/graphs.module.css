@@ -1189,7 +1189,7 @@
 .paretoControlGrid {
   display: grid;
   width: 100%;
-  grid-template-columns: minmax(180px, 0.75fr) minmax(220px, 1fr) minmax(340px, auto);
+  grid-template-columns: minmax(360px, 1fr) minmax(0, 1.5fr);
   align-items: flex-start;
   gap: 18px 34px;
 }
@@ -1198,6 +1198,18 @@
   --pareto-control-height: 30px;
 
   align-items: flex-start;
+}
+
+.chartToolbar.paretoControlSet {
+  overflow: visible;
+}
+
+.comparisonExplanation {
+  margin: 14px 0 0;
+  max-width: 78ch;
+  color: var(--muted);
+  font-size: var(--type-note-size);
+  line-height: 1.45;
 }
 
 .toolbarControl {
@@ -1223,25 +1235,11 @@
 
 @media (max-width: 900px) {
   .paretoControlGrid {
-    grid-template-columns: minmax(220px, 1fr) minmax(0, 1.5fr);
-  }
-
-  .paretoControlBasis {
-    grid-column: 1 / -1;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .paretoControlXAxis {
     min-width: 0;
-  }
-
-  .paretoControlXAxis .metricToggle {
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scrollbar-width: none;
-  }
-
-  .paretoControlXAxis .metricToggle::-webkit-scrollbar {
-    display: none;
   }
 
   .paretoControlXAxis .metricToggle button {
@@ -1317,9 +1315,23 @@
   color: var(--muted);
 }
 
-.benchmarkSelect {
+/* Keep both axes wrapping while the benchmark menu can extend beyond its control row. */
+.paretoControlXAxis .metricToggle,
+.metricToggle.performanceToggle {
+  flex-wrap: wrap;
+  overflow: visible;
+}
+
+.paretoControlXAxis .metricToggle {
+  gap: 8px 14px;
+}
+
+.performanceToggle {
   position: relative;
-  min-width: 220px;
+}
+
+.benchmarkSelect {
+  min-width: 0;
   color: var(--ink);
   font-family: var(--font-mono);
   font-size: var(--type-label-size);
@@ -1333,9 +1345,11 @@
   min-height: 30px;
   align-items: center;
   justify-content: space-between;
-  padding: 0 4px;
-  border-bottom: 2px solid var(--line-strong);
-  color: var(--ink);
+  gap: 6px;
+  padding: 0 2px;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  white-space: nowrap;
   cursor: pointer;
   list-style: none;
 }
@@ -1343,22 +1357,27 @@
 .benchmarkSelect summary::after {
   min-width: 12px;
   color: var(--faint);
-  content: "+";
+  content: "▾";
   text-align: right;
 }
 
 .benchmarkSelect[open] summary::after {
   color: var(--ink);
-  content: "-";
+  content: "▴";
 }
 
 .benchmarkSelect summary::-webkit-details-marker {
   display: none;
 }
 
-.benchmarkSelect summary:hover,
-.benchmarkSelect[open] summary {
+.benchmarkSelect summary[aria-current="true"] {
   border-bottom-color: var(--ink);
+  color: var(--ink);
+}
+
+.benchmarkSelect summary:hover {
+  border-bottom-color: color-mix(in srgb, var(--ink) 40%, transparent);
+  color: var(--ink);
 }
 
 .benchmarkSelect summary:focus-visible,
@@ -1573,6 +1592,15 @@
   color: var(--ink);
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.evidenceUnit {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: var(--type-micro-size);
+  font-weight: 500;
+  text-transform: none;
 }
 
 .benchmarkSelectOptionCorrelation,
@@ -2106,10 +2134,6 @@
     --pareto-control-height: 36px;
   }
 
-  .paretoControlBasis {
-    grid-column: auto;
-  }
-
   .metricToggle {
     width: 100%;
     gap: 14px;
@@ -2134,15 +2158,8 @@
     justify-content: space-between;
   }
 
-  .benchmarkSelect {
-    width: 100%;
-  }
-
   .benchmarkSelectMenu {
-    position: relative;
-    top: auto;
     width: 100%;
-    margin-top: 8px;
     box-shadow: none;
   }
 }

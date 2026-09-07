@@ -1,3 +1,5 @@
+/** Protect fixed-basket resource curves against task-mixture reversals and unequal quality coverage. */
+
 import assert from "node:assert/strict";
 
 import {
@@ -8,7 +10,6 @@ import {
   frontierXAxisScale,
   meanFrontierBenchmarkRows,
 } from "../app/dashboard/graphs/frontier-benchmarks/analysis";
-/** Protect fixed-basket resource curves against task-mixture reversals and unequal quality coverage. */
 import { sharedFrontierBenchmarkComparison } from "../app/dashboard/graphs/frontier-benchmarks/common-evidence";
 import { minimalModelAtlasModel } from "./model-atlas-fixtures";
 
@@ -248,7 +249,12 @@ const incompleteComponent = sharedFrontierBenchmarkComparison(
     row(low, "scicode", 70, 1),
     row(high, "scicode", 80, null),
   ],
-  references,
+  [
+    row(low, "aa_intelligence_index", 40, 2),
+    row(high, "aa_intelligence_index", 50, 4),
+    row(low, "scicode", 70, 1),
+    row(high, "scicode", 80, null),
+  ],
   ["aa_intelligence_index", "scicode"],
   "cost",
 );

@@ -2,7 +2,12 @@
 
 import { isPreviewModel } from "../../../../src/model-atlas/stats/types";
 import { ProviderLogo } from "../../shared/ProviderLogo";
-import type { FrontierBenchmarkAxisKey, FrontierBenchmarkOption } from "./analysis";
+import {
+  frontierBenchmarkAxisConfig,
+  type FrontierBenchmarkAxisKey,
+  type FrontierBenchmarkOption,
+  isScoreAxis,
+} from "./analysis";
 import type { CommonBenchmarkComparison } from "./common-evidence";
 
 import styles from "../graphs.module.css";
@@ -12,11 +17,15 @@ export function CommonEvidence({
   benchmarkOptions,
   activeBenchmarkKeys,
   axisKey,
+  publishedPerformance,
+  showVariants,
 }: {
   comparison: CommonBenchmarkComparison;
   benchmarkOptions: readonly FrontierBenchmarkOption[];
   activeBenchmarkKeys: readonly string[];
   axisKey: FrontierBenchmarkAxisKey;
+  publishedPerformance: boolean;
+  showVariants: boolean;
 }) {
   const shares = comparison.groups
     .filter((group) => group.effortCount > 0)
@@ -32,24 +41,32 @@ export function CommonEvidence({
     key === "aa_intelligence_index"
       ? "AA Index"
       : (benchmarkOptions.find((option) => option.key === key)?.label ?? key).replace(
-          " (index proxy)",
+          " (index)",
           "",
         );
   return (
     <details className={styles.commonEvidence} aria-label="Common evidence">
       <summary className={styles.chartFooterCaption}>
         <span>Common within model</span>
-        <span>{comparison.rows.length} variants</span>
+        <span>
+          {comparison.rows.length} {showVariants ? "variants" : "models"}
+        </span>
         {indexShareLabel != null ? <span>Index {indexShareLabel}</span> : null}
         <span>Details</span>
       </summary>
       <div className={styles.note}>
-        <p>{`Shared quality and ${resourceLabel} evidence within each model; identical weights on both axes.`}</p>
+        <p>
+          {publishedPerformance
+            ? `Shared ${resourceLabel} evidence within each model; the Y axis retains its published performance score.`
+            : isScoreAxis(axisKey)
+              ? `Shared performance evidence within each model; the X axis retains the published ${frontierBenchmarkAxisConfig[axisKey].label}.`
+              : `Shared quality and ${resourceLabel} evidence within each model; identical weights on both axes.`}
+        </p>
         {comparison.indexVariantCount > 0 ? (
           <p>AA weight excludes components counted separately in this basket.</p>
         ) : null}
         {comparison.excludedVariantCount > 0 ? (
-          <p>{`${comparison.excludedVariantCount} variants lack index resource data. Deselect proxies to compare their task results.`}</p>
+          <p>{`${comparison.excludedVariantCount} variants lack the selected index evidence. Deselect indexes to compare their task results.`}</p>
         ) : null}
         {comparison.groups.length > 0 ? (
           <div
@@ -95,7 +112,7 @@ export function CommonEvidence({
                           <details className={styles.missingEvidence}>
                             <summary>Not common ({missingKeys.length})</summary>
                             <p>{missingKeys.map(label).join(", ")}</p>
-                            <p>{`Missing paired quality and ${resourceLabel} data for some shown variants.`}</p>
+                            <p>{`${isScoreAxis(axisKey) ? "Missing performance evidence" : `Missing paired quality and ${resourceLabel} data`} for some shown variants.`}</p>
                           </details>
                         ) : null}
                       </td>
