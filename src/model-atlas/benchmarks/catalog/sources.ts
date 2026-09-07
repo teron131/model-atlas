@@ -361,6 +361,16 @@ export const BENCHMARK_STANDARD_SOURCES = {
     sourceDataKey: "vibeCode",
     sourceRowsKey: "vibeCodeRows",
   },
+  voxelbench: {
+    group: "standalone",
+    id: "voxelbench",
+    loader: {
+      kind: "voxelbench",
+      sourceUrl: "https://voxelbench.ai/api/leaderboard?limit=100&type=text",
+    },
+    sourceDataKey: "voxelBench",
+    sourceRowsKey: "voxelBenchRows",
+  },
   weirdml: {
     group: "standalone",
     id: "weirdml",

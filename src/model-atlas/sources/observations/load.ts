@@ -19,12 +19,17 @@ import {
   terminalBenchScienceCacheMatches,
 } from "../terminal-bench-science";
 import { getValsSourceStats, valsBenchmarkCacheMatches } from "../vals/results";
+import { getVoxelBenchStats } from "../voxelbench";
 import { getWeirdMlStats } from "../weirdml";
 import { getZeroEvalStats } from "../zeroeval";
 
 type ObservationSource = {
   fetchRows: () => Promise<BenchmarkObservationPayload>;
   acceptsCache?: (rows: readonly BenchmarkObservationRow[]) => boolean;
+  mergeRow?: (
+    cached: BenchmarkObservationRow,
+    fetched: BenchmarkObservationRow,
+  ) => BenchmarkObservationRow;
 };
 
 /** Resolve live and cached evidence through the same catalog binding without teaching shared persistence about source formats. */
@@ -93,6 +98,12 @@ export function benchmarkObservationSource(
             sourceUrl: loader.sourceUrl,
           }),
         acceptsCache: (rows) => valsBenchmarkCacheMatches(rows, loader.canonicalTask),
+      };
+    case "voxelbench":
+      // Ratings and uncertainty are recalculated from an evolving voting pool, not immutable task results.
+      return {
+        fetchRows: () => getVoxelBenchStats(loader.sourceUrl),
+        mergeRow: (_cached, fetched) => fetched,
       };
     case "weirdml":
       return { fetchRows: () => getWeirdMlStats() };

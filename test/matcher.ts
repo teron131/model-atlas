@@ -1052,6 +1052,7 @@ function modelStatsSourceData(
       rowsByModelName: new Map(),
     },
     vibeCode: { rows: [], rowsByModelName: new Map() },
+    voxelBench: { rows: [], rowsByModelName: new Map() },
     weirdMl: { rows: [], rowsByModelName: new Map() },
   };
 }
