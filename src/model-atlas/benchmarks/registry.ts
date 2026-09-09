@@ -6,7 +6,6 @@ import {
   BENCHMARK_COLUMNS,
   BENCHMARK_DISPLAY_ORDER,
   BENCHMARK_EXTENDED_SOURCES,
-  BENCHMARK_IMPUTATION_OVERRIDES,
   BENCHMARK_LABELS,
   BENCHMARK_PERSISTENCE_OVERRIDES,
   BENCHMARK_PROCESSING_OVERRIDES,
@@ -215,9 +214,7 @@ const BENCHMARK_SCORING = Object.fromEntries(
     {
       ...weight,
       normalization: { kind: "min_max", output: [0, 100] },
-      imputation: BENCHMARK_IMPUTATION_OVERRIDES[
-        key as keyof typeof BENCHMARK_IMPUTATION_OVERRIDES
-      ] ?? { kind: "contextual" },
+      imputation: { kind: "contextual" },
     },
   ]),
 ) as unknown as Readonly<Record<BenchmarkKey, BenchmarkScoringFacet>>;

@@ -24,6 +24,9 @@ type MercorApexAgentsSnapshot = {
   sourceStatus: SourceSnapshotStatus;
 };
 
+// Revision 1 preserves Mercor's structured effort field, which earlier cached rows discarded.
+const SOURCE_REVISION = 1;
+
 export const mercorApexAgentsRuntime = defineBenchmarkRuntime({
   cacheKey: "mercorApexAgents",
   source: "mercor_apex_agents",
@@ -46,7 +49,10 @@ export function readMercorApexAgentsRawCache(cache: CacheRowSource): {
   );
   if (
     cacheRows.length === 0 ||
-    cacheRows.some((row) => stringValue(row.url) !== DEFAULT_LEADERBOARD_URL)
+    cacheRows.some(
+      (row) =>
+        stringValue(row.url) !== DEFAULT_LEADERBOARD_URL || row.source_revision !== SOURCE_REVISION,
+    )
   ) {
     return null;
   }
@@ -110,17 +116,18 @@ async function mercorApexAgentsSnapshot(
   };
 }
 
-/** Insert Mercor's Loop Pass@1 APEX rows used as calibrated AA fallbacks. */
+/** Insert Mercor's canonical Loop Pass@1 APEX rows. */
 function insertMercorApexAgentsRawRows(db: DatabaseWriter, snapshots: SourceSnapshots): void {
   const statement = db.prepare(`
 		INSERT INTO mercor_apex_agents_raw_rows (
-			row_index, fetched_at_epoch_seconds, url, model_id, source_model,
+			row_index, source_revision, fetched_at_epoch_seconds, url, model_id, source_model,
 			model, base_model, reasoning_effort, organization, score
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
   for (const [index, row] of snapshots.mercorApexAgentsRows.entries()) {
     statement.run(
       index,
+      SOURCE_REVISION,
       snapshots.fetchedAt.mercorApexAgents,
       DEFAULT_LEADERBOARD_URL,
       row.model_id,

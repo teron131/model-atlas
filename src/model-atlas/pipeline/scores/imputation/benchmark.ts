@@ -6,11 +6,9 @@ import {
 } from "../../../benchmarks/calibration-population";
 import type { BenchmarkDimension } from "../../../benchmarks/factory";
 import { BENCHMARK_CATALOG, benchmarkDimensionWeight } from "../../../benchmarks/registry";
-import { buildAdditiveSourceCrosswalk } from "../../../benchmarks/source-crosswalk";
 import { MAX_NORMALIZED_IMPUTATION_ERROR, type ScoringConfig } from "../../../config/stage";
 import { canonicalModelKey, canonicalReasoningEffort } from "../../../identity/normalization";
 import {
-  clamp,
   clamp01,
   weightedFinitePartCount,
   weightedMeanOfFinite,
@@ -18,7 +16,7 @@ import {
   weightedQuantile,
   weightedQuantileRank,
 } from "../../../math-utils";
-import { asFiniteNumber, asRecord, type JsonObject } from "../../../runtime";
+import type { JsonObject } from "../../../runtime";
 import { type MinMaxRange, minMaxScale } from "../normalization";
 import {
   buildQualityScoringContext,
@@ -74,14 +72,6 @@ const MIN_IMPUTATION_EVIDENCE_VALUES = 3;
 const MIN_IMPUTATION_REFERENCE_MODELS = 3;
 const MIN_IMPUTATION_VALIDATION_MODELS = 4;
 const IMPUTATION_DIMENSIONS = ["intelligence", "agentic"] as const;
-const APEX_AGENTS_KEY = "apex_agents";
-const apexImputationPolicy = (() => {
-  const policy = BENCHMARK_CATALOG.apex_agents.scoring.imputation;
-  if (policy.kind !== "additive_crosswalk") {
-    throw new Error("APEX Agents requires additive crosswalk configuration");
-  }
-  return policy;
-})();
 
 function scoringVariantKey(model: BenchmarkScoringModelIdentity): string {
   return `${canonicalModelKey(model)}\u0000${canonicalReasoningEffort(model.reasoning_effort) ?? ""}`;
@@ -157,37 +147,6 @@ type DimensionBenchmarkContext = {
   benchmarkKeys: readonly string[];
   benchmarkWeights: ReadonlyMap<string, number>;
 };
-
-function buildMercorApexImputation(models: JsonObject[]): MutableImputationMaps {
-  const projectionClamp = apexImputationPolicy.clamp;
-  const crosswalk = buildAdditiveSourceCrosswalk(models, {
-    primaryValue: (model) => benchmarkMetricValue(model, APEX_AGENTS_KEY),
-    fallbackValue: (model) =>
-      asFiniteNumber(
-        asRecord(asRecord(model.scoring_sources)[apexImputationPolicy.fallbackEvidenceKey]).score,
-      ),
-    minimumEffectiveModels: apexImputationPolicy.minimumModels,
-    maximumMedianAbsoluteError: apexImputationPolicy.maximumMedianAbsoluteError,
-    ...(projectionClamp == null
-      ? {}
-      : {
-          normalizeProjection: (value: number) =>
-            clamp(value, projectionClamp[0], projectionClamp[1]),
-        }),
-  });
-  const imputationByModel = new Map<JsonObject, Map<string, number>>();
-  const imputationConfidenceByModel = new Map<JsonObject, Map<string, number>>();
-  if (crosswalk.confidence != null) {
-    for (const [model, projection] of crosswalk.projectionByItem) {
-      imputationByModel.set(model, new Map([[APEX_AGENTS_KEY, projection]]));
-      imputationConfidenceByModel.set(model, new Map([[APEX_AGENTS_KEY, crosswalk.confidence]]));
-    }
-  }
-  return {
-    imputationByModel,
-    imputationConfidenceByModel,
-  };
-}
 
 function observedEvidenceSupport(
   model: JsonObject,
@@ -448,14 +407,8 @@ function prepareImputation(
   const benchmarkKeys = [
     ...new Set([...scoringConfig.intelligenceBenchmarkKeys, ...scoringConfig.agenticBenchmarkKeys]),
   ];
-  const mercorApexImputation: MutableImputationMaps = benchmarkKeys.includes(APEX_AGENTS_KEY)
-    ? buildMercorApexImputation(models)
-    : {
-        imputationByModel: new Map(),
-        imputationConfidenceByModel: new Map(),
-      };
-  const imputationByModel = mercorApexImputation.imputationByModel;
-  const imputationConfidenceByModel = mercorApexImputation.imputationConfidenceByModel;
+  const imputationByModel = new Map<JsonObject, Map<string, number>>();
+  const imputationConfidenceByModel = new Map<JsonObject, Map<string, number>>();
   const diagnosticsByKey = new Map<string, BenchmarkImputationDiagnostic>();
   const rangesByKey = observedRangesByBenchmark(models, benchmarkKeys);
   for (const key of benchmarkKeys) {
@@ -465,11 +418,7 @@ function prepareImputation(
     }
     const imputationPolicy =
       BENCHMARK_CATALOG[key as keyof typeof BENCHMARK_CATALOG]?.scoring.imputation;
-    if (
-      imputationPolicy != null &&
-      imputationPolicy.kind !== "contextual" &&
-      (imputationPolicy.kind !== "additive_crosswalk" || imputationPolicy.fallback !== "contextual")
-    ) {
+    if (imputationPolicy != null && imputationPolicy.kind !== "contextual") {
       continue;
     }
     const diagnostic = imputationDiagnostic(models, benchmarkKeys, key, scoringConfig);

@@ -111,7 +111,7 @@ export type ModelAtlasScoringSources =
       agent_arena?: AgentArenaModelScoreRow | null;
       agents_last_exam?: AgentsLastExamModelScoreRow | null;
       analyst_agent?: ArtificialAnalysisBenchmarkResourceRow | null;
-      apex_agents_mercor?: MercorApexAgentsRow | null;
+      apex_agents?: MercorApexAgentsRow | null;
       automation_bench?: BenchmarkObservationRow | null;
       cursorbench?: CursorBenchModelScoreRow | null;
       deep_swe?: DeepSWEModelScoreRow | null;

@@ -277,6 +277,15 @@ const STANDALONE_BENCHMARK_ADAPTERS = {
         value: row.score,
       }),
     ),
+  mercor_apex_agents: (sourceData) =>
+    benchmarkRowDrafts("apex_agents", sourceData.mercorApexAgents.rows, (row) => ({
+      id: row.model_id,
+      identity: row.base_model,
+      label: row.model,
+      provider: row.organization,
+      reasoningEffort: row.reasoning_effort,
+      value: row.score,
+    })),
   terminal_bench_4: (sourceData) =>
     benchmarkRowDrafts("terminal_bench_4", sourceData.terminalBench4.rows, (row) => ({
       id: row.base_model,

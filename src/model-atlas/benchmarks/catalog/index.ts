@@ -1,7 +1,6 @@
 /** Public benchmark catalog surface for runtime, scoring, and presentation consumers. */
 
 export {
-  BENCHMARK_IMPUTATION_OVERRIDES,
   BENCHMARK_RESOURCE_PROFILES,
   BENCHMARK_RESOURCE_POLICIES,
   BENCHMARK_SCORING_WEIGHTS,

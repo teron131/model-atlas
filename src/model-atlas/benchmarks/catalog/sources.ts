@@ -456,24 +456,10 @@ export const BENCHMARK_EXTENDED_SOURCES = {
   apex_agents: {
     inputs: [
       {
-        group: "artificial_analysis",
-        id: "artificial_analysis",
-        roles: ["observation", "resource"],
-        adapters: [
-          {
-            kind: "artificial_analysis_resource_page",
-            scoreKey: "apexAgents",
-            resourceKey: "apexAgents",
-            url: "https://artificialanalysis.ai/evaluations/apex-agents-aa",
-          },
-        ],
-      },
-      {
         group: "standalone",
         id: "mercor",
-        roles: ["imputation"],
-        evidenceKey: "apex_agents_mercor",
-        runtime: { key: "mercor_apex_agents", publicRows: false },
+        roles: ["observation"],
+        runtime: { key: "mercor_apex_agents", publicRows: true },
       },
     ],
   },

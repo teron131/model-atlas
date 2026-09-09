@@ -54,7 +54,7 @@ export const BENCHMARK_TOOLTIPS = {
     title: "APEX Agents",
     body: "Long-horizon consulting, investment-banking, and legal tasks completed across files and workplace tools.",
     rows: [
-      ["Source", "Artificial Analysis"],
+      ["Source", "Mercor"],
       ["Role", "long-horizon professional execution"],
     ],
   },
