@@ -17,7 +17,7 @@ import {
 } from "../shared/provider-theme";
 import { formatCost } from "../table/format";
 
-export type SignatureMode = "field" | "phase" | "type";
+export type SignatureMode = "phase" | "glacier";
 
 export type SignaturePopulation = {
   models: ModelAtlasPublishedModel[];
@@ -48,9 +48,8 @@ export type SignatureModel = {
 };
 
 export const signatureModeLabels: Record<SignatureMode, string> = {
-  field: "Evidence Field",
   phase: "Phase Ledger",
-  type: "Signal Type",
+  glacier: "Glacier",
 };
 
 /** Select visible role leaders and display-limit-independent Pareto choices against a global Intelligence median. */

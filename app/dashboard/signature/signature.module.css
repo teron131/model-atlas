@@ -27,6 +27,75 @@
   display: block;
 }
 
+/* The video carries its own colour; framing and scrims make room for the shared signature copy. */
+.videoMaterial {
+  position: relative;
+  z-index: -2;
+  grid-area: 2 / 1;
+  width: 80%;
+  margin-left: 20%;
+  overflow: hidden;
+  background: #000;
+  pointer-events: none;
+}
+
+.video,
+.videoPoster {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  user-select: none;
+}
+
+.video {
+  opacity: 0;
+  transition: opacity 200ms ease-out;
+}
+
+.videoMaterial[data-ready="true"] .video {
+  opacity: 1;
+}
+
+.signature[data-mode="glacier"] {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  background: #000;
+}
+
+.signature[data-mode="glacier"] .modeBar {
+  grid-area: 1 / 1;
+}
+
+.signature[data-mode="glacier"] .copy {
+  grid-area: 2 / 1;
+  align-self: center;
+  padding-block: clamp(60px, 8dvh, 100px) clamp(64px, 10dvh, 112px);
+}
+
+.signature[data-mode="glacier"] .modelRail {
+  position: relative;
+  grid-area: 3 / 1;
+}
+
+.signature[data-mode="glacier"] .scrim {
+  position: relative;
+  grid-area: 2 / 1;
+  background:
+    linear-gradient(90deg, #000 0%, rgb(0 0 0 / 90%) 28%, rgb(0 0 0 / 18%) 52%, transparent 66%),
+    linear-gradient(180deg, #000, transparent 15%, transparent 85%, #000);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .video {
+    transition: none;
+  }
+}
+
 .scrim {
   z-index: -1;
   background: linear-gradient(
@@ -377,7 +446,7 @@
 
   .modeOptions {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     border-top: 1px solid var(--line);
   }
 
@@ -512,5 +581,47 @@
 
   .scoreLeaderPrice {
     margin-left: 0;
+  }
+}
+
+/* Keep the breakout aligned with the usable viewport when scrollbars consume layout width. */
+@media (max-width: 1440px) {
+  .signature[data-mode="glacier"] {
+    width: calc(100% + var(--page-gutter) * 2);
+    margin-inline: calc(var(--page-gutter) * -1);
+  }
+}
+
+/* Keep the heading and evidence together over the film at compact widths. */
+@media (max-width: 980px) {
+  .signature[data-mode="glacier"] {
+    --signature-gutter: clamp(20px, 4vw, 32px);
+    min-height: 0;
+  }
+
+  .signature[data-mode="glacier"] .copy {
+    width: calc(100% - var(--signature-gutter) * 2);
+    padding-block: 40px 36px;
+  }
+
+  .signature[data-mode="glacier"] .scoreLeaders {
+    margin-top: 34px;
+  }
+
+  .signature[data-mode="glacier"] .videoMaterial {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .signature[data-mode="glacier"] .video,
+  .signature[data-mode="glacier"] .videoPoster {
+    object-fit: cover;
+    object-position: 62% center;
+  }
+
+  .signature[data-mode="glacier"] .scrim {
+    background:
+      linear-gradient(90deg, rgb(0 0 0 / 82%), rgb(0 0 0 / 48%) 58%, rgb(0 0 0 / 20%)),
+      linear-gradient(180deg, #000, transparent 22%, transparent 78%, #000);
   }
 }
