@@ -11,22 +11,18 @@ import {
   type PublicBenchmarkRuntimeKeyFor,
   transformBenchmarkSourceValue,
 } from "../../benchmarks/registry";
-import {
-  benchmarkModelEffort,
-  canonicalReasoningEffort,
-  normalizeModelToken,
-} from "../../identity/normalization";
+import { benchmarkModelEffort, canonicalReasoningEffort } from "../../identity/normalization";
 import { asFiniteNumber, asRecord } from "../../runtime";
 import { agentsLastExamBenchmarkScore } from "../../sources/agents-last-exam/leaderboard";
 import type { ModelAtlasSourceData } from "../../sources/assembly";
 import { cursorBenchCanonicalModelName } from "../../sources/cursorbench/leaderboard";
-import { collapseModelVariants } from "../model-catalog";
 
 export type BenchmarkSourceRow = {
   id: string | null;
   identity: string;
   label: string;
   provider: string | null;
+  reasoningEffort: string | null;
   value: number;
 };
 
@@ -40,10 +36,6 @@ export type BenchmarkRowDraft = {
   provider?: string | null;
   reasoningEffort?: unknown;
   value: unknown;
-};
-
-type AggregatableBenchmarkSourceRow = BenchmarkSourceRow & {
-  reasoningEffort: unknown;
 };
 
 type ModelScoreDraftRow = {
@@ -117,7 +109,7 @@ function benchmarkObservationSourceDrafts(sourceData: ModelAtlasSourceData): Ben
 }
 
 function addBenchmarkRowDraft(
-  rowsByKey: Record<string, AggregatableBenchmarkSourceRow[]>,
+  rowsByKey: Record<string, BenchmarkSourceRow[]>,
   draft: BenchmarkRowDraft,
 ): void {
   const value = asFiniteNumber(draft.value);
@@ -139,40 +131,13 @@ function addBenchmarkRowDraft(
   });
 }
 
-function aggregateBenchmarkSourceRows(
-  key: string,
-  rows: AggregatableBenchmarkSourceRow[],
-): BenchmarkSourceRow[] {
-  return collapseModelVariants(
-    rows.map((row) => {
-      const identity = normalizeModelToken(row.identity);
-      return {
-        id: identity,
-        artificial_analysis_id: identity,
-        artificial_analysis_slug: identity.split("/").at(-1),
-        reasoning_effort: row.reasoningEffort,
-        benchmarks: { [key]: row.value },
-        benchmark_source_row: {
-          id: row.id,
-          identity: row.identity,
-          label: row.label,
-          provider: row.provider,
-          value: row.value,
-        } satisfies BenchmarkSourceRow,
-      };
-    }),
-  ).map((row) => row.benchmark_source_row as BenchmarkSourceRow);
-}
-
 /** Only labeled finite benchmark evidence is allowed into update-health comparisons. */
 export function finalizeBenchmarkRows(drafts: readonly BenchmarkRowDraft[]): BenchmarkRowsByKey {
-  const rowsByKey: Record<string, AggregatableBenchmarkSourceRow[]> = {};
+  const rowsByKey: Record<string, BenchmarkSourceRow[]> = {};
   for (const draft of drafts) {
     addBenchmarkRowDraft(rowsByKey, draft);
   }
-  return Object.fromEntries(
-    Object.entries(rowsByKey).map(([key, rows]) => [key, aggregateBenchmarkSourceRows(key, rows)]),
-  );
+  return rowsByKey;
 }
 
 function artificialAnalysisBenchmarkRowDrafts(

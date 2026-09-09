@@ -50,21 +50,35 @@ export type {
   ModelAtlasTaskMetricValues,
 } from "../pipeline/model-types";
 
-type ModelAtlasBenchmarkUpdateStatus = "current" | "watch" | "stale_possible" | "missing";
+export type ModelAtlasBenchmarkHealthLeader = {
+  source_id: string;
+  model_id: string | null;
+  label: string;
+  value: number;
+  reasoning_effort: string | null;
+  variants: { label: string; value: number; reasoning_effort: string | null }[];
+};
 
+/** Descriptive coverage and spread, separate from source freshness and human portfolio judgments. */
 export type ModelAtlasBenchmarkUpdateEntry = {
-  status: ModelAtlasBenchmarkUpdateStatus;
+  schema_version: 2;
+  status: "missing" | "unmatched" | "partially_matched" | "matched";
+  evidence_origin: "source" | "model_observations";
+  cohort: "all_available_models";
+  representative: "best_reported_per_model";
   observed_count: number;
-  checked_top_count: number;
-  reference_top_count: number;
-  overlap_count: number;
-  overlap_model_ids: string[];
-  top_model_ids: string[];
-  checked_model_ids: string[];
-  top_model_labels: string[];
-  unrepresented_top_model_labels: string[];
-  top_model_reference_rank: number | null;
-  reference_metric: "intelligence_score";
+  distinct_model_count: number;
+  matched_model_count: number;
+  unmatched_model_count: number;
+  source_leaders: ModelAtlasBenchmarkHealthLeader[];
+  matched_leaders: ModelAtlasBenchmarkHealthLeader[];
+  spread: {
+    full_range: number | null;
+    leader_gap: number | null;
+    top_count: number;
+    top_range: number | null;
+    top_range_without_leader: number | null;
+  };
 };
 
 export type ModelAtlasBenchmarkUpdateHealth = Record<string, ModelAtlasBenchmarkUpdateEntry>;

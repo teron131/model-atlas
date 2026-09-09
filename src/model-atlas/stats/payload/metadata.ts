@@ -23,7 +23,7 @@ import type {
   ModelAtlasMetadata,
   ModelAtlasSourceHealth,
 } from "../types";
-import { buildBenchmarkUpdateHealth } from "./health";
+import { buildBenchmarkUpdateHealth, isCurrentBenchmarkHealth } from "./health";
 import { SNAPSHOT_PRESERVATION_VERSION } from "./snapshot-preservation";
 
 type BenchmarkHealthModels = Parameters<typeof buildBenchmarkUpdateHealth>[0];
@@ -131,15 +131,18 @@ export function buildCurrentModelAtlasMetadata({
   ]);
   const resourceComponents = activeResourceComponents(resourceModels, scoringConfig);
   const hasCompleteStoredBenchmarkHealth =
+    sourceRowsByKey == null &&
     benchmarkUpdateHealth != null &&
-    selectedBenchmarkKeys.every((key) => benchmarkUpdateHealth[key] != null);
+    selectedBenchmarkKeys.every((key) => isCurrentBenchmarkHealth(benchmarkUpdateHealth[key]));
   const computedBenchmarkUpdateHealth = hasCompleteStoredBenchmarkHealth
     ? {}
     : buildBenchmarkUpdateHealth(healthModels, scoringConfig, sourceRowsByKey, matcherConfig);
   const currentBenchmarkUpdateHealth = Object.fromEntries(
     selectedBenchmarkKeys.map((key) => [
       key,
-      benchmarkUpdateHealth?.[key] ?? computedBenchmarkUpdateHealth[key]!,
+      hasCompleteStoredBenchmarkHealth
+        ? benchmarkUpdateHealth![key]!
+        : computedBenchmarkUpdateHealth[key]!,
     ]),
   );
   return {
