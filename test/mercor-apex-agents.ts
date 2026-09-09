@@ -34,3 +34,15 @@ assert.deepEqual(
     { model: "Claude Fable 5.1 (high)", reasoning_effort: "high", score: 0.6 },
   ],
 );
+
+const labelled = result("", 50);
+labelled.model.modelName = "Opus 5 (Max + Pro)";
+const proRows = processMercorApexAgentsPageHtml(JSON.stringify(labelled));
+assert.equal(proRows[0]?.base_model, "Claude Opus 5 Pro");
+assert.equal(proRows[0]?.model, "Claude Opus 5 (Max + Pro)");
+assert.equal(proRows[0]?.reasoning_effort, "max");
+labelled.model.modelName = "Opus 5 (Thinking)";
+assert.equal(
+  processMercorApexAgentsPageHtml(JSON.stringify(labelled))[0]?.base_model,
+  "Claude Opus 5",
+);

@@ -98,6 +98,11 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
   },
+  apex_swe: {
+    group: "baseline",
+    benchmarkImportance: 1,
+    dimensionLoadings: { intelligence: 0, agentic: 1 },
+  },
   arc_agi_2: {
     group: "frontier",
     benchmarkImportance: 1,
@@ -293,6 +298,11 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     group: "frontier",
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
+  },
+  superchem: {
+    group: "frontier",
+    benchmarkImportance: 1,
+    dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
   surge_intelligence_index: INDEX_SCORING_WEIGHT,
   tau_banking: {

@@ -11,6 +11,7 @@ import { getArtificialAnalysisOmniscienceStats } from "../artificial-analysis/om
 import { automationBenchCacheMatches, getAutomationBenchStats } from "../automation-bench";
 import { getEpochCapabilitiesIndexStats } from "../epoch/capabilities-index";
 import { epochBenchmarkCacheMatches, getEpochBenchmarkStats } from "../epoch/results";
+import { getMercorStats, mercorCacheMatches } from "../mercor";
 import { getMlsBenchStats } from "../mls-bench";
 import { getPerceptionBenchStats } from "../perception-bench";
 import { getSurgeIntelligenceIndexStats, getSurgeLeaderboardStats } from "../surge/results";
@@ -67,6 +68,11 @@ export function benchmarkObservationSource(
       return {
         fetchRows: () => getEpochBenchmarkStats(binding.benchmark, loader.task, loader.eligibility),
         acceptsCache: (rows) => epochBenchmarkCacheMatches(rows, loader.task, loader.eligibility),
+      };
+    case "mercor":
+      return {
+        fetchRows: () => getMercorStats(binding.benchmark, loader),
+        acceptsCache: (rows) => mercorCacheMatches(rows, loader),
       };
     case "mls_bench":
       return { fetchRows: () => getMlsBenchStats(loader.sourceUrl) };

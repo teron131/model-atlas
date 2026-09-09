@@ -53,6 +53,11 @@ export type BenchmarkObservationLoader =
       task: string;
       eligibility?: EpochRunEligibility;
     }
+  | {
+      kind: "mercor";
+      sourceUrl: string;
+      harness: "terminus-2" | "loop_truncated_tools_agent" | null;
+    }
   | { kind: "mls_bench"; sourceUrl: string }
   | { kind: "perception_bench"; sourceUrl: string }
   | { kind: "surge"; sourceUrl: string; scoreKind?: "elo"; view?: "index" }

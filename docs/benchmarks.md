@@ -2,6 +2,17 @@
 
 A benchmark earns its place by adding credible information about model capability. This reference records the selected evaluations, their weights, the reasons for including them, and the source policies that keep results comparable. [Standards](standards.md) explains the selection criteria; [Methodology](methodology.md) explains how the results become scores.
 
+## Mercor Chemistry and Software Engineering
+
+SUPERChem is frontier Intelligence evidence (importance 1, loading 100/0) from Mercor's 500-question multimodal release series, using its published `pass-1` result rather than blending text-only runs or reasoning-path fidelity scores.
+APEX-SWE is baseline Agentic evidence (importance 1, loading 0/100) from Mercor's `pass-1` results under `terminus-2`; Inspect results are retained in raw provenance but never substituted for missing Terminus-2 observations.
+Both sources preserve exact reported effort, all original result fields, and reported uncertainty and sample counts; model release dates are not evaluation timestamps, and aggregate sample counts are not assumed to be harness-specific task counts.
+Mercor's descriptive grading copy conflicts with parts of the original papers, so the scored contract is explicitly the published leaderboard metric, not a claim that an independently reproduced grading implementation has been verified.
+ProgramBench remains on Vals's almost-resolved metric (at least 95% of behavioral tests), with no Mercor crosswalk or metric replacement.
+MedXpertQA MM remains unselected pending a reproducible account of Mercor's 200-question subset of the original 2,000-question test set.
+
+Sources: [APEX-SWE](https://www.mercor.com/apex/apex-swe-leaderboard/), [SUPERChem](https://www.mercor.com/apex/oss-benchmarks/oss-super-chem-leaderboard/).
+
 ## Scoring Roles
 
 Task benchmarks have either a `frontier` or `baseline` role; aggregate indexes are listed separately. These labels explain why an input is useful. Importance and dimension loading determine its numerical influence, and the label itself changes neither weight nor the treatment of missing evidence. Rejected and watchlist benchmarks contribute no score.

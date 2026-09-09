@@ -11,6 +11,17 @@ import type { BenchmarkKey } from "./portfolio";
 
 /** Standard sources use the shared benchmark-observation loader and persistence contract. */
 export const BENCHMARK_STANDARD_SOURCES = {
+  apex_swe: {
+    group: "standalone",
+    id: "mercor",
+    loader: {
+      kind: "mercor",
+      sourceUrl: "https://www.mercor.com/apex/apex-swe-leaderboard/",
+      harness: "terminus-2",
+    },
+    sourceDataKey: "apexSwe",
+    sourceRowsKey: "apexSweRows",
+  },
   arc_agi_2: {
     group: "standalone",
     id: "arc_prize",
@@ -314,6 +325,17 @@ export const BENCHMARK_STANDARD_SOURCES = {
     },
     sourceDataKey: "sreBench",
     sourceRowsKey: "sreBenchRows",
+  },
+  superchem: {
+    group: "standalone",
+    id: "mercor",
+    loader: {
+      kind: "mercor",
+      sourceUrl: "https://www.mercor.com/apex/oss-benchmarks/oss-super-chem-leaderboard/",
+      harness: null,
+    },
+    sourceDataKey: "superchem",
+    sourceRowsKey: "superchemRows",
   },
   surge_intelligence_index: {
     group: "surge",
