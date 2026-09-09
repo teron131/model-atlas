@@ -1,6 +1,6 @@
-/** Canvas renderer for the three interchangeable Model Atlas signature materials. */
+/** Phase Ledger canvas renderer with WebGL and CPU paths, model annotations and pointer response. */
 
-import type { SignatureMode, SignatureModel } from "./models";
+import type { SignatureModel } from "./models";
 import { renderPhaseShader } from "./phase-shader";
 
 export type MaterialPointer = {
@@ -26,7 +26,6 @@ type MaterialFrame = {
   width: number;
   height: number;
   time: number;
-  mode: SignatureMode;
   models: SignatureModel[];
   pointer: MaterialPointer;
   palette: MaterialPalette;
@@ -35,10 +34,6 @@ type MaterialFrame = {
 type Point = {
   x: number;
   y: number;
-};
-
-type EvidencePoint = Point & {
-  opacity: number;
 };
 
 type PhaseBuffer = {
@@ -50,23 +45,11 @@ type PhaseBuffer = {
   signature: string;
   width: number;
 };
-
-type TypeLayer = {
-  canvas: HTMLCanvasElement;
-  modelKey: string;
-  top: number;
-};
-
-const GLYPHS = "·:+×#A7∴/\\<>[]{}";
 const MATERIAL_MONO_FONT = '"SFMono-Regular", "SF Mono", Menlo, Consolas, monospace';
 const MATERIAL_SANS_FONT = '"Avenir Next", "Segoe UI", Helvetica, Arial, sans-serif';
-const EVIDENCE_PARTICLE_COUNT = 9400;
-const GOLDEN_RATIO_CONJUGATE = 0.61803398875;
 const POINTER_RADIUS_RATIO = 0.14;
 const PROVIDER_BLEND_EXPONENT = 0.78;
-const evidenceParticleBuffers = new WeakMap<CanvasRenderingContext2D, Float32Array[]>();
 const phaseBuffers = new WeakMap<CanvasRenderingContext2D, PhaseBuffer>();
-const typeLayers = new WeakMap<CanvasRenderingContext2D, TypeLayer[]>();
 
 export function stepMaterialPointer(pointer: MaterialPointer, frameScale: number): void {
   const previousX = pointer.x;
@@ -88,179 +71,7 @@ export function renderMaterial(frame: MaterialFrame): void {
     renderEmptyField(frame);
     return;
   }
-  if (frame.mode === "field") {
-    renderEvidenceField(frame);
-  } else if (frame.mode === "phase") {
-    renderPhaseLedger(frame);
-  } else {
-    renderSignalType(frame);
-  }
-}
-
-function renderEvidenceField(frame: MaterialFrame): void {
-  const { context, width, height, time, models, palette } = frame;
-  const dark = isDarkColor(palette.background);
-  const background = context.createLinearGradient(width * 0.2, 0, width, height * 0.7);
-  background.addColorStop(0, palette.background);
-  background.addColorStop(0.32, palette.background);
-  background.addColorStop(1, dark ? "#18201f" : "#cfd2c9");
-  context.fillStyle = background;
-  context.fillRect(0, 0, width, height);
-
-  context.save();
-  context.globalCompositeOperation = dark ? "screen" : "multiply";
-  models.forEach((model, modelIndex) => {
-    const { agentic, mean, value } = model.parameters;
-    const anchor = evidenceAnchor(modelIndex, width, height);
-    const density = 0.94 * (0.48 + clamp01((mean - 0.5) / 0.25) * 0.5);
-    const minimumWeight = 1.15 - density;
-    const particleCount = Math.ceil(EVIDENCE_PARTICLE_COUNT / models.length);
-    const particleBuffer = evidenceParticleBuffer(context, particleCount, modelIndex);
-    const point: EvidencePoint = { opacity: 0, x: 0, y: 0 };
-    context.fillStyle = palette.ink;
-    for (let particleIndex = 0; particleIndex < particleCount; particleIndex += 1) {
-      const bufferIndex = particleIndex * 4;
-      const weight = particleBuffer[bufferIndex + 3] ?? 0;
-      if (weight < minimumWeight) {
-        continue;
-      }
-      evidencePoint(frame, anchor, model, modelIndex, particleIndex, time, point);
-      particleBuffer[bufferIndex] = point.x;
-      particleBuffer[bufferIndex + 1] = point.y;
-      particleBuffer[bufferIndex + 2] = point.opacity;
-      const size = 1.53 * (0.68 + weight * 0.46);
-      context.globalAlpha = 0.46 * point.opacity;
-      context.fillRect(point.x - size / 2, point.y - size / 2, size, size);
-    }
-
-    const providerMinimumWeight = Math.max(0.64 + (1 - value) * 0.08, minimumWeight);
-    context.fillStyle = model.color;
-    for (let particleIndex = 0; particleIndex < particleCount; particleIndex += 1) {
-      const bufferIndex = particleIndex * 4;
-      const weight = particleBuffer[bufferIndex + 3] ?? 0;
-      if (weight < providerMinimumWeight) {
-        continue;
-      }
-      const size = 2.18 * (0.7 + weight * 0.4);
-      const x = particleBuffer[bufferIndex] ?? 0;
-      const y = particleBuffer[bufferIndex + 1] ?? 0;
-      context.globalAlpha = 0.74 * (particleBuffer[bufferIndex + 2] ?? 0);
-      context.fillRect(x - size / 2, y - size / 2, size, size);
-    }
-
-    context.textAlign = "center";
-    context.textBaseline = "middle";
-    const glyphCount = Math.round(38 + clamp01((mean - 0.5) / 0.25) * 24 + agentic * 12);
-    const glyphCadence = Math.round(16 - value * 7);
-    const glyphTotal = glyphCount * (models.length <= 3 ? 5 : 4);
-    for (const emphasized of [false, true]) {
-      context.font = `${emphasized ? 12 : 8.5}px ${MATERIAL_MONO_FONT}`;
-      context.fillStyle = emphasized ? model.color : palette.ink;
-      for (let glyphIndex = 0; glyphIndex < glyphTotal; glyphIndex += 1) {
-        if ((glyphIndex % glyphCadence === 0) !== emphasized) {
-          continue;
-        }
-        const u = fractional(
-          glyphIndex * GOLDEN_RATIO_CONJUGATE + modelIndex * 0.173 + time * 0.0007,
-        );
-        const dispersion = pseudoGaussian(glyphIndex + 211, modelIndex + 41) * 5.2;
-        const phase = noise(glyphIndex + 307, modelIndex + 67) * Math.PI * 2;
-        evidenceBandPoint(frame, anchor, model, u, dispersion, phase, time, point);
-        const opacity =
-          evidenceOpacity(u) * (0.28 + noise(glyphIndex + 401, modelIndex + 73) * 0.72);
-        context.globalAlpha = emphasized ? 0.82 * opacity : 0.27 * opacity;
-        context.fillText(
-          GLYPHS[(glyphIndex + modelIndex * 5) % GLYPHS.length] ?? "·",
-          point.x,
-          point.y,
-        );
-      }
-    }
-    context.globalAlpha = 1;
-  });
-  context.restore();
-  drawMaterialAnnotations(frame);
-}
-
-function evidencePoint(
-  frame: MaterialFrame,
-  anchor: Point,
-  model: SignatureModel,
-  modelIndex: number,
-  particleIndex: number,
-  time: number,
-  target: EvidencePoint,
-): void {
-  const { speed } = model.parameters;
-  const u = fractional(
-    noise(particleIndex + 11, modelIndex + 31) + time * 0.003 * (0.4 + speed) + modelIndex * 0.013,
-  );
-  const phase = noise(particleIndex + 79, modelIndex + 53) * Math.PI * 2;
-  const gaussian = pseudoGaussian(particleIndex + 29, modelIndex) * 5.8;
-  evidenceBandPoint(frame, anchor, model, u, gaussian, phase, time, target);
-  target.opacity = evidenceOpacity(u);
-}
-
-function evidenceBandPoint(
-  frame: MaterialFrame,
-  anchor: Point,
-  model: SignatureModel,
-  u: number,
-  dispersion: number,
-  phase: number,
-  time: number,
-  target?: Point,
-): Point {
-  const { agentic, context, intelligence, speed, value } = model.parameters;
-  const compact = frame.width < 720;
-  const longitudinal = (u - 0.5) * 2;
-  const envelope = Math.sqrt(Math.max(0, 1 - longitudinal * longitudinal));
-  const span = frame.width * (compact ? 0.24 + context * 0.05 : 0.33 + context * 0.075);
-  const arch = Math.sin(u * Math.PI);
-  const macroWave = Math.sin(u * (4.4 + value * 1.8) + model.rank * 1.37);
-  const x =
-    anchor.x +
-    longitudinal * span +
-    Math.sin(phase * 1.7 + u * 7) * span * (0.015 + agentic * 0.02) * envelope;
-  const y =
-    anchor.y +
-    longitudinal * frame.height * (0.018 + agentic * 0.03) -
-    arch * frame.height * (0.025 + intelligence * 0.04) +
-    macroWave * envelope * frame.height * (0.018 + agentic * 0.014) +
-    dispersion *
-      envelope *
-      frame.height *
-      (compact ? 0.014 + context * 0.02 : 0.022 + context * 0.032) *
-      (0.82 + agentic * 0.28) +
-    Math.sin(u * (15 + value * 6) + phase + time * (0.42 + speed)) *
-      envelope *
-      frame.height *
-      0.007;
-  return disturb(frame, x, y, 0.044 + speed * 0.014, target);
-}
-
-function evidenceOpacity(u: number): number {
-  return 0.12 + Math.pow(Math.max(0, Math.sin(u * Math.PI)), 0.48) * 0.88;
-}
-
-function evidenceParticleBuffer(
-  context: CanvasRenderingContext2D,
-  particleCount: number,
-  modelIndex: number,
-): Float32Array {
-  const requiredLength = particleCount * 4;
-  const modelBuffers = evidenceParticleBuffers.get(context) ?? [];
-  const existing = modelBuffers[modelIndex];
-  if (existing != null && existing.length >= requiredLength) {
-    return existing;
-  }
-  const buffer = new Float32Array(requiredLength);
-  for (let particleIndex = 0; particleIndex < particleCount; particleIndex += 1) {
-    buffer[particleIndex * 4 + 3] = 0.25 + noise(particleIndex + 131, modelIndex + 17) * 0.75;
-  }
-  modelBuffers[modelIndex] = buffer;
-  evidenceParticleBuffers.set(context, modelBuffers);
-  return buffer;
+  renderPhaseLedger(frame);
 }
 
 function renderPhaseLedger(frame: MaterialFrame): void {
@@ -470,250 +281,6 @@ function phaseBuffer(
   return buffer;
 }
 
-/** Render Signal Type as cached typographic layers over animated signal traces, with model metrics controlling scale, position, and blend. */
-function renderSignalType(frame: MaterialFrame): void {
-  const { context, width, height, time, models, palette } = frame;
-  const signalTime = time * 0.12;
-  const compact = width < 720;
-  const baseSize = compact ? Math.max(54, width * 0.16) : Math.max(88, width * 0.115);
-  const background = context.createLinearGradient(width * 0.18, 0, width, height * 0.72);
-  background.addColorStop(0, "#101012");
-  background.addColorStop(1, "#28262a");
-  context.fillStyle = background;
-  context.fillRect(0, 0, width, height);
-
-  context.save();
-  context.globalCompositeOperation = "screen";
-  context.lineWidth = 0.65;
-  for (let lineIndex = 0; lineIndex < 34; lineIndex += 1) {
-    context.strokeStyle = withAlpha(palette.muted, 0.025 + (lineIndex % 5) * 0.004);
-    context.beginPath();
-    for (let x = width * 0.4; x <= width; x += 10) {
-      const baseline = height * (0.075 + lineIndex * 0.025);
-      const y =
-        baseline +
-        Math.sin(x * 0.012 + lineIndex * 0.37 + signalTime * 0.16) * (8 + (lineIndex % 4) * 2) +
-        Math.sin(x * 0.027 - signalTime * 0.11) * 3;
-      if (x === width * 0.4) {
-        context.moveTo(x, y);
-      } else {
-        context.lineTo(x, y);
-      }
-    }
-    context.stroke();
-  }
-  context.restore();
-
-  const layers = signalTypeLayers(context, width, height, baseSize, models);
-  models.forEach((model, modelIndex) => {
-    const { agentic, intelligence, speed, mean, value } = model.parameters;
-    const y = signalTypeY(modelIndex, models.length, height);
-    const fontSize = signalTypeFontSize(baseSize, model, models.length, width);
-    const density = context.canvas.width / Math.max(1, width);
-    const layer = layers[modelIndex];
-    if (layer == null) {
-      return;
-    }
-
-    context.save();
-    context.globalAlpha = Math.max(0, 0.32 - frame.pointer.energy * 0.5);
-    context.globalCompositeOperation = "screen";
-    context.drawImage(
-      layer.canvas,
-      0,
-      0,
-      layer.canvas.width,
-      layer.canvas.height,
-      0,
-      layer.top,
-      width,
-      layer.canvas.height / density,
-    );
-    context.restore();
-
-    context.save();
-    context.globalCompositeOperation = "screen";
-    context.strokeStyle = withAlpha(model.color, 0.34);
-    context.lineWidth = 1.25;
-    context.beginPath();
-    for (let x = width * 0.4; x <= width; x += 8) {
-      const carrier =
-        Math.sin(x * (0.011 + mean * 0.01) + signalTime * (0.55 + speed)) *
-          height *
-          (0.024 + agentic * 0.018) +
-        Math.sin(x * (0.018 + value * 0.01) - signalTime * 0.27) * height * 0.012;
-      if (x === width * 0.4) {
-        context.moveTo(x, y + carrier);
-      } else {
-        context.lineTo(x, y + carrier);
-      }
-    }
-    context.stroke();
-    context.restore();
-
-    const stripHeight = 10 + Math.round((1 - value) * 4);
-    const distortionStrength = frame.pointer.energy > 0.01 ? 1 : 0.12;
-    for (let stripY = y - fontSize * 0.62; stripY < y + fontSize * 0.45; stripY += stripHeight) {
-      const frequency = 0.022 + mean * 100 * 0.00055;
-      const decay =
-        (noise(Math.round(stripY + signalTime * 2), modelIndex + 71) - 0.5) *
-        width *
-        (0.014 + speed * 0.055 + agentic * 0.025) *
-        distortionStrength;
-      const shear =
-        Math.sin(stripY * frequency + signalTime * (0.7 + speed)) *
-        width *
-        (0.006 + speed * 0.022) *
-        distortionStrength;
-      const alpha = 0.42 + intelligence * 0.36 + 0.16 * Math.sin(stripY * 0.017 + signalTime);
-      const sourceY = Math.max(0, Math.round((stripY - layer.top) * density));
-      const sourceHeight = Math.min(
-        Math.round(stripHeight * density + 1),
-        layer.canvas.height - sourceY,
-      );
-      if (sourceHeight <= 0) {
-        continue;
-      }
-
-      context.save();
-      context.globalAlpha = alpha;
-      context.globalCompositeOperation = "screen";
-      if (frame.pointer.energy > 0.01) {
-        const chunkWidth = Math.round(68 - agentic * 30);
-        for (let chunkX = 0; chunkX < width; chunkX += chunkWidth) {
-          const chunk = Math.min(chunkWidth, width - chunkX);
-          const displaced = disturb(
-            frame,
-            chunkX + chunk / 2,
-            stripY + stripHeight / 2,
-            0.055 + speed * 0.03,
-          );
-          context.drawImage(
-            layer.canvas,
-            Math.round(chunkX * density),
-            sourceY,
-            Math.round(chunk * density),
-            sourceHeight,
-            chunkX + decay + shear + displaced.x - (chunkX + chunk / 2),
-            stripY + displaced.y - (stripY + stripHeight / 2),
-            chunk,
-            stripHeight,
-          );
-        }
-      } else {
-        context.drawImage(
-          layer.canvas,
-          0,
-          sourceY,
-          layer.canvas.width,
-          sourceHeight,
-          decay + shear,
-          stripY,
-          width,
-          stripHeight,
-        );
-      }
-      context.restore();
-    }
-  });
-
-  context.save();
-  context.font = `9px ${MATERIAL_MONO_FONT}`;
-  context.textAlign = "center";
-  context.textBaseline = "middle";
-  for (let y = height * 0.12; y < height * 0.88; y += 28) {
-    for (let x = width * 0.46; x < width * 0.98; x += 30) {
-      const value = noise(Math.round(x + signalTime * 8), Math.round(y));
-      if (value < 0.57) {
-        continue;
-      }
-      const model = models[Math.floor(value * models.length * 4) % models.length];
-      if (model == null) {
-        continue;
-      }
-      const displaced = disturb(frame, x, y, 0.045);
-      context.globalAlpha = (30 + value * 80) / 255;
-      context.fillStyle = model.color;
-      context.font = `${7 + value * 4}px ${MATERIAL_MONO_FONT}`;
-      context.fillText(
-        GLYPHS[Math.floor(value * GLYPHS.length) % GLYPHS.length] ?? "·",
-        displaced.x,
-        displaced.y,
-      );
-    }
-  }
-  context.restore();
-}
-
-function signalTypeLayers(
-  context: CanvasRenderingContext2D,
-  width: number,
-  height: number,
-  baseSize: number,
-  models: SignatureModel[],
-): TypeLayer[] {
-  const density = context.canvas.width / Math.max(1, width);
-  const keys = models.map((model, modelIndex) => {
-    const fontSize = signalTypeFontSize(baseSize, model, models.length, width);
-    return `${model.key}:${model.name}:${model.color}:${fontSize}:${width}:${height}:${density}:${modelIndex}`;
-  });
-  const existing = typeLayers.get(context);
-  if (
-    existing != null &&
-    existing.length === keys.length &&
-    existing.every((layer, index) => layer.modelKey === keys[index])
-  ) {
-    return existing;
-  }
-
-  const layers = models.map((model, modelIndex) => {
-    const fontSize = signalTypeFontSize(baseSize, model, models.length, width);
-    const y = signalTypeY(modelIndex, models.length, height);
-    const top = Math.max(0, y - fontSize * 0.68 - 2);
-    const bottom = Math.min(height, y + fontSize * 0.52 + 2);
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.max(1, Math.round(width * density));
-    canvas.height = Math.max(1, Math.round((bottom - top) * density));
-    const layerContext = canvas.getContext("2d");
-    if (layerContext == null) {
-      throw new Error("Unable to create the Signal Type rendering layer.");
-    }
-    layerContext.setTransform(density, 0, 0, density, 0, 0);
-    layerContext.font = `${model.preview ? "italic " : ""}620 ${fontSize}px ${MATERIAL_SANS_FONT}`;
-    layerContext.textAlign = "right";
-    layerContext.textBaseline = "middle";
-    layerContext.fillStyle = withAlpha(model.color, 0.48 + model.parameters.intelligence * 0.45);
-    layerContext.fillText(model.name.toUpperCase(), width * 0.95, y - top);
-    return {
-      canvas,
-      modelKey: keys[modelIndex] ?? "",
-      top,
-    };
-  });
-  typeLayers.set(context, layers);
-  return layers;
-}
-
-function signalTypeY(modelIndex: number, modelCount: number, height: number): number {
-  const start = 0.18;
-  const end = 0.78;
-  const progress = modelCount <= 1 ? 0.5 : modelIndex / (modelCount - 1);
-  return height * (start + (end - start) * progress);
-}
-
-function signalTypeFontSize(
-  baseSize: number,
-  model: SignatureModel,
-  modelCount: number,
-  width: number,
-): number {
-  const populationScale = modelCount <= 3 ? 1 : width < 720 ? 0.66 : 0.8;
-  const scoreSize = baseSize * (0.62 + model.parameters.context * 0.48) * populationScale;
-  const availableWidth = width * 0.55;
-  const estimatedTextWidth = Math.max(1, model.name.length) * 0.67;
-  return Math.min(scoreSize, availableWidth / estimatedTextWidth);
-}
-
 function drawMaterialAnnotations(frame: MaterialFrame): void {
   const { context, width, models, palette } = frame;
   const compact = width < 720;
@@ -722,10 +289,7 @@ function drawMaterialAnnotations(frame: MaterialFrame): void {
   context.textBaseline = "middle";
   context.lineJoin = "round";
   models.forEach((model, modelIndex) => {
-    const anchor =
-      frame.mode === "field"
-        ? evidenceAnchor(modelIndex, frame.width, frame.height)
-        : modelPoint(modelIndex, models.length, frame.width, frame.height);
+    const anchor = modelPoint(modelIndex, models.length, frame.width, frame.height);
     const displaced = disturb(frame, anchor.x, anchor.y, 0.04);
     const annotationY = compact ? Math.min(displaced.y, frame.height * 0.76) : displaced.y;
     const annotationX =
@@ -742,24 +306,15 @@ function drawMaterialAnnotations(frame: MaterialFrame): void {
     const labelWidth = rankWidth + 8 + nameWidth;
     const labelOnLeft = annotationX + 18 + labelWidth > width - 20;
     const labelX = annotationX + (labelOnLeft ? -18 - labelWidth : 18);
-    if (frame.mode === "phase") {
-      context.strokeStyle = withAlpha(model.color, 0.74);
-      context.lineWidth = 1;
-      context.beginPath();
-      context.moveTo(annotationX - 18, annotationY);
-      context.lineTo(annotationX + 18, annotationY);
-      context.moveTo(annotationX, annotationY - 18);
-      context.lineTo(annotationX, annotationY + 18);
-      context.stroke();
-    } else {
-      context.save();
-      context.translate(annotationX, annotationY);
-      context.rotate(Math.PI / 4);
-      context.fillStyle = model.color;
-      const markerSize = 5;
-      context.fillRect(-markerSize, -markerSize, markerSize * 2, markerSize * 2);
-      context.restore();
-    }
+
+    context.strokeStyle = withAlpha(model.color, 0.74);
+    context.lineWidth = 1;
+    context.beginPath();
+    context.moveTo(annotationX - 18, annotationY);
+    context.lineTo(annotationX + 18, annotationY);
+    context.moveTo(annotationX, annotationY - 18);
+    context.lineTo(annotationX, annotationY + 18);
+    context.stroke();
     context.textAlign = "left";
     context.lineWidth = 2;
     context.strokeStyle = withAlpha(palette.background, 0.82);
@@ -773,23 +328,6 @@ function drawMaterialAnnotations(frame: MaterialFrame): void {
     context.fillText(model.name, labelX + rankWidth + 8, annotationY);
   });
   context.restore();
-}
-
-function evidenceAnchor(index: number, width: number, height: number): Point {
-  const desktopClusters = [
-    [0.88, 0.16],
-    [0.72, 0.34],
-    [0.92, 0.49],
-    [0.66, 0.66],
-    [0.8, 0.82],
-    [0.93, 0.69],
-  ];
-  const cluster = desktopClusters[index] ??
-    desktopClusters[index % desktopClusters.length] ?? [0.68, 0.48];
-  return {
-    x: Number(cluster[0]) * width,
-    y: Number(cluster[1]) * height,
-  };
 }
 
 function renderEmptyField(frame: MaterialFrame): void {
@@ -866,28 +404,6 @@ function modelPoint(index: number, count: number, width: number, height: number)
   const fallbackY = 0.2 + ((index + 1) / Math.max(2, count + 1)) * 0.65;
   const point = desktop[index] ?? [fallbackX, fallbackY];
   return { x: Number(point[0]) * width, y: Number(point[1]) * height };
-}
-
-function noise(x: number, y: number): number {
-  return fractional(Math.sin(x * 12.9898 + y * 78.233) * 43758.5453);
-}
-
-function pseudoGaussian(index: number, modelIndex: number): number {
-  return (
-    (noise(index, modelIndex) +
-      noise(index + 19, modelIndex + 3) +
-      noise(index + 47, modelIndex + 7)) /
-      3 -
-    0.5
-  );
-}
-
-function fractional(value: number): number {
-  return value - Math.floor(value);
-}
-
-function clamp01(value: number): number {
-  return Math.max(0, Math.min(1, value));
 }
 
 function colorChannels(color: string): [number, number, number] {

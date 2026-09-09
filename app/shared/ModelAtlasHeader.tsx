@@ -1,11 +1,9 @@
 "use client";
 
-/** Shared Model Atlas header with route navigation and theme control. */
+/** Shared Model Atlas header owns route links and optional document navigation. */
 
-import { BookOpenText, ChartNoAxesColumnIncreasing, ListTree, Moon, Sun } from "lucide-react";
+import { BookOpenText, ChartNoAxesColumnIncreasing, ListTree } from "lucide-react";
 import Link from "next/link";
-
-import { toggleModelAtlasTheme, useThemeSynchronization } from "./theme";
 
 export function ModelAtlasHeader({
   page,
@@ -16,7 +14,6 @@ export function ModelAtlasHeader({
   documentNavigationOpen?: boolean;
   onToggleDocumentNavigation?: () => void;
 }) {
-  useThemeSynchronization();
   const route =
     page === "dashboard"
       ? {
@@ -43,7 +40,7 @@ export function ModelAtlasHeader({
       <div className="header-actions">
         {onToggleDocumentNavigation == null ? null : (
           <button
-            className="theme-toggle"
+            className="header-icon-button"
             type="button"
             aria-label={
               documentNavigationOpen ? "Hide document navigation" : "Show document navigation"
@@ -59,16 +56,6 @@ export function ModelAtlasHeader({
           <route.Icon aria-hidden="true" />
           <span>{route.label}</span>
         </Link>
-        <button
-          className="theme-toggle"
-          type="button"
-          aria-label="Toggle color theme"
-          title="Toggle color theme"
-          onClick={toggleModelAtlasTheme}
-        >
-          <Sun className="theme-icon-light" aria-hidden="true" />
-          <Moon className="theme-icon-dark" aria-hidden="true" />
-        </button>
       </div>
     </header>
   );

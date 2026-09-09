@@ -1,11 +1,10 @@
 "use client";
 
-/** Fixed mobile controls for home, document navigation, and theme. */
+/** Fixed mobile controls keep home and document navigation accessible while reading. */
 
-import { ListTree, Moon, Sun } from "lucide-react";
+import { ListTree } from "lucide-react";
 import Link from "next/link";
 
-import { toggleModelAtlasTheme } from "../shared/theme";
 import { DOCUMENTS, type DocumentSlug } from "./documents";
 
 import styles from "./methodology.module.css";
@@ -42,15 +41,6 @@ export function MobileDocumentToolbar({
           onClick={onToggleNavigation}
         >
           <ListTree aria-hidden="true" />
-        </button>
-        <button
-          className={styles.navigationIconButton}
-          type="button"
-          aria-label="Toggle color theme"
-          onClick={toggleModelAtlasTheme}
-        >
-          <Sun className="theme-icon-light" aria-hidden="true" />
-          <Moon className="theme-icon-dark" aria-hidden="true" />
         </button>
       </div>
     </header>

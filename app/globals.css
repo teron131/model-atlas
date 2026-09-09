@@ -93,7 +93,7 @@ html {
   }
 
   .header-route,
-  .theme-toggle,
+  .header-icon-button,
   .header-button,
   .loading-block,
   .loading-logo,
@@ -243,7 +243,7 @@ main {
   border: 0;
 }
 
-.theme-toggle {
+.header-icon-button {
   display: inline-grid;
   flex: 0 0 auto;
   width: var(--dashboard-icon-button-size);
@@ -262,23 +262,23 @@ main {
     transform 0.18s ease;
 }
 
-.theme-toggle:hover,
-.theme-toggle:focus-visible {
+.header-icon-button:hover,
+.header-icon-button:focus-visible {
   background: transparent;
   color: var(--ink);
   opacity: 1;
   outline: 0;
 }
 
-.theme-toggle:focus-visible {
+.header-icon-button:focus-visible {
   box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
-.theme-toggle:active {
+.header-icon-button:active {
   transform: translateY(1px);
 }
 
-.theme-toggle svg {
+.header-icon-button svg {
   width: var(--dashboard-icon-button-icon-size);
   height: var(--dashboard-icon-button-icon-size);
   stroke: currentColor;
@@ -286,18 +286,6 @@ main {
   stroke-width: var(--dashboard-icon-button-stroke);
   stroke-linecap: round;
   stroke-linejoin: round;
-}
-
-.theme-icon-dark {
-  display: none;
-}
-
-html[data-model-atlas-theme="light"] .theme-icon-light {
-  display: none;
-}
-
-html[data-model-atlas-theme="light"] .theme-icon-dark {
-  display: block;
 }
 
 .benchmarks {
@@ -1484,7 +1472,7 @@ td.modality-cell {
     height: 29px;
   }
 
-  .theme-toggle {
+  .header-icon-button {
     margin-top: 0;
   }
 

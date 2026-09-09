@@ -1,12 +1,6 @@
 "use client";
 
-/**
- * THESIS: Live model evidence becomes the dashboard material instead of sitting inside a decorative hero card.
- * OWN-WORLD: Mineral paper or blue-charcoal fields, provider pigments, square measurement controls, and four-score geometry.
- * STORY: Read the leading filtered models, see which scores control the material, then continue into the same evidence in the table and charts.
- * FIRST VIEWPORT: The shared header leads directly into a full-width generative field with factual copy, three material alternatives, and a six-role model rail.
- * FORM: Living Evidence Field, adapted from the selected reference; Evidence Field is the default while Phase Ledger and Signal Type remain equal alternatives.
- */
+/** Present shared model-role evidence over the interactive Phase Ledger or decorative Glacier video. */
 
 import {
   type CSSProperties,
@@ -18,12 +12,8 @@ import {
   useState,
 } from "react";
 
-import {
-  applyModelAtlasTheme,
-  currentModelAtlasTheme,
-  type ModelAtlasTheme,
-} from "../../shared/theme";
 import { BotIcon, BrainIcon, DollarIcon } from "../shared/DashboardIcons";
+import { GlacierMaterial } from "./GlacierMaterial";
 import {
   type MaterialPalette,
   type MaterialPointer,
@@ -41,15 +31,6 @@ import styles from "./signature.module.css";
 
 const MATERIAL_FRAME_INTERVAL_MS = 1_000 / 30;
 const MATERIAL_VISIBILITY_MARGIN_PX = 120;
-const DEFAULT_DARK_MODE: SignatureMode = "phase";
-
-/**
- * Each material was authored against one page field: Evidence Field on mineral paper, Phase Ledger and Signal Type on blue charcoal.
- * Mode and theme therefore move together, but the root attribute stays authoritative so the saved theme survives a reload and the header toggle keeps working.
- */
-function themeForMode(mode: SignatureMode): ModelAtlasTheme {
-  return mode === "field" ? "light" : "dark";
-}
 
 export const ModelSignature = memo(function ModelSignature({
   models,
@@ -70,8 +51,7 @@ export const ModelSignature = memo(function ModelSignature({
     x: 0,
     y: 0,
   });
-  const [mode, setMode] = useState<SignatureMode>("field");
-  const lastDarkModeRef = useRef<SignatureMode>(DEFAULT_DARK_MODE);
+  const [mode, setMode] = useState<SignatureMode>("glacier");
   const signatureModelRows = useMemo(
     () =>
       signatureModels({ models, paretoModels, referenceModels }).map((model) => ({
@@ -81,34 +61,10 @@ export const ModelSignature = memo(function ModelSignature({
     [models, paretoModels, referenceModels],
   );
 
-  // Adopt the saved theme on mount, then follow any later theme change from the header toggle.
   useEffect(() => {
-    const root = document.documentElement;
-    const adoptTheme = () => {
-      const theme = currentModelAtlasTheme();
-      setMode((current) =>
-        themeForMode(current) === theme
-          ? current
-          : theme === "light"
-            ? "field"
-            : lastDarkModeRef.current,
-      );
-    };
-    adoptTheme();
-    const observer = new MutationObserver(adoptTheme);
-    observer.observe(root, { attributes: true, attributeFilter: ["data-model-atlas-theme"] });
-    return () => observer.disconnect();
-  }, []);
-
-  const selectMode = (nextMode: SignatureMode) => {
-    if (nextMode !== "field") {
-      lastDarkModeRef.current = nextMode;
+    if (mode === "glacier") {
+      return;
     }
-    setMode(nextMode);
-    applyModelAtlasTheme(themeForMode(nextMode));
-  };
-
-  useEffect(() => {
     const canvas = canvasRef.current;
     const stage = stageRef.current;
     if (canvas == null || stage == null) {
@@ -158,7 +114,6 @@ export const ModelSignature = memo(function ModelSignature({
         width,
         height,
         time: reducedMotion ? 2.35 : now * 0.00042,
-        mode,
         models: resolvedModels,
         pointer: pointerRef.current,
         palette,
@@ -277,13 +232,21 @@ export const ModelSignature = memo(function ModelSignature({
       data-mode={mode}
       ref={stageRef}
       aria-labelledby="model-signature-title"
-      onPointerEnter={(event) => syncPointer(event, true)}
-      onPointerMove={(event) => syncPointer(event)}
-      onPointerLeave={() => {
-        pointerRef.current.active = false;
-      }}
+      onPointerEnter={mode === "glacier" ? undefined : (event) => syncPointer(event, true)}
+      onPointerMove={mode === "glacier" ? undefined : (event) => syncPointer(event)}
+      onPointerLeave={
+        mode === "glacier"
+          ? undefined
+          : () => {
+              pointerRef.current.active = false;
+            }
+      }
     >
-      <canvas className={styles.canvas} ref={canvasRef} aria-hidden="true" />
+      {mode === "glacier" ? (
+        <GlacierMaterial />
+      ) : (
+        <canvas className={styles.canvas} ref={canvasRef} aria-hidden="true" />
+      )}
       <div className={styles.scrim} aria-hidden="true" />
       <div className={styles.modeBar}>
         <span className={styles.modeLabel}>Material view</span>
@@ -294,7 +257,7 @@ export const ModelSignature = memo(function ModelSignature({
               className={styles.modeButton}
               aria-pressed={mode === signatureMode}
               key={signatureMode}
-              onClick={() => selectMode(signatureMode)}
+              onClick={() => setMode(signatureMode)}
             >
               {signatureModeLabels[signatureMode]}
             </button>
