@@ -1,5 +1,9 @@
 /** Comparable resource baskets preserve each model's index-backed variant coverage and use the same observed evidence on both axes. */
 
+import {
+  isAggregateIndex,
+  residualIndexBreadth,
+} from "../../../../src/model-atlas/benchmarks/index-policy";
 import { canonicalModelKey } from "../../../../src/model-atlas/identity/normalization";
 import type { ModelAtlasPublishedModel } from "../../../../src/model-atlas/stats/types";
 import { modelVariantKey } from "../../shared/model-display";
@@ -7,8 +11,6 @@ import {
   frontierBenchmarkAxisConfig,
   type FrontierBenchmarkAxisKey,
   type FrontierBenchmarkRow,
-  frontierEvidenceWeight,
-  isIndexProxy,
   isScoreAxis,
   meanFrontierBenchmarkRows,
   normalizedFrontierBenchmarkRows,
@@ -78,7 +80,7 @@ export function sharedFrontierBenchmarkComparison(
     }
     const allVariants = [...rowsByVariant.values()];
     const indexVariants = allVariants.filter((variant) =>
-      variant.some((row) => isIndexProxy(row.benchmarkKey)),
+      variant.some((row) => isAggregateIndex(row.benchmarkKey)),
     );
     const variants = indexVariants.length > 0 ? indexVariants : allVariants;
     const compared = new Set(variants.map((variant) => modelVariantKey(variant[0]!.model)));
@@ -94,12 +96,12 @@ export function sharedFrontierBenchmarkComparison(
     indexVariantCount += indexVariants.length;
     excludedVariantCount += allVariants.length - variants.length;
     const totalWeight = benchmarkKeys.reduce(
-      (sum, key) => sum + frontierEvidenceWeight(key, benchmarkKeys),
+      (sum, key) => sum + residualIndexBreadth(key, benchmarkKeys),
       0,
     );
     const indexWeight = benchmarkKeys
-      .filter(isIndexProxy)
-      .reduce((sum, key) => sum + frontierEvidenceWeight(key, benchmarkKeys), 0);
+      .filter(isAggregateIndex)
+      .reduce((sum, key) => sum + residualIndexBreadth(key, benchmarkKeys), 0);
     groups.push({
       modelKey,
       model: modelRows[0]!.model,

@@ -5,6 +5,7 @@ import {
   effectiveModelCount,
 } from "../../benchmarks/calibration-population";
 import type { BenchmarkDimension } from "../../benchmarks/factory";
+import { indexPolicy } from "../../benchmarks/index-policy";
 import type { ScoringConfig } from "../../config/stage";
 import { canonicalModelKey, canonicalReasoningEffort } from "../../identity/normalization";
 import { clamp } from "../../math-utils";
@@ -91,11 +92,12 @@ export function buildAgenticTokenScoringContext(
     return { ...qualityContext, agenticTokenAdjustments: adjustments };
   }
   for (const key of scoringConfig.agenticBenchmarkKeys) {
+    const resources = indexPolicy(key)?.resources;
     const coordinate =
       scoringConfig.benchmarkPortfolio[key]?.resourcePolicy?.qualityCoordinate ??
-      (key === "aa_intelligence_index" ? "linear" : null);
+      resources?.policy.qualityCoordinate;
     if (coordinate == null) continue;
-    const resourceKey = key === "aa_intelligence_index" ? "artificial_analysis" : key;
+    const resourceKey = resources?.key ?? key;
     const qualityRange = qualityContext.benchmarkRangesByKey.get(key);
     if (qualityRange == null || !(qualityRange.min < qualityRange.max)) continue;
     const qualities = models.map((model) => benchmarkMetricValue(model, key));

@@ -1,9 +1,9 @@
 /** Capability score assembly owns benchmark weighting, speed anchors, and confidence. */
 
 import type { BenchmarkDimension } from "../../benchmarks/factory";
+import { indexPolicy, isAggregateIndex } from "../../benchmarks/index-policy";
 import {
   benchmarkDimensionWeight,
-  EFFORT_INDEX_BENCHMARK_KEYS,
   INDEX_REPRESENTED_BENCHMARK_COUNTS,
 } from "../../benchmarks/registry";
 import {
@@ -54,7 +54,6 @@ type ComponentScoreResult = {
 };
 
 const QUALITY_REGULARIZATION_TARGET = 50;
-const AGGREGATE_INDEX_KEYS = new Set(Object.keys(INDEX_REPRESENTED_BENCHMARK_COUNTS));
 
 type UnproxiedQualityScore = "observed-mean" | "regularized";
 
@@ -130,10 +129,11 @@ function benchmarkScoreInput(
 
 /** Unlabelled index observations remain available as metadata and admission evidence, not as substitutes for variant measurements. */
 function excludesVariantIndex(model: { reasoning_effort?: unknown }, key: string): boolean {
+  const policy = indexPolicy(key);
   return (
     canonicalReasoningEffort(model.reasoning_effort) != null &&
-    AGGREGATE_INDEX_KEYS.has(key) &&
-    !EFFORT_INDEX_BENCHMARK_KEYS.has(key)
+    policy != null &&
+    !policy.effortAware
   );
 }
 
@@ -156,9 +156,9 @@ function indexBlendedQualityScore(
   );
   const tasks = benchmarkScoreInputs.filter(
     ({ key, observed, scoreEstimate, value, weight }) =>
-      !AGGREGATE_INDEX_KEYS.has(key) && (observed || scoreEstimate) && value != null && weight > 0,
+      !isAggregateIndex(key) && (observed || scoreEstimate) && value != null && weight > 0,
   );
-  const indexes = observed.filter(({ key }) => AGGREGATE_INDEX_KEYS.has(key));
+  const indexes = observed.filter(({ key }) => isAggregateIndex(key));
   const indexMean = weightedMeanOfFinite(
     indexes.map(({ key, value, weight }) => ({
       value,
@@ -211,8 +211,7 @@ function qualityScore(
   const evidenceSupport =
     possibleEvidenceMass > 0 ? clamp01(evidenceMass / possibleEvidenceMass) : null;
   const hasObservedIndex = benchmarkScoreInputs.some(
-    ({ key, observed, scoreExcluded }) =>
-      !scoreExcluded && observed && AGGREGATE_INDEX_KEYS.has(key),
+    ({ key, observed, scoreExcluded }) => !scoreExcluded && observed && isAggregateIndex(key),
   );
   if (hasObservedIndex) {
     return {

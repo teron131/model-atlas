@@ -5,6 +5,7 @@ import type {
   BenchmarkPresentationDetail,
   BenchmarkTaskMetricColumnFacet,
 } from "../factory";
+import { INDEX_BENCHMARK_KEYS } from "../index-policy";
 import { BENCHMARK_RESOURCE_PROFILES, type BenchmarkKey } from "./portfolio";
 
 export const BENCHMARK_TOOLTIPS = {
@@ -621,13 +622,6 @@ const FRONTIER_BENCHMARK_DISPLAY_ORDER = [
   "superchem",
   "terminal_bench_4",
   "terminal_bench_science",
-] as const satisfies readonly BenchmarkKey[];
-
-export const INDEX_BENCHMARK_KEYS = [
-  "aa_intelligence_index",
-  "epoch_capabilities_index",
-  "surge_intelligence_index",
-  "vals_index",
 ] as const satisfies readonly BenchmarkKey[];
 
 const BASELINE_BENCHMARK_DISPLAY_ORDER = [
