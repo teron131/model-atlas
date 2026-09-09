@@ -11,7 +11,6 @@ import type { ArtificialAnalysisBenchmarkResourceRow } from "../sources/artifici
 import type { CursorBenchModelScoreRow } from "../sources/cursorbench/leaderboard";
 import type { DeepSWEModelScoreRow } from "../sources/deep-swe/leaderboard";
 import type { FrontierCodeModelEffortRow } from "../sources/frontier-code/leaderboard";
-import type { MercorApexAgentsRow } from "../sources/mercor-apex-agents/leaderboard";
 import type { TerminalBench4ModelAgentRow } from "../sources/terminal-bench-4/leaderboard";
 import type { VendingBench2ModelScoreRow } from "../sources/vending-bench-2/leaderboard";
 
@@ -102,7 +101,6 @@ type ScoringSourceRow =
   | CursorBenchModelScoreRow
   | DeepSWEModelScoreRow
   | FrontierCodeModelEffortRow
-  | MercorApexAgentsRow
   | TerminalBench4ModelAgentRow
   | VendingBench2ModelScoreRow;
 
@@ -111,7 +109,7 @@ export type ModelAtlasScoringSources =
       agent_arena?: AgentArenaModelScoreRow | null;
       agents_last_exam?: AgentsLastExamModelScoreRow | null;
       analyst_agent?: ArtificialAnalysisBenchmarkResourceRow | null;
-      apex_agents?: MercorApexAgentsRow | null;
+      apex_agents?: BenchmarkObservationRow | null;
       automation_bench?: BenchmarkObservationRow | null;
       cursorbench?: CursorBenchModelScoreRow | null;
       deep_swe?: DeepSWEModelScoreRow | null;

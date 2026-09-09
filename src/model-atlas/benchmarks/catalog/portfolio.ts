@@ -1,7 +1,7 @@
 /** Benchmark portfolio policy owns scoring weights, imputation, and resource-scoring policy. */
 
 import type { BenchmarkPortfolioEntry, BenchmarkResourcePolicy } from "../factory";
-import { INDEX_SCORING_WEIGHT } from "../index-policy";
+import { CAIS_INDEX_SCORING_WEIGHT, INDEX_SCORING_WEIGHT } from "../index-policy";
 
 type BenchmarkScoringWeight = Omit<BenchmarkPortfolioEntry, "resourcePolicy">;
 type BenchmarkResourceMeasurement = Omit<BenchmarkResourcePolicy, "qualityCoordinate">;
@@ -86,6 +86,7 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
   },
+  cais_capabilities_index: CAIS_INDEX_SCORING_WEIGHT,
   chartography: {
     group: "frontier",
     benchmarkImportance: 1,
@@ -136,12 +137,22 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
   },
+  enigmaeval: {
+    group: "frontier",
+    benchmarkImportance: 1,
+    dimensionLoadings: { intelligence: 1, agentic: 0 },
+  },
   enterprisebench_corecraft: {
     group: "baseline",
     benchmarkImportance: 0.5,
     dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
   },
   epoch_capabilities_index: INDEX_SCORING_WEIGHT,
+  erqa: {
+    group: "baseline",
+    benchmarkImportance: 1,
+    dimensionLoadings: { intelligence: 1, agentic: 0 },
+  },
   finance_agent_v2: {
     group: "baseline",
     benchmarkImportance: 1,
@@ -187,6 +198,11 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
+  intphys2: {
+    group: "baseline",
+    benchmarkImportance: 1,
+    dimensionLoadings: { intelligence: 1, agentic: 0 },
+  },
   itbench_sre: {
     group: "frontier",
     benchmarkImportance: 1,
@@ -197,15 +213,20 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
   },
-  mls_bench: {
-    group: "frontier",
+  mindcube: {
+    group: "baseline",
     benchmarkImportance: 1,
-    dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
+    dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
   mirrorcode: {
     group: "frontier",
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
+  },
+  mls_bench: {
+    group: "frontier",
+    benchmarkImportance: 1,
+    dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
   },
   omniscience_accuracy: {
     group: "baseline",
@@ -247,6 +268,11 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
+  spatialviz: {
+    group: "frontier",
+    benchmarkImportance: 1,
+    dimensionLoadings: { intelligence: 1, agentic: 0 },
+  },
   sre_bench: {
     group: "frontier",
     benchmarkImportance: 1,
@@ -272,6 +298,11 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     group: "frontier",
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
+  },
+  textquests: {
+    group: "frontier",
+    benchmarkImportance: 1,
+    dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
   },
   toolathlon: {
     group: "baseline",

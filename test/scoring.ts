@@ -226,8 +226,14 @@ const previewScoreResult = buildPreviewComponentScoreResult(
     ]),
   },
 );
-assertClose(previewScoreResult.componentScores?.intelligence_score, 84.05247813411079);
-assertClose(previewScoreResult.componentScores?.agentic_score, 95.00208246563932);
+// Three Intelligence tasks average 50; two Agentic tasks average 550/7, against a 100-point index.
+const intelligenceTaskShare = 0.2 + 0.6 * ((2 / 6.5) ** 2 * (3 - 2 * (2 / 6.5)));
+const agenticTaskShare = 0.2 + 0.6 * ((1 / 6.5) ** 2 * (3 - 2 * (1 / 6.5)));
+assertClose(
+  previewScoreResult.componentScores?.intelligence_score,
+  100 - intelligenceTaskShare * 50,
+);
+assertClose(previewScoreResult.componentScores?.agentic_score, 100 - agenticTaskShare * (150 / 7));
 assert.equal(
   (previewScoreResult.confidence.intelligence ?? 1) < 1,
   true,
@@ -325,12 +331,14 @@ for (const key of STAGE_CONFIG.final.benchmarkAdmission.indexBenchmarkKeys) {
   assert.equal(STAGE_CONFIG.scoring.benchmarkPortfolio[key]?.benchmarkImportance, 0.5);
 }
 assert.equal(INDEX_REPRESENTED_BENCHMARK_COUNTS.aa_intelligence_index, 10);
+assert.equal(INDEX_REPRESENTED_BENCHMARK_COUNTS.cais_capabilities_index, 7);
 assert.equal(INDEX_REPRESENTED_BENCHMARK_COUNTS.surge_intelligence_index, 8);
 assert.equal(INDEX_REPRESENTED_BENCHMARK_COUNTS.vals_index, 7);
 assert.equal(
   INDEX_REPRESENTED_BENCHMARK_COUNTS.epoch_capabilities_index,
   medianOfFinite([
     INDEX_REPRESENTED_BENCHMARK_COUNTS.aa_intelligence_index,
+    INDEX_REPRESENTED_BENCHMARK_COUNTS.cais_capabilities_index,
     INDEX_REPRESENTED_BENCHMARK_COUNTS.surge_intelligence_index,
     INDEX_REPRESENTED_BENCHMARK_COUNTS.vals_index,
   ]),
@@ -454,6 +462,7 @@ assertEqual(
   JSON.stringify(STAGE_CONFIG.final.benchmarkAdmission.indexBenchmarkKeys),
   JSON.stringify([
     "aa_intelligence_index",
+    "cais_capabilities_index",
     "epoch_capabilities_index",
     "surge_intelligence_index",
     "vals_index",
@@ -461,12 +470,21 @@ assertEqual(
 );
 for (const key of [
   "aa_intelligence_index",
+  "cais_capabilities_index",
   "epoch_capabilities_index",
   "surge_intelligence_index",
   "vals_index",
 ] as const) {
-  assertEqual(STAGE_CONFIG.scoring.benchmarkPortfolio[key].dimensionLoadings.intelligence, 0.5);
-  assertEqual(STAGE_CONFIG.scoring.benchmarkPortfolio[key].dimensionLoadings.agentic, 0.5);
+  const expectedIntelligence = key === "cais_capabilities_index" ? 0.75 : 0.5;
+  const expectedAgentic = key === "cais_capabilities_index" ? 0.25 : 0.5;
+  assertEqual(
+    STAGE_CONFIG.scoring.benchmarkPortfolio[key].dimensionLoadings.intelligence,
+    expectedIntelligence,
+  );
+  assertEqual(
+    STAGE_CONFIG.scoring.benchmarkPortfolio[key].dimensionLoadings.agentic,
+    expectedAgentic,
+  );
 }
 assertEqual(
   benchmarkMetricValue({ intelligence: { intelligence_index: 73.5 } }, "aa_intelligence_index"),
@@ -2183,10 +2201,7 @@ assertClose(
   0.5,
 );
 
-const undercoveredBenchmarkKeys = Array.from(
-  { length: INDEX_REPRESENTED_BENCHMARK_MEDIAN },
-  (_, index) => `b${index + 1}`,
-);
+const undercoveredBenchmarkKeys = Array.from({ length: 8 }, (_, index) => `b${index + 1}`);
 
 function undercoveredBenchmarks(value: number, count = undercoveredBenchmarkKeys.length) {
   return Object.fromEntries(undercoveredBenchmarkKeys.slice(0, count).map((key) => [key, value]));
@@ -2194,6 +2209,7 @@ function undercoveredBenchmarks(value: number, count = undercoveredBenchmarkKeys
 
 const undercoveredConfig: ScoringConfig = {
   ...STAGE_CONFIG.scoring,
+  qualityTaskFullCount: 8,
   intelligenceBenchmarkKeys: ["aa_intelligence_index", "vals_index", ...undercoveredBenchmarkKeys],
   agenticBenchmarkKeys: [],
   previewAdditionalIntelligenceBenchmarkKeys: [],

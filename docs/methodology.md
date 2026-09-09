@@ -165,7 +165,7 @@ $$
 h_{m,d}=E_{m,d}/\Omega_d.
 $$
 
-The separate regularization coefficient $c_{m,d}$ determines how strongly a sparse high score is held toward 50. Its full-evidence point $F$ follows the median benchmark count represented by the four aggregate indexes, currently 8. The coefficient stays at zero through $0.1F$ and rises to one at $F$:
+The separate regularization coefficient $c_{m,d}$ determines how strongly a sparse high score is held toward 50. Its full-evidence point $F$ follows the median benchmark count represented by the aggregate indexes, currently 7.5. The coefficient stays at zero through $0.1F$ and rises to one at $F$:
 
 $$
 c_{m,d}=\operatorname{smoothstep}\left(\frac{E_{m,d}-0.1F}{0.9F}\right).
@@ -350,11 +350,11 @@ A shared-task gap is an estimate of transfer across tasks, not a guarantee that 
 
 ### Aggregate Index Proxying
 
-Indexes support sparse variants while curated task benchmarks become the primary evidence as direct observations accumulate. For effort-labelled variants, only indexes with directly reported effort coverage are eligible for the score blend; currently this is Artificial Analysis. Unlabelled models retain the ordinary index pool. Other observed indexes remain available in the table and for the separate admission checks, but cannot change a labelled variant’s index mean. The compact table selects a representative variant and uses the same score as the expanded table and graphs. Each variant and quality dimension uses its own count of observed tasks with positive dimension weight. Imputed values, sibling results, and aggregate indexes do not advance this count.
+Indexes support sparse variants while curated task benchmarks become the primary evidence as direct observations accumulate. For effort-labelled variants, only indexes with directly reported effort coverage are eligible for the score blend; currently this is Artificial Analysis and CAIS. Unlabelled models retain the ordinary index pool. Other observed indexes remain available in the table and for the separate admission checks, but cannot change a labelled variant’s index mean. The compact table selects a representative variant and uses the same score as the expanded table and graphs. Each variant and quality dimension uses its own count of observed tasks with positive dimension weight. Imputed values, sibling results, and aggregate indexes do not advance this count.
 
-The first direct task receives 20% of the blend, with indexes carrying 80%. Task influence rises smoothly to 80% at the configured direct-task threshold (currently eight) and remains there as more tasks arrive. The default follows the median represented index breadth; it is a direct task count for this blend, distinct from weighted evidence mass used by regularization and from admission requirements.
+The first direct task receives 20% of the blend, with indexes carrying 80%. Task influence rises smoothly to 80% at the configured direct-task threshold (currently 7.5) and remains there as more tasks arrive. The default follows the median represented index breadth; it is a direct task count for this blend, distinct from weighted evidence mass used by regularization and from admission requirements. CAIS declares residual overlap for this blend, so directly observed HLE, TextQuests, EnigmaEval, ERQA, IntPhys 2, MindCube Tiny, and SpatialViz-Bench reduce only CAIS's proxy breadth before the index mean is formed.
 
-For direct task count $n$ and configured threshold $N$ (currently 8), the progress $p$ and task share $t$ are:
+For direct task count $n$ and configured threshold $N$ (currently 7.5), the progress $p$ and task share $t$ are:
 
 $$
 p=\operatorname{clip}_{[0,1]}\left(\frac{n-1}{N-1}\right),\qquad
@@ -373,7 +373,7 @@ The configured endpoint expresses sufficient direct evidence for the curated por
 
 This blend does not inflate evidence support or satisfy admission. Supported sibling estimates enter the task mean before blending, while the taper continues to count direct tasks only. There is no subsequent whole-score sibling adjustment.
 
-![Task influence starts at 20% with one direct observation and reaches 80% at the configured threshold (currently eight). Index influence moves in the opposite direction. With no observed tasks, indexes carry 100%.](assets/methodology/index-coverage-taper.svg)
+![Task influence starts at 20% with one direct observation and reaches 80% at the configured threshold (currently 7.5). Index influence moves in the opposite direction. With no observed tasks, indexes carry 100%.](assets/methodology/index-coverage-taper.svg)
 
 ## Effective Pricing
 
@@ -673,8 +673,8 @@ Keeping absolute and quality-adjusted price as separate components preserves two
 A score is calculated before Model Atlas decides whether a row has enough information for public comparison. Ordinary admission requires all of the following:
 
 - A complete basic profile: release date, confirmed text output, input and output prices, context and output limits, throughput, and either latency or end-to-end latency.
-- At least the median aggregate-index benchmark count in directly observed selected results, currently 8, including at least one Intelligence benchmark and one Agentic benchmark.
-- At least two observed index signals. Artificial Analysis contributes a signal for each reported Intelligence, Agentic, Coding, or Omniscience index; Epoch, Surge, and Vals each contribute one when observed.
+- At least the median aggregate-index benchmark count in directly observed selected results, currently 7.5 (requiring eight whole benchmark observations), including at least one Intelligence benchmark and one Agentic benchmark.
+- At least two observed index signals. Artificial Analysis contributes a signal for each reported Intelligence, Agentic, Coding, or Omniscience index; CAIS, Epoch, Surge, and Vals each contribute one when observed.
 - Finite Intelligence and Agentic scores of at least 10 each.
 
 Estimates do not satisfy these requirements. An eligible model enters ordinary ranking immediately, with no minimum release age or prior-publication requirement.
@@ -739,8 +739,8 @@ These parameters encode robustness choices and usage priorities. They are explic
 | Resource neighborhood width | $\sigma=0.5$ | Keeps comparisons quality-local without requiring exact benchmark-score ties. |
 | Minimum quality-coordinate deviation | 0.35 log-odds units, or 35% of the observed linear range | Limits relative clustering while keeping linear comparisons invariant to a change of units. |
 | Local resource trend | Full peer support and interpolation only | Accounts for nearby quality differences while avoiding sparse fits and unsupported extrapolation. |
-| Capability task/index endpoint | 80% / 20% at the configured direct-task threshold (currently eight) | Each variant and dimension counts its own direct tasks; missing selected tasks do not move the endpoint. |
-| Aggregate-index proxy taper | Smoothstep from one to eight direct tasks | Moves from 20% tasks / 80% indexes to 80% tasks / 20% indexes; no tasks means indexes alone. |
+| Capability task/index endpoint | 80% / 20% at the configured direct-task threshold (currently 7.5) | Each variant and dimension counts its own direct tasks; missing selected tasks do not move the endpoint. |
+| Aggregate-index proxy taper | Smoothstep from one to the configured threshold of 7.5 direct tasks | Moves from 20% tasks / 80% indexes to 80% tasks / 20% indexes; no tasks means indexes alone. |
 | Full comparison support | 3 effective models | Shrinks unsupported comparisons toward neutral while allowing a small independent peer set to earn full confidence. |
 | Agentic token modifier | ±15%, capped at two robust log-token spread units | Bounds the effect of tokens relative to same-quality peers before benchmark remapping. |
 

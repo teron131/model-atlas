@@ -47,7 +47,6 @@ type BenchmarkDbRows = BenchmarkObservationDbRows & {
   cursorBenchRows: readonly DbBenchmarkRow[];
   deepSWERows: readonly DbBenchmarkRow[];
   frontierCodeRows: readonly DbBenchmarkRow[];
-  mercorApexAgentsRows: readonly DbBenchmarkRow[];
   riemannBenchRows: readonly DbBenchmarkRow[];
   terminalBench4Rows: readonly DbBenchmarkRow[];
   valsIndexRows: readonly DbBenchmarkRow[];
@@ -200,16 +199,6 @@ const STANDALONE_BENCHMARK_ADAPTERS = {
           ]
         : [],
     ),
-  mercor_apex_agents: (rows) =>
-    rows.mercorApexAgentsRows.map((row) => ({
-      key: "apex_agents",
-      id: stringValue(row.model_id),
-      identity: stringValue(row.base_model),
-      label: stringValue(row.model),
-      provider: stringValue(row.organization),
-      reasoningEffort: row.reasoning_effort,
-      value: row.score,
-    })),
   terminal_bench_4: (rows) =>
     rows.terminalBench4Rows.map((row) => ({
       key: "terminal_bench_4",

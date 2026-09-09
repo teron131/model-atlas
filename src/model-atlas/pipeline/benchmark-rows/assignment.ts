@@ -52,7 +52,6 @@ export type BenchmarkAssignmentLookups = BenchmarkObservationLookups & {
   cursorBench: Pick<ModelAtlasSourceData["cursorBench"], "rowsByModelName">;
   deepSWE: Pick<ModelAtlasSourceData["deepSWE"], "rowsByModelName">;
   frontierCode: Pick<ModelAtlasSourceData["frontierCode"], "rowsByModelName">;
-  mercorApexAgents: Pick<ModelAtlasSourceData["mercorApexAgents"], "rowsByModelName">;
   riemannBench: Pick<ModelAtlasSourceData["riemannBench"], "rowsByModelName">;
   terminalBench4: Pick<ModelAtlasSourceData["terminalBench4"], "rowsByModelName">;
   valsIndex: Pick<ModelAtlasSourceData["valsIndex"], "rowsByModelName">;
@@ -277,18 +276,6 @@ const addFrontierCode: StandaloneBenchmarkOperation = ({
   }
 };
 
-const addMercorApexAgents: StandaloneBenchmarkOperation = ({
-  assignedBenchmarks,
-  lookups,
-  ...context
-}) => {
-  const row = context.resolveSourceRow(lookups.mercorApexAgents.rowsByModelName);
-  if (row != null) {
-    assignedBenchmarks.benchmarks.apex_agents = row.score;
-    assignedBenchmarks.scoringSources.apex_agents = row;
-  }
-};
-
 /** Adds the strongest agent result for the exact model effort selected by the source projection. */
 const addTerminalBench4: StandaloneBenchmarkOperation = ({
   assignedBenchmarks,
@@ -376,10 +363,6 @@ const STANDALONE_BENCHMARK_ADAPTERS = {
   frontier_code: {
     defaultVariant: addFrontierCode,
     observation: addFrontierCode,
-  },
-  mercor_apex_agents: {
-    defaultVariant: addMercorApexAgents,
-    observation: addMercorApexAgents,
   },
   terminal_bench_4: {
     defaultVariant: addTerminalBench4,

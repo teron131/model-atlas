@@ -1,19 +1,23 @@
-/** Mercor observations keep exact efforts and reported metrics while preserving every alternate harness in raw provenance. */
+/**
+ * Scrape benchmark leaderboard results from Mercor.
+ *
+ * Page source: https://www.mercor.com/apex
+ */
 
-import type { BenchmarkObservationLoader } from "../benchmarks/factory";
+import type { BenchmarkObservationLoader } from "../../benchmarks/factory";
 import type {
   BenchmarkObservationPayload,
   BenchmarkObservationRow,
-} from "../benchmarks/observation";
-import { benchmarkModelEffort, canonicalReasoningEffort } from "../identity/normalization";
-import { asFiniteNumber, asRecord, nowEpochSeconds } from "../runtime";
+} from "../../benchmarks/observation";
+import { benchmarkModelEffort, canonicalReasoningEffort } from "../../identity/normalization";
+import { asFiniteNumber, asRecord, nowEpochSeconds } from "../../runtime";
 import {
   extractNextFlightCorpus,
   findObjectEnd,
   parseFlightJsonObject,
   stringValue,
-} from "./parsing";
-import { fetchSource } from "./request-scheduler";
+} from "../parsing";
+import { fetchSource } from "../request-scheduler";
 
 type MercorSource = Omit<Extract<BenchmarkObservationLoader, { kind: "mercor" }>, "kind">;
 

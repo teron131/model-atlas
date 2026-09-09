@@ -1,11 +1,8 @@
 /** Capability score assembly owns benchmark weighting, speed anchors, and confidence. */
 
 import type { BenchmarkDimension } from "../../benchmarks/factory";
-import { indexPolicy, isAggregateIndex } from "../../benchmarks/index-policy";
-import {
-  benchmarkDimensionWeight,
-  INDEX_REPRESENTED_BENCHMARK_COUNTS,
-} from "../../benchmarks/registry";
+import { indexPolicy, isAggregateIndex, qualityIndexBreadth } from "../../benchmarks/index-policy";
+import { benchmarkDimensionWeight } from "../../benchmarks/registry";
 import {
   QUALITY_SCORE_BUCKET_WEIGHTS,
   type QualityCoverageThresholds,
@@ -158,13 +155,12 @@ function indexBlendedQualityScore(
     ({ key, observed, scoreEstimate, value, weight }) =>
       !isAggregateIndex(key) && (observed || scoreEstimate) && value != null && weight > 0,
   );
+  const observedTaskKeys = tasks.filter(({ observed }) => observed).map(({ key }) => key);
   const indexes = observed.filter(({ key }) => isAggregateIndex(key));
   const indexMean = weightedMeanOfFinite(
     indexes.map(({ key, value, weight }) => ({
       value,
-      weight:
-        weight *
-        INDEX_REPRESENTED_BENCHMARK_COUNTS[key as keyof typeof INDEX_REPRESENTED_BENCHMARK_COUNTS],
+      weight: weight * qualityIndexBreadth(key, observedTaskKeys),
     })),
   );
   const taskMean = weightedMeanOfFinite(tasks);

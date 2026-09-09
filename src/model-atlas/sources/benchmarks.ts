@@ -17,7 +17,6 @@ import { blueprintBenchRuntime } from "./blueprint-bench/runtime";
 import { cursorBenchRuntime } from "./cursorbench/runtime";
 import { deepSWERuntime } from "./deep-swe/runtime";
 import { frontierCodeRuntime } from "./frontier-code/runtime";
-import { mercorApexAgentsRuntime } from "./mercor-apex-agents/runtime";
 import { insertBenchmarkObservationRows } from "./observations/cache";
 import type { RawSourceName } from "./registry";
 import { riemannBenchRuntime } from "./surge/riemann-runtime";
@@ -35,7 +34,6 @@ const STANDALONE_BENCHMARK_RUNTIMES = {
   cursorbench: cursorBenchRuntime,
   deep_swe: deepSWERuntime,
   frontier_code: frontierCodeRuntime,
-  mercor_apex_agents: mercorApexAgentsRuntime,
   terminal_bench_4: terminalBench4Runtime,
   vending_bench_2: vendingBench2Runtime,
 } as const satisfies Record<BenchmarkRuntimeKeyFor<"standalone">, object>;

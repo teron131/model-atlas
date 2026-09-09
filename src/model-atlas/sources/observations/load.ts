@@ -9,9 +9,10 @@ import type { BenchmarkObservationBinding } from "../../benchmarks/registry";
 import { arcPrizeCacheMatches, getArcPrizeStats } from "../arc-prize";
 import { getArtificialAnalysisOmniscienceStats } from "../artificial-analysis/omniscience";
 import { automationBenchCacheMatches, getAutomationBenchStats } from "../automation-bench";
+import { caisCacheMatches, getCaisDashboardStats } from "../cais/results";
 import { getEpochCapabilitiesIndexStats } from "../epoch/capabilities-index";
 import { epochBenchmarkCacheMatches, getEpochBenchmarkStats } from "../epoch/results";
-import { getMercorStats, mercorCacheMatches } from "../mercor";
+import { getMercorStats, mercorCacheMatches } from "../mercor/results";
 import { getMlsBenchStats } from "../mls-bench";
 import { getPerceptionBenchStats } from "../perception-bench";
 import { getSurgeIntelligenceIndexStats, getSurgeLeaderboardStats } from "../surge/results";
@@ -61,6 +62,11 @@ export function benchmarkObservationSource(
             benchmarkKey: binding.benchmark,
             sourceUrl: loader.sourceUrl,
           }),
+      };
+    case "cais_dashboard":
+      return {
+        fetchRows: () => getCaisDashboardStats(binding.benchmark, loader),
+        acceptsCache: (rows) => caisCacheMatches(rows, loader),
       };
     case "epoch_capabilities_index":
       return { fetchRows: () => getEpochCapabilitiesIndexStats(loader.sourceUrl) };

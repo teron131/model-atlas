@@ -68,15 +68,6 @@ export const BENCHMARK_TOOLTIPS = {
       ["Role", "software integration and debugging"],
     ],
   },
-  automation_bench: {
-    title: "AutomationBench",
-    body: "Complete multi-step workflows across simulated SaaS apps, with credit only when every required final-state assertion passes.",
-    rows: [
-      ["Source", "Zapier"],
-      ["Metric", "tasks completed correctly"],
-      ["Role", "agentic SaaS workflow"],
-    ],
-  },
   arc_agi_2: {
     title: "ARC-AGI-2",
     body: "Solve novel abstract visual transformation tasks from a small set of demonstrations.",
@@ -96,6 +87,15 @@ export const BENCHMARK_TOOLTIPS = {
       ["Metric", "human-relative action efficiency"],
       ["Harness", "mean of eligible Standard and Provider Adapter runs"],
       ["Role", "interactive fluid reasoning"],
+    ],
+  },
+  automation_bench: {
+    title: "AutomationBench",
+    body: "Complete multi-step workflows across simulated SaaS apps, with credit only when every required final-state assertion passes.",
+    rows: [
+      ["Source", "Zapier"],
+      ["Metric", "tasks completed correctly"],
+      ["Role", "agentic SaaS workflow"],
     ],
   },
   blueprint_bench_2: {
@@ -120,6 +120,15 @@ export const BENCHMARK_TOOLTIPS = {
     rows: [
       ["Source", "LLM Stats / ZeroEval"],
       ["Role", "web information retrieval"],
+    ],
+  },
+  cais_capabilities_index: {
+    title: "CAIS Capabilities Index",
+    body: "Atlas-derived weighted mean across two Text and five Vision benchmark observations published by the CAIS dashboard.",
+    rows: [
+      ["Source", "CAIS AI Dashboard"],
+      ["Formula", "(2 × Text + 5 × Vision) / 7"],
+      ["Role", "broad multimodal capability proxy"],
     ],
   },
   chartography: {
@@ -206,6 +215,15 @@ export const BENCHMARK_TOOLTIPS = {
       ["Role", "financial-model construction"],
     ],
   },
+  enigmaeval: {
+    title: "EnigmaEval",
+    body: "Solve long multimodal puzzle-hunt problems requiring hidden-structure discovery and multi-step deduction.",
+    rows: [
+      ["Source", "CAIS AI Dashboard"],
+      ["Metric", "dashboard accuracy"],
+      ["Role", "creative and unstructured reasoning"],
+    ],
+  },
   enterprisebench_corecraft: {
     title: "EnterpriseBench CoreCraft",
     body: "Complete customer, operations, and knowledge-work tasks inside a simulated computer-hardware startup using enterprise tools and company policy.",
@@ -220,6 +238,15 @@ export const BENCHMARK_TOOLTIPS = {
     rows: [
       ["Source", "Epoch AI"],
       ["Role", "general capability context"],
+    ],
+  },
+  erqa: {
+    title: "ERQA",
+    body: "Answer multimodal embodied-reasoning questions about spatial relations, trajectories, actions, and physical-world states.",
+    rows: [
+      ["Source", "CAIS AI Dashboard"],
+      ["Metric", "dashboard accuracy"],
+      ["Role", "embodied visual reasoning"],
     ],
   },
   finance_agent_v2: {
@@ -299,6 +326,15 @@ export const BENCHMARK_TOOLTIPS = {
       ["Role", "frontier reasoning"],
     ],
   },
+  intphys2: {
+    title: "IntPhys 2",
+    body: "Judge whether simulated video events are physically plausible across permanence, immutability, continuity, and solidity conditions.",
+    rows: [
+      ["Source", "CAIS AI Dashboard"],
+      ["Metric", "dashboard accuracy"],
+      ["Role", "intuitive physics understanding"],
+    ],
+  },
   itbench_sre: {
     title: "ITBench",
     body: "Diagnose Kubernetes incidents from offline alerts, events, traces, metrics, and topology, identifying every contributing root-cause entity.",
@@ -316,13 +352,13 @@ export const BENCHMARK_TOOLTIPS = {
       ["Role", "legal research workflow"],
     ],
   },
-  mls_bench: {
-    title: "MLS-Bench Lite",
-    body: "Improve machine-learning methods across 30 controlled research tasks through iterative experimentation in a five-hour agent environment.",
+  mindcube: {
+    title: "MindCube Tiny",
+    body: "Reason over limited multi-view scenes to infer hidden spatial relationships and perspective changes.",
     rows: [
-      ["Source", "MLS-Bench"],
-      ["Metric", "baseline-normalized performance"],
-      ["Role", "iterative machine-learning research"],
+      ["Source", "CAIS AI Dashboard"],
+      ["Metric", "dashboard accuracy"],
+      ["Role", "spatial mental modeling"],
     ],
   },
   mirrorcode: {
@@ -333,6 +369,15 @@ export const BENCHMARK_TOOLTIPS = {
       ["Configuration", "ML, private tests, two languages"],
       ["Metric", "complete-solve rate"],
       ["Role", "long-horizon program reconstruction"],
+    ],
+  },
+  mls_bench: {
+    title: "MLS-Bench Lite",
+    body: "Improve machine-learning methods across 30 controlled research tasks through iterative experimentation in a five-hour agent environment.",
+    rows: [
+      ["Source", "MLS-Bench"],
+      ["Metric", "baseline-normalized performance"],
+      ["Role", "iterative machine-learning research"],
     ],
   },
   omniscience_accuracy: {
@@ -405,6 +450,15 @@ export const BENCHMARK_TOOLTIPS = {
       ["Role", "general factual knowledge"],
     ],
   },
+  spatialviz: {
+    title: "SpatialViz-Bench",
+    body: "Mentally rotate, fold, penetrate, and animate visual structures across controlled spatial-transformation tasks.",
+    rows: [
+      ["Source", "CAIS AI Dashboard"],
+      ["Metric", "dashboard accuracy"],
+      ["Role", "spatial visualization"],
+    ],
+  },
   sre_bench: {
     title: "SRE Bench",
     body: "Reverse engineer protected binary programs and recover their behavior across substantive objectives with deterministic grading.",
@@ -456,6 +510,15 @@ export const BENCHMARK_TOOLTIPS = {
       ["Source", "Terminal-Bench-Science 0.1"],
       ["Metric", "resolution rate"],
       ["Role", "scientific problem solving"],
+    ],
+  },
+  textquests: {
+    title: "TextQuests",
+    body: "Explore stateful text adventures through long-horizon planning, trial and error, state tracking, and recovery.",
+    rows: [
+      ["Source", "CAIS AI Dashboard"],
+      ["Metric", "no-clues mean game progress"],
+      ["Role", "long-horizon agentic reasoning"],
     ],
   },
   toolathlon: {
@@ -534,6 +597,7 @@ export const BENCHMARK_LABELS = {
   blueprint_bench_2: "Blueprint-Bench 2",
   briefcase: "Briefcase",
   browsecomp: "BrowseComp",
+  cais_capabilities_index: "CAIS Capabilities Index",
   chartography: "Chartography",
   chess_puzzles: "Chess Puzzles",
   code_migration: "Code Migration",
@@ -544,8 +608,10 @@ export const BENCHMARK_LABELS = {
   deep_swe: "DeepSWE",
   ebr_bench: "EBR-Bench",
   emb: "EMB",
+  enigmaeval: "EnigmaEval",
   enterprisebench_corecraft: "EnterpriseBench CoreCraft",
   epoch_capabilities_index: "Epoch Capabilities Index",
+  erqa: "ERQA",
   finance_agent_v2: "Finance Agent V2",
   frontier_code: "FrontierCode",
   frontiermath_erdos: "FrontierMath Erdős",
@@ -555,10 +621,12 @@ export const BENCHMARK_LABELS = {
   handbook_md: "HANDBOOK.md",
   hemingway_bench: "Hemingway-bench",
   hle: "HLE",
+  intphys2: "IntPhys 2",
   itbench_sre: "ITBench",
   legal_research: "Legal Research",
-  mls_bench: "MLS-Bench Lite",
+  mindcube: "MindCube Tiny",
   mirrorcode: "MirrorCode",
+  mls_bench: "MLS-Bench Lite",
   omniscience_accuracy: "Omniscience",
   perception_bench: "PerceptionBench",
   programbench: "ProgramBench",
@@ -567,12 +635,14 @@ export const BENCHMARK_LABELS = {
   riemann_bench: "Riemann-bench",
   scicode: "SciCode",
   simpleqa_verified: "SimpleQA Verified",
+  spatialviz: "SpatialViz-Bench",
   sre_bench: "SRE Bench",
   superchem: "SUPERChem",
   surge_intelligence_index: "Surge Intelligence Index",
   tau_banking: "tau3 Banking",
   terminal_bench_4: "Terminal-Bench 4.0",
   terminal_bench_science: "Terminal-Bench-Science 0.1",
+  textquests: "TextQuests",
   toolathlon: "Toolathlon",
   vals_index: "Vals Index",
   vending_bench_2: "Vending-Bench 2",
@@ -605,6 +675,7 @@ const FRONTIER_BENCHMARK_DISPLAY_ORDER = [
   "deep_swe",
   "ebr_bench",
   "emb",
+  "enigmaeval",
   "frontier_code",
   "frontiermath_erdos",
   "frontiermath_tier_4",
@@ -618,10 +689,12 @@ const FRONTIER_BENCHMARK_DISPLAY_ORDER = [
   "mls_bench",
   "programbench",
   "riemann_bench",
+  "spatialviz",
   "sre_bench",
   "superchem",
   "terminal_bench_4",
   "terminal_bench_science",
+  "textquests",
 ] as const satisfies readonly BenchmarkKey[];
 
 const BASELINE_BENCHMARK_DISPLAY_ORDER = [
@@ -630,8 +703,11 @@ const BASELINE_BENCHMARK_DISPLAY_ORDER = [
   "chess_puzzles",
   "cyberbench",
   "enterprisebench_corecraft",
+  "erqa",
   "finance_agent_v2",
   "hemingway_bench",
+  "intphys2",
+  "mindcube",
   "omniscience_accuracy",
   "perception_bench",
   "proofbench",
@@ -1043,12 +1119,6 @@ export const BENCHMARK_COLUMNS = {
     format: "percent",
     defaultSort: "descending",
   },
-  automation_bench: {
-    key: "automationBench",
-    label: "Auto",
-    format: "percent",
-    defaultSort: "descending",
-  },
   arc_agi_2: {
     key: "arcAgi2",
     label: "AGI-2",
@@ -1058,6 +1128,12 @@ export const BENCHMARK_COLUMNS = {
   arc_agi_3: {
     key: "arcAgi3",
     label: "AGI-3",
+    format: "percent",
+    defaultSort: "descending",
+  },
+  automation_bench: {
+    key: "automationBench",
+    label: "Auto",
     format: "percent",
     defaultSort: "descending",
   },
@@ -1076,6 +1152,12 @@ export const BENCHMARK_COLUMNS = {
   browsecomp: {
     key: "browseComp",
     label: "Browse",
+    format: "percent",
+    defaultSort: "descending",
+  },
+  cais_capabilities_index: {
+    key: "caisCapabilitiesIndex",
+    label: "CAIS",
     format: "percent",
     defaultSort: "descending",
   },
@@ -1139,6 +1221,12 @@ export const BENCHMARK_COLUMNS = {
     format: "percent",
     defaultSort: "descending",
   },
+  enigmaeval: {
+    key: "enigmaeval",
+    label: "Enigma",
+    format: "percent",
+    defaultSort: "descending",
+  },
   enterprisebench_corecraft: {
     key: "enterpriseBenchCoreCraft",
     label: "CoreCraft",
@@ -1149,6 +1237,12 @@ export const BENCHMARK_COLUMNS = {
     key: "epochCapabilitiesIndex",
     label: "ECI",
     format: "number",
+    defaultSort: "descending",
+  },
+  erqa: {
+    key: "erqa",
+    label: "ERQA",
+    format: "percent",
     defaultSort: "descending",
   },
   finance_agent_v2: {
@@ -1205,6 +1299,12 @@ export const BENCHMARK_COLUMNS = {
     format: "percent",
     defaultSort: "descending",
   },
+  intphys2: {
+    key: "intphys2",
+    label: "IntPhys",
+    format: "percent",
+    defaultSort: "descending",
+  },
   itbench_sre: {
     key: "itBench",
     label: "ITBench",
@@ -1217,15 +1317,21 @@ export const BENCHMARK_COLUMNS = {
     format: "percent",
     defaultSort: "descending",
   },
-  mls_bench: {
-    key: "mlsBench",
-    label: "MLS",
+  mindcube: {
+    key: "mindcube",
+    label: "MindCube",
     format: "percent",
     defaultSort: "descending",
   },
   mirrorcode: {
     key: "mirrorCode",
     label: "Mirror",
+    format: "percent",
+    defaultSort: "descending",
+  },
+  mls_bench: {
+    key: "mlsBench",
+    label: "MLS",
     format: "percent",
     defaultSort: "descending",
   },
@@ -1277,6 +1383,12 @@ export const BENCHMARK_COLUMNS = {
     format: "percent",
     defaultSort: "descending",
   },
+  spatialviz: {
+    key: "spatialviz",
+    label: "Spatial",
+    format: "percent",
+    defaultSort: "descending",
+  },
   sre_bench: {
     key: "sreBench",
     label: "SRE",
@@ -1310,6 +1422,12 @@ export const BENCHMARK_COLUMNS = {
   terminal_bench_science: {
     key: "terminalBenchScience",
     label: "TBS",
+    format: "percent",
+    defaultSort: "descending",
+  },
+  textquests: {
+    key: "textquests",
+    label: "TextQ",
     format: "percent",
     defaultSort: "descending",
   },
