@@ -11,6 +11,17 @@ import type { BenchmarkKey } from "./portfolio";
 
 /** Standard sources use the shared benchmark-observation loader and persistence contract. */
 export const BENCHMARK_STANDARD_SOURCES = {
+  apex_agents: {
+    group: "standalone",
+    id: "mercor",
+    loader: {
+      kind: "mercor",
+      sourceUrl: "https://www.mercor.com/apex/apex-agents-leaderboard/",
+      harness: "loop_truncated_tools_agent",
+    },
+    sourceDataKey: "apexAgents",
+    sourceRowsKey: "apexAgentsRows",
+  },
   apex_swe: {
     group: "standalone",
     id: "mercor",
@@ -66,6 +77,16 @@ export const BENCHMARK_STANDARD_SOURCES = {
     },
     sourceDataKey: "browseComp",
     sourceRowsKey: "browseCompRows",
+  },
+  cais_capabilities_index: {
+    group: "standalone",
+    id: "cais",
+    loader: {
+      kind: "cais_dashboard",
+      sourceUrl: "https://dashboard.safe.ai/",
+    },
+    sourceDataKey: "caisCapabilitiesIndex",
+    sourceRowsKey: "caisCapabilitiesIndexRows",
   },
   chartography: {
     group: "surge",
@@ -134,6 +155,16 @@ export const BENCHMARK_STANDARD_SOURCES = {
     sourceDataKey: "emb",
     sourceRowsKey: "embRows",
   },
+  enigmaeval: {
+    group: "standalone",
+    id: "cais",
+    loader: {
+      kind: "cais_dashboard",
+      sourceUrl: "https://dashboard.safe.ai/",
+    },
+    sourceDataKey: "enigmaeval",
+    sourceRowsKey: "enigmaevalRows",
+  },
   enterprisebench_corecraft: {
     group: "surge",
     id: "surge",
@@ -153,6 +184,16 @@ export const BENCHMARK_STANDARD_SOURCES = {
     },
     sourceDataKey: "epochCapabilitiesIndex",
     sourceRowsKey: "epochCapabilitiesIndexRows",
+  },
+  erqa: {
+    group: "standalone",
+    id: "cais",
+    loader: {
+      kind: "cais_dashboard",
+      sourceUrl: "https://dashboard.safe.ai/",
+    },
+    sourceDataKey: "erqa",
+    sourceRowsKey: "erqaRows",
   },
   finance_agent_v2: {
     group: "vals",
@@ -213,6 +254,16 @@ export const BENCHMARK_STANDARD_SOURCES = {
     sourceDataKey: "hemingwayBench",
     sourceRowsKey: "hemingwayBenchRows",
   },
+  intphys2: {
+    group: "standalone",
+    id: "cais",
+    loader: {
+      kind: "cais_dashboard",
+      sourceUrl: "https://dashboard.safe.ai/",
+    },
+    sourceDataKey: "intphys2",
+    sourceRowsKey: "intphys2Rows",
+  },
   legal_research: {
     group: "vals",
     id: "vals",
@@ -224,15 +275,15 @@ export const BENCHMARK_STANDARD_SOURCES = {
     sourceDataKey: "legalResearch",
     sourceRowsKey: "legalResearchRows",
   },
-  mls_bench: {
+  mindcube: {
     group: "standalone",
-    id: "mls_bench",
+    id: "cais",
     loader: {
-      kind: "mls_bench",
-      sourceUrl: "https://mls-bench.com/leaderboard",
+      kind: "cais_dashboard",
+      sourceUrl: "https://dashboard.safe.ai/",
     },
-    sourceDataKey: "mlsBench",
-    sourceRowsKey: "mlsBenchRows",
+    sourceDataKey: "mindcube",
+    sourceRowsKey: "mindcubeRows",
   },
   mirrorcode: {
     group: "epoch",
@@ -244,6 +295,16 @@ export const BENCHMARK_STANDARD_SOURCES = {
     },
     sourceDataKey: "mirrorCode",
     sourceRowsKey: "mirrorCodeRows",
+  },
+  mls_bench: {
+    group: "standalone",
+    id: "mls_bench",
+    loader: {
+      kind: "mls_bench",
+      sourceUrl: "https://mls-bench.com/leaderboard",
+    },
+    sourceDataKey: "mlsBench",
+    sourceRowsKey: "mlsBenchRows",
   },
   omniscience_accuracy: {
     group: "artificial_analysis",
@@ -315,6 +376,16 @@ export const BENCHMARK_STANDARD_SOURCES = {
     sourceDataKey: "simpleQaVerified",
     sourceRowsKey: "simpleQaVerifiedRows",
   },
+  spatialviz: {
+    group: "standalone",
+    id: "cais",
+    loader: {
+      kind: "cais_dashboard",
+      sourceUrl: "https://dashboard.safe.ai/",
+    },
+    sourceDataKey: "spatialviz",
+    sourceRowsKey: "spatialvizRows",
+  },
   sre_bench: {
     group: "vals",
     id: "vals",
@@ -359,6 +430,16 @@ export const BENCHMARK_STANDARD_SOURCES = {
     },
     sourceDataKey: "terminalBenchScience",
     sourceRowsKey: "terminalBenchScienceRows",
+  },
+  textquests: {
+    group: "standalone",
+    id: "cais",
+    loader: {
+      kind: "cais_dashboard",
+      sourceUrl: "https://dashboard.safe.ai/",
+    },
+    sourceDataKey: "textquests",
+    sourceRowsKey: "textquestsRows",
   },
   toolathlon: {
     group: "standalone",
@@ -472,16 +553,6 @@ export const BENCHMARK_EXTENDED_SOURCES = {
             url: "https://artificialanalysis.ai/evaluations/aa-analyst-agent",
           },
         ],
-      },
-    ],
-  },
-  apex_agents: {
-    inputs: [
-      {
-        group: "standalone",
-        id: "mercor",
-        roles: ["observation"],
-        runtime: { key: "mercor_apex_agents", publicRows: true },
       },
     ],
   },

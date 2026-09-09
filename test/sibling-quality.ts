@@ -1,8 +1,9 @@
+/** Verify that missing hard tasks do not reward a variant, while estimates preserve observations and direct-evidence gates. */
+
 import assert from "node:assert/strict";
 
 import { STAGE_CONFIG } from "../src/model-atlas/config/stage";
 import type { ModelAtlasCandidate } from "../src/model-atlas/pipeline/model-types";
-/** Verify that missing hard tasks do not reward a variant, while estimates preserve observations and direct-evidence gates. */
 import { prepareSiblingQualityScoringContext } from "../src/model-atlas/pipeline/scores/imputation/sibling-quality";
 import { buildQualityScoringContext } from "../src/model-atlas/pipeline/scores/quality-context";
 import {
@@ -40,6 +41,7 @@ const tasks = Array.from({ length: 9 }, (_, i) => `task_${i}`);
 const keys = [...tasks, "aa_intelligence_index"];
 const config = {
   ...STAGE_CONFIG.scoring,
+  qualityTaskFullCount: 8,
   intelligenceBenchmarkKeys: keys,
   agenticBenchmarkKeys: [],
   previewAdditionalIntelligenceBenchmarkKeys: [],

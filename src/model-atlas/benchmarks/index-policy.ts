@@ -7,6 +7,7 @@ import { ARTIFICIAL_ANALYSIS_INDEX_SCORE_KEYS } from "./field-keys";
 type IndexPolicy = {
   representedBenchmarks: number;
   effortAware: boolean;
+  qualityOverlap?: "none" | "residual";
   standaloneComponents: readonly string[];
   admissionFields: readonly string[] | null;
   resources: {
@@ -18,11 +19,12 @@ type IndexPolicy = {
 
 const REPORTED_BREADTH = {
   aa_intelligence_index: 10,
+  cais_capabilities_index: 7,
   surge_intelligence_index: 8,
   vals_index: 7,
 } as const;
 
-/** Keep index order stable for presentation and retain Epoch's existing inferred-breadth policy. */
+/** Keep index order stable for presentation and infer Epoch's breadth from the known index counts. */
 export const INDEX_POLICIES = {
   aa_intelligence_index: {
     representedBenchmarks: REPORTED_BREADTH.aa_intelligence_index,
@@ -46,6 +48,22 @@ export const INDEX_POLICIES = {
       "hle",
       "gdp_pdf",
       "critpt",
+    ],
+  },
+  cais_capabilities_index: {
+    representedBenchmarks: REPORTED_BREADTH.cais_capabilities_index,
+    effortAware: true,
+    qualityOverlap: "residual",
+    admissionFields: null,
+    resources: null,
+    standaloneComponents: [
+      "enigmaeval",
+      "erqa",
+      "hle",
+      "intphys2",
+      "mindcube",
+      "spatialviz",
+      "textquests",
     ],
   },
   epoch_capabilities_index: {
@@ -93,6 +111,12 @@ export const INDEX_SCORING_WEIGHT = {
   dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
 } as const satisfies Omit<BenchmarkPortfolioEntry, "resourcePolicy">;
 
+export const CAIS_INDEX_SCORING_WEIGHT = {
+  group: "baseline",
+  benchmarkImportance: 0.5,
+  dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
+} as const satisfies Omit<BenchmarkPortfolioEntry, "resourcePolicy">;
+
 export function isAggregateIndex(key: string): key is IndexBenchmarkKey {
   return Object.hasOwn(INDEX_POLICIES, key);
 }
@@ -110,6 +134,14 @@ export function residualIndexBreadth(key: string, includedKeys: readonly string[
     includedKeys.filter((candidate) => policy.standaloneComponents.includes(candidate)),
   ).size;
   return Math.max(0, policy.representedBenchmarks - overlap);
+}
+
+/** Apply component overlap to quality only for indexes whose policy explicitly opts into residual proxy weight. */
+export function qualityIndexBreadth(key: string, observedTaskKeys: readonly string[] = []): number {
+  const policy = indexPolicy(key);
+  return policy?.qualityOverlap === "residual"
+    ? residualIndexBreadth(key, observedTaskKeys)
+    : (policy?.representedBenchmarks ?? 1);
 }
 
 function requiredMedian(values: readonly number[]): number {

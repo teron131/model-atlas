@@ -117,12 +117,12 @@ const unequalConfig: ScoringConfig = {
 };
 const unequalModel = unequal.model();
 unequalModel.benchmarks.aa_intelligence_index = 0;
-// Index importance and represented breadth both apply within the 20% group: AA has weight 20 versus Epoch 8.
+// Index importance and represented breadth both apply within the 20% group: AA has weight 20 versus Epoch 7.5.
 assert.ok(
   Math.abs(
     buildComponentScoreResult(unequalModel, nullSpeed, [], unequalConfig, unequal.context)
       .componentScores!.agentic_score! -
-      (0.8 * 60 + (0.2 * 100 * 8) / 28),
+      (0.8 * 60 + (0.2 * 100 * 7.5) / 27.5),
   ) < 1e-10,
 );
 

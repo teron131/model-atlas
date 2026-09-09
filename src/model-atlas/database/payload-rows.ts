@@ -114,14 +114,6 @@ const STANDALONE_BENCHMARK_PAYLOAD_ROW_GROUPS = {
     columns: ["model", "base_model", "reasoning_effort", "score_eligible", "main_score"],
     optional: true,
   }),
-  mercor_apex_agents: payloadRowGroup(
-    "mercorApexAgentsRows",
-    SNAPSHOT_TABLES.mercor_apex_agents,
-    "row_index",
-    {
-      columns: ["model_id", "model", "base_model", "reasoning_effort", "organization", "score"],
-    },
-  ),
   terminal_bench_4: payloadRowGroup(
     "terminalBench4Rows",
     SNAPSHOT_TABLES.terminal_bench_4,

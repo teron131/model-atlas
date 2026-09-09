@@ -27,7 +27,6 @@ import type { ArtificialAnalysisBenchmarkResourceRow } from "../src/model-atlas/
 import { buildCursorBenchMap } from "../src/model-atlas/sources/cursorbench/leaderboard";
 import { buildDeepSWEMap } from "../src/model-atlas/sources/deep-swe/leaderboard";
 import type { FrontierCodeModelEffortRow } from "../src/model-atlas/sources/frontier-code/leaderboard";
-import type { MercorApexAgentsRow } from "../src/model-atlas/sources/mercor-apex-agents/leaderboard";
 import type { TerminalBench4ModelAgentRow } from "../src/model-atlas/sources/terminal-bench-4/leaderboard";
 import type { VendingBench2ModelScoreRow } from "../src/model-atlas/sources/vending-bench-2/leaderboard";
 
@@ -135,14 +134,18 @@ const terminalBench4Row: TerminalBench4ModelAgentRow = {
   cost_per_task_usd: 1,
   tokens_per_task: 1_000,
 };
-const mercorApexRow: MercorApexAgentsRow = {
+const mercorApexRow: BenchmarkObservationRow = {
+  benchmark_key: "apex_agents",
+  source_url: "https://www.mercor.com/apex/apex-agents-leaderboard/",
   model_id: "test/example-model",
-  source_model: "Example Model (High)",
   model: "Example Model (high)",
   base_model: "Example Model",
   reasoning_effort: "high",
-  organization: "Test",
-  score: 0.4,
+  model_creator: "Test",
+  rank: null,
+  canonical_value: 0.4,
+  observed_at: null,
+  metadata: { source_model: "Example Model (High)" },
 };
 const vendingBench2Row: VendingBench2ModelScoreRow = {
   rank: 1,
@@ -291,6 +294,7 @@ const lookups = {
     rowsByModelName: emptyLookup(),
   },
   aleBench: { rowsByModelName: buildBenchmarkModelMap([aleBenchRow]) },
+  apexAgents: { rowsByModelName: buildBenchmarkObservationLookup([mercorApexRow]) },
   apexSwe: { rowsByModelName: emptyLookup() },
   arcAgi2: { rowsByModelName: emptyLookup() },
   arcAgi3: { rowsByModelName: buildBenchmarkObservationLookup([arcAgi3Row]) },
@@ -301,12 +305,13 @@ const lookups = {
   browseComp: {
     rowsByModelName: emptyLookup(),
   },
-  codeMigration: { rowsByModelName: emptyLookup() },
+  caisCapabilitiesIndex: { rowsByModelName: emptyLookup() },
   chartography: {
     rowsByModelName: buildBenchmarkObservationLookup([chartographyRow]),
   },
-  complexConstraints: { rowsByModelName: emptyLookup() },
   chessPuzzles: { rowsByModelName: new Map() },
+  codeMigration: { rowsByModelName: emptyLookup() },
+  complexConstraints: { rowsByModelName: emptyLookup() },
   cursorBench: {
     rowsByModelName: new Map([["example-model", cursorBenchRow]]),
   },
@@ -316,8 +321,10 @@ const lookups = {
   },
   ebrBench: { rowsByModelName: new Map() },
   emb: { rowsByModelName: emptyLookup() },
+  enigmaeval: { rowsByModelName: emptyLookup() },
   enterpriseBenchCoreCraft: { rowsByModelName: new Map() },
   epochCapabilitiesIndex: { rowsByModelName: new Map() },
+  erqa: { rowsByModelName: emptyLookup() },
   financeAgentV2: { rowsByModelName: emptyLookup() },
   frontierCode: {
     rowsByModelName: buildBenchmarkModelMap([frontierCodeRow]),
@@ -329,23 +336,23 @@ const lookups = {
   },
   handbookMd: { rowsByModelName: new Map() },
   hemingwayBench: { rowsByModelName: emptyLookup() },
+  intphys2: { rowsByModelName: emptyLookup() },
   legalResearch: {
     rowsByModelName: buildBenchmarkObservationLookup([legalResearchRow]),
   },
-  mlsBench: { rowsByModelName: emptyLookup() },
+  mindcube: { rowsByModelName: emptyLookup() },
   mirrorCode: { rowsByModelName: emptyLookup() },
+  mlsBench: { rowsByModelName: emptyLookup() },
   omniscienceAccuracy: { rowsByModelName: emptyLookup() },
-  mercorApexAgents: {
-    rowsByModelName: new Map([["example-model", mercorApexRow]]),
-  },
   perceptionBench: { rowsByModelName: emptyLookup() },
-  proofBench: { rowsByModelName: new Map() },
   programBench: { rowsByModelName: emptyLookup() },
+  proofBench: { rowsByModelName: new Map() },
   publicBenefitsBench: { rowsByModelName: emptyLookup() },
   riemannBench: {
     rowsByModelName: emptyLookup(),
   },
   simpleQaVerified: { rowsByModelName: emptyLookup() },
+  spatialviz: { rowsByModelName: emptyLookup() },
   sreBench: { rowsByModelName: emptyLookup() },
   superchem: { rowsByModelName: emptyLookup() },
   surgeIntelligenceIndex: { rowsByModelName: emptyLookup() },
@@ -353,6 +360,7 @@ const lookups = {
     rowsByModelName: buildBenchmarkModelMap([terminalBench4Row]),
   },
   terminalBenchScience: { rowsByModelName: emptyLookup() },
+  textquests: { rowsByModelName: emptyLookup() },
   toolathlon: {
     rowsByModelName: emptyLookup(),
   },
@@ -374,7 +382,6 @@ assert.deepEqual(observationAssignment.benchmarks, {
   agent_arena: 0.14,
   ale_bench: 700,
   analyst_agent: 0.5,
-  apex_agents: 0.4,
   briefcase: 0.5,
   cursorbench: 0.52,
   deep_swe: 0.72,
@@ -395,6 +402,9 @@ const effortObservationAssignment = buildObservationBenchmarks(
   "high",
 );
 assert.equal(effortObservationAssignment.benchmarks.arc_agi_3, 0.3);
+assert.equal(effortObservationAssignment.benchmarks.apex_agents, 0.4);
+assert.equal(effortObservationAssignment.scoringSources.apex_agents, mercorApexRow);
+assert.equal((observationAssignment.benchmarks as Record<string, unknown>).apex_agents, undefined);
 assert.equal(effortObservationAssignment.scoringSources.arc_agi_3, arcAgi3Row);
 assert.equal(
   effortObservationAssignment.benchmarks.hle,

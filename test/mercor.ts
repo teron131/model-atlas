@@ -3,7 +3,10 @@
 import assert from "node:assert/strict";
 
 import { BENCHMARK_CATALOG } from "../src/model-atlas/benchmarks/registry";
-import { mercorCacheMatches, processMercorPageHtml } from "../src/model-atlas/sources/mercor";
+import {
+  mercorCacheMatches,
+  processMercorPageHtml,
+} from "../src/model-atlas/sources/mercor/results";
 
 const source = {
   sourceUrl: "https://www.mercor.com/apex/apex-swe-leaderboard/",

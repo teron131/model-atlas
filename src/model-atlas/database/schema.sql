@@ -323,21 +323,6 @@ CREATE TABLE IF NOT EXISTS frontier_code_raw_rows (
 	PRIMARY KEY (row_index)
 );
 
-CREATE TABLE IF NOT EXISTS mercor_apex_agents_raw_rows (
-	row_index INTEGER NOT NULL,
-	source_revision INTEGER NOT NULL DEFAULT 0,
-	fetched_at_epoch_seconds INTEGER,
-	url TEXT NOT NULL,
-	model_id TEXT NOT NULL,
-	source_model TEXT NOT NULL,
-	model TEXT NOT NULL,
-	base_model TEXT NOT NULL,
-	reasoning_effort TEXT,
-	organization TEXT NOT NULL,
-	score REAL NOT NULL,
-	PRIMARY KEY (row_index)
-);
-
 CREATE TABLE IF NOT EXISTS riemann_bench_raw_rows (
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,

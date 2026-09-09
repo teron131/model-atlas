@@ -47,6 +47,7 @@ export type BenchmarkObservationLoader =
       kind: "artificial_analysis_omniscience";
       sourceUrl: string;
     }
+  | { kind: "cais_dashboard"; sourceUrl: string }
   | { kind: "epoch_capabilities_index"; sourceUrl: string }
   | {
       kind: "epoch_runs";

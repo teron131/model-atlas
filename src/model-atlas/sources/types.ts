@@ -14,7 +14,6 @@ import type { BlueprintBenchModelScoreRow } from "./blueprint-bench/leaderboard"
 import type { CursorBenchModelScoreRow } from "./cursorbench/leaderboard";
 import type { DeepSWERawLeaderboardRow } from "./deep-swe/leaderboard";
 import type { FrontierCodeModelEffortRow } from "./frontier-code/leaderboard";
-import type { MercorApexAgentsRow } from "./mercor-apex-agents/leaderboard";
 import type { ModelsDevFlatModel, ModelsDevPayload } from "./models-dev/catalog";
 import type { RawSourceName } from "./registry";
 import type { RiemannBenchModelScoreRow } from "./surge/riemann-bench";
@@ -91,7 +90,6 @@ export type SourceSnapshots = BenchmarkObservationSnapshotRows & {
   cursorBenchModelScoreRows: CursorBenchModelScoreRow[];
   deepSWERawRows: DeepSWERawLeaderboardRow[];
   frontierCodeRows: FrontierCodeModelEffortRow[];
-  mercorApexAgentsRows: MercorApexAgentsRow[];
   riemannBenchModelScoreRows: RiemannBenchModelScoreRow[];
   riemannBenchSourceUrl: string;
   terminalBench4Rows: TerminalBench4ModelAgentRow[];
@@ -110,7 +108,6 @@ export type SourceSnapshots = BenchmarkObservationSnapshotRows & {
     cursorBench: number | null;
     deepSWE: number | null;
     frontierCode: number | null;
-    mercorApexAgents: number | null;
     riemannBench: number | null;
     terminalBench4: number | null;
     valsIndex: number | null;
