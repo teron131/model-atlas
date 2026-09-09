@@ -137,17 +137,7 @@ type BenchmarkNormalizationPolicy =
   | { kind: "min_max"; output: readonly [minimum: number, maximum: number] }
   | { kind: "identity" };
 
-export type BenchmarkImputationPolicy =
-  | { kind: "none" }
-  | { kind: "contextual" }
-  | {
-      kind: "additive_crosswalk";
-      fallbackEvidenceKey: string;
-      minimumModels: number;
-      maximumMedianAbsoluteError: number;
-      clamp?: readonly [minimum: number, maximum: number];
-      fallback: "contextual" | "none";
-    };
+export type BenchmarkImputationPolicy = { kind: "none" } | { kind: "contextual" };
 
 export type BenchmarkScoringFacet = {
   group: BenchmarkGroup;
@@ -405,7 +395,8 @@ function validateBenchmarkPolicies(
     validateProcessing(key, definition.processing, definition.source);
     validatePersistence(key, definition.persistence);
     if (definition.scoring != null) {
-      validateScoring(key, definition.scoring, definition.source);
+      validateBenchmarkWeight(key, definition.scoring);
+      validateNormalization(key, definition.scoring.normalization);
     }
   }
 }
@@ -506,45 +497,6 @@ function validateProcessing(
   }
   if (source.inputs.length < 2) {
     throw new Error(`Benchmark source crosswalk requires multiple sources for ${key}`);
-  }
-}
-
-function validateScoring(
-  key: string,
-  scoring: BenchmarkScoringFacet,
-  source: BenchmarkSourceFacet,
-): void {
-  validateBenchmarkWeight(key, scoring);
-  validateNormalization(key, scoring.normalization);
-  const { imputation } = scoring;
-  if (imputation.kind !== "additive_crosswalk") {
-    return;
-  }
-  const imputationSource = source.inputs.find(
-    (input) => input.evidenceKey === imputation.fallbackEvidenceKey,
-  );
-  if (imputationSource?.roles.includes("imputation") !== true) {
-    throw new Error(
-      `Benchmark additive crosswalk requires a matching imputation source for ${key}`,
-    );
-  }
-  if (
-    !Number.isInteger(imputation.minimumModels) ||
-    imputation.minimumModels <= 0 ||
-    !Number.isFinite(imputation.maximumMedianAbsoluteError) ||
-    imputation.maximumMedianAbsoluteError <= 0
-  ) {
-    throw new Error(`Benchmark additive crosswalk thresholds must be positive for ${key}`);
-  }
-  if (
-    imputation.clamp != null &&
-    (!Number.isFinite(imputation.clamp[0]) ||
-      !Number.isFinite(imputation.clamp[1]) ||
-      imputation.clamp[0] >= imputation.clamp[1])
-  ) {
-    throw new Error(
-      `Benchmark additive crosswalk clamp must be an increasing finite range for ${key}`,
-    );
   }
 }
 

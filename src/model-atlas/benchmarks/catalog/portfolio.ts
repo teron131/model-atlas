@@ -1,11 +1,7 @@
 /** Benchmark portfolio policy owns scoring weights, imputation, and resource-scoring policy. */
 
 import { medianOfFinite } from "../../math-utils";
-import type {
-  BenchmarkImputationPolicy,
-  BenchmarkPortfolioEntry,
-  BenchmarkResourcePolicy,
-} from "../factory";
+import type { BenchmarkPortfolioEntry, BenchmarkResourcePolicy } from "../factory";
 
 type BenchmarkScoringWeight = Omit<BenchmarkPortfolioEntry, "resourcePolicy">;
 type BenchmarkResourceMeasurement = Omit<BenchmarkResourcePolicy, "qualityCoordinate">;
@@ -350,7 +346,6 @@ export type BenchmarkResourceProfile = {
 
 export const BENCHMARK_RESOURCE_PROFILES = {
   analyst_agent: { taskRunCount: 80 },
-  apex_agents: { taskRunCount: 452 },
   arc_agi_3: { taskRunCount: 55 },
   briefcase: { taskRunCount: 91 },
   critpt: { taskRunCount: 70 },
@@ -373,10 +368,6 @@ export const BENCHMARK_RESOURCE_POLICIES = {
     qualityCoordinate: "linear",
   },
   analyst_agent: {
-    ...ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
-    qualityCoordinate: "logit",
-  },
-  apex_agents: {
     ...ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
     qualityCoordinate: "logit",
   },
@@ -441,14 +432,3 @@ export const BENCHMARK_RESOURCE_POLICIES = {
     qualityCoordinate: "logit",
   },
 } as const satisfies Partial<Record<BenchmarkKey, BenchmarkResourcePolicy>>;
-
-export const BENCHMARK_IMPUTATION_OVERRIDES = {
-  apex_agents: {
-    kind: "additive_crosswalk",
-    fallbackEvidenceKey: "apex_agents_mercor",
-    minimumModels: 3,
-    maximumMedianAbsoluteError: 0.02,
-    clamp: [0, 1],
-    fallback: "contextual",
-  },
-} as const satisfies Partial<Record<BenchmarkKey, BenchmarkImputationPolicy>>;

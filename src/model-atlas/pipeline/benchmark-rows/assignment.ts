@@ -284,7 +284,8 @@ const addMercorApexAgents: StandaloneBenchmarkOperation = ({
 }) => {
   const row = context.resolveSourceRow(lookups.mercorApexAgents.rowsByModelName);
   if (row != null) {
-    assignedBenchmarks.scoringSources.apex_agents_mercor = row;
+    assignedBenchmarks.benchmarks.apex_agents = row.score;
+    assignedBenchmarks.scoringSources.apex_agents = row;
   }
 };
 

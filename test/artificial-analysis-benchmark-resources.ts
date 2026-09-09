@@ -81,7 +81,6 @@ assertDeepEqual(
   ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.map((page) => page.benchmark_key).sort(),
   [
     "analyst_agent",
-    "apex_agents",
     "briefcase",
     "critpt",
     "gdpval_normalized",

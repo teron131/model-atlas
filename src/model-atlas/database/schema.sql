@@ -325,6 +325,7 @@ CREATE TABLE IF NOT EXISTS frontier_code_raw_rows (
 
 CREATE TABLE IF NOT EXISTS mercor_apex_agents_raw_rows (
 	row_index INTEGER NOT NULL,
+	source_revision INTEGER NOT NULL DEFAULT 0,
 	fetched_at_epoch_seconds INTEGER,
 	url TEXT NOT NULL,
 	model_id TEXT NOT NULL,

@@ -44,7 +44,6 @@ Direct same-benchmark tokens also use these coordinates for the [Agentic token m
 | Agents' Last Exam | Linear | Partial-credit performance is a graded task score, not a binary completion probability. |
 | ALE-Bench | Linear | Native Performance can exceed 100 and must retain its full spacing. |
 | AnalystAgent | Logit | Pass^5 is a bounded strict workflow-success rate. |
-| APEX Agents | Logit | Loop Pass@1 is a bounded task-completion rate. |
 | ARC-AGI-2 | Logit | Task success is a bounded correctness rate with meaningful remaining error. |
 | ARC-AGI-3 | Linear | Human-relative action efficiency is a continuous efficiency ratio, not a completion probability. |
 | AutomationBench | Logit | Strict task completion is a bounded workflow-success rate. |
@@ -176,9 +175,9 @@ Only non-default source, metric, selection, exclusion, and resource rules are de
 
 ### Shared Source Families
 
-**Artificial Analysis benchmark family:** AnalystAgent, APEX Agents, Briefcase, CritPt, GDPval-AA v2, HLE, ITBench, Omniscience, SciCode, and tau3 Banking use their dedicated evaluation pages for both scores and any eligible resources. The shared model table does not supply their task-level scores.
+**Artificial Analysis benchmark family:** AnalystAgent, Briefcase, CritPt, GDPval-AA v2, HLE, ITBench, Omniscience, SciCode, and tau3 Banking use their dedicated evaluation pages for both scores and any eligible resources. The shared model table does not supply their task-level scores.
 
-AnalystAgent uses headline pass^5 across 80 private questions; its published totals are normalized per question before resource scoring. APEX Agents uses Artificial Analysis when available, with Mercor Loop Pass@1 as a same-model-and-effort fallback only after the [validated additive source crosswalk](methodology.md#validated-additive-source-crosswalk) reaches three effective overlap and held-out models with median absolute error at most `0.02`; projections are clamped to `[0,1]`.
+AnalystAgent uses headline pass^5 across 80 private questions; its published totals are normalized per question before resource scoring. APEX Agents uses Mercor's creator-owned Loop Pass@1 leaderboard directly; model and reasoning-effort variants remain distinct, and missing benchmark-specific resources stay missing.
 
 Briefcase and GDPval-AA v2 retain raw page Elo but normalize it with `clamp((Elo - 500) / 2000)` for scoring and linear resource comparison. GDPval may use the main-table normalized value as a compatible fallback after overlap validates the conversion. ITBench divides aggregate cost and tokens by 177 task runs, and SciCode divides them by 288 task runs. Missing benchmark-specific telemetry stays missing in observed graphs; the overall Artificial Analysis Intelligence Index cost or token average cannot replace it. Validated sibling-effort resource estimates may contribute discounted scoring evidence without becoming observed graph points.
 

@@ -4,7 +4,7 @@
  * Page source: https://www.mercor.com/apex/apex-agents-leaderboard/
  */
 
-import { benchmarkModelEffort } from "../../identity/normalization";
+import { benchmarkModelEffort, canonicalReasoningEffort } from "../../identity/normalization";
 import { asFiniteNumber, asRecord, nowEpochSeconds } from "../../runtime";
 import {
   extractNextFlightCorpus,
@@ -70,6 +70,7 @@ export async function getMercorApexAgentsStats(
   }
 }
 
+/** Preserve each Loop Pass@1 model-effort observation independently of other metrics and harnesses. */
 export function processMercorApexAgentsPageHtml(pageHtml: string): MercorApexAgentsRow[] {
   return parseResultRows(`${pageHtml}\n${extractNextFlightCorpus(pageHtml)}`);
 }
@@ -105,7 +106,7 @@ function parseResultRow(value: unknown): MercorApexAgentsRow | null {
   if (modelId == null || sourceModelName == null || organization == null || loopScore == null) {
     return null;
   }
-  const identity = mercorModelIdentity(sourceModelName);
+  const identity = mercorModelIdentity(sourceModelName, sourceModel.effort);
   return {
     model_id: modelId,
     source_model: sourceModelName,
@@ -131,12 +132,15 @@ function loopPassScore(value: unknown): number | null {
   return score == null || score < 0 || score > 100 ? null : Number((score / 100).toFixed(6));
 }
 
-function mercorModelIdentity(sourceModel: string): {
+function mercorModelIdentity(
+  sourceModel: string,
+  effort: unknown,
+): {
   model: string;
   baseModel: string;
   reasoningEffort: string | null;
 } {
-  const reasoningEffort = mercorEffort(sourceModel);
+  const reasoningEffort = canonicalReasoningEffort(effort) ?? mercorEffort(sourceModel);
   const baseModel = atlasBaseModel(sourceModel);
   if (sourceModel.toLowerCase().includes("max + pro")) {
     return {

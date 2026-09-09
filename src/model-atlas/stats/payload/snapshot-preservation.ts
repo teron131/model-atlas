@@ -7,7 +7,8 @@ import { isPreviewModel, rankedModels } from "../../pipeline/model-types";
 import { asFiniteNumber, asRecord } from "../../runtime";
 import type { ModelAtlasModel, ModelAtlasPayload } from "../types";
 
-export const SNAPSHOT_PRESERVATION_VERSION = 7;
+// Mercor observations replace AA APEX scores and resources, so previous model rows cannot be restored wholesale.
+export const SNAPSHOT_PRESERVATION_VERSION = 8;
 const DEFAULT_EFFORT_KEY = "\u0000default";
 const MODEL_EFFORT_SEPARATOR = "\u001f";
 
