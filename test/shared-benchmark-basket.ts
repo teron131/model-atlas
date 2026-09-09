@@ -6,11 +6,11 @@ import {
   frontierBenchmarkAxisConfigFor,
   type FrontierBenchmarkRow,
   frontierBenchmarkRows,
-  frontierEvidenceWeight,
   frontierXAxisScale,
   meanFrontierBenchmarkRows,
 } from "../app/dashboard/graphs/frontier-benchmarks/analysis";
 import { sharedFrontierBenchmarkComparison } from "../app/dashboard/graphs/frontier-benchmarks/common-evidence";
+import { residualIndexBreadth } from "../src/model-atlas/benchmarks/index-policy";
 import { minimalModelAtlasModel } from "./model-atlas-fixtures";
 
 const low = {
@@ -224,14 +224,14 @@ assert.deepEqual(
   "The effort graph includes the approved task benchmarks, standalone AA components, and index proxies",
 );
 
-assert.equal(frontierEvidenceWeight("aa_intelligence_index", ["scicode"]), 9);
+assert.equal(residualIndexBreadth("aa_intelligence_index", ["scicode"]), 9);
 assert.equal(
-  frontierEvidenceWeight("aa_intelligence_index", ["scicode", "hle", "scicode"]),
+  residualIndexBreadth("aa_intelligence_index", ["scicode", "hle", "scicode"]),
   8,
   "Each separately included component reduces AA breadth once",
 );
 assert.equal(
-  frontierEvidenceWeight("aa_intelligence_index", ["arc_agi_2", "terminal_bench_4"]),
+  residualIndexBreadth("aa_intelligence_index", ["arc_agi_2", "terminal_bench_4"]),
   10,
   "A distinct benchmark or version is not an AA component",
 );

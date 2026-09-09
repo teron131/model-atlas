@@ -2,6 +2,7 @@
 
 import { memo, useMemo } from "react";
 
+import { isAggregateIndex } from "../../../../src/model-atlas/benchmarks/index-policy";
 import {
   isPreviewModel,
   type ModelAtlasModel,
@@ -35,7 +36,6 @@ import {
   frontierBenchmarkRows,
   frontierScoreAxisScale,
   frontierXAxisScale,
-  isIndexProxy,
   isScoreAxis,
   performanceComparisonRows,
   type PerformanceMetric,
@@ -160,7 +160,7 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
     [issue, models, comparison.rows, performance, axisKey, axisConfig, aggregate, resourceAxis],
   );
   const singleKey = activeKeys[0];
-  const indexScore = !aggregate && isIndexProxy(singleKey ?? "");
+  const indexScore = !aggregate && isAggregateIndex(singleKey ?? "");
   const normalizedScore = !publishedPerformance && (aggregate || singleKey === "ale_bench");
   const selectedLabel =
     benchmarkOptions.find((option) => option.key === singleKey)?.label ?? "Benchmark";

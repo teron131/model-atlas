@@ -1,5 +1,6 @@
 /** Guarded sibling-effort task-resource imputation for cost, time, and token-use scoring. */
 
+import { indexPolicy } from "../../../benchmarks/index-policy";
 import { MAX_NORMALIZED_IMPUTATION_ERROR, type ScoringConfig } from "../../../config/stage";
 import {
   canonicalModelKey,
@@ -75,8 +76,7 @@ function validatedEffortRatio(
     rawErrors.push(Math.abs(Math.log(predictedTargetAmount / actualTargetAmount)));
 
     const policy =
-      scoringConfig.benchmarkPortfolio[key]?.resourcePolicy ??
-      (key === "aa_intelligence_index" ? { qualityCoordinate: "linear" as const } : null);
+      scoringConfig.benchmarkPortfolio[key]?.resourcePolicy ?? indexPolicy(key)?.resources?.policy;
     if (policy == null) {
       continue;
     }
@@ -207,7 +207,7 @@ export function prepareEffortResourceImputation(
     const targetKeys = Object.entries(scoringConfig.benchmarkPortfolio)
       .filter(
         ([key, entry]) =>
-          (entry.resourcePolicy != null || key === "aa_intelligence_index") &&
+          (entry.resourcePolicy != null || indexPolicy(key)?.resources != null) &&
           benchmarkQualityEvidence(target, key, benchmarkPreparation) != null,
       )
       .map(([key]) => key);

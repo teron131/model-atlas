@@ -1,9 +1,7 @@
 /** Missing quality tasks use direct sibling observations and measured shared-task gaps; predictions never become donor evidence. */
 
-import {
-  benchmarkDimensionWeight,
-  INDEX_REPRESENTED_BENCHMARK_COUNTS,
-} from "../../../benchmarks/registry";
+import { isAggregateIndex } from "../../../benchmarks/index-policy";
+import { benchmarkDimensionWeight } from "../../../benchmarks/registry";
 import type { ScoringConfig } from "../../../config/stage";
 import {
   canonicalModelKey,
@@ -20,7 +18,6 @@ import {
 import { benchmarkMetricValue } from "../resource-metrics";
 
 const MIN_SIBLING_COMPARISON_BENCHMARKS = 3;
-const AGGREGATE_INDEX_KEYS = new Set(Object.keys(INDEX_REPRESENTED_BENCHMARK_COUNTS));
 
 /** Prepare missing task estimates from direct sibling observations before any variant is scored. */
 export function prepareSiblingQualityScoringContext(
@@ -48,7 +45,7 @@ export function prepareSiblingQualityScoringContext(
         model,
         inputs: keys.flatMap((key) => {
           const weight = benchmarkDimensionWeight(key, dimension, scoringConfig.benchmarkPortfolio);
-          if (!(weight > 0) || AGGREGATE_INDEX_KEYS.has(key)) return [];
+          if (!(weight > 0) || isAggregateIndex(key)) return [];
           const rawValue = benchmarkMetricValue(model, key);
           if (rawValue == null) return [];
           const value = normalizedQualityBenchmarkValue(

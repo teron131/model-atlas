@@ -2,9 +2,10 @@
 
 import {
   AA_INDEX_STANDALONE_COMPONENT_KEYS,
-  EFFORT_INDEX_BENCHMARK_KEYS,
-  INDEX_REPRESENTED_BENCHMARK_COUNTS,
-} from "../../../../src/model-atlas/benchmarks/catalog/portfolio";
+  indexPolicy,
+  isAggregateIndex,
+  residualIndexBreadth,
+} from "../../../../src/model-atlas/benchmarks/index-policy";
 import { canonicalReasoningEffort } from "../../../../src/model-atlas/identity/normalization";
 import { weightedMeanOfFinite } from "../../../../src/model-atlas/math-utils";
 import {
@@ -138,11 +139,6 @@ const BENCHMARK_SCORE_AXIS_OPTIONS = {
   steps: [10, 5, 2] as const,
 };
 
-/** Index identities follow the scoring catalog; resource ownership remains specific to each source. */
-export function isIndexProxy(key: string): boolean {
-  return Object.hasOwn(INDEX_REPRESENTED_BENCHMARK_COUNTS, key);
-}
-
 /** Effort curves use the selected task sources with broad effort coverage, plus catalogued index proxies. */
 const EFFORT_BENCHMARK_KEYS = new Set([
   "arc_agi_2",
@@ -153,13 +149,6 @@ const EFFORT_BENCHMARK_KEYS = new Set([
   "arc_agi_3",
 ]);
 
-const AA_INDEX_RESOURCE_POLICY = {
-  source: "artificial_analysis",
-  unit: "per_task",
-  tokenMeasure: "output_tokens",
-  qualityCoordinate: "linear",
-} as const satisfies BenchmarkResourcePolicy;
-
 export function frontierBenchmarkRows(
   models: ModelAtlasPublishedModel[],
   portfolio: BenchmarkPortfolio,
@@ -169,34 +158,33 @@ export function frontierBenchmarkRows(
       ([key]) =>
         EFFORT_BENCHMARK_KEYS.has(key) ||
         AA_INDEX_STANDALONE_COMPONENT_KEYS.has(key) ||
-        isIndexProxy(key),
+        isAggregateIndex(key),
     )
     .map(([key]) => key);
   return models
     .flatMap((model): FrontierBenchmarkRow[] => {
       return frontierKeys.flatMap((benchmarkKey) => {
-        const indexProxy = isIndexProxy(benchmarkKey);
+        const policy = indexPolicy(benchmarkKey);
+        const indexProxy = policy != null;
         if (
           indexProxy &&
           canonicalReasoningEffort(model.reasoning_effort) != null &&
-          !EFFORT_INDEX_BENCHMARK_KEYS.has(benchmarkKey)
+          !policy.effortAware
         )
           return [];
         const value = benchmarkMetricValue(model, benchmarkKey);
         const score = indexProxy ? value : toPercent(value);
-        const aaIndex = benchmarkKey === "aa_intelligence_index";
-        const resourcePolicy = aaIndex
-          ? AA_INDEX_RESOURCE_POLICY
-          : (portfolio[benchmarkKey]?.resourcePolicy ?? null);
+        const resources = policy?.resources;
+        const resourcePolicy = resources?.policy ?? portfolio[benchmarkKey]?.resourcePolicy ?? null;
         const task =
           resourcePolicy == null
             ? null
-            : benchmarkTaskMetrics(model, aaIndex ? "artificial_analysis" : benchmarkKey);
+            : benchmarkTaskMetrics(model, resources?.key ?? benchmarkKey);
         const cost = finiteValue(task?.cost);
         const seconds = finiteValue(task?.seconds);
         const inputTokens = finiteValue(task?.input_tokens);
         const outputTokens = finiteValue(task?.output_tokens);
-        const resourceKey = aaIndex ? "artificial_analysis" : benchmarkKey;
+        const resourceKey = resources?.key ?? benchmarkKey;
         const totalTokens =
           resourcePolicy == null
             ? null
@@ -224,17 +212,6 @@ export function frontierBenchmarkRows(
       });
     })
     .sort((left, right) => right.score - left.score);
-}
-
-/** AA represents only component breadth not already counted as standalone evidence in this basket. */
-export function frontierEvidenceWeight(key: string, includedKeys: readonly string[] = []): number {
-  const breadth =
-    INDEX_REPRESENTED_BENCHMARK_COUNTS[key as keyof typeof INDEX_REPRESENTED_BENCHMARK_COUNTS] ?? 1;
-  if (key !== "aa_intelligence_index") return breadth;
-  const standaloneCount = [...new Set(includedKeys)].filter((candidate) =>
-    AA_INDEX_STANDALONE_COMPONENT_KEYS.has(candidate),
-  ).length;
-  return Math.max(0, breadth - standaloneCount);
 }
 
 export function meanFrontierBenchmarkRows(rows: FrontierBenchmarkRow[]): FrontierBenchmarkRow[] {
@@ -456,7 +433,7 @@ export function frontierBenchmarkHoverRows(
     [
       label,
       publishedScore ||
-      isIndexProxy(row.benchmarkKey) ||
+      isAggregateIndex(row.benchmarkKey) ||
       row.benchmarkKey === "all" ||
       row.benchmarkKey === "ale_bench"
         ? fmtTooltipScore(row.score)
@@ -576,7 +553,7 @@ function meanMetric(
   return weightedMeanOfFinite(
     measured.map((row) => ({
       value: get(row),
-      weight: frontierEvidenceWeight(row.benchmarkKey, includedKeys),
+      weight: residualIndexBreadth(row.benchmarkKey, includedKeys),
     })),
   );
 }

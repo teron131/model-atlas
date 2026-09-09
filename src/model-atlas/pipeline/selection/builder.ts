@@ -1,6 +1,6 @@
 /** Model selection prepares quality scores before route enrichment, then finalizes resource scores, admission, and logo hydration. */
 
-import { ARTIFICIAL_ANALYSIS_INDEX_SCORE_KEYS } from "../../benchmarks/field-keys";
+import { indexPolicy } from "../../benchmarks/index-policy";
 import type { BenchmarkAdmissionConfig, FinalStageConfig, ScoringConfig } from "../../config/stage";
 import { canonicalModelKey } from "../../identity/normalization";
 import { publicOpenRouterModelId } from "../../identity/openrouter";
@@ -455,18 +455,15 @@ function observedIndexCount(
   admissionConfig: BenchmarkAdmissionConfig,
 ): number {
   const intelligence = asRecord(model.intelligence);
-  const artificialAnalysisIndexCount = admissionConfig.indexBenchmarkKeys.includes(
-    "aa_intelligence_index",
-  )
-    ? ARTIFICIAL_ANALYSIS_INDEX_SCORE_KEYS.reduce(
-        (count, key) => count + (asFiniteNumber(intelligence[key]) == null ? 0 : 1),
-        0,
-      )
-    : 0;
-  const otherIndexKeys = admissionConfig.indexBenchmarkKeys.filter(
-    (key) => key !== "aa_intelligence_index",
-  );
-  return artificialAnalysisIndexCount + observedBenchmarkCount(model, otherIndexKeys);
+  return admissionConfig.indexBenchmarkKeys.reduce((count, key) => {
+    const fields = indexPolicy(key)?.admissionFields;
+    return (
+      count +
+      (fields == null
+        ? observedBenchmarkCount(model, [key])
+        : fields.filter((field) => asFiniteNumber(intelligence[field]) != null).length)
+    );
+  }, 0);
 }
 
 function publicModelIdentitySet(

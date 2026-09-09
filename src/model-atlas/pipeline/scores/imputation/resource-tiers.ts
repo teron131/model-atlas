@@ -1,4 +1,6 @@
 /** Fixed-shrinkage resource fallback narrows global evidence through lab, release proximity, and same-model observations. */
+
+import { indexPolicy } from "../../../benchmarks/index-policy";
 import type { ScoringConfig } from "../../../config/stage";
 import { canonicalModelKey, canonicalReasoningEffort } from "../../../identity/normalization";
 import {
@@ -186,11 +188,7 @@ function observedResource(
   if (kind === "tokens" || kind === "output_tokens")
     return benchmarkMetricValue(model, key) == null
       ? null
-      : directBenchmarkTokens(
-          model,
-          key === "aa_intelligence_index" ? "artificial_analysis" : key,
-          kind,
-        );
+      : directBenchmarkTokens(model, indexPolicy(key)?.resources?.key ?? key, kind);
   return benchmarkMetricValue(model, key) == null
     ? null
     : positiveFiniteNumber(

@@ -6,9 +6,9 @@ import {
   BENCHMARK_SCORING_WEIGHTS,
   BENCHMARK_TASK_METRIC_COLUMNS,
   type BenchmarkKey,
-  INDEX_BENCHMARK_KEYS,
 } from "../../../src/model-atlas/benchmarks/catalog";
 import type { BenchmarkTaskMetricColumnFacet } from "../../../src/model-atlas/benchmarks/factory";
+import { isAggregateIndex } from "../../../src/model-atlas/benchmarks/index-policy";
 import {
   clampScore,
   minMaxRange,
@@ -237,7 +237,6 @@ const benchmarkColumnGroups = benchmarkMetricColumns.map((column) => ({
   benchmark: column.benchmark as BenchmarkKey,
   columns: [column, ...(taskMetricColumnsByBenchmark.get(column.benchmark) ?? [])],
 }));
-const indexBenchmarkKeys = new Set<BenchmarkKey>(INDEX_BENCHMARK_KEYS);
 
 export const dashboardMetricColumns: DashboardMetricColumn[] = [
   ...profileMetricColumns.filter((column) => column.key === "modalities"),
@@ -276,7 +275,7 @@ for (const { benchmark, columns } of benchmarkColumnGroups) {
   const group =
     BENCHMARK_SCORING_WEIGHTS[benchmark].group === "frontier"
       ? "frontier"
-      : indexBenchmarkKeys.has(benchmark)
+      : isAggregateIndex(benchmark)
         ? "indexes"
         : "baseline";
   for (const column of columns) {

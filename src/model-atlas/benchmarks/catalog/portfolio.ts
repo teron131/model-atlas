@@ -1,7 +1,7 @@
 /** Benchmark portfolio policy owns scoring weights, imputation, and resource-scoring policy. */
 
-import { medianOfFinite } from "../../math-utils";
 import type { BenchmarkPortfolioEntry, BenchmarkResourcePolicy } from "../factory";
+import { INDEX_SCORING_WEIGHT } from "../index-policy";
 
 type BenchmarkScoringWeight = Omit<BenchmarkPortfolioEntry, "resourcePolicy">;
 type BenchmarkResourceMeasurement = Omit<BenchmarkResourcePolicy, "qualityCoordinate">;
@@ -23,53 +23,6 @@ const BENCHMARK_OUTPUT_PER_TASK_RESOURCE = {
   unit: "per_task",
   tokenMeasure: "output_tokens",
 } as const satisfies BenchmarkResourceMeasurement;
-
-function requiredBenchmarkCountMedian(values: readonly number[]): number {
-  const median = medianOfFinite(values);
-  if (median == null) {
-    throw new Error("Index benchmark representation counts must contain a finite value");
-  }
-  return median;
-}
-
-/** Index sources with directly reported reasoning-variant results, eligible for variant score and resource comparisons. */
-export const EFFORT_INDEX_BENCHMARK_KEYS: ReadonlySet<string> = new Set(["aa_intelligence_index"]);
-
-/** Catalogued standalone metrics matching components of AA Intelligence Index v4.2. */
-export const AA_INDEX_STANDALONE_COMPONENT_KEYS: ReadonlySet<string> = new Set([
-  "briefcase",
-  "gdpval_normalized",
-  "tau_banking",
-  "scicode",
-  "hle",
-  "gdp_pdf",
-  "critpt",
-]);
-
-const REPORTED_INDEX_BENCHMARK_COUNTS = {
-  aa_intelligence_index: 10,
-  surge_intelligence_index: 8,
-  vals_index: 7,
-} as const;
-
-export const INDEX_REPRESENTED_BENCHMARK_COUNTS = {
-  aa_intelligence_index: REPORTED_INDEX_BENCHMARK_COUNTS.aa_intelligence_index,
-  epoch_capabilities_index: requiredBenchmarkCountMedian(
-    Object.values(REPORTED_INDEX_BENCHMARK_COUNTS),
-  ),
-  surge_intelligence_index: REPORTED_INDEX_BENCHMARK_COUNTS.surge_intelligence_index,
-  vals_index: REPORTED_INDEX_BENCHMARK_COUNTS.vals_index,
-} as const;
-
-export const INDEX_REPRESENTED_BENCHMARK_MEDIAN = requiredBenchmarkCountMedian(
-  Object.values(INDEX_REPRESENTED_BENCHMARK_COUNTS),
-);
-
-const INDEX_SCORING_WEIGHT = {
-  group: "baseline",
-  benchmarkImportance: 0.5,
-  dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
-} as const satisfies BenchmarkScoringWeight;
 
 export const BENCHMARK_SCORING_WEIGHTS = {
   aa_intelligence_index: INDEX_SCORING_WEIGHT,

@@ -1,5 +1,6 @@
 /** Resource evidence owns benchmark eligibility, measurement semantics, and estimate lookup shared by sibling ratios, tier priors, and scoring projections. */
 
+import { indexPolicy } from "../../../benchmarks/index-policy";
 import type { ScoringConfig } from "../../../config/stage";
 import { canonicalModelKey, canonicalReasoningEffort } from "../../../identity/normalization";
 import { positiveFiniteNumber } from "../../../math-utils";
@@ -34,7 +35,7 @@ function supportsResourceImputation(
 ): boolean {
   return (
     config.benchmarkPortfolio[key]?.resourcePolicy != null ||
-    (key === "aa_intelligence_index" && (kind === "tokens" || kind === "output_tokens"))
+    (indexPolicy(key)?.resources?.imputationKinds.includes(kind) ?? false)
   );
 }
 
@@ -61,11 +62,7 @@ export function directTaskResource(
   if (!supportsResourceImputation(scoringConfig, key, kind)) return null;
   const metrics = benchmarkTaskMetrics(model, key);
   if (kind === "tokens" || kind === "output_tokens")
-    return directBenchmarkTokens(
-      model,
-      key === "aa_intelligence_index" ? "artificial_analysis" : key,
-      kind,
-    );
+    return directBenchmarkTokens(model, indexPolicy(key)?.resources?.key ?? key, kind);
   return kind === "cost"
     ? positiveFiniteNumber(metrics?.cost)
     : effectiveTaskSeconds(model, metrics);

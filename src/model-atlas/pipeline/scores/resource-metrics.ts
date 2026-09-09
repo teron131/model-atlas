@@ -1,10 +1,11 @@
 /** Shared resource-metric rules for benchmark cost, speed, and availability scoring. */
 
-import {
-  AA_INDEX_STANDALONE_COMPONENT_KEYS,
-  INDEX_REPRESENTED_BENCHMARK_COUNTS,
-} from "../../benchmarks/catalog/portfolio";
 import type { BenchmarkPortfolio } from "../../benchmarks/factory";
+import {
+  INDEX_BENCHMARK_KEYS,
+  indexPolicy,
+  residualIndexBreadth,
+} from "../../benchmarks/index-policy";
 import { benchmarkValueLocation } from "../../benchmarks/registry";
 import { MINIMUM_RESOURCE_BENCHMARKS } from "../../config/stage";
 import { positiveFiniteNumber } from "../../math-utils";
@@ -42,24 +43,28 @@ export function observedResourceEvidenceCounts(
 ): { cost: number; time: number } {
   const direct = observedResourceBenchmarkCounts(model, portfolio);
   const counts = { cost: direct.cost, time: direct.time };
-  if (
-    portfolio.aa_intelligence_index == null ||
-    benchmarkMetricValue(model, "aa_intelligence_index") == null
-  )
-    return counts;
-  const metrics = benchmarkTaskMetrics(model, "artificial_analysis");
-  for (const [kind, field] of [
-    ["cost", "cost"],
-    ["time", "seconds"],
-  ] as const) {
-    if (positiveFiniteNumber(metrics?.[field]) == null) continue;
-    const overlap = [...AA_INDEX_STANDALONE_COMPONENT_KEYS].filter(
-      (key) =>
-        portfolio[key]?.resourcePolicy != null &&
-        benchmarkMetricValue(model, key) != null &&
-        positiveFiniteNumber(benchmarkTaskMetrics(model, key)?.[field]) != null,
-    ).length;
-    counts[kind] += Math.max(0, INDEX_REPRESENTED_BENCHMARK_COUNTS.aa_intelligence_index - overlap);
+  for (const indexKey of INDEX_BENCHMARK_KEYS) {
+    const policy = indexPolicy(indexKey);
+    if (
+      policy?.resources == null ||
+      portfolio[indexKey] == null ||
+      benchmarkMetricValue(model, indexKey) == null
+    )
+      continue;
+    const metrics = benchmarkTaskMetrics(model, policy.resources.key);
+    for (const [kind, field] of [
+      ["cost", "cost"],
+      ["time", "seconds"],
+    ] as const) {
+      if (positiveFiniteNumber(metrics?.[field]) == null) continue;
+      const overlap = policy.standaloneComponents.filter(
+        (key) =>
+          portfolio[key]?.resourcePolicy != null &&
+          benchmarkMetricValue(model, key) != null &&
+          positiveFiniteNumber(benchmarkTaskMetrics(model, key)?.[field]) != null,
+      );
+      counts[kind] += residualIndexBreadth(indexKey, overlap);
+    }
   }
   return counts;
 }
