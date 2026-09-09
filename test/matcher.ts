@@ -977,6 +977,7 @@ function modelStatsSourceData(
       sourceDefaultRows: [],
       rowsByModelName: new Map(),
     },
+    apexSwe: { rows: [], rowsByModelName: new Map() },
     arcAgi2: { rows: [], rowsByModelName: new Map() },
     arcAgi3: { rows: [], rowsByModelName: new Map() },
     automationBench: { rows: [], rowsByModelName: new Map() },
@@ -1033,6 +1034,7 @@ function modelStatsSourceData(
     },
     simpleQaVerified: { rows: [], rowsByModelName: new Map() },
     sreBench: { rows: [], rowsByModelName: new Map() },
+    superchem: { rows: [], rowsByModelName: new Map() },
     surgeIntelligenceIndex: { rows: [], rowsByModelName: new Map() },
     terminalBench4: {
       rows: [],

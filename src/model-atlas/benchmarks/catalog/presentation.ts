@@ -58,6 +58,15 @@ export const BENCHMARK_TOOLTIPS = {
       ["Role", "long-horizon professional execution"],
     ],
   },
+  apex_swe: {
+    title: "APEX-SWE",
+    body: "Complete service integrations and diagnose software failures using production-style telemetry.",
+    rows: [
+      ["Source", "Mercor"],
+      ["Metric", "Pass@1, Terminus-2"],
+      ["Role", "software integration and debugging"],
+    ],
+  },
   automation_bench: {
     title: "AutomationBench",
     body: "Complete multi-step workflows across simulated SaaS apps, with credit only when every required final-state assertion passes.",
@@ -405,6 +414,15 @@ export const BENCHMARK_TOOLTIPS = {
       ["Role", "binary reverse engineering"],
     ],
   },
+  superchem: {
+    title: "SUPERChem",
+    body: "Solve 500 expert-curated chemistry problems in the multimodal release set.",
+    rows: [
+      ["Source", "Mercor; Peking University benchmark"],
+      ["Metric", "reported Pass@1"],
+      ["Role", "advanced chemical reasoning"],
+    ],
+  },
   surge_intelligence_index: {
     title: "Surge Intelligence Index",
     body: "Aggregate capability index across Surge's professional reasoning, agentic, writing, and expert-preference benchmarks.",
@@ -508,6 +526,7 @@ export const BENCHMARK_LABELS = {
   ale_bench: "ALE-Bench",
   analyst_agent: "AnalystAgent",
   apex_agents: "APEX Agents",
+  apex_swe: "APEX-SWE",
   arc_agi_2: "ARC-AGI-2",
   arc_agi_3: "ARC-AGI-3",
   automation_bench: "AutomationBench",
@@ -548,6 +567,7 @@ export const BENCHMARK_LABELS = {
   scicode: "SciCode",
   simpleqa_verified: "SimpleQA Verified",
   sre_bench: "SRE Bench",
+  superchem: "SUPERChem",
   surge_intelligence_index: "Surge Intelligence Index",
   tau_banking: "tau3 Banking",
   terminal_bench_4: "Terminal-Bench 4.0",
@@ -598,6 +618,7 @@ const FRONTIER_BENCHMARK_DISPLAY_ORDER = [
   "programbench",
   "riemann_bench",
   "sre_bench",
+  "superchem",
   "terminal_bench_4",
   "terminal_bench_science",
 ] as const satisfies readonly BenchmarkKey[];
@@ -610,6 +631,7 @@ export const INDEX_BENCHMARK_KEYS = [
 ] as const satisfies readonly BenchmarkKey[];
 
 const BASELINE_BENCHMARK_DISPLAY_ORDER = [
+  "apex_swe",
   "browsecomp",
   "chess_puzzles",
   "cyberbench",
@@ -1021,6 +1043,12 @@ export const BENCHMARK_COLUMNS = {
     format: "percent",
     defaultSort: "descending",
   },
+  apex_swe: {
+    key: "apexSwe",
+    label: "APEX-SWE",
+    format: "percent",
+    defaultSort: "descending",
+  },
   automation_bench: {
     key: "automationBench",
     label: "Auto",
@@ -1258,6 +1286,12 @@ export const BENCHMARK_COLUMNS = {
   sre_bench: {
     key: "sreBench",
     label: "SRE",
+    format: "percent",
+    defaultSort: "descending",
+  },
+  superchem: {
+    key: "superchem",
+    label: "Chem",
     format: "percent",
     defaultSort: "descending",
   },

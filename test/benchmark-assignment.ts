@@ -291,6 +291,7 @@ const lookups = {
     rowsByModelName: emptyLookup(),
   },
   aleBench: { rowsByModelName: buildBenchmarkModelMap([aleBenchRow]) },
+  apexSwe: { rowsByModelName: emptyLookup() },
   arcAgi2: { rowsByModelName: emptyLookup() },
   arcAgi3: { rowsByModelName: buildBenchmarkObservationLookup([arcAgi3Row]) },
   automationBench: { rowsByModelName: buildBenchmarkObservationLookup([automationBenchRow]) },
@@ -346,6 +347,7 @@ const lookups = {
   },
   simpleQaVerified: { rowsByModelName: emptyLookup() },
   sreBench: { rowsByModelName: emptyLookup() },
+  superchem: { rowsByModelName: emptyLookup() },
   surgeIntelligenceIndex: { rowsByModelName: emptyLookup() },
   terminalBench4: {
     rowsByModelName: buildBenchmarkModelMap([terminalBench4Row]),
