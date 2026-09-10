@@ -15,6 +15,7 @@ import type {
   SourceRefreshOptions,
 } from "../sources/types";
 import type { ModelAtlasPayload } from "../stats/types";
+import { archiveCheckpoint } from "./archive";
 import { deriveDatabaseSnapshot, writeCheckpoint } from "./checkpoint";
 import { DEFAULT_DATABASE_PATH, openDatabase, removeDatabaseFiles } from "./schema";
 import { readDatabasePayload } from "./sqlite-payload";
@@ -63,7 +64,10 @@ export async function buildDatabase(
     );
 
     const activeDb = db;
-    runInTransaction(activeDb, () => writeCheckpoint(activeDb, derived.rows));
+    runInTransaction(activeDb, () => {
+      writeCheckpoint(activeDb, derived.rows);
+      archiveCheckpoint(activeDb);
+    });
     if (activeDb.prepare("PRAGMA integrity_check").get()?.integrity_check !== "ok") {
       throw new Error("Refusing to publish a SQLite checkpoint that failed its integrity check");
     }
