@@ -352,7 +352,6 @@ export function TextPointLabel({
   height,
   xOffset = 10,
   placement,
-  italic = false,
 }: {
   label: string;
   cx: number;
@@ -362,7 +361,6 @@ export function TextPointLabel({
   height: number;
   xOffset?: number;
   placement?: PointLabelPlacement;
-  italic?: boolean;
 }) {
   const labelOnLeft = cx > width - margin.right - 135;
   const y = clamp(cy - 8, margin.top + 12, height - margin.bottom - 6);
@@ -381,7 +379,7 @@ export function TextPointLabel({
         />
       ) : null}
       <text
-        className={[styles.pointLabel, italic ? styles.previewLabel : ""].filter(Boolean).join(" ")}
+        className={styles.pointLabel}
         x={stableSvgNumber(textX)}
         y={stableSvgNumber(textY)}
         textAnchor={textAnchor}

@@ -301,7 +301,7 @@ export function columnTooltipsForActiveComponents(
     },
     speed: {
       title: "Speed Score",
-      body: "How quickly the model delivers comparable work. Ordinary ranked models assign 70% of base weight to benchmark task time and 30% to provider speed. Tasks are compared at similar benchmark quality, so easier or lower-quality work does not automatically look faster. A bounded local trend blends with the peer average as support grows, and qualities beyond the peer range use its nearest endpoint. Resources must match the benchmark; overall source averages cannot fill missing tasks. Limited peer support brings a task comparison toward neutral 50; missing or estimated inputs reduce evidence support.",
+      body: "How quickly the model delivers comparable work. Ranked models assign 70% of base weight to benchmark task time and 30% to provider speed. Tasks are compared at similar benchmark quality, so easier or lower-quality work does not automatically look faster. A bounded local trend blends with the peer average as support grows, and qualities beyond the peer range use its nearest endpoint. Resources must match the benchmark; overall source averages cannot fill missing tasks. Limited peer support brings a task comparison toward neutral 50; missing or estimated inputs reduce evidence support.",
       rows: [
         [
           "Benchmark runtimes",
@@ -324,11 +324,6 @@ export function columnTooltipsForActiveComponents(
           "at least 4 benchmarks of observed time-and-quality coverage, including residual AA index breadth; estimates do not count",
         ],
         ["Model coverage", "shared source-default multiplier; full from 60% coverage"],
-        [
-          "Previews",
-          "100% provider speed tapering to 80% provider / 20% tasks with observed runtime-pair coverage",
-        ],
-        ["Preview without task runtime", "provider speed alone; no missing-coverage multiplier"],
       ],
       sections: [
         {
@@ -340,7 +335,7 @@ export function columnTooltipsForActiveComponents(
     },
     value: {
       title: "Value Score",
-      body: "How efficiently the model delivers capability for its cost. Ordinary ranked models assign 70% of base weight to task cost and 30% to absolute and quality-adjusted token price. Comparing tasks at similar quality helps distinguish efficient work from merely cheap work. A bounded local trend blends with the peer average as support grows, and qualities beyond the peer range use its nearest endpoint. Resources must match the benchmark; overall source averages cannot fill missing tasks. Limited peer support brings a comparison toward neutral 50; missing or estimated inputs reduce evidence support.",
+      body: "How efficiently the model delivers capability for its cost. Ranked models assign 70% of base weight to task cost and 30% to absolute and quality-adjusted token price. Comparing tasks at similar quality helps distinguish efficient work from merely cheap work. A bounded local trend blends with the peer average as support grows, and qualities beyond the peer range use its nearest endpoint. Resources must match the benchmark; overall source averages cannot fill missing tasks. Limited peer support brings a comparison toward neutral 50; missing or estimated inputs reduce evidence support.",
       rows: [
         [
           "Benchmark task costs",
@@ -360,11 +355,6 @@ export function columnTooltipsForActiveComponents(
         ],
         ["Without eligible Value", "quality remains in the table; excluded from all graphs"],
         ["Model coverage", "shared source-default multiplier; full from 60% coverage"],
-        [
-          "Previews",
-          "100% price components tapering to 80% price / 20% tasks with observed cost-pair coverage",
-        ],
-        ["Preview without task cost", "price components alone; no missing-coverage multiplier"],
       ],
       sections: [
         {

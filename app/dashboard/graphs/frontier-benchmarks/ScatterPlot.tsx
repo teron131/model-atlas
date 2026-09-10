@@ -6,13 +6,9 @@ import { median } from "d3-array";
 import { scaleLinear } from "d3-scale";
 import { type CSSProperties, useState } from "react";
 
-import {
-  isPreviewModel,
-  type ModelAtlasPublishedModel,
-} from "../../../../src/model-atlas/stats/types";
+import { type ModelAtlasPublishedModel } from "../../../../src/model-atlas/stats/types";
 import { reasoningVariantGroups } from "../../shared/model-display";
 import { providerChartColor } from "../../shared/provider-theme";
-import { graphLabeledItems, graphReferenceItems } from "../model-series";
 import {
   CursorCapture,
   CursorProjectionLayer,
@@ -189,7 +185,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
     .clamp(true);
   const xPoint = stableSvgScale(x);
   const yPoint = stableSvgScale(y);
-  const referenceRows = graphReferenceItems(rows, getModel);
+  const referenceRows = rows;
   const frontier = paretoFrontier(rows, {
     x: { get: metric.get, goal: metric.xHigherIsBetter ? "maximize" : "minimize" },
     y: { get: getScore, goal: "maximize" },
@@ -211,7 +207,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
     bounds: plot,
     points: projectionPoints,
   });
-  const labeledRows = graphLabeledItems(rows, frontier, getModel);
+  const labeledRows = frontier;
   const labelPlacements = calloutLabelPlacements({
     bounds: plot,
     obstacles: rows.map((row) => ({
@@ -436,7 +432,6 @@ export function FrontierBenchmarkScatterPlot<Row>({
                 height={height}
                 xOffset={markRadius(row) + 8}
                 placement={labelPlacements.get(getKey(row))}
-                italic={isPreviewModel(getModel(row))}
               />
             </g>
           );

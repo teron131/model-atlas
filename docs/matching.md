@@ -10,7 +10,7 @@ A mistaken join can give one model another model's evidence. The matcher therefo
 
 A benchmark identity can exist before a public catalog entry. A qualified Artificial Analysis provider/model ID, a nonempty name, and confirmed text output can keep that model in the pipeline even when no catalog candidate is accepted. It retains only source-reported metadata, and other benchmark results can attach through the same identity and effort checks.
 
-Keeping the identity does not guarantee publication. Incomplete metadata is allowed in a preview only when the model meets the ordinary observed-benchmark requirements.
+Keeping the identity does not guarantee publication. Models meeting the observed-benchmark and quality requirements receive numeric ranks even with incomplete metadata; missing specifications remain null.
 
 An OpenRouter route is the preferred public identity when it wins the match, because route IDs connect directly to pricing and serving measurements. `models.dev` supplies candidate pools and catalog metadata. Trusted direct OpenAI, Google, Anthropic, and Vercel identities can win when they provide a stronger exact match.
 

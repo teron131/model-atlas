@@ -7,8 +7,6 @@ import type { ModelAtlasColumnTooltips } from "../config/tooltips";
 import type { ModelAtlasPublishedModel as PipelinePublishedModel } from "../pipeline/model-types";
 import type { ModelAtlasSourceHealth } from "../sources/types";
 
-export { isPreviewModel, rankedModels } from "../pipeline/model-types";
-
 export type {
   BenchmarkGroup,
   BenchmarkPortfolio,
@@ -36,7 +34,6 @@ export type {
   ModelAtlasIntelligence,
   ModelAtlasModalities,
   ModelAtlasModel,
-  ModelAtlasPreviewModel,
   ModelAtlasPublishedModel,
   ModelAtlasScoredCandidate,
   ModelAtlasScores,

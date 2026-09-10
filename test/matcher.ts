@@ -2,6 +2,7 @@
 
 import assert from "node:assert/strict";
 
+import { INDEX_BENCHMARK_KEYS } from "../src/model-atlas/benchmarks/index-policy";
 import {
   type BenchmarkObservationRow,
   buildBenchmarkObservationLookup,
@@ -739,9 +740,7 @@ assert.equal(
 assert.equal(asBenchmarks(assignedFlashVariant).hle, 0.4);
 assert.equal(assignedFlashVariant?.reasoning_effort, undefined);
 
-const uncatalogedIndexKeys = new Set<string>(
-  STAGE_CONFIG.final.benchmarkAdmission.indexBenchmarkKeys,
-);
+const uncatalogedIndexKeys = new Set<string>(INDEX_BENCHMARK_KEYS);
 const uncatalogedSourceData = modelStatsSourceData(
   ["max", "high", "none"].map((effort) => ({
     model_id: `example/private-model-${effort === "none" ? "non-reasoning" : effort}`,
@@ -760,27 +759,45 @@ const uncatalogedSourceData = modelStatsSourceData(
     ),
   })),
 );
+const uncatalogedIndexRows: BenchmarkObservationRow[] = ["max", "high", "none"].map((effort) => ({
+  benchmark_key: "cais_capabilities_index",
+  source_url: "https://dashboard.safe.ai/",
+  model_id: `example/private-model-${effort === "none" ? "non-reasoning" : effort}`,
+  model: `Private Model (${effort === "none" ? "Non-reasoning" : effort})`,
+  base_model: "Private Model",
+  reasoning_effort: effort,
+  model_creator: "example",
+  rank: null,
+  canonical_value: 0.7,
+  observed_at: null,
+  metadata: {},
+}));
+uncatalogedSourceData.caisCapabilitiesIndex = {
+  rows: uncatalogedIndexRows,
+  rowsByModelName: buildBenchmarkObservationLookup(uncatalogedIndexRows),
+};
 const uncatalogedDerivation = await deriveModelStats(uncatalogedSourceData, {
   loadOpenRouter: async () => ({ rawPayload: null }),
 });
 assert.ok(uncatalogedDerivation.matchDiagnostics.models.every((model) => model.best_match == null));
+const privateModels = uncatalogedDerivation.models.filter(
+  (model) => model.id === "example/private-model",
+);
 assert.deepEqual(
-  uncatalogedDerivation.models
-    .map((model) => [model.id, model.reasoning_effort, model.preview])
-    .sort(),
+  privateModels.map((model) => [model.id, model.reasoning_effort, "preview" in model]).sort(),
   [
-    ["example/private-model", "high", true],
-    ["example/private-model", "max", true],
-    ["example/private-model", "none", true],
+    ["example/private-model", "high", false],
+    ["example/private-model", "max", false],
+    ["example/private-model", "none", false],
   ],
   "qualified benchmark-source identities survive an absent catalog without merging their reasoning configurations",
 );
 assert.ok(
-  uncatalogedDerivation.models.every((model) => model.name === "Private Model"),
+  privateModels.every((model) => model.name === "Private Model"),
   "effort labels must not create separate base-model calibration or display identities",
 );
 assert.ok(
-  uncatalogedDerivation.models.every(
+  privateModels.every(
     (model) => model.cost == null && model.context_window == null && model.release_date == null,
   ),
 );

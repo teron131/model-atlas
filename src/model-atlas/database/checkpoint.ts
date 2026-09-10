@@ -2,7 +2,6 @@
 
 import { BENCHMARK_VERSION_BASELINE_DATE, STAGE_CONFIG } from "../config";
 import { deriveModelStats } from "../pipeline/derivation";
-import { isPreviewModel, rankedModels } from "../pipeline/model-types";
 import { taskMetricVersionValue } from "../pipeline/selection/candidate";
 import { nowEpochSeconds } from "../runtime";
 import {
@@ -159,7 +158,7 @@ export async function deriveDatabaseSnapshot(
 ): Promise<DerivedDatabaseSnapshot> {
   const observedDate = new Date(startedAtEpochSeconds * 1000).toISOString().slice(0, 10);
   const baselineDate = versioning.baselineDate ?? BENCHMARK_VERSION_BASELINE_DATE;
-  const previousModels = rankedModels(versioning.previousPayload?.models ?? []);
+  const previousModels = versioning.previousPayload?.models ?? [];
   const sourceData = cachedSourceDataFromSnapshots(snapshots);
   const {
     matchDiagnostics,
@@ -179,7 +178,7 @@ export async function deriveDatabaseSnapshot(
         {
           fetched_at_epoch_seconds: startedAtEpochSeconds,
           models: derivedModels,
-          metadata: buildCurrentModelAtlasMetadata({ models: rankedModels(derivedModels) }),
+          metadata: buildCurrentModelAtlasMetadata({ models: derivedModels }),
         },
         versioning.previousPayload ?? null,
         STAGE_CONFIG.snapshotPreservation,
@@ -207,7 +206,7 @@ export async function deriveDatabaseSnapshot(
     }),
     benchmarkVersionLogRows: buildBenchmarkVersionLogRows(
       previousModels,
-      rankedModels(finalModelRows),
+      finalModelRows,
       baselineDate,
       observedDate,
     ),
@@ -302,13 +301,13 @@ function rebuildDatabaseSnapshotChanges(
   refreshId: number,
   previousPayload: ModelAtlasPayload | null | undefined,
 ): void {
-  const currentModels = rankedModels(rows.finalModelRows);
+  const currentModels = rows.finalModelRows;
   const currentScoring = buildCurrentModelAtlasMetadata({
     models: currentModels,
     healthModels: currentModels,
   }).scoring;
   const changes = buildRefreshChanges(refreshId, previousPayload, currentModels, currentScoring);
-  rows.finalModelRows = [...changes.models, ...rows.finalModelRows.filter(isPreviewModel)];
+  rows.finalModelRows = changes.models;
   rows.refreshRunRows = changes.refreshRunRows;
   rows.modelScoreChangeRows = changes.modelScoreChangeRows;
 }

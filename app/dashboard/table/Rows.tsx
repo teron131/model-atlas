@@ -3,7 +3,6 @@
 import { type CSSProperties, memo, type MouseEvent } from "react";
 
 import {
-  isPreviewModel,
   type ModelAtlasModel,
   type ModelAtlasPublishedModel,
 } from "../../../src/model-atlas/stats/types";
@@ -141,15 +140,7 @@ export const ModelRow = memo(function ModelRow({
 }) {
   const model = rowData.model;
   return (
-    <tr
-      className={isPreviewModel(model) ? "preview-row" : undefined}
-      style={rowProviderStyle(model.provider)}
-      title={
-        isPreviewModel(model)
-          ? "Preview based on direct evidence: either a recent model with limited benchmark coverage or a benchmark-qualified model with incomplete metadata. Unsupported Speed and Value scores remain unavailable; PREVIEW replaces a numeric rank."
-          : undefined
-      }
-    >
+    <tr style={rowProviderStyle(model.provider)}>
       <ModelScoreCells
         rowData={rowData}
         visibleColumnKeySet={visibleColumnKeySet}
@@ -200,10 +191,7 @@ export const ModelRow = memo(function ModelRow({
 /** Render the leaderboard identity and four score columns used by PNG exports. */
 export function ScoreModelRow({ rowData }: { rowData: TableRow }) {
   return (
-    <tr
-      className={isPreviewModel(rowData.model) ? "preview-row" : undefined}
-      style={rowProviderStyle(rowData.model.provider)}
-    >
+    <tr style={rowProviderStyle(rowData.model.provider)}>
       <ModelScoreCells rowData={rowData} />
     </tr>
   );
@@ -228,14 +216,7 @@ function ModelScoreCells({
   const scores = model.scores ?? {};
   return (
     <>
-      <TableCell
-        text={
-          rowData.intelligenceRank === "preview"
-            ? "PREVIEW"
-            : String(rowData.intelligenceRank).padStart(2, "0")
-        }
-        className="rank"
-      />
+      <TableCell text={String(rowData.intelligenceRank).padStart(2, "0")} className="rank" />
       <td className="model-column">
         <div className="model-cell">
           <ProviderLogo model={model} />
@@ -458,9 +439,6 @@ const ScoreChangeCell = memo(function ScoreChangeCell({
   model: ModelAtlasPublishedModel;
   onScoreChange: ScoreChangeHandler;
 }) {
-  if (isPreviewModel(model)) {
-    return <td className="data-cell change-cell missing">—</td>;
-  }
   const change = model.latest_change;
   if (change == null) {
     return <td className="data-cell change-cell missing">—</td>;

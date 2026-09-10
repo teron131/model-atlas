@@ -13,12 +13,10 @@ import {
 import { benchmarkTaskMetrics } from "../../../../src/model-atlas/pipeline/scores/resource-metrics";
 import {
   type BenchmarkPortfolio,
-  isPreviewModel,
   type ModelAtlasPublishedModel,
 } from "../../../../src/model-atlas/stats/types";
-import { modelVariantKey } from "../../shared/model-display";
+import { isGraphEligible, modelVariantKey } from "../../shared/model-display";
 import { finiteValue, fmtMoney, fmtTooltipMoney, fmtTooltipScore } from "../format";
-import { isGraphEligible } from "../model-series";
 import type { HoverRow } from "../types";
 
 export type PriceEfficiencyRow = {
@@ -45,17 +43,13 @@ export function priceEfficiencyRows(
   portfolio: BenchmarkPortfolio,
   showVariants: boolean,
 ): PriceEfficiencyRow[] {
-  const eligibleModels = [...referenceModels, ...visibleModels.filter(isPreviewModel)].filter(
-    isPriceEligibleModel,
-  );
-  const calibrationMask = eligibleModels.map((model) => !isPreviewModel(model));
+  const eligibleModels = referenceModels.filter(isPriceEligibleModel);
   const priceScores = modelBalancedMinMaxScores(
     eligibleModels,
     eligibleModels.map((model) => log10OnePlusPositive(finiteValue(model.cost?.blended_price))),
     "lower",
-    calibrationMask,
   );
-  const costEfficiencyScores = costEfficiencyByModel(eligibleModels, portfolio, calibrationMask);
+  const costEfficiencyScores = costEfficiencyByModel(eligibleModels, portfolio);
   const drafts = eligibleModels.flatMap((model, index): PriceEfficiencyDraft[] => {
     const blendedPrice = finiteValue(model.cost?.blended_price);
     const logCost = log10OnePlusPositive(blendedPrice);
@@ -154,7 +148,6 @@ export function priceEfficiencyDeltaDetail(row: PriceEfficiencyRow): string {
 function costEfficiencyByModel(
   models: ModelAtlasPublishedModel[],
   portfolio: BenchmarkPortfolio,
-  calibrationMask: readonly boolean[],
 ): Array<number | null> {
   const benchmarks = Object.entries(portfolio)
     .flatMap(([key, entry]) => {
@@ -175,7 +168,6 @@ function costEfficiencyByModel(
         return cost == null ? null : Math.log(cost);
       }),
       qualityCoordinate,
-      calibrationMask,
     );
     for (const [modelIndex, score] of scores.entries()) {
       if (score != null) {
@@ -183,10 +175,9 @@ function costEfficiencyByModel(
       }
     }
   }
-  // Ordinary efforts share the source-default effort's coverage, as in final resource scoring.
+  // Efforts share the source-default effort's coverage, as in final resource scoring.
   const defaultIndexByModel = new Map<string, number>();
   for (const [index, model] of models.entries()) {
-    if (isPreviewModel(model)) continue;
     const key = canonicalModelKey(model);
     const previous = defaultIndexByModel.get(key);
     if (
@@ -199,9 +190,7 @@ function costEfficiencyByModel(
   return scoresByModel.map((scores, index) => {
     const meanScore = meanOfFinite(scores);
     const model = models[index]!;
-    const defaultIndex = isPreviewModel(model)
-      ? index
-      : (defaultIndexByModel.get(canonicalModelKey(model)) ?? index);
+    const defaultIndex = defaultIndexByModel.get(canonicalModelKey(model)) ?? index;
     const coverageCount = scoresByModel[defaultIndex]?.length ?? 0;
     return meanScore == null
       ? null

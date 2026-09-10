@@ -52,11 +52,7 @@ function hasModelStructure(value: unknown): boolean {
   }
   for (const key of ["intelligence_score", "agentic_score", "speed_score", "value_score"]) {
     const score = value.scores[key];
-    if (
-      score === null &&
-      (value.preview === true || key === "speed_score" || key === "value_score")
-    )
-      continue;
+    if (score === null && (key === "speed_score" || key === "value_score")) continue;
     if (typeof score !== "number" || !Number.isFinite(score)) return false;
   }
   return true;

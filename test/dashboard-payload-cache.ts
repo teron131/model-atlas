@@ -75,14 +75,23 @@ try {
       /invalid dashboard snapshot/,
     );
   }
-  const preview = {
+  const incomplete = {
     ...payload.models[0],
-    preview: true,
+    cost: null,
+    context_window: null,
     scores: { intelligence_score: null, agentic_score: 20, speed_score: null, value_score: null },
   };
+  assert.equal(
+    isModelAtlasPayload({ ...payload, models: [incomplete] }),
+    false,
+    "capability scores are required for every published model",
+  );
   assert.ok(
-    isModelAtlasPayload({ ...payload, models: [preview] }),
-    "provisional scores may be missing",
+    isModelAtlasPayload({
+      ...payload,
+      models: [{ ...incomplete, scores: { ...incomplete.scores, intelligence_score: 30 } }],
+    }),
+    "missing specifications and resource scores do not invalidate qualified models",
   );
   for (const stored of ["{broken", JSON.stringify(payload), JSON.stringify({ payload })]) {
     storage.set(cacheKey, stored);

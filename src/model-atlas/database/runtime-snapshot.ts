@@ -1,6 +1,4 @@
-/** All display reads use the published GCS snapshot, including local development, without credentials or refresh side effects. */
-
-import { rankedModels } from "../pipeline/model-types";
+/** Read and cache the published snapshot while applying current scoring metadata. */
 import { buildCurrentModelAtlasMetadata } from "../stats/payload/metadata";
 import type { ModelAtlasPayload } from "../stats/types";
 import {
@@ -87,12 +85,11 @@ async function readDisplayPayloadUncached(state: SnapshotReadState): Promise<Mod
 
 /** Keep cached payload rows, but rebuild metadata from current code-owned benchmark and scoring policy. */
 function withCurrentMetadata(payload: ModelAtlasPayload): ModelAtlasPayload {
-  const metadataModels = rankedModels(payload.models);
   return {
     ...payload,
     metadata: buildCurrentModelAtlasMetadata({
-      models: metadataModels,
-      healthModels: metadataModels,
+      models: payload.models,
+      healthModels: payload.models,
       availableMetrics: payload.metadata?.available_metrics,
       sourceHealth: payload.metadata?.source_health,
       benchmarkUpdateHealth: payload.metadata?.benchmark_update_health,

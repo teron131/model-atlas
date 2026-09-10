@@ -4,6 +4,10 @@ import assert from "node:assert/strict";
 
 import { validateBenchmarkPortfolio } from "../src/model-atlas/benchmarks/factory";
 import {
+  INDEX_BENCHMARK_KEYS,
+  MINIMUM_REPORTED_INDEX_BREADTH,
+} from "../src/model-atlas/benchmarks/index-policy";
+import {
   INDEX_REPRESENTED_BENCHMARK_COUNTS,
   INDEX_REPRESENTED_BENCHMARK_MEDIAN,
 } from "../src/model-atlas/benchmarks/registry";
@@ -23,8 +27,6 @@ import {
   buildBenchmarkImputationByModel,
   buildBenchmarkImputationDiagnosticsByKey,
   buildComponentScoreResult,
-  buildPreviewComponentScoreResult,
-  buildPreviewResourceScoreResults,
   imputedTaskResource,
   prepareEffortResourceImputation,
 } from "../src/model-atlas/pipeline/scores";
@@ -44,10 +46,10 @@ import {
   winsorizedMinMaxScores,
 } from "../src/model-atlas/pipeline/scores/normalization";
 import {
+  buildAgenticTokenScoringContext,
   buildQualityScoringContext,
   normalizedMetricValue,
 } from "../src/model-atlas/pipeline/scores/quality-context";
-import { buildAgenticTokenScoringContext } from "../src/model-atlas/pipeline/scores/quality-context";
 import {
   benchmarkResourceEfficiencyScores,
   modelBalancedMinMaxScores,
@@ -58,10 +60,14 @@ import {
   benchmarkMetricValue,
   benchmarkTaskMetrics,
 } from "../src/model-atlas/pipeline/scores/resource-metrics";
-import {} from "../src/model-atlas/pipeline/scores/score-builders";
-import { isRecentPreviewCandidate } from "../src/model-atlas/pipeline/selection/builder";
 import { buildCurrentModelAtlasMetadata } from "../src/model-atlas/stats/payload/metadata";
 import type { BenchmarkPortfolio, ModelAtlasCandidate } from "../src/model-atlas/stats/types";
+
+const nullSpeed = {
+  throughput_tokens_per_second_median: null,
+  latency_seconds_median: null,
+  e2e_latency_seconds_median: null,
+};
 
 function assertEqual(actual: unknown, expected: unknown): void {
   if (actual !== expected) {
@@ -210,124 +216,7 @@ assertEqual((winsorizedScores[1] ?? 0) > (winsorizedScores[2] ?? 0), true);
 assertEqual(medianOfFinite([100, null, 0, 50]), 50);
 
 validateBenchmarkPortfolio(STAGE_CONFIG.scoring.benchmarkPortfolio);
-const previewScoreResult = buildPreviewComponentScoreResult(
-  {
-    intelligence: { intelligence_index: 1 },
-    benchmarks: { deep_swe: 0.5, gpqa: 1, hle: 0, tau_banking: 1 },
-  },
-  STAGE_CONFIG.scoring,
-  {
-    benchmarkRangesByKey: new Map([
-      ["aa_intelligence_index", minMaxRange([0, 1])],
-      ["deep_swe", minMaxRange([0, 1])],
-      ["gpqa", minMaxRange([0, 1])],
-      ["hle", minMaxRange([0, 1])],
-      ["tau_banking", minMaxRange([0, 1])],
-    ]),
-  },
-);
-// Three Intelligence tasks average 50; two Agentic tasks average 550/7, against a 100-point index.
-const intelligenceTaskShare = 0.2 + 0.6 * ((2 / 6.5) ** 2 * (3 - 2 * (2 / 6.5)));
-const agenticTaskShare = 0.2 + 0.6 * ((1 / 6.5) ** 2 * (3 - 2 * (1 / 6.5)));
-assertClose(
-  previewScoreResult.componentScores?.intelligence_score,
-  100 - intelligenceTaskShare * 50,
-);
-assertClose(previewScoreResult.componentScores?.agentic_score, 100 - agenticTaskShare * (150 / 7));
-assert.equal(
-  (previewScoreResult.confidence.intelligence ?? 1) < 1,
-  true,
-  "preview quality should renormalize direct evidence without multiplying by low coverage",
-);
-assert.equal(
-  buildPreviewComponentScoreResult({}, STAGE_CONFIG.scoring, {
-    benchmarkRangesByKey: new Map(),
-  }).componentScores,
-  null,
-  "metadata-only previews should publish without invented quality scores",
-);
-const indexOnlyPreviewScoreResult = buildPreviewComponentScoreResult(
-  {
-    intelligence: { intelligence_index: 1 },
-    benchmarks: { vals_index: 0 },
-  },
-  STAGE_CONFIG.scoring,
-  {
-    benchmarkRangesByKey: new Map([
-      ["aa_intelligence_index", minMaxRange([0, 1])],
-      ["vals_index", minMaxRange([0, 1])],
-    ]),
-  },
-);
-assertClose(indexOnlyPreviewScoreResult.componentScores?.intelligence_score, (100 * 10) / 17);
-assertClose(indexOnlyPreviewScoreResult.componentScores?.agentic_score, (100 * 10) / 17);
-const previewResourceCandidates = [
-  modelCandidate({
-    id: "test/preview-resource-slow",
-    intelligenceScore: 40,
-    agenticScore: 40,
-    blendedPrice: 10,
-    throughputTokensPerSecond: 10,
-    latencySeconds: 10,
-    deepSWEScore: 0.4,
-    deepSWECost: 10,
-    deepSWESeconds: 10,
-  }),
-  modelCandidate({
-    id: "test/preview-resource-target",
-    intelligenceScore: 60,
-    agenticScore: 60,
-    blendedPrice: 3,
-    throughputTokensPerSecond: 50,
-    latencySeconds: 3,
-    deepSWEScore: 0.6,
-    deepSWECost: 3,
-    deepSWESeconds: 3,
-  }),
-  modelCandidate({
-    id: "test/preview-resource-fast",
-    intelligenceScore: 80,
-    agenticScore: 80,
-    blendedPrice: 1,
-    throughputTokensPerSecond: 100,
-    latencySeconds: 1,
-    deepSWEScore: 0.8,
-    deepSWECost: 1,
-    deepSWESeconds: 1,
-  }),
-];
-const previewResourceScoredCandidates = attachFinalScores(
-  previewResourceCandidates,
-  STAGE_CONFIG.scoring,
-);
-const previewQualityByModel = previewResourceScoredCandidates.map(
-  (model) => model.component_scores,
-);
-const previewResourceScores = buildPreviewResourceScoreResults(
-  previewResourceScoredCandidates,
-  previewQualityByModel,
-  STAGE_CONFIG.scoring,
-);
-const previewSpecOnlyScores = buildPreviewResourceScoreResults(
-  previewResourceScoredCandidates.map((model) => ({ ...model, task_metrics: null })),
-  previewQualityByModel,
-  STAGE_CONFIG.scoring,
-);
-assertClose(previewSpecOnlyScores[1]?.confidence.speed, (0.8 * 2) / 3);
-assertClose(previewSpecOnlyScores[1]?.confidence.value, 0.8);
-assertClose(previewResourceScores[1]?.confidence.speed, (0.8 * 2) / 3 + 0.2);
-assertClose(previewResourceScores[1]?.confidence.value, 1);
-assert.notEqual(
-  previewResourceScores[1]?.scores.speed_score,
-  previewSpecOnlyScores[1]?.scores.speed_score,
-  "direct task timing should contribute smoothly with observed preview resource coverage",
-);
-assert.notEqual(
-  previewResourceScores[1]?.scores.value_score,
-  previewSpecOnlyScores[1]?.scores.value_score,
-  "direct task cost should contribute smoothly with observed preview resource coverage",
-);
-for (const key of STAGE_CONFIG.final.benchmarkAdmission.indexBenchmarkKeys) {
+for (const key of INDEX_BENCHMARK_KEYS) {
   assert.equal(STAGE_CONFIG.scoring.benchmarkPortfolio[key]?.benchmarkImportance, 0.5);
 }
 assert.equal(INDEX_REPRESENTED_BENCHMARK_COUNTS.aa_intelligence_index, 10);
@@ -347,15 +236,6 @@ assert.equal(
   INDEX_REPRESENTED_BENCHMARK_MEDIAN,
   medianOfFinite(Object.values(INDEX_REPRESENTED_BENCHMARK_COUNTS)),
 );
-const recentPreviewIdentity = {
-  id: "z-ai/glm-5.3-flash",
-  name: "GLM-5.3-Flash",
-  release_date: "2026-08-01T15:30:00Z",
-  modalities: { output: ["text"] },
-};
-assert.equal(isRecentPreviewCandidate(recentPreviewIdentity, "2026-08-30", 30), true);
-assert.equal(isRecentPreviewCandidate(recentPreviewIdentity, "2026-08-31", 30), false);
-assert.equal(isRecentPreviewCandidate(recentPreviewIdentity, "2026-07-31", 30), false);
 assertClose(
   STAGE_CONFIG.scoring.qualityCoverage.intelligence.floor,
   INDEX_REPRESENTED_BENCHMARK_MEDIAN * 0.1,
@@ -370,10 +250,10 @@ assertClose(
 );
 assertClose(STAGE_CONFIG.scoring.qualityCoverage.agentic.full, INDEX_REPRESENTED_BENCHMARK_MEDIAN);
 assert.equal(
-  STAGE_CONFIG.final.benchmarkAdmission.minimumObservedBenchmarks,
-  INDEX_REPRESENTED_BENCHMARK_MEDIAN,
+  STAGE_CONFIG.final.benchmarkAdmission.minimumObservedWeight,
+  MINIMUM_REPORTED_INDEX_BREADTH,
 );
-assert.equal(STAGE_CONFIG.final.benchmarkAdmission.minimumObservedIndexes, 2);
+assert.equal(MINIMUM_REPORTED_INDEX_BREADTH, 7);
 const resourceQualityCoordinates = Object.fromEntries(
   Object.entries(STAGE_CONFIG.scoring.benchmarkPortfolio as BenchmarkPortfolio).flatMap(
     ([key, policy]) =>
@@ -459,7 +339,7 @@ assert.deepEqual(
   },
 );
 assertEqual(
-  JSON.stringify(STAGE_CONFIG.final.benchmarkAdmission.indexBenchmarkKeys),
+  JSON.stringify(INDEX_BENCHMARK_KEYS),
   JSON.stringify([
     "aa_intelligence_index",
     "cais_capabilities_index",
@@ -908,11 +788,7 @@ const fractionalBenchmarkModels = [
 ];
 const fractionalBenchmarkComponentScores = buildComponentScoreResult(
   fractionalBenchmarkModels[2] ?? {},
-  {
-    throughput_tokens_per_second_median: null,
-    latency_seconds_median: null,
-    e2e_latency_seconds_median: null,
-  },
+  nullSpeed,
   [],
   fractionalBenchmarkConfig,
   buildQualityScoringContext(fractionalBenchmarkModels, fractionalBenchmarkConfig),
@@ -920,11 +796,7 @@ const fractionalBenchmarkComponentScores = buildComponentScoreResult(
 assertClose(fractionalBenchmarkComponentScores?.intelligence_score, 20);
 const priorityWeightedComponentScores = buildComponentScoreResult(
   fractionalBenchmarkModels[2] ?? {},
-  {
-    throughput_tokens_per_second_median: null,
-    latency_seconds_median: null,
-    e2e_latency_seconds_median: null,
-  },
+  nullSpeed,
   [],
   fractionalBenchmarkConfig,
   buildQualityScoringContext(fractionalBenchmarkModels, fractionalBenchmarkConfig),
@@ -955,11 +827,7 @@ const importanceWeightedContext = buildQualityScoringContext(
 );
 const importanceWeightedScores = buildComponentScoreResult(
   fractionalBenchmarkModels[2] ?? {},
-  {
-    throughput_tokens_per_second_median: null,
-    latency_seconds_median: null,
-    e2e_latency_seconds_median: null,
-  },
+  nullSpeed,
   [],
   importanceWeightedConfig,
   importanceWeightedContext,
@@ -968,11 +836,7 @@ assertClose(importanceWeightedScores?.intelligence_score, 75);
 
 const groupFlippedScores = buildComponentScoreResult(
   fractionalBenchmarkModels[2] ?? {},
-  {
-    throughput_tokens_per_second_median: null,
-    latency_seconds_median: null,
-    e2e_latency_seconds_median: null,
-  },
+  nullSpeed,
   [],
   {
     ...importanceWeightedConfig,
@@ -993,11 +857,7 @@ assertClose(groupFlippedScores?.intelligence_score, 75);
 
 const fractionalEvidenceComponentScores = buildComponentScoreResult(
   { id: "fractional-sparse", benchmarks: { hle: 100 } },
-  {
-    throughput_tokens_per_second_median: null,
-    latency_seconds_median: null,
-    e2e_latency_seconds_median: null,
-  },
+  nullSpeed,
   [],
   fractionalBenchmarkConfig,
   buildQualityScoringContext(fractionalBenchmarkModels, fractionalBenchmarkConfig),
@@ -1013,11 +873,7 @@ const imputationConfidenceConfig = {
 } as const;
 const imputationConfidenceResult = buildComponentScoreResult(
   { id: "imputation-confidence", benchmarks: { omniscience_accuracy: 100 } },
-  {
-    throughput_tokens_per_second_median: null,
-    latency_seconds_median: null,
-    e2e_latency_seconds_median: null,
-  },
+  nullSpeed,
   [],
   imputationConfidenceConfig,
   importanceWeightedContext,
@@ -1071,11 +927,7 @@ const sparseEvidenceModels = [
 ];
 const sparseEvidenceResult = buildComponentScoreResult(
   sparseEvidenceModels[2] ?? {},
-  {
-    throughput_tokens_per_second_median: null,
-    latency_seconds_median: null,
-    e2e_latency_seconds_median: null,
-  },
+  nullSpeed,
   [],
   sparseEvidenceConfig,
   buildQualityScoringContext(sparseEvidenceModels, sparseEvidenceConfig),
@@ -1085,11 +937,7 @@ assertClose(sparseEvidenceComponentScores?.intelligence_score, 75);
 assertClose(sparseEvidenceResult.confidence.intelligence, 1 / 12);
 const sparseLowEvidenceResult = buildComponentScoreResult(
   { id: "sparse-low", benchmarks: { quality_0: 0 } },
-  {
-    throughput_tokens_per_second_median: null,
-    latency_seconds_median: null,
-    e2e_latency_seconds_median: null,
-  },
+  nullSpeed,
   [],
   sparseEvidenceConfig,
   buildQualityScoringContext(sparseEvidenceModels, sparseEvidenceConfig),
@@ -1997,11 +1845,7 @@ const imputationEvidenceConfig = {
 } as const;
 const untrustedImputationScores = buildComponentScoreResult(
   imputationEvidenceTarget,
-  {
-    throughput_tokens_per_second_median: null,
-    latency_seconds_median: null,
-    e2e_latency_seconds_median: null,
-  },
+  nullSpeed,
   [],
   imputationEvidenceConfig,
   imputationEvidenceContext,
@@ -2009,11 +1853,7 @@ const untrustedImputationScores = buildComponentScoreResult(
 ).componentScores;
 const validatedImputationScores = buildComponentScoreResult(
   imputationEvidenceTarget,
-  {
-    throughput_tokens_per_second_median: null,
-    latency_seconds_median: null,
-    e2e_latency_seconds_median: null,
-  },
+  nullSpeed,
   [],
   imputationEvidenceConfig,
   imputationEvidenceContext,
@@ -2212,7 +2052,6 @@ const undercoveredConfig: ScoringConfig = {
   qualityTaskFullCount: 8,
   intelligenceBenchmarkKeys: ["aa_intelligence_index", "vals_index", ...undercoveredBenchmarkKeys],
   agenticBenchmarkKeys: [],
-  previewAdditionalIntelligenceBenchmarkKeys: [],
   benchmarkPortfolio: {
     aa_intelligence_index: {
       group: "baseline",
@@ -2268,8 +2107,13 @@ const undercoveredScore = buildComponentScoreResult(
 // One direct task starts at 20%; index breadth sets relative weights within the remaining 80%.
 assertClose(undercoveredScore, 0.2 * 80 + (0.8 * (70 * 10 + 30 * 7)) / 17);
 assertClose(
-  buildPreviewComponentScoreResult(undercoveredModel, undercoveredConfig, undercoveredContext)
-    .componentScores?.intelligence_score,
+  buildComponentScoreResult(
+    undercoveredModel,
+    nullSpeed,
+    [],
+    undercoveredConfig,
+    undercoveredContext,
+  ).componentScores?.intelligence_score,
   0.2 * 80 + (0.8 * (70 * 10 + 30 * 7)) / 17,
 );
 const lowImportanceIndexConfig = {
@@ -2366,7 +2210,7 @@ assertClose(
   68,
 );
 assertClose(
-  buildPreviewComponentScoreResult(fourTaskModel, fourTaskConfig, undercoveredContext)
+  buildComponentScoreResult(fourTaskModel, nullSpeed, [], fourTaskConfig, undercoveredContext)
     .componentScores?.intelligence_score,
   68,
 );
@@ -2577,13 +2421,30 @@ const tokenConfig: ScoringConfig = {
   ...STAGE_CONFIG.scoring,
   intelligenceBenchmarkKeys: ["deep_swe"],
   agenticBenchmarkKeys: ["deep_swe"],
+  // Isolate token modulation from sparse-evidence regularization in this one-task fixture.
+  qualityCoverage: {
+    intelligence: { floor: 0, full: 0.1 },
+    agentic: { floor: 0, full: 0.1 },
+  },
 };
 const tokenRawContext = buildQualityScoringContext(tokenModels, tokenConfig);
 const tokenEvidenceBefore = JSON.stringify(tokenModels);
 const tokenContext = buildAgenticTokenScoringContext(tokenModels, tokenConfig, tokenRawContext);
 for (const model of tokenModels) {
-  const original = buildPreviewComponentScoreResult({ ...model }, tokenConfig, tokenRawContext);
-  const adjusted = buildPreviewComponentScoreResult({ ...model }, tokenConfig, tokenContext);
+  const original = buildComponentScoreResult(
+    { ...model },
+    nullSpeed,
+    [],
+    tokenConfig,
+    tokenRawContext,
+  );
+  const adjusted = buildComponentScoreResult(
+    { ...model },
+    nullSpeed,
+    [],
+    tokenConfig,
+    tokenContext,
+  );
   assert.equal(
     adjusted.componentScores?.intelligence_score,
     original.componentScores?.intelligence_score,
@@ -2601,7 +2462,7 @@ function tokenAgenticScores(models: ModelAtlasCandidate[], config = tokenConfig)
   const context = buildAgenticTokenScoringContext(models, config, rawContext);
   return models.map(
     (model) =>
-      buildPreviewComponentScoreResult({ ...model }, config, context).componentScores
+      buildComponentScoreResult({ ...model }, nullSpeed, [], config, context).componentScores
         ?.agentic_score,
   );
 }
@@ -2679,8 +2540,8 @@ const estimatedTokenContext = (confidence: number) =>
     ]),
   });
 const tokenEstimateScore = (context: ReturnType<typeof estimatedTokenContext>) =>
-  buildPreviewComponentScoreResult(tokenEstimateTarget, tokenConfig, context).componentScores!
-    .agentic_score!;
+  buildComponentScoreResult(tokenEstimateTarget, nullSpeed, [], tokenConfig, context)
+    .componentScores!.agentic_score!;
 const noTokenEstimate = buildAgenticTokenScoringContext(
   tokenEstimatePopulation,
   tokenConfig,
@@ -2695,13 +2556,15 @@ assertClose(
 );
 for (const m of tokenModels)
   assert.equal(
-    buildPreviewComponentScoreResult(m, tokenConfig, fullTokenEstimate).componentScores!
+    buildComponentScoreResult(m, nullSpeed, [], tokenConfig, fullTokenEstimate).componentScores!
       .agentic_score,
-    buildPreviewComponentScoreResult(m, tokenConfig, noTokenEstimate).componentScores!
+    buildComponentScoreResult(m, nullSpeed, [], tokenConfig, noTokenEstimate).componentScores!
       .agentic_score,
   );
 assert.deepEqual(
-  buildPreviewComponentScoreResult(tokenEstimateTarget, tokenConfig, fullTokenEstimate).confidence,
-  buildPreviewComponentScoreResult(tokenEstimateTarget, tokenConfig, noTokenEstimate).confidence,
+  buildComponentScoreResult(tokenEstimateTarget, nullSpeed, [], tokenConfig, fullTokenEstimate)
+    .confidence,
+  buildComponentScoreResult(tokenEstimateTarget, nullSpeed, [], tokenConfig, noTokenEstimate)
+    .confidence,
 );
 assert.equal(tokenEstimateTarget.task_metrics, null);

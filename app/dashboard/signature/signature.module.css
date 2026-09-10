@@ -224,10 +224,6 @@
   line-height: 32px;
 }
 
-.previewModel {
-  font-style: italic;
-}
-
 .scoreLeaderList {
   display: grid;
   grid-template-columns: max-content max-content max-content;

@@ -3,7 +3,6 @@
 import { AGENTIC_INDEX_KEYS, INTELLIGENCE_INDEX_KEYS } from "../../benchmarks/field-keys";
 import type { ScoringConfig, SnapshotPreservationConfig } from "../../config/stage";
 import { canonicalReasoningEffort, normalizeModelToken } from "../../identity/normalization";
-import { isPreviewModel, rankedModels } from "../../pipeline/model-types";
 import { asFiniteNumber, asRecord } from "../../runtime";
 import type { ModelAtlasModel, ModelAtlasPayload } from "../types";
 
@@ -36,7 +35,7 @@ function modelKeys(model: ModelAtlasModel): string[] {
 
 function previousModelByKey(previousPayload: ModelAtlasPayload): Map<string, ModelAtlasModel> {
   const models = new Map<string, ModelAtlasModel>();
-  for (const model of rankedModels(previousPayload.models)) {
+  for (const model of previousPayload.models) {
     for (const key of modelKeys(model)) {
       const existing = models.get(key);
       if (
@@ -111,8 +110,7 @@ export function preserveHighSignalSnapshotModels(
   }
   const previousByKey = previousModelByKey(previousPayload);
   let replaced = false;
-  const previewModels = payload.models.filter(isPreviewModel);
-  const models = rankedModels(payload.models).map((model) => {
+  const models = payload.models.map((model) => {
     const previous = modelKeys(model)
       .map((key) => previousByKey.get(key))
       .find((candidate): candidate is ModelAtlasModel => candidate != null);
@@ -122,7 +120,5 @@ export function preserveHighSignalSnapshotModels(
     replaced = true;
     return previous;
   });
-  return replaced
-    ? { ...payload, models: [...sortByIntelligence(models), ...previewModels] }
-    : payload;
+  return replaced ? { ...payload, models: sortByIntelligence(models) } : payload;
 }

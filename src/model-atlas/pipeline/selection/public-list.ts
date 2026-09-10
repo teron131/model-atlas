@@ -11,7 +11,6 @@ import { asFiniteNumber, asRecord, type JsonObject } from "../../runtime";
 import type {
   ModelAtlasCandidateComponentScores,
   ModelAtlasModel,
-  ModelAtlasPreviewModel,
   ModelAtlasPublishedModel,
   ModelAtlasScoredCandidate,
 } from "../model-types";
@@ -35,7 +34,6 @@ const STABLE_TOP_LEVEL_KEYS = new Set<string>([
   "benchmark_dates",
   "confidence",
   "latest_change",
-  "preview",
   "component_scores",
   "scores",
 ]);
@@ -123,27 +121,6 @@ function toPublicModel(model: ModelAtlasScoredCandidate & ModelAtlasModel): Mode
 /** Validate and project one scored candidate onto the exact public model contract. */
 export function publicModelFromCandidate(model: ModelAtlasScoredCandidate): ModelAtlasModel | null {
   return hasRequiredQualityScores(model) ? toPublicModel(model) : null;
-}
-
-/** Project a preview candidate without converting incomplete admission requirements into an official rank. */
-export function previewModelFromCandidate(
-  model: ModelAtlasScoredCandidate,
-): ModelAtlasPreviewModel {
-  return {
-    ...publishedModelFields(model),
-    preview: true,
-    component_scores: {
-      intelligence_score: model.component_scores?.intelligence_score ?? null,
-      agentic_score: model.component_scores?.agentic_score ?? null,
-      speed_score: model.component_scores?.speed_score ?? null,
-    },
-    scores: {
-      intelligence_score: model.component_scores?.intelligence_score ?? null,
-      agentic_score: model.component_scores?.agentic_score ?? null,
-      speed_score: model.scores.speed_score,
-      value_score: model.scores.value_score,
-    },
-  };
 }
 
 function isPlainObject(value: unknown): value is JsonObject {
@@ -301,14 +278,6 @@ function collapseFreeRoutesByVariant<Model extends ModelAtlasPublishedModel>(
     ...passthrough,
     ...[...modelByPublicId.values()].map(({ model }) => model),
   ]);
-}
-
-/** Normalize preview routes without applying official score or evidence admission. */
-export function normalizePreviewModels(
-  models: ModelAtlasPreviewModel[],
-  id: string | null | undefined,
-): ModelAtlasPreviewModel[] {
-  return normalizedModelsForId(models, id);
 }
 
 function normalizedModelsForId<Model extends ModelAtlasPublishedModel>(

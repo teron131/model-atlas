@@ -16,10 +16,7 @@ import {
   minMaxScale,
 } from "../../../src/model-atlas/pipeline/scores/normalization";
 import { benchmarkMetricValue as modelBenchmarkMetricValue } from "../../../src/model-atlas/pipeline/scores/resource-metrics";
-import {
-  isPreviewModel,
-  type ModelAtlasPublishedModel,
-} from "../../../src/model-atlas/stats/types";
+import { type ModelAtlasPublishedModel } from "../../../src/model-atlas/stats/types";
 import type { ModelAtlasLeaderboardRank } from "../../leaderboard/public-json";
 import { compareBenchmarkDisplayKeys } from "../shared/constants";
 import { filterByModelQuery, modelDisplayName } from "../shared/model-display";
@@ -424,7 +421,7 @@ export function sortedRows(rows: TableRow[], filterQuery: string, sortState: Sor
 
 /** Collapse duplicate model routes before assigning display ranks. */
 export function dedupeDisplayModels(models: ModelAtlasPublishedModel[]) {
-  const benchmarkReferenceModels = models.filter((model) => !isPreviewModel(model));
+  const benchmarkReferenceModels = models;
   const benchmarkDisplayScoreRanges = Object.fromEntries(
     scaledBenchmarkMetricColumns.map((column) => [
       column.key,
@@ -529,7 +526,7 @@ function inputModalityRank(model: ModelAtlasPublishedModel) {
 }
 
 function attachIntelligenceRanks(rows: UnrankedTableRow[]): TableRow[] {
-  const rankedRows = rows.filter((row) => !isPreviewModel(row.model)).sort(compareIntelligenceRank);
+  const rankedRows = [...rows].sort(compareIntelligenceRank);
   const rankByOriginalIndex = new Map<number, number>();
   for (const [rankIndex, row] of rankedRows.entries()) {
     const previousRow = rankedRows[rankIndex - 1];
@@ -545,9 +542,7 @@ function attachIntelligenceRanks(rows: UnrankedTableRow[]): TableRow[] {
   }
   return rows.map((row) => ({
     ...row,
-    intelligenceRank: isPreviewModel(row.model)
-      ? "preview"
-      : rankByOriginalIndex.get(row.originalIndex)!,
+    intelligenceRank: rankByOriginalIndex.get(row.originalIndex)!,
   }));
 }
 

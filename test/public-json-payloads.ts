@@ -12,7 +12,7 @@ import {
 } from "../app/leaderboard/public-json";
 import { STAGE_CONFIG } from "../src/model-atlas/config";
 import {
-  previewModelFromCandidate,
+  publicModelFromCandidate,
   selectPublicModels,
 } from "../src/model-atlas/pipeline/selection/public-list";
 import type { ModelAtlasScoredCandidate } from "../src/model-atlas/stats/types";
@@ -165,57 +165,60 @@ assert.deepEqual(
   ["max", "high"],
   "the all view should expose every reasoning-effort variant",
 );
-const previewModel = previewModelFromCandidate({
+const incompleteModel = publicModelFromCandidate({
   ...internalCandidate,
   id: "provider/recent-preview",
   name: "Recent Preview",
+  cost: null,
+  context_window: null,
+  scores: { intelligence_score: 95, agentic_score: 85, speed_score: null, value_score: null },
   component_scores: {
     intelligence_score: 95,
     agentic_score: 85,
     speed_score: null,
   },
 });
-const previewPayload = minimalModelAtlasPayload({
+const incompletePayload = minimalModelAtlasPayload({
   fetchedAt: 123,
-  models: [reasoningEffortModels[0]!, previewModel],
+  models: [reasoningEffortModels[0]!, incompleteModel!],
 });
 assert.deepEqual(
   [
-    scoreJsonPayload(previewPayload).scores.length,
-    coreJsonPayload(previewPayload).models.length,
-    benchmarksJsonPayload(previewPayload).benchmarks.length,
+    scoreJsonPayload(incompletePayload).scores.length,
+    coreJsonPayload(incompletePayload).models.length,
+    benchmarksJsonPayload(incompletePayload).benchmarks.length,
   ],
   [2, 2, 2],
-  "compact public views should include preview leaderboard rows",
+  "compact public views include models with missing specifications",
 );
 assert.deepEqual(
-  scoreJsonPayload(previewPayload).scores.map((model) => [model.id, model.rank]),
+  scoreJsonPayload(incompletePayload).scores.map((model) => [model.id, model.rank]),
   [
-    ["provider/recent-preview", "preview"],
-    ["provider/internal-candidate", 1],
+    ["provider/recent-preview", 1],
+    ["provider/internal-candidate", 2],
   ],
-  "preview rows should appear in score-relative order without consuming official ranks",
+  "models with missing specifications consume numeric ranks in score-relative order",
 );
 assert.deepEqual(
-  coreJsonPayload(previewPayload).models.map((model) => [model.id, model.rank]),
+  coreJsonPayload(incompletePayload).models.map((model) => [model.id, model.rank]),
   [
-    ["provider/recent-preview", "preview"],
-    ["provider/internal-candidate", 1],
+    ["provider/recent-preview", 1],
+    ["provider/internal-candidate", 2],
   ],
-  "core preview rows should expose the same rank contract",
+  "core rows should expose the same rank contract",
 );
 assert.deepEqual(
-  benchmarksJsonPayload(previewPayload).benchmarks.map((model) => [model.id, model.rank]),
+  benchmarksJsonPayload(incompletePayload).benchmarks.map((model) => [model.id, model.rank]),
   [
-    ["provider/recent-preview", "preview"],
-    ["provider/internal-candidate", 1],
+    ["provider/recent-preview", 1],
+    ["provider/internal-candidate", 2],
   ],
-  "benchmark preview rows should expose the same rank contract",
+  "benchmark rows should expose the same rank contract",
 );
 assert.equal(
-  (publicJsonPayload(previewPayload, "all") as FullJsonPayload).models[1]?.preview,
-  true,
-  "the all view should expose the explicit preview marker",
+  "preview" in (publicJsonPayload(incompletePayload, "all") as FullJsonPayload).models[1]!,
+  false,
+  "the all view does not expose a preview marker",
 );
 const sourceOnlyEffortPayload = minimalModelAtlasPayload({
   fetchedAt: 124,

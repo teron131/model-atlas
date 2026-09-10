@@ -6,9 +6,8 @@ import {
   frontierBenchmarkHoverRows,
   frontierBenchmarkRows,
 } from "../app/dashboard/graphs/frontier-benchmarks/analysis";
-import { isGraphEligible } from "../app/dashboard/graphs/model-series";
 import { priceEfficiencyRows } from "../app/dashboard/graphs/price-efficiency/rows";
-import { modelsForVariantDisplay } from "../app/dashboard/shared/model-display";
+import { isGraphEligible, modelsForVariantDisplay } from "../app/dashboard/shared/model-display";
 import { publicJsonPayload } from "../app/leaderboard/public-json";
 import { STAGE_CONFIG } from "../src/model-atlas/config/stage";
 import {

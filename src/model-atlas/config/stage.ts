@@ -1,10 +1,10 @@
 /** Pipeline stage switches for matching, route data, public selection, and scoring. */
 
 import type { BenchmarkDimension, BenchmarkPortfolio } from "../benchmarks/factory";
+import { MINIMUM_REPORTED_INDEX_BREADTH } from "../benchmarks/index-policy";
 import {
   AGENTIC_BENCHMARK_DISPLAY_KEYS,
   BENCHMARK_PORTFOLIO,
-  INDEX_BENCHMARK_KEYS,
   INDEX_REPRESENTED_BENCHMARK_MEDIAN,
   INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
   SELECTED_AGENTIC_BENCHMARKS,
@@ -17,9 +17,7 @@ export type OpenRouterConfig = {
 };
 
 export type BenchmarkAdmissionConfig = {
-  indexBenchmarkKeys: readonly string[];
-  minimumObservedIndexes: number;
-  minimumObservedBenchmarks: number;
+  minimumObservedWeight: number;
   minimumObservedPerDimension: number;
 };
 
@@ -34,7 +32,6 @@ export type QualityCoverageThresholds = Record<
 const QUALITY_COVERAGE_FLOOR_SHARE = 0.1;
 const QUALITY_COVERAGE_FULL_WEIGHT = INDEX_REPRESENTED_BENCHMARK_MEDIAN;
 const QUALITY_COVERAGE_FLOOR_WEIGHT = QUALITY_COVERAGE_FULL_WEIGHT * QUALITY_COVERAGE_FLOOR_SHARE;
-const MINIMUM_OBSERVED_BENCHMARKS = INDEX_REPRESENTED_BENCHMARK_MEDIAN;
 export const MAX_NORMALIZED_IMPUTATION_ERROR = 25;
 export const MINIMUM_RESOURCE_BENCHMARKS = 4;
 /** Capability convergence groups direct task benchmarks and aggregate index signals. */
@@ -62,7 +59,6 @@ export const QUALITY_COVERAGE = {
 export type FinalStageConfig = {
   nullFieldPruneThreshold: number;
   nullFieldPruneRecentLookbackDays: number;
-  previewMaxAgeDays: number;
   benchmarkAdmission: BenchmarkAdmissionConfig;
 };
 
@@ -111,7 +107,6 @@ export type ScoringConfig = {
   agenticBenchmarkKeys: readonly string[];
   agenticBenchmarkDisplayKeys: readonly string[];
   agenticTokenModifierCap: number;
-  previewAdditionalIntelligenceBenchmarkKeys: readonly string[];
   defaultSpeedOutputTokenAnchors: readonly number[];
   speedOutputTokenRangeMin: number;
   speedOutputTokenRangeMax: number;
@@ -157,11 +152,8 @@ export const STAGE_CONFIG = {
   final: {
     nullFieldPruneThreshold: 0.5,
     nullFieldPruneRecentLookbackDays: 90,
-    previewMaxAgeDays: 30,
     benchmarkAdmission: {
-      indexBenchmarkKeys: INDEX_BENCHMARK_KEYS,
-      minimumObservedIndexes: 2,
-      minimumObservedBenchmarks: MINIMUM_OBSERVED_BENCHMARKS,
+      minimumObservedWeight: MINIMUM_REPORTED_INDEX_BREADTH,
       minimumObservedPerDimension: 1,
     },
   },
@@ -175,7 +167,6 @@ export const STAGE_CONFIG = {
     agenticBenchmarkKeys: SELECTED_AGENTIC_BENCHMARKS,
     agenticBenchmarkDisplayKeys: AGENTIC_BENCHMARK_DISPLAY_KEYS,
     agenticTokenModifierCap: 0.15,
-    previewAdditionalIntelligenceBenchmarkKeys: ["gpqa", "mmmu_pro"],
     defaultSpeedOutputTokenAnchors: [200, 500, 1_000, 2_000, 8_000],
     speedOutputTokenRangeMin: 200,
     speedOutputTokenRangeMax: 8_000,

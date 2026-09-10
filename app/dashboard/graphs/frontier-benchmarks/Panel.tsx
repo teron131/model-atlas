@@ -4,19 +4,16 @@ import { memo, useMemo } from "react";
 
 import { isAggregateIndex } from "../../../../src/model-atlas/benchmarks/index-policy";
 import {
-  isPreviewModel,
   type ModelAtlasModel,
   type ModelAtlasPayload,
   type ModelAtlasPublishedModel,
 } from "../../../../src/model-atlas/stats/types";
 import { captureFileToken } from "../../capture/png";
-import { modelName, modelVariantKey } from "../../shared/model-display";
+import { modelName, modelVariantKey, shortLabel } from "../../shared/model-display";
 import { BoxWhiskerSummary } from "../BoxWhiskerSummary";
 import { valueDistribution } from "../chart-stats";
-import { PreviewLabelLegend } from "../ChartComponents";
 import { finite, fmtPercentScore, fmtTooltipScore } from "../format";
 import { GraphToggle } from "../GraphToggle";
-import { graphModelLabel } from "../model-series";
 import { Panel } from "../Panel";
 import { PARETO_PANEL_CONTENT, ParetoControlSet } from "../ParetoControlSet";
 import { scoreAxisScale } from "../plot/axis-scale";
@@ -309,17 +306,12 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
           getKey={(row) => `${row.benchmarkKey}-${modelVariantKey(row.model)}`}
           getHoverTitle={(row) => modelName(row.model)}
           getHoverRows={(row) => frontierBenchmarkHoverRows(row, axisConfig, performance)}
-          getLabel={(row) => graphModelLabel(row.model)}
+          getLabel={(row) => shortLabel(row.model)}
           connectReasoningVariants={showVariants}
           compactLayout={compactLayout}
           setHover={setHover}
         />
       )}
-      {rows.some((row) => isPreviewModel(row.model)) ? (
-        <div className={styles.chartFooterCaption}>
-          <PreviewLabelLegend />
-        </div>
-      ) : null}
     </Panel>
   );
 });
