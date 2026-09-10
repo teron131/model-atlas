@@ -260,7 +260,7 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
           />
         ) : null
       }
-      note={`${showVariants ? "Lines connect displayed variants in reasoning-effort order." : "The frontier traces the best displayed tradeoffs."} ${frontierAxisDescription(axisKey, aggregate, rows[0])}`}
+      note={`The solid envelope traces the best displayed tradeoffs.${showVariants ? " Hover a point or label to reveal its model’s variant connections in reasoning-effort order." : ""} ${frontierAxisDescription(axisKey, aggregate, rows[0])}`}
       wide
     >
       {controls}

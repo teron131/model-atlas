@@ -1,5 +1,9 @@
-/* Chart-only pigments; page, ink, and rule tokens inherit from the shared theme. */
+/* Chart typography and pigments inherit the page theme while giving dense plots a readable scale. */
 .atlas {
+  --type-data-size: 15px;
+  --type-label-size: 14px;
+  --type-caption-size: 13px;
+  --type-micro-size: 12px;
   --chart-grid: rgb(var(--ink-rgb) / 0.075);
   --chart-axis-tick: rgb(var(--ink-rgb) / 0.32);
   --chart-median: rgb(var(--ink-rgb) / 0.14);
@@ -882,9 +886,10 @@
   fill: none;
   stroke: var(--line-color);
   stroke-width: 0.95;
+  stroke-dasharray: 5 4;
   stroke-linecap: square;
   stroke-linejoin: miter;
-  opacity: 0.34;
+  opacity: 0;
   pointer-events: none;
   transition:
     opacity 0.12s ease,
@@ -897,11 +902,6 @@
   stroke-width: 1.6;
 }
 
-.reasoningVariantLineMuted {
-  stroke: var(--chart-point-line);
-  opacity: 0.18;
-}
-
 .reasoningContextMuted {
   stroke: var(--chart-point-line);
   opacity: 0.55;
@@ -910,6 +910,27 @@
 .reasoningVariantPoint .pointLabel,
 .reasoningVariantPoint .pointLabelLine {
   transition: opacity 0.12s ease;
+}
+
+.reasoningVariantPoint .pointLabel {
+  pointer-events: auto;
+}
+
+.reasoningVariantPoint .pointLabelLine {
+  stroke-width: 0.7px;
+  stroke-dasharray: none;
+  opacity: 0.65;
+}
+
+.reasoningVariantPointSelected .pointLabelLine {
+  stroke: var(--chart-point-label);
+  stroke-width: 1px;
+  opacity: 1;
+}
+
+.reasoningVariantPointSelected .datavizPoint {
+  transform: scale(1.3);
+  stroke-width: 1.8;
 }
 
 .reasoningVariantPoint.reasoningVariantPointActive .datavizPoint {
@@ -994,7 +1015,7 @@
 
 .slopeRailTitle {
   fill: var(--muted);
-  font-size: 14px;
+  font-size: var(--type-data-size);
   font-weight: var(--type-label-weight);
   text-transform: uppercase;
 }
@@ -1029,7 +1050,7 @@
 }
 
 .slopeLabel {
-  font-size: 14px;
+  font-size: var(--type-data-size);
   font-weight: var(--type-label-weight);
   paint-order: stroke;
   stroke: var(--chart-point-label-stroke);
