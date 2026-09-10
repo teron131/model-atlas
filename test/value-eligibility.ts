@@ -6,7 +6,6 @@ import {
   frontierBenchmarkHoverRows,
   frontierBenchmarkRows,
 } from "../app/dashboard/graphs/frontier-benchmarks/analysis";
-import { priceEfficiencyRows } from "../app/dashboard/graphs/price-efficiency/rows";
 import { isGraphEligible, modelsForVariantDisplay } from "../app/dashboard/shared/model-display";
 import { publicJsonPayload } from "../app/leaderboard/public-json";
 import { STAGE_CONFIG } from "../src/model-atlas/config/stage";
@@ -81,13 +80,6 @@ assert.notEqual(
 );
 assert.equal(payload.models[0]?.scores.value_score, sparse.scores.value_score);
 
-const costGraph = priceEfficiencyRows(graphModels, dashboard.models, portfolio, false);
-assert.equal(
-  costGraph[0]?.model.reasoning_effort,
-  "high",
-  "Graph references cannot resurrect a hidden effort",
-);
-
 const missingTime = {
   ...model,
   task_metrics: {
@@ -148,32 +140,6 @@ const zeroResourceRow = {
 };
 assert.equal(frontierBenchmarkAxisConfig.speed.get(zeroResourceRow), 0);
 assert.equal(frontierBenchmarkAxisConfig.value.get(zeroResourceRow), 0);
-
-const completeEffort = { ...model, reasoning_effort: "max" };
-const sparseEffort = {
-  ...model,
-  reasoning_effort: "low",
-  task_metrics: { hle: { cost: 1, seconds: 100 } },
-};
-const peer = { ...model, id: "test/peer", reasoning_effort: "high" };
-const coverageReferences = [completeEffort, sparseEffort, peer];
-const coverageRows = priceEfficiencyRows(
-  [completeEffort, sparseEffort],
-  coverageReferences,
-  portfolio,
-  true,
-);
-assert.equal(coverageRows.length, 2);
-assert.equal(
-  coverageRows[0]!.costEfficiencyScore,
-  coverageRows[1]!.costEfficiencyScore,
-  "Identical task efficiency must not diverge solely because sibling efforts have different coverage",
-);
-assert.equal(
-  priceEfficiencyRows([sparseEffort], coverageReferences, portfolio, true)[0]!.costEfficiencyScore,
-  coverageRows.find((row) => row.model.reasoning_effort === "low")!.costEfficiencyScore,
-  "Filtering the source-default effort must not alter the shared coverage reference",
-);
 
 // Observed AA resource coverage can qualify a variant without manufacturing standalone task measurements.
 const aaOnly = {

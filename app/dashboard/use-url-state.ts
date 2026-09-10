@@ -52,10 +52,7 @@ export function useUrlState<K extends DashboardUrlKey>(key: K, fallback?: Dashbo
   }, [raw, key, fallback]);
   const setValue = useCallback(
     (next: DashboardUrlState[K]) => {
-      updateDashboardUrl(
-        { [key]: next },
-        key === "q" || key === "table-q" || key === "price-q" || key === "columns",
-      );
+      updateDashboardUrl({ [key]: next }, key === "q" || key === "table-q" || key === "columns");
     },
     [key],
   );

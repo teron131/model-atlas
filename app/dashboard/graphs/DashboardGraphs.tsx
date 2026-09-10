@@ -33,7 +33,6 @@ import { dashboardUrlSection } from "../url-state";
 import { FilterButton, HoverCard } from "./ChartComponents";
 import { finite, fmtCompact, fmtMoney } from "./format";
 import { ParetoAnalysisPanel } from "./ParetoAnalysisPanel";
-import { PriceEfficiencyPanel } from "./price-efficiency/Panel";
 import {
   RESEARCH_REGION_IDS,
   RESEARCH_REGIONS,
@@ -435,28 +434,6 @@ export function DashboardGraphs({
           setHover={setHover}
         />
       </section>
-      {models.length === 0 ? (
-        <div className={styles.error}>
-          No models with eligible Value match the current global filters for Price.
-        </div>
-      ) : (
-        <PriceEfficiencyPanel
-          benchmarkPortfolio={deferredPayload.metadata.scoring.benchmark_portfolio}
-          models={deferredPayload.models}
-          globalModelFilterQuery={deferredGlobalModelFilterQuery}
-          showVariants={deferredShowReasoningVariants}
-          maxCost={deferredMaxCost}
-          modelRankFilter={deferredModelRankFilter}
-          recencyFilter={deferredRecencyFilter}
-          observedAtEpochSeconds={deferredPayload.fetched_at_epoch_seconds}
-          onShowVariantsChange={onShowReasoningVariantsChange}
-          selectedProviders={deferredSelectedProviders}
-          onSelectedProvidersChange={onSelectedProvidersChange}
-          referenceModels={referenceModels}
-          setHover={setHover}
-        />
-      )}
-
       {hover ? <HoverCard hover={hover} /> : null}
     </section>
   );
