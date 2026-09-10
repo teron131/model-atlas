@@ -5,6 +5,7 @@ import { dirname, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
 import { BENCHMARK_VERSION_BASELINE_DATE } from "../config";
+import { archiveCheckpoint, EVIDENCE_ARCHIVE_TABLE } from "./archive";
 import {
   catalogTableMatchesSchema,
   quoteIdentifier,
@@ -60,27 +61,30 @@ export async function openDatabase(outputPath: string): Promise<DatabaseSync> {
     for (const statement of schemaStatements(schemaSql).filter((sql) => /^PRAGMA\b/i.test(sql))) {
       db.exec(statement);
     }
-    const catalogRows = db
-      .prepare("SELECT type, name, sql FROM sqlite_master WHERE type IN ('table', 'index')")
-      .all() as SchemaCatalogRow[];
-    const manifestRows = readLocalSchemaManifest(db, schemaSql, catalogRows);
-    const plan = schemaReconciliationPlan(
-      schemaSql,
-      catalogRows,
-      manifestRows,
-      SCHEMA_MIGRATION_VALUES,
-    );
-    if (plan.statements.length > 0) {
-      db.exec("BEGIN");
-      try {
-        for (const statement of plan.statements) {
-          db.exec(statement);
-        }
-        db.exec("COMMIT");
-      } catch (error) {
-        db.exec("ROLLBACK");
-        throw error;
-      }
+    db.exec("BEGIN");
+    try {
+      // Initialize retention before the first migration can remove any old source tables.
+      const archiveSchema = schemaStatements(schemaSql).find((statement) =>
+        statement.startsWith(`CREATE TABLE IF NOT EXISTS ${EVIDENCE_ARCHIVE_TABLE} (`),
+      );
+      if (!archiveSchema) throw new Error("The checkpoint schema must define its evidence archive");
+      db.exec(archiveSchema);
+      archiveCheckpoint(db);
+      const catalogRows = db
+        .prepare("SELECT type, name, sql FROM sqlite_master WHERE type IN ('table', 'index')")
+        .all() as SchemaCatalogRow[];
+      const manifestRows = readLocalSchemaManifest(db, schemaSql, catalogRows);
+      const plan = schemaReconciliationPlan(
+        schemaSql,
+        catalogRows,
+        manifestRows,
+        SCHEMA_MIGRATION_VALUES,
+      );
+      for (const statement of plan.statements) db.exec(statement);
+      db.exec("COMMIT");
+    } catch (error) {
+      db.exec("ROLLBACK");
+      throw error;
     }
     return db;
   } catch (error) {

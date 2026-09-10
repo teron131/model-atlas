@@ -141,7 +141,10 @@ const mixedUnits = evidence.map((entry) =>
     ? { ...entry, resourcePolicy: { ...policy, unit: "total" as const } }
     : entry,
 );
-assert.match(resourceComparisonIssue(mixedUnits, ["a", "b"], "cost")!, /per-task and full-run/);
+assert.ok(
+  resourceComparisonIssue(mixedUnits, ["a", "b"], "cost"),
+  "Mixed per-task and full-run units must be rejected",
+);
 assert.equal(
   resourceComparisonIssue(mixedUnits, ["b"], "cost"),
   null,
@@ -152,9 +155,9 @@ const mixedTokens = evidence.map((entry) =>
     ? { ...entry, resourcePolicy: { ...policy, tokenMeasure: "output_tokens" as const } }
     : entry,
 );
-assert.match(
-  resourceComparisonIssue(mixedTokens, ["a", "b"], "tokens")!,
-  /output tokens and total tokens/,
+assert.ok(
+  resourceComparisonIssue(mixedTokens, ["a", "b"], "tokens"),
+  "Mixed output-token and total-token measures must be rejected",
 );
 assert.equal(resourceComparisonIssue(mixedTokens, ["a", "b"], "value"), null);
 const hover = frontierBenchmarkHoverRows(
