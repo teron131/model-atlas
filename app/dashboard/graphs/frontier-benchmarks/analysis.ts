@@ -350,24 +350,24 @@ export function frontierAxisDescription(
   row?: FrontierBenchmarkRow,
 ): string {
   if (isScoreAxis(axisKey)) {
-    return `${frontierBenchmarkAxisConfig[axisKey].label} is the published model-wide score; evidence selection does not recalculate it. Higher is better.`;
+    return `Published ${frontierBenchmarkAxisConfig[axisKey].label}; unchanged by evidence selection. Higher is better.`;
   }
   if (axisKey === "cost") {
     return isAggregateView
-      ? "Cost is normalized within each source against the full reference population before averaging; lower is better."
-      : `Cost is the observed dollars ${resourceUnitPhrase(row)}; lower is better.`;
+      ? "Cost: normalized per source to the full reference population, then averaged. Lower is better."
+      : `Observed cost in dollars ${resourceUnitPhrase(row)}. Lower is better.`;
   }
   if (axisKey === "time") {
     return isAggregateView
-      ? "Time is normalized within each source against the full reference population before averaging; lower is better."
-      : `Runtime is the observed time ${resourceUnitPhrase(row)}; lower is better.`;
+      ? "Time: normalized per source to the full reference population, then averaged. Lower is better."
+      : `Observed runtime ${resourceUnitPhrase(row)}. Lower is better.`;
   }
   if (isAggregateView) {
-    return "Matching token measurements are normalized within each source against the full reference population before averaging; lower is better.";
+    return "Matching token measures: normalized per source to the full reference population, then averaged. Lower is better.";
   }
   const tokenUse =
     row?.resourcePolicy?.tokenMeasure === "output_tokens" ? "output-token use" : "token use";
-  return `The axis shows observed ${tokenUse} ${resourceUnitPhrase(row)}; lower is better.`;
+  return `Observed ${tokenUse} ${resourceUnitPhrase(row)}. Lower is better.`;
 }
 
 export function frontierAxisMetricLabel(
@@ -444,7 +444,7 @@ export function frontierBenchmarkHoverRows(
       ? [
           [
             "Performance basis",
-            "Published score, including supported estimates and coverage adjustments",
+            "Published; includes supported estimates and coverage adjustments",
           ] as HoverRow,
         ]
       : []),
@@ -525,9 +525,9 @@ export function resourceComparisonIssue(
   );
   const units = new Set(measured.map((row) => row.resourcePolicy?.unit));
   if (units.has(undefined))
-    return "Some selected sources have no declared resource unit. Select sources with a known per-task or full-run basis.";
+    return "Unknown resource units. Select sources with declared per-task or full-run units.";
   if (units.size > 1)
-    return "Selected sources mix per-task and full-run measurements. Select sources with the same resource basis.";
+    return "Per-task and full-run measurements cannot mix. Select sources with matching units.";
   if (axisKey === "tokens") {
     const measures = new Set(
       measured.map((row) =>
@@ -535,7 +535,7 @@ export function resourceComparisonIssue(
       ),
     );
     if (measures.size > 1)
-      return "Selected sources mix output tokens and total tokens. Select sources with the same token measurement.";
+      return "Output and total tokens cannot mix. Select sources with matching token measures.";
   }
   return null;
 }

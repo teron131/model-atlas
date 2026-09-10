@@ -8,7 +8,7 @@ export const PARETO_PANEL_CONTENT = {
   sectionId: "pareto-analysis",
   sectionLabel: "Score tradeoffs",
   title: "Pareto Analysis",
-  copy: "Each point is a visible model variant. The solid envelope traces the best displayed tradeoffs; hover a point or label to reveal its model’s variant connections in reasoning-effort order.",
+  copy: "Compare model performance and resources. The solid line marks the best visible tradeoffs.",
 } as const;
 
 export function ParetoControlSet({

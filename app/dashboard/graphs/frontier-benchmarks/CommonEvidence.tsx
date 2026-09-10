@@ -56,16 +56,16 @@ export function CommonEvidence({
       <div className={styles.note}>
         <p>
           {publishedPerformance
-            ? `Shared ${resourceLabel} evidence within each model; the Y axis retains its published performance score.`
+            ? `Each model's variants share ${resourceLabel} evidence; Y keeps the published score.`
             : isScoreAxis(axisKey)
-              ? `Shared performance evidence within each model; the X axis retains the published ${frontierBenchmarkAxisConfig[axisKey].label}.`
-              : `Shared quality and ${resourceLabel} evidence within each model; identical weights on both axes.`}
+              ? `Each model's variants share performance evidence; X keeps the published ${frontierBenchmarkAxisConfig[axisKey].label}.`
+              : `Each model's variants share quality and ${resourceLabel} evidence, with the same weights on both axes.`}
         </p>
         {comparison.indexVariantCount > 0 ? (
-          <p>AA weight excludes components counted separately in this basket.</p>
+          <p>AA weight excludes separately counted components.</p>
         ) : null}
         {comparison.excludedVariantCount > 0 ? (
-          <p>{`${comparison.excludedVariantCount} variants lack the selected index evidence. Deselect indexes to compare their task results.`}</p>
+          <p>{`${comparison.excludedVariantCount} variants lack selected index results. Deselect indexes to compare tasks.`}</p>
         ) : null}
         {comparison.groups.length > 0 ? (
           <div
