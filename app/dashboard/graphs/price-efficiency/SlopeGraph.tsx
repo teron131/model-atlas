@@ -233,7 +233,7 @@ export function PriceEfficiencySlopeGraph({
                 className={styles.slopePoint}
                 cx={leftX}
                 cy={graphRow.leftY}
-                r={isHighlighted ? 5.6 : compactLayout ? 5.5 : 4.5}
+                r={isHighlighted ? 7 : 6}
                 fill={graphRow.color}
                 opacity={opacity}
               />
@@ -241,7 +241,7 @@ export function PriceEfficiencySlopeGraph({
                 className={styles.slopePoint}
                 cx={rightX}
                 cy={graphRow.rightY}
-                r={isHighlighted ? 5.6 : compactLayout ? 5.5 : 4.5}
+                r={isHighlighted ? 7 : 6}
                 fill={graphRow.color}
                 opacity={opacity}
               />

@@ -1,14 +1,13 @@
-/** Artificial Analysis snapshots retain benchmark-carrier rows while projecting selected public model fields. */
+/**
+ * Aggregate model indexes and resource measurements from Artificial Analysis.
+ *
+ * Page source: https://artificialanalysis.ai/leaderboards/models
+ */
 
 import { AGENTIC_INDEX_KEYS, INTELLIGENCE_INDEX_KEYS } from "../../benchmarks/field-keys";
 import type { ScoringConfig } from "../../config/stage";
 import { asFiniteNumber, asRecord, type JsonObject } from "../../runtime";
-import {
-  mergeSourceEvidence,
-  rowStringValue,
-  snapshotRowsWithStates,
-  sourceKey,
-} from "../snapshots/policy";
+import { rowStringValue, snapshotRowsWithStates, sourceKey } from "../snapshots/policy";
 import {
   shouldUseFetchedRows,
   snapshotFetchedAt,
@@ -52,7 +51,7 @@ const RESOURCE_SIGNAL_KEYS = [
   "output_tokens_per_task",
 ] as const;
 
-/** Preserve stronger cached evidence while adopting the current Artificial Analysis model labels. */
+/** Replace available AA rows as one current score/resource observation; retain stronger evidence only for unavailable shells. */
 export function mergeArtificialAnalysisRow(
   cachedRow: JsonObject,
   fetchedRow: JsonObject,
@@ -60,18 +59,12 @@ export function mergeArtificialAnalysisRow(
 ): JsonObject {
   if (
     isRowUnavailable(fetchedRow) &&
+    asFiniteNumber(fetchedRow.intelligenceIndex ?? fetchedRow.intelligence_index) == null &&
     signalCount(cachedRow, scoringConfig) > signalCount(fetchedRow, scoringConfig)
   ) {
     return cachedRow;
   }
-  const merged = mergeSourceEvidence(cachedRow, fetchedRow);
-  const currentShortName = fetchedRow.shortName ?? fetchedRow.short_name;
-  return {
-    ...merged,
-    name: fetchedRow.name ?? merged.name,
-    shortName: currentShortName ?? merged.shortName,
-    short_name: currentShortName ?? merged.short_name,
-  };
+  return fetchedRow;
 }
 
 /** Loads raw Artificial Analysis rows and projects the leaderboard rows consumed by stats. */

@@ -4,7 +4,11 @@ import assert from "node:assert/strict";
 
 import { STAGE_CONFIG } from "../src/model-atlas/config";
 import type { ArtificialAnalysisBenchmarkResourceRow } from "../src/model-atlas/sources/artificial-analysis/benchmark-resources";
-import { artificialAnalysisModelId } from "../src/model-atlas/sources/artificial-analysis/leaderboard";
+import {
+  ARTIFICIAL_ANALYSIS_LEADERBOARD_COLUMNS,
+  artificialAnalysisModelId,
+  processArtificialAnalysisLeaderboardRows,
+} from "../src/model-atlas/sources/artificial-analysis/leaderboard";
 import {
   artificialAnalysisBenchmarkResourceSourceKey,
   mergeArtificialAnalysisRow,
@@ -82,6 +86,50 @@ assert.equal(
   "Persisted and live Artificial Analysis shapes for one model must merge into one source row",
 );
 
+// Cached rows can carry projected fields as well as raw aliases; a refresh must replace both together.
+const refreshedIndex = mergeArtificialAnalysisRow(
+  {
+    model_id: "openai/gpt-5-5-high",
+    name: "GPT-5.5 (high)",
+    intelligenceIndex: 54.67,
+    intelligence_index: 54.67,
+    intelligence: { intelligence_index: 54.67 },
+    cost_per_task: 0.82,
+    output_tokens_per_task: 10_717,
+    intelligence_index_cost: { cost_per_task: 0.82, output_tokens_per_task: 10_717 },
+  },
+  {
+    slug: "gpt-5-5-high",
+    deprecated: true,
+    modelCreatorSlug: "openai",
+    shortName: "GPT-5.5 (high)",
+    intelligenceIndex: 37.29,
+    intelligenceIndexCostPerTask: { cost: { total: 1.54 } },
+    intelligenceIndexOutputTokensPerTask: null,
+  },
+  STAGE_CONFIG.scoring,
+);
+const refreshedIndexProjection = processArtificialAnalysisLeaderboardRows([refreshedIndex], {
+  selectedColumns: [...ARTIFICIAL_ANALYSIS_LEADERBOARD_COLUMNS],
+})[0]!;
+assert.deepEqual(
+  refreshedIndexProjection.intelligence,
+  {
+    intelligence_index: 37.29,
+    agentic_index: null,
+    coding_index: null,
+    omniscience_index: null,
+  },
+  "An AA refresh must adopt a revised index even when it decreases",
+);
+const refreshedCost = refreshedIndexProjection.intelligence_index_cost as Record<string, unknown>;
+assert.equal(refreshedCost.cost_per_task, 1.54);
+assert.equal(
+  refreshedCost.output_tokens_per_task,
+  null,
+  "Missing current telemetry must not reuse measurements from the superseded index",
+);
+
 const refreshedArtificialAnalysisIdentity = mergeArtificialAnalysisRow(
   {
     model_id: "google/gemini-3-5-flash",
@@ -102,8 +150,13 @@ assert.equal(
   "Gemini 3.5 Flash (high)",
   "AA refreshes should adopt current full names so newly exposed effort labels reach the parser",
 );
-assert.equal(refreshedArtificialAnalysisIdentity.short_name, "Gemini 3.5 Flash");
-assert.equal(refreshedArtificialAnalysisIdentity.intelligenceIndex, 51.9);
+assert.equal(refreshedArtificialAnalysisIdentity.shortName, "Gemini 3.5 Flash");
+assert.equal(refreshedArtificialAnalysisIdentity.short_name, undefined);
+assert.equal(
+  refreshedArtificialAnalysisIdentity.intelligenceIndex,
+  undefined,
+  "Available rows must not retain withdrawn scores",
+);
 
 const mergedRows = mergeCachedSourceRows(
   cachedRows,
