@@ -3,7 +3,6 @@
 export const RESEARCH_REGIONS = [
   { id: "leaderboard", label: "Models" },
   { id: "pareto-analysis", label: "Pareto" },
-  { id: "price-efficiency", label: "Price" },
 ] as const;
 
 export type ResearchRegionId = (typeof RESEARCH_REGIONS)[number]["id"];

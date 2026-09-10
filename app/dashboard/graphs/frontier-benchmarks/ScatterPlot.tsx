@@ -62,7 +62,12 @@ type ScatterMetric<Row> = {
 };
 
 const EMPTY_CHART_TICKS = [0, 20, 40, 60, 80, 100];
-const PLOT_EDGE_GUTTER = 9;
+const PLOT_EDGE_GUTTER = 20;
+const LABEL_EDGE_GUTTER = 12;
+const DIRECTION_LABEL_WIDTH = 100;
+const DIRECTION_LABEL_HEIGHT = 32;
+// Reserve room above the highest score for full model callouts.
+const PLOT_TOP_GUTTER = 48;
 const MEDIAN_LABEL_CLEARANCE = 64;
 const HOVER_EXIT_DELAY_MS = 150;
 const TEXT_MEASUREMENT_TOLERANCE = 0.1;
@@ -198,7 +203,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
     .clamp(true);
   const y = scaleLinear()
     .domain(yDomain)
-    .range([plot.bottom - PLOT_EDGE_GUTTER, plot.top + PLOT_EDGE_GUTTER])
+    .range([plot.bottom - PLOT_EDGE_GUTTER, plot.top + PLOT_TOP_GUTTER])
     .clamp(true);
   const xPoint = stableSvgScale(x);
   const yPoint = stableSvgScale(y);
@@ -238,7 +243,21 @@ export function FrontierBenchmarkScatterPlot<Row>({
   const labeledRows = [...new Set([...highlightedRows, ...frontier])];
   const { svgRef, labelSizes } = useLabelSizes(labeledRows.map(getLabel).join("\0"), compactLayout);
   const layoutRequest: Parameters<typeof calloutLabelPlacements>[0] = {
-    bounds: plot,
+    bounds: {
+      left: plot.left + LABEL_EDGE_GUTTER,
+      right: plot.right - LABEL_EDGE_GUTTER,
+      top: plot.top + LABEL_EDGE_GUTTER,
+      bottom: plot.bottom - LABEL_EDGE_GUTTER,
+    },
+    // Protect the corner direction glyph and caption from both text and leaders.
+    reservedBoxes: [
+      {
+        left: metric.xHigherIsBetter ? plot.right - DIRECTION_LABEL_WIDTH : plot.left,
+        right: metric.xHigherIsBetter ? plot.right : plot.left + DIRECTION_LABEL_WIDTH,
+        top: plot.top,
+        bottom: plot.top + DIRECTION_LABEL_HEIGHT,
+      },
+    ],
     obstacles: rows.map((row) => ({
       key: getKey(row),
       cx: xPoint(metric.get(row)),

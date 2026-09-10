@@ -49,18 +49,22 @@ export function calloutLabelPlacements({
   obstacles,
   bounds,
   segments = [],
+  reservedBoxes = [],
 }: {
   labels: Label[];
   obstacles: PointObstacle[];
   bounds: Box;
   segments?: Segment[];
+  reservedBoxes?: Box[];
 }): Map<string, PointLabelPlacement> {
   const ordered = labels
     .map((label, order) => ({ ...label, order }))
     .sort(
       (left, right) => (right.priority ?? 0) - (left.priority ?? 0) || left.order - right.order,
     );
-  const candidates = ordered.map((label) => labelCandidates(label, bounds, obstacles, segments));
+  const candidates = ordered.map((label) =>
+    labelCandidates(label, bounds, obstacles, segments, reservedBoxes),
+  );
   // Keep alternative partial layouts so an early label cannot trap a later leader through text.
   let layouts: { placed: Candidate[]; cost: number }[] = [{ placed: [], cost: 0 }];
   for (const choices of candidates) {
@@ -102,6 +106,7 @@ function labelCandidates(
   bounds: Box,
   obstacles: PointObstacle[],
   segments: Segment[],
+  reservedBoxes: Box[],
 ): Candidate[] {
   const size = label.size ?? {
     width: Math.max(18, label.label.length * 7.8),
@@ -137,6 +142,17 @@ function labelCandidates(
         x2,
         y2,
       };
+      if (
+        reservedBoxes.some(
+          (reserved) =>
+            (box.left < reserved.right &&
+              box.right > reserved.left &&
+              box.top < reserved.bottom &&
+              box.bottom > reserved.top) ||
+            segmentHitsBox(connector, reserved),
+        )
+      )
+        continue;
       const line = clearance > 10 ? connector : undefined;
       let cost = clearance * 0.5 + clearance * clearance * 0.025;
       for (const point of obstacles) {

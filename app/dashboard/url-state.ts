@@ -28,7 +28,6 @@ export type DashboardUrlState = {
   rank: ModelRankFilter;
   days: RecencyFilter;
   "table-q": string;
-  "price-q": string;
   columns: string;
   "column-order": BenchmarkColumnOrder;
   "table-variants": boolean;
@@ -136,7 +135,6 @@ export function patchDashboardUrl(url: URL, patch: DashboardUrlPatch): URL {
   }
   if (keys.some((key) => tableKeys.has(key))) next.hash = "leaderboard";
   else if (keys.some((key) => paretoKeys.has(key))) next.hash = "pareto-analysis";
-  else if (keys.includes("price-q")) next.hash = "price-efficiency";
   return next;
 }
 
@@ -146,7 +144,6 @@ export function dashboardUrlSection(url: URL): ResearchRegionId | null {
   if (RESEARCH_REGION_IDS.some((id) => id === hash)) return hash as ResearchRegionId;
   if ([...paretoKeys].some((key) => url.searchParams.has(key))) return "pareto-analysis";
   if ([...tableKeys].some((key) => url.searchParams.has(key))) return "leaderboard";
-  if (url.searchParams.has("price-q")) return "price-efficiency";
   return null;
 }
 

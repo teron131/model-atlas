@@ -158,3 +158,30 @@ for (const owner of fullNames) {
     assert.ok(enter > leave, "Full-name callouts must not route a leader through another label");
   }
 }
+
+// Corner captions reserve their full area, including against callout leaders.
+const corner = { left: 0, right: 100, top: 0, bottom: 32 };
+const cornerLabel = {
+  key: "corner",
+  label: "Top model",
+  cx: 75,
+  cy: 48,
+  radius: 7,
+  size: { width: 90, ascent: 12, descent: 4 },
+};
+const cornerPlacement = calloutLabelPlacements({
+  bounds,
+  labels: [cornerLabel],
+  obstacles: [cornerLabel],
+  reservedBoxes: [corner],
+}).get("corner")!;
+assert.ok(cornerPlacement);
+assert.ok(cornerPlacement.x >= corner.right || cornerPlacement.y - 12 >= corner.bottom);
+if (cornerPlacement.line) {
+  const line = cornerPlacement.line;
+  for (let step = 0; step <= 100; step++) {
+    const x = line.x1 + ((line.x2 - line.x1) * step) / 100;
+    const y = line.y1 + ((line.y2 - line.y1) * step) / 100;
+    assert.ok(x > corner.right || y > corner.bottom || x < corner.left || y < corner.top);
+  }
+}

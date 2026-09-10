@@ -24,14 +24,14 @@ assert.equal(patchDashboardUrl(base, { view: "all" }).search, "?view=all");
 assert.equal(patchDashboardUrl(base, { "table-variants": false }).search, "?table-variants=0");
 assert.equal(patchDashboardUrl(base, { rank: 50 }).search, "?rank=50");
 
-const selections = patchDashboardUrl(new URL("?campaign=test#price-efficiency", base), {
+const selections = patchDashboardUrl(new URL("?campaign=test#leaderboard", base), {
   q: "reason* *max & + test",
   provider: ["openai", "anthropic"],
   "max-cost": 2,
   rank: "all",
   days: 90,
 });
-assert.equal(selections.hash, "#price-efficiency");
+assert.equal(selections.hash, "#leaderboard");
 assert.equal(selections.searchParams.get("campaign"), "test");
 assert.equal(readUrlValue(selections.searchParams, "q"), "reason* *max & + test");
 assert.deepEqual(readUrlValue(selections.searchParams, "provider"), ["openai", "anthropic"]);
@@ -100,10 +100,8 @@ assert.equal(
   "pareto-analysis",
 );
 assert.equal(
-  dashboardUrlSection(new URL("?view=cost&performance=benchmarks#price-efficiency", base)),
-  "price-efficiency",
+  dashboardUrlSection(new URL("?view=cost&performance=benchmarks#leaderboard", base)),
+  "leaderboard",
 );
 assert.equal(patchDashboardUrl(base, { benchmark: null }).searchParams.get("benchmark"), "all");
-assert.equal(dashboardUrlSection(new URL("?price-q=claude*", base)), "price-efficiency");
-assert.equal(patchDashboardUrl(base, { "price-q": "claude*" }).hash, "#price-efficiency");
 console.log("Dashboard URL contract checks passed.");

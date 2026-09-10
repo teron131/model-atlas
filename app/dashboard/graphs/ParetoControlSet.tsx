@@ -2,8 +2,6 @@
 
 import type { ReactNode } from "react";
 
-import { ShapeScaleLegend } from "./ChartComponents";
-
 import styles from "./graphs.module.css";
 
 export const PARETO_PANEL_CONTENT = {
@@ -35,9 +33,6 @@ export function ParetoControlSet({
           </span>
           {xAxisControl}
         </div>
-      </div>
-      <div className={styles.chartToolbarCaption}>
-        <ShapeScaleLegend />
       </div>
     </div>
   );

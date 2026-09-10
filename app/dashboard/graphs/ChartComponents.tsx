@@ -1,6 +1,6 @@
 "use client";
 
-/** Shared hover, filter, and summary UI for Model Atlas charts. */
+/** Shared hover and filter UI for Model Atlas charts. */
 
 import { Boxes } from "lucide-react";
 import { type CSSProperties, useState } from "react";
@@ -112,40 +112,5 @@ export function FilterButton({
       <span>{label}</span>
       <span>{fmtCompact(count)}</span>
     </button>
-  );
-}
-
-export function SummaryCard({
-  label,
-  value,
-  detail,
-}: {
-  label: string;
-  value: string;
-  detail: string;
-}) {
-  return (
-    <div className={styles.summaryCard}>
-      <div className={styles.summaryLabel}>{label}</div>
-      <span className={styles.summaryValue}>{value}</span>
-      <span className={styles.summaryDetail}>{detail}</span>
-    </div>
-  );
-}
-
-export function ShapeScaleLegend() {
-  return (
-    <span className={styles.shapeScaleLegend}>
-      <svg className={styles.shapeScaleGraphic} viewBox="0 0 46 26" aria-hidden="true">
-        <line x1="27" y1="2" x2="27" y2="24" />
-        <line x1="16" y1="13" x2="38" y2="13" />
-        <polygon points="27,3 38,13 27,24 18,13" />
-        <polygon points="7,8 13,15 7,21 2,15" />
-      </svg>
-      <span className={styles.shapeScaleCopy}>
-        <b>Shape area · four-score mean</b>
-        <span>I ↑ · A → · S ← · V ↓</span>
-      </span>
-    </span>
   );
 }

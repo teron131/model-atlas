@@ -18,19 +18,6 @@ export function valueDistribution(values: number[]): BoxWhiskerDistribution {
   };
 }
 
-export function bestByScore<T>(rows: readonly T[], score: (row: T) => number | null): T | null {
-  let bestRow: T | null = null;
-  let bestScore = -Infinity;
-  for (const row of rows) {
-    const rowScore = score(row) ?? -Infinity;
-    if (bestRow == null || rowScore > bestScore) {
-      bestRow = row;
-      bestScore = rowScore;
-    }
-  }
-  return bestRow;
-}
-
 export function formatCorrelation(correlation: number | null) {
   if (correlation == null) {
     return "CORR --";
