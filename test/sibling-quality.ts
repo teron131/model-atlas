@@ -6,10 +6,7 @@ import { STAGE_CONFIG } from "../src/model-atlas/config/stage";
 import type { ModelAtlasCandidate } from "../src/model-atlas/pipeline/model-types";
 import { prepareSiblingQualityScoringContext } from "../src/model-atlas/pipeline/scores/imputation/sibling-quality";
 import { buildQualityScoringContext } from "../src/model-atlas/pipeline/scores/quality-context";
-import {
-  buildComponentScoreResult,
-  buildPreviewComponentScoreResult,
-} from "../src/model-atlas/pipeline/scores/score-builders";
+import { buildComponentScoreResult } from "../src/model-atlas/pipeline/scores/score-builders";
 function modelCandidate({ id, name = id }: { id: string; name?: string }): ModelAtlasCandidate {
   return {
     id,
@@ -44,7 +41,6 @@ const config = {
   qualityTaskFullCount: 8,
   intelligenceBenchmarkKeys: keys,
   agenticBenchmarkKeys: [],
-  previewAdditionalIntelligenceBenchmarkKeys: [],
   qualityCoverage: { intelligence: { floor: 0, full: 1 }, agentic: { floor: 0, full: 1 } },
   benchmarkPortfolio: Object.fromEntries(
     keys.map((key) => [
@@ -98,10 +94,6 @@ close(
 );
 assert.deepEqual(score(partial).confidence, score(partial, base).confidence);
 assert.equal(partial.benchmarks.task_8, undefined);
-close(
-  buildPreviewComponentScoreResult(partial, config, context).componentScores?.intelligence_score,
-  score(partial).componentScores!.intelligence_score!,
-);
 // Newly observed evidence takes precedence even if an estimate was already prepared.
 const observed = { ...partial, benchmarks: { ...partial.benchmarks, task_8: 50 } };
 close(score(observed).componentScores?.intelligence_score, 0.8 * ((8 * 80 + 50) / 9) + 0.2 * 100);

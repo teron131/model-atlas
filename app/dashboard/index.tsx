@@ -4,13 +4,12 @@
 
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 
-import { type ModelAtlasPayload, rankedModels } from "../../src/model-atlas/stats/types";
+import { type ModelAtlasPayload } from "../../src/model-atlas/stats/types";
 import { ModelAtlasHeader } from "../shared/ModelAtlasHeader";
 import { DashboardLeaderboard } from "./DashboardLeaderboard";
 import { DashboardGraphs } from "./graphs/DashboardGraphs";
-import { isGraphEligible } from "./graphs/model-series";
 import { useLivePayload } from "./live-payload";
-import { modelsForVariantDisplay, providerOptions } from "./shared/model-display";
+import { isGraphEligible, modelsForVariantDisplay, providerOptions } from "./shared/model-display";
 import { providerFilterKey } from "./shared/provider-theme";
 import { useUrlState } from "./use-url-state";
 
@@ -25,7 +24,7 @@ export function Dashboard({ initialPayload }: { initialPayload: ModelAtlasPayloa
   const [globalModelFilterQuery, setGlobalModelFilterQuery] = useUrlState("q");
   const { payload, errorMessage } = useLivePayload(initialPayload);
 
-  const referenceModels = useMemo(() => rankedModels(payload?.models ?? []), [payload]);
+  const referenceModels = useMemo(() => payload?.models ?? [], [payload]);
   const displayPayload = useMemo(() => {
     if (payload == null) {
       return null;

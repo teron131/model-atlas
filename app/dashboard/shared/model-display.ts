@@ -5,13 +5,7 @@ import {
   canonicalModelKey,
   reasoningEffortRank,
 } from "../../../src/model-atlas/identity/normalization";
-import {
-  isPreviewModel,
-  type ModelAtlasModel,
-  type ModelAtlasPreviewModel,
-  type ModelAtlasPublishedModel,
-  rankedModels,
-} from "../../../src/model-atlas/stats/types";
+import type { ModelAtlasPublishedModel } from "../../../src/model-atlas/stats/types";
 import { compactModelVariants } from "../../leaderboard/model-variants";
 import {
   providerChartColor,
@@ -52,17 +46,13 @@ export function modelCount(models: ModelAtlasPublishedModel[]): number {
   return new Set(models.map(canonicalModelKey)).size;
 }
 
+/** Value-based graphs and the signature require available Value; other comparisons enforce their own coordinate availability. */
+export function isGraphEligible(model: ModelAtlasPublishedModel): boolean {
+  const value = model.scores?.value_score;
+  return typeof value === "number" && Number.isFinite(value);
+}
+
 /** Expand every reasoning variant when requested; otherwise retain the highest-scoring variant per model. */
-export function modelsForVariantDisplay(
-  models: ModelAtlasModel[],
-  showVariants: boolean,
-  benchmarkObservations?: BenchmarkObservationsByKey,
-): ModelAtlasModel[];
-export function modelsForVariantDisplay(
-  models: ModelAtlasPublishedModel[],
-  showVariants: boolean,
-  benchmarkObservations?: BenchmarkObservationsByKey,
-): ModelAtlasPublishedModel[];
 export function modelsForVariantDisplay(
   models: ModelAtlasPublishedModel[],
   showVariants: boolean,
@@ -77,26 +67,11 @@ export function modelsForVariantDisplay(
     }
   }
   const modelVariants = [...variantsByIdentity.values()];
-  const rankedVariants = rankedModels(modelVariants);
-  const previewModels = modelVariants.filter(isPreviewModel);
-  if (showVariants) {
-    return [...rankedVariants, ...previewModels];
-  }
-  const compactRankedModels = compactModelVariants(rankedVariants, benchmarkObservations).map(
-    (model) => ({ ...model, reasoning_effort: null }),
-  );
-  const previewByModel = new Map<string, ModelAtlasPreviewModel>();
-  for (const model of previewModels) {
-    const key = canonicalModelKey(model);
-    const existing = previewByModel.get(key);
-    if (existing == null || compareIntelligence(model, existing) < 0) {
-      previewByModel.set(key, model);
-    }
-  }
-  return [
-    ...compactRankedModels,
-    ...[...previewByModel.values()].map((model) => ({ ...model, reasoning_effort: null })),
-  ];
+  if (showVariants) return modelVariants;
+  return compactModelVariants(modelVariants, benchmarkObservations).map((model) => ({
+    ...model,
+    reasoning_effort: null,
+  }));
 }
 
 export function modelDisplayName(model: ModelAtlasPublishedModel): string {
@@ -220,7 +195,7 @@ export function filterByReleaseRecency<T>(
   return items.filter((item) => selectedModels.has(canonicalModelKey(getModel(item))));
 }
 
-/** Filter by global Intelligence rank while retaining unranked previews and every variant in an eligible family. */
+/** Filter by global Intelligence rank while retaining every variant in an eligible family. */
 export function filterByIntelligenceRank<T>(
   items: T[],
   getModel: (item: T) => ModelAtlasPublishedModel,
@@ -232,9 +207,6 @@ export function filterByIntelligenceRank<T>(
   }
   const bestScoreByModel = new Map<string, number>();
   for (const model of rankingModels) {
-    if (isPreviewModel(model)) {
-      continue;
-    }
     const modelKey = canonicalModelKey(model);
     bestScoreByModel.set(
       modelKey,
@@ -253,7 +225,7 @@ export function filterByIntelligenceRank<T>(
   );
   return items.filter((item) => {
     const model = getModel(item);
-    return isPreviewModel(model) || selectedModels.has(canonicalModelKey(model));
+    return selectedModels.has(canonicalModelKey(model));
   });
 }
 
@@ -376,7 +348,6 @@ function modelSearchDocument<T>(value: T, model: ModelAtlasPublishedModel): Sear
     ],
     context: [
       model.reasoning === true ? "reasoning" : undefined,
-      model.preview === true ? "preview" : undefined,
       model.open_weights === true ? "open weights" : undefined,
       model.release_date,
       model.modalities?.input?.map((modality) => `${modality} input`),

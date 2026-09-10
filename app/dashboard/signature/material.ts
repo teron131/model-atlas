@@ -298,7 +298,7 @@ function drawMaterialAnnotations(frame: MaterialFrame): void {
         : displaced.x;
     const rank = String(model.rank).padStart(2, "0");
     const rankFont = `650 9px ${MATERIAL_MONO_FONT}`;
-    const nameFont = `${model.preview ? "italic " : ""}600 13px ${MATERIAL_SANS_FONT}`;
+    const nameFont = `600 13px ${MATERIAL_SANS_FONT}`;
     context.font = rankFont;
     const rankWidth = context.measureText(rank).width;
     context.font = nameFont;

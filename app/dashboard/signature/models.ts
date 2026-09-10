@@ -2,13 +2,9 @@
 
 import { canonicalModelKey } from "../../../src/model-atlas/identity/normalization";
 import { meanOfFinite, medianOfFinite } from "../../../src/model-atlas/math-utils";
-import {
-  isPreviewModel,
-  type ModelAtlasPublishedModel,
-} from "../../../src/model-atlas/stats/types";
-import { graphModelLabel } from "../graphs/model-series";
+import { type ModelAtlasPublishedModel } from "../../../src/model-atlas/stats/types";
 import { paretoFrontier } from "../graphs/plot/ParetoEnvelope";
-import { modelsForVariantDisplay, modelVariantKey } from "../shared/model-display";
+import { modelsForVariantDisplay, modelVariantKey, shortLabel } from "../shared/model-display";
 import {
   providerChartColor,
   providerDisplayName,
@@ -37,7 +33,6 @@ type SignatureParameters = {
 export type SignatureModel = {
   key: string;
   rank: number;
-  preview: boolean;
   role: string;
   selectionMetric: string;
   name: string;
@@ -138,10 +133,9 @@ export function signatureModels(
   return selectedModels.map(({ model, role, selectionMetric }, index) => ({
     key: `${modelVariantKey(model)}:${role}`,
     rank: index + 1,
-    preview: isPreviewModel(model),
     role,
     selectionMetric,
-    name: graphModelLabel({ ...model, reasoning_effort: null }),
+    name: shortLabel({ ...model, reasoning_effort: null }),
     provider: providerDisplayName(model),
     logo: providerLogo(model.provider) || model.logo,
     color: providerChartColor(model.provider),
@@ -214,7 +208,7 @@ function rankModels(
     (left, right) =>
       metric(right) - metric(left) ||
       intelligenceScore(right) - intelligenceScore(left) ||
-      graphModelLabel(left).localeCompare(graphModelLabel(right)),
+      shortLabel(left).localeCompare(shortLabel(right)),
   );
 }
 

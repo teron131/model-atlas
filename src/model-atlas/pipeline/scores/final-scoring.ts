@@ -7,14 +7,9 @@ import {
   meanOfFinite,
   nonnegativeFiniteNumber,
   positiveFiniteNumber,
-  smoothstep,
   weightedMeanOfFinite,
 } from "../../math-utils";
-import type {
-  ModelAtlasCandidate,
-  ModelAtlasCandidateComponentScores,
-  ModelAtlasScoredCandidate,
-} from "../model-types";
+import type { ModelAtlasCandidate, ModelAtlasScoredCandidate } from "../model-types";
 import {
   benchmarkQualityEvidence,
   type BenchmarkScoringPreparation,
@@ -32,7 +27,6 @@ import {
   benchmarkMetricValue,
   benchmarkTaskMetrics,
   effectiveTaskSeconds,
-  observedResourceBenchmarkCounts,
 } from "./resource-metrics";
 import { blendedPriceValue } from "./score-builders";
 
@@ -57,22 +51,6 @@ type ResourceScoreInputs = {
   taskTimeComponentEvidence: WeightedResourceEfficiencyEvidence;
   taskCostComponentEvidence: WeightedResourceEfficiencyEvidence;
 };
-
-export type PreviewResourceScoreResult = {
-  scores: {
-    speed_score: number | null;
-    value_score: number | null;
-  };
-  confidence: {
-    speed: number | null;
-    value: number | null;
-  };
-};
-
-const PREVIEW_RESOURCE_BUCKET_WEIGHTS = {
-  nonBenchmark: 0.8,
-  benchmark: 0.2,
-} as const;
 
 type ResourceScoringModel = ModelAtlasCandidate | ModelAtlasScoredCandidate;
 
@@ -247,53 +225,6 @@ function scoreResourceDimension(
   };
 }
 
-/** Taper preview task influence with directly paired coverage; confidence still reports endpoint-weighted evidence support. */
-function scorePreviewResourceDimension(
-  nonBenchmarkScores: readonly (readonly (number | null)[])[],
-  benchmarkEvidence: WeightedResourceEfficiencyEvidence,
-  observedCoverage: readonly number[],
-): ResourceScoreResult {
-  const nonBenchmarkConfidenceWeight = perComponentWeight(
-    PREVIEW_RESOURCE_BUCKET_WEIGHTS.nonBenchmark,
-    nonBenchmarkScores.length,
-  );
-  const benchmarkConfidenceWeight = perComponentWeight(
-    PREVIEW_RESOURCE_BUCKET_WEIGHTS.benchmark,
-    benchmarkEvidence.benchmarkKeys.length,
-  );
-  const modelCount = nonBenchmarkScores[0]?.length ?? benchmarkEvidence.signalsByModel.length;
-  const scores: Array<number | null> = [];
-  const confidences: Array<number | null> = [];
-  for (let index = 0; index < modelCount; index += 1) {
-    const nonBenchmarkSignals = nonBenchmarkScores.map((componentScores) => ({
-      value: componentScores[index] ?? null,
-      weight: 1,
-    }));
-    const benchmarkSignals = benchmarkEvidence.signalsByModel[index] ?? [];
-    const nonBenchmarkScore = weightedMeanOfFinite(nonBenchmarkSignals);
-    const benchmarkScore = weightedMeanOfFinite(benchmarkSignals);
-    const taskWeight =
-      PREVIEW_RESOURCE_BUCKET_WEIGHTS.benchmark * smoothstep(observedCoverage[index] ?? 0);
-    const score =
-      nonBenchmarkScore == null
-        ? null
-        : benchmarkScore == null
-          ? nonBenchmarkScore
-          : nonBenchmarkScore * (1 - taskWeight) + benchmarkScore * taskWeight;
-    const confidence =
-      score == null
-        ? null
-        : Math.min(
-            1,
-            finiteSignalWeight(nonBenchmarkSignals) * nonBenchmarkConfidenceWeight +
-              finiteSignalWeight(benchmarkSignals) * benchmarkConfidenceWeight,
-          );
-    scores.push(score);
-    confidences.push(confidence);
-  }
-  return { scores, confidences };
-}
-
 function buildResourceScoreInputs(
   models: ResourceScoringModel[],
   qualityCoordinates: readonly (number | null)[],
@@ -345,47 +276,6 @@ function buildResourceScoreInputs(
     taskTimeComponentEvidence,
     taskCostComponentEvidence,
   };
-}
-
-/** Compute unranked preview Speed and Value from direct evidence with a spec-heavy fallback. */
-export function buildPreviewResourceScoreResults(
-  models: ModelAtlasScoredCandidate[],
-  previewQualityByModel: readonly (ModelAtlasCandidateComponentScores | null)[],
-  scoringConfig: ScoringConfig,
-): PreviewResourceScoreResult[] {
-  const qualityCoordinates = models.map((model, index) => {
-    const previewQuality = previewQualityByModel[index];
-    return meanOfFinite([
-      previewQuality?.intelligence_score ?? model.component_scores?.intelligence_score ?? null,
-      previewQuality?.agentic_score ?? model.component_scores?.agentic_score ?? null,
-    ]);
-  });
-  const inputs = buildResourceScoreInputs(models, qualityCoordinates, scoringConfig);
-  const counts = models.map((model) =>
-    observedResourceBenchmarkCounts(model, scoringConfig.benchmarkPortfolio),
-  );
-  const observedCoverage = (kind: "cost" | "time") =>
-    counts.map((count) => (count.selected === 0 ? 0 : count[kind] / count.selected));
-  const speed = scorePreviewResourceDimension(
-    inputs.providerSpeedScores,
-    inputs.taskTimeComponentEvidence,
-    observedCoverage("time"),
-  );
-  const value = scorePreviewResourceDimension(
-    inputs.priceComponentScores,
-    inputs.taskCostComponentEvidence,
-    observedCoverage("cost"),
-  );
-  return models.map((_, index) => ({
-    scores: {
-      speed_score: speed.scores[index] ?? null,
-      value_score: value.scores[index] ?? null,
-    },
-    confidence: {
-      speed: speed.confidences[index] ?? null,
-      value: value.confidences[index] ?? null,
-    },
-  }));
 }
 
 export function attachFinalScores(

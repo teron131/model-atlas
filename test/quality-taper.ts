@@ -4,10 +4,7 @@ import assert from "node:assert/strict";
 
 import { type ScoringConfig, STAGE_CONFIG } from "../src/model-atlas/config/stage";
 import { buildQualityScoringContext } from "../src/model-atlas/pipeline/scores/quality-context";
-import {
-  buildComponentScoreResult,
-  buildPreviewComponentScoreResult,
-} from "../src/model-atlas/pipeline/scores/score-builders";
+import { buildComponentScoreResult } from "../src/model-atlas/pipeline/scores/score-builders";
 
 const indexKeys = [
   "aa_intelligence_index",
@@ -31,7 +28,6 @@ function fixture(taskCount: number, indexCount: number, indexImportance = 0.5) {
     qualityTaskFullCount: Math.max(1, taskCount),
     intelligenceBenchmarkKeys: keys,
     agenticBenchmarkKeys: keys,
-    previewAdditionalIntelligenceBenchmarkKeys: [],
     benchmarkPortfolio: Object.fromEntries(
       keys.map((key) => [
         key,
@@ -66,9 +62,6 @@ for (const taskCount of [4, 40]) {
       const score = test.score(test.model()).componentScores!;
       assert.ok(Math.abs(score.intelligence_score! - 68) < 1e-10);
       assert.ok(Math.abs(score.agentic_score! - 68) < 1e-10);
-      const preview = buildPreviewComponentScoreResult(test.model(), test.config, test.context);
-      assert.ok(Math.abs(preview.componentScores!.intelligence_score! - 68) < 1e-10);
-      assert.ok(Math.abs(preview.componentScores!.agentic_score! - 68) < 1e-10);
     }
   }
 }
@@ -138,12 +131,6 @@ labelled.benchmarks.vals_index = 0;
 labelled.benchmarks.surge_intelligence_index = 0;
 assert.ok(
   Math.abs(variantFixture.score(labelled).componentScores!.intelligence_score! - 68) < 1e-10,
-);
-assert.ok(
-  Math.abs(
-    buildPreviewComponentScoreResult(labelled, variantFixture.config, variantFixture.context)
-      .componentScores!.intelligence_score! - 68,
-  ) < 1e-10,
 );
 const sameTasks = {
   ...labelled,

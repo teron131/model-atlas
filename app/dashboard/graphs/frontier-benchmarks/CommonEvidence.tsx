@@ -1,6 +1,5 @@
-/** Compact evidence disclosure explains the compared variants, common tasks, and residual index weight without owning graph selection. */
+/** Compact evidence disclosure explains compared variants, common tasks, and residual index weight without owning graph selection. */
 
-import { isPreviewModel } from "../../../../src/model-atlas/stats/types";
 import { ProviderLogo } from "../../shared/ProviderLogo";
 import {
   frontierBenchmarkAxisConfig,
@@ -91,10 +90,7 @@ export function CommonEvidence({
                     (key) => !group.benchmarkKeys.includes(key),
                   );
                   return (
-                    <tr
-                      key={group.modelKey}
-                      className={isPreviewModel(group.model) ? "preview-row" : undefined}
-                    >
+                    <tr key={group.modelKey}>
                       <th scope="row">
                         <div className={styles.evidenceModel}>
                           <ProviderLogo model={group.model} />

@@ -69,7 +69,7 @@ const taskMetricColumnTooltips = Object.fromEntries(
 const staticTableColumnTooltips = {
   rank: {
     title: "Rank ↓",
-    body: "Position by Intelligence Score. Ties share a rank and leave the next position open: 1, 2, 2, 4. Preview rows have no numeric rank and do not shift official ranks.",
+    body: "Position by Intelligence Score. Ties share a rank and leave the next position open: 1, 2, 2, 4. All admitted models receive numeric ranks, including models with missing specifications.",
   },
   model: {
     title: "Model",

@@ -16,11 +16,10 @@ export {
   imputedTaskResource,
   prepareEffortResourceImputation,
 } from "./imputation";
-export { attachFinalScores, buildPreviewResourceScoreResults } from "./final-scoring";
+export { attachFinalScores } from "./final-scoring";
 export {
   blendedPriceValue,
   buildComponentScoreResult,
-  buildPreviewComponentScoreResult,
   buildSpeedComponentScore,
   deriveSpeedOutputTokenAnchors,
 } from "./score-builders";

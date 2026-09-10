@@ -196,24 +196,7 @@ $$
 
 Intelligence and Agentic show their own evidence shares; they are not combined. Equal percentages need not mean equal evidence mass because their portfolios can have different total weights. The public API calls these fields `confidence`, but they describe effective input coverage, not a statistical confidence interval or a probability that the model's rank is correct.
 
-[Ordinary admission](#public-admission) is available as soon as its requirements are met, regardless of model age. Previews cover two remaining cases: recent models with incomplete benchmark coverage, and models with broad benchmark evidence but incomplete catalog metadata.
-
-Preview capability uses direct results, supported sibling task estimates, and the same index-proxy rule. Selected tasks retain their configured dimension weights; directly reported GPQA and MMMU-Pro add one unit each to preview Intelligence. A preview without an active proxy uses its task mean without the ordinary quality regularization.
-
-Preview resource scores start from available serving or price specifications. Direct task-resource coverage gradually introduces benchmark influence, reaching 80% specifications and 20% tasks at complete coverage:
-
-$$
-w_{\text{task}}=0.2\,\operatorname{smoothstep}(n/N),\qquad
-w_{\text{spec}}=1-w_{\text{task}}.
-$$
-
-The count $n$ includes directly observed quality-and-resource pairs at the exact effort, and $N$ counts all selected resource benchmarks, including those missing for the preview. Cost and runtime are counted separately. Estimated runtimes do not advance the ramp. At half coverage, task weight is 10%; at complete coverage, it is 20%. With no selected resource benchmarks, task weight is zero.
-
-With no matching task resource, specifications alone determine the score. With no usable specification, that resource score stays unavailable. Previews use no resource imputation or missing-coverage multiplier. Their displayed support remains the literal evidence share weighted at the 80/20 endpoint rather than the tapered score weights; a specification-only score does not imply complete evidence. The [four-benchmark resource availability rule](#resource-score-availability) still applies independently to Value and Speed.
-
-Artificial Analysis can fill missing price or exact-effort serving fields under the [source precedence rules](matching.md#selected-identity). These specification fields represent token prices and serving measurements; aggregate evaluation cost or time does not substitute for an individual benchmark resource.
-
-Compact leaderboard views place eligible previews alongside other models by Intelligence, but label their rank `preview`. They do not consume or shift official numeric ranks. The exact-variant `all` JSON view has no rank field.
+[Public admission](#public-admission) depends on capability evidence and identity, not complete specifications or model age. Every admitted model uses the same scoring rules and receives a numeric rank in compact views. Missing specifications stay null; Speed and Value require their own observed-resource evidence. The exact-variant `all` JSON view has no rank field.
 
 ## Missing Benchmark Evidence
 
@@ -344,7 +327,7 @@ $$
 
 Here $\mathcal O$ contains observed tasks and $\mathcal H$ contains supported missing-task estimates. Tasks without a supported estimate remain unavailable, so identical baskets are possible only where sibling evidence supports them. Broader observed coverage earns greater evidential support, not a capability bonus. Genuine weak results still count.
 
-These estimates affect the quality mean before index blending and replace the former whole-score sibling adjustment. They never overwrite raw benchmark fields, change normalization ranges, increase direct-task counts, or satisfy admission and resource thresholds. They add no evidence credit by themselves; any separately validated contextual evidence keeps its existing credit. Preview quality uses the same sibling estimates. Version-replacement rows remain excluded from this imputation path.
+These estimates affect the quality mean before index blending and replace the former whole-score sibling adjustment. They never overwrite raw benchmark fields, change normalization ranges, increase direct-task counts, or satisfy admission and resource thresholds. They add no evidence credit by themselves; any separately validated contextual evidence keeps its existing credit. Version-replacement rows remain excluded from this imputation path.
 
 A shared-task gap is an estimate of transfer across tasks, not a guarantee that variants differ equally everywhere. Missing-data validation should assess estimation error; neither increasing effort nor a smooth curve is enforced.
 
@@ -367,7 +350,7 @@ $$
 Q=tT+(1-t)J.
 $$
 
-With no observed tasks, indexes carry 100%; there is no invented task contribution. With no observed index, the existing task-only calculation applies. Preview and ordinary variants use the same blend policy. One task to eight tasks is a gradual transition; the zero-task case is an explicit availability exception. Adding unobserved tasks to the portfolio cannot delay the endpoint.
+With no observed tasks, indexes carry 100%; there is no invented task contribution. With no observed index, the existing task-only calculation applies. One task to eight tasks is a gradual transition; the zero-task case is an explicit availability exception. Adding unobserved tasks to the portfolio cannot delay the endpoint.
 
 The configured endpoint expresses sufficient direct evidence for the curated portfolio to lead, not complete portfolio coverage. It is a heuristic policy rather than a guarantee of estimation accuracy. Increasing curated influence can expose genuine differences or sparse-data errors; curve smoothness is not a validation criterion. Counts do not replace task importance: each observed task keeps its importance and dimension loading inside the task mean.
 
@@ -413,9 +396,9 @@ Higher throughput scores better; lower latency scores better. Logs make proporti
 
 ## Resource Score Availability
 
-A published variant needs observed quality-and-resource coverage representing at least four distinct benchmarks to display Value or Speed, including previews. Each selected standalone task contributes one when it has observed quality and positive cost or directly reported seconds. An observed Artificial Analysis Intelligence Index paired with its own positive aggregate cost or runtime contributes its catalogued benchmark breadth, currently 10. Separately counted AA components are deducted from that breadth for each resource, so overlapping evidence counts once. AA must be selected, and its cost coverage does not imply runtime coverage.
+A published variant needs observed quality-and-resource coverage representing at least four distinct benchmarks to display Value or Speed. Each selected standalone task contributes one when it has observed quality and positive cost or directly reported seconds. An observed Artificial Analysis Intelligence Index paired with its own positive aggregate cost or runtime contributes its catalogued benchmark breadth, currently 10. Separately counted AA components are deducted from that breadth for each resource, so overlapping evidence counts once. AA must be selected, and its cost coverage does not imply runtime coverage.
 
-Imputed quality, estimated resources, output-token runtime proxies, provider token prices, throughput, and latency do not satisfy this threshold. AA telemetry remains attached to its own index and never fills missing standalone task measurements. The preview task-coverage taper continues to count direct standalone pairs only.
+Imputed quality, estimated resources, output-token runtime proxies, provider token prices, throughput, and latency do not satisfy this threshold. AA telemetry remains attached to its own index and never fills missing standalone task measurements.
 
 A variant that qualifies on quality remains in the table with unavailable resource scores left blank. Without Value it is excluded from every graph, including quality-only graphs and the model signature. Collapsed graphs select their representative from eligible variants. The benchmark graph's combined Speed-and-Value axis requires both scores; unavailable scores are never substituted with zero. Insufficient runtime coverage suppresses Speed independently of Value. Raw prices and provider speed measurements remain available.
 
@@ -664,44 +647,35 @@ For an illustrative available component mean of 80 and source-default coverage o
 
 The Price vs Cost Efficiency graph compares observed benchmark task-cost efficiency separately from the full Value score. It also shares the source-default effort's coverage across ordinary efforts, so different observation counts alone do not create different penalties within one model.
 
-This is a different adjustment from the peer-comparison shrinkage toward 50. Peer support moderates a particular efficiency comparison; source-default coverage multiplies the final resource score to account for missing model evidence. Preview scores use the separate specification-first rule described earlier.
+This is a different adjustment from the peer-comparison shrinkage toward 50. Peer support moderates a particular efficiency comparison; source-default coverage multiplies the final resource score to account for missing model evidence.
 
 Keeping absolute and quality-adjusted price as separate components preserves two useful questions: how much the model costs, and whether that cost is efficient for the capability delivered.
 
 ## Public Admission
 
-A score is calculated before Model Atlas decides whether a row has enough information for public comparison. Ordinary admission requires all of the following:
+A score is calculated before Model Atlas decides whether a row has enough information for public comparison. Admission requires all of the following:
 
-- A complete basic profile: release date, confirmed text output, input and output prices, context and output limits, throughput, and either latency or end-to-end latency.
-- At least the median aggregate-index benchmark count in directly observed selected results, currently 7.5 (requiring eight whole benchmark observations), including at least one Intelligence benchmark and one Agentic benchmark.
-- At least two observed index signals. Artificial Analysis contributes a signal for each reported Intelligence, Agentic, Coding, or Omniscience index; CAIS, Epoch, Surge, and Vals each contribute one when observed.
+- A qualified model identity, a name, and confirmed text output.
+- Observed represented benchmark weight reaching the minimum known benchmark breadth across the selected indexes, excluding Epoch's inferred breadth, including at least one observed selected input in each of Intelligence and Agentic.
 - Finite Intelligence and Agentic scores of at least 10 each.
 
-Estimates do not satisfy these requirements. An eligible model enters ordinary ranking immediately, with no minimum release age or prior-publication requirement.
+Standalone benchmarks contribute their configured importance once across both dimensions. An observed aggregate contributes its represented benchmark breadth, without the half-importance discount used for its quality-scoring influence. Known components form a union across indexes and standalone observations: each contributes the maximum of its standalone importance and the one unit represented within an observed index. The remaining unnamed breadth of each index is added separately. This makes the count independent of index order and prevents observing a half-importance component from reducing previously established coverage.
 
-Every path needs an identified text model, at least two observed index signals, and finite Intelligence and Agentic scores of at least 10. The remaining requirements separate the three admission paths:
+For example, eight ordinary standalone benchmarks contribute eight units without any index. AA's main Intelligence Index contributes ten units, and separately observing its known components does not add their weight again. AA and CAIS together represent sixteen units under the current overlap map because HLE is shared. AA's Agentic, Coding, and Omniscience indexes supply no additional admission credit. An observed zero is valid evidence; missing and imputed values are not.
 
-| Path | Broad observed benchmarks | Complete profile | Release age | Public rank |
-| --- | --- | --- | --- | --- |
-| Ordinary | Yes | Yes | Any | Numeric |
-| Recent preview | No | Yes | Under 30 days | Preview |
-| Metadata preview | Yes | No | Any | Preview |
-| Insufficient evidence | No | No | Any | Excluded |
+Opaque index breadth remains an estimate. Epoch's inferred breadth is currently 7.5 and its component-overlap mapping is unavailable, so its full estimated breadth is added alongside standalone results. Unmapped overlap is not a verified count of independent benchmarks. Admission uses the observations attached to the configuration under the existing matching rules; sibling estimates do not create direct coverage.
 
-Two complementary preview paths retain useful evidence without granting an official rank:
+Every path needs an identified text model, the represented-evidence threshold, an observed input in each capability dimension, and finite Intelligence and Agentic scores of at least 10. The admission threshold is the minimum of AA, CAIS, Surge, and Vals breadths; Epoch's inferred value is excluded. Any current selected index therefore supplies enough breadth on its own, while standalone evidence can also qualify. No particular index, index count, release age, or prior publication is required. The separate scoring regularization and task/index blend continue to use the median breadth.
 
-- **Recent undercoverage:** a model released fewer than 30 days ago may waive broad benchmark coverage if it has a complete basic profile, at least two observed index signals, finite Intelligence and Agentic scores, and both quality scores at or above 10.
-- **Incomplete metadata:** a model may lack its release date, prices, limits, or serving measurements if it satisfies the full ordinary observed-benchmark requirements, has a qualified model identity and confirmed text output, and reaches the same finite-quality-score and relevance gates.
+All admitted models receive numeric ranks in compact views, even when release date, prices, limits, or serving measurements are unknown. Missing specifications remain null and do not create a separate admission or scoring path. Speed and Value remain independently subject to their observed-resource requirements.
 
-The incomplete-metadata path has no age requirement because benchmark results can be published before a model appears in public catalogs. A lab may give evaluators access before public release, so catalog absence alone does not invalidate their published results. Sufficient capability evidence can therefore remain visible while prices, limits, or serving measurements remain unknown. The `Preview` label describes incomplete admission requirements; it does not claim private access or a particular availability status.
-
-A model missing both broad benchmark evidence and a complete basic profile qualifies for neither preview path. Once its missing requirements arrive, the next derivation can admit it normally without keeping a duplicate preview.
+Benchmark results can be published before a model appears in public catalogs. Catalog absence alone does not invalidate sufficiently evidenced results. A model below the represented-evidence threshold is excluded, regardless of release age.
 
 These gates remove public rows only after reference scoring, so admission itself does not recalibrate the reference population.
 
 ## Signature Pareto Selection
 
-The signature highlights several useful model roles. Intelligence-based and Pareto roles use each model's highest-Intelligence variant and can include eligible previews. Best Agentic searches all scored efforts of the visible models, so it can select a different effort from the collapsed table. Labels omit effort suffixes, but each displayed score still belongs to the selected variant.
+The signature highlights several useful model roles. Intelligence-based and Pareto roles use each model's highest-Intelligence variant. Best Agentic searches all scored efforts of the visible models, so it can select a different effort from the collapsed table. Labels omit effort suffixes, but each displayed score still belongs to the selected variant.
 
 The Pareto frontier contains models for which no other candidate is at least as good in both Intelligence and Value and strictly better in one. Its two highlighted roles apply explicit selection rules:
 
@@ -710,7 +684,7 @@ The Pareto frontier contains models for which no other candidate is at least as 
 | Pareto Balance | Largest Intelligence × Value product on the frontier, with higher Intelligence breaking ties. This is equivalent to the largest equal-weight geometric mean. |
 | Pareto Value | Highest Value on the frontier among models strictly above the full published population's median Intelligence, with higher Intelligence breaking ties. |
 
-The median counts each finite Intelligence-Value base model once, including eligible previews, before dashboard filters. A model exactly at the median does not qualify for Pareto Value. Pareto candidates follow model, provider, and price filters before the rank and release-recency display limits; the ordinary signature roles follow the displayed population.
+The median counts each finite Intelligence-Value base model once, before dashboard filters. A model exactly at the median does not qualify for Pareto Value. Pareto candidates follow model, provider, and price filters before the rank and release-recency display limits; the ordinary signature roles follow the displayed population.
 
 These rules select trade-offs on the published scales. Pareto Balance has no Intelligence cutoff. Blended token price may be shown for context, but it does not select either Pareto role and is not a measured total task cost. Each role keeps its label even when the same model wins another role, and is omitted when no candidate qualifies.
 
@@ -720,14 +694,13 @@ These parameters encode robustness choices and usage priorities. They are explic
 
 | Parameter | Value | Why it exists |
 | --- | ---: | --- |
-| Public index signals | 2 | Excludes models whose quality position cannot be checked against more than one aggregate index signal. |
+| Public represented benchmark weight | Minimum known index breadth, excluding Epoch | Allows sufficient standalone or aggregate evidence to qualify, deducting known overlap without requiring a particular publisher. |
 | Public Intelligence and Agentic floor | 10 each | Excludes models whose quality scores are too low to be decision-relevant even when resource scores are high. |
 | Quality regularization floor / full point | 10% / 100% of aggregate-index median evidence breadth | Suppresses high scores built from isolated evidence without making the penalty grow whenever the selected portfolio expands. |
 | Context benchmarks required | 3 | Prevents one or two correlated observations from defining an imputation context. |
 | Contextual held-out validation models | 4 | Requires independent evidence beyond the minimum calibration set. |
 | Maximum normalized imputation error | 25 points | Refuses predictors whose typical held-out error is too large to be useful; evidence credit falls to zero at this boundary. |
 | Sibling-quality common tasks | 3 | Requires each missing-task transfer to rest on directly shared tasks from the same base model; indexes and estimates do not count. |
-| Preview task-weight endpoint | 20% | Smoothly introduces tasks from zero influence as direct resource-pair coverage grows; specifications retain 80% at full coverage. |
 | Tiered-cost minimum donors | 2 base models | Requires independent same-benchmark effort ratios outside the target model. |
 | Tiered-cost release width | 60 days | Centers a Gaussian neighborhood on the target release date within the same lab. |
 | Tiered-cost lab shrinkage | 16 | Limits the influence of a noisy lab-level correction. |

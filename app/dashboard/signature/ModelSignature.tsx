@@ -282,9 +282,7 @@ export const ModelSignature = memo(function ModelSignature({
                   <span className={styles.scoreLeaderIcon} aria-hidden="true">
                     {model.logo ? <img src={model.logo} alt="" width={14} height={14} /> : null}
                   </span>
-                  <strong className={model.preview ? styles.previewModel : undefined}>
-                    {model.name}
-                  </strong>
+                  <strong>{model.name}</strong>
                 </dd>
                 <dd className={styles.scoreLeaderValue}>
                   <span className="visually-hidden">{model.metric.accessible}</span>
@@ -337,9 +335,7 @@ export const ModelSignature = memo(function ModelSignature({
             </span>
             <span className={styles.modelCopy}>
               <span className={styles.modelRole}>{model.role}</span>
-              <strong className={model.preview ? styles.previewModel : undefined}>
-                {model.name}
-              </strong>
+              <strong>{model.name}</strong>
               <span title={model.metric.accessible}>
                 {model.provider} · {model.metric.compact}
               </span>

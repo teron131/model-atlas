@@ -69,7 +69,7 @@ export function observedResourceEvidenceCounts(
   return counts;
 }
 
-/** Direct quality-resource pairs drive both publication gates and preview tapering; selected tasks without a pair remain in the denominator. */
+/** Direct quality-resource pairs drive publication gates; selected tasks without a pair remain in the denominator. */
 export function observedResourceBenchmarkCounts(
   model: ResourceMetricModel,
   portfolio: BenchmarkPortfolio,

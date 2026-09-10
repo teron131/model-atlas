@@ -48,11 +48,7 @@ export function buildQualityScoringContext(
   scoringConfig: ScoringConfig,
 ): QualityScoringContext {
   const benchmarkKeys = [
-    ...new Set([
-      ...scoringConfig.intelligenceBenchmarkKeys,
-      ...scoringConfig.agenticBenchmarkKeys,
-      ...scoringConfig.previewAdditionalIntelligenceBenchmarkKeys,
-    ]),
+    ...new Set([...scoringConfig.intelligenceBenchmarkKeys, ...scoringConfig.agenticBenchmarkKeys]),
   ];
   const benchmarkRangesByKey = observedRangesByBenchmark(models, benchmarkKeys);
   return { benchmarkRangesByKey };

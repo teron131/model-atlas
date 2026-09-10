@@ -13,11 +13,7 @@ import {
 } from "../benchmarks/registry";
 import { canonicalReasoningEffort } from "../identity/normalization";
 import { benchmarkRowsFromDb } from "../pipeline/benchmark-rows";
-import { rankedModels } from "../pipeline/model-types";
-import {
-  previewModelFromCandidate,
-  publicModelFromCandidate,
-} from "../pipeline/selection/public-list";
+import { publicModelFromCandidate } from "../pipeline/selection/public-list";
 import { asFiniteNumber, asRecord } from "../runtime";
 import { buildCurrentModelAtlasMetadata } from "../stats/payload/metadata";
 import type {
@@ -626,13 +622,9 @@ export function buildPayloadFromRows(rows: PayloadRows): ModelAtlasPayload {
       modelRowIndex == null ? null : (benchmarkDatesByModel.get(modelRowIndex) ?? null),
       modelRowIndex == null ? null : (taskMetricsByModel.get(modelRowIndex) ?? null),
     );
-    const model =
-      booleanValue(row.is_preview) === true
-        ? previewModelFromCandidate(candidate)
-        : publicModelFromCandidate(candidate);
+    const model = publicModelFromCandidate(candidate);
     return model == null ? [] : [model];
   });
-  const metadataModels = rankedModels(models);
   const sourceHealth = sourceHealthFromRows(
     rows.sourceHealthRows,
     rows.sourceQuarantineRows,
@@ -642,8 +634,8 @@ export function buildPayloadFromRows(rows: PayloadRows): ModelAtlasPayload {
   return {
     fetched_at_epoch_seconds: rows.fetchedAt,
     metadata: buildCurrentModelAtlasMetadata({
-      models: metadataModels,
-      healthModels: metadataModels,
+      models,
+      healthModels: models,
       sourceHealth,
       sourceRowsByKey,
     }),

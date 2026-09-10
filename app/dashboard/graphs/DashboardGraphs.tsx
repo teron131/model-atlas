@@ -18,6 +18,7 @@ import {
   filterByModelControls,
   filterByModelQuery,
   filterByReleaseRecency,
+  isGraphEligible,
   modelCount,
   type ModelRankFilter,
   modelRankFilterOptions,
@@ -31,7 +32,6 @@ import { ModelSignature } from "../signature/ModelSignature";
 import { dashboardUrlSection } from "../url-state";
 import { FilterButton, HoverCard } from "./ChartComponents";
 import { finite, fmtCompact, fmtMoney } from "./format";
-import { filterGraphPreviewsByIntelligenceFloor, isGraphEligible } from "./model-series";
 import { ParetoAnalysisPanel } from "./ParetoAnalysisPanel";
 import { PriceEfficiencyPanel } from "./price-efficiency/Panel";
 import {
@@ -154,7 +154,7 @@ export function DashboardGraphs({
       deferredModelRankFilter,
       referenceModels,
     );
-    return filterGraphPreviewsByIntelligenceFloor(rankFilteredModels, (model) => model);
+    return rankFilteredModels;
   }, [deferredModelRankFilter, recencyFilteredModels, referenceModels]);
   const performanceModels = useMemo(() => {
     const variants = modelsForVariantDisplay(
@@ -205,11 +205,8 @@ export function DashboardGraphs({
   }, [deferredModelVariants, deferredShowReasoningVariants, models]);
   const paretoSignatureModels = useMemo(() => {
     const eligibleModelKeys = new Set(filteredModels.map(canonicalModelKey));
-    return filterGraphPreviewsByIntelligenceFloor(
-      deferredModelVariants.filter(
-        (model) => isGraphEligible(model) && eligibleModelKeys.has(canonicalModelKey(model)),
-      ),
-      (model) => model,
+    return deferredModelVariants.filter(
+      (model) => isGraphEligible(model) && eligibleModelKeys.has(canonicalModelKey(model)),
     );
   }, [deferredModelVariants, filteredModels]);
   const currentSection = useCurrentResearchSection(deferredPayload != null);

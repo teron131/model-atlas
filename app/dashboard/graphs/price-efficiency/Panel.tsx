@@ -4,7 +4,6 @@ import { memo, useDeferredValue, useMemo } from "react";
 
 import {
   type BenchmarkPortfolio,
-  isPreviewModel,
   type ModelAtlasModel,
   type ModelAtlasPublishedModel,
 } from "../../../../src/model-atlas/stats/types";
@@ -27,8 +26,7 @@ import { ModelToolbar } from "../../shared/ModelToolbar";
 import { useUrlState } from "../../use-url-state";
 import { BoxWhiskerSummary } from "../BoxWhiskerSummary";
 import { bestByScore, valueDistribution } from "../chart-stats";
-import { EmptyChart, PreviewLabelLegend, SummaryCard } from "../ChartComponents";
-import { filterGraphPreviewsByIntelligenceFloor } from "../model-series";
+import { EmptyChart, SummaryCard } from "../ChartComponents";
 import { Panel } from "../Panel";
 import type { HoverSetter } from "../types";
 import { useCompactChartLayout } from "../use-media-query";
@@ -104,10 +102,7 @@ export const PriceEfficiencyPanel = memo(function PriceEfficiencyPanel({
       modelRankFilter,
       referenceModels,
     );
-    const graphModels = filterGraphPreviewsByIntelligenceFloor(
-      rankFilteredModels,
-      (model) => model,
-    );
+    const graphModels = rankFilteredModels;
     return priceEfficiencyRows(graphModels, referenceModels, benchmarkPortfolio, showVariants).sort(
       (left, right) =>
         Number(right.model.scores.intelligence_score) -
@@ -190,10 +185,9 @@ export const PriceEfficiencyPanel = memo(function PriceEfficiencyPanel({
   const plottedRows = [...rows].sort(
     (left, right) => left.costEfficiencyScore - right.costEfficiencyScore,
   );
-  const officialRows = rows.filter((row) => !isPreviewModel(row.model));
-  const efficiencyLeader = bestByScore(officialRows, (row) => row.costEfficiencyScore);
-  const bestLift = bestByScore(officialRows, (row) => row.deltaScore);
-  const worstDrop = bestByScore(officialRows, (row) => -row.deltaScore);
+  const efficiencyLeader = bestByScore(rows, (row) => row.costEfficiencyScore);
+  const bestLift = bestByScore(rows, (row) => row.deltaScore);
+  const worstDrop = bestByScore(rows, (row) => -row.deltaScore);
   const scoreDistribution = valueDistribution(rows.map((row) => row.costEfficiencyScore));
 
   return (
@@ -222,11 +216,7 @@ export const PriceEfficiencyPanel = memo(function PriceEfficiencyPanel({
         rows={plottedRows}
         setHover={setHover}
       />
-      {rows.some((row) => isPreviewModel(row.model)) ? (
-        <div className={styles.chartFooterCaption}>
-          <PreviewLabelLegend />
-        </div>
-      ) : null}
+
       <div className={styles.chartSummary}>
         {efficiencyLeader == null ? null : (
           <SummaryCard

@@ -15,7 +15,7 @@ export function insertModels(db: DatabaseWriter, rows: readonly unknown[]): void
 		INSERT INTO models (
 			row_index, model_id, provider_id, name,
 			reasoning_effort, logo,
-			reasoning, release_date, is_preview,
+			reasoning, release_date,
 			open_weights, context, context_input, context_output, input_modality_text,
 			input_modality_image, input_modality_audio, input_modality_video,
 			throughput_tokens_per_second_median, latency_seconds_median,
@@ -31,7 +31,7 @@ export function insertModels(db: DatabaseWriter, rows: readonly unknown[]): void
 			value_score,
 			intelligence_confidence, agentic_confidence, speed_confidence, value_confidence,
 			latest_change_json
-		) VALUES (${Array.from({ length: 48 }, () => "?").join(", ")})
+		) VALUES (${Array.from({ length: 47 }, () => "?").join(", ")})
 	`);
   for (const [index, row] of rows.entries()) {
     const model = asRecord(row);
@@ -193,7 +193,6 @@ function modelIdentityValues(model: JsonObject): SqlValue[] {
     firstString(model, ["logo"]),
     sqliteBooleanValue(model.reasoning),
     firstString(model, ["release_date"]),
-    sqliteBooleanValue(model.preview === true),
     sqliteBooleanValue(model.open_weights),
   ];
 }

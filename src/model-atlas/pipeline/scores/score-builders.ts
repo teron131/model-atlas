@@ -52,8 +52,6 @@ type ComponentScoreResult = {
 
 const QUALITY_REGULARIZATION_TARGET = 50;
 
-type UnproxiedQualityScore = "observed-mean" | "regularized";
-
 /** Count observed benchmarks without allowing imputed values to satisfy admission. */
 export function observedBenchmarkCount(model: unknown, keys: readonly string[]): number {
   const modelRecord = asRecord(model);
@@ -91,7 +89,7 @@ function selectedBenchmarkScoreInputs(
   return inputs;
 }
 
-/** Ordinary and preview scores share observation precedence, scoring-only sibling estimates, and variant index exclusions. */
+/** Quality scores use observation precedence, scoring-only sibling estimates, and variant index exclusions. */
 function benchmarkScoreInput(
   model: JsonObject,
   key: string,
@@ -180,7 +178,6 @@ function indexBlendedQualityScore(
 function qualityScore(
   benchmarkScoreInputs: BenchmarkScoreInput[],
   evidenceThresholds: QualityCoverageThresholds[BenchmarkDimension],
-  unproxiedScore: UnproxiedQualityScore,
   fullTaskCount: number,
 ): QualityScoreResult {
   const qualityMean = weightedMeanOfFinite(
@@ -217,83 +214,8 @@ function qualityScore(
   }
   const regularizedScore = evidenceRegularizedQualityScore(qualityMean, evidenceReliability);
   return {
-    score: unproxiedScore === "regularized" ? regularizedScore : qualityMean,
+    score: regularizedScore,
     evidenceSupport,
-  };
-}
-
-function previewQualityScore(
-  model: JsonObject,
-  keys: readonly string[],
-  dimension: BenchmarkDimension,
-  qualityContext: QualityScoringContext,
-  scoringConfig: ScoringConfig,
-): QualityScoreResult {
-  const inputs = keys.flatMap((key) => {
-    const weight = previewBenchmarkDimensionWeight(key, dimension, scoringConfig);
-    return weight > 0 ? [benchmarkScoreInput(model, key, dimension, qualityContext, weight)] : [];
-  });
-  return qualityScore(
-    inputs,
-    scoringConfig.qualityCoverage[dimension],
-    "observed-mean",
-    scoringConfig.qualityTaskFullCount,
-  );
-}
-
-/** Give preview-only Intelligence fields one unit while retaining normal portfolio weights elsewhere. */
-function previewBenchmarkDimensionWeight(
-  key: string,
-  dimension: BenchmarkDimension,
-  scoringConfig: ScoringConfig,
-): number {
-  if (scoringConfig.previewAdditionalIntelligenceBenchmarkKeys.includes(key)) {
-    return dimension === "intelligence" ? 1 : 0;
-  }
-  return benchmarkDimensionWeight(key, dimension, scoringConfig.benchmarkPortfolio);
-}
-
-/** Score recent previews from direct observations with the shared under-coverage index proxy. */
-export function buildPreviewComponentScoreResult(
-  model: JsonObject,
-  scoringConfig: ScoringConfig,
-  qualityContext: QualityScoringContext,
-): ComponentScoreResult {
-  const intelligenceKeys = [
-    ...new Set([
-      ...scoringConfig.intelligenceBenchmarkKeys,
-      ...scoringConfig.previewAdditionalIntelligenceBenchmarkKeys,
-    ]),
-  ];
-  const intelligence = previewQualityScore(
-    model,
-    intelligenceKeys,
-    "intelligence",
-    qualityContext,
-    scoringConfig,
-  );
-  const agentic = previewQualityScore(
-    model,
-    scoringConfig.agenticBenchmarkKeys,
-    "agentic",
-    qualityContext,
-    scoringConfig,
-  );
-  return {
-    componentScores:
-      intelligence.score == null && agentic.score == null
-        ? null
-        : {
-            intelligence_score: intelligence.score,
-            agentic_score: agentic.score,
-            speed_score: null,
-          },
-    confidence: {
-      intelligence: intelligence.evidenceSupport,
-      agentic: agentic.evidenceSupport,
-      speed: null,
-      value: null,
-    },
   };
 }
 
@@ -401,13 +323,11 @@ export function buildComponentScoreResult(
   const intelligence = qualityScore(
     intelligenceBenchmarkInputs,
     scoringConfig.qualityCoverage.intelligence,
-    "regularized",
     scoringConfig.qualityTaskFullCount,
   );
   const agentic = qualityScore(
     agenticBenchmarkInputs,
     scoringConfig.qualityCoverage.agentic,
-    "regularized",
     scoringConfig.qualityTaskFullCount,
   );
   const speedScore = buildSpeedComponentScore(speed, speedOutputTokenAnchors);
