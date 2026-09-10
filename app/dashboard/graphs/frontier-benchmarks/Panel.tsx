@@ -234,15 +234,15 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
   );
   const explanation =
     publishedPerformance && resourceAxis
-      ? `${yLabel} uses the published model-wide calculation, paired with ${aggregate ? "normalized resources" : "measured resources"} from ${evidenceSummary || "the selected evidence"}.`
+      ? `Published ${yLabel} vs. ${aggregate ? "normalized" : "measured"} resources from ${evidenceSummary || "selected evidence"}.`
       : normalizedScore
-        ? `Performance across ${evidenceSummary} is normalized against the full reference population, then combined with index overlap removed.`
+        ? `${evidenceSummary}: performance normalized to the full reference population, with index overlap removed.`
         : null;
   const emptyMessage =
     issue ??
     (activeKeys.length === 0 && needsEvidence && !publishedPerformance
-      ? "Select at least one evidence source to compare."
-      : `No models have both ${yLabel} and ${axisConfig.shortLabel} for this selection. Change the evidence, axis, or global filters.`);
+      ? "Select an evidence source."
+      : `No models have both ${yLabel} and ${axisConfig.shortLabel}. Change the evidence, axis, or filters.`);
   return (
     <Panel
       {...PARETO_PANEL_CONTENT}
@@ -260,7 +260,7 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
           />
         ) : null
       }
-      note={`The solid envelope traces the best displayed tradeoffs.${showVariants ? " Hover a point or label to reveal its model’s variant connections in reasoning-effort order." : ""} ${frontierAxisDescription(axisKey, aggregate, rows[0])}`}
+      note={`${frontierAxisDescription(axisKey, aggregate, rows[0])}${showVariants ? " Hover a point or label to connect its model's variants in reasoning-effort order." : ""}`}
       wide
     >
       {controls}

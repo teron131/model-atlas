@@ -19,7 +19,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   agent_arena: {
     title: "Agent Arena",
-    body: "Randomized real-world Agent Mode sessions measuring how the orchestrator model changes task success, user feedback, steerability, and tool reliability.",
+    body: "Randomized Agent Mode sessions measuring task success, user feedback, steerability, and tool reliability by orchestrator model.",
     rows: [
       ["Source", "Arena"],
       ["Role", "real-world agent performance"],
@@ -27,7 +27,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   agents_last_exam: {
     title: "Agents' Last Exam",
-    body: "Software and professional tasks graded for both complete solutions and meaningful partial progress.",
+    body: "Software and professional tasks with credit for complete solutions and partial progress.",
     rows: [
       ["Source", "Agents' Last Exam"],
       ["Split", "Full Overall"],
@@ -36,7 +36,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   ale_bench: {
     title: "ALE-Bench",
-    body: "Executable heuristic-optimization problems where models design algorithms and improve them through iterative feedback.",
+    body: "Design and refine heuristic-optimization algorithms through execution feedback.",
     rows: [
       ["Source", "Sakana AI; Epoch validation"],
       ["Role", "algorithm design and code execution"],
@@ -44,7 +44,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   analyst_agent: {
     title: "AnalystAgent",
-    body: "Answer quantitative business and scientific questions by analyzing supplied spreadsheets and documents with code execution.",
+    body: "Use code to answer quantitative business and science questions from spreadsheets and documents.",
     rows: [
       ["Source", "Artificial Analysis"],
       ["Metric", "pass^5"],
@@ -53,7 +53,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   apex_agents: {
     title: "APEX Agents",
-    body: "Long-horizon consulting, investment-banking, and legal tasks completed across files and workplace tools.",
+    body: "Complete long consulting, investment-banking, and legal tasks across files and workplace tools.",
     rows: [
       ["Source", "Mercor"],
       ["Role", "long-horizon professional execution"],
@@ -70,7 +70,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   arc_agi_2: {
     title: "ARC-AGI-2",
-    body: "Solve novel abstract visual transformation tasks from a small set of demonstrations.",
+    body: "Infer abstract visual transformations from a few examples.",
     rows: [
       ["Source", "ARC Prize verified leaderboard"],
       ["Split", "Semi-Private"],
@@ -91,7 +91,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   automation_bench: {
     title: "AutomationBench",
-    body: "Complete multi-step workflows across simulated SaaS apps, with credit only when every required final-state assertion passes.",
+    body: "Complete simulated SaaS workflows; every required final-state check must pass.",
     rows: [
       ["Source", "Zapier"],
       ["Metric", "tasks completed correctly"],
@@ -108,7 +108,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   briefcase: {
     title: "Briefcase",
-    body: "Multi-file business projects requiring spreadsheets, presentations, and memos, graded for correctness, analysis, and presentation.",
+    body: "Create business spreadsheets, presentations, and memos, graded for correctness, analysis, and presentation.",
     rows: [
       ["Source", "Artificial Analysis"],
       ["Role", "multi-artifact professional work"],
@@ -124,7 +124,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   cais_capabilities_index: {
     title: "CAIS Capabilities Index",
-    body: "Atlas-derived weighted mean across two Text and five Vision benchmark observations published by the CAIS dashboard.",
+    body: "Atlas-derived mean of two Text and five Vision benchmarks from CAIS.",
     rows: [
       ["Source", "CAIS AI Dashboard"],
       ["Formula", "(2 × Text + 5 × Vision) / 7"],
@@ -133,7 +133,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   chartography: {
     title: "Chartography",
-    body: "Answer difficult questions about specialized charts using visual perception, domain knowledge, and multi-step reasoning.",
+    body: "Interpret specialized charts using domain knowledge and multi-step reasoning.",
     rows: [
       ["Source", "Surge AI"],
       ["Role", "professional graphical reasoning"],
@@ -141,7 +141,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   chess_puzzles: {
     title: "Chess Puzzles",
-    body: "Choose the best move from 100 novel engine-generated chess positions represented as FEN boards.",
+    body: "Choose the best move in 100 novel, engine-generated FEN positions.",
     rows: [
       ["Source", "Epoch AI"],
       ["Role", "planning and game reasoning"],
@@ -149,7 +149,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   code_migration: {
     title: "Code Migration",
-    body: "Reimplement working programs in new languages, scored by hidden behavioral tests and anti-cheat checks.",
+    body: "Port programs to new languages, checked by hidden behavioral tests and anti-cheat checks.",
     rows: [
       ["Source", "Vals AI"],
       ["Metric", "hidden-test pass rate"],
@@ -158,7 +158,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   complex_constraints: {
     title: "ComplexConstraints",
-    body: "Complete realistic professional writing, scheduling, and planning tasks while satisfying interdependent, conditional, implicit, and multistep requirements.",
+    body: "Complete professional writing, scheduling, and planning tasks with interdependent, conditional, implicit, and multistep requirements.",
     rows: [
       ["Source", "Surge AI"],
       ["Metric", "all-criteria task pass rate"],
@@ -175,7 +175,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   cursorbench: {
     title: "CursorBench",
-    body: "Implement ambiguous, multi-file changes in real repositories, scored for functional correctness and code quality.",
+    body: "Make ambiguous, multi-file repository changes, graded for correctness and code quality.",
     rows: [
       ["Source", "Cursor"],
       ["Role", "repository problem solving"],
@@ -183,7 +183,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   cyberbench: {
     title: "CyberBench",
-    body: "Reproduce and patch OSS-Fuzz vulnerabilities in real open-source repositories without breaking benign behavior.",
+    body: "Reproduce and patch OSS-Fuzz vulnerabilities without breaking benign behavior.",
     rows: [
       ["Source", "Vals AI"],
       ["Metric", "patch-track accuracy"],
@@ -192,7 +192,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   deep_swe: {
     title: "DeepSWE",
-    body: "Resolve original software-engineering tasks by inspecting, editing, and testing active open-source repositories.",
+    body: "Solve original engineering tasks by inspecting, editing, and testing open-source repositories.",
     rows: [
       ["Source", "DeepSWE leaderboard"],
       ["Role", "repository software engineering"],
@@ -200,7 +200,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   ebr_bench: {
     title: "EBR-Bench",
-    body: "Learn an unfamiliar strategy game through repeated play while carrying persistent notes between runs.",
+    body: "Learn an unfamiliar strategy game through repeated play and persistent notes.",
     rows: [
       ["Source", "Epoch AI"],
       ["Role", "learning from experience"],
@@ -208,7 +208,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   emb: {
     title: "EMB",
-    body: "Build working Excel financial models from prompts and source spreadsheets, including LBO, DCF, and M&A models.",
+    body: "Build Excel financial models from prompts and spreadsheets, including LBO, DCF, and M&A.",
     rows: [
       ["Source", "Vals AI"],
       ["Metric", "overall accuracy"],
@@ -217,7 +217,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   enigmaeval: {
     title: "EnigmaEval",
-    body: "Solve long multimodal puzzle-hunt problems requiring hidden-structure discovery and multi-step deduction.",
+    body: "Solve long multimodal puzzles through hidden-pattern discovery and multi-step deduction.",
     rows: [
       ["Source", "CAIS AI Dashboard"],
       ["Metric", "dashboard accuracy"],
@@ -226,7 +226,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   enterprisebench_corecraft: {
     title: "EnterpriseBench CoreCraft",
-    body: "Complete customer, operations, and knowledge-work tasks inside a simulated computer-hardware startup using enterprise tools and company policy.",
+    body: "Complete customer, operations, and knowledge tasks at a simulated hardware startup using enterprise tools and policy.",
     rows: [
       ["Source", "Surge AI"],
       ["Role", "enterprise tool use"],
@@ -234,7 +234,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   epoch_capabilities_index: {
     title: "Epoch Capabilities Index",
-    body: "Combine results across diverse capability benchmarks into a scale for comparing models over time.",
+    body: "Combine diverse capability benchmarks to compare models over time.",
     rows: [
       ["Source", "Epoch AI"],
       ["Role", "general capability context"],
@@ -242,7 +242,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   erqa: {
     title: "ERQA",
-    body: "Answer multimodal embodied-reasoning questions about spatial relations, trajectories, actions, and physical-world states.",
+    body: "Answer multimodal questions about spatial relations, trajectories, actions, and physical states.",
     rows: [
       ["Source", "CAIS AI Dashboard"],
       ["Metric", "dashboard accuracy"],
@@ -251,7 +251,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   finance_agent_v2: {
     title: "Finance Agent V2",
-    body: "Answer difficult financial-analysis questions from public-company filings using research, calculation, and retrieval tools.",
+    body: "Analyze public-company filings using research, calculation, and retrieval tools.",
     rows: [
       ["Source", "Vals AI"],
       ["Metric", "strict all-pass rate"],
@@ -260,7 +260,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   frontier_code: {
     title: "FrontierCode",
-    body: "Make repository-scale code changes that are tested for correctness, quality, and mergeability.",
+    body: "Make repository-wide changes tested for correctness, quality, and mergeability.",
     rows: [
       ["Source", "Cognition"],
       ["Role", "repository-scale software engineering"],
@@ -268,7 +268,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   frontiermath_erdos: {
     title: "FrontierMath Erdős",
-    body: "Resolve significant open Erdős problems with complete Lean proofs or disproofs under Epoch's fixed official scaffold.",
+    body: "Resolve open Erdős problems with complete Lean proofs or disproofs in Epoch's official scaffold.",
     rows: [
       ["Source", "Epoch AI"],
       ["Metric", "verified conjectures resolved"],
@@ -278,7 +278,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   frontiermath_tier_4: {
     title: "FrontierMath Tier 4",
-    body: "Solve original, expert-written Tier 4 mathematics problems designed to require research-level reasoning.",
+    body: "Solve original, expert-written research-level mathematics problems.",
     rows: [
       ["Source", "Epoch AI"],
       ["Role", "research-level mathematics"],
@@ -286,7 +286,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   gdp_pdf: {
     title: "GDP.pdf",
-    body: "Answer expert workflow questions grounded in real professional PDFs, including diagrams, tables, forms, and technical documents.",
+    body: "Answer professional questions from PDFs containing diagrams, tables, forms, and technical content.",
     rows: [
       ["Source", "Surge AI"],
       ["Role", "document reasoning"],
@@ -294,7 +294,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   gdpval_normalized: {
     title: "GDPval v2",
-    body: "Produce documents, spreadsheets, slides, and diagrams for real tasks drawn from 44 occupations, judged through blind pairwise comparisons.",
+    body: "Create documents, spreadsheets, slides, and diagrams for 44 occupations, judged in blind comparisons.",
     rows: [
       ["Source", "Artificial Analysis"],
       ["Metric", "normalized Elo"],
@@ -303,7 +303,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   handbook_md: {
     title: "HANDBOOK.md",
-    body: "Complete enterprise tasks while following long company handbooks and using internal tools and external MCP servers.",
+    body: "Follow long company handbooks to complete enterprise tasks using internal tools and external MCP servers.",
     rows: [
       ["Source", "Surge AI"],
       ["Role", "policy-grounded workflow execution"],
@@ -311,7 +311,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   hemingway_bench: {
     title: "Hemingway-bench",
-    body: "Produce creative, business, and everyday writing preferred by expert writers for quality, originality, coherence, instruction following, and emotional intelligence.",
+    body: "Write creative, business, and everyday text judged by experts for quality, originality, coherence, instruction following, and emotional intelligence.",
     rows: [
       ["Source", "Surge AI"],
       ["Metric", "expert pairwise Elo"],
@@ -320,7 +320,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   hle: {
     title: "HLE",
-    body: "Answer expert-written questions across mathematics, science, humanities, and other academic disciplines.",
+    body: "Answer expert questions across mathematics, science, humanities, and other academic fields.",
     rows: [
       ["Source", "Artificial Analysis"],
       ["Role", "frontier reasoning"],
@@ -328,7 +328,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   intphys2: {
     title: "IntPhys 2",
-    body: "Judge whether simulated video events are physically plausible across permanence, immutability, continuity, and solidity conditions.",
+    body: "Judge physical plausibility in videos testing permanence, immutability, continuity, and solidity.",
     rows: [
       ["Source", "CAIS AI Dashboard"],
       ["Metric", "dashboard accuracy"],
@@ -337,7 +337,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   itbench_sre: {
     title: "ITBench",
-    body: "Diagnose Kubernetes incidents from offline alerts, events, traces, metrics, and topology, identifying every contributing root-cause entity.",
+    body: "Identify every root-cause entity in Kubernetes incidents from offline alerts, events, traces, metrics, and topology.",
     rows: [
       ["Source", "Artificial Analysis"],
       ["Role", "SRE diagnosis workflow"],
@@ -345,7 +345,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   legal_research: {
     title: "Legal Research",
-    body: "Research questions across U.S. law using case-law search, web search, and document retrieval, then produce a supported answer.",
+    body: "Research U.S. law using case law, web search, and documents to support answers.",
     rows: [
       ["Source", "Vals AI"],
       ["Metric", "strict all-pass accuracy"],
@@ -354,7 +354,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   mindcube: {
     title: "MindCube Tiny",
-    body: "Reason over limited multi-view scenes to infer hidden spatial relationships and perspective changes.",
+    body: "Infer hidden spatial relationships and perspective changes from limited scene views.",
     rows: [
       ["Source", "CAIS AI Dashboard"],
       ["Metric", "dashboard accuracy"],
@@ -363,7 +363,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   mirrorcode: {
     title: "MirrorCode",
-    body: "Reconstruct medium and large programs from documentation and black-box execution, with complete solves requiring every visible and held-out test to pass.",
+    body: "Reconstruct medium and large programs from docs and black-box execution; all visible and hidden tests must pass.",
     rows: [
       ["Source", "Epoch AI"],
       ["Configuration", "ML, private tests, two languages"],
@@ -373,7 +373,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   mls_bench: {
     title: "MLS-Bench Lite",
-    body: "Improve machine-learning methods across 30 controlled research tasks through iterative experimentation in a five-hour agent environment.",
+    body: "Improve ML methods across 30 controlled research tasks through five hours of experimentation.",
     rows: [
       ["Source", "MLS-Bench"],
       ["Metric", "baseline-normalized performance"],
@@ -382,7 +382,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   omniscience_accuracy: {
     title: "Omniscience",
-    body: "Answer cross-domain factual questions drawn from authoritative sources; the displayed score is the share answered correctly.",
+    body: "Factual questions from authoritative sources, scored by accuracy.",
     rows: [
       ["Source", "Artificial Analysis"],
       ["Role", "knowledge accuracy"],
@@ -390,7 +390,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   perception_bench: {
     title: "PerceptionBench",
-    body: "Answer 3,000 short visual questions isolating counting, localization, OCR, depth, relations, and five other atomic perception capabilities.",
+    body: "Answer 3,000 visual questions testing 10 skills, including counting, localization, OCR, depth, and relations.",
     rows: [
       ["Source", "Moonshot AI"],
       ["Metric", "overall accuracy"],
@@ -399,7 +399,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   programbench: {
     title: "ProgramBench",
-    body: "Write executable programs from natural-language requirements, scored by behavioral tests.",
+    body: "Write programs from natural-language requirements, scored by behavioral tests.",
     rows: [
       ["Source", "Vals AI"],
       ["Metric", "almost resolved (at least 95% of tests)"],
@@ -408,7 +408,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   proofbench: {
     title: "ProofBench",
-    body: "Write Lean 4 proofs for graduate and advanced-undergraduate mathematics problems, accepted only when they compile.",
+    body: "Write compiling Lean 4 proofs for graduate and advanced-undergraduate mathematics.",
     rows: [
       ["Source", "Vals AI"],
       ["Metric", "overall compiler-verified accuracy"],
@@ -417,7 +417,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   public_benefits_bench: {
     title: "Public Benefits Bench",
-    body: "Answer realistic SNAP eligibility and policy questions using web research, follow-up questions, and expert-validated rubrics.",
+    body: "Answer SNAP eligibility and policy questions through web research and follow-ups, graded by expert-validated rubrics.",
     rows: [
       ["Source", "Vals AI"],
       ["Metric", "overall accuracy"],
@@ -426,7 +426,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   riemann_bench: {
     title: "Riemann-bench",
-    body: "Solve private, research-level mathematics problems designed to remain difficult for frontier models.",
+    body: "Solve private research-level mathematics problems.",
     rows: [
       ["Source", "Surge AI"],
       ["Role", "frontier math reasoning"],
@@ -434,7 +434,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   scicode: {
     title: "SciCode",
-    body: "Implement scientific Python solutions for expert-written problems, scored by unit-tested subproblems.",
+    body: "Solve expert-written scientific Python problems, graded by subproblem unit tests.",
     rows: [
       ["Source", "Artificial Analysis"],
       ["Role", "structured code reasoning"],
@@ -442,7 +442,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   simpleqa_verified: {
     title: "SimpleQA Verified",
-    body: "Answer 1,000 short fact-seeking questions across broad general-knowledge domains under Epoch's anti-abstention methodology.",
+    body: "Answer 1,000 general-knowledge questions under Epoch's anti-abstention methodology.",
     rows: [
       ["Source", "Epoch AI"],
       ["Metric", "reference-grounded accuracy"],
@@ -452,7 +452,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   spatialviz: {
     title: "SpatialViz-Bench",
-    body: "Mentally rotate, fold, penetrate, and animate visual structures across controlled spatial-transformation tasks.",
+    body: "Mentally rotate, fold, penetrate, and animate visual structures.",
     rows: [
       ["Source", "CAIS AI Dashboard"],
       ["Metric", "dashboard accuracy"],
@@ -461,7 +461,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   sre_bench: {
     title: "SRE Bench",
-    body: "Reverse engineer protected binary programs and recover their behavior across substantive objectives with deterministic grading.",
+    body: "Recover protected binary programs' behavior through reverse engineering, with deterministic grading.",
     rows: [
       ["Source", "Vals AI"],
       ["Metric", "Capability Score"],
@@ -471,7 +471,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   superchem: {
     title: "SUPERChem",
-    body: "Solve 500 expert-curated chemistry problems in the multimodal release set.",
+    body: "Solve 500 expert-curated multimodal chemistry problems.",
     rows: [
       ["Source", "Mercor; Peking University benchmark"],
       ["Metric", "reported Pass@1"],
@@ -480,7 +480,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   surge_intelligence_index: {
     title: "Surge Intelligence Index",
-    body: "Aggregate capability index across Surge's professional reasoning, agentic, writing, and expert-preference benchmarks.",
+    body: "Combined professional reasoning, agentic, writing, and expert-preference benchmarks.",
     rows: [
       ["Source", "Surge AI"],
       ["Role", "broad capability index"],
@@ -488,7 +488,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   tau_banking: {
     title: "tau3 Banking",
-    body: "Resolve realistic banking-support scenarios by applying policy and coordinating multi-step tool calls with the customer.",
+    body: "Resolve banking-support cases using policy, multi-step tools, and customer interaction.",
     rows: [
       ["Source", "Artificial Analysis"],
       ["Role", "banking agent work"],
@@ -496,7 +496,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   terminal_bench_4: {
     title: "Terminal-Bench 4.0",
-    body: "Complete difficult software, infrastructure, data, and technical workflows inside containerized terminal environments.",
+    body: "Complete difficult software, infrastructure, data, and technical tasks in containerized terminals.",
     rows: [
       ["Source", "Terminal-Bench 4.0"],
       ["Metric", "task accuracy"],
@@ -505,7 +505,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   terminal_bench_science: {
     title: "Terminal-Bench-Science 0.1",
-    body: "Solve difficult scientific research tasks in terminal environments by constructing and verifying correct analytical artifacts.",
+    body: "Solve scientific research tasks by building and verifying analytical artifacts in terminals.",
     rows: [
       ["Source", "Terminal-Bench-Science 0.1"],
       ["Metric", "resolution rate"],
@@ -514,7 +514,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   textquests: {
     title: "TextQuests",
-    body: "Explore stateful text adventures through long-horizon planning, trial and error, state tracking, and recovery.",
+    body: "Navigate long text adventures through planning, trial and error, state tracking, and recovery.",
     rows: [
       ["Source", "CAIS AI Dashboard"],
       ["Metric", "no-clues mean game progress"],
@@ -523,7 +523,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   toolathlon: {
     title: "Toolathlon",
-    body: "Complete long-horizon real-world tasks that require selecting and coordinating many external tools.",
+    body: "Complete long real-world tasks by coordinating external tools.",
     rows: [
       ["Source", "LLM Stats / ZeroEval"],
       ["Role", "multi-tool agent work"],
@@ -539,7 +539,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   vending_bench_2: {
     title: "Vending-Bench 2",
-    body: "Run a simulated vending-machine business for one year by managing inventory, suppliers, pricing, and cash flow.",
+    body: "Run a simulated vending business for a year: inventory, suppliers, pricing, and cash flow.",
     rows: [
       ["Source", "Andon Labs"],
       ["Role", "long-horizon business operation"],
@@ -547,7 +547,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   vibe_code: {
     title: "Vibe Code",
-    body: "Build complete web applications from natural-language specifications, scored through browser-based interaction tests.",
+    body: "Build web apps from natural-language specs, graded by browser interaction tests.",
     rows: [
       ["Source", "Vals AI"],
       ["Metric", "overall accuracy"],
@@ -556,7 +556,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   voxelbench: {
     title: "VoxelBench",
-    body: "Construct coherent 3D voxel scenes from text prompts, judged through anonymous community comparisons. Spatial reasoning and construction execution contribute equally; generation and voting methodology remain less transparent than verifier-based benchmarks.",
+    body: "Build 3D voxel scenes from text, judged in anonymous community comparisons. Spatial reasoning and construction count equally; generation and voting are less transparent than verifier-based grading.",
     rows: [
       ["Source", "VoxelBench"],
       ["Metric", "text-prompt Glicko-2 rating; at least 50 votes"],
@@ -566,7 +566,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   weirdml: {
     title: "WeirdML",
-    body: "Train PyTorch models on novel datasets and iteratively improve them using execution feedback.",
+    body: "Train and refine PyTorch models on novel datasets using execution feedback.",
     rows: [
       ["Source", "WeirdML"],
       ["Role", "iterative ML engineering"],

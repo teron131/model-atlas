@@ -162,8 +162,9 @@ export function BenchmarkSelect({
             />
           </label>
           <p className={styles.benchmarkSelectExplainer}>
-            Choose one source for native units, or several for normalized performance. CORR compares
-            each source with Intelligence.
+            {
+              "One source: native units. Multiple: normalized performance. CORR: correlation with Intelligence."
+            }
           </p>
           <div className={styles.benchmarkSelectOptions}>
             <div className={styles.benchmarkSelectHeader} role="row">
