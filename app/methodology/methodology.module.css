@@ -1,16 +1,12 @@
 /** Editorial documentation layout and Markdown typography for Model Atlas. */
 
 .page {
-  --document-article-width: 800px;
+  --document-tab-height: 48px;
   --document-navigation-width: 190px;
   --document-column-gap: clamp(20px, 3vw, 40px);
   position: relative;
   z-index: 1;
   padding-bottom: 112px;
-}
-
-.mobileToolbar {
-  display: none;
 }
 
 /* Square borderless instrument button, matching the shared header controls in globals.css. */
@@ -50,12 +46,6 @@
   width: 18px;
   height: 18px;
   stroke-width: 1.9;
-}
-
-.mobileHomeLink {
-  min-width: 0;
-  min-height: var(--dashboard-icon-button-size);
-  flex: 1;
 }
 
 .documentNavigationLayer {
@@ -206,7 +196,7 @@
   grid-template-areas:
     "documents"
     "article";
-  grid-template-columns: minmax(0, var(--document-article-width));
+  grid-template-columns: minmax(0, 1fr);
   row-gap: 12px;
   justify-content: start;
   align-items: start;
@@ -217,14 +207,30 @@
     "documents documents"
     "article navigation";
   grid-template-columns:
-    minmax(0, var(--document-article-width))
+    minmax(0, 1fr)
     var(--document-navigation-width);
   column-gap: var(--document-column-gap);
 }
 
 .documentNav {
   grid-area: documents;
+  display: flex;
   min-width: 0;
+  border-top: 1px solid var(--line-strong);
+  border-bottom: 1px solid var(--line-strong);
+  background: var(--paper);
+}
+
+.contentsToggle {
+  width: var(--document-tab-height);
+  height: auto;
+  min-height: calc(var(--document-tab-height) - 2px);
+  border-left: 1px solid var(--line);
+}
+
+.contentsToggle[aria-expanded="true"] {
+  color: var(--ink);
+  box-shadow: inset 0 -2px 0 var(--ink);
 }
 
 .outline {
@@ -253,11 +259,11 @@
 /* The document strip uses ruled measurement labels, with the current route carrying a full ink rule. */
 .documentNav ul {
   display: flex;
+  min-width: 0;
+  flex: 1;
   gap: 0;
   overflow-x: auto;
   overscroll-behavior-x: contain;
-  border-top: 1px solid var(--line-strong);
-  border-bottom: 1px solid var(--line-strong);
   scrollbar-width: none;
 }
 
@@ -364,7 +370,6 @@
 }
 
 .article > h1 {
-  max-width: 18ch;
   margin: 0;
   font-size: var(--type-document-title-size);
   font-weight: var(--type-heading-weight);
@@ -412,13 +417,6 @@
   color: color-mix(in srgb, var(--ink) 86%, var(--muted));
 }
 
-.article > p,
-.article > ul,
-.article > ol,
-.article > blockquote {
-  max-width: 68ch;
-}
-
 .article strong {
   color: var(--ink);
   font-weight: 650;
@@ -451,6 +449,63 @@
 
 .article li::marker {
   color: var(--faint);
+}
+
+.flowchart > ol {
+  margin: 28px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.flowchart > ol > li {
+  position: relative;
+  margin: 0;
+  padding: 0 0 28px 32px;
+  overflow-wrap: anywhere;
+}
+
+.flowchart > ol > li:last-child {
+  padding-bottom: 0;
+}
+
+.flowchart > ol > li::before {
+  position: absolute;
+  top: 0.6em;
+  left: 3px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ink);
+  content: "";
+}
+
+.flowchart > ol > li:not(:last-child)::after {
+  position: absolute;
+  top: calc(0.6em + 13px);
+  bottom: 8px;
+  left: 3px;
+  width: 7px;
+  background: var(--muted);
+  clip-path: polygon(
+    42% 0,
+    58% 0,
+    58% calc(100% - 5px),
+    100% calc(100% - 9px),
+    100% calc(100% - 6px),
+    50% 100%,
+    0 calc(100% - 6px),
+    0 calc(100% - 9px),
+    42% calc(100% - 5px)
+  );
+  content: "";
+}
+
+.flowchart > ol > li > p {
+  margin: 0;
+}
+
+.flowchart > ol > li > p:first-child {
+  margin-bottom: 4px;
 }
 
 .article h2[id="pipeline-overview"] + p + ol {
@@ -547,10 +602,6 @@
   color: var(--muted);
 }
 
-.article > p:has(.figure) {
-  max-width: none;
-}
-
 .figure {
   display: block;
   margin: 30px 0 36px;
@@ -572,7 +623,6 @@
 
 .figure > span:last-child:not(.figureViewport) {
   display: block;
-  max-width: 68ch;
   margin-top: 12px;
   color: var(--muted);
   font-size: 13px;
@@ -633,36 +683,19 @@
     padding-bottom: 72px;
   }
 
+  /* Keep reading controls fixed on narrow screens using the same header and content inset as other pages. */
   .page :global(.dashboard-header) {
-    display: none;
-  }
-
-  .mobileToolbar {
     position: fixed;
-    inset: 0 0 auto;
+    inset: 0 var(--page-gutter) auto;
     z-index: 50;
-    display: flex;
-    box-sizing: border-box;
-    height: calc(var(--header-height) + env(safe-area-inset-top));
-    align-items: center;
-    gap: 10px;
-    padding: env(safe-area-inset-top) var(--page-gutter) 0;
-    border-bottom: 1px solid var(--line);
-    background: color-mix(in srgb, var(--paper) 92%, transparent);
-    backdrop-filter: blur(14px);
+    width: auto;
+    background: var(--paper);
   }
 
-  .mobileToolbarTitle {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .mobileToolbarActions {
-    display: flex;
-    align-items: center;
-    gap: 2px;
+  .documentNav {
+    position: sticky;
+    top: calc(var(--header-height) + env(safe-area-inset-top));
+    z-index: 50;
   }
 
   .documentNavigationLayer {
@@ -670,11 +703,11 @@
   }
 
   .documentNavigationBackdrop {
-    inset: calc(var(--header-height) + env(safe-area-inset-top)) 0 0;
+    inset: calc(var(--header-height) + var(--document-tab-height) + env(safe-area-inset-top)) 0 0;
   }
 
   .documentNavigationPanel {
-    top: calc(var(--header-height) + env(safe-area-inset-top));
+    top: calc(var(--header-height) + var(--document-tab-height) + env(safe-area-inset-top));
     bottom: 0;
   }
 
@@ -693,7 +726,9 @@
   .article h2,
   .article h3,
   .article h4 {
-    scroll-margin-top: calc(var(--header-height) + 12px + env(safe-area-inset-top));
+    scroll-margin-top: calc(
+      var(--header-height) + var(--document-tab-height) + 12px + env(safe-area-inset-top)
+    );
   }
 
   .tableViewport,

@@ -506,7 +506,9 @@ function benchmarkObservations(rows: PayloadRows): BenchmarkObservationsByKey {
         ...(totalCostUsd == null ? {} : { total_cost_usd: totalCostUsd }),
         ...(totalTokens == null ? {} : { total_tokens: totalTokens }),
         observed_at: stringValue(row.observed_at),
-        ...(metadata?.observation_role == null ? {} : { metadata }),
+        ...(metadata?.observation_role == null && metadata?.benchmark_count == null
+          ? {}
+          : { metadata }),
       });
     }
     observations[benchmark] = benchmarkRows;

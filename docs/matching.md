@@ -20,13 +20,13 @@ Candidate scoring uses only identity-bearing fields:
 - candidate provider and model IDs
 - candidate provider and display names
 
-Benchmark scores, prices, release dates, and other non-identity fields cannot influence the match.
+Benchmark scores and prices do not influence matching. Publisher identity and explicit release labels constrain which candidates are eligible before name scoring. A generic model launch date does not identify the evaluated snapshot or authorize replacing it with a later version.
 
 ## Normalization
 
-Each name is lowercased and converted to a comparable hyphenated form. Dots, spaces, colons, and underscores become separators; unusual characters are removed; repeated separators collapse; and leading or trailing separators are trimmed.
+Normalization removes spelling differences so equivalent names can be compared without erasing version or size distinctions. Names are lowercased and hyphenated: dots, spaces, colons, and underscores become separators, unusual characters are removed, repeated separators collapse, and leading or trailing separators are trimmed.
 
-The normalized name is then split into tokens. Mixed alphanumeric pieces are separated so versions and parameter scales can be compared directly. Route and serving labels that usually do not define the underlying model are ignored: `free`, `extended`, `exacto`, `instruct`, `vl`, `thinking`, `reasoning`, `online`, and `nitro`.
+The normalized name is then split into tokens. Mixed alphanumeric pieces are separated so versions and parameter scales can be compared directly. Route and serving labels that usually do not define the underlying model are ignored: `free`, `extended`, `exacto`, `instruct`, `thinking`, `reasoning`, `preview`, `online`, and `nitro`. Preview spelling alone does not establish a separate identity, but conflicting releases and model versions remain distinct. Full and abbreviated month labels normalize together, while `+` is preserved as `plus`.
 
 Three token classes receive special treatment:
 
@@ -38,11 +38,13 @@ Versions and parameter scales can identify different models even when the surrou
 
 ## Candidate Pool
 
-For each source slug, the matcher collects candidates from the preferred `models.dev` provider pools. OpenRouter routes and trusted direct-provider identities enter the same ranked pool, allowing an exact direct identity to beat a weak OpenRouter alias.
+Candidate eligibility is checked before name similarity, so a convincing name cannot override a conflicting publisher or release. For each source slug, the matcher collects candidates from the preferred `models.dev` provider pools. OpenRouter routes and trusted direct-provider identities enter the same ranked pool, allowing an exact direct identity to beat a weak OpenRouter alias.
+
+Qualified source and catalog IDs establish publisher ownership, with organization aliases such as Alibaba/Qwen reconciled first. A conflicting publisher excludes the candidate even if its name closely resembles the source; a serving platform name alone does not establish model ownership.
+
+An explicit year-bearing version or named release month must agree with the candidate’s dated version, release label, or catalog release metadata. An undated catalog alias cannot establish a specifically dated source release. Month labels compare at month precision, while daily dates allow the adjacent calendar date used by some sources for the same launch. These checks run before candidate ranking and truncation, and Timeline uses the same release and publisher rules.
 
 The first token is an early family guardrail. A source and candidate that begin with different model-family tokens are not compared further.
-
-OpenRouter remains the preferred public identity only when its candidate actually wins. Route availability does not override a stronger identity match.
 
 ## Candidate Score
 
@@ -68,27 +70,9 @@ The strongest penalties are:
 
 A candidate is rejected when it has no normalized character-prefix overlap, conflicts on a hard parameter scale, conflicts on a leading numeric identity, receives a non-positive score, or fails the first-token family guardrail. Version-prefix conflicts are also hard failures: a source version `3` does not match `3.5`, and `3.5` does not match `3`.
 
-## Relative Cutoff
-
-After choosing the best candidate for each source row, the matcher checks for unusually weak winners within that batch. The lowest best-match score $s_{\min}$ and highest $s_{\max}$ set the relative cutoff:
-
-$$
-s_{\text{cutoff}}=s_{\min}+0.35(s_{\max}-s_{\min}).
-$$
-
-The example below replays the complete cached source batch from the saved snapshot, using the current matcher and its normal catalog selection, provider preference, and version-replacement rules. All **643 source rows** enter the run against **572 selected catalog candidates**. This is a full cached-data replay, not a hand-picked matching batch or a fresh live scrape.
-
-Of those source rows, **370 have a compatible candidate before the relative cutoff**. Their global minimum score is **4.12** and their global maximum is **54.71**, giving **21.83** as the cutoff. Here “global” means across all pre-cutoff winners in this run; it does not mean fixed bounds of the scoring algorithm. The 273 rows without a compatible winner contribute no score, rather than zero.
-
-![Highlighted examples from the complete 643-row replay: the actual minimum and maximum, an exact identity retained below cutoff, and a reordered identity retained above it.](assets/methodology/matching-relative-cutoff.svg)
-
-The filter discards **47** winners and retains **323**. The weak `gpt-4o-chatgpt-03-25` candidate shares a family prefix with `openai/gpt-oss-safeguard-20b`, but its score is the batch minimum and the cutoff removes it. The matching `claude-sonnet-4-6` identity supplies the maximum. `inkling` scores only **16.41**, yet remains matched because exact normalized identities are exempt from relative rejection. These are actual outputs of this replay; passing the matcher is not an independent guarantee of identity correctness.
-
-The highlighted examples are selected after the full run and do not determine its minimum or maximum. Changing the complete source batch or catalog can change the range and cutoff. Structural alias recognition and exact normalized identity are distinct checks, so not every recognized alias receives the exemption.
-
 ## Variant Guardrail
 
-After ranking, the matcher checks labels that distinguish important variants, including `flash-lite`, `flash`, `pro`, `nano`, `mini`, `lite`, `max`, `image`, `vl`, `coder`, `small`, `micro`, `codex`, `omni`, `multi-agent`, and `latest`.
+Similar names can identify different variants. After ranking and before the batch cutoff, the matcher checks distinguishing labels, including `flash-lite`, `flash`, `pro`, `nano`, `mini`, `lite`, `max`, `image`, `vl`, `coder`, `small`, `micro`, `codex`, `omni`, `multi-agent`, and `latest`.
 
 If the source has one of these labels and the candidate does not, or the candidate has one and the source does not, the candidate is rejected. Multi-token labels remain distinct, so `flash-lite` does not count as plain `flash`.
 
@@ -96,17 +80,35 @@ Reasoning effort is a configuration of the base model, so its suffix is removed 
 
 Benchmark-update health uses the same ranking and variant boundary with stricter full-token coverage. A source row therefore remains explicitly unrepresented when only a weak family-prefix candidate exists.
 
+## Relative Cutoff
+
+The best candidate can still be a poor match. After selecting a compatible winner for each source row, the matcher rejects unusually weak winners relative to the batch. Its minimum and maximum winning scores set the cutoff:
+
+$$
+s_{\text{cutoff}}=s_{\min}+0.35(s_{\max}-s_{\min}).
+$$
+
+The factor $0.35$ places the cutoff 35% of the way from the lowest winning score to the highest. It is a fixed heuristic, not a confidence level or a rule to reject 35% of rows. Exact normalized identities are exempt; rows without a compatible winner do not enter the range.
+
+The illustration uses a historical cached replay of **643 source rows** against **572 catalog candidates**, recorded before the publisher and release eligibility checks were added. It demonstrates the cutoff, not the current matcher's accuracy.
+
+![Historical replay before publisher and release guards: the minimum and maximum winning scores set the cutoff; an exact identity survives below it, and a reordered identity survives above it.](assets/methodology/matching-relative-cutoff.svg)
+
+Of the 643 rows, **370** have compatible winners with scores from **4.12** to **54.71**, producing a cutoff of **21.83**. The other 273 rows contribute no score. The cutoff removes **47** winners and retains **323**; the exact `inkling` identity survives despite scoring **16.41**. The graph's examples are selected after the full replay and do not determine its bounds.
+
+Changing the source batch or catalog can change the range and cutoff. Recognizing a structural alias is different from establishing an exact normalized identity, so not every alias receives the exemption. An accepted match still depends on the quality of the identity evidence.
+
 ## Claude Identity
 
 Claude tier and version are structural identity fields even though Anthropic has changed their order over time. Historical forms such as `Claude 3 Opus` and `claude-3-opus` normalize with `Claude Opus 3`, while the compact `claude-35-sonnet` form resolves to Claude Sonnet 3.5. Current route names can also match reordered dated permaslugs when the tier and version agree.
 
 The tiers `haiku`, `sonnet`, `opus`, and `fable` are mutually exclusive. When the correct tier is unavailable, the source row remains unmatched rather than borrowing another Claude tier.
 
-Dates and route labels do not define the base model. Reasoning and configuration labels remain separate observations. A missing source `reasoning_effort` stays null; the matcher does not infer an effort from a display name or choose among unlabelled observations by benchmark score.
+Reordered names still have to satisfy the publisher, release, and variant checks. Reasoning configurations retain separate observations. A missing source `reasoning_effort` stays null; the matcher does not infer an effort from a display name or select an unlabelled observation by benchmark score.
 
 ## Release Proximity for Resource Estimation
 
-The [tiered resource fallback](methodology.md#tiered-resource-fallback) narrows its evidence from all models to the same lab, then to nearby releases within that lab, and finally to the target model's own effort measurements. Each tier narrows the preceding scope while retaining a regularized fallback to broader evidence. This makes the policy applicable across labs without name-specific classifications, even when its measured predictions are similar. It does not merge identities or attach another model's measurements.
+Release proximity helps estimate missing resources; it does not establish model identity. The [tiered resource fallback](methodology.md#tiered-resource-fallback) starts with broad evidence, then applies supported corrections from the same lab, nearby releases, and the target model's own effort measurements. Sparse local evidence retains the broader estimate instead of defining an unstable correction.
 
 Release proximity uses a Gaussian weight centered on the target model's release date, with a standard deviation of 60 days. Both earlier and later releases can contribute; the weight depends on their distance from the target date, not their age today. There is no hard date cutoff or model-name classification. Missing or invalid dates leave the broader lab correction intact. Missing lab identity prevents both lab and release-neighborhood corrections.
 

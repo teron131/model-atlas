@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 96 760 285" role="img" aria-labelledby="title desc">
+<title id="title">Observed overlaps connect benchmark generations</title>
+<desc id="desc">An earlier model group is measured on the old and middle benchmarks. A later group is measured on the middle and new benchmarks. A future model measured only on the new benchmark inherits the original scale through those retained overlaps.</desc>
+<style>
+text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; }
+@media (prefers-color-scheme:dark) {
+text { fill:#ffffff; }
+[fill="#63706e"] { fill:#a6b2ae; } [stroke="#63706e"] { stroke:#a6b2ae; }
+[fill="#b5bfbc"] { fill:#3c4846; } [stroke="#b5bfbc"] { stroke:#3c4846; }
+[fill="#146cba"] { fill:#85bfff; } [stroke="#146cba"] { stroke:#85bfff; }
+[fill="#a64d0c"] { fill:#ffbc7d; } [stroke="#a64d0c"] { stroke:#ffbc7d; }
+}
+</style>
+<line x1="232" y1="130" x2="414" y2="130" stroke="#63706e" stroke-width="1.5"/>
+<path d="M407 126 L414 130 L407 134" fill="none" stroke="#63706e" stroke-width="1.5"/>
+<line x1="442" y1="130" x2="624" y2="130" stroke="#63706e" stroke-width="1.5"/>
+<path d="M617 126 L624 130 L617 134" fill="none" stroke="#63706e" stroke-width="1.5"/>
+<circle cx="220" cy="130" r="7" fill="#146cba"/>
+<text x="220" y="166" font-size="17" fill="#000000" text-anchor="middle" font-weight="600">Old benchmark</text>
+<circle cx="430" cy="130" r="7" fill="#146cba"/>
+<text x="430" y="166" font-size="17" fill="#000000" text-anchor="middle" font-weight="600">Middle benchmark</text>
+<circle cx="640" cy="130" r="7" fill="#a64d0c"/>
+<text x="640" y="166" font-size="17" fill="#000000" text-anchor="middle" font-weight="600">New benchmark</text>
+<text x="220" y="191" font-size="14" fill="#63706e" text-anchor="middle" font-weight="400">Published mapping</text>
+<text x="430" y="191" font-size="14" fill="#63706e" text-anchor="middle" font-weight="400">Retained connection</text>
+<text x="640" y="191" font-size="14" fill="#63706e" text-anchor="middle" font-weight="400">Same reference unit</text>
+<line x1="40" y1="217" x2="720" y2="217" stroke="#b5bfbc"/>
+<text x="40" y="262" font-size="16" fill="#000000" text-anchor="start" font-weight="400">Earlier models</text>
+<circle cx="220" cy="257" r="5" fill="#146cba"/>
+<circle cx="430" cy="257" r="5" fill="#146cba"/>
+<text x="40" y="311" font-size="16" fill="#000000" text-anchor="start" font-weight="400">Later models</text>
+<circle cx="430" cy="306" r="5" fill="#146cba"/>
+<circle cx="640" cy="306" r="5" fill="#146cba"/>
+<text x="40" y="360" font-size="16" fill="#000000" text-anchor="start" font-weight="400">Future model</text>
+<circle cx="640" cy="355" r="5" fill="#a64d0c"/>
+</svg>

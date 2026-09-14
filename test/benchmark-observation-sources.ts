@@ -38,9 +38,17 @@ assert.deepEqual(parseCsvRecords('name,note\r\n"A, B","line 1\nline ""2"""\r\n')
 const eci = processEpochCapabilitiesIndexCsv(
   "Model,Display name,eci,eci_ci_low,eci_ci_high,date,Organization,Country (of organization),Model accessibility,Accessibility group,model_versions\n" +
     "gpt-5.6-sol,GPT-5.6 Sol,161.77,159.26,166.01,2026-07-09,OpenAI,US,API,Hosted,v1\n",
+  undefined,
+  "Model,benchmark_id,benchmark,performance\ngpt-5.6-sol,b1,Zero task,0\ngpt-5.6-sol,b1,Zero task,0.2\ngpt-5.6-sol,b2,Another task,0.8\ngpt-5.6-sol,b3,Missing,\ngpt-5.6-sol,b4,Invalid,NaN\ngpt-5.6-sol-high,b5,Other configuration,1\n",
 );
 assert.equal(eci[0]?.canonical_value, 161.77);
 assert.equal(eci[0]?.observed_at, "2026-07-09");
+assert.equal(eci[0]?.metadata.benchmark_count, 2);
+assert.deepEqual(eci[0]?.metadata.benchmarks, ["Zero task", "Another task"]);
+assert.equal(
+  processEpochCapabilitiesIndexCsv("Model,eci\nUnknown,110\n")[0]?.metadata.benchmark_count,
+  null,
+);
 
 const epochRuns = parseCsvRecords(
   "id_runs,task,model,Best score (across scorers),started_at,Status,task version,id_model_version,Display name,Unique display name,Organization,mean_score,stderr,best_score,original_task_name,Scores\n" +

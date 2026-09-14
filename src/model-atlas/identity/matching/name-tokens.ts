@@ -1,5 +1,7 @@
 /** Matcher tokenization strips non-identity labels while preserving model scale and version evidence. */
+
 import { modelSlugFromModelId, normalizeModelToken } from "../normalization";
+import { normalizedDateLabel } from "../releases";
 
 const MODEL_NAME_TAG_TOKENS = new Set([
   "free",
@@ -30,7 +32,7 @@ function splitMixedAlphaNumericToken(token: string): string[] {
 }
 
 export function splitTokens(value: string): string[] {
-  return normalizeModelToken(value)
+  return normalizeModelToken(normalizedDateLabel(value).replaceAll("+", " plus "))
     .split("-")
     .flatMap((token) => splitMixedAlphaNumericToken(token))
     .filter((token) => token && !MODEL_NAME_TAG_TOKENS.has(token));

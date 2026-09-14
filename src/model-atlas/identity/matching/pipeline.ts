@@ -2,6 +2,8 @@
 
 import { asRecord } from "../../runtime";
 import { FALLBACK_PROVIDER_IDS, modelSlugFromModelId, PRIMARY_PROVIDER_ID } from "../normalization";
+import { modelProviderIdentity, providerIdentityKey } from "../provider";
+import { releaseLabelPeriod, sameRelease, versionDate } from "../releases";
 import { modelNameIdentityKey } from "./name-tokens";
 import {
   artificialAnalysisMatchSlug,
@@ -24,23 +26,44 @@ import type {
 const DEFAULT_MAX_CANDIDATES = 5;
 const VOID_THRESHOLD_RANGE_RATIO = 0.35;
 
-/** Collect candidate models.dev rows for a normalized source slug. */
+/** Resolve source identity once per pool, excluding publisher and release conflicts before ranking candidates. */
 function collectCandidatesForSourceSlug(
   sourceSlug: string,
+  source: MatcherSourceModel,
   modelsDevModels: ModelsDevModel[],
 ): MatchCandidate[] {
+  const sourceProvider = source.sourceProvider
+    ? providerIdentityKey(source.sourceProvider)
+    : modelProviderIdentity(source.sourceId ?? "");
+  // Generic launch dates do not identify an evaluated snapshot.
+  const sourcePeriod =
+    versionDate(source.matchSlugOverride ?? source.sourceSlug) ??
+    releaseLabelPeriod(source.sourceName ?? "");
   return rankMatchCandidates(
     sourceSlug,
-    modelsDevModels.map((modelsDevModel) => {
-      const modelsDevModelName =
-        typeof modelsDevModel.model.name === "string" ? modelsDevModel.model.name : "";
-      return {
-        model_id: modelsDevModel.model_id,
-        provider_id: modelsDevModel.provider_id,
-        provider_name: modelsDevModel.provider_name,
-        model_name: modelsDevModelName || null,
-      };
-    }),
+    modelsDevModels
+      .filter((candidate) => {
+        const provider = modelProviderIdentity(candidate.model_id, candidate.provider_id);
+        if (sourceProvider && provider && sourceProvider !== provider) return false;
+        if (!sourcePeriod) return true;
+        const period =
+          versionDate(candidate.model_id) ??
+          releaseLabelPeriod(candidate.model.name ?? "") ??
+          (typeof candidate.model.release_date === "string"
+            ? versionDate(candidate.model.release_date)
+            : null);
+        return period != null && sameRelease(sourcePeriod, period);
+      })
+      .map((modelsDevModel) => {
+        const modelsDevModelName =
+          typeof modelsDevModel.model.name === "string" ? modelsDevModel.model.name : "";
+        return {
+          model_id: modelsDevModel.model_id,
+          provider_id: modelsDevModel.provider_id,
+          provider_name: modelsDevModel.provider_name,
+          model_name: modelsDevModelName || null,
+        };
+      }),
   );
 }
 
@@ -94,8 +117,16 @@ export function runMatcher(
   );
   const models = sourceModels.map((sourceModel, index) => {
     const matchSlug = matchSlugs[index] ?? "";
-    const primaryCandidates = collectCandidatesForSourceSlug(matchSlug, providerPools.primary);
-    const fallbackCandidates = collectCandidatesForSourceSlug(matchSlug, providerPools.fallback);
+    const primaryCandidates = collectCandidatesForSourceSlug(
+      matchSlug,
+      sourceModel,
+      providerPools.primary,
+    );
+    const fallbackCandidates = collectCandidatesForSourceSlug(
+      matchSlug,
+      sourceModel,
+      providerPools.fallback,
+    );
     const candidates = (
       primaryCandidates.length === 0
         ? fallbackCandidates
@@ -152,6 +183,7 @@ export function buildMatchDiagnostics(options: MatchDiagnosticsOptions): MatchDi
     return {
       sourceId: modelId,
       sourceSlug,
+      sourceProvider: modelProviderIdentity(modelId ?? ""),
       matchSlugOverride:
         modelId == null ? undefined : options.matchSlugOverridesBySourceId?.get(modelId),
       sourceName: typeof scrapedRowRecord.name === "string" ? scrapedRowRecord.name : null,

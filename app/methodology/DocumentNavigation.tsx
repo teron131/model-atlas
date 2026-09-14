@@ -69,7 +69,7 @@ export function DocumentNavigation({
                 href={documentHref(item.slug)}
                 prefetch={false}
                 aria-current={item.slug === activeDocument ? "page" : undefined}
-                onClick={onClose}
+                onClick={isSheet ? onClose : undefined}
               >
                 <span>{item.title}</span>
                 <small>{item.description}</small>
@@ -79,7 +79,7 @@ export function DocumentNavigation({
         </ul>
       </nav>
 
-      <DocumentOutline items={outline} onNavigate={onClose} />
+      <DocumentOutline items={outline} onNavigate={isSheet ? onClose : undefined} />
     </>
   );
 

@@ -1,6 +1,8 @@
 /** Aggregate-index policy owns breadth, effort eligibility, component overlap, and resource semantics; consumers supply observed evidence. */
 
+import { canonicalReasoningEffort } from "../identity/normalization";
 import { medianOfFinite } from "../math-utils";
+import { asFiniteNumber, asRecord } from "../runtime";
 import type { BenchmarkPortfolioEntry, BenchmarkResourcePolicy } from "./factory";
 
 type IndexPolicy = {
@@ -22,10 +24,10 @@ const REPORTED_BREADTH = {
   vals_index: 7,
 } as const;
 
-/** Admission follows the smallest known index breadth; Epoch's inferred breadth is not an input. */
+/** Admission follows complete fixed portfolios, not ECI's minimum publication threshold. */
 export const MINIMUM_REPORTED_INDEX_BREADTH = Math.min(...Object.values(REPORTED_BREADTH));
 
-/** Keep index order stable for presentation and infer Epoch's breadth from the known index counts. */
+/** Keep fixed portfolio breadth separate from ECI's conservative lower bound when model-specific support is unavailable. */
 export const INDEX_POLICIES = {
   aa_intelligence_index: {
     representedBenchmarks: REPORTED_BREADTH.aa_intelligence_index,
@@ -66,7 +68,7 @@ export const INDEX_POLICIES = {
     ],
   },
   epoch_capabilities_index: {
-    representedBenchmarks: requiredMedian(Object.values(REPORTED_BREADTH)),
+    representedBenchmarks: 4,
     effortAware: false,
     resources: null,
     standaloneComponents: [],
@@ -93,9 +95,7 @@ export const INDEX_REPRESENTED_BENCHMARK_COUNTS = Object.fromEntries(
   INDEX_BENCHMARK_KEYS.map((key) => [key, INDEX_POLICIES[key].representedBenchmarks]),
 ) as Record<IndexBenchmarkKey, number>;
 
-export const INDEX_REPRESENTED_BENCHMARK_MEDIAN = requiredMedian(
-  Object.values(INDEX_REPRESENTED_BENCHMARK_COUNTS),
-);
+export const INDEX_REPRESENTED_BENCHMARK_MEDIAN = requiredMedian(Object.values(REPORTED_BREADTH));
 
 export const AA_INDEX_STANDALONE_COMPONENT_KEYS: ReadonlySet<string> = new Set(
   INDEX_POLICIES.aa_intelligence_index.standaloneComponents,
@@ -122,22 +122,52 @@ export function indexPolicy(key: string): IndexPolicy | null {
   return isAggregateIndex(key) ? INDEX_POLICIES[key] : null;
 }
 
+/** Unlabelled indexes remain metadata and admission evidence, rather than substitutes for explicitly labelled variant measurements. */
+export function excludesVariantIndex(model: { reasoning_effort?: unknown }, key: string): boolean {
+  const policy = indexPolicy(key);
+  return (
+    canonicalReasoningEffort(model.reasoning_effort) != null &&
+    policy != null &&
+    !policy.effortAware
+  );
+}
+
+/** Read support from the assigned observation, preserving unknown counts instead of borrowing another model's breadth. */
+export function reportedIndexBenchmarkCount(model: unknown, key: string): number | null {
+  const sources = asRecord(asRecord(model).scoring_sources);
+  const count = asFiniteNumber(asRecord(asRecord(sources[key]).metadata).benchmark_count);
+  return count != null && Number.isInteger(count) && count > 0 ? count : null;
+}
+
 /** Count each included component once, without reconstructing index values or inferring missing observations. */
-export function residualIndexBreadth(key: string, includedKeys: readonly string[] = []): number {
-  if (!isAggregateIndex(key)) return 1;
-  const policy: IndexPolicy = INDEX_POLICIES[key];
+export function residualIndexBreadth(
+  key: string,
+  includedKeys: readonly string[] = [],
+  reportedCount?: number | null,
+): number {
+  const policy = indexPolicy(key);
+  const breadth =
+    reportedCount != null && Number.isInteger(reportedCount) && reportedCount > 0
+      ? reportedCount
+      : (policy?.representedBenchmarks ?? 1);
   const overlap = new Set(
-    includedKeys.filter((candidate) => policy.standaloneComponents.includes(candidate)),
+    includedKeys.filter((candidate) => policy?.standaloneComponents.includes(candidate)),
   ).size;
-  return Math.max(0, policy.representedBenchmarks - overlap);
+  return Math.max(0, breadth - overlap);
 }
 
 /** Apply component overlap to quality only for indexes whose policy explicitly opts into residual proxy weight. */
-export function qualityIndexBreadth(key: string, observedTaskKeys: readonly string[] = []): number {
+export function qualityIndexBreadth(
+  key: string,
+  observedTaskKeys: readonly string[] = [],
+  reportedCount?: number | null,
+): number {
   const policy = indexPolicy(key);
-  return policy?.qualityOverlap === "residual"
-    ? residualIndexBreadth(key, observedTaskKeys)
-    : (policy?.representedBenchmarks ?? 1);
+  return residualIndexBreadth(
+    key,
+    policy?.qualityOverlap === "residual" ? observedTaskKeys : [],
+    reportedCount,
+  );
 }
 
 function requiredMedian(values: readonly number[]): number {

@@ -153,6 +153,21 @@ function admitsWeight(benchmarks: Record<string, number>, minimumObservedWeight:
   });
 }
 assert.equal(admitsWeight({ aa_intelligence_index: 0 }, 10), true);
+assert.equal(admitsWeight({ epoch_capabilities_index: 100 }, 7), false);
+for (const count of [4, 7, 40]) {
+  assert.equal(
+    hasRequiredBenchmarkEvidence(
+      {
+        intelligence: null,
+        benchmarks: { epoch_capabilities_index: 100 },
+        scoring_sources: { epoch_capabilities_index: { metadata: { benchmark_count: count } } },
+      },
+      STAGE_CONFIG.scoring,
+      { minimumObservedWeight: 7, minimumObservedPerDimension: 0 },
+    ),
+    count >= 7,
+  );
+}
 assert.equal(
   admitsWeight({ aa_intelligence_index: 50, hle: 0.5 }, 10.5),
   false,

@@ -155,6 +155,7 @@ main {
 
 .brand-lockup {
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
   gap: 12px;
   color: inherit;
@@ -185,7 +186,8 @@ main {
   letter-spacing: -0.025em;
 }
 
-.header-actions {
+.header-actions,
+.header-routes {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -196,7 +198,6 @@ main {
   align-items: center;
   gap: 7px;
   min-height: var(--dashboard-icon-button-size);
-  margin-top: 2px;
   padding: 0 8px;
   color: color-mix(in srgb, var(--ink) 74%, var(--muted));
   font-family: var(--font-mono);
@@ -216,6 +217,11 @@ main {
   outline: 0;
 }
 
+.header-route[aria-current] {
+  color: var(--ink);
+  box-shadow: inset 0 -2px 0 var(--ink);
+}
+
 .header-route:focus-visible {
   box-shadow: 0 0 0 2px var(--focus-ring);
 }
@@ -225,8 +231,8 @@ main {
 }
 
 .header-route svg {
-  width: 16px;
-  height: 16px;
+  width: var(--dashboard-icon-button-icon-size);
+  height: var(--dashboard-icon-button-icon-size);
   stroke: currentColor;
   stroke-width: var(--dashboard-icon-button-stroke);
 }
@@ -248,7 +254,6 @@ main {
   flex: 0 0 auto;
   width: var(--dashboard-icon-button-size);
   height: var(--dashboard-icon-button-size);
-  margin-top: 2px;
   padding: 0;
   place-items: center;
   border: 0;
@@ -1461,6 +1466,15 @@ td.modality-cell {
 
   .header-icon-button {
     margin-top: 0;
+  }
+
+  .dashboard-header {
+    gap: 8px;
+  }
+
+  .header-actions,
+  .header-routes {
+    gap: 0;
   }
 
   .header-route {

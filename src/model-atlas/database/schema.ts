@@ -5,7 +5,7 @@ import { dirname, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
 import { BENCHMARK_VERSION_BASELINE_DATE } from "../config";
-import { archiveCheckpoint, EVIDENCE_ARCHIVE_TABLE } from "./archive";
+import { archiveCheckpoint, compressArchivedEvidence, EVIDENCE_ARCHIVE_TABLE } from "./archive";
 import {
   catalogTableMatchesSchema,
   quoteIdentifier,
@@ -61,6 +61,7 @@ export async function openDatabase(outputPath: string): Promise<DatabaseSync> {
     for (const statement of schemaStatements(schemaSql).filter((sql) => /^PRAGMA\b/i.test(sql))) {
       db.exec(statement);
     }
+    let compressedArchive = false;
     db.exec("BEGIN");
     try {
       // Initialize retention before the first migration can remove any old source tables.
@@ -69,6 +70,7 @@ export async function openDatabase(outputPath: string): Promise<DatabaseSync> {
       );
       if (!archiveSchema) throw new Error("The checkpoint schema must define its evidence archive");
       db.exec(archiveSchema);
+      compressedArchive = compressArchivedEvidence(db, archiveSchema);
       archiveCheckpoint(db);
       const catalogRows = db
         .prepare("SELECT type, name, sql FROM sqlite_master WHERE type IN ('table', 'index')")
@@ -86,6 +88,8 @@ export async function openDatabase(outputPath: string): Promise<DatabaseSync> {
       db.exec("ROLLBACK");
       throw error;
     }
+    // Reclaim the old text pages once, after the replacement and schema changes commit successfully.
+    if (compressedArchive) db.exec("VACUUM");
     return db;
   } catch (error) {
     db.close();

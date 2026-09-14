@@ -1,21 +1,15 @@
 /** Capability score assembly owns benchmark weighting, speed anchors, and confidence. */
 
 import type { BenchmarkDimension } from "../../benchmarks/factory";
-import { indexPolicy, isAggregateIndex, qualityIndexBreadth } from "../../benchmarks/index-policy";
+import {
+  excludesVariantIndex,
+  isAggregateIndex,
+  qualityIndexBreadth,
+  reportedIndexBenchmarkCount,
+} from "../../benchmarks/index-policy";
 import { benchmarkDimensionWeight } from "../../benchmarks/registry";
-import {
-  QUALITY_SCORE_BUCKET_WEIGHTS,
-  type QualityCoverageThresholds,
-  type ScoringConfig,
-} from "../../config/stage";
-import { canonicalReasoningEffort } from "../../identity/normalization";
-import {
-  clamp01,
-  meanOfFinite,
-  quantileFromSorted,
-  smoothstep,
-  weightedMeanOfFinite,
-} from "../../math-utils";
+import { type QualityCoverageThresholds, type ScoringConfig } from "../../config/stage";
+import { clamp01, meanOfFinite, quantileFromSorted, weightedMeanOfFinite } from "../../math-utils";
 import { asFiniteNumber, asRecord, type JsonObject } from "../../runtime";
 import type {
   ModelAtlasCandidateComponentScores,
@@ -23,6 +17,7 @@ import type {
   ModelAtlasSpeed,
 } from "../model-types";
 import { evidenceMassConfidence } from "./normalization";
+import { blendQualityEvidence } from "./quality-blend";
 import {
   normalizedQualityBenchmarkValue,
   type QualityScoringContext,
@@ -38,6 +33,7 @@ type BenchmarkScoreInput = {
   scoreEstimate?: boolean;
   scoreExcluded?: boolean;
   weight: number;
+  representedBenchmarks?: number | null;
 };
 
 type QualityScoreResult = {
@@ -119,17 +115,8 @@ function benchmarkScoreInput(
     scoreEstimate,
     scoreExcluded: excludesVariantIndex(model, key),
     weight,
+    representedBenchmarks: reportedIndexBenchmarkCount(model, key),
   };
-}
-
-/** Unlabelled index observations remain available as metadata and admission evidence, not as substitutes for variant measurements. */
-function excludesVariantIndex(model: { reasoning_effort?: unknown }, key: string): boolean {
-  const policy = indexPolicy(key);
-  return (
-    canonicalReasoningEffort(model.reasoning_effort) != null &&
-    policy != null &&
-    !policy.effortAware
-  );
 }
 
 /** Regularize sparse high quality means toward neutral without rewarding below-neutral results. */
@@ -155,23 +142,16 @@ function indexBlendedQualityScore(
   );
   const observedTaskKeys = tasks.filter(({ observed }) => observed).map(({ key }) => key);
   const indexes = observed.filter(({ key }) => isAggregateIndex(key));
-  const indexMean = weightedMeanOfFinite(
-    indexes.map(({ key, value, weight }) => ({
-      value,
-      weight: weight * qualityIndexBreadth(key, observedTaskKeys),
+  return blendQualityEvidence(
+    tasks,
+    indexes.map((part) => ({
+      ...part,
+      weight:
+        part.weight * qualityIndexBreadth(part.key, observedTaskKeys, part.representedBenchmarks),
     })),
-  );
-  const taskMean = weightedMeanOfFinite(tasks);
-  if (taskMean == null) return indexMean;
-  if (indexMean == null) return taskMean;
-  const progress =
-    fullTaskCount <= 1
-      ? 1
-      : smoothstep((tasks.filter((input) => input.observed).length - 1) / (fullTaskCount - 1));
-  const taskShare =
-    QUALITY_SCORE_BUCKET_WEIGHTS.nonBenchmark +
-    progress * (QUALITY_SCORE_BUCKET_WEIGHTS.benchmark - QUALITY_SCORE_BUCKET_WEIGHTS.nonBenchmark);
-  return taskShare * taskMean + (1 - taskShare) * indexMean;
+    observedTaskKeys.length,
+    fullTaskCount,
+  ).value;
 }
 
 /** Score direct evidence with index support converging to the 80/20 task/index blend; supported sibling estimates enter the task mean without advancing direct coverage. */

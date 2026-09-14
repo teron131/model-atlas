@@ -52,6 +52,70 @@ assert.notEqual(
   modelNameIdentityKey("Gemini 3.5 Pro"),
 );
 
+// Provider identity is a prerequisite, even when another publisher's base model has a stronger name score.
+const publisherMatches = buildMatchDiagnostics({
+  scrapedRows: [
+    { model_id: "nvidia/llama-3-1-nemotron-instruct-70b", name: "Llama 3.1 Nemotron 70B" },
+    { model_id: "meta/llama-3-instruct-8b", name: "Llama 3 8B" },
+    { model_id: "alibaba/qwen3-32b", name: "Qwen3 32B" },
+  ],
+  modelsDevModels: [
+    model("openrouter", "meta-llama/llama-3.1-70b-instruct", "Llama 3.1 70B Instruct"),
+    model("openrouter", "sao10k/l3-lunaris-8b", "Llama 3 8B Lunaris"),
+    model("openrouter", "qwen/qwen3-32b", "Qwen3 32B"),
+  ],
+  matcherConfig: STAGE_CONFIG.matcher,
+});
+assert.deepEqual(
+  publisherMatches.models.map((row) => row.best_match?.model_id ?? null),
+  [null, null, "qwen/qwen3-32b"],
+  "publisher namespaces must block base/fine-tune substitutions while retaining known organization aliases",
+);
+
+const turboReleases = [
+  {
+    ...model("openrouter", "openai/gpt-4-turbo", "GPT-4 Turbo"),
+    model: { name: "GPT-4 Turbo", release_date: "2023-11-06" },
+  },
+  {
+    ...model("openai", "gpt-4-turbo-2024-04-09", "GPT-4 Turbo"),
+    model: { name: "GPT-4 Turbo", release_date: "2024-04-09" },
+  },
+];
+const releaseMatches = buildMatchDiagnostics({
+  scrapedRows: [
+    {
+      model_id: "openai/gpt-4-turbo",
+      name: "GPT-4 Turbo (April 2024)",
+      release_date: "2023-11-06",
+    },
+    { model_id: "openai/gpt-4-turbo", name: "GPT-4 Turbo (Nov 2023)" },
+    { model_id: "openai/gpt-4-turbo", name: "GPT-4 Turbo", release_date: "2024-04-09" },
+  ],
+  modelsDevModels: turboReleases,
+  maxCandidates: 1,
+  matcherConfig: STAGE_CONFIG.matcher,
+});
+assert.deepEqual(
+  releaseMatches.models.map((row) => row.best_match?.model_id),
+  ["gpt-4-turbo-2024-04-09", "openai/gpt-4-turbo", "openai/gpt-4-turbo"],
+  "explicit release labels constrain candidates before truncation, while a generic launch date cannot replace the source version",
+);
+assert.equal(
+  buildMatchDiagnostics({
+    scrapedRows: [{ model_id: "openai/gpt-4-turbo", name: "GPT-4 Turbo (Apr 2024)" }],
+    modelsDevModels: [model("openrouter", "openai/gpt-4-turbo", "GPT-4 Turbo")],
+    matcherConfig: STAGE_CONFIG.matcher,
+  }).models[0]!.best_match,
+  null,
+  "an undated catalog alias cannot establish a specifically dated release",
+);
+assert.equal(
+  modelNameIdentityKey("GPT-4 (November '23)"),
+  modelNameIdentityKey("GPT-4 (Nov 2023)"),
+);
+assert.notEqual(modelNameIdentityKey("Example+"), modelNameIdentityKey("Example"));
+
 const providerPools: PreferredProviderPools = {
   primary: [
     model("openrouter", "example/example-medium-3-5", "Example Medium 3.5"),

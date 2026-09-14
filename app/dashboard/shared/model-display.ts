@@ -74,18 +74,24 @@ export function modelsForVariantDisplay(
   }));
 }
 
-export function modelDisplayName(model: ModelAtlasPublishedModel): string {
+export function modelDisplayName(
+  model: Pick<ModelAtlasPublishedModel, "id" | "name" | "reasoning_effort">,
+): string {
   const baseName = model.name ?? model.id ?? "Unknown model";
   return model.reasoning_effort == null ? baseName : `${baseName} (${model.reasoning_effort})`;
 }
 
-export function modelName(model: ModelAtlasPublishedModel) {
+export function modelName(
+  model: Pick<ModelAtlasPublishedModel, "id" | "name" | "reasoning_effort">,
+) {
   return modelDisplayName(model)
     .replace(/\bGPT\s+(?=\d)/g, "GPT-")
     .replace(/\bFable\s+(?=\d)/g, prefixBareFableModelName);
 }
 
-export function shortLabel(model: ModelAtlasPublishedModel) {
+export function shortLabel(
+  model: Pick<ModelAtlasPublishedModel, "id" | "name" | "reasoning_effort">,
+) {
   return modelName(model).replace(" Preview", "");
 }
 

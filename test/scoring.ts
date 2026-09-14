@@ -223,18 +223,14 @@ assert.equal(INDEX_REPRESENTED_BENCHMARK_COUNTS.aa_intelligence_index, 10);
 assert.equal(INDEX_REPRESENTED_BENCHMARK_COUNTS.cais_capabilities_index, 7);
 assert.equal(INDEX_REPRESENTED_BENCHMARK_COUNTS.surge_intelligence_index, 8);
 assert.equal(INDEX_REPRESENTED_BENCHMARK_COUNTS.vals_index, 7);
-assert.equal(
-  INDEX_REPRESENTED_BENCHMARK_COUNTS.epoch_capabilities_index,
-  medianOfFinite([
-    INDEX_REPRESENTED_BENCHMARK_COUNTS.aa_intelligence_index,
-    INDEX_REPRESENTED_BENCHMARK_COUNTS.cais_capabilities_index,
-    INDEX_REPRESENTED_BENCHMARK_COUNTS.surge_intelligence_index,
-    INDEX_REPRESENTED_BENCHMARK_COUNTS.vals_index,
-  ]),
-);
+assert.equal(INDEX_REPRESENTED_BENCHMARK_COUNTS.epoch_capabilities_index, 4);
 assert.equal(
   INDEX_REPRESENTED_BENCHMARK_MEDIAN,
-  medianOfFinite(Object.values(INDEX_REPRESENTED_BENCHMARK_COUNTS)),
+  medianOfFinite(
+    Object.entries(INDEX_REPRESENTED_BENCHMARK_COUNTS)
+      .filter(([key]) => key !== "epoch_capabilities_index")
+      .map(([, count]) => count),
+  ),
 );
 assertClose(
   STAGE_CONFIG.scoring.qualityCoverage.intelligence.floor,

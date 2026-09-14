@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 365" role="img" aria-labelledby="title desc">
+<title id="title">Freeze the current reference, then extend across generations</title>
+<desc id="desc">A schematic plot shows release generations horizontally and a fixed capability scale vertically. Solid points in the initial snapshot have at least sixty percent evidence support and establish the reference. Three points at fifty percent opacity have lower coverage and do not define the saved range, including points above and below it. Retained evidence connects older models on the left, and new evidence connects future models on the right, using the same fixed ruler.</desc>
+<style>
+text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; }
+@media (prefers-color-scheme:dark) {
+text { fill:#ffffff; }
+[fill="#63706e"] { fill:#a6b2ae; } [stroke="#63706e"] { stroke:#a6b2ae; }
+[fill="#b5bfbc"] { fill:#3c4846; } [stroke="#b5bfbc"] { stroke:#3c4846; }
+[fill="#146cba"] { fill:#85bfff; } [stroke="#146cba"] { stroke:#85bfff; }
+[fill="#a64d0c"] { fill:#ffbc7d; } [stroke="#a64d0c"] { stroke:#ffbc7d; }
+}
+</style>
+<text x="38" y="24" font-size="14" fill="#63706e" text-anchor="start" font-weight="400">Index</text>
+<path d="M80 38 V284 M80 298 V302 H710" fill="none" stroke="#63706e" stroke-width="1.5"/>
+<path d="M75 291 L85 285 M75 297 L85 291" fill="none" stroke="#63706e" stroke-width="1.5"/>
+<path d="M76 45 L80 38 L84 45" fill="none" stroke="#63706e" stroke-width="1.5"/>
+<path d="M703 298 L710 302 L703 306" fill="none" stroke="#63706e" stroke-width="1.5"/>
+<path d="M75 90 H85" fill="none" stroke="#63706e" stroke-width="1.5"/>
+<path d="M75 150 H85" fill="none" stroke="#63706e" stroke-width="1.5"/>
+<path d="M75 210 H85" fill="none" stroke="#63706e" stroke-width="1.5"/>
+<path d="M75 270 H85" fill="none" stroke="#63706e" stroke-width="1.5"/>
+<text x="66" y="95" font-size="14" fill="#63706e" text-anchor="end">175</text>
+<text x="66" y="155" font-size="14" fill="#63706e" text-anchor="end">150</text>
+<text x="66" y="215" font-size="14" fill="#63706e" text-anchor="end">125</text>
+<text x="66" y="275" font-size="14" fill="#63706e" text-anchor="end">100</text>
+<path d="M300 142 H468 M300 242 H468" fill="none" stroke="#146cba" stroke-width="1.5" stroke-dasharray="3 5"/>
+<path d="M474 142 h8 V242 h-8" fill="none" stroke="#146cba" stroke-width="1.5"/>
+<text x="492" y="194" font-size="13" fill="#146cba" text-anchor="start" font-weight="400">Saved range</text>
+<circle cx="126" cy="274" r="5" fill="#63706e"/>
+<circle cx="174" cy="248" r="5" fill="#63706e"/>
+<circle cx="220" cy="280" r="5" fill="#63706e"/>
+<circle cx="260" cy="230" r="5" fill="#63706e"/>
+<circle cx="315" cy="232" r="5" fill="#146cba"/>
+<circle cx="345" cy="205" r="5" fill="#146cba"/>
+<circle cx="376" cy="217" r="5" fill="#146cba"/>
+<circle cx="405" cy="166" r="5" fill="#146cba"/>
+<circle cx="443" cy="150" r="5" fill="#146cba"/>
+<g opacity="0.5">
+<circle cx="325" cy="266" r="5" fill="#146cba"/>
+<circle cx="438" cy="194" r="5" fill="#146cba"/>
+<circle cx="420" cy="120" r="5" fill="#146cba"/>
+</g>
+<circle cx="550" cy="145" r="5" fill="#a64d0c"/>
+<circle cx="591" cy="106" r="5" fill="#a64d0c"/>
+<circle cx="625" cy="124" r="5" fill="#a64d0c"/>
+<circle cx="670" cy="69" r="5" fill="#a64d0c"/>
+<text x="378" y="57" font-size="17" fill="#146cba" text-anchor="middle" font-weight="600">1  Freeze reference</text>
+<text x="378" y="79" font-size="14" fill="#63706e" text-anchor="middle" font-weight="400">≥60% evidence support</text>
+<path d="M378 90 V128" fill="none" stroke="#146cba" stroke-width="1.5"/>
+<path d="M374 121 L378 128 L382 121" fill="none" stroke="#146cba" stroke-width="1.5"/>
+<path d="M296 107 H155" fill="none" stroke="#63706e" stroke-width="1.5"/>
+<path d="M162 103 L155 107 L162 111" fill="none" stroke="#63706e" stroke-width="1.5"/>
+<text x="205" y="87" font-size="16" fill="#000000" text-anchor="middle" font-weight="600">2  Look back</text>
+<text x="205" y="132" font-size="13" fill="#63706e" text-anchor="middle" font-weight="400">Retained evidence</text>
+<path d="M514 49 H664" fill="none" stroke="#a64d0c" stroke-width="1.5"/>
+<path d="M657 45 L664 49 L657 53" fill="none" stroke="#a64d0c" stroke-width="1.5"/>
+<text x="590" y="27" font-size="16" fill="#a64d0c" text-anchor="middle" font-weight="600">3  Extend forward</text>
+<text x="590" y="76" font-size="13" fill="#63706e" text-anchor="middle" font-weight="400">New evidence</text>
+<text x="180" y="333" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">Older models</text>
+<text x="378" y="333" font-size="16" fill="#146cba" text-anchor="middle" font-weight="600">Initial snapshot</text>
+<text x="620" y="333" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">Future models</text>
+</svg>
