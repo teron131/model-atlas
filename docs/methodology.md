@@ -14,9 +14,9 @@ Speed and Value compare resource use at similar quality, so an inexpensive but m
 
 The scoring order matters: benchmark quality establishes the context for resource comparisons. Publication filters are applied after reference scoring, so hiding a row does not change the scale used to score the others.
 
-Observed results first establish the shared normalization scales. Supported token estimates then feed the bounded Agentic adjustment, followed by sibling quality estimates and the task/index blend. Cost and time estimates support resource scoring after route telemetry is available. Estimates remain separate from source measurements throughout, so neither score assembly nor graph projection can accidentally count them as direct coverage.
-
 ![Quality establishes the basis for resource comparisons. Publication checks follow scoring and preserve the reference population.](assets/methodology/pipeline-overview.svg)
+
+Observed results first establish the shared normalization scales. Supported token estimates then feed the bounded Agentic adjustment, followed by sibling quality estimates and the task/index blend. Cost and time estimates support resource scoring after route telemetry is available. Estimates remain separate from source measurements throughout, so neither score assembly nor graph projection can accidentally count them as direct coverage.
 
 | Score | Main inputs | Main adjustment | What the score answers |
 | --- | --- | --- | --- |
@@ -27,11 +27,13 @@ Observed results first establish the shared normalization scales. Supported toke
 
 ## Shared Scales and Evidence
 
+The main leaderboard compares models against the current benchmark population, so its relative scores can change as that population changes. The separate [Timeline scale](timeline.md) saves an initial reference and connects older and newer benchmarks to it through shared model results. That fixed reference supports comparisons across generations; it does not replace the main scoring rules described here.
+
 A score of 80 describes a position on Model Atlas's current scale; it does not mean 80% task accuracy or twice the capability of a model scoring 40. Each benchmark is normalized within its own observed population before it contributes to a capability score. Source conversions can use native units or a 0-1 scale, and resource comparisons use logarithms of positive amounts.
 
 The model configuration $m$ includes its reasoning effort, the benchmark $b$ identifies an evaluation, and the dimension $d$ is Intelligence or Agentic. A base model can therefore have several configurations without becoming several independent sources of evidence.
 
-Several adjustments use the same smooth transition between no support and full support. The clipped input $u$ stays between 0 and 1, and smoothstep flattens the curve at both ends:
+Several adjustments use cubic smoothstep to move gradually between fixed endpoints. It is the lowest-degree polynomial that starts at zero, ends at one, and has zero slope at both ends. Clipping the input keeps the result within those endpoints:
 
 $$
 \operatorname{smoothstep}(t)=u^2(3-2u),
@@ -39,11 +41,13 @@ $$
 u=\operatorname{clamp}(t,0,1).
 $$
 
-At an input of $t=0.5$, smoothstep is also 0.5. Its gradual transition avoids an abrupt on/off threshold as evidence accumulates. Weighted quantiles, ranks, medians, and percentiles use the model balancing below unless stated otherwise.
+The coefficients follow from those endpoint conditions, not from benchmark data. The curve joins smoothly to the constant values outside the transition range; choosing its endpoints remains a scoring policy. Weighted quantiles, ranks, medians, and percentiles use the model balancing below unless stated otherwise.
 
-Weighted quantiles accumulate observation weight in value order and retain the full mass of ties. A quantile selects the value whose cumulative mass crosses its requested fraction; exactly at a boundary between values, it averages those two values. The weighted median is the 50th quantile. Nine units at 0 and one at 100 therefore have median 0, not 50. Contextual ranks place a value at the midpoint of its tied mass; a value between observations uses the cumulative mass below it.
+Weighted quantiles accumulate observation weight in value order and retain the full mass of ties. A quantile selects the value whose cumulative mass crosses its requested fraction; exactly at a boundary between values, it averages those two values. The weighted median is the 50th percentile. Nine units at 0 and one at 100 therefore have median 0, not 50. Contextual ranks place a value at the midpoint of its tied mass; a value between observations uses the cumulative mass below it.
 
 ## Intelligence and Agentic
+
+Capability scoring combines results from benchmarks with different units and different relevance to each dimension. Normalization makes their contributions comparable, benchmark weights determine their influence, and evidence support limits high scores based on sparse results.
 
 ### Model-Balanced Reference Weight
 
@@ -61,7 +65,7 @@ These are calibration weights, distinct from benchmark importance. They apply wh
 
 ### Benchmark Scores and Dimension Weights
 
-A reported metric first enters the benchmark's declared scale. For an Elo input $x$, the conversion $e(x)$ maps 500 to 0 and 2500 to 1, clipping values beyond those endpoints:
+Benchmarks report percentages, ratings, and other quantities that cannot be averaged directly. Each result first enters its benchmark's declared scale, then receives a relative 0–100 contribution. For an Elo input $x$, the conversion $e(x)$ maps 500 to 0 and 2500 to 1, clipping values beyond those endpoints:
 
 $$
 e(x)=\operatorname{clamp}\left(\frac{x-500}{2000},0,1\right).
@@ -79,9 +83,9 @@ $$
 
 For example, observed results of 20, 40, and 100 become 0, 25, and 100. The middle model stays much closer to the lowest result than the highest. Percentile ranks would lose that information.
 
-When all observed values are equal, every observed row receives 100: the benchmark adds no ordering among those rows, and the calculation avoids division by zero. Estimated values use the same frozen observed anchors and cannot redefine the scale.
+When all observed values are equal, every observed row receives 100: the benchmark adds no ordering among those rows, and the calculation avoids division by zero. Estimated values use the observed anchors saved for that scoring run and cannot redefine them. Later runs can change those anchors when the observed population changes.
 
-Importance $i_b$ is a damping factor: 1 leaves a benchmark’s contribution unchanged, while a lower value deliberately reduces it for a stated portfolio rationale. Dimension loading $\lambda_{b,d}$ separately splits that contribution between Intelligence and Agentic. Their product $\omega_{b,d}=i_b\lambda_{b,d}$ gives the effective weight. The loadings sum to 100%, so the contribution is allocated once across the two dimensions.
+Benchmark weights answer two different questions: how much influence should this benchmark have, and which capability does it measure? Importance $i_b$ controls its overall influence: 1 leaves the contribution unchanged, while a lower value reduces it for the rationale recorded in the benchmark portfolio. Dimension loading $\lambda_{b,d}$ allocates that influence between Intelligence and Agentic. Their product $\omega_{b,d}=i_b\lambda_{b,d}$ gives the effective weight. The loadings sum to 100%, so the contribution is allocated once across the two dimensions.
 
 The selected benchmarks $\mathcal{B}_d$ define the dimension's portfolio. The directly observed subset $\mathcal{O}_{m,d}$ supplies the initial weighted mean $\bar z_{m,d}$:
 
@@ -97,7 +101,7 @@ A missing old value or a reputable source alone does not establish freshness. Re
 
 ### Agentic Token Efficiency
 
-Using fewer tokens is informative when the model delivers comparable benchmark quality. Agentic therefore compares token use with independent measured peers at similar quality, then adjusts that benchmark's contribution before aggregation. Intelligence and published raw benchmark results stay unchanged.
+Using fewer tokens is useful when the model delivers comparable quality; a short but unsuccessful attempt should not automatically count as efficient. Agentic therefore compares token use with independent measured peers at similar benchmark quality, then applies a bounded adjustment to that benchmark's contribution. The bound keeps token efficiency from dominating the capability calculation. Intelligence and published raw benchmark results stay unchanged.
 
 The comparison uses the full candidate cohort before admission, with the same [nearby-quality peers](#comparable-quality-peers) and [support calculation](#comparison-support) used for resource efficiency. Only directly observed quality and token use supply the peer reference. Supported estimates can position a target against that reference, but cannot become peers or move normalization anchors. Estimated quality does not activate token adjustment.
 
@@ -118,7 +122,7 @@ $$
 
 With full peer support, a residual of $-s^T_b$ gives a multiplier of 1.075; a residual of $+s^T_b$ gives 0.925. The multiplier stops at 1.15 and 0.85 once the residual reaches two spread units. Weaker support brings it closer to 1.
 
-Missing tokens without a supported estimate, zero measured token variation, or inadequate comparison support leave the multiplier at 1. Flat quality populations also leave it inactive. The absence of token telemetry does not create a separate missing-token penalty. For a token estimate with confidence $c$, its multiplier is discounted to $1+c(m-1)$. Direct observations retain their full multiplier. The same validated sibling ratios and global/lab/release/model fallback used for cost and time supply token estimates, separately for total and output-only tokens.
+Missing tokens without a supported estimate, zero measured token variation, or inadequate comparison support leave the multiplier at 1. Flat quality populations also leave it inactive. The absence of token telemetry does not create a separate missing-token penalty. For a token estimate with evidence credit $\eta^T$, its multiplier is discounted to $1+\eta^T(m-1)$. Direct observations retain their full multiplier. The same validated sibling ratios and global/lab/release/model fallback used for cost and time supply token estimates, separately for total and output-only tokens.
 
 ![Peer support controls the size of the token adjustment. The shaded region shows the full-support range; weaker comparisons move toward a neutral multiplier of one. The cap applies before benchmark remapping.](assets/methodology/agentic-token-modifier.svg)
 
@@ -135,7 +139,7 @@ Token telemetry changes neither evidence weights nor admission requirements. Val
 
 ### Evidence Support and Quality Regularization
 
-Two models can have the same observed mean with very different amounts of evidence behind it. Model Atlas keeps the performance estimate separate from the evidence credit $\eta_{m,b}$ assigned to each input:
+Two models can have the same observed mean even when one was tested broadly and the other on only a few tasks. Evidence support shows that difference, while regularization limits high scores based on sparse evidence. Each input receives evidence credit $\eta_{m,b}$ according to whether it is observed or estimated:
 
 $$
 \eta_{m,b}=
@@ -171,21 +175,19 @@ $$
 c_{m,d}=\operatorname{smoothstep}\left(\frac{E_{m,d}-0.1F}{0.9F}\right).
 $$
 
-This threshold uses an absolute amount of evidence, so adding benchmarks to the portfolio does not automatically make every existing score less reliable. Evidence support still uses the full portfolio denominator and continues to show what is missing.
+The denominator $0.9F=F-0.1F$ scales progress between the minimum and full-evidence points. Using an absolute evidence amount prevents a larger portfolio from automatically increasing regularization on every existing model. Displayed evidence support still uses the full portfolio denominator and shows what is missing.
 
-An illustrative portfolio with total weight $\Omega_d=40$ makes the distinction clear. At evidence mass $E_{m,d}=8$, displayed support is only 20%, but the regularization coefficient has already reached 1. "No further regularization" and "complete evidence" are different statements.
+![Regularization ends at evidence mass 7.5. In the illustrative portfolio of total weight 40, that is only 18.75% evidence coverage: ending regularization does not mean the portfolio is fully observed.](assets/methodology/confidence.svg)
 
-![The regularization coefficient reaches one at evidence mass 8, while evidence coverage continues to rise. In this illustrative portfolio of weight 40, mass 4.4 gives a 50% regularization coefficient and only 11% coverage.](assets/methodology/confidence.svg)
-
-When the ordinary quality calculation applies, the provisional score $R_{m,d}$ moves an above-50 mean toward 50 in proportion to its missing reliability. A mean already below 50 is not raised:
+For task-only quality scoring, regularization reduces an above-50 mean toward 50 as evidence becomes sparse. It leaves a below-50 mean unchanged, so missing evidence cannot improve an already low score. The provisional score is:
 
 $$
 R_{m,d}=\bar z_{m,d}-(1-c_{m,d})\max(\bar z_{m,d}-50,0).
 $$
 
-For an observed mean of 80 and a reliability coefficient of 0.5, the provisional score is $80-0.5(80-50)=65$. A mean of 40 stays 40.
+For an observed mean of 80 and a regularization coefficient of 0.5, the provisional score is $80-0.5(80-50)=65$. A mean of 40 stays 40.
 
-When the model has an observed aggregate index, the [aggregate-index blend](#aggregate-index-proxying) supplies its quality score instead, shifting from 20% task benchmarks and 80% indexes at one direct task to 80% tasks and 20% indexes at eight. The final capability scores $I_m$ and $A_m$ use the applicable quality estimate $Q_{m,d}$, including supported sibling estimates within the task mean:
+When the model has an eligible observed aggregate index, the [aggregate-index blend](#aggregate-index-proxying) supplies its quality score instead. The final capability scores $I_m$ and $A_m$ use the applicable quality estimate $Q_{m,d}$, including supported sibling estimates within the task mean:
 
 $$
 \begin{aligned}
@@ -200,21 +202,21 @@ Intelligence and Agentic show their own evidence shares; they are not combined. 
 
 ## Missing Benchmark Evidence
 
-A missing benchmark result can sometimes be estimated from other direct observations. A validated conversion between declared sources takes priority; otherwise a contextual predictor uses the model's position on related benchmarks. Both paths must pass checks on results withheld during validation.
+A missing result should not automatically count as failure, but ignoring every gap can make sparsely tested models look better supported than they are. Estimates use related direct observations to recover some information while keeping reduced evidence credit. A validated conversion between declared sources takes priority; otherwise a contextual predictor uses the model's position on related benchmarks. Both paths must pass checks on results withheld during validation.
 
 Sibling quality imputation uses directly measured differences between variants to estimate missing task contributions before aggregation. Resource imputation applies the corresponding evidence-based approach independently to cost, time, and tokens. Stored observations remain unchanged.
 
 ### Imputation Error and Ongoing Optimization
 
-Imputation is an ongoing estimation problem, not a requirement to be correct in every case. Its purpose is to make missing evidence more useful than leaving it untreated. A method can improve comparisons overall while still producing individual errors, including occasional large misses.
+Imputation is useful only if it improves decisions under incomplete coverage. Its validation therefore compares predictions with practical alternatives on observations deliberately withheld from fitting. Passing these checks supports using the method; it does not make every estimate accurate.
 
-Changes are judged against practical alternatives on held-out observations: leaving a contribution unavailable or neutral, or copying a sibling without adjustment. Evaluation considers prediction error, the resulting score adjustment, how often a supported estimate is available, and failures across models, variants, and benchmarks. Smoother curves or higher scores are not evidence of better estimation. Improvement on one dataset does not guarantee improvement under every missing-data pattern.
+The alternatives include leaving a contribution unavailable or neutral, or copying a sibling without adjustment. Evaluation considers prediction error, the resulting score adjustment, how often an estimate is available, and failures across models, variants, and benchmarks. Benchmark prediction error and final score error are different measurements: their units and evaluation populations must be stated before comparing them. Smoother curves or higher scores do not demonstrate better estimation, and performance can change with the pattern of missing data.
 
-Confidence discounts and minimum evidence requirements remain safeguards while the methods are optimized. Estimates never become direct observations. Keep methods that demonstrate useful improvement over the relevant baseline, investigate systematic failures, and revise or withdraw estimates where the evidence does not support them. The objective is better decisions under incomplete coverage, not perfect reconstruction of every missing result.
+Evidence discounts and minimum observation requirements limit reliance on estimates. Systematic failures are grounds to revise or withdraw a method; estimates never become direct observations.
 
 ### Imputation Invariants
 
-Every stored result remains attached to its reported effort. Direct observations take precedence over estimates, and higher effort is not assumed to improve every task. Expanded views preserve exact-effort results.
+These rules prevent estimates from replacing measurements or creating their own supporting evidence. Every stored result remains attached to its reported effort. Direct observations take precedence, and higher effort is not assumed to improve every task. Expanded views preserve exact-effort results.
 
 Each missing model-benchmark pair can receive at most one estimate. Only direct observations can predict another benchmark, so estimates cannot recursively validate or reinforce one another. They never become observed source results or satisfy publication requirements.
 
@@ -222,19 +224,19 @@ A contextual prediction needs at least three distinct observed benchmarks. Count
 
 ### Validated Additive Source Crosswalk
 
-Two declared sources may measure the same underlying evaluation on compatible scales but with a systematic offset. The overlap $S$ pairs their primary values $P_i$ and fallback values $F_i$ for matching models and efforts. Model-balanced weights $w_i$ keep a model's variants from dominating the fitted offset $\delta$:
+When two declared sources measure the same evaluation with a consistent offset, subtracting that offset can fill a missing primary-source result without changing gaps within the fallback source. The overlap $S$ pairs primary values $P_i$ and fallback values $F_i$ for matching models and efforts. Their typical difference gives the offset $\delta$; model-balanced weights $w_i$ prevent variants of one model from dominating it:
 
 $$
 \delta=\operatorname{weightedMedian}_{i\in S}(F_i-P_i;w_i)
 $$
 
-Validation removes one entire base model at a time, including all its effort variants, and refits the offset $\delta_{-q}$ from the remaining models. The held-out pairs $V$ measure the typical absolute prediction error $e$:
+Leave-one-model-out validation hides all effort variants of one base model, refits the offset $\delta_{-q}$ on the others, and compares the predicted primary results with the hidden measurements. This prevents sibling efforts from validating one another. The held-out pairs $V$ give the typical absolute error $e$ in primary-source units:
 
 $$
 e=\operatorname{weightedMedian}_{i\in V}\left(\left|F_i-\delta_{-q(i)}-P_i\right|;w_i\right)
 $$
 
-Subtracting one offset preserves gaps within the fallback source. Using a weighted median reduces the effect of outliers, and withholding whole models prevents sibling efforts from validating one another.
+Using a weighted median reduces the effect of outliers on the offset and typical prediction error.
 
 ![An illustrative additive crosswalk preserves source gaps while shifting the baseline. Hollow points are paired observations; the filled point is a converted estimate. Actual use requires validation on held-out models.](assets/methodology/source-crosswalk.svg)
 
@@ -260,6 +262,8 @@ For an illustrative 0-1 scale, a fallback result of 0.70 and an offset of 0.05 g
 ### Same-Dimension Quantile Imputation
 
 Related benchmarks need not share units or a linear relationship. The contextual predictor instead asks where the model sits among peers, then uses that percentile in the missing benchmark's observed distribution.
+
+![The same percentile links two different observed distributions. In this illustrative five-model calibration set, context score 70 maps to target value 0.58 through its 70th-percentile midrank. Neither raw score nor accuracy percentage is transferred.](assets/methodology/quantile-imputation.svg)
 
 For target benchmark $b$ and dimension $d$, the context score $g_{m,b,d}$ averages the model's other directly observed, normalized benchmark scores:
 
@@ -297,8 +301,6 @@ $$
 
 When only one dimension can predict, its available loading is renormalized. Validation withholds every variant of one base model at a time. At least four effective held-out models must yield valid predictions, and their normalized median absolute error must be at most 25 points.
 
-![The same percentile links two different observed distributions. In this illustrative five-model calibration set, context score 70 maps to target value 0.58 through its 70th-percentile midrank. Neither raw score nor accuracy percentage is transferred.](assets/methodology/quantile-imputation.svg)
-
 The accepted point estimate stays separate from the observed quality mean. Its error and row-specific context determine the discounted evidence credit used in regularization and resource scoring.
 
 ### Sibling Quality Imputation
@@ -327,15 +329,19 @@ $$
 
 Here $\mathcal O$ contains observed tasks and $\mathcal H$ contains supported missing-task estimates. Tasks without a supported estimate remain unavailable, so identical baskets are possible only where sibling evidence supports them. Broader observed coverage earns greater evidential support, not a capability bonus. Genuine weak results still count.
 
-These estimates affect the quality mean before index blending and replace the former whole-score sibling adjustment. They never overwrite raw benchmark fields, change normalization ranges, increase direct-task counts, or satisfy admission and resource thresholds. They add no evidence credit by themselves; any separately validated contextual evidence keeps its existing credit. Version-replacement rows remain excluded from this imputation path.
+These estimates affect the quality mean before index blending. They never overwrite raw benchmark fields, change normalization ranges, increase direct-task counts, or satisfy admission and resource thresholds. They add no evidence credit by themselves; any separately validated contextual evidence keeps its existing credit. Version-replacement rows remain excluded from this imputation path.
 
 A shared-task gap is an estimate of transfer across tasks, not a guarantee that variants differ equally everywhere. Missing-data validation should assess estimation error; neither increasing effort nor a smooth curve is enforced.
 
 ### Aggregate Index Proxying
 
-Indexes support sparse variants while curated task benchmarks become the primary evidence as direct observations accumulate. For effort-labelled variants, only indexes with directly reported effort coverage are eligible for the score blend; currently this is Artificial Analysis and CAIS. Unlabelled models retain the ordinary index pool. Other observed indexes remain available in the table and for the separate admission checks, but cannot change a labelled variant’s index mean. The compact table selects a representative variant and uses the same score as the expanded table and graphs. Each variant and quality dimension uses its own count of observed tasks with positive dimension weight. Imputed values, sibling results, and aggregate indexes do not advance this count.
+An aggregate index summarizes tests whose individual results may be unavailable. It supplies most of the quality estimate when direct task evidence is sparse; the selected task group gains weight as more tasks are observed. The weights apply to the task and index averages, not to each benchmark individually.
 
-The first direct task receives 20% of the blend, with indexes carrying 80%. Task influence rises smoothly to 80% at the configured direct-task threshold (currently 7.5) and remains there as more tasks arrive. The default follows the median represented index breadth; it is a direct task count for this blend, distinct from weighted evidence mass used by regularization and from admission requirements. CAIS declares residual overlap for this blend, so directly observed HLE, TextQuests, EnigmaEval, ERQA, IntPhys 2, MindCube Tiny, and SpatialViz-Bench reduce only CAIS's proxy breadth before the index mean is formed.
+![The task group receives 20% weight with one direct observation, rising to 80% at the configured threshold of 7.5. Indexes receive the remaining weight. The isolated zero-task points show the special case in which indexes receive 100%.](assets/methodology/index-coverage-taper.svg)
+
+For effort-labelled variants, only indexes with directly reported effort coverage enter the blend, currently Artificial Analysis and CAIS. This prevents an index for an unspecified effort from setting the score of a specific effort. Unlabelled models retain the ordinary index pool. Other observed indexes remain visible and available for separate admission checks. Each variant and quality dimension counts its own observed tasks with positive dimension weight; estimates, sibling results, and aggregate indexes do not advance that count.
+
+The full-task threshold follows the median represented index breadth, currently 7.5. This blend uses the direct task count, independently of weighted evidence mass and admission requirements. Unlike Timeline's effective count, it is not capped by portfolio coverage. ECI's fitted benchmark count sets its relative index weight; fixed-portfolio indexes use their declared breadth. Directly observed CAIS components reduce only CAIS's remaining breadth to limit double counting.
 
 For direct task count $n$ and configured threshold $N$ (currently 7.5), the progress $p$ and task share $t$ are:
 
@@ -344,19 +350,19 @@ p=\operatorname{clip}_{[0,1]}\left(\frac{n-1}{N-1}\right),\qquad
 t=0.20+0.60\left(3p^2-2p^3\right).
 $$
 
-The task mean $T$, including supported sibling estimates, uses benchmark importance times dimension loading. The observed index mean $J$ uses represented benchmark breadth times index importance times dimension loading. The quality blend is:
+The constant $0.20$ sets the starting task weight; $0.60=0.80-0.20$ is the increase to the maximum. Cubic smoothstep, $3p^2-2p^3$, makes that transition gradual with a flat slope at both ends. These endpoints are policy choices that let sparse tasks contribute while retaining index evidence at full task weight.
+
+The task mean $T$, including supported sibling estimates, uses benchmark importance times dimension loading. The observed index mean $J$ uses represented benchmark breadth times index importance times dimension loading. Applying the task-group weight $t$ gives:
 
 $$
 Q=tT+(1-t)J.
 $$
 
-With no observed tasks, indexes carry 100%; there is no invented task contribution. With no observed index, the existing task-only calculation applies. One task to eight tasks is a gradual transition; the zero-task case is an explicit availability exception. Adding unobserved tasks to the portfolio cannot delay the endpoint.
+With no observed tasks, indexes carry 100%. With no eligible observed index, the task-only calculation applies. Adding unobserved tasks to the portfolio cannot delay the endpoint, because this taper counts direct observations.
 
-The configured endpoint expresses sufficient direct evidence for the curated portfolio to lead, not complete portfolio coverage. It is a heuristic policy rather than a guarantee of estimation accuracy. Increasing curated influence can expose genuine differences or sparse-data errors; curve smoothness is not a validation criterion. Counts do not replace task importance: each observed task keeps its importance and dimension loading inside the task mean.
+Reaching the endpoint means the selected tasks receive their maximum group weight, not that the entire portfolio has been observed. Counts determine the balance between groups; benchmark importance and dimension loading still determine weights within each group.
 
 This blend does not inflate evidence support or satisfy admission. Supported sibling estimates enter the task mean before blending, while the taper continues to count direct tasks only. There is no subsequent whole-score sibling adjustment.
-
-![Task influence starts at 20% with one direct observation and reaches 80% at the configured threshold (currently 7.5). Index influence moves in the opposite direction. With no observed tasks, indexes carry 100%.](assets/methodology/index-coverage-taper.svg)
 
 ## Effective Pricing
 
@@ -376,7 +382,7 @@ Both sides need complete provider-price and token-volume evidence; otherwise the
 
 ## Provider Speed
 
-Throughput measures sustained output rate, latency measures the wait for the first token, and end-to-end latency measures the whole response. These three observations share the provider-speed bucket equally. For ordinary ranked models, that bucket has 30% of the base weight and benchmark task time has 70%.
+Fast token generation does not necessarily mean a fast completed task. Provider speed therefore combines throughput, the sustained output rate; latency, the wait for the first token; and end-to-end latency, the whole response time. These three observations share the provider-speed bucket equally. For ordinary ranked models, that bucket has 30% of the base weight and benchmark task time has 70%, giving greater influence to time spent completing evaluated work.
 
 OpenRouter serving estimates combine endpoint history with matching positive token-volume weights. Endpoint IDs join directly to pricing data; provider-name guesses and request-count allocation are not used. Missing or unweighted endpoints leave the matched evidence usable.
 
@@ -395,6 +401,8 @@ $$
 Higher throughput scores better; lower latency scores better. Logs make proportional changes comparable: doubling from 50 to 100 tokens per second is the same log gap as doubling from 100 to 200. Each available statistic contributes independently. A missing statistic reduces evidence support; it does not receive its siblings' weight.
 
 ## Resource Score Availability
+
+A listed token price or serving speed alone does not show the resources needed to complete useful work. Value and Speed therefore require observed quality paired with task-resource measurements before publication, with cost and time qualifying independently.
 
 A published variant needs observed quality-and-resource coverage representing at least four distinct benchmarks to display Value or Speed. Each selected standalone task contributes one when it has observed quality and positive cost or directly reported seconds. An observed Artificial Analysis Intelligence Index paired with its own positive aggregate cost or runtime contributes its catalogued benchmark breadth, currently 10. Separately counted AA components are deducted from that breadth for each resource, so overlapping evidence counts once. AA must be selected, and its cost coverage does not imply runtime coverage.
 
@@ -423,7 +431,7 @@ Comparisons normally use per-task amounts. A total across a fixed evaluation is 
 
 ### Comparable-Quality Peers
 
-Nearby quality needs a meaningful distance scale. The portfolio's transform $T_b$ turns a stored benchmark result $x_{m,b}$ into the comparison coordinate $q_{m,b}$:
+Resource comparisons should give more weight to models achieving similar quality. The distance between their results must therefore reflect the benchmark's scoring scale. Its declared transform $T_b$ converts the stored result $x_{m,b}$ into the coordinate $q_{m,b}$ used to find nearby peers:
 
 $$
 q_{m,b}=T_b(x_{m,b}),\qquad
@@ -436,13 +444,13 @@ $$
 
 A linear coordinate preserves the stored score gaps. It suits partial credit, Elo-derived scores, rubrics, composites, human-relative performance, and other metrics whose endpoints do not represent a success probability.
 
-A logit coordinate uses log odds, $\operatorname{logit}(x)=\log(x/(1-x))$. It is reserved for probability-like pass, accuracy, and completion rates. Inputs must lie in $[0,1]$; exact endpoints are clipped to 0.001 and 0.999 solely to obtain finite log odds.
+A logit coordinate uses $\operatorname{logit}(x)=\log(x/(1-x))$ for probability-like pass, accuracy, and completion rates. Inputs must lie in $[0,1]$ and are clipped to 0.001–0.999 before conversion, keeping the transformed values finite near the endpoints.
 
 The benchmark-specific decisions are listed in [Benchmarks](benchmarks.md#resource-quality-coordinates). Aggregate price comparisons are not benchmark success rates; they use the linear mean of the two public quality scores described below.
 
-The same percentage-point gain can mean very different reductions in remaining errors. Moving from 50% to 51% reduces the error rate from 50% to 49%, a 2% reduction. Moving from 95% to 96% reduces it from 5% to 4%, a 20% reduction. Log odds give the second gap more space.
+The same percentage-point gain can mean very different reductions in remaining errors. Moving from 50% to 51% reduces the error rate from 50% to 49%, a 2% reduction. Moving from 95% to 96% reduces it from 5% to 4%, a 20% reduction. The logit transformation gives the second gap more space.
 
-![An equal percentage-point gain occupies more distance near the ceiling. The lower bars share a log-odds scale: 95% to 96% spans about 0.234, compared with 0.040 for 50% to 51%.](assets/methodology/logit-quality.svg)
+![An equal percentage-point gain occupies more distance near the ceiling. The lower bars share a logit scale: 95% to 96% spans about 0.234, compared with 0.040 for 50% to 51%.](assets/methodology/logit-quality.svg)
 
 After the declared transform, the weighted median centers the coordinate and a robust spread scales it into $Z_{m,b}$:
 
@@ -465,7 +473,11 @@ The calibration weight $a_{j,b}$ divides one model's unit mass across its varian
 
 ### Expected Resource Use
 
-For time or cost $r$, the nearby-peer weights first give a local mean log resource use $\bar y^r_{m,b}$. A stable weighted local line estimates resource use at the focal quality, clamped to the observed peers' quality range. The comparison coefficient $h_{m,b}$ blends the fitted expectation with the local mean as support grows:
+This step estimates how much time or cost peers would use at the target model's quality. The difference from that expectation measures its resource advantage. A local average provides the starting estimate; a fitted line accounts for remaining quality differences when enough independent peers support it. Logarithms make the comparison proportional, so halving cost and halving time represent the same relative improvement.
+
+![The Gaussian neighborhood above and the illustrative peer population below share one quality axis. Nearby independent models carry more weight. A supported local trend supplies the expected 100 seconds at the focal quality; the vertical gap to observed 50 seconds is the resource advantage.](assets/methodology/resource-residual.svg)
+
+For resource $r$, the nearby-peer weights give the mean log amount $\bar y^r_{m,b}$. The line estimates resource use at the target quality, clamped to the observed peers' range. The comparison coefficient $h_{m,b}$ increases the line's influence as support grows:
 
 $$
 \begin{aligned}
@@ -484,8 +496,6 @@ $$
 $$
 
 A negative residual means less resource use than expected at that quality. If the peer expectation corresponds to 100 seconds and the model uses 50, its residual is $\log(50/100)\approx-0.69$. The same residual describes a cost of \$1 against an expected \$2. These are equal proportional advantages.
-
-![The Gaussian neighborhood above and the illustrative peer population below share one quality axis. Nearby independent models carry more weight. A supported local trend supplies the expected 100 seconds at the focal quality; the vertical gap to observed 50 seconds is the resource advantage.](assets/methodology/resource-residual.svg)
 
 ### Comparison Support
 
@@ -507,7 +517,11 @@ An observed resource with no supported comparison receives a neutral component s
 
 ### Resource Efficiency Score
 
-A residual needs to preserve both the size of an efficiency advantage and its position among other models. The magnitude score $M^r_{m,b}$ uses the supported residual range, clipping only the unusually favorable tail at its model-balanced 2.5th percentile $L$. The upper anchor $U$ is the largest supported residual:
+An efficiency score should reflect both the size of an advantage and how it ranks among models. The method averages a magnitude score with a percentile score, then reduces the result toward neutral 50 when peer support is weak.
+
+![Comparison support contracts both favorable and unfavorable resource scores toward neutral 50. The marked combined score of 75 becomes 75, 62.5, or 50 with full, half, or no support.](assets/methodology/resource-score-mapping.svg)
+
+Winsorization is a data transformation technique that mitigates extreme values by replacing values beyond chosen bounds with the boundary values. It retains the observations while preventing an exceptionally cheap or fast model from stretching the useful magnitude scale. The magnitude score $M^r_{m,b}$ clips the favorable tail at its model-balanced 2.5th percentile $L$. The upper anchor $U$ is the largest supported residual:
 
 $$
 M^{r}_{m,b}=100\cdot\frac{U-\operatorname{clamp}(\epsilon^{r}_{m,b},L,U)}{U-L}.
@@ -521,15 +535,13 @@ H^{r}_{m,b}=\frac{M^{r}_{m,b}+P^{r}_{m,b}}{2},
 R^{r}_{m,b}=50+h_{m,b}(H^{r}_{m,b}-50).
 $$
 
-![Comparison support contracts both favorable and unfavorable resource scores toward neutral 50. The marked combined score of 75 becomes 75, 62.5, or 50 with full, half, or no support.](assets/methodology/resource-score-mapping.svg)
-
 For example, magnitude 80 and percentile 70 give a combined score of 75. Full comparison support keeps 75; support of 0.5 gives $50+0.5(75-50)=62.5$; no support gives 50.
 
-Clipping only the favorable tail prevents an exceptional cheap or fast outlier from setting the useful magnitude scale. If supported residuals have no meaningful spread, every observed residual receives 50. Estimated resources can be scored against the observed reference, but cannot move its anchors.
+If supported residuals have no meaningful spread, every observed residual receives 50. Estimated resources can be scored against the observed reference, but cannot move its anchors.
 
 ### Missing Task Resources Across Efforts
 
-A missing cost, runtime, or token amount can sometimes be estimated from another explicit effort of the same model. The evidence comes from measurements paired at both efforts; each resource is fitted separately, including separate total-token and output-token ratios. Unlabelled source-default rows and unrelated source-wide resource averages are excluded; benchmark-specific Artificial Analysis measurements are eligible under the same validation rules.
+Copying a sibling's resource amount would ignore the extra or reduced work associated with a different reasoning effort. Instead, paired measurements estimate a ratio between the two efforts, then apply it to the sibling's observed amount for the missing task. Cost, runtime, total tokens, and output-only tokens each use their own ratios. Unlabelled source-default rows and unrelated source-wide resource averages are excluded; benchmark-specific Artificial Analysis measurements are eligible under the same validation rules.
 
 For paired task $k$, the directed log difference $d^r_k$ compares target and source resource use:
 
@@ -565,11 +577,9 @@ For example, source-to-target resource ratios of 1.4, 1.5, and 1.6 have a median
 
 ### Tiered Resource Fallback
 
-When the validated same-model ratio cannot fill a resource, a fixed hierarchy uses global, lab, same-lab release proximity, and model evidence.
+When the target model has too few paired tasks for a validated sibling ratio, other models can supply a broader starting estimate. A fixed hierarchy then refines it using evidence from the same lab, nearby releases within that lab, and the target model itself. Each refinement is limited by its support, so a few local measurements cannot dominate the estimate.
 
-The tiers have progressively narrower scopes: all models, the same lab, nearby releases within that lab, and the target model's own effort measurements. Each narrower tier refines the broader expectation through a regularized correction. Sparse local evidence therefore retains the broader fallback instead of defining an unstable estimate by itself.
-
-Measured predictions can differ little between reasonable tier policies. The robustness benefit is a consistent fallback structure across labs and generations: gradual date weighting avoids cutoff jumps, shrinkage limits sparse corrections, and missing metadata does not discard broader evidence. These properties motivate the policy even when average prediction errors are similar; they do not imply that release proximity has demonstrated better predictive accuracy.
+Gradual date weighting avoids cutoff jumps, shrinkage limits sparse corrections, and missing metadata leaves broader evidence available. These are robustness choices; they do not establish that release proximity improves predictive accuracy.
 
 The global prior is the median log resource ratio for the exact benchmark and effort transition across at least two other base models. All efforts of the target model are excluded from donors. Lab and release-neighborhood corrections summarize each donor model's median deviation from benchmark-specific global ratios across shared tasks; each donor's own ratios are excluded from those global comparisons. Release neighborhoods follow the [same-lab date-proximity rule](matching.md#release-proximity-for-resource-estimation), without classifying product names. Donor weights are $\exp[-\tfrac12(\Delta t/60)^2]$, with the release-date difference $\Delta t$ measured in days. Missing or invalid dates leave the broader lab correction intact; an unknown lab provides neither a lab nor a release-neighborhood correction.
 
@@ -585,7 +595,9 @@ Cost, runtime, and tokens use the same fixed hierarchy with separate donor pools
 
 ## Final Speed and Value
 
-The resource components now share a higher-is-better 0-100 scale. Provider statistics use ordinary min-max scores of $\log x$. Absolute price uses $\log_{10}(1+\text{blended price})$ with the favorable tail clipped at 2.5%. Quality-adjusted price uses the same local residual method as task resources.
+Final Speed and Value combine task-level efficiency with serving measurements and listed prices. Task resources receive more weight because they measure evaluated work; provider speed and price retain influence because they describe the serving route. Evidence weights reduce the influence of estimates, and a separate coverage multiplier limits scores built from incomplete model evidence.
+
+The components first enter a higher-is-better 0-100 scale. Provider statistics use ordinary min-max scores of $\log x$. Absolute price uses $\log_{10}(1+\text{blended price})$ with the favorable tail clipped at 2.5%. Quality-adjusted price uses the same local residual method as task resources. Keeping absolute and quality-adjusted price separate retains both affordability and efficiency at comparable capability.
 
 Price comparisons use the mean of the public Intelligence and Agentic scores as their aggregate quality coordinate:
 
@@ -628,7 +640,7 @@ $$
 C_q^p=\operatorname{smoothstep}\left(\frac{\gamma_q^p-0.1}{0.5}\right).
 $$
 
-An unlabelled configuration is the default; when all configurations are labelled, the highest reported effort is used. The multiplier is zero through 10% coverage and reaches one at 60%. Every effort of the model shares it, so a sparse non-default effort does not independently remove or create model-level coverage.
+An unlabelled configuration is the default; when all configurations are labelled, the highest reported effort is used. The multiplier is zero through 10% coverage and reaches one at 60%: the denominator $0.5=0.6-0.1$ spans that interval. Every effort of the model shares it, so a sparse non-default effort does not independently remove or create model-level coverage.
 
 Each effort keeps its own available component scores and evidence-weighted mean. Speed components $s_{m,i}$ and Value components $v_{m,i}$ combine with the shared multiplier, while the displayed evidence shares use that effort's own effective weights:
 
@@ -649,23 +661,21 @@ The Price vs Cost Efficiency graph compares observed benchmark task-cost efficie
 
 This is a different adjustment from the peer-comparison shrinkage toward 50. Peer support moderates a particular efficiency comparison; source-default coverage multiplies the final resource score to account for missing model evidence.
 
-Keeping absolute and quality-adjusted price as separate components preserves two useful questions: how much the model costs, and whether that cost is efficient for the capability delivered.
-
 ## Public Admission
 
-A score is calculated before Model Atlas decides whether a row has enough information for public comparison. Admission requires all of the following:
+Calculating a score does not establish that a model has enough evidence for public comparison. Admission requires an identified text model, sufficient observed benchmark breadth, and usable scores in both capability dimensions. These checks prevent estimates or one-sided coverage from qualifying a row on their own:
 
 - A qualified model identity, a name, and confirmed text output.
-- Observed represented benchmark weight reaching the minimum known benchmark breadth across the selected indexes, excluding Epoch's inferred breadth, including at least one observed selected input in each of Intelligence and Agentic.
+- Observed represented benchmark weight reaching the minimum known benchmark breadth across the selected indexes, excluding ECI's minimum publication count, including at least one observed selected input in each of Intelligence and Agentic.
 - Finite Intelligence and Agentic scores of at least 10 each.
 
 Standalone benchmarks contribute their configured importance once across both dimensions. An observed aggregate contributes its represented benchmark breadth, without the half-importance discount used for its quality-scoring influence. Known components form a union across indexes and standalone observations: each contributes the maximum of its standalone importance and the one unit represented within an observed index. The remaining unnamed breadth of each index is added separately. This makes the count independent of index order and prevents observing a half-importance component from reducing previously established coverage.
 
 For example, eight ordinary standalone benchmarks contribute eight units without any index. AA's main Intelligence Index contributes ten units, and separately observing its known components does not add their weight again. AA and CAIS together represent sixteen units under the current overlap map because HLE is shared. AA's Agentic, Coding, and Omniscience indexes supply no additional admission credit. An observed zero is valid evidence; missing and imputed values are not.
 
-Opaque index breadth remains an estimate. Epoch's inferred breadth is currently 7.5 and its component-overlap mapping is unavailable, so its full estimated breadth is added alongside standalone results. Unmapped overlap is not a verified count of independent benchmarks. Admission uses the observations attached to the configuration under the existing matching rules; sibling estimates do not create direct coverage.
+Opaque index breadth remains an estimate. ECI uses the distinct fitted benchmark count for each exact publisher model group, imported from Epoch's eci_benchmarks.csv alongside its score. Its component-overlap mapping is unavailable, so this breadth is added alongside standalone results. If the count is unavailable, four is a conservative publication-minimum fallback, not a measured count. Unmapped overlap is not a verified count of independent benchmarks. Admission uses the observations attached to the configuration under the existing matching rules; sibling estimates do not create direct coverage.
 
-Every path needs an identified text model, the represented-evidence threshold, an observed input in each capability dimension, and finite Intelligence and Agentic scores of at least 10. The admission threshold is the minimum of AA, CAIS, Surge, and Vals breadths; Epoch's inferred value is excluded. Any current selected index therefore supplies enough breadth on its own, while standalone evidence can also qualify. No particular index, index count, release age, or prior publication is required. The separate scoring regularization and task/index blend continue to use the median breadth.
+The admission threshold uses the smallest known breadth among AA, CAIS, Surge, and Vals, allowing a sufficiently broad source or standalone basket to qualify without requiring a particular publisher. ECI's publication minimum is excluded because it describes the minimum needed for that publisher to report a score, rather than a fixed index basket. An ECI based on four benchmarks does not independently meet the seven-benchmark admission threshold; a sufficiently supported ECI or standalone evidence can qualify. No particular index, index count, release age, or prior publication is required. The separate scoring regularization and task/index blend continue to use the median breadth.
 
 All admitted models receive numeric ranks in compact views, even when release date, prices, limits, or serving measurements are unknown. Missing specifications remain null and do not create a separate admission or scoring path. Speed and Value remain independently subject to their observed-resource requirements.
 
@@ -675,14 +685,14 @@ These gates remove public rows only after reference scoring, so admission itself
 
 ## Signature Pareto Selection
 
-The signature highlights several useful model roles. Intelligence-based and Pareto roles use each model's highest-Intelligence variant. Best Agentic searches all scored efforts of the visible models, so it can select a different effort from the collapsed table. Labels omit effort suffixes, but each displayed score still belongs to the selected variant.
+A single winner cannot represent every Intelligence–Value trade-off. The signature therefore highlights distinct roles, including models that cannot improve on one of those scores without giving up the other. Intelligence-based and Pareto roles use each model's highest-Intelligence variant. Best Agentic searches all scored efforts of the visible models, so it can select a different effort from the collapsed table. Labels omit effort suffixes, but each displayed score still belongs to the selected variant.
 
 The Pareto frontier contains models for which no other candidate is at least as good in both Intelligence and Value and strictly better in one. Its two highlighted roles apply explicit selection rules:
 
 | Role | Selection rule |
 | --- | --- |
-| Pareto Balance | Largest Intelligence × Value product on the frontier, with higher Intelligence breaking ties. This is equivalent to the largest equal-weight geometric mean. |
-| Pareto Value | Highest Value on the frontier among models strictly above the full published population's median Intelligence, with higher Intelligence breaking ties. |
+| Pareto Balance | Largest Intelligence × Value product on the frontier, favoring strength in both scores rather than allowing one to fully compensate for a very low other score. This equals the largest equal-weight geometric mean; ties prefer higher Intelligence. |
+| Pareto Value | Highest Value on the frontier among models strictly above the full published population's median Intelligence. The quality floor keeps this role focused on value among more capable candidates; ties prefer higher Intelligence. |
 
 The median counts each finite Intelligence-Value base model once, before dashboard filters. A model exactly at the median does not qualify for Pareto Value. Pareto candidates follow model, provider, and price filters before the rank and release-recency display limits; the ordinary signature roles follow the displayed population.
 
@@ -701,10 +711,10 @@ These parameters encode robustness choices and usage priorities. They are explic
 | Contextual held-out validation models | 4 | Requires independent evidence beyond the minimum calibration set. |
 | Maximum normalized imputation error | 25 points | Refuses predictors whose typical held-out error is too large to be useful; evidence credit falls to zero at this boundary. |
 | Sibling-quality common tasks | 3 | Requires each missing-task transfer to rest on directly shared tasks from the same base model; indexes and estimates do not count. |
-| Tiered-cost minimum donors | 2 base models | Requires independent same-benchmark effort ratios outside the target model. |
-| Tiered-cost release width | 60 days | Centers a Gaussian neighborhood on the target release date within the same lab. |
-| Tiered-cost lab shrinkage | 16 | Limits the influence of a noisy lab-level correction. |
-| Tiered-cost release/model shrinkage | 4 | Discounts sparse corrections without per-model parameter tuning. |
+| Tiered-resource minimum donors | 2 base models | Requires same-benchmark effort ratios from more than one model outside the target. |
+| Tiered-resource release width | 60 days | Gives nearby releases more influence without a hard date cutoff; the width is a fixed heuristic. |
+| Tiered-resource lab shrinkage | 16 | Limits the influence of a noisy lab-level correction. |
+| Tiered-resource release/model shrinkage | 4 | Discounts sparse corrections without per-model parameter tuning. |
 | Sibling-resource paired tasks | 3 | Prevents one or two task-resource ratios from defining an effort conversion. |
 | Sibling-resource log-error ceiling | $\log 2$ | Refuses a cost or runtime ratio when its typical held-out multiplicative error reaches a factor of two. |
 | Sibling-resource score-error ceiling | 25 points | Refuses a ratio whose typical downstream Speed or Value component error is too large. |
@@ -712,13 +722,17 @@ These parameters encode robustness choices and usage priorities. They are explic
 | Resource neighborhood width | $\sigma=0.5$ | Keeps comparisons quality-local without requiring exact benchmark-score ties. |
 | Minimum quality-coordinate deviation | 0.35 log-odds units, or 35% of the observed linear range | Limits relative clustering while keeping linear comparisons invariant to a change of units. |
 | Local resource trend | Full peer support and interpolation only | Accounts for nearby quality differences while avoiding sparse fits and unsupported extrapolation. |
-| Capability task/index endpoint | 80% / 20% at the configured direct-task threshold (currently 7.5) | Each variant and dimension counts its own direct tasks; missing selected tasks do not move the endpoint. |
-| Aggregate-index proxy taper | Smoothstep from one to the configured threshold of 7.5 direct tasks | Moves from 20% tasks / 80% indexes to 80% tasks / 20% indexes; no tasks means indexes alone. |
-| Full comparison support | 3 effective models | Shrinks unsupported comparisons toward neutral while allowing a small independent peer set to earn full confidence. |
-| Agentic token modifier | ±15%, capped at two robust log-token spread units | Bounds the effect of tokens relative to same-quality peers before benchmark remapping. |
+| Capability task/index endpoint | 80% / 20% at the configured direct-task threshold (currently 7.5) | Lets sufficiently measured curated tasks lead while retaining an index contribution; this balance is a policy choice. |
+| Aggregate-index proxy taper | Cubic smoothstep from one to the configured threshold of 7.5 direct tasks | Avoids an abrupt change in task weight when another observation arrives; no tasks means indexes alone. |
+| Full comparison support | 3 effective models | Pulls weak peer comparisons toward neutral; three effective models end this adjustment without implying statistical certainty. |
+| Agentic token modifier | ±15%, capped at two robust log-token spread units | Limits how much token efficiency can alter benchmark quality before remapping; the cap is a policy choice. |
 
 
 ## Comparable Resource Curves
+
+Effort variants need a shared set of measurements for a fair within-model comparison. Otherwise, a curve can rise or fall because different tasks were reported, even when the effect of effort is unknown. These graphs therefore use the evidence common to the selected variants of each model, separately for cost, time, and tokens.
+
+![A task missing a paired observation for one displayed variant is excluded from that model’s common basket. Another model builds its own basket independently.](assets/methodology/common-variant-basket.svg)
 
 The benchmark selector includes task benchmarks with broad reasoning-effort coverage, selected standalone AA components, and explicitly labelled aggregate index proxies. This display selection does not change the scoring portfolio or remove other benchmarks from the table. Each proxy uses its own quality result. Artificial Analysis pairs its Intelligence Index with its reported aggregate cost, runtime, and output-token measurements per task. Its telemetry is never assigned to another index or an individual task benchmark. Index-only views show native index points, not percentages.
 
@@ -733,5 +747,3 @@ The compact Common within model summary reports variant coverage and the range o
 This fixed basis prevents changing task mixtures from creating artificial effort-to-effort jumps. It does not smooth measurements, impose monotonic effort ordering, or force convergence. Genuine diminishing returns, plateaus, cost decreases, and quality regressions remain visible. The four-benchmark publication gates remain independent of the graph's basket size. Observed AA quality/resource pairs can satisfy these gates through residual benchmark breadth; graph selection does not change leaderboard score calculations.
 
 Expanded score and benchmark graphs connect only consecutive displayed variants within each model, ordered by reasoning effort rather than either coordinate. Reversing direction on an axis does not add a shortcut between nonconsecutive variants. The separate Pareto frontier line appears only in collapsed mode.
-
-![A task missing a paired observation for one displayed variant is excluded from that model’s common basket. Another model builds its own basket independently.](assets/methodology/common-variant-basket.svg)

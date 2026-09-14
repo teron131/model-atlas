@@ -2,22 +2,9 @@
 
 A benchmark earns its place by adding credible information about model capability. This reference records the selected evaluations, their weights, the reasons for including them, and the source policies that keep results comparable. [Standards](standards.md) explains the selection criteria; [Methodology](methodology.md) explains how the results become scores.
 
-## Mercor Chemistry and Software Engineering
-
-SUPERChem is frontier Intelligence evidence (importance 1, loading 100/0) from Mercor's 500-question multimodal release series, using its published `pass-1` result rather than blending text-only runs or reasoning-path fidelity scores.
-APEX-SWE is baseline Agentic evidence (importance 1, loading 0/100) from Mercor's `pass-1` results under `terminus-2`; Inspect results are retained in raw provenance but never substituted for missing Terminus-2 observations.
-Both sources preserve exact reported effort, all original result fields, and reported uncertainty and sample counts; model release dates are not evaluation timestamps, and aggregate sample counts are not assumed to be harness-specific task counts.
-Mercor's descriptive grading copy conflicts with parts of the original papers, so the scored contract is explicitly the published leaderboard metric, not a claim that an independently reproduced grading implementation has been verified.
-ProgramBench remains on Vals's almost-resolved metric (at least 95% of behavioral tests), with no Mercor crosswalk or metric replacement.
-MedXpertQA MM remains unselected pending a reproducible account of Mercor's 200-question subset of the original 2,000-question test set.
-
-Sources: [APEX-SWE](https://www.mercor.com/apex/apex-swe-leaderboard/), [SUPERChem](https://www.mercor.com/apex/oss-benchmarks/oss-super-chem-leaderboard/).
-
-The CAIS dashboard supplies current observations for TextQuests, EnigmaEval, ERQA, IntPhys 2, MindCube Tiny, and SpatialViz-Bench. Its Atlas-derived CAIS Capabilities Index uses the complete seven-component set consisting of HLE, TextQuests, EnigmaEval, ERQA, IntPhys 2, MindCube Tiny, and SpatialViz-Bench, with equal weight per component expressed as `(2 × Text + 5 × Vision) / 7`. A dashboard note identifying a composite fallback result excludes that model from the aggregate while preserving the source model and component values in metadata. These observations have no task-level resource telemetry.
-
 ## Scoring Roles
 
-Task benchmarks have either a `frontier` or `baseline` role; aggregate indexes are listed separately. These labels explain why an input is useful. Importance and dimension loading determine its numerical influence, and the label itself changes neither weight nor the treatment of missing evidence. Rejected and watchlist benchmarks contribute no score.
+Task benchmarks have either a `frontier` or `baseline` role; aggregate indexes are listed separately. These labels explain why an input is useful. Importance and dimension loading determine its numerical weight; classification changes neither that weight nor missing-evidence treatment. Rejected and watchlist benchmarks contribute no score.
 
 The ranking has two quality dimensions:
 
@@ -36,19 +23,15 @@ Writing, modifying, testing, debugging, and delivering software primarily test A
 | Importance | Leaves contribution unchanged at 1, or deliberately dampens it below 1 for a stated reason |
 | Dimension loading | Splits the contribution between Intelligence and Agentic; the two loadings sum to 100% |
 
-Importance is a damping factor, not a priority scale. A value of 1 leaves the benchmark’s contribution unchanged; a lower value deliberately reduces it for the reason recorded in the portfolio.
-
-Dimension loading separately determines how much of that contribution belongs to Intelligence and Agentic. The effective weight is $\omega_{b,d}=i_b\lambda_{b,d}$: damping reduces the contribution, while loading divides it between the two dimensions.
+Importance $i_b$ reduces a benchmark's contribution when a stated limitation warrants it; 1 leaves it unchanged. Dimension loading $\lambda_{b,d}$ allocates that contribution between Intelligence and Agentic. Their product $\omega_{b,d}=i_b\lambda_{b,d}$ is the effective weight.
 
 Loadings use the five-level scale in [Standards](standards.md): 100/0, 75/25, 50/50, 25/75, or 0/100. This keeps the judgment coarse enough to explain. Coding tasks are primarily Agentic evidence; an Intelligence share depends on substantial reasoning in the task's actual demands.
-
-The decisions below apply that distinction. Software delivery is primarily Agentic; difficult program semantics, vulnerability diagnosis, or architecture can add an Intelligence component. Algorithm design, formal mathematics, and scientific research can justify stronger Intelligence weight.
 
 Each table records the capability being measured and the reason for its weight. The source policies below specify which observations and task resources are eligible.
 
 ### Resource Quality Coordinates
 
-Every benchmark whose task time or cost can enter Speed or Value declares how its quality value is positioned inside resource-comparison neighborhoods. `Logit` is limited to probability-like success, pass, accuracy, or completion rates. `Linear` preserves spacing for native scales and composites that do not have remaining-error probability semantics.
+Speed and Value compare resource use among models achieving similar quality. Each eligible benchmark therefore declares the coordinate used to measure quality distance. `Logit` gives probability-like success rates more separation near their endpoints. `Linear` preserves score gaps for ratings, partial credit, and composites whose values are not success probabilities.
 
 Direct same-benchmark tokens also use these coordinates for the [Agentic token modifier](methodology.md#agentic-token-efficiency) when the benchmark has a non-zero Agentic loading. AA aggregate output tokens use a linear coordinate for its own Intelligence Index only; index membership never supplies token evidence to constituent or cross-index benchmarks.
 
@@ -81,13 +64,15 @@ An aggregate index summarizes several evaluations. It offers broad coverage, but
 | --- | --- | ---: | ---: | ---: | --- |
 | Artificial Analysis Intelligence Index | Baseline | 0.5 | 50% | 50% | Retained as neutral fallback evidence because the source mixes reasoning, knowledge, coding, and agent evaluations under source-owned aggregation that cannot be decomposed consistently; half importance limits its overlapping influence. |
 | CAIS Capabilities Index | Baseline | 0.5 | 75% | 25% | Atlas-derived weighted coverage proxy across two Text and five Vision components. Residual component breadth prevents directly observed CAIS tasks from receiving duplicate proxy weight; the aggregate remains separate from the component rows. |
-| Epoch Capabilities Index | Baseline | 0.5 | 50% | 50% | Retained as neutral fallback evidence because the source-owned mix and component count are not recoverable per model row; half importance limits the uncertainty. |
+| Epoch Capabilities Index | Baseline | 0.5 | 50% | 50% | Broad fallback evidence with source-owned aggregation. The fitted benchmark count is model-specific, but incomplete component metadata limits overlap accounting; half importance limits this aggregate's contribution. |
 | Surge Intelligence Index | Baseline | 0.5 | 50% | 50% | Retained as neutral fallback evidence because professional reasoning, writing, and agent evaluations are aggregated under incompatible source scales; half importance limits overlap. |
 | Vals Index | Baseline | 0.5 | 50% | 50% | Retained as neutral fallback evidence because finance, legal, and coding tasks mix domain reasoning with execution without recoverable component weights; the opaque aggregate is not reweighted from its coding label alone. |
 
-Observed aggregate indexes support sparse variants. Effort-labelled variants use only indexes that report effort-specific results, currently Artificial Analysis and CAIS; other index observations remain visible and retain their separate admission role. Each quality dimension starts with 20% task influence at one direct task and rises smoothly to 80% at eight direct tasks; indexes supply the remaining share. With no direct tasks, indexes carry 100%. Task importance and dimension loading determine the task mean; represented breadth, index importance, and dimension loading determine the index mean. CAIS reduces its represented breadth by directly observed CAIS component tasks so the same component evidence is not counted twice; the other aggregate-index breadth policies remain unchanged. Imputed values and sibling observations never advance the task count. The rule applies to every variant, independently of admission and displayed evidence support.
+Indexes supply broad evidence when direct tasks are sparse. Effort-labelled variants use only effort-specific indexes, currently Artificial Analysis and CAIS; other index observations remain visible and retain their separate admission role. The main leaderboard's task-group weight rises from 20% at one observed task to 80% at the configured threshold of 7.5, using cubic smoothstep. With no direct tasks, indexes receive 100%. Each variant and dimension counts its own direct tasks; imputed and sibling results do not advance the count. [Methodology](methodology.md#aggregate-index-proxying) defines the full blend and its separate evidence and admission rules.
 
 ### Frontier Benchmarks
+
+These tasks provide demanding evidence that separates current leading models. Each row records the capability rationale and any reduction in importance.
 
 | Benchmark | Importance | Intelligence Loading | Agentic Loading | Capability and Decision |
 | --- | ---: | ---: | ---: | --- |
@@ -125,14 +110,18 @@ Observed aggregate indexes support sparse variants. Effort-labelled variants use
 | Riemann-bench | 1 | 100% | 0% | Private extreme mathematics benchmark. It has limited public task access, but low scores and useful spread make it a sharp frontier intelligence stress test. |
 | SRE Bench | 1 | 25% | 75% | Binary reverse engineering across protected programs primarily measures investigation, tool use, reconstruction, and verified execution. Inferring hidden semantics and protections supplies secondary Intelligence evidence, while deterministic grading and substantial headroom support frontier use despite sparse model coverage. |
 | SpatialViz-Bench | 1 | 100% | 0% | Controlled mental rotation, folding, penetration, and animation tasks isolate spatial visualization as a distinct Intelligence capability. Programmatic generation and current top-model separation support frontier use, subject to confirming the CAIS configuration matches the paper task version. |
+| SUPERChem | 1 | 100% | 0% | Expert-curated multimodal chemistry problems test advanced chemical reasoning. The selected published Pass@1 metric supplies frontier Intelligence evidence; reasoning-path fidelity and text-only runs remain separate. |
 | Terminal-Bench 4.0 | 1 | 25% | 75% | Difficult containerized tasks deliberately require instruction fidelity, terminal-tool orchestration, state inspection, self-verification, and recovery. Technical reasoning is substantive, but the scored construct is primarily reliable workflow execution rather than coding. |
 | Terminal-Bench-Science 0.1 | 1 | 75% | 25% | Scientific formulation and research-level analysis justify the Intelligence-heavy exception to the coding default. Implementing methods, coordinating terminal tools, and verifying results contribute the secondary Agentic loading. |
 | TextQuests | 1 | 25% | 75% | Long-horizon interactive-fiction play requires exploration, state tracking, trial and error, recovery, and sustained planning. No-clues mean game progress is frontier Agentic evidence, with puzzle reasoning as a substantive secondary component. |
 
 ### Baseline Benchmarks
 
+These tasks retain useful capability breadth or stability even when they do not provide the strongest frontier separation. Baseline status does not automatically reduce a benchmark's weight.
+
 | Benchmark | Importance | Intelligence Loading | Agentic Loading | Capability and Decision |
 | --- | ---: | ---: | ---: | --- |
+| APEX-SWE | 1 | 0% | 100% | Service integration and debugging with production-style telemetry measure software execution. Published Terminus-2 Pass@1 results provide baseline Agentic evidence; other harnesses cannot fill missing Terminus-2 rows. |
 | BrowseComp | 1 | 50% | 50% | Finding and synthesizing difficult web evidence requires both substantive research reasoning and deliberate browsing, query selection, and feedback use. Public tasks and less frontier-like top spread keep it baseline. |
 | Chess Puzzles | 1 | 100% | 0% | Exact-move chess puzzle solving supplies a distinct planning and tactical-reasoning signal. It remains baseline because it is a narrow specialist capability rather than a broad frontier claim. |
 | CyberBench | 1 | 25% | 75% | The selected Patch track supplies the crash input and sanitizer report, then requires editing, compiling, and validating a repair without breaking valid behavior. That workflow is primarily Agentic, with memory-safety and vulnerability diagnosis providing secondary Intelligence evidence. |
@@ -181,9 +170,11 @@ An unlabelled configuration is the source default. If every configuration names 
 
 ## Aggregate Index Policies
 
-**Artificial Analysis Intelligence Index** uses the published aggregate directly. Its overlap with selected task benchmarks makes it one fallback observation rather than nine independent observations; its resource facts are retained but do not separately affect Speed or Value.
+**Artificial Analysis Intelligence Index** uses the published aggregate directly as one index observation, with represented breadth currently 10. Its own paired per-task cost, runtime, and output tokens can contribute under the resource rules in [Methodology](methodology.md#resource-score-availability). This telemetry remains attached to the index and never fills missing standalone task measurements. Known standalone components reduce represented resource breadth so overlap counts once.
 
-**Epoch Capabilities Index** uses the published ECI value directly.
+**CAIS Capabilities Index** is derived from HLE, TextQuests, EnigmaEval, ERQA, IntPhys 2, MindCube Tiny, and SpatialViz-Bench with equal weight per component, expressed as `(2 × Text + 5 × Vision) / 7`. Directly observed components reduce its remaining weight, so a fully represented basket adds no second index vote. A disclosed composite fallback excludes that model from the aggregate while preserving its component values and provenance. CAIS supplies no task-level resource telemetry.
+
+**Epoch Capabilities Index** uses the published ECI value and the model-specific fitted benchmark count. When that count is unavailable, four is a conservative fallback. Component identities are not fully available for overlap accounting; the count does not create missing task measurements.
 
 **Surge Intelligence Index** uses the published aggregate directly. It remains fallback evidence, and the absence of a reproducible index-level resource contract keeps it out of Speed and Value.
 
@@ -194,6 +185,8 @@ An unlabelled configuration is the source default. If every configuration names 
 Only non-default source, metric, selection, exclusion, and resource rules are detailed below. The portfolio tables remain authoritative for capability, class, importance, and dimension loading.
 
 ### Shared Source Families
+
+**CAIS benchmark family:** TextQuests, EnigmaEval, ERQA, IntPhys 2, MindCube Tiny, and SpatialViz-Bench use the dashboard's component observations. These remain separate from the derived CAIS index and have no task-level resource telemetry.
 
 **Artificial Analysis benchmark family:** AnalystAgent, Briefcase, CritPt, GDPval-AA v2, HLE, ITBench, Omniscience, SciCode, and tau3 Banking use their dedicated evaluation pages for both scores and any eligible resources. The shared model table does not supply their task-level scores.
 
@@ -210,6 +203,16 @@ Briefcase and GDPval-AA v2 retain raw page Elo but normalize it with `clamp((Elo
 **Vals benchmark family:** Legal Research, EMB, Code Migration, Vibe Code, and Public Benefits Bench use `overall`; Finance Agent V2 uses `all_pass`, ProgramBench uses `almost`, SRE Bench uses `partial`, and CyberBench uses the `patch` track. ProgramBench `almost` is the share of tasks passing at least 95% of hidden behavioral tests. SRE Bench `partial` is its Capability Score across 1,572 objectives in 262 binary instances; its Fully Solved rate remains supporting context. Vals cost and latency remain outside Speed and Value, and these benchmarks are not Time Horizon evidence.
 
 ProofBench uses Vals' compiler-verified overall accuracy, excludes the specialized `aristotle/aristotle` system, and uses Epoch overlap only as provenance validation rather than additional evidence.
+
+### Mercor Chemistry and Software Engineering
+
+**SUPERChem** uses Mercor's published `pass-1` result from the 500-question multimodal release series. Text-only runs and reasoning-path fidelity scores remain separate. **APEX-SWE** uses Mercor's `pass-1` results under `terminus-2`; Inspect results remain raw provenance and cannot fill missing Terminus-2 observations.
+
+Both sources retain exact reported effort, original result fields, uncertainty, and sample counts. Model release dates are not evaluation timestamps, and aggregate sample counts are not assumed to be harness-specific task counts. Mercor's grading description conflicts with parts of the original papers, so scoring follows the published leaderboard metric without claiming independent reproduction of its grader.
+
+ProgramBench remains on Vals's almost-resolved metric, requiring at least 95% of behavioral tests, with no Mercor crosswalk. MedXpertQA MM remains unselected until Mercor's 200-question subset of the original 2,000-question test set is reproducibly identified.
+
+Sources: [APEX-SWE](https://www.mercor.com/apex/apex-swe-leaderboard/), [SUPERChem](https://www.mercor.com/apex/oss-benchmarks/oss-super-chem-leaderboard/).
 
 ### ARC-AGI-3 Harness Policy
 

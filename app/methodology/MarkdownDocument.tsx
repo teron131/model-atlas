@@ -1,4 +1,4 @@
-/** Render repository Markdown with stable headings and content-versioned SVGs so artwork edits bypass stale browser caches. */
+/** Render repository Markdown with stable headings, responsive flow lists and content-versioned artwork. */
 
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
@@ -6,7 +6,7 @@ import { join } from "node:path";
 
 import Image from "next/image";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { Children, type ReactNode } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import rehypeKatex from "rehype-katex";
 import remarkGfm from "remark-gfm";
@@ -77,6 +77,15 @@ const markdownComponents: Components = {
       <table>{children}</table>
     </div>
   ),
+  // A flow callout keeps its content in ordinary Markdown and its ordered steps in accessible HTML.
+  blockquote: ({ children }) => {
+    const blocks = Children.toArray(children);
+    const first = blocks.findIndex((block) => textContent(block).trim() !== "");
+    if (textContent(blocks[first]).trim() !== "[!FLOW]") {
+      return <blockquote>{children}</blockquote>;
+    }
+    return <div className={styles.flowchart}>{blocks.slice(first + 1)}</div>;
+  },
   img: MarkdownImage,
 };
 

@@ -20,19 +20,23 @@ export function calibrationObservations<T extends { id?: unknown; name?: unknown
       ? []
       : [{ modelKey: canonicalModelKey(item), item, value }];
   });
-  const variantsPerModel = new Map<string, number>();
-  for (const { modelKey } of finiteItems) {
-    variantsPerModel.set(modelKey, (variantsPerModel.get(modelKey) ?? 0) + 1);
-  }
-  return finiteItems.map(({ modelKey, item, value }) => ({
+  const weights = modelCalibrationWeights(finiteItems.map(({ modelKey }) => modelKey));
+  return finiteItems.map(({ modelKey, item, value }, index) => ({
     modelKey,
     item,
     value,
-    weight: 1 / (variantsPerModel.get(modelKey) ?? 1),
+    weight: weights[index]!,
   }));
 }
 
 /** Count the independent model units represented by a calibration population. */
 export function effectiveModelCount(observations: readonly { modelKey: string }[]): number {
   return new Set(observations.map(({ modelKey }) => modelKey)).size;
+}
+
+/** Divide each resolved model's unit mass across its included observations without renormalizing caller-owned identities. */
+export function modelCalibrationWeights(modelKeys: readonly string[]): number[] {
+  const counts = new Map<string, number>();
+  for (const key of modelKeys) counts.set(key, (counts.get(key) ?? 0) + 1);
+  return modelKeys.map((key) => 1 / counts.get(key)!);
 }

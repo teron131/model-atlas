@@ -1,5 +1,8 @@
 /** Dashboard provider labels, brand assets, and chart colors. */
 
+import { providerIdentityKey as providerFilterKey } from "../../../src/model-atlas/identity/provider";
+export { providerIdentityKey as providerFilterKey } from "../../../src/model-atlas/identity/provider";
+
 import { providerIcons } from "../../../src/model-atlas/logos/provider-icons.generated";
 
 type ProviderLike = { provider?: string | null };
@@ -56,13 +59,6 @@ const providerLabels: Record<string, string> = {
   zai: "Z AI",
 };
 
-const providerFilterAliases: Record<string, string> = {
-  "meta-llama": "meta",
-  mistralai: "mistral",
-  "x-ai": "xai",
-  "z-ai": "zai",
-};
-
 const fallbackProviderColors = [
   "#ff5a46",
   "#f6b44b",
@@ -79,15 +75,6 @@ export function providerDisplayName(source: ProviderLike | string | null) {
   return providerLabels[key] ?? provider ?? "Unknown";
 }
 
-export function providerFilterKey(provider: string | null | undefined) {
-  const key = String(provider ?? "unknown")
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-  return providerFilterAliases[key] ?? key;
-}
-
 function providerAssetKey(provider: string | null | undefined) {
   return String(provider ?? "")
     .trim()
@@ -97,8 +84,9 @@ function providerAssetKey(provider: string | null | undefined) {
 }
 
 function providerIcon(provider: string | null | undefined) {
-  const key = providerAssetKey(provider);
-  return key ? providerIcons[key as ProviderIconKey] : undefined;
+  const key = providerFilterKey(provider);
+  const assetKey = key === "xai" ? "x-ai" : key === "zai" ? "z-ai" : key;
+  return providerIcons[assetKey as ProviderIconKey];
 }
 
 export function providerChartColor(provider: string | null | undefined) {

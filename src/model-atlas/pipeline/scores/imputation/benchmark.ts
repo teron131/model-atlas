@@ -37,6 +37,7 @@ type BenchmarkImputationDiagnostic = {
   validationSampleCount: number;
   effectiveModelCount: number;
   normalizedMedianAbsoluteError: number | null;
+  normalizedBaselineMedianAbsoluteError: number | null;
   imputationAllowed: boolean;
 };
 
@@ -178,6 +179,7 @@ function observedNormalizedEvidenceScore(
   benchmarkWeights: ReadonlyMap<string, number>,
   excludedBenchmarkKey: string | null,
   rangesByKey: ReadonlyMap<string, MinMaxRange | null>,
+  minimumEvidenceValues = MIN_IMPUTATION_EVIDENCE_VALUES,
 ): number | null {
   const parts = benchmarkKeys
     .filter((key) => key !== excludedBenchmarkKey)
@@ -185,7 +187,7 @@ function observedNormalizedEvidenceScore(
       value: normalizedMetricValue(rangesByKey, key, benchmarkMetricValue(model, key)),
       weight: benchmarkWeights.get(key) ?? 0,
     }));
-  return weightedFinitePartCount(parts) >= MIN_IMPUTATION_EVIDENCE_VALUES
+  return weightedFinitePartCount(parts) >= minimumEvidenceValues
     ? weightedMeanOfFinite(parts)
     : null;
 }
@@ -234,6 +236,7 @@ function buildDimensionPredictor(
   dimension: BenchmarkDimension,
   scoringConfig: ScoringConfig,
   rangesByKey: ReadonlyMap<string, MinMaxRange | null>,
+  minimumEvidenceValues: number,
 ): ((model: JsonObject) => ContextualPrediction | null) | null {
   const { benchmarkKeys, benchmarkWeights } = dimensionBenchmarkContext(dimension, scoringConfig);
   const referenceContextScores = calibrationObservations(models, (model) => {
@@ -246,6 +249,7 @@ function buildDimensionPredictor(
       benchmarkWeights,
       targetBenchmarkKey,
       rangesByKey,
+      minimumEvidenceValues,
     );
   });
   const targetObservations = referenceContextScores.map((observation) => ({
@@ -262,6 +266,7 @@ function buildDimensionPredictor(
       benchmarkWeights,
       targetBenchmarkKey,
       rangesByKey,
+      minimumEvidenceValues,
     );
     if (contextScore == null) {
       return null;
@@ -293,6 +298,7 @@ function buildWeightedPredictors(
   targetBenchmarkKey: string,
   scoringConfig: ScoringConfig,
   rangesByKey: ReadonlyMap<string, MinMaxRange | null>,
+  minimumEvidenceValues: number,
 ): WeightedBenchmarkPredictor[] {
   const portfolioEntry = scoringConfig.benchmarkPortfolio[targetBenchmarkKey];
   if (portfolioEntry == null) {
@@ -301,7 +307,14 @@ function buildWeightedPredictors(
   return IMPUTATION_DIMENSIONS.map((dimension) => ({
     predict:
       portfolioEntry.dimensionLoadings[dimension] > 0
-        ? buildDimensionPredictor(models, targetBenchmarkKey, dimension, scoringConfig, rangesByKey)
+        ? buildDimensionPredictor(
+            models,
+            targetBenchmarkKey,
+            dimension,
+            scoringConfig,
+            rangesByKey,
+            minimumEvidenceValues,
+          )
         : null,
     weight: portfolioEntry.dimensionLoadings[dimension],
   }));
@@ -336,8 +349,10 @@ function imputationDiagnostic(
   benchmarkKeys: readonly string[],
   targetBenchmarkKey: string,
   scoringConfig: ScoringConfig,
+  minimumEvidenceValues: number,
 ): BenchmarkImputationDiagnostic {
   const normalizedAbsoluteErrorByModel = new Map<JsonObject, number>();
+  const baselineErrorByModel = new Map<JsonObject, number>();
   const modelKeyByModel = new Map(
     models.map((model) => [model, canonicalModelKey(model)] as const),
   );
@@ -346,6 +361,7 @@ function imputationDiagnostic(
     {
       predictors: WeightedBenchmarkPredictor[];
       targetRange: MinMaxRange | null;
+      baseline: number | null;
     }
   >();
   for (const heldOutModel of models) {
@@ -366,8 +382,14 @@ function imputationDiagnostic(
           targetBenchmarkKey,
           scoringConfig,
           trainingRangesByKey,
+          minimumEvidenceValues,
         ),
         targetRange: trainingRangesByKey.get(targetBenchmarkKey) ?? null,
+        baseline: weightedMedianOfFinite(
+          calibrationObservations(trainingModels, (model) =>
+            benchmarkMetricValue(model, targetBenchmarkKey),
+          ),
+        ),
       };
       calibrationByHeldOutModel.set(heldOutModelKey, calibration);
     }
@@ -381,6 +403,9 @@ function imputationDiagnostic(
       heldOutModel,
       Math.abs(normalizedPrediction - normalizedActual),
     );
+    const normalizedBaseline = minMaxScale(calibration.targetRange, calibration.baseline);
+    if (normalizedBaseline != null)
+      baselineErrorByModel.set(heldOutModel, Math.abs(normalizedBaseline - normalizedActual));
   }
   const validationErrors = calibrationObservations(
     models,
@@ -392,6 +417,9 @@ function imputationDiagnostic(
     validationSampleCount: validationErrors.length,
     effectiveModelCount: validationModelCount,
     normalizedMedianAbsoluteError,
+    normalizedBaselineMedianAbsoluteError: weightedMedianOfFinite(
+      calibrationObservations(models, (model) => baselineErrorByModel.get(model) ?? null),
+    ),
     imputationAllowed:
       validationModelCount >= MIN_IMPUTATION_VALIDATION_MODELS &&
       normalizedMedianAbsoluteError != null &&
@@ -399,10 +427,13 @@ function imputationDiagnostic(
   };
 }
 
-/** Calibrate contextual benchmark imputers from observed peer evidence and enable only predictors whose validation error and support meet policy. */
-function prepareImputation(
+/** Calibrate selected targets from observed peer evidence with family-held-out validation; an explicit query cohort is projected without changing training ranges or validation. */
+export function prepareBenchmarkImputation(
   models: JsonObject[],
   scoringConfig: ScoringConfig,
+  targetKeys?: readonly string[],
+  minimumEvidenceValues = MIN_IMPUTATION_EVIDENCE_VALUES,
+  queryModels = models,
 ): ImputationPreparation {
   const benchmarkKeys = [
     ...new Set([...scoringConfig.intelligenceBenchmarkKeys, ...scoringConfig.agenticBenchmarkKeys]),
@@ -411,7 +442,7 @@ function prepareImputation(
   const imputationConfidenceByModel = new Map<JsonObject, Map<string, number>>();
   const diagnosticsByKey = new Map<string, BenchmarkImputationDiagnostic>();
   const rangesByKey = observedRangesByBenchmark(models, benchmarkKeys);
-  for (const key of benchmarkKeys) {
+  for (const key of targetKeys ?? benchmarkKeys) {
     const portfolioEntry = scoringConfig.benchmarkPortfolio[key];
     if (portfolioEntry == null) {
       continue;
@@ -421,13 +452,25 @@ function prepareImputation(
     if (imputationPolicy != null && imputationPolicy.kind !== "contextual") {
       continue;
     }
-    const diagnostic = imputationDiagnostic(models, benchmarkKeys, key, scoringConfig);
+    const diagnostic = imputationDiagnostic(
+      models,
+      benchmarkKeys,
+      key,
+      scoringConfig,
+      minimumEvidenceValues,
+    );
     diagnosticsByKey.set(key, diagnostic);
     if (!diagnostic.imputationAllowed) {
       continue;
     }
-    const predictors = buildWeightedPredictors(models, key, scoringConfig, rangesByKey);
-    for (const model of models) {
+    const predictors = buildWeightedPredictors(
+      models,
+      key,
+      scoringConfig,
+      rangesByKey,
+      minimumEvidenceValues,
+    );
+    for (const model of queryModels) {
       if (benchmarkMetricValue(model, key) != null || imputationByModel.get(model)?.has(key)) {
         continue;
       }
@@ -458,7 +501,7 @@ export function buildBenchmarkImputationByModel(
   models: JsonObject[],
   scoringConfig: ScoringConfig,
 ): Map<JsonObject, Map<string, number>> {
-  return prepareImputation(models, scoringConfig).imputationByModel;
+  return prepareBenchmarkImputation(models, scoringConfig).imputationByModel;
 }
 
 /** Report leave-one-model-out reliability evidence for every selected benchmark imputer. */
@@ -466,7 +509,7 @@ export function buildBenchmarkImputationDiagnosticsByKey(
   models: JsonObject[],
   scoringConfig: ScoringConfig,
 ): Map<string, BenchmarkImputationDiagnostic> {
-  return prepareImputation(models, scoringConfig).imputationDiagnosticsByKey;
+  return prepareBenchmarkImputation(models, scoringConfig).imputationDiagnosticsByKey;
 }
 
 /** Prepare benchmark imputations and quality normalization context in dependency order. */
@@ -474,7 +517,7 @@ export function prepareBenchmarkScoring(
   models: JsonObject[],
   scoringConfig: ScoringConfig,
 ): BenchmarkScoringPreparation {
-  const { imputationByModel, imputationConfidenceByModel } = prepareImputation(
+  const { imputationByModel, imputationConfidenceByModel } = prepareBenchmarkImputation(
     models,
     scoringConfig,
   );

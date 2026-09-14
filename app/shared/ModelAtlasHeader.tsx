@@ -1,32 +1,17 @@
 "use client";
 
-/** Shared Model Atlas header owns route links and optional document navigation. */
+/** Shared branding and primary routes stay consistent across dashboard, timeline and documentation widths. */
 
-import { BookOpenText, ChartNoAxesColumnIncreasing, ListTree } from "lucide-react";
+import { BookOpenText, ChartNoAxesColumnIncreasing, ChartNoAxesCombined } from "lucide-react";
 import Link from "next/link";
 
-export function ModelAtlasHeader({
-  page,
-  documentNavigationOpen = false,
-  onToggleDocumentNavigation,
-}: {
-  page: "dashboard" | "methodology";
-  documentNavigationOpen?: boolean;
-  onToggleDocumentNavigation?: () => void;
-}) {
-  const route =
-    page === "dashboard"
-      ? {
-          href: "/methodology",
-          label: "Methodology",
-          Icon: BookOpenText,
-        }
-      : {
-          href: "/",
-          label: "Leaderboard",
-          Icon: ChartNoAxesColumnIncreasing,
-        };
+const HEADER_ROUTES = [
+  { page: "dashboard", href: "/", label: "Leaderboard", Icon: ChartNoAxesColumnIncreasing },
+  { page: "timeline", href: "/timeline", label: "Timeline", Icon: ChartNoAxesCombined },
+  { page: "methodology", href: "/methodology", label: "Methodology", Icon: BookOpenText },
+] as const;
 
+export function ModelAtlasHeader({ page }: { page: "dashboard" | "methodology" | "timeline" }) {
   return (
     <header className="dashboard-header">
       <Link className="brand-lockup" href="/" prefetch={false} aria-label="Model Atlas home">
@@ -38,24 +23,24 @@ export function ModelAtlasHeader({
         )}
       </Link>
       <div className="header-actions">
-        {onToggleDocumentNavigation == null ? null : (
-          <button
-            className="header-icon-button"
-            type="button"
-            aria-label={
-              documentNavigationOpen ? "Hide document navigation" : "Show document navigation"
-            }
-            aria-controls="document-navigation"
-            aria-expanded={documentNavigationOpen}
-            onClick={onToggleDocumentNavigation}
-          >
-            <ListTree aria-hidden="true" />
-          </button>
-        )}
-        <Link className="header-route" href={route.href} prefetch={false}>
-          <route.Icon aria-hidden="true" />
-          <span>{route.label}</span>
-        </Link>
+        <nav className="header-routes" aria-label="Main navigation">
+          {HEADER_ROUTES.map((route) => (
+            <Link
+              key={route.page}
+              className="header-route"
+              href={route.href}
+              prefetch={false}
+              aria-label={route.label}
+              aria-current={
+                page === route.page ? (page === "methodology" ? "location" : "page") : undefined
+              }
+              title={route.label}
+            >
+              <route.Icon aria-hidden="true" />
+              <span>{route.label}</span>
+            </Link>
+          ))}
+        </nav>
       </div>
     </header>
   );

@@ -69,7 +69,10 @@ export function benchmarkObservationSource(
         acceptsCache: (rows) => caisCacheMatches(rows, loader),
       };
     case "epoch_capabilities_index":
-      return { fetchRows: () => getEpochCapabilitiesIndexStats(loader.sourceUrl) };
+      return {
+        fetchRows: () => getEpochCapabilitiesIndexStats(loader.sourceUrl),
+        acceptsCache: (rows) => rows.every((row) => Object.hasOwn(row.metadata, "benchmark_count")),
+      };
     case "epoch_runs":
       return {
         fetchRows: () => getEpochBenchmarkStats(binding.benchmark, loader.task, loader.eligibility),

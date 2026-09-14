@@ -19,6 +19,7 @@ export type ModelsDevModel = {
 export type MatcherSourceModel = {
   sourceId: string | null;
   sourceSlug: string;
+  sourceProvider?: string | null;
   matchSlugOverride?: string;
   sourceName: string | null;
   sourceReleaseDate: string | null;

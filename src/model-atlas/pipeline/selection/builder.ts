@@ -1,6 +1,6 @@
 /** Model selection prepares quality scores before route enrichment, then finalizes resource scores, admission, and logo hydration. */
 
-import { indexPolicy } from "../../benchmarks/index-policy";
+import { indexPolicy, reportedIndexBenchmarkCount } from "../../benchmarks/index-policy";
 import type { BenchmarkAdmissionConfig, FinalStageConfig, ScoringConfig } from "../../config/stage";
 import { cacheModelLogos } from "../../logos/cache";
 import { asFiniteNumber, asRecord } from "../../runtime";
@@ -43,7 +43,10 @@ const PUBLIC_QUALITY_SCORE_KEYS = ["intelligence_score", "agentic_score"] as con
 
 type IdentityCandidate = Pick<ModelAtlasCandidate, "id" | "name" | "modalities">;
 
-type BenchmarkEvidenceCandidate = Pick<ModelAtlasScoredCandidate, "intelligence" | "benchmarks">;
+type BenchmarkEvidenceCandidate = Pick<
+  ModelAtlasScoredCandidate,
+  "intelligence" | "benchmarks" | "scoring_sources"
+>;
 
 export type ModelSelection = {
   modelRows: Record<string, unknown>[];
@@ -232,7 +235,10 @@ function observedBenchmarkWeight(
     const policy = indexPolicy(key);
     if (policy != null) {
       const components = new Set(policy.standaloneComponents);
-      opaqueWeight += Math.max(0, policy.representedBenchmarks - components.size);
+      opaqueWeight += Math.max(
+        0,
+        (reportedIndexBenchmarkCount(model, key) ?? policy.representedBenchmarks) - components.size,
+      );
       for (const component of components) {
         namedWeights.set(component, Math.max(namedWeights.get(component) ?? 0, 1));
       }

@@ -1,6 +1,6 @@
 {
   "name": "model-atlas",
-  "version": "0.44.4",
+  "version": "0.45.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -21,6 +21,7 @@
     "test": "tsx scripts/test.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "database": "tsx scripts/database.ts",
+    "timeline": "tsx scripts/timeline.ts",
     "smoke": "tsx scripts/smoke-model-atlas.ts",
     "snapshot:publish": "tsx scripts/publish-snapshot.ts",
     "env:sync": "tsx scripts/sync-vercel-env.ts",

@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 48 760 450" role="img" aria-labelledby="title desc">
+<title id="title">How anchors affect readability</title>
+<desc id="desc">Selected retained Intelligence scores compare saved anchors of one hundred and one hundred fifty with illustrative anchors of twenty and eighty. Four highlighted model pairs have unequal upward arrows: GPT-4, Claude Opus 4.5, GPT-6 Astra and Gemma 7B. Other scores are faded. The sixty-point anchor gap becomes fifty points, so all score gaps shrink by the same proportion. Release dates, model order and underlying evidence remain unchanged.</desc>
+<style>
+text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; }
+@media (prefers-color-scheme:dark) {
+text { fill:#ffffff; }
+[fill="#63706e"] { fill:#a6b2ae; } [stroke="#63706e"] { stroke:#a6b2ae; }
+[fill="#b5bfbc"] { fill:#3c4846; } [stroke="#b5bfbc"] { stroke:#3c4846; }
+[fill="#146cba"] { fill:#85bfff; } [stroke="#146cba"] { stroke:#85bfff; }
+[fill="#a64d0c"] { fill:#ffbc7d; } [stroke="#a64d0c"] { stroke:#ffbc7d; }
+}
+</style>
+<circle cx="54" cy="65" r="4" fill="#146cba"/>
+<text x="78.0" y="70.0" font-size="15" fill="#146cba" text-anchor="start" font-weight="400">Saved anchors: 100 / 150</text>
+<circle cx="400" cy="65" r="4" fill="#63706e"/>
+<text x="424.0" y="70.0" font-size="15" fill="#63706e" text-anchor="start" font-weight="400">Illustrative anchors: 20 / 80</text>
+<path d="M88 381.7 H700" fill="none" stroke="#b5bfbc" stroke-width="1.5" stroke-dasharray="3 5"/>
+<text x="72.0" y="386.7" font-size="14" fill="#63706e" text-anchor="end" font-weight="400">0</text>
+<path d="M88 248.3 H700" fill="none" stroke="#b5bfbc" stroke-width="1.5" stroke-dasharray="3 5"/>
+<text x="72.0" y="253.3" font-size="14" fill="#63706e" text-anchor="end" font-weight="400">100</text>
+<path d="M88 181.7 H700" fill="none" stroke="#b5bfbc" stroke-width="1.5" stroke-dasharray="3 5"/>
+<text x="72.0" y="186.7" font-size="14" fill="#63706e" text-anchor="end" font-weight="400">150</text>
+<path d="M88 115.0 H700" fill="none" stroke="#b5bfbc" stroke-width="1.5" stroke-dasharray="3 5"/>
+<text x="72.0" y="120.0" font-size="14" fill="#63706e" text-anchor="end" font-weight="400">200</text>
+<path d="M88 110 V435 H710" fill="none" stroke="#63706e" stroke-width="1.5"/>
+<path d="M706 431 L710 435 L706 439" fill="none" stroke="#63706e" stroke-width="1.5"/>
+<text x="40.0" y="104.0" font-size="14" fill="#63706e" text-anchor="start" font-weight="400">Index</text>
+<text x="700.0" y="488.0" font-size="14" fill="#63706e" text-anchor="end" font-weight="400">Release date</text>
+<path d="M88.0 435 V442" fill="none" stroke="#63706e" stroke-width="1.5"/>
+<text x="88.0" y="464.0" font-size="14" fill="#63706e" text-anchor="middle" font-weight="400">2023</text>
+<path d="M240.9 435 V442" fill="none" stroke="#63706e" stroke-width="1.5"/>
+<text x="240.9" y="464.0" font-size="14" fill="#63706e" text-anchor="middle" font-weight="400">2024</text>
+<path d="M394.2 435 V442" fill="none" stroke="#63706e" stroke-width="1.5"/>
+<text x="394.2" y="464.0" font-size="14" fill="#63706e" text-anchor="middle" font-weight="400">2025</text>
+<path d="M547.1 435 V442" fill="none" stroke="#63706e" stroke-width="1.5"/>
+<text x="547.1" y="464.0" font-size="14" fill="#63706e" text-anchor="middle" font-weight="400">2026</text>
+<path d="M88 288.3 H700" fill="none" stroke="#a64d0c" stroke-width="1.5" stroke-dasharray="2 5"/>
+<text x="695.0" y="280.3" font-size="13" fill="#a64d0c" text-anchor="end" font-weight="400">Visibility cutoff: 70</text>
+<path d="M118.2 355.0 C162.4 354.4 206.7 354.3 250.9 353.1 C266.2 352.7 281.4 348.6 296.6 344.7 C313.6 340.2 330.7 330.4 347.7 322.4 C361.1 316.0 374.5 304.2 387.9 301.6 C401.6 298.9 415.3 298.8 429.0 296.7 C447.8 293.8 466.7 289.3 485.5 284.4 C499.9 280.7 514.3 274.2 528.7 270.5 C541.7 267.2 554.6 266.2 567.6 262.3 C595.1 254.0 622.6 233.2 650.2 218.7" fill="none" stroke="#63706e" stroke-width="1.5" stroke-dasharray="5 4" opacity="0.65"/>
+<path d="M118.2 248.3 C162.4 247.8 206.7 247.7 250.9 246.8 C266.2 246.4 281.4 243.0 296.6 239.7 C313.6 236.0 330.7 227.9 347.7 221.2 C361.1 215.9 374.5 206.0 387.9 203.8 C401.6 201.6 415.3 201.5 429.0 199.7 C447.8 197.3 466.7 193.6 485.5 189.5 C499.9 186.4 514.3 181.0 528.7 178.0 C541.7 175.2 554.6 174.4 567.6 171.1 C595.1 164.2 622.6 146.9 650.2 134.7" fill="none" stroke="#146cba" stroke-width="1.5" stroke-dasharray="5 4" opacity="0.65"/>
+<g opacity="0.38">
+<circle cx="264.4" cy="368.6" r="3.5" fill="#63706e"/>
+<circle cx="264.4" cy="259.6" r="3.5" fill="#146cba"/>
+<circle cx="314.2" cy="375.6" r="3.5" fill="#63706e"/>
+<circle cx="314.2" cy="265.5" r="3.5" fill="#146cba"/>
+<circle cx="350.6" cy="343.8" r="3.5" fill="#63706e"/>
+<circle cx="350.6" cy="239.0" r="3.5" fill="#146cba"/>
+<circle cx="385.4" cy="326.1" r="3.5" fill="#63706e"/>
+<circle cx="385.4" cy="224.2" r="3.5" fill="#146cba"/>
+<circle cx="413.9" cy="358.7" r="3.5" fill="#63706e"/>
+<circle cx="413.9" cy="251.5" r="3.5" fill="#146cba"/>
+<circle cx="437.4" cy="343.7" r="3.5" fill="#63706e"/>
+<circle cx="437.4" cy="238.9" r="3.5" fill="#146cba"/>
+<circle cx="455.8" cy="316.0" r="3.5" fill="#63706e"/>
+<circle cx="455.8" cy="215.9" r="3.5" fill="#146cba"/>
+<circle cx="478.4" cy="313.5" r="3.5" fill="#63706e"/>
+<circle cx="478.4" cy="213.7" r="3.5" fill="#146cba"/>
+<circle cx="493.9" cy="323.4" r="3.5" fill="#63706e"/>
+<circle cx="493.9" cy="222.0" r="3.5" fill="#146cba"/>
+<circle cx="509.4" cy="339.4" r="3.5" fill="#63706e"/>
+<circle cx="509.4" cy="235.3" r="3.5" fill="#146cba"/>
+<circle cx="529.1" cy="291.5" r="3.5" fill="#63706e"/>
+<circle cx="529.1" cy="195.5" r="3.5" fill="#146cba"/>
+<circle cx="546.7" cy="308.7" r="3.5" fill="#63706e"/>
+<circle cx="546.7" cy="209.7" r="3.5" fill="#146cba"/>
+<circle cx="570.1" cy="295.6" r="3.5" fill="#63706e"/>
+<circle cx="570.1" cy="198.8" r="3.5" fill="#146cba"/>
+<circle cx="592.8" cy="271.1" r="3.5" fill="#63706e"/>
+<circle cx="592.8" cy="178.4" r="3.5" fill="#146cba"/>
+<circle cx="614.1" cy="340.7" r="3.5" fill="#63706e"/>
+<circle cx="614.1" cy="236.4" r="3.5" fill="#146cba"/>
+<circle cx="637.2" cy="342.0" r="3.5" fill="#63706e"/>
+<circle cx="637.2" cy="237.5" r="3.5" fill="#146cba"/>
+<circle cx="648.5" cy="319.2" r="3.5" fill="#63706e"/>
+<circle cx="648.5" cy="218.6" r="3.5" fill="#146cba"/>
+</g>
+<path d="M118.2 345.0 V258.3 m-4 6 4 -6 4 6" fill="none" stroke="#a64d0c" stroke-width="2" stroke-dasharray="4 3"/>
+<path d="M531.2 265.0 V191.7 m-4 6 4 -6 4 6" fill="none" stroke="#a64d0c" stroke-width="2" stroke-dasharray="4 3"/>
+<path d="M650.2 208.7 V144.7 m-4 6 4 -6 4 6" fill="none" stroke="#a64d0c" stroke-width="2" stroke-dasharray="4 3"/>
+<path d="M262.3 391.1 V296.7 m-4 6 4 -6 4 6" fill="none" stroke="#a64d0c" stroke-width="2" stroke-dasharray="4 3"/>
+<circle cx="118.2" cy="355.0" r="6" fill="#63706e" stroke="#63706e" stroke-width="1.5"/>
+<circle cx="118.2" cy="248.3" r="6" fill="#146cba" stroke="#146cba" stroke-width="1.5"/>
+<circle cx="531.2" cy="275.0" r="6" fill="#63706e" stroke="#63706e" stroke-width="1.5"/>
+<circle cx="531.2" cy="181.7" r="6" fill="#146cba" stroke="#146cba" stroke-width="1.5"/>
+<circle cx="650.2" cy="218.7" r="6" fill="#63706e" stroke="#63706e" stroke-width="1.5"/>
+<circle cx="650.2" cy="134.7" r="6" fill="#146cba" stroke="#146cba" stroke-width="1.5"/>
+<text x="130.2" y="210.3" font-size="16" fill="#146cba" text-anchor="start" font-weight="600">GPT-4 · Mar 2023</text>
+<text x="519.2" y="142.7" font-size="16" fill="#146cba" text-anchor="end" font-weight="600">Claude Opus 4.5</text>
+<text x="680.2" y="107.7" font-size="16" fill="#146cba" text-anchor="end" font-weight="600">GPT-6 Astra</text>
+<circle cx="262.3" cy="401.1" r="6" fill="#63706e"/>
+<circle cx="262.3" cy="286.7" r="6" fill="#146cba"/>
+<text x="274.3" y="262.7" font-size="15" fill="#146cba" font-weight="600">Gemma 7B</text>
+<text x="130.2" y="243.3" font-size="15" fill="#146cba" font-weight="600">100</text>
+<text x="130.2" y="374" font-size="15" fill="#63706e" font-weight="600">20</text>
+<text x="543.2" y="197.7" font-size="15" fill="#146cba" font-weight="600">150</text>
+<text x="543.2" y="307" font-size="15" fill="#63706e" font-weight="600">80</text>
+<text x="662.2" y="139.7" font-size="15" fill="#146cba" font-weight="600">185.2</text>
+<text x="662.2" y="223.7" font-size="15" fill="#63706e" font-weight="600">122.2</text>
+<text x="274.3" y="307.7" font-size="15" fill="#146cba" font-weight="600">71.2</text>
+<text x="274.3" y="406.1" font-size="15" fill="#63706e" font-weight="600">−14.5</text>
+</svg>

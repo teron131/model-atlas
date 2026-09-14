@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 330" role="img" aria-labelledby="title desc">
+<title id="title">A dated successor cannot fall below an earlier estimate</title>
+<desc id="desc">Three illustrative releases of one model at one reasoning effort have estimates one hundred twenty, one hundred sixteen and one hundred twenty-eight. The middle estimate is adjusted upward to one hundred twenty; the last remains one hundred twenty-eight. The plot shows the model assumption, not evidence that capability necessarily increased.</desc>
+<style>
+text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; }
+@media (prefers-color-scheme:dark) {
+text { fill:#ffffff; }
+[fill="#63706e"] { fill:#a6b2ae; } [stroke="#63706e"] { stroke:#a6b2ae; }
+[fill="#b5bfbc"] { fill:#3c4846; } [stroke="#b5bfbc"] { stroke:#3c4846; }
+[fill="#146cba"] { fill:#85bfff; } [stroke="#146cba"] { stroke:#85bfff; }
+[fill="#a64d0c"] { fill:#ffbc7d; } [stroke="#a64d0c"] { stroke:#ffbc7d; }
+}
+</style>
+<circle cx="45" cy="24" r="5" fill="#63706e"/>
+<text x="58" y="29" font-size="14" fill="#63706e" text-anchor="start" font-weight="400">Evidence-based estimate</text>
+<circle cx="400" cy="24" r="5" fill="#146cba"/>
+<text x="413" y="29" font-size="14" fill="#146cba" text-anchor="start" font-weight="400">After the successor assumption</text>
+<path d="M85 60 V264 H710" fill="none" stroke="#63706e" stroke-width="1.5"/>
+<path d="M704 260 L710 264 L704 268" fill="none" stroke="#63706e" stroke-width="1.5"/>
+<path d="M80 254 H700" fill="none" stroke="#b5bfbc" stroke-width="1.5" stroke-dasharray="3 5"/>
+<text x="70" y="259" font-size="14" fill="#63706e" text-anchor="end" font-weight="400">110</text>
+<path d="M80 174 H700" fill="none" stroke="#b5bfbc" stroke-width="1.5" stroke-dasharray="3 5"/>
+<text x="70" y="179" font-size="14" fill="#63706e" text-anchor="end" font-weight="400">120</text>
+<path d="M80 94 H700" fill="none" stroke="#b5bfbc" stroke-width="1.5" stroke-dasharray="3 5"/>
+<text x="70" y="99" font-size="14" fill="#63706e" text-anchor="end" font-weight="400">130</text>
+<text x="40" y="55" font-size="14" fill="#63706e" text-anchor="start" font-weight="400">Index</text>
+<path d="M200 174 H510" fill="none" stroke="#146cba" stroke-width="1.5" stroke-dasharray="5 4"/>
+<path d="M420 206 V174 M416 193 L420 186 L424 193" fill="none" stroke="#a64d0c" stroke-width="1.5"/>
+<circle cx="200" cy="174" r="6" fill="#146cba"/>
+<circle cx="420" cy="206" r="6" fill="#63706e"/>
+<circle cx="420" cy="174" r="6" fill="#146cba"/>
+<circle cx="640" cy="110" r="6" fill="#146cba"/>
+<text x="200" y="157" font-size="18" fill="#146cba" text-anchor="middle" font-weight="600">120</text>
+<text x="438" y="165" font-size="18" fill="#146cba" text-anchor="start" font-weight="600">120</text>
+<text x="438" y="222" font-size="17" fill="#63706e" text-anchor="start" font-weight="400">116</text>
+<text x="640" y="85" font-size="18" fill="#146cba" text-anchor="middle" font-weight="600">128</text>
+<text x="200" y="292" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">Earlier release</text>
+<text x="420" y="292" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">Dated successor</text>
+<text x="640" y="292" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">Later release</text>
+<text x="700" y="322" font-size="13" fill="#63706e" text-anchor="end" font-weight="400">Release order</text>
+</svg>

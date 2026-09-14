@@ -2,10 +2,9 @@
 
 export const DOCUMENTS = [
   {
-    slug: "methodology",
-    title: "Methodology",
-    description:
-      "How benchmark results become scores, what missing evidence means, and why the method works this way.",
+    slug: "standards",
+    title: "Standards",
+    description: "The evidence a benchmark needs to earn and keep a place in the portfolio.",
   },
   {
     slug: "benchmarks",
@@ -14,15 +13,22 @@ export const DOCUMENTS = [
       "Which benchmarks contribute, what they measure, and why their weights and sources were chosen.",
   },
   {
-    slug: "standards",
-    title: "Standards",
-    description: "The evidence a benchmark needs to earn and keep a place in the portfolio.",
-  },
-  {
     slug: "matching",
     title: "Matching",
     description:
       "How results from different sources are matched without confusing models or reasoning efforts.",
+  },
+  {
+    slug: "methodology",
+    title: "Methodology",
+    description:
+      "How benchmark results become scores, what missing evidence means, and why the method works this way.",
+  },
+  {
+    slug: "timeline",
+    title: "Timeline",
+    description:
+      "How Timeline compares model generations using retained benchmarks, published indexes, and a fixed reference scale.",
   },
 ] as const;
 
@@ -37,7 +43,7 @@ export type TableOfContentsItem = {
 const METHODOLOGY_ASSETS = {
   "pipeline-overview.svg": { width: 760, height: 438 },
   "reference-balance.svg": { width: 760, height: 370 },
-  "index-coverage-taper.svg": { width: 760, height: 434 },
+  "index-coverage-taper.svg": { width: 760, height: 360 },
   "resource-publication-gate.svg": { width: 760, height: 373 },
   "resource-tier-shrinkage.svg": { width: 760, height: 474 },
   "common-variant-basket.svg": { width: 760, height: 403 },
@@ -45,13 +51,21 @@ const METHODOLOGY_ASSETS = {
   "merit-and-readiness.svg": { width: 760, height: 395 },
   "matching-relative-cutoff.svg": { width: 760, height: 770 },
   "agentic-token-modifier.svg": { width: 760, height: 428 },
-  "confidence.svg": { width: 760, height: 436 },
+  "confidence.svg": { width: 760, height: 360 },
   "resource-coverage.svg": { width: 760, height: 432 },
   "logit-quality.svg": { width: 760, height: 505 },
   "quantile-imputation.svg": { width: 760, height: 458 },
   "resource-residual.svg": { width: 760, height: 538 },
   "resource-score-mapping.svg": { width: 760, height: 433 },
   "source-crosswalk.svg": { width: 760, height: 442 },
+  "timeline-benchmark-links.svg": { width: 760, height: 285 },
+  "timeline-evidence-blend.svg": { width: 760, height: 360 },
+  "timeline-anchors.svg": { width: 760, height: 450 },
+  "timeline-reference-extension.svg": { width: 760, height: 365 },
+  "timeline-standard-scores.svg": { width: 760, height: 435 },
+  "timeline-validation.svg": { width: 760, height: 410 },
+  "timeline-saved-conversion.svg": { width: 760, height: 435 },
+  "timeline-successor.svg": { width: 760, height: 330 },
 } as const;
 
 type MethodologyAsset = keyof typeof METHODOLOGY_ASSETS;

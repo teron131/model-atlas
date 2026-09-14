@@ -3,11 +3,9 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import Link from "next/link";
-
 import "katex/dist/katex.min.css";
 
-import { documentHref, DOCUMENTS, type DocumentSlug, tableOfContents } from "./documents";
+import { type DocumentSlug, tableOfContents } from "./documents";
 import { DocumentShell } from "./DocumentShell";
 import { MarkdownDocument } from "./MarkdownDocument";
 
@@ -19,23 +17,6 @@ export async function DocumentPage({ document }: { document: DocumentSlug }) {
 
   return (
     <DocumentShell activeDocument={document} outline={outline}>
-      <nav className={styles.documentNav} aria-label="Documentation">
-        <ul>
-          {DOCUMENTS.map((item) => (
-            <li key={item.slug}>
-              <Link
-                href={documentHref(item.slug)}
-                prefetch={false}
-                aria-current={item.slug === document ? "page" : undefined}
-              >
-                <span>{item.title}</span>
-                <small>{item.description}</small>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
-
       <article className={styles.article}>
         <MarkdownDocument markdown={markdown} />
       </article>

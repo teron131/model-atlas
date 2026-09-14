@@ -110,18 +110,33 @@ const unequalConfig: ScoringConfig = {
 };
 const unequalModel = unequal.model();
 unequalModel.benchmarks.aa_intelligence_index = 0;
-// Index importance and represented breadth both apply within the 20% group: AA has weight 20 versus Epoch 7.5.
+// Index importance and represented breadth both apply within the 20% group: AA has weight 20 versus Epoch's conservative minimum of 4 when the count is unknown.
 assert.ok(
   Math.abs(
     buildComponentScoreResult(unequalModel, nullSpeed, [], unequalConfig, unequal.context)
       .componentScores!.agentic_score! -
-      (0.8 * 60 + (0.2 * 100 * 7.5) / 27.5),
+      (0.8 * 60 + (0.2 * 100 * 4) / 24),
   ) < 1e-10,
 );
 
 const indexOnly = fixture(0, 4);
 assert.equal(indexOnly.score(indexOnly.model()).componentScores!.agentic_score, 100);
 assert.equal(indexOnly.score(indexOnly.model(0, 60, [])).componentScores, null);
+
+// A four-benchmark ECI contributes less than a forty-benchmark ECI; the main app's group split stays fixed.
+for (const count of [4, 40]) {
+  const measured = {
+    ...unequalModel,
+    scoring_sources: { epoch_capabilities_index: { metadata: { benchmark_count: count } } },
+  };
+  assert.ok(
+    Math.abs(
+      buildComponentScoreResult(measured, nullSpeed, [], unequalConfig, unequal.context)
+        .componentScores!.intelligence_score! -
+        (0.8 * 60 + (0.2 * 100 * count) / (20 + count)),
+    ) < 1e-10,
+  );
+}
 
 // Effort-labelled variants use only indexes with direct effort coverage; other indexes remain raw evidence.
 const variantFixture = fixture(8, 4);

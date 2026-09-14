@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 410" role="img" aria-labelledby="title desc">
+<title id="title">Leave one model family out, then predict its result</title>
+<desc id="desc">Left: five training families determine a benchmark conversion. The withheld family has benchmark A result 65, predicting B result 75; its observed B result is 80. The error is 5 over a training B range of 50, or 10 normalized points. Right: six validation rounds each leave out a different family, including all its reasoning configurations.</desc>
+<style>
+text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; }
+@media (prefers-color-scheme:dark) {
+text { fill:#ffffff; }
+[fill="#63706e"] { fill:#a6b2ae; } [stroke="#63706e"] { stroke:#a6b2ae; }
+[fill="#b5bfbc"] { fill:#3c4846; } [stroke="#b5bfbc"] { stroke:#3c4846; }
+[fill="#146cba"] { fill:#85bfff; } [stroke="#146cba"] { stroke:#85bfff; }
+[fill="#a64d0c"] { fill:#ffbc7d; } [stroke="#a64d0c"] { stroke:#ffbc7d; }
+}
+</style>
+<text x="45" y="25" fill="#000000" font-size="18" text-anchor="start">Predict the withheld family</text>
+<text x="510" y="25" fill="#000000" font-size="18" text-anchor="start">Repeat for each family</text>
+<text x="45" y="59" fill="#63706e" font-size="14" text-anchor="start">Benchmark B result</text>
+<path d="M65 75 V310 H382" fill="none" stroke="#63706e" stroke-width="1.5"/>
+<path d="M65 310.0 H382" fill="none" stroke="#b5bfbc" stroke-width="1.5" stroke-dasharray="3 5"/>
+<text x="53" y="315.0" fill="#63706e" font-size="13" text-anchor="end">20</text>
+<path d="M65 244.0 H382" fill="none" stroke="#b5bfbc" stroke-width="1.5" stroke-dasharray="3 5"/>
+<text x="53" y="249.0" fill="#63706e" font-size="13" text-anchor="end">40</text>
+<path d="M65 178.0 H382" fill="none" stroke="#b5bfbc" stroke-width="1.5" stroke-dasharray="3 5"/>
+<text x="53" y="183.0" fill="#63706e" font-size="13" text-anchor="end">60</text>
+<path d="M65 112.0 H382" fill="none" stroke="#b5bfbc" stroke-width="1.5" stroke-dasharray="3 5"/>
+<text x="53" y="117.0" fill="#63706e" font-size="13" text-anchor="end">80</text>
+<path d="M65.0 310 v5" fill="none" stroke="#63706e" stroke-width="1.5"/>
+<text x="65.0" y="334" fill="#63706e" font-size="13" text-anchor="middle">20</text>
+<path d="M169.0 310 v5" fill="none" stroke="#63706e" stroke-width="1.5"/>
+<text x="169.0" y="334" fill="#63706e" font-size="13" text-anchor="middle">40</text>
+<path d="M273.0 310 v5" fill="none" stroke="#63706e" stroke-width="1.5"/>
+<text x="273.0" y="334" fill="#63706e" font-size="13" text-anchor="middle">60</text>
+<path d="M377.0 310 v5" fill="none" stroke="#63706e" stroke-width="1.5"/>
+<text x="377.0" y="334" fill="#63706e" font-size="13" text-anchor="middle">80</text>
+<text x="226" y="359" fill="#63706e" font-size="14" text-anchor="middle">Benchmark A result</text>
+<path d="M65.0 277.0 L351.0 95.5" fill="none" stroke="#146cba" stroke-width="1.5"/>
+<circle cx="65.0" cy="277.0" r="5" fill="#146cba" stroke="#146cba" stroke-width="2"/>
+<circle cx="117.0" cy="227.5" r="5" fill="#146cba" stroke="#146cba" stroke-width="2"/>
+<circle cx="195.0" cy="220.2656214113457" r="5" fill="#146cba" stroke="#146cba" stroke-width="2"/>
+<circle cx="247.0" cy="152.23437858865432" r="5" fill="#146cba" stroke="#146cba" stroke-width="2"/>
+<circle cx="325.0" cy="112.0" r="5" fill="#146cba" stroke="#146cba" stroke-width="2"/>
+<path d="M299.0 310 V112.0" fill="none" stroke="#a64d0c" stroke-width="1.5" stroke-dasharray="4 5"/>
+<circle cx="299.0" cy="128.5" r="6" fill="none" stroke="#a64d0c" stroke-width="2"/>
+<circle cx="299.0" cy="112.0" r="6" fill="#a64d0c" stroke="#a64d0c" stroke-width="2"/>
+<text x="283" y="92" fill="#a64d0c" font-size="14" text-anchor="end">Actual 80</text>
+<text x="283" y="134" fill="#a64d0c" font-size="14" text-anchor="end">Predicted 75</text>
+<path d="M312.0 112.0 h8 v16.5 h-8" fill="none" stroke="#a64d0c" stroke-width="1.5"/>
+<text x="332" y="124" fill="#a64d0c" font-size="14" text-anchor="start">Error 5</text>
+<text x="299.0" y="334" fill="#a64d0c" font-size="13" text-anchor="middle">65</text>
+<text x="515" y="63" fill="#63706e" font-size="13" text-anchor="start">Round</text>
+<text x="654" y="63" fill="#63706e" font-size="13" text-anchor="middle">Model family</text>
+<text x="587" y="86" fill="#63706e" font-size="12" text-anchor="middle">1</text>
+<text x="614" y="86" fill="#63706e" font-size="12" text-anchor="middle">2</text>
+<text x="641" y="86" fill="#63706e" font-size="12" text-anchor="middle">3</text>
+<text x="668" y="86" fill="#63706e" font-size="12" text-anchor="middle">4</text>
+<text x="695" y="86" fill="#63706e" font-size="12" text-anchor="middle">5</text>
+<text x="722" y="86" fill="#63706e" font-size="12" text-anchor="middle">6</text>
+<text x="535" y="114" fill="#63706e" font-size="13" text-anchor="middle">1</text>
+<rect x="579" y="101" width="16" height="16" rx="2" fill="#a64d0c"/>
+<rect x="606" y="101" width="16" height="16" rx="2" fill="#146cba"/>
+<rect x="633" y="101" width="16" height="16" rx="2" fill="#146cba"/>
+<rect x="660" y="101" width="16" height="16" rx="2" fill="#146cba"/>
+<rect x="687" y="101" width="16" height="16" rx="2" fill="#146cba"/>
+<rect x="714" y="101" width="16" height="16" rx="2" fill="#146cba"/>
+<text x="535" y="145" fill="#63706e" font-size="13" text-anchor="middle">2</text>
+<rect x="579" y="132" width="16" height="16" rx="2" fill="#146cba"/>
+<rect x="606" y="132" width="16" height="16" rx="2" fill="#a64d0c"/>
+<rect x="633" y="132" width="16" height="16" rx="2" fill="#146cba"/>
+<rect x="660" y="132" width="16" height="16" rx="2" fill="#146cba"/>
+<rect x="687" y="132" width="16" height="16" rx="2" fill="#146cba"/>
+<rect x="714" y="132" width="16" height="16" rx="2" fill="#146cba"/>
+<text x="535" y="176" fill="#63706e" font-size="13" text-anchor="middle">3</text>
+<rect x="579" y="163" width="16" height="16" rx="2" fill="#146cba"/>
+<rect x="606" y="163" width="16" height="16" rx="2" fill="#146cba"/>
+<rect x="633" y="163" width="16" height="16" rx="2" fill="#a64d0c"/>
+<rect x="660" y="163" width="16" height="16" rx="2" fill="#146cba"/>
+<rect x="687" y="163" width="16" height="16" rx="2" fill="#146cba"/>
+<rect x="714" y="163" width="16" height="16" rx="2" fill="#146cba"/>
+<text x="535" y="207" fill="#63706e" font-size="13" text-anchor="middle">4</text>
+<rect x="579" y="194" width="16" height="16" rx="2" fill="#146cba"/>
+<rect x="606" y="194" width="16" height="16" rx="2" fill="#146cba"/>
+<rect x="633" y="194" width="16" height="16" rx="2" fill="#146cba"/>
+<rect x="660" y="194" width="16" height="16" rx="2" fill="#a64d0c"/>
+<rect x="687" y="194" width="16" height="16" rx="2" fill="#146cba"/>
+<rect x="714" y="194" width="16" height="16" rx="2" fill="#146cba"/>
+<text x="535" y="238" fill="#63706e" font-size="13" text-anchor="middle">5</text>
+<rect x="579" y="225" width="16" height="16" rx="2" fill="#146cba"/>
+<rect x="606" y="225" width="16" height="16" rx="2" fill="#146cba"/>
+<rect x="633" y="225" width="16" height="16" rx="2" fill="#146cba"/>
+<rect x="660" y="225" width="16" height="16" rx="2" fill="#146cba"/>
+<rect x="687" y="225" width="16" height="16" rx="2" fill="#a64d0c"/>
+<rect x="714" y="225" width="16" height="16" rx="2" fill="#146cba"/>
+<text x="535" y="269" fill="#63706e" font-size="13" text-anchor="middle">6</text>
+<rect x="579" y="256" width="16" height="16" rx="2" fill="#146cba"/>
+<rect x="606" y="256" width="16" height="16" rx="2" fill="#146cba"/>
+<rect x="633" y="256" width="16" height="16" rx="2" fill="#146cba"/>
+<rect x="660" y="256" width="16" height="16" rx="2" fill="#146cba"/>
+<rect x="687" y="256" width="16" height="16" rx="2" fill="#146cba"/>
+<rect x="714" y="256" width="16" height="16" rx="2" fill="#a64d0c"/>
+<circle cx="528" cy="305" r="4" fill="#146cba" stroke="#146cba" stroke-width="2"/>
+<text x="541" y="310" fill="#63706e" font-size="13" text-anchor="start">Used to fit</text>
+<circle cx="528" cy="333" r="4" fill="#a64d0c" stroke="#a64d0c" stroke-width="2"/>
+<text x="541" y="338" fill="#63706e" font-size="13" text-anchor="start">Left out</text>
+<text x="45" y="395" fill="#000000" font-size="15" text-anchor="start">One round: 100 × |75 − 80| / (80 − 30) = 10 normalized error points</text>
+</svg>
