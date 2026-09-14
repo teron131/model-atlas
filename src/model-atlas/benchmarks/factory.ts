@@ -17,6 +17,7 @@ export type BenchmarkSourceAdapter =
   | {
       kind: "artificial_analysis_resource_page";
       url: string;
+      fullModelCoverage?: boolean;
       taskRunCount: number;
       scoreKey?: string;
       scorePath?: BenchmarkJsonPath;
@@ -25,10 +26,10 @@ export type BenchmarkSourceAdapter =
 
 type BenchmarkSourceAdapterDeclaration =
   | Extract<BenchmarkSourceAdapter, { kind: "benchmark_observation" }>
-  | Omit<
+  | (Omit<
       Extract<BenchmarkSourceAdapter, { kind: "artificial_analysis_resource_page" }>,
       "taskRunCount"
-    >;
+    > & { taskRunCount?: number });
 
 export type EpochRunEligibility = {
   taskVersion?: string;

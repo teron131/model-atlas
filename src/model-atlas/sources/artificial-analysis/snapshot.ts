@@ -20,6 +20,7 @@ import type {
   SourceSnapshotStatus,
 } from "../types";
 import {
+  ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES,
   type ArtificialAnalysisBenchmarkResourceRow,
   getArtificialAnalysisBenchmarkResourceStats,
 } from "./benchmark-resources";
@@ -144,10 +145,16 @@ export async function artificialAnalysisBenchmarkResourceSnapshot(
   previousMissingSince: ReadonlyMap<string, number>,
   nowEpochSeconds: number,
 ): Promise<ArtificialAnalysisBenchmarkResourceSnapshot> {
+  const requiredPagesPresent = ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.every((page) =>
+    cached?.rows.some(
+      (row) =>
+        row.benchmark_key === page.benchmark_key && row.task_run_count === page.task_run_count,
+    ),
+  );
   const snapshot = await snapshotSourceRows({
     source: "artificial_analysis_benchmark_resources",
     cached,
-    status,
+    status: requiredPagesPresent ? status : { ...status, cache_hit: false },
     options,
     previousMissingSince,
     nowEpochSeconds,

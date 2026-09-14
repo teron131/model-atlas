@@ -90,12 +90,7 @@ export function artificialAnalysisBenchmarkResourceRawCacheFromRows(cacheRows: C
         model == null ||
         provider == null ||
         score == null ||
-        taskCount == null ||
-        costPerTaskUsd == null ||
-        secondsPerTask == null ||
-        tokensPerTask == null ||
-        inputTokensPerTask == null ||
-        outputTokensPerTask == null
+        taskCount == null
       ) {
         return [];
       }

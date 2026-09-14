@@ -1,7 +1,8 @@
 /**
- * Terminal-Bench-Science 0.1 observations from the official structured leaderboard API.
+ * Terminal-Bench-Science 0.1 observations from the official leaderboard and Vals.
  *
  * Page source: https://www.terminal-bench-science.ai/
+ * Page source: https://www.vals.ai/benchmarks/terminal-bench-science
  * JSON source: https://www.terminal-bench-science.ai/api/leaderboard?package=terminal-bench-science%2Fterminal-bench-science&name=v0-1-eval
  */
 
@@ -15,6 +16,7 @@ import { canonicalReasoningEffort, modelNameWithoutCreatorPrefix } from "../iden
 import { asFiniteNumber, asRecord, nowEpochSeconds } from "../runtime";
 import { percentToUnitScore, stringValue } from "./parsing";
 import { fetchSource } from "./request-scheduler";
+import { getValsSourceStats } from "./vals/results";
 
 const TERMINAL_BENCH_SCIENCE_DATA_URL =
   "https://www.terminal-bench-science.ai/api/leaderboard?package=terminal-bench-science%2Fterminal-bench-science&name=v0-1-eval";
@@ -24,6 +26,8 @@ const TERMINAL_BENCH_SCIENCE_PACKAGE = "terminal-bench-science/terminal-bench-sc
 const TERMINAL_BENCH_SCIENCE_NAME = "v0-1-eval";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
+export const TERMINAL_BENCH_SCIENCE_VALS_URL =
+  "https://www.vals.ai/benchmarks/terminal-bench-science";
 
 /** Fetch current Terminal-Bench-Science quality and resource evidence without retaining domain or task detail. */
 export async function getTerminalBenchScienceStats(
@@ -31,16 +35,42 @@ export async function getTerminalBenchScienceStats(
   timeoutMs = DEFAULT_TIMEOUT_MS,
 ): Promise<BenchmarkObservationPayload> {
   try {
-    return await fetchSource(sourceUrl, {}, timeoutMs, async (response) => {
-      if (!response.ok) {
-        throw new Error(`Terminal-Bench-Science scrape failed: ${response.status}`);
-      }
-      const data = processTerminalBenchSciencePayload(await response.json(), sourceUrl);
-      if (data.length === 0) {
-        throw new Error("Terminal-Bench-Science scrape returned no 0.1 rows");
-      }
-      return { fetched_at_epoch_seconds: nowEpochSeconds(), data };
-    });
+    const [official, vals] = await Promise.all([
+      fetchSource(sourceUrl, {}, timeoutMs, async (response) => {
+        if (!response.ok) {
+          throw new Error(`Terminal-Bench-Science scrape failed: ${response.status}`);
+        }
+        const data = processTerminalBenchSciencePayload(await response.json(), sourceUrl);
+        if (data.length === 0) {
+          throw new Error("Terminal-Bench-Science scrape returned no 0.1 rows");
+        }
+        return { fetched_at_epoch_seconds: nowEpochSeconds(), data };
+      }),
+      getValsSourceStats({
+        benchmarkKey: "terminal_bench_science",
+        canonicalTask: "overall",
+        sourceUrl: TERMINAL_BENCH_SCIENCE_VALS_URL,
+      }),
+    ]);
+    if (vals.data.length === 0)
+      throw new Error("Terminal-Bench Science Vals source returned no rows");
+    return {
+      fetched_at_epoch_seconds: official.fetched_at_epoch_seconds,
+      data: [
+        ...official.data,
+        ...vals.data.map((row) => ({
+          ...row,
+          base_model:
+            row.base_model === "deepseek-v4-pro-0813" ? "DeepSeek V4 Pro" : row.base_model,
+          metadata: {
+            ...row.metadata,
+            source_series: "vals",
+            observation_role: "component",
+            time_measure: "wall",
+          },
+        })),
+      ],
+    };
   } catch {
     return { fetched_at_epoch_seconds: null, data: [] };
   }
@@ -75,18 +105,23 @@ export function processTerminalBenchSciencePayload(
 export function terminalBenchScienceCacheMatches(
   rows: readonly BenchmarkObservationRow[],
 ): boolean {
-  return rows.every(
-    (row) =>
-      row.metadata.source_revision === TERMINAL_BENCH_SCIENCE_NAME &&
-      row.cost != null &&
-      row.cost >= 0 &&
-      row.tokens_per_task != null &&
-      row.tokens_per_task >= 0 &&
-      row.task_run_count === BENCHMARK_RESOURCE_PROFILES.terminal_bench_science.taskRunCount &&
-      row.total_cost_usd != null &&
-      row.total_cost_usd >= 0 &&
-      row.total_tokens != null &&
-      row.total_tokens >= 0,
+  return (
+    rows.some((row) => row.metadata.source_series === "vals") &&
+    rows.every(
+      (row) =>
+        row.metadata.source_series === "vals" ||
+        (row.metadata.source_series === "official" &&
+          row.metadata.source_revision === TERMINAL_BENCH_SCIENCE_NAME &&
+          row.cost != null &&
+          row.cost >= 0 &&
+          row.tokens_per_task != null &&
+          row.tokens_per_task >= 0 &&
+          row.task_run_count === BENCHMARK_RESOURCE_PROFILES.terminal_bench_science.taskRunCount &&
+          row.total_cost_usd != null &&
+          row.total_cost_usd >= 0 &&
+          row.total_tokens != null &&
+          row.total_tokens >= 0),
+    )
   );
 }
 
@@ -146,6 +181,7 @@ function terminalBenchScienceObservation(
     tokens_per_task: resourcePerTaskRun(totalTokens, taskRunCount),
     observed_at: stringValue(row.updated_at),
     metadata: {
+      source_series: "official",
       source_revision: TERMINAL_BENCH_SCIENCE_NAME,
       harness,
       score_standard_error: scoreStandardError,

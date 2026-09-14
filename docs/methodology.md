@@ -238,7 +238,12 @@ $$
 
 Using a weighted median reduces the effect of outliers on the offset and typical prediction error.
 
-![An illustrative additive crosswalk preserves source gaps while shifting the baseline. Hollow points are paired observations; the filled point is a converted estimate. Actual use requires validation on held-out models.](assets/methodology/source-crosswalk.svg)
+The same crosswalk supports a source-neutral target with fallback weight $w$. Paired observations produce $(1-w)A+wB$ directly; an A-only estimate is $A+w\delta$, and a B-only estimate is $B-(1-w)\delta$. All benchmark source crosswalks use $w=0.5$. Validation uses the larger directional target error, $\max(w,1-w)|B-A-\delta_{-q}|$, so a midpoint has half the full-crosswalk error before clipping. This changes the target, not the evidence supporting the fitted relationship.
+
+
+![Three aligned score number lines show broad source A coverage, fewer source B results, and their fusion. Every observed model is labelled; missing source scores remain absent, and hollow fusion points indicate estimates conditional on held-out validation.](assets/methodology/source-crosswalk.svg)
+
+![A separate paired-model example compares source A, source B, and midpoint score distributions with Gaussian-smoothed KL and JSD. These shape comparisons depend on smoothing and do not validate the crosswalk.](assets/methodology/source-fusion-divergence.svg)
 
 The conversion needs at least $K_{\mathrm{min}}$ effective models both in its overlap and in its held-out predictions. Its error must also stay within the declared limit $\epsilon_{\mathrm{max}}$ on the primary scale $[L,U]$:
 
@@ -257,7 +262,7 @@ $$
 \eta^{\text{cross}}_m=\operatorname{clamp}\left(1-\frac{e}{\epsilon_{\mathrm{max}}},0,1\right).
 $$
 
-For an illustrative 0-1 scale, a fallback result of 0.70 and an offset of 0.05 give an estimate of 0.65. The error check determines how much evidence credit that estimate earns. Existing primary results are never replaced, and estimates cannot alter the observed normalization anchors or become inputs to another prediction. A failed crosswalk leaves the contextual predictor to try next.
+For an illustrative 0-1 scale, a fallback result of 0.70 and an offset of 0.05 give an estimate of 0.65. The error check determines how much evidence credit that estimate earns. Raw source results remain separate from their 50/50 aggregate, and estimates cannot alter the observed normalization anchors or become inputs to another prediction. A failed crosswalk leaves the contextual predictor to try next.
 
 ### Same-Dimension Quantile Imputation
 
@@ -667,17 +672,20 @@ Calculating a score does not establish that a model has enough evidence for publ
 
 - A qualified model identity, a name, and confirmed text output.
 - Observed represented benchmark weight reaching the minimum known benchmark breadth across the selected indexes, excluding ECI's minimum publication count, including at least one observed selected input in each of Intelligence and Agentic.
+- At least two distinct observed selected aggregate indexes, or one observed Artificial Analysis Intelligence Index or Epoch Capabilities Index, in addition to the breadth and dimension checks.
 - Finite Intelligence and Agentic scores of at least 10 each.
 
 Standalone benchmarks contribute their configured importance once across both dimensions. An observed aggregate contributes its represented benchmark breadth, without the half-importance discount used for its quality-scoring influence. Known components form a union across indexes and standalone observations: each contributes the maximum of its standalone importance and the one unit represented within an observed index. The remaining unnamed breadth of each index is added separately. This makes the count independent of index order and prevents observing a half-importance component from reducing previously established coverage.
 
-For example, eight ordinary standalone benchmarks contribute eight units without any index. AA's main Intelligence Index contributes ten units, and separately observing its known components does not add their weight again. AA and CAIS together represent sixteen units under the current overlap map because HLE is shared. AA's Agentic, Coding, and Omniscience indexes supply no additional admission credit. An observed zero is valid evidence; missing and imputed values are not.
+For example, eight ordinary standalone benchmarks contribute eight units but do not satisfy the separate index requirement. AA's main Intelligence Index contributes ten units, and separately observing its known components does not add their weight again. AA and CAIS together represent sixteen units under the current overlap map because HLE is shared. AA's Agentic, Coding, and Omniscience indexes supply no additional admission credit. An observed zero is valid evidence; missing and imputed values are not.
 
 Opaque index breadth remains an estimate. ECI uses the distinct fitted benchmark count for each exact publisher model group, imported from Epoch's eci_benchmarks.csv alongside its score. Its component-overlap mapping is unavailable, so this breadth is added alongside standalone results. If the count is unavailable, four is a conservative publication-minimum fallback, not a measured count. Unmapped overlap is not a verified count of independent benchmarks. Admission uses the observations attached to the configuration under the existing matching rules; sibling estimates do not create direct coverage.
 
-The admission threshold uses the smallest known breadth among AA, CAIS, Surge, and Vals, allowing a sufficiently broad source or standalone basket to qualify without requiring a particular publisher. ECI's publication minimum is excluded because it describes the minimum needed for that publisher to report a score, rather than a fixed index basket. An ECI based on four benchmarks does not independently meet the seven-benchmark admission threshold; a sufficiently supported ECI or standalone evidence can qualify. No particular index, index count, release age, or prior publication is required. The separate scoring regularization and task/index blend continue to use the median breadth.
+The breadth threshold uses the smallest known breadth among AA, CAIS, Surge, and Vals; admission additionally requires two distinct observed selected aggregate indexes, with a trusted-source exception allowing one Artificial Analysis Intelligence Index or Epoch Capabilities Index. ECI's publication minimum is excluded because it describes the minimum needed for that publisher to report a score, rather than a fixed index basket. An ECI based on four benchmarks does not independently meet the seven-benchmark admission threshold; a sufficiently supported ECI or standalone evidence can meet the breadth check, but cannot replace the index requirement. The trusted-source exception waives only the index count, never the breadth, dimension, or quality checks. AA, CAIS, ECI, Surge, and Vals are the eligible indexes; AA's secondary indexes and estimates do not count. No particular index, release age, or prior publication is required. The separate scoring regularization and task/index blend continue to use the median breadth.
 
-All admitted models receive numeric ranks in compact views, even when release date, prices, limits, or serving measurements are unknown. Missing specifications remain null and do not create a separate admission or scoring path. Speed and Value remain independently subject to their observed-resource requirements.
+The default leaderboard follows Timeline's display policy: OpenAI Pro configurations, Gemini Deep Think, and Claude Mythos are hidden because of their specialized resourcing, operating policies, or assets. Ordinary Gemini Pro and other high-reasoning configurations remain eligible. This display filter leaves source evidence, scores, and the scoring reference population unchanged.
+
+All displayed admitted models receive numeric ranks in compact views, even when release date, prices, limits, or serving measurements are unknown. Missing specifications remain null and do not create a separate admission or scoring path. Speed and Value remain independently subject to their observed-resource requirements.
 
 Benchmark results can be published before a model appears in public catalogs. Catalog absence alone does not invalidate sufficiently evidenced results. A model below the represented-evidence threshold is excluded, regardless of release age.
 

@@ -536,7 +536,7 @@ export const BENCHMARK_EXTENDED_SOURCES = {
         roles: ["observation", "resource"],
         runtime: { key: "ale_bench", publicRows: true },
       },
-      { group: "epoch", id: "epoch", roles: ["validation"] },
+      { group: "epoch", id: "epoch", roles: ["observation", "resource"] },
     ],
   },
   analyst_agent: {
@@ -728,11 +728,43 @@ export const BENCHMARK_EXTENDED_SOURCES = {
   terminal_bench_4: {
     inputs: [
       {
+        group: "artificial_analysis",
+        id: "artificial_analysis",
+        roles: ["observation", "resource"],
+        adapters: [
+          {
+            kind: "artificial_analysis_resource_page",
+            url: "https://artificialanalysis.ai/evaluations/terminalbench-v4-0",
+            fullModelCoverage: true,
+            scoreKey: "terminalbenchV40",
+            resourceKey: "terminalbenchV40",
+            taskRunCount: 198,
+          },
+        ],
+      },
+      {
         group: "standalone",
         id: "terminal_bench_4",
         roles: ["observation", "resource"],
         runtime: { key: "terminal_bench_4", publicRows: true },
       },
+    ],
+  },
+  terminal_bench_science: {
+    inputs: [
+      {
+        group: "standalone",
+        id: "terminal_bench_science",
+        roles: ["observation", "resource"],
+        adapters: [
+          {
+            kind: "benchmark_observation",
+            sourceDataKey: "terminalBenchScience",
+            sourceRowsKey: "terminalBenchScienceRows",
+          },
+        ],
+      },
+      { group: "vals", id: "vals", roles: ["observation", "resource"] },
     ],
   },
   vals_index: {
@@ -769,7 +801,7 @@ export const BENCHMARK_EXTENDED_SOURCES = {
           },
         ],
       },
-      { group: "epoch", id: "epoch", roles: ["observation", "validation"] },
+      { group: "epoch", id: "epoch", roles: ["observation"] },
     ],
   },
 } as const satisfies Partial<Record<BenchmarkKey, BenchmarkSourceDeclarationFacet>>;
@@ -798,9 +830,14 @@ export const BENCHMARK_PROCESSING_OVERRIDES = {
   },
   terminal_bench_4: {
     aggregation: { kind: "custom" },
+    sourceCrosswalk: { kind: "custom" },
+  },
+  terminal_bench_science: {
+    aggregation: { kind: "custom" },
+    sourceCrosswalk: { kind: "custom" },
   },
   weirdml: {
-    sourceCrosswalk: { kind: "validated_merge" },
+    sourceCrosswalk: { kind: "custom" },
   },
 } as const satisfies Partial<Record<BenchmarkKey, Partial<BenchmarkProcessingFacet>>>;
 

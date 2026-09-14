@@ -20,7 +20,7 @@ function assertDeepEqual(actual: unknown, expected: unknown): void {
   }
 }
 
-function assertApprox(actual: number | undefined, expected: number): void {
+function assertApprox(actual: number | null | undefined, expected: number): void {
   if (actual == null || !Number.isFinite(actual) || Math.abs(actual - expected) > 1e-12) {
     throw new Error(`Expected ${expected}, got ${String(actual)}`);
   }
@@ -88,6 +88,7 @@ assertDeepEqual(
     "itbench_sre",
     "scicode",
     "tau_banking",
+    "terminal_bench_4",
   ],
 );
 const configuredItbenchPage = ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.find(

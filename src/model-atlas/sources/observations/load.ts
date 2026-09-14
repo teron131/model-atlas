@@ -12,12 +12,14 @@ import { automationBenchCacheMatches, getAutomationBenchStats } from "../automat
 import { caisCacheMatches, getCaisDashboardStats } from "../cais/results";
 import { getEpochCapabilitiesIndexStats } from "../epoch/capabilities-index";
 import { epochBenchmarkCacheMatches, getEpochBenchmarkStats } from "../epoch/results";
+import { WEIRDML_EPOCH_CSV_URL } from "../epoch/weirdml";
 import { getMercorStats, mercorCacheMatches } from "../mercor/results";
 import { getMlsBenchStats } from "../mls-bench";
 import { getPerceptionBenchStats } from "../perception-bench";
 import { getSurgeIntelligenceIndexStats, getSurgeLeaderboardStats } from "../surge/results";
 import {
   getTerminalBenchScienceStats,
+  TERMINAL_BENCH_SCIENCE_VALS_URL,
   terminalBenchScienceCacheMatches,
 } from "../terminal-bench-science";
 import { getValsSourceStats, valsBenchmarkCacheMatches } from "../vals/results";
@@ -26,6 +28,7 @@ import { getWeirdMlStats } from "../weirdml";
 import { getZeroEvalStats } from "../zeroeval";
 
 type ObservationSource = {
+  sourceUrls?: readonly string[];
   fetchRows: () => Promise<BenchmarkObservationPayload>;
   acceptsCache?: (rows: readonly BenchmarkObservationRow[]) => boolean;
   mergeRow?: (
@@ -96,6 +99,7 @@ export function benchmarkObservationSource(
       };
     case "terminal_bench_science":
       return {
+        sourceUrls: [loader.sourceUrl, TERMINAL_BENCH_SCIENCE_VALS_URL],
         fetchRows: () => getTerminalBenchScienceStats(loader.sourceUrl),
         acceptsCache: terminalBenchScienceCacheMatches,
       };
@@ -121,7 +125,17 @@ export function benchmarkObservationSource(
         mergeRow: (_cached, fetched) => fetched,
       };
     case "weirdml":
-      return { fetchRows: () => getWeirdMlStats() };
+      return {
+        sourceUrls: ["https://htihle.github.io/data/weirdml_data.csv", WEIRDML_EPOCH_CSV_URL],
+        fetchRows: () => getWeirdMlStats(),
+        acceptsCache: (rows) =>
+          rows.some(
+            (row) =>
+              row.metadata.weirdml_origin === "epoch" &&
+              row.metadata.observation_role === "component" &&
+              row.metadata.identity_contract === "model-effort",
+          ),
+      };
     case "automation_bench":
       return {
         fetchRows: () => getAutomationBenchStats(loader),

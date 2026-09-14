@@ -12,7 +12,11 @@ import type {
   BenchmarkObservationPayload,
   BenchmarkObservationRow,
 } from "../benchmarks/observation";
-import { benchmarkModelEffort, normalizeModelToken } from "../identity/normalization";
+import {
+  benchmarkModelEffort,
+  canonicalReasoningEffort,
+  normalizeModelToken,
+} from "../identity/normalization";
 import { asFiniteNumber, nowEpochSeconds } from "../runtime";
 import {
   processEpochWeirdMlCsv,
@@ -25,22 +29,6 @@ import { fetchSource } from "./request-scheduler";
 const WEIRDML_CREATOR_CSV_URL = "https://htihle.github.io/data/weirdml_data.csv";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
-
-const MINIMUM_CROSSWALK_ROWS = 3;
-
-const MINIMUM_CROSSWALK_COVERAGE = 0.5;
-
-const CANDIDATE_ACCURACY_TOLERANCE = 0.001;
-
-const CANDIDATE_COST_TOLERANCE_USD = 0.01;
-
-const CANDIDATE_CODE_LENGTH_TOLERANCE = 1;
-
-const ACCURACY_TOLERANCE = 0.0006;
-
-const COST_TOLERANCE_USD = 0.00002;
-
-const CODE_LENGTH_TOLERANCE = 0.01;
 
 const TASK_COLUMNS = [
   "shapes_easy_acc",
@@ -62,29 +50,16 @@ const TASK_COLUMNS = [
   "number_patterns_acc",
 ] as const;
 
-type WeirdMlCrosswalkMethod = "identity" | "shared_evidence";
-
 type WeirdMlCrosswalkMatch = {
   primaryIndex: number;
   epochIndex: number;
-  method: WeirdMlCrosswalkMethod;
-};
-
-type WeirdMlMatchResolution = {
-  matches: WeirdMlCrosswalkMatch[];
-  conflicting: Set<number>;
-  ambiguous: Set<number>;
 };
 
 type WeirdMlCrosswalkStatus = {
-  accepted: boolean;
   primaryRowCount: number;
   epochRowCount: number;
   matchedRowCount: number;
-  identityMatchCount: number;
-  sharedEvidenceMatchCount: number;
   coverage: number;
-  conflictingEpochModels: string[];
   ambiguousEpochModels: string[];
   epochOnlyRowCount: number;
   addedEpochRowCount: number;
@@ -106,7 +81,7 @@ type WeirdMlScraperOptions = {
   timeoutMs?: number;
 };
 
-/** Fetch the creator dataset and merge Epoch-only history only after the mirror crosswalk passes. */
+/** Fetch both source datasets and reconcile model aliases without treating matching scores as a prerequisite for identity. */
 export async function getWeirdMlStats(
   options: WeirdMlScraperOptions = {},
 ): Promise<WeirdMlPayload> {
@@ -207,124 +182,90 @@ export function processWeirdMlCsv(csv: string): BenchmarkObservationRow[] {
   });
 }
 
-/** Merge only a validated crosswalk, keeping creator observations authoritative on every overlap. */
+/** Reconcile unambiguous model identities while retaining both source values for downstream 50/50 fusion. */
 export function mergeWeirdMlRows(
   primaryRows: readonly BenchmarkObservationRow[],
   epochRows: readonly WeirdMlEpochRow[],
 ): { data: BenchmarkObservationRow[]; crosswalk: WeirdMlCrosswalkStatus } {
   const plan = buildWeirdMlCrosswalk(primaryRows, epochRows);
-  if (!plan.status.accepted) {
-    return { data: [...primaryRows], crosswalk: plan.status };
-  }
-  const matchByPrimary = new Map(plan.matches.map((match) => [match.primaryIndex, match]));
-  const creatorRows = primaryRows.map((row, index) => {
-    const match = matchByPrimary.get(index);
-    if (match == null) return row;
-    const epoch = epochRows[match.epochIndex] as WeirdMlEpochRow;
+  const matchByEpoch = new Map(plan.matches.map((match) => [match.epochIndex, match]));
+  const eligible = new Set([...matchByEpoch.keys(), ...plan.addedEpochIndices]);
+  const mirrors = epochRows.map((epoch, index) => {
+    const row = epochBenchmarkRow(epoch);
+    const match = matchByEpoch.get(index);
+    const primary = match == null ? null : primaryRows[match.primaryIndex];
     return {
       ...row,
+      ...(primary == null
+        ? {}
+        : {
+            model: primary.model,
+            base_model: primary.base_model,
+            reasoning_effort: primary.reasoning_effort,
+          }),
       metadata: {
         ...row.metadata,
-        weirdml_epoch_crosswalk: match.method,
-        weirdml_epoch_model_version: epoch.model_version,
+        observation_role: "component",
+        fusion_eligible: eligible.has(index),
+        identity_contract: "model-effort",
+        weirdml_epoch_crosswalk: match == null ? null : "identity",
       },
     };
   });
-  const merged = [
-    ...creatorRows,
-    ...plan.addedEpochIndices.map((index) =>
-      epochBenchmarkRow(epochRows[index] as WeirdMlEpochRow),
-    ),
-  ]
-    .sort(
-      (left, right) =>
-        right.canonical_value - left.canonical_value || left.model.localeCompare(right.model),
-    )
-    .map((row, index) => ({ ...row, rank: index + 1 }));
-  return { data: merged, crosswalk: plan.status };
+  return { data: [...primaryRows, ...mirrors], crosswalk: plan.status };
 }
 
-/** Build the creator/Epoch crosswalk without assuming same-looking model rows are equivalent. */
+/** Pair model aliases only at the same effort; score, cost, code length, and release metadata never establish identity. */
 function buildWeirdMlCrosswalk(
   primaryRows: readonly BenchmarkObservationRow[],
   epochRows: readonly WeirdMlEpochRow[],
 ): WeirdMlMergePlan {
   const primaryAliases = primaryRows.map(primaryIdentityAliases);
-  const identityCandidates = epochRows.map((row) => {
+  const candidates = epochRows.map((row) => {
     const aliases = identityAliases([...row.aliases, configurationKey(row)]);
-    return primaryAliases.flatMap((primary, primaryIndex) =>
-      aliases.some((alias) => primary.includes(alias)) ? [primaryIndex] : [],
+    return primaryAliases.flatMap((primary, index) =>
+      canonicalReasoningEffort(primaryRows[index]!.reasoning_effort) ===
+        canonicalReasoningEffort(row.reasoning_effort) &&
+      aliases.some((alias) => primary.includes(alias))
+        ? [index]
+        : [],
     );
   });
-  const identity = resolveCandidateMatches(primaryRows, epochRows, identityCandidates, "identity");
-  const claimedPrimary = new Set(identity.matches.map((match) => match.primaryIndex));
-  const claimedEpoch = new Set([
-    ...identity.matches.map((match) => match.epochIndex),
-    ...identity.conflicting,
-    ...identity.ambiguous,
-  ]);
-  const evidenceCandidates = epochRows.map((epoch, epochIndex) =>
-    claimedEpoch.has(epochIndex)
-      ? []
-      : primaryRows.flatMap((primary, primaryIndex) =>
-          candidateEvidenceMatches(primary, epoch) ? [primaryIndex] : [],
-        ),
-  );
-  const evidence = resolveCandidateMatches(
-    primaryRows,
-    epochRows,
-    evidenceCandidates,
-    "shared_evidence",
-    claimedPrimary,
-  );
-  const matches = [...identity.matches, ...evidence.matches];
-  const ambiguous = new Set([...identity.ambiguous, ...evidence.ambiguous]);
-  const conflicting = new Set([...identity.conflicting, ...evidence.conflicting]);
-  const matchedEpoch = new Set(matches.map((match) => match.epochIndex));
-  const epochOnlyIndices = epochRows.flatMap((_, index) =>
-    matchedEpoch.has(index) || conflicting.has(index) || ambiguous.has(index) ? [] : [index],
-  );
-  const primaryConfigurationKeys = new Set(
-    primaryRows.map(configurationKey).filter((key) => key.length > 0),
-  );
-  const epochConfigurationCounts = new Map<string, number>();
-  for (const index of epochOnlyIndices) {
-    const key = configurationKey(epochRows[index] as WeirdMlEpochRow);
-    if (key.length > 0) {
-      epochConfigurationCounts.set(key, (epochConfigurationCounts.get(key) ?? 0) + 1);
-    }
+  const claims = new Map<number, number>();
+  for (const indexes of candidates) {
+    for (const index of indexes) claims.set(index, (claims.get(index) ?? 0) + 1);
   }
-  const addedEpochIndices = epochOnlyIndices.filter((index) => {
-    const key = configurationKey(epochRows[index] as WeirdMlEpochRow);
-    return (
-      key.length > 0 &&
-      !primaryConfigurationKeys.has(key) &&
-      epochConfigurationCounts.get(key) === 1
-    );
+  const matches: WeirdMlCrosswalkMatch[] = [];
+  const ambiguous = new Set<number>();
+  const unmatched: number[] = [];
+  candidates.forEach((indexes, epochIndex) => {
+    if (indexes.length === 0) unmatched.push(epochIndex);
+    else if (indexes.length === 1 && claims.get(indexes[0]!) === 1)
+      matches.push({ primaryIndex: indexes[0]!, epochIndex });
+    else ambiguous.add(epochIndex);
   });
-  const denominator = Math.min(primaryRows.length, epochRows.length);
-  const coverage = denominator === 0 ? 0 : matches.length / denominator;
-  const accepted =
-    matches.length >= MINIMUM_CROSSWALK_ROWS && coverage >= MINIMUM_CROSSWALK_COVERAGE;
+  const primaryKeys = new Set(primaryRows.map(configurationKey));
+  const epochCounts = new Map<string, number>();
+  for (const index of unmatched) {
+    const key = configurationKey(epochRows[index]!);
+    epochCounts.set(key, (epochCounts.get(key) ?? 0) + 1);
+  }
+  const addedEpochIndices = unmatched.filter((index) => {
+    const key = configurationKey(epochRows[index]!);
+    return key.length > 0 && !primaryKeys.has(key) && epochCounts.get(key) === 1;
+  });
+  const overlapSize = Math.min(primaryRows.length, epochRows.length);
   return {
     matches,
-    addedEpochIndices: accepted ? addedEpochIndices : [],
+    addedEpochIndices,
     status: {
-      accepted,
       primaryRowCount: primaryRows.length,
       epochRowCount: epochRows.length,
       matchedRowCount: matches.length,
-      identityMatchCount: identity.matches.length,
-      sharedEvidenceMatchCount: evidence.matches.length,
-      coverage,
-      conflictingEpochModels: [...conflicting].map(
-        (index) => (epochRows[index] as WeirdMlEpochRow).model_version,
-      ),
-      ambiguousEpochModels: [...ambiguous].map(
-        (index) => (epochRows[index] as WeirdMlEpochRow).model_version,
-      ),
-      epochOnlyRowCount: epochOnlyIndices.length,
-      addedEpochRowCount: accepted ? addedEpochIndices.length : 0,
+      coverage: overlapSize === 0 ? 0 : matches.length / overlapSize,
+      ambiguousEpochModels: [...ambiguous].map((index) => epochRows[index]!.model_version),
+      epochOnlyRowCount: unmatched.length,
+      addedEpochRowCount: addedEpochIndices.length,
     },
   };
 }
@@ -361,120 +302,6 @@ function configurationKey(row: { base_model: string; reasoning_effort: string | 
   return baseModel.length === 0 ? "" : `${baseModel}--${effort}`;
 }
 
-/** Resolve one-to-one candidates, treating aliases of an already claimed primary row as ambiguous duplicates. */
-function resolveCandidateMatches(
-  primaryRows: readonly BenchmarkObservationRow[],
-  epochRows: readonly WeirdMlEpochRow[],
-  candidates: readonly (readonly number[])[],
-  method: WeirdMlCrosswalkMethod,
-  claimedPrimary: ReadonlySet<number> = new Set(),
-): WeirdMlMatchResolution {
-  const ambiguous = new Set<number>();
-  const conflicting = new Set<number>();
-  const availableCandidates = candidates.map((primaryCandidates, epochIndex) => {
-    const claimedCandidates = primaryCandidates.filter((index) => claimedPrimary.has(index));
-    if (claimedCandidates.length > 0) {
-      const claimedIndex = claimedCandidates[0] as number;
-      if (
-        primaryCandidates.length === 1 &&
-        !sharedEvidenceMatches(
-          primaryRows[claimedIndex] as BenchmarkObservationRow,
-          epochRows[epochIndex] as WeirdMlEpochRow,
-        )
-      ) {
-        conflicting.add(epochIndex);
-      } else {
-        ambiguous.add(epochIndex);
-      }
-      return [];
-    }
-    if (primaryCandidates.length > 1) {
-      ambiguous.add(epochIndex);
-      return [];
-    }
-    return primaryCandidates;
-  });
-  const primaryClaims = new Map<number, number[]>();
-  for (const [epochIndex, primaryCandidates] of availableCandidates.entries()) {
-    if (primaryCandidates.length !== 1) continue;
-    const primaryIndex = primaryCandidates[0] as number;
-    const claims = primaryClaims.get(primaryIndex) ?? [];
-    claims.push(epochIndex);
-    primaryClaims.set(primaryIndex, claims);
-  }
-  const matches: WeirdMlCrosswalkMatch[] = [];
-  for (const [epochIndex, primaryCandidates] of availableCandidates.entries()) {
-    if (primaryCandidates.length !== 1) continue;
-    const primaryIndex = primaryCandidates[0] as number;
-    if ((primaryClaims.get(primaryIndex)?.length ?? 0) !== 1) {
-      ambiguous.add(epochIndex);
-      continue;
-    }
-    if (
-      !sharedEvidenceMatches(
-        primaryRows[primaryIndex] as BenchmarkObservationRow,
-        epochRows[epochIndex] as WeirdMlEpochRow,
-      )
-    ) {
-      conflicting.add(epochIndex);
-      continue;
-    }
-    matches.push({ primaryIndex, epochIndex, method });
-  }
-  return { matches, conflicting, ambiguous };
-}
-
-/** Check every shared WeirdML observation field after Epoch's documented unit conversion. */
-function sharedEvidenceMatches(primary: BenchmarkObservationRow, epoch: WeirdMlEpochRow): boolean {
-  if (
-    !withinTolerance(primary.canonical_value, epoch.accuracy, ACCURACY_TOLERANCE) ||
-    !withinTolerance(
-      asFiniteNumber(primary.metadata.cost_per_run_usd),
-      epoch.cost_per_run_usd,
-      COST_TOLERANCE_USD,
-    ) ||
-    !withinTolerance(
-      asFiniteNumber(primary.metadata.code_len_p50),
-      epoch.code_len_p50,
-      CODE_LENGTH_TOLERANCE,
-    )
-  ) {
-    return false;
-  }
-  if (
-    primary.observed_at != null &&
-    epoch.observed_at != null &&
-    primary.observed_at !== epoch.observed_at
-  ) {
-    return false;
-  }
-  return true;
-}
-
-function withinTolerance(left: number | null, right: number | null, tolerance: number): boolean {
-  return left != null && right != null && Math.abs(left - right) <= tolerance;
-}
-
-/** Find possible mirror aliases broadly enough that source rounding cannot make them look Epoch-only. */
-function candidateEvidenceMatches(
-  primary: BenchmarkObservationRow,
-  epoch: WeirdMlEpochRow,
-): boolean {
-  return (
-    withinTolerance(primary.canonical_value, epoch.accuracy, CANDIDATE_ACCURACY_TOLERANCE) &&
-    withinTolerance(
-      asFiniteNumber(primary.metadata.cost_per_run_usd),
-      epoch.cost_per_run_usd,
-      CANDIDATE_COST_TOLERANCE_USD,
-    ) &&
-    withinTolerance(
-      asFiniteNumber(primary.metadata.code_len_p50),
-      epoch.code_len_p50,
-      CANDIDATE_CODE_LENGTH_TOLERANCE,
-    )
-  );
-}
-
 function epochBenchmarkRow(row: WeirdMlEpochRow): BenchmarkObservationRow {
   return {
     benchmark_key: "weirdml",
@@ -490,6 +317,7 @@ function epochBenchmarkRow(row: WeirdMlEpochRow): BenchmarkObservationRow {
     metadata: {
       weirdml_origin: "epoch",
       epoch_model_version: row.model_version,
+      source_model_id: `epoch:${row.model_version}`,
       cost_per_run_usd: row.cost_per_run_usd,
       code_len_p50: row.code_len_p50,
     },

@@ -1,6 +1,10 @@
 /** Model selection prepares quality scores before route enrichment, then finalizes resource scores, admission, and logo hydration. */
 
-import { indexPolicy, reportedIndexBenchmarkCount } from "../../benchmarks/index-policy";
+import {
+  indexPolicy,
+  isAggregateIndex,
+  reportedIndexBenchmarkCount,
+} from "../../benchmarks/index-policy";
 import type { BenchmarkAdmissionConfig, FinalStageConfig, ScoringConfig } from "../../config/stage";
 import { cacheModelLogos } from "../../logos/cache";
 import { asFiniteNumber, asRecord } from "../../runtime";
@@ -30,7 +34,11 @@ import {
   enrichModelResources,
   versionCandidateBenchmarkData,
 } from "./candidate";
-import { hasRequiredQualityScores, selectPublicModels } from "./public-list";
+import {
+  hasRequiredQualityScores,
+  publicModelFromCandidate,
+  selectReferenceModels,
+} from "./public-list";
 import {
   buildPreviousModelLookup,
   isVersionReplacementRow,
@@ -173,7 +181,7 @@ export async function buildFinalModels(
     scoringPreparation,
     resourceImputation,
   );
-  const selectedReferenceModels = selectPublicModels(
+  const selectedReferenceModels = selectReferenceModels(
     scoredCandidates,
     id,
     finalConfig,
@@ -198,13 +206,15 @@ export async function buildFinalModels(
     .filter(hasRequiredPublicRelevance);
   return cacheModelLogos(
     admittedPublicModels.map((model) =>
-      applyResourceEvidenceRequirements(model, scoringConfig.benchmarkPortfolio),
+      publicModelFromCandidate(
+        applyResourceEvidenceRequirements(model, scoringConfig.benchmarkPortfolio),
+      )!,
     ),
     (model) => model.provider ?? model.id,
   );
 }
 
-/** Require observed benchmark weight and evidence in both dimensions; index availability is not a separate gate. */
+/** Require observed breadth and both dimensions, plus two indexes or one trusted AA/Epoch index; estimates cannot satisfy admission. */
 export function hasRequiredBenchmarkEvidence(
   model: BenchmarkEvidenceCandidate,
   scoringConfig: ScoringConfig,
@@ -216,10 +226,18 @@ export function hasRequiredBenchmarkEvidence(
     scoringConfig.intelligenceBenchmarkKeys,
   );
   const observedAgenticCount = observedBenchmarkCount(model, scoringConfig.agenticBenchmarkKeys);
+  const selectedIndexes = selectedBenchmarkKeys(scoringConfig).filter(isAggregateIndex);
+  const observedIndexCount = observedBenchmarkCount(model, selectedIndexes);
+  const hasTrustedIndex = selectedIndexes.some(
+    (key) =>
+      (key === "aa_intelligence_index" || key === "epoch_capabilities_index") &&
+      observedBenchmarkCount(model, [key]) > 0,
+  );
   return (
     observedWeight >= admissionConfig.minimumObservedWeight &&
     observedIntelligenceCount >= admissionConfig.minimumObservedPerDimension &&
-    observedAgenticCount >= admissionConfig.minimumObservedPerDimension
+    observedAgenticCount >= admissionConfig.minimumObservedPerDimension &&
+    (observedIndexCount >= admissionConfig.minimumObservedIndexes || hasTrustedIndex)
   );
 }
 

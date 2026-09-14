@@ -4,6 +4,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import { modelDisplayExclusion } from "../../src/model-atlas/stats/model-visibility";
 import {
   anchorTimeline,
   DEFAULT_TIMELINE_ANCHORS,
@@ -15,7 +16,7 @@ import { providerDisplayName } from "../dashboard/shared/provider-theme";
 import { ModelAtlasHeader } from "../shared/ModelAtlasHeader";
 import { DiagnosticMatrices } from "./DiagnosticMatrices";
 import { TIMELINE_START_DATE } from "./frontier";
-import { timelineDisplayExclusion, timelineModelName } from "./model-display";
+import { timelineModelName } from "./model-display";
 import { modelRepresentatives, representativeScores } from "./model-representatives";
 import { TimelinePlot } from "./TimelinePlot";
 
@@ -178,7 +179,7 @@ function TimelineContent({ data }: { data: HistoricalDataset }) {
     if (toDate && (!model.releaseDate || model.releaseDate > toDate)) return false;
     return true;
   });
-  const visible = matching.filter((model) => timelineDisplayExclusion(model) == null);
+  const visible = matching.filter((model) => modelDisplayExclusion(model) == null);
   const points = visible.flatMap((model) => {
     const score = projection.scores.get(model.id);
     const estimate = estimates.get(model.id);

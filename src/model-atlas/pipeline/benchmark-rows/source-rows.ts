@@ -14,6 +14,7 @@ import {
 import { benchmarkModelEffort, canonicalReasoningEffort } from "../../identity/normalization";
 import { asFiniteNumber, asRecord } from "../../runtime";
 import { agentsLastExamBenchmarkScore } from "../../sources/agents-last-exam/leaderboard";
+import { aleBenchModelEffort } from "../../sources/ale-bench/leaderboard";
 import type { ModelAtlasSourceData } from "../../sources/assembly";
 import { cursorBenchCanonicalModelName } from "../../sources/cursorbench/leaderboard";
 
@@ -96,15 +97,22 @@ function benchmarkObservationSourceDrafts(sourceData: ModelAtlasSourceData): Ben
     if (source?.rows == null) {
       throw new Error(`Benchmark observation source-data rows are missing: ${sourceDataKey}`);
     }
-    return source.rows.filter(isCanonicalBenchmarkObservation).map((row) => ({
-      key: row.benchmark_key,
-      id: row.model_id,
-      identity: row.base_model,
-      label: row.model,
-      provider: row.model_creator,
-      reasoningEffort: row.reasoning_effort,
-      value: row.canonical_value,
-    }));
+    return source.rows
+      .filter(
+        (row) =>
+          isCanonicalBenchmarkObservation(row) ||
+          row.metadata.source_series === "vals" ||
+          (row.metadata.weirdml_origin === "epoch" && row.metadata.fusion_eligible !== false),
+      )
+      .map((row) => ({
+        key: row.benchmark_key,
+        id: row.model_id,
+        identity: row.base_model,
+        label: row.model,
+        provider: row.model_creator,
+        reasoningEffort: row.reasoning_effort,
+        value: row.canonical_value,
+      }));
   });
 }
 
@@ -199,14 +207,29 @@ const STANDALONE_BENCHMARK_ADAPTERS = {
       label: row.model,
       value: agentsLastExamBenchmarkScore(row),
     })),
-  ale_bench: (sourceData) =>
-    benchmarkRowDrafts("ale_bench", sourceData.aleBench.sourceDefaultRows, (row) => ({
+  ale_bench: (sourceData) => [
+    ...benchmarkRowDrafts("ale_bench", sourceData.aleBench.sourceDefaultRows, (row) => ({
       id: row.base_model,
       identity: row.base_model,
       label: row.base_model,
       reasoningEffort: row.reasoning_effort,
       value: row.score,
     })),
+    ...sourceData.aleBench.rows.flatMap((row): BenchmarkRowDraft[] => {
+      if (!("epoch" in row)) return [];
+      const effort = aleBenchModelEffort(row.model);
+      return [
+        {
+          key: "ale_bench",
+          id: effort.baseModel,
+          identity: effort.baseModel,
+          label: effort.baseModel,
+          reasoningEffort: effort.reasoningEffort,
+          value: row.epoch.performance,
+        },
+      ];
+    }),
+  ],
   blueprint_bench_2: (sourceData) =>
     benchmarkRowDrafts("blueprint_bench_2", sourceData.blueprintBench.rows, (row) => ({
       label: row.model,

@@ -41,6 +41,7 @@ type BenchmarkObservationLookups = {
 };
 
 export type BenchmarkAssignmentLookups = BenchmarkObservationLookups & {
+  fusedBenchmarks?: ModelAtlasSourceData["fusedBenchmarks"];
   artificialAnalysisBenchmarkResources: Pick<
     ModelAtlasSourceData["artificialAnalysisBenchmarkResources"],
     "observationLookup" | "sourceDefaultLookup"
@@ -439,6 +440,7 @@ export function buildObservationBenchmarks(
     resolveSourceRow: (rowsByModelName) =>
       findEffortSourceRow(modelNameCandidates, targetReasoningEffort, rowsByModelName),
   });
+  assignFusedBenchmarks(assignedBenchmarks, lookups, modelNameCandidates, targetEffort);
   return assignedBenchmarks;
 }
 
@@ -485,6 +487,12 @@ export function buildDefaultVariantBenchmarks(
     benchmarks.vals_index = valsIndexScore;
   }
 
+  assignFusedBenchmarks(
+    assignedBenchmarks,
+    lookups,
+    modelNameCandidates,
+    canonicalReasoningEffort(targetReasoningEffort),
+  );
   return {
     benchmarks,
     scoringSources,
@@ -541,4 +549,22 @@ export function assignBenchmarksToVariants(
       ...(Object.keys(scoringSources).length === 0 ? {} : { scoring_sources: scoringSources }),
     };
   });
+}
+
+/** Fusion replaces the selected multi-source benchmark inputs; raw observations remain in their source stores. */
+function assignFusedBenchmarks(
+  assigned: AssignedBenchmarks,
+  lookups: BenchmarkAssignmentLookups,
+  names: unknown[],
+  effort: string | null,
+): void {
+  if (lookups.fusedBenchmarks == null) return;
+  for (const [key, source] of Object.entries(lookups.fusedBenchmarks)) {
+    const row = findBenchmarkObservation(names, effort, source.rowsByModelName);
+    delete assigned.benchmarks[key];
+    delete assigned.scoringSources[key];
+    if (row == null || row.reasoning_effort !== effort) continue;
+    assigned.benchmarks[key] = row.canonical_value;
+    assigned.scoringSources[key] = row;
+  }
 }

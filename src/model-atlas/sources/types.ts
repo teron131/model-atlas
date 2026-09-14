@@ -8,7 +8,7 @@ import type {
   AgentsLastExamHarnessRow,
   AgentsLastExamModelScoreRow,
 } from "./agents-last-exam/leaderboard";
-import type { AleBenchConfigurationRow } from "./ale-bench/leaderboard";
+import type { AleBenchSourceRow } from "./ale-bench/leaderboard";
 import type { ArtificialAnalysisBenchmarkResourceRow } from "./artificial-analysis/benchmark-resources";
 import type { BlueprintBenchModelScoreRow } from "./blueprint-bench/leaderboard";
 import type { CursorBenchModelScoreRow } from "./cursorbench/leaderboard";
@@ -85,7 +85,7 @@ export type SourceSnapshots = BenchmarkObservationSnapshotRows & {
   agentArenaModelScoreRows: AgentArenaModelScoreRow[];
   agentsLastExamRows: AgentsLastExamHarnessRow[];
   agentsLastExamModelScores: AgentsLastExamModelScoreRow[];
-  aleBenchConfigurationRows: AleBenchConfigurationRow[];
+  aleBenchConfigurationRows: AleBenchSourceRow[];
   blueprintBenchModelScoreRows: BlueprintBenchModelScoreRow[];
   cursorBenchModelScoreRows: CursorBenchModelScoreRow[];
   deepSWERawRows: DeepSWERawLeaderboardRow[];

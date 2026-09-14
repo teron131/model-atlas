@@ -24,7 +24,7 @@ import {
   observedRangesByBenchmark,
   type QualityScoringContext,
 } from "../quality-context";
-import { benchmarkMetricValue } from "../resource-metrics";
+import { benchmarkFusionEstimate, benchmarkMetricValue } from "../resource-metrics";
 
 export type BenchmarkImputationByModel = ReadonlyMap<JsonObject, ReadonlyMap<string, number>>;
 
@@ -134,6 +134,8 @@ export function benchmarkQualityEvidence(
   if (direct != null) {
     return { confidence: 1, value: direct };
   }
+  const fusion = benchmarkFusionEstimate(model, key);
+  if (fusion != null) return fusion;
   if (preparation == null) {
     return null;
   }

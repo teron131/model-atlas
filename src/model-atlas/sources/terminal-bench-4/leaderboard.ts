@@ -40,6 +40,8 @@ export type TerminalBench4ModelAgentRow = BenchmarkModelRow &
     score_ci95_half_width: number;
     cost_per_task_usd: number;
     tokens_per_task: number;
+    seconds_per_task?: number | null;
+    output_tokens_per_task?: number | null;
   };
 
 export type TerminalBench4RowsByModelName = Map<string, TerminalBench4ModelAgentRow>;
@@ -157,6 +159,7 @@ function modelAgentRow(value: unknown): TerminalBench4ModelAgentRow | null {
   const taskRunCount = asFiniteNumber(metrics.n_trials);
   const totalCostUsd = asFiniteNumber(metrics.total_cost_usd);
   const totalTokens = asFiniteNumber(metrics.total_tokens);
+  const outputTokens = asFiniteNumber(metrics.output_tokens);
   if (
     baseModel == null ||
     harness == null ||
@@ -184,6 +187,9 @@ function modelAgentRow(value: unknown): TerminalBench4ModelAgentRow | null {
     total_tokens: totalTokens,
     cost_per_task_usd: resourcePerTaskRun(totalCostUsd, taskRunCount),
     tokens_per_task: resourcePerTaskRun(totalTokens, taskRunCount),
+    seconds_per_task: asFiniteNumber(metrics.avg_trial_duration_sec),
+    output_tokens_per_task:
+      outputTokens == null ? null : resourcePerTaskRun(outputTokens, taskRunCount),
   };
 }
 

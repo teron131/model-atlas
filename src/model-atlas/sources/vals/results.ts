@@ -163,6 +163,11 @@ function scoreRow(
   const baseModel = modelId.split("/").at(-1) ?? modelId;
   const reasoningEffort = canonicalReasoningEffort(value.reasoning_effort ?? value.compute_effort);
   const metadata: BenchmarkObservationMetadata = {};
+  const costPerTask = asFiniteNumber(value.cost_per_test);
+  const secondsPerTask = asFiniteNumber(value.latency);
+  const outputTokensPerTask = asFiniteNumber(value.avg_output_tokens);
+  if (secondsPerTask != null) metadata.seconds_per_task = secondsPerTask;
+  if (outputTokensPerTask != null) metadata.output_tokens_per_task = outputTokensPerTask;
   for (const [key, metadataValue] of [
     ["task", task],
     ["benchmark_version", view.metadata.version],
@@ -186,6 +191,7 @@ function scoreRow(
     model_creator: stringValue(value.provider),
     rank: null,
     canonical_value: canonicalValue,
+    ...(costPerTask == null ? {} : { cost: costPerTask }),
     observed_at: view.metadata.updated,
     metadata,
   };

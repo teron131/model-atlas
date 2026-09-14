@@ -63,15 +63,16 @@ export function readBenchmarkObservationRawCache(
   cache: CacheRowSource,
   binding: BenchmarkObservationBinding,
 ) {
-  const expectedUrl = "sourceUrl" in binding.loader ? binding.loader.sourceUrl : undefined;
+  const source = benchmarkObservationSource(binding);
+  const expectedUrls =
+    source.sourceUrls ?? ("sourceUrl" in binding.loader ? [binding.loader.sourceUrl] : undefined);
   const cached = readBenchmarkObservationRows(
     cache,
     binding.rawTable,
     binding.benchmark,
-    expectedUrl,
+    expectedUrls,
   );
   if (cached == null) return null;
-  const source = benchmarkObservationSource(binding);
   if (source.acceptsCache?.(cached.rows) === false) return null;
   return cached;
 }
@@ -157,7 +158,7 @@ function readBenchmarkObservationRows(
   cache: CacheRowSource,
   table: string,
   benchmarkKey: string,
-  expectedUrl?: string,
+  expectedUrls?: readonly string[],
 ): {
   rows: BenchmarkObservationRow[];
   fetchedAt: number | null;
@@ -184,7 +185,7 @@ function readBenchmarkObservationRows(
     if (
       rowBenchmarkKey !== benchmarkKey ||
       sourceUrl == null ||
-      (expectedUrl != null && sourceUrl !== expectedUrl) ||
+      (expectedUrls != null && !expectedUrls.includes(sourceUrl)) ||
       model == null ||
       baseModel == null ||
       canonicalValue == null ||

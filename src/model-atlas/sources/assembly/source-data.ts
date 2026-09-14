@@ -9,7 +9,12 @@ import {
   BENCHMARK_OBSERVATION_BINDINGS,
   type BenchmarkObservationBinding,
 } from "../../benchmarks/registry";
-import { buildBenchmarkModelMap, modelSlugFromModelId } from "../../identity/normalization";
+import { fuseBenchmarkSources, type FusionObservation } from "../../benchmarks/source-fusion";
+import {
+  benchmarkModelEffort,
+  buildBenchmarkModelMap,
+  modelSlugFromModelId,
+} from "../../identity/normalization";
 import type {
   AgentArenaModelScoreRow,
   AgentArenaRowsByModelName,
@@ -20,9 +25,10 @@ import {
   buildAgentsLastExamMap,
 } from "../agents-last-exam/leaderboard";
 import {
-  type AleBenchConfigurationRow,
   type AleBenchModelScoreRow,
   type AleBenchRowsByModelName,
+  type AleBenchSourceRow,
+  fuseAleBenchRows,
   summarizeAleBenchSourceDefaultRows,
 } from "../ale-bench/leaderboard";
 import {
@@ -104,6 +110,10 @@ type BenchmarkObservationData = {
 };
 
 export type ModelAtlasSourceData = BenchmarkObservationData & {
+  fusedBenchmarks: Record<
+    string,
+    IndexedSourceRows<FusionObservation, BenchmarkObservationLookup<FusionObservation>>
+  >;
   artificialAnalysis: {
     rows: unknown[];
     bySlug: Map<string, ArtificialAnalysisModel>;
@@ -120,6 +130,7 @@ export type ModelAtlasSourceData = BenchmarkObservationData & {
   agentArena: IndexedSourceRows<AgentArenaModelScoreRow, AgentArenaRowsByModelName>;
   agentsLastExam: IndexedSourceRows<AgentsLastExamModelScoreRow, AgentsLastExamRowsByModelName>;
   aleBench: {
+    rows: AleBenchSourceRow[];
     sourceDefaultRows: AleBenchModelScoreRow[];
     rowsByModelName: AleBenchRowsByModelName;
   };
@@ -146,7 +157,7 @@ export type ModelAtlasSourceRows = BenchmarkObservationRows & {
   modelsDevModels: ModelAtlasSourceData["modelsDev"]["rows"];
   agentArenaRows: ModelAtlasSourceData["agentArena"]["rows"];
   agentsLastExamRows: ModelAtlasSourceData["agentsLastExam"]["rows"];
-  aleBenchConfigurationRows: AleBenchConfigurationRow[];
+  aleBenchConfigurationRows: AleBenchSourceRow[];
   blueprintBenchRows: ModelAtlasSourceData["blueprintBench"]["rows"];
   cursorBenchRows: ModelAtlasSourceData["cursorBench"]["rows"];
   deepSWEEffortRows: DeepSWELeaderboardRow[];
@@ -165,6 +176,17 @@ export function buildSourceData(rows: ModelAtlasSourceRows): ModelAtlasSourceDat
   );
   const benchmarkObservationData = buildBenchmarkObservationData(rows);
   return {
+    fusedBenchmarks: Object.fromEntries(
+      Object.entries(fusedBenchmarkObservations(rows)).map(([key, observations]) => [
+        key,
+        {
+          rows: observations,
+          rowsByModelName: buildBenchmarkObservationLookup(
+            observations.filter((row) => row.metadata.fusion_collapsed !== true),
+          ),
+        },
+      ]),
+    ),
     artificialAnalysis: {
       rows: rows.artificialAnalysisRows,
       bySlug: buildArtificialAnalysisBySlug(rows.artificialAnalysisRows),
@@ -194,6 +216,7 @@ export function buildSourceData(rows: ModelAtlasSourceRows): ModelAtlasSourceDat
       rowsByModelName: buildAgentsLastExamMap(rows.agentsLastExamRows),
     },
     aleBench: {
+      rows: rows.aleBenchConfigurationRows,
       sourceDefaultRows: aleBenchSourceDefaultRows,
       rowsByModelName: buildBenchmarkModelMap(aleBenchSourceDefaultRows),
     },
@@ -260,4 +283,90 @@ function buildArtificialAnalysisBySlug(rows: unknown[]): Map<string, ArtificialA
     }
   }
   return bySlug;
+}
+
+/** Raw source arrays remain unchanged; only these derived observations enter fused matching and collapsed display. */
+export function fusedBenchmarkObservations({
+  terminalBench4Rows: official,
+  artificialAnalysisBenchmarkResourceRows: aa,
+  terminalBenchScienceRows: science,
+  aleBenchConfigurationRows: ale,
+  weirdMlRows: weird,
+}: Pick<
+  ModelAtlasSourceRows,
+  | "terminalBench4Rows"
+  | "artificialAnalysisBenchmarkResourceRows"
+  | "terminalBenchScienceRows"
+  | "aleBenchConfigurationRows"
+  | "weirdMlRows"
+>): Record<string, FusionObservation[]> {
+  const officialRows: FusionObservation[] = official.map((row) => ({
+    benchmark_key: "terminal_bench_4",
+    source_url: "https://www.tbench.ai/?version=4.0",
+    model_id: null,
+    model: claudeName(row.model),
+    base_model: claudeName(row.base_model),
+    reasoning_effort: row.reasoning_effort,
+    model_creator: null,
+    rank: null,
+    canonical_value: row.score,
+    cost: row.cost_per_task_usd,
+    seconds_per_task: row.seconds_per_task,
+    tokens_per_task: row.tokens_per_task,
+    output_tokens_per_task: row.output_tokens_per_task,
+    observed_at: null,
+    metadata: { harness: row.harness, time_measure: "wall" },
+  }));
+  const aaRows: FusionObservation[] = aa
+    .filter((row) => row.benchmark_key === "terminal_bench_4")
+    .map((row) => ({
+      benchmark_key: row.benchmark_key,
+      source_url: row.source_url,
+      model_id: row.model_id,
+      model: row.model,
+      base_model: benchmarkModelEffort(row.model).baseModel,
+      reasoning_effort: row.reasoning_effort,
+      model_creator: row.provider,
+      rank: null,
+      canonical_value: row.score,
+      cost: row.cost_per_task_usd,
+      seconds_per_task: row.seconds_per_task,
+      tokens_per_task: row.tokens_per_task,
+      output_tokens_per_task: row.output_tokens_per_task,
+      observed_at: null,
+      metadata: { time_measure: "decode" },
+    }));
+  const scienceRows: FusionObservation[] = science.map((row) => ({
+    ...row,
+    model: claudeName(row.model),
+    base_model: claudeName(
+      row.metadata.source_series === "vals"
+        ? row.base_model
+        : benchmarkModelEffort(row.model).baseModel,
+    ),
+    seconds_per_task:
+      typeof row.metadata.seconds_per_task === "number" ? row.metadata.seconds_per_task : null,
+    output_tokens_per_task:
+      typeof row.metadata.output_tokens_per_task === "number"
+        ? row.metadata.output_tokens_per_task
+        : null,
+  }));
+  return {
+    ale_bench: fuseAleBenchRows(ale),
+    weirdml: fuseBenchmarkSources(
+      weird.filter((row) => row.metadata.weirdml_origin === "creator"),
+      weird.filter(
+        (row) => row.metadata.weirdml_origin === "epoch" && row.metadata.fusion_eligible !== false,
+      ),
+    ),
+    terminal_bench_4: fuseBenchmarkSources(officialRows, aaRows),
+    terminal_bench_science: fuseBenchmarkSources(
+      scienceRows.filter((row) => row.metadata.source_series !== "vals"),
+      scienceRows.filter((row) => row.metadata.source_series === "vals"),
+    ),
+  };
+}
+
+function claudeName(name: string): string {
+  return /^(?:Fable|Opus|Sonnet)\b/i.test(name) ? `Claude ${name}` : name;
 }

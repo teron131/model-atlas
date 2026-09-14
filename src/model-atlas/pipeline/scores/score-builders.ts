@@ -23,7 +23,7 @@ import {
   type QualityScoringContext,
   siblingQualityKey,
 } from "./quality-context";
-import { benchmarkMetricValue } from "./resource-metrics";
+import { benchmarkFusionEstimate, benchmarkMetricValue } from "./resource-metrics";
 
 type BenchmarkScoreInput = {
   key: string;
@@ -95,22 +95,30 @@ function benchmarkScoreInput(
   imputed?: { value: number | null; confidence: number },
 ): BenchmarkScoreInput {
   const observedValue = benchmarkMetricValue(model, key);
+  const fusionEstimate = benchmarkFusionEstimate(model, key);
   const siblingEstimate = context.siblingQualityEstimates
     ?.get(siblingQualityKey(model, dimension))
     ?.get(key);
-  const scoreEstimate = observedValue == null && siblingEstimate != null;
+  const scoreEstimate =
+    observedValue == null && (fusionEstimate != null || siblingEstimate != null);
   return {
     key,
-    value: scoreEstimate
-      ? siblingEstimate
-      : normalizedQualityBenchmarkValue(
-          model,
-          key,
-          observedValue ?? imputed?.value ?? null,
-          dimension,
-          context,
-        ),
-    evidenceConfidence: observedValue != null ? 1 : imputed?.value == null ? 0 : imputed.confidence,
+    value:
+      fusionEstimate != null
+        ? normalizedQualityBenchmarkValue(model, key, fusionEstimate.value, dimension, context)
+        : scoreEstimate
+          ? (siblingEstimate ?? null)
+          : normalizedQualityBenchmarkValue(
+              model,
+              key,
+              observedValue ?? imputed?.value ?? null,
+              dimension,
+              context,
+            ),
+    evidenceConfidence:
+      observedValue != null
+        ? 1
+        : (fusionEstimate?.confidence ?? (imputed?.value == null ? 0 : imputed.confidence)),
     observed: observedValue != null,
     scoreEstimate,
     scoreExcluded: excludesVariantIndex(model, key),

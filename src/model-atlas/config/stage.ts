@@ -19,6 +19,7 @@ export type OpenRouterConfig = {
 export type BenchmarkAdmissionConfig = {
   minimumObservedWeight: number;
   minimumObservedPerDimension: number;
+  minimumObservedIndexes: number;
 };
 
 export type QualityCoverageThresholds = Record<
@@ -155,6 +156,7 @@ export const STAGE_CONFIG = {
     benchmarkAdmission: {
       minimumObservedWeight: MINIMUM_REPORTED_INDEX_BREADTH,
       minimumObservedPerDimension: 1,
+      minimumObservedIndexes: 2,
     },
   },
   snapshotPreservation: {
