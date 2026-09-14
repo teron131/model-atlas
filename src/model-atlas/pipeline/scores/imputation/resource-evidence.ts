@@ -6,6 +6,7 @@ import { canonicalModelKey, canonicalReasoningEffort } from "../../../identity/n
 import { positiveFiniteNumber } from "../../../math-utils";
 import type { ModelAtlasCandidate } from "../../model-types";
 import {
+  benchmarkFusionResourceEstimate,
   benchmarkTaskMetrics,
   directBenchmarkTokens,
   effectiveTaskSeconds,
@@ -71,9 +72,14 @@ export function directTaskResource(
 /** Look up a validated scoring-only task resource for a projected model variant. */
 export function imputedTaskResource(
   preparation: EffortResourceImputation,
-  model: Pick<ModelAtlasCandidate, "id" | "name" | "reasoning_effort">,
+  model: Pick<ModelAtlasCandidate, "id" | "name" | "reasoning_effort"> &
+    Partial<Pick<ModelAtlasCandidate, "scoring_sources" | "task_metrics" | "speed">>,
   key: string,
   kind: TaskResourceKind,
 ): ImputedTaskResource | null {
-  return preparation.byVariant.get(resourceVariantKey(model))?.get(key)?.[kind] ?? null;
+  return (
+    benchmarkFusionResourceEstimate(model, key, kind) ??
+    preparation.byVariant.get(resourceVariantKey(model))?.get(key)?.[kind] ??
+    null
+  );
 }

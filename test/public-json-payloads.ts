@@ -13,7 +13,7 @@ import {
 import { STAGE_CONFIG } from "../src/model-atlas/config";
 import {
   publicModelFromCandidate,
-  selectPublicModels,
+  selectReferenceModels,
 } from "../src/model-atlas/pipeline/selection/public-list";
 import type { ModelAtlasScoredCandidate } from "../src/model-atlas/stats/types";
 import { minimalModelAtlasModel, minimalModelAtlasPayload } from "./model-atlas-fixtures";
@@ -39,12 +39,13 @@ const internalCandidate = {
     value_score: 50,
   },
 } satisfies ModelAtlasScoredCandidate & { internal_probe: string };
-const [projectedPublicModel] = selectPublicModels(
+const [referenceModel] = selectReferenceModels(
   [internalCandidate],
   null,
   STAGE_CONFIG.final,
   STAGE_CONFIG.scoring,
 );
+const projectedPublicModel = publicModelFromCandidate(referenceModel!);
 assert.deepEqual(
   Object.keys(projectedPublicModel ?? {}).sort(),
   Object.keys(
@@ -61,6 +62,27 @@ assert.equal(
   "public selection should not expose scoring provenance",
 );
 
+// Route collapse must retain the winner's evidence even when a free route appears later.
+const freeRoute = {
+  ...internalCandidate,
+  id: `${internalCandidate.id}:free`,
+  scoring_sources: { regression_probe: { raw_score: 0.1 } },
+};
+for (const candidates of [
+  [internalCandidate, freeRoute],
+  [freeRoute, internalCandidate],
+]) {
+  const [selected] = selectReferenceModels(
+    candidates,
+    null,
+    STAGE_CONFIG.final,
+    STAGE_CONFIG.scoring,
+  );
+  assert.equal(selected?.id, internalCandidate.id);
+  assert.deepEqual(selected?.scoring_sources, internalCandidate.scoring_sources);
+  assert.equal("scoring_sources" in publicModelFromCandidate(selected!)!, false);
+}
+
 const sparseResourceCandidate: ModelAtlasScoredCandidate = {
   ...internalCandidate,
   id: "provider/sparse-resource-candidate",
@@ -75,7 +97,7 @@ const sparseResourceCandidate: ModelAtlasScoredCandidate = {
     value_score: null,
   },
 };
-const [sparseResourceModel] = selectPublicModels(
+const [sparseResourceModel] = selectReferenceModels(
   [sparseResourceCandidate],
   null,
   STAGE_CONFIG.final,
@@ -108,12 +130,12 @@ const lowScoreCandidate: ModelAtlasScoredCandidate = {
   },
 };
 assert.equal(
-  selectPublicModels([lowScoreCandidate], null, STAGE_CONFIG.final, STAGE_CONFIG.scoring).length,
+  selectReferenceModels([lowScoreCandidate], null, STAGE_CONFIG.final, STAGE_CONFIG.scoring).length,
   1,
   "low finite scores should remain public when evidence admission is handled separately",
 );
 
-const reasoningEffortModels = selectPublicModels(
+const reasoningEffortModels = selectReferenceModels(
   [
     {
       ...internalCandidate,

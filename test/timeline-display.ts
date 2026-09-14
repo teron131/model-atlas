@@ -1,10 +1,13 @@
 /** Protect frontier eligibility, representative selection and provider-qualified visibility without changing measured scores. */
 import assert from "node:assert/strict";
 
+import { modelsForVariantDisplay } from "../app/dashboard/shared/model-display";
+import { compactModelVariants } from "../app/leaderboard/model-variants";
 import { coverageFrontier } from "../app/timeline/frontier";
-import { timelineDisplayExclusion } from "../app/timeline/model-display";
 import { modelRepresentatives } from "../app/timeline/model-representatives";
+import { modelDisplayExclusion } from "../src/model-atlas/stats/model-visibility";
 import { historicalSourceModel } from "../src/model-atlas/timeline/index-sources";
+import { minimalModelAtlasModel } from "./model-atlas-fixtures";
 
 const old = { current: false, score: 30, coverage: 0.8, releaseDate: "2023-03-14" };
 const reference = { current: true, score: 100, coverage: 0.83, releaseDate: "2025-08-07" };
@@ -67,4 +70,26 @@ for (const [name, provider, excluded] of [
   ["GPT-5 Pro", "Another lab", null],
   ["GPT-5.5 (XHigh)", "OpenAI", null],
 ] as const)
-  assert.equal(timelineDisplayExclusion({ name, provider }), excluded);
+  assert.equal(modelDisplayExclusion({ name, provider }), excluded);
+
+const displayModels = [
+  ["GPT-5.5 Pro", "openai"],
+  ["Gemini 3 Deep Think", "google"],
+  ["Claude Mythos Preview", "anthropic"],
+  ["Gemini 3.1 Pro", "google"],
+  ["GPT-5.5", "openai"],
+].map(([name, provider], index) => ({
+  ...minimalModelAtlasModel({ id: `${provider}/model-${index}`, name: name! }),
+  provider: provider!,
+}));
+for (const visible of [
+  compactModelVariants(displayModels),
+  modelsForVariantDisplay(displayModels, false),
+  modelsForVariantDisplay(displayModels, true),
+]) {
+  assert.deepEqual(
+    visible.map((model) => model.name),
+    ["Gemini 3.1 Pro", "GPT-5.5"],
+  );
+}
+assert.equal(displayModels.length, 5, "display exclusions preserve the source population");

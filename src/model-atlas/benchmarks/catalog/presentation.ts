@@ -498,7 +498,7 @@ export const BENCHMARK_TOOLTIPS = {
     title: "Terminal-Bench 4.0",
     body: "Complete difficult software, infrastructure, data, and technical tasks in containerized terminals.",
     rows: [
-      ["Source", "Terminal-Bench 4.0"],
+      ["Sources", "Official + Artificial Analysis (50/50)"],
       ["Metric", "task accuracy"],
       ["Role", "terminal workflow execution"],
     ],
@@ -507,7 +507,7 @@ export const BENCHMARK_TOOLTIPS = {
     title: "Terminal-Bench-Science 0.1",
     body: "Solve scientific research tasks by building and verifying analytical artifacts in terminals.",
     rows: [
-      ["Source", "Terminal-Bench-Science 0.1"],
+      ["Sources", "Official + Vals (50/50)"],
       ["Metric", "resolution rate"],
       ["Role", "scientific problem solving"],
     ],
@@ -1022,9 +1022,9 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
       label: "TB4$",
       tooltip: {
         title: "Terminal-Bench 4.0 cost per trial ↓",
-        body: `Official total evaluation cost divided by ${BENCHMARK_RESOURCE_PROFILES.terminal_bench_4.taskRunCount} task trials.`,
+        body: "Equal-source mean cost per task attempt after normalizing official totals. Missing counterparts require validated resource estimates.",
         details: [
-          ["Source", "Terminal-Bench 4.0"],
+          ["Sources", "Official + Artificial Analysis (50/50)"],
           ["Metric", "cost per task trial"],
         ],
       },
@@ -1036,9 +1036,9 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
       label: "TB4 Tok",
       tooltip: {
         title: "Terminal-Bench 4.0 tokens per trial ↓",
-        body: `Official total token usage divided by ${BENCHMARK_RESOURCE_PROFILES.terminal_bench_4.taskRunCount} task trials.`,
+        body: "Equal-source mean tokens per task attempt. Estimates and missing resource measurements retain their own evidence status.",
         details: [
-          ["Source", "Terminal-Bench 4.0"],
+          ["Sources", "Official + Artificial Analysis (50/50)"],
           ["Metric", "tokens per task trial"],
         ],
       },
@@ -1052,9 +1052,9 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
       label: "TBS$",
       tooltip: {
         title: "Terminal-Bench-Science cost per trial ↓",
-        body: `Official total evaluation cost divided by the reported ${BENCHMARK_RESOURCE_PROFILES.terminal_bench_science.taskRunCount} task trials.`,
+        body: "Equal-source mean cost per task attempt from official normalized totals and Vals per-task costs.",
         details: [
-          ["Source", "Terminal-Bench-Science 0.1"],
+          ["Sources", "Official + Vals (50/50)"],
           ["Metric", "cost per task trial"],
         ],
       },
@@ -1066,9 +1066,9 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
       label: "TBS Tok",
       tooltip: {
         title: "Terminal-Bench-Science tokens per trial ↓",
-        body: `Official total token usage divided by the reported ${BENCHMARK_RESOURCE_PROFILES.terminal_bench_science.taskRunCount} task trials.`,
+        body: "Equal-source mean tokens per task attempt when both sources report them or a resource crosswalk validates the missing counterpart.",
         details: [
-          ["Source", "Terminal-Bench-Science 0.1"],
+          ["Sources", "Official + Vals (50/50)"],
           ["Metric", "tokens per task trial"],
         ],
       },

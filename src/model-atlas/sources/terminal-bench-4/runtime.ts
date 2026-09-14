@@ -100,6 +100,8 @@ export function readTerminalBench4RawCache(cache: CacheRowSource): {
         total_tokens: totalTokens,
         cost_per_task_usd: costPerTaskUsd,
         tokens_per_task: tokensPerTask,
+        seconds_per_task: asFiniteNumber(row.seconds_per_task),
+        output_tokens_per_task: asFiniteNumber(row.output_tokens_per_task),
       },
     ];
   });
@@ -117,7 +119,11 @@ async function terminalBench4Snapshot(
   const snapshot = await snapshotSourceRows({
     source: "terminal_bench_4",
     cached,
-    status,
+    status: cached?.rows.some(
+      (row) => row.seconds_per_task == null || row.output_tokens_per_task == null,
+    )
+      ? { ...status, cache_hit: false }
+      : status,
     options,
     previousMissingSince,
     nowEpochSeconds,
@@ -142,8 +148,8 @@ function insertTerminalBench4RawRows(db: DatabaseWriter, snapshots: SourceSnapsh
 		INSERT INTO terminal_bench_4_raw_rows (
 			row_index, fetched_at_epoch_seconds, url, revision, model, base_model,
 			reasoning_effort, harness, score, score_ci95_half_width, task_run_count,
-			total_cost_usd, total_tokens, cost_per_task_usd, tokens_per_task
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			total_cost_usd, total_tokens, cost_per_task_usd, tokens_per_task, seconds_per_task, output_tokens_per_task
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
   for (const [index, row] of snapshots.terminalBench4Rows.entries()) {
     statement.run(
@@ -162,6 +168,8 @@ function insertTerminalBench4RawRows(db: DatabaseWriter, snapshots: SourceSnapsh
       row.total_tokens,
       row.cost_per_task_usd,
       row.tokens_per_task,
+      row.seconds_per_task ?? null,
+      row.output_tokens_per_task ?? null,
     );
   }
 }

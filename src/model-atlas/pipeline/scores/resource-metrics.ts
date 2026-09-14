@@ -15,6 +15,7 @@ import type { ModelAtlasTaskMetricValues } from "../model-types";
 export type BenchmarkMetricModel = {
   benchmarks?: unknown;
   intelligence?: unknown;
+  scoring_sources?: unknown;
 };
 
 export type ResourceMetricModel = BenchmarkMetricModel & {
@@ -94,11 +95,11 @@ export type BenchmarkTokenMeasure = "input-output" | "tokens" | "output_tokens";
 
 /** Read one declared token measure directly, without borrowing an index's aggregate telemetry. */
 export function directBenchmarkTokens(
-  model: { task_metrics?: unknown },
+  model: ResourceMetricModel,
   key: string,
   measure: BenchmarkTokenMeasure,
 ): number | null {
-  const metrics = asRecord(asRecord(model.task_metrics)[key]);
+  const metrics = benchmarkTaskMetrics(model, key) ?? {};
   if (measure === "output_tokens") return positiveFiniteNumber(metrics.output_tokens);
   const input = asFiniteNumber(metrics.input_tokens);
   const output = asFiniteNumber(metrics.output_tokens);
@@ -108,6 +109,8 @@ export function directBenchmarkTokens(
 }
 
 export function benchmarkMetricValue(model: BenchmarkMetricModel, key: string): number | null {
+  if (asRecord(asRecord(asRecord(model.scoring_sources)[key]).metadata).fusion_estimated === true)
+    return null;
   const location = benchmarkValueLocation(key);
   if (location?.kind === "intelligence") {
     return (
@@ -124,6 +127,19 @@ export function benchmarkMetricValue(model: BenchmarkMetricModel, key: string): 
     );
   }
   return asFiniteNumber(asRecord(model.benchmarks)[key]) ?? null;
+}
+
+/** Read scoring-only fusion estimates without admitting them as measured normalization or training evidence. */
+export function benchmarkFusionEstimate(
+  model: BenchmarkMetricModel,
+  key: string,
+): { value: number; confidence: number } | null {
+  const source = asRecord(asRecord(model.scoring_sources)[key]);
+  const metadata = asRecord(source.metadata);
+  const value = asFiniteNumber(source.canonical_value);
+  return metadata.fusion_estimated === true && value != null
+    ? { value, confidence: asFiniteNumber(metadata.fusion_confidence) ?? 0 }
+    : null;
 }
 
 /** Use served throughput as the runtime proxy when a benchmark reports output tokens but not wall time. */
@@ -146,11 +162,17 @@ export function benchmarkTaskMetrics(
   key: string,
 ): ModelAtlasTaskMetricValues | null {
   const record = asRecord(asRecord(model.task_metrics)[key]);
-  const cost = asFiniteNumber(record.cost);
-  const seconds = asFiniteNumber(record.seconds);
-  const tokens = asFiniteNumber(record.tokens);
+  const metadata = asRecord(asRecord(asRecord(model.scoring_sources)[key]).metadata);
+  const cost = metadata.fusion_cost_estimated === true ? null : asFiniteNumber(record.cost);
+  const seconds =
+    metadata.fusion_seconds_per_task_estimated === true ? null : asFiniteNumber(record.seconds);
+  const tokens =
+    metadata.fusion_tokens_per_task_estimated === true ? null : asFiniteNumber(record.tokens);
   const inputTokens = asFiniteNumber(record.input_tokens);
-  const outputTokens = asFiniteNumber(record.output_tokens);
+  const outputTokens =
+    metadata.fusion_output_tokens_per_task_estimated === true
+      ? null
+      : asFiniteNumber(record.output_tokens);
   const metrics = {
     ...(cost == null ? {} : { cost }),
     ...(seconds == null ? {} : { seconds }),
@@ -159,4 +181,30 @@ export function benchmarkTaskMetrics(
     ...(outputTokens == null ? {} : { output_tokens: outputTokens }),
   };
   return Object.keys(metrics).length === 0 ? null : metrics;
+}
+
+/** Validated fusion resource estimates enter scoring with their own confidence, never the measured peer or donor population. */
+export function benchmarkFusionResourceEstimate(
+  model: ResourceMetricModel,
+  key: string,
+  kind: "cost" | "time" | "tokens" | "output_tokens",
+): { amount: number; confidence: number } | null {
+  const metadata = asRecord(asRecord(asRecord(model.scoring_sources)[key]).metadata);
+  const field =
+    kind === "time" ? "seconds_per_task" : kind === "cost" ? "cost" : `${kind}_per_task`;
+  const metrics = asRecord(asRecord(model.task_metrics)[key]);
+  if (metadata[`fusion_${field}_estimated`] === true) {
+    const amount = positiveFiniteNumber(metrics[kind === "time" ? "seconds" : kind]);
+    if (amount != null)
+      return { amount, confidence: asFiniteNumber(metadata[`fusion_${field}_confidence`]) ?? 0.5 };
+  }
+  if (kind === "time" && metadata.fusion_output_tokens_per_task_estimated === true) {
+    const amount = effectiveTaskSeconds(model, { output_tokens: metrics.output_tokens });
+    if (amount != null)
+      return {
+        amount,
+        confidence: asFiniteNumber(metadata.fusion_output_tokens_per_task_confidence) ?? 0.5,
+      };
+  }
+  return null;
 }

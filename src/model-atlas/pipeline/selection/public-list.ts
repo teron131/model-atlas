@@ -36,6 +36,7 @@ const STABLE_TOP_LEVEL_KEYS = new Set<string>([
   "latest_change",
   "component_scores",
   "scores",
+  "scoring_sources",
 ]);
 const REQUIRED_QUALITY_SCORE_KEYS = ["intelligence_score", "agentic_score"] as const;
 
@@ -150,11 +151,11 @@ function selectPruneSampleModels(
 }
 
 /** Null-heavy optional fields are pruned from recent public rows while stable contract fields remain fixed. */
-function pruneSparseFields(
-  models: ModelAtlasModel[],
+function pruneSparseFields<Model extends ModelAtlasModel>(
+  models: Model[],
   finalConfig: FinalStageConfig,
   scoringConfig: ScoringConfig,
-): ModelAtlasModel[] {
+): Model[] {
   if (models.length === 0) {
     return models;
   }
@@ -239,7 +240,7 @@ function pruneSparseFields(
       }
       nextModel[parentKey] = nextParentValue;
     }
-    return nextModel as ModelAtlasModel;
+    return nextModel as Model;
   });
 }
 
@@ -291,15 +292,16 @@ function normalizedModelsForId<Model extends ModelAtlasPublishedModel>(
     : normalizedModels.filter((model) => publicOpenRouterModelId(model.id) === normalizedId);
 }
 
-export function selectPublicModels(
+/** Select public-facing rows while retaining each winning route's provenance for final scoring and admission. */
+export function selectReferenceModels(
   scoredCandidates: ModelAtlasScoredCandidate[],
   id: string | null | undefined,
   finalConfig: FinalStageConfig,
   scoringConfig: ScoringConfig,
-): ModelAtlasModel[] {
+): (ModelAtlasModel & Pick<ModelAtlasScoredCandidate, "scoring_sources">)[] {
   const signalModels = scoredCandidates.flatMap((model) => {
     const publicModel = publicModelFromCandidate(model);
-    return publicModel == null ? [] : [publicModel];
+    return publicModel == null ? [] : [{ ...publicModel, scoring_sources: model.scoring_sources }];
   });
   const sortedModels = sortByIntelligenceScore(signalModels);
   const prunedModels = pruneSparseFields(sortedModels, finalConfig, scoringConfig);

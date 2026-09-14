@@ -137,6 +137,7 @@ const evidenceScoringConfig = {
 const benchmarkAdmissionConfig = {
   minimumObservedWeight: 2,
   minimumObservedPerDimension: 1,
+  minimumObservedIndexes: 0,
 } as const;
 const minimumEvidenceModel = {
   ...minimalModelAtlasModel({ id: "provider/model", name: "Model" }),
@@ -150,6 +151,7 @@ function admitsWeight(benchmarks: Record<string, number>, minimumObservedWeight:
   return hasRequiredBenchmarkEvidence({ intelligence: null, benchmarks }, STAGE_CONFIG.scoring, {
     minimumObservedWeight,
     minimumObservedPerDimension: 0,
+    minimumObservedIndexes: 0,
   });
 }
 assert.equal(admitsWeight({ aa_intelligence_index: 0 }, 10), true);
@@ -163,7 +165,7 @@ for (const count of [4, 7, 40]) {
         scoring_sources: { epoch_capabilities_index: { metadata: { benchmark_count: count } } },
       },
       STAGE_CONFIG.scoring,
-      { minimumObservedWeight: 7, minimumObservedPerDimension: 0 },
+      STAGE_CONFIG.final.benchmarkAdmission,
     ),
     count >= 7,
   );
@@ -210,9 +212,27 @@ assert.equal(
     STAGE_CONFIG.scoring,
     STAGE_CONFIG.final.benchmarkAdmission,
   ),
-  true,
-  "eight observed standalone tasks qualify without an aggregate, even at zero scores",
+  false,
+  "standalone breadth cannot replace the two observed aggregate indexes",
 );
+for (const [benchmarks, expected] of [
+  [{ surge_intelligence_index: 0 }, false],
+  [{ aa_intelligence_index: 0 }, true],
+  [{ epoch_capabilities_index: 100 }, false],
+  [{ surge_intelligence_index: 0, coding_index: 80, agentic_index: 80 }, false],
+  [{ surge_intelligence_index: 0, vals_index: 0 }, true],
+  [{ aa_intelligence_index: 0, cais_capabilities_index: 0 }, true],
+] as const) {
+  assert.equal(
+    hasRequiredBenchmarkEvidence(
+      { intelligence: null, benchmarks },
+      STAGE_CONFIG.scoring,
+      STAGE_CONFIG.final.benchmarkAdmission,
+    ),
+    expected,
+    "two indexes or one trusted index satisfy the index gate while breadth remains required",
+  );
+}
 assert.equal(
   hasRequiredBenchmarkEvidence(
     minimumEvidenceModel,
@@ -460,8 +480,8 @@ assert.deepEqual(
   selectOpenRouterModelRows(admissionSelection, STAGE_CONFIG.final, STAGE_CONFIG.scoring)
     .map((row) => row.id)
     .sort(),
-  [coveredOlderId, coveredRecentId, knownPreviewId, expiredPreviewId, unknownPreviewId].sort(),
-  "route fetching accepts represented coverage without requiring a current index or recent release",
+  [coveredOlderId, coveredRecentId, knownPreviewId, expiredPreviewId].sort(),
+  "route fetching requires two observed indexes regardless of release age",
 );
 assert.deepEqual(
   qualifiedModels.map((model) => [model.id, "preview" in model]).sort(),
@@ -470,9 +490,8 @@ assert.deepEqual(
     [coveredRecentId, false],
     [knownPreviewId, false],
     [expiredPreviewId, false],
-    [unknownPreviewId, false],
   ].sort(),
-  "represented coverage gives complete models ordinary ranks regardless of release age",
+  "two-index coverage gives complete models ordinary ranks regardless of release age",
 );
 assert.deepEqual(
   qualifiedModels.find((model) => model.id === coveredRecentId)?.scores,
@@ -512,13 +531,8 @@ assert.deepEqual(
     STAGE_CONFIG.final,
     STAGE_CONFIG.scoring,
   ).map((row) => row.id),
-  [
-    incompleteMetadataId,
-    "provider/benchmark-index",
-    "provider/missing-context",
-    "provider/no-index",
-  ],
-  "represented coverage supports incomplete metadata with or without AA",
+  [incompleteMetadataId, "provider/benchmark-index", "provider/missing-context"],
+  "two-index coverage supports incomplete metadata",
 );
 const metadataModels = await buildTestModels(
   {
@@ -551,12 +565,10 @@ assert.deepEqual(
     coveredRecentId,
     knownPreviewId,
     expiredPreviewId,
-    unknownPreviewId,
     incompleteMetadataId,
     "provider/old-metadata-preview",
-    "provider/no-index-metadata",
   ].sort(),
-  "incomplete metadata requires represented evidence, not index counts or release age",
+  "incomplete metadata still requires two observed indexes regardless of release age",
 );
 assert.ok(metadataModels.every((model) => !("preview" in model)));
 const incompleteMetadata = metadataModels.find((model) => model.id === incompleteMetadataId)!;
@@ -586,12 +598,12 @@ assert.notEqual(
   "metadata enrichment retains a single ranked model",
 );
 
-// A smallest known index qualifies at any age, with or without complete metadata.
+// A trusted AA index qualifies at any age, with or without complete metadata.
 const singleIndexRow = {
   ...completeMetadataRow,
   id: "provider/recent-single-index",
   intelligence: null,
-  benchmarks: { cais_capabilities_index: 0.7 },
+  benchmarks: { aa_intelligence_index: 0.7 },
   release_date: "2026-07-29",
 };
 const singleIndexRows = [
@@ -609,7 +621,7 @@ const singleIndexRows = [
   {
     ...singleIndexRow,
     id: "provider/low-quality-single-index",
-    benchmarks: { cais_capabilities_index: 0 },
+    benchmarks: { aa_intelligence_index: 0 },
   },
 ].map((row) => ({ ...row, name: row.id }));
 const singleIndexModels = await buildTestModels(
@@ -633,7 +645,7 @@ assert.deepEqual(
     ["provider/undated-single-index", false],
     ["provider/incomplete-single-index", false],
   ].sort(),
-  "one known index meets coverage; missing metadata does not create a separate admission path",
+  "one trusted observed index qualifies regardless of release age or metadata",
 );
 
 const fallbackRows = ["high", "max"].map((effort, index) => ({

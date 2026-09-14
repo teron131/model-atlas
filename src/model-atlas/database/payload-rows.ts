@@ -15,6 +15,10 @@ import { canonicalReasoningEffort } from "../identity/normalization";
 import { benchmarkRowsFromDb } from "../pipeline/benchmark-rows";
 import { publicModelFromCandidate } from "../pipeline/selection/public-list";
 import { asFiniteNumber, asRecord } from "../runtime";
+import { readAleBenchRawCache } from "../sources/ale-bench/runtime";
+import { artificialAnalysisBenchmarkResourceRawCacheFromRows } from "../sources/artificial-analysis/cache";
+import { fusedBenchmarkObservations } from "../sources/assembly/source-data";
+import { readTerminalBench4RawCache } from "../sources/terminal-bench-4/runtime";
 import { buildCurrentModelAtlasMetadata } from "../stats/payload/metadata";
 import type {
   ModelAtlasBenchmarkRankDriver,
@@ -65,6 +69,7 @@ function payloadRowGroup<Key extends string>(
 }
 
 const BENCHMARK_OBSERVATION_PAYLOAD_COLUMNS = [
+  "url",
   "model_id",
   "model",
   "base_model",
@@ -93,7 +98,6 @@ const STANDALONE_BENCHMARK_PAYLOAD_ROW_GROUPS = {
     { columns: ["model", "row_kind", "median_score", "mean_score"] },
   ),
   ale_bench: payloadRowGroup("aleBenchRows", SNAPSHOT_TABLES.ale_bench, "row_index", {
-    columns: ["base_model", "reasoning_effort", "num_self_refine", "performance_mean"],
     optional: true,
   }),
   blueprint_bench_2: payloadRowGroup(
@@ -115,19 +119,6 @@ const STANDALONE_BENCHMARK_PAYLOAD_ROW_GROUPS = {
     SNAPSHOT_TABLES.terminal_bench_4,
     "row_index",
     {
-      columns: [
-        "model",
-        "base_model",
-        "reasoning_effort",
-        "harness",
-        "score",
-        "score_ci95_half_width",
-        "task_run_count",
-        "total_cost_usd",
-        "total_tokens",
-        "cost_per_task_usd",
-        "tokens_per_task",
-      ],
       optional: true,
     },
   ),
@@ -171,6 +162,12 @@ const BENCHMARK_SOURCE_PAYLOAD_ROW_GROUPS = {
 } as const;
 
 export const PAYLOAD_ROW_GROUPS = [
+  payloadRowGroup(
+    "artificialAnalysisResourceRows",
+    SNAPSHOT_TABLES.artificial_analysis_benchmark_resources,
+    "row_index",
+    { optional: true },
+  ),
   payloadRowGroup("modelRows", SNAPSHOT_TABLES.models, "row_index"),
   payloadRowGroup(
     "modelBenchmarkRows",
@@ -506,13 +503,41 @@ function benchmarkObservations(rows: PayloadRows): BenchmarkObservationsByKey {
         ...(totalCostUsd == null ? {} : { total_cost_usd: totalCostUsd }),
         ...(totalTokens == null ? {} : { total_tokens: totalTokens }),
         observed_at: stringValue(row.observed_at),
-        ...(metadata?.observation_role == null && metadata?.benchmark_count == null
+        ...(metadata?.observation_role == null &&
+        metadata?.benchmark_count == null &&
+        benchmark !== "terminal_bench_science"
           ? {}
-          : { metadata }),
+          : { metadata: metadata ?? {} }),
       });
     }
     observations[benchmark] = benchmarkRows;
   }
+  const sourceRows = (key: string, raw: DbRow[]) =>
+    raw.map((row) => ({
+      benchmark_key: key,
+      source_url: stringValue(row.url) ?? "",
+      model_id: stringValue(row.model_id),
+      model: stringValue(row.model) ?? "",
+      base_model: stringValue(row.base_model) ?? "",
+      reasoning_effort: stringValue(row.reasoning_effort),
+      model_creator: stringValue(row.model_creator),
+      rank: asFiniteNumber(row.rank),
+      canonical_value: asFiniteNumber(row.canonical_value) ?? 0,
+      cost: asFiniteNumber(row.cost),
+      tokens_per_task: asFiniteNumber(row.tokens_per_task),
+      observed_at: stringValue(row.observed_at),
+      metadata: parseBenchmarkObservationMetadata(row.metadata_json) ?? {},
+    }));
+  const fused = fusedBenchmarkObservations({
+    terminalBench4Rows: readTerminalBench4RawCache(rows.terminalBench4Rows)?.rows ?? [],
+    artificialAnalysisBenchmarkResourceRows:
+      artificialAnalysisBenchmarkResourceRawCacheFromRows(rows.artificialAnalysisResourceRows)
+        ?.rows ?? [],
+    terminalBenchScienceRows: sourceRows("terminal_bench_science", rows.terminalBenchScienceRows),
+    aleBenchConfigurationRows: readAleBenchRawCache(rows.aleBenchRows)?.rows ?? [],
+    weirdMlRows: sourceRows("weirdml", rows.weirdMlRows),
+  });
+  Object.assign(observations, fused);
   return observations;
 }
 

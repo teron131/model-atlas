@@ -410,7 +410,9 @@ export function versionCandidateBenchmarkData(
       const observedAt = rowUnchanged
         ? (previousMetrics?.observed_at ?? options.baselineDate)
         : options.observedDate;
-      const observedCost = rawTaskMetricValue(metrics, "cost");
+      const sourceMetadata = asRecord(asRecord(asRecord(candidate.scoring_sources)[key]).metadata);
+      const observedCost =
+        sourceMetadata.fusion_cost_estimated === true ? null : rawTaskMetricValue(metrics, "cost");
       const costPriceRatio = rowUnchanged
         ? taskCostMultiplier(candidate.id, observedAt, options)
         : 1;

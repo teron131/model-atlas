@@ -523,6 +523,19 @@ const complexConstraints = surge.map((row) => ({
   benchmark_key: "complex_constraints",
   source_url: "https://surgehq.ai/benchmarks/complex-constraints",
 }));
+const weirdMlWithMirror = [
+  ...weirdMl,
+  ...weirdMl.map((row) => ({
+    ...row,
+    source_url: "https://epoch.ai/data/external_benchmarks/weirdml.csv",
+    metadata: {
+      ...row.metadata,
+      weirdml_origin: "epoch",
+      observation_role: "component",
+      identity_contract: "model-effort",
+    },
+  })),
+];
 const snapshots = {
   ...Object.fromEntries(
     BENCHMARK_OBSERVATION_BINDINGS.map((binding) => [binding.sourceRowsKey, []]),
@@ -539,7 +552,7 @@ const snapshots = {
   programBenchRows: program,
   proofBenchRows: proof,
   terminalBenchScienceRows: [],
-  weirdMlRows: weirdMl,
+  weirdMlRows: weirdMlWithMirror,
   fetchedAt: {
     ...Object.fromEntries(
       BENCHMARK_OBSERVATION_BINDINGS.map((binding) => [binding.sourceDataKey, null]),
@@ -570,7 +583,7 @@ const expectedBySourceDataKey = {
   hemingwayBench: { rows: hemingway, fetchedAt: 1_784_000_010 },
   programBench: { rows: program, fetchedAt: 1_784_000_011 },
   proofBench: { rows: proof, fetchedAt: 1_784_000_007 },
-  weirdMl: { rows: weirdMl, fetchedAt: 1_784_000_008 },
+  weirdMl: { rows: weirdMlWithMirror, fetchedAt: 1_784_000_008 },
 };
 insertBenchmarkRawRows(collector, snapshots, BENCHMARK_OBSERVATION_RAW_TABLE);
 for (const [sourceDataKey, expected] of Object.entries(expectedBySourceDataKey)) {

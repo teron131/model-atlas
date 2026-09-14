@@ -1,7 +1,11 @@
 /**
- * Scrapes complete Artificial Analysis score and resource rows from evaluation-page Flight data while owning effort identity, per-task conversion, retry, and all-page completeness policy.
+ * Artificial Analysis benchmark scores and per-task resource measurements from public evaluation pages.
+ *
  * Page source: https://artificialanalysis.ai/evaluations
  */
+
+import { createDecipheriv, createHash } from "node:crypto";
+import { gunzipSync } from "node:zlib";
 
 import { ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES as BENCHMARK_RESOURCE_PAGES } from "../../benchmarks/registry";
 import {
@@ -64,6 +68,7 @@ type ArtificialAnalysisBenchmarkResourcePage = {
   score_path?: JsonPath;
   resource_key: string;
   url: string;
+  full_model_coverage?: boolean;
   task_run_count: number;
 };
 
@@ -83,11 +88,11 @@ export type ArtificialAnalysisBenchmarkResourceRow = {
   reasoning_effort: string | null;
   score: number;
   task_run_count: number;
-  cost_per_task_usd: number;
-  seconds_per_task: number;
-  tokens_per_task: number;
-  input_tokens_per_task: number;
-  output_tokens_per_task: number;
+  cost_per_task_usd: number | null;
+  seconds_per_task: number | null;
+  tokens_per_task: number | null;
+  input_tokens_per_task: number | null;
+  output_tokens_per_task: number | null;
   answer_tokens_per_task: number | null;
   reasoning_tokens_per_task: number | null;
 };
@@ -109,6 +114,7 @@ export const ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES = BENCHMARK_RESOURCE_P
     ...(page.scorePath == null ? {} : { score_path: page.scorePath }),
     resource_key: page.resourceKey,
     url: page.url,
+    ...(page.fullModelCoverage ? { full_model_coverage: true } : {}),
     task_run_count: page.taskRunCount,
   }),
 );
@@ -270,17 +276,40 @@ async function getBenchmarkResourceRows(
   page: ArtificialAnalysisBenchmarkResourcePage,
   timeoutMs: number,
 ): Promise<ArtificialAnalysisBenchmarkResourceRow[]> {
-  return await fetchSource(page.url, {}, timeoutMs, async (response) => {
-    if (!response.ok) {
-      throw new Error(
-        `Artificial Analysis benchmark resource scrape failed for ${page.benchmark_key}: ${response.status}`,
-      );
-    }
-    return processArtificialAnalysisBenchmarkResourceRows(
-      extractRowsFromPageHtml(await response.text()),
-      page,
+  const html = await fetchSource(page.url, {}, timeoutMs, async (response) => {
+    if (!response.ok)
+      throw new Error(`Artificial Analysis evaluation page failed: ${response.status}`);
+    return response.text();
+  });
+  if (!page.full_model_coverage)
+    return processArtificialAnalysisBenchmarkResourceRows(extractRowsFromPageHtml(html), page);
+  const corpus = extractNextFlightCorpus(html);
+  const manifestMatch = corpus.match(/"manifest":(\{[^}]+\})/);
+  if (manifestMatch == null)
+    throw new Error(`Missing full-model manifest for ${page.benchmark_key}`);
+  const manifest = asRecord(JSON.parse(manifestMatch[1]!));
+  const path = stringValue(manifest.path);
+  if (path == null) throw new Error("Missing Artificial Analysis page-data path");
+  const dataUrl = new URL(path, page.url);
+  if (dataUrl.origin !== new URL(page.url).origin)
+    throw new Error("Unexpected Artificial Analysis page-data origin");
+  const data = await fetchSource(dataUrl, {}, timeoutMs, async (response) => {
+    if (!response.ok) throw new Error(`Artificial Analysis page data failed: ${response.status}`);
+    if (typeof manifest.key !== "string") return response.json();
+    const encrypted = Buffer.from(await response.arrayBuffer());
+    const key = Buffer.from(manifest.key, "hex");
+    const iv = createHash("sha256").update(key).digest().subarray(0, 12);
+    const decipher = createDecipheriv("aes-256-gcm", key, iv);
+    decipher.setAuthTag(encrypted.subarray(-16));
+    return JSON.parse(
+      gunzipSync(
+        Buffer.concat([decipher.update(encrypted.subarray(0, -16)), decipher.final()]),
+      ).toString(),
     );
   });
+  const models = asRecord(data).models;
+  if (!Array.isArray(models)) throw new Error("Missing Artificial Analysis page-data models");
+  return processArtificialAnalysisBenchmarkResourceRows(models, page);
 }
 
 function extractRowsFromPageHtml(pageHtml: string): Record<string, unknown>[] {
@@ -355,11 +384,12 @@ function resourceRow(
     providerId == null ||
     model == null ||
     score == null ||
-    resolvedCostPerTask == null ||
-    resolvedSecondsPerTask == null ||
-    inputTokensPerTask == null ||
-    effectiveOutputTokensPerTask == null ||
-    tokensPerTask == null
+    (!page.full_model_coverage &&
+      (resolvedCostPerTask == null ||
+        resolvedSecondsPerTask == null ||
+        inputTokensPerTask == null ||
+        effectiveOutputTokensPerTask == null ||
+        tokensPerTask == null))
   ) {
     return null;
   }
@@ -373,7 +403,7 @@ function resourceRow(
     reasoning_effort: reasoningEffort,
     score,
     task_run_count: page.task_run_count,
-    cost_per_task_usd: resolvedCostPerTask.total,
+    cost_per_task_usd: resolvedCostPerTask?.total ?? null,
     seconds_per_task: resolvedSecondsPerTask,
     tokens_per_task: tokensPerTask,
     input_tokens_per_task: inputTokensPerTask,

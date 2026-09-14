@@ -184,7 +184,7 @@ function resolveBenchmarkSource(
                   `Artificial Analysis resource page requires a resource profile for ${benchmarkKey}`,
                 );
               }
-              return { ...adapter, taskRunCount };
+              return { ...adapter, taskRunCount: adapter.taskRunCount ?? taskRunCount };
             }),
           }),
     })) as unknown as BenchmarkSourceFacet["inputs"],

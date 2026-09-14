@@ -17,6 +17,7 @@ import {
 } from "../../src/model-atlas/identity/normalization";
 import { benchmarkMetricValue } from "../../src/model-atlas/pipeline/scores/resource-metrics";
 import { strongestModelVariants } from "../../src/model-atlas/stats/model-variants";
+import { modelDisplayExclusion } from "../../src/model-atlas/stats/model-visibility";
 import type { ModelAtlasModel } from "../../src/model-atlas/stats/types";
 
 /** Collapse each model's variants while applying model-level benchmark observation policy. */
@@ -31,7 +32,16 @@ export function compactModelVariants(
       buildBenchmarkObservationLookup(benchmarkObservations[key] ?? []),
     ]),
   );
+  const collapsedLookups = new Map(
+    BENCHMARK_KEYS.map((key) => [
+      key,
+      buildBenchmarkObservationLookup(
+        (benchmarkObservations[key] ?? []).filter((row) => row.metadata?.fusion_collapsed === true),
+      ),
+    ]),
+  );
   for (const model of models) {
+    if (modelDisplayExclusion(model) != null) continue;
     const key = canonicalModelKey(model);
     const variants = variantsByModel.get(key) ?? [];
     variants.push(model);
@@ -49,6 +59,24 @@ export function compactModelVariants(
     let hasAddedBenchmarks = false;
 
     for (const key of BENCHMARK_KEYS) {
+      const fused = findBenchmarkObservations(modelNames, collapsedLookups.get(key)!)[0];
+      if (fused != null) {
+        benchmarks[key] = fused.canonical_value;
+        const metadata = fused.metadata!;
+        taskMetrics[key] = {
+          cost: typeof metadata.cost === "number" ? metadata.cost : null,
+          seconds: typeof metadata.seconds_per_task === "number" ? metadata.seconds_per_task : null,
+          tokens: typeof metadata.tokens_per_task === "number" ? metadata.tokens_per_task : null,
+          output_tokens:
+            typeof metadata.output_tokens_per_task === "number"
+              ? metadata.output_tokens_per_task
+              : null,
+          observed_at: fused.observed_at,
+        };
+        if (fused.observed_at != null) benchmarkDates[key] = fused.observed_at;
+        hasAddedBenchmarks = true;
+        continue;
+      }
       if (benchmarkMetricValue(representative, key) != null) {
         continue;
       }

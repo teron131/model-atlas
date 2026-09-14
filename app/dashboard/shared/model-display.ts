@@ -5,6 +5,7 @@ import {
   canonicalModelKey,
   reasoningEffortRank,
 } from "../../../src/model-atlas/identity/normalization";
+import { modelDisplayExclusion } from "../../../src/model-atlas/stats/model-visibility";
 import type { ModelAtlasPublishedModel } from "../../../src/model-atlas/stats/types";
 import { compactModelVariants } from "../../leaderboard/model-variants";
 import {
@@ -60,6 +61,7 @@ export function modelsForVariantDisplay(
 ): ModelAtlasPublishedModel[] {
   const variantsByIdentity = new Map<string, ModelAtlasPublishedModel>();
   for (const model of models) {
+    if (modelDisplayExclusion(model) != null) continue;
     const key = modelVariantKey(model);
     const existing = variantsByIdentity.get(key);
     if (existing == null || compareIntelligence(model, existing) < 0) {

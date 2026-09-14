@@ -1,14 +1,12 @@
 /**
- * ALE-Bench leaderboard results from Sakana AI.
+ * ALE-Bench leaderboard results from Sakana AI and Epoch AI.
  *
  * Page source: https://sakanaai.github.io/ALE-Bench-Leaderboard
  * JSON source: https://sakanaai.github.io/ALE-Bench-Leaderboard/data/results_summary.json
+ * CSV source: https://epoch.ai/data/external_benchmarks/ale_bench.csv
  */
 
-import {
-  buildAdditiveSourceCrosswalk,
-  type SourceCrosswalkDiagnostic,
-} from "../../benchmarks/source-crosswalk";
+import { fuseBenchmarkSources, type FusionObservation } from "../../benchmarks/source-fusion";
 import { benchmarkModelEffort, canonicalReasoningEffort } from "../../identity/normalization";
 import { asFiniteNumber, asRecord, nowEpochSeconds } from "../../runtime";
 import {
@@ -26,8 +24,6 @@ export const ALE_BENCH_LEADERBOARD_URL = "https://sakanaai.github.io/ALE-Bench-L
 const DEFAULT_TIMEOUT_MS = 30_000;
 
 const DEFAULT_SELF_REFINE_COUNT = 1;
-
-const MIN_CROSSWALK_MODELS = 3;
 
 const MAX_CROSSWALK_MEDIAN_ABSOLUTE_ERROR = 0.01;
 
@@ -87,17 +83,13 @@ export type AleBenchModelScoreRow = AleBenchConfigurationRow & {
 
 export type AleBenchRowsByModelName = Map<string, AleBenchModelScoreRow>;
 
-type AleBenchCrosswalkStatus = SourceCrosswalkDiagnostic & {
-  epochRowCount: number;
-  sakanaSourceDefaultRowCount: number;
-  missingFromEpoch: string[];
-};
+export type AleBenchSourceRow =
+  | AleBenchConfigurationRow
+  | { model: string; epoch: AleBenchEpochRow };
 
 type AleBenchPayload = {
   fetched_at_epoch_seconds: number | null;
-  data: AleBenchConfigurationRow[];
-  epoch_rows: AleBenchEpochRow[];
-  crosswalk: AleBenchCrosswalkStatus | null;
+  data: AleBenchSourceRow[];
 };
 
 type AleBenchScraperOptions = {
@@ -106,7 +98,7 @@ type AleBenchScraperOptions = {
   timeoutMs?: number;
 };
 
-/** Fetch Sakana observations and independently validate Epoch's overlapping rounded mirror. */
+/** Fetch both observation sources; absent mirror data must not discard a successful Sakana fetch. */
 export async function getAleBenchStats(
   options: AleBenchScraperOptions = {},
 ): Promise<AleBenchPayload> {
@@ -137,24 +129,16 @@ export async function getAleBenchStats(
       const epochCsv = await epochRequest;
       if (epochCsv != null) epochRows = processAleBenchEpochCsv(epochCsv);
     } catch {
-      // Epoch is validation-only and must not block the primary Sakana observation source.
-    }
-    const crosswalk = epochRows.length > 0 ? buildAleBenchCrosswalkStatus(data, epochRows) : null;
-    if (crosswalk != null && !crosswalk.imputationAllowed) {
-      throw new Error("ALE-Bench Epoch and Sakana score contracts diverged");
+      // Retain successful Sakana observations when the independent Epoch fetch is unavailable.
     }
     return {
       fetched_at_epoch_seconds: nowEpochSeconds(),
-      data,
-      epoch_rows: epochRows,
-      crosswalk,
+      data: [...data, ...epochRows.map((epoch) => ({ model: epoch.model, epoch }))],
     };
   } catch {
     return {
       fetched_at_epoch_seconds: null,
       data: [],
-      epoch_rows: [],
-      crosswalk: null,
     };
   }
 }
@@ -249,10 +233,13 @@ export function processAleBenchSakanaPayload(value: unknown): AleBenchConfigurat
 
 /** Select the no-feedback-loop row and expose its quality and mean per-task resource contract. */
 export function summarizeAleBenchSourceDefaultRows(
-  rows: readonly AleBenchConfigurationRow[],
+  rows: readonly AleBenchSourceRow[],
 ): AleBenchModelScoreRow[] {
   return rows
-    .filter((row) => row.num_self_refine === DEFAULT_SELF_REFINE_COUNT)
+    .filter(
+      (row): row is AleBenchConfigurationRow =>
+        !("epoch" in row) && row.num_self_refine === DEFAULT_SELF_REFINE_COUNT,
+    )
     .map((row) => {
       const effort = aleBenchModelEffort(row.model);
       return {
@@ -268,33 +255,51 @@ export function summarizeAleBenchSourceDefaultRows(
     });
 }
 
-/** Validate that Epoch's rounded mirror and Sakana's observed source-default rows share one numeric scale. */
-export function buildAleBenchCrosswalkStatus(
-  sakanaRows: readonly AleBenchConfigurationRow[],
-  epochRows: readonly AleBenchEpochRow[],
-): AleBenchCrosswalkStatus {
-  const sourceDefaultRows = summarizeAleBenchSourceDefaultRows(sakanaRows);
-  const epochByModel = new Map(epochRows.map((row) => [row.model, row]));
-  const items = sourceDefaultRows.map((row) => ({
-    id: row.model,
-    name: row.model,
-    sakanaPerformance: row.performance.all.mean,
-    epochPerformance: epochByModel.get(row.model)?.performance ?? null,
+/** Fuse Performance in its native units; no probability clamp or primary-source precedence applies. */
+export function fuseAleBenchRows(rows: readonly AleBenchSourceRow[]): FusionObservation[] {
+  const primary = summarizeAleBenchSourceDefaultRows(rows).map((row) => ({
+    benchmark_key: "ale_bench",
+    source_url: ALE_BENCH_LEADERBOARD_URL,
+    model_id: null,
+    model: row.model,
+    base_model: row.base_model,
+    reasoning_effort: row.reasoning_effort,
+    model_creator: null,
+    rank: null,
+    canonical_value: row.score,
+    cost: row.cost_per_task_usd,
+    tokens_per_task: row.tokens_per_task,
+    output_tokens_per_task: row.output_tokens_per_task,
+    observed_at: null,
+    metadata: {},
   }));
-  const crosswalk = buildAdditiveSourceCrosswalk(items, {
-    primaryValue: (item) => item.epochPerformance,
-    fallbackValue: (item) => item.sakanaPerformance,
-    minimumEffectiveModels: MIN_CROSSWALK_MODELS,
-    maximumMedianAbsoluteError: MAX_CROSSWALK_MEDIAN_ABSOLUTE_ERROR,
+  const mirror = rows.flatMap((source): FusionObservation[] => {
+    if (!("epoch" in source)) return [];
+    const row = source.epoch;
+    const effort = aleBenchModelEffort(row.model);
+    return [
+      {
+        benchmark_key: "ale_bench",
+        source_url: ALE_BENCH_EPOCH_RESULTS_URL,
+        model_id: null,
+        model: row.model,
+        base_model: effort.baseModel,
+        reasoning_effort: effort.reasoningEffort,
+        model_creator: null,
+        rank: null,
+        canonical_value: row.performance,
+        cost: row.cost,
+        tokens_per_task: row.total_tokens,
+        output_tokens_per_task: row.output_tokens,
+        observed_at: null,
+        metadata: {},
+      },
+    ];
   });
-  return {
-    ...crosswalk.diagnostic,
-    epochRowCount: epochRows.length,
-    sakanaSourceDefaultRowCount: sourceDefaultRows.length,
-    missingFromEpoch: sourceDefaultRows
-      .filter((row) => !epochByModel.has(row.model))
-      .map((row) => row.model),
-  };
+  return fuseBenchmarkSources(primary, mirror, {
+    maximumScoreError: MAX_CROSSWALK_MEDIAN_ABSOLUTE_ERROR,
+    normalizeScore: (score) => Math.max(0, score),
+  });
 }
 
 function splitStatistics(value: unknown): AleBenchSplitStatistics | null {

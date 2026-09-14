@@ -1029,6 +1029,7 @@ function modelStatsSourceData(
   }
 
   return {
+    fusedBenchmarks: {},
     artificialAnalysis: {
       rows: artificialAnalysisRows,
       bySlug: artificialAnalysisBySlug,
@@ -1055,6 +1056,7 @@ function modelStatsSourceData(
       rowsByModelName: new Map(),
     },
     aleBench: {
+      rows: [],
       sourceDefaultRows: [],
       rowsByModelName: new Map(),
     },
