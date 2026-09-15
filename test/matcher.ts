@@ -29,7 +29,6 @@ import {
 } from "../src/model-atlas/sources/artificial-analysis/benchmark-resources";
 import type { ModelAtlasSourceData } from "../src/model-atlas/sources/assembly";
 import { buildBlueprintBenchMap } from "../src/model-atlas/sources/blueprint-bench/leaderboard";
-import { buildCursorBenchMap } from "../src/model-atlas/sources/cursorbench/leaderboard";
 import { buildRiemannBenchMap } from "../src/model-atlas/sources/surge/riemann-bench";
 import { buildTerminalBench4Map } from "../src/model-atlas/sources/terminal-bench-4/leaderboard";
 import type { SourceSnapshots } from "../src/model-atlas/sources/types";
@@ -766,11 +765,6 @@ assert.equal(
   "Toolathlon scores should attach to the default variant",
 );
 assert.equal(
-  asBenchmarks(assignedFlashVariant).cursorbench,
-  0.58,
-  "CursorBench scores should attach through the benchmark lookup path",
-);
-assert.equal(
   asBenchmarks(assignedFlashVariant).blueprint_bench_2,
   0.36,
   "Blueprint-Bench 2 scores should attach through display-name matching",
@@ -923,19 +917,6 @@ function modelStatsSourceData(
       metadata: {},
     },
   ];
-  const cursorBenchModelScoreRows = [
-    {
-      rank: 1,
-      model: "Example 2.5 Flash",
-      base_model: "Example 2.5 Flash",
-      reasoning_effort: null,
-      score_eligible: true,
-      score: 0.58,
-      cost_per_task_usd: 1.25,
-      tokens_per_task: 12_000,
-      steps_per_task: 42,
-    },
-  ];
   const blueprintBenchModelScoreRows = [
     {
       model: "Example 2.5 Flash",
@@ -1078,10 +1059,6 @@ function modelStatsSourceData(
     chessPuzzles: { rows: [], rowsByModelName: new Map() },
     codeMigration: { rows: [], rowsByModelName: new Map() },
     complexConstraints: { rows: [], rowsByModelName: new Map() },
-    cursorBench: {
-      rows: cursorBenchModelScoreRows,
-      rowsByModelName: buildCursorBenchMap(cursorBenchModelScoreRows),
-    },
     cyberBench: { rows: [], rowsByModelName: new Map() },
     deepSWE: {
       rows: [],

@@ -112,11 +112,6 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
-  cursorbench: {
-    group: "frontier",
-    benchmarkImportance: 1,
-    dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
-  },
   cyberbench: {
     group: "baseline",
     benchmarkImportance: 1,
@@ -384,10 +379,6 @@ export const BENCHMARK_RESOURCE_POLICIES = {
   critpt: {
     ...ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
     qualityCoordinate: "logit",
-  },
-  cursorbench: {
-    ...BENCHMARK_PER_TASK_RESOURCE,
-    qualityCoordinate: "linear",
   },
   deep_swe: {
     ...BENCHMARK_OUTPUT_PER_TASK_RESOURCE,

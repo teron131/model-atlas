@@ -106,9 +106,6 @@ const STANDALONE_BENCHMARK_PAYLOAD_ROW_GROUPS = {
     "row_index",
     { columns: ["model", "score"] },
   ),
-  cursorbench: payloadRowGroup("cursorBenchRows", SNAPSHOT_TABLES.cursorbench, "row_index", {
-    columns: ["base_model", "reasoning_effort", "score"],
-  }),
   deep_swe: payloadRowGroup("deepSWERows", SNAPSHOT_TABLES.deep_swe, "pass_at_1 DESC, row_index"),
   frontier_code: payloadRowGroup("frontierCodeRows", SNAPSHOT_TABLES.frontier_code, "row_index", {
     columns: ["model", "base_model", "reasoning_effort", "score_eligible", "main_score"],

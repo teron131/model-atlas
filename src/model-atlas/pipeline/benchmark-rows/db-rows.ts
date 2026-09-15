@@ -12,7 +12,6 @@ import {
 } from "../../benchmarks/registry";
 import { asFiniteNumber } from "../../runtime";
 import { agentsLastExamBenchmarkScore } from "../../sources/agents-last-exam/leaderboard";
-import { cursorBenchCanonicalModelName } from "../../sources/cursorbench/leaderboard";
 import {
   asDeepSWERawLeaderboardRow,
   preferredDeepSWELeaderboardRows,
@@ -44,7 +43,6 @@ type BenchmarkDbRows = BenchmarkObservationDbRows & {
   agentsLastExamRows: readonly DbBenchmarkRow[];
   aleBenchRows: readonly DbBenchmarkRow[];
   blueprintBenchRows: readonly DbBenchmarkRow[];
-  cursorBenchRows: readonly DbBenchmarkRow[];
   deepSWERows: readonly DbBenchmarkRow[];
   frontierCodeRows: readonly DbBenchmarkRow[];
   riemannBenchRows: readonly DbBenchmarkRow[];
@@ -152,23 +150,6 @@ const STANDALONE_BENCHMARK_ADAPTERS = {
       key: "blueprint_bench_2",
       rows: rows.blueprintBenchRows,
       value: (row) => row.score,
-    }),
-  cursorbench: (rows) =>
-    rows.cursorBenchRows.flatMap((row) => {
-      const baseModel = stringValue(row.base_model);
-      if (baseModel == null) {
-        return [];
-      }
-      const canonicalName = cursorBenchCanonicalModelName(baseModel);
-      return [
-        {
-          key: "cursorbench",
-          identity: canonicalName,
-          label: canonicalName,
-          reasoningEffort: row.reasoning_effort,
-          value: row.score,
-        },
-      ];
     }),
   deep_swe: (rows) =>
     preferredDeepSWELeaderboardRows(

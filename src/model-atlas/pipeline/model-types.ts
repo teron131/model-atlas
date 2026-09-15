@@ -8,7 +8,6 @@ import type { AgentArenaModelScoreRow } from "../sources/agent-arena/leaderboard
 import type { AgentsLastExamModelScoreRow } from "../sources/agents-last-exam/leaderboard";
 import type { AleBenchModelScoreRow } from "../sources/ale-bench/leaderboard";
 import type { ArtificialAnalysisBenchmarkResourceRow } from "../sources/artificial-analysis/benchmark-resources";
-import type { CursorBenchModelScoreRow } from "../sources/cursorbench/leaderboard";
 import type { DeepSWEModelScoreRow } from "../sources/deep-swe/leaderboard";
 import type { FrontierCodeModelEffortRow } from "../sources/frontier-code/leaderboard";
 import type { TerminalBench4ModelAgentRow } from "../sources/terminal-bench-4/leaderboard";
@@ -98,7 +97,6 @@ type ScoringSourceRow =
   | AgentsLastExamModelScoreRow
   | AleBenchModelScoreRow
   | BenchmarkObservationRow
-  | CursorBenchModelScoreRow
   | DeepSWEModelScoreRow
   | FrontierCodeModelEffortRow
   | TerminalBench4ModelAgentRow
@@ -111,7 +109,6 @@ export type ModelAtlasScoringSources =
       analyst_agent?: ArtificialAnalysisBenchmarkResourceRow | null;
       apex_agents?: BenchmarkObservationRow | null;
       automation_bench?: BenchmarkObservationRow | null;
-      cursorbench?: CursorBenchModelScoreRow | null;
       deep_swe?: DeepSWEModelScoreRow | null;
       frontier_code?: FrontierCodeModelEffortRow | null;
       itbench_sre?: ArtificialAnalysisBenchmarkResourceRow | null;

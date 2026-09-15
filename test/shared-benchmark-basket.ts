@@ -194,7 +194,6 @@ const graphKeys = [
   "frontier_code",
   "automation_bench",
   "deep_swe",
-  "cursorbench",
   "arc_agi_3",
   "aa_intelligence_index",
   "epoch_capabilities_index",

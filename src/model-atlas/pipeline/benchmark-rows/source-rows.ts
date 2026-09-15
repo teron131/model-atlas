@@ -16,7 +16,6 @@ import { asFiniteNumber, asRecord } from "../../runtime";
 import { agentsLastExamBenchmarkScore } from "../../sources/agents-last-exam/leaderboard";
 import { aleBenchModelEffort } from "../../sources/ale-bench/leaderboard";
 import type { ModelAtlasSourceData } from "../../sources/assembly";
-import { cursorBenchCanonicalModelName } from "../../sources/cursorbench/leaderboard";
 
 export type BenchmarkSourceRow = {
   id: string | null;
@@ -235,16 +234,6 @@ const STANDALONE_BENCHMARK_ADAPTERS = {
       label: row.model,
       value: row.score,
     })),
-  cursorbench: (sourceData) =>
-    benchmarkRowDrafts("cursorbench", sourceData.cursorBench.rows, (row) => {
-      const canonicalName = cursorBenchCanonicalModelName(row.base_model);
-      return {
-        identity: canonicalName,
-        label: canonicalName,
-        reasoningEffort: row.reasoning_effort,
-        value: row.score,
-      };
-    }),
   deep_swe: (sourceData) =>
     benchmarkRowDrafts("deep_swe", sourceData.deepSWE.rows, (row) => ({
       id: row.model,

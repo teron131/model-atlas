@@ -45,7 +45,6 @@ Direct same-benchmark tokens also use these coordinates for the [Agentic token m
 | AutomationBench | Logit | Strict task completion is a bounded workflow-success rate. |
 | Briefcase | Linear | The 0-1 value is a linear normalization of Elo, not probability. |
 | CritPt | Logit | The score is a bounded correctness rate with meaningful remaining error. |
-| CursorBench | Linear | The published grading score is a composite rather than a completion probability. |
 | DeepSWE | Logit | Pass@1 is a bounded task-completion rate. |
 | FrontierCode | Linear | The versioned `new_score` is a grading composite. |
 | GDPval-AA v2 | Linear | The page Elo is normalized onto the benchmark's 0-1 scale before use as a professional-work grading composite. |
@@ -90,7 +89,6 @@ These tasks provide demanding evidence that separates current leading models. Ea
 | Code Migration | 1 | 25% | 75% | Porting, building, testing, and delivering working programs primarily measure coding execution. Reasoning about cross-language semantics and subtle behavioral equivalence retains a secondary Intelligence loading, and current results retain substantial headroom. Endpoint latency remains part of the delivery constraint. |
 | ComplexConstraints | 1 | 25% | 75% | The intended construct is fidelity to many interdependent, conditional, implicit, and multistep requirements, measured by all-criteria task pass. Tools are unnecessary for Agentic loading because complex instruction fidelity is itself the primary Agentic capability; planning quality is secondary. |
 | CritPt | 1 | 100% | 0% | Research-level physics reasoning with numeric, symbolic, and code-answer texture. It is narrow, but hard enough to be a useful specialist frontier stress test. |
-| CursorBench | 1 | 25% | 75% | Completing ambiguous, multi-file repository changes primarily measures coding execution, instruction fidelity, and verification. Architectural reasoning about interactions across the codebase retains a secondary Intelligence loading. |
 | DeepSWE | 1 | 25% | 75% | Repository-level implementation, testing, and delivery of a correct committed patch primarily measure Agentic ability. Difficult program analysis and algorithmic changes retain a secondary Intelligence loading. |
 | EBR-Bench | 1 | 25% | 75% | Repeated play measures exploration, learning from feedback, persistent notes, and stateful adaptation. Models remain far below expert human performance, and the task's distinct unsolved capability earns ordinary task-level importance. |
 | EMB | 1 | 75% | 25% | Correct financial-model construction and professional judgment dominate the score. Coordinating spreadsheet operations and multi-step requirements adds a secondary Agentic component. |
@@ -149,6 +147,8 @@ These tasks retain useful capability breadth or stability even when they do not 
 Watchlist benchmarks remain outside the scoring portfolio. Time Horizon Index is currently non-scoring because the available evidence does not yet provide the structured, comparable, uncertainty-aware leaderboard required by [the standards](standards.md).
 
 ## Rejected Benchmarks
+
+**CursorBench** is excluded from the active portfolio because its publisher-dependent frontier coverage omits GPT-6 Astra and does not provide a sufficiently complete comparison for this portfolio. Imputation does not replace that missing evaluation. Existing historical evidence is retained, but CursorBench no longer contributes scores, resources, or imputation.
 
 **Harvey LAB / HLAB** is excluded from scores and task resources in its current form. Its all-criteria task score turns any failed rubric item into a whole-task failure, amplifying rubric choices and LLM-judge disagreement into unstable model ordering. The legal tasks remain promising, and unexpected rankings were a reason to inspect the method rather than independent grounds for rejection. Reconsideration requires evidence on the current held-out evaluation showing stable per-judge rankings and human adjudication of borderline failures.
 
@@ -233,8 +233,6 @@ FrontierMath Erdős accepts only the fixed Epoch task `FrontierMath-Erdos`: one 
 **Blueprint-Bench 2** uses normalized connectivity similarity; Andon's internal identifiers are not model-matching inputs.
 
 **AutomationBench** uses Zapier's official `task_completed_correctly` rate, which requires every final-state assertion for a task to pass. Partial credit remains diagnostic only. Model-effort rows remain distinct, combined fallback systems are excluded from standalone assignment, and only the official row's comparable per-task cost can affect Value.
-
-**CursorBench** retains every eligible explicitly reported effort. The source-default or highest labelled effort remains one complete default observation; exact variants receive their own quality and resource measurements. Grok 4.5 remains raw but non-scoring because Cursor discloses possible benchmark-snapshot training overlap; private Composer models are excluded because they are not independently available. Eligible per-task cost and tokens can affect Value and Speed.
 
 **DeepSWE** uses pass@1 at each explicitly reported reasoning effort, attaching quality and resources from the same observation. The highest labelled effort remains the source default, but does not replace other reported efforts or fill an unreported effort. Mean duration and cost can affect Speed and Value; mean output tokens can supply the task-time fallback and the quality-adjusted Agentic token modifier.
 
