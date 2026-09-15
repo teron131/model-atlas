@@ -4,18 +4,18 @@ import { createHash } from "node:crypto";
 import { excludesVariantIndex } from "../benchmarks/index-policy";
 import { stableJson } from "../runtime";
 import { informativeBenchmark } from "./benchmark-evidence";
-import { validateTimelineParameters } from "./calibration";
 import { historicalReleaseId } from "./dataset";
 import { extendTimelineGraph, fitTimelineLink, timelineNativeValue } from "./linking";
 import { resolveHistoricalModelIdentities } from "./model-identity";
-import type {
-  HistoricalDataset,
-  HistoricalObservation,
-  TimelineDimension,
-  TimelineLink,
-  TimelineParameters,
-  TimelineScale,
-} from "./types";
+import {
+  type HistoricalDataset,
+  type HistoricalObservation,
+  type TimelineDimension,
+  type TimelineLink,
+  type TimelineParameters,
+  type TimelineScale,
+  validateTimelineParameters,
+} from "./schemas";
 
 // Reference evidence support is an admission rule for fitting, not a probability or a multiplier on capability.
 const MINIMUM_REFERENCE_CONFIDENCE = 0.6;
@@ -52,7 +52,7 @@ export function prepareTimelineRelease(
       (existing.key !== definition.key ||
         existing.scale !== definition.scale ||
         existing.normalization !== definition.normalization ||
-        stableJson(existing.weights) !== stableJson(definition.weights))
+        existing.kind !== definition.kind)
     )
       throw new Error(
         `Benchmark ${definition.id} changed its measurement definition; give the changed edition a distinct identity.`,
@@ -75,6 +75,11 @@ export function prepareTimelineRelease(
       throw new Error(
         `Conflicting retained observation for ${observation.modelId} on ${observation.benchmarkId}.`,
       );
+    if (existing) {
+      const { observedAt: _oldCapture, ...retained } = existing;
+      const { observedAt: _newCapture, ...reported } = observation;
+      if (stableJson(retained) === stableJson(reported)) continue;
+    }
     observations.set(key, observation);
   }
   for (const root of roots)
@@ -98,6 +103,20 @@ export function prepareTimelineRelease(
   delete data.prepared;
   delete data.scale;
   data.releaseId = historicalReleaseId(data);
+  // A repeated source capture does not change evidence or earn another graph fit.
+  if (
+    previous &&
+    data.releaseId ===
+      historicalReleaseId({
+        ...data,
+        models: previous.models,
+        benchmarks: previous.benchmarks,
+        observations: previous.observations,
+      })
+  ) {
+    data.scale = previous;
+    return data;
+  }
   const byBenchmark = new Map<string, Map<string, number>>();
   const modelEfforts = new Map(data.models.map((model) => [model.id, model.effort]));
   for (const observation of data.observations) {

@@ -9,10 +9,12 @@ import {
   historicalDatasetFromReleases,
   historicalReleaseId,
 } from "../src/model-atlas/timeline/dataset";
-import { historicalSourceModel } from "../src/model-atlas/timeline/index-sources";
-import { resolveHistoricalModelIdentities } from "../src/model-atlas/timeline/model-identity";
+import {
+  historicalSourceModel,
+  resolveHistoricalModelIdentities,
+} from "../src/model-atlas/timeline/model-identity";
 import { prepareTimelineRelease } from "../src/model-atlas/timeline/scale";
-import type { HistoricalSourceRelease } from "../src/model-atlas/timeline/types";
+import type { HistoricalSourceRelease } from "../src/model-atlas/timeline/schemas";
 
 const model = (name: string, effort: string | null = null) =>
   historicalSourceModel(name, "Anthropic", effort, null);

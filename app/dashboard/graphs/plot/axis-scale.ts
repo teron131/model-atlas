@@ -59,6 +59,8 @@ export function linearAxisScale(values: number[], options: LinearAxisOptions = {
 }
 
 export function scoreAxisScale(values: number[], options: ScoreAxisOptions = {}): AxisScale {
+  if (values.some((value) => Number.isFinite(value) && (value < 0 || value > 100)))
+    return linearAxisScale(values, options);
   return steppedLinearAxisScale(values, {
     fallbackDomain: SCORE_AXIS_DOMAIN,
     max: SCORE_AXIS_DOMAIN[1],

@@ -27,7 +27,7 @@ Observed results first establish the shared normalization scales. Supported toke
 
 ## Shared Scales and Evidence
 
-The main leaderboard compares models against the current benchmark population, so its relative scores can change as that population changes. The separate [Timeline scale](timeline.md) saves an initial reference and connects older and newer benchmarks to it through shared model results. That fixed reference supports comparisons across generations; it does not replace the main scoring rules described here.
+The main leaderboard compares models against the current benchmark population, so its relative scores can change as that population changes. The separate [Intelligence Index](timeline.md), currently shown on the Timeline chart, saves an initial reference and connects older and newer benchmarks to it through shared model results. That fixed reference supports comparisons across generations. Its display units remain provisional, and it does not feed the relative scores, resource comparisons, or admission rules described here.
 
 A score of 80 describes a position on Model Atlas's current scale; it does not mean 80% task accuracy or twice the capability of a model scoring 40. Each benchmark is normalized within its own observed population before it contributes to a capability score. Source conversions can use native units or a 0-1 scale, and resource comparisons use logarithms of positive amounts.
 
@@ -346,7 +346,7 @@ An aggregate index summarizes tests whose individual results may be unavailable.
 
 For effort-labelled variants, only indexes with directly reported effort coverage enter the blend, currently Artificial Analysis and CAIS. This prevents an index for an unspecified effort from setting the score of a specific effort. Unlabelled models retain the ordinary index pool. Other observed indexes remain visible and available for separate admission checks. Each variant and quality dimension counts its own observed tasks with positive dimension weight; estimates, sibling results, and aggregate indexes do not advance that count.
 
-The full-task threshold follows the median represented index breadth, currently 7.5. This blend uses the direct task count, independently of weighted evidence mass and admission requirements. Unlike Timeline's effective count, it is not capped by portfolio coverage. ECI's fitted benchmark count sets its relative index weight; fixed-portfolio indexes use their declared breadth. Directly observed CAIS components reduce only CAIS's remaining breadth to limit double counting.
+The full-task threshold follows the median represented index breadth, currently 7.5. This blend uses the direct task count, independently of weighted evidence mass and admission requirements. Unlike the Intelligence Index's effective count, it is not capped by portfolio coverage. ECI's fitted benchmark count sets its relative index weight; fixed-portfolio indexes use their declared breadth. Directly observed CAIS components reduce only CAIS's remaining breadth to limit double counting.
 
 For direct task count $n$ and configured threshold $N$ (currently 7.5), the progress $p$ and task share $t$ are:
 
@@ -673,7 +673,7 @@ Calculating a score does not establish that a model has enough evidence for publ
 - A qualified model identity, a name, and confirmed text output.
 - Observed represented benchmark weight reaching the minimum known benchmark breadth across the selected indexes, excluding ECI's minimum publication count, including at least one observed selected input in each of Intelligence and Agentic.
 - At least two distinct observed selected aggregate indexes, or one observed Artificial Analysis Intelligence Index or Epoch Capabilities Index, in addition to the breadth and dimension checks.
-- Finite Intelligence and Agentic scores of at least 10 each.
+- Finite relative Intelligence and Agentic scores strictly greater than 10 each.
 
 Standalone benchmarks contribute their configured importance once across both dimensions. An observed aggregate contributes its represented benchmark breadth, without the half-importance discount used for its quality-scoring influence. Known components form a union across indexes and standalone observations: each contributes the maximum of its standalone importance and the one unit represented within an observed index. The remaining unnamed breadth of each index is added separately. This makes the count independent of index order and prevents observing a half-importance component from reducing previously established coverage.
 
@@ -683,7 +683,7 @@ Opaque index breadth remains an estimate. ECI uses the distinct fitted benchmark
 
 The breadth threshold uses the smallest known breadth among AA, CAIS, Surge, and Vals; admission additionally requires two distinct observed selected aggregate indexes, with a trusted-source exception allowing one Artificial Analysis Intelligence Index or Epoch Capabilities Index. ECI's publication minimum is excluded because it describes the minimum needed for that publisher to report a score, rather than a fixed index basket. An ECI based on four benchmarks does not independently meet the seven-benchmark admission threshold; a sufficiently supported ECI or standalone evidence can meet the breadth check, but cannot replace the index requirement. The trusted-source exception waives only the index count, never the breadth, dimension, or quality checks. AA, CAIS, ECI, Surge, and Vals are the eligible indexes; AA's secondary indexes and estimates do not count. No particular index, release age, or prior publication is required. The separate scoring regularization and task/index blend continue to use the median breadth.
 
-The default leaderboard follows Timeline's display policy: OpenAI Pro configurations, Gemini Deep Think, and Claude Mythos are hidden because of their specialized resourcing, operating policies, or assets. Ordinary Gemini Pro and other high-reasoning configurations remain eligible. This display filter leaves source evidence, scores, and the scoring reference population unchanged.
+The default leaderboard follows the Timeline chart's display policy: OpenAI Pro configurations, Gemini Deep Think, and Claude Mythos are hidden because of their specialized resourcing, operating policies, or assets. Ordinary Gemini Pro and other high-reasoning configurations remain eligible. This display filter leaves source evidence, scores, and the scoring reference population unchanged.
 
 All displayed admitted models receive numeric ranks in compact views, even when release date, prices, limits, or serving measurements are unknown. Missing specifications remain null and do not create a separate admission or scoring path. Speed and Value remain independently subject to their observed-resource requirements.
 
@@ -713,7 +713,7 @@ These parameters encode robustness choices and usage priorities. They are explic
 | Parameter | Value | Why it exists |
 | --- | ---: | --- |
 | Public represented benchmark weight | Minimum known index breadth, excluding Epoch | Allows sufficient standalone or aggregate evidence to qualify, deducting known overlap without requiring a particular publisher. |
-| Public Intelligence and Agentic floor | 10 each | Excludes models whose quality scores are too low to be decision-relevant even when resource scores are high. |
+| Public relative Intelligence and Agentic floor | Greater than 10 each | Excludes models whose quality scores are too low to be decision-relevant even when resource scores are high. |
 | Quality regularization floor / full point | 10% / 100% of aggregate-index median evidence breadth | Suppresses high scores built from isolated evidence without making the penalty grow whenever the selected portfolio expands. |
 | Context benchmarks required | 3 | Prevents one or two correlated observations from defining an imputation context. |
 | Contextual held-out validation models | 4 | Requires independent evidence beyond the minimum calibration set. |

@@ -5,18 +5,134 @@ import type { DatabaseSync } from "node:sqlite";
 import { INDEX_SCORING_WEIGHT } from "../benchmarks/index-policy";
 import type { BenchmarkObservationRow } from "../benchmarks/observation";
 import { prepareArchiveAppend } from "../database/archive";
-import { benchmarkModelEffort, canonicalModelKey } from "../identity/normalization";
 import { type JsonObject, stableJson } from "../runtime";
 import { getArtificialAnalysisLeaderboardRawStats } from "../sources/artificial-analysis/leaderboard";
 import { parseArtificialAnalysisReasoningEffort } from "../sources/artificial-analysis/model-labels";
 import { getEpochCapabilitiesIndexStats } from "../sources/epoch/capabilities-index";
 import { fetchSource } from "../sources/request-scheduler";
-import { AA_METHODOLOGY_URL, artificialAnalysisPortfolios } from "./index-portfolios";
-import { historicalReleaseName, validHistoricalReleaseDate } from "./model-identity";
-import type { HistoricalModel, HistoricalObservation, HistoricalSourceRelease } from "./types";
+import {
+  historicalReleaseName,
+  historicalSourceModel,
+  validHistoricalReleaseDate,
+} from "./model-identity";
+import type {
+  HistoricalModel,
+  HistoricalObservation,
+  HistoricalPortfolio,
+  HistoricalSourceRelease,
+} from "./schemas";
 
 const AA_URL = "https://artificialanalysis.ai/leaderboards/models";
 const ECI_URL = "https://epoch.ai/data/eci_scores.csv";
+
+export const AA_METHODOLOGY_URL =
+  "https://artificialanalysis.ai/methodology/intelligence-benchmarking";
+
+const AA_PORTFOLIOS = [
+  {
+    id: "2.0",
+    labels: [
+      "MMLU-Pro",
+      "GPQA Diamond",
+      "HLE",
+      "MATH-500",
+      "AIME 2024",
+      "SciCode",
+      "LiveCodeBench",
+    ],
+  },
+  {
+    id: "2.1",
+    labels: ["MMLU-Pro", "GPQA Diamond", "HLE", "AIME 2025", "SciCode", "LiveCodeBench", "IFBench"],
+  },
+  {
+    id: "2.2",
+    labels: [
+      "MMLU-Pro",
+      "GPQA Diamond",
+      "HLE",
+      "AIME 2025",
+      "SciCode",
+      "LiveCodeBench",
+      "IFBench",
+      "AA-LCR",
+    ],
+  },
+  {
+    id: "3.0",
+    labels: [
+      "MMLU-Pro",
+      "GPQA Diamond",
+      "HLE",
+      "AIME 2025",
+      "SciCode",
+      "LiveCodeBench",
+      "IFBench",
+      "AA-LCR",
+      "Terminal-Bench Hard",
+      "τ²-Telecom",
+    ],
+  },
+  {
+    id: "4.0",
+    labels: [
+      "GPQA Diamond",
+      "HLE",
+      "SciCode",
+      "IFBench",
+      "AA-LCR",
+      "Terminal-Bench Hard",
+      "τ²-Telecom",
+      "GDPval-AA",
+      "AA-Omniscience",
+      "CritPt",
+    ],
+  },
+  {
+    id: "4.1",
+    labels: [
+      "GPQA Diamond",
+      "HLE",
+      "SciCode",
+      "AA-LCR",
+      "Terminal-Bench 2.1",
+      "τ³-Banking",
+      "GDPval-AA v2",
+      "AA-Omniscience",
+      "CritPt",
+    ],
+  },
+  {
+    id: "4.2",
+    labels: [
+      "HLE",
+      "SciCode",
+      "AA-LCR v1.1",
+      "Terminal-Bench 2.1",
+      "τ³-Banking",
+      "GDPval-AA v2",
+      "AA-Omniscience",
+      "CritPt",
+      "AA-Briefcase",
+      "GDP.pdf",
+    ],
+  },
+  {
+    id: "4.3",
+    labels: [
+      "HLE",
+      "SciCode",
+      "AA-LCR v1.1",
+      "Terminal-Bench 4.0",
+      "AutomationBench-AA",
+      "GDPval-AA v2",
+      "AA-Omniscience",
+      "CritPt",
+      "AA-Briefcase",
+      "GDP.pdf",
+    ],
+  },
+];
 
 /** Fetch index values and membership metadata before committing immutable source releases; no component leaderboard bundle is downloaded. */
 export async function refreshHistoricalIndexSources(db: DatabaseSync): Promise<void> {
@@ -73,7 +189,7 @@ export function parseEpochTimeline(
   capturedAt: string,
 ): HistoricalSourceRelease {
   const sha256 = digest(stableJson(rows));
-  const id = `epoch:index:${sha256.slice(0, 16)}`;
+  const id = "epoch:index:eci";
   const models = new Map<string, HistoricalModel>();
   const observations: HistoricalObservation[] = [];
   for (const row of rows) {
@@ -195,34 +311,15 @@ export function parseArtificialAnalysisTimeline(
   };
 }
 
-export function historicalSourceModel(
-  name: string,
-  provider: string,
-  effort: string | null,
-  date: unknown,
-): HistoricalModel {
-  const parsed = benchmarkModelEffort(
-    name.replace(/\s*\((?:Non-reasoning|Reasoning)\)\s*/gi, " ").trim(),
-  );
-  const family = canonicalModelKey({ name: parsed.baseModel });
-  const resolved = effort ?? parsed.reasoningEffort;
-  return {
-    id: `${family}::${resolved ?? "unknown"}`,
-    family,
-    name: parsed.baseModel,
-    provider,
-    effort: resolved,
-    releaseDate: dateOrNull(date),
-    current: false,
-  };
-}
-
-function dateOrNull(value: unknown): string | null {
-  return typeof value === "string" &&
-    /^\d{4}-\d{2}-\d{2}/.test(value) &&
-    Number.isFinite(Date.parse(value))
-    ? value.slice(0, 10)
-    : null;
+/** Retain every named constituent even when its underlying measurements are unavailable. */
+export function artificialAnalysisPortfolios(): HistoricalPortfolio[] {
+  return AA_PORTFOLIOS.map(({ id, labels }) => ({
+    id: `aa:${id}`,
+    label: `Artificial Analysis v${id}`,
+    source: AA_METHODOLOGY_URL,
+    components: labels.map((label) => ({ label, benchmarkId: null })),
+    note: "Published index membership for benchmark-count and overlap checks; component measurements are not imported or reconstructed.",
+  }));
 }
 
 function numberOrNull(value: unknown): number | null {

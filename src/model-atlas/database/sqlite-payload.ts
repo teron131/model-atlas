@@ -4,6 +4,7 @@ import { DatabaseSync } from "node:sqlite";
 
 import { asRecord } from "../runtime";
 import type { ModelAtlasPayload } from "../stats/types";
+import { readCapabilityState } from "./capability-state";
 import {
   buildPayloadFromRows,
   buildPayloadRows,
@@ -35,6 +36,7 @@ function readPayloadRowGroup(
 export function readDatabasePayload(databasePath = DEFAULT_DATABASE_PATH): ModelAtlasPayload {
   const db = new DatabaseSync(databasePath, { readOnly: true });
   let rows: ReturnType<typeof buildPayloadRows>;
+  let timeline: ModelAtlasPayload["timeline"];
   try {
     db.exec("BEGIN");
     const fetchedAt = payloadFetchedAtFromRow(db.prepare(SNAPSHOT_METADATA_SQL).get());
@@ -42,9 +44,10 @@ export function readDatabasePayload(databasePath = DEFAULT_DATABASE_PATH): Model
       fetchedAt,
       PAYLOAD_ROW_GROUPS.map((rowGroup) => [rowGroup.key, readPayloadRowGroup(db, rowGroup)]),
     );
+    timeline = readCapabilityState(db)?.dataset;
     db.exec("COMMIT");
   } finally {
     db.close();
   }
-  return buildPayloadFromRows(rows);
+  return { ...buildPayloadFromRows(rows), ...(timeline ? { timeline } : {}) };
 }

@@ -5,7 +5,7 @@ import type {
   HistoricalCalibration,
   HistoricalDataset,
   HistoricalModel,
-} from "../../src/model-atlas/timeline/types";
+} from "../../src/model-atlas/timeline/schemas";
 
 type Candidate = HistoricalModel & {
   representativeScore: number | null;

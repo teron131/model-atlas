@@ -9,17 +9,18 @@ import { informativeBenchmark } from "./benchmark-evidence";
 import { MINIMUM_TIMELINE_TASKS } from "./coverage";
 import { timelineInformation, timelineNativeValue } from "./linking";
 import { historicalVersionSeries } from "./model-identity";
-import type {
-  HistoricalBenchmark,
-  HistoricalCalibration,
-  HistoricalDataset,
-  HistoricalEstimate,
-  HistoricalModel,
-  TimelineAnchors,
-  TimelineBenchmarkCalibration,
-  TimelineDimension,
-  TimelineParameters,
-} from "./types";
+import {
+  type HistoricalBenchmark,
+  type HistoricalCalibration,
+  type HistoricalDataset,
+  type HistoricalEstimate,
+  type HistoricalModel,
+  type TimelineAnchors,
+  type TimelineBenchmarkCalibration,
+  type TimelineDimension,
+  type TimelineParameters,
+  validateTimelineParameters,
+} from "./schemas";
 
 export const DEFAULT_TIMELINE_PARAMETERS: TimelineParameters = {
   saturationLow: 2,
@@ -72,7 +73,12 @@ export function calibrateTimeline(
     throw new Error("Prepare the permanent Timeline calibration before projecting scores.");
   const root = scale.rootBenchmarkIds[dimension];
   const graph = scale.dimensions[dimension];
-  const definitions = new Map(data.benchmarks.map((b) => [b.id, b]));
+  const active = data.activeBenchmarkIds ? new Set(data.activeBenchmarkIds) : null;
+  const definitions = new Map(
+    data.benchmarks
+      .filter((b) => !active || active.has(b.id) || b.id === root)
+      .map((b) => [b.id, b]),
+  );
   const nodes = new Map(
     graph.nodes
       .filter((node) =>
@@ -385,27 +391,6 @@ export function timelineTransferError(
   };
 }
 
-/** Validate the fit exclusion and query clipping interval together with minimum link-validation requirements. */
-export function validateTimelineParameters(parameters: TimelineParameters): void {
-  if (
-    !(
-      parameters.saturationLow >= 0 &&
-      parameters.saturationLow < parameters.saturationHigh &&
-      parameters.saturationHigh <= 100
-    )
-  )
-    throw new Error("Use a saturation interval within 0–100%.");
-  if (
-    !Number.isInteger(parameters.minModels) ||
-    parameters.minModels < 4 ||
-    !Number.isFinite(parameters.maxError) ||
-    parameters.maxError <= 0 ||
-    parameters.maxError > MAX_NORMALIZED_IMPUTATION_ERROR
-  )
-    throw new Error(
-      "Use at least four validation models and a normalized error threshold above zero and at most 25 points.",
-    );
-}
 /** Re-express the permanent coordinate using frozen reference scores or an explicitly saved historical estimate; neither trains benchmark links. */
 export function anchorTimeline(
   calibration: HistoricalCalibration,

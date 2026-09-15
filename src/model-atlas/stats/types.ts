@@ -107,6 +107,7 @@ export type ModelAtlasPayload = {
   metadata: ModelAtlasMetadata;
   models: PipelinePublishedModel[];
   benchmark_observations?: BenchmarkObservationsByKey;
+  timeline?: import("../timeline/schemas").HistoricalDataset;
 };
 
 export type ModelAtlasOptions = {

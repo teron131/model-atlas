@@ -1,4 +1,4 @@
-/** Public API cache headers for Model Atlas. */
+/** Public API cache headers and conditional-request validators for Model Atlas. */
 type PublicCacheHeaderOptions = {
   browserMaxAgeSeconds: number;
   cdnMaxAgeSeconds?: number;
@@ -31,4 +31,15 @@ export function publicCacheHeaders({
     headers["Content-Type"] = contentType;
   }
   return headers;
+}
+
+/** GET validators accept weak tags, lists, and the wildcard without changing the representation's own ETag. */
+export function matchesEtag(ifNoneMatch: string | null, etag: string): boolean {
+  const value = etag.replace(/^W\//, "");
+  return (
+    ifNoneMatch?.split(",").some((tag) => {
+      const candidate = tag.trim();
+      return candidate === "*" || candidate.replace(/^W\//, "") === value;
+    }) ?? false
+  );
 }

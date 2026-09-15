@@ -2,13 +2,13 @@
 
 ## Introduction
 
-Inspired by the [Epoch Capabilities Index (ECI)](https://epoch.ai/eci), Timeline combines retained benchmark results and published indexes to estimate Intelligence and Agentic capability across model generations. Its scores support comparisons between models, but are neither benchmark success rates nor ratios of capability: 150 does not mean 50% more capable than 100. This method is separate from the main leaderboard's [relative scoring](methodology.md).
+Inspired by the [Epoch Capabilities Index (ECI)](https://epoch.ai/eci), the Intelligence Index combines retained benchmark results and published indexes to estimate Intelligence across model generations. Its scores support comparisons between models, but are neither benchmark success rates nor ratios of capability: 150 does not mean 50% more capable than 100. The index is separate from the leaderboard’s [relative scores](methodology.md) and is currently shown on the Timeline chart. Its display units remain provisional.
 
-The [fixed anchors](#set-index-units-with-fixed-anchors) assign saved positions for GPT-4 (March 2023) and Claude Opus 4.5 index scores of 100 and 150 in each dimension.
+The [fixed anchors](#set-index-units-with-fixed-anchors) assign saved positions for GPT-4 (March 2023) and Claude Opus 4.5 index scores of 100 and 150 for Intelligence.
 
 ## From Evidence to Index
 
-The framework establishes a fixed reference from an initial snapshot of supported scores, uses retained evidence to place older models, and extends forward as new results arrive. Models measured on overlapping benchmarks connect these generations to the same scale; future models need a supported connection before they can be placed. The reference stays fixed, while individual estimates can change as their evidence changes.
+The framework establishes a fixed reference from an initial snapshot of supported scores, uses retained evidence to place older models, and extends forward as new results arrive. Models measured on overlapping benchmarks connect these generations to the same scale; future models need a supported connection before they can be placed. Published positions and benchmark mappings stay fixed across ordinary refreshes. Newly supported configurations are appended; diagnostics and evidence coverage continue to reflect incoming results.
 
 > [!FLOW]
 >
@@ -36,11 +36,11 @@ The framework establishes a fixed reference from an initial snapshot of supporte
 >
 >    Assign the saved GPT-4 (March 2023) and Claude Opus 4.5 positions values of 100 and 150, preserving the unit as new models arrive.
 
-Intelligence and Agentic follow this process separately, with their own benchmark mappings and scores. Each result contributes according to its assigned relevance to each dimension.
+The published index uses Intelligence relevance weights. Agentic remains a relative leaderboard score.
 
 ## Freeze the Initial Reference
 
-Relative scores can move as models and benchmarks change. Timeline therefore establishes its reference once, using saved Model Atlas scores with at least 60% evidence support. Later leaderboard updates do not replace these reference values; older and future models connect through benchmark evidence instead. Less-supported scores remain archived but do not define the reference.
+Relative scores can move as models and benchmarks change. The Intelligence Index therefore establishes its reference once, using saved Model Atlas scores with at least 60% evidence support. Later leaderboard updates do not replace these reference values; older and future models connect through benchmark evidence instead. Less-supported starting scores retain their published positions but do not define the reference. Benchmark identities describe measurements and editions; refresh timestamps and portfolio weights do not create new identities. Retired benchmarks leave the active scoring portfolio while their evidence remains available for calibration.
 
 ![Solid points in the initial snapshot define the reference; points at 50% opacity have insufficient coverage, even when their scores fall outside the saved range. Older and future models connect through benchmark evidence without resetting the ruler. Positions are schematic.](assets/methodology/timeline-reference-extension.svg)
 
@@ -131,7 +131,7 @@ The constant $0.2$ sets the starting task weight at 20%; $0.6=0.8-0.2$ is the in
 
 The 20% and 80% endpoints are policy choices, not values derived from benchmark data. They give sparse task evidence a minimum contribution while retaining some index weight even at full task coverage.
 
-With no usable tasks, indexes supply the entire estimate. Without a usable index, at least three distinct mapped task series are required; otherwise the model remains unplaced. Imputed results do not satisfy these requirements. As the retained portfolio grows, coverage and weights can change even without new results for a model. The reference scale stays fixed, but individual estimates can change.
+With no usable tasks, indexes supply the entire estimate. Without a usable index, at least three distinct mapped task series are required; otherwise the model remains unplaced. Imputed results do not satisfy these requirements. As the retained portfolio grows, coverage and weights can change even without new results for a model. These changes affect new estimates and diagnostics; existing published positions remain fixed.
 
 ## Apply the Dated-Successor Assumption
 
@@ -157,7 +157,7 @@ $$
 
 Here, $q_{m,d}$ is the capability estimate and $s_{m,d}$ is the displayed index score. The scale extends beyond the anchors without an upper limit; its values are not percentages or ratios of capability.
 
-The anchor positions stay fixed even if later evidence changes an anchor model's current estimate; updating them would rescale every model. Positive linear rescaling preserves ordering and ratios of score differences. Intelligence and Agentic have separate reference units, so their numerical gaps are not directly comparable. Anchors set the published units; they do not add evidence or refit benchmark connections.
+The saved anchor positions remain fixed; updating them would rescale every model. Positive linear rescaling preserves ordering and ratios of score differences. The stored capability coordinate is independent of the provisional display units. Anchors set the published units; they do not add evidence or refit benchmark connections.
 
 ## Coverage and Visibility
 
@@ -170,9 +170,9 @@ The chart shows evidence support alongside capability so a sparsely supported es
 | Fainter point | Less evidence support. |
 | Frontier | Successive record-high scores with at least 60% support in the selected dimension. |
 
-The task coverage used for blending and the support used for frontier eligibility are different measures. Frontier support takes the strongest available support from saved reference evidence, direct tasks or eligible index breadth; overlapping sources are not added together to inflate it. For Agentic, index support counts only components identified as Agentic. A general-intelligence index can still supply a fallback score, but that proxy alone may not provide enough Agentic evidence to qualify for the frontier.
+The task coverage used for blending and the support used for frontier eligibility are different measures. Frontier support takes the strongest available support from saved reference evidence, direct tasks or eligible index breadth; overlapping sources are not added together to inflate it.
 
-Each model family uses one representative configuration in both dimensions. Selection prefers current configurations ranked by their saved main-leaderboard Intelligence scores; historical-only families use their strongest available Timeline estimate. Every configuration retains its own measurements and score. The default chart starts with GPT-4's March 2023 release and hides scores below 70.
+Each model family uses one representative Intelligence configuration. Selection prefers current configurations ranked by their saved main-leaderboard Intelligence scores; historical-only families use their strongest available Intelligence Index estimate. Every configuration retains its own measurements and score. The default chart starts with GPT-4's March 2023 release and hides scores below 70.
 
 The default view emphasizes broadly impactful model progress. It excludes OpenAI Pro configurations, Gemini Deep Think and Claude Mythos because of their specialized resourcing, operating policies or assets. Ordinary Gemini Pro models and other high-reasoning configurations remain eligible. Visibility rules, search, dates and lab filters apply after scoring: hiding a model changes neither its score nor the calibration of other models.
 

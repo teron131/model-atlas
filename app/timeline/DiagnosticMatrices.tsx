@@ -9,7 +9,7 @@ import type {
   HistoricalModel,
   TimelineBenchmarkEvidence,
   TimelinePredictor,
-} from "../../src/model-atlas/timeline/types";
+} from "../../src/model-atlas/timeline/schemas";
 import { MatrixOverview } from "./MatrixOverview";
 import { timelineModelName } from "./model-display";
 

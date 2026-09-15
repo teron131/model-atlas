@@ -16,6 +16,7 @@ import type {
 } from "../sources/types";
 import type { ModelAtlasPayload } from "../stats/types";
 import { archiveCheckpoint } from "./archive";
+import { readCapabilityState, writeCapabilityState } from "./capability-state";
 import { deriveDatabaseSnapshot, writeCheckpoint } from "./checkpoint";
 import { DEFAULT_DATABASE_PATH, openDatabase, removeDatabaseFiles } from "./schema";
 import { readDatabasePayload } from "./sqlite-payload";
@@ -34,11 +35,13 @@ export async function buildDatabase(
   options: SourceRefreshOptions & { previousPayload?: ModelAtlasPayload | null } = {},
 ): Promise<DatabaseBuildResult> {
   const startedAtEpochSeconds = nowEpochSeconds();
-  const previousPayload =
-    options.previousPayload ?? (existsSync(outputPath) ? readDatabasePayload(outputPath) : null);
+  const previousPayload = relativeScoreBaseline(
+    options.previousPayload ?? (existsSync(outputPath) ? readDatabasePayload(outputPath) : null),
+  );
   let db: DatabaseSync | null = await openDatabase(outputPath);
 
   try {
+    const capabilityState = readCapabilityState(db);
     const { snapshots, sourceCache } = await loadSourceSnapshots(
       db,
       startedAtEpochSeconds,
@@ -59,6 +62,7 @@ export async function buildDatabase(
         ),
       {
         previousPayload,
+        capabilityState: capabilityState ?? undefined,
         replaceSourceRows: options.replaceSourceRows,
       },
     );
@@ -66,6 +70,8 @@ export async function buildDatabase(
     const activeDb = db;
     runInTransaction(activeDb, () => {
       writeCheckpoint(activeDb, derived.rows);
+      if (derived.rows.capabilityState)
+        writeCapabilityState(activeDb, derived.rows.capabilityState);
       archiveCheckpoint(activeDb);
     });
     if (activeDb.prepare("PRAGMA integrity_check").get()?.integrity_check !== "ok") {
@@ -84,6 +90,30 @@ export async function buildDatabase(
   } finally {
     db?.close();
   }
+}
+
+/** Compare refreshes in relative-score units, including checkpoints whose public fields previously displayed the separate fixed index. */
+function relativeScoreBaseline(payload: ModelAtlasPayload | null): ModelAtlasPayload | null {
+  if (!payload) return null;
+  return {
+    ...payload,
+    models: payload.models.map((model) => {
+      const intelligence = model.component_scores.intelligence_score;
+      const agentic = model.component_scores.agentic_score;
+      const changedUnits =
+        intelligence !== model.scores.intelligence_score || agentic !== model.scores.agentic_score;
+      const { latest_change, ...rest } = model;
+      return {
+        ...rest,
+        ...(!changedUnits ||
+        !latest_change ||
+        !["intelligence", "agentic"].includes(latest_change.dimension)
+          ? { latest_change }
+          : {}),
+        scores: { ...model.scores, intelligence_score: intelligence, agentic_score: agentic },
+      };
+    }),
+  };
 }
 
 /** Wrap the synchronous database build so partial snapshot writes roll back together on failure. */

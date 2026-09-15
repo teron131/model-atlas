@@ -1,7 +1,7 @@
 /** Format model labels while preserving canonical family and release identity. */
 import { canonicalModelKey } from "../../src/model-atlas/identity/normalization";
 import { historicalReleaseName } from "../../src/model-atlas/timeline/model-identity";
-import type { HistoricalModel } from "../../src/model-atlas/timeline/types";
+import type { HistoricalModel } from "../../src/model-atlas/timeline/schemas";
 import { modelName, shortLabel } from "../dashboard/shared/model-display";
 
 export function timelineModelName(model: HistoricalModel, showEffort = false): string {

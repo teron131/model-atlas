@@ -5,13 +5,9 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { modelDisplayExclusion } from "../../src/model-atlas/stats/model-visibility";
-import {
-  anchorTimeline,
-  DEFAULT_TIMELINE_ANCHORS,
-  DEFAULT_TIMELINE_PARAMETERS,
-} from "../../src/model-atlas/timeline/calibration";
+import { anchorTimeline } from "../../src/model-atlas/timeline/calibration";
 import { timelineCoverage } from "../../src/model-atlas/timeline/coverage";
-import type { HistoricalDataset, TimelineDimension } from "../../src/model-atlas/timeline/types";
+import type { HistoricalDataset } from "../../src/model-atlas/timeline/schemas";
 import { providerDisplayName } from "../dashboard/shared/provider-theme";
 import { ModelAtlasHeader } from "../shared/ModelAtlasHeader";
 import { DiagnosticMatrices } from "./DiagnosticMatrices";
@@ -72,7 +68,7 @@ export function TimelineExplorer() {
       <div className={styles.heading}>
         <div>
           <h1>Timeline</h1>
-          <p>Model capability over time.</p>
+          <p>Model intelligence across generations.</p>
         </div>
         <span className={styles.badge}>Experimental</span>
       </div>
@@ -91,8 +87,9 @@ export function TimelineExplorer() {
 }
 
 function TimelineContent({ data }: { data: HistoricalDataset }) {
-  const [dimension, setDimension] = useState<TimelineDimension>("intelligence");
-  const parameters = DEFAULT_TIMELINE_PARAMETERS;
+  const dimension = "intelligence" as const;
+  const prepared = data.prepared!;
+  const parameters = prepared.parameters;
   const [query, setQuery] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
@@ -102,66 +99,24 @@ function TimelineContent({ data }: { data: HistoricalDataset }) {
   const releaseDates = data.models
     .flatMap((model) => (model.releaseDate ? [model.releaseDate] : []))
     .sort();
-  const [calculated, setCalculated] = useState<{
-    releaseId: string;
-    scaleId: string;
-    result: HistoricalDataset["prepared"];
-  } | null>(null);
-  const [calculationError, setCalculationError] = useState("");
-  const useDefault =
-    data.prepared && JSON.stringify(data.prepared.parameters) === JSON.stringify(parameters);
-  const prepared = useDefault
-    ? data.prepared
-    : calculated?.releaseId === data.releaseId && calculated.scaleId === data.scale?.id
-      ? calculated.result
-      : undefined;
-  const ready = prepared && JSON.stringify(prepared.parameters) === JSON.stringify(parameters);
-  useEffect(() => {
-    if (data.prepared && JSON.stringify(data.prepared.parameters) === JSON.stringify(parameters)) {
-      setCalculationError("");
-      return;
-    }
-    const controller = new AbortController();
-    setCalculationError("");
-    fetch("/api/timeline", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(parameters),
-      signal: controller.signal,
-    })
-      .then(async (response) => {
-        const body = await response.json();
-        if (!response.ok)
-          throw new Error(body.error ?? "Unable to reconstruct benchmark evidence.");
-        if (body.releaseId !== data.releaseId || body.scaleId !== data.scale?.id)
-          throw new Error(
-            "The evidence release changed during calculation. Return to this page to load the current release.",
-          );
-        if (!controller.signal.aborted)
-          setCalculated({ releaseId: body.releaseId, scaleId: body.scaleId, result: body });
-      })
-      .catch((error) => {
-        if (!controller.signal.aborted) setCalculationError(error.message);
-      });
-    return () => controller.abort();
-  }, [data, parameters]);
-  const calibration = ready ? prepared.calibrations[dimension] : null;
-  const anchors = DEFAULT_TIMELINE_ANCHORS;
+  const calibration = prepared.calibrations[dimension];
+  const anchors = data.displayAnchors!;
   const projection = useMemo(() => {
-    if (!calibration) return { scores: new Map<string, number>(), error: calculationError };
+    if (!calibration)
+      return { scores: new Map<string, number>(), error: "Missing published calibration." };
     try {
       return { scores: anchorTimeline(calibration, data, anchors, dimension), error: "" };
     } catch (error) {
       return { scores: new Map<string, number>(), error: (error as Error).message };
     }
-  }, [calibration, calculationError, data, anchors, dimension]);
+  }, [calibration, data, anchors, dimension]);
   const estimates = new Map(calibration?.estimates.map((estimate) => [estimate.modelId, estimate]));
   const coverageDetails = useMemo(
     () => timelineCoverage(data, dimension, calibration?.estimates ?? []),
     [data, dimension, calibration],
   );
   const coverage = new Map([...coverageDetails].map(([id, support]) => [id, support.fraction]));
-  const intelligenceScores = representativeScores(data, prepared?.calibrations.intelligence);
+  const intelligenceScores = representativeScores(data, calibration);
   const representatives = modelRepresentatives(
     data.models.map((model) => ({
       ...model,
@@ -193,17 +148,6 @@ function TimelineContent({ data }: { data: HistoricalDataset }) {
   return (
     <>
       <div className={styles.toolbar}>
-        <div className={styles.tabs} aria-label="Capability dimension">
-          {(["intelligence", "agentic"] as const).map((value) => (
-            <button
-              key={value}
-              aria-pressed={dimension === value}
-              onClick={() => setDimension(value)}
-            >
-              {value === "intelligence" ? "Intelligence" : "Agentic"}
-            </button>
-          ))}
-        </div>
         <label className={styles.search}>
           Find models
           <input
@@ -238,11 +182,10 @@ function TimelineContent({ data }: { data: HistoricalDataset }) {
           {projection.error}
         </p>
       ) : null}
-      {!ready && !calculationError ? <p role="status">Reconstructing benchmark evidence…</p> : null}
-      {ready && !projection.error ? (
+      {!projection.error ? (
         <>
           <div className={styles.chartHeading}>
-            <span>{dimension === "intelligence" ? "Intelligence" : "Agentic"} score</span>
+            <span>Intelligence Index</span>
             <span>{points.length} models</span>
           </div>
           <TimelinePlot points={points} selected={selected} onSelect={setSelected} />
@@ -266,7 +209,7 @@ function TimelineContent({ data }: { data: HistoricalDataset }) {
             <p>{providerDisplayName(chosen.provider)}</p>
             <dl className={styles.modelStats}>
               <div>
-                <dt>{dimension === "intelligence" ? "Intelligence" : "Agentic"} score</dt>
+                <dt>Intelligence Index</dt>
                 <dd>{projection.scores.get(chosen.id)?.toFixed(1) ?? "Unavailable"}</dd>
               </div>
               <div>
@@ -297,8 +240,8 @@ function TimelineContent({ data }: { data: HistoricalDataset }) {
             data={data}
             models={sorted}
             calibration={calibration}
-            evidence={ready ? prepared.evidence.cells : []}
-            benchmarkPredictors={ready ? prepared.evidence.predictors : []}
+            evidence={prepared.evidence.cells}
+            benchmarkPredictors={prepared.evidence.predictors}
             maxError={parameters.maxError}
             onSelect={setSelected}
           />

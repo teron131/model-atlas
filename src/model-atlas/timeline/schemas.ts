@@ -1,4 +1,6 @@
-/** Retained observations, fixed calibration releases, and projected scores preserve cross-era units independently of the live leaderboard. */
+/** Shared retained-data schemas, compact persistence, and fit-policy validation for the Intelligence Index. */
+
+import { MAX_NORMALIZED_IMPUTATION_ERROR } from "../config/stage";
 
 export type TimelineDimension = "intelligence" | "agentic";
 
@@ -80,11 +82,13 @@ export type HistoricalDataset = {
     artifacts: { url: string; sha256: string }[];
   }[];
   conflicts: number;
+  activeBenchmarkIds?: string[];
+  displayAnchors?: TimelineAnchors;
   scale?: TimelineScale;
   prepared?: {
     parameters: TimelineParameters;
     evidence: { cells: TimelineBenchmarkEvidence[]; predictors: TimelinePredictor[] };
-    calibrations: Record<TimelineDimension, HistoricalCalibration>;
+    calibrations: { intelligence: HistoricalCalibration; agentic?: HistoricalCalibration };
   };
 };
 
@@ -227,3 +231,58 @@ export type TimelineAnchors = {
     values: Record<TimelineDimension, number>;
   }[];
 };
+
+type PackedDataset = Omit<HistoricalDataset, "scale"> & {
+  scale?: Omit<TimelineScale, "models" | "benchmarks" | "observations">;
+};
+
+/** Calibration owns fixed mappings; the enclosing dataset owns the retained model and observation collections. */
+export function packTimelineDataset(data: HistoricalDataset): PackedDataset {
+  if (!data.scale) return data;
+  const {
+    models: _models,
+    benchmarks: _benchmarks,
+    observations: _observations,
+    ...scale
+  } = data.scale;
+  return { ...data, scale };
+}
+
+export function unpackTimelineDataset(data: PackedDataset): HistoricalDataset {
+  const { scale, ...dataset } = data;
+  return {
+    ...dataset,
+    ...(scale
+      ? {
+          scale: {
+            ...scale,
+            models: data.models,
+            benchmarks: data.benchmarks,
+            observations: data.observations,
+          },
+        }
+      : {}),
+  };
+}
+
+/** Validate the fit exclusion and query clipping interval together with minimum link-validation requirements. */
+export function validateTimelineParameters(parameters: TimelineParameters): void {
+  if (
+    !(
+      parameters.saturationLow >= 0 &&
+      parameters.saturationLow < parameters.saturationHigh &&
+      parameters.saturationHigh <= 100
+    )
+  )
+    throw new Error("Use a saturation interval within 0–100%.");
+  if (
+    !Number.isInteger(parameters.minModels) ||
+    parameters.minModels < 4 ||
+    !Number.isFinite(parameters.maxError) ||
+    parameters.maxError <= 0 ||
+    parameters.maxError > MAX_NORMALIZED_IMPUTATION_ERROR
+  )
+    throw new Error(
+      "Use at least four validation models and a normalized error threshold above zero and at most 25 points.",
+    );
+}

@@ -1,13 +1,15 @@
 /** Assemble published index releases alongside directly observed main-app benchmarks; constituent metadata never creates task evidence. */
 
 import { createHash } from "node:crypto";
-import type { DatabaseSync } from "node:sqlite";
 
+import { indexPolicy } from "../benchmarks/index-policy";
 import { BENCHMARK_CATALOG, INDEX_BENCHMARK_KEYS } from "../benchmarks/registry";
-import { archivedEvidenceCount, iterateArchivedEvidence } from "../database/archive";
 import { stableJson } from "../runtime";
-import { historicalSourceModel } from "./index-sources";
-import { resolveHistoricalModelIdentities, validHistoricalReleaseDate } from "./model-identity";
+import {
+  historicalSourceModel,
+  resolveHistoricalModelIdentities,
+  validHistoricalReleaseDate,
+} from "./model-identity";
 import type {
   HistoricalBenchmark,
   HistoricalDataset,
@@ -15,64 +17,7 @@ import type {
   HistoricalObservation,
   HistoricalPortfolio,
   HistoricalSourceRelease,
-} from "./types";
-
-/** Resolve corrections by publication time, reject same-release conflicts, and freeze current Model Atlas scores as dimension-specific calibration references. */
-export function buildHistoricalDataset(
-  db: DatabaseSync,
-  referenceDb: DatabaseSync = db,
-): HistoricalDataset {
-  const records = iterateArchivedEvidence<HistoricalSourceRelease>(db, "index_components");
-  let hasReleases = false;
-  // A corrected parser can replace the selected interpretation of identical bytes without deleting any archived source artifact.
-  const byArtifact = new Map<string, HistoricalSourceRelease>();
-  for (const { record: release } of records) {
-    hasReleases = true;
-    // Superseded component backfills remain in the raw archive, outside the active index import.
-    if (release.benchmarks.some((benchmark) => benchmark.kind === "task")) continue;
-    byArtifact.set(release.artifacts[0]!.sha256, release);
-  }
-  if (!hasReleases)
-    throw new Error(
-      "No index component releases have been imported. Run pnpm timeline <checkpoint> --refresh-sources.",
-    );
-  if (!byArtifact.size)
-    throw new Error(
-      "Refresh the index releases with pnpm timeline <checkpoint> --refresh-sources before building the dataset.",
-    );
-  const benchmarksByModel = new Map<number, Record<string, unknown>[]>();
-  const benchmarkRows = referenceDb
-    .prepare(
-      "SELECT model_row_index, benchmark_key, value, observed_at FROM model_benchmarks ORDER BY model_row_index, benchmark_key",
-    )
-    .iterate();
-  for (const row of benchmarkRows) {
-    const id = Number(row.model_row_index);
-    const rows = benchmarksByModel.get(id) ?? [];
-    rows.push(row);
-    benchmarksByModel.set(id, rows);
-  }
-  const currentRows = referenceDb
-    .prepare(
-      "SELECT row_index, model_id, name, provider_id, reasoning_effort, release_date, intelligence_score, agentic_score, intelligence_confidence, agentic_confidence FROM models",
-    )
-    .all()
-    .map((row) => ({
-      ...row,
-      benchmarkObservations: benchmarksByModel.get(Number(row.row_index)) ?? [],
-    }));
-  return historicalDatasetFromReleases(
-    [...byArtifact.values()],
-    currentRows,
-    archivedEvidenceCount(db),
-    new Date(
-      Number(
-        referenceDb.prepare("SELECT updated_at_epoch_seconds FROM snapshot_metadata LIMIT 1").get()
-          ?.updated_at_epoch_seconds,
-      ) * 1000,
-    ).toISOString(),
-  );
-}
+} from "./schemas";
 
 /** Source releases remain immutable; the selected view excludes conflicts instead of choosing an arbitrary alias or ingestion order. */
 export function historicalDatasetFromReleases(
@@ -176,7 +121,7 @@ export function historicalDatasetFromReleases(
       const key = observation.benchmark_key;
       const definition = BENCHMARK_CATALOG[key as keyof typeof BENCHMARK_CATALOG];
       if (!definition || !Number.isFinite(observation.value)) continue;
-      const id = `atlas:benchmark:${referenceId}:${key}`;
+      const id = checkpointBenchmarkId(key);
       const weights = definition.scoring.dimensionLoadings;
       benchmarks.set(id, {
         id,
@@ -189,6 +134,7 @@ export function historicalDatasetFromReleases(
           agentic: weights.agentic * definition.scoring.benchmarkImportance,
         },
         primary: true,
+        representedBenchmarks: indexPolicy(key)?.representedBenchmarks,
       });
       observations.set(`${row.model.id}\0${id}`, {
         modelId: row.model.id,
@@ -268,6 +214,22 @@ export function historicalDatasetFromReleases(
   };
   dataset.releaseId = historicalReleaseId(dataset);
   return dataset;
+}
+
+/** Capture provenance never defines a benchmark edition; only the declared measurement and source-fusion contract does. */
+export function checkpointBenchmarkId(key: string): string {
+  const definition = BENCHMARK_CATALOG[key as keyof typeof BENCHMARK_CATALOG];
+  if (!definition) throw new Error(`Unknown checkpoint benchmark: ${key}`);
+  const contract = {
+    key,
+    source: definition.source,
+    processing: definition.processing,
+    location: definition.persistence.location,
+    format: definition.presentation.column.format,
+    indexBreadth:
+      key === "aa_intelligence_index" ? indexPolicy(key)?.representedBenchmarks : undefined,
+  };
+  return `atlas:benchmark:${key}:${createHash("sha256").update(stableJson(contract)).digest("hex").slice(0, 20)}`;
 }
 
 /** Fingerprint the measured release and its method, excluding query parameters, display anchors, and reconstructed cells. */

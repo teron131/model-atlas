@@ -11,7 +11,7 @@ import { compactModelVariants } from "./model-variants";
 const SCORE_SCHEMA = "model_atlas.score";
 const CORE_SCHEMA = "model_atlas.core";
 const BENCHMARKS_SCHEMA = "model_atlas.benchmarks";
-const SCORE_SCALE = "percentage";
+const SCORE_SCALE = "relative_0_100";
 const BENCHMARK_SCALE = "decimal";
 
 export type ModelAtlasJsonView = "score" | "core" | "benchmarks" | "all" | "full" | "dashboard";
@@ -156,8 +156,9 @@ export function publicJsonPayload(
   payload: ModelAtlasPayload,
   view: string | null,
 ): PublicJsonPayload {
+  const { timeline: _timeline, ...leaderboard } = payload;
   payload = {
-    ...payload,
+    ...leaderboard,
     models: payload.models.map((model) =>
       applyResourceEvidenceRequirements(model, payload.metadata.scoring.benchmark_portfolio),
     ),
@@ -189,7 +190,7 @@ export function coreJsonPayload(payload: ModelAtlasPayload): CoreJsonPayload {
   };
 }
 
-/** The score view is the default public ranking surface and exposes only Atlas 0-100 score fields. */
+/** The score view is the default public ranking surface and exposes the four relative scores. */
 export function scoreJsonPayload(payload: ModelAtlasPayload): ScoreJsonPayload {
   const rows = compactLeaderboardRows(payload);
   return {

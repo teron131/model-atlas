@@ -13,11 +13,11 @@ import { asRecord, type JsonObject } from "../runtime";
 import { parseArtificialAnalysisReasoningEffort } from "../sources/artificial-analysis/model-labels";
 import { extractNextFlightCorpus, findObjectEnd, parseFlightJsonObject } from "../sources/parsing";
 import { fetchSource } from "../sources/request-scheduler";
-import { AA_METHODOLOGY_URL, artificialAnalysisPortfolios } from "./index-portfolios";
-import { historicalSourceModel } from "./index-sources";
+import { AA_METHODOLOGY_URL, artificialAnalysisPortfolios } from "./index-sources";
 import {
   historicalNameKey,
   historicalReleaseName,
+  historicalSourceModel,
   historicalVersionSeries,
 } from "./model-identity";
 import type {
@@ -25,7 +25,7 @@ import type {
   HistoricalModel,
   HistoricalObservation,
   HistoricalSourceRelease,
-} from "./types";
+} from "./schemas";
 
 // Version periods follow AA's published changelog; capture identities also separate undocumented patch or grader revisions.
 export const AA_HISTORY_SNAPSHOTS = [

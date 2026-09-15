@@ -11,7 +11,9 @@ import { createGzip, gzip } from "node:zlib";
 import { type File, Storage } from "@google-cloud/storage";
 
 import type { ModelAtlasPayload } from "../../stats/types";
+import { packTimelineDataset } from "../../timeline/schemas";
 import {
+  decodeIntelligenceIndex,
   decodeSnapshotBytes,
   decodeSnapshotPayload,
   parseSnapshotArtifacts,
@@ -113,13 +115,25 @@ export class SnapshotStorage {
   }
 
   async restore(manifest: SnapshotVersion, databasePath: string): Promise<ModelAtlasPayload> {
-    const [checkpoint, dashboard] = await Promise.all([
+    const [checkpoint, dashboard, index] = await Promise.all([
       downloadSnapshotObject(
         this.checkpointBucket.file(snapshotObject(manifest.version, "checkpoint")),
       ),
       downloadSnapshotObject(this.publicBucket.file(snapshotObject(manifest.version, "payload"))),
+      manifest.intelligence_index_sha256
+        ? downloadSnapshotObject(
+            this.publicBucket.file(snapshotObject(manifest.version, "intelligence-index")),
+          )
+        : null,
     ]);
-    const payload = await decodeSnapshotPayload(dashboard, manifest);
+    const payload = {
+      ...(await decodeSnapshotPayload(dashboard, manifest)),
+      ...(index
+        ? { timeline: await decodeIntelligenceIndex(index, manifest.intelligence_index_sha256!) }
+        : {}),
+    };
+    if (snapshotDataHash(payload) !== manifest.data_sha256)
+      throw new Error("GCS snapshot data fingerprint does not match its manifest");
     await writeFile(
       databasePath,
       await decodeSnapshotBytes(checkpoint, manifest.checkpoint_sha256),
@@ -138,7 +152,7 @@ export class SnapshotStorage {
     return this.publish(databasePath, payload, current);
   }
 
-  /** The manifest changes only after both verified uploads finish; stale publishers must rebuild from the new checkpoint. */
+  /** The manifest changes only after every verified upload finishes; stale publishers must rebuild from the new checkpoint. */
   async publish(
     databasePath: string,
     payload: ModelAtlasPayload,
@@ -151,9 +165,11 @@ export class SnapshotStorage {
     if (payload.models.length === 0 || !payload.fetched_at_epoch_seconds) {
       throw new Error("Refusing to publish an empty Model Atlas snapshot");
     }
-    const [checkpoint, dashboard] = await Promise.all([
+    const { timeline, ...leaderboard } = payload;
+    const [checkpoint, dashboard, index] = await Promise.all([
       compressCheckpoint(databasePath),
-      compress(JSON.stringify(payload)),
+      compress(JSON.stringify(leaderboard)),
+      timeline ? compress(JSON.stringify(packTimelineDataset(timeline))) : null,
     ]);
     const dataHash = snapshotDataHash(payload);
     const manifest: SnapshotManifest = {
@@ -161,6 +177,7 @@ export class SnapshotStorage {
       fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
       payload_sha256: snapshotHash(dashboard),
       checkpoint_sha256: snapshotHash(checkpoint),
+      intelligence_index_sha256: index ? snapshotHash(index) : null,
       data_sha256: dataHash,
       previous: retainedSnapshotVersions(previous.manifest, dataHash),
     };
@@ -175,6 +192,15 @@ export class SnapshotStorage {
         bytes: dashboard,
         cacheControl: "public, max-age=31536000, immutable",
       },
+      ...(index
+        ? [
+            {
+              file: this.publicBucket.file(snapshotObject(manifest.version, "intelligence-index")),
+              bytes: index,
+              cacheControl: "public, max-age=31536000, immutable",
+            },
+          ]
+        : []),
     ];
     const manifestBytes = Buffer.from(JSON.stringify(manifest));
     try {
@@ -224,6 +250,13 @@ export class SnapshotStorage {
             this.publicBucket
               .file(snapshotObject(entry.version, "payload"))
               .setMetadata({ customTime: retiredAt }),
+            ...(entry.intelligence_index_sha256
+              ? [
+                  this.publicBucket
+                    .file(snapshotObject(entry.version, "intelligence-index"))
+                    .setMetadata({ customTime: retiredAt }),
+                ]
+              : []),
           ]),
       );
       for (const result of retired) {
@@ -235,7 +268,8 @@ export class SnapshotStorage {
     }
     return {
       manifest,
-      bytes_uploaded: checkpoint.length + dashboard.length + manifestBytes.length,
+      bytes_uploaded:
+        checkpoint.length + dashboard.length + (index?.length ?? 0) + manifestBytes.length,
       maintenance_warnings: warnings,
     };
   }

@@ -3,7 +3,7 @@ import { qualityIndexBreadth } from "../benchmarks/index-policy";
 import { STAGE_CONFIG } from "../config/stage";
 import { effectiveSampleSize } from "../math-utils";
 import { evidenceMassConfidence } from "../pipeline/scores/normalization";
-import type { HistoricalDataset, HistoricalEstimate, TimelineDimension } from "./types";
+import type { HistoricalDataset, HistoricalEstimate, TimelineDimension } from "./schemas";
 
 export const MINIMUM_TIMELINE_TASKS = 3;
 

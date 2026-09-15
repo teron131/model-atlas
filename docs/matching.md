@@ -42,7 +42,7 @@ Candidate eligibility is checked before name similarity, so a convincing name ca
 
 Qualified source and catalog IDs establish publisher ownership, with organization aliases such as Alibaba/Qwen reconciled first. A conflicting publisher excludes the candidate even if its name closely resembles the source; a serving platform name alone does not establish model ownership.
 
-An explicit year-bearing version or named release month must agree with the candidate’s dated version, release label, or catalog release metadata. An undated catalog alias cannot establish a specifically dated source release. Month labels compare at month precision, while daily dates allow the adjacent calendar date used by some sources for the same launch. These checks run before candidate ranking and truncation, and Timeline uses the same release and publisher rules.
+An explicit year-bearing version or named release month must agree with the candidate’s dated version, release label, or catalog release metadata. An undated catalog alias cannot establish a specifically dated source release. Month labels compare at month precision, while daily dates allow the adjacent calendar date used by some sources for the same launch. These checks run before candidate ranking and truncation, and the Intelligence Index uses the same release and publisher rules.
 
 The first token is an early family guardrail. A source and candidate that begin with different model-family tokens are not compared further.
 

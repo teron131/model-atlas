@@ -1,4 +1,4 @@
-/** The published snapshot manifest binds one immutable dashboard payload to its private SQLite checkpoint. */
+/** One manifest binds independent leaderboard and Intelligence Index artifacts to their private recovery checkpoint. */
 
 import { createHash } from "node:crypto";
 import { promisify } from "node:util";
@@ -7,12 +7,14 @@ import { gunzip } from "node:zlib";
 import { asRecord, stableJson } from "../../runtime";
 import { isModelAtlasPayload } from "../../stats/payload/validation";
 import type { ModelAtlasPayload } from "../../stats/types";
+import { type HistoricalDataset, unpackTimelineDataset } from "../../timeline/schemas";
 
 type SnapshotArtifacts = {
   version: string;
   fetched_at_epoch_seconds: number;
   payload_sha256: string;
   checkpoint_sha256: string;
+  intelligence_index_sha256: string | null;
 };
 
 export type SnapshotVersion = SnapshotArtifacts & { data_sha256: string };
@@ -30,8 +32,12 @@ export function snapshotBucket(): string {
   return bucket;
 }
 
-export function snapshotObject(version: string, kind: "payload" | "checkpoint"): string {
-  return `snapshots/${version}/${kind === "payload" ? "payload.json.gz" : "database.sqlite.gz"}`;
+export function snapshotObject(
+  version: string,
+  kind: "payload" | "checkpoint" | "intelligence-index",
+): string {
+  const name = kind === "checkpoint" ? "database.sqlite.gz" : `${kind}.json.gz`;
+  return `snapshots/${version}/${name}`;
 }
 
 export function snapshotUrl(bucket: string, object: string): string {
@@ -47,10 +53,9 @@ export function parseSnapshotArtifacts(value: unknown): SnapshotArtifacts {
     !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(manifest.version) ||
     !Number.isSafeInteger(manifest.fetched_at_epoch_seconds) ||
     (manifest.fetched_at_epoch_seconds ?? 0) <= 0 ||
-    typeof manifest.payload_sha256 !== "string" ||
-    !/^[0-9a-f]{64}$/.test(manifest.payload_sha256) ||
-    typeof manifest.checkpoint_sha256 !== "string" ||
-    !/^[0-9a-f]{64}$/.test(manifest.checkpoint_sha256)
+    !isHash(manifest.payload_sha256) ||
+    !isHash(manifest.checkpoint_sha256) ||
+    (manifest.intelligence_index_sha256 !== null && !isHash(manifest.intelligence_index_sha256))
   ) {
     throw new Error("GCS contains an invalid snapshot manifest");
   }
@@ -59,6 +64,7 @@ export function parseSnapshotArtifacts(value: unknown): SnapshotArtifacts {
     fetched_at_epoch_seconds: manifest.fetched_at_epoch_seconds!,
     payload_sha256: manifest.payload_sha256,
     checkpoint_sha256: manifest.checkpoint_sha256,
+    intelligence_index_sha256: manifest.intelligence_index_sha256,
   };
 }
 
@@ -73,7 +79,7 @@ export function parseSnapshotManifest(value: unknown): SnapshotManifest {
   const versions = [manifest, ...manifest.previous].map((entry) => {
     const artifacts = parseSnapshotArtifacts(entry);
     const hash = asRecord(entry).data_sha256;
-    if (typeof hash !== "string" || !/^[0-9a-f]{64}$/.test(hash)) {
+    if (!isHash(hash)) {
       throw new Error("GCS contains an invalid snapshot data fingerprint");
     }
     return { ...artifacts, data_sha256: hash };
@@ -110,6 +116,12 @@ export function snapshotDataHash(payload: ModelAtlasPayload): string {
       ({ logo: _logo, latest_change: _change, benchmark_dates: _dates, ...model }) => model,
     ),
     benchmark_observations: payload.benchmark_observations ?? {},
+    ...(payload.timeline
+      ? {
+          capability_scale: payload.timeline.scale,
+          capability_anchors: payload.timeline.displayAnchors,
+        }
+      : {}),
   };
   return createHash("sha256")
     .update(stableJson(canonicalSnapshotData(data)))
@@ -137,6 +149,10 @@ export function snapshotHash(bytes: Uint8Array): string {
   return createHash("sha256").update(bytes).digest("hex");
 }
 
+function isHash(value: unknown): value is string {
+  return typeof value === "string" && /^[0-9a-f]{64}$/.test(value);
+}
+
 /** Verify the compressed artifact before decompression; corrupt snapshots never replace a cached good version. */
 export async function decodeSnapshotBytes(bytes: Buffer, expectedHash: string): Promise<Buffer> {
   if (snapshotHash(bytes) !== expectedHash) {
@@ -145,7 +161,7 @@ export async function decodeSnapshotBytes(bytes: Buffer, expectedHash: string): 
   return decompress(bytes);
 }
 
-/** Readers and checkpoint recovery verify the same payload contract before caching or writing anything. */
+/** Runtime readers verify artifact bytes and timestamps; checkpoint recovery additionally verifies the combined data fingerprint. */
 export async function decodeSnapshotPayload(
   bytes: Buffer,
   manifest: SnapshotVersion,
@@ -154,10 +170,25 @@ export async function decodeSnapshotPayload(
   if (payload.fetched_at_epoch_seconds !== manifest.fetched_at_epoch_seconds) {
     throw new Error("GCS snapshot timestamp does not match its manifest");
   }
-  if (snapshotDataHash(payload) !== manifest.data_sha256) {
-    throw new Error("GCS snapshot data fingerprint does not match its manifest");
-  }
   return payload;
+}
+
+/** The index is fetched independently of the leaderboard and retains its own verified immutable artifact. */
+export async function decodeIntelligenceIndex(
+  bytes: Buffer,
+  expectedHash: string,
+): Promise<HistoricalDataset> {
+  const data = JSON.parse((await decodeSnapshotBytes(bytes, expectedHash)).toString("utf8"));
+  if (
+    !data ||
+    !Array.isArray(data.models) ||
+    !Array.isArray(data.observations) ||
+    !data.scale ||
+    !data.displayAnchors ||
+    !data.prepared?.calibrations?.intelligence
+  )
+    throw new Error("GCS contains an invalid Intelligence Index");
+  return unpackTimelineDataset(data);
 }
 
 export function parseSnapshotPayload(bytes: Buffer): ModelAtlasPayload {
