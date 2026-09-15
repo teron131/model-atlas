@@ -290,7 +290,17 @@ export function FrontierBenchmarkScatterPlot<Row>({
   };
   // Pointer projections rerender this chart; only changed label geometry should run the search.
   const layoutKey = JSON.stringify(layoutRequest);
-  const labelPlacements = useMemo(() => calloutLabelPlacements(JSON.parse(layoutKey)), [layoutKey]);
+  const placementCache = useRef(new Map<string, Map<string, PointLabelPlacement>>());
+  const labelPlacements = useMemo(() => {
+    const cache = placementCache.current;
+    const cached = cache.get(layoutKey);
+    if (cached) return cached;
+    const placements = calloutLabelPlacements(JSON.parse(layoutKey));
+    // Retain at most one layout per displayed point plus the resting view; geometry changes use new keys.
+    while (cache.size >= rows.length + 1) cache.delete(cache.keys().next().value!);
+    cache.set(layoutKey, placements);
+    return placements;
+  }, [layoutKey, rows.length]);
   const callouts = labeledRows.map((row) => {
     const key = getKey(row);
     const label = getLabel(row);

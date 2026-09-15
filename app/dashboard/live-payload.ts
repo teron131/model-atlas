@@ -86,7 +86,6 @@ export function useLivePayload(initialPayload: ModelAtlasPayload | null) {
         void refreshPayload({ retryWhenGuarded: true });
       }
     };
-    refreshWhenActive();
     const refreshInterval = window.setInterval(refreshWhenActive, ACTIVE_REFRESH_INTERVAL_MS);
     window.addEventListener("focus", refreshWhenActive);
     document.addEventListener("visibilitychange", refreshWhenActive);

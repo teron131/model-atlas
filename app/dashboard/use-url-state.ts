@@ -2,7 +2,15 @@
 
 /** Subscribe controls to their own URL fields while history remains the shared navigation owner. */
 
-import { useCallback, useMemo, useSyncExternalStore } from "react";
+import {
+  createContext,
+  createElement,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useMemo,
+  useSyncExternalStore,
+} from "react";
 
 import {
   type DashboardUrlKey,
@@ -13,8 +21,20 @@ import {
 } from "./url-state";
 
 const changeEvent = "model-atlas:url-change";
+const InitialSearch = createContext("");
 let editingElement: Element | null = null;
 let editingKey: string | null = null;
+
+/** Seed server rendering and hydration with the request's selections before browser history takes over. */
+export function DashboardUrlProvider({
+  search,
+  children,
+}: {
+  search: string;
+  children: ReactNode;
+}) {
+  return createElement(InitialSearch.Provider, { value: search }, children);
+}
 
 /** Commit a whole user action once; successive input edits share one history entry until blur or another action. */
 export function updateDashboardUrl(patch: DashboardUrlPatch, editing = false) {
@@ -38,6 +58,11 @@ export function updateDashboardUrl(patch: DashboardUrlPatch, editing = false) {
 
 /** Select a single serialized field so unrelated table interactions do not invalidate global graph state. */
 export function useUrlState<K extends DashboardUrlKey>(key: K, fallback?: DashboardUrlState[K]) {
+  const initialSearch = useContext(InitialSearch);
+  const serverSnapshot = useCallback(
+    () => JSON.stringify(new URLSearchParams(initialSearch).getAll(key)),
+    [initialSearch, key],
+  );
   const snapshot = useCallback(
     () => JSON.stringify(new URLSearchParams(window.location.search).getAll(key)),
     [key],
@@ -75,9 +100,6 @@ function subscribe(listener: () => void) {
   };
 }
 
-function serverSnapshot() {
-  return "[]";
-}
 function resetEditing() {
   editingElement?.removeEventListener("blur", resetEditing);
   editingElement = null;

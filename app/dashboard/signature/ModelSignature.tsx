@@ -247,7 +247,7 @@ export const ModelSignature = memo(function ModelSignature({
       ) : (
         <canvas className={styles.canvas} ref={canvasRef} aria-hidden="true" />
       )}
-      <div className={styles.scrim} aria-hidden="true" />
+      {mode === "phase" ? <div className={styles.scrim} aria-hidden="true" /> : null}
       <div className={styles.modeBar}>
         <span className={styles.modeLabel}>Material view</span>
         <div className={styles.modeOptions} role="group" aria-label="Model signature material">

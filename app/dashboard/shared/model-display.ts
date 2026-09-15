@@ -47,7 +47,7 @@ export function modelCount(models: ModelAtlasPublishedModel[]): number {
   return new Set(models.map(canonicalModelKey)).size;
 }
 
-/** Value-based graphs and the signature require available Value; other comparisons enforce their own coordinate availability. */
+/** Every graph requires published Value evidence; individual comparisons also enforce their own coordinate availability. */
 export function isGraphEligible(model: ModelAtlasPublishedModel): boolean {
   const value = model.scores?.value_score;
   return typeof value === "number" && Number.isFinite(value);

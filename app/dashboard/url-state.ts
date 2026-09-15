@@ -39,6 +39,7 @@ export type DashboardUrlState = {
 
 export type DashboardUrlKey = keyof DashboardUrlState;
 export type DashboardUrlPatch = Partial<DashboardUrlState>;
+export const GRAPH_VARIANTS_COOKIE = "model-atlas-graph-variants";
 
 const tableKeys = new Set<DashboardUrlKey>([
   "view",
