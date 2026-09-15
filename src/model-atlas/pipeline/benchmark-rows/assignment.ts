@@ -50,7 +50,6 @@ export type BenchmarkAssignmentLookups = BenchmarkObservationLookups & {
   agentsLastExam: Pick<ModelAtlasSourceData["agentsLastExam"], "rowsByModelName">;
   aleBench: Pick<ModelAtlasSourceData["aleBench"], "rowsByModelName">;
   blueprintBench: Pick<ModelAtlasSourceData["blueprintBench"], "rowsByModelName">;
-  cursorBench: Pick<ModelAtlasSourceData["cursorBench"], "rowsByModelName">;
   deepSWE: Pick<ModelAtlasSourceData["deepSWE"], "rowsByModelName">;
   frontierCode: Pick<ModelAtlasSourceData["frontierCode"], "rowsByModelName">;
   riemannBench: Pick<ModelAtlasSourceData["riemannBench"], "rowsByModelName">;
@@ -332,22 +331,6 @@ const STANDALONE_BENCHMARK_ADAPTERS = {
       );
       if (score != null) {
         assignedBenchmarks.benchmarks.blueprint_bench_2 = score;
-      }
-    },
-  },
-  cursorbench: {
-    defaultVariant: ({ assignedBenchmarks, lookups, modelNameCandidates }) => {
-      const row = findSourceRow(modelNameCandidates, lookups.cursorBench.rowsByModelName);
-      if (row != null) {
-        assignedBenchmarks.benchmarks.cursorbench = row.score;
-        assignedBenchmarks.scoringSources.cursorbench = row;
-      }
-    },
-    observation: ({ assignedBenchmarks, lookups, resolveSourceRow }) => {
-      const row = resolveSourceRow(lookups.cursorBench.rowsByModelName);
-      if (row != null) {
-        assignedBenchmarks.benchmarks.cursorbench = row.score;
-        assignedBenchmarks.scoringSources.cursorbench = row;
       }
     },
   },

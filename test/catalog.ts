@@ -3,6 +3,10 @@
 import assert from "node:assert/strict";
 
 import { INDEX_BENCHMARK_KEYS } from "../src/model-atlas/benchmarks/index-policy";
+import {
+  BENCHMARK_DISPLAY_KEYS,
+  BENCHMARK_RUNTIME_KEYS,
+} from "../src/model-atlas/benchmarks/registry";
 import { STAGE_CONFIG } from "../src/model-atlas/config";
 import type { FinalStageConfig, ScoringConfig } from "../src/model-atlas/config/stage";
 import { canonicalModelKey } from "../src/model-atlas/identity/normalization";
@@ -19,6 +23,19 @@ import type { BenchmarkVersioningOptions } from "../src/model-atlas/pipeline/sel
 import type { ModelsDevFlatModel } from "../src/model-atlas/sources/models-dev/catalog";
 import type { BenchmarkPortfolio } from "../src/model-atlas/stats/types";
 import { minimalModelAtlasModel } from "./model-atlas-fixtures";
+
+// Retired benchmarks must stay out of scoring, presentation, and scheduled source loading.
+for (const keys of [
+  STAGE_CONFIG.scoring.intelligenceBenchmarkKeys,
+  STAGE_CONFIG.scoring.agenticBenchmarkKeys,
+  BENCHMARK_DISPLAY_KEYS,
+  BENCHMARK_RUNTIME_KEYS,
+]) {
+  assert.equal(
+    keys.some((key: string) => key === "cursorbench"),
+    false,
+  );
+}
 
 const sourceData = {
   modelsDev: {

@@ -145,7 +145,6 @@ const EFFORT_BENCHMARK_KEYS = new Set([
   "frontier_code",
   "automation_bench",
   "deep_swe",
-  "cursorbench",
   "arc_agi_3",
 ]);
 

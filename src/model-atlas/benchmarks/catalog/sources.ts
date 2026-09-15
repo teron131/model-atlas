@@ -600,16 +600,6 @@ export const BENCHMARK_EXTENDED_SOURCES = {
       },
     ],
   },
-  cursorbench: {
-    inputs: [
-      {
-        group: "standalone",
-        id: "cursor",
-        roles: ["observation", "resource"],
-        runtime: { key: "cursorbench", publicRows: true },
-      },
-    ],
-  },
   deep_swe: {
     inputs: [
       {

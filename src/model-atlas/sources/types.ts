@@ -11,7 +11,6 @@ import type {
 import type { AleBenchSourceRow } from "./ale-bench/leaderboard";
 import type { ArtificialAnalysisBenchmarkResourceRow } from "./artificial-analysis/benchmark-resources";
 import type { BlueprintBenchModelScoreRow } from "./blueprint-bench/leaderboard";
-import type { CursorBenchModelScoreRow } from "./cursorbench/leaderboard";
 import type { DeepSWERawLeaderboardRow } from "./deep-swe/leaderboard";
 import type { FrontierCodeModelEffortRow } from "./frontier-code/leaderboard";
 import type { ModelsDevFlatModel, ModelsDevPayload } from "./models-dev/catalog";
@@ -87,7 +86,6 @@ export type SourceSnapshots = BenchmarkObservationSnapshotRows & {
   agentsLastExamModelScores: AgentsLastExamModelScoreRow[];
   aleBenchConfigurationRows: AleBenchSourceRow[];
   blueprintBenchModelScoreRows: BlueprintBenchModelScoreRow[];
-  cursorBenchModelScoreRows: CursorBenchModelScoreRow[];
   deepSWERawRows: DeepSWERawLeaderboardRow[];
   frontierCodeRows: FrontierCodeModelEffortRow[];
   riemannBenchModelScoreRows: RiemannBenchModelScoreRow[];
@@ -105,7 +103,6 @@ export type SourceSnapshots = BenchmarkObservationSnapshotRows & {
     agentsLastExam: number | null;
     aleBench: number | null;
     blueprintBench: number | null;
-    cursorBench: number | null;
     deepSWE: number | null;
     frontierCode: number | null;
     riemannBench: number | null;

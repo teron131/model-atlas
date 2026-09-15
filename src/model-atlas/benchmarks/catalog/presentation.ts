@@ -173,14 +173,6 @@ export const BENCHMARK_TOOLTIPS = {
       ["Role", "physics reasoning"],
     ],
   },
-  cursorbench: {
-    title: "CursorBench",
-    body: "Make ambiguous, multi-file repository changes, graded for correctness and code quality.",
-    rows: [
-      ["Source", "Cursor"],
-      ["Role", "repository problem solving"],
-    ],
-  },
   cyberbench: {
     title: "CyberBench",
     body: "Reproduce and patch OSS-Fuzz vulnerabilities without breaking benign behavior.",
@@ -603,7 +595,6 @@ export const BENCHMARK_LABELS = {
   code_migration: "Code Migration",
   complex_constraints: "ComplexConstraints",
   critpt: "CritPt",
-  cursorbench: "CursorBench",
   cyberbench: "CyberBench",
   deep_swe: "DeepSWE",
   ebr_bench: "EBR-Bench",
@@ -671,7 +662,6 @@ const FRONTIER_BENCHMARK_DISPLAY_ORDER = [
   "code_migration",
   "complex_constraints",
   "critpt",
-  "cursorbench",
   "deep_swe",
   "ebr_bench",
   "emb",
@@ -880,20 +870,6 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
       metric: "tokens",
       direction: "ascending",
       label: "Crit Tok",
-    },
-  ],
-  cursorbench: [
-    {
-      key: "cursorBenchCost",
-      metric: "cost",
-      direction: "ascending",
-      label: "Cursor$",
-    },
-    {
-      key: "cursorBenchTokens",
-      metric: "tokens",
-      direction: "ascending",
-      label: "Cursor Tok",
     },
   ],
   deep_swe: [
@@ -1188,12 +1164,6 @@ export const BENCHMARK_COLUMNS = {
   critpt: {
     key: "critpt",
     label: "CritPt",
-    format: "percent",
-    defaultSort: "descending",
-  },
-  cursorbench: {
-    key: "cursorBench",
-    label: "Cursor",
     format: "percent",
     defaultSort: "descending",
   },

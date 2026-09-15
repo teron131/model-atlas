@@ -43,11 +43,6 @@ import {
   buildBlueprintBenchMap,
 } from "../blueprint-bench/leaderboard";
 import {
-  buildCursorBenchMap,
-  type CursorBenchModelScoreRow,
-  type CursorBenchRowsByModelName,
-} from "../cursorbench/leaderboard";
-import {
   buildDeepSWEMap,
   type DeepSWELeaderboardRow,
   type DeepSWERowsByModelName,
@@ -135,7 +130,6 @@ export type ModelAtlasSourceData = BenchmarkObservationData & {
     rowsByModelName: AleBenchRowsByModelName;
   };
   blueprintBench: IndexedSourceRows<BlueprintBenchModelScoreRow, BlueprintBenchRowsByModelName>;
-  cursorBench: IndexedSourceRows<CursorBenchModelScoreRow, CursorBenchRowsByModelName>;
   deepSWE: {
     rows: DeepSWELeaderboardRow[];
     rowsByModelName: DeepSWERowsByModelName;
@@ -159,7 +153,6 @@ export type ModelAtlasSourceRows = BenchmarkObservationRows & {
   agentsLastExamRows: ModelAtlasSourceData["agentsLastExam"]["rows"];
   aleBenchConfigurationRows: AleBenchSourceRow[];
   blueprintBenchRows: ModelAtlasSourceData["blueprintBench"]["rows"];
-  cursorBenchRows: ModelAtlasSourceData["cursorBench"]["rows"];
   deepSWEEffortRows: DeepSWELeaderboardRow[];
   frontierCodeRows: ModelAtlasSourceData["frontierCode"]["rows"];
   riemannBenchRows: ModelAtlasSourceData["riemannBench"]["rows"];
@@ -223,10 +216,6 @@ export function buildSourceData(rows: ModelAtlasSourceRows): ModelAtlasSourceDat
     blueprintBench: {
       rows: rows.blueprintBenchRows,
       rowsByModelName: buildBlueprintBenchMap(rows.blueprintBenchRows),
-    },
-    cursorBench: {
-      rows: rows.cursorBenchRows,
-      rowsByModelName: buildCursorBenchMap(rows.cursorBenchRows),
     },
     deepSWE: {
       rows: rows.deepSWEEffortRows,

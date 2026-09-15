@@ -14,7 +14,6 @@ import { agentsLastExamRuntime } from "./agents-last-exam/runtime";
 import { aleBenchRuntime } from "./ale-bench/runtime";
 import type { ModelAtlasSourceRows } from "./assembly/source-data";
 import { blueprintBenchRuntime } from "./blueprint-bench/runtime";
-import { cursorBenchRuntime } from "./cursorbench/runtime";
 import { deepSWERuntime } from "./deep-swe/runtime";
 import { frontierCodeRuntime } from "./frontier-code/runtime";
 import { insertBenchmarkObservationRows } from "./observations/cache";
@@ -31,7 +30,6 @@ const STANDALONE_BENCHMARK_RUNTIMES = {
   agents_last_exam: agentsLastExamRuntime,
   ale_bench: aleBenchRuntime,
   blueprint_bench_2: blueprintBenchRuntime,
-  cursorbench: cursorBenchRuntime,
   deep_swe: deepSWERuntime,
   frontier_code: frontierCodeRuntime,
   terminal_bench_4: terminalBench4Runtime,

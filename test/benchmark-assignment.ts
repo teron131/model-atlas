@@ -24,7 +24,6 @@ import { prepareVersionReplacementBenchmarkRows } from "../src/model-atlas/pipel
 import type { AgentArenaModelScoreRow } from "../src/model-atlas/sources/agent-arena/leaderboard";
 import type { AleBenchModelScoreRow } from "../src/model-atlas/sources/ale-bench/leaderboard";
 import type { ArtificialAnalysisBenchmarkResourceRow } from "../src/model-atlas/sources/artificial-analysis/benchmark-resources";
-import { buildCursorBenchMap } from "../src/model-atlas/sources/cursorbench/leaderboard";
 import { buildDeepSWEMap } from "../src/model-atlas/sources/deep-swe/leaderboard";
 import type { FrontierCodeModelEffortRow } from "../src/model-atlas/sources/frontier-code/leaderboard";
 import type { TerminalBench4ModelAgentRow } from "../src/model-atlas/sources/terminal-bench-4/leaderboard";
@@ -43,17 +42,6 @@ const deepSWERow = {
   mean_cost_usd: 4.2,
   mean_duration_seconds: 300,
   mean_output_tokens: 12_000,
-};
-const cursorBenchRow = {
-  rank: 1,
-  model: "Example Model",
-  base_model: "Example Model",
-  reasoning_effort: null,
-  score_eligible: true,
-  score: 0.52,
-  cost_per_task_usd: 0.42,
-  tokens_per_task: 12345,
-  steps_per_task: 12,
 };
 const agentArenaRow: AgentArenaModelScoreRow = {
   rank: 1,
@@ -312,9 +300,6 @@ const lookups = {
   chessPuzzles: { rowsByModelName: new Map() },
   codeMigration: { rowsByModelName: emptyLookup() },
   complexConstraints: { rowsByModelName: emptyLookup() },
-  cursorBench: {
-    rowsByModelName: new Map([["example-model", cursorBenchRow]]),
-  },
   cyberBench: { rowsByModelName: emptyLookup() },
   deepSWE: {
     rowsByModelName: new Map([["example-model-preview", deepSWERow]]),
@@ -383,7 +368,6 @@ assert.deepEqual(observationAssignment.benchmarks, {
   ale_bench: 700,
   analyst_agent: 0.5,
   briefcase: 0.5,
-  cursorbench: 0.52,
   deep_swe: 0.72,
   frontier_code: 0.535,
   hle: 0.4,
@@ -392,7 +376,6 @@ assert.deepEqual(observationAssignment.benchmarks, {
   vending_bench_2: 9_000,
 });
 assert.equal((observationAssignment.benchmarks as Record<string, unknown>).deep_swe, 0.72);
-assert.equal((observationAssignment.benchmarks as Record<string, unknown>).cursorbench, 0.52);
 assert.equal((observationAssignment.benchmarks as Record<string, unknown>).arc_agi_3, undefined);
 
 const effortObservationAssignment = buildObservationBenchmarks(
@@ -430,7 +413,6 @@ assert.deepEqual(defaultVariantAssignment.benchmarks, {
   automation_bench: 0.3044,
   briefcase: 0.5,
   chartography: 0.47,
-  cursorbench: 0.52,
   deep_swe: 0.72,
   frontier_code: 0.535,
   hle: 0.4,
@@ -448,7 +430,6 @@ assert.deepEqual(defaultVariantAssignment.scoringSources, {
   automation_bench: automationBenchRow,
   briefcase: briefcaseResourceRow,
   chartography: chartographyRow,
-  cursorbench: cursorBenchRow,
   deep_swe: deepSWERow,
   frontier_code: frontierCodeRow,
   hle: artificialAnalysisHleResourceRow,
@@ -522,10 +503,6 @@ assert.deepEqual(buildTaskMetrics(null, defaultVariantAssignment.scoringSources)
     tokens: 1000,
     input_tokens: 800,
     output_tokens: 200,
-  },
-  cursorbench: {
-    cost: 0.42,
-    tokens: 12345,
   },
   frontier_code: {
     cost: 0.75,
@@ -716,14 +693,14 @@ const versionedLuna = versionCandidateBenchmarkData(
         seconds: 300,
         output_tokens: 12_000,
       },
-      cursorbench: {
+      terminal_bench_science: {
         cost: 0.42,
         tokens: 12_345,
       },
     },
     benchmarks: {
       deep_swe: 0.72,
-      cursorbench: 0.52,
+      terminal_bench_science: 0.52,
     },
   } as ModelAtlasCandidate,
   {
@@ -735,14 +712,14 @@ const versionedLuna = versionCandidateBenchmarkData(
         seconds: 300,
         output_tokens: 12_000,
       },
-      cursorbench: {
+      terminal_bench_science: {
         cost: 2.1,
         tokens: 12_345,
       },
     },
     benchmarks: {
       deep_swe: 0.72,
-      cursorbench: 0.5,
+      terminal_bench_science: 0.5,
       vending_bench_2: 4_094.712,
     },
     benchmark_dates: null,
@@ -756,7 +733,7 @@ assert.deepEqual(
   versionedLuna.benchmark_dates,
   {
     deep_swe: "2026-07-30",
-    cursorbench: "2026-07-31",
+    terminal_bench_science: "2026-07-31",
   },
   "unchanged benchmark values should retain the seeded date while changed values advance",
 );
@@ -773,7 +750,7 @@ assert.deepEqual(
   "unchanged pre-transition task costs should preserve the observed value and apply the price ratio",
 );
 assert.deepEqual(
-  versionedLuna.task_metrics?.cursorbench,
+  versionedLuna.task_metrics?.terminal_bench_science,
   {
     cost: 0.42,
     observed_cost: 0.42,
@@ -794,7 +771,7 @@ const lunaVersionLog = buildBenchmarkVersionLogRows(
           seconds: 300,
           output_tokens: 12_000,
         },
-        cursorbench: {
+        terminal_bench_science: {
           cost: 2.1,
           tokens: 12_345,
         },
@@ -834,7 +811,7 @@ assert.deepEqual(
 );
 assert.deepEqual(
   lunaVersionLog
-    .filter(({ benchmark_key }) => benchmark_key === "cursorbench")
+    .filter(({ benchmark_key }) => benchmark_key === "terminal_bench_science")
     .map(({ metric_kind, version_date, change_kind }) => ({
       metric_kind,
       version_date,
@@ -914,19 +891,19 @@ assert.equal(
   "default-variant benchmarks must not overwrite effort-specific resources",
 );
 assert.equal(
-  (assignedObservation.benchmarks as Record<string, unknown>).cursorbench,
+  (assignedObservation.benchmarks as Record<string, unknown>).chartography,
   undefined,
   "model-level benchmarks should not be copied onto lower effort variants",
 );
 assert.ok(assignedDefaultVariant, "expected the default variant");
 assert.equal(
-  (assignedDefaultVariant.benchmarks as Record<string, unknown>).cursorbench,
-  cursorBenchRow.score,
+  (assignedDefaultVariant.benchmarks as Record<string, unknown>).chartography,
+  chartographyRow.canonical_value,
   "model-level benchmarks should belong to the selected default variant",
 );
 assert.ok(unassignedFastRoute, "expected the catalog-only fast route");
 assert.equal(
-  (unassignedFastRoute.benchmarks as Record<string, unknown>).cursorbench,
+  (unassignedFastRoute.benchmarks as Record<string, unknown>).chartography,
   undefined,
   "catalog-only routes should not outrank matched effort observations",
 );
@@ -1015,17 +992,6 @@ assert.equal(
 
 const effortAwareLookups = {
   ...lookups,
-  cursorBench: {
-    rowsByModelName: buildCursorBenchMap([
-      { ...cursorBenchRow, model: "Example Model Low", reasoning_effort: "Low", score: 0.3 },
-      {
-        ...cursorBenchRow,
-        model: "Example Model Extra High",
-        reasoning_effort: "Extra High",
-        score: 0.6,
-      },
-    ]),
-  },
   agentArena: {
     rowsByModelName: buildBenchmarkModelMap([
       { ...agentArenaRow, model: "Example Model (low)", reasoning_effort: "low", score: 0.1 },
@@ -1050,20 +1016,13 @@ const effortAwareLookups = {
   },
 };
 const lowerEffort = buildObservationBenchmarks(["Example Model"], effortAwareLookups, {}, "low");
-assert.equal(lowerEffort.benchmarks.cursorbench, 0.3);
 assert.equal(lowerEffort.benchmarks.agent_arena, 0.1);
 assert.equal(lowerEffort.benchmarks.vending_bench_2, 100);
-assert.equal(
-  buildObservationBenchmarks(["Example Model"], effortAwareLookups, {}, "xhigh").benchmarks
-    .cursorbench,
-  0.6,
-  "Cursor's Extra High label resolves to canonical xhigh",
-);
 const unreportedEffort = buildObservationBenchmarks(
   ["Example Model"],
   effortAwareLookups,
   {},
   "medium",
 );
-for (const key of ["cursorbench", "agent_arena", "vending_bench_2"])
+for (const key of ["agent_arena", "vending_bench_2"])
   assert.equal(unreportedEffort.benchmarks[key], undefined);

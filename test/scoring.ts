@@ -265,7 +265,6 @@ assert.deepEqual(resourceQualityCoordinates, {
   automation_bench: "logit",
   briefcase: "linear",
   critpt: "logit",
-  cursorbench: "linear",
   deep_swe: "logit",
   frontier_code: "linear",
   gdpval_normalized: "linear",
