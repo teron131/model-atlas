@@ -11,12 +11,21 @@ import { DashboardGraphs } from "./graphs/DashboardGraphs";
 import { useLivePayload } from "./live-payload";
 import { isGraphEligible, modelsForVariantDisplay, providerOptions } from "./shared/model-display";
 import { providerFilterKey } from "./shared/provider-theme";
+import { GRAPH_VARIANTS_COOKIE } from "./url-state";
 import { useUrlState } from "./use-url-state";
 
 const REASONING_VARIANT_STORAGE_KEY = "model-atlas:expand-reasoning-variants";
 
-export function Dashboard({ initialPayload }: { initialPayload: ModelAtlasPayload | null }) {
-  const [showReasoningVariants, setShowReasoningVariants] = useReasoningVariantDisplay();
+export function Dashboard({
+  initialPayload,
+  initialShowReasoningVariants = false,
+}: {
+  initialPayload: ModelAtlasPayload | null;
+  initialShowReasoningVariants?: boolean;
+}) {
+  const [showReasoningVariants, setShowReasoningVariants] = useReasoningVariantDisplay(
+    initialShowReasoningVariants,
+  );
   const [requestedProviders, setSelectedProviders] = useUrlState("provider");
   const [maxCostFilter, setMaxCostFilter] = useUrlState("max-cost");
   const [modelRankFilter, setModelRankFilter] = useUrlState("rank");
@@ -83,23 +92,28 @@ export function Dashboard({ initialPayload }: { initialPayload: ModelAtlasPayloa
   );
 }
 
-function useReasoningVariantDisplay() {
+/** Mirror the saved browser preference into a cookie so refreshed server-rendered points use the same mode. */
+function useReasoningVariantDisplay(initialShowReasoningVariants: boolean) {
   const hydratedModeRef = useRef(false);
-  const [showReasoningVariants, setShowReasoningVariants] = useState(false);
+  const [showReasoningVariants, setShowReasoningVariants] = useState(initialShowReasoningVariants);
 
   useLayoutEffect(() => {
     if (!hydratedModeRef.current) {
       hydratedModeRef.current = true;
       try {
-        setShowReasoningVariants(
-          window.localStorage.getItem(REASONING_VARIANT_STORAGE_KEY) === "true",
-        );
+        const saved = window.localStorage.getItem(REASONING_VARIANT_STORAGE_KEY);
+        if (saved != null) {
+          const expanded = saved === "true";
+          setShowReasoningVariants(expanded);
+          document.cookie = `${GRAPH_VARIANTS_COOKIE}=${expanded ? "1" : "0"}; Path=/; Max-Age=31536000; SameSite=Lax`;
+        }
       } catch {}
       return;
     }
     try {
       window.localStorage.setItem(REASONING_VARIANT_STORAGE_KEY, String(showReasoningVariants));
     } catch {}
+    document.cookie = `${GRAPH_VARIANTS_COOKIE}=${showReasoningVariants ? "1" : "0"}; Path=/; Max-Age=31536000; SameSite=Lax`;
   }, [showReasoningVariants]);
 
   const [urlVariants, setUrlVariants] = useUrlState("graph-variants", showReasoningVariants);

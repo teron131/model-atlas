@@ -2,7 +2,31 @@
 
 import assert from "node:assert/strict";
 
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+
 import { dashboardUrlSection, patchDashboardUrl, readUrlValue } from "../app/dashboard/url-state";
+import { DashboardUrlProvider, useUrlState } from "../app/dashboard/use-url-state";
+
+/** Both table and graph controls must use the request URL before browser hydration. */
+function InitialSelections() {
+  const [providers] = useUrlState("provider");
+  const [query] = useUrlState("table-q");
+  const [variants] = useUrlState("graph-variants");
+  const [rank] = useUrlState("rank");
+  return createElement("output", null, `${providers.join(",")}|${query}|${variants}|${rank}`);
+}
+
+assert.equal(
+  renderToStaticMarkup(
+    createElement(DashboardUrlProvider, {
+      search: "provider=openai&provider=xai&table-q=Grok&graph-variants=1&rank=30",
+      children: createElement(InitialSelections),
+    }),
+  ),
+  "<output>openai,xai|Grok|true|30</output>",
+  "The initial table and chart must not render with defaults before switching to URL filters",
+);
 
 const base = new URL("https://model-atlas.test/");
 assert.equal(patchDashboardUrl(base, {}).href, base.href);

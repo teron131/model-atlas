@@ -1,4 +1,4 @@
-/** Phase Ledger canvas renderer with WebGL and CPU paths, model annotations and pointer response. */
+/** Phase Ledger canvas renderer with WebGL and CPU paths, model-driven color and pointer response. */
 
 import type { SignatureModel } from "./models";
 import { renderPhaseShader } from "./phase-shader";
@@ -45,8 +45,6 @@ type PhaseBuffer = {
   signature: string;
   width: number;
 };
-const MATERIAL_MONO_FONT = '"SFMono-Regular", "SF Mono", Menlo, Consolas, monospace';
-const MATERIAL_SANS_FONT = '"Avenir Next", "Segoe UI", Helvetica, Arial, sans-serif';
 const POINTER_RADIUS_RATIO = 0.14;
 const PROVIDER_BLEND_EXPONENT = 0.78;
 const phaseBuffers = new WeakMap<CanvasRenderingContext2D, PhaseBuffer>();
@@ -71,12 +69,7 @@ export function renderMaterial(frame: MaterialFrame): void {
     renderEmptyField(frame);
     return;
   }
-  renderPhaseLedger(frame);
-}
-
-function renderPhaseLedger(frame: MaterialFrame): void {
   drawPhaseSurface(frame);
-  drawMaterialAnnotations(frame);
 }
 
 /** Render the Phase Ledger through WebGL when available, falling back to a cached CPU field that preserves the same material inputs. */
@@ -279,55 +272,6 @@ function phaseBuffer(
   };
   phaseBuffers.set(context, buffer);
   return buffer;
-}
-
-function drawMaterialAnnotations(frame: MaterialFrame): void {
-  const { context, width, models, palette } = frame;
-  const compact = width < 720;
-
-  context.save();
-  context.textBaseline = "middle";
-  context.lineJoin = "round";
-  models.forEach((model, modelIndex) => {
-    const anchor = modelPoint(modelIndex, models.length, frame.width, frame.height);
-    const displaced = disturb(frame, anchor.x, anchor.y, 0.04);
-    const annotationY = compact ? Math.min(displaced.y, frame.height * 0.76) : displaced.y;
-    const annotationX =
-      compact && annotationY > frame.height * 0.7
-        ? Math.min(displaced.x, width * 0.62)
-        : displaced.x;
-    const rank = String(model.rank).padStart(2, "0");
-    const rankFont = `650 9px ${MATERIAL_MONO_FONT}`;
-    const nameFont = `600 13px ${MATERIAL_SANS_FONT}`;
-    context.font = rankFont;
-    const rankWidth = context.measureText(rank).width;
-    context.font = nameFont;
-    const nameWidth = context.measureText(model.name).width;
-    const labelWidth = rankWidth + 8 + nameWidth;
-    const labelOnLeft = annotationX + 18 + labelWidth > width - 20;
-    const labelX = annotationX + (labelOnLeft ? -18 - labelWidth : 18);
-
-    context.strokeStyle = withAlpha(model.color, 0.74);
-    context.lineWidth = 1;
-    context.beginPath();
-    context.moveTo(annotationX - 18, annotationY);
-    context.lineTo(annotationX + 18, annotationY);
-    context.moveTo(annotationX, annotationY - 18);
-    context.lineTo(annotationX, annotationY + 18);
-    context.stroke();
-    context.textAlign = "left";
-    context.lineWidth = 2;
-    context.strokeStyle = withAlpha(palette.background, 0.82);
-    context.font = rankFont;
-    context.strokeText(rank, labelX, annotationY);
-    context.fillStyle = withAlpha(palette.muted, 0.82);
-    context.fillText(rank, labelX, annotationY);
-    context.font = nameFont;
-    context.strokeText(model.name, labelX + rankWidth + 8, annotationY);
-    context.fillStyle = withAlpha(palette.ink, 0.92);
-    context.fillText(model.name, labelX + rankWidth + 8, annotationY);
-  });
-  context.restore();
 }
 
 function renderEmptyField(frame: MaterialFrame): void {

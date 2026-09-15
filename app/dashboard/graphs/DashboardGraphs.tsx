@@ -157,7 +157,7 @@ export function DashboardGraphs({
   }, [deferredModelRankFilter, recencyFilteredModels, referenceModels]);
   const performanceModels = useMemo(() => {
     const variants = modelsForVariantDisplay(
-      deferredModelVariants,
+      deferredModelVariants.filter(isGraphEligible),
       deferredShowReasoningVariants,
       deferredPayload?.benchmark_observations,
     );

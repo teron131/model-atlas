@@ -75,13 +75,14 @@ export function useCursorProjection() {
     cursorProjection,
     cursorHandlers: ({ bounds, points, snapDistance }: ProjectionTarget) => ({
       onPointerMove: (event: ReactPointerEvent<SVGSVGElement>) => {
-        setCursorProjection(
-          projectCursor({
-            event,
-            bounds,
-            points,
-            snapDistance,
-          }),
+        const next = projectCursor({ event, bounds, points, snapDistance });
+        setCursorProjection((previous) =>
+          previous?.x === next?.x &&
+          previous?.y === next?.y &&
+          previous?.xValue === next?.xValue &&
+          previous?.yValue === next?.yValue
+            ? previous
+            : next,
         );
       },
       onPointerLeave: () => setCursorProjection(null),

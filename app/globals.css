@@ -566,6 +566,13 @@ main {
   --table-visible-rows: 8;
   --table-row-content-height: 35px;
   --table-row-padding-y: 9px;
+  --table-initial-row-height: calc(
+    (var(--model-name) + var(--model-id)) * 1.5 + 3px + var(--table-row-padding-y) * 2 + 1px
+  );
+  --table-initial-head-height: max(
+    var(--table-row-content-height),
+    calc(var(--mono-data) * 1.5 + var(--table-row-padding-y) * 2 + 1px)
+  );
 }
 
 .table-sticky-head {
@@ -596,7 +603,13 @@ main {
 
 .table-wrap {
   width: 100%;
-  height: var(--table-body-height, auto);
+  /* The unmeasured table includes its header; bound it to the same eight-row viewport before hydration. */
+  height: var(
+    --table-body-height,
+    calc(
+      var(--table-initial-row-height) * var(--table-visible-rows) + var(--table-initial-head-height)
+    )
+  );
   overflow-x: auto;
   overflow-y: auto;
   overscroll-behavior-x: none;

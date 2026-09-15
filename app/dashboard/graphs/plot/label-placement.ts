@@ -42,6 +42,7 @@ type Label = {
 };
 type PointObstacle = { key?: string; cx: number; cy: number; radius: number; weight?: number };
 type Candidate = PointLabelPlacement & { box: Box; connector: Segment; cost: number };
+type PairCost = (candidate: Candidate, other: Candidate) => number;
 
 /** Retain a bounded set of alternative layouts, then refine the best complete arrangement without sacrificing text readability to shorter leaders. */
 export function calloutLabelPlacements({
@@ -69,25 +70,28 @@ export function calloutLabelPlacements({
   const candidates = ordered.map((label) =>
     labelCandidates(label, bounds, obstacles, segments, reservedBoxes, directions, segmentWeight),
   );
+  const pairCost = cachedPairCost(candidates);
   // Keep alternative partial layouts so an early label cannot trap a later leader through text.
   let layouts: { placed: Candidate[]; cost: number }[] = [{ placed: [], cost: 0 }];
   for (const choices of candidates) {
     layouts = layouts
       .flatMap((layout) =>
         choices.map((choice) => ({
-          placed: [...layout.placed, choice],
-          cost: layout.cost + candidateCost(choice, layout.placed, layout.placed.length),
+          layout,
+          choice,
+          cost: layout.cost + candidateCost(choice, layout.placed, layout.placed.length, pairCost),
         })),
       )
       .sort((a, b) => a.cost - b.cost)
-      .slice(0, SEARCH_WIDTH);
+      .slice(0, SEARCH_WIDTH)
+      .map(({ layout, choice, cost }) => ({ placed: [...layout.placed, choice], cost }));
   }
   const placed = layouts[0]!.placed;
   for (let pass = 0; pass < MAX_PASSES; pass++) {
     let changed = false;
     for (let index = placed.length - 1; index >= 0; index--) {
       const current = placed[index]!;
-      const best = bestCandidate(candidates[index]!, placed, index, current);
+      const best = bestCandidate(candidates[index]!, placed, index, current, pairCost);
       if (best !== current) {
         placed[index] = best;
         changed = true;
@@ -95,7 +99,7 @@ export function calloutLabelPlacements({
     }
     if (!changed) break;
   }
-  untanglePairs(placed, candidates);
+  untanglePairs(placed, candidates, pairCost);
   return new Map(
     ordered.map((label, index) => {
       const { x, y, textAnchor, line } = placed[index]!;
@@ -202,11 +206,12 @@ function bestCandidate(
   placed: Candidate[],
   index: number,
   current: Candidate,
+  pairCost: PairCost,
 ): Candidate {
   let best = current;
-  let bestCost = candidateCost(best, placed, index);
+  let bestCost = candidateCost(best, placed, index, pairCost);
   for (const choice of choices) {
-    const cost = candidateCost(choice, placed, index);
+    const cost = candidateCost(choice, placed, index, pairCost);
     if (cost < bestCost - IMPROVEMENT_EPSILON) {
       best = choice;
       bestCost = cost;
@@ -215,7 +220,12 @@ function bestCandidate(
   return best;
 }
 
-function candidateCost(candidate: Candidate, placed: Candidate[], index: number): number {
+function candidateCost(
+  candidate: Candidate,
+  placed: Candidate[],
+  index: number,
+  pairCost: PairCost,
+): number {
   return (
     candidate.cost +
     placed.reduce(
@@ -223,6 +233,25 @@ function candidateCost(candidate: Candidate, placed: Candidate[], index: number)
       0,
     )
   );
+}
+
+/** Reuse symmetric collision costs within one layout search; the compact matrix is discarded with that search. */
+function cachedPairCost(candidates: Candidate[][]): PairCost {
+  const choices = candidates.flat();
+  const indices = new Map(choices.map((choice, index) => [choice, index]));
+  const costs = new Float64Array((choices.length * (choices.length - 1)) / 2).fill(NaN);
+  return (candidate, other) => {
+    const a = indices.get(candidate)!;
+    const b = indices.get(other)!;
+    const high = Math.max(a, b);
+    const low = Math.min(a, b);
+    const index = (high * (high - 1)) / 2 + low;
+    const cached = costs[index]!;
+    if (!Number.isNaN(cached)) return cached;
+    const cost = pairCost(candidate, other);
+    costs[index] = cost;
+    return cost;
+  };
 }
 
 function pairCost(candidate: Candidate, other: Candidate): number {
@@ -247,7 +276,7 @@ function pairCost(candidate: Candidate, other: Candidate): number {
 }
 
 /** Resolve coupled conflicts by moving both callouts together when neither can improve alone. */
-function untanglePairs(placed: Candidate[], candidates: Candidate[][]): void {
+function untanglePairs(placed: Candidate[], candidates: Candidate[][], pairCost: PairCost): void {
   for (let pass = 0; pass < PAIR_PASSES; pass++) {
     let changed = false;
     for (let a = 0; a < placed.length; a++) {
@@ -257,16 +286,16 @@ function untanglePairs(placed: Candidate[], candidates: Candidate[][]): void {
         let bestA = placed[a]!,
           bestB = placed[b]!;
         let bestCost =
-          candidateCost(bestA, others, -1) +
-          candidateCost(bestB, others, -1) +
+          candidateCost(bestA, others, -1, pairCost) +
+          candidateCost(bestB, others, -1, pairCost) +
           pairCost(bestA, bestB);
         const choicesA = candidates[a]!.map((choice) => ({
           choice,
-          cost: candidateCost(choice, others, -1),
+          cost: candidateCost(choice, others, -1, pairCost),
         }));
         const choicesB = candidates[b]!.map((choice) => ({
           choice,
-          cost: candidateCost(choice, others, -1),
+          cost: candidateCost(choice, others, -1, pairCost),
         }));
         for (const left of choicesA) {
           for (const right of choicesB) {

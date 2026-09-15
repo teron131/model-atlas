@@ -1,5 +1,7 @@
 /** Own the shareable performance and resource selections for one unified Pareto comparison. */
 
+import { memo } from "react";
+
 import type {
   ModelAtlasModel,
   ModelAtlasPayload,
@@ -10,7 +12,7 @@ import { FrontierBenchmarksPanel } from "./frontier-benchmarks/Panel";
 import type { HoverSetter } from "./types";
 import { useCompactChartLayout } from "./use-media-query";
 
-export function ParetoAnalysisPanel({
+export const ParetoAnalysisPanel = memo(function ParetoAnalysisPanel({
   payload,
   models,
   referenceModels,
@@ -45,4 +47,4 @@ export function ParetoAnalysisPanel({
       setHover={setHover}
     />
   );
-}
+});
