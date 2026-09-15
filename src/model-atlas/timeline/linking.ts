@@ -6,7 +6,7 @@ import type {
   TimelineBenchmarkCalibration,
   TimelineLink,
   TimelineParameters,
-} from "./types";
+} from "./schemas";
 
 export type PairedTimelineObservation = { family: string; left: number; right: number };
 

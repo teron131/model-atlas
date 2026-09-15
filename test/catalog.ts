@@ -101,8 +101,8 @@ const completeBasicSpecs = {
 assert.equal(
   hasRequiredPublicRelevance({
     scores: {
-      intelligence_score: 10,
-      agentic_score: 10,
+      intelligence_score: 10.01,
+      agentic_score: 10.01,
       speed_score: 9,
       value_score: 9,
     },
@@ -113,7 +113,7 @@ assert.equal(
 assert.equal(
   hasRequiredPublicRelevance({
     scores: {
-      intelligence_score: 10,
+      intelligence_score: 10.01,
       agentic_score: 9,
       speed_score: 100,
       value_score: 100,
@@ -121,6 +121,15 @@ assert.equal(
   }),
   false,
   "resource scores should not rescue a model below the Agentic relevance floor",
+);
+
+assert.equal(
+  hasRequiredPublicRelevance({ scores: { intelligence_score: 10, agentic_score: 100 } }),
+  false,
+);
+assert.equal(
+  hasRequiredPublicRelevance({ scores: { intelligence_score: 100, agentic_score: 10 } }),
+  false,
 );
 
 const evidencePortfolio = {

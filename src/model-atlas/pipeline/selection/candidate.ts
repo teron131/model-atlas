@@ -47,6 +47,7 @@ const EMPTY_OPENROUTER_PRICING = {
 const PRICE_RATIO_TOLERANCE = 1e-9;
 
 export type BenchmarkVersioningOptions = {
+  observedAt?: string;
   baselineDate: string;
   observedDate: string;
   priceTransitions?: readonly TaskCostPriceTransition[];

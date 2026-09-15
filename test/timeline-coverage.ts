@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 
 import { timelineCoverage } from "../src/model-atlas/timeline/coverage";
 import { historicalDatasetFromReleases } from "../src/model-atlas/timeline/dataset";
-import { historicalSourceModel } from "../src/model-atlas/timeline/index-sources";
-import type { HistoricalSourceRelease } from "../src/model-atlas/timeline/types";
+import { historicalSourceModel } from "../src/model-atlas/timeline/model-identity";
+import type { HistoricalSourceRelease } from "../src/model-atlas/timeline/schemas";
 
 const broad = historicalSourceModel("Broad old model", "Lab", null, "2020-01-01");
 const sparse = historicalSourceModel("Sparse old model", "Lab", null, "2020-01-01");

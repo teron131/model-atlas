@@ -7,9 +7,9 @@ import {
   DEFAULT_TIMELINE_PARAMETERS,
 } from "../src/model-atlas/timeline/calibration";
 import { historicalDatasetFromReleases } from "../src/model-atlas/timeline/dataset";
-import { historicalSourceModel } from "../src/model-atlas/timeline/index-sources";
+import { historicalSourceModel } from "../src/model-atlas/timeline/model-identity";
 import { prepareTimelineRelease } from "../src/model-atlas/timeline/scale";
-import type { HistoricalSourceRelease } from "../src/model-atlas/timeline/types";
+import type { HistoricalSourceRelease } from "../src/model-atlas/timeline/schemas";
 
 const models = Array.from({ length: 16 }, (_, i) =>
   historicalSourceModel(`Donor ${i}`, "Lab", null, "2026-01-01"),

@@ -8,6 +8,7 @@ import {
 import type { BenchmarkAdmissionConfig, FinalStageConfig, ScoringConfig } from "../../config/stage";
 import { cacheModelLogos } from "../../logos/cache";
 import { asFiniteNumber, asRecord } from "../../runtime";
+import { advanceCapabilities, type CapabilityState } from "../../timeline/capability";
 import type {
   ModelAtlasCandidate,
   ModelAtlasModel,
@@ -46,7 +47,7 @@ import {
   versionReplacementBenchmarkWeights,
 } from "./version-replacement";
 
-const MIN_PUBLIC_QUALITY_SCORE = 10;
+const MIN_PUBLIC_RELATIVE_SCORE = 10;
 const PUBLIC_QUALITY_SCORE_KEYS = ["intelligence_score", "agentic_score"] as const;
 
 type IdentityCandidate = Pick<ModelAtlasCandidate, "id" | "name" | "modalities">;
@@ -60,6 +61,7 @@ export type ModelSelection = {
   modelRows: Record<string, unknown>[];
   candidates: ModelAtlasCandidate[];
   scoringPreparation: BenchmarkScoringPreparation;
+  capabilityState?: CapabilityState;
 };
 
 /** Compute quality once against the complete benchmark population before choosing per-model network work. */
@@ -71,6 +73,7 @@ export function prepareModelSelection(
     observedDate: new Date().toISOString().slice(0, 10),
   },
   previousModels: readonly ModelAtlasModel[] = [],
+  capabilityState?: CapabilityState,
 ): ModelSelection {
   const openRouterData = prepareOpenRouterModelData(rows, scoringConfig, null);
   const modelRows = prepareVersionReplacementBenchmarkRows(
@@ -125,14 +128,22 @@ export function prepareModelSelection(
     );
     return { ...model, component_scores: result.componentScores, confidence: result.confidence };
   });
+  if (capabilityState) {
+    capabilityState = advanceCapabilities(
+      capabilityState,
+      qualityScoredCandidates,
+      versioning.observedAt ?? new Date().toISOString(),
+    );
+  }
   return {
     modelRows,
     candidates: qualityScoredCandidates,
     scoringPreparation,
+    capabilityState,
   };
 }
 
-/** Request routes only after quality clears the existing relevance floor; missing route metrics cannot disqualify a model before fetching. */
+/** Fetch routes for evidence-qualified configurations that clear the relative capability floor. */
 export function selectOpenRouterModelRows(
   selection: ModelSelection,
   finalConfig: FinalStageConfig,
@@ -268,13 +279,13 @@ function observedBenchmarkWeight(
   return opaqueWeight + [...namedWeights.values()].reduce((sum, weight) => sum + weight, 0);
 }
 
-/** Admit a final row when both public quality scores reach the relevance floor. */
+/** Relative Intelligence and Agentic must both exceed 10; release age remains a dashboard filter. */
 export function hasRequiredPublicRelevance(model: {
   scores: Partial<ModelAtlasScoredCandidate["scores"]> | null;
 }): boolean {
   return PUBLIC_QUALITY_SCORE_KEYS.every((key) => {
     const score = asFiniteNumber(model.scores?.[key]);
-    return score != null && score >= MIN_PUBLIC_QUALITY_SCORE;
+    return score != null && score > MIN_PUBLIC_RELATIVE_SCORE;
   });
 }
 

@@ -28,6 +28,7 @@ import {
 import { buildCurrentModelAtlasMetadata } from "../stats/payload/metadata";
 import { preserveHighSignalSnapshotModels } from "../stats/payload/snapshot-preservation";
 import type { ModelAtlasModel, ModelAtlasPayload, ModelAtlasPublishedModel } from "../stats/types";
+import type { CapabilityState } from "../timeline/capability";
 import { buildDebugTraceRows, type DebugTraceRow, insertDebugTraceRows } from "./debug-trace";
 import { SNAPSHOT_TABLES, type SnapshotTableName } from "./tables";
 import {
@@ -53,6 +54,7 @@ type BenchmarkVersionLogRow = {
 };
 
 type DatabaseSnapshotRows = {
+  capabilityState?: CapabilityState;
   snapshots: SourceSnapshots;
   openRouterRawPayload: OpenRouterSourcePayload | null | undefined;
   finalModelRows: readonly ModelAtlasPublishedModel[];
@@ -141,6 +143,7 @@ const SNAPSHOT_APPEND_WRITERS = [
 ] satisfies readonly SnapshotWriter[];
 
 type DatabaseSnapshotVersioning = {
+  capabilityState?: CapabilityState;
   previousPayload?: ModelAtlasPayload | null;
   baselineDate?: string;
   replaceSourceRows?: boolean;
@@ -161,14 +164,17 @@ export async function deriveDatabaseSnapshot(
   const previousModels = versioning.previousPayload?.models ?? [];
   const sourceData = cachedSourceDataFromSnapshots(snapshots);
   const {
+    capabilityState,
     matchDiagnostics,
     models: derivedModels,
     openRouterLoad,
   } = await deriveModelStats(sourceData, {
+    capabilityState: versioning.capabilityState,
     loadOpenRouter,
     benchmarkVersioning: {
       baselineDate,
       observedDate,
+      observedAt: new Date(startedAtEpochSeconds * 1000).toISOString(),
       previousModels,
     },
   });
@@ -195,6 +201,7 @@ export async function deriveDatabaseSnapshot(
     openrouter: openRouterLoad.cacheStatus,
   };
   const rows: DatabaseSnapshotRows = {
+    capabilityState,
     snapshots,
     openRouterRawPayload: openRouterLoad.rawPayload,
     finalModelRows,

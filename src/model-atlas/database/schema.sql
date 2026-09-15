@@ -3,6 +3,12 @@
 PRAGMA journal_mode = WAL;
 PRAGMA synchronous = NORMAL;
 
+-- Fixed capability state travels with the checkpoint and survives ordinary source/model rewrites.
+CREATE TABLE IF NOT EXISTS capability_state (
+  singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+  state_gzip BLOB NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS model_atlas_schema_manifest (
 	object_type TEXT NOT NULL,
 	object_name TEXT NOT NULL,

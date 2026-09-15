@@ -7,6 +7,7 @@ import { buildMatchDiagnostics, type MatchDiagnosticsPayload } from "../identity
 import { publicOpenRouterModelId } from "../identity/openrouter";
 import type { ModelAtlasSourceData } from "../sources/assembly";
 import { getOpenRouterRawScrapedStats, type OpenRouterSourcePayload } from "../sources/openrouter";
+import type { CapabilityState } from "../timeline/capability";
 import { assignBenchmarksToVariants } from "./benchmark-rows";
 import { modelRowsFromMatchDiagnostics } from "./matched-rows";
 import { buildModelCatalogRows, buildModelVariants } from "./model-catalog";
@@ -28,6 +29,7 @@ type OpenRouterLoadResult = {
 };
 
 type ModelDerivationOptions = {
+  capabilityState?: CapabilityState;
   modelId?: string | null;
   benchmarkVersioning?: BenchmarkVersioningOptions & {
     previousModels?: readonly ModelAtlasModel[];
@@ -40,6 +42,7 @@ type ModelDerivationLoaderOptions<LoadResult extends OpenRouterLoadResult> =
   };
 
 type ModelDerivationResult<LoadResult extends OpenRouterLoadResult | null> = {
+  capabilityState?: CapabilityState;
   matchDiagnostics: MatchDiagnosticsPayload;
   modelRows: Record<string, unknown>[];
   models: ModelAtlasPublishedModel[];
@@ -83,6 +86,7 @@ export async function deriveModelStats<LoadResult extends OpenRouterLoadResult>(
     STAGE_CONFIG.scoring,
     options.benchmarkVersioning,
     options.benchmarkVersioning?.previousModels,
+    options.capabilityState,
   );
   const eligibleRows = selectOpenRouterModelRows(
     selection,
@@ -112,6 +116,7 @@ export async function deriveModelStats<LoadResult extends OpenRouterLoadResult>(
     STAGE_CONFIG.scoring,
   );
   return {
+    capabilityState: selection.capabilityState,
     matchDiagnostics,
     modelRows: openRouterData.modelRows,
     models,

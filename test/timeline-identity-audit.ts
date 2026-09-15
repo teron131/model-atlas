@@ -2,13 +2,13 @@
 import assert from "node:assert/strict";
 
 import { historicalDatasetFromReleases } from "../src/model-atlas/timeline/dataset";
-import { auditHistoricalIdentities } from "../src/model-atlas/timeline/identity-audit";
-import { historicalSourceModel } from "../src/model-atlas/timeline/index-sources";
 import {
+  auditHistoricalIdentities,
   historicalNameKey,
+  historicalSourceModel,
   resolveHistoricalModelIdentities,
 } from "../src/model-atlas/timeline/model-identity";
-import type { HistoricalSourceRelease } from "../src/model-atlas/timeline/types";
+import type { HistoricalSourceRelease } from "../src/model-atlas/timeline/schemas";
 
 const aa = historicalSourceModel("Gemini 1.5 Pro (Sep 2024)", "Google", null, "2024-09-24");
 const epoch = historicalSourceModel(

@@ -160,7 +160,7 @@ function quadrilateralScoreUnits(model: Pick<ModelAtlasPublishedModel, "scores">
 }
 
 function scoreUnit(value: number | null | undefined, fallback: number): number {
-  return Math.max(0, Math.min(1, (Number.isFinite(value) ? Number(value) : fallback) / 100));
+  return Math.max(0, (Number.isFinite(value) ? Number(value) : fallback) / 100);
 }
 
 function scoreRadius(score: number): number {

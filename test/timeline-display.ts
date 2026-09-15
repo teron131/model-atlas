@@ -6,7 +6,7 @@ import { compactModelVariants } from "../app/leaderboard/model-variants";
 import { coverageFrontier } from "../app/timeline/frontier";
 import { modelRepresentatives } from "../app/timeline/model-representatives";
 import { modelDisplayExclusion } from "../src/model-atlas/stats/model-visibility";
-import { historicalSourceModel } from "../src/model-atlas/timeline/index-sources";
+import { historicalSourceModel } from "../src/model-atlas/timeline/model-identity";
 import { minimalModelAtlasModel } from "./model-atlas-fixtures";
 
 const old = { current: false, score: 30, coverage: 0.8, releaseDate: "2023-03-14" };

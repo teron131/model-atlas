@@ -375,7 +375,7 @@ assert.equal(
   "the full public view should not expose raw DeepSWE source rows",
 );
 assert.equal(scorePayload.schema, "model_atlas.score");
-assert.equal(scorePayload.score_scale, "percentage");
+assert.equal(scorePayload.score_scale, "relative_0_100");
 
 assert.deepEqual(scoreModel, {
   rank: 1,
@@ -395,7 +395,7 @@ assert.deepEqual(scoreModel, {
 });
 
 assert.equal(corePayload.schema, "model_atlas.core");
-assert.equal(corePayload.score_scale, "percentage");
+assert.deepEqual(corePayload.score_scale, scorePayload.score_scale);
 assert.equal(corePayload.methodology, methodology);
 assert.deepEqual(corePayload.columns, [
   "rank",

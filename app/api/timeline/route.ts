@@ -1,92 +1,49 @@
-/** Serve the local benchmark-evidence release and keep expensive recalibration off the browser thread. */
-import { readFile, stat } from "node:fs/promises";
-import { resolve } from "node:path";
+/** Serve the separate cloud-published Intelligence Index; reading never changes leaderboard relative scores or refits calibration. */
 
-import { prepareTimelineBenchmarkEvidence } from "../../../src/model-atlas/timeline/benchmark-evidence";
-import {
-  anchorTimeline,
-  calibrateTimeline,
-  DEFAULT_TIMELINE_ANCHORS,
-  DEFAULT_TIMELINE_PARAMETERS,
-} from "../../../src/model-atlas/timeline/calibration";
-import type {
-  HistoricalDataset,
-  TimelineParameters,
-} from "../../../src/model-atlas/timeline/types";
+import { createHash } from "node:crypto";
+import { promisify } from "node:util";
+import { gzip } from "node:zlib";
+
+import { readIntelligenceIndex } from "../../../src/model-atlas/database/runtime-snapshot";
+import type { HistoricalDataset } from "../../../src/model-atlas/timeline/schemas";
+import { matchesEtag } from "../cache-headers";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-let cached: { stamp: number; data: HistoricalDataset } | null = null;
 
-async function release() {
-  const path = resolve(".cache/timeline-preview.json");
-  const stamp = (await stat(path)).mtimeMs;
-  if (cached?.stamp === stamp) return cached;
-  const data = JSON.parse(await readFile(path, "utf8")) as HistoricalDataset;
-  if (!data.releaseId || !data.scale || !data.prepared)
-    throw new Error(
-      "Regenerate the local benchmark-evidence release with pnpm timeline <checkpoint.sqlite>.",
-    );
-  for (const dimension of ["intelligence", "agentic"] as const)
-    anchorTimeline(
-      data.prepared.calibrations[dimension],
-      data,
-      DEFAULT_TIMELINE_ANCHORS,
-      dimension,
-    );
-  // Publish only a validated release, and keep its data and file stamp together for response validators.
-  cached = { stamp, data };
-  return cached;
-}
+const compress = promisify(gzip);
+const responses = new WeakMap<HistoricalDataset, Promise<{ body: Buffer; etag: string }>>();
 
 export async function GET(request: Request) {
   try {
-    const { data, stamp } = await release();
-    const etag = `"${data.releaseId}:${data.scale!.id}:${stamp}"`;
-    const headers = { "Cache-Control": "no-store", ETag: etag };
-    if (request.headers.get("If-None-Match") === etag)
-      return new Response(null, { status: 304, headers });
-    return Response.json(data, { headers });
-  } catch (error) {
-    return Response.json(
-      {
-        error:
-          (error as NodeJS.ErrnoException).code === "ENOENT"
-            ? "Generate a local release with pnpm timeline <checkpoint.sqlite>."
-            : (error as Error).message,
-      },
-      { status: 503 },
-    );
-  }
-}
-
-/** Parameters affect derived estimates only; the archived observations and prepared default release stay unchanged. */
-export async function POST(request: Request) {
-  try {
-    const parameters = (await request.json()) as TimelineParameters;
-    if (
-      !parameters ||
-      Object.keys(DEFAULT_TIMELINE_PARAMETERS).some(
-        (key) => typeof parameters[key as keyof TimelineParameters] !== "number",
-      )
-    )
-      throw new Error("Provide numeric saturation and validation parameters.");
-    const { data } = await release();
-    const calibrations = {
-      intelligence: calibrateTimeline(data, "intelligence", parameters),
-      agentic: calibrateTimeline(data, "agentic", parameters),
+    const dataset = await readIntelligenceIndex();
+    if (!dataset?.prepared || !dataset.displayAnchors)
+      throw new Error("The published snapshot has no Intelligence Index.");
+    let cached = responses.get(dataset);
+    if (!cached) {
+      // Browser charts use published estimates and diagnostics; fitting graphs stay on the server.
+      const { scale: _scale, ...display } = dataset;
+      const json = JSON.stringify(display);
+      cached = compress(json).then((body) => ({
+        body,
+        etag: `"${createHash("sha256").update(body).digest("hex")}"`,
+      }));
+      responses.set(dataset, cached);
+      cached.catch(() => responses.delete(dataset));
+    }
+    const { body, etag } = await cached;
+    const headers = {
+      "Cache-Control": "no-store",
+      ETag: etag,
+      "Content-Type": "application/json",
+      "Content-Encoding": "gzip",
     };
-    return Response.json(
-      {
-        releaseId: data.releaseId,
-        scaleId: data.scale!.id,
-        parameters,
-        evidence: prepareTimelineBenchmarkEvidence(data, parameters),
-        calibrations,
-      },
-      { headers: { "Cache-Control": "no-store" } },
-    );
+    const unchanged = matchesEtag(request.headers.get("If-None-Match"), etag);
+    return new Response(unchanged ? null : new Uint8Array(body), {
+      status: unchanged ? 304 : 200,
+      headers,
+    });
   } catch (error) {
-    return Response.json({ error: (error as Error).message }, { status: 400 });
+    return Response.json({ error: (error as Error).message }, { status: 503 });
   }
 }

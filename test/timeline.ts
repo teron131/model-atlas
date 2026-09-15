@@ -9,19 +9,19 @@ import {
   timelineTransferError,
 } from "../src/model-atlas/timeline/calibration";
 import { historicalDatasetFromReleases } from "../src/model-atlas/timeline/dataset";
-import { historicalSourceModel } from "../src/model-atlas/timeline/index-sources";
 import {
   extendTimelineGraph,
   fitTimelineLink,
   timelineInformation,
 } from "../src/model-atlas/timeline/linking";
+import { historicalSourceModel } from "../src/model-atlas/timeline/model-identity";
 import { prepareTimelineRelease } from "../src/model-atlas/timeline/scale";
 import type {
   HistoricalBenchmark,
   HistoricalModel,
   HistoricalSourceRelease,
   TimelineAnchors,
-} from "../src/model-atlas/timeline/types";
+} from "../src/model-atlas/timeline/schemas";
 
 const close = (actual: number, expected: number) =>
   assert.ok(Math.abs(actual - expected) < 1e-7, actual + " != " + expected);

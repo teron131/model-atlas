@@ -9,7 +9,7 @@ import {
   publicJsonPayload,
   publicJsonView,
 } from "../../leaderboard/public-json";
-import { publicCacheHeaders } from "../cache-headers";
+import { matchesEtag, publicCacheHeaders } from "../cache-headers";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -50,12 +50,7 @@ export async function GET(request: Request) {
     headers.set("Content-Type", "application/json; charset=utf-8");
     headers.set("ETag", serialized.etag);
     headers.set("Vary", "x-model-atlas-view");
-    const unchanged = request.headers
-      .get("if-none-match")
-      ?.split(",")
-      .some(
-        (tag) => tag.trim() === "*" || tag.trim().replace(/^W\//, "") === serialized.etag.slice(2),
-      );
+    const unchanged = matchesEtag(request.headers.get("if-none-match"), serialized.etag);
     return new Response(unchanged ? null : serialized.body, {
       status: unchanged ? 304 : 200,
       headers,

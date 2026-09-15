@@ -50,6 +50,9 @@ const degradedFable = {
   },
 };
 
+preservedFable.component_scores.intelligence_score = preservedFable.scores.intelligence_score;
+degradedFable.component_scores.intelligence_score = degradedFable.scores.intelligence_score;
+
 const preserved = preserveHighSignalSnapshotModels(
   minimalModelAtlasPayload({
     fetchedAt: 2,

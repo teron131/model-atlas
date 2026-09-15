@@ -6,7 +6,7 @@ import { scaleLinear } from "d3-scale";
 import { ChevronLeft, ChevronRight, Minus, Plus, Scan } from "lucide-react";
 import { type PointerEvent, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 
-import type { HistoricalEstimate, HistoricalModel } from "../../src/model-atlas/timeline/types";
+import type { HistoricalEstimate, HistoricalModel } from "../../src/model-atlas/timeline/schemas";
 import {
   calloutLabelPlacements,
   type PointLabelSize,
@@ -529,7 +529,7 @@ export function TimelinePlot({
         onLostPointerCapture={endDrag}
         viewBox="0 0 1200 1000"
         role="img"
-        aria-label="Anchored capability by model release date. Linear score axis. Hover or focus a model point to inspect its evidence."
+        aria-label="Intelligence Index by model release date. Linear Intelligence Index axis. Hover or focus a model point to inspect its evidence."
       >
         <defs>
           <clipPath id={clipId}>

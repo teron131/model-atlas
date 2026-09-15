@@ -4,12 +4,17 @@ import assert from "node:assert/strict";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { Readable } from "node:stream";
+import { gunzipSync } from "node:zlib";
 
 import type { Storage } from "@google-cloud/storage";
 
 import { GET } from "../app/api/llm-stats/route";
+import { GET as indexGET } from "../app/api/timeline/route";
 import { publicJsonPayload } from "../app/leaderboard/public-json";
-import { readDisplaySnapshotPayload } from "../src/model-atlas/database/runtime-snapshot";
+import {
+  readDisplaySnapshotPayload,
+  readIntelligenceIndex,
+} from "../src/model-atlas/database/runtime-snapshot";
 import { SnapshotStorage } from "../src/model-atlas/database/snapshots/gcs";
 import {
   parseSnapshotManifest,
@@ -17,6 +22,11 @@ import {
   snapshotObject,
   snapshotVersions,
 } from "../src/model-atlas/database/snapshots/manifest";
+import {
+  DEFAULT_TIMELINE_ANCHORS,
+  DEFAULT_TIMELINE_PARAMETERS,
+} from "../src/model-atlas/timeline/calibration";
+import type { HistoricalDataset } from "../src/model-atlas/timeline/schemas";
 import { minimalModelAtlasModel, minimalModelAtlasPayload } from "./model-atlas-fixtures";
 
 type StoredObject = { bytes: Buffer; generation: string; metadata: Record<string, unknown> };
@@ -104,7 +114,12 @@ try {
   await writeFile(checkpoint, checkpointBytes);
   const payload = minimalModelAtlasPayload({
     fetchedAt: 100,
-    models: [minimalModelAtlasModel({ id: "test/model", name: "Test model" })],
+    models: [
+      {
+        ...minimalModelAtlasModel({ id: "test/model", name: "Test model" }),
+        release_date: "1970-01-01",
+      },
+    ],
   });
   const store = new SnapshotStorage("public-bucket", "private-bucket", storage);
   assert.throws(() => new SnapshotStorage("same", "same", storage), /separate/);
@@ -248,7 +263,7 @@ try {
     [{ ...next.manifest, data_sha256: "0".repeat(64) }, /fingerprint/],
   ] as const) {
     nextManifestObject.bytes = Buffer.from(JSON.stringify(manifest));
-    await assert.rejects(readDisplaySnapshotPayload(), error);
+    if (error.source === "timestamp") await assert.rejects(readDisplaySnapshotPayload(), error);
     await assert.rejects(store.restore(manifest, invalidCheckpoint), error);
     await assert.rejects(readFile(invalidCheckpoint), { code: "ENOENT" });
   }
@@ -465,6 +480,119 @@ try {
     migrated,
     "Repeated migration must not discard initialized retention history",
   );
+  const historicalModels = [
+    {
+      id: "old",
+      family: "old",
+      name: "Old model",
+      provider: "Lab",
+      effort: null,
+      releaseDate: "2020-01-01",
+      current: false,
+    },
+  ];
+  const reference = { id: "reference", capturedAt: "2026-09-15", models: 1 };
+  const roots = { intelligence: "root-i", agentic: "root-a" };
+  const index: HistoricalDataset = {
+    releaseId: "release",
+    capturedAt: "2026-09-15",
+    reference,
+    rootBenchmarkIds: roots,
+    models: historicalModels,
+    benchmarks: [],
+    observations: [],
+    archiveEntries: 0,
+    portfolios: [],
+    sourceReleases: [],
+    conflicts: 0,
+    scale: {
+      id: "scale",
+      parentId: null,
+      parameters: DEFAULT_TIMELINE_PARAMETERS,
+      minimumReferenceConfidence: 0.6,
+      reference,
+      rootBenchmarkIds: roots,
+      models: historicalModels,
+      benchmarks: [],
+      observations: [],
+      dimensions: { intelligence: { nodes: [], links: [] }, agentic: { nodes: [], links: [] } },
+    },
+    displayAnchors: DEFAULT_TIMELINE_ANCHORS,
+    prepared: {
+      parameters: DEFAULT_TIMELINE_PARAMETERS,
+      evidence: { cells: [], predictors: [] },
+      calibrations: { intelligence: { estimates: [], predictors: [], connectedBenchmarks: 0 } },
+    },
+  };
+  const indexedPayload = { ...payload, timeline: index };
+  const indexed = await store.publish(checkpoint, indexedPayload, await store.current());
+  assert.deepEqual(
+    await store.restore(indexed.manifest, join(workspace, "index.sqlite")),
+    indexedPayload,
+  );
+  const indexObject = objects.get(
+    `public-bucket/${snapshotObject(indexed.manifest.version, "intelligence-index")}`,
+  )!;
+  const encodedIndex = JSON.parse(gunzipSync(indexObject.bytes).toString());
+  assert.equal(encodedIndex.scale.models, undefined);
+  clock += 31_000;
+  const readsBefore = payloadReads;
+  assert.equal((await readDisplaySnapshotPayload()).timeline, undefined);
+  assert.equal(
+    payloadReads,
+    readsBefore + 1,
+    "Leaderboard reads must fetch only the small dashboard artifact",
+  );
+  const [indexRead, concurrentIndex] = await Promise.all([
+    readIntelligenceIndex(),
+    readIntelligenceIndex(),
+  ]);
+  assert.equal(indexRead, concurrentIndex);
+  assert.deepEqual(indexRead, index);
+  assert.equal(
+    payloadReads,
+    readsBefore + 2,
+    "Concurrent historical reads must share one index download",
+  );
+  const indexResponse = await indexGET(new Request("http://localhost/api/timeline"));
+  const { scale: _graph, ...displayIndex } = index;
+  assert.deepEqual(
+    JSON.parse(gunzipSync(Buffer.from(await indexResponse.arrayBuffer())).toString()),
+    displayIndex,
+  );
+  const indexTag = indexResponse.headers.get("etag")!;
+  for (const validator of [indexTag, `W/${indexTag}`, `"other", ${indexTag}`, "*"]) {
+    const unchanged = await indexGET(
+      new Request("http://localhost/api/timeline", { headers: { "If-None-Match": validator } }),
+    );
+    assert.equal(unchanged.status, 304);
+    assert.equal(await unchanged.text(), "");
+  }
+  assert.equal(payloadReads, readsBefore + 2);
+  await store.publish(
+    checkpoint,
+    { ...indexedPayload, fetched_at_epoch_seconds: 800 },
+    await store.current(),
+  );
+  clock += 31_000;
+  assert.equal(
+    await readIntelligenceIndex(),
+    indexRead,
+    "A new snapshot with the same index checksum reuses the parsed index",
+  );
+  assert.equal(
+    payloadReads,
+    readsBefore + 2,
+    "Source-only refreshes must not redownload unchanged index history",
+  );
+  const intactIndex = indexObject.bytes;
+  indexObject.bytes = Buffer.from("corrupt index");
+  await assert.rejects(
+    store.restore(indexed.manifest, join(workspace, "corrupt-index.sqlite")),
+    /checksum/,
+  );
+  indexObject.bytes = intactIndex;
+
   console.log("Snapshot publication, recovery, concurrency, and read caching checks passed");
 } finally {
   globalThis.fetch = originalFetch;

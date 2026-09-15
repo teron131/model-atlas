@@ -28,7 +28,7 @@ export const DOCUMENTS = [
     slug: "timeline",
     title: "Timeline",
     description:
-      "How Timeline compares model generations using retained benchmarks, published indexes, and a fixed reference scale.",
+      "How Timeline uses the Intelligence Index to compare model generations through retained benchmarks and a fixed reference scale.",
   },
 ] as const;
 
