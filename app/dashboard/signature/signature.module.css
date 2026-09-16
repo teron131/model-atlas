@@ -68,6 +68,17 @@
   background: #000;
 }
 
+/* Glacier remains a dark photographic surface in light mode, so its overlaid evidence keeps the dark-theme ink contract while the surrounding controls follow the page. */
+:global(html[data-model-atlas-theme="light"]) .signature[data-mode="glacier"] .copy {
+  --ink: #f2f3ed;
+  --ink-rgb: 242 243 237;
+  --muted: #bbc1b7;
+  --faint: #969f93;
+  --line: rgb(var(--ink-rgb) / 0.085);
+  --line-strong: rgb(var(--ink-rgb) / 0.2);
+  color: var(--ink);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .video {
     transition: none;
@@ -373,6 +384,9 @@
 .modelCopy .modelRole {
   margin-top: 0;
   color: var(--ink);
+  overflow: visible;
+  white-space: normal;
+  line-height: 1.4;
 }
 
 .modelCopy span {
@@ -387,12 +401,6 @@
     display: flex;
     overflow-x: auto;
     overscroll-behavior-x: contain;
-    mask-image: linear-gradient(
-      to right,
-      var(--ink) 0,
-      var(--ink) calc(100% - 28px),
-      transparent 100%
-    );
     scrollbar-width: none;
   }
 
@@ -455,7 +463,6 @@
     min-height: 0;
     overflow: hidden;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    mask-image: none;
   }
 
   .modelItem {
@@ -587,5 +594,19 @@
   .signature[data-mode="glacier"] .videoPoster {
     object-fit: cover;
     object-position: 62% center;
+  }
+
+  /* Keep the flower luminous behind compact layouts; text shadows provide local contrast over its highlights. */
+  .signature[data-mode="glacier"] .copy {
+    text-shadow:
+      0 1px 3px rgb(0 0 0 / 0.9),
+      0 0 8px rgb(0 0 0 / 0.6);
+  }
+
+  .signature[data-mode="glacier"] .videoMaterial::after {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgb(0 0 0 / 0.4) 0%, rgb(0 0 0 / 0.2) 40%, transparent 70%);
+    content: "";
   }
 }
