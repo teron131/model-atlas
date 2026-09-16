@@ -38,7 +38,7 @@ export async function GET(request: Request) {
     }
     const { body, etag } = await cached;
     const headers = {
-      "Cache-Control": "no-store",
+      "Cache-Control": chartOnly ? "private, max-age=30, must-revalidate" : "no-store",
       ETag: etag,
       "Content-Type": "application/json",
       "Content-Encoding": "gzip",

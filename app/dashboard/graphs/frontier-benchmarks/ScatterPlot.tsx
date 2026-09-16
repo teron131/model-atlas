@@ -4,15 +4,7 @@
 
 import { median } from "d3-array";
 import { scaleLinear } from "d3-scale";
-import {
-  type CSSProperties,
-  useEffect,
-  useId,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { type CSSProperties, useEffect, useId, useMemo, useRef, useState } from "react";
 
 import { type ModelAtlasPublishedModel } from "../../../../src/model-atlas/stats/types";
 import { reasoningVariantGroups } from "../../shared/model-display";
@@ -43,6 +35,7 @@ import {
   scatterChartMargin,
   stableSvgScale,
   TextPointLabel,
+  useLabelSizes,
   XAxisTicks,
   YAxisTicks,
 } from "../plot/Primitives";
@@ -70,7 +63,6 @@ const DIRECTION_LABEL_HEIGHT = 32;
 const PLOT_TOP_GUTTER = 48;
 const MEDIAN_LABEL_CLEARANCE = 64;
 const HOVER_EXIT_DELAY_MS = 150;
-const TEXT_MEASUREMENT_TOLERANCE = 0.1;
 
 /** Preserve the benchmark chart footprint when no benchmark evidence is selected. */
 export function EmptyFrontierBenchmarkScatterPlot({
@@ -600,51 +592,6 @@ function roundedLinearTicks([low, high]: [number, number], step: number) {
     { length: Math.floor((last - first) / step) + 1 },
     (_, index) => first + index * step,
   );
-}
-
-/** Measure SVG text in chart coordinates after fonts load; cache sizes so point movement does not trigger another measurement. */
-function useLabelSizes(textKey: string, compactLayout: boolean) {
-  const svgRef = useRef<SVGSVGElement>(null);
-  const [labelSizes, setLabelSizes] = useState<Record<string, PointLabelSize>>({});
-  useLayoutEffect(() => {
-    let disposed = false;
-    const measure = () => {
-      if (disposed || !svgRef.current) return;
-      const measured: Record<string, PointLabelSize> = {};
-      for (const text of Array.from(
-        svgRef.current.querySelectorAll<SVGTextElement>(`text.${styles.pointLabel}`),
-      )) {
-        const box = text.getBBox();
-        const baseline = text.y.baseVal.getItem(0).value;
-        measured[text.textContent ?? ""] = {
-          width: box.width,
-          ascent: baseline - box.y,
-          descent: box.y + box.height - baseline,
-        };
-      }
-      setLabelSizes((previous) => {
-        const changed = Object.entries(measured).some(([key, size]) => {
-          const old = previous[key];
-          return (
-            !old ||
-            Math.abs(old.width - size.width) > TEXT_MEASUREMENT_TOLERANCE ||
-            Math.abs(old.ascent - size.ascent) > TEXT_MEASUREMENT_TOLERANCE ||
-            Math.abs(old.descent - size.descent) > TEXT_MEASUREMENT_TOLERANCE
-          );
-        });
-        return changed ? { ...previous, ...measured } : previous;
-      });
-    };
-    measure();
-    void document.fonts.ready.then(measure);
-    const observer = new ResizeObserver(measure);
-    if (svgRef.current) observer.observe(svgRef.current);
-    return () => {
-      disposed = true;
-      observer.disconnect();
-    };
-  }, [textKey, compactLayout]);
-  return { svgRef, labelSizes };
 }
 
 /** Bridge the small pointer gap between a point and its temporary label without retaining an abandoned hover. */

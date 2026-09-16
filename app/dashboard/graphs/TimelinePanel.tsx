@@ -29,7 +29,6 @@ const TimelineEvidence = dynamic(
 
 /** Keep the historical population independent from present-day price, rank and recency filters. */
 export function TimelinePanel() {
-  const host = useRef<HTMLDivElement>(null);
   const plotRef = useRef<SVGSVGElement>(null);
   const [labelSizes, setLabelSizes] = useState<Record<string, PointLabelSize>>({});
   const [points, setPoints] = useState<TimelinePoint[] | null>(null);
@@ -50,29 +49,21 @@ export function TimelinePanel() {
 
   useEffect(() => {
     const controller = new AbortController();
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (!entries.some((entry) => entry.isIntersecting)) return;
-        observer.disconnect();
-        setError("");
-        void fetch("/api/timeline?view=chart", { signal: controller.signal })
-          .then(async (response) => {
-            const body = await response.json();
-            if (!response.ok) throw new Error(body.error ?? "Unable to load Timeline.");
-            return body as TimelinePoint[];
-          })
-          .then((body) => {
-            if (!controller.signal.aborted) setPoints(body);
-          })
-          .catch((reason: Error) => {
-            if (!controller.signal.aborted) setError(reason.message);
-          });
-      },
-      { rootMargin: "600px" },
-    );
-    if (host.current) observer.observe(host.current);
+    // Warm the small chart payload while readers explore the dashboard; evidence stays on demand.
+    setError("");
+    void fetch("/api/timeline?view=chart", { signal: controller.signal })
+      .then(async (response) => {
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.error ?? "Unable to load Timeline.");
+        return body as TimelinePoint[];
+      })
+      .then((body) => {
+        if (!controller.signal.aborted) setPoints(body);
+      })
+      .catch((reason: Error) => {
+        if (!controller.signal.aborted) setError(reason.message);
+      });
     return () => {
-      observer.disconnect();
       controller.abort();
     };
   }, [attempt]);
@@ -124,7 +115,7 @@ export function TimelinePanel() {
     (view === "labs"
       ? (population.find((point) => point.id === selected) ?? labLeaders[0])
       : (visible.find((point) => point.id === selected) ?? frontier.at(-1) ?? visible.at(-1)));
-  const width = compact ? 600 : 960;
+  const width = compact ? 600 : 1120;
   const height = compact ? 480 : 520;
   const margin = { top: 42, right: 30, bottom: 76, left: compact ? 78 : 72 };
   const padding = Math.max((end - start) * 0.025, 14 * 86400000 * (range[1] - range[0]));
@@ -284,12 +275,12 @@ export function TimelinePanel() {
       sectionId="timeline"
       sectionLabel="Timeline"
       title="Intelligence over time"
-      captureWidth={960}
+      captureWidth={1120}
       captureFileName="model-atlas-timeline"
       copy="Compare model generations on a fixed Intelligence Index. This historical view uses its own filters."
       wide
     >
-      <div ref={host} className={timeline.content}>
+      <div className={timeline.content}>
         <div className={timeline.viewControls}>
           <GraphToggle
             legend="Timeline view"

@@ -22,7 +22,7 @@
   gap: 20px;
   flex-wrap: wrap;
   color: var(--muted);
-  font: 12px var(--font-mono);
+  font: var(--type-label-size) var(--font-mono);
   padding: 0 0 20px;
 }
 .readout {
@@ -40,11 +40,11 @@
 }
 .readout span {
   color: var(--muted);
-  font: 11px var(--font-mono);
+  font: var(--type-label-size) var(--font-mono);
   text-transform: uppercase;
 }
 .readout strong {
-  font-size: 15px;
+  font-size: var(--type-note-size);
   font-weight: 600;
 }
 .loading {
@@ -61,20 +61,19 @@
     gap: 20px;
   }
   .legend {
-    font-size: 10px;
     gap: 12px;
   }
 }
 
 .chart.chart svg {
-  width: min(100%, 960px);
+  width: min(100%, 1120px);
   max-width: 100%;
 }
 
 /* A persistent overview edits the chart window without losing its historical context. */
 .timeEditor {
   width: calc(100% - 16px);
-  max-width: 960px;
+  max-width: 1120px;
   margin: 12px auto 20px;
 }
 .timeTransport,
@@ -88,7 +87,7 @@
   flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 10px;
-  font: 11px var(--font-mono);
+  font: var(--type-label-size) var(--font-mono);
   color: var(--muted);
 }
 .timeTransport button {
@@ -170,7 +169,7 @@
   align-items: baseline;
   margin-top: 8px;
   color: var(--muted);
-  font: 10px var(--font-mono);
+  font: var(--type-caption-size) var(--font-mono);
   gap: 8px;
   flex-wrap: wrap;
 }
@@ -215,14 +214,14 @@
 }
 .labScope dt {
   color: rgb(var(--ink-rgb) / 0.5);
-  font: 10px var(--font-mono);
+  font: var(--type-label-size) var(--font-mono);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 .labScope dd {
   margin: 0;
   color: var(--ink);
-  font: 500 13px var(--font-mono);
+  font: 500 var(--type-data-size) var(--font-mono);
   line-height: 1.2;
 }
 @media (max-width: 640px) {
@@ -238,9 +237,6 @@
   .labScope > div:first-child {
     padding-left: 0;
     border-left: 0;
-  }
-  .labScope dt {
-    font-size: 9px;
   }
 }
 .labEndpoint {
@@ -268,7 +264,7 @@
 }
 .labListHead {
   color: var(--muted);
-  font: 11px var(--font-mono);
+  font: var(--type-label-size) var(--font-mono);
   text-transform: uppercase;
 }
 .labListHead > :last-child,
@@ -281,7 +277,7 @@
   border: 0;
   border-top: 1px solid var(--line);
   text-align: left;
-  font: 13px var(--font-mono);
+  font: var(--type-data-size) var(--font-mono);
   cursor: pointer;
 }
 .labListRow:hover,
@@ -317,7 +313,7 @@
     grid-column: 1;
     grid-row: 2;
     padding-left: 56px;
-    font-size: 11px;
+    font-size: var(--type-caption-size);
   }
   .labListRow > strong {
     grid-column: 2;
