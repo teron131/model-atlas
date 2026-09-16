@@ -35,7 +35,7 @@
   --table-scrollbar-track: rgb(var(--ink-rgb) / 0.12);
   --table-scrollbar-thumb: rgb(var(--ink-rgb) / 0.55);
   --sticky-head-background: rgb(var(--paper-rgb) / 0.94);
-  --row-alt: rgb(var(--ink-rgb) / 0.007);
+  --row-alt: color-mix(in srgb, var(--paper) 99.3%, var(--ink));
   --loading-sheen: rgb(var(--ink-rgb) / 0.11);
   --loading-fill: rgb(var(--ink-rgb) / 0.065);
   --tooltip-surface: rgb(var(--paper-rgb) / 0.97);
@@ -72,7 +72,7 @@ html[data-model-atlas-theme="light"] {
   --scrollbar-track: rgb(var(--ink-rgb) / 0.055);
   --table-scrollbar-track: rgb(var(--ink-rgb) / 0.1);
   --table-scrollbar-thumb: rgb(var(--ink-rgb) / 0.46);
-  --row-alt: rgb(var(--ink-rgb) / 0.018);
+  --row-alt: color-mix(in srgb, var(--paper) 98.2%, var(--ink));
   --loading-sheen: rgb(var(--ink-rgb) / 0.105);
   --loading-fill: rgb(var(--ink-rgb) / 0.055);
   --tooltip-surface: rgb(var(--paper-rgb) / 0.98);
@@ -291,6 +291,18 @@ main {
   stroke-width: var(--dashboard-icon-button-stroke);
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+.theme-icon-dark {
+  display: none;
+}
+
+html[data-model-atlas-theme="light"] .theme-icon-light {
+  display: none;
+}
+
+html[data-model-atlas-theme="light"] .theme-icon-dark {
+  display: block;
 }
 
 .benchmarks {
@@ -715,7 +727,7 @@ tbody tr:hover {
 
 tbody tr:nth-child(2n) {
   background: var(--row-alt);
-  --sticky-cell-background: color-mix(in srgb, var(--paper) 98.8%, white);
+  --sticky-cell-background: var(--row-alt);
 }
 
 tbody tr:nth-child(2n):hover {

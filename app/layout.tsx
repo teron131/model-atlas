@@ -1,7 +1,9 @@
-/** Root document shell owns shared metadata and the fixed dark presentation for every route. */
+/** Root document shell owns shared metadata and theme bootstrapping for every route. */
 
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+
+import { ThemeBootstrap } from "./shared/ThemeBootstrap";
 
 import "./globals.css";
 
@@ -16,7 +18,10 @@ export default function RootLayout({
   children: ReactNode;
 }>) {
   return (
-    <html lang="en" data-model-atlas-theme="dark">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <ThemeBootstrap />
+      </head>
       <body>{children}</body>
     </html>
   );

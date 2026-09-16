@@ -255,6 +255,20 @@
 .readoutStatus[data-tone="warning"] {
   color: #dfa875;
 }
+
+/* Status text needs darker pigments on paper while preserving each evidence category's hue. */
+:global(html[data-model-atlas-theme="light"]) .readoutStatus[data-tone="used"] {
+  color: #276b56;
+}
+:global(html[data-model-atlas-theme="light"]) .readoutStatus[data-tone="observed"] {
+  color: #375f8d;
+}
+:global(html[data-model-atlas-theme="light"]) .readoutStatus[data-tone="inferred"] {
+  color: #755098;
+}
+:global(html[data-model-atlas-theme="light"]) .readoutStatus[data-tone="warning"] {
+  color: #865321;
+}
 .readoutMetrics {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(78px, 1fr));

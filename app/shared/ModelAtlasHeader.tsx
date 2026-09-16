@@ -1,9 +1,11 @@
 "use client";
 
-/** Shared branding and primary routes stay consistent across dashboard and documentation widths. */
+/** Shared branding, primary routes, and theme control stay consistent across every page. */
 
-import { BookOpenText, ChartNoAxesColumnIncreasing } from "lucide-react";
+import { BookOpenText, ChartNoAxesColumnIncreasing, Moon, Sun } from "lucide-react";
 import Link from "next/link";
+
+import { toggleModelAtlasTheme, useThemeSynchronization } from "./theme";
 
 const HEADER_ROUTES = [
   { page: "dashboard", href: "/", label: "Leaderboard", Icon: ChartNoAxesColumnIncreasing },
@@ -11,6 +13,8 @@ const HEADER_ROUTES = [
 ] as const;
 
 export function ModelAtlasHeader({ page }: { page: "dashboard" | "methodology" }) {
+  useThemeSynchronization();
+
   return (
     <header className="dashboard-header">
       <Link className="brand-lockup" href="/" prefetch={false} aria-label="Model Atlas home">
@@ -40,6 +44,16 @@ export function ModelAtlasHeader({ page }: { page: "dashboard" | "methodology" }
             </Link>
           ))}
         </nav>
+        <button
+          className="header-icon-button theme-toggle"
+          type="button"
+          aria-label="Toggle color theme"
+          title="Toggle color theme"
+          onClick={toggleModelAtlasTheme}
+        >
+          <Sun className="theme-icon-light" aria-hidden="true" />
+          <Moon className="theme-icon-dark" aria-hidden="true" />
+        </button>
       </div>
     </header>
   );
