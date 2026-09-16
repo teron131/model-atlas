@@ -9,11 +9,13 @@ import { calloutLabelPlacements } from "../plot/label-placement";
 import {
   AxisTitles,
   PlotFrame,
+  SCATTER_CHART_WIDTH,
   TextPointLabel,
   useLabelSizes,
   XAxisTicks,
   YAxisTicks,
 } from "../plot/Primitives";
+import { useChartWidth } from "../use-media-query";
 import type { TimelinePoint } from "./chart-data";
 import type { LabFrontier } from "./frontier";
 
@@ -54,7 +56,7 @@ export function LabsPlot({
   }
 
   const highlight = hovered ?? active;
-  const width = compact ? 480 : 1120;
+  const { chartRef, width } = useChartWidth(SCATTER_CHART_WIDTH);
   const height = compact ? 600 : 540;
   const margin = { top: 28, right: compact ? 112 : 96, bottom: 76, left: 72 };
   const right = width - margin.right;
@@ -163,7 +165,7 @@ export function LabsPlot({
   });
   return (
     <>
-      <div className={`${styles.chartWrap} ${timeline.chart}`}>
+      <div ref={chartRef} className={`${styles.chartWrap} ${timeline.chart}`}>
         <svg
           ref={svgRef}
           viewBox={`0 0 ${width} ${height}`}

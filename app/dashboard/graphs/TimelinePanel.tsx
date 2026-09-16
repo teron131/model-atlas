@@ -11,13 +11,20 @@ import { useUrlState } from "../use-url-state";
 import { GraphToggle } from "./GraphToggle";
 import { Panel } from "./Panel";
 import { calloutLabelPlacements, type PointLabelSize } from "./plot/label-placement";
-import { AxisTitles, PlotFrame, TextPointLabel, XAxisTicks, YAxisTicks } from "./plot/Primitives";
+import {
+  AxisTitles,
+  PlotFrame,
+  SCATTER_CHART_WIDTH,
+  TextPointLabel,
+  XAxisTicks,
+  YAxisTicks,
+} from "./plot/Primitives";
 import type { TimelinePoint } from "./timeline/chart-data";
 import { coverageFrontier, leadingLabs } from "./timeline/frontier";
 import { LabsPlot } from "./timeline/LabsPlot";
 import { OrganizationSelect } from "./timeline/OrganizationSelect";
 import { TimelineNavigator } from "./timeline/TimelineNavigator";
-import { useCompactChartLayout } from "./use-media-query";
+import { useChartWidth, useCompactChartLayout } from "./use-media-query";
 
 import styles from "./graphs.module.css";
 import timeline from "./timeline.module.css";
@@ -115,7 +122,7 @@ export function TimelinePanel() {
     (view === "labs"
       ? (population.find((point) => point.id === selected) ?? labLeaders[0])
       : (visible.find((point) => point.id === selected) ?? frontier.at(-1) ?? visible.at(-1)));
-  const width = compact ? 600 : 1120;
+  const { chartRef, width } = useChartWidth(SCATTER_CHART_WIDTH);
   const height = compact ? 480 : 520;
   const margin = { top: 42, right: 30, bottom: 76, left: compact ? 78 : 72 };
   const padding = Math.max((end - start) * 0.025, 14 * 86400000 * (range[1] - range[0]));
@@ -339,7 +346,7 @@ export function TimelinePanel() {
                 onSelect={setSelected}
               />
             ) : (
-              <div className={`${styles.chartWrap} ${timeline.chart}`}>
+              <div ref={chartRef} className={`${styles.chartWrap} ${timeline.chart}`}>
                 <svg
                   ref={plotRef}
                   viewBox={`0 0 ${width} ${height}`}

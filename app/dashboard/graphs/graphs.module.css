@@ -1821,21 +1821,8 @@
   }
 
   .chartWrap svg {
-    width: min(620px, var(--chart-max-width));
-    max-width: none;
-  }
-
-  .axisLabel,
-  .axisTitle,
-  .cursorProjectionLabel,
-  .medianLabel {
-    font-size: 18px;
-  }
-
-  .pointLabel,
-  .frontierPoint .pointLabel {
-    font-size: 17px;
-    stroke-width: 4px;
+    width: min(100%, var(--chart-max-width));
+    max-width: 100%;
   }
 
   .chartToolbar {
