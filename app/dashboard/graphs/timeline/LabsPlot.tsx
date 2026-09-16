@@ -6,7 +6,14 @@ import { type PointerEvent, type ReactNode, useMemo, useState } from "react";
 
 import { providerChartColor, providerDisplayName, providerLogo } from "../../shared/provider-theme";
 import { calloutLabelPlacements } from "../plot/label-placement";
-import { AxisTitles, PlotFrame, XAxisTicks, YAxisTicks } from "../plot/Primitives";
+import {
+  AxisTitles,
+  PlotFrame,
+  TextPointLabel,
+  useLabelSizes,
+  XAxisTicks,
+  YAxisTicks,
+} from "../plot/Primitives";
 import type { TimelinePoint } from "./chart-data";
 import type { LabFrontier } from "./frontier";
 
@@ -47,9 +54,9 @@ export function LabsPlot({
   }
 
   const highlight = hovered ?? active;
-  const width = compact ? 480 : 960;
+  const width = compact ? 480 : 1120;
   const height = compact ? 600 : 540;
-  const margin = { top: 28, right: 112, bottom: 76, left: 72 };
+  const margin = { top: 28, right: compact ? 112 : 96, bottom: 76, left: 72 };
   const right = width - margin.right;
   const bottom = height - margin.bottom;
   const timePadding = (end - start) * 0.04;
@@ -110,18 +117,21 @@ export function LabsPlot({
         endpoints[i + 1]!.iconY - (compact ? 44 : 32),
       );
   }
-  const labelFont = 12;
   const labeled = series.find((lab) => lab.provider === highlight)?.samples ?? [];
   const modelLabel = (point: TimelinePoint) =>
     point.name === "GPT-4 (Mar 2023)" ? "GPT-4" : point.name;
+  const { svgRef, labelSizes } = useLabelSizes(
+    labeled.map(({ point }) => modelLabel(point)).join("\0"),
+    compact,
+  );
   const labelLayoutKey = JSON.stringify({
     labels: labeled.map(({ time, point }) => ({
       key: point.id,
       label: modelLabel(point),
       cx: x(new Date(time)),
       cy: y(point.score),
-      radius: 6,
-      size: { width: modelLabel(point).length * labelFont * 0.66, ascent: labelFont, descent: 3 },
+      radius: 4,
+      size: labelSizes[modelLabel(point)],
     })),
     obstacles: labeled.map(({ time, point }) => ({
       key: point.id,
@@ -129,7 +139,18 @@ export function LabsPlot({
       cy: y(point.score),
       radius: 6,
     })),
-    bounds: { left: margin.left + 5, right: right - 5, top: margin.top + 5, bottom: bottom - 5 },
+    segments: labeled.slice(1).map((sample, index) => ({
+      x1: x(new Date(labeled[index]!.time)),
+      y1: y(labeled[index]!.point.score),
+      x2: x(new Date(sample.time)),
+      y2: y(sample.point.score),
+    })),
+    bounds: {
+      left: margin.left + 12,
+      right: right - 12,
+      top: margin.top + 12,
+      bottom: bottom - 12,
+    },
   });
   const labelPlacements = useMemo(
     () => calloutLabelPlacements(JSON.parse(labelLayoutKey)),
@@ -144,6 +165,7 @@ export function LabsPlot({
     <>
       <div className={`${styles.chartWrap} ${timeline.chart}`}>
         <svg
+          ref={svgRef}
           viewBox={`0 0 ${width} ${height}`}
           role="group"
           aria-label="Labs: Intelligence Index frontier by release date"
@@ -189,8 +211,7 @@ export function LabsPlot({
               lab.samples
                 .slice(1)
                 .map((p) => `L${x(new Date(p.time))},${y(p.point.score)}`)
-                .join("") +
-              `H${right}`;
+                .join("");
             const color = providerChartColor(lab.provider);
             return (
               <g key={lab.provider} opacity={highlight && highlight !== lab.provider ? 0.16 : 0.8}>
@@ -290,16 +311,10 @@ export function LabsPlot({
                   }
                 }}
               >
-                <path
-                  d={`M${right},${y(lab.leading.score)}L${right + 18},${lab.iconY}`}
-                  fill="none"
-                  stroke={color}
-                  strokeOpacity={highlight && highlight !== lab.provider ? 0.2 : 0.65}
-                />
                 <rect
-                  x={right + 18}
+                  x={right + (compact ? 18 : 10)}
                   y={lab.iconY - 14}
-                  width="94"
+                  width={margin.right - (compact ? 18 : 10)}
                   height="28"
                   rx="3"
                   fill="var(--paper)"
@@ -308,29 +323,29 @@ export function LabsPlot({
                 {logo ? (
                   <image
                     href={logo}
-                    x={right + 22}
+                    x={right + (compact ? 22 : 14)}
                     y={lab.iconY - (compact ? 12 : 10)}
                     width={compact ? 24 : 20}
                     height={compact ? 24 : 20}
                   />
                 ) : (
                   <text
-                    x={right + 32}
+                    className={styles.axisLabel}
+                    x={right + (compact ? 32 : 24)}
                     y={lab.iconY + 4}
                     textAnchor="middle"
                     fill={color}
-                    fontSize={compact ? 14 : 11}
                   >
                     {name.slice(0, 2)}
                   </text>
                 )}
                 <text
-                  x={right + 103}
+                  className={styles.axisLabel}
+                  x={width - (compact ? 9 : 8)}
                   y={lab.iconY + 4}
                   textAnchor="end"
                   fill="var(--ink)"
                   fontFamily="var(--font-mono)"
-                  fontSize={compact ? 14 : 11}
                 >
                   {lab.leading.score.toFixed(1)}
                 </text>
@@ -338,30 +353,18 @@ export function LabsPlot({
             );
           })}
           <g pointerEvents="none" aria-label="Highlighted lab model labels">
-            {labeled.map(({ point }) => {
-              const placement = labelPlacements.get(point.id);
-              if (!placement) return null;
-              return (
-                <g key={point.id}>
-                  {placement.line && (
-                    <line
-                      {...placement.line}
-                      stroke={providerChartColor(point.provider)}
-                      strokeOpacity="0.6"
-                    />
-                  )}
-                  <text
-                    x={placement.x}
-                    y={placement.y}
-                    textAnchor={placement.textAnchor}
-                    className={styles.pointLabel}
-                    style={{ fontSize: labelFont }}
-                  >
-                    {modelLabel(point)}
-                  </text>
-                </g>
-              );
-            })}
+            {labeled.map(({ time, point }) => (
+              <TextPointLabel
+                key={point.id}
+                label={modelLabel(point)}
+                cx={x(new Date(time))}
+                cy={y(point.score)}
+                width={width}
+                height={height}
+                margin={margin}
+                placement={labelPlacements.get(point.id)}
+              />
+            ))}
           </g>
           {!series.length && (
             <text x={width / 2} y={height / 2} textAnchor="middle" fill="var(--muted)">

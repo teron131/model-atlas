@@ -1,9 +1,5 @@
 /* Chart typography and pigments inherit the page theme while giving dense plots a readable scale. */
 .atlas {
-  --type-data-size: 15px;
-  --type-label-size: 14px;
-  --type-caption-size: 13px;
-  --type-micro-size: 12px;
   --chart-grid: rgb(var(--ink-rgb) / 0.075);
   --chart-axis-tick: rgb(var(--ink-rgb) / 0.32);
   --chart-median: rgb(var(--ink-rgb) / 0.14);
@@ -721,7 +717,7 @@
 }
 
 .chartWrap {
-  --chart-max-width: 960px;
+  --chart-max-width: 1120px;
   width: 100%;
   overflow: hidden;
   padding: 14px 0 10px;

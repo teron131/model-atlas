@@ -1,11 +1,13 @@
 "use client";
 
-/** Stateless SVG drawing primitives and shared plot geometry for Model Atlas charts. */
+/** Shared SVG drawing, label measurement and plot geometry for Model Atlas charts. */
+
+import { useLayoutEffect, useRef, useState } from "react";
 
 import { clamp } from "../../../../src/model-atlas/math-utils";
 import type { ModelAtlasPublishedModel } from "../../../../src/model-atlas/stats/types";
 import type { Margin } from "../types";
-import type { PointLabelPlacement } from "./label-placement";
+import type { PointLabelPlacement, PointLabelSize } from "./label-placement";
 import { scoreQuadrilateralPoints } from "./score-quadrilateral";
 
 import styles from "../graphs.module.css";
@@ -24,7 +26,7 @@ export const SCATTER_CHART_MARGIN: Margin = {
   bottom: 70,
   left: 62,
 };
-export const SCATTER_CHART_WIDTH = 960;
+export const SCATTER_CHART_WIDTH = 1120;
 
 const SVG_NUMBER_DECIMALS = 3;
 
@@ -388,4 +390,49 @@ export function TextPointLabel({
       </text>
     </g>
   );
+}
+
+/** Measure rendered label bounds after fonts and viewport changes so text and leaders share exact geometry. */
+export function useLabelSizes(textKey: string, compactLayout: boolean) {
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [labelSizes, setLabelSizes] = useState<Record<string, PointLabelSize>>({});
+  useLayoutEffect(() => {
+    let disposed = false;
+    const measure = () => {
+      if (disposed || !svgRef.current) return;
+      const measured: Record<string, PointLabelSize> = {};
+      for (const text of Array.from(
+        svgRef.current.querySelectorAll<SVGTextElement>(`text.${styles.pointLabel}`),
+      )) {
+        const box = text.getBBox();
+        const baseline = text.y.baseVal.getItem(0).value;
+        measured[text.textContent ?? ""] = {
+          width: box.width,
+          ascent: baseline - box.y,
+          descent: box.y + box.height - baseline,
+        };
+      }
+      setLabelSizes((previous) => {
+        const changed = Object.entries(measured).some(([key, size]) => {
+          const old = previous[key];
+          return (
+            !old ||
+            Math.abs(old.width - size.width) > 0.1 ||
+            Math.abs(old.ascent - size.ascent) > 0.1 ||
+            Math.abs(old.descent - size.descent) > 0.1
+          );
+        });
+        return changed ? { ...previous, ...measured } : previous;
+      });
+    };
+    measure();
+    void document.fonts.ready.then(measure);
+    const observer = new ResizeObserver(measure);
+    if (svgRef.current) observer.observe(svgRef.current);
+    return () => {
+      disposed = true;
+      observer.disconnect();
+    };
+  }, [textKey, compactLayout]);
+  return { svgRef, labelSizes };
 }
