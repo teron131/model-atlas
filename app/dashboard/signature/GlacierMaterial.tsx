@@ -5,7 +5,9 @@ import { useEffect, useRef, useState } from "react";
 
 import styles from "./signature.module.css";
 
-const POSTER = "/signatures/glacier/glacier-digital-flower-poster.webp";
+// Keep the poster and film on the same revision when replacing an already-loaded loop.
+const POSTER = "/signatures/glacier/glacier-digital-flower-poster.webp?v=0a9deafd";
+const VIDEO = "/signatures/glacier/glacier-digital-flower.mp4?v=0a9deafd";
 
 /** Load video only on an active, visible surface; release its decoder when the selected material unmounts. */
 export function GlacierMaterial() {
@@ -39,7 +41,7 @@ export function GlacierMaterial() {
         return;
       }
       if (video.getAttribute("src") == null) {
-        video.src = "/signatures/glacier/glacier-digital-flower.mp4";
+        video.src = VIDEO;
       }
       void video.play().then(
         () => {
