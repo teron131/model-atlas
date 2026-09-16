@@ -44,6 +44,7 @@ import {
   scoreQuadrilateralRadius,
 } from "../plot/score-quadrilateral";
 import type { HoverRow, HoverSetter, Margin } from "../types";
+import { useChartWidth } from "../use-media-query";
 
 import styles from "../graphs.module.css";
 
@@ -78,7 +79,7 @@ export function EmptyFrontierBenchmarkScatterPlot({
   formatScore: (value: number) => string;
   xHigherIsBetter?: boolean;
 }) {
-  const width = SCATTER_CHART_WIDTH;
+  const { chartRef, width } = useChartWidth(SCATTER_CHART_WIDTH);
   const height = SCATTER_CHART_HEIGHT;
   const margin = scatterChartMargin(SCATTER_CHART_MARGIN, compactLayout);
   const plot = plotBoundsFor(width, height, margin);
@@ -86,8 +87,9 @@ export function EmptyFrontierBenchmarkScatterPlot({
   const yPoint = stableSvgScale(scaleLinear().domain([0, 100]).range([plot.bottom, plot.top]));
   return (
     <div
+      ref={chartRef}
       className={styles.chartWrap}
-      style={{ "--chart-max-width": `${width}px` } as CSSProperties}
+      style={{ "--chart-max-width": `${SCATTER_CHART_WIDTH}px` } as CSSProperties}
       role="group"
       aria-label="Empty frontier benchmark chart viewport"
     >
@@ -151,7 +153,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
   connectReasoningVariants = false,
   compactLayout,
   setHover,
-  width = SCATTER_CHART_WIDTH,
+  width: maxWidth = SCATTER_CHART_WIDTH,
   height = SCATTER_CHART_HEIGHT,
   margin = SCATTER_CHART_MARGIN,
 }: {
@@ -178,6 +180,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
   height?: number;
   margin?: Margin;
 }) {
+  const { chartRef, width } = useChartWidth(maxWidth);
   const [highlightedVariantKey, setHighlightedVariantKey] = useVariantHighlight();
   const guideMaskId = useId();
   const chartMargin = scatterChartMargin(margin, compactLayout);
@@ -349,8 +352,9 @@ export function FrontierBenchmarkScatterPlot<Row>({
 
   return (
     <div
+      ref={chartRef}
       className={styles.chartWrap}
-      style={{ "--chart-max-width": `${width}px` } as CSSProperties}
+      style={{ "--chart-max-width": `${maxWidth}px` } as CSSProperties}
       role="group"
       aria-label={`${ariaLabel} viewport`}
       tabIndex={0}
