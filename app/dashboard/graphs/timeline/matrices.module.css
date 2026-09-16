@@ -1,0 +1,354 @@
+/* Two coordinated workspaces keep matrix navigation and inspection in the same visual field. */
+.matrices {
+  display: grid;
+  gap: 28px;
+  margin-top: 24px;
+}
+.matrixSection {
+  min-width: 0;
+}
+.matrixSection + .matrixSection {
+  border-top: 1px solid var(--line-strong);
+  padding-top: 28px;
+}
+.matrixHeader {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px 24px;
+}
+.matrixHeader > div {
+  flex: 1 1 300px;
+}
+.matrices p {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+  max-width: 70ch;
+  margin: 0;
+}
+.matrixSearch {
+  flex: 0 1 240px;
+  min-width: 180px;
+  gap: 5px;
+  font-size: 11px;
+}
+.matrixLegend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+  color: var(--muted);
+  font-size: 11px;
+  margin: 16px 0;
+}
+.matrixLegend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.matrixLegend i {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border: 1px solid var(--line-strong);
+  border-radius: 2px;
+}
+.errorGradient {
+  width: 100px;
+  height: 8px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, hsl(25 80% 20%), hsl(25 80% 65%));
+}
+.matrixOverview {
+  --matrix-height: 360px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  min-width: 0;
+}
+.matrixPlot {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  block-size: var(--matrix-height);
+  min-width: 0;
+}
+.overviewAxes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  padding: 0 0 12px;
+}
+.overviewAxes > div {
+  min-width: 0;
+}
+.overviewAxes span,
+.overviewAxes strong,
+.overviewAxes small {
+  display: block;
+}
+.overviewAxes span {
+  color: var(--faint);
+  font-size: 10px;
+  margin-bottom: 3px;
+}
+.overviewAxes strong {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 500;
+}
+.overviewAxes small {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.4;
+  margin-top: 3px;
+}
+.overviewGrid {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  cursor: crosshair;
+  shape-rendering: crispEdges;
+  border: 1px solid var(--line);
+  box-sizing: border-box;
+}
+.overviewGrid:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+.matrixHint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--faint);
+  font-size: 10px;
+  line-height: 1.4;
+  padding-top: 10px;
+}
+.matrixHint svg,
+.inspectorLabel svg {
+  flex-shrink: 0;
+}
+.matrixInspector {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow-anchor: none;
+  box-sizing: border-box;
+}
+.inspectorLabel {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 0 12px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.overviewReadout {
+  /* Hidden field alternatives establish the height before interaction, with no hover-dependent resizing. */
+  display: grid;
+  padding: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.readoutContent,
+.readoutSizer {
+  grid-area: 1 / 1;
+  align-self: start;
+  display: grid;
+  grid-template-columns: minmax(180px, 0.8fr) minmax(0, 2fr);
+  gap: 8px 32px;
+  align-items: start;
+}
+.readoutContent > .readoutHeading,
+.readoutContent > .readoutMetrics,
+.readoutSizer > .readoutHeading,
+.readoutMetricSizer {
+  grid-column: 1;
+}
+.readoutContent > .readoutNotes,
+.readoutNoteSizer {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  margin: 0;
+}
+.readoutNoteSizer .readoutNotes {
+  margin: 0;
+}
+.readoutSizer {
+  visibility: hidden;
+  pointer-events: none;
+}
+.readoutSizingStack {
+  display: grid;
+  min-width: 0;
+}
+.readoutSizingStack > * {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+.readoutEmpty {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 70px;
+  gap: 10px;
+  text-align: center;
+}
+.readoutEmpty > svg {
+  color: var(--faint);
+}
+.readoutEmpty strong {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 500;
+}
+.readoutEmpty p {
+  font-size: 11px;
+  max-width: 28ch;
+}
+.readoutHeading {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+.readoutHeading > div {
+  width: 100%;
+  min-width: 0;
+}
+.readoutHeading strong {
+  display: block;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.readoutHeading > div > span {
+  display: block;
+}
+.readoutHeading > div > span,
+.readoutHeading > div > .readoutSizingStack + .readoutSizingStack {
+  margin-top: 4px;
+  font-size: 11px;
+}
+.readoutStatus {
+  color: var(--muted);
+  font-size: 10px;
+  white-space: nowrap;
+}
+.readoutStatus[data-tone="used"] {
+  color: #76c5ac;
+}
+.readoutStatus[data-tone="observed"] {
+  color: #94b7df;
+}
+.readoutStatus[data-tone="inferred"] {
+  color: #c1a4e4;
+}
+.readoutStatus[data-tone="warning"] {
+  color: #dfa875;
+}
+.readoutMetrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(78px, 1fr));
+  gap: 10px;
+  margin: 16px 0;
+  padding-bottom: 14px;
+}
+.readoutMetrics dt,
+.readoutNotes dt {
+  color: var(--faint);
+  font-size: 10px;
+}
+.readoutMetrics dd {
+  margin: 4px 0 0;
+  color: var(--ink);
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+}
+.readoutNotes {
+  display: grid;
+  gap: 12px;
+  margin: 12px 0 0;
+}
+.readoutNotes dt {
+  margin-bottom: 4px;
+}
+.readoutNotes dd {
+  margin: 0;
+}
+.readoutList {
+  display: grid;
+  position: relative;
+  overflow: hidden;
+  gap: 4px 16px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.readoutList li {
+  min-width: 0;
+}
+.readoutMeasure {
+  position: absolute;
+  visibility: hidden;
+  white-space: pre;
+  width: max-content;
+  pointer-events: none;
+}
+@media (max-width: 900px) {
+  .matrixOverview {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+    --matrix-height: 300px;
+  }
+  .matrixInspector {
+    block-size: auto;
+  }
+}
+@media (max-width: 640px) {
+  .readoutContent,
+  .readoutSizer {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .readoutContent > .readoutNotes,
+  .readoutNoteSizer {
+    grid-column: 1;
+    grid-row: auto;
+  }
+}
+@media (max-width: 480px) {
+  .matrixSearch {
+    flex-basis: 100%;
+  }
+  .matrixHeader > div {
+    flex-basis: 100%;
+  }
+  .matrixLegend {
+    gap: 8px 12px;
+  }
+  .overviewAxes {
+    gap: 12px;
+  }
+}
+
+.matrixSearch {
+  display: flex;
+  flex-direction: column;
+  color: var(--muted);
+  font-family: var(--font-mono);
+}
+.matrixSearch input {
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  padding: 8px 10px;
+  font: inherit;
+}

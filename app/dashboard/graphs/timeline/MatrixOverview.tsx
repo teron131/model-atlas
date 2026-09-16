@@ -14,7 +14,7 @@ import {
   useState,
 } from "react";
 
-import styles from "./timeline.module.css";
+import styles from "./matrices.module.css";
 
 type Axis = { id: string; label: string };
 type Position = { row: string; column: string };

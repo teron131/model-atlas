@@ -1,17 +1,16 @@
 "use client";
 
-/** Shared branding and primary routes stay consistent across dashboard, timeline and documentation widths. */
+/** Shared branding and primary routes stay consistent across dashboard and documentation widths. */
 
-import { BookOpenText, ChartNoAxesColumnIncreasing, ChartNoAxesCombined } from "lucide-react";
+import { BookOpenText, ChartNoAxesColumnIncreasing } from "lucide-react";
 import Link from "next/link";
 
 const HEADER_ROUTES = [
   { page: "dashboard", href: "/", label: "Leaderboard", Icon: ChartNoAxesColumnIncreasing },
-  { page: "timeline", href: "/timeline", label: "Timeline", Icon: ChartNoAxesCombined },
   { page: "methodology", href: "/methodology", label: "Methodology", Icon: BookOpenText },
 ] as const;
 
-export function ModelAtlasHeader({ page }: { page: "dashboard" | "methodology" | "timeline" }) {
+export function ModelAtlasHeader({ page }: { page: "dashboard" | "methodology" }) {
   return (
     <header className="dashboard-header">
       <Link className="brand-lockup" href="/" prefetch={false} aria-label="Model Atlas home">

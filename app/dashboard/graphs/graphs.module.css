@@ -80,14 +80,6 @@
   text-transform: uppercase;
 }
 
-.panel h2 {
-  max-width: 1040px;
-  margin: 0;
-  color: var(--ink);
-  font-weight: var(--type-heading-weight);
-  letter-spacing: -0.025em;
-}
-
 /* Sticky so the global filters stay reachable from any region, not only from the top of the page. */
 .instrumentRail {
   position: sticky;
@@ -579,13 +571,6 @@
   min-width: 0;
 }
 
-.panelTitleWrap {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  max-width: 620px;
-}
-
 .boxWhiskerSummary {
   display: grid;
   gap: 7px;
@@ -728,30 +713,6 @@
 
 .boxWhiskerMaxValue {
   text-align: right;
-}
-
-.panel h2 {
-  display: block;
-  max-width: 880px;
-  padding: 0;
-  background: transparent;
-  color: var(--ink);
-  font-size: var(--type-section-size);
-  letter-spacing: -0.035em;
-  line-height: 0.95;
-}
-
-.wide h2 {
-  max-width: 980px;
-}
-
-.panelCopy {
-  max-width: 620px;
-  margin: 10px 0 0;
-  color: var(--muted);
-  font-size: var(--type-note-size);
-  font-weight: var(--type-body-weight);
-  line-height: 1.55;
 }
 
 .panelCopy em,
@@ -1846,12 +1807,6 @@
 }
 
 @media (max-width: 520px) {
-  .panel h2 {
-    font-size: 30px;
-    line-height: 0.96;
-    overflow-wrap: anywhere;
-  }
-
   .panelCopy {
     max-width: none;
     font-size: var(--type-note-size);
@@ -1953,19 +1908,15 @@
   padding: 18px 0 12px;
 }
 
-.panel[data-capture-layout="artifact"] .sectionMarker {
-  display: none;
-}
-
 .panel[data-capture-layout="artifact"] .panelTitleBlock {
   grid-column: 1;
-  grid-row: 1;
+  grid-row: 2;
   width: 100%;
 }
 
 .panel[data-capture-layout="artifact"] .panelSide {
   grid-column: 2;
-  grid-row: 1;
+  grid-row: 2;
   justify-self: end;
   justify-items: end;
   width: auto;
@@ -1976,8 +1927,8 @@
 }
 
 .panel[data-capture-layout="artifact"] h2 {
-  font-size: 30px;
-  line-height: 0.96;
+  font-size: 16px;
+  line-height: 1;
   overflow-wrap: normal;
 }
 
@@ -2050,4 +2001,24 @@
 
 .panel[data-capture-layout="artifact"] .chartToolbar {
   padding: 8px 0 0;
+}
+
+/* Three research destinations remain visible beside the compact filter control. */
+@media (max-width: 520px) {
+  .instrumentBar {
+    grid-template-columns: minmax(0, 1fr) 70px;
+  }
+  .researchIndexLinks {
+    mask-image: none;
+  }
+  .researchIndexLinks a {
+    padding-inline: 7px;
+    gap: 4px;
+    font-size: 11px;
+  }
+  .filtersToggle {
+    font-size: 10px;
+    gap: 4px;
+    padding-inline: 6px;
+  }
 }

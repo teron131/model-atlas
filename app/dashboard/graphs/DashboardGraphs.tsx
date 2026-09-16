@@ -39,6 +39,7 @@ import {
   type ResearchRegionId,
   researchRegionOrdinal,
 } from "./research-index";
+import { TimelinePanel } from "./TimelinePanel";
 import type { HoverState } from "./types";
 
 import styles from "./graphs.module.css";
@@ -433,6 +434,9 @@ export function DashboardGraphs({
           showVariants={deferredShowReasoningVariants}
           setHover={setHover}
         />
+      </section>
+      <section className={`${styles.sectionGrid} ${styles.leadGrid}`}>
+        <TimelinePanel />
       </section>
       {hover ? <HoverCard hover={hover} /> : null}
     </section>

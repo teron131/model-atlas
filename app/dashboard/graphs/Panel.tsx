@@ -49,12 +49,12 @@ export function Panel({
       aria-labelledby={titleId}
     >
       <div className={styles.panelHead}>
-        <div className="dashboard-section-top" data-capture-exclude>
-          <p className={`dashboard-section-marker ${styles.sectionMarker}`}>
+        <div className="dashboard-section-top">
+          <h2 id={titleId} className={`dashboard-section-marker ${styles.sectionMarker}`}>
             <b aria-hidden="true">{ordinal}</b>
             <span>{sectionLabel}</span>
-          </p>
-          <div className="dashboard-section-actions">
+          </h2>
+          <div className="dashboard-section-actions" data-capture-exclude>
             <CaptureButton
               captureWidth={artifactWidth}
               fileName={captureFileName}
@@ -66,10 +66,9 @@ export function Panel({
         </div>
         {summary == null ? null : <div className={styles.panelSide}>{summary}</div>}
         <div className={styles.panelTitleBlock}>
-          <div className={styles.panelTitleWrap}>
-            <h2 id={titleId}>{title}</h2>
-          </div>
-          {copy == null ? null : <p className={styles.panelCopy}>{copy}</p>}
+          {copy == null ? null : (
+            <p className={`dashboard-section-copy ${styles.panelCopy}`}>{copy}</p>
+          )}
         </div>
       </div>
       {children}

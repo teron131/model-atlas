@@ -1,11 +1,11 @@
 /** Use the main app's strongest-Intelligence representative for current families while retaining historical configurations as evidence. */
 
-import { strongestModelVariants } from "../../src/model-atlas/stats/model-variants";
+import { strongestModelVariants } from "../../../../src/model-atlas/stats/model-variants";
 import type {
   HistoricalCalibration,
   HistoricalDataset,
   HistoricalModel,
-} from "../../src/model-atlas/timeline/schemas";
+} from "../../../../src/model-atlas/timeline/schemas";
 
 type Candidate = HistoricalModel & {
   representativeScore: number | null;

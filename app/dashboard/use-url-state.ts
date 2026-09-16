@@ -8,6 +8,7 @@ import {
   type ReactNode,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useSyncExternalStore,
 } from "react";
@@ -33,6 +34,14 @@ export function DashboardUrlProvider({
   search: string;
   children: ReactNode;
 }) {
+  useEffect(() => {
+    const current = new URL(window.location.href);
+    const next = patchDashboardUrl(current, {});
+    if (next.href !== current.href) {
+      window.history.replaceState(window.history.state, "", next);
+      window.dispatchEvent(new Event(changeEvent));
+    }
+  }, []);
   return createElement(InitialSearch.Provider, { value: search }, children);
 }
 

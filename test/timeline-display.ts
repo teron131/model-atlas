@@ -1,10 +1,10 @@
 /** Protect frontier eligibility, representative selection and provider-qualified visibility without changing measured scores. */
 import assert from "node:assert/strict";
 
+import { coverageFrontier, leadingLabs } from "../app/dashboard/graphs/timeline/frontier";
+import { modelRepresentatives } from "../app/dashboard/graphs/timeline/model-representatives";
 import { modelsForVariantDisplay } from "../app/dashboard/shared/model-display";
 import { compactModelVariants } from "../app/leaderboard/model-variants";
-import { coverageFrontier } from "../app/timeline/frontier";
-import { modelRepresentatives } from "../app/timeline/model-representatives";
 import { modelDisplayExclusion } from "../src/model-atlas/stats/model-visibility";
 import { historicalSourceModel } from "../src/model-atlas/timeline/model-identity";
 import { minimalModelAtlasModel } from "./model-atlas-fixtures";
@@ -93,3 +93,33 @@ for (const visible of [
   );
 }
 assert.equal(displayModels.length, 5, "display exclusions preserve the source population");
+
+const labPoints = Array.from({ length: 12 }, (_, lab) =>
+  Array.from({ length: 6 }, (_, model) => ({
+    id: `${lab}-${model}`,
+    provider: `lab-${lab}`,
+    score: 100 + lab + model,
+    coverage: 0.8,
+    releaseDate: `2025-01-0${model + 1}`,
+  })),
+).flat();
+const fiveModels = Array.from({ length: 5 }, (_, model) => ({
+  id: `small-${model}`,
+  provider: "small",
+  score: 900 + model,
+  coverage: 1,
+  releaseDate: "2025-01-01",
+}));
+const labRanking = leadingLabs([
+  ...labPoints,
+  ...fiveModels,
+  { ...labPoints[0]!, id: "unsupported", score: 999, coverage: 0.1 },
+]);
+assert.equal(labRanking.length, 10);
+assert.equal(labRanking[0]!.provider, "lab-11");
+assert.ok(labRanking.every((lab) => lab.models.length > 5 && lab.provider !== "small"));
+assert.equal(
+  leadingLabs([...fiveModels, fiveModels[0]!]).length,
+  0,
+  "Duplicate rows must not pass the strict model-count threshold",
+);

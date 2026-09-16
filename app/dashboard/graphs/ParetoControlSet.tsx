@@ -6,8 +6,8 @@ import styles from "./graphs.module.css";
 
 export const PARETO_PANEL_CONTENT = {
   sectionId: "pareto-analysis",
-  sectionLabel: "Score tradeoffs",
-  title: "Pareto Analysis",
+  sectionLabel: "Pareto",
+  title: "Performance tradeoffs",
   copy: "Compare model performance and resources. The solid line marks the best visible tradeoffs.",
 } as const;
 

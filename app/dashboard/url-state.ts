@@ -32,6 +32,9 @@ export type DashboardUrlState = {
   "column-order": BenchmarkColumnOrder;
   "table-variants": boolean;
   "graph-variants": boolean;
+  "timeline-view": "models" | "labs";
+  "timeline-period": "all" | "year";
+  "timeline-provider": string[] | null;
   performance: PerformanceMetric;
   benchmark: string[] | null;
   axes: FrontierBenchmarkAxisKey;
@@ -50,6 +53,19 @@ const tableKeys = new Set<DashboardUrlKey>([
   "table-variants",
 ]);
 const paretoKeys = new Set<DashboardUrlKey>(["performance", "benchmark", "axes"]);
+const dashboardKeys = new Set<DashboardUrlKey>([
+  ...tableKeys,
+  ...paretoKeys,
+  "q",
+  "provider",
+  "max-cost",
+  "rank",
+  "days",
+  "graph-variants",
+  "timeline-view",
+  "timeline-period",
+  "timeline-provider",
+]);
 const benchmarkKeys = new Set(Object.keys(BENCHMARK_COLUMNS));
 
 /** Decode one control independently so absent or malformed values retain the owning UI default. */
@@ -74,6 +90,17 @@ export function readUrlValue<K extends DashboardUrlKey>(
           : { key: "intelligence", direction: "descending" };
       break;
     }
+    case "timeline-view":
+      result = choice(value, ["models", "labs"], "models");
+      break;
+    case "timeline-period":
+      result = choice(value, ["all", "year"], "all");
+      break;
+    case "timeline-provider":
+      result = params.has(key)
+        ? [...new Set(params.getAll(key).filter((item) => /^[a-z0-9][a-z0-9._-]*$/.test(item)))]
+        : null;
+      break;
     case "provider":
       result = [
         ...new Set(params.getAll(key).filter((item) => /^[a-z0-9][a-z0-9._-]*$/.test(item))),
@@ -113,7 +140,7 @@ export function readUrlValue<K extends DashboardUrlKey>(
   return result as DashboardUrlState[K];
 }
 
-/** Apply only explicitly supplied controls, retaining unrelated parameters and explicit default values. */
+/** Keep custom selections shareable while omitting defaults and preserving unrelated URL parameters. */
 export function patchDashboardUrl(url: URL, patch: DashboardUrlPatch): URL {
   const next = new URL(url);
   const keys = Object.keys(patch) as DashboardUrlKey[];
@@ -134,7 +161,18 @@ export function patchDashboardUrl(url: URL, patch: DashboardUrlPatch): URL {
       next.searchParams.set(key, String(value));
     }
   }
-  if (keys.some((key) => tableKeys.has(key))) next.hash = "leaderboard";
+  const defaults = new URLSearchParams();
+  for (const key of dashboardKeys) {
+    // An explicit graph-variant value can override the saved cookie preference.
+    if (key === "graph-variants" || !next.searchParams.has(key)) continue;
+    if (
+      JSON.stringify(readUrlValue(next.searchParams, key)) ===
+      JSON.stringify(readUrlValue(defaults, key))
+    )
+      next.searchParams.delete(key);
+  }
+  if (keys.some((key) => key.startsWith("timeline-"))) next.hash = "timeline";
+  else if (keys.some((key) => tableKeys.has(key))) next.hash = "leaderboard";
   else if (keys.some((key) => paretoKeys.has(key))) next.hash = "pareto-analysis";
   return next;
 }
