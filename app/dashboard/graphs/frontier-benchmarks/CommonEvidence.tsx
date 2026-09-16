@@ -46,7 +46,7 @@ export function CommonEvidence({
   return (
     <details className={styles.commonEvidence} aria-label="Common evidence">
       <summary className={styles.chartFooterCaption}>
-        <span>Common within model</span>
+        <span>Common evidence</span>
         <span>
           {comparison.rows.length} {showVariants ? "variants" : "models"}
         </span>

@@ -534,7 +534,7 @@ main {
   margin: 0;
   color: var(--muted);
   font-family: var(--font-mono);
-  font-size: var(--type-caption-size);
+  font-size: 16px;
   font-weight: var(--type-label-weight);
   letter-spacing: var(--type-label-tracking);
   line-height: 1;
@@ -547,13 +547,21 @@ main {
   font-variant-numeric: tabular-nums;
 }
 
-.dashboard-section-head h2 {
-  margin: 0;
+.dashboard-section-copy {
+  max-width: 620px;
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: var(--type-note-size);
+  font-weight: var(--type-body-weight);
+  line-height: 1.55;
+}
+.dashboard-subsection-title {
+  margin: 0 0 5px;
   color: var(--ink);
-  font-size: var(--type-section-size);
+  font-size: 19px;
   font-weight: var(--type-heading-weight);
-  letter-spacing: -0.035em;
-  line-height: 0.95;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
 }
 
 .table-shell {
@@ -1528,10 +1536,6 @@ td.modality-cell {
   .dashboard-section-head {
     gap: 11px;
     padding: 16px 0 14px;
-  }
-
-  .dashboard-section-head h2 {
-    font-size: 32px;
   }
 
   .table-shell::after {

@@ -1,7 +1,7 @@
 "use client";
 
 /** Color-only matrices expose retained model evidence and contextual imputation validation without a wall of numerical cells. */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import type {
   HistoricalCalibration,
@@ -9,11 +9,11 @@ import type {
   HistoricalModel,
   TimelineBenchmarkEvidence,
   TimelinePredictor,
-} from "../../src/model-atlas/timeline/schemas";
+} from "../../../../src/model-atlas/timeline/schemas";
 import { MatrixOverview } from "./MatrixOverview";
 import { timelineModelName } from "./model-display";
 
-import styles from "./timeline.module.css";
+import styles from "./matrices.module.css";
 
 type Axis = { id: string; label: string };
 const EVIDENCE_COLORS = ["#51aa91", "#567caa", "#a57bd6"] as const;
@@ -93,7 +93,7 @@ export function DiagnosticMatrices({
       <section className={styles.matrixSection}>
         <header className={styles.matrixHeader}>
           <div>
-            <h2>Model evidence</h2>
+            <h3 className="dashboard-subsection-title">Model evidence</h3>
             <p>Measured results and estimated gaps across the model landscape.</p>
           </div>
           <label className={styles.matrixSearch}>
@@ -201,7 +201,7 @@ export function DiagnosticMatrices({
       <section className={styles.matrixSection}>
         <header className={styles.matrixHeader}>
           <div>
-            <h2>Imputation validation</h2>
+            <h3 className="dashboard-subsection-title">Prediction validation</h3>
             <p>How well known benchmark results predict a missing result. Lower error is better.</p>
           </div>
         </header>
@@ -215,7 +215,7 @@ export function DiagnosticMatrices({
           </span>
         </div>
         <MatrixOverview
-          label="Imputation validation matrix"
+          label="Prediction validation matrix"
           rows={validation.rows}
           columns={validation.columns}
           rowLabel="target benchmarks"
@@ -279,4 +279,61 @@ export function DiagnosticMatrices({
 /** The import origin stays in source metadata rather than repeating in every benchmark label. */
 function benchmarkLabel(label: string): string {
   return label.replace(/ \(Model Atlas\)$/, "");
+}
+
+/** Fetch detailed evidence only after disclosure; preserve the current chart population and selection. */
+export function TimelineEvidence({
+  modelIds,
+  onSelect,
+}: {
+  modelIds: string[];
+  onSelect: (id: string) => void;
+}) {
+  const [data, setData] = useState<HistoricalDataset | null>(null);
+  const [error, setError] = useState("");
+  const [attempt, setAttempt] = useState(0);
+  useEffect(() => {
+    const controller = new AbortController();
+    setError("");
+    void fetch("/api/timeline", { signal: controller.signal })
+      .then(async (response) => {
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.error ?? "Unable to load evidence.");
+        if (!body.prepared) throw new Error("Published evidence is unavailable.");
+        if (!controller.signal.aborted) setData(body);
+      })
+      .catch((reason: Error) => {
+        if (!controller.signal.aborted) setError(reason.message);
+      });
+    return () => controller.abort();
+  }, [attempt]);
+  const models = useMemo(() => {
+    const byId = new Map(data?.models.map((model) => [model.id, model]));
+    return modelIds.flatMap((id) => {
+      const model = byId.get(id);
+      return model ? [model] : [];
+    });
+  }, [data, modelIds]);
+  if (!data?.prepared)
+    return (
+      <p role="status">
+        {error || "Loading evidence matrices…"}
+        {error && (
+          <button type="button" onClick={() => setAttempt((value) => value + 1)}>
+            Retry
+          </button>
+        )}
+      </p>
+    );
+  return (
+    <DiagnosticMatrices
+      data={data}
+      models={models}
+      calibration={data.prepared.calibrations.intelligence ?? null}
+      evidence={data.prepared.evidence.cells}
+      benchmarkPredictors={data.prepared.evidence.predictors}
+      maxError={data.prepared.parameters.maxError}
+      onSelect={onSelect}
+    />
+  );
 }

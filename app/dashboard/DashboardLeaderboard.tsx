@@ -406,16 +406,20 @@ export function DashboardLeaderboard({
     >
       <header className="dashboard-section-head">
         <div className="dashboard-section-top">
-          <p className="dashboard-section-marker">
+          <h2 id="leaderboard-title" className="dashboard-section-marker">
             <b aria-hidden="true">{researchRegionOrdinal("leaderboard")}</b>
-            <span>Working view · Sortable model catalogue</span>
-          </p>
+            <span>Models</span>
+          </h2>
           <div className="dashboard-section-actions" data-capture-exclude>
             <LeaderboardCapture rows={visibleRows} rowKind={rowKind} sortState={sortState} />
             <CopyDashboardLink sectionId="leaderboard" />
           </div>
         </div>
-        <h2 id="leaderboard-title">Model Leaderboard</h2>
+        <div>
+          <p className="dashboard-section-copy">
+            Compare model capability, speed and value across the selected benchmarks.
+          </p>
+        </div>
       </header>
       <ModelToolbar
         filterQuery={filterQuery}

@@ -44,9 +44,9 @@ assert.equal(readUrlValue(new URLSearchParams("axes=speedValue"), "axes"), "cost
 const cost = patchDashboardUrl(base, { view: "cost" });
 assert.equal(cost.search, "?view=cost");
 assert.equal(cost.hash, "#leaderboard");
-assert.equal(patchDashboardUrl(base, { view: "all" }).search, "?view=all");
-assert.equal(patchDashboardUrl(base, { "table-variants": false }).search, "?table-variants=0");
-assert.equal(patchDashboardUrl(base, { rank: 50 }).search, "?rank=50");
+assert.equal(patchDashboardUrl(base, { view: "all" }).search, "");
+assert.equal(patchDashboardUrl(base, { "table-variants": false }).search, "");
+assert.equal(patchDashboardUrl(base, { rank: 50 }).search, "");
 
 const selections = patchDashboardUrl(new URL("?campaign=test#leaderboard", base), {
   q: "reason* *max & + test",
@@ -127,5 +127,44 @@ assert.equal(
   dashboardUrlSection(new URL("?view=cost&performance=benchmarks#leaderboard", base)),
   "leaderboard",
 );
-assert.equal(patchDashboardUrl(base, { benchmark: null }).searchParams.get("benchmark"), "all");
+assert.equal(patchDashboardUrl(base, { benchmark: null }).searchParams.get("benchmark"), null);
+const timelineLink = patchDashboardUrl(base, {
+  "timeline-period": "year",
+  "timeline-provider": ["openai", "anthropic"],
+});
+assert.equal(dashboardUrlSection(timelineLink), "timeline");
+assert.equal(readUrlValue(timelineLink.searchParams, "timeline-period"), "year");
+assert.deepEqual(readUrlValue(timelineLink.searchParams, "timeline-provider"), [
+  "openai",
+  "anthropic",
+]);
+assert.equal(
+  readUrlValue(new URLSearchParams("timeline-period=invalid"), "timeline-period"),
+  "all",
+);
+
+assert.deepEqual(
+  readUrlValue(
+    patchDashboardUrl(base, { "timeline-provider": [] }).searchParams,
+    "timeline-provider",
+  ),
+  [],
+);
+assert.equal(
+  readUrlValue(
+    patchDashboardUrl(base, { "timeline-provider": null }).searchParams,
+    "timeline-provider",
+  ),
+  null,
+);
+
+const stacked = new URL(
+  "?timeline-period=all&performance=benchmarks&benchmark=all&rank=50&campaign=test#timeline",
+  base,
+);
+assert.equal(patchDashboardUrl(stacked, {}).search, "?performance=benchmarks&campaign=test");
+assert.equal(patchDashboardUrl(stacked, { performance: "intelligence" }).search, "?campaign=test");
+assert.equal(patchDashboardUrl(base, { "timeline-period": "all" }).href, `${base.href}#timeline`);
+assert.equal(patchDashboardUrl(base, { "graph-variants": false }).search, "?graph-variants=0");
+
 console.log("Dashboard URL contract checks passed.");

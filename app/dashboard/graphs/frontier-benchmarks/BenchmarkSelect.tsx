@@ -193,7 +193,7 @@ export function BenchmarkSelect({
                 onSort={sortBy}
               />
               <BenchmarkSortHeader
-                label="Items"
+                label="#Items"
                 sortKey="items"
                 sortState={sortState}
                 onSort={sortBy}
