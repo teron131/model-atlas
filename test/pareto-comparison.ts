@@ -1,4 +1,4 @@
-/** Protect independent performance/resource axes, compatible normalization, and measured-only resource coordinates. */
+/** Protect independent performance/resource axes, per-source normalization, and measured-only resource coordinates. */
 
 import assert from "node:assert/strict";
 
@@ -9,7 +9,6 @@ import {
   frontierBenchmarkHoverRows,
   type FrontierBenchmarkRow,
   performanceComparisonRows,
-  resourceComparisonIssue,
 } from "../app/dashboard/graphs/frontier-benchmarks/analysis";
 import { sharedFrontierBenchmarkComparison } from "../app/dashboard/graphs/frontier-benchmarks/common-evidence";
 import { minimalModelAtlasModel } from "./model-atlas-fixtures";
@@ -135,31 +134,60 @@ assert.deepEqual(
   "Uncalibrated sources cannot be counted in the normalized basket",
 );
 assert.equal(missingReference.rows.find((entry) => entry.model === high)?.cost, 100);
-assert.equal(resourceComparisonIssue(evidence, ["a", "b"], "cost"), null);
+// Source-local min–max scaling makes differing native units and token measures comparable.
 const mixedUnits = evidence.map((entry) =>
   entry.benchmarkKey === "b"
     ? { ...entry, resourcePolicy: { ...policy, unit: "total" as const } }
     : entry,
 );
-assert.ok(
-  resourceComparisonIssue(mixedUnits, ["a", "b"], "cost"),
-  "Mixed per-task and full-run units must be rejected",
+const unitComparison = sharedFrontierBenchmarkComparison(
+  mixedUnits,
+  mixedUnits,
+  ["a", "b"],
+  "cost",
 );
+assert.equal(unitComparison.rows.find((entry) => entry.model === low)?.cost, 0);
+assert.equal(unitComparison.rows.find((entry) => entry.model === high)?.cost, 100);
+const mixedTokens = evidence.map((entry) => ({
+  ...entry,
+  resourcePolicy: {
+    ...policy,
+    tokenMeasure: entry.benchmarkKey === "a" ? ("tokens" as const) : ("output_tokens" as const),
+  },
+  totalTokens:
+    entry.benchmarkKey === "a"
+      ? entry.model === low
+        ? 10
+        : 30
+      : entry.model === low
+        ? 3000
+        : 1000,
+}));
+const tokenComparison = sharedFrontierBenchmarkComparison(
+  mixedTokens,
+  mixedTokens,
+  ["a", "b"],
+  "tokens",
+);
+assert.equal(tokenComparison.rows.length, 2);
+assert(
+  tokenComparison.rows.every((entry) => entry.totalTokens === 50),
+  "Each source must normalize before averaging, despite different token scales and measures",
+);
+const filteredTokens = sharedFrontierBenchmarkComparison(
+  mixedTokens.filter((entry) => entry.model === low),
+  mixedTokens,
+  ["a", "b"],
+  "tokens",
+);
+assert.equal(filteredTokens.rows[0]?.totalTokens, 50, "Filtering does not redefine source ranges");
 assert.equal(
-  resourceComparisonIssue(mixedUnits, ["b"], "cost"),
-  null,
-  "Native total-run units remain usable alone",
+  sharedFrontierBenchmarkComparison(mixedTokens, mixedTokens, ["b"], "tokens").rows.find(
+    (entry) => entry.model === low,
+  )?.totalTokens,
+  3000,
+  "Single-source views retain native token values",
 );
-const mixedTokens = evidence.map((entry) =>
-  entry.benchmarkKey === "b"
-    ? { ...entry, resourcePolicy: { ...policy, tokenMeasure: "output_tokens" as const } }
-    : entry,
-);
-assert.ok(
-  resourceComparisonIssue(mixedTokens, ["a", "b"], "tokens"),
-  "Mixed output-token and total-token measures must be rejected",
-);
-assert.equal(resourceComparisonIssue(mixedTokens, ["a", "b"], "value"), null);
 const hover = frontierBenchmarkHoverRows(
   { ...combinedLow, score: 80 },
   frontierBenchmarkAxisConfigFor("cost", true),

@@ -32,7 +32,9 @@ export function benchmarkTooltip(
     coverage.total === 0
       ? `No ${unit} in current view`
       : `${coverage.observed} of ${coverage.total} ${unit} (${benchmarkCoverageLabel(coverage)})`;
-  const rows: ModelAtlasColumnTooltipRow[] = [...(tooltip.rows ?? [])];
+  const rows: ModelAtlasColumnTooltipRow[] = (tooltip.rows ?? []).filter(
+    ([label]) => label !== "Role",
+  );
   const entry = scoring?.benchmark_portfolio[key];
   if (scoring != null && entry != null) {
     rows.push(

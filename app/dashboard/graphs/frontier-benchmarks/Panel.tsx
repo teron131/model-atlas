@@ -12,7 +12,7 @@ import { captureFileToken } from "../../capture/png";
 import { modelName, modelVariantKey, shortLabel } from "../../shared/model-display";
 import { BoxWhiskerSummary } from "../BoxWhiskerSummary";
 import { valueDistribution } from "../chart-stats";
-import { finite, fmtPercentScore, fmtTooltipScore } from "../format";
+import { finite, fmtPercentScore, fmtTooltipNumber, fmtTooltipScore } from "../format";
 import { GraphToggle } from "../GraphToggle";
 import { Panel } from "../Panel";
 import { PARETO_PANEL_CONTENT, ParetoControlSet } from "../ParetoControlSet";
@@ -37,12 +37,11 @@ import {
   performanceComparisonRows,
   type PerformanceMetric,
   positiveMetric,
-  resourceComparisonIssue,
 } from "./analysis";
 import { BenchmarkSelect } from "./BenchmarkSelect";
 import { sharedFrontierBenchmarkComparison } from "./common-evidence";
 import { CommonEvidence } from "./CommonEvidence";
-import { EmptyFrontierBenchmarkScatterPlot, FrontierBenchmarkScatterPlot } from "./ScatterPlot";
+import { FrontierBenchmarkScatterPlot } from "./ScatterPlot";
 
 import styles from "../graphs.module.css";
 
@@ -138,7 +137,6 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
   const resourceAxis = !isScoreAxis(axisKey);
   const aggregate = activeKeys.length > 1;
   const needsEvidence = resourceAxis || !publishedPerformance;
-  const issue = needsEvidence ? resourceComparisonIssue(referenceRows, activeKeys, axisKey) : null;
   const comparison = useMemo(
     () => sharedFrontierBenchmarkComparison(benchmarkRows, referenceRows, activeKeys, axisKey),
     [benchmarkRows, referenceRows, activeKeys, axisKey],
@@ -149,12 +147,10 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
   );
   const rows = useMemo(
     () =>
-      issue
-        ? []
-        : performanceComparisonRows(models, comparison.rows, performance, axisKey).filter((row) =>
-            positiveMetric(axisConfig.get(row), aggregate || !resourceAxis),
-          ),
-    [issue, models, comparison.rows, performance, axisKey, axisConfig, aggregate, resourceAxis],
+      performanceComparisonRows(models, comparison.rows, performance, axisKey).filter((row) =>
+        positiveMetric(axisConfig.get(row), aggregate || !resourceAxis),
+      ),
+    [models, comparison.rows, performance, axisKey, axisConfig, aggregate, resourceAxis],
   );
   const singleKey = activeKeys[0];
   const indexScore = !aggregate && isAggregateIndex(singleKey ?? "");
@@ -197,10 +193,10 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
     () => ({
       label: xLabel,
       get: (row: FrontierBenchmarkRow) => axisConfig.get(row)!,
-      format: axisConfig.format,
+      format: isScoreAxis(axisKey) ? fmtTooltipNumber : axisConfig.format,
       xHigherIsBetter: axisConfig.xHigherIsBetter,
     }),
-    [xLabel, axisConfig],
+    [xLabel, axisConfig, axisKey],
   );
   const evidenceLabel = publishedPerformance
     ? "automatic"
@@ -239,10 +235,9 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
         ? `${evidenceSummary}: performance normalized to the full reference population, with index overlap removed.`
         : null;
   const emptyMessage =
-    issue ??
-    (activeKeys.length === 0 && needsEvidence && !publishedPerformance
+    activeKeys.length === 0 && needsEvidence && !publishedPerformance
       ? "Select an evidence source."
-      : `No models have both ${yLabel} and ${axisConfig.shortLabel}. Change the evidence, axis, or filters.`);
+      : `No models have both ${yLabel} and ${axisConfig.shortLabel}. Change the evidence, axis, or filters.`;
   return (
     <Panel
       {...PARETO_PANEL_CONTENT}
@@ -260,12 +255,18 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
           />
         ) : null
       }
-      note={`${frontierAxisDescription(axisKey, aggregate, rows[0])}${showVariants ? " Hover a point or label to connect its model's variants in reasoning-effort order." : ""}`}
+      note={
+        rows.length > 0
+          ? `${frontierAxisDescription(axisKey, aggregate, rows[0])}${showVariants ? " Hover a point or label to connect its model's variants in reasoning-effort order." : ""}`
+          : undefined
+      }
       wide
     >
       {controls}
-      {explanation ? <p className={styles.comparisonExplanation}>{explanation}</p> : null}
-      {needsEvidence && aggregate && !issue ? (
+      {rows.length > 0 && explanation ? (
+        <p className={styles.comparisonExplanation}>{explanation}</p>
+      ) : null}
+      {rows.length > 0 && needsEvidence && aggregate ? (
         <CommonEvidence
           comparison={{ ...comparison, rows }}
           benchmarkOptions={benchmarkOptions}
@@ -276,18 +277,9 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
         />
       ) : null}
       {rows.length === 0 ? (
-        <>
-          <p className={styles.comparisonExplanation} role="status">
-            {emptyMessage}
-          </p>
-          <EmptyFrontierBenchmarkScatterPlot
-            compactLayout={compactLayout}
-            xAxisLabel={xLabel}
-            yAxisLabel={yLabel}
-            formatScore={formatScoreTick}
-            xHigherIsBetter={axisConfig.xHigherIsBetter}
-          />
-        </>
+        <p className={styles.emptyComparison} role="status">
+          {emptyMessage}
+        </p>
       ) : (
         <FrontierBenchmarkScatterPlot
           rows={[...rows].sort((left, right) => left.score - right.score)}

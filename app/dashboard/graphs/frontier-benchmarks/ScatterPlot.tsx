@@ -55,7 +55,6 @@ type ScatterMetric<Row> = {
   xHigherIsBetter?: boolean;
 };
 
-const EMPTY_CHART_TICKS = [0, 20, 40, 60, 80, 100];
 const PLOT_EDGE_GUTTER = 20;
 const LABEL_EDGE_GUTTER = 12;
 const DIRECTION_LABEL_WIDTH = 100;
@@ -64,74 +63,6 @@ const DIRECTION_LABEL_HEIGHT = 32;
 const PLOT_TOP_GUTTER = 48;
 const MEDIAN_LABEL_CLEARANCE = 64;
 const HOVER_EXIT_DELAY_MS = 150;
-
-/** Preserve the benchmark chart footprint when no benchmark evidence is selected. */
-export function EmptyFrontierBenchmarkScatterPlot({
-  compactLayout,
-  xAxisLabel,
-  xHigherIsBetter,
-  yAxisLabel,
-  formatScore,
-}: {
-  compactLayout: boolean;
-  xAxisLabel: string;
-  yAxisLabel: string;
-  formatScore: (value: number) => string;
-  xHigherIsBetter?: boolean;
-}) {
-  const { chartRef, width } = useChartWidth(SCATTER_CHART_WIDTH);
-  const height = compactLayout ? 400 : SCATTER_CHART_HEIGHT;
-  const margin = scatterChartMargin(SCATTER_CHART_MARGIN, compactLayout);
-  const plot = plotBoundsFor(width, height, margin);
-  const xPoint = stableSvgScale(scaleLinear().domain([0, 100]).range([plot.left, plot.right]));
-  const yPoint = stableSvgScale(scaleLinear().domain([0, 100]).range([plot.bottom, plot.top]));
-  return (
-    <div
-      ref={chartRef}
-      className={styles.chartWrap}
-      style={{ "--chart-max-width": `${SCATTER_CHART_WIDTH}px` } as CSSProperties}
-      role="group"
-      aria-label="Empty frontier benchmark chart viewport"
-    >
-      <svg
-        viewBox={`0 0 ${width} ${height}`}
-        role="img"
-        aria-label="Empty frontier benchmark chart"
-      >
-        <PlotFrame width={width} height={height} margin={margin} />
-        <YAxisTicks
-          insetRight={compactLayout ? plot.right : undefined}
-          ticks={EMPTY_CHART_TICKS}
-          yPoint={yPoint}
-          x={plot.left}
-          format={formatScore}
-          keyPrefix="empty-frontier-benchmarks"
-        />
-        <XAxisTicks
-          ticks={EMPTY_CHART_TICKS}
-          xPoint={xPoint}
-          y={plot.bottom}
-          format={(tick) => tick.toFixed(0)}
-          keyPrefix="empty-frontier-benchmarks"
-        />
-        <AxisTitles
-          width={width}
-          height={height}
-          margin={margin}
-          x={xAxisLabel}
-          y={yAxisLabel}
-          compact={compactLayout}
-          xTitleOffset={50}
-        />
-        <DirectionArrow
-          bounds={plot}
-          direction={xHigherIsBetter ? "upper-right" : "upper-left"}
-          label="Better"
-        />
-      </svg>
-    </div>
-  );
-}
 
 /** Render a generic frontier benchmark scatter plot with configurable axes, labels, effort connections, cursor projections, and hover payloads. */
 export function FrontierBenchmarkScatterPlot<Row>({

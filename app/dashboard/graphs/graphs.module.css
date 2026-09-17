@@ -1059,11 +1059,18 @@
 }
 
 .paretoControlGrid {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   width: 100%;
-  grid-template-columns: minmax(360px, 1fr) minmax(0, 1.5fr);
   align-items: flex-start;
   gap: 18px 34px;
+}
+
+/* Wrap whole axis groups according to their content, not the viewport width. */
+.paretoControlGrid > .toolbarControl {
+  flex: 1 1 max-content;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .paretoControlSet {
@@ -1074,6 +1081,15 @@
 
 .chartToolbar.paretoControlSet {
   overflow: visible;
+}
+
+.emptyComparison {
+  margin: 18px 0 0;
+  padding: 24px 0;
+  border-block: 1px solid var(--line);
+  color: var(--muted);
+  font-size: var(--type-note-size);
+  line-height: 1.45;
 }
 
 .comparisonExplanation {
@@ -1105,18 +1121,8 @@
   text-transform: uppercase;
 }
 
-@media (max-width: 900px) {
-  .paretoControlGrid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .paretoControlXAxis {
-    min-width: 0;
-  }
-
-  .paretoControlXAxis .metricToggle button {
-    flex: 0 0 auto;
-  }
+.paretoControlXAxis .metricToggle button {
+  flex: 0 0 auto;
 }
 
 .toolbarControlTitle {
@@ -1853,8 +1859,6 @@
   }
 
   .paretoControlGrid {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
     gap: 16px;
   }
 

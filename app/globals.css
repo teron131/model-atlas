@@ -993,7 +993,7 @@ th[data-sort-state="descending"] .sort-indicator::after {
   overscroll-behavior: contain;
   padding: 12px 13px 13px;
   border: 1px solid rgb(var(--ink-rgb) / 0.2);
-  background: var(--tooltip-surface);
+  background: var(--paper);
   color: var(--ink);
   text-align: left;
   pointer-events: none;
@@ -1042,7 +1042,7 @@ th[data-sort-state="descending"] .sort-indicator::after {
   font-size: var(--sans-note);
   font-weight: var(--type-body-weight);
   letter-spacing: 0;
-  line-height: 1.32;
+  line-height: 1.45;
   text-transform: none;
 }
 
@@ -1092,9 +1092,12 @@ th[data-sort-state="descending"] .sort-indicator::after {
   display: grid;
   gap: 8px;
   min-width: 0;
+}
+
+.column-tooltip-rows + .column-tooltip-sections {
   margin-top: 10px;
   padding-top: 10px;
-  border-top: 1px solid rgb(var(--ink-rgb) / 0.14);
+  border-top: 1px solid var(--line);
 }
 
 .column-tooltip-section {
@@ -1152,6 +1155,11 @@ th[data-sort-state="descending"] .sort-indicator::after {
   white-space: normal;
 }
 
+.column-tooltip-section > .column-tooltip-row .column-tooltip-value {
+  line-height: 1.45;
+  text-align: left;
+}
+
 .column-tooltip-nested-section {
   display: grid;
   gap: 6px;
@@ -1173,9 +1181,9 @@ th[data-sort-state="descending"] .sort-indicator::after {
   box-sizing: border-box;
   display: grid;
   gap: 6px;
-  max-width: calc(100% - 8px);
-  margin-left: 8px;
-  padding-left: 8px;
+  max-width: 100%;
+  margin-left: 0;
+  padding-left: 0;
 }
 
 .column-tooltip-nested-section .column-tooltip-section-title {
@@ -1222,6 +1230,11 @@ th[data-sort-state="descending"] .sort-indicator::after {
   .column-tooltip-section .column-tooltip-row {
     grid-template-columns: 1fr;
     gap: 2px;
+  }
+
+  .column-tooltip-nested-section .column-tooltip-row {
+    grid-template-columns: minmax(0, 1fr) max-content;
+    gap: 8px;
   }
 }
 

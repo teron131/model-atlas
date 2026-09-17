@@ -4,6 +4,7 @@ import { COLUMN_TOOLTIPS } from "../../../src/model-atlas/config";
 import {
   CONFIDENCE_TOOLTIP,
   type ModelAtlasColumnTooltip,
+  type ModelAtlasColumnTooltipNestedSection,
   type ModelAtlasColumnTooltips,
 } from "../../../src/model-atlas/config/tooltips";
 import type {
@@ -20,6 +21,54 @@ import {
   type TaskMetricColumn,
   taskMetricColumns,
 } from "./models";
+
+// Summaries explain the score while published metadata remains the authority for every weight.
+const scoreExplanations: Partial<
+  Record<TableColumnKey, Pick<ModelAtlasColumnTooltip, "body" | "rows">>
+> = {
+  intelligence: {
+    body: "Reasoning, knowledge, and judgment across selected benchmarks.",
+    rows: [
+      ["Scale", "Each benchmark spans 0–100 within the reference population."],
+      ["Weights", "Benchmark importance × Intelligence loading."],
+      ["Task/index blend", "20/80 → 80/20 as direct task evidence grows."],
+      ["Limited evidence", "Supported estimates fill gaps; sparse high scores move toward 50."],
+    ],
+  },
+  agentic: {
+    body: "Reliability in coding, tool use, and completing goals.",
+    rows: [
+      ["Weights", "Benchmark importance × Agentic loading."],
+      [
+        "Token efficiency",
+        "0.85–1.15× before rescaling to 0–100; weak token evidence approaches 1×.",
+      ],
+      ["Task/index blend", "20/80 → 80/20 as direct task evidence grows."],
+      ["Limited evidence", "Supported estimates fill gaps; sparse high scores move toward 50."],
+    ],
+  },
+  speed: {
+    body: "How quickly a model completes work at comparable quality.",
+    rows: [
+      ["Comparison", "Quality-matched task times; weak peer support moves toward neutral 50."],
+      [
+        "Eligibility",
+        "At least 4 benchmarks with observed time and quality; estimates do not count.",
+      ],
+      ["Missing inputs", "Estimated when possible, with reduced evidence support."],
+      ["Coverage", "Full model-coverage multiplier from 60%."],
+    ],
+  },
+  value: {
+    body: "How much capability a model delivers for its cost.",
+    rows: [
+      ["Comparison", "Quality-matched task costs; weak peer support moves toward neutral 50."],
+      ["Eligibility", "At least 4 benchmarks with observed cost and quality."],
+      ["Missing inputs", "Estimated when possible, with reduced evidence support."],
+      ["Coverage", "Full model-coverage multiplier from 60%."],
+    ],
+  },
+};
 
 const benchmarkColumnTooltips = Object.fromEntries(
   benchmarkMetricColumns.flatMap((column) => {
@@ -206,7 +255,32 @@ export function tableColumnTooltip(
       return benchmarkTooltip(benchmark.benchmark, context);
     }
   }
-  return fallbackColumnTooltips[key] ?? columnTooltips[key];
+  const tooltip = fallbackColumnTooltips[key] ?? columnTooltips[key];
+  const explanation = scoreExplanations[key];
+  if (!tooltip || !explanation) return tooltip;
+  const weightGroups =
+    tooltip.sections?.flatMap((section) =>
+      section.rows.filter(
+        (item): item is ModelAtlasColumnTooltipNestedSection => !Array.isArray(item),
+      ),
+    ) ?? [];
+  const displayGroups =
+    key === "speed" || key === "value"
+      ? weightGroups.map((group) => ({
+          ...group,
+          rows: group.rows.map(
+            ([label, weight]) => [label.replace(/ (runtime|cost) ↓$/, ""), weight] as const,
+          ),
+        }))
+      : weightGroups;
+  return {
+    title: tooltip.title,
+    body: explanation.body,
+    sections: [
+      { title: "Weights", hideTitle: true, rows: displayGroups },
+      { title: "Interpretation", rows: explanation.rows ?? [] },
+    ],
+  };
 }
 
 /** Build the row-owned evidence popover from one persisted material change. */

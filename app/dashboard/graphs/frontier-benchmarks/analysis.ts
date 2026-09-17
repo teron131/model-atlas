@@ -362,7 +362,7 @@ export function frontierAxisDescription(
       : `Observed runtime ${resourceUnitPhrase(row)}. Lower is better.`;
   }
   if (isAggregateView) {
-    return "Matching token measures: normalized per source to the full reference population, then averaged. Lower is better.";
+    return "Tokens: min–max normalized within each source, then averaged. Lower is better.";
   }
   const tokenUse =
     row?.resourcePolicy?.tokenMeasure === "output_tokens" ? "output-token use" : "token use";
@@ -507,36 +507,6 @@ export function automaticResourceKeys(
         .map((row) => row.benchmarkKey),
     ),
   ];
-}
-
-/** A normalized resource basket must represent the same measurement, not merely share a numeric range. */
-export function resourceComparisonIssue(
-  rows: FrontierBenchmarkRow[],
-  selectedKeys: readonly string[],
-  axisKey: FrontierBenchmarkAxisKey,
-): string | null {
-  if (isScoreAxis(axisKey) || selectedKeys.length < 2) return null;
-  const selected = new Set(selectedKeys);
-  const measured = rows.filter(
-    (row) =>
-      selected.has(row.benchmarkKey) &&
-      positiveMetric(frontierBenchmarkAxisConfig[axisKey].get(row)),
-  );
-  const units = new Set(measured.map((row) => row.resourcePolicy?.unit));
-  if (units.has(undefined))
-    return "Unknown resource units. Select sources with declared per-task or full-run units.";
-  if (units.size > 1)
-    return "Per-task and full-run measurements cannot mix. Select sources with matching units.";
-  if (axisKey === "tokens") {
-    const measures = new Set(
-      measured.map((row) =>
-        row.resourcePolicy?.tokenMeasure === "output_tokens" ? "output" : "total",
-      ),
-    );
-    if (measures.size > 1)
-      return "Output and total tokens cannot mix. Select sources with matching token measures.";
-  }
-  return null;
 }
 
 export function positiveMetric(value: number | null, allowZero = false): value is number {
