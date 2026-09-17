@@ -52,7 +52,6 @@ import {
   type BenchmarkColumnOrder,
   dashboardMetricColumns,
   dedupeDisplayModels,
-  relativeScoreMeters,
   sortedRows,
   sorters,
   type SortKey,
@@ -150,13 +149,11 @@ export function DashboardLeaderboard({
   );
   const scopedRows = useMemo(
     () =>
-      relativeScoreMeters(
-        filterByIntelligenceRank(
-          recencyFilteredRows,
-          (row) => row.model,
-          modelRankFilter,
-          payload?.models ?? [],
-        ),
+      filterByIntelligenceRank(
+        recencyFilteredRows,
+        (row) => row.model,
+        modelRankFilter,
+        payload?.models ?? [],
       ),
     [modelRankFilter, payload?.models, recencyFilteredRows],
   );

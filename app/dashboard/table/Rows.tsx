@@ -235,7 +235,6 @@ function ModelScoreCells({
             scores.intelligence_score,
             model.provider,
             ruledColumnKeySet?.has("intelligence") ? "column-group-end" : "",
-            rowData.scoreMeters?.intelligence,
           )
         : null}
       {visibleColumnKeySet == null || visibleColumnKeySet.has("agentic")
@@ -243,7 +242,6 @@ function ModelScoreCells({
             scores.agentic_score,
             model.provider,
             ruledColumnKeySet?.has("agentic") ? "column-group-end" : "",
-            rowData.scoreMeters?.agentic,
           )
         : null}
       {visibleColumnKeySet == null || visibleColumnKeySet.has("speed")
@@ -251,7 +249,6 @@ function ModelScoreCells({
             scores.speed_score,
             model.provider,
             ruledColumnKeySet?.has("speed") ? "column-group-end" : "",
-            rowData.scoreMeters?.speed,
           )
         : null}
       {visibleColumnKeySet == null || visibleColumnKeySet.has("value")
@@ -259,7 +256,6 @@ function ModelScoreCells({
             scores.value_score,
             model.provider,
             ruledColumnKeySet?.has("value") ? "column-group-end" : "",
-            rowData.scoreMeters?.value,
           )
         : null}
     </>
@@ -526,11 +522,11 @@ function TableCell({ text, className }: { text: string; className?: string }) {
   return <td className={`${className ?? ""}${missingClass}`.trim()}>{text}</td>;
 }
 
+/** Keep the marker on the same 0–100 scale as its displayed score, independent of table filters. */
 function scoreCell(
   value: number | null | undefined,
   provider: string | null | undefined,
   className = "",
-  meterPercent: number | null | undefined = value,
 ) {
   const score = typeof value === "number" && Number.isFinite(value) ? value : null;
   if (score == null) {
@@ -538,7 +534,7 @@ function scoreCell(
   }
   const displayColor = providerBrandColor(provider);
   const style = {
-    "--score": String(Math.max(0, Math.min(100, meterPercent ?? 0))),
+    "--score": String(Math.max(0, Math.min(100, score))),
     "--score-color": displayColor,
   } as CSSProperties;
   return (
