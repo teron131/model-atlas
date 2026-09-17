@@ -30,9 +30,9 @@ export const SCATTER_CHART_WIDTH = 1120;
 
 const SVG_NUMBER_DECIMALS = 3;
 
-/** Reserve enough compact-width space for enlarged axis labels without changing the plot origin between score bases. */
+/** Keep compact titles above the plot and inset scale labels within its narrow gutters. */
 export function scatterChartMargin(margin: Margin, compact: boolean): Margin {
-  return compact ? { ...margin, left: Math.max(margin.left, 84) } : margin;
+  return compact ? { top: 48, right: 8, bottom: 60, left: 8 } : margin;
 }
 
 /** Return stable SVG number attributes across server and client rendering. */
@@ -194,6 +194,7 @@ export function XAxisTicks({
   ));
 }
 
+/** Compact plots retain three inset scale anchors; other gridlines remain unlabelled. */
 export function YAxisTicks({
   ticks,
   yPoint,
@@ -202,6 +203,7 @@ export function YAxisTicks({
   keyPrefix,
   tickLength = 7,
   labelOffset = 15,
+  insetRight,
 }: {
   ticks: number[];
   yPoint: (value: number) => number;
@@ -210,19 +212,29 @@ export function YAxisTicks({
   keyPrefix: string;
   tickLength?: number;
   labelOffset?: number;
+  insetRight?: number;
 }) {
-  return ticks.map((tick) => (
+  const inset = insetRight != null;
+  const middle = Math.floor((ticks.length - 1) / 2);
+  return ticks.map((tick, index) => (
     <g key={`${keyPrefix}-y-${tick}`}>
       <line
-        className={styles.axisTick}
-        x1={x - tickLength}
-        x2={x}
+        className={inset ? styles.scaleGrid : styles.axisTick}
+        x1={inset ? x : x - tickLength}
+        x2={insetRight ?? x}
         y1={yPoint(tick)}
         y2={yPoint(tick)}
       />
-      <text className={styles.axisLabel} x={x - labelOffset} y={yPoint(tick) + 4} textAnchor="end">
-        {format(tick)}
-      </text>
+      {!inset || index === 0 || index === middle || index === ticks.length - 1 ? (
+        <text
+          className={inset ? styles.scaleAnchor : styles.axisLabel}
+          x={inset ? x + 6 : x - labelOffset}
+          y={yPoint(tick) + (inset ? (index === 0 ? -6 : 14) : 4)}
+          textAnchor={inset ? "start" : "end"}
+        >
+          {format(tick)}
+        </text>
+      ) : null}
     </g>
   ));
 }
@@ -320,8 +332,8 @@ export function AxisTitles({
   const plotRight = width - margin.right;
   const plotBottom = height - margin.bottom;
   const plotMiddleY = margin.top + (height - margin.top - margin.bottom) / 2;
-  const yTitleX = compact ? 14 : 18;
-  const resolvedXTitleOffset = xTitleOffset ?? (compact ? 58 : 60);
+  const yTitleX = compact ? plotLeft : 18;
+  const resolvedXTitleOffset = xTitleOffset ?? (compact ? 48 : 60);
   return (
     <>
       <text
@@ -335,9 +347,9 @@ export function AxisTitles({
       <text
         className={styles.axisTitle}
         x={yTitleX}
-        y={plotMiddleY}
-        textAnchor="middle"
-        transform={`rotate(-90 ${yTitleX} ${plotMiddleY})`}
+        y={compact ? 14 : plotMiddleY}
+        textAnchor={compact ? "start" : "middle"}
+        transform={compact ? undefined : `rotate(-90 ${yTitleX} ${plotMiddleY})`}
       >
         {y}
       </text>

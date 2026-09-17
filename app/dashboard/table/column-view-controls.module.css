@@ -140,6 +140,10 @@
 }
 
 @media (max-width: 40rem) {
+  .search {
+    font-size: 16px;
+  }
+
   .row {
     grid-template-areas:
       "search result"

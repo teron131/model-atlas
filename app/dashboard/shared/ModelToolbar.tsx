@@ -49,6 +49,7 @@ export function ModelToolbar({
           type="search"
           autoComplete="off"
           spellCheck="false"
+          aria-label="Filter models in this section"
           placeholder="Filter models"
           value={filterQuery}
           onChange={(event) => onFilterQueryChange(event.target.value)}

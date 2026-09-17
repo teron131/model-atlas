@@ -179,7 +179,7 @@ function drawPhaseSurface(frame: MaterialFrame): void {
           const { agentic, context, intelligence, speed, mean, value } =
             modelField.model.parameters;
           const scaleX = 0.2 + context * 0.03;
-          const scaleY = 0.17 + context * 0.04;
+          const scaleY = (0.17 + context * 0.04) * Math.min(1, aspect);
           const dx = (u - modelField.x) / scaleX;
           const dy = (v - modelField.y) / scaleY;
           const local = Math.exp(-(dx * dx * 1.3 + dy * dy * 2.1));
@@ -347,6 +347,9 @@ function modelPoint(index: number, count: number, width: number, height: number)
   const fallbackX = 0.58 + ((index + 1) / Math.max(2, count + 1)) * 0.36;
   const fallbackY = 0.2 + ((index + 1) / Math.max(2, count + 1)) * 0.65;
   const point = desktop[index] ?? [fallbackX, fallbackY];
+  if (width < height) {
+    return { x: (0.7 + (index % 2) * 0.2) * width, y: (0.18 + index * 0.13) * height };
+  }
   return { x: Number(point[0]) * width, y: Number(point[1]) * height };
 }
 

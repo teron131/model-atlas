@@ -80,7 +80,7 @@ export function EmptyFrontierBenchmarkScatterPlot({
   xHigherIsBetter?: boolean;
 }) {
   const { chartRef, width } = useChartWidth(SCATTER_CHART_WIDTH);
-  const height = SCATTER_CHART_HEIGHT;
+  const height = compactLayout ? 400 : SCATTER_CHART_HEIGHT;
   const margin = scatterChartMargin(SCATTER_CHART_MARGIN, compactLayout);
   const plot = plotBoundsFor(width, height, margin);
   const xPoint = stableSvgScale(scaleLinear().domain([0, 100]).range([plot.left, plot.right]));
@@ -100,6 +100,7 @@ export function EmptyFrontierBenchmarkScatterPlot({
       >
         <PlotFrame width={width} height={height} margin={margin} />
         <YAxisTicks
+          insetRight={compactLayout ? plot.right : undefined}
           ticks={EMPTY_CHART_TICKS}
           yPoint={yPoint}
           x={plot.left}
@@ -154,7 +155,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
   compactLayout,
   setHover,
   width: maxWidth = SCATTER_CHART_WIDTH,
-  height = SCATTER_CHART_HEIGHT,
+  height: fullHeight = SCATTER_CHART_HEIGHT,
   margin = SCATTER_CHART_MARGIN,
 }: {
   rows: Row[];
@@ -181,6 +182,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
   margin?: Margin;
 }) {
   const { chartRef, width } = useChartWidth(maxWidth);
+  const height = compactLayout ? Math.min(fullHeight, 400) : fullHeight;
   const [highlightedVariantKey, setHighlightedVariantKey] = useVariantHighlight();
   const guideMaskId = useId();
   const chartMargin = scatterChartMargin(margin, compactLayout);
@@ -192,13 +194,15 @@ export function FrontierBenchmarkScatterPlot<Row>({
       ? roundedLinearTicks(xDomain, 10)
       : linearTicksForValues(metricValues, metric.format));
   const plot = plotBoundsFor(width, height, chartMargin);
+  const edgeGutter = compactLayout ? 12 : PLOT_EDGE_GUTTER;
+  const topGutter = compactLayout ? 24 : PLOT_TOP_GUTTER;
   const x = scaleLinear()
     .domain(xDomain)
-    .range([plot.left + PLOT_EDGE_GUTTER, plot.right - PLOT_EDGE_GUTTER])
+    .range([plot.left + edgeGutter, plot.right - edgeGutter])
     .clamp(true);
   const y = scaleLinear()
     .domain(yDomain)
-    .range([plot.bottom - PLOT_EDGE_GUTTER, plot.top + PLOT_TOP_GUTTER])
+    .range([plot.bottom - edgeGutter, plot.top + topGutter])
     .clamp(true);
   const xPoint = stableSvgScale(x);
   const yPoint = stableSvgScale(y);
@@ -235,7 +239,10 @@ export function FrontierBenchmarkScatterPlot<Row>({
   const highlightedRows =
     reasoningGroups.find((group) => group.key === activeReasoningGroup)?.variants ??
     (activeRow == null ? [] : [activeRow]);
-  const labeledRows = [...new Set([...highlightedRows, ...frontier])];
+  const persistentLabels = compactLayout
+    ? [...frontier].sort((a, b) => getScore(b) - getScore(a)).slice(0, 3)
+    : frontier;
+  const labeledRows = [...new Set([...highlightedRows, ...persistentLabels])];
   const { svgRef, labelSizes } = useLabelSizes(labeledRows.map(getLabel).join("\0"), compactLayout);
   const layoutRequest: Parameters<typeof calloutLabelPlacements>[0] = {
     bounds: {
@@ -392,6 +399,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
         <PlotFrame width={width} height={height} margin={chartMargin} />
         <CursorCapture bounds={plot} />
         <YAxisTicks
+          insetRight={compactLayout ? plot.right : undefined}
           ticks={yTicks}
           yPoint={yPoint}
           x={plot.left}
@@ -538,7 +546,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
                   data-capture-exclude
                   {...labelRect(placement, size, 3)}
                   fill="transparent"
-                  pointerEvents="all"
+                  pointerEvents={compactLayout ? "none" : "all"}
                   aria-hidden="true"
                 />
               ) : null}

@@ -2,15 +2,10 @@
 
 /** Shared branding, primary routes, and theme control stay consistent across every page. */
 
-import { BookOpenText, ChartNoAxesColumnIncreasing, Moon, Sun } from "lucide-react";
+import { Moon, Sun } from "lucide-react";
 import Link from "next/link";
 
 import { toggleModelAtlasTheme, useThemeSynchronization } from "./theme";
-
-const HEADER_ROUTES = [
-  { page: "dashboard", href: "/", label: "Leaderboard", Icon: ChartNoAxesColumnIncreasing },
-  { page: "methodology", href: "/methodology", label: "Methodology", Icon: BookOpenText },
-] as const;
 
 export function ModelAtlasHeader({ page }: { page: "dashboard" | "methodology" }) {
   useThemeSynchronization();
@@ -27,22 +22,13 @@ export function ModelAtlasHeader({ page }: { page: "dashboard" | "methodology" }
       </Link>
       <div className="header-actions">
         <nav className="header-routes" aria-label="Main navigation">
-          {HEADER_ROUTES.map((route) => (
-            <Link
-              key={route.page}
-              className="header-route"
-              href={route.href}
-              prefetch={false}
-              aria-label={route.label}
-              aria-current={
-                page === route.page ? (page === "methodology" ? "location" : "page") : undefined
-              }
-              title={route.label}
-            >
-              <route.Icon aria-hidden="true" />
-              <span>{route.label}</span>
-            </Link>
-          ))}
+          <Link
+            className="header-route"
+            href={page === "dashboard" ? "/methodology" : "/"}
+            prefetch={false}
+          >
+            {page === "dashboard" ? "Methodology" : "Leaderboard"}
+          </Link>
         </nav>
         <button
           className="header-icon-button theme-toggle"

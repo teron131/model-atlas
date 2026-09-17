@@ -57,8 +57,13 @@ export function LabsPlot({
 
   const highlight = hovered ?? active;
   const { chartRef, width } = useChartWidth(SCATTER_CHART_WIDTH);
-  const height = compact ? 600 : 540;
-  const margin = { top: 28, right: compact ? 112 : 96, bottom: 76, left: 72 };
+  const height = compact ? 400 : 540;
+  const margin = {
+    top: compact ? 48 : 28,
+    right: compact ? 8 : 96,
+    bottom: compact ? 60 : 76,
+    left: compact ? 8 : 72,
+  };
   const right = width - margin.right;
   const bottom = height - margin.bottom;
   const timePadding = (end - start) * 0.04;
@@ -173,16 +178,19 @@ export function LabsPlot({
           aria-label="Labs: Intelligence Index frontier by release date"
         >
           <PlotFrame width={width} height={height} margin={margin} />
-          {y.ticks(6).map((tick) => (
-            <line
-              key={tick}
-              x1={margin.left}
-              x2={right}
-              y1={y(tick)}
-              y2={y(tick)}
-              stroke="var(--chart-grid)"
-            />
-          ))}
+          {!compact &&
+            y
+              .ticks(6)
+              .map((tick) => (
+                <line
+                  key={tick}
+                  x1={margin.left}
+                  x2={right}
+                  y1={y(tick)}
+                  y2={y(tick)}
+                  stroke="var(--chart-grid)"
+                />
+              ))}
           <XAxisTicks
             ticks={x.ticks(compact ? 4 : 7).map(Number)}
             xPoint={(value) => x(new Date(value))}
@@ -192,6 +200,7 @@ export function LabsPlot({
             labelMinGap={65}
           />
           <YAxisTicks
+            insetRight={compact ? width - margin.right : undefined}
             ticks={y.ticks(6)}
             yPoint={y}
             x={margin.left}
@@ -289,71 +298,66 @@ export function LabsPlot({
               </g>
             );
           })}
-          {endpoints.map((lab) => {
-            const color = providerChartColor(lab.provider);
-            const logo = providerLogo(lab.provider);
-            const name = providerDisplayName(lab.provider);
-            return (
-              <g
-                key={lab.provider}
-                role="button"
-                tabIndex={0}
-                aria-label={`${name}, ${lab.leading.name}, Intelligence Index ${lab.leading.score.toFixed(1)}`}
-                aria-pressed={active === lab.provider}
-                className={timeline.labEndpoint}
-                onPointerEnter={() => showPreview(lab.leading)}
-                onPointerLeave={() => showPreview(null)}
-                onFocus={() => showPreview(lab.leading)}
-                onBlur={() => showPreview(null)}
-                onClick={() => toggleLab(lab.leading)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    toggleLab(lab.leading);
-                  }
-                }}
-              >
-                <rect
-                  x={right + (compact ? 18 : 10)}
-                  y={lab.iconY - 14}
-                  width={margin.right - (compact ? 18 : 10)}
-                  height="28"
-                  rx="3"
-                  fill="var(--paper)"
-                  stroke="transparent"
-                />
-                {logo ? (
-                  <image
-                    href={logo}
-                    x={right + (compact ? 22 : 14)}
-                    y={lab.iconY - (compact ? 12 : 10)}
-                    width={compact ? 24 : 20}
-                    height={compact ? 24 : 20}
+          {!compact &&
+            endpoints.map((lab) => {
+              const color = providerChartColor(lab.provider);
+              const logo = providerLogo(lab.provider);
+              const name = providerDisplayName(lab.provider);
+              return (
+                <g
+                  key={lab.provider}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`${name}, ${lab.leading.name}, Intelligence Index ${lab.leading.score.toFixed(1)}`}
+                  aria-pressed={active === lab.provider}
+                  className={timeline.labEndpoint}
+                  onPointerEnter={() => showPreview(lab.leading)}
+                  onPointerLeave={() => showPreview(null)}
+                  onFocus={() => showPreview(lab.leading)}
+                  onBlur={() => showPreview(null)}
+                  onClick={() => toggleLab(lab.leading)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      toggleLab(lab.leading);
+                    }
+                  }}
+                >
+                  <rect
+                    x={right + 10}
+                    y={lab.iconY - 14}
+                    width={margin.right - 10}
+                    height="28"
+                    rx="3"
+                    fill="var(--paper)"
+                    stroke="transparent"
                   />
-                ) : (
+                  {logo ? (
+                    <image href={logo} x={right + 14} y={lab.iconY - 10} width={20} height={20} />
+                  ) : (
+                    <text
+                      className={styles.axisLabel}
+                      x={right + 24}
+                      y={lab.iconY + 4}
+                      textAnchor="middle"
+                      fill={color}
+                    >
+                      {name.slice(0, 2)}
+                    </text>
+                  )}
                   <text
                     className={styles.axisLabel}
-                    x={right + (compact ? 32 : 24)}
+                    x={width - 8}
                     y={lab.iconY + 4}
-                    textAnchor="middle"
-                    fill={color}
+                    textAnchor="end"
+                    fill="var(--ink)"
+                    fontFamily="var(--font-mono)"
                   >
-                    {name.slice(0, 2)}
+                    {lab.leading.score.toFixed(1)}
                   </text>
-                )}
-                <text
-                  className={styles.axisLabel}
-                  x={width - (compact ? 9 : 8)}
-                  y={lab.iconY + 4}
-                  textAnchor="end"
-                  fill="var(--ink)"
-                  fontFamily="var(--font-mono)"
-                >
-                  {lab.leading.score.toFixed(1)}
-                </text>
-              </g>
-            );
-          })}
+                </g>
+              );
+            })}
           <g pointerEvents="none" aria-label="Highlighted lab model labels">
             {labeled.map(({ time, point }) => (
               <TextPointLabel

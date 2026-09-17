@@ -123,8 +123,13 @@ export function TimelinePanel() {
       ? (population.find((point) => point.id === selected) ?? labLeaders[0])
       : (visible.find((point) => point.id === selected) ?? frontier.at(-1) ?? visible.at(-1)));
   const { chartRef, width } = useChartWidth(SCATTER_CHART_WIDTH);
-  const height = compact ? 480 : 520;
-  const margin = { top: 42, right: 30, bottom: 76, left: compact ? 78 : 72 };
+  const height = compact ? 400 : 520;
+  const margin = {
+    top: compact ? 64 : 42,
+    right: compact ? 8 : 30,
+    bottom: compact ? 60 : 76,
+    left: compact ? 8 : 72,
+  };
   const padding = Math.max((end - start) * 0.025, 14 * 86400000 * (range[1] - range[0]));
   const x = scaleUtc()
     .domain([new Date(start - padding), new Date(end + padding)])
@@ -209,7 +214,7 @@ export function TimelinePanel() {
     bounds: {
       left: margin.left,
       right: width - margin.right,
-      top: 8,
+      top: compact ? 28 : 8,
       bottom: height - margin.bottom - 8,
     },
     directions: [
@@ -369,16 +374,19 @@ export function TimelinePanel() {
                   onBlur={() => setPreview(null)}
                 >
                   <PlotFrame width={width} height={height} margin={margin} />
-                  {y.ticks(5).map((tick) => (
-                    <line
-                      key={tick}
-                      x1={margin.left}
-                      x2={width - margin.right}
-                      y1={y(tick)}
-                      y2={y(tick)}
-                      stroke="var(--chart-grid)"
-                    />
-                  ))}
+                  {!compact &&
+                    y
+                      .ticks(5)
+                      .map((tick) => (
+                        <line
+                          key={tick}
+                          x1={margin.left}
+                          x2={width - margin.right}
+                          y1={y(tick)}
+                          y2={y(tick)}
+                          stroke="var(--chart-grid)"
+                        />
+                      ))}
                   <XAxisTicks
                     ticks={ticks}
                     xPoint={(value) => x(new Date(value))}
@@ -388,6 +396,7 @@ export function TimelinePanel() {
                     labelMinGap={65}
                   />
                   <YAxisTicks
+                    insetRight={compact ? width - margin.right : undefined}
                     ticks={y.ticks(5)}
                     yPoint={y}
                     x={margin.left}

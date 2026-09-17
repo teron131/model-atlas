@@ -217,24 +217,12 @@ main {
   outline: 0;
 }
 
-.header-route[aria-current] {
-  color: var(--ink);
-  box-shadow: inset 0 -2px 0 var(--ink);
-}
-
 .header-route:focus-visible {
   box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 .header-route:active {
   transform: translateY(1px);
-}
-
-.header-route svg {
-  width: var(--dashboard-icon-button-icon-size);
-  height: var(--dashboard-icon-button-icon-size);
-  stroke: currentColor;
-  stroke-width: var(--dashboard-icon-button-stroke);
 }
 
 .visually-hidden {
@@ -1516,10 +1504,6 @@ td.modality-cell {
     margin-top: 0;
     padding-right: 0;
     padding-left: 0;
-  }
-
-  .header-route span {
-    display: none;
   }
 
   .benchmarks {

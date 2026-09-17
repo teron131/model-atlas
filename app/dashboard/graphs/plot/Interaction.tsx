@@ -138,9 +138,9 @@ export function CursorProjectionLayer({
       </text>
       <text
         className={styles.cursorProjectionLabel}
-        x={bounds.right + 10}
+        x={bounds.right - 6}
         y={projection.y + 4}
-        textAnchor="start"
+        textAnchor="end"
       >
         {yLabel}
       </text>
@@ -190,6 +190,7 @@ export function PointHitTarget({
         className={styles.pointButton}
         aria-label={`Show details for ${displayName}`}
         onPointerEnter={(event) => {
+          if (event.pointerType === "touch") return;
           setActive(true);
           setHover(pointHover(event, model, rows, displayName));
         }}
@@ -197,7 +198,8 @@ export function PointHitTarget({
           setActive(true);
           setHover(focusHover(event.currentTarget, model, rows, displayName));
         }}
-        onPointerMove={(event) =>
+        onPointerMove={(event) => {
+          if (event.pointerType === "touch") return;
           setHover((hover) =>
             hover == null ||
             (Math.abs(hover.left - event.clientX) < 6 && Math.abs(hover.top - event.clientY) < 6)
@@ -207,9 +209,16 @@ export function PointHitTarget({
                   left: event.clientX,
                   top: event.clientY,
                 },
-          )
-        }
-        onPointerLeave={() => {
+          );
+        }}
+        onClick={(event) => {
+          event.currentTarget.focus();
+          setActive(true);
+          setHover(focusHover(event.currentTarget, model, rows, displayName));
+        }}
+        onPointerLeave={(event) => {
+          if (event.pointerType === "touch" || event.currentTarget === document.activeElement)
+            return;
           setActive(false);
           setHover(null);
         }}
