@@ -2,15 +2,22 @@
 
 /** Copy the explicit dashboard configuration for its owning section without changing browser history. */
 
-import { Link as LinkIcon } from "lucide-react";
+import { Check as CheckIcon, CircleAlert, Link as LinkIcon } from "lucide-react";
 import { useState } from "react";
 
 import type { ResearchRegionId } from "./graphs/research-index";
 
 import styles from "./capture/capture.module.css";
 
+const feedback = {
+  idle: { label: "Copy link", Icon: LinkIcon },
+  saved: { label: "Link copied", Icon: CheckIcon },
+  error: { label: "Copy failed — use the address bar", Icon: CircleAlert },
+};
+
 export function CopyDashboardLink({ sectionId }: { sectionId: ResearchRegionId }) {
-  const [status, setStatus] = useState("Copy link");
+  const [status, setStatus] = useState<keyof typeof feedback>("idle");
+  const { label, Icon } = feedback[status];
 
   /** Preserve the current query while targeting this section, and report clipboard denial without navigating. */
   async function copyLink() {
@@ -18,23 +25,24 @@ export function CopyDashboardLink({ sectionId }: { sectionId: ResearchRegionId }
     url.hash = sectionId;
     try {
       await navigator.clipboard.writeText(url.href);
-      setStatus("Link copied");
+      setStatus("saved");
     } catch {
-      setStatus("Copy failed — use the address bar");
+      setStatus("error");
     }
   }
   return (
     <button
       className={styles.actionButton}
       type="button"
-      aria-label={status}
-      title={status}
+      data-state={status}
+      aria-label={label}
+      title={label}
       onClick={copyLink}
-      onBlur={() => setStatus("Copy link")}
+      onBlur={() => setStatus("idle")}
     >
-      <LinkIcon aria-hidden="true" />
+      <Icon aria-hidden="true" />
       <span className="visually-hidden" role="status">
-        {status}
+        {label}
       </span>
     </button>
   );

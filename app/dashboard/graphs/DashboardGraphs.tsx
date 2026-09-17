@@ -92,6 +92,7 @@ export function DashboardGraphs({
   const [filtersExpanded, setFiltersExpanded] = useState(false);
   const [benchmarksExpanded, setBenchmarksExpanded] = useState(false);
   const instrumentRailRef = useRef<HTMLElement>(null);
+  const filtersToggleRef = useRef<HTMLButtonElement>(null);
   const deferredPayload = useDeferredValue(payload);
   const deferredModelVariants = useDeferredValue(modelVariants);
   const deferredSelectedProviders = useDeferredValue(selectedProviders);
@@ -115,8 +116,17 @@ export function DashboardGraphs({
         setFiltersExpanded(false);
       }
     };
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setFiltersExpanded(false);
+      filtersToggleRef.current?.focus();
+    };
     document.addEventListener("pointerdown", handlePointerDown);
-    return () => document.removeEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
   }, [filtersExpanded]);
 
   const allModels = useMemo(() => {
@@ -283,6 +293,8 @@ export function DashboardGraphs({
           <button
             type="button"
             className={styles.filtersToggle}
+            ref={filtersToggleRef}
+            aria-controls="global-view-filters"
             aria-expanded={filtersExpanded}
             onClick={() => setFiltersExpanded((current) => !current)}
           >
@@ -291,7 +303,7 @@ export function DashboardGraphs({
             <i aria-hidden="true">{filtersExpanded ? "-" : "+"}</i>
           </button>
         </div>
-        <div className={styles.filterPanel} hidden={!filtersExpanded}>
+        <div id="global-view-filters" className={styles.filterPanel} hidden={!filtersExpanded}>
           <div className={styles.controlRow}>
             <FilterSection label="Model filter" value={modelFilterLabel}>
               <input
@@ -306,7 +318,7 @@ export function DashboardGraphs({
               />
             </FilterSection>
             <FilterSection label="Max blended cost" value={costLabel}>
-              <div className={`${styles.filterRow} ${styles.costFilterRow}`}>
+              <div className={`${styles.filterRow} ${styles.costFilterRow} ${styles.costPresets}`}>
                 {costFilterOptions.map((option) => (
                   <button
                     key={String(option)}

@@ -87,6 +87,8 @@ const FRAGMENT_SHADER = `
 
   float localField(vec2 uv, vec2 point, float context) {
     vec2 scale = vec2(0.2 + context * 0.03, 0.17 + context * 0.04);
+    // Portrait materials keep their local shapes proportional to viewport width.
+    scale.y *= min(1.0, uAspect);
     vec2 delta = (uv - point) / scale;
     return exp(-(delta.x * delta.x * 1.3 + delta.y * delta.y * 2.1));
   }
@@ -98,6 +100,8 @@ const FRAGMENT_SHADER = `
     vec3 dynamics
   ) {
     vec2 scale = vec2(0.2 + model.w * 0.03, 0.17 + model.w * 0.04);
+    // Portrait materials keep their local shapes proportional to viewport width.
+    scale.y *= min(1.0, uAspect);
     vec2 delta = (uv - point) / scale;
     float local = exp(-(delta.x * delta.x * 1.3 + delta.y * delta.y * 2.1));
     float wavelength = 7.5 + (68.0 - model.x) * 1.1;

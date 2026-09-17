@@ -87,8 +87,7 @@
   grid-template-rows: auto minmax(0, 1fr);
   border-top: 1px solid var(--line-strong);
   border-bottom: 1px solid var(--line-strong);
-  background: color-mix(in srgb, var(--paper) 94%, transparent);
-  backdrop-filter: blur(12px);
+  background: var(--paper);
 }
 
 .instrumentBar {
@@ -782,6 +781,22 @@
   paint-order: stroke;
   stroke: var(--chart-point-label-stroke);
   stroke-width: 2px;
+}
+
+.scaleGrid {
+  stroke: var(--chart-grid);
+  pointer-events: none;
+}
+
+.scaleAnchor {
+  fill: var(--chart-label-fill);
+  font-family: var(--font-mono);
+  font-size: var(--type-caption-size);
+  font-weight: var(--type-label-weight);
+  paint-order: stroke;
+  stroke: var(--paper);
+  stroke-width: 3px;
+  pointer-events: none;
 }
 
 .axisLabel,
@@ -1813,7 +1828,15 @@
     width: 100%;
   }
 
+  /* The expanded chart owns its clipping boundary, including axis labels in the page gutter. */
+  .panel {
+    overflow: visible;
+  }
+
+  /* Give phone plots the page gutters while keeping a small screen-edge clearance. */
   .chartWrap {
+    width: calc(100% + var(--page-gutter) * 2 - 8px);
+    margin-inline: calc(4px - var(--page-gutter));
     overflow-x: auto;
     overflow-y: hidden;
     overscroll-behavior-x: contain;
@@ -1836,7 +1859,7 @@
   }
 
   .paretoControlSet {
-    --pareto-control-height: 36px;
+    --pareto-control-height: 44px;
   }
 
   .metricToggle {
@@ -1853,8 +1876,25 @@
   }
 
   .metricToggle button {
-    min-height: 36px;
+    min-height: 44px;
     flex: 0 0 auto;
+  }
+
+  .costPresets {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px 12px;
+  }
+
+  .filterSearch,
+  .benchmarkSelectSearch input {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .benchmarkSelect summary,
+  .benchmarkSelectOption {
+    min-height: 44px;
   }
 
   .benchmarkSelectMenu {
@@ -1926,6 +1966,7 @@
 
 .panel[data-capture-layout="artifact"] .chartWrap {
   width: 100%;
+  margin-inline: 0;
   overflow: hidden;
   padding: 10px 0 8px;
   scrollbar-width: none;

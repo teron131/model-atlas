@@ -610,3 +610,28 @@
     content: "";
   }
 }
+
+/* Compact signatures keep one complete evidence list and quiet material behind its text. */
+@media (max-width: 720px) {
+  .modelRail {
+    display: none;
+  }
+
+  .scrim {
+    background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--paper) 94%, transparent),
+      color-mix(in srgb, var(--paper) 65%, transparent) 62%,
+      transparent
+    );
+  }
+
+  .signature[data-mode="glacier"] .video,
+  .signature[data-mode="glacier"] .videoPoster {
+    object-position: 72% center;
+  }
+
+  .signature[data-mode="glacier"] .videoMaterial::after {
+    background: linear-gradient(90deg, rgb(0 0 0 / 0.78), rgb(0 0 0 / 0.55) 65%, rgb(0 0 0 / 0.12));
+  }
+}
