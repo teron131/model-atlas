@@ -327,7 +327,6 @@ function tableColumnGroup(
 }
 
 export type TableRow = {
-  scoreMeters?: Partial<Record<"intelligence" | "agentic" | "speed" | "value", number | null>>;
   model: ModelAtlasPublishedModel;
   intelligenceRank: ModelAtlasLeaderboardRank;
   originalIndex: number;
@@ -452,26 +451,6 @@ export function dedupeDisplayModels(models: ModelAtlasPublishedModel[]) {
   return attachIntelligenceRanks([...rowsByIdentity.values()]).sort(
     (left, right) => left.originalIndex - right.originalIndex,
   );
-}
-
-/** Size each score meter against models that passed global filters, before table search, sorting, or the display limit. */
-export function relativeScoreMeters(rows: TableRow[]): TableRow[] {
-  const dimensions = ["intelligence", "agentic", "speed", "value"] as const;
-  const ranges = new Map(
-    dimensions.map((dimension) => [
-      dimension,
-      minMaxRange(rows.map((row) => row.model.scores?.[`${dimension}_score`] ?? null)),
-    ]),
-  );
-  return rows.map((row) => ({
-    ...row,
-    scoreMeters: Object.fromEntries(
-      dimensions.map((dimension) => [
-        dimension,
-        minMaxScale(ranges.get(dimension)!, row.model.scores?.[`${dimension}_score`] ?? null),
-      ]),
-    ),
-  }));
 }
 
 export function benchmarkMetricValue(
