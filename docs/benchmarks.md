@@ -20,12 +20,14 @@ Writing, modifying, testing, debugging, and delivering software primarily test A
 | Setting | Role |
 | --- | --- |
 | Group | Classifies the benchmark as `frontier` or `baseline` for portfolio interpretation |
-| Importance | Leaves contribution unchanged at 1, or deliberately dampens it below 1 for a stated reason |
-| Dimension loading | Splits the contribution between Intelligence and Agentic; the two loadings sum to 100% |
+| Importance | Standard policy: 1 for task benchmarks; 0.5 for aggregate indexes used for regularization |
+| Allocation (dimension loading) | Intelligence/Agentic split: 100/0, 75/25, 50/50, 25/75, or 0/100 |
 
-Importance $i_b$ reduces a benchmark's contribution when a stated limitation warrants it; 1 leaves it unchanged. Dimension loading $\lambda_{b,d}$ allocates that contribution between Intelligence and Agentic. Their product $\omega_{b,d}=i_b\lambda_{b,d}$ is the effective weight.
+Effective weight is importance × allocation. The capability calculation uses these weights to take a weighted mean of normalized benchmark results; see [Methodology](methodology.md#benchmark-scores-and-dimension-weights).
 
-Loadings use the five-level scale in [Standards](standards.md): 100/0, 75/25, 50/50, 25/75, or 0/100. This keeps the judgment coarse enough to explain. Coding tasks are primarily Agentic evidence; an Intelligence share depends on substantial reasoning in the task's actual demands.
+The allocation follows the five-level scale in [Standards](standards.md). Coding tasks are primarily Agentic evidence; an Intelligence share depends on substantial reasoning in the task's actual demands.
+
+The current configuration has two task-importance exceptions: FrontierMath Erdős and EnterpriseBench CoreCraft remain at 0.5, as recorded in the tables below.
 
 Each table records the capability being measured and the reason for its weight. The source policies below specify which observations and task resources are eligible.
 
@@ -67,7 +69,7 @@ An aggregate index summarizes several evaluations. It offers broad coverage, but
 | Surge Intelligence Index | Baseline | 0.5 | 50% | 50% | Retained as neutral fallback evidence because professional reasoning, writing, and agent evaluations are aggregated under incompatible source scales; half importance limits overlap. |
 | Vals Index | Baseline | 0.5 | 50% | 50% | Retained as neutral fallback evidence because finance, legal, and coding tasks mix domain reasoning with execution without recoverable component weights; the opaque aggregate is not reweighted from its coding label alone. |
 
-Indexes supply broad evidence when direct tasks are sparse. Effort-labelled variants use only effort-specific indexes, currently Artificial Analysis and CAIS; other index observations remain visible and retain their separate admission role. The main leaderboard's task-group weight rises from 20% at one observed task to 80% at the configured threshold of 7.5, using cubic smoothstep. With no direct tasks, indexes receive 100%. Each variant and dimension counts its own direct tasks; imputed and sibling results do not advance the count. [Methodology](methodology.md#aggregate-index-proxying) defines the full blend and its separate evidence and admission rules.
+Indexes supply broad evidence when direct tasks are sparse. Effort-labelled variants use only effort-specific indexes, currently Artificial Analysis and CAIS; other index observations remain visible and retain their separate admission role. The main leaderboard's task-group weight rises from 20% at one observed task to 80% at the configured threshold of 7.5, using cubic smoothstep. With no direct tasks, indexes receive 100%. Each variant and dimension counts its own direct tasks; imputed and sibling results do not advance the count. [Methodology](methodology.md#combining-tasks-and-aggregate-indexes) defines the full blend and its separate evidence and admission rules.
 
 ### Frontier Benchmarks
 

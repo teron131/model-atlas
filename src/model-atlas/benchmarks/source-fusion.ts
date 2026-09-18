@@ -77,7 +77,7 @@ export function fuseBenchmarkSources(
     const template = pair.a ?? pair.b;
     if (template == null) return [];
     const both = pair.a != null && pair.b != null;
-    const offset = quality.diagnostic.medianOffset;
+    const { delta } = quality.diagnostic;
     const score = quality.project(pair.a?.canonical_value ?? null, pair.b?.canonical_value ?? null);
     if (score == null) return [];
     const extrapolated =
@@ -100,7 +100,7 @@ export function fuseBenchmarkSources(
       source_b_score: pair.b?.canonical_value ?? null,
       source_a_effort: pair.a?.metadata.source_effort ?? pair.a?.reasoning_effort ?? null,
       source_b_effort: pair.b?.metadata.source_effort ?? pair.b?.reasoning_effort ?? null,
-      crosswalk_offset: offset,
+      crosswalk_offset: delta,
       crosswalk_error: quality.diagnostic.validationMedianAbsoluteError,
     };
     const fused: FusionObservation = {
@@ -134,9 +134,9 @@ export function fuseBenchmarkSources(
       else if (
         key !== "seconds_per_task" &&
         fit.diagnostic.imputationAllowed &&
-        fit.diagnostic.medianOffset != null
+        fit.diagnostic.delta != null
       ) {
-        const ratio = Math.exp(fit.diagnostic.medianOffset);
+        const ratio = Math.exp(fit.diagnostic.delta);
         if (av != null) value = (av + av * ratio) / 2;
         else if (bv != null) value = (bv / ratio + bv) / 2;
         estimated = value != null;
@@ -160,14 +160,14 @@ function crosswalk(
   pairs: Pair[],
   value: (row: FusionObservation) => number | null,
   maximumMedianAbsoluteError: number,
-  fallbackWeight = 0.5,
+  sourceBWeight = 0.5,
 ) {
   return buildAdditiveSourceCrosswalk(pairs, {
-    primaryValue: (pair) => (pair.a == null ? null : value(pair.a)),
-    fallbackValue: (pair) => (pair.b == null ? null : value(pair.b)),
+    sourceAValue: (pair) => (pair.a == null ? null : value(pair.a)),
+    sourceBValue: (pair) => (pair.b == null ? null : value(pair.b)),
     minimumEffectiveModels: MINIMUM_MODELS,
     maximumMedianAbsoluteError,
-    fallbackWeight,
+    sourceBWeight,
   });
 }
 

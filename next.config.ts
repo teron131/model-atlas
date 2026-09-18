@@ -1,5 +1,7 @@
 /** Next.js runtime configuration for local development and production builds. */
 
+import { resolve } from "node:path";
+
 import type { NextConfig } from "next";
 
 const DEV_IGNORED_DIRS = [".git", ".next", ".cache", "node_modules"] as const;
@@ -12,8 +14,16 @@ function escapeRegExp(value: string): string {
 }
 
 const nextConfig: NextConfig = {
-  turbopack: {},
+  turbopack: {
+    rules: {
+      "*.md": { loaders: ["./scripts/document-loader.cjs"], as: "*.js" },
+    },
+  },
   webpack(config, { dev }) {
+    config.module.rules.push({
+      test: /\.md$/,
+      use: [resolve(process.cwd(), "scripts/document-loader.cjs")],
+    });
     if (dev) {
       config.watchOptions = {
         ...config.watchOptions,

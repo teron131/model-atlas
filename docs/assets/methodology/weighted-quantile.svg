@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 320" role="img" aria-labelledby="title desc">
+<title id="title">weightedQuantile(): percentile → value</title>
+<desc id="desc">The same ten peers supply target results. The 45% marker selects 0.58. The exact 60% boundary between 0.58 and 0.90 returns their mean, 0.74.</desc>
+<style>
+text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; fill:#182421; }
+.muted { fill:#63706e; } .blue { color:#146cba; } .teal { color:#087f6b; } .orange { color:#a64d0c; } .neutral { color:#63706e; } .ink { fill:currentColor; }
+@media (prefers-color-scheme:dark) {
+text { fill:#ffffff; } .muted { fill:#a6b2ae; } .neutral { color:#a6b2ae; }
+.blue { color:#85bfff; } .teal { color:#62d6b1; } .orange { color:#ffbc7d; }
+}
+</style>
+<text x="40" y="32" font-size="21" font-weight="600">weightedQuantile(): percentile → value</text>
+<text x="40" y="60" font-size="14" class="muted">The same peers’ target results, sorted with their weights attached.</text>
+<text x="348" y="109" text-anchor="middle" font-size="16" font-weight="600" class="orange ink">45%</text>
+<path d="M348 115 V127 M343 121 L348 128 L353 121" class="orange" fill="none" stroke="currentColor" stroke-width="2"/>
+<g class="blue"><rect x="60" y="132" width="62" height="44" rx="3" fill="currentColor" opacity="0.1"/><text x="91" y="161" text-anchor="middle" font-size="18" font-weight="400">0.12</text></g>
+<g class="blue"><rect x="124" y="132" width="62" height="44" rx="3" fill="currentColor" opacity="0.1"/><text x="155" y="161" text-anchor="middle" font-size="18" font-weight="400">0.30</text></g>
+<g class="blue"><rect x="188" y="132" width="62" height="44" rx="3" fill="currentColor" opacity="0.1"/><text x="219" y="161" text-anchor="middle" font-size="18" font-weight="400">0.30</text></g>
+<g class="blue"><rect x="252" y="132" width="62" height="44" rx="3" fill="currentColor" opacity="0.1"/><text x="283" y="161" text-anchor="middle" font-size="18" font-weight="400">0.58</text></g>
+<g class="blue"><rect x="316" y="132" width="62" height="44" rx="3" fill="currentColor" opacity="0.3"/><text x="347" y="161" text-anchor="middle" font-size="18" font-weight="600">0.58</text></g>
+<g class="blue"><rect x="380" y="132" width="62" height="44" rx="3" fill="currentColor" opacity="0.1"/><text x="411" y="161" text-anchor="middle" font-size="18" font-weight="400">0.58</text></g>
+<g class="blue"><rect x="444" y="132" width="62" height="44" rx="3" fill="currentColor" opacity="0.1"/><text x="475" y="161" text-anchor="middle" font-size="18" font-weight="400">0.90</text></g>
+<g class="blue"><rect x="508" y="132" width="62" height="44" rx="3" fill="currentColor" opacity="0.1"/><text x="539" y="161" text-anchor="middle" font-size="18" font-weight="400">0.90</text></g>
+<g class="blue"><rect x="572" y="132" width="62" height="44" rx="3" fill="currentColor" opacity="0.1"/><text x="603" y="161" text-anchor="middle" font-size="18" font-weight="400">0.90</text></g>
+<g class="blue"><rect x="636" y="132" width="62" height="44" rx="3" fill="currentColor" opacity="0.1"/><text x="667" y="161" text-anchor="middle" font-size="18" font-weight="400">0.90</text></g>
+<text x="60" y="198" text-anchor="middle" font-size="11" class="muted">0%</text>
+<text x="124" y="198" text-anchor="middle" font-size="11" class="muted">10%</text>
+<text x="188" y="198" text-anchor="middle" font-size="11" class="muted">20%</text>
+<text x="252" y="198" text-anchor="middle" font-size="11" class="muted">30%</text>
+<text x="316" y="198" text-anchor="middle" font-size="11" class="muted">40%</text>
+<text x="380" y="198" text-anchor="middle" font-size="11" class="muted">50%</text>
+<text x="444" y="198" text-anchor="middle" font-size="11" class="muted">60%</text>
+<text x="508" y="198" text-anchor="middle" font-size="11" class="muted">70%</text>
+<text x="572" y="198" text-anchor="middle" font-size="11" class="muted">80%</text>
+<text x="636" y="198" text-anchor="middle" font-size="11" class="muted">90%</text>
+<text x="700" y="198" text-anchor="middle" font-size="11" class="muted">100%</text>
+<text x="40" y="232" font-size="19" font-weight="600" class="blue ink">weightedQuantile(0.45) = 0.58</text>
+<text x="40" y="275" font-size="16">At exactly 60%, the marker lands between two boxes.</text>
+<text x="40" y="301" font-size="16" class="muted">Use their mean: (0.58 + 0.90) / 2 = 0.74.</text>
+</svg>

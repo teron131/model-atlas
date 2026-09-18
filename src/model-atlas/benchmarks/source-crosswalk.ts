@@ -1,4 +1,4 @@
-/** Model-balanced additive crosswalks reconcile sources onto primary or weighted aggregate targets. */
+/** Model-balanced additive crosswalks reconcile sources onto source A or weighted aggregate targets. */
 
 import { clamp01, weightedMedianOfFinite } from "../math-utils";
 import { calibrationObservations, effectiveModelCount } from "./calibration-population";
@@ -10,25 +10,26 @@ type ModelIdentity = {
 
 export type SourceCrosswalkDiagnostic = {
   overlapModelCount: number;
-  medianOffset: number | null;
+  /** Typical signed difference B minus A, fitted with model-balanced weights. */
+  delta: number | null;
   validationModelCount: number;
   validationMedianAbsoluteError: number | null;
   imputationAllowed: boolean;
 };
 
 type SourceCrosswalkOptions<T extends ModelIdentity> = {
-  primaryValue: (item: T) => number | null;
-  fallbackValue: (item: T) => number | null;
+  sourceAValue: (item: T) => number | null;
+  sourceBValue: (item: T) => number | null;
   minimumEffectiveModels: number;
   maximumMedianAbsoluteError: number;
-  /** Weight of the fallback source in the target; benchmark fusion defaults to equal source weight. */
-  fallbackWeight?: number;
+  /** Weight of source B in the target; benchmark fusion defaults to equal source weight. */
+  sourceBWeight?: number;
   normalizeProjection?: (value: number) => number;
 };
 
 type SourceCrosswalk<T extends ModelIdentity> = {
   projectionByItem: ReadonlyMap<T, number>;
-  project: (primary: number | null, fallback: number | null) => number | null;
+  project: (sourceA: number | null, sourceB: number | null) => number | null;
   confidence: number | null;
   diagnostic: SourceCrosswalkDiagnostic;
 };
@@ -38,16 +39,16 @@ export function buildAdditiveSourceCrosswalk<T extends ModelIdentity>(
   items: readonly T[],
   options: SourceCrosswalkOptions<T>,
 ): SourceCrosswalk<T> {
-  const fallbackWeight = options.fallbackWeight ?? 0.5;
-  if (!Number.isFinite(fallbackWeight) || fallbackWeight < 0 || fallbackWeight > 1)
-    throw new Error("Crosswalk fallback weight must be between zero and one");
+  const sourceBWeight = options.sourceBWeight ?? 0.5;
+  if (!Number.isFinite(sourceBWeight) || sourceBWeight < 0 || sourceBWeight > 1)
+    throw new Error("Crosswalk source B weight must be between zero and one");
   const offsets = calibrationObservations(items, (item) => {
-    const fallback = options.fallbackValue(item);
-    const primary = options.primaryValue(item);
-    return fallback == null || primary == null ? null : fallback - primary;
+    const sourceB = options.sourceBValue(item);
+    const sourceA = options.sourceAValue(item);
+    return sourceB == null || sourceA == null ? null : sourceB - sourceA;
   });
   const overlapModelCount = effectiveModelCount(offsets);
-  const medianOffset = weightedMedianOfFinite(offsets);
+  const delta = weightedMedianOfFinite(offsets);
   const validationErrorByItem = new Map<T, number>();
   for (const offset of offsets) {
     const heldOutOffset = weightedMedianOfFinite(
@@ -56,7 +57,7 @@ export function buildAdditiveSourceCrosswalk<T extends ModelIdentity>(
     if (heldOutOffset != null) {
       validationErrorByItem.set(
         offset.item,
-        Math.abs(offset.value - heldOutOffset) * Math.max(fallbackWeight, 1 - fallbackWeight),
+        Math.abs(offset.value - heldOutOffset) * Math.max(sourceBWeight, 1 - sourceBWeight),
       );
     }
   }
@@ -71,7 +72,7 @@ export function buildAdditiveSourceCrosswalk<T extends ModelIdentity>(
     options.maximumMedianAbsoluteError > 0 &&
     overlapModelCount >= options.minimumEffectiveModels &&
     validationModelCount >= options.minimumEffectiveModels &&
-    medianOffset != null &&
+    delta != null &&
     validationMedianAbsoluteError != null &&
     validationMedianAbsoluteError <= options.maximumMedianAbsoluteError;
   const confidence = imputationAllowed
@@ -79,10 +80,10 @@ export function buildAdditiveSourceCrosswalk<T extends ModelIdentity>(
     : null;
   const projectionByItem = new Map<T, number>();
   for (const item of items) {
-    const primary = options.primaryValue(item);
-    const fallback = options.fallbackValue(item);
-    if (fallbackWeight === 0 && primary != null) continue;
-    const projection = project(primary, fallback);
+    const sourceA = options.sourceAValue(item);
+    const sourceB = options.sourceBValue(item);
+    if (sourceBWeight === 0 && sourceA != null) continue;
+    const projection = project(sourceA, sourceB);
     if (projection != null) projectionByItem.set(item, projection);
   }
   return {
@@ -91,7 +92,7 @@ export function buildAdditiveSourceCrosswalk<T extends ModelIdentity>(
     confidence,
     diagnostic: {
       overlapModelCount,
-      medianOffset,
+      delta,
       validationModelCount,
       validationMedianAbsoluteError,
       imputationAllowed,
@@ -99,19 +100,20 @@ export function buildAdditiveSourceCrosswalk<T extends ModelIdentity>(
   };
 
   /** Apply this fitted target to another pair, including source-default summaries that were not calibration observations. */
-  function project(primary: number | null, fallback: number | null): number | null {
-    let rawProjection: number | null = null;
-    if (fallbackWeight === 0 && primary != null) rawProjection = primary;
-    else if (fallbackWeight === 1 && fallback != null) rawProjection = fallback;
-    else if (primary != null && fallback != null) {
-      rawProjection = (1 - fallbackWeight) * primary + fallbackWeight * fallback;
-    } else if (imputationAllowed && medianOffset != null) {
-      if (primary == null && fallback != null)
-        rawProjection = fallback - (1 - fallbackWeight) * medianOffset;
-      else if (fallbackWeight > 0 && primary != null && fallback == null)
-        rawProjection = primary + fallbackWeight * medianOffset;
+  function project(sourceA: number | null, sourceB: number | null): number | null {
+    // A single-source target needs no imputation when that source is observed.
+    let rawProjection: number;
+    if (sourceBWeight === 0 && sourceA != null) rawProjection = sourceA;
+    else if (sourceBWeight === 1 && sourceB != null) rawProjection = sourceB;
+    else {
+      if (sourceA == null && sourceB == null) return null;
+      if (sourceA == null || sourceB == null) {
+        if (!imputationAllowed || delta == null) return null;
+        if (sourceA == null) sourceA = sourceB! - delta;
+        else sourceB = sourceA + delta;
+      }
+      rawProjection = (1 - sourceBWeight) * sourceA! + sourceBWeight * sourceB!;
     }
-    if (rawProjection == null) return null;
     const projection = options.normalizeProjection?.(rawProjection) ?? rawProjection;
     return Number.isFinite(projection) ? projection : null;
   }

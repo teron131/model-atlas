@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 370" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 460" role="img" aria-labelledby="title desc">
 <title id="title">Variant counts share one model reference weight</title>
-<desc id="desc">One variant receives weight one; four variants receive one quarter each. Both models carry equal total calibration weight.</desc>
+<desc id="desc">One observed variant has weight 1. Five observed efforts each have weight one fifth. When only low, high, and max have the required observations, each has weight one third; medium and xhigh are missing and contribute no weight.</desc>
 <style>
 text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; }
 @media (prefers-color-scheme:dark) {
@@ -11,21 +11,21 @@ text { fill:#ffffff; }
 [fill="#a64d0c"] { fill:#ffbc7d; } [stroke="#a64d0c"] { stroke:#ffbc7d; }
 }
 </style>
-<text x="40" y="35" font-size="22" fill="#000000" text-anchor="start" font-weight="600">More variants do not create more independent models</text>
-<text x="40" y="62" font-size="16" fill="#000000" text-anchor="start" font-weight="400">Each base model contributes one unit to a reference distribution.</text>
-<text x="40" y="117" font-size="18" fill="#000000" text-anchor="start" font-weight="600">One observed variant</text>
-<rect x="40" y="135" width="300" height="44" fill="#146cba" opacity="0.22"/>
-<text x="190" y="164" font-size="18" fill="#000000" text-anchor="middle" font-weight="600">1</text>
-<text x="40" y="239" font-size="18" fill="#000000" text-anchor="start" font-weight="600">Four observed variants</text>
-<rect x="40" y="257" width="72" height="44" fill="#146cba" opacity="0.22"/>
-<text x="76" y="286" font-size="18" fill="#000000" text-anchor="middle" font-weight="600">¼</text>
-<rect x="116" y="257" width="72" height="44" fill="#146cba" opacity="0.22"/>
-<text x="152" y="286" font-size="18" fill="#000000" text-anchor="middle" font-weight="600">¼</text>
-<rect x="192" y="257" width="72" height="44" fill="#146cba" opacity="0.22"/>
-<text x="228" y="286" font-size="18" fill="#000000" text-anchor="middle" font-weight="600">¼</text>
-<rect x="268" y="257" width="72" height="44" fill="#146cba" opacity="0.22"/>
-<text x="304" y="286" font-size="18" fill="#000000" text-anchor="middle" font-weight="600">¼</text>
-<text x="396" y="164" font-size="18" fill="#000000" text-anchor="start" font-weight="600">Total weight = 1</text>
-<text x="396" y="286" font-size="18" fill="#000000" text-anchor="start" font-weight="600">Total weight = 1</text>
-<text x="40" y="345" font-size="16" fill="#000000" text-anchor="start" font-weight="400">Balancing is recalculated for each available measurement.</text>
+<text x="40" y="35" font-size="22" fill="#000000" font-weight="600">Each model contributes one total reference weight</text>
+<text x="40" y="64" font-size="16" fill="#000000">Count only efforts with the observations required for that calculation.</text>
+<text x="40" y="105" font-size="18" fill="#000000" font-weight="600">One observed variant</text><rect x="40" y="119" width="350" height="38" fill="#146cba" opacity="0.22"/><text x="215" y="145" font-size="18" fill="#000000" text-anchor="middle">1</text><text x="450" y="145" font-size="17" fill="#000000">Total = 1</text>
+<text x="40" y="202" font-size="18" fill="#000000" font-weight="600">All five efforts observed</text>
+<text x="71" y="227" font-size="13" fill="#000000" text-anchor="middle">low</text><rect x="40" y="237" width="62" height="38" fill="#146cba" opacity="0.22"/><text x="71" y="262" font-size="18" fill="#000000" text-anchor="middle">⅕</text>
+<text x="143" y="227" font-size="13" fill="#000000" text-anchor="middle">medium</text><rect x="112" y="237" width="62" height="38" fill="#146cba" opacity="0.22"/><text x="143" y="262" font-size="18" fill="#000000" text-anchor="middle">⅕</text>
+<text x="215" y="227" font-size="13" fill="#000000" text-anchor="middle">high</text><rect x="184" y="237" width="62" height="38" fill="#146cba" opacity="0.22"/><text x="215" y="262" font-size="18" fill="#000000" text-anchor="middle">⅕</text>
+<text x="287" y="227" font-size="13" fill="#000000" text-anchor="middle">xhigh</text><rect x="256" y="237" width="62" height="38" fill="#146cba" opacity="0.22"/><text x="287" y="262" font-size="18" fill="#000000" text-anchor="middle">⅕</text>
+<text x="359" y="227" font-size="13" fill="#000000" text-anchor="middle">max</text><rect x="328" y="237" width="62" height="38" fill="#146cba" opacity="0.22"/><text x="359" y="262" font-size="18" fill="#000000" text-anchor="middle">⅕</text>
+<text x="450" y="262" font-size="17" fill="#000000">Total = 1</text>
+<text x="40" y="332" font-size="18" fill="#000000" font-weight="600">Only three efforts observed</text>
+<text x="71" y="357" font-size="13" fill="#000000" text-anchor="middle">low</text><rect x="40" y="367" width="62" height="38" fill="#146cba" opacity="0.22"/><text x="71" y="392" font-size="18" fill="#000000" text-anchor="middle">⅓</text>
+<text x="143" y="357" font-size="13" fill="#000000" text-anchor="middle">medium</text><rect x="112" y="367" width="62" height="38" fill="none" stroke="#63706e" stroke-dasharray="3 3"/><text x="143" y="392" font-size="12" fill="#000000" text-anchor="middle">missing</text>
+<text x="215" y="357" font-size="13" fill="#000000" text-anchor="middle">high</text><rect x="184" y="367" width="62" height="38" fill="#146cba" opacity="0.22"/><text x="215" y="392" font-size="18" fill="#000000" text-anchor="middle">⅓</text>
+<text x="287" y="357" font-size="13" fill="#000000" text-anchor="middle">xhigh</text><rect x="256" y="367" width="62" height="38" fill="none" stroke="#63706e" stroke-dasharray="3 3"/><text x="287" y="392" font-size="12" fill="#000000" text-anchor="middle">missing</text>
+<text x="359" y="357" font-size="13" fill="#000000" text-anchor="middle">max</text><rect x="328" y="367" width="62" height="38" fill="#146cba" opacity="0.22"/><text x="359" y="392" font-size="18" fill="#000000" text-anchor="middle">⅓</text>
+<text x="450" y="392" font-size="17" fill="#000000">Total = 1</text>
 </svg>
