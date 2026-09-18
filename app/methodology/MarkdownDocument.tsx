@@ -1,4 +1,4 @@
-/** Render repository Markdown with stable headings, responsive flow lists and content-versioned artwork. */
+/** Render repository Markdown with stable headings, subsection guides, responsive flow lists and content-versioned artwork. */
 
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
@@ -12,6 +12,7 @@ import rehypeKatex from "rehype-katex";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 
+import { DocumentHeading } from "./DocumentHeading";
 import { documentImageSize, documentImageSource, documentLink, headingId } from "./documents";
 
 import styles from "./methodology.module.css";
@@ -20,12 +21,57 @@ export function MarkdownDocument({ markdown }: { markdown: string }) {
   return (
     <ReactMarkdown
       components={markdownComponents}
-      rehypePlugins={[rehypeKatex]}
+      rehypePlugins={[rehypeKatex, subsectionGuides]}
       remarkPlugins={[remarkGfm, remarkMath]}
     >
       {markdown}
     </ReactMarkdown>
   );
+}
+
+/** Nest content guides below h2 and h3 headings, keeping each heading outside its own guide. */
+function subsectionGuides() {
+  type Node = {
+    type: string;
+    tagName?: string;
+    properties?: Record<string, string | undefined>;
+    children?: Node[];
+  };
+  return (tree: { children: Node[] }) => {
+    const children: Node[] = [];
+    let section: Node[] | undefined;
+    let subsection: Node[] | undefined;
+    for (const node of tree.children) {
+      if (node.type !== "element" || !/^h[1-3]$/.test(node.tagName ?? "")) {
+        (subsection ?? section ?? children).push(node);
+        continue;
+      }
+      subsection = undefined;
+      if (node.tagName !== "h3") section = undefined;
+      if (node.tagName === "h1") {
+        children.push(node);
+        continue;
+      }
+      const content: Node[] = [];
+      (section ?? children).push({
+        type: "element",
+        tagName: "section",
+        properties: { className: styles.section },
+        children: [
+          node,
+          {
+            type: "element",
+            tagName: "div",
+            properties: { className: styles.subsection },
+            children: content,
+          },
+        ],
+      });
+      if (node.tagName === "h2") section = content;
+      else subsection = content;
+    }
+    tree.children = children;
+  };
 }
 
 /** Fingerprint trusted local artwork during server rendering; small SVGs load eagerly for section-link visits. */
@@ -57,8 +103,16 @@ const MarkdownImage: NonNullable<Components["img"]> = async ({ src = "", alt = "
 };
 
 const markdownComponents: Components = {
-  h2: ({ children }) => <h2 id={headingId(textContent(children))}>{children}</h2>,
-  h3: ({ children }) => <h3 id={headingId(textContent(children))}>{children}</h3>,
+  h2: ({ children }) => (
+    <DocumentHeading level={2} id={headingId(textContent(children))}>
+      {children}
+    </DocumentHeading>
+  ),
+  h3: ({ children }) => (
+    <DocumentHeading level={3} id={headingId(textContent(children))}>
+      {children}
+    </DocumentHeading>
+  ),
   h4: ({ children }) => <h4 id={headingId(textContent(children))}>{children}</h4>,
   a: ({ href = "", children, ...props }) => {
     const resolvedHref = documentLink(href);

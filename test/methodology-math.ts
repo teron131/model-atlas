@@ -54,12 +54,12 @@ const offsetRows = Array.from({ length: 10 }, (_, i) => ({
   fallback: i === 9 ? 100 : 0,
 }));
 const crosswalk = buildAdditiveSourceCrosswalk(offsetRows, {
-  primaryValue: (row) => row.primary,
-  fallbackValue: (row) => row.fallback,
+  sourceAValue: (row) => row.primary,
+  sourceBValue: (row) => row.fallback,
   minimumEffectiveModels: 4,
   maximumMedianAbsoluteError: 25,
 });
-assert.equal(crosswalk.diagnostic.medianOffset, 0);
+assert.equal(crosswalk.diagnostic.delta, 0);
 assert.equal(crosswalk.diagnostic.validationMedianAbsoluteError, 0);
 assert.equal(crosswalk.diagnostic.imputationAllowed, true);
 

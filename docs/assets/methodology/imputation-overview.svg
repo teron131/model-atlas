@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 340" role="img" aria-labelledby="title desc">
+<title id="title">Data Imputation</title>
+<desc id="desc">A row of eleven values contains three hollow gaps. Three estimated values below point upward into those gaps.</desc>
+<style>
+text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; fill:#000000; }
+.observed { fill:#202823; }
+.gap { fill:none; stroke:#63706e; stroke-width:1.8; }
+.estimate { fill:#478d83; }
+.guide { fill:none; stroke:#b5bfbc; stroke-width:1.25; }
+.arrow { fill:none; stroke:#478d83; stroke-width:1.8; }
+.head { fill:#478d83; }
+@media (prefers-color-scheme:dark) {
+text { fill:#ffffff; }
+.observed { fill:#e5eae6; }
+.gap { stroke:#a6b2ae; }
+.estimate,.head { fill:#8ac7bc; }
+.arrow { stroke:#8ac7bc; }
+.guide { stroke:#63706e; }
+}
+</style>
+<defs><marker id="fill-gap" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path class="head" d="M0 0 L10 5 L0 10 Z"/></marker></defs>
+<text x="380" y="38" font-size="22" font-weight="600" text-anchor="middle">Data Imputation</text>
+<text x="380" y="91" font-size="16" text-anchor="middle">Missing values</text>
+<path class="guide" d="M194 128 V106 H566 V128 M442 106 V128"/>
+<circle cx="70" cy="153" r="13" class="observed"/>
+<circle cx="132" cy="153" r="13" class="observed"/>
+<circle cx="194" cy="153" r="13" class="gap"/>
+<path class="arrow" d="M194 222 V178" marker-end="url(#fill-gap)"/><circle cx="194" cy="244" r="13" class="estimate"/>
+<circle cx="256" cy="153" r="13" class="observed"/>
+<circle cx="318" cy="153" r="13" class="observed"/>
+<circle cx="380" cy="153" r="13" class="observed"/>
+<circle cx="442" cy="153" r="13" class="gap"/>
+<path class="arrow" d="M442 222 V178" marker-end="url(#fill-gap)"/><circle cx="442" cy="244" r="13" class="estimate"/>
+<circle cx="504" cy="153" r="13" class="observed"/>
+<circle cx="566" cy="153" r="13" class="gap"/>
+<path class="arrow" d="M566 222 V178" marker-end="url(#fill-gap)"/><circle cx="566" cy="244" r="13" class="estimate"/>
+<circle cx="628" cy="153" r="13" class="observed"/>
+<circle cx="690" cy="153" r="13" class="observed"/>
+<path class="guide" d="M194 267 V281 H566 V267 M442 267 V281"/>
+<text x="380" y="315" font-size="16" text-anchor="middle">Estimated values fill the gaps</text>
+</svg>

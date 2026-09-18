@@ -17,7 +17,7 @@ text { fill:#ffffff; }
 <line x1="165" y1="81" x2="204" y2="81" stroke="#63706e" stroke-width="1.5"/>
 <path d="M197.86 84.36 L204 81 L197.86 77.64" fill="none" stroke="#63706e" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" opacity="1"/>
 <text x="220" y="86" font-size="18" fill="#000000" text-anchor="start" font-weight="600">Lab</text>
-<text x="220" y="109" font-size="14" fill="#000000" text-anchor="start" font-weight="400">Same provider</text>
+<text x="220" y="109" font-size="14" fill="#000000" text-anchor="start" font-weight="400">Same lab</text>
 <line x1="345" y1="81" x2="384" y2="81" stroke="#63706e" stroke-width="1.5"/>
 <path d="M377.86 84.36 L384 81 L377.86 77.64" fill="none" stroke="#63706e" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" opacity="1"/>
 <text x="400" y="86" font-size="18" fill="#000000" text-anchor="start" font-weight="600">Nearby releases</text>

@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 373" role="img" aria-labelledby="title desc">
-<title id="title">Cost and time have separate four-pair publication gates</title>
+<title id="title">Cost and time have separate four-pair score availability requirements</title>
 <desc id="desc">In this example without index support, four direct quality-cost pairs permit Value. Three direct quality-time pairs do not permit Speed. Estimated pairs never count toward either gate.</desc>
 <style>
 text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; }
@@ -11,7 +11,7 @@ text { fill:#ffffff; }
 [fill="#a64d0c"] { fill:#ffbc7d; } [stroke="#a64d0c"] { stroke:#ffbc7d; }
 }
 </style>
-<text x="40" y="35" font-size="22" fill="#000000" text-anchor="start" font-weight="600">A score estimate cannot unlock publication</text>
+<text x="40" y="35" font-size="22" fill="#000000" text-anchor="start" font-weight="600">Estimates cannot make resource scores available</text>
 <text x="40" y="62" font-size="16" fill="#000000" text-anchor="start" font-weight="400">Without index support: cost and time coverage qualify independently.</text>
 <text x="40" y="149" font-size="18" fill="#000000" text-anchor="start" font-weight="600">Cost</text>
 <circle cx="170" cy="143" r="8" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="1"/>

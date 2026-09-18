@@ -28,28 +28,38 @@ const pairs = Array.from({ length: 6 }, (_, i) => ({
 const missing = { name: "missing", a: null, b: 0.7 };
 const primaryOnly = { name: "primary-only", a: 0.6, b: null };
 const options = {
-  primaryValue: (r: { a: number | null }) => r.a,
-  fallbackValue: (r: { b: number | null }) => r.b,
+  sourceAValue: (r: { a: number | null }) => r.a,
+  sourceBValue: (r: { b: number | null }) => r.b,
   minimumEffectiveModels: 6,
   maximumMedianAbsoluteError: 0.025,
 };
 const original = buildAdditiveSourceCrosswalk([...pairs, missing, primaryOnly], {
   ...options,
-  fallbackWeight: 0,
+  sourceBWeight: 0,
 });
 assert.ok(Math.abs(original.projectionByItem.get(missing)! - 0.6) < 1e-10);
 assert.equal(original.projectionByItem.has(pairs[0]!), false);
 assert.equal(original.project(0.6, null), 0.6);
 const midpoint = buildAdditiveSourceCrosswalk([...pairs, missing, primaryOnly], {
   ...options,
-  fallbackWeight: 0.5,
+  sourceBWeight: 0.5,
 });
 assert.ok(Math.abs(midpoint.projectionByItem.get(missing)! - 0.65) < 1e-10);
 assert.ok(Math.abs(midpoint.projectionByItem.get(primaryOnly)! - 0.65) < 1e-10);
 assert.ok(Math.abs(midpoint.projectionByItem.get(pairs[0]!)! - 0.25) < 1e-10);
+// Direction must reverse when B scores lower, while the combined result stays symmetric.
+const reversed = buildAdditiveSourceCrosswalk(
+  pairs.map((pair) => ({ ...pair, a: pair.b, b: pair.a })),
+  options,
+);
+assert.ok(Math.abs(reversed.diagnostic.delta! + 0.1) < 1e-10);
+assert.ok(Math.abs(midpoint.diagnostic.delta! - 0.1) < 1e-10);
+assert.ok(Math.abs(reversed.project(0.7, null)! - 0.65) < 1e-10);
+assert.ok(Math.abs(reversed.project(null, 0.6)! - 0.65) < 1e-10);
+assert.equal(reversed.project(null, null), null);
 const insufficient = buildAdditiveSourceCrosswalk([pairs[0]!, missing], {
   ...options,
-  fallbackWeight: 0.5,
+  sourceBWeight: 0.5,
 });
 assert.equal(insufficient.projectionByItem.has(missing), false);
 assert.equal(insufficient.projectionByItem.get(pairs[0]!), 0.25);

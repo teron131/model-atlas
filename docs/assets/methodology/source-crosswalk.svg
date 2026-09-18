@@ -1,15 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 560" role="img" aria-labelledby="title desc">
-<title id="title">Seven models connected across source A, fusion, and source B</title>
-<desc id="desc">Source A has six observed models and source B has four, including B-only Model F. Dotted lines connect only observed source scores to their fusion result. Missing source points are absent. Hollow fusion points indicate an estimated aggregate. Model B agrees exactly, Model C is higher in source B, and Model D is higher in source A. Only missing counterparts use an assumed validated offset of 0.02 from a larger calibration population.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 585" role="img" aria-labelledby="title desc">
+<title id="title">Source crosswalk and validation error epsilon</title>
+<desc id="desc">Two source number lines feed one combined result. Solid fusion points average two observations; hollow points use an imputed source result. Shaded bands around hollow points show an illustrative typical prediction error of plus or minus epsilon, here 0.02. These are not confidence intervals or guaranteed bounds. Missing counterparts use an assumed validated offset of 0.02 from a larger calibration population. A separate illustrative rejected crosswalk is marked with an X: validation error 0.04 exceeds the allowed 0.025, so its missing-source predictions are not used. The typical-error bands do not reject individual results.</desc>
 <style>
 text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; fill:#182421; }
 .muted { fill:#63706e; } .axis { stroke:#63706e; stroke-width:1.4; }
 .link { fill:none; stroke:#8c9994; stroke-width:1.5; stroke-dasharray:2 6; opacity:.65; }
 .a { color:#146cba; } .b { color:#a64d0c; } .f { color:#087f6b; }
-.ink { fill:currentColor; }
+.ink { fill:currentColor; } .rejected { color:#b33f3f; }
 @media (prefers-color-scheme:dark) {
 text { fill:#ffffff; } .muted { fill:#a6b2ae; }
 .axis { stroke:#a6b2ae; } .link { stroke:#8c9994; }
+.rejected { color:#ff9696; }
 .a { color:#85bfff; } .b { color:#ffbc7d; } .f { color:#62d6b1; }
 }
 </style>
@@ -45,8 +46,13 @@ text { fill:#ffffff; } .muted { fill:#a6b2ae; }
 <text x="777.1" y="138" font-size="12" class="a ink">Model E 0.79</text>
 <circle cx="866" cy="150" r="5" class="a" fill="currentColor" stroke="currentColor" stroke-width="2"/>
 <text x="875" y="138" font-size="12" class="a ink">Model G 0.90</text>
+<text x="518.9" y="258" font-size="15" text-anchor="middle" class="f ink">Imputed average ±ε</text>
 <text x="50" y="253" font-size="21" class="f ink" font-weight="600">Fusion</text>
 <text x="184" y="253" font-size="14" class="muted">7 results · 50/50</text>
+<g class="f"><rect x="127.3" y="290" width="35.6" height="20" rx="5" fill="currentColor" opacity=".18"/><path d="M127.3 291 V309 M162.9 291 V309" stroke="currentColor" stroke-width="1.5" opacity=".7"/></g>
+<g class="f"><rect x="501.1" y="290" width="35.6" height="20" rx="5" fill="currentColor" opacity=".18"/><path d="M501.1 291 V309 M536.7 291 V309" stroke="currentColor" stroke-width="1.5" opacity=".7"/></g>
+<g class="f"><rect x="759.2" y="290" width="35.6" height="20" rx="5" fill="currentColor" opacity=".18"/><path d="M759.2 291 V309 M794.8 291 V309" stroke="currentColor" stroke-width="1.5" opacity=".7"/></g>
+<g class="f"><rect x="857.1" y="290" width="35.6" height="20" rx="5" fill="currentColor" opacity=".18"/><path d="M857.1 291 V309 M892.7 291 V309" stroke="currentColor" stroke-width="1.5" opacity=".7"/></g>
 <line x1="65" y1="300" x2="955" y2="300" class="axis"/>
 <line x1="65" y1="300" x2="65" y2="306" class="axis"/>
 <text x="65" y="322" font-size="11" text-anchor="middle" class="muted">0.0</text>
@@ -85,6 +91,19 @@ text { fill:#ffffff; } .muted { fill:#a6b2ae; }
 <text x="625.8" y="438" font-size="12" class="b ink">Model D 0.62</text>
 <circle cx="527.8" cy="450" r="5" class="b" fill="currentColor" stroke="currentColor" stroke-width="2"/>
 <text x="536.8" y="438" font-size="12" class="b ink">Model F 0.52</text>
-<text x="50" y="517" font-size="14" class="muted">Absent = missing source score. Hollow fusion = estimated; solid fusion = paired mean.</text>
-<text x="50" y="543" font-size="15" class="b ink">Model F: only B = 0.52 is observed → estimated fusion = 0.51.</text>
+<circle cx="56" cy="514" r="5" class="f" fill="currentColor"/>
+<text x="70" y="519" font-size="14" class="muted">Paired average</text>
+<circle cx="226" cy="514" r="5" class="f" fill="none" stroke="currentColor" stroke-width="2"/>
+<text x="240" y="519" font-size="14" class="muted">Imputed average</text>
+<text x="50" y="544" font-size="14" class="f ink">Bands show typical error ±ε, here 0.02.</text>
+<text x="50" y="569" font-size="13" class="muted">They are not guaranteed bounds. Missing source results are left blank.</text>
+<text x="655" y="511" font-size="15" font-weight="600" class="rejected ink">Too much validation error → no imputation</text>
+<g class="f"><rect x="665" y="527" width="137.5" height="20" rx="4" fill="currentColor" opacity=".18"/></g>
+<line x1="665" y1="537" x2="940" y2="537" class="axis"/>
+<line x1="802.5" y1="525" x2="802.5" y2="550" class="axis"/>
+<text x="729" y="542" text-anchor="middle" font-size="12" class="f ink">Allowed error</text>
+<g class="rejected" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M877 530 L891 544 M877 544 L891 530"/></g>
+<text x="665" y="568" font-size="12" class="muted">0</text>
+<text x="802.5" y="568" text-anchor="middle" font-size="13" class="muted">ε<tspan baseline-shift="sub" font-size="10">max</tspan> = 0.025</text>
+<text x="911" y="568" text-anchor="middle" font-size="13" class="rejected ink">ε = 0.04 ✕</text>
 </svg>
