@@ -6,6 +6,10 @@ import {
   isAggregateIndex,
   residualIndexBreadth,
 } from "../../../../src/model-atlas/benchmarks/index-policy";
+import {
+  BENCHMARK_RESOURCE_SOURCE_LABELS,
+  resourceSourceMetricKey,
+} from "../../../../src/model-atlas/benchmarks/resource-sources";
 import { canonicalReasoningEffort } from "../../../../src/model-atlas/identity/normalization";
 import { weightedMeanOfFinite } from "../../../../src/model-atlas/math-utils";
 import {
@@ -50,7 +54,9 @@ export const PERFORMANCE_SCORES = [
 
 export type FrontierBenchmarkRow = {
   benchmarkKey: string;
+  baseBenchmarkKey: string;
   benchmarkLabel: string;
+  weight: number;
   resourcePolicy: BenchmarkResourcePolicy | null;
   model: ModelAtlasPublishedModel;
   score: number;
@@ -146,6 +152,8 @@ const EFFORT_BENCHMARK_KEYS = new Set([
   "automation_bench",
   "deep_swe",
   "arc_agi_3",
+  "terminal_bench_4",
+  "terminal_bench_science",
 ]);
 
 export function frontierBenchmarkRows(
@@ -175,6 +183,43 @@ export function frontierBenchmarkRows(
         const score = indexProxy ? value : toPercent(value);
         const resources = policy?.resources;
         const resourcePolicy = resources?.policy ?? portfolio[benchmarkKey]?.resourcePolicy ?? null;
+        const sourceLabels =
+          BENCHMARK_RESOURCE_SOURCE_LABELS[
+            benchmarkKey as keyof typeof BENCHMARK_RESOURCE_SOURCE_LABELS
+          ];
+        const sourceRows =
+          sourceLabels == null
+            ? []
+            : (["source_a", "source_b"] as const).flatMap((source) => {
+                const task =
+                  model.task_metrics?.[
+                    resourceSourceMetricKey(resources?.key ?? benchmarkKey, source)
+                  ];
+                const quality = finiteValue(task?.quality);
+                if (task == null || quality == null) return [];
+                return [
+                  {
+                    benchmarkKey: resourceSourceMetricKey(benchmarkKey, source),
+                    baseBenchmarkKey: benchmarkKey,
+                    benchmarkLabel: `${benchmarkLabels[benchmarkKey] ?? benchmarkKey} — ${sourceLabels[source]}`,
+                    weight: 0.5,
+                    resourcePolicy,
+                    model,
+                    score: indexProxy ? quality : toPercent(quality)!,
+                    cost: finiteValue(task.cost),
+                    seconds: finiteValue(task.seconds),
+                    inputTokens: null,
+                    outputTokens: finiteValue(task.output_tokens),
+                    totalTokens:
+                      resourcePolicy?.tokenMeasure === "output_tokens"
+                        ? finiteValue(task.output_tokens)
+                        : (finiteValue(task.tokens) ?? finiteValue(task.output_tokens)),
+                  },
+                ];
+              });
+        if (resourcePolicy != null && sourceRows.length > 0) {
+          return sourceRows;
+        }
         const task =
           resourcePolicy == null
             ? null
@@ -197,7 +242,9 @@ export function frontierBenchmarkRows(
         return [
           {
             benchmarkKey,
+            baseBenchmarkKey: benchmarkKey,
             benchmarkLabel: `${benchmarkLabels[benchmarkKey] ?? benchmarkKey}${indexProxy ? " (index)" : ""}`,
+            weight: 1,
             resourcePolicy,
             model,
             score,
@@ -222,7 +269,9 @@ export function meanFrontierBenchmarkRows(rows: FrontierBenchmarkRow[]): Frontie
       }
       return {
         benchmarkKey: "all",
+        baseBenchmarkKey: "all",
         benchmarkLabel: "Normalized performance",
+        weight: 1,
         resourcePolicy: null,
         model: first.model,
         score: meanMetric(modelRows, (row) => row.score)!,
@@ -467,7 +516,9 @@ export function performanceComparisonRows(
     ? models.map(
         (model): FrontierBenchmarkRow => ({
           benchmarkKey: performance,
+          baseBenchmarkKey: performance,
           benchmarkLabel: performance === "intelligence" ? "Intelligence" : "Agentic",
+          weight: 1,
           resourcePolicy: null,
           model,
           score: 0,
@@ -501,7 +552,7 @@ export function automaticResourceKeys(
       rows
         .filter(
           (row) =>
-            (portfolio[row.benchmarkKey]?.dimensionLoadings[performance] ?? 0) > 0 &&
+            (portfolio[row.baseBenchmarkKey]?.dimensionLoadings[performance] ?? 0) > 0 &&
             positiveMetric(metric(row)),
         )
         .map((row) => row.benchmarkKey),
@@ -518,11 +569,11 @@ function meanMetric(
   get: (row: FrontierBenchmarkRow) => number | null,
 ): number | null {
   const measured = rows.filter((row) => finiteValue(get(row)) != null);
-  const includedKeys = measured.map((row) => row.benchmarkKey);
+  const includedKeys = [...new Set(measured.map((row) => row.baseBenchmarkKey))];
   return weightedMeanOfFinite(
     measured.map((row) => ({
       value: get(row),
-      weight: residualIndexBreadth(row.benchmarkKey, includedKeys),
+      weight: row.weight * residualIndexBreadth(row.baseBenchmarkKey, includedKeys),
     })),
   );
 }

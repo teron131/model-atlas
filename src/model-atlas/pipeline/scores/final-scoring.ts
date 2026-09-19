@@ -27,6 +27,7 @@ import {
   benchmarkMetricValue,
   benchmarkTaskMetrics,
   effectiveTaskSeconds,
+  separatedBenchmarkResourceEvidence,
 } from "./resource-metrics";
 import { blendedPriceValue } from "./score-builders";
 
@@ -89,6 +90,30 @@ function taskResourceEfficiencyEvidence(
   )) {
     const qualityCoordinate = entry.resourcePolicy?.qualityCoordinate;
     if (qualityCoordinate == null) {
+      continue;
+    }
+    const separated = models.map((model) => separatedBenchmarkResourceEvidence(model, key, kind));
+    if (separated.some((sources) => sources != null && sources.length > 0)) {
+      benchmarkKeys.push(key);
+      for (const source of ["source_a", "source_b"] as const) {
+        const sourceEvidence = separated.map(
+          (sources) => sources?.find((item) => item.source === source) ?? null,
+        );
+        if (!sourceEvidence.some((item) => item != null)) continue;
+        const scores = benchmarkResourceEfficiencyScores(
+          models,
+          sourceEvidence.map((item) => item?.quality ?? null),
+          sourceEvidence.map((item) => (item == null ? null : Math.log(item.amount))),
+          qualityCoordinate,
+          sourceEvidence.map((item) => item != null),
+        );
+        for (const [modelIndex, score] of scores.entries()) {
+          signalsByModel[modelIndex]?.push({
+            value: score,
+            weight: score == null ? 0 : (sourceEvidence[modelIndex]?.allocation ?? 0),
+          });
+        }
+      }
       continue;
     }
     const evidence = models.map((model) => {

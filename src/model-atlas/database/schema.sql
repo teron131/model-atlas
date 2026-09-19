@@ -473,6 +473,7 @@ CREATE TABLE IF NOT EXISTS model_benchmarks (
 CREATE TABLE IF NOT EXISTS model_task_metrics (
 	model_row_index INTEGER NOT NULL,
 	source_key TEXT NOT NULL,
+	quality REAL,
 	cost REAL,
 	observed_cost REAL,
 	seconds REAL,

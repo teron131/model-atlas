@@ -299,6 +299,7 @@ export function fuseAleBenchRows(rows: readonly AleBenchSourceRow[]): FusionObse
   return fuseBenchmarkSources(primary, mirror, {
     maximumScoreError: MAX_CROSSWALK_MEDIAN_ABSOLUTE_ERROR,
     normalizeScore: (score) => Math.max(0, score),
+    sourceLabels: { a: "Sakana AI", b: "Epoch" },
   });
 }
 

@@ -80,7 +80,7 @@ export function sharedFrontierBenchmarkComparison(
     }
     const allVariants = [...rowsByVariant.values()];
     const indexVariants = allVariants.filter((variant) =>
-      variant.some((row) => isAggregateIndex(row.benchmarkKey)),
+      variant.some((row) => isAggregateIndex(row.baseBenchmarkKey)),
     );
     const variants = indexVariants.length > 0 ? indexVariants : allVariants;
     const compared = new Set(variants.map((variant) => modelVariantKey(variant[0]!.model)));
@@ -95,13 +95,22 @@ export function sharedFrontierBenchmarkComparison(
     result.push(...plotted);
     indexVariantCount += indexVariants.length;
     excludedVariantCount += allVariants.length - variants.length;
-    const totalWeight = benchmarkKeys.reduce(
-      (sum, key) => sum + residualIndexBreadth(key, benchmarkKeys),
+    const components = benchmarkKeys.flatMap((key) => {
+      const row = modelRows.find((candidate) => candidate.benchmarkKey === key);
+      return row == null ? [] : [row];
+    });
+    const includedBaseKeys = [...new Set(components.map((row) => row.baseBenchmarkKey))];
+    const totalWeight = components.reduce(
+      (sum, row) => sum + row.weight * residualIndexBreadth(row.baseBenchmarkKey, includedBaseKeys),
       0,
     );
-    const indexWeight = benchmarkKeys
-      .filter(isAggregateIndex)
-      .reduce((sum, key) => sum + residualIndexBreadth(key, benchmarkKeys), 0);
+    const indexWeight = components
+      .filter((row) => isAggregateIndex(row.baseBenchmarkKey))
+      .reduce(
+        (sum, row) =>
+          sum + row.weight * residualIndexBreadth(row.baseBenchmarkKey, includedBaseKeys),
+        0,
+      );
     groups.push({
       modelKey,
       model: modelRows[0]!.model,

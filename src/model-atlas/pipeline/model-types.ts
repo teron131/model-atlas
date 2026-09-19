@@ -67,6 +67,7 @@ export type ModelAtlasIntelligence = ModelAtlasBenchmarkValues & {
 };
 
 export type ModelAtlasTaskMetricValues = {
+  quality?: NumberOrNull;
   cost?: NumberOrNull;
   observed_cost?: NumberOrNull;
   seconds?: NumberOrNull;

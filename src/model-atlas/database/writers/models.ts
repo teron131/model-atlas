@@ -75,9 +75,9 @@ export function insertModelBenchmarks(db: DatabaseWriter, rows: readonly unknown
 export function insertModelTaskMetrics(db: DatabaseWriter, rows: readonly unknown[]): void {
   const statement = db.prepare(`
 		INSERT INTO model_task_metrics (
-			model_row_index, source_key, cost, observed_cost, seconds, tokens,
+			model_row_index, source_key, quality, cost, observed_cost, seconds, tokens,
 			input_tokens, output_tokens, observed_at, cost_price_ratio
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
   for (const [modelRowIndex, row] of rows.entries()) {
     const taskMetrics = asRecord(asRecord(row).task_metrics);
@@ -95,6 +95,7 @@ export function insertModelTaskMetrics(db: DatabaseWriter, rows: readonly unknow
       statement.run(
         modelRowIndex,
         sourceKey,
+        asFiniteNumber(metrics.quality),
         asFiniteNumber(metrics.cost),
         asFiniteNumber(metrics.observed_cost) ?? asFiniteNumber(metrics.cost),
         asFiniteNumber(metrics.seconds),

@@ -532,6 +532,46 @@ Use resources from the same benchmark and effort. If wall time is missing, outpu
 
 Use per-task resources. Totals are comparable only for identical task sets and run counts; otherwise normalize them. Retain source totals and task counts for audit.
 
+### Resource Comparability Across Sources
+
+Resource fusion requires agreement in absolute per-task amounts. Quality scores use a separate validated crosswalk.
+
+Check cost, runtime, total tokens, and output tokens independently. Raw amounts can be averaged only when their accounting is compatible and matched observations agree within the tolerance below. Normalize totals by their actual task-run counts first; check task coverage, retries, caching, and timing definitions.
+
+Pair directly observed, positive, finite amounts for the same model and reasoning effort. For pair $i$, $A_i$ and $B_i$ are the two source amounts. Each base model shares total reference weight 1 across its $n_m$ paired efforts, giving pair weight $a_i=1/n_m$. The absolute log-ratio measures disagreement symmetrically:
+
+$$
+d_i=\left|\log\frac{B_i}{A_i}\right|.
+$$
+
+The agreement share $p$ counts reference weight whose larger amount is no more than 1.05 times its smaller amount. The indicator $\mathbf{1}$ equals 1 when the condition holds and 0 otherwise:
+
+$$
+p=\frac{\sum_i a_i\,\mathbf{1}[d_i\le\log(1.05)]}{\sum_i a_i}.
+$$
+
+Permit raw resource fusion only with compatible accounting, at least 10 distinct paired base models, and $p\ge0.90$. The sample minimum, 5% tolerance, and 90% share are policy choices, not statistical guarantees.
+
+Check original per-task amounts without fitting an offset or rescaling either source. Similar distribution shapes do not establish agreement; insufficient paired evidence leaves comparability unestablished.
+
+When the check passes, two observed amounts combine as $(A+B)/2$. Passing the check does not validate a missing-source estimate; that still requires separately validated resource imputation.
+
+**Separate scoring when raw amounts are not comparable**
+
+Keep each source's resources paired with its own quality observations and score against its own reference population. Do not average raw amounts or impute resources across these sources. Unsupported source gaps remain missing; weak peer support pulls scores toward 50.
+
+For a benchmark resource component with base weight $w_b$, allocate $w_b/2$ to each source. Source scores $S_A,S_B$ and evidence credits $\eta_A,\eta_B$ contribute numerator $N_b$ and available weight $D_b$ to the resource weighted mean:
+
+$$
+N_b=\frac{w_b}{2}\eta_A S_A+\frac{w_b}{2}\eta_B S_B,
+\qquad
+D_b=\frac{w_b}{2}\eta_A+\frac{w_b}{2}\eta_B.
+$$
+
+With full evidence from both sources, the component mean is $(S_A+S_B)/2$. A missing source receives zero evidence credit, and the available source retains its half of the benchmark's base weight. The full benchmark weight remains in the coverage denominator. Two sources still represent one benchmark for direct-evidence requirements.
+
+Token-efficiency adjustments likewise use separate source quality and token references. Each supported source supplies half of the possible adjustment; an unsupported or missing source remains neutral. The equations above describe Speed and Value aggregation, not the Agentic token multiplier.
+
 ### Comparable-Quality Peers
 
 Nearby-quality models receive more comparison weight. The declared transform $T_b$ maps result $x_{m,b}$ to quality coordinate $q_{m,b}$:

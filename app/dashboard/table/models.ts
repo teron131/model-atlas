@@ -29,7 +29,8 @@ type TaskMetricColumns<
 > = {
   readonly [Index in keyof TColumns]: TColumns[Index] & {
     readonly group: "tasks";
-    readonly source: TSource;
+    readonly benchmarkGroup: TSource;
+    readonly source: string;
     readonly type: "number";
   };
 };
@@ -41,7 +42,8 @@ function defineTaskMetricColumns<
   return columns.map((column) => ({
     ...column,
     group: "tasks" as const,
-    source,
+    benchmarkGroup: source,
+    source: column.metricSource ?? source,
     type: "number" as const,
   })) as TaskMetricColumns<TSource, TColumns>;
 }
@@ -70,7 +72,8 @@ const artificialAnalysisTaskMetricColumns = defineTaskMetricColumns("artificial_
 type CatalogTaskMetricColumn =
   (typeof BENCHMARK_TASK_METRIC_COLUMNS)[keyof typeof BENCHMARK_TASK_METRIC_COLUMNS][number] & {
     group: "tasks";
-    source: BenchmarkKey;
+    benchmarkGroup: BenchmarkKey;
+    source: string;
     type: "number";
   };
 
@@ -225,9 +228,9 @@ const taskMetricColumnsByBenchmark = new Map<string, TaskMetricColumn[]>([
   ["aa_intelligence_index", [...artificialAnalysisTaskMetricColumns]],
 ]);
 for (const column of benchmarkTaskMetricColumns) {
-  const columns = taskMetricColumnsByBenchmark.get(column.source) ?? [];
+  const columns = taskMetricColumnsByBenchmark.get(column.benchmarkGroup) ?? [];
   columns.push(column);
-  taskMetricColumnsByBenchmark.set(column.source, columns);
+  taskMetricColumnsByBenchmark.set(column.benchmarkGroup, columns);
 }
 
 const benchmarkColumnGroups = benchmarkMetricColumns.map((column) => ({

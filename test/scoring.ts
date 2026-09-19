@@ -975,6 +975,68 @@ assertClose(directResourceScoredModels[0]?.scores.speed_score, 61.1111);
 assertClose(directResourceScoredModels[1]?.scores.speed_score, 61.1111);
 assertClose(directResourceScoredModels[2]?.scores.speed_score, 61.1111);
 
+const separatedResourceConfig = {
+  ...STAGE_CONFIG.scoring,
+  benchmarkPortfolio: {
+    source_split: {
+      group: "frontier",
+      benchmarkImportance: 1,
+      dimensionLoadings: { intelligence: 0, agentic: 1 },
+      resourcePolicy: {
+        source: "benchmark",
+        unit: "per_task",
+        tokenMeasure: "tokens",
+        qualityCoordinate: "linear",
+      },
+    },
+  },
+} as const;
+const sourceAQualities = [0.2, 0.4, 0.6, 0.8];
+const sourceBQualities = [0.25, 0.45, 0.65, 0.85];
+const sourceACosts = [1, 2, 3, 4];
+const sourceBCosts = [8, 6, 4, 2];
+const separatedResourceCandidates = sourceAQualities.map((sourceAQuality, index) => ({
+  ...modelCandidate({ id: `test/source-split-${index}`, disableBaseCost: true }),
+  benchmarks: { source_split: (sourceAQuality + sourceBQualities[index]!) / 2 },
+  scoring_sources: {
+    source_split: {
+      canonical_value: (sourceAQuality + sourceBQualities[index]!) / 2,
+      metadata: {
+        source_a_label: "Official",
+        source_b_label: "Publisher",
+        source_a_score: sourceAQuality,
+        source_b_score: sourceBQualities[index],
+        source_a_cost: sourceACosts[index],
+        source_b_cost: sourceBCosts[index],
+        fusion_cost_comparable: false,
+      },
+    },
+  },
+}));
+const separatedResourceScores = attachFinalScores(
+  separatedResourceCandidates,
+  separatedResourceConfig,
+);
+const expectedSourceAScores = benchmarkResourceEfficiencyScores(
+  separatedResourceCandidates,
+  sourceAQualities,
+  sourceACosts.map(Math.log),
+  "linear",
+);
+const expectedSourceBScores = benchmarkResourceEfficiencyScores(
+  separatedResourceCandidates,
+  sourceBQualities,
+  sourceBCosts.map(Math.log),
+  "linear",
+);
+for (const [index, scored] of separatedResourceScores.entries()) {
+  assertClose(
+    scored.scores.value_score,
+    ((expectedSourceAScores[index] ?? 0) + (expectedSourceBScores[index] ?? 0)) / 2,
+  );
+  assertClose(scored.confidence.value, 0.7);
+}
+
 const isolatedQualityResourceModels = attachFinalScores(
   [
     modelCandidate({
@@ -2472,6 +2534,53 @@ const neutralTokenScores = tokenAgenticScores(tokenModels, {
   agenticTokenModifierCap: 0,
 });
 assert.deepEqual(neutralTokenScores, [0, 50, 50, 50, 100]);
+
+function separatedTokenModels(sourceBScale: number): ModelAtlasCandidate[] {
+  return tokenModels.map((model, index) => ({
+    ...model,
+    benchmarks: { source_split: model.benchmarks?.deep_swe ?? null },
+    scoring_sources: {
+      source_split: {
+        canonical_value: model.benchmarks?.deep_swe ?? null,
+        metadata: {
+          source_a_label: "Official",
+          source_b_label: "Publisher",
+          source_a_score: model.benchmarks?.deep_swe ?? null,
+          source_b_score: model.benchmarks?.deep_swe ?? null,
+          source_a_tokens_per_task: tokenAmounts[index]!,
+          source_b_tokens_per_task: tokenAmounts[index]! * sourceBScale,
+          fusion_tokens_per_task_comparable: false,
+        },
+      },
+    },
+  }));
+}
+
+const separatedTokenConfig: ScoringConfig = {
+  ...tokenConfig,
+  intelligenceBenchmarkKeys: ["source_split"],
+  agenticBenchmarkKeys: ["source_split"],
+  benchmarkPortfolio: {
+    source_split: {
+      group: "baseline",
+      benchmarkImportance: 1,
+      dimensionLoadings: { intelligence: 0, agentic: 1 },
+      resourcePolicy: {
+        source: "benchmark",
+        unit: "per_task",
+        tokenMeasure: "tokens",
+        qualityCoordinate: "linear",
+      },
+    },
+  },
+};
+const separatedTokenScores = tokenAgenticScores(separatedTokenModels(100), separatedTokenConfig);
+assert.deepEqual(
+  separatedTokenScores,
+  tokenAgenticScores(separatedTokenModels(10_000), separatedTokenConfig),
+  "source-local token comparisons must ignore differences in absolute source scale",
+);
+assert.notDeepEqual(separatedTokenScores, neutralTokenScores);
 
 const indexOnlyTokens = tokenModels.map((model, index) => ({
   ...model,

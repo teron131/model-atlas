@@ -23,6 +23,101 @@ export type ResourceMetricModel = BenchmarkMetricModel & {
   task_metrics?: unknown;
 };
 
+export type SeparatedBenchmarkResourceEvidence = {
+  source: "source_a" | "source_b";
+  label: string;
+  quality: number;
+  amount: number;
+  allocation: number;
+};
+
+export type SeparatedBenchmarkResourceSource = {
+  source: "source_a" | "source_b";
+  label: string;
+  quality: number;
+  cost: number | null;
+  reportedSeconds: number | null;
+  seconds: number | null;
+  tokens: number | null;
+  outputTokens: number | null;
+  allocation: number;
+};
+
+/** Expose original source measurements when a fused row fails absolute resource agreement. */
+export function separatedBenchmarkResourceSources(
+  model: ResourceMetricModel,
+  key: string,
+): SeparatedBenchmarkResourceSource[] {
+  const metadata = asRecord(asRecord(asRecord(model.scoring_sources)[key]).metadata);
+  const separated = ["cost", "seconds_per_task", "tokens_per_task", "output_tokens_per_task"].some(
+    (field) => metadata[`fusion_${field}_comparable`] === false,
+  );
+  if (!separated) return [];
+  const throughput = positiveFiniteNumber(
+    asRecord(model.speed).throughput_tokens_per_second_median,
+  );
+  return (["source_a", "source_b"] as const).flatMap((source) => {
+    const quality = asFiniteNumber(metadata[`${source}_score`]);
+    if (quality == null) return [];
+    const sourceLabel = metadata[`${source}_label`];
+    const outputTokens = positiveFiniteNumber(metadata[`${source}_output_tokens_per_task`]);
+    const explicitSeconds = positiveFiniteNumber(metadata[`${source}_seconds_per_task`]);
+    return [
+      {
+        source,
+        label:
+          typeof sourceLabel === "string"
+            ? sourceLabel
+            : source === "source_a"
+              ? "Source A"
+              : "Source B",
+        quality,
+        cost: positiveFiniteNumber(metadata[`${source}_cost`]),
+        reportedSeconds: explicitSeconds,
+        seconds:
+          explicitSeconds ??
+          (outputTokens != null && throughput != null ? outputTokens / throughput : null),
+        tokens: positiveFiniteNumber(metadata[`${source}_tokens_per_task`]),
+        outputTokens,
+        allocation: 0.5,
+      },
+    ];
+  });
+}
+
+/** Keep each incompatible source amount paired with its own observed quality and fixed half-weight. */
+export function separatedBenchmarkResourceEvidence(
+  model: ResourceMetricModel,
+  key: string,
+  kind: "cost" | "time" | "tokens" | "output_tokens",
+): SeparatedBenchmarkResourceEvidence[] | null {
+  const metadata = asRecord(asRecord(asRecord(model.scoring_sources)[key]).metadata);
+  const field =
+    kind === "time" ? "seconds_per_task" : kind === "cost" ? "cost" : `${kind}_per_task`;
+  if (metadata[`fusion_${field}_comparable`] !== false) return null;
+  return separatedBenchmarkResourceSources(model, key).flatMap((source) => {
+    const amount =
+      kind === "cost"
+        ? source.cost
+        : kind === "time"
+          ? source.seconds
+          : kind === "tokens"
+            ? source.tokens
+            : source.outputTokens;
+    return amount == null
+      ? []
+      : [
+          {
+            source: source.source,
+            label: source.label,
+            quality: source.quality,
+            amount,
+            allocation: source.allocation,
+          },
+        ];
+  });
+}
+
 /** Publish resource scores with enough observed task or index coverage, counting overlapping components once for each resource. */
 export function applyResourceEvidenceRequirements<
   T extends ResourceMetricModel & {
@@ -85,8 +180,17 @@ export function observedResourceBenchmarkCounts(
     counts.selected += 1;
     if (benchmarkMetricValue(model, key) == null) continue;
     const metrics = benchmarkTaskMetrics(model, key);
-    if (positiveFiniteNumber(metrics?.cost) != null) counts.cost += 1;
-    if (positiveFiniteNumber(metrics?.seconds) != null) counts.time += 1;
+    const separatedSources = separatedBenchmarkResourceSources(model, key);
+    if (
+      positiveFiniteNumber(metrics?.cost) != null ||
+      separatedSources.some((source) => source.cost != null)
+    )
+      counts.cost += 1;
+    if (
+      positiveFiniteNumber(metrics?.seconds) != null ||
+      separatedSources.some((source) => source.reportedSeconds != null)
+    )
+      counts.time += 1;
   }
   return counts;
 }
@@ -163,14 +267,24 @@ export function benchmarkTaskMetrics(
 ): ModelAtlasTaskMetricValues | null {
   const record = asRecord(asRecord(model.task_metrics)[key]);
   const metadata = asRecord(asRecord(asRecord(model.scoring_sources)[key]).metadata);
-  const cost = metadata.fusion_cost_estimated === true ? null : asFiniteNumber(record.cost);
+  const cost =
+    metadata.fusion_cost_estimated === true || metadata.fusion_cost_comparable === false
+      ? null
+      : asFiniteNumber(record.cost);
   const seconds =
-    metadata.fusion_seconds_per_task_estimated === true ? null : asFiniteNumber(record.seconds);
+    metadata.fusion_seconds_per_task_estimated === true ||
+    metadata.fusion_seconds_per_task_comparable === false
+      ? null
+      : asFiniteNumber(record.seconds);
   const tokens =
-    metadata.fusion_tokens_per_task_estimated === true ? null : asFiniteNumber(record.tokens);
+    metadata.fusion_tokens_per_task_estimated === true ||
+    metadata.fusion_tokens_per_task_comparable === false
+      ? null
+      : asFiniteNumber(record.tokens);
   const inputTokens = asFiniteNumber(record.input_tokens);
   const outputTokens =
-    metadata.fusion_output_tokens_per_task_estimated === true
+    metadata.fusion_output_tokens_per_task_estimated === true ||
+    metadata.fusion_output_tokens_per_task_comparable === false
       ? null
       : asFiniteNumber(record.output_tokens);
   const metrics = {

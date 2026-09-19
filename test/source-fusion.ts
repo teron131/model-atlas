@@ -14,7 +14,9 @@ import {
   benchmarkFusionResourceEstimate,
   benchmarkMetricValue,
   benchmarkTaskMetrics,
+  separatedBenchmarkResourceEvidence,
 } from "../src/model-atlas/pipeline/scores/resource-metrics";
+import { buildTaskMetrics } from "../src/model-atlas/pipeline/selection/candidate";
 import { processArtificialAnalysisBenchmarkResourceRows } from "../src/model-atlas/sources/artificial-analysis/benchmark-resources";
 import { readBenchmarkObservationRawCache } from "../src/model-atlas/sources/observations/cache";
 import { processTerminalBench4Payload } from "../src/model-atlas/sources/terminal-bench-4/leaderboard";
@@ -89,8 +91,9 @@ const fused = fuseBenchmarkSources(
 );
 const direct = fused.find((r) => r.base_model === "model-0" && !r.metadata.fusion_collapsed)!;
 assert.equal(direct.canonical_value, 0.25);
-assert.equal(direct.cost, 3);
-assert.equal(direct.seconds_per_task, 20);
+assert.equal(direct.cost, null, "six models cannot establish absolute resource comparability");
+assert.equal(direct.seconds_per_task, null);
+assert.equal(direct.metadata.fusion_cost_comparable, false);
 assert.equal(direct.total_cost_usd, undefined, "fusion must not manufacture pooled totals");
 const swapped = fuseBenchmarkSources(b, a).find(
   (r) => r.base_model === "model-0" && !r.metadata.fusion_collapsed,
@@ -121,9 +124,54 @@ const resourceCandidate = {
   task_metrics: { terminal_bench_science: { cost: estimated.cost } },
 };
 assert.equal(benchmarkTaskMetrics(resourceCandidate, "terminal_bench_science"), null);
-assert.ok(
-  benchmarkFusionResourceEstimate(resourceCandidate, "terminal_bench_science", "cost")?.amount !=
-    null,
+assert.equal(
+  benchmarkFusionResourceEstimate(resourceCandidate, "terminal_bench_science", "cost"),
+  null,
+  "an incompatible source cannot fill another source's missing resource",
+);
+assert.equal(
+  separatedBenchmarkResourceEvidence(resourceCandidate, "terminal_bench_science", "cost")?.[0]
+    ?.amount,
+  2,
+);
+assert.deepEqual(buildTaskMetrics(null, resourceCandidate.scoring_sources), {
+  terminal_bench_science__source_b: {
+    quality: 0.7,
+    cost: 2,
+    seconds: 20,
+    observed_at: null,
+  },
+});
+
+const agreementA = Array.from({ length: 10 }, (_, index) =>
+  observation(`agreement-${index}`, 0.2 + index * 0.03, "max", 100),
+);
+const agreementB = agreementA.map((row, index) => ({
+  ...row,
+  canonical_value: row.canonical_value + 0.01,
+  cost: index === 9 ? 106 : 104,
+}));
+const acceptedAgreement = fuseBenchmarkSources(agreementA, agreementB, {
+  sourceLabels: { a: "Official", b: "Publisher" },
+});
+const acceptedResource = acceptedAgreement.find(
+  (row) => row.base_model === "agreement-0" && row.metadata.fusion_collapsed === false,
+)!;
+assert.equal(acceptedResource.cost, 102);
+assert.equal(acceptedResource.metadata.fusion_cost_paired_models, 10);
+assert.equal(acceptedResource.metadata.fusion_cost_within_5_percent_share, 0.9);
+assert.equal(acceptedResource.metadata.fusion_cost_comparable, true);
+assert.equal(acceptedResource.metadata.source_b_label, "Publisher");
+const rejectedAgreement = fuseBenchmarkSources(
+  agreementA,
+  agreementB.map((row, index) => (index >= 8 ? { ...row, cost: 106 } : row)),
+);
+assert.equal(
+  rejectedAgreement.find(
+    (row) => row.base_model === "agreement-0" && row.metadata.fusion_collapsed === false,
+  )?.cost,
+  null,
+  "more than 10% of model-balanced pairs outside 5% must block raw fusion",
 );
 const display = compactModelVariants(
   [

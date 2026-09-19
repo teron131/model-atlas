@@ -184,6 +184,8 @@ An unlabelled configuration is the source default. If every configuration names 
 
 ## Benchmark Source Policies
 
+The [absolute resource agreement rule](methodology.md#resource-comparability-across-sources) determines whether sources can share raw resource amounts. Sources that do not qualify receive separate resource scores with equal base weights; quality fusion is assessed separately.
+
 Only non-default source, metric, selection, exclusion, and resource rules are detailed below. The portfolio tables remain authoritative for capability, class, importance, and dimension loading.
 
 ### Shared Source Families
@@ -218,7 +220,11 @@ Sources: [APEX-SWE](https://www.mercor.com/apex/apex-swe-leaderboard/), [SUPERCh
 
 ### ARC-AGI-3 Harness Policy
 
-ARC-AGI-3 uses human-relative action efficiency over 55 semi-private environments per official harness. Standard uses provider-neutral text history and visible persistent notes; Provider Adapter uses provider-native continuous conversation, opaque reasoning state, and context compaction. Raw Standard and Provider Adapter rows remain separately attributable. For each exact base model and reasoning effort, the canonical score is their arithmetic mean when both are present and the single observed score when only one is present; missing harnesses are never imputed. Canonical resources sum the same component-run totals and divide by 55 environments per included harness. Current Provider Adapter coverage is limited to GPT-6 Astra, so its blended score must be interpreted as model-plus-harness interactive reasoning and execution rather than intrinsic intelligence.
+ARC-AGI-3 uses human-relative action efficiency over 55 semi-private environments per official harness. Standard uses provider-neutral text history and visible persistent notes; Provider Adapter uses provider-native continuous conversation, opaque reasoning state, and context compaction. Raw Standard and Provider Adapter rows remain separately attributable. For each exact base model and reasoning effort, the canonical score is their arithmetic mean when both are present and the single observed score when only one is present; missing harnesses are never imputed.
+
+Standard and Provider Adapter costs are normalized per environment and scored against their own quality and resource references. Each source reserves half of the resource weight, including when the other is missing. Current Provider Adapter coverage is limited to GPT-6 Astra, so weak peer support keeps its resource contribution neutral until an independent comparison population exists.
+
+The leaderboard's `AGI-3$` column shows Standard cost only. Provider Adapter has no separate table column; both harnesses remain available in resource comparisons and scoring.
 
 ### FrontierMath Erdős Policy
 
@@ -230,7 +236,7 @@ FrontierMath Erdős accepts only the fixed Epoch task `FrontierMath-Erdos`: one 
 
 **Agents' Last Exam** uses `max(median_score, mean_score)` from the Full Overall split because partial-credit score is more informative than pass-rate accuracy. Resource totals are divided by evaluated task count, and displayed resources use the lower of the resulting median and mean per-task values.
 
-**ALE-Bench** combines Sakana AI and Epoch at fixed 50/50 source weight, retaining both raw datasets. The Sakana `num_self_refine = 1` all-task mean and matched Epoch Performance are averaged in native Performance units, with no probability clamp. Missing counterparts use a model-held-out crosswalk with six overlapping models and median midpoint error at most 0.01 Performance points. Costs and token measurements fuse independently after resource validation. Missing or divergent Epoch data does not discard successfully fetched Sakana observations.
+**ALE-Bench** combines Sakana AI and Epoch at fixed 50/50 source weight, retaining both raw datasets. The Sakana `num_self_refine = 1` all-task mean and matched Epoch Performance are averaged in native Performance units, with no probability clamp. Missing counterparts use a model-held-out crosswalk with six overlapping models and median midpoint error at most 0.01 Performance points. Matched costs and tokens use arithmetic means when they pass the absolute resource agreement rule. Missing or divergent Epoch data does not discard successfully fetched Sakana observations.
 
 **Blueprint-Bench 2** uses normalized connectivity similarity; Andon's internal identifiers are not model-matching inputs.
 
@@ -250,11 +256,11 @@ FrontierMath Erdős accepts only the fixed Epoch task `FrontierMath-Erdos`: one 
 
 **Riemann-bench** uses the normalized public percentage directly.
 
-**Terminal-Bench 4.0** combines official 66-task results with Artificial Analysis's full evaluation dataset at fixed 50/50 source weight. Official totals are normalized over 330 attempts; AA resources use 198 attempts. The official per-trial duration is retained, but wall time and AA decode-time estimates are not averaged. Compatible per-task costs and token measures use arithmetic means. Raw official agent rows and AA observations remain persisted separately.
+**Terminal-Bench 4.0** combines official 66-task quality results with Artificial Analysis's full evaluation dataset at fixed 50/50 source weight. Official totals are normalized over 330 attempts; Artificial Analysis resources use 198 attempts. Official and Artificial Analysis cost, runtime, total-token, and output-token amounts fail absolute resource agreement and remain separate. Each source resource is scored against its own observed quality and reference population with half of the benchmark's resource weight. Resource columns and comparisons identify each source with a suffix.
 
-**Terminal-Bench-Science 0.1** combines the official three-repeat 70-task series with Vals's single-run series at fixed 50/50 source weight. Official cost and token totals are divided by 210 in the official adapter; Vals's per-task resources pass through unchanged. Both observed quality results are averaged. Expanded variants match exact efforts; collapsed rows average each source's highest reported effort and retain both effort labels. No harness weight is applied.
+**Terminal-Bench-Science 0.1** combines the official three-repeat 70-task quality series with Vals's single-run series at fixed 50/50 source weight. Official cost and token totals are divided by 210; Vals's per-task resources pass through unchanged. Official and Vals costs fail absolute resource agreement and remain separate, with half of the benchmark's resource weight each. Official tokens remain official-only because Vals does not publish a matching token measure. Expanded variants match exact efforts; collapsed rows average each source's highest reported effort and retain both effort labels.
 
-Both terminal benchmarks use the shared symmetric crosswalk for missing counterparts, requiring six distinct overlapping models and model-held-out median midpoint error at most 2.5 percentage points. Missing resource counterparts require their own log-ratio crosswalk with six models and median full-source error at most log(2). Resource predictions are converted back to their original units before the arithmetic source mean. Incompatible or unvalidated time remains missing. Estimated quality never establishes observed normalization anchors, trains contextual predictions, or satisfies observed admission/resource gates. Source values, efforts, URLs, and estimate status remain in fusion metadata. Extrapolated results remain estimates; overlap validation does not establish their out-of-range accuracy.
+Both terminal benchmarks use the shared symmetric quality crosswalk for missing counterparts, requiring six distinct overlapping models and model-held-out median midpoint error at most 2.5 percentage points. Resource values never cross from one terminal source into the other. Estimated quality never establishes observed normalization anchors, trains contextual predictions, or satisfies observed admission or resource gates. Extrapolated quality results remain estimates; overlap validation does not establish their out-of-range accuracy.
 
 **Toolathlon** uses the reported score only, preserves self-reported provenance, and does not use turns, Pass@3, or resource metrics for scoring because those fields are incomplete across current rows.
 
