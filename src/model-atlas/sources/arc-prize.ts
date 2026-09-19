@@ -13,6 +13,10 @@ import {
   resourcePerTaskRun,
 } from "../benchmarks/observation";
 import {
+  BENCHMARK_RESOURCE_SOURCE_LABELS,
+  RESOURCE_SOURCE_AGREEMENT_POLICY,
+} from "../benchmarks/resource-sources";
+import {
   benchmarkModelEffort,
   modelNameWithoutCreatorPrefix,
   normalizeModelToken,
@@ -326,6 +330,7 @@ function canonicalArcAgi3Rows(
       (left, right) =>
         right.row.score - left.row.score || left.row.source_index - right.row.source_index,
     );
+  const costAgreement = arcAgi3CostAgreement(aggregates);
 
   let rank = 0;
   let previousScore: number | null = null;
@@ -335,6 +340,10 @@ function canonicalArcAgi3Rows(
     const harnesses = orderedComponents
       .map((component) => component.harness)
       .filter((harness): harness is ArcPrizeHarness => harness != null);
+    const standard = orderedComponents.find((component) => component.harness === "standard");
+    const providerAdapter = orderedComponents.find(
+      (component) => component.harness === "provider_adapter",
+    );
     return {
       ...arcObservationRow(row, options, observedAt, rank),
       metadata: {
@@ -343,6 +352,18 @@ function canonicalArcAgi3Rows(
         harnesses,
         component_model_ids: orderedComponents.map((component) => component.model_id),
         component_scores: orderedComponents.map((component) => component.score),
+        source_a_label: BENCHMARK_RESOURCE_SOURCE_LABELS.arc_agi_3.source_a,
+        source_b_label: BENCHMARK_RESOURCE_SOURCE_LABELS.arc_agi_3.source_b,
+        source_a_score: standard?.score ?? null,
+        source_b_score: providerAdapter?.score ?? null,
+        source_a_cost: standard?.cost ?? null,
+        source_b_cost: providerAdapter?.cost ?? null,
+        fusion_cost_accounting_compatible: true,
+        fusion_cost_comparable: costAgreement.comparable,
+        fusion_cost_paired_models: costAgreement.modelCount,
+        fusion_cost_within_5_percent_share: costAgreement.withinToleranceShare,
+        fusion_cost_estimated: false,
+        fusion_cost_confidence: costAgreement.comparable ? 1 : 0,
       },
     } satisfies BenchmarkObservationRow;
   });
@@ -350,6 +371,50 @@ function canonicalArcAgi3Rows(
     ...canonicalRows,
     ...components.map((row) => arcObservationRow(row, options, observedAt, null)),
   ];
+}
+
+/** ARC harness costs share one accounting contract but still need model-balanced agreement on their absolute scale. */
+function arcAgi3CostAgreement(aggregates: readonly ArcPrizeAggregate[]): {
+  comparable: boolean;
+  modelCount: number;
+  withinToleranceShare: number;
+} {
+  const pairedByModel = new Map<string, Array<{ standard: number; providerAdapter: number }>>();
+  for (const aggregate of aggregates) {
+    const standard = aggregate.components.find(
+      (component) => component.harness === "standard",
+    )?.cost;
+    const providerAdapter = aggregate.components.find(
+      (component) => component.harness === "provider_adapter",
+    )?.cost;
+    if (standard == null || standard <= 0 || providerAdapter == null || providerAdapter <= 0)
+      continue;
+    const pairs = pairedByModel.get(aggregate.row.base_model) ?? [];
+    pairs.push({ standard, providerAdapter });
+    pairedByModel.set(aggregate.row.base_model, pairs);
+  }
+  let agreeingWeight = 0;
+  for (const pairs of pairedByModel.values()) {
+    const pairWeight = 1 / pairs.length;
+    for (const pair of pairs) {
+      if (
+        Math.max(pair.standard, pair.providerAdapter) /
+          Math.min(pair.standard, pair.providerAdapter) <=
+        RESOURCE_SOURCE_AGREEMENT_POLICY.maximumRatio
+      ) {
+        agreeingWeight += pairWeight;
+      }
+    }
+  }
+  const modelCount = pairedByModel.size;
+  const withinToleranceShare = modelCount === 0 ? 0 : agreeingWeight / modelCount;
+  return {
+    comparable:
+      modelCount >= RESOURCE_SOURCE_AGREEMENT_POLICY.minimumModels &&
+      withinToleranceShare >= RESOURCE_SOURCE_AGREEMENT_POLICY.minimumShare,
+    modelCount,
+    withinToleranceShare,
+  };
 }
 
 function arcConfigurationKey(row: ParsedArcPrizeRow): string {

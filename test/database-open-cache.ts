@@ -84,6 +84,7 @@ assert.deepEqual(
   [
     "model_row_index",
     "source_key",
+    "quality",
     "cost",
     "observed_cost",
     "seconds",

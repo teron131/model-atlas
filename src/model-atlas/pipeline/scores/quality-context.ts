@@ -4,7 +4,10 @@ import {
   calibrationObservations,
   effectiveModelCount,
 } from "../../benchmarks/calibration-population";
-import type { BenchmarkDimension } from "../../benchmarks/factory";
+import type {
+  BenchmarkDimension,
+  BenchmarkResourceQualityCoordinate,
+} from "../../benchmarks/factory";
 import { indexPolicy } from "../../benchmarks/index-policy";
 import type { ScoringConfig } from "../../config/stage";
 import { canonicalModelKey, canonicalReasoningEffort } from "../../identity/normalization";
@@ -24,6 +27,8 @@ import {
   benchmarkMetricValue,
   type BenchmarkTokenMeasure,
   directBenchmarkTokens,
+  separatedBenchmarkResourceEvidence,
+  type SeparatedBenchmarkResourceEvidence,
 } from "./resource-metrics";
 
 /** Normalized sibling estimates affect scoring only; observations and evidence counts remain separate. */
@@ -98,6 +103,45 @@ export function buildAgenticTokenScoringContext(
     if (qualityRange == null || !(qualityRange.min < qualityRange.max)) continue;
     const qualities = models.map((model) => benchmarkMetricValue(model, key));
     for (const measure of TOKEN_MEASURES) {
+      const separated = models.map((model) =>
+        separatedBenchmarkResourceEvidence(model, resourceKey, measure),
+      );
+      if (separated.some((sources) => sources != null && sources.length > 0)) {
+        const combinedMultipliers = separatedTokenMultipliers(
+          models,
+          separated,
+          scoringConfig.agenticTokenModifierCap,
+          coordinate,
+        );
+        if (combinedMultipliers == null) continue;
+        const values: number[] = [];
+        const multipliersByObservation = new Map<string, number>();
+        for (const [index, model] of models.entries()) {
+          const value = normalizedMetricValue(
+            qualityContext.benchmarkRangesByKey,
+            key,
+            qualities[index] ?? null,
+          );
+          if (value == null) continue;
+          const multiplier = combinedMultipliers[index] ?? 1;
+          values.push(value * multiplier);
+          multipliersByObservation.set(
+            tokenObservationKey(
+              model,
+              qualities[index]!,
+              directBenchmarkTokens(model, resourceKey, measure),
+            ),
+            multiplier,
+          );
+        }
+        adjustments.set(key, {
+          resourceKey,
+          measure,
+          range: minMaxRange(values),
+          multipliersByObservation,
+        });
+        break;
+      }
       const directTokensByModel = new Map(
         models.map((model) => [model, directBenchmarkTokens(model, resourceKey, measure)]),
       );
@@ -160,6 +204,47 @@ export function buildAgenticTokenScoringContext(
     }
   }
   return { ...qualityContext, agenticTokenAdjustments: adjustments };
+}
+
+/** Each independently supported source contributes its allocated adjustment; missing or unsupported sources stay neutral. */
+function separatedTokenMultipliers(
+  models: readonly ModelAtlasCandidate[],
+  separated: readonly (SeparatedBenchmarkResourceEvidence[] | null)[],
+  cap: number,
+  coordinate: BenchmarkResourceQualityCoordinate,
+): number[] | null {
+  const combinedMultipliers = models.map(() => 1);
+  let supportedSource = false;
+  for (const source of ["source_a", "source_b"] as const) {
+    const sourceEvidence = separated.map(
+      (sources) => sources?.find((item) => item.source === source) ?? null,
+    );
+    const sourceEvidenceByModel = new Map(
+      models.map((model, index) => [model, sourceEvidence[index] ?? null]),
+    );
+    const observations = calibrationObservations(models, (model) => {
+      const evidence = sourceEvidenceByModel.get(model);
+      return evidence == null ? null : evidence.amount;
+    });
+    if (effectiveModelCount(observations) < 3) continue;
+    const tokens = observations.map(({ value }) => value);
+    if (!(Math.min(...tokens) < Math.max(...tokens))) continue;
+    const multipliers = qualityAdjustedResourceMultipliers(
+      models,
+      sourceEvidence.map((item) => item?.quality ?? null),
+      sourceEvidence.map((item) => (item == null ? null : Math.log(item.amount))),
+      cap,
+      coordinate,
+      sourceEvidence.map((item) => item != null),
+    );
+    for (const [index, evidence] of sourceEvidence.entries()) {
+      if (evidence == null) continue;
+      combinedMultipliers[index] =
+        (combinedMultipliers[index] ?? 1) + evidence.allocation * ((multipliers[index] ?? 1) - 1);
+    }
+    supportedSource = true;
+  }
+  return supportedSource ? combinedMultipliers : null;
 }
 
 /** Historical candidates can share an ID and effort; their distinct quality/token observations must not overwrite each other. */

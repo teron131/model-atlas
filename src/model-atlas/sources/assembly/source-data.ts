@@ -9,6 +9,7 @@ import {
   BENCHMARK_OBSERVATION_BINDINGS,
   type BenchmarkObservationBinding,
 } from "../../benchmarks/registry";
+import { BENCHMARK_RESOURCE_SOURCE_LABELS } from "../../benchmarks/resource-sources";
 import { fuseBenchmarkSources, type FusionObservation } from "../../benchmarks/source-fusion";
 import {
   benchmarkModelEffort,
@@ -347,11 +348,23 @@ export function fusedBenchmarkObservations({
       weird.filter(
         (row) => row.metadata.weirdml_origin === "epoch" && row.metadata.fusion_eligible !== false,
       ),
+      { sourceLabels: { a: "Creator", b: "Epoch" } },
     ),
-    terminal_bench_4: fuseBenchmarkSources(officialRows, aaRows),
+    terminal_bench_4: fuseBenchmarkSources(officialRows, aaRows, {
+      sourceLabels: {
+        a: BENCHMARK_RESOURCE_SOURCE_LABELS.terminal_bench_4.source_a,
+        b: BENCHMARK_RESOURCE_SOURCE_LABELS.terminal_bench_4.source_b,
+      },
+    }),
     terminal_bench_science: fuseBenchmarkSources(
       scienceRows.filter((row) => row.metadata.source_series !== "vals"),
       scienceRows.filter((row) => row.metadata.source_series === "vals"),
+      {
+        sourceLabels: {
+          a: BENCHMARK_RESOURCE_SOURCE_LABELS.terminal_bench_science.source_a,
+          b: BENCHMARK_RESOURCE_SOURCE_LABELS.terminal_bench_science.source_b,
+        },
+      },
     ),
   };
 }

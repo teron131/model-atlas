@@ -45,7 +45,9 @@ function row(
 ): FrontierBenchmarkRow {
   return {
     benchmarkKey,
+    baseBenchmarkKey: benchmarkKey,
     benchmarkLabel: benchmarkKey,
+    weight: 1,
     resourcePolicy: policy,
     model,
     score,

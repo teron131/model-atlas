@@ -549,6 +549,7 @@ function taskMetricsByModelRow(
       continue;
     }
     const metrics: ModelAtlasTaskMetricValues = {};
+    assignNumber(metrics, "quality", row.quality);
     assignNumber(metrics, "cost", row.cost);
     assignNumber(metrics, "observed_cost", row.observed_cost);
     assignNumber(metrics, "seconds", row.seconds);

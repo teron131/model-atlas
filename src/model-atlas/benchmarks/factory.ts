@@ -172,6 +172,7 @@ export type BenchmarkPresentationDetail = readonly [label: string, value: string
 export type BenchmarkTaskMetricColumnFacet = {
   key: string;
   metric: string;
+  metricSource?: string;
   direction: BenchmarkSortDirection;
   label: string;
   format?: "duration";

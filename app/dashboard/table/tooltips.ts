@@ -215,7 +215,7 @@ function taskMetricTooltipEntry(
       ],
     ];
   }
-  const sourceTooltip = benchmarkTooltips[column.source];
+  const sourceTooltip = benchmarkTooltips[column.benchmarkGroup];
   if (sourceTooltip == null) {
     return [];
   }

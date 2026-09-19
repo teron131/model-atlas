@@ -57,6 +57,11 @@ try {
             cost: 20_657.37,
             observed_at: "2026-07-30",
           },
+          arc_agi_3__source_a: {
+            quality: 0.62,
+            cost: 8.63,
+            observed_at: "2026-07-30",
+          },
         },
         confidence: {
           intelligence: 0.83,
@@ -131,6 +136,13 @@ try {
   assert.deepEqual(model?.task_metrics?.arc_agi_3, {
     cost: 20_657.37,
     observed_cost: 20_657.37,
+    observed_at: "2026-07-30",
+    cost_price_ratio: 1,
+  });
+  assert.deepEqual(model?.task_metrics?.arc_agi_3__source_a, {
+    quality: 0.62,
+    cost: 8.63,
+    observed_cost: 8.63,
     observed_at: "2026-07-30",
     cost_price_ratio: 1,
   });

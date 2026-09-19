@@ -1,9 +1,10 @@
-/** Equal-source benchmark fusion preserves exact efforts, model-level summaries, and independently validated resource estimates. */
+/** Equal-source benchmark fusion preserves exact efforts and quality crosswalks while admitting raw resource fusion only after absolute-scale agreement. */
 
 import { modelNameIdentityKey } from "../identity";
 import { reasoningEffortRank } from "../identity/normalization";
 import { clamp01 } from "../math-utils";
 import type { BenchmarkObservationRow } from "./observation";
+import { RESOURCE_SOURCE_AGREEMENT_POLICY } from "./resource-sources";
 import { buildAdditiveSourceCrosswalk } from "./source-crosswalk";
 
 export type FusionObservation = BenchmarkObservationRow & {
@@ -16,6 +17,18 @@ type Pair = {
   effort: string | null;
   a: FusionObservation | null;
   b: FusionObservation | null;
+};
+
+type FusionSourceLabels = {
+  a: string;
+  b: string;
+};
+
+type ResourceAgreement = {
+  accountingCompatible: boolean;
+  comparable: boolean;
+  modelCount: number;
+  withinToleranceShare: number;
 };
 
 // These gates apply to midpoint prediction error on the unit score scale, not full-source error.
@@ -35,9 +48,11 @@ export function fuseBenchmarkSources(
   {
     maximumScoreError = MAXIMUM_SCORE_ERROR,
     normalizeScore = clamp01,
+    sourceLabels = { a: "Source A", b: "Source B" },
   }: {
     maximumScoreError?: number;
     normalizeScore?: (value: number) => number;
+    sourceLabels?: FusionSourceLabels;
   } = {},
 ): FusionObservation[] {
   const pairs = pairObservations(a, b);
@@ -66,6 +81,9 @@ export function fuseBenchmarkSources(
         0,
       ),
     ]),
+  );
+  const resourceAgreements = new Map(
+    RESOURCE_KEYS.map((key) => [key, resourceAgreement(pairs, key)]),
   );
   const defaults = pairObservations(sourceDefaults(a), sourceDefaults(b));
   return [
@@ -96,6 +114,8 @@ export function fuseBenchmarkSources(
       fusion_confidence: both ? 1 : extrapolated ? 0.5 : 0.5 + 0.5 * (quality.confidence ?? 0),
       source_a_url: pair.a?.source_url ?? null,
       source_b_url: pair.b?.source_url ?? null,
+      source_a_label: sourceLabels.a,
+      source_b_label: sourceLabels.b,
       source_a_score: pair.a?.canonical_value ?? null,
       source_b_score: pair.b?.canonical_value ?? null,
       source_a_effort: pair.a?.metadata.source_effort ?? pair.a?.reasoning_effort ?? null,
@@ -124,14 +144,16 @@ export function fuseBenchmarkSources(
       const av = pair.a?.[key] ?? null;
       const bv = pair.b?.[key] ?? null;
       const fit = resources.get(key)!;
+      const agreement = resourceAgreements.get(key)!;
       const timeCompatible =
         key !== "seconds_per_task" ||
         (pair.a?.metadata.time_measure === pair.b?.metadata.time_measure &&
           pair.a?.metadata.time_measure != null);
       let value: number | null = null;
       let estimated = false;
-      if (timeCompatible && av != null && bv != null) value = (av + bv) / 2;
+      if (agreement.comparable && timeCompatible && av != null && bv != null) value = (av + bv) / 2;
       else if (
+        agreement.comparable &&
         key !== "seconds_per_task" &&
         fit.diagnostic.imputationAllowed &&
         fit.diagnostic.delta != null
@@ -145,6 +167,10 @@ export function fuseBenchmarkSources(
       fused.metadata[key] = value;
       fused.metadata[`source_a_${key}`] = av;
       fused.metadata[`source_b_${key}`] = bv;
+      fused.metadata[`fusion_${key}_accounting_compatible`] = agreement.accountingCompatible;
+      fused.metadata[`fusion_${key}_comparable`] = agreement.comparable;
+      fused.metadata[`fusion_${key}_paired_models`] = agreement.modelCount;
+      fused.metadata[`fusion_${key}_within_5_percent_share`] = agreement.withinToleranceShare;
       fused.metadata[`fusion_${key}_estimated`] = estimated;
       fused.metadata[`fusion_${key}_confidence`] = estimated
         ? 0.5 + 0.5 * (fit.confidence ?? 0)
@@ -154,6 +180,53 @@ export function fuseBenchmarkSources(
     }
     return [fused];
   }
+}
+
+/** Raw resources can share a scale only when model-balanced matched amounts agree before fitting or rescaling. */
+function resourceAgreement(
+  pairs: readonly Pair[],
+  key: (typeof RESOURCE_KEYS)[number],
+): ResourceAgreement {
+  const positiveOverlap = pairs.filter((pair) => {
+    const av = pair.a?.[key];
+    const bv = pair.b?.[key];
+    return av != null && av > 0 && bv != null && bv > 0;
+  });
+  const accountingCompatible =
+    key !== "seconds_per_task" ||
+    positiveOverlap.every(
+      (pair) =>
+        pair.a?.metadata.time_measure != null &&
+        pair.a.metadata.time_measure === pair.b?.metadata.time_measure,
+    );
+  const byModel = new Map<string, Pair[]>();
+  for (const pair of positiveOverlap) {
+    const rows = byModel.get(pair.name) ?? [];
+    rows.push(pair);
+    byModel.set(pair.name, rows);
+  }
+  let agreeingWeight = 0;
+  for (const rows of byModel.values()) {
+    const pairWeight = 1 / rows.length;
+    for (const pair of rows) {
+      const av = pair.a![key]!;
+      const bv = pair.b![key]!;
+      if (Math.max(av, bv) / Math.min(av, bv) <= RESOURCE_SOURCE_AGREEMENT_POLICY.maximumRatio) {
+        agreeingWeight += pairWeight;
+      }
+    }
+  }
+  const modelCount = byModel.size;
+  const withinToleranceShare = modelCount === 0 ? 0 : agreeingWeight / modelCount;
+  return {
+    accountingCompatible,
+    comparable:
+      accountingCompatible &&
+      modelCount >= RESOURCE_SOURCE_AGREEMENT_POLICY.minimumModels &&
+      withinToleranceShare >= RESOURCE_SOURCE_AGREEMENT_POLICY.minimumShare,
+    modelCount,
+    withinToleranceShare,
+  };
 }
 
 function crosswalk(

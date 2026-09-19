@@ -1,6 +1,7 @@
 /** Candidate assembly projects heterogeneous source rows into the scorer's stable input shape. */
 
 import { benchmarkValueLocation } from "../../benchmarks/registry";
+import { resourceSourceMetricKey } from "../../benchmarks/resource-sources";
 import {
   type ScoringConfig,
   TASK_COST_PRICE_TRANSITIONS,
@@ -38,7 +39,13 @@ import {
   buildSpeedComponentScore,
 } from "../scores";
 
-type TaskMetricNumericKey = "cost" | "seconds" | "tokens" | "input_tokens" | "output_tokens";
+type TaskMetricNumericKey =
+  | "quality"
+  | "cost"
+  | "seconds"
+  | "tokens"
+  | "input_tokens"
+  | "output_tokens";
 
 const EMPTY_OPENROUTER_PRICING = {
   weighted_input: null,
@@ -332,7 +339,17 @@ export function buildTaskMetrics(
   for (const [key, source] of Object.entries(scoringSources ?? {})) {
     const sourceTaskMetrics = buildSourceMetrics(source);
     if (sourceTaskMetrics != null) {
-      taskMetrics[key] = sourceTaskMetrics;
+      const metadata = asRecord(asRecord(source).metadata);
+      const scoringMetrics = { ...sourceTaskMetrics };
+      if (metadata.fusion_cost_comparable === false) delete scoringMetrics.cost;
+      if (metadata.fusion_seconds_per_task_comparable === false) delete scoringMetrics.seconds;
+      if (metadata.fusion_tokens_per_task_comparable === false) delete scoringMetrics.tokens;
+      if (metadata.fusion_output_tokens_per_task_comparable === false)
+        delete scoringMetrics.output_tokens;
+      if (hasFields(scoringMetrics)) taskMetrics[key] = scoringMetrics;
+    }
+    for (const [sourceKey, metrics] of buildSeparatedSourceMetrics(key, source)) {
+      taskMetrics[sourceKey] = metrics;
     }
   }
   const artificialAnalysis = buildSourceMetrics(artificialAnalysisSource);
@@ -358,6 +375,7 @@ function rawTaskMetricValue(
 /** Serialize the normalized source-reported task row used by both change detection and history. */
 export function taskMetricVersionValue(metrics: ModelAtlasTaskMetricValues): string {
   return JSON.stringify({
+    quality: rawTaskMetricValue(metrics, "quality"),
     cost: rawTaskMetricValue(metrics, "cost"),
     seconds: rawTaskMetricValue(metrics, "seconds"),
     tokens: rawTaskMetricValue(metrics, "tokens"),
@@ -504,6 +522,40 @@ function buildSourceMetrics(source: unknown): ModelAtlasTaskMetricValues | null 
     ...(outputTokens != null && outputTokens >= 0 ? { output_tokens: outputTokens } : {}),
   };
   return hasFields(taskMetrics) ? taskMetrics : null;
+}
+
+/** Preserve incompatible source resources under stable suffix keys for source-labelled UI columns. */
+function buildSeparatedSourceMetrics(
+  key: string,
+  source: unknown,
+): Array<[string, ModelAtlasTaskMetricValues]> {
+  const row = asRecord(source);
+  const metadata = asRecord(row.metadata);
+  const separated = ["cost", "seconds_per_task", "tokens_per_task", "output_tokens_per_task"].some(
+    (field) => metadata[`fusion_${field}_comparable`] === false,
+  );
+  if (!separated) return [];
+  return (["source_a", "source_b"] as const).flatMap((side) => {
+    const quality = asFiniteNumber(metadata[`${side}_score`]);
+    if (quality == null) return [];
+    const metrics = buildSourceMetrics({
+      cost: metadata[`${side}_cost`],
+      seconds_per_task: metadata[`${side}_seconds_per_task`],
+      tokens_per_task: metadata[`${side}_tokens_per_task`],
+      output_tokens_per_task: metadata[`${side}_output_tokens_per_task`],
+    });
+    if (metrics == null) return [];
+    return [
+      [
+        resourceSourceMetricKey(key, side),
+        {
+          quality,
+          ...metrics,
+          observed_at: typeof row.observed_at === "string" ? row.observed_at : null,
+        },
+      ],
+    ];
+  });
 }
 
 export function buildModelCandidate(

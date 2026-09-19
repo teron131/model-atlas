@@ -28,7 +28,9 @@ function row(
   return {
     model,
     benchmarkKey: key,
+    baseBenchmarkKey: key,
     benchmarkLabel: key,
+    weight: 1,
     resourcePolicy: null,
     score,
     cost,
