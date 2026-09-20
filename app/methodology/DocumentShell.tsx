@@ -12,6 +12,7 @@ import { documentHref, DOCUMENTS, type DocumentSlug, type TableOfContentsItem } 
 
 import styles from "./methodology.module.css";
 
+const DOCKED_NAVIGATION_QUERY = "(min-width: 1100px)";
 const NAVIGATION_STORAGE_KEY = "model-atlas-document-navigation-open";
 
 export function DocumentShell({
@@ -23,6 +24,7 @@ export function DocumentShell({
   activeDocument: DocumentSlug;
   outline: TableOfContentsItem[];
 }) {
+  const currentDocument = DOCUMENTS.find((item) => item.slug === activeDocument)!;
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
   const navigationHydrated = useRef(false);
@@ -33,15 +35,17 @@ export function DocumentShell({
   }, []);
   const closeNavigation = useCallback(() => setNavigationOpen(false), []);
 
-  // Share the explicit preference across documents and reloads; unavailable storage leaves the toggle usable.
+  // Remember the desktop sidebar preference; narrow screens start with the drawer closed.
   useLayoutEffect(() => {
     if (!navigationHydrated.current) {
       navigationHydrated.current = true;
       try {
-        setNavigationOpen(window.localStorage.getItem(NAVIGATION_STORAGE_KEY) === "true");
+        const saved = window.localStorage.getItem(NAVIGATION_STORAGE_KEY);
+        setNavigationOpen(window.matchMedia(DOCKED_NAVIGATION_QUERY).matches && saved !== "false");
       } catch {}
       return;
     }
+    if (!window.matchMedia(DOCKED_NAVIGATION_QUERY).matches) return;
     try {
       window.localStorage.setItem(NAVIGATION_STORAGE_KEY, String(navigationOpen));
     } catch {}
@@ -55,7 +59,7 @@ export function DocumentShell({
   }, []);
 
   useEffect(() => {
-    const media = window.matchMedia("(min-width: 781px)");
+    const media = window.matchMedia(DOCKED_NAVIGATION_QUERY);
     const updateLayout = () => setIsDesktop(media.matches);
     updateLayout();
     media.addEventListener("change", updateLayout);
@@ -76,20 +80,6 @@ export function DocumentShell({
         }`}
       >
         <nav className={styles.documentNav} aria-label="Documentation">
-          <ul>
-            {DOCUMENTS.map((item) => (
-              <li key={item.slug}>
-                <Link
-                  href={documentHref(item.slug)}
-                  prefetch={false}
-                  aria-current={item.slug === activeDocument ? "page" : undefined}
-                >
-                  <span>{item.title}</span>
-                  <small>{item.description}</small>
-                </Link>
-              </li>
-            ))}
-          </ul>
           <button
             type="button"
             className={`${styles.navigationIconButton} ${styles.contentsToggle}`}
@@ -100,7 +90,31 @@ export function DocumentShell({
             onClick={toggleNavigation}
           >
             <ListTree aria-hidden="true" />
+            <span>Documentation</span>
           </button>
+          <ul>
+            {DOCUMENTS.filter(
+              (item) => item.group === "Reference" || item.slug === "methodology",
+            ).map((item) => (
+              <li key={item.slug}>
+                <Link
+                  href={documentHref(item.slug)}
+                  prefetch={false}
+                  aria-current={
+                    item.slug === activeDocument ||
+                    (item.slug === "methodology" && currentDocument.group === "Methodology")
+                      ? "page"
+                      : undefined
+                  }
+                >
+                  <span>{item.slug === "methodology" ? "Methodology" : item.title}</span>
+                  <small>{item.description}</small>
+                </Link>
+              </li>
+            ))}
+          </ul>
+
+          <span className={styles.currentDocument}>{currentDocument.title}</span>
         </nav>
 
         {children}

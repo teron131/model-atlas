@@ -23,7 +23,7 @@ Writing, modifying, testing, debugging, and delivering software primarily test A
 | Importance | Standard policy: 1 for task benchmarks; 0.5 for aggregate indexes used for regularization |
 | Allocation (dimension loading) | Intelligence/Agentic split: 100/0, 75/25, 50/50, 25/75, or 0/100 |
 
-Effective weight is importance × allocation. The capability calculation uses these weights to take a weighted mean of normalized benchmark results; see [Methodology](methodology.md#benchmark-scores-and-dimension-weights).
+Effective weight is importance × allocation. The capability calculation uses these weights to take a weighted mean of normalized benchmark results; see [Methodology](intelligence-agentic.md#benchmark-scores-and-dimension-weights).
 
 The allocation follows the five-level scale in [Standards](standards.md). Coding tasks are primarily Agentic evidence; an Intelligence share depends on substantial reasoning in the task's actual demands.
 
@@ -35,7 +35,7 @@ Each table records the capability being measured and the reason for its weight. 
 
 Speed and Value compare resource use among models achieving similar quality. Each eligible benchmark therefore declares the coordinate used to measure quality distance. `Logit` gives probability-like success rates more separation near their endpoints. `Linear` preserves score gaps for ratings, partial credit, and composites whose values are not success probabilities.
 
-Direct same-benchmark tokens also use these coordinates for the [Agentic token modifier](methodology.md#agentic-token-efficiency) when the benchmark has a non-zero Agentic loading. AA aggregate output tokens use a linear coordinate for its own Intelligence Index only; index membership never supplies token evidence to constituent or cross-index benchmarks.
+Direct same-benchmark tokens also use these coordinates for the [Agentic token modifier](intelligence-agentic.md#agentic-token-efficiency) when the benchmark has a non-zero Agentic loading. AA aggregate output tokens use a linear coordinate for its own Intelligence Index only; index membership never supplies token evidence to constituent or cross-index benchmarks.
 
 | Benchmark | Coordinate | Decision |
 | --- | --- | --- |
@@ -69,7 +69,7 @@ An aggregate index summarizes several evaluations. It offers broad coverage, but
 | Surge Intelligence Index | Baseline | 0.5 | 50% | 50% | Retained as neutral fallback evidence because professional reasoning, writing, and agent evaluations are aggregated under incompatible source scales; half importance limits overlap. |
 | Vals Index | Baseline | 0.5 | 50% | 50% | Retained as neutral fallback evidence because finance, legal, and coding tasks mix domain reasoning with execution without recoverable component weights; the opaque aggregate is not reweighted from its coding label alone. |
 
-Indexes supply broad evidence when direct tasks are sparse. Effort-labelled variants use only effort-specific indexes, currently Artificial Analysis and CAIS; other index observations remain visible and retain their separate admission role. The main leaderboard's task-group weight rises from 20% at one observed task to 80% at the configured threshold of 7.5, using cubic smoothstep. With no direct tasks, indexes receive 100%. Each variant and dimension counts its own direct tasks; imputed and sibling results do not advance the count. [Methodology](methodology.md#combining-benchmarks-and-aggregate-indexes) defines the full blend and its separate evidence and admission rules.
+Indexes supply broad evidence when direct tasks are sparse. Effort-labelled variants use only effort-specific indexes, currently Artificial Analysis and CAIS; other index observations remain visible and retain their separate admission role. The main leaderboard's task-group weight rises from 20% at one observed task to 80% at the configured threshold of 7.5, using cubic smoothstep. With no direct tasks, indexes receive 100%. Each variant and dimension counts its own direct tasks; imputed and sibling results do not advance the count. [Methodology](intelligence-agentic.md#combining-benchmarks-and-aggregate-indexes) defines the full blend and its separate evidence and admission rules.
 
 ### Frontier Benchmarks
 
@@ -172,7 +172,7 @@ An unlabelled configuration is the source default. If every configuration names 
 
 ## Aggregate Index Policies
 
-**Artificial Analysis Intelligence Index** uses the published aggregate directly as one index observation, with represented breadth currently 10. Its own paired per-task cost, runtime, and output tokens can contribute under the resource rules in [Methodology](methodology.md#resource-score-availability). This telemetry remains attached to the index and never fills missing standalone task measurements. Known standalone components reduce represented resource breadth so overlap counts once.
+**Artificial Analysis Intelligence Index** uses the published aggregate directly as one index observation, with represented breadth currently 10. Its own paired per-task cost, runtime, and output tokens can contribute under the resource rules in [Methodology](leaderboard-rules.md#resource-score-availability). This telemetry remains attached to the index and never fills missing standalone task measurements. Known standalone components reduce represented resource breadth so overlap counts once.
 
 **CAIS Capabilities Index** is derived from HLE, TextQuests, EnigmaEval, ERQA, IntPhys 2, MindCube Tiny, and SpatialViz-Bench with equal weight per component, expressed as `(2 × Text + 5 × Vision) / 7`. Directly observed components reduce its remaining weight, so a fully represented basket adds no second index vote. A disclosed composite fallback excludes that model from the aggregate while preserving its component values and provenance. CAIS supplies no task-level resource telemetry.
 
@@ -184,7 +184,7 @@ An unlabelled configuration is the source default. If every configuration names 
 
 ## Benchmark Source Policies
 
-The [absolute resource agreement rule](methodology.md#resource-comparability-across-sources) determines whether sources can share raw resource amounts. Sources that do not qualify receive separate resource scores with equal base weights; quality fusion is assessed separately.
+The [absolute resource agreement rule](speed-value.md#resource-comparability-across-sources) determines whether sources can share raw resource amounts. Sources that do not qualify receive separate resource scores with equal base weights; quality fusion is assessed separately.
 
 Only non-default source, metric, selection, exclusion, and resource rules are detailed below. The portfolio tables remain authoritative for capability, class, importance, and dimension loading.
 

@@ -61,22 +61,26 @@ export function DocumentNavigation({
       </div>
 
       <nav className={styles.documentSwitcher} aria-label="Documents">
-        <p className={styles.railLabel}>Documents</p>
-        <ul>
-          {DOCUMENTS.map((item) => (
-            <li key={item.slug}>
-              <Link
-                href={documentHref(item.slug)}
-                prefetch={false}
-                aria-current={item.slug === activeDocument ? "page" : undefined}
-                onClick={isSheet ? onClose : undefined}
-              >
-                <span>{item.title}</span>
-                <small>{item.description}</small>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        {[...new Set(DOCUMENTS.map((item) => item.group))].map((group) => (
+          <div key={group} className={styles.documentGroup}>
+            <p className={styles.railLabel}>{group}</p>
+            <ul>
+              {DOCUMENTS.filter((item) => item.group === group).map((item) => (
+                <li key={item.slug}>
+                  <Link
+                    href={documentHref(item.slug)}
+                    prefetch={false}
+                    aria-current={item.slug === activeDocument ? "page" : undefined}
+                    onClick={isSheet ? onClose : undefined}
+                  >
+                    <span>{item.title}</span>
+                    <small>{item.description}</small>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
       </nav>
 
       <DocumentOutline items={outline} onNavigate={isSheet ? onClose : undefined} />
@@ -91,25 +95,15 @@ export function DocumentNavigation({
         aria-label="Close document navigation"
         onClick={onClose}
       />
-      {mode === "docked" ? (
-        <aside
-          className={styles.documentNavigationPanel}
-          id="document-navigation"
-          aria-label="Document navigation"
-        >
-          {navigation}
-        </aside>
-      ) : (
-        <aside
-          className={styles.documentNavigationPanel}
-          id="document-navigation"
-          aria-label="Document navigation"
-          aria-modal="true"
-          role="dialog"
-        >
-          {navigation}
-        </aside>
-      )}
+      <aside
+        className={styles.documentNavigationPanel}
+        id="document-navigation"
+        aria-label="Document navigation"
+        aria-modal={isSheet ? true : undefined}
+        role={isSheet ? "dialog" : undefined}
+      >
+        {navigation}
+      </aside>
     </div>
   );
 }
