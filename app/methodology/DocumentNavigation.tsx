@@ -2,9 +2,9 @@
 
 /** Responsive document switcher and section tree for docked and sheet layouts. */
 
-import { X } from "lucide-react";
+import { ChevronDown, ChevronRight, X } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { DocumentOutline } from "./DocumentOutline";
 import { documentHref, DOCUMENTS, type DocumentSlug, type TableOfContentsItem } from "./documents";
@@ -26,6 +26,7 @@ export function DocumentNavigation({
 }) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const isSheet = mode === "sheet";
+  const [expanded, setExpanded] = useState<DocumentSlug[]>([]);
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -61,26 +62,62 @@ export function DocumentNavigation({
       </div>
 
       <nav className={styles.documentSwitcher} aria-label="Documents">
-        {[...new Set(DOCUMENTS.map((item) => item.group))].map((group) => (
-          <div key={group} className={styles.documentGroup}>
-            <p className={styles.railLabel}>{group}</p>
-            <ul>
-              {DOCUMENTS.filter((item) => item.group === group).map((item) => (
-                <li key={item.slug}>
-                  <Link
-                    href={documentHref(item.slug)}
-                    prefetch={false}
-                    aria-current={item.slug === activeDocument ? "page" : undefined}
-                    onClick={isSheet ? onClose : undefined}
+        <ul>
+          {DOCUMENTS.filter((item) => item.parent === null).map((item) => (
+            <li key={item.slug}>
+              <div className={styles.documentRow}>
+                <Link
+                  href={documentHref(item.slug)}
+                  prefetch={false}
+                  aria-current={item.slug === activeDocument ? "page" : undefined}
+                  onClick={isSheet ? onClose : undefined}
+                >
+                  <span>{item.title}</span>
+                  <small>{item.description}</small>
+                </Link>
+                {DOCUMENTS.some((child) => child.parent === item.slug) ? (
+                  <button
+                    type="button"
+                    className={styles.navigationIconButton}
+                    aria-label={`${expanded.includes(item.slug) ? "Collapse" : "Expand"} ${item.title}`}
+                    aria-expanded={expanded.includes(item.slug)}
+                    aria-controls={`document-children-${item.slug}`}
+                    onClick={() =>
+                      setExpanded((current) =>
+                        current.includes(item.slug)
+                          ? current.filter((slug) => slug !== item.slug)
+                          : [...current, item.slug],
+                      )
+                    }
                   >
-                    <span>{item.title}</span>
-                    <small>{item.description}</small>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
+                    {expanded.includes(item.slug) ? (
+                      <ChevronDown aria-hidden="true" />
+                    ) : (
+                      <ChevronRight aria-hidden="true" />
+                    )}
+                  </button>
+                ) : null}
+              </div>
+              {DOCUMENTS.some((child) => child.parent === item.slug) ? (
+                <ul id={`document-children-${item.slug}`} hidden={!expanded.includes(item.slug)}>
+                  {DOCUMENTS.filter((child) => child.parent === item.slug).map((child) => (
+                    <li key={child.slug}>
+                      <Link
+                        href={documentHref(child.slug)}
+                        prefetch={false}
+                        aria-current={child.slug === activeDocument ? "page" : undefined}
+                        onClick={isSheet ? onClose : undefined}
+                      >
+                        <span>{child.title}</span>
+                        <small>{child.description}</small>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </li>
+          ))}
+        </ul>
       </nav>
 
       <DocumentOutline items={outline} onNavigate={isSheet ? onClose : undefined} />

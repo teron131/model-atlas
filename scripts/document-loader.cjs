@@ -8,9 +8,11 @@ const { dirname, resolve } = require("node:path");
 module.exports = function documentLoader(markdown) {
   const revision = createHash("sha256").update(markdown);
   const images = new Set(
-    [...markdown.matchAll(/!\[[^\n]*?\]\((assets\/methodology\/[a-z0-9-]+\.svg)\)/g)].map(
-      (match) => match[1],
-    ),
+    [
+      ...markdown.matchAll(
+        /!\[[^\n]*?\]\(((?:\.\.\/)?assets\/(?:methodology|matching|timeline|shared)\/[a-z0-9-]+\.svg)\)/g,
+      ),
+    ].map((match) => match[1]),
   );
   for (const image of images) {
     const path = resolve(dirname(this.resourcePath), image);

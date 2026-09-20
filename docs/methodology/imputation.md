@@ -61,7 +61,7 @@ For an accepted crosswalk, use $\delta$ fitted from all paired observations. A h
 
 Clip the combined value to the benchmark’s permitted score range. Raw source results remain separate.
 
-![Source A and B results combine into observed or imputed means. Shaded bands around imputed means illustrate typical prediction error ±ε, using ε = 0.02; they are not confidence intervals or guaranteed bounds. A crossed-out validation error of 0.04 exceeds the allowed 0.025 and illustrates rejection of a different crosswalk.](assets/methodology/source-crosswalk.svg)
+![Source A and B results combine into observed or imputed means. Shaded bands around imputed means illustrate typical prediction error ±ε, using ε = 0.02; they are not confidence intervals or guaranteed bounds. A crossed-out validation error of 0.04 exceeds the allowed 0.025 and illustrates rejection of a different crosswalk.](../assets/methodology/source-crosswalk.svg)
 
 **Set the evidence factor**
 
@@ -97,7 +97,7 @@ Compare the same observed models across sources to see how their score distribut
 
 For both metrics, zero means identical distributions and smaller values mean greater similarity. Use the same models and smoothing settings when comparing values. Neither metric checks whether individual models agree; held-out prediction error still determines crosswalk acceptance.
 
-![Illustrative score distributions for the same paired models: source A, source B, and their equal-weight fusion. Gaussian smoothing with bandwidth 0.08 makes their shapes easier to compare.](assets/methodology/source-fusion-divergence.svg)
+![Illustrative score distributions for the same paired models: source A, source B, and their equal-weight fusion. Gaussian smoothing with bandwidth 0.08 makes their shapes easier to compare.](../assets/methodology/source-fusion-divergence.svg)
 
 In this illustration, JSD is 0.015 between sources and 0.004 from either source to fusion. Directional KL divergence is 0.068 bits from A to B and 0.058 bits from B to A. These values use base-2 logarithms and depend on the smoothing bandwidth.
 
@@ -105,7 +105,7 @@ In this illustration, JSD is 0.015 between sources and 0.004 from either source 
 
 Use a model’s performance on other observed benchmarks to impute a missing result: calculate its weighted mean, find its percentile among peers, then read the target benchmark’s value at that percentile. Repeat separately for Intelligence and Agentic.
 
-![The example uses ten models with one eligible variant each, so all reference weights are 1. A weighted mean of 70 maps to rank 45%, then to target value 0.58.](assets/methodology/quantile-imputation.svg)
+![The example uses ten models with one eligible variant each, so all reference weights are 1. A weighted mean of 70 maps to rank 45%, then to target value 0.58.](../assets/methodology/quantile-imputation.svg)
 
 **Calculate the weighted mean**
 
@@ -131,7 +131,7 @@ $$
 r=\frac{\sum_{\mu_j<\mu}a_j+\tfrac12\sum_{\mu_j=\mu}a_j}{\sum_j a_j}.
 $$
 
-![Three lower means count fully; three tied means count half. The resulting rank is 45%, or r = 0.45.](assets/methodology/weighted-quantile-rank.svg)
+![Three lower means count fully; three tied means count half. The resulting rank is 45%, or r = 0.45.](../assets/methodology/weighted-quantile-rank.svg)
 
 Counting half the tied weight assigns equal values the midpoint of their shared percentile range. The formula gives $r$ on 0–1; $\operatorname{weightedQuantileRank}$ returns $100r$.
 
@@ -155,7 +155,7 @@ x_k, & \text{otherwise}.
 \end{cases}
 $$
 
-![The 45% rank selects 0.58. At the exact 60% boundary, the neighboring values 0.58 and 0.90 give a mean of 0.74.](assets/methodology/weighted-quantile.svg)
+![The 45% rank selects 0.58. At the exact 60% boundary, the neighboring values 0.58 and 0.90 give a mean of 0.74.](../assets/methodology/weighted-quantile.svg)
 
 At $r=0$ or $r=1$, return its smallest or largest observed value; $r=0.5$ gives the weighted median.
 
@@ -185,7 +185,7 @@ $$
 
 Squaring the weights makes concentration reduce the count. Scaling every weight by the same factor leaves it unchanged, so weights 0.25, 0.50, and 0.25 give the same count as 1, 2, and 1. The illustration keeps three shared benchmarks: one takes a growing share of the weight while the other two split the remainder equally. This count measures weight distribution, not prediction accuracy or correlation between benchmarks.
 
-![Three shared benchmarks: equal weights give an effective count of 3; concentrating the weight brings it toward 1.](assets/methodology/effective-benchmark-count.svg)
+![Three shared benchmarks: equal weights give an effective count of 3; concentrating the weight brings it toward 1.](../assets/methodology/effective-benchmark-count.svg)
 
 **Estimate the missing score**
 
@@ -200,7 +200,7 @@ $$
 
 A positive gap raises the estimate; a negative gap lowers it. The direction follows observed performance, without assuming that higher effort performs better. The estimate assumes the measured gap transfers to the missing benchmark.
 
-![Illustrative imputation from medium effort to high effort for the same model.](assets/methodology/effort-imputation.svg)
+![Illustrative imputation from medium effort to high effort for the same model.](../assets/methodology/effort-imputation.svg)
 
 These estimates do not increase evidence support by themselves. The evidence factor from separately validated imputation using other benchmarks is retained. Updated-release replacement rows are excluded from this imputation path.
 
@@ -266,7 +266,7 @@ When benchmarks with paired measurements cannot support an effort ratio, start w
 
 Date weighting and correction limits are policy choices; release proximity alone does not establish predictive accuracy.
 
-[Release proximity](matching.md#release-proximity-for-resource-estimation) uses dates, not product-name categories. Missing dates retain the lab correction; missing lab identity prevents both lab and release corrections.
+[Release proximity](../matching.md#release-proximity-for-resource-estimation) uses dates, not product-name categories. Missing dates retain the lab correction; missing lab identity prevents both lab and release corrections.
 
 Multiply each correction by $n/(n+n_{50})$, where $n$ is its supporting observation count or weight and $n_{50}$ is the amount needed to apply half the correction. With little evidence, the estimate stays close to the broader result; this is called shrinkage:
 
@@ -276,7 +276,7 @@ Multiply each correction by $n/(n+n_{50})$, where $n$ is its supporting observat
 | Nearby releases | Sum of the release-date weights above; correction uses the weighted median deviation | 4 |
 | Target model | Number of other benchmarks measured at both efforts | 4 |
 
-![With supporting observations n = 4, the correction weight is 50% for nearby releases or the target model, and 20% for the same lab.](assets/methodology/resource-tier-shrinkage.svg)
+![With supporting observations n = 4, the correction weight is 50% for nearby releases or the target model, and 20% for the same lab.](../assets/methodology/resource-tier-shrinkage.svg)
 
 Without supporting observations, apply no correction. Parameters are fixed, not fitted per model. Only observations for the same effort transition are used, such as low to high.
 

@@ -8,7 +8,7 @@ Model Atlas turns benchmark results, token use, prices, and runtimes into four s
 
 Benchmark, reasoning-effort, and resource coverage is uneven. **Imputation** fills supported gaps using relationships across observed results; [source crosswalks](imputation.md#source-crosswalk-imputation) combine comparable sources without assuming either is better.
 
-The detailed pages describe the current method and its equations. [Benchmarks](benchmarks.md) records the selected inputs and their source policies, while [Standards](standards.md) explains how those inputs earn a place. The [dashboard inclusion rules](leaderboard-rules.md#dashboard-inclusion) determine which scored models appear on the leaderboard.
+The detailed pages describe the current method and its equations. [Benchmarks](../benchmarks.md) records the selected inputs and their source policies, while [Standards](../standards.md) explains how those inputs earn a place. The [dashboard inclusion rules](leaderboard-rules.md#dashboard-inclusion) determine which scored models appear on the leaderboard.
 
 | Score | What it measures |
 | --- | --- |
@@ -23,7 +23,7 @@ The detailed pages describe the current method and its equations. [Benchmarks](b
 
 ## How to Read the Scores
 
-The leaderboard uses the current benchmark population, so scores can change when that population changes. The separate [Intelligence Index](timeline.md) keeps a saved reference and connects benchmark generations through shared results. It supports historical comparison, uses provisional display units, and does not affect leaderboard scoring or inclusion.
+The leaderboard uses the current benchmark population, so scores can change when that population changes. The separate [Intelligence Index](../timeline/overview.md) keeps a saved reference and connects benchmark generations through shared results. It supports historical comparison, uses provisional display units, and does not affect leaderboard scoring or inclusion.
 
 Capability scores reflect relative performance while preserving proportional gaps within each benchmark during normalization. The final scores combine these contributions with weighting and evidence adjustments. A final score of 80 does not mean 80% benchmark accuracy or twice the capability of a model scoring 40.
 
@@ -63,7 +63,7 @@ The scoring order matters: benchmark quality establishes the context for resourc
 
 **Imputed values help estimate scores; they never count as direct evidence.** Observations alone establish reference scales and satisfy inclusion and resource-availability requirements. [Benchmark imputation](imputation.md#benchmark-imputation) and [resource imputation](imputation.md#resource-imputation-across-reasoning-efforts) explain how estimates enter scoring and how their support is assessed.
 
-![Imputation fills missing values with estimates.](assets/methodology/imputation-overview.svg)
+![Imputation fills missing values with estimates.](../assets/methodology/imputation-overview.svg)
 
 ## Read the Detailed Method
 
@@ -71,7 +71,7 @@ The diagram groups the main sections by page. Branches show where to find an exp
 
 > [!MAP]
 >
-> [Methodology overview](methodology.md)
+> [Methodology overview](overview.md)
 >
 > - [Intelligence and Agentic](intelligence-agentic.md)
 >   - [Normalize scores and assign weights](intelligence-agentic.md#benchmark-scores-and-dimension-weights)
@@ -106,16 +106,17 @@ The diagram groups the main sections by page. Branches show where to find an exp
 
 > [!MAP]
 >
-> Reference pages
+> Related documentation
 >
-> - [Standards](standards.md)
+> - [Standards](../standards.md)
 >   - Evidence requirements and benchmark review
-> - [Benchmark Portfolio](benchmarks.md)
+> - [Benchmark Portfolio](../benchmarks.md)
 >   - Selected inputs, weights, and source policies
-> - [Model Matching](matching.md)
+> - [Model Matching](../matching.md)
 >   - Model identity and reasoning-effort variants
-> - [Timeline](timeline.md)
+> - [Timeline](../timeline/overview.md)
 >   - Historical comparison on a saved scale
+>   - [Index calculation](../timeline/calculation.md)
 
 ## Parameter Choices
 

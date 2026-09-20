@@ -8,16 +8,16 @@ import { DOCUMENTS, isDocumentSlug } from "../documents";
 
 export function generateStaticParams() {
   return DOCUMENTS.filter((document) => document.slug !== "methodology").map((document) => ({
-    document: document.slug,
+    document: document.slug.split("/"),
   }));
 }
 
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ document: string }>;
+  params: Promise<{ document: string[] }>;
 }): Promise<Metadata> {
-  const { document } = await params;
+  const document = (await params).document.join("/");
   const match = DOCUMENTS.find((item) => item.slug === document);
   return match == null
     ? {}
@@ -30,9 +30,9 @@ export async function generateMetadata({
 export default async function RelatedDocumentPage({
   params,
 }: {
-  params: Promise<{ document: string }>;
+  params: Promise<{ document: string[] }>;
 }) {
-  const { document } = await params;
+  const document = (await params).document.join("/");
   if (!isDocumentSlug(document) || document === "methodology") {
     notFound();
   }

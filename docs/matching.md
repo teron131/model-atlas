@@ -4,7 +4,7 @@ The same model can appear under different names on benchmark pages, catalogs, an
 
 A mistaken join can give one model another model's evidence. The matcher therefore leaves uncertain associations unmatched. A rejected catalog match does not erase a separately identified benchmark model; it leaves catalog metadata unavailable.
 
-![A catalog match adds compatible metadata while preserving the source’s variant observations. A qualified source identity can survive without an accepted catalog match.](assets/methodology/matching-boundary.svg)
+![A catalog match adds compatible metadata while preserving the source’s variant observations. A qualified source identity can survive without an accepted catalog match.](assets/matching/matching-boundary.svg)
 
 ## Identity Sources
 
@@ -92,7 +92,7 @@ The factor $0.35$ places the cutoff 35% of the way from the lowest winning score
 
 The illustration uses a historical cached replay of **643 source rows** against **572 catalog candidates**, recorded before the publisher and release eligibility checks were added. It demonstrates the cutoff, not the current matcher's accuracy.
 
-![Historical replay before publisher and release guards: the minimum and maximum winning scores set the cutoff; an exact identity survives below it, and a reordered identity survives above it.](assets/methodology/matching-relative-cutoff.svg)
+![Historical replay before publisher and release guards: the minimum and maximum winning scores set the cutoff; an exact identity survives below it, and a reordered identity survives above it.](assets/matching/matching-relative-cutoff.svg)
 
 The shared `gpt` prefix does not establish identity. The Sonnet examples agree on family, tier, and version, including when the name reorders those parts; `thinking` describes the configuration.
 
@@ -110,7 +110,7 @@ Reordered names still have to satisfy the publisher, release, and variant checks
 
 ## Release Proximity for Resource Estimation
 
-Release proximity helps estimate missing resources; it does not establish model identity. The [tiered resource fallback](imputation.md#resource-imputation-from-broader-evidence) starts with broad evidence, then applies supported corrections from the same lab, nearby releases, and the target model's own effort measurements. Sparse local evidence retains the broader estimate instead of defining an unstable correction.
+Release proximity helps estimate missing resources; it does not establish model identity. The [tiered resource fallback](methodology/imputation.md#resource-imputation-from-broader-evidence) starts with broad evidence, then applies supported corrections from the same lab, nearby releases, and the target model's own effort measurements. Sparse local evidence retains the broader estimate instead of defining an unstable correction.
 
 Release proximity uses a Gaussian weight centered on the target model's release date, with a standard deviation of 60 days. Both earlier and later releases can contribute; the weight depends on their distance from the target date, not their age today. There is no hard date cutoff or model-name classification. Missing or invalid dates leave the broader lab correction intact. Missing lab identity prevents both lab and release-neighborhood corrections.
 
@@ -124,7 +124,7 @@ Resource fallback works field by field. Catalog input/output prices take precede
 
 Artificial Analysis token prices are USD per million tokens, throughput is output tokens per second, and latency is seconds; total benchmark evaluation costs are never treated as token prices.
 
-Both paths attach benchmark evidence before applying the dashboard inclusion rules described in [Methodology](leaderboard-rules.md#dashboard-inclusion).
+Both paths attach benchmark evidence before applying the dashboard inclusion rules described in [Methodology](methodology/leaderboard-rules.md#dashboard-inclusion).
 
 Serving aliases such as fast, free, latest, preview, high-effort, or dated routes do not automatically become separate public models. Aliases that point to the same underlying model share one canonical identity. Explicit reasoning-effort observations remain separate scored configurations.
 
