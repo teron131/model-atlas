@@ -49,7 +49,7 @@ text { fill:#ffffff; }
 <text x="692" y="474" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">1.5</text>
 <line x1="88" y1="447" x2="692" y2="447" stroke="#63706e" stroke-width="1"/>
 <text x="88" y="200" font-size="18" fill="#000000" text-anchor="start" font-weight="400">Task time · seconds · log scale</text>
-<text x="390" y="509" font-size="18" fill="#000000" text-anchor="middle" font-weight="400">Quality distance from the focal model</text>
+<text x="390" y="509" font-size="18" fill="#000000" text-anchor="middle" font-weight="400">Quality distance from the target model</text>
 <circle cx="416.17" cy="316.34" r="6.900294514813459" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="0.9750736287033648"/>
 <circle cx="363.83" cy="353.66" r="6.900294514813459" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="0.9750736287033648"/>
 <circle cx="446.37" cy="325.63" r="6.564625050174008" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="0.8911562625435021"/>

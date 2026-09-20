@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 690" role="img" aria-labelledby="title desc">
+<title id="title">Supported model count determines comparison strength</title>
+<desc id="desc">Peer support is zero through a supported model count of one, rises smoothly to one at a count of three, and stays at one beyond it. Four peers with weight 0.5 each have total weight two and effective count four, giving supported count two and peer support 0.5.</desc>
+<style>text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;fill:#182421}.muted{fill:#63706e}.grid{stroke:#b5bfbc;stroke-width:1}.guide{fill:none;stroke:#63706e;stroke-width:1;stroke-dasharray:4 5}.curve{fill:none;stroke:#146cba;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.point{fill:#146cba}.accent{fill:#146cba}@media(prefers-color-scheme:dark){text{fill:#ecf0ed}.muted{fill:#a6b2ae}.grid{stroke:#3c4846}.guide{fill:none;stroke:#a6b2ae}.curve{stroke:#85bfff}.point,.accent{fill:#85bfff}}</style>
+<text x="90" y="28" font-size="18">Four other models</text>
+<text x="680" y="28" font-size="15" text-anchor="end" class="muted">Weight per model: 0.5</text>
+<rect x="100" y="50" width="80" height="40" rx="2" fill="none" class="grid"/>
+<rect x="100" y="70" width="80" height="20" class="point"/>
+<text x="140" y="115" font-size="15" text-anchor="middle" class="muted">Model 1</text>
+<rect x="260" y="50" width="80" height="40" rx="2" fill="none" class="grid"/>
+<rect x="260" y="70" width="80" height="20" class="point"/>
+<text x="300" y="115" font-size="15" text-anchor="middle" class="muted">Model 2</text>
+<rect x="420" y="50" width="80" height="40" rx="2" fill="none" class="grid"/>
+<rect x="420" y="70" width="80" height="20" class="point"/>
+<text x="460" y="115" font-size="15" text-anchor="middle" class="muted">Model 3</text>
+<rect x="580" y="50" width="80" height="40" rx="2" fill="none" class="grid"/>
+<rect x="580" y="70" width="80" height="20" class="point"/>
+<text x="620" y="115" font-size="15" text-anchor="middle" class="muted">Model 4</text>
+<path d="M140 128 H620 M220 128 V148 M540 128 V148" class="guide"/>
+<text x="220" y="170" font-size="17" text-anchor="middle">Total weight</text>
+<text x="220" y="198" font-size="20" text-anchor="middle" class="accent">4 × 0.5 = 2</text>
+<text x="540" y="170" font-size="17" text-anchor="middle">Effective count</text>
+<text x="540" y="198" font-size="20" text-anchor="middle">2² / (4 × 0.5²) = 4</text>
+<path d="M220 209 V226 H540 V209 M380 226 V241" class="guide"/>
+<text x="380" y="264" font-size="18" text-anchor="middle" class="accent">Smaller count: n = 2</text>
+<g transform="translate(0 290)">
+<text x="90" y="32" font-size="18">Peer support p</text>
+<path d="M90 310 H680" class="grid"/>
+<text x="72" y="315" font-size="16" text-anchor="end" class="muted">0</text>
+<path d="M90 197.5 H680" class="grid"/>
+<text x="72" y="202.5" font-size="16" text-anchor="end" class="muted">0.5</text>
+<path d="M90 85 H680" class="grid"/>
+<text x="72" y="90" font-size="16" text-anchor="end" class="muted">1</text>
+<path d="M90.0 310 v6" class="grid"/>
+<text x="90.0" y="339" font-size="16" text-anchor="middle" class="muted">0</text>
+<path d="M237.5 310 v6" class="grid"/>
+<text x="237.5" y="339" font-size="16" text-anchor="middle" class="muted">1</text>
+<path d="M385.0 310 v6" class="grid"/>
+<text x="385.0" y="339" font-size="16" text-anchor="middle" class="muted">2</text>
+<path d="M532.5 310 v6" class="grid"/>
+<text x="532.5" y="339" font-size="16" text-anchor="middle" class="muted">3</text>
+<path d="M680.0 310 v6" class="grid"/>
+<text x="680.0" y="339" font-size="16" text-anchor="middle" class="muted">4</text>
+<path d="M385 310 V197.5 H90" class="guide"/>
+<polyline points="90.00,310.00 93.69,310.00 97.38,310.00 101.06,310.00 104.75,310.00 108.44,310.00 112.12,310.00 115.81,310.00 119.50,310.00 123.19,310.00 126.88,310.00 130.56,310.00 134.25,310.00 137.94,310.00 141.62,310.00 145.31,310.00 149.00,310.00 152.69,310.00 156.38,310.00 160.06,310.00 163.75,310.00 167.44,310.00 171.12,310.00 174.81,310.00 178.50,310.00 182.19,310.00 185.88,310.00 189.56,310.00 193.25,310.00 196.94,310.00 200.62,310.00 204.31,310.00 208.00,310.00 211.69,310.00 215.38,310.00 219.06,310.00 222.75,310.00 226.44,310.00 230.12,310.00 233.81,310.00 237.50,310.00 241.19,309.90 244.88,309.59 248.56,309.07 252.25,308.37 255.94,307.47 259.62,306.39 263.31,305.13 267.00,303.70 270.69,302.10 274.38,300.33 278.06,298.41 281.75,296.33 285.44,294.11 289.12,291.74 292.81,289.24 296.50,286.60 300.19,283.84 303.88,280.95 307.56,277.95 311.25,274.84 314.94,271.63 318.62,268.31 322.31,264.90 326.00,261.40 329.69,257.81 333.38,254.15 337.06,250.41 340.75,246.61 344.44,242.74 348.12,238.81 351.81,234.83 355.50,230.80 359.19,226.73 362.88,222.62 366.56,218.48 370.25,214.32 373.94,210.13 377.62,205.93 381.31,201.72 385.00,197.50 388.69,193.28 392.38,189.07 396.06,184.87 399.75,180.68 403.44,176.52 407.12,172.38 410.81,168.27 414.50,164.20 418.19,160.17 421.88,156.19 425.56,152.26 429.25,148.39 432.94,144.59 436.62,140.85 440.31,137.19 444.00,133.60 447.69,130.10 451.38,126.69 455.06,123.37 458.75,120.16 462.44,117.05 466.12,114.05 469.81,111.16 473.50,108.40 477.19,105.76 480.88,103.26 484.56,100.89 488.25,98.67 491.94,96.59 495.62,94.67 499.31,92.90 503.00,91.30 506.69,89.87 510.38,88.61 514.06,87.53 517.75,86.63 521.44,85.93 525.12,85.41 528.81,85.10 532.50,85.00 536.19,85.00 539.88,85.00 543.56,85.00 547.25,85.00 550.94,85.00 554.62,85.00 558.31,85.00 562.00,85.00 565.69,85.00 569.38,85.00 573.06,85.00 576.75,85.00 580.44,85.00 584.12,85.00 587.81,85.00 591.50,85.00 595.19,85.00 598.88,85.00 602.56,85.00 606.25,85.00 609.94,85.00 613.62,85.00 617.31,85.00 621.00,85.00 624.69,85.00 628.38,85.00 632.06,85.00 635.75,85.00 639.44,85.00 643.12,85.00 646.81,85.00 650.50,85.00 654.19,85.00 657.88,85.00 661.56,85.00 665.25,85.00 668.94,85.00 672.62,85.00 676.31,85.00 680.00,85.00" class="curve"/>
+<circle cx="237.5" cy="310" r="5" class="point"/>
+<circle cx="385" cy="197.5" r="5" class="point"/>
+<circle cx="532.5" cy="85" r="5" class="point"/>
+<text x="100" y="288" font-size="16" class="muted">No adjustment</text>
+<text x="680" y="64" font-size="16" text-anchor="end" class="muted">Full adjustment</text>
+<path d="M393 204 L420 239" class="guide"/>
+<text x="432" y="250" font-size="16">Half the adjustment</text>
+<text x="432" y="277" font-size="18" class="accent">n = 2 → p = 0.5</text>
+<text x="385" y="382" font-size="18" text-anchor="middle">Supported model count n</text>
+</g>
+</svg>
