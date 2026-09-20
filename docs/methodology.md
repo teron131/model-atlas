@@ -67,12 +67,55 @@ The scoring order matters: benchmark quality establishes the context for resourc
 
 ## Read the Detailed Method
 
-| Page | What it explains |
-| --- | --- |
-| [Intelligence and Agentic](intelligence-agentic.md) | Benchmark normalization and weights, token efficiency, evidence support, and aggregate indexes. |
-| [Missing Data and Imputation](imputation.md) | Estimates across sources, benchmarks, and reasoning efforts, including missing resource measurements. |
-| [Speed and Value](speed-value.md) | Prices, serving speed, comparisons at similar quality, and resource efficiency. |
-| [Leaderboard Rules](leaderboard-rules.md) | Model inclusion, score availability, highlighted models, and reasoning-effort graphs. |
+The diagram groups the main sections by page. Branches show where to find an explanation, rather than the order in which every calculation runs.
+
+> [!MAP]
+>
+> [Methodology overview](methodology.md)
+>
+> - [Intelligence and Agentic](intelligence-agentic.md)
+>   - [Normalize scores and assign weights](intelligence-agentic.md#benchmark-scores-and-dimension-weights)
+>   - [Balance the reference population](intelligence-agentic.md#balancing-the-reference-population)
+>   - [Agentic token efficiency](intelligence-agentic.md#agentic-token-efficiency)
+>   - [Evidence support and regularization](intelligence-agentic.md#evidence-support-and-quality-regularization)
+>   - [Combine benchmarks and indexes](intelligence-agentic.md#combining-benchmarks-and-aggregate-indexes)
+> - [Missing Data and Imputation](imputation.md)
+>   - [Source crosswalks](imputation.md#source-crosswalk-imputation)
+>   - [From other observed benchmarks](imputation.md#imputation-from-other-observed-benchmarks)
+>   - [Across reasoning efforts](imputation.md#imputation-across-reasoning-efforts)
+>   - [Resource estimates across efforts](imputation.md#resource-imputation-across-reasoning-efforts)
+>   - [Resource estimates from broader evidence](imputation.md#resource-imputation-from-broader-evidence)
+> - [Speed and Value](speed-value.md)
+>   - [Token prices](speed-value.md#blended-token-price)
+>   - [Provider speed](speed-value.md#provider-speed)
+>   - [Resources per task](speed-value.md#quality-adjusted-resources-per-task)
+>   - [Resource comparability](speed-value.md#resource-comparability-across-sources)
+>   - [Similar-quality peers](speed-value.md#comparable-quality-peers)
+>   - [Comparison support](speed-value.md#comparison-support)
+>   - [Expected resource use](speed-value.md#expected-resource-use)
+>   - [Resource efficiency](speed-value.md#resource-efficiency-score)
+>   - [Combine components](speed-value.md#combining-speed-and-value-components)
+> - [Leaderboard Rules](leaderboard-rules.md)
+>   - [Model inclusion](leaderboard-rules.md#dashboard-inclusion)
+>   - [Resource-score availability](leaderboard-rules.md#resource-score-availability)
+>   - [Highlighted models](leaderboard-rules.md#selecting-highlighted-models)
+>   - [Reasoning-effort comparisons](leaderboard-rules.md#comparing-reasoning-effort-curves)
+>   - [Updated releases](leaderboard-rules.md#evidence-for-updated-releases)
+
+<!-- Separate the reference map from the calculation map. -->
+
+> [!MAP]
+>
+> Reference pages
+>
+> - [Standards](standards.md)
+>   - Evidence requirements and benchmark review
+> - [Benchmark Portfolio](benchmarks.md)
+>   - Selected inputs, weights, and source policies
+> - [Model Matching](matching.md)
+>   - Model identity and reasoning-effort variants
+> - [Timeline](timeline.md)
+>   - Historical comparison on a saved scale
 
 ## Parameter Choices
 
