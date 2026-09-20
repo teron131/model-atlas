@@ -26,9 +26,9 @@ Coding benchmarks default to primarily Agentic evidence. Intelligence loading is
 | [Benchmark standards](docs/standards.md) | Defines how benchmarks are reviewed, admitted, retained, and rejected. |
 | [Benchmark portfolio](docs/benchmarks.md) | Records the selected benchmarks, scoring roles, source policies, weights, and capability decisions. |
 | [Model matching](docs/matching.md) | Explains how source-specific names resolve to stable model identities. |
-| [Methodology](docs/methodology.md) | Specifies the scoring mathematics, imputation, evidence support, quality regularization, and public admission. |
+| [Methodology](docs/methodology/overview.md) | Specifies the scoring mathematics, imputation, evidence support, quality regularization, and public admission. |
 
-The source code is authoritative when documentation and implementation disagree. Portfolio decisions live in `src/model-atlas/benchmarks/catalog/portfolio.ts`; benchmark descriptions live in `src/model-atlas/benchmarks/catalog/presentation.ts`. The [methodology article](docs/methodology.md) explains the formulas, worked examples, and reasons behind the scoring choices.
+The source code is authoritative when documentation and implementation disagree. Portfolio decisions live in `src/model-atlas/benchmarks/catalog/portfolio.ts`; benchmark descriptions live in `src/model-atlas/benchmarks/catalog/presentation.ts`. The [methodology article](docs/methodology/overview.md) explains the formulas, worked examples, and reasons behind the scoring choices.
 
 ## Development
 

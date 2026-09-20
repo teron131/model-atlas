@@ -18,7 +18,7 @@ Effective input and output prices are weighted means of provider prices, using r
 
 Both sides need complete provider-price and token-volume evidence; otherwise the effective blend is missing. OpenRouter's aggregate and historical price series do not determine it, and cache pricing is excluded.
 
-Published input, output, and cache prices remain raw route metadata. Listed catalog or Artificial Analysis prices can provide the fallback described in [Model Matching](matching.md#selected-identity).
+Published input, output, and cache prices remain raw route metadata. Listed catalog or Artificial Analysis prices can provide the fallback described in [Model Matching](../matching.md#selected-identity).
 
 ### Provider Speed
 
@@ -107,11 +107,11 @@ A linear coordinate preserves the stored score gaps. It suits partial credit, El
 
 A logit coordinate uses $\operatorname{logit}(x)=\log(x/(1-x))$ for probability-like pass, accuracy, and completion rates. Inputs must lie in $[0,1]$ and are clipped to 0.001–0.999 before conversion, keeping the transformed values finite near the endpoints.
 
-The benchmark-specific decisions are listed in [Benchmarks](benchmarks.md#resource-quality-coordinates). Aggregate price comparisons are not benchmark success rates; they use the linear mean of the two public quality scores described below.
+The benchmark-specific decisions are listed in [Benchmarks](../benchmarks.md#resource-quality-coordinates). Aggregate price comparisons are not benchmark success rates; they use the linear mean of the two public quality scores described below.
 
 Logit gives equal percentage-point gains more separation near the ceiling, where they remove a larger share of remaining errors.
 
-![An equal percentage-point gain occupies more distance near the ceiling. The lower bars share a logit scale: 95% to 96% spans about 0.234, compared with 0.040 for 50% to 51%.](assets/methodology/logit-quality.svg)
+![An equal percentage-point gain occupies more distance near the ceiling. The lower bars share a logit scale: 95% to 96% spans about 0.234, compared with 0.040 for 50% to 51%.](../assets/shared/logit-quality.svg)
 
 After this transform, center quality on the weighted median and divide by a robust spread to obtain $Z_{m,b}$. This makes quality distances comparable across benchmarks. Each observed peer $j$ has reference weight $w^{\text{ref}}_{j,b}$: one unit per base model, shared across variants with paired quality and resource observations. $Q^{\text{weighted}}_{25}$ and $Q^{\text{weighted}}_{75}$ are the weighted 25th and 75th percentiles; $s^{\text{min}}_b$ is the minimum spread:
 
@@ -164,7 +164,7 @@ $$
 | 2 | 0.5 | Apply half the token adjustment; move resource efficiency halfway from 50 toward its calculated score. |
 | 3 or more | 1 | Apply the full token adjustment and resource efficiency score. |
 
-![Four peers weighted 0.5 each give total weight 2 and effective count 4. The smaller count, 2, gives half-strength comparison support.](assets/methodology/comparison-support.svg)
+![Four peers weighted 0.5 each give total weight 2 and effective count 4. The smaller count, 2, gives half-strength comparison support.](../assets/methodology/comparison-support.svg)
 
 The thresholds of 1 and 3 are policy choices. Support also controls how much the local trend contributes to expected resource use below. It is separate from displayed evidence coverage and is not a probability that the comparison is correct.
 
@@ -205,7 +205,7 @@ $$
 d^r_{m,b}=\ln A^{r}_{m,b}-\ln\mu^r_{m,b}=\ln\left(\frac{A^r_{m,b}}{\mu^r_{m,b}}\right).
 $$
 
-![In this illustration, nearby independent peers support an expected time of 100 seconds. The target uses 50 seconds, giving residual ln(50/100), approximately −0.693.](assets/methodology/resource-residual.svg)
+![In this illustration, nearby independent peers support an expected time of 100 seconds. The target uses 50 seconds, giving residual ln(50/100), approximately −0.693.](../assets/methodology/resource-residual.svg)
 
 A negative residual means less resource use than expected at that quality; a positive residual means more.
 
@@ -231,7 +231,7 @@ $$
 S^{\text{res},r}_{m,b}=50+p_{m,b}(\bar S^r_{m,b}-50).
 $$
 
-![An illustrative combined score of 75 becomes 75, 62.5, or 50 with full, half, or no comparison support. Scores below 50 also move toward 50 as support weakens.](assets/methodology/resource-score-mapping.svg)
+![An illustrative combined score of 75 becomes 75, 62.5, or 50 with full, half, or no comparison support. Scores below 50 also move toward 50 as support weakens.](../assets/methodology/resource-score-mapping.svg)
 
 If supported residuals have no meaningful spread, every observed residual receives 50. Estimated resources can be scored against the observed reference, but cannot change its reference limits.
 
@@ -301,7 +301,7 @@ c^{\text{value}}_m&=\frac{\sum_iw^{\text{value}}_{m,i}}{W^{\text{total}}_{\text{
 \end{aligned}
 $$
 
-![The shared coverage multiplier scales each effort’s own resource mean. In this illustrative pair, coverage of 35% for the shared reference configuration gives both efforts a multiplier of one-half, producing scores of 40 and 30.](assets/methodology/resource-coverage.svg)
+![The shared coverage multiplier scales each effort’s own resource mean. In this illustrative pair, coverage of 35% for the shared reference configuration gives both efforts a multiplier of one-half, producing scores of 40 and 30.](../assets/methodology/resource-coverage.svg)
 
 The Price vs Cost Efficiency graph compares observed cost efficiency per task on benchmarks separately from the full Value score. It also shares the same reference configuration's coverage across ordinary efforts, so different observation counts alone do not create different penalties within one model.
 

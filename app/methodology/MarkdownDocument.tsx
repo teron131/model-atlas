@@ -13,14 +13,42 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 
 import { DocumentHeading } from "./DocumentHeading";
-import { documentImageSize, documentImageSource, documentLink, headingId } from "./documents";
+import {
+  documentAssetPath,
+  documentImageSize,
+  documentImageSource,
+  documentLink,
+  type DocumentSlug,
+  headingId,
+  isMethodologyAsset,
+} from "./documents";
 
 import styles from "./methodology.module.css";
 
-export function MarkdownDocument({ markdown }: { markdown: string }) {
+export function MarkdownDocument({
+  markdown,
+  document,
+}: {
+  markdown: string;
+  document: DocumentSlug;
+}) {
   return (
     <ReactMarkdown
-      components={markdownComponents}
+      components={{
+        ...markdownComponents,
+        a: ({ href = "", children, ...props }) => {
+          const resolvedHref = documentLink(href, document);
+          return resolvedHref.startsWith("/") ? (
+            <Link href={resolvedHref} prefetch={false} {...props}>
+              {children}
+            </Link>
+          ) : (
+            <a href={resolvedHref} {...props}>
+              {children}
+            </a>
+          );
+        },
+      }}
       rehypePlugins={[rehypeKatex, subsectionGuides]}
       remarkPlugins={[remarkGfm, remarkMath]}
     >
@@ -81,8 +109,9 @@ const MarkdownImage: NonNullable<Components["img"]> = async ({ src = "", alt = "
   }
   const size = documentImageSize(src);
   let imageSource = documentImageSource(src);
-  if (imageSource !== src) {
-    const source = await readFile(join(process.cwd(), "docs", src));
+  const asset = src.split("/").at(-1);
+  if (imageSource !== src && asset != null && isMethodologyAsset(asset)) {
+    const source = await readFile(join(process.cwd(), "docs", documentAssetPath(asset)));
     const revision = createHash("sha256").update(source).digest("hex").slice(0, 16);
     imageSource += `?v=${revision}`;
   }
@@ -114,18 +143,6 @@ const markdownComponents: Components = {
     </DocumentHeading>
   ),
   h4: ({ children }) => <h4 id={headingId(textContent(children))}>{children}</h4>,
-  a: ({ href = "", children, ...props }) => {
-    const resolvedHref = documentLink(href);
-    return resolvedHref.startsWith("/") ? (
-      <Link href={resolvedHref} prefetch={false} {...props}>
-        {children}
-      </Link>
-    ) : (
-      <a href={resolvedHref} {...props}>
-        {children}
-      </a>
-    );
-  },
   table: ({ children }) => (
     <div className={styles.tableViewport} role="region" aria-label="Table" tabIndex={0}>
       <table>{children}</table>

@@ -93,16 +93,13 @@ export function DocumentShell({
             <span>Documentation</span>
           </button>
           <ul>
-            {DOCUMENTS.filter(
-              (item) => item.group === "Reference" || item.slug === "methodology",
-            ).map((item) => (
+            {DOCUMENTS.filter((item) => item.parent === null).map((item) => (
               <li key={item.slug}>
                 <Link
                   href={documentHref(item.slug)}
                   prefetch={false}
                   aria-current={
-                    item.slug === activeDocument ||
-                    (item.slug === "methodology" && currentDocument.group === "Methodology")
+                    item.slug === activeDocument || item.slug === currentDocument.parent
                       ? "page"
                       : undefined
                   }

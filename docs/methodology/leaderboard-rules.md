@@ -51,7 +51,7 @@ The selected Artificial Analysis Intelligence Index contributes its catalogued b
 
 Imputed quality, estimated resources, output-token runtime proxies, provider token prices, throughput, and latency do not satisfy this threshold. AA resource measurements remain attached to that index and never fill missing measurements for individual benchmarks.
 
-![In this illustration without index support, four direct cost pairs permit Value; three time pairs leave Speed unavailable. Hollow marks are estimates and do not count toward either threshold.](assets/methodology/resource-publication-gate.svg)
+![In this illustration without index support, four direct cost pairs permit Value; three time pairs leave Speed unavailable. Hollow marks are estimates and do not count toward either threshold.](../assets/methodology/resource-publication-gate.svg)
 
 A variant that qualifies on quality remains in the table with unavailable resource scores left blank. Raw prices and provider speed measurements remain available. Insufficient observed runtime measurements leave Speed blank even when Value is available.
 
@@ -84,7 +84,7 @@ Pareto Balance has no Intelligence cutoff. Token price does not select either Pa
 
 Compare reasoning efforts using measurements shared by the selected variants of each model. Build separate common benchmark sets for cost, time, and tokens so differences in which benchmarks were measured do not appear to be differences caused by reasoning effort.
 
-![A benchmark missing a paired observation for one displayed variant is excluded from that model’s common benchmark set. Another model builds its own benchmark set independently.](assets/methodology/common-variant-basket.svg)
+![A benchmark missing a paired observation for one displayed variant is excluded from that model’s common benchmark set. Another model builds its own benchmark set independently.](../assets/methodology/common-variant-basket.svg)
 
 The selector includes individual benchmarks with results at several reasoning efforts, selected standalone AA components, and aggregate indexes labelled as comparison inputs. This selection does not change the scoring portfolio or remove other benchmarks from the table.
 

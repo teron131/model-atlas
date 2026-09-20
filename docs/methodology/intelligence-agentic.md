@@ -50,11 +50,11 @@ $$
 
 Both sums include only observed results with positive weight for that dimension. Missing results are excluded, not counted as zeros. This establishes the weighted-mean calculation for observed results. Agentic applies the token adjustment below to its benchmark scores before taking the mean. The later sections specify which estimates enter that mean and how individual benchmarks and aggregate indexes are combined.
 
-[Benchmarks](benchmarks.md#portfolio-settings) records allocations and current importance exceptions. [Imputation across reasoning efforts](imputation.md#imputation-across-reasoning-efforts) explains how supported estimates enter the later benchmark mean.
+[Benchmarks](../benchmarks.md#portfolio-settings) records allocations and current importance exceptions. [Imputation across reasoning efforts](imputation.md#imputation-across-reasoning-efforts) explains how supported estimates enter the later benchmark mean.
 
 ### Balancing the Reference Population
 
-The [collapsed row](methodology.md#collapsed-and-expanded-models) selects one variant for display. Reference calculations instead use the available observed variants to estimate missing results and compare resource efficiency. Each base model receives one total reference weight, shared across its included variants, so reporting more effort settings does not give it more influence.
+The [collapsed row](overview.md#collapsed-and-expanded-models) selects one variant for display. Reference calculations instead use the available observed variants to estimate missing results and compare resource efficiency. Each base model receives one total reference weight, shared across its included variants, so reporting more effort settings does not give it more influence.
 
 For base model $m$ with $n_m$ included variants, each variant $v$ receives weight $a_{m,v}=1/n_m$.
 
@@ -68,7 +68,7 @@ Only variants with the required observations are counted in each calculation. Re
 
 Weighted statistics across models use these reference weights unless stated otherwise. A weighted median is the halfway point of cumulative weight in sorted order; at an exact boundary, the mean of the two adjacent values is used.
 
-![Five observed efforts share one model’s weight equally. If only low, high, and max have the required observations, each receives one-third; missing efforts receive no weight.](assets/methodology/reference-balance.svg)
+![Five observed efforts share one model’s weight equally. If only low, high, and max have the required observations, each receives one-third; missing efforts receive no weight.](../assets/methodology/reference-balance.svg)
 
 ### Agentic Token Efficiency
 
@@ -115,7 +115,7 @@ $$
 M^{\text{tok}}_{m,b}=1-\delta_{\max}\,p_{m,b}\operatorname{clamp}\left(\frac{d^{\text{tok}}_{m,b}}{2s^{\text{tok}}_b},-1,1\right).
 $$
 
-![Full peer support permits multipliers from 0.85 to 1.15. Half support halves the adjustment; no support leaves the multiplier at 1. The cap applies before benchmark remapping.](assets/methodology/agentic-token-modifier.svg)
+![Full peer support permits multipliers from 0.85 to 1.15. Half support halves the adjustment; no support leaves the multiplier at 1. The cap applies before benchmark remapping.](../assets/methodology/agentic-token-modifier.svg)
 
 For example, $d=-s$ means one spread unit below expected token use. Full support gives $M=1.075$, a 7.5% increase; half support gives $M=1.0375$, a 3.75% increase. At $d=-2s$ or below, full support gives the maximum multiplier of 1.15. Higher-than-expected token use reduces the multiplier by the same rule.
 
@@ -191,7 +191,7 @@ $$
 
 This uses supported weight directly, not the coverage percentage. Adding unobserved benchmarks lowers displayed coverage but does not increase the score reduction.
 
-![Illustration: with total portfolio weight 40, supported weight 7.5 ends the score reduction at 18.75% coverage.](assets/methodology/confidence.svg)
+![Illustration: with total portfolio weight 40, supported weight 7.5 ends the score reduction at 18.75% coverage.](../assets/methodology/confidence.svg)
 
 **Apply the score reduction**
 
@@ -244,7 +244,7 @@ $$
 w=0.20+0.60\operatorname{smoothstep}\left(\frac{n_{\text{bench}}-1}{n_{\text{full}}-1}\right).
 $$
 
-![Individual benchmarks receive 20% weight at one observed benchmark and 80% at the threshold of 7.5. The isolated points at zero illustrate the case with no available individual-benchmark score, when indexes alone receive 100%.](assets/methodology/index-coverage-taper.svg)
+![Individual benchmarks receive 20% weight at one observed benchmark and 80% at the threshold of 7.5. The isolated points at zero illustrate the case with no available individual-benchmark score, when indexes alone receive 100%.](../assets/methodology/index-coverage-taper.svg)
 
 The 20% and 80% limits are policy choices. The 80% limit is a share of the final score, not portfolio coverage. Adding unobserved benchmarks cannot delay it. Evidence factors and dashboard inclusion rules are separate; unlike Timeline, this calculation has no portfolio-coverage cap.
 

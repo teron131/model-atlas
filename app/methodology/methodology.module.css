@@ -830,9 +830,25 @@
   }
 }
 
-/* Page groups and reading-order links reuse the documentation's ruled navigation. */
-.documentGroup + .documentGroup {
-  margin-top: 24px;
+/* Only actual child pages are indented beneath their owning document. */
+.documentRow {
+  display: flex;
+  align-items: center;
+}
+
+.documentRow > a {
+  flex: 1;
+  min-width: 0;
+}
+
+.documentRow > button {
+  flex-shrink: 0;
+}
+
+.documentSwitcher ul ul {
+  margin-left: 14px;
+  padding-left: 10px;
+  border-left: 1px solid var(--line);
 }
 
 .pageSequence {

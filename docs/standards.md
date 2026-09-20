@@ -1,6 +1,6 @@
 # Benchmark Standards
 
-A benchmark earns ranking space by testing consequential capabilities with credible grading and useful evidence about current models. Difficulty, popularity, and a polished leaderboard do not establish that value. [Benchmarks](benchmarks.md) records the selected evaluations and source policies; [Methodology](methodology.md) explains their scoring.
+A benchmark earns ranking space by testing consequential capabilities with credible grading and useful evidence about current models. Difficulty, popularity, and a polished leaderboard do not establish that value. [Benchmarks](benchmarks.md) records the selected evaluations and source policies; [Methodology](methodology/overview.md) explains their scoring.
 
 ## Capability Fit
 
