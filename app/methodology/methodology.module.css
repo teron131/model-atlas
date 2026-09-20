@@ -787,36 +787,7 @@
 
 @media (max-width: 780px) {
   .page {
-    padding-top: calc(var(--header-height) + 16px + env(safe-area-inset-top));
     padding-bottom: 72px;
-  }
-
-  /* Keep reading controls fixed on narrow screens using the same header and content inset as other pages. */
-  .page :global(.dashboard-header) {
-    position: fixed;
-    inset: 0 var(--page-gutter) auto;
-    z-index: 50;
-    width: auto;
-    background: var(--paper);
-  }
-
-  .documentNav {
-    position: sticky;
-    top: calc(var(--header-height) + env(safe-area-inset-top));
-    z-index: 50;
-  }
-
-  .documentNavigationLayer {
-    z-index: 49;
-  }
-
-  .documentNavigationBackdrop {
-    inset: calc(var(--header-height) + var(--document-tab-height) + env(safe-area-inset-top)) 0 0;
-  }
-
-  .documentNavigationPanel {
-    top: calc(var(--header-height) + var(--document-tab-height) + env(safe-area-inset-top));
-    bottom: 0;
   }
 
   .backToTop {
@@ -827,19 +798,8 @@
   }
 
   .article {
-    --section-sticky-top: calc(
-      var(--header-height) + var(--document-tab-height) + env(safe-area-inset-top)
-    );
     font-size: var(--type-body-size);
     line-height: 1.6;
-  }
-
-  .article h2,
-  .article h3,
-  .article h4 {
-    scroll-margin-top: calc(
-      var(--header-height) + var(--document-tab-height) + 12px + env(safe-area-inset-top)
-    );
   }
 
   .tableViewport,
@@ -905,4 +865,131 @@
 
 .pageSequence a:hover span {
   text-decoration: underline;
+}
+
+/* Markdown links form a responsive navigation diagram without image scaling or theme filters. */
+.documentMap {
+  container-type: inline-size;
+  margin: 30px 0 36px;
+}
+
+.documentMap > p {
+  position: relative;
+  width: fit-content;
+  margin: 0 auto;
+  padding: 8px 16px;
+  border: 1px solid var(--line-strong);
+  text-align: center;
+  font-weight: 600;
+}
+
+.documentMap > p::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  height: 12px;
+  border-left: 1px solid var(--line-strong);
+}
+
+.documentMap ul {
+  list-style: none;
+}
+
+.documentMap > ul {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin: 0;
+  padding: 24px 0 0;
+}
+
+.documentMap > ul::before {
+  content: "";
+  position: absolute;
+  top: 12px;
+  left: calc(12.5% - 6px);
+  right: calc(12.5% - 6px);
+  border-top: 1px solid var(--line-strong);
+}
+
+.documentMap li {
+  position: relative;
+  min-width: 0;
+  margin: 0;
+  font-size: 14px;
+}
+
+.documentMap > ul > li::before {
+  content: "";
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  height: 12px;
+  border-left: 1px solid var(--line-strong);
+}
+
+.documentMap > ul > li > a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 64px;
+  padding: 8px;
+  border: 1px solid var(--line-strong);
+  text-align: center;
+  font-weight: 600;
+}
+
+.documentMap ul ul {
+  margin: 0 0 0 8px;
+  padding: 8px 0 0 12px;
+  border-left: 1px solid var(--line-strong);
+}
+
+.documentMap ul ul li {
+  padding: 6px 0 6px 0;
+  color: var(--muted);
+}
+
+.documentMap ul ul li::before {
+  content: "";
+  position: absolute;
+  top: 17px;
+  left: -12px;
+  width: 8px;
+  border-top: 1px solid var(--line-strong);
+}
+
+.documentMap a {
+  color: var(--ink);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.documentMap ul ul a {
+  display: block;
+}
+
+.documentMap a:hover,
+.documentMap a:focus-visible {
+  text-decoration: underline;
+}
+
+@container (max-width: 700px) {
+  .documentMap > ul {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .documentMap > ul::before,
+  .documentMap > ul > li::before,
+  .documentMap > p::after {
+    display: none;
+  }
+}
+
+@container (max-width: 420px) {
+  .documentMap > ul {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

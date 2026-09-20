@@ -131,11 +131,20 @@ const markdownComponents: Components = {
       <table>{children}</table>
     </div>
   ),
-  // A flow callout keeps its content in ordinary Markdown and its ordered steps in accessible HTML.
+  // Diagram callouts keep their content in Markdown and render as accessible HTML.
   blockquote: ({ children }) => {
     const blocks = Children.toArray(children);
     const first = blocks.findIndex((block) => textContent(block).trim() !== "");
-    if (textContent(blocks[first]).trim() !== "[!FLOW]") {
+    const marker = textContent(blocks[first]).trim();
+    if (marker === "[!MAP]") {
+      const content = blocks.slice(first + 1).filter((block) => textContent(block).trim() !== "");
+      return (
+        <nav className={styles.documentMap} aria-label={textContent(content[0]).trim()}>
+          {content}
+        </nav>
+      );
+    }
+    if (marker !== "[!FLOW]") {
       return <blockquote>{children}</blockquote>;
     }
     return <div className={styles.flowchart}>{blocks.slice(first + 1)}</div>;
