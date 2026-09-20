@@ -1,4 +1,4 @@
-/** Score-scale normalization, confidence, and robust calibration policies. */
+/** Score normalization, evidence retention, coverage multipliers, and robust calibration. */
 
 import {
   clamp,
@@ -8,8 +8,8 @@ import {
   type WeightedScorePart,
 } from "../../math-utils";
 
-const COVERAGE_CONFIDENCE_FLOOR = 0.1;
-const COVERAGE_CONFIDENCE_FULL = 0.6;
+const COVERAGE_MULTIPLIER_FLOOR = 0.1;
+const COVERAGE_MULTIPLIER_FULL = 0.6;
 
 export type MinMaxRange = {
   min: number;
@@ -34,36 +34,40 @@ export function logitUnitScore(value: number): number {
   return probabilityLogit(value);
 }
 
-export function coverageConfidence(availableCount: number, totalCount: number) {
-  if (totalCount <= 0) {
+export function coverageMultiplier(supportedWeight: number, totalWeight: number) {
+  if (totalWeight <= 0) {
     return 0;
   }
-  const coverage = availableCount / totalCount;
-  if (coverage >= COVERAGE_CONFIDENCE_FULL) {
+  const coverage = supportedWeight / totalWeight;
+  if (coverage >= COVERAGE_MULTIPLIER_FULL) {
     return 1;
   }
   return smoothstep(
-    (coverage - COVERAGE_CONFIDENCE_FLOOR) / (COVERAGE_CONFIDENCE_FULL - COVERAGE_CONFIDENCE_FLOOR),
+    (coverage - COVERAGE_MULTIPLIER_FLOOR) / (COVERAGE_MULTIPLIER_FULL - COVERAGE_MULTIPLIER_FLOOR),
   );
 }
 
-/** Convert evidence mass into confidence using the configured floor and full point. */
-export function evidenceMassConfidence(evidenceMass: number, floor: number, full: number): number {
+/** Calculate the retention factor from supported weight between the configured thresholds. */
+export function evidenceRetentionFactor(
+  supportedWeight: number,
+  floor: number,
+  full: number,
+): number {
   if (
-    !Number.isFinite(evidenceMass) ||
+    !Number.isFinite(supportedWeight) ||
     !Number.isFinite(floor) ||
     !Number.isFinite(full) ||
     floor < 0 ||
     full <= floor
   ) {
     throw new RangeError(
-      `Evidence confidence requires finite mass and 0 <= floor < full, received ${evidenceMass}, ${floor}, ${full}`,
+      `Evidence confidence requires finite mass and 0 <= floor < full, received ${supportedWeight}, ${floor}, ${full}`,
     );
   }
-  if (evidenceMass >= full) {
+  if (supportedWeight >= full) {
     return 1;
   }
-  return smoothstep((evidenceMass - floor) / (full - floor));
+  return smoothstep((supportedWeight - floor) / (full - floor));
 }
 
 /** Prepare finite reference bounds once so a population can be normalized without rescanning it for every value. */

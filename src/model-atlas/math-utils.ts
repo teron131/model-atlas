@@ -20,7 +20,7 @@ export type QualityResourcePoint = {
 
 type LocalResiduals = {
   residuals: Array<number | null>;
-  supportConfidence: number[];
+  peerSupport: number[];
 };
 
 /** Estimate an IQR-based standard-deviation-like spread with an explicit floor. */
@@ -33,7 +33,7 @@ export function weightedRobustDeviation(
   return q25 == null || q75 == null ? null : Math.max((q75 - q25) / 1.349, minimumDeviation);
 }
 
-/** Blend a stable local trend with the peer mean as support grows, evaluating the trend only within observed peer bounds. */
+/** Blend a stable local trend with the peer mean as peer support grows, evaluating the trend only within observed peer bounds. */
 export function qualityLocalResiduals(
   points: readonly QualityResourcePoint[],
   bandwidth: number,
@@ -48,7 +48,7 @@ export function qualityLocalResiduals(
   const deviation = weightedRobustDeviation(observations, minimumDeviation);
   const result: LocalResiduals = {
     residuals: points.map(() => null),
-    supportConfidence: points.map(() => 0),
+    peerSupport: points.map(() => 0),
   };
   if (median == null || deviation == null) return result;
   const coordinateOf = (quality: number) =>
@@ -90,29 +90,32 @@ export function qualityLocalResiduals(
     const totalWeight = groups.reduce((sum, group) => sum + group.weight, 0);
     if (totalWeight <= 0) continue;
     const resourceTotal = groups.reduce((sum, group) => sum + group.resourceTotal, 0);
-    let expectedResource = resourceTotal / totalWeight;
-    const support = Math.min(totalWeight, effectiveSampleSize(groups.map((group) => group.weight)));
-    result.supportConfidence[index] = smoothstep((support - 1) / (fullSupport - 1));
+    let expectedSignal = resourceTotal / totalWeight;
+    const supportedModelCount = Math.min(
+      totalWeight,
+      effectiveSampleSize(groups.map((group) => group.weight)),
+    );
+    result.peerSupport[index] = smoothstep((supportedModelCount - 1) / (fullSupport - 1));
     const determinant = totalWeight * qualitySquares - qualityTotal ** 2;
     const stableSlope = determinant > Number.EPSILON * totalWeight * qualitySquares * 32;
-    if (stableSlope && result.supportConfidence[index]! > 0) {
+    if (stableSlope && result.peerSupport[index]! > 0) {
       const intercept =
         (qualitySquares * resourceTotal - qualityTotal * qualityResourceTotal) / determinant;
       const slope =
         (totalWeight * qualityResourceTotal - qualityTotal * resourceTotal) / determinant;
       const offset = clamp(coordinate, minimumQuality, maximumQuality) - coordinate;
-      const fittedResource = clamp(intercept + slope * offset, minimumResource, maximumResource);
-      expectedResource += result.supportConfidence[index]! * (fittedResource - expectedResource);
+      const fittedSignal = clamp(intercept + slope * offset, minimumResource, maximumResource);
+      expectedSignal += result.peerSupport[index]! * (fittedSignal - expectedSignal);
     }
-    const residual = point.resource - expectedResource;
+    const residual = point.resource - expectedSignal;
     const tolerance =
-      Number.EPSILON * Math.max(1, Math.abs(point.resource), Math.abs(expectedResource)) * 32;
+      Number.EPSILON * Math.max(1, Math.abs(point.resource), Math.abs(expectedSignal)) * 32;
     result.residuals[index] = Math.abs(residual) <= tolerance ? 0 : residual;
   }
   return result;
 }
 
-/** Map residuals to a neutral-one multiplier using the original weighted resource MAD and comparison support. */
+/** Map residuals to a neutral-one multiplier using the original weighted resource MAD and comparison supportedModelCount. */
 export function boundedResidualMultipliers(
   comparisons: LocalResiduals,
   referenceValues: readonly WeightedScorePart[],
@@ -134,7 +137,7 @@ export function boundedResidualMultipliers(
   return comparisons.residuals.map((residual, index) =>
     residual == null
       ? 1
-      : 1 - cap * comparisons.supportConfidence[index]! * clamp(residual / scale / 2, -1, 1),
+      : 1 - cap * comparisons.peerSupport[index]! * clamp(residual / scale / 2, -1, 1),
   );
 }
 

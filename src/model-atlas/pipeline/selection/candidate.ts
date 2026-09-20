@@ -31,7 +31,7 @@ import type {
 } from "../model-types";
 import type { OpenRouterModelData } from "../openrouter-data";
 import {
-  benchmarkImputationConfidence,
+  benchmarkImputationFactors,
   benchmarkImputationValues,
   type BenchmarkScoringPreparation,
   blendedPriceValue,
@@ -577,7 +577,7 @@ export function buildModelCandidate(
   const scoringSources = buildScoringSources(model);
   const qualityValues = buildPersistedQualityValues(model);
   const imputedValues = benchmarkImputationValues(scoringPreparation, model);
-  const imputedConfidence = benchmarkImputationConfidence(scoringPreparation, model);
+  const imputedConfidence = benchmarkImputationFactors(scoringPreparation, model);
   const { componentScores, confidence } = buildComponentScoreResult(
     model,
     speed,

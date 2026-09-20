@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 
 import { STAGE_CONFIG } from "../src/model-atlas/config/stage";
 import type { ModelAtlasCandidate } from "../src/model-atlas/pipeline/model-types";
-import { prepareSiblingQualityScoringContext } from "../src/model-atlas/pipeline/scores/imputation/sibling-quality";
+import { prepareEffortQualityScoringContext } from "../src/model-atlas/pipeline/scores/imputation/effort-quality";
 import { buildQualityScoringContext } from "../src/model-atlas/pipeline/scores/quality-context";
 import { buildComponentScoreResult } from "../src/model-atlas/pipeline/scores/score-builders";
 function modelCandidate({ id, name = id }: { id: string; name?: string }): ModelAtlasCandidate {
@@ -38,7 +38,7 @@ const tasks = Array.from({ length: 9 }, (_, i) => `task_${i}`);
 const keys = [...tasks, "aa_intelligence_index"];
 const config = {
   ...STAGE_CONFIG.scoring,
-  qualityTaskFullCount: 8,
+  qualityBenchmarkFullCount: 8,
   intelligenceBenchmarkKeys: keys,
   agenticBenchmarkKeys: [],
   qualityCoverage: { intelligence: { floor: 0, full: 1 }, agentic: { floor: 0, full: 1 } },
@@ -81,7 +81,7 @@ const partial = {
 };
 const population = [...references, broad, partial];
 const base = buildQualityScoringContext(population, config);
-const context = prepareSiblingQualityScoringContext(population, config, base);
+const context = prepareEffortQualityScoringContext(population, config, base);
 const score = (model: typeof broad, ctx = context) =>
   buildComponentScoreResult(model, speed, [], config, ctx);
 const close = (a: number | null | undefined, b: number) =>
@@ -102,7 +102,7 @@ const sparse = {
   reasoning_effort: "low",
   benchmarks: { task_0: 80, task_1: 80, task_2: 80, aa_intelligence_index: 100 },
 };
-const sparseContext = prepareSiblingQualityScoringContext(
+const sparseContext = prepareEffortQualityScoringContext(
   [...references, broad, sparse],
   config,
   base,
@@ -119,19 +119,19 @@ const insufficient = {
   ...sparse,
   benchmarks: { task_0: 80, task_1: 80, aa_intelligence_index: 100 },
 };
-const insufficientContext = prepareSiblingQualityScoringContext(
+const insufficientContext = prepareEffortQualityScoringContext(
   [...references, broad, insufficient],
   config,
   base,
 );
 assert.deepEqual(score(insufficient, insufficientContext), score(insufficient, base));
-const repeat = prepareSiblingQualityScoringContext(
+const repeat = prepareEffortQualityScoringContext(
   [...references, broad, sparse],
   config,
   sparseContext,
 );
-assert.deepEqual([...repeat.siblingQualityEstimates!], [...sparseContext.siblingQualityEstimates!]);
-const reversed = prepareSiblingQualityScoringContext([...population].reverse(), config, base);
+assert.deepEqual([...repeat.effortQualityEstimates!], [...sparseContext.effortQualityEstimates!]);
+const reversed = prepareEffortQualityScoringContext([...population].reverse(), config, base);
 close(
   score(partial, reversed).componentScores?.intelligence_score,
   score(partial).componentScores!.intelligence_score!,

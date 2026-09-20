@@ -1,14 +1,14 @@
 /** Public scoring entrypoints for the final LLM stats pipeline. */
 export type {
   BenchmarkImputationByModel,
-  BenchmarkImputationConfidenceByModel,
+  BenchmarkImputationFactorsByModel,
   BenchmarkScoringPreparation,
   EffortResourceImputation,
   ImputedTaskResource,
   TaskResourceKind,
 } from "./imputation";
 export {
-  benchmarkImputationConfidence,
+  benchmarkImputationFactors,
   benchmarkImputationValues,
   benchmarkQualityEvidence,
   buildBenchmarkImputationByModel,

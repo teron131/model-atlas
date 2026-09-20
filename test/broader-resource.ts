@@ -3,10 +3,10 @@ import assert from "node:assert/strict";
 import { STAGE_CONFIG } from "../src/model-atlas/config/stage";
 import type { ModelAtlasCandidate } from "../src/model-atlas/pipeline/model-types";
 import { prepareBenchmarkScoring } from "../src/model-atlas/pipeline/scores/imputation/benchmark";
+import { prepareBroaderResourceEstimator } from "../src/model-atlas/pipeline/scores/imputation/broader-resource";
+import { prepareEffortResourceImputation } from "../src/model-atlas/pipeline/scores/imputation/effort-resource";
 /** Protect independent-donor resource fallback, fixed shrinkage, and scoring-only integration. */
 import { imputedTaskResource } from "../src/model-atlas/pipeline/scores/imputation/resource-evidence";
-import { prepareTieredResourceEstimator } from "../src/model-atlas/pipeline/scores/imputation/resource-tiers";
-import { prepareEffortResourceImputation } from "../src/model-atlas/pipeline/scores/imputation/task-resource";
 import { applyResourceEvidenceRequirements } from "../src/model-atlas/pipeline/scores/resource-metrics";
 import { minimalModelAtlasModel } from "./model-atlas-fixtures";
 
@@ -30,16 +30,16 @@ const donors = ["a", "b", "c"].flatMap((id) => [
 const models = [target, source, ...donors];
 const config = STAGE_CONFIG.scoring;
 const before = structuredClone(models);
-const estimate = prepareTieredResourceEstimator(models, config, "cost")(target, source, "hle");
+const estimate = prepareBroaderResourceEstimator(models, config, "cost")(target, source, "hle");
 assert.ok(estimate);
 assert.ok(
   Math.abs(estimate.amount - 5 * Math.pow(0.5, 1 / 5)) < 1e-9,
   "One paired task receives 20% residual influence",
 );
-assert.ok(estimate.confidence > 0 && estimate.confidence < 0.5);
+assert.ok(estimate.evidenceFactor > 0 && estimate.evidenceFactor < 0.5);
 assert.deepEqual(models, before);
 assert.equal(
-  prepareTieredResourceEstimator([target, source, ...donors.slice(0, 2)], config, "cost")(
+  prepareBroaderResourceEstimator([target, source, ...donors.slice(0, 2)], config, "cost")(
     target,
     source,
     "hle",
@@ -48,18 +48,18 @@ assert.equal(
   "One donor model is insufficient",
 );
 assert.deepEqual(
-  prepareTieredResourceEstimator([...models, ...donors], config, "cost")(target, source, "hle"),
+  prepareBroaderResourceEstimator([...models, ...donors], config, "cost")(target, source, "hle"),
   estimate,
   "Duplicate variants cannot inflate independent support",
 );
 assert.equal(
-  prepareTieredResourceEstimator(models, config, "cost")(target, donors[0]!, "hle"),
+  prepareBroaderResourceEstimator(models, config, "cost")(target, donors[0]!, "hle"),
   null,
   "The source must be the same model",
 );
 const unrelated = { ...source, benchmarks: { scicode: 50 } };
 assert.equal(
-  prepareTieredResourceEstimator(models, config, "cost")(target, unrelated, "hle"),
+  prepareBroaderResourceEstimator(models, config, "cost")(target, unrelated, "hle"),
   null,
   "Anchor cost requires observed benchmark quality",
 );
@@ -92,7 +92,7 @@ const datedDonors = [0, 1, 2].flatMap((index) =>
   })),
 );
 const datedModels = [datedTarget, datedSource, ...datedDonors];
-const datedEstimate = prepareTieredResourceEstimator(datedModels, config, "cost")(
+const datedEstimate = prepareBroaderResourceEstimator(datedModels, config, "cost")(
   datedTarget,
   datedSource,
   "hle",
@@ -107,7 +107,7 @@ assert.ok(
   "A donor 60 days away uses the Gaussian weight and discounted support",
 );
 const withoutDates = datedModels.map((m) => ({ ...m, release_date: null }));
-const noDateEstimate = prepareTieredResourceEstimator(withoutDates, config, "cost")(
+const noDateEstimate = prepareBroaderResourceEstimator(withoutDates, config, "cost")(
   withoutDates[0]!,
   withoutDates[1]!,
   "hle",
@@ -116,7 +116,7 @@ assert.ok(Math.abs(noDateEstimate.amount - 4 * Math.exp(labCorrection)) < 1e-9);
 assert.ok(datedEstimate.amount > noDateEstimate.amount);
 const invalidTarget = { ...datedTarget, release_date: "invalid" };
 assert.deepEqual(
-  prepareTieredResourceEstimator([invalidTarget, ...datedModels.slice(1)], config, "cost")(
+  prepareBroaderResourceEstimator([invalidTarget, ...datedModels.slice(1)], config, "cost")(
     invalidTarget,
     datedSource,
     "hle",
@@ -126,8 +126,8 @@ assert.deepEqual(
 const otherLab = datedModels.map((m, i) => (i >= 2 ? { ...m, provider: "other" } : m));
 const otherLabNoDates = otherLab.map((m) => ({ ...m, release_date: null }));
 assert.deepEqual(
-  prepareTieredResourceEstimator(otherLab, config, "cost")(datedTarget, datedSource, "hle"),
-  prepareTieredResourceEstimator(otherLabNoDates, config, "cost")(
+  prepareBroaderResourceEstimator(otherLab, config, "cost")(datedTarget, datedSource, "hle"),
+  prepareBroaderResourceEstimator(otherLabNoDates, config, "cost")(
     otherLabNoDates[0]!,
     otherLabNoDates[1]!,
     "hle",
@@ -139,7 +139,7 @@ const shifted = datedModels.map((m) => ({
   release_date: new Date(Date.parse(m.release_date!) + 100 * 86400000).toISOString(),
 }));
 assert.deepEqual(
-  prepareTieredResourceEstimator(shifted, config, "cost")(shifted[0]!, shifted[1]!, "hle"),
+  prepareBroaderResourceEstimator(shifted, config, "cost")(shifted[0]!, shifted[1]!, "hle"),
   datedEstimate,
   "Only distance between release dates matters",
 );
@@ -160,14 +160,14 @@ const timedModels = models.map((candidate) => ({
 const timedTarget = timedModels[0]!;
 const timedSource = timedModels[1]!;
 const timedBefore = structuredClone(timedModels);
-const timeEstimate = prepareTieredResourceEstimator(timedModels, config, "time")(
+const timeEstimate = prepareBroaderResourceEstimator(timedModels, config, "time")(
   timedTarget,
   timedSource,
   "hle",
 );
 assert.ok(timeEstimate);
 assert.ok(Math.abs(timeEstimate.amount - 200 * Math.pow(0.25, 1 / 5)) < 1e-9);
-assert.ok(timeEstimate.confidence > 0 && timeEstimate.confidence < 1);
+assert.ok(timeEstimate.evidenceFactor > 0 && timeEstimate.evidenceFactor < 1);
 const changedCosts = timedModels.map((candidate) => ({
   ...candidate,
   task_metrics: Object.fromEntries(
@@ -178,7 +178,7 @@ const changedCosts = timedModels.map((candidate) => ({
   ),
 }));
 assert.deepEqual(
-  prepareTieredResourceEstimator(changedCosts, config, "time")(
+  prepareBroaderResourceEstimator(changedCosts, config, "time")(
     changedCosts[0]!,
     changedCosts[1]!,
     "hle",
@@ -187,7 +187,7 @@ assert.deepEqual(
   "Prices cannot affect timing predictions",
 );
 assert.equal(
-  prepareTieredResourceEstimator(models, config, "time")(target, source, "hle"),
+  prepareBroaderResourceEstimator(models, config, "time")(target, source, "hle"),
   null,
   "Cost-only observations cannot supply runtime evidence",
 );
@@ -209,7 +209,7 @@ assert.equal(
 );
 assert.deepEqual(timedModels, timedBefore, "Estimates never populate observed task fields");
 assert.equal(
-  prepareTieredResourceEstimator(timedModels.slice(0, 4), config, "time")(
+  prepareBroaderResourceEstimator(timedModels.slice(0, 4), config, "time")(
     timedTarget,
     timedSource,
     "hle",
@@ -243,14 +243,14 @@ for (const kind of ["time", "tokens", "output_tokens"] as const) {
       ]),
     ),
   }));
-  const result = prepareTieredResourceEstimator(converted, config, kind)(
+  const result = prepareBroaderResourceEstimator(converted, config, kind)(
     converted[0]!,
     converted[1]!,
     "hle",
   );
   assert.ok(result);
   assert.ok(Math.abs(result.amount - estimate.amount * 100) < 1e-8);
-  assert.equal(result.confidence, estimate.confidence);
+  assert.equal(result.evidenceFactor, estimate.evidenceFactor);
   const preparation = prepareEffortResourceImputation(
     converted,
     config,
@@ -261,7 +261,7 @@ for (const kind of ["time", "tokens", "output_tokens"] as const) {
   assert.equal(imputedTaskResource(preparation, converted[0]!, "hle", "cost"), null);
   if (kind === "tokens")
     assert.equal(
-      prepareTieredResourceEstimator(converted, config, "output_tokens")(
+      prepareBroaderResourceEstimator(converted, config, "output_tokens")(
         converted[0]!,
         converted[1]!,
         "hle",
@@ -270,7 +270,7 @@ for (const kind of ["time", "tokens", "output_tokens"] as const) {
     );
   if (kind === "output_tokens")
     assert.equal(
-      prepareTieredResourceEstimator(converted, config, "tokens")(
+      prepareBroaderResourceEstimator(converted, config, "tokens")(
         converted[0]!,
         converted[1]!,
         "hle",

@@ -159,13 +159,13 @@ export function residualIndexBreadth(
 /** Apply component overlap to quality only for indexes whose policy explicitly opts into residual proxy weight. */
 export function qualityIndexBreadth(
   key: string,
-  observedTaskKeys: readonly string[] = [],
+  observedBenchmarkKeys: readonly string[] = [],
   reportedCount?: number | null,
 ): number {
   const policy = indexPolicy(key);
   return residualIndexBreadth(
     key,
-    policy?.qualityOverlap === "residual" ? observedTaskKeys : [],
+    policy?.qualityOverlap === "residual" ? observedBenchmarkKeys : [],
     reportedCount,
   );
 }

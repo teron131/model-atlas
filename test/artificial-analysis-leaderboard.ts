@@ -391,7 +391,7 @@ const scoringConfig = {
       dimensionLoadings: { intelligence: 0.45, agentic: 0.55 },
     },
   },
-  qualityTaskFullCount: 8,
+  qualityBenchmarkFullCount: 8,
   qualityCoverage: {
     intelligence: { floor: 0, full: 1 },
     agentic: { floor: 0, full: 1 },

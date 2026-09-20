@@ -300,7 +300,7 @@ const supportedTasks = calibrateTimeline(proxyData, "intelligence").estimates.fi
   (e) => e.modelId === firstBridge[0]!.id,
 )!;
 assert.equal(supportedTasks.source, "blended");
-const progress = 2 / (STAGE_CONFIG.scoring.qualityTaskFullCount - 1);
+const progress = 2 / (STAGE_CONFIG.scoring.qualityBenchmarkFullCount - 1);
 const threeTaskShare = 0.2 + 0.6 * progress ** 2 * (3 - 2 * progress);
 close(supportedTasks.value!, threeTaskShare * 80 + (1 - threeTaskShare) * 25);
 const countedIndexes = structuredClone(proxyData);

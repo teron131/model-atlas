@@ -2,11 +2,11 @@
 
 export type {
   BenchmarkImputationByModel,
-  BenchmarkImputationConfidenceByModel,
+  BenchmarkImputationFactorsByModel,
   BenchmarkScoringPreparation,
 } from "./benchmark";
 export {
-  benchmarkImputationConfidence,
+  benchmarkImputationFactors,
   benchmarkImputationValues,
   benchmarkQualityEvidence,
   buildBenchmarkImputationByModel,
@@ -20,4 +20,4 @@ export type {
   TaskResourceKind,
 } from "./resource-evidence";
 export { imputedTaskResource } from "./resource-evidence";
-export { prepareEffortResourceImputation } from "./task-resource";
+export { prepareEffortResourceImputation } from "./effort-resource";

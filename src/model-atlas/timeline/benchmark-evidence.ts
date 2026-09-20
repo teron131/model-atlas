@@ -1,5 +1,5 @@
 /** Prepare diagnostic cells and validate shared-input predictors; inferred values never become calibration observations. */
-import { calibrationObservations, effectiveModelCount } from "../benchmarks/calibration-population";
+import { calibrationObservations, distinctModelCount } from "../benchmarks/calibration-population";
 import { excludesVariantIndex } from "../benchmarks/index-policy";
 import { STAGE_CONFIG } from "../config/stage";
 import { prepareBenchmarkImputation } from "../pipeline/scores/imputation/benchmark";
@@ -161,7 +161,7 @@ function prepareImputation(
   const targetValues = targets.map((row) => row.value);
   const usable =
     inputs.length > 0 &&
-    effectiveModelCount(targets) >= parameters.minModels &&
+    distinctModelCount(targets) >= parameters.minModels &&
     Math.max(...targetValues) > Math.min(...targetValues);
   const config = {
     ...STAGE_CONFIG.scoring,
@@ -189,12 +189,12 @@ function prepareImputation(
     inputs: inputs.map((b) => b.id),
     target: target.id,
     kind,
-    models: diagnostic?.effectiveModelCount ?? 0,
+    models: diagnostic?.distinctModelCount ?? 0,
     error: diagnostic?.normalizedMedianAbsoluteError ?? null,
     baselineError: diagnostic?.normalizedBaselineMedianAbsoluteError ?? null,
     accepted:
       diagnostic?.imputationAllowed === true &&
-      diagnostic.effectiveModelCount >= parameters.minModels &&
+      diagnostic.distinctModelCount >= parameters.minModels &&
       diagnostic.normalizedMedianAbsoluteError != null &&
       diagnostic.normalizedMedianAbsoluteError <= parameters.maxError &&
       diagnostic.normalizedBaselineMedianAbsoluteError != null &&
@@ -217,7 +217,7 @@ function prepareImputation(
       )
         return null;
       const value = result?.imputationByModel.get(row)?.get(target.id);
-      const confidence = result?.imputationConfidenceByModel.get(row)?.get(target.id);
+      const confidence = result?.imputationFactorsByModel.get(row)?.get(target.id);
       return value == null || confidence == null || confidence <= 0 ? null : { value, confidence };
     },
   };

@@ -41,7 +41,7 @@ export type ModelAtlasColumnTooltip = {
 export type ModelAtlasColumnTooltips = Record<string, ModelAtlasColumnTooltip>;
 
 const QUALITY_REGULARIZATION_SCALE =
-  "ordinary high means stay at 50 through 10% of the aggregate-index median evidence mass, then move toward the task mean, including supported sibling estimates; regularization ends at that median";
+  "ordinary high means stay at 50 through 10% of the aggregate-index median supported benchmark weight, then move toward the benchmark mean, including supported estimates from other efforts; regularization ends at that median";
 
 export const CONFIDENCE_TOOLTIP = {
   title: "Evidence support",
@@ -141,20 +141,20 @@ const qualityBenchmarkRows = (
   }>,
 ) =>
   [
-    ["Effective weight", "importance x dimension loading"],
+    ["Effective weight", "importance x dimension allocation"],
     [
       "Aggregation",
-      "20% tasks / 80% indexes at one direct task; 80% tasks / 20% indexes at the configured direct-task threshold",
+      "20% benchmarks / 80% indexes at one observed benchmark; 80% benchmarks / 20% indexes at the configured observed-benchmark threshold",
     ],
     [
       "Imputed values",
-      "supported sibling estimates enter missing task contributions; validated contextual predictions supply discounted evidence support",
+      "supported estimates from other efforts enter missing benchmark contributions; validated predictions from other benchmarks supply discounted evidence support",
     ],
     ["Evidence support", "literal weighted share of direct or validated evidence"],
     ["Coverage regularization", QUALITY_REGULARIZATION_SCALE],
     [
       "Aggregate-index proxy",
-      "effort-labelled variants use effort-aware indexes (currently AA); each variant uses its own direct task count; a smooth taper reaches 80% tasks / 20% indexes at the configured direct-task threshold tasks",
+      "effort-labelled variants use effort-aware indexes (currently AA); each variant uses its own observed benchmark count; a smooth taper reaches 80% benchmarks / 20% indexes at the configured observed-benchmark threshold",
     ],
     {
       title: "Frontier benchmarks",
@@ -251,13 +251,13 @@ export function columnTooltipsForActiveComponents(
   return {
     intelligence: {
       title: "Intelligence Score",
-      body: "Knowledge, perception, understanding, reasoning, and judgment on selected difficult benchmarks. Each observed result is normalized to 0-100 and weighted by benchmark importance × Intelligence loading. Sparse high means can be pulled toward 50; observed aggregate indexes provide a broader proxy when task coverage is incomplete, moving from 20% task / 80% index at one direct task to 80% task / 20% index at the configured direct-task threshold.",
+      body: "Knowledge, perception, understanding, reasoning, and judgment on selected difficult benchmarks. Each observed result is normalized to 0-100 and weighted by benchmark importance × Intelligence allocation. Sparse high means can be pulled toward 50; observed aggregate indexes provide a broader proxy when benchmark coverage is incomplete, moving from 20% benchmark / 80% index at one observed benchmark to 80% benchmark / 20% index at the configured observed-benchmark threshold.",
       rows: [
-        ["Observed benchmark weight", "importance × Intelligence loading"],
+        ["Observed benchmark weight", "importance × Intelligence allocation"],
         ["Benchmark normalization", "0 at the observed minimum, 100 at the maximum"],
         [
           "Final score",
-          "task mean with supported sibling estimates; index blend or sparse-high regularization as applicable",
+          "benchmark mean with supported estimates from other efforts; index blend or sparse-high regularization as applicable",
         ],
       ],
       sections: [
@@ -288,7 +288,7 @@ export function columnTooltipsForActiveComponents(
         ],
         [
           "Final score",
-          "task mean with supported sibling estimates; index blend or sparse-high regularization as applicable",
+          "benchmark mean with supported estimates from other efforts; index blend or sparse-high regularization as applicable",
         ],
       ],
       sections: [
@@ -301,7 +301,7 @@ export function columnTooltipsForActiveComponents(
     },
     speed: {
       title: "Speed Score",
-      body: "How quickly the model delivers comparable work. Ranked models assign 70% of base weight to benchmark task time and 30% to provider speed. Tasks are compared at similar benchmark quality, so easier or lower-quality work does not automatically look faster. A bounded local trend blends with the peer average as support grows, and qualities beyond the peer range use its nearest endpoint. Resources must match the benchmark; overall source averages cannot fill missing tasks. Limited peer support brings a task comparison toward neutral 50; missing or estimated inputs reduce evidence support.",
+      body: "How quickly the model delivers comparable work. Ranked models assign 70% of base weight to benchmark task time and 30% to provider speed. Resource measurements are compared at similar benchmark quality, so easier or lower-quality work does not automatically look faster. A bounded local trend blends with the peer mean as support grows, and qualities beyond the peer range use its nearest endpoint. Resources must match the benchmark; overall source averages cannot fill missing benchmark measurements. Limited peer support brings a benchmark resource comparison toward neutral 50; missing or estimated inputs reduce evidence support.",
       rows: [
         [
           "Benchmark runtimes",
@@ -317,7 +317,7 @@ export function columnTooltipsForActiveComponents(
         ],
         [
           "Missing task runtime",
-          "validated sibling estimate, then the shared global/lab/release/model resource fallback",
+          "validated estimate from another effort, then the shared global/lab/release/model resource fallback",
         ],
         [
           "Speed availability",
@@ -335,7 +335,7 @@ export function columnTooltipsForActiveComponents(
     },
     value: {
       title: "Value Score",
-      body: "How efficiently the model delivers capability for its cost. Ranked models assign 70% of base weight to task cost and 30% to absolute and quality-adjusted token price. Comparing tasks at similar quality helps distinguish efficient work from merely cheap work. A bounded local trend blends with the peer average as support grows, and qualities beyond the peer range use its nearest endpoint. Resources must match the benchmark; overall source averages cannot fill missing tasks. Limited peer support brings a comparison toward neutral 50; missing or estimated inputs reduce evidence support.",
+      body: "How efficiently the model delivers capability for its cost. Ranked models assign 70% of base weight to task cost and 30% to absolute and quality-adjusted token price. Comparing benchmark resource measurements at similar quality helps distinguish efficient work from merely cheap work. A bounded local trend blends with the peer mean as support grows, and qualities beyond the peer range use its nearest endpoint. Resources must match the benchmark; overall source averages cannot fill missing benchmark measurements. Limited peer support brings a comparison toward neutral 50; missing or estimated inputs reduce evidence support.",
       rows: [
         [
           "Benchmark task costs",
@@ -347,7 +347,7 @@ export function columnTooltipsForActiveComponents(
         ],
         [
           "Missing task cost",
-          "validated sibling first; fixed-shrinkage global/lab/release-proximity/model cost fallback",
+          "validated effort estimate first; fixed-shrinkage global/lab/release-proximity/model cost fallback",
         ],
         [
           "Value availability",

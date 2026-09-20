@@ -2,7 +2,7 @@
 import { qualityIndexBreadth } from "../benchmarks/index-policy";
 import { STAGE_CONFIG } from "../config/stage";
 import { effectiveSampleSize } from "../math-utils";
-import { evidenceMassConfidence } from "../pipeline/scores/normalization";
+import { evidenceRetentionFactor } from "../pipeline/scores/normalization";
 import type { HistoricalDataset, HistoricalEstimate, TimelineDimension } from "./schemas";
 
 export const MINIMUM_TIMELINE_TASKS = 3;
@@ -81,7 +81,7 @@ export function timelineCoverage(
       )
         directTasks.set(definition.key, definition.weights[dimension]);
     }
-    const directSupport = evidenceMassConfidence(
+    const directSupport = evidenceRetentionFactor(
       effectiveSampleSize([...directTasks.values()]),
       thresholds.floor,
       thresholds.full,
@@ -118,7 +118,7 @@ export function timelineCoverage(
         );
         breadth = Math.min(breadth, relevant.size);
       }
-      const fraction = evidenceMassConfidence(breadth, thresholds.floor, thresholds.full);
+      const fraction = evidenceRetentionFactor(breadth, thresholds.floor, thresholds.full);
       if (fraction > best.fraction) best = { fraction, source: id };
     }
     coverage.set(estimate.modelId, best);

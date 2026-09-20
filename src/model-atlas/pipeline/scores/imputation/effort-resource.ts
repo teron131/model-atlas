@@ -1,4 +1,4 @@
-/** Guarded sibling-effort task-resource imputation for cost, time, and token-use scoring. */
+/** Validated effort resource imputation for cost, time, and token-use scoring. */
 
 import { indexPolicy } from "../../../benchmarks/index-policy";
 import { MAX_NORMALIZED_IMPUTATION_ERROR, type ScoringConfig } from "../../../config/stage";
@@ -12,6 +12,7 @@ import type { ModelAtlasCandidate } from "../../model-types";
 import { benchmarkResourceEfficiencyScores } from "../resource-efficiency";
 import { benchmarkMetricValue } from "../resource-metrics";
 import { benchmarkQualityEvidence, type BenchmarkScoringPreparation } from "./benchmark";
+import { prepareBroaderResourceEstimator } from "./broader-resource";
 import {
   directTaskResource,
   type EffortResourceImputation,
@@ -21,12 +22,11 @@ import {
   TASK_RESOURCE_KINDS,
   type TaskResourceKind,
 } from "./resource-evidence";
-import { prepareTieredResourceEstimator } from "./resource-tiers";
 
-const MIN_PAIRED_TASKS = 3;
+const MIN_PAIRED_BENCHMARKS = 3;
 const MAX_MEDIAN_LOG_RESOURCE_ERROR = Math.LN2;
 type ValidatedEffortRatio = {
-  confidence: number;
+  evidenceFactor: number;
   kind: TaskResourceKind;
   logRatio: number;
   sourceIndex: number;
@@ -52,7 +52,7 @@ function validatedEffortRatio(
       directTaskResource(target, key, scoringConfig, kind) != null &&
       directTaskResource(source, key, scoringConfig, kind) != null,
   );
-  if (pairedKeys.length < MIN_PAIRED_TASKS) {
+  if (pairedKeys.length < MIN_PAIRED_BENCHMARKS) {
     return null;
   }
   const logRatios = pairedKeys.map((key) =>
@@ -114,8 +114,8 @@ function validatedEffortRatio(
   const medianLogError = medianOfFinite(rawErrors);
   const medianScoreError = medianOfFinite(scoreErrors);
   if (
-    rawErrors.length < MIN_PAIRED_TASKS ||
-    scoreErrors.length < MIN_PAIRED_TASKS ||
+    rawErrors.length < MIN_PAIRED_BENCHMARKS ||
+    scoreErrors.length < MIN_PAIRED_BENCHMARKS ||
     medianLogError == null ||
     medianScoreError == null ||
     medianLogError >= MAX_MEDIAN_LOG_RESOURCE_ERROR ||
@@ -128,7 +128,7 @@ function validatedEffortRatio(
     return null;
   }
   return {
-    confidence: Math.min(
+    evidenceFactor: Math.min(
       clamp01(1 - medianLogError / MAX_MEDIAN_LOG_RESOURCE_ERROR),
       clamp01(1 - medianScoreError / MAX_NORMALIZED_IMPUTATION_ERROR),
     ),
@@ -156,8 +156,8 @@ export function prepareEffortResourceImputation(
     indexesByModel.set(key, [...(indexesByModel.get(key) ?? []), index]);
   }
 
-  const tieredEstimators = new Map(
-    kinds.map((kind) => [kind, prepareTieredResourceEstimator(models, scoringConfig, kind)]),
+  const broaderEstimators = new Map(
+    kinds.map((kind) => [kind, prepareBroaderResourceEstimator(models, scoringConfig, kind)]),
   );
   const ratios: ValidatedEffortRatio[] = [];
   for (const indexes of indexesByModel.values()) {
@@ -192,11 +192,11 @@ export function prepareEffortResourceImputation(
           Math.abs(reasoningEffortRank(rightSource?.reasoning_effort) - targetEffortRank);
         return (
           distanceDifference ||
-          right.confidence - left.confidence ||
+          right.evidenceFactor - left.evidenceFactor ||
           left.sourceIndex - right.sourceIndex
         );
       });
-    const siblingIndexes = (indexesByModel.get(canonicalModelKey(target)) ?? [])
+    const referenceIndexes = (indexesByModel.get(canonicalModelKey(target)) ?? [])
       .filter((index) => index !== targetIndex)
       .sort(
         (left, right) =>
@@ -234,7 +234,7 @@ export function prepareEffortResourceImputation(
             ...estimates.get(key),
             [kind]: {
               amount,
-              confidence: ratio.confidence,
+              evidenceFactor: ratio.evidenceFactor,
             },
           });
           break;
@@ -248,8 +248,8 @@ export function prepareEffortResourceImputation(
           directTaskResource(target, key, scoringConfig, kind) != null
         )
           continue;
-        for (const index of siblingIndexes) {
-          const estimate = tieredEstimators.get(kind)!(target, models[index]!, key);
+        for (const index of referenceIndexes) {
+          const estimate = broaderEstimators.get(kind)!(target, models[index]!, key);
           if (estimate == null) continue;
           estimates.set(key, { ...estimates.get(key), [kind]: estimate });
           break;

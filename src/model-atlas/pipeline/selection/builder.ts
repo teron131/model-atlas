@@ -18,14 +18,14 @@ import type {
 import { type OpenRouterModelData, prepareOpenRouterModelData } from "../openrouter-data";
 import { attachFinalScores } from "../scores";
 import {
-  benchmarkImputationConfidence,
+  benchmarkImputationFactors,
   benchmarkImputationValues,
   type BenchmarkScoringPreparation,
   prepareBenchmarkScoring,
   prepareEffortResourceImputation,
   withoutBenchmarkImputationForModels,
 } from "../scores/imputation";
-import { prepareSiblingQualityScoringContext } from "../scores/imputation/sibling-quality";
+import { prepareEffortQualityScoringContext } from "../scores/imputation/effort-quality";
 import { buildAgenticTokenScoringContext } from "../scores/quality-context";
 import { applyResourceEvidenceRequirements } from "../scores/resource-metrics";
 import { buildComponentScoreResult, observedBenchmarkCount } from "../scores/score-builders";
@@ -109,7 +109,7 @@ export function prepareModelSelection(
     scoringPreparation.qualityContext,
     tokenImputation,
   );
-  scoringPreparation.qualityContext = prepareSiblingQualityScoringContext(
+  scoringPreparation.qualityContext = prepareEffortQualityScoringContext(
     imputationCandidates,
     scoringConfig,
     scoringPreparation.qualityContext,
@@ -123,7 +123,7 @@ export function prepareModelSelection(
       scoringConfig,
       scoringPreparation.qualityContext,
       benchmarkImputationValues(scoringPreparation, row),
-      benchmarkImputationConfidence(scoringPreparation, row),
+      benchmarkImputationFactors(scoringPreparation, row),
       versionReplacementBenchmarkWeights(row, scoringConfig),
     );
     return { ...model, component_scores: result.componentScores, confidence: result.confidence };
