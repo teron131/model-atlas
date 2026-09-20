@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 410" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 375" role="img" aria-labelledby="title desc">
 <title id="title">Leave one model family out, then predict its result</title>
 <desc id="desc">Left: five training families determine a benchmark conversion. The withheld family has benchmark A result 65, predicting B result 75; its observed B result is 80. The error is 5 over a training B range of 50, or 10 normalized points. Right: six validation rounds each leave out a different family, including all its reasoning configurations.</desc>
 <style>
@@ -100,5 +100,5 @@ text { fill:#ffffff; }
 <text x="541" y="310" fill="#63706e" font-size="13" text-anchor="start">Used to fit</text>
 <circle cx="528" cy="333" r="4" fill="#a64d0c" stroke="#a64d0c" stroke-width="2"/>
 <text x="541" y="338" fill="#63706e" font-size="13" text-anchor="start">Left out</text>
-<text x="45" y="395" fill="#000000" font-size="15" text-anchor="start">One round: 100 × |75 − 80| / (80 − 30) = 10 normalized error points</text>
+
 </svg>

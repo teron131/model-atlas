@@ -94,6 +94,8 @@ The illustration uses a historical cached replay of **643 source rows** against 
 
 ![Historical replay before publisher and release guards: the minimum and maximum winning scores set the cutoff; an exact identity survives below it, and a reordered identity survives above it.](assets/methodology/matching-relative-cutoff.svg)
 
+The shared `gpt` prefix does not establish identity. The Sonnet examples agree on family, tier, and version, including when the name reorders those parts; `thinking` describes the configuration.
+
 Of the 643 rows, **370** have compatible winners with scores from **4.12** to **54.71**, producing a cutoff of **21.83**. The other 273 rows contribute no score. The cutoff removes **47** winners and retains **323**; the exact `inkling` identity survives despite scoring **16.41**. The graph's examples are selected after the full replay and do not determine its bounds.
 
 Changing the source batch or catalog can change the range and cutoff. Recognizing a structural alias is different from establishing an exact normalized identity, so not every alias receives the exemption. An accepted match still depends on the quality of the identity evidence.

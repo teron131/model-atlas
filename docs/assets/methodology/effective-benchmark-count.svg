@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 390" role="img" aria-labelledby="title desc">
+<title id="title">Three shared benchmarks approach an effective count of one as one weight dominates</title>
+<desc id="desc">One benchmark takes a growing share of total weight; the other two split the remainder equally. Weights 1, 1, 1 give count 3; weights 1, 2, 1 give 2.67; weights 1, 8, 1 give 1.52. The open endpoint at 100 percent is the limit, where the other weights approach zero.</desc>
+<style>text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;fill:#182421}.muted{fill:#63706e}.grid{stroke:#b5bfbc;stroke-width:1}.axis{stroke:#63706e;stroke-width:1}.curve{fill:none;stroke:#087f6b;stroke-width:3}.point{fill:#087f6b}.accent{fill:#087f6b}@media(prefers-color-scheme:dark){text{fill:#ecf0ed}.muted{fill:#a6b2ae}.grid{stroke:#3c4846}.axis{stroke:#a6b2ae}.curve{stroke:#62d6b1}.point,.accent{fill:#62d6b1}}</style>
+<text x="90" y="27" font-size="17" text-anchor="start">Effective benchmark count</text>
+<path d="M90 295 H675" class="axis"/>
+<text x="70" y="300" font-size="15" class="muted" text-anchor="end">1</text>
+<path d="M90 242.5 H675" class="grid"/>
+<text x="70" y="247.5" font-size="15" class="muted" text-anchor="end">1.5</text>
+<path d="M90 190 H675" class="grid"/>
+<text x="70" y="195" font-size="15" class="muted" text-anchor="end">2</text>
+<path d="M90 137.5 H675" class="grid"/>
+<text x="70" y="142.5" font-size="15" class="muted" text-anchor="end">2.5</text>
+<path d="M90 85 H675" class="grid" stroke-dasharray="5 5"/>
+<text x="70" y="90" font-size="15" class="muted" text-anchor="end">3</text>
+<text x="675" y="67" font-size="14" class="muted" text-anchor="end">Actual count: 3</text>
+<path d="M90 295 v6" class="axis"/>
+<text x="90" y="322" font-size="15" class="muted" text-anchor="middle">33⅓%</text>
+<path d="M236.25000000000003 295 v6" class="axis"/>
+<text x="236.25000000000003" y="322" font-size="15" class="muted" text-anchor="middle">50%</text>
+<path d="M367.87500000000006 295 v6" class="axis"/>
+<text x="367.87500000000006" y="322" font-size="15" class="muted" text-anchor="middle">65%</text>
+<path d="M499.5000000000001 295 v6" class="axis"/>
+<text x="499.5000000000001" y="322" font-size="15" class="muted" text-anchor="middle">80%</text>
+<path d="M675.0000000000001 295 v6" class="axis"/>
+<text x="675.0000000000001" y="322" font-size="15" class="muted" text-anchor="middle">100%</text>
+<text x="675" y="341" font-size="12" class="muted" text-anchor="middle">limit</text>
+<text x="382" y="375" font-size="17" text-anchor="middle">Largest benchmark’s share of total weight</text>
+<path d="M90.00 85.00 L93.87 85.03 L97.74 85.11 L101.61 85.25 L105.48 85.44 L109.35 85.69 L113.22 85.99 L117.10 86.35 L120.97 86.76 L124.84 87.22 L128.71 87.73 L132.58 88.30 L136.45 88.92 L140.32 89.59 L144.19 90.31 L148.06 91.09 L151.93 91.91 L155.80 92.77 L159.67 93.69 L163.54 94.65 L167.41 95.66 L171.29 96.71 L175.16 97.81 L179.03 98.94 L182.90 100.12 L186.77 101.34 L190.64 102.60 L194.51 103.90 L198.38 105.23 L202.25 106.61 L206.12 108.01 L209.99 109.45 L213.86 110.92 L217.73 112.42 L221.61 113.95 L225.48 115.51 L229.35 117.10 L233.22 118.72 L237.09 120.36 L240.96 122.02 L244.83 123.71 L248.70 125.42 L252.57 127.14 L256.44 128.89 L260.31 130.66 L264.18 132.44 L268.05 134.24 L271.93 136.05 L275.80 137.88 L279.67 139.72 L283.54 141.57 L287.41 143.43 L291.28 145.30 L295.15 147.18 L299.02 149.07 L302.89 150.96 L306.76 152.86 L310.63 154.77 L314.50 156.67 L318.37 158.58 L322.25 160.50 L326.12 162.41 L329.99 164.32 L333.86 166.24 L337.73 168.15 L341.60 170.06 L345.47 171.97 L349.34 173.88 L353.21 175.78 L357.08 177.68 L360.95 179.57 L364.82 181.46 L368.69 183.34 L372.56 185.22 L376.44 187.09 L380.31 188.95 L384.18 190.80 L388.05 192.65 L391.92 194.48 L395.79 196.31 L399.66 198.13 L403.53 199.93 L407.40 201.73 L411.27 203.52 L415.14 205.29 L419.01 207.06 L422.88 208.81 L426.76 210.55 L430.63 212.28 L434.50 214.00 L438.37 215.71 L442.24 217.40 L446.11 219.08 L449.98 220.75 L453.85 222.40 L457.72 224.05 L461.59 225.67 L465.46 227.29 L469.33 228.89 L473.20 230.48 L477.07 232.05 L480.95 233.62 L484.82 235.16 L488.69 236.70 L492.56 238.22 L496.43 239.72 L500.30 241.22 L504.17 242.70 L508.04 244.16 L511.91 245.61 L515.78 247.05 L519.65 248.47 L523.52 249.88 L527.39 251.28 L531.27 252.66 L535.14 254.03 L539.01 255.39 L542.88 256.73 L546.75 258.06 L550.62 259.37 L554.49 260.67 L558.36 261.96 L562.23 263.24 L566.10 264.50 L569.97 265.75 L573.84 266.98 L577.71 268.21 L581.59 269.42 L585.46 270.61 L589.33 271.80 L593.20 272.97 L597.07 274.13 L600.94 275.28 L604.81 276.42 L608.68 277.54 L612.55 278.65 L616.42 279.75 L620.29 280.84 L624.16 281.91 L628.03 282.98 L631.91 284.03 L635.78 285.07 L639.65 286.10 L643.52 287.12 L647.39 288.13 L651.26 289.12 L655.13 290.11 L659.00 291.08 L662.87 292.05 L666.74 293.00 L670.61 293.94" class="curve"/>
+<circle cx="90" cy="85.00000000000006" r="5" class="point"/>
+<text x="106" y="160" font-size="13" class="muted" text-anchor="start">weights 1 : 1 : 1</text>
+<text x="106" y="182" font-size="18" class="accent" text-anchor="start">3.00</text>
+<circle cx="236.25000000000003" cy="120.00000000000003" r="5" class="point"/>
+<text x="258" y="105" font-size="13" class="muted" text-anchor="start">weights 1 : 2 : 1</text>
+<text x="258" y="127" font-size="18" class="accent" text-anchor="start">2.67</text>
+<circle cx="499.5000000000001" cy="240.90909090909093" r="5" class="point"/>
+<text x="510" y="207" font-size="13" class="muted" text-anchor="start">weights 1 : 8 : 1</text>
+<text x="510" y="229" font-size="18" class="accent" text-anchor="start">1.52</text>
+<circle cx="675" cy="295" r="5" class="curve"/>
+</svg>

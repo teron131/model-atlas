@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 360" role="img" aria-labelledby="title desc">
-<title id="title">Task and index weight by direct task count</title>
-<desc id="desc">Task weight starts at 20 percent with one observed task and reaches 80 percent at the configured direct-task threshold of 7.5. Three observed tasks receive 33.5 percent task weight. The isolated zero-task points show the index-only special case.</desc>
+<title id="title">Benchmark and index weight by direct benchmark count</title>
+<desc id="desc">Benchmark weight starts at 20 percent with one observed benchmark and reaches 80 percent at the configured observed-benchmark threshold of 7.5. Three observed benchmarks receive 33.5 percent benchmark weight. The isolated points at zero observed benchmarks show the special case with no available individual-benchmark score, when only the index contributes.</desc>
 <style>
 text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; }
 @media (prefers-color-scheme:dark) {
@@ -12,8 +12,8 @@ text { fill:#ffffff; }
 }
 </style>
 <text x="82" y="25" fill="#000000" font-size="15" text-anchor="start">Weight</text>
-<path d="M430 20 H457" fill="none" stroke="#146cba" stroke-width="3"/>
-<text x="465" y="25" fill="#000000" font-size="14" text-anchor="start">Tasks</text>
+<path d="M410 20 H437" fill="none" stroke="#146cba" stroke-width="3"/>
+<text x="445" y="25" fill="#000000" font-size="14" text-anchor="start">Benchmarks</text>
 <path d="M545 20 H572" fill="none" stroke="#a64d0c" stroke-width="3" stroke-dasharray="7 5"/>
 <text x="580" y="25" fill="#000000" font-size="14" text-anchor="start">Indexes</text>
 <path d="M82 280.0 H650" fill="none" stroke="#b5bfbc" stroke-width="1"/>
@@ -38,7 +38,7 @@ text { fill:#ffffff; }
 <text x="555.3333333333334" y="305" fill="#63706e" font-size="14" text-anchor="middle">7.5</text>
 <path d="M650.0 280 v5" fill="none" stroke="#63706e" stroke-width="1"/>
 <text x="650.0" y="305" fill="#63706e" font-size="14" text-anchor="middle">9</text>
-<text x="366" y="335" fill="#000000" font-size="16" text-anchor="middle">Direct task observations</text>
+<text x="366" y="335" fill="#000000" font-size="16" text-anchor="middle">Direct benchmark observations</text>
 <path d="M271.3333333333333 55 V280" fill="none" stroke="#63706e" stroke-width="1" stroke-dasharray="3 5"/>
 <path d="M555.3333333333334 55 V280" fill="none" stroke="#63706e" stroke-width="1" stroke-dasharray="3 5"/>
 <path d="M145.111 237.000 L147.636 236.985 L150.160 236.942 L152.684 236.870 L155.209 236.769 L157.733 236.641 L160.258 236.485 L162.782 236.302 L165.307 236.093 L167.831 235.857 L170.356 235.595 L172.880 235.307 L175.404 234.993 L177.929 234.655 L180.453 234.292 L182.978 233.905 L185.502 233.494 L188.027 233.060 L190.551 232.602 L193.076 232.122 L195.600 231.619 L198.124 231.094 L200.649 230.547 L203.173 229.979 L205.698 229.390 L208.222 228.780 L210.747 228.150 L213.271 227.500 L215.796 226.830 L218.320 226.141 L220.844 225.433 L223.369 224.707 L225.893 223.963 L228.418 223.201 L230.942 222.421 L233.467 221.625 L235.991 220.812 L238.516 219.982 L241.040 219.136 L243.564 218.275 L246.089 217.399 L248.613 216.508 L251.138 215.602 L253.662 214.682 L256.187 213.748 L258.711 212.801 L261.236 211.841 L263.760 210.868 L266.284 209.883 L268.809 208.886 L271.333 207.877 L273.858 206.856 L276.382 205.825 L278.907 204.784 L281.431 203.732 L283.956 202.670 L286.480 201.599 L289.004 200.519 L291.529 199.430 L294.053 198.332 L296.578 197.227 L299.102 196.114 L301.627 194.993 L304.151 193.866 L306.676 192.732 L309.200 191.592 L311.724 190.446 L314.249 189.294 L316.773 188.138 L319.298 186.976 L321.822 185.811 L324.347 184.641 L326.871 183.467 L329.396 182.290 L331.920 181.110 L334.444 179.928 L336.969 178.743 L339.493 177.556 L342.018 176.368 L344.542 175.179 L347.067 173.988 L349.591 172.798 L352.116 171.607 L354.640 170.416 L357.164 169.227 L359.689 168.038 L362.213 166.850 L364.738 165.665 L367.262 164.481 L369.787 163.300 L372.311 162.121 L374.836 160.946 L377.360 159.774 L379.884 158.606 L382.409 157.442 L384.933 156.283 L387.458 155.129 L389.982 153.980 L392.507 152.837 L395.031 151.700 L397.556 150.569 L400.080 149.445 L402.604 148.329 L405.129 147.219 L407.653 146.118 L410.178 145.025 L412.702 143.940 L415.227 142.864 L417.751 141.798 L420.276 140.741 L422.800 139.694 L425.324 138.658 L427.849 137.632 L430.373 136.617 L432.898 135.614 L435.422 134.623 L437.947 133.644 L440.471 132.677 L442.996 131.723 L445.520 130.783 L448.044 129.856 L450.569 128.943 L453.093 128.045 L455.618 127.161 L458.142 126.292 L460.667 125.439 L463.191 124.601 L465.716 123.780 L468.240 122.975 L470.764 122.187 L473.289 121.416 L475.813 120.663 L478.338 119.927 L480.862 119.210 L483.387 118.512 L485.911 117.833 L488.436 117.173 L490.960 116.533 L493.484 115.913 L496.009 115.313 L498.533 114.735 L501.058 114.177 L503.582 113.641 L506.107 113.127 L508.631 112.635 L511.156 112.166 L513.680 111.720 L516.204 111.297 L518.729 110.898 L521.253 110.523 L523.778 110.173 L526.302 109.847 L528.827 109.546 L531.351 109.271 L533.876 109.022 L536.400 108.799 L538.924 108.603 L541.449 108.433 L543.973 108.291 L546.498 108.177 L549.022 108.091 L551.547 108.033 L554.071 108.004 L556.596 108.000 L559.120 108.000 L561.644 108.000 L564.169 108.000 L566.693 108.000 L569.218 108.000 L571.742 108.000 L574.267 108.000 L576.791 108.000 L579.316 108.000 L581.840 108.000 L584.364 108.000 L586.889 108.000 L589.413 108.000 L591.938 108.000 L594.462 108.000 L596.987 108.000 L599.511 108.000 L602.036 108.000 L604.560 108.000 L607.084 108.000 L609.609 108.000 L612.133 108.000 L614.658 108.000 L617.182 108.000 L619.707 108.000 L622.231 108.000 L624.756 108.000 L627.280 108.000 L629.804 108.000 L632.329 108.000 L634.853 108.000 L637.378 108.000 L639.902 108.000 L642.427 108.000 L644.951 108.000 L647.476 108.000 L650.000 108.000" fill="none" stroke="#146cba" stroke-width="3"/>
@@ -54,5 +54,5 @@ text { fill:#ffffff; }
 <text x="283.3333333333333" y="220" fill="#146cba" font-size="16" text-anchor="start">33.5%</text>
 <text x="567.3333333333334" y="94" fill="#146cba" font-size="16" text-anchor="start">80%</text>
 <text x="567.3333333333334" y="254" fill="#a64d0c" font-size="16" text-anchor="start">20%</text>
-<text x="98" y="57" fill="#a64d0c" font-size="13">No tasks: indexes only</text>
+<text x="98" y="57" fill="#a64d0c" font-size="13">No benchmark score: indexes only</text>
 </svg>

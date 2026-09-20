@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 411" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 60 760 351" role="img" aria-labelledby="title desc">
 <title id="title">Accepted matches add compatible metadata while preserving source evidence</title>
 <desc id="desc">Source identity and variant are checked against catalog candidates. An accepted match attaches metadata; a rejected match retains a qualified source identity without borrowing catalog fields.</desc>
 <style>
@@ -11,7 +11,7 @@ text { fill:#ffffff; }
 [fill="#a64d0c"] { fill:#ffbc7d; } [stroke="#a64d0c"] { stroke:#ffbc7d; }
 }
 </style>
-<text x="40" y="35" font-size="22" fill="#000000" text-anchor="start" font-weight="600">A match adds metadata, not another model’s results</text>
+
 <text x="40" y="94" font-size="18" fill="#000000" text-anchor="start" font-weight="600">Source identity + explicit variant</text>
 <line x1="350" y1="88" x2="430" y2="88" stroke="#63706e" stroke-width="1.5"/>
 <path d="M423.86 91.36 L430 88 L423.86 84.64" fill="none" stroke="#63706e" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" opacity="1"/>

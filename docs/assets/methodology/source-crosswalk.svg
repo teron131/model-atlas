@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 585" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 72 1040 513" role="img" aria-labelledby="title desc">
 <title id="title">Source crosswalk and validation error epsilon</title>
-<desc id="desc">Two source number lines feed one combined result. Solid fusion points average two observations; hollow points use an imputed source result. Shaded bands around hollow points show an illustrative typical prediction error of plus or minus epsilon, here 0.02. These are not confidence intervals or guaranteed bounds. Missing counterparts use an assumed validated offset of 0.02 from a larger calibration population. A separate illustrative rejected crosswalk is marked with an X: validation error 0.04 exceeds the allowed 0.025, so its missing-source predictions are not used. The typical-error bands do not reject individual results.</desc>
+<desc id="desc">Two source number lines feed one combined result. Solid fusion points show the mean of two observations; hollow points use an imputed source result. Shaded bands around hollow points show an illustrative typical prediction error of plus or minus epsilon, here 0.02. These are not confidence intervals or guaranteed bounds. Missing counterparts use an assumed validated offset of 0.02 from a larger calibration population. A separate illustrative rejected crosswalk is marked with an X: validation error 0.04 exceeds the allowed 0.025, so its missing-source predictions are not used. The typical-error bands do not reject individual results.</desc>
 <style>
 text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; fill:#182421; }
 .muted { fill:#63706e; } .axis { stroke:#63706e; stroke-width:1.4; }
@@ -14,7 +14,7 @@ text { fill:#ffffff; } .muted { fill:#a6b2ae; }
 .a { color:#85bfff; } .b { color:#ffbc7d; } .f { color:#62d6b1; }
 }
 </style>
-<text x="50" y="32" font-size="24" font-weight="600">Different coverage, one fused result</text>
+
 <path d="M136.2 150 L145.1 300" class="link"/>
 <path d="M251.9 150 L251.9 300" class="link"/>
 <path d="M251.9 300 L251.9 450" class="link"/>
@@ -46,7 +46,7 @@ text { fill:#ffffff; } .muted { fill:#a6b2ae; }
 <text x="777.1" y="138" font-size="12" class="a ink">Model E 0.79</text>
 <circle cx="866" cy="150" r="5" class="a" fill="currentColor" stroke="currentColor" stroke-width="2"/>
 <text x="875" y="138" font-size="12" class="a ink">Model G 0.90</text>
-<text x="518.9" y="258" font-size="15" text-anchor="middle" class="f ink">Imputed average ±ε</text>
+<text x="518.9" y="258" font-size="15" text-anchor="middle" class="f ink">Imputed mean ±ε</text>
 <text x="50" y="253" font-size="21" class="f ink" font-weight="600">Fusion</text>
 <text x="184" y="253" font-size="14" class="muted">7 results · 50/50</text>
 <g class="f"><rect x="127.3" y="290" width="35.6" height="20" rx="5" fill="currentColor" opacity=".18"/><path d="M127.3 291 V309 M162.9 291 V309" stroke="currentColor" stroke-width="1.5" opacity=".7"/></g>
@@ -92,11 +92,11 @@ text { fill:#ffffff; } .muted { fill:#a6b2ae; }
 <circle cx="527.8" cy="450" r="5" class="b" fill="currentColor" stroke="currentColor" stroke-width="2"/>
 <text x="536.8" y="438" font-size="12" class="b ink">Model F 0.52</text>
 <circle cx="56" cy="514" r="5" class="f" fill="currentColor"/>
-<text x="70" y="519" font-size="14" class="muted">Paired average</text>
+<text x="70" y="519" font-size="14" class="muted">Paired mean</text>
 <circle cx="226" cy="514" r="5" class="f" fill="none" stroke="currentColor" stroke-width="2"/>
-<text x="240" y="519" font-size="14" class="muted">Imputed average</text>
-<text x="50" y="544" font-size="14" class="f ink">Bands show typical error ±ε, here 0.02.</text>
-<text x="50" y="569" font-size="13" class="muted">They are not guaranteed bounds. Missing source results are left blank.</text>
+<text x="240" y="519" font-size="14" class="muted">Imputed mean</text>
+
+
 <text x="655" y="511" font-size="15" font-weight="600" class="rejected ink">Too much validation error → no imputation</text>
 <g class="f"><rect x="665" y="527" width="137.5" height="20" rx="4" fill="currentColor" opacity=".18"/></g>
 <line x1="665" y1="537" x2="940" y2="537" class="axis"/>

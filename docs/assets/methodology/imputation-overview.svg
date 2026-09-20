@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 340" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 62 760 270" role="img" aria-labelledby="title desc">
 <title id="title">Data Imputation</title>
 <desc id="desc">A row of eleven values contains three hollow gaps. Three estimated values below point upward into those gaps.</desc>
 <style>
@@ -19,7 +19,7 @@ text { fill:#ffffff; }
 }
 </style>
 <defs><marker id="fill-gap" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path class="head" d="M0 0 L10 5 L0 10 Z"/></marker></defs>
-<text x="380" y="38" font-size="22" font-weight="600" text-anchor="middle">Data Imputation</text>
+
 <text x="380" y="91" font-size="16" text-anchor="middle">Missing values</text>
 <path class="guide" d="M194 128 V106 H566 V128 M442 106 V128"/>
 <circle cx="70" cy="153" r="13" class="observed"/>
@@ -37,5 +37,5 @@ text { fill:#ffffff; }
 <circle cx="628" cy="153" r="13" class="observed"/>
 <circle cx="690" cy="153" r="13" class="observed"/>
 <path class="guide" d="M194 267 V281 H566 V267 M442 267 V281"/>
-<text x="380" y="315" font-size="16" text-anchor="middle">Estimated values fill the gaps</text>
+<text x="380" y="315" font-size="16" text-anchor="middle">Imputed values</text>
 </svg>

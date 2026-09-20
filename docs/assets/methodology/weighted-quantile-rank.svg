@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 260" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 75 760 175" role="img" aria-labelledby="title desc">
 <title id="title">weightedQuantileRank(): value → percentile</title>
 <desc id="desc">Ten equally weighted peer means: three below 70 count fully, three equal to 70 count half, and four above 70 do not count. The rank is 4.5 out of 10, or 45%.</desc>
 <style>
@@ -9,8 +9,8 @@ text { fill:#ffffff; } .muted { fill:#a6b2ae; } .neutral { color:#a6b2ae; }
 .blue { color:#85bfff; } .teal { color:#62d6b1; } .orange { color:#ffbc7d; }
 }
 </style>
-<text x="40" y="32" font-size="21" font-weight="600">weightedQuantileRank(): value → percentile</text>
-<text x="40" y="60" font-size="14" class="muted">Ten models, one eligible variant each: all reference weights are 1.</text>
+
+
 <text x="156" y="95" text-anchor="middle" font-size="15" class="teal ink">Below 70</text>
 <text x="348" y="95" text-anchor="middle" font-size="15" class="orange ink">Equal to 70</text>
 <text x="572" y="95" text-anchor="middle" font-size="15" class="muted">Above 70</text>
@@ -24,6 +24,6 @@ text { fill:#ffffff; } .muted { fill:#a6b2ae; } .neutral { color:#a6b2ae; }
 <g class="neutral"><rect x="508" y="108" width="62" height="44" rx="3" fill="currentColor" opacity=".16"/><text x="539" y="137" text-anchor="middle" font-size="19">90</text><text x="539" y="184" text-anchor="middle" font-size="18" class="ink">0</text></g>
 <g class="neutral"><rect x="572" y="108" width="62" height="44" rx="3" fill="currentColor" opacity=".16"/><text x="603" y="137" text-anchor="middle" font-size="19">90</text><text x="603" y="184" text-anchor="middle" font-size="18" class="ink">0</text></g>
 <g class="neutral"><rect x="636" y="108" width="62" height="44" rx="3" fill="currentColor" opacity=".16"/><text x="667" y="137" text-anchor="middle" font-size="19">90</text><text x="667" y="184" text-anchor="middle" font-size="18" class="ink">0</text></g>
-<text x="40" y="210" font-size="13" class="muted">Counted weight: 1 + 1 + 1 + ½ + ½ + ½ + 0 + 0 + 0 + 0</text>
+
 <text x="40" y="241" font-size="20" font-weight="600" class="orange ink">weightedQuantileRank(70) = 45% → r = 0.45</text>
 </svg>

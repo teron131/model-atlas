@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 340" role="img" aria-labelledby="title">
+<title id="title">Shared benchmark gaps give 3.75, which imputes Benchmark D at high effort as 63.75</title>
+<style>text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;fill:#182421}.muted{fill:#63706e}.obs{fill:#087f6b}.imp{fill:#a64d0c}.return{fill:none;stroke:#a64d0c;stroke-width:1.5}.flow{fill:none;stroke:#63706e;stroke-width:1.5}.grid{fill:#087f6b;fill-opacity:.09;stroke:#087f6b;stroke-opacity:.25}@media(prefers-color-scheme:dark){text{fill:#ecf0ed}.muted{fill:#a6b2ae}.flow{stroke:#a6b2ae}.obs{fill:#62d6b1}.imp{fill:#ffbc7d}.return{stroke:#ffbc7d}}</style>
+<text x="246" y="24" font-size="14" text-anchor="middle">Benchmark A</text>
+<text x="246" y="45" font-size="13" class="muted" text-anchor="middle">weight 1</text>
+<text x="366" y="24" font-size="14" text-anchor="middle">Benchmark B</text>
+<text x="366" y="45" font-size="13" class="muted" text-anchor="middle">weight 2</text>
+<text x="486" y="24" font-size="14" text-anchor="middle">Benchmark C</text>
+<text x="486" y="45" font-size="13" class="muted" text-anchor="middle">weight 1</text>
+<text x="646" y="24" font-size="14" text-anchor="middle">Benchmark D</text>
+<text x="646" y="45" font-size="13" class="muted" text-anchor="middle">weight 2</text>
+<text x="32" y="104" font-size="17" text-anchor="start">Medium effort</text>
+<rect x="199" y="76" width="94" height="44" rx="3" class="grid"/>
+<text x="246" y="105" font-size="22" text-anchor="middle">60</text>
+<rect x="319" y="76" width="94" height="44" rx="3" class="grid"/>
+<text x="366" y="105" font-size="22" text-anchor="middle">50</text>
+<rect x="439" y="76" width="94" height="44" rx="3" class="grid"/>
+<text x="486" y="105" font-size="22" text-anchor="middle">40</text>
+<rect x="599" y="76" width="94" height="44" rx="3" class="grid"/>
+<text x="646" y="105" font-size="22" text-anchor="middle">60</text>
+<text x="32" y="166" font-size="17" text-anchor="start">High effort</text>
+<rect x="199" y="138" width="94" height="44" rx="3" class="grid"/>
+<text x="246" y="167" font-size="22" text-anchor="middle">70</text>
+<rect x="319" y="138" width="94" height="44" rx="3" class="grid"/>
+<text x="366" y="167" font-size="22" text-anchor="middle">55</text>
+<rect x="439" y="138" width="94" height="44" rx="3" class="grid"/>
+<text x="486" y="167" font-size="22" text-anchor="middle">35</text>
+<rect x="599" y="138" width="94" height="44" rx="3" class="grid" stroke-dasharray="4 4"/>
+<text x="646" y="167" font-size="22" text-anchor="middle">?</text>
+<text x="32" y="214" font-size="15" class="muted" text-anchor="start">High − medium</text>
+<text x="246" y="214" font-size="18" text-anchor="middle">+10</text>
+<text x="366" y="214" font-size="18" text-anchor="middle">+5</text>
+<text x="486" y="214" font-size="18" text-anchor="middle">−5</text>
+<text x="32" y="247" font-size="15" class="muted" text-anchor="start">Apply weights</text>
+<text x="246" y="247" font-size="18" text-anchor="middle">+10 × 1</text>
+<text x="366" y="247" font-size="18" text-anchor="middle">+5 × 2</text>
+<text x="486" y="247" font-size="18" text-anchor="middle">−5 × 1</text>
+<path d="M246 257 V269 H486 V257 M366 257 V285 M361 279 L366 285 L371 279" class="flow"/>
+<text x="32" y="310" font-size="15" class="muted" text-anchor="start">Weighted gap</text>
+<text x="366" y="310" font-size="22" text-anchor="middle">+15 ÷ 4 = +3.75</text>
+<text x="366" y="332" font-size="13" class="muted" text-anchor="middle">total weight: 1 + 2 + 1 = 4</text>
+<path d="M467 304 H555 M549 299 L555 304 L549 309" class="flow"/>
+<text x="646" y="310" font-size="17" text-anchor="middle">60 + 3.75 = <tspan class="imp">63.75</tspan></text>
+<text x="646" y="332" font-size="13" class="imp" text-anchor="middle">imputed</text>
+<path d="M700 98 H746 V304 H734 M740 299 L734 304 L740 309" class="return"/>
+<path d="M646 286 V190 M641 196 L646 190 L651 196" class="return"/>
+</svg>
