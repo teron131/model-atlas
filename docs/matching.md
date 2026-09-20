@@ -110,7 +110,7 @@ Reordered names still have to satisfy the publisher, release, and variant checks
 
 ## Release Proximity for Resource Estimation
 
-Release proximity helps estimate missing resources; it does not establish model identity. The [tiered resource fallback](methodology.md#resource-imputation-from-broader-evidence) starts with broad evidence, then applies supported corrections from the same lab, nearby releases, and the target model's own effort measurements. Sparse local evidence retains the broader estimate instead of defining an unstable correction.
+Release proximity helps estimate missing resources; it does not establish model identity. The [tiered resource fallback](imputation.md#resource-imputation-from-broader-evidence) starts with broad evidence, then applies supported corrections from the same lab, nearby releases, and the target model's own effort measurements. Sparse local evidence retains the broader estimate instead of defining an unstable correction.
 
 Release proximity uses a Gaussian weight centered on the target model's release date, with a standard deviation of 60 days. Both earlier and later releases can contribute; the weight depends on their distance from the target date, not their age today. There is no hard date cutoff or model-name classification. Missing or invalid dates leave the broader lab correction intact. Missing lab identity prevents both lab and release-neighborhood corrections.
 
@@ -124,7 +124,7 @@ Resource fallback works field by field. Catalog input/output prices take precede
 
 Artificial Analysis token prices are USD per million tokens, throughput is output tokens per second, and latency is seconds; total benchmark evaluation costs are never treated as token prices.
 
-Both paths attach benchmark evidence before applying the dashboard inclusion rules described in [Methodology](methodology.md#dashboard-inclusion).
+Both paths attach benchmark evidence before applying the dashboard inclusion rules described in [Methodology](leaderboard-rules.md#dashboard-inclusion).
 
 Serving aliases such as fast, free, latest, preview, high-effort, or dated routes do not automatically become separate public models. Aliases that point to the same underlying model share one canonical identity. Explicit reasoning-effort observations remain separate scored configurations.
 

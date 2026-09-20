@@ -2,7 +2,7 @@
 
 .page {
   --document-tab-height: 48px;
-  --document-navigation-width: 190px;
+  --document-navigation-width: 230px;
   --document-column-gap: clamp(20px, 3vw, 40px);
   position: relative;
   z-index: 1;
@@ -66,13 +66,13 @@
 
 .documentNavigationPanel {
   position: absolute;
-  inset: 0 0 0 auto;
+  inset: 0 auto 0 0;
   box-sizing: border-box;
   width: min(88vw, 360px);
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 16px 18px calc(30px + env(safe-area-inset-bottom));
-  border-left: 1px solid var(--line-strong);
+  border-right: 1px solid var(--line-strong);
   background: var(--paper);
   animation: document-navigation-enter 0.2s ease-out;
 }
@@ -205,15 +205,17 @@
 .documentLayoutWithNavigation {
   grid-template-areas:
     "documents documents"
-    "article navigation";
+    "navigation article";
   grid-template-columns:
-    minmax(0, 1fr)
-    var(--document-navigation-width);
+    var(--document-navigation-width)
+    minmax(0, 1fr);
   column-gap: var(--document-column-gap);
 }
 
 .documentNav {
-  position: relative;
+  position: sticky;
+  top: 0;
+  z-index: 50;
   isolation: isolate;
   grid-area: documents;
   display: flex;
@@ -224,10 +226,20 @@
 }
 
 .contentsToggle {
-  width: var(--document-tab-height);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: auto;
+  padding: 0 14px;
+  font-size: 13px;
   height: auto;
   min-height: calc(var(--document-tab-height) - 2px);
-  border-left: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+}
+
+.currentDocument {
+  display: none;
 }
 
 .contentsToggle[aria-expanded="true"] {
@@ -364,7 +376,7 @@
 
 .article {
   --type-heading-weight: 700;
-  --section-sticky-top: 0px;
+  --section-sticky-top: var(--document-tab-height);
   grid-area: article;
   min-width: 0;
   color: var(--ink);
@@ -718,14 +730,13 @@
   grid-area: navigation;
   position: sticky;
   inset: auto;
-  top: 24px;
+  top: calc(var(--document-tab-height) + 16px);
   z-index: 1;
-  max-height: calc(100dvh - 48px);
+  max-height: calc(100dvh - var(--document-tab-height) - 32px);
 }
 
 .documentNavigationLayer[data-mode="docked"] .documentNavigationBackdrop,
-.documentNavigationLayer[data-mode="docked"] .documentNavigationHeader,
-.documentNavigationLayer[data-mode="docked"] .documentSwitcher {
+.documentNavigationLayer[data-mode="docked"] .documentNavigationHeader {
   display: none;
 }
 
@@ -733,7 +744,7 @@
   position: static;
   inset: auto;
   width: auto;
-  max-height: calc(100dvh - 48px);
+  max-height: calc(100dvh - var(--document-tab-height) - 32px);
   padding: 0;
   overflow-y: auto;
   border: 0;
@@ -743,8 +754,35 @@
   scrollbar-width: thin;
 }
 
+.documentNavigationLayer[data-mode="docked"] .documentSwitcher small {
+  display: none;
+}
+
 .documentNavigationLayer[data-mode="docked"] .outline {
-  margin-top: 0;
+  margin-top: 26px;
+}
+
+@media (max-width: 1099px) {
+  .documentNav ul {
+    display: none;
+  }
+
+  .contentsToggle {
+    border-left: 0;
+    border-right: 1px solid var(--line);
+  }
+
+  .currentDocument {
+    display: block;
+    align-self: center;
+    min-width: 0;
+    padding: 0 14px;
+    overflow: hidden;
+    color: var(--muted);
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 
 @media (max-width: 780px) {
@@ -823,11 +861,48 @@
 @keyframes document-navigation-enter {
   from {
     opacity: 0;
-    transform: translateX(16px);
+    transform: translateX(-16px);
   }
 
   to {
     opacity: 1;
     transform: translateX(0);
   }
+}
+
+/* Page groups and reading-order links reuse the documentation's ruled navigation. */
+.documentGroup + .documentGroup {
+  margin-top: 24px;
+}
+
+.pageSequence {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+  margin-top: 48px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line-strong);
+}
+
+.pageSequence a {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.pageSequence a[rel="next"] {
+  text-align: right;
+}
+
+.pageSequence small {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: var(--type-label-size);
+  text-transform: uppercase;
+}
+
+.pageSequence a:hover span {
+  text-decoration: underline;
 }

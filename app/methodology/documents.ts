@@ -2,33 +2,59 @@
 
 export const DOCUMENTS = [
   {
+    slug: "methodology",
+    title: "Overview",
+    description: "What the four scores mean and where to find the detailed method.",
+    group: "Methodology",
+  },
+  {
+    slug: "intelligence-agentic",
+    title: "Intelligence and Agentic",
+    description: "Benchmark weights, token efficiency, evidence support, and aggregate indexes.",
+    group: "Methodology",
+  },
+  {
+    slug: "imputation",
+    title: "Missing Data and Imputation",
+    description: "How missing quality and resource measurements are estimated and validated.",
+    group: "Methodology",
+  },
+  {
+    slug: "speed-value",
+    title: "Speed and Value",
+    description: "Prices, serving speed, peer comparisons, and resource efficiency.",
+    group: "Methodology",
+  },
+  {
+    slug: "leaderboard-rules",
+    title: "Leaderboard Rules",
+    description: "Model inclusion, score availability, highlights, and comparison graphs.",
+    group: "Methodology",
+  },
+  {
     slug: "standards",
     title: "Standards",
     description: "The evidence a benchmark needs to earn and keep a place in the portfolio.",
+    group: "Reference",
   },
   {
     slug: "benchmarks",
     title: "Benchmarks",
-    description:
-      "Which benchmarks contribute, what they measure, and why their weights and sources were chosen.",
+    description: "Which benchmarks contribute, what they measure, and how they are weighted.",
+    group: "Reference",
   },
   {
     slug: "matching",
     title: "Matching",
-    description:
-      "How results from different sources are matched without confusing models or reasoning efforts.",
-  },
-  {
-    slug: "methodology",
-    title: "Methodology",
-    description:
-      "How benchmark results become scores, what missing evidence means, and why the method works this way.",
+    description: "How source results are matched to the correct model and reasoning effort.",
+    group: "Reference",
   },
   {
     slug: "timeline",
     title: "Timeline",
     description:
-      "How Timeline uses the Intelligence Index to compare model generations through retained benchmarks and a fixed reference scale.",
+      "How the Intelligence Index connects benchmark generations for historical comparison.",
+    group: "Reference",
   },
 ] as const;
 
