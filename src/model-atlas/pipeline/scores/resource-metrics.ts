@@ -237,12 +237,12 @@ export function benchmarkMetricValue(model: BenchmarkMetricModel, key: string): 
 export function benchmarkFusionEstimate(
   model: BenchmarkMetricModel,
   key: string,
-): { value: number; confidence: number } | null {
+): { value: number; evidenceFactor: number } | null {
   const source = asRecord(asRecord(model.scoring_sources)[key]);
   const metadata = asRecord(source.metadata);
   const value = asFiniteNumber(source.canonical_value);
   return metadata.fusion_estimated === true && value != null
-    ? { value, confidence: asFiniteNumber(metadata.fusion_confidence) ?? 0 }
+    ? { value, evidenceFactor: asFiniteNumber(metadata.fusion_confidence) ?? 0 }
     : null;
 }
 
@@ -297,12 +297,12 @@ export function benchmarkTaskMetrics(
   return Object.keys(metrics).length === 0 ? null : metrics;
 }
 
-/** Validated fusion resource estimates enter scoring with their own confidence, never the measured peer or donor population. */
+/** Validated fusion resource estimates enter scoring with their own evidence factor, never the observed reference population. */
 export function benchmarkFusionResourceEstimate(
   model: ResourceMetricModel,
   key: string,
   kind: "cost" | "time" | "tokens" | "output_tokens",
-): { amount: number; confidence: number } | null {
+): { amount: number; evidenceFactor: number } | null {
   const metadata = asRecord(asRecord(asRecord(model.scoring_sources)[key]).metadata);
   const field =
     kind === "time" ? "seconds_per_task" : kind === "cost" ? "cost" : `${kind}_per_task`;
@@ -310,14 +310,17 @@ export function benchmarkFusionResourceEstimate(
   if (metadata[`fusion_${field}_estimated`] === true) {
     const amount = positiveFiniteNumber(metrics[kind === "time" ? "seconds" : kind]);
     if (amount != null)
-      return { amount, confidence: asFiniteNumber(metadata[`fusion_${field}_confidence`]) ?? 0.5 };
+      return {
+        amount,
+        evidenceFactor: asFiniteNumber(metadata[`fusion_${field}_confidence`]) ?? 0.5,
+      };
   }
   if (kind === "time" && metadata.fusion_output_tokens_per_task_estimated === true) {
     const amount = effectiveTaskSeconds(model, { output_tokens: metrics.output_tokens });
     if (amount != null)
       return {
         amount,
-        confidence: asFiniteNumber(metadata.fusion_output_tokens_per_task_confidence) ?? 0.5,
+        evidenceFactor: asFiniteNumber(metadata.fusion_output_tokens_per_task_confidence) ?? 0.5,
       };
   }
   return null;

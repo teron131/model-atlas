@@ -25,7 +25,7 @@ function fixture(taskCount: number, indexCount: number, indexImportance = 0.5) {
   const keys = [...tasks, ...indexes];
   const config: ScoringConfig = {
     ...STAGE_CONFIG.scoring,
-    qualityTaskFullCount: Math.max(1, taskCount),
+    qualityBenchmarkFullCount: Math.max(1, taskCount),
     intelligenceBenchmarkKeys: keys,
     agenticBenchmarkKeys: keys,
     benchmarkPortfolio: Object.fromEntries(

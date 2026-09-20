@@ -104,7 +104,7 @@ const line = models.map((model, i) => ({
 }));
 const fitted = qualityLocalResiduals(line, 0.5, 0.35, 3);
 assert.equal(fitted.residuals[20], 0);
-assert.equal(fitted.supportConfidence[20], 1);
+assert.equal(fitted.peerSupport[20], 1);
 // Endpoint targets use the nearest independent peer quality rather than extrapolating the trend.
 assert.ok(fitted.residuals[0]! < 0);
 assert.ok(fitted.residuals[40]! > 0);
@@ -128,9 +128,9 @@ const noPeers = qualityLocalResiduals(
   0.35,
   3,
 );
-assert.ok(noPeers.supportConfidence.every((value) => value === 0));
+assert.ok(noPeers.peerSupport.every((value) => value === 0));
 const sparse = qualityLocalResiduals(line.slice(0, 3), 0.5, 0.35, 3);
-assert.ok(sparse.supportConfidence.every((value) => value < 1));
+assert.ok(sparse.peerSupport.every((value) => value < 1));
 // The same resource amount must not jump when comparison quality crosses a peer endpoint.
 const boundaryResidual = (quality: number) =>
   qualityLocalResiduals(

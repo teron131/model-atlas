@@ -88,7 +88,7 @@ export function qualityLocalResourceScores<T extends { id?: unknown; name?: unkn
   qualityCoordinate: BenchmarkResourceQualityCoordinate,
   calibrationMask?: readonly boolean[],
 ): Array<number | null> {
-  const { residuals, supportConfidence } = qualityLocalResourceComparisons(
+  const { residuals, peerSupport } = qualityLocalResourceComparisons(
     models,
     qualityCoordinates,
     resourceSignals,
@@ -96,7 +96,7 @@ export function qualityLocalResourceScores<T extends { id?: unknown; name?: unkn
     calibrationMask,
   );
   const supportedResiduals = residuals.map((residual, index) =>
-    (supportConfidence[index] ?? 0) > 0 ? residual : null,
+    (peerSupport[index] ?? 0) > 0 ? residual : null,
   );
   const calibrationResiduals = supportedResiduals.map((residual, index) =>
     calibrationMask?.[index] === false ? null : residual,
@@ -131,12 +131,12 @@ export function qualityLocalResourceScores<T extends { id?: unknown; name?: unkn
     if (residual == null) {
       return null;
     }
-    const confidence = supportConfidence[index] ?? 0;
+    const support = peerSupport[index] ?? 0;
     const hybridScore = meanOfFinite([
       minMaxScores[index] ?? null,
       percentileScores[index] ?? null,
     ]);
-    return 50 + confidence * ((hybridScore ?? 50) - 50);
+    return 50 + support * ((hybridScore ?? 50) - 50);
   });
 }
 

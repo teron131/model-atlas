@@ -1,4 +1,4 @@
-/** Resource evidence owns benchmark eligibility, measurement semantics, and estimate lookup shared by sibling ratios, tier priors, and scoring projections. */
+/** Resource evidence owns benchmark eligibility, measurement semantics, and estimate lookup shared by effort ratios, broader evidence, and scoring projections. */
 
 import { indexPolicy } from "../../../benchmarks/index-policy";
 import type { ScoringConfig } from "../../../config/stage";
@@ -18,7 +18,7 @@ export type TaskResourceKind = (typeof TASK_RESOURCE_KINDS)[number];
 
 export type ImputedTaskResource = {
   amount: number;
-  confidence: number;
+  evidenceFactor: number;
 };
 
 export type EffortResourceImputation = {

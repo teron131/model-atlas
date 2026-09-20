@@ -1,8 +1,8 @@
-/** Quality coordinates own observed normalization anchors and the bounded Agentic token adjustment used by scoring and sibling estimation. */
+/** Quality coordinates own observed normalization anchors and the bounded Agentic token adjustment used by scoring and effort estimation. */
 
 import {
   calibrationObservations,
-  effectiveModelCount,
+  distinctModelCount,
 } from "../../benchmarks/calibration-population";
 import type {
   BenchmarkDimension,
@@ -31,9 +31,9 @@ import {
   type SeparatedBenchmarkResourceEvidence,
 } from "./resource-metrics";
 
-/** Normalized sibling estimates affect scoring only; observations and evidence counts remain separate. */
+/** Normalized effort estimates affect scoring only; observations and evidence counts remain separate. */
 export type QualityScoringContext = {
-  siblingQualityEstimates?: ReadonlyMap<string, ReadonlyMap<string, number>>;
+  effortQualityEstimates?: ReadonlyMap<string, ReadonlyMap<string, number>>;
   benchmarkRangesByKey: ReadonlyMap<string, MinMaxRange | null>;
   agenticTokenAdjustments?: ReadonlyMap<string, AgenticTokenAdjustment>;
 };
@@ -157,7 +157,7 @@ export function buildAgenticTokenScoringContext(
       const observations = calibrationObservations(models, (model) =>
         benchmarkMetricValue(model, key) == null ? null : (directTokensByModel.get(model) ?? null),
       );
-      if (effectiveModelCount(observations) < 3) continue;
+      if (distinctModelCount(observations) < 3) continue;
       const tokens = observations.map(({ value }) => value);
       // The first supported measure owns the benchmark, even when its token population is flat.
       if (!(Math.min(...tokens) < Math.max(...tokens))) break;
@@ -184,8 +184,8 @@ export function buildAgenticTokenScoringContext(
         );
         if (value == null) continue;
         const direct = directTokensByModel.get(model) != null;
-        const credit = direct ? 1 : (estimates[index]?.confidence ?? 0);
-        const multiplier = 1 + credit * (multipliers[index]! - 1);
+        const evidenceFactor = direct ? 1 : (estimates[index]?.evidenceFactor ?? 0);
+        const multiplier = 1 + evidenceFactor * (multipliers[index]! - 1);
         // Estimated resource use cannot move normalization anchors or become peer evidence.
         values.push(value * (direct ? multiplier : 1));
         multipliersByObservation.set(
@@ -226,7 +226,7 @@ function separatedTokenMultipliers(
       const evidence = sourceEvidenceByModel.get(model);
       return evidence == null ? null : evidence.amount;
     });
-    if (effectiveModelCount(observations) < 3) continue;
+    if (distinctModelCount(observations) < 3) continue;
     const tokens = observations.map(({ value }) => value);
     if (!(Math.min(...tokens) < Math.max(...tokens))) continue;
     const multipliers = qualityAdjustedResourceMultipliers(
@@ -295,7 +295,7 @@ export function normalizedQualityBenchmarkValue(
 }
 
 /** Stable identity lookup survives candidate enrichment and keeps quality dimensions separate. */
-export function siblingQualityKey(
+export function effortQualityKey(
   model: { id?: unknown; name?: unknown; reasoning_effort?: unknown },
   dimension: BenchmarkDimension,
 ): string {

@@ -1,8 +1,8 @@
-/** Benchmark imputation learns and validates contextual predictions from direct evidence while retaining separate confidence and observation maps. */
+/** Benchmark imputation learns and validates contextual predictions from direct evidence while retaining separate evidence-factor and observation maps. */
 
 import {
   calibrationObservations,
-  effectiveModelCount,
+  distinctModelCount,
 } from "../../../benchmarks/calibration-population";
 import type { BenchmarkDimension } from "../../../benchmarks/factory";
 import { BENCHMARK_CATALOG, benchmarkDimensionWeight } from "../../../benchmarks/registry";
@@ -28,14 +28,14 @@ import { benchmarkFusionEstimate, benchmarkMetricValue } from "../resource-metri
 
 export type BenchmarkImputationByModel = ReadonlyMap<JsonObject, ReadonlyMap<string, number>>;
 
-export type BenchmarkImputationConfidenceByModel = ReadonlyMap<
+export type BenchmarkImputationFactorsByModel = ReadonlyMap<
   JsonObject,
   ReadonlyMap<string, number>
 >;
 
 type BenchmarkImputationDiagnostic = {
   validationSampleCount: number;
-  effectiveModelCount: number;
+  distinctModelCount: number;
   normalizedMedianAbsoluteError: number | null;
   normalizedBaselineMedianAbsoluteError: number | null;
   imputationAllowed: boolean;
@@ -54,15 +54,15 @@ type BenchmarkScoringModel = BenchmarkScoringModelIdentity & {
 
 export type BenchmarkScoringPreparation = {
   imputationByModel: BenchmarkImputationByModel;
-  imputationConfidenceByModel: BenchmarkImputationConfidenceByModel;
+  imputationFactorsByModel: BenchmarkImputationFactorsByModel;
   imputationByVariant: ReadonlyMap<string, ReadonlyMap<string, number>>;
-  imputationConfidenceByVariant: ReadonlyMap<string, ReadonlyMap<string, number>>;
+  imputationFactorsByVariant: ReadonlyMap<string, ReadonlyMap<string, number>>;
   qualityContext: QualityScoringContext;
 };
 
 type MutableImputationMaps = {
   imputationByModel: Map<JsonObject, Map<string, number>>;
-  imputationConfidenceByModel: Map<JsonObject, Map<string, number>>;
+  imputationFactorsByModel: Map<JsonObject, Map<string, number>>;
 };
 
 type ImputationPreparation = MutableImputationMaps & {
@@ -89,14 +89,14 @@ export function benchmarkImputationValues(
   );
 }
 
-/** Resolve prepared benchmark confidence after candidate and public-model projection replace row identity. */
-export function benchmarkImputationConfidence(
+/** Resolve prepared benchmark evidence factors after candidate and public-model projection replace row identity. */
+export function benchmarkImputationFactors(
   preparation: BenchmarkScoringPreparation,
   model: BenchmarkScoringModelIdentity,
 ): ReadonlyMap<string, number> | undefined {
   return (
-    preparation.imputationConfidenceByModel.get(model as JsonObject) ??
-    preparation.imputationConfidenceByVariant.get(scoringVariantKey(model))
+    preparation.imputationFactorsByModel.get(model as JsonObject) ??
+    preparation.imputationFactorsByVariant.get(scoringVariantKey(model))
   );
 }
 
@@ -112,14 +112,14 @@ export function withoutBenchmarkImputationForModels(
     imputationByModel: new Map(
       [...preparation.imputationByModel].filter(([model]) => !modelSet.has(model)),
     ),
-    imputationConfidenceByModel: new Map(
-      [...preparation.imputationConfidenceByModel].filter(([model]) => !modelSet.has(model)),
+    imputationFactorsByModel: new Map(
+      [...preparation.imputationFactorsByModel].filter(([model]) => !modelSet.has(model)),
     ),
     imputationByVariant: new Map(
       [...preparation.imputationByVariant].filter(([key]) => !variantKeys.has(key)),
     ),
-    imputationConfidenceByVariant: new Map(
-      [...preparation.imputationConfidenceByVariant].filter(([key]) => !variantKeys.has(key)),
+    imputationFactorsByVariant: new Map(
+      [...preparation.imputationFactorsByVariant].filter(([key]) => !variantKeys.has(key)),
     ),
   };
 }
@@ -129,10 +129,10 @@ export function benchmarkQualityEvidence(
   model: BenchmarkScoringModel,
   key: string,
   preparation?: BenchmarkScoringPreparation,
-): { confidence: number; value: number } | null {
+): { evidenceFactor: number; value: number } | null {
   const direct = benchmarkMetricValue(model, key);
   if (direct != null) {
-    return { confidence: 1, value: direct };
+    return { evidenceFactor: 1, value: direct };
   }
   const fusion = benchmarkFusionEstimate(model, key);
   if (fusion != null) return fusion;
@@ -140,10 +140,10 @@ export function benchmarkQualityEvidence(
     return null;
   }
   const value = benchmarkImputationValues(preparation, model)?.get(key) ?? null;
-  const confidence = benchmarkImputationConfidence(preparation, model)?.get(key) ?? null;
-  return value == null || confidence == null || confidence <= 0
+  const evidenceFactor = benchmarkImputationFactors(preparation, model)?.get(key) ?? null;
+  return value == null || evidenceFactor == null || evidenceFactor <= 0
     ? null
-    : { confidence: clamp01(confidence), value };
+    : { evidenceFactor: clamp01(evidenceFactor), value };
 }
 
 type DimensionBenchmarkContext = {
@@ -218,7 +218,7 @@ function dimensionBenchmarkContext(
 }
 
 /** Convert held-out normalized error into partial evidence credit for a validated prediction. */
-function imputationConfidence(diagnostic: BenchmarkImputationDiagnostic): number {
+function imputationEvidenceFactor(diagnostic: BenchmarkImputationDiagnostic): number {
   const normalizedError = diagnostic.normalizedMedianAbsoluteError;
   if (!diagnostic.imputationAllowed || normalizedError == null) {
     return 0;
@@ -258,7 +258,7 @@ function buildDimensionPredictor(
     ...observation,
     value: benchmarkMetricValue(observation.item, targetBenchmarkKey) as number,
   }));
-  if (effectiveModelCount(referenceContextScores) < MIN_IMPUTATION_REFERENCE_MODELS) {
+  if (distinctModelCount(referenceContextScores) < MIN_IMPUTATION_REFERENCE_MODELS) {
     return null;
   }
   return (model) => {
@@ -414,10 +414,10 @@ function imputationDiagnostic(
     (model) => normalizedAbsoluteErrorByModel.get(model) ?? null,
   );
   const normalizedMedianAbsoluteError = weightedMedianOfFinite(validationErrors);
-  const validationModelCount = effectiveModelCount(validationErrors);
+  const validationModelCount = distinctModelCount(validationErrors);
   return {
     validationSampleCount: validationErrors.length,
-    effectiveModelCount: validationModelCount,
+    distinctModelCount: validationModelCount,
     normalizedMedianAbsoluteError,
     normalizedBaselineMedianAbsoluteError: weightedMedianOfFinite(
       calibrationObservations(models, (model) => baselineErrorByModel.get(model) ?? null),
@@ -441,7 +441,7 @@ export function prepareBenchmarkImputation(
     ...new Set([...scoringConfig.intelligenceBenchmarkKeys, ...scoringConfig.agenticBenchmarkKeys]),
   ];
   const imputationByModel = new Map<JsonObject, Map<string, number>>();
-  const imputationConfidenceByModel = new Map<JsonObject, Map<string, number>>();
+  const imputationFactorsByModel = new Map<JsonObject, Map<string, number>>();
   const diagnosticsByKey = new Map<string, BenchmarkImputationDiagnostic>();
   const rangesByKey = observedRangesByBenchmark(models, benchmarkKeys);
   for (const key of targetKeys ?? benchmarkKeys) {
@@ -486,14 +486,14 @@ export function prepareBenchmarkImputation(
       const imputedValuesByKey = imputationByModel.get(model) ?? new Map<string, number>();
       imputedValuesByKey.set(key, prediction.value);
       imputationByModel.set(model, imputedValuesByKey);
-      const confidenceByKey = imputationConfidenceByModel.get(model) ?? new Map<string, number>();
-      confidenceByKey.set(key, imputationConfidence(diagnostic) * prediction.contextSupport);
-      imputationConfidenceByModel.set(model, confidenceByKey);
+      const factorsByKey = imputationFactorsByModel.get(model) ?? new Map<string, number>();
+      factorsByKey.set(key, imputationEvidenceFactor(diagnostic) * prediction.contextSupport);
+      imputationFactorsByModel.set(model, factorsByKey);
     }
   }
   return {
     imputationByModel,
-    imputationConfidenceByModel,
+    imputationFactorsByModel,
     imputationDiagnosticsByKey: diagnosticsByKey,
   };
 }
@@ -519,29 +519,29 @@ export function prepareBenchmarkScoring(
   models: JsonObject[],
   scoringConfig: ScoringConfig,
 ): BenchmarkScoringPreparation {
-  const { imputationByModel, imputationConfidenceByModel } = prepareBenchmarkImputation(
+  const { imputationByModel, imputationFactorsByModel } = prepareBenchmarkImputation(
     models,
     scoringConfig,
   );
   const qualityContext = buildQualityScoringContext(models, scoringConfig);
   const imputationByVariant = new Map<string, ReadonlyMap<string, number>>();
-  const imputationConfidenceByVariant = new Map<string, ReadonlyMap<string, number>>();
+  const imputationFactorsByVariant = new Map<string, ReadonlyMap<string, number>>();
   for (const model of models) {
     const key = scoringVariantKey(model);
     const values = imputationByModel.get(model);
-    const confidence = imputationConfidenceByModel.get(model);
+    const factorsByKey = imputationFactorsByModel.get(model);
     if (values != null) {
       imputationByVariant.set(key, values);
     }
-    if (confidence != null) {
-      imputationConfidenceByVariant.set(key, confidence);
+    if (factorsByKey != null) {
+      imputationFactorsByVariant.set(key, factorsByKey);
     }
   }
   return {
     imputationByModel,
-    imputationConfidenceByModel,
+    imputationFactorsByModel,
     imputationByVariant,
-    imputationConfidenceByVariant,
+    imputationFactorsByVariant,
     qualityContext,
   };
 }

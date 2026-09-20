@@ -17,7 +17,7 @@ import {
   imputedTaskResource,
   type TaskResourceKind,
 } from "./imputation";
-import { coverageConfidence, logInputMinMaxScores } from "./normalization";
+import { coverageMultiplier, logInputMinMaxScores } from "./normalization";
 import {
   benchmarkResourceEfficiencyScores,
   modelBalancedMinMaxScores,
@@ -43,7 +43,7 @@ type WeightedResourceEfficiencyEvidence = {
 
 type ResourceScoreResult = {
   scores: Array<number | null>;
-  confidences: Array<number | null>;
+  evidenceShares: Array<number | null>;
 };
 
 type ResourceScoreInputs = {
@@ -131,7 +131,7 @@ function taskResourceEfficiencyEvidence(
           calibration: benchmarkMetricValue(model, key) != null,
           quality: quality.value,
           resource: Math.log(directAmount),
-          weight: quality.confidence,
+          weight: quality.evidenceFactor,
         };
       }
       const estimate =
@@ -144,7 +144,7 @@ function taskResourceEfficiencyEvidence(
             calibration: false,
             quality: quality.value,
             resource: Math.log(estimate.amount),
-            weight: quality.confidence * estimate.confidence,
+            weight: quality.evidenceFactor * estimate.evidenceFactor,
           };
     });
     if (!evidence.some((item) => item != null)) {
@@ -168,7 +168,7 @@ function taskResourceEfficiencyEvidence(
   return { benchmarkKeys, signalsByModel };
 }
 
-function evidenceConfidence(
+function evidenceShare(
   signals: WeightedSignal[],
   totalWeight: number,
   score: number | null,
@@ -195,7 +195,7 @@ function defaultVariantCoverageMultipliers(
         ? index
         : selectedIndex,
     );
-    const multiplier = coverageConfidence(
+    const multiplier = coverageMultiplier(
       finiteSignalWeight(signalsByModel[defaultIndex] ?? []),
       totalWeight,
     );
@@ -241,12 +241,12 @@ function scoreResourceDimension(
   const scores = estimates.map((estimate, index) =>
     estimate == null ? null : estimate * (coverageMultipliers[index] ?? 0),
   );
-  const confidences = signalsByModel.map((signals, index) =>
-    evidenceConfidence(signals, totalWeight, scores[index] ?? null),
+  const evidenceShares = signalsByModel.map((signals, index) =>
+    evidenceShare(signals, totalWeight, scores[index] ?? null),
   );
   return {
     scores,
-    confidences,
+    evidenceShares,
   };
 }
 
@@ -348,8 +348,8 @@ export function attachFinalScores(
       },
       confidence: {
         ...model.confidence,
-        speed: speed.confidences[index] ?? null,
-        value: value.confidences[index] ?? null,
+        speed: speed.evidenceShares[index] ?? null,
+        value: value.evidenceShares[index] ?? null,
       },
     };
   });

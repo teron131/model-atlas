@@ -16,19 +16,19 @@ import type {
   ModelAtlasConfidence,
   ModelAtlasSpeed,
 } from "../model-types";
-import { evidenceMassConfidence } from "./normalization";
+import { evidenceRetentionFactor } from "./normalization";
 import { blendQualityEvidence } from "./quality-blend";
 import {
+  effortQualityKey,
   normalizedQualityBenchmarkValue,
   type QualityScoringContext,
-  siblingQualityKey,
 } from "./quality-context";
 import { benchmarkFusionEstimate, benchmarkMetricValue } from "./resource-metrics";
 
 type BenchmarkScoreInput = {
   key: string;
   value: number | null;
-  evidenceConfidence: number;
+  evidenceFactor: number;
   observed: boolean;
   scoreEstimate?: boolean;
   scoreExcluded?: boolean;
@@ -64,7 +64,7 @@ function selectedBenchmarkScoreInputs(
   qualityContext: QualityScoringContext,
   scoringConfig: ScoringConfig,
   imputedValuesByKey: ReadonlyMap<string, number> = new Map(),
-  imputedConfidenceByKey: ReadonlyMap<string, number> = new Map(),
+  imputedFactorsByKey: ReadonlyMap<string, number> = new Map(),
   benchmarkWeightMultipliersByKey: ReadonlyMap<string, number> = new Map(),
 ): BenchmarkScoreInput[] {
   const inputs: BenchmarkScoreInput[] = [];
@@ -78,36 +78,35 @@ function selectedBenchmarkScoreInputs(
     inputs.push(
       benchmarkScoreInput(model, key, dimension, qualityContext, dimensionWeight, {
         value: imputedValuesByKey.get(key) ?? null,
-        confidence: imputedConfidenceByKey.get(key) ?? 0,
+        evidenceFactor: imputedFactorsByKey.get(key) ?? 0,
       }),
     );
   }
   return inputs;
 }
 
-/** Quality scores use observation precedence, scoring-only sibling estimates, and variant index exclusions. */
+/** Quality scores use observation precedence, scoring-only effort estimates, and variant index exclusions. */
 function benchmarkScoreInput(
   model: JsonObject,
   key: string,
   dimension: BenchmarkDimension,
   context: QualityScoringContext,
   weight: number,
-  imputed?: { value: number | null; confidence: number },
+  imputed?: { value: number | null; evidenceFactor: number },
 ): BenchmarkScoreInput {
   const observedValue = benchmarkMetricValue(model, key);
   const fusionEstimate = benchmarkFusionEstimate(model, key);
-  const siblingEstimate = context.siblingQualityEstimates
-    ?.get(siblingQualityKey(model, dimension))
+  const effortEstimate = context.effortQualityEstimates
+    ?.get(effortQualityKey(model, dimension))
     ?.get(key);
-  const scoreEstimate =
-    observedValue == null && (fusionEstimate != null || siblingEstimate != null);
+  const scoreEstimate = observedValue == null && (fusionEstimate != null || effortEstimate != null);
   return {
     key,
     value:
       fusionEstimate != null
         ? normalizedQualityBenchmarkValue(model, key, fusionEstimate.value, dimension, context)
         : scoreEstimate
-          ? (siblingEstimate ?? null)
+          ? (effortEstimate ?? null)
           : normalizedQualityBenchmarkValue(
               model,
               key,
@@ -115,10 +114,10 @@ function benchmarkScoreInput(
               dimension,
               context,
             ),
-    evidenceConfidence:
+    evidenceFactor:
       observedValue != null
         ? 1
-        : (fusionEstimate?.confidence ?? (imputed?.value == null ? 0 : imputed.confidence)),
+        : (fusionEstimate?.evidenceFactor ?? (imputed?.value == null ? 0 : imputed.evidenceFactor)),
     observed: observedValue != null,
     scoreEstimate,
     scoreExcluded: excludesVariantIndex(model, key),
@@ -128,45 +127,46 @@ function benchmarkScoreInput(
 }
 
 /** Regularize sparse high quality means toward neutral without rewarding below-neutral results. */
-function evidenceRegularizedQualityScore(qualityMean: number, evidenceReliability: number): number {
+function evidenceRegularizedQualityScore(qualityMean: number, retentionFactor: number): number {
   return qualityMean <= QUALITY_REGULARIZATION_TARGET
     ? qualityMean
     : QUALITY_REGULARIZATION_TARGET +
-        (qualityMean - QUALITY_REGULARIZATION_TARGET) * evidenceReliability;
+        (qualityMean - QUALITY_REGULARIZATION_TARGET) * retentionFactor;
 }
 
-/** Blend each variant's direct task mean with index support, reaching the curated endpoint at the configured direct-task count. */
+/** Blend each variant's individual-benchmark mean with index support, reaching the curated endpoint at the configured observed-benchmark count. */
 function indexBlendedQualityScore(
   benchmarkScoreInputs: BenchmarkScoreInput[],
-  fullTaskCount: number,
+  fullBenchmarkCount: number,
 ): number | null {
   const observed = benchmarkScoreInputs.filter(
     ({ observed, value, weight, scoreExcluded }) =>
       !scoreExcluded && observed && value != null && weight > 0,
   );
-  const tasks = benchmarkScoreInputs.filter(
+  const benchmarks = benchmarkScoreInputs.filter(
     ({ key, observed, scoreEstimate, value, weight }) =>
       !isAggregateIndex(key) && (observed || scoreEstimate) && value != null && weight > 0,
   );
-  const observedTaskKeys = tasks.filter(({ observed }) => observed).map(({ key }) => key);
+  const observedBenchmarkKeys = benchmarks.filter(({ observed }) => observed).map(({ key }) => key);
   const indexes = observed.filter(({ key }) => isAggregateIndex(key));
   return blendQualityEvidence(
-    tasks,
+    benchmarks,
     indexes.map((part) => ({
       ...part,
       weight:
-        part.weight * qualityIndexBreadth(part.key, observedTaskKeys, part.representedBenchmarks),
+        part.weight *
+        qualityIndexBreadth(part.key, observedBenchmarkKeys, part.representedBenchmarks),
     })),
-    observedTaskKeys.length,
-    fullTaskCount,
+    observedBenchmarkKeys.length,
+    fullBenchmarkCount,
   ).value;
 }
 
-/** Score direct evidence with index support converging to the 80/20 task/index blend; supported sibling estimates enter the task mean without advancing direct coverage. */
+/** Score direct evidence with index support converging to the 80/20 benchmark/index blend; supported effort estimates enter the benchmark mean without advancing direct coverage. */
 function qualityScore(
   benchmarkScoreInputs: BenchmarkScoreInput[],
   evidenceThresholds: QualityCoverageThresholds[BenchmarkDimension],
-  fullTaskCount: number,
+  fullBenchmarkCount: number,
 ): QualityScoreResult {
   const qualityMean = weightedMeanOfFinite(
     benchmarkScoreInputs.flatMap(({ value, observed, scoreEstimate, scoreExcluded, weight }) =>
@@ -176,31 +176,27 @@ function qualityScore(
   if (qualityMean == null) {
     return { score: null, evidenceSupport: null };
   }
-  const evidenceMass = benchmarkScoreInputs.reduce(
-    (total, { evidenceConfidence, weight }) => total + evidenceConfidence * weight,
+  const supportedWeight = benchmarkScoreInputs.reduce(
+    (total, { evidenceFactor, weight }) => total + evidenceFactor * weight,
     0,
   );
-  const evidenceReliability = evidenceMassConfidence(
-    evidenceMass,
+  const retentionFactor = evidenceRetentionFactor(
+    supportedWeight,
     evidenceThresholds.floor,
     evidenceThresholds.full,
   );
-  const possibleEvidenceMass = benchmarkScoreInputs.reduce(
-    (total, { weight }) => total + weight,
-    0,
-  );
-  const evidenceSupport =
-    possibleEvidenceMass > 0 ? clamp01(evidenceMass / possibleEvidenceMass) : null;
+  const totalWeight = benchmarkScoreInputs.reduce((total, { weight }) => total + weight, 0);
+  const evidenceSupport = totalWeight > 0 ? clamp01(supportedWeight / totalWeight) : null;
   const hasObservedIndex = benchmarkScoreInputs.some(
     ({ key, observed, scoreExcluded }) => !scoreExcluded && observed && isAggregateIndex(key),
   );
   if (hasObservedIndex) {
     return {
-      score: indexBlendedQualityScore(benchmarkScoreInputs, fullTaskCount),
+      score: indexBlendedQualityScore(benchmarkScoreInputs, fullBenchmarkCount),
       evidenceSupport,
     };
   }
-  const regularizedScore = evidenceRegularizedQualityScore(qualityMean, evidenceReliability);
+  const regularizedScore = evidenceRegularizedQualityScore(qualityMean, retentionFactor);
   return {
     score: regularizedScore,
     evidenceSupport,
@@ -285,7 +281,7 @@ export function buildComponentScoreResult(
   scoringConfig: ScoringConfig,
   qualityContext: QualityScoringContext,
   imputedValuesByKey: ReadonlyMap<string, number> = new Map(),
-  imputedConfidenceByKey: ReadonlyMap<string, number> = new Map(),
+  imputedFactorsByKey: ReadonlyMap<string, number> = new Map(),
   benchmarkWeightMultipliersByKey: ReadonlyMap<string, number> = new Map(),
 ): ComponentScoreResult {
   const intelligenceBenchmarkInputs = selectedBenchmarkScoreInputs(
@@ -295,7 +291,7 @@ export function buildComponentScoreResult(
     qualityContext,
     scoringConfig,
     imputedValuesByKey,
-    imputedConfidenceByKey,
+    imputedFactorsByKey,
     benchmarkWeightMultipliersByKey,
   );
   const agenticBenchmarkInputs = selectedBenchmarkScoreInputs(
@@ -305,18 +301,18 @@ export function buildComponentScoreResult(
     qualityContext,
     scoringConfig,
     imputedValuesByKey,
-    imputedConfidenceByKey,
+    imputedFactorsByKey,
     benchmarkWeightMultipliersByKey,
   );
   const intelligence = qualityScore(
     intelligenceBenchmarkInputs,
     scoringConfig.qualityCoverage.intelligence,
-    scoringConfig.qualityTaskFullCount,
+    scoringConfig.qualityBenchmarkFullCount,
   );
   const agentic = qualityScore(
     agenticBenchmarkInputs,
     scoringConfig.qualityCoverage.agentic,
-    scoringConfig.qualityTaskFullCount,
+    scoringConfig.qualityBenchmarkFullCount,
   );
   const speedScore = buildSpeedComponentScore(speed, speedOutputTokenAnchors);
   return {

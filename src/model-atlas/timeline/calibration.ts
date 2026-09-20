@@ -30,7 +30,7 @@ export const DEFAULT_TIMELINE_PARAMETERS: TimelineParameters = {
 };
 
 // Use the main app's direct-coverage endpoint for the same shared blend.
-const FULL_TASK_COUNT = STAGE_CONFIG.scoring.qualityTaskFullCount;
+const FULL_BENCHMARK_COUNT = STAGE_CONFIG.scoring.qualityBenchmarkFullCount;
 
 export const DEFAULT_TIMELINE_ANCHORS: TimelineAnchors = {
   mode: "models",
@@ -196,8 +196,8 @@ export function calibrateTimeline(
       indexes.length || tasks.length >= MINIMUM_TIMELINE_TASKS ? tasks : [],
       indexes,
       // A few observed tasks cannot represent a full retained portfolio; reuse the shared taper on dimension-specific coverage.
-      Math.min(tasks.length, direct * FULL_TASK_COUNT),
-      FULL_TASK_COUNT,
+      Math.min(tasks.length, direct * FULL_BENCHMARK_COUNT),
+      FULL_BENCHMARK_COUNT,
     );
     const parts = blend.parts;
     const projection = summarizeParts(parts, blend.value);

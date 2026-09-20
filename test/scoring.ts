@@ -35,9 +35,9 @@ import {
   prepareBenchmarkScoring,
   withoutBenchmarkImputationForModels,
 } from "../src/model-atlas/pipeline/scores/imputation";
-import { prepareSiblingQualityScoringContext } from "../src/model-atlas/pipeline/scores/imputation/sibling-quality";
+import { prepareEffortQualityScoringContext } from "../src/model-atlas/pipeline/scores/imputation/effort-quality";
 import {
-  evidenceMassConfidence,
+  evidenceRetentionFactor,
   logInputMinMaxScores,
   logitUnitScore,
   minMaxRange,
@@ -101,11 +101,11 @@ const rawAgentBenchmarkRanges = new Map([
 ]);
 assertClose(normalizedMetricValue(rawAgentBenchmarkRanges, "agent_arena", 0), 52.3319);
 assertClose(normalizedMetricValue(rawAgentBenchmarkRanges, "vending_bench_2", 9_000), 82.3416);
-assertClose(evidenceMassConfidence(1, 1, 3), 0);
-assertClose(evidenceMassConfidence(2, 1, 3), 0.5);
-assertClose(evidenceMassConfidence(3, 1, 3), 1);
+assertClose(evidenceRetentionFactor(1, 1, 3), 0);
+assertClose(evidenceRetentionFactor(2, 1, 3), 0.5);
+assertClose(evidenceRetentionFactor(3, 1, 3), 1);
 assertThrowsWithMessage(
-  () => evidenceMassConfidence(1, 3, 1),
+  () => evidenceRetentionFactor(1, 3, 1),
   "Evidence confidence requires finite mass and 0 <= floor < full, received 1, 3, 1",
 );
 
@@ -1301,7 +1301,7 @@ assertClose(
         siblingTarget,
         siblingCostKeys[4] ?? "",
         "cost",
-      )?.confidence,
+      )?.evidenceFactor,
   1,
 );
 assertClose(
@@ -1323,7 +1323,7 @@ assertClose(
         siblingTarget,
         siblingCostKeys[4] ?? "",
         "time",
-      )?.confidence,
+      )?.evidenceFactor,
   1,
 );
 const directOnlySiblingScores = attachFinalScores(siblingCostModels, siblingCostConfig);
@@ -1512,8 +1512,8 @@ const duplicatedModelDiagnostic = buildBenchmarkImputationDiagnosticsByKey(
 ).get("target");
 assertEqual(modelBalancedDiagnostic?.validationSampleCount, 7);
 assertEqual(duplicatedModelDiagnostic?.validationSampleCount, 9);
-assertEqual(modelBalancedDiagnostic?.effectiveModelCount, 6);
-assertEqual(duplicatedModelDiagnostic?.effectiveModelCount, 6);
+assertEqual(modelBalancedDiagnostic?.distinctModelCount, 6);
+assertEqual(duplicatedModelDiagnostic?.distinctModelCount, 6);
 assertClose(
   duplicatedModelDiagnostic?.normalizedMedianAbsoluteError,
   modelBalancedDiagnostic?.normalizedMedianAbsoluteError ?? 0,
@@ -1557,7 +1557,7 @@ const sparseFrontierDiagnostic = buildBenchmarkImputationDiagnosticsByKey(
   frontierPercentileConfig,
 ).get("agents_last_exam");
 assertEqual(sparseFrontierDiagnostic?.validationSampleCount, 0);
-assertEqual(sparseFrontierDiagnostic?.effectiveModelCount, 0);
+assertEqual(sparseFrontierDiagnostic?.distinctModelCount, 0);
 assertEqual(sparseFrontierDiagnostic?.normalizedMedianAbsoluteError, null);
 assertEqual(sparseFrontierDiagnostic?.imputationAllowed, false);
 
@@ -1591,7 +1591,7 @@ const unreliableDiagnostic = buildBenchmarkImputationDiagnosticsByKey(
   unreliableConfig,
 ).get("target");
 assertEqual(unreliableDiagnostic?.validationSampleCount, 5);
-assertEqual(unreliableDiagnostic?.effectiveModelCount, 5);
+assertEqual(unreliableDiagnostic?.distinctModelCount, 5);
 assertClose(unreliableDiagnostic?.normalizedMedianAbsoluteError, 50);
 assertEqual(unreliableDiagnostic?.imputationAllowed, false);
 assertEqual(
@@ -1641,7 +1641,7 @@ const sharedTargetImputation = buildBenchmarkImputationByModel(
 assertClose(sharedTargetImputation, 12.5);
 assertClose(
   prepareBenchmarkScoring(sharedTargetModels, sharedTargetConfig)
-    .imputationConfidenceByModel.get(sharedTargetModel)
+    .imputationFactorsByModel.get(sharedTargetModel)
     ?.get("shared_target"),
   1,
 );
@@ -1865,7 +1865,7 @@ assertEqual(
 );
 assertEqual(
   prepareBenchmarkScoring(sparseBenchmarkContextModels, contextualImputationConfig)
-    .imputationConfidenceByModel.get(sparseBenchmarkContextModels.at(-1) ?? {})
+    .imputationFactorsByModel.get(sparseBenchmarkContextModels.at(-1) ?? {})
     ?.has("target") ?? false,
   false,
 );
@@ -2050,7 +2050,7 @@ const siblingCalibrationModels = [
     benchmarks: { b1: 100, b2: 100, b3: 100, b4: 100 },
   },
 ];
-const siblingContext = prepareSiblingQualityScoringContext(
+const siblingContext = prepareEffortQualityScoringContext(
   siblingCalibrationModels,
   siblingCalibrationConfig,
   buildQualityScoringContext(siblingCalibrationModels, siblingCalibrationConfig),
@@ -2080,13 +2080,13 @@ assert.equal("b4" in siblingCalibrationModels[1]!.benchmarks, false);
 const sparseSiblings = siblingCalibrationModels.map((model, index) =>
   index === 1 ? { ...model, benchmarks: { b1: 40, b2: 40 } } : model,
 );
-const insufficientSiblingContext = prepareSiblingQualityScoringContext(
+const insufficientSiblingContext = prepareEffortQualityScoringContext(
   sparseSiblings,
   siblingCalibrationConfig,
   buildQualityScoringContext(siblingCalibrationModels, siblingCalibrationConfig),
 );
 assert.ok(
-  !insufficientSiblingContext.siblingQualityEstimates?.has(
+  !insufficientSiblingContext.effortQualityEstimates?.has(
     JSON.stringify(["sibling-calibration", "xhigh", "intelligence"]),
   ),
 );
@@ -2106,7 +2106,7 @@ function undercoveredBenchmarks(value: number, count = undercoveredBenchmarkKeys
 
 const undercoveredConfig: ScoringConfig = {
   ...STAGE_CONFIG.scoring,
-  qualityTaskFullCount: 8,
+  qualityBenchmarkFullCount: 8,
   intelligenceBenchmarkKeys: ["aa_intelligence_index", "vals_index", ...undercoveredBenchmarkKeys],
   agenticBenchmarkKeys: [],
   benchmarkPortfolio: {
@@ -2255,7 +2255,7 @@ const fourTaskModel = {
   ...coveredModel,
   benchmarks: { vals_index: 100, b1: 60, b2: 60, b3: 60, b4: 60 },
 };
-const fourTaskConfig = { ...undercoveredConfig, qualityTaskFullCount: 4 };
+const fourTaskConfig = { ...undercoveredConfig, qualityBenchmarkFullCount: 4 };
 assertClose(
   buildComponentScoreResult(
     fourTaskModel,
@@ -2287,7 +2287,7 @@ assertClose(
     undercoveredModel,
     qualityTestSpeed,
     [],
-    { ...undercoveredConfig, qualityTaskFullCount: 1 },
+    { ...undercoveredConfig, qualityBenchmarkFullCount: 1 },
     undercoveredContext,
   ).componentScores?.intelligence_score,
   0.8 * 80 + (0.2 * (70 * 10 + 30 * 7)) / 17,
@@ -2637,10 +2637,13 @@ const tokenEstimateTarget = {
 const tokenEstimatePopulation = [...tokenModels, tokenEstimateTarget];
 const tokenEstimateBase = buildQualityScoringContext(tokenEstimatePopulation, tokenConfig);
 const tokenEstimateKey = "name:estimated-token\u0000low";
-const estimatedTokenContext = (confidence: number) =>
+const estimatedTokenContext = (evidenceFactor: number) =>
   buildAgenticTokenScoringContext(tokenEstimatePopulation, tokenConfig, tokenEstimateBase, {
     byVariant: new Map([
-      [tokenEstimateKey, new Map([["deep_swe", { output_tokens: { amount: 10, confidence } }]])],
+      [
+        tokenEstimateKey,
+        new Map([["deep_swe", { output_tokens: { amount: 10, evidenceFactor } }]]),
+      ],
     ]),
   });
 const tokenEstimateScore = (context: ReturnType<typeof estimatedTokenContext>) =>

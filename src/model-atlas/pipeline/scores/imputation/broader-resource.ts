@@ -23,24 +23,24 @@ import {
 
 const LAB_SHRINKAGE = 16;
 const LOCAL_SHRINKAGE = 4;
-const MINIMUM_DONORS = 2;
+const MINIMUM_REFERENCE_MODELS = 2;
 const RELEASE_PROXIMITY_DAYS = 60;
 const MILLISECONDS_PER_DAY = 86_400_000;
 
-type Donor = {
-  family: string;
+type ReferenceModel = {
+  modelKey: string;
   lab: string | null;
   releaseTime: number | null;
   ratios: Map<string, number>;
 };
 type Prior = {
   global: Map<string, number>;
-  donors: Donor[];
+  referenceModels: ReferenceModel[];
   residuals: { lab: string | null; releaseTime: number | null; value: number }[];
 };
 
-/** Prepare reusable external priors; every target family is excluded from its own donor population. */
-export function prepareTieredResourceEstimator(
+/** Prepare reusable external priors; every target model is excluded from its own reference population. */
+export function prepareBroaderResourceEstimator(
   models: readonly ModelAtlasCandidate[],
   config: ScoringConfig,
   kind: TaskResourceKind,
@@ -50,34 +50,34 @@ export function prepareTieredResourceEstimator(
   key: string,
 ) => ImputedTaskResource | null {
   const keys = resourceImputationKeys(config, kind);
-  const families = new Map<string, Map<string, ModelAtlasCandidate>>();
+  const variantsByModel = new Map<string, Map<string, ModelAtlasCandidate>>();
   for (const model of models) {
     const effort = canonicalReasoningEffort(model.reasoning_effort);
     if (effort == null) continue;
-    const family = canonicalModelKey(model);
-    const variants = families.get(family) ?? new Map<string, ModelAtlasCandidate>();
+    const modelKey = canonicalModelKey(model);
+    const variants = variantsByModel.get(modelKey) ?? new Map<string, ModelAtlasCandidate>();
     if (!variants.has(effort)) variants.set(effort, model);
-    families.set(family, variants);
+    variantsByModel.set(modelKey, variants);
   }
   const priors = new Map<string, Prior>();
   return (target, source, key) => {
-    const family = canonicalModelKey(target);
+    const modelKey = canonicalModelKey(target);
     const targetEffort = canonicalReasoningEffort(target.reasoning_effort);
     const sourceEffort = canonicalReasoningEffort(source.reasoning_effort);
     const sourceAmount = observedResource(source, key, kind);
     if (
       !keys.includes(key) ||
-      family !== canonicalModelKey(source) ||
+      modelKey !== canonicalModelKey(source) ||
       targetEffort == null ||
       sourceEffort == null ||
       targetEffort === sourceEffort ||
       sourceAmount == null
     )
       return null;
-    const cacheKey = JSON.stringify([family, targetEffort, sourceEffort]);
+    const cacheKey = JSON.stringify([modelKey, targetEffort, sourceEffort]);
     let prior = priors.get(cacheKey);
     if (prior == null) {
-      prior = buildPrior(families, family, targetEffort, sourceEffort, keys, kind);
+      prior = buildPrior(variantsByModel, modelKey, targetEffort, sourceEffort, keys, kind);
       priors.set(cacheKey, prior);
     }
     const global = prior.global.get(key);
@@ -85,21 +85,24 @@ export function prepareTieredResourceEstimator(
     const lab =
       target.provider == null
         ? []
-        : prior.residuals.filter((donor) => donor.lab === target.provider);
+        : prior.residuals.filter((referenceModel) => referenceModel.lab === target.provider);
     const labDelta = shrink(
-      lab.map((donor) => donor.value),
+      lab.map((referenceModel) => referenceModel.value),
       0,
       LAB_SHRINKAGE,
     );
     const releaseTime = parsedReleaseTime(target.release_date);
-    const neighbors = lab.flatMap((donor) => {
-      if (releaseTime == null || donor.releaseTime == null) return [];
-      const days = (donor.releaseTime - releaseTime) / MILLISECONDS_PER_DAY;
+    const neighbors = lab.flatMap((referenceModel) => {
+      if (releaseTime == null || referenceModel.releaseTime == null) return [];
+      const days = (referenceModel.releaseTime - releaseTime) / MILLISECONDS_PER_DAY;
       return [
-        { value: donor.value, weight: Math.exp(-0.5 * (days / RELEASE_PROXIMITY_DAYS) ** 2) },
+        {
+          value: referenceModel.value,
+          weight: Math.exp(-0.5 * (days / RELEASE_PROXIMITY_DAYS) ** 2),
+        },
       ];
     });
-    const support = neighbors.reduce((sum, donor) => sum + donor.weight, 0);
+    const support = neighbors.reduce((sum, referenceModel) => sum + referenceModel.weight, 0);
     const nearbyMedian = weightedMedianOfFinite(neighbors);
     const releaseDelta =
       nearbyMedian == null
@@ -115,33 +118,33 @@ export function prepareTieredResourceEstimator(
         : [Math.log(targetAmount / anchorAmount) - baseline];
     });
     const logRatio = global + shrink(own, releaseDelta, LOCAL_SHRINKAGE);
-    const ratios = prior.donors.flatMap((donor) => {
-      const ratio = donor.ratios.get(key);
+    const ratios = prior.referenceModels.flatMap((referenceModel) => {
+      const ratio = referenceModel.ratios.get(key);
       return ratio == null ? [] : [ratio];
     });
     const disagreement = medianOfFinite(ratios.map((ratio) => Math.abs(ratio - logRatio)));
-    const confidence =
+    const evidenceFactor =
       disagreement == null
         ? 0
         : (ratios.length / (ratios.length + LOCAL_SHRINKAGE)) *
           clamp01(1 - disagreement / Math.LN2);
     const amount = positiveFiniteNumber(sourceAmount * Math.exp(logRatio));
-    return amount == null || confidence <= 0 ? null : { amount, confidence };
+    return amount == null || evidenceFactor <= 0 ? null : { amount, evidenceFactor };
   };
 }
 
-/** Each model contributes one transition ratio per task and one median residual to its lab and release neighborhood. */
+/** Each model contributes one transition ratio per benchmark and one median residual to its lab and release neighborhood. */
 function buildPrior(
-  families: Map<string, Map<string, ModelAtlasCandidate>>,
+  variantsByModel: Map<string, Map<string, ModelAtlasCandidate>>,
   excluded: string,
   targetEffort: string,
   sourceEffort: string,
   keys: string[],
   kind: TaskResourceKind,
 ): Prior {
-  const donors: Donor[] = [];
-  for (const [family, variants] of families) {
-    if (family === excluded) continue;
+  const referenceModels: ReferenceModel[] = [];
+  for (const [modelKey, variants] of variantsByModel) {
+    if (modelKey === excluded) continue;
     const target = variants.get(targetEffort);
     const source = variants.get(sourceEffort);
     if (target == null || source == null) continue;
@@ -152,8 +155,8 @@ function buildPrior(
       if (a != null && b != null) ratios.set(key, Math.log(a / b));
     }
     if (ratios.size)
-      donors.push({
-        family,
+      referenceModels.push({
+        modelKey,
         lab: target.provider,
         releaseTime: parsedReleaseTime(target.release_date),
         ratios,
@@ -161,22 +164,26 @@ function buildPrior(
   }
   const global = new Map<string, number>();
   for (const key of keys) {
-    const values = donors.flatMap((donor) =>
-      donor.ratios.has(key) ? [donor.ratios.get(key)!] : [],
+    const values = referenceModels.flatMap((referenceModel) =>
+      referenceModel.ratios.has(key) ? [referenceModel.ratios.get(key)!] : [],
     );
-    if (values.length >= MINIMUM_DONORS) global.set(key, medianOfFinite(values)!);
+    if (values.length >= MINIMUM_REFERENCE_MODELS) global.set(key, medianOfFinite(values)!);
   }
-  const residuals = donors.flatMap((donor) => {
-    const values = [...donor.ratios].flatMap(([key, ratio]) => {
-      const peers = donors.flatMap((peer) =>
-        peer.family !== donor.family && peer.ratios.has(key) ? [peer.ratios.get(key)!] : [],
+  const residuals = referenceModels.flatMap((referenceModel) => {
+    const values = [...referenceModel.ratios].flatMap(([key, ratio]) => {
+      const peers = referenceModels.flatMap((peer) =>
+        peer.modelKey !== referenceModel.modelKey && peer.ratios.has(key)
+          ? [peer.ratios.get(key)!]
+          : [],
       );
-      return peers.length >= MINIMUM_DONORS ? [ratio - medianOfFinite(peers)!] : [];
+      return peers.length >= MINIMUM_REFERENCE_MODELS ? [ratio - medianOfFinite(peers)!] : [];
     });
     const value = medianOfFinite(values);
-    return value == null ? [] : [{ lab: donor.lab, releaseTime: donor.releaseTime, value }];
+    return value == null
+      ? []
+      : [{ lab: referenceModel.lab, releaseTime: referenceModel.releaseTime, value }];
   });
-  return { global, donors, residuals };
+  return { global, referenceModels, residuals };
 }
 
 /** External priors require measured quality and measured resources; throughput-derived time is confined to within-model ratios. */

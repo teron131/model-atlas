@@ -1,7 +1,7 @@
 /** Model-balanced additive crosswalks reconcile sources onto source A or weighted aggregate targets. */
 
 import { clamp01, weightedMedianOfFinite } from "../math-utils";
-import { calibrationObservations, effectiveModelCount } from "./calibration-population";
+import { calibrationObservations, distinctModelCount } from "./calibration-population";
 
 type ModelIdentity = {
   id?: unknown;
@@ -47,7 +47,7 @@ export function buildAdditiveSourceCrosswalk<T extends ModelIdentity>(
     const sourceA = options.sourceAValue(item);
     return sourceB == null || sourceA == null ? null : sourceB - sourceA;
   });
-  const overlapModelCount = effectiveModelCount(offsets);
+  const overlapModelCount = distinctModelCount(offsets);
   const delta = weightedMedianOfFinite(offsets);
   const validationErrorByItem = new Map<T, number>();
   for (const offset of offsets) {
@@ -65,7 +65,7 @@ export function buildAdditiveSourceCrosswalk<T extends ModelIdentity>(
     items,
     (item) => validationErrorByItem.get(item) ?? null,
   );
-  const validationModelCount = effectiveModelCount(validationErrors);
+  const validationModelCount = distinctModelCount(validationErrors);
   const validationMedianAbsoluteError = weightedMedianOfFinite(validationErrors);
   const imputationAllowed =
     options.minimumEffectiveModels > 0 &&
