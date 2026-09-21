@@ -85,13 +85,15 @@ function addVersionEvidence(
   evidenceByFamily.set(family, evidence);
 }
 
-/** Use catalog and Vals agreement on a dated release tag to resolve source-route aliases. */
+/** Use catalog plus a dated source label or Vals agreement to resolve an undated source route to its current release. */
 export function buildVersionReplacementMatchSlugOverrides(
   sourceData: ModelAtlasSourceData,
 ): ReadonlyMap<string, string> {
   const sourceIdByFamily = new Map<string, string>();
+  const sourceLabelEvidenceByFamily = new Map<string, Set<string>>();
   for (const row of sourceData.artificialAnalysis.rows) {
-    const sourceId = asRecord(row).model_id;
+    const record = asRecord(row);
+    const sourceId = record.model_id;
     if (typeof sourceId !== "string") {
       continue;
     }
@@ -99,6 +101,13 @@ export function buildVersionReplacementMatchSlugOverrides(
     const family = artificialAnalysisSourceFamily(sourceId);
     if (sourceSlug != null && family === normalizeModelToken(sourceSlug)) {
       sourceIdByFamily.set(family, sourceId);
+      for (const label of [record.name, record.short_name, record.shortName]) {
+        if (typeof label !== "string") continue;
+        const matchSlug = datedReleaseExtension(family, label);
+        if (matchSlug != null) {
+          addVersionEvidence(sourceLabelEvidenceByFamily, family, matchSlug);
+        }
+      }
     }
   }
 
@@ -125,12 +134,15 @@ export function buildVersionReplacementMatchSlugOverrides(
   const overridesBySourceId = new Map<string, string>();
   for (const [family, catalogEvidence] of catalogEvidenceByFamily) {
     const sourceId = sourceIdByFamily.get(family);
-    const valsEvidence = valsEvidenceByFamily.get(family);
-    if (sourceId == null || catalogEvidence.size !== 1 || valsEvidence?.size !== 1) {
+    const corroboratingEvidence = new Set([
+      ...(sourceLabelEvidenceByFamily.get(family) ?? []),
+      ...(valsEvidenceByFamily.get(family) ?? []),
+    ]);
+    if (sourceId == null || catalogEvidence.size !== 1 || corroboratingEvidence.size !== 1) {
       continue;
     }
     const [matchSlug] = catalogEvidence;
-    if (matchSlug != null && valsEvidence.has(matchSlug)) {
+    if (matchSlug != null && corroboratingEvidence.has(matchSlug)) {
       overridesBySourceId.set(sourceId, matchSlug);
     }
   }

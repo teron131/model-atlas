@@ -27,6 +27,7 @@ import {
   withoutBenchmarkImputationForModels,
 } from "../scores/imputation";
 import { prepareEffortQualityScoringContext } from "../scores/imputation/effort-quality";
+import { blendPairwiseQualityScores } from "../scores/pairwise-quality";
 import { buildAgenticTokenScoringContext } from "../scores/quality-context";
 import { applyResourceEvidenceRequirements } from "../scores/resource-metrics";
 import { buildComponentScoreResult, observedBenchmarkCount } from "../scores/score-builders";
@@ -115,20 +116,23 @@ export function prepareModelSelection(
     scoringConfig,
     scoringPreparation.qualityContext,
   );
-  const qualityScoredCandidates = provisionalCandidates.map((model, index) => {
-    const row = asRecord(modelRows[index]);
-    const result = buildComponentScoreResult(
-      asRecord(model),
-      model.speed,
-      openRouterData.outputTokenAnchors,
-      scoringConfig,
-      scoringPreparation.qualityContext,
-      benchmarkImputationValues(scoringPreparation, row),
-      benchmarkImputationFactors(scoringPreparation, row),
-      versionReplacementBenchmarkWeights(row, scoringConfig),
-    );
-    return { ...model, component_scores: result.componentScores, confidence: result.confidence };
-  });
+  const qualityScoredCandidates = blendPairwiseQualityScores(
+    provisionalCandidates.map((model, index) => {
+      const row = asRecord(modelRows[index]);
+      const result = buildComponentScoreResult(
+        asRecord(model),
+        model.speed,
+        openRouterData.outputTokenAnchors,
+        scoringConfig,
+        scoringPreparation.qualityContext,
+        benchmarkImputationValues(scoringPreparation, row),
+        benchmarkImputationFactors(scoringPreparation, row),
+        versionReplacementBenchmarkWeights(row, scoringConfig),
+      );
+      return { ...model, component_scores: result.componentScores, confidence: result.confidence };
+    }),
+    scoringConfig,
+  );
   if (capabilityState) {
     capabilityState = advanceCapabilities(
       capabilityState,

@@ -2,7 +2,7 @@
 
 ## How Intelligence and Agentic Are Calculated
 
-Intelligence and Agentic combine benchmark results separately for each model and reasoning effort. The sections below explain normalization and weights, the observed models used for comparisons, and the token adjustment applied to Agentic benchmark scores. Missing-result estimates are explained in [Missing Data and Imputation](imputation.md). This page then covers evidence support and how individual benchmarks combine with aggregate indexes. Prices and runtimes do not affect either capability score.
+Intelligence and Agentic combine benchmark results separately for each model and reasoning effort. The sections below explain normalization and weights, the observed models used for comparisons, the shared-benchmark comparison applied to Intelligence, and the token adjustment applied to Agentic benchmark scores. Missing-result estimates are explained in [Missing Data and Imputation](imputation.md). This page then covers evidence support and how individual benchmarks combine with aggregate indexes. Prices and runtimes do not affect either capability score.
 
 ### Benchmark Scores and Dimension Weights
 
@@ -138,9 +138,91 @@ The adjusted $z^A$ enters the Agentic mean, index blend, and effort comparisons.
 
 Token use changes neither evidence weights nor inclusion requirements. It can indirectly change Value through the Agentic score. Aggregate token counts do not distinguish successful completion from early termination or prove that an effort setting caused an efficiency gain.
 
+### Shared-Benchmark Comparisons for Intelligence
+
+Two models can earn similar ordinary scores from different benchmark baskets. The pairwise calculation compares each pair on the benchmarks both actually report, then fits those comparisons together into one ordering. Its contribution receives 20% of the Intelligence blend; the ordinary benchmark-and-index score receives 80%.
+
+**Compare shared observations**
+
+For each individual Intelligence benchmark, use the observed min–max normalized scores $q_{m,b}$ defined above. Normalized scores of 90 versus 89 contribute a one-point difference; 90 versus 50 contribute forty points. Aggregate indexes, crosswalks, and imputed values do not enter this comparison. Missing observations create no comparison and do not count as losses.
+
+Compare variants from different base models only. For $M_b$ distinct base models reporting benchmark $b$, assign each comparison the weight:
+
+$$
+\lambda_{i,j,b}=\frac{\omega_{b,I}a_{i,b}a_{j,b}}{M_b-1}.
+$$
+
+Here $\omega_{b,I}$ is the benchmark's Intelligence weight, and $a_{i,b}$ is the variant's share of its base model's reference mass. Each base model shares one unit across its observed efforts. Summed over its comparisons, each base model therefore receives one benchmark weight, regardless of how many effort settings it reports. Benchmarks with fewer than two base models supply no pairwise evidence; their ordinary score contributions remain available.
+
+For a particular model pair, keeping one edge per shared benchmark is equivalent to using their weighted mean margin and the sum of those edge weights. The graph fit uses all pairs together, so the final ordering also depends on how each model compares with other models.
+
+**Fit the comparison graph**
+
+Each model variant is a node; each shared benchmark supplies a weighted comparison edge. Fit one rating $\theta_m$ per variant in the largest connected component by minimizing disagreement with the measured margins:
+
+$$
+\underset{\theta}{\operatorname{minimize}}\sum_{b}\sum_{i<j}\lambda_{i,j,b}\left[(\theta_i-\theta_j)-(q_{i,b}-q_{j,b})\right]^2.
+$$
+
+These comparisons need not agree perfectly: A may beat B, B may beat C, and C may beat A on different shared baskets. Least squares finds a compromise, with larger edge weights making disagreement more costly. It does not guarantee that every direct pairwise winner ranks higher globally.
+
+![Three hypothetical models have partially overlapping benchmark coverage. Models A and B share Benchmark A, models A and C share Benchmark B, and models B and C share Benchmark C. Each pair compares only its common benchmark, and the graph fit connects those comparisons into one ordering.](../assets/methodology/graph-laplacian.svg)
+
+The illustration shows three models from a larger normalization population; models defining each benchmark's 0 and 100 endpoints are omitted. No benchmark is shared by all three pictured models. Each link compares matching benchmark results, and their hypothetical gaps agree. With several shared benchmarks, a pair's comparison combines their weighted differences.
+
+**What the Laplacian does**
+
+The Laplacian is a table of coefficients for calculating weighted rating differences. Its A–A cell is not a comparison of Model A against itself. To see why the diagonal is positive and the other entries are negative, write out Model A's comparisons with B and C.
+
+![Three models connect through common benchmarks with comparison weights 2.5, 1, and 0.5. Each colored link appears as a negative weight in two mirrored matrix cells. The diagonal totals are 3.5 for Model A, 3 for Model B, and 1.5 for Model C.](../assets/methodology/laplacian-link.svg)
+
+In the illustration, A's comparison with B has weight 2.5 and its comparison with C has weight 1. Using A, B, and C as shorthand for their ratings, add the two weighted differences and expand:
+
+$$
+\begin{aligned}
+2.5(A-B)+1(A-C)
+&=2.5A-2.5B+A-C\\
+&=3.5A-2.5B-1C.
+\end{aligned}
+$$
+
+The matrix stores those coefficients in columns A, B, and C: **[3.5, −2.5, −1]**. The positive 3.5 comes from combining the two own-rating terms, 2.5A and A. The negative coefficients subtract the neighbors' ratings. They do not say who won, and the positive diagonal does not mean A beat itself.
+
+The other rows follow the same recipe:
+
+| Model's row | Weighted comparisons | Coefficients in columns A, B, C |
+| --- | --- | --- |
+| A | $2.5(A-B)+1(A-C)$ | $[3.5,-2.5,-1]$ |
+| B | $2.5(B-A)+0.5(B-C)$ | $[-2.5,3,-0.5]$ |
+| C | $1(C-A)+0.5(C-B)$ | $[-1,-0.5,1.5]$ |
+
+If all three ratings are equal, each weighted difference is zero. That is why each row's positive coefficient balances its negative coefficients: the calculation measures relative gaps, not the absolute rating level.
+
+With several neighbors, each diagonal entry sums the weights touching that model and each off-diagonal entry is the negative total weight between two models. No direct comparison gives an off-diagonal zero. The weighted graph Laplacian $L$ therefore describes the comparison connections, while the observed benchmark margins enter separately through a vector $h$. The solver adjusts the ratings to bring their weighted gaps into agreement with that evidence.
+
+Each row of the incidence matrix $B$ contains $+1$ for the left model and $-1$ for the right model of an edge. With edge weights in the diagonal matrix $W$ and observed score differences in $d$, the fitted ratings solve:
+
+$$
+L=B^\top W B,\qquad h=B^\top Wd,\qquad (L+\varepsilon I)\theta=h.
+$$
+
+The implementation applies the Laplacian directly from the edge list and solves this system with conjugate gradient, without allocating a dense model-by-model matrix. The small ridge $\varepsilon=10^{-8}$ adds a squared-rating penalty and anchors the otherwise arbitrary common offset; it is a numerical setting, not the 20% policy weight. Models outside the largest connected component retain their ordinary Intelligence score because separate components have no shared rating origin.
+
+**Map the fitted ordering and blend**
+
+Convert the fitted ratings to model-balanced percentile ranks $p_m$ on a 0–1 scale. A percentile is not itself an Atlas score, so map it back through the weighted distribution of ordinary, unregularized Intelligence scores for eligible fitted variants. If $Q_S$ is that distribution's weighted quantile function, blend:
+
+$$
+S^{\text{pair}}_{m,I}=0.8S_{m,I}+0.2Q_S(p_m).
+$$
+
+The mapping expresses a percentile position in ordinary Intelligence score units. Observed differences influence the fitted ordering, but the mapped contribution borrows its spacing from the ordinary score distribution; it does not preserve latent rating distances or guarantee that the blended distribution stays unchanged. Agentic retains its existing calculation, including the token-efficiency adjustment above.
+
+For example, an ordinary score of 70 and a mapped pairwise score of 80 blend to 72 before coverage retention. Apply the existing coverage multiplier once to that combined score. The 20% weight expresses how much influence to give this second interpretation of the direct benchmark evidence; it does not represent independent evidence or a statistically fitted optimum.
+
 ### Evidence Support and Quality Regularization
 
-Evidence support shows how much of the benchmark portfolio supports a model’s scores. Apply it after combining individual benchmarks and eligible indexes: at or below 10% coverage, multiply the entire score by 0.85; as coverage rises, increase the multiplier smoothly; at 60% coverage, keep the original score. The same rule applies to scores below 50 and to models with aggregate indexes.
+Evidence support shows how much of the benchmark portfolio supports a model’s scores. Apply it after combining individual benchmarks and eligible indexes and, for Intelligence, after the shared-benchmark blend: at or below 10% coverage, multiply the entire score by 0.85; as coverage rises, increase the multiplier smoothly; at 60% coverage, keep the original score. The same rule applies to scores below 50 and to models with aggregate indexes.
 
 **Count each result’s evidence**
 
@@ -186,10 +268,10 @@ The multiplier stays between 0.85 and 1. Adding unobserved benchmarks to the sel
 
 **Apply the score reduction**
 
-The unified score $S_{m,d}$ uses individual benchmarks, eligible indexes, accepted source crosswalks, and supported estimates across reasoning efforts. Agentic uses the token-adjusted benchmark scores. Multiply the entire score by $r_{m,d}$ to obtain the adjusted score $\widetilde S_{m,d}$:
+The unified score $S_{m,d}$ uses individual benchmarks, eligible indexes, accepted source crosswalks, and supported estimates across reasoning efforts. Agentic uses the token-adjusted benchmark scores. Intelligence then applies the shared-benchmark blend, producing $S^{\text{pair}}_{m,I}$; for Agentic, define $S^{\text{pair}}_{m,A}=S_{m,A}$. Multiply the resulting score by $r_{m,d}$ to obtain the adjusted score $\widetilde S_{m,d}$:
 
 $$
-\widetilde S_{m,d}=r_{m,d}S_{m,d}.
+\widetilde S_{m,d}=r_{m,d}S^{\text{pair}}_{m,d}.
 $$
 
 At 10% coverage, a score of 80 becomes 68 and a score of 40 becomes 34. At 35% coverage, the multiplier is 0.925; at 60% coverage it is 1.
@@ -238,6 +320,7 @@ These values are scoring-policy choices, not fitted claims about model behavior.
 | Parameter | Value | Why it exists |
 | --- | ---: | --- |
 | Quality regularization | 85% retention through 10% evidence coverage; smooth rise to 100% retention at 60% coverage | Discounts the entire score for missing portfolio coverage while limiting the reduction to 15%. |
+| Shared-benchmark Intelligence blend | 20% pairwise, 80% ordinary score | Gives shared benchmark comparisons explicit influence, mapped onto the ordinary score scale; sparse benchmarks still contribute to the ordinary score. |
 | Direct benchmark multiplier | 1.5 | Gives specific benchmark evidence modestly more influence than opaque represented index breadth without restoring a separate category-level blend. |
 | Aggregate-index breadth | Represented benchmark count after exact known overlap deductions | Gives broad indexes influence in proportion to their published evidence while counting known direct and cross-index overlap once. |
 | ECI breadth | 7.5, the median fixed-index breadth | Avoids model-specific fitted counts changing the categorical influence of one opaque index. |

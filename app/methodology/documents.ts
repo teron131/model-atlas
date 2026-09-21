@@ -84,6 +84,8 @@ export type TableOfContentsItem = {
 
 const METHODOLOGY_ASSETS = {
   "reference-balance.svg": { directory: "methodology", width: 760, height: 347 },
+  "graph-laplacian.svg": { directory: "methodology", width: 760, height: 420 },
+  "laplacian-link.svg": { directory: "methodology", width: 760, height: 560 },
   "resource-publication-gate.svg": { directory: "methodology", width: 760, height: 275 },
   "resource-tier-shrinkage.svg": { directory: "methodology", width: 760, height: 300 },
   "common-variant-basket.svg": { directory: "methodology", width: 760, height: 260 },

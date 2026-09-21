@@ -397,6 +397,7 @@ const scoringConfig = {
   },
   qualityCoverageMinimumRetention: 1,
   directBenchmarkWeightMultiplier: 1,
+  pairwiseIntelligenceWeight: 0,
 } as const;
 const imputationByModel = buildBenchmarkImputationByModel(scoringRows, scoringConfig);
 const qualityScoringContext = buildQualityScoringContext(scoringRows, scoringConfig);
