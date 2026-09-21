@@ -1,4 +1,4 @@
-/** Share manifest revalidation while loading leaderboard and Intelligence Index artifacts independently on demand. */
+/** Read the local development checkpoint or share production manifest revalidation across runtime artifacts. */
 
 import { buildCurrentModelAtlasMetadata } from "../stats/payload/metadata";
 import type { ModelAtlasPayload } from "../stats/types";
@@ -13,6 +13,7 @@ import {
   snapshotObject,
   snapshotUrl,
 } from "./snapshots/manifest";
+import { readDatabasePayload } from "./sqlite-payload";
 
 type ArtifactCache<T> = {
   hash?: string;
@@ -34,8 +35,11 @@ const snapshotReadState = globalThis as typeof globalThis & {
 };
 const DISPLAY_SNAPSHOT_CACHE_MS = 30_000;
 
-/** Dashboard reads never fetch, decompress, or parse historical index evidence. */
+/** An explicit local override reads the SQLite checkpoint; normal runtime reads use the published payload artifact. */
 export async function readDisplaySnapshotPayload(): Promise<ModelAtlasPayload> {
+  if (process.env.MODEL_ATLAS_LOCAL_DATABASE === "1") {
+    return withCurrentMetadata(readDatabasePayload());
+  }
   const state = readState();
   const manifest = await readManifest(state);
   return readArtifact(state, manifest, "payload", state.payload, async (bytes) =>

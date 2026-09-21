@@ -1,7 +1,7 @@
 /** Frontier benchmark analysis owns row projection, normalization, axis policy, and hover evidence. */
 
 import {
-  AA_INDEX_STANDALONE_COMPONENT_KEYS,
+  AA_INDEX_COMPONENT_BENCHMARK_KEYS,
   indexPolicy,
   isAggregateIndex,
   residualIndexBreadth,
@@ -164,7 +164,7 @@ export function frontierBenchmarkRows(
     .filter(
       ([key]) =>
         EFFORT_BENCHMARK_KEYS.has(key) ||
-        AA_INDEX_STANDALONE_COMPONENT_KEYS.has(key) ||
+        AA_INDEX_COMPONENT_BENCHMARK_KEYS.has(key) ||
         isAggregateIndex(key),
     )
     .map(([key]) => key);

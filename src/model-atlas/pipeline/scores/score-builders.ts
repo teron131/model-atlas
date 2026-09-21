@@ -4,11 +4,11 @@ import type { BenchmarkDimension } from "../../benchmarks/factory";
 import {
   excludesVariantIndex,
   isAggregateIndex,
-  qualityIndexBreadth,
+  qualityIndexBreadths,
   reportedIndexBenchmarkCount,
 } from "../../benchmarks/index-policy";
 import { benchmarkDimensionWeight } from "../../benchmarks/registry";
-import { type QualityCoverageThresholds, type ScoringConfig } from "../../config/stage";
+import type { ScoringConfig } from "../../config/stage";
 import { clamp01, meanOfFinite, quantileFromSorted, weightedMeanOfFinite } from "../../math-utils";
 import { asFiniteNumber, asRecord, type JsonObject } from "../../runtime";
 import type {
@@ -16,8 +16,7 @@ import type {
   ModelAtlasConfidence,
   ModelAtlasSpeed,
 } from "../model-types";
-import { evidenceRetentionFactor } from "./normalization";
-import { blendQualityEvidence } from "./quality-blend";
+import { coverageMultiplier } from "./normalization";
 import {
   effortQualityKey,
   normalizedQualityBenchmarkValue,
@@ -45,8 +44,6 @@ type ComponentScoreResult = {
   componentScores: ModelAtlasCandidateComponentScores | null;
   confidence: ModelAtlasConfidence;
 };
-
-const QUALITY_REGULARIZATION_TARGET = 50;
 
 /** Count observed benchmarks without allowing imputed values to satisfy admission. */
 export function observedBenchmarkCount(model: unknown, keys: readonly string[]): number {
@@ -126,18 +123,10 @@ function benchmarkScoreInput(
   };
 }
 
-/** Regularize sparse high quality means toward neutral without rewarding below-neutral results. */
-function evidenceRegularizedQualityScore(qualityMean: number, retentionFactor: number): number {
-  return qualityMean <= QUALITY_REGULARIZATION_TARGET
-    ? qualityMean
-    : QUALITY_REGULARIZATION_TARGET +
-        (qualityMean - QUALITY_REGULARIZATION_TARGET) * retentionFactor;
-}
-
-/** Blend each variant's individual-benchmark mean with index support, reaching the curated endpoint at the configured observed-benchmark count. */
+/** Combine a variant's direct benchmark evidence with breadth-scaled eligible index support. */
 function indexBlendedQualityScore(
   benchmarkScoreInputs: BenchmarkScoreInput[],
-  fullBenchmarkCount: number,
+  directBenchmarkWeightMultiplier: number,
 ): number | null {
   const observed = benchmarkScoreInputs.filter(
     ({ observed, value, weight, scoreExcluded }) =>
@@ -149,24 +138,30 @@ function indexBlendedQualityScore(
   );
   const observedBenchmarkKeys = benchmarks.filter(({ observed }) => observed).map(({ key }) => key);
   const indexes = observed.filter(({ key }) => isAggregateIndex(key));
-  return blendQualityEvidence(
-    benchmarks,
-    indexes.map((part) => ({
-      ...part,
-      weight:
-        part.weight *
-        qualityIndexBreadth(part.key, observedBenchmarkKeys, part.representedBenchmarks),
+  const breadths = qualityIndexBreadths(
+    indexes.map(({ key, representedBenchmarks }) => ({
+      key,
+      reportedCount: representedBenchmarks,
     })),
-    observedBenchmarkKeys.length,
-    fullBenchmarkCount,
-  ).value;
+    observedBenchmarkKeys,
+  );
+  return weightedMeanOfFinite([
+    ...benchmarks.map((part) => ({
+      ...part,
+      weight: part.weight * directBenchmarkWeightMultiplier,
+    })),
+    ...indexes.map((part) => ({
+      ...part,
+      weight: part.weight * (breadths.get(part.key) ?? 0),
+    })),
+  ]);
 }
 
-/** Score direct evidence with index support converging to the 80/20 benchmark/index blend; supported effort estimates enter the benchmark mean without advancing direct coverage. */
+/** Score direct evidence and breadth-scaled index support in one pool; estimates enter without advancing direct coverage. */
 function qualityScore(
   benchmarkScoreInputs: BenchmarkScoreInput[],
-  evidenceThresholds: QualityCoverageThresholds[BenchmarkDimension],
-  fullBenchmarkCount: number,
+  directBenchmarkWeightMultiplier: number,
+  minimumCoverageRetention: number,
 ): QualityScoreResult {
   const qualityMean = weightedMeanOfFinite(
     benchmarkScoreInputs.flatMap(({ value, observed, scoreEstimate, scoreExcluded, weight }) =>
@@ -180,25 +175,19 @@ function qualityScore(
     (total, { evidenceFactor, weight }) => total + evidenceFactor * weight,
     0,
   );
-  const retentionFactor = evidenceRetentionFactor(
-    supportedWeight,
-    evidenceThresholds.floor,
-    evidenceThresholds.full,
-  );
   const totalWeight = benchmarkScoreInputs.reduce((total, { weight }) => total + weight, 0);
   const evidenceSupport = totalWeight > 0 ? clamp01(supportedWeight / totalWeight) : null;
   const hasObservedIndex = benchmarkScoreInputs.some(
     ({ key, observed, scoreExcluded }) => !scoreExcluded && observed && isAggregateIndex(key),
   );
-  if (hasObservedIndex) {
-    return {
-      score: indexBlendedQualityScore(benchmarkScoreInputs, fullBenchmarkCount),
-      evidenceSupport,
-    };
-  }
-  const regularizedScore = evidenceRegularizedQualityScore(qualityMean, retentionFactor);
+  const qualityScore = hasObservedIndex
+    ? indexBlendedQualityScore(benchmarkScoreInputs, directBenchmarkWeightMultiplier)
+    : qualityMean;
+  const coverageRetention =
+    minimumCoverageRetention +
+    (1 - minimumCoverageRetention) * coverageMultiplier(supportedWeight, totalWeight);
   return {
-    score: regularizedScore,
+    score: qualityScore == null ? null : qualityScore * coverageRetention,
     evidenceSupport,
   };
 }
@@ -306,13 +295,13 @@ export function buildComponentScoreResult(
   );
   const intelligence = qualityScore(
     intelligenceBenchmarkInputs,
-    scoringConfig.qualityCoverage.intelligence,
-    scoringConfig.qualityBenchmarkFullCount,
+    scoringConfig.directBenchmarkWeightMultiplier,
+    scoringConfig.qualityCoverageMinimumRetention,
   );
   const agentic = qualityScore(
     agenticBenchmarkInputs,
-    scoringConfig.qualityCoverage.agentic,
-    scoringConfig.qualityBenchmarkFullCount,
+    scoringConfig.directBenchmarkWeightMultiplier,
+    scoringConfig.qualityCoverageMinimumRetention,
   );
   const speedScore = buildSpeedComponentScore(speed, speedOutputTokenAnchors);
   return {

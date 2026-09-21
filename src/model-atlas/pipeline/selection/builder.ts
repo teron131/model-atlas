@@ -4,6 +4,7 @@ import {
   indexPolicy,
   isAggregateIndex,
   reportedIndexBenchmarkCount,
+  residualIndexBreadth,
 } from "../../benchmarks/index-policy";
 import type { BenchmarkAdmissionConfig, FinalStageConfig, ScoringConfig } from "../../config/stage";
 import { cacheModelLogos } from "../../logos/cache";
@@ -263,10 +264,10 @@ function observedBenchmarkWeight(
     if (observedBenchmarkCount(model, [key]) === 0) continue;
     const policy = indexPolicy(key);
     if (policy != null) {
-      const components = new Set(policy.standaloneComponents);
+      const components = new Set(policy.componentBenchmarkKeys ?? []);
       opaqueWeight += Math.max(
         0,
-        (reportedIndexBenchmarkCount(model, key) ?? policy.representedBenchmarks) - components.size,
+        residualIndexBreadth(key, [], reportedIndexBenchmarkCount(model, key)) - components.size,
       );
       for (const component of components) {
         namedWeights.set(component, Math.max(namedWeights.get(component) ?? 0, 1));

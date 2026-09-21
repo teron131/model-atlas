@@ -203,7 +203,6 @@ const graphKeys = [
   "vals_index",
   "briefcase",
   "gdpval_normalized",
-  "tau_banking",
   "scicode",
   "hle",
   "gdp_pdf",
@@ -233,8 +232,8 @@ assert.equal(
 );
 assert.equal(
   residualIndexBreadth("aa_intelligence_index", ["arc_agi_2", "terminal_bench_4"]),
-  10,
-  "A distinct benchmark or version is not an AA component",
+  9,
+  "Only the exact current Terminal-Bench component reduces AA breadth",
 );
 const residualMean = meanFrontierBenchmarkRows([
   row(low, "aa_intelligence_index", 100, 10, 20),

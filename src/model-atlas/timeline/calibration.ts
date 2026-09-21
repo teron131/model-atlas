@@ -1,10 +1,14 @@
 /** Project observed benchmark results through permanent cross-era calibration; display anchors and view filters never fit the scale. */
 
 import { modelCalibrationWeights } from "../benchmarks/calibration-population";
-import { excludesVariantIndex, indexPolicy, qualityIndexBreadth } from "../benchmarks/index-policy";
+import {
+  excludesVariantIndex,
+  indexPolicy,
+  qualityIndexBreadths,
+  residualIndexBreadth,
+} from "../benchmarks/index-policy";
 import { MAX_NORMALIZED_IMPUTATION_ERROR, STAGE_CONFIG } from "../config/stage";
 import { effectiveSampleSize, weightedMeanOfFinite } from "../math-utils";
-import { blendQualityEvidence } from "../pipeline/scores/quality-blend";
 import { informativeBenchmark } from "./benchmark-evidence";
 import { MINIMUM_TIMELINE_TASKS } from "./coverage";
 import { timelineInformation, timelineNativeValue } from "./linking";
@@ -28,9 +32,6 @@ export const DEFAULT_TIMELINE_PARAMETERS: TimelineParameters = {
   minModels: 4,
   maxError: MAX_NORMALIZED_IMPUTATION_ERROR,
 };
-
-// Use the main app's direct-coverage endpoint for the same shared blend.
-const FULL_BENCHMARK_COUNT = STAGE_CONFIG.scoring.qualityBenchmarkFullCount;
 
 export const DEFAULT_TIMELINE_ANCHORS: TimelineAnchors = {
   mode: "models",
@@ -144,7 +145,7 @@ export function calibrateTimeline(
                 value,
                 observedAt: o.observedAt,
                 weight: definition.weights[dimension],
-                breadth: qualityIndexBreadth(
+                breadth: residualIndexBreadth(
                   indexKey,
                   [],
                   o.benchmarkCount ??
@@ -175,32 +176,32 @@ export function calibrateTimeline(
     }
     const tasks = [...unique.values()].filter((p) => p.definition.kind === "task");
     const taskKeys = tasks.map((p) => p.definition.key.replace(/^atlas_benchmark_/, ""));
-    const indexes = [...unique.values()]
-      .filter((p) => p.definition.kind === "index")
-      .map((p) => ({
+    const indexCandidates = [...unique.entries()].filter(([, p]) => p.definition.kind === "index");
+    const indexBreadths = qualityIndexBreadths(
+      indexCandidates.map(([key, part]) => ({
+        key,
+        reportedCount: part.breadth,
+      })),
+      taskKeys,
+    );
+    const indexes = indexCandidates
+      .map(([key, p]) => ({
         ...p,
-        weight:
-          p.weight *
-          qualityIndexBreadth(
-            p.definition.key.replace(/^atlas_benchmark_/, ""),
-            taskKeys,
-            p.breadth,
-          ),
+        weight: p.weight * (indexBreadths.get(key) ?? 0),
       }))
       .filter((p) => p.weight > 0);
     const useIndex = !tasks.length && indexes.length > 0;
     const taskCount = effectiveSampleSize(tasks.map((p) => p.weight));
     const observedWeight = tasks.reduce((sum, p) => sum + p.weight, 0);
     const direct = possibleWeight > 0 ? observedWeight / possibleWeight : 0;
-    const blend = blendQualityEvidence(
-      indexes.length || tasks.length >= MINIMUM_TIMELINE_TASKS ? tasks : [],
-      indexes,
-      // A few observed tasks cannot represent a full retained portfolio; reuse the shared taper on dimension-specific coverage.
-      Math.min(tasks.length, direct * FULL_BENCHMARK_COUNT),
-      FULL_BENCHMARK_COUNT,
-    );
-    const parts = blend.parts;
-    const projection = summarizeParts(parts, blend.value);
+    const parts = [
+      ...(indexes.length || tasks.length >= MINIMUM_TIMELINE_TASKS ? tasks : []).map((part) => ({
+        ...part,
+        weight: part.weight * STAGE_CONFIG.scoring.directBenchmarkWeightMultiplier,
+      })),
+      ...indexes,
+    ];
+    const projection = summarizeParts(parts, weightedMeanOfFinite(parts));
     const supportRamp = taskCount / (taskCount + MINIMUM_TIMELINE_TASKS);
     const effective =
       possibleWeight > 0

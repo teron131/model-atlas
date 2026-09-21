@@ -64,38 +64,19 @@ New scale factors and offsets are fitted jointly across the connected network us
 
 ## Weight the Evidence by Coverage
 
-Individual benchmarks in the selected portfolio provide direct task evidence; published indexes summarize broader benchmark results. The estimate combines both, giving tasks more weight as their coverage grows. This lets a small task sample contribute without outweighing the indexes, while broadly measured tasks lead the estimate. The same rule applies to older and newer models: evidence coverage, not age, determines the weights.
+Individual benchmarks and published indexes enter one weighted mean on the shared historical scale. Each individual benchmark contributes 1.5 times its base weight. Each index contributes its base weight multiplied by represented benchmark breadth after known overlap deductions.
 
-![When both tasks and indexes are available, tasks receive 20% of the weight up to an effective count of one, rising smoothly to 80% at 7.5. At 40% coverage, the effective count cannot exceed three, so three or eight observed tasks both receive 33.5% weight. With no usable tasks, indexes receive 100%, shown by the isolated points.](../assets/timeline/timeline-evidence-blend.svg)
-
-The curve gives the task group's weight $\alpha$; indexes receive the remaining $1-\alpha$. Applying these weights to the task mean $Q_{\mathrm{tasks}}$ and index mean $Q_{\mathrm{indexes}}$, both on the shared reference scale, gives the model's capability estimate:
+For model $m$ and dimension $d$, $q_{m,b}$ and $q_{m,k}$ are the calibrated individual-benchmark and index values. The base weight $w_{b,d}$ or $w_{k,d}$ combines importance and dimension allocation. Remaining index breadth $B_{m,k,d}$ follows the [overlap rules used by headline scores](../methodology/intelligence-agentic.md#combining-benchmarks-and-aggregate-indexes). The estimate is:
 
 $$
-q_{m,d}=\alpha Q_{\mathrm{tasks}}+(1-\alpha)Q_{\mathrm{indexes}}.
+q_{m,d}=\frac{1.5\sum_b w_{b,d}q_{m,b}+\sum_k w_{k,d}B_{m,k,d}q_{m,k}}{1.5\sum_b w_{b,d}+\sum_k w_{k,d}B_{m,k,d}}.
 $$
 
-Within the task group, benchmark importance and relevance to the capability dimension determine each result's weight. Within the index group, dimension relevance and represented benchmark count determine the weights. ECI supplies a model-specific count, with a fallback of four when unavailable; Artificial Analysis (AA) uses the component count for its index edition. The group weight $\alpha$ applies to the task average, not to each task individually.
+Each benchmark or index series contributes only its latest usable observed edition. A replacement must have both an observed result and a saved conversion before the older benchmark is dropped. Overlap deductions reduce represented weight while keeping the published index value intact. ECI uses fixed breadth 7.5 rather than a model-specific fitted count.
 
-Each task or index series contributes only its latest usable observed edition. A replacement must have both an observed result and a saved conversion before the older task is dropped. To avoid double counting, directly observed CAIS components reduce the index's weight to zero when all components are represented. Other sources follow their declared overlap policies; matching names alone do not establish duplicate evidence.
+Adding unobserved benchmarks to the retained portfolio does not alter the relative influence of evidence already present. Benchmark coverage remains a diagnostic and support measure, but it no longer imposes a second category-level task/index blend.
 
-Task weight depends on the usable observed task count $n$ and weighted portfolio coverage $c$. With the full-task endpoint $F=7.5$, coverage caps the effective count at $cF$, preventing a narrow task sample from receiving maximum weight:
-
-$$
-n_{\mathrm{eff}}=\min(n,cF).
-$$
-
-When tasks and indexes are available, task weight stays at 20% through an effective count of one, then rises smoothly to 80% at $F$:
-
-$$
-u=\operatorname{clip}\left(\frac{n_{\mathrm{eff}}-1}{F-1},0,1\right),\qquad
-\alpha=0.2+0.6(3u^2-2u^3).
-$$
-
-The constant $0.2$ sets the starting task weight at 20%; $0.6=0.8-0.2$ is the increase needed to reach 80%. The progress $u$ runs from zero to one as the effective count rises from one to $F$, with $\operatorname{clip}$ keeping it within those bounds. The cubic smoothstep expression $3u^2-2u^3$ turns that progress into a gradual transition with a flat slope at both ends. In words: task weight equals 20% plus 60% times smooth progress.
-
-The 20% and 80% endpoints are policy choices, not values derived from benchmark data. They give sparse task evidence a minimum contribution while retaining some index weight even at full task coverage.
-
-With no usable tasks, indexes supply the entire estimate. Without a usable index, at least three distinct mapped task series are required; otherwise the model remains unplaced. Imputed results do not satisfy these requirements. As the retained portfolio grows, coverage and weights can change even without new results for a model. These changes affect new estimates and diagnostics; existing published positions remain fixed.
+With no usable individual benchmarks, indexes supply the entire estimate. Without a usable index, at least three distinct mapped benchmark series are required; otherwise the model remains unplaced. Imputed results do not satisfy these requirements. Existing published positions remain fixed.
 
 ## Apply the Dated-Successor Assumption
 

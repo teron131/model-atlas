@@ -1,5 +1,5 @@
 /** Measure historical support against actual observed index editions, independently of model age, score, and display filters. */
-import { qualityIndexBreadth } from "../benchmarks/index-policy";
+import { residualIndexBreadth } from "../benchmarks/index-policy";
 import { STAGE_CONFIG } from "../config/stage";
 import { effectiveSampleSize } from "../math-utils";
 import { evidenceRetentionFactor } from "../pipeline/scores/normalization";
@@ -100,7 +100,7 @@ export function timelineCoverage(
         !observed.get(estimate.modelId)?.has(id)
       )
         continue;
-      let breadth = qualityIndexBreadth(
+      let breadth = residualIndexBreadth(
         definition.key.replace(/^atlas_benchmark_/, ""),
         [],
         observation.benchmarkCount ?? definition.representedBenchmarks,

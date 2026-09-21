@@ -181,7 +181,8 @@ function admitsWeight(benchmarks: Record<string, number>, minimumObservedWeight:
   });
 }
 assert.equal(admitsWeight({ aa_intelligence_index: 0 }, 10), true);
-assert.equal(admitsWeight({ epoch_capabilities_index: 100 }, 7), false);
+assert.equal(admitsWeight({ epoch_capabilities_index: 100 }, 7.5), true);
+assert.equal(admitsWeight({ epoch_capabilities_index: 100 }, 7.500001), false);
 for (const count of [4, 7, 40]) {
   assert.equal(
     hasRequiredBenchmarkEvidence(
@@ -193,7 +194,7 @@ for (const count of [4, 7, 40]) {
       STAGE_CONFIG.scoring,
       STAGE_CONFIG.final.benchmarkAdmission,
     ),
-    count >= 7,
+    true,
   );
 }
 assert.equal(
@@ -244,7 +245,7 @@ assert.equal(
 for (const [benchmarks, expected] of [
   [{ surge_intelligence_index: 0 }, false],
   [{ aa_intelligence_index: 0 }, true],
-  [{ epoch_capabilities_index: 100 }, false],
+  [{ epoch_capabilities_index: 100 }, true],
   [{ surge_intelligence_index: 0, coding_index: 80, agentic_index: 80 }, false],
   [{ surge_intelligence_index: 0, vals_index: 0 }, true],
   [{ aa_intelligence_index: 0, cais_capabilities_index: 0 }, true],

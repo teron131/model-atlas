@@ -37,6 +37,7 @@ import {
 } from "../src/model-atlas/pipeline/scores/imputation";
 import { prepareEffortQualityScoringContext } from "../src/model-atlas/pipeline/scores/imputation/effort-quality";
 import {
+  coverageMultiplier,
   evidenceRetentionFactor,
   logInputMinMaxScores,
   logitUnitScore,
@@ -217,13 +218,13 @@ assertEqual(medianOfFinite([100, null, 0, 50]), 50);
 
 validateBenchmarkPortfolio(STAGE_CONFIG.scoring.benchmarkPortfolio);
 for (const key of INDEX_BENCHMARK_KEYS) {
-  assert.equal(STAGE_CONFIG.scoring.benchmarkPortfolio[key]?.benchmarkImportance, 0.5);
+  assert.equal(STAGE_CONFIG.scoring.benchmarkPortfolio[key]?.benchmarkImportance, 1);
 }
 assert.equal(INDEX_REPRESENTED_BENCHMARK_COUNTS.aa_intelligence_index, 10);
 assert.equal(INDEX_REPRESENTED_BENCHMARK_COUNTS.cais_capabilities_index, 7);
 assert.equal(INDEX_REPRESENTED_BENCHMARK_COUNTS.surge_intelligence_index, 8);
 assert.equal(INDEX_REPRESENTED_BENCHMARK_COUNTS.vals_index, 7);
-assert.equal(INDEX_REPRESENTED_BENCHMARK_COUNTS.epoch_capabilities_index, 4);
+assert.equal(INDEX_REPRESENTED_BENCHMARK_COUNTS.epoch_capabilities_index, 7.5);
 assert.equal(
   INDEX_REPRESENTED_BENCHMARK_MEDIAN,
   medianOfFinite(
@@ -857,10 +858,17 @@ const fractionalEvidenceComponentScores = buildComponentScoreResult(
   fractionalBenchmarkConfig,
   buildQualityScoringContext(fractionalBenchmarkModels, fractionalBenchmarkConfig),
 ).componentScores;
-assertClose(fractionalEvidenceComponentScores?.intelligence_score, 55.2);
+const fractionalCoverageRetention =
+  STAGE_CONFIG.scoring.qualityCoverageMinimumRetention +
+  (1 - STAGE_CONFIG.scoring.qualityCoverageMinimumRetention) * coverageMultiplier(0.2, 1);
+assertClose(
+  fractionalEvidenceComponentScores?.intelligence_score,
+  100 * fractionalCoverageRetention,
+);
 
 const imputationConfidenceConfig = {
   ...importanceWeightedConfig,
+  qualityCoverageMinimumRetention: 1,
   qualityCoverage: {
     intelligence: { floor: 0, full: 0.1 },
     agentic: { floor: 0, full: 0.1 },
@@ -928,7 +936,7 @@ const sparseEvidenceResult = buildComponentScoreResult(
   buildQualityScoringContext(sparseEvidenceModels, sparseEvidenceConfig),
 );
 const sparseEvidenceComponentScores = sparseEvidenceResult.componentScores;
-assertClose(sparseEvidenceComponentScores?.intelligence_score, 75);
+assertClose(sparseEvidenceComponentScores?.intelligence_score, 85);
 assertClose(sparseEvidenceResult.confidence.intelligence, 1 / 12);
 const sparseLowEvidenceResult = buildComponentScoreResult(
   { id: "sparse-low", benchmarks: { quality_0: 0 } },
@@ -1921,7 +1929,10 @@ const validatedImputationScores = buildComponentScoreResult(
     ["c3", 0.5],
   ]),
 ).componentScores;
-assertClose(untrustedImputationScores?.intelligence_score, 67.6);
+const untrustedCoverageRetention =
+  STAGE_CONFIG.scoring.qualityCoverageMinimumRetention +
+  (1 - STAGE_CONFIG.scoring.qualityCoverageMinimumRetention) * coverageMultiplier(1, 4);
+assertClose(untrustedImputationScores?.intelligence_score, 100 * untrustedCoverageRetention);
 assertClose(validatedImputationScores?.intelligence_score, 100);
 
 function modelCandidate(options: {
@@ -2106,7 +2117,8 @@ function undercoveredBenchmarks(value: number, count = undercoveredBenchmarkKeys
 
 const undercoveredConfig: ScoringConfig = {
   ...STAGE_CONFIG.scoring,
-  qualityBenchmarkFullCount: 8,
+  qualityCoverageMinimumRetention: 1,
+  directBenchmarkWeightMultiplier: 1,
   intelligenceBenchmarkKeys: ["aa_intelligence_index", "vals_index", ...undercoveredBenchmarkKeys],
   agenticBenchmarkKeys: [],
   benchmarkPortfolio: {
@@ -2161,8 +2173,8 @@ const undercoveredScore = buildComponentScoreResult(
   undercoveredConfig,
   undercoveredContext,
 ).componentScores?.intelligence_score;
-// One direct task starts at 20%; index breadth sets relative weights within the remaining 80%.
-assertClose(undercoveredScore, 0.2 * 80 + (0.8 * (70 * 10 + 30 * 7)) / 17);
+// Every item shares one pool: direct weight 1, AA proxy weight 0.5 × 10, and Vals proxy weight 0.5 × 7.
+assertClose(undercoveredScore, (80 + 70 * 5 + 30 * 3.5) / 9.5);
 assertClose(
   buildComponentScoreResult(
     undercoveredModel,
@@ -2171,7 +2183,7 @@ assertClose(
     undercoveredConfig,
     undercoveredContext,
   ).componentScores?.intelligence_score,
-  0.2 * 80 + (0.8 * (70 * 10 + 30 * 7)) / 17,
+  (80 + 70 * 5 + 30 * 3.5) / 9.5,
 );
 const lowImportanceIndexConfig = {
   ...undercoveredConfig,
@@ -2197,7 +2209,7 @@ assertClose(
     lowImportanceIndexConfig,
     buildQualityScoringContext(undercoveredModels, lowImportanceIndexConfig),
   ).componentScores?.intelligence_score,
-  0.2 * 80 + (0.8 * (70 * 10 + 30 * 7)) / 17,
+  (80 + 70 * 0.5 + 30 * 0.35) / 1.85,
 );
 const coveredScore = buildComponentScoreResult(
   coveredModel,
@@ -2206,7 +2218,7 @@ const coveredScore = buildComponentScoreResult(
   undercoveredConfig,
   undercoveredContext,
 ).componentScores?.intelligence_score;
-assertClose(coveredScore, 68);
+assertClose(coveredScore, (60 * 8 + 100 * 8.5) / 16.5);
 
 const nearlyCoveredModel = {
   ...coveredModel,
@@ -2219,10 +2231,10 @@ const nearlyCoveredScore = buildComponentScoreResult(
   undercoveredConfig,
   undercoveredContext,
 ).componentScores?.intelligence_score;
-assertClose(nearlyCoveredScore, 100 - 40 * (0.2 + 0.6 * (6 / 7) ** 2 * (3 - 2 * (6 / 7))));
+assertClose(nearlyCoveredScore, (60 * 7 + 100 * 8.5) / 15.5);
 assert.ok(
   Math.abs(nearlyCoveredScore! - coveredScore!) < 10,
-  "the last agreeing task must not switch every index from full proxy breadth at once",
+  "one additional direct benchmark must change only its own evidence weight",
 );
 const weightedCoverageConfig: ScoringConfig = {
   ...undercoveredConfig,
@@ -2247,29 +2259,27 @@ const afterLastTask = buildComponentScoreResult(
 ).componentScores?.intelligence_score;
 assert.ok(
   Math.abs(beforeLastTask! - afterLastTask!) < 2,
-  "the eighth direct task completes the count-based taper even when its importance is small",
+  "a nearly weightless direct benchmark must remain nearly weightless",
 );
 
-// Configured thresholds affect the blend independently of regularization and portfolio size.
 const fourTaskModel = {
   ...coveredModel,
   benchmarks: { vals_index: 100, b1: 60, b2: 60, b3: 60, b4: 60 },
 };
-const fourTaskConfig = { ...undercoveredConfig, qualityBenchmarkFullCount: 4 };
 assertClose(
   buildComponentScoreResult(
     fourTaskModel,
     qualityTestSpeed,
     [],
-    fourTaskConfig,
+    undercoveredConfig,
     undercoveredContext,
   ).componentScores?.intelligence_score,
-  68,
+  (100 * 8.5 + 60 * 4) / 12.5,
 );
 assertClose(
-  buildComponentScoreResult(fourTaskModel, nullSpeed, [], fourTaskConfig, undercoveredContext)
+  buildComponentScoreResult(fourTaskModel, nullSpeed, [], undercoveredConfig, undercoveredContext)
     .componentScores?.intelligence_score,
-  68,
+  (100 * 8.5 + 60 * 4) / 12.5,
 );
 const noTaskModel = { ...coveredModel, benchmarks: { vals_index: 100 } };
 assertClose(
@@ -2281,16 +2291,6 @@ assertClose(
     undercoveredContext,
   ).componentScores?.intelligence_score,
   100,
-);
-assertClose(
-  buildComponentScoreResult(
-    undercoveredModel,
-    qualityTestSpeed,
-    [],
-    { ...undercoveredConfig, qualityBenchmarkFullCount: 1 },
-    undercoveredContext,
-  ).componentScores?.intelligence_score,
-  0.8 * 80 + (0.2 * (70 * 10 + 30 * 7)) / 17,
 );
 const fakeTaskEstimates = new Map(
   undercoveredBenchmarkKeys.filter((k) => k !== "b1").map((k) => [k, 100]),

@@ -84,7 +84,6 @@ export type TableOfContentsItem = {
 
 const METHODOLOGY_ASSETS = {
   "reference-balance.svg": { directory: "methodology", width: 760, height: 347 },
-  "index-coverage-taper.svg": { directory: "methodology", width: 760, height: 360 },
   "resource-publication-gate.svg": { directory: "methodology", width: 760, height: 275 },
   "resource-tier-shrinkage.svg": { directory: "methodology", width: 760, height: 300 },
   "common-variant-basket.svg": { directory: "methodology", width: 760, height: 260 },
@@ -106,7 +105,6 @@ const METHODOLOGY_ASSETS = {
   "source-crosswalk.svg": { directory: "methodology", width: 1040, height: 513 },
   "source-fusion-divergence.svg": { directory: "methodology", width: 760, height: 325 },
   "timeline-benchmark-links.svg": { directory: "timeline", width: 760, height: 285 },
-  "timeline-evidence-blend.svg": { directory: "timeline", width: 760, height: 360 },
   "timeline-anchors.svg": { directory: "timeline", width: 760, height: 450 },
   "timeline-reference-extension.svg": { directory: "timeline", width: 760, height: 365 },
   "timeline-standard-scores.svg": { directory: "timeline", width: 760, height: 435 },
