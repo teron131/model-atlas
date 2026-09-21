@@ -1,7 +1,6 @@
 /** Prove benchmark turnover, permanent units, separate dimensions, and transfer uncertainty using observed bridge configurations. */
 import assert from "node:assert/strict";
 
-import { STAGE_CONFIG } from "../src/model-atlas/config/stage";
 import {
   anchorTimeline,
   calibrateTimeline,
@@ -269,10 +268,10 @@ const proxyEstimate = proxyScores.estimates.find((e) => e.modelId === firstBridg
 assert.equal(proxyEstimate.source, "blended");
 assert.equal(proxyEstimate.indexOnly, false);
 assert.equal(proxyEstimate.benchmarkSupport.observed, 1);
-close(proxyEstimate.value!, 0.2 * 80 + 0.8 * 25);
+close(proxyEstimate.value!, (1.5 * 80 + 25) / 2.5);
 close(
   proxyScores.estimates.find((e) => e.modelId === firstBridge[1]!.id)!.value!,
-  0.2 * 35 + 0.8 * 40,
+  (1.5 * 35 + 40) / 2.5,
 );
 const weakerIndex = structuredClone(proxyData);
 weakerIndex.scale!.dimensions.intelligence.nodes.find(
@@ -300,9 +299,7 @@ const supportedTasks = calibrateTimeline(proxyData, "intelligence").estimates.fi
   (e) => e.modelId === firstBridge[0]!.id,
 )!;
 assert.equal(supportedTasks.source, "blended");
-const progress = 2 / (STAGE_CONFIG.scoring.qualityBenchmarkFullCount - 1);
-const threeTaskShare = 0.2 + 0.6 * progress ** 2 * (3 - 2 * progress);
-close(supportedTasks.value!, threeTaskShare * 80 + (1 - threeTaskShare) * 25);
+close(supportedTasks.value!, (1.5 * 3 * 80 + 25) / 5.5);
 const countedIndexes = structuredClone(proxyData);
 countedIndexes.benchmarks.push({
   ...benchmark("other-index", "linear"),
@@ -325,7 +322,7 @@ close(
   calibrateTimeline(countedIndexes, "intelligence").estimates.find(
     (e) => e.modelId === firstBridge[0]!.id,
   )!.value!,
-  threeTaskShare * 80 + (1 - threeTaskShare) * 65,
+  (1.5 * 3 * 80 + 4 * 25 + 16 * 75) / 24.5,
 );
 const zeroTasks = structuredClone(countedIndexes);
 const taskIds = new Set(zeroTasks.benchmarks.filter((b) => b.kind === "task").map((b) => b.id));
@@ -404,7 +401,7 @@ const unequalWeights = {
 const unequal = calibrateTimeline(unequalWeights, "intelligence").estimates.find(
   (e) => e.modelId === firstBridge[0]!.id,
 )!;
-close(unequal.value!, supportedTasks.value!);
+close(unequal.value!, (1.5 * 80 * 1.02 + 25) / (1.5 * 1.02 + 1));
 assert.ok(
   unequal.benchmarkSupport.effective < supportedTasks.benchmarkSupport.effective,
   "Two tiny dimension weights cannot supply two full units of effective support",
@@ -911,7 +908,7 @@ assert.equal(
 assert.equal(JSON.stringify(versioned), untouchedVersions);
 console.log("Unresolved generic records cannot pool or change dated estimates.");
 
-// A partial retained basket stays index-led even when it contains several individual measurements.
+// Unobserved portfolio additions do not alter the weight of the evidence that is actually present.
 const partialBasket = structuredClone(proxyData);
 for (let i = 0; i < 20; i++) {
   const id = `unobserved-task-${i}`;
@@ -929,10 +926,7 @@ const partialEstimate = calibrateTimeline(partialBasket, "intelligence").estimat
   (e) => e.modelId === firstBridge[0]!.id,
 )!;
 assert.equal(partialEstimate.benchmarkSupport.observed, 3);
-assert.ok(
-  partialEstimate.value! < supportedTasks.value!,
-  "Three results cannot receive the same influence in a much larger retained portfolio",
-);
+close(partialEstimate.value!, supportedTasks.value!);
 assert.ok(partialEstimate.value! >= 25 && partialEstimate.value! <= 80);
 const overlappingIndex = structuredClone(proxyData);
 for (const b of overlappingIndex.benchmarks) {

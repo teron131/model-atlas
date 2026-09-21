@@ -20,10 +20,10 @@ Writing, modifying, testing, debugging, and delivering software primarily test A
 | Setting | Role |
 | --- | --- |
 | Group | Classifies the benchmark as `frontier` or `baseline` for portfolio interpretation |
-| Importance | Standard policy: 1 for task benchmarks; 0.5 for aggregate indexes used for regularization |
+| Importance | Standard policy: 1 for both task benchmarks and aggregate indexes; represented index breadth supplies the aggregate multiplier |
 | Allocation (dimension loading) | Intelligence/Agentic split: 100/0, 75/25, 50/50, 25/75, or 0/100 |
 
-Effective weight is importance × allocation. The capability calculation uses these weights to take a weighted mean of normalized benchmark results; see [Methodology](methodology/intelligence-agentic.md#benchmark-scores-and-dimension-weights).
+Base weight is importance × allocation. The capability calculation multiplies individual benchmark weights by 1.5 and eligible index weights by remaining represented breadth; see [Methodology](methodology/intelligence-agentic.md#combining-benchmarks-and-aggregate-indexes). Evidence support and admission use their own weights without the 1.5 multiplier.
 
 The allocation follows the five-level scale in [Standards](standards.md). Coding tasks are primarily Agentic evidence; an Intelligence share depends on substantial reasoning in the task's actual demands.
 
@@ -63,13 +63,13 @@ An aggregate index summarizes several evaluations. It offers broad coverage, but
 
 | Index | Group | Importance | Intelligence Loading | Agentic Loading | Capability and Decision |
 | --- | --- | ---: | ---: | ---: | --- |
-| Artificial Analysis Intelligence Index | Baseline | 0.5 | 50% | 50% | Retained as neutral fallback evidence because the source mixes reasoning, knowledge, coding, and agent evaluations under source-owned aggregation that cannot be decomposed consistently; half importance limits its overlapping influence. |
-| CAIS Capabilities Index | Baseline | 0.5 | 75% | 25% | Atlas-derived weighted coverage proxy across two Text and five Vision components. Residual component breadth prevents directly observed CAIS tasks from receiving duplicate proxy weight; the aggregate remains separate from the component rows. |
-| Epoch Capabilities Index | Baseline | 0.5 | 50% | 50% | Broad fallback evidence with source-owned aggregation. The fitted benchmark count is model-specific, but incomplete component metadata limits overlap accounting; half importance limits this aggregate's contribution. |
-| Surge Intelligence Index | Baseline | 0.5 | 50% | 50% | Retained as neutral fallback evidence because professional reasoning, writing, and agent evaluations are aggregated under incompatible source scales; half importance limits overlap. |
-| Vals Index | Baseline | 0.5 | 50% | 50% | Retained as neutral fallback evidence because finance, legal, and coding tasks mix domain reasoning with execution without recoverable component weights; the opaque aggregate is not reweighted from its coding label alone. |
+| Artificial Analysis Intelligence Index | Baseline | 1 | 50% | 50% | Broad source-owned aggregate whose represented breadth is reduced for exact known standalone overlap. |
+| CAIS Capabilities Index | Baseline | 1 | 75% | 25% | Atlas-derived weighted coverage proxy across two Text and five Vision components. Exact component keys prevent directly observed CAIS tasks from receiving duplicate proxy weight. |
+| Epoch Capabilities Index | Baseline | 1 | 50% | 50% | Opaque broad fallback evidence assigned the fixed 7.5 median index breadth. |
+| Surge Intelligence Index | Baseline | 1 | 50% | 50% | Opaque professional-reasoning, writing, and agent evidence weighted by its declared breadth. |
+| Vals Index | Baseline | 1 | 50% | 50% | Opaque finance, legal, and coding evidence weighted by its declared breadth. |
 
-Indexes supply broad evidence when direct tasks are sparse. Effort-labelled variants use only effort-specific indexes, currently Artificial Analysis and CAIS; other index observations remain visible and retain their separate admission role. The main leaderboard's task-group weight rises from 20% at one observed task to 80% at the configured threshold of 7.5, using cubic smoothstep. With no direct tasks, indexes receive 100%. Each variant and dimension counts its own direct tasks; imputed and sibling results do not advance the count. [Methodology](methodology/intelligence-agentic.md#combining-benchmarks-and-aggregate-indexes) defines the full blend and its separate evidence and admission rules.
+Indexes and direct benchmarks share one evidence pool. Each direct result contributes 1.5 × importance × dimension allocation; each index contributes importance × dimension allocation × represented breadth after exact known overlap is deducted. Duplicate known constituents across two indexes divide one evidence unit rather than creating two. Effort-labelled variants use only effort-specific indexes, currently Artificial Analysis and CAIS; other index observations remain visible and retain their separate admission role. [Methodology](methodology/intelligence-agentic.md#combining-benchmarks-and-aggregate-indexes) defines the full calculation and its separate evidence and admission rules.
 
 ### Frontier Benchmarks
 
@@ -172,11 +172,11 @@ An unlabelled configuration is the source default. If every configuration names 
 
 ## Aggregate Index Policies
 
-**Artificial Analysis Intelligence Index** uses the published aggregate directly as one index observation, with represented breadth currently 10. Its own paired per-task cost, runtime, and output tokens can contribute under the resource rules in [Methodology](methodology/leaderboard-rules.md#resource-score-availability). This telemetry remains attached to the index and never fills missing standalone task measurements. Known standalone components reduce represented resource breadth so overlap counts once.
+**Artificial Analysis Intelligence Index** uses the published aggregate directly as one index observation, with represented breadth currently 10. The recorded constituents are Briefcase, GDPval-AA v2, AutomationBench-AA, Terminal-Bench 4.0, SciCode, HLE, GDP.pdf, CritPt, AA-Omniscience, and AA-LCR. Their canonical benchmark keys allow exact direct and cross-index overlap deductions. Its own paired per-task cost, runtime, and output tokens can contribute under the resource rules in [Methodology](methodology/leaderboard-rules.md#resource-score-availability). This telemetry remains attached to the index and never fills missing standalone task measurements.
 
 **CAIS Capabilities Index** is derived from HLE, TextQuests, EnigmaEval, ERQA, IntPhys 2, MindCube Tiny, and SpatialViz-Bench with equal weight per component, expressed as `(2 × Text + 5 × Vision) / 7`. Directly observed components reduce its remaining weight, so a fully represented basket adds no second index vote. A disclosed composite fallback excludes that model from the aggregate while preserving its component values and provenance. CAIS supplies no task-level resource telemetry.
 
-**Epoch Capabilities Index** uses the published ECI value and the model-specific fitted benchmark count. When that count is unavailable, four is a conservative fallback. Component identities are not fully available for overlap accounting; the count does not create missing task measurements.
+**Epoch Capabilities Index** uses the published ECI value with fixed represented breadth 7.5, the median of the fixed index baskets. Its model-specific fitted benchmark count remains source metadata but does not alter scoring weight. Component identities are not fully available for overlap accounting; the assigned breadth does not create missing task measurements.
 
 **Surge Intelligence Index** uses the published aggregate directly. It remains fallback evidence, and the absence of a reproducible index-level resource contract keeps it out of Speed and Value.
 

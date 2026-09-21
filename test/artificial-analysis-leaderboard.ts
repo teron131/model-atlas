@@ -391,11 +391,12 @@ const scoringConfig = {
       dimensionLoadings: { intelligence: 0.45, agentic: 0.55 },
     },
   },
-  qualityBenchmarkFullCount: 8,
   qualityCoverage: {
     intelligence: { floor: 0, full: 1 },
     agentic: { floor: 0, full: 1 },
   },
+  qualityCoverageMinimumRetention: 1,
+  directBenchmarkWeightMultiplier: 1,
 } as const;
 const imputationByModel = buildBenchmarkImputationByModel(scoringRows, scoringConfig);
 const qualityScoringContext = buildQualityScoringContext(scoringRows, scoringConfig);

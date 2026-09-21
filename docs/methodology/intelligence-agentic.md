@@ -38,7 +38,7 @@ If all observed results are equal, each receives 100. Imputed values cannot chan
 
 | Setting | Role |
 | --- | --- |
-| Importance | Standard policy: 1 for individual benchmarks; 0.5 for aggregate indexes used for regularization. |
+| Importance | Standard policy: 1 for individual benchmarks and aggregate indexes; represented breadth supplies the index multiplier. |
 | Allocation | Intelligence/Agentic split: 100/0, 75/25, 50/50, 25/75, or 0/100. |
 | Effective weight $\omega_{b,d}$ | Importance × allocation to dimension $d$, expressed as a fraction. |
 
@@ -140,7 +140,7 @@ Token use changes neither evidence weights nor inclusion requirements. It can in
 
 ### Evidence Support and Quality Regularization
 
-Evidence support shows how much of the benchmark portfolio supports a model’s scores. When no eligible observed aggregate index is available, adjust the combined score from individual benchmarks: with little evidence, reduce a score above 50 toward 50; with enough evidence, keep the original score. Scores of 50 or less stay unchanged. This adjustment is called regularization; 50 is the chosen midpoint of the 0–100 score scale.
+Evidence support shows how much of the benchmark portfolio supports a model’s scores. Apply it after combining individual benchmarks and eligible indexes: at or below 10% coverage, multiply the entire score by 0.85; as coverage rises, increase the multiplier smoothly; at 60% coverage, keep the original score. The same rule applies to scores below 50 and to models with aggregate indexes.
 
 **Count each result’s evidence**
 
@@ -172,36 +172,27 @@ The numerator is the supported benchmark weight $E_{m,d}$. The denominator inclu
 
 Intelligence and Agentic each show an evidence share. Equal shares can represent different evidence amounts because portfolio weights differ. The API calls these fields `confidence`; they are coverage measures, not confidence intervals or probabilities of a correct rank.
 
-**Determine how many points above 50 to keep**
+**Determine the score multiplier**
 
-The retention factor $r_{m,d}$ is the fraction of those points kept: 0 keeps none, 0.5 keeps half, and 1 keeps all. It depends on the supported weight $E_{m,d}$, with two thresholds:
-
-| Threshold | Supported weight | Effect on a score above 50 |
-| --- | --- | --- |
-| Start | $0.1W_{\text{full}}$, currently 0.75 | At or below this point, reduce the score to 50. |
-| End | $W_{\text{full}}$, currently 7.5 | At or above this point, keep the original score. |
-
-The end threshold is the median benchmark count represented by the aggregate indexes. The start is set at 10% of that amount. These are policy choices. Between them, more evidence means a smaller score reduction.
-
-Convert the supported weight to progress using current weight minus start, divided by end minus start. Apply smoothstep to make retention increase gradually from 0 to 1:
+The score multiplier $r_{m,d}$ keeps 85% of the entire score at or below 10% coverage and rises smoothly to 100% retention at 60% coverage. These thresholds use the displayed evidence coverage $c_{m,d}$, so broader missing coverage produces a visible score penalty:
 
 $$
-r_{m,d}=\operatorname{smoothstep}\left(\frac{E_{m,d}-0.1W_{\text{full}}}{W_{\text{full}}-0.1W_{\text{full}}}\right).
+u_{m,d}=\operatorname{clamp}\left(\frac{c_{m,d}-0.1}{0.6-0.1},0,1\right),\qquad r_{m,d}=0.85+0.15u_{m,d}^2(3-2u_{m,d}).
 $$
 
-This uses supported weight directly, not the coverage percentage. Adding unobserved benchmarks lowers displayed coverage but does not increase the score reduction.
+![Illustrative total portfolio weight: 40. Supported weight 4 gives 10% coverage and an 85% score multiplier; weight 24 gives 60% coverage and a 100% multiplier.](../assets/methodology/confidence.svg)
 
-![Illustration: with total portfolio weight 40, supported weight 7.5 ends the score reduction at 18.75% coverage.](../assets/methodology/confidence.svg)
+The multiplier stays between 0.85 and 1. Adding unobserved benchmarks to the selected portfolio can reduce coverage and therefore the score, even when existing results do not change.
 
 **Apply the score reduction**
 
-The combined score from individual benchmarks $S^{\text{bench}}_{m,d}$ uses the portfolio weights, observed results, accepted source crosswalks, and supported estimates across reasoning efforts. Agentic uses the token-adjusted benchmark scores. When no eligible observed aggregate index exists, subtract the fraction $1-r_{m,d}$ of its points above 50 to obtain the adjusted score $\widetilde S^{\text{bench}}_{m,d}$:
+The unified score $S_{m,d}$ uses individual benchmarks, eligible indexes, accepted source crosswalks, and supported estimates across reasoning efforts. Agentic uses the token-adjusted benchmark scores. Multiply the entire score by $r_{m,d}$ to obtain the adjusted score $\widetilde S_{m,d}$:
 
 $$
-\widetilde S^{\text{bench}}_{m,d}=S^{\text{bench}}_{m,d}-(1-r_{m,d})\max(S^{\text{bench}}_{m,d}-50,0).
+\widetilde S_{m,d}=r_{m,d}S_{m,d}.
 $$
 
-For a score of 80 and retention $r=0.5$, remove half of the 30 points above 50, leaving 65. The $\max$ term makes the reduction zero for scores at or below 50.
+At 10% coverage, a score of 80 becomes 68 and a score of 40 becomes 34. At 35% coverage, the multiplier is 0.925; at 60% coverage it is 1.
 
 **Why smoothstep**
 
@@ -220,45 +211,25 @@ $$
 \operatorname{smoothstep}(x)=u^2(3-2u),\qquad u=\operatorname{clamp}(x,0,1).
 $$
 
-The coefficients follow from the four requirements; choosing those requirements is scoring policy. The same curve also sets the [weight assigned to individual benchmarks](#combining-benchmarks-and-aggregate-indexes), [peer comparison strength](speed-value.md#comparison-support), and the [shared coverage multiplier for Speed and Value](speed-value.md#combining-speed-and-value-components), each using its own start and end thresholds.
+The coefficients follow from the four requirements; choosing those requirements is scoring policy. The same curve also sets [peer comparison strength](speed-value.md#comparison-support) and the [shared coverage multiplier for Speed and Value](speed-value.md#combining-speed-and-value-components), each using its own start and end thresholds.
 
 ### Combining Benchmarks and Aggregate Indexes
 
-Combine the score from individual benchmarks with the score from aggregate indexes, separately for Intelligence and Agentic at each reasoning effort. As more individual benchmarks have observed results, their combined score receives more weight, up to 80%. Indexes retain the remaining 20% at that limit.
+When an eligible observed aggregate index is available, combine it with individual benchmark results in one weighted mean, separately for Intelligence and Agentic at each reasoning effort. More represented benchmarks give an index more weight; individual benchmark contributions receive a 1.5 multiplier.
 
-**Calculate the two scores**
-
-The combined score from individual benchmarks $S^{\text{bench}}$ is the weighted mean described above, including observed results and accepted estimates from source crosswalks and other reasoning efforts. Estimates from other benchmarks do not enter this mean. For Agentic, use the token-adjusted scores.
-
-The index score $S^{\text{index}}$ is the weighted mean of eligible observed indexes, using represented benchmark count × importance × dimension allocation. Effort-labelled variants use only indexes reporting that effort; unlabelled variants use the ordinary index pool. Other indexes remain available for display and inclusion checks.
-
-ECI’s fitted benchmark count sets its relative index weight; indexes with fixed benchmark sets use their declared counts. Deduct directly observed CAIS components from CAIS’s count to limit double counting. Other indexes keep their counts.
-
-**Set the weight for individual benchmarks**
-
-When both scores are available, their relative weight depends on $n_{\text{bench}}$, the number of individual benchmarks with observed results and positive allocation to the dimension. Indexes and estimates do not increase this count.
-
-The share $w$ assigned to individual benchmarks is 20% with zero or one observed benchmark and rises to 80% at $n_{\text{full}}$, the median benchmark count represented by the indexes, currently 7.5. Convert the count to progress using current count minus start, divided by end minus start, then apply the [smoothstep curve](#evidence-support-and-quality-regularization):
+Use the base weights $\omega_{b,d}$ defined above: importance × dimension allocation. For model $m$, $z_{m,b}$ is the normalized individual-benchmark contribution and $z_{m,k}$ is the normalized index contribution, including token adjustments for Agentic. Index $k$ has remaining represented breadth $B_{m,k,d}$ after overlap deductions for that model and dimension. The combined score is:
 
 $$
-w=0.20+0.60\operatorname{smoothstep}\left(\frac{n_{\text{bench}}-1}{n_{\text{full}}-1}\right).
+S_{m,d}=\frac{1.5\sum_b\omega_{b,d}z_{m,b}+\sum_k\omega_{k,d}B_{m,k,d}z_{m,k}}{1.5\sum_b\omega_{b,d}+\sum_k\omega_{k,d}B_{m,k,d}}.
 $$
 
-![Individual benchmarks receive 20% weight at one observed benchmark and 80% at the threshold of 7.5. The isolated points at zero illustrate the case with no available individual-benchmark score, when indexes alone receive 100%.](../assets/methodology/index-coverage-taper.svg)
+The sums include only available contributions with positive weight. Accepted source-crosswalk and other-effort estimates can contribute as individual-benchmark values and receive the same 1.5 multiplier, but do not become direct observations or satisfy admission. Estimates inferred from other benchmarks affect evidence support only; they do not enter this mean. Effort-labelled variants use only indexes reporting that effort; unlabelled variants use the ordinary index pool.
 
-The 20% and 80% limits are policy choices. The 80% limit is a share of the final score, not portfolio coverage. Adding unobserved benchmarks cannot delay it. Evidence factors and dashboard inclusion rules are separate; unlike Timeline, this calculation has no portfolio-coverage cap.
+Known constituent keys are recorded for AA and CAIS. A directly observed constituent with positive weight in the dimension removes one breadth unit from every eligible index containing it. Otherwise, a constituent shared by multiple eligible indexes contributes an equal fraction of one breadth unit to each. These deductions happen before applying index importance and dimension allocation, and remaining breadth cannot fall below zero. Unmapped constituents retain their assigned breadth because their overlap cannot be established.
 
-**Combine the scores**
+These deductions reduce represented weight; they do not remove constituent results from the published index value. Overlap accounting therefore limits duplicate influence without reconstructing an index from its remaining benchmarks. The 1.5 multiplier is a policy preference for selected individual benchmarks, not a fitted optimum or a correction for selective reporting.
 
-Apply $w$ to the combined score from individual benchmarks and $1-w$ to the index score. The result $S$ is the public Intelligence or Agentic score for that variant:
-
-$$
-S=wS^{\text{bench}}+(1-w)S^{\text{index}}.
-$$
-
-If no individual-benchmark score is available, use the index score alone. If no eligible observed index is available, use the [evidence-adjusted score from individual benchmarks](#evidence-support-and-quality-regularization). Accepted estimates can supply an individual-benchmark score even with no directly observed individual benchmarks; when both scores exist, the 20% starting share still applies.
-
-Combining these scores adds no evidence support and does not satisfy inclusion requirements. No additional adjustment is applied to the combined score based on reasoning effort.
+AA, CAIS, Surge, and Vals use their declared or edition-specific represented breadth. ECI uses the median fixed-index breadth, currently 7.5 from the counts 7, 7, 8, and 10. If only indexes are available, their weighted mean supplies the score before [coverage regularization](#evidence-support-and-quality-regularization). If no eligible observed index is present, the individual-benchmark mean is regularized in the same way; a uniform 1.5 multiplier cancels from that mean. The multiplier and represented breadth do not inflate displayed evidence support. Admission uses its separate [observed-evidence rules](leaderboard-rules.md#dashboard-inclusion). No additional adjustment is applied based on reasoning effort.
 
 ## Parameter Choices
 
@@ -266,7 +237,8 @@ These values are scoring-policy choices, not fitted claims about model behavior.
 
 | Parameter | Value | Why it exists |
 | --- | ---: | --- |
-| Quality regularization floor / full point | 10% / 100% of the median benchmark count represented by aggregate indexes | Reduces sparse high scores without increasing the penalty whenever the portfolio expands. |
-| Capability benchmark/index endpoint | 80% / 20% at the configured observed-benchmark threshold (currently 7.5) | Gives well-observed individual benchmarks more influence while retaining an index contribution. |
-| Individual-benchmark weight transition | Cubic smoothstep from one to the configured threshold of 7.5 observed individual benchmarks | Avoids an abrupt change in individual benchmark weight when another observation arrives; no available individual-benchmark score means indexes alone. |
+| Quality regularization | 85% retention through 10% evidence coverage; smooth rise to 100% retention at 60% coverage | Discounts the entire score for missing portfolio coverage while limiting the reduction to 15%. |
+| Direct benchmark multiplier | 1.5 | Gives specific benchmark evidence modestly more influence than opaque represented index breadth without restoring a separate category-level blend. |
+| Aggregate-index breadth | Represented benchmark count after exact known overlap deductions | Gives broad indexes influence in proportion to their published evidence while counting known direct and cross-index overlap once. |
+| ECI breadth | 7.5, the median fixed-index breadth | Avoids model-specific fitted counts changing the categorical influence of one opaque index. |
 | Agentic token modifier | ±15%, capped at two robust log-token spread units | Limits how much token efficiency can alter benchmark quality before remapping; the cap is a policy choice. |

@@ -41,7 +41,7 @@ export type ModelAtlasColumnTooltip = {
 export type ModelAtlasColumnTooltips = Record<string, ModelAtlasColumnTooltip>;
 
 const QUALITY_REGULARIZATION_SCALE =
-  "ordinary high means stay at 50 through 10% of the aggregate-index median supported benchmark weight, then move toward the benchmark mean, including supported estimates from other efforts; regularization ends at that median";
+  "multiply the entire score by 85% through 10% evidence coverage, rising smoothly to 100% at 60% coverage; applies with or without indexes";
 
 export const CONFIDENCE_TOOLTIP = {
   title: "Evidence support",
@@ -144,7 +144,7 @@ const qualityBenchmarkRows = (
     ["Effective weight", "importance x dimension allocation"],
     [
       "Aggregation",
-      "20% benchmarks / 80% indexes at one observed benchmark; 80% benchmarks / 20% indexes at the configured observed-benchmark threshold",
+      "one evidence pool; direct benchmarks receive a 1.5× multiplier and indexes multiply configured weight by represented breadth",
     ],
     [
       "Imputed values",
@@ -154,7 +154,7 @@ const qualityBenchmarkRows = (
     ["Coverage regularization", QUALITY_REGULARIZATION_SCALE],
     [
       "Aggregate-index proxy",
-      "effort-labelled variants use effort-aware indexes (currently AA); each variant uses its own observed benchmark count; a smooth taper reaches 80% benchmarks / 20% indexes at the configured observed-benchmark threshold",
+      "known direct and cross-index component overlap counts once; ECI uses fixed breadth 7.5; effort-labelled variants use effort-aware AA and CAIS indexes",
     ],
     {
       title: "Frontier benchmarks",
@@ -251,14 +251,11 @@ export function columnTooltipsForActiveComponents(
   return {
     intelligence: {
       title: "Intelligence Score",
-      body: "Knowledge, perception, understanding, reasoning, and judgment on selected difficult benchmarks. Each observed result is normalized to 0-100 and weighted by benchmark importance × Intelligence allocation. Sparse high means can be pulled toward 50; observed aggregate indexes provide a broader proxy when benchmark coverage is incomplete, moving from 20% benchmark / 80% index at one observed benchmark to 80% benchmark / 20% index at the configured observed-benchmark threshold.",
+      body: "Knowledge, perception, understanding, reasoning, and judgment on selected difficult benchmarks. Each observed result is normalized to 0-100 and weighted by 1.5 × benchmark importance × Intelligence allocation. Aggregate indexes enter the same pool with represented-breadth multipliers after known overlap is counted once. Low evidence coverage discounts the entire score.",
       rows: [
         ["Observed benchmark weight", "importance × Intelligence allocation"],
         ["Benchmark normalization", "0 at the observed minimum, 100 at the maximum"],
-        [
-          "Final score",
-          "benchmark mean with supported estimates from other efforts; index blend or sparse-high regularization as applicable",
-        ],
+        ["Final score", "coverage-regularized unified benchmark/index evidence mean"],
       ],
       sections: [
         {
@@ -288,7 +285,7 @@ export function columnTooltipsForActiveComponents(
         ],
         [
           "Final score",
-          "benchmark mean with supported estimates from other efforts; index blend or sparse-high regularization as applicable",
+          "coverage-regularized unified benchmark/index evidence mean with supported estimates from other efforts",
         ],
       ],
       sections: [

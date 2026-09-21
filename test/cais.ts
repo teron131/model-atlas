@@ -2,7 +2,7 @@
 
 import assert from "node:assert/strict";
 
-import { qualityIndexBreadth } from "../src/model-atlas/benchmarks/index-policy";
+import { residualIndexBreadth } from "../src/model-atlas/benchmarks/index-policy";
 import {
   getCaisDashboardStats,
   processCaisDashboardModels,
@@ -91,10 +91,10 @@ assert.equal(
   ).length,
   1,
 );
-assert.equal(qualityIndexBreadth("cais_capabilities_index"), 7);
-assert.equal(qualityIndexBreadth("cais_capabilities_index", ["textquests"]), 6);
+assert.equal(residualIndexBreadth("cais_capabilities_index"), 7);
+assert.equal(residualIndexBreadth("cais_capabilities_index", ["textquests"]), 6);
 assert.equal(
-  qualityIndexBreadth("cais_capabilities_index", [
+  residualIndexBreadth("cais_capabilities_index", [
     "enigmaeval",
     "erqa",
     "hle",

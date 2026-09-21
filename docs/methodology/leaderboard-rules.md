@@ -12,13 +12,13 @@ A model appears on the dashboard only when it meets all of these requirements:
 
 **Count observed benchmarks**
 
-Standalone benchmarks contribute their configured importance once across both dimensions. An observed aggregate index contributes its represented benchmark count, without the half-importance discount used in quality scoring.
+Standalone benchmarks contribute their configured importance once across both dimensions. An observed aggregate index contributes its represented benchmark count.
 
-Count each known component once across indexes and standalone observations, using the larger of its standalone importance and the one unit represented within an observed index. Add each index’s remaining count of unnamed benchmarks separately. This avoids double counting known overlap and prevents a half-importance standalone observation from reducing existing index coverage.
+Count each known component once across indexes and standalone observations, using the larger of its standalone importance and the one unit represented within an observed index. Add each index’s remaining count of unnamed benchmarks separately. This avoids double counting known overlap and prevents a lower-importance standalone observation from reducing existing index coverage.
 
 AA’s main Intelligence Index represents ten benchmarks. Its Agentic, Coding, and Omniscience indexes do not increase the benchmark count used for inclusion. Only observed results count, including observed zeros.
 
-ECI supplies a model-specific fitted benchmark count, falling back to four when unavailable. Its component overlap is unknown, so this count is an estimate added alongside standalone evidence. Inclusion uses observations matched to the exact configuration; imputation supplies no direct coverage.
+ECI uses fixed represented breadth 7.5, the median of the fixed index baskets. Its component overlap is unknown, so this breadth is added alongside standalone evidence. Inclusion uses observations matched to the exact configuration; imputation supplies no direct coverage.
 
 The required benchmark count is the smallest known count represented by an index among AA, CAIS, Surge, and Vals, currently seven. ECI’s publication minimum is excluded because it is not a fixed benchmark basket.
 
@@ -26,10 +26,10 @@ The required benchmark count is the smallest known count represented by an index
 | --- | --- |
 | Eligible indexes | AA’s main Intelligence Index, CAIS, ECI, Surge, and Vals. Secondary AA indexes and imputed results do not count. |
 | Single-index exception | One observed AA main index or ECI satisfies the index-count rule only. Benchmark-count, dimension, and quality requirements still apply. |
-| Benchmark count versus index count | Standalone results can increase the benchmark count but cannot replace the index requirement. ECI’s fallback count of four does not meet the seven-benchmark threshold alone. |
+| Benchmark count versus index count | Standalone results can increase the benchmark count but cannot replace the index requirement. ECI's fixed breadth exceeds the seven-benchmark threshold and remains an explicit single-index exception. |
 | Timing and source | No specific index, release age, or prior publication is required. |
 
-Scoring regularization and the benchmark/index blend use the median benchmark count represented by indexes; inclusion uses the minimum count described above.
+Quality scores use a coverage multiplier from 0.85 to 1 between 10% and 60% evidence coverage. ECI breadth uses the median benchmark count represented by fixed indexes; inclusion uses the minimum count described above.
 
 **Apply display rules**
 
@@ -103,7 +103,7 @@ Build each model’s comparison independently for cost, time, and tokens:
 | Overlap | Subtract one from AA’s weight for each matching component actually included as an individual benchmark. Excluded components and unrelated benchmarks do not reduce it. |
 | No common benchmarks | Retain common index evidence alone; sparse benchmark observations cannot remove variants from the index baseline. |
 
-The remaining index weights apply to both axes and the displayed index share; the index values stay unchanged. Headline capability scores use their separate [benchmark/index blend](intelligence-agentic.md#combining-benchmarks-and-aggregate-indexes), with individual benchmark weight rising to 80%.
+The remaining index weights apply to both axes and the displayed index share; the index values stay unchanged. Headline capability scores use their separate [unified evidence pool](intelligence-agentic.md#combining-benchmarks-and-aggregate-indexes), with indexes weighted by represented breadth after known overlap deductions.
 
 Variants missing the selected index resource evidence are counted in the legend and can be compared by deselecting the indexes. Without an index that has both quality and the selected resource measurement, the graph uses common benchmarks across that model’s variants with selected resource observations. If no evidence is common, the comparison is empty.
 

@@ -26,7 +26,7 @@ The framework establishes a fixed reference from an initial snapshot of supporte
 >
 > 4. **[Weight the evidence by coverage](calculation.md#weight-the-evidence-by-coverage)**
 >
->    Use direct task coverage to set the relative weights of task results and published indexes.
+>    Combine individual benchmark results and published indexes in one weighted mean, with index weights reflecting represented benchmark breadth.
 >
 > 5. **[Apply the dated-successor assumption](calculation.md#apply-the-dated-successor-assumption)**
 >

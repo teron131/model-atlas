@@ -153,7 +153,7 @@ export function observedResourceEvidenceCounts(
       ["time", "seconds"],
     ] as const) {
       if (positiveFiniteNumber(metrics?.[field]) == null) continue;
-      const overlap = policy.standaloneComponents.filter(
+      const overlap = (policy.componentBenchmarkKeys ?? []).filter(
         (key) =>
           portfolio[key]?.resourcePolicy != null &&
           benchmarkMetricValue(model, key) != null &&
