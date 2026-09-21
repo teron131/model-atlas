@@ -480,6 +480,44 @@ assert.equal(
   "one benchmark authority should not replace a source route by itself",
 );
 
+const sourceLabelVersionData = modelStatsSourceData([
+  {
+    ...sourceModel("alibaba/qwen3-8-max", 45),
+    name: "Qwen3.8 Max (0902)",
+  },
+]);
+const sourceLabelVersionModels = [
+  model("openrouter", "alibaba/qwen3.8-max", "Qwen3.8 Max"),
+  model("vercel", "alibaba/qwen3.8-max-0902", "Qwen3.8 Max 0902"),
+];
+sourceLabelVersionData.modelsDev = {
+  rows: sourceLabelVersionModels,
+  byId: new Map(sourceLabelVersionModels.map((modelRow) => [modelRow.model_id, modelRow])),
+};
+sourceLabelVersionData.valsIndex = { rows: [], rowsByModelName: new Map() };
+assert.equal(
+  buildVersionReplacementMatchSlugOverrides(sourceLabelVersionData).get("alibaba/qwen3-8-max"),
+  "qwen3-8-max-0902",
+  "a unique dated source label and matching catalog route should resolve the undated source identity",
+);
+assert.equal(
+  buildVersionReplacementMatchSlugOverrides({
+    ...sourceLabelVersionData,
+    artificialAnalysis: {
+      ...sourceLabelVersionData.artificialAnalysis,
+      rows: [
+        {
+          ...sourceModel("alibaba/qwen3-8-max", 45),
+          name: "Qwen3.8 Max (0902)",
+          short_name: "Qwen3.8 Max (0803)",
+        },
+      ],
+    },
+  }).has("alibaba/qwen3-8-max"),
+  false,
+  "conflicting dated labels must not choose a replacement route",
+);
+
 const valsVersionRow: ValsIndexModelScoreRow = {
   task: "overall",
   task_label: "Overall",

@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 560" role="img" aria-labelledby="title desc">
+<title id="title">Three models, three shared-benchmark links, one Laplacian</title>
+<desc id="desc">Model A and B share Benchmark A with comparison weight 2.5, A and C share Benchmark B with weight 1, and B and C share Benchmark C with weight 0.5. The links and matching off-diagonal matrix entries use the same colors. The Laplacian rows are 3.5, minus 2.5, minus 1; minus 2.5, 3, minus 0.5; and minus 1, minus 0.5, 1.5. Each positive diagonal sums a model's link weights. Each negative entry subtracts the corresponding neighbor's rating at the link's weight. These illustrative weights are not benchmark scores.</desc>
+<style>
+text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; fill:#000000; }
+.muted { fill:#63706e; } .ab { fill:#146cba; } .ac { fill:#a64d0c; } .bc { fill:#16816a; }
+.panel { fill:#ffffff; stroke:#b5bfbc; }
+@media (prefers-color-scheme:dark) {
+text { fill:#ffffff; } .muted { fill:#a6b2ae; }
+.ab { fill:#85bfff; } .ac { fill:#ffbc7d; } .bc { fill:#74d7b9; }
+.panel { fill:#101719; stroke:#3c4846; }
+[stroke="#146cba"] { stroke:#85bfff; } [stroke="#a64d0c"] { stroke:#ffbc7d; }
+[stroke="#16816a"] { stroke:#74d7b9; } [stroke="#b5bfbc"] { stroke:#3c4846; }
+}
+</style>
+<text x="24" y="30" font-size="19" font-weight="600">The Laplacian stores each model’s comparison links</text>
+<text x="24" y="54" font-size="13" class="muted">Illustrative comparison weights after benchmark weighting · not model scores</text>
+<g fill="none">
+<path d="M147 130 H293" stroke="#146cba" stroke-width="5"/>
+<path d="M97 155 L193 282" stroke="#a64d0c" stroke-width="3"/>
+<path d="M343 155 L247 282" stroke="#16816a" stroke-width="2"/>
+</g>
+<g text-anchor="middle" font-size="13">
+<text x="220" y="97" class="ab">Benchmark A</text><text x="220" y="116" class="ab" font-weight="600">weight 2.5</text>
+<text x="79" y="217" class="ac">Benchmark B</text><text x="79" y="237" class="ac" font-weight="600">weight 1</text>
+<text x="361" y="217" class="bc">Benchmark C</text><text x="361" y="237" class="bc" font-weight="600">weight 0.5</text>
+</g>
+<rect x="37" y="105" width="110" height="50" rx="12" class="panel"/>
+<rect x="293" y="105" width="110" height="50" rx="12" class="panel"/>
+<rect x="165" y="282" width="110" height="50" rx="12" class="panel"/>
+<g font-size="17" font-weight="600" text-anchor="middle">
+<text x="92" y="136">Model A</text><text x="348" y="136">Model B</text><text x="220" y="313">Model C</text>
+</g>
+<text x="479" y="98" font-size="17" font-weight="600">Same links, stored as L</text>
+<g text-anchor="middle" font-size="14" class="muted">
+<text x="524" y="134">A</text><text x="604" y="134">B</text><text x="684" y="134">C</text>
+<text x="451" y="173">A</text><text x="451" y="220">B</text><text x="451" y="267">C</text>
+</g>
+<path d="M488 145 H477 V282 H488 M720 145 H731 V282 H720" fill="none" stroke="#b5bfbc" stroke-width="2"/>
+<g text-anchor="middle" font-size="23">
+<text x="524" y="173" font-weight="600">3.5</text><text x="604" y="173" class="ab">−2.5</text><text x="684" y="173" class="ac">−1</text>
+<text x="524" y="220" class="ab">−2.5</text><text x="604" y="220" font-weight="600">3</text><text x="684" y="220" class="bc">−0.5</text>
+<text x="524" y="267" class="ac">−1</text><text x="604" y="267" class="bc">−0.5</text><text x="684" y="267" font-weight="600">1.5</text>
+</g>
+<text x="479" y="309" font-size="13" class="muted">Matching colors = the same comparison link</text>
+<path d="M24 351 H736" stroke="#b5bfbc"/>
+<text x="24" y="378" font-size="16" font-weight="600">Where Model A’s row comes from</text>
+<text x="24" y="400" font-size="13" class="muted">A, B, and C below stand for the models’ ratings.</text>
+<text x="24" y="431" font-size="21"><tspan class="ab">2.5(A − B)</tspan><tspan> + </tspan><tspan class="ac">1(A − C)</tspan></text>
+<text x="24" y="463" font-size="21"><tspan>= </tspan><tspan class="ab">2.5A − 2.5B</tspan><tspan> + </tspan><tspan class="ac">A − C</tspan></text>
+<text x="24" y="495" font-size="21"><tspan>= </tspan><tspan font-weight="600">3.5A</tspan><tspan class="ab"> − 2.5B</tspan><tspan class="ac"> − 1C</tspan></text>
+<text x="455" y="436" font-size="15" font-weight="600">Store the coefficients:</text>
+<text x="455" y="470" font-size="23"><tspan>[ </tspan><tspan font-weight="600">3.5</tspan><tspan>, </tspan><tspan class="ab">−2.5</tspan><tspan>, </tspan><tspan class="ac">−1</tspan><tspan> ]</tspan></text>
+<text x="455" y="495" font-size="13" class="muted">That is row A, in columns A, B, C.</text>
+<text x="24" y="534" font-size="14" font-weight="600">The positive diagonal combines A’s own terms. It is not an A-versus-A comparison.</text>
+</svg>

@@ -111,6 +111,7 @@ export type ScoringConfig = {
   qualityCoverage: QualityCoverageThresholds;
   qualityCoverageMinimumRetention: number;
   directBenchmarkWeightMultiplier: number;
+  pairwiseIntelligenceWeight: number;
 };
 
 export type ModelAtlasStageConfig = {
@@ -173,5 +174,6 @@ export const STAGE_CONFIG = {
     qualityCoverage: QUALITY_COVERAGE,
     qualityCoverageMinimumRetention: 0.85,
     directBenchmarkWeightMultiplier: 1.5,
+    pairwiseIntelligenceWeight: 0.2,
   },
 } satisfies ModelAtlasStageConfig;

@@ -121,7 +121,7 @@ Expanded graphs connect consecutive displayed efforts within each model, even wh
 
 ### Evidence for Updated Releases
 
-A dated model replacement needs fresh evidence before results from the previous identity can be reused. Artificial Analysis and Vals must independently identify the same dated release suffix, and the matched catalog route must serve that release. Semantic versions remain separate identities.
+A dated model replacement needs fresh evidence before results from the previous identity can be reused. An undated Artificial Analysis identity can resolve to a dated route when the catalog identifies one dated extension and either an explicit Artificial Analysis display label or Vals identifies that same extension. Conflicting dated evidence or multiple catalog extensions prevent the override. The published identity retains the dated route even when its display name omits the date. Semantic versions remain separate identities.
 
 Retain an observation only when at least one condition holds:
 
