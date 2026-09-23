@@ -230,24 +230,18 @@ const itbenchResourceRow = {
   answer_tokens_per_task: 80,
   reasoning_tokens_per_task: 120,
 } satisfies ArtificialAnalysisBenchmarkResourceRow;
-const legalResearchRow = {
-  benchmark_key: "legal_research",
-  source_url: "https://www.vals.ai/benchmarks/legal_research",
+const chartographyRow = {
+  benchmark_key: "chartography",
+  source_url: "https://www.surgehq.ai/leaderboard/chartography",
   model_id: "test/example-model",
   model: "Example Model",
   base_model: "Example Model",
   reasoning_effort: null,
   model_creator: "Test",
   rank: 1,
-  canonical_value: 0.61,
+  canonical_value: 0.47,
   observed_at: null,
   metadata: {},
-} satisfies BenchmarkObservationRow;
-const chartographyRow = {
-  ...legalResearchRow,
-  benchmark_key: "chartography",
-  source_url: "https://www.surgehq.ai/leaderboard/chartography",
-  canonical_value: 0.47,
 } satisfies BenchmarkObservationRow;
 const arcAgi3Row = {
   benchmark_key: "arc_agi_3",
@@ -287,6 +281,7 @@ const lookups = {
   arcAgi2: { rowsByModelName: emptyLookup() },
   arcAgi3: { rowsByModelName: buildBenchmarkObservationLookup([arcAgi3Row]) },
   automationBench: { rowsByModelName: buildBenchmarkObservationLookup([automationBenchRow]) },
+  bioMysteryBench: { rowsByModelName: emptyLookup() },
   blueprintBench: {
     rowsByModelName: emptyLookup(),
   },
@@ -300,7 +295,6 @@ const lookups = {
   chessPuzzles: { rowsByModelName: new Map() },
   codeMigration: { rowsByModelName: emptyLookup() },
   complexConstraints: { rowsByModelName: emptyLookup() },
-  cyberBench: { rowsByModelName: emptyLookup() },
   deepSWE: {
     rowsByModelName: new Map([["example-model-preview", deepSWERow]]),
   },
@@ -322,12 +316,10 @@ const lookups = {
   handbookMd: { rowsByModelName: new Map() },
   hemingwayBench: { rowsByModelName: emptyLookup() },
   intphys2: { rowsByModelName: emptyLookup() },
-  legalResearch: {
-    rowsByModelName: buildBenchmarkObservationLookup([legalResearchRow]),
-  },
   mindcube: { rowsByModelName: emptyLookup() },
   mirrorCode: { rowsByModelName: emptyLookup() },
   mlsBench: { rowsByModelName: emptyLookup() },
+  mysteryMechanism: { rowsByModelName: emptyLookup() },
   omniscienceAccuracy: { rowsByModelName: emptyLookup() },
   perceptionBench: { rowsByModelName: emptyLookup() },
   programBench: { rowsByModelName: emptyLookup() },
@@ -336,6 +328,7 @@ const lookups = {
   riemannBench: {
     rowsByModelName: emptyLookup(),
   },
+  rsiBenchmark: { rowsByModelName: emptyLookup() },
   simpleQaVerified: { rowsByModelName: emptyLookup() },
   spatialviz: { rowsByModelName: emptyLookup() },
   sreBench: { rowsByModelName: emptyLookup() },
@@ -417,7 +410,6 @@ assert.deepEqual(defaultVariantAssignment.benchmarks, {
   frontier_code: 0.535,
   hle: 0.4,
   itbench_sre: 0.56,
-  legal_research: 0.61,
   terminal_bench_4: 0.4353,
   vending_bench_2: 9_000,
 });
@@ -434,7 +426,6 @@ assert.deepEqual(defaultVariantAssignment.scoringSources, {
   frontier_code: frontierCodeRow,
   hle: artificialAnalysisHleResourceRow,
   itbench_sre: itbenchResourceRow,
-  legal_research: legalResearchRow,
   terminal_bench_4: terminalBench4Row,
   vending_bench_2: vendingBench2Row,
 });
@@ -448,14 +439,12 @@ assert.deepEqual(effortQualifiedDefault.benchmarks, {
   agent_arena: 0.14,
   automation_bench: 0.3044,
   chartography: 0.47,
-  legal_research: 0.61,
   vending_bench_2: 9_000,
 });
 assert.deepEqual(effortQualifiedDefault.scoringSources, {
   agent_arena: agentArenaRow,
   automation_bench: automationBenchRow,
   chartography: chartographyRow,
-  legal_research: legalResearchRow,
   vending_bench_2: vendingBench2Row,
 });
 const sourceOnlyEffortAssignment = assignBenchmarksToVariants(

@@ -68,6 +68,17 @@ export const BENCHMARK_STANDARD_SOURCES = {
     sourceDataKey: "automationBench",
     sourceRowsKey: "automationBenchRows",
   },
+  biomysterybench: {
+    group: "vals",
+    id: "vals",
+    loader: {
+      kind: "vals",
+      canonicalTask: "overall",
+      sourceUrl: "https://www.vals.ai/benchmarks/biomysterybench",
+    },
+    sourceDataKey: "bioMysteryBench",
+    sourceRowsKey: "bioMysteryBenchRows",
+  },
   browsecomp: {
     group: "standalone",
     id: "zeroeval",
@@ -125,17 +136,6 @@ export const BENCHMARK_STANDARD_SOURCES = {
     },
     sourceDataKey: "complexConstraints",
     sourceRowsKey: "complexConstraintsRows",
-  },
-  cyberbench: {
-    group: "vals",
-    id: "vals",
-    loader: {
-      kind: "vals",
-      canonicalTask: "patch",
-      sourceUrl: "https://www.vals.ai/benchmarks/cyber",
-    },
-    sourceDataKey: "cyberBench",
-    sourceRowsKey: "cyberBenchRows",
   },
   ebr_bench: {
     group: "epoch",
@@ -264,17 +264,6 @@ export const BENCHMARK_STANDARD_SOURCES = {
     sourceDataKey: "intphys2",
     sourceRowsKey: "intphys2Rows",
   },
-  legal_research: {
-    group: "vals",
-    id: "vals",
-    loader: {
-      kind: "vals",
-      canonicalTask: "overall",
-      sourceUrl: "https://www.vals.ai/benchmarks/legal_research",
-    },
-    sourceDataKey: "legalResearch",
-    sourceRowsKey: "legalResearchRows",
-  },
   mindcube: {
     group: "standalone",
     id: "cais",
@@ -305,6 +294,17 @@ export const BENCHMARK_STANDARD_SOURCES = {
     },
     sourceDataKey: "mlsBench",
     sourceRowsKey: "mlsBenchRows",
+  },
+  mysterymechanism: {
+    group: "vals",
+    id: "vals",
+    loader: {
+      kind: "vals",
+      canonicalTask: "overall",
+      sourceUrl: "https://www.vals.ai/benchmarks/mysterymechanism",
+    },
+    sourceDataKey: "mysteryMechanism",
+    sourceRowsKey: "mysteryMechanismRows",
   },
   omniscience_accuracy: {
     group: "artificial_analysis",
@@ -360,6 +360,13 @@ export const BENCHMARK_STANDARD_SOURCES = {
     },
     sourceDataKey: "publicBenefitsBench",
     sourceRowsKey: "publicBenefitsBenchRows",
+  },
+  rsi_benchmark: {
+    group: "vals",
+    id: "vals",
+    loader: { kind: "vals_rsi", sourceUrl: "https://www.vals.ai/benchmarks/rsi_index" },
+    sourceDataKey: "rsiBenchmark",
+    sourceRowsKey: "rsiBenchmarkRows",
   },
   simpleqa_verified: {
     group: "epoch",

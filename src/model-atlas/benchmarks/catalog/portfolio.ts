@@ -71,6 +71,11 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0, agentic: 1 },
   },
+  biomysterybench: {
+    group: "frontier",
+    benchmarkImportance: 1,
+    dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
+  },
   blueprint_bench_2: {
     group: "frontier",
     benchmarkImportance: 1,
@@ -111,11 +116,6 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     group: "frontier",
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
-  },
-  cyberbench: {
-    group: "baseline",
-    benchmarkImportance: 1,
-    dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
   },
   deep_swe: {
     group: "frontier",
@@ -203,11 +203,6 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
   },
-  legal_research: {
-    group: "frontier",
-    benchmarkImportance: 1,
-    dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
-  },
   mindcube: {
     group: "baseline",
     benchmarkImportance: 1,
@@ -219,6 +214,11 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
   },
   mls_bench: {
+    group: "frontier",
+    benchmarkImportance: 1,
+    dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
+  },
+  mysterymechanism: {
     group: "frontier",
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
@@ -252,6 +252,11 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     group: "frontier",
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
+  },
+  rsi_benchmark: {
+    group: "frontier",
+    benchmarkImportance: 1,
+    dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
   },
   scicode: {
     group: "baseline",

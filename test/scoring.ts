@@ -280,25 +280,26 @@ assert.deepEqual(
   Object.fromEntries(
     (
       [
+        "biomysterybench",
         "code_migration",
-        "cyberbench",
         "emb",
         "finance_agent_v2",
-        "legal_research",
+        "mysterymechanism",
         "programbench",
         "public_benefits_bench",
+        "rsi_benchmark",
         "vibe_code",
       ] as const
     ).map((key) => [key, STAGE_CONFIG.scoring.benchmarkPortfolio[key]]),
   ),
   {
-    code_migration: {
+    biomysterybench: {
       group: "frontier",
       benchmarkImportance: 1,
-      dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
+      dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
     },
-    cyberbench: {
-      group: "baseline",
+    code_migration: {
+      group: "frontier",
       benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
     },
@@ -312,10 +313,10 @@ assert.deepEqual(
       benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
     },
-    legal_research: {
+    mysterymechanism: {
       group: "frontier",
       benchmarkImportance: 1,
-      dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
+      dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
     },
     programbench: {
       group: "frontier",
@@ -324,6 +325,11 @@ assert.deepEqual(
     },
     public_benefits_bench: {
       group: "baseline",
+      benchmarkImportance: 1,
+      dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
+    },
+    rsi_benchmark: {
+      group: "frontier",
       benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
     },

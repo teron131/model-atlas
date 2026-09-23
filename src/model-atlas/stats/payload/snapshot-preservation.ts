@@ -6,8 +6,8 @@ import { canonicalReasoningEffort, normalizeModelToken } from "../../identity/no
 import { asFiniteNumber, asRecord } from "../../runtime";
 import type { ModelAtlasModel, ModelAtlasPayload } from "../types";
 
-// Mercor observations replace AA APEX scores and resources, so previous model rows cannot be restored wholesale.
-export const SNAPSHOT_PRESERVATION_VERSION = 8;
+// Changing the selected benchmark portfolio invalidates prior model rows under the old score contract.
+export const SNAPSHOT_PRESERVATION_VERSION = 10;
 const DEFAULT_EFFORT_KEY = "\u0000default";
 const MODEL_EFFORT_SEPARATOR = "\u001f";
 

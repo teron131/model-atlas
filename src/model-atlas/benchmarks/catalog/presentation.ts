@@ -98,6 +98,15 @@ export const BENCHMARK_TOOLTIPS = {
       ["Role", "agentic SaaS workflow"],
     ],
   },
+  biomysterybench: {
+    title: "BioMysteryBench",
+    body: "Investigate anonymized biological datasets through analysis code, scientific tools, and domain reasoning.",
+    rows: [
+      ["Source", "Vals AI; tasks by Anthropic"],
+      ["Metric", "mean accuracy across three full runs"],
+      ["Role", "bioinformatics research"],
+    ],
+  },
   blueprint_bench_2: {
     title: "Blueprint-Bench 2",
     body: "Reconstruct apartment floor plans from interior photographs.",
@@ -171,15 +180,6 @@ export const BENCHMARK_TOOLTIPS = {
     rows: [
       ["Source", "Artificial Analysis"],
       ["Role", "physics reasoning"],
-    ],
-  },
-  cyberbench: {
-    title: "CyberBench",
-    body: "Reproduce and patch OSS-Fuzz vulnerabilities without breaking benign behavior.",
-    rows: [
-      ["Source", "Vals AI"],
-      ["Metric", "patch-track accuracy"],
-      ["Role", "cybersecurity patching"],
     ],
   },
   deep_swe: {
@@ -335,15 +335,6 @@ export const BENCHMARK_TOOLTIPS = {
       ["Role", "SRE diagnosis workflow"],
     ],
   },
-  legal_research: {
-    title: "Legal Research",
-    body: "Research U.S. law using case law, web search, and documents to support answers.",
-    rows: [
-      ["Source", "Vals AI"],
-      ["Metric", "strict all-pass accuracy"],
-      ["Role", "legal research workflow"],
-    ],
-  },
   mindcube: {
     title: "MindCube Tiny",
     body: "Infer hidden spatial relationships and perspective changes from limited scene views.",
@@ -370,6 +361,15 @@ export const BENCHMARK_TOOLTIPS = {
       ["Source", "MLS-Bench"],
       ["Metric", "baseline-normalized performance"],
       ["Role", "iterative machine-learning research"],
+    ],
+  },
+  mysterymechanism: {
+    title: "MysteryMechanism",
+    body: "Recover hidden mathematical relationships by choosing bounded experiments and fitting an executable law.",
+    rows: [
+      ["Source", "Vals AI"],
+      ["Metric", "functional recovery accuracy"],
+      ["Role", "experimental mathematical discovery"],
     ],
   },
   omniscience_accuracy: {
@@ -422,6 +422,16 @@ export const BENCHMARK_TOOLTIPS = {
     rows: [
       ["Source", "Surge AI"],
       ["Role", "frontier math reasoning"],
+    ],
+  },
+  rsi_benchmark: {
+    title: "RSI",
+    body: "Conduct autonomous LLM research across compression, training, harness design, and post-training.",
+    rows: [
+      ["Source", "Vals RSI Index"],
+      ["Metric", "mean of five reference-anchored task scores"],
+      ["Harness", "model-specific agent products; model-plus-agent evidence"],
+      ["Role", "autonomous LLM R&D"],
     ],
   },
   scicode: {
@@ -586,6 +596,7 @@ export const BENCHMARK_LABELS = {
   arc_agi_2: "ARC-AGI-2",
   arc_agi_3: "ARC-AGI-3",
   automation_bench: "AutomationBench",
+  biomysterybench: "BioMysteryBench",
   blueprint_bench_2: "Blueprint-Bench 2",
   briefcase: "Briefcase",
   browsecomp: "BrowseComp",
@@ -595,7 +606,6 @@ export const BENCHMARK_LABELS = {
   code_migration: "Code Migration",
   complex_constraints: "ComplexConstraints",
   critpt: "CritPt",
-  cyberbench: "CyberBench",
   deep_swe: "DeepSWE",
   ebr_bench: "EBR-Bench",
   emb: "EMB",
@@ -614,16 +624,17 @@ export const BENCHMARK_LABELS = {
   hle: "HLE",
   intphys2: "IntPhys 2",
   itbench_sre: "ITBench",
-  legal_research: "Legal Research",
   mindcube: "MindCube Tiny",
   mirrorcode: "MirrorCode",
   mls_bench: "MLS-Bench Lite",
+  mysterymechanism: "MysteryMechanism",
   omniscience_accuracy: "Omniscience",
   perception_bench: "PerceptionBench",
   programbench: "ProgramBench",
   proofbench: "ProofBench",
   public_benefits_bench: "Public Benefits Bench",
   riemann_bench: "Riemann-bench",
+  rsi_benchmark: "RSI",
   scicode: "SciCode",
   simpleqa_verified: "SimpleQA Verified",
   spatialviz: "SpatialViz-Bench",
@@ -656,6 +667,7 @@ const FRONTIER_BENCHMARK_DISPLAY_ORDER = [
   "arc_agi_2",
   "arc_agi_3",
   "automation_bench",
+  "biomysterybench",
   "blueprint_bench_2",
   "briefcase",
   "chartography",
@@ -674,11 +686,12 @@ const FRONTIER_BENCHMARK_DISPLAY_ORDER = [
   "handbook_md",
   "hle",
   "itbench_sre",
-  "legal_research",
   "mirrorcode",
   "mls_bench",
+  "mysterymechanism",
   "programbench",
   "riemann_bench",
+  "rsi_benchmark",
   "spatialviz",
   "sre_bench",
   "superchem",
@@ -691,7 +704,6 @@ const BASELINE_BENCHMARK_DISPLAY_ORDER = [
   "apex_swe",
   "browsecomp",
   "chess_puzzles",
-  "cyberbench",
   "enterprisebench_corecraft",
   "erqa",
   "finance_agent_v2",
@@ -1163,6 +1175,12 @@ export const BENCHMARK_COLUMNS = {
     format: "percent",
     defaultSort: "descending",
   },
+  biomysterybench: {
+    key: "bioMysteryBench",
+    label: "BioMystery",
+    format: "percent",
+    defaultSort: "descending",
+  },
   blueprint_bench_2: {
     key: "blueprintBench",
     label: "BB2",
@@ -1214,12 +1232,6 @@ export const BENCHMARK_COLUMNS = {
   critpt: {
     key: "critpt",
     label: "CritPt",
-    format: "percent",
-    defaultSort: "descending",
-  },
-  cyberbench: {
-    key: "cyberBench",
-    label: "Cyber",
     format: "percent",
     defaultSort: "descending",
   },
@@ -1331,12 +1343,6 @@ export const BENCHMARK_COLUMNS = {
     format: "percent",
     defaultSort: "descending",
   },
-  legal_research: {
-    key: "legalResearch",
-    label: "Legal",
-    format: "percent",
-    defaultSort: "descending",
-  },
   mindcube: {
     key: "mindcube",
     label: "MindCube",
@@ -1352,6 +1358,12 @@ export const BENCHMARK_COLUMNS = {
   mls_bench: {
     key: "mlsBench",
     label: "MLS",
+    format: "percent",
+    defaultSort: "descending",
+  },
+  mysterymechanism: {
+    key: "mysteryMechanism",
+    label: "Mystery",
     format: "percent",
     defaultSort: "descending",
   },
@@ -1388,6 +1400,12 @@ export const BENCHMARK_COLUMNS = {
   riemann_bench: {
     key: "riemannBench",
     label: "Riemann",
+    format: "percent",
+    defaultSort: "descending",
+  },
+  rsi_benchmark: {
+    key: "rsiBenchmark",
+    label: "RSI",
     format: "percent",
     defaultSort: "descending",
   },

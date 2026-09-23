@@ -289,13 +289,13 @@ const valsBenchmarkPayload = benchmarksJsonPayload(
           id: "provider/vals-model",
           name: "Vals Model",
         }),
-        benchmarks: { legal_research: 0.62 },
+        benchmarks: { public_benefits_bench: 0.62 },
       },
     ],
   }),
 );
 assert.equal(
-  valsBenchmarkPayload.benchmarks[0]?.benchmarks.legal_research,
+  valsBenchmarkPayload.benchmarks[0]?.benchmarks.public_benefits_bench,
   0.62,
   "the public benchmarks view should expose admitted Vals benchmark fields",
 );
