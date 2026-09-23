@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 360" role="img" aria-labelledby="title desc">
-<title id="title">Evidence coverage and the score multiplier</title>
-<desc id="desc">For an illustrative portfolio of weight 40, the score multiplier stays at 85 percent through supported weight 4, rises smoothly, and reaches 100 percent at supported weight 24 and 60 percent portfolio coverage.</desc>
+<title id="title">Score retention as benchmark support grows</title>
+<desc id="desc">The score retains 85 percent with little supported benchmark weight, rises smoothly, and reaches full retention when the supported weight is sufficient. Exact thresholds are stated in the accompanying text.</desc>
 <style>
 text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; }
 @media (prefers-color-scheme:dark) {
@@ -8,32 +8,23 @@ text { fill:#ffffff; }
 [fill="#63706e"] { fill:#a6b2ae; } [stroke="#63706e"] { stroke:#a6b2ae; }
 [fill="#b5bfbc"] { fill:#3c4846; } [stroke="#b5bfbc"] { stroke:#3c4846; }
 [fill="#146cba"] { fill:#85bfff; } [stroke="#146cba"] { stroke:#85bfff; }
-[fill="#a64d0c"] { fill:#ffbc7d; } [stroke="#a64d0c"] { stroke:#ffbc7d; }
 }
 </style>
 <rect x="143.8" y="65" width="309" height="215" fill="#808080" fill-opacity="0.08"/>
 <path d="M82 21 H106" fill="none" stroke="#146cba" stroke-width="3"/>
-<text x="114" y="26" fill="#000000" font-size="14" text-anchor="start">Score multiplier</text>
-<path d="M420 21 H444" fill="none" stroke="#a64d0c" stroke-width="3" stroke-dasharray="7 5"/>
-<text x="452" y="26" fill="#000000" font-size="14" text-anchor="start">Portfolio coverage</text>
+<text x="114" y="26" fill="#000000" font-size="14" text-anchor="start">Score retention</text>
 <path d="M82 280 H700" fill="none" stroke="#b5bfbc" stroke-width="1"/>
 <text x="68" y="285" fill="#63706e" font-size="14" text-anchor="end">0%</text>
 <path d="M82 172.5 H700" fill="none" stroke="#b5bfbc" stroke-width="1"/>
 <text x="68" y="177.5" fill="#63706e" font-size="14" text-anchor="end">50%</text>
 <path d="M82 65 H700" fill="none" stroke="#b5bfbc" stroke-width="1"/>
 <text x="68" y="70" fill="#63706e" font-size="14" text-anchor="end">100%</text>
-<path d="M82 280 v5 M143.8 280 v5 M298.3 280 v5 M452.8 280 v5 M700 280 v5" fill="none" stroke="#63706e" stroke-width="1"/>
-<text x="82" y="306" fill="#63706e" font-size="14" text-anchor="middle">0</text>
-<text x="143.8" y="306" fill="#63706e" font-size="14" text-anchor="middle">4</text>
-<text x="298.3" y="306" fill="#63706e" font-size="14" text-anchor="middle">14</text>
-<text x="452.8" y="306" fill="#63706e" font-size="14" text-anchor="middle">24</text>
-<text x="700" y="306" fill="#63706e" font-size="14" text-anchor="middle">40</text>
+<path d="M82 280 v5 M143.8 280 v5 M452.8 280 v5 M700 280 v5" fill="none" stroke="#63706e" stroke-width="1"/>
+<text x="143.8" y="306" fill="#63706e" font-size="14" text-anchor="middle">Little</text>
+<text x="452.8" y="306" fill="#63706e" font-size="14" text-anchor="middle">Enough</text>
 <path d="M82 97.25 L143.8 97.25 C246.8 97.25 349.8 65 452.8 65 L700 65" fill="none" stroke="#146cba" stroke-width="3"/>
 <circle cx="452.8" cy="65" r="4" fill="#146cba"/>
-<path d="M82 280 L700 65" fill="none" stroke="#a64d0c" stroke-width="3" stroke-dasharray="7 5"/>
-<circle cx="452.8" cy="151" r="4" fill="#a64d0c"/>
 <path d="M452.8 60 V280" fill="none" stroke="#63706e" stroke-width="1" stroke-dasharray="3 5"/>
-<text x="464.8" y="55" fill="#146cba" font-size="14" text-anchor="start">Full multiplier</text>
-<text x="464.8" y="194" fill="#a64d0c" font-size="14" text-anchor="start">60% coverage</text>
-<text x="390" y="342" fill="#000000" font-size="16" text-anchor="middle">Supported portfolio weight</text>
+<text x="464.8" y="55" fill="#146cba" font-size="14" text-anchor="start">Full retention</text>
+<text x="390" y="342" fill="#000000" font-size="16" text-anchor="middle">Supported benchmark weight</text>
 </svg>

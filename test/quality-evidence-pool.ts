@@ -88,11 +88,11 @@ for (const taskCount of [4, 40]) {
 
 const multiplierFixture = fixture(4, 1);
 // Coverage discounts the entire score at both sides of 50, even when AA supplies index evidence.
-const coverageFixture = fixture(19, 1);
+const coverageFixture = fixture(19, 1, 0.05);
 for (const [observedTasks, multiplier] of [
-  [1, 0.85],
-  [6, 0.925],
-  [11, 1],
+  [0, 0.85],
+  [1, 0.925],
+  [2, 1],
 ] as const) {
   for (const value of [40, 80]) {
     const model = coverageFixture.model(observedTasks, value);
@@ -101,13 +101,49 @@ for (const [observedTasks, multiplier] of [
       model,
       nullSpeed,
       [],
-      { ...coverageFixture.config, qualityCoverageMinimumRetention: 0.85 },
+      {
+        ...coverageFixture.config,
+        qualityCoverageMinimumRetention: 0.85,
+        qualityRetention: { floor: 0.25, full: 1.75 },
+      },
       coverageFixture.context,
     );
     assert.ok(Math.abs(result.componentScores!.intelligence_score! - value * multiplier) < 1e-10);
-    assert.ok(Math.abs(result.confidence.intelligence! - (observedTasks + 1) / 20) < 1e-10);
+    assert.ok(
+      Math.abs(result.confidence.intelligence! - (observedTasks * 0.5 + 0.025) / 9.525) < 1e-10,
+    );
   }
 }
+
+const directCoverage = fixture(40, 1);
+const fullDirectCoverage = buildComponentScoreResult(
+  directCoverage.model(16, 60, []),
+  nullSpeed,
+  [],
+  { ...directCoverage.config, qualityCoverageMinimumRetention: 0.85 },
+  directCoverage.context,
+);
+assert.equal(fullDirectCoverage.componentScores!.intelligence_score, 60);
+assert.ok(fullDirectCoverage.confidence.intelligence! < 0.6);
+const sparseDirectCoverage = buildComponentScoreResult(
+  directCoverage.model(15, 60, []),
+  nullSpeed,
+  [],
+  { ...directCoverage.config, qualityCoverageMinimumRetention: 0.85 },
+  directCoverage.context,
+);
+assert.ok(sparseDirectCoverage.componentScores!.intelligence_score! < 60);
+
+const indexCoverage = fixture(40, 4);
+const fullIndexCoverage = buildComponentScoreResult(
+  indexCoverage.model(0, 60),
+  nullSpeed,
+  [],
+  { ...indexCoverage.config, qualityCoverageMinimumRetention: 0.85 },
+  indexCoverage.context,
+);
+assert.equal(fullIndexCoverage.componentScores!.intelligence_score, 100);
+assert.ok(fullIndexCoverage.confidence.intelligence! < 0.1);
 
 for (const multiplier of [1.5, 2]) {
   const score = buildComponentScoreResult(

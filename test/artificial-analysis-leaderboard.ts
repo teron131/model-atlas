@@ -395,6 +395,7 @@ const scoringConfig = {
     intelligence: { floor: 0, full: 1 },
     agentic: { floor: 0, full: 1 },
   },
+  qualityRetention: { floor: 0, full: 1 },
   qualityCoverageMinimumRetention: 1,
   directBenchmarkWeightMultiplier: 1,
   pairwiseIntelligenceWeight: 0,

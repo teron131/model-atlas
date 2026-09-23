@@ -6,8 +6,8 @@ import { canonicalReasoningEffort, normalizeModelToken } from "../../identity/no
 import { asFiniteNumber, asRecord } from "../../runtime";
 import type { ModelAtlasModel, ModelAtlasPayload } from "../types";
 
-// Changing the selected benchmark portfolio invalidates prior model rows under the old score contract.
-export const SNAPSHOT_PRESERVATION_VERSION = 10;
+// Scoring-policy changes invalidate preserved model rows derived under an earlier contract.
+export const SNAPSHOT_PRESERVATION_VERSION = 11;
 const DEFAULT_EFFORT_KEY = "\u0000default";
 const MODEL_EFFORT_SEPARATOR = "\u001f";
 

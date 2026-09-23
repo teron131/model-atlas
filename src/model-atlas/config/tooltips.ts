@@ -41,7 +41,7 @@ export type ModelAtlasColumnTooltip = {
 export type ModelAtlasColumnTooltips = Record<string, ModelAtlasColumnTooltip>;
 
 const QUALITY_REGULARIZATION_SCALE =
-  "multiply the entire score by 85% through 10% evidence coverage, rising smoothly to 100% at 60% coverage; applies with or without indexes";
+  "retain 85% of the score through 1.2 supported benchmark weight, rising smoothly to 100% at 12; eligible indexes count their overlap-adjusted breadth";
 
 export const CONFIDENCE_TOOLTIP = {
   title: "Evidence support",
@@ -251,7 +251,7 @@ export function columnTooltipsForActiveComponents(
   return {
     intelligence: {
       title: "Intelligence Score",
-      body: "Knowledge, perception, understanding, reasoning, and judgment on selected difficult benchmarks. Each observed result is normalized to 0-100 and weighted by 1.5 × benchmark importance × Intelligence allocation. Aggregate indexes enter the same pool with represented-breadth multipliers after known overlap is counted once. Low evidence coverage discounts the entire score.",
+      body: "Knowledge, perception, understanding, reasoning, and judgment on selected difficult benchmarks. Each observed result is normalized to 0-100 and weighted by 1.5 × benchmark importance × Intelligence allocation. Aggregate indexes enter the same pool with represented-breadth multipliers after known overlap is counted once. Low supported benchmark weight discounts the entire score.",
       rows: [
         ["Observed benchmark weight", "importance × Intelligence allocation"],
         ["Benchmark normalization", "0 at the observed minimum, 100 at the maximum"],

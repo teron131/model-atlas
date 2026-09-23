@@ -16,7 +16,7 @@ import type {
   ModelAtlasConfidence,
   ModelAtlasSpeed,
 } from "../model-types";
-import { coverageMultiplier } from "./normalization";
+import { evidenceRetentionFactor } from "./normalization";
 import {
   effortQualityKey,
   normalizedQualityBenchmarkValue,
@@ -38,11 +38,13 @@ type BenchmarkScoreInput = {
 type QualityScoreResult = {
   score: number | null;
   evidenceSupport: number | null;
+  retention: number;
 };
 
 type ComponentScoreResult = {
   componentScores: ModelAtlasCandidateComponentScores | null;
   confidence: ModelAtlasConfidence;
+  intelligenceRetention: number;
 };
 
 /** Count observed benchmarks without allowing imputed values to satisfy admission. */
@@ -127,6 +129,7 @@ function benchmarkScoreInput(
 function indexBlendedQualityScore(
   benchmarkScoreInputs: BenchmarkScoreInput[],
   directBenchmarkWeightMultiplier: number,
+  breadths: ReadonlyMap<string, number>,
 ): number | null {
   const observed = benchmarkScoreInputs.filter(
     ({ observed, value, weight, scoreExcluded }) =>
@@ -136,15 +139,7 @@ function indexBlendedQualityScore(
     ({ key, observed, scoreEstimate, value, weight }) =>
       !isAggregateIndex(key) && (observed || scoreEstimate) && value != null && weight > 0,
   );
-  const observedBenchmarkKeys = benchmarks.filter(({ observed }) => observed).map(({ key }) => key);
   const indexes = observed.filter(({ key }) => isAggregateIndex(key));
-  const breadths = qualityIndexBreadths(
-    indexes.map(({ key, representedBenchmarks }) => ({
-      key,
-      reportedCount: representedBenchmarks,
-    })),
-    observedBenchmarkKeys,
-  );
   return weightedMeanOfFinite([
     ...benchmarks.map((part) => ({
       ...part,
@@ -162,6 +157,7 @@ function qualityScore(
   benchmarkScoreInputs: BenchmarkScoreInput[],
   directBenchmarkWeightMultiplier: number,
   minimumCoverageRetention: number,
+  retentionThresholds: { floor: number; full: number },
 ): QualityScoreResult {
   const qualityMean = weightedMeanOfFinite(
     benchmarkScoreInputs.flatMap(({ value, observed, scoreEstimate, scoreExcluded, weight }) =>
@@ -169,26 +165,55 @@ function qualityScore(
     ),
   );
   if (qualityMean == null) {
-    return { score: null, evidenceSupport: null };
+    return { score: null, evidenceSupport: null, retention: 1 };
   }
+  const observedIndexes = benchmarkScoreInputs.filter(
+    ({ key, observed, value, scoreExcluded }) =>
+      isAggregateIndex(key) && observed && value != null && !scoreExcluded,
+  );
+  const observedBenchmarkKeys = benchmarkScoreInputs
+    .filter(({ key, observed, value }) => !isAggregateIndex(key) && observed && value != null)
+    .map(({ key }) => key);
+  const breadths = qualityIndexBreadths(
+    observedIndexes.map(({ key, representedBenchmarks }) => ({
+      key,
+      reportedCount: representedBenchmarks,
+    })),
+    observedBenchmarkKeys,
+  );
   const supportedWeight = benchmarkScoreInputs.reduce(
-    (total, { evidenceFactor, weight }) => total + evidenceFactor * weight,
+    (total, { evidenceFactor, scoreExcluded, weight }) =>
+      total + (scoreExcluded ? 0 : evidenceFactor * weight),
     0,
   );
   const totalWeight = benchmarkScoreInputs.reduce((total, { weight }) => total + weight, 0);
   const evidenceSupport = totalWeight > 0 ? clamp01(supportedWeight / totalWeight) : null;
-  const hasObservedIndex = benchmarkScoreInputs.some(
-    ({ key, observed, scoreExcluded }) => !scoreExcluded && observed && isAggregateIndex(key),
+  const weightedEvidence = benchmarkScoreInputs.reduce(
+    (total, { key, evidenceFactor, scoreExcluded, weight }) =>
+      total +
+      (scoreExcluded
+        ? 0
+        : isAggregateIndex(key)
+          ? weight * (breadths.get(key) ?? 0) * evidenceFactor
+          : weight * directBenchmarkWeightMultiplier * evidenceFactor),
+    0,
   );
-  const qualityScore = hasObservedIndex
-    ? indexBlendedQualityScore(benchmarkScoreInputs, directBenchmarkWeightMultiplier)
-    : qualityMean;
-  const coverageRetention =
+  const qualityScore =
+    observedIndexes.length > 0
+      ? indexBlendedQualityScore(benchmarkScoreInputs, directBenchmarkWeightMultiplier, breadths)
+      : qualityMean;
+  const retention =
     minimumCoverageRetention +
-    (1 - minimumCoverageRetention) * coverageMultiplier(supportedWeight, totalWeight);
+    (1 - minimumCoverageRetention) *
+      evidenceRetentionFactor(
+        weightedEvidence,
+        retentionThresholds.floor,
+        retentionThresholds.full,
+      );
   return {
-    score: qualityScore == null ? null : qualityScore * coverageRetention,
+    score: qualityScore == null ? null : qualityScore * retention,
     evidenceSupport,
+    retention,
   };
 }
 
@@ -297,11 +322,13 @@ export function buildComponentScoreResult(
     intelligenceBenchmarkInputs,
     scoringConfig.directBenchmarkWeightMultiplier,
     scoringConfig.qualityCoverageMinimumRetention,
+    scoringConfig.qualityRetention,
   );
   const agentic = qualityScore(
     agenticBenchmarkInputs,
     scoringConfig.directBenchmarkWeightMultiplier,
     scoringConfig.qualityCoverageMinimumRetention,
+    scoringConfig.qualityRetention,
   );
   const speedScore = buildSpeedComponentScore(speed, speedOutputTokenAnchors);
   return {
@@ -319,6 +346,7 @@ export function buildComponentScoreResult(
       speed: null,
       value: null,
     },
+    intelligenceRetention: intelligence.retention,
   };
 }
 

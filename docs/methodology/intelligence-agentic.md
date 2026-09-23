@@ -222,7 +222,7 @@ For example, an ordinary score of 70 and a mapped pairwise score of 80 blend to 
 
 ### Evidence Support and Quality Regularization
 
-Evidence support shows how much of the benchmark portfolio supports a model’s scores. Apply it after combining individual benchmarks and eligible indexes and, for Intelligence, after the shared-benchmark blend: at or below 10% coverage, multiply the entire score by 0.85; as coverage rises, increase the multiplier smoothly; at 60% coverage, keep the original score. The same rule applies to scores below 50 and to models with aggregate indexes.
+Evidence support shows how much of the benchmark portfolio supports a model’s scores. Score retention uses supported benchmark weight rather than that portfolio percentage: at or below 1.2, multiply the entire score by 0.85; increase the multiplier smoothly to 1 at 12. Eight units of direct benchmark weight reach 12 after the 1.5 multiplier. Apply retention after combining individual benchmarks and eligible indexes and, for Intelligence, after the shared-benchmark blend. The same rule applies to scores below 50 and to models with aggregate indexes.
 
 **Count each result’s evidence**
 
@@ -244,7 +244,7 @@ The factor for imputation from other benchmarks decreases as validation error gr
 
 **Calculate evidence support**
 
-Multiply each benchmark’s portfolio weight by its evidence factor, sum those amounts, and divide by the full portfolio weight. This gives coverage $c_{m,d}$, displayed as evidence support, separately for dimension $d$ (Intelligence or Agentic). Here $\mathcal{B}_d$ is the selected benchmark set and $w_{b,d}$ is benchmark $b$’s weight for that dimension:
+Multiply each benchmark’s portfolio weight by its evidence factor, sum those amounts, and divide by the full portfolio weight. This gives coverage $c_{m,d}$, displayed as evidence support, separately for dimension $d$ (Intelligence or Agentic). Here $\mathcal{B}_d$ is the selected benchmark set and $w_{b,d}$ is benchmark $b$’s weight for that dimension. An index excluded from an effort-labelled variant contributes no supported weight:
 
 $$
 c_{m,d}=\frac{\sum_{b\in\mathcal{B}_d}w_{b,d}f_{m,b}}{\sum_{b\in\mathcal{B}_d}w_{b,d}}.
@@ -256,15 +256,15 @@ Intelligence and Agentic each show an evidence share. Equal shares can represent
 
 **Determine the score multiplier**
 
-The score multiplier $r_{m,d}$ keeps 85% of the entire score at or below 10% coverage and rises smoothly to 100% retention at 60% coverage. These thresholds use the displayed evidence coverage $c_{m,d}$, so broader missing coverage produces a visible score penalty:
+The score multiplier $r_{m,d}$ keeps 85% of the entire score through 1.2 supported benchmark weight and rises smoothly to 100% retention at 12. A supported direct benchmark contributes $1.5w_{b,d}f_{m,b}$; an eligible observed index contributes $w_{k,d}B_{m,k,d}f_{m,k}$, where $B_{m,k,d}$ is its represented breadth after known overlap is deducted. Here $\mathcal{K}_d$ is the selected index set for dimension $d$; ineligible indexes have zero evidence factor. Call the sum $W_{m,d}$:
 
 $$
-u_{m,d}=\operatorname{clamp}\left(\frac{c_{m,d}-0.1}{0.6-0.1},0,1\right),\qquad r_{m,d}=0.85+0.15u_{m,d}^2(3-2u_{m,d}).
+W_{m,d}=1.5\sum_{b\notin\mathcal{K}_d}w_{b,d}f_{m,b}+\sum_{k\in\mathcal{K}_d}w_{k,d}B_{m,k,d}f_{m,k},\qquad u_{m,d}=\operatorname{clamp}\left(\frac{W_{m,d}-1.2}{12-1.2},0,1\right),\qquad r_{m,d}=0.85+0.15u_{m,d}^2(3-2u_{m,d}).
 $$
 
-![Illustrative total portfolio weight: 40. Supported weight 4 gives 10% coverage and an 85% score multiplier; weight 24 gives 60% coverage and a 100% multiplier.](../assets/methodology/confidence.svg)
+![Score retention stays at 85% with little supported benchmark weight, rises smoothly, and reaches 100% when support is sufficient.](../assets/methodology/confidence.svg)
 
-The multiplier stays between 0.85 and 1. Adding unobserved benchmarks to the selected portfolio can reduce coverage and therefore the score, even when existing results do not change.
+The multiplier stays between 0.85 and 1. Adding unobserved benchmarks reduces the displayed portfolio coverage share but does not change score retention unless the supported benchmark weight changes.
 
 **Apply the score reduction**
 
@@ -274,7 +274,7 @@ $$
 \widetilde S_{m,d}=r_{m,d}S^{\text{pair}}_{m,d}.
 $$
 
-At 10% coverage, a score of 80 becomes 68 and a score of 40 becomes 34. At 35% coverage, the multiplier is 0.925; at 60% coverage it is 1.
+At 1.2 supported benchmark weight, a score of 80 becomes 68 and a score of 40 becomes 34. At 6.6, the multiplier is 0.925; at 12, it is 1. Full score retention does not mean the displayed portfolio coverage has reached 100%.
 
 **Why smoothstep**
 
@@ -319,7 +319,7 @@ These values are scoring-policy choices, not fitted claims about model behavior.
 
 | Parameter | Value | Why it exists |
 | --- | ---: | --- |
-| Quality regularization | 85% retention through 10% evidence coverage; smooth rise to 100% retention at 60% coverage | Discounts the entire score for missing portfolio coverage while limiting the reduction to 15%. |
+| Quality regularization | 85% retention through 1.2 supported benchmark weight; smooth rise to 100% retention at 12 | Discounts thin evidence while allowing eight units of direct benchmark weight to earn full retention. |
 | Shared-benchmark Intelligence blend | 20% pairwise, 80% ordinary score | Gives shared benchmark comparisons explicit influence, mapped onto the ordinary score scale; sparse benchmarks still contribute to the ordinary score. |
 | Direct benchmark multiplier | 1.5 | Gives specific benchmark evidence modestly more influence than opaque represented index breadth without restoring a separate category-level blend. |
 | Aggregate-index breadth | Represented benchmark count after exact known overlap deductions | Gives broad indexes influence in proportion to their published evidence while counting known direct and cross-index overlap once. |

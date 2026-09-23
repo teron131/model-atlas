@@ -29,7 +29,7 @@ The required benchmark count is the smallest known count represented by an index
 | Benchmark count versus index count | Standalone results can increase the benchmark count but cannot replace the index requirement. ECI's fixed breadth exceeds the seven-benchmark threshold and remains an explicit single-index exception. |
 | Timing and source | No specific index, release age, or prior publication is required. |
 
-Quality scores use a coverage multiplier from 0.85 to 1 between 10% and 60% evidence coverage. ECI breadth uses the median benchmark count represented by fixed indexes; inclusion uses the minimum count described above.
+Quality scores retain 85% through 1.2 supported benchmark weight and rise to full retention at 12, equivalent to eight units of direct benchmark weight after the 1.5 multiplier. Eligible indexes count their overlap-adjusted represented breadth for this rule. The displayed evidence share remains the literal fraction of selected portfolio weight with support. ECI breadth uses the median benchmark count represented by fixed indexes; inclusion uses the minimum count described above.
 
 **Apply display rules**
 
