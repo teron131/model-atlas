@@ -89,11 +89,31 @@ const blended = blendPairwiseQualityScores(
     candidate("test/c", 80, 10, 20),
   ],
   config,
+  [1, 1, 1],
 );
 assert.equal(blended[0]!.component_scores!.intelligence_score, 90);
 assert.equal(blended[1]!.component_scores!.intelligence_score, 48);
 assert.equal(blended[2]!.component_scores!.intelligence_score, 72);
 assert.equal(blended[1]!.component_scores!.agentic_score, 50);
+
+const retentions = [0.85, 0.925, 1];
+const penalized = blendPairwiseQualityScores(
+  [
+    candidate("test/a", 90 * retentions[0]!, 100, 100),
+    candidate("test/b", 40 * retentions[1]!, 60, 70),
+    candidate("test/c", 80 * retentions[2]!, 10, 20),
+  ],
+  config,
+  retentions,
+);
+for (const [index, model] of penalized.entries()) {
+  assert.ok(
+    Math.abs(
+      model.component_scores!.intelligence_score! -
+        blended[index]!.component_scores!.intelligence_score! * retentions[index]!,
+    ) < 1e-10,
+  );
+}
 
 const unsupported = {
   ...candidate("test/index-only", 75, 0, 0),
@@ -117,12 +137,16 @@ assert.equal(
   false,
 );
 assert.equal(
-  blendPairwiseQualityScores(withUnsupported, withIndexConfig).at(-1)!.component_scores!
-    .intelligence_score,
+  blendPairwiseQualityScores(withUnsupported, withIndexConfig, [1, 1, 1, 1]).at(-1)!
+    .component_scores!.intelligence_score,
   75,
   "an index-only model must retain its ordinary score",
 );
 assert.equal(
-  blendPairwiseQualityScores(withUnsupported, { ...config, pairwiseIntelligenceWeight: 0 }),
+  blendPairwiseQualityScores(
+    withUnsupported,
+    { ...config, pairwiseIntelligenceWeight: 0 },
+    [1, 1, 1, 1],
+  ),
   withUnsupported,
 );

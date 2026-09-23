@@ -37,7 +37,6 @@ import {
 } from "../src/model-atlas/pipeline/scores/imputation";
 import { prepareEffortQualityScoringContext } from "../src/model-atlas/pipeline/scores/imputation/effort-quality";
 import {
-  coverageMultiplier,
   evidenceRetentionFactor,
   logInputMinMaxScores,
   logitUnitScore,
@@ -246,6 +245,8 @@ assertClose(
   INDEX_REPRESENTED_BENCHMARK_MEDIAN * 0.1,
 );
 assertClose(STAGE_CONFIG.scoring.qualityCoverage.agentic.full, INDEX_REPRESENTED_BENCHMARK_MEDIAN);
+assertClose(STAGE_CONFIG.scoring.qualityRetention.floor, 1.2);
+assertClose(STAGE_CONFIG.scoring.qualityRetention.full, 12);
 assert.equal(
   STAGE_CONFIG.final.benchmarkAdmission.minimumObservedWeight,
   MINIMUM_REPORTED_INDEX_BREADTH,
@@ -761,6 +762,7 @@ const fractionalBenchmarkConfig = {
     intelligence: { floor: 0, full: 1 },
     agentic: { floor: 0, full: 1 },
   },
+  qualityRetention: { floor: 0.15, full: 0.9 },
   benchmarkPortfolio: {
     omniscience_accuracy: {
       group: "baseline",
@@ -866,7 +868,8 @@ const fractionalEvidenceComponentScores = buildComponentScoreResult(
 ).componentScores;
 const fractionalCoverageRetention =
   STAGE_CONFIG.scoring.qualityCoverageMinimumRetention +
-  (1 - STAGE_CONFIG.scoring.qualityCoverageMinimumRetention) * coverageMultiplier(0.2, 1);
+  (1 - STAGE_CONFIG.scoring.qualityCoverageMinimumRetention) *
+    evidenceRetentionFactor(0.3, 0.15, 0.9);
 assertClose(
   fractionalEvidenceComponentScores?.intelligence_score,
   100 * fractionalCoverageRetention,
@@ -918,6 +921,7 @@ const sparseEvidenceConfig = {
     intelligence: { floor: 0, full: 2 },
     agentic: { floor: 0, full: 1 },
   },
+  qualityRetention: { floor: 1.5, full: 12 },
   benchmarkPortfolio: sparseEvidenceBenchmarkPortfolio,
 } as const;
 const sparseEvidenceModels = [
@@ -1909,10 +1913,7 @@ const imputedHighValues = new Map([
 ]);
 const imputationEvidenceConfig = {
   ...contextualImputationConfig,
-  qualityCoverage: {
-    intelligence: { floor: 0, full: 2.5 },
-    agentic: { floor: 0, full: 1 },
-  },
+  qualityRetention: { floor: 0, full: 3.75 },
 } as const;
 const untrustedImputationScores = buildComponentScoreResult(
   imputationEvidenceTarget,
@@ -1937,7 +1938,8 @@ const validatedImputationScores = buildComponentScoreResult(
 ).componentScores;
 const untrustedCoverageRetention =
   STAGE_CONFIG.scoring.qualityCoverageMinimumRetention +
-  (1 - STAGE_CONFIG.scoring.qualityCoverageMinimumRetention) * coverageMultiplier(1, 4);
+  (1 - STAGE_CONFIG.scoring.qualityCoverageMinimumRetention) *
+    evidenceRetentionFactor(1.5, 0, 3.75);
 assertClose(untrustedImputationScores?.intelligence_score, 100 * untrustedCoverageRetention);
 assertClose(validatedImputationScores?.intelligence_score, 100);
 
@@ -2085,6 +2087,7 @@ const siblingScore = (model: (typeof siblingCalibrationModels)[number], context 
     {
       ...siblingCalibrationConfig,
       qualityCoverage: { intelligence: { floor: 0, full: 1 }, agentic: { floor: 0, full: 1 } },
+      qualityRetention: { floor: 0, full: 1 },
     },
     context,
   );
@@ -2489,6 +2492,7 @@ const tokenConfig: ScoringConfig = {
     intelligence: { floor: 0, full: 0.1 },
     agentic: { floor: 0, full: 0.1 },
   },
+  qualityRetention: { floor: 0, full: 0.1 },
 };
 const tokenRawContext = buildQualityScoringContext(tokenModels, tokenConfig);
 const tokenEvidenceBefore = JSON.stringify(tokenModels);

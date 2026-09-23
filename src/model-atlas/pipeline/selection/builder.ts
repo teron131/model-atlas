@@ -116,22 +116,31 @@ export function prepareModelSelection(
     scoringConfig,
     scoringPreparation.qualityContext,
   );
+  const rescored = provisionalCandidates.map((model, index) => {
+    const row = asRecord(modelRows[index]);
+    const result = buildComponentScoreResult(
+      asRecord(model),
+      model.speed,
+      openRouterData.outputTokenAnchors,
+      scoringConfig,
+      scoringPreparation.qualityContext,
+      benchmarkImputationValues(scoringPreparation, row),
+      benchmarkImputationFactors(scoringPreparation, row),
+      versionReplacementBenchmarkWeights(row, scoringConfig),
+    );
+    return {
+      candidate: {
+        ...model,
+        component_scores: result.componentScores,
+        confidence: result.confidence,
+      },
+      retention: result.intelligenceRetention,
+    };
+  });
   const qualityScoredCandidates = blendPairwiseQualityScores(
-    provisionalCandidates.map((model, index) => {
-      const row = asRecord(modelRows[index]);
-      const result = buildComponentScoreResult(
-        asRecord(model),
-        model.speed,
-        openRouterData.outputTokenAnchors,
-        scoringConfig,
-        scoringPreparation.qualityContext,
-        benchmarkImputationValues(scoringPreparation, row),
-        benchmarkImputationFactors(scoringPreparation, row),
-        versionReplacementBenchmarkWeights(row, scoringConfig),
-      );
-      return { ...model, component_scores: result.componentScores, confidence: result.confidence };
-    }),
+    rescored.map(({ candidate }) => candidate),
     scoringConfig,
+    rescored.map(({ retention }) => retention),
   );
   if (capabilityState) {
     capabilityState = advanceCapabilities(

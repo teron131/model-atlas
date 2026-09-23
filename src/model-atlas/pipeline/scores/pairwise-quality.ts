@@ -7,7 +7,7 @@ import type { ScoringConfig } from "../../config/stage";
 import { canonicalModelKey } from "../../identity/normalization";
 import { weightedQuantile, weightedQuantileRank } from "../../math-utils";
 import type { ModelAtlasCandidate } from "../model-types";
-import { coverageMultiplier, minMaxRange, minMaxScale } from "./normalization";
+import { minMaxRange, minMaxScale } from "./normalization";
 import { effortQualityKey } from "./quality-context";
 import { type BenchmarkMetricModel, benchmarkMetricValue } from "./resource-metrics";
 
@@ -119,25 +119,23 @@ export function fitPairwiseQualityScores(
 /**
  * Blend pairwise ordering into Intelligence using the ordinary score distribution as the output scale.
  * Remove the existing coverage retention before mapping percentiles, then restore it once after blending.
- * Variants without a usable ordinary score, coverage, or connected pairwise result retain their original score.
+ * Variants without a usable ordinary score or connected pairwise result retain their original score.
  * Agentic scores and evidence support are preserved.
  */
 export function blendPairwiseQualityScores(
   models: ModelAtlasCandidate[],
   scoringConfig: ScoringConfig,
+  intelligenceRetentions: readonly number[],
 ): ModelAtlasCandidate[] {
   if (!(scoringConfig.pairwiseIntelligenceWeight > 0)) return models;
   const pairwise = fitPairwiseQualityScores(models, "intelligence", scoringConfig);
   const entries = models.flatMap((model, modelIndex) => {
     const score = model.component_scores?.intelligence_score ?? null;
-    const evidenceSupport = model.confidence.intelligence;
+    const retention = intelligenceRetentions[modelIndex];
     const pairwisePercentile = pairwise.scoresByVariant.get(
       effortQualityKey(model, "intelligence"),
     );
-    if (score == null || evidenceSupport == null || pairwisePercentile == null) return [];
-    const retention =
-      scoringConfig.qualityCoverageMinimumRetention +
-      (1 - scoringConfig.qualityCoverageMinimumRetention) * coverageMultiplier(evidenceSupport, 1);
+    if (score == null || retention == null || pairwisePercentile == null) return [];
     return [{ modelIndex, score: score / retention, retention, pairwisePercentile }];
   });
   const weights = referenceWeightsForIndexes(

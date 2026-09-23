@@ -33,6 +33,8 @@ export type QualityCoverageThresholds = Record<
 const QUALITY_COVERAGE_FLOOR_SHARE = 0.1;
 const QUALITY_COVERAGE_FULL_WEIGHT = INDEX_REPRESENTED_BENCHMARK_MEDIAN;
 const QUALITY_COVERAGE_FLOOR_WEIGHT = QUALITY_COVERAGE_FULL_WEIGHT * QUALITY_COVERAGE_FLOOR_SHARE;
+const DIRECT_BENCHMARK_WEIGHT_MULTIPLIER = 1.5;
+const QUALITY_RETENTION_FULL_WEIGHT = 8 * DIRECT_BENCHMARK_WEIGHT_MULTIPLIER;
 export const MAX_NORMALIZED_IMPUTATION_ERROR = 25;
 export const MINIMUM_RESOURCE_BENCHMARKS = 4;
 export const RESOURCE_SCORE_BUCKET_WEIGHTS = {
@@ -51,6 +53,12 @@ export const QUALITY_COVERAGE = {
     full: QUALITY_COVERAGE_FULL_WEIGHT,
   },
 } satisfies QualityCoverageThresholds;
+
+/** Eight units of direct benchmark weight earn full score retention after their 1.5 multiplier. */
+export const QUALITY_RETENTION = {
+  floor: QUALITY_RETENTION_FULL_WEIGHT * 0.1,
+  full: QUALITY_RETENTION_FULL_WEIGHT,
+};
 
 export type FinalStageConfig = {
   nullFieldPruneThreshold: number;
@@ -109,6 +117,7 @@ export type ScoringConfig = {
   speedAnchorQuantiles: readonly number[];
   benchmarkPortfolio: BenchmarkPortfolio;
   qualityCoverage: QualityCoverageThresholds;
+  qualityRetention: { floor: number; full: number };
   qualityCoverageMinimumRetention: number;
   directBenchmarkWeightMultiplier: number;
   pairwiseIntelligenceWeight: number;
@@ -172,8 +181,9 @@ export const STAGE_CONFIG = {
     speedAnchorQuantiles: [0.25, 0.5, 0.75],
     benchmarkPortfolio: BENCHMARK_PORTFOLIO,
     qualityCoverage: QUALITY_COVERAGE,
+    qualityRetention: QUALITY_RETENTION,
     qualityCoverageMinimumRetention: 0.85,
-    directBenchmarkWeightMultiplier: 1.5,
+    directBenchmarkWeightMultiplier: DIRECT_BENCHMARK_WEIGHT_MULTIPLIER,
     pairwiseIntelligenceWeight: 0.2,
   },
 } satisfies ModelAtlasStageConfig;

@@ -23,7 +23,7 @@ Writing, modifying, testing, debugging, and delivering software primarily test A
 | Importance | Standard policy: 1 for both task benchmarks and aggregate indexes; represented index breadth supplies the aggregate multiplier |
 | Allocation (dimension loading) | Intelligence/Agentic split: 100/0, 75/25, 50/50, 25/75, or 0/100 |
 
-Base weight is importance × allocation. The capability calculation multiplies individual benchmark weights by 1.5 and eligible index weights by remaining represented breadth; see [Methodology](methodology/intelligence-agentic.md#combining-benchmarks-and-aggregate-indexes). Evidence support and admission use their own weights without the 1.5 multiplier.
+Base weight is importance × allocation. The capability calculation multiplies individual benchmark weights by 1.5 and eligible index weights by remaining represented breadth; see [Methodology](methodology/intelligence-agentic.md#combining-benchmarks-and-aggregate-indexes). Score retention uses that supported benchmark weight and reaches full credit at 12. The displayed evidence share and admission use their own weights without the 1.5 multiplier.
 
 The allocation follows the five-level scale in [Standards](standards.md). Coding tasks are primarily Agentic evidence; an Intelligence share depends on substantial reasoning in the task's actual demands.
 
