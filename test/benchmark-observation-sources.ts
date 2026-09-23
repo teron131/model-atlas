@@ -29,6 +29,7 @@ import {
 } from "../src/model-atlas/sources/surge/results";
 import type { SourceSnapshots } from "../src/model-atlas/sources/types";
 import { processValsBenchmarkPageHtml } from "../src/model-atlas/sources/vals/results";
+import { processValsRsiModule, valsRsiCacheMatches } from "../src/model-atlas/sources/vals/rsi";
 import { processWeirdMlCsv } from "../src/model-atlas/sources/weirdml";
 
 assert.deepEqual(parseCsvRecords('name,note\r\n"A, B","line 1\nline ""2"""\r\n'), [
@@ -291,6 +292,89 @@ assert.deepEqual(
   [0.59542],
 );
 
+const bioBinding = benchmarkObservationBinding("bioMysteryBench");
+assert.equal(bioBinding.loader.kind, "vals");
+if (bioBinding.loader.kind !== "vals") throw new Error("Expected VALS loader");
+const bio = processValsBenchmarkPageHtml(
+  valsPage({
+    overall: astro({
+      "openai/gpt-6-astra": astro({ accuracy: astro(79.259), reasoning_effort: astro("max") }),
+      "openai/gpt-6-sol": astro({ accuracy: astro(74.815), reasoning_effort: astro("max") }),
+    }),
+    human_difficult: astro({ "openai/gpt-6-astra": astro({ accuracy: astro(37.255) }) }),
+  }),
+  {
+    benchmarkKey: bioBinding.benchmark,
+    canonicalTask: bioBinding.loader.canonicalTask,
+    sourceUrl: bioBinding.loader.sourceUrl,
+  },
+);
+assert.deepEqual(
+  bio.map((row) => row.canonical_value),
+  [0.79259, 0.74815],
+);
+assert.equal(bio[0]?.metadata.benchmark_version, "1");
+
+const mysteryBinding = benchmarkObservationBinding("mysteryMechanism");
+assert.equal(mysteryBinding.loader.kind, "vals");
+if (mysteryBinding.loader.kind !== "vals") throw new Error("Expected VALS loader");
+const mystery = processValsBenchmarkPageHtml(
+  valsPage({
+    overall: astro({
+      "openai/gpt-6-astra": astro({ accuracy: astro(53.153), reasoning_effort: astro("max") }),
+      "anthropic/claude-opus-5-5": astro({ accuracy: astro(49.55), compute_effort: astro("max") }),
+    }),
+  }),
+  {
+    benchmarkKey: mysteryBinding.benchmark,
+    canonicalTask: mysteryBinding.loader.canonicalTask,
+    sourceUrl: mysteryBinding.loader.sourceUrl,
+  },
+);
+assert.deepEqual(
+  mystery.map((row) => row.canonical_value),
+  [0.53153, 0.4955],
+);
+
+const rsiComponent =
+  'const h={"anthropic/claude-fable-5-1":"Claude Code","openai/gpt-6-astra":"Codex"};';
+const rsiTasks = [
+  "overall",
+  "compression",
+  "lm_training",
+  "parameter_golf",
+  "harness_engineering",
+  "post_training",
+];
+const rsiModule = `const m={benchmark:"Vals RSI Index",benchmark_id:"rsi_index",version:"1.1",updated:"2026-09-21",total_models:2},t={${rsiTasks
+  .map(
+    (task) =>
+      `${task}:{"anthropic/claude-fable-5-1":{accuracy:35.03,compute_effort:"max",provider:"Anthropic"},"openai/gpt-6-astra":{accuracy:29.03,reasoning_effort:"max",provider:"OpenAI"}}`,
+  )
+  .join(",")}};`;
+const rsiBinding = benchmarkObservationBinding("rsiBenchmark");
+assert.equal(rsiBinding.loader.kind, "vals_rsi");
+if (rsiBinding.loader.kind !== "vals_rsi") throw new Error("Expected Vals RSI loader");
+const rsi = processValsRsiModule(rsiModule, rsiComponent, rsiBinding.loader.sourceUrl);
+assert.equal(rsi.length, 12);
+assert.deepEqual(
+  rsi.filter((row) => row.metadata.task === "overall").map((row) => row.canonical_value),
+  [0.3503, 0.2903],
+);
+assert.equal(rsi.filter((row) => row.metadata.observation_role === "component").length, 10);
+assert.equal(rsi[0]?.metadata.harness, "Claude Code");
+assert.equal(buildBenchmarkObservationLookup(rsi).get("gpt-6-astra--max")?.canonical_value, 0.2903);
+assert.equal(valsRsiCacheMatches(rsi), true);
+assert.equal(valsRsiCacheMatches(rsi.filter((row) => row.metadata.task !== "compression")), false);
+assert.deepEqual(
+  processValsRsiModule(
+    rsiModule.replace('version:"1.1"', 'version:"1"'),
+    rsiComponent,
+    rsiBinding.loader.sourceUrl,
+  ),
+  [],
+);
+
 const surge = processSurgeBenchmarkPageHtml(
   `
 	<div>Model Rankings</div>
@@ -541,6 +625,7 @@ const snapshots = {
     BENCHMARK_OBSERVATION_BINDINGS.map((binding) => [binding.sourceRowsKey, []]),
   ),
   chartographyRows: surge,
+  bioMysteryBenchRows: bio,
   chessPuzzleRows: chess,
   complexConstraintsRows: complexConstraints,
   ebrBenchRows: ebr,
@@ -549,8 +634,10 @@ const snapshots = {
   frontierMathTier4Rows: frontierMath,
   handbookMdRows: handbook,
   hemingwayBenchRows: hemingway,
+  mysteryMechanismRows: mystery,
   programBenchRows: program,
   proofBenchRows: proof,
+  rsiBenchmarkRows: rsi,
   terminalBenchScienceRows: [],
   weirdMlRows: weirdMlWithMirror,
   fetchedAt: {
@@ -558,6 +645,7 @@ const snapshots = {
       BENCHMARK_OBSERVATION_BINDINGS.map((binding) => [binding.sourceDataKey, null]),
     ),
     chartography: 1_784_000_004,
+    bioMysteryBench: 1_784_000_012,
     chessPuzzles: 1_784_000_002,
     complexConstraints: 1_784_000_009,
     ebrBench: 1_784_000_003,
@@ -566,13 +654,16 @@ const snapshots = {
     frontierMathTier4: 1_784_000_001,
     handbookMd: 1_784_000_005,
     hemingwayBench: 1_784_000_010,
+    mysteryMechanism: 1_784_000_013,
     programBench: 1_784_000_011,
     proofBench: 1_784_000_007,
+    rsiBenchmark: 1_784_000_014,
     weirdMl: 1_784_000_008,
   },
 } as unknown as SourceSnapshots;
 const expectedBySourceDataKey = {
   chartography: { rows: surge, fetchedAt: 1_784_000_004 },
+  bioMysteryBench: { rows: bio, fetchedAt: 1_784_000_012 },
   chessPuzzles: { rows: chess, fetchedAt: 1_784_000_002 },
   complexConstraints: { rows: complexConstraints, fetchedAt: 1_784_000_009 },
   ebrBench: { rows: ebr, fetchedAt: 1_784_000_003 },
@@ -581,8 +672,10 @@ const expectedBySourceDataKey = {
   frontierMathTier4: { rows: frontierMath, fetchedAt: 1_784_000_001 },
   handbookMd: { rows: handbook, fetchedAt: 1_784_000_005 },
   hemingwayBench: { rows: hemingway, fetchedAt: 1_784_000_010 },
+  mysteryMechanism: { rows: mystery, fetchedAt: 1_784_000_013 },
   programBench: { rows: program, fetchedAt: 1_784_000_011 },
   proofBench: { rows: proof, fetchedAt: 1_784_000_007 },
+  rsiBenchmark: { rows: rsi, fetchedAt: 1_784_000_014 },
   weirdMl: { rows: weirdMlWithMirror, fetchedAt: 1_784_000_008 },
 };
 insertBenchmarkRawRows(collector, snapshots, BENCHMARK_OBSERVATION_RAW_TABLE);

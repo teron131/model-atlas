@@ -71,6 +71,7 @@ export type BenchmarkObservationLoader =
       includeReasoningEffortInModel?: boolean;
       eligibility?: "exclude_aristotle";
     }
+  | { kind: "vals_rsi"; sourceUrl: string }
   | { kind: "voxelbench"; sourceUrl: string }
   | { kind: "weirdml" }
   | { kind: "automation_bench"; sourceUrl: string }

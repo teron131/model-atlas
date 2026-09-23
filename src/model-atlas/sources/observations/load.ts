@@ -23,6 +23,7 @@ import {
   terminalBenchScienceCacheMatches,
 } from "../terminal-bench-science";
 import { getValsSourceStats, valsBenchmarkCacheMatches } from "../vals/results";
+import { getValsRsiStats, valsRsiCacheMatches } from "../vals/rsi";
 import { getVoxelBenchStats } from "../voxelbench";
 import { getWeirdMlStats } from "../weirdml";
 import { getZeroEvalStats } from "../zeroeval";
@@ -117,6 +118,11 @@ export function benchmarkObservationSource(
             sourceUrl: loader.sourceUrl,
           }),
         acceptsCache: (rows) => valsBenchmarkCacheMatches(rows, loader.canonicalTask),
+      };
+    case "vals_rsi":
+      return {
+        fetchRows: () => getValsRsiStats(loader.sourceUrl),
+        acceptsCache: valsRsiCacheMatches,
       };
     case "voxelbench":
       // Ratings and uncertainty are recalculated from an evolving voting pool, not immutable task results.
