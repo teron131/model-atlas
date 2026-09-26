@@ -33,29 +33,9 @@ Each table records the capability being measured and the reason for its weight. 
 
 ### Resource Quality Coordinates
 
-Speed and Value compare resource use among models achieving similar quality. Each eligible benchmark therefore declares the coordinate used to measure quality distance. `Logit` gives probability-like success rates more separation near their endpoints. `Linear` preserves score gaps for ratings, partial credit, and composites whose values are not success probabilities.
+Speed, Value, and Agentic token adjustments compare resource use among models with similar benchmark quality. All benchmarks use linear quality coordinates: equal metric improvements have equal distance. The comparison width scales with each benchmark's observed range, so changing units or subtracting the minimum does not change peer weights. Resource amounts retain their logarithmic ratio comparison.
 
-Direct same-benchmark tokens also use these coordinates for the [Agentic token modifier](methodology/intelligence-agentic.md#agentic-token-efficiency) when a frontier benchmark has a non-zero Agentic loading. AA aggregate output tokens use a linear coordinate for its own Intelligence Index only; index membership never supplies token evidence to constituent or cross-index benchmarks.
-
-| Benchmark | Coordinate | Decision |
-| --- | --- | --- |
-| Agents' Last Exam | Linear | Partial-credit performance is a graded task score, not a binary completion probability. |
-| ALE-Bench | Linear | Native Performance can exceed 100 and must retain its full spacing. |
-| AnalystAgent | Logit | Pass^5 is a bounded strict workflow-success rate. |
-| ARC-AGI-2 | Logit | Task success is a bounded correctness rate with meaningful remaining error. |
-| ARC-AGI-3 | Linear | Human-relative action efficiency is a continuous efficiency ratio, not a completion probability. |
-| AutomationBench | Logit | Strict task completion is a bounded workflow-success rate. |
-| Briefcase | Linear | The 0-1 value is a linear normalization of Elo, not probability. |
-| CritPt | Logit | The score is a bounded correctness rate with meaningful remaining error. |
-| DeepSWE | Logit | Pass@1 is a bounded task-completion rate. |
-| FrontierCode | Linear | The versioned `new_score` is a grading composite. |
-| GDP.pdf | Logit | All-criteria task success is a bounded completion rate with meaningful remaining error. |
-| GDPval-AA v2.1 | Linear | The page Elo is normalized onto the benchmark's 0-1 scale before use as a professional-work grading composite. |
-| HLE | Logit | Accuracy is a bounded correctness rate. |
-| MLCR-AA | Logit | Strict accurate, complete, and concise answers form a bounded task-success rate. |
-| SciCode | Logit | The source score is a bounded scientific-code correctness rate. |
-| Terminal-Bench 4.0 | Logit | Task accuracy is a bounded completion rate with meaningful remaining error. |
-| Terminal-Bench-Science 0.1 | Logit | Resolution rate is a bounded task-completion probability with meaningful remaining error. |
+AA aggregate output tokens remain attached to its own Intelligence Index; index membership never supplies token evidence to constituent or cross-index benchmarks.
 
 ### Indexes
 

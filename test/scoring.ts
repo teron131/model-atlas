@@ -39,7 +39,6 @@ import { prepareEffortQualityScoringContext } from "../src/model-atlas/pipeline/
 import {
   evidenceRetentionFactor,
   logInputMinMaxScores,
-  logitUnitScore,
   minMaxRange,
   minMaxScale,
   minMaxScores,
@@ -51,7 +50,6 @@ import {
   normalizedMetricValue,
 } from "../src/model-atlas/pipeline/scores/quality-context";
 import {
-  benchmarkResourceEfficiencyScores,
   modelBalancedMinMaxScores,
   qualityAdjustedResourceMultipliers,
   qualityLocalResourceScores,
@@ -174,36 +172,6 @@ assertClose(
 );
 assertClose(effectiveSampleSize([1, 1, 1]), 3);
 assertClose(effectiveSampleSize([0.5, 0.5]), 2);
-assertEqual(
-  logitUnitScore(0.96) - logitUnitScore(0.95) > logitUnitScore(0.51) - logitUnitScore(0.5),
-  true,
-);
-assertThrowsWithMessage(
-  () => logitUnitScore(90),
-  "Logit quality coordinates require a finite 0-1 score, received 90",
-);
-const linearCoordinateModels = [
-  { id: "test/linear-coordinate-a" },
-  { id: "test/linear-coordinate-b" },
-  { id: "test/linear-coordinate-c" },
-  { id: "test/linear-coordinate-d" },
-];
-const linearCoordinates = [172.975, 400, 1_600, 2_176.875];
-const linearResourceSignals = [1, 2, 3, 4];
-assert.deepEqual(
-  benchmarkResourceEfficiencyScores(
-    linearCoordinateModels,
-    linearCoordinates,
-    linearResourceSignals,
-    "linear",
-  ),
-  qualityLocalResourceScores(
-    linearCoordinateModels,
-    linearCoordinates,
-    linearResourceSignals,
-    "linear",
-  ),
-);
 const winsorizedScores = winsorizedMinMaxScores(
   [1, 2, 3, 10],
   [1, 2, 3, 10].map((value) => ({ value, weight: 1 })),
@@ -252,31 +220,30 @@ assert.equal(
   MINIMUM_REPORTED_INDEX_BREADTH,
 );
 assert.equal(MINIMUM_REPORTED_INDEX_BREADTH, 7);
-const resourceQualityCoordinates = Object.fromEntries(
-  Object.entries(STAGE_CONFIG.scoring.benchmarkPortfolio as BenchmarkPortfolio).flatMap(
-    ([key, policy]) =>
-      policy?.resourcePolicy == null ? [] : [[key, policy.resourcePolicy.qualityCoordinate]],
-  ),
+assert.deepEqual(
+  Object.entries(STAGE_CONFIG.scoring.benchmarkPortfolio as BenchmarkPortfolio)
+    .filter(([, entry]) => entry.resourcePolicy != null)
+    .map(([key]) => key),
+  [
+    "agents_last_exam",
+    "ale_bench",
+    "analyst_agent",
+    "arc_agi_2",
+    "arc_agi_3",
+    "automation_bench",
+    "briefcase",
+    "critpt",
+    "deep_swe",
+    "frontier_code",
+    "gdp_pdf",
+    "gdpval_normalized",
+    "hle",
+    "mlcr_aa",
+    "scicode",
+    "terminal_bench_4",
+    "terminal_bench_science",
+  ],
 );
-assert.deepEqual(resourceQualityCoordinates, {
-  agents_last_exam: "linear",
-  ale_bench: "linear",
-  analyst_agent: "logit",
-  arc_agi_2: "logit",
-  arc_agi_3: "linear",
-  automation_bench: "logit",
-  briefcase: "linear",
-  critpt: "logit",
-  deep_swe: "logit",
-  frontier_code: "linear",
-  gdp_pdf: "logit",
-  gdpval_normalized: "linear",
-  hle: "logit",
-  mlcr_aa: "logit",
-  scicode: "logit",
-  terminal_bench_4: "logit",
-  terminal_bench_science: "logit",
-});
 assert.deepEqual(
   Object.fromEntries(
     (
@@ -410,23 +377,6 @@ assertThrowsWithMessage(
       },
     } as unknown as BenchmarkPortfolio),
   "Invalid benchmark group for test: invalid",
-);
-assertThrowsWithMessage(
-  () =>
-    validateBenchmarkPortfolio({
-      test: {
-        group: "frontier",
-        benchmarkImportance: 1,
-        dimensionLoadings: { intelligence: 1, agentic: 0 },
-        resourcePolicy: {
-          source: "benchmark",
-          unit: "per_task",
-          tokenMeasure: "tokens",
-          qualityCoordinate: "invalid",
-        },
-      },
-    } as unknown as BenchmarkPortfolio),
-  "Invalid resource quality coordinate for test: invalid",
 );
 
 const aaOnlyResourceMetadata = buildCurrentModelAtlasMetadata({
@@ -712,16 +662,6 @@ const aggregateQualityLinearScores = qualityLocalResourceScores(
   aggregateQualityModels,
   aggregateQualityModels.map((model) => model.component_scores?.intelligence_score ?? null),
   aggregateQualityPriceSignals,
-  "linear",
-);
-const aggregateQualityLogitScores = qualityLocalResourceScores(
-  aggregateQualityModels,
-  aggregateQualityModels.map((model) => {
-    const score = model.component_scores?.intelligence_score;
-    return score == null ? null : logitUnitScore(score / 100);
-  }),
-  aggregateQualityPriceSignals,
-  "logit",
 );
 const aggregateQualityScoredModels = attachFinalScores(
   aggregateQualityModels,
@@ -736,15 +676,6 @@ assertClose(
   aggregateQualityValueScore,
   (aggregateQualityRawPriceScore + (aggregateQualityLinearScores[aggregateQualityTestIndex] ?? 0)) /
     2,
-);
-assertEqual(
-  Math.abs(
-    (aggregateQualityValueScore ?? 0) -
-      (aggregateQualityRawPriceScore +
-        (aggregateQualityLogitScores[aggregateQualityTestIndex] ?? 0)) /
-        2,
-  ) > 0.01,
-  true,
 );
 
 const fractionalBenchmarkConfig = {
@@ -1033,7 +964,6 @@ const separatedResourceConfig = {
         source: "benchmark",
         unit: "per_task",
         tokenMeasure: "tokens",
-        qualityCoordinate: "linear",
       },
     },
   },
@@ -1064,17 +994,15 @@ const separatedResourceScores = attachFinalScores(
   separatedResourceCandidates,
   separatedResourceConfig,
 );
-const expectedSourceAScores = benchmarkResourceEfficiencyScores(
+const expectedSourceAScores = qualityLocalResourceScores(
   separatedResourceCandidates,
   sourceAQualities,
   sourceACosts.map(Math.log),
-  "linear",
 );
-const expectedSourceBScores = benchmarkResourceEfficiencyScores(
+const expectedSourceBScores = qualityLocalResourceScores(
   separatedResourceCandidates,
   sourceBQualities,
   sourceBCosts.map(Math.log),
-  "linear",
 );
 for (const [index, scored] of separatedResourceScores.entries()) {
   assertClose(
@@ -1109,11 +1037,10 @@ const threeSourceResourceScores = attachFinalScores(
   threeSourceResourceCandidates,
   separatedResourceConfig,
 );
-const expectedSourceCScores = benchmarkResourceEfficiencyScores(
+const expectedSourceCScores = qualityLocalResourceScores(
   threeSourceResourceCandidates,
   sourceCQualities,
   sourceCCosts.map(Math.log),
-  "linear",
 );
 for (const [index, scored] of threeSourceResourceScores.entries()) {
   assertClose(
@@ -1156,7 +1083,7 @@ const isolatedQualityResourceModels = attachFinalScores(
 );
 assertClose(isolatedQualityResourceModels.at(-1)?.scores.value_score, 50);
 
-const flatResidualScores = benchmarkResourceEfficiencyScores(
+const flatResidualScores = qualityLocalResourceScores(
   [
     { id: "test/flat-resource-a" },
     { id: "test/flat-resource-b" },
@@ -1165,12 +1092,11 @@ const flatResidualScores = benchmarkResourceEfficiencyScores(
   ],
   [0.5, 0.5, 0.5, 0.5],
   [1, 1, 1, 1],
-  "logit",
 );
 for (const score of flatResidualScores) {
   assertClose(score, 50);
 }
-const orderedHybridResourceScores = benchmarkResourceEfficiencyScores(
+const orderedHybridResourceScores = qualityLocalResourceScores(
   [
     { id: "test/ordered-resource-a" },
     { id: "test/ordered-resource-b" },
@@ -1179,7 +1105,6 @@ const orderedHybridResourceScores = benchmarkResourceEfficiencyScores(
   ],
   [0.5, 0.5, 0.5, 0.5],
   [1, 2, 3, 4],
-  "logit",
 );
 assertClose(orderedHybridResourceScores[0], 100);
 assertClose(orderedHybridResourceScores[3], 12.5);
@@ -1222,7 +1147,6 @@ const scaleNormalizedResourceConfig = {
         source: "benchmark",
         unit: "per_task",
         tokenMeasure: "tokens",
-        qualityCoordinate: "logit",
       },
     },
     expensive_frontier: {
@@ -1233,7 +1157,6 @@ const scaleNormalizedResourceConfig = {
         source: "benchmark",
         unit: "per_task",
         tokenMeasure: "tokens",
-        qualityCoordinate: "logit",
       },
     },
   },
@@ -1326,7 +1249,6 @@ const siblingCostConfig: ScoringConfig = {
           source: "benchmark",
           unit: "per_task",
           tokenMeasure: "tokens",
-          qualityCoordinate: "linear",
         },
       },
     ]),
@@ -2572,24 +2494,17 @@ const tokenMultipliers = qualityAdjustedResourceMultipliers(
   tokenCoordinates,
   tokenLogs,
   0.15,
-  "linear",
 );
 assert(tokenMultipliers[0]! > 1);
 assert(tokenMultipliers[4]! < 1);
 assertClose(tokenMultipliers[2], 1);
 assert(tokenMultipliers.every((value) => value >= 0.85 && value <= 1.15));
 assert.deepEqual(
-  qualityAdjustedResourceMultipliers(tokenModels, tokenCoordinates, tokenLogs, 0, "linear"),
+  qualityAdjustedResourceMultipliers(tokenModels, tokenCoordinates, tokenLogs, 0),
   [1, 1, 1, 1, 1],
 );
 assert.deepEqual(
-  qualityAdjustedResourceMultipliers(
-    tokenModels,
-    tokenCoordinates,
-    [1, 1, 1, 1, 1],
-    0.15,
-    "linear",
-  ),
+  qualityAdjustedResourceMultipliers(tokenModels, tokenCoordinates, [1, 1, 1, 1, 1], 0.15),
   [1, 1, 1, 1, 1],
 );
 assert.deepEqual(
@@ -2598,7 +2513,6 @@ assert.deepEqual(
     tokenCoordinates,
     tokenLogs,
     0.15,
-    "linear",
   ),
   [1, 1, 1, 1, 1],
 );
@@ -2658,7 +2572,7 @@ const adjustedTokenScores = tokenAgenticScores(tokenModels);
 assert(adjustedTokenScores[1]! > adjustedTokenScores[2]!);
 assert(adjustedTokenScores[2]! > adjustedTokenScores[3]!);
 assertClose(adjustedTokenScores[0], 0);
-assert(adjustedTokenScores[4]! > 85 && adjustedTokenScores[4]! < 100);
+assert(adjustedTokenScores[4]! > 85 && adjustedTokenScores[4]! <= 100);
 const neutralTokenScores = tokenAgenticScores(tokenModels, {
   ...tokenConfig,
   agenticTokenModifierCap: 0,
@@ -2701,7 +2615,6 @@ const separatedTokenConfig: ScoringConfig = {
         source: "benchmark",
         unit: "per_task",
         tokenMeasure: "tokens",
-        qualityCoordinate: "linear",
       },
     },
   },

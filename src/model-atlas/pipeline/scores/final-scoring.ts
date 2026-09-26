@@ -18,11 +18,7 @@ import {
   type TaskResourceKind,
 } from "./imputation";
 import { coverageMultiplier, logInputMinMaxScores } from "./normalization";
-import {
-  benchmarkResourceEfficiencyScores,
-  modelBalancedMinMaxScores,
-  qualityLocalResourceScores,
-} from "./resource-efficiency";
+import { modelBalancedMinMaxScores, qualityLocalResourceScores } from "./resource-efficiency";
 import {
   benchmarkMetricValue,
   benchmarkTaskMetrics,
@@ -88,8 +84,7 @@ function taskResourceEfficiencyEvidence(
   for (const [key, entry] of Object.entries(scoringConfig.benchmarkPortfolio).sort(
     ([left], [right]) => left.localeCompare(right),
   )) {
-    const qualityCoordinate = entry.resourcePolicy?.qualityCoordinate;
-    if (qualityCoordinate == null) {
+    if (entry.resourcePolicy == null) {
       continue;
     }
     const separated = models.map((model) => separatedBenchmarkResourceEvidence(model, key, kind));
@@ -103,11 +98,10 @@ function taskResourceEfficiencyEvidence(
           (sources) => sources?.find((item) => item.source === source) ?? null,
         );
         if (!sourceEvidence.some((item) => item != null)) continue;
-        const scores = benchmarkResourceEfficiencyScores(
+        const scores = qualityLocalResourceScores(
           models,
           sourceEvidence.map((item) => item?.quality ?? null),
           sourceEvidence.map((item) => (item == null ? null : Math.log(item.amount))),
-          qualityCoordinate,
           sourceEvidence.map((item) => item != null),
         );
         for (const [modelIndex, score] of scores.entries()) {
@@ -154,11 +148,10 @@ function taskResourceEfficiencyEvidence(
       continue;
     }
     benchmarkKeys.push(key);
-    const scores = benchmarkResourceEfficiencyScores(
+    const scores = qualityLocalResourceScores(
       models,
       evidence.map((item) => item?.quality ?? null),
       evidence.map((item) => item?.resource ?? null),
-      qualityCoordinate,
       evidence.map((item) => item?.calibration === true),
     );
     for (const [modelIndex, score] of scores.entries()) {
@@ -268,7 +261,6 @@ function buildResourceScoreInputs(
     models,
     qualityCoordinates,
     logBlendedPriceSignals,
-    "linear",
   );
   const priceComponentScores = [logBlendedPriceScores, qualityAdjustedBlendedPriceScores] as const;
   const throughputSpeedSignals = models.map((model) =>

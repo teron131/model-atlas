@@ -151,12 +151,10 @@ export function buildCurrentModelAtlasMetadata({
     benchmark_update_health: currentBenchmarkUpdateHealth,
     scoring: {
       intelligence_scoring: {
-        version: "3",
         group_weights: { ...scoringConfig.intelligenceGroupWeights },
         pairwise_weight: scoringConfig.pairwiseIntelligenceWeight,
       },
       quality_normalization: {
-        version: "6",
         transform: "linear",
         score_range: [0, 100],
       },

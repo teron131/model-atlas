@@ -506,6 +506,7 @@ try {
     sourceReleases: [],
     conflicts: 0,
     scale: {
+      qualityTransform: "linear",
       id: "scale",
       parentId: null,
       parameters: DEFAULT_TIMELINE_PARAMETERS,

@@ -14,7 +14,6 @@ import { MINIMUM_TIMELINE_TASKS } from "./coverage";
 import { timelineInformation, timelineNativeValue } from "./linking";
 import { historicalVersionSeries } from "./model-identity";
 import {
-  type HistoricalBenchmark,
   type HistoricalCalibration,
   type HistoricalDataset,
   type HistoricalEstimate,
@@ -40,26 +39,6 @@ export const DEFAULT_TIMELINE_ANCHORS: TimelineAnchors = {
   lowScore: 100,
   highScore: 150,
   pointsPerDeviation: 20,
-  frozenReferences: [
-    {
-      modelId: "name:gpt-4-mar-2023::unknown",
-      referenceId: "0b7628bd23423e02e0afb076995b9bf4282150e3be9930d5db73bf26b28b1cd9",
-      scaleId: "c223ee2cccf4b7a6a61c8439c99e8571b47ce0a1238a8d706a9f17665fa4bc0b",
-      values: {
-        intelligence: -41.65266582934146,
-        agentic: -33.527476388025434,
-      },
-    },
-    {
-      modelId: "name:claude-opus-4-5::unknown",
-      referenceId: "0b7628bd23423e02e0afb076995b9bf4282150e3be9930d5db73bf26b28b1cd9",
-      scaleId: "c223ee2cccf4b7a6a61c8439c99e8571b47ce0a1238a8d706a9f17665fa4bc0b",
-      values: {
-        intelligence: 39.30763303418716,
-        agentic: 38.37878029000446,
-      },
-    },
-  ],
 };
 
 /** New observations can revise an estimate, but published benchmark curves and initial reference values remain fixed. */
@@ -70,8 +49,8 @@ export function calibrateTimeline(
 ): HistoricalCalibration {
   validateTimelineParameters(parameters);
   const scale = data.scale;
-  if (!scale)
-    throw new Error("Prepare the permanent Timeline calibration before projecting scores.");
+  if (!scale || scale.qualityTransform !== "linear")
+    throw new Error("Prepare the linear Timeline calibration before projecting scores.");
   const root = scale.rootBenchmarkIds[dimension];
   const graph = scale.dimensions[dimension];
   const active = data.activeBenchmarkIds ? new Set(data.activeBenchmarkIds) : null;
@@ -120,7 +99,7 @@ export function calibrateTimeline(
         !definition.key.startsWith("model_atlas_") &&
         definition.weights[dimension] > 0 &&
         nodes.has(definition.id) &&
-        timelineQueryNativeValue(definition, o.value, parameters) != null
+        timelineNativeValue(definition, o.value) != null
       );
     });
     const available = new Set(usable.map((o) => o.benchmarkId));
@@ -128,7 +107,7 @@ export function calibrateTimeline(
       .flatMap((o) => {
         const definition = definitions.get(o.benchmarkId)!;
         const node = nodes.get(o.benchmarkId);
-        const native = timelineQueryNativeValue(definition, o.value, parameters);
+        const native = timelineNativeValue(definition, o.value);
         if (
           !node ||
           native == null ||
@@ -340,20 +319,6 @@ function reconcileVersions(
     }
   }
   return estimates.map((e) => result.get(e.modelId)!);
-}
-
-/** Retain saturated query measurements at finite bounds; fitting still excludes them as uninformative overlap. */
-export function timelineQueryNativeValue(
-  benchmark: HistoricalBenchmark,
-  value: number,
-  parameters: TimelineParameters,
-): number | null {
-  if (!Number.isFinite(value)) return null;
-  if (benchmark.scale === "linear") return value;
-  if (value < 0 || value > 1) return null;
-  const low = Math.max(Number.EPSILON, parameters.saturationLow / 100);
-  const high = Math.min(1 - Number.EPSILON, parameters.saturationHigh / 100);
-  return timelineNativeValue(benchmark, Math.max(low, Math.min(high, value)));
 }
 
 /** Fixed positive weights preserve monotonicity; disagreement enlarges the reported budget without changing the point estimate. */

@@ -4,25 +4,24 @@ import type { BenchmarkPortfolioEntry, BenchmarkResourcePolicy } from "../factor
 import { CAIS_INDEX_SCORING_WEIGHT, INDEX_SCORING_WEIGHT } from "../index-policy";
 
 type BenchmarkScoringWeight = Omit<BenchmarkPortfolioEntry, "resourcePolicy">;
-type BenchmarkResourceMeasurement = Omit<BenchmarkResourcePolicy, "qualityCoordinate">;
 
 const ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE = {
   source: "artificial_analysis",
   unit: "per_task",
   tokenMeasure: "output_tokens",
-} as const satisfies BenchmarkResourceMeasurement;
+} as const satisfies BenchmarkResourcePolicy;
 
 const BENCHMARK_PER_TASK_RESOURCE = {
   source: "benchmark",
   unit: "per_task",
   tokenMeasure: "tokens",
-} as const satisfies BenchmarkResourceMeasurement;
+} as const satisfies BenchmarkResourcePolicy;
 
 const BENCHMARK_OUTPUT_PER_TASK_RESOURCE = {
   source: "benchmark",
   unit: "per_task",
   tokenMeasure: "output_tokens",
-} as const satisfies BenchmarkResourceMeasurement;
+} as const satisfies BenchmarkResourcePolicy;
 
 export const BENCHMARK_SCORING_WEIGHTS = {
   aa_intelligence_index: INDEX_SCORING_WEIGHT,
@@ -358,72 +357,21 @@ export const BENCHMARK_RESOURCE_PROFILES = {
 } as const satisfies Partial<Record<BenchmarkKey, BenchmarkResourceProfile>>;
 
 export const BENCHMARK_RESOURCE_POLICIES = {
-  agents_last_exam: {
-    ...BENCHMARK_PER_TASK_RESOURCE,
-    qualityCoordinate: "linear",
-  },
-  ale_bench: {
-    ...BENCHMARK_PER_TASK_RESOURCE,
-    qualityCoordinate: "linear",
-  },
-  analyst_agent: {
-    ...ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
-    qualityCoordinate: "logit",
-  },
-  arc_agi_2: {
-    ...BENCHMARK_PER_TASK_RESOURCE,
-    qualityCoordinate: "logit",
-  },
-  arc_agi_3: {
-    ...BENCHMARK_PER_TASK_RESOURCE,
-    qualityCoordinate: "linear",
-  },
-  automation_bench: {
-    ...BENCHMARK_PER_TASK_RESOURCE,
-    qualityCoordinate: "logit",
-  },
-  briefcase: {
-    ...ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
-    qualityCoordinate: "linear",
-  },
-  critpt: {
-    ...ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
-    qualityCoordinate: "logit",
-  },
-  deep_swe: {
-    ...BENCHMARK_OUTPUT_PER_TASK_RESOURCE,
-    qualityCoordinate: "logit",
-  },
-  frontier_code: {
-    ...BENCHMARK_PER_TASK_RESOURCE,
-    qualityCoordinate: "linear",
-  },
-  gdp_pdf: {
-    ...ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
-    qualityCoordinate: "logit",
-  },
-  gdpval_normalized: {
-    ...ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
-    qualityCoordinate: "linear",
-  },
-  hle: {
-    ...ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
-    qualityCoordinate: "logit",
-  },
-  mlcr_aa: {
-    ...ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
-    qualityCoordinate: "logit",
-  },
-  scicode: {
-    ...ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
-    qualityCoordinate: "logit",
-  },
-  terminal_bench_4: {
-    ...BENCHMARK_PER_TASK_RESOURCE,
-    qualityCoordinate: "logit",
-  },
-  terminal_bench_science: {
-    ...BENCHMARK_PER_TASK_RESOURCE,
-    qualityCoordinate: "logit",
-  },
+  agents_last_exam: BENCHMARK_PER_TASK_RESOURCE,
+  ale_bench: BENCHMARK_PER_TASK_RESOURCE,
+  analyst_agent: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
+  arc_agi_2: BENCHMARK_PER_TASK_RESOURCE,
+  arc_agi_3: BENCHMARK_PER_TASK_RESOURCE,
+  automation_bench: BENCHMARK_PER_TASK_RESOURCE,
+  briefcase: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
+  critpt: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
+  deep_swe: BENCHMARK_OUTPUT_PER_TASK_RESOURCE,
+  frontier_code: BENCHMARK_PER_TASK_RESOURCE,
+  gdp_pdf: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
+  gdpval_normalized: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
+  hle: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
+  mlcr_aa: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
+  scicode: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
+  terminal_bench_4: BENCHMARK_PER_TASK_RESOURCE,
+  terminal_bench_science: BENCHMARK_PER_TASK_RESOURCE,
 } as const satisfies Partial<Record<BenchmarkKey, BenchmarkResourcePolicy>>;

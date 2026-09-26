@@ -10,7 +10,7 @@ import {
   weightedQuantile,
   weightedQuantileRank,
 } from "../src/model-atlas/math-utils";
-import { benchmarkResourceEfficiencyScores } from "../src/model-atlas/pipeline/scores/resource-efficiency";
+import { qualityLocalResourceScores } from "../src/model-atlas/pipeline/scores/resource-efficiency";
 import { effectiveTaskSeconds } from "../src/model-atlas/pipeline/scores/resource-metrics";
 import { minimalModelAtlasModel } from "./model-atlas-fixtures";
 
@@ -71,27 +71,19 @@ assert.equal(effectiveTaskSeconds(speed, { seconds: 42, tokens: 10000 }), 42);
 const models = Array.from({ length: 41 }, (_, i) => ({ id: `model-${i}` }));
 const qualities = models.map((_, i) => i / 100);
 const resources = models.map((_, i) => Math.log(1 + i) + (i % 3) * 0.1);
-const scores = benchmarkResourceEfficiencyScores(models, qualities, resources, "linear");
-const converted = benchmarkResourceEfficiencyScores(
+const scores = qualityLocalResourceScores(models, qualities, resources);
+const converted = qualityLocalResourceScores(
   models,
   qualities.map((q) => q * 100 + 500),
   resources,
-  "linear",
 );
 scores.forEach((score, i) => assert.ok(Math.abs(score! - converted[i]!) < 1e-8));
 const observedMask = models.map((_, i) => i < 40);
-const masked = benchmarkResourceEfficiencyScores(
-  models,
-  qualities,
-  resources,
-  "linear",
-  observedMask,
-);
-const changedEstimate = benchmarkResourceEfficiencyScores(
+const masked = qualityLocalResourceScores(models, qualities, resources, observedMask);
+const changedEstimate = qualityLocalResourceScores(
   models,
   qualities.map((q, i) => (i === 40 ? 1e9 : q)),
   resources,
-  "linear",
   observedMask,
 );
 masked.slice(0, 40).forEach((score, i) => assert.equal(score, changedEstimate[i]));

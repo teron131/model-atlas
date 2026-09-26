@@ -24,7 +24,7 @@ import type {
 
 const close = (actual: number, expected: number) =>
   assert.ok(Math.abs(actual - expected) < 1e-7, actual + " != " + expected);
-const logistic = (x: number) => 1 / (1 + Math.exp(-x));
+const probability = (x: number) => 0.5 + x / 10;
 const model = (name: string, date = "2020-01-01") => historicalSourceModel(name, "Lab", null, date);
 const benchmark = (
   id: string,
@@ -83,7 +83,7 @@ const first: HistoricalSourceRelease = {
       const quality = 30 + 5 * i;
       return [
         observe(m, "old", (quality - 5) / 2),
-        observe(m, "middle", logistic((quality - 60) / 12)),
+        observe(m, "middle", probability((quality - 60) / 12)),
       ];
     }),
   ],
@@ -132,11 +132,11 @@ const later: HistoricalSourceRelease = {
     ...secondBridge.flatMap((m, i) => {
       const quality = 70 + 4 * i;
       return [
-        observe(m, "middle", logistic((quality - 60) / 12)),
-        observe(m, "newest", logistic((quality - 110) / 18)),
+        observe(m, "middle", probability((quality - 60) / 12)),
+        observe(m, "newest", probability((quality - 110) / 18)),
       ];
     }),
-    observe(future, "newest", logistic((150 - 110) / 18)),
+    observe(future, "newest", probability((150 - 110) / 18)),
     observe(disconnected, "island", 200),
     observe(saturated, "newest", 1),
   ],
@@ -260,7 +260,7 @@ proxyData.observations = proxyData.observations.filter(
 proxyData.observations.push(
   observe(firstBridge[0]!, "old", (80 - 5) / 2),
   observe(firstBridge[0]!, "shared-index", 25),
-  observe(firstBridge[1]!, "middle", logistic((35 - 60) / 12)),
+  observe(firstBridge[1]!, "middle", probability((35 - 60) / 12)),
   observe(firstBridge[1]!, "shared-index", 40),
 );
 const proxyScores = calibrateTimeline(proxyData, "intelligence");
@@ -407,8 +407,8 @@ assert.ok(
   "Two tiny dimension weights cannot supply two full units of effective support",
 );
 close(timelineInformation({ scale: "probability" }, 0.5), 1);
-close(timelineInformation({ scale: "probability" }, 0), 0);
-close(timelineInformation({ scale: "probability" }, 1), 0);
+close(timelineInformation({ scale: "probability" }, 0), 1);
+close(timelineInformation({ scale: "probability" }, 1), 1);
 close(
   timelineInformation({ scale: "probability" }, 0.02),
   timelineInformation({ scale: "probability" }, 0.98),
@@ -428,13 +428,10 @@ const nearCeiling = (value: number) =>
   ).estimates.find((e) => e.modelId === firstBridge[0]!.id)!;
 const near = nearCeiling(0.95),
   ceiling = nearCeiling(0.99);
+assert.ok(ceiling.value! >= near.value!, "A higher linear measurement cannot lower capability");
 assert.ok(
-  ceiling.value! >= near.value!,
-  "A higher score cannot lower capability as boundary sensitivity falls",
-);
-assert.ok(
-  ceiling.benchmarkSupport.effective < near.benchmarkSupport.effective,
-  "Ceiling results supply less discrimination without changing score weights",
+  ceiling.benchmarkSupport.effective === near.benchmarkSupport.effective,
+  "Valid results retain equal information weight across the linear range",
 );
 for (const count of [1, 2, 3]) {
   const taskIds = new Set(["old", "direct-b", "direct-c"].slice(0, count));

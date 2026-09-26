@@ -87,14 +87,12 @@ export type ModelAtlasMetadata = {
   source_health?: ModelAtlasSourceHealth;
   benchmark_update_health?: ModelAtlasBenchmarkUpdateHealth;
   scoring: {
-    /** Historical snapshots may predate the versioned Intelligence policy. New snapshots always record it. */
+    /** Record the effective group and pairwise weights alongside published scores. */
     intelligence_scoring?: {
-      version: string;
       group_weights: { frontier: number; baseline: number };
       pairwise_weight: number;
     };
     quality_normalization?: {
-      version: string;
       transform: "linear";
       score_range: [number, number];
     };

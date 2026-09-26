@@ -4,10 +4,7 @@ import {
   calibrationObservations,
   distinctModelCount,
 } from "../../benchmarks/calibration-population";
-import type {
-  BenchmarkDimension,
-  BenchmarkResourceQualityCoordinate,
-} from "../../benchmarks/factory";
+import type { BenchmarkDimension } from "../../benchmarks/factory";
 import { indexPolicy } from "../../benchmarks/index-policy";
 import type { ScoringConfig } from "../../config/stage";
 import { canonicalModelKey, canonicalReasoningEffort } from "../../identity/normalization";
@@ -15,13 +12,7 @@ import { clamp } from "../../math-utils";
 import type { JsonObject } from "../../runtime";
 import type { ModelAtlasCandidate } from "../model-types";
 import { type EffortResourceImputation, imputedTaskResource } from "./imputation/resource-evidence";
-import {
-  clampScore,
-  logitUnitScore,
-  minMaxRange,
-  type MinMaxRange,
-  minMaxScale,
-} from "./normalization";
+import { clampScore, minMaxRange, type MinMaxRange, minMaxScale } from "./normalization";
 import { qualityAdjustedResourceMultipliers } from "./resource-efficiency";
 import {
   type BenchmarkMetricModel,
@@ -95,10 +86,9 @@ export function buildAgenticTokenScoringContext(
   }
   for (const key of scoringConfig.agenticBenchmarkKeys) {
     const resources = indexPolicy(key)?.resources;
-    const coordinate =
-      scoringConfig.benchmarkPortfolio[key]?.resourcePolicy?.qualityCoordinate ??
-      resources?.policy.qualityCoordinate;
-    if (coordinate == null) continue;
+    const resourcePolicy =
+      scoringConfig.benchmarkPortfolio[key]?.resourcePolicy ?? resources?.policy;
+    if (resourcePolicy == null) continue;
     const resourceKey = resources?.key ?? key;
     const qualityRanges = qualityContext.benchmarkRangesByKey;
     const qualityRange = qualityRanges.get(key);
@@ -113,7 +103,6 @@ export function buildAgenticTokenScoringContext(
           models,
           separated,
           scoringConfig.agenticTokenModifierCap,
-          coordinate,
         );
         if (combinedMultipliers == null) continue;
         const values: number[] = [];
@@ -161,15 +150,12 @@ export function buildAgenticTokenScoringContext(
       if (!(Math.min(...tokens) < Math.max(...tokens))) break;
       const multipliers = qualityAdjustedResourceMultipliers(
         models,
-        qualities.map((value) =>
-          value == null || coordinate === "linear" ? value : logitUnitScore(value),
-        ),
+        qualities,
         models.map((model) => {
           const amount = tokensByModel.get(model) ?? null;
           return amount == null ? null : Math.log(amount);
         }),
         scoringConfig.agenticTokenModifierCap,
-        coordinate,
         models.map((model) => directTokensByModel.get(model) != null),
       );
       const values: number[] = [];
@@ -205,7 +191,6 @@ function separatedTokenMultipliers(
   models: readonly ModelAtlasCandidate[],
   separated: readonly (SeparatedBenchmarkResourceEvidence[] | null)[],
   cap: number,
-  coordinate: BenchmarkResourceQualityCoordinate,
 ): number[] | null {
   const combinedMultipliers = models.map(() => 1);
   let supportedSource = false;
@@ -229,7 +214,6 @@ function separatedTokenMultipliers(
       sourceEvidence.map((item) => item?.quality ?? null),
       sourceEvidence.map((item) => (item == null ? null : Math.log(item.amount))),
       cap,
-      coordinate,
       sourceEvidence.map((item) => item != null),
     );
     for (const [index, evidence] of sourceEvidence.entries()) {
