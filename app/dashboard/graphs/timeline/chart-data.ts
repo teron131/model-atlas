@@ -25,7 +25,7 @@ export function timelineChartPoints(data: HistoricalDataset): TimelinePoint[] {
   if (!calibration || !data.displayAnchors) throw new Error("Missing published calibration.");
   const scores = anchorTimeline(calibration, data, data.displayAnchors, "intelligence");
   const coverage = timelineCoverage(data, "intelligence", calibration.estimates);
-  const representatives = representativeScores(data, calibration);
+  const representatives = representativeScores(calibration);
   const estimates = new Map(calibration.estimates.map((estimate) => [estimate.modelId, estimate]));
   return modelRepresentatives(
     data.models.map((model) => ({
