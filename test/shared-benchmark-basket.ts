@@ -293,7 +293,6 @@ const totalTokenPolicy = {
     source: "benchmark" as const,
     unit: "per_task" as const,
     tokenMeasure: "tokens" as const,
-    qualityCoordinate: "linear" as const,
   },
 };
 const tokensFor = (metrics: Record<string, number>) =>

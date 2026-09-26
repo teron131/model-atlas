@@ -10,21 +10,22 @@ import type {
 
 export type PairedTimelineObservation = { family: string; left: number; right: number };
 
-/** Probability coordinates use finite log odds without cohort bounds; native linear indexes retain their reported units. */
-export function timelineNativeValue(benchmark: HistoricalBenchmark, value: number): number | null {
+/** All benchmark coordinates retain their reported gaps; probability labels constrain valid inputs only. */
+export function timelineNativeValue(
+  benchmark: Pick<HistoricalBenchmark, "scale">,
+  value: number,
+): number | null {
   if (!Number.isFinite(value)) return null;
   if (benchmark.scale === "linear") return value;
-  return value > 0 && value < 1 ? Math.log(value / (1 - value)) : null;
+  return value >= 0 && value <= 1 ? value : null;
 }
 
-/** Normalized inverse-logit sensitivity is smooth at the boundaries; it describes discrimination, not sampling precision or a confidence probability. */
+/** Valid measurements receive equal information weight on the shared linear policy. */
 export function timelineInformation(
   benchmark: Pick<HistoricalBenchmark, "scale">,
   value: number,
 ): number {
-  if (!Number.isFinite(value)) return 0;
-  if (benchmark.scale === "linear") return 1;
-  return value >= 0 && value <= 1 ? 4 * value * (1 - value) : 0;
+  return timelineNativeValue(benchmark, value) == null ? 0 : 1;
 }
 
 /** Symmetric mean/standard-deviation equating is reversible and unit-equivariant; both directions must beat a held-out median baseline. */

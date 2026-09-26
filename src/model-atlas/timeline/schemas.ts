@@ -198,6 +198,7 @@ export type TimelineBenchmarkCalibration = {
 
 /** Published mappings stay fixed while later releases extend observed links and retain the initial reference. */
 export type TimelineScale = {
+  qualityTransform: "linear";
   id: string;
   parentId: string | null;
   parameters: TimelineParameters;

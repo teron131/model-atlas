@@ -9,7 +9,7 @@ import {
 } from "../../../identity/normalization";
 import { clamp01, medianOfFinite, positiveFiniteNumber } from "../../../math-utils";
 import type { ModelAtlasCandidate } from "../../model-types";
-import { benchmarkResourceEfficiencyScores } from "../resource-efficiency";
+import { qualityLocalResourceScores } from "../resource-efficiency";
 import { benchmarkMetricValue } from "../resource-metrics";
 import { benchmarkQualityEvidence, type BenchmarkScoringPreparation } from "./benchmark";
 import { prepareBroaderResourceEstimator } from "./broader-resource";
@@ -75,11 +75,6 @@ function validatedEffortRatio(
     const predictedTargetAmount = sourceAmount * Math.exp(logRatio);
     rawErrors.push(Math.abs(Math.log(predictedTargetAmount / actualTargetAmount)));
 
-    const policy =
-      scoringConfig.benchmarkPortfolio[key]?.resourcePolicy ?? indexPolicy(key)?.resources?.policy;
-    if (policy == null) {
-      continue;
-    }
     const qualities = models.map((model) => benchmarkMetricValue(model, key));
     const actualResources = models.map((model) => {
       const amount = directTaskResource(model, key, scoringConfig, kind);
@@ -89,20 +84,18 @@ function validatedEffortRatio(
       (_, index) =>
         index !== targetIndex && qualities[index] != null && actualResources[index] != null,
     );
-    const actualScores = benchmarkResourceEfficiencyScores(
+    const actualScores = qualityLocalResourceScores(
       models,
       qualities,
       actualResources,
-      policy.qualityCoordinate,
       calibrationMask,
     );
     const predictedResources = [...actualResources];
     predictedResources[targetIndex] = Math.log(predictedTargetAmount);
-    const predictedScores = benchmarkResourceEfficiencyScores(
+    const predictedScores = qualityLocalResourceScores(
       models,
       qualities,
       predictedResources,
-      policy.qualityCoordinate,
       calibrationMask,
     );
     const actualScore = actualScores[targetIndex] ?? null;

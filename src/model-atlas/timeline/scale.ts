@@ -194,6 +194,7 @@ export function prepareTimelineRelease(
     return { nodes, links: orderedLinks };
   };
   const scale: TimelineScale = {
+    qualityTransform: "linear",
     id: "",
     parentId: previous?.id ?? null,
     parameters,
@@ -209,6 +210,7 @@ export function prepareTimelineRelease(
     .update(
       stableJson({
         parameters,
+        qualityTransform: scale.qualityTransform,
         minimumReferenceConfidence: scale.minimumReferenceConfidence,
         releaseId: data.releaseId,
         dimensions: scale.dimensions,

@@ -94,7 +94,6 @@ const METHODOLOGY_ASSETS = {
   "agentic-token-modifier.svg": { directory: "methodology", width: 760, height: 428 },
   "confidence.svg": { directory: "methodology", width: 760, height: 360 },
   "resource-coverage.svg": { directory: "methodology", width: 760, height: 432 },
-  "logit-quality.svg": { directory: "shared", width: 760, height: 505 },
   "imputation-overview.svg": { directory: "methodology", width: 760, height: 270 },
   "quantile-imputation.svg": { directory: "methodology", width: 760, height: 458 },
   "weighted-quantile-rank.svg": { directory: "methodology", width: 760, height: 175 },

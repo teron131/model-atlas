@@ -92,7 +92,7 @@ retained.observations = retained.observations.map((o) => ({
 const dataset = prepareTimelineRelease(retained, DEFAULT_TIMELINE_PARAMETERS);
 const anchorIds = [historical[8]!.id, capabilityModelId(models[7]!)] as const;
 const seed: CapabilityState = {
-  version: 1,
+  version: 2,
   initializedAt: capturedAt,
   dataset,
   anchors: {

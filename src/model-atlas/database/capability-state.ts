@@ -19,8 +19,8 @@ export function readCapabilityState(db: DatabaseSync): CapabilityState | null {
     gunzipSync(row.state_gzip as Uint8Array).toString("utf8"),
   ) as CapabilityState;
   if (
-    state.version !== 1 ||
-    !state.dataset.scale ||
+    state.version !== 2 ||
+    state.dataset.scale?.qualityTransform !== "linear" ||
     !state.anchors.frozenReferences?.length ||
     !state.positions
   )

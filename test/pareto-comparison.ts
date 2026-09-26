@@ -34,7 +34,6 @@ const policy = {
   source: "benchmark",
   unit: "per_task",
   tokenMeasure: "tokens",
-  qualityCoordinate: "linear",
 } as const;
 function row(
   model: typeof low,

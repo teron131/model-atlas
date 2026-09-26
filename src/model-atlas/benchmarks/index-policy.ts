@@ -39,7 +39,6 @@ export const INDEX_POLICIES = {
         source: "artificial_analysis",
         unit: "per_task",
         tokenMeasure: "output_tokens",
-        qualityCoordinate: "linear",
       },
       imputationKinds: ["tokens", "output_tokens"],
     },

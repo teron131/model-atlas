@@ -36,7 +36,7 @@ export type CapabilityPosition = {
   policyId: string;
 };
 export type CapabilityState = {
-  version: 1;
+  version: 2;
   initializedAt: string;
   dataset: HistoricalDataset;
   anchors: TimelineAnchors;

@@ -92,28 +92,11 @@ Token-efficiency adjustments likewise use separate source quality and token refe
 
 ### Comparable-Quality Peers
 
-Models with similar benchmark results receive more comparison weight. First convert each result to a scale suitable for comparing quality differences. The benchmark’s chosen transform $g_b$ maps result $x_{m,b}$ to quality coordinate $q_{m,b}$:
+Models with similar benchmark results receive more comparison weight. Every benchmark uses its reported score as a linear quality coordinate, $q_{m,b}=x_{m,b}$. Equal metric improvements therefore have equal distance, including near the endpoints. Subtracting the minimum and dividing by the range would give the same peer weights because the comparison spread scales by the same amount.
 
-$$
-q_{m,b}=g_b(x_{m,b}),\qquad
-g_b(x)=
-\begin{cases}
-x & \text{linear}\\
-\operatorname{logit}(x) & \text{logit}
-\end{cases}
-$$
+Aggregate price comparisons use the linear mean of the two public quality scores described below. Cost, time, and token amounts still use logarithms to compare resource ratios; these are not quality transformations.
 
-A linear coordinate preserves the stored score gaps. It suits partial credit, Elo-derived scores, rubrics, composites, human-relative performance, and other metrics whose endpoints do not represent a success probability.
-
-A logit coordinate uses $\operatorname{logit}(x)=\log(x/(1-x))$ for probability-like pass, accuracy, and completion rates. Inputs must lie in $[0,1]$ and are clipped to 0.001–0.999 before conversion, keeping the transformed values finite near the endpoints.
-
-The benchmark-specific decisions are listed in [Benchmarks](../benchmarks.md#resource-quality-coordinates). Aggregate price comparisons are not benchmark success rates; they use the linear mean of the two public quality scores described below.
-
-Logit gives equal percentage-point gains more separation near the ceiling, where they remove a larger share of remaining errors.
-
-![An equal percentage-point gain occupies more distance near the ceiling. The lower bars share a logit scale: 95% to 96% spans about 0.234, compared with 0.040 for 50% to 51%.](../assets/shared/logit-quality.svg)
-
-After this transform, center quality on the weighted median and divide by a robust spread to obtain $Z_{m,b}$. This makes quality distances comparable across benchmarks. Each observed peer $j$ has reference weight $w^{\text{ref}}_{j,b}$: one unit per base model, shared across variants with paired quality and resource observations. $Q^{\text{weighted}}_{25}$ and $Q^{\text{weighted}}_{75}$ are the weighted 25th and 75th percentiles; $s^{\text{min}}_b$ is the minimum spread:
+Center quality on the weighted median and divide by a robust spread to obtain $Z_{m,b}$. This makes quality distances comparable across benchmarks. Each observed peer $j$ has reference weight $w^{\text{ref}}_{j,b}$: one unit per base model, shared across variants with paired quality and resource observations. $Q^{\text{weighted}}_{25}$ and $Q^{\text{weighted}}_{75}$ are the weighted 25th and 75th percentiles; $s^{\text{min}}_b$ is the minimum spread:
 
 $$
 \begin{aligned}
@@ -122,7 +105,7 @@ Z_{m,b}&=\frac{q_{m,b}-\operatorname{weightedMedian}_j(q_{j,b},w^{\text{ref}}_{j
 \end{aligned}
 $$
 
-The interquartile range covers the middle half of observations; 1.349 converts it to a standard-deviation-like scale. The minimum spread is $s^{\text{min}}_b=0.35$ for logit coordinates and $s^{\text{min}}_b=0.35(q_{\mathrm{max},b}-q_{\mathrm{min},b})$ for linear coordinates. This prevents small score differences in tightly clustered results from appearing too large and keeps linear comparisons unchanged by unit conversions.
+The interquartile range covers the middle half of observations; 1.349 converts it to a standard-deviation-like scale. The minimum spread is $s^{\text{min}}_b=0.35(q_{\mathrm{max},b}-q_{\mathrm{min},b})$ for every benchmark. This prevents small score differences in tightly clustered results from appearing too large and keeps linear comparisons unchanged by unit conversions.
 
 Only observed paired results set the range. The spread describes the reference distribution, not measurement uncertainty. With flat reference quality, only equal-quality rows receive support.
 
@@ -247,7 +230,7 @@ $$
 q^{\text{price}}_m=\operatorname{mean}(\text{Intelligence}_m,\text{Agentic}_m).
 $$
 
-Use the final public capability scores on a linear scale. Time and cost per task instead use their own benchmark quality and declared transform.
+Use the final public capability scores on a linear scale. Time and cost per task use their own benchmark’s linear quality coordinates.
 
 For transformed measurement $g(x)$, $g_{\min}$ and $g_{\max}$ are its finite reference minimum and maximum. Min–max scaling maps this range to 0–100. When higher values are better, the score is:
 
@@ -315,6 +298,6 @@ These values are scoring-policy choices, not fitted claims about model behavior.
 | --- | ---: | --- |
 | Favorable-tail winsorization | 2.5% | Stops one exceptionally cheap or fast model from defining the useful score range. |
 | Quality comparison width | $\sigma=0.5$ | Favors comparisons with similar quality without requiring exact benchmark-score ties. |
-| Minimum quality spread | 0.35 log-odds units, or 35% of the observed linear range | Prevents small gaps in clustered results from being magnified; linear comparisons remain unchanged by unit conversions. |
+| Minimum quality spread | 35% of the observed quality range | Prevents small gaps in clustered results from being magnified; linear comparisons remain unchanged by unit conversions. |
 | Local resource trend | Full peer support and interpolation only | Accounts for nearby quality differences while avoiding sparse fits and unsupported extrapolation. |
 | Full comparison support | Supported model count of 3 | Pulls weak peer comparisons toward neutral; three effective models end this adjustment without implying statistical certainty. |

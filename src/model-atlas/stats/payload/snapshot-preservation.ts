@@ -7,7 +7,7 @@ import { asFiniteNumber, asRecord } from "../../runtime";
 import type { ModelAtlasModel, ModelAtlasPayload } from "../types";
 
 // Scoring-policy changes invalidate preserved model rows derived under an earlier contract.
-export const SNAPSHOT_PRESERVATION_VERSION = 18;
+export const SNAPSHOT_PRESERVATION_VERSION = 19;
 const DEFAULT_EFFORT_KEY = "\u0000default";
 const MODEL_EFFORT_SEPARATOR = "\u001f";
 

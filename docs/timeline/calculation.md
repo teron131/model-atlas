@@ -12,17 +12,9 @@ Relative scores can move as models and benchmarks change. The Intelligence Index
 
 Models measured on shared benchmarks connect different benchmark generations, even when their units and difficulty levels differ.
 
-Before the logit transformation, scoring clips probability results to fixed 2–98% bounds, applying the winsorization principle to limit extreme values and keep the transformed results finite. When fitting benchmark connections, results at or beyond these bounds are excluded instead because they distinguish models poorly. The bounds are fixed, not percentile cutoffs recalculated from the model population.
+All benchmark results use linear coordinates in their reported units. Equal metric improvements have equal distance, including at the endpoints; probability results remain valid from 0 through 1 without endpoint clipping. Benchmark links standardize each source using its own reference mean and spread, so unit conversions or subtracting a benchmark minimum do not change the linked result.
 
-The prepared probability results then use the logit transformation; linear index scores keep their native units. For model configuration $m$ on benchmark edition $b$, the prepared fraction $p_{m,b}$ becomes the logit $x_{m,b}$:
-
-$$
-x_{m,b}=\operatorname{logit}(p_{m,b})=\log\frac{p_{m,b}}{1-p_{m,b}}.
-$$
-
-The logit transformation gives a larger change for 95% to 96% than for 50% to 51%, reflecting the larger proportional reduction in remaining errors near the ceiling. Its scale does not depend on leaderboard ranks or extremes.
-
-![The same one-percentage-point gain spans about 0.234 logit units from 95% to 96%, compared with 0.040 from 50% to 51%. The lower bars use the same scale.](../assets/shared/logit-quality.svg)
+When fitting connections, probability results at or beyond the existing 2–98% saturation thresholds remain excluded from shared-model overlap. This is a fitting admission rule, not a nonlinear score transformation. Valid query results retain equal information weight throughout the range.
 
 The mapping sets the standard score (z-score) on benchmark A equal to the standard score on benchmark B. Given $x_B$, it finds the corresponding $x_A$, or vice versa, by matching how many standard deviations each result lies above or below its benchmark's mean. If A is already connected to the reference scale, this lets results from B use the same ruler:
 
@@ -30,13 +22,13 @@ $$
 \frac{x_A-\mu_A}{\sigma_A}=\frac{x_B-\mu_B}{\sigma_B}.
 $$
 
-Here, $\mu_A,\mu_B$ are the means and $\sigma_A,\sigma_B$ the standard deviations of transformed results from models tested on both benchmarks. Each base model contributes one unit of weight across its reasoning configurations, so extra configurations do not give it extra influence. The translated value estimates a corresponding position on the other scale; it is not an observed benchmark result.
+Here, $\mu_A,\mu_B$ are the means and $\sigma_A,\sigma_B$ the standard deviations of reported results from models tested on both benchmarks. Each base model contributes one unit of weight across its reasoning configurations, so extra configurations do not give it extra influence. The translated value estimates a corresponding position on the other scale; it is not an observed benchmark result.
 
 ![50 is 10 above A's mean of 40; 80 is 20 above B's mean of 60. Each distance is one standard deviation, so both results have z-score +1. The distribution shapes are illustrative; the mapping does not require bell-shaped results.](../assets/timeline/timeline-standard-scores.svg)
 
 ### Validate the Benchmark Connection
 
-Matching means and standard deviations produces a linear conversion between transformed results; individual model results need not lie on that line. Leave-one-family-out cross-validation checks whether the approximation predicts accurately enough: leave out one family, fit on the others, then compare its predicted result with its actual result. All reasoning configurations of the withheld family stay together, so related variants cannot supply the answer indirectly.
+Matching means and standard deviations produces a linear conversion between reported results; individual model results need not lie on that line. Leave-one-family-out cross-validation checks whether the approximation predicts accurately enough: leave out one family, fit on the others, then compare its predicted result with its actual result. All reasoning configurations of the withheld family stay together, so related variants cannot supply the answer indirectly.
 
 ![In this illustrative round, benchmark A result 65 predicts benchmark B result 75, while the withheld result is 80. The absolute error of 5 is 10% of the training B range, 30–80. Each round withholds a different family, including all its reasoning configurations; the plot shows one result per family.](../assets/timeline/timeline-validation.svg)
 
@@ -50,7 +42,7 @@ Accepted connections make comparison across eras possible. Suppose benchmark A a
 
 ![Shared model results connect old, middle and new benchmarks to the same ruler. A future model needs results on a connected benchmark, not on every earlier benchmark. Estimated results never establish these connections.](../assets/timeline/timeline-benchmark-links.svg)
 
-The accepted connections determine a saved conversion from each benchmark's own units to the shared reference units. Here, $x$ is a transformed benchmark result and $q$ is its position on the shared reference scale, before results are combined and the final index anchors are applied. For model $m$, benchmark $b$ and capability dimension $d$, the conversion multiplies $x_{m,b}$ by a scale factor $a_{b,d}$ and adds an offset $c_{b,d}$:
+The accepted connections determine a saved conversion from each benchmark's own units to the shared reference units. Here, $x$ is a reported benchmark result and $q$ is its position on the shared reference scale, before results are combined and the final index anchors are applied. For model $m$, benchmark $b$ and capability dimension $d$, the conversion multiplies $x_{m,b}$ by a scale factor $a_{b,d}$ and adds an offset $c_{b,d}$:
 
 $$
 q_{m,b,d}=a_{b,d}x_{m,b}+c_{b,d},\qquad a_{b,d}>0.

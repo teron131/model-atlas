@@ -21,19 +21,6 @@ export function clampScore(value: number): number {
   return Math.min(100, Math.max(0, value));
 }
 
-function probabilityLogit(value: number): number {
-  const clamped = clamp(value, 0.001, 0.999);
-  return Math.log(clamped / (1 - clamped));
-}
-
-/** Transform a declared 0-1 probability-like score into its finite log-odds coordinate. */
-export function logitUnitScore(value: number): number {
-  if (!Number.isFinite(value) || value < 0 || value > 1) {
-    throw new RangeError(`Logit quality coordinates require a finite 0-1 score, received ${value}`);
-  }
-  return probabilityLogit(value);
-}
-
 export function coverageMultiplier(supportedWeight: number, totalWeight: number) {
   if (totalWeight <= 0) {
     return 0;
