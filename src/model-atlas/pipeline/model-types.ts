@@ -112,7 +112,6 @@ export type ModelAtlasScoringSources =
       automation_bench?: BenchmarkObservationRow | null;
       deep_swe?: DeepSWEModelScoreRow | null;
       frontier_code?: FrontierCodeModelEffortRow | null;
-      itbench_sre?: ArtificialAnalysisBenchmarkResourceRow | null;
       terminal_bench_4?: TerminalBench4ModelAgentRow | null;
       vending_bench_2?: VendingBench2ModelScoreRow | null;
     })

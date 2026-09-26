@@ -44,4 +44,12 @@ export function compareBenchmarkDisplayKeys(left: string, right: string): number
 }
 
 export const benchmarkTooltips: Readonly<Record<string, ModelAtlasColumnTooltip>> =
-  BENCHMARK_TOOLTIPS;
+  Object.fromEntries(
+    Object.entries(BENCHMARK_TOOLTIPS).map(([key, tooltip]) => {
+      const version = "version" in tooltip ? tooltip.version : null;
+      return [
+        key,
+        version ? { ...tooltip, rows: [["Version", `v${version}`], ...tooltip.rows] } : tooltip,
+      ];
+    }),
+  );

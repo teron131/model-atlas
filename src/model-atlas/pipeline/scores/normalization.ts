@@ -82,15 +82,12 @@ export function minMaxRange(values: ReadonlyArray<number | null>): MinMaxRange |
   return min === Infinity ? null : { min, max };
 }
 
-/** Normalize onto the 0-100 score scale, giving full credit when the comparison set has no spread. */
+/** Map a metric linearly within its observed range; quality callers clamp estimates to the public score bounds. */
 export function minMaxScale(range: MinMaxRange | null, value: number | null): number | null {
-  if (value == null || range == null) {
-    return null;
-  }
-  if (range.max === range.min) {
-    return 100;
-  }
-  return ((value - range.min) / (range.max - range.min)) * 100;
+  if (value == null || range == null) return null;
+  if (range.max === range.min) return 100;
+  const position = (value - range.min) / (range.max - range.min);
+  return position * 100;
 }
 
 /** Min-max normalize finite signals in the requested scoring direction. */

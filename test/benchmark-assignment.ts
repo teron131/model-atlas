@@ -212,24 +212,6 @@ const automationBenchRow = {
   observed_at: null,
   metadata: { metric: "task_completed_correctly" },
 } satisfies BenchmarkObservationRow;
-const itbenchResourceRow = {
-  benchmark_key: "itbench_sre",
-  source_url: "https://artificialanalysis.ai/evaluations/itbench-aa",
-  model_id: "test/example-model",
-  model: "Example Model",
-  provider: "Test",
-  provider_id: "test",
-  reasoning_effort: null,
-  score: 0.56,
-  task_run_count: 177,
-  cost_per_task_usd: 1.2,
-  seconds_per_task: 180,
-  tokens_per_task: 1500,
-  input_tokens_per_task: 1300,
-  output_tokens_per_task: 200,
-  answer_tokens_per_task: 80,
-  reasoning_tokens_per_task: 120,
-} satisfies ArtificialAnalysisBenchmarkResourceRow;
 const chartographyRow = {
   benchmark_key: "chartography",
   source_url: "https://www.surgehq.ai/leaderboard/chartography",
@@ -262,7 +244,6 @@ const resourceLookup = new Map([
   ["analyst_agent", new Map([["example-model", analystAgentResourceRow]])],
   ["briefcase", new Map([["example-model", briefcaseResourceRow]])],
   ["hle", new Map([["example-model", artificialAnalysisHleResourceRow]])],
-  ["itbench_sre", new Map([["example-model", itbenchResourceRow]])],
 ]);
 const lookups = {
   artificialAnalysisBenchmarkResources: {
@@ -295,6 +276,8 @@ const lookups = {
   chessPuzzles: { rowsByModelName: new Map() },
   codeMigration: { rowsByModelName: emptyLookup() },
   complexConstraints: { rowsByModelName: emptyLookup() },
+  dayjobFinance: { rowsByModelName: emptyLookup() },
+  dayjobHealthcare: { rowsByModelName: emptyLookup() },
   deepSWE: {
     rowsByModelName: new Map([["example-model-preview", deepSWERow]]),
   },
@@ -364,7 +347,6 @@ assert.deepEqual(observationAssignment.benchmarks, {
   deep_swe: 0.72,
   frontier_code: 0.535,
   hle: 0.4,
-  itbench_sre: 0.56,
   terminal_bench_4: 0.4353,
   vending_bench_2: 9_000,
 });
@@ -409,7 +391,6 @@ assert.deepEqual(defaultVariantAssignment.benchmarks, {
   deep_swe: 0.72,
   frontier_code: 0.535,
   hle: 0.4,
-  itbench_sre: 0.56,
   terminal_bench_4: 0.4353,
   vending_bench_2: 9_000,
 });
@@ -425,7 +406,6 @@ assert.deepEqual(defaultVariantAssignment.scoringSources, {
   deep_swe: deepSWERow,
   frontier_code: frontierCodeRow,
   hle: artificialAnalysisHleResourceRow,
-  itbench_sre: itbenchResourceRow,
   terminal_bench_4: terminalBench4Row,
   vending_bench_2: vendingBench2Row,
 });
@@ -508,13 +488,6 @@ assert.deepEqual(buildTaskMetrics(null, defaultVariantAssignment.scoringSources)
     tokens: 123,
     input_tokens: 23,
     output_tokens: 100,
-  },
-  itbench_sre: {
-    cost: 1.2,
-    seconds: 180,
-    tokens: 1500,
-    input_tokens: 1300,
-    output_tokens: 200,
   },
   terminal_bench_4: {
     cost: 1,

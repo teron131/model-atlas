@@ -1,7 +1,10 @@
 /** Candidate assembly projects heterogeneous source rows into the scorer's stable input shape. */
 
 import { benchmarkValueLocation } from "../../benchmarks/registry";
-import { resourceSourceMetricKey } from "../../benchmarks/resource-sources";
+import {
+  resourceSourceMetricKey,
+  resourceSourcesFromMetadata,
+} from "../../benchmarks/resource-sources";
 import {
   type ScoringConfig,
   TASK_COST_PRICE_TRANSITIONS,
@@ -535,7 +538,7 @@ function buildSeparatedSourceMetrics(
     (field) => metadata[`fusion_${field}_comparable`] === false,
   );
   if (!separated) return [];
-  return (["source_a", "source_b"] as const).flatMap((side) => {
+  return resourceSourcesFromMetadata(metadata).flatMap((side) => {
     const quality = asFiniteNumber(metadata[`${side}_score`]);
     if (quality == null) return [];
     const metrics = buildSourceMetrics({

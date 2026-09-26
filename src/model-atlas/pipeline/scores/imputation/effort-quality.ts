@@ -44,6 +44,15 @@ export function prepareEffortQualityScoringContext(
       const variants = group.map((model) => ({
         model,
         inputs: keys.flatMap((key) => {
+          if (
+            dimension === "intelligence" &&
+            !isAggregateIndex(key) &&
+            scoringConfig.intelligenceGroupWeights[
+              scoringConfig.benchmarkPortfolio[key]?.group ?? "baseline"
+            ] === 0
+          ) {
+            return [];
+          }
           const weight = benchmarkDimensionWeight(key, dimension, scoringConfig.benchmarkPortfolio);
           if (!(weight > 0) || isAggregateIndex(key)) return [];
           const rawValue = benchmarkMetricValue(model, key);
@@ -59,6 +68,7 @@ export function prepareEffortQualityScoringContext(
         }),
       }));
       for (const target of variants) {
+        const observedKeys = new Set(target.inputs.map(({ key }) => key));
         const referenceVariants = variants
           .flatMap((referenceVariant) => {
             if (
@@ -98,11 +108,7 @@ export function prepareEffortQualityScoringContext(
         const predicted = new Map<string, number>();
         for (const referenceVariant of referenceVariants) {
           for (const input of referenceVariant.inputs) {
-            if (
-              predicted.has(input.key) ||
-              target.inputs.some((observed) => observed.key === input.key)
-            )
-              continue;
+            if (predicted.has(input.key) || observedKeys.has(input.key)) continue;
             predicted.set(input.key, clamp(input.value + referenceVariant.gap, 0, 100));
           }
         }

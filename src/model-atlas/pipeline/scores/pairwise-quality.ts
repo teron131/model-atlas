@@ -1,15 +1,16 @@
 /** Pairwise quality fits normalized benchmark margins through a model-balanced, matrix-free weighted graph Laplacian. */
 
-import type { BenchmarkDimension } from "../../benchmarks/factory";
+import type { BenchmarkDimension, BenchmarkGroup } from "../../benchmarks/factory";
 import { isAggregateIndex } from "../../benchmarks/index-policy";
 import { benchmarkDimensionWeight } from "../../benchmarks/registry";
 import type { ScoringConfig } from "../../config/stage";
 import { canonicalModelKey } from "../../identity/normalization";
 import { weightedQuantile, weightedQuantileRank } from "../../math-utils";
 import type { ModelAtlasCandidate } from "../model-types";
-import { minMaxRange, minMaxScale } from "./normalization";
-import { effortQualityKey } from "./quality-context";
+import { type MinMaxRange, minMaxScale } from "./normalization";
+import { effortQualityKey, observedRangesByBenchmark } from "./quality-context";
 import { type BenchmarkMetricModel, benchmarkMetricValue } from "./resource-metrics";
+import type { IntelligenceScoreParts } from "./score-builders";
 
 type PairwiseQualityModel = BenchmarkMetricModel & {
   id?: unknown;
@@ -50,14 +51,27 @@ export function fitPairwiseQualityScores(
   models: readonly PairwiseQualityModel[],
   dimension: BenchmarkDimension,
   scoringConfig: ScoringConfig,
+  group?: BenchmarkGroup,
 ): PairwiseQualityResult {
+  const ranges = observedRangesByBenchmark(models, [
+    ...scoringConfig.intelligenceBenchmarkKeys,
+    ...scoringConfig.agenticBenchmarkKeys,
+  ]);
   const edges: PairwiseEdge[] = [];
   let benchmarkCount = 0;
   const keys = (
     dimension === "intelligence"
       ? scoringConfig.intelligenceBenchmarkKeys
       : scoringConfig.agenticBenchmarkKeys
-  ).filter((key) => !isAggregateIndex(key));
+  ).filter(
+    (key) =>
+      !isAggregateIndex(key) &&
+      (dimension !== "intelligence" ||
+        scoringConfig.intelligenceGroupWeights[
+          scoringConfig.benchmarkPortfolio[key]?.group ?? "baseline"
+        ] > 0) &&
+      (group == null || scoringConfig.benchmarkPortfolio[key]?.group === group),
+  );
 
   for (const key of keys) {
     const benchmarkWeight = benchmarkDimensionWeight(
@@ -66,7 +80,7 @@ export function fitPairwiseQualityScores(
       scoringConfig.benchmarkPortfolio,
     );
     if (!(benchmarkWeight > 0)) continue;
-    const observations = benchmarkObservations(models, key);
+    const observations = benchmarkObservations(models, key, ranges.get(key) ?? null);
     const baseModelCount = new Set(observations.map(({ modelKey }) => modelKey)).size;
     if (baseModelCount < 2) continue;
     benchmarkCount += 1;
@@ -117,56 +131,82 @@ export function fitPairwiseQualityScores(
 }
 
 /**
- * Blend pairwise ordering into Intelligence using the ordinary score distribution as the output scale.
- * Remove the existing coverage retention before mapping percentiles, then restore it once after blending.
- * Variants without a usable ordinary score or connected pairwise result retain their original score.
- * Agentic scores and evidence support are preserved.
+ * Map each group's pairwise percentile through that group's ordinary score distribution.
+ * The fixed task-group budget and independent index union share apply after pairwise blending; evidence retention applies once at the end.
+ * Variants outside a group's comparison graph keep that group's ordinary score.
  */
 export function blendPairwiseQualityScores(
   models: ModelAtlasCandidate[],
   scoringConfig: ScoringConfig,
-  intelligenceRetentions: readonly number[],
+  intelligenceParts: readonly (IntelligenceScoreParts | null)[],
 ): ModelAtlasCandidate[] {
   if (!(scoringConfig.pairwiseIntelligenceWeight > 0)) return models;
-  const pairwise = fitPairwiseQualityScores(models, "intelligence", scoringConfig);
+  const frontier =
+    scoringConfig.intelligenceGroupWeights.frontier > 0
+      ? blendGroupPairwiseScores(models, scoringConfig, intelligenceParts, "frontier")
+      : new Map<number, number>();
+  const baseline =
+    scoringConfig.intelligenceGroupWeights.baseline > 0
+      ? blendGroupPairwiseScores(models, scoringConfig, intelligenceParts, "baseline")
+      : new Map<number, number>();
+  return models.map((model, modelIndex) => {
+    const parts = intelligenceParts[modelIndex];
+    if (
+      model.component_scores == null ||
+      parts == null ||
+      (scoringConfig.intelligenceGroupWeights.frontier > 0 && parts.frontier == null) ||
+      (scoringConfig.intelligenceGroupWeights.baseline > 0 && parts.baseline == null)
+    ) {
+      return model;
+    }
+    const taskScore =
+      scoringConfig.intelligenceGroupWeights.frontier *
+        (frontier.get(modelIndex) ?? parts.frontier ?? 0) +
+      scoringConfig.intelligenceGroupWeights.baseline *
+        (baseline.get(modelIndex) ?? parts.baseline ?? 0);
+    return {
+      ...model,
+      component_scores: {
+        ...model.component_scores,
+        intelligence_score:
+          parts.retention *
+          ((1 - parts.indexShare) * taskScore + parts.indexShare * (parts.indexScore ?? 0)),
+      },
+    };
+  });
+}
+
+function blendGroupPairwiseScores(
+  models: readonly ModelAtlasCandidate[],
+  scoringConfig: ScoringConfig,
+  intelligenceParts: readonly (IntelligenceScoreParts | null)[],
+  group: BenchmarkGroup,
+): Map<number, number> {
+  const pairwise = fitPairwiseQualityScores(models, "intelligence", scoringConfig, group);
   const entries = models.flatMap((model, modelIndex) => {
-    const score = model.component_scores?.intelligence_score ?? null;
-    const retention = intelligenceRetentions[modelIndex];
-    const pairwisePercentile = pairwise.scoresByVariant.get(
-      effortQualityKey(model, "intelligence"),
-    );
-    if (score == null || retention == null || pairwisePercentile == null) return [];
-    return [{ modelIndex, score: score / retention, retention, pairwisePercentile }];
+    const ordinary = intelligenceParts[modelIndex]?.[group] ?? null;
+    const percentile = pairwise.scoresByVariant.get(effortQualityKey(model, "intelligence"));
+    return ordinary == null || percentile == null ? [] : [{ modelIndex, ordinary, percentile }];
   });
   const weights = referenceWeightsForIndexes(
     models,
     entries.map(({ modelIndex }) => modelIndex),
   );
-  const distribution = entries.map(({ modelIndex, score }) => ({
-    value: score,
+  const distribution = entries.map(({ modelIndex, ordinary }) => ({
+    value: ordinary,
     weight: weights.get(modelIndex)!,
   }));
   const blended = new Map<number, number>();
-  for (const entry of entries) {
-    const mappedPairwiseScore = weightedQuantile(distribution, entry.pairwisePercentile / 100);
-    if (mappedPairwiseScore == null) continue;
+  for (const { modelIndex, ordinary, percentile } of entries) {
+    const mapped = weightedQuantile(distribution, percentile / 100);
+    if (mapped == null) continue;
     blended.set(
-      entry.modelIndex,
-      entry.retention *
-        ((1 - scoringConfig.pairwiseIntelligenceWeight) * entry.score +
-          scoringConfig.pairwiseIntelligenceWeight * mappedPairwiseScore),
+      modelIndex,
+      (1 - scoringConfig.pairwiseIntelligenceWeight) * ordinary +
+        scoringConfig.pairwiseIntelligenceWeight * mapped,
     );
   }
-  return models.map((model, modelIndex) => {
-    if (model.component_scores == null) return model;
-    return {
-      ...model,
-      component_scores: {
-        ...model.component_scores,
-        intelligence_score: blended.get(modelIndex) ?? model.component_scores.intelligence_score,
-      },
-    };
-  });
+  return blended;
 }
 
 function referenceWeightsForIndexes(
@@ -190,6 +230,7 @@ function referenceWeightsForIndexes(
 function benchmarkObservations(
   models: readonly PairwiseQualityModel[],
   key: string,
+  range: MinMaxRange | null,
 ): PairwiseObservation[] {
   const values = models.flatMap((model, modelIndex) => {
     const value = benchmarkMetricValue(model, key);
@@ -201,7 +242,6 @@ function benchmarkObservations(
     models,
     values.map(({ modelIndex }) => modelIndex),
   );
-  const range = minMaxRange(values.map(({ value }) => value));
   return values.flatMap(({ modelIndex, modelKey, value }) => {
     const score = minMaxScale(range, value);
     return score == null

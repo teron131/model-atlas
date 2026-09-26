@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 
 import { INDEX_BENCHMARK_KEYS } from "../src/model-atlas/benchmarks/index-policy";
 import {
+  BENCHMARK_CATALOG,
   BENCHMARK_DISPLAY_KEYS,
   BENCHMARK_RUNTIME_KEYS,
 } from "../src/model-atlas/benchmarks/registry";
@@ -31,11 +32,41 @@ for (const keys of [
   BENCHMARK_DISPLAY_KEYS,
   BENCHMARK_RUNTIME_KEYS,
 ]) {
-  assert.equal(
-    keys.some((key: string) => key === "cursorbench"),
-    false,
+  for (const retiredKey of ["cursorbench", "itbench_sre"]) {
+    assert.equal(
+      keys.some((key: string) => key === retiredKey),
+      false,
+    );
+  }
+}
+assert.equal("itbench_sre" in STAGE_CONFIG.scoring.benchmarkPortfolio, false);
+const selectedIndexKeys = new Set<string>(INDEX_BENCHMARK_KEYS);
+for (const dimension of ["intelligence", "agentic"] as const) {
+  for (const key of STAGE_CONFIG.scoring[`${dimension}BenchmarkKeys`]) {
+    assert.ok(
+      selectedIndexKeys.has(key) ||
+        STAGE_CONFIG.scoring.benchmarkPortfolio[key]?.group === "frontier",
+      `${dimension} must exclude direct baseline contributions`,
+    );
+  }
+  assert.ok(
+    STAGE_CONFIG.scoring[`${dimension}BenchmarkDisplayKeys`].some(
+      (key) =>
+        !selectedIndexKeys.has(key) &&
+        STAGE_CONFIG.scoring.benchmarkPortfolio[key]?.group === "baseline",
+    ),
+    "Baseline observations remain available for display",
   );
 }
+
+assert.equal("itbench_sre" in BENCHMARK_CATALOG, false);
+
+assert.equal(BENCHMARK_CATALOG.aa_intelligence_index.version, "4.3.2");
+assert.equal(STAGE_CONFIG.scoring.benchmarkPortfolio.aa_intelligence_index?.version, "4.3.2");
+assert.equal(BENCHMARK_CATALOG.briefcase.version, "1.1");
+assert.equal(BENCHMARK_CATALOG.gdpval_normalized.version, "2.1");
+assert.equal(BENCHMARK_CATALOG.terminal_bench_science.version, "0.1.0");
+assert.equal("version" in BENCHMARK_CATALOG.mlcr_aa, false);
 
 const sourceData = {
   modelsDev: {
@@ -348,16 +379,17 @@ const qualitySelection = prepareModelSelection(qualityRows, STAGE_CONFIG.scoring
   baselineDate: "2026-08-27",
   observedDate: "2026-08-27",
 });
-assert.deepEqual(
-  qualitySelection.candidates.map((model) => [
-    model.component_scores?.intelligence_score,
-    model.component_scores?.agentic_score,
-  ]),
-  [
-    [0, 0],
-    [100, 100],
-  ],
-  "quality must be computed with both reference models before per-model enrichment is chosen",
+const referenceQualityScores = qualitySelection.candidates.map((model) => [
+  model.component_scores?.intelligence_score,
+  model.component_scores?.agentic_score,
+]);
+assert.ok(
+  referenceQualityScores[0]!.every((score) => score != null && score >= 0 && score <= 1),
+  "The weaker reference stays at the bottom before enrichment",
+);
+assert.ok(
+  referenceQualityScores[1]!.every((score) => score != null && score >= 99 && score <= 100),
+  "Both references define the quality range before enrichment",
 );
 assert.deepEqual(
   selectOpenRouterModelRows(qualitySelection, STAGE_CONFIG.final, STAGE_CONFIG.scoring).map(
@@ -387,7 +419,7 @@ assert.deepEqual(
     model.scores.intelligence_score,
     model.scores.agentic_score,
   ]),
-  [[100, 100]],
+  [referenceQualityScores[1]],
   "adding OpenRouter speed and pricing must preserve the previously computed quality scores",
 );
 assert.equal(enrichedQualityModels[0]!.speed.throughput_tokens_per_second_median, 50);
@@ -439,7 +471,7 @@ const admissionRows = [
       agentic_index: 65,
     }),
     release_date: "2026-07-29",
-    benchmarks: { critpt: 0.7, tau_banking: 0.7, vals_index: 70 },
+    benchmarks: { critpt: 0.7, automation_bench: 0.7, omniscience_accuracy: 0.7, vals_index: 70 },
   },
   evidenceRow(unknownPreviewId, "Unknown Preview"),
   {
@@ -462,7 +494,7 @@ const admissionRows = [
       agentic_index: 65,
     }),
     release_date: "2026-07-28",
-    benchmarks: { critpt: 0.7, tau_banking: 0.7, vals_index: 70 },
+    benchmarks: { critpt: 0.7, automation_bench: 0.7, omniscience_accuracy: 0.7, vals_index: 70 },
   },
 ];
 const admissionSelection = prepareModelSelection(admissionRows, STAGE_CONFIG.scoring, {
@@ -625,12 +657,17 @@ assert.notEqual(
   "metadata enrichment retains a single ranked model",
 );
 
-// A trusted AA index qualifies at any age, with or without complete metadata.
+// One trusted AA index and direct frontier evidence qualify at any age, with or without complete metadata.
 const singleIndexRow = {
   ...completeMetadataRow,
   id: "provider/recent-single-index",
   intelligence: null,
-  benchmarks: { aa_intelligence_index: 0.7 },
+  benchmarks: {
+    aa_intelligence_index: 0.7,
+    critpt: 0.7,
+    omniscience_accuracy: 0.7,
+    automation_bench: 0.7,
+  },
   release_date: "2026-07-29",
 };
 const singleIndexRows = [
@@ -672,7 +709,7 @@ assert.deepEqual(
     ["provider/undated-single-index", false],
     ["provider/incomplete-single-index", false],
   ].sort(),
-  "one trusted observed index qualifies regardless of release age or metadata",
+  "one trusted observed index and frontier evidence qualify regardless of release age or metadata",
 );
 
 const fallbackRows = ["high", "max"].map((effort, index) => ({

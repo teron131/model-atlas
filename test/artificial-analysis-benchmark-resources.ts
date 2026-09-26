@@ -83,27 +83,45 @@ assertDeepEqual(
     "analyst_agent",
     "briefcase",
     "critpt",
+    "gdp_pdf",
     "gdpval_normalized",
     "hle",
-    "itbench_sre",
+    "mlcr_aa",
     "scicode",
-    "tau_banking",
     "terminal_bench_4",
+    "terminal_bench_science",
   ],
 );
-const configuredItbenchPage = ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.find(
-  (page) => page.benchmark_key === "itbench_sre",
-);
-if (configuredItbenchPage == null) {
-  throw new Error("ITBench benchmark resource page is missing");
+for (const [benchmarkKey, scoreKey, resourceKey, url, taskRunCount] of [
+  ["gdp_pdf", "gdpPdfAllPass", "gdpPdf", "https://artificialanalysis.ai/evaluations/gdp-pdf", 500],
+  ["mlcr_aa", "mlcrOverall", "mlcr", "https://artificialanalysis.ai/evaluations/mlcr-aa", 180],
+  [
+    "terminal_bench_4",
+    "terminalBench40",
+    "terminalBench40",
+    "https://artificialanalysis.ai/evaluations/terminalbench-4-0",
+    198,
+  ],
+  [
+    "terminal_bench_science",
+    "terminalBenchScience",
+    "terminalBenchScience",
+    "https://artificialanalysis.ai/evaluations/terminal-bench-science",
+    210,
+  ],
+] as const) {
+  const page = ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.find(
+    (candidate) => candidate.benchmark_key === benchmarkKey,
+  );
+  assertDeepEqual(page, {
+    benchmark_key: benchmarkKey,
+    score_key: scoreKey,
+    resource_key: resourceKey,
+    url,
+    full_model_coverage: true,
+    task_run_count: taskRunCount,
+  });
 }
-assertDeepEqual(configuredItbenchPage, {
-  benchmark_key: "itbench_sre",
-  score_key: "itbenchSre",
-  resource_key: "itBench",
-  url: "https://artificialanalysis.ai/evaluations/itbench-aa",
-  task_run_count: 177,
-});
 const configuredBriefcasePage = ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.find(
   (page) => page.benchmark_key === "briefcase",
 );
@@ -209,50 +227,6 @@ const [cachedInputRow] = processArtificialAnalysisBenchmarkResourceRows(
   hlePage,
 );
 assertApprox(cachedInputRow?.cost_per_task_usd, 0.00174);
-
-assertDeepEqual(
-  processArtificialAnalysisBenchmarkResourceRows(
-    [
-      {
-        shortName: "GPT-5.6 Sol (max)",
-        slug: "gpt-5-6-sol",
-        creator: {
-          name: "OpenAI",
-          slug: "openai",
-        },
-        itbenchSre: 0.56,
-        ...currentResourceTelemetry({
-          resourceKey: "itBench",
-          taskCount: 177,
-          input: 17_700,
-          answer: 1_770,
-          reasoning: 1_770,
-          totalCost: 177,
-          secondsPerTask: 100,
-        }),
-      },
-    ],
-    configuredItbenchPage,
-  )[0],
-  {
-    benchmark_key: "itbench_sre",
-    source_url: "https://artificialanalysis.ai/evaluations/itbench-aa",
-    model_id: "openai/gpt-5-6-sol",
-    model: "GPT-5.6 Sol (max)",
-    provider: "OpenAI",
-    provider_id: "openai",
-    reasoning_effort: "max",
-    score: 0.56,
-    task_run_count: 177,
-    cost_per_task_usd: 1,
-    seconds_per_task: 100,
-    tokens_per_task: 120,
-    input_tokens_per_task: 100,
-    output_tokens_per_task: 20,
-    answer_tokens_per_task: 10,
-    reasoning_tokens_per_task: 10,
-  },
-);
 
 assertDeepEqual(
   processArtificialAnalysisBenchmarkResourceRows(

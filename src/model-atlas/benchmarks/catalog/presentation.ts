@@ -10,6 +10,7 @@ import { BENCHMARK_RESOURCE_PROFILES, type BenchmarkKey } from "./portfolio";
 
 export const BENCHMARK_TOOLTIPS = {
   aa_intelligence_index: {
+    version: "4.3.2",
     title: "Artificial Analysis Intelligence Index",
     body: "Composite score across mathematics, science, coding, knowledge, and agentic evaluations.",
     rows: [
@@ -116,6 +117,7 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   briefcase: {
+    version: "1.1",
     title: "Briefcase",
     body: "Create business spreadsheets, presentations, and memos, graded for correctness, analysis, and presentation.",
     rows: [
@@ -180,6 +182,26 @@ export const BENCHMARK_TOOLTIPS = {
     rows: [
       ["Source", "Artificial Analysis"],
       ["Role", "physics reasoning"],
+    ],
+  },
+  dayjob_finance: {
+    title: "DAYJOB: Finance",
+    body: "Complete complex finance assignments from documents, calculations, and business context.",
+    rows: [
+      ["Source", "Surge AI"],
+      ["Metric", "published mean rubric credit across five attempts"],
+      ["Scope", "publisher reports 80 tasks; 50 are public"],
+      ["Role", "financial reasoning and deliverable completion"],
+    ],
+  },
+  dayjob_healthcare: {
+    title: "DAYJOB: Healthcare",
+    body: "Complete clinical care and coverage assignments from fragmented medical records.",
+    rows: [
+      ["Source", "Surge AI"],
+      ["Metric", "published mean rubric credit across five attempts"],
+      ["Scope", "50 public tasks"],
+      ["Role", "clinical judgment and deliverable completion"],
     ],
   },
   deep_swe: {
@@ -285,7 +307,8 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   gdpval_normalized: {
-    title: "GDPval v2",
+    version: "2.1",
+    title: "GDPval-AA",
     body: "Create documents, spreadsheets, slides, and diagrams for 44 occupations, judged in blind comparisons.",
     rows: [
       ["Source", "Artificial Analysis"],
@@ -327,14 +350,6 @@ export const BENCHMARK_TOOLTIPS = {
       ["Role", "intuitive physics understanding"],
     ],
   },
-  itbench_sre: {
-    title: "ITBench",
-    body: "Identify every root-cause entity in Kubernetes incidents from offline alerts, events, traces, metrics, and topology.",
-    rows: [
-      ["Source", "Artificial Analysis"],
-      ["Role", "SRE diagnosis workflow"],
-    ],
-  },
   mindcube: {
     title: "MindCube Tiny",
     body: "Infer hidden spatial relationships and perspective changes from limited scene views.",
@@ -352,6 +367,15 @@ export const BENCHMARK_TOOLTIPS = {
       ["Configuration", "ML, private tests, two languages"],
       ["Metric", "complete-solve rate"],
       ["Role", "long-horizon program reconstruction"],
+    ],
+  },
+  mlcr_aa: {
+    title: "MLCR-AA",
+    body: "Synthesize chronology, causality, and claim relevance across long medical records.",
+    rows: [
+      ["Source", "Artificial Analysis; Wisedocs benchmark"],
+      ["Metric", "accurate, complete, and concise task pass rate"],
+      ["Role", "medical long-context reasoning"],
     ],
   },
   mls_bench: {
@@ -488,15 +512,8 @@ export const BENCHMARK_TOOLTIPS = {
       ["Role", "broad capability index"],
     ],
   },
-  tau_banking: {
-    title: "tau3 Banking",
-    body: "Resolve banking-support cases using policy, multi-step tools, and customer interaction.",
-    rows: [
-      ["Source", "Artificial Analysis"],
-      ["Role", "banking agent work"],
-    ],
-  },
   terminal_bench_4: {
+    version: "4.0",
     title: "Terminal-Bench 4.0",
     body: "Complete difficult software, infrastructure, data, and technical tasks in containerized terminals.",
     rows: [
@@ -506,6 +523,7 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   terminal_bench_science: {
+    version: "0.1.0",
     title: "Terminal-Bench-Science 0.1",
     body: "Solve scientific research tasks by building and verifying analytical artifacts in terminals.",
     rows: [
@@ -578,6 +596,7 @@ export const BENCHMARK_TOOLTIPS = {
   Record<
     BenchmarkKey,
     {
+      version?: string;
       title: string;
       body: string;
       rows: readonly BenchmarkPresentationDetail[];
@@ -606,6 +625,8 @@ export const BENCHMARK_LABELS = {
   code_migration: "Code Migration",
   complex_constraints: "ComplexConstraints",
   critpt: "CritPt",
+  dayjob_finance: "DAYJOB: Finance",
+  dayjob_healthcare: "DAYJOB: Healthcare",
   deep_swe: "DeepSWE",
   ebr_bench: "EBR-Bench",
   emb: "EMB",
@@ -618,14 +639,14 @@ export const BENCHMARK_LABELS = {
   frontiermath_erdos: "FrontierMath Erdős",
   frontiermath_tier_4: "FrontierMath Tier 4",
   gdp_pdf: "GDP.pdf",
-  gdpval_normalized: "GDPval v2",
+  gdpval_normalized: "GDPval-AA",
   handbook_md: "HANDBOOK.md",
   hemingway_bench: "Hemingway-bench",
   hle: "HLE",
   intphys2: "IntPhys 2",
-  itbench_sre: "ITBench",
   mindcube: "MindCube Tiny",
   mirrorcode: "MirrorCode",
+  mlcr_aa: "MLCR-AA",
   mls_bench: "MLS-Bench Lite",
   mysterymechanism: "MysteryMechanism",
   omniscience_accuracy: "Omniscience",
@@ -641,7 +662,6 @@ export const BENCHMARK_LABELS = {
   sre_bench: "SRE Bench",
   superchem: "SUPERChem",
   surge_intelligence_index: "Surge Intelligence Index",
-  tau_banking: "tau3 Banking",
   terminal_bench_4: "Terminal-Bench 4.0",
   terminal_bench_science: "Terminal-Bench-Science 0.1",
   textquests: "TextQuests",
@@ -674,6 +694,8 @@ const FRONTIER_BENCHMARK_DISPLAY_ORDER = [
   "code_migration",
   "complex_constraints",
   "critpt",
+  "dayjob_finance",
+  "dayjob_healthcare",
   "deep_swe",
   "ebr_bench",
   "emb",
@@ -685,7 +707,6 @@ const FRONTIER_BENCHMARK_DISPLAY_ORDER = [
   "gdpval_normalized",
   "handbook_md",
   "hle",
-  "itbench_sre",
   "mirrorcode",
   "mls_bench",
   "mysterymechanism",
@@ -710,13 +731,13 @@ const BASELINE_BENCHMARK_DISPLAY_ORDER = [
   "hemingway_bench",
   "intphys2",
   "mindcube",
+  "mlcr_aa",
   "omniscience_accuracy",
   "perception_bench",
   "proofbench",
   "public_benefits_bench",
   "scicode",
   "simpleqa_verified",
-  "tau_banking",
   "toolathlon",
   "vending_bench_2",
   "vibe_code",
@@ -943,6 +964,29 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
       label: "FC Tok",
     },
   ],
+  gdp_pdf: [
+    {
+      key: "gdpPdfArtificialAnalysisCost",
+      metric: "cost",
+      metricSource: "gdp_pdf__source_b",
+      direction: "ascending",
+      label: "GDP.pdf$ AA",
+    },
+    {
+      key: "gdpPdfArtificialAnalysisSeconds",
+      metric: "seconds",
+      metricSource: "gdp_pdf__source_b",
+      direction: "ascending",
+      label: "GDP.pdf Sec AA",
+    },
+    {
+      key: "gdpPdfArtificialAnalysisTokens",
+      metric: "tokens",
+      metricSource: "gdp_pdf__source_b",
+      direction: "ascending",
+      label: "GDP.pdf Tok AA",
+    },
+  ],
   gdpval_normalized: [
     {
       key: "gdpvalCost",
@@ -983,24 +1027,24 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
       label: "HLE Tok",
     },
   ],
-  tau_banking: [
+  mlcr_aa: [
     {
-      key: "tauBankingCost",
+      key: "mlcrAaCost",
       metric: "cost",
       direction: "ascending",
-      label: "tau3$",
+      label: "MLCR$",
     },
     {
-      key: "tauBankingSeconds",
+      key: "mlcrAaSeconds",
       metric: "seconds",
       direction: "ascending",
-      label: "tau3 Sec",
+      label: "MLCR Sec",
     },
     {
-      key: "tauBankingTokens",
+      key: "mlcrAaTokens",
       metric: "tokens",
       direction: "ascending",
-      label: "tau3 Tok",
+      label: "MLCR Tok",
     },
   ],
   terminal_bench_4: [
@@ -1097,6 +1141,21 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
       },
     },
     {
+      key: "terminalBenchScienceArtificialAnalysisCost",
+      metric: "cost",
+      metricSource: "terminal_bench_science__source_c",
+      direction: "ascending",
+      label: "TBS$ AA",
+      tooltip: {
+        title: "Terminal-Bench-Science cost ↓",
+        body: "Cost per task attempt; lower is better.",
+        details: [
+          ["Source", "Artificial Analysis"],
+          ["Metric", "cost per task attempt"],
+        ],
+      },
+    },
+    {
       key: "terminalBenchScienceOfficialTokens",
       metric: "tokens",
       metricSource: "terminal_bench_science__source_a",
@@ -1108,6 +1167,36 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
         details: [
           ["Source", "Official"],
           ["Metric", "total tokens per task attempt"],
+        ],
+      },
+    },
+    {
+      key: "terminalBenchScienceArtificialAnalysisTokens",
+      metric: "tokens",
+      metricSource: "terminal_bench_science__source_c",
+      direction: "ascending",
+      label: "TBS Tok AA",
+      tooltip: {
+        title: "Terminal-Bench-Science tokens ↓",
+        body: "Total tokens per task attempt; lower is better.",
+        details: [
+          ["Source", "Artificial Analysis"],
+          ["Metric", "total tokens per task attempt"],
+        ],
+      },
+    },
+    {
+      key: "terminalBenchScienceArtificialAnalysisSeconds",
+      metric: "seconds",
+      metricSource: "terminal_bench_science__source_c",
+      direction: "ascending",
+      label: "TBS Sec AA",
+      tooltip: {
+        title: "Terminal-Bench-Science runtime ↓",
+        body: "Artificial Analysis decode time per task attempt; lower is better.",
+        details: [
+          ["Source", "Artificial Analysis"],
+          ["Metric", "decode time per task attempt"],
         ],
       },
     },
@@ -1235,6 +1324,18 @@ export const BENCHMARK_COLUMNS = {
     format: "percent",
     defaultSort: "descending",
   },
+  dayjob_finance: {
+    key: "dayjobFinance",
+    label: "DayFin",
+    format: "percent",
+    defaultSort: "descending",
+  },
+  dayjob_healthcare: {
+    key: "dayjobHealthcare",
+    label: "DayHealth",
+    format: "percent",
+    defaultSort: "descending",
+  },
   deep_swe: {
     key: "deepSWE",
     label: "DSWE",
@@ -1337,12 +1438,6 @@ export const BENCHMARK_COLUMNS = {
     format: "percent",
     defaultSort: "descending",
   },
-  itbench_sre: {
-    key: "itBench",
-    label: "ITBench",
-    format: "percent",
-    defaultSort: "descending",
-  },
   mindcube: {
     key: "mindcube",
     label: "MindCube",
@@ -1352,6 +1447,12 @@ export const BENCHMARK_COLUMNS = {
   mirrorcode: {
     key: "mirrorCode",
     label: "Mirror",
+    format: "percent",
+    defaultSort: "descending",
+  },
+  mlcr_aa: {
+    key: "mlcrAa",
+    label: "MLCR",
     format: "percent",
     defaultSort: "descending",
   },
@@ -1445,12 +1546,6 @@ export const BENCHMARK_COLUMNS = {
     format: "percent",
     defaultSort: "descending",
   },
-  tau_banking: {
-    key: "tauBanking",
-    label: "tau3",
-    format: "percent",
-    defaultSort: "descending",
-  },
   terminal_bench_4: {
     key: "terminalBench4",
     label: "TB4",
@@ -1514,19 +1609,10 @@ export const ARTIFICIAL_ANALYSIS_ADDITIONAL_BENCHMARK_ALIASES = {
   hle: ["hle"],
   mmmu_pro: ["mmmuPro", "mmmu_pro"],
   scicode: ["scicode"],
-  tau_banking: ["tauBanking", "tau_banking"],
 } as const;
 
 export const ARTIFICIAL_ANALYSIS_ADDITIONAL_BENCHMARK_KEYS_AFTER = {
-  gdpval_normalized: [
-    "critpt",
-    "gdpval_normalized",
-    "gpqa",
-    "hle",
-    "mmmu_pro",
-    "scicode",
-    "tau_banking",
-  ],
+  gdpval_normalized: ["critpt", "gdpval_normalized", "gpqa", "hle", "mmmu_pro", "scicode"],
 } as const satisfies Partial<Record<BenchmarkKey, readonly string[]>>;
 
 export const MODEL_ATLAS_ADDITIONAL_BENCHMARK_KEYS_AFTER = {

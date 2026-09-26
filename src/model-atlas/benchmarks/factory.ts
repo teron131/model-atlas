@@ -196,6 +196,7 @@ type BenchmarkPresentationFacet = {
 };
 
 export type BenchmarkDefinition = {
+  version?: string;
   source: BenchmarkSourceFacet;
   processing: BenchmarkProcessingFacet;
   persistence: BenchmarkPersistenceFacet;
@@ -215,6 +216,7 @@ export type BenchmarkPortfolioEntry = Pick<
   BenchmarkScoringFacet,
   "group" | "benchmarkImportance" | "dimensionLoadings"
 > & {
+  version?: string;
   resourcePolicy?: BenchmarkResourcePolicy;
 };
 
@@ -246,6 +248,7 @@ export function defineBenchmarks<const TDefinitions extends BenchmarkDefinitions
       key,
       {
         group: definition.scoring.group,
+        ...(definition.version == null ? {} : { version: definition.version }),
         benchmarkImportance: definition.scoring.benchmarkImportance,
         dimensionLoadings: definition.scoring.dimensionLoadings,
         ...(definition.resources == null ? {} : { resourcePolicy: definition.resources }),

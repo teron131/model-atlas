@@ -38,16 +38,17 @@ const tasks = Array.from({ length: 9 }, (_, i) => `task_${i}`);
 const keys = [...tasks, "aa_intelligence_index"];
 const config = {
   ...STAGE_CONFIG.scoring,
+  intelligenceGroupWeights: { frontier: 0.8, baseline: 0.2 },
   qualityCoverageMinimumRetention: 1,
   directBenchmarkWeightMultiplier: 1,
   intelligenceBenchmarkKeys: keys,
   agenticBenchmarkKeys: [],
   qualityCoverage: { intelligence: { floor: 0, full: 1 }, agentic: { floor: 0, full: 1 } },
   benchmarkPortfolio: Object.fromEntries(
-    keys.map((key) => [
+    keys.map((key, index) => [
       key,
       {
-        group: "baseline" as const,
+        group: index === 0 ? ("frontier" as const) : ("baseline" as const),
         benchmarkImportance: 1,
         dimensionLoadings: { intelligence: 1, agentic: 0 },
       },
@@ -87,8 +88,10 @@ const score = (model: typeof broad, ctx = context) =>
   buildComponentScoreResult(model, speed, [], config, ctx);
 const close = (a: number | null | undefined, b: number) =>
   assert.ok(a != null && Math.abs(a - b) < 1e-9, `${a} != ${b}`);
-// The inferred hard-task zero keeps its configured unit weight beside the ten-unit AA proxy.
-close(score(partial).componentScores?.intelligence_score, (8 * 80 + 10 * 100) / 19);
+// The inferred hard-task zero keeps its configured unit weight in the baseline group beside the ten-unit AA proxy.
+const expectedPartialTaskScore = 0.8 * 80 + (0.2 * (7 * 80)) / 8;
+const expectedPartialScore = (9 * expectedPartialTaskScore + 10 * 100) / 19;
+close(score(partial).componentScores?.intelligence_score, expectedPartialScore);
 close(
   score(broad).componentScores?.intelligence_score,
   score(broad, base).componentScores!.intelligence_score!,
@@ -97,7 +100,11 @@ assert.deepEqual(score(partial).confidence, score(partial, base).confidence);
 assert.equal(partial.benchmarks.task_8, undefined);
 // Newly observed evidence takes precedence even if an estimate was already prepared.
 const observed = { ...partial, benchmarks: { ...partial.benchmarks, task_8: 50 } };
-close(score(observed).componentScores?.intelligence_score, (8 * 80 + 50 + 10 * 100) / 19);
+const expectedObservedTaskScore = 0.8 * 80 + (0.2 * (7 * 80 + 50)) / 8;
+close(
+  score(observed).componentScores?.intelligence_score,
+  (9 * expectedObservedTaskScore + 10 * 100) / 19,
+);
 const sparse = {
   ...partial,
   reasoning_effort: "low",
@@ -108,7 +115,7 @@ const sparseContext = prepareEffortQualityScoringContext(
   config,
   base,
 );
-close(score(sparse, sparseContext).componentScores?.intelligence_score, (8 * 80 + 10 * 100) / 19);
+close(score(sparse, sparseContext).componentScores?.intelligence_score, expectedPartialScore);
 assert.deepEqual(score(sparse, sparseContext).confidence, score(sparse, base).confidence);
 // Two shared tasks cannot create an estimate, and estimates cannot serve as observations on a second pass.
 const insufficient = {

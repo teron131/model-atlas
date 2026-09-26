@@ -117,6 +117,16 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
+  dayjob_finance: {
+    group: "frontier",
+    benchmarkImportance: 1,
+    dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
+  },
+  dayjob_healthcare: {
+    group: "frontier",
+    benchmarkImportance: 1,
+    dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
+  },
   deep_swe: {
     group: "frontier",
     benchmarkImportance: 1,
@@ -198,11 +208,6 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
-  itbench_sre: {
-    group: "frontier",
-    benchmarkImportance: 1,
-    dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
-  },
   mindcube: {
     group: "baseline",
     benchmarkImportance: 1,
@@ -212,6 +217,11 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     group: "frontier",
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
+  },
+  mlcr_aa: {
+    group: "baseline",
+    benchmarkImportance: 1,
+    dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
   mls_bench: {
     group: "frontier",
@@ -284,11 +294,6 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
   surge_intelligence_index: INDEX_SCORING_WEIGHT,
-  tau_banking: {
-    group: "baseline",
-    benchmarkImportance: 1,
-    dimensionLoadings: { intelligence: 0, agentic: 1 },
-  },
   terminal_bench_4: {
     group: "frontier",
     benchmarkImportance: 1,
@@ -343,11 +348,11 @@ export const BENCHMARK_RESOURCE_PROFILES = {
   arc_agi_3: { taskRunCount: 55 },
   briefcase: { taskRunCount: 91 },
   critpt: { taskRunCount: 70 },
+  gdp_pdf: { taskRunCount: 500 },
   gdpval_normalized: { taskRunCount: 220 },
   hle: { taskRunCount: 2_158 },
-  itbench_sre: { taskRunCount: 177 },
+  mlcr_aa: { taskRunCount: 180 },
   scicode: { taskRunCount: 288 },
-  tau_banking: { taskRunCount: 97 },
   terminal_bench_4: { taskRunCount: 330 },
   terminal_bench_science: { taskRunCount: 210 },
 } as const satisfies Partial<Record<BenchmarkKey, BenchmarkResourceProfile>>;
@@ -393,6 +398,10 @@ export const BENCHMARK_RESOURCE_POLICIES = {
     ...BENCHMARK_PER_TASK_RESOURCE,
     qualityCoordinate: "linear",
   },
+  gdp_pdf: {
+    ...ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
+    qualityCoordinate: "logit",
+  },
   gdpval_normalized: {
     ...ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
     qualityCoordinate: "linear",
@@ -401,15 +410,11 @@ export const BENCHMARK_RESOURCE_POLICIES = {
     ...ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
     qualityCoordinate: "logit",
   },
-  itbench_sre: {
-    ...ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
-    qualityCoordinate: "linear",
-  },
-  scicode: {
+  mlcr_aa: {
     ...ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
     qualityCoordinate: "logit",
   },
-  tau_banking: {
+  scicode: {
     ...ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
     qualityCoordinate: "logit",
   },

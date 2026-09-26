@@ -95,7 +95,10 @@ function taskResourceEfficiencyEvidence(
     const separated = models.map((model) => separatedBenchmarkResourceEvidence(model, key, kind));
     if (separated.some((sources) => sources != null && sources.length > 0)) {
       benchmarkKeys.push(key);
-      for (const source of ["source_a", "source_b"] as const) {
+      const sources = new Set(
+        separated.flatMap((items) => items?.map((item) => item.source) ?? []),
+      );
+      for (const source of sources) {
         const sourceEvidence = separated.map(
           (sources) => sources?.find((item) => item.source === source) ?? null,
         );

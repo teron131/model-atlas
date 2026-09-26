@@ -213,7 +213,7 @@ function scoreChange(
     causes: changeCauses(
       current,
       previous,
-      policy.dimension,
+      policy,
       rankBefore,
       rankAfter,
       scoring,
@@ -388,7 +388,7 @@ function competitionRank(values: number[], target: number): number {
 function changeCauses(
   current: ModelAtlasModel,
   previous: ModelAtlasModel | undefined,
-  dimension: ModelAtlasScoreDimension,
+  policy: DimensionPolicy,
   rankBefore: number | null,
   rankAfter: number | null,
   scoring: ModelAtlasMetadata["scoring"],
@@ -411,7 +411,7 @@ function changeCauses(
   if (methodologyChanged) {
     causes.push({ kind: "methodology", label: "Scoring methodology changed" });
   }
-  const evidenceLabels = changedEvidenceLabels(current, previous, dimension, scoring);
+  const evidenceLabels = changedEvidenceLabels(current, previous, policy.dimension, scoring);
   if (evidenceLabels.length > 0) {
     const visibleLabels = evidenceLabels.slice(0, 2);
     const remainder = evidenceLabels.length - visibleLabels.length;
@@ -420,9 +420,8 @@ function changeCauses(
       label: `Evidence: ${visibleLabels.join(", ")}${remainder > 0 ? ` +${remainder}` : ""}`,
     });
   }
-  const confidenceKey = DIMENSIONS.find((policy) => policy.dimension === dimension)!.confidenceKey;
-  const beforeSupport = visibleConfidence(previous.confidence[confidenceKey]);
-  const afterSupport = visibleConfidence(current.confidence[confidenceKey]);
+  const beforeSupport = visibleConfidence(previous.confidence[policy.confidenceKey]);
+  const afterSupport = visibleConfidence(current.confidence[policy.confidenceKey]);
   if (beforeSupport !== afterSupport) {
     causes.push({
       kind: "coverage",
@@ -563,6 +562,8 @@ function rankMovementImpact(change: ModelAtlasScoreChange): number {
 
 function scoringMethodology(scoring: ModelAtlasMetadata["scoring"]): unknown {
   return {
+    intelligence_scoring: scoring.intelligence_scoring,
+    quality_normalization: scoring.quality_normalization,
     intelligence_benchmark_keys: scoring.intelligence_benchmark_keys,
     agentic_benchmark_keys: scoring.agentic_benchmark_keys,
     benchmark_portfolio: scoring.benchmark_portfolio,

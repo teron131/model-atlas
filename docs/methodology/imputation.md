@@ -1,25 +1,25 @@
 # Missing Data and Imputation
 
-## Benchmark Imputation
+## Benchmark Results and Imputation
 
-Imputation uses observed results from related sources, benchmarks, or reasoning efforts to fill missing values. Observations take precedence, and imputed values never become direct evidence or inputs to further imputation.
+Validated source crosswalks put measured results onto the benchmark’s common source scale and produce accepted benchmark results. Separately, imputation uses other benchmarks or reasoning efforts to fill missing values; those estimates never become direct evidence.
 
-| Imputation path | Role in scoring |
+| Evidence path | Role in scoring |
 | --- | --- |
-| Across sources | An accepted source crosswalk supplies a combined benchmark score that can enter the capability mean, with discounted evidence support. |
+| Validated source crosswalk | Supplies one accepted benchmark result for normalization, scoring, pairwise comparison, and benchmark evidence support. |
 | From other observed benchmarks | Supplies quality estimates for resource comparisons and discounted evidence support; does not enter the capability mean. |
 | Across reasoning efforts | Fills missing benchmark contributions in the capability mean; adds no evidence support by itself. |
 | Cost, time, or tokens | Supplies resource estimates with evidence discounts; does not enter the reference population. |
 
-Source crosswalks take priority over predictions from other observed benchmarks; both require held-out validation. Predictions from other benchmarks require at least three distinct observed benchmarks. Imputation across reasoning efforts separately fills missing capability contributions without adding evidence support. The final capability mean uses at most one contribution per benchmark, with observed results and accepted source crosswalks taking precedence over estimates from another effort. Higher effort is not assumed to perform better.
+Accepted source crosswalks have the same benchmark-result status as directly combined sources. Crosswalk fitting and predictions from other benchmarks each require held-out validation. Predictions from other benchmarks require at least three distinct observed benchmarks. Imputation across reasoning efforts separately fills missing capability contributions without adding evidence support. The final capability mean uses at most one contribution per benchmark, with observed results and accepted source crosswalks taking precedence over estimates from another effort. Higher effort is not assumed to perform better.
 
 Imputation never satisfies direct-evidence requirements for dashboard inclusion or resource score availability. Each method's support and validation rules are described below.
 
-### Source Crosswalk Imputation
+### Source Crosswalks
 
 Sources can report the same benchmark with different methodologies and model coverage. For sources selected for quality fusion, Model Atlas takes the equally weighted mean of their quality scores, without assuming either is better.
 
-A **crosswalk** learns their typical score difference from shared models to impute a missing source result before calculating the mean. This preserves the same comparison target despite coverage gaps; validation on withheld models checks whether the imputation is reliable enough to use.
+A **crosswalk** learns their typical score difference from shared models and maps an available source result onto the combined benchmark scale. This preserves the same comparison target despite source coverage gaps. The accepted combined result is benchmark evidence; the mapped counterpart is not a newly measured source observation and never trains another source crosswalk.
 
 **Fit the offset**
 
@@ -41,17 +41,17 @@ The weighted median limits the influence of outliers.
 
 For each paired result $i$, fit $\delta_{\text{others},i}$ using other models, excluding every effort of its base model. Use that offset to predict the withheld source result and compare it with the observation. This prevents a model’s own results from helping predict it.
 
-The absolute prediction error is $|B_i-A_i-\delta_{\text{others},i}|$. Only half the combined result is imputed, so its error is half as large before clipping. The weighted median gives validation error $\epsilon$ in the benchmark’s score units:
+The absolute prediction error is $|B_i-A_i-\delta_{\text{others},i}|$. Only half the two-source mean uses the mapping, so its error is half as large before clipping. The weighted median gives validation error $\epsilon$ in the benchmark’s score units:
 
 $$
 \epsilon=\operatorname{weightedMedian}_i\left(\frac{\left|B_i-A_i-\delta_{\text{others},i}\right|}{2};a_i\right).
 $$
 
-**Accept, then impute**
+**Accept the source mapping**
 
-Accept the crosswalk only if both the paired observations and usable validation predictions cover the required number of independent models, currently six, and $\epsilon\le\epsilon_{\max}$, the configured error limit. If it fails, try imputation from other observed benchmarks; without a supported prediction, leave the combined result missing. For sources selected for quality fusion, the mean of two observed quality scores can be calculated without imputation.
+Accept the crosswalk only if both the paired observations and usable validation predictions cover the required number of independent models, currently six, and $\epsilon\le\epsilon_{\max}$, the configured error limit. If it fails, try imputation from other observed benchmarks; without a supported prediction, leave the combined result missing. For sources selected for quality fusion, two observed quality scores can be averaged without a crosswalk.
 
-For an accepted crosswalk, use $\delta$ fitted from all paired observations. A hat marks an imputed result:
+For an accepted crosswalk, use $\delta$ fitted from all paired observations. A hat marks a mapped counterpart:
 
 | Available results | Missing result | Combined result |
 | --- | --- | --- |
@@ -61,25 +61,13 @@ For an accepted crosswalk, use $\delta$ fitted from all paired observations. A h
 
 Clip the combined value to the benchmark’s permitted score range. Raw source results remain separate.
 
-![Source A and B results combine into observed or imputed means. Shaded bands around imputed means illustrate typical prediction error ±ε, using ε = 0.02; they are not confidence intervals or guaranteed bounds. A crossed-out validation error of 0.04 exceeds the allowed 0.025 and illustrates rejection of a different crosswalk.](../assets/methodology/source-crosswalk.svg)
+![Source A and B results combine into paired or crosswalked means. Shaded bands around crosswalked means illustrate typical prediction error ±ε, using ε = 0.02; they are not confidence intervals or guaranteed bounds. A crossed-out validation error of 0.04 exceeds the allowed 0.025 and illustrates rejection of a different crosswalk.](../assets/methodology/source-crosswalk.svg)
 
-**Set the evidence factor**
+**Keep result status and provenance separate**
 
-The validation error sets the evidence factor $r$ for the imputed half:
+An accepted crosswalk contributes one benchmark result with evidence factor 1. It participates in normalization, pairwise comparison, capability scoring, admission, and downstream benchmark-quality calculations. The source slots retain which results were measured, which counterparts were mapped, validation error, and extrapolation diagnostics. These diagnostics do not classify the accepted quality result as effort or missing-benchmark imputation.
 
-$$
-r=\operatorname{clamp}\left(1-\frac{\epsilon}{\epsilon_{\max}},0,1\right).
-$$
-
-The factor falls from 1 at zero error to 0 at the error limit. The combined result’s evidence factor $f^{\text{cross}}$ also includes its observed half:
-
-| Evidence | Combined evidence factor $f^{\text{cross}}$ |
-| --- | --- |
-| Both sources observed | $1$ |
-| One source imputed; observed value within that source’s paired calibration range | $(1+r)/2$ |
-| One source imputed; observed value outside that range | $0.5$ (only the observed half counts) |
-
-The error controls acceptance and the evidence factor; it is not subtracted from the score. A result containing imputation never counts as direct evidence, even when its evidence factor reaches 1.
+Source mappings are fitted only from actual paired source measurements. Accepted combined values cannot be recycled into source-pair calibration. Resource measurements retain their own comparability and estimation rules.
 
 **Quality and resources are assessed separately**
 
@@ -111,7 +99,7 @@ Use a model’s performance on other observed benchmarks to impute a missing res
 
 The weighted mean summarizes the same model-effort variant’s measured performance for comparison with peers. Each benchmark contributes according to its existing importance and allocation to Intelligence or Agentic.
 
-Reuse the [benchmark normalization and weights](intelligence-agentic.md#benchmark-scores-and-dimension-weights), separately for Intelligence and Agentic. For each other observed benchmark $k$ with positive weight, $z_k$ is its normalized score and $\omega_k$ its weight:
+Reuse the [benchmark normalization and base weights](intelligence-agentic.md#benchmark-scores-and-dimension-weights), separately for Intelligence and Agentic. Direct scoring in both capabilities uses frontier benchmarks. The shared contextual predictor may use observed baseline results to estimate a missing frontier result, subject to its validation and discounted evidence factor; the baseline result itself receives no direct capability weight. For each other observed benchmark $k$ with positive predictive weight, $z_k$ is its normalized score and $\omega_k$ its weight:
 
 $$
 \mu=\frac{\sum_k\omega_k z_k}{\sum_k\omega_k}.
@@ -171,7 +159,7 @@ Accept the method only when at least four distinct held-out models yield valid p
 
 Fill a missing benchmark score using an observed result from another reasoning effort of the same model. The **target effort** has the missing result; the **reference effort** supplies the observed result. Their performance gap on shared benchmarks adjusts the estimate. Run the calculation separately for Intelligence and [token-adjusted Agentic](intelligence-agentic.md#agentic-token-efficiency). A missing result can be filled even when the effort already has enough evidence to avoid regularization.
 
-Each benchmark’s overall score is one input, regardless of how many questions or test cases it contains. Aggregate indexes are excluded. Throughout this section, $w_b$ is benchmark $b$’s [portfolio weight](intelligence-agentic.md#benchmark-scores-and-dimension-weights): importance × allocation to the capability being calculated. Only positive weights participate.
+Each benchmark’s overall score is one input, regardless of how many questions or test cases it contains. Aggregate indexes are excluded. Throughout this section, $w_b$ is benchmark $b$’s [base portfolio weight](intelligence-agentic.md#benchmark-scores-and-dimension-weights): importance × allocation to the capability being calculated. Effort gaps use pooled shared frontier results before filling missing frontier contributions. Baseline results do not enter effort-gap comparisons; their separate role as contextual predictors is described above. Only positive weights participate.
 
 **Choose the reference effort**
 

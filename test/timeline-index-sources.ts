@@ -48,7 +48,7 @@ const measured = {
 const aa = parseArtificialAnalysisTimeline(
   [{ ...measured, shortName: "Estimated", intelligenceIndexIsEstimated: true }, measured],
   "2026-09-10T00:00:00.000Z",
-  "4.3",
+  "4.3.2",
 );
 assert.equal(
   aa.observations.length,
@@ -56,8 +56,12 @@ assert.equal(
   "Publisher estimates and component columns are not observed index evidence",
 );
 assert.equal(aa.benchmarks.length, 1);
+assert.equal(aa.benchmarks[0]!.id, "aa:index:4.3.2");
+assert.equal(aa.portfolios[0]!.id, "aa:4.3.2");
 assert.equal(aa.benchmarks[0]!.representedBenchmarks, 10);
 assert.ok(aa.benchmarks[0]!.benchmarkNames!.includes("Terminal-Bench 4.0"));
+assert.ok(aa.benchmarks[0]!.benchmarkNames!.includes("GDPval-AA v2.1"));
+assert.ok(aa.benchmarks[0]!.benchmarkNames!.includes("AA-Briefcase v1.1"));
 assert.ok(!aa.benchmarks[0]!.benchmarkNames!.includes("Terminal-Bench Hard"));
 assert.ok(aa.portfolios[0]!.components.every((c) => c.benchmarkId === null));
 assert.throws(
@@ -72,7 +76,7 @@ const duplicate = {
 };
 const conflict = historicalDatasetFromReleases([epoch, aa, duplicate]);
 assert.equal(conflict.conflicts, 1);
-assert.ok(!conflict.observations.some((o) => o.benchmarkId === "aa:index:4.3"));
+assert.ok(!conflict.observations.some((o) => o.benchmarkId === "aa:index:4.3.2"));
 assert.deepEqual(historicalDatasetFromReleases([duplicate, aa, epoch]), conflict);
 const correction = {
   ...duplicate,
@@ -81,6 +85,9 @@ const correction = {
   observations: duplicate.observations.map((o) => ({ ...o, observedAt: "2026-09-11" })),
 };
 assert.equal(historicalDatasetFromReleases([epoch, aa, duplicate, correction]).conflicts, 0);
+const v43 = parseArtificialAnalysisTimeline([measured], "2026-09-07", "4.3");
+assert.ok(v43.benchmarks[0]!.benchmarkNames!.includes("GDPval-AA v2"));
+assert.ok(v43.benchmarks[0]!.benchmarkNames!.includes("AA-Briefcase"));
 const v2 = parseArtificialAnalysisTimeline([measured], "2025-07-01", "2.0");
 const v3 = parseArtificialAnalysisTimeline(
   [{ ...measured, intelligenceIndex: 30 }],

@@ -24,6 +24,7 @@ import {
 } from "./normalization";
 import { qualityAdjustedResourceMultipliers } from "./resource-efficiency";
 import {
+  type BenchmarkMetricModel,
   benchmarkMetricValue,
   type BenchmarkTokenMeasure,
   directBenchmarkTokens,
@@ -71,11 +72,11 @@ export function normalizedMetricValue(
 
 /** Keep normalization ranges independent of estimates. */
 export function observedRangesByBenchmark(
-  models: JsonObject[],
+  models: readonly BenchmarkMetricModel[],
   benchmarkKeys: readonly string[],
 ): Map<string, MinMaxRange | null> {
   return new Map(
-    benchmarkKeys.map(
+    [...new Set(benchmarkKeys)].map(
       (key) => [key, minMaxRange(models.map((model) => benchmarkMetricValue(model, key)))] as const,
     ),
   );
@@ -99,7 +100,8 @@ export function buildAgenticTokenScoringContext(
       resources?.policy.qualityCoordinate;
     if (coordinate == null) continue;
     const resourceKey = resources?.key ?? key;
-    const qualityRange = qualityContext.benchmarkRangesByKey.get(key);
+    const qualityRanges = qualityContext.benchmarkRangesByKey;
+    const qualityRange = qualityRanges.get(key);
     if (qualityRange == null || !(qualityRange.min < qualityRange.max)) continue;
     const qualities = models.map((model) => benchmarkMetricValue(model, key));
     for (const measure of TOKEN_MEASURES) {
@@ -117,11 +119,7 @@ export function buildAgenticTokenScoringContext(
         const values: number[] = [];
         const multipliersByObservation = new Map<string, number>();
         for (const [index, model] of models.entries()) {
-          const value = normalizedMetricValue(
-            qualityContext.benchmarkRangesByKey,
-            key,
-            qualities[index] ?? null,
-          );
+          const value = normalizedMetricValue(qualityRanges, key, qualities[index] ?? null);
           if (value == null) continue;
           const multiplier = combinedMultipliers[index] ?? 1;
           values.push(value * multiplier);
@@ -137,7 +135,7 @@ export function buildAgenticTokenScoringContext(
         adjustments.set(key, {
           resourceKey,
           measure,
-          range: minMaxRange(values),
+          range: minMaxRange([0, 100, ...values]),
           multipliersByObservation,
         });
         break;
@@ -177,11 +175,7 @@ export function buildAgenticTokenScoringContext(
       const values: number[] = [];
       const multipliersByObservation = new Map<string, number>();
       for (const [index, model] of models.entries()) {
-        const value = normalizedMetricValue(
-          qualityContext.benchmarkRangesByKey,
-          key,
-          qualities[index] ?? null,
-        );
+        const value = normalizedMetricValue(qualityRanges, key, qualities[index] ?? null);
         if (value == null) continue;
         const direct = directTokensByModel.get(model) != null;
         const evidenceFactor = direct ? 1 : (estimates[index]?.evidenceFactor ?? 0);
@@ -196,7 +190,7 @@ export function buildAgenticTokenScoringContext(
       adjustments.set(key, {
         resourceKey,
         measure,
-        range: minMaxRange(values),
+        range: minMaxRange([0, 100, ...values]),
         multipliersByObservation,
       });
       // One consistent measure owns the entire benchmark; do not mix totals and output-only rows.
@@ -215,7 +209,8 @@ function separatedTokenMultipliers(
 ): number[] | null {
   const combinedMultipliers = models.map(() => 1);
   let supportedSource = false;
-  for (const source of ["source_a", "source_b"] as const) {
+  const sources = new Set(separated.flatMap((items) => items?.map((item) => item.source) ?? []));
+  for (const source of sources) {
     const sourceEvidence = separated.map(
       (sources) => sources?.find((item) => item.source === source) ?? null,
     );
@@ -276,7 +271,8 @@ export function normalizedQualityBenchmarkValue(
   dimension: BenchmarkDimension,
   context: QualityScoringContext,
 ): number | null {
-  const value = normalizedMetricValue(context.benchmarkRangesByKey, key, rawValue);
+  const ranges = context.benchmarkRangesByKey;
+  const value = normalizedMetricValue(ranges, key, rawValue);
   const adjustment = dimension === "agentic" ? context.agenticTokenAdjustments?.get(key) : null;
   if (value == null || adjustment == null) return value;
   const observed = benchmarkMetricValue(model, key);

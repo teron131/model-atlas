@@ -6,7 +6,7 @@ Model Atlas turns benchmark results, token use, prices, and runtimes into four s
 
 **A benchmark** defines the evaluation, its methodology, and how results are scored. **A task** is one execution of work within a benchmark, following that methodology rather than defining its own. Resources **per task** describe the cost, time, or tokens for that execution, using the source’s reported task unit. An **aggregate index** combines results from multiple benchmarks.
 
-Benchmark, reasoning-effort, and resource coverage is uneven. **Imputation** fills supported gaps using relationships across observed results; [source crosswalks](imputation.md#source-crosswalk-imputation) combine comparable sources without assuming either is better.
+Benchmark, reasoning-effort, and resource coverage is uneven. **Imputation** fills supported gaps using relationships across observed results. Validated [source crosswalks](imputation.md#source-crosswalks) combine comparable sources into accepted benchmark results without assuming either is better.
 
 The detailed pages describe the current method and its equations. [Benchmarks](../benchmarks.md) records the selected inputs and their source policies, while [Standards](../standards.md) explains how those inputs earn a place. The [dashboard inclusion rules](leaderboard-rules.md#dashboard-inclusion) determine which scored models appear on the leaderboard.
 
@@ -25,7 +25,7 @@ The detailed pages describe the current method and its equations. [Benchmarks](.
 
 The leaderboard uses the current benchmark population, so scores can change when that population changes. The separate [Intelligence Index](../timeline/overview.md) keeps a saved reference and connects benchmark generations through shared results. It supports historical comparison, uses provisional display units, and does not affect leaderboard scoring or inclusion.
 
-Capability scores reflect relative performance while preserving proportional gaps within each benchmark during normalization. The final scores combine these contributions with weighting and evidence adjustments. A final score of 80 does not mean 80% benchmark accuracy or twice the capability of a model scoring 40.
+Capability scores reflect relative benchmark performance. Intelligence and Agentic use the same linear benchmark normalization: observed minimum and maximum results map to 0 and 100, and equal improvements within a benchmark's observed range give equal score changes. Both capabilities combine frontier benchmarks with eligible aggregate-index evidence at its overlap-adjusted share. Baseline results remain visible without direct score weight; they can inform validated estimates of missing frontier results. The final scores include evidence adjustments. A score of 100 on one benchmark means the strongest observed result, not perfect task completion; a final capability score of 80 does not mean 80% benchmark accuracy or twice the capability of a model scoring 40.
 
 ### Collapsed and Expanded Models
 
@@ -33,7 +33,7 @@ Reasoning-effort labels include `none`, `low`, `medium`, `high`, `xhigh`, and `m
 
 Each reasoning-effort variant has its own scores. The collapsed leaderboard selects the variant with the **highest Intelligence score** and shows that variant's headline scores. It does not take the mean of scores across efforts or select a separate maximum for each score. Expanding a model reveals its individual variants.
 
-Individual benchmark cells can use separate source-fusion or missing-cell fallback rules; they do not recalculate the representative variant's headline scores.
+Individual benchmark cells can use separate source-crosswalk or missing-cell fallback rules; they do not recalculate the representative variant's headline scores.
 
 ## Calculation Overview
 
@@ -47,11 +47,11 @@ The scoring order matters: benchmark quality establishes the context for resourc
 >
 > 2. **Comparable benchmark evidence**
 >
->    Normalize within each benchmark.
+>    Normalize each quality benchmark linearly within its observed range in both capabilities.
 >
 > 3. **Intelligence and Agentic**
 >
->    Combine individual benchmark and aggregate-index evidence, using validated imputation to fill supported gaps in benchmark results and reasoning-effort variants.
+>    Combine frontier benchmarks and eligible indexes for both capabilities; Agentic retains its unified benchmark-and-index mean. Validated imputation fills supported gaps in benchmark results and reasoning-effort variants.
 >
 > 4. **Quality-adjusted resources**
 >
@@ -80,7 +80,7 @@ The diagram groups the main sections by page. Branches show where to find an exp
 >   - [Evidence support and regularization](intelligence-agentic.md#evidence-support-and-quality-regularization)
 >   - [Combine benchmarks and indexes](intelligence-agentic.md#combining-benchmarks-and-aggregate-indexes)
 > - [Missing Data and Imputation](imputation.md)
->   - [Source crosswalks](imputation.md#source-crosswalk-imputation)
+>   - [Source crosswalks](imputation.md#source-crosswalks)
 >   - [From other observed benchmarks](imputation.md#imputation-from-other-observed-benchmarks)
 >   - [Across reasoning efforts](imputation.md#imputation-across-reasoning-efforts)
 >   - [Resource estimates across efforts](imputation.md#resource-imputation-across-reasoning-efforts)

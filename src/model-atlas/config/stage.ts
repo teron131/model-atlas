@@ -1,7 +1,7 @@
 /** Pipeline stage switches for matching, route data, public selection, and scoring. */
 
 import type { BenchmarkDimension, BenchmarkPortfolio } from "../benchmarks/factory";
-import { MINIMUM_REPORTED_INDEX_BREADTH } from "../benchmarks/index-policy";
+import { isAggregateIndex, MINIMUM_REPORTED_INDEX_BREADTH } from "../benchmarks/index-policy";
 import {
   AGENTIC_BENCHMARK_DISPLAY_KEYS,
   BENCHMARK_PORTFOLIO,
@@ -121,6 +121,7 @@ export type ScoringConfig = {
   qualityCoverageMinimumRetention: number;
   directBenchmarkWeightMultiplier: number;
   pairwiseIntelligenceWeight: number;
+  intelligenceGroupWeights: { frontier: number; baseline: number };
 };
 
 export type ModelAtlasStageConfig = {
@@ -130,6 +131,10 @@ export type ModelAtlasStageConfig = {
   snapshotPreservation: SnapshotPreservationConfig;
   scoring: ScoringConfig;
 };
+
+/** Both capabilities use the same frontier-only benchmark selection while retaining aggregate indexes. */
+const isFrontierOrIndex = (key: keyof typeof BENCHMARK_PORTFOLIO) =>
+  isAggregateIndex(key) || BENCHMARK_PORTFOLIO[key].group === "frontier";
 
 /** Centralized stage config for matching, route data, pruning, and scoring. */
 export const STAGE_CONFIG = {
@@ -170,9 +175,9 @@ export const STAGE_CONFIG = {
     minIntelligenceScoreDrop: 10,
   },
   scoring: {
-    intelligenceBenchmarkKeys: SELECTED_INTELLIGENCE_BENCHMARKS,
+    intelligenceBenchmarkKeys: SELECTED_INTELLIGENCE_BENCHMARKS.filter(isFrontierOrIndex),
     intelligenceBenchmarkDisplayKeys: INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
-    agenticBenchmarkKeys: SELECTED_AGENTIC_BENCHMARKS,
+    agenticBenchmarkKeys: SELECTED_AGENTIC_BENCHMARKS.filter(isFrontierOrIndex),
     agenticBenchmarkDisplayKeys: AGENTIC_BENCHMARK_DISPLAY_KEYS,
     agenticTokenModifierCap: 0.15,
     defaultSpeedOutputTokenAnchors: [200, 500, 1_000, 2_000, 8_000],
@@ -185,5 +190,6 @@ export const STAGE_CONFIG = {
     qualityCoverageMinimumRetention: 0.85,
     directBenchmarkWeightMultiplier: DIRECT_BENCHMARK_WEIGHT_MULTIPLIER,
     pairwiseIntelligenceWeight: 0.2,
+    intelligenceGroupWeights: { frontier: 1, baseline: 0 },
   },
 } satisfies ModelAtlasStageConfig;

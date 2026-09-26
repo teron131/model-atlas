@@ -1,5 +1,6 @@
 /** Column tooltip copy stays aligned with active scoring weights and benchmark resource policy. */
 
+import { isAggregateIndex } from "../benchmarks/index-policy";
 import {
   AGENTIC_BENCHMARK_DISPLAY_KEYS,
   BENCHMARK_CATALOG,
@@ -69,11 +70,22 @@ const benchmarkContributionPercent = (
   key: BenchmarkKey,
   dimension: "intelligence" | "agentic",
 ) => {
+  const group = benchmarkPortfolioEntry(key)?.group;
+  if (group === "baseline") return "display only";
   const totalWeight = keys.reduce(
-    (sum, benchmarkKey) => sum + benchmarkDimensionWeight(benchmarkKey, dimension),
+    (sum, benchmarkKey) =>
+      sum +
+      (!isAggregateIndex(benchmarkKey) && benchmarkPortfolioEntry(benchmarkKey)?.group === group
+        ? benchmarkDimensionWeight(benchmarkKey, dimension)
+        : 0),
     0,
   );
-  return totalWeight > 0 ? percent(benchmarkDimensionWeight(key, dimension) / totalWeight, 1) : "-";
+  return totalWeight > 0
+    ? percent(
+        benchmarkDimensionWeight(key, dimension) / totalWeight,
+        dimension === "intelligence" ? 2 : 1,
+      )
+    : "-";
 };
 
 const PROVIDER_SPEED_LABELS = ["Throughput", "Latency ↓", "End-to-end latency ↓"] as const;
@@ -138,13 +150,22 @@ const qualityBenchmarkRows = (
   benchmarkRows: Readonly<{
     baseline: readonly ModelAtlasColumnTooltipRow[];
     frontier: readonly ModelAtlasColumnTooltipRow[];
+    indexes: readonly ModelAtlasColumnTooltipRow[];
   }>,
+  dimension: "intelligence" | "agentic",
 ) =>
   [
-    ["Effective weight", "importance x dimension allocation"],
+    [
+      "Effective weight",
+      dimension === "intelligence"
+        ? "importance × Intelligence allocation for frontier benchmarks"
+        : "importance × Agentic allocation for frontier benchmarks",
+    ],
     [
       "Aggregation",
-      "one evidence pool; direct benchmarks receive a 1.5× multiplier and indexes multiply configured weight by represented breadth",
+      dimension === "intelligence"
+        ? "frontier benchmarks supply the benchmark score; indexes enter at their overlap-adjusted evidence share"
+        : "frontier benchmarks and eligible indexes form one evidence pool; direct benchmarks receive a 1.5× multiplier and indexes multiply configured weight by represented breadth",
     ],
     [
       "Imputed values",
@@ -158,11 +179,17 @@ const qualityBenchmarkRows = (
     ],
     {
       title: "Frontier benchmarks",
+      weight: "100% of benchmark component",
       rows: benchmarkRows.frontier,
     },
     {
       title: "Baseline benchmarks",
+      weight: "display only",
       rows: benchmarkRows.baseline,
+    },
+    {
+      title: "Aggregate indexes",
+      rows: benchmarkRows.indexes,
     },
   ] as const;
 
@@ -171,7 +198,7 @@ const benchmarkRowsByGroup = (
   dimension: "intelligence" | "agentic",
 ) => ({
   baseline: keys
-    .filter((key) => benchmarkPortfolioEntry(key)?.group === "baseline")
+    .filter((key) => benchmarkPortfolioEntry(key)?.group === "baseline" && !isAggregateIndex(key))
     .map(
       (key) =>
         [
@@ -186,6 +213,15 @@ const benchmarkRowsByGroup = (
         [
           BENCHMARK_CATALOG[key].presentation.scoringLabel,
           benchmarkContributionPercent(keys, key, dimension),
+        ] as const,
+    ),
+  indexes: keys
+    .filter((key) => isAggregateIndex(key))
+    .map(
+      (key) =>
+        [
+          BENCHMARK_CATALOG[key].presentation.scoringLabel,
+          "model-specific share after overlap",
         ] as const,
     ),
 });
@@ -251,28 +287,35 @@ export function columnTooltipsForActiveComponents(
   return {
     intelligence: {
       title: "Intelligence Score",
-      body: "Knowledge, perception, understanding, reasoning, and judgment on selected difficult benchmarks. Each observed result is normalized to 0-100 and weighted by 1.5 × benchmark importance × Intelligence allocation. Aggregate indexes enter the same pool with represented-breadth multipliers after known overlap is counted once. Low supported benchmark weight discounts the entire score.",
+      body: "Knowledge, perception, understanding, reasoning, and judgment on selected difficult benchmarks. Frontier benchmarks supply the benchmark score; baseline results remain visible without directly contributing to either capability. Every quality benchmark uses the same linear scaling within its observed range in Intelligence and Agentic. Aggregate indexes enter at their overlap-adjusted evidence share. Low supported benchmark weight discounts the entire score.",
       rows: [
-        ["Observed benchmark weight", "importance × Intelligence allocation"],
-        ["Benchmark normalization", "0 at the observed minimum, 100 at the maximum"],
-        ["Final score", "coverage-regularized unified benchmark/index evidence mean"],
+        ["Benchmark weights", "importance × Intelligence allocation for frontier benchmarks"],
+        ["Benchmark normalization", "100 × observed-range position in both capabilities"],
+        [
+          "Final score",
+          "frontier benchmark score plus eligible indexes, then coverage retention once",
+        ],
       ],
       sections: [
         {
           title: "Score blend",
           hideTitle: true,
-          rows: qualityBenchmarkRows(INTELLIGENCE_BENCHMARK_ROWS),
+          rows: qualityBenchmarkRows(INTELLIGENCE_BENCHMARK_ROWS, "intelligence"),
         },
       ],
     },
     agentic: {
       title: "Agentic Score",
-      body: "How reliably the model turns goals into working results through coding, instruction following, tool use, verification, and recovery. Selected benchmark contributions are weighted by importance × Agentic loading. Direct token use can adjust a contribution before it is remapped to 0-100, using independent models at similar benchmark quality as the comparison.",
+      body: "How reliably the model turns goals into working results through coding, instruction following, tool use, verification, and recovery. Every quality benchmark uses the same linear scaling within its observed range as Intelligence. Frontier benchmark contributions are weighted by importance × Agentic loading; baseline results remain visible without direct score weight. Direct token use can adjust a contribution before it is remapped to 0-100, using independent models at similar benchmark quality as the comparison.",
       rows: [
         ["Observed benchmark weight", "importance × Agentic loading"],
         [
+          "Benchmark quality",
+          "same normalized benchmark score in Intelligence and Agentic before the Agentic token modifier",
+        ],
+        [
           "Benchmark normalization",
-          "zero-based contribution × token modifier, then cohort remapped to 0-100",
+          "shared benchmark quality × token modifier, then rescaled within bounds that include 0 and 100",
         ],
         ["Token efficiency", "0.85-1.15 before remapping; not a ±15% bound on the final score"],
         [
@@ -292,7 +335,7 @@ export function columnTooltipsForActiveComponents(
         {
           title: "Score blend",
           hideTitle: true,
-          rows: qualityBenchmarkRows(AGENTIC_BENCHMARK_ROWS),
+          rows: qualityBenchmarkRows(AGENTIC_BENCHMARK_ROWS, "agentic"),
         },
       ],
     },

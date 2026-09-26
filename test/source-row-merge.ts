@@ -3,13 +3,17 @@
 import assert from "node:assert/strict";
 
 import { STAGE_CONFIG } from "../src/model-atlas/config";
-import type { ArtificialAnalysisBenchmarkResourceRow } from "../src/model-atlas/sources/artificial-analysis/benchmark-resources";
+import {
+  ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES,
+  type ArtificialAnalysisBenchmarkResourceRow,
+} from "../src/model-atlas/sources/artificial-analysis/benchmark-resources";
 import {
   ARTIFICIAL_ANALYSIS_LEADERBOARD_COLUMNS,
   artificialAnalysisModelId,
   processArtificialAnalysisLeaderboardRows,
 } from "../src/model-atlas/sources/artificial-analysis/leaderboard";
 import {
+  artificialAnalysisBenchmarkResourceSnapshot,
   artificialAnalysisBenchmarkResourceSourceKey,
   mergeArtificialAnalysisRow,
 } from "../src/model-atlas/sources/artificial-analysis/snapshot";
@@ -300,4 +304,41 @@ assert.deepEqual(
     ["low", 50],
   ],
   "AA resource refreshes should preserve known telemetry and sibling effort rows",
+);
+
+const activeResourceRows = ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.map((page) => ({
+  ...effortResourceRow("high", 100),
+  benchmark_key: page.benchmark_key,
+  task_run_count: page.task_run_count,
+}));
+const retiredResourceRow = { ...effortResourceRow("high", 100), benchmark_key: "tau_banking" };
+const cachedResourceRows = [...activeResourceRows, retiredResourceRow];
+const activeResourceKey = artificialAnalysisBenchmarkResourceSourceKey(activeResourceRows[0]!);
+const retiredResourceKey = artificialAnalysisBenchmarkResourceSourceKey(retiredResourceRow);
+const resourceSnapshot = await artificialAnalysisBenchmarkResourceSnapshot(
+  { rows: cachedResourceRows, fetchedAt: 1_800_000_000 },
+  {
+    last_fetch_epoch_seconds: 1_800_000_000,
+    source_input_count: cachedResourceRows.length,
+    cache_hit: true,
+    refreshed: false,
+  },
+  {},
+  new Map([
+    [activeResourceKey, 1_800_000_001],
+    [retiredResourceKey, 1_800_000_001],
+  ]),
+  1_800_000_999,
+);
+assert.equal(
+  resourceSnapshot.artificialAnalysisBenchmarkResourceRows.length,
+  cachedResourceRows.length,
+);
+assert.equal(resourceSnapshot.sourceStatus.sourceInputCount, activeResourceRows.length);
+assert.deepEqual(
+  resourceSnapshot.sourceStatus.sourceRowStates
+    .filter((state) => state.status === "quarantined_missing_from_source")
+    .map((state) => state.row_key),
+  [activeResourceKey],
+  "Retired AA benchmark resource rows remain cached but leave public source health",
 );

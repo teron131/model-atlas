@@ -246,33 +246,39 @@ type BenchmarkCatalog = Readonly<{
 /** Join literal catalog facets and apply shared defaults at the registry boundary. */
 function composeBenchmarkCatalog(): BenchmarkCatalog {
   return Object.fromEntries(
-    Object.entries(BENCHMARK_SCORING).map(([key, scoring]) => [
-      key,
-      {
-        source: BENCHMARK_SOURCES[key as BenchmarkKey],
-        processing: BENCHMARK_PROCESSING[key as BenchmarkKey],
-        persistence: BENCHMARK_PERSISTENCE[key as BenchmarkKey],
-        scoring,
-        presentation: {
-          title: BENCHMARK_TOOLTIPS[key as BenchmarkKey].title,
-          label: BENCHMARK_LABELS[key as BenchmarkKey],
-          scoringLabel:
-            BENCHMARK_SCORING_LABELS[key as BenchmarkKey] ?? BENCHMARK_LABELS[key as BenchmarkKey],
-          description: BENCHMARK_TOOLTIPS[key as BenchmarkKey].body,
-          details: BENCHMARK_TOOLTIPS[key as BenchmarkKey].rows,
-          order: BENCHMARK_ORDER_BY_KEY[key as BenchmarkKey],
-          column: BENCHMARK_COLUMNS[key as BenchmarkKey],
-          taskMetricColumns:
-            BENCHMARK_TASK_METRIC_COLUMNS[key as keyof typeof BENCHMARK_TASK_METRIC_COLUMNS] ?? [],
+    Object.entries(BENCHMARK_SCORING).map(([key, scoring]) => {
+      const tooltip = BENCHMARK_TOOLTIPS[key as BenchmarkKey];
+      return [
+        key,
+        {
+          ...("version" in tooltip ? { version: tooltip.version } : {}),
+          source: BENCHMARK_SOURCES[key as BenchmarkKey],
+          processing: BENCHMARK_PROCESSING[key as BenchmarkKey],
+          persistence: BENCHMARK_PERSISTENCE[key as BenchmarkKey],
+          scoring,
+          presentation: {
+            title: tooltip.title,
+            label: BENCHMARK_LABELS[key as BenchmarkKey],
+            scoringLabel:
+              BENCHMARK_SCORING_LABELS[key as BenchmarkKey] ??
+              BENCHMARK_LABELS[key as BenchmarkKey],
+            description: tooltip.body,
+            details: tooltip.rows,
+            order: BENCHMARK_ORDER_BY_KEY[key as BenchmarkKey],
+            column: BENCHMARK_COLUMNS[key as BenchmarkKey],
+            taskMetricColumns:
+              BENCHMARK_TASK_METRIC_COLUMNS[key as keyof typeof BENCHMARK_TASK_METRIC_COLUMNS] ??
+              [],
+          },
+          ...(key in BENCHMARK_RESOURCE_POLICIES
+            ? {
+                resources:
+                  BENCHMARK_RESOURCE_POLICIES[key as keyof typeof BENCHMARK_RESOURCE_POLICIES],
+              }
+            : {}),
         },
-        ...(key in BENCHMARK_RESOURCE_POLICIES
-          ? {
-              resources:
-                BENCHMARK_RESOURCE_POLICIES[key as keyof typeof BENCHMARK_RESOURCE_POLICIES],
-            }
-          : {}),
-      },
-    ]),
+      ];
+    }),
   ) as unknown as BenchmarkCatalog;
 }
 

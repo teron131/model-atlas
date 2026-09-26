@@ -7,6 +7,7 @@ import {
   type MatcherConfig,
 } from "../identity";
 import { publicOpenRouterModelId } from "../identity/openrouter";
+import { artificialAnalysisModelId } from "../sources/artificial-analysis/leaderboard";
 import type { OpenRouterSourcePayload } from "../sources/openrouter";
 import type { SourceSnapshots } from "../sources/types";
 import type { DatabaseWriter } from "./writers/database";
@@ -125,12 +126,13 @@ export function buildDebugTraceRows(
   return rows;
 }
 
-/** Artificial Analysis raw indexes let debug traces point back to the scraped model row. */
+/** Resolve identities in persisted raw order; the selected leaderboard projection may have been sorted independently. */
 function artificialAnalysisRowIndexById(snapshots: SourceSnapshots): Map<string, number> {
   const byModelId = new Map<string, number>();
-  for (const [index, row] of snapshots.artificialAnalysisSelectedRows.entries()) {
-    if (typeof row.model_id === "string") {
-      byModelId.set(row.model_id, index);
+  for (const [index, row] of snapshots.artificialAnalysisRawRows.entries()) {
+    const modelId = artificialAnalysisModelId(row);
+    if (modelId != null) {
+      byModelId.set(modelId, index);
     }
   }
   return byModelId;
@@ -150,6 +152,7 @@ function modelsDevRowIndexByKey(snapshots: SourceSnapshots): Map<string, number>
   return byKey;
 }
 
+/** Follow the raw writer's directory, candidate, optional endpoint-summary, stat-point, and model-stats order. */
 function openRouterStatsRowIndexById(
   rawPayload: OpenRouterSourcePayload | null | undefined,
 ): Map<string, number> {
@@ -160,6 +163,7 @@ function openRouterStatsRowIndexById(
   let rowIndex = rawPayload.directory.length;
   for (const model of rawPayload.models) {
     rowIndex += model.candidate_permaslugs.length;
+    if (model.selected_permaslug != null) rowIndex += 1;
     rowIndex += statsPointCount(model);
     byModelId.set(model.id, rowIndex);
     rowIndex += 1;
