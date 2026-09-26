@@ -1,3 +1,5 @@
+/** Protect independent-donor resource fallback, fixed shrinkage, and scoring-only integration. */
+
 import assert from "node:assert/strict";
 
 import { STAGE_CONFIG } from "../src/model-atlas/config/stage";
@@ -5,7 +7,6 @@ import type { ModelAtlasCandidate } from "../src/model-atlas/pipeline/model-type
 import { prepareBenchmarkScoring } from "../src/model-atlas/pipeline/scores/imputation/benchmark";
 import { prepareBroaderResourceEstimator } from "../src/model-atlas/pipeline/scores/imputation/broader-resource";
 import { prepareEffortResourceImputation } from "../src/model-atlas/pipeline/scores/imputation/effort-resource";
-/** Protect independent-donor resource fallback, fixed shrinkage, and scoring-only integration. */
 import { imputedTaskResource } from "../src/model-atlas/pipeline/scores/imputation/resource-evidence";
 import { applyResourceEvidenceRequirements } from "../src/model-atlas/pipeline/scores/resource-metrics";
 import { minimalModelAtlasModel } from "./model-atlas-fixtures";
@@ -15,7 +16,7 @@ function model(id: string, effort: string, costs: Record<string, number>): Model
     ...minimalModelAtlasModel({ id, name: id }),
     provider: "test",
     reasoning_effort: effort,
-    benchmarks: { hle: 50, scicode: 50 },
+    benchmarks: { hle: 0.5, scicode: 0.5 },
     task_metrics: Object.fromEntries(Object.entries(costs).map(([key, cost]) => [key, { cost }])),
     component_scores: null,
     scores: null,
@@ -57,7 +58,7 @@ assert.equal(
   null,
   "The source must be the same model",
 );
-const unrelated = { ...source, benchmarks: { scicode: 50 } };
+const unrelated = { ...source, benchmarks: { scicode: 0.5 } };
 assert.equal(
   prepareBroaderResourceEstimator(models, config, "cost")(target, unrelated, "hle"),
   null,

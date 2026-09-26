@@ -52,6 +52,10 @@ const RESOURCE_SIGNAL_KEYS = [
   "output_tokens_per_task",
 ] as const;
 
+const ACTIVE_BENCHMARK_RESOURCE_KEYS = new Set(
+  ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.map((page) => page.benchmark_key),
+);
+
 /** Replace available AA rows as one current score/resource observation; retain stronger evidence only for unavailable shells. */
 export function mergeArtificialAnalysisRow(
   cachedRow: JsonObject,
@@ -163,13 +167,17 @@ export async function artificialAnalysisBenchmarkResourceSnapshot(
     rowLabel: (row) => `${row.benchmark_key}: ${row.model}`,
     mergeRow: (_cachedRow, fetchedRow) => fetchedRow,
   });
+  const activeRows = snapshot.rows.filter((row) =>
+    ACTIVE_BENCHMARK_RESOURCE_KEYS.has(row.benchmark_key),
+  );
+  const activeRowKeys = new Set(activeRows.map(artificialAnalysisBenchmarkResourceSourceKey));
   return {
     artificialAnalysisBenchmarkResourceRows: snapshot.rows,
     sourceStatus: {
       source: "artificial_analysis_benchmark_resources",
       fetchedAt: snapshot.fetchedAt,
-      sourceInputCount: snapshot.rows.length,
-      sourceRowStates: snapshot.sourceRowStates,
+      sourceInputCount: activeRows.length,
+      sourceRowStates: snapshot.sourceRowStates.filter((state) => activeRowKeys.has(state.row_key)),
       fetchedAtKey: "artificialAnalysisBenchmarkResources",
     },
   };

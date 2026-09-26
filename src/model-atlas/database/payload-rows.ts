@@ -531,6 +531,7 @@ function benchmarkObservations(rows: PayloadRows): BenchmarkObservationsByKey {
       artificialAnalysisBenchmarkResourceRawCacheFromRows(rows.artificialAnalysisResourceRows)
         ?.rows ?? [],
     terminalBenchScienceRows: sourceRows("terminal_bench_science", rows.terminalBenchScienceRows),
+    gdpPdfRows: sourceRows("gdp_pdf", rows.gdpPdfRows),
     aleBenchConfigurationRows: readAleBenchRawCache(rows.aleBenchRows)?.rows ?? [],
     weirdMlRows: sourceRows("weirdml", rows.weirdMlRows),
   });

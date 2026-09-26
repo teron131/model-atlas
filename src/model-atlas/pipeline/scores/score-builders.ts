@@ -22,7 +22,7 @@ import {
   normalizedQualityBenchmarkValue,
   type QualityScoringContext,
 } from "./quality-context";
-import { benchmarkFusionEstimate, benchmarkMetricValue } from "./resource-metrics";
+import { benchmarkMetricValue } from "./resource-metrics";
 
 type BenchmarkScoreInput = {
   key: string;
@@ -41,10 +41,19 @@ type QualityScoreResult = {
   retention: number;
 };
 
+/** Keep task-group and index contributions separate until the population pairwise fit is available. */
+export type IntelligenceScoreParts = {
+  frontier: number | null;
+  baseline: number | null;
+  indexScore: number | null;
+  indexShare: number;
+  retention: number;
+};
+
 type ComponentScoreResult = {
   componentScores: ModelAtlasCandidateComponentScores | null;
   confidence: ModelAtlasConfidence;
-  intelligenceRetention: number;
+  intelligenceScoreParts: IntelligenceScoreParts | null;
 };
 
 /** Count observed benchmarks without allowing imputed values to satisfy admission. */
@@ -68,6 +77,15 @@ function selectedBenchmarkScoreInputs(
 ): BenchmarkScoreInput[] {
   const inputs: BenchmarkScoreInput[] = [];
   for (const key of keys) {
+    if (
+      dimension === "intelligence" &&
+      !isAggregateIndex(key) &&
+      scoringConfig.intelligenceGroupWeights[
+        scoringConfig.benchmarkPortfolio[key]?.group ?? "baseline"
+      ] === 0
+    ) {
+      continue;
+    }
     const dimensionWeight =
       benchmarkDimensionWeight(key, dimension, scoringConfig.benchmarkPortfolio) *
       (benchmarkWeightMultipliersByKey.get(key) ?? 1);
@@ -94,29 +112,22 @@ function benchmarkScoreInput(
   imputed?: { value: number | null; evidenceFactor: number },
 ): BenchmarkScoreInput {
   const observedValue = benchmarkMetricValue(model, key);
-  const fusionEstimate = benchmarkFusionEstimate(model, key);
   const effortEstimate = context.effortQualityEstimates
     ?.get(effortQualityKey(model, dimension))
     ?.get(key);
-  const scoreEstimate = observedValue == null && (fusionEstimate != null || effortEstimate != null);
+  const scoreEstimate = observedValue == null && effortEstimate != null;
   return {
     key,
-    value:
-      fusionEstimate != null
-        ? normalizedQualityBenchmarkValue(model, key, fusionEstimate.value, dimension, context)
-        : scoreEstimate
-          ? (effortEstimate ?? null)
-          : normalizedQualityBenchmarkValue(
-              model,
-              key,
-              observedValue ?? imputed?.value ?? null,
-              dimension,
-              context,
-            ),
-    evidenceFactor:
-      observedValue != null
-        ? 1
-        : (fusionEstimate?.evidenceFactor ?? (imputed?.value == null ? 0 : imputed.evidenceFactor)),
+    value: scoreEstimate
+      ? (effortEstimate ?? null)
+      : normalizedQualityBenchmarkValue(
+          model,
+          key,
+          observedValue ?? imputed?.value ?? null,
+          dimension,
+          context,
+        ),
+    evidenceFactor: observedValue != null ? 1 : imputed?.value == null ? 0 : imputed.evidenceFactor,
     observed: observedValue != null,
     scoreEstimate,
     scoreExcluded: excludesVariantIndex(model, key),
@@ -214,6 +225,79 @@ function qualityScore(
     score: qualityScore == null ? null : qualityScore * retention,
     evidenceSupport,
     retention,
+  };
+}
+
+/** Hold active task groups at fixed shares while leaving the index union weight and evidence retention unchanged. */
+function intelligenceScore(
+  inputs: BenchmarkScoreInput[],
+  scoringConfig: ScoringConfig,
+): QualityScoreResult & { parts: IntelligenceScoreParts | null } {
+  const evidence = qualityScore(
+    inputs,
+    scoringConfig.directBenchmarkWeightMultiplier,
+    scoringConfig.qualityCoverageMinimumRetention,
+    scoringConfig.qualityRetention,
+  );
+  const direct = inputs.filter(
+    ({ key, observed, scoreEstimate, value, weight }) =>
+      !isAggregateIndex(key) && (observed || scoreEstimate) && value != null && weight > 0,
+  );
+  const groupScore = (group: "frontier" | "baseline") =>
+    weightedMeanOfFinite(
+      direct.filter(({ key }) => scoringConfig.benchmarkPortfolio[key]?.group === group),
+    );
+  const frontier = groupScore("frontier");
+  const baseline = groupScore("baseline");
+
+  const observedIndexes = inputs.filter(
+    ({ key, observed, value, scoreExcluded }) =>
+      isAggregateIndex(key) && observed && value != null && !scoreExcluded,
+  );
+  const breadths = qualityIndexBreadths(
+    observedIndexes.map(({ key, representedBenchmarks }) => ({
+      key,
+      reportedCount: representedBenchmarks,
+    })),
+    inputs
+      .filter(({ key, observed, value }) => !isAggregateIndex(key) && observed && value != null)
+      .map(({ key }) => key),
+  );
+  const directWeight = direct.reduce((total, { weight }) => total + weight, 0);
+  const indexWeight = observedIndexes.reduce(
+    (total, { key, weight }) => total + weight * (breadths.get(key) ?? 0),
+    0,
+  );
+  const indexScore = weightedMeanOfFinite(
+    observedIndexes.map((input) => ({
+      ...input,
+      weight: input.weight * (breadths.get(input.key) ?? 0),
+    })),
+  );
+  const indexShare =
+    indexScore == null
+      ? 0
+      : indexWeight / (directWeight * scoringConfig.directBenchmarkWeightMultiplier + indexWeight);
+  const parts: IntelligenceScoreParts = {
+    frontier,
+    baseline,
+    indexScore,
+    indexShare,
+    retention: evidence.retention,
+  };
+  const taskScore =
+    (scoringConfig.intelligenceGroupWeights.frontier > 0 && frontier == null) ||
+    (scoringConfig.intelligenceGroupWeights.baseline > 0 && baseline == null)
+      ? null
+      : scoringConfig.intelligenceGroupWeights.frontier * (frontier ?? 0) +
+        scoringConfig.intelligenceGroupWeights.baseline * (baseline ?? 0);
+  return {
+    ...evidence,
+    score:
+      taskScore == null
+        ? null
+        : evidence.retention * ((1 - indexShare) * taskScore + indexShare * (indexScore ?? 0)),
+    parts,
   };
 }
 
@@ -318,12 +402,7 @@ export function buildComponentScoreResult(
     imputedFactorsByKey,
     benchmarkWeightMultipliersByKey,
   );
-  const intelligence = qualityScore(
-    intelligenceBenchmarkInputs,
-    scoringConfig.directBenchmarkWeightMultiplier,
-    scoringConfig.qualityCoverageMinimumRetention,
-    scoringConfig.qualityRetention,
-  );
+  const intelligence = intelligenceScore(intelligenceBenchmarkInputs, scoringConfig);
   const agentic = qualityScore(
     agenticBenchmarkInputs,
     scoringConfig.directBenchmarkWeightMultiplier,
@@ -346,7 +425,7 @@ export function buildComponentScoreResult(
       speed: null,
       value: null,
     },
-    intelligenceRetention: intelligence.retention,
+    intelligenceScoreParts: intelligence.parts,
   };
 }
 

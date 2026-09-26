@@ -269,11 +269,11 @@ assert.deepEqual(resourceQualityCoordinates, {
   critpt: "logit",
   deep_swe: "logit",
   frontier_code: "linear",
+  gdp_pdf: "logit",
   gdpval_normalized: "linear",
   hle: "logit",
-  itbench_sre: "linear",
+  mlcr_aa: "logit",
   scicode: "logit",
-  tau_banking: "logit",
   terminal_bench_4: "logit",
   terminal_bench_science: "logit",
 });
@@ -388,13 +388,6 @@ assertEqual(
 assertEqual(
   benchmarkMetricValue({ intelligence: { omniscience_accuracy: 0.82 } }, "omniscience_accuracy"),
   0.82,
-);
-assertEqual(STAGE_CONFIG.scoring.benchmarkPortfolio.itbench_sre?.group, "frontier");
-assertEqual(STAGE_CONFIG.scoring.benchmarkPortfolio.itbench_sre?.benchmarkImportance, 1);
-assertEqual(STAGE_CONFIG.scoring.benchmarkPortfolio.itbench_sre?.dimensionLoadings.agentic, 0.25);
-assertEqual(
-  STAGE_CONFIG.scoring.benchmarkPortfolio.itbench_sre?.dimensionLoadings.intelligence,
-  0.75,
 );
 assertThrowsWithMessage(
   () =>
@@ -756,7 +749,8 @@ assertEqual(
 
 const fractionalBenchmarkConfig = {
   ...STAGE_CONFIG.scoring,
-  intelligenceBenchmarkKeys: ["omniscience_accuracy", "hle"],
+  intelligenceBenchmarkKeys: ["baseline_metric", "frontier_metric"],
+  intelligenceGroupWeights: { frontier: 0.8, baseline: 0.2 },
   agenticBenchmarkKeys: [],
   qualityCoverage: {
     intelligence: { floor: 0, full: 1 },
@@ -764,12 +758,12 @@ const fractionalBenchmarkConfig = {
   },
   qualityRetention: { floor: 0.15, full: 0.9 },
   benchmarkPortfolio: {
-    omniscience_accuracy: {
+    baseline_metric: {
       group: "baseline",
       benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 0.8, agentic: 0.2 },
     },
-    hle: {
+    frontier_metric: {
       group: "frontier",
       benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 0.2, agentic: 0.8 },
@@ -779,15 +773,15 @@ const fractionalBenchmarkConfig = {
 const fractionalBenchmarkModels = [
   {
     id: "fractional-min",
-    benchmarks: { omniscience_accuracy: 0, hle: 0 },
+    benchmarks: { baseline_metric: 0, frontier_metric: 0 },
   },
   {
     id: "fractional-max",
-    benchmarks: { omniscience_accuracy: 100, hle: 100 },
+    benchmarks: { baseline_metric: 100, frontier_metric: 100 },
   },
   {
     id: "fractional-target",
-    benchmarks: { omniscience_accuracy: 0, hle: 100 },
+    benchmarks: { baseline_metric: 0, frontier_metric: 100 },
   },
 ];
 const fractionalBenchmarkComponentScores = buildComponentScoreResult(
@@ -797,7 +791,7 @@ const fractionalBenchmarkComponentScores = buildComponentScoreResult(
   fractionalBenchmarkConfig,
   buildQualityScoringContext(fractionalBenchmarkModels, fractionalBenchmarkConfig),
 ).componentScores;
-assertClose(fractionalBenchmarkComponentScores?.intelligence_score, 20);
+assertClose(fractionalBenchmarkComponentScores?.intelligence_score, 80);
 const priorityWeightedComponentScores = buildComponentScoreResult(
   fractionalBenchmarkModels[2] ?? {},
   nullSpeed,
@@ -806,19 +800,19 @@ const priorityWeightedComponentScores = buildComponentScoreResult(
   buildQualityScoringContext(fractionalBenchmarkModels, fractionalBenchmarkConfig),
   new Map(),
   new Map(),
-  new Map([["hle", 2]]),
+  new Map([["frontier_metric", 2]]),
 ).componentScores;
-assertClose(priorityWeightedComponentScores?.intelligence_score, 100 / 3);
+assertClose(priorityWeightedComponentScores?.intelligence_score, 80);
 
 const importanceWeightedConfig = {
   ...fractionalBenchmarkConfig,
   benchmarkPortfolio: {
-    omniscience_accuracy: {
+    baseline_metric: {
       group: "baseline",
       benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
     },
-    hle: {
+    frontier_metric: {
       group: "frontier",
       benchmarkImportance: 3,
       dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
@@ -836,7 +830,7 @@ const importanceWeightedScores = buildComponentScoreResult(
   importanceWeightedConfig,
   importanceWeightedContext,
 ).componentScores;
-assertClose(importanceWeightedScores?.intelligence_score, 75);
+assertClose(importanceWeightedScores?.intelligence_score, 80);
 
 const groupFlippedScores = buildComponentScoreResult(
   fractionalBenchmarkModels[2] ?? {},
@@ -845,34 +839,65 @@ const groupFlippedScores = buildComponentScoreResult(
   {
     ...importanceWeightedConfig,
     benchmarkPortfolio: {
-      omniscience_accuracy: {
-        ...importanceWeightedConfig.benchmarkPortfolio.omniscience_accuracy,
+      baseline_metric: {
+        ...importanceWeightedConfig.benchmarkPortfolio.baseline_metric,
         group: "frontier",
       },
-      hle: {
-        ...importanceWeightedConfig.benchmarkPortfolio.hle,
+      frontier_metric: {
+        ...importanceWeightedConfig.benchmarkPortfolio.frontier_metric,
         group: "baseline",
       },
     },
   },
   importanceWeightedContext,
 ).componentScores;
-assertClose(groupFlippedScores?.intelligence_score, 75);
+assertClose(groupFlippedScores?.intelligence_score, 20);
 
 const fractionalEvidenceComponentScores = buildComponentScoreResult(
-  { id: "fractional-sparse", benchmarks: { hle: 100 } },
+  { id: "fractional-sparse", benchmarks: { frontier_metric: 100 } },
   nullSpeed,
   [],
   fractionalBenchmarkConfig,
   buildQualityScoringContext(fractionalBenchmarkModels, fractionalBenchmarkConfig),
 ).componentScores;
-const fractionalCoverageRetention =
-  STAGE_CONFIG.scoring.qualityCoverageMinimumRetention +
-  (1 - STAGE_CONFIG.scoring.qualityCoverageMinimumRetention) *
-    evidenceRetentionFactor(0.3, 0.15, 0.9);
-assertClose(
-  fractionalEvidenceComponentScores?.intelligence_score,
-  100 * fractionalCoverageRetention,
+assertEqual(fractionalEvidenceComponentScores?.intelligence_score ?? null, null);
+
+const frontierOnlyScoringConfig = {
+  ...fractionalBenchmarkConfig,
+  intelligenceGroupWeights: { frontier: 1, baseline: 0 },
+  qualityCoverageMinimumRetention: 1,
+} as const;
+const frontierOnlyContext = buildQualityScoringContext(
+  fractionalBenchmarkModels,
+  frontierOnlyScoringConfig,
+);
+const frontierOnlyObserved = buildComponentScoreResult(
+  fractionalBenchmarkModels[2]!,
+  nullSpeed,
+  [],
+  frontierOnlyScoringConfig,
+  frontierOnlyContext,
+);
+const frontierOnlyBaselineChanged = buildComponentScoreResult(
+  { id: "fractional-target", benchmarks: { baseline_metric: 100, frontier_metric: 100 } },
+  nullSpeed,
+  [],
+  frontierOnlyScoringConfig,
+  frontierOnlyContext,
+);
+const frontierOnlyMissingBaseline = buildComponentScoreResult(
+  { id: "fractional-target", benchmarks: { frontier_metric: 100 } },
+  nullSpeed,
+  [],
+  frontierOnlyScoringConfig,
+  frontierOnlyContext,
+);
+assertClose(frontierOnlyObserved.componentScores?.intelligence_score, 100);
+assertClose(frontierOnlyBaselineChanged.componentScores?.intelligence_score, 100);
+assertClose(frontierOnlyMissingBaseline.componentScores?.intelligence_score, 100);
+assertEqual(
+  frontierOnlyMissingBaseline.confidence.intelligence,
+  frontierOnlyObserved.confidence.intelligence,
 );
 
 const imputationConfidenceConfig = {
@@ -884,23 +909,23 @@ const imputationConfidenceConfig = {
   },
 } as const;
 const imputationConfidenceResult = buildComponentScoreResult(
-  { id: "imputation-confidence", benchmarks: { omniscience_accuracy: 100 } },
+  { id: "imputation-confidence", benchmarks: { baseline_metric: 100 } },
   nullSpeed,
   [],
   imputationConfidenceConfig,
   importanceWeightedContext,
-  new Map([["hle", 0]]),
-  new Map([["hle", 0.2]]),
+  new Map([["frontier_metric", 0]]),
+  new Map([["frontier_metric", 0.2]]),
 );
-assertClose(imputationConfidenceResult.componentScores?.intelligence_score, 100);
+assertEqual(imputationConfidenceResult.componentScores?.intelligence_score ?? null, null);
 assertClose(imputationConfidenceResult.confidence.intelligence, 0.4);
 
 const sparseBenchmarkKeys = Array.from({ length: 12 }, (_, index) => `quality_${index}`);
 const sparseEvidenceBenchmarkPortfolio = Object.fromEntries(
-  sparseBenchmarkKeys.map((key) => [
+  sparseBenchmarkKeys.map((key, index) => [
     key,
     {
-      group: "frontier",
+      group: index === 1 ? "baseline" : "frontier",
       benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 1, agentic: 0 },
     },
@@ -908,13 +933,14 @@ const sparseEvidenceBenchmarkPortfolio = Object.fromEntries(
 ) as Record<
   string,
   {
-    group: "frontier";
+    group: "frontier" | "baseline";
     benchmarkImportance: 1;
     dimensionLoadings: { intelligence: 1; agentic: 0 };
   }
 >;
 const sparseEvidenceConfig = {
   ...STAGE_CONFIG.scoring,
+  intelligenceGroupWeights: { frontier: 0.8, baseline: 0.2 },
   intelligenceBenchmarkKeys: sparseBenchmarkKeys,
   agenticBenchmarkKeys: [],
   qualityCoverage: {
@@ -935,7 +961,7 @@ const sparseEvidenceModels = [
   },
   {
     id: "sparse-target",
-    benchmarks: { quality_0: 100 },
+    benchmarks: { quality_0: 100, quality_1: 100 },
   },
 ];
 const sparseEvidenceResult = buildComponentScoreResult(
@@ -946,10 +972,13 @@ const sparseEvidenceResult = buildComponentScoreResult(
   buildQualityScoringContext(sparseEvidenceModels, sparseEvidenceConfig),
 );
 const sparseEvidenceComponentScores = sparseEvidenceResult.componentScores;
-assertClose(sparseEvidenceComponentScores?.intelligence_score, 85);
-assertClose(sparseEvidenceResult.confidence.intelligence, 1 / 12);
+assertClose(
+  sparseEvidenceComponentScores?.intelligence_score,
+  100 * (0.85 + 0.15 * evidenceRetentionFactor(3, 1.5, 12)),
+);
+assertClose(sparseEvidenceResult.confidence.intelligence, 2 / 12);
 const sparseLowEvidenceResult = buildComponentScoreResult(
-  { id: "sparse-low", benchmarks: { quality_0: 0 } },
+  { id: "sparse-low", benchmarks: { quality_0: 0, quality_1: 0 } },
   nullSpeed,
   [],
   sparseEvidenceConfig,
@@ -1053,6 +1082,47 @@ for (const [index, scored] of separatedResourceScores.entries()) {
     ((expectedSourceAScores[index] ?? 0) + (expectedSourceBScores[index] ?? 0)) / 2,
   );
   assertClose(scored.confidence.value, 0.7);
+}
+
+const sourceCQualities = [0.3, 0.5, 0.7, 0.9];
+const sourceCCosts = [4, 3, 2, 1];
+const threeSourceResourceCandidates = separatedResourceCandidates.map((model, index) => ({
+  ...model,
+  benchmarks: {
+    source_split:
+      (sourceAQualities[index]! + sourceBQualities[index]! + sourceCQualities[index]!) / 3,
+  },
+  scoring_sources: {
+    source_split: {
+      canonical_value:
+        (sourceAQualities[index]! + sourceBQualities[index]! + sourceCQualities[index]!) / 3,
+      metadata: {
+        ...model.scoring_sources.source_split.metadata,
+        source_c_label: "Artificial Analysis",
+        source_c_score: sourceCQualities[index],
+        source_c_cost: sourceCCosts[index],
+      },
+    },
+  },
+}));
+const threeSourceResourceScores = attachFinalScores(
+  threeSourceResourceCandidates,
+  separatedResourceConfig,
+);
+const expectedSourceCScores = benchmarkResourceEfficiencyScores(
+  threeSourceResourceCandidates,
+  sourceCQualities,
+  sourceCCosts.map(Math.log),
+  "linear",
+);
+for (const [index, scored] of threeSourceResourceScores.entries()) {
+  assertClose(
+    scored.scores.value_score,
+    ((expectedSourceAScores[index] ?? 0) +
+      (expectedSourceBScores[index] ?? 0) +
+      (expectedSourceCScores[index] ?? 0)) /
+      3,
+  );
 }
 
 const isolatedQualityResourceModels = attachFinalScores(
@@ -1478,6 +1548,34 @@ assertClose(
   40,
 );
 
+// Default Agentic selection follows the same frontier-only rule, including its direct evidence support.
+const agenticFrontierRows = [
+  { benchmarks: { automation_bench: 0.2, browsecomp: 0.1 } },
+  { benchmarks: { automation_bench: 0.8, browsecomp: 0.9 } },
+];
+const agenticFrontierContext = buildQualityScoringContext(
+  agenticFrontierRows,
+  STAGE_CONFIG.scoring,
+);
+const agenticFrontierResult = (baseline: number | null) =>
+  buildComponentScoreResult(
+    { benchmarks: { automation_bench: 0.8, browsecomp: baseline } },
+    nullSpeed,
+    [],
+    STAGE_CONFIG.scoring,
+    agenticFrontierContext,
+  );
+const agenticWithoutBaseline = agenticFrontierResult(null);
+assert.ok(agenticWithoutBaseline.componentScores?.agentic_score != null);
+for (const baseline of [0, 1]) {
+  const withBaseline = agenticFrontierResult(baseline);
+  assert.equal(
+    withBaseline.componentScores?.agentic_score,
+    agenticWithoutBaseline.componentScores?.agentic_score,
+  );
+  assert.equal(withBaseline.confidence.agentic, agenticWithoutBaseline.confidence.agentic);
+}
+
 const repeatedModelVariants = [
   {
     ...imputationModel("model-b", 10, 20, 200, 0.2),
@@ -1657,6 +1755,24 @@ const sharedTargetImputation = buildBenchmarkImputationByModel(
   .get(sharedTargetModel)
   ?.get("shared_target");
 assertClose(sharedTargetImputation, 12.5);
+// A headline selection change must not remove displayed baseline observations from shared imputation predictors.
+const frontierOnlySharedPreparation = prepareBenchmarkScoring(sharedTargetModels, {
+  ...sharedTargetConfig,
+  intelligenceBenchmarkKeys: [],
+  intelligenceBenchmarkDisplayKeys: sharedTargetConfig.intelligenceBenchmarkKeys,
+  intelligenceGroupWeights: { frontier: 1, baseline: 0 },
+});
+assertClose(
+  frontierOnlySharedPreparation.imputationByModel.get(sharedTargetModel)?.get("shared_target"),
+  sharedTargetImputation!,
+);
+assertClose(
+  frontierOnlySharedPreparation.imputationFactorsByModel
+    .get(sharedTargetModel)
+    ?.get("shared_target"),
+  1,
+);
+
 assertClose(
   prepareBenchmarkScoring(sharedTargetModels, sharedTargetConfig)
     .imputationFactorsByModel.get(sharedTargetModel)
@@ -1786,13 +1902,14 @@ assertEqual(nonRecursiveImputations?.has("target"), false);
 
 const contextualImputationConfig = {
   ...STAGE_CONFIG.scoring,
+  intelligenceGroupWeights: { frontier: 0.8, baseline: 0.2 },
   intelligenceBenchmarkKeys: ["target", "c1", "c2", "c3"],
   agenticBenchmarkKeys: [],
   benchmarkPortfolio: {
     target: intelligenceBenchmarkEntry(),
-    c1: intelligenceBenchmarkEntry(),
+    c1: { ...intelligenceBenchmarkEntry(), group: "frontier" },
     c2: intelligenceBenchmarkEntry(),
-    c3: intelligenceBenchmarkEntry(),
+    c3: { ...intelligenceBenchmarkEntry(), group: "baseline" },
   },
 } as const;
 const singleEffortModel = [
@@ -1904,12 +2021,11 @@ const imputationEvidenceContext = buildQualityScoringContext(
 );
 const imputationEvidenceTarget = {
   id: "imputation-evidence-target",
-  benchmarks: { c1: 100 },
+  benchmarks: { c1: 100, c3: 100 },
 };
 const imputedHighValues = new Map([
   ["target", 100],
   ["c2", 100],
-  ["c3", 100],
 ]);
 const imputationEvidenceConfig = {
   ...contextualImputationConfig,
@@ -1933,13 +2049,11 @@ const validatedImputationScores = buildComponentScoreResult(
   new Map([
     ["target", 0.5],
     ["c2", 0.5],
-    ["c3", 0.5],
   ]),
 ).componentScores;
 const untrustedCoverageRetention =
   STAGE_CONFIG.scoring.qualityCoverageMinimumRetention +
-  (1 - STAGE_CONFIG.scoring.qualityCoverageMinimumRetention) *
-    evidenceRetentionFactor(1.5, 0, 3.75);
+  (1 - STAGE_CONFIG.scoring.qualityCoverageMinimumRetention) * evidenceRetentionFactor(3, 0, 3.75);
 assertClose(untrustedImputationScores?.intelligence_score, 100 * untrustedCoverageRetention);
 assertClose(validatedImputationScores?.intelligence_score, 100);
 
@@ -2029,10 +2143,11 @@ function modelCandidate(options: {
 
 const siblingCalibrationConfig = {
   ...STAGE_CONFIG.scoring,
+  intelligenceGroupWeights: { frontier: 0.8, baseline: 0.2 },
   intelligenceBenchmarkKeys: ["b1", "b2", "b3", "b4"],
   agenticBenchmarkKeys: [],
   benchmarkPortfolio: {
-    b1: intelligenceBenchmarkEntry(),
+    b1: { ...intelligenceBenchmarkEntry(), group: "frontier" },
     b2: intelligenceBenchmarkEntry(),
     b3: intelligenceBenchmarkEntry(),
     b4: intelligenceBenchmarkEntry(),
@@ -2126,6 +2241,7 @@ function undercoveredBenchmarks(value: number, count = undercoveredBenchmarkKeys
 
 const undercoveredConfig: ScoringConfig = {
   ...STAGE_CONFIG.scoring,
+  intelligenceGroupWeights: { frontier: 0.8, baseline: 0.2 },
   qualityCoverageMinimumRetention: 1,
   directBenchmarkWeightMultiplier: 1,
   intelligenceBenchmarkKeys: ["aa_intelligence_index", "vals_index", ...undercoveredBenchmarkKeys],
@@ -2142,7 +2258,10 @@ const undercoveredConfig: ScoringConfig = {
       dimensionLoadings: { intelligence: 1, agentic: 0 },
     },
     ...Object.fromEntries(
-      undercoveredBenchmarkKeys.map((key) => [key, intelligenceBenchmarkEntry()]),
+      undercoveredBenchmarkKeys.map((key, index) => [
+        key,
+        { ...intelligenceBenchmarkEntry(), group: index === 0 ? "frontier" : "baseline" },
+      ]),
     ),
   },
   qualityCoverage: {
@@ -2161,7 +2280,7 @@ const undercoveredReferences = [0, 20, 40, 60, 80, 100].map((value, index) => ({
 const undercoveredModel = {
   id: "test/undercovered-target",
   intelligence: { intelligence_index: 70 },
-  benchmarks: { vals_index: 30, b1: 80 },
+  benchmarks: { vals_index: 30, b1: 80, b2: 80 },
 };
 const coveredModel = {
   id: "test/covered-target",
@@ -2182,8 +2301,9 @@ const undercoveredScore = buildComponentScoreResult(
   undercoveredConfig,
   undercoveredContext,
 ).componentScores?.intelligence_score;
-// Every item shares one pool: direct weight 1, AA proxy weight 0.5 × 10, and Vals proxy weight 0.5 × 7.
-assertClose(undercoveredScore, (80 + 70 * 5 + 30 * 3.5) / 9.5);
+// The task groups keep their 80/20 budget before the direct and index union weights are combined.
+const expectedUndercoveredScore = (80 * 2 + 70 * 5 + 30 * 3.5) / 10.5;
+assertClose(undercoveredScore, expectedUndercoveredScore);
 assertClose(
   buildComponentScoreResult(
     undercoveredModel,
@@ -2192,7 +2312,7 @@ assertClose(
     undercoveredConfig,
     undercoveredContext,
   ).componentScores?.intelligence_score,
-  (80 + 70 * 5 + 30 * 3.5) / 9.5,
+  expectedUndercoveredScore,
 );
 const lowImportanceIndexConfig = {
   ...undercoveredConfig,
@@ -2218,7 +2338,7 @@ assertClose(
     lowImportanceIndexConfig,
     buildQualityScoringContext(undercoveredModels, lowImportanceIndexConfig),
   ).componentScores?.intelligence_score,
-  (80 + 70 * 0.5 + 30 * 0.35) / 1.85,
+  (80 * 2 + 70 * 0.5 + 30 * 0.35) / 2.85,
 );
 const coveredScore = buildComponentScoreResult(
   coveredModel,
@@ -2291,18 +2411,18 @@ assertClose(
   (100 * 8.5 + 60 * 4) / 12.5,
 );
 const noTaskModel = { ...coveredModel, benchmarks: { vals_index: 100 } };
-assertClose(
+assertEqual(
   buildComponentScoreResult(
     noTaskModel,
     qualityTestSpeed,
     [],
     undercoveredConfig,
     undercoveredContext,
-  ).componentScores?.intelligence_score,
-  100,
+  ).componentScores?.intelligence_score ?? null,
+  null,
 );
 const fakeTaskEstimates = new Map(
-  undercoveredBenchmarkKeys.filter((k) => k !== "b1").map((k) => [k, 100]),
+  undercoveredBenchmarkKeys.filter((k) => k !== "b1" && k !== "b2").map((k) => [k, 100]),
 );
 assertClose(
   buildComponentScoreResult(
@@ -2538,12 +2658,14 @@ const adjustedTokenScores = tokenAgenticScores(tokenModels);
 assert(adjustedTokenScores[1]! > adjustedTokenScores[2]!);
 assert(adjustedTokenScores[2]! > adjustedTokenScores[3]!);
 assertClose(adjustedTokenScores[0], 0);
-assertClose(adjustedTokenScores[4], 100);
+assert(adjustedTokenScores[4]! > 85 && adjustedTokenScores[4]! < 100);
 const neutralTokenScores = tokenAgenticScores(tokenModels, {
   ...tokenConfig,
   agenticTokenModifierCap: 0,
 });
-assert.deepEqual(neutralTokenScores, [0, 50, 50, 50, 100]);
+const midpointScore = 50;
+for (const [index, expected] of [0, midpointScore, midpointScore, midpointScore, 100].entries())
+  assertClose(neutralTokenScores[index], expected);
 
 function separatedTokenModels(sourceBScale: number): ModelAtlasCandidate[] {
   return tokenModels.map((model, index) => ({

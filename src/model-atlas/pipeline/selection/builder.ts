@@ -134,13 +134,13 @@ export function prepareModelSelection(
         component_scores: result.componentScores,
         confidence: result.confidence,
       },
-      retention: result.intelligenceRetention,
+      intelligenceParts: result.intelligenceScoreParts,
     };
   });
   const qualityScoredCandidates = blendPairwiseQualityScores(
     rescored.map(({ candidate }) => candidate),
     scoringConfig,
-    rescored.map(({ retention }) => retention),
+    rescored.map(({ intelligenceParts }) => intelligenceParts),
   );
   if (capabilityState) {
     capabilityState = advanceCapabilities(

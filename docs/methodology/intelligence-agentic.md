@@ -6,7 +6,7 @@ Intelligence and Agentic combine benchmark results separately for each model and
 
 ### Benchmark Scores and Dimension Weights
 
-Read results in their declared units and normalize them to 0–100. Importance and dimension allocation determine how much each benchmark contributes to Intelligence and Agentic; the same weighted-mean calculation is used throughout this chapter.
+Read results in their declared units and normalize them to 0–100. Importance and dimension allocation determine a benchmark's weight within a capability. Both capabilities score frontier benchmarks and eligible aggregate indexes. Baseline benchmark results remain visible but have no direct score weight.
 
 **Reported scores**
 
@@ -26,13 +26,15 @@ The current endpoints are $L=500$ and $U=2500$. These are parameters, not univer
 
 **Normalize benchmark results**
 
-Min–max scaling preserves proportional gaps between results. For model configuration $m$ (including reasoning effort) and benchmark $b$, $x_{m,b}$ is the result after any declared conversion. Its observed minimum and maximum define the normalized result $z_{m,b}$:
+The lowest observed result maps to 0 and the highest to 100. Equal improvements within a benchmark's observed range produce equal changes in its normalized score. This linear rule applies to every quality benchmark in both capabilities, including aggregate indexes, Elo, rubric scores, and success rates. If all observed results are equal, each receives 100. For model configuration $m$ (including reasoning effort) and benchmark $b$, $x_{m,b}$ is the result after any declared conversion; $x_{\min,b}$ and $x_{\max,b}$ are its observed minimum and maximum. The normalized result is $z_{m,b}$:
 
 $$
-z_{m,b}=100\cdot\operatorname{clamp}\left(\frac{x_{m,b}-x_{\min,b}}{x_{\max,b}-x_{\min,b}},0,1\right).
+z_{m,b}=100\operatorname{clamp}\left(\frac{x_{m,b}-x_{\min,b}}{x_{\max,b}-x_{\min,b}},0,1\right).
 $$
 
-If all observed results are equal, each receives 100. Imputed values cannot change the observed endpoints; new observations in later runs can.
+At 20%, 50%, 90%, 95%, and 99% of the observed range, the normalized scores are 20, 50, 90, 95, and 99. A score of 100 means the strongest observed benchmark result, not perfect completion. The same relative position has the same score whether a benchmark spans 1–20%, 41–60%, 45–55%, or 10–90%.
+
+Only observed results establish the endpoints. Imputed values use that scale without changing it; later observations can change the endpoints and therefore the scores.
 
 **Calculate the weighted mean**
 
@@ -42,13 +44,13 @@ If all observed results are equal, each receives 100. Imputed values cannot chan
 | Allocation | Intelligence/Agentic split: 100/0, 75/25, 50/50, 25/75, or 0/100. |
 | Effective weight $\omega_{b,d}$ | Importance × allocation to dimension $d$, expressed as a fraction. |
 
-For dimension $d$ (Intelligence or Agentic), the model's initial score $z_{m,d}$ is the weighted mean of its observed normalized results:
+For Agentic, the model's initial benchmark score $z_{m,A}$ is the weighted mean of its observed normalized results:
 
 $$
-z_{m,d}=\frac{\sum_b\omega_{b,d}z_{m,b}}{\sum_b\omega_{b,d}}.
+z_{m,A}=\frac{\sum_b\omega_{b,A}z_{m,b}}{\sum_b\omega_{b,A}}.
 $$
 
-Both sums include only observed results with positive weight for that dimension. Missing results are excluded, not counted as zeros. This establishes the weighted-mean calculation for observed results. Agentic applies the token adjustment below to its benchmark scores before taking the mean. The later sections specify which estimates enter that mean and how individual benchmarks and aggregate indexes are combined.
+Both sums include only available frontier results with positive Agentic weight. Missing results are excluded, not counted as zeros. Agentic applies the token adjustment below to its benchmark scores before taking the mean. Intelligence calculates a weighted mean from frontier benchmarks and blends it with their shared-benchmark comparison. It requires a frontier benchmark result or supported effort estimate for a score. Eligible indexes contribute at their overlap-adjusted evidence share. The later sections specify how estimates and indexes enter each capability.
 
 [Benchmarks](../benchmarks.md#portfolio-settings) records allocations and current importance exceptions. [Imputation across reasoning efforts](imputation.md#imputation-across-reasoning-efforts) explains how supported estimates enter the later benchmark mean.
 
@@ -72,7 +74,7 @@ Weighted statistics across models use these reference weights unless stated othe
 
 ### Agentic Token Efficiency
 
-Using fewer tokens than expected at similar benchmark quality increases a model’s Agentic contribution; using more reduces it. The multiplier ranges from 0.85 to 1.15, with smaller adjustments when comparison support is weak. Apply it to each benchmark score, rescale the adjusted scores to 0–100, then combine them into Agentic. Intelligence and raw benchmark results stay unchanged.
+Using fewer tokens than expected at similar benchmark quality increases a model’s Agentic contribution; using more reduces it. The multiplier ranges from 0.85 to 1.15, with smaller adjustments when comparison support is weak. Apply it to each benchmark score, then rescale using bounds that include the original 0–100 scale before combining contributions into Agentic. Intelligence and raw benchmark results stay unchanged.
 
 **Select comparable token measurements**
 
@@ -127,24 +129,25 @@ For imputed tokens, multiply the adjustment by their evidence factor $f^{\text{t
 
 **Apply the multiplier and rescale**
 
-Multiply the normalized benchmark score $z_{m,b}$ by $M^{\text{tok}}_{m,b}$. Then rescale the adjusted score $\widetilde z_{m,b}$ to 0–100 using the adjusted observed minimum and maximum:
+Multiply the normalized benchmark score $z_{m,b}$ by $M^{\text{tok}}_{m,b}$. Then rescale the adjusted score $\widetilde z_{m,b}$ using bounds that include both 0 and 100 as well as the adjusted observed minimum and maximum:
 
 $$
 \widetilde z_{m,b}=z_{m,b}M^{\text{tok}}_{m,b},\qquad
-z^A_{m,b}=100\frac{\widetilde z_{m,b}-\min_j\widetilde z_{j,b}}{\max_j\widetilde z_{j,b}-\min_j\widetilde z_{j,b}}.
+L^A_b=\min(0,\min_j\widetilde z_{j,b}),\qquad U^A_b=\max(100,\max_j\widetilde z_{j,b}),\qquad
+z^A_{m,b}=100\frac{\widetilde z_{m,b}-L^A_b}{U^A_b-L^A_b}.
 $$
 
-The adjusted $z^A$ enters the Agentic mean, index blend, and effort comparisons. Do not clip at 100 before rescaling. The ±15% limit applies to the multiplication step; it does not bound the final score change. Rescaling can also move scores whose multiplier is 1 because the observed minimum and maximum can change.
+The adjusted $z^A$ enters the Agentic mean, index blend, and effort comparisons. The fixed 0 and 100 bounds prevent the second rescaling from changing scores unless an adjusted result falls outside that scale. Do not clip at 100 before rescaling. The ±15% limit applies to the multiplication step; it does not bound the final score change. Rescaling can also move scores whose multiplier is 1 when an adjusted result expands the bounds.
 
 Token use changes neither evidence weights nor inclusion requirements. It can indirectly change Value through the Agentic score. Aggregate token counts do not distinguish successful completion from early termination or prove that an effort setting caused an efficiency gain.
 
 ### Shared-Benchmark Comparisons for Intelligence
 
-Two models can earn similar ordinary scores from different benchmark baskets. The pairwise calculation compares each pair on the benchmarks both actually report, then fits those comparisons together into one ordering. Its contribution receives 20% of the Intelligence blend; the ordinary benchmark-and-index score receives 80%.
+Two models can earn similar ordinary scores from different frontier benchmark baskets. The pairwise calculation compares each pair on the frontier benchmarks both actually report, then fits those comparisons together into one ordering. Its mapped contribution receives 20% of the frontier score; the ordinary frontier mean receives 80%.
 
 **Compare shared observations**
 
-For each individual Intelligence benchmark, use the observed min–max normalized scores $q_{m,b}$ defined above. Normalized scores of 90 versus 89 contribute a one-point difference; 90 versus 50 contribute forty points. Aggregate indexes, crosswalks, and imputed values do not enter this comparison. Missing observations create no comparison and do not count as losses.
+For each individual Intelligence benchmark, use its normalized Intelligence score $q_{m,b}$ defined above. Normalized scores of 90 versus 89 contribute a one-point difference; 90 versus 50 contribute forty points. Accepted quality crosswalks enter as benchmark results. Aggregate indexes and estimates from other efforts or benchmarks do not enter this comparison. Missing observations create no comparison and do not count as losses.
 
 Compare variants from different base models only. For $M_b$ distinct base models reporting benchmark $b$, assign each comparison the weight:
 
@@ -158,7 +161,7 @@ For a particular model pair, keeping one edge per shared benchmark is equivalent
 
 **Fit the comparison graph**
 
-Each model variant is a node; each shared benchmark supplies a weighted comparison edge. Fit one rating $\theta_m$ per variant in the largest connected component by minimizing disagreement with the measured margins:
+Each model variant is a node; each shared frontier benchmark supplies a weighted comparison edge. Fit one rating $\theta_m$ per variant in the largest connected component by minimizing disagreement with the measured margins:
 
 $$
 \underset{\theta}{\operatorname{minimize}}\sum_{b}\sum_{i<j}\lambda_{i,j,b}\left[(\theta_i-\theta_j)-(q_{i,b}-q_{j,b})\right]^2.
@@ -210,31 +213,30 @@ The implementation applies the Laplacian directly from the edge list and solves 
 
 **Map the fitted ordering and blend**
 
-Convert the fitted ratings to model-balanced percentile ranks $p_m$ on a 0–1 scale. A percentile is not itself an Atlas score, so map it back through the weighted distribution of ordinary, unregularized Intelligence scores for eligible fitted variants. If $Q_S$ is that distribution's weighted quantile function, blend:
+Convert fitted ratings to model-balanced percentile ranks $p_m$ on a 0–1 scale. A percentile is not itself an Atlas score, so map it back through the weighted distribution of ordinary frontier scores for eligible fitted variants. If $Q_F$ is that distribution's weighted quantile function and $O_{m,F}$ is the ordinary frontier mean, blend:
 
 $$
-S^{\text{pair}}_{m,I}=0.8S_{m,I}+0.2Q_S(p_m).
+T_{m,F}=0.8O_{m,F}+0.2Q_F(p_m).
 $$
 
-The mapping expresses a percentile position in ordinary Intelligence score units. Observed differences influence the fitted ordering, but the mapped contribution borrows its spacing from the ordinary score distribution; it does not preserve latent rating distances or guarantee that the blended distribution stays unchanged. Agentic retains its existing calculation, including the token-efficiency adjustment above.
+The mapping expresses a percentile position in ordinary frontier score units. Observed differences influence the fitted ordering, but the mapped contribution borrows its spacing from the ordinary frontier distribution; it does not preserve latent rating distances or guarantee that the blended distribution stays unchanged. Variants outside the largest connected comparison graph retain their ordinary frontier mean. Agentic retains its existing calculation, including the token-efficiency adjustment above.
 
-For example, an ordinary score of 70 and a mapped pairwise score of 80 blend to 72 before coverage retention. Apply the existing coverage multiplier once to that combined score. The 20% weight expresses how much influence to give this second interpretation of the direct benchmark evidence; it does not represent independent evidence or a statistically fitted optimum.
+For example, an ordinary frontier score of 70 and a mapped frontier pairwise score of 80 blend to 72. Add eligible index evidence and apply coverage retention once. The pairwise weight expresses how much influence to give this second interpretation of direct benchmark evidence; it does not represent independent evidence or a statistically fitted optimum.
 
 ### Evidence Support and Quality Regularization
 
-Evidence support shows how much of the benchmark portfolio supports a model’s scores. Score retention uses supported benchmark weight rather than that portfolio percentage: at or below 1.2, multiply the entire score by 0.85; increase the multiplier smoothly to 1 at 12. Eight units of direct benchmark weight reach 12 after the 1.5 multiplier. Apply retention after combining individual benchmarks and eligible indexes and, for Intelligence, after the shared-benchmark blend. The same rule applies to scores below 50 and to models with aggregate indexes.
+Evidence support shows how much of the active benchmark portfolio supports a model’s scores. Both capabilities count frontier benchmarks and eligible indexes; baseline benchmarks add no direct score support. Observed baseline results can still help a validated contextual predictor estimate missing frontier evidence. Score retention uses supported benchmark weight rather than that portfolio percentage: at or below 1.2, multiply the entire score by 0.85; increase the multiplier smoothly to 1 at 12. Eight units of direct benchmark weight reach 12 after the 1.5 multiplier. Apply retention once after combining the Intelligence frontier score and eligible indexes, or after the Agentic benchmark-and-index mean. The same rule applies to scores below 50 and to models with aggregate indexes.
 
 **Count each result’s evidence**
 
-For model variant $m$ and benchmark $b$, the evidence factor $f_{m,b}$ determines how much of the benchmark’s portfolio weight counts: 1 counts all of it, 0.5 counts half, and 0 counts none. Observations receive 1. A validated source crosswalk receives $f^{\text{cross}}_{m,b}$, the [source-crosswalk evidence factor](imputation.md#source-crosswalk-imputation).
+For model variant $m$ and benchmark $b$, the evidence factor $f_{m,b}$ determines how much of the benchmark’s portfolio weight counts: 1 counts all of it, 0.5 counts half, and 0 counts none. Observations and accepted [source crosswalks](imputation.md#source-crosswalks) receive 1.
 
 For imputation from other benchmarks, use the normalized validation error $e^{\text{validation}}_{m,b}$ and observed share $s^{\text{observed}}_{m,b}$ of the other benchmarks’ total weight:
 
 $$
 f_{m,b}=
 \begin{cases}
-1 & \text{observed}\\
-f^{\text{cross}}_{m,b} & \text{validated source crosswalk}\\
+1 & \text{observed or accepted source crosswalk}\\
 s^{\text{observed}}_{m,b}\operatorname{clamp}(1-e^{\text{validation}}_{m,b}/25,0,1) & \begin{gathered}\text{validated imputation}\\\text{from other benchmarks}\end{gathered}\\
 0 & \text{otherwise}.
 \end{cases}
@@ -268,10 +270,10 @@ The multiplier stays between 0.85 and 1. Adding unobserved benchmarks reduces th
 
 **Apply the score reduction**
 
-The unified score $S_{m,d}$ uses individual benchmarks, eligible indexes, accepted source crosswalks, and supported estimates across reasoning efforts. Agentic uses the token-adjusted benchmark scores. Intelligence then applies the shared-benchmark blend, producing $S^{\text{pair}}_{m,I}$; for Agentic, define $S^{\text{pair}}_{m,A}=S_{m,A}$. Multiply the resulting score by $r_{m,d}$ to obtain the adjusted score $\widetilde S_{m,d}$:
+The capability score $S_{m,d}$ uses active individual benchmarks, eligible indexes, accepted source crosswalks, and supported estimates across reasoning efforts. Intelligence applies its frontier pairwise blend before this step; Agentic uses the token-adjusted benchmark mean. Multiply the resulting score by $r_{m,d}$ to obtain the adjusted score $\widetilde S_{m,d}$:
 
 $$
-\widetilde S_{m,d}=r_{m,d}S^{\text{pair}}_{m,d}.
+\widetilde S_{m,d}=r_{m,d}S_{m,d}.
 $$
 
 At 1.2 supported benchmark weight, a score of 80 becomes 68 and a score of 40 becomes 34. At 6.6, the multiplier is 0.925; at 12, it is 1. Full score retention does not mean the displayed portfolio coverage has reached 100%.
@@ -297,21 +299,27 @@ The coefficients follow from the four requirements; choosing those requirements 
 
 ### Combining Benchmarks and Aggregate Indexes
 
-When an eligible observed aggregate index is available, combine it with individual benchmark results in one weighted mean, separately for Intelligence and Agentic at each reasoning effort. More represented benchmarks give an index more weight; individual benchmark contributions receive a 1.5 multiplier.
+Eligible observed aggregate indexes retain their overlap-adjusted represented breadth. More represented benchmarks give an index more weight; individual benchmark contributions receive a 1.5 multiplier when calculating the relative benchmark-versus-index share. Intelligence blends its frontier benchmark score with eligible indexes; Agentic retains a unified benchmark-and-index mean.
 
-Use the base weights $\omega_{b,d}$ defined above: importance × dimension allocation. For model $m$, $z_{m,b}$ is the normalized individual-benchmark contribution and $z_{m,k}$ is the normalized index contribution, including token adjustments for Agentic. Index $k$ has remaining represented breadth $B_{m,k,d}$ after overlap deductions for that model and dimension. The combined score is:
+Use the base weights $\omega_{b,d}$ defined above: importance × dimension allocation. For model $m$, $z_{m,b}$ is the normalized individual-benchmark contribution and $z_{m,k}$ is the normalized index contribution, including token adjustments for Agentic. Index $k$ has remaining represented breadth $B_{m,k,d}$ after overlap deductions for that model and dimension. Define $D_{m,d}=1.5\sum_b\omega_{b,d}$ over available frontier benchmark contributions and $K_{m,d}=\sum_k\omega_{k,d}B_{m,k,d}$ over eligible indexes. The Intelligence score uses frontier score $T_{m,F}$ from the preceding section:
 
 $$
-S_{m,d}=\frac{1.5\sum_b\omega_{b,d}z_{m,b}+\sum_k\omega_{k,d}B_{m,k,d}z_{m,k}}{1.5\sum_b\omega_{b,d}+\sum_k\omega_{k,d}B_{m,k,d}}.
+S_{m,I}=\frac{D_{m,I}T_{m,F}+\sum_k\omega_{k,I}B_{m,k,I}z_{m,k}}{D_{m,I}+K_{m,I}}.
 $$
 
-The sums include only available contributions with positive weight. Accepted source-crosswalk and other-effort estimates can contribute as individual-benchmark values and receive the same 1.5 multiplier, but do not become direct observations or satisfy admission. Estimates inferred from other benchmarks affect evidence support only; they do not enter this mean. Effort-labelled variants use only indexes reporting that effort; unlabelled variants use the ordinary index pool.
+The index share depends on its represented breadth and the model's available frontier benchmark evidence. A model without a frontier benchmark contribution has no Intelligence score; an eligible index alone does not replace that requirement. Baseline observations have no direct contribution, direct evidence support, or direct-overlap deduction in either capability; aggregate indexes retain their own published composite values. Agentic keeps the unified mean:
 
-Known constituent keys are recorded for AA and CAIS. A directly observed constituent with positive weight in the dimension removes one breadth unit from every eligible index containing it. Otherwise, a constituent shared by multiple eligible indexes contributes an equal fraction of one breadth unit to each. These deductions happen before applying index importance and dimension allocation, and remaining breadth cannot fall below zero. Unmapped constituents retain their assigned breadth because their overlap cannot be established.
+$$
+S_{m,A}=\frac{1.5\sum_b\omega_{b,A}z_{m,b}+\sum_k\omega_{k,A}B_{m,k,A}z_{m,k}}{D_{m,A}+K_{m,A}}.
+$$
+
+The sums include only available contributions with positive weight. Accepted source crosswalks count as individual-benchmark results, including for admission. Other-effort estimates can contribute individual-benchmark values with the same 1.5 multiplier, but do not become direct observations or satisfy admission. Estimates inferred from other benchmarks affect evidence support only; they do not enter this mean. Effort-labelled variants use only indexes reporting that effort; unlabelled variants use the ordinary index pool.
+
+Known constituent keys are recorded for AA and CAIS. A directly observed constituent with positive active weight in the dimension removes one breadth unit from every eligible index containing it. Otherwise, a constituent shared by multiple eligible indexes contributes an equal fraction of one breadth unit to each. These deductions happen before applying index importance and dimension allocation, and remaining breadth cannot fall below zero. Unmapped constituents retain their assigned breadth because their overlap cannot be established.
 
 These deductions reduce represented weight; they do not remove constituent results from the published index value. Overlap accounting therefore limits duplicate influence without reconstructing an index from its remaining benchmarks. The 1.5 multiplier is a policy preference for selected individual benchmarks, not a fitted optimum or a correction for selective reporting.
 
-AA, CAIS, Surge, and Vals use their declared or edition-specific represented breadth. ECI uses the median fixed-index breadth, currently 7.5 from the counts 7, 7, 8, and 10. If only indexes are available, their weighted mean supplies the score before [coverage regularization](#evidence-support-and-quality-regularization). If no eligible observed index is present, the individual-benchmark mean is regularized in the same way; a uniform 1.5 multiplier cancels from that mean. The multiplier and represented breadth do not inflate displayed evidence support. Admission uses its separate [observed-evidence rules](leaderboard-rules.md#dashboard-inclusion). No additional adjustment is applied based on reasoning effort.
+AA, CAIS, Surge, and Vals use their declared or edition-specific represented breadth. ECI uses the median fixed-index breadth, currently 7.5 from the counts 7, 7, 8, and 10. Index-only evidence can supply an Agentic score before [coverage regularization](#evidence-support-and-quality-regularization); Intelligence requires a frontier benchmark contribution. If no eligible observed index is present, the frontier-only score is regularized in the same way; the uniform 1.5 multiplier cancels from the Agentic mean and from Intelligence's index-share calculation. The multiplier and represented breadth do not inflate displayed evidence support. Admission uses its separate [observed-evidence rules](leaderboard-rules.md#dashboard-inclusion). No additional adjustment is applied based on reasoning effort.
 
 ## Parameter Choices
 
@@ -320,7 +328,8 @@ These values are scoring-policy choices, not fitted claims about model behavior.
 | Parameter | Value | Why it exists |
 | --- | ---: | --- |
 | Quality regularization | 85% retention through 1.2 supported benchmark weight; smooth rise to 100% retention at 12 | Discounts thin evidence while allowing eight units of direct benchmark weight to earn full retention. |
-| Shared-benchmark Intelligence blend | 20% pairwise, 80% ordinary score | Gives shared benchmark comparisons explicit influence, mapped onto the ordinary score scale; sparse benchmarks still contribute to the ordinary score. |
+| Capability benchmark group | Frontier only for Intelligence and Agentic | Focuses both scores on benchmarks selected for separation among leading models. |
+| Shared-benchmark Intelligence blend | 20% pairwise, 80% ordinary frontier score | Gives shared benchmark comparisons explicit influence on the same score scale; sparse benchmarks still contribute to the ordinary score. |
 | Direct benchmark multiplier | 1.5 | Gives specific benchmark evidence modestly more influence than opaque represented index breadth without restoring a separate category-level blend. |
 | Aggregate-index breadth | Represented benchmark count after exact known overlap deductions | Gives broad indexes influence in proportion to their published evidence while counting known direct and cross-index overlap once. |
 | ECI breadth | 7.5, the median fixed-index breadth | Avoids model-specific fitted counts changing the categorical influence of one opaque index. |

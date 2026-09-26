@@ -150,6 +150,16 @@ export function buildCurrentModelAtlasMetadata({
     ...(sourceHealth == null ? {} : { source_health: sourceHealth }),
     benchmark_update_health: currentBenchmarkUpdateHealth,
     scoring: {
+      intelligence_scoring: {
+        version: "3",
+        group_weights: { ...scoringConfig.intelligenceGroupWeights },
+        pairwise_weight: scoringConfig.pairwiseIntelligenceWeight,
+      },
+      quality_normalization: {
+        version: "6",
+        transform: "linear",
+        score_range: [0, 100],
+      },
       intelligence_benchmark_keys: [...scoringConfig.intelligenceBenchmarkKeys],
       intelligence_benchmark_display_keys: [...scoringConfig.intelligenceBenchmarkDisplayKeys],
       missing_intelligence_benchmark_keys: scoringConfig.intelligenceBenchmarkKeys.filter(

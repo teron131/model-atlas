@@ -216,7 +216,7 @@ export function historicalDatasetFromReleases(
   return dataset;
 }
 
-/** Capture provenance never defines a benchmark edition; only the declared measurement and source-fusion contract does. */
+/** Capture provenance never defines a benchmark edition; only the declared measurement and source-crosswalk contract does. */
 export function checkpointBenchmarkId(key: string): string {
   const definition = BENCHMARK_CATALOG[key as keyof typeof BENCHMARK_CATALOG];
   if (!definition) throw new Error(`Unknown checkpoint benchmark: ${key}`);

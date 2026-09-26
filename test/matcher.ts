@@ -9,6 +9,7 @@ import {
 } from "../src/model-atlas/benchmarks/observation";
 import { STAGE_CONFIG } from "../src/model-atlas/config";
 import { buildDebugTraceRows } from "../src/model-atlas/database/debug-trace";
+import { SnapshotRowCollector } from "../src/model-atlas/database/writers/collector";
 import { buildMatchDiagnostics } from "../src/model-atlas/identity";
 import { modelNameIdentityKey } from "../src/model-atlas/identity/matching/name-tokens";
 import { runMatcher } from "../src/model-atlas/identity/matching/pipeline";
@@ -27,8 +28,11 @@ import {
   buildArtificialAnalysisResourceLookup,
   buildArtificialAnalysisSourceDefaultResourceLookup,
 } from "../src/model-atlas/sources/artificial-analysis/benchmark-resources";
+import { insertArtificialAnalysisRawModels } from "../src/model-atlas/sources/artificial-analysis/write";
 import type { ModelAtlasSourceData } from "../src/model-atlas/sources/assembly";
 import { buildBlueprintBenchMap } from "../src/model-atlas/sources/blueprint-bench/leaderboard";
+import type { OpenRouterSourcePayload } from "../src/model-atlas/sources/openrouter";
+import { insertOpenRouterRawRows } from "../src/model-atlas/sources/openrouter/write";
 import { buildRiemannBenchMap } from "../src/model-atlas/sources/surge/riemann-bench";
 import { buildTerminalBench4Map } from "../src/model-atlas/sources/terminal-bench-4/leaderboard";
 import type { SourceSnapshots } from "../src/model-atlas/sources/types";
@@ -279,7 +283,7 @@ assert.equal(effortDiagnostic?.artificial_analysis_id, "example/example-3-max");
 assert.equal(effortDiagnostic?.artificial_analysis_name, "Example 3 Max Effort");
 const effortTraceRows = buildDebugTraceRows(
   {
-    artificialAnalysisSelectedRows: [
+    artificialAnalysisRawRows: [
       {
         model_id: "example/example-3-max",
         name: "Example 3 Max Effort",
@@ -299,6 +303,77 @@ assert.equal(
 );
 assert.equal(effortTraceRows[0]?.artificial_analysis_id, "example/example-3-max");
 assert.equal(effortTraceRows[0]?.artificial_analysis_name, "Example 3 Max Effort");
+
+// Debug pointers must follow the writer's cumulative offsets, including optional endpoint summaries.
+const tracePayload: OpenRouterSourcePayload = {
+  fetched_at_epoch_seconds: 1_800_000_000,
+  directory: [{ slug: "example/example-3", permaslug: "example/example-3" }],
+  models: [
+    {
+      id: "example/other",
+      selected_permaslug: "example/other",
+      candidate_permaslugs: ["example/other"],
+      performance: {},
+      pricing: null,
+    },
+    {
+      id: "example/example-3",
+      selected_permaslug: "example/example-3",
+      candidate_permaslugs: ["example/example-3"],
+      performance: {
+        throughput: { data: [{ y: { first: 80, second: 100 } }] },
+        latency: { data: [{ y: { first: 2 } }] },
+      },
+      pricing: null,
+    },
+    {
+      id: "example/example-3-preview",
+      selected_permaslug: null,
+      candidate_permaslugs: [],
+      performance: {},
+      pricing: null,
+    },
+  ],
+};
+const traceCollector = new SnapshotRowCollector();
+insertOpenRouterRawRows(traceCollector, tracePayload);
+const traceRawRows = [{ model_id: "example/other" }, { model_id: "example/example-3-max" }];
+const traceSnapshots = {
+  artificialAnalysisRawRows: traceRawRows,
+  artificialAnalysisSelectedRows: [...traceRawRows].reverse(),
+  modelsDevPayload: {},
+  fetchedAt: { artificialAnalysis: tracePayload.fetched_at_epoch_seconds },
+} as unknown as SourceSnapshots;
+insertArtificialAnalysisRawModels(traceCollector, traceSnapshots);
+const writtenAnalysisRows = traceCollector.records("artificial_analysis_raw_models");
+const writtenStats = traceCollector
+  .records("openrouter_raw_rows")
+  .filter((row) => row.row_kind === "model_stats");
+const linkedTraces = buildDebugTraceRows(
+  traceSnapshots,
+  tracePayload,
+  effortDiagnostics,
+  STAGE_CONFIG.matcher,
+);
+assert.equal(linkedTraces.length, 2);
+for (const trace of linkedTraces) {
+  const writtenAnalysis = writtenAnalysisRows.find(
+    (row) => row.model_id === trace.artificial_analysis_id,
+  );
+  assert.ok(writtenAnalysis);
+  assert.equal(
+    trace.artificial_analysis_raw_row_index,
+    writtenAnalysis.row_index,
+    "debug traces must follow raw source order rather than the sorted leaderboard projection",
+  );
+  const written = writtenStats.find((row) => row.model_id === trace.openrouter_model_id);
+  assert.ok(written);
+  assert.equal(
+    trace.openrouter_model_stats_row_index,
+    written.row_index,
+    "debug traces must point to the model_stats row emitted by the OpenRouter writer",
+  );
+}
 
 const qwenMaxOutput = runMatcher(
   [source("qwen3-8-max", "Qwen3.8 Max")],
@@ -652,7 +727,10 @@ assert.equal(
 );
 
 const sourceData = modelStatsSourceData([
-  sourceModel("google/example-2-5-flash", 20, "high", 0.4),
+  {
+    ...sourceModel("google/example-2-5-flash", 20, "high", 0.4),
+    benchmarks: { hle: 0.4, omniscience_accuracy: 0.4, automation_bench: 0.4 },
+  },
   sourceModel("google/example-2-5-flash-non-reasoning", 10, "none", 0.1),
   sourceModel("google/example-3-pro", 50),
 ]);
@@ -752,7 +830,7 @@ assert.ok(
 );
 const unmatchedProTraceRows = buildDebugTraceRows(
   {
-    artificialAnalysisSelectedRows: [],
+    artificialAnalysisRawRows: [],
     modelsDevPayload: {},
   } as unknown as SourceSnapshots,
   null,
@@ -1098,6 +1176,8 @@ function modelStatsSourceData(
     chessPuzzles: { rows: [], rowsByModelName: new Map() },
     codeMigration: { rows: [], rowsByModelName: new Map() },
     complexConstraints: { rows: [], rowsByModelName: new Map() },
+    dayjobFinance: { rows: [], rowsByModelName: new Map() },
+    dayjobHealthcare: { rows: [], rowsByModelName: new Map() },
     deepSWE: {
       rows: [],
       rowsByModelName: new Map(),

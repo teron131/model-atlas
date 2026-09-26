@@ -50,7 +50,7 @@ Use resource amounts per task execution. Divide totals by the actual number of t
 
 ### Resource Comparability Across Sources
 
-Resource fusion requires agreement in absolute per-task amounts, independently of [quality fusion and crosswalk imputation](imputation.md#source-crosswalk-imputation). A benchmark can combine quality scores while keeping some or all resources separate by source.
+Resource fusion requires agreement in absolute per-task amounts, independently of [quality fusion and source crosswalks](imputation.md#source-crosswalks). A benchmark can combine quality scores while keeping some or all resources separate by source.
 
 Check cost, runtime, total tokens, and output tokens independently. The mean of raw amounts can be calculated only when their accounting is compatible and matched observations agree within the tolerance below. Normalize totals by their actual task-run counts first; check task coverage, retries, caching, and timing definitions.
 

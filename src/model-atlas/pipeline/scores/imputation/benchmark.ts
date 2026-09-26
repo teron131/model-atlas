@@ -24,7 +24,7 @@ import {
   observedRangesByBenchmark,
   type QualityScoringContext,
 } from "../quality-context";
-import { benchmarkFusionEstimate, benchmarkMetricValue } from "../resource-metrics";
+import { benchmarkMetricValue } from "../resource-metrics";
 
 export type BenchmarkImputationByModel = ReadonlyMap<JsonObject, ReadonlyMap<string, number>>;
 
@@ -134,8 +134,6 @@ export function benchmarkQualityEvidence(
   if (direct != null) {
     return { evidenceFactor: 1, value: direct };
   }
-  const fusion = benchmarkFusionEstimate(model, key);
-  if (fusion != null) return fusion;
   if (preparation == null) {
     return null;
   }
@@ -194,15 +192,20 @@ function observedNormalizedEvidenceScore(
     : null;
 }
 
-/** Resolve one dimension's selected benchmarks and effective weights for imputation context. */
+/** Keep displayed predictors available in both dimensions independently of their direct scoring participation. */
 function dimensionBenchmarkContext(
   dimension: BenchmarkDimension,
   scoringConfig: ScoringConfig,
 ): DimensionBenchmarkContext {
-  const benchmarkKeys =
+  const selectedKeys =
     dimension === "intelligence"
       ? scoringConfig.intelligenceBenchmarkKeys
       : scoringConfig.agenticBenchmarkKeys;
+  const displayKeys =
+    dimension === "intelligence"
+      ? scoringConfig.intelligenceBenchmarkDisplayKeys
+      : scoringConfig.agenticBenchmarkDisplayKeys;
+  const benchmarkKeys = [...new Set([...displayKeys, ...selectedKeys])];
   return {
     benchmarkKeys,
     benchmarkWeights: new Map(
@@ -437,14 +440,21 @@ export function prepareBenchmarkImputation(
   minimumEvidenceValues = MIN_IMPUTATION_EVIDENCE_VALUES,
   queryModels = models,
 ): ImputationPreparation {
-  const benchmarkKeys = [
+  const selectedKeys = [
     ...new Set([...scoringConfig.intelligenceBenchmarkKeys, ...scoringConfig.agenticBenchmarkKeys]),
+  ];
+  const benchmarkKeys = [
+    ...new Set([
+      ...scoringConfig.intelligenceBenchmarkDisplayKeys,
+      ...scoringConfig.agenticBenchmarkDisplayKeys,
+      ...selectedKeys,
+    ]),
   ];
   const imputationByModel = new Map<JsonObject, Map<string, number>>();
   const imputationFactorsByModel = new Map<JsonObject, Map<string, number>>();
   const diagnosticsByKey = new Map<string, BenchmarkImputationDiagnostic>();
   const rangesByKey = observedRangesByBenchmark(models, benchmarkKeys);
-  for (const key of targetKeys ?? benchmarkKeys) {
+  for (const key of targetKeys ?? selectedKeys) {
     const portfolioEntry = scoringConfig.benchmarkPortfolio[key];
     if (portfolioEntry == null) {
       continue;

@@ -6,7 +6,10 @@
  * CSV source: https://epoch.ai/data/external_benchmarks/ale_bench.csv
  */
 
-import { fuseBenchmarkSources, type FusionObservation } from "../../benchmarks/source-fusion";
+import {
+  crosswalkBenchmarkSources,
+  type CrosswalkObservation,
+} from "../../benchmarks/sources-crosswalk";
 import { benchmarkModelEffort, canonicalReasoningEffort } from "../../identity/normalization";
 import { asFiniteNumber, asRecord, nowEpochSeconds } from "../../runtime";
 import {
@@ -256,7 +259,7 @@ export function summarizeAleBenchSourceDefaultRows(
 }
 
 /** Fuse Performance in its native units; no probability clamp or primary-source precedence applies. */
-export function fuseAleBenchRows(rows: readonly AleBenchSourceRow[]): FusionObservation[] {
+export function fuseAleBenchRows(rows: readonly AleBenchSourceRow[]): CrosswalkObservation[] {
   const primary = summarizeAleBenchSourceDefaultRows(rows).map((row) => ({
     benchmark_key: "ale_bench",
     source_url: ALE_BENCH_LEADERBOARD_URL,
@@ -273,7 +276,7 @@ export function fuseAleBenchRows(rows: readonly AleBenchSourceRow[]): FusionObse
     observed_at: null,
     metadata: {},
   }));
-  const mirror = rows.flatMap((source): FusionObservation[] => {
+  const mirror = rows.flatMap((source): CrosswalkObservation[] => {
     if (!("epoch" in source)) return [];
     const row = source.epoch;
     const effort = aleBenchModelEffort(row.model);
@@ -296,7 +299,7 @@ export function fuseAleBenchRows(rows: readonly AleBenchSourceRow[]): FusionObse
       },
     ];
   });
-  return fuseBenchmarkSources(primary, mirror, {
+  return crosswalkBenchmarkSources(primary, mirror, {
     maximumScoreError: MAX_CROSSWALK_MEDIAN_ABSOLUTE_ERROR,
     normalizeScore: (score) => Math.max(0, score),
     sourceLabels: { a: "Sakana AI", b: "Epoch" },

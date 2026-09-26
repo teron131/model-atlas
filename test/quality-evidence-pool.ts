@@ -28,14 +28,15 @@ function fixture(taskCount: number, indexCount: number, indexImportance = 1) {
   const keys = [...tasks, ...indexes];
   const config: ScoringConfig = {
     ...STAGE_CONFIG.scoring,
+    intelligenceGroupWeights: { frontier: 0.8, baseline: 0.2 },
     qualityCoverageMinimumRetention: 1,
     intelligenceBenchmarkKeys: keys,
     agenticBenchmarkKeys: keys,
     benchmarkPortfolio: Object.fromEntries(
-      keys.map((key) => [
+      keys.map((key, index) => [
         key,
         {
-          group: "baseline",
+          group: indexes.includes(key) || index % 2 === 1 ? "baseline" : "frontier",
           benchmarkImportance: indexes.includes(key) ? indexImportance : 1,
           dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
         },
@@ -108,7 +109,11 @@ for (const [observedTasks, multiplier] of [
       },
       coverageFixture.context,
     );
-    assert.ok(Math.abs(result.componentScores!.intelligence_score! - value * multiplier) < 1e-10);
+    if (observedTasks < 2) {
+      assert.equal(result.componentScores!.intelligence_score, null);
+    } else {
+      assert.ok(Math.abs(result.componentScores!.intelligence_score! - value * multiplier) < 1e-10);
+    }
     assert.ok(
       Math.abs(result.confidence.intelligence! - (observedTasks * 0.5 + 0.025) / 9.525) < 1e-10,
     );
@@ -123,7 +128,7 @@ const fullDirectCoverage = buildComponentScoreResult(
   { ...directCoverage.config, qualityCoverageMinimumRetention: 0.85 },
   directCoverage.context,
 );
-assert.equal(fullDirectCoverage.componentScores!.intelligence_score, 60);
+assert.ok(Math.abs(fullDirectCoverage.componentScores!.intelligence_score! - 60) < 1e-10);
 assert.ok(fullDirectCoverage.confidence.intelligence! < 0.6);
 const sparseDirectCoverage = buildComponentScoreResult(
   directCoverage.model(15, 60, []),
@@ -142,7 +147,7 @@ const fullIndexCoverage = buildComponentScoreResult(
   { ...indexCoverage.config, qualityCoverageMinimumRetention: 0.85 },
   indexCoverage.context,
 );
-assert.equal(fullIndexCoverage.componentScores!.intelligence_score, 100);
+assert.equal(fullIndexCoverage.componentScores!.intelligence_score, null);
 assert.ok(fullIndexCoverage.confidence.intelligence! < 0.1);
 
 for (const multiplier of [1.5, 2]) {
@@ -163,7 +168,10 @@ for (let count = 0; count <= 8; count++) {
   assert.ok(score <= previous + 1e-10);
   previous = score;
 }
-assert.equal(convergence.score(convergence.model(8, 60, [])).componentScores!.agentic_score, 60);
+assert.ok(
+  Math.abs(convergence.score(convergence.model(8, 60, [])).componentScores!.agentic_score! - 60) <
+    1e-10,
+);
 
 const partial = convergence.model(3);
 const direct = convergence.score(partial);
@@ -227,4 +235,6 @@ const noEffortIndex = {
   ...variantFixture.model(8, 60, ["epoch_capabilities_index"]),
   reasoning_effort: "high",
 };
-assert.equal(variantFixture.score(noEffortIndex).componentScores!.intelligence_score, 60);
+assert.ok(
+  Math.abs(variantFixture.score(noEffortIndex).componentScores!.intelligence_score! - 60) < 1e-10,
+);

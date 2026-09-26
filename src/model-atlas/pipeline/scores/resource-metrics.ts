@@ -7,6 +7,10 @@ import {
   residualIndexBreadth,
 } from "../../benchmarks/index-policy";
 import { benchmarkValueLocation } from "../../benchmarks/registry";
+import {
+  type BenchmarkResourceSource,
+  resourceSourcesFromMetadata,
+} from "../../benchmarks/resource-sources";
 import { MINIMUM_RESOURCE_BENCHMARKS } from "../../config/stage";
 import { positiveFiniteNumber } from "../../math-utils";
 import { asFiniteNumber, asRecord } from "../../runtime";
@@ -24,7 +28,7 @@ export type ResourceMetricModel = BenchmarkMetricModel & {
 };
 
 export type SeparatedBenchmarkResourceEvidence = {
-  source: "source_a" | "source_b";
+  source: BenchmarkResourceSource;
   label: string;
   quality: number;
   amount: number;
@@ -32,7 +36,7 @@ export type SeparatedBenchmarkResourceEvidence = {
 };
 
 export type SeparatedBenchmarkResourceSource = {
-  source: "source_a" | "source_b";
+  source: BenchmarkResourceSource;
   label: string;
   quality: number;
   cost: number | null;
@@ -56,7 +60,9 @@ export function separatedBenchmarkResourceSources(
   const throughput = positiveFiniteNumber(
     asRecord(model.speed).throughput_tokens_per_second_median,
   );
-  return (["source_a", "source_b"] as const).flatMap((source) => {
+  const sourceSlots = resourceSourcesFromMetadata(metadata);
+  const allocation = 1 / Math.max(2, sourceSlots.length);
+  return sourceSlots.flatMap((source) => {
     const quality = asFiniteNumber(metadata[`${source}_score`]);
     if (quality == null) return [];
     const sourceLabel = metadata[`${source}_label`];
@@ -66,11 +72,7 @@ export function separatedBenchmarkResourceSources(
       {
         source,
         label:
-          typeof sourceLabel === "string"
-            ? sourceLabel
-            : source === "source_a"
-              ? "Source A"
-              : "Source B",
+          typeof sourceLabel === "string" ? sourceLabel : `Source ${source.at(-1)?.toUpperCase()}`,
         quality,
         cost: positiveFiniteNumber(metadata[`${source}_cost`]),
         reportedSeconds: explicitSeconds,
@@ -79,13 +81,13 @@ export function separatedBenchmarkResourceSources(
           (outputTokens != null && throughput != null ? outputTokens / throughput : null),
         tokens: positiveFiniteNumber(metadata[`${source}_tokens_per_task`]),
         outputTokens,
-        allocation: 0.5,
+        allocation,
       },
     ];
   });
 }
 
-/** Keep each incompatible source amount paired with its own observed quality and fixed half-weight. */
+/** Keep each incompatible source amount paired with its own observed quality and allocated source weight. */
 export function separatedBenchmarkResourceEvidence(
   model: ResourceMetricModel,
   key: string,
@@ -213,8 +215,6 @@ export function directBenchmarkTokens(
 }
 
 export function benchmarkMetricValue(model: BenchmarkMetricModel, key: string): number | null {
-  if (asRecord(asRecord(asRecord(model.scoring_sources)[key]).metadata).fusion_estimated === true)
-    return null;
   const location = benchmarkValueLocation(key);
   if (location?.kind === "intelligence") {
     return (
@@ -231,19 +231,6 @@ export function benchmarkMetricValue(model: BenchmarkMetricModel, key: string): 
     );
   }
   return asFiniteNumber(asRecord(model.benchmarks)[key]) ?? null;
-}
-
-/** Read scoring-only fusion estimates without admitting them as measured normalization or training evidence. */
-export function benchmarkFusionEstimate(
-  model: BenchmarkMetricModel,
-  key: string,
-): { value: number; evidenceFactor: number } | null {
-  const source = asRecord(asRecord(model.scoring_sources)[key]);
-  const metadata = asRecord(source.metadata);
-  const value = asFiniteNumber(source.canonical_value);
-  return metadata.fusion_estimated === true && value != null
-    ? { value, evidenceFactor: asFiniteNumber(metadata.fusion_confidence) ?? 0 }
-    : null;
 }
 
 /** Use served throughput as the runtime proxy when a benchmark reports output tokens but not wall time. */

@@ -132,6 +132,21 @@ const AA_PORTFOLIOS = [
       "GDP.pdf",
     ],
   },
+  {
+    id: "4.3.2",
+    labels: [
+      "HLE",
+      "SciCode",
+      "AA-LCR v1.1",
+      "Terminal-Bench 4.0",
+      "AutomationBench-AA",
+      "GDPval-AA v2.1",
+      "AA-Omniscience",
+      "CritPt",
+      "AA-Briefcase v1.1",
+      "GDP.pdf",
+    ],
+  },
 ];
 
 /** Fetch index values and membership metadata before committing immutable source releases; no component leaderboard bundle is downloaded. */

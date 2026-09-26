@@ -133,7 +133,6 @@ const [o3MiniHigh] = buildModelVariants([
       gpqa: 0.77,
       hle: 0.12,
       scicode: 0.4,
-      tau_banking: 0.05,
     },
   },
 ]);
@@ -142,7 +141,6 @@ assertEqual(o3MiniHigh?.reasoning_effort, "high");
 assertEqual(o3MiniHighBenchmarks.critpt, 0.003);
 assertEqual(o3MiniHighBenchmarks.gdpval_normalized, 0);
 assertEqual(o3MiniHighBenchmarks.gpqa, 0.77);
-assertEqual(o3MiniHighBenchmarks.tau_banking, 0.05);
 const [canonicalNoneVariant] = buildModelVariants([
   {
     id: "openai/gpt-5.6-sol",

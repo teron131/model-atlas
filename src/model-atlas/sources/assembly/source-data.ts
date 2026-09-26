@@ -10,7 +10,11 @@ import {
   type BenchmarkObservationBinding,
 } from "../../benchmarks/registry";
 import { BENCHMARK_RESOURCE_SOURCE_LABELS } from "../../benchmarks/resource-sources";
-import { fuseBenchmarkSources, type FusionObservation } from "../../benchmarks/source-fusion";
+import {
+  crosswalkBenchmarkSources,
+  type CrosswalkObservation,
+  crosswalkThreeBenchmarkSources,
+} from "../../benchmarks/sources-crosswalk";
 import {
   benchmarkModelEffort,
   buildBenchmarkModelMap,
@@ -108,7 +112,7 @@ type BenchmarkObservationData = {
 export type ModelAtlasSourceData = BenchmarkObservationData & {
   fusedBenchmarks: Record<
     string,
-    IndexedSourceRows<FusionObservation, BenchmarkObservationLookup<FusionObservation>>
+    IndexedSourceRows<CrosswalkObservation, BenchmarkObservationLookup<CrosswalkObservation>>
   >;
   artificialAnalysis: {
     rows: unknown[];
@@ -280,6 +284,7 @@ export function fusedBenchmarkObservations({
   terminalBench4Rows: official,
   artificialAnalysisBenchmarkResourceRows: aa,
   terminalBenchScienceRows: science,
+  gdpPdfRows: gdpPdf,
   aleBenchConfigurationRows: ale,
   weirdMlRows: weird,
 }: Pick<
@@ -287,10 +292,11 @@ export function fusedBenchmarkObservations({
   | "terminalBench4Rows"
   | "artificialAnalysisBenchmarkResourceRows"
   | "terminalBenchScienceRows"
+  | "gdpPdfRows"
   | "aleBenchConfigurationRows"
   | "weirdMlRows"
->): Record<string, FusionObservation[]> {
-  const officialRows: FusionObservation[] = official.map((row) => ({
+>): Record<string, CrosswalkObservation[]> {
+  const officialRows: CrosswalkObservation[] = official.map((row) => ({
     benchmark_key: "terminal_bench_4",
     source_url: "https://www.tbench.ai/?version=4.0",
     model_id: null,
@@ -307,26 +313,7 @@ export function fusedBenchmarkObservations({
     observed_at: null,
     metadata: { harness: row.harness, time_measure: "wall" },
   }));
-  const aaRows: FusionObservation[] = aa
-    .filter((row) => row.benchmark_key === "terminal_bench_4")
-    .map((row) => ({
-      benchmark_key: row.benchmark_key,
-      source_url: row.source_url,
-      model_id: row.model_id,
-      model: row.model,
-      base_model: benchmarkModelEffort(row.model).baseModel,
-      reasoning_effort: row.reasoning_effort,
-      model_creator: row.provider,
-      rank: null,
-      canonical_value: row.score,
-      cost: row.cost_per_task_usd,
-      seconds_per_task: row.seconds_per_task,
-      tokens_per_task: row.tokens_per_task,
-      output_tokens_per_task: row.output_tokens_per_task,
-      observed_at: null,
-      metadata: { time_measure: "decode" },
-    }));
-  const scienceRows: FusionObservation[] = science.map((row) => ({
+  const scienceRows: CrosswalkObservation[] = science.map((row) => ({
     ...row,
     model: claudeName(row.model),
     base_model: claudeName(
@@ -341,32 +328,62 @@ export function fusedBenchmarkObservations({
         ? row.metadata.output_tokens_per_task
         : null,
   }));
+  const officialScienceRows = scienceRows.filter((row) => row.metadata.source_series !== "vals");
+  const valsScienceRows = scienceRows.filter((row) => row.metadata.source_series === "vals");
   return {
     ale_bench: fuseAleBenchRows(ale),
-    weirdml: fuseBenchmarkSources(
+    weirdml: crosswalkBenchmarkSources(
       weird.filter((row) => row.metadata.weirdml_origin === "creator"),
       weird.filter(
         (row) => row.metadata.weirdml_origin === "epoch" && row.metadata.fusion_eligible !== false,
       ),
       { sourceLabels: { a: "Creator", b: "Epoch" } },
     ),
-    terminal_bench_4: fuseBenchmarkSources(officialRows, aaRows, {
+    gdp_pdf: crosswalkBenchmarkSources(gdpPdf, aaObservations("gdp_pdf"), {
+      sourceLabels: { a: "Surge", b: "Artificial Analysis" },
+    }),
+    terminal_bench_4: crosswalkBenchmarkSources(officialRows, aaObservations("terminal_bench_4"), {
       sourceLabels: {
         a: BENCHMARK_RESOURCE_SOURCE_LABELS.terminal_bench_4.source_a,
         b: BENCHMARK_RESOURCE_SOURCE_LABELS.terminal_bench_4.source_b,
       },
     }),
-    terminal_bench_science: fuseBenchmarkSources(
-      scienceRows.filter((row) => row.metadata.source_series !== "vals"),
-      scienceRows.filter((row) => row.metadata.source_series === "vals"),
+    terminal_bench_science: crosswalkThreeBenchmarkSources(
+      officialScienceRows,
+      valsScienceRows,
+      aaObservations("terminal_bench_science"),
       {
         sourceLabels: {
           a: BENCHMARK_RESOURCE_SOURCE_LABELS.terminal_bench_science.source_a,
           b: BENCHMARK_RESOURCE_SOURCE_LABELS.terminal_bench_science.source_b,
+          c: BENCHMARK_RESOURCE_SOURCE_LABELS.terminal_bench_science.source_c,
         },
       },
     ),
   };
+
+  /** AA resource pages share the same quality, effort, and decode-time observation contract. */
+  function aaObservations(key: string): CrosswalkObservation[] {
+    return aa
+      .filter((row) => row.benchmark_key === key)
+      .map((row) => ({
+        benchmark_key: row.benchmark_key,
+        source_url: row.source_url,
+        model_id: row.model_id,
+        model: row.model,
+        base_model: benchmarkModelEffort(row.model).baseModel,
+        reasoning_effort: row.reasoning_effort,
+        model_creator: row.provider,
+        rank: null,
+        canonical_value: row.score,
+        cost: row.cost_per_task_usd,
+        seconds_per_task: row.seconds_per_task,
+        tokens_per_task: row.tokens_per_task,
+        output_tokens_per_task: row.output_tokens_per_task,
+        observed_at: null,
+        metadata: { time_measure: "decode" },
+      }));
+  }
 }
 
 function claudeName(name: string): string {

@@ -137,6 +137,26 @@ export const BENCHMARK_STANDARD_SOURCES = {
     sourceDataKey: "complexConstraints",
     sourceRowsKey: "complexConstraintsRows",
   },
+  dayjob_finance: {
+    group: "surge",
+    id: "surge",
+    loader: {
+      kind: "surge",
+      sourceUrl: "https://surgehq.ai/benchmarks/dayjob-finance",
+    },
+    sourceDataKey: "dayjobFinance",
+    sourceRowsKey: "dayjobFinanceRows",
+  },
+  dayjob_healthcare: {
+    group: "surge",
+    id: "surge",
+    loader: {
+      kind: "surge",
+      sourceUrl: "https://surgehq.ai/benchmarks/dayjob-healthcare",
+    },
+    sourceDataKey: "dayjobHealthcare",
+    sourceRowsKey: "dayjobHealthcareRows",
+  },
   ebr_bench: {
     group: "epoch",
     id: "epoch",
@@ -627,6 +647,37 @@ export const BENCHMARK_EXTENDED_SOURCES = {
       },
     ],
   },
+  gdp_pdf: {
+    inputs: [
+      {
+        group: BENCHMARK_STANDARD_SOURCES.gdp_pdf.group,
+        id: BENCHMARK_STANDARD_SOURCES.gdp_pdf.id,
+        roles: ["observation"],
+        adapters: [
+          {
+            kind: "benchmark_observation",
+            sourceDataKey: BENCHMARK_STANDARD_SOURCES.gdp_pdf.sourceDataKey,
+            sourceRowsKey: BENCHMARK_STANDARD_SOURCES.gdp_pdf.sourceRowsKey,
+          },
+        ],
+      },
+      {
+        group: "artificial_analysis",
+        id: "artificial_analysis",
+        roles: ["observation", "resource"],
+        adapters: [
+          {
+            kind: "artificial_analysis_resource_page",
+            scoreKey: "gdpPdfAllPass",
+            resourceKey: "gdpPdf",
+            url: "https://artificialanalysis.ai/evaluations/gdp-pdf",
+            fullModelCoverage: true,
+            taskRunCount: 500,
+          },
+        ],
+      },
+    ],
+  },
   gdpval_normalized: {
     inputs: [
       {
@@ -661,7 +712,7 @@ export const BENCHMARK_EXTENDED_SOURCES = {
       },
     ],
   },
-  itbench_sre: {
+  mlcr_aa: {
     inputs: [
       {
         group: "artificial_analysis",
@@ -670,9 +721,11 @@ export const BENCHMARK_EXTENDED_SOURCES = {
         adapters: [
           {
             kind: "artificial_analysis_resource_page",
-            scoreKey: "itbenchSre",
-            resourceKey: "itBench",
-            url: "https://artificialanalysis.ai/evaluations/itbench-aa",
+            scoreKey: "mlcrOverall",
+            resourceKey: "mlcr",
+            url: "https://artificialanalysis.ai/evaluations/mlcr-aa",
+            fullModelCoverage: true,
+            taskRunCount: 180,
           },
         ],
       },
@@ -705,23 +758,6 @@ export const BENCHMARK_EXTENDED_SOURCES = {
       },
     ],
   },
-  tau_banking: {
-    inputs: [
-      {
-        group: "artificial_analysis",
-        id: "artificial_analysis",
-        roles: ["observation", "resource"],
-        adapters: [
-          {
-            kind: "artificial_analysis_resource_page",
-            scoreKey: "tauBanking",
-            resourceKey: "tauBanking",
-            url: "https://artificialanalysis.ai/evaluations/tau3-banking",
-          },
-        ],
-      },
-    ],
-  },
   terminal_bench_4: {
     inputs: [
       {
@@ -731,10 +767,10 @@ export const BENCHMARK_EXTENDED_SOURCES = {
         adapters: [
           {
             kind: "artificial_analysis_resource_page",
-            url: "https://artificialanalysis.ai/evaluations/terminalbench-v4-0",
+            url: "https://artificialanalysis.ai/evaluations/terminalbench-4-0",
             fullModelCoverage: true,
-            scoreKey: "terminalbenchV40",
-            resourceKey: "terminalbenchV40",
+            scoreKey: "terminalBench40",
+            resourceKey: "terminalBench40",
             taskRunCount: 198,
           },
         ],
@@ -762,6 +798,21 @@ export const BENCHMARK_EXTENDED_SOURCES = {
         ],
       },
       { group: "vals", id: "vals", roles: ["observation", "resource"] },
+      {
+        group: "artificial_analysis",
+        id: "artificial_analysis",
+        roles: ["observation", "resource"],
+        adapters: [
+          {
+            kind: "artificial_analysis_resource_page",
+            scoreKey: "terminalBenchScience",
+            resourceKey: "terminalBenchScience",
+            url: "https://artificialanalysis.ai/evaluations/terminal-bench-science",
+            fullModelCoverage: true,
+            taskRunCount: 210,
+          },
+        ],
+      },
     ],
   },
   vals_index: {
@@ -816,6 +867,10 @@ export const BENCHMARK_PROCESSING_OVERRIDES = {
       output: [0, 1],
       clamp: true,
     },
+  },
+  gdp_pdf: {
+    aggregation: { kind: "custom" },
+    sourceCrosswalk: { kind: "custom" },
   },
   gdpval_normalized: {
     transform: {
