@@ -35,6 +35,8 @@ export type CurrentSnapshot = {
 };
 
 const compress = promisify(gzip);
+const RESUMABLE_UPLOAD_THRESHOLD_BYTES = 5 * 1024 * 1024;
+const UPLOAD_CHUNK_BYTES = 8 * 1024 * 1024;
 
 /** Bucket ownership, immutable uploads, and the one commit point stay behind this storage boundary. */
 export class SnapshotStorage {
@@ -205,14 +207,16 @@ export class SnapshotStorage {
     const manifestBytes = Buffer.from(JSON.stringify(manifest));
     try {
       const uploads = await Promise.allSettled(
-        artifacts.map(({ file, bytes, cacheControl }) =>
-          file.save(bytes, {
-            resumable: false,
+        artifacts.map(({ file, bytes, cacheControl }) => {
+          const resumable = bytes.length > RESUMABLE_UPLOAD_THRESHOLD_BYTES;
+          return file.save(bytes, {
+            resumable,
+            ...(resumable ? { chunkSize: UPLOAD_CHUNK_BYTES } : {}),
             validation: "crc32c",
             preconditionOpts: { ifGenerationMatch: 0 },
             metadata: { contentType: "application/gzip", cacheControl },
-          }),
-        ),
+          });
+        }),
       );
       for (const upload of uploads) if (upload.status === "rejected") throw upload.reason;
       await this.commitManifest(manifestBytes, previous.generation);

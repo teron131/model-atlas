@@ -80,6 +80,31 @@ assert.notEqual(
 );
 assert.equal(payload.models[0]?.scores.value_score, sparse.scores.value_score);
 
+// Published rows retain measured source-specific task pairs even after internal scoring provenance is removed.
+const separatedPairs = {
+  ...model,
+  benchmarks: {
+    automation_bench: 0.5,
+    frontier_code: 0.5,
+    gdp_pdf: 0.5,
+    terminal_bench_4: 0.5,
+    terminal_bench_science: 0.5,
+  },
+  task_metrics: {
+    automation_bench: { cost: 1 },
+    frontier_code: { cost: 1 },
+    gdp_pdf__source_b: { quality: 0.5, cost: 1, seconds: 100 },
+    terminal_bench_4__source_b: { quality: 0.5, cost: 1, seconds: 100 },
+    terminal_bench_science__source_c: { quality: 0.5, cost: 1, seconds: 100 },
+  },
+};
+assert.deepEqual(observedResourceEvidenceCounts(separatedPairs, portfolio), { cost: 5, time: 3 });
+const separatedPayload = minimalModelAtlasPayload({ fetchedAt: 1, models: [separatedPairs] });
+separatedPayload.metadata.scoring.benchmark_portfolio = portfolio;
+const separatedDashboard = publicJsonPayload(separatedPayload, "dashboard") as ModelAtlasPayload;
+assert.equal(separatedDashboard.models[0]?.scores.value_score, 70);
+assert.equal(separatedDashboard.models[0]?.scores.speed_score, null);
+
 const missingTime = {
   ...model,
   task_metrics: {
@@ -174,6 +199,26 @@ assert.equal(
 const { aa_intelligence_index: _aa, ...withoutAA } = portfolio;
 assert.equal(applyResourceEvidenceRequirements(aaOnly, withoutAA).scores.value_score, null);
 assert.deepEqual(aaOnly.task_metrics, { artificial_analysis: { cost: 1, seconds: 100 } });
+
+const aaWithSeparatedTask = {
+  ...aaOnly,
+  benchmarks: { aa_intelligence_index: 50, hle: 0.5 },
+  task_metrics: {
+    artificial_analysis: { cost: 1, seconds: 100 },
+    hle__source_b: { quality: 0.5, cost: 1, seconds: 100 },
+  },
+};
+assert.deepEqual(
+  observedResourceEvidenceCounts(aaWithSeparatedTask, portfolio),
+  observedResourceEvidenceCounts(
+    {
+      ...aaWithSeparatedTask,
+      task_metrics: { ...aaWithSeparatedTask.task_metrics, hle: { cost: 1, seconds: 100 } },
+    },
+    portfolio,
+  ),
+  "A retained source-specific task must overlap an AA index like the direct task",
+);
 
 const aaWithTasks = {
   ...aaOnly,

@@ -194,7 +194,7 @@ export function XAxisTicks({
   ));
 }
 
-/** Compact plots retain three inset scale anchors; other gridlines remain unlabelled. */
+/** Compact plots retain three inset scale anchors even when their gridlines are omitted. */
 export function YAxisTicks({
   ticks,
   yPoint,
@@ -204,6 +204,7 @@ export function YAxisTicks({
   tickLength = 7,
   labelOffset = 15,
   insetRight,
+  showGridLines = true,
 }: {
   ticks: number[];
   yPoint: (value: number) => number;
@@ -213,18 +214,21 @@ export function YAxisTicks({
   tickLength?: number;
   labelOffset?: number;
   insetRight?: number;
+  showGridLines?: boolean;
 }) {
   const inset = insetRight != null;
   const middle = Math.floor((ticks.length - 1) / 2);
   return ticks.map((tick, index) => (
     <g key={`${keyPrefix}-y-${tick}`}>
-      <line
-        className={inset ? styles.scaleGrid : styles.axisTick}
-        x1={inset ? x : x - tickLength}
-        x2={insetRight ?? x}
-        y1={yPoint(tick)}
-        y2={yPoint(tick)}
-      />
+      {(!inset || showGridLines) && (
+        <line
+          className={inset ? styles.scaleGrid : styles.axisTick}
+          x1={inset ? x : x - tickLength}
+          x2={insetRight ?? x}
+          y1={yPoint(tick)}
+          y2={yPoint(tick)}
+        />
+      )}
       {!inset || index === 0 || index === middle || index === ticks.length - 1 ? (
         <text
           className={inset ? styles.scaleAnchor : styles.axisLabel}

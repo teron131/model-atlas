@@ -9,6 +9,7 @@ import {
 import { benchmarkValueLocation } from "../../benchmarks/registry";
 import {
   type BenchmarkResourceSource,
+  resourceSourceMetricKey,
   resourceSourcesFromMetadata,
 } from "../../benchmarks/resource-sources";
 import { MINIMUM_RESOURCE_BENCHMARKS } from "../../config/stage";
@@ -159,7 +160,7 @@ export function observedResourceEvidenceCounts(
         (key) =>
           portfolio[key]?.resourcePolicy != null &&
           benchmarkMetricValue(model, key) != null &&
-          positiveFiniteNumber(benchmarkTaskMetrics(model, key)?.[field]) != null,
+          hasObservedBenchmarkResource(model, key, kind),
       );
       counts[kind] += residualIndexBreadth(indexKey, overlap);
     }
@@ -167,7 +168,7 @@ export function observedResourceEvidenceCounts(
   return counts;
 }
 
-/** Direct quality-resource pairs drive publication gates; selected tasks without a pair remain in the denominator. */
+/** Direct quality-resource pairs drive publication gates; published source-specific task rows replace internal fusion metadata without increasing a benchmark's count. */
 export function observedResourceBenchmarkCounts(
   model: ResourceMetricModel,
   portfolio: BenchmarkPortfolio,
@@ -181,20 +182,28 @@ export function observedResourceBenchmarkCounts(
     if (entry.resourcePolicy == null) continue;
     counts.selected += 1;
     if (benchmarkMetricValue(model, key) == null) continue;
-    const metrics = benchmarkTaskMetrics(model, key);
-    const separatedSources = separatedBenchmarkResourceSources(model, key);
-    if (
-      positiveFiniteNumber(metrics?.cost) != null ||
-      separatedSources.some((source) => source.cost != null)
-    )
-      counts.cost += 1;
-    if (
-      positiveFiniteNumber(metrics?.seconds) != null ||
-      separatedSources.some((source) => source.reportedSeconds != null)
-    )
-      counts.time += 1;
+    if (hasObservedBenchmarkResource(model, key, "cost")) counts.cost += 1;
+    if (hasObservedBenchmarkResource(model, key, "time")) counts.time += 1;
   }
   return counts;
+}
+
+/** Count measured source-specific task rows when publication has dropped internal fusion metadata. */
+function hasObservedBenchmarkResource(
+  model: ResourceMetricModel,
+  key: string,
+  kind: "cost" | "time",
+): boolean {
+  const field = kind === "cost" ? "cost" : "seconds";
+  if (positiveFiniteNumber(benchmarkTaskMetrics(model, key)?.[field]) != null) return true;
+  const separated = separatedBenchmarkResourceSources(model, key);
+  if (separated.some((source) => (kind === "cost" ? source.cost : source.reportedSeconds) != null))
+    return true;
+  if (model.scoring_sources != null) return false;
+  return (["source_a", "source_b", "source_c"] as const).some((source) => {
+    const metrics = asRecord(asRecord(model.task_metrics)[resourceSourceMetricKey(key, source)]);
+    return asFiniteNumber(metrics.quality) != null && positiveFiniteNumber(metrics[field]) != null;
+  });
 }
 
 export type BenchmarkTokenMeasure = "input-output" | "tokens" | "output_tokens";
