@@ -331,6 +331,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
         <CursorCapture bounds={plot} />
         <YAxisTicks
           insetRight={compactLayout ? plot.right : undefined}
+          showGridLines={false}
           ticks={yTicks}
           yPoint={yPoint}
           x={plot.left}

@@ -148,7 +148,8 @@ function normalizeSearchText(value: string): string {
 
 function createSearchPattern(value: string): RegExp {
   const source = value.split("*").map(escapeRegExp).join(".*");
-  return new RegExp(`(^|[^\\p{L}\\p{N}])${source}($|[^\\p{L}\\p{N}])`, "iu");
+  const endBoundary = value.includes("*") ? "" : "($|[^\\p{L}\\p{N}])";
+  return new RegExp(`(^|[^\\p{L}\\p{N}])${source}${endBoundary}`, "iu");
 }
 
 function escapeRegExp(value: string): string {
