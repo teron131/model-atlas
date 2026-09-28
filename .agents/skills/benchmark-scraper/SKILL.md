@@ -19,9 +19,9 @@ Find the current files by role before broad edits:
 - Benchmark config: selected benchmark keys, baseline/frontier groupings, dimension portions, and score weights.
 - Scraper modules: existing leaderboard/API/PDF scrapers and their focused tests.
 - Source-data and cache/database loading: where raw source rows become lookup maps or persisted snapshots.
-- Matching and scoring modules: where benchmark rows attach to models, are imputed, and enter intelligence/agentic scores.
+- Matching and scoring modules: where benchmark rows attach to models, are imputed, and enter intelligence/agentic scores. The shared model contract is `src/model-atlas/pipeline/model-types.ts`; `stats/types.ts` re-exports it. Source combination and its private additive fitter belong together in `src/model-atlas/benchmarks/sources-crosswalk.ts`.
 - Database schema, writers, and payload readers: where raw rows, summarized rows, processed models, and public payloads are stored.
-- Dashboard labels, tooltips, and benchmark display surfaces: where new fields become visible to users.
+- Dashboard labels, tooltips, and benchmark display surfaces: where new fields become visible to users. Public JSON projection and compact variant selection live in `app/leaderboard/public-json.ts` and `app/leaderboard/model-variants.ts`.
 - Public exports and tests: package surface plus focused scraper/matcher/scoring/payload tests.
 - Refresh and publication scripts: derive the current local and production workflow from `package.json` and the database boundary rather than relying on remembered commands.
 
@@ -38,7 +38,7 @@ Use primary evidence before implementation:
 
 ## Stage 1: Judge Worthiness First
 
-Before writing scraper code:
+Before writing scraper code, reuse a settled admission decision and its evidence; investigate only missing or changed facts that matter to implementation:
 
 - Read the current Model Atlas ingestion/scoring standards and nearby benchmark implementations by following the Repo Map roles.
 - Inspect real sources, not just marketing pages: leaderboard data source, paper, repo, blog posts, task samples, verifier/rubric, result tables, and provenance notes.
@@ -51,7 +51,7 @@ Do not soften weak evidence into a polite summary. If access is gated or sample 
 
 ## Stage 2: Discover The Scrape Shape
 
-After the user agrees to proceed:
+Once ingestion implementation is authorized:
 
 - Inspect the leaderboard page with `playwright-cli`; use snapshots, `eval`, console, and network inspection to find the real data source.
 - Check API calls, hydrated chunks, PDFs, datasets, Hugging Face artifacts, or static files before accepting DOM text as the source.
@@ -80,10 +80,10 @@ After field selection:
 After the scraper works:
 
 - Show the fetched row shape and representative parsed output.
-- Discuss scoring with the user before wiring it into Model Atlas scores.
+- Apply settled scoring decisions directly; discuss only unresolved choices that would change Model Atlas scores.
 - Keep parsing truth separate from scoring policy.
-- Decide the accepted class (`baseline` or `frontier`), positive benchmark importance, and Intelligence/Agentic split. The two dimension portions must sum to 100%; class does not change importance, imputation, or missing-evidence treatment.
-- Default task-level benchmark importance to `1`. Use lower importance only for an explicit benchmark-specific reason; overlapping aggregate indexes are the ordinary half-importance case.
+- Apply the accepted class (`baseline` or `frontier`), positive benchmark importance, and Intelligence/Agentic split. The two dimension portions must sum to 100%. Follow `docs/benchmarks.md`: frontier task results contribute directly to capability scores, while baseline results remain visible without direct capability contributions; aggregate indexes follow their own eligibility and breadth policy.
+- Default task-level benchmark importance to `1`, preserving documented exceptions. Read aggregate-index importance and represented-breadth rules from the current catalog and `src/model-atlas/benchmarks/index-policy.ts`; do not assign half importance by assumption.
 - Default coding benchmarks primarily to Agentic. Add substantial Intelligence loading only when algorithmic, mathematical, scientific, or research reasoning materially determines success.
 - Check effort sensitivity before scoring. If the same model regresses at higher reasoning effort, explain whether this looks like real overthinking, timeout pressure, brittle formatting, harness mismatch, or another benchmark artifact.
 - Choose benchmark importance deliberately rather than deriving it from class. Explain its impact through importance and dimension loadings.
@@ -99,7 +99,7 @@ After scoring policy is agreed:
 - Wire the benchmark through source data, model matching, score inputs, database schema/writers, payload reading, public exports, dashboard labels, and tooltips as needed.
 - Add or update tests for scraper, matching, scoring, and payload behavior.
 - Run focused tests first, then the repo checks appropriate to the touched surface.
-- Run the current local refresh, then use the repository's current publication workflow when production is in scope and verify the affected served payload rather than relying on the local database alone.
+- Follow the current package scripts: `scripts/database.ts` refreshes the local SQLite checkpoint, while `scripts/publish-snapshot.ts` owns remote snapshot publication. When production is in scope, use that publication workflow and verify the affected served artifact through the runtime/manifest contract; a local refresh does not publish it.
 - Run `pnpm run typecheck` and `pnpm run build` when TypeScript or UI surfaces changed.
 - Check `git diff --check`.
 - Summarize the final benchmark role, scoring method, refresh result, and any unmatched or excluded rows.
