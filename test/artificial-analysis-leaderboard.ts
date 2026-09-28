@@ -268,7 +268,7 @@ assertDeepEqual(parseArtificialAnalysisReasoningEffort("Qwen3.8 Max"), null);
 assertDeepEqual(parseArtificialAnalysisReasoningEffort("Gemini 3.5 Flash (minimal)"), "minimal");
 assertDeepEqual(
   processArtificialAnalysisOmnisciencePage(
-    '<script type="application/ld+json">{"name":"AA-Omniscience Accuracy","data":[{"label":"Claude Opus 5 (max)","omniscienceAccuracy":0.61,"detailsUrl":"/models/claude-opus-5"}]}</script>',
+    `<script>self.__next_f.push([1,${JSON.stringify('{"slug":"claude-opus-5","name":"Claude Opus 5 (max)","omniscienceBreakdown":{"accuracy":0.61}}')}])</script>`,
     {
       benchmarkKey: "omniscience_accuracy",
       sourceUrl: "https://artificialanalysis.ai/evaluations/omniscience",

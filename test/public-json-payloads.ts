@@ -114,6 +114,25 @@ assert.deepEqual(
   "public selection should preserve models without optional resource scores",
 );
 
+const sparseBaselineModels = selectReferenceModels(
+  [
+    {
+      ...internalCandidate,
+      benchmarks: { mlcr_aa: 0.71, vending_bench_2: 15_515, unselected_probe: 1 },
+    },
+    { ...internalCandidate, id: "provider/other-one", benchmarks: {} },
+    { ...internalCandidate, id: "provider/other-two", benchmarks: {} },
+  ],
+  null,
+  STAGE_CONFIG.final,
+  STAGE_CONFIG.scoring,
+);
+assert.deepEqual(
+  sparseBaselineModels[0]?.benchmarks,
+  { mlcr_aa: 0.71, vending_bench_2: 15_515 },
+  "selected baseline observations remain visible even when most public models lack them",
+);
+
 const lowScoreCandidate: ModelAtlasScoredCandidate = {
   ...internalCandidate,
   id: "provider/low-score",

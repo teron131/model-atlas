@@ -1,5 +1,6 @@
 /** Public model selection owns score gating, sparse-field pruning, and route collapse. */
 
+import { BENCHMARK_KEYS } from "../../benchmarks/registry";
 import type { FinalStageConfig, ScoringConfig } from "../../config/stage";
 import {
   hasPublicFreeRouteLabel,
@@ -160,7 +161,9 @@ function pruneSparseFields<Model extends ModelAtlasModel>(
     return models;
   }
 
-  const selectedBenchmarkKeys = new Set([
+  // Baseline observations stay visible even when they do not contribute to capability scores.
+  const retainedBenchmarkKeys = new Set([
+    ...BENCHMARK_KEYS,
     ...scoringConfig.intelligenceBenchmarkKeys,
     ...scoringConfig.agenticBenchmarkKeys,
   ]);
@@ -204,7 +207,7 @@ function pruneSparseFields<Model extends ModelAtlasModel>(
     }
     const keysToPrune = new Set<string>();
     for (const nestedKey of nestedKeys) {
-      if (selectedBenchmarkKeys.has(nestedKey)) {
+      if (retainedBenchmarkKeys.has(nestedKey)) {
         continue;
       }
       const nullCount = sampleModels.reduce((count, model) => {
