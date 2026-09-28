@@ -55,24 +55,9 @@ type WeirdMlCrosswalkMatch = {
   epochIndex: number;
 };
 
-type WeirdMlCrosswalkStatus = {
-  primaryRowCount: number;
-  epochRowCount: number;
-  matchedRowCount: number;
-  coverage: number;
-  ambiguousEpochModels: string[];
-  epochOnlyRowCount: number;
-  addedEpochRowCount: number;
-};
-
 type WeirdMlMergePlan = {
-  status: WeirdMlCrosswalkStatus;
   matches: WeirdMlCrosswalkMatch[];
   addedEpochIndices: number[];
-};
-
-type WeirdMlPayload = BenchmarkObservationPayload & {
-  crosswalk: WeirdMlCrosswalkStatus | null;
 };
 
 type WeirdMlScraperOptions = {
@@ -84,7 +69,7 @@ type WeirdMlScraperOptions = {
 /** Fetch both source datasets and reconcile model aliases without treating matching scores as a prerequisite for identity. */
 export async function getWeirdMlStats(
   options: WeirdMlScraperOptions = {},
-): Promise<WeirdMlPayload> {
+): Promise<BenchmarkObservationPayload> {
   try {
     const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     const epochRequest = fetchSource(
@@ -122,19 +107,16 @@ export async function getWeirdMlStats(
       return {
         fetched_at_epoch_seconds: nowEpochSeconds(),
         data: primaryRows,
-        crosswalk: null,
       };
     }
-    const merged = mergeWeirdMlRows(primaryRows, epochRows);
     return {
       fetched_at_epoch_seconds: nowEpochSeconds(),
-      ...merged,
+      data: mergeWeirdMlRows(primaryRows, epochRows),
     };
   } catch {
     return {
       fetched_at_epoch_seconds: null,
       data: [],
-      crosswalk: null,
     };
   }
 }
@@ -186,7 +168,7 @@ export function processWeirdMlCsv(csv: string): BenchmarkObservationRow[] {
 export function mergeWeirdMlRows(
   primaryRows: readonly BenchmarkObservationRow[],
   epochRows: readonly WeirdMlEpochRow[],
-): { data: BenchmarkObservationRow[]; crosswalk: WeirdMlCrosswalkStatus } {
+): BenchmarkObservationRow[] {
   const plan = buildWeirdMlCrosswalk(primaryRows, epochRows);
   const matchByEpoch = new Map(plan.matches.map((match) => [match.epochIndex, match]));
   const eligible = new Set([...matchByEpoch.keys(), ...plan.addedEpochIndices]);
@@ -212,7 +194,7 @@ export function mergeWeirdMlRows(
       },
     };
   });
-  return { data: [...primaryRows, ...mirrors], crosswalk: plan.status };
+  return [...primaryRows, ...mirrors];
 }
 
 /** Pair model aliases only at the same effort; score, cost, code length, and release metadata never establish identity. */
@@ -236,13 +218,11 @@ function buildWeirdMlCrosswalk(
     for (const index of indexes) claims.set(index, (claims.get(index) ?? 0) + 1);
   }
   const matches: WeirdMlCrosswalkMatch[] = [];
-  const ambiguous = new Set<number>();
   const unmatched: number[] = [];
   candidates.forEach((indexes, epochIndex) => {
     if (indexes.length === 0) unmatched.push(epochIndex);
     else if (indexes.length === 1 && claims.get(indexes[0]!) === 1)
       matches.push({ primaryIndex: indexes[0]!, epochIndex });
-    else ambiguous.add(epochIndex);
   });
   const primaryKeys = new Set(primaryRows.map(configurationKey));
   const epochCounts = new Map<string, number>();
@@ -254,19 +234,9 @@ function buildWeirdMlCrosswalk(
     const key = configurationKey(epochRows[index]!);
     return key.length > 0 && !primaryKeys.has(key) && epochCounts.get(key) === 1;
   });
-  const overlapSize = Math.min(primaryRows.length, epochRows.length);
   return {
     matches,
     addedEpochIndices,
-    status: {
-      primaryRowCount: primaryRows.length,
-      epochRowCount: epochRows.length,
-      matchedRowCount: matches.length,
-      coverage: overlapSize === 0 ? 0 : matches.length / overlapSize,
-      ambiguousEpochModels: [...ambiguous].map((index) => epochRows[index]!.model_version),
-      epochOnlyRowCount: unmatched.length,
-      addedEpochRowCount: addedEpochIndices.length,
-    },
   };
 }
 

@@ -4,7 +4,7 @@ import type { BenchmarkPortfolio } from "../benchmarks/factory";
 import type { BenchmarkObservationsByKey } from "../benchmarks/observation";
 import type { QualityCoverageThresholds } from "../config/stage";
 import type { ModelAtlasColumnTooltips } from "../config/tooltips";
-import type { ModelAtlasPublishedModel as PipelinePublishedModel } from "../pipeline/model-types";
+import type { ModelAtlasModel } from "../pipeline/model-types";
 import type { ModelAtlasSourceHealth } from "../sources/types";
 
 export type {
@@ -34,7 +34,6 @@ export type {
   ModelAtlasIntelligence,
   ModelAtlasModalities,
   ModelAtlasModel,
-  ModelAtlasPublishedModel,
   ModelAtlasScoredCandidate,
   ModelAtlasScores,
   ModelAtlasBenchmarkRankDriver,
@@ -114,7 +113,7 @@ export type ModelAtlasMetadata = {
 export type ModelAtlasPayload = {
   fetched_at_epoch_seconds: number | null;
   metadata: ModelAtlasMetadata;
-  models: PipelinePublishedModel[];
+  models: ModelAtlasModel[];
   benchmark_observations?: BenchmarkObservationsByKey;
   timeline?: import("../timeline/schemas").HistoricalDataset;
 };

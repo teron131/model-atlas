@@ -12,7 +12,6 @@ import { asFiniteNumber, asRecord, type JsonObject } from "../../runtime";
 import type {
   ModelAtlasCandidateComponentScores,
   ModelAtlasModel,
-  ModelAtlasPublishedModel,
   ModelAtlasScoredCandidate,
 } from "../model-types";
 
@@ -41,7 +40,7 @@ const STABLE_TOP_LEVEL_KEYS = new Set<string>([
 ]);
 const REQUIRED_QUALITY_SCORE_KEYS = ["intelligence_score", "agentic_score"] as const;
 
-function sortByIntelligenceScore<Model extends ModelAtlasPublishedModel>(models: Model[]): Model[] {
+function sortByIntelligenceScore<Model extends ModelAtlasModel>(models: Model[]): Model[] {
   return [...models].sort((left, right) => {
     const leftIntelligence = asFiniteNumber(left.scores.intelligence_score);
     const rightIntelligence = asFiniteNumber(right.scores.intelligence_score);
@@ -248,9 +247,7 @@ function pruneSparseFields<Model extends ModelAtlasModel>(
 }
 
 /** Free routes collapse within each reasoning variant so the dashboard can expand variants without duplicate routes. */
-function collapseFreeRoutesByVariant<Model extends ModelAtlasPublishedModel>(
-  models: Model[],
-): Model[] {
+function collapseFreeRoutesByVariant<Model extends ModelAtlasModel>(models: Model[]): Model[] {
   const modelByPublicId = new Map<string, { model: Model; isFreeRoute: boolean }>();
   const passthrough: Model[] = [];
 
@@ -284,7 +281,7 @@ function collapseFreeRoutesByVariant<Model extends ModelAtlasPublishedModel>(
   ]);
 }
 
-function normalizedModelsForId<Model extends ModelAtlasPublishedModel>(
+function normalizedModelsForId<Model extends ModelAtlasModel>(
   models: Model[],
   id: string | null | undefined,
 ): Model[] {

@@ -6,7 +6,7 @@ import { median } from "d3-array";
 import { scaleLinear } from "d3-scale";
 import { type CSSProperties, useEffect, useId, useMemo, useRef, useState } from "react";
 
-import { type ModelAtlasPublishedModel } from "../../../../src/model-atlas/stats/types";
+import { type ModelAtlasModel } from "../../../../src/model-atlas/stats/types";
 import { reasoningVariantGroups } from "../../shared/model-display";
 import { providerChartColor } from "../../shared/provider-theme";
 import { pointHover } from "../hover-state";
@@ -44,7 +44,7 @@ import {
   scoreQuadrilateralRadius,
 } from "../plot/score-quadrilateral";
 import type { HoverRow, HoverSetter, Margin } from "../types";
-import { useChartWidth } from "../use-media-query";
+import { useChartWidth } from "../use-chart-layout";
 
 import styles from "../graphs.module.css";
 
@@ -100,7 +100,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
   keyPrefix: string;
   ariaLabel: string;
   getScore: (row: Row) => number;
-  getModel: (row: Row) => ModelAtlasPublishedModel;
+  getModel: (row: Row) => ModelAtlasModel;
   getKey: (row: Row) => string;
   getHoverRows: (row: Row) => HoverRow[];
   getHoverTitle?: (row: Row) => string;

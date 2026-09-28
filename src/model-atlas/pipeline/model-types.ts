@@ -216,5 +216,3 @@ export type ModelAtlasModel = ModelFields & {
   component_scores: ModelAtlasComponentScores;
   scores: ModelAtlasScores;
 };
-
-export type ModelAtlasPublishedModel = ModelAtlasModel;

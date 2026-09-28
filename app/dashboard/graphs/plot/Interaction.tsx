@@ -4,7 +4,7 @@
 
 import { type CSSProperties, type PointerEvent as ReactPointerEvent, useState } from "react";
 
-import type { ModelAtlasPublishedModel } from "../../../../src/model-atlas/stats/types";
+import type { ModelAtlasModel } from "../../../../src/model-atlas/stats/types";
 import { modelName } from "../../shared/model-display";
 import { focusHover, pointHover } from "../hover-state";
 import type { HoverRow, HoverSetter } from "../types";
@@ -19,12 +19,10 @@ type CursorProjection = {
   yValue: number;
 };
 
-type ProjectionPoint = CursorProjection;
-
 type ProjectionConfig = {
   event: ReactPointerEvent<SVGSVGElement>;
   bounds: PlotBounds;
-  points: ProjectionPoint[];
+  points: CursorProjection[];
   snapDistance?: number;
 };
 
@@ -52,7 +50,7 @@ function projectCursor({
     return null;
   }
 
-  let nearestPoint: ProjectionPoint | null = null;
+  let nearestPoint: CursorProjection | null = null;
   let nearestDistance = Infinity;
   for (const point of points) {
     const dx = point.x - pointerX;
@@ -161,7 +159,7 @@ export function PointHitTarget({
 }: {
   cx: number;
   cy: number;
-  model: ModelAtlasPublishedModel;
+  model: ModelAtlasModel;
   rows: HoverRow[];
   setHover: HoverSetter;
   hoverTitle?: string;

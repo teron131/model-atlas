@@ -55,13 +55,6 @@ export function fmtMoney(value: number | null | undefined) {
   return `$${value.toFixed(0)}`;
 }
 
-export function fmtTooltipMoney(value: number | null | undefined) {
-  if (!finite(value)) {
-    return "--";
-  }
-  return `$${value.toFixed(value < 1 ? 3 : 2)}`;
-}
-
 export function fmtCompact(value: number | null | undefined) {
   if (!finite(value)) {
     return "--";

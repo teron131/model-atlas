@@ -5,7 +5,7 @@ import {
   residualIndexBreadth,
 } from "../../../../src/model-atlas/benchmarks/index-policy";
 import { canonicalModelKey } from "../../../../src/model-atlas/identity/normalization";
-import type { ModelAtlasPublishedModel } from "../../../../src/model-atlas/stats/types";
+import type { ModelAtlasModel } from "../../../../src/model-atlas/stats/types";
 import { modelVariantKey } from "../../shared/model-display";
 import {
   frontierBenchmarkAxisConfig,
@@ -28,7 +28,7 @@ export type CommonBenchmarkComparison = {
 
 type CommonModelEvidence = {
   modelKey: string;
-  model: ModelAtlasPublishedModel;
+  model: ModelAtlasModel;
   benchmarkKeys: readonly string[];
   indexShare: number;
   effortCount: number;

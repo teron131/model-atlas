@@ -13,7 +13,6 @@ import { advanceCapabilities, type CapabilityState } from "../../timeline/capabi
 import type {
   ModelAtlasCandidate,
   ModelAtlasModel,
-  ModelAtlasPublishedModel,
   ModelAtlasScoredCandidate,
 } from "../model-types";
 import { type OpenRouterModelData, prepareOpenRouterModelData } from "../openrouter-data";
@@ -189,7 +188,7 @@ export async function buildFinalModels(
   id: string | null | undefined,
   finalConfig: FinalStageConfig,
   scoringConfig: ScoringConfig,
-): Promise<ModelAtlasPublishedModel[]> {
+): Promise<ModelAtlasModel[]> {
   const { modelRows, candidates, scoringPreparation } = selection;
   const candidateModels = candidates.map((model, index) =>
     enrichModelResources(model, modelRows[index]!, openRouterData),

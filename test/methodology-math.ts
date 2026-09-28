@@ -2,7 +2,6 @@
 import assert from "node:assert/strict";
 
 import { frontierBenchmarkRows } from "../app/dashboard/graphs/frontier-benchmarks/analysis";
-import { buildAdditiveSourceCrosswalk } from "../src/model-atlas/benchmarks/source-crosswalk";
 import { STAGE_CONFIG } from "../src/model-atlas/config/stage";
 import {
   qualityLocalResiduals,
@@ -48,21 +47,6 @@ assert.equal(
   ]),
   null,
 );
-const offsetRows = Array.from({ length: 10 }, (_, i) => ({
-  id: `independent-${i}`,
-  primary: 0,
-  fallback: i === 9 ? 100 : 0,
-}));
-const crosswalk = buildAdditiveSourceCrosswalk(offsetRows, {
-  sourceAValue: (row) => row.primary,
-  sourceBValue: (row) => row.fallback,
-  minimumEffectiveModels: 4,
-  maximumMedianAbsoluteError: 25,
-});
-assert.equal(crosswalk.diagnostic.delta, 0);
-assert.equal(crosswalk.diagnostic.validationMedianAbsoluteError, 0);
-assert.equal(crosswalk.diagnostic.imputationAllowed, true);
-
 const speed = { speed: { throughput_tokens_per_second_median: 10 } };
 assert.equal(effectiveTaskSeconds(speed, { tokens: 10000, input_tokens: 9000 }), null);
 assert.equal(effectiveTaskSeconds(speed, { tokens: 10000, output_tokens: 1000 }), 100);

@@ -6,7 +6,6 @@ import { clamp01, weightedMedianOfFinite } from "../math-utils";
 import { calibrationObservations, distinctModelCount } from "./calibration-population";
 import type { BenchmarkObservationRow } from "./observation";
 import { RESOURCE_SOURCE_AGREEMENT_POLICY } from "./resource-sources";
-import { buildAdditiveSourceCrosswalk } from "./source-crosswalk";
 
 export type CrosswalkObservation = BenchmarkObservationRow & {
   seconds_per_task?: number | null;
@@ -63,7 +62,11 @@ export function crosswalkBenchmarkSources(
   } = {},
 ): CrosswalkObservation[] {
   const pairs = pairObservations(a, b);
-  const quality = crosswalk(pairs, (row) => row.canonical_value, maximumScoreError);
+  const quality = fitAdditiveSourceCrosswalk(
+    pairs,
+    (row) => row.canonical_value,
+    maximumScoreError,
+  );
   const overlap = pairs.filter((pair) => pair.a != null && pair.b != null);
   const observedRanges = {
     a: {
@@ -78,7 +81,7 @@ export function crosswalkBenchmarkSources(
   const resources = new Map(
     RESOURCE_KEYS.map((key) => [
       key,
-      crosswalk(
+      fitAdditiveSourceCrosswalk(
         pairs,
         (row) => {
           const value = row[key];
@@ -211,7 +214,7 @@ export function crosswalkThreeBenchmarkSources(
     [1, 2],
   ];
   const fits = pairs.map(([left, right]) =>
-    crosswalk(
+    fitAdditiveSourceCrosswalk(
       pairObservations(sources[left]!, sources[right]!),
       (row) => row.canonical_value,
       maximumScoreError,
@@ -476,19 +479,77 @@ function resourceAgreement(
   };
 }
 
-function crosswalk(
+/** Fit a model-held-out additive crosswalk; paired observations need no prediction, and missing-source projections require validation. */
+function fitAdditiveSourceCrosswalk(
   pairs: Pair[],
   value: (row: CrosswalkObservation) => number | null,
   maximumMedianAbsoluteError: number,
   sourceBWeight = 0.5,
 ) {
-  return buildAdditiveSourceCrosswalk(pairs, {
-    sourceAValue: (pair) => (pair.a == null ? null : value(pair.a)),
-    sourceBValue: (pair) => (pair.b == null ? null : value(pair.b)),
-    minimumEffectiveModels: MINIMUM_MODELS,
-    maximumMedianAbsoluteError,
-    sourceBWeight,
+  if (!Number.isFinite(sourceBWeight) || sourceBWeight < 0 || sourceBWeight > 1)
+    throw new Error("Crosswalk source B weight must be between zero and one");
+  const offsets = calibrationObservations(pairs, (pair) => {
+    const sourceB = pair.b == null ? null : value(pair.b);
+    const sourceA = pair.a == null ? null : value(pair.a);
+    return sourceB == null || sourceA == null ? null : sourceB - sourceA;
   });
+  const overlapModelCount = distinctModelCount(offsets);
+  const delta = weightedMedianOfFinite(offsets);
+  const validationErrorByItem = new Map<Pair, number>();
+  for (const offset of offsets) {
+    const heldOutOffset = weightedMedianOfFinite(
+      offsets.filter((candidate) => candidate.modelKey !== offset.modelKey),
+    );
+    if (heldOutOffset != null) {
+      validationErrorByItem.set(
+        offset.item,
+        Math.abs(offset.value - heldOutOffset) * Math.max(sourceBWeight, 1 - sourceBWeight),
+      );
+    }
+  }
+  const validationErrors = calibrationObservations(
+    pairs,
+    (pair) => validationErrorByItem.get(pair) ?? null,
+  );
+  const validationModelCount = distinctModelCount(validationErrors);
+  const validationMedianAbsoluteError = weightedMedianOfFinite(validationErrors);
+  const imputationAllowed =
+    maximumMedianAbsoluteError > 0 &&
+    overlapModelCount >= MINIMUM_MODELS &&
+    validationModelCount >= MINIMUM_MODELS &&
+    delta != null &&
+    validationMedianAbsoluteError != null &&
+    validationMedianAbsoluteError <= maximumMedianAbsoluteError;
+  const confidence = imputationAllowed
+    ? clamp01(1 - (validationMedianAbsoluteError ?? 0) / maximumMedianAbsoluteError)
+    : null;
+  return {
+    project,
+    confidence,
+    diagnostic: {
+      delta,
+      validationMedianAbsoluteError,
+      imputationAllowed,
+    },
+  };
+
+  /** Apply this fitted target to another pair, including source-default summaries that were not calibration observations. */
+  function project(sourceA: number | null, sourceB: number | null): number | null {
+    // A single-source target needs no imputation when that source is observed.
+    let projection: number;
+    if (sourceBWeight === 0 && sourceA != null) projection = sourceA;
+    else if (sourceBWeight === 1 && sourceB != null) projection = sourceB;
+    else {
+      if (sourceA == null && sourceB == null) return null;
+      if (sourceA == null || sourceB == null) {
+        if (!imputationAllowed || delta == null) return null;
+        if (sourceA == null) sourceA = sourceB! - delta;
+        else sourceB = sourceA + delta;
+      }
+      projection = (1 - sourceBWeight) * sourceA! + sourceBWeight * sourceB!;
+    }
+    return Number.isFinite(projection) ? projection : null;
+  }
 }
 
 /** Model-name reconciliation follows the existing provider-neutral identity vocabulary; efforts remain separate keys. */

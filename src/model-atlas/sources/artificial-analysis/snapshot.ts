@@ -7,7 +7,8 @@
 import { AGENTIC_INDEX_KEYS, INTELLIGENCE_INDEX_KEYS } from "../../benchmarks/field-keys";
 import type { ScoringConfig } from "../../config/stage";
 import { asFiniteNumber, asRecord, type JsonObject } from "../../runtime";
-import { rowStringValue, snapshotRowsWithStates, sourceKey } from "../snapshots/policy";
+import { stringValue } from "../cache/rows";
+import { snapshotRowsWithStates, sourceKey } from "../snapshots/policy";
 import {
   shouldUseFetchedRows,
   snapshotFetchedAt,
@@ -89,7 +90,7 @@ export async function artificialAnalysisSnapshot(
       fetchedAtEpochSeconds: null,
       options,
       rowKey: artificialAnalysisModelId,
-      rowLabel: (row) => rowStringValue(row, "name"),
+      rowLabel: (row) => stringValue(row.name),
       previousMissingSince,
       nowEpochSeconds,
     });
@@ -117,7 +118,7 @@ export async function artificialAnalysisSnapshot(
     fetchedAtEpochSeconds: fetchedLeaderboardPayload.fetched_at_epoch_seconds,
     options,
     rowKey: artificialAnalysisModelId,
-    rowLabel: (row) => rowStringValue(row, "name"),
+    rowLabel: (row) => stringValue(row.name),
     mergeRow: (cachedRow, fetchedRow) =>
       mergeArtificialAnalysisRow(cachedRow, fetchedRow, scoringConfig),
     previousMissingSince,

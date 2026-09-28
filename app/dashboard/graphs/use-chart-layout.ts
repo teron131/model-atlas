@@ -1,6 +1,6 @@
 "use client";
 
-/** Shared responsive geometry boundary for dashboard SVGs. */
+/** Measure dashboard chart widths and follow the shared compact-layout breakpoint. */
 
 import { useEffect, useLayoutEffect, useState } from "react";
 

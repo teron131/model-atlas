@@ -24,13 +24,13 @@ import { coverageFrontier, leadingLabs } from "./timeline/frontier";
 import { LabsPlot } from "./timeline/LabsPlot";
 import { OrganizationSelect } from "./timeline/OrganizationSelect";
 import { TimelineNavigator } from "./timeline/TimelineNavigator";
-import { useChartWidth, useCompactChartLayout } from "./use-media-query";
+import { useChartWidth, useCompactChartLayout } from "./use-chart-layout";
 
 import styles from "./graphs.module.css";
 import timeline from "./timeline.module.css";
 
 const TimelineEvidence = dynamic(
-  () => import("./timeline/DiagnosticMatrices").then((module) => module.TimelineEvidence),
+  () => import("./timeline/TimelineEvidence").then((module) => module.TimelineEvidence),
   { loading: () => <p role="status">Loading evidence matrices…</p> },
 );
 

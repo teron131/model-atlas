@@ -44,8 +44,8 @@ for (const [provider, source] of [...logoSources].sort()) {
 
 await mkdir(resolve(PUBLIC_ICON_DIR), { recursive: true });
 await Promise.all([
-  writeFile(resolve(GENERATED_PATH), renderProviderAssetsModule(nextAssets)),
-  writeFile(resolve(GENERATED_ICON_PATH), renderProviderIconsModule(nextAssets)),
+  writeFile(resolve(GENERATED_PATH), renderProviderModule(nextAssets, "assets")),
+  writeFile(resolve(GENERATED_ICON_PATH), renderProviderModule(nextAssets, "icons")),
   ...Object.entries(nextAssets).map(([provider, asset]) =>
     writeFile(resolve(PUBLIC_ICON_DIR, `${provider}.svg`), generatedIconBytes(asset.logo)),
   ),
@@ -134,58 +134,37 @@ function svgDataUrl(imageBuffer: Buffer) {
   return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
 }
 
-function renderProviderAssetsModule(assets: ProviderAssetMap) {
+/** Render both generated contracts with identical provider ordering, escaping, and field layout. */
+function renderProviderModule(assets: ProviderAssetMap, kind: "assets" | "icons") {
+  const embedded = kind === "assets";
+  const typeName = embedded ? "ProviderAsset" : "ProviderIcon";
+  const exportName = embedded ? "providerAssets" : "providerIcons";
   const entries = Object.entries(assets)
     .sort(([left], [right]) => left.localeCompare(right))
     .map(([provider, asset]) => {
       const key = /^[A-Za-z_$][\w$]*$/.test(provider) ? provider : JSON.stringify(provider);
+      const logo = embedded ? asset.logo : `/provider-icons/${provider}.svg`;
       return [
         `\t${key}: {`,
         `\t\tcolor: ${JSON.stringify(asset.color)},`,
-        `\t\tlogo: ${JSON.stringify(asset.logo)},`,
+        `\t\tlogo: ${JSON.stringify(logo)},`,
         "\t},",
       ].join("\n");
     })
     .join("\n");
   return [
-    "// Generated provider logo data for API and dashboard consumers; do not edit directly.",
+    embedded
+      ? "// Generated provider logo data for API and dashboard consumers; do not edit directly."
+      : "// Generated provider icon URLs and colors for dashboard consumers; do not edit directly.",
     "",
-    "type ProviderAsset = {",
+    `type ${typeName} = {`,
     "\tcolor: string;",
     "\tlogo: string;",
     "};",
     "",
-    "export const providerAssets = {",
+    `export const ${exportName} = {`,
     entries,
-    "} as const satisfies Record<string, ProviderAsset>;",
-    "",
-  ].join("\n");
-}
-
-function renderProviderIconsModule(assets: ProviderAssetMap) {
-  const entries = Object.entries(assets)
-    .sort(([left], [right]) => left.localeCompare(right))
-    .map(([provider, asset]) => {
-      const key = /^[A-Za-z_$][\w$]*$/.test(provider) ? provider : JSON.stringify(provider);
-      return [
-        `\t${key}: {`,
-        `\t\tcolor: ${JSON.stringify(asset.color)},`,
-        `\t\tlogo: ${JSON.stringify(`/provider-icons/${provider}.svg`)},`,
-        "\t},",
-      ].join("\n");
-    })
-    .join("\n");
-  return [
-    "// Generated provider icon URLs and colors for dashboard consumers; do not edit directly.",
-    "",
-    "type ProviderIcon = {",
-    "\tcolor: string;",
-    "\tlogo: string;",
-    "};",
-    "",
-    "export const providerIcons = {",
-    entries,
-    "} as const satisfies Record<string, ProviderIcon>;",
+    `} as const satisfies Record<string, ${typeName}>;`,
     "",
   ].join("\n");
 }

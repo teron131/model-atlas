@@ -1,7 +1,7 @@
 /** Disk-backed provider logo caching owns fetch coalescing, resize bounds, and local/Vercel cache paths. */
 
 import { createHash } from "node:crypto";
-import { access, mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
@@ -47,7 +47,6 @@ function pngDataUrl(imageBuffer: Buffer): string {
 
 async function loadCachedLogoDataUrl(cachePath: string): Promise<string | null> {
   try {
-    await access(cachePath);
     const imageBuffer = await readFile(cachePath);
     const { default: sharp } = await import("sharp");
     const metadata = await sharp(imageBuffer).metadata();

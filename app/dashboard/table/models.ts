@@ -16,7 +16,7 @@ import {
   minMaxScale,
 } from "../../../src/model-atlas/pipeline/scores/normalization";
 import { benchmarkMetricValue as modelBenchmarkMetricValue } from "../../../src/model-atlas/pipeline/scores/resource-metrics";
-import { type ModelAtlasPublishedModel } from "../../../src/model-atlas/stats/types";
+import { type ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 import type { ModelAtlasLeaderboardRank } from "../../leaderboard/public-json";
 import { compareBenchmarkDisplayKeys } from "../shared/constants";
 import { filterByModelQuery, modelDisplayName } from "../shared/model-display";
@@ -330,7 +330,7 @@ function tableColumnGroup(
 }
 
 export type TableRow = {
-  model: ModelAtlasPublishedModel;
+  model: ModelAtlasModel;
   intelligenceRank: ModelAtlasLeaderboardRank;
   originalIndex: number;
   aliasPriority: number;
@@ -423,7 +423,7 @@ export function sortedRows(rows: TableRow[], filterQuery: string, sortState: Sor
 }
 
 /** Collapse duplicate model routes before assigning display ranks. */
-export function dedupeDisplayModels(models: ModelAtlasPublishedModel[]) {
+export function dedupeDisplayModels(models: ModelAtlasModel[]) {
   const benchmarkReferenceModels = models;
   const benchmarkDisplayScoreRanges = Object.fromEntries(
     scaledBenchmarkMetricColumns.map((column) => [
@@ -456,10 +456,7 @@ export function dedupeDisplayModels(models: ModelAtlasPublishedModel[]) {
   );
 }
 
-export function benchmarkMetricValue(
-  model: ModelAtlasPublishedModel,
-  column: BenchmarkMetricColumn,
-) {
+export function benchmarkMetricValue(model: ModelAtlasModel, column: BenchmarkMetricColumn) {
   return modelBenchmarkMetricValue(model, column.benchmark);
 }
 
@@ -477,17 +474,14 @@ export function benchmarkMeterValue(row: TableRow, column: BenchmarkMetricColumn
     : benchmarkDisplayValue(row, column);
 }
 
-export function contextWindowValue(model: ModelAtlasPublishedModel) {
+export function contextWindowValue(model: ModelAtlasModel) {
   const contextWindow = model.context_window as
-    | ({ total?: number | null } & NonNullable<ModelAtlasPublishedModel["context_window"]>)
+    | ({ total?: number | null } & NonNullable<ModelAtlasModel["context_window"]>)
     | null;
   return contextWindow?.context ?? contextWindow?.total;
 }
 
-export function dashboardMetricValue(
-  model: ModelAtlasPublishedModel,
-  column: DashboardMetricColumn,
-) {
+export function dashboardMetricValue(model: ModelAtlasModel, column: DashboardMetricColumn) {
   if ("source" in column) {
     return model.task_metrics?.[column.source]?.[column.metric];
   }
@@ -503,7 +497,7 @@ export function dashboardMetricValue(
   return profileMetricValue(model, column);
 }
 
-function profileMetricValue(model: ModelAtlasPublishedModel, column: ProfileMetricColumn) {
+function profileMetricValue(model: ModelAtlasModel, column: ProfileMetricColumn) {
   if (column.field === "release") {
     return model.release_date;
   }
@@ -517,7 +511,7 @@ function profileMetricValue(model: ModelAtlasPublishedModel, column: ProfileMetr
   return value ? 1 : 0;
 }
 
-function inputModalityRank(model: ModelAtlasPublishedModel) {
+function inputModalityRank(model: ModelAtlasModel) {
   const input = new Set((model.modalities?.input ?? []).map((value) => value.toLowerCase()));
   if (input.size === 0) {
     return null;
@@ -597,7 +591,7 @@ function compareSortValues(sorter: Sorter, left: unknown, right: unknown) {
   return Number(left) - Number(right);
 }
 
-function displayKey(model: ModelAtlasPublishedModel) {
+function displayKey(model: ModelAtlasModel) {
   const id = typeof model.id === "string" ? model.id : "";
   const slashIndex = id.indexOf("/");
   if (slashIndex <= 0) {
@@ -623,7 +617,7 @@ function canonicalProviderId(provider: string, slug: string) {
     : normalizedProvider;
 }
 
-function displayAliasPriority(model: ModelAtlasPublishedModel) {
+function displayAliasPriority(model: ModelAtlasModel) {
   const id = typeof model.id === "string" ? model.id.toLowerCase() : "";
   if (id.includes("latest")) {
     return 3;

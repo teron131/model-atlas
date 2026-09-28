@@ -81,7 +81,7 @@ function buildEvidence(data: HistoricalDataset, parameters: TimelineParameters) 
           index.weights.agentic * task.weights.agentic > 0,
       )
       .map((index) => {
-        const predictor = prepareImputation(rows, rows, task, [index], parameters, "index");
+        const predictor = prepareImputation(rows, task, [index], parameters, "index");
         predictors.push(predictor.details);
         return predictor;
       });
@@ -104,7 +104,7 @@ function buildEvidence(data: HistoricalDataset, parameters: TimelineParameters) 
       const key = inputs.map((b) => b.id).join("|");
       let context = contexts.get(key);
       if (!context && inputs.length >= 3) {
-        context = prepareImputation(rows, rows, task, inputs, parameters, "components");
+        context = prepareImputation(rows, task, inputs, parameters, "components");
         contexts.set(key, context);
         if (context.details.models > 0) predictors.push(context.details);
       }
@@ -140,15 +140,14 @@ function buildEvidence(data: HistoricalDataset, parameters: TimelineParameters) 
 
 /** Each donor observes the target and every requested input; unavailable editions never silently change its basket. */
 function prepareImputation(
-  referenceRows: TimelineRow[],
-  queryRows: TimelineRow[],
+  rows: TimelineRow[],
   target: HistoricalBenchmark,
   inputs: HistoricalBenchmark[],
   parameters: TimelineParameters,
   kind: TimelinePredictor["kind"],
 ) {
   const definitions = [target, ...inputs];
-  const donors = referenceRows.filter((row) =>
+  const donors = rows.filter((row) =>
     definitions.every((b) => Number.isFinite(row.benchmarks[b.id])),
   );
   const ranges = new Map(
@@ -181,7 +180,7 @@ function prepareImputation(
     ),
   };
   const result = usable
-    ? prepareBenchmarkImputation(donors, config, [target.id], kind === "index" ? 1 : 3, queryRows)
+    ? prepareBenchmarkImputation(donors, config, [target.id], kind === "index" ? 1 : 3, rows)
     : null;
   const diagnostic = result?.imputationDiagnosticsByKey.get(target.id);
   const details: TimelinePredictor = {
@@ -203,17 +202,14 @@ function prepareImputation(
   };
   return {
     details,
-    donors,
-    ranges,
-    predict(row: TimelineRow, allowOutside = false) {
+    predict(row: TimelineRow) {
       if (
         !details.accepted ||
-        (!allowOutside &&
-          inputs.some((b) => {
-            const value = row.benchmarks[b.id];
-            const range = ranges.get(b.id)!;
-            return value == null || value < range.min || value > range.max;
-          }))
+        inputs.some((b) => {
+          const value = row.benchmarks[b.id];
+          const range = ranges.get(b.id)!;
+          return value == null || value < range.min || value > range.max;
+        })
       )
         return null;
       const value = result?.imputationByModel.get(row)?.get(target.id);

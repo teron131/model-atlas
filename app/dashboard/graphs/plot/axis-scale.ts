@@ -92,7 +92,7 @@ export function steppedLinearAxisScale(values: number[], options: SteppedAxisOpt
   const expandedDomain = expandDomainForMinimumTicks(domain, step, minimumTicks, options);
   return {
     domain: expandedDomain,
-    ticks: steppedAxisTicks(expandedDomain, step, options.formatTick),
+    ticks: ticksForStep(expandedDomain, step, options.formatTick),
   };
 }
 
@@ -144,14 +144,6 @@ function linearAxisForDomain(
   };
 }
 
-function steppedAxisTicks(
-  domain: [number, number],
-  step: number,
-  formatTick = (value: number) => String(value),
-) {
-  return ticksForStep(domain, step, formatTick);
-}
-
 function steppedAxisCandidates(
   domain: [number, number],
   step: number,
@@ -159,7 +151,7 @@ function steppedAxisCandidates(
   options: SteppedAxisOptions,
 ) {
   const snappedDomain = snapDomainToNearbyStep(domain, step, options);
-  const ticks = steppedAxisTicks(snappedDomain, step, options.formatTick);
+  const ticks = ticksForStep(snappedDomain, step, options.formatTick);
   if (ticks.length >= minimumTicks) {
     return [
       {
@@ -172,7 +164,7 @@ function steppedAxisCandidates(
   }
   const expandedDomain = expandDomainForMinimumTicks(domain, step, minimumTicks, options);
   const expansion = domainExpansion(domain, expandedDomain);
-  const expandedTicks = steppedAxisTicks(expandedDomain, step, options.formatTick);
+  const expandedTicks = ticksForStep(expandedDomain, step, options.formatTick);
   if (expandedTicks.length >= minimumTicks && expansion <= step / 2) {
     return [
       {
@@ -202,7 +194,7 @@ function snapDomainToNearbyStep(
 function ticksForStep(
   [low, high]: [number, number],
   step: number,
-  formatTick: (value: number) => string,
+  formatTick: (value: number) => string = String,
 ) {
   if (!(high > low) || !(step > 0)) {
     return [];
@@ -229,7 +221,7 @@ function expandDomainForMinimumTicks(
   },
 ): [number, number] {
   let [low, high] = domain;
-  while (ticksForStep([low, high], step, options.formatTick ?? String).length < minimumTicks) {
+  while (ticksForStep([low, high], step, options.formatTick).length < minimumTicks) {
     const lowerTick = Math.ceil(low / step) * step - step;
     const upperTick = Math.floor(high / step) * step + step;
     const nextLow = options.min == null ? lowerTick : Math.max(options.min, lowerTick);

@@ -2,15 +2,11 @@
 
 import { memo } from "react";
 
-import type {
-  ModelAtlasModel,
-  ModelAtlasPayload,
-  ModelAtlasPublishedModel,
-} from "../../../src/model-atlas/stats/types";
+import type { ModelAtlasModel, ModelAtlasPayload } from "../../../src/model-atlas/stats/types";
 import { updateDashboardUrl, useUrlState } from "../use-url-state";
 import { FrontierBenchmarksPanel } from "./frontier-benchmarks/Panel";
 import type { HoverSetter } from "./types";
-import { useCompactChartLayout } from "./use-media-query";
+import { useCompactChartLayout } from "./use-chart-layout";
 
 export const ParetoAnalysisPanel = memo(function ParetoAnalysisPanel({
   payload,
@@ -20,7 +16,7 @@ export const ParetoAnalysisPanel = memo(function ParetoAnalysisPanel({
   setHover,
 }: {
   payload: ModelAtlasPayload;
-  models: ModelAtlasPublishedModel[];
+  models: ModelAtlasModel[];
   referenceModels: ModelAtlasModel[];
   showVariants: boolean;
   setHover: HoverSetter;

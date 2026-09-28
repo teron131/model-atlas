@@ -6,7 +6,7 @@ import {
   reasoningEffortRank,
 } from "../../../src/model-atlas/identity/normalization";
 import { modelDisplayExclusion } from "../../../src/model-atlas/stats/model-visibility";
-import type { ModelAtlasPublishedModel } from "../../../src/model-atlas/stats/types";
+import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 import { compactModelVariants } from "../../leaderboard/model-variants";
 import {
   providerChartColor,
@@ -43,23 +43,23 @@ export const DEFAULT_RECENCY_FILTER: RecencyFilter = 180;
 export const modelRankFilterOptions: ModelRankFilter[] = [30, 50, 70, "all"];
 export const recencyFilterOptions: RecencyFilter[] = [90, 180, "all"];
 
-export function modelCount(models: ModelAtlasPublishedModel[]): number {
+export function modelCount(models: ModelAtlasModel[]): number {
   return new Set(models.map(canonicalModelKey)).size;
 }
 
 /** Every graph requires published Value evidence; individual comparisons also enforce their own coordinate availability. */
-export function isGraphEligible(model: ModelAtlasPublishedModel): boolean {
+export function isGraphEligible(model: ModelAtlasModel): boolean {
   const value = model.scores?.value_score;
   return typeof value === "number" && Number.isFinite(value);
 }
 
 /** Expand every reasoning variant when requested; otherwise retain the highest-scoring variant per model. */
 export function modelsForVariantDisplay(
-  models: ModelAtlasPublishedModel[],
+  models: ModelAtlasModel[],
   showVariants: boolean,
   benchmarkObservations: BenchmarkObservationsByKey = {},
-): ModelAtlasPublishedModel[] {
-  const variantsByIdentity = new Map<string, ModelAtlasPublishedModel>();
+): ModelAtlasModel[] {
+  const variantsByIdentity = new Map<string, ModelAtlasModel>();
   for (const model of models) {
     if (modelDisplayExclusion(model) != null) continue;
     const key = modelVariantKey(model);
@@ -77,27 +77,23 @@ export function modelsForVariantDisplay(
 }
 
 export function modelDisplayName(
-  model: Pick<ModelAtlasPublishedModel, "id" | "name" | "reasoning_effort">,
+  model: Pick<ModelAtlasModel, "id" | "name" | "reasoning_effort">,
 ): string {
   const baseName = model.name ?? model.id ?? "Unknown model";
   return model.reasoning_effort == null ? baseName : `${baseName} (${model.reasoning_effort})`;
 }
 
-export function modelName(
-  model: Pick<ModelAtlasPublishedModel, "id" | "name" | "reasoning_effort">,
-) {
+export function modelName(model: Pick<ModelAtlasModel, "id" | "name" | "reasoning_effort">) {
   return modelDisplayName(model)
     .replace(/\bGPT\s+(?=\d)/g, "GPT-")
     .replace(/\bFable\s+(?=\d)/g, prefixBareFableModelName);
 }
 
-export function shortLabel(
-  model: Pick<ModelAtlasPublishedModel, "id" | "name" | "reasoning_effort">,
-) {
+export function shortLabel(model: Pick<ModelAtlasModel, "id" | "name" | "reasoning_effort">) {
   return modelName(model).replace(" Preview", "");
 }
 
-export function modelLogo(model: ModelAtlasPublishedModel) {
+export function modelLogo(model: ModelAtlasModel) {
   const logo = providerLogo(model.provider);
   if (logo.length > 0) {
     return logo;
@@ -108,7 +104,7 @@ export function modelLogo(model: ModelAtlasPublishedModel) {
 /** Filter model-backed rows through the shared weighted keyword policy and explicit model metadata projection. */
 export function filterByModelQuery<T>(
   items: readonly T[],
-  getModel: (item: T) => ModelAtlasPublishedModel,
+  getModel: (item: T) => ModelAtlasModel,
   filterQuery: string,
 ): T[] {
   return filterSearchDocuments(
@@ -117,7 +113,7 @@ export function filterByModelQuery<T>(
   );
 }
 
-export function providerOptions(models: ModelAtlasPublishedModel[]): ProviderOption[] {
+export function providerOptions(models: ModelAtlasModel[]): ProviderOption[] {
   type ProviderOptionDraft = ProviderOption & {
     modelKeys: Set<string>;
     bestScoreByModel: Map<string, number>;
@@ -176,7 +172,7 @@ export function providerOptions(models: ModelAtlasPublishedModel[]): ProviderOpt
 
 export function filterByModelControls<T>(
   items: T[],
-  getModel: (item: T) => ModelAtlasPublishedModel,
+  getModel: (item: T) => ModelAtlasModel,
   filters: ModelControlFilters,
 ) {
   const providerKeys = filters.providers.length === 0 ? null : new Set(filters.providers);
@@ -188,7 +184,7 @@ export function filterByModelControls<T>(
 /** Retain canonical model families released within the selected UTC-day window. */
 export function filterByReleaseRecency<T>(
   items: T[],
-  getModel: (item: T) => ModelAtlasPublishedModel,
+  getModel: (item: T) => ModelAtlasModel,
   recency: RecencyFilter,
   observedAtEpochSeconds: number | null,
 ) {
@@ -206,9 +202,9 @@ export function filterByReleaseRecency<T>(
 /** Filter by global Intelligence rank while retaining every variant in an eligible family. */
 export function filterByIntelligenceRank<T>(
   items: T[],
-  getModel: (item: T) => ModelAtlasPublishedModel,
+  getModel: (item: T) => ModelAtlasModel,
   rankFilter: ModelRankFilter,
-  rankingModels: readonly ModelAtlasPublishedModel[],
+  rankingModels: readonly ModelAtlasModel[],
 ) {
   if (rankFilter === "all") {
     return items;
@@ -238,7 +234,7 @@ export function filterByIntelligenceRank<T>(
 }
 
 function isReleasedWithinDays(
-  model: ModelAtlasPublishedModel,
+  model: ModelAtlasModel,
   observedAtEpochSeconds: number | null,
   maxAgeDays: number,
 ): boolean {
@@ -266,14 +262,14 @@ export function toggleProviderFilter(selectedProviders: string[], provider: stri
     : [...selectedProviders, provider];
 }
 
-export function modelVariantKey(model: ModelAtlasPublishedModel): string {
+export function modelVariantKey(model: ModelAtlasModel): string {
   return `${canonicalModelKey(model)}\u0000${model.reasoning_effort ?? ""}`;
 }
 
 /** Group visible model variants by family in ascending effort order, including an unlabeled sibling. */
 export function reasoningVariantGroups<T>(
   items: readonly T[],
-  getModel: (item: T) => ModelAtlasPublishedModel,
+  getModel: (item: T) => ModelAtlasModel,
 ) {
   const variantsByModel = new Map<string, T[]>();
   for (const item of items) {
@@ -299,7 +295,7 @@ export function reasoningVariantGroups<T>(
 }
 
 function modelMatchesControls(
-  model: ModelAtlasPublishedModel,
+  model: ModelAtlasModel,
   maxCost: CostFilter,
   providerKeys: ReadonlySet<string> | null,
 ) {
@@ -331,10 +327,7 @@ function finiteNumber(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
-function compareIntelligence(
-  left: ModelAtlasPublishedModel,
-  right: ModelAtlasPublishedModel,
-): number {
+function compareIntelligence(left: ModelAtlasModel, right: ModelAtlasModel): number {
   const leftScore = finiteNumber(left.scores.intelligence_score);
   const rightScore = finiteNumber(right.scores.intelligence_score);
   if (leftScore == null || rightScore == null) {
@@ -343,7 +336,7 @@ function compareIntelligence(
   return rightScore - leftScore;
 }
 
-function modelSearchDocument<T>(value: T, model: ModelAtlasPublishedModel): SearchDocument<T> {
+function modelSearchDocument<T>(value: T, model: ModelAtlasModel): SearchDocument<T> {
   return {
     value,
     primary: [

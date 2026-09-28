@@ -8,7 +8,7 @@ import {
   type ModelAtlasColumnTooltips,
 } from "../../../src/model-atlas/config/tooltips";
 import type {
-  ModelAtlasPublishedModel,
+  ModelAtlasModel,
   ModelAtlasScoreDimension,
 } from "../../../src/model-atlas/stats/types";
 import { benchmarkTooltip, type BenchmarkTooltipContext } from "../shared/benchmark-tooltips";
@@ -284,7 +284,7 @@ export function tableColumnTooltip(
 }
 
 /** Build the row-owned evidence popover from one persisted material change. */
-export function scoreChangeTooltip(model: ModelAtlasPublishedModel): ModelAtlasColumnTooltip {
+export function scoreChangeTooltip(model: ModelAtlasModel): ModelAtlasColumnTooltip {
   const change = model.latest_change!;
   const scoreBefore = change.score_before == null ? "New" : change.score_before.toFixed(1);
   const scoreAfter = change.score_after.toFixed(1);

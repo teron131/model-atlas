@@ -2,7 +2,7 @@
 import { canonicalModelKey } from "../../../../src/model-atlas/identity/normalization";
 import { historicalReleaseName } from "../../../../src/model-atlas/timeline/model-identity";
 import type { HistoricalModel } from "../../../../src/model-atlas/timeline/schemas";
-import { modelName, shortLabel } from "../../shared/model-display";
+import { modelName } from "../../shared/model-display";
 
 export function timelineModelName(model: HistoricalModel, showEffort = false): string {
   return modelName({
@@ -10,10 +10,6 @@ export function timelineModelName(model: HistoricalModel, showEffort = false): s
     name: displayName(model),
     reasoning_effort: showEffort ? model.effort : null,
   });
-}
-
-export function timelineModelLabel(model: HistoricalModel): string {
-  return shortLabel({ id: model.id, name: displayName(model), reasoning_effort: null });
 }
 
 /** Follow reconciled family labels while preserving original source names in evidence and genuinely distinct preview releases. */
