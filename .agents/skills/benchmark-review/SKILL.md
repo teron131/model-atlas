@@ -29,17 +29,17 @@ Read current files before naming benchmarks, sources, groups, weights, or rank s
 
 1. Read `docs/standards.md` for admission, retention, and rejection criteria.
 2. Read `docs/benchmarks.md` for portfolio decisions, source precedence, metric selection, reconciliation, benchmark-specific resource policy, classification, importance, and Intelligence/Agentic loadings.
-3. Read `docs/methodology.md` for scoring mathematics, effort handling, imputation, and resource scoring.
-4. When the benchmark is selected or comparison with the portfolio matters, derive the selected portfolio, `frontier` or `baseline` group, benchmark importance, and Intelligence/Agentic loadings from `src/model-atlas/benchmarks/catalog/portfolio.ts`. Use `public/model-atlas-snapshot.json` metadata only when that file exists and represents the newer contract.
+3. Start with `docs/methodology/overview.md`, then read the relevant `intelligence-agentic.md`, `imputation.md`, `speed-value.md`, and `leaderboard-rules.md` pages in that directory for the current scoring and display contracts.
+4. When the benchmark is selected or comparison with the portfolio matters, derive the selected portfolio, `frontier` or `baseline` group, benchmark importance, and Intelligence/Agentic loadings from `src/model-atlas/benchmarks/catalog/portfolio.ts`. Compare those definitions with the served payload metadata when auditing a deployed result; distinguish a deployment mismatch from a portfolio decision.
 5. For a registered benchmark, derive raw source names, loaders, and URLs from `src/model-atlas/benchmarks/catalog/sources.ts` and `src/model-atlas/benchmarks/registry.ts`. For a new candidate, use its official primary sources and do not expect a local registry entry.
-6. When rank agreement matters, inspect `app/dashboard/table/models.ts`, `src/model-atlas/pipeline/selection/public-list.ts`, and `src/model-atlas/stats/payload/public-json.ts` before reconstructing the displayed rank. Follow the app's current default rank and variant-collapse semantics; do not substitute another aggregate.
-7. For selected benchmark values, inspect both `model.evaluations` and `model.intelligence` because selected source-derived fields can live in either object.
+6. When rank agreement matters, inspect `app/dashboard/table/models.ts`, `src/model-atlas/pipeline/selection/public-list.ts`, `app/leaderboard/public-json.ts`, and `app/leaderboard/model-variants.ts` before reconstructing the displayed rank. Follow the app's current default rank and variant-collapse semantics; do not substitute another aggregate.
+7. For selected benchmark values, follow `benchmarkMetricValue` in `src/model-atlas/pipeline/scores/resource-metrics.ts`, which reads `model.benchmarks` and the supported `model.intelligence` fields. The shared model contract lives in `src/model-atlas/pipeline/model-types.ts` and is re-exported by `src/model-atlas/stats/types.ts`.
 
 Never rely on a benchmark list, source URL, prior verdict, database run number, or model rank remembered from an earlier audit.
 
 ## Use Available Local Evidence
 
-Local portfolio artifacts are optional for candidate review. Prefer `public/model-atlas-snapshot.json` for current final rows when it exists. If it is absent, use `.cache/database.sqlite` only when that database already exists and can reproduce the app's current rank from final model rows.
+Local portfolio artifacts are optional for candidate review. The normal runtime reads published artifacts through `src/model-atlas/database/runtime-snapshot.ts`; derive their manifest and locations from `src/model-atlas/database/snapshots/manifest.ts`. A local override instead reads the SQLite checkpoint, whose default path is `.cache/database.sqlite`; verify the current path in `src/model-atlas/database/schema.ts`. Use an existing checkpoint or a read-only fetch of the served artifact appropriate to the audit, and record which revision or timestamp the evidence represents. Do not assume a static JSON file exists under `public/`.
 
 Use the existing SQLite database only for evidence such as:
 
@@ -49,7 +49,7 @@ Use the existing SQLite database only for evidence such as:
 - source health, fetched timestamps, and stored source-specific update fields
 - source row counts and provenance fields
 
-Inspect the schema before querying; do not assume run keys or columns from an older checkout. If both the public snapshot and SQLite database are absent, continue the standards and primary-source review, state that local rank agreement could not be measured, and do not refresh either artifact.
+Inspect the schema before querying; do not assume run keys or columns from an older checkout. If no suitable published artifact or existing SQLite checkpoint is available, continue the standards and primary-source review, state that rank agreement could not be measured, and do not refresh or create an artifact.
 
 ## Review Any Benchmark Against The Standard
 
@@ -72,10 +72,10 @@ Recommend exactly `frontier`, `baseline`, or `rejected` when the evidence suppor
 
 When the user asks to settle portfolio policy:
 
-- Treat classification as an interpretive label; it does not change importance, imputation, or missing-evidence treatment.
-- Default task-level benchmark importance to `1`. Reserve lower importance for an explicit benchmark-specific decision; overlapping aggregate indexes are the ordinary half-importance case.
+- Apply the current class semantics from `docs/benchmarks.md` and the scoring owners: frontier task results contribute directly to capability scores, while baseline results remain visible without direct capability contributions. Aggregate indexes have separate eligibility and breadth rules; do not treat changing class as a label-only edit.
+- Default task-level benchmark importance to `1`, preserving documented benchmark-specific exceptions. Read aggregate-index importance and represented-breadth rules from the current catalog and `src/model-atlas/benchmarks/index-policy.ts`; do not assume an index receives half importance.
 - Default coding benchmarks primarily to Agentic. Add substantial Intelligence loading only when algorithmic, mathematical, scientific, or research reasoning materially determines success.
-- Keep imputed values out of the observed benchmark mean and public admission; use them only through the methodology's discounted evidence support.
+- Distinguish accepted source crosswalks, estimates from other benchmarks, and estimates across reasoning efforts using `docs/methodology/imputation.md`. Crosswalks supply accepted benchmark results; cross-benchmark estimates supply discounted evidence and resource-comparison inputs; supported sibling-effort estimates can fill missing capability contributions without adding direct evidence. No imputation satisfies direct-evidence admission requirements.
 
 An unexpected winner is a reason to inspect task fit, grading, configuration, and harness effects, not evidence of bad methodology by itself.
 
