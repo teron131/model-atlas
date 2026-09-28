@@ -38,10 +38,6 @@ export function sourceKey(...parts: (number | string | null | undefined)[]): str
   return parts.map((part) => String(part ?? "")).join("|");
 }
 
-export function rowStringValue(row: Record<string, unknown>, key: string): string | null {
-  return stringValue(row[key]);
-}
-
 /** Existing source evidence is monotonic: refreshes fill missing values but do not rewrite populated facts. */
 export function mergeSourceEvidence<T>(cachedValue: T, fetchedValue: T): T {
   if (cachedValue == null) {

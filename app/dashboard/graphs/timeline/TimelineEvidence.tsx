@@ -1,6 +1,6 @@
 "use client";
 
-/** Color-only matrices expose retained model evidence and contextual imputation validation without a wall of numerical cells. */
+/** Load timeline evidence on demand and display observed results, inferred cells, and prediction validation. */
 import { useEffect, useMemo, useState } from "react";
 
 import type {
@@ -22,7 +22,7 @@ const ERROR_COLORS = Array.from(
   (_, index) => `hsl(25 80% ${20 + (index * 45) / 15}%)`,
 );
 
-export function DiagnosticMatrices({
+function DiagnosticMatrices({
   data,
   models,
   calibration,
@@ -44,7 +44,7 @@ export function DiagnosticMatrices({
     () => new Map(data.observations.map((row) => [`${row.modelId}|${row.benchmarkId}`, row])),
     [data],
   );
-  const reconstructed = useMemo(
+  const evidenceByCell = useMemo(
     () => new Map(evidence.map((cell) => [`${cell.modelId}|${cell.benchmarkId}`, cell])),
     [evidence],
   );
@@ -135,13 +135,13 @@ export function DiagnosticMatrices({
           status={(row, column) => {
             const key = row.id + "|" + column.id;
             if (observations.has(key)) return usedBenchmarks.get(row.id)?.has(column.id) ? 0 : 1;
-            return reconstructed.has(key) ? 2 : null;
+            return evidenceByCell.has(key) ? 2 : null;
           }}
           cell={(row, column) => {
             const observation = observations.get(`${row.id}|${column.id}`);
             const estimate = estimates.get(row.id);
             const path = estimate?.paths.find((path) => path.includes(column.id));
-            const inferred = reconstructed.get(`${row.id}|${column.id}`);
+            const inferred = evidenceByCell.get(`${row.id}|${column.id}`);
             if (!observation && inferred)
               return {
                 detail: {

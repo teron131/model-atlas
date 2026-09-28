@@ -7,11 +7,7 @@ import {
 } from "../src/model-atlas/benchmarks/registry";
 import { QUALITY_COVERAGE } from "../src/model-atlas/config/stage";
 import { SNAPSHOT_PRESERVATION_VERSION } from "../src/model-atlas/stats/payload/snapshot-preservation";
-import type {
-  ModelAtlasModel,
-  ModelAtlasPayload,
-  ModelAtlasPublishedModel,
-} from "../src/model-atlas/stats/types";
+import type { ModelAtlasModel, ModelAtlasPayload } from "../src/model-atlas/stats/types";
 
 /** Build every benchmark-observation row group, defaulting unspecified sources to empty. */
 export function benchmarkObservationRowGroups<Row>(
@@ -31,7 +27,7 @@ export function minimalModelAtlasPayload({
   benchmarkObservations,
 }: {
   fetchedAt: number;
-  models?: ModelAtlasPublishedModel[];
+  models?: ModelAtlasModel[];
   benchmarkObservations?: BenchmarkObservationsByKey;
 }): ModelAtlasPayload {
   return {

@@ -3,11 +3,11 @@
 /** Shared provider marks keep table icon sizing and failed-image fallback consistent. */
 import { useState } from "react";
 
-import type { ModelAtlasPublishedModel } from "../../../src/model-atlas/stats/types";
+import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 import { modelLogo } from "./model-display";
 
 /** Reserve the icon slot when a provider image is missing or fails to load. */
-export function ProviderLogo({ model }: { model: ModelAtlasPublishedModel }) {
+export function ProviderLogo({ model }: { model: ModelAtlasModel }) {
   const [hidden, setHidden] = useState(false);
   const logoSrc = modelLogo(model);
   if (hidden || !logoSrc) return <span className="provider-logo provider-logo-empty" />;

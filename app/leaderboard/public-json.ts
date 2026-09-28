@@ -1,11 +1,7 @@
 /** Build stable public JSON views for the Model Atlas stats endpoints. */
 
 import { applyResourceEvidenceRequirements } from "../../src/model-atlas/pipeline/scores/resource-metrics";
-import type {
-  ModelAtlasModel,
-  ModelAtlasPayload,
-  ModelAtlasPublishedModel,
-} from "../../src/model-atlas/stats/types";
+import type { ModelAtlasModel, ModelAtlasPayload } from "../../src/model-atlas/stats/types";
 import { compactModelVariants } from "./model-variants";
 
 const SCORE_SCHEMA = "model_atlas.score";
@@ -38,7 +34,7 @@ export type FullJsonPayload = Omit<ModelAtlasPayload, "models" | "benchmark_obse
   models: PublicFullJsonModel[];
 };
 
-type PublicFullJsonModel = Omit<ModelAtlasPublishedModel, "reasoning" | "logo">;
+type PublicFullJsonModel = Omit<ModelAtlasModel, "reasoning" | "logo">;
 
 type ScoreJsonPayload = {
   schema: typeof SCORE_SCHEMA;
@@ -129,10 +125,8 @@ const CORE_MODEL_COLUMNS = [
   "latency_seconds_median",
   "e2e_latency_seconds_median",
 ] as const;
-type LeaderboardModel = ModelAtlasModel;
-
 type LeaderboardRow = {
-  model: LeaderboardModel;
+  model: ModelAtlasModel;
   rank: ModelAtlasLeaderboardRank;
 };
 
@@ -246,7 +240,7 @@ function compactLeaderboardRows(payload: ModelAtlasPayload): LeaderboardRow[] {
   return rows;
 }
 
-function scoreJsonModel(model: LeaderboardModel, rank: ModelAtlasLeaderboardRank): ScoreJsonModel {
+function scoreJsonModel(model: ModelAtlasModel, rank: ModelAtlasLeaderboardRank): ScoreJsonModel {
   return {
     rank,
     id: model.id,
@@ -266,7 +260,7 @@ function scoreJsonModel(model: LeaderboardModel, rank: ModelAtlasLeaderboardRank
 }
 
 function benchmarksJsonModel(
-  model: LeaderboardModel,
+  model: ModelAtlasModel,
   rank: ModelAtlasLeaderboardRank,
 ): BenchmarksJsonModel {
   return {
@@ -283,7 +277,7 @@ function benchmarksJsonModel(
   };
 }
 
-function coreJsonModel(model: LeaderboardModel, rank: ModelAtlasLeaderboardRank): CoreJsonModel {
+function coreJsonModel(model: ModelAtlasModel, rank: ModelAtlasLeaderboardRank): CoreJsonModel {
   return {
     rank,
     id: model.id,

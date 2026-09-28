@@ -25,7 +25,7 @@ import {
 import type {
   BenchmarkPortfolio,
   BenchmarkResourcePolicy,
-  ModelAtlasPublishedModel,
+  ModelAtlasModel,
 } from "../../../../src/model-atlas/stats/types";
 import { benchmarkLabels } from "../../shared/constants";
 import { modelVariantKey } from "../../shared/model-display";
@@ -58,7 +58,7 @@ export type FrontierBenchmarkRow = {
   benchmarkLabel: string;
   weight: number;
   resourcePolicy: BenchmarkResourcePolicy | null;
-  model: ModelAtlasPublishedModel;
+  model: ModelAtlasModel;
   score: number;
   cost: number | null;
   seconds: number | null;
@@ -157,7 +157,7 @@ const EFFORT_BENCHMARK_KEYS = new Set([
 ]);
 
 export function frontierBenchmarkRows(
-  models: ModelAtlasPublishedModel[],
+  models: ModelAtlasModel[],
   portfolio: BenchmarkPortfolio,
 ): FrontierBenchmarkRow[] {
   const frontierKeys = Object.entries(portfolio)
@@ -506,7 +506,7 @@ export function isScoreAxis(axisKey: FrontierBenchmarkAxisKey): boolean {
 
 /** Keep model-wide Y scores intact; measured X values still require selected resource evidence. */
 export function performanceComparisonRows(
-  models: ModelAtlasPublishedModel[],
+  models: ModelAtlasModel[],
   evidenceRows: FrontierBenchmarkRow[],
   performance: PerformanceMetric,
   axisKey: FrontierBenchmarkAxisKey,

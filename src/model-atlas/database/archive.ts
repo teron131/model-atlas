@@ -113,11 +113,6 @@ export function readArchivedRecord(
     : null;
 }
 
-/** Count metadata without materializing archived records. */
-export function archivedEvidenceCount(db: DatabaseSync): number {
-  return Number(db.prepare(`SELECT COUNT(*) AS count FROM ${EVIDENCE_ARCHIVE_TABLE}`).get()!.count);
-}
-
 function modelObservations(
   db: DatabaseSync,
   table: "model_benchmarks" | "model_task_metrics",

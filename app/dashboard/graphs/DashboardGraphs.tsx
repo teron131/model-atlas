@@ -5,11 +5,7 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 
 import { canonicalModelKey } from "../../../src/model-atlas/identity/normalization";
-import {
-  type ModelAtlasModel,
-  type ModelAtlasPayload,
-  type ModelAtlasPublishedModel,
-} from "../../../src/model-atlas/stats/types";
+import { type ModelAtlasModel, type ModelAtlasPayload } from "../../../src/model-atlas/stats/types";
 import { BenchmarkStrip } from "../BenchmarkStrip";
 import {
   type CostFilter,
@@ -44,10 +40,6 @@ import type { HoverState } from "./types";
 
 import styles from "./graphs.module.css";
 
-type GraphPayload = Omit<ModelAtlasPayload, "models"> & {
-  models: ModelAtlasPublishedModel[];
-};
-
 /** Coordinate deferred dashboard filtering, shared hover state, and research-region panels while keeping controls responsive during payload changes. */
 export function DashboardGraphs({
   payload,
@@ -69,8 +61,8 @@ export function DashboardGraphs({
   onRecencyFilterChange,
   onGlobalModelFilterQueryChange,
 }: {
-  payload: GraphPayload | null;
-  modelVariants: ModelAtlasPublishedModel[];
+  payload: ModelAtlasPayload | null;
+  modelVariants: ModelAtlasModel[];
   referenceModels: ModelAtlasModel[];
   benchmarksLoading: boolean;
   afterLead?: React.ReactNode;

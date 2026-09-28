@@ -34,7 +34,7 @@ import {
 } from "../src/model-atlas/sources/snapshots/row-snapshot";
 import type { SourceSnapshots } from "../src/model-atlas/sources/types";
 import { processVoxelBenchLeaderboard } from "../src/model-atlas/sources/voxelbench";
-import type { ModelAtlasPublishedModel } from "../src/model-atlas/stats/types";
+import type { ModelAtlasModel } from "../src/model-atlas/stats/types";
 
 const sourceRow = {
   modelName: "GPT-6 Astra (Max)",
@@ -121,7 +121,7 @@ assert.deepEqual(
 );
 const column = benchmarkMetricColumns.find((entry) => entry.benchmark === "voxelbench");
 assert.ok(column);
-const displayRows = dedupeDisplayModels(models as unknown as ModelAtlasPublishedModel[]);
+const displayRows = dedupeDisplayModels(models as unknown as ModelAtlasModel[]);
 assert.deepEqual(
   displayRows.map((row) => benchmarkDisplayValue(row, column)),
   [0, 50, 100],

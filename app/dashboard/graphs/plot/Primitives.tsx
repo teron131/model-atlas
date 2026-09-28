@@ -5,7 +5,7 @@
 import { useLayoutEffect, useRef, useState } from "react";
 
 import { clamp } from "../../../../src/model-atlas/math-utils";
-import type { ModelAtlasPublishedModel } from "../../../../src/model-atlas/stats/types";
+import type { ModelAtlasModel } from "../../../../src/model-atlas/stats/types";
 import type { Margin } from "../types";
 import type { PointLabelPlacement, PointLabelSize } from "./label-placement";
 import { scoreQuadrilateralPoints } from "./score-quadrilateral";
@@ -58,7 +58,7 @@ export function ModelScoreMark({
   opacity = 1,
   clearance = 0,
 }: {
-  model: ModelAtlasPublishedModel;
+  model: ModelAtlasModel;
   cx: number;
   cy: number;
   radius: number;

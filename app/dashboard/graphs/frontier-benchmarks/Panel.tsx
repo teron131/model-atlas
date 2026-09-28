@@ -6,7 +6,6 @@ import { isAggregateIndex } from "../../../../src/model-atlas/benchmarks/index-p
 import {
   type ModelAtlasModel,
   type ModelAtlasPayload,
-  type ModelAtlasPublishedModel,
 } from "../../../../src/model-atlas/stats/types";
 import { captureFileToken } from "../../capture/png";
 import { modelName, modelVariantKey, shortLabel } from "../../shared/model-display";
@@ -61,7 +60,7 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
   setHover,
 }: {
   payload: ModelAtlasPayload;
-  models: ModelAtlasPublishedModel[];
+  models: ModelAtlasModel[];
   referenceModels: ModelAtlasModel[];
   showVariants: boolean;
   compactLayout: boolean;

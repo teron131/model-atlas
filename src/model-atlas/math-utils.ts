@@ -175,14 +175,6 @@ export function clamp01(value: number) {
   return clamp(value, 0, 1);
 }
 
-export function interpolateLinear(start: number, end: number, ratio: number) {
-  return start + (end - start) * ratio;
-}
-
-export function logDistance(left: number, right: number) {
-  return Math.abs(Math.log10(left) - Math.log10(right));
-}
-
 export function weightedMeanOfFinite(parts: WeightedScorePart[]): number | null {
   const finiteParts = parts.filter(
     (part): part is { value: number; weight: number } =>
@@ -219,7 +211,8 @@ export function effectiveSampleSize(weights: readonly number[]): number {
   return squaredWeightTotal > 0 ? totalWeight ** 2 / squaredWeightTotal : 0;
 }
 
-function sortedWeightedValues(parts: readonly WeightedScorePart[]): FiniteWeightedValue[] {
+/** Combine finite positive weights for equal values while retaining first-seen value order. */
+function aggregateWeightedValues(parts: readonly WeightedScorePart[]): FiniteWeightedValue[] {
   const weightByValue = new Map<number, number>();
   for (const part of parts) {
     if (
@@ -243,7 +236,7 @@ export function weightedPercentileRank(
   if (value == null || !Number.isFinite(value)) {
     return null;
   }
-  const observations = sortedWeightedValues(parts);
+  const observations = aggregateWeightedValues(parts);
   const totalWeight = observations.reduce((sum, observation) => sum + observation.weight, 0);
   if (totalWeight <= 0) {
     return null;
@@ -260,7 +253,9 @@ export function weightedQuantile(
   parts: readonly WeightedScorePart[],
   quantile: number,
 ): number | null {
-  const observations = sortedWeightedValues(parts).sort((left, right) => left.value - right.value);
+  const observations = aggregateWeightedValues(parts).sort(
+    (left, right) => left.value - right.value,
+  );
   if (observations.length === 0) {
     return null;
   }
@@ -289,7 +284,7 @@ export function weightedQuantileRank(
   if (value == null || !Number.isFinite(value)) {
     return null;
   }
-  const observations = sortedWeightedValues(parts);
+  const observations = aggregateWeightedValues(parts);
   const totalWeight = observations.reduce((sum, observation) => sum + observation.weight, 0);
   if (totalWeight <= 0) return null;
   const rankWeight = observations.reduce(
@@ -337,15 +332,6 @@ export function medianOfFinite(values: ReadonlyArray<number | null | undefined>)
     finiteScoreValues(values).sort((left, right) => left - right),
     0.5,
   );
-}
-
-export function log10OnePlusPositive(value: unknown): number | null {
-  const number = positiveFiniteNumber(value);
-  if (number == null) {
-    return null;
-  }
-  const scaledValue = Math.log10(1 + number);
-  return scaledValue > 0 ? scaledValue : null;
 }
 
 export function log10OnePlusNonnegative(value: unknown): number | null {

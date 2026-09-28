@@ -2,10 +2,7 @@
 
 import { type CSSProperties, memo, type MouseEvent } from "react";
 
-import {
-  type ModelAtlasModel,
-  type ModelAtlasPublishedModel,
-} from "../../../src/model-atlas/stats/types";
+import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 import {
   AudioInputIcon,
   ImageInputIcon,
@@ -398,7 +395,7 @@ function ModalityInputCell({
 const ConfidenceCell = memo(function ConfidenceCell({
   confidence,
 }: {
-  confidence?: ModelAtlasPublishedModel["confidence"];
+  confidence?: ModelAtlasModel["confidence"];
 }) {
   const intelligence = formatConfidence(confidence?.intelligence);
   const agentic = formatConfidence(confidence?.agentic);
@@ -436,7 +433,7 @@ const ScoreChangeCell = memo(function ScoreChangeCell({
   model,
   onScoreChange,
 }: {
-  model: ModelAtlasPublishedModel;
+  model: ModelAtlasModel;
   onScoreChange: ScoreChangeHandler;
 }) {
   const change = model.latest_change;

@@ -2,7 +2,7 @@
 
 import { canonicalModelKey } from "../../../src/model-atlas/identity/normalization";
 import { meanOfFinite, medianOfFinite } from "../../../src/model-atlas/math-utils";
-import { type ModelAtlasPublishedModel } from "../../../src/model-atlas/stats/types";
+import { type ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 import { paretoFrontier } from "../graphs/plot/ParetoEnvelope";
 import { modelsForVariantDisplay, modelVariantKey, shortLabel } from "../shared/model-display";
 import {
@@ -16,9 +16,9 @@ import { formatCost } from "../table/format";
 export type SignatureMode = "phase" | "glacier";
 
 export type SignaturePopulation = {
-  models: ModelAtlasPublishedModel[];
-  paretoModels: ModelAtlasPublishedModel[];
-  referenceModels: ModelAtlasPublishedModel[];
+  models: ModelAtlasModel[];
+  paretoModels: ModelAtlasModel[];
+  referenceModels: ModelAtlasModel[];
 };
 
 type SignatureParameters = {
@@ -74,7 +74,7 @@ export function signatureModels(
   );
   const representedLabs = new Set(
     [intelligenceRanking[0], agenticRanking[0]]
-      .filter((model): model is ModelAtlasPublishedModel => model != null)
+      .filter((model): model is ModelAtlasModel => model != null)
       .map((model) => providerFilterKey(model.provider)),
   );
   const anotherLab = intelligenceRanking.find(
@@ -150,13 +150,13 @@ type SignatureRole = {
   label: string;
   allowRepeat?: boolean;
   allowFallback?: boolean;
-  model: ModelAtlasPublishedModel | undefined;
-  metric: (model: ModelAtlasPublishedModel) => string;
+  model: ModelAtlasModel | undefined;
+  metric: (model: ModelAtlasModel) => string;
 };
 
 function selectRolesWithTopFiveFallback(
   roles: SignatureRole[],
-  intelligenceTopFive: ModelAtlasPublishedModel[],
+  intelligenceTopFive: ModelAtlasModel[],
   limit: number,
 ) {
   const selectedModelKeys = new Set<string>();
@@ -201,9 +201,9 @@ function selectRolesWithTopFiveFallback(
 }
 
 function rankModels(
-  models: ModelAtlasPublishedModel[],
-  metric: (model: ModelAtlasPublishedModel) => number,
-): ModelAtlasPublishedModel[] {
+  models: ModelAtlasModel[],
+  metric: (model: ModelAtlasModel) => number,
+): ModelAtlasModel[] {
   return [...models].sort(
     (left, right) =>
       metric(right) - metric(left) ||
@@ -212,11 +212,11 @@ function rankModels(
   );
 }
 
-function intelligenceScore(model: ModelAtlasPublishedModel): number {
+function intelligenceScore(model: ModelAtlasModel): number {
   return Number(model.scores.intelligence_score);
 }
 
-function intelligenceValueMetric(model: ModelAtlasPublishedModel): string {
+function intelligenceValueMetric(model: ModelAtlasModel): string {
   const scores = `INT ${intelligenceScore(model).toFixed(1)} · VAL ${Number(model.scores.value_score).toFixed(1)}`;
   const price = model.cost?.blended_price;
   return typeof price === "number" && Number.isFinite(price) && price >= 0
@@ -224,7 +224,7 @@ function intelligenceValueMetric(model: ModelAtlasPublishedModel): string {
     : scores;
 }
 
-function intelligenceValueModels(models: ModelAtlasPublishedModel[]): ModelAtlasPublishedModel[] {
+function intelligenceValueModels(models: ModelAtlasModel[]): ModelAtlasModel[] {
   return modelsForVariantDisplay(
     models.filter(
       (model) => model.name != null && Number.isFinite(model.scores.intelligence_score),
@@ -234,7 +234,7 @@ function intelligenceValueModels(models: ModelAtlasPublishedModel[]): ModelAtlas
 }
 
 /** Translate published scores into the normalized parameter vocabulary owned by signature renderers. */
-function signatureScoreParameters(model: Pick<ModelAtlasPublishedModel, "scores">) {
+function signatureScoreParameters(model: Pick<ModelAtlasModel, "scores">) {
   const rawScores = [
     model.scores.intelligence_score,
     model.scores.agentic_score,

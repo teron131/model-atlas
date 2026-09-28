@@ -89,6 +89,37 @@ const first: HistoricalSourceRelease = {
   ],
 };
 const firstData = historicalDatasetFromReleases([first], current, 0, "2022-01-01");
+const disputed = first.observations[0]!;
+const conflictingRelease: HistoricalSourceRelease = {
+  ...first,
+  id: "conflicting-era",
+  observations: [{ ...disputed, value: disputed.value + 1 }],
+};
+const conflicted = historicalDatasetFromReleases([first, conflictingRelease]);
+assert.equal(conflicted.conflicts, 1);
+assert.ok(
+  !conflicted.observations.some(
+    (row) => row.modelId === disputed.modelId && row.benchmarkId === disputed.benchmarkId,
+  ),
+);
+assert.deepEqual(historicalDatasetFromReleases([conflictingRelease, first]), conflicted);
+const corrected = historicalDatasetFromReleases([
+  first,
+  conflictingRelease,
+  {
+    ...conflictingRelease,
+    id: "corrected-era",
+    capturedAt: "2022-01-02",
+    observations: [{ ...disputed, observedAt: "2022-01-02", value: disputed.value + 1 }],
+  },
+]);
+assert.equal(corrected.conflicts, 0);
+assert.equal(
+  corrected.observations.find(
+    (row) => row.modelId === disputed.modelId && row.benchmarkId === disputed.benchmarkId,
+  )?.value,
+  disputed.value + 1,
+);
 const before = JSON.stringify(firstData);
 const firstRelease = prepareTimelineRelease(firstData, DEFAULT_TIMELINE_PARAMETERS);
 assert.equal(

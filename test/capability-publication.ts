@@ -22,7 +22,6 @@ import {
   type CapabilityState,
 } from "../src/model-atlas/timeline/capability";
 import { historicalDatasetFromReleases } from "../src/model-atlas/timeline/dataset";
-import { parseEpochTimeline } from "../src/model-atlas/timeline/index-sources";
 import { historicalSourceModel } from "../src/model-atlas/timeline/model-identity";
 import { prepareTimelineRelease } from "../src/model-atlas/timeline/scale";
 import { minimalModelAtlasModel } from "./model-atlas-fixtures";
@@ -312,10 +311,6 @@ assert.equal(
     (e) => e.modelId === capabilityModelId(models[0]!),
   )!.value,
   models[0]!.component_scores.intelligence_score,
-);
-assert.equal(
-  parseEpochTimeline([], capturedAt).benchmarks[0]!.id,
-  parseEpochTimeline([], "2026-09-16").benchmarks[0]!.id,
 );
 db.close();
 console.log(

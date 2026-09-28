@@ -15,7 +15,7 @@ import {
   XAxisTicks,
   YAxisTicks,
 } from "../plot/Primitives";
-import { useChartWidth } from "../use-media-query";
+import { useChartWidth } from "../use-chart-layout";
 import type { TimelinePoint } from "./chart-data";
 import type { LabFrontier } from "./frontier";
 

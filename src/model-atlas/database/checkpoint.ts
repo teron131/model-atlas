@@ -27,7 +27,7 @@ import {
 } from "../stats/payload/changes";
 import { buildCurrentModelAtlasMetadata } from "../stats/payload/metadata";
 import { preserveHighSignalSnapshotModels } from "../stats/payload/snapshot-preservation";
-import type { ModelAtlasModel, ModelAtlasPayload, ModelAtlasPublishedModel } from "../stats/types";
+import type { ModelAtlasModel, ModelAtlasPayload } from "../stats/types";
 import type { CapabilityState } from "../timeline/capability";
 import { buildDebugTraceRows, type DebugTraceRow, insertDebugTraceRows } from "./debug-trace";
 import { SNAPSHOT_TABLES, type SnapshotTableName } from "./tables";
@@ -57,7 +57,7 @@ type DatabaseSnapshotRows = {
   capabilityState?: CapabilityState;
   snapshots: SourceSnapshots;
   openRouterRawPayload: OpenRouterSourcePayload | null | undefined;
-  finalModelRows: readonly ModelAtlasPublishedModel[];
+  finalModelRows: readonly ModelAtlasModel[];
   debugTraceRows: readonly DebugTraceRow[];
   sourceHealth: ModelAtlasSourceHealth;
   benchmarkVersionLogRows: readonly BenchmarkVersionLogRow[];

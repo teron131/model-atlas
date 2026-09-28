@@ -56,14 +56,6 @@ export function HoverCard({ hover }: { hover: HoverState }) {
   );
 }
 
-export function EmptyChart({
-  message = "No models match the current filters.",
-}: {
-  message?: string;
-}) {
-  return <div className={styles.error}>{message}</div>;
-}
-
 export function FilterButton({
   active,
   color,

@@ -60,7 +60,6 @@ export type BenchmarkVersioningOptions = {
   observedAt?: string;
   baselineDate: string;
   observedDate: string;
-  priceTransitions?: readonly TaskCostPriceTransition[];
 };
 
 function hasFields(record: object): boolean {
@@ -318,9 +317,8 @@ function taskCostMultiplier(
   if (modelId == null || observedAt == null) {
     return 1;
   }
-  const transitions = options.priceTransitions ?? TASK_COST_PRICE_TRANSITIONS;
   let multiplier = 1;
-  for (const transition of transitions) {
+  for (const transition of TASK_COST_PRICE_TRANSITIONS) {
     if (
       transition.modelId !== modelId ||
       options.observedDate < transition.effectiveDate ||

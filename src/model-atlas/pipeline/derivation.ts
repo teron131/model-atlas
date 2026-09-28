@@ -11,7 +11,7 @@ import type { CapabilityState } from "../timeline/capability";
 import { assignBenchmarksToVariants } from "./benchmark-rows";
 import { modelRowsFromMatchDiagnostics } from "./matched-rows";
 import { buildModelCatalogRows, buildModelVariants } from "./model-catalog";
-import type { ModelAtlasModel, ModelAtlasPublishedModel } from "./model-types";
+import type { ModelAtlasModel } from "./model-types";
 import { prepareOpenRouterModelData } from "./openrouter-data";
 import {
   buildFinalModels,
@@ -45,7 +45,7 @@ type ModelDerivationResult<LoadResult extends OpenRouterLoadResult | null> = {
   capabilityState?: CapabilityState;
   matchDiagnostics: MatchDiagnosticsPayload;
   modelRows: Record<string, unknown>[];
-  models: ModelAtlasPublishedModel[];
+  models: ModelAtlasModel[];
   benchmarkObservations: BenchmarkObservationsByKey;
   openRouterLoad: LoadResult;
 };

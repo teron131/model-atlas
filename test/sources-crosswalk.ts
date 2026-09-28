@@ -4,7 +4,6 @@ import assert from "node:assert/strict";
 
 import { compactModelVariants } from "../app/leaderboard/model-variants";
 import { BENCHMARK_OBSERVATION_BINDINGS } from "../src/model-atlas/benchmarks/registry";
-import { buildAdditiveSourceCrosswalk } from "../src/model-atlas/benchmarks/source-crosswalk";
 import {
   crosswalkBenchmarkSources,
   type CrosswalkObservation,
@@ -30,45 +29,6 @@ const pairs = Array.from({ length: 6 }, (_, i) => ({
   a: 0.2 + i * 0.08,
   b: 0.3 + i * 0.08,
 }));
-const missing = { name: "missing", a: null, b: 0.7 };
-const primaryOnly = { name: "primary-only", a: 0.6, b: null };
-const options = {
-  sourceAValue: (r: { a: number | null }) => r.a,
-  sourceBValue: (r: { b: number | null }) => r.b,
-  minimumEffectiveModels: 6,
-  maximumMedianAbsoluteError: 0.025,
-};
-const original = buildAdditiveSourceCrosswalk([...pairs, missing, primaryOnly], {
-  ...options,
-  sourceBWeight: 0,
-});
-assert.ok(Math.abs(original.projectionByItem.get(missing)! - 0.6) < 1e-10);
-assert.equal(original.projectionByItem.has(pairs[0]!), false);
-assert.equal(original.project(0.6, null), 0.6);
-const midpoint = buildAdditiveSourceCrosswalk([...pairs, missing, primaryOnly], {
-  ...options,
-  sourceBWeight: 0.5,
-});
-assert.ok(Math.abs(midpoint.projectionByItem.get(missing)! - 0.65) < 1e-10);
-assert.ok(Math.abs(midpoint.projectionByItem.get(primaryOnly)! - 0.65) < 1e-10);
-assert.ok(Math.abs(midpoint.projectionByItem.get(pairs[0]!)! - 0.25) < 1e-10);
-// Direction must reverse when B scores lower, while the combined result stays symmetric.
-const reversed = buildAdditiveSourceCrosswalk(
-  pairs.map((pair) => ({ ...pair, a: pair.b, b: pair.a })),
-  options,
-);
-assert.ok(Math.abs(reversed.diagnostic.delta! + 0.1) < 1e-10);
-assert.ok(Math.abs(midpoint.diagnostic.delta! - 0.1) < 1e-10);
-assert.ok(Math.abs(reversed.project(0.7, null)! - 0.65) < 1e-10);
-assert.ok(Math.abs(reversed.project(null, 0.6)! - 0.65) < 1e-10);
-assert.equal(reversed.project(null, null), null);
-const insufficient = buildAdditiveSourceCrosswalk([pairs[0]!, missing], {
-  ...options,
-  sourceBWeight: 0.5,
-});
-assert.equal(insufficient.projectionByItem.has(missing), false);
-assert.equal(insufficient.projectionByItem.get(pairs[0]!), 0.25);
-
 function observation(name: string, value: number, effort = "max", cost = 2): CrosswalkObservation {
   return {
     benchmark_key: "terminal_bench_science",
@@ -89,7 +49,7 @@ function observation(name: string, value: number, effort = "max", cost = 2): Cro
 const a = pairs.map((r) => observation(r.name, r.a));
 const b = pairs.map((r) => observation(r.name, r.b, "max", 4));
 const fused = crosswalkBenchmarkSources(
-  [...a, observation("Grok", 0.4, "xhigh")],
+  [...a, observation("Grok", 0.4, "xhigh"), observation("Primary only", 0.6)],
   [...b, observation("Grok", 0.2, "high", 4), observation("Missing", 0.7)],
 );
 const direct = fused.find((r) => r.base_model === "model-0" && !r.metadata.fusion_collapsed)!;
@@ -98,7 +58,11 @@ assert.equal(direct.cost, null, "six models cannot establish absolute resource c
 assert.equal(direct.seconds_per_task, null);
 assert.equal(direct.metadata.fusion_cost_comparable, false);
 assert.equal(direct.total_cost_usd, undefined, "fusion must not manufacture pooled totals");
-const swapped = crosswalkBenchmarkSources(b, a).find(
+const swappedRows = crosswalkBenchmarkSources(
+  [...b, observation("Missing", 0.7)],
+  [...a, observation("Primary only", 0.6)],
+);
+const swapped = swappedRows.find(
   (r) => r.base_model === "model-0" && !r.metadata.fusion_collapsed,
 )!;
 assert.equal(
@@ -107,6 +71,16 @@ assert.equal(
   "swapping sources must preserve the midpoint",
 );
 assert.equal(swapped.cost, direct.cost);
+assert.ok(Math.abs(Number(direct.metadata.crosswalk_offset) - 0.1) < 1e-10);
+assert.ok(Math.abs(Number(swapped.metadata.crosswalk_offset) + 0.1) < 1e-10);
+for (const name of ["Missing", "Primary only"]) {
+  for (const rows of [fused, swappedRows]) {
+    const row = rows.find((row) => row.base_model === name && !row.metadata.fusion_collapsed)!;
+    assert.ok(Math.abs(row.canonical_value - 0.65) < 1e-10);
+    assert.equal(row.metadata.fusion_crosswalk_applied, true);
+  }
+}
+assert.deepEqual(crosswalkBenchmarkSources([], []), []);
 const collapsed = fused.find((r) => r.base_model === "Grok" && r.metadata.fusion_collapsed)!;
 assert.ok(Math.abs(collapsed.canonical_value - 0.3) < 1e-10);
 assert.equal(collapsed.metadata.source_a_effort, "xhigh");
@@ -141,6 +115,22 @@ assert.equal(
   false,
   "a single-source result requires an accepted quality crosswalk",
 );
+assert.equal(
+  unvalidated.find((row) => row.base_model === "model-0" && !row.metadata.fusion_collapsed)
+    ?.canonical_value,
+  0.25,
+  "paired measurements remain usable when the crosswalk has too few models",
+);
+const robustA = Array.from({ length: 10 }, (_, index) => observation(`robust-${index}`, 0));
+const robustB = robustA.map((row, index) => ({ ...row, canonical_value: index === 9 ? 1 : 0 }));
+const robustEstimate = crosswalkBenchmarkSources(robustA, [
+  ...robustB,
+  observation("robust-missing", 0),
+]).find((row) => row.base_model === "robust-missing" && !row.metadata.fusion_collapsed)!;
+assert.equal(robustEstimate.metadata.crosswalk_offset, 0);
+assert.equal(robustEstimate.metadata.crosswalk_error, 0);
+assert.equal(robustEstimate.metadata.fusion_crosswalk_applied, true);
+assert.equal(robustEstimate.canonical_value, 0);
 const resourceCandidate = {
   ...candidate,
   task_metrics: { terminal_bench_science: { cost: crosswalked.cost } },
@@ -184,6 +174,25 @@ assert.equal(acceptedResource.metadata.fusion_cost_paired_models, 10);
 assert.equal(acceptedResource.metadata.fusion_cost_within_5_percent_share, 0.9);
 assert.equal(acceptedResource.metadata.fusion_cost_comparable, true);
 assert.equal(acceptedResource.metadata.source_b_label, "Publisher");
+const missingResourceRows = crosswalkBenchmarkSources(
+  [
+    ...agreementA,
+    { ...observation("missing-a-cost", 0.4), cost: null },
+    observation("missing-b-cost", 0.4, "max", 100),
+  ],
+  [
+    ...agreementB,
+    observation("missing-a-cost", 0.41, "max", 104),
+    { ...observation("missing-b-cost", 0.41), cost: null },
+  ],
+);
+for (const name of ["missing-a-cost", "missing-b-cost"]) {
+  const row = missingResourceRows.find(
+    (row) => row.base_model === name && row.metadata.fusion_collapsed === false,
+  )!;
+  assert.ok(Math.abs(row.cost! - 102) < 1e-10);
+  assert.equal(row.metadata.fusion_cost_estimated, true);
+}
 const rejectedAgreement = crosswalkBenchmarkSources(
   agreementA,
   agreementB.map((row, index) => (index >= 8 ? { ...row, cost: 106 } : row)),
@@ -472,15 +481,15 @@ const epoch = pairs.map((r) => ({
 }));
 const reconciled = mergeWeirdMlRows(creator, epoch);
 assert.equal(
-  reconciled.crosswalk.matchedRowCount,
+  reconciled.filter((row) => row.metadata.weirdml_epoch_crosswalk === "identity").length,
   6,
   "metadata and score differences cannot veto known identities",
 );
-assert.equal(reconciled.data.length, 12, "raw source values remain separate");
-assert.equal(reconciled.data[0]?.canonical_value, creator[0]?.canonical_value);
+assert.equal(reconciled.length, 12, "raw source values remain separate");
+assert.equal(reconciled[0]?.canonical_value, creator[0]?.canonical_value);
 const joined = crosswalkBenchmarkSources(
-  reconciled.data.filter((r) => r.metadata.weirdml_origin === "creator"),
-  reconciled.data.filter((r) => r.metadata.weirdml_origin === "epoch"),
+  reconciled.filter((r) => r.metadata.weirdml_origin === "creator"),
+  reconciled.filter((r) => r.metadata.weirdml_origin === "epoch"),
 );
 assert.equal(joined.find((r) => r.base_model === "model-0")?.canonical_value, 0.25);
 const native = crosswalkBenchmarkSources(
@@ -520,7 +529,7 @@ const differentEffort = mergeWeirdMlRows(
   epoch.map((row) => ({ ...row, reasoning_effort: "high" })),
 );
 assert.equal(
-  differentEffort.crosswalk.matchedRowCount,
+  differentEffort.filter((row) => row.metadata.weirdml_epoch_crosswalk === "identity").length,
   0,
   "same model at a different effort is not a pair",
 );
@@ -538,7 +547,7 @@ const sameNumbers = mergeWeirdMlRows(
   })),
 );
 assert.equal(
-  sameNumbers.crosswalk.matchedRowCount,
+  sameNumbers.filter((row) => row.metadata.weirdml_epoch_crosswalk === "identity").length,
   0,
   "equal measured values cannot establish model identity",
 );

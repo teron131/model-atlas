@@ -141,7 +141,7 @@ function benchmarkViewProps(pageHtml: string): unknown {
   if (props == null) {
     return null;
   }
-  return reviveAstroValue(decodeAstroProps(props));
+  return reviveAstroValue(JSON.parse(props));
 }
 
 function reviveAstroValue(value: unknown): unknown {
@@ -162,10 +162,6 @@ function reviveAstroValue(value: unknown): unknown {
     );
   }
   return value;
-}
-
-function decodeAstroProps(value: string): unknown {
-  return JSON.parse(value);
 }
 
 function valsIndexMetadata(value: unknown): ValsIndexMetadata {
