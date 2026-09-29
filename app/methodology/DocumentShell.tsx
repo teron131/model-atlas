@@ -9,6 +9,7 @@ import { type ReactNode, useCallback, useEffect, useLayoutEffect, useRef, useSta
 import { ModelAtlasHeader } from "../shared/ModelAtlasHeader";
 import { DocumentNavigation } from "./DocumentNavigation";
 import { documentHref, DOCUMENTS, type DocumentSlug, type TableOfContentsItem } from "./documents";
+import { ScoreText } from "./ScoreText";
 
 import styles from "./methodology.module.css";
 
@@ -19,10 +20,12 @@ export function DocumentShell({
   children,
   activeDocument,
   outline,
+  titles,
 }: {
   children: ReactNode;
   activeDocument: DocumentSlug;
   outline: TableOfContentsItem[];
+  titles: Record<DocumentSlug, string>;
 }) {
   const currentDocument = DOCUMENTS.find((item) => item.slug === activeDocument)!;
   const [showBackToTop, setShowBackToTop] = useState(false);
@@ -104,14 +107,18 @@ export function DocumentShell({
                       : undefined
                   }
                 >
-                  <span>{item.slug === "methodology" ? "Methodology" : item.title}</span>
+                  <span>
+                    <ScoreText>{titles[item.slug]}</ScoreText>
+                  </span>
                   <small>{item.description}</small>
                 </Link>
               </li>
             ))}
           </ul>
 
-          <span className={styles.currentDocument}>{currentDocument.title}</span>
+          <span className={styles.currentDocument}>
+            <ScoreText>{titles[activeDocument]}</ScoreText>
+          </span>
         </nav>
 
         {children}
@@ -119,6 +126,7 @@ export function DocumentShell({
           <DocumentNavigation
             activeDocument={activeDocument}
             outline={outline}
+            titles={titles}
             mode={isDesktop ? "docked" : "sheet"}
             onClose={closeNavigation}
           />

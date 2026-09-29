@@ -6,8 +6,8 @@ A benchmark earns ranking space by testing consequential capabilities with credi
 
 Capability loading follows what a model must do to succeed, so the same benchmark is not credited to a dimension merely because of its name, topic, or harness.
 
-- **Intelligence:** knowledge, perception, understanding, abstract reasoning, and judgment.
-- **Agentic:** turning goals into working results through coding, demanding instruction following, planning, tools, state management, verification, and recovery.
+- **Intelligence:** solving difficult problems using knowledge, perception, understanding, abstract reasoning, and judgment.
+- **Agentic:** reliably turning goals and specifications into working results through instruction following, planning, coding, tool use, verification, and recovery.
 
 Coding defaults to Agentic. Intelligence weight requires substantial algorithmic, mathematical, scientific, or research reasoning beyond routine implementation. Repository size, execution time, difficult setup, and a scientific topic alone do not meet that requirement.
 

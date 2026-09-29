@@ -12,10 +12,10 @@ The four scores answer different questions:
 
 | Score | Question |
 | --- | --- |
-| Intelligence | How strong is the model at knowledge, perception, understanding, abstract reasoning, and judgment in difficult problems? |
-| Agentic | How reliably does the model turn goals and specifications into working results through coding, instruction following, tool use, verification, and recovery? |
-| Speed | How quickly does the model deliver comparable work? |
-| Value | How much quality and capability does the model deliver for its cost? |
+| Intelligence | How well does the model solve difficult problems using knowledge, perception, understanding, abstract reasoning, and judgment? |
+| Agentic | How reliably does the model turn goals and specifications into working results through instruction following, planning, coding, tool use, verification, and recovery? |
+| Speed | How quickly does the model complete work at comparable quality, generate tokens, and begin and finish responses? |
+| Value | How economically does the model deliver comparable-quality work, considering cost per task, token affordability, and price efficiency at comparable capability? |
 
 Coding benchmarks default to primarily Agentic evidence. Intelligence loading is earned when success requires substantial algorithmic, mathematical, scientific, or research reasoning beyond routine software implementation.
 

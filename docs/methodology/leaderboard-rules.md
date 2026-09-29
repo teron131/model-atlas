@@ -8,7 +8,7 @@ A model appears on the dashboard only when it meets all of these requirements:
 - An observed benchmark count reaching the inclusion threshold, currently seven, as counted below.
 - At least one observed selected input in each of Intelligence and Agentic.
 - At least two distinct observed eligible indexes, or one observed Artificial Analysis Intelligence Index or Epoch Capabilities Index.
-- Finite relative Intelligence and Agentic scores strictly greater than 10 each.
+- Finite relative :score[Intelligence] and :score[Agentic] scores strictly greater than 10 each.
 
 **Count observed benchmarks**
 
@@ -35,7 +35,7 @@ Quality scores retain 85% through 1.2 supported benchmark weight and rise to ful
 
 The default leaderboard follows the Timeline chart's display policy: OpenAI Pro configurations, Gemini Deep Think, and Claude Mythos are hidden because of their specialized resourcing, operating policies, or assets. Ordinary Gemini Pro and other high-reasoning configurations remain eligible. This display filter leaves source evidence, scores, and the scoring reference population unchanged.
 
-All included models receive numeric ranks in compact views. Missing specifications remain null; Speed and Value have separate resource requirements. The exact-variant `all` JSON view has no rank field.
+All included models receive numeric ranks in compact views. Missing specifications remain null; :score[Speed] and :score[Value] have separate resource requirements. The exact-variant `all` JSON view has no rank field.
 
 Benchmark results can be published before a model appears in public catalogs. Catalog absence alone does not invalidate sufficiently evidenced results. A model below the required observed benchmark count is excluded, regardless of release age.
 
@@ -43,21 +43,21 @@ Apply these requirements after scoring. Excluding a model from the dashboard lea
 
 ### Resource Score Availability
 
-A listed token price or serving speed alone does not show the resources needed to complete useful work. Value and Speed therefore require observed quality paired with resource measurements per task before those scores can be displayed, with cost and time qualifying independently.
+A listed token price or serving speed alone does not show the resources needed to complete useful work. :score[Value] and :score[Speed] therefore require observed quality paired with resource measurements per task before those scores can be displayed, with cost and time qualifying independently.
 
-A dashboard variant needs observed quality-and-resource coverage representing at least four distinct benchmarks to display Value or Speed. Each selected individual benchmark contributes one when it has observed quality paired with positive cost or directly reported seconds.
+A dashboard variant needs observed quality-and-resource coverage representing at least four distinct benchmarks to display :score[Value] or :score[Speed]. Each selected individual benchmark contributes one when it has observed quality paired with positive cost or directly reported seconds.
 
 The selected Artificial Analysis Intelligence Index contributes its catalogued benchmark count, currently 10, when its observed score is paired with its own positive aggregate cost or runtime. Deduct separately counted AA components for each resource so overlapping evidence counts once. AA cost coverage does not establish runtime coverage.
 
 Imputed quality, estimated resources, output-token runtime proxies, provider token prices, throughput, and latency do not satisfy this threshold. AA resource measurements remain attached to that index and never fill missing measurements for individual benchmarks.
 
-![In this illustration without index support, four direct cost pairs permit Value; three time pairs leave Speed unavailable. Hollow marks are estimates and do not count toward either threshold.](../assets/methodology/resource-publication-gate.svg)
+![In this illustration without index support, four direct cost pairs permit :score[Value]; three time pairs leave :score[Speed] unavailable. Hollow marks are estimates and do not count toward either threshold.](../assets/methodology/resource-publication-gate.svg)
 
-A variant that qualifies on quality remains in the table with unavailable resource scores left blank. Raw prices and provider speed measurements remain available. Insufficient observed runtime measurements leave Speed blank even when Value is available.
+A variant that qualifies on quality remains in the table with unavailable resource scores left blank. Raw prices and provider speed measurements remain available. Insufficient observed runtime measurements leave :score[Speed] blank even when :score[Value] is available.
 
-Without Value, a variant is excluded from every graph, including quality-only graphs and the model signature. Collapsed graphs choose among eligible variants. The benchmark graph’s combined Speed-and-Value axis requires both scores; unavailable scores are never replaced with zero.
+Without :score[Value], a variant is excluded from every graph, including quality-only graphs and the model signature. Collapsed graphs choose among eligible variants. The benchmark graph’s combined axis for :score[Speed] and :score[Value] requires both scores; unavailable scores are never replaced with zero.
 
-These requirements control which scores are displayed. All model observations remain in scoring calibration, and qualifying Speed and Value scores keep the calculation described above.
+These requirements control which scores are displayed. All model observations remain in scoring calibration, and qualifying :score[Speed] and :score[Value] scores keep the calculation described above.
 
 ## Dashboard Comparisons
 
@@ -65,20 +65,20 @@ The dashboard uses the calculated scores to highlight trade-offs and compare rea
 
 ### Selecting Highlighted Models
 
-Highlighted models represent different Intelligence–Value trade-offs. Intelligence and Pareto roles use the highest-Intelligence variant; Best Agentic searches all efforts of visible models. Labels omit effort suffixes, but scores remain those of the selected variant.
+Highlighted models represent different trade-offs between :score[Intelligence] and :score[Value]. Intelligence and Pareto roles use the variant with the highest :score[Intelligence]; Best Agentic searches all efforts of visible models. Labels omit effort suffixes, but scores remain those of the selected variant.
 
-The Pareto frontier contains models for which no other candidate is at least as good in both Intelligence and Value and strictly better in one. Its two highlighted roles apply explicit selection rules:
+The Pareto frontier contains models for which no other candidate is at least as good in both :score[Intelligence] and :score[Value] and strictly better in one. Its two highlighted roles apply explicit selection rules:
 
 | Role | Selection rule |
 | --- | --- |
-| Pareto Balance | Largest Intelligence × Value product on the frontier, equivalent to the largest equal-weight geometric mean. This favors strength in both scores. Ties prefer higher Intelligence. |
-| Pareto Value | Highest Value on the frontier among models strictly above the full published population’s median Intelligence. This focuses the role on more capable candidates. Ties prefer higher Intelligence. |
+| Pareto Balance | Largest :score[Intelligence] × :score[Value] product on the frontier, equivalent to the largest equal-weight geometric mean. This favors strength in both scores. Ties prefer higher :score[Intelligence]. |
+| Pareto Value | Highest :score[Value] on the frontier among models strictly above the full published population’s median :score[Intelligence]. This focuses the role on more capable candidates. Ties prefer higher :score[Intelligence]. |
 
-The median counts each base model with finite Intelligence and Value once, before dashboard filters. A model exactly at the median does not qualify for Pareto Value.
+The median counts each base model with finite :score[Intelligence] and :score[Value] once, before dashboard filters. A model exactly at the median does not qualify for Pareto Value.
 
 Pareto candidates follow model, provider, and price filters before rank and release-recency limits. The other signature roles use the displayed population.
 
-Pareto Balance has no Intelligence cutoff. Token price does not select either Pareto role or represent measured cost per task. A model may fill multiple roles; a role is omitted if no candidate qualifies.
+Pareto Balance has no :score[Intelligence] cutoff. Token price does not select either Pareto role or represent measured cost per task. A model may fill multiple roles; a role is omitted if no candidate qualifies.
 
 ### Comparing Reasoning-Effort Curves
 
@@ -139,4 +139,4 @@ These values are scoring-policy choices, not fitted claims about model behavior.
 | Parameter | Value | Why it exists |
 | --- | ---: | --- |
 | Dashboard inclusion benchmark count | Minimum known index benchmark count, excluding Epoch | Allows sufficient standalone or aggregate evidence to qualify, deducting known overlap without requiring a particular publisher. |
-| Dashboard Intelligence and Agentic floor | Greater than 10 each | Excludes models whose quality scores are too low to be decision-relevant even when resource scores are high. |
+| Dashboard :score[Intelligence] and :score[Agentic] floor | Greater than 10 each | Excludes models whose quality scores are too low to be decision-relevant even when resource scores are high. |

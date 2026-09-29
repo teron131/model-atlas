@@ -5,6 +5,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import type { TableOfContentsItem } from "./documents";
+import { ScoreText } from "./ScoreText";
 
 import styles from "./methodology.module.css";
 
@@ -64,7 +65,7 @@ export function DocumentOutline({
               aria-current={item.id === activeId ? "location" : undefined}
               onClick={onNavigate}
             >
-              {item.label}
+              <ScoreText>{item.label}</ScoreText>
             </a>
           </li>
         ))}

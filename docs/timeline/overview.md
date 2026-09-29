@@ -36,7 +36,7 @@ The framework establishes a fixed reference from an initial snapshot of supporte
 >
 >    Assign the saved GPT-4 (March 2023) and Claude Opus 4.5 positions values of 100 and 150, preserving the unit as new models arrive.
 
-The published index uses Intelligence relevance weights. Agentic remains a relative leaderboard score.
+The published index uses Intelligence relevance weights. :score[Agentic] remains a relative leaderboard score.
 
 Read [Calculation](calculation.md) for the equations, benchmark connection checks, and evidence-weighting rules.
 
@@ -53,7 +53,7 @@ The chart shows evidence support alongside capability so a sparsely supported es
 
 The task coverage used for blending and the support used for frontier eligibility are different measures. Frontier support takes the strongest available support from saved reference evidence, direct tasks or eligible index breadth; overlapping sources are not added together to inflate it.
 
-Each model family uses one representative Intelligence configuration. Selection prefers current configurations ranked by their saved main-leaderboard Intelligence scores; historical-only families use their strongest available Intelligence Index estimate. Every configuration retains its own measurements and score. The default chart starts with GPT-4's March 2023 release and hides scores below 70.
+Each model family uses one representative Intelligence configuration. Selection prefers current configurations ranked by their saved main-leaderboard :score[Intelligence] scores; historical-only families use their strongest available Intelligence Index estimate. Every configuration retains its own measurements and score. The default chart starts with GPT-4's March 2023 release and hides scores below 70.
 
 The default view emphasizes broadly impactful model progress. It excludes OpenAI Pro configurations, Gemini Deep Think and Claude Mythos because of their specialized resourcing, operating policies or assets. Ordinary Gemini Pro models and other high-reasoning configurations remain eligible. Visibility rules, search, dates and lab filters apply after scoring: hiding a model changes neither its score nor the calibration of other models.
 

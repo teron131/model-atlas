@@ -157,7 +157,7 @@ Accept the method only when at least four distinct held-out models yield valid p
 
 ### Imputation Across Reasoning Efforts
 
-Fill a missing benchmark score using an observed result from another reasoning effort of the same model. The **target effort** has the missing result; the **reference effort** supplies the observed result. Their performance gap on shared benchmarks adjusts the estimate. Run the calculation separately for Intelligence and [token-adjusted Agentic](intelligence-agentic.md#agentic-token-efficiency). A missing result can be filled even when the effort already has enough evidence to avoid regularization.
+Fill a missing benchmark score using an observed result from another reasoning effort of the same model. The **target effort** has the missing result; the **reference effort** supplies the observed result. Their performance gap on shared benchmarks adjusts the estimate. Run the calculation separately for :score[Intelligence] and [token-adjusted :score[Agentic]](intelligence-agentic.md#agentic-token-efficiency). A missing result can be filled even when the effort already has enough evidence to avoid regularization.
 
 Each benchmark’s overall score is one input, regardless of how many questions or test cases it contains. Aggregate indexes are excluded. Throughout this section, $w_b$ is benchmark $b$’s [base portfolio weight](intelligence-agentic.md#benchmark-scores-and-dimension-weights): importance × allocation to the capability being calculated. Effort gaps use pooled shared frontier results before filling missing frontier contributions. Baseline results do not enter effort-gap comparisons; their separate role as contextual predictors is described above. Only positive weights participate.
 
