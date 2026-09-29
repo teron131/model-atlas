@@ -22,6 +22,8 @@ import {
   headingId,
   isMethodologyAsset,
 } from "./documents";
+import { plainScoreText, scoreMentions, type ScoreName } from "./score-markers";
+import { ScoreLabel, ScoreText } from "./ScoreText";
 
 import styles from "./methodology.module.css";
 
@@ -40,17 +42,18 @@ export function MarkdownDocument({
           const resolvedHref = documentLink(href, document);
           return resolvedHref.startsWith("/") ? (
             <Link href={resolvedHref} prefetch={false} {...props}>
-              {children}
+              <span className={styles.linkLabel}>{children}</span>
             </Link>
           ) : (
             <a href={resolvedHref} {...props}>
-              {children}
+              <span className={styles.linkLabel}>{children}</span>
             </a>
           );
         },
       }}
-      rehypePlugins={[rehypeKatex, subsectionGuides]}
+      rehypePlugins={[scoreMentions, rehypeKatex, subsectionGuides]}
       remarkPlugins={[remarkGfm, remarkMath]}
+      skipHtml
     >
       {markdown}
     </ReactMarkdown>
@@ -120,18 +123,30 @@ const MarkdownImage: NonNullable<Components["img"]> = async ({ src = "", alt = "
       <span className={styles.figureViewport} role="region" aria-label="Illustration" tabIndex={0}>
         <Image
           src={imageSource}
-          alt={alt}
+          alt={plainScoreText(alt)}
           width={size.width}
           height={size.height}
           loading="eager"
         />
       </span>
-      {alt === "" ? null : <span aria-hidden="true">{alt}</span>}
+      {alt === "" ? null : (
+        <span aria-hidden="true">
+          <ScoreText>{alt}</ScoreText>
+        </span>
+      )}
     </span>
   );
 };
 
 const markdownComponents: Components = {
+  span: ({ node, children, ...props }) => {
+    const score = node?.properties["data-score"];
+    return typeof score === "string" ? (
+      <ScoreLabel score={score as ScoreName} />
+    ) : (
+      <span {...props}>{children}</span>
+    );
+  },
   h2: ({ children }) => (
     <DocumentHeading level={2} id={headingId(textContent(children))}>
       {children}

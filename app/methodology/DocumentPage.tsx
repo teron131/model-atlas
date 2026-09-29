@@ -13,9 +13,16 @@ import speedValue from "../../docs/methodology/speed-value.md";
 import standards from "../../docs/standards.md";
 import timelineCalculation from "../../docs/timeline/calculation.md";
 import timeline from "../../docs/timeline/overview.md";
-import { documentHref, DOCUMENTS, type DocumentSlug, tableOfContents } from "./documents";
+import {
+  documentHref,
+  DOCUMENTS,
+  type DocumentSlug,
+  documentTitle,
+  tableOfContents,
+} from "./documents";
 import { DocumentShell } from "./DocumentShell";
 import { MarkdownDocument } from "./MarkdownDocument";
+import { ScoreText } from "./ScoreText";
 
 import styles from "./methodology.module.css";
 
@@ -32,6 +39,13 @@ const DOCUMENT_CONTENT = {
   "leaderboard-rules": leaderboardRules,
 };
 
+const documentTitles = Object.fromEntries(
+  DOCUMENTS.map((item) => [
+    item.slug,
+    documentTitle(DOCUMENT_CONTENT[item.slug].markdown, item.title),
+  ]),
+) as Record<DocumentSlug, string>;
+
 export function DocumentPage({ document }: { document: DocumentSlug }) {
   const { markdown, revision } = DOCUMENT_CONTENT[document];
   const outline = tableOfContents(markdown);
@@ -43,14 +57,18 @@ export function DocumentPage({ document }: { document: DocumentSlug }) {
   const next = sequence[index + 1];
 
   return (
-    <DocumentShell activeDocument={document} outline={outline}>
+    <DocumentShell activeDocument={document} outline={outline} titles={documentTitles}>
       <article className={styles.article} data-document-revision={revision}>
         <MarkdownDocument markdown={markdown} document={document} />
         <nav className={styles.pageSequence} aria-label="Reading order">
           {previous ? (
             <Link href={documentHref(previous.slug)} prefetch={false} rel="prev">
               <small>Previous</small>
-              <span>{previous.title}</span>
+              <span>
+                <span className={styles.linkLabel}>
+                  <ScoreText>{documentTitles[previous.slug]}</ScoreText>
+                </span>
+              </span>
             </Link>
           ) : (
             <span />
@@ -58,7 +76,11 @@ export function DocumentPage({ document }: { document: DocumentSlug }) {
           {next ? (
             <Link href={documentHref(next.slug)} prefetch={false} rel="next">
               <small>Next</small>
-              <span>{next.title}</span>
+              <span>
+                <span className={styles.linkLabel}>
+                  <ScoreText>{documentTitles[next.slug]}</ScoreText>
+                </span>
+              </span>
             </Link>
           ) : null}
         </nav>

@@ -130,7 +130,7 @@
   color: var(--ink);
 }
 
-.documentSwitcher span {
+.documentSwitcher a > span {
   display: block;
   font-size: 13px;
   font-weight: 600;
@@ -499,9 +499,26 @@
   font-weight: 650;
 }
 
+.scoreMention {
+  display: inline;
+  font-weight: inherit;
+  white-space: nowrap;
+}
+
+.scoreMention > svg {
+  display: inline-block;
+  width: 0.9em;
+  height: 0.9em;
+  margin-right: 0.2em;
+  vertical-align: -0.1em;
+  color: var(--muted);
+  stroke-width: 1.8;
+}
+
 .article a {
+  --link-underline-color: color-mix(in srgb, var(--ink) 38%, transparent);
   color: var(--ink);
-  text-decoration-color: color-mix(in srgb, var(--ink) 38%, transparent);
+  text-decoration-color: var(--link-underline-color);
   text-decoration-thickness: 1px;
   text-underline-offset: 4px;
   transition: text-decoration-color 0.18s ease;
@@ -509,8 +526,22 @@
 
 .article a:hover,
 .article a:focus-visible {
-  text-decoration-color: var(--ink);
+  --link-underline-color: var(--ink);
+  text-decoration-color: var(--link-underline-color);
   outline: 0;
+}
+
+/* Inline borders continue beneath SVG icons and repeat on each wrapped line. */
+.article a:has(.linkLabel .scoreMention) {
+  text-decoration: none;
+}
+
+.article a:has(.scoreMention) .linkLabel {
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--link-underline-color);
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  transition: border-bottom-color 0.18s ease;
 }
 
 .article ul,
@@ -861,6 +892,7 @@
 }
 
 .pageSequence a {
+  --link-underline-color: transparent;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -879,7 +911,7 @@
   text-transform: uppercase;
 }
 
-.pageSequence a:hover span {
+.pageSequence a:not(:has(.scoreMention)):hover > span {
   text-decoration: underline;
 }
 
@@ -947,9 +979,8 @@
 }
 
 .documentMap > ul > li > a {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
+  align-content: center;
   min-height: 64px;
   padding: 8px;
   border: 1px solid var(--line-strong);
@@ -978,6 +1009,7 @@
 }
 
 .documentMap a {
+  --link-underline-color: transparent;
   color: var(--ink);
   text-decoration: none;
   overflow-wrap: anywhere;

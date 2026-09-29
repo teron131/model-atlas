@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { DocumentOutline } from "./DocumentOutline";
 import { documentHref, DOCUMENTS, type DocumentSlug, type TableOfContentsItem } from "./documents";
+import { ScoreText } from "./ScoreText";
 
 import styles from "./methodology.module.css";
 
@@ -16,11 +17,13 @@ type DocumentNavigationMode = "docked" | "sheet";
 export function DocumentNavigation({
   activeDocument,
   outline,
+  titles,
   mode,
   onClose,
 }: {
   activeDocument: DocumentSlug;
   outline: TableOfContentsItem[];
+  titles: Record<DocumentSlug, string>;
   mode: DocumentNavigationMode;
   onClose: () => void;
 }) {
@@ -72,7 +75,9 @@ export function DocumentNavigation({
                   aria-current={item.slug === activeDocument ? "page" : undefined}
                   onClick={isSheet ? onClose : undefined}
                 >
-                  <span>{item.title}</span>
+                  <span>
+                    <ScoreText>{titles[item.slug]}</ScoreText>
+                  </span>
                   <small>{item.description}</small>
                 </Link>
                 {DOCUMENTS.some((child) => child.parent === item.slug) ? (
@@ -108,7 +113,9 @@ export function DocumentNavigation({
                         aria-current={child.slug === activeDocument ? "page" : undefined}
                         onClick={isSheet ? onClose : undefined}
                       >
-                        <span>{child.title}</span>
+                        <span>
+                          <ScoreText>{titles[child.slug]}</ScoreText>
+                        </span>
                         <small>{child.description}</small>
                       </Link>
                     </li>

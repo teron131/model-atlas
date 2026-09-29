@@ -1,8 +1,8 @@
-# Speed and Value
+# :score[Speed] and :score[Value]
 
-## How Speed and Value Are Calculated
+## How :score[Speed] and :score[Value] Are Calculated
 
-Speed and Value combine resource efficiency measured on benchmarks with provider speed and token prices. First establish the available measurements, then compare resource use at similar quality, estimate supported gaps, and combine the components. Display requirements are applied separately under [Dashboard Inclusion](leaderboard-rules.md#dashboard-inclusion).
+:score[Speed] and :score[Value] combine resource efficiency measured on benchmarks with provider speed and token prices. First establish the available measurements, then compare resource use at similar quality, estimate supported gaps, and combine the components. Display requirements are applied separately under [Dashboard Inclusion](leaderboard-rules.md#dashboard-inclusion).
 
 ### Blended Token Price
 
@@ -22,7 +22,7 @@ Published input, output, and cache prices remain raw route metadata. Listed cata
 
 ### Provider Speed
 
-Provider speed contributes 30% of Speed’s base weight, split equally between throughput, time to first token, and end-to-end response time. Time per task measured on benchmarks supplies the other 70%.
+Provider speed contributes 30% of :score[Speed]’s base weight, split equally between throughput, time to first token, and end-to-end response time. Time per task measured on benchmarks supplies the other 70%.
 
 OpenRouter serving estimates combine endpoint history with matching positive token-volume weights. Endpoint IDs join directly to pricing data; provider-name guesses and request-count allocation are not used. Missing or unweighted endpoints leave the matched evidence usable.
 
@@ -42,7 +42,7 @@ Higher throughput and lower latency score better. Logarithms preserve proportion
 
 ### Quality-Adjusted Resources per Task
 
-Speed and Value compare resource use among independent models at similar benchmark quality. In the equations below, $A$ stands for the resource amount: $A^{\text{time}}_{m,b}$ is time per task in seconds and $A^{\text{cost}}_{m,b}$ is cost per task for model variant $m$ on benchmark $b$.
+:score[Speed] and :score[Value] compare resource use among independent models at similar benchmark quality. In the equations below, $A$ stands for the resource amount: $A^{\text{time}}_{m,b}$ is time per task in seconds and $A^{\text{cost}}_{m,b}$ is cost per task for model variant $m$ on benchmark $b$.
 
 Use resources from the same benchmark and effort. If wall time is missing, output tokens divided by served throughput can estimate it; total tokens cannot substitute for output tokens. Validated effort imputation and broader-evidence fallback can fill other gaps. Source-wide means cannot replace task measurements.
 
@@ -88,7 +88,7 @@ $$
 
 With full evidence from both sources, the component mean is $(S_A+S_B)/2$. A missing source has an evidence factor of zero, and the available source retains its half of the benchmark's base weight. The full benchmark weight remains in the coverage denominator. Two sources still represent one benchmark for direct-evidence requirements.
 
-Token-efficiency adjustments likewise use separate source quality and token references. Each supported source supplies half of the possible adjustment; an unsupported or missing source remains neutral. The equations above describe Speed and Value aggregation, not the Agentic token multiplier.
+Token-efficiency adjustments likewise use separate source quality and token references. Each supported source supplies half of the possible adjustment; an unsupported or missing source remains neutral. The equations above describe :score[Speed] and :score[Value] aggregation, not the :score[Agentic] token multiplier.
 
 ### Comparable-Quality Peers
 
@@ -218,13 +218,13 @@ $$
 
 If supported residuals have no meaningful spread, every observed residual receives 50. Estimated resources can be scored against the observed reference, but cannot change its reference limits.
 
-### Combining Speed and Value Components
+### Combining :score[Speed] and :score[Value] Components
 
 Combine resource efficiency measured on benchmarks with provider measurements, discount imputed inputs, then apply a model-level coverage multiplier.
 
 Convert each component to 0–100, with higher scores indicating better performance. Provider statistics use ordinary min-max scores of $\log x$. Absolute price uses $\log_{10}(1+\text{blended price})$ with the favorable tail clipped at 2.5%. Quality-adjusted price uses the same local residual method as benchmark resource comparisons. Keeping absolute and quality-adjusted price separate retains both affordability and efficiency at comparable capability.
 
-Price comparisons use the mean of the public Intelligence and Agentic scores as the quality value used to compare prices:
+Price comparisons use the mean of the public :score[Intelligence] and :score[Agentic] scores as the quality value used to compare prices:
 
 $$
 q^{\text{price}}_m=\operatorname{mean}(\text{Intelligence}_m,\text{Agentic}_m).
@@ -246,12 +246,12 @@ $$
 
 Equal-value populations follow the [benchmark normalization rule](intelligence-agentic.md#benchmark-scores-and-dimension-weights). Absolute price clips its favorable tail; quality-adjusted resource scores combine magnitude and percentile.
 
-Ordinary Speed and Value reserve 70% of their base weight for benchmark resource measurements and 30% for provider or price measurements. Active benchmark inputs split the 70% allocation equally:
+Ordinary :score[Speed] and :score[Value] reserve 70% of their base weight for benchmark resource measurements and 30% for provider or price measurements. Active benchmark inputs split the 70% allocation equally:
 
 | Score | Benchmark resources: 70% | Other measurements: 30% |
 | --- | --- | --- |
-| Speed | Quality-adjusted time per task | Throughput, latency, and end-to-end latency: 10% each |
-| Value | Quality-adjusted cost per task | Absolute and quality-adjusted price: 15% each |
+| :score[Speed] | Quality-adjusted time per task | Throughput, latency, and end-to-end latency: 10% each |
+| :score[Value] | Quality-adjusted cost per task | Absolute and quality-adjusted price: 15% each |
 
 The base weight $w^{\text{base}}_i$ records this policy. The evidence factor $f_{m,i}$ records how much support a row has for that component, giving the effective weight $w_{m,i}=w^{\text{base}}_if_{m,i}$. Direct evidence has a factor of 1. Estimated quality contributes its discount $f^{\text{quality}}$; estimated resources multiply it by their own evidence factor $f^r$.
 
@@ -261,7 +261,7 @@ The 70/30 split applies when all components have full evidence. Missing or disco
 
 All efforts of a base model share one coverage multiplier, so different observation counts alone do not create different penalties. The configuration used to set shared coverage is the unlabelled variant, or the highest reported effort if all are labelled.
 
-For base-model group $g$ and dimension $d$ (Speed or Value), $m^{\text{default}}_g$ is that configuration and $W^{\text{total}}_d$ is the total active base weight. That configuration’s evidence share $c^{d}_{g,\text{ref}}$ determines the shared multiplier $C_g^d$:
+For base-model group $g$ and dimension $d$ (:score[Speed] or :score[Value]), $m^{\text{default}}_g$ is that configuration and $W^{\text{total}}_d$ is the total active base weight. That configuration’s evidence share $c^{d}_{g,\text{ref}}$ determines the shared multiplier $C_g^d$:
 
 $$
 c^{d}_{g,\text{ref}}=\frac{\sum_iw^d_{m^{\text{default}}_g,i}}{W^{\text{total}}_d}.
@@ -273,7 +273,7 @@ $$
 
 The multiplier is zero through 10% coverage and reaches one at 60%. Each effort retains its own component mean and displayed evidence share.
 
-For variant $m$, $g(m)$ identifies its base model. Its Speed components $s_{m,i}$ and Value components $v_{m,i}$ form weighted means, which receive the shared multiplier. The displayed evidence shares use that variant’s own effective weights:
+For variant $m$, $g(m)$ identifies its base model. Its :score[Speed] components $s_{m,i}$ and :score[Value] components $v_{m,i}$ form weighted means, which receive the shared multiplier. The displayed evidence shares use that variant’s own effective weights:
 
 $$
 \begin{aligned}
@@ -286,9 +286,9 @@ $$
 
 ![The shared coverage multiplier scales each effort’s own resource mean. In this illustrative pair, coverage of 35% for the shared reference configuration gives both efforts a multiplier of one-half, producing scores of 40 and 30.](../assets/methodology/resource-coverage.svg)
 
-The Price vs Cost Efficiency graph compares observed cost efficiency per task on benchmarks separately from the full Value score. It also shares the same reference configuration's coverage across ordinary efforts, so different observation counts alone do not create different penalties within one model.
+The Price vs Cost Efficiency graph compares observed cost efficiency per task on benchmarks separately from the full :score[Value] score. It also shares the same reference configuration's coverage across ordinary efforts, so different observation counts alone do not create different penalties within one model.
 
-Peer support controls how far each resource comparison moves from 50. The shared coverage multiplier then scales the combined Speed or Value score.
+Peer support controls how far each resource comparison moves from 50. The shared coverage multiplier then scales the combined :score[Speed] or :score[Value] score.
 
 ## Parameter Choices
 

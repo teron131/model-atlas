@@ -1,5 +1,7 @@
 /** Document registry, headings, and local link rules for the methodology surface. */
 
+import { plainScoreText } from "./score-markers";
+
 export const DOCUMENTS = [
   {
     slug: "methodology",
@@ -92,6 +94,8 @@ const METHODOLOGY_ASSETS = {
   "matching-boundary.svg": { directory: "matching", width: 760, height: 351 },
   "matching-relative-cutoff.svg": { directory: "matching", width: 760, height: 578 },
   "agentic-token-modifier.svg": { directory: "methodology", width: 760, height: 428 },
+  "normal-mad.svg": { directory: "methodology", width: 1000, height: 475 },
+  "weighted-mad.svg": { directory: "methodology", width: 760, height: 710 },
   "confidence.svg": { directory: "methodology", width: 760, height: 360 },
   "resource-coverage.svg": { directory: "methodology", width: 760, height: 432 },
   "imputation-overview.svg": { directory: "methodology", width: 760, height: 270 },
@@ -130,6 +134,12 @@ export function documentHref(slug: DocumentSlug): string {
   return slug === "methodology" ? "/methodology" : `/methodology/${slug}`;
 }
 
+/** Carry source-controlled score annotations into navigation without replacing intentionally shortened registry titles. */
+export function documentTitle(markdown: string, fallback: string): string {
+  const title = /^# (.+)$/m.exec(markdown)?.[1];
+  return title != null && plainScoreText(title) === fallback ? title : fallback;
+}
+
 /** Extract the two heading levels used by the sticky on-page outline. */
 export function tableOfContents(markdown: string): TableOfContentsItem[] {
   return markdown.split("\n").flatMap((line): TableOfContentsItem[] => {
@@ -153,7 +163,7 @@ export function tableOfContents(markdown: string): TableOfContentsItem[] {
 }
 
 export function headingId(label: string): string {
-  return label
+  return plainScoreText(label)
     .toLowerCase()
     .replaceAll(/[^a-z0-9\s-]/g, "")
     .trim()
