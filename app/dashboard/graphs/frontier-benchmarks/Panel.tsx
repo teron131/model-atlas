@@ -168,10 +168,11 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
       : frontierScoreAxisScale(scoreValues, indexScore);
   const chartMetric = useMemo(
     () => ({
-      label: xLabel,
+      label: `${xLabel}${axisConfig.logarithmic ? " · log₁₀" : ""}`,
       get: (row: FrontierBenchmarkRow) => axisConfig.get(row)!,
       format: isScoreAxis(axisKey) ? fmtTooltipNumber : axisConfig.format,
       xHigherIsBetter: axisConfig.xHigherIsBetter,
+      logarithmic: axisConfig.logarithmic,
     }),
     [xLabel, axisConfig, axisKey],
   );
@@ -269,7 +270,7 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
           formatScore={formatScoreTick}
           margin={{ ...SCATTER_CHART_MARGIN, left: 96 }}
           keyPrefix={`pareto-${performance}-${axisKey}-${activeKeys.join("-")}`}
-          ariaLabel={`${yLabel} versus ${xLabel} scatter plot`}
+          ariaLabel={`${yLabel} versus ${xLabel}${axisConfig.logarithmic ? " (logarithmic)" : ""} scatter plot`}
           getScore={(row) => row.score}
           getModel={(row) => row.model}
           getKey={(row) => `${row.benchmarkKey}-${modelVariantKey(row.model)}`}
