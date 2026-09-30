@@ -18,20 +18,20 @@ Read results in their declared units and normalize them to 0–100. Importance a
 
 **Normalize benchmark results**
 
-For benchmark score $x$, $N(x)$ linearly maps the observed minimum $x_{\min}$ to 0 and maximum $x_{\max}$ to 100:
+For benchmark score $x$, $N(x)$ combines [linear scaling and clamping](overview.md#shared-mathematical-operations) to map the **observed minimum** $x_{\min}$ to 0 and **observed maximum** $x_{\max}$ to 100:
 
 $$
-N(x)=100\operatorname{clamp}\left(\frac{x-x_{\min}}{x_{\max}-x_{\min}},0,1\right).
+N(x)=100\operatorname{clamp}_{0}^{1}\bigl(\operatorname{linearScale}_{x_{\min}}^{x_{\max}}(x)\bigr).
 $$
 
 If all observed scores are equal, each receives 100. Imputed scores use the same observed bounds, clamped to 0–100, without changing those bounds.
 
 **Source-specific Elo conversion**
 
-Where a source-specific conversion applies, $E(x)$ linearly maps Elo rating $x$ from the configured range $[L,U]$ to 0–1 before observed-range normalization:
+Where a source-specific conversion applies, $E(x)$ combines the same scaling and clamping for Elo rating $x$, mapping the **chosen minimum** $L$ to 0 and **chosen maximum** $U$ to 1 before observed-range normalization:
 
 $$
-E(x)=\operatorname{clamp}\left(\frac{x-L}{U-L},0,1\right).
+E(x)=\operatorname{clamp}_{0}^{1}\bigl(\operatorname{linearScale}_{L}^{U}(x)\bigr).
 $$
 
 The chosen endpoints $L=500$ and $U=2500$ are adopted from Artificial Analysis as a source-specific heuristic, not universal Elo limits. They can be adjusted if the source convention or observed rating range changes. Ratings below 500 become 0; ratings above 2500 become 1. Other sources retain native rating points before observed-range normalization. See the [source policies](../benchmarks.md#benchmark-source-policies) for conversion and fallback details.
@@ -44,13 +44,13 @@ The chosen endpoints $L=500$ and $U=2500$ are adopted from Artificial Analysis a
 | Allocation | Intelligence/Agentic split: 100/0, 75/25, 50/50, 25/75, or 0/100. |
 | Effective weight $\omega_{b,d}$ | Importance × allocation to dimension $d$, expressed as a fraction. |
 
-For :score[Agentic], the model's initial benchmark score $z_{m,A}$ is the weighted mean of its observed normalized results:
+For :score[Agentic], the model's initial benchmark score $z_{m,A}$ is the [weighted mean](overview.md#weighted-mean) of its observed normalized results:
 
 $$
-z_{m,A}=\frac{\sum_b\omega_{b,A}z_{m,b}}{\sum_b\omega_{b,A}}.
+z_{m,A}=\operatorname{weightedMean}_b(z_{m,b};\omega_{b,A}).
 $$
 
-Both sums include only available benchmark results with positive Agentic weight under the portfolio policy. Missing results are excluded, not counted as zeros. :score[Agentic] applies the token adjustment below before taking the mean. :score[Intelligence] blends its weighted benchmark mean with the shared-benchmark comparison; it requires an eligible benchmark result or supported effort estimate. Eligible indexes contribute at their overlap-adjusted evidence share, as described later.
+Only available benchmark results with positive Agentic weight under the portfolio policy enter the mean. Missing results are excluded, not counted as zeros. :score[Agentic] applies the token adjustment below before taking the mean. :score[Intelligence] blends its weighted benchmark mean with the shared-benchmark comparison; it requires an eligible benchmark result or supported effort estimate. Eligible indexes contribute at their overlap-adjusted evidence share, as described later.
 
 [Benchmark Portfolio](../benchmarks.md#scoring-roles) records eligibility, allocations, and current importance weights. [Imputation across reasoning efforts](imputation.md#imputation-across-reasoning-efforts) explains how supported estimates enter the later benchmark mean.
 
@@ -92,7 +92,7 @@ $$
 s^{\text{tok}}_b=1.4826\operatorname{weightedMedian}\left(|\ln N^{\text{tok}}-\operatorname{weightedMedian}(\ln N^{\text{tok}})|\right).
 $$
 
-The **inner weighted median** finds the center of the log token counts; the **outer weighted median** finds the typical absolute distance from that center—the median absolute deviation (MAD). Both use the same model-balanced weights, and medians limit the effect of extreme counts. This is the spread of log token counts, not of prediction residuals.
+The **inner [weighted median](overview.md#weighted-median-and-quantiles)** finds the center of the log token counts; the **outer weighted median** finds the typical absolute distance from that center—the median absolute deviation (MAD). Both use the same model-balanced weights, and medians limit the effect of extreme counts. This is the spread of log token counts, not of prediction residuals.
 
 The illustration shows the two stages: values equally far below and above the center fold onto the same absolute distance, retaining their weights. Each median splits its distribution’s weight in half. The curves are illustrative, not measured token data.
 
@@ -113,7 +113,7 @@ The [peer-support factor](speed-value.md#comparison-support) $p_{m,b}$ reduces t
 Keep $M=1$ when tokens are neither measured nor imputable, the log-token spread $s$ is zero, benchmark quality has no observed variation, or comparison support is insufficient. Otherwise:
 
 $$
-M^{\text{tok}}_{m,b}=1-\delta_{\max}\,p_{m,b}\operatorname{clamp}\left(\frac{d^{\text{tok}}_{m,b}}{2s^{\text{tok}}_b},-1,1\right).
+M^{\text{tok}}_{m,b}=1-\delta_{\max}\,p_{m,b}\operatorname{clamp}_{-1}^{1}\left(\frac{d^{\text{tok}}_{m,b}}{2s^{\text{tok}}_b}\right).
 $$
 
 With full peer support ($p=1$), $d/s=-1$ gives a 7.5% bonus and $d/s=1$ a 7.5% penalty. The two-spread-unit threshold and cap are policy choices.
@@ -137,7 +137,7 @@ If an observed token-adjusted score $\widetilde z_{m,b}$ falls outside 0–100, 
 $$
 \widetilde z_{m,b}=z_{m,b}M^{\text{tok}}_{m,b},\qquad
 L^A_b=\min(0,\min_j\widetilde z_{j,b}),\qquad U^A_b=\max(100,\max_j\widetilde z_{j,b}),\qquad
-z^A_{m,b}=100\frac{\widetilde z_{m,b}-L^A_b}{U^A_b-L^A_b}.
+z^A_{m,b}=100\operatorname{linearScale}_{L^A_b}^{U^A_b}(\widetilde z_{m,b}).
 $$
 
 The resulting $z^A$ enters the :score[Agentic] mean, index blend, and effort comparisons. The ±15% cap does not bound the final score change: rescaling can also move scores with a neutral multiplier of 1.
@@ -216,7 +216,7 @@ The implementation applies the Laplacian directly from the edge list and solves 
 
 **Map the fitted ordering and blend**
 
-Convert fitted ratings to model-balanced percentile ranks $p_m$ on a 0–1 scale. A percentile is not itself an Atlas score, so map it back through the weighted distribution of ordinary frontier scores for eligible fitted variants. If $Q_F$ is that distribution's weighted quantile function and $O_{m,F}$ is the ordinary frontier mean, blend:
+Convert fitted ratings to model-balanced percentile positions $p_m$ using [weightedQuantileRank](overview.md#weighted-ranks), divided by 100 to give a 0–1 scale. A percentile is not itself an Atlas score, so map it back through the weighted distribution of ordinary frontier scores for eligible fitted variants. If $Q_F$ applies [weightedQuantile](overview.md#weighted-median-and-quantiles) to that distribution and $O_{m,F}$ is the ordinary frontier mean, blend:
 
 $$
 T_{m,F}=0.8O_{m,F}+0.2Q_F(p_m).
@@ -240,7 +240,7 @@ $$
 f_{m,b}=
 \begin{cases}
 1 & \text{observed or accepted source crosswalk}\\
-s^{\text{observed}}_{m,b}\operatorname{clamp}(1-e^{\text{validation}}_{m,b}/25,0,1) & \begin{gathered}\text{validated imputation}\\\text{from other benchmarks}\end{gathered}\\
+s^{\text{observed}}_{m,b}\operatorname{clamp}_{0}^{1}(1-e^{\text{validation}}_{m,b}/25) & \begin{gathered}\text{validated imputation}\\\text{from other benchmarks}\end{gathered}\\
 0 & \text{otherwise}.
 \end{cases}
 $$
@@ -264,7 +264,7 @@ The numerator is the supported benchmark weight $E_{m,d}$. The denominator inclu
 The score multiplier $r_{m,d}$ keeps 85% of the entire score through 1.2 supported benchmark weight and rises smoothly to 100% retention at 12. A supported direct benchmark contributes $1.5w_{b,d}f_{m,b}$; an eligible observed index contributes $w_{k,d}B_{m,k,d}f_{m,k}$, where $B_{m,k,d}$ is its represented breadth after known overlap is deducted. Here $\mathcal{K}_d$ is the selected index set for dimension $d$; ineligible indexes have zero evidence factor. Call the sum $W_{m,d}$:
 
 $$
-W_{m,d}=1.5\sum_{b\notin\mathcal{K}_d}w_{b,d}f_{m,b}+\sum_{k\in\mathcal{K}_d}w_{k,d}B_{m,k,d}f_{m,k},\qquad u_{m,d}=\operatorname{clamp}\left(\frac{W_{m,d}-1.2}{12-1.2},0,1\right),\qquad r_{m,d}=0.85+0.15u_{m,d}^2(3-2u_{m,d}).
+W_{m,d}=1.5\sum_{b\notin\mathcal{K}_d}w_{b,d}f_{m,b}+\sum_{k\in\mathcal{K}_d}w_{k,d}B_{m,k,d}f_{m,k},\qquad u_{m,d}=\operatorname{clamp}_{0}^{1}\bigl(\operatorname{linearScale}_{1.2}^{12}(W_{m,d})\bigr),\qquad r_{m,d}=0.85+0.15u_{m,d}^2(3-2u_{m,d}).
 $$
 
 ![Score retention stays at 85% with little supported benchmark weight, rises smoothly, and reaches 100% when support is sufficient.](../assets/methodology/confidence.svg)
@@ -283,22 +283,7 @@ At 1.2 supported benchmark weight, a score of 80 becomes 68 and a score of 40 be
 
 **Why smoothstep**
 
-Smoothstep keeps the output at 0 before the start and at 1 after the end. Between them, it joins those flat regions without a sudden change in slope. For a polynomial $P(u)$, this requires:
-
-| Requirement | Equation |
-| --- | --- |
-| Start at 0 | $P(0)=0$ |
-| End at 1 | $P(1)=1$ |
-| Start flat | $P'(0)=0$ |
-| End flat | $P'(1)=0$ |
-
-The simplest polynomial satisfying these requirements is $P(u)=3u^2-2u^3$. Its derivative $P'(u)=6u(1-u)$ is zero at both ends and positive between them. Clipping the input $x$ to $u\in[0,1]$ keeps the output fixed outside the transition:
-
-$$
-\operatorname{smoothstep}(x)=u^2(3-2u),\qquad u=\operatorname{clamp}(x,0,1).
-$$
-
-The coefficients follow from the four requirements; choosing those requirements is scoring policy. The same curve also sets [peer comparison strength](speed-value.md#comparison-support) and the [shared coverage multiplier for :score[Speed] and :score[Value]](speed-value.md#combining-speed-and-value-components), each using its own start and end thresholds.
+The [smoothstep curve](overview.md#smoothstep) connects the chosen score-retention limits with no jump or sharp slope change at either end. The same curve also sets [peer comparison strength](speed-value.md#comparison-support) and the [shared coverage multiplier for :score[Speed] and :score[Value]](speed-value.md#combining-speed-and-value-components), each using its own start and end thresholds.
 
 ### Combining Benchmarks and Aggregate Indexes
 

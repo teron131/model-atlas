@@ -32,9 +32,9 @@ Matching means and standard deviations produces a linear conversion between repo
 
 ![In this illustrative round, benchmark A result 65 predicts benchmark B result 75, while the withheld result is 80. The absolute error of 5 is 10% of the training B range, 30–80. Each round withholds a different family, including all its reasoning configurations; the plot shows one result per family.](../assets/timeline/timeline-validation.svg)
 
-A connection needs at least four independent model families, positive correlation and nonzero spread. Validation repeats the holdout for every family and tests both directions, A → B and B → A. Each absolute prediction error is divided by the training results' range on the predicted benchmark and multiplied by 100. This makes errors comparable across benchmark units. The errors are summarized by a median for each direction, with equal total weight per family; they are normalized error points, not final index points.
+A connection needs at least four independent model families, positive correlation and nonzero spread. Validation repeats the holdout for every family and tests both directions, A → B and B → A. Each absolute prediction error is divided by the training results' range on the predicted benchmark and multiplied by 100. This makes errors comparable across benchmark units. The errors are summarized by a [weighted median](../methodology/overview.md#weighted-median-and-quantiles) for each direction, with equal total weight per family; they are normalized error points, not final index points.
 
-The translation must be accurate enough and better than a simple guess. The baseline always predicts the median result of the training models. The larger of the two translation errors must be no more than 25 normalized error points and smaller than both baseline errors. For example, translation errors of 10 and 15 pass against baseline errors of 20 and 30, because 15 is below the 25-point limit and both baselines.
+The translation must be accurate enough and better than a simple guess. The baseline always predicts the weighted median result of the training models, with equal total weight per family. The larger of the two translation errors must be no more than 25 normalized error points and smaller than both baseline errors. For example, translation errors of 10 and 15 pass against baseline errors of 20 and 30, because 15 is below the 25-point limit and both baselines.
 
 ### Extend the Shared Scale
 
@@ -56,7 +56,7 @@ New scale factors and offsets are fitted jointly across the connected network us
 
 ## Weight the Evidence by Coverage
 
-Individual benchmarks and published indexes enter one weighted mean on the shared historical scale. Each individual benchmark contributes 1.5 times its base weight. Each index contributes its base weight multiplied by represented benchmark breadth after known overlap deductions.
+Individual benchmarks and published indexes enter one [weighted mean](../methodology/overview.md#weighted-mean) on the shared historical scale. Each individual benchmark contributes 1.5 times its base weight. Each index contributes its base weight multiplied by represented benchmark breadth after known overlap deductions.
 
 For model $m$ and dimension $d$, $q_{m,b}$ and $q_{m,k}$ are the calibrated individual-benchmark and index values. The base weight $w_{b,d}$ or $w_{k,d}$ combines importance and dimension allocation. Remaining index breadth $B_{m,k,d}$ follows the [overlap rules used by headline scores](../methodology/intelligence-agentic.md#combining-benchmarks-and-aggregate-indexes). The estimate is:
 
@@ -86,10 +86,10 @@ The anchor values 100 and 150 are chosen for readability. Keeping them and their
 
 ![Changing the illustrative anchors from 20/80 to 100/150 shifts the origin and shrinks every score gap by the same proportion: the 60-point anchor gap becomes 50. Model order and evidence stay unchanged. Dashed curves illustrate selected record highs.](../assets/timeline/timeline-anchors.svg)
 
-The saved positions $q_{L,d}$ for GPT-4 (March 2023) and $q_{H,d}$ for Claude Opus 4.5 map to index scores of 100 and 150. The model's relative position between the anchors is the same on both scales:
+The saved positions $q_{L,d}$ for GPT-4 (March 2023) and $q_{H,d}$ for Claude Opus 4.5 map to index scores of 100 and 150. The [linearScale operation](../methodology/overview.md#shared-mathematical-operations) finds the model's relative position between these anchors; multiplication by $150-100$ and addition of 100 express it in index units:
 
 $$
-\frac{s_{m,d}-100}{150-100}=\frac{q_{m,d}-q_{L,d}}{q_{H,d}-q_{L,d}}.
+s_{m,d}=100+(150-100)\operatorname{linearScale}_{q_{L,d}}^{q_{H,d}}(q_{m,d}).
 $$
 
 Here, $q_{m,d}$ is the capability estimate and $s_{m,d}$ is the displayed index score. The scale extends beyond the anchors without an upper limit; its values are not percentages or ratios of capability.

@@ -17,7 +17,7 @@ Imputation never satisfies direct-evidence requirements for dashboard inclusion 
 
 ### Source Crosswalks
 
-Sources can report the same benchmark with different methodologies and model coverage. For sources selected for quality fusion, Model Atlas takes the equally weighted mean of their quality scores, without assuming either is better.
+Sources can report the same benchmark with different methodologies and model coverage. For sources selected for quality fusion, Model Atlas takes the [equally weighted mean](overview.md#weighted-mean) of their quality scores, without assuming either is better.
 
 A **crosswalk** learns their typical score difference from shared models and maps an available source result onto the combined benchmark scale. This preserves the same comparison target despite source coverage gaps. The accepted combined result is benchmark evidence; the mapped counterpart is not a newly measured source observation and never trains another source crosswalk.
 
@@ -35,7 +35,7 @@ $$
 \delta=\operatorname{weightedMedian}_i(B_i-A_i;a_i).
 $$
 
-The weighted median limits the influence of outliers.
+The [weighted median](overview.md#weighted-median-and-quantiles) limits the influence of outliers.
 
 **Validate on withheld models**
 
@@ -59,7 +59,7 @@ For an accepted crosswalk, use $\delta$ fitted from all paired observations. A h
 | A only | $\hat B=A+\delta$ | $(A+\hat B)/2$ |
 | B only | $\hat A=B-\delta$ | $(\hat A+B)/2$ |
 
-Clip the combined value to the benchmark’s permitted score range. Raw source results remain separate.
+Apply [clamp](overview.md#shared-mathematical-operations) to the combined value using the benchmark’s permitted score range. Raw source results remain separate.
 
 ![Source A and B results combine into paired or crosswalked means. Shaded bands around crosswalked means illustrate typical prediction error ±ε, using ε = 0.02; they are not confidence intervals or guaranteed bounds. A crossed-out validation error of 0.04 exceeds the allowed 0.025 and illustrates rejection of a different crosswalk.](../assets/methodology/source-crosswalk.svg)
 
@@ -97,12 +97,12 @@ Use a model’s performance on other observed benchmarks to impute a missing res
 
 **Calculate the weighted mean**
 
-The weighted mean summarizes the same model-effort variant’s measured performance for comparison with peers. Each benchmark contributes according to its existing importance and allocation to Intelligence or Agentic.
+The [weighted mean](overview.md#weighted-mean) summarizes the same model-effort variant’s measured performance for comparison with peers. Each benchmark contributes according to its existing importance and allocation to Intelligence or Agentic.
 
 Reuse the [benchmark normalization and base weights](intelligence-agentic.md#benchmark-scores-and-dimension-weights), separately for Intelligence and Agentic. Direct scoring in both capabilities uses frontier benchmarks. The shared contextual predictor may use observed baseline results to estimate a missing frontier result, subject to its validation and discounted evidence factor; the baseline result itself receives no direct capability weight. For each other observed benchmark $k$ with positive predictive weight, $z_k$ is its normalized score and $\omega_k$ its weight:
 
 $$
-\mu=\frac{\sum_k\omega_k z_k}{\sum_k\omega_k}.
+\mu=\operatorname{weightedMean}_k(z_k;\omega_k).
 $$
 
 The missing benchmark and all imputed values are excluded. At least three other observed benchmarks are required. This policy prevents one or two results from determining the prediction.
@@ -113,39 +113,25 @@ Convert the weighted mean into a percentile so its relative standing can be used
 
 An ordinary rank counts every model-effort variant equally, so five eligible efforts give a model five times the influence of one. The weighted rank gives each base model equal total influence by dividing its weight of 1 across its eligible variants.
 
-Each peer variant $j$ has weighted mean $\mu_j$ and reference weight $a_j>0$. Count all weight below $\mu$ and half the tied weight:
+Each peer variant $j$ has weighted mean $\mu_j$ and reference weight $a_j>0$. Apply [weightedQuantileRank](overview.md#weighted-ranks) to this weighted reference distribution, counting half the tied weight. Divide its 0–100 result by 100 to obtain fraction $r$:
 
 $$
-r=\frac{\sum_{\mu_j<\mu}a_j+\tfrac12\sum_{\mu_j=\mu}a_j}{\sum_j a_j}.
+r=\operatorname{weightedQuantileRank}(\mu)/100.
 $$
 
 ![Three lower means count fully; three tied means count half. The resulting rank is 45%, or r = 0.45.](../assets/methodology/weighted-quantile-rank.svg)
-
-Counting half the tied weight assigns equal values the midpoint of their shared percentile range. The formula gives $r$ on 0–1; $\operatorname{weightedQuantileRank}$ returns $100r$.
 
 **weightedQuantile(): percentile → value**
 
 Convert the percentile back into a score using the target benchmark’s observed distribution. Using the same peers and reference weights on both sides keeps the comparison population consistent.
 
-Sort those same peers’ observed target results as $x_1\le\cdots\le x_n$, keeping each reference weight attached. The cumulative weight share through result $k$ is:
+Apply [weightedQuantile](overview.md#weighted-median-and-quantiles) to those peers’ observed target results, retaining the same reference weights. The estimate $\hat x$ is the value at fraction $r$:
 
 $$
-C_k=\frac{\sum_{j=1}^{k}a_j}{\sum_{j=1}^{n}a_j}.
-$$
-
-Find the first $k$ with $C_k\ge r$. Select its value, or take the mean of adjacent values at an exact boundary:
-
-$$
-\hat x=\operatorname{weightedQuantile}(r)=
-\begin{cases}
-\dfrac{x_k+x_{k+1}}{2}, & r=C_k\text{ and }k<n,\\[6pt]
-x_k, & \text{otherwise}.
-\end{cases}
+\hat x=\operatorname{weightedQuantile}(r).
 $$
 
 ![The 45% rank selects 0.58. At the exact 60% boundary, the neighboring values 0.58 and 0.90 give a mean of 0.74.](../assets/methodology/weighted-quantile.svg)
-
-At $r=0$ or $r=1$, return its smallest or largest observed value; $r=0.5$ gives the weighted median.
 
 **Combine and validate**
 
@@ -165,24 +151,24 @@ Each benchmark’s overall score is one input, regardless of how many questions 
 
 For each missing benchmark, consider other efforts with an observed result for it and at least three benchmarks observed at both the target and reference efforts. Imputed results cannot establish this overlap. If several efforts qualify, choose the one with the largest **effective benchmark count** $n_{\text{eff}}$. This selects the reference for that estimate; it does not change the portfolio weights. Ties prefer the reasoning setting closest to the target, then a stable label order. If none qualifies, leave the result missing.
 
-The effective count measures how broadly the shared benchmarks influence the comparison. Equal weights give each benchmark an equal say; weights 1, 8, and 1 give one benchmark 80% of the influence. For $N$ shared benchmarks, the count equals $N$ with equal weights and approaches 1 as one benchmark dominates:
+Apply the shared [effective count](overview.md#effective-count) to the weights of the shared benchmarks. Equal weights give each benchmark an equal say; weights 1, 8, and 1 give one benchmark 80% of the influence:
 
 $$
-n_{\text{eff}}=\frac{(\sum_b w_b)^2}{\sum_b w_b^2}.
+n_{\text{eff}}=\operatorname{effectiveCount}_b(w_b).
 $$
 
-Squaring the weights makes concentration reduce the count. Scaling every weight by the same factor leaves it unchanged, so weights 0.25, 0.50, and 0.25 give the same count as 1, 2, and 1. The illustration keeps three shared benchmarks: one takes a growing share of the weight while the other two split the remainder equally. This count measures weight distribution, not prediction accuracy or correlation between benchmarks.
+The illustration keeps three shared benchmarks: one takes a growing share of the weight while the other two split the remainder equally. The count measures how broadly this reference effort is supported by the shared benchmarks.
 
 ![Three shared benchmarks: equal weights give an effective count of 3; concentrating the weight brings it toward 1.](../assets/methodology/effective-benchmark-count.svg)
 
 **Estimate the missing score**
 
-Measure the target’s performance relative to the chosen reference on their shared benchmarks. For each shared benchmark $b$, $t_b$ and $a_b$ are the normalized target and reference scores. Their weighted mean difference is the gap $\Delta$. For the missing benchmark, add this gap to its observed reference score $a$, then bound the estimate $\widehat t$ to 0–100:
+Measure the target’s performance relative to the chosen reference on their shared benchmarks. For each shared benchmark $b$, $t_b$ and $a_b$ are the normalized target and reference scores. Their [weighted mean](overview.md#weighted-mean) difference is the gap $\Delta$. For the missing benchmark, add this gap to its observed reference score $a$, then [clamp](overview.md#shared-mathematical-operations) the estimate $\widehat t$ to 0–100:
 
 $$
 \begin{aligned}
-\Delta&=\frac{\sum_b w_b(t_b-a_b)}{\sum_b w_b},\\
-\widehat t&=\operatorname{clamp}(a+\Delta,0,100).
+\Delta&=\operatorname{weightedMean}_b(t_b-a_b;w_b),\\
+\widehat t&=\operatorname{clamp}_{0}^{100}(a+\Delta).
 \end{aligned}
 $$
 
@@ -204,7 +190,7 @@ $$
 \ell^r_k=\log A^{r,\text{target}}_k-\log A^{r,\text{source}}_k.
 $$
 
-At least three benchmarks with paired measurements are required. To validate the ratio, withhold benchmark $k$ and calculate the median log difference $\widehat\ell^r_{-k}=\operatorname{median}_{j\ne k}(\ell^r_j)$ from the other benchmarks; the subscript $-k$ means benchmark $k$ is excluded. Exponentiating that difference gives the ratio used to predict the withheld target amount:
+At least three benchmarks with paired measurements are required. To validate the ratio, withhold benchmark $k$ and calculate the [median](overview.md#weighted-median-and-quantiles) log difference $\widehat\ell^r_{-k}=\operatorname{median}_{j\ne k}(\ell^r_j)$ from the other benchmarks; the subscript $-k$ means benchmark $k$ is excluded. Exponentiating that difference gives the ratio used to predict the withheld target amount:
 
 $$
 \widehat A^{r,\text{target}}_k=A^{r,\text{source}}_k\exp(\widehat\ell^r_{-k}).

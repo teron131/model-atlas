@@ -26,7 +26,7 @@ The framework establishes a fixed reference from an initial snapshot of supporte
 >
 > 4. **[Weight the evidence by coverage](calculation.md#weight-the-evidence-by-coverage)**
 >
->    Combine individual benchmark results and published indexes in one weighted mean, with index weights reflecting represented benchmark breadth.
+>    Combine individual benchmark results and published indexes in one [weighted mean](../methodology/overview.md#weighted-mean), with index weights reflecting represented benchmark breadth.
 >
 > 5. **[Apply the dated-successor assumption](calculation.md#apply-the-dated-successor-assumption)**
 >
