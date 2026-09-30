@@ -14,7 +14,7 @@ $$
 \end{aligned}
 $$
 
-Effective input and output prices are weighted means of provider prices, using reported token volumes as weights. The blend is a comparison convention, not a workload bill estimate.
+Effective input and output prices are [weighted means](overview.md#weighted-mean) of provider prices, using reported token volumes as weights. The blend is a comparison convention, not a workload bill estimate.
 
 Both sides need complete provider-price and token-volume evidence; otherwise the effective blend is missing. OpenRouter's aggregate and historical price series do not determine it, and cache pricing is excluded.
 
@@ -28,13 +28,13 @@ OpenRouter serving estimates combine endpoint history with matching positive tok
 
 If no weighted history remains, throughput falls back to the highest endpoint median (P50) and first-token latency to the lowest, following OpenRouter's model-page aggregate cards. End-to-end latency has no aggregate fallback.
 
-The measured throughput $v_m$, first-token latency $t^{\text{first}}_m$, and total response time $t^{\text{total}}_m$ enter log-scaled min-max comparisons. The subscript “lower” reverses the scale so lower latency scores better:
+The measured throughput $v_m$, first-token latency $t^{\text{first}}_m$, and total response time $t^{\text{total}}_m$ use the [component scaling formulas](#combining-speed-and-value-components) with transformation $g(x)=\log x$. Each statistic has its own reference bounds. The higher-is-better score $S_{\uparrow}$ favors throughput; the lower-is-better score $S_{\downarrow}$ favors lower latency:
 
 $$
 \begin{aligned}
-S^{\text{rate}}_m&=\operatorname{MinMax}(\log v_m)\\
-S^{\text{first}}_m&=\operatorname{MinMax}_{\text{lower}}(\log t^{\text{first}}_m)\\
-S^{\text{total}}_m&=\operatorname{MinMax}_{\text{lower}}(\log t^{\text{total}}_m)
+S^{\text{rate}}_m&=S_{\uparrow}(v_m)\\
+S^{\text{first}}_m&=S_{\downarrow}(t^{\text{first}}_m)\\
+S^{\text{total}}_m&=S_{\downarrow}(t^{\text{total}}_m)
 \end{aligned}
 $$
 
@@ -96,12 +96,12 @@ Models with similar benchmark results receive more comparison weight. Every benc
 
 Aggregate price comparisons use the linear mean of the two public quality scores described below. Cost, time, and token amounts still use logarithms to compare resource ratios; these are not quality transformations.
 
-Center quality on the weighted median and divide by a robust spread to obtain $Z_{m,b}$. This makes quality distances comparable across benchmarks. Each observed peer $j$ has reference weight $w^{\text{ref}}_{j,b}$: one unit per base model, shared across variants with paired quality and resource observations. $Q^{\text{weighted}}_{25}$ and $Q^{\text{weighted}}_{75}$ are the weighted 25th and 75th percentiles; $s^{\text{min}}_b$ is the minimum spread:
+Center quality on the [weighted median](overview.md#weighted-median-and-quantiles) and divide by a robust spread to obtain $Z_{m,b}$. This makes quality distances comparable across benchmarks. Each observed peer $j$ has reference weight $w^{\text{ref}}_{j,b}$: one unit per base model, shared across variants with paired quality and resource observations. $Q^{\text{weighted}}_{25}$ and $Q^{\text{weighted}}_{75}$ apply the shared weighted quantile rule to this distribution at fractions 0.25 and 0.75; $s^{\text{min}}_b$ is the minimum spread:
 
 $$
 \begin{aligned}
 s^{q}_b&=\max\left(\frac{Q^{\text{weighted}}_{75}(\{q_{j,b}\})-Q^{\text{weighted}}_{25}(\{q_{j,b}\})}{1.349},s^{\text{min}}_b\right)\\
-Z_{m,b}&=\frac{q_{m,b}-\operatorname{weightedMedian}_j(q_{j,b},w^{\text{ref}}_{j,b})}{s^{q}_b}
+Z_{m,b}&=\frac{q_{m,b}-\operatorname{weightedMedian}_j(q_{j,b};w^{\text{ref}}_{j,b})}{s^{q}_b}
 \end{aligned}
 $$
 
@@ -125,20 +125,20 @@ $$
 w^{\text{model}}_{m,k,b}=\sum_{j:\operatorname{model}(j)=k}w^{\text{peer}}_{m,j,b}.
 $$
 
-The effective model count uses the same formula as the [effective benchmark count](imputation.md#imputation-across-reasoning-efforts), now applied to base-model weights. It measures how evenly the comparison weight is distributed: equal weights give the actual model count, while concentration in one model brings it toward one.
+Apply the shared [effective count](overview.md#effective-count) to these base-model weights. Equal weights give the actual model count, while concentration in one model brings it toward one.
 
 Effective count alone ignores how small the weights are. Four equally distant models still have an effective count of four. The supported model count $n^{\text{supported}}_{m,b}$ therefore takes the smaller of total peer weight and effective model count, so distant comparisons cannot establish strong support merely by having equal weights:
 
 $$
-n^{\text{supported}}_{m,b}=\min\left(\sum_k w^{\text{model}}_{m,k,b},\frac{(\sum_k w^{\text{model}}_{m,k,b})^2}{\sum_k (w^{\text{model}}_{m,k,b})^2}\right)
+n^{\text{supported}}_{m,b}=\min\left(\sum_k w^{\text{model}}_{m,k,b},\operatorname{effectiveCount}_k(w^{\text{model}}_{m,k,b})\right)
 $$
 
 For example, four other models with weight 0.5 each have total weight 2 and effective count $2^2/(4\times0.5^2)=4$. The smaller value is 2, so their supported model count is 2. This count can be fractional; without positive peer weight, set it to zero.
 
-Convert this count into the peer-support factor $p$ using the [smoothstep curve](intelligence-agentic.md#evidence-support-and-quality-regularization). Subtract the start threshold of 1 and divide by the interval from 1 to 3:
+Convert this count into the peer-support factor $p$ by [linearly scaling](overview.md#shared-mathematical-operations) the interval from 1 to 3, then applying the [smoothstep curve](overview.md#smoothstep). Smoothstep clamps the scaled input to 0–1:
 
 $$
-p_{m,b}=\operatorname{smoothstep}\left(\frac{n^{\text{supported}}_{m,b}-1}{3-1}\right).
+p_{m,b}=\operatorname{smoothstep}\bigl(\operatorname{linearScale}_{1}^{3}(n^{\text{supported}}_{m,b})\bigr).
 $$
 
 | Supported model count | $p$ | Effect |
@@ -153,7 +153,7 @@ The thresholds of 1 and 3 are policy choices. Support also controls how much the
 
 ### Expected Resource Use
 
-Estimate expected resource use at the target quality. Start with a local weighted mean; with sufficient peer support, fit a local trend. Compare resources using natural logarithms so proportional cost and time differences are comparable. In this calculation, $\log$ means $\ln$.
+Estimate expected resource use at the target quality. Start with a local [weighted mean](overview.md#weighted-mean); with sufficient peer support, fit a local trend. Compare resources using natural logarithms so proportional cost and time differences are comparable. In this calculation, $\log$ means $\ln$.
 
 **Calculate the local mean and trend**
 
@@ -161,7 +161,7 @@ For resource $r$ (cost, time, or tokens), $A^r_{j,b}$ is peer $j$’s amount on 
 
 $$
 \begin{aligned}
-\bar y^r_{m,b}&=\frac{\sum_jw^{\text{peer}}_{m,j,b}\log A^r_{j,b}}{\sum_jw^{\text{peer}}_{m,j,b}}\\
+\bar y^r_{m,b}&=\operatorname{weightedMean}_j(\log A^r_{j,b};w^{\text{peer}}_{m,j,b})\\
 (\hat\alpha,\hat\beta)&=\arg\min_{\alpha,\beta}\sum_jw^{\text{peer}}_{m,j,b}\left[\log A^r_{j,b}-\alpha-\beta(Z_{j,b}-Z_{m,b})\right]^2.
 \end{aligned}
 $$
@@ -172,8 +172,8 @@ Evaluate the line at $Z^*_{m,b}$, the target quality clipped to the independent 
 
 $$
 \begin{aligned}
-Z^*_{m,b}&=\operatorname{clamp}(Z_{m,b},Z_{\min,b},Z_{\max,b})\\
-\widetilde y^r_{m,b}&=\operatorname{clamp}\left(\hat\alpha+\hat\beta(Z^*_{m,b}-Z_{m,b}),\min_j\log A^r_{j,b},\max_j\log A^r_{j,b}\right)\\
+Z^*_{m,b}&=\operatorname{clamp}_{Z_{\min,b}}^{Z_{\max,b}}(Z_{m,b})\\
+\widetilde y^r_{m,b}&=\operatorname{clamp}_{\min_j\log A^r_{j,b}}^{\max_j\log A^r_{j,b}}\left(\hat\alpha+\hat\beta(Z^*_{m,b}-Z_{m,b})\right)\\
 \mu^r_{m,b}&=\exp\left(\bar y^r_{m,b}+p_{m,b}(\widetilde y^r_{m,b}-\bar y^r_{m,b})\right)
 \end{aligned}
 $$
@@ -199,15 +199,15 @@ Take the mean of two scores: the size of the resource advantage and its percenti
 The magnitude score measures the size of the resource advantage on a 0–100 scale. Its lower limit $L$ is the model-balanced 2.5th percentile of supported residuals; its upper limit $U$ is their maximum. Clip residuals below $L$ so exceptionally low resource use cannot stretch the scale. This clipping is called winsorization:
 
 $$
-S^{\text{mag},r}_{m,b}=100\cdot\frac{U-\operatorname{clamp}(d^r_{m,b},L,U)}{U-L}.
+S^{\text{mag},r}_{m,b}=100\left[1-\operatorname{linearScale}_{L}^{U}\bigl(\operatorname{clamp}_{L}^{U}(d^r_{m,b})\bigr)\right].
 $$
 
-The percentile score $S^{\text{pct},r}_{m,b}$ ranks the negative residual, so lower resource use scores higher. It counts all tied weight; benchmark imputation counts half. Both reference distributions give each base model equal total weight.
+The percentile score $S^{\text{pct},r}_{m,b}$ uses [weightedPercentileRank](overview.md#weighted-ranks) on the negative residual, so lower resource use scores higher. It counts all tied weight; benchmark imputation counts half. Both reference distributions give each base model equal total weight.
 
 The mean $\bar S^r_{m,b}$ combines magnitude $S^{\text{mag},r}_{m,b}$ and percentile $S^{\text{pct},r}_{m,b}$ equally. Comparison support $p_{m,b}$ then pulls the component score $S^{\text{res},r}_{m,b}$ toward 50:
 
 $$
-\bar S^r_{m,b}=\frac{S^{\text{mag},r}_{m,b}+S^{\text{pct},r}_{m,b}}{2}.
+\bar S^r_{m,b}=\operatorname{mean}(S^{\text{mag},r}_{m,b},S^{\text{pct},r}_{m,b}).
 $$
 
 $$
@@ -222,9 +222,9 @@ If supported residuals have no meaningful spread, every observed residual receiv
 
 Combine resource efficiency measured on benchmarks with provider measurements, discount imputed inputs, then apply a model-level coverage multiplier.
 
-Convert each component to 0–100, with higher scores indicating better performance. Provider statistics use ordinary min-max scores of $\log x$. Absolute price uses $\log_{10}(1+\text{blended price})$ with the favorable tail clipped at 2.5%. Quality-adjusted price uses the same local residual method as benchmark resource comparisons. Keeping absolute and quality-adjusted price separate retains both affordability and efficiency at comparable capability.
+Convert each component to 0–100, with higher scores indicating better performance. Provider statistics use linear scaling with clamping on $\log x$. Absolute price uses $\log_{10}(1+\text{blended price})$ with the favorable tail clipped at 2.5%. Quality-adjusted price uses the same local residual method as benchmark resource comparisons. Keeping absolute and quality-adjusted price separate retains both affordability and efficiency at comparable capability.
 
-Price comparisons use the mean of the public :score[Intelligence] and :score[Agentic] scores as the quality value used to compare prices:
+Price comparisons use the [mean](overview.md#weighted-mean) of the public :score[Intelligence] and :score[Agentic] scores as the quality value used to compare prices:
 
 $$
 q^{\text{price}}_m=\operatorname{mean}(\text{Intelligence}_m,\text{Agentic}_m).
@@ -232,16 +232,16 @@ $$
 
 Use the final public capability scores on a linear scale. Time and cost per task use their own benchmark’s linear quality coordinates.
 
-For transformed measurement $g(x)$, $g_{\min}$ and $g_{\max}$ are its finite reference minimum and maximum. Min–max scaling maps this range to 0–100. When higher values are better, the score is:
+For transformed measurement $g(x)$, $g_{\min}$ and $g_{\max}$ are its finite reference minimum and maximum. The [linearScale operation](overview.md#shared-mathematical-operations) maps this range to 0–1; clamping and multiplication by 100 produce the component score. When higher values are better:
 
 $$
-S_{\uparrow}(x)=100\operatorname{clamp}\left(\frac{g(x)-g_{\min}}{g_{\max}-g_{\min}},0,1\right)
+S_{\uparrow}(x)=100\operatorname{clamp}_{0}^{1}\bigl(\operatorname{linearScale}_{g_{\min}}^{g_{\max}}(g(x))\bigr)
 $$
 
 The lower-is-better score $S_{\downarrow}(x)$ reverses the same scale:
 
 $$
-S_{\downarrow}(x)=100\operatorname{clamp}\left(\frac{g_{\max}-g(x)}{g_{\max}-g_{\min}},0,1\right)
+S_{\downarrow}(x)=100\operatorname{clamp}_{0}^{1}\bigl(1-\operatorname{linearScale}_{g_{\min}}^{g_{\max}}(g(x))\bigr)
 $$
 
 Equal-value populations follow the [benchmark normalization rule](intelligence-agentic.md#benchmark-scores-and-dimension-weights). Absolute price clips its favorable tail; quality-adjusted resource scores combine magnitude and percentile.
@@ -268,18 +268,18 @@ c^{d}_{g,\text{ref}}=\frac{\sum_iw^d_{m^{\text{default}}_g,i}}{W^{\text{total}}_
 $$
 
 $$
-C_g^d=\operatorname{smoothstep}\left(\frac{c^{d}_{g,\text{ref}}-0.1}{0.5}\right).
+C_g^d=\operatorname{smoothstep}\bigl(\operatorname{linearScale}_{0.1}^{0.6}(c^{d}_{g,\text{ref}})\bigr).
 $$
 
 The multiplier is zero through 10% coverage and reaches one at 60%. Each effort retains its own component mean and displayed evidence share.
 
-For variant $m$, $g(m)$ identifies its base model. Its :score[Speed] components $s_{m,i}$ and :score[Value] components $v_{m,i}$ form weighted means, which receive the shared multiplier. The displayed evidence shares use that variant’s own effective weights:
+For variant $m$, $g(m)$ identifies its base model. Its :score[Speed] components $s_{m,i}$ and :score[Value] components $v_{m,i}$ form [weighted means](overview.md#weighted-mean), which receive the shared multiplier. The displayed evidence shares use that variant’s own effective weights:
 
 $$
 \begin{aligned}
-\text{Speed}_m&=C^{\text{speed}}_{g(m)}\frac{\sum_iw^{\text{speed}}_{m,i}s_{m,i}}{\sum_iw^{\text{speed}}_{m,i}}\\
+\text{Speed}_m&=C^{\text{speed}}_{g(m)}\operatorname{weightedMean}_i(s_{m,i};w^{\text{speed}}_{m,i})\\
 c^{\text{speed}}_m&=\frac{\sum_iw^{\text{speed}}_{m,i}}{W^{\text{total}}_{\text{speed}}}\\
-\text{Value}_m&=C^{\text{value}}_{g(m)}\frac{\sum_iw^{\text{value}}_{m,i}v_{m,i}}{\sum_iw^{\text{value}}_{m,i}}\\
+\text{Value}_m&=C^{\text{value}}_{g(m)}\operatorname{weightedMean}_i(v_{m,i};w^{\text{value}}_{m,i})\\
 c^{\text{value}}_m&=\frac{\sum_iw^{\text{value}}_{m,i}}{W^{\text{total}}_{\text{value}}}.
 \end{aligned}
 $$

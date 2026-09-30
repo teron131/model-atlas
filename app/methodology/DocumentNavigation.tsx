@@ -14,6 +14,7 @@ import styles from "./methodology.module.css";
 
 type DocumentNavigationMode = "docked" | "sheet";
 
+/** Open the active document's group on entry while preserving manual group toggles on the current page. */
 export function DocumentNavigation({
   activeDocument,
   outline,
@@ -29,7 +30,13 @@ export function DocumentNavigation({
 }) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const isSheet = mode === "sheet";
-  const [expanded, setExpanded] = useState<DocumentSlug[]>([]);
+  const activeGroup =
+    DOCUMENTS.find((item) => item.slug === activeDocument)!.parent ?? activeDocument;
+  const [expanded, setExpanded] = useState<DocumentSlug[]>([activeGroup]);
+
+  useEffect(() => {
+    setExpanded((current) => (current.includes(activeGroup) ? current : [...current, activeGroup]));
+  }, [activeDocument, activeGroup]);
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;

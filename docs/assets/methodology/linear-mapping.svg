@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 340" role="img" aria-labelledby="title desc">
+<title id="title">Linear scaling with clamping</title>
+<desc id="desc">The minimum maps to zero and the maximum maps to one or one hundred, depending on the output scale. Values between min and max follow a straight line; values outside the bounds are clamped. Benchmark normalization uses observed bounds, while source-specific Elo conversion uses chosen bounds.</desc>
+<style>
+text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; }
+@media (prefers-color-scheme:dark) {
+text { fill:#ffffff; }
+[fill="#63706e"] { fill:#a6b2ae; } [stroke="#63706e"] { stroke:#a6b2ae; }
+[stroke="#b5bfbc"] { stroke:#3c4846; }
+[fill="#146cba"] { fill:#85bfff; } [stroke="#146cba"] { stroke:#85bfff; }
+}
+</style>
+<text x="106" y="38" font-size="18">Mapped value</text>
+<g stroke="#b5bfbc" stroke-width="1">
+<line x1="106" y1="80" x2="696" y2="80"/>
+<line x1="106" y1="260" x2="696" y2="260"/>
+</g>
+<g font-size="16" text-anchor="end">
+<text x="92" y="86">1 or 100</text>
+<text x="92" y="266">0</text>
+</g>
+<g stroke="#63706e" stroke-width="1" stroke-dasharray="3 5">
+<line x1="216" y1="80" x2="216" y2="260"/>
+<line x1="576" y1="80" x2="576" y2="260"/>
+</g>
+<path d="M106 260 H216 L576 80 H696" fill="none" stroke="#146cba" stroke-width="3"/>
+<g fill="#146cba">
+<circle cx="216" cy="260" r="5"/>
+<circle cx="576" cy="80" r="5"/>
+</g>
+<text x="161" y="286" font-size="16" text-anchor="middle" fill="#146cba">Clamped</text>
+<text x="636" y="106" font-size="16" text-anchor="middle" fill="#146cba">Clamped</text>
+<g stroke="#63706e" stroke-width="1">
+<line x1="216" y1="274" x2="216" y2="280"/>
+<line x1="576" y1="274" x2="576" y2="280"/>
+</g>
+<g font-size="17" text-anchor="middle">
+<text x="216" y="302">min</text>
+<text x="576" y="302">max</text>
+</g>
+<text x="396" y="333" font-size="18" text-anchor="middle">Input value x</text>
+</svg>

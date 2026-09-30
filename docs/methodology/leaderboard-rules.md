@@ -18,7 +18,7 @@ Count each known component once across indexes and standalone observations, usin
 
 AA’s main Intelligence Index represents ten benchmarks. Its Agentic, Coding, and Omniscience indexes do not increase the benchmark count used for inclusion. Only observed results count, including observed zeros.
 
-ECI uses fixed represented breadth 7.5, the median of the fixed index baskets. Its component overlap is unknown, so this breadth is added alongside standalone evidence. Inclusion uses observations matched to the exact configuration; imputation supplies no direct coverage.
+ECI uses fixed represented breadth 7.5, the [median](overview.md#weighted-median-and-quantiles) of the fixed index baskets. Its component overlap is unknown, so this breadth is added alongside standalone evidence. Inclusion uses observations matched to the exact configuration; imputation supplies no direct coverage.
 
 The required benchmark count is the smallest known count represented by an index among AA, CAIS, Surge, and Vals, currently seven. ECI’s publication minimum is excluded because it is not a fixed benchmark basket.
 
@@ -74,7 +74,7 @@ The Pareto frontier contains models for which no other candidate is at least as 
 | Pareto Balance | Largest :score[Intelligence] × :score[Value] product on the frontier, equivalent to the largest equal-weight geometric mean. This favors strength in both scores. Ties prefer higher :score[Intelligence]. |
 | Pareto Value | Highest :score[Value] on the frontier among models strictly above the full published population’s median :score[Intelligence]. This focuses the role on more capable candidates. Ties prefer higher :score[Intelligence]. |
 
-The median counts each base model with finite :score[Intelligence] and :score[Value] once, before dashboard filters. A model exactly at the median does not qualify for Pareto Value.
+The [median](overview.md#weighted-median-and-quantiles) counts each base model with finite :score[Intelligence] and :score[Value] once, before dashboard filters. A model exactly at the median does not qualify for Pareto Value.
 
 Pareto candidates follow model, provider, and price filters before rank and release-recency limits. The other signature roles use the displayed population.
 
