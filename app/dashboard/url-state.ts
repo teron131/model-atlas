@@ -28,7 +28,6 @@ export type DashboardUrlState = {
   rank: ModelRankFilter;
   days: RecencyFilter;
   "table-q": string;
-  columns: string;
   "column-order": BenchmarkColumnOrder;
   "table-variants": boolean;
   "graph-variants": boolean;
@@ -48,7 +47,6 @@ const tableKeys = new Set<DashboardUrlKey>([
   "view",
   "sort",
   "table-q",
-  "columns",
   "column-order",
   "table-variants",
 ]);
