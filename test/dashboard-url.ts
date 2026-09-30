@@ -111,6 +111,17 @@ assert.deepEqual(
   ["terminal_bench_4"],
 );
 assert.deepEqual(
+  readUrlValue(
+    new URLSearchParams(
+      "benchmark=gdp_pdf__source_b&benchmark=terminal_bench_science__source_c&benchmark=hle__source_z",
+    ),
+    "benchmark",
+  ),
+  ["gdp_pdf__source_b", "terminal_bench_science__source_c"],
+  "Source-labelled measurements remain selectable and shareable without accepting unknown source slots",
+);
+
+assert.deepEqual(
   readUrlValue(patchDashboardUrl(base, { benchmark: [] }).searchParams, "benchmark"),
   [],
 );

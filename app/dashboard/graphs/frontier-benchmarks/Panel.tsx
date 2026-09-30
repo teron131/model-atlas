@@ -73,12 +73,13 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
   setHover: HoverSetter;
 }) {
   const benchmarkRows = useMemo(
-    () => frontierBenchmarkRows(models, payload.metadata.scoring.benchmark_portfolio),
-    [models, payload.metadata.scoring.benchmark_portfolio],
+    () => frontierBenchmarkRows(models, payload.metadata.scoring.benchmark_portfolio, axisKey),
+    [models, payload.metadata.scoring.benchmark_portfolio, axisKey],
   );
   const referenceRows = useMemo(
-    () => frontierBenchmarkRows(referenceModels, payload.metadata.scoring.benchmark_portfolio),
-    [referenceModels, payload.metadata.scoring.benchmark_portfolio],
+    () =>
+      frontierBenchmarkRows(referenceModels, payload.metadata.scoring.benchmark_portfolio, axisKey),
+    [referenceModels, payload.metadata.scoring.benchmark_portfolio, axisKey],
   );
   const benchmarkOptions = useMemo(
     () =>
@@ -91,13 +92,7 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
         );
         const unit = measured?.resourcePolicy?.unit === "total" ? "full run" : "per task";
         const measure =
-          axisKey === "tokens"
-            ? measured?.resourcePolicy?.tokenMeasure === "output_tokens"
-              ? "Output tokens"
-              : "Total tokens"
-            : axisKey === "cost"
-              ? "Cost"
-              : "Time";
+          axisKey === "tokens" ? "Total tokens" : axisKey === "cost" ? "Cost" : "Time";
         return {
           ...option,
           detail: measured
@@ -113,25 +108,13 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
   );
   const activeKeys = useMemo(() => {
     if (performance !== "benchmarks") {
-      return automaticResourceKeys(
-        referenceRows,
-        payload.metadata.scoring.benchmark_portfolio,
-        performance,
-        axisKey,
-      );
+      return automaticResourceKeys(referenceRows, axisKey);
     }
     const available = new Set(benchmarkOptions.map((option) => option.key));
     return benchmarkKeys == null
       ? [...available]
       : benchmarkKeys.filter((key) => available.has(key));
-  }, [
-    performance,
-    referenceRows,
-    payload.metadata.scoring.benchmark_portfolio,
-    axisKey,
-    benchmarkKeys,
-    benchmarkOptions,
-  ]);
+  }, [performance, referenceRows, axisKey, benchmarkKeys, benchmarkOptions]);
   const publishedPerformance = performance !== "benchmarks";
   const resourceAxis = !isScoreAxis(axisKey);
   const aggregate = activeKeys.length > 1;
@@ -177,12 +160,7 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
       : indexScore
         ? fmtTooltipScore
         : (value: number) => `${value.toFixed(0)}%`;
-  const xAxis = frontierXAxisScale(
-    rows.map(axisConfig.get).filter(finite),
-    axisKey,
-    axisConfig,
-    aggregate,
-  );
+  const xAxis = frontierXAxisScale(rows.map(axisConfig.get).filter(finite), axisKey, axisConfig);
   const scoreValues = rows.map((row) => row.score);
   const yAxis =
     publishedPerformance || normalizedScore
@@ -229,7 +207,7 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
   );
   const explanation =
     publishedPerformance && resourceAxis
-      ? `Published ${yLabel} vs. ${aggregate ? "normalized" : "measured"} resources from ${evidenceSummary || "selected evidence"}.`
+      ? `Published ${yLabel} vs. ${aggregate ? "median-relative" : "measured"} resources from ${evidenceSummary || "selected evidence"}.`
       : normalizedScore
         ? `${evidenceSummary}: performance normalized to the full reference population, with index overlap removed.`
         : null;

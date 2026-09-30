@@ -67,6 +67,8 @@ const scoreColumnKeys = new Set<TableColumnKey>(
     .map((column) => column.key),
 );
 const costColumnKeys = new Set<TableColumnKey>([
+  "taskCostRatio",
+  "totalTokenRatio",
   "blend",
   "effectiveInputPrice",
   "effectiveOutputPrice",
@@ -75,6 +77,8 @@ const costColumnKeys = new Set<TableColumnKey>([
     .map((column) => column.key),
 ]);
 const timeColumnKeys = new Set<TableColumnKey>([
+  "taskTimeRatio",
+  "totalTokenRatio",
   "throughput",
   "latency",
   "e2eLatency",

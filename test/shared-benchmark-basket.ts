@@ -3,11 +3,11 @@
 import assert from "node:assert/strict";
 
 import {
+  aggregateFrontierBenchmarkRows,
   frontierBenchmarkAxisConfigFor,
   type FrontierBenchmarkRow,
   frontierBenchmarkRows,
   frontierXAxisScale,
-  meanFrontierBenchmarkRows,
 } from "../app/dashboard/graphs/frontier-benchmarks/analysis";
 import { sharedFrontierBenchmarkComparison } from "../app/dashboard/graphs/frontier-benchmarks/common-evidence";
 import { residualIndexBreadth } from "../src/model-atlas/benchmarks/index-policy";
@@ -48,8 +48,8 @@ const observed = [
 ];
 const references = [
   ...observed,
-  row({ ...low, id: "test/reference", name: "Reference" }, "a", 0, 1),
-  row({ ...low, id: "test/reference", name: "Reference" }, "b", 0, 50),
+  row({ ...low, id: "test/reference", name: "Reference" }, "a", 0, 1, 8),
+  row({ ...low, id: "test/reference", name: "Reference" }, "b", 0, 50, 30),
 ];
 const cost = sharedFrontierBenchmarkComparison(observed, references, ["a", "b"], "cost");
 assert.deepEqual(cost.benchmarkKeys, ["a"]);
@@ -67,8 +67,8 @@ const time = sharedFrontierBenchmarkComparison(observed, references, ["a", "b"],
 assert.deepEqual(time.benchmarkKeys, ["b"], "Time uses its own shared observations");
 assert.equal(
   time.rows.find((r) => r.model.reasoning_effort === "low")!.seconds,
-  0,
-  "A normalized zero is a valid measured endpoint",
+  0.4,
+  "Runtime is relative to the full reference median, rather than a min–max endpoint",
 );
 const disjoint = sharedFrontierBenchmarkComparison(
   [observed[0]!, observed[3]!],
@@ -107,14 +107,24 @@ const augmented = [
   ...observed,
   row({ ...low, name: "Task only", id: "test/task-only" }, "b", 30, 1),
 ];
-const mixed = sharedFrontierBenchmarkComparison(augmented, augmented, [indexKey, "a", "b"], "cost");
+const supportedReferences = [
+  ...augmented,
+  row({ ...low, name: "Reference", id: "test/reference" }, indexKey, 30, 3, 15),
+  row({ ...low, name: "Reference", id: "test/reference" }, "a", 30, 15, 8),
+];
+const mixed = sharedFrontierBenchmarkComparison(
+  augmented,
+  supportedReferences,
+  [indexKey, "a", "b"],
+  "cost",
+);
 assert.deepEqual(mixed.groups[0]?.benchmarkKeys, [indexKey, "a"]);
 assert.equal(mixed.rows.length, proxies.length + 1);
 assert.equal(mixed.indexVariantCount, 2);
 assert.equal(mixed.excludedVariantCount, 0);
 const indexFallback = sharedFrontierBenchmarkComparison(
   [...proxies, observed[0]!],
-  augmented,
+  supportedReferences,
   [indexKey, "a"],
   "time",
 );
@@ -157,7 +167,7 @@ assert.equal(
   "Individual tasks cannot borrow index telemetry",
 );
 
-const breadthMean = meanFrontierBenchmarkRows([
+const breadthMean = aggregateFrontierBenchmarkRows([
   row(low, "aa_intelligence_index", 100, 10, 20),
   row(low, "a", 0, 1, 2),
 ])[0]!;
@@ -166,25 +176,22 @@ assert.equal(
   1000 / 11,
   "AA carries ten tasks of represented breadth, not one row",
 );
-assert.equal(breadthMean.cost, 101 / 11);
-assert.equal(breadthMean.seconds, 202 / 11, "Both coordinates use the same breadth weights");
+assert.equal(breadthMean.cost, 10, "Median resource use retains the index’s represented breadth");
+assert.equal(breadthMean.seconds, 20, "Runtime also uses a breadth-weighted median");
 
 const normalizedCostAxis = frontierXAxisScale(
-  [0, 13, 40, 100],
+  [0.25, 1, 3, 5],
   "cost",
   frontierBenchmarkAxisConfigFor("cost", true),
-  true,
 );
-assert.equal(
-  normalizedCostAxis.domain[1],
-  100,
-  "Normalized endpoints must not inflate the cost axis to 200",
+assert.ok(
+  normalizedCostAxis.domain[1] >= 5 && normalizedCostAxis.domain[1] < 10,
+  "Ratio axes reflect measured multipliers, rather than a fixed 0–100 scale",
 );
 const outlierCostAxis = frontierXAxisScale(
   [0, 150],
   "cost",
   frontierBenchmarkAxisConfigFor("cost", true),
-  true,
 );
 assert.ok(
   outlierCostAxis.domain[1] >= 150,
@@ -235,13 +242,13 @@ assert.equal(
   9,
   "Only the exact current Terminal-Bench component reduces AA breadth",
 );
-const residualMean = meanFrontierBenchmarkRows([
+const residualMean = aggregateFrontierBenchmarkRows([
   row(low, "aa_intelligence_index", 100, 10, 20),
   row(low, "scicode", 0, 0, 0),
 ])[0]!;
 assert.equal(residualMean.score, 90);
-assert.equal(residualMean.cost, 9);
-assert.equal(residualMean.seconds, 18);
+assert.equal(residualMean.cost, 10);
+assert.equal(residualMean.seconds, 20);
 const incompleteComponent = sharedFrontierBenchmarkComparison(
   [
     row(low, "aa_intelligence_index", 40, 2),
@@ -254,6 +261,7 @@ const incompleteComponent = sharedFrontierBenchmarkComparison(
     row(high, "aa_intelligence_index", 50, 4),
     row(low, "scicode", 70, 1),
     row(high, "scicode", 80, null),
+    row({ ...low, name: "Reference", id: "test/reference" }, indexKey, 30, 3),
   ],
   ["aa_intelligence_index", "scicode"],
   "cost",
@@ -268,20 +276,25 @@ assert.equal(
 // Cost, time, and tokens independently require common paired evidence and preserve the index baseline.
 for (const axis of ["cost", "time", "tokens"] as const) {
   const telemetry =
-    axis === "cost" ? { cost: 2 } : axis === "time" ? { seconds: 20 } : { output_tokens: 100 };
+    axis === "cost" ? { cost: 2 } : axis === "time" ? { seconds: 20 } : { tokens: 100 };
   const variantModels = [low, high].map((model) => ({
     ...model,
     intelligence: { intelligence_index: 50 },
     task_metrics: { artificial_analysis: telemetry },
   }));
-  const projected = frontierBenchmarkRows(variantModels, { aa_intelligence_index: policy });
-  const result = sharedFrontierBenchmarkComparison(projected, projected, [indexKey, "a"], axis);
+  const projected = frontierBenchmarkRows(variantModels, { aa_intelligence_index: policy }, axis);
+  const population = [
+    ...projected,
+    { ...projected[0]!, model: { ...low, name: "Reference", id: "test/reference" } },
+  ];
+  const result = sharedFrontierBenchmarkComparison(projected, population, [indexKey, "a"], axis);
   assert.equal(result.rows.length, 2, `${axis} preserves observed AA variants`);
   assert.deepEqual(result.benchmarkKeys, [indexKey]);
   for (const other of ["cost", "time", "tokens"] as const)
     if (other !== axis) {
       assert.equal(
-        sharedFrontierBenchmarkComparison(projected, projected, [indexKey, "a"], other).rows.length,
+        sharedFrontierBenchmarkComparison(projected, population, [indexKey, "a"], other).rows
+          .length,
         0,
         `${axis} evidence cannot fill ${other}`,
       );
@@ -299,6 +312,7 @@ const tokensFor = (metrics: Record<string, number>) =>
   frontierBenchmarkRows(
     [{ ...low, benchmarks: { arc_agi_2: 0.5 }, task_metrics: { arc_agi_2: metrics } }],
     { arc_agi_2: totalTokenPolicy },
+    "tokens",
   )[0]!.totalTokens;
 assert.equal(
   tokensFor({ tokens: 120 }),

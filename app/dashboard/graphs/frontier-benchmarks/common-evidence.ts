@@ -8,11 +8,11 @@ import { canonicalModelKey } from "../../../../src/model-atlas/identity/normaliz
 import type { ModelAtlasModel } from "../../../../src/model-atlas/stats/types";
 import { modelVariantKey } from "../../shared/model-display";
 import {
+  aggregateFrontierBenchmarkRows,
   frontierBenchmarkAxisConfig,
   type FrontierBenchmarkAxisKey,
   type FrontierBenchmarkRow,
   isScoreAxis,
-  meanFrontierBenchmarkRows,
   normalizedFrontierBenchmarkRows,
   positiveMetric,
   selectedFrontierBenchmarkRows,
@@ -91,7 +91,7 @@ export function sharedFrontierBenchmarkComparison(
     const commonRows = modelRows.filter(
       (row) => shared.has(row.benchmarkKey) && compared.has(modelVariantKey(row.model)),
     );
-    const plotted = meanFrontierBenchmarkRows(commonRows);
+    const plotted = aggregateFrontierBenchmarkRows(commonRows);
     result.push(...plotted);
     indexVariantCount += indexVariants.length;
     excludedVariantCount += allVariants.length - variants.length;

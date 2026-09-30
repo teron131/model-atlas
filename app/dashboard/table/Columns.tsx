@@ -41,8 +41,21 @@ export const scoreSortableColumns: SortableColumnDefinition[] = [
   ...scoreMetricColumns,
 ];
 
+/** Descriptive resource use follows the scores without replacing quality-adjusted Speed and Value. */
+export const resourceRatioColumns = [
+  { key: "taskCostRatio", kind: "cost", label: "Cost ×", searchText: "Relative task cost" },
+  { key: "taskTimeRatio", kind: "time", label: "Time ×", searchText: "Relative task time runtime" },
+  {
+    key: "totalTokenRatio",
+    kind: "tokens",
+    label: "Tokens ×",
+    searchText: "Relative total input output tokens",
+  },
+] as const;
+
 export const staticSortableColumns: SortableColumnDefinition[] = [
   ...scoreSortableColumns,
+  ...resourceRatioColumns,
   { key: "blend", label: "Blend", searchText: "Blend" },
   ...speedMetricColumns.map(({ key, label }) => ({ key, label, searchText: label })),
   { key: "context", label: "Context", searchText: "Context" },
