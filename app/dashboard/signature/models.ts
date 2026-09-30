@@ -1,7 +1,7 @@
 /** Normalize live model evidence into the shared parameter system used by every signature mode. */
 
 import { canonicalModelKey } from "../../../src/model-atlas/identity/normalization";
-import { meanOfFinite, medianOfFinite } from "../../../src/model-atlas/math-utils";
+import { clamp01, meanOfFinite, medianOfFinite } from "../../../src/model-atlas/math-utils";
 import { type ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 import { paretoFrontier } from "../graphs/plot/ParetoEnvelope";
 import { modelsForVariantDisplay, modelVariantKey, shortLabel } from "../shared/model-display";
@@ -252,16 +252,12 @@ function signatureScoreParameters(model: Pick<ModelAtlasModel, "scores">) {
 }
 
 function scoreUnit(value: number | null | undefined, fallback: number): number {
-  return clamp((Number.isFinite(value) ? Number(value) : fallback) / 100);
+  return clamp01((Number.isFinite(value) ? Number(value) : fallback) / 100);
 }
 
 function contextUnit(value: number | null | undefined): number {
   if (!Number.isFinite(value) || Number(value) <= 0) {
     return 0.35;
   }
-  return clamp((Math.log10(Number(value)) - 4) / 3);
-}
-
-function clamp(value: number): number {
-  return Math.max(0, Math.min(1, value));
+  return clamp01((Math.log10(Number(value)) - 4) / 3);
 }

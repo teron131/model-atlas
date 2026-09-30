@@ -136,6 +136,8 @@ $$
 
 Scaling can produce values below 0 or above 1.
 
+The shared code helper `linearScale` uses these 0–1 units; `linearScore` expresses the same position in 0–100 score units without clamping. Missing inputs remain missing, and equal reference bounds use the upper endpoint, preserving the all-equal score of 100.
+
 **Clamping**
 
 Clamping to bounds $a\le b$ keeps values inside the bounds unchanged; values below $a$ become $a$, and values above $b$ become $b$:
@@ -223,6 +225,8 @@ $$
 $$
 
 Squaring the weights makes concentration reduce the count. Multiplying every weight by the same positive factor leaves it unchanged, so weights 0.25, 0.50, and 0.25 give the same count as 1, 2, and 1. Nonpositive and invalid weights are excluded; with no positive finite weights, the count is 0. This measures weight distribution, not prediction accuracy or independence between inputs.
+
+The shared code helper is named `effectiveCount` and uses this same definition.
 
 ### Smoothstep
 

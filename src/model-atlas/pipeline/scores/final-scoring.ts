@@ -4,6 +4,7 @@ import { RESOURCE_SCORE_BUCKET_WEIGHTS, type ScoringConfig } from "../../config/
 import { canonicalModelKey, reasoningEffortRank } from "../../identity/normalization";
 import {
   log10OnePlusNonnegative,
+  logInputMinMaxScores,
   meanOfFinite,
   nonnegativeFiniteNumber,
   positiveFiniteNumber,
@@ -17,7 +18,7 @@ import {
   imputedTaskResource,
   type TaskResourceKind,
 } from "./imputation";
-import { coverageMultiplier, logInputMinMaxScores } from "./normalization";
+import { coverageMultiplier } from "./normalization";
 import { modelBalancedMinMaxScores, qualityLocalResourceScores } from "./resource-efficiency";
 import {
   benchmarkMetricValue,

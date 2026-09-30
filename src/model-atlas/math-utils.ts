@@ -1,7 +1,12 @@
 /** Package-wide numeric and statistical primitives used across Model Atlas domains. */
 export type NumberOrNull = number | null;
 
-export type WeightedScorePart = {
+export type MinMaxRange = {
+  min: number;
+  max: number;
+};
+
+export type WeightedValue = {
   value: number | null;
   weight: number;
 };
@@ -25,7 +30,7 @@ type LocalResiduals = {
 
 /** Estimate an IQR-based standard-deviation-like spread with an explicit floor. */
 export function weightedRobustDeviation(
-  values: readonly WeightedScorePart[],
+  values: readonly WeightedValue[],
   minimumDeviation: number,
 ): number | null {
   const q25 = weightedQuantile(values, 0.25);
@@ -93,7 +98,7 @@ export function qualityLocalResiduals(
     let expectedSignal = resourceTotal / totalWeight;
     const supportedModelCount = Math.min(
       totalWeight,
-      effectiveSampleSize(groups.map((group) => group.weight)),
+      effectiveCount(groups.map((group) => group.weight)),
     );
     result.peerSupport[index] = smoothstep((supportedModelCount - 1) / (fullSupport - 1));
     const determinant = totalWeight * qualitySquares - qualityTotal ** 2;
@@ -115,10 +120,10 @@ export function qualityLocalResiduals(
   return result;
 }
 
-/** Map residuals to a neutral-one multiplier using the original weighted resource MAD and comparison supportedModelCount. */
+/** Map residuals to a neutral-one multiplier using the original weighted resource MAD and comparison support. */
 export function boundedResidualMultipliers(
   comparisons: LocalResiduals,
-  referenceValues: readonly WeightedScorePart[],
+  referenceValues: readonly WeightedValue[],
   cap: number,
 ): number[] {
   const median = weightedQuantile(referenceValues, 0.5);
@@ -155,15 +160,15 @@ export function nonnegativeFiniteNumber(value: unknown): number | null {
 }
 
 export function meanOfFinite(values: Array<number | null>): number | null {
-  const finiteValues = finiteScoreValues(values);
-  if (finiteValues.length === 0) {
+  const finite = finiteValues(values);
+  if (finite.length === 0) {
     return null;
   }
-  return finiteValues.reduce((sum, value) => sum + value, 0) / finiteValues.length;
+  return finite.reduce((sum, value) => sum + value, 0) / finite.length;
 }
 
-/** Keep missing score values out of averages instead of silently treating them as zero evidence. */
-export function finiteScoreValues(values: ReadonlyArray<number | null | undefined>): number[] {
+/** Exclude missing and nonfinite numeric values from statistical summaries. */
+export function finiteValues(values: ReadonlyArray<number | null | undefined>): number[] {
   return values.filter((value): value is number => value != null && Number.isFinite(value));
 }
 
@@ -175,7 +180,108 @@ export function clamp01(value: number) {
   return clamp(value, 0, 1);
 }
 
-export function weightedMeanOfFinite(parts: WeightedScorePart[]): number | null {
+/** Pearson correlation needs paired arrays with at least two observations; a constant coordinate has no defined correlation. */
+export function pearsonCorrelation(
+  left: readonly number[],
+  right: readonly number[],
+): number | null {
+  if (left.length !== right.length || left.length < 2) return null;
+  const leftMean = left.reduce((sum, value) => sum + value, 0) / left.length;
+  const rightMean = right.reduce((sum, value) => sum + value, 0) / right.length;
+  let covariance = 0;
+  let leftVariance = 0;
+  let rightVariance = 0;
+  for (const [index, value] of left.entries()) {
+    const leftOffset = value - leftMean;
+    const rightOffset = (right[index] ?? rightMean) - rightMean;
+    covariance += leftOffset * rightOffset;
+    leftVariance += leftOffset * leftOffset;
+    rightVariance += rightOffset * rightOffset;
+  }
+  const denominator = Math.sqrt(leftVariance * rightVariance);
+  return denominator === 0 ? null : covariance / denominator;
+}
+
+/** Prepare finite reference bounds once so a population can be normalized without rescanning it for every value. */
+export function minMaxRange(values: ReadonlyArray<number | null>): MinMaxRange | null {
+  let min = Infinity;
+  let max = -Infinity;
+  for (const value of values) {
+    if (value == null || !Number.isFinite(value)) continue;
+    min = Math.min(min, value);
+    max = Math.max(max, value);
+  }
+  return min === Infinity ? null : { min, max };
+}
+
+/** Map reference bounds to 0–1 without clamping; missing inputs stay missing and equal bounds use the established upper-end convention. */
+export function linearScale(range: MinMaxRange | null, value: number | null): number | null {
+  if (value == null || range == null) return null;
+  if (range.max === range.min) return 1;
+  return (value - range.min) / (range.max - range.min);
+}
+
+/** Express linear scaling in 0–100 score units while retaining missing values and unclamped extrapolation. */
+export function linearScore(range: MinMaxRange | null, value: number | null): number | null {
+  const position = linearScale(range, value);
+  return position == null ? null : position * 100;
+}
+
+/** Min-max normalize finite signals in the requested scoring direction. */
+export function minMaxScores(
+  values: ReadonlyArray<number | null>,
+  direction: "higher" | "lower",
+): Array<number | null> {
+  const directionMultiplier = direction === "higher" ? 1 : -1;
+  const directedValues = values.map((value) =>
+    value != null && Number.isFinite(value) ? directionMultiplier * value : null,
+  );
+  const range = minMaxRange(directedValues);
+  return directedValues.map((value) => linearScore(range, value));
+}
+
+/** Min-max normalize against weighted anchors while winsorizing only the favorable tail. */
+export function winsorizedMinMaxScores(
+  values: ReadonlyArray<number | null>,
+  calibrationValues: readonly WeightedValue[],
+  direction: "higher" | "lower",
+  tailShare: number,
+): Array<number | null> {
+  const boundedTailShare = Math.min(0.5, clamp01(tailShare));
+  const lower = weightedQuantile(calibrationValues, direction === "lower" ? boundedTailShare : 0);
+  const upper = weightedQuantile(
+    calibrationValues,
+    direction === "higher" ? 1 - boundedTailShare : 1,
+  );
+  if (lower == null || upper == null) {
+    return values.map(() => null);
+  }
+  if (upper <= lower) {
+    return values.map((value) => (value == null || !Number.isFinite(value) ? null : 100));
+  }
+  return values.map((value) => {
+    if (value == null || !Number.isFinite(value)) {
+      return null;
+    }
+    const normalized = (clamp(value, lower, upper) - lower) / (upper - lower);
+    return 100 * (direction === "higher" ? normalized : 1 - normalized);
+  });
+}
+
+/** Log raw positive inputs before min-max normalization in the requested direction. */
+export function logInputMinMaxScores(
+  values: ReadonlyArray<number | null>,
+  direction: "higher" | "lower",
+): Array<number | null> {
+  return minMaxScores(
+    values.map((value) =>
+      value != null && Number.isFinite(value) && value > 0 ? Math.log(value) : null,
+    ),
+    direction,
+  );
+}
+
+export function weightedMeanOfFinite(parts: WeightedValue[]): number | null {
   const finiteParts = parts.filter(
     (part): part is { value: number; weight: number } =>
       part.value != null &&
@@ -193,7 +299,7 @@ export function weightedMeanOfFinite(parts: WeightedScorePart[]): number | null 
   return finiteParts.reduce((sum, part) => sum + part.value * part.weight, 0) / totalWeight;
 }
 
-export function weightedFinitePartCount(parts: WeightedScorePart[]): number {
+export function weightedFinitePartCount(parts: WeightedValue[]): number {
   return parts.filter(
     (part) =>
       part.value != null &&
@@ -204,7 +310,7 @@ export function weightedFinitePartCount(parts: WeightedScorePart[]): number {
 }
 
 /** Convert unequal positive weights into the equivalent count of equally weighted observations. */
-export function effectiveSampleSize(weights: readonly number[]): number {
+export function effectiveCount(weights: readonly number[]): number {
   const finiteWeights = weights.filter((weight) => Number.isFinite(weight) && weight > 0);
   const totalWeight = finiteWeights.reduce((sum, weight) => sum + weight, 0);
   const squaredWeightTotal = finiteWeights.reduce((sum, weight) => sum + weight ** 2, 0);
@@ -212,7 +318,7 @@ export function effectiveSampleSize(weights: readonly number[]): number {
 }
 
 /** Combine finite positive weights for equal values while retaining first-seen value order. */
-function aggregateWeightedValues(parts: readonly WeightedScorePart[]): FiniteWeightedValue[] {
+function aggregateWeightedValues(parts: readonly WeightedValue[]): FiniteWeightedValue[] {
   const weightByValue = new Map<number, number>();
   for (const part of parts) {
     if (
@@ -230,7 +336,7 @@ function aggregateWeightedValues(parts: readonly WeightedScorePart[]): FiniteWei
 
 /** Generalize the empirical less-than-or-equal percentile to weighted observations. */
 export function weightedPercentileRank(
-  parts: readonly WeightedScorePart[],
+  parts: readonly WeightedValue[],
   value: number | null,
 ): number | null {
   if (value == null || !Number.isFinite(value)) {
@@ -249,10 +355,7 @@ export function weightedPercentileRank(
 }
 
 /** Invert cumulative weight without spreading tied mass across gaps; average adjacent values only at an exact mass boundary. */
-export function weightedQuantile(
-  parts: readonly WeightedScorePart[],
-  quantile: number,
-): number | null {
+export function weightedQuantile(parts: readonly WeightedValue[], quantile: number): number | null {
   const observations = aggregateWeightedValues(parts).sort(
     (left, right) => left.value - right.value,
   );
@@ -278,7 +381,7 @@ export function weightedQuantile(
 
 /** Locate observed values at the middle of their cumulative mass; values in a gap share its cumulative boundary. */
 export function weightedQuantileRank(
-  parts: readonly WeightedScorePart[],
+  parts: readonly WeightedValue[],
   value: number | null,
 ): number | null {
   if (value == null || !Number.isFinite(value)) {
@@ -300,7 +403,7 @@ export function weightedQuantileRank(
   return (100 * rankWeight) / totalWeight;
 }
 
-export function weightedMedianOfFinite(parts: readonly WeightedScorePart[]): number | null {
+export function weightedMedianOfFinite(parts: readonly WeightedValue[]): number | null {
   return weightedQuantile(parts, 0.5);
 }
 
@@ -329,7 +432,7 @@ export function quantileFromSorted(values: number[], quantile: number): number |
 
 export function medianOfFinite(values: ReadonlyArray<number | null | undefined>): number | null {
   return quantileFromSorted(
-    finiteScoreValues(values).sort((left, right) => left - right),
+    finiteValues(values).sort((left, right) => left - right),
     0.5,
   );
 }

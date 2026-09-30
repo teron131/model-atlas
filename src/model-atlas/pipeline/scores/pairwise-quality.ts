@@ -5,9 +5,13 @@ import { isAggregateIndex } from "../../benchmarks/index-policy";
 import { benchmarkDimensionWeight } from "../../benchmarks/registry";
 import type { ScoringConfig } from "../../config/stage";
 import { canonicalModelKey } from "../../identity/normalization";
-import { weightedQuantile, weightedQuantileRank } from "../../math-utils";
+import {
+  linearScore,
+  type MinMaxRange,
+  weightedQuantile,
+  weightedQuantileRank,
+} from "../../math-utils";
 import type { ModelAtlasCandidate } from "../model-types";
-import { linearScale, type MinMaxRange } from "./normalization";
 import { effortQualityKey, observedRangesByBenchmark } from "./quality-context";
 import { type BenchmarkMetricModel, benchmarkMetricValue } from "./resource-metrics";
 import type { IntelligenceScoreParts } from "./score-builders";
@@ -243,7 +247,7 @@ function benchmarkObservations(
     values.map(({ modelIndex }) => modelIndex),
   );
   return values.flatMap(({ modelIndex, modelKey, value }) => {
-    const score = linearScale(range, value);
+    const score = linearScore(range, value);
     return score == null
       ? []
       : [{ modelIndex, modelKey, score, referenceWeight: weights.get(modelIndex)! }];

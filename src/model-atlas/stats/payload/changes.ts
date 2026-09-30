@@ -1,6 +1,7 @@
 /** Material change derivation owns the bounded score, rank, cause, and benchmark-alignment trail exposed by the leaderboard. */
 
 import { BENCHMARK_LABELS } from "../../benchmarks/catalog";
+import { pearsonCorrelation } from "../../math-utils";
 import { benchmarkMetricValue } from "../../pipeline/scores/resource-metrics";
 import { stableJson } from "../../runtime";
 import type {
@@ -345,20 +346,7 @@ function spearmanRankCorrelation(left: number[], right: number[]): number | null
   }
   const leftRanks = averageRanks(left);
   const rightRanks = averageRanks(right);
-  const leftMean = leftRanks.reduce((sum, value) => sum + value, 0) / leftRanks.length;
-  const rightMean = rightRanks.reduce((sum, value) => sum + value, 0) / rightRanks.length;
-  let covariance = 0;
-  let leftVariance = 0;
-  let rightVariance = 0;
-  for (const [index, leftRank] of leftRanks.entries()) {
-    const leftOffset = leftRank - leftMean;
-    const rightOffset = (rightRanks[index] ?? rightMean) - rightMean;
-    covariance += leftOffset * rightOffset;
-    leftVariance += leftOffset * leftOffset;
-    rightVariance += rightOffset * rightOffset;
-  }
-  const denominator = Math.sqrt(leftVariance * rightVariance);
-  return denominator === 0 ? null : covariance / denominator;
+  return pearsonCorrelation(leftRanks, rightRanks);
 }
 
 function averageRanks(values: number[]): number[] {

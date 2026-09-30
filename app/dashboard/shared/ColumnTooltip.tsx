@@ -9,6 +9,7 @@ import type {
   ModelAtlasColumnTooltipRow,
   ModelAtlasColumnTooltipSectionItem,
 } from "../../../src/model-atlas/config/tooltips";
+import { clamp } from "../../../src/model-atlas/math-utils";
 import { tooltipHorizontalPadding, tooltipMaxWidth, tooltipOffsetTop } from "./constants";
 
 export type TooltipState = {
@@ -175,8 +176,4 @@ function clampTooltipPosition(left: number, top: number, rect: DOMRect) {
       window.innerHeight - rect.height - tooltipHorizontalPadding,
     ),
   };
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), Math.max(min, max));
 }

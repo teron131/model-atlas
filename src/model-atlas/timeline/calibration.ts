@@ -8,7 +8,7 @@ import {
   residualIndexBreadth,
 } from "../benchmarks/index-policy";
 import { MAX_NORMALIZED_IMPUTATION_ERROR, STAGE_CONFIG } from "../config/stage";
-import { effectiveSampleSize, weightedMeanOfFinite } from "../math-utils";
+import { effectiveCount, weightedMeanOfFinite } from "../math-utils";
 import { informativeBenchmark } from "./benchmark-evidence";
 import { MINIMUM_TIMELINE_TASKS } from "./coverage";
 import { timelineInformation, timelineNativeValue } from "./linking";
@@ -170,7 +170,7 @@ export function calibrateTimeline(
       }))
       .filter((p) => p.weight > 0);
     const useIndex = !tasks.length && indexes.length > 0;
-    const taskCount = effectiveSampleSize(tasks.map((p) => p.weight));
+    const taskCount = effectiveCount(tasks.map((p) => p.weight));
     const observedWeight = tasks.reduce((sum, p) => sum + p.weight, 0);
     const direct = possibleWeight > 0 ? observedWeight / possibleWeight : 0;
     const parts = [

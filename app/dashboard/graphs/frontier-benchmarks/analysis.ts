@@ -8,12 +8,12 @@ import {
 } from "../../../../src/model-atlas/benchmarks/index-policy";
 import { BENCHMARK_RESOURCE_SOURCE_LABELS } from "../../../../src/model-atlas/benchmarks/resource-sources";
 import { canonicalReasoningEffort } from "../../../../src/model-atlas/identity/normalization";
-import { weightedMeanOfFinite } from "../../../../src/model-atlas/math-utils";
 import {
-  clampScore,
-  linearScale,
+  linearScore,
   minMaxRange,
-} from "../../../../src/model-atlas/pipeline/scores/normalization";
+  weightedMeanOfFinite,
+} from "../../../../src/model-atlas/math-utils";
+import { clampScore } from "../../../../src/model-atlas/pipeline/scores/normalization";
 import {
   benchmarkMetricValue,
   benchmarkTaskMetrics,
@@ -303,7 +303,7 @@ export function normalizedFrontierBenchmarkScoreRows(
     ]),
   );
   return rows.flatMap((row) => {
-    const normalizedScore = linearScale(rangesByBenchmark.get(row.benchmarkKey) ?? null, row.score);
+    const normalizedScore = linearScore(rangesByBenchmark.get(row.benchmarkKey) ?? null, row.score);
     return normalizedScore == null ? [] : [{ ...row, score: clampScore(normalizedScore) }];
   });
 }

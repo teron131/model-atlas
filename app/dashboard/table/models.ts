@@ -9,11 +9,8 @@ import {
 } from "../../../src/model-atlas/benchmarks/catalog";
 import type { BenchmarkTaskMetricColumnFacet } from "../../../src/model-atlas/benchmarks/factory";
 import { isAggregateIndex } from "../../../src/model-atlas/benchmarks/index-policy";
-import {
-  clampScore,
-  linearScale,
-  minMaxRange,
-} from "../../../src/model-atlas/pipeline/scores/normalization";
+import { linearScore, minMaxRange } from "../../../src/model-atlas/math-utils";
+import { clampScore } from "../../../src/model-atlas/pipeline/scores/normalization";
 import { benchmarkMetricValue as modelBenchmarkMetricValue } from "../../../src/model-atlas/pipeline/scores/resource-metrics";
 import type {
   ResourceRatioKind,
@@ -465,7 +462,7 @@ export function dedupeDisplayModels(models: ModelAtlasModel[]) {
       benchmarkDisplayScores: Object.fromEntries(
         scaledBenchmarkMetricColumns.map((column) => {
           const value = benchmarkMetricValue(model, column);
-          const normalized = linearScale(ranges.get(column.key) ?? null, value);
+          const normalized = linearScore(ranges.get(column.key) ?? null, value);
           return [column.key, normalized == null ? null : clampScore(normalized)];
         }),
       ),

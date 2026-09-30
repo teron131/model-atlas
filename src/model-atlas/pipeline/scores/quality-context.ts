@@ -8,11 +8,11 @@ import type { BenchmarkDimension } from "../../benchmarks/factory";
 import { indexPolicy } from "../../benchmarks/index-policy";
 import type { ScoringConfig } from "../../config/stage";
 import { canonicalModelKey, canonicalReasoningEffort } from "../../identity/normalization";
-import { clamp } from "../../math-utils";
+import { clamp, linearScore, minMaxRange, type MinMaxRange } from "../../math-utils";
 import type { JsonObject } from "../../runtime";
 import type { ModelAtlasCandidate } from "../model-types";
 import { type EffortResourceImputation, imputedTaskResource } from "./imputation/resource-evidence";
-import { clampScore, linearScale, minMaxRange, type MinMaxRange } from "./normalization";
+import { clampScore } from "./normalization";
 import { qualityAdjustedResourceMultipliers } from "./resource-efficiency";
 import {
   type BenchmarkMetricModel,
@@ -57,7 +57,7 @@ export function normalizedMetricValue(
   key: string,
   value: number | null,
 ): number | null {
-  const normalized = linearScale(rangesByKey.get(key) ?? null, value);
+  const normalized = linearScore(rangesByKey.get(key) ?? null, value);
   return normalized == null ? null : clampScore(normalized);
 }
 
@@ -270,7 +270,7 @@ export function normalizedQualityBenchmarkValue(
             directBenchmarkTokens(model, adjustment.resourceKey, adjustment.measure),
           ),
         ) ?? 1);
-  const adjusted = linearScale(adjustment.range, value * multiplier);
+  const adjusted = linearScore(adjustment.range, value * multiplier);
   return adjusted == null ? null : clamp(adjusted, 0, 100);
 }
 

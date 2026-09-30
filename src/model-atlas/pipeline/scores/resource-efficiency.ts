@@ -7,8 +7,8 @@ import {
   meanOfFinite,
   qualityLocalResiduals,
   weightedPercentileRank,
+  winsorizedMinMaxScores,
 } from "../../math-utils";
-import { winsorizedMinMaxScores } from "./normalization";
 
 const RESOURCE_QUALITY_SIGMA = 0.5;
 const MIN_QUALITY_RANGE_SHARE = 0.35;
