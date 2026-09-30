@@ -38,9 +38,9 @@ import {
 import { prepareEffortQualityScoringContext } from "../src/model-atlas/pipeline/scores/imputation/effort-quality";
 import {
   evidenceRetentionFactor,
+  linearScale,
   logInputMinMaxScores,
   minMaxRange,
-  minMaxScale,
   minMaxScores,
   winsorizedMinMaxScores,
 } from "../src/model-atlas/pipeline/scores/normalization";
@@ -565,11 +565,11 @@ assertClose(latencySpeedModels[0]?.scores.speed_score, 100);
 assertClose(latencySpeedModels[1]?.scores.speed_score, 50);
 
 const gapExampleValues = [1, 2, 3, 50, 60, 70, 95, 99];
-assert.equal(minMaxScale(minMaxRange([null, NaN, Infinity]), 5), null);
-assert.equal(minMaxScale(minMaxRange([null, 5, 5]), null), null);
-assert.equal(minMaxScale(minMaxRange([null, 5, 5]), 5), 100);
-assert.equal(minMaxScale(minMaxRange([null, NaN, 10, 20, Infinity]), 15), 50);
-assert.equal(minMaxScale(minMaxRange([10, 20]), 30), 200);
+assert.equal(linearScale(minMaxRange([null, NaN, Infinity]), 5), null);
+assert.equal(linearScale(minMaxRange([null, 5, 5]), null), null);
+assert.equal(linearScale(minMaxRange([null, 5, 5]), 5), 100);
+assert.equal(linearScale(minMaxRange([null, NaN, 10, 20, Infinity]), 15), 50);
+assert.equal(linearScale(minMaxRange([10, 20]), 30), 200);
 assert.deepEqual(minMaxScores([null, NaN, Infinity, 10, 15, 20], "lower"), [
   null,
   null,

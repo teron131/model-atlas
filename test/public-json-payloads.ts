@@ -2,20 +2,23 @@
 
 import assert from "node:assert/strict";
 
+import { compactModelVariants } from "../app/leaderboard/model-variants";
 import {
   benchmarksJsonPayload,
   coreJsonPayload,
+  dashboardJsonPayload,
   type FullJsonPayload,
   fullJsonPayload,
   publicJsonPayload,
   scoreJsonPayload,
 } from "../app/leaderboard/public-json";
+import type { BenchmarkObservationEvidenceRow } from "../src/model-atlas/benchmarks/observation";
 import { STAGE_CONFIG } from "../src/model-atlas/config";
 import {
   publicModelFromCandidate,
   selectReferenceModels,
 } from "../src/model-atlas/pipeline/selection/public-list";
-import type { ModelAtlasScoredCandidate } from "../src/model-atlas/stats/types";
+import type { ModelAtlasPayload, ModelAtlasScoredCandidate } from "../src/model-atlas/stats/types";
 import { minimalModelAtlasModel, minimalModelAtlasPayload } from "./model-atlas-fixtures";
 
 const internalCandidate = {
@@ -182,6 +185,63 @@ const reasoningVariantPayload = minimalModelAtlasPayload({
   fetchedAt: 123,
   models: reasoningEffortModels,
 });
+const fusedObservation = {
+  model_id: internalCandidate.id,
+  model: internalCandidate.name!,
+  base_model: internalCandidate.name!,
+  reasoning_effort: null,
+  canonical_value: 0.92,
+  observed_at: "2026-09-30",
+  metadata: {
+    fusion_collapsed: true,
+    cost: 2,
+    seconds_per_task: 30,
+    tokens_per_task: 1000,
+    output_tokens_per_task: 800,
+    source_a_url: "https://example.com/ingestion-only",
+    fusion_output_tokens_per_task_accounting_compatible: true,
+  },
+} satisfies BenchmarkObservationEvidenceRow;
+const observationPayload: ModelAtlasPayload = {
+  ...reasoningVariantPayload,
+  benchmark_observations: {
+    arc_agi_2: [
+      fusedObservation,
+      {
+        ...fusedObservation,
+        reasoning_effort: "max",
+        canonical_value: 1,
+        observed_at: "2026-10-01",
+        metadata: { observation_role: "component", source_b_url: "https://example.com/component" },
+      },
+    ],
+  },
+};
+const dashboardProjection = dashboardJsonPayload(observationPayload);
+assert.deepEqual(dashboardProjection.models, observationPayload.models);
+assert.deepEqual(
+  compactModelVariants(dashboardProjection.models, dashboardProjection.benchmark_observations),
+  compactModelVariants(observationPayload.models, observationPayload.benchmark_observations),
+  "Removing ingestion diagnostics must preserve collapsed fusion, resources, dates, and component exclusions",
+);
+assert.deepEqual(
+  dashboardProjection.benchmark_observations!.arc_agi_2!.map((row) => row.metadata),
+  [
+    {
+      fusion_collapsed: true,
+      cost: 2,
+      seconds_per_task: 30,
+      tokens_per_task: 1000,
+      output_tokens_per_task: 800,
+    },
+    { observation_role: "component" },
+  ],
+);
+assert.equal(
+  fusedObservation.metadata.source_a_url,
+  "https://example.com/ingestion-only",
+  "Dashboard projection must not mutate the source observation",
+);
 assert.deepEqual(
   [
     scoreJsonPayload(reasoningVariantPayload).scores.length,

@@ -14,8 +14,8 @@ import { canonicalReasoningEffort } from "../../../../src/model-atlas/identity/n
 import { weightedMeanOfFinite } from "../../../../src/model-atlas/math-utils";
 import {
   clampScore,
+  linearScale,
   minMaxRange,
-  minMaxScale,
 } from "../../../../src/model-atlas/pipeline/scores/normalization";
 import {
   benchmarkMetricValue,
@@ -304,9 +304,9 @@ export function normalizedFrontierBenchmarkRows(
     const ranges = rangesByBenchmark.get(row.benchmarkKey);
     return {
       ...row,
-      cost: minMaxScale(ranges?.cost ?? null, row.cost),
-      seconds: minMaxScale(ranges?.seconds ?? null, row.seconds),
-      totalTokens: minMaxScale(ranges?.totalTokens ?? null, row.totalTokens),
+      cost: linearScale(ranges?.cost ?? null, row.cost),
+      seconds: linearScale(ranges?.seconds ?? null, row.seconds),
+      totalTokens: linearScale(ranges?.totalTokens ?? null, row.totalTokens),
     };
   });
 }
@@ -323,7 +323,7 @@ export function normalizedFrontierBenchmarkScoreRows(
     ]),
   );
   return rows.flatMap((row) => {
-    const normalizedScore = minMaxScale(rangesByBenchmark.get(row.benchmarkKey) ?? null, row.score);
+    const normalizedScore = linearScale(rangesByBenchmark.get(row.benchmarkKey) ?? null, row.score);
     return normalizedScore == null ? [] : [{ ...row, score: clampScore(normalizedScore) }];
   });
 }

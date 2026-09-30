@@ -188,10 +188,22 @@ try {
     const object = objects.get(url.pathname.slice(1));
     assert.ok(object, `Unexpected object request: ${url.pathname}`);
     if (url.pathname.endsWith("current.json")) {
+      assert.equal(
+        init?.cache,
+        "no-store",
+        "Manifest freshness must remain independent of artifact caching",
+      );
       manifestReads++;
       if (new Headers(init?.headers).get("if-none-match") === object.generation)
         return new Response(null, { status: 304 });
-    } else payloadReads++;
+    } else {
+      assert.equal(
+        init?.cache,
+        "force-cache",
+        "Immutable artifacts must use the persistent fetch cache",
+      );
+      payloadReads++;
+    }
     return new Response(new Uint8Array(object.bytes), { headers: { etag: object.generation } });
   };
   const [read, concurrent] = await Promise.all([

@@ -6,6 +6,7 @@ import { readDisplaySnapshotPayload } from "../src/model-atlas/database/runtime-
 import { Dashboard } from "./dashboard";
 import { GRAPH_VARIANTS_COOKIE } from "./dashboard/url-state";
 import { DashboardUrlProvider } from "./dashboard/use-url-state";
+import { dashboardJsonPayload } from "./leaderboard/public-json";
 
 export const runtime = "nodejs";
 
@@ -37,7 +38,7 @@ export default async function Home({
       />
       <DashboardUrlProvider search={search.toString()}>
         <Dashboard
-          initialPayload={initialPayload}
+          initialPayload={dashboardJsonPayload(initialPayload)}
           initialShowReasoningVariants={savedPreferences.get(GRAPH_VARIANTS_COOKIE)?.value === "1"}
         />
       </DashboardUrlProvider>

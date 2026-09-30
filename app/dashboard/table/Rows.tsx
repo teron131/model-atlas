@@ -13,7 +13,6 @@ import { modelDisplayName } from "../shared/model-display";
 import { providerBrandColor } from "../shared/provider-theme";
 import { ProviderLogo } from "../shared/ProviderLogo";
 import {
-  benchmarkPercentValue,
   formatConfidence,
   formatContext,
   formatCost,
@@ -281,12 +280,9 @@ const DashboardMetricCell = memo(function DashboardMetricCell({
     if (column.format === "currency") {
       return <TableCell text={formatDashboardMetric(value, column)} className={className} />;
     }
-    const meterValue = benchmarkMeterValue(rowData, column);
-    const meterPercent =
-      column.format === "percent" ? benchmarkPercentValue(meterValue) : meterValue;
     return (
       <BenchmarkMetricCell
-        meterPercent={typeof meterPercent === "number" ? meterPercent : null}
+        meterPercent={benchmarkMeterValue(rowData, column)}
         text={formatDashboardMetric(value, column)}
         provider={model.provider}
         className={className}
