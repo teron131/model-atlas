@@ -1,5 +1,8 @@
 /** Shared dashboard chart axis scales and tick selection. */
 
+import { ticks as linearTicks } from "d3-array";
+import { scaleLog } from "d3-scale";
+
 export type AxisScale = {
   domain: [number, number];
   ticks: number[];
@@ -7,15 +10,6 @@ export type AxisScale = {
 
 const SCORE_AXIS_STEPS = [20, 10, 5] as const;
 const SCORE_AXIS_DOMAIN: [number, number] = [0, 100];
-
-export function niceLinearStep(rawStep: number) {
-  const exponent = Math.floor(Math.log10(rawStep));
-  const base = 10 ** exponent;
-  const mantissa = rawStep / base;
-  const niceMantissa =
-    mantissa <= 1 ? 1 : mantissa <= 2 ? 2 : mantissa <= 2.5 ? 2.5 : mantissa <= 5 ? 5 : 10;
-  return niceMantissa * base;
-}
 
 export function roundTick(value: number) {
   if (Math.abs(value) >= 100) {
@@ -40,8 +34,6 @@ type LinearDomainOptions = {
 
 type LinearAxisOptions = LinearDomainOptions & {
   formatTick?: (value: number) => string;
-  minimumTicks?: number;
-  minimumTicksWithoutExpansion?: number;
   targetTickCount?: number;
 };
 
@@ -53,9 +45,47 @@ type SteppedAxisOptions = LinearDomainOptions & {
 
 type ScoreAxisOptions = Omit<SteppedAxisOptions, "fallbackDomain" | "max" | "min" | "steps">;
 
+/** Fit ticks inside the padded observations; readable intervals must not enlarge the measured range. */
 export function linearAxisScale(values: number[], options: LinearAxisOptions = {}): AxisScale {
-  const domain = paddedLinearDomain(values, options);
+  const firstFinite = values.find(Number.isFinite) ?? 0;
+  const domain = paddedLinearDomain(values, {
+    ...options,
+    singleValuePadding:
+      options.singleValuePadding ?? (Math.abs(firstFinite) * (options.paddingRatio ?? 0.05) || 1),
+  });
   return linearAxisForDomain(domain, options);
+}
+
+/** Fit positive ratios and the 1× reference in base-10 log space without expanding to a round endpoint. */
+export function logRatioAxisScale(
+  values: number[],
+  formatTick: (value: number) => string,
+): AxisScale {
+  const logs = values.filter((value) => Number.isFinite(value) && value > 0).map(Math.log10);
+  if (logs.length === 0) return { domain: [0.1, 10], ticks: [0.1, 1, 10] };
+  const low = Math.min(0, ...logs);
+  const high = Math.max(0, ...logs);
+  const padding = (high - low) * 0.05 || 0.05;
+  const domain: [number, number] = [
+    Math.max(Number.MIN_VALUE, 10 ** (low - padding)),
+    Math.min(Number.MAX_VALUE, 10 ** (high + padding)),
+  ];
+  const candidates: number[] = [1];
+  if (high - low < 1) {
+    candidates.push(...scaleLog().base(10).domain(domain).ticks(5));
+  } else {
+    for (
+      let exponent = Math.floor(low - padding);
+      exponent <= Math.ceil(high + padding);
+      exponent++
+    )
+      for (const multiple of [1, 2, 5]) {
+        const tick = multiple * 10 ** exponent;
+        if (tick >= domain[0] && tick <= domain[1]) candidates.push(tick);
+      }
+  }
+  const ticks = ticksWithUniqueLabels(candidates, formatTick).sort((left, right) => left - right);
+  return { domain, ticks };
 }
 
 export function scoreAxisScale(values: number[], options: ScoreAxisOptions = {}): AxisScale {
@@ -115,33 +145,28 @@ function paddedLinearDomain(values: number[], options: LinearDomainOptions = {})
 
 function linearAxisForDomain(
   [low, high]: [number, number],
-  {
-    formatTick = (value) => String(value),
-    minimumTicks = 5,
-    minimumTicksWithoutExpansion = minimumTicks,
-    targetTickCount = 5,
-    ...domainOptions
-  }: LinearAxisOptions = {},
+  { formatTick = (value) => String(value), targetTickCount = 5 }: LinearAxisOptions = {},
 ): AxisScale {
   const domain: [number, number] = [low, high];
   if (!(high > low)) {
     return { domain, ticks: [] };
   }
-  const rawStep = (high - low) / Math.max(targetTickCount - 1, 1);
-  const step = niceLinearStep(rawStep);
-  if (!(step > 0)) {
-    return { domain, ticks: [] };
-  }
-  let ticks = ticksForStep(domain, step, formatTick);
-  if (ticks.length >= minimumTicksWithoutExpansion) {
-    return { domain, ticks };
-  }
-  const expandedDomain = expandDomainForMinimumTicks(domain, step, minimumTicks, domainOptions);
-  ticks = ticksForStep(expandedDomain, step, formatTick);
+  const candidates = linearTicks(low, high, Math.max(targetTickCount - 1, 1));
   return {
-    domain: expandedDomain,
-    ticks: ticks.length > 0 ? ticks : [low, high],
+    domain,
+    ticks: ticksWithUniqueLabels(candidates.length > 0 ? candidates : [low, high], formatTick),
   };
+}
+
+/** Preserve candidate priority when different values round to the same visible ruler label. */
+function ticksWithUniqueLabels(ticks: number[], formatTick: (value: number) => string): number[] {
+  const labels = new Set<string>();
+  return ticks.filter((tick) => {
+    const label = formatTick(tick);
+    if (labels.has(label)) return false;
+    labels.add(label);
+    return true;
+  });
 }
 
 function steppedAxisCandidates(

@@ -14,6 +14,11 @@ import {
 } from "../app/dashboard/graphs/frontier-benchmarks/analysis";
 import { sharedFrontierBenchmarkComparison } from "../app/dashboard/graphs/frontier-benchmarks/common-evidence";
 import {
+  linearAxisScale,
+  logRatioAxisScale,
+  scoreAxisScale,
+} from "../app/dashboard/graphs/plot/axis-scale";
+import {
   resourceRatioObservations,
   resourceRatioReferences,
   summarizeResourceRatios,
@@ -328,5 +333,56 @@ assert.ok(
     10,
   "Relative Time uses a ratio axis instead of a 0–100 score axis",
 );
+
+// Tick selection must fit the observations instead of reserving another full interval on the right.
+for (const [kind, maximum, upperLimit] of [
+  ["cost", 7.89, 8.4],
+  ["time", 3.42, 3.65],
+  ["tokens", 6.8, 7.2],
+] as const) {
+  const axis = frontierXAxisScale(
+    [0.02, maximum],
+    kind,
+    frontierBenchmarkAxisConfigFor(kind, false),
+  );
+  assert.ok(axis.domain[1] > maximum && axis.domain[1] < upperLimit);
+  assert.ok(axis.ticks.length >= 3 && axis.ticks.length <= 7);
+  assert.ok(axis.ticks.every((tick) => tick >= axis.domain[0] && tick <= axis.domain[1]));
+}
+const flat = linearAxisScale([0.5], { min: 0 });
+assert.ok(flat.domain[0] > 0.45 && flat.domain[1] < 0.55);
+assert.deepEqual(linearAxisScale([]).domain, [0, 1]);
+assert.deepEqual(linearAxisScale([0], { min: 0 }).domain, [0, 1]);
+const narrow = linearAxisScale([1, 1.0001], { formatTick: (value) => value.toFixed(2) });
+assert.ok(narrow.domain[1] - narrow.domain[0] < 0.0002);
+assert.equal(new Set(narrow.ticks.map((value) => value.toFixed(2))).size, narrow.ticks.length);
+const outlier = linearAxisScale([0.2, 0.8, 200], { min: 0 });
+assert.ok(outlier.domain[1] > 200 && outlier.domain[1] < 211);
+assert.ok(scoreAxisScale([0, 50, 100]).domain[1] === 100);
+
+// Ratio rulers use base-10 logarithms, retain all positive observations, and always include 1×.
+for (const kind of ["cost", "time", "tokens"] as const) {
+  const config = frontierBenchmarkAxisConfigFor(kind, true);
+  assert.equal(config.logarithmic, true);
+  const axis = frontierXAxisScale([0.02, 7.89], kind, config);
+  assert.ok(axis.domain[0] > 0 && axis.domain[0] < 0.02 && axis.domain[1] > 7.89);
+  assert.ok(axis.ticks.includes(1));
+  assert.ok(!axis.ticks.includes(0));
+  const position = (value: number) =>
+    (Math.log10(value) - Math.log10(axis.domain[0])) /
+    (Math.log10(axis.domain[1]) - Math.log10(axis.domain[0]));
+  close(position(1) - position(0.1), position(10) - position(1));
+  assert.ok(position(7.89) > 0.94 && position(7.89) < 1);
+  assert.equal(frontierBenchmarkAxisConfigFor(kind, false).logarithmic, undefined);
+}
+assert.deepEqual(logRatioAxisScale([0, -1, NaN], String), {
+  domain: [0.1, 10],
+  ticks: [0.1, 1, 10],
+});
+const flatRatio = logRatioAxisScale([1], (value) => value.toFixed(2));
+assert.ok(flatRatio.domain[0] > 0 && flatRatio.domain[0] < 1 && flatRatio.domain[1] > 1);
+assert.ok(flatRatio.ticks.includes(1));
+assert.ok(logRatioAxisScale([1.0001, 1.0002], (value) => value.toFixed(2)).ticks.includes(1));
+assert.equal(frontierBenchmarkAxisConfigFor("value", true).logarithmic, undefined);
 
 console.log("Unified Pareto comparison checks passed.");

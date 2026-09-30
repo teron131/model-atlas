@@ -3,7 +3,7 @@
 /** Frontier benchmark scatter plot owns axes, Pareto envelopes, labels, cursor projections, and effort lines. */
 
 import { median } from "d3-array";
-import { scaleLinear } from "d3-scale";
+import { scaleLinear, scaleLog } from "d3-scale";
 import { type CSSProperties, useEffect, useId, useMemo, useRef, useState } from "react";
 
 import { type ModelAtlasModel } from "../../../../src/model-atlas/stats/types";
@@ -33,6 +33,7 @@ import {
   SCATTER_CHART_MARGIN,
   SCATTER_CHART_WIDTH,
   scatterChartMargin,
+  stableSvgNumber,
   stableSvgScale,
   TextPointLabel,
   useLabelSizes,
@@ -53,6 +54,7 @@ type ScatterMetric<Row> = {
   get: (row: Row) => number;
   format: (value: number) => string;
   xHigherIsBetter?: boolean;
+  logarithmic?: boolean;
 };
 
 const PLOT_EDGE_GUTTER = 20;
@@ -127,7 +129,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
   const plot = plotBoundsFor(width, height, chartMargin);
   const edgeGutter = compactLayout ? 12 : PLOT_EDGE_GUTTER;
   const topGutter = compactLayout ? 24 : PLOT_TOP_GUTTER;
-  const x = scaleLinear()
+  const x = (metric.logarithmic ? scaleLog().base(10) : scaleLinear())
     .domain(xDomain)
     .range([plot.left + edgeGutter, plot.right - edgeGutter])
     .clamp(true);
@@ -356,6 +358,17 @@ export function FrontierBenchmarkScatterPlot<Row>({
           xTitleOffset={50}
         />
         <g mask={`url(#${guideMaskId})`}>
+          {metric.logarithmic ? (
+            <line
+              className={styles.medianAxis}
+              x1={xPoint(1)}
+              x2={xPoint(1)}
+              y1={plot.top}
+              y2={plot.bottom}
+              strokeDasharray="3 4"
+              aria-label="1× benchmark-median resource use"
+            />
+          ) : null}
           <MedianCross
             x={xPoint(medianMetric)}
             y={yPoint(medianScore)}
@@ -388,6 +401,10 @@ export function FrontierBenchmarkScatterPlot<Row>({
           line.segments.map((segment, index) => (
             <line
               {...segment}
+              x1={stableSvgNumber(segment.x1)}
+              y1={stableSvgNumber(segment.y1)}
+              x2={stableSvgNumber(segment.x2)}
+              y2={stableSvgNumber(segment.y2)}
               aria-hidden="true"
               key={`${line.key}-${index}`}
               className={[

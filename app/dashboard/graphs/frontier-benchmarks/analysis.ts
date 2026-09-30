@@ -43,7 +43,12 @@ import {
   toPercent,
 } from "../format";
 import type { AxisScale } from "../plot/axis-scale";
-import { linearAxisScale, scoreAxisScale, steppedLinearAxisScale } from "../plot/axis-scale";
+import {
+  linearAxisScale,
+  logRatioAxisScale,
+  scoreAxisScale,
+  steppedLinearAxisScale,
+} from "../plot/axis-scale";
 import type { HoverRow } from "../types";
 
 export type FrontierBenchmarkAxisKey = "cost" | "time" | "tokens" | "speed" | "value";
@@ -80,6 +85,7 @@ type FrontierBenchmarkAxisConfig = {
   normalizedLabel: string;
   normalizedDetailLabel: string;
   xHigherIsBetter?: boolean;
+  logarithmic?: boolean;
 };
 
 export type FrontierBenchmarkOption = {
@@ -365,6 +371,7 @@ export function frontierBenchmarkAxisConfigFor(
     label: axisConfig.normalizedLabel,
     format: formatResourceRatio,
     detailLabel: () => axisConfig.normalizedDetailLabel,
+    logarithmic: true,
   };
 }
 
@@ -425,6 +432,7 @@ export function frontierXAxisScale(
       formatTick: axisConfig.format,
     });
   }
+  if (axisConfig.logarithmic) return logRatioAxisScale(values, axisConfig.format);
   return linearAxisScale(values, {
     formatTick: axisConfig.format,
     min: 0,

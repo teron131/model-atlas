@@ -36,7 +36,7 @@ export function scatterChartMargin(margin: Margin, compact: boolean): Margin {
 }
 
 /** Return stable SVG number attributes across server and client rendering. */
-function stableSvgNumber(value: number): number {
+export function stableSvgNumber(value: number): number {
   return Number(value.toFixed(SVG_NUMBER_DECIMALS));
 }
 
