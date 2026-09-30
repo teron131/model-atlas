@@ -17,7 +17,13 @@ import type {
   ModelAtlasColumnTooltips,
 } from "../../src/model-atlas/config/tooltips";
 import { canonicalModelKey } from "../../src/model-atlas/identity/normalization";
-import type { ModelAtlasPayload } from "../../src/model-atlas/stats/types";
+import {
+  type ResourceRatioObservation,
+  resourceRatioObservations,
+  resourceRatioReferences,
+  summarizeResourceRatios,
+} from "../../src/model-atlas/stats/resource-ratios";
+import type { ModelAtlasModel, ModelAtlasPayload } from "../../src/model-atlas/stats/types";
 import { LeaderboardCapture } from "./capture/LeaderboardCapture";
 import { CopyDashboardLink } from "./CopyDashboardLink";
 import { researchRegionOrdinal } from "./graphs/research-index";
@@ -62,6 +68,8 @@ import type { ScoreChangeHandler } from "./table/Rows";
 import { scoreChangeTooltip, tableColumnTooltip } from "./table/tooltips";
 import type { DashboardUrlPatch } from "./url-state";
 import { updateDashboardUrl, useUrlState } from "./use-url-state";
+
+const ratioKinds = ["cost", "time", "tokens"] as const;
 
 const emptyColumnTooltips: ModelAtlasColumnTooltips = {};
 const TOOLTIP_FADE_OUT_MS = 1_000;
@@ -114,17 +122,55 @@ export function DashboardLeaderboard({
   const deferredMaxCost = useDeferredValue(maxCost);
   const deferredGlobalModelFilterQuery = useDeferredValue(globalModelFilterQuery);
   const [, startSortTransition] = useTransition();
-  const tableRows = useMemo(
+  const ratioReferences = useMemo(
     () =>
-      dedupeDisplayModels(
-        modelsForVariantDisplay(
-          payload?.models ?? [],
-          deferredShowVariants,
-          payload?.benchmark_observations,
-        ),
-      ),
-    [deferredShowVariants, payload],
+      payload == null
+        ? []
+        : ratioKinds.map((kind) => ({
+            kind,
+            references: resourceRatioReferences(
+              resourceRatioObservations(
+                payload.models,
+                payload.metadata.scoring.benchmark_portfolio,
+                kind,
+              ),
+            ),
+          })),
+    [payload],
   );
+  const tableRows = useMemo(() => {
+    const rows = dedupeDisplayModels(
+      modelsForVariantDisplay(
+        payload?.models ?? [],
+        deferredShowVariants,
+        payload?.benchmark_observations,
+      ),
+    );
+    if (payload == null) return rows;
+    const metrics = ratioReferences.map(({ kind, references }) => {
+      const observations = new Map<ModelAtlasModel, ResourceRatioObservation[]>();
+      for (const observation of resourceRatioObservations(
+        rows.map((row) => row.model),
+        payload.metadata.scoring.benchmark_portfolio,
+        kind,
+      )) {
+        const group = observations.get(observation.model) ?? [];
+        group.push(observation);
+        observations.set(observation.model, group);
+      }
+      return { kind, references, observations };
+    });
+    return rows.map((row) => ({
+      ...row,
+      resourceRatios: Object.fromEntries(
+        metrics.map(({ kind, references, observations }) => [
+          kind,
+          summarizeResourceRatios(observations.get(row.model) ?? [], references),
+        ]),
+      ) as Record<(typeof ratioKinds)[number], ReturnType<typeof summarizeResourceRatios>>,
+    }));
+  }, [deferredShowVariants, payload, ratioReferences]);
+
   const filteredRows = useMemo(
     () =>
       filterByModelControls(tableRows, (row) => row.model, {

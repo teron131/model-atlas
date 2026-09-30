@@ -12,6 +12,8 @@ import {
 import { modelDisplayName } from "../shared/model-display";
 import { providerBrandColor } from "../shared/provider-theme";
 import { ProviderLogo } from "../shared/ProviderLogo";
+import { formatResourceRatio } from "../shared/resource-ratio-display";
+import { resourceRatioColumns } from "./Columns";
 import {
   formatConfidence,
   formatContext,
@@ -142,6 +144,23 @@ export const ModelRow = memo(function ModelRow({
         visibleColumnKeySet={visibleColumnKeySet}
         ruledColumnKeySet={ruledColumnKeySet}
       />
+      {resourceRatioColumns
+        .filter((column) => visibleColumnKeySet.has(column.key))
+        .map((column) => {
+          const summary = rowData.resourceRatios?.[column.kind];
+          return (
+            <TableCell
+              key={column.key}
+              text={formatResourceRatio(summary?.ratio)}
+              className={tableCellClassName(column.key, ruledColumnKeySet)}
+              title={
+                summary == null
+                  ? undefined
+                  : `${summary.benchmarkCount} measured benchmarks · ${summary.sourceCount} source measurements`
+              }
+            />
+          );
+        })}
       {visibleColumnKeySet.has("blend") ? (
         <TableCell
           text={formatCost(model.cost?.blended_price)}
@@ -510,9 +529,21 @@ function isHiddenDisplayToken(token: string) {
   return HIDDEN_MODEL_DISPLAY_TOKENS.has(token.toLowerCase());
 }
 
-function TableCell({ text, className }: { text: string; className?: string }) {
+function TableCell({
+  text,
+  className,
+  title,
+}: {
+  text: string;
+  className?: string;
+  title?: string;
+}) {
   const missingClass = text === "-" ? " missing" : "";
-  return <td className={`${className ?? ""}${missingClass}`.trim()}>{text}</td>;
+  return (
+    <td className={`${className ?? ""}${missingClass}`.trim()} title={title}>
+      {text}
+    </td>
+  );
 }
 
 /** Keep the marker on the same 0–100 scale as its displayed score, independent of table filters. */

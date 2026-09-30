@@ -88,9 +88,9 @@ Compare reasoning efforts using measurements shared by the selected variants of 
 
 The selector includes individual benchmarks with results at several reasoning efforts, selected standalone AA components, and aggregate indexes labelled as comparison inputs. This selection does not change the scoring portfolio or remove other benchmarks from the table.
 
-Each selected index uses its own quality result. Artificial Analysis pairs its Intelligence Index with its reported aggregate cost, runtime, and output-token measurements per task. Those resources stay attached to that index. Index-only views show native index points, not percentages.
+Each selected index uses its own quality result. Artificial Analysis pairs its Intelligence Index with its reported aggregate cost and runtime per task; its output-only token measurement cannot supply total token consumption. Those resources stay attached to that index. Single-index views show native index points, not percentages.
 
-Cost, Time, and Tokens each require their own paired observations. Token comparisons use the declared total or output-only measure; an incomplete input/output breakdown is not a total-token observation. Imputed resources affect scoring but do not appear as direct graph measurements. Effort-labelled rows use only indexes reporting that effort, currently AA.
+Cost, Time, and Tokens each require their own paired observations. Tokens require a reported total or complete input/output pair; output-only telemetry cannot supply this axis. Imputed resources affect scoring but do not appear as direct graph measurements. Effort-labelled rows use only indexes reporting that effort, currently AA.
 
 Build each model’s comparison independently for cost, time, and tokens:
 
@@ -98,7 +98,7 @@ Build each model’s comparison independently for cost, time, and tokens:
 | --- | --- |
 | Baseline | Use selected indexes with paired quality and resource observations. |
 | Benchmark inclusion | Include a benchmark only when every selected variant of that model has both its quality and resource measurement. |
-| Axis calculation | Normalize each axis against the full reference population; calculate weighted means for both axes using the same observations and weights. |
+| Axis calculation | Quality keeps its min–max scaling and weighted mean. Cost, Time, and Tokens divide by model-balanced source medians and take a weighted median, using the same observed basket as quality. |
 | Weights | One per individual benchmark; represented benchmark count per index, currently ten for AA. |
 | Overlap | Subtract one from AA’s weight for each matching component actually included as an individual benchmark. Excluded components and unrelated benchmarks do not reduce it. |
 | No common benchmarks | Retain common index evidence alone; sparse benchmark observations cannot remove variants from the index baseline. |
@@ -107,7 +107,7 @@ The remaining index weights apply to both axes and the displayed index share; th
 
 Variants missing the selected index resource evidence are counted in the legend and can be compared by deselecting the indexes. Without an index that has both quality and the selected resource measurement, the graph uses common benchmarks across that model’s variants with selected resource observations. If no evidence is common, the comparison is empty.
 
-Explicitly selecting one entry retains native units. A single common entry within a multi-entry selection stays on the normalized aggregate scale.
+Explicitly selecting one entry retains native units. A single common entry within a multi-entry selection stays on its aggregate scale: ratios for Cost, Time, and Tokens, min–max points for quality. The default resource baskets include all active observed measurements independently of the selected published performance score. Collapsed graphs retain the Pareto envelope on every axis.
 
 **Common within model** summarizes variant coverage and index-weight ranges. **Details** lists each model’s variants, common/selected counts, index share, included evidence, and excluded observations.
 

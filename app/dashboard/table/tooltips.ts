@@ -116,6 +116,34 @@ const taskMetricColumnTooltips = Object.fromEntries(
 ) as Partial<Record<SortKey, ModelAtlasColumnTooltip>>;
 
 const staticTableColumnTooltips = {
+  taskCostRatio: {
+    title: "Relative task cost ↓",
+    body: "Weighted median of measured cost divided by each benchmark/source’s model-balanced median. 1× is benchmark-median expenditure; lower is cheaper. Quality is not adjusted.",
+    rows: [
+      ["Reference", "Each base model shares one vote across its observed efforts."],
+      [
+        "Weights",
+        "One per benchmark, shared across separate sources; index breadth excludes measured constituents.",
+      ],
+      ["Coverage", "Available measured benchmarks only; cell tooltip shows the count."],
+    ],
+  },
+  totalTokenRatio: {
+    title: "Relative total tokens ↓",
+    body: "Weighted median of total-token ratios against benchmark/source medians. Total tokens require a complete input/output pair or a reported total; output-only measurements stay missing.",
+    rows: [
+      ["Scale", "1× is benchmark-median use; lower uses fewer tokens."],
+      ["Reference", "Each base model shares one vote across its observed efforts."],
+    ],
+  },
+  taskTimeRatio: {
+    title: "Relative task time ↓",
+    body: "Weighted median of observed runtime divided by each benchmark/source’s model-balanced median. 1× is benchmark-median runtime; lower is faster. Only reported runtime contributes.",
+    rows: [
+      ["Reference", "Each base model shares one vote across its observed efforts."],
+      ["Coverage", "Available measured benchmarks only; cell tooltip shows the count."],
+    ],
+  },
   rank: {
     title: "Rank ↓",
     body: "Position by Intelligence Score. Ties share a rank and leave the next position open: 1, 2, 2, 4. All admitted models receive numeric ranks, including models with missing specifications.",

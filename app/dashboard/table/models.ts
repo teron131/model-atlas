@@ -15,6 +15,10 @@ import {
   minMaxRange,
 } from "../../../src/model-atlas/pipeline/scores/normalization";
 import { benchmarkMetricValue as modelBenchmarkMetricValue } from "../../../src/model-atlas/pipeline/scores/resource-metrics";
+import type {
+  ResourceRatioKind,
+  ResourceRatioSummary,
+} from "../../../src/model-atlas/stats/resource-ratios";
 import { type ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 import type { ModelAtlasLeaderboardRank } from "../../leaderboard/public-json";
 import { compareBenchmarkDisplayKeys } from "../shared/constants";
@@ -208,6 +212,9 @@ export type SortKey =
   | "agentic"
   | "speed"
   | "value"
+  | "taskCostRatio"
+  | "totalTokenRatio"
+  | "taskTimeRatio"
   | "blend"
   | "context"
   | ProfileMetricColumn["key"]
@@ -259,6 +266,9 @@ export type BenchmarkColumnOrder = "portfolio" | "coverage";
 
 const scoreColumnKeys = new Set<TableColumnKey>(["intelligence", "agentic", "speed", "value"]);
 const operationColumnKeys = new Set<TableColumnKey>([
+  "taskCostRatio",
+  "totalTokenRatio",
+  "taskTimeRatio",
   "blend",
   "throughput",
   "latency",
@@ -334,6 +344,7 @@ export type TableRow = {
   originalIndex: number;
   aliasPriority: number;
   benchmarkDisplayScores: Partial<Record<BenchmarkMetricColumn["key"], number | null>>;
+  resourceRatios?: Record<ResourceRatioKind, ResourceRatioSummary>;
 };
 
 type UnrankedTableRow = Omit<TableRow, "intelligenceRank">;
@@ -388,6 +399,21 @@ export const sorters: Record<SortKey, Sorter> = {
     direction: "descending",
     type: "number",
     get: (row) => row.model.scores?.value_score,
+  },
+  taskCostRatio: {
+    direction: "ascending",
+    type: "number",
+    get: (row) => row.resourceRatios?.cost.ratio,
+  },
+  totalTokenRatio: {
+    direction: "ascending",
+    type: "number",
+    get: (row) => row.resourceRatios?.tokens.ratio,
+  },
+  taskTimeRatio: {
+    direction: "ascending",
+    type: "number",
+    get: (row) => row.resourceRatios?.time.ratio,
   },
   blend: {
     direction: "ascending",

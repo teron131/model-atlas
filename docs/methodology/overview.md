@@ -29,6 +29,8 @@ Capability scores reflect relative benchmark performance. :score[Intelligence] a
 
 A score of 100 on one benchmark means the strongest observed result, not perfect task completion. A final capability score of 80 does not mean 80% benchmark accuracy or twice the capability of a model scoring 40.
 
+[Relative resource amounts](speed-value.md#relative-task-resources) summarize observed cost, runtime, and total token consumption against benchmark/source medians. Lower ratios mean less resource use; they do not account for achieved quality. :score[Speed] and :score[Value] compare efficiency at similar quality and include provider speed or token prices, so their ordering can differ from the descriptive ratios.
+
 ### Collapsed and Expanded Models
 
 Reasoning-effort labels include `none`, `low`, `medium`, `high`, `xhigh`, and `max`. An unspecified effort is stored as `null`; it is distinct from an explicit `none`. Available settings depend on the model and source.

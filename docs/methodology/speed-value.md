@@ -40,6 +40,30 @@ $$
 
 Higher throughput and lower latency score better. Logarithms preserve proportional differences. Missing statistics reduce evidence support and receive no transferred weight from available statistics.
 
+### Relative Task Resources
+
+Relative cost, runtime, and token consumption compare observed resource use with benchmark/source medians, independently of achieved quality. :score[Speed] and :score[Value] compare resources at similar quality and combine the resulting scores with provider speed or token prices.
+
+For resource amount $A_{m,b}$ from model variant $m$ on benchmark/source $b$, calculate reference median $M_b$ from positive observed amounts paired with observed quality. Each base model shares reference weight 1 equally across its $n_{g,b}$ eligible observations, where $g$ identifies the base model. Cost, time, and tokens each use their own observations and reference medians. Sources with fewer than two observed base models have no reference:
+
+$$
+M_b=\operatorname{weightedMedian}_{j}\left(A_{j,b};\frac{1}{n_{g(j),b}}\right).
+$$
+
+Divide each observed amount by its source’s median, then take the weighted median across available ratios:
+
+$$
+R_{m,b}=\frac{A_{m,b}}{M_b},\qquad R_m=\operatorname{weightedMedian}_b(R_{m,b};w_{m,b}).
+$$
+
+A value of 1× represents benchmark-median resource use; lower values cost less, take less time, or use fewer tokens. The aggregation weight $w_{m,b}$ gives each standalone benchmark weight 1, shared across its declared source slots when measurements remain separate. Missing sources contribute no observation and do not increase the remaining source allocations. Index weights use represented breadth after subtracting reference-supported components already included. References use the full model population independently of the subset being compared.
+
+Within each source, the weighted median of $R_{m,b}$ is 1 when calculated over the same observations and model-balancing weights used for $M_b$. The median of the aggregated model ratios $R_m$ need not be 1: models can have different measured baskets, aggregation uses benchmark weights, and a comparison can select only part of the reference population. An ordinary median of 1.33× across aggregated model ratios is therefore compatible with source references centered at 1×.
+
+Cost uses observed task costs, and runtime uses reported seconds. Token consumption requires a complete input/output pair or an explicitly reported total; output-only telemetry never substitutes for total tokens. Throughput-derived runtime and imputed resources do not contribute to these ratios. Unsupported observations stay missing. Different models can have different measured baskets, so these are descriptive relative amounts rather than resource comparisons for identical work.
+
+The ratios do not feed :score[Speed] or :score[Value] as additional components. Those scores retain their [quality-adjusted resource comparisons](#quality-adjusted-resources-per-task) and [weighted means and evidence adjustments](#combining-speed-and-value-components). Relative token consumption has no separate weight in either score; measured cost already reflects the billed token consumption. Relative reported runtime can differ from :score[Speed], which also uses provider measurements, runtime estimates, and validated imputation.
+
 ### Quality-Adjusted Resources per Task
 
 :score[Speed] and :score[Value] compare resource use among independent models at similar benchmark quality. In the equations below, $A$ stands for the resource amount: $A^{\text{time}}_{m,b}$ is time per task in seconds and $A^{\text{cost}}_{m,b}$ is cost per task for model variant $m$ on benchmark $b$.
@@ -191,6 +215,14 @@ $$
 ![In this illustration, nearby independent peers support an expected time of 100 seconds. The target uses 50 seconds, giving residual ln(50/100), approximately −0.693.](../assets/methodology/resource-residual.svg)
 
 A negative residual means less resource use than expected at that quality; a positive residual means more.
+
+Dividing every observed and expected amount within a source by the same positive reference median $M_b$ leaves this residual unchanged:
+
+$$
+\ln\left(\frac{A^r_{m,b}/M_b}{\mu^r_{m,b}/M_b}\right)=\ln\left(\frac{A^r_{m,b}}{\mu^r_{m,b}}\right)=d^r_{m,b}.
+$$
+
+Median normalization therefore changes the descriptive resource units without changing the quality-adjusted comparison when the observations and peer weights stay the same. Aggregating these comparisons into :score[Speed] and :score[Value] still uses weighted means, so resource efficiency across the contributing benchmarks affects the score rather than only the middle result.
 
 ### Resource Efficiency Score
 

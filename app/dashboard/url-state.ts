@@ -127,7 +127,9 @@ export function readUrlValue<K extends DashboardUrlKey>(
       break;
     case "benchmark": {
       const values = params.getAll(key);
-      const valid = [...new Set(values.filter((item) => benchmarkKeys.has(item)))];
+      const valid = [
+        ...new Set(values.filter((item) => benchmarkKeys.has(item.replace(/__source_[abc]$/, "")))),
+      ];
       result = values.includes("none") ? [] : valid.length > 0 ? valid : null;
       break;
     }
