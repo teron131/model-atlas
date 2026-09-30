@@ -7,7 +7,7 @@ import type { ScoringConfig } from "../../config/stage";
 import { canonicalModelKey } from "../../identity/normalization";
 import { weightedQuantile, weightedQuantileRank } from "../../math-utils";
 import type { ModelAtlasCandidate } from "../model-types";
-import { type MinMaxRange, minMaxScale } from "./normalization";
+import { linearScale, type MinMaxRange } from "./normalization";
 import { effortQualityKey, observedRangesByBenchmark } from "./quality-context";
 import { type BenchmarkMetricModel, benchmarkMetricValue } from "./resource-metrics";
 import type { IntelligenceScoreParts } from "./score-builders";
@@ -243,7 +243,7 @@ function benchmarkObservations(
     values.map(({ modelIndex }) => modelIndex),
   );
   return values.flatMap(({ modelIndex, modelKey, value }) => {
-    const score = minMaxScale(range, value);
+    const score = linearScale(range, value);
     return score == null
       ? []
       : [{ modelIndex, modelKey, score, referenceWeight: weights.get(modelIndex)! }];

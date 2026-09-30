@@ -70,7 +70,7 @@ export function minMaxRange(values: ReadonlyArray<number | null>): MinMaxRange |
 }
 
 /** Map a metric linearly within its observed range; quality callers clamp estimates to the public score bounds. */
-export function minMaxScale(range: MinMaxRange | null, value: number | null): number | null {
+export function linearScale(range: MinMaxRange | null, value: number | null): number | null {
   if (value == null || range == null) return null;
   if (range.max === range.min) return 100;
   const position = (value - range.min) / (range.max - range.min);
@@ -87,7 +87,7 @@ export function minMaxScores(
     value != null && Number.isFinite(value) ? directionMultiplier * value : null,
   );
   const range = minMaxRange(directedValues);
-  return directedValues.map((value) => minMaxScale(range, value));
+  return directedValues.map((value) => linearScale(range, value));
 }
 
 /** Min-max normalize against weighted anchors while winsorizing only the favorable tail. */

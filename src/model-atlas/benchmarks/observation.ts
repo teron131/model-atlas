@@ -80,6 +80,13 @@ export type BenchmarkObservationLookup<
   Row extends BenchmarkObservationEvidenceRow = BenchmarkObservationRow,
 > = Map<string, Row>;
 
+export type BenchmarkObservationGroupLookup<
+  Row extends BenchmarkObservationEvidenceRow = BenchmarkObservationRow,
+> = {
+  rows: readonly Row[];
+  rowsByModel: ReadonlyMap<string, readonly Row[]>;
+};
+
 function isNewer<Row extends BenchmarkObservationEvidenceRow>(row: Row, current: Row): boolean {
   return (row.observed_at ?? "") > (current.observed_at ?? "");
 }
@@ -145,15 +152,30 @@ function candidateModelKeys(candidateNames: unknown[]): Set<string> {
   );
 }
 
-/** Return every distinct source observation matched to one model. */
+/** Return all matching efforts in source order without renormalizing every benchmark row for each model. */
 export function findBenchmarkObservations<Row extends BenchmarkObservationEvidenceRow>(
   candidateNames: unknown[],
-  rowsByModel: ReadonlyMap<string, Row>,
+  lookup: BenchmarkObservationGroupLookup<Row>,
 ): Row[] {
   const candidateKeys = candidateModelKeys(candidateNames);
-  return [...new Set(rowsByModel.values())].filter((row) =>
-    modelKeys(row).some((key) => candidateKeys.has(key)),
-  );
+  const matches = new Set([...candidateKeys].flatMap((key) => lookup.rowsByModel.get(key) ?? []));
+  return matches.size === 0 ? [] : lookup.rows.filter((row) => matches.has(row));
+}
+
+/** Index each retained exact observation under its model aliases while preserving the single-observation lookup's precedence. */
+export function buildBenchmarkObservationGroupLookup<Row extends BenchmarkObservationEvidenceRow>(
+  observations: readonly Row[],
+): BenchmarkObservationGroupLookup<Row> {
+  const rows = [...new Set(buildBenchmarkObservationLookup(observations).values())];
+  const rowsByModel = new Map<string, Row[]>();
+  for (const row of rows) {
+    for (const key of modelKeys(row)) {
+      const matches = rowsByModel.get(key) ?? [];
+      matches.push(row);
+      rowsByModel.set(key, matches);
+    }
+  }
+  return { rows, rowsByModel };
 }
 
 /** Index one benchmark's eligible rows with exact variants and a source-default base row. */

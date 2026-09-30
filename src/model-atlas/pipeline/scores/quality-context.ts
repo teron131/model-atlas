@@ -12,7 +12,7 @@ import { clamp } from "../../math-utils";
 import type { JsonObject } from "../../runtime";
 import type { ModelAtlasCandidate } from "../model-types";
 import { type EffortResourceImputation, imputedTaskResource } from "./imputation/resource-evidence";
-import { clampScore, minMaxRange, type MinMaxRange, minMaxScale } from "./normalization";
+import { clampScore, linearScale, minMaxRange, type MinMaxRange } from "./normalization";
 import { qualityAdjustedResourceMultipliers } from "./resource-efficiency";
 import {
   type BenchmarkMetricModel,
@@ -57,7 +57,7 @@ export function normalizedMetricValue(
   key: string,
   value: number | null,
 ): number | null {
-  const normalized = minMaxScale(rangesByKey.get(key) ?? null, value);
+  const normalized = linearScale(rangesByKey.get(key) ?? null, value);
   return normalized == null ? null : clampScore(normalized);
 }
 
@@ -270,7 +270,7 @@ export function normalizedQualityBenchmarkValue(
             directBenchmarkTokens(model, adjustment.resourceKey, adjustment.measure),
           ),
         ) ?? 1);
-  const adjusted = minMaxScale(adjustment.range, value * multiplier);
+  const adjusted = linearScale(adjustment.range, value * multiplier);
   return adjusted == null ? null : clamp(adjusted, 0, 100);
 }
 

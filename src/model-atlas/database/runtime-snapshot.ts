@@ -13,7 +13,6 @@ import {
   snapshotObject,
   snapshotUrl,
 } from "./snapshots/manifest";
-import { readDatabasePayload } from "./sqlite-payload";
 
 type ArtifactCache<T> = {
   hash?: string;
@@ -38,6 +37,7 @@ const DISPLAY_SNAPSHOT_CACHE_MS = 30_000;
 /** An explicit local override reads the SQLite checkpoint; normal runtime reads use the published payload artifact. */
 export async function readDisplaySnapshotPayload(): Promise<ModelAtlasPayload> {
   if (process.env.MODEL_ATLAS_LOCAL_DATABASE === "1") {
+    const { readDatabasePayload } = await import("./sqlite-payload");
     return withCurrentMetadata(readDatabasePayload());
   }
   const state = readState();
@@ -116,7 +116,8 @@ async function readArtifact<T>(
       const response = await fetch(
         snapshotUrl(state.bucket, snapshotObject(manifest.version, kind)),
         {
-          cache: "no-store",
+          // Versioned artifacts are immutable; Next's persistent cache avoids downloading them again in every cold function instance.
+          cache: "force-cache",
           signal: AbortSignal.timeout(30_000),
         },
       );

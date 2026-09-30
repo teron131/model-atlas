@@ -2,7 +2,7 @@
 
 import {
   type BenchmarkObservationsByKey,
-  buildBenchmarkObservationLookup,
+  buildBenchmarkObservationGroupLookup,
   findBenchmarkObservations,
 } from "../../src/model-atlas/benchmarks/observation";
 import {
@@ -27,18 +27,18 @@ export function compactModelVariants(
 ): ModelAtlasModel[] {
   const variantsByModel = new Map<string, ModelAtlasModel[]>();
   const observationLookups = new Map(
-    BENCHMARK_KEYS.map((key) => [
-      key,
-      buildBenchmarkObservationLookup(benchmarkObservations[key] ?? []),
-    ]),
-  );
-  const collapsedLookups = new Map(
-    BENCHMARK_KEYS.map((key) => [
-      key,
-      buildBenchmarkObservationLookup(
-        (benchmarkObservations[key] ?? []).filter((row) => row.metadata?.fusion_collapsed === true),
-      ),
-    ]),
+    BENCHMARK_KEYS.map((key) => {
+      const rows = benchmarkObservations[key] ?? [];
+      return [
+        key,
+        {
+          variants: buildBenchmarkObservationGroupLookup(rows),
+          collapsed: buildBenchmarkObservationGroupLookup(
+            rows.filter((row) => row.metadata?.fusion_collapsed === true),
+          ),
+        },
+      ];
+    }),
   );
   for (const model of models) {
     if (modelDisplayExclusion(model) != null) continue;
@@ -59,7 +59,8 @@ export function compactModelVariants(
     let hasAddedBenchmarks = false;
 
     for (const key of BENCHMARK_KEYS) {
-      const fused = findBenchmarkObservations(modelNames, collapsedLookups.get(key)!)[0];
+      const lookups = observationLookups.get(key)!;
+      const fused = findBenchmarkObservations(modelNames, lookups.collapsed)[0];
       if (fused != null) {
         benchmarks[key] = fused.canonical_value;
         const metadata = fused.metadata!;
@@ -84,10 +85,7 @@ export function compactModelVariants(
         const value = benchmarkMetricValue(model, key);
         return value == null ? [] : [{ model, value }];
       });
-      const sourceObservations = findBenchmarkObservations(
-        modelNames,
-        observationLookups.get(key)!,
-      );
+      const sourceObservations = findBenchmarkObservations(modelNames, lookups.variants);
       let sourceObservation = sourceObservations[0] ?? null;
       for (const observation of sourceObservations.slice(1)) {
         if (

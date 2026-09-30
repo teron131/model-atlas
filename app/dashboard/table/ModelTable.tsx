@@ -6,6 +6,7 @@ import {
   memo,
   type PointerEvent,
   type ReactNode,
+  type RefObject,
   useCallback,
   useMemo,
   useRef,
@@ -26,7 +27,7 @@ import type {
 } from "./models";
 import { tableColumnRuleKeys } from "./models";
 import { EmptyStateRow, LoadingRows, ModelRow, type ScoreChangeHandler } from "./Rows";
-import { clampNumber, type TableViewportSnapshot, useTableViewport } from "./viewport";
+import { clampNumber, useTableScrollSnapshot, useTableViewport } from "./viewport";
 
 const TABLE_SCROLL_REGION_ID = "model-table-scroll-region";
 
@@ -76,9 +77,7 @@ export const ModelTable = memo(function ModelTable({
     rowHeight,
     columnWidths,
     pinnedColumnsEnabled,
-    scrollSnapshot,
-    handleBodyScroll,
-    handleHeaderScroll,
+    handleScroll,
     scrollTableTo,
   } = useTableViewport({
     columnCount: visibleColumnKeys.length,
@@ -110,7 +109,7 @@ export const ModelTable = memo(function ModelTable({
       data-sticky-head-ready={isStickyHeaderReady}
       style={tableShellStyle}
     >
-      <div className="table-sticky-head" ref={headerScrollRef} onScroll={handleHeaderScroll}>
+      <div className="table-sticky-head" ref={headerScrollRef} onScroll={handleScroll}>
         <table className="sticky-header-table" style={stickyHeaderTableStyle}>
           <ColumnGroup widths={columnWidths} columnKeys={visibleColumnKeys} />
           <thead>
@@ -130,7 +129,7 @@ export const ModelTable = memo(function ModelTable({
         id={TABLE_SCROLL_REGION_ID}
         className="table-wrap"
         ref={tableScrollRef}
-        onScroll={handleBodyScroll}
+        onScroll={handleScroll}
       >
         <table ref={tableRef}>
           <thead>
@@ -167,7 +166,11 @@ export const ModelTable = memo(function ModelTable({
           </tbody>
         </table>
       </div>
-      <TableScrollRail snapshot={scrollSnapshot} onScrollTo={scrollTableTo} />
+      <TableScrollRail
+        tableScrollRef={tableScrollRef}
+        tableRef={tableRef}
+        onScrollTo={scrollTableTo}
+      />
     </div>
   );
 });
@@ -194,12 +197,15 @@ function stableModelRowKeys(rows: readonly TableRow[]): string[] {
 
 /** Mirror the table viewport in an accessible scroll rail and translate pointer, drag, and keyboard input back to horizontal table positions. */
 function TableScrollRail({
-  snapshot,
+  tableScrollRef,
+  tableRef,
   onScrollTo,
 }: {
-  snapshot: TableViewportSnapshot;
+  tableScrollRef: RefObject<HTMLDivElement | null>;
+  tableRef: RefObject<HTMLTableElement | null>;
   onScrollTo: (scrollLeft: number) => void;
 }) {
+  const snapshot = useTableScrollSnapshot(tableScrollRef, tableRef);
   const trackRef = useRef<HTMLDivElement>(null);
   const thumbRef = useRef<HTMLDivElement>(null);
   const dragOffsetRef = useRef<number | null>(null);
@@ -207,12 +213,10 @@ function TableScrollRail({
   const thumbWidthPercent = canScroll
     ? Math.max(SCROLL_THUMB_MIN_PERCENT, (snapshot.clientWidth / snapshot.scrollWidth) * 100)
     : 100;
-  const thumbLeftPercent = canScroll ? (snapshot.scrollLeft / snapshot.scrollWidth) * 100 : 0;
-  const percentScrolled = canScroll
-    ? Math.round((snapshot.scrollLeft / snapshot.maxScrollLeft) * 100)
-    : 0;
+  const scrollProgress = canScroll ? snapshot.scrollLeft / snapshot.maxScrollLeft : 0;
+  const percentScrolled = Math.round(scrollProgress * 100);
   const railStyle = {
-    "--table-scrollbar-thumb-left": `${thumbLeftPercent}%`,
+    "--table-scrollbar-thumb-left": `calc((100% - max(${SCROLL_THUMB_MIN_WIDTH_PX}px, ${thumbWidthPercent}%)) * ${scrollProgress})`,
     "--table-scrollbar-thumb-min-width": `${SCROLL_THUMB_MIN_WIDTH_PX}px`,
     "--table-scrollbar-thumb-width": `${thumbWidthPercent}%`,
   } as CSSProperties;
@@ -222,20 +226,20 @@ function TableScrollRail({
       if (track == null || !canScroll) {
         return;
       }
-      const trackRect = track.getBoundingClientRect();
-      const thumbWidth = trackRect.width * (thumbWidthPercent / 100);
-      const maxThumbLeft = trackRect.width - thumbWidth;
+      const trackLeft = track.getBoundingClientRect().left + track.clientLeft;
+      const thumbWidth = thumbRef.current?.getBoundingClientRect().width ?? 0;
+      const maxThumbLeft = track.clientWidth - thumbWidth;
       if (maxThumbLeft <= 0) {
         return;
       }
       const nextThumbLeft = clampNumber(
-        clientX - trackRect.left - (dragOffsetRef.current ?? thumbWidth / 2),
+        clientX - trackLeft - (dragOffsetRef.current ?? thumbWidth / 2),
         0,
         maxThumbLeft,
       );
       onScrollTo((nextThumbLeft / maxThumbLeft) * snapshot.maxScrollLeft);
     },
-    [canScroll, onScrollTo, snapshot.maxScrollLeft, thumbWidthPercent],
+    [canScroll, onScrollTo, snapshot.maxScrollLeft],
   );
   const handlePointerDown = useCallback(
     (event: PointerEvent<HTMLDivElement>) => {

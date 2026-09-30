@@ -11,9 +11,8 @@ import type { BenchmarkTaskMetricColumnFacet } from "../../../src/model-atlas/be
 import { isAggregateIndex } from "../../../src/model-atlas/benchmarks/index-policy";
 import {
   clampScore,
+  linearScale,
   minMaxRange,
-  type MinMaxRange,
-  minMaxScale,
 } from "../../../src/model-atlas/pipeline/scores/normalization";
 import { benchmarkMetricValue as modelBenchmarkMetricValue } from "../../../src/model-atlas/pipeline/scores/resource-metrics";
 import { type ModelAtlasModel } from "../../../src/model-atlas/stats/types";
@@ -188,7 +187,7 @@ export const benchmarkMetricColumns = [...unsortedBenchmarkMetricColumns].sort((
   compareBenchmarkDisplayKeys(left.benchmark, right.benchmark),
 );
 const scaledBenchmarkMetricColumns = benchmarkMetricColumns.filter(
-  (column) => column.format === "score" || column.format === "number",
+  (column) => column.format !== "currency",
 );
 
 export type TaskMetricColumn = (typeof taskMetricColumns)[number] & BenchmarkTaskMetricColumnFacet;
@@ -422,15 +421,14 @@ export function sortedRows(rows: TableRow[], filterQuery: string, sortState: Sor
   });
 }
 
-/** Collapse duplicate model routes before assigning display ranks. */
+/** Collapse duplicate routes and scale benchmark meters against the full incoming population before filtering or limiting rows. */
 export function dedupeDisplayModels(models: ModelAtlasModel[]) {
-  const benchmarkReferenceModels = models;
-  const benchmarkDisplayScoreRanges = Object.fromEntries(
+  const ranges = new Map(
     scaledBenchmarkMetricColumns.map((column) => [
       column.key,
-      minMaxRange(benchmarkReferenceModels.map((model) => benchmarkMetricValue(model, column))),
+      minMaxRange(models.map((model) => benchmarkMetricValue(model, column))),
     ]),
-  ) as Partial<Record<BenchmarkMetricColumn["key"], MinMaxRange | null>>;
+  );
   const rowsByIdentity = new Map<string, UnrankedTableRow>();
   for (const [originalIndex, model] of models.entries()) {
     const key = displayKey(model);
@@ -441,7 +439,7 @@ export function dedupeDisplayModels(models: ModelAtlasModel[]) {
       benchmarkDisplayScores: Object.fromEntries(
         scaledBenchmarkMetricColumns.map((column) => {
           const value = benchmarkMetricValue(model, column);
-          const normalized = minMaxScale(benchmarkDisplayScoreRanges[column.key] ?? null, value);
+          const normalized = linearScale(ranges.get(column.key) ?? null, value);
           return [column.key, normalized == null ? null : clampScore(normalized)];
         }),
       ),
@@ -469,9 +467,7 @@ export function benchmarkDisplayValue(row: TableRow, column: BenchmarkMetricColu
 
 /** Return a benchmark's 0-100 meter position while preserving its formatted display value. */
 export function benchmarkMeterValue(row: TableRow, column: BenchmarkMetricColumn) {
-  return column.format === "number"
-    ? row.benchmarkDisplayScores[column.key]
-    : benchmarkDisplayValue(row, column);
+  return row.benchmarkDisplayScores[column.key] ?? null;
 }
 
 export function contextWindowValue(model: ModelAtlasModel) {

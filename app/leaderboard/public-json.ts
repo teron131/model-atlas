@@ -1,5 +1,6 @@
 /** Build stable public JSON views for the Model Atlas stats endpoints. */
 
+import type { BenchmarkObservationEvidenceRow } from "../../src/model-atlas/benchmarks/observation";
 import { applyResourceEvidenceRequirements } from "../../src/model-atlas/pipeline/scores/resource-metrics";
 import type { ModelAtlasModel, ModelAtlasPayload } from "../../src/model-atlas/stats/types";
 import { compactModelVariants } from "./model-variants";
@@ -9,6 +10,14 @@ const CORE_SCHEMA = "model_atlas.core";
 const BENCHMARKS_SCHEMA = "model_atlas.benchmarks";
 const SCORE_SCALE = "relative_0_100";
 const BENCHMARK_SCALE = "decimal";
+const DASHBOARD_OBSERVATION_METADATA_KEYS = [
+  "observation_role",
+  "fusion_collapsed",
+  "cost",
+  "seconds_per_task",
+  "tokens_per_task",
+  "output_tokens_per_task",
+] as const;
 
 export type ModelAtlasJsonView = "score" | "core" | "benchmarks" | "all" | "full" | "dashboard";
 
@@ -159,7 +168,7 @@ export function publicJsonPayload(
   };
   switch (publicJsonView(view)) {
     case "dashboard":
-      return payload;
+      return dashboardJsonPayload(payload);
     case "all":
       return fullJsonPayload(payload);
     case "core":
@@ -169,6 +178,18 @@ export function publicJsonPayload(
     default:
       return scoreJsonPayload(payload);
   }
+}
+
+/** Keep complete model and benchmark evidence for immediate rendering without shipping ingestion diagnostics that no dashboard consumer reads. */
+export function dashboardJsonPayload(payload: ModelAtlasPayload): ModelAtlasPayload {
+  const { timeline: _timeline, benchmark_observations: observations, ...dashboard } = payload;
+  if (observations == null) return dashboard;
+  return {
+    ...dashboard,
+    benchmark_observations: Object.fromEntries(
+      Object.entries(observations).map(([key, rows]) => [key, rows.map(dashboardObservation)]),
+    ),
+  };
 }
 
 /** The core view is the compact table contract: stable scalar columns without dashboard-only decoration. */
@@ -214,6 +235,22 @@ export function fullJsonPayload(payload: ModelAtlasPayload): FullJsonPayload {
   return {
     ...publicPayload,
     models: models.map(({ logo: _logo, reasoning: _reasoning, ...model }) => model),
+  };
+}
+
+/** Preserve display policy and resource fields while excluding source-ingestion diagnostics. */
+function dashboardObservation({
+  metadata,
+  ...row
+}: BenchmarkObservationEvidenceRow): BenchmarkObservationEvidenceRow {
+  if (metadata == null) return row;
+  return {
+    ...row,
+    metadata: Object.fromEntries(
+      DASHBOARD_OBSERVATION_METADATA_KEYS.filter((field) => Object.hasOwn(metadata, field)).map(
+        (field) => [field, metadata[field]!],
+      ),
+    ),
   };
 }
 
