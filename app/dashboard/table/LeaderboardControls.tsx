@@ -1,8 +1,8 @@
 "use client";
 
-/** Column view controls expose temporary full-catalog search and fixed analytical presets. */
+/** Leaderboard controls share one model-and-column search alongside display limits and analytical presets. */
 
-import { hasSearchQuery } from "../shared/search";
+import { DisplayControls, type DisplayControlsProps } from "../shared/DisplayControls";
 import {
   BENCHMARK_COLUMN_ORDERS,
   TABLE_COLUMN_PRESETS,
@@ -10,13 +10,15 @@ import {
 } from "./column-views";
 import type { BenchmarkColumnOrder } from "./models";
 
-import styles from "./column-view-controls.module.css";
+import styles from "./leaderboard-controls.module.css";
 
-export function ColumnViewControls({
+export function LeaderboardControls({
   preset,
   benchmarkOrder,
   query,
-  searchMatchCount,
+  searchResultLabel,
+  isColumnSearch,
+  display,
   onBenchmarkOrderChange,
   onPresetChange,
   onQueryChange,
@@ -24,31 +26,33 @@ export function ColumnViewControls({
   preset: TableColumnPreset;
   benchmarkOrder: BenchmarkColumnOrder;
   query: string;
-  searchMatchCount: number;
+  searchResultLabel: string | null;
+  isColumnSearch: boolean;
+  display: DisplayControlsProps;
   onBenchmarkOrderChange: (order: BenchmarkColumnOrder) => void;
   onPresetChange: (preset: TableColumnPreset) => void;
   onQueryChange: (query: string) => void;
 }) {
-  const isSearching = hasSearchQuery(query);
-  const showsOrder = preset === "scores" && !isSearching;
+  const showsOrder = preset === "scores" && !isColumnSearch;
   return (
-    <section className={styles.controls} aria-label="Table column view" data-capture-exclude>
+    <section className={styles.controls} aria-label="Leaderboard controls" data-capture-exclude>
+      <div className={styles.display}>
+        <DisplayControls {...display} />
+      </div>
       <div className={styles.row}>
         <input
           className={styles.search}
           type="search"
           autoComplete="off"
           spellCheck="false"
-          aria-label="Search table columns and descriptions"
-          placeholder="Search columns or descriptions"
+          aria-label="Search models, columns or descriptions"
+          placeholder="Search models, columns or descriptions"
           value={query}
           onChange={(event) => onQueryChange(event.currentTarget.value)}
         />
-        {isSearching ? (
+        {searchResultLabel != null ? (
           <output className={styles.result} aria-live="polite">
-            {searchMatchCount === 0
-              ? "Search · No columns"
-              : `Search · ${searchMatchCount} ${searchMatchCount === 1 ? "column" : "columns"}`}
+            {searchResultLabel}
           </output>
         ) : null}
         {showsOrder ? (
@@ -72,7 +76,7 @@ export function ColumnViewControls({
             <button
               className={styles.preset}
               type="button"
-              aria-pressed={!isSearching && preset === option.key}
+              aria-pressed={!isColumnSearch && preset === option.key}
               key={option.key}
               onClick={() => onPresetChange(option.key)}
             >

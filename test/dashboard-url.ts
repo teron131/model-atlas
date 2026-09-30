@@ -69,7 +69,6 @@ assert.deepEqual(
 
 const table = patchDashboardUrl(cost, {
   view: "time",
-  columns: "",
   sort: { key: "speed", direction: "descending" },
 });
 assert.equal(readUrlValue(table.searchParams, "view"), "time");

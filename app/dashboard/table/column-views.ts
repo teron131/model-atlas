@@ -99,38 +99,34 @@ const presetDefaultSortKeys: Record<TableColumnPreset, SortKey> = {
   all: "intelligence",
 };
 
-/** Resolve fixed and optional columns for a preset or temporary full-catalog search. */
-export function tableColumnKeysForView(
+/** Resolve search feedback and visible columns together, retaining the preset when only model names match. */
+export function tableColumnView(
   preset: TableColumnPreset,
   query: string,
   columnTooltips: ModelAtlasColumnTooltips,
-): TableColumnKey[] {
-  const matchingKeys = hasSearchQuery(query)
-    ? new Set(
-        filterSearchDocuments(
-          query,
-          optionalColumnKeys.map((key) => columnSearchDocument(key, columnTooltips)),
-        ),
-      )
-    : presetColumnKeys[preset];
-  return [
-    ...ALWAYS_VISIBLE_TABLE_COLUMN_KEYS,
-    ...optionalColumnKeys.filter((key) => matchingKeys.has(key)),
-    "change",
-  ];
-}
-
-/** Count search matches across the complete table-column catalog. */
-export function tableColumnSearchMatchCount(
-  query: string,
-  columnTooltips: ModelAtlasColumnTooltips,
-): number {
-  return hasSearchQuery(query)
+) {
+  const searchMatchCount = hasSearchQuery(query)
     ? filterSearchDocuments(
         query,
         ALL_TABLE_COLUMN_KEYS.map((key) => columnSearchDocument(key, columnTooltips)),
       ).length
     : 0;
+  const searchQuery = searchMatchCount > 0 ? query : "";
+  const matchingKeys =
+    searchMatchCount > 0
+      ? new Set(
+          filterSearchDocuments(
+            query,
+            optionalColumnKeys.map((key) => columnSearchDocument(key, columnTooltips)),
+          ),
+        )
+      : presetColumnKeys[preset];
+  const keys: TableColumnKey[] = [
+    ...ALWAYS_VISIBLE_TABLE_COLUMN_KEYS,
+    ...optionalColumnKeys.filter((key) => matchingKeys.has(key)),
+    "change",
+  ];
+  return { searchQuery, searchMatchCount, keys };
 }
 
 /** Keep sorting visible when a preset or search removes the active sort column. */

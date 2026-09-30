@@ -51,11 +51,11 @@ export function filterSearchDocuments<T>(
 }
 
 export function hasSearchQuery(query: string): boolean {
-  return query.split(",").some((alternative) => buildSearchQuery(alternative) != null);
+  return query.split(",").some((alternative) => alternative.trim().length > 0);
 }
 
 function buildSearchQuery(query: string): { patterns: SearchPattern[]; query: string } | null {
-  const normalizedQuery = query.toLocaleLowerCase("en").replaceAll(/\s+/g, " ").trim();
+  const normalizedQuery = normalizeSearchText(query);
   if (normalizedQuery.length === 0) {
     return null;
   }
@@ -148,7 +148,9 @@ function normalizeSearchText(value: string): string {
 
 function createSearchPattern(value: string): RegExp {
   const source = value.split("*").map(escapeRegExp).join(".*");
-  const endBoundary = value.includes("*") ? "" : "($|[^\\p{L}\\p{N}])";
+  // Require an ending word boundary only when the query itself ends in a letter or number.
+  const endBoundary =
+    !value.includes("*") && /[\p{L}\p{N}]$/u.test(value) ? "($|[^\\p{L}\\p{N}])" : "";
   return new RegExp(`(^|[^\\p{L}\\p{N}])${source}${endBoundary}`, "iu");
 }
 

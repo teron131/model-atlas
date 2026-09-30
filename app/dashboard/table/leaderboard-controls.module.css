@@ -1,12 +1,19 @@
-/** Ruled column-search and preset controls extend the leaderboard's measurement toolbar. */
+/** Ruled leaderboard controls separate display limits from the unified search and column presets. */
 
 .controls {
   position: relative;
+  container-type: inline-size;
   width: 100%;
   min-width: 0;
   border-bottom: 1px solid var(--line);
   background: transparent;
   font-family: var(--font-mono);
+}
+
+.display {
+  min-width: 0;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
 }
 
 .row {
