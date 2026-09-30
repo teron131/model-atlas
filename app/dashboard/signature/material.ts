@@ -1,5 +1,6 @@
 /** Phase Ledger canvas renderer with WebGL and CPU paths, model-driven color and pointer response. */
 
+import { clamp, smoothstep } from "../../../src/model-atlas/math-utils";
 import type { SignatureModel } from "./models";
 import { renderPhaseShader } from "./phase-shader";
 
@@ -202,8 +203,8 @@ function drawPhaseSurface(frame: MaterialFrame): void {
         phase += Math.sin(u * 31 + v * 17 - time * 0.32) * 0.65;
 
         const wave = Math.abs(Math.sin(phase));
-        const shoulder = smoothstep(0.91, 0.965, wave);
-        const core = smoothstep(0.968, 0.994, wave);
+        const shoulder = smoothstepRange(0.91, 0.965, wave);
+        const core = smoothstepRange(0.968, 0.994, wave);
         const haze = 0.1 + (Math.sin(u * 37 + v * 29 + time * 0.21) + 1) * 0.035;
         const base = (8 + haze * 16 + shoulder * 20 + core * 168) / 255;
         const tint =
@@ -367,7 +368,7 @@ function colorChannels(color: string): [number, number, number] {
 }
 
 function clampChannel(value: number): number {
-  return Math.max(0, Math.min(255, Math.round(value)));
+  return clamp(Math.round(value), 0, 255);
 }
 
 function isDarkColor(color: string): boolean {
@@ -380,7 +381,7 @@ function withAlpha(color: string, alpha: number): string {
   return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
 }
 
-function smoothstep(edge0: number, edge1: number, value: number): number {
-  const normalized = Math.max(0, Math.min(1, (value - edge0) / (edge1 - edge0)));
-  return normalized * normalized * (3 - 2 * normalized);
+/** Convert the material’s edge interval to the shared normalized smoothstep curve. */
+function smoothstepRange(edge0: number, edge1: number, value: number): number {
+  return smoothstep((value - edge0) / (edge1 - edge0));
 }

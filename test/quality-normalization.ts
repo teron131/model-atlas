@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 
 import { BENCHMARK_CATALOG } from "../src/model-atlas/benchmarks/registry";
 import { STAGE_CONFIG } from "../src/model-atlas/config/stage";
-import { linearScale, minMaxRange } from "../src/model-atlas/pipeline/scores/normalization";
+import { linearScale, linearScore, minMaxRange } from "../src/model-atlas/math-utils";
 import {
   buildQualityScoringContext,
   normalizedQualityBenchmarkValue,
@@ -12,6 +12,10 @@ import {
 
 const close = (a: number | null, b: number) =>
   assert.ok(a != null && Math.abs(a - b) < 1e-8, `${a} != ${b}`);
+// The documented unit coordinate stays distinct from 0–100 score units.
+close(linearScale({ min: 10, max: 20 }, 15), 0.5);
+close(linearScale({ min: 10, max: 20 }, 30), 2);
+close(linearScale({ min: 5, max: 5 }, 5), 1);
 const rows = [
   {
     benchmarks: { hle: 0.01, scicode: 0.41, critpt: 0.45, proofbench: 0.1, gdpval_normalized: 40 },
@@ -22,13 +26,13 @@ const keys = Object.keys(rows[0]!.benchmarks);
 const ranges = observedRangesByBenchmark(rows, keys);
 for (const key of keys) {
   const range = ranges.get(key)!;
-  close(linearScale(range, range.min), 0);
-  close(linearScale(range, range.max), 100);
-  close(linearScale(range, (range.min + range.max) / 2), 50);
+  close(linearScore(range, range.min), 0);
+  close(linearScore(range, range.max), 100);
+  close(linearScore(range, (range.min + range.max) / 2), 50);
   for (const position of [0, 0.2, 0.5, 0.9, 0.95, 0.99, 1])
-    close(linearScale(range, range.min + position * (range.max - range.min)), 100 * position);
+    close(linearScore(range, range.min + position * (range.max - range.min)), 100 * position);
 }
-const score = (position: number) => linearScale(ranges.get("hle")!, 0.01 + position * 0.19)!;
+const score = (position: number) => linearScore(ranges.get("hle")!, 0.01 + position * 0.19)!;
 close(score(0.95) - score(0.9), score(0.25) - score(0.2));
 close(score(1) - score(0.99), 1);
 const context = buildQualityScoringContext(rows, STAGE_CONFIG.scoring);
@@ -40,9 +44,9 @@ for (const key of keys) {
   );
 }
 // Resource ranges remain linear, and flat quality populations retain the established all-equal score.
-close(linearScale(minMaxRange([40, 60]), 50), 50);
+close(linearScore(minMaxRange([40, 60]), 50), 50);
 close(
-  linearScale(observedRangesByBenchmark([{ benchmarks: { hle: 0.5 } }], ["hle"]).get("hle")!, 0.5),
+  linearScore(observedRangesByBenchmark([{ benchmarks: { hle: 0.5 } }], ["hle"]).get("hle")!, 0.5),
   100,
 );
 assert.equal(observedRangesByBenchmark([], ["hle"]).get("hle"), null);

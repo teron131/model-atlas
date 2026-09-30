@@ -10,6 +10,8 @@ import {
   useState,
 } from "react";
 
+import { clamp } from "../../../src/model-atlas/math-utils";
+
 type ScrollTargetName = "body" | "header";
 
 type ScrollSnapshot = {
@@ -87,7 +89,7 @@ export function useTableViewport({
     const target = targetName === "body" ? tableScrollRef.current : headerScrollRef.current;
     if (target == null) return;
     const { maxScrollLeft } = horizontalScrollSnapshot(target);
-    const nextScrollLeft = clampNumber(source.scrollLeft, 0, maxScrollLeft);
+    const nextScrollLeft = clamp(source.scrollLeft, 0, maxScrollLeft);
     if (Math.abs(target.scrollLeft - nextScrollLeft) < 0.5) return;
     target.scrollLeft = nextScrollLeft;
     // A mirrored scroll can arrive after the next animation frame; recognize its position instead of expiring the guard by time.
@@ -104,7 +106,7 @@ export function useTableViewport({
         return;
       }
       event.preventDefault();
-      tableScroll.scrollLeft = clampNumber(tableScroll.scrollLeft + event.deltaX, 0, maxScrollLeft);
+      tableScroll.scrollLeft = clamp(tableScroll.scrollLeft + event.deltaX, 0, maxScrollLeft);
       mirrorScroll(tableScroll, "header");
     },
     [mirrorScroll],
@@ -116,7 +118,7 @@ export function useTableViewport({
         return;
       }
       const { maxScrollLeft } = horizontalScrollSnapshot(tableScroll);
-      tableScroll.scrollLeft = clampNumber(scrollLeft, 0, maxScrollLeft);
+      tableScroll.scrollLeft = clamp(scrollLeft, 0, maxScrollLeft);
       onTooltipEnd();
       mirrorScroll(tableScroll, "header");
     },
@@ -229,10 +231,6 @@ export function useTableScrollSnapshot(
   return snapshot;
 }
 
-export function clampNumber(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(value, max));
-}
-
 function measuredTableColumnWidths(
   table: HTMLTableElement | null,
   expectedColumnCount: number,
@@ -282,7 +280,7 @@ function horizontalScrollSnapshot(element: HTMLElement): ScrollSnapshot {
   const { clientWidth, scrollWidth } = element;
   const maxScrollLeft = Math.max(0, scrollWidth - clientWidth);
   return {
-    scrollLeft: clampNumber(element.scrollLeft, 0, maxScrollLeft),
+    scrollLeft: clamp(element.scrollLeft, 0, maxScrollLeft),
     maxScrollLeft,
     clientWidth,
     scrollWidth,

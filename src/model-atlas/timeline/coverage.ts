@@ -1,7 +1,7 @@
 /** Measure historical support against actual observed index editions, independently of model age, score, and display filters. */
 import { residualIndexBreadth } from "../benchmarks/index-policy";
 import { STAGE_CONFIG } from "../config/stage";
-import { effectiveSampleSize } from "../math-utils";
+import { effectiveCount } from "../math-utils";
 import { evidenceRetentionFactor } from "../pipeline/scores/normalization";
 import type { HistoricalDataset, HistoricalEstimate, TimelineDimension } from "./schemas";
 
@@ -82,7 +82,7 @@ export function timelineCoverage(
         directTasks.set(definition.key, definition.weights[dimension]);
     }
     const directSupport = evidenceRetentionFactor(
-      effectiveSampleSize([...directTasks.values()]),
+      effectiveCount([...directTasks.values()]),
       thresholds.floor,
       thresholds.full,
     );

@@ -10,6 +10,8 @@ import { MAX_NORMALIZED_IMPUTATION_ERROR, type ScoringConfig } from "../../../co
 import { canonicalModelKey, canonicalReasoningEffort } from "../../../identity/normalization";
 import {
   clamp01,
+  linearScore,
+  type MinMaxRange,
   weightedFinitePartCount,
   weightedMeanOfFinite,
   weightedMedianOfFinite,
@@ -17,7 +19,6 @@ import {
   weightedQuantileRank,
 } from "../../../math-utils";
 import type { JsonObject } from "../../../runtime";
-import { linearScale, type MinMaxRange } from "../normalization";
 import {
   buildQualityScoringContext,
   normalizedMetricValue,
@@ -399,8 +400,8 @@ function imputationDiagnostic(
       calibrationByHeldOutModel.set(heldOutModelKey, calibration);
     }
     const prediction = predictedBenchmarkValue(heldOutModel, calibration.predictors);
-    const normalizedPrediction = linearScale(calibration.targetRange, prediction?.value ?? null);
-    const normalizedActual = linearScale(calibration.targetRange, actualValue);
+    const normalizedPrediction = linearScore(calibration.targetRange, prediction?.value ?? null);
+    const normalizedActual = linearScore(calibration.targetRange, actualValue);
     if (normalizedPrediction == null || normalizedActual == null) {
       continue;
     }
@@ -408,7 +409,7 @@ function imputationDiagnostic(
       heldOutModel,
       Math.abs(normalizedPrediction - normalizedActual),
     );
-    const normalizedBaseline = linearScale(calibration.targetRange, calibration.baseline);
+    const normalizedBaseline = linearScore(calibration.targetRange, calibration.baseline);
     if (normalizedBaseline != null)
       baselineErrorByModel.set(heldOutModel, Math.abs(normalizedBaseline - normalizedActual));
   }

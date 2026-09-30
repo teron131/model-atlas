@@ -1,26 +1,16 @@
-/** Score normalization, evidence retention, coverage multipliers, and robust calibration. */
+/** Scoring policy owns public score bounds, evidence retention, and coverage thresholds above shared numeric normalization. */
 
-import {
-  clamp,
-  clamp01,
-  smoothstep,
-  weightedQuantile,
-  type WeightedScorePart,
-} from "../../math-utils";
+import { clamp, linearScale, smoothstep } from "../../math-utils";
 
 const COVERAGE_MULTIPLIER_FLOOR = 0.1;
 const COVERAGE_MULTIPLIER_FULL = 0.6;
 
-export type MinMaxRange = {
-  min: number;
-  max: number;
-};
-
 /** Clamp public score-scale values to 0-100 after normalization or interpolation. */
 export function clampScore(value: number): number {
-  return Math.min(100, Math.max(0, value));
+  return clamp(value, 0, 100);
 }
 
+/** Grant no coverage credit through 10% of active weight and full credit at 60%; no active weight yields zero. */
 export function coverageMultiplier(supportedWeight: number, totalWeight: number) {
   if (totalWeight <= 0) {
     return 0;
@@ -30,7 +20,7 @@ export function coverageMultiplier(supportedWeight: number, totalWeight: number)
     return 1;
   }
   return smoothstep(
-    (coverage - COVERAGE_MULTIPLIER_FLOOR) / (COVERAGE_MULTIPLIER_FULL - COVERAGE_MULTIPLIER_FLOOR),
+    linearScale({ min: COVERAGE_MULTIPLIER_FLOOR, max: COVERAGE_MULTIPLIER_FULL }, coverage)!,
   );
 }
 
@@ -54,79 +44,5 @@ export function evidenceRetentionFactor(
   if (supportedWeight >= full) {
     return 1;
   }
-  return smoothstep((supportedWeight - floor) / (full - floor));
-}
-
-/** Prepare finite reference bounds once so a population can be normalized without rescanning it for every value. */
-export function minMaxRange(values: ReadonlyArray<number | null>): MinMaxRange | null {
-  let min = Infinity;
-  let max = -Infinity;
-  for (const value of values) {
-    if (value == null || !Number.isFinite(value)) continue;
-    min = Math.min(min, value);
-    max = Math.max(max, value);
-  }
-  return min === Infinity ? null : { min, max };
-}
-
-/** Map a metric linearly within its observed range; quality callers clamp estimates to the public score bounds. */
-export function linearScale(range: MinMaxRange | null, value: number | null): number | null {
-  if (value == null || range == null) return null;
-  if (range.max === range.min) return 100;
-  const position = (value - range.min) / (range.max - range.min);
-  return position * 100;
-}
-
-/** Min-max normalize finite signals in the requested scoring direction. */
-export function minMaxScores(
-  values: ReadonlyArray<number | null>,
-  direction: "higher" | "lower",
-): Array<number | null> {
-  const directionMultiplier = direction === "higher" ? 1 : -1;
-  const directedValues = values.map((value) =>
-    value != null && Number.isFinite(value) ? directionMultiplier * value : null,
-  );
-  const range = minMaxRange(directedValues);
-  return directedValues.map((value) => linearScale(range, value));
-}
-
-/** Min-max normalize against weighted anchors while winsorizing only the favorable tail. */
-export function winsorizedMinMaxScores(
-  values: ReadonlyArray<number | null>,
-  calibrationValues: readonly WeightedScorePart[],
-  direction: "higher" | "lower",
-  tailShare: number,
-): Array<number | null> {
-  const boundedTailShare = Math.min(0.5, clamp01(tailShare));
-  const lower = weightedQuantile(calibrationValues, direction === "lower" ? boundedTailShare : 0);
-  const upper = weightedQuantile(
-    calibrationValues,
-    direction === "higher" ? 1 - boundedTailShare : 1,
-  );
-  if (lower == null || upper == null) {
-    return values.map(() => null);
-  }
-  if (upper <= lower) {
-    return values.map((value) => (value == null || !Number.isFinite(value) ? null : 100));
-  }
-  return values.map((value) => {
-    if (value == null || !Number.isFinite(value)) {
-      return null;
-    }
-    const normalized = (clamp(value, lower, upper) - lower) / (upper - lower);
-    return 100 * (direction === "higher" ? normalized : 1 - normalized);
-  });
-}
-
-/** Log raw positive inputs before min-max normalization in the requested direction. */
-export function logInputMinMaxScores(
-  values: ReadonlyArray<number | null>,
-  direction: "higher" | "lower",
-): Array<number | null> {
-  return minMaxScores(
-    values.map((value) =>
-      value != null && Number.isFinite(value) && value > 0 ? Math.log(value) : null,
-    ),
-    direction,
-  );
+  return smoothstep(linearScale({ min: floor, max: full }, supportedWeight)!);
 }

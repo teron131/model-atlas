@@ -1,8 +1,7 @@
 .cache/
+.pnpm-store/
 .playwright-cli/
 .impeccable/
-public/llm-stats-snapshot.json
-public/model-atlas-snapshot.json
 
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 

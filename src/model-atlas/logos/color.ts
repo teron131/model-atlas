@@ -1,4 +1,7 @@
 /** Provider-logo color extraction collapses raster icons to one UI-safe accent or monochrome fallback. */
+
+import { clamp } from "../math-utils";
+
 const DARK_UI_MONOCHROME = "#eeeeea";
 const HUE_BIN_DEGREES = 12;
 const MIN_CHROMA_SHARE = 0.04;
@@ -125,10 +128,6 @@ function hslToHex({ h, s, l }: Hsl) {
     green: Math.round((green + m) * 255),
     blue: Math.round((blue + m) * 255),
   });
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max);
 }
 
 function rgbToHex({ red, green, blue }: { red: number; green: number; blue: number }) {

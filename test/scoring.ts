@@ -14,12 +14,17 @@ import {
 import { STAGE_CONFIG } from "../src/model-atlas/config";
 import type { ScoringConfig } from "../src/model-atlas/config/stage";
 import {
-  effectiveSampleSize,
+  effectiveCount,
+  linearScore,
+  logInputMinMaxScores,
   medianOfFinite,
+  minMaxRange,
+  minMaxScores,
   quantileFromSorted,
   weightedPercentileRank,
   weightedQuantile,
   weightedQuantileRank,
+  winsorizedMinMaxScores,
 } from "../src/model-atlas/math-utils";
 import {
   attachFinalScores,
@@ -36,14 +41,7 @@ import {
   withoutBenchmarkImputationForModels,
 } from "../src/model-atlas/pipeline/scores/imputation";
 import { prepareEffortQualityScoringContext } from "../src/model-atlas/pipeline/scores/imputation/effort-quality";
-import {
-  evidenceRetentionFactor,
-  linearScale,
-  logInputMinMaxScores,
-  minMaxRange,
-  minMaxScores,
-  winsorizedMinMaxScores,
-} from "../src/model-atlas/pipeline/scores/normalization";
+import { evidenceRetentionFactor } from "../src/model-atlas/pipeline/scores/normalization";
 import {
   buildAgenticTokenScoringContext,
   buildQualityScoringContext,
@@ -170,8 +168,8 @@ assertClose(
   ),
   50,
 );
-assertClose(effectiveSampleSize([1, 1, 1]), 3);
-assertClose(effectiveSampleSize([0.5, 0.5]), 2);
+assertClose(effectiveCount([1, 1, 1]), 3);
+assertClose(effectiveCount([0.5, 0.5]), 2);
 const winsorizedScores = winsorizedMinMaxScores(
   [1, 2, 3, 10],
   [1, 2, 3, 10].map((value) => ({ value, weight: 1 })),
@@ -565,11 +563,11 @@ assertClose(latencySpeedModels[0]?.scores.speed_score, 100);
 assertClose(latencySpeedModels[1]?.scores.speed_score, 50);
 
 const gapExampleValues = [1, 2, 3, 50, 60, 70, 95, 99];
-assert.equal(linearScale(minMaxRange([null, NaN, Infinity]), 5), null);
-assert.equal(linearScale(minMaxRange([null, 5, 5]), null), null);
-assert.equal(linearScale(minMaxRange([null, 5, 5]), 5), 100);
-assert.equal(linearScale(minMaxRange([null, NaN, 10, 20, Infinity]), 15), 50);
-assert.equal(linearScale(minMaxRange([10, 20]), 30), 200);
+assert.equal(linearScore(minMaxRange([null, NaN, Infinity]), 5), null);
+assert.equal(linearScore(minMaxRange([null, 5, 5]), null), null);
+assert.equal(linearScore(minMaxRange([null, 5, 5]), 5), 100);
+assert.equal(linearScore(minMaxRange([null, NaN, 10, 20, Infinity]), 15), 50);
+assert.equal(linearScore(minMaxRange([10, 20]), 30), 200);
 assert.deepEqual(minMaxScores([null, NaN, Infinity, 10, 15, 20], "lower"), [
   null,
   null,

@@ -13,6 +13,7 @@ import {
 } from "react";
 
 import { canonicalModelKey } from "../../../src/model-atlas/identity/normalization";
+import { clamp } from "../../../src/model-atlas/math-utils";
 import type { HeaderTooltipHandler } from "../shared/ColumnTooltip";
 import { modelVariantKey } from "../shared/model-display";
 import { staticSortableColumns } from "./Columns";
@@ -27,7 +28,7 @@ import type {
 } from "./models";
 import { tableColumnRuleKeys } from "./models";
 import { EmptyStateRow, LoadingRows, ModelRow, type ScoreChangeHandler } from "./Rows";
-import { clampNumber, useTableScrollSnapshot, useTableViewport } from "./viewport";
+import { useTableScrollSnapshot, useTableViewport } from "./viewport";
 
 const TABLE_SCROLL_REGION_ID = "model-table-scroll-region";
 
@@ -232,7 +233,7 @@ function TableScrollRail({
       if (maxThumbLeft <= 0) {
         return;
       }
-      const nextThumbLeft = clampNumber(
+      const nextThumbLeft = clamp(
         clientX - trackLeft - (dragOffsetRef.current ?? thumbWidth / 2),
         0,
         maxThumbLeft,
