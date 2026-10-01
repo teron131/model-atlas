@@ -91,11 +91,13 @@ function isNewer<Row extends BenchmarkObservationEvidenceRow>(row: Row, current:
   return (row.observed_at ?? "") > (current.observed_at ?? "");
 }
 
-/** Component observations retain source provenance without entering model assignment or display defaults. */
+/** Component and ambiguous configuration observations retain provenance without entering model assignment or display defaults. */
 export function isCanonicalBenchmarkObservation(
   row: Pick<BenchmarkObservationEvidenceRow, "metadata">,
 ): boolean {
-  return row.metadata?.observation_role !== "component";
+  return (
+    row.metadata?.observation_role !== "component" && row.metadata?.assignment_eligible !== false
+  );
 }
 
 /** Return the final provider or composite-model alias without splitting configuration labels. */

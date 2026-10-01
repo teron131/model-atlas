@@ -257,7 +257,7 @@ assert.equal(
     {
       intelligence: null,
       benchmarks: {
-        agent_arena: 0,
+        arena_agent: 0,
         ale_bench: 0,
         apex_agents: 0,
         apex_swe: 0,

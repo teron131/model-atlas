@@ -83,7 +83,22 @@ const benchmarkTaskMetricColumns = BENCHMARK_DISPLAY_ORDER.flatMap<CatalogTaskMe
       BENCHMARK_TASK_METRIC_COLUMNS[benchmark as keyof typeof BENCHMARK_TASK_METRIC_COLUMNS] ?? [],
     ),
   ],
+).sort((left, right) =>
+  compareBenchmarkTableColumns(left.benchmarkGroup, right.benchmarkGroup, left.label, right.label),
 );
+
+/** Keep the catalog's frontier, index, and baseline groups while sorting short table headers within each group. */
+function compareBenchmarkTableColumns(
+  left: BenchmarkKey,
+  right: BenchmarkKey,
+  leftLabel: string,
+  rightLabel: string,
+): number {
+  const leftGroup = isAggregateIndex(left) ? "index" : BENCHMARK_SCORING_WEIGHTS[left].group;
+  const rightGroup = isAggregateIndex(right) ? "index" : BENCHMARK_SCORING_WEIGHTS[right].group;
+  if (leftGroup !== rightGroup) return compareBenchmarkDisplayKeys(left, right);
+  return leftLabel.localeCompare(rightLabel, "en", { sensitivity: "base" });
+}
 
 export const taskMetricColumns = [
   ...artificialAnalysisTaskMetricColumns,
@@ -170,7 +185,8 @@ const inputModalityScores = [
   ["video", 1],
 ] as const;
 
-const unsortedBenchmarkMetricColumns = BENCHMARK_DISPLAY_ORDER.map((benchmark) => {
+/** Preserve frontier, index, and baseline groups while ordering table columns by their visible headers. */
+export const benchmarkMetricColumns = BENCHMARK_DISPLAY_ORDER.map((benchmark) => {
   const column = BENCHMARK_COLUMNS[benchmark];
   return {
     key: column.key,
@@ -181,10 +197,8 @@ const unsortedBenchmarkMetricColumns = BENCHMARK_DISPLAY_ORDER.map((benchmark) =
     label: column.label,
     format: column.format,
   };
-});
-
-export const benchmarkMetricColumns = [...unsortedBenchmarkMetricColumns].sort((left, right) =>
-  compareBenchmarkDisplayKeys(left.benchmark, right.benchmark),
+}).sort((left, right) =>
+  compareBenchmarkTableColumns(left.benchmark, right.benchmark, left.label, right.label),
 );
 const scaledBenchmarkMetricColumns = benchmarkMetricColumns.filter(
   (column) => column.format !== "currency",

@@ -7,6 +7,7 @@ import type {
 } from "../../benchmarks/observation";
 import type { BenchmarkObservationBinding } from "../../benchmarks/registry";
 import { arcPrizeCacheMatches, getArcPrizeStats } from "../arc-prize";
+import { getArenaWebDevStats } from "../arena/webdev";
 import { getArtificialAnalysisOmniscienceStats } from "../artificial-analysis/omniscience";
 import { automationBenchCacheMatches, getAutomationBenchStats } from "../automation-bench";
 import { caisCacheMatches, getCaisDashboardStats } from "../cais/results";
@@ -59,6 +60,12 @@ export function benchmarkObservationSource(
         acceptsCache: (rows) => arcPrizeCacheMatches(rows, benchmarkKey),
       };
     }
+    case "arena_webdev":
+      return {
+        fetchRows: () => getArenaWebDevStats(loader.sourceUrl),
+        // Preference ratings, vote counts, and intervals describe the current voting pool.
+        mergeRow: (_cached, fetched) => fetched,
+      };
     case "artificial_analysis_omniscience":
       return {
         fetchRows: () =>
@@ -66,6 +73,11 @@ export function benchmarkObservationSource(
             benchmarkKey: binding.benchmark,
             sourceUrl: loader.sourceUrl,
           }),
+      };
+    case "automation_bench":
+      return {
+        fetchRows: () => getAutomationBenchStats(loader),
+        acceptsCache: automationBenchCacheMatches,
       };
     case "cais_dashboard":
       return {
@@ -141,11 +153,6 @@ export function benchmarkObservationSource(
               row.metadata.observation_role === "component" &&
               row.metadata.identity_contract === "model-effort",
           ),
-      };
-    case "automation_bench":
-      return {
-        fetchRows: () => getAutomationBenchStats(loader),
-        acceptsCache: automationBenchCacheMatches,
       };
     case "zeroeval":
       return {

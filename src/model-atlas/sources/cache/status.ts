@@ -114,5 +114,8 @@ function rowsHaveCurrentShape(source: RawSourceName, rows: readonly CacheDbRow[]
   if (source === "openrouter") {
     return openRouterCacheHasCurrentShape([...rows]);
   }
+  if (source === "arena_agent") {
+    return rows.every((row) => Object.hasOwn(row, "cost_per_task_usd"));
+  }
   return true;
 }

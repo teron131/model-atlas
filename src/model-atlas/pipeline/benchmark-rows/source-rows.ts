@@ -192,15 +192,6 @@ type StandaloneBenchmarkAdapter = (sourceData: ModelAtlasSourceData) => Benchmar
 
 /** Standalone benchmark adapters retain source-specific row rules behind one exhaustive registry. */
 const STANDALONE_BENCHMARK_ADAPTERS = {
-  agent_arena: (sourceData) =>
-    benchmarkRowDrafts("agent_arena", sourceData.agentArena.rows, (row) => ({
-      id: row.contender_name,
-      identity: row.base_model,
-      label: row.model,
-      provider: row.organization,
-      reasoningEffort: row.reasoning_effort,
-      value: row.score,
-    })),
   agents_last_exam: (sourceData) =>
     benchmarkRowDrafts("agents_last_exam", sourceData.agentsLastExam.rows, (row) => ({
       label: row.model,
@@ -229,6 +220,15 @@ const STANDALONE_BENCHMARK_ADAPTERS = {
       ];
     }),
   ],
+  arena_agent: (sourceData) =>
+    benchmarkRowDrafts("arena_agent", sourceData.arenaAgent.rows, (row) => ({
+      id: row.contender_name,
+      identity: row.base_model,
+      label: row.model,
+      provider: row.organization,
+      reasoningEffort: row.reasoning_effort,
+      value: row.score,
+    })),
   blueprint_bench_2: (sourceData) =>
     benchmarkRowDrafts("blueprint_bench_2", sourceData.blueprintBench.rows, (row) => ({
       label: row.model,

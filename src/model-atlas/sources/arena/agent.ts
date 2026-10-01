@@ -1,5 +1,5 @@
 /**
- * Agent Arena leaderboard results from Arena.
+ * Arena Agent leaderboard results from Arena.
  *
  * Page source: https://arena.ai/leaderboard/agent
  */
@@ -18,9 +18,9 @@ export const DEFAULT_LEADERBOARD_URL = "https://arena.ai/leaderboard/agent";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 
-const AGENT_ARENA_OBJECT_MARKER = '{"arena":{"slug":"agent"';
+const ARENA_AGENT_OBJECT_MARKER = '{"arena":{"slug":"agent"';
 
-export type AgentArenaModelScoreRow = {
+export type ArenaAgentModelScoreRow = {
   rank: number;
   contender_name: string;
   model: string;
@@ -28,30 +28,31 @@ export type AgentArenaModelScoreRow = {
   reasoning_effort: string | null;
   organization: string;
   score: number;
+  cost_per_task_usd: number | null;
 };
 
-export type AgentArenaRowsByModelName = Map<string, AgentArenaModelScoreRow>;
+export type ArenaAgentRowsByModelName = Map<string, ArenaAgentModelScoreRow>;
 
-type AgentArenaPayload = {
+type ArenaAgentPayload = {
   fetched_at_epoch_seconds: number | null;
-  data: AgentArenaModelScoreRow[];
+  data: ArenaAgentModelScoreRow[];
 };
 
-type AgentArenaScraperOptions = {
+type ArenaAgentScraperOptions = {
   url?: string;
   timeoutMs?: number;
 };
 
-export async function getAgentArenaStats(
-  options: AgentArenaScraperOptions = {},
-): Promise<AgentArenaPayload> {
+export async function getArenaAgentStats(
+  options: ArenaAgentScraperOptions = {},
+): Promise<ArenaAgentPayload> {
   try {
     const url = options.url ?? DEFAULT_LEADERBOARD_URL;
     return await fetchSource(url, {}, options.timeoutMs ?? DEFAULT_TIMEOUT_MS, async (response) => {
       if (!response.ok) {
-        throw new Error(`Agent Arena scrape failed: ${response.status}`);
+        throw new Error(`Arena Agent scrape failed: ${response.status}`);
       }
-      const data = processAgentArenaPageHtml(await response.text());
+      const data = processArenaAgentPageHtml(await response.text());
       return {
         fetched_at_epoch_seconds: data.length > 0 ? nowEpochSeconds() : null,
         data,
@@ -62,12 +63,13 @@ export async function getAgentArenaStats(
   }
 }
 
-export function processAgentArenaPageHtml(pageHtml: string): AgentArenaModelScoreRow[] {
+/** Join rolling task costs by contender identity; missing costs never discard quality evidence. */
+export function processArenaAgentPageHtml(pageHtml: string): ArenaAgentModelScoreRow[] {
   const corpus = extractNextFlightCorpus(pageHtml);
   for (
-    let startIndex = corpus.indexOf(AGENT_ARENA_OBJECT_MARKER);
+    let startIndex = corpus.indexOf(ARENA_AGENT_OBJECT_MARKER);
     startIndex !== -1;
-    startIndex = corpus.indexOf(AGENT_ARENA_OBJECT_MARKER, startIndex + 1)
+    startIndex = corpus.indexOf(ARENA_AGENT_OBJECT_MARKER, startIndex + 1)
   ) {
     const endIndex = findObjectEnd(corpus, startIndex);
     if (endIndex === -1) {
@@ -79,8 +81,18 @@ export function processAgentArenaPageHtml(pageHtml: string): AgentArenaModelScor
     }
     const snapshot = asRecord(payload.snapshot);
     const rows = Array.isArray(snapshot.rows) ? snapshot.rows : [];
+    const costStats = asRecord(payload.costStats);
+    const costsByContender = new Map(
+      (Array.isArray(costStats.entries) ? costStats.entries : []).map((value) => {
+        const cost = asRecord(value);
+        return [stringValue(cost.contenderName), cost] as const;
+      }),
+    );
     const parsedRows = rows.flatMap((row) => {
-      const parsed = agentArenaRow(row);
+      const parsed = arenaAgentRow(
+        row,
+        costsByContender.get(stringValue(asRecord(row).contenderName)),
+      );
       return parsed == null ? [] : [parsed];
     });
     if (parsedRows.length > 0) {
@@ -90,7 +102,7 @@ export function processAgentArenaPageHtml(pageHtml: string): AgentArenaModelScor
   return [];
 }
 
-function agentArenaRow(value: unknown): AgentArenaModelScoreRow | null {
+function arenaAgentRow(value: unknown, costValue: unknown): ArenaAgentModelScoreRow | null {
   const row = asRecord(value);
   const avgScore = asRecord(row.avgScore);
   const rank = integerValue(row.rank);
@@ -108,6 +120,8 @@ function agentArenaRow(value: unknown): AgentArenaModelScoreRow | null {
     return null;
   }
   const { baseModel, reasoningEffort } = benchmarkModelEffort(model);
+  const cost = asRecord(costValue);
+  const pricedSampleCount = integerValue(cost.pricedSampleCount);
   return {
     rank,
     contender_name: contenderName,
@@ -116,10 +130,16 @@ function agentArenaRow(value: unknown): AgentArenaModelScoreRow | null {
     reasoning_effort: reasoningEffort,
     organization,
     score,
+    cost_per_task_usd: pricedSampleCount === 0 ? null : nonNegativeNumber(cost.medianUsd),
   };
 }
 
 function integerValue(value: unknown): number | null {
-  const number = asFiniteNumber(value);
+  const number = nonNegativeNumber(value);
   return number != null && Number.isInteger(number) ? number : null;
+}
+
+function nonNegativeNumber(value: unknown): number | null {
+  const number = asFiniteNumber(value);
+  return number != null && number >= 0 ? number : null;
 }

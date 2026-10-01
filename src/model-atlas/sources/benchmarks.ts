@@ -9,9 +9,9 @@ import {
 } from "../benchmarks/registry";
 import type { SnapshotTableName } from "../database/tables";
 import type { DatabaseWriter } from "../database/writers/database";
-import { agentArenaRuntime } from "./agent-arena/runtime";
 import { agentsLastExamRuntime } from "./agents-last-exam/runtime";
 import { aleBenchRuntime } from "./ale-bench/runtime";
+import { arenaAgentRuntime } from "./arena/agent-runtime";
 import type { ModelAtlasSourceRows } from "./assembly/source-data";
 import { blueprintBenchRuntime } from "./blueprint-bench/runtime";
 import { deepSWERuntime } from "./deep-swe/runtime";
@@ -26,9 +26,9 @@ import { vendingBench2Runtime } from "./vending-bench-2/runtime";
 
 /** Standalone source runtimes share orchestration while retaining independent implementations. */
 const STANDALONE_BENCHMARK_RUNTIMES = {
-  agent_arena: agentArenaRuntime,
   agents_last_exam: agentsLastExamRuntime,
   ale_bench: aleBenchRuntime,
+  arena_agent: arenaAgentRuntime,
   blueprint_bench_2: blueprintBenchRuntime,
   deep_swe: deepSWERuntime,
   frontier_code: frontierCodeRuntime,

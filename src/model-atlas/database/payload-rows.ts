@@ -87,10 +87,6 @@ const BENCHMARK_OBSERVATION_PAYLOAD_COLUMNS = [
 
 /** Standalone benchmarks retain distinct row contracts behind one catalog-keyed payload registry. */
 const STANDALONE_BENCHMARK_PAYLOAD_ROW_GROUPS = {
-  agent_arena: payloadRowGroup("agentArenaRows", SNAPSHOT_TABLES.agent_arena, "row_index", {
-    columns: ["contender_name", "model", "base_model", "reasoning_effort", "organization", "score"],
-    optional: true,
-  }),
   agents_last_exam: payloadRowGroup(
     "agentsLastExamRows",
     SNAPSHOT_TABLES.agents_last_exam,
@@ -98,6 +94,18 @@ const STANDALONE_BENCHMARK_PAYLOAD_ROW_GROUPS = {
     { columns: ["model", "row_kind", "median_score", "mean_score"] },
   ),
   ale_bench: payloadRowGroup("aleBenchRows", SNAPSHOT_TABLES.ale_bench, "row_index", {
+    optional: true,
+  }),
+  arena_agent: payloadRowGroup("arenaAgentRows", SNAPSHOT_TABLES.arena_agent, "row_index", {
+    columns: [
+      "contender_name",
+      "model",
+      "base_model",
+      "reasoning_effort",
+      "organization",
+      "score",
+      "cost_per_task_usd",
+    ],
     optional: true,
   }),
   blueprint_bench_2: payloadRowGroup(

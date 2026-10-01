@@ -39,7 +39,7 @@ type BenchmarkObservationDbRows = {
 
 type BenchmarkDbRows = BenchmarkObservationDbRows & {
   artificialAnalysisRows: readonly DbBenchmarkRow[];
-  agentArenaRows: readonly DbBenchmarkRow[];
+  arenaAgentRows: readonly DbBenchmarkRow[];
   agentsLastExamRows: readonly DbBenchmarkRow[];
   aleBenchRows: readonly DbBenchmarkRow[];
   blueprintBenchRows: readonly DbBenchmarkRow[];
@@ -113,16 +113,6 @@ type StandaloneBenchmarkAdapter = (rows: BenchmarkDbRows) => BenchmarkRowDraft[]
 
 /** Persisted standalone row adapters mirror the live standalone registry without sharing row schemas. */
 const STANDALONE_BENCHMARK_ADAPTERS = {
-  agent_arena: (rows) =>
-    rows.agentArenaRows.map((row) => ({
-      key: "agent_arena",
-      id: stringValue(row.contender_name),
-      identity: stringValue(row.base_model),
-      label: stringValue(row.model),
-      provider: stringValue(row.organization),
-      reasoningEffort: row.reasoning_effort,
-      value: row.score,
-    })),
   agents_last_exam: (rows) =>
     dbSourceDrafts({
       key: "agents_last_exam",
@@ -145,6 +135,16 @@ const STANDALONE_BENCHMARK_ADAPTERS = {
           ]
         : [],
     ),
+  arena_agent: (rows) =>
+    rows.arenaAgentRows.map((row) => ({
+      key: "arena_agent",
+      id: stringValue(row.contender_name),
+      identity: stringValue(row.base_model),
+      label: stringValue(row.model),
+      provider: stringValue(row.organization),
+      reasoningEffort: row.reasoning_effort,
+      value: row.score,
+    })),
   blueprint_bench_2: (rows) =>
     dbSourceDrafts({
       key: "blueprint_bench_2",

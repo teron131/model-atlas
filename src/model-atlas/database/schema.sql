@@ -180,7 +180,7 @@ CREATE TABLE IF NOT EXISTS openrouter_raw_rows (
 	PRIMARY KEY (row_index)
 );
 
-CREATE TABLE IF NOT EXISTS agent_arena_raw_rows (
+CREATE TABLE IF NOT EXISTS arena_agent_raw_rows (
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,
 	url TEXT NOT NULL,
@@ -191,6 +191,7 @@ CREATE TABLE IF NOT EXISTS agent_arena_raw_rows (
 	reasoning_effort TEXT,
 	organization TEXT NOT NULL,
 	score REAL NOT NULL,
+	cost_per_task_usd REAL,
 	PRIMARY KEY (row_index)
 );
 
