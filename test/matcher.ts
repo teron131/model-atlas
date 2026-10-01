@@ -1144,7 +1144,7 @@ function modelStatsSourceData(
         modelsDevModels.map((modelsDevModel) => [modelsDevModel.model_id, modelsDevModel]),
       ),
     },
-    agentArena: {
+    arenaAgent: {
       rows: [],
       rowsByModelName: new Map(),
     },
@@ -1238,6 +1238,7 @@ function modelStatsSourceData(
     },
     vibeCode: { rows: [], rowsByModelName: new Map() },
     voxelBench: { rows: [], rowsByModelName: new Map() },
+    arenaWebDev: { rows: [], rowsByModelName: new Map() },
     weirdMl: { rows: [], rowsByModelName: new Map() },
   };
 }

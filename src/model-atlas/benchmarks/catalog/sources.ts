@@ -57,6 +57,16 @@ export const BENCHMARK_STANDARD_SOURCES = {
     sourceDataKey: "arcAgi3",
     sourceRowsKey: "arcAgi3Rows",
   },
+  arena_webdev: {
+    group: "standalone",
+    id: "arena",
+    loader: {
+      kind: "arena_webdev",
+      sourceUrl: "https://arena.ai/leaderboard/code/webdev",
+    },
+    sourceDataKey: "arenaWebDev",
+    sourceRowsKey: "arenaWebDevRows",
+  },
   automation_bench: {
     group: "standalone",
     id: "zapier",
@@ -535,16 +545,6 @@ export const BENCHMARK_EXTENDED_SOURCES = {
       },
     ],
   },
-  agent_arena: {
-    inputs: [
-      {
-        group: "standalone",
-        id: "agent_arena",
-        roles: ["observation"],
-        runtime: { key: "agent_arena", publicRows: true },
-      },
-    ],
-  },
   agents_last_exam: {
     inputs: [
       {
@@ -580,6 +580,16 @@ export const BENCHMARK_EXTENDED_SOURCES = {
             url: "https://artificialanalysis.ai/evaluations/aa-analyst-agent",
           },
         ],
+      },
+    ],
+  },
+  arena_agent: {
+    inputs: [
+      {
+        group: "standalone",
+        id: "arena_agent",
+        roles: ["observation", "resource"],
+        runtime: { key: "arena_agent", publicRows: true },
       },
     ],
   },

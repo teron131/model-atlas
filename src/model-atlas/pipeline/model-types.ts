@@ -4,9 +4,9 @@ import type { BenchmarkObservationRow } from "../benchmarks/observation";
 import type { BenchmarkKey, BenchmarkResourceKey } from "../benchmarks/registry";
 import type { NumberOrNull } from "../math-utils";
 import type { JsonObject } from "../runtime";
-import type { AgentArenaModelScoreRow } from "../sources/agent-arena/leaderboard";
 import type { AgentsLastExamModelScoreRow } from "../sources/agents-last-exam/leaderboard";
 import type { AleBenchModelScoreRow } from "../sources/ale-bench/leaderboard";
+import type { ArenaAgentModelScoreRow } from "../sources/arena/agent";
 import type { ArtificialAnalysisBenchmarkResourceRow } from "../sources/artificial-analysis/benchmark-resources";
 import type { DeepSWEModelScoreRow } from "../sources/deep-swe/leaderboard";
 import type { FrontierCodeModelEffortRow } from "../sources/frontier-code/leaderboard";
@@ -94,7 +94,7 @@ export type ModelAtlasBenchmarks = ModelAtlasBenchmarkValues &
 type ScoringSourceRow =
   | JsonObject
   | ArtificialAnalysisBenchmarkResourceRow
-  | AgentArenaModelScoreRow
+  | ArenaAgentModelScoreRow
   | AgentsLastExamModelScoreRow
   | AleBenchModelScoreRow
   | BenchmarkObservationRow
@@ -105,7 +105,7 @@ type ScoringSourceRow =
 
 export type ModelAtlasScoringSources =
   | (Record<string, ScoringSourceRow | null | undefined> & {
-      agent_arena?: AgentArenaModelScoreRow | null;
+      arena_agent?: ArenaAgentModelScoreRow | null;
       agents_last_exam?: AgentsLastExamModelScoreRow | null;
       analyst_agent?: ArtificialAnalysisBenchmarkResourceRow | null;
       apex_agents?: BenchmarkObservationRow | null;

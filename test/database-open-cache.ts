@@ -65,7 +65,7 @@ assert.equal(
 );
 const processedModelShape = schemaTableShapes(schemaSql).get("models");
 assert.equal(
-  processedModelShape?.has("agent_arena"),
+  processedModelShape?.has("arena_agent"),
   false,
   "Benchmark values should live in normalized benchmark rows",
 );

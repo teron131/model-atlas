@@ -25,11 +25,6 @@ const BENCHMARK_OUTPUT_PER_TASK_RESOURCE = {
 
 export const BENCHMARK_SCORING_WEIGHTS = {
   aa_intelligence_index: INDEX_SCORING_WEIGHT,
-  agent_arena: {
-    group: "frontier",
-    benchmarkImportance: 1,
-    dimensionLoadings: { intelligence: 0, agentic: 1 },
-  },
   agents_last_exam: {
     group: "frontier",
     benchmarkImportance: 1,
@@ -64,6 +59,16 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     group: "frontier",
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
+  },
+  arena_agent: {
+    group: "frontier",
+    benchmarkImportance: 1,
+    dimensionLoadings: { intelligence: 0, agentic: 1 },
+  },
+  arena_webdev: {
+    group: "baseline",
+    benchmarkImportance: 1,
+    dimensionLoadings: { intelligence: 0, agentic: 1 },
   },
   automation_bench: {
     group: "frontier",
@@ -362,6 +367,7 @@ export const BENCHMARK_RESOURCE_POLICIES = {
   analyst_agent: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
   arc_agi_2: BENCHMARK_PER_TASK_RESOURCE,
   arc_agi_3: BENCHMARK_PER_TASK_RESOURCE,
+  arena_agent: BENCHMARK_PER_TASK_RESOURCE,
   automation_bench: BENCHMARK_PER_TASK_RESOURCE,
   briefcase: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
   critpt: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,

@@ -215,7 +215,7 @@ const graphKeys = [
   "gdp_pdf",
   "critpt",
 ];
-const allEvidenceKeys = [...graphKeys, "agent_arena", "vending_bench_2"];
+const allEvidenceKeys = [...graphKeys, "arena_agent", "vending_bench_2"];
 const restrictedRows = frontierBenchmarkRows(
   [{ ...low, benchmarks: Object.fromEntries(allEvidenceKeys.map((key) => [key, 0.5])) }],
   Object.fromEntries(allEvidenceKeys.map((key) => [key, { ...policy, group: "frontier" }])),

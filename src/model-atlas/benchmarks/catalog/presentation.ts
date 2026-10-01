@@ -18,14 +18,6 @@ export const BENCHMARK_TOOLTIPS = {
       ["Role", "broad intelligence index"],
     ],
   },
-  agent_arena: {
-    title: "Agent Arena",
-    body: "Randomized Agent Mode sessions measuring task success, user feedback, steerability, and tool reliability by orchestrator model.",
-    rows: [
-      ["Source", "Arena"],
-      ["Role", "real-world agent performance"],
-    ],
-  },
   agents_last_exam: {
     title: "Agents' Last Exam",
     body: "Software and professional tasks with credit for complete solutions and partial progress.",
@@ -88,6 +80,25 @@ export const BENCHMARK_TOOLTIPS = {
       ["Metric", "human-relative action efficiency"],
       ["Harness", "mean of eligible Standard and Provider Adapter runs"],
       ["Role", "interactive fluid reasoning"],
+    ],
+  },
+  arena_agent: {
+    title: "Arena Agent",
+    body: "Randomized Agent Mode sessions measuring task success, user feedback, steerability, and tool reliability by orchestrator model.",
+    rows: [
+      ["Source", "Arena"],
+      ["Role", "real-world agent performance"],
+    ],
+  },
+  arena_webdev: {
+    title: "Arena WebDev",
+    body: "Build interactive web apps judged in human comparisons for functionality, usability, design, and fidelity. A baseline product-construction signal from evaluated model and harness configurations.",
+    rows: [
+      ["Source", "Arena"],
+      ["Split", "WebDev Overall"],
+      ["Metric", "human preference rating"],
+      ["Scoring", "observed-range normalization to 0–100"],
+      ["Role", "web application construction"],
     ],
   },
   automation_bench: {
@@ -606,7 +617,6 @@ export const BENCHMARK_TOOLTIPS = {
 
 export const BENCHMARK_LABELS = {
   aa_intelligence_index: "Artificial Analysis Intelligence Index",
-  agent_arena: "Agent Arena",
   agents_last_exam: "Agents' Last Exam",
   ale_bench: "ALE-Bench",
   analyst_agent: "AnalystAgent",
@@ -614,6 +624,8 @@ export const BENCHMARK_LABELS = {
   apex_swe: "APEX-SWE",
   arc_agi_2: "ARC-AGI-2",
   arc_agi_3: "ARC-AGI-3",
+  arena_agent: "Arena Agent",
+  arena_webdev: "Arena WebDev",
   automation_bench: "AutomationBench",
   biomysterybench: "BioMysteryBench",
   blueprint_bench_2: "Blueprint-Bench 2",
@@ -679,13 +691,13 @@ export const BENCHMARK_SCORING_LABELS: Partial<Record<BenchmarkKey, string>> = {
 };
 
 const FRONTIER_BENCHMARK_DISPLAY_ORDER = [
-  "agent_arena",
   "agents_last_exam",
   "ale_bench",
   "analyst_agent",
   "apex_agents",
   "arc_agi_2",
   "arc_agi_3",
+  "arena_agent",
   "automation_bench",
   "biomysterybench",
   "blueprint_bench_2",
@@ -723,6 +735,7 @@ const FRONTIER_BENCHMARK_DISPLAY_ORDER = [
 
 const BASELINE_BENCHMARK_DISPLAY_ORDER = [
   "apex_swe",
+  "arena_webdev",
   "browsecomp",
   "chess_puzzles",
   "enterprisebench_corecraft",
@@ -866,6 +879,23 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
         details: [
           ["Source", "ARC Prize"],
           ["Metric", "cost per environment"],
+        ],
+      },
+    },
+  ],
+  arena_agent: [
+    {
+      key: "arenaAgentCost",
+      metric: "cost",
+      direction: "ascending",
+      label: "Agent$",
+      tooltip: {
+        title: "Arena Agent cost ↓",
+        body: "Median USD cost per task from real Agent Mode sessions over the last 14 days, using at most the first three tasks per session.",
+        details: [
+          ["Source", "Arena"],
+          ["Metric", "cost per task (P50)"],
+          ["Workload", "real user tasks"],
         ],
       },
     },
@@ -1210,12 +1240,6 @@ export const BENCHMARK_COLUMNS = {
     format: "number",
     defaultSort: "descending",
   },
-  agent_arena: {
-    key: "agentArena",
-    label: "Arena",
-    format: "score",
-    defaultSort: "descending",
-  },
   agents_last_exam: {
     key: "agentsLastExam",
     label: "ALE",
@@ -1256,6 +1280,18 @@ export const BENCHMARK_COLUMNS = {
     key: "arcAgi3",
     label: "AGI-3",
     format: "percent",
+    defaultSort: "descending",
+  },
+  arena_agent: {
+    key: "arenaAgent",
+    label: "Agent",
+    format: "score",
+    defaultSort: "descending",
+  },
+  arena_webdev: {
+    key: "arenaWebDev",
+    label: "WebDev",
+    format: "score",
     defaultSort: "descending",
   },
   automation_bench: {

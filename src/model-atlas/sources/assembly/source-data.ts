@@ -20,10 +20,6 @@ import {
   buildBenchmarkModelMap,
   modelSlugFromModelId,
 } from "../../identity/normalization";
-import type {
-  AgentArenaModelScoreRow,
-  AgentArenaRowsByModelName,
-} from "../agent-arena/leaderboard";
 import {
   type AgentsLastExamModelScoreRow,
   type AgentsLastExamRowsByModelName,
@@ -36,6 +32,7 @@ import {
   fuseAleBenchRows,
   summarizeAleBenchSourceDefaultRows,
 } from "../ale-bench/leaderboard";
+import type { ArenaAgentModelScoreRow, ArenaAgentRowsByModelName } from "../arena/agent";
 import {
   type ArtificialAnalysisBenchmarkResourceLookup,
   type ArtificialAnalysisBenchmarkResourceRow,
@@ -127,7 +124,7 @@ export type ModelAtlasSourceData = BenchmarkObservationData & {
     rows: ModelsDevFlatModel[];
     byId: Map<string, ModelsDevFlatModel>;
   };
-  agentArena: IndexedSourceRows<AgentArenaModelScoreRow, AgentArenaRowsByModelName>;
+  arenaAgent: IndexedSourceRows<ArenaAgentModelScoreRow, ArenaAgentRowsByModelName>;
   agentsLastExam: IndexedSourceRows<AgentsLastExamModelScoreRow, AgentsLastExamRowsByModelName>;
   aleBench: {
     rows: AleBenchSourceRow[];
@@ -154,7 +151,7 @@ export type ModelAtlasSourceRows = BenchmarkObservationRows & {
   artificialAnalysisRows: ModelAtlasSourceData["artificialAnalysis"]["rows"];
   artificialAnalysisBenchmarkResourceRows: ModelAtlasSourceData["artificialAnalysisBenchmarkResources"]["rows"];
   modelsDevModels: ModelAtlasSourceData["modelsDev"]["rows"];
-  agentArenaRows: ModelAtlasSourceData["agentArena"]["rows"];
+  arenaAgentRows: ModelAtlasSourceData["arenaAgent"]["rows"];
   agentsLastExamRows: ModelAtlasSourceData["agentsLastExam"]["rows"];
   aleBenchConfigurationRows: AleBenchSourceRow[];
   blueprintBenchRows: ModelAtlasSourceData["blueprintBench"]["rows"];
@@ -205,9 +202,9 @@ export function buildSourceData(rows: ModelAtlasSourceRows): ModelAtlasSourceDat
       ),
     },
     ...benchmarkObservationData,
-    agentArena: {
-      rows: rows.agentArenaRows,
-      rowsByModelName: buildBenchmarkModelMap(rows.agentArenaRows),
+    arenaAgent: {
+      rows: rows.arenaAgentRows,
+      rowsByModelName: buildBenchmarkModelMap(rows.arenaAgentRows),
     },
     agentsLastExam: {
       rows: rows.agentsLastExamRows,

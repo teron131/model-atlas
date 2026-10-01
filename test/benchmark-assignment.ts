@@ -21,8 +21,8 @@ import {
   versionCandidateBenchmarkData,
 } from "../src/model-atlas/pipeline/selection/candidate";
 import { prepareVersionReplacementBenchmarkRows } from "../src/model-atlas/pipeline/selection/version-replacement";
-import type { AgentArenaModelScoreRow } from "../src/model-atlas/sources/agent-arena/leaderboard";
 import type { AleBenchModelScoreRow } from "../src/model-atlas/sources/ale-bench/leaderboard";
+import type { ArenaAgentModelScoreRow } from "../src/model-atlas/sources/arena/agent";
 import type { ArtificialAnalysisBenchmarkResourceRow } from "../src/model-atlas/sources/artificial-analysis/benchmark-resources";
 import { buildDeepSWEMap } from "../src/model-atlas/sources/deep-swe/leaderboard";
 import type { FrontierCodeModelEffortRow } from "../src/model-atlas/sources/frontier-code/leaderboard";
@@ -43,7 +43,7 @@ const deepSWERow = {
   mean_duration_seconds: 300,
   mean_output_tokens: 12_000,
 };
-const agentArenaRow: AgentArenaModelScoreRow = {
+const arenaAgentRow: ArenaAgentModelScoreRow = {
   rank: 1,
   contender_name: "contenders/example-model-agent",
   model: "Example Model",
@@ -51,6 +51,7 @@ const agentArenaRow: AgentArenaModelScoreRow = {
   reasoning_effort: null,
   organization: "Test",
   score: 0.14,
+  cost_per_task_usd: 1.57,
 };
 const aleStatistics = (mean: number) => ({
   all: { mean, median: mean - 1, min: mean - 2, max: mean + 2, stdev: 1 },
@@ -250,8 +251,8 @@ const lookups = {
     observationLookup: resourceLookup,
     sourceDefaultLookup: resourceLookup,
   },
-  agentArena: {
-    rowsByModelName: new Map([["example-model", agentArenaRow]]),
+  arenaAgent: {
+    rowsByModelName: new Map([["example-model", arenaAgentRow]]),
   },
   agentsLastExam: {
     rowsByModelName: emptyLookup(),
@@ -333,6 +334,7 @@ const lookups = {
   },
   vibeCode: { rowsByModelName: emptyLookup() },
   voxelBench: { rowsByModelName: emptyLookup() },
+  arenaWebDev: { rowsByModelName: emptyLookup() },
   weirdMl: { rowsByModelName: new Map() },
 } satisfies BenchmarkAssignmentLookups;
 
@@ -340,7 +342,7 @@ const observationAssignment = buildObservationBenchmarks(["Example Model"], look
   hle: 0.4,
 });
 assert.deepEqual(observationAssignment.benchmarks, {
-  agent_arena: 0.14,
+  arena_agent: 0.14,
   ale_bench: 700,
   analyst_agent: 0.5,
   briefcase: 0.5,
@@ -379,8 +381,34 @@ const defaultVariantAssignment = buildDefaultVariantBenchmarks(["Example Model"]
   hle: 0.4,
 });
 
+const arenaHighLookups = {
+  ...lookups,
+  arenaAgent: {
+    rowsByModelName: buildBenchmarkModelMap([
+      { ...arenaAgentRow, model: "Example Model (high)", reasoning_effort: "high" },
+    ]),
+  },
+};
+const arenaMaxDefault = buildDefaultVariantBenchmarks(
+  ["Example Model"],
+  arenaHighLookups,
+  {},
+  "max",
+);
+assert.equal(arenaMaxDefault.benchmarks.arena_agent, 0.14);
+assert.equal(buildTaskMetrics(null, arenaMaxDefault.scoringSources)?.arena_agent, undefined);
+const arenaHighDefault = buildDefaultVariantBenchmarks(
+  ["Example Model"],
+  arenaHighLookups,
+  {},
+  "high",
+);
+assert.deepEqual(buildTaskMetrics(null, arenaHighDefault.scoringSources)?.arena_agent, {
+  cost: 1.57,
+});
+
 assert.deepEqual(defaultVariantAssignment.benchmarks, {
-  agent_arena: 0.14,
+  arena_agent: 0.14,
   ale_bench: 700,
   analyst_agent: 0.5,
   apex_agents: 0.4,
@@ -395,7 +423,7 @@ assert.deepEqual(defaultVariantAssignment.benchmarks, {
   vending_bench_2: 9_000,
 });
 assert.deepEqual(defaultVariantAssignment.scoringSources, {
-  agent_arena: agentArenaRow,
+  arena_agent: arenaAgentRow,
   ale_bench: aleBenchRow,
   analyst_agent: analystAgentResourceRow,
   apex_agents: mercorApexRow,
@@ -416,13 +444,13 @@ const effortQualifiedDefault = buildDefaultVariantBenchmarks(
   "max",
 );
 assert.deepEqual(effortQualifiedDefault.benchmarks, {
-  agent_arena: 0.14,
+  arena_agent: 0.14,
   automation_bench: 0.3044,
   chartography: 0.47,
   vending_bench_2: 9_000,
 });
 assert.deepEqual(effortQualifiedDefault.scoringSources, {
-  agent_arena: agentArenaRow,
+  arena_agent: arenaAgentRow,
   automation_bench: automationBenchRow,
   chartography: chartographyRow,
   vending_bench_2: vendingBench2Row,
@@ -447,6 +475,9 @@ assert.equal(
   "a source-only effort must not become an exact result on another effort variant",
 );
 assert.deepEqual(buildTaskMetrics(null, defaultVariantAssignment.scoringSources), {
+  arena_agent: {
+    cost: 1.57,
+  },
   ale_bench: {
     cost: 0.3,
     tokens: 3_000,
@@ -954,10 +985,10 @@ assert.equal(
 
 const effortAwareLookups = {
   ...lookups,
-  agentArena: {
+  arenaAgent: {
     rowsByModelName: buildBenchmarkModelMap([
-      { ...agentArenaRow, model: "Example Model (low)", reasoning_effort: "low", score: 0.1 },
-      { ...agentArenaRow, model: "Example Model (max)", reasoning_effort: "max", score: 0.2 },
+      { ...arenaAgentRow, model: "Example Model (low)", reasoning_effort: "low", score: 0.1 },
+      { ...arenaAgentRow, model: "Example Model (max)", reasoning_effort: "max", score: 0.2 },
     ]),
   },
   vendingBench2: {
@@ -978,7 +1009,7 @@ const effortAwareLookups = {
   },
 };
 const lowerEffort = buildObservationBenchmarks(["Example Model"], effortAwareLookups, {}, "low");
-assert.equal(lowerEffort.benchmarks.agent_arena, 0.1);
+assert.equal(lowerEffort.benchmarks.arena_agent, 0.1);
 assert.equal(lowerEffort.benchmarks.vending_bench_2, 100);
 const unreportedEffort = buildObservationBenchmarks(
   ["Example Model"],
@@ -986,5 +1017,5 @@ const unreportedEffort = buildObservationBenchmarks(
   {},
   "medium",
 );
-for (const key of ["agent_arena", "vending_bench_2"])
+for (const key of ["arena_agent", "vending_bench_2"])
   assert.equal(unreportedEffort.benchmarks[key], undefined);

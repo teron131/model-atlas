@@ -3,12 +3,12 @@
 import type { BenchmarkObservationRow } from "../benchmarks/observation";
 import type { BENCHMARK_OBSERVATION_BINDINGS } from "../benchmarks/registry";
 import type { JsonObject } from "../runtime";
-import type { AgentArenaModelScoreRow } from "./agent-arena/leaderboard";
 import type {
   AgentsLastExamHarnessRow,
   AgentsLastExamModelScoreRow,
 } from "./agents-last-exam/leaderboard";
 import type { AleBenchSourceRow } from "./ale-bench/leaderboard";
+import type { ArenaAgentModelScoreRow } from "./arena/agent";
 import type { ArtificialAnalysisBenchmarkResourceRow } from "./artificial-analysis/benchmark-resources";
 import type { BlueprintBenchModelScoreRow } from "./blueprint-bench/leaderboard";
 import type { DeepSWERawLeaderboardRow } from "./deep-swe/leaderboard";
@@ -81,7 +81,7 @@ export type SourceSnapshots = BenchmarkObservationSnapshotRows & {
   modelsDevModels: ModelsDevFlatModel[];
   modelsDevFetchedAt: number | null;
   modelsDevStatusCode: number | null;
-  agentArenaModelScoreRows: AgentArenaModelScoreRow[];
+  arenaAgentModelScoreRows: ArenaAgentModelScoreRow[];
   agentsLastExamRows: AgentsLastExamHarnessRow[];
   agentsLastExamModelScores: AgentsLastExamModelScoreRow[];
   aleBenchConfigurationRows: AleBenchSourceRow[];
@@ -99,7 +99,7 @@ export type SourceSnapshots = BenchmarkObservationSnapshotRows & {
   fetchedAt: BenchmarkObservationFetchedAt & {
     artificialAnalysis: number | null;
     artificialAnalysisBenchmarkResources: number | null;
-    agentArena: number | null;
+    arenaAgent: number | null;
     agentsLastExam: number | null;
     aleBench: number | null;
     blueprintBench: number | null;

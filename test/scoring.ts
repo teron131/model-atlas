@@ -92,10 +92,10 @@ function assertThrowsWithMessage(action: () => void, expectedMessage: string): v
 }
 
 const rawAgentBenchmarkRanges = new Map([
-  ["agent_arena", minMaxRange([-0.15305257102824063, 0, 0.1394124051275084])],
+  ["arena_agent", minMaxRange([-0.15305257102824063, 0, 0.1394124051275084])],
   ["vending_bench_2", minMaxRange([-31.18399999999995, 9_000, 10_936.763333333334])],
 ]);
-assertClose(normalizedMetricValue(rawAgentBenchmarkRanges, "agent_arena", 0), 52.3319);
+assertClose(normalizedMetricValue(rawAgentBenchmarkRanges, "arena_agent", 0), 52.3319);
 assertClose(normalizedMetricValue(rawAgentBenchmarkRanges, "vending_bench_2", 9_000), 82.3416);
 assertClose(evidenceRetentionFactor(1, 1, 3), 0);
 assertClose(evidenceRetentionFactor(2, 1, 3), 0.5);
@@ -228,6 +228,7 @@ assert.deepEqual(
     "analyst_agent",
     "arc_agi_2",
     "arc_agi_3",
+    "arena_agent",
     "automation_bench",
     "briefcase",
     "critpt",

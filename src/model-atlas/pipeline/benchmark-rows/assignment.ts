@@ -46,7 +46,7 @@ export type BenchmarkAssignmentLookups = BenchmarkObservationLookups & {
     ModelAtlasSourceData["artificialAnalysisBenchmarkResources"],
     "observationLookup" | "sourceDefaultLookup"
   >;
-  agentArena: Pick<ModelAtlasSourceData["agentArena"], "rowsByModelName">;
+  arenaAgent: Pick<ModelAtlasSourceData["arenaAgent"], "rowsByModelName">;
   agentsLastExam: Pick<ModelAtlasSourceData["agentsLastExam"], "rowsByModelName">;
   aleBench: Pick<ModelAtlasSourceData["aleBench"], "rowsByModelName">;
   blueprintBench: Pick<ModelAtlasSourceData["blueprintBench"], "rowsByModelName">;
@@ -291,22 +291,6 @@ const addTerminalBench4: StandaloneBenchmarkOperation = ({
 
 /** Standalone assignment adapters keep benchmark-specific matching behind one exhaustive runtime registry. */
 const STANDALONE_BENCHMARK_ADAPTERS = {
-  agent_arena: {
-    defaultVariant: ({ assignedBenchmarks, lookups, modelNameCandidates }) => {
-      const row = findBaseModelSourceRow(modelNameCandidates, lookups.agentArena.rowsByModelName);
-      if (row != null) {
-        assignedBenchmarks.benchmarks.agent_arena = row.score;
-        assignedBenchmarks.scoringSources.agent_arena = row;
-      }
-    },
-    observation: ({ assignedBenchmarks, lookups, resolveSourceRow }) => {
-      const row = resolveSourceRow(lookups.agentArena.rowsByModelName);
-      if (row != null) {
-        assignedBenchmarks.benchmarks.agent_arena = row.score;
-        assignedBenchmarks.scoringSources.agent_arena = row;
-      }
-    },
-  },
   agents_last_exam: {
     defaultVariant: ({ assignedBenchmarks, lookups, modelNameCandidates }) => {
       const row = findAgentsLastExamModelScore(
@@ -322,6 +306,27 @@ const STANDALONE_BENCHMARK_ADAPTERS = {
   ale_bench: {
     defaultVariant: addAleBench,
     observation: addAleBench,
+  },
+  arena_agent: {
+    defaultVariant: ({ assignedBenchmarks, lookups, modelNameCandidates, resolveSourceRow }) => {
+      const row = findBaseModelSourceRow(modelNameCandidates, lookups.arenaAgent.rowsByModelName);
+      if (row != null) {
+        assignedBenchmarks.benchmarks.arena_agent = row.score;
+        const resourceRow = resolveSourceRow(lookups.arenaAgent.rowsByModelName);
+        // Model-level quality fallback does not make another effort's task cost an observation.
+        assignedBenchmarks.scoringSources.arena_agent =
+          resourceRow?.contender_name === row.contender_name
+            ? row
+            : { ...row, cost_per_task_usd: null };
+      }
+    },
+    observation: ({ assignedBenchmarks, lookups, resolveSourceRow }) => {
+      const row = resolveSourceRow(lookups.arenaAgent.rowsByModelName);
+      if (row != null) {
+        assignedBenchmarks.benchmarks.arena_agent = row.score;
+        assignedBenchmarks.scoringSources.arena_agent = row;
+      }
+    },
   },
   blueprint_bench_2: {
     defaultVariant: ({ assignedBenchmarks, lookups, modelNameCandidates }) => {

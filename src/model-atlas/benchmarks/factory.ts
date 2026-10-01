@@ -44,10 +44,12 @@ export type BenchmarkObservationLoader =
       sourceUrl: string;
       datasetId: "v2_Semi_Private" | "v3_Semi_Private";
     }
+  | { kind: "arena_webdev"; sourceUrl: string }
   | {
       kind: "artificial_analysis_omniscience";
       sourceUrl: string;
     }
+  | { kind: "automation_bench"; sourceUrl: string }
   | { kind: "cais_dashboard"; sourceUrl: string }
   | { kind: "epoch_capabilities_index"; sourceUrl: string }
   | {
@@ -74,7 +76,6 @@ export type BenchmarkObservationLoader =
   | { kind: "vals_rsi"; sourceUrl: string }
   | { kind: "voxelbench"; sourceUrl: string }
   | { kind: "weirdml" }
-  | { kind: "automation_bench"; sourceUrl: string }
   | {
       kind: "zeroeval";
       sourceUrl: string;
