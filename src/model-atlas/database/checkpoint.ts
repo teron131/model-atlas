@@ -1,5 +1,6 @@
 /** Derive checkpoint rows from cached source evidence and preserve benchmark, refresh, and model-change history. */
 
+import { BENCHMARK_OBSERVATION_BINDINGS } from "../benchmarks/registry";
 import { BENCHMARK_VERSION_BASELINE_DATE, STAGE_CONFIG } from "../config";
 import { deriveModelStats } from "../pipeline/derivation";
 import { taskMetricVersionValue } from "../pipeline/selection/candidate";
@@ -8,13 +9,13 @@ import {
   insertArtificialAnalysisBenchmarkResourceRawRows,
   insertArtificialAnalysisRawModels,
 } from "../sources/artificial-analysis/write";
-import { BENCHMARK_RAW_WRITERS } from "../sources/benchmarks";
+import { buildSourceData, type ModelAtlasSourceData } from "../sources/assembly";
+import { BENCHMARK_RAW_WRITERS, benchmarkSourceRowsFromSnapshots } from "../sources/benchmarks";
 import { insertModelsDevRawModels } from "../sources/models-dev/write";
 import type { OpenRouterSourcePayload } from "../sources/openrouter";
 import { insertOpenRouterRawRows } from "../sources/openrouter/write";
 import type { RawSourceName } from "../sources/registry";
 import { buildSourceHealth } from "../sources/snapshots/policy";
-import { cachedSourceDataFromSnapshots } from "../sources/snapshots/source-data";
 import type {
   ModelAtlasSourceHealth,
   RawSourceCacheStatus,
@@ -31,6 +32,7 @@ import type { ModelAtlasModel, ModelAtlasPayload } from "../stats/types";
 import type { CapabilityState } from "../timeline/capability";
 import { buildDebugTraceRows, type DebugTraceRow, insertDebugTraceRows } from "./debug-trace";
 import { SNAPSHOT_TABLES, type SnapshotTableName } from "./tables";
+import type { DatabaseWriter } from "./writers/database";
 import {
   insertBenchmarkVersionLog,
   insertModelBenchmarks,
@@ -38,10 +40,7 @@ import {
   insertModelScoreChanges,
   insertModelTaskMetrics,
   insertRefreshRuns,
-  insertSourceHealth,
-  insertSourceQuarantines,
-} from "./writers";
-import type { DatabaseWriter } from "./writers/database";
+} from "./writers/models";
 
 type BenchmarkVersionLogRow = {
   model_id: string;
@@ -162,7 +161,7 @@ export async function deriveDatabaseSnapshot(
   const observedDate = new Date(startedAtEpochSeconds * 1000).toISOString().slice(0, 10);
   const baselineDate = versioning.baselineDate ?? BENCHMARK_VERSION_BASELINE_DATE;
   const previousModels = versioning.previousPayload?.models ?? [];
-  const sourceData = cachedSourceDataFromSnapshots(snapshots);
+  const sourceData = sourceDataFromSnapshots(snapshots);
   const {
     capabilityState,
     matchDiagnostics,
@@ -227,6 +226,25 @@ export async function deriveDatabaseSnapshot(
   };
 }
 
+/** Adapt restored checkpoint rows into normalized source lookups without fetching external pages. */
+function sourceDataFromSnapshots(snapshots: SourceSnapshots): ModelAtlasSourceData {
+  type BenchmarkObservationRowsKey =
+    (typeof BENCHMARK_OBSERVATION_BINDINGS)[number]["sourceRowsKey"];
+  const benchmarkObservationRows = Object.fromEntries(
+    BENCHMARK_OBSERVATION_BINDINGS.map((binding) => [
+      binding.sourceRowsKey,
+      snapshots[binding.sourceRowsKey],
+    ]),
+  ) as Pick<SourceSnapshots, BenchmarkObservationRowsKey>;
+  return buildSourceData({
+    artificialAnalysisRows: snapshots.artificialAnalysisSelectedRows,
+    artificialAnalysisBenchmarkResourceRows: snapshots.artificialAnalysisBenchmarkResourceRows,
+    modelsDevModels: snapshots.modelsDevModels,
+    ...benchmarkSourceRowsFromSnapshots(snapshots),
+    ...benchmarkObservationRows,
+  });
+}
+
 /** Replace current evidence and model rows, append audit history, and update freshness inside the caller's transaction. */
 export function writeCheckpoint(db: DatabaseWriter, rows: DatabaseSnapshotRows): void {
   for (const { table } of SNAPSHOT_REPLACE_WRITERS) {
@@ -239,6 +257,47 @@ export function writeCheckpoint(db: DatabaseWriter, rows: DatabaseSnapshotRows):
   db.prepare("INSERT INTO snapshot_metadata (updated_at_epoch_seconds) VALUES (?)").run(
     nowEpochSeconds(),
   );
+}
+
+/** Persist source quarantines as part of the checkpoint's existing replacement transaction. */
+function insertSourceQuarantines(db: DatabaseWriter, snapshots: SourceSnapshots): void {
+  const statement = db.prepare(`
+		INSERT INTO source_quarantines (
+			source, row_key, row_label, missing_from_source_since_epoch_seconds
+		) VALUES (?, ?, ?, ?)
+	`);
+  for (const row of snapshots.sourceRowStates) {
+    if (row.status !== "quarantined_missing_from_source") {
+      continue;
+    }
+    statement.run(
+      row.source,
+      row.row_key,
+      row.row_label,
+      row.missing_from_source_since_epoch_seconds,
+    );
+  }
+}
+
+/** Keep source-health row ordering aligned with the checkpoint's source registry. */
+function insertSourceHealth(db: DatabaseWriter, sourceHealth: ModelAtlasSourceHealth): void {
+  const statement = db.prepare(`
+		INSERT INTO source_health (
+			row_index, source, status, last_fetch_epoch_seconds,
+			source_input_count, active_row_count, quarantined_row_count
+		) VALUES (?, ?, ?, ?, ?, ?, ?)
+	`);
+  for (const [index, [source, row]] of Object.entries(sourceHealth.sources).entries()) {
+    statement.run(
+      index,
+      source,
+      row.status,
+      row.last_fetch_epoch_seconds,
+      row.source_input_count,
+      row.active_row_count,
+      row.quarantined_row_count,
+    );
+  }
 }
 
 /** Build idempotent baseline, changed, and removal records from adjacent public snapshots. */

@@ -21,8 +21,6 @@ const DASHBOARD_OBSERVATION_METADATA_KEYS = [
 
 export type ModelAtlasJsonView = "score" | "core" | "benchmarks" | "all" | "full" | "dashboard";
 
-export type ModelAtlasLeaderboardRank = number;
-
 type PublicJsonPayload =
   | ScoreJsonPayload
   | CoreJsonPayload
@@ -54,7 +52,7 @@ type ScoreJsonPayload = {
 };
 
 type ScoreJsonModel = {
-  rank: ModelAtlasLeaderboardRank;
+  rank: number;
   id: string | null;
   name: string | null;
   provider: string | null;
@@ -79,7 +77,7 @@ type BenchmarksJsonPayload = {
 };
 
 type BenchmarksJsonModel = {
-  rank: ModelAtlasLeaderboardRank;
+  rank: number;
   id: string | null;
   name: string | null;
   provider: string | null;
@@ -88,7 +86,7 @@ type BenchmarksJsonModel = {
 };
 
 type CoreJsonModel = {
-  rank: ModelAtlasLeaderboardRank;
+  rank: number;
   id: string | null;
   name: string | null;
   provider: string | null;
@@ -136,7 +134,7 @@ const CORE_MODEL_COLUMNS = [
 ] as const;
 type LeaderboardRow = {
   model: ModelAtlasModel;
-  rank: ModelAtlasLeaderboardRank;
+  rank: number;
 };
 
 /** Bound cached representations to the supported views and canonicalize aliases before serialization. */
@@ -277,7 +275,7 @@ function compactLeaderboardRows(payload: ModelAtlasPayload): LeaderboardRow[] {
   return rows;
 }
 
-function scoreJsonModel(model: ModelAtlasModel, rank: ModelAtlasLeaderboardRank): ScoreJsonModel {
+function scoreJsonModel(model: ModelAtlasModel, rank: number): ScoreJsonModel {
   return {
     rank,
     id: model.id,
@@ -296,10 +294,7 @@ function scoreJsonModel(model: ModelAtlasModel, rank: ModelAtlasLeaderboardRank)
   };
 }
 
-function benchmarksJsonModel(
-  model: ModelAtlasModel,
-  rank: ModelAtlasLeaderboardRank,
-): BenchmarksJsonModel {
+function benchmarksJsonModel(model: ModelAtlasModel, rank: number): BenchmarksJsonModel {
   return {
     rank,
     id: model.id,
@@ -314,7 +309,7 @@ function benchmarksJsonModel(
   };
 }
 
-function coreJsonModel(model: ModelAtlasModel, rank: ModelAtlasLeaderboardRank): CoreJsonModel {
+function coreJsonModel(model: ModelAtlasModel, rank: number): CoreJsonModel {
   return {
     rank,
     id: model.id,

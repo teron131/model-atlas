@@ -4,7 +4,7 @@ import { type CSSProperties, type ReactNode, useRef } from "react";
 
 import { CaptureButton } from "../capture/CaptureButton";
 import { CopyDashboardLink } from "../CopyDashboardLink";
-import { type ResearchRegionId, researchRegionOrdinal } from "./research-index";
+import { type ResearchRegionId, researchRegionOrdinal } from "../research-index";
 
 import styles from "./graphs.module.css";
 

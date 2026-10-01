@@ -299,6 +299,11 @@ type WeightedBenchmarkPredictor = {
   weight: number;
 };
 
+type TrainingPopulation = {
+  models: JsonObject[];
+  rangesByKey: ReadonlyMap<string, MinMaxRange | null>;
+};
+
 function buildWeightedPredictors(
   models: JsonObject[],
   targetBenchmarkKey: string,
@@ -352,16 +357,14 @@ function predictedBenchmarkValue(
 /** Validate one benchmark's imputer while withholding every variant of the observed model. */
 function imputationDiagnostic(
   models: JsonObject[],
-  benchmarkKeys: readonly string[],
   targetBenchmarkKey: string,
   scoringConfig: ScoringConfig,
   minimumEvidenceValues: number,
+  modelKeyByModel: ReadonlyMap<JsonObject, string>,
+  trainingPopulationForModel: (modelKey: string) => TrainingPopulation,
 ): BenchmarkImputationDiagnostic {
   const normalizedAbsoluteErrorByModel = new Map<JsonObject, number>();
   const baselineErrorByModel = new Map<JsonObject, number>();
-  const modelKeyByModel = new Map(
-    models.map((model) => [model, canonicalModelKey(model)] as const),
-  );
   const calibrationByHeldOutModel = new Map<
     string,
     {
@@ -378,10 +381,8 @@ function imputationDiagnostic(
     const heldOutModelKey = modelKeyByModel.get(heldOutModel)!;
     let calibration = calibrationByHeldOutModel.get(heldOutModelKey);
     if (calibration == null) {
-      const trainingModels = models.filter(
-        (model) => modelKeyByModel.get(model) !== heldOutModelKey,
-      );
-      const trainingRangesByKey = observedRangesByBenchmark(trainingModels, benchmarkKeys);
+      const { models: trainingModels, rangesByKey: trainingRangesByKey } =
+        trainingPopulationForModel(heldOutModelKey);
       calibration = {
         predictors: buildWeightedPredictors(
           trainingModels,
@@ -455,6 +456,23 @@ export function prepareBenchmarkImputation(
   const imputationFactorsByModel = new Map<JsonObject, Map<string, number>>();
   const diagnosticsByKey = new Map<string, BenchmarkImputationDiagnostic>();
   const rangesByKey = observedRangesByBenchmark(models, benchmarkKeys);
+  const modelKeyByModel = new Map(
+    models.map((model) => [model, canonicalModelKey(model)] as const),
+  );
+  const trainingByHeldOutModel = new Map<string, TrainingPopulation>();
+  // A model-held-out population and its observed ranges are shared across targets within this preparation only.
+  const trainingPopulationForModel = (modelKey: string): TrainingPopulation => {
+    let training = trainingByHeldOutModel.get(modelKey);
+    if (training == null) {
+      const trainingModels = models.filter((model) => modelKeyByModel.get(model) !== modelKey);
+      training = {
+        models: trainingModels,
+        rangesByKey: observedRangesByBenchmark(trainingModels, benchmarkKeys),
+      };
+      trainingByHeldOutModel.set(modelKey, training);
+    }
+    return training;
+  };
   for (const key of targetKeys ?? selectedKeys) {
     const portfolioEntry = scoringConfig.benchmarkPortfolio[key];
     if (portfolioEntry == null) {
@@ -467,10 +485,11 @@ export function prepareBenchmarkImputation(
     }
     const diagnostic = imputationDiagnostic(
       models,
-      benchmarkKeys,
       key,
       scoringConfig,
       minimumEvidenceValues,
+      modelKeyByModel,
+      trainingPopulationForModel,
     );
     diagnosticsByKey.set(key, diagnostic);
     if (!diagnostic.imputationAllowed) {

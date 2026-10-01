@@ -1,25 +1,19 @@
 "use client";
 
-/** Responsive box-whisker summary for graph overview cards. */
+/** Summarize finite chart observations and render their responsive box-whisker distribution. */
 
+import { quantile } from "d3-array";
 import type { CSSProperties } from "react";
 
 import { clamp } from "../../../src/model-atlas/math-utils";
+import { finite } from "./format";
 
 import styles from "./graphs.module.css";
 
-export type BoxWhiskerDistribution = {
-  count: number;
-  min: number;
-  q1: number;
-  median: number;
-  q3: number;
-  max: number;
-};
-
+/** Compute quartiles from finite observations, retaining the established zero-valued empty summary. */
 export function BoxWhiskerSummary({
   label,
-  distribution,
+  values,
   domainMin,
   domainMax,
   formatValue = (value) => value.toFixed(0),
@@ -28,7 +22,7 @@ export function BoxWhiskerSummary({
   showObservedLabels = false,
 }: {
   label: string;
-  distribution: BoxWhiskerDistribution;
+  values: number[];
   domainMin?: number;
   domainMax: number;
   formatValue?: (value: number) => string;
@@ -36,6 +30,15 @@ export function BoxWhiskerSummary({
   showDomainEndpoints?: boolean;
   showObservedLabels?: boolean;
 }) {
+  const sortedValues = values.filter(finite).sort((left, right) => left - right);
+  const distribution = {
+    count: sortedValues.length,
+    min: sortedValues[0] ?? 0,
+    q1: quantile(sortedValues, 0.25) ?? 0,
+    median: quantile(sortedValues, 0.5) ?? 0,
+    q3: quantile(sortedValues, 0.75) ?? 0,
+    max: sortedValues[sortedValues.length - 1] ?? 0,
+  };
   const requestedMinValue = domainMin ?? (showDomainEndpoints ? 0 : distribution.min);
   const minValue = Math.min(requestedMinValue, distribution.min);
   const maxValue = Math.max(domainMax, distribution.max);

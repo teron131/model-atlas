@@ -1,5 +1,6 @@
 /** Pairwise quality fits normalized benchmark margins through a model-balanced, matrix-free weighted graph Laplacian. */
 
+import { modelCalibrationWeights } from "../../benchmarks/calibration-population";
 import type { BenchmarkDimension, BenchmarkGroup } from "../../benchmarks/factory";
 import { isAggregateIndex } from "../../benchmarks/index-policy";
 import { benchmarkDimensionWeight } from "../../benchmarks/registry";
@@ -217,17 +218,10 @@ function referenceWeightsForIndexes(
   models: readonly PairwiseQualityModel[],
   indexes: readonly number[],
 ): Map<number, number> {
-  const countsByModel = new Map<string, number>();
-  for (const index of indexes) {
-    const key = canonicalModelKey(models[index]!);
-    countsByModel.set(key, (countsByModel.get(key) ?? 0) + 1);
-  }
-  return new Map(
-    indexes.map((index) => {
-      const key = canonicalModelKey(models[index]!);
-      return [index, 1 / countsByModel.get(key)!];
-    }),
+  const weights = modelCalibrationWeights(
+    indexes.map((index) => canonicalModelKey(models[index]!)),
   );
+  return new Map(indexes.map((index, position) => [index, weights[position]!]));
 }
 
 /** Preserve proportional observed score gaps; each base model shares one unit of reference mass across its measured efforts. */

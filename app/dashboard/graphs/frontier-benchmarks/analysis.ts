@@ -11,6 +11,7 @@ import { canonicalReasoningEffort } from "../../../../src/model-atlas/identity/n
 import {
   linearScore,
   minMaxRange,
+  pearsonCorrelation,
   weightedMeanOfFinite,
 } from "../../../../src/model-atlas/math-utils";
 import { clampScore } from "../../../../src/model-atlas/pipeline/scores/normalization";
@@ -32,7 +33,6 @@ import type {
 import { benchmarkLabels } from "../../shared/constants";
 import { modelVariantKey } from "../../shared/model-display";
 import { formatResourceRatio } from "../../shared/resource-ratio-display";
-import { correlationValue } from "../chart-stats";
 import {
   finiteValue,
   fmtCompact,
@@ -42,6 +42,7 @@ import {
   fmtTooltipScore,
   toPercent,
 } from "../format";
+import type { HoverRow } from "../hover-state";
 import type { AxisScale } from "../plot/axis-scale";
 import {
   linearAxisScale,
@@ -49,7 +50,6 @@ import {
   scoreAxisScale,
   steppedLinearAxisScale,
 } from "../plot/axis-scale";
-import type { HoverRow } from "../types";
 
 export type FrontierBenchmarkAxisKey = "cost" | "time" | "tokens" | "speed" | "value";
 export type PerformanceMetric = "intelligence" | "agentic" | "benchmarks";
@@ -591,19 +591,15 @@ function groupBy<T, TKey>(values: T[], getKey: (value: T) => TKey): Map<TKey, T[
 }
 
 function benchmarkCorrelation(rows: FrontierBenchmarkRow[]): number | null {
-  return correlationValue(
-    rows.flatMap((row) => {
-      const intelligenceScore = finiteValue(row.model.scores?.intelligence_score);
-      if (intelligenceScore == null) {
-        return [];
-      }
-      return [
-        {
-          x: row.score,
-          y: intelligenceScore,
-        },
-      ];
-    }),
+  const points = rows.flatMap((row) => {
+    const intelligenceScore = finiteValue(row.model.scores?.intelligence_score);
+    return intelligenceScore == null ? [] : [{ x: row.score, y: intelligenceScore }];
+  });
+  // Three measured pairs are required before presenting a benchmark correlation.
+  if (points.length < 3) return null;
+  return pearsonCorrelation(
+    points.map((point) => point.x),
+    points.map((point) => point.y),
   );
 }
 

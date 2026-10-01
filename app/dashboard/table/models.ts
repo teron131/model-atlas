@@ -17,7 +17,6 @@ import type {
   ResourceRatioSummary,
 } from "../../../src/model-atlas/stats/resource-ratios";
 import { type ModelAtlasModel } from "../../../src/model-atlas/stats/types";
-import type { ModelAtlasLeaderboardRank } from "../../leaderboard/public-json";
 import { compareBenchmarkDisplayKeys } from "../shared/constants";
 import { filterByModelQuery, modelDisplayName } from "../shared/model-display";
 
@@ -337,7 +336,7 @@ function tableColumnGroup(
 
 export type TableRow = {
   model: ModelAtlasModel;
-  intelligenceRank: ModelAtlasLeaderboardRank;
+  intelligenceRank: number;
   originalIndex: number;
   aliasPriority: number;
   benchmarkDisplayScores: Partial<Record<BenchmarkMetricColumn["key"], number | null>>;

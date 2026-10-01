@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { benchmarkTooltips } from "../../shared/constants";
 import { filterSearchDocuments } from "../../shared/search";
-import { formatCorrelation } from "../chart-stats";
 import {
   type FrontierBenchmarkOption,
   PERFORMANCE_SCORES,
@@ -216,10 +215,7 @@ export function BenchmarkSelect({
                     ) : null}
                   </span>
                   <span className={styles.benchmarkSelectOptionCorrelation}>
-                    {formatCorrelation(correlationByBenchmark.get(option.key) ?? null).replace(
-                      /^CORR\s*/,
-                      "",
-                    )}
+                    {formatCorrelation(correlationByBenchmark.get(option.key) ?? null)}
                   </span>
                   <span className={styles.benchmarkSelectOptionCoverage}>{option.count}</span>
                 </label>
@@ -233,6 +229,10 @@ export function BenchmarkSelect({
       </details>
     </fieldset>
   );
+}
+
+function formatCorrelation(correlation: number | null): string {
+  return correlation == null ? "--" : `${correlation >= 0 ? "+" : ""}${correlation.toFixed(2)}`;
 }
 
 function BenchmarkSortHeader({

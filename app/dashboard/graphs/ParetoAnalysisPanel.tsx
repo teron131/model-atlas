@@ -5,7 +5,7 @@ import { memo } from "react";
 import type { ModelAtlasModel, ModelAtlasPayload } from "../../../src/model-atlas/stats/types";
 import { updateDashboardUrl, useUrlState } from "../use-url-state";
 import { FrontierBenchmarksPanel } from "./frontier-benchmarks/Panel";
-import type { HoverSetter } from "./types";
+import type { HoverSetter } from "./hover-state";
 import { useCompactChartLayout } from "./use-chart-layout";
 
 export const ParetoAnalysisPanel = memo(function ParetoAnalysisPanel({

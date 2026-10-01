@@ -8,6 +8,12 @@ import { canonicalModelKey } from "../../../src/model-atlas/identity/normalizati
 import { type ModelAtlasModel, type ModelAtlasPayload } from "../../../src/model-atlas/stats/types";
 import { BenchmarkStrip } from "../BenchmarkStrip";
 import {
+  RESEARCH_REGION_IDS,
+  RESEARCH_REGIONS,
+  type ResearchRegionId,
+  researchRegionOrdinal,
+} from "../research-index";
+import {
   type CostFilter,
   costFilterOptions,
   filterByIntelligenceRank,
@@ -18,7 +24,6 @@ import {
   modelCount,
   type ModelRankFilter,
   modelRankFilterOptions,
-  modelsForVariantDisplay,
   type ProviderOption,
   type RecencyFilter,
   recencyFilterOptions,
@@ -28,15 +33,9 @@ import { ModelSignature } from "../signature/ModelSignature";
 import { dashboardUrlSection } from "../url-state";
 import { FilterButton, HoverCard } from "./ChartComponents";
 import { finite, fmtCompact, fmtMoney } from "./format";
+import type { HoverState } from "./hover-state";
 import { ParetoAnalysisPanel } from "./ParetoAnalysisPanel";
-import {
-  RESEARCH_REGION_IDS,
-  RESEARCH_REGIONS,
-  type ResearchRegionId,
-  researchRegionOrdinal,
-} from "./research-index";
 import { TimelinePanel } from "./TimelinePanel";
-import type { HoverState } from "./types";
 
 import styles from "./graphs.module.css";
 
@@ -98,7 +97,8 @@ export function DashboardGraphs({
     if (!filtersExpanded) {
       return;
     }
-    const handlePointerDown = (event: PointerEvent) => {
+    // Let the outside control receive its click before collapsing this inline panel moves it.
+    const handleOutsideClick = (event: MouseEvent) => {
       const target = event.target;
       if (
         target instanceof Element &&
@@ -113,10 +113,10 @@ export function DashboardGraphs({
       setFiltersExpanded(false);
       filtersToggleRef.current?.focus();
     };
-    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("click", handleOutsideClick);
     document.addEventListener("keydown", handleEscape);
     return () => {
-      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("click", handleOutsideClick);
       document.removeEventListener("keydown", handleEscape);
     };
   }, [filtersExpanded]);
@@ -159,12 +159,8 @@ export function DashboardGraphs({
     return rankFilteredModels;
   }, [deferredModelRankFilter, recencyFilteredModels, referenceModels]);
   const performanceModels = useMemo(() => {
-    const variants = modelsForVariantDisplay(
-      deferredModelVariants.filter(isGraphEligible),
-      deferredShowReasoningVariants,
-      deferredPayload?.benchmark_observations,
-    );
-    const controlled = filterByModelControls(variants, (model) => model, {
+    // Dashboard already projects eligible variants into this payload before either graph filters it.
+    const controlled = filterByModelControls(deferredPayload?.models ?? [], (model) => model, {
       providers: deferredSelectedProviders,
       maxCost: deferredMaxCost,
     });
@@ -186,8 +182,6 @@ export function DashboardGraphs({
       referenceModels,
     );
   }, [
-    deferredModelVariants,
-    deferredShowReasoningVariants,
     deferredPayload,
     deferredSelectedProviders,
     deferredMaxCost,

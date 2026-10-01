@@ -157,6 +157,7 @@ export function findBenchmarkObservations<Row extends BenchmarkObservationEviden
   candidateNames: unknown[],
   lookup: BenchmarkObservationGroupLookup<Row>,
 ): Row[] {
+  if (lookup.rows.length === 0) return [];
   const candidateKeys = candidateModelKeys(candidateNames);
   const matches = new Set([...candidateKeys].flatMap((key) => lookup.rowsByModel.get(key) ?? []));
   return matches.size === 0 ? [] : lookup.rows.filter((row) => matches.has(row));

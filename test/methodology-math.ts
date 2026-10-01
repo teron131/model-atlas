@@ -1,8 +1,10 @@
 /** Check statistical invariants that protect robust evidence, unit-independent comparisons, and supported resource predictions. */
 import assert from "node:assert/strict";
 
-import { correlationValue } from "../app/dashboard/graphs/chart-stats";
-import { frontierBenchmarkRows } from "../app/dashboard/graphs/frontier-benchmarks/analysis";
+import {
+  frontierBenchmarkCorrelationByBenchmark,
+  frontierBenchmarkRows,
+} from "../app/dashboard/graphs/frontier-benchmarks/analysis";
 import { STAGE_CONFIG } from "../src/model-atlas/config/stage";
 import {
   pearsonCorrelation,
@@ -19,21 +21,18 @@ assert.equal(pearsonCorrelation([1, 2, 3], [3, 1, 2]), -0.5);
 assert.equal(pearsonCorrelation([1, 2], [2, 4]), 1);
 assert.equal(pearsonCorrelation([1, 1], [1, 2]), null);
 assert.equal(pearsonCorrelation([1], [1, 2]), null);
-assert.equal(
-  correlationValue([
-    { x: 1, y: 2 },
-    { x: 2, y: 4 },
-  ]),
-  null,
+const correlationModels = [3, 1, 2].map((score, index) => {
+  const model = minimalModelAtlasModel({ id: `test/correlation-${index}`, name: "Correlation" });
+  model.scores.intelligence_score = score;
+  model.benchmarks = { hle: (index + 1) / 10 };
+  return model;
+});
+const correlationRows = frontierBenchmarkRows(
+  correlationModels,
+  STAGE_CONFIG.scoring.benchmarkPortfolio,
 );
-assert.equal(
-  correlationValue([
-    { x: 1, y: 3 },
-    { x: 2, y: 1 },
-    { x: 3, y: 2 },
-  ]),
-  -0.5,
-);
+assert.equal(frontierBenchmarkCorrelationByBenchmark(correlationRows.slice(0, 2)).get("hle"), null);
+assert.equal(frontierBenchmarkCorrelationByBenchmark(correlationRows).get("hle"), -0.5);
 
 const majority = [
   { value: 0, weight: 9 },

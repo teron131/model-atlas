@@ -18,7 +18,6 @@ import {
   BENCHMARK_OBSERVATION_RAW_TABLE,
   transformBenchmarkSourceValue,
 } from "../src/model-atlas/benchmarks/registry";
-import { SnapshotRowCollector } from "../src/model-atlas/database/writers";
 import {
   normalizedMetricValue,
   observedRangesByBenchmark,
@@ -35,6 +34,7 @@ import {
 import type { SourceSnapshots } from "../src/model-atlas/sources/types";
 import { processVoxelBenchLeaderboard } from "../src/model-atlas/sources/voxelbench";
 import type { ModelAtlasModel } from "../src/model-atlas/stats/types";
+import { SnapshotRowCollector } from "./model-atlas-fixtures";
 
 const sourceRow = {
   modelName: "GPT-6 Astra (Max)",

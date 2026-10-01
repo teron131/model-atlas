@@ -5,7 +5,7 @@
 import { Check as CheckIcon, CircleAlert, Link as LinkIcon } from "lucide-react";
 import { useState } from "react";
 
-import type { ResearchRegionId } from "./graphs/research-index";
+import type { ResearchRegionId } from "./research-index";
 
 import styles from "./capture/capture.module.css";
 

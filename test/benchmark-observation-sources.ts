@@ -10,7 +10,6 @@ import {
   BENCHMARK_OBSERVATION_BINDINGS,
   BENCHMARK_OBSERVATION_RAW_TABLE,
 } from "../src/model-atlas/benchmarks/registry";
-import { SnapshotRowCollector } from "../src/model-atlas/database/writers";
 import { benchmarkModelEffort } from "../src/model-atlas/identity/normalization";
 import { processAutomationBenchModule } from "../src/model-atlas/sources/automation-bench";
 import { insertBenchmarkRawRows } from "../src/model-atlas/sources/benchmarks";
@@ -31,6 +30,7 @@ import type { SourceSnapshots } from "../src/model-atlas/sources/types";
 import { processValsBenchmarkPageHtml } from "../src/model-atlas/sources/vals/results";
 import { processValsRsiModule, valsRsiCacheMatches } from "../src/model-atlas/sources/vals/rsi";
 import { processWeirdMlCsv } from "../src/model-atlas/sources/weirdml";
+import { SnapshotRowCollector } from "./model-atlas-fixtures";
 
 assert.deepEqual(parseCsvRecords('name,note\r\n"A, B","line 1\nline ""2"""\r\n'), [
   { name: "A, B", note: 'line 1\nline "2"' },

@@ -1,4 +1,4 @@
-/** Shared order for the sticky research index and its section headings. */
+/** Dashboard-wide section identities and order shared by navigation, URL state, links, and headings. */
 
 export const RESEARCH_REGIONS = [
   { id: "leaderboard", label: "Models" },

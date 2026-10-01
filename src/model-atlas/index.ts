@@ -29,5 +29,5 @@ export type {
   ModelAtlasPayload,
   ModelAtlasScores,
   ModelAtlasSpeed,
-} from "./stats/live";
+} from "./stats/types";
 export { getLiveModelAtlasPayload } from "./stats/live";
