@@ -145,7 +145,8 @@ export function FrontierBenchmarkScatterPlot<Row>({
   });
   const medianMetric = median(rows.map(metric.get)) ?? xDomain[0];
   const medianScore = median(rows.map(getScore)) ?? yDomain[0];
-  const markRadius = (row: Row) => scoreQuadrilateralRadius(getModel(row), 3, 7);
+  const frontierRows = new Set(frontier);
+  const markRadius = (row: Row) => scoreQuadrilateralRadius(getModel(row), 2.75, 5.75);
   const projectionPoints = rows.map((row) => {
     const xValue = metric.get(row);
     const yValue = getScore(row);
@@ -454,8 +455,8 @@ export function FrontierBenchmarkScatterPlot<Row>({
                 fill={providerChartColor(model.provider)}
                 stroke="var(--chart-point-stroke)"
                 strokeWidth={1}
-                opacity={1}
-                clearance={connectReasoningVariants ? 0.5 : 0}
+                opacity={frontierRows.has(row) ? 1 : 0.86}
+                clearance={frontierRows.has(row) ? 1.25 : connectReasoningVariants ? 0.5 : 0}
               />
               <PointHitTarget
                 cx={cx}
