@@ -109,6 +109,7 @@ export function TimelinePanel() {
     [population, start, end],
   );
   const frontier = useMemo(() => coverageFrontier(visible, 0.6), [visible]);
+  const frontierIds = new Set(frontier.map((point) => point.id));
   const labLeaders = useMemo(
     () =>
       labs.flatMap((lab) => {
@@ -415,19 +416,22 @@ export function TimelinePanel() {
                     d={frontierPath}
                     fill="none"
                     stroke="var(--ink)"
-                    strokeOpacity="0.45"
-                    strokeWidth="1.5"
-                    strokeDasharray="5 5"
+                    strokeOpacity="0.4"
+                    strokeWidth="1.2"
+                    strokeDasharray="4 5"
+                    strokeLinecap="round"
+                    vectorEffect="non-scaling-stroke"
                   />
                   {visible.map((point) => (
                     <circle
                       key={point.id}
                       cx={xPoint(point)}
                       cy={y(point.score)}
-                      r={chosen?.id === point.id ? 6 : 4}
+                      r={chosen?.id === point.id ? 4.8 : frontierIds.has(point.id) ? 3.6 : 3.2}
                       fill={point.indexOnly ? "var(--paper)" : providerChartColor(point.provider)}
                       stroke={providerChartColor(point.provider)}
-                      strokeWidth="1.5"
+                      strokeWidth="1.1"
+                      vectorEffect="non-scaling-stroke"
                       opacity={chosen?.id === point.id ? 1 : 0.35 + 0.65 * (point.coverage ?? 0)}
                       className={timeline.point}
                       role="button"
