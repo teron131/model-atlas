@@ -10,14 +10,13 @@ import {
 import { captureFileToken } from "../../capture/png";
 import { modelName, modelVariantKey, shortLabel } from "../../shared/model-display";
 import { BoxWhiskerSummary } from "../BoxWhiskerSummary";
-import { valueDistribution } from "../chart-stats";
 import { finite, fmtPercentScore, fmtTooltipNumber, fmtTooltipScore } from "../format";
 import { GraphToggle } from "../GraphToggle";
+import type { HoverSetter } from "../hover-state";
 import { Panel } from "../Panel";
 import { PARETO_PANEL_CONTENT, ParetoControlSet } from "../ParetoControlSet";
 import { scoreAxisScale } from "../plot/axis-scale";
 import { SCATTER_CHART_MARGIN, SCATTER_CHART_WIDTH } from "../plot/Primitives";
-import type { HoverSetter } from "../types";
 import {
   automaticResourceKeys,
   frontierAxisDescription,
@@ -225,7 +224,7 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
         rows.length > 0 ? (
           <BoxWhiskerSummary
             label={yLabel}
-            distribution={valueDistribution(scoreValues)}
+            values={scoreValues}
             countLabel={showVariants ? "variants" : "models"}
             domainMax={Math.max(100, ...scoreValues)}
             formatValue={formatScore}

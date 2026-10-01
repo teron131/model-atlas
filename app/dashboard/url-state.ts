@@ -5,7 +5,7 @@ import type {
   FrontierBenchmarkAxisKey,
   PerformanceMetric,
 } from "./graphs/frontier-benchmarks/analysis";
-import { RESEARCH_REGION_IDS, type ResearchRegionId } from "./graphs/research-index";
+import { RESEARCH_REGION_IDS, type ResearchRegionId } from "./research-index";
 import {
   type CostFilter,
   costFilterOptions,

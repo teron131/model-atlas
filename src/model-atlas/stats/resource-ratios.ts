@@ -1,5 +1,6 @@
 /** Descriptive resource use compares observed amounts with model-balanced benchmark medians, independently of achieved quality. */
 
+import { modelCalibrationWeights } from "../benchmarks/calibration-population";
 import type { BenchmarkPortfolio } from "../benchmarks/factory";
 import {
   excludesVariantIndex,
@@ -92,16 +93,13 @@ export function resourceRatioReferences(
   }
   const references = new Map<string, number>();
   for (const [key, group] of groups) {
-    const counts = new Map<string, number>();
-    for (const observation of group) {
-      const modelKey = canonicalModelKey(observation.model);
-      counts.set(modelKey, (counts.get(modelKey) ?? 0) + 1);
-    }
-    if (counts.size < 2) continue;
+    const modelKeys = group.map((observation) => canonicalModelKey(observation.model));
+    if (new Set(modelKeys).size < 2) continue;
+    const weights = modelCalibrationWeights(modelKeys);
     const reference = weightedMedianOfFinite(
-      group.map((observation) => ({
+      group.map((observation, index) => ({
         value: observation.amount,
-        weight: 1 / counts.get(canonicalModelKey(observation.model))!,
+        weight: weights[index]!,
       })),
     );
     if (reference != null && reference > 0) references.set(key, reference);

@@ -9,7 +9,6 @@ import {
 } from "../src/model-atlas/benchmarks/observation";
 import { STAGE_CONFIG } from "../src/model-atlas/config";
 import { buildDebugTraceRows } from "../src/model-atlas/database/debug-trace";
-import { SnapshotRowCollector } from "../src/model-atlas/database/writers/collector";
 import { buildMatchDiagnostics } from "../src/model-atlas/identity";
 import { modelNameIdentityKey } from "../src/model-atlas/identity/matching/name-tokens";
 import { runMatcher } from "../src/model-atlas/identity/matching/pipeline";
@@ -40,6 +39,7 @@ import {
   buildValsIndexMap,
   type ValsIndexModelScoreRow,
 } from "../src/model-atlas/sources/vals/index-benchmark";
+import { SnapshotRowCollector } from "./model-atlas-fixtures";
 
 const sourceRows: MatcherSourceModel[] = [
   source("example-medium-3-5", "Example Medium 3.5"),

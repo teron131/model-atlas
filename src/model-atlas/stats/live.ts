@@ -1,79 +1,38 @@
-/** Live stats coordinates source refresh, route data, scoring, and failure-safe payload assembly. */
+/** Live stats coordinates source refresh and scoring, retaining current metadata when a failed refresh yields an empty payload. */
 
-import { type BenchmarkRowsByKey, benchmarkRowsFromSourceData } from "../pipeline/benchmark-rows";
+import { benchmarkRowsFromSourceData } from "../pipeline/benchmark-rows";
 import { deriveModelStats } from "../pipeline/derivation";
 import { nowEpochSeconds } from "../runtime";
 import { fetchSourceData } from "../sources/assembly";
 import { buildCurrentModelAtlasMetadata } from "./payload/metadata";
-import type { ModelAtlasModel, ModelAtlasOptions, ModelAtlasPayload } from "./types";
+import type { ModelAtlasOptions, ModelAtlasPayload } from "./types";
 
-export type {
-  ModelAtlasBenchmarks,
-  ModelAtlasBenchmarkValues,
-  ModelAtlasComponentScores,
-  ModelAtlasConfidence,
-  ModelAtlasContextWindow,
-  ModelAtlasCost,
-  ModelAtlasCostBreakdown,
-  ModelAtlasCostTier,
-  ModelAtlasIntelligence,
-  ModelAtlasMetadata,
-  ModelAtlasModalities,
-  ModelAtlasModel,
-  ModelAtlasOptions,
-  ModelAtlasPayload,
-  ModelAtlasScores,
-  ModelAtlasSpeed,
-} from "./types";
-
-/** Metadata is refreshed around cached or rebuilt payload rows so public scoring copy tracks current config. */
-function withCurrentMetadata(
-  payload: Omit<ModelAtlasPayload, "metadata"> & Partial<Pick<ModelAtlasPayload, "metadata">>,
-  modelsForMetadata: Array<Record<string, unknown> | ModelAtlasModel> = payload.models,
-  resourceModels: Array<Record<string, unknown> | ModelAtlasModel> = payload.models,
-  sourceRowsByKey?: BenchmarkRowsByKey,
-): ModelAtlasPayload {
-  const metadata = buildCurrentModelAtlasMetadata({
-    models: modelsForMetadata,
-    resourceModels,
-    healthModels: payload.models,
-    availableMetrics: payload.metadata?.available_metrics,
-    sourceRowsByKey,
-  });
-  return {
-    ...payload,
-    metadata,
-  };
-}
-
-async function buildLivePayload(modelId: string | null = null): Promise<ModelAtlasPayload> {
-  const sourceData = await fetchSourceData();
-  const { benchmarkObservations, modelRows, models } = await deriveModelStats(sourceData, {
-    modelId,
-  });
-  const fetchedAt = nowEpochSeconds();
-  return withCurrentMetadata(
-    {
-      fetched_at_epoch_seconds: fetchedAt,
-      models,
-      benchmark_observations: benchmarkObservations,
-    },
-    modelRows,
-    models,
-    benchmarkRowsFromSourceData(sourceData),
-  );
-}
-
+/** Build live scores and metadata, returning an empty payload with no fetch timestamp if any refresh stage fails. */
 export async function getLiveModelAtlasPayload(
   options: ModelAtlasOptions = {},
 ): Promise<ModelAtlasPayload> {
   try {
     const modelId = options.id ?? null;
-    return await buildLivePayload(modelId);
+    const sourceData = await fetchSourceData();
+    const { benchmarkObservations, modelRows, models } = await deriveModelStats(sourceData, {
+      modelId,
+    });
+    return {
+      fetched_at_epoch_seconds: nowEpochSeconds(),
+      models,
+      benchmark_observations: benchmarkObservations,
+      metadata: buildCurrentModelAtlasMetadata({
+        models: modelRows,
+        resourceModels: models,
+        healthModels: models,
+        sourceRowsByKey: benchmarkRowsFromSourceData(sourceData),
+      }),
+    };
   } catch {
-    return withCurrentMetadata({
+    return {
       fetched_at_epoch_seconds: null,
       models: [],
-    });
+      metadata: buildCurrentModelAtlasMetadata({ models: [] }),
+    };
   }
 }

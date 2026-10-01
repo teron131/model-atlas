@@ -26,7 +26,7 @@ import {
 import type { ModelAtlasModel, ModelAtlasPayload } from "../../src/model-atlas/stats/types";
 import { LeaderboardCapture } from "./capture/LeaderboardCapture";
 import { CopyDashboardLink } from "./CopyDashboardLink";
-import { researchRegionOrdinal } from "./graphs/research-index";
+import { researchRegionOrdinal } from "./research-index";
 import {
   ColumnTooltip,
   type HeaderTooltipHandler,

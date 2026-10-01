@@ -1,11 +1,24 @@
 /** Build shared graph hover-card state from pointer and focus interactions. */
 
-import type { PointerEvent } from "react";
+import type { Dispatch, PointerEvent, SetStateAction } from "react";
 
 import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 import { modelLogo, modelName } from "../shared/model-display";
 import { providerChartColor, providerDisplayName } from "../shared/provider-theme";
-import type { HoverRow, HoverState } from "./types";
+
+export type HoverRow = readonly [string, string];
+
+export type HoverState = {
+  left: number;
+  top: number;
+  model: string;
+  provider: string;
+  color: string;
+  logo: string;
+  rows: HoverRow[];
+};
+
+export type HoverSetter = Dispatch<SetStateAction<HoverState | null>>;
 
 export function pointHover(
   event: PointerEvent<Element>,

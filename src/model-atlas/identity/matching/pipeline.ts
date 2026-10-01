@@ -1,5 +1,6 @@
 /** Internal matcher pipeline: scope provider pools, collect candidates, and apply the final void threshold. */
 
+import { minMaxRange } from "../../math-utils";
 import { asRecord } from "../../runtime";
 import { FALLBACK_PROVIDER_IDS, modelSlugFromModelId, PRIMARY_PROVIDER_ID } from "../normalization";
 import { modelProviderIdentity, providerIdentityKey } from "../provider";
@@ -78,17 +79,12 @@ function applyMaxMinRangeVoid(
   models: Array<{ best_match: MatchResult; candidates: MatchCandidate[] }>,
   sourceSlugs: readonly string[],
 ): { threshold: number | null; voided: number } {
-  const scores = models
-    .map((model) => model.best_match?.score)
-    .filter((score): score is number => Number.isFinite(score))
-    .sort((left, right) => left - right);
-  if (scores.length === 0) {
+  const range = minMaxRange(models.map((model) => model.best_match?.score ?? null));
+  if (range == null) {
     return { threshold: null, voided: 0 };
   }
 
-  const minScore = scores[0] as number;
-  const maxScore = scores.at(-1) as number;
-  const threshold = minScore + (maxScore - minScore) * VOID_THRESHOLD_RANGE_RATIO;
+  const threshold = range.min + (range.max - range.min) * VOID_THRESHOLD_RANGE_RATIO;
   let voided = 0;
   for (const [index, model] of models.entries()) {
     const match = model.best_match;

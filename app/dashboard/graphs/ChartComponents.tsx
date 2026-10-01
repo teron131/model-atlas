@@ -6,7 +6,7 @@ import { Boxes } from "lucide-react";
 import { type CSSProperties, useState } from "react";
 
 import { fmtCompact } from "./format";
-import type { HoverState } from "./types";
+import type { HoverState } from "./hover-state";
 
 import styles from "./graphs.module.css";
 

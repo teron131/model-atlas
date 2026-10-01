@@ -6,11 +6,17 @@ import { useLayoutEffect, useRef, useState } from "react";
 
 import { clamp } from "../../../../src/model-atlas/math-utils";
 import type { ModelAtlasModel } from "../../../../src/model-atlas/stats/types";
-import type { Margin } from "../types";
 import type { PointLabelPlacement, PointLabelSize } from "./label-placement";
 import { scoreQuadrilateralPoints } from "./score-quadrilateral";
 
 import styles from "../graphs.module.css";
+
+export type Margin = {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+};
 
 export type PlotBounds = {
   left: number;

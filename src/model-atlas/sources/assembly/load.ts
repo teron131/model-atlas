@@ -15,11 +15,7 @@ import {
 
 /** Fetch and normalize shared benchmark and catalog sources; OpenRouter route requests wait for derived quality scores. */
 export async function fetchSourceData(): Promise<ModelAtlasSourceData> {
-  return buildSourceData(await fetchSourceRows());
-}
-
-/** Independent bulk feeds run in parallel because model filtering requires their combined evidence. */
-async function fetchSourceRows(): Promise<ModelAtlasSourceRows> {
+  // Independent bulk feeds run in parallel because model filtering requires their combined evidence.
   const [
     artificialAnalysisStats,
     artificialAnalysisBenchmarkResourceStats,
@@ -49,11 +45,11 @@ async function fetchSourceRows(): Promise<ModelAtlasSourceRows> {
     modelsDevStats.payload,
     artificialAnalysisRows,
   );
-  return {
+  return buildSourceData({
     artificialAnalysisRows,
     artificialAnalysisBenchmarkResourceRows,
     modelsDevModels,
     ...benchmarkRows,
     ...benchmarkObservationRows,
-  };
+  });
 }

@@ -17,6 +17,23 @@ type SearchPattern = {
   fuzzyTerm: string | null;
 };
 
+type SearchQuery = {
+  text: string;
+  expression: RegExp;
+  patterns: SearchPattern[];
+};
+
+type SearchText = {
+  values: string[];
+  fuzzyIndex?: Fuse<string>;
+};
+
+type PreparedSearchDocument<T> = {
+  document: SearchDocument<T>;
+  primary: SearchText;
+  context: SearchText;
+};
+
 type ScoredSearchDocument<T> = {
   document: SearchDocument<T>;
   coverage: number;
@@ -35,10 +52,15 @@ export function filterSearchDocuments<T>(
   if (searches.length === 0) {
     return documents.map(({ value }) => value);
   }
+  const prepared = documents.map((document) => ({
+    document,
+    primary: prepareSearchText(document.primary),
+    context: prepareSearchText(document.context),
+  }));
   const matches = new Set<SearchDocument<T>>();
   for (const search of searches) {
-    const scored = documents
-      .map((document) => scoreSearchDocument(document, search.query, search.patterns))
+    const scored = prepared
+      .map((document) => scoreSearchDocument(document, search))
       .filter((candidate) => candidate.coverage >= MIN_QUERY_TERM_COVERAGE && candidate.score > 0);
     const maxScore = Math.max(0, ...scored.map(({ score }) => score));
     for (const { document, score } of scored) {
@@ -54,7 +76,7 @@ export function hasSearchQuery(query: string): boolean {
   return query.split(",").some((alternative) => alternative.trim().length > 0);
 }
 
-function buildSearchQuery(query: string): { patterns: SearchPattern[]; query: string } | null {
+function buildSearchQuery(query: string): SearchQuery | null {
   const normalizedQuery = normalizeSearchText(query);
   if (normalizedQuery.length === 0) {
     return null;
@@ -69,28 +91,31 @@ function buildSearchQuery(query: string): { patterns: SearchPattern[]; query: st
         : null,
       fuzzyTerm: /^\p{L}{4,}$/u.test(term) ? term : null,
     }));
-  return patterns.length > 0 ? { patterns, query: normalizedQuery } : null;
+  return patterns.length > 0
+    ? { text: normalizedQuery, expression: createSearchPattern(normalizedQuery), patterns }
+    : null;
+}
+
+/** Normalize each field once per filter call; fuzzy indexes are created only when exact and prefix matching fail. */
+function prepareSearchText(value: unknown): SearchText {
+  return { values: collectTextValues(value).map(normalizeSearchText).filter(Boolean) };
 }
 
 function scoreSearchDocument<T>(
-  document: SearchDocument<T>,
-  query: string,
-  patterns: SearchPattern[],
+  { document, primary, context }: PreparedSearchDocument<T>,
+  query: SearchQuery,
 ): ScoredSearchDocument<T> {
-  const primary = collectTextValues(document.primary).map(normalizeSearchText).filter(Boolean);
-  const context = collectTextValues(document.context).map(normalizeSearchText).filter(Boolean);
-  const queryPattern = createSearchPattern(query);
   let score = 0;
-  if (primary.some((value) => value === query)) {
+  if (primary.values.some((value) => value === query.text)) {
     score += 12;
   }
-  if (primary.some((value) => queryPattern.test(value))) {
+  if (primary.values.some((value) => query.expression.test(value))) {
     score += 6;
-  } else if (context.some((value) => queryPattern.test(value))) {
+  } else if (context.values.some((value) => query.expression.test(value))) {
     score += 4;
   }
   let matchedTerms = 0;
-  for (const pattern of patterns) {
+  for (const pattern of query.patterns) {
     const termScore = Math.max(
       searchTermScore(primary, pattern) * 2,
       searchTermScore(context, pattern) * 0.75,
@@ -102,12 +127,13 @@ function scoreSearchDocument<T>(
   }
   return {
     document,
-    coverage: matchedTerms / patterns.length,
+    coverage: matchedTerms / query.patterns.length,
     score,
   };
 }
 
-function searchTermScore(values: string[], pattern: SearchPattern): number {
+function searchTermScore(text: SearchText, pattern: SearchPattern): number {
+  const { values } = text;
   if (values.some((value) => pattern.expression.test(value))) {
     return 1;
   }
@@ -120,12 +146,11 @@ function searchTermScore(values: string[], pattern: SearchPattern): number {
     return 0;
   }
   // Search words near their start so description position does not matter and loose suffix matches stay weak.
-  const words = values.flatMap((value) => value.match(/[\p{L}\p{N}]+/gu) ?? []);
-  const [match] = new Fuse(words, {
-    includeScore: true,
-    distance: 10,
-    threshold: 0.3,
-  }).search(term, { limit: 1 });
+  text.fuzzyIndex ??= new Fuse(
+    values.flatMap((value) => value.match(/[\p{L}\p{N}]+/gu) ?? []),
+    { includeScore: true, distance: 10, threshold: 0.3 },
+  );
+  const [match] = text.fuzzyIndex.search(term, { limit: 1 });
   return match == null ? 0 : (1 - (match.score ?? 1)) * 0.5;
 }
 

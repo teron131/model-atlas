@@ -9,7 +9,7 @@ import { type CSSProperties, useEffect, useId, useMemo, useRef, useState } from 
 import { type ModelAtlasModel } from "../../../../src/model-atlas/stats/types";
 import { reasoningVariantGroups } from "../../shared/model-display";
 import { providerChartColor } from "../../shared/provider-theme";
-import { pointHover } from "../hover-state";
+import { type HoverRow, type HoverSetter, pointHover } from "../hover-state";
 import {
   CursorCapture,
   CursorProjectionLayer,
@@ -25,6 +25,7 @@ import { ParetoEnvelope, paretoFrontier } from "../plot/ParetoEnvelope";
 import {
   AxisTitles,
   DirectionArrow,
+  type Margin,
   MedianCross,
   ModelScoreMark,
   plotBoundsFor,
@@ -44,7 +45,6 @@ import {
   scoreQuadrilateralConnectorSegments,
   scoreQuadrilateralRadius,
 } from "../plot/score-quadrilateral";
-import type { HoverRow, HoverSetter, Margin } from "../types";
 import { useChartWidth } from "../use-chart-layout";
 
 import styles from "../graphs.module.css";

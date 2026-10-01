@@ -6,8 +6,7 @@ import { type CSSProperties, type PointerEvent as ReactPointerEvent, useState } 
 
 import type { ModelAtlasModel } from "../../../../src/model-atlas/stats/types";
 import { modelName } from "../../shared/model-display";
-import { focusHover, pointHover } from "../hover-state";
-import type { HoverRow, HoverSetter } from "../types";
+import { focusHover, type HoverRow, type HoverSetter, pointHover } from "../hover-state";
 import type { PlotBounds } from "./Primitives";
 
 import styles from "../graphs.module.css";
