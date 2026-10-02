@@ -49,6 +49,7 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
   models,
   referenceModels,
   showVariants,
+  onShowVariantsChange,
   compactLayout,
   performance,
   axisKey,
@@ -62,6 +63,7 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
   models: ModelAtlasModel[];
   referenceModels: ModelAtlasModel[];
   showVariants: boolean;
+  onShowVariantsChange: (show: boolean) => void;
   compactLayout: boolean;
   performance: PerformanceMetric;
   axisKey: FrontierBenchmarkAxisKey;
@@ -183,6 +185,8 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
   const captureFileName = `model-atlas-pareto-${performance}-${axisKey}${needsEvidence ? `-${captureFileToken(evidenceLabel)}` : ""}`;
   const controls = (
     <ParetoControlSet
+      showVariants={showVariants}
+      onShowVariantsChange={onShowVariantsChange}
       yAxisControl={
         <BenchmarkSelect
           options={benchmarkOptions}

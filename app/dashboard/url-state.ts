@@ -17,7 +17,7 @@ import {
   recencyFilterOptions,
 } from "./shared/model-display";
 import type { TableColumnPreset } from "./table/column-views";
-import { type BenchmarkColumnOrder, sorters, type SortState } from "./table/models";
+import { sorters, type SortState } from "./table/models";
 
 export type DashboardUrlState = {
   view: TableColumnPreset;
@@ -27,8 +27,7 @@ export type DashboardUrlState = {
   "max-cost": CostFilter;
   rank: ModelRankFilter;
   days: RecencyFilter;
-  "table-q": string;
-  "column-order": BenchmarkColumnOrder;
+  "column-q": string;
   "table-variants": boolean;
   "graph-variants": boolean;
   "timeline-view": "models" | "labs";
@@ -43,13 +42,7 @@ export type DashboardUrlKey = keyof DashboardUrlState;
 export type DashboardUrlPatch = Partial<DashboardUrlState>;
 export const GRAPH_VARIANTS_COOKIE = "model-atlas-graph-variants";
 
-const tableKeys = new Set<DashboardUrlKey>([
-  "view",
-  "sort",
-  "table-q",
-  "column-order",
-  "table-variants",
-]);
+const tableKeys = new Set<DashboardUrlKey>(["view", "sort", "column-q", "table-variants"]);
 const paretoKeys = new Set<DashboardUrlKey>(["performance", "benchmark", "axes"]);
 const dashboardKeys = new Set<DashboardUrlKey>([
   ...tableKeys,
@@ -113,9 +106,6 @@ export function readUrlValue<K extends DashboardUrlKey>(
     case "days":
       result = numericChoice(value, recencyFilterOptions, DEFAULT_RECENCY_FILTER);
       break;
-    case "column-order":
-      result = choice(value, ["portfolio", "coverage"], "portfolio");
-      break;
     case "table-variants":
     case "graph-variants":
       result = value === "1";
@@ -143,6 +133,8 @@ export function readUrlValue<K extends DashboardUrlKey>(
 /** Keep custom selections shareable while omitting defaults and preserving unrelated URL parameters. */
 export function patchDashboardUrl(url: URL, patch: DashboardUrlPatch): URL {
   const next = new URL(url);
+  next.searchParams.delete("table-q");
+  next.searchParams.delete("column-order");
   const keys = Object.keys(patch) as DashboardUrlKey[];
   for (const key of keys) {
     const value = patch[key];

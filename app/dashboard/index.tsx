@@ -10,9 +10,8 @@ import { DashboardLeaderboard } from "./DashboardLeaderboard";
 import { DashboardGraphs } from "./graphs/DashboardGraphs";
 import { useLivePayload } from "./live-payload";
 import { isGraphEligible, modelsForVariantDisplay, providerOptions } from "./shared/model-display";
-import { providerFilterKey } from "./shared/provider-theme";
 import { GRAPH_VARIANTS_COOKIE } from "./url-state";
-import { useUrlState } from "./use-url-state";
+import { updateDashboardUrl, useUrlState } from "./use-url-state";
 
 const REASONING_VARIANT_STORAGE_KEY = "model-atlas:expand-reasoning-variants";
 
@@ -26,11 +25,11 @@ export function Dashboard({
   const [showReasoningVariants, setShowReasoningVariants] = useReasoningVariantDisplay(
     initialShowReasoningVariants,
   );
-  const [requestedProviders, setSelectedProviders] = useUrlState("provider");
-  const [maxCostFilter, setMaxCostFilter] = useUrlState("max-cost");
-  const [modelRankFilter, setModelRankFilter] = useUrlState("rank");
-  const [recencyFilter, setRecencyFilter] = useUrlState("days");
-  const [globalModelFilterQuery, setGlobalModelFilterQuery] = useUrlState("q");
+  const [requestedProviders] = useUrlState("provider");
+  const [maxCostFilter] = useUrlState("max-cost");
+  const [modelRankFilter] = useUrlState("rank");
+  const [recencyFilter] = useUrlState("days");
+  const [globalModelFilterQuery] = useUrlState("q");
   const { payload, errorMessage } = useLivePayload(initialPayload);
 
   const referenceModels = useMemo(() => payload?.models ?? [], [payload]);
@@ -48,10 +47,7 @@ export function Dashboard({
     };
   }, [payload, showReasoningVariants]);
   const providerChoices = useMemo(() => providerOptions(payload?.models ?? []), [payload]);
-  const selectedProviders = useMemo(() => {
-    const providers = new Set(payload?.models.map((model) => providerFilterKey(model.provider)));
-    return requestedProviders.filter((slug) => providers.has(slug));
-  }, [requestedProviders, payload]);
+  const selectedProviders = requestedProviders;
   const isInitialLoading = payload == null && errorMessage == null;
 
   return (
@@ -61,7 +57,7 @@ export function Dashboard({
         payload={displayPayload}
         modelVariants={payload?.models ?? []}
         referenceModels={referenceModels}
-        benchmarksLoading={isInitialLoading}
+        isLoading={isInitialLoading}
         selectedProviders={selectedProviders}
         providerChoices={providerChoices}
         maxCost={maxCostFilter}
@@ -70,11 +66,6 @@ export function Dashboard({
         globalModelFilterQuery={globalModelFilterQuery}
         showReasoningVariants={showReasoningVariants}
         onShowReasoningVariantsChange={setShowReasoningVariants}
-        onSelectedProvidersChange={setSelectedProviders}
-        onMaxCostChange={setMaxCostFilter}
-        onModelRankFilterChange={setModelRankFilter}
-        onRecencyFilterChange={setRecencyFilter}
-        onGlobalModelFilterQueryChange={setGlobalModelFilterQuery}
         afterLead={
           <DashboardLeaderboard
             payload={payload}
@@ -116,13 +107,14 @@ function useReasoningVariantDisplay(initialShowReasoningVariants: boolean) {
     document.cookie = `${GRAPH_VARIANTS_COOKIE}=${showReasoningVariants ? "1" : "0"}; Path=/; Max-Age=31536000; SameSite=Lax`;
   }, [showReasoningVariants]);
 
-  const [urlVariants, setUrlVariants] = useUrlState("graph-variants", showReasoningVariants);
-  const setVariants = useCallback(
-    (expanded: boolean) => {
-      setShowReasoningVariants(expanded);
-      setUrlVariants(expanded);
-    },
-    [setUrlVariants],
-  );
+  const [urlVariants] = useUrlState("graph-variants", showReasoningVariants);
+  const setVariants = useCallback((expanded: boolean, includeTable = false) => {
+    setShowReasoningVariants(expanded);
+    updateDashboardUrl(
+      includeTable
+        ? { "graph-variants": expanded, "table-variants": expanded }
+        : { "graph-variants": expanded },
+    );
+  }, []);
   return [urlVariants, setVariants] as const;
 }

@@ -39,4 +39,6 @@ pnpm install
 pnpm dev
 ```
 
+Named model profiles save the global search and any additional provider, cost, release, or rank filters in browser storage. Save and Update require at least one matching model; Remove deletes the saved profile while keeping the current filters; loading a profile restores its URL settings without changing the table column search or display choices. Column search uses `column-q`; model search belongs to the global filters.
+
 The dashboard is a Next.js application. The package export at `src/model-atlas/index.ts` exposes the public data-building and scoring boundaries used by repository consumers.

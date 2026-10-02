@@ -18,7 +18,7 @@ import type {
 } from "../../../src/model-atlas/stats/resource-ratios";
 import { type ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 import { compareBenchmarkDisplayKeys } from "../shared/constants";
-import { filterByModelQuery, modelDisplayName } from "../shared/model-display";
+import { modelDisplayName } from "../shared/model-display";
 
 export type SortDirection = "ascending" | "descending";
 
@@ -272,8 +272,6 @@ type TableColumnGroup =
   | "confidence"
   | "change";
 
-export type BenchmarkColumnOrder = "portfolio" | "coverage";
-
 const scoreColumnKeys = new Set<TableColumnKey>(["intelligence", "agentic", "speed", "value"]);
 const operationColumnKeys = new Set<TableColumnKey>([
   "taskCostRatio",
@@ -305,13 +303,12 @@ for (const { benchmark, columns } of benchmarkColumnGroups) {
 /** Resolve group-ending rules against the columns that are actually visible. */
 export function tableColumnRuleKeys(
   visibleColumnKeys: readonly TableColumnKey[],
-  benchmarkColumnOrder: BenchmarkColumnOrder,
 ): ReadonlySet<TableColumnKey> {
   const ruledKeys = new Set<TableColumnKey>();
   let previousKey: TableColumnKey | undefined;
   let previousGroup: TableColumnGroup | undefined;
   for (const key of visibleColumnKeys) {
-    const group = tableColumnGroup(key, benchmarkColumnOrder);
+    const group = tableColumnGroup(key);
     if (previousKey != null && previousGroup !== group && previousGroup !== "fixed") {
       ruledKeys.add(previousKey);
     }
@@ -321,10 +318,7 @@ export function tableColumnRuleKeys(
   return ruledKeys;
 }
 
-function tableColumnGroup(
-  key: TableColumnKey,
-  benchmarkColumnOrder: BenchmarkColumnOrder,
-): TableColumnGroup {
+function tableColumnGroup(key: TableColumnKey): TableColumnGroup {
   if (key === "rank" || key === "model") {
     return "fixed";
   }
@@ -343,9 +337,7 @@ function tableColumnGroup(
   if (key === "change") {
     return "change";
   }
-  return benchmarkColumnOrder === "portfolio"
-    ? (benchmarkColumnGroupsByKey.get(key) ?? "baseline")
-    : "baseline";
+  return benchmarkColumnGroupsByKey.get(key) ?? "baseline";
 }
 
 export type TableRow = {
@@ -438,11 +430,11 @@ export const sorters: Record<SortKey, Sorter> = {
   ...dashboardMetricSorters,
 };
 
-/** Filter and sort rows with source order as the final stable tie-breaker. */
-export function sortedRows(rows: TableRow[], filterQuery: string, sortState: SortState) {
+/** Sort a copy of the visible rows, preserving source order as the final stable tie-breaker. */
+export function sortedRows(rows: readonly TableRow[], sortState: SortState) {
   const sorter = sorters[sortState.key] ?? sorters.rank;
   const direction = sortState.direction === "descending" ? -1 : 1;
-  return filterByModelQuery(rows, (row) => row.model, filterQuery).sort((left, right) => {
+  return [...rows].sort((left, right) => {
     const leftValue = sorter.get(left);
     const rightValue = sorter.get(right);
     const missingCompared = compareMissingValues(sorter, leftValue, rightValue);

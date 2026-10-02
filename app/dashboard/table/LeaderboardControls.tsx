@@ -1,88 +1,66 @@
 "use client";
 
-/** Leaderboard controls share one model-and-column search alongside display limits and analytical presets. */
+/** The table toolbar owns column presets, column search, and display limits; model selection belongs to the global filters. */
+
+import { Columns3, Search } from "lucide-react";
 
 import { DisplayControls, type DisplayControlsProps } from "../shared/DisplayControls";
-import {
-  BENCHMARK_COLUMN_ORDERS,
-  TABLE_COLUMN_PRESETS,
-  type TableColumnPreset,
-} from "./column-views";
-import type { BenchmarkColumnOrder } from "./models";
+import { TABLE_COLUMN_PRESETS, type TableColumnPreset } from "./column-views";
 
 import styles from "./leaderboard-controls.module.css";
 
 export function LeaderboardControls({
   preset,
-  benchmarkOrder,
-  query,
-  searchResultLabel,
+  columnQuery,
+  columnSearchResultLabel,
   isColumnSearch,
   display,
-  onBenchmarkOrderChange,
   onPresetChange,
-  onQueryChange,
+  onColumnQueryChange,
 }: {
   preset: TableColumnPreset;
-  benchmarkOrder: BenchmarkColumnOrder;
-  query: string;
-  searchResultLabel: string | null;
+  columnQuery: string;
+  columnSearchResultLabel: string | null;
   isColumnSearch: boolean;
   display: DisplayControlsProps;
-  onBenchmarkOrderChange: (order: BenchmarkColumnOrder) => void;
   onPresetChange: (preset: TableColumnPreset) => void;
-  onQueryChange: (query: string) => void;
+  onColumnQueryChange: (query: string) => void;
 }) {
-  const showsOrder = preset === "scores" && !isColumnSearch;
   return (
     <section className={styles.controls} aria-label="Leaderboard controls" data-capture-exclude>
-      <div className={styles.display}>
-        <DisplayControls {...display} />
-      </div>
       <div className={styles.row}>
-        <input
-          className={styles.search}
-          type="search"
-          autoComplete="off"
-          spellCheck="false"
-          aria-label="Search models, columns or descriptions"
-          placeholder="Search models, columns or descriptions"
-          value={query}
-          onChange={(event) => onQueryChange(event.currentTarget.value)}
-        />
-        {searchResultLabel != null ? (
-          <output className={styles.result} aria-live="polite">
-            {searchResultLabel}
-          </output>
-        ) : null}
-        {showsOrder ? (
-          <div className={styles.ordering} role="group" aria-label="Benchmark column order">
-            <span className={styles.orderingLabel}>Order</span>
-            {BENCHMARK_COLUMN_ORDERS.map((option) => (
-              <button
-                className={styles.orderButton}
-                type="button"
-                aria-pressed={benchmarkOrder === option.key}
-                key={option.key}
-                onClick={() => onBenchmarkOrderChange(option.key)}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-        ) : null}
-        <div className={styles.presets} role="group" aria-label="Column presets">
+        <div className={styles.presets} role="group" aria-label="Column preset">
+          <Columns3 size={15} aria-hidden="true" />
           {TABLE_COLUMN_PRESETS.map((option) => (
             <button
-              className={styles.preset}
               type="button"
-              aria-pressed={!isColumnSearch && preset === option.key}
               key={option.key}
+              aria-pressed={!isColumnSearch && preset === option.key}
               onClick={() => onPresetChange(option.key)}
             >
               {option.label}
             </button>
           ))}
+        </div>
+        <label className={styles.search}>
+          <Search size={15} aria-hidden="true" />
+          <input
+            type="search"
+            autoComplete="off"
+            spellCheck={false}
+            aria-label="Find columns"
+            placeholder="Find columns…"
+            value={columnQuery}
+            onChange={(event) => onColumnQueryChange(event.currentTarget.value)}
+          />
+        </label>
+        {columnSearchResultLabel ? (
+          <output className={styles.result} aria-live="polite">
+            {columnSearchResultLabel}
+          </output>
+        ) : null}
+        <div className={styles.display}>
+          <DisplayControls {...display} />
         </div>
       </div>
     </section>

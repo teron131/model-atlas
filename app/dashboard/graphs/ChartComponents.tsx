@@ -1,11 +1,9 @@
 "use client";
 
-/** Shared hover and filter UI for Model Atlas charts. */
+/** Chart-point hover cards keep model identity and evidence rows together. */
 
-import { Boxes } from "lucide-react";
-import { type CSSProperties, useState } from "react";
+import { type CSSProperties } from "react";
 
-import { fmtCompact } from "./format";
 import type { HoverState } from "./hover-state";
 
 import styles from "./graphs.module.css";
@@ -53,56 +51,5 @@ export function HoverCard({ hover }: { hover: HoverState }) {
         ))}
       </div>
     </div>
-  );
-}
-
-export function FilterButton({
-  active,
-  color,
-  logo,
-  label,
-  count,
-  onClick,
-}: {
-  active: boolean;
-  color: string;
-  logo?: string;
-  label: string;
-  count: number;
-  onClick: () => void;
-}) {
-  const [failedLogo, setFailedLogo] = useState<string | null>(null);
-  const hasUsableLogo = logo != null && logo !== "" && failedLogo !== logo;
-
-  return (
-    <button
-      type="button"
-      className={styles.filterButton}
-      aria-pressed={active}
-      style={{ "--provider-color": color } as CSSProperties}
-      onClick={onClick}
-    >
-      <span className={styles.filterIcon} aria-hidden="true">
-        {hasUsableLogo ? (
-          <img
-            className={styles.filterLogo}
-            src={logo}
-            alt=""
-            width={16}
-            height={16}
-            loading="lazy"
-            onError={() => {
-              setFailedLogo(logo);
-            }}
-          />
-        ) : logo ? (
-          <span className={styles.filterIconFallback}>{label.slice(0, 1)}</span>
-        ) : (
-          <Boxes className={styles.filterAllIcon} strokeWidth={2.1} />
-        )}
-      </span>
-      <span>{label}</span>
-      <span>{fmtCompact(count)}</span>
-    </button>
   );
 }

@@ -88,14 +88,15 @@ export function useCursorProjection() {
   };
 }
 
+/** Disable the hit area while the measured plot bounds are empty or reversed. */
 export function CursorCapture({ bounds }: { bounds: PlotBounds }) {
   return (
     <rect
       className={styles.cursorCapture}
       x={bounds.left}
       y={bounds.top}
-      width={bounds.right - bounds.left}
-      height={bounds.bottom - bounds.top}
+      width={Math.max(0, bounds.right - bounds.left)}
+      height={Math.max(0, bounds.bottom - bounds.top)}
     />
   );
 }

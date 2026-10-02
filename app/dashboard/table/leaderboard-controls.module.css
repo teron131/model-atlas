@@ -1,194 +1,108 @@
-/** Ruled leaderboard controls separate display limits from the unified search and column presets. */
-
+/* Table configuration is secondary to global model search and occupies one ruled toolbar by default. */
 .controls {
   position: relative;
-  container-type: inline-size;
-  width: 100%;
   min-width: 0;
   border-bottom: 1px solid var(--line);
-  background: transparent;
-  font-family: var(--font-mono);
+  color: var(--muted);
+  font: 500 var(--mono-chip) / 1.4 var(--font-mono);
 }
-
-.display {
-  min-width: 0;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--line);
-}
-
 .row {
-  display: grid;
-  grid-template-areas: "search result ordering presets";
-  grid-template-columns: minmax(180px, 1fr) max-content max-content max-content;
-  min-height: 44px;
-  align-items: stretch;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  min-height: 48px;
 }
-
-.search {
-  grid-area: search;
-  width: auto;
+.presets {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 12px;
+}
+.presets > svg {
+  flex: 0 0 auto;
+}
+.presets button {
+  min-height: 36px;
+  padding: 4px 2px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+.presets button[aria-pressed="true"] {
+  border-bottom-color: var(--ink);
+  color: var(--ink);
+}
+.controls input[type="search"] {
   min-width: 0;
-  height: 44px;
-  padding: 0 12px 0 2px;
+  min-height: 36px;
+  padding: 5px 2px;
   border: 0;
   border-radius: 0;
   background: transparent;
   color: var(--ink);
   font: inherit;
-  font-size: var(--mono-chip);
-  font-weight: 500;
-  outline: 0;
-  transition: box-shadow 0.18s ease;
 }
-
-.search:focus {
-  box-shadow: inset 0 -3px var(--ink);
+.search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 100px;
+  flex: 1 1 100px;
+  max-width: 280px;
+  margin-left: 12px;
 }
-
-.search:focus-visible {
-  box-shadow:
-    inset 0 -3px var(--ink),
-    0 0 0 2px var(--focus-ring);
+.search input {
+  width: 100%;
+  text-overflow: ellipsis;
 }
-
-.search::placeholder {
+.search svg {
+  flex: 0 0 auto;
+}
+.controls input::placeholder {
   color: var(--faint);
   opacity: 1;
 }
-
 .result {
-  grid-area: result;
-  display: flex;
-  align-items: center;
-  padding: 0 12px;
-  border-left: 1px solid var(--line);
   color: var(--muted);
-  font-size: var(--mono-label);
-  font-weight: var(--type-label-weight);
-  letter-spacing: 0.025em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.presets {
-  grid-area: presets;
-  display: grid;
-  grid-template-columns: repeat(4, max-content);
-  align-items: stretch;
-  border-left: 1px solid var(--line);
-}
-
-.ordering {
-  grid-area: ordering;
-  display: flex;
-  align-items: stretch;
-  margin-right: 12px;
-  border-left: 1px solid var(--line);
-}
-
-.orderingLabel {
-  display: flex;
-  align-items: center;
-  padding: 1px 8px 0 10px;
-  color: var(--faint);
-  font-size: var(--type-micro-size);
-  font-weight: var(--type-label-weight);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.preset,
-.orderButton {
-  min-width: 58px;
-  min-height: 44px;
-  padding: 1px 10px 0;
-  border: 0;
-  border-bottom: 3px solid transparent;
-  background: transparent;
-  color: var(--faint);
-  font: inherit;
   font-size: var(--type-caption-size);
-  font-weight: var(--type-label-weight);
-  letter-spacing: 0.025em;
-  line-height: 1;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition:
-    color 0.16s ease,
-    transform 0.16s ease;
 }
-
-.orderButton {
-  min-width: 74px;
+.display {
+  flex: 0 0 auto;
+  margin-left: auto;
 }
-
-.preset:hover,
-.orderButton:hover {
-  color: var(--ink);
+.controls button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
 }
-
-.preset:focus-visible,
-.orderButton:focus-visible {
-  position: relative;
-  z-index: 1;
-  outline: 2px solid var(--ink);
-  outline-offset: -2px;
+.controls input[type="search"]:focus-visible {
+  outline: none;
+  box-shadow: none;
 }
-
-.preset:active,
-.orderButton:active {
-  transform: translateY(1px);
-}
-
-.preset[aria-pressed="true"],
-.orderButton[aria-pressed="true"] {
-  border-bottom-color: var(--ink);
-  color: var(--ink);
-}
-
-@media (max-width: 40rem) {
-  .search {
-    font-size: 16px;
-  }
-
+@media (max-width: 600px) {
   .row {
-    grid-template-areas:
-      "search result"
-      "ordering ordering"
-      "presets presets";
-    grid-template-columns: minmax(0, 1fr) max-content;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    padding-block: 4px;
   }
-
   .presets {
-    grid-template-columns: repeat(4, 1fr);
-    border-top: 1px solid var(--line);
-    border-left: 0;
+    flex: 1 0 100%;
   }
-
-  .ordering {
-    margin-right: 0;
-    border-top: 1px solid var(--line);
-    border-left: 0;
+  .search {
+    flex: 1 1 130px;
+    min-width: 130px;
+    max-width: none;
+    margin-left: 0;
   }
-
-  .orderingLabel {
-    min-width: 58px;
+  .display {
+    flex: 0 0 auto;
+    margin-left: auto;
   }
-
-  .orderButton {
-    flex: 1;
-  }
-
-  .preset {
-    width: 100%;
-    min-width: 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .search,
-  .preset,
-  .orderButton {
-    transition: none;
+  .controls input[type="search"] {
+    min-height: 44px;
   }
 }

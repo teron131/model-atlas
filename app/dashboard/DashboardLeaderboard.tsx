@@ -46,15 +46,9 @@ import {
   type RecencyFilter,
 } from "./shared/model-display";
 import { hasSearchQuery } from "./shared/search";
-import {
-  tableColumnKeysByCoverage,
-  type TableColumnPreset,
-  tableColumnSortKey,
-  tableColumnView,
-} from "./table/column-views";
+import { type TableColumnPreset, tableColumnSortKey, tableColumnView } from "./table/column-views";
 import { LeaderboardControls } from "./table/LeaderboardControls";
 import {
-  type BenchmarkColumnOrder,
   dashboardMetricColumns,
   dedupeDisplayModels,
   sortedRows,
@@ -99,26 +93,25 @@ export function DashboardLeaderboard({
   const tooltipFadeTimeoutRef = useRef<number | null>(null);
   const collapsedLimitRef = useRef(DEFAULT_DISPLAY_ITEMS);
   const [requestedSort, setSortState] = useUrlState("sort");
-  const [filterQuery] = useUrlState("table-q");
+  const [columnQuery] = useUrlState("column-q");
   const [columnPreset] = useUrlState("view");
-  const [benchmarkColumnOrder, setBenchmarkColumnOrder] = useUrlState("column-order");
   const [tooltip, setTooltip] = useState<DashboardTooltipState | null>(null);
   const [showVariants, setShowVariants] = useUrlState("table-variants");
-  const deferredFilterQuery = useDeferredValue(filterQuery);
+  const deferredColumnQuery = useDeferredValue(columnQuery);
   const columnTooltips = payload?.metadata?.scoring?.column_tooltips ?? emptyColumnTooltips;
   const {
     searchQuery: columnFilterQuery,
     searchMatchCount: columnSearchMatchCount,
-    keys: portfolioColumnKeys,
+    keys: visibleColumnKeys,
   } = useMemo(
-    () => tableColumnView(columnPreset, deferredFilterQuery, columnTooltips),
-    [columnPreset, deferredFilterQuery, columnTooltips],
+    () => tableColumnView(columnPreset, deferredColumnQuery, columnTooltips),
+    [columnPreset, deferredColumnQuery, columnTooltips],
   );
   const sortState = useMemo(() => {
-    if (portfolioColumnKeys.includes(requestedSort.key)) return requestedSort;
-    const key = tableColumnSortKey(columnPreset, columnFilterQuery, portfolioColumnKeys);
+    if (visibleColumnKeys.includes(requestedSort.key)) return requestedSort;
+    const key = tableColumnSortKey(columnPreset, columnFilterQuery, visibleColumnKeys);
     return { key, direction: sorters[key].direction };
-  }, [requestedSort, columnPreset, columnFilterQuery, portfolioColumnKeys]);
+  }, [requestedSort, columnPreset, columnFilterQuery, visibleColumnKeys]);
   const deferredShowVariants = useDeferredValue(showVariants);
   const deferredSelectedProviders = useDeferredValue(selectedProviders);
   const deferredMaxCost = useDeferredValue(maxCost);
@@ -225,20 +218,13 @@ export function DashboardLeaderboard({
       filterByModelQuery(filteredExpandedRows, (row) => row.model, deferredGlobalModelFilterQuery),
     [deferredGlobalModelFilterQuery, filteredExpandedRows],
   );
-  const matchingModelRows = useMemo(
-    () => filterByModelQuery(scopedRows, (row) => row.model, deferredFilterQuery),
-    [deferredFilterQuery, scopedRows],
-  );
-  // A column-only match changes the displayed evidence without hiding the models.
-  const modelFilterQuery =
-    matchingModelRows.length === 0 && columnSearchMatchCount > 0 ? "" : deferredFilterQuery;
   const matchingRows = useMemo(
     () =>
-      sortedRows(modelFilterQuery ? matchingModelRows : scopedRows, "", {
+      sortedRows(scopedRows, {
         key: "intelligence",
         direction: "descending",
       }),
-    [modelFilterQuery, matchingModelRows, scopedRows],
+    [scopedRows],
   );
   const maximumLimit = matchingRows.length;
   const [effectiveLimit, setLimit] = useDisplayLimit(maximumLimit);
@@ -249,29 +235,11 @@ export function DashboardLeaderboard({
   );
   const expandedVariantCount = useMemo(() => {
     const selectedModels = new Set(limitedRows.map((row) => canonicalModelKey(row.model)));
-    return filterByModelQuery(
-      globallyFilteredExpandedRows,
-      (row) => row.model,
-      modelFilterQuery,
-    ).filter((row) => selectedModels.has(canonicalModelKey(row.model))).length;
-  }, [modelFilterQuery, globallyFilteredExpandedRows, limitedRows]);
-  const visibleRows = useMemo(
-    () => sortedRows(limitedRows, "", sortState),
-    [limitedRows, sortState],
-  );
-  const activeBenchmarkColumnOrder: BenchmarkColumnOrder =
-    columnPreset === "scores" &&
-    columnFilterQuery.trim().length === 0 &&
-    benchmarkColumnOrder === "coverage"
-      ? "coverage"
-      : "portfolio";
-  const visibleColumnKeys = useMemo(
-    () =>
-      activeBenchmarkColumnOrder === "coverage"
-        ? tableColumnKeysByCoverage(portfolioColumnKeys, limitedRows)
-        : portfolioColumnKeys,
-    [activeBenchmarkColumnOrder, limitedRows, portfolioColumnKeys],
-  );
+    return globallyFilteredExpandedRows.filter((row) =>
+      selectedModels.has(canonicalModelKey(row.model)),
+    ).length;
+  }, [globallyFilteredExpandedRows, limitedRows]);
+  const visibleRows = useMemo(() => sortedRows(limitedRows, sortState), [limitedRows, sortState]);
   const orderedMetricColumns = useMemo(() => {
     const orderByKey = new Map(visibleColumnKeys.map((key, index) => [key, index]));
     return [...dashboardMetricColumns].sort(
@@ -292,11 +260,8 @@ export function DashboardLeaderboard({
             scoring: payload?.metadata.scoring,
             unit: rowKind,
           });
-  const searchResultLabel = hasSearchQuery(deferredFilterQuery)
-    ? [
-        `${matchingModelRows.length} ${rowKind}`,
-        `${columnSearchMatchCount} ${columnSearchMatchCount === 1 ? "column" : "columns"}`,
-      ].join(" · ")
+  const columnSearchResultLabel = hasSearchQuery(deferredColumnQuery)
+    ? `${columnSearchMatchCount} ${columnSearchMatchCount === 1 ? "column" : "columns"}`
     : null;
   const emptyMessage = errorMessage ?? (payload == null ? "Loading stats" : "No models");
 
@@ -335,9 +300,9 @@ export function DashboardLeaderboard({
 
   /** Keep a column change and any required sort fallback in one navigable action. */
   const changeColumnView = useCallback(
-    (patch: Pick<DashboardUrlPatch, "view" | "table-q">) => {
+    (patch: Pick<DashboardUrlPatch, "view" | "column-q">) => {
       const preset = patch.view ?? columnPreset;
-      const searchQuery = patch["table-q"] ?? filterQuery;
+      const searchQuery = patch["column-q"] ?? columnQuery;
       const { searchQuery: query, keys } = tableColumnView(preset, searchQuery, columnTooltips);
       const key = keys.includes(sortState.key)
         ? sortState.key
@@ -352,16 +317,16 @@ export function DashboardLeaderboard({
         patch.view == null,
       );
     },
-    [columnPreset, filterQuery, columnTooltips, sortState, requestedSort],
+    [columnPreset, columnQuery, columnTooltips, sortState, requestedSort],
   );
   const handleColumnPresetChange = useCallback(
     (preset: TableColumnPreset) => {
-      changeColumnView({ view: preset, ...(columnFilterQuery ? { "table-q": "" } : {}) });
+      changeColumnView({ view: preset, ...(columnQuery ? { "column-q": "" } : {}) });
     },
-    [changeColumnView, columnFilterQuery],
+    [changeColumnView, columnQuery],
   );
-  const handleQueryChange = useCallback(
-    (query: string) => changeColumnView({ "table-q": query }),
+  const handleColumnQueryChange = useCallback(
+    (query: string) => changeColumnView({ "column-q": query }),
     [changeColumnView],
   );
 
@@ -469,38 +434,26 @@ export function DashboardLeaderboard({
             <CopyDashboardLink sectionId="leaderboard" />
           </div>
         </div>
-        <div>
-          <p className="dashboard-section-copy">
-            Compare model capability, speed and value across the selected benchmarks.
-          </p>
-        </div>
       </header>
       <LeaderboardControls
         preset={columnPreset}
-        benchmarkOrder={benchmarkColumnOrder}
-        query={filterQuery}
-        searchResultLabel={searchResultLabel}
+        columnQuery={columnQuery}
+        columnSearchResultLabel={columnSearchResultLabel}
         isColumnSearch={hasSearchQuery(columnFilterQuery)}
         display={{
-          id: "leaderboard-model-limit",
-          label: "Leaderboard display",
           itemKind: rowKind,
           maximum: maximumLimit,
           value: effectiveLimit,
           onValueChange: setLimit,
-          variantControl: {
-            showVariants,
-            onShowVariantsChange: handleVariantDisplay,
-          },
+          showVariants,
+          onShowVariantsChange: handleVariantDisplay,
         }}
-        onBenchmarkOrderChange={setBenchmarkColumnOrder}
         onPresetChange={handleColumnPresetChange}
-        onQueryChange={handleQueryChange}
+        onColumnQueryChange={handleColumnQueryChange}
       />
       <ModelTable
         sortState={sortState}
         fitColumnContent={columnFilterQuery.trim().length > 0}
-        benchmarkColumnOrder={activeBenchmarkColumnOrder}
         visibleColumnKeys={visibleColumnKeys}
         visibleRows={visibleRows}
         emptyMessage={emptyMessage}
