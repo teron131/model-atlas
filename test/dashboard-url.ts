@@ -11,7 +11,7 @@ import { DashboardUrlProvider, useUrlState } from "../app/dashboard/use-url-stat
 /** Both table and graph controls must use the request URL before browser hydration. */
 function InitialSelections() {
   const [providers] = useUrlState("provider");
-  const [query] = useUrlState("table-q");
+  const [query] = useUrlState("column-q");
   const [variants] = useUrlState("graph-variants");
   const [rank] = useUrlState("rank");
   return createElement("output", null, `${providers.join(",")}|${query}|${variants}|${rank}`);
@@ -20,7 +20,7 @@ function InitialSelections() {
 assert.equal(
   renderToStaticMarkup(
     createElement(DashboardUrlProvider, {
-      search: "provider=openai&provider=xai&table-q=Grok&graph-variants=1&rank=30",
+      search: "provider=openai&provider=xai&column-q=Grok&graph-variants=1&rank=30",
       children: createElement(InitialSelections),
     }),
   ),
@@ -31,8 +31,8 @@ assert.equal(
 const base = new URL("https://model-atlas.test/");
 assert.equal(patchDashboardUrl(base, {}).href, base.href);
 assert.equal(readUrlValue(base.searchParams, "view"), "all");
-assert.equal(readUrlValue(base.searchParams, "rank"), 50);
-assert.equal(readUrlValue(base.searchParams, "days"), 180);
+assert.equal(readUrlValue(base.searchParams, "rank"), "all");
+assert.equal(readUrlValue(base.searchParams, "days"), "all");
 assert.equal(dashboardUrlSection(base), null);
 assert.equal(readUrlValue(base.searchParams, "performance"), "intelligence");
 assert.equal(readUrlValue(base.searchParams, "axes"), "cost");
@@ -46,7 +46,7 @@ assert.equal(cost.search, "?view=cost");
 assert.equal(cost.hash, "#leaderboard");
 assert.equal(patchDashboardUrl(base, { view: "all" }).search, "");
 assert.equal(patchDashboardUrl(base, { "table-variants": false }).search, "");
-assert.equal(patchDashboardUrl(base, { rank: 50 }).search, "");
+assert.equal(patchDashboardUrl(base, { rank: "all" }).search, "");
 
 const selections = patchDashboardUrl(new URL("?campaign=test#leaderboard", base), {
   q: "reason* *max & + test",
@@ -88,8 +88,8 @@ for (const query of [
   "rank=Infinity&days=NaN&max-cost=3",
 ]) {
   const params = new URLSearchParams(query);
-  assert.equal(readUrlValue(params, "rank"), 50);
-  assert.equal(readUrlValue(params, "days"), 180);
+  assert.equal(readUrlValue(params, "rank"), "all");
+  assert.equal(readUrlValue(params, "days"), "all");
   assert.equal(readUrlValue(params, "max-cost"), "all");
 }
 const malformed = new URLSearchParams(
@@ -99,7 +99,6 @@ assert.equal(readUrlValue(malformed, "view"), "all");
 assert.deepEqual(readUrlValue(malformed, "sort"), { key: "intelligence", direction: "descending" });
 assert.equal(readUrlValue(malformed, "performance"), "intelligence");
 assert.equal(readUrlValue(malformed, "axes"), "cost");
-assert.equal(readUrlValue(malformed, "column-order"), "portfolio");
 assert.equal(readUrlValue(malformed, "benchmark"), null);
 assert.deepEqual(readUrlValue(new URLSearchParams("benchmark=none"), "benchmark"), []);
 assert.deepEqual(
@@ -169,12 +168,27 @@ assert.equal(
 );
 
 const stacked = new URL(
-  "?timeline-period=all&performance=benchmarks&benchmark=all&rank=50&campaign=test#timeline",
+  "?timeline-period=all&performance=benchmarks&benchmark=all&rank=all&campaign=test#timeline",
   base,
 );
 assert.equal(patchDashboardUrl(stacked, {}).search, "?performance=benchmarks&campaign=test");
 assert.equal(patchDashboardUrl(stacked, { performance: "intelligence" }).search, "?campaign=test");
 assert.equal(patchDashboardUrl(base, { "timeline-period": "all" }).href, `${base.href}#timeline`);
 assert.equal(patchDashboardUrl(base, { "graph-variants": false }).search, "?graph-variants=0");
+
+const columnQuery = patchDashboardUrl(base, { "column-q": "cost", q: "GPT*" });
+assert.equal(readUrlValue(columnQuery.searchParams, "column-q"), "cost");
+assert.equal(readUrlValue(columnQuery.searchParams, "q"), "GPT*");
+assert.equal(columnQuery.hash, "#leaderboard");
+
+const retiredTableOptions = patchDashboardUrl(
+  new URL("?table-q=missing&column-order=coverage&q=GPT*&campaign=test", base),
+  {},
+);
+assert.equal(
+  retiredTableOptions.search,
+  "?q=GPT*&campaign=test",
+  "Removed table options must not survive in shared links",
+);
 
 console.log("Dashboard URL contract checks passed.");

@@ -249,6 +249,7 @@ export function YAxisTicks({
   ));
 }
 
+/** Keep the frame empty while responsive remeasurement leaves no usable plotting area. */
 export function PlotFrame({
   width,
   height,
@@ -262,8 +263,8 @@ export function PlotFrame({
     <rect
       x={margin.left}
       y={margin.top}
-      width={width - margin.left - margin.right}
-      height={height - margin.top - margin.bottom}
+      width={Math.max(0, width - margin.left - margin.right)}
+      height={Math.max(0, height - margin.top - margin.bottom)}
       fill="var(--chart-range-fill)"
     />
   );

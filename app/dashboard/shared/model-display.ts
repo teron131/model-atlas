@@ -38,8 +38,8 @@ type ModelControlFilters = {
 };
 
 export const costFilterOptions: CostFilter[] = ["all", 1, 2, 5, 10, 25];
-export const DEFAULT_MODEL_RANK_FILTER: ModelRankFilter = 50;
-export const DEFAULT_RECENCY_FILTER: RecencyFilter = 180;
+export const DEFAULT_MODEL_RANK_FILTER: ModelRankFilter = "all";
+export const DEFAULT_RECENCY_FILTER: RecencyFilter = "all";
 export const modelRankFilterOptions: ModelRankFilter[] = [30, 50, 70, "all"];
 export const recencyFilterOptions: RecencyFilter[] = [90, 180, "all"];
 

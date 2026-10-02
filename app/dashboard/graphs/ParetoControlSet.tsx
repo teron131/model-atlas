@@ -14,9 +14,13 @@ export const PARETO_PANEL_CONTENT = {
 export function ParetoControlSet({
   yAxisControl,
   xAxisControl,
+  showVariants,
+  onShowVariantsChange,
 }: {
   yAxisControl: ReactNode;
   xAxisControl: ReactNode;
+  showVariants: boolean;
+  onShowVariantsChange: (show: boolean) => void;
 }) {
   return (
     <div className={`${styles.chartToolbar} ${styles.paretoControlSet}`}>
@@ -33,6 +37,15 @@ export function ParetoControlSet({
           </span>
           {xAxisControl}
         </div>
+        <label className={styles.plotVariants} data-capture-exclude>
+          <input
+            type="checkbox"
+            aria-label="Show graph reasoning variants"
+            checked={showVariants}
+            onChange={(event) => onShowVariantsChange(event.target.checked)}
+          />
+          <span>Variants</span>
+        </label>
       </div>
     </div>
   );

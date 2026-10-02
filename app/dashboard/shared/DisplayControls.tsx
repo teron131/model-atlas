@@ -1,26 +1,18 @@
 "use client";
 
-/** Shared Top-N and variant controls for model data surfaces. */
+/** Model tables keep row limits and reasoning-variant display compact without restricting the requested count to presets. */
 
-import { type CSSProperties, type SyntheticEvent, useEffect, useState } from "react";
+import { type SyntheticEvent, useEffect, useState } from "react";
 
 import styles from "./display-controls.module.css";
 
 const MINIMUM_DISPLAY_ITEMS = 3;
 export const DEFAULT_DISPLAY_ITEMS = 50;
 
-const variantOptions = [
-  { showVariants: false, label: "Collapsed" },
-  { showVariants: true, label: "Expanded" },
-];
-
 /** Keep a requested display count inside the available data-backed range. */
 function clampDisplayLimit(limit: number, maximum: number): number {
-  if (maximum <= 0) {
-    return 0;
-  }
-  const minimum = Math.min(MINIMUM_DISPLAY_ITEMS, maximum);
-  return Math.min(Math.max(limit, minimum), maximum);
+  if (maximum <= 0) return 0;
+  return Math.min(Math.max(Math.trunc(limit), Math.min(MINIMUM_DISPLAY_ITEMS, maximum)), maximum);
 }
 
 /** Clamp the rendered limit without discarding the user's requested value as filters change. */
@@ -30,89 +22,76 @@ export function useDisplayLimit(maximum: number): [number, (value: number) => vo
 }
 
 export type DisplayControlsProps = {
-  id: string;
-  label: string;
   itemKind: "models" | "variants";
   maximum: number;
   value: number;
   onValueChange: (value: number) => void;
-  variantControl?: {
-    showVariants: boolean;
-    onShowVariantsChange: (show: boolean) => void;
-  };
+  showVariants: boolean;
+  onShowVariantsChange: (show: boolean) => void;
 };
 
-/** Render the shared compact Top-N and variant toolbar. */
+/** Commit a typed count on Enter or blur so editing a multi-digit value does not prematurely clamp its first digit. */
 export function DisplayControls({
-  id,
-  label,
   itemKind,
   maximum,
   value,
   onValueChange,
-  variantControl,
+  showVariants,
+  onShowVariantsChange,
 }: DisplayControlsProps) {
-  const [draftValue, setDraftValue] = useState(value);
-  const displayValue = clampDisplayLimit(draftValue, maximum);
+  const [draft, setDraft] = useState(String(value));
   const minimum = Math.min(MINIMUM_DISPLAY_ITEMS, maximum);
-  const progress = maximum <= minimum ? 0 : ((displayValue - minimum) / (maximum - minimum)) * 100;
-  const sliderStyle = {
-    "--display-slider-progress": `${progress}%`,
-  } as CSSProperties;
-  const commitDisplayValue = (event: SyntheticEvent<HTMLInputElement>) => {
-    const nextValue = event.currentTarget.valueAsNumber;
-    if (nextValue !== value) {
-      onValueChange(nextValue);
-    }
+  useEffect(() => setDraft(String(value)), [value]);
+  const commit = (event: SyntheticEvent<HTMLInputElement>) => {
+    const requested = event.currentTarget.valueAsNumber;
+    const next = Number.isFinite(requested) ? clampDisplayLimit(requested, maximum) : value;
+    setDraft(String(next));
+    if (next !== value) onValueChange(next);
   };
-
-  useEffect(() => {
-    setDraftValue(value);
-  }, [value]);
-
   return (
     <fieldset className={styles.controls} data-capture-exclude>
-      <legend className={styles.visuallyHidden}>{label}</legend>
-      <label className={styles.limit} htmlFor={id}>
-        <strong>Top {displayValue}</strong>
-        <small>{`of ${maximum} ${itemKind}`}</small>
-      </label>
-      <div className={styles.range}>
+      <legend className="visually-hidden">Leaderboard display</legend>
+      <label className={styles.limit} htmlFor="leaderboard-model-limit">
+        <span>Top</span>
         <input
-          className={styles.slider}
-          id={id}
-          type="range"
+          id="leaderboard-model-limit"
+          aria-label="Top models to show"
+          type="number"
           min={minimum}
           max={maximum}
           step={1}
-          value={displayValue}
+          value={draft}
           disabled={maximum === 0}
-          style={sliderStyle}
-          onBlur={commitDisplayValue}
-          onChange={(event) => setDraftValue(event.currentTarget.valueAsNumber)}
-          onKeyUp={commitDisplayValue}
-          onPointerCancel={commitDisplayValue}
-          onPointerUp={commitDisplayValue}
+          onChange={(event) => setDraft(event.target.value)}
+          onBlur={commit}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              commit(event);
+            }
+            if (event.key === "Escape") setDraft(String(value));
+          }}
         />
-      </div>
-      {variantControl == null ? null : (
-        <div className={styles.variants}>
-          <span>Variants</span>
-          <div className={styles.variantOptions}>
-            {variantOptions.map((option) => (
-              <button
-                className={styles.variantOption}
-                type="button"
-                aria-pressed={variantControl.showVariants === option.showVariants}
-                key={option.label}
-                onClick={() => variantControl.onShowVariantsChange(option.showVariants)}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      </label>
+      <button
+        className={styles.all}
+        type="button"
+        aria-label={`Show all ${maximum} ${itemKind}`}
+        aria-pressed={maximum > 0 && value === maximum}
+        disabled={maximum === 0}
+        onClick={() => onValueChange(maximum)}
+      >
+        All
+      </button>
+      <label className={styles.variants}>
+        <input
+          type="checkbox"
+          aria-label="Show table reasoning variants"
+          checked={showVariants}
+          onChange={(event) => onShowVariantsChange(event.target.checked)}
+        />
+        <span>Variants</span>
+      </label>
     </fieldset>
   );
 }

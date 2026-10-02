@@ -1,0 +1,355 @@
+/* Global filters expand to one ruled row; overflow scrolls sideways and secondary choices use the top layer. */
+.trigger {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  min-height: 48px;
+  padding: 0 13px;
+  border: 0;
+  border-left: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  font: var(--type-label-weight) var(--type-label-size) / 1.4 var(--font-mono);
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.trigger > span {
+  flex: 0 0 auto;
+}
+.trigger b {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+  color: var(--ink);
+  font: inherit;
+}
+.trigger i {
+  font-style: normal;
+}
+.trigger:hover,
+.trigger[aria-expanded="true"] {
+  color: var(--ink);
+}
+.panel {
+  grid-column: 1 / -1;
+  min-width: 0;
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+.panel[hidden] {
+  display: none;
+}
+.row {
+  display: flex;
+  align-items: stretch;
+  height: 48px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+}
+.row input,
+.row button,
+.menu button {
+  min-width: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 500 12px / 1.4 var(--font-mono);
+}
+.row button {
+  flex: 0 0 auto;
+  padding: 0 10px;
+  cursor: pointer;
+}
+.row button:hover {
+  background: rgb(var(--ink-rgb) / 0.05);
+}
+.row button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.search {
+  flex: 1 1 270px;
+  min-width: 130px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+}
+.search > svg {
+  flex: 0 0 auto;
+  color: var(--muted);
+}
+.search input {
+  width: 100%;
+  height: 34px;
+  padding: 0 2px;
+  text-overflow: ellipsis;
+}
+.search input:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+.search:focus-within > svg {
+  color: var(--ink);
+}
+.search input::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+.search output {
+  flex: 0 0 auto;
+  max-width: 40px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+  font: 500 10px / 1.4 var(--font-mono);
+}
+.profiles,
+.profiles form {
+  display: flex;
+  align-items: stretch;
+  flex: 0 0 auto;
+}
+.profiles {
+  border-left: 1px solid var(--line);
+}
+.profiles form input {
+  width: 150px;
+  padding: 0 10px;
+}
+.row .iconButton {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  position: relative;
+  color: var(--muted);
+  padding: 0;
+}
+.profileToggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+  max-width: 210px;
+}
+.profileToggle span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.profileToggle svg {
+  flex: 0 0 auto;
+}
+.menu {
+  position: fixed;
+  inset: auto;
+  width: min(300px, calc(100vw - 16px));
+  max-height: min(440px, 60dvh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-gutter: stable;
+  margin: 0;
+  padding: 8px;
+  border: 1px solid var(--line-strong);
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 0 10px 24px rgb(0 0 0 / 0.2);
+}
+.menu button {
+  width: 100%;
+  padding: 10px;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow-wrap: anywhere;
+}
+.profileCheck {
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+.menu button > svg:last-child:not(:first-child) {
+  margin-left: auto;
+}
+.menu button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.menu label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 10px;
+  font: 500 12px / 1.4 var(--font-mono);
+  cursor: pointer;
+}
+.menu label:hover,
+.menu button:hover {
+  background: rgb(var(--ink-rgb) / 0.05);
+}
+.menu input {
+  accent-color: var(--ink);
+  margin: 0;
+  flex: 0 0 auto;
+}
+.providerLogo {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  text-align: center;
+  color: var(--muted);
+}
+.menu label > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.menu small {
+  margin-left: auto;
+  color: var(--muted);
+}
+.trigger:focus-visible,
+.row button:focus-visible {
+  outline: none;
+  box-shadow: inset 0 -2px 0 var(--ink);
+}
+.menu button:focus-visible {
+  outline: none;
+  box-shadow: inset 2px 0 0 var(--ink);
+}
+.profiles input:focus-visible {
+  outline: none;
+  box-shadow: none;
+  border-bottom: 1px solid var(--ink);
+}
+@media (max-width: 760px) {
+  .trigger {
+    gap: 8px;
+    padding-inline: 10px;
+  }
+  .search {
+    min-width: 100px;
+    padding-inline: 10px;
+  }
+  .profileToggle {
+    max-width: 125px;
+  }
+  .row .iconButton {
+    width: 38px;
+  }
+  .menu label {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 520px) {
+  .profileToggle span {
+    display: none;
+  }
+  .row:has(.profiles form) .search {
+    display: none;
+  }
+  .row:has(.profiles form) .profiles {
+    flex: 1;
+    min-width: 0;
+    border-left: 0;
+  }
+  .profiles form {
+    flex: 1;
+    min-width: 0;
+  }
+  .profiles form input {
+    flex: 1;
+    width: 0;
+    min-width: 0;
+  }
+}
+
+.menuHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px;
+  color: var(--muted);
+  font: 500 11px / 1.4 var(--font-mono);
+}
+.menuActions {
+  border-top: 1px solid var(--line);
+  margin-top: 6px;
+  padding-top: 6px;
+}
+.filterOptions {
+  display: grid;
+  gap: 10px;
+  padding: 2px 10px 12px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+}
+.filterOptions fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.filterOptions legend {
+  padding: 0 0 5px;
+  color: var(--muted);
+  font: 500 11px / 1.4 var(--font-mono);
+}
+.filterOptions fieldset > div {
+  display: flex;
+  gap: 4px;
+}
+.filterOptions button {
+  justify-content: center;
+  flex: 1;
+  min-width: 0;
+  min-height: 32px;
+  padding: 5px 2px;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.filterOptions button[aria-pressed="true"] {
+  border-bottom-color: var(--ink);
+  color: var(--ink);
+}
+.activeDot {
+  position: absolute;
+  top: 10px;
+  right: 8px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--ink);
+}
+.error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 28px;
+  color: var(--ink);
+}
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
