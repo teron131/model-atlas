@@ -3,11 +3,13 @@
 /** The overview retains the full time range while pointer capture and keyboard controls edit the chart window. */
 
 import { ChevronLeft, ChevronRight, Minus, Plus, RotateCcw } from "lucide-react";
-import { type PointerEvent, useRef } from "react";
+import { type PointerEvent, useId, useRef } from "react";
 
 import { providerChartColor } from "../../shared/provider-theme";
 import { GraphToggle } from "../GraphToggle";
+import { HorizonLightStops } from "../plot/Primitives";
 import type { TimelinePoint } from "./chart-data";
+import { coverageFrontier } from "./frontier";
 
 import styles from "../timeline.module.css";
 
@@ -48,6 +50,20 @@ export function TimelineNavigator({
     new Date(bounds[0] + value * (bounds[1] - bounds[0])).toISOString().slice(0, 10);
   const low = Math.min(...points.map((p) => p.score));
   const high = Math.max(...points.map((p) => p.score));
+  const overviewX = (point: TimelinePoint) =>
+    8 + ((Date.parse(point.releaseDate) - bounds[0]) / (bounds[1] - bounds[0])) * 984;
+  const overviewY = (point: TimelinePoint) =>
+    56 - ((point.score - low) / Math.max(1, high - low)) * 48;
+  // The overview carries the chart's frontier as a small horizon, so the window frames a stretch of it.
+  const horizonId = useId();
+  const horizon = coverageFrontier(points, 0.6).map((point) => ({
+    x: overviewX(point),
+    y: overviewY(point),
+  }));
+  const horizonPath =
+    horizon.length === 0
+      ? ""
+      : `${horizon.map(({ x, y }, index) => `${index ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`).join("")}L992,${horizon.at(-1)!.y.toFixed(1)}`;
 
   /** Measure drag deltas in the overview's full range, even after the pointer leaves a handle. */
   function begin(event: PointerEvent<HTMLDivElement>) {
@@ -149,14 +165,37 @@ export function TimelineNavigator({
       </div>
       <div className={styles.navigator} aria-label="Timeline overview">
         <svg viewBox="0 0 1000 64" preserveAspectRatio="none" aria-hidden="true">
+          <defs>
+            <linearGradient id={`${horizonId}-rim`} x1="0" y1="0" x2="1" y2="0">
+              <HorizonLightStops />
+            </linearGradient>
+            <linearGradient id={`${horizonId}-land`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#8f6bff" stopOpacity="0.22" />
+              <stop offset="1" stopColor="#8f6bff" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          {horizon.length > 0 ? (
+            <>
+              <path
+                d={`${horizonPath}L992,64L${horizon[0]!.x.toFixed(1)},64Z`}
+                fill={`url(#${horizonId}-land)`}
+              />
+              <path
+                className={styles.navigatorRim}
+                d={horizonPath}
+                stroke={`url(#${horizonId}-rim)`}
+                vectorEffect="non-scaling-stroke"
+              />
+            </>
+          ) : null}
           {points.map((p) => (
             <circle
               key={p.id}
-              cx={8 + ((Date.parse(p.releaseDate) - bounds[0]) / (bounds[1] - bounds[0])) * 984}
-              cy={56 - ((p.score - low) / Math.max(1, high - low)) * 48}
+              cx={overviewX(p)}
+              cy={overviewY(p)}
               r="2"
               fill={providerChartColor(p.provider)}
-              opacity={0.35 + (p.coverage ?? 0) * 0.65}
+              opacity={(0.35 + (p.coverage ?? 0) * 0.65) * 0.75}
             />
           ))}
         </svg>

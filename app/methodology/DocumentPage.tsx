@@ -60,30 +60,32 @@ export function DocumentPage({ document }: { document: DocumentSlug }) {
     <DocumentShell activeDocument={document} outline={outline} titles={documentTitles}>
       <article className={styles.article} data-document-revision={revision}>
         <MarkdownDocument markdown={markdown} document={document} />
-        <nav className={styles.pageSequence} aria-label="Reading order">
-          {previous ? (
-            <Link href={documentHref(previous.slug)} prefetch={false} rel="prev">
-              <small>Previous</small>
-              <span>
-                <span className={styles.linkLabel}>
-                  <ScoreText>{documentTitles[previous.slug]}</ScoreText>
+        {previous || next ? (
+          <nav className={styles.pageSequence} aria-label="Reading order">
+            {previous ? (
+              <Link href={documentHref(previous.slug)} prefetch={false} rel="prev">
+                <small>Previous</small>
+                <span>
+                  <span className={styles.linkLabel}>
+                    <ScoreText>{documentTitles[previous.slug]}</ScoreText>
+                  </span>
                 </span>
-              </span>
-            </Link>
-          ) : (
-            <span />
-          )}
-          {next ? (
-            <Link href={documentHref(next.slug)} prefetch={false} rel="next">
-              <small>Next</small>
-              <span>
-                <span className={styles.linkLabel}>
-                  <ScoreText>{documentTitles[next.slug]}</ScoreText>
+              </Link>
+            ) : (
+              <span />
+            )}
+            {next ? (
+              <Link href={documentHref(next.slug)} prefetch={false} rel="next">
+                <small>Next</small>
+                <span>
+                  <span className={styles.linkLabel}>
+                    <ScoreText>{documentTitles[next.slug]}</ScoreText>
+                  </span>
                 </span>
-              </span>
-            </Link>
-          ) : null}
-        </nav>
+              </Link>
+            ) : null}
+          </nav>
+        ) : null}
       </article>
     </DocumentShell>
   );

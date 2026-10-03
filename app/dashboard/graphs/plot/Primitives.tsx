@@ -2,12 +2,10 @@
 
 /** Shared SVG drawing, label measurement and plot geometry for Model Atlas charts. */
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { type CSSProperties, useId, useLayoutEffect, useRef, useState } from "react";
 
 import { clamp } from "../../../../src/model-atlas/math-utils";
-import type { ModelAtlasModel } from "../../../../src/model-atlas/stats/types";
 import type { PointLabelPlacement, PointLabelSize } from "./label-placement";
-import { scoreQuadrilateralPoints } from "./score-quadrilateral";
 
 import styles from "../graphs.module.css";
 
@@ -51,57 +49,71 @@ export function stableSvgScale(scale: (value: number) => number) {
   return (value: number) => stableSvgNumber(scale(value));
 }
 
-/** Draw a fixed-compass score silhouette: Intelligence up, Agentic right, Speed left, Value down. */
-export function ModelScoreMark({
-  model,
-  cx,
-  cy,
-  radius,
-  fill,
-  stroke,
-  strokeWidth,
-  className,
-  opacity = 1,
-  clearance = 0,
-}: {
-  model: ModelAtlasModel;
+// A star is a lit centre inside a ring of its provider colour, as fractions of its radius: the ring's centre line and its width.
+const STAR_RING_CENTRE = 0.72;
+const STAR_RING_WIDTH = 0.56;
+
+/** Circle attributes that draw a star like the leaderboard's score stars, crisp enough to read in a dense chart: a lit centre inside a solid ring of its provider colour. */
+export function starCore(radius: number, color: string) {
+  return {
+    r: stableSvgNumber(radius * STAR_RING_CENTRE),
+    strokeWidth: stableSvgNumber(radius * STAR_RING_WIDTH),
+    style: { "--star": color } as CSSProperties,
+  };
+}
+
+/** One emphasised star's light in a chart's glow layer. */
+type StarLight = {
+  key: string;
   cx: number;
   cy: number;
+  /** Radius of the star; its glow spreads just past it. */
   radius: number;
-  fill: string;
-  stroke: string;
-  strokeWidth: number;
-  className?: string;
+  color: string;
+  /** Frontier models glow faintly; the selected model a little more. */
+  emphasis: "frontier" | "selected";
+  /** Dimming shared with the star, from 0 to 1. */
   opacity?: number;
-  clearance?: number;
-}) {
-  const points = scoreQuadrilateralPoints(model, cx, cy, radius)
-    .map(({ x, y }) => `${stableSvgNumber(x)},${stableSvgNumber(y)}`)
-    .join(" ");
+};
+
+// Glow size in star radii and its strength before the blur softens it; kept tight so marks stay legible.
+const STAR_GLOW = {
+  frontier: { reach: 1.55, strength: 0.42 },
+  selected: { reach: 1.9, strength: 0.6 },
+} as const;
+const STAR_GLOW_BLUR = 1.6;
+
+/** Light emphasised stars from one softly blurred layer beneath the marks, at the cost of a single filter per chart. */
+export function StarGlows({ stars, bounds }: { stars: readonly StarLight[]; bounds: PlotBounds }) {
+  const id = useId();
+  const margin = STAR_GLOW_BLUR * 8;
   return (
-    <>
-      {clearance > 0 ? (
-        <polygon
-          aria-hidden="true"
-          points={points}
-          fill="var(--paper)"
-          stroke="var(--paper)"
-          strokeWidth={clearance * 2}
-          strokeLinejoin="round"
-          vectorEffect="non-scaling-stroke"
-        />
-      ) : null}
-      <polygon
-        className={className}
-        points={points}
-        fill={fill}
-        stroke={stroke}
-        strokeWidth={strokeWidth}
-        strokeLinejoin="round"
-        vectorEffect="non-scaling-stroke"
-        opacity={opacity}
-      />
-    </>
+    <g className={styles.starGlows} aria-hidden="true">
+      <defs>
+        <filter
+          id={id}
+          filterUnits="userSpaceOnUse"
+          x={bounds.left - margin}
+          y={bounds.top - margin}
+          width={bounds.right - bounds.left + margin * 2}
+          height={bounds.bottom - bounds.top + margin * 2}
+        >
+          <feGaussianBlur stdDeviation={STAR_GLOW_BLUR} />
+        </filter>
+      </defs>
+      <g filter={`url(#${id})`}>
+        {stars.map(({ key, cx, cy, radius, color, emphasis, opacity = 1 }) => (
+          <circle
+            key={key}
+            cx={stableSvgNumber(cx)}
+            cy={stableSvgNumber(cy)}
+            r={stableSvgNumber(radius * STAR_GLOW[emphasis].reach)}
+            fill={color}
+            opacity={opacity * STAR_GLOW[emphasis].strength}
+          />
+        ))}
+      </g>
+    </g>
   );
 }
 
@@ -113,6 +125,168 @@ export function plotBoundsFor(width: number, height: number, margin: Margin): Pl
     top: margin.top,
     bottom: height - margin.bottom,
   };
+}
+
+type ScreenPoint = { x: number; y: number };
+
+/** The side where a frontier's reached region continues past its outermost model to the plot edge. */
+type HorizonOpenSide = "left" | "right";
+
+// Light along the rim, widest and faintest first; only the half under the rim survives the land clip.
+const HORIZON_GLOW = [
+  { width: 46, opacity: 0.07 },
+  { width: 22, opacity: 0.12 },
+  { width: 9, opacity: 0.22 },
+] as const;
+// One tile of the stipple scattered under the rim, as [x, y, radius] in plot pixels.
+const STIPPLE_TILE = 17;
+const STIPPLE = [
+  [1.5, 2.5, 0.7],
+  [9.5, 1, 0.55],
+  [14.5, 6.5, 0.75],
+  [5, 8, 0.6],
+  [11, 11.5, 0.7],
+  [2, 14, 0.55],
+  [7.5, 15.5, 0.65],
+  [15.5, 14, 0.5],
+] as const;
+
+/** The horizon's cobalt-to-violet-to-rose light as SVG gradient stops, matching the --horizon-gradient token; literal so PNG exports, which drop stylesheet rules inside SVG, keep the same light. */
+export function HorizonLightStops() {
+  return (
+    <>
+      <stop offset="0" stopColor="#4a72ff" />
+      <stop offset="0.58" stopColor="#8f6bff" />
+      <stop offset="1" stopColor="#ff92bd" />
+    </>
+  );
+}
+
+/** Extend frontier points, given in ascending screen x, to the plot edge on the open side at the outermost model's height. */
+export function horizonRim(
+  points: readonly ScreenPoint[],
+  bounds: PlotBounds,
+  open: HorizonOpenSide,
+): ScreenPoint[] {
+  const first = points[0];
+  const last = points.at(-1);
+  if (first == null || last == null) return [];
+  return open === "right"
+    ? [...points, { x: bounds.right, y: last.y }]
+    : [{ x: bounds.left, y: first.y }, ...points];
+}
+
+/**
+ * Draw a frontier the way the sky draws its horizon: a hot rim over the region the frontier reaches, with light and stipple along its underside.
+ *
+ * Every model the frontier outperforms sits inside the lit region, so the rim reads as the edge of what has been reached.
+ */
+export function FrontierHorizon({
+  points,
+  bounds,
+  open,
+  muted = false,
+}: {
+  /** Frontier models in ascending screen x. */
+  points: readonly ScreenPoint[];
+  bounds: PlotBounds;
+  open: HorizonOpenSide;
+  /** Dimmed while another selection owns the chart's emphasis. */
+  muted?: boolean;
+}) {
+  const id = useId();
+  const rim = horizonRim(points, bounds, open);
+  const first = rim[0];
+  const last = rim.at(-1);
+  if (first == null || last == null) return null;
+  const rimPath = rim
+    .map(({ x, y }, index) => `${index ? "L" : "M"}${stableSvgNumber(x)},${stableSvgNumber(y)}`)
+    .join("");
+  const landPath = `${rimPath}L${stableSvgNumber(last.x)},${stableSvgNumber(bounds.bottom)}L${stableSvgNumber(first.x)},${stableSvgNumber(bounds.bottom)}Z`;
+  const light = `${id}-light`;
+  const land = `${id}-land`;
+  const stipple = `${id}-stipple`;
+  const clip = `${id}-clip`;
+  // Gradient stops are literal so PNG exports, which drop stylesheet rules inside SVG, keep the same light.
+  return (
+    <g
+      className={muted ? `${styles.horizon} ${styles.horizonMuted}` : styles.horizon}
+      aria-hidden="true"
+    >
+      <defs>
+        <linearGradient
+          id={light}
+          gradientUnits="userSpaceOnUse"
+          x1={bounds.left}
+          y1={0}
+          x2={bounds.right}
+          y2={0}
+        >
+          <HorizonLightStops />
+        </linearGradient>
+        <linearGradient
+          id={land}
+          gradientUnits="userSpaceOnUse"
+          x1={0}
+          y1={bounds.top}
+          x2={0}
+          y2={bounds.bottom}
+        >
+          <stop offset="0" stopColor="#6f8cff" stopOpacity="0.15" />
+          <stop offset="1" stopColor="#6f8cff" stopOpacity="0.025" />
+        </linearGradient>
+        <pattern
+          id={stipple}
+          width={STIPPLE_TILE}
+          height={STIPPLE_TILE}
+          patternUnits="userSpaceOnUse"
+        >
+          {STIPPLE.map(([x, y, radius]) => (
+            <circle key={`${x}-${y}`} cx={x} cy={y} r={radius} fill="currentColor" />
+          ))}
+        </pattern>
+        <clipPath id={clip}>
+          <path d={landPath} />
+        </clipPath>
+      </defs>
+      <path className={styles.horizonLand} d={landPath} fill={`url(#${land})`} />
+      <g clipPath={`url(#${clip})`}>
+        <path
+          className={styles.horizonStipple}
+          d={rimPath}
+          stroke={`url(#${stipple})`}
+          strokeWidth={34}
+          opacity={0.32}
+        />
+        <path
+          className={styles.horizonStipple}
+          d={rimPath}
+          stroke={`url(#${stipple})`}
+          strokeWidth={14}
+          opacity={0.5}
+        />
+        {HORIZON_GLOW.map(({ width, opacity }) => (
+          <path
+            key={width}
+            className={styles.horizonGlow}
+            d={rimPath}
+            stroke={`url(#${light})`}
+            strokeWidth={width}
+            opacity={opacity}
+          />
+        ))}
+      </g>
+      <path
+        className={styles.horizonGlow}
+        d={rimPath}
+        stroke={`url(#${light})`}
+        strokeWidth={8}
+        opacity={0.16}
+      />
+      <path className={styles.horizonEdge} d={rimPath} stroke={`url(#${light})`} />
+      <path className={styles.horizonRim} d={rimPath} />
+    </g>
+  );
 }
 
 export function MedianCross({

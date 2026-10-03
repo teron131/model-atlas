@@ -10,6 +10,7 @@ import {
   AxisTitles,
   PlotFrame,
   SCATTER_CHART_WIDTH,
+  starCore,
   TextPointLabel,
   useLabelSizes,
   XAxisTicks,
@@ -287,10 +288,10 @@ export function LabsPlot({
                       fill="transparent"
                     />
                     <circle
+                      className={styles.starCore}
                       cx={x(new Date(point.releaseDate))}
                       cy={y(point.score)}
-                      r={highlight === lab.provider ? 4 : 3}
-                      fill={color}
+                      {...starCore(highlight === lab.provider ? 4 : 3, color)}
                       pointerEvents="none"
                     />
                   </g>

@@ -1,6 +1,6 @@
 "use client";
 
-/** Frontier benchmark scatter plot owns axes, Pareto envelopes, labels, cursor projections, and effort lines. */
+/** Frontier benchmark scatter plot owns axes, the Pareto frontier horizon, labels, cursor projections, and effort lines. */
 
 import { median } from "d3-array";
 import { scaleLinear, scaleLog } from "d3-scale";
@@ -21,13 +21,14 @@ import {
   type PointLabelPlacement,
   type PointLabelSize,
 } from "../plot/label-placement";
-import { ParetoEnvelope, paretoFrontier } from "../plot/ParetoEnvelope";
+import { paretoFrontier } from "../plot/pareto-frontier";
 import {
   AxisTitles,
   DirectionArrow,
+  FrontierHorizon,
+  horizonRim,
   type Margin,
   MedianCross,
-  ModelScoreMark,
   plotBoundsFor,
   PlotFrame,
   SCATTER_CHART_HEIGHT,
@@ -36,15 +37,14 @@ import {
   scatterChartMargin,
   stableSvgNumber,
   stableSvgScale,
+  starCore,
+  StarGlows,
   TextPointLabel,
   useLabelSizes,
   XAxisTicks,
   YAxisTicks,
 } from "../plot/Primitives";
-import {
-  scoreQuadrilateralConnectorSegments,
-  scoreQuadrilateralRadius,
-} from "../plot/score-quadrilateral";
+import { starConnectorSegments, starMarkRadius } from "../plot/star-marks";
 import { useChartWidth } from "../use-chart-layout";
 
 import styles from "../graphs.module.css";
@@ -146,7 +146,13 @@ export function FrontierBenchmarkScatterPlot<Row>({
   const medianMetric = median(rows.map(metric.get)) ?? xDomain[0];
   const medianScore = median(rows.map(getScore)) ?? yDomain[0];
   const frontierRows = new Set(frontier);
-  const markRadius = (row: Row) => scoreQuadrilateralRadius(getModel(row), 2.75, 5.75);
+  // The reached region continues away from the better side: rightward when lower resources win.
+  const horizonOpenSide = metric.xHigherIsBetter ? "left" : "right";
+  const frontierPoints = frontier.map((row) => ({
+    x: xPoint(metric.get(row)),
+    y: yPoint(getScore(row)),
+  }));
+  const markRadius = (row: Row) => starMarkRadius(getModel(row), 2.75, 5.75);
   const projectionPoints = rows.map((row) => {
     const xValue = metric.get(row);
     const yValue = getScore(row);
@@ -202,16 +208,18 @@ export function FrontierBenchmarkScatterPlot<Row>({
       weight: activeReasoningGroup != null && !highlightedRows.includes(row) ? 0.15 : 1,
     })),
     segments: [
-      frontier,
+      horizonRim(frontierPoints, plot, horizonOpenSide),
       ...reasoningGroups
         .filter((group) => group.key === activeReasoningGroup)
-        .map((group) => group.variants),
+        .map((group) =>
+          group.variants.map((row) => ({ x: xPoint(metric.get(row)), y: yPoint(getScore(row)) })),
+        ),
     ].flatMap((points) =>
-      points.slice(1).map((row, index) => ({
-        x1: xPoint(metric.get(points[index]!)),
-        y1: yPoint(getScore(points[index]!)),
-        x2: xPoint(metric.get(row)),
-        y2: yPoint(getScore(row)),
+      points.slice(1).map((point, index) => ({
+        x1: points[index]!.x,
+        y1: points[index]!.y,
+        x2: point.x,
+        y2: point.y,
       })),
     ),
     labels: labeledRows.map((row, index) => ({
@@ -250,24 +258,22 @@ export function FrontierBenchmarkScatterPlot<Row>({
       size: labelSizes[label],
     };
   });
-  const variantClass = (row: Row) => {
-    const selected = getKey(row) === activeVariantKey;
-    const highlighted =
-      activeReasoningGroup == null
-        ? selected
-        : reasoningGroupByRow.get(row) === activeReasoningGroup;
-    return [
+  const isHighlighted = (row: Row) =>
+    activeReasoningGroup == null
+      ? getKey(row) === activeVariantKey
+      : reasoningGroupByRow.get(row) === activeReasoningGroup;
+  const variantClass = (row: Row) =>
+    [
       styles.reasoningVariantPoint,
       activeVariantKey == null
         ? ""
-        : highlighted
+        : isHighlighted(row)
           ? styles.reasoningVariantPointActive
           : styles.reasoningVariantPointMuted,
-      selected ? styles.reasoningVariantPointSelected : "",
+      getKey(row) === activeVariantKey ? styles.reasoningVariantPointSelected : "",
     ]
       .filter(Boolean)
       .join(" ");
-  };
   const reasoningVariantLines = reasoningGroups.flatMap((group) => {
     const first = group.variants[0];
     if (first == null) {
@@ -277,9 +283,8 @@ export function FrontierBenchmarkScatterPlot<Row>({
       {
         key: group.key,
         color: providerChartColor(getModel(first).provider),
-        segments: scoreQuadrilateralConnectorSegments(
+        segments: starConnectorSegments(
           group.variants.map((row) => ({
-            model: getModel(row),
             cx: xPoint(metric.get(row)),
             cy: yPoint(getScore(row)),
             radius: markRadius(row),
@@ -425,17 +430,24 @@ export function FrontierBenchmarkScatterPlot<Row>({
             />
           )),
         )}
-        <ParetoEnvelope
-          frontier={frontier}
-          getX={metric.get}
-          getY={getScore}
-          xPoint={xPoint}
-          yPoint={yPoint}
-          getColor={(row) => providerChartColor(getModel(row).provider)}
-          idPrefix={`${keyPrefix}-frontier`}
-          className={[styles.frontier, activeVariantKey == null ? "" : styles.reasoningContextMuted]
-            .filter(Boolean)
-            .join(" ")}
+        <FrontierHorizon
+          points={frontierPoints}
+          bounds={plot}
+          open={horizonOpenSide}
+          muted={activeVariantKey != null}
+        />
+        {/* Only frontier models glow; a muted effort variant loses its glow while another model is hovered. */}
+        <StarGlows
+          bounds={plot}
+          stars={frontier.map((row) => ({
+            key: getKey(row),
+            cx: xPoint(metric.get(row)),
+            cy: yPoint(getScore(row)),
+            radius: markRadius(row),
+            color: providerChartColor(getModel(row).provider),
+            emphasis: "frontier",
+            opacity: activeVariantKey != null && !isHighlighted(row) ? 0 : 1,
+          }))}
         />
         {rows.map((row) => {
           const axisValue = metric.get(row);
@@ -446,17 +458,12 @@ export function FrontierBenchmarkScatterPlot<Row>({
           const variantKey = getKey(row);
           return (
             <g className={variantClass(row)} key={getKey(row)}>
-              <ModelScoreMark
-                className={styles.datavizPoint}
-                model={model}
+              <circle
+                className={`${styles.starCore} ${styles.datavizPoint}`}
                 cx={cx}
                 cy={cy}
-                radius={markRadius(row)}
-                fill={providerChartColor(model.provider)}
-                stroke="var(--chart-point-stroke)"
-                strokeWidth={1}
+                {...starCore(markRadius(row), providerChartColor(model.provider))}
                 opacity={frontierRows.has(row) ? 1 : 0.86}
-                clearance={frontierRows.has(row) ? 1.25 : connectReasoningVariants ? 0.5 : 0}
               />
               <PointHitTarget
                 cx={cx}

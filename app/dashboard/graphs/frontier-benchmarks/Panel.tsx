@@ -14,7 +14,12 @@ import { finite, fmtPercentScore, fmtTooltipNumber, fmtTooltipScore } from "../f
 import { GraphToggle } from "../GraphToggle";
 import type { HoverSetter } from "../hover-state";
 import { Panel } from "../Panel";
-import { PARETO_PANEL_CONTENT, ParetoControlSet } from "../ParetoControlSet";
+import {
+  PARETO_CAPTION,
+  PARETO_PANEL_CONTENT,
+  ParetoFigureFoot,
+  ParetoFigureTop,
+} from "../ParetoFigure";
 import { scoreAxisScale } from "../plot/axis-scale";
 import { SCATTER_CHART_MARGIN, SCATTER_CHART_WIDTH } from "../plot/Primitives";
 import {
@@ -183,32 +188,6 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
       ? "all"
       : activeKeys.join("-") || "none";
   const captureFileName = `model-atlas-pareto-${performance}-${axisKey}${needsEvidence ? `-${captureFileToken(evidenceLabel)}` : ""}`;
-  const controls = (
-    <ParetoControlSet
-      showVariants={showVariants}
-      onShowVariantsChange={onShowVariantsChange}
-      yAxisControl={
-        <BenchmarkSelect
-          options={benchmarkOptions}
-          selectedKeys={activeKeys}
-          correlationByBenchmark={correlations}
-          performance={{ value: performance, onChange: onPerformanceChange }}
-          onChange={onBenchmarkKeysChange}
-        />
-      }
-      xAxisControl={
-        <GraphToggle
-          legend="X axis"
-          options={Object.entries(frontierBenchmarkAxisConfig).map(([key, config]) => ({
-            key: key as FrontierBenchmarkAxisKey,
-            label: config.shortLabel,
-          }))}
-          selectedKey={axisKey}
-          onSelect={onAxisKeyChange}
-        />
-      }
-    />
-  );
   const explanation =
     publishedPerformance && resourceAxis
       ? `Published ${yLabel} vs. ${aggregate ? "median-relative" : "measured"} resources from ${evidenceSummary || "selected evidence"}.`
@@ -219,44 +198,41 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
     activeKeys.length === 0 && needsEvidence && !publishedPerformance
       ? "Select an evidence source."
       : `No models have both ${yLabel} and ${axisConfig.shortLabel}. Change the evidence, axis, or filters.`;
+  const plotMargin = { ...SCATTER_CHART_MARGIN, left: 96 };
+  const note =
+    rows.length > 0
+      ? `${frontierAxisDescription(axisKey, aggregate, rows[0])}${showVariants ? " Hover a point or label to connect its model's variants in reasoning-effort order." : ""}`
+      : null;
   return (
     <Panel
       {...PARETO_PANEL_CONTENT}
       captureWidth={SCATTER_CHART_WIDTH}
       captureFileName={captureFileName}
-      summary={
-        rows.length > 0 ? (
-          <BoxWhiskerSummary
-            label={yLabel}
-            values={scoreValues}
-            countLabel={showVariants ? "variants" : "models"}
-            domainMax={Math.max(100, ...scoreValues)}
-            formatValue={formatScore}
-            showDomainEndpoints
-          />
-        ) : null
-      }
-      note={
-        rows.length > 0
-          ? `${frontierAxisDescription(axisKey, aggregate, rows[0])}${showVariants ? " Hover a point or label to connect its model's variants in reasoning-effort order." : ""}`
-          : undefined
-      }
       wide
     >
-      {controls}
-      {rows.length > 0 && explanation ? (
-        <p className={styles.comparisonExplanation}>{explanation}</p>
-      ) : null}
-      {rows.length > 0 && needsEvidence && aggregate ? (
-        <CommonEvidence
-          comparison={{ ...comparison, rows }}
-          benchmarkOptions={benchmarkOptions}
-          activeBenchmarkKeys={activeKeys}
-          axisKey={axisKey}
-          publishedPerformance={publishedPerformance}
-          showVariants={showVariants}
-        />
-      ) : null}
+      <ParetoFigureTop
+        yAxisControl={
+          <BenchmarkSelect
+            options={benchmarkOptions}
+            selectedKeys={activeKeys}
+            correlationByBenchmark={correlations}
+            performance={{ value: performance, onChange: onPerformanceChange }}
+            onChange={onBenchmarkKeysChange}
+          />
+        }
+        summary={
+          rows.length > 0 ? (
+            <BoxWhiskerSummary
+              label={yLabel}
+              values={scoreValues}
+              countLabel={showVariants ? "variants" : "models"}
+              domainMax={Math.max(100, ...scoreValues)}
+              formatValue={formatScore}
+              showDomainEndpoints
+            />
+          ) : null
+        }
+      />
       {rows.length === 0 ? (
         <p className={styles.emptyComparison} role="status">
           {emptyMessage}
@@ -271,7 +247,7 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
           yTicks={yAxis.ticks}
           yAxisLabel={yLabel}
           formatScore={formatScoreTick}
-          margin={{ ...SCATTER_CHART_MARGIN, left: 96 }}
+          margin={plotMargin}
           keyPrefix={`pareto-${performance}-${axisKey}-${activeKeys.join("-")}`}
           ariaLabel={`${yLabel} versus ${xLabel}${axisConfig.logarithmic ? " (logarithmic)" : ""} scatter plot`}
           getScore={(row) => row.score}
@@ -285,6 +261,38 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
           setHover={setHover}
         />
       )}
+      <ParetoFigureFoot
+        xAxisControl={
+          <GraphToggle
+            legend="X axis"
+            options={Object.entries(frontierBenchmarkAxisConfig).map(([key, config]) => ({
+              key: key as FrontierBenchmarkAxisKey,
+              label: config.shortLabel,
+            }))}
+            selectedKey={axisKey}
+            onSelect={onAxisKeyChange}
+          />
+        }
+        showVariants={showVariants}
+        onShowVariantsChange={onShowVariantsChange}
+      />
+      <div className={styles.figureCaption}>
+        <p>
+          {PARETO_CAPTION}
+          {rows.length > 0 && explanation ? ` ${explanation}` : ""}
+        </p>
+        {note == null ? null : <p className={styles.captionNote}>{note}</p>}
+      </div>
+      {rows.length > 0 && needsEvidence && aggregate ? (
+        <CommonEvidence
+          comparison={{ ...comparison, rows }}
+          benchmarkOptions={benchmarkOptions}
+          activeBenchmarkKeys={activeKeys}
+          axisKey={axisKey}
+          publishedPerformance={publishedPerformance}
+          showVariants={showVariants}
+        />
+      ) : null}
     </Panel>
   );
 });

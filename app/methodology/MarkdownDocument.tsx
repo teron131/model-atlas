@@ -79,10 +79,8 @@ function subsectionGuides() {
       }
       subsection = undefined;
       if (node.tagName !== "h3") section = undefined;
-      if (node.tagName === "h1") {
-        children.push(node);
-        continue;
-      }
+      // The shell sets the document title on the sky, so the Markdown title is not repeated in the plane.
+      if (node.tagName === "h1") continue;
       const content: Node[] = [];
       (section ?? children).push({
         type: "element",

@@ -13,8 +13,12 @@ import { Panel } from "./Panel";
 import { calloutLabelPlacements, type PointLabelSize } from "./plot/label-placement";
 import {
   AxisTitles,
+  FrontierHorizon,
+  plotBoundsFor,
   PlotFrame,
   SCATTER_CHART_WIDTH,
+  starCore,
+  StarGlows,
   TextPointLabel,
   XAxisTicks,
   YAxisTicks,
@@ -28,6 +32,9 @@ import { useChartWidth, useCompactChartLayout } from "./use-chart-layout";
 
 import styles from "./graphs.module.css";
 import timeline from "./timeline.module.css";
+
+const TIMELINE_CAPTION =
+  "Compare model generations on a fixed Intelligence Index. The glowing frontier rises with each new record. This historical view uses its own filters.";
 
 const TimelineEvidence = dynamic(
   () => import("./timeline/TimelineEvidence").then((module) => module.TimelineEvidence),
@@ -143,9 +150,11 @@ export function TimelinePanel() {
     ])
     .range([height - margin.bottom, margin.top]);
   const xPoint = (point: TimelinePoint) => x(new Date(point.releaseDate));
-  const frontierPath = frontier
-    .map((point, index) => `${index ? "L" : "M"}${xPoint(point)},${y(point.score)}`)
-    .join(" ");
+  const pointRadius = (point: TimelinePoint) =>
+    chosen?.id === point.id ? 4.8 : frontierIds.has(point.id) ? 3.6 : 3.2;
+  // Evidence support dims a star; the chosen model always shines at full strength.
+  const pointOpacity = (point: TimelinePoint) =>
+    chosen?.id === point.id ? 1 : 0.35 + 0.65 * (point.coverage ?? 0);
   const highlights = [...visible].sort((a, b) => b.score - a.score).slice(0, 3);
   const gpt4 = visible.find(
     (point) =>
@@ -290,7 +299,6 @@ export function TimelinePanel() {
       title="Intelligence over time"
       captureWidth={1120}
       captureFileName="model-atlas-timeline"
-      copy="Compare model generations on a fixed Intelligence Index. This historical view uses its own filters."
       wide
     >
       <div className={timeline.content}>
@@ -412,28 +420,49 @@ export function TimelinePanel() {
                     y="Intelligence Index"
                     compact={compact}
                   />
-                  <path
-                    d={frontierPath}
-                    fill="none"
-                    stroke="var(--ink)"
-                    strokeOpacity="0.4"
-                    strokeWidth="1.2"
-                    strokeDasharray="4 5"
-                    strokeLinecap="round"
-                    vectorEffect="non-scaling-stroke"
+                  {/* Records hold until they are beaten, so the reached region runs on to the chart's present edge. */}
+                  <FrontierHorizon
+                    points={frontier.map((point) => ({ x: xPoint(point), y: y(point.score) }))}
+                    bounds={plotBoundsFor(width, height, margin)}
+                    open="right"
+                  />
+                  {/* Only records on the frontier and the selected model glow. */}
+                  <StarGlows
+                    bounds={plotBoundsFor(width, height, margin)}
+                    stars={visible.flatMap((point) =>
+                      chosen?.id === point.id || frontierIds.has(point.id)
+                        ? [
+                            {
+                              key: point.id,
+                              cx: xPoint(point),
+                              cy: y(point.score),
+                              radius: pointRadius(point),
+                              color: providerChartColor(point.provider),
+                              emphasis: chosen?.id === point.id ? "selected" : "frontier",
+                              opacity: pointOpacity(point),
+                            },
+                          ]
+                        : [],
+                    )}
                   />
                   {visible.map((point) => (
                     <circle
                       key={point.id}
                       cx={xPoint(point)}
                       cy={y(point.score)}
-                      r={chosen?.id === point.id ? 4.8 : frontierIds.has(point.id) ? 3.6 : 3.2}
-                      fill={point.indexOnly ? "var(--paper)" : providerChartColor(point.provider)}
-                      stroke={providerChartColor(point.provider)}
-                      strokeWidth="1.1"
-                      vectorEffect="non-scaling-stroke"
-                      opacity={chosen?.id === point.id ? 1 : 0.35 + 0.65 * (point.coverage ?? 0)}
-                      className={timeline.point}
+                      {...(point.indexOnly
+                        ? {
+                            r: pointRadius(point),
+                            fill: "var(--paper)",
+                            stroke: providerChartColor(point.provider),
+                            strokeWidth: 1.1,
+                            vectorEffect: "non-scaling-stroke",
+                          }
+                        : starCore(pointRadius(point), providerChartColor(point.provider)))}
+                      opacity={pointOpacity(point)}
+                      className={
+                        point.indexOnly ? timeline.point : `${timeline.point} ${styles.starCore}`
+                      }
                       role="button"
                       tabIndex={chosen?.id === point.id ? 0 : -1}
                       aria-pressed={chosen?.id === point.id}
@@ -514,19 +543,29 @@ export function TimelinePanel() {
                 <>
                   <span>● Reference / task-supported</span>
                   <span>○ Index-only</span>
-                  <span>┄ Frontier · ≥60% evidence support</span>
+                  <span>
+                    <i className={timeline.frontierKey} aria-hidden="true" />
+                    Frontier · ≥60% evidence support
+                  </span>
                 </>
               ) : (
                 <span>Lines connect each lab’s supported records.</span>
               )}
             </div>
+            {/* The selected star's catalogue entry, ringed in its provider colour like its mark in the chart. */}
             <div
               className={timeline.readout}
               aria-live="polite"
               aria-label="Timeline model details"
+              style={
+                chosen == null ? undefined : starCore(6, providerChartColor(chosen.provider)).style
+              }
             >
               <div>
-                <strong>{chosen?.name}</strong>
+                <strong>
+                  <span className={timeline.readoutStar} aria-hidden="true" />
+                  {chosen?.name}
+                </strong>
                 <span>{chosen && providerDisplayName(chosen.provider)}</span>
               </div>
               <div>
@@ -547,6 +586,9 @@ export function TimelinePanel() {
           </>
         )}
         {!visible.length && view === "models" && navigator}
+        <div className={styles.figureCaption}>
+          <p>{TIMELINE_CAPTION}</p>
+        </div>
       </div>
       <details
         className={styles.commonEvidence}

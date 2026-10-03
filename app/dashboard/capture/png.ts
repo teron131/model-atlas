@@ -2,6 +2,9 @@
 
 const PNG_PIXEL_RATIO = 1;
 const CAPTURE_STAGE_OFFSET = "-10000px";
+// A logo that fails to load renders as an empty slot, as it does on the page, instead of failing the whole export.
+const MISSING_IMAGE =
+  "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 const SVG_STYLE_PROPERTIES = [
   "color",
   "display",
@@ -48,6 +51,7 @@ export async function downloadElementPng(
     blob = await toBlob(captureElement, {
       backgroundColor,
       cacheBust: true,
+      imagePlaceholder: MISSING_IMAGE,
       filter: (node) => !(node instanceof Element) || !node.hasAttribute("data-capture-exclude"),
       pixelRatio: PNG_PIXEL_RATIO,
       width: captureWidth,

@@ -1,12 +1,66 @@
-/** Editorial documentation layout and Markdown typography for Model Atlas. */
+/** Documentation under the night sky: the title on the sky, then one research plane holding navigation and Markdown text. */
 
+/* The documentation frame is sized for the navigation beside one reading column and centred; it never changes when navigation is toggled, so hidden navigation hands its space to the text. Header, title, and plane share the frame, and every extra pixel of width is sky. */
 .page {
   --document-tab-height: 48px;
-  --document-navigation-width: 230px;
+  --document-navigation-width: clamp(180px, 18vw, 230px);
   --document-column-gap: clamp(20px, 3vw, 40px);
+  /* Prose, tables, and figures fill one column and share its right edge. */
+  --reading-column: 860px;
+  --document-frame: calc(
+    var(--document-navigation-width) + var(--document-column-gap) + var(--reading-column) + 2 *
+      var(--research-inset) + 2px
+  );
+  --page-frame-width: calc(var(--document-frame) + 2 * var(--page-gutter));
   position: relative;
   z-index: 1;
   padding-bottom: 112px;
+}
+
+/* A still sky stands in for the dashboard's WebGL field: sparse stars over the same night gradient, with a faint dawn at the top. */
+.page::before {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(1px 1px at 23px 41px, rgb(222 230 255 / 0.7), transparent),
+    radial-gradient(1px 1px at 131px 97px, rgb(222 230 255 / 0.45), transparent),
+    radial-gradient(1.5px 1.5px at 77px 151px, rgb(196 210 255 / 0.6), transparent),
+    radial-gradient(1px 1px at 211px 23px, rgb(222 230 255 / 0.5), transparent),
+    radial-gradient(1px 1px at 167px 203px, rgb(255 214 236 / 0.45), transparent),
+    radial-gradient(
+      60% 40% at 50% 0%,
+      rgb(74 114 255 / 0.16),
+      rgb(143 107 255 / 0.05) 50%,
+      transparent 80%
+    ),
+    linear-gradient(180deg, #02030b 0%, #030617 30%, #070d36 65%, #0b1453 100%);
+  background-size:
+    241px 241px,
+    197px 263px,
+    283px 229px,
+    331px 307px,
+    389px 353px,
+    100% 100%,
+    100% 100%;
+  content: "";
+  pointer-events: none;
+}
+
+/* The document title is set on the sky in the region-name style, scaled to its frame rather than the window so it keeps one line wherever it fits. */
+.documentTitle:global(.dashboard-section-title) {
+  margin: clamp(48px, 9svh, 96px) 0 clamp(18px, 2.4vw, 30px);
+  padding-inline: var(--research-inset);
+  font-size: clamp(36px, min(9vw, calc(var(--document-frame) * 0.068)), 72px);
+}
+
+.documentTitle .scoreMention > svg {
+  width: 0.62em;
+  height: 0.62em;
+  margin-right: 0.12em;
+  vertical-align: 0.04em;
+  color: var(--scene-muted);
+  stroke-width: 1.4;
 }
 
 /* Square borderless instrument button, matching the shared header controls in globals.css. */
@@ -48,52 +102,6 @@
   stroke-width: 1.9;
 }
 
-.documentNavigationLayer {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-}
-
-.documentNavigationBackdrop {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  padding: 0;
-  border: 0;
-  background: rgb(0 0 0 / 0.46);
-  cursor: default;
-}
-
-.documentNavigationPanel {
-  position: absolute;
-  inset: 0 auto 0 0;
-  box-sizing: border-box;
-  width: min(88vw, 360px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: 16px 18px calc(30px + env(safe-area-inset-bottom));
-  border-right: 1px solid var(--line-strong);
-  background: var(--paper);
-  animation: document-navigation-enter 0.2s ease-out;
-}
-
-.documentNavigationHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 18px;
-}
-
-.documentNavigationHeader > p {
-  margin: 0;
-  color: var(--muted);
-  font-family: var(--font-mono);
-  font-size: var(--type-label-size);
-  font-weight: var(--type-label-weight);
-  letter-spacing: var(--type-label-tracking);
-  text-transform: uppercase;
-}
-
 .documentSwitcher ul {
   margin: 0;
   padding: 0;
@@ -105,29 +113,34 @@
   border-top: 1px solid var(--line);
 }
 
-/* Square ruled rows: the current document is marked by a left ink rule, never a filled pill. */
+/* Square ruled rows: the current document is marked by the selection star, never a rule or a filled pill. */
 .documentSwitcher a {
+  position: relative;
   display: block;
-  margin-left: -1px;
   padding: 9px 0 10px 11px;
-  border-left: 1px solid transparent;
   color: var(--muted);
   text-decoration: none;
-  transition:
-    border-color 0.18s ease,
-    color 0.18s ease;
+  transition: color 0.18s ease;
 }
 
+/* Hover only brightens the text; keyboard focus keeps a visible ring. */
 .documentSwitcher a:hover,
 .documentSwitcher a:focus-visible {
-  border-left-color: var(--line-strong);
   color: var(--ink);
-  outline: 0;
+}
+
+.documentSwitcher a:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
 }
 
 .documentSwitcher a[aria-current="page"] {
-  border-left-color: var(--ink);
   color: var(--ink);
+}
+
+.documentSwitcher a[aria-current="page"]::before {
+  top: 19px;
+  left: 3px;
 }
 
 .documentSwitcher a > span {
@@ -191,7 +204,9 @@
   stroke-width: 2;
 }
 
+/* One opaque research plane fills the frame and holds the document strip, navigation, and text, lit along its top edge like the dashboard planes. */
 .documentLayout {
+  padding: 0 var(--research-inset) 32px;
   display: grid;
   grid-template-areas:
     "documents"
@@ -220,31 +235,30 @@
   grid-area: documents;
   display: flex;
   min-width: 0;
-  border-top: 1px solid var(--line-strong);
+  /* Span the plane's inner gutters so text never shows beside the strip once it sticks. */
+  margin-inline: calc(-1 * var(--research-inset));
+  padding-inline: var(--research-inset);
   border-bottom: 1px solid var(--line-strong);
   background: var(--paper);
 }
 
+/* The navigation toggle is an icon alone, its glyph on the text's left edge, so the strip starts where the content does. */
 .contentsToggle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
+  justify-items: start;
   width: auto;
-  padding: 0 14px;
-  font-size: 13px;
   height: auto;
   min-height: calc(var(--document-tab-height) - 2px);
+  padding: 0 14px 0 0;
   border-right: 1px solid var(--line);
-}
-
-.currentDocument {
-  display: none;
 }
 
 .contentsToggle[aria-expanded="true"] {
   color: var(--ink);
-  box-shadow: inset 0 -2px 0 var(--ink);
+}
+
+/* The current document is lit by the dashboard's selection star rather than an ink rule. */
+.documentNav a {
+  --selection-star-bottom: 5px;
 }
 
 .outline {
@@ -270,19 +284,12 @@
   list-style: none;
 }
 
-/* The document strip uses ruled measurement labels, with the current route carrying a full ink rule. */
+/* The document strip keeps one row at every width; its active route remains visible within that strip. */
 .documentNav ul {
   display: flex;
   min-width: 0;
   flex: 1;
   gap: 0;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scrollbar-width: none;
-}
-
-.documentNav ul::-webkit-scrollbar {
-  display: none;
 }
 
 .documentNav li {
@@ -302,7 +309,6 @@
 }
 
 .documentNav li:first-child a {
-  padding-left: 0;
   border-left: 0;
 }
 
@@ -319,7 +325,6 @@
 
 .documentNav a[aria-current="page"] {
   color: var(--ink);
-  box-shadow: inset 0 -2px 0 var(--ink);
 }
 
 .documentNav span {
@@ -335,9 +340,57 @@
   display: none;
 }
 
+/* The outline is the dashboard rail's flight path turned vertical: a track, a waypoint beside each section, the path already read lit in horizon light, and one star travelling with the scroll. */
 .outline ol {
+  position: relative;
   padding-left: 12px;
-  border-left: 1px solid var(--line);
+  border-left: 1px solid var(--line-strong);
+}
+
+.outline ol::before,
+.outline ol::after {
+  position: absolute;
+  content: "";
+  pointer-events: none;
+}
+
+.outline ol::before {
+  top: 0;
+  left: -1px;
+  width: 1px;
+  height: var(--outline-star, 16px);
+  background: linear-gradient(180deg, rgb(74 114 255 / 0.25), var(--horizon-violet));
+  box-shadow: 0 0 8px rgb(143 107 255 / 0.55);
+}
+
+.outline ol::after {
+  z-index: 1;
+  top: var(--outline-star, 16px);
+  left: -0.5px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--selection-star);
+  box-shadow: var(--selection-glow);
+  transform: translate(-50%, -50%);
+}
+
+/* Waypoints sit centred on the track and turn violet once the star has passed them. */
+.outline a::before {
+  position: absolute;
+  top: 16px;
+  left: -0.5px;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--line-strong);
+  content: "";
+  transform: translate(-50%, -50%);
+  transition: background-color 140ms ease-out;
+}
+
+.outline a[data-reached="true"]::before {
+  background: var(--horizon-violet);
 }
 
 .outline li {
@@ -349,6 +402,7 @@
 }
 
 .outline a {
+  position: relative;
   display: block;
   margin-left: -13px;
   padding: 7px 0 7px 12px;
@@ -369,15 +423,32 @@
 }
 
 .outline a[aria-current="location"] {
-  border-left-color: var(--ink);
   color: var(--ink);
   font-weight: 600;
 }
 
+.outline a:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* The current document is marked with the selection star; side rails keep only its tight glow so their scroll box never clips a bloom. */
+.documentSwitcher a[aria-current="page"]::before {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--selection-star);
+  box-shadow: var(--selection-glow);
+  content: "";
+  transform: translate(-50%, -50%);
+}
+
 .article {
-  --type-heading-weight: 700;
+  --type-heading-weight: 600;
   --section-sticky-top: var(--document-tab-height);
   grid-area: article;
+  width: 100%;
   min-width: 0;
   color: var(--ink);
   font-size: var(--type-body-size);
@@ -385,29 +456,13 @@
   line-height: 1.6;
 }
 
-.article > h1 {
-  margin: 0;
-  font-size: var(--type-document-title-size);
-  font-weight: var(--type-heading-weight);
-  letter-spacing: -0.035em;
-  line-height: 1.08;
-}
-
 .article h2 {
   margin: 40px 0 12px;
-  font-size: 22px;
+  font-size: 24px;
   font-weight: var(--type-heading-weight);
-  letter-spacing: -0.025em;
+  letter-spacing: -0.03em;
   line-height: 1.2;
   scroll-margin-top: 24px;
-}
-
-.article > h1 + .section {
-  margin-top: 16px;
-}
-
-.article > h1 + p {
-  margin-top: 16px;
 }
 
 .article h3 {
@@ -434,6 +489,11 @@
 
 .article > .section {
   margin-top: 40px;
+}
+
+/* A document's first heading shares the top line of the navigation's first row. */
+.article > .section:first-child {
+  margin-top: 0;
 }
 
 /* Hash navigation targets the original heading position, independent of sticky movement. */
@@ -644,9 +704,11 @@
   outline-offset: 4px;
 }
 
+/* Document tables carry prose, so cells read in the body face; headers stay measurement labels. */
 .article table {
   width: 100%;
   border-collapse: collapse;
+  font-family: var(--font-sans);
   border-top: 1px solid var(--line-strong);
   border-bottom: 1px solid var(--line-strong);
   font-size: 14px;
@@ -757,62 +819,73 @@
   text-align: center;
 }
 
-.documentNavigationLayer[data-mode="docked"] {
+/* Shown navigation sits beside the text and stays in view while reading; it scrolls within itself when taller than the window. */
+.documentNavigation {
   grid-area: navigation;
   position: sticky;
-  inset: auto;
   top: calc(var(--document-tab-height) + 16px);
   z-index: 1;
   max-height: calc(100dvh - var(--document-tab-height) - 32px);
-}
-
-.documentNavigationLayer[data-mode="docked"] .documentNavigationBackdrop,
-.documentNavigationLayer[data-mode="docked"] .documentNavigationHeader {
-  display: none;
-}
-
-.documentNavigationLayer[data-mode="docked"] .documentNavigationPanel {
-  position: static;
-  inset: auto;
-  width: auto;
-  max-height: calc(100dvh - var(--document-tab-height) - 32px);
-  padding: 0;
   overflow-y: auto;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
-  animation: none;
+  padding-left: 8px;
   scrollbar-width: thin;
 }
 
-.documentNavigationLayer[data-mode="docked"] .documentSwitcher small {
+.documentNavigation .documentSwitcher small {
   display: none;
 }
 
-.documentNavigationLayer[data-mode="docked"] .outline {
-  margin-top: 26px;
-}
-
-@media (max-width: 1099px) {
-  .documentNav ul {
-    display: none;
+/* Narrow screens keep the full document strip, scrolling sideways, and shown navigation stacks above the text instead of beside it; the current document keeps only its star's tight glow so the scroll box never clips a bloom. */
+@media (max-width: 719px) {
+  .page {
+    --document-frame: calc(var(--reading-column) + 2 * var(--research-inset) + 2px);
   }
 
-  .contentsToggle {
-    border-left: 0;
-    border-right: 1px solid var(--line);
+  .documentLayoutWithNavigation {
+    grid-template-areas:
+      "documents"
+      "navigation"
+      "article";
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  .currentDocument {
-    display: block;
-    align-self: center;
-    min-width: 0;
-    padding: 0 14px;
-    overflow: hidden;
-    color: var(--muted);
-    font-size: 13px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  .documentNavigation {
+    position: static;
+    max-height: none;
+    overflow: visible;
+    padding: 4px 0 20px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  /* Compact the document catalogue while keeping an expanded group's children together. */
+  .documentSwitcher > ul {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 18px;
+  }
+
+  .documentSwitcher > ul > li:has(> ul:not([hidden])) {
+    grid-column: 1 / -1;
+  }
+
+  .article h2 {
+    font-size: 22px;
+  }
+
+  .article h3 {
+    font-size: 17px;
+  }
+
+  .subsection {
+    padding-left: 14px;
+  }
+
+  .documentNav a {
+    --selection-star-bottom: 8px;
+  }
+
+  .documentNav a[aria-current="page"]::before {
+    box-shadow: var(--selection-glow);
   }
 }
 
@@ -842,22 +915,6 @@
 @media (prefers-reduced-motion: reduce) {
   .backToTop {
     transition: none;
-  }
-
-  .documentNavigationPanel {
-    animation: none;
-  }
-}
-
-@keyframes document-navigation-enter {
-  from {
-    opacity: 0;
-    transform: translateX(-16px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateX(0);
   }
 }
 
@@ -898,6 +955,8 @@
   gap: 6px;
   color: var(--ink);
   text-decoration: none;
+  min-height: 64px;
+  padding-block: 8px;
 }
 
 .pageSequence a[rel="next"] {
@@ -913,6 +972,11 @@
 
 .pageSequence a:not(:has(.scoreMention)):hover > span {
   text-decoration: underline;
+}
+
+.pageSequence a:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 4px;
 }
 
 /* Markdown links form a responsive navigation diagram without image scaling or theme filters. */

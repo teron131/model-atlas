@@ -174,7 +174,10 @@
 
 .leaderboard :global(.rank) {
   color: var(--faint);
-  font-size: 22px;
+}
+
+.leaderboard :global(td.rank) {
+  font-size: 24px;
 }
 
 .leaderboard :global(.model-cell) {
@@ -203,14 +206,18 @@
   font-size: 23px;
 }
 
-.leaderboard :global(.score-value) {
+/* The export's fixed score columns keep the compact stacked cell rather than the live table's dot-plot band. */
+.leaderboard :global(.score-cell .score-value) {
+  display: block;
+  width: auto;
   font-size: 23px;
 }
 
-.leaderboard :global(.score-meter) {
-  --score-marker-size: 11px;
-  --score-marker-inset: 5.5px;
+.leaderboard :global(.score-cell .score-meter) {
+  --score-star-size: 8px;
+  --score-star-inset: 4px;
+  display: block;
   width: 76px;
   height: 13px;
-  margin-top: 7px;
+  margin: 7px 0 0 auto;
 }

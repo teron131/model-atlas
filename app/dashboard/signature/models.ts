@@ -1,9 +1,9 @@
-/** Normalize live model evidence into the shared parameter system used by every signature mode. */
+/** Select the established frontier roles and translate the displayed models into stars for the frontier sky. */
 
 import { canonicalModelKey } from "../../../src/model-atlas/identity/normalization";
-import { clamp01, meanOfFinite, medianOfFinite } from "../../../src/model-atlas/math-utils";
+import { clamp01, medianOfFinite } from "../../../src/model-atlas/math-utils";
 import { type ModelAtlasModel } from "../../../src/model-atlas/stats/types";
-import { paretoFrontier } from "../graphs/plot/ParetoEnvelope";
+import { paretoFrontier } from "../graphs/plot/pareto-frontier";
 import { modelsForVariantDisplay, modelVariantKey, shortLabel } from "../shared/model-display";
 import {
   providerChartColor,
@@ -12,8 +12,10 @@ import {
   providerLogo,
 } from "../shared/provider-theme";
 import { formatCost } from "../table/format";
+import type { SkyStar } from "./sky-scene";
 
-export type SignatureMode = "phase" | "glacier";
+// Star tint when a provider's colour is theme-dependent; the sky is dark in both themes.
+const SKY_INK = "#eef2ff";
 
 export type SignaturePopulation = {
   models: ModelAtlasModel[];
@@ -21,17 +23,9 @@ export type SignaturePopulation = {
   referenceModels: ModelAtlasModel[];
 };
 
-type SignatureParameters = {
-  intelligence: number;
-  agentic: number;
-  speed: number;
-  value: number;
-  mean: number;
-  context: number;
-};
-
 export type SignatureModel = {
   key: string;
+  family: string;
   rank: number;
   role: string;
   selectionMetric: string;
@@ -39,13 +33,56 @@ export type SignatureModel = {
   provider: string;
   logo: string;
   color: string;
-  parameters: SignatureParameters;
 };
 
-export const signatureModeLabels: Record<SignatureMode, string> = {
-  phase: "Phase Ledger",
-  glacier: "Glacier",
-};
+/**
+ * Each displayed model family becomes one star: release date runs across the sky, and Intelligence sets height and brightness.
+ *
+ * Positions are scaled across the full reference population, so filters remove stars without moving the rest and a lone model keeps its true place.
+ */
+export function signatureStars(
+  models: ModelAtlasModel[],
+  referenceModels: ModelAtlasModel[],
+  frontierNames: ReadonlyMap<string, string>,
+): SkyStar[] {
+  const dated = datedModels(models);
+  const reference = datedModels(referenceModels);
+  if (dated.length === 0 || reference.length === 0) return [];
+  // Release order rather than raw dates spreads the crowded recent years across the sky.
+  const releases = reference.map(({ released }) => released).sort((left, right) => left - right);
+  const scores = reference.map(({ model }) => intelligenceScore(model));
+  const lowestScore = Math.min(...scores);
+  const scoreSpan = Math.max(1, Math.max(...scores) - lowestScore);
+  return dated.map(({ model, released }) => {
+    const family = canonicalModelKey(model);
+    const colour = providerChartColor(model.provider);
+    const before = releases.filter((reference) => reference < released).length;
+    return {
+      key: family,
+      across: clamp01(before / Math.max(1, releases.length - 1)),
+      altitude: clamp01((intelligenceScore(model) - lowestScore) / scoreSpan),
+      colour: colour.startsWith("#") ? colour : SKY_INK,
+      label: frontierNames.get(family) ?? null,
+      name: shortLabel({ ...model, reasoning_effort: null }),
+      provider: providerDisplayName(model),
+      intelligence: intelligenceScore(model),
+      released: new Date(released).toISOString().slice(0, 10),
+    };
+  });
+}
+
+/** Model families with an Intelligence score and a dated release, the only models the sky can place. */
+function datedModels(models: ModelAtlasModel[]) {
+  return modelsForVariantDisplay(
+    models.filter(
+      (model) => model.name != null && Number.isFinite(model.scores.intelligence_score),
+    ),
+    false,
+  ).flatMap((model) => {
+    const released = Date.parse(`${model.release_date?.slice(0, 10)}T00:00:00Z`);
+    return Number.isFinite(released) ? [{ model, released }] : [];
+  });
+}
 
 /** Select visible role leaders and display-limit-independent Pareto choices against a global Intelligence median. */
 export function signatureModels(
@@ -132,6 +169,7 @@ export function signatureModels(
   );
   return selectedModels.map(({ model, role, selectionMetric }, index) => ({
     key: `${modelVariantKey(model)}:${role}`,
+    family: canonicalModelKey(model),
     rank: index + 1,
     role,
     selectionMetric,
@@ -139,10 +177,6 @@ export function signatureModels(
     provider: providerDisplayName(model),
     logo: providerLogo(model.provider) || model.logo,
     color: providerChartColor(model.provider),
-    parameters: {
-      ...signatureScoreParameters(model),
-      context: contextUnit(model.context_window?.context),
-    },
   }));
 }
 
@@ -231,33 +265,4 @@ function intelligenceValueModels(models: ModelAtlasModel[]): ModelAtlasModel[] {
     ),
     false,
   ).filter((model) => Number.isFinite(model.scores.value_score));
-}
-
-/** Translate published scores into the normalized parameter vocabulary owned by signature renderers. */
-function signatureScoreParameters(model: Pick<ModelAtlasModel, "scores">) {
-  const rawScores = [
-    model.scores.intelligence_score,
-    model.scores.agentic_score,
-    model.scores.speed_score,
-    model.scores.value_score,
-  ];
-  const fallbackScore = meanOfFinite(rawScores) ?? 0;
-  return {
-    intelligence: scoreUnit(model.scores.intelligence_score, fallbackScore),
-    agentic: scoreUnit(model.scores.agentic_score, fallbackScore),
-    speed: scoreUnit(model.scores.speed_score, fallbackScore),
-    value: scoreUnit(model.scores.value_score, fallbackScore),
-    mean: scoreUnit(fallbackScore, 0),
-  };
-}
-
-function scoreUnit(value: number | null | undefined, fallback: number): number {
-  return clamp01((Number.isFinite(value) ? Number(value) : fallback) / 100);
-}
-
-function contextUnit(value: number | null | undefined): number {
-  if (!Number.isFinite(value) || Number(value) <= 0) {
-    return 0.35;
-  }
-  return clamp01((Math.log10(Number(value)) - 4) / 3);
 }

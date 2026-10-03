@@ -1,7 +1,7 @@
 /** Searchable organization selection follows the benchmark picker while keeping historical filters local to Timeline. */
 import { useEffect, useRef, useState } from "react";
 
-import { providerDisplayName } from "../../shared/provider-theme";
+import { providerDisplayName, providerLogo } from "../../shared/provider-theme";
 import type { TimelinePoint } from "./chart-data";
 
 import styles from "../graphs.module.css";
@@ -35,6 +35,7 @@ export function OrganizationSelect({
       best: value.best.score,
       bestModel: value.best.name,
       label: providerDisplayName(key),
+      logo: providerLogo(key),
     }))
     .sort((a, b) => b.best - a.best || a.label.localeCompare(b.label));
   const keys = options.map((option) => option.key);
@@ -67,7 +68,7 @@ export function OrganizationSelect({
   return (
     <div className={`${styles.metricToggle} ${timeline.organizationPicker}`} data-capture-exclude>
       <details ref={root} className={styles.benchmarkSelect} aria-label="Timeline organizations">
-        <summary>
+        <summary className="selection-choice">
           <span>Organizations · {selected == null ? "All" : active.size}</span>
         </summary>
         <div className={styles.benchmarkSelectMenu}>
@@ -114,7 +115,23 @@ export function OrganizationSelect({
                   }}
                 />
                 <span className={styles.benchmarkSelectOptionMark} aria-hidden="true" />
-                <span className={styles.benchmarkSelectOptionLabel}>{option.label}</span>
+                <span className={timeline.organizationName}>
+                  {option.logo ? (
+                    <img
+                      className={timeline.organizationLogo}
+                      src={option.logo}
+                      alt=""
+                      width={18}
+                      height={18}
+                      loading="lazy"
+                    />
+                  ) : (
+                    <span className={timeline.organizationLogo} aria-hidden="true">
+                      {option.label.slice(0, 1)}
+                    </span>
+                  )}
+                  <span className={styles.benchmarkSelectOptionLabel}>{option.label}</span>
+                </span>
                 <span
                   className={styles.benchmarkSelectOptionCoverage}
                   title={`${option.bestModel} · Intelligence Index`}
