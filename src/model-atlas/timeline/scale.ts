@@ -4,7 +4,6 @@ import { createHash } from "node:crypto";
 import { excludesVariantIndex } from "../benchmarks/index-policy";
 import { stableJson } from "../runtime";
 import { informativeBenchmark } from "./benchmark-evidence";
-import { historicalReleaseId } from "./dataset";
 import { extendTimelineGraph, fitTimelineLink, timelineNativeValue } from "./linking";
 import { resolveHistoricalModelIdentities } from "./model-identity";
 import {
@@ -219,6 +218,23 @@ export function prepareTimelineRelease(
     .digest("hex");
   data.scale = previous?.id === scale.id ? previous : scale;
   return data;
+}
+
+/** Fingerprint the measured release and its method, excluding query parameters, display anchors, and reconstructed cells. */
+export function historicalReleaseId(data: HistoricalDataset): string {
+  return createHash("sha256")
+    .update(
+      stableJson({
+        referenceId: data.reference.id,
+        models: [...data.models].sort((a, b) => a.id.localeCompare(b.id)),
+        benchmarks: [...data.benchmarks].sort((a, b) => a.id.localeCompare(b.id)),
+        observations: [...data.observations].sort(
+          (a, b) =>
+            a.modelId.localeCompare(b.modelId) || a.benchmarkId.localeCompare(b.benchmarkId),
+        ),
+      }),
+    )
+    .digest("hex");
 }
 
 function observationKey(observation: HistoricalObservation): string {

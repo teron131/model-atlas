@@ -1,5 +1,6 @@
 /** Public source loading and normalization boundary for live stats and cached snapshots. */
 
+export { fusedBenchmarkObservations } from "./fusion";
 export { fetchSourceData } from "./load";
 export type {
   ArtificialAnalysisModel,

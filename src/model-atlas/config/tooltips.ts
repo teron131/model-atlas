@@ -2,14 +2,14 @@
 
 import { isAggregateIndex } from "../benchmarks/index-policy";
 import {
-  AGENTIC_BENCHMARK_DISPLAY_KEYS,
   BENCHMARK_CATALOG,
   BENCHMARK_KEYS,
   benchmarkDimensionWeight,
   type BenchmarkKey,
   benchmarkPortfolioEntry,
   benchmarkResourcePolicy,
-  INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
+  SELECTED_AGENTIC_BENCHMARKS,
+  SELECTED_INTELLIGENCE_BENCHMARKS,
 } from "../benchmarks/registry";
 import { RESOURCE_SCORE_BUCKET_WEIGHTS } from "./stage";
 
@@ -227,11 +227,11 @@ const benchmarkRowsByGroup = (
 });
 
 const INTELLIGENCE_BENCHMARK_ROWS = benchmarkRowsByGroup(
-  INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
+  SELECTED_INTELLIGENCE_BENCHMARKS,
   "intelligence",
 );
 
-const AGENTIC_BENCHMARK_ROWS = benchmarkRowsByGroup(AGENTIC_BENCHMARK_DISPLAY_KEYS, "agentic");
+const AGENTIC_BENCHMARK_ROWS = benchmarkRowsByGroup(SELECTED_AGENTIC_BENCHMARKS, "agentic");
 
 const speedInputRows = (components: ActiveResourceComponents) => {
   const resourceKeys = resourceBenchmarkKeys(components);

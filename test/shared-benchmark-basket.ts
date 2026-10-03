@@ -4,12 +4,14 @@ import assert from "node:assert/strict";
 
 import {
   aggregateFrontierBenchmarkRows,
-  frontierBenchmarkAxisConfigFor,
   type FrontierBenchmarkRow,
   frontierBenchmarkRows,
+} from "../app/dashboard/graphs/pareto/analysis";
+import { sharedFrontierBenchmarkComparison } from "../app/dashboard/graphs/pareto/common-evidence";
+import {
+  frontierBenchmarkAxisConfigFor,
   frontierXAxisScale,
-} from "../app/dashboard/graphs/frontier-benchmarks/analysis";
-import { sharedFrontierBenchmarkComparison } from "../app/dashboard/graphs/frontier-benchmarks/common-evidence";
+} from "../app/dashboard/graphs/pareto/presentation";
 import { residualIndexBreadth } from "../src/model-atlas/benchmarks/index-policy";
 import { minimalModelAtlasModel } from "./model-atlas-fixtures";
 

@@ -1,10 +1,7 @@
 /** Dashboard URL contract validates explicit selections without materializing absent defaults. */
 
 import { BENCHMARK_COLUMNS } from "../../src/model-atlas/benchmarks/catalog";
-import type {
-  FrontierBenchmarkAxisKey,
-  PerformanceMetric,
-} from "./graphs/frontier-benchmarks/analysis";
+import type { FrontierBenchmarkAxisKey, PerformanceMetric } from "./graphs/pareto/analysis";
 import { RESEARCH_REGION_IDS, type ResearchRegionId } from "./research-index";
 import {
   type CostFilter,

@@ -2,7 +2,7 @@
 
 import type { DatabaseSync } from "node:sqlite";
 
-import { asRecord } from "../../runtime";
+import { asRecord, stringValue } from "../../runtime";
 import type { ModelsDevPayload } from "../models-dev/catalog";
 import { RAW_SOURCE_NAMES, type RawSourceName } from "../registry";
 import type {
@@ -304,10 +304,6 @@ export function buildSourceHealth({
       }),
     ),
   };
-}
-
-function stringValue(value: unknown): string | null {
-  return typeof value === "string" && value.length > 0 ? value : null;
 }
 
 /** Summarizes active rows while retaining actionable quarantine identities and age. */

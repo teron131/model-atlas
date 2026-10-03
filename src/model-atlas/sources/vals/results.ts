@@ -6,8 +6,8 @@ import type {
   BenchmarkObservationRow,
 } from "../../benchmarks/observation";
 import { canonicalReasoningEffort } from "../../identity/normalization";
-import { asFiniteNumber, asRecord, nowEpochSeconds } from "../../runtime";
-import { htmlAttribute, stringValue } from "../parsing";
+import { asFiniteNumber, asRecord, nowEpochSeconds, stringValue } from "../../runtime";
+import { htmlAttribute } from "../parsing";
 import { fetchSource } from "../request-scheduler";
 
 const DEFAULT_TIMEOUT_MS = 30_000;

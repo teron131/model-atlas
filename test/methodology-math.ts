@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import {
   frontierBenchmarkCorrelationByBenchmark,
   frontierBenchmarkRows,
-} from "../app/dashboard/graphs/frontier-benchmarks/analysis";
+} from "../app/dashboard/graphs/pareto/analysis";
 import { STAGE_CONFIG } from "../src/model-atlas/config/stage";
 import {
   pearsonCorrelation,

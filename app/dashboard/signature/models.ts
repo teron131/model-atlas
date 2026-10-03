@@ -11,7 +11,6 @@ import {
   providerFilterKey,
   providerLogo,
 } from "../shared/provider-theme";
-import { formatCost } from "../table/format";
 import type { SkyStar } from "./sky-scene";
 
 // Star tint when a provider's colour is theme-dependent; the sky is dark in both themes.
@@ -23,14 +22,20 @@ export type SignaturePopulation = {
   referenceModels: ModelAtlasModel[];
 };
 
-export type SignatureModel = {
+/** The score that earned a frontier role; Pareto roles add the Value score and blended price behind the choice. */
+export type SignatureMetric = {
+  kind: "intelligence" | "agentic";
+  score: number;
+  value?: number;
+  price?: number;
+};
+
+type SignatureModel = {
   key: string;
   family: string;
-  rank: number;
   role: string;
-  selectionMetric: string;
+  metric: SignatureMetric;
   name: string;
-  provider: string;
   logo: string;
   color: string;
 };
@@ -85,10 +90,11 @@ function datedModels(models: ModelAtlasModel[]) {
 }
 
 /** Select visible role leaders and display-limit-independent Pareto choices against a global Intelligence median. */
-export function signatureModels(
-  { models, paretoModels, referenceModels }: SignaturePopulation,
-  limit = 6,
-): SignatureModel[] {
+export function signatureModels({
+  models,
+  paretoModels,
+  referenceModels,
+}: SignaturePopulation): SignatureModel[] {
   const variants = modelsForVariantDisplay(
     models.filter(
       (model) => model.name != null && Number.isFinite(model.scores.intelligence_score),
@@ -122,24 +128,24 @@ export function signatureModels(
       {
         label: "Best Intelligence",
         model: intelligenceRanking[0],
-        metric: (model) => `INT ${intelligenceScore(model).toFixed(1)}`,
+        metric: intelligenceMetric,
       },
       {
         label: "Best Agentic",
         allowRepeat: true,
         model: agenticRanking[0],
-        metric: (model) => `AGT ${Number(model.scores.agentic_score).toFixed(1)}`,
+        metric: (model) => ({ kind: "agentic", score: Number(model.scores.agentic_score) }),
       },
       {
         label: "Another Lab",
         model: anotherLab,
-        metric: (model) => `INT ${intelligenceScore(model).toFixed(1)}`,
+        metric: intelligenceMetric,
       },
       {
         label: "Best Open Weight",
         allowRepeat: true,
         model: intelligenceRanking.find((model) => model.open_weights === true),
-        metric: (model) => `INT ${intelligenceScore(model).toFixed(1)}`,
+        metric: intelligenceMetric,
       },
       {
         label: "Pareto Balance",
@@ -165,16 +171,13 @@ export function signatureModels(
       },
     ],
     intelligenceRanking.slice(0, 5),
-    limit,
   );
-  return selectedModels.map(({ model, role, selectionMetric }, index) => ({
+  return selectedModels.map(({ model, role, metric }) => ({
     key: `${modelVariantKey(model)}:${role}`,
     family: canonicalModelKey(model),
-    rank: index + 1,
     role,
-    selectionMetric,
+    metric,
     name: shortLabel({ ...model, reasoning_effort: null }),
-    provider: providerDisplayName(model),
     logo: providerLogo(model.provider) || model.logo,
     color: providerChartColor(model.provider),
   }));
@@ -185,16 +188,15 @@ type SignatureRole = {
   allowRepeat?: boolean;
   allowFallback?: boolean;
   model: ModelAtlasModel | undefined;
-  metric: (model: ModelAtlasModel) => string;
+  metric: (model: ModelAtlasModel) => SignatureMetric;
 };
 
 function selectRolesWithTopFiveFallback(
   roles: SignatureRole[],
   intelligenceTopFive: ModelAtlasModel[],
-  limit: number,
 ) {
   const selectedModelKeys = new Set<string>();
-  const selected = roles.slice(0, limit).map((role) => {
+  const selected = roles.map((role) => {
     const model = role.model;
     if (
       model == null ||
@@ -206,7 +208,7 @@ function selectRolesWithTopFiveFallback(
     return {
       model,
       role: role.label,
-      selectionMetric: role.metric(model),
+      metric: role.metric(model),
     };
   });
   const fallbacks = intelligenceTopFive.filter(
@@ -228,7 +230,7 @@ function selectRolesWithTopFiveFallback(
       {
         model,
         role: `Intelligence #${intelligenceRank}`,
-        selectionMetric: `INT ${intelligenceScore(model).toFixed(1)}`,
+        metric: intelligenceMetric(model),
       },
     ];
   });
@@ -250,12 +252,17 @@ function intelligenceScore(model: ModelAtlasModel): number {
   return Number(model.scores.intelligence_score);
 }
 
-function intelligenceValueMetric(model: ModelAtlasModel): string {
-  const scores = `INT ${intelligenceScore(model).toFixed(1)} · VAL ${Number(model.scores.value_score).toFixed(1)}`;
+function intelligenceMetric(model: ModelAtlasModel): SignatureMetric {
+  return { kind: "intelligence", score: intelligenceScore(model) };
+}
+
+function intelligenceValueMetric(model: ModelAtlasModel): SignatureMetric {
   const price = model.cost?.blended_price;
-  return typeof price === "number" && Number.isFinite(price) && price >= 0
-    ? `${scores} · BLEND ${formatCost(price)}/M`
-    : scores;
+  return {
+    ...intelligenceMetric(model),
+    value: Number(model.scores.value_score),
+    ...(typeof price === "number" && Number.isFinite(price) && price >= 0 ? { price } : {}),
+  };
 }
 
 function intelligenceValueModels(models: ModelAtlasModel[]): ModelAtlasModel[] {

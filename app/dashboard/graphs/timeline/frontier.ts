@@ -5,7 +5,6 @@ type Candidate = {
   score: number;
   coverage: number | null;
   releaseDate: string | null;
-  estimate?: { value?: number | null };
 };
 
 /** Coverage is prepared against retained evidence before view filters; neither age nor unknown support bypasses the cutoff. */

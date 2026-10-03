@@ -1,4 +1,5 @@
 /** Protect verified release matching, source provenance, effort separation, and replay of formerly split historical identities. */
+
 import assert from "node:assert/strict";
 
 import {
@@ -6,15 +7,14 @@ import {
   DEFAULT_TIMELINE_PARAMETERS,
 } from "../src/model-atlas/timeline/calibration";
 import {
-  historicalDatasetFromReleases,
-  historicalReleaseId,
-} from "../src/model-atlas/timeline/dataset";
-import {
   historicalSourceModel,
   resolveHistoricalModelIdentities,
 } from "../src/model-atlas/timeline/model-identity";
-import { prepareTimelineRelease } from "../src/model-atlas/timeline/scale";
-import type { HistoricalSourceRelease } from "../src/model-atlas/timeline/schemas";
+import { historicalReleaseId, prepareTimelineRelease } from "../src/model-atlas/timeline/scale";
+import {
+  historicalDatasetFromReleases,
+  type HistoricalSourceRelease,
+} from "./model-atlas-fixtures";
 
 const model = (name: string, effort: string | null = null) =>
   historicalSourceModel(name, "Anthropic", effort, null);

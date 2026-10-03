@@ -25,7 +25,6 @@ import {
   matchingProfileModelCount,
   MODEL_PROFILES_STORAGE_KEY,
   type ModelProfile,
-  type ModelProfileFilters,
   readModelProfiles,
   removeModelProfile,
   sameProfileFilters,
@@ -33,6 +32,7 @@ import {
 } from "./model-profiles";
 import {
   costFilterOptions,
+  type GlobalModelFilters,
   modelRankFilterOptions,
   type ProviderOption,
   recencyFilterOptions,
@@ -51,7 +51,7 @@ export function GlobalModelControls({
   showReasoningVariants,
   onShowReasoningVariantsChange,
 }: {
-  filters: ModelProfileFilters;
+  filters: GlobalModelFilters;
   models: ModelAtlasModel[];
   fetchedAt: number | null;
   providerChoices: ProviderOption[];
@@ -151,7 +151,7 @@ export function GlobalModelControls({
     return () => document.removeEventListener("keydown", escape);
   }, [open, saveOpen]);
 
-  const apply = (next: ModelProfileFilters) => {
+  const apply = (next: GlobalModelFilters) => {
     updateDashboardUrl(next);
     setMessage("");
     setSaveError("");

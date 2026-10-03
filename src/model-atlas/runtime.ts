@@ -27,6 +27,11 @@ export function asFiniteNumber(value: unknown): NumberOrNull {
   return Number.isFinite(numericValue) ? numericValue : null;
 }
 
+/** Accept only non-empty strings from source payloads and stored rows; empty and non-string values are missing evidence. */
+export function stringValue(value: unknown): string | null {
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
 /** Serialize nested JSON with stable object-key ordering for comparisons and content hashes. */
 export function stableJson(value: unknown): string {
   return JSON.stringify(canonicalize(value)) ?? "null";

@@ -11,19 +11,6 @@ export const tooltipHorizontalPadding = 18;
 export const tooltipMaxWidth = 360;
 export const tooltipOffsetTop = 12;
 
-export const benchmarkGroups = [
-  {
-    field: "intelligence_benchmark_display_keys",
-    fallbackField: "intelligence_benchmark_keys",
-    label: "Intelligence",
-  },
-  {
-    field: "agentic_benchmark_display_keys",
-    fallbackField: "agentic_benchmark_keys",
-    label: "Agent",
-  },
-] as const;
-
 export const benchmarkLabels: Readonly<Record<string, string>> = BENCHMARK_LABELS;
 const benchmarkDisplayOrder = new Map(BENCHMARK_DISPLAY_ORDER.map((key, order) => [key, order]));
 

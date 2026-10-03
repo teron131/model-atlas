@@ -144,7 +144,6 @@ const SNAPSHOT_APPEND_WRITERS = [
 type DatabaseSnapshotVersioning = {
   capabilityState?: CapabilityState;
   previousPayload?: ModelAtlasPayload | null;
-  baselineDate?: string;
   replaceSourceRows?: boolean;
 };
 
@@ -159,7 +158,6 @@ export async function deriveDatabaseSnapshot(
   versioning: DatabaseSnapshotVersioning = {},
 ): Promise<DerivedDatabaseSnapshot> {
   const observedDate = new Date(startedAtEpochSeconds * 1000).toISOString().slice(0, 10);
-  const baselineDate = versioning.baselineDate ?? BENCHMARK_VERSION_BASELINE_DATE;
   const previousModels = versioning.previousPayload?.models ?? [];
   const sourceData = sourceDataFromSnapshots(snapshots);
   const {
@@ -171,13 +169,13 @@ export async function deriveDatabaseSnapshot(
     capabilityState: versioning.capabilityState,
     loadOpenRouter,
     benchmarkVersioning: {
-      baselineDate,
+      baselineDate: BENCHMARK_VERSION_BASELINE_DATE,
       observedDate,
       observedAt: new Date(startedAtEpochSeconds * 1000).toISOString(),
       previousModels,
     },
   });
-  const finalModelRows = versioning.replaceSourceRows
+  const preservedModels = versioning.replaceSourceRows
     ? derivedModels
     : preserveHighSignalSnapshotModels(
         {
@@ -199,11 +197,19 @@ export async function deriveDatabaseSnapshot(
     ...sourceCache,
     openrouter: openRouterLoad.cacheStatus,
   };
+  // The refresh audit compares the published rows, so it follows snapshot preservation.
+  const changes = buildRefreshChanges(
+    startedAtEpochSeconds,
+    versioning.previousPayload,
+    preservedModels,
+    buildCurrentModelAtlasMetadata({ models: preservedModels, healthModels: preservedModels })
+      .scoring,
+  );
   const rows: DatabaseSnapshotRows = {
     capabilityState,
     snapshots,
     openRouterRawPayload: openRouterLoad.rawPayload,
-    finalModelRows,
+    finalModelRows: changes.models,
     debugTraceRows,
     sourceHealth: buildSourceHealth({
       generatedAtEpochSeconds: startedAtEpochSeconds,
@@ -212,14 +218,13 @@ export async function deriveDatabaseSnapshot(
     }),
     benchmarkVersionLogRows: buildBenchmarkVersionLogRows(
       previousModels,
-      finalModelRows,
-      baselineDate,
+      preservedModels,
+      BENCHMARK_VERSION_BASELINE_DATE,
       observedDate,
     ),
-    refreshRunRows: [],
-    modelScoreChangeRows: [],
+    refreshRunRows: changes.refreshRunRows,
+    modelScoreChangeRows: changes.modelScoreChangeRows,
   };
-  rebuildDatabaseSnapshotChanges(rows, startedAtEpochSeconds, versioning.previousPayload);
   return {
     rows,
     sourceCache: finalSourceCache,
@@ -359,23 +364,6 @@ export function buildBenchmarkVersionLogRows(
       left.metric_kind.localeCompare(right.metric_kind) ||
       left.version_date.localeCompare(right.version_date),
   );
-}
-
-/** Recompute the refresh audit after snapshot-preservation policy finalizes the published model rows. */
-function rebuildDatabaseSnapshotChanges(
-  rows: DatabaseSnapshotRows,
-  refreshId: number,
-  previousPayload: ModelAtlasPayload | null | undefined,
-): void {
-  const currentModels = rows.finalModelRows;
-  const currentScoring = buildCurrentModelAtlasMetadata({
-    models: currentModels,
-    healthModels: currentModels,
-  }).scoring;
-  const changes = buildRefreshChanges(refreshId, previousPayload, currentModels, currentScoring);
-  rows.finalModelRows = changes.models;
-  rows.refreshRunRows = changes.refreshRunRows;
-  rows.modelScoreChangeRows = changes.modelScoreChangeRows;
 }
 
 function collectBenchmarkObservations(

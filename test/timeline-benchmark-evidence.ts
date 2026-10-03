@@ -1,4 +1,5 @@
 /** Verify multidimensional reconstruction and independent-evidence accounting rather than overall-index substitution. */
+
 import assert from "node:assert/strict";
 
 import { prepareTimelineBenchmarkEvidence } from "../src/model-atlas/timeline/benchmark-evidence";
@@ -6,10 +7,12 @@ import {
   calibrateTimeline,
   DEFAULT_TIMELINE_PARAMETERS,
 } from "../src/model-atlas/timeline/calibration";
-import { historicalDatasetFromReleases } from "../src/model-atlas/timeline/dataset";
 import { historicalSourceModel } from "../src/model-atlas/timeline/model-identity";
 import { prepareTimelineRelease } from "../src/model-atlas/timeline/scale";
-import type { HistoricalSourceRelease } from "../src/model-atlas/timeline/schemas";
+import {
+  historicalDatasetFromReleases,
+  type HistoricalSourceRelease,
+} from "./model-atlas-fixtures";
 
 const models = Array.from({ length: 16 }, (_, i) =>
   historicalSourceModel(`Donor ${i}`, "Lab", null, "2026-01-01"),

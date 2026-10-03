@@ -19,7 +19,7 @@ const DASHBOARD_OBSERVATION_METADATA_KEYS = [
   "output_tokens_per_task",
 ] as const;
 
-export type ModelAtlasJsonView = "score" | "core" | "benchmarks" | "all" | "full" | "dashboard";
+export type ModelAtlasJsonView = "score" | "core" | "benchmarks" | "all" | "dashboard";
 
 type PublicJsonPayload =
   | ScoreJsonPayload
@@ -153,6 +153,11 @@ export function publicJsonView(view: string | null): ModelAtlasJsonView {
 }
 
 /** Keep the default public endpoint loader-friendly; callers opt into heavier table, benchmark, or full views explicitly. */
+export function publicJsonPayload(payload: ModelAtlasPayload, view: "dashboard"): ModelAtlasPayload;
+export function publicJsonPayload(
+  payload: ModelAtlasPayload,
+  view: string | null,
+): PublicJsonPayload;
 export function publicJsonPayload(
   payload: ModelAtlasPayload,
   view: string | null,

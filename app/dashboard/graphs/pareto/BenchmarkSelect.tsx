@@ -5,11 +5,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useHorizontalChoice } from "../../../shared/use-horizontal-choice";
 import { benchmarkTooltips } from "../../shared/constants";
 import { filterSearchDocuments } from "../../shared/search";
-import {
-  type FrontierBenchmarkOption,
-  PERFORMANCE_SCORES,
-  type PerformanceMetric,
-} from "./analysis";
+import { type FrontierBenchmarkOption, type PerformanceMetric } from "./analysis";
+import { PERFORMANCE_SCORES } from "./presentation";
 
 import styles from "../graphs.module.css";
 

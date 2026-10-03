@@ -2,14 +2,13 @@
 
 import { SNAPSHOT_TABLES } from "../../database/tables";
 import { type DatabaseWriter, sqliteBooleanValue } from "../../database/writers/database";
-import { asFiniteNumber } from "../../runtime";
+import { asFiniteNumber, stringValue } from "../../runtime";
 import { defineBenchmarkRuntime } from "../benchmark-runtime";
 import {
   booleanFromSql,
   type CacheRowSource,
   firstEpochSecond,
   sourceCacheRows,
-  stringValue,
 } from "../cache/rows";
 import { sourceKey } from "../snapshots/policy";
 import { snapshotSourceRows } from "../snapshots/row-snapshot";

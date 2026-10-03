@@ -8,4 +8,4 @@ export {
   hasVariantConflict,
   rankMatchCandidates,
 } from "./matching/scoring";
-export type { MatchDiagnosticsPayload, MatcherConfig } from "./matching/types";
+export type { MatchCandidateInput, MatchDiagnosticsPayload, MatcherConfig } from "./matching/types";

@@ -15,8 +15,7 @@ import type {
   BenchmarkObservationPayload,
   BenchmarkObservationRow,
 } from "../benchmarks/observation";
-import { asFiniteNumber, asRecord, nowEpochSeconds } from "../runtime";
-import { stringValue } from "./parsing";
+import { asFiniteNumber, asRecord, nowEpochSeconds, stringValue } from "../runtime";
 import { fetchSource } from "./request-scheduler";
 
 const DEFAULT_TIMEOUT_MS = 30_000;

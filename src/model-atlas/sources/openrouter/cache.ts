@@ -1,13 +1,12 @@
 /** OpenRouter raw-cache reconstruction and scoped route coverage checks. */
 
 import { isSameOpenRouterModelRoute } from "../../identity/openrouter";
-import { asFiniteNumber } from "../../runtime";
+import { asFiniteNumber, stringValue } from "../../runtime";
 import {
   type CacheDbRow,
   type CacheRowSource,
   firstEpochSecond,
   sourceCacheRows,
-  stringValue,
 } from "../cache/rows";
 import { sanitizeModelId } from "./stats";
 import type {

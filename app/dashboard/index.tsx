@@ -9,7 +9,12 @@ import { ModelAtlasHeader } from "../shared/ModelAtlasHeader";
 import { DashboardLeaderboard } from "./DashboardLeaderboard";
 import { DashboardGraphs } from "./graphs/DashboardGraphs";
 import { useLivePayload } from "./live-payload";
-import { isGraphEligible, modelsForVariantDisplay, providerOptions } from "./shared/model-display";
+import {
+  type GlobalModelFilters,
+  isGraphEligible,
+  modelsForVariantDisplay,
+  providerOptions,
+} from "./shared/model-display";
 import { GRAPH_VARIANTS_COOKIE } from "./url-state";
 import { updateDashboardUrl, useUrlState } from "./use-url-state";
 
@@ -25,11 +30,15 @@ export function Dashboard({
   const [showReasoningVariants, setShowReasoningVariants] = useReasoningVariantDisplay(
     initialShowReasoningVariants,
   );
-  const [requestedProviders] = useUrlState("provider");
-  const [maxCostFilter] = useUrlState("max-cost");
-  const [modelRankFilter] = useUrlState("rank");
-  const [recencyFilter] = useUrlState("days");
-  const [globalModelFilterQuery] = useUrlState("q");
+  const [q] = useUrlState("q");
+  const [provider] = useUrlState("provider");
+  const [maxCost] = useUrlState("max-cost");
+  const [rank] = useUrlState("rank");
+  const [days] = useUrlState("days");
+  const filters = useMemo<GlobalModelFilters>(
+    () => ({ q, provider, "max-cost": maxCost, rank, days }),
+    [q, provider, maxCost, rank, days],
+  );
   const { payload, errorMessage } = useLivePayload(initialPayload);
 
   const referenceModels = useMemo(() => payload?.models ?? [], [payload]);
@@ -46,8 +55,7 @@ export function Dashboard({
       ),
     };
   }, [payload, showReasoningVariants]);
-  const providerChoices = useMemo(() => providerOptions(payload?.models ?? []), [payload]);
-  const selectedProviders = requestedProviders;
+  const providerChoices = useMemo(() => providerOptions(referenceModels), [referenceModels]);
   const isInitialLoading = payload == null && errorMessage == null;
 
   return (
@@ -55,15 +63,10 @@ export function Dashboard({
       <ModelAtlasHeader page="dashboard" />
       <DashboardGraphs
         payload={displayPayload}
-        modelVariants={payload?.models ?? []}
         referenceModels={referenceModels}
         isLoading={isInitialLoading}
-        selectedProviders={selectedProviders}
+        filters={filters}
         providerChoices={providerChoices}
-        maxCost={maxCostFilter}
-        modelRankFilter={modelRankFilter}
-        recencyFilter={recencyFilter}
-        globalModelFilterQuery={globalModelFilterQuery}
         showReasoningVariants={showReasoningVariants}
         onShowReasoningVariantsChange={setShowReasoningVariants}
         afterLead={
@@ -71,11 +74,7 @@ export function Dashboard({
             payload={payload}
             errorMessage={errorMessage}
             isLoading={isInitialLoading}
-            maxCost={maxCostFilter}
-            modelRankFilter={modelRankFilter}
-            recencyFilter={recencyFilter}
-            globalModelFilterQuery={globalModelFilterQuery}
-            selectedProviders={selectedProviders}
+            filters={filters}
           />
         }
       />

@@ -6,8 +6,7 @@
 
 import { AGENTIC_INDEX_KEYS, INTELLIGENCE_INDEX_KEYS } from "../../benchmarks/field-keys";
 import type { ScoringConfig } from "../../config/stage";
-import { asFiniteNumber, asRecord, type JsonObject } from "../../runtime";
-import { stringValue } from "../cache/rows";
+import { asFiniteNumber, asRecord, type JsonObject, stringValue } from "../../runtime";
 import { snapshotRowsWithStates, sourceKey } from "../snapshots/policy";
 import {
   shouldUseFetchedRows,

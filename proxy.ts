@@ -4,7 +4,7 @@ import { type NextRequest, NextResponse } from "next/server";
 
 import type { ModelAtlasJsonView } from "./app/leaderboard/public-json";
 
-type RoutedJsonView = Exclude<ModelAtlasJsonView, "full">;
+type RoutedJsonView = Exclude<ModelAtlasJsonView, "dashboard">;
 
 const jsonViewByPath = new Map<string, RoutedJsonView>([
   ["/", "score"],
@@ -39,11 +39,7 @@ export function proxy(request: NextRequest) {
   });
 }
 
-export function jsonViewForPath(pathname: string): RoutedJsonView | null {
-  return jsonViewByPath.get(pathname) ?? null;
-}
-
-export function setModelAtlasApiUrl(
+function setModelAtlasApiUrl(
   url: Pick<URL, "pathname" | "search" | "searchParams">,
   view: RoutedJsonView,
 ): void {
@@ -54,7 +50,7 @@ export function setModelAtlasApiUrl(
   }
 }
 
-export function wantsJsonResponse(accept: string): boolean {
+function wantsJsonResponse(accept: string): boolean {
   const normalizedAccept = accept.toLowerCase();
   if (normalizedAccept.includes("text/html")) {
     return false;

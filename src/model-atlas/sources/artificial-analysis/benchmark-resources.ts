@@ -13,7 +13,13 @@ import {
   normalizeModelToken,
   reasoningEffortRank,
 } from "../../identity/normalization";
-import { asFiniteNumber, asRecord, mapWithConcurrency, nowEpochSeconds } from "../../runtime";
+import {
+  asFiniteNumber,
+  asRecord,
+  mapWithConcurrency,
+  nowEpochSeconds,
+  stringValue,
+} from "../../runtime";
 import { extractNextFlightCorpus, findObjectEnd, parseFlightJsonObject } from "../parsing";
 import { fetchSource, SourceQueueTimeoutError } from "../request-scheduler";
 import {
@@ -341,10 +347,6 @@ function extractRowsFromPageHtml(pageHtml: string): Record<string, unknown>[] {
     }
   }
   return [...resourceRowsById.values()];
-}
-
-function stringValue(value: unknown): string | null {
-  return typeof value === "string" && value.length > 0 ? value : null;
 }
 
 function resourceRow(

@@ -13,8 +13,7 @@ import {
   canonicalReasoningEffort,
   normalizeModelToken,
 } from "../../identity/normalization";
-import { asFiniteNumber, asRecord, nowEpochSeconds } from "../../runtime";
-import { stringValue } from "../parsing";
+import { asFiniteNumber, asRecord, nowEpochSeconds, stringValue } from "../../runtime";
 import { fetchSource } from "../request-scheduler";
 
 const TERMINAL_BENCH_4_DATA_URL =

@@ -11,8 +11,8 @@ import {
 } from "../../benchmarks/registry";
 import type { DatabaseWriter } from "../../database/writers/database";
 import { benchmarkModelEffort, normalizeModelToken } from "../../identity/normalization";
-import { asFiniteNumber } from "../../runtime";
-import { type CacheRowSource, firstEpochSecond, queryCacheRows, stringValue } from "../cache/rows";
+import { asFiniteNumber, stringValue } from "../../runtime";
+import { type CacheRowSource, firstEpochSecond, queryCacheRows } from "../cache/rows";
 import type { RawSourceName } from "../registry";
 import {
   benchmarkObservationRowKey,

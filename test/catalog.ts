@@ -2,12 +2,9 @@
 
 import assert from "node:assert/strict";
 
+import { BENCHMARK_DISPLAY_ORDER } from "../src/model-atlas/benchmarks/catalog";
 import { INDEX_BENCHMARK_KEYS } from "../src/model-atlas/benchmarks/index-policy";
-import {
-  BENCHMARK_CATALOG,
-  BENCHMARK_DISPLAY_KEYS,
-  BENCHMARK_RUNTIME_KEYS,
-} from "../src/model-atlas/benchmarks/registry";
+import { BENCHMARK_CATALOG, BENCHMARK_RUNTIME_KEYS } from "../src/model-atlas/benchmarks/registry";
 import { STAGE_CONFIG } from "../src/model-atlas/config";
 import type { FinalStageConfig, ScoringConfig } from "../src/model-atlas/config/stage";
 import { canonicalModelKey } from "../src/model-atlas/identity/normalization";
@@ -29,7 +26,7 @@ import { minimalModelAtlasModel } from "./model-atlas-fixtures";
 for (const keys of [
   STAGE_CONFIG.scoring.intelligenceBenchmarkKeys,
   STAGE_CONFIG.scoring.agenticBenchmarkKeys,
-  BENCHMARK_DISPLAY_KEYS,
+  BENCHMARK_DISPLAY_ORDER,
   BENCHMARK_RUNTIME_KEYS,
 ]) {
   for (const retiredKey of ["cursorbench", "itbench_sre"]) {

@@ -89,22 +89,16 @@ export function tableColumnView(
   query: string,
   columnTooltips: ModelAtlasColumnTooltips,
 ) {
-  const searchMatchCount = hasSearchQuery(query)
+  const searchMatches = hasSearchQuery(query)
     ? filterSearchDocuments(
         query,
         ALL_TABLE_COLUMN_KEYS.map((key) => columnSearchDocument(key, columnTooltips)),
-      ).length
-    : 0;
+      )
+    : [];
+  const searchMatchCount = searchMatches.length;
   const searchQuery = searchMatchCount > 0 ? query : "";
-  const matchingKeys =
-    searchMatchCount > 0
-      ? new Set(
-          filterSearchDocuments(
-            query,
-            optionalColumnKeys.map((key) => columnSearchDocument(key, columnTooltips)),
-          ),
-        )
-      : presetColumnKeys[preset];
+  // Reuse the full-column ranking so the visible set and match count cannot promote different fuzzy matches.
+  const matchingKeys = searchMatchCount > 0 ? new Set(searchMatches) : presetColumnKeys[preset];
   const keys: TableColumnKey[] = [
     ...ALWAYS_VISIBLE_TABLE_COLUMN_KEYS,
     ...optionalColumnKeys.filter((key) => matchingKeys.has(key)),
