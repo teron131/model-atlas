@@ -158,9 +158,11 @@
   margin: 0;
   padding: 8px;
   border: 1px solid var(--line-strong);
-  background: var(--paper);
+  background:
+    var(--horizon-gradient) top / 100% 1px no-repeat,
+    var(--paper);
   color: var(--ink);
-  box-shadow: 0 10px 24px rgb(0 0 0 / 0.2);
+  box-shadow: var(--tooltip-shadow);
 }
 .menu button {
   width: 100%;
@@ -323,9 +325,9 @@
   white-space: nowrap;
 }
 .filterOptions button[aria-pressed="true"] {
-  border-bottom-color: var(--ink);
   color: var(--ink);
 }
+
 .activeDot {
   position: absolute;
   top: 10px;

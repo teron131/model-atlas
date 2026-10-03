@@ -82,3 +82,17 @@
     min-height: 44px;
   }
 }
+
+@media (max-width: 600px) {
+  .controls,
+  .limit,
+  .variants {
+    gap: 4px;
+  }
+  .limit input {
+    width: 36px;
+  }
+  .variants {
+    margin-left: 0;
+  }
+}

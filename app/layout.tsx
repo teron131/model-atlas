@@ -18,7 +18,7 @@ export default function RootLayout({
   children: ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" data-model-atlas-theme="dark" suppressHydrationWarning>
       <head>
         <ThemeBootstrap />
       </head>

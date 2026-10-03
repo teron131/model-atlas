@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { useHorizontalChoice } from "../../../shared/use-horizontal-choice";
 import { benchmarkTooltips } from "../../shared/constants";
 import { filterSearchDocuments } from "../../shared/search";
 import {
@@ -40,6 +41,8 @@ export function BenchmarkSelect({
   performance: { value: PerformanceMetric; onChange: (value: PerformanceMetric) => void };
 }) {
   const rootRef = useRef<HTMLDetailsElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const stripRef = useHorizontalChoice<HTMLFieldSetElement>(performance.value);
   const selectAllRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
   const [sortState, setSortState] = useState<BenchmarkSortState>({
@@ -88,13 +91,38 @@ export function BenchmarkSelect({
         root.querySelector("summary")?.focus();
       }
     };
+    const closeOnMove = (event: Event) => {
+      if (event.target instanceof Node && menuRef.current?.contains(event.target)) return;
+      if (rootRef.current?.open) rootRef.current.open = false;
+    };
     document.addEventListener("pointerdown", closeOutside);
     document.addEventListener("keydown", closeOnEscape);
+    window.addEventListener("scroll", closeOnMove, true);
+    window.addEventListener("resize", closeOnMove);
     return () => {
       document.removeEventListener("pointerdown", closeOutside);
       document.removeEventListener("keydown", closeOnEscape);
+      window.removeEventListener("scroll", closeOnMove, true);
+      window.removeEventListener("resize", closeOnMove);
     };
   }, []);
+
+  /** Place the menu in the top layer so the horizontal strip cannot clip its content. */
+  function positionMenu() {
+    const root = rootRef.current;
+    const menu = menuRef.current;
+    if (root == null || menu == null) return;
+    if (!root.open) {
+      menu.hidePopover();
+      return;
+    }
+    menu.showPopover();
+    const bounds = root.getBoundingClientRect();
+    const top = Math.min(bounds.bottom + 8, Math.max(12, window.innerHeight - 240));
+    menu.style.left = `${Math.max(12, Math.min(bounds.left, window.innerWidth - menu.offsetWidth - 12))}px`;
+    menu.style.top = `${top}px`;
+    menu.style.maxHeight = `${window.innerHeight - top - 12}px`;
+  }
 
   function toggleBenchmark(key: string, selected: boolean) {
     const nextKeys = new Set(selectedKeySet);
@@ -120,12 +148,16 @@ export function BenchmarkSelect({
   }
 
   return (
-    <fieldset className={`${styles.metricToggle} ${styles.performanceToggle}`}>
+    <fieldset
+      className={`${styles.metricToggle} ${styles.performanceToggle} horizontal-choice-strip`}
+      ref={stripRef}
+    >
       <legend className={styles.visuallyHidden}>Performance</legend>
       {PERFORMANCE_SCORES.map((option) => (
         <button
           type="button"
           key={option.key}
+          className="selection-choice"
           aria-pressed={performance.value === option.key}
           onClick={() => {
             performance.onChange(option.key);
@@ -135,8 +167,14 @@ export function BenchmarkSelect({
           {option.label}
         </button>
       ))}
-      <details className={styles.benchmarkSelect} ref={rootRef} aria-label="Benchmarks">
+      <details
+        className={styles.benchmarkSelect}
+        ref={rootRef}
+        aria-label="Benchmarks"
+        onToggle={positionMenu}
+      >
         <summary
+          className="selection-choice"
           aria-label={summaryLabel}
           aria-current={selectsEvidence ? "true" : undefined}
           onClick={(event) => {
@@ -148,7 +186,7 @@ export function BenchmarkSelect({
         >
           <span>{summaryLabel}</span>
         </summary>
-        <div className={styles.benchmarkSelectMenu}>
+        <div className={styles.benchmarkSelectMenu} ref={menuRef} popover="manual">
           <label className={styles.benchmarkSelectSearch}>
             <span className={styles.visuallyHidden}>
               Filter benchmarks and indexes by name or description

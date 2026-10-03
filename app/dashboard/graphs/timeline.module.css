@@ -22,30 +22,75 @@
   gap: 20px;
   flex-wrap: wrap;
   color: var(--muted);
-  font: var(--type-label-size) var(--font-mono);
+  font: var(--type-label-weight) var(--type-label-size) var(--font-mono);
   padding: 0 0 20px;
 }
+/* The legend draws the frontier the way the chart does: a short horizon-lit rim. */
+.frontierKey {
+  display: inline-block;
+  width: 18px;
+  height: 2px;
+  margin-right: 7px;
+  vertical-align: middle;
+  background: var(--horizon-gradient);
+  box-shadow: 0 0 8px rgb(143 107 255 / 0.7);
+}
+/* The selected model reads as a star-catalogue entry: its name and figures at display size, labels in measurement type. */
+/* The name takes the spare width; each figure keeps its natural width so dates never break. */
 .readout {
   display: grid;
-  grid-template-columns: 2fr repeat(3, 1fr);
-  gap: 24px;
-  padding: 20px 0;
+  grid-template-columns: minmax(0, 1fr) repeat(3, max-content);
+  align-items: end;
+  gap: 24px clamp(20px, 4vw, 56px);
+  padding: 24px 0 22px;
   border-top: 1px solid var(--line);
-  min-height: 90px;
+  min-height: 110px;
 }
 .readout > div {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
+  min-width: 0;
+}
+.readout > div:not(:first-child) {
+  flex-direction: column-reverse;
 }
 .readout span {
   color: var(--muted);
-  font: var(--type-label-size) var(--font-mono);
+  font: var(--type-label-weight) var(--type-caption-size) var(--font-mono);
   text-transform: uppercase;
 }
 .readout strong {
-  font-size: var(--type-note-size);
-  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: var(--type-readout-size);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--type-display-weight);
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+  overflow-wrap: anywhere;
+}
+.readout > div:not(:first-child) strong {
+  white-space: nowrap;
+}
+.readout > div:first-child > span {
+  padding-left: 26px;
+}
+/* The same ringed star the chart draws for this model, at catalogue scale. */
+.readoutStar {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  border: 3.5px solid var(--star, var(--ink));
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--star, var(--ink)) 30%, #fff);
+}
+:global(html[data-model-atlas-theme="light"]) .readoutStar {
+  background: var(--star, var(--ink));
 }
 .loading {
   min-height: 360px;
@@ -59,6 +104,12 @@
   .readout {
     grid-template-columns: 1fr 1fr;
     gap: 20px;
+  }
+  .readout strong {
+    font-size: 20px;
+  }
+  .readout > div:first-child {
+    grid-column: 1 / -1;
   }
   .legend {
     gap: 12px;
@@ -82,12 +133,15 @@
   align-items: center;
   gap: 8px;
 }
+.timeTransport span {
+  white-space: nowrap;
+}
 .timeTransport {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 10px;
-  font: var(--type-label-size) var(--font-mono);
+  font: var(--type-label-weight) var(--type-label-size) var(--font-mono);
   color: var(--muted);
 }
 .timeTransport button {
@@ -118,6 +172,11 @@
   display: block;
   width: 100%;
   height: 100%;
+}
+.navigatorRim {
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
 }
 .rangeInteraction,
 .rangeShade,
@@ -169,7 +228,7 @@
   align-items: baseline;
   margin-top: 8px;
   color: var(--muted);
-  font: var(--type-caption-size) var(--font-mono);
+  font: var(--type-label-weight) var(--type-caption-size) var(--font-mono);
   gap: 8px;
   flex-wrap: wrap;
 }
@@ -187,14 +246,38 @@
 .organizationPicker .organizationRow {
   grid-template-columns: 18px minmax(0, 1fr) 90px 65px;
 }
+/* Each organization carries its provider icon, as in the global provider filter. */
+.organizationName {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.organizationLogo {
+  display: grid;
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  border-radius: 3px;
+  object-fit: contain;
+  color: var(--muted);
+  font: var(--type-label-weight) var(--type-caption-size) / 1 var(--font-mono);
+}
 
+/* The figure's controls, legend, and readout share the graph's width and edges, like the Pareto figure. */
+.viewControls,
+.legend,
+.readout {
+  width: min(100%, 1120px);
+  margin-inline: auto;
+}
 .viewControls {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 20px;
-  padding-block: 12px;
-  border-bottom: 1px solid var(--line);
+  padding-block: 24px 4px;
 }
 .viewControls .organizationPicker {
   padding: 0;
@@ -214,7 +297,7 @@
 }
 .labScope dt {
   color: rgb(var(--ink-rgb) / 0.5);
-  font: var(--type-label-size) var(--font-mono);
+  font: var(--type-label-weight) var(--type-label-size) var(--font-mono);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -264,7 +347,7 @@
 }
 .labListHead {
   color: var(--muted);
-  font: var(--type-label-size) var(--font-mono);
+  font: var(--type-label-weight) var(--type-label-size) var(--font-mono);
   text-transform: uppercase;
 }
 .labListHead > :last-child,

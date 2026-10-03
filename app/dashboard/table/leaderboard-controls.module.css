@@ -30,12 +30,15 @@
   background: transparent;
   color: var(--muted);
   font: inherit;
+  font-weight: var(--type-label-weight);
+  letter-spacing: var(--type-label-tracking);
+  text-transform: uppercase;
   cursor: pointer;
 }
 .presets button[aria-pressed="true"] {
-  border-bottom-color: var(--ink);
   color: var(--ink);
 }
+
 .controls input[type="search"] {
   min-width: 0;
   min-height: 36px;
@@ -80,7 +83,7 @@
 }
 .controls input[type="search"]:focus-visible {
   outline: none;
-  box-shadow: none;
+  box-shadow: 0 1px 0 var(--ink);
 }
 @media (max-width: 600px) {
   .row {
@@ -91,10 +94,14 @@
   }
   .presets {
     flex: 1 0 100%;
+    justify-content: space-between;
+  }
+  .presets button {
+    min-height: 44px;
   }
   .search {
-    flex: 1 1 130px;
-    min-width: 130px;
+    flex: 1 1 76px;
+    min-width: 76px;
     max-width: none;
     margin-left: 0;
   }

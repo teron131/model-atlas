@@ -2,9 +2,18 @@
 
 /** Interactive chart view for LLM stats payloads. */
 
-import { useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  type RefObject,
+  useDeferredValue,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { canonicalModelKey } from "../../../src/model-atlas/identity/normalization";
+import { clamp01 } from "../../../src/model-atlas/math-utils";
 import { type ModelAtlasModel, type ModelAtlasPayload } from "../../../src/model-atlas/stats/types";
 import { GlobalModelControls } from "../GlobalModelControls";
 import {
@@ -66,6 +75,7 @@ export function DashboardGraphs({
 }) {
   const [hover, setHover] = useState<HoverState | null>(null);
   const railRef = useRef<HTMLElement>(null);
+  const journeyRef = useRef<HTMLElement>(null);
   const deferredPayload = useDeferredValue(payload);
   const deferredModelVariants = useDeferredValue(modelVariants);
   const deferredSelectedProviders = useDeferredValue(selectedProviders);
@@ -178,7 +188,7 @@ export function DashboardGraphs({
       (model) => isGraphEligible(model) && eligibleModelKeys.has(canonicalModelKey(model)),
     );
   }, [deferredModelVariants, filteredModels]);
-  const currentSection = useCurrentResearchSection(deferredPayload != null);
+  const currentSection = useCurrentResearchSection(deferredPayload != null, journeyRef);
 
   if (!payload || !deferredPayload) {
     return (
@@ -202,7 +212,12 @@ export function DashboardGraphs({
       />
       <section ref={railRef} className={styles.instrumentRail} aria-label="Global view">
         <div className={styles.instrumentBar}>
-          <nav className={styles.researchIndexLinks} aria-label="Dashboard sections">
+          <nav
+            ref={journeyRef}
+            className={styles.researchIndexLinks}
+            aria-label="Dashboard sections"
+          >
+            <span className={styles.journeyStar} aria-hidden="true" />
             {RESEARCH_REGIONS.map((region) => (
               <a
                 href={`#${region.id}`}
@@ -250,8 +265,12 @@ export function DashboardGraphs({
   );
 }
 
-/** Align deep links when sections become available and report the region entering the upper viewport band. */
-function useCurrentResearchSection(hasPanels: boolean) {
+/**
+ * Align deep links when sections become available and report the region entering the upper viewport band.
+ *
+ * The same scroll frame moves the rail's journey star between the region links, written as CSS variables so scrolling never re-renders the rail.
+ */
+function useCurrentResearchSection(hasPanels: boolean, journeyRef: RefObject<HTMLElement | null>) {
   const [currentSection, setCurrentSection] = useState<ResearchRegionId | null>(null);
 
   useEffect(() => {
@@ -266,14 +285,15 @@ function useCurrentResearchSection(hasPanels: boolean) {
     const updateCurrentSection = () => {
       updateFrame = null;
       const activationLine = window.innerHeight * 0.45;
-      let activeSection: ResearchRegionId | null = null;
-      for (const section of sections) {
-        if (section.element.getBoundingClientRect().top > activationLine) {
-          break;
-        }
-        activeSection = section.id;
-      }
-      setCurrentSection(activeSection);
+      const offsets = sections.map(
+        (section) => section.element.getBoundingClientRect().top - activationLine,
+      );
+      let reached = -1;
+      while (reached + 1 < offsets.length && offsets[reached + 1]! <= 0) reached += 1;
+      const remaining = document.documentElement.scrollHeight - window.innerHeight - window.scrollY;
+      if (remaining <= 1) reached = sections.length - 1;
+      setCurrentSection(reached === -1 ? null : sections[reached]!.id);
+      placeJourney(journeyRef.current, sections, offsets, reached, remaining);
     };
     const scheduleUpdate = () => {
       if (updateFrame == null) {
@@ -312,4 +332,47 @@ function useCurrentResearchSection(hasPanels: boolean) {
   }, [hasPanels]);
 
   return currentSection;
+}
+
+// The journey track starts and ends this far inside the first and last region links.
+const JOURNEY_INSET = 13;
+
+/**
+ * Place the journey star on the rail: it approaches the first region from the track start, travels link to link as each region reaches the activation line, and reaches the track end at the page's actual scroll limit.
+ * Links the star has passed are marked reached so their waypoints light.
+ */
+function placeJourney(
+  nav: HTMLElement | null,
+  sections: { element: HTMLElement }[],
+  offsets: number[],
+  reached: number,
+  remaining: number,
+) {
+  const links = nav == null ? [] : Array.from(nav.querySelectorAll<HTMLAnchorElement>("a"));
+  const first = links[0];
+  const last = links.at(-1);
+  if (nav == null || first == null || last == null || links.length !== sections.length) return;
+  const centres = links.map((link) => link.offsetLeft + link.offsetWidth / 2);
+  const start = first.offsetLeft + JOURNEY_INSET;
+  const end = last.offsetLeft + last.offsetWidth - JOURNEY_INSET;
+  const lastIndex = sections.length - 1;
+  let position: number;
+  if (reached === -1) {
+    position = start + (centres[0]! - start) * clamp01(1 - offsets[0]! / window.innerHeight);
+  } else if (reached < lastIndex) {
+    const span = offsets[reached + 1]! - offsets[reached]!;
+    position =
+      centres[reached]! +
+      (centres[reached + 1]! - centres[reached]!) * clamp01(-offsets[reached]! / span);
+  } else {
+    const travelled = Math.max(0, -offsets[lastIndex]!);
+    const travel = remaining <= 1 ? 1 : clamp01(travelled / (travelled + remaining));
+    position = centres[lastIndex]! + (end - centres[lastIndex]!) * travel;
+  }
+  nav.style.setProperty("--journey-start", `${start}px`);
+  nav.style.setProperty("--journey-end", `${end}px`);
+  nav.style.setProperty("--journey", `${position.toFixed(1)}px`);
+  links.forEach((link, index) => {
+    link.dataset.reached = String(index <= reached);
+  });
 }

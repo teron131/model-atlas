@@ -1,637 +1,504 @@
-/* Reconstruct the content edge while the signature itself breaks out to full bleed. */
+/* The hero sits directly on the light field; it must stay free of stacking contexts so the fixed field layers rank below every research plane. */
 .signature {
-  --signature-gutter: max(
-    var(--page-gutter),
-    calc((100vw - var(--page-frame-width)) / 2 + var(--page-gutter))
-  );
+  --provider-openai-color: var(--scene-ink);
   position: relative;
-  width: 100vw;
   display: grid;
-  grid-template-rows: auto auto auto;
-  margin-left: calc(50% - 50vw);
-  overflow: hidden;
-  background: var(--paper);
-  color: var(--ink);
-  isolation: isolate;
+  grid-template-rows: minmax(0, 1fr) auto auto;
+  min-height: max(640px, calc(100svh - var(--header-height) - env(safe-area-inset-top)));
+  padding: 0 var(--research-inset);
+  color: var(--scene-ink);
 }
 
-.canvas,
-.scrim {
-  position: absolute;
+/* Fixed field layers: a static gradient, the WebGL light field over it, and film grain over both. */
+.atmosphere,
+.field,
+.grain {
+  position: fixed;
   inset: 0;
-  width: 100%;
-  height: 100%;
-}
-
-.canvas {
-  z-index: -2;
-  display: block;
-}
-
-/* Feather only the video's left boundary into the page; retain full colour across the flower. */
-.videoMaterial {
-  position: relative;
-  z-index: -2;
-  grid-area: 2 / 1;
-  width: 80%;
-  height: 100%;
-  margin-left: 20%;
-  overflow: hidden;
-  background: #000;
-  mask-image: linear-gradient(90deg, transparent, #000 15%);
   pointer-events: none;
 }
 
-.video,
-.videoPoster {
+/* Until the WebGL sky is ready, and wherever it cannot run, CSS draws the same hero horizon so the field fades in without a change of scene. */
+.atmosphere {
+  --planet: ellipse 145% 95% at 50% 165%;
+  z-index: -3;
+  background:
+    radial-gradient(var(--planet), #020308 99.4%, transparent 100%),
+    linear-gradient(180deg, #02030b 0%, #030617 18.75%, #070d36 37.5%, #0b1453 56.25%, #0d1761 75%);
+}
+
+/* The rim light shifts from cobalt at the centre through violet to rose at the sides, as in the shader. */
+.atmosphere::before,
+.atmosphere::after {
   position: absolute;
-  top: 0;
-  left: 0;
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-  user-select: none;
+  inset: 0;
+  content: "";
 }
 
-.video {
+.atmosphere::before {
+  background: linear-gradient(
+    90deg,
+    #f38caf 0%,
+    #a370ff 21%,
+    #6b8fff 44.5%,
+    #6b8fff 55.5%,
+    #a370ff 79%,
+    #f38caf 100%
+  );
+  -webkit-mask-image: radial-gradient(
+    var(--planet),
+    transparent 76%,
+    rgb(0 0 0 / 0.09) 79%,
+    rgb(0 0 0 / 0.26) 89.5%,
+    rgb(0 0 0 / 0.46) 94.7%,
+    rgb(0 0 0 / 0.75) 97.9%,
+    rgb(0 0 0 / 0.92) 99%,
+    #000 100%,
+    rgb(0 0 0 / 0.85) 101%,
+    rgb(0 0 0 / 0.62) 102.1%,
+    rgb(0 0 0 / 0.4) 105.3%,
+    rgb(0 0 0 / 0.3) 110.5%,
+    rgb(0 0 0 / 0.18) 121%,
+    rgb(0 0 0 / 0.08) 136.8%,
+    rgb(0 0 0 / 0.026) 163%,
+    transparent 205%
+  );
+  mask-image: radial-gradient(
+    var(--planet),
+    transparent 76%,
+    rgb(0 0 0 / 0.09) 79%,
+    rgb(0 0 0 / 0.26) 89.5%,
+    rgb(0 0 0 / 0.46) 94.7%,
+    rgb(0 0 0 / 0.75) 97.9%,
+    rgb(0 0 0 / 0.92) 99%,
+    #000 100%,
+    rgb(0 0 0 / 0.85) 101%,
+    rgb(0 0 0 / 0.62) 102.1%,
+    rgb(0 0 0 / 0.4) 105.3%,
+    rgb(0 0 0 / 0.3) 110.5%,
+    rgb(0 0 0 / 0.18) 121%,
+    rgb(0 0 0 / 0.08) 136.8%,
+    rgb(0 0 0 / 0.026) 163%,
+    transparent 205%
+  );
+}
+
+/* The white-hot rim line itself. */
+.atmosphere::after {
+  background: radial-gradient(
+    var(--planet),
+    transparent 99.3%,
+    rgb(236 240 255 / 0.85) 100%,
+    transparent 100.7%
+  );
+}
+
+.field {
+  z-index: -2;
   opacity: 0;
-  transition: opacity 200ms ease-out;
+  transition: opacity 1200ms ease;
 }
 
-.videoMaterial[data-ready="true"] .video {
+.field[data-ready="true"] {
   opacity: 1;
 }
 
-.signature[data-mode="glacier"] {
-  background: #000;
+.field canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
-/* Glacier remains a dark photographic surface in light mode, so its overlaid evidence keeps the dark-theme ink contract while the surrounding controls follow the page. */
-:global(html[data-model-atlas-theme="light"]) .signature[data-mode="glacier"] .copy {
-  --ink: #f2f3ed;
-  --ink-rgb: 242 243 237;
-  --muted: #bbc1b7;
-  --faint: #969f93;
-  --line: rgb(var(--ink-rgb) / 0.085);
-  --line-strong: rgb(var(--ink-rgb) / 0.2);
-  color: var(--ink);
+/* Identification for the star being explored; position and text are written by the field. */
+.starCard {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  display: grid;
+  gap: 3px;
+  min-width: 168px;
+  padding: 10px 12px 11px;
+  border: 1px solid rgb(222 230 255 / 0.2);
+  background:
+    var(--horizon-gradient) top / 100% 1px no-repeat,
+    rgb(6 9 24 / 0.9);
+  box-shadow: 0 18px 44px rgb(0 2 14 / 0.6);
+  color: var(--scene-ink, #eef2ff);
+  opacity: 0;
+  transition: opacity 160ms ease;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .video {
-    transition: none;
-  }
+.starCard[data-visible="true"] {
+  opacity: 1;
 }
 
-.scrim {
-  z-index: -1;
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--paper) 99%, transparent) 0%,
-    color-mix(in srgb, var(--paper) 92%, transparent) 31%,
-    color-mix(in srgb, var(--paper) 48%, transparent) 51%,
-    transparent 72%
-  );
-  pointer-events: none;
+.starCard strong {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
 }
 
-/* The material runs at full strength behind this bar, so it carries its own field like the model
-   rail does. Without it the unselected modes drop below readable contrast over bright material. */
-.modeBar {
-  grid-area: 1 / 1;
-  position: relative;
-  z-index: 1;
-  display: flex;
-  min-height: 52px;
-  padding-inline: var(--signature-gutter);
-  border-top: 1px solid var(--line-strong);
-  border-bottom: 1px solid var(--line);
-  background: color-mix(in srgb, var(--paper) 90%, transparent);
-  backdrop-filter: blur(12px);
-  align-items: stretch;
-  justify-content: space-between;
-  gap: 28px;
-}
-
-.modeLabel,
-.modeButton,
-.rank,
-.scoreLeader,
-.scoreLeadersLabel,
-.modelCopy span {
+.starCard > span {
+  color: rgb(222 230 255 / 0.6);
   font-family: var(--font-mono);
+  font-size: var(--type-micro-size);
+  font-weight: var(--type-label-weight);
   letter-spacing: var(--type-label-tracking);
   text-transform: uppercase;
 }
 
-.modeLabel {
+.starCard dl {
   display: grid;
-  padding-inline: 2px;
-  color: var(--muted);
-  font-size: var(--type-label-size);
+  grid-template-columns: auto auto;
+  justify-content: space-between;
+  gap: 3px 16px;
+  margin: 6px 0 0;
+  padding-top: 7px;
+  border-top: 1px solid rgb(222 230 255 / 0.14);
+  font-family: var(--font-mono);
+  font-size: var(--type-caption-size);
   font-weight: var(--type-label-weight);
-  place-items: center start;
 }
 
-.modeOptions {
-  display: flex;
-  align-items: stretch;
+.starCard dt {
+  color: rgb(222 230 255 / 0.6);
 }
 
-.modeButton {
-  position: relative;
-  padding: 0 13px;
-  border: 0;
-  background: transparent;
-  color: var(--muted);
-  font-size: var(--type-label-size);
-  font-weight: var(--type-label-weight);
-  cursor: pointer;
+.starCard dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
 }
 
-.modeButton::after {
+/* Frontier stars are named like a star chart; positions are written every rendered frame. */
+.starLabel {
   position: absolute;
-  right: 13px;
-  bottom: 9px;
-  left: 13px;
-  height: 2px;
-  background: transparent;
-  content: "";
+  top: 0;
+  left: 0;
+  z-index: 1;
+  color: rgb(222 230 255 / 0.82);
+  font-family: var(--font-mono);
+  font-size: var(--type-micro-size);
+  font-weight: var(--type-label-weight);
+  letter-spacing: var(--type-label-tracking);
+  line-height: 12px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  opacity: 0;
 }
 
-.modeButton:hover,
-.modeButton:focus-visible,
-.modeButton[aria-pressed="true"] {
-  color: var(--ink);
+.grain {
+  z-index: -1;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.16 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
 }
 
-.modeButton[aria-pressed="true"]::after {
-  background: var(--ink);
-}
-
-.modeButton:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: -2px;
-}
-
-.copy {
-  grid-area: 2 / 1;
+.title {
+  position: relative;
   align-self: center;
-  width: min(850px, 60%);
-  margin-left: var(--signature-gutter);
-  padding-block: 36px;
-  pointer-events: none;
-}
-
-.copy h2 {
-  max-width: 830px;
   margin: 0;
   font-family: var(--font-sans);
-  font-size: var(--type-display-size);
-  font-weight: var(--type-display-weight);
-  letter-spacing: -0.04em;
-  line-height: 0.88;
+  font-size: clamp(64px, min(15.2vw, 26svh), 232px);
+  font-weight: 500;
+  letter-spacing: -0.058em;
+  /* Just enough leading that descenders in "Mapping" clear the caps below. */
+  line-height: 0.98;
 }
 
-.copy h2 span {
+/* The two title lines keep one staggered shape at every width and aspect ratio: the second line is indented by a fixed share of the type size, so the pair only scales. */
+.titleStart,
+.titleEnd {
   display: block;
-  margin-top: 0.06em;
+  animation: title-rise 1100ms cubic-bezier(0.2, 0.75, 0, 1) both;
 }
 
-.scoreLeaders {
-  width: fit-content;
-  max-width: 100%;
-  margin-top: 46px;
-  border-top: 1px solid var(--line-strong);
+.titleStart {
+  margin-left: -0.045em;
 }
 
-.scoreLeadersLabel {
-  min-height: 32px;
-  margin: 0;
-  color: var(--muted);
-  font-size: var(--type-caption-size);
-  font-weight: var(--type-label-weight);
-  line-height: 32px;
+.titleEnd {
+  margin-left: 1.4em;
+  animation-delay: 140ms;
 }
 
-.scoreLeaderList {
-  display: grid;
-  grid-template-columns: max-content max-content max-content;
-  column-gap: 8px;
-  margin: 0;
+/* A star-chart legend states the sky's mapping in plain words. */
+.skyKey {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  margin: 0 0 18px;
+  padding: 0;
+  color: var(--scene-ink);
+  font-family: var(--font-sans);
+  font-size: var(--type-label-size);
+  /* Where the hero is tall the key crosses the bright rim, so it carries the deepest night halo in the hero. */
+  text-shadow:
+    0 0 4px rgb(2 4 15 / 1),
+    0 0 10px rgb(2 4 15 / 0.9),
+    0 0 22px rgb(2 4 15 / 0.6);
+  font-weight: var(--type-body-weight);
+  line-height: 1.4;
+  list-style: none;
+  animation: title-rise 1100ms 600ms cubic-bezier(0.2, 0.75, 0, 1) both;
 }
 
-.scoreLeader {
-  display: grid;
-  grid-column: 1 / -1;
-  grid-template-columns: subgrid;
-  min-height: 34px;
-  border-top: 1px solid var(--line);
+.skyKey[hidden] {
+  display: none;
+}
+
+.skyKey li {
+  display: inline-flex;
   align-items: center;
+  gap: 7px;
+}
+
+.skyKey svg {
+  width: 12px;
+  height: 12px;
+  stroke-width: 2.2;
+  color: var(--scene-muted);
+}
+
+.keyStar,
+.keyRays {
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.keyStar {
+  background: radial-gradient(circle, #fff 0 1.5px, rgb(170 190 255 / 0.55) 2.5px, transparent 6px);
+}
+
+/* Frontier stars carry tapered diffraction rays in the sky; the key draws the same star small. */
+.keyRays {
+  border-radius: 0;
+  background:
+    radial-gradient(circle, #fff 0 1.3px, rgb(170 190 255 / 0.5) 2.3px, transparent 4.5px),
+    linear-gradient(90deg, transparent, rgb(222 230 255 / 0.85), transparent) center / 100% 1px
+      no-repeat,
+    linear-gradient(transparent, rgb(222 230 255 / 0.85), transparent) center / 1px 100% no-repeat;
+}
+
+@keyframes title-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 0.22em, 0);
+  }
+}
+
+.register {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  margin: 0 0 clamp(22px, 4svh, 40px);
+  padding: 0;
+  list-style: none;
+  /* Where the hero is tall the register crosses the lit stipple, so its text carries a soft night halo. */
+  text-shadow:
+    0 0 6px rgb(2 4 15 / 0.95),
+    0 0 14px rgb(2 4 15 / 0.75);
+}
+
+.registerItem {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-width: 0;
+  padding: 15px 16px 0 0;
+  border-top: 1px solid var(--scene-line);
+  animation: register-draw 900ms cubic-bezier(0.2, 0.75, 0, 1) both;
+}
+
+.registerItem:nth-child(2) {
+  animation-delay: 60ms;
+}
+
+.registerItem:nth-child(3) {
+  animation-delay: 120ms;
+}
+
+.registerItem:nth-child(4) {
+  animation-delay: 180ms;
+}
+
+.registerItem:nth-child(5) {
+  animation-delay: 240ms;
+}
+
+.registerItem:nth-child(6) {
+  animation-delay: 300ms;
+}
+
+@keyframes register-draw {
+  from {
+    opacity: 0;
+    clip-path: inset(0 100% 0 0);
+  }
+}
+
+/* Provider colour stays attached to each model, as a short mark on the register rule. */
+.registerItem::before {
+  position: absolute;
+  top: -1px;
+  left: 0;
+  width: 28px;
+  height: 2px;
+  background: var(--provider);
+  content: "";
+  transition: width 220ms ease;
+}
+
+/* Hovering a role lights its star in the sky; the register answers by extending its provider mark. */
+.registerItem[data-focused="true"]::before {
+  width: calc(100% - 16px);
+}
+
+.registerRole {
+  color: var(--scene-faint);
+  font-family: var(--font-mono);
   font-size: var(--type-caption-size);
   font-weight: var(--type-label-weight);
+  letter-spacing: var(--type-label-tracking);
+  line-height: 1.2;
+  text-transform: uppercase;
 }
 
-.scoreLeader dt {
-  color: var(--muted);
-}
-
-.scoreLeaderModel {
+.registerModel {
   display: flex;
   min-width: 0;
-  margin: 0;
   align-items: center;
   gap: 8px;
 }
 
-.scoreLeaderIcon {
+.registerModel strong {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.012em;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.registerIcon {
   display: grid;
-  width: 14px;
-  height: 14px;
-  flex: 0 0 14px;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
   place-items: center;
 }
 
-.scoreLeaderIcon img {
+.registerIcon img {
   display: block;
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--provider-icon-radius, 3px);
   object-fit: contain;
 }
 
-.scoreLeaderModel strong {
-  overflow: hidden;
-  min-width: 0;
-  font-family: var(--font-sans);
-  font-size: 12px;
-  font-weight: var(--type-display-weight);
-  letter-spacing: 0;
-  text-overflow: ellipsis;
-  text-transform: none;
-  white-space: nowrap;
-}
-
-.scoreLeaderValue {
-  margin: 0 0 0 24px;
-  color: var(--ink);
+.registerMetric {
+  color: var(--scene-ink);
+  font-family: var(--font-mono);
+  font-size: var(--type-label-size);
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+  font-weight: var(--type-label-weight);
 }
 
-.scoreLeaderValueVisual,
-.scoreLeaderScores {
+.registerMetricVisual {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 5px;
+  gap: 4px 5px;
 }
 
-.scoreLeaderPrice {
-  margin-left: 8px;
-  color: var(--ink);
-  font-size: var(--type-micro-size);
-}
-
-.scoreLeaderMetricIcon {
+.registerMetricIcon {
   display: grid;
   width: 14px;
   height: 14px;
-  color: var(--muted);
+  color: var(--scene-muted);
   place-items: center;
 }
 
-.scoreLeaderMetricIcon svg {
+.registerMetricIcon:not(:first-child) {
+  margin-left: 6px;
+}
+
+.registerMetricIcon svg {
   width: 14px;
   height: 14px;
   stroke-width: 2.1;
 }
 
-.modelRail {
-  position: relative;
-  grid-area: 3 / 1;
-  display: grid;
-  min-height: 86px;
-  margin: 0;
-  padding: 0 var(--signature-gutter);
-  border-top: 1px solid var(--line-strong);
-  background: color-mix(in srgb, var(--paper) 90%, transparent);
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  list-style: none;
+.registerPrice {
+  margin-left: 8px;
+  color: var(--scene-muted);
 }
 
-.modelItem {
-  position: relative;
-  display: grid;
-  min-width: 0;
-  padding: 15px 14px;
-  grid-template-columns: 22px 20px minmax(0, 1fr);
-  align-items: center;
-  gap: 8px;
-}
-
-.modelItem + .modelItem {
-  border-left: 1px solid var(--line);
-}
-
-.modelItem::after {
-  position: absolute;
-  right: 14px;
-  bottom: -1px;
-  left: 14px;
-  height: 2px;
-  background: var(--provider);
-  content: "";
-}
-
-.rank {
-  color: var(--faint);
-  font-size: var(--type-caption-size);
-}
-
-.providerIcon {
-  display: grid;
-  width: 18px;
-  height: 18px;
-  place-items: center;
-}
-
-.providerIcon img {
-  display: block;
-  width: 18px;
-  height: 18px;
-  object-fit: contain;
-}
-
-.modelCopy {
-  min-width: 0;
-}
-
-.modelCopy strong,
-.modelCopy span {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.modelCopy strong {
-  margin-top: 3px;
-  font-size: var(--type-data-size);
-  font-weight: var(--type-display-weight);
-}
-
-.modelCopy .modelRole {
-  margin-top: 0;
-  color: var(--ink);
-  overflow: visible;
-  white-space: normal;
-  line-height: 1.4;
-}
-
-.modelCopy span {
-  margin-top: 4px;
-  color: var(--muted);
-  font-size: var(--type-micro-size);
-  font-weight: var(--type-label-weight);
-}
-
-@media (max-width: 980px) {
-  .modelRail {
-    display: flex;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scrollbar-width: none;
+@media (prefers-reduced-motion: reduce) {
+  .titleStart,
+  .titleEnd,
+  .skyKey,
+  .registerItem {
+    animation: none;
   }
 
-  .modelRail::-webkit-scrollbar {
-    display: none;
+  .field {
+    transition: none;
   }
+}
 
-  .modelItem {
-    flex: 0 0 clamp(128px, 33.33%, 190px);
+@media (max-width: 1100px) {
+  .register {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    row-gap: 18px;
   }
 }
 
 @media (max-width: 720px) {
-  .modeBar {
-    display: block;
+  .starLabel,
+  .starCard {
+    display: none;
+  }
+
+  .signature {
+    grid-template-rows: auto auto auto;
     min-height: 0;
   }
 
-  .modeLabel {
-    min-height: 30px;
+  .title {
+    align-self: start;
+    margin: 18vw 0 30vw;
+    font-size: clamp(44px, 16.5vw, 120px);
   }
 
-  .modeOptions {
+  .skyKey {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    border-top: 1px solid var(--line);
+    gap: 8px 14px;
   }
 
-  .modeButton {
-    min-height: 44px;
-    padding-inline: 7px;
-    font-size: var(--type-label-size);
+  .register {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 0;
+    margin-bottom: 28px;
   }
 
-  .modeButton::after {
-    right: 7px;
-    left: 7px;
+  .registerItem {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px 12px;
+    padding: 12px 0;
   }
 
-  .copy {
-    width: calc(100% - var(--signature-gutter) * 2);
-    padding-block: 40px 36px;
-  }
-
-  .copy h2 {
-    max-width: 520px;
-    font-size: clamp(48px, 14vw, 70px);
-  }
-
-  .scoreLeaders {
-    margin-top: 34px;
-  }
-
-  .scoreLeaderList {
-    column-gap: 8px;
-  }
-
-  .modelRail {
-    display: grid;
-    min-height: 0;
-    overflow: hidden;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .modelItem {
-    min-height: 56px;
-    padding: 8px 6px;
-    grid-template-columns: 15px minmax(0, 1fr);
-    gap: 5px 7px;
-  }
-
-  .modelItem + .modelItem {
-    border-left: 0;
-    border-top: 1px solid var(--line);
-  }
-
-  .modelItem:nth-child(2n) {
-    border-left: 1px solid var(--line);
-  }
-
-  .modelItem:nth-child(2) {
-    border-top: 0;
-  }
-
-  .modelItem:last-child:nth-child(odd) {
+  .registerRole {
     grid-column: 1 / -1;
   }
 
-  .providerIcon {
-    grid-column: 1;
-    grid-row: 2;
-  }
-
-  .modelCopy {
-    grid-column: 2;
-    grid-row: 1 / span 2;
-  }
-
-  .modelCopy strong {
-    font-size: 12px;
-  }
-
-  .modelCopy span {
-    font-size: var(--type-micro-size);
-  }
-
-  .modelCopy > span:last-child {
-    display: none;
-  }
-
-  .providerIcon,
-  .providerIcon img {
-    width: 15px;
-    height: 15px;
-  }
-}
-
-@media (max-width: 520px) {
-  .scoreLeaderList {
-    grid-template-columns: max-content minmax(0, 1fr);
-  }
-
-  .scoreLeader {
-    grid-template-rows: auto auto;
-    min-height: 42px;
-  }
-
-  .scoreLeader dt {
-    grid-row: 1 / span 2;
-  }
-
-  .scoreLeaderModel {
-    grid-column: 2;
-    grid-row: 1;
-    gap: 7px;
-  }
-
-  .scoreLeaderModel strong {
-    overflow: visible;
-    white-space: normal;
-  }
-
-  .scoreLeaderValue {
-    grid-column: 2;
-    grid-row: 2;
-    margin-left: 0;
-    color: var(--muted);
-    font-size: var(--type-micro-size);
-  }
-
-  .scoreLeaderValueVisual {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 3px;
-  }
-
-  .scoreLeaderPrice {
-    margin-left: 0;
-  }
-}
-
-/* Keep the breakout aligned with the usable viewport when scrollbars consume layout width. */
-@media (max-width: 1440px) {
-  .signature {
-    width: calc(100% + var(--page-gutter) * 2);
-    margin-inline: calc(var(--page-gutter) * -1);
-  }
-}
-
-/* Keep the heading and evidence together over the film at compact widths. */
-@media (max-width: 980px) {
-  .signature {
-    --signature-gutter: clamp(20px, 4vw, 32px);
-  }
-
-  .copy {
-    width: calc(100% - var(--signature-gutter) * 2);
-    padding-block: 40px 36px;
-  }
-
-  .scoreLeaders {
-    margin-top: 34px;
-  }
-
-  .signature[data-mode="glacier"] .videoMaterial {
-    width: 100%;
-    margin-left: 0;
-  }
-
-  .signature[data-mode="glacier"] .video,
-  .signature[data-mode="glacier"] .videoPoster {
-    object-fit: cover;
-    object-position: 62% center;
-  }
-
-  /* Keep the flower luminous behind compact layouts; text shadows provide local contrast over its highlights. */
-  .signature[data-mode="glacier"] .copy {
-    text-shadow:
-      0 1px 3px rgb(0 0 0 / 0.9),
-      0 0 8px rgb(0 0 0 / 0.6);
-  }
-
-  .signature[data-mode="glacier"] .videoMaterial::after {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(90deg, rgb(0 0 0 / 0.4) 0%, rgb(0 0 0 / 0.2) 40%, transparent 70%);
-    content: "";
-  }
-}
-
-/* Compact signatures keep one complete evidence list and quiet material behind its text. */
-@media (max-width: 720px) {
-  .modelRail {
-    display: none;
-  }
-
-  .scrim {
-    background: linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--paper) 94%, transparent),
-      color-mix(in srgb, var(--paper) 65%, transparent) 62%,
-      transparent
-    );
-  }
-
-  .signature[data-mode="glacier"] .video,
-  .signature[data-mode="glacier"] .videoPoster {
-    object-position: 72% center;
-  }
-
-  .signature[data-mode="glacier"] .videoMaterial::after {
-    background: linear-gradient(90deg, rgb(0 0 0 / 0.78), rgb(0 0 0 / 0.55) 65%, rgb(0 0 0 / 0.12));
+  .registerMetricVisual {
+    justify-content: flex-end;
   }
 }

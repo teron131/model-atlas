@@ -420,50 +420,50 @@ export function DashboardLeaderboard({
   return (
     <section
       id="leaderboard"
-      className="dashboard-deck dashboard-research-section"
+      className="dashboard-research-section leaderboard-section"
       aria-labelledby="leaderboard-title"
     >
       <header className="dashboard-section-head">
-        <div className="dashboard-section-top">
-          <h2 id="leaderboard-title" className="dashboard-section-marker">
-            <b aria-hidden="true">{researchRegionOrdinal("leaderboard")}</b>
-            <span>Models</span>
-          </h2>
-          <div className="dashboard-section-actions" data-capture-exclude>
-            <LeaderboardCapture rows={visibleRows} rowKind={rowKind} sortState={sortState} />
-            <CopyDashboardLink sectionId="leaderboard" />
-          </div>
+        <h2 id="leaderboard-title" className="dashboard-section-title">
+          <b aria-hidden="true">{researchRegionOrdinal("leaderboard")}</b>
+          <span>Models</span>
+        </h2>
+        <div className="dashboard-section-actions" data-capture-exclude>
+          <LeaderboardCapture rows={visibleRows} rowKind={rowKind} sortState={sortState} />
+          <CopyDashboardLink sectionId="leaderboard" />
         </div>
       </header>
-      <LeaderboardControls
-        preset={columnPreset}
-        columnQuery={columnQuery}
-        columnSearchResultLabel={columnSearchResultLabel}
-        isColumnSearch={hasSearchQuery(columnFilterQuery)}
-        display={{
-          itemKind: rowKind,
-          maximum: maximumLimit,
-          value: effectiveLimit,
-          onValueChange: setLimit,
-          showVariants,
-          onShowVariantsChange: handleVariantDisplay,
-        }}
-        onPresetChange={handleColumnPresetChange}
-        onColumnQueryChange={handleColumnQueryChange}
-      />
-      <ModelTable
-        sortState={sortState}
-        fitColumnContent={columnFilterQuery.trim().length > 0}
-        visibleColumnKeys={visibleColumnKeys}
-        visibleRows={visibleRows}
-        emptyMessage={emptyMessage}
-        isLoading={isLoading}
-        metricColumns={orderedMetricColumns}
-        onSort={handleSort}
-        onScoreChange={showScoreChange}
-        onTooltip={showTooltip}
-        onTooltipEnd={clearTooltip}
-      />
+      <div className="dashboard-deck research-plane">
+        <LeaderboardControls
+          preset={columnPreset}
+          columnQuery={columnQuery}
+          columnSearchResultLabel={columnSearchResultLabel}
+          isColumnSearch={hasSearchQuery(columnFilterQuery)}
+          display={{
+            itemKind: rowKind,
+            maximum: maximumLimit,
+            value: effectiveLimit,
+            onValueChange: setLimit,
+            showVariants,
+            onShowVariantsChange: handleVariantDisplay,
+          }}
+          onPresetChange={handleColumnPresetChange}
+          onColumnQueryChange={handleColumnQueryChange}
+        />
+        <ModelTable
+          sortState={sortState}
+          fitColumnContent={columnFilterQuery.trim().length > 0}
+          visibleColumnKeys={visibleColumnKeys}
+          visibleRows={visibleRows}
+          emptyMessage={emptyMessage}
+          isLoading={isLoading}
+          metricColumns={orderedMetricColumns}
+          onSort={handleSort}
+          onScoreChange={showScoreChange}
+          onTooltip={showTooltip}
+          onTooltipEnd={clearTooltip}
+        />
+      </div>
       {tooltip != null && activeTooltipContent != null && (
         <ColumnTooltip
           content={activeTooltipContent}

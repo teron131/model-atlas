@@ -35,6 +35,7 @@ export function LeaderboardControls({
             <button
               type="button"
               key={option.key}
+              className="selection-choice"
               aria-pressed={!isColumnSearch && preset === option.key}
               onClick={() => onPresetChange(option.key)}
             >

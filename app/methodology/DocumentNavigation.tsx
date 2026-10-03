@@ -1,10 +1,10 @@
 "use client";
 
-/** Responsive document switcher and section tree for docked and sheet layouts. */
+/** Inline document switcher and section tree, shown beside the text on wide screens and above it on phones. */
 
-import { ChevronDown, ChevronRight, X } from "lucide-react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { DocumentOutline } from "./DocumentOutline";
 import { documentHref, DOCUMENTS, type DocumentSlug, type TableOfContentsItem } from "./documents";
@@ -12,24 +12,16 @@ import { ScoreText } from "./ScoreText";
 
 import styles from "./methodology.module.css";
 
-type DocumentNavigationMode = "docked" | "sheet";
-
 /** Open the active document's group on entry while preserving manual group toggles on the current page. */
 export function DocumentNavigation({
   activeDocument,
   outline,
   titles,
-  mode,
-  onClose,
 }: {
   activeDocument: DocumentSlug;
   outline: TableOfContentsItem[];
   titles: Record<DocumentSlug, string>;
-  mode: DocumentNavigationMode;
-  onClose: () => void;
 }) {
-  const closeButtonRef = useRef<HTMLButtonElement>(null);
-  const isSheet = mode === "sheet";
   const activeGroup =
     DOCUMENTS.find((item) => item.slug === activeDocument)!.parent ?? activeDocument;
   const [expanded, setExpanded] = useState<DocumentSlug[]>([activeGroup]);
@@ -38,39 +30,12 @@ export function DocumentNavigation({
     setExpanded((current) => (current.includes(activeGroup) ? current : [...current, activeGroup]));
   }, [activeDocument, activeGroup]);
 
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    };
-    if (isSheet) {
-      document.body.style.overflow = "hidden";
-      closeButtonRef.current?.focus();
-    }
-    window.addEventListener("keydown", closeOnEscape);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", closeOnEscape);
-    };
-  }, [isSheet, onClose]);
-
-  const navigation = (
-    <>
-      <div className={styles.documentNavigationHeader}>
-        <p>Navigate</p>
-        <button
-          ref={closeButtonRef}
-          className={styles.navigationIconButton}
-          type="button"
-          aria-label="Close document navigation"
-          onClick={onClose}
-        >
-          <X aria-hidden="true" />
-        </button>
-      </div>
-
+  return (
+    <aside
+      className={styles.documentNavigation}
+      id="document-navigation"
+      aria-label="Document navigation"
+    >
       <nav className={styles.documentSwitcher} aria-label="Documents">
         <ul>
           {DOCUMENTS.filter((item) => item.parent === null).map((item) => (
@@ -80,7 +45,6 @@ export function DocumentNavigation({
                   href={documentHref(item.slug)}
                   prefetch={false}
                   aria-current={item.slug === activeDocument ? "page" : undefined}
-                  onClick={isSheet ? onClose : undefined}
                 >
                   <span>
                     <ScoreText>{titles[item.slug]}</ScoreText>
@@ -118,7 +82,6 @@ export function DocumentNavigation({
                         href={documentHref(child.slug)}
                         prefetch={false}
                         aria-current={child.slug === activeDocument ? "page" : undefined}
-                        onClick={isSheet ? onClose : undefined}
                       >
                         <span>
                           <ScoreText>{titles[child.slug]}</ScoreText>
@@ -134,27 +97,7 @@ export function DocumentNavigation({
         </ul>
       </nav>
 
-      <DocumentOutline items={outline} onNavigate={isSheet ? onClose : undefined} />
-    </>
-  );
-
-  return (
-    <div className={styles.documentNavigationLayer} data-mode={mode}>
-      <button
-        className={styles.documentNavigationBackdrop}
-        type="button"
-        aria-label="Close document navigation"
-        onClick={onClose}
-      />
-      <aside
-        className={styles.documentNavigationPanel}
-        id="document-navigation"
-        aria-label="Document navigation"
-        aria-modal={isSheet ? true : undefined}
-        role={isSheet ? "dialog" : undefined}
-      >
-        {navigation}
-      </aside>
-    </div>
+      <DocumentOutline items={outline} />
+    </aside>
   );
 }

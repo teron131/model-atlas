@@ -1,3 +1,4 @@
+/* Shared typography, controls, and research surfaces keep model evidence legible above the frontier sky. */
 :root {
   --font-sans: "Avenir Next", "Segoe UI", Helvetica, Arial, sans-serif;
   --font-mono: "SFMono-Regular", "SF Mono", Menlo, Consolas, monospace;
@@ -7,6 +8,7 @@
   --type-body-size: 16px;
   --type-note-size: 15px;
   --type-data-size: 13px;
+  --type-readout-size: 24px;
   --type-label-size: 12px;
   --type-caption-size: 11px;
   --type-micro-size: 10px;
@@ -16,12 +18,23 @@
   --type-label-weight: 650;
   --type-label-tracking: 0.035em;
   color-scheme: dark;
+  /* Charcoal research surfaces stay distinct from the navy sky so content boundaries read at a glance. */
   --paper: #0b1016;
   --paper-rgb: 11 16 22;
   --ink: #f2f3ed;
   --ink-rgb: 242 243 237;
   --muted: #bbc1b7;
   --faint: #969f93;
+  /* The horizon glow from the sky: environment chrome only, never a data colour. */
+  --horizon-cobalt: #4a72ff;
+  --horizon-violet: #8f6bff;
+  --horizon-rose: #ff92bd;
+  --horizon-gradient: linear-gradient(
+    90deg,
+    var(--horizon-cobalt),
+    var(--horizon-violet) 58%,
+    var(--horizon-rose)
+  );
 
   /* Hairline dividers and stronger region frames share one rule vocabulary. */
   --line: rgb(var(--ink-rgb) / 0.085);
@@ -39,7 +52,7 @@
   --loading-sheen: rgb(var(--ink-rgb) / 0.11);
   --loading-fill: rgb(var(--ink-rgb) / 0.065);
   --tooltip-surface: rgb(var(--paper-rgb) / 0.97);
-  --tooltip-shadow: 0 18px 48px rgb(0 0 0 / 0.46);
+  --tooltip-shadow: 0 18px 48px rgb(1 3 16 / 0.62);
   --score-track: rgb(var(--ink-rgb) / 0.12);
   --table-edge-fade: rgb(var(--paper-rgb) / 0);
   /* Shared horizontal inset for every dashboard region. */
@@ -52,18 +65,18 @@
   --mono-chip: 12px;
   --mono-data: var(--type-data-size);
   --sans-note: var(--type-note-size);
-  --model-name: 17px;
-  --model-id: 12px;
+  --model-name: 15px;
+  --model-id: 11px;
   --model-column-width: max-content;
 }
 
 /* Alpha-derived tokens inherit the light ink and paper channels unless overridden here. */
 html[data-model-atlas-theme="light"] {
   color-scheme: light;
-  --paper: #efeee9;
-  --paper-rgb: 239 238 233;
-  --ink: #151713;
-  --ink-rgb: 21 23 19;
+  --paper: #f2f4f2;
+  --paper-rgb: 242 244 242;
+  --ink: #202724;
+  --ink-rgb: 32 39 36;
   --muted: #5f665d;
   --faint: #656d63;
   --line: rgb(var(--ink-rgb) / 0.095);
@@ -81,6 +94,72 @@ html[data-model-atlas-theme="light"] {
 
 * {
   box-sizing: border-box;
+}
+
+/* Peer choices stay on one row and scroll sideways only when they overflow, so a strip that fits never clips its selection star's bloom; edge fades indicate more options without masking a reached end. */
+.horizontal-choice-strip {
+  max-width: 100%;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.horizontal-choice-strip:is([data-overflow-start="true"], [data-overflow-end="true"]) {
+  overflow-x: auto;
+}
+
+.horizontal-choice-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.horizontal-choice-strip[data-overflow-end="true"] {
+  mask-image: linear-gradient(90deg, #000 calc(100% - 14px), transparent);
+}
+
+.horizontal-choice-strip[data-overflow-start="true"] {
+  mask-image: linear-gradient(90deg, transparent, #000 14px);
+}
+
+.horizontal-choice-strip[data-overflow-start="true"][data-overflow-end="true"] {
+  mask-image: linear-gradient(90deg, transparent, #000 14px, #000 calc(100% - 14px), transparent);
+}
+
+/* Every chosen option is lit by the selection star beneath its label: a dimmer star previews on hover, and the chosen star blooms. Owners set --selection-star-bottom to seat the star in their control. */
+.selection-choice {
+  position: relative;
+}
+
+.selection-choice::before {
+  position: absolute;
+  bottom: var(--selection-star-bottom, 1px);
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--selection-star);
+  box-shadow: var(--selection-glow);
+  content: "";
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%) scale(0.5);
+  transition:
+    opacity 0.16s ease,
+    transform 0.16s ease;
+}
+
+.selection-choice:is([aria-pressed="true"], [aria-current="true"], [aria-current="page"])::before {
+  box-shadow: var(--selection-glow), var(--selection-bloom);
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
+}
+
+.selection-choice:not(
+  [aria-pressed="true"],
+  [aria-current="true"],
+  [aria-current="page"],
+  :disabled
+):hover::before {
+  opacity: 0.4;
+  transform: translateX(-50%) scale(0.75);
 }
 
 html {
@@ -132,13 +211,94 @@ body {
   border: 3px solid var(--paper);
 }
 
-/* Every route shares one outer frame; the signature inherits it for full-bleed content alignment. */
+/* Dashboard regions share the same outer content frame. */
 main {
   --page-frame-width: 1440px;
   width: min(var(--page-frame-width), 100%);
   min-height: 100dvh;
   margin: 0 auto;
   padding: 0 var(--page-gutter) 64px;
+}
+
+/* The dashboard and the documentation both sit under the night sky; only their research planes carry the surface palette. */
+html:has(.dashboard-main),
+html:has(.dashboard-main) body,
+html:has(.document-main),
+html:has(.document-main) body {
+  background: #02040f;
+}
+
+.dashboard-main,
+.document-main {
+  --research-inset: clamp(14px, 2vw, 28px);
+  --research-radius: 0;
+  --research-gap: clamp(88px, 13svh, 148px);
+  --research-edge: rgb(222 230 255 / 0.16);
+  /* Planes float in the sky: a deep drop beneath and a faint violet bloom along the lit top edge. */
+  --research-shadow:
+    0 -14px 44px -26px rgb(143 107 255 / 0.4), 0 48px 96px -40px rgb(0 2 14 / 0.92),
+    0 18px 44px -20px rgb(0 2 14 / 0.7);
+  /* Type and controls set directly on the sky use the scene's ink, never the surface palette. */
+  --scene-ink: #eef2ff;
+  --scene-muted: rgb(222 230 255 / 0.74);
+  --scene-faint: rgb(222 230 255 / 0.52);
+  --scene-line: rgb(222 230 255 / 0.2);
+  /* Selections and positions are lit like the leaderboard's score stars: a pale core in horizon-violet light. */
+  --selection-star: color-mix(in srgb, var(--horizon-violet) 40%, #fff);
+  --selection-glow: 0 0 6px 1px rgb(143 107 255 / 0.75);
+  --selection-bloom: 0 0 20px 9px rgb(143 107 255 / 0.22);
+}
+
+/* The dashboard is the stacking root for the field: its fixed layers sit below every research plane. */
+.dashboard-main {
+  --page-frame-width: calc(1240px + 2 * var(--page-gutter));
+  position: relative;
+  isolation: isolate;
+  padding-bottom: var(--research-gap);
+}
+
+html[data-model-atlas-theme="light"] .dashboard-main,
+html[data-model-atlas-theme="light"] .document-main {
+  --selection-star: color-mix(in srgb, var(--horizon-violet) 78%, var(--ink));
+  --selection-glow: 0 0 6px 1px color-mix(in srgb, var(--selection-star) 70%, transparent);
+  --selection-bloom: 0 0 20px 9px rgb(143 107 255 / 0.15);
+  --research-edge: rgb(255 255 255 / 0.62);
+  --research-shadow: 0 48px 96px -40px rgb(0 2 14 / 0.8), 0 18px 44px -20px rgb(0 2 14 / 0.5);
+}
+
+/* Research planes are the opaque surfaces floating in the sky: the leaderboard deck, each analysis panel, and the documentation. */
+.research-plane {
+  position: relative;
+  border: 1px solid var(--research-edge);
+  border-radius: var(--research-radius);
+  background: var(--paper);
+  box-shadow: var(--research-shadow);
+}
+
+/* Each research plane catches the horizon light along its top edge. */
+.research-plane::before {
+  position: absolute;
+  top: 0;
+  right: 18%;
+  left: 0;
+  height: 1px;
+  background: var(--horizon-gradient);
+  box-shadow: 0 0 14px rgb(143 107 255 / 0.55);
+  content: "";
+  -webkit-mask-image: linear-gradient(90deg, #000 55%, transparent);
+  mask-image: linear-gradient(90deg, #000 55%, transparent);
+  pointer-events: none;
+}
+
+/* The header rests on the sky, so it carries scene ink instead of the page palette. */
+.dashboard-main > .dashboard-header,
+.document-main > .dashboard-header {
+  --ink: var(--scene-ink);
+  --muted: var(--scene-muted);
+  --focus-ring: rgb(238 242 255 / 0.6);
+  padding-inline: var(--research-inset);
+  border-bottom-color: rgb(222 230 255 / 0.16);
+  color: var(--ink);
 }
 
 .dashboard-header {
@@ -292,85 +452,70 @@ html[data-model-atlas-theme="light"] .theme-icon-dark {
   display: block;
 }
 
-/* The leaderboard uses the same transition rule as the analytical panels. */
+/* The leaderboard's research plane. */
 .dashboard-deck {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   min-width: 0;
-  margin: 22px 0 0;
+  padding: 4px var(--research-inset) 20px;
   overflow: visible;
-  border-top: 1px solid var(--line-strong);
-  background: transparent;
 }
 
 .dashboard-research-section {
   scroll-margin-top: calc(var(--dashboard-rail-height, 48px) + 8px);
 }
 
+.leaderboard-section {
+  margin-top: clamp(64px, 10svh, 112px);
+}
+
+/* Each research region opens on the sky the way the hero does: its name at display size, the rail's ordinal, and its actions. */
 .dashboard-section-head {
-  position: relative;
   display: grid;
-  gap: 14px;
-  padding: 20px 0 16px;
-  border-bottom: 1px solid var(--line);
-}
-
-.dashboard-section-head::after {
-  position: absolute;
-  top: -1px;
-  left: 0;
-  width: 88px;
-  height: 3px;
-  background: var(--ink);
-  content: "";
-}
-
-.dashboard-section-top {
-  grid-column: 1 / -1;
-  grid-row: 1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
   gap: 16px;
+  margin: 0 0 clamp(18px, 2.4vw, 30px);
+  padding: 0 var(--research-inset);
+}
+
+.dashboard-section-title {
+  display: flex;
+  align-items: flex-start;
+  gap: clamp(10px, 1.3vw, 20px);
   min-width: 0;
+  margin: 0;
+  color: var(--scene-ink);
+  font-family: var(--font-sans);
+  font-size: clamp(54px, 8.8vw, 136px);
+  font-weight: 500;
+  letter-spacing: -0.054em;
+  line-height: 0.86;
+}
+
+/* The ordinal hangs at the name's cap height, so the rail and the page agree on the sequence. */
+.dashboard-section-title b {
+  padding-top: 0.55em;
+  color: var(--scene-faint);
+  font-family: var(--font-mono);
+  font-size: max(11px, 0.1em);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--type-label-weight);
+  letter-spacing: var(--type-label-tracking);
+  line-height: 1;
 }
 
 .dashboard-section-actions {
+  --ink: var(--scene-ink);
+  --muted: var(--scene-muted);
+  --hover: rgb(222 230 255 / 0.08);
+  --focus-ring: rgb(238 242 255 / 0.6);
   display: flex;
   flex: 0 0 auto;
   align-items: center;
   gap: 4px;
 }
 
-.dashboard-section-marker {
-  display: grid;
-  grid-template-columns: 2.5ch minmax(0, 1fr);
-  align-items: center;
-  gap: 10px;
-  margin: 0;
-  color: var(--ink);
-  font-family: var(--font-mono);
-  font-size: 16px;
-  font-weight: var(--type-label-weight);
-  letter-spacing: var(--type-label-tracking);
-  line-height: 1;
-  text-transform: uppercase;
-}
-
-.dashboard-section-marker b {
-  color: var(--ink);
-  font: inherit;
-  font-variant-numeric: tabular-nums;
-}
-
-.dashboard-section-copy {
-  max-width: 620px;
-  margin: 10px 0 0;
-  color: var(--muted);
-  font-size: var(--type-note-size);
-  font-weight: var(--type-body-weight);
-  line-height: 1.55;
-}
 .dashboard-subsection-title {
   margin: 0 0 5px;
   color: var(--ink);
@@ -808,7 +953,9 @@ th[data-sort-state="descending"] .sort-indicator::after {
   overscroll-behavior: contain;
   padding: 12px 13px 13px;
   border: 1px solid rgb(var(--ink-rgb) / 0.2);
-  background: var(--paper);
+  background:
+    var(--horizon-gradient) top / 100% 1px no-repeat,
+    var(--paper);
   color: var(--ink);
   text-align: left;
   pointer-events: none;
@@ -1056,8 +1203,14 @@ th[data-sort-state="descending"] .sort-indicator::after {
 .rank {
   width: 48px;
   color: var(--faint);
-  font-weight: 600;
-  letter-spacing: 0.02em;
+}
+
+/* Ranks are set in the display face at the model name's size, bright for the leading three. */
+td.rank {
+  font-family: var(--font-sans);
+  font-size: var(--model-name);
+  font-weight: 500;
+  letter-spacing: -0.02em;
 }
 
 tbody tr:nth-child(-n + 3) .rank {
@@ -1120,12 +1273,13 @@ tbody tr:nth-child(-n + 3) .rank {
   letter-spacing: 0;
 }
 
+/* Each score is a star on its 0–100 track: the trail brightens toward it in the model's provider colour. */
 .score-meter {
-  --score-marker-size: 7px;
-  --score-marker-inset: 3.5px;
+  --score-star-size: 5px;
+  --score-star-inset: 2.5px;
   position: relative;
   display: block;
-  width: 42px;
+  width: 52px;
   height: 9px;
   margin: 4px 0 0 auto;
 }
@@ -1137,11 +1291,10 @@ tbody tr:nth-child(-n + 3) .rank {
   right: 0;
   left: 0;
   height: 1px;
-  background: linear-gradient(
-    to right,
-    var(--score-color, var(--ink)) 0 calc(var(--score, 0) * 1%),
-    var(--score-track) calc(var(--score, 0) * 1%) 100%
-  );
+  background:
+    linear-gradient(90deg, transparent, var(--score-color, var(--ink))) 0 0 /
+      calc(var(--score, 0) * 1%) 100% no-repeat,
+    var(--score-track);
   transform: translateY(-50%);
 }
 
@@ -1150,14 +1303,48 @@ tbody tr:nth-child(-n + 3) .rank {
   position: absolute;
   top: 50%;
   left: clamp(
-    var(--score-marker-inset),
+    var(--score-star-inset),
     calc(var(--score, 0) * 1%),
-    calc(100% - var(--score-marker-inset))
+    calc(100% - var(--score-star-inset))
   );
-  width: var(--score-marker-size);
-  height: var(--score-marker-size);
-  background: var(--score-color, var(--ink));
-  transform: translate(-50%, -50%) rotate(45deg);
+  width: var(--score-star-size);
+  height: var(--score-star-size);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--score-color, var(--ink)) 45%, #fff);
+  box-shadow: 0 0 7px 1px color-mix(in srgb, var(--score-color, var(--ink)) 70%, transparent);
+  transform: translate(-50%, -50%);
+}
+
+/* On paper, deeper provider-coloured cores retain the same bloom as the night sky. */
+html[data-model-atlas-theme="light"] .score-meter::after {
+  background: color-mix(in srgb, var(--score-color, var(--ink)) 85%, var(--ink));
+}
+
+/* On wide screens the four scores read as one compact dot-plot band: each number sits beside a short 0–100 track with the model's star at its score, so reading down a column shows the gaps and clusters between models. */
+@media (min-width: 761px) {
+  .score-cell {
+    min-width: 104px;
+    white-space: nowrap;
+  }
+
+  .score-cell .score-value {
+    display: inline-block;
+    width: 4.2ch;
+    text-align: right;
+    vertical-align: middle;
+  }
+
+  /* A half-way tick on every track lines up down the column as a faint guide at 50. */
+  .score-cell .score-meter {
+    --score-star-size: 6px;
+    --score-star-inset: 3px;
+    display: inline-block;
+    width: 48px;
+    height: 14px;
+    margin: 0 0 0 8px;
+    background: linear-gradient(var(--score-track), var(--score-track)) 50% 50% / 1px 7px no-repeat;
+    vertical-align: middle;
+  }
 }
 
 .benchmark-cell {
@@ -1334,14 +1521,14 @@ td.modality-cell {
     padding-left: 0;
   }
 
-  .dashboard-deck {
-    margin-top: 32px;
-    margin-bottom: 0;
+  .leaderboard-section {
+    margin-top: 48px;
   }
 
   .dashboard-section-head {
-    gap: 11px;
-    padding: 16px 0 14px;
+    gap: 8px;
+    margin-bottom: 14px;
+    padding: 0;
   }
 
   .table-shell::after {
@@ -1358,6 +1545,11 @@ td.modality-cell {
 }
 
 @media (max-width: 760px) {
+  /* Keep a complete score beside model identity even on a narrow phone. */
+  .table-shell {
+    --model-column-width: clamp(144px, 42vw, 210px);
+  }
+
   .model-column {
     width: var(--model-column-width);
     min-width: var(--model-column-width);
@@ -1373,9 +1565,21 @@ td.modality-cell {
     width: 38px;
   }
 
-  .model-cell {
-    grid-template-columns: 23px max-content;
+  .table-shell .model-cell {
+    grid-template-columns: 23px minmax(0, 1fr);
     gap: 5px;
+    width: calc(var(--model-column-width) - 14px);
+  }
+
+  .table-shell .model-copy {
+    min-width: 0;
+    width: auto;
+  }
+
+  .table-shell .model,
+  .table-shell .id {
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .provider-logo {
@@ -1388,7 +1592,7 @@ td.modality-cell {
   }
 
   .score-meter {
-    width: 34px;
+    width: 40px;
   }
 
   .data-cell {

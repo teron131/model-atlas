@@ -556,6 +556,7 @@ function FilterChoices<T extends string | number | boolean>({
           <button
             key={String(value)}
             type="button"
+            className="selection-choice"
             aria-pressed={selected === value}
             onClick={() => onSelect(value)}
           >

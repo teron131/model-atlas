@@ -1,21 +1,25 @@
 "use client";
 
-/** Responsive documentation shell with shared navigation and reading controls. */
+/** Documentation shell: the document title on the sky, then one research plane holding the document strip, navigation, and text. */
 
 import { ArrowUp, ListTree } from "lucide-react";
 import Link from "next/link";
 import { type ReactNode, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { ModelAtlasHeader } from "../shared/ModelAtlasHeader";
+import { useHorizontalChoice } from "../shared/use-horizontal-choice";
 import { DocumentNavigation } from "./DocumentNavigation";
 import { documentHref, DOCUMENTS, type DocumentSlug, type TableOfContentsItem } from "./documents";
 import { ScoreText } from "./ScoreText";
 
 import styles from "./methodology.module.css";
 
-const DOCKED_NAVIGATION_QUERY = "(min-width: 1100px)";
 const NAVIGATION_STORAGE_KEY = "model-atlas-document-navigation-open";
 
+/**
+ * The documentation has two modes, navigation shown or hidden, switched by the Navigation button at every width.
+ * Shown navigation sits beside the text on wide screens and above it on phones; it never overlays the page.
+ */
 export function DocumentShell({
   children,
   activeDocument,
@@ -28,27 +32,23 @@ export function DocumentShell({
   titles: Record<DocumentSlug, string>;
 }) {
   const currentDocument = DOCUMENTS.find((item) => item.slug === activeDocument)!;
+  const stripRef = useHorizontalChoice<HTMLUListElement>(activeDocument);
+  const hydrated = useRef(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(false);
-  const navigationHydrated = useRef(false);
   const [navigationOpen, setNavigationOpen] = useState(false);
-  const navigationDocked = navigationOpen && isDesktop;
-  const toggleNavigation = useCallback(() => {
-    setNavigationOpen((open) => !open);
-  }, []);
-  const closeNavigation = useCallback(() => setNavigationOpen(false), []);
+  const toggleNavigation = useCallback(() => setNavigationOpen((open) => !open), []);
 
-  // Remember the desktop sidebar preference; narrow screens start with the drawer closed.
+  // Navigation starts shown unless the reader hid it; the choice is remembered across documents.
   useLayoutEffect(() => {
-    if (!navigationHydrated.current) {
-      navigationHydrated.current = true;
+    if (!hydrated.current) {
+      hydrated.current = true;
       try {
-        const saved = window.localStorage.getItem(NAVIGATION_STORAGE_KEY);
-        setNavigationOpen(window.matchMedia(DOCKED_NAVIGATION_QUERY).matches && saved !== "false");
-      } catch {}
+        setNavigationOpen(window.localStorage.getItem(NAVIGATION_STORAGE_KEY) !== "false");
+      } catch {
+        setNavigationOpen(true);
+      }
       return;
     }
-    if (!window.matchMedia(DOCKED_NAVIGATION_QUERY).matches) return;
     try {
       window.localStorage.setItem(NAVIGATION_STORAGE_KEY, String(navigationOpen));
     } catch {}
@@ -61,44 +61,42 @@ export function DocumentShell({
     return () => window.removeEventListener("scroll", updateVisibility);
   }, []);
 
-  useEffect(() => {
-    const media = window.matchMedia(DOCKED_NAVIGATION_QUERY);
-    const updateLayout = () => setIsDesktop(media.matches);
-    updateLayout();
-    media.addEventListener("change", updateLayout);
-    return () => media.removeEventListener("change", updateLayout);
-  }, []);
-
   const scrollToPageTop = () => {
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
   };
 
   return (
-    <main className={styles.page}>
+    <main className={`document-main ${styles.page}`}>
       <ModelAtlasHeader page="methodology" />
+      {/* The document opens on the sky like a dashboard region; its navigation and text share one plane below. */}
+      <h1 className={`dashboard-section-title ${styles.documentTitle}`}>
+        <span>
+          <ScoreText>{titles[activeDocument]}</ScoreText>
+        </span>
+      </h1>
       <div
-        className={`${styles.documentLayout} ${
-          navigationDocked ? styles.documentLayoutWithNavigation : ""
+        className={`research-plane ${styles.documentLayout} ${
+          navigationOpen ? styles.documentLayoutWithNavigation : ""
         }`}
       >
         <nav className={styles.documentNav} aria-label="Documentation">
           <button
             type="button"
             className={`${styles.navigationIconButton} ${styles.contentsToggle}`}
-            aria-label={navigationOpen ? "Hide document navigation" : "Show document navigation"}
-            title={navigationOpen ? "Hide document navigation" : "Show document navigation"}
+            aria-label={navigationOpen ? "Hide navigation" : "Show navigation"}
+            title={navigationOpen ? "Hide navigation" : "Show navigation"}
             aria-controls="document-navigation"
             aria-expanded={navigationOpen}
             onClick={toggleNavigation}
           >
             <ListTree aria-hidden="true" />
-            <span>Documentation</span>
           </button>
-          <ul>
+          <ul ref={stripRef} className="horizontal-choice-strip">
             {DOCUMENTS.filter((item) => item.parent === null).map((item) => (
               <li key={item.slug}>
                 <Link
+                  className="selection-choice"
                   href={documentHref(item.slug)}
                   prefetch={false}
                   aria-current={
@@ -115,21 +113,11 @@ export function DocumentShell({
               </li>
             ))}
           </ul>
-
-          <span className={styles.currentDocument}>
-            <ScoreText>{titles[activeDocument]}</ScoreText>
-          </span>
         </nav>
 
         {children}
         {navigationOpen ? (
-          <DocumentNavigation
-            activeDocument={activeDocument}
-            outline={outline}
-            titles={titles}
-            mode={isDesktop ? "docked" : "sheet"}
-            onClose={closeNavigation}
-          />
+          <DocumentNavigation activeDocument={activeDocument} outline={outline} titles={titles} />
         ) : null}
       </div>
       <button
