@@ -23,22 +23,17 @@ import {
   researchRegionOrdinal,
 } from "../research-index";
 import {
-  type CostFilter,
-  filterByIntelligenceRank,
-  filterByModelControls,
-  filterByModelQuery,
-  filterByReleaseRecency,
+  filterByGlobalModelFilters,
+  type GlobalModelFilters,
   isGraphEligible,
-  type ModelRankFilter,
   type ProviderOption,
-  type RecencyFilter,
 } from "../shared/model-display";
 import { ModelSignature } from "../signature/ModelSignature";
 import { dashboardUrlSection } from "../url-state";
 import { HoverCard } from "./ChartComponents";
 import { finite } from "./format";
 import type { HoverState } from "./hover-state";
-import { ParetoAnalysisPanel } from "./ParetoAnalysisPanel";
+import { ParetoPanel } from "./pareto/Panel";
 import { TimelinePanel } from "./TimelinePanel";
 
 import styles from "./graphs.module.css";
@@ -46,30 +41,20 @@ import styles from "./graphs.module.css";
 /** Coordinate deferred dashboard filtering, shared hover state, and research-region panels while keeping controls responsive during payload changes. */
 export function DashboardGraphs({
   payload,
-  modelVariants,
   referenceModels,
   isLoading,
   afterLead,
-  selectedProviders,
+  filters,
   providerChoices,
-  maxCost,
-  modelRankFilter,
-  recencyFilter,
-  globalModelFilterQuery,
   showReasoningVariants,
   onShowReasoningVariantsChange,
 }: {
   payload: ModelAtlasPayload | null;
-  modelVariants: ModelAtlasModel[];
   referenceModels: ModelAtlasModel[];
   isLoading: boolean;
   afterLead?: React.ReactNode;
-  selectedProviders: string[];
+  filters: GlobalModelFilters;
   providerChoices: ProviderOption[];
-  maxCost: CostFilter;
-  modelRankFilter: ModelRankFilter;
-  recencyFilter: RecencyFilter;
-  globalModelFilterQuery: string;
   showReasoningVariants: boolean;
   onShowReasoningVariantsChange: (show: boolean, includeTable?: boolean) => void;
 }) {
@@ -77,12 +62,8 @@ export function DashboardGraphs({
   const railRef = useRef<HTMLElement>(null);
   const journeyRef = useRef<HTMLElement>(null);
   const deferredPayload = useDeferredValue(payload);
-  const deferredModelVariants = useDeferredValue(modelVariants);
-  const deferredSelectedProviders = useDeferredValue(selectedProviders);
-  const deferredMaxCost = useDeferredValue(maxCost);
-  const deferredModelRankFilter = useDeferredValue(modelRankFilter);
-  const deferredRecencyFilter = useDeferredValue(recencyFilter);
-  const deferredGlobalModelFilterQuery = useDeferredValue(globalModelFilterQuery);
+  const deferredReferenceModels = useDeferredValue(referenceModels);
+  const deferredFilters = useDeferredValue(filters);
   const deferredShowReasoningVariants = useDeferredValue(showReasoningVariants);
 
   useLayoutEffect(() => {
@@ -103,91 +84,56 @@ export function DashboardGraphs({
     };
   }, [deferredPayload != null]);
 
-  const allModels = useMemo(() => {
-    return (deferredPayload?.models ?? [])
+  const filterScope = useMemo(
+    () => ({
+      observedAtEpochSeconds: deferredPayload?.fetched_at_epoch_seconds ?? null,
+      rankingModels: deferredReferenceModels,
+    }),
+    [deferredPayload?.fetched_at_epoch_seconds, deferredReferenceModels],
+  );
+  // Dashboard already projects eligible variants into this payload before either graph filters it.
+  const filteredModels = useMemo(
+    () =>
+      filterByGlobalModelFilters(
+        deferredPayload?.models ?? [],
+        (model) => model,
+        deferredFilters,
+        filterScope,
+      ),
+    [deferredPayload, deferredFilters, filterScope],
+  );
+  // Pareto picks ignore the recency and rank filters, which only limit which models are shown.
+  const paretoCandidateModels = useMemo(
+    () =>
+      filterByGlobalModelFilters(
+        deferredPayload?.models ?? [],
+        (model) => model,
+        { ...deferredFilters, days: "all", rank: "all" },
+        filterScope,
+      ),
+    [deferredPayload, deferredFilters, filterScope],
+  );
+  const signatureModels = useMemo(() => {
+    const ranked = filteredModels
       .filter((model) => model.name != null && finite(model.scores?.intelligence_score))
       .sort(
         (left, right) =>
           Number(right.scores.intelligence_score) - Number(left.scores.intelligence_score),
       );
-  }, [deferredPayload]);
-
-  const queryFilteredModels = useMemo(
-    () => filterByModelQuery(allModels, (model) => model, deferredGlobalModelFilterQuery),
-    [allModels, deferredGlobalModelFilterQuery],
-  );
-  const filteredModels = useMemo(() => {
-    return filterByModelControls(queryFilteredModels, (model) => model, {
-      providers: deferredSelectedProviders,
-      maxCost: deferredMaxCost,
-    });
-  }, [deferredMaxCost, deferredSelectedProviders, queryFilteredModels]);
-
-  const recencyFilteredModels = useMemo(() => {
-    return filterByReleaseRecency(
-      filteredModels,
-      (model) => model,
-      deferredRecencyFilter,
-      deferredPayload?.fetched_at_epoch_seconds ?? null,
-    );
-  }, [deferredPayload?.fetched_at_epoch_seconds, deferredRecencyFilter, filteredModels]);
-  const models = useMemo(
-    () =>
-      filterByIntelligenceRank(
-        recencyFilteredModels,
-        (model) => model,
-        deferredModelRankFilter,
-        referenceModels,
-      ),
-    [deferredModelRankFilter, recencyFilteredModels, referenceModels],
-  );
-  const performanceModels = useMemo(() => {
-    // Dashboard already projects eligible variants into this payload before either graph filters it.
-    const controlled = filterByModelControls(deferredPayload?.models ?? [], (model) => model, {
-      providers: deferredSelectedProviders,
-      maxCost: deferredMaxCost,
-    });
-    const queried = filterByModelQuery(
-      controlled,
-      (model) => model,
-      deferredGlobalModelFilterQuery,
-    );
-    const recent = filterByReleaseRecency(
-      queried,
-      (model) => model,
-      deferredRecencyFilter,
-      deferredPayload?.fetched_at_epoch_seconds ?? null,
-    );
-    return filterByIntelligenceRank(
-      recent,
-      (model) => model,
-      deferredModelRankFilter,
-      referenceModels,
-    );
-  }, [
-    deferredPayload,
-    deferredSelectedProviders,
-    deferredMaxCost,
-    deferredGlobalModelFilterQuery,
-    deferredRecencyFilter,
-    deferredModelRankFilter,
-    referenceModels,
-  ]);
-  const signatureModels = useMemo(() => {
     if (deferredShowReasoningVariants) {
-      return models;
+      return ranked;
     }
-    const visibleModelKeys = new Set(models.map(canonicalModelKey));
-    return deferredModelVariants.filter(
+    const visibleModelKeys = new Set(ranked.map(canonicalModelKey));
+    return deferredReferenceModels.filter(
       (model) => isGraphEligible(model) && visibleModelKeys.has(canonicalModelKey(model)),
     );
-  }, [deferredModelVariants, deferredShowReasoningVariants, models]);
+  }, [deferredReferenceModels, deferredShowReasoningVariants, filteredModels]);
   const paretoSignatureModels = useMemo(() => {
-    const eligibleModelKeys = new Set(filteredModels.map(canonicalModelKey));
-    return deferredModelVariants.filter(
+    const eligibleModelKeys = new Set(paretoCandidateModels.map(canonicalModelKey));
+    return deferredReferenceModels.filter(
       (model) => isGraphEligible(model) && eligibleModelKeys.has(canonicalModelKey(model)),
     );
-  }, [deferredModelVariants, filteredModels]);
+  }, [deferredReferenceModels, paretoCandidateModels]);
   const currentSection = useCurrentResearchSection(deferredPayload != null, journeyRef);
 
   if (!payload || !deferredPayload) {
@@ -208,7 +154,7 @@ export function DashboardGraphs({
       <ModelSignature
         models={signatureModels}
         paretoModels={paretoSignatureModels}
-        referenceModels={deferredModelVariants}
+        referenceModels={deferredReferenceModels}
       />
       <section ref={railRef} className={styles.instrumentRail} aria-label="Global view">
         <div className={styles.instrumentBar}>
@@ -230,13 +176,7 @@ export function DashboardGraphs({
             ))}
           </nav>
           <GlobalModelControls
-            filters={{
-              q: globalModelFilterQuery,
-              provider: selectedProviders,
-              "max-cost": maxCost,
-              rank: modelRankFilter,
-              days: recencyFilter,
-            }}
+            filters={filters}
             models={referenceModels}
             fetchedAt={payload.fetched_at_epoch_seconds}
             providerChoices={providerChoices}
@@ -248,10 +188,10 @@ export function DashboardGraphs({
       {afterLead}
 
       <section className={`${styles.sectionGrid} ${styles.leadGrid}`}>
-        <ParetoAnalysisPanel
+        <ParetoPanel
           payload={deferredPayload}
-          models={performanceModels}
-          referenceModels={referenceModels}
+          models={filteredModels}
+          referenceModels={deferredReferenceModels}
           showVariants={showReasoningVariants}
           onShowVariantsChange={onShowReasoningVariantsChange}
           setHover={setHover}

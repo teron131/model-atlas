@@ -5,13 +5,8 @@
  */
 
 import { benchmarkModelEffort } from "../../identity/normalization";
-import { asFiniteNumber, asRecord, nowEpochSeconds } from "../../runtime";
-import {
-  extractNextFlightCorpus,
-  findObjectEnd,
-  parseFlightJsonObject,
-  stringValue,
-} from "../parsing";
+import { asFiniteNumber, asRecord, nowEpochSeconds, stringValue } from "../../runtime";
+import { extractNextFlightCorpus, findObjectEnd, parseFlightJsonObject } from "../parsing";
 import { fetchSource } from "../request-scheduler";
 
 export const DEFAULT_LEADERBOARD_URL = "https://arena.ai/leaderboard/agent";

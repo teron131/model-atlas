@@ -1,4 +1,4 @@
-/** Public model selection owns score gating, sparse-field pruning, and route collapse. */
+/** Public model selection owns score gating, sparse benchmark pruning, and route collapse. */
 
 import { BENCHMARK_KEYS } from "../../benchmarks/registry";
 import type { FinalStageConfig, ScoringConfig } from "../../config/stage";
@@ -8,36 +8,13 @@ import {
   publicOpenRouterModelId,
   publicOpenRouterModelName,
 } from "../../identity/openrouter";
-import { asFiniteNumber, asRecord, type JsonObject } from "../../runtime";
+import { asFiniteNumber } from "../../runtime";
 import type {
   ModelAtlasCandidateComponentScores,
   ModelAtlasModel,
   ModelAtlasScoredCandidate,
 } from "../model-types";
 
-const STABLE_TOP_LEVEL_KEYS = new Set<string>([
-  "id",
-  "name",
-  "provider",
-  "logo",
-  "reasoning",
-  "reasoning_effort",
-  "release_date",
-  "modalities",
-  "open_weights",
-  "cost",
-  "context_window",
-  "speed",
-  "intelligence",
-  "task_metrics",
-  "benchmarks",
-  "benchmark_dates",
-  "confidence",
-  "latest_change",
-  "component_scores",
-  "scores",
-  "scoring_sources",
-]);
 const REQUIRED_QUALITY_SCORE_KEYS = ["intelligence_score", "agentic_score"] as const;
 
 function sortByIntelligenceScore<Model extends ModelAtlasModel>(models: Model[]): Model[] {
@@ -124,10 +101,6 @@ export function publicModelFromCandidate(model: ModelAtlasScoredCandidate): Mode
   return hasRequiredQualityScores(model) ? toPublicModel(model) : null;
 }
 
-function isPlainObject(value: unknown): value is JsonObject {
-  return value != null && typeof value === "object" && !Array.isArray(value);
-}
-
 function isWithinRecentLookback(releaseDate: string | null, lookbackDays: number): boolean {
   if (typeof releaseDate !== "string" || releaseDate.length === 0) {
     return false;
@@ -150,100 +123,40 @@ function selectPruneSampleModels(
   return recentModels.length > 0 ? recentModels : models;
 }
 
-/** Null-heavy optional fields are pruned from recent public rows while stable contract fields remain fixed. */
-function pruneSparseFields<Model extends ModelAtlasModel>(
+/** Prune only unregistered, null-heavy benchmark fields; the public projection already fixes every top-level field. */
+function pruneSparseBenchmarks<Model extends ModelAtlasModel>(
   models: Model[],
   finalConfig: FinalStageConfig,
   scoringConfig: ScoringConfig,
 ): Model[] {
-  if (models.length === 0) {
-    return models;
-  }
-
+  if (models.length === 0) return models;
   // Baseline observations stay visible even when they do not contribute to capability scores.
-  const retainedBenchmarkKeys = new Set([
+  const retainedKeys = new Set([
     ...BENCHMARK_KEYS,
     ...scoringConfig.intelligenceBenchmarkKeys,
     ...scoringConfig.agenticBenchmarkKeys,
   ]);
-  const sampleModels = selectPruneSampleModels(models, finalConfig);
-  const sampleTotal = sampleModels.length;
-  const topLevelKeys = new Set<string>();
-  const nestedKeysByParent = new Map<string, Set<string>>();
-
-  for (const model of models) {
-    for (const [key, value] of Object.entries(model)) {
-      topLevelKeys.add(key);
-      if (!isPlainObject(value)) {
-        continue;
-      }
-      const nestedKeys = nestedKeysByParent.get(key) ?? new Set<string>();
-      for (const nestedKey of Object.keys(value)) {
-        nestedKeys.add(nestedKey);
-      }
-      nestedKeysByParent.set(key, nestedKeys);
-    }
-  }
-
-  const topLevelKeysToPrune = new Set<string>();
-  for (const key of topLevelKeys) {
-    if (STABLE_TOP_LEVEL_KEYS.has(key)) {
-      continue;
-    }
-    const nullCount = sampleModels.reduce((count, model) => {
-      const modelRecord = asRecord(model);
-      return modelRecord[key] == null ? count + 1 : count;
-    }, 0);
-    if (nullCount / sampleTotal > finalConfig.nullFieldPruneThreshold) {
-      topLevelKeysToPrune.add(key);
-    }
-  }
-
-  const nestedKeysToPruneByParent = new Map<string, Set<string>>();
-  for (const [parentKey, nestedKeys] of nestedKeysByParent) {
-    if (parentKey !== "benchmarks") {
-      continue;
-    }
-    const keysToPrune = new Set<string>();
-    for (const nestedKey of nestedKeys) {
-      if (retainedBenchmarkKeys.has(nestedKey)) {
-        continue;
-      }
-      const nullCount = sampleModels.reduce((count, model) => {
-        const modelRecord = asRecord(model);
-        const parentValue = modelRecord[parentKey];
-        if (!isPlainObject(parentValue) || parentValue[nestedKey] == null) {
-          return count + 1;
-        }
-        return count;
-      }, 0);
-      if (nullCount / sampleTotal > finalConfig.nullFieldPruneThreshold) {
-        keysToPrune.add(nestedKey);
-      }
-    }
-    if (keysToPrune.size > 0) {
-      nestedKeysToPruneByParent.set(parentKey, keysToPrune);
-    }
-  }
-
-  return models.map((model) => {
-    const nextModel: JsonObject = { ...model };
-    for (const key of topLevelKeysToPrune) {
-      delete nextModel[key];
-    }
-    for (const [parentKey, nestedKeysToPrune] of nestedKeysToPruneByParent) {
-      const parentValue = nextModel[parentKey];
-      if (!isPlainObject(parentValue)) {
-        continue;
-      }
-      const nextParentValue: JsonObject = { ...parentValue };
-      for (const nestedKey of nestedKeysToPrune) {
-        delete nextParentValue[nestedKey];
-      }
-      nextModel[parentKey] = nextParentValue;
-    }
-    return nextModel as Model;
-  });
+  const candidates = new Set(models.flatMap((model) => Object.keys(model.benchmarks ?? {})));
+  const sample = selectPruneSampleModels(models, finalConfig);
+  const sparseKeys = new Set(
+    [...candidates].filter(
+      (key) =>
+        !retainedKeys.has(key) &&
+        sample.filter((model) => model.benchmarks?.[key] == null).length / sample.length >
+          finalConfig.nullFieldPruneThreshold,
+    ),
+  );
+  if (sparseKeys.size === 0) return models;
+  return models.map((model) =>
+    model.benchmarks == null
+      ? model
+      : {
+          ...model,
+          benchmarks: Object.fromEntries(
+            Object.entries(model.benchmarks).filter(([key]) => !sparseKeys.has(key)),
+          ),
+        },
+  );
 }
 
 /** Free routes collapse within each reasoning variant so the dashboard can expand variants without duplicate routes. */
@@ -304,6 +217,6 @@ export function selectReferenceModels(
     return publicModel == null ? [] : [{ ...publicModel, scoring_sources: model.scoring_sources }];
   });
   const sortedModels = sortByIntelligenceScore(signalModels);
-  const prunedModels = pruneSparseFields(sortedModels, finalConfig, scoringConfig);
+  const prunedModels = pruneSparseBenchmarks(sortedModels, finalConfig, scoringConfig);
   return normalizedModelsForId(prunedModels, id);
 }

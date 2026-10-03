@@ -4,8 +4,8 @@ import { SNAPSHOT_TABLES } from "../../database/tables";
 import type { DatabaseWriter } from "../../database/writers/database";
 import { defineBenchmarkRuntime } from "../benchmark-runtime";
 import { type CacheRowSource, firstEpochSecond, sourceCacheRows } from "../cache/rows";
-import { snapshotRowsWithStates, sourceKey } from "../snapshots/policy";
-import { shouldUseFetchedRows, snapshotFetchedAt } from "../snapshots/row-snapshot";
+import { sourceKey } from "../snapshots/policy";
+import { snapshotSourceRows } from "../snapshots/row-snapshot";
 import type {
   RawSourceCacheStatus,
   SourceRefreshOptions,
@@ -64,65 +64,27 @@ async function deepSWESnapshot(
   previousMissingSince: ReadonlyMap<string, number>,
   nowEpochSeconds: number,
 ): Promise<DeepSWESnapshot> {
-  const hasCachedEffortMetadata = cached?.rows.some(
-    (row) => row.reasoning_effort != null || row.config != null,
-  );
-  if (
-    status.cache_hit &&
-    cached != null &&
-    hasCachedEffortMetadata &&
-    options.replaceSourceRows !== true
-  ) {
-    const cachedSnapshot = snapshotRowsWithStates({
-      source: "deep_swe",
-      cachedRows: cached.rows,
-      fetchedRows: [],
-      fetchedAtEpochSeconds: null,
-      options,
-      rowKey: (row) => sourceKey(row.source_version, row.model, row.reasoning_effort, row.config),
-      rowLabel: (row) => row.model,
-      previousMissingSince,
-      nowEpochSeconds,
-    });
-    return {
-      deepSWERawRows: cachedSnapshot.rows,
-      sourceStatus: {
-        source: "deep_swe",
-        fetchedAt: cached.fetchedAt,
-        sourceInputCount: cachedSnapshot.rows.length,
-        sourceRowStates: cachedSnapshot.states,
-        fetchedAtKey: "deepSWE",
-      },
-    };
-  }
-  const fetched = await getDeepSWERawLeaderboardSourceRows();
-  const hasUsableFetchedRows = shouldUseFetchedRows(
-    fetched.fetched_at_epoch_seconds,
-    fetched.data.length,
-  );
-  const snapshot = snapshotRowsWithStates({
+  // Rows cached before effort metadata existed refresh even inside the cache window, while still backing up a failed fetch.
+  const hasCachedEffortMetadata =
+    cached?.rows.some((row) => row.reasoning_effort != null || row.config != null) === true;
+  const snapshot = await snapshotSourceRows({
     source: "deep_swe",
-    cachedRows: cached?.rows,
-    fetchedRows: fetched.data,
-    fetchedAtEpochSeconds: fetched.fetched_at_epoch_seconds,
+    cached,
+    status: hasCachedEffortMetadata ? status : { ...status, cache_hit: false },
     options,
-    rowKey: (row) => sourceKey(row.source_version, row.model, row.reasoning_effort, row.config),
-    rowLabel: (row) => row.model,
     previousMissingSince,
     nowEpochSeconds,
+    fetchRows: getDeepSWERawLeaderboardSourceRows,
+    rowKey: (row) => sourceKey(row.source_version, row.model, row.reasoning_effort, row.config),
+    rowLabel: (row) => row.model,
   });
-  const fetchedAt = snapshotFetchedAt(
-    hasUsableFetchedRows,
-    cached?.fetchedAt,
-    fetched.fetched_at_epoch_seconds,
-  );
   return {
     deepSWERawRows: snapshot.rows,
     sourceStatus: {
       source: "deep_swe",
-      fetchedAt,
+      fetchedAt: snapshot.fetchedAt,
       sourceInputCount: snapshot.rows.length,
-      sourceRowStates: snapshot.states,
+      sourceRowStates: snapshot.sourceRowStates,
       fetchedAtKey: "deepSWE",
     },
   };

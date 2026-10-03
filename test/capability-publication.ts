@@ -21,10 +21,9 @@ import {
   capabilityModelId,
   type CapabilityState,
 } from "../src/model-atlas/timeline/capability";
-import { historicalDatasetFromReleases } from "../src/model-atlas/timeline/dataset";
 import { historicalSourceModel } from "../src/model-atlas/timeline/model-identity";
 import { prepareTimelineRelease } from "../src/model-atlas/timeline/scale";
-import { minimalModelAtlasModel } from "./model-atlas-fixtures";
+import { historicalDatasetFromReleases, minimalModelAtlasModel } from "./model-atlas-fixtures";
 
 const capturedAt = "2026-09-15T01:00:00.000Z";
 const models = Array.from({ length: 8 }, (_, i) => {

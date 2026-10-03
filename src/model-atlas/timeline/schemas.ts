@@ -56,16 +56,6 @@ export type HistoricalPortfolio = {
   note: string;
 };
 
-export type HistoricalSourceRelease = {
-  id: string;
-  capturedAt: string;
-  artifacts: { url: string; sha256: string }[];
-  models: HistoricalModel[];
-  benchmarks: HistoricalBenchmark[];
-  observations: HistoricalObservation[];
-  portfolios: HistoricalPortfolio[];
-};
-
 export type HistoricalDataset = {
   releaseId: string;
   capturedAt: string;

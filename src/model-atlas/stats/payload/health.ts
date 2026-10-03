@@ -3,6 +3,7 @@
 import type { ScoringConfig } from "../../config/stage";
 import {
   firstVariantCompatibleCandidate,
+  type MatchCandidateInput,
   type MatcherConfig,
   rankMatchCandidates,
 } from "../../identity";
@@ -99,18 +100,6 @@ export function buildBenchmarkUpdateHealth(
   sourceRowsByKey: BenchmarkRowsByKey = {},
   matcherConfig?: MatcherConfig,
 ): ModelAtlasBenchmarkUpdateHealth {
-  const candidates = models.flatMap((model) =>
-    model.id == null
-      ? []
-      : [
-          {
-            model_id: model.id,
-            provider_id: model.id.split("/")[0] ?? "",
-            provider_name: "",
-            model_name: model.name,
-          },
-        ],
-  );
   const canonicalIds = new Map(
     models
       .filter((model) => model.id != null)
@@ -119,6 +108,7 @@ export function buildBenchmarkUpdateHealth(
   const keys = [
     ...new Set([...scoringConfig.intelligenceBenchmarkKeys, ...scoringConfig.agenticBenchmarkKeys]),
   ].sort();
+  const matchSource = sourceMatcher(models, matcherConfig);
   return Object.fromEntries(
     keys.map((key) => {
       const sourceRows = sourceRowsByKey[key];
@@ -129,7 +119,7 @@ export function buildBenchmarkUpdateHealth(
       for (const row of [...rows].sort(
         (a, b) => b.value - a.value || a.label.localeCompare(b.label),
       )) {
-        const modelId = sourceRows == null ? row.id : matchSource(row, candidates, matcherConfig);
+        const modelId = sourceRows == null ? row.id : matchSource(row);
         const identity =
           modelId == null
             ? normalizeModelToken(row.identity)
@@ -216,18 +206,33 @@ function modelObservations(models: readonly HealthModel[], key: string): Benchma
   });
 }
 
-function matchSource(
-  row: BenchmarkSourceRow,
-  candidates: {
-    model_id: string;
-    provider_id: string;
-    provider_name: string;
-    model_name: string | null;
-  }[],
+/** Match each normalized source slug once per health build; the same model recurs across benchmarks and effort rows. */
+function sourceMatcher(
+  models: readonly HealthModel[],
   config: MatcherConfig | undefined,
-): string | null {
-  if (config == null) return null;
-  const slug = normalizeModelToken(row.identity.split("/").at(-1) || row.label);
-  const ranked = rankMatchCandidates(slug, candidates, { requireSourceTokenCoverage: true });
-  return firstVariantCompatibleCandidate(slug, ranked, config)?.model_id ?? null;
+): (row: BenchmarkSourceRow) => string | null {
+  // Efforts share matching identities; rank each id/name pair once without merging distinct catalog aliases.
+  const candidatesByIdentity = new Map<string, MatchCandidateInput>();
+  for (const model of models) {
+    if (model.id == null) continue;
+    candidatesByIdentity.set(JSON.stringify([model.id, model.name]), {
+      model_id: model.id,
+      provider_id: model.id.split("/")[0] ?? "",
+      provider_name: "",
+      model_name: model.name,
+    });
+  }
+  const candidates = [...candidatesByIdentity.values()];
+  const modelIdBySlug = new Map<string, string | null>();
+  return (row) => {
+    if (config == null) return null;
+    const slug = normalizeModelToken(row.identity.split("/").at(-1) || row.label);
+    let modelId = modelIdBySlug.get(slug);
+    if (modelId === undefined) {
+      const ranked = rankMatchCandidates(slug, candidates, { requireSourceTokenCoverage: true });
+      modelId = firstVariantCompatibleCandidate(slug, ranked, config)?.model_id ?? null;
+      modelIdBySlug.set(slug, modelId);
+    }
+    return modelId;
+  };
 }

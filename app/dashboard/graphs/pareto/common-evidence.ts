@@ -9,13 +9,13 @@ import type { ModelAtlasModel } from "../../../../src/model-atlas/stats/types";
 import { modelVariantKey } from "../../shared/model-display";
 import {
   aggregateFrontierBenchmarkRows,
-  frontierBenchmarkAxisConfig,
+  frontierAxisValue,
   type FrontierBenchmarkAxisKey,
   type FrontierBenchmarkRow,
   isScoreAxis,
   normalizedFrontierBenchmarkRows,
+  normalizedFrontierBenchmarkScoreRows,
   positiveMetric,
-  selectedFrontierBenchmarkRows,
 } from "./analysis";
 
 export type CommonBenchmarkComparison = {
@@ -42,8 +42,14 @@ export function sharedFrontierBenchmarkComparison(
   axisKey: FrontierBenchmarkAxisKey,
 ): CommonBenchmarkComparison {
   if (selectedBenchmarkKeys.length < 2) {
+    // One benchmark keeps its native units; ALE-Bench alone needs the normalized chart scale.
+    const [key] = selectedBenchmarkKeys;
+    const selectedRows = key == null ? [] : rows.filter((row) => row.benchmarkKey === key);
     return {
-      rows: selectedFrontierBenchmarkRows(rows, referenceRows, selectedBenchmarkKeys),
+      rows:
+        key === "ale_bench"
+          ? normalizedFrontierBenchmarkScoreRows(selectedRows, referenceRows)
+          : selectedRows,
       benchmarkKeys: selectedBenchmarkKeys,
       indexVariantCount: 0,
       excludedVariantCount: 0,
@@ -51,7 +57,7 @@ export function sharedFrontierBenchmarkComparison(
     };
   }
   const selected = new Set(selectedBenchmarkKeys);
-  const metric = frontierBenchmarkAxisConfig[axisKey].get;
+  const metric = (row: FrontierBenchmarkRow) => frontierAxisValue(row, axisKey);
   const observed = rows.filter(
     (row) => selected.has(row.benchmarkKey) && positiveMetric(metric(row), isScoreAxis(axisKey)),
   );

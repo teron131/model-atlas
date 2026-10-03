@@ -7,7 +7,13 @@ import dynamic from "next/dynamic";
 import { type CSSProperties, memo, useMemo, useRef, useState } from "react";
 
 import { BotIcon, BrainIcon, DollarIcon } from "../shared/DashboardIcons";
-import { signatureModels, type SignaturePopulation, signatureStars } from "./models";
+import { formatCost } from "../table/format";
+import {
+  type SignatureMetric,
+  signatureModels,
+  type SignaturePopulation,
+  signatureStars,
+} from "./models";
 
 import styles from "./signature.module.css";
 
@@ -24,7 +30,7 @@ export const ModelSignature = memo(function ModelSignature(population: Signature
     () =>
       signatureModels(population).map((model) => ({
         ...model,
-        metric: selectionMetricPresentation(model.selectionMetric),
+        metric: selectionMetricPresentation(model.metric),
       })),
     [population.models, population.paretoModels, population.referenceModels],
   );
@@ -120,29 +126,20 @@ type SelectionMetricPart =
   | { kind: "text"; value: string };
 
 /** Keep the register's visual metric and its accessible label on one score-and-price presentation. */
-function selectionMetricPresentation(metric: string) {
-  const [scores = "", blendedPrice] = metric.split(" · BLEND ");
-  const price = blendedPrice?.replace("/M", "");
-  const metricKind = scores.startsWith("AGT ") ? "agentic" : "intelligence";
-  const withoutPrefix = scores.replace(/^(?:AGT|INT) /, "");
-  const valueStart = withoutPrefix.indexOf(" · VAL ");
-  const parts: SelectionMetricPart[] = [
-    { kind: metricKind },
-    { kind: "text", value: valueStart === -1 ? withoutPrefix : withoutPrefix.slice(0, valueStart) },
-  ];
-  if (valueStart !== -1) {
-    parts.push({ kind: "value" }, { kind: "text", value: withoutPrefix.slice(valueStart + 7) });
+function selectionMetricPresentation(metric: SignatureMetric) {
+  const score = metric.score.toFixed(1);
+  const parts: SelectionMetricPart[] = [{ kind: metric.kind }, { kind: "text", value: score }];
+  let accessible = `${metric.kind === "agentic" ? "Agentic" : "Intelligence"} ${score}`;
+  if (metric.value != null) {
+    const value = metric.value.toFixed(1);
+    parts.push({ kind: "value" }, { kind: "text", value });
+    accessible += ` · Value ${value}`;
   }
-  const accessibleScores = scores
-    .replace(/^INT /, "Intelligence ")
-    .replace(/^AGT /, "Agentic ")
-    .replace(" · VAL ", " · Value ");
+  const price = metric.price == null ? undefined : formatCost(metric.price);
   return {
     parts,
     price,
     accessible:
-      price == null
-        ? accessibleScores
-        : `${accessibleScores} · Blended price ${price} per million tokens`,
+      price == null ? accessible : `${accessible} · Blended price ${price} per million tokens`,
   };
 }

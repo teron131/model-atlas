@@ -23,7 +23,6 @@ const PROVIDER_ORDER_TOP_SCORE_COUNT = 3;
 export type ModelRankFilter = 30 | 50 | 70 | "all";
 export type RecencyFilter = 90 | 180 | "all";
 export type CostFilter = "all" | number;
-export type ProviderFilters = string[];
 export type ProviderOption = {
   slug: string;
   label: string;
@@ -32,9 +31,19 @@ export type ProviderOption = {
   logo: string;
 };
 
-type ModelControlFilters = {
-  providers: ProviderFilters;
-  maxCost: CostFilter;
+/** Dashboard-wide model filters, keyed by their URL fields and shared by the sky, Pareto chart, leaderboard, and saved profiles. */
+export type GlobalModelFilters = {
+  q: string;
+  provider: string[];
+  "max-cost": CostFilter;
+  rank: ModelRankFilter;
+  days: RecencyFilter;
+};
+
+/** Release recency is measured from the payload's fetch time; rank compares the full scored population, not the filtered view. */
+export type GlobalModelFilterScope = {
+  observedAtEpochSeconds: number | null;
+  rankingModels: readonly ModelAtlasModel[];
 };
 
 export const costFilterOptions: CostFilter[] = ["all", 1, 2, 5, 10, 25];
@@ -101,8 +110,31 @@ export function modelLogo(model: ModelAtlasModel) {
   return typeof model.logo === "string" ? model.logo : "";
 }
 
+/**
+ * Apply the global filters in one order for every view: search, then provider and cost, then release recency, then Intelligence rank.
+ * Search relevance is relative to its candidates, so searching first keeps narrower provider or cost filters from promoting weak matches.
+ */
+export function filterByGlobalModelFilters<T>(
+  items: readonly T[],
+  getModel: (item: T) => ModelAtlasModel,
+  filters: GlobalModelFilters,
+  scope: GlobalModelFilterScope,
+): T[] {
+  const providerKeys = filters.provider.length === 0 ? null : new Set(filters.provider);
+  const controlled = filterByModelQuery(items, getModel, filters.q).filter((item) =>
+    modelMatchesControls(getModel(item), filters["max-cost"], providerKeys),
+  );
+  const recent = filterByReleaseRecency(
+    controlled,
+    getModel,
+    filters.days,
+    scope.observedAtEpochSeconds,
+  );
+  return filterByIntelligenceRank(recent, getModel, filters.rank, scope.rankingModels);
+}
+
 /** Filter model-backed rows through the shared weighted keyword policy and explicit model metadata projection. */
-export function filterByModelQuery<T>(
+function filterByModelQuery<T>(
   items: readonly T[],
   getModel: (item: T) => ModelAtlasModel,
   filterQuery: string,
@@ -170,19 +202,8 @@ export function providerOptions(models: ModelAtlasModel[]): ProviderOption[] {
     }));
 }
 
-export function filterByModelControls<T>(
-  items: T[],
-  getModel: (item: T) => ModelAtlasModel,
-  filters: ModelControlFilters,
-) {
-  const providerKeys = filters.providers.length === 0 ? null : new Set(filters.providers);
-  return items.filter((item) =>
-    modelMatchesControls(getModel(item), filters.maxCost, providerKeys),
-  );
-}
-
 /** Retain canonical model families released within the selected UTC-day window. */
-export function filterByReleaseRecency<T>(
+function filterByReleaseRecency<T>(
   items: T[],
   getModel: (item: T) => ModelAtlasModel,
   recency: RecencyFilter,
@@ -200,7 +221,7 @@ export function filterByReleaseRecency<T>(
 }
 
 /** Filter by global Intelligence rank while retaining every variant in an eligible family. */
-export function filterByIntelligenceRank<T>(
+function filterByIntelligenceRank<T>(
   items: T[],
   getModel: (item: T) => ModelAtlasModel,
   rankFilter: ModelRankFilter,
@@ -253,13 +274,6 @@ function isReleasedWithinDays(
   }
   const ageDays = (observedTimestamp - releaseTimestamp) / MILLISECONDS_PER_DAY;
   return ageDays >= 0 && ageDays < maxAgeDays;
-}
-
-/** Toggle one provider while an empty selection continues to represent All. */
-export function toggleProviderFilter(selectedProviders: string[], provider: string): string[] {
-  return selectedProviders.includes(provider)
-    ? selectedProviders.filter((selected) => selected !== provider)
-    : [...selectedProviders, provider];
 }
 
 export function modelVariantKey(model: ModelAtlasModel): string {

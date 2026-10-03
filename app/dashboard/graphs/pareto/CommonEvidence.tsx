@@ -2,12 +2,12 @@
 
 import { ProviderLogo } from "../../shared/ProviderLogo";
 import {
-  frontierBenchmarkAxisConfig,
   type FrontierBenchmarkAxisKey,
   type FrontierBenchmarkOption,
   isScoreAxis,
 } from "./analysis";
 import type { CommonBenchmarkComparison } from "./common-evidence";
+import { frontierBenchmarkAxisConfig } from "./presentation";
 
 import styles from "../graphs.module.css";
 

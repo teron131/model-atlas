@@ -2,7 +2,7 @@
 
 import type { DatabaseSync, SQLInputValue } from "node:sqlite";
 
-import { asFiniteNumber, asRecord, type JsonObject } from "../../runtime";
+import { asFiniteNumber, asRecord, type JsonObject, stringValue } from "../../runtime";
 
 export type CacheDbRow = JsonObject;
 
@@ -34,10 +34,6 @@ export function firstEpochSecond(rowsToScan: readonly CacheDbRow[]): number | nu
     }
   }
   return null;
-}
-
-export function stringValue(value: unknown): string | null {
-  return typeof value === "string" && value.length > 0 ? value : null;
 }
 
 export function booleanFromSql(value: unknown): boolean | null {

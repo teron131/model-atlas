@@ -2,9 +2,9 @@
 
 import { SNAPSHOT_TABLES } from "../../database/tables";
 import type { DatabaseWriter } from "../../database/writers/database";
-import { asFiniteNumber } from "../../runtime";
+import { asFiniteNumber, stringValue } from "../../runtime";
 import { defineBenchmarkRuntime } from "../benchmark-runtime";
-import { type CacheRowSource, firstEpochSecond, sourceCacheRows, stringValue } from "../cache/rows";
+import { type CacheRowSource, firstEpochSecond, sourceCacheRows } from "../cache/rows";
 import { ALE_BENCH_EPOCH_RESULTS_URL, type AleBenchEpochRow } from "../epoch/ale-bench";
 import { sourceKey } from "../snapshots/policy";
 import { snapshotSourceRows } from "../snapshots/row-snapshot";

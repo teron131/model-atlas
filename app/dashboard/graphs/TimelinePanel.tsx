@@ -4,13 +4,13 @@
 
 import { scaleLinear, scaleUtc } from "d3-scale";
 import dynamic from "next/dynamic";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { providerChartColor, providerDisplayName } from "../shared/provider-theme";
 import { useUrlState } from "../use-url-state";
 import { GraphToggle } from "./GraphToggle";
 import { Panel } from "./Panel";
-import { calloutLabelPlacements, type PointLabelSize } from "./plot/label-placement";
+import { calloutLabelPlacements } from "./plot/label-placement";
 import {
   AxisTitles,
   FrontierHorizon,
@@ -20,6 +20,7 @@ import {
   starCore,
   StarGlows,
   TextPointLabel,
+  useLabelSizes,
   XAxisTicks,
   YAxisTicks,
 } from "./plot/Primitives";
@@ -43,8 +44,6 @@ const TimelineEvidence = dynamic(
 
 /** Keep the historical population independent from present-day price, rank and recency filters. */
 export function TimelinePanel() {
-  const plotRef = useRef<SVGSVGElement>(null);
-  const [labelSizes, setLabelSizes] = useState<Record<string, PointLabelSize>>({});
   const [points, setPoints] = useState<TimelinePoint[] | null>(null);
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
@@ -196,6 +195,7 @@ export function TimelinePanel() {
     return nearest;
   };
   const pointLabel = (point: TimelinePoint) => (point.id === gpt4?.id ? "GPT-4" : point.name);
+  const { svgRef, labelSizes } = useLabelSizes(labeled.map(pointLabel).join("\0"), compact);
   const previewName = preview ? pointLabel(preview) : "";
   const previewLabel = `${previewName.slice(0, compact ? 28 : 42)}${previewName.length > (compact ? 28 : 42) ? "…" : ""} · ${preview?.score.toFixed(1) ?? ""}`;
   const previewWidth = previewLabel.length * (compact ? 10.2 : 9.6);
@@ -234,42 +234,6 @@ export function TimelinePanel() {
     ],
   });
   const labelPlacements = useMemo(() => calloutLabelPlacements(JSON.parse(layoutKey)), [layoutKey]);
-  useLayoutEffect(() => {
-    let active = true;
-    const measure = () => {
-      if (!active || !plotRef.current) return;
-      const sizes: Record<string, PointLabelSize> = {};
-      for (const text of Array.from(
-        plotRef.current.querySelectorAll<SVGTextElement>(
-          '[aria-label="Frontier model labels"] text',
-        ),
-      )) {
-        const box = text.getBBox();
-        const baseline = text.y.baseVal.getItem(0).value;
-        sizes[text.textContent ?? ""] = {
-          width: box.width,
-          ascent: baseline - box.y,
-          descent: box.y + box.height - baseline,
-        };
-      }
-      setLabelSizes((previous) =>
-        Object.entries(sizes).some(
-          ([name, size]) =>
-            !previous[name] ||
-            Math.abs(previous[name].width - size.width) > 0.1 ||
-            Math.abs(previous[name].ascent - size.ascent) > 0.1 ||
-            Math.abs(previous[name].descent - size.descent) > 0.1,
-        )
-          ? { ...previous, ...sizes }
-          : previous,
-      );
-    };
-    measure();
-    void document.fonts.ready.then(measure);
-    return () => {
-      active = false;
-    };
-  }, [layoutKey]);
   const ticks = x.ticks(compact ? 4 : 7).map(Number);
   const dateFormat = new Intl.DateTimeFormat("en", {
     timeZone: "UTC",
@@ -297,7 +261,7 @@ export function TimelinePanel() {
       sectionId="timeline"
       sectionLabel="Timeline"
       title="Intelligence over time"
-      captureWidth={1120}
+      captureWidth={SCATTER_CHART_WIDTH}
       captureFileName="model-atlas-timeline"
       wide
     >
@@ -362,7 +326,7 @@ export function TimelinePanel() {
             ) : (
               <div ref={chartRef} className={`${styles.chartWrap} ${timeline.chart}`}>
                 <svg
-                  ref={plotRef}
+                  ref={svgRef}
                   viewBox={`0 0 ${width} ${height}`}
                   role="group"
                   aria-label="Timeline: Intelligence Index by release date"

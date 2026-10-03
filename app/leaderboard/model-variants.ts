@@ -1,8 +1,11 @@
 /** Compact leaderboard projections combine reasoning-variant evidence for dashboard rows and public JSON without changing canonical backend models. */
 
 import {
+  type BenchmarkObservationEvidenceRow,
+  type BenchmarkObservationGroupLookup,
   type BenchmarkObservationsByKey,
   buildBenchmarkObservationGroupLookup,
+  candidateModelKeys,
   findBenchmarkObservations,
 } from "../../src/model-atlas/benchmarks/observation";
 import {
@@ -20,26 +23,24 @@ import { strongestModelVariants } from "../../src/model-atlas/stats/model-varian
 import { modelDisplayExclusion } from "../../src/model-atlas/stats/model-visibility";
 import type { ModelAtlasModel } from "../../src/model-atlas/stats/types";
 
+type ObservationLookups = ReadonlyMap<
+  string,
+  {
+    variants: BenchmarkObservationGroupLookup<BenchmarkObservationEvidenceRow>;
+    collapsed: BenchmarkObservationGroupLookup<BenchmarkObservationEvidenceRow>;
+  }
+>;
+
+// Payload observations are immutable once published, so every projection of one payload shares its lookups.
+const observationLookupsByPayload = new WeakMap<BenchmarkObservationsByKey, ObservationLookups>();
+
 /** Collapse each model's variants while applying model-level benchmark observation policy. */
 export function compactModelVariants(
   models: readonly ModelAtlasModel[],
   benchmarkObservations: BenchmarkObservationsByKey = {},
 ): ModelAtlasModel[] {
   const variantsByModel = new Map<string, ModelAtlasModel[]>();
-  const observationLookups = new Map(
-    BENCHMARK_KEYS.map((key) => {
-      const rows = benchmarkObservations[key] ?? [];
-      return [
-        key,
-        {
-          variants: buildBenchmarkObservationGroupLookup(rows),
-          collapsed: buildBenchmarkObservationGroupLookup(
-            rows.filter((row) => row.metadata?.fusion_collapsed === true),
-          ),
-        },
-      ];
-    }),
-  );
+  const observationLookups = benchmarkObservationLookups(benchmarkObservations);
   for (const model of models) {
     if (modelDisplayExclusion(model) != null) continue;
     const key = canonicalModelKey(model);
@@ -50,7 +51,9 @@ export function compactModelVariants(
 
   return [...variantsByModel.values()].map((variants) => {
     const representative = strongestModelVariants(variants)[0]!;
-    const modelNames = variants.flatMap((variant) => [variant.id, variant.name]);
+    const candidateKeys = candidateModelKeys(
+      variants.flatMap((variant) => [variant.id, variant.name]),
+    );
 
     const intelligence = { ...representative.intelligence };
     const benchmarks = { ...representative.benchmarks };
@@ -60,7 +63,7 @@ export function compactModelVariants(
 
     for (const key of BENCHMARK_KEYS) {
       const lookups = observationLookups.get(key)!;
-      const fused = findBenchmarkObservations(modelNames, lookups.collapsed)[0];
+      const fused = findBenchmarkObservations(candidateKeys, lookups.collapsed)[0];
       if (fused != null) {
         benchmarks[key] = fused.canonical_value;
         const metadata = fused.metadata!;
@@ -85,7 +88,7 @@ export function compactModelVariants(
         const value = benchmarkMetricValue(model, key);
         return value == null ? [] : [{ model, value }];
       });
-      const sourceObservations = findBenchmarkObservations(modelNames, lookups.variants);
+      const sourceObservations = findBenchmarkObservations(candidateKeys, lookups.variants);
       let sourceObservation = sourceObservations[0] ?? null;
       for (const observation of sourceObservations.slice(1)) {
         if (
@@ -154,4 +157,28 @@ export function compactModelVariants(
         }
       : representative;
   });
+}
+
+/** Index each benchmark's observations, and its fusion-collapsed subset, once per payload. */
+function benchmarkObservationLookups(
+  benchmarkObservations: BenchmarkObservationsByKey,
+): ObservationLookups {
+  const cached = observationLookupsByPayload.get(benchmarkObservations);
+  if (cached != null) return cached;
+  const lookups: ObservationLookups = new Map(
+    BENCHMARK_KEYS.map((key) => {
+      const rows = benchmarkObservations[key] ?? [];
+      return [
+        key,
+        {
+          variants: buildBenchmarkObservationGroupLookup(rows),
+          collapsed: buildBenchmarkObservationGroupLookup(
+            rows.filter((row) => row.metadata?.fusion_collapsed === true),
+          ),
+        },
+      ];
+    }),
+  );
+  observationLookupsByPayload.set(benchmarkObservations, lookups);
+  return lookups;
 }

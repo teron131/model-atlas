@@ -2,9 +2,9 @@
 
 import { SNAPSHOT_TABLES } from "../../database/tables";
 import type { DatabaseWriter } from "../../database/writers/database";
-import { asFiniteNumber } from "../../runtime";
+import { asFiniteNumber, stringValue } from "../../runtime";
 import { defineBenchmarkRuntime } from "../benchmark-runtime";
-import { type CacheRowSource, firstEpochSecond, sourceCacheRows, stringValue } from "../cache/rows";
+import { type CacheRowSource, firstEpochSecond, sourceCacheRows } from "../cache/rows";
 import { snapshotRowsWithStates, sourceKey } from "../snapshots/policy";
 import { shouldUseFetchedRows, snapshotFetchedAt } from "../snapshots/row-snapshot";
 import type {

@@ -1,11 +1,11 @@
 /** Protect the independent output-only resource evidence gates and graph exclusion without losing quality-qualified table rows. */
 import assert from "node:assert/strict";
 
+import { frontierBenchmarkRows } from "../app/dashboard/graphs/pareto/analysis";
 import {
   frontierBenchmarkAxisConfig,
   frontierBenchmarkHoverRows,
-  frontierBenchmarkRows,
-} from "../app/dashboard/graphs/frontier-benchmarks/analysis";
+} from "../app/dashboard/graphs/pareto/presentation";
 import { isGraphEligible, modelsForVariantDisplay } from "../app/dashboard/shared/model-display";
 import { publicJsonPayload } from "../app/leaderboard/public-json";
 import { STAGE_CONFIG } from "../src/model-atlas/config/stage";

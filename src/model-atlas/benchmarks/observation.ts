@@ -141,7 +141,8 @@ function modelKeys(row: BenchmarkObservationEvidenceRow): string[] {
     .filter((key, index, keys) => key.length > 0 && keys.indexOf(key) === index);
 }
 
-function candidateModelKeys(candidateNames: unknown[]): Set<string> {
+/** Normalize a model's names once so lookups across every benchmark reuse the same keys. */
+export function candidateModelKeys(candidateNames: unknown[]): ReadonlySet<string> {
   return new Set(
     candidateNames.flatMap((candidate) => {
       if (typeof candidate !== "string" || candidate.length === 0) return [];
@@ -156,11 +157,10 @@ function candidateModelKeys(candidateNames: unknown[]): Set<string> {
 
 /** Return all matching efforts in source order without renormalizing every benchmark row for each model. */
 export function findBenchmarkObservations<Row extends BenchmarkObservationEvidenceRow>(
-  candidateNames: unknown[],
+  candidateKeys: ReadonlySet<string>,
   lookup: BenchmarkObservationGroupLookup<Row>,
 ): Row[] {
   if (lookup.rows.length === 0) return [];
-  const candidateKeys = candidateModelKeys(candidateNames);
   const matches = new Set([...candidateKeys].flatMap((key) => lookup.rowsByModel.get(key) ?? []));
   return matches.size === 0 ? [] : lookup.rows.filter((row) => matches.has(row));
 }

@@ -98,11 +98,6 @@ export function providerFromLogoAlt(value: string | null): string | null {
   return provider.length > 0 ? provider : null;
 }
 
-/** Accepts only non-empty string fields from scraped payloads. */
-export function stringValue(value: unknown): string | null {
-  return typeof value === "string" && value.length > 0 ? value : null;
-}
-
 /** Source-page percentages enter benchmark scoring on the shared 0-1 scale. */
 export function percentToUnitScore(value: string | null | undefined): number | null {
   if (value == null) {

@@ -2,22 +2,16 @@
 
 import type { ModelAtlasModel } from "../../src/model-atlas/stats/types";
 import {
-  filterByIntelligenceRank,
-  filterByModelControls,
-  filterByModelQuery,
-  filterByReleaseRecency,
+  filterByGlobalModelFilters,
+  type GlobalModelFilters,
   modelCount,
   modelsForVariantDisplay,
 } from "./shared/model-display";
-import { type DashboardUrlState, readUrlValue } from "./url-state";
+import { readUrlValue } from "./url-state";
 
-export type ModelProfileFilters = Pick<
-  DashboardUrlState,
-  "q" | "provider" | "max-cost" | "rank" | "days"
->;
-export type ModelProfile = { id: string; name: string; filters: ModelProfileFilters };
+export type ModelProfile = { id: string; name: string; filters: GlobalModelFilters };
 export const MODEL_PROFILES_STORAGE_KEY = "model-atlas:model-profiles";
-export const DEFAULT_PROFILE_FILTERS: ModelProfileFilters = {
+export const DEFAULT_PROFILE_FILTERS: GlobalModelFilters = {
   q: "",
   provider: [],
   "max-cost": "all",
@@ -28,17 +22,15 @@ export const DEFAULT_PROFILE_FILTERS: ModelProfileFilters = {
 /** Count visible canonical families matching the full global configuration, including variants that lack plot coordinates. */
 export function matchingProfileModelCount(
   models: ModelAtlasModel[],
-  filters: ModelProfileFilters,
+  filters: GlobalModelFilters,
   fetchedAt: number | null,
 ): number {
-  const visible = modelsForVariantDisplay(models, true);
-  const searched = filterByModelQuery(visible, (model) => model, filters.q);
-  const controlled = filterByModelControls(searched, (model) => model, {
-    providers: filters.provider,
-    maxCost: filters["max-cost"],
-  });
-  const recent = filterByReleaseRecency(controlled, (model) => model, filters.days, fetchedAt);
-  return modelCount(filterByIntelligenceRank(recent, (model) => model, filters.rank, models));
+  return modelCount(
+    filterByGlobalModelFilters(modelsForVariantDisplay(models, true), (model) => model, filters, {
+      observedAtEpochSeconds: fetchedAt,
+      rankingModels: models,
+    }),
+  );
 }
 
 /** Read validated browser data without deleting unrelated settings or silently discarding malformed profiles. */
@@ -73,14 +65,14 @@ export function readModelProfiles(storage: Pick<Storage, "getItem">): ModelProfi
     params.set("q", values.q);
     for (const provider of values.provider) params.append("provider", provider);
     for (const key of ["max-cost", "rank", "days"] as const) params.set(key, String(values[key]));
-    const parsed: ModelProfileFilters = {
+    const parsed: GlobalModelFilters = {
       q: readUrlValue(params, "q"),
       provider: readUrlValue(params, "provider"),
       "max-cost": readUrlValue(params, "max-cost"),
       rank: readUrlValue(params, "rank"),
       days: readUrlValue(params, "days"),
     };
-    if (!sameProfileFilters(parsed, values as ModelProfileFilters))
+    if (!sameProfileFilters(parsed, values as GlobalModelFilters))
       throw new Error("Saved profiles could not be read.");
     ids.add(id);
     return { id, name: name.trim(), filters: parsed };
@@ -124,7 +116,7 @@ export function removeModelProfile(
 }
 
 /** Provider order carries no selection meaning, so equivalent filters remain unmodified after URL normalization. */
-export function sameProfileFilters(left: ModelProfileFilters, right: ModelProfileFilters): boolean {
+export function sameProfileFilters(left: GlobalModelFilters, right: GlobalModelFilters): boolean {
   return (
     left.q === right.q &&
     left.provider.length === right.provider.length &&

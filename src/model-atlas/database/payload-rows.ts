@@ -14,10 +14,10 @@ import {
 import { canonicalReasoningEffort } from "../identity/normalization";
 import { benchmarkRowsFromDb } from "../pipeline/benchmark-rows";
 import { publicModelFromCandidate } from "../pipeline/selection/public-list";
-import { asFiniteNumber, asRecord } from "../runtime";
+import { asFiniteNumber, asRecord, stringValue } from "../runtime";
 import { readAleBenchRawCache } from "../sources/ale-bench/runtime";
 import { artificialAnalysisBenchmarkResourceRawCacheFromRows } from "../sources/artificial-analysis/cache";
-import { fusedBenchmarkObservations } from "../sources/assembly/source-data";
+import { fusedBenchmarkObservations } from "../sources/assembly";
 import { readTerminalBench4RawCache } from "../sources/terminal-bench-4/runtime";
 import { buildCurrentModelAtlasMetadata } from "../stats/payload/metadata";
 import type {
@@ -219,10 +219,6 @@ const INPUT_MODALITY_COLUMNS = [
   ["input_modality_audio", "audio"],
   ["input_modality_video", "video"],
 ] as const;
-
-function stringValue(value: unknown): string | null {
-  return typeof value === "string" && value.length > 0 ? value : null;
-}
 
 function booleanValue(value: unknown): boolean | null {
   if (value === 1) {

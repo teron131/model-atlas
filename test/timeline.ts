@@ -1,4 +1,5 @@
 /** Prove benchmark turnover, permanent units, separate dimensions, and transfer uncertainty using observed bridge configurations. */
+
 import assert from "node:assert/strict";
 
 import {
@@ -7,7 +8,6 @@ import {
   DEFAULT_TIMELINE_PARAMETERS,
   timelineTransferError,
 } from "../src/model-atlas/timeline/calibration";
-import { historicalDatasetFromReleases } from "../src/model-atlas/timeline/dataset";
 import {
   extendTimelineGraph,
   fitTimelineLink,
@@ -18,9 +18,12 @@ import { prepareTimelineRelease } from "../src/model-atlas/timeline/scale";
 import type {
   HistoricalBenchmark,
   HistoricalModel,
-  HistoricalSourceRelease,
   TimelineAnchors,
 } from "../src/model-atlas/timeline/schemas";
+import {
+  historicalDatasetFromReleases,
+  type HistoricalSourceRelease,
+} from "./model-atlas-fixtures";
 
 const close = (actual: number, expected: number) =>
   assert.ok(Math.abs(actual - expected) < 1e-7, actual + " != " + expected);

@@ -1,11 +1,9 @@
 /** Package boundary for live Model Atlas payloads, scoring policy, benchmark groups, and public contracts. */
 
 export {
-  AGENTIC_BENCHMARK_DISPLAY_KEYS,
   BASELINE_BENCHMARKS,
   BENCHMARK_PORTFOLIO,
   FRONTIER_BENCHMARKS,
-  INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
   SELECTED_AGENTIC_BENCHMARKS,
   SELECTED_INTELLIGENCE_BENCHMARKS,
 } from "./benchmarks/registry";

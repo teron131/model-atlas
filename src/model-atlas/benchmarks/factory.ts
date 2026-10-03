@@ -224,7 +224,6 @@ export type BenchmarkPortfolio = Readonly<Record<string, BenchmarkPortfolioEntry
 type BenchmarkFactory<TDefinitions extends BenchmarkDefinitions> = {
   definitions: TDefinitions;
   scoredKeys: readonly (keyof TDefinitions & string)[];
-  orderedKeys: readonly (keyof TDefinitions & string)[];
   portfolio: BenchmarkPortfolio;
 };
 
@@ -258,16 +257,6 @@ export function defineBenchmarks<const TDefinitions extends BenchmarkDefinitions
   return {
     definitions,
     scoredKeys: scoredEntries.map(([key]) => key),
-    orderedKeys: [...entries]
-      .sort(
-        ([leftKey, left], [rightKey, right]) =>
-          left.presentation.order - right.presentation.order ||
-          left.presentation.label.localeCompare(right.presentation.label, "en", {
-            sensitivity: "base",
-          }) ||
-          leftKey.localeCompare(rightKey),
-      )
-      .map(([key]) => key),
     portfolio,
   };
 }

@@ -4,15 +4,17 @@ import assert from "node:assert/strict";
 
 import {
   automaticResourceKeys,
+  type FrontierBenchmarkRow,
+  frontierBenchmarkRows,
+  performanceComparisonRows,
+} from "../app/dashboard/graphs/pareto/analysis";
+import { sharedFrontierBenchmarkComparison } from "../app/dashboard/graphs/pareto/common-evidence";
+import {
   frontierBenchmarkAxisConfig,
   frontierBenchmarkAxisConfigFor,
   frontierBenchmarkHoverRows,
-  type FrontierBenchmarkRow,
-  frontierBenchmarkRows,
   frontierXAxisScale,
-  performanceComparisonRows,
-} from "../app/dashboard/graphs/frontier-benchmarks/analysis";
-import { sharedFrontierBenchmarkComparison } from "../app/dashboard/graphs/frontier-benchmarks/common-evidence";
+} from "../app/dashboard/graphs/pareto/presentation";
 import {
   linearAxisScale,
   logRatioAxisScale,

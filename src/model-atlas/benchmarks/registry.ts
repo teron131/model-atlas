@@ -322,7 +322,6 @@ export type PublicBenchmarkRuntimeKeyFor<Group extends BenchmarkSourceGroup> = E
   { sourceGroup: Group; publicRows: true }
 >["key"];
 
-export const BENCHMARK_DISPLAY_KEYS = benchmarkFactory.orderedKeys as BenchmarkKey[];
 export const BENCHMARK_OBSERVATION_KEYS = Object.keys(
   BENCHMARK_STANDARD_SOURCES,
 ) as BenchmarkObservationKey[];
@@ -406,5 +405,3 @@ export const BASELINE_BENCHMARKS = benchmarkKeysInGroup("baseline");
 export const FRONTIER_BENCHMARKS = benchmarkKeysInGroup("frontier");
 export const SELECTED_INTELLIGENCE_BENCHMARKS = selectedBenchmarksForDimension("intelligence");
 export const SELECTED_AGENTIC_BENCHMARKS = selectedBenchmarksForDimension("agentic");
-export const INTELLIGENCE_BENCHMARK_DISPLAY_KEYS = SELECTED_INTELLIGENCE_BENCHMARKS;
-export const AGENTIC_BENCHMARK_DISPLAY_KEYS = SELECTED_AGENTIC_BENCHMARKS;

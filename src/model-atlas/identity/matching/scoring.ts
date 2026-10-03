@@ -19,6 +19,12 @@ import {
 } from "./name-tokens";
 import type { MatchCandidate, MatchCandidateInput, MatcherConfig } from "./types";
 
+/** Raw identity stays available for provider-aware and Claude rules; token rules share one preparation per ranking. */
+type MatchName = {
+  value: string;
+  tokens: string[];
+};
+
 const TOKEN_PREFIX_WEIGHTS = [5, 4, 3, 2, 1] as const;
 const TOKEN_PREFIX_REWARD_MULTIPLIER = 2;
 const NUMERIC_EXACT_MATCH_REWARD = 2;
@@ -117,21 +123,12 @@ export function hasVariantConflict(
 }
 
 /** Require every distinguishing source token to appear in a candidate id or display name. */
-function hasSourceTokenCoverage(
-  sourceSlug: string,
-  candidateModelId: string,
-  candidateModelName: string,
-): boolean {
-  const sourceTokens = splitTokens(sourceSlug).filter(
-    (token) => !COVERAGE_IGNORED_TOKENS.has(token),
-  );
+function hasSourceTokenCoverage(source: MatchName, base: MatchName, name: MatchName): boolean {
+  const sourceTokens = source.tokens.filter((token) => !COVERAGE_IGNORED_TOKENS.has(token));
   if (sourceTokens.length === 0) {
     return false;
   }
-  const candidateTokenSets = [
-    splitBaseModelTokens(candidateModelId),
-    splitTokens(candidateModelName),
-  ];
+  const candidateTokenSets = [base.tokens, name.tokens];
   return candidateTokenSets.some((candidateTokens) => {
     const candidateTokenSet = new Set(candidateTokens);
     return sourceTokens.every((token) => candidateTokenSet.has(token));
@@ -139,17 +136,13 @@ function hasSourceTokenCoverage(
 }
 
 /** Claude tier/version identity is structural even though Anthropic changed its token order. */
-function claudeIdentityMatch(
-  sourceSlug: string,
-  candidateModelId: string,
-  candidateModelName: string,
-): boolean | null {
-  const sourceIdentity = parseClaudeIdentity(sourceSlug);
+function claudeIdentityMatch(source: MatchName, base: MatchName, name: MatchName): boolean | null {
+  const sourceIdentity = parseClaudeIdentity(source.value);
   if (sourceIdentity == null) {
     return null;
   }
   const sourceIdentityKey = claudeIdentityKey(sourceIdentity);
-  const candidateIdentities = [candidateModelId, candidateModelName]
+  const candidateIdentities = [base.value, name.value]
     .map(parseClaudeIdentity)
     .filter((identity) => identity != null);
   if (candidateIdentities.length === 0) {
@@ -159,18 +152,18 @@ function claudeIdentityMatch(
 }
 
 function numericVersionParts(
-  sourceSlug: string,
-  candidateModelId: string,
-  candidateModelName: string,
+  source: MatchName,
+  base: MatchName,
+  name: MatchName,
 ): {
   source: number[];
   candidateId: number[];
   candidateName: number[];
 } {
   return {
-    source: splitTokens(sourceSlug).filter(isNumericToken).map(Number),
-    candidateId: splitBaseModelTokens(candidateModelId).filter(isNumericToken).map(Number),
-    candidateName: splitTokens(candidateModelName).filter(isNumericToken).map(Number),
+    source: source.tokens.filter(isNumericToken).map(Number),
+    candidateId: base.tokens.filter(isNumericToken).map(Number),
+    candidateName: name.tokens.filter(isNumericToken).map(Number),
   };
 }
 
@@ -182,12 +175,8 @@ function hasStrictNumericPrefix(left: number[], right: number[]): boolean {
   );
 }
 
-function hasLeadingNumberMismatch(
-  sourceSlug: string,
-  candidateModelId: string,
-  candidateModelName: string,
-): boolean {
-  const numbers = numericVersionParts(sourceSlug, candidateModelId, candidateModelName);
+function hasLeadingNumberMismatch(source: MatchName, base: MatchName, name: MatchName): boolean {
+  const numbers = numericVersionParts(source, base, name);
   if (numbers.source.length === 0) {
     return false;
   }
@@ -198,12 +187,8 @@ function hasLeadingNumberMismatch(
   return !idLeadingNumberMatches && !nameLeadingNumberMatches;
 }
 
-function hasNumericPrefixConflict(
-  sourceSlug: string,
-  candidateModelId: string,
-  candidateModelName: string,
-): boolean {
-  const numbers = numericVersionParts(sourceSlug, candidateModelId, candidateModelName);
+function hasNumericPrefixConflict(source: MatchName, base: MatchName, name: MatchName): boolean {
+  const numbers = numericVersionParts(source, base, name);
   const idHasConflict =
     hasStrictNumericPrefix(numbers.source, numbers.candidateId) ||
     hasStrictNumericPrefix(numbers.candidateId, numbers.source);
@@ -217,16 +202,9 @@ function hasNumericPrefixConflict(
   );
 }
 
-function hasStructuralLabelConflict(
-  sourceSlug: string,
-  candidateModelId: string,
-  candidateModelName: string,
-): boolean {
-  const sourceTokens = new Set(splitTokens(sourceSlug));
-  const candidateTokens = new Set([
-    ...splitBaseModelTokens(candidateModelId),
-    ...splitTokens(candidateModelName),
-  ]);
+function hasStructuralLabelConflict(source: MatchName, base: MatchName, name: MatchName): boolean {
+  const sourceTokens = new Set(source.tokens);
+  const candidateTokens = new Set([...base.tokens, ...name.tokens]);
   if (
     REQUIRED_IDENTITY_LABELS.some((label) => sourceTokens.has(label) !== candidateTokens.has(label))
   ) {
@@ -239,11 +217,11 @@ function hasStructuralLabelConflict(
 
 /** An unversioned multi-token family may represent the catalog's current explicitly versioned route. */
 function unversionedCurrentVersionReward(
-  sourceSlug: string,
-  candidateModelId: string,
-  candidateModelName: string,
+  source: MatchName,
+  base: MatchName,
+  name: MatchName,
 ): number {
-  const sourceTokens = splitTokens(sourceSlug);
+  const sourceTokens = source.tokens;
   if (sourceTokens.length < 2 || sourceTokens.some((token) => isNumericToken(token))) {
     return 0;
   }
@@ -251,19 +229,11 @@ function unversionedCurrentVersionReward(
     candidateTokens.length > sourceTokens.length &&
     sourceTokens.every((token, index) => candidateTokens[index] === token) &&
     candidateTokens.slice(sourceTokens.length).every(isNumericToken);
-  return [splitBaseModelTokens(candidateModelId), splitTokens(candidateModelName)].some(
-    isCurrentVersion,
-  )
-    ? UNVERSIONED_CURRENT_VERSION_REWARD
-    : 0;
+  return [base.tokens, name.tokens].some(isCurrentVersion) ? UNVERSIONED_CURRENT_VERSION_REWARD : 0;
 }
 
-function hasNumericVersionConflict(
-  sourceSlug: string,
-  candidateModelId: string,
-  candidateModelName: string,
-): boolean {
-  const numbers = numericVersionParts(sourceSlug, candidateModelId, candidateModelName);
+function hasNumericVersionConflict(source: MatchName, base: MatchName, name: MatchName): boolean {
+  const numbers = numericVersionParts(source, base, name);
   const overlapsWithDifferentVersion = (candidate: number[]) =>
     candidate.some(
       (value, index) => numbers.source[index] != null && numbers.source[index] !== value,
@@ -287,9 +257,9 @@ function weightedTokenPrefixScore(leftTokens: string[], rightTokens: string[]): 
   return score;
 }
 
-function numericMatchReward(sourceSlug: string, candidateModelId: string): number {
-  const sourceTokens = splitTokens(sourceSlug);
-  const candidateTokens = splitBaseModelTokens(candidateModelId);
+function numericMatchReward(source: MatchName, base: MatchName): number {
+  const sourceTokens = source.tokens;
+  const candidateTokens = base.tokens;
   const maxLength = Math.min(sourceTokens.length, candidateTokens.length);
   for (let tokenIndex = 0; tokenIndex < maxLength; tokenIndex += 1) {
     const sourceValue = parsedNumericTokens([sourceTokens[tokenIndex] ?? ""])[0];
@@ -301,9 +271,9 @@ function numericMatchReward(sourceSlug: string, candidateModelId: string): numbe
   return 0;
 }
 
-function numericClosenessReward(sourceSlug: string, candidateModelId: string): number {
-  const sourceNumbers = parsedNumericTokens(splitTokens(sourceSlug));
-  const candidateNumbers = parsedNumericTokens(splitBaseModelTokens(candidateModelId));
+function numericClosenessReward(source: MatchName, base: MatchName): number {
+  const sourceNumbers = parsedNumericTokens(source.tokens);
+  const candidateNumbers = parsedNumericTokens(base.tokens);
 
   const maxLength = Math.max(sourceNumbers.length, candidateNumbers.length);
   for (let numberIndex = 0; numberIndex < maxLength; numberIndex += 1) {
@@ -321,29 +291,21 @@ function numericClosenessReward(sourceSlug: string, candidateModelId: string): n
 }
 
 function candidateScaleValue(
-  candidateModelId: string,
-  candidateModelName: string,
+  base: MatchName,
+  name: MatchName,
   parser: (token: string | undefined) => number | null,
 ): number | null {
-  const baseValue = firstParsedNumber(splitBaseModelTokens(candidateModelId), parser);
-  const nameValue = firstParsedNumber(splitTokens(candidateModelName), parser);
+  const baseValue = firstParsedNumber(base.tokens, parser);
+  const nameValue = firstParsedNumber(name.tokens, parser);
   return baseValue ?? nameValue;
 }
 
-function bScaleRewardOrPenalty(
-  sourceSlug: string,
-  candidateModelId: string,
-  candidateModelName: string,
-): number {
-  const sourceBScale = firstParsedNumber(splitTokens(sourceSlug), parseBScaleToken);
+function bScaleRewardOrPenalty(source: MatchName, base: MatchName, name: MatchName): number {
+  const sourceBScale = firstParsedNumber(source.tokens, parseBScaleToken);
   if (sourceBScale == null) {
     return 0;
   }
-  const candidateBScale = candidateScaleValue(
-    candidateModelId,
-    candidateModelName,
-    parseBScaleToken,
-  );
+  const candidateBScale = candidateScaleValue(base, name, parseBScaleToken);
   if (candidateBScale == null) {
     return -B_SCALE_MISSING_PENALTY;
   }
@@ -353,37 +315,21 @@ function bScaleRewardOrPenalty(
   return -B_SCALE_MISMATCH_PENALTY;
 }
 
-function hasHardBScaleMismatch(
-  sourceSlug: string,
-  candidateModelId: string,
-  candidateModelName: string,
-): boolean {
-  const sourceBScale = firstParsedNumber(splitTokens(sourceSlug), parseBScaleToken);
+function hasHardBScaleMismatch(source: MatchName, base: MatchName, name: MatchName): boolean {
+  const sourceBScale = firstParsedNumber(source.tokens, parseBScaleToken);
   if (sourceBScale == null) {
     return false;
   }
-  const candidateBScale = candidateScaleValue(
-    candidateModelId,
-    candidateModelName,
-    parseBScaleToken,
-  );
+  const candidateBScale = candidateScaleValue(base, name, parseBScaleToken);
   return candidateBScale == null || candidateBScale !== sourceBScale;
 }
 
-function activeBRewardOrPenalty(
-  sourceSlug: string,
-  candidateModelId: string,
-  candidateModelName: string,
-): number {
-  const sourceActiveB = firstParsedNumber(splitTokens(sourceSlug), parseActiveBToken);
+function activeBRewardOrPenalty(source: MatchName, base: MatchName, name: MatchName): number {
+  const sourceActiveB = firstParsedNumber(source.tokens, parseActiveBToken);
   if (sourceActiveB == null) {
     return 0;
   }
-  const candidateActiveB = candidateScaleValue(
-    candidateModelId,
-    candidateModelName,
-    parseActiveBToken,
-  );
+  const candidateActiveB = candidateScaleValue(base, name, parseActiveBToken);
   if (candidateActiveB == null) {
     return 0;
   }
@@ -393,31 +339,23 @@ function activeBRewardOrPenalty(
   return -ACTIVE_B_MISMATCH_PENALTY;
 }
 
-function sameVariantReward(
-  sourceSlug: string,
-  candidateModelId: string,
-  candidateModelName: string,
-): number {
-  const sourceLastToken = splitTokens(sourceSlug).at(-1);
+function sameVariantReward(source: MatchName, base: MatchName, name: MatchName): number {
+  const sourceLastToken = source.tokens.at(-1);
   if (!sourceLastToken || isNumericToken(sourceLastToken)) {
     return 0;
   }
-  const baseLastToken = splitBaseModelTokens(candidateModelId).at(-1);
-  const nameLastToken = splitTokens(candidateModelName).at(-1);
+  const baseLastToken = base.tokens.at(-1);
+  const nameLastToken = name.tokens.at(-1);
   if (sourceLastToken === baseLastToken || sourceLastToken === nameLastToken) {
     return VARIANT_SUFFIX_REWARD;
   }
   return 0;
 }
 
-function coverageRewardOrPenalty(
-  sourceSlug: string,
-  candidateModelId: string,
-  candidateModelName: string,
-): number {
-  const sourceSet = new Set(splitTokens(sourceSlug));
-  const baseSet = new Set(splitBaseModelTokens(candidateModelId));
-  const nameSet = new Set(splitTokens(candidateModelName));
+function coverageRewardOrPenalty(source: MatchName, base: MatchName, name: MatchName): number {
+  const sourceSet = new Set(source.tokens);
+  const baseSet = new Set(base.tokens);
+  const nameSet = new Set(name.tokens);
 
   /** Compare one candidate token set against the source token set. */
   function compareSets(candidateSet: Set<string>): number {
@@ -437,68 +375,48 @@ function coverageRewardOrPenalty(
   return Math.max(compareSets(baseSet), compareSets(nameSet));
 }
 
-function hasFirstTokenMatch(
-  sourceSlug: string,
-  candidateModelId: string,
-  candidateModelName: string,
-): boolean {
+function hasFirstTokenMatch(source: MatchName, base: MatchName, name: MatchName): boolean {
   // Guardrail: first-token mismatch usually means wrong model family.
-  const sourceFirstToken = splitTokens(sourceSlug)[0];
+  const sourceFirstToken = source.tokens[0];
   if (!sourceFirstToken) {
     return false;
   }
-  return (
-    sourceFirstToken === splitBaseModelTokens(candidateModelId)[0] ||
-    sourceFirstToken === splitTokens(candidateModelName)[0]
-  );
+  return sourceFirstToken === base.tokens[0] || sourceFirstToken === name.tokens[0];
 }
 
-function scoreCandidate(
-  sourceSlug: string,
-  candidateModelId: string,
-  candidateModelName: string,
-): number {
-  const matchesClaudeIdentity = claudeIdentityMatch(
-    sourceSlug,
-    candidateModelId,
-    candidateModelName,
-  );
+function scoreCandidate(source: MatchName, base: MatchName, name: MatchName): number {
+  const matchesClaudeIdentity = claudeIdentityMatch(source, base, name);
   if (matchesClaudeIdentity === false) {
     return 0;
   }
-  if (hasStructuralLabelConflict(sourceSlug, candidateModelId, candidateModelName)) {
+  if (hasStructuralLabelConflict(source, base, name)) {
     return 0;
   }
   if (
     matchesClaudeIdentity !== true &&
-    (hasLeadingNumberMismatch(sourceSlug, candidateModelId, candidateModelName) ||
-      hasNumericPrefixConflict(sourceSlug, candidateModelId, candidateModelName) ||
-      hasNumericVersionConflict(sourceSlug, candidateModelId, candidateModelName))
+    (hasLeadingNumberMismatch(source, base, name) ||
+      hasNumericPrefixConflict(source, base, name) ||
+      hasNumericVersionConflict(source, base, name))
   ) {
     return 0;
   }
   // Prefix reward addresses cross-family false positives.
-  const normalizedSourceSlug = normalizeModelToken(sourceSlug);
-  const normalizedModelBase = normalizeModelToken(
-    modelSlugFromModelId(candidateModelId) ?? candidateModelId,
-  );
-  const normalizedModelName = normalizeModelToken(candidateModelName);
-  const sourceTokens = splitTokens(sourceSlug);
-  const modelBaseTokens = splitBaseModelTokens(candidateModelId);
-  const modelNameTokens = splitTokens(candidateModelName);
+  const normalizedSourceSlug = normalizeModelToken(source.value);
+  const normalizedModelBase = normalizeModelToken(modelSlugFromModelId(base.value) ?? base.value);
+  const normalizedModelName = normalizeModelToken(name.value);
   const basePrefixLength = commonPrefixLength(normalizedSourceSlug, normalizedModelBase);
   const modelNamePrefixLength = commonPrefixLength(normalizedSourceSlug, normalizedModelName);
   const maxPrefixLength = Math.max(basePrefixLength, modelNamePrefixLength);
   if (maxPrefixLength === 0) {
     return 0;
   }
-  if (hasHardBScaleMismatch(sourceSlug, candidateModelId, candidateModelName)) {
+  if (hasHardBScaleMismatch(source, base, name)) {
     return 0;
   }
 
   const weightedTokenScore = Math.max(
-    weightedTokenPrefixScore(sourceTokens, modelBaseTokens),
-    weightedTokenPrefixScore(sourceTokens, modelNameTokens),
+    weightedTokenPrefixScore(source.tokens, base.tokens),
+    weightedTokenPrefixScore(source.tokens, name.tokens),
   );
 
   // Numeric reward keeps nearby versions ordered (e.g. 5.2 > 5.1 when 5.3 is missing).
@@ -506,13 +424,13 @@ function scoreCandidate(
   // Coverage penalty suppresses unrelated but superficially similar names.
   return (
     weightedTokenScore * TOKEN_PREFIX_REWARD_MULTIPLIER +
-    numericMatchReward(sourceSlug, candidateModelId) +
-    numericClosenessReward(sourceSlug, candidateModelId) +
-    sameVariantReward(sourceSlug, candidateModelId, candidateModelName) +
-    bScaleRewardOrPenalty(sourceSlug, candidateModelId, candidateModelName) +
-    activeBRewardOrPenalty(sourceSlug, candidateModelId, candidateModelName) +
-    coverageRewardOrPenalty(sourceSlug, candidateModelId, candidateModelName) +
-    unversionedCurrentVersionReward(sourceSlug, candidateModelId, candidateModelName) +
+    numericMatchReward(source, base) +
+    numericClosenessReward(source, base) +
+    sameVariantReward(source, base, name) +
+    bScaleRewardOrPenalty(source, base, name) +
+    activeBRewardOrPenalty(source, base, name) +
+    coverageRewardOrPenalty(source, base, name) +
+    unversionedCurrentVersionReward(source, base, name) +
     (matchesClaudeIdentity === true ? CLAUDE_IDENTITY_EXACT_REWARD : 0) +
     maxPrefixLength * CHAR_PREFIX_REWARD_SCALE -
     Math.abs(normalizedSourceSlug.length - normalizedModelBase.length) * LENGTH_GAP_PENALTY_SCALE
@@ -526,7 +444,7 @@ export function compareCandidates(left: MatchCandidate, right: MatchCandidate): 
   return left.model_id.localeCompare(right.model_id);
 }
 
-/** Apply the matcher-owned first-token gate and scoring order to normalized candidate identities. */
+/** Apply the first-token gate and scoring rules while preparing source tokens once and candidate tokens once per comparison. */
 export function rankMatchCandidates(
   sourceSlug: string,
   candidates: readonly MatchCandidateInput[],
@@ -535,17 +453,24 @@ export function rankMatchCandidates(
   if (sourceSlug.length === 0) {
     return [];
   }
+  const source: MatchName = { value: sourceSlug, tokens: splitTokens(sourceSlug) };
   return candidates
     .flatMap((candidate) => {
-      const candidateName = candidate.model_name ?? "";
+      const base: MatchName = {
+        value: candidate.model_id,
+        tokens: splitBaseModelTokens(candidate.model_id),
+      };
+      const name: MatchName = {
+        value: candidate.model_name ?? "",
+        tokens: splitTokens(candidate.model_name ?? ""),
+      };
       if (
-        !hasFirstTokenMatch(sourceSlug, candidate.model_id, candidateName) ||
-        (options.requireSourceTokenCoverage === true &&
-          !hasSourceTokenCoverage(sourceSlug, candidate.model_id, candidateName))
+        !hasFirstTokenMatch(source, base, name) ||
+        (options.requireSourceTokenCoverage === true && !hasSourceTokenCoverage(source, base, name))
       ) {
         return [];
       }
-      const score = scoreCandidate(sourceSlug, candidate.model_id, candidateName);
+      const score = scoreCandidate(source, base, name);
       return score > 0 ? [{ ...candidate, score }] : [];
     })
     .sort(compareCandidates);

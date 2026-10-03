@@ -1,14 +1,17 @@
 /** Reproduce spelling/provider duplicates and verify the whole-release audit catches bad identities and contradictory dates before publication. */
+
 import assert from "node:assert/strict";
 
-import { historicalDatasetFromReleases } from "../src/model-atlas/timeline/dataset";
 import {
   auditHistoricalIdentities,
   historicalNameKey,
   historicalSourceModel,
   resolveHistoricalModelIdentities,
 } from "../src/model-atlas/timeline/model-identity";
-import type { HistoricalSourceRelease } from "../src/model-atlas/timeline/schemas";
+import {
+  historicalDatasetFromReleases,
+  type HistoricalSourceRelease,
+} from "./model-atlas-fixtures";
 
 const aa = historicalSourceModel("Gemini 1.5 Pro (Sep 2024)", "Google", null, "2024-09-24");
 const epoch = historicalSourceModel(

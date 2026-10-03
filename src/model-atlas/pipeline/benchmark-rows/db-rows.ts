@@ -10,7 +10,7 @@ import {
   type BenchmarkObservationRowsKey,
   type PublicBenchmarkRuntimeKeyFor,
 } from "../../benchmarks/registry";
-import { asFiniteNumber } from "../../runtime";
+import { asFiniteNumber, stringValue } from "../../runtime";
 import { agentsLastExamBenchmarkScore } from "../../sources/agents-last-exam/leaderboard";
 import {
   asDeepSWERawLeaderboardRow,
@@ -54,10 +54,6 @@ type BenchmarkDbRows = BenchmarkObservationDbRows & {
 function isCanonicalBenchmarkObservationDbRow(row: DbBenchmarkRow): boolean {
   const metadata = parseBenchmarkObservationMetadata(row.metadata_json);
   return metadata == null || isCanonicalBenchmarkObservation({ metadata });
-}
-
-function stringValue(value: unknown): string | null {
-  return typeof value === "string" && value.length > 0 ? value : null;
 }
 
 function benchmarkObservationDbDrafts(rows: BenchmarkDbRows): BenchmarkRowDraft[] {

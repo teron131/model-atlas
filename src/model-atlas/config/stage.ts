@@ -3,10 +3,8 @@
 import type { BenchmarkDimension, BenchmarkPortfolio } from "../benchmarks/factory";
 import { isAggregateIndex, MINIMUM_REPORTED_INDEX_BREADTH } from "../benchmarks/index-policy";
 import {
-  AGENTIC_BENCHMARK_DISPLAY_KEYS,
   BENCHMARK_PORTFOLIO,
   INDEX_REPRESENTED_BENCHMARK_MEDIAN,
-  INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
   SELECTED_AGENTIC_BENCHMARKS,
   SELECTED_INTELLIGENCE_BENCHMARKS,
 } from "../benchmarks/registry";
@@ -176,9 +174,9 @@ export const STAGE_CONFIG = {
   },
   scoring: {
     intelligenceBenchmarkKeys: SELECTED_INTELLIGENCE_BENCHMARKS.filter(isFrontierOrIndex),
-    intelligenceBenchmarkDisplayKeys: INTELLIGENCE_BENCHMARK_DISPLAY_KEYS,
+    intelligenceBenchmarkDisplayKeys: SELECTED_INTELLIGENCE_BENCHMARKS,
     agenticBenchmarkKeys: SELECTED_AGENTIC_BENCHMARKS.filter(isFrontierOrIndex),
-    agenticBenchmarkDisplayKeys: AGENTIC_BENCHMARK_DISPLAY_KEYS,
+    agenticBenchmarkDisplayKeys: SELECTED_AGENTIC_BENCHMARKS,
     agenticTokenModifierCap: 0.15,
     defaultSpeedOutputTokenAnchors: [200, 500, 1_000, 2_000, 8_000],
     speedOutputTokenRangeMin: 200,

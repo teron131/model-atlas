@@ -499,10 +499,7 @@ export function benchmarkMeterValue(row: TableRow, column: BenchmarkMetricColumn
 }
 
 export function contextWindowValue(model: ModelAtlasModel) {
-  const contextWindow = model.context_window as
-    | ({ total?: number | null } & NonNullable<ModelAtlasModel["context_window"]>)
-    | null;
-  return contextWindow?.context ?? contextWindow?.total;
+  return model.context_window?.context;
 }
 
 export function dashboardMetricValue(model: ModelAtlasModel, column: DashboardMetricColumn) {

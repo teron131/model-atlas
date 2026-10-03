@@ -1,4 +1,4 @@
-/** One comparison surface combines explicit performance selection with measured resources or published resource scores. */
+/** One comparison surface owns its shareable performance, evidence, and resource selections, plotting published scores or selected benchmarks against measured resources or published resource scores. */
 
 import { memo, useMemo } from "react";
 
@@ -9,59 +9,50 @@ import {
 } from "../../../../src/model-atlas/stats/types";
 import { captureFileToken } from "../../capture/png";
 import { modelName, modelVariantKey, shortLabel } from "../../shared/model-display";
+import { updateDashboardUrl, useUrlState } from "../../use-url-state";
 import { BoxWhiskerSummary } from "../BoxWhiskerSummary";
 import { finite, fmtPercentScore, fmtTooltipNumber, fmtTooltipScore } from "../format";
 import { GraphToggle } from "../GraphToggle";
 import type { HoverSetter } from "../hover-state";
 import { Panel } from "../Panel";
-import {
-  PARETO_CAPTION,
-  PARETO_PANEL_CONTENT,
-  ParetoFigureFoot,
-  ParetoFigureTop,
-} from "../ParetoFigure";
 import { scoreAxisScale } from "../plot/axis-scale";
 import { SCATTER_CHART_MARGIN, SCATTER_CHART_WIDTH } from "../plot/Primitives";
+import { useCompactChartLayout } from "../use-chart-layout";
 import {
   automaticResourceKeys,
-  frontierAxisDescription,
-  frontierAxisMetricLabel,
-  frontierBenchmarkAxisConfig,
-  frontierBenchmarkAxisConfigFor,
   type FrontierBenchmarkAxisKey,
   frontierBenchmarkCorrelationByBenchmark,
-  frontierBenchmarkHoverRows,
   frontierBenchmarkOptions,
   type FrontierBenchmarkRow,
   frontierBenchmarkRows,
-  frontierScoreAxisScale,
-  frontierXAxisScale,
   isScoreAxis,
   performanceComparisonRows,
-  type PerformanceMetric,
   positiveMetric,
 } from "./analysis";
 import { BenchmarkSelect } from "./BenchmarkSelect";
 import { sharedFrontierBenchmarkComparison } from "./common-evidence";
 import { CommonEvidence } from "./CommonEvidence";
+import { PARETO_CAPTION, PARETO_PANEL_CONTENT, ParetoFigureFoot, ParetoFigureTop } from "./Figure";
+import {
+  frontierAxisDescription,
+  frontierAxisMetricLabel,
+  frontierBenchmarkAxisConfig,
+  frontierBenchmarkAxisConfigFor,
+  frontierBenchmarkHoverRows,
+  frontierScoreAxisScale,
+  frontierXAxisScale,
+} from "./presentation";
 import { FrontierBenchmarkScatterPlot } from "./ScatterPlot";
 
 import styles from "../graphs.module.css";
 
 /** Keep published scores intact and disclose the actual resource basket used by each effort curve. */
-export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
+export const ParetoPanel = memo(function ParetoPanel({
   payload,
   models,
   referenceModels,
   showVariants,
   onShowVariantsChange,
-  compactLayout,
-  performance,
-  axisKey,
-  benchmarkKeys,
-  onPerformanceChange,
-  onAxisKeyChange,
-  onBenchmarkKeysChange,
   setHover,
 }: {
   payload: ModelAtlasPayload;
@@ -69,15 +60,12 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
   referenceModels: ModelAtlasModel[];
   showVariants: boolean;
   onShowVariantsChange: (show: boolean) => void;
-  compactLayout: boolean;
-  performance: PerformanceMetric;
-  axisKey: FrontierBenchmarkAxisKey;
-  benchmarkKeys: readonly string[] | null;
-  onPerformanceChange: (performance: PerformanceMetric) => void;
-  onAxisKeyChange: (axisKey: FrontierBenchmarkAxisKey) => void;
-  onBenchmarkKeysChange: (keys: string[] | null) => void;
   setHover: HoverSetter;
 }) {
+  const compactLayout = useCompactChartLayout();
+  const [performance, setPerformance] = useUrlState("performance");
+  const [benchmarkKeys] = useUrlState("benchmark");
+  const [axisKey, setAxisKey] = useUrlState("axes");
   const benchmarkRows = useMemo(
     () => frontierBenchmarkRows(models, payload.metadata.scoring.benchmark_portfolio, axisKey),
     [models, payload.metadata.scoring.benchmark_portfolio, axisKey],
@@ -216,8 +204,8 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
             options={benchmarkOptions}
             selectedKeys={activeKeys}
             correlationByBenchmark={correlations}
-            performance={{ value: performance, onChange: onPerformanceChange }}
-            onChange={onBenchmarkKeysChange}
+            performance={{ value: performance, onChange: setPerformance }}
+            onChange={(keys) => updateDashboardUrl({ performance: "benchmarks", benchmark: keys })}
           />
         }
         summary={
@@ -270,7 +258,7 @@ export const FrontierBenchmarksPanel = memo(function FrontierBenchmarksPanel({
               label: config.shortLabel,
             }))}
             selectedKey={axisKey}
-            onSelect={onAxisKeyChange}
+            onSelect={setAxisKey}
           />
         }
         showVariants={showVariants}

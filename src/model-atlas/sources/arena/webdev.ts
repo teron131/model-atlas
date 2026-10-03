@@ -10,13 +10,8 @@ import type {
 } from "../../benchmarks/observation";
 import { benchmarkModelEffort, normalizeModelToken } from "../../identity/normalization";
 import { hasQwenMaxTier } from "../../identity/qwen";
-import { asFiniteNumber, asRecord, nowEpochSeconds } from "../../runtime";
-import {
-  extractNextFlightCorpus,
-  findObjectEnd,
-  parseFlightJsonObject,
-  stringValue,
-} from "../parsing";
+import { asFiniteNumber, asRecord, nowEpochSeconds, stringValue } from "../../runtime";
+import { extractNextFlightCorpus, findObjectEnd, parseFlightJsonObject } from "../parsing";
 import { fetchSource } from "../request-scheduler";
 
 const SOURCE_URL = "https://arena.ai/leaderboard/code/webdev";

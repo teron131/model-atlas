@@ -35,15 +35,9 @@ import {
 } from "./shared/ColumnTooltip";
 import { DEFAULT_DISPLAY_ITEMS, useDisplayLimit } from "./shared/DisplayControls";
 import {
-  type CostFilter,
-  filterByIntelligenceRank,
-  filterByModelControls,
-  filterByModelQuery,
-  filterByReleaseRecency,
-  type ModelRankFilter,
+  filterByGlobalModelFilters,
+  type GlobalModelFilters,
   modelsForVariantDisplay,
-  type ProviderFilters,
-  type RecencyFilter,
 } from "./shared/model-display";
 import { hasSearchQuery } from "./shared/search";
 import { type TableColumnPreset, tableColumnSortKey, tableColumnView } from "./table/column-views";
@@ -75,20 +69,12 @@ export function DashboardLeaderboard({
   payload,
   errorMessage,
   isLoading,
-  maxCost,
-  modelRankFilter,
-  recencyFilter,
-  globalModelFilterQuery,
-  selectedProviders,
+  filters,
 }: {
   payload: ModelAtlasPayload | null;
   errorMessage: string | null;
   isLoading: boolean;
-  maxCost: CostFilter;
-  modelRankFilter: ModelRankFilter;
-  recencyFilter: RecencyFilter;
-  globalModelFilterQuery: string;
-  selectedProviders: ProviderFilters;
+  filters: GlobalModelFilters;
 }) {
   const tooltipFadeTimeoutRef = useRef<number | null>(null);
   const collapsedLimitRef = useRef(DEFAULT_DISPLAY_ITEMS);
@@ -113,9 +99,7 @@ export function DashboardLeaderboard({
     return { key, direction: sorters[key].direction };
   }, [requestedSort, columnPreset, columnFilterQuery, visibleColumnKeys]);
   const deferredShowVariants = useDeferredValue(showVariants);
-  const deferredSelectedProviders = useDeferredValue(selectedProviders);
-  const deferredMaxCost = useDeferredValue(maxCost);
-  const deferredGlobalModelFilterQuery = useDeferredValue(globalModelFilterQuery);
+  const deferredFilters = useDeferredValue(filters);
   const [, startSortTransition] = useTransition();
   const ratioReferences = useMemo(
     () =>
@@ -166,37 +150,16 @@ export function DashboardLeaderboard({
     }));
   }, [deferredShowVariants, payload, ratioReferences]);
 
-  const filteredRows = useMemo(
-    () =>
-      filterByModelControls(tableRows, (row) => row.model, {
-        providers: deferredSelectedProviders,
-        maxCost: deferredMaxCost,
-      }),
-    [tableRows, deferredSelectedProviders, deferredMaxCost],
-  );
-  const globallyFilteredRows = useMemo(
-    () => filterByModelQuery(filteredRows, (row) => row.model, deferredGlobalModelFilterQuery),
-    [deferredGlobalModelFilterQuery, filteredRows],
-  );
-  const recencyFilteredRows = useMemo(
-    () =>
-      filterByReleaseRecency(
-        globallyFilteredRows,
-        (row) => row.model,
-        recencyFilter,
-        payload?.fetched_at_epoch_seconds ?? null,
-      ),
-    [globallyFilteredRows, payload?.fetched_at_epoch_seconds, recencyFilter],
+  const filterScope = useMemo(
+    () => ({
+      observedAtEpochSeconds: payload?.fetched_at_epoch_seconds ?? null,
+      rankingModels: payload?.models ?? [],
+    }),
+    [payload],
   );
   const scopedRows = useMemo(
-    () =>
-      filterByIntelligenceRank(
-        recencyFilteredRows,
-        (row) => row.model,
-        modelRankFilter,
-        payload?.models ?? [],
-      ),
-    [modelRankFilter, payload?.models, recencyFilteredRows],
+    () => filterByGlobalModelFilters(tableRows, (row) => row.model, deferredFilters, filterScope),
+    [tableRows, deferredFilters, filterScope],
   );
   const expandedTableRows = useMemo(
     () =>
@@ -205,18 +168,16 @@ export function DashboardLeaderboard({
       ),
     [payload],
   );
-  const filteredExpandedRows = useMemo(
-    () =>
-      filterByModelControls(expandedTableRows, (row) => row.model, {
-        providers: deferredSelectedProviders,
-        maxCost: deferredMaxCost,
-      }),
-    [expandedTableRows, deferredSelectedProviders, deferredMaxCost],
-  );
+  // Expanded counts follow the displayed families, so recency and rank are already applied through them.
   const globallyFilteredExpandedRows = useMemo(
     () =>
-      filterByModelQuery(filteredExpandedRows, (row) => row.model, deferredGlobalModelFilterQuery),
-    [deferredGlobalModelFilterQuery, filteredExpandedRows],
+      filterByGlobalModelFilters(
+        expandedTableRows,
+        (row) => row.model,
+        { ...deferredFilters, days: "all", rank: "all" },
+        filterScope,
+      ),
+    [expandedTableRows, deferredFilters, filterScope],
   );
   const matchingRows = useMemo(
     () =>

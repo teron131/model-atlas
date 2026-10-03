@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 
-import styles from "./graphs.module.css";
+import styles from "../graphs.module.css";
 
 export const PARETO_PANEL_CONTENT = {
   sectionId: "pareto-analysis",

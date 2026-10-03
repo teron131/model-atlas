@@ -13,8 +13,8 @@ import {
   resourcePerTaskRun,
 } from "../benchmarks/observation";
 import { canonicalReasoningEffort, modelNameWithoutCreatorPrefix } from "../identity/normalization";
-import { asFiniteNumber, asRecord, nowEpochSeconds } from "../runtime";
-import { percentToUnitScore, stringValue } from "./parsing";
+import { asFiniteNumber, asRecord, nowEpochSeconds, stringValue } from "../runtime";
+import { percentToUnitScore } from "./parsing";
 import { fetchSource } from "./request-scheduler";
 import { getValsSourceStats } from "./vals/results";
 

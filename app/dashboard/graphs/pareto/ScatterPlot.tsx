@@ -32,7 +32,6 @@ import {
   plotBoundsFor,
   PlotFrame,
   SCATTER_CHART_HEIGHT,
-  SCATTER_CHART_MARGIN,
   SCATTER_CHART_WIDTH,
   scatterChartMargin,
   stableSvgNumber,
@@ -71,7 +70,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
   rows,
   metric,
   xDomain,
-  xTicks: providedXTicks,
+  xTicks,
   yDomain,
   yTicks,
   yAxisLabel,
@@ -87,14 +86,12 @@ export function FrontierBenchmarkScatterPlot<Row>({
   connectReasoningVariants = false,
   compactLayout,
   setHover,
-  width: maxWidth = SCATTER_CHART_WIDTH,
-  height: fullHeight = SCATTER_CHART_HEIGHT,
-  margin = SCATTER_CHART_MARGIN,
+  margin,
 }: {
   rows: Row[];
   metric: ScatterMetric<Row>;
   xDomain: [number, number];
-  xTicks?: number[];
+  xTicks: number[];
   yDomain: [number, number];
   yTicks: number[];
   yAxisLabel: string;
@@ -110,22 +107,14 @@ export function FrontierBenchmarkScatterPlot<Row>({
   connectReasoningVariants?: boolean;
   compactLayout: boolean;
   setHover: HoverSetter;
-  width?: number;
-  height?: number;
-  margin?: Margin;
+  margin: Margin;
 }) {
-  const { chartRef, width } = useChartWidth(maxWidth);
-  const height = compactLayout ? Math.min(fullHeight, 400) : fullHeight;
+  const { chartRef, width } = useChartWidth(SCATTER_CHART_WIDTH);
+  const height = compactLayout ? Math.min(SCATTER_CHART_HEIGHT, 400) : SCATTER_CHART_HEIGHT;
   const [highlightedVariantKey, setHighlightedVariantKey] = useVariantHighlight();
   const guideMaskId = useId();
   const chartMargin = scatterChartMargin(margin, compactLayout);
   const { cursorProjection, cursorHandlers, setCursorProjection } = useCursorProjection();
-  const metricValues = rows.map(metric.get);
-  const xTicks =
-    providedXTicks ??
-    (metric.label === "Value Score"
-      ? roundedLinearTicks(xDomain, 10)
-      : linearTicksForValues(metricValues, metric.format));
   const plot = plotBoundsFor(width, height, chartMargin);
   const edgeGutter = compactLayout ? 12 : PLOT_EDGE_GUTTER;
   const topGutter = compactLayout ? 24 : PLOT_TOP_GUTTER;
@@ -300,7 +289,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
     <div
       ref={chartRef}
       className={styles.chartWrap}
-      style={{ "--chart-max-width": `${maxWidth}px` } as CSSProperties}
+      style={{ "--chart-max-width": `${SCATTER_CHART_WIDTH}px` } as CSSProperties}
       role="group"
       aria-label={`${ariaLabel} viewport`}
       tabIndex={0}
@@ -386,7 +375,6 @@ export function FrontierBenchmarkScatterPlot<Row>({
                 : `MED ${metric.format(medianMetric)}`
             }
             yLabel={`MED ${formatScore(medianScore)}`}
-            yLabelInside
           />
         </g>
         <DirectionArrow
@@ -522,44 +510,6 @@ export function FrontierBenchmarkScatterPlot<Row>({
         })}
       </svg>
     </div>
-  );
-}
-
-function linearTicksForValues(values: number[], format: (value: number) => string) {
-  const finiteValues = values.filter((value) => Number.isFinite(value));
-  const low = Math.min(...finiteValues);
-  const high = Math.max(...finiteValues);
-  if (!Number.isFinite(low) || !Number.isFinite(high)) {
-    return [];
-  }
-  if (low === high) {
-    return [low];
-  }
-  const tickCount = 5;
-  const ticks = Array.from(
-    { length: tickCount },
-    (_, index) => low + ((high - low) * index) / (tickCount - 1),
-  );
-  const labels = new Set<string>();
-  return ticks.filter((tick) => {
-    const label = format(tick);
-    if (labels.has(label)) {
-      return false;
-    }
-    labels.add(label);
-    return true;
-  });
-}
-
-function roundedLinearTicks([low, high]: [number, number], step: number) {
-  const first = Math.ceil(low / step) * step;
-  const last = Math.floor(high / step) * step;
-  if (!Number.isFinite(first) || !Number.isFinite(last) || first > last) {
-    return [];
-  }
-  return Array.from(
-    { length: Math.floor((last - first) / step) + 1 },
-    (_, index) => first + index * step,
   );
 }
 

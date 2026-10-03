@@ -12,7 +12,6 @@ import { benchmarkMetricValue } from "../pipeline/scores/resource-metrics";
 import { stableJson } from "../runtime";
 import { prepareTimelineBenchmarkEvidence } from "./benchmark-evidence";
 import { calibrateTimeline } from "./calibration";
-import { checkpointBenchmarkId } from "./dataset";
 import { historicalNameKey, historicalSourceModel } from "./model-identity";
 import { prepareTimelineRelease } from "./scale";
 import type {
@@ -188,7 +187,43 @@ function appendPositions(
   return { ...state, positions };
 }
 
+/** Capture provenance never defines a benchmark edition; only the declared measurement and source-crosswalk contract does. */
+export function checkpointBenchmarkId(key: string): string {
+  const definition = BENCHMARK_CATALOG[key as keyof typeof BENCHMARK_CATALOG];
+  if (!definition) throw new Error(`Unknown checkpoint benchmark: ${key}`);
+  const contract = {
+    key,
+    source: definition.source,
+    processing: definition.processing,
+    location: definition.persistence.location,
+    format: definition.presentation.column.format,
+    indexBreadth:
+      key === "aa_intelligence_index" ? indexPolicy(key)?.representedBenchmarks : undefined,
+  };
+  return `atlas:benchmark:${key}:${createHash("sha256").update(stableJson(contract)).digest("hex").slice(0, 20)}`;
+}
+
 function currentEvidence(models: readonly ModelInput[], observedAt: string) {
+  // Benchmark editions and weights are shared by every model in this refresh.
+  const catalog = Object.entries(BENCHMARK_CATALOG).map(([key, definition]) => {
+    const benchmark: HistoricalBenchmark = {
+      id: checkpointBenchmarkId(key),
+      key: `atlas_benchmark_${key}`,
+      label: definition.presentation.label,
+      kind: (INDEX_BENCHMARK_KEYS as readonly string[]).includes(key) ? "index" : "task",
+      scale: definition.presentation.column.format === "percent" ? "probability" : "linear",
+      weights: {
+        intelligence:
+          definition.scoring.benchmarkImportance *
+          definition.scoring.dimensionLoadings.intelligence,
+        agentic:
+          definition.scoring.benchmarkImportance * definition.scoring.dimensionLoadings.agentic,
+      },
+      representedBenchmarks: indexPolicy(key)?.representedBenchmarks,
+      primary: true,
+    };
+    return { key, benchmark };
+  });
   const definitions = new Map<string, HistoricalBenchmark>();
   const observations: HistoricalObservation[] = [];
   const identities: HistoricalModel[] = [];
@@ -205,29 +240,13 @@ function currentEvidence(models: readonly ModelInput[], observedAt: string) {
       current: true,
     };
     identities.push(identity);
-    for (const [key, definition] of Object.entries(BENCHMARK_CATALOG)) {
+    for (const { key, benchmark } of catalog) {
       const value = benchmarkMetricValue(model, key);
       if (value == null || !Number.isFinite(value)) continue;
-      const id = checkpointBenchmarkId(key);
-      definitions.set(id, {
-        id,
-        key: `atlas_benchmark_${key}`,
-        label: definition.presentation.label,
-        kind: (INDEX_BENCHMARK_KEYS as readonly string[]).includes(key) ? "index" : "task",
-        scale: definition.presentation.column.format === "percent" ? "probability" : "linear",
-        weights: {
-          intelligence:
-            definition.scoring.benchmarkImportance *
-            definition.scoring.dimensionLoadings.intelligence,
-          agentic:
-            definition.scoring.benchmarkImportance * definition.scoring.dimensionLoadings.agentic,
-        },
-        representedBenchmarks: indexPolicy(key)?.representedBenchmarks,
-        primary: true,
-      });
+      definitions.set(benchmark.id, benchmark);
       observations.push({
         modelId: identity.id,
-        benchmarkId: id,
+        benchmarkId: benchmark.id,
         value,
         observedAt,
         source: "Model Atlas observed portfolio",

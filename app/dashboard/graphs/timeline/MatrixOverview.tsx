@@ -1,7 +1,8 @@
 "use client";
 
-import { Crosshair } from "lucide-react";
 /** Dense SVG matrices reserve detail space from deduplicated field alternatives before hover interaction. */
+
+import { Crosshair } from "lucide-react";
 import {
   type KeyboardEvent,
   type MouseEvent,

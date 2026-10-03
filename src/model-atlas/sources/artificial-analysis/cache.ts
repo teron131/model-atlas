@@ -4,7 +4,7 @@ import type { DatabaseSync } from "node:sqlite";
 
 import { ARTIFICIAL_ANALYSIS_INTELLIGENCE_KEYS } from "../../benchmarks/field-keys";
 import { ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_KEYS } from "../../benchmarks/registry";
-import { asFiniteNumber, type JsonObject } from "../../runtime";
+import { asFiniteNumber, type JsonObject, stringValue } from "../../runtime";
 import {
   assignIfBoolean,
   assignIfNumber,
@@ -13,7 +13,6 @@ import {
   firstEpochSecond,
   nonEmptyRecord,
   queryCacheRows,
-  stringValue,
 } from "../cache/rows";
 import type { ArtificialAnalysisBenchmarkResourceRow } from "./benchmark-resources";
 import { parseArtificialAnalysisReasoningEffort } from "./model-labels";

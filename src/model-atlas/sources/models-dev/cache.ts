@@ -2,7 +2,7 @@
 
 import type { DatabaseSync } from "node:sqlite";
 
-import { asFiniteNumber } from "../../runtime";
+import { asFiniteNumber, stringValue } from "../../runtime";
 import {
   assignIfBoolean,
   assignIfNumber,
@@ -11,7 +11,6 @@ import {
   firstEpochSecond,
   modalityList,
   queryCacheRows,
-  stringValue,
 } from "../cache/rows";
 import type { ModelsDevModelRecord, ModelsDevPayload } from "./catalog";
 

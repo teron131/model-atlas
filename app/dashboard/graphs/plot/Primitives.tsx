@@ -33,6 +33,7 @@ export const SCATTER_CHART_MARGIN: Margin = {
 export const SCATTER_CHART_WIDTH = 1120;
 
 const SVG_NUMBER_DECIMALS = 3;
+const AXIS_TICK_LENGTH = 7;
 
 /** Keep compact titles above the plot and inset scale labels within its narrow gutters. */
 export function scatterChartMargin(margin: Margin, compact: boolean): Margin {
@@ -289,20 +290,19 @@ export function FrontierHorizon({
   );
 }
 
+/** Median guides span the plot; the Y median label sits inside its right edge. */
 export function MedianCross({
   x,
   y,
   bounds,
   xLabel,
   yLabel,
-  yLabelInside = false,
 }: {
   x: number;
   y: number;
   bounds: PlotBounds;
   xLabel: string;
   yLabel: string;
-  yLabelInside?: boolean;
 }) {
   return (
     <>
@@ -311,12 +311,7 @@ export function MedianCross({
       <text className={styles.medianLabel} x={x} y={bounds.top - 8} textAnchor="middle">
         {xLabel}
       </text>
-      <text
-        className={styles.medianLabel}
-        x={yLabelInside ? bounds.right - 8 : bounds.right + 12}
-        y={y + 5}
-        textAnchor={yLabelInside ? "end" : undefined}
-      >
+      <text className={styles.medianLabel} x={bounds.right - 8} y={y + 5} textAnchor="end">
         {yLabel}
       </text>
     </>
@@ -329,9 +324,6 @@ export function XAxisTicks({
   y,
   format,
   keyPrefix,
-  tickLength = 7,
-  labelOffset = 24,
-  labelEvery = 1,
   labelMinGap = 0,
 }: {
   ticks: number[];
@@ -339,16 +331,10 @@ export function XAxisTicks({
   y: number;
   format: (value: number) => string;
   keyPrefix: string;
-  tickLength?: number;
-  labelOffset?: number;
-  labelEvery?: number;
   labelMinGap?: number;
 }) {
   let lastLabelX = Number.NEGATIVE_INFINITY;
-  const labelVisibility = ticks.map((tick, index) => {
-    if (index % labelEvery !== 0) {
-      return false;
-    }
+  const labelVisibility = ticks.map((tick) => {
     const x = xPoint(tick);
     if (x - lastLabelX < labelMinGap) {
       return false;
@@ -363,10 +349,10 @@ export function XAxisTicks({
         x1={xPoint(tick)}
         x2={xPoint(tick)}
         y1={y}
-        y2={y + tickLength}
+        y2={y + AXIS_TICK_LENGTH}
       />
       {labelVisibility[index] ? (
-        <text className={styles.axisLabel} x={xPoint(tick)} y={y + labelOffset} textAnchor="middle">
+        <text className={styles.axisLabel} x={xPoint(tick)} y={y + 24} textAnchor="middle">
           {format(tick)}
         </text>
       ) : null}
@@ -381,8 +367,6 @@ export function YAxisTicks({
   x,
   format,
   keyPrefix,
-  tickLength = 7,
-  labelOffset = 15,
   insetRight,
   showGridLines = true,
 }: {
@@ -391,8 +375,6 @@ export function YAxisTicks({
   x: number;
   format: (value: number) => string;
   keyPrefix: string;
-  tickLength?: number;
-  labelOffset?: number;
   insetRight?: number;
   showGridLines?: boolean;
 }) {
@@ -403,7 +385,7 @@ export function YAxisTicks({
       {(!inset || showGridLines) && (
         <line
           className={inset ? styles.scaleGrid : styles.axisTick}
-          x1={inset ? x : x - tickLength}
+          x1={inset ? x : x - AXIS_TICK_LENGTH}
           x2={insetRight ?? x}
           y1={yPoint(tick)}
           y2={yPoint(tick)}
@@ -412,7 +394,7 @@ export function YAxisTicks({
       {!inset || index === 0 || index === middle || index === ticks.length - 1 ? (
         <text
           className={inset ? styles.scaleAnchor : styles.axisLabel}
-          x={inset ? x + 6 : x - labelOffset}
+          x={inset ? x + 6 : x - 15}
           y={yPoint(tick) + (inset ? (index === 0 ? -6 : 14) : 4)}
           textAnchor={inset ? "start" : "end"}
         >
