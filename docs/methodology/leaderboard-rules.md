@@ -55,7 +55,7 @@ Imputed quality, estimated resources, output-token runtime proxies, provider tok
 
 A variant that qualifies on quality remains in the table with unavailable resource scores left blank. Raw prices and provider speed measurements remain available. Insufficient observed runtime measurements leave :score[Speed] blank even when :score[Value] is available.
 
-Without :score[Value], a variant is excluded from every graph, including quality-only graphs and the model signature. Collapsed graphs choose among eligible variants. The benchmark graph’s combined axis for :score[Speed] and :score[Value] requires both scores; unavailable scores are never replaced with zero.
+Graphs show a variant wherever its plotted values exist and omit it where they are missing; unavailable scores are never replaced with zero.
 
 These requirements control which scores are displayed. All model observations remain in scoring calibration, and qualifying :score[Speed] and :score[Value] scores keep the calculation described above.
 

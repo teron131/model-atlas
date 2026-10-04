@@ -25,7 +25,6 @@ import {
 import {
   filterByGlobalModelFilters,
   type GlobalModelFilters,
-  isGraphEligible,
   type ProviderOption,
 } from "../shared/model-display";
 import { ModelSignature } from "../signature/ModelSignature";
@@ -91,7 +90,7 @@ export function DashboardGraphs({
     }),
     [deferredPayload?.fetched_at_epoch_seconds, deferredReferenceModels],
   );
-  // Dashboard already projects eligible variants into this payload before either graph filters it.
+  // Dashboard already projects displayed variants into this payload before either graph filters it.
   const filteredModels = useMemo(
     () =>
       filterByGlobalModelFilters(
@@ -124,14 +123,14 @@ export function DashboardGraphs({
       return ranked;
     }
     const visibleModelKeys = new Set(ranked.map(canonicalModelKey));
-    return deferredReferenceModels.filter(
-      (model) => isGraphEligible(model) && visibleModelKeys.has(canonicalModelKey(model)),
+    return deferredReferenceModels.filter((model) =>
+      visibleModelKeys.has(canonicalModelKey(model)),
     );
   }, [deferredReferenceModels, deferredShowReasoningVariants, filteredModels]);
   const paretoSignatureModels = useMemo(() => {
-    const eligibleModelKeys = new Set(paretoCandidateModels.map(canonicalModelKey));
-    return deferredReferenceModels.filter(
-      (model) => isGraphEligible(model) && eligibleModelKeys.has(canonicalModelKey(model)),
+    const candidateModelKeys = new Set(paretoCandidateModels.map(canonicalModelKey));
+    return deferredReferenceModels.filter((model) =>
+      candidateModelKeys.has(canonicalModelKey(model)),
     );
   }, [deferredReferenceModels, paretoCandidateModels]);
   const currentSection = useCurrentResearchSection(deferredPayload != null, journeyRef);

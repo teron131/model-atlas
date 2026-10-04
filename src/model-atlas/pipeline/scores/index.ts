@@ -22,6 +22,7 @@ export {
   buildComponentScoreResult,
   buildSpeedComponentScore,
   deriveSpeedOutputTokenAnchors,
+  logBlendedPrice,
 } from "./score-builders";
 export { buildQualityScoringContext } from "./quality-context";
 export type { QualityScoringContext } from "./quality-context";

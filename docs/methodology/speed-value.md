@@ -254,7 +254,7 @@ If supported residuals have no meaningful spread, every observed residual receiv
 
 Combine resource efficiency measured on benchmarks with provider measurements, discount imputed inputs, then apply a model-level coverage multiplier.
 
-Convert each component to 0–100, with higher scores indicating better performance. Provider statistics use linear scaling with clamping on $\log x$. Absolute price uses $\log_{10}(1+\text{blended price})$ with the favorable tail clipped at 2.5%. Quality-adjusted price uses the same local residual method as benchmark resource comparisons. Keeping absolute and quality-adjusted price separate retains both affordability and efficiency at comparable capability.
+Convert each component to 0–100, with higher scores indicating better performance. Provider statistics use linear scaling with clamping on $\log x$. Absolute price uses $\log(\text{blended price})$ with the favorable tail clipped at 2.5%, so equal price ratios count equally at every price level. Quality-adjusted price applies the same local residual method as benchmark resource comparisons to $\log(\text{blended price})$. A free model is treated as costing 0.001 USD per million tokens, below every listed price, so its logarithm stays finite. Keeping absolute and quality-adjusted price separate retains both affordability and efficiency at comparable capability.
 
 Price comparisons use the [mean](overview.md#weighted-mean) of the public :score[Intelligence] and :score[Agentic] scores as the quality value used to compare prices:
 
@@ -262,7 +262,7 @@ $$
 q^{\text{price}}_m=\operatorname{mean}(\text{Intelligence}_m,\text{Agentic}_m).
 $$
 
-Use the final public capability scores on a linear scale. Time and cost per task use their own benchmark’s linear quality coordinates.
+Use the final public capability scores on a linear scale. If only one capability score is available, it alone sets the quality value. Time and cost per task use their own benchmark’s linear quality coordinates.
 
 For transformed measurement $g(x)$, $g_{\min}$ and $g_{\max}$ are its finite reference minimum and maximum. The [linearScale operation](overview.md#shared-mathematical-operations) maps this range to 0–1; clamping and multiplication by 100 produce the component score. When higher values are better:
 
@@ -328,8 +328,13 @@ These values are scoring-policy choices, not fitted claims about model behavior.
 
 | Parameter | Value | Why it exists |
 | --- | ---: | --- |
+| Benchmark versus other measurements | 70% / 30% of base weight | Keeps measured resources per task as the main evidence while retaining provider speed and token prices. |
+| Provider speed statistics | 10% each for throughput, first-token latency, and end-to-end latency | Treats generation rate, response start, and response completion as equal parts of provider speed. |
+| Price components | 15% each for absolute and quality-adjusted price | Retains both affordability and price efficiency at comparable capability. |
+| Shared coverage multiplier | 0 through 10% coverage; smooth rise to 1 at 60% | Withholds most of the score from base models with little resource evidence without requiring every component. |
+| Raw resource agreement | 10 paired base models; 90% within a factor of 1.05 | Allows raw amounts from different sources to be averaged only when nearly all paired models agree. |
 | Favorable-tail winsorization | 2.5% | Stops one exceptionally cheap or fast model from defining the useful score range. |
 | Quality comparison width | $\sigma=0.5$ | Favors comparisons with similar quality without requiring exact benchmark-score ties. |
 | Minimum quality spread | 35% of the observed quality range | Prevents small gaps in clustered results from being magnified; linear comparisons remain unchanged by unit conversions. |
 | Local resource trend | Full peer support and interpolation only | Accounts for nearby quality differences while avoiding sparse fits and unsupported extrapolation. |
-| Full comparison support | Supported model count of 3 | Pulls weak peer comparisons toward neutral; three effective models end this adjustment without implying statistical certainty. |
+| Comparison support | None at a supported model count of 1; full at 3 | Pulls weak peer comparisons toward neutral; three effective models end this adjustment without implying statistical certainty. |

@@ -312,6 +312,14 @@ export function blendedPriceValue(costLike: unknown): number | null {
   return (inputPrice + outputPrice) / 2;
 }
 
+// Below every listed price, so only free models reach it; absolute price clips its favorable tail above this floor anyway.
+const MINIMUM_LOG_BLENDED_PRICE = 0.001;
+
+/** Log blended price so equal price ratios count equally at every price level; free models stay finite and cheapest. */
+export function logBlendedPrice(price: number | null): number | null {
+  return price == null ? null : Math.log(Math.max(price, MINIMUM_LOG_BLENDED_PRICE));
+}
+
 /** Derive representative output-token workloads from observed latency and throughput, falling back when evidence cannot produce five usable anchors. */
 export function deriveSpeedOutputTokenAnchors(
   speedByModelId: Map<string, JsonObject>,

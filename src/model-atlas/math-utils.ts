@@ -437,11 +437,6 @@ export function medianOfFinite(values: ReadonlyArray<number | null | undefined>)
   );
 }
 
-export function log10OnePlusNonnegative(value: unknown): number | null {
-  const number = nonnegativeFiniteNumber(value);
-  return number == null ? null : Math.log10(1 + number);
-}
-
 export function gaussianWeight(leftValue: number, rightValue: number, sigma: number): number {
   return Math.exp(-0.5 * ((leftValue - rightValue) / sigma) ** 2);
 }

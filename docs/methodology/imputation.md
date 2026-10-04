@@ -63,6 +63,10 @@ Apply [clamp](overview.md#shared-mathematical-operations) to the combined value 
 
 ![Source A and B results combine into paired or crosswalked means. Shaded bands around crosswalked means illustrate typical prediction error ±ε, using ε = 0.02; they are not confidence intervals or guaranteed bounds. A crossed-out validation error of 0.04 exceeds the allowed 0.025 and illustrates rejection of a different crosswalk.](../assets/methodology/source-crosswalk.svg)
 
+**Three sources**
+
+Three sources of one benchmark combine at equal weight. Each source pair fits and accepts its own offset as above. A missing source is predicted from every observed counterpart whose pair crosswalk was accepted, using the mean of those predictions, and the combined result is the mean of the three values. Each combination of observed and missing sources is validated separately: withhold each result observed in all three sources, predict its three-source mean from that combination alone, and accept the combination only when at least six models yield predictions with model-balanced median absolute error within the limit.
+
 **Keep result status and provenance separate**
 
 An accepted crosswalk contributes one benchmark result with evidence factor 1. It participates in normalization, pairwise comparison, capability scoring, admission, and downstream benchmark-quality calculations. The source slots retain which results were measured, which counterparts were mapped, validation error, and extrapolation diagnostics. These diagnostics do not classify the accepted quality result as effort or missing-benchmark imputation.
@@ -274,6 +278,8 @@ These values are scoring-policy choices, not fitted claims about model behavior.
 
 | Parameter | Value | Why it exists |
 | --- | ---: | --- |
+| Source crosswalk models | 6 | Requires paired and held-out evidence from several independent models before mapping a missing source. |
+| Source crosswalk error limit | Set per benchmark in its own score units | Keeps mapped counterparts close to measured results; [Benchmarks](../benchmarks.md#benchmark-source-policies) lists each limit. |
 | Other observed benchmarks required | 3 | Requires a broader basis than one or two benchmark results. |
 | Held-out models for imputation from other benchmarks | 4 | Requires independent evidence beyond the minimum calibration set. |
 | Maximum normalized imputation error | 25 points | Refuses predictors whose typical held-out error is too large to be useful; the evidence factor falls to zero at this boundary. |
