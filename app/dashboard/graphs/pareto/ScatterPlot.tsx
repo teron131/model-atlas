@@ -141,7 +141,9 @@ export function FrontierBenchmarkScatterPlot<Row>({
     x: xPoint(metric.get(row)),
     y: yPoint(getScore(row)),
   }));
-  const markRadius = (row: Row) => starMarkRadius(getModel(row), 2.75, 5.75);
+  // A mid-scoring model matches the leaderboard's score star: 6px wide, or 5px on compact layouts.
+  const [minMarkRadius, maxMarkRadius] = compactLayout ? [1.75, 3.25] : [2, 3.75];
+  const markRadius = (row: Row) => starMarkRadius(getModel(row), minMarkRadius, maxMarkRadius);
   const projectionPoints = rows.map((row) => {
     const xValue = metric.get(row);
     const yValue = getScore(row);

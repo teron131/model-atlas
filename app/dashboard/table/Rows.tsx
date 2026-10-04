@@ -27,6 +27,7 @@ import {
   contextWindowValue,
   type DashboardMetricColumn,
   dashboardMetricValue,
+  isAmountColumn,
   speedMetricColumns,
   type TableColumnKey,
   type TableRow,
@@ -149,9 +150,9 @@ export const ModelRow = memo(function ModelRow({
         .map((column) => {
           const summary = rowData.resourceRatios?.[column.kind];
           return (
-            <TableCell
+            <RatioCell
               key={column.key}
-              text={formatResourceRatio(summary?.ratio)}
+              ratio={summary?.ratio}
               className={tableCellClassName(column.key, ruledColumnKeySet)}
               title={
                 summary == null
@@ -162,7 +163,9 @@ export const ModelRow = memo(function ModelRow({
           );
         })}
       {visibleColumnKeySet.has("blend") ? (
-        <TableCell
+        <AmountCell
+          rowData={rowData}
+          columnKey="blend"
           text={formatCost(model.cost?.blended_price)}
           className={tableCellClassName("blend", ruledColumnKeySet)}
         />
@@ -178,7 +181,9 @@ export const ModelRow = memo(function ModelRow({
           />
         ))}
       {visibleColumnKeySet.has("context") ? (
-        <TableCell
+        <AmountCell
+          rowData={rowData}
+          columnKey="context"
           text={formatContext(contextWindowValue(model))}
           className={tableCellClassName("context", ruledColumnKeySet)}
         />
@@ -295,10 +300,17 @@ const DashboardMetricCell = memo(function DashboardMetricCell({
       ? benchmarkDisplayValue(rowData, column)
       : dashboardMetricValue(model, column);
   const className = `data-cell${hasRuleAfter ? " column-group-end" : ""}`;
+  if (isAmountColumn(column)) {
+    return (
+      <AmountCell
+        rowData={rowData}
+        columnKey={column.key}
+        text={formatDashboardMetric(value, column)}
+        className={className}
+      />
+    );
+  }
   if ("benchmark" in column) {
-    if (column.format === "currency") {
-      return <TableCell text={formatDashboardMetric(value, column)} className={className} />;
-    }
     return (
       <BenchmarkMetricCell
         meterPercent={benchmarkMeterValue(rowData, column)}
@@ -343,6 +355,7 @@ function metricCellValue(rowData: TableRow, column: DashboardMetricColumn) {
 }
 
 function metricCellMeterValue(rowData: TableRow, column: DashboardMetricColumn) {
+  if (isAmountColumn(column)) return rowData.metricRatios[column.key] ?? null;
   return "benchmark" in column ? benchmarkMeterValue(rowData, column) : null;
 }
 
@@ -542,6 +555,65 @@ function TableCell({
   return (
     <td className={`${className ?? ""}${missingClass}`.trim()} title={title}>
       {text}
+    </td>
+  );
+}
+
+/** Show a measured amount with its bar against the column median, and the ratio on hover. */
+function AmountCell({
+  rowData,
+  columnKey,
+  text,
+  className,
+}: {
+  rowData: TableRow;
+  columnKey: TableColumnKey;
+  text: string;
+  className: string;
+}) {
+  const ratio = rowData.metricRatios[columnKey];
+  return (
+    <RatioCell
+      ratio={ratio}
+      text={text}
+      className={className}
+      title={ratio == null ? undefined : `${formatResourceRatio(ratio)} the column median`}
+    />
+  );
+}
+
+// Bars reach the track's ends at 16× or 1/16× (four doublings); every column shares this fixed scale, however wide its spread.
+const RATIO_TRACK_DOUBLINGS = 4;
+// A power below one on the doubling count widens small factors and keeps large ones apart: 0.74× still reads as a saving, 1.05× stays a stub, and 6.2× and 11× draw visibly apart.
+const RATIO_CURVE = 0.6;
+
+/** Draw a median-relative bar beneath its readout, the ratio itself or a measured amount, on a fixed doubling scale; the exact ratio stays in the number or the hover. */
+function RatioCell({
+  ratio,
+  text = formatResourceRatio(ratio),
+  className,
+  title,
+}: {
+  ratio: number | null | undefined;
+  text?: string;
+  className: string;
+  title?: string;
+}) {
+  if (ratio == null || !Number.isFinite(ratio) || ratio <= 0) {
+    return <TableCell text={text} className={className} title={title} />;
+  }
+  const doublings = Math.log2(ratio);
+  const extent = Math.min(1, (Math.abs(doublings) / RATIO_TRACK_DOUBLINGS) ** RATIO_CURVE);
+  const position = 0.5 + (Math.sign(doublings) * extent) / 2;
+  // Fixed precision keeps server and browser logarithms serializing the same style.
+  const style = {
+    "--ratio-bar-start": `${(Math.min(position, 0.5) * 100).toFixed(2)}%`,
+    "--ratio-bar-width": `${(Math.abs(position - 0.5) * 100).toFixed(2)}%`,
+  } as CSSProperties;
+  return (
+    <td className={className} title={title}>
+      {text}
+      <span className="ratio-track" style={style} aria-hidden="true" />
     </td>
   );
 }

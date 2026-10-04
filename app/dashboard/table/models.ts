@@ -9,7 +9,12 @@ import {
 } from "../../../src/model-atlas/benchmarks/catalog";
 import type { BenchmarkTaskMetricColumnFacet } from "../../../src/model-atlas/benchmarks/factory";
 import { isAggregateIndex } from "../../../src/model-atlas/benchmarks/index-policy";
-import { linearScore, minMaxRange } from "../../../src/model-atlas/math-utils";
+import {
+  linearScore,
+  medianOfFinite,
+  minMaxRange,
+  positiveFiniteNumber,
+} from "../../../src/model-atlas/math-utils";
 import { clampScore } from "../../../src/model-atlas/pipeline/scores/normalization";
 import { benchmarkMetricValue as modelBenchmarkMetricValue } from "../../../src/model-atlas/pipeline/scores/resource-metrics";
 import type {
@@ -346,6 +351,8 @@ export type TableRow = {
   originalIndex: number;
   aliasPriority: number;
   benchmarkDisplayScores: Partial<Record<BenchmarkMetricColumn["key"], number | null>>;
+  /** Each measured amount (price, speed, context, benchmark resources) relative to its column's median across the incoming population. */
+  metricRatios: Partial<Record<TableColumnKey, number | null>>;
   resourceRatios?: Record<ResourceRatioKind, ResourceRatioSummary>;
 };
 
@@ -449,7 +456,22 @@ export function sortedRows(rows: readonly TableRow[], sortState: SortState) {
   });
 }
 
-/** Collapse duplicate routes and scale benchmark meters against the full incoming population before filtering or limiting rows. */
+/** Measured amounts read against their column median; scores, dates, and flags keep their own cells. */
+export function isAmountColumn(column: DashboardMetricColumn): boolean {
+  if ("benchmark" in column) return column.format === "currency";
+  return "source" in column || column.group === "costs" || column.group === "speed";
+}
+
+const amountColumns: { key: TableColumnKey; get: (model: ModelAtlasModel) => unknown }[] = [
+  { key: "blend", get: (model) => model.cost?.blended_price },
+  { key: "context", get: contextWindowValue },
+  ...[...speedMetricColumns, ...dashboardMetricColumns].filter(isAmountColumn).map((column) => ({
+    key: column.key,
+    get: (model: ModelAtlasModel) => dashboardMetricValue(model, column),
+  })),
+];
+
+/** Collapse duplicate routes and scale benchmark meters and amount ratios against the full incoming population before filtering or limiting rows. */
 export function dedupeDisplayModels(models: ModelAtlasModel[]) {
   const ranges = new Map(
     scaledBenchmarkMetricColumns.map((column) => [
@@ -457,6 +479,15 @@ export function dedupeDisplayModels(models: ModelAtlasModel[]) {
       minMaxRange(models.map((model) => benchmarkMetricValue(model, column))),
     ]),
   );
+  const amountScales = amountColumns.map(({ key, get }) => {
+    // Zero or missing amounts have no position on a ratio's log scale.
+    const amounts = models.map((model) => positiveFiniteNumber(get(model)));
+    const median = medianOfFinite(amounts);
+    return {
+      key,
+      ratios: amounts.map((amount) => (amount == null || !median ? null : amount / median)),
+    };
+  });
   const rowsByIdentity = new Map<string, UnrankedTableRow>();
   for (const [originalIndex, model] of models.entries()) {
     const key = displayKey(model);
@@ -470,6 +501,9 @@ export function dedupeDisplayModels(models: ModelAtlasModel[]) {
           const normalized = linearScore(ranges.get(column.key) ?? null, value);
           return [column.key, normalized == null ? null : clampScore(normalized)];
         }),
+      ),
+      metricRatios: Object.fromEntries(
+        amountScales.map(({ key, ratios }) => [key, ratios[originalIndex]]),
       ),
     };
     const existing = rowsByIdentity.get(key);

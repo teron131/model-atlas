@@ -1,7 +1,8 @@
 /** Resource ratios share one multiplier notation across leaderboard cells, axes, and hover details. */
 
-/** Preserve small positive ratios while showing missing evidence distinctly from zero consumption. */
+/** Two significant figures match the precision of benchmark-median ratios while keeping small positive ratios legible; missing evidence stays distinct from zero consumption. */
 export function formatResourceRatio(value: number | null | undefined): string {
   if (value == null || !Number.isFinite(value)) return "-";
-  return `${value < 0.01 && value > 0 ? value.toPrecision(2) : value.toFixed(2)}×`;
+  if (value === 0) return "0×";
+  return `${value >= 10 ? value.toFixed(0) : value.toPrecision(2)}×`;
 }
