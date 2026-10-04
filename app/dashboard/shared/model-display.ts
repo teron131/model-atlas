@@ -56,12 +56,6 @@ export function modelCount(models: ModelAtlasModel[]): number {
   return new Set(models.map(canonicalModelKey)).size;
 }
 
-/** Every graph requires published Value evidence; individual comparisons also enforce their own coordinate availability. */
-export function isGraphEligible(model: ModelAtlasModel): boolean {
-  const value = model.scores?.value_score;
-  return typeof value === "number" && Number.isFinite(value);
-}
-
 /** Expand every reasoning variant when requested; otherwise retain the highest-scoring variant per model. */
 export function modelsForVariantDisplay(
   models: ModelAtlasModel[],

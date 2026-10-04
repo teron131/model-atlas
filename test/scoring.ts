@@ -33,6 +33,7 @@ import {
   buildBenchmarkImputationDiagnosticsByKey,
   buildComponentScoreResult,
   imputedTaskResource,
+  logBlendedPrice,
   prepareEffortResourceImputation,
 } from "../src/model-atlas/pipeline/scores";
 import {
@@ -614,7 +615,7 @@ const absoluteGapValueModels = attachFinalScores(
   ),
   STAGE_CONFIG.scoring,
 );
-assertClose(absoluteGapValueModels[1]?.scores.value_score, 56.166718);
+assertClose(absoluteGapValueModels[1]?.scores.value_score, 52.0833375);
 
 const zeroPriceValueModels = attachFinalScores(
   [0, 1, 10].map((blendedPrice) =>
@@ -650,7 +651,7 @@ const aggregateQualityModels = gapExampleValues.map((quality, index) => ({
   cost: { blended_price: aggregateQualityPrices[index] ?? null },
 }));
 const aggregateQualityPriceSignals = aggregateQualityModels.map((model) =>
-  Math.log10(1 + (model.cost.blended_price ?? 0)),
+  logBlendedPrice(model.cost.blended_price ?? null),
 );
 const aggregateQualityRawPriceScores = modelBalancedMinMaxScores(
   aggregateQualityModels,

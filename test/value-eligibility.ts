@@ -1,4 +1,4 @@
-/** Protect the independent output-only resource evidence gates and graph exclusion without losing quality-qualified table rows. */
+/** Protect the independent output-only resource evidence gates without losing quality-qualified table rows. */
 import assert from "node:assert/strict";
 
 import { frontierBenchmarkRows } from "../app/dashboard/graphs/pareto/analysis";
@@ -6,7 +6,6 @@ import {
   frontierBenchmarkAxisConfig,
   frontierBenchmarkHoverRows,
 } from "../app/dashboard/graphs/pareto/presentation";
-import { isGraphEligible, modelsForVariantDisplay } from "../app/dashboard/shared/model-display";
 import { publicJsonPayload } from "../app/leaderboard/public-json";
 import { STAGE_CONFIG } from "../src/model-atlas/config/stage";
 import {
@@ -28,7 +27,6 @@ const model = {
 };
 const eligible = applyResourceEvidenceRequirements(model, portfolio);
 assert.equal(eligible, model);
-assert.ok(isGraphEligible(eligible));
 const sparse = {
   ...model,
   reasoning_effort: "max",
@@ -46,7 +44,6 @@ assert.equal(gated.scores.speed_score, sparse.scores.speed_score);
 assert.equal(gated.cost, sparse.cost);
 assert.equal(gated.confidence, sparse.confidence);
 assert.notEqual(sparse.scores.value_score, null, "Eligibility must not mutate calibration inputs");
-assert.equal(isGraphEligible(gated), false);
 assert.equal(
   applyResourceEvidenceRequirements(
     { ...model, benchmarks: { ...model.benchmarks, hle: null } },
@@ -60,7 +57,6 @@ assert.equal(
   null,
   "Preview status does not turn provider price into four measured task costs",
 );
-assert.ok(isGraphEligible({ ...model, scores: { ...model.scores, value_score: 0 } }));
 
 const payload = minimalModelAtlasPayload({ fetchedAt: 1, models: [sparse, model] });
 payload.metadata.scoring.benchmark_portfolio = portfolio;
@@ -68,16 +64,6 @@ const dashboard = publicJsonPayload(payload, "dashboard") as ModelAtlasPayload;
 assert.equal(dashboard.models.length, 2, "Both quality-qualified efforts remain table rows");
 assert.equal(dashboard.models[0]?.scores.value_score, null);
 assert.notEqual(dashboard.models[1]?.scores.value_score, null);
-const graphModels = dashboard.models.filter(isGraphEligible);
-assert.equal(graphModels.length, 1);
-assert.equal(graphModels[0]?.reasoning_effort, "high");
-const collapsed = modelsForVariantDisplay(graphModels, false);
-assert.equal(collapsed.length, 1);
-assert.notEqual(
-  collapsed[0]?.scores.value_score,
-  null,
-  "Collapse must select from eligible efforts",
-);
 assert.equal(payload.models[0]?.scores.value_score, sparse.scores.value_score);
 
 // Published rows retain measured source-specific task pairs even after internal scoring provenance is removed.

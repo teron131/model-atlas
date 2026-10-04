@@ -3,7 +3,6 @@
 import { RESOURCE_SCORE_BUCKET_WEIGHTS, type ScoringConfig } from "../../config/stage";
 import { canonicalModelKey, reasoningEffortRank } from "../../identity/normalization";
 import {
-  log10OnePlusNonnegative,
   logInputMinMaxScores,
   meanOfFinite,
   nonnegativeFiniteNumber,
@@ -26,7 +25,7 @@ import {
   effectiveTaskSeconds,
   separatedBenchmarkResourceEvidence,
 } from "./resource-metrics";
-import { blendedPriceValue } from "./score-builders";
+import { blendedPriceValue, logBlendedPrice } from "./score-builders";
 
 type WeightedSignal = {
   value: number | null;
@@ -254,9 +253,7 @@ function buildResourceScoreInputs(
   benchmarkPreparation?: BenchmarkScoringPreparation,
   resourceImputation?: EffortResourceImputation,
 ): ResourceScoreInputs {
-  const logBlendedPriceSignals = models.map((model) =>
-    log10OnePlusNonnegative(blendedPrice(model)),
-  );
+  const logBlendedPriceSignals = models.map((model) => logBlendedPrice(blendedPrice(model)));
   const logBlendedPriceScores = modelBalancedMinMaxScores(models, logBlendedPriceSignals, "lower");
   const qualityAdjustedBlendedPriceScores = qualityLocalResourceScores(
     models,

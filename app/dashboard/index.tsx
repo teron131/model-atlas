@@ -11,7 +11,6 @@ import { DashboardGraphs } from "./graphs/DashboardGraphs";
 import { useLivePayload } from "./live-payload";
 import {
   type GlobalModelFilters,
-  isGraphEligible,
   modelsForVariantDisplay,
   providerOptions,
 } from "./shared/model-display";
@@ -49,7 +48,7 @@ export function Dashboard({
     return {
       ...payload,
       models: modelsForVariantDisplay(
-        payload.models.filter(isGraphEligible),
+        payload.models,
         showReasoningVariants,
         payload.benchmark_observations,
       ),
