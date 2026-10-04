@@ -206,7 +206,7 @@
   font-size: 23px;
 }
 
-/* The export's fixed score columns keep the compact stacked cell rather than the live table's dot-plot band. */
+/* The export's fixed score columns enlarge the stacked cell for the PNG's larger type. */
 .leaderboard :global(.score-cell .score-value) {
   display: block;
   width: auto;

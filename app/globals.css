@@ -1320,30 +1320,15 @@ html[data-model-atlas-theme="light"] .score-meter::after {
   background: color-mix(in srgb, var(--score-color, var(--ink)) 85%, var(--ink));
 }
 
-/* On wide screens the four scores read as one compact dot-plot band: each number sits beside a short 0–100 track with the model's star at its score, so reading down a column shows the gaps and clusters between models. */
+/* Every meter sits beneath its number, so the readout carries the row and columns stay narrow; tracks keep one width, so they still line up down each column. A half-way tick on every score track is a faint guide at 50. */
+.score-cell .score-meter {
+  background: linear-gradient(var(--score-track), var(--score-track)) 50% 50% / 1px 7px no-repeat;
+}
+
 @media (min-width: 761px) {
-  .score-cell {
-    min-width: 104px;
-    white-space: nowrap;
-  }
-
-  .score-cell .score-value {
-    display: inline-block;
-    width: 4.2ch;
-    text-align: right;
-    vertical-align: middle;
-  }
-
-  /* A half-way tick on every track lines up down the column as a faint guide at 50. */
   .score-cell .score-meter {
     --score-star-size: 6px;
     --score-star-inset: 3px;
-    display: inline-block;
-    width: 48px;
-    height: 14px;
-    margin: 0 0 0 8px;
-    background: linear-gradient(var(--score-track), var(--score-track)) 50% 50% / 1px 7px no-repeat;
-    vertical-align: middle;
   }
 }
 
@@ -1354,6 +1339,30 @@ html[data-model-atlas-theme="light"] .score-meter::after {
 .data-cell {
   min-width: 70px;
   font-weight: 600;
+}
+
+/* Ratios read as a bar rather than a star: from the 1× median tick a solid bar in the score trail's provider colour grows toward the model's ratio, so the columns never echo the score stars. The track runs a little longer than the score tracks so overspends of 6× and 11× still draw apart while small savings stay visible. */
+.ratio-track {
+  position: relative;
+  display: block;
+  width: 60px;
+  height: 10px;
+  margin: 4px 0 0 auto;
+  background:
+    linear-gradient(var(--line-strong), var(--line-strong)) 50% 50% / 1px 8px no-repeat,
+    linear-gradient(var(--score-track), var(--score-track)) 0 50% / 100% 1px no-repeat;
+}
+
+.ratio-track::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: var(--ratio-bar-start);
+  /* A model at the median still shows a stub on the tick, so a measured value never reads as missing. */
+  width: max(2px, var(--ratio-bar-width));
+  height: 4px;
+  background: var(--row-provider, var(--ink));
+  transform: translateY(-50%);
 }
 
 .confidence-cell {
@@ -1591,7 +1600,8 @@ td.modality-cell {
     min-width: 58px;
   }
 
-  .score-meter {
+  .score-meter,
+  .ratio-track {
     width: 40px;
   }
 
