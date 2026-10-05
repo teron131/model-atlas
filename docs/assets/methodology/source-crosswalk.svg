@@ -1,109 +1,52 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 72 1040 513" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 556" role="img" aria-labelledby="title desc">
 <title id="title">Source crosswalk and validation error epsilon</title>
-<desc id="desc">Two source number lines feed one combined result. Solid fusion points show the mean of two observations; hollow points use a mapped source counterpart. Shaded bands around hollow points show an illustrative typical prediction error of plus or minus epsilon, here 0.02. These are not confidence intervals or guaranteed bounds. Missing counterparts use an assumed validated offset of 0.02 from a larger calibration population. A separate illustrative rejected crosswalk is marked with an X: validation error 0.04 exceeds the allowed 0.025, so its missing-source predictions are not used. The typical-error bands do not reject individual results.</desc>
+<desc id="desc">Seven illustrative models on a shared 0 to 1 score scale, with source A on the upper lane and source B on the lower lane of each row. Models B, C, and D report both sources, which agree closely and match exactly for model B, so the combined result is the mean of the two observations. Models A, E, and G report only source A, and model F only source B; their missing counterpart is mapped with an assumed validated offset of 0.02, and the combined mean carries a band of plus or minus epsilon, here 0.02, showing typical prediction error rather than a confidence interval. Below, a validation error of 0.02 falls inside the 0.025 limit and is accepted, while a different crosswalk with error 0.04 is rejected.</desc>
 <style>
-text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; fill:#182421; }
-.muted { fill:#63706e; } .axis { stroke:#63706e; stroke-width:1.4; }
-.link { fill:none; stroke:#8c9994; stroke-width:1.5; stroke-dasharray:2 6; opacity:.65; }
-.a { color:#146cba; } .b { color:#a64d0c; } .f { color:#087f6b; }
-.ink { fill:currentColor; } .rejected { color:#b33f3f; }
-@media (prefers-color-scheme:dark) {
-text { fill:#ffffff; } .muted { fill:#a6b2ae; }
-.axis { stroke:#a6b2ae; } .link { stroke:#8c9994; }
-.rejected { color:#ff9696; }
-.a { color:#85bfff; } .b { color:#ffbc7d; } .f { color:#62d6b1; }
+text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:15px;fill:#202724}
+.num{font-family:"SFMono-Regular","SF Mono",Menlo,Consolas,monospace;font-size:14px}
+.small{font-size:12.5px}.big{font-size:18px}.strong{font-weight:600}
+.muted{fill-opacity:.62}.faint{opacity:.4}.half{opacity:.5}
+.grid{fill:none;stroke:#202724;stroke-opacity:.09}
+.guide{fill:none;stroke:#202724;stroke-opacity:.22}
+.axis{fill:none;stroke:#202724;stroke-opacity:.34}
+.ink{fill:#202724}.ink-line{fill:none;stroke:#202724}.ink-wash{fill:#202724;fill-opacity:.08}
+.ring{stroke:#f2f4f2;stroke-width:2;paint-order:stroke}.gap{stroke:#f2f4f2;stroke-width:2}
+.violet{fill:#6b47e0}.violet-line{fill:none;stroke:#6b47e0}.violet-wash{fill:#6b47e0;fill-opacity:.14}
+.rose{fill:#c93f78}.rose-line{fill:none;stroke:#c93f78}.rose-wash{fill:#c93f78;fill-opacity:.14}
+.amber{fill:#a8740c}.amber-line{fill:none;stroke:#a8740c}.amber-wash{fill:#a8740c;fill-opacity:.16}
+.h0{stop-color:#3557e6}.h1{stop-color:#6b47e0}.h2{stop-color:#d9467f}
+.land0{stop-color:#6b47e0;stop-opacity:.12}.land1{stop-color:#6b47e0;stop-opacity:.01}
+.halo{opacity:0}
+@media (prefers-color-scheme:dark){
+text{fill:#f2f3ed}.muted{fill-opacity:.58}
+.grid{stroke:#f2f3ed;stroke-opacity:.08}.guide{stroke:#f2f3ed;stroke-opacity:.2}.axis{stroke:#f2f3ed;stroke-opacity:.3}
+.ink{fill:#f2f3ed}.ink-line{stroke:#f2f3ed}.ink-wash{fill:#f2f3ed;fill-opacity:.1}
+.ring{stroke:#0b1016}.gap{stroke:#0b1016}
+.violet{fill:#8f6bff}.violet-line{stroke:#8f6bff}.violet-wash{fill:#8f6bff;fill-opacity:.22}
+.rose{fill:#e06296}.rose-line{stroke:#e06296}.rose-wash{fill:#e06296;fill-opacity:.2}
+.amber{fill:#b98b24}.amber-line{stroke:#b98b24}.amber-wash{fill:#b98b24;fill-opacity:.22}
+.h0{stop-color:#4a72ff}.h1{stop-color:#8f6bff}.h2{stop-color:#ff92bd}
+.land0{stop-color:#6f8cff;stop-opacity:.16}.land1{stop-color:#6f8cff;stop-opacity:.02}
+.halo{opacity:.55}
 }
 </style>
-
-<path d="M136.2 150 L145.1 300" class="link"/>
-<path d="M251.9 150 L251.9 300" class="link"/>
-<path d="M251.9 300 L251.9 450" class="link"/>
-<path d="M367.6 150 L394.3 300" class="link"/>
-<path d="M394.3 300 L421 450" class="link"/>
-<path d="M518.9 300 L527.8 450" class="link"/>
-<path d="M652.4 150 L634.6 300" class="link"/>
-<path d="M634.6 300 L616.8 450" class="link"/>
-<path d="M768.1 150 L777 300" class="link"/>
-<path d="M866 150 L874.9 300" class="link"/>
-<text x="50" y="103" font-size="21" class="a ink" font-weight="600">Source A</text>
-<text x="184" y="103" font-size="14" class="muted">6 observed</text>
-<line x1="65" y1="150" x2="955" y2="150" class="axis"/>
-<line x1="65" y1="150" x2="65" y2="156" class="axis"/>
-<text x="65" y="172" font-size="11" text-anchor="middle" class="muted">0.0</text>
-<line x1="510.0" y1="150" x2="510.0" y2="156" class="axis"/>
-<text x="510" y="172" font-size="11" text-anchor="middle" class="muted">0.5</text>
-<line x1="955" y1="150" x2="955" y2="156" class="axis"/>
-<text x="955" y="172" font-size="11" text-anchor="middle" class="muted">1.0</text>
-<circle cx="136.2" cy="150" r="5" class="a" fill="currentColor" stroke="currentColor" stroke-width="2"/>
-<text x="145.2" y="138" font-size="12" class="a ink">Model A 0.08</text>
-<circle cx="251.9" cy="150" r="5" class="a" fill="currentColor" stroke="currentColor" stroke-width="2"/>
-<text x="260.9" y="138" font-size="12" class="a ink">Model B 0.21</text>
-<circle cx="367.6" cy="150" r="5" class="a" fill="currentColor" stroke="currentColor" stroke-width="2"/>
-<text x="376.6" y="138" font-size="12" class="a ink">Model C 0.34</text>
-<circle cx="652.4" cy="150" r="5" class="a" fill="currentColor" stroke="currentColor" stroke-width="2"/>
-<text x="661.4" y="138" font-size="12" class="a ink">Model D 0.66</text>
-<circle cx="768.1" cy="150" r="5" class="a" fill="currentColor" stroke="currentColor" stroke-width="2"/>
-<text x="777.1" y="138" font-size="12" class="a ink">Model E 0.79</text>
-<circle cx="866" cy="150" r="5" class="a" fill="currentColor" stroke="currentColor" stroke-width="2"/>
-<text x="875" y="138" font-size="12" class="a ink">Model G 0.90</text>
-<text x="518.9" y="258" font-size="15" text-anchor="middle" class="f ink">Crosswalked mean ±ε</text>
-<text x="50" y="253" font-size="21" class="f ink" font-weight="600">Fusion</text>
-<text x="184" y="253" font-size="14" class="muted">7 results · 50/50</text>
-<g class="f"><rect x="127.3" y="290" width="35.6" height="20" rx="5" fill="currentColor" opacity=".18"/><path d="M127.3 291 V309 M162.9 291 V309" stroke="currentColor" stroke-width="1.5" opacity=".7"/></g>
-<g class="f"><rect x="501.1" y="290" width="35.6" height="20" rx="5" fill="currentColor" opacity=".18"/><path d="M501.1 291 V309 M536.7 291 V309" stroke="currentColor" stroke-width="1.5" opacity=".7"/></g>
-<g class="f"><rect x="759.2" y="290" width="35.6" height="20" rx="5" fill="currentColor" opacity=".18"/><path d="M759.2 291 V309 M794.8 291 V309" stroke="currentColor" stroke-width="1.5" opacity=".7"/></g>
-<g class="f"><rect x="857.1" y="290" width="35.6" height="20" rx="5" fill="currentColor" opacity=".18"/><path d="M857.1 291 V309 M892.7 291 V309" stroke="currentColor" stroke-width="1.5" opacity=".7"/></g>
-<line x1="65" y1="300" x2="955" y2="300" class="axis"/>
-<line x1="65" y1="300" x2="65" y2="306" class="axis"/>
-<text x="65" y="322" font-size="11" text-anchor="middle" class="muted">0.0</text>
-<line x1="510.0" y1="300" x2="510.0" y2="306" class="axis"/>
-<text x="510" y="322" font-size="11" text-anchor="middle" class="muted">0.5</text>
-<line x1="955" y1="300" x2="955" y2="306" class="axis"/>
-<text x="955" y="322" font-size="11" text-anchor="middle" class="muted">1.0</text>
-<circle cx="145.1" cy="300" r="5" class="f" fill="none" stroke="currentColor" stroke-width="2"/>
-<text x="154.1" y="288" font-size="12" class="f ink">Model A 0.09</text>
-<circle cx="251.9" cy="300" r="5" class="f" fill="currentColor" stroke="currentColor" stroke-width="2"/>
-<text x="260.9" y="288" font-size="12" class="f ink">Model B 0.21</text>
-<circle cx="394.3" cy="300" r="5" class="f" fill="currentColor" stroke="currentColor" stroke-width="2"/>
-<text x="403.3" y="288" font-size="12" class="f ink">Model C 0.37</text>
-<circle cx="518.9" cy="300" r="5" class="f" fill="none" stroke="currentColor" stroke-width="2"/>
-<text x="527.9" y="288" font-size="12" class="f ink">Model F 0.51</text>
-<circle cx="634.6" cy="300" r="5" class="f" fill="currentColor" stroke="currentColor" stroke-width="2"/>
-<text x="643.6" y="288" font-size="12" class="f ink">Model D 0.64</text>
-<circle cx="777" cy="300" r="5" class="f" fill="none" stroke="currentColor" stroke-width="2"/>
-<text x="786" y="288" font-size="12" class="f ink">Model E 0.80</text>
-<circle cx="874.9" cy="300" r="5" class="f" fill="none" stroke="currentColor" stroke-width="2"/>
-<text x="883.9" y="288" font-size="12" class="f ink">Model G 0.91</text>
-<text x="50" y="403" font-size="21" class="b ink" font-weight="600">Source B</text>
-<text x="184" y="403" font-size="14" class="muted">4 observed</text>
-<line x1="65" y1="450" x2="955" y2="450" class="axis"/>
-<line x1="65" y1="450" x2="65" y2="456" class="axis"/>
-<text x="65" y="472" font-size="11" text-anchor="middle" class="muted">0.0</text>
-<line x1="510.0" y1="450" x2="510.0" y2="456" class="axis"/>
-<text x="510" y="472" font-size="11" text-anchor="middle" class="muted">0.5</text>
-<line x1="955" y1="450" x2="955" y2="456" class="axis"/>
-<text x="955" y="472" font-size="11" text-anchor="middle" class="muted">1.0</text>
-<circle cx="251.9" cy="450" r="5" class="b" fill="currentColor" stroke="currentColor" stroke-width="2"/>
-<text x="260.9" y="438" font-size="12" class="b ink">Model B 0.21</text>
-<circle cx="421" cy="450" r="5" class="b" fill="currentColor" stroke="currentColor" stroke-width="2"/>
-<text x="430" y="438" font-size="12" class="b ink">Model C 0.40</text>
-<circle cx="616.8" cy="450" r="5" class="b" fill="currentColor" stroke="currentColor" stroke-width="2"/>
-<text x="625.8" y="438" font-size="12" class="b ink">Model D 0.62</text>
-<circle cx="527.8" cy="450" r="5" class="b" fill="currentColor" stroke="currentColor" stroke-width="2"/>
-<text x="536.8" y="438" font-size="12" class="b ink">Model F 0.52</text>
-<circle cx="56" cy="514" r="5" class="f" fill="currentColor"/>
-<text x="70" y="519" font-size="14" class="muted">Paired mean</text>
-<circle cx="226" cy="514" r="5" class="f" fill="none" stroke="currentColor" stroke-width="2"/>
-<text x="240" y="519" font-size="14" class="muted">Crosswalked mean</text>
-
-
-<text x="655" y="511" font-size="15" font-weight="600" class="rejected ink">Too much validation error → no crosswalk</text>
-<g class="f"><rect x="665" y="527" width="137.5" height="20" rx="4" fill="currentColor" opacity=".18"/></g>
-<line x1="665" y1="537" x2="940" y2="537" class="axis"/>
-<line x1="802.5" y1="525" x2="802.5" y2="550" class="axis"/>
-<text x="729" y="542" text-anchor="middle" font-size="12" class="f ink">Allowed error</text>
-<g class="rejected" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M877 530 L891 544 M877 544 L891 530"/></g>
-<text x="665" y="568" font-size="12" class="muted">0</text>
-<text x="802.5" y="568" text-anchor="middle" font-size="13" class="muted">ε<tspan baseline-shift="sub" font-size="10">max</tspan> = 0.025</text>
-<text x="911" y="568" text-anchor="middle" font-size="13" class="rejected ink">ε = 0.04 ✕</text>
+<defs><filter id="glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="3"/></filter><marker id="tip-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="ink" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-violet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="violet" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="rose" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="amber" d="M0 0L10 5L0 10Z"/></marker></defs>
+<g><circle class="ink halo" cx="46" cy="32" r="6.5" filter="url(#glow)"/><circle class="ink ring" cx="46" cy="32" r="4.5"/></g><text class="muted" x="56" y="37">Source A</text><path class="ink ring" d="M152 26L158 32L152 38L146 32Z"/><text class="muted" x="162" y="37">Source B</text><g><circle class="rose halo" cx="258" cy="32" r="6.5" filter="url(#glow)"/><circle class="rose ring" cx="258" cy="32" r="4.5"/></g><text class="muted" x="268" y="37">Mapped counterpart</text><g><circle class="violet halo" cx="426" cy="32" r="7" filter="url(#glow)"/><circle class="violet ring" cx="426" cy="32" r="5"/></g><text class="muted" x="436" y="37">Combined result</text><rect class="violet" x="564" y="24" width="20" height="16" rx="8" opacity=".24"/><text class="muted" x="592" y="37">±ε</text>
+<text class="muted" x="744" y="66" text-anchor="end">Combined</text>
+<path class="axis" d="M150 74L150 436"/><text class="num muted" x="150" y="456" text-anchor="middle">0</text><path class="grid" d="M287.5 74L287.5 436"/><text class="num muted" x="287.5" y="456" text-anchor="middle">0.25</text><path class="grid" d="M425 74L425 436"/><text class="num muted" x="425" y="456" text-anchor="middle">0.5</text><path class="grid" d="M562.5 74L562.5 436"/><text class="num muted" x="562.5" y="456" text-anchor="middle">0.75</text><path class="grid" d="M700 74L700 436"/><text class="num muted" x="700" y="456" text-anchor="middle">1</text>
+<text x="40" y="105">Model A</text><text class="num muted" x="136" y="90" text-anchor="end">A</text><text class="num muted" x="136" y="118" text-anchor="end">B</text><rect class="violet" x="188.5" y="93" width="22" height="14" rx="7" opacity=".24"/><path class="ink-line" d="M194 86L199.5 100" stroke-width="1.25" stroke-opacity=".35"/><path class="rose-line" d="M205 114L199.5 100" stroke-width="1.25" stroke-dasharray="2 3"/><g><circle class="ink halo" cx="194" cy="86" r="6.5" filter="url(#glow)"/><circle class="ink ring" cx="194" cy="86" r="4.5"/></g><path class="rose ring" d="M205 108L211 114L205 120L199 114Z"/><g><circle class="violet halo" cx="199.5" cy="100" r="7" filter="url(#glow)"/><circle class="violet ring" cx="199.5" cy="100" r="5"/></g><text class="num" x="744" y="104.5" text-anchor="end">0.09</text>
+<text x="40" y="157">Model B</text><path class="ink-line" d="M265.5 138L265.5 152" stroke-width="1.25" stroke-opacity=".35"/><path class="ink-line" d="M265.5 166L265.5 152" stroke-width="1.25" stroke-opacity=".35"/><g><circle class="ink halo" cx="265.5" cy="138" r="6.5" filter="url(#glow)"/><circle class="ink ring" cx="265.5" cy="138" r="4.5"/></g><path class="ink ring" d="M265.5 160L271.5 166L265.5 172L259.5 166Z"/><g><circle class="violet halo" cx="265.5" cy="152" r="7" filter="url(#glow)"/><circle class="violet ring" cx="265.5" cy="152" r="5"/></g><text class="num" x="744" y="156.5" text-anchor="end">0.21</text>
+<text x="40" y="209">Model C</text><path class="ink-line" d="M337 190L353.5 204" stroke-width="1.25" stroke-opacity=".35"/><path class="ink-line" d="M370 218L353.5 204" stroke-width="1.25" stroke-opacity=".35"/><g><circle class="ink halo" cx="337" cy="190" r="6.5" filter="url(#glow)"/><circle class="ink ring" cx="337" cy="190" r="4.5"/></g><path class="ink ring" d="M370 212L376 218L370 224L364 218Z"/><g><circle class="violet halo" cx="353.5" cy="204" r="7" filter="url(#glow)"/><circle class="violet ring" cx="353.5" cy="204" r="5"/></g><text class="num" x="744" y="208.5" text-anchor="end">0.37</text>
+<text x="40" y="261">Model D</text><path class="ink-line" d="M513 242L502 256" stroke-width="1.25" stroke-opacity=".35"/><path class="ink-line" d="M491 270L502 256" stroke-width="1.25" stroke-opacity=".35"/><g><circle class="ink halo" cx="513" cy="242" r="6.5" filter="url(#glow)"/><circle class="ink ring" cx="513" cy="242" r="4.5"/></g><path class="ink ring" d="M491 264L497 270L491 276L485 270Z"/><g><circle class="violet halo" cx="502" cy="256" r="7" filter="url(#glow)"/><circle class="violet ring" cx="502" cy="256" r="5"/></g><text class="num" x="744" y="260.5" text-anchor="end">0.64</text>
+<text x="40" y="313">Model E</text><rect class="violet" x="579" y="301" width="22" height="14" rx="7" opacity=".24"/><path class="ink-line" d="M584.5 294L590 308" stroke-width="1.25" stroke-opacity=".35"/><path class="rose-line" d="M595.5 322L590 308" stroke-width="1.25" stroke-dasharray="2 3"/><g><circle class="ink halo" cx="584.5" cy="294" r="6.5" filter="url(#glow)"/><circle class="ink ring" cx="584.5" cy="294" r="4.5"/></g><path class="rose ring" d="M595.5 316L601.5 322L595.5 328L589.5 322Z"/><g><circle class="violet halo" cx="590" cy="308" r="7" filter="url(#glow)"/><circle class="violet ring" cx="590" cy="308" r="5"/></g><text class="num" x="744" y="312.5" text-anchor="end">0.80</text>
+<text x="40" y="365">Model F</text><rect class="violet" x="419.5" y="353" width="22" height="14" rx="7" opacity=".24"/><path class="rose-line" d="M425 346L430.5 360" stroke-width="1.25" stroke-dasharray="2 3"/><path class="ink-line" d="M436 374L430.5 360" stroke-width="1.25" stroke-opacity=".35"/><g><circle class="rose halo" cx="425" cy="346" r="6.5" filter="url(#glow)"/><circle class="rose ring" cx="425" cy="346" r="4.5"/></g><path class="ink ring" d="M436 368L442 374L436 380L430 374Z"/><g><circle class="violet halo" cx="430.5" cy="360" r="7" filter="url(#glow)"/><circle class="violet ring" cx="430.5" cy="360" r="5"/></g><text class="num" x="744" y="364.5" text-anchor="end">0.51</text>
+<text x="40" y="417">Model G</text><rect class="violet" x="639.5" y="405" width="22" height="14" rx="7" opacity=".24"/><path class="ink-line" d="M645 398L650.5 412" stroke-width="1.25" stroke-opacity=".35"/><path class="rose-line" d="M656 426L650.5 412" stroke-width="1.25" stroke-dasharray="2 3"/><g><circle class="ink halo" cx="645" cy="398" r="6.5" filter="url(#glow)"/><circle class="ink ring" cx="645" cy="398" r="4.5"/></g><path class="rose ring" d="M656 420L662 426L656 432L650 426Z"/><g><circle class="violet halo" cx="650.5" cy="412" r="7" filter="url(#glow)"/><circle class="violet ring" cx="650.5" cy="412" r="5"/></g><text class="num" x="744" y="416.5" text-anchor="end">0.91</text>
+<text x="40" y="513">Validation error</text>
+<rect class="violet" x="150" y="500" width="275" height="16" rx="8" opacity=".16"/>
+<path class="axis" d="M150 508L700 508"/>
+<path class="ink-line" d="M425 495L425 521" stroke-opacity=".6"/>
+<g><circle class="violet halo" cx="370" cy="508" r="7" filter="url(#glow)"/><circle class="violet ring" cx="370" cy="508" r="5"/></g>
+<path class="ink-line" d="M585 503l10 10m0 -10l-10 10" stroke-width="2" stroke-linecap="round"/>
+<text class="num" x="370" y="490" text-anchor="middle">ε = 0.02 accepted</text><text class="num" x="590" y="490" text-anchor="middle">ε = 0.04 rejected</text>
+<text class="num muted" x="150" y="538" text-anchor="middle">0</text><text class="num muted" x="425" y="538" text-anchor="middle">limit 0.025</text><text class="num muted" x="700" y="538" text-anchor="middle">0.05</text>
 </svg>

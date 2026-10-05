@@ -1,86 +1,48 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 435" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 400" role="img" aria-labelledby="title desc">
 <title id="title">Where the saved conversion coefficients come from</title>
-<desc id="desc">Two illustrative conversion lines show benchmark B results on the horizontal axes. The first line has slope one half and crosses the A-result axis at ten. The saved reference conversion has slope one and crosses its vertical axis at thirty. Both y-intercepts are marked on their axes. Rise/run triangles on the lines show that an input increase of twenty gives an output increase of ten on the left and twenty on the right, indicating slopes of one half and one.</desc>
+<desc id="desc">Two illustrative conversion lines with benchmark B results on the horizontal axes. The B-to-A line has slope one half and crosses the A-result axis at 10, so an increase of 20 in B adds 10 in A. Combined with the saved A-to-reference conversion q equals 2 times A plus 10, the saved B-to-reference line has slope 1 and crosses its axis at 30. A B result of 80 gives an A result of 50 and a reference position of 110; another model's B result of 90 reaches 120.</desc>
 <style>
-text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; }
-@media (prefers-color-scheme:dark) {
-text { fill:#ffffff; }
-[fill="#63706e"] { fill:#a6b2ae; } [stroke="#63706e"] { stroke:#a6b2ae; }
-[fill="#b5bfbc"] { fill:#3c4846; } [stroke="#b5bfbc"] { stroke:#3c4846; }
-[fill="#146cba"] { fill:#85bfff; } [stroke="#146cba"] { stroke:#85bfff; }
-[fill="#a64d0c"] { fill:#ffbc7d; } [stroke="#a64d0c"] { stroke:#ffbc7d; }
+text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:15px;fill:#202724}
+.num{font-family:"SFMono-Regular","SF Mono",Menlo,Consolas,monospace;font-size:14px}
+.small{font-size:12.5px}.big{font-size:18px}.strong{font-weight:600}
+.muted{fill-opacity:.62}.faint{opacity:.4}.half{opacity:.5}
+.grid{fill:none;stroke:#202724;stroke-opacity:.09}
+.guide{fill:none;stroke:#202724;stroke-opacity:.22}
+.axis{fill:none;stroke:#202724;stroke-opacity:.34}
+.ink{fill:#202724}.ink-line{fill:none;stroke:#202724}.ink-wash{fill:#202724;fill-opacity:.08}
+.ring{stroke:#f2f4f2;stroke-width:2;paint-order:stroke}.gap{stroke:#f2f4f2;stroke-width:2}
+.violet{fill:#6b47e0}.violet-line{fill:none;stroke:#6b47e0}.violet-wash{fill:#6b47e0;fill-opacity:.14}
+.rose{fill:#c93f78}.rose-line{fill:none;stroke:#c93f78}.rose-wash{fill:#c93f78;fill-opacity:.14}
+.amber{fill:#a8740c}.amber-line{fill:none;stroke:#a8740c}.amber-wash{fill:#a8740c;fill-opacity:.16}
+.h0{stop-color:#3557e6}.h1{stop-color:#6b47e0}.h2{stop-color:#d9467f}
+.land0{stop-color:#6b47e0;stop-opacity:.12}.land1{stop-color:#6b47e0;stop-opacity:.01}
+.halo{opacity:0}
+@media (prefers-color-scheme:dark){
+text{fill:#f2f3ed}.muted{fill-opacity:.58}
+.grid{stroke:#f2f3ed;stroke-opacity:.08}.guide{stroke:#f2f3ed;stroke-opacity:.2}.axis{stroke:#f2f3ed;stroke-opacity:.3}
+.ink{fill:#f2f3ed}.ink-line{stroke:#f2f3ed}.ink-wash{fill:#f2f3ed;fill-opacity:.1}
+.ring{stroke:#0b1016}.gap{stroke:#0b1016}
+.violet{fill:#8f6bff}.violet-line{stroke:#8f6bff}.violet-wash{fill:#8f6bff;fill-opacity:.22}
+.rose{fill:#e06296}.rose-line{stroke:#e06296}.rose-wash{fill:#e06296;fill-opacity:.2}
+.amber{fill:#b98b24}.amber-line{stroke:#b98b24}.amber-wash{fill:#b98b24;fill-opacity:.22}
+.h0{stop-color:#4a72ff}.h1{stop-color:#8f6bff}.h2{stop-color:#ff92bd}
+.land0{stop-color:#6f8cff;stop-opacity:.16}.land1{stop-color:#6f8cff;stop-opacity:.02}
+.halo{opacity:.55}
 }
 </style>
-<text x="72" y="30" font-size="19" fill="#a64d0c" text-anchor="start" font-weight="600">Connect B to A</text>
-<text x="72" y="56" font-size="16" fill="#a64d0c" text-anchor="start" font-weight="400">x<tspan baseline-shift="sub" font-size="11">A</tspan> = 0.5x<tspan baseline-shift="sub" font-size="11">B</tspan> + 10</text>
-<text x="450" y="30" font-size="19" fill="#146cba" text-anchor="start" font-weight="600">B to the reference</text>
-<text x="450" y="56" font-size="16" fill="#146cba" text-anchor="start" font-weight="400">q = x<tspan baseline-shift="sub" font-size="11">B</tspan> + 30</text>
-<text x="450" y="82" font-size="14" fill="#63706e" text-anchor="start" font-weight="400">Given: q = 2x<tspan baseline-shift="sub" font-size="11">A</tspan> + 10</text>
-<g transform="translate(0 -40)">
-<text x="72" y="163" font-size="14" fill="#63706e" text-anchor="start" font-weight="400">Benchmark A result, x<tspan baseline-shift="sub" font-size="11">A</tspan></text>
-<path d="M72 179 V400 H320" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<path d="M72 400 v5" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<text x="72" y="425" font-size="13" fill="#63706e" text-anchor="middle" font-weight="400">0</text>
-<path d="M168 400 v5" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<text x="168" y="425" font-size="13" fill="#63706e" text-anchor="middle" font-weight="400">40</text>
-<path d="M264 400 v5" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<text x="264" y="425" font-size="13" fill="#63706e" text-anchor="middle" font-weight="400">80</text>
-<path d="M312 400 v5" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<text x="312" y="425" font-size="13" fill="#63706e" text-anchor="middle" font-weight="400">100</text>
-<path d="M67 400 H72" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<text x="62" y="404" font-size="12" fill="#63706e" text-anchor="end" font-weight="400">0</text>
-<path d="M67 337.71 H72" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<text x="62" y="341.71" font-size="12" fill="#63706e" text-anchor="end" font-weight="400">20</text>
-<path d="M67 275.43 H72" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<text x="62" y="279.43" font-size="12" fill="#63706e" text-anchor="end" font-weight="400">40</text>
-<path d="M67 213.14 H72" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<text x="62" y="217.14" font-size="12" fill="#63706e" text-anchor="end" font-weight="400">60</text>
-<path d="M72 368.86 L312 213.14" fill="none" stroke="#a64d0c" stroke-width="2.5"/>
-<path d="M264 400 V244.29 H72" fill="none" stroke="#a64d0c" stroke-width="1" stroke-dasharray="4 4"/>
-<circle cx="264" cy="244.29" r="5" fill="#a64d0c" stroke="#a64d0c" stroke-width="2"/>
-<text x="252" y="232.29" font-size="18" fill="#a64d0c" text-anchor="end" font-weight="600">50</text>
-<text x="312" y="455" font-size="14" fill="#63706e" text-anchor="end" font-weight="400">Benchmark B result, x<tspan baseline-shift="sub" font-size="11">B</tspan></text>
-<text x="450" y="163" font-size="14" fill="#63706e" text-anchor="start" font-weight="400">Reference position, q</text>
-<path d="M450 179 V400 H698" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<path d="M450 400 v5" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<text x="450" y="425" font-size="13" fill="#63706e" text-anchor="middle" font-weight="400">0</text>
-<path d="M546 400 v5" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<text x="546" y="425" font-size="13" fill="#63706e" text-anchor="middle" font-weight="400">40</text>
-<path d="M642 400 v5" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<text x="642" y="425" font-size="13" fill="#63706e" text-anchor="middle" font-weight="400">80</text>
-<path d="M690 400 v5" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<text x="690" y="425" font-size="13" fill="#63706e" text-anchor="middle" font-weight="400">100</text>
-<path d="M445 400 H450" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<text x="440" y="404" font-size="12" fill="#63706e" text-anchor="end" font-weight="400">0</text>
-<path d="M445 327.33 H450" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<text x="440" y="331.33" font-size="12" fill="#63706e" text-anchor="end" font-weight="400">50</text>
-<path d="M445 254.67 H450" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<text x="440" y="258.67" font-size="12" fill="#63706e" text-anchor="end" font-weight="400">100</text>
-<path d="M445 182 H450" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<text x="440" y="186" font-size="12" fill="#63706e" text-anchor="end" font-weight="400">150</text>
-<path d="M450 356.4 L690 211.07" fill="none" stroke="#146cba" stroke-width="2.5"/>
-<path d="M642 400 V240.13 H450" fill="none" stroke="#146cba" stroke-width="1" stroke-dasharray="4 4"/>
-<circle cx="642" cy="240.13" r="5" fill="#146cba" stroke="#146cba" stroke-width="2"/>
-<text x="630" y="212" font-size="18" fill="#146cba" text-anchor="end" font-weight="600">110</text>
-<path d="M666 400 V225.6 H450" fill="none" stroke="#63706e" stroke-width="1" stroke-dasharray="2 5"/>
-<circle cx="666" cy="225.6" r="5" fill="none" stroke="#146cba" stroke-width="2"/>
-<text x="676" y="202" font-size="16" fill="#146cba" text-anchor="start" font-weight="600">120</text>
-<path d="M666 400 v5" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<text x="666" y="425" font-size="13" fill="#146cba" text-anchor="middle" font-weight="400">90</text>
-<text x="690" y="455" font-size="14" fill="#63706e" text-anchor="end" font-weight="400">Benchmark B result, x<tspan baseline-shift="sub" font-size="11">B</tspan></text>
-<circle cx="72" cy="368.86" r="4" fill="#a64d0c"/>
-<text x="60" y="374" font-size="14" fill="#a64d0c" text-anchor="end" font-weight="600">10</text>
-<circle cx="450" cy="356.4" r="4" fill="#146cba"/>
-<text x="438" y="361.4" font-size="14" fill="#146cba" text-anchor="end" font-weight="600">30</text>
-<path d="M120 337.71 H168 V306.57" fill="none" stroke="#a64d0c" stroke-width="1.5"/>
-<path d="M163 337.71 v-5 h5" fill="none" stroke="#a64d0c" stroke-width="1"/>
-<text x="144" y="356.71" font-size="13" fill="#a64d0c" text-anchor="middle">+20</text>
-<text x="177" y="326.14" font-size="13" fill="#a64d0c">+10</text>
-<text x="184" y="380" font-size="14" fill="#a64d0c" font-weight="600">Slope = 0.5</text>
-<path d="M498 327.33 H546 V298.27" fill="none" stroke="#146cba" stroke-width="1.5"/>
-<path d="M541 327.33 v-5 h5" fill="none" stroke="#146cba" stroke-width="1"/>
-<text x="522" y="346.33" font-size="13" fill="#146cba" text-anchor="middle">+20</text>
-<text x="555" y="316.8" font-size="13" fill="#146cba">+20</text>
-<text x="562" y="380" font-size="14" fill="#146cba" font-weight="600">Slope = 1</text>
-</g>
+<defs><filter id="glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="3"/></filter><marker id="tip-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="ink" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-violet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="violet" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="rose" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="amber" d="M0 0L10 5L0 10Z"/></marker><linearGradient id="light" gradientUnits="userSpaceOnUse" x1="460" y1="0" x2="700" y2="0"><stop class="h0" offset="0"/><stop class="h1" offset=".58"/><stop class="h2" offset="1"/></linearGradient><linearGradient id="land" gradientUnits="userSpaceOnUse" x1="0" y1="126" x2="0" y2="330"><stop class="land0" offset="0"/><stop class="land1" offset="1"/></linearGradient></defs>
+<text class="num big" x="90" y="58">x<tspan baseline-shift="sub" class="small">A</tspan> = 0.5 x<tspan baseline-shift="sub" class="small">B</tspan> + 10</text>
+<path class="axis" d="M90 330L330 330"/><text class="num muted" x="80" y="334.5" text-anchor="end">0</text><path class="grid" d="M90 271.7L330 271.7"/><text class="num muted" x="80" y="276.2" text-anchor="end">20</text><path class="grid" d="M90 213.4L330 213.4"/><text class="num muted" x="80" y="217.9" text-anchor="end">40</text><path class="grid" d="M90 155.1L330 155.1"/><text class="num muted" x="80" y="159.6" text-anchor="end">60</text><path class="axis" d="M90 330L90 336"/><text class="num muted" x="90" y="352" text-anchor="middle">0</text><path class="axis" d="M138 330L138 336"/><text class="num muted" x="138" y="352" text-anchor="middle">20</text><path class="axis" d="M186 330L186 336"/><text class="num muted" x="186" y="352" text-anchor="middle">40</text><path class="axis" d="M234 330L234 336"/><text class="num muted" x="234" y="352" text-anchor="middle">60</text><path class="axis" d="M282 330L282 336"/><text class="num muted" x="282" y="352" text-anchor="middle">80</text><path class="axis" d="M330 330L330 336"/><text class="num muted" x="330" y="352" text-anchor="middle">100</text>
+<path class="guide" d="M282 184.3L282 330"/><path class="guide" d="M90 184.3L282 184.3"/>
+<path class="ink-line" d="M90 300.9L330 155.1" stroke-width="2"/><path class="ink-line" d="M138 271.7H186V242.6" stroke-width="1.5"/><text class="num" x="162" y="289.7" text-anchor="middle">+20</text><text class="num" x="194" y="262.1">+10</text>
+<g><circle class="ink halo" cx="90" cy="300.9" r="7" filter="url(#glow)"/><circle class="ink ring" cx="90" cy="300.9" r="5"/></g><text class="num strong" x="102" y="318.9">10</text>
+<g><circle class="ink halo" cx="282" cy="184.3" r="7.5" filter="url(#glow)"/><circle class="ink ring" cx="282" cy="184.3" r="5.5"/></g><text class="num strong" x="272" y="174.3" text-anchor="end">50</text>
+<text class="muted" x="330" y="376" text-anchor="end">Benchmark B result x<tspan baseline-shift="sub" class="small">B</tspan></text><text class="muted" x="90" y="108">Benchmark A result x<tspan baseline-shift="sub" class="small">A</tspan></text>
+<text class="num big" x="460" y="58">q = x<tspan baseline-shift="sub" class="small">B</tspan> + 30</text><text class="num small muted" x="460" y="80">Given: q = 2 x<tspan baseline-shift="sub" class="small">A</tspan> + 10</text>
+<path class="axis" d="M460 330L700 330"/><text class="num muted" x="450" y="334.5" text-anchor="end">0</text><path class="grid" d="M460 262L700 262"/><text class="num muted" x="450" y="266.5" text-anchor="end">50</text><path class="grid" d="M460 194L700 194"/><text class="num muted" x="450" y="198.5" text-anchor="end">100</text><path class="grid" d="M460 126L700 126"/><text class="num muted" x="450" y="130.5" text-anchor="end">150</text><path class="axis" d="M460 330L460 336"/><text class="num muted" x="460" y="352" text-anchor="middle">0</text><path class="axis" d="M508 330L508 336"/><text class="num muted" x="508" y="352" text-anchor="middle">20</text><path class="axis" d="M556 330L556 336"/><text class="num muted" x="556" y="352" text-anchor="middle">40</text><path class="axis" d="M604 330L604 336"/><text class="num muted" x="604" y="352" text-anchor="middle">60</text><path class="axis" d="M652 330L652 336"/><text class="num muted" x="652" y="352" text-anchor="middle">80</text><path class="axis" d="M700 330L700 336"/><text class="num muted" x="700" y="352" text-anchor="middle">100</text>
+<path class="guide" d="M652 180.4L652 330"/><path class="guide" d="M460 180.4L652 180.4"/>
+<path d="M460 289.2L700 153.2" fill="none" stroke="url(#light)" stroke-width="8" opacity=".14" class="halo"/><path d="M460 289.2L700 153.2" fill="none" stroke="url(#light)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path class="violet-line" d="M508 262H556V234.8" stroke-width="1.5"/><text class="num" x="532" y="280" text-anchor="middle">+20</text><text class="num" x="564" y="253.4">+20</text><path class="guide" d="M676 166.8L676 330"/><g class="half"><circle class="ink halo" cx="676" cy="166.8" r="7" filter="url(#glow)"/><circle class="ink ring" cx="676" cy="166.8" r="5"/></g><text class="num muted" x="686" y="184.8">120</text>
+<g><circle class="violet halo" cx="460" cy="289.2" r="7" filter="url(#glow)"/><circle class="violet ring" cx="460" cy="289.2" r="5"/></g><text class="num strong" x="472" y="307.2">30</text>
+<g><circle class="ink halo" cx="652" cy="180.4" r="7.5" filter="url(#glow)"/><circle class="ink ring" cx="652" cy="180.4" r="5.5"/></g><text class="num strong" x="642" y="170.4" text-anchor="end">110</text>
+<text class="muted" x="700" y="376" text-anchor="end">Benchmark B result x<tspan baseline-shift="sub" class="small">B</tspan></text><text class="muted" x="460" y="108">Reference position q</text>
 </svg>

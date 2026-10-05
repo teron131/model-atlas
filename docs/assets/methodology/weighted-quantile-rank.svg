@@ -1,29 +1,38 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 75 760 175" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 244" role="img" aria-labelledby="title desc">
 <title id="title">weightedQuantileRank(): value → percentile</title>
-<desc id="desc">Ten equally weighted peer means: three below 70 count fully, three equal to 70 count half, and four above 70 do not count. The rank is 4.5 out of 10, or 45%.</desc>
+<desc id="desc">Ten equally weighted peer means stacked by value: one at 30 and two at 50 lie below 70 and count fully; three tied at 70 count half, drawn half filled; four at 90 lie above and do not count. The rank of 70 is three plus one and a half out of ten, 45 percent, so r is 0.45.</desc>
 <style>
-text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; fill:#182421; }
-.muted { fill:#63706e; } .blue { color:#146cba; } .teal { color:#087f6b; } .orange { color:#a64d0c; } .neutral { color:#63706e; } .ink { fill:currentColor; }
-@media (prefers-color-scheme:dark) {
-text { fill:#ffffff; } .muted { fill:#a6b2ae; } .neutral { color:#a6b2ae; }
-.blue { color:#85bfff; } .teal { color:#62d6b1; } .orange { color:#ffbc7d; }
+text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:15px;fill:#202724}
+.num{font-family:"SFMono-Regular","SF Mono",Menlo,Consolas,monospace;font-size:14px}
+.small{font-size:12.5px}.big{font-size:18px}.strong{font-weight:600}
+.muted{fill-opacity:.62}.faint{opacity:.4}.half{opacity:.5}
+.grid{fill:none;stroke:#202724;stroke-opacity:.09}
+.guide{fill:none;stroke:#202724;stroke-opacity:.22}
+.axis{fill:none;stroke:#202724;stroke-opacity:.34}
+.ink{fill:#202724}.ink-line{fill:none;stroke:#202724}.ink-wash{fill:#202724;fill-opacity:.08}
+.ring{stroke:#f2f4f2;stroke-width:2;paint-order:stroke}.gap{stroke:#f2f4f2;stroke-width:2}
+.violet{fill:#6b47e0}.violet-line{fill:none;stroke:#6b47e0}.violet-wash{fill:#6b47e0;fill-opacity:.14}
+.rose{fill:#c93f78}.rose-line{fill:none;stroke:#c93f78}.rose-wash{fill:#c93f78;fill-opacity:.14}
+.amber{fill:#a8740c}.amber-line{fill:none;stroke:#a8740c}.amber-wash{fill:#a8740c;fill-opacity:.16}
+.h0{stop-color:#3557e6}.h1{stop-color:#6b47e0}.h2{stop-color:#d9467f}
+.land0{stop-color:#6b47e0;stop-opacity:.12}.land1{stop-color:#6b47e0;stop-opacity:.01}
+.halo{opacity:0}
+@media (prefers-color-scheme:dark){
+text{fill:#f2f3ed}.muted{fill-opacity:.58}
+.grid{stroke:#f2f3ed;stroke-opacity:.08}.guide{stroke:#f2f3ed;stroke-opacity:.2}.axis{stroke:#f2f3ed;stroke-opacity:.3}
+.ink{fill:#f2f3ed}.ink-line{stroke:#f2f3ed}.ink-wash{fill:#f2f3ed;fill-opacity:.1}
+.ring{stroke:#0b1016}.gap{stroke:#0b1016}
+.violet{fill:#8f6bff}.violet-line{stroke:#8f6bff}.violet-wash{fill:#8f6bff;fill-opacity:.22}
+.rose{fill:#e06296}.rose-line{stroke:#e06296}.rose-wash{fill:#e06296;fill-opacity:.2}
+.amber{fill:#b98b24}.amber-line{stroke:#b98b24}.amber-wash{fill:#b98b24;fill-opacity:.22}
+.h0{stop-color:#4a72ff}.h1{stop-color:#8f6bff}.h2{stop-color:#ff92bd}
+.land0{stop-color:#6f8cff;stop-opacity:.16}.land1{stop-color:#6f8cff;stop-opacity:.02}
+.halo{opacity:.55}
 }
 </style>
-
-
-<text x="156" y="95" text-anchor="middle" font-size="15" class="teal ink">Below 70</text>
-<text x="348" y="95" text-anchor="middle" font-size="15" class="orange ink">Equal to 70</text>
-<text x="572" y="95" text-anchor="middle" font-size="15" class="muted">Above 70</text>
-<g class="teal"><rect x="60" y="108" width="62" height="44" rx="3" fill="currentColor" opacity=".16"/><text x="91" y="137" text-anchor="middle" font-size="19">30</text><text x="91" y="184" text-anchor="middle" font-size="18" class="ink">1</text></g>
-<g class="teal"><rect x="124" y="108" width="62" height="44" rx="3" fill="currentColor" opacity=".16"/><text x="155" y="137" text-anchor="middle" font-size="19">50</text><text x="155" y="184" text-anchor="middle" font-size="18" class="ink">1</text></g>
-<g class="teal"><rect x="188" y="108" width="62" height="44" rx="3" fill="currentColor" opacity=".16"/><text x="219" y="137" text-anchor="middle" font-size="19">50</text><text x="219" y="184" text-anchor="middle" font-size="18" class="ink">1</text></g>
-<g class="orange"><rect x="252" y="108" width="62" height="44" rx="3" fill="currentColor" opacity=".16"/><text x="283" y="137" text-anchor="middle" font-size="19">70</text><text x="283" y="184" text-anchor="middle" font-size="18" class="ink">½</text></g>
-<g class="orange"><rect x="316" y="108" width="62" height="44" rx="3" fill="currentColor" opacity=".16"/><text x="347" y="137" text-anchor="middle" font-size="19">70</text><text x="347" y="184" text-anchor="middle" font-size="18" class="ink">½</text></g>
-<g class="orange"><rect x="380" y="108" width="62" height="44" rx="3" fill="currentColor" opacity=".16"/><text x="411" y="137" text-anchor="middle" font-size="19">70</text><text x="411" y="184" text-anchor="middle" font-size="18" class="ink">½</text></g>
-<g class="neutral"><rect x="444" y="108" width="62" height="44" rx="3" fill="currentColor" opacity=".16"/><text x="475" y="137" text-anchor="middle" font-size="19">90</text><text x="475" y="184" text-anchor="middle" font-size="18" class="ink">0</text></g>
-<g class="neutral"><rect x="508" y="108" width="62" height="44" rx="3" fill="currentColor" opacity=".16"/><text x="539" y="137" text-anchor="middle" font-size="19">90</text><text x="539" y="184" text-anchor="middle" font-size="18" class="ink">0</text></g>
-<g class="neutral"><rect x="572" y="108" width="62" height="44" rx="3" fill="currentColor" opacity=".16"/><text x="603" y="137" text-anchor="middle" font-size="19">90</text><text x="603" y="184" text-anchor="middle" font-size="18" class="ink">0</text></g>
-<g class="neutral"><rect x="636" y="108" width="62" height="44" rx="3" fill="currentColor" opacity=".16"/><text x="667" y="137" text-anchor="middle" font-size="19">90</text><text x="667" y="184" text-anchor="middle" font-size="18" class="ink">0</text></g>
-
-<text x="40" y="241" font-size="20" font-weight="600" class="orange ink">weightedQuantileRank(70) = 45% → r = 0.45</text>
+<defs><filter id="glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="3"/></filter><marker id="tip-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="ink" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-violet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="violet" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="rose" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="amber" d="M0 0L10 5L0 10Z"/></marker><clipPath id="half0"><rect x="383" y="98" width="8" height="16"/></clipPath><clipPath id="half1"><rect x="383" y="76" width="8" height="16"/></clipPath><clipPath id="half2"><rect x="383" y="54" width="8" height="16"/></clipPath></defs>
+<path class="axis" d="M90 124L520 124"/>
+<g><circle class="ink halo" cx="219" cy="106" r="9" filter="url(#glow)"/><circle class="ink ring" cx="219" cy="106" r="7"/></g><text class="num" x="219" y="148" text-anchor="middle">30</text><text class="small muted" x="219" y="168" text-anchor="middle">1 each</text><g><circle class="ink halo" cx="305" cy="106" r="9" filter="url(#glow)"/><circle class="ink ring" cx="305" cy="106" r="7"/></g><g><circle class="ink halo" cx="305" cy="84" r="9" filter="url(#glow)"/><circle class="ink ring" cx="305" cy="84" r="7"/></g><text class="num" x="305" y="148" text-anchor="middle">50</text><text class="small muted" x="305" y="168" text-anchor="middle">1 each</text><circle class="ink" cx="391" cy="106" r="7" opacity=".22"/><circle class="ink" cx="391" cy="106" r="7" clip-path="url(#half0)"/><circle class="ink" cx="391" cy="84" r="7" opacity=".22"/><circle class="ink" cx="391" cy="84" r="7" clip-path="url(#half1)"/><circle class="ink" cx="391" cy="62" r="7" opacity=".22"/><circle class="ink" cx="391" cy="62" r="7" clip-path="url(#half2)"/><text class="num" x="391" y="148" text-anchor="middle">70</text><text class="small muted" x="391" y="168" text-anchor="middle">½ each</text><circle class="ink" cx="477" cy="106" r="7" opacity=".22"/><circle class="ink" cx="477" cy="84" r="7" opacity=".22"/><circle class="ink" cx="477" cy="62" r="7" opacity=".22"/><circle class="ink" cx="477" cy="40" r="7" opacity=".22"/><text class="num" x="477" y="148" text-anchor="middle">90</text><text class="small muted" x="477" y="168" text-anchor="middle">0 each</text>
+<text class="small muted" x="262" y="194" text-anchor="middle">Below 70</text><text class="small muted" x="391" y="194" text-anchor="middle">Equal to 70</text><text class="small muted" x="477" y="194" text-anchor="middle">Above 70</text>
+<text class="num strong" x="90" y="228">weightedQuantileRank(70) = 45% → r = 0.45</text>
 </svg>

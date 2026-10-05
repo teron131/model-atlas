@@ -1,31 +1,38 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 78 760 347" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 310" role="img" aria-labelledby="title desc">
 <title id="title">Variant counts share one model reference weight</title>
-<desc id="desc">One observed variant has weight 1. Five observed efforts each have weight one fifth. When only low, high, and max have the required observations, each has weight one third; medium and xhigh are missing and contribute no weight.</desc>
+<desc id="desc">Three models report one variant, five reasoning efforts, and three of five efforts; star area shows weight. Unbalanced, each variant would weigh 1, giving the models totals of 1, 5 and 3. Model-balanced, each model's total reference weight of 1 is split across its observed variants: one variant keeps 1, five efforts each get one fifth, and three observed efforts each get one third, while the missing medium and xhigh efforts get none.</desc>
 <style>
-text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; }
-@media (prefers-color-scheme:dark) {
-text { fill:#ffffff; }
-[fill="#63706e"] { fill:#a6b2ae; } [stroke="#63706e"] { stroke:#a6b2ae; }
-[fill="#b5bfbc"] { fill:#3c4846; } [stroke="#b5bfbc"] { stroke:#3c4846; }
-[fill="#146cba"] { fill:#85bfff; } [stroke="#146cba"] { stroke:#85bfff; }
-[fill="#a64d0c"] { fill:#ffbc7d; } [stroke="#a64d0c"] { stroke:#ffbc7d; }
+text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:15px;fill:#202724}
+.num{font-family:"SFMono-Regular","SF Mono",Menlo,Consolas,monospace;font-size:14px}
+.small{font-size:12.5px}.big{font-size:18px}.strong{font-weight:600}
+.muted{fill-opacity:.62}.faint{opacity:.4}.half{opacity:.5}
+.grid{fill:none;stroke:#202724;stroke-opacity:.09}
+.guide{fill:none;stroke:#202724;stroke-opacity:.22}
+.axis{fill:none;stroke:#202724;stroke-opacity:.34}
+.ink{fill:#202724}.ink-line{fill:none;stroke:#202724}.ink-wash{fill:#202724;fill-opacity:.08}
+.ring{stroke:#f2f4f2;stroke-width:2;paint-order:stroke}.gap{stroke:#f2f4f2;stroke-width:2}
+.violet{fill:#6b47e0}.violet-line{fill:none;stroke:#6b47e0}.violet-wash{fill:#6b47e0;fill-opacity:.14}
+.rose{fill:#c93f78}.rose-line{fill:none;stroke:#c93f78}.rose-wash{fill:#c93f78;fill-opacity:.14}
+.amber{fill:#a8740c}.amber-line{fill:none;stroke:#a8740c}.amber-wash{fill:#a8740c;fill-opacity:.16}
+.h0{stop-color:#3557e6}.h1{stop-color:#6b47e0}.h2{stop-color:#d9467f}
+.land0{stop-color:#6b47e0;stop-opacity:.12}.land1{stop-color:#6b47e0;stop-opacity:.01}
+.halo{opacity:0}
+@media (prefers-color-scheme:dark){
+text{fill:#f2f3ed}.muted{fill-opacity:.58}
+.grid{stroke:#f2f3ed;stroke-opacity:.08}.guide{stroke:#f2f3ed;stroke-opacity:.2}.axis{stroke:#f2f3ed;stroke-opacity:.3}
+.ink{fill:#f2f3ed}.ink-line{stroke:#f2f3ed}.ink-wash{fill:#f2f3ed;fill-opacity:.1}
+.ring{stroke:#0b1016}.gap{stroke:#0b1016}
+.violet{fill:#8f6bff}.violet-line{stroke:#8f6bff}.violet-wash{fill:#8f6bff;fill-opacity:.22}
+.rose{fill:#e06296}.rose-line{stroke:#e06296}.rose-wash{fill:#e06296;fill-opacity:.2}
+.amber{fill:#b98b24}.amber-line{stroke:#b98b24}.amber-wash{fill:#b98b24;fill-opacity:.22}
+.h0{stop-color:#4a72ff}.h1{stop-color:#8f6bff}.h2{stop-color:#ff92bd}
+.land0{stop-color:#6f8cff;stop-opacity:.16}.land1{stop-color:#6f8cff;stop-opacity:.02}
+.halo{opacity:.55}
 }
 </style>
-
-
-<text x="40" y="105" font-size="18" fill="#000000" font-weight="600">One observed variant</text><rect x="40" y="119" width="350" height="38" fill="#146cba" opacity="0.22"/><text x="215" y="145" font-size="18" fill="#000000" text-anchor="middle">1</text><text x="450" y="145" font-size="17" fill="#000000">Total = 1</text>
-<text x="40" y="202" font-size="18" fill="#000000" font-weight="600">All five efforts observed</text>
-<text x="71" y="227" font-size="13" fill="#000000" text-anchor="middle">low</text><rect x="40" y="237" width="62" height="38" fill="#146cba" opacity="0.22"/><text x="71" y="262" font-size="18" fill="#000000" text-anchor="middle">⅕</text>
-<text x="143" y="227" font-size="13" fill="#000000" text-anchor="middle">medium</text><rect x="112" y="237" width="62" height="38" fill="#146cba" opacity="0.22"/><text x="143" y="262" font-size="18" fill="#000000" text-anchor="middle">⅕</text>
-<text x="215" y="227" font-size="13" fill="#000000" text-anchor="middle">high</text><rect x="184" y="237" width="62" height="38" fill="#146cba" opacity="0.22"/><text x="215" y="262" font-size="18" fill="#000000" text-anchor="middle">⅕</text>
-<text x="287" y="227" font-size="13" fill="#000000" text-anchor="middle">xhigh</text><rect x="256" y="237" width="62" height="38" fill="#146cba" opacity="0.22"/><text x="287" y="262" font-size="18" fill="#000000" text-anchor="middle">⅕</text>
-<text x="359" y="227" font-size="13" fill="#000000" text-anchor="middle">max</text><rect x="328" y="237" width="62" height="38" fill="#146cba" opacity="0.22"/><text x="359" y="262" font-size="18" fill="#000000" text-anchor="middle">⅕</text>
-<text x="450" y="262" font-size="17" fill="#000000">Total = 1</text>
-<text x="40" y="332" font-size="18" fill="#000000" font-weight="600">Only three efforts observed</text>
-<text x="71" y="357" font-size="13" fill="#000000" text-anchor="middle">low</text><rect x="40" y="367" width="62" height="38" fill="#146cba" opacity="0.22"/><text x="71" y="392" font-size="18" fill="#000000" text-anchor="middle">⅓</text>
-<text x="143" y="357" font-size="13" fill="#000000" text-anchor="middle">medium</text><rect x="112" y="367" width="62" height="38" fill="none" stroke="#63706e" stroke-dasharray="3 3"/><text x="143" y="392" font-size="12" fill="#000000" text-anchor="middle">missing</text>
-<text x="215" y="357" font-size="13" fill="#000000" text-anchor="middle">high</text><rect x="184" y="367" width="62" height="38" fill="#146cba" opacity="0.22"/><text x="215" y="392" font-size="18" fill="#000000" text-anchor="middle">⅓</text>
-<text x="287" y="357" font-size="13" fill="#000000" text-anchor="middle">xhigh</text><rect x="256" y="367" width="62" height="38" fill="none" stroke="#63706e" stroke-dasharray="3 3"/><text x="287" y="392" font-size="12" fill="#000000" text-anchor="middle">missing</text>
-<text x="359" y="357" font-size="13" fill="#000000" text-anchor="middle">max</text><rect x="328" y="367" width="62" height="38" fill="#146cba" opacity="0.22"/><text x="359" y="392" font-size="18" fill="#000000" text-anchor="middle">⅓</text>
-<text x="450" y="392" font-size="17" fill="#000000">Total = 1</text>
+<defs><filter id="glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="3"/></filter><marker id="tip-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="ink" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-violet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="violet" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="rose" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="amber" d="M0 0L10 5L0 10Z"/></marker></defs>
+<text x="30" y="117">One observed variant</text><text x="30" y="203">All five efforts observed</text><text x="30" y="267">Only three efforts observed</text>
+<path class="grid" d="M486 24L486 292"/>
+<text class="muted" x="236" y="40">Unbalanced: 1 per variant</text><text class="small muted" x="464" y="64" text-anchor="middle">Model</text><text class="small muted" x="464" y="79" text-anchor="middle">total</text><text class="small muted" x="257" y="162" text-anchor="middle">low</text><text class="small muted" x="299" y="162" text-anchor="middle">medium</text><text class="small muted" x="341" y="162" text-anchor="middle">high</text><text class="small muted" x="383" y="162" text-anchor="middle">xhigh</text><text class="small muted" x="425" y="162" text-anchor="middle">max</text><g><circle class="ink halo" cx="341" cy="112" r="10" filter="url(#glow)"/><circle class="ink ring" cx="341" cy="112" r="8"/></g><text class="num big" x="464" y="118" text-anchor="middle">1</text><g><circle class="ink halo" cx="257" cy="198" r="10" filter="url(#glow)"/><circle class="ink ring" cx="257" cy="198" r="8"/></g><g><circle class="ink halo" cx="299" cy="198" r="10" filter="url(#glow)"/><circle class="ink ring" cx="299" cy="198" r="8"/></g><g><circle class="ink halo" cx="341" cy="198" r="10" filter="url(#glow)"/><circle class="ink ring" cx="341" cy="198" r="8"/></g><g><circle class="ink halo" cx="383" cy="198" r="10" filter="url(#glow)"/><circle class="ink ring" cx="383" cy="198" r="8"/></g><g><circle class="ink halo" cx="425" cy="198" r="10" filter="url(#glow)"/><circle class="ink ring" cx="425" cy="198" r="8"/></g><text class="num big" x="464" y="204" text-anchor="middle">5</text><g><circle class="ink halo" cx="257" cy="262" r="10" filter="url(#glow)"/><circle class="ink ring" cx="257" cy="262" r="8"/></g><path class="axis" d="M293 262L305 262" stroke-width="1.5"/><g><circle class="ink halo" cx="341" cy="262" r="10" filter="url(#glow)"/><circle class="ink ring" cx="341" cy="262" r="8"/></g><path class="axis" d="M377 262L389 262" stroke-width="1.5"/><g><circle class="ink halo" cx="425" cy="262" r="10" filter="url(#glow)"/><circle class="ink ring" cx="425" cy="262" r="8"/></g><text class="num big" x="464" y="268" text-anchor="middle">3</text>
+<text class="strong" x="500" y="40">Model-balanced: 1 per model</text><text class="small muted" x="728" y="64" text-anchor="middle">Model</text><text class="small muted" x="728" y="79" text-anchor="middle">total</text><text class="small muted" x="521" y="162" text-anchor="middle">low</text><text class="small muted" x="563" y="162" text-anchor="middle">medium</text><text class="small muted" x="605" y="162" text-anchor="middle">high</text><text class="small muted" x="647" y="162" text-anchor="middle">xhigh</text><text class="small muted" x="689" y="162" text-anchor="middle">max</text><g><circle class="ink halo" cx="605" cy="112" r="10" filter="url(#glow)"/><circle class="ink ring" cx="605" cy="112" r="8"/></g><text class="num big strong" x="728" y="118" text-anchor="middle">1</text><g><circle class="ink halo" cx="521" cy="198" r="5.577708763999663" filter="url(#glow)"/><circle class="ink ring" cx="521" cy="198" r="3.5777087639996634"/></g><g><circle class="ink halo" cx="563" cy="198" r="5.577708763999663" filter="url(#glow)"/><circle class="ink ring" cx="563" cy="198" r="3.5777087639996634"/></g><g><circle class="ink halo" cx="605" cy="198" r="5.577708763999663" filter="url(#glow)"/><circle class="ink ring" cx="605" cy="198" r="3.5777087639996634"/></g><g><circle class="ink halo" cx="647" cy="198" r="5.577708763999663" filter="url(#glow)"/><circle class="ink ring" cx="647" cy="198" r="3.5777087639996634"/></g><g><circle class="ink halo" cx="689" cy="198" r="5.577708763999663" filter="url(#glow)"/><circle class="ink ring" cx="689" cy="198" r="3.5777087639996634"/></g><text class="small muted" x="521" y="226" text-anchor="middle">⅕</text><text class="small muted" x="563" y="226" text-anchor="middle">⅕</text><text class="small muted" x="605" y="226" text-anchor="middle">⅕</text><text class="small muted" x="647" y="226" text-anchor="middle">⅕</text><text class="small muted" x="689" y="226" text-anchor="middle">⅕</text><text class="num big strong" x="728" y="204" text-anchor="middle">1</text><g><circle class="ink halo" cx="521" cy="262" r="6.618802153517006" filter="url(#glow)"/><circle class="ink ring" cx="521" cy="262" r="4.618802153517006"/></g><path class="axis" d="M557 262L569 262" stroke-width="1.5"/><g><circle class="ink halo" cx="605" cy="262" r="6.618802153517006" filter="url(#glow)"/><circle class="ink ring" cx="605" cy="262" r="4.618802153517006"/></g><path class="axis" d="M641 262L653 262" stroke-width="1.5"/><g><circle class="ink halo" cx="689" cy="262" r="6.618802153517006" filter="url(#glow)"/><circle class="ink ring" cx="689" cy="262" r="4.618802153517006"/></g><text class="small muted" x="521" y="290" text-anchor="middle">⅓</text><text class="small muted" x="605" y="290" text-anchor="middle">⅓</text><text class="small muted" x="689" y="290" text-anchor="middle">⅓</text><text class="num big strong" x="728" y="268" text-anchor="middle">1</text>
 </svg>

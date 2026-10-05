@@ -1,34 +1,44 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 60 760 351" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 360" role="img" aria-labelledby="title desc">
 <title id="title">Accepted matches add compatible metadata while preserving source evidence</title>
-<desc id="desc">Source identity and variant are checked against catalog candidates. An accepted match attaches metadata; a rejected match retains a qualified source identity without borrowing catalog fields.</desc>
+<desc id="desc">A source record carries an identity, an explicit variant, and its observations; a catalog candidate carries an identity and metadata such as prices, context window, and release date. After identity and configuration checks, an accepted match keeps the source identity, variant, and observations and attaches the catalog metadata. Without an accepted match, the qualified source identity survives with its observations, and catalog metadata stays missing.</desc>
 <style>
-text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; }
-@media (prefers-color-scheme:dark) {
-text { fill:#ffffff; }
-[fill="#63706e"] { fill:#a6b2ae; } [stroke="#63706e"] { stroke:#a6b2ae; }
-[fill="#b5bfbc"] { fill:#3c4846; } [stroke="#b5bfbc"] { stroke:#3c4846; }
-[fill="#146cba"] { fill:#85bfff; } [stroke="#146cba"] { stroke:#85bfff; }
-[fill="#a64d0c"] { fill:#ffbc7d; } [stroke="#a64d0c"] { stroke:#ffbc7d; }
+text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:15px;fill:#202724}
+.num{font-family:"SFMono-Regular","SF Mono",Menlo,Consolas,monospace;font-size:14px}
+.small{font-size:12.5px}.big{font-size:18px}.strong{font-weight:600}
+.muted{fill-opacity:.62}.faint{opacity:.4}.half{opacity:.5}
+.grid{fill:none;stroke:#202724;stroke-opacity:.09}
+.guide{fill:none;stroke:#202724;stroke-opacity:.22}
+.axis{fill:none;stroke:#202724;stroke-opacity:.34}
+.ink{fill:#202724}.ink-line{fill:none;stroke:#202724}.ink-wash{fill:#202724;fill-opacity:.08}
+.ring{stroke:#f2f4f2;stroke-width:2;paint-order:stroke}.gap{stroke:#f2f4f2;stroke-width:2}
+.violet{fill:#6b47e0}.violet-line{fill:none;stroke:#6b47e0}.violet-wash{fill:#6b47e0;fill-opacity:.14}
+.rose{fill:#c93f78}.rose-line{fill:none;stroke:#c93f78}.rose-wash{fill:#c93f78;fill-opacity:.14}
+.amber{fill:#a8740c}.amber-line{fill:none;stroke:#a8740c}.amber-wash{fill:#a8740c;fill-opacity:.16}
+.h0{stop-color:#3557e6}.h1{stop-color:#6b47e0}.h2{stop-color:#d9467f}
+.land0{stop-color:#6b47e0;stop-opacity:.12}.land1{stop-color:#6b47e0;stop-opacity:.01}
+.halo{opacity:0}
+@media (prefers-color-scheme:dark){
+text{fill:#f2f3ed}.muted{fill-opacity:.58}
+.grid{stroke:#f2f3ed;stroke-opacity:.08}.guide{stroke:#f2f3ed;stroke-opacity:.2}.axis{stroke:#f2f3ed;stroke-opacity:.3}
+.ink{fill:#f2f3ed}.ink-line{stroke:#f2f3ed}.ink-wash{fill:#f2f3ed;fill-opacity:.1}
+.ring{stroke:#0b1016}.gap{stroke:#0b1016}
+.violet{fill:#8f6bff}.violet-line{stroke:#8f6bff}.violet-wash{fill:#8f6bff;fill-opacity:.22}
+.rose{fill:#e06296}.rose-line{stroke:#e06296}.rose-wash{fill:#e06296;fill-opacity:.2}
+.amber{fill:#b98b24}.amber-line{stroke:#b98b24}.amber-wash{fill:#b98b24;fill-opacity:.22}
+.h0{stop-color:#4a72ff}.h1{stop-color:#8f6bff}.h2{stop-color:#ff92bd}
+.land0{stop-color:#6f8cff;stop-opacity:.16}.land1{stop-color:#6f8cff;stop-opacity:.02}
+.halo{opacity:.55}
 }
 </style>
-
-<text x="40" y="94" font-size="18" fill="#000000" text-anchor="start" font-weight="600">Source identity + explicit variant</text>
-<line x1="350" y1="88" x2="430" y2="88" stroke="#63706e" stroke-width="1.5"/>
-<path d="M423.86 91.36 L430 88 L423.86 84.64" fill="none" stroke="#63706e" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" opacity="1"/>
-<text x="451" y="94" font-size="17" fill="#000000" text-anchor="start" font-weight="400">Candidate catalog identity</text>
-<line x1="378" y1="112" x2="378" y2="158" stroke="#63706e" stroke-width="1.5"/>
-<path d="M374.64 151.86 L378 158 L381.36 151.86" fill="none" stroke="#63706e" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" opacity="1"/>
-<rect x="170" y="171" width="416" height="66" fill="none" stroke="#b5bfbc"/>
-<text x="378" y="198" font-size="18" fill="#000000" text-anchor="middle" font-weight="600">Identity and configuration checks</text>
-<text x="378" y="222" font-size="15" fill="#000000" text-anchor="middle" font-weight="400">Rank candidates; reject incompatible matches</text>
-<line x1="277" y1="237" x2="195" y2="291" stroke="#146cba" stroke-width="1.5"/>
-<path d="M198.28 284.82 L195 291 L201.98 290.42" fill="none" stroke="#146cba" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" opacity="1"/>
-<line x1="479" y1="237" x2="562" y2="291" stroke="#a64d0c" stroke-width="1.5"/>
-<path d="M555.02 290.46 L562 291 L558.68 284.84" fill="none" stroke="#a64d0c" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" opacity="1"/>
-<text x="80" y="323" font-size="18" fill="#000000" text-anchor="start" font-weight="600">Accepted match</text>
-<text x="80" y="350" font-size="16" fill="#000000" text-anchor="start" font-weight="400">Attach compatible metadata</text>
-<text x="80" y="374" font-size="16" fill="#000000" text-anchor="start" font-weight="400">Keep exact variant observations</text>
-<text x="440" y="323" font-size="18" fill="#000000" text-anchor="start" font-weight="600">No accepted match</text>
-<text x="440" y="350" font-size="16" fill="#000000" text-anchor="start" font-weight="400">Keep qualified source identity</text>
-<text x="440" y="374" font-size="16" fill="#000000" text-anchor="start" font-weight="400">Leave catalog metadata missing</text>
+<defs><filter id="glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="3"/></filter><marker id="tip-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="ink" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-violet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="violet" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="rose" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="amber" d="M0 0L10 5L0 10Z"/></marker></defs>
+<text class="small muted" x="305" y="36" text-anchor="middle">Inputs</text><text class="small muted" x="620" y="36" text-anchor="middle">After identity and configuration checks</text>
+<path class="guide" d="M460 26L460 290"/>
+<text class="strong" x="250" y="64" text-anchor="middle">Source</text><text class="small muted" x="250" y="82" text-anchor="middle">record</text><text class="strong" x="360" y="64" text-anchor="middle">Catalog</text><text class="small muted" x="360" y="82" text-anchor="middle">candidate</text><text class="strong" x="560" y="64" text-anchor="middle">Accepted</text><text class="small muted" x="560" y="82" text-anchor="middle">match</text><text class="strong" x="680" y="64" text-anchor="middle">No accepted</text><text class="small muted" x="680" y="82" text-anchor="middle">match</text>
+<text class="muted" x="40" y="109">Identity</text><path class="grid" d="M160 104L740 104"/><rect class="ink" x="228" y="100" width="44" height="8" rx="4" opacity=".85"/><rect class="violet" x="338" y="100" width="44" height="8" rx="4" opacity=".85"/><rect class="ink" x="538" y="100" width="44" height="8" rx="4" opacity=".85"/><rect class="ink" x="658" y="100" width="44" height="8" rx="4" opacity=".85"/>
+<text class="muted" x="40" y="143">Variant</text><path class="grid" d="M160 138L740 138"/><rect class="ink" x="228" y="134" width="44" height="8" rx="4" opacity=".85"/><path class="axis" d="M354 138L366 138" stroke-width="1.5"/><rect class="ink" x="538" y="134" width="44" height="8" rx="4" opacity=".85"/><rect class="ink" x="658" y="134" width="44" height="8" rx="4" opacity=".85"/>
+<text class="muted" x="40" y="177">Observations</text><path class="grid" d="M160 172L740 172"/><g><circle class="ink halo" cx="238" cy="172" r="5.5" filter="url(#glow)"/><circle class="ink ring" cx="238" cy="172" r="3.5"/></g><g><circle class="ink halo" cx="250" cy="172" r="5.5" filter="url(#glow)"/><circle class="ink ring" cx="250" cy="172" r="3.5"/></g><g><circle class="ink halo" cx="262" cy="172" r="5.5" filter="url(#glow)"/><circle class="ink ring" cx="262" cy="172" r="3.5"/></g><path class="axis" d="M354 172L366 172" stroke-width="1.5"/><g><circle class="ink halo" cx="548" cy="172" r="5.5" filter="url(#glow)"/><circle class="ink ring" cx="548" cy="172" r="3.5"/></g><g><circle class="ink halo" cx="560" cy="172" r="5.5" filter="url(#glow)"/><circle class="ink ring" cx="560" cy="172" r="3.5"/></g><g><circle class="ink halo" cx="572" cy="172" r="5.5" filter="url(#glow)"/><circle class="ink ring" cx="572" cy="172" r="3.5"/></g><g><circle class="ink halo" cx="668" cy="172" r="5.5" filter="url(#glow)"/><circle class="ink ring" cx="668" cy="172" r="3.5"/></g><g><circle class="ink halo" cx="680" cy="172" r="5.5" filter="url(#glow)"/><circle class="ink ring" cx="680" cy="172" r="3.5"/></g><g><circle class="ink halo" cx="692" cy="172" r="5.5" filter="url(#glow)"/><circle class="ink ring" cx="692" cy="172" r="3.5"/></g>
+<text class="muted" x="40" y="211">Prices</text><path class="grid" d="M160 206L740 206"/><path class="axis" d="M244 206L256 206" stroke-width="1.5"/><rect class="violet" x="338" y="202" width="44" height="8" rx="4" opacity=".85"/><rect class="violet" x="538" y="202" width="44" height="8" rx="4" opacity=".85"/><path class="axis" d="M674 206L686 206" stroke-width="1.5"/>
+<text class="muted" x="40" y="245">Context window</text><path class="grid" d="M160 240L740 240"/><path class="axis" d="M244 240L256 240" stroke-width="1.5"/><rect class="violet" x="338" y="236" width="44" height="8" rx="4" opacity=".85"/><rect class="violet" x="538" y="236" width="44" height="8" rx="4" opacity=".85"/><path class="axis" d="M674 240L686 240" stroke-width="1.5"/>
+<text class="muted" x="40" y="279">Release date</text><path class="grid" d="M160 274L740 274"/><path class="axis" d="M244 274L256 274" stroke-width="1.5"/><rect class="violet" x="338" y="270" width="44" height="8" rx="4" opacity=".85"/><rect class="violet" x="538" y="270" width="44" height="8" rx="4" opacity=".85"/><path class="axis" d="M674 274L686 274" stroke-width="1.5"/>
+<rect class="ink" x="40" y="314" width="28" height="8" rx="4" opacity=".85"/><text class="muted" x="78" y="322">From the source</text><rect class="violet" x="230" y="314" width="28" height="8" rx="4" opacity=".85"/><text class="muted" x="268" y="322">From the catalog</text>
 </svg>

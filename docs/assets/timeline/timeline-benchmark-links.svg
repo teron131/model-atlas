@@ -1,36 +1,38 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 96 760 285" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 294" role="img" aria-labelledby="title desc">
 <title id="title">Observed overlaps connect benchmark generations</title>
-<desc id="desc">An earlier model group is measured on the old and middle benchmarks. A later group is measured on the middle and new benchmarks. A future model measured only on the new benchmark inherits the original scale through those retained overlaps.</desc>
+<desc id="desc">Three benchmarks sit on one shared ruler. Earlier models measured on the old and middle benchmarks connect those two; later models measured on the middle and new benchmarks connect the next pair. A future model measured only on the new benchmark reaches the original scale through these retained overlaps.</desc>
 <style>
-text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; }
-@media (prefers-color-scheme:dark) {
-text { fill:#ffffff; }
-[fill="#63706e"] { fill:#a6b2ae; } [stroke="#63706e"] { stroke:#a6b2ae; }
-[fill="#b5bfbc"] { fill:#3c4846; } [stroke="#b5bfbc"] { stroke:#3c4846; }
-[fill="#146cba"] { fill:#85bfff; } [stroke="#146cba"] { stroke:#85bfff; }
-[fill="#a64d0c"] { fill:#ffbc7d; } [stroke="#a64d0c"] { stroke:#ffbc7d; }
+text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:15px;fill:#202724}
+.num{font-family:"SFMono-Regular","SF Mono",Menlo,Consolas,monospace;font-size:14px}
+.small{font-size:12.5px}.big{font-size:18px}.strong{font-weight:600}
+.muted{fill-opacity:.62}.faint{opacity:.4}.half{opacity:.5}
+.grid{fill:none;stroke:#202724;stroke-opacity:.09}
+.guide{fill:none;stroke:#202724;stroke-opacity:.22}
+.axis{fill:none;stroke:#202724;stroke-opacity:.34}
+.ink{fill:#202724}.ink-line{fill:none;stroke:#202724}.ink-wash{fill:#202724;fill-opacity:.08}
+.ring{stroke:#f2f4f2;stroke-width:2;paint-order:stroke}.gap{stroke:#f2f4f2;stroke-width:2}
+.violet{fill:#6b47e0}.violet-line{fill:none;stroke:#6b47e0}.violet-wash{fill:#6b47e0;fill-opacity:.14}
+.rose{fill:#c93f78}.rose-line{fill:none;stroke:#c93f78}.rose-wash{fill:#c93f78;fill-opacity:.14}
+.amber{fill:#a8740c}.amber-line{fill:none;stroke:#a8740c}.amber-wash{fill:#a8740c;fill-opacity:.16}
+.h0{stop-color:#3557e6}.h1{stop-color:#6b47e0}.h2{stop-color:#d9467f}
+.land0{stop-color:#6b47e0;stop-opacity:.12}.land1{stop-color:#6b47e0;stop-opacity:.01}
+.halo{opacity:0}
+@media (prefers-color-scheme:dark){
+text{fill:#f2f3ed}.muted{fill-opacity:.58}
+.grid{stroke:#f2f3ed;stroke-opacity:.08}.guide{stroke:#f2f3ed;stroke-opacity:.2}.axis{stroke:#f2f3ed;stroke-opacity:.3}
+.ink{fill:#f2f3ed}.ink-line{stroke:#f2f3ed}.ink-wash{fill:#f2f3ed;fill-opacity:.1}
+.ring{stroke:#0b1016}.gap{stroke:#0b1016}
+.violet{fill:#8f6bff}.violet-line{stroke:#8f6bff}.violet-wash{fill:#8f6bff;fill-opacity:.22}
+.rose{fill:#e06296}.rose-line{stroke:#e06296}.rose-wash{fill:#e06296;fill-opacity:.2}
+.amber{fill:#b98b24}.amber-line{stroke:#b98b24}.amber-wash{fill:#b98b24;fill-opacity:.22}
+.h0{stop-color:#4a72ff}.h1{stop-color:#8f6bff}.h2{stop-color:#ff92bd}
+.land0{stop-color:#6f8cff;stop-opacity:.16}.land1{stop-color:#6f8cff;stop-opacity:.02}
+.halo{opacity:.55}
 }
 </style>
-<line x1="232" y1="130" x2="414" y2="130" stroke="#63706e" stroke-width="1.5"/>
-<path d="M407 126 L414 130 L407 134" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<line x1="442" y1="130" x2="624" y2="130" stroke="#63706e" stroke-width="1.5"/>
-<path d="M617 126 L624 130 L617 134" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<circle cx="220" cy="130" r="7" fill="#146cba"/>
-<text x="220" y="166" font-size="17" fill="#000000" text-anchor="middle" font-weight="600">Old benchmark</text>
-<circle cx="430" cy="130" r="7" fill="#146cba"/>
-<text x="430" y="166" font-size="17" fill="#000000" text-anchor="middle" font-weight="600">Middle benchmark</text>
-<circle cx="640" cy="130" r="7" fill="#a64d0c"/>
-<text x="640" y="166" font-size="17" fill="#000000" text-anchor="middle" font-weight="600">New benchmark</text>
-<text x="220" y="191" font-size="14" fill="#63706e" text-anchor="middle" font-weight="400">Published mapping</text>
-<text x="430" y="191" font-size="14" fill="#63706e" text-anchor="middle" font-weight="400">Retained connection</text>
-<text x="640" y="191" font-size="14" fill="#63706e" text-anchor="middle" font-weight="400">Same reference unit</text>
-<line x1="40" y1="217" x2="720" y2="217" stroke="#b5bfbc"/>
-<text x="40" y="262" font-size="16" fill="#000000" text-anchor="start" font-weight="400">Earlier models</text>
-<circle cx="220" cy="257" r="5" fill="#146cba"/>
-<circle cx="430" cy="257" r="5" fill="#146cba"/>
-<text x="40" y="311" font-size="16" fill="#000000" text-anchor="start" font-weight="400">Later models</text>
-<circle cx="430" cy="306" r="5" fill="#146cba"/>
-<circle cx="640" cy="306" r="5" fill="#146cba"/>
-<text x="40" y="360" font-size="16" fill="#000000" text-anchor="start" font-weight="400">Future model</text>
-<circle cx="640" cy="355" r="5" fill="#a64d0c"/>
+<defs><filter id="glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="3"/></filter><marker id="tip-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="ink" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-violet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="violet" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="rose" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="amber" d="M0 0L10 5L0 10Z"/></marker><linearGradient id="light" gradientUnits="userSpaceOnUse" x1="220" y1="0" x2="700" y2="0"><stop class="h0" offset="0"/><stop class="h1" offset=".58"/><stop class="h2" offset="1"/></linearGradient><linearGradient id="land" gradientUnits="userSpaceOnUse" x1="0" y1="44" x2="0" y2="64"><stop class="land0" offset="0"/><stop class="land1" offset="1"/></linearGradient></defs>
+<path d="M220 54L700 54" fill="none" stroke="url(#light)" stroke-width="8" opacity=".14" class="halo"/><path d="M220 54L700 54" fill="none" stroke="url(#light)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path class="ink ring" d="M260 47L267 54L260 61L253 54Z"/><text class="strong" x="260" y="88" text-anchor="middle">Old benchmark</text><text class="small muted" x="260" y="108" text-anchor="middle">Published mapping</text><path class="ink ring" d="M460 47L467 54L460 61L453 54Z"/><text class="strong" x="460" y="88" text-anchor="middle">Middle benchmark</text><text class="small muted" x="460" y="108" text-anchor="middle">Retained connection</text><path class="ink ring" d="M660 47L667 54L660 61L653 54Z"/><text class="strong" x="660" y="88" text-anchor="middle">New benchmark</text><text class="small muted" x="660" y="108" text-anchor="middle">Same reference unit</text>
+<path class="grid" d="M260 134L260 280"/><path class="grid" d="M460 134L460 280"/><path class="grid" d="M660 134L660 280"/>
+<text x="40" y="173">Earlier models</text><path class="violet-line" d="M260 168L460 168" stroke-width="2"/><g><circle class="ink halo" cx="260" cy="168" r="8" filter="url(#glow)"/><circle class="ink ring" cx="260" cy="168" r="6"/></g><g><circle class="ink halo" cx="460" cy="168" r="8" filter="url(#glow)"/><circle class="ink ring" cx="460" cy="168" r="6"/></g><text x="40" y="221">Later models</text><path class="violet-line" d="M460 216L660 216" stroke-width="2"/><g><circle class="ink halo" cx="460" cy="216" r="8" filter="url(#glow)"/><circle class="ink ring" cx="460" cy="216" r="6"/></g><g><circle class="ink halo" cx="660" cy="216" r="8" filter="url(#glow)"/><circle class="ink ring" cx="660" cy="216" r="6"/></g><text x="40" y="269">Future model</text><g><circle class="ink halo" cx="660" cy="264" r="8" filter="url(#glow)"/><circle class="ink ring" cx="660" cy="264" r="6"/></g>
 </svg>

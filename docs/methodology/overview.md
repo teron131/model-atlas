@@ -67,7 +67,7 @@ The scoring order matters: benchmark quality establishes the context for resourc
 
 **Imputed values help estimate scores; they never count as direct evidence.** Observations alone establish reference scales and satisfy inclusion and resource-availability requirements. [Benchmark imputation](imputation.md#benchmark-results-and-imputation) and [resource imputation](imputation.md#resource-imputation-across-reasoning-efforts) explain how estimates enter scoring and how their support is assessed.
 
-![Imputation fills missing values with estimates.](../assets/methodology/imputation-overview.svg)
+![Imputation fills a gap from another effort of the same model or from the model’s other benchmarks; a gap without enough evidence stays missing.](../assets/methodology/imputation-overview.svg)
 
 ## Read the Detailed Method
 

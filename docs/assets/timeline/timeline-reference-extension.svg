@@ -1,63 +1,48 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 365" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 380" role="img" aria-labelledby="title desc">
 <title id="title">Freeze the current reference, then extend across generations</title>
-<desc id="desc">A schematic plot shows release generations horizontally and a fixed capability scale vertically. Solid points in the initial snapshot have at least sixty percent evidence support and establish the reference. Three points at fifty percent opacity have lower coverage and do not define the saved range, including points above and below it. Retained evidence connects older models on the left, and new evidence connects future models on the right, using the same fixed ruler.</desc>
+<desc id="desc">A schematic plot with release generations across and a fixed index scale up the side. Solid points in the initial snapshot have at least 60 percent evidence support and set the saved range. Three points at 50 percent opacity have lower coverage and do not define that range, including points above and below it. Retained evidence connects older models on the left, and new evidence connects future models on the right, on the same fixed ruler.</desc>
 <style>
-text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; }
-@media (prefers-color-scheme:dark) {
-text { fill:#ffffff; }
-[fill="#63706e"] { fill:#a6b2ae; } [stroke="#63706e"] { stroke:#a6b2ae; }
-[fill="#b5bfbc"] { fill:#3c4846; } [stroke="#b5bfbc"] { stroke:#3c4846; }
-[fill="#146cba"] { fill:#85bfff; } [stroke="#146cba"] { stroke:#85bfff; }
-[fill="#a64d0c"] { fill:#ffbc7d; } [stroke="#a64d0c"] { stroke:#ffbc7d; }
+text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:15px;fill:#202724}
+.num{font-family:"SFMono-Regular","SF Mono",Menlo,Consolas,monospace;font-size:14px}
+.small{font-size:12.5px}.big{font-size:18px}.strong{font-weight:600}
+.muted{fill-opacity:.62}.faint{opacity:.4}.half{opacity:.5}
+.grid{fill:none;stroke:#202724;stroke-opacity:.09}
+.guide{fill:none;stroke:#202724;stroke-opacity:.22}
+.axis{fill:none;stroke:#202724;stroke-opacity:.34}
+.ink{fill:#202724}.ink-line{fill:none;stroke:#202724}.ink-wash{fill:#202724;fill-opacity:.08}
+.ring{stroke:#f2f4f2;stroke-width:2;paint-order:stroke}.gap{stroke:#f2f4f2;stroke-width:2}
+.violet{fill:#6b47e0}.violet-line{fill:none;stroke:#6b47e0}.violet-wash{fill:#6b47e0;fill-opacity:.14}
+.rose{fill:#c93f78}.rose-line{fill:none;stroke:#c93f78}.rose-wash{fill:#c93f78;fill-opacity:.14}
+.amber{fill:#a8740c}.amber-line{fill:none;stroke:#a8740c}.amber-wash{fill:#a8740c;fill-opacity:.16}
+.h0{stop-color:#3557e6}.h1{stop-color:#6b47e0}.h2{stop-color:#d9467f}
+.land0{stop-color:#6b47e0;stop-opacity:.12}.land1{stop-color:#6b47e0;stop-opacity:.01}
+.halo{opacity:0}
+@media (prefers-color-scheme:dark){
+text{fill:#f2f3ed}.muted{fill-opacity:.58}
+.grid{stroke:#f2f3ed;stroke-opacity:.08}.guide{stroke:#f2f3ed;stroke-opacity:.2}.axis{stroke:#f2f3ed;stroke-opacity:.3}
+.ink{fill:#f2f3ed}.ink-line{stroke:#f2f3ed}.ink-wash{fill:#f2f3ed;fill-opacity:.1}
+.ring{stroke:#0b1016}.gap{stroke:#0b1016}
+.violet{fill:#8f6bff}.violet-line{stroke:#8f6bff}.violet-wash{fill:#8f6bff;fill-opacity:.22}
+.rose{fill:#e06296}.rose-line{stroke:#e06296}.rose-wash{fill:#e06296;fill-opacity:.2}
+.amber{fill:#b98b24}.amber-line{stroke:#b98b24}.amber-wash{fill:#b98b24;fill-opacity:.22}
+.h0{stop-color:#4a72ff}.h1{stop-color:#8f6bff}.h2{stop-color:#ff92bd}
+.land0{stop-color:#6f8cff;stop-opacity:.16}.land1{stop-color:#6f8cff;stop-opacity:.02}
+.halo{opacity:.55}
 }
 </style>
-<text x="38" y="24" font-size="14" fill="#63706e" text-anchor="start" font-weight="400">Index</text>
-<path d="M80 38 V284 M80 298 V302 H710" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<path d="M75 291 L85 285 M75 297 L85 291" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<path d="M76 45 L80 38 L84 45" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<path d="M703 298 L710 302 L703 306" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<path d="M75 90 H85" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<path d="M75 150 H85" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<path d="M75 210 H85" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<path d="M75 270 H85" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<text x="66" y="95" font-size="14" fill="#63706e" text-anchor="end">175</text>
-<text x="66" y="155" font-size="14" fill="#63706e" text-anchor="end">150</text>
-<text x="66" y="215" font-size="14" fill="#63706e" text-anchor="end">125</text>
-<text x="66" y="275" font-size="14" fill="#63706e" text-anchor="end">100</text>
-<path d="M300 142 H468 M300 242 H468" fill="none" stroke="#146cba" stroke-width="1.5" stroke-dasharray="3 5"/>
-<path d="M474 142 h8 V242 h-8" fill="none" stroke="#146cba" stroke-width="1.5"/>
-<text x="492" y="194" font-size="13" fill="#146cba" text-anchor="start" font-weight="400">Saved range</text>
-<circle cx="126" cy="274" r="5" fill="#63706e"/>
-<circle cx="174" cy="248" r="5" fill="#63706e"/>
-<circle cx="220" cy="280" r="5" fill="#63706e"/>
-<circle cx="260" cy="230" r="5" fill="#63706e"/>
-<circle cx="315" cy="232" r="5" fill="#146cba"/>
-<circle cx="345" cy="205" r="5" fill="#146cba"/>
-<circle cx="376" cy="217" r="5" fill="#146cba"/>
-<circle cx="405" cy="166" r="5" fill="#146cba"/>
-<circle cx="443" cy="150" r="5" fill="#146cba"/>
-<g opacity="0.5">
-<circle cx="325" cy="266" r="5" fill="#146cba"/>
-<circle cx="438" cy="194" r="5" fill="#146cba"/>
-<circle cx="420" cy="120" r="5" fill="#146cba"/>
-</g>
-<circle cx="550" cy="145" r="5" fill="#a64d0c"/>
-<circle cx="591" cy="106" r="5" fill="#a64d0c"/>
-<circle cx="625" cy="124" r="5" fill="#a64d0c"/>
-<circle cx="670" cy="69" r="5" fill="#a64d0c"/>
-<text x="378" y="57" font-size="17" fill="#146cba" text-anchor="middle" font-weight="600">1  Freeze reference</text>
-<text x="378" y="79" font-size="14" fill="#63706e" text-anchor="middle" font-weight="400">≥60% evidence support</text>
-<path d="M378 90 V128" fill="none" stroke="#146cba" stroke-width="1.5"/>
-<path d="M374 121 L378 128 L382 121" fill="none" stroke="#146cba" stroke-width="1.5"/>
-<path d="M296 107 H155" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<path d="M162 103 L155 107 L162 111" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<text x="205" y="87" font-size="16" fill="#000000" text-anchor="middle" font-weight="600">2  Look back</text>
-<text x="205" y="132" font-size="13" fill="#63706e" text-anchor="middle" font-weight="400">Retained evidence</text>
-<path d="M514 49 H664" fill="none" stroke="#a64d0c" stroke-width="1.5"/>
-<path d="M657 45 L664 49 L657 53" fill="none" stroke="#a64d0c" stroke-width="1.5"/>
-<text x="590" y="27" font-size="16" fill="#a64d0c" text-anchor="middle" font-weight="600">3  Extend forward</text>
-<text x="590" y="76" font-size="13" fill="#63706e" text-anchor="middle" font-weight="400">New evidence</text>
-<text x="180" y="333" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">Older models</text>
-<text x="378" y="333" font-size="16" fill="#146cba" text-anchor="middle" font-weight="600">Initial snapshot</text>
-<text x="620" y="333" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">Future models</text>
+<defs><filter id="glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="3"/></filter><marker id="tip-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="ink" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-violet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="violet" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="rose" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="amber" d="M0 0L10 5L0 10Z"/></marker></defs>
+<text class="muted" x="90" y="40">Index</text>
+<path class="grid" d="M90 289.4L700 289.4"/><text class="num muted" x="76" y="293.9" text-anchor="end">100</text><path class="grid" d="M90 237.9L700 237.9"/><text class="num muted" x="76" y="242.4" text-anchor="end">125</text><path class="grid" d="M90 186.4L700 186.4"/><text class="num muted" x="76" y="190.9" text-anchor="end">150</text><path class="grid" d="M90 134.9L700 134.9"/><text class="num muted" x="76" y="139.4" text-anchor="end">175</text><path class="axis" d="M90 310L700 310"/>
+<rect class="violet-wash" x="300" y="186.4" width="180" height="70.4" rx="4"/>
+<path class="violet-line" d="M486 186.4h6V256.8h-6" stroke-width="1.5"/><text class="small" x="500" y="226.6">Saved range</text>
+<path class="grid" d="M290 104L290 310"/><path class="grid" d="M540 104L540 310"/>
+<text class="strong" x="390" y="76" text-anchor="middle">1  Freeze reference</text><text class="small muted" x="390" y="96" text-anchor="middle">≥60% evidence support</text>
+<path class="ink-line" d="M282 86L150 86" stroke-width="1.5" marker-end="url(#tip-ink)"/><text class="strong" x="196" y="76" text-anchor="middle">2  Look back</text>
+<path class="ink-line" d="M548 86L700 86" stroke-width="1.5" marker-end="url(#tip-ink)"/><text class="strong" x="624" y="76" text-anchor="middle">3  Extend forward</text>
+<g><circle class="ink halo" cx="136" cy="292.8" r="7" filter="url(#glow)"/><circle class="ink ring" cx="136" cy="292.8" r="5"/></g><g><circle class="ink halo" cx="184" cy="270.5" r="7" filter="url(#glow)"/><circle class="ink ring" cx="184" cy="270.5" r="5"/></g><g><circle class="ink halo" cx="230" cy="298" r="7" filter="url(#glow)"/><circle class="ink ring" cx="230" cy="298" r="5"/></g><g><circle class="ink halo" cx="270" cy="255.1" r="7" filter="url(#glow)"/><circle class="ink ring" cx="270" cy="255.1" r="5"/></g>
+<g><circle class="ink halo" cx="560" cy="182.1" r="7" filter="url(#glow)"/><circle class="ink ring" cx="560" cy="182.1" r="5"/></g><g><circle class="ink halo" cx="601" cy="148.6" r="7" filter="url(#glow)"/><circle class="ink ring" cx="601" cy="148.6" r="5"/></g><g><circle class="ink halo" cx="635" cy="164.1" r="7" filter="url(#glow)"/><circle class="ink ring" cx="635" cy="164.1" r="5"/></g><g><circle class="ink halo" cx="680" cy="116.9" r="7" filter="url(#glow)"/><circle class="ink ring" cx="680" cy="116.9" r="5"/></g>
+<g><circle class="violet halo" cx="325" cy="256.8" r="7.5" filter="url(#glow)"/><circle class="violet ring" cx="325" cy="256.8" r="5.5"/></g><g><circle class="violet halo" cx="355" cy="233.6" r="7.5" filter="url(#glow)"/><circle class="violet ring" cx="355" cy="233.6" r="5.5"/></g><g><circle class="violet halo" cx="386" cy="243.9" r="7.5" filter="url(#glow)"/><circle class="violet ring" cx="386" cy="243.9" r="5.5"/></g><g><circle class="violet halo" cx="415" cy="200.1" r="7.5" filter="url(#glow)"/><circle class="violet ring" cx="415" cy="200.1" r="5.5"/></g><g><circle class="violet halo" cx="453" cy="186.4" r="7.5" filter="url(#glow)"/><circle class="violet ring" cx="453" cy="186.4" r="5.5"/></g>
+<g class="half"><circle class="violet halo" cx="335" cy="286" r="7.5" filter="url(#glow)"/><circle class="violet ring" cx="335" cy="286" r="5.5"/></g><g class="half"><circle class="violet halo" cx="448" cy="224.2" r="7.5" filter="url(#glow)"/><circle class="violet ring" cx="448" cy="224.2" r="5.5"/></g><g class="half"><circle class="violet halo" cx="430" cy="160.7" r="7.5" filter="url(#glow)"/><circle class="violet ring" cx="430" cy="160.7" r="5.5"/></g>
+<text x="190" y="340" text-anchor="middle">Older models</text><text class="strong" x="390" y="340" text-anchor="middle">Initial snapshot</text><text x="624" y="340" text-anchor="middle">Future models</text>
+<text class="small muted" x="190" y="360" text-anchor="middle">Retained evidence</text><text class="small muted" x="390" y="360" text-anchor="middle">Sets the reference</text><text class="small muted" x="624" y="360" text-anchor="middle">New evidence</text>
 </svg>

@@ -1,41 +1,42 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 62 760 270" role="img" aria-labelledby="title desc">
-<title id="title">Data Imputation</title>
-<desc id="desc">A row of eleven values contains three hollow gaps. Three estimated values below point upward into those gaps.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 306" role="img" aria-labelledby="title desc">
+<title id="title">Imputation fills supported gaps</title>
+<desc id="desc">Four model rows across six benchmarks. Model 1 at high effort is missing one benchmark, estimated from the same benchmark at low effort. Model 2 is missing one benchmark, estimated from its other observed benchmarks. Model 3 has too few observed results, so its gaps stay missing. Estimates help scores but never count as direct evidence.</desc>
 <style>
-text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; fill:#000000; }
-.observed { fill:#202823; }
-.gap { fill:none; stroke:#63706e; stroke-width:1.8; }
-.estimate { fill:#478d83; }
-.guide { fill:none; stroke:#b5bfbc; stroke-width:1.25; }
-.arrow { fill:none; stroke:#478d83; stroke-width:1.8; }
-.head { fill:#478d83; }
-@media (prefers-color-scheme:dark) {
-text { fill:#ffffff; }
-.observed { fill:#e5eae6; }
-.gap { stroke:#a6b2ae; }
-.estimate,.head { fill:#8ac7bc; }
-.arrow { stroke:#8ac7bc; }
-.guide { stroke:#63706e; }
+text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:15px;fill:#202724}
+.num{font-family:"SFMono-Regular","SF Mono",Menlo,Consolas,monospace;font-size:14px}
+.small{font-size:12.5px}.big{font-size:18px}.strong{font-weight:600}
+.muted{fill-opacity:.62}.faint{opacity:.4}.half{opacity:.5}
+.grid{fill:none;stroke:#202724;stroke-opacity:.09}
+.guide{fill:none;stroke:#202724;stroke-opacity:.22}
+.axis{fill:none;stroke:#202724;stroke-opacity:.34}
+.ink{fill:#202724}.ink-line{fill:none;stroke:#202724}.ink-wash{fill:#202724;fill-opacity:.08}
+.ring{stroke:#f2f4f2;stroke-width:2;paint-order:stroke}.gap{stroke:#f2f4f2;stroke-width:2}
+.violet{fill:#6b47e0}.violet-line{fill:none;stroke:#6b47e0}.violet-wash{fill:#6b47e0;fill-opacity:.14}
+.rose{fill:#c93f78}.rose-line{fill:none;stroke:#c93f78}.rose-wash{fill:#c93f78;fill-opacity:.14}
+.amber{fill:#a8740c}.amber-line{fill:none;stroke:#a8740c}.amber-wash{fill:#a8740c;fill-opacity:.16}
+.h0{stop-color:#3557e6}.h1{stop-color:#6b47e0}.h2{stop-color:#d9467f}
+.land0{stop-color:#6b47e0;stop-opacity:.12}.land1{stop-color:#6b47e0;stop-opacity:.01}
+.halo{opacity:0}
+@media (prefers-color-scheme:dark){
+text{fill:#f2f3ed}.muted{fill-opacity:.58}
+.grid{stroke:#f2f3ed;stroke-opacity:.08}.guide{stroke:#f2f3ed;stroke-opacity:.2}.axis{stroke:#f2f3ed;stroke-opacity:.3}
+.ink{fill:#f2f3ed}.ink-line{stroke:#f2f3ed}.ink-wash{fill:#f2f3ed;fill-opacity:.1}
+.ring{stroke:#0b1016}.gap{stroke:#0b1016}
+.violet{fill:#8f6bff}.violet-line{stroke:#8f6bff}.violet-wash{fill:#8f6bff;fill-opacity:.22}
+.rose{fill:#e06296}.rose-line{stroke:#e06296}.rose-wash{fill:#e06296;fill-opacity:.2}
+.amber{fill:#b98b24}.amber-line{stroke:#b98b24}.amber-wash{fill:#b98b24;fill-opacity:.22}
+.h0{stop-color:#4a72ff}.h1{stop-color:#8f6bff}.h2{stop-color:#ff92bd}
+.land0{stop-color:#6f8cff;stop-opacity:.16}.land1{stop-color:#6f8cff;stop-opacity:.02}
+.halo{opacity:.55}
 }
 </style>
-<defs><marker id="fill-gap" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path class="head" d="M0 0 L10 5 L0 10 Z"/></marker></defs>
-
-<text x="380" y="91" font-size="16" text-anchor="middle">Missing values</text>
-<path class="guide" d="M194 128 V106 H566 V128 M442 106 V128"/>
-<circle cx="70" cy="153" r="13" class="observed"/>
-<circle cx="132" cy="153" r="13" class="observed"/>
-<circle cx="194" cy="153" r="13" class="gap"/>
-<path class="arrow" d="M194 222 V178" marker-end="url(#fill-gap)"/><circle cx="194" cy="244" r="13" class="estimate"/>
-<circle cx="256" cy="153" r="13" class="observed"/>
-<circle cx="318" cy="153" r="13" class="observed"/>
-<circle cx="380" cy="153" r="13" class="observed"/>
-<circle cx="442" cy="153" r="13" class="gap"/>
-<path class="arrow" d="M442 222 V178" marker-end="url(#fill-gap)"/><circle cx="442" cy="244" r="13" class="estimate"/>
-<circle cx="504" cy="153" r="13" class="observed"/>
-<circle cx="566" cy="153" r="13" class="gap"/>
-<path class="arrow" d="M566 222 V178" marker-end="url(#fill-gap)"/><circle cx="566" cy="244" r="13" class="estimate"/>
-<circle cx="628" cy="153" r="13" class="observed"/>
-<circle cx="690" cy="153" r="13" class="observed"/>
-<path class="guide" d="M194 267 V281 H566 V267 M442 267 V281"/>
-<text x="380" y="315" font-size="16" text-anchor="middle">Imputed values</text>
+<defs><filter id="glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="3"/></filter><marker id="tip-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="ink" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-violet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="violet" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="rose" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="amber" d="M0 0L10 5L0 10Z"/></marker></defs>
+<text class="muted" x="330" y="40" text-anchor="middle">Benchmarks</text>
+<text x="40" y="89">Model 1 · high</text><path class="grid" d="M166 84L494 84"/><g><circle class="ink halo" cx="190" cy="84" r="8" filter="url(#glow)"/><circle class="ink ring" cx="190" cy="84" r="6"/></g><g><circle class="ink halo" cx="246" cy="84" r="8" filter="url(#glow)"/><circle class="ink ring" cx="246" cy="84" r="6"/></g><g><circle class="ink halo" cx="302" cy="84" r="8" filter="url(#glow)"/><circle class="ink ring" cx="302" cy="84" r="6"/></g><g><circle class="rose halo" cx="358" cy="84" r="8" filter="url(#glow)"/><circle class="rose ring" cx="358" cy="84" r="6"/></g><g><circle class="ink halo" cx="414" cy="84" r="8" filter="url(#glow)"/><circle class="ink ring" cx="414" cy="84" r="6"/></g><g><circle class="ink halo" cx="470" cy="84" r="8" filter="url(#glow)"/><circle class="ink ring" cx="470" cy="84" r="6"/></g><text class="muted" x="510" y="89">From another effort</text>
+<text x="40" y="137">Model 1 · low</text><path class="grid" d="M166 132L494 132"/><g><circle class="ink halo" cx="190" cy="132" r="8" filter="url(#glow)"/><circle class="ink ring" cx="190" cy="132" r="6"/></g><g><circle class="ink halo" cx="246" cy="132" r="8" filter="url(#glow)"/><circle class="ink ring" cx="246" cy="132" r="6"/></g><g><circle class="ink halo" cx="302" cy="132" r="8" filter="url(#glow)"/><circle class="ink ring" cx="302" cy="132" r="6"/></g><g><circle class="ink halo" cx="358" cy="132" r="8" filter="url(#glow)"/><circle class="ink ring" cx="358" cy="132" r="6"/></g><g><circle class="ink halo" cx="414" cy="132" r="8" filter="url(#glow)"/><circle class="ink ring" cx="414" cy="132" r="6"/></g><g><circle class="ink halo" cx="470" cy="132" r="8" filter="url(#glow)"/><circle class="ink ring" cx="470" cy="132" r="6"/></g>
+<text x="40" y="185">Model 2</text><path class="grid" d="M166 180L494 180"/><g><circle class="ink halo" cx="190" cy="180" r="8" filter="url(#glow)"/><circle class="ink ring" cx="190" cy="180" r="6"/></g><g><circle class="rose halo" cx="246" cy="180" r="8" filter="url(#glow)"/><circle class="rose ring" cx="246" cy="180" r="6"/></g><g><circle class="ink halo" cx="302" cy="180" r="8" filter="url(#glow)"/><circle class="ink ring" cx="302" cy="180" r="6"/></g><g><circle class="ink halo" cx="358" cy="180" r="8" filter="url(#glow)"/><circle class="ink ring" cx="358" cy="180" r="6"/></g><g><circle class="ink halo" cx="414" cy="180" r="8" filter="url(#glow)"/><circle class="ink ring" cx="414" cy="180" r="6"/></g><g><circle class="ink halo" cx="470" cy="180" r="8" filter="url(#glow)"/><circle class="ink ring" cx="470" cy="180" r="6"/></g><text class="muted" x="510" y="185">From other benchmarks</text>
+<text x="40" y="233">Model 3</text><path class="grid" d="M166 228L494 228"/><g><circle class="ink halo" cx="190" cy="228" r="8" filter="url(#glow)"/><circle class="ink ring" cx="190" cy="228" r="6"/></g><g><circle class="ink halo" cx="246" cy="228" r="8" filter="url(#glow)"/><circle class="ink ring" cx="246" cy="228" r="6"/></g><path class="axis" d="M296 228L308 228" stroke-width="1.5"/><path class="axis" d="M352 228L364 228" stroke-width="1.5"/><path class="axis" d="M408 228L420 228" stroke-width="1.5"/><path class="axis" d="M464 228L476 228" stroke-width="1.5"/><text class="muted" x="510" y="233">Too little evidence: stays missing</text>
+<path class="rose-line" d="M358 121L358 96" stroke-width="1.5" marker-end="url(#tip-rose)"/>
+<path class="rose-line" d="M190 171Q218 148.3 241 170" stroke-width="1.25" stroke-opacity=".75" marker-end="url(#tip-rose)"/><path class="rose-line" d="M302 171Q274 148.3 251 170" stroke-width="1.25" stroke-opacity=".75" marker-end="url(#tip-rose)"/><path class="rose-line" d="M358 171Q302 141.6 251 170" stroke-width="1.25" stroke-opacity=".75" marker-end="url(#tip-rose)"/><path class="rose-line" d="M414 171Q330 134.8 251 170" stroke-width="1.25" stroke-opacity=".75" marker-end="url(#tip-rose)"/><path class="rose-line" d="M470 171Q358 128.1 251 170" stroke-width="1.25" stroke-opacity=".75" marker-end="url(#tip-rose)"/>
+<g><circle class="ink halo" cx="46" cy="284" r="8" filter="url(#glow)"/><circle class="ink ring" cx="46" cy="284" r="6"/></g><text class="muted" x="60" y="289">Observed: direct evidence</text><g><circle class="rose halo" cx="276" cy="284" r="8" filter="url(#glow)"/><circle class="rose ring" cx="276" cy="284" r="6"/></g><text class="muted" x="290" y="289">Estimate: helps the score, never direct evidence</text>
 </svg>

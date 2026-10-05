@@ -1,63 +1,43 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 420" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 340" role="img" aria-labelledby="title desc">
 <title id="title">Shared benchmarks connect models into one ordering</title>
-<desc id="desc">Hypothetical normalized scores illustrate partially overlapping benchmark coverage. Model A reports Benchmark A 80 and Benchmark B 70; Model B reports Benchmark A 70 and Benchmark C 60; Model C reports Benchmark B 50 and Benchmark C 50. Models A and B compare on Benchmark A, models A and C on Benchmark B, and models B and C on Benchmark C. These gaps fit one ordering with Model A ten points above Model B and Model B ten above Model C. No benchmark is shared by all three. Missing results create no comparison.</desc>
+<desc id="desc">Hypothetical normalized scores on three benchmark rulers. Benchmark A compares Model A at 80 with Model B at 70, a gap of 10; Benchmark B compares Model A at 70 with Model C at 50, a gap of 20; Benchmark C compares Model B at 60 with Model C at 50, a gap of 10. Each ruler omits the model without a result, so that pair has no comparison there. Fitted together, the gaps agree on one ordering: Model A ten points above Model B, Model B ten above Model C, and Model A twenty above Model C.</desc>
 <style>
-text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; fill:#000000; }
-.muted { fill:#63706e; } .blue { fill:#146cba; }
-.panel { fill:#ffffff; stroke:#b5bfbc; }
-@media (prefers-color-scheme:dark) {
-text { fill:#ffffff; } .muted { fill:#a6b2ae; } .blue { fill:#85bfff; }
-.panel { fill:#101719; stroke:#3c4846; }
-[stroke="#b5bfbc"] { stroke:#3c4846; } [stroke="#63706e"] { stroke:#a6b2ae; }
-[stroke="#146cba"] { stroke:#85bfff; } [fill="#146cba"] { fill:#85bfff; }
+text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:15px;fill:#202724}
+.num{font-family:"SFMono-Regular","SF Mono",Menlo,Consolas,monospace;font-size:14px}
+.small{font-size:12.5px}.big{font-size:18px}.strong{font-weight:600}
+.muted{fill-opacity:.62}.faint{opacity:.4}.half{opacity:.5}
+.grid{fill:none;stroke:#202724;stroke-opacity:.09}
+.guide{fill:none;stroke:#202724;stroke-opacity:.22}
+.axis{fill:none;stroke:#202724;stroke-opacity:.34}
+.ink{fill:#202724}.ink-line{fill:none;stroke:#202724}.ink-wash{fill:#202724;fill-opacity:.08}
+.ring{stroke:#f2f4f2;stroke-width:2;paint-order:stroke}.gap{stroke:#f2f4f2;stroke-width:2}
+.violet{fill:#6b47e0}.violet-line{fill:none;stroke:#6b47e0}.violet-wash{fill:#6b47e0;fill-opacity:.14}
+.rose{fill:#c93f78}.rose-line{fill:none;stroke:#c93f78}.rose-wash{fill:#c93f78;fill-opacity:.14}
+.amber{fill:#a8740c}.amber-line{fill:none;stroke:#a8740c}.amber-wash{fill:#a8740c;fill-opacity:.16}
+.h0{stop-color:#3557e6}.h1{stop-color:#6b47e0}.h2{stop-color:#d9467f}
+.land0{stop-color:#6b47e0;stop-opacity:.12}.land1{stop-color:#6b47e0;stop-opacity:.01}
+.halo{opacity:0}
+@media (prefers-color-scheme:dark){
+text{fill:#f2f3ed}.muted{fill-opacity:.58}
+.grid{stroke:#f2f3ed;stroke-opacity:.08}.guide{stroke:#f2f3ed;stroke-opacity:.2}.axis{stroke:#f2f3ed;stroke-opacity:.3}
+.ink{fill:#f2f3ed}.ink-line{stroke:#f2f3ed}.ink-wash{fill:#f2f3ed;fill-opacity:.1}
+.ring{stroke:#0b1016}.gap{stroke:#0b1016}
+.violet{fill:#8f6bff}.violet-line{stroke:#8f6bff}.violet-wash{fill:#8f6bff;fill-opacity:.22}
+.rose{fill:#e06296}.rose-line{stroke:#e06296}.rose-wash{fill:#e06296;fill-opacity:.2}
+.amber{fill:#b98b24}.amber-line{stroke:#b98b24}.amber-wash{fill:#b98b24;fill-opacity:.22}
+.h0{stop-color:#4a72ff}.h1{stop-color:#8f6bff}.h2{stop-color:#ff92bd}
+.land0{stop-color:#6f8cff;stop-opacity:.16}.land1{stop-color:#6f8cff;stop-opacity:.02}
+.halo{opacity:.55}
 }
 </style>
-<text x="24" y="30" font-size="19" font-weight="600">Each pair compares only its common benchmarks</text>
-<text x="24" y="54" font-size="13" class="muted">Hypothetical normalized scores · cards show reported benchmarks only</text>
-<!-- Shared benchmark links terminate at the model cards. -->
-<g fill="none" stroke="#146cba" stroke-width="2">
-<path d="M118 167 L181 256"/>
-<path d="M342 167 L281 256"/>
-<path d="M198 123 H262"/>
-</g>
-<g font-size="14" class="blue" text-anchor="middle">
-<text x="230" y="72">Benchmark A · A +10</text>
-<text x="79" y="210">Benchmark B</text><text x="79" y="229">A +20</text>
-<text x="377" y="210">Benchmark C</text><text x="377" y="229">B +10</text>
-</g>
-<g>
-<rect class="panel" x="38" y="79" width="160" height="88" rx="12"/>
-<rect class="panel" x="262" y="79" width="160" height="88" rx="12"/>
-<rect class="panel" x="150" y="256" width="160" height="88" rx="12"/>
-<g font-size="17" font-weight="600">
-<text x="54" y="105">Model A</text><text x="278" y="105">Model B</text><text x="166" y="282">Model C</text>
-</g>
-<g font-size="13" class="muted">
-<text x="54" y="130">Benchmark A</text><text x="54" y="151">Benchmark B</text>
-<text x="278" y="130">Benchmark A</text><text x="278" y="151">Benchmark C</text>
-<text x="166" y="307">Benchmark B</text><text x="166" y="328">Benchmark C</text>
-</g>
-<g font-size="14" text-anchor="end">
-<text x="181" y="130">80</text><text x="181" y="151">70</text>
-<text x="405" y="130">70</text><text x="405" y="151">60</text>
-<text x="293" y="307">50</text><text x="293" y="328">50</text>
-</g>
-</g>
-<path d="M435 220 H486 M478 212 L486 220 L478 228" fill="none" stroke="#63706e" stroke-width="2"/>
-<text x="460" y="250" font-size="12" text-anchor="middle" class="muted">fit together</text>
-<text x="523" y="90" font-size="18" font-weight="600">One ordering</text>
-<text x="523" y="112" font-size="12" class="muted">Relative ratings before mapping</text>
-<path d="M548 144 V324" stroke="#b5bfbc" stroke-width="3"/>
-<g fill="#146cba">
-<circle cx="548" cy="154" r="6"/><circle cx="548" cy="234" r="6"/><circle cx="548" cy="314" r="6"/>
-</g>
-<g font-size="16" font-weight="600">
-<text x="569" y="160">Model A</text><text x="569" y="240">Model B</text><text x="569" y="320">Model C</text>
-</g>
-<g font-size="13" class="blue">
-<text x="569" y="199">10 points apart</text><text x="569" y="279">10 points apart</text>
-</g>
-<path d="M24 367 H736" stroke="#b5bfbc"/>
-<text x="24" y="391" font-size="14">Different pairs can share different benchmarks. The fit connects their comparisons.</text>
-<text x="24" y="412" font-size="13" class="muted">No shared result → no direct comparison. Missing results are not counted as losses.</text>
+<defs><filter id="glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="3"/></filter><marker id="tip-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="ink" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-violet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="violet" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="rose" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="amber" d="M0 0L10 5L0 10Z"/></marker></defs>
+<text class="muted" x="80" y="40">Normalized score</text>
+<path class="grid" d="M80 250L440 250"/><text class="num muted" x="66" y="254.5" text-anchor="end">50</text><path class="grid" d="M80 210L440 210"/><text class="num muted" x="66" y="214.5" text-anchor="end">60</text><path class="grid" d="M80 170L440 170"/><text class="num muted" x="66" y="174.5" text-anchor="end">70</text><path class="grid" d="M80 130L440 130"/><text class="num muted" x="66" y="134.5" text-anchor="end">80</text>
+<text class="small muted" x="140" y="66" text-anchor="middle">Benchmark A</text><path class="axis" d="M140 80L140 290"/><path class="violet-line" d="M126 130h-6V170h6" stroke-width="1.5"/><text class="num strong" x="114" y="155" text-anchor="end">+10</text><g><circle class="ink halo" cx="140" cy="130" r="8" filter="url(#glow)"/><circle class="ink ring" cx="140" cy="130" r="6"/></g><text class="num" x="152" y="135">A  80</text><g><circle class="ink halo" cx="140" cy="170" r="8" filter="url(#glow)"/><circle class="ink ring" cx="140" cy="170" r="6"/></g><text class="num" x="152" y="175">B  70</text><text class="small muted" x="140" y="318" text-anchor="middle">C: no result</text><text class="small muted" x="270" y="66" text-anchor="middle">Benchmark B</text><path class="axis" d="M270 80L270 290"/><path class="violet-line" d="M256 170h-6V250h6" stroke-width="1.5"/><text class="num strong" x="244" y="215" text-anchor="end">+20</text><g><circle class="ink halo" cx="270" cy="170" r="8" filter="url(#glow)"/><circle class="ink ring" cx="270" cy="170" r="6"/></g><text class="num" x="282" y="175">A  70</text><g><circle class="ink halo" cx="270" cy="250" r="8" filter="url(#glow)"/><circle class="ink ring" cx="270" cy="250" r="6"/></g><text class="num" x="282" y="255">C  50</text><text class="small muted" x="270" y="318" text-anchor="middle">B: no result</text><text class="small muted" x="400" y="66" text-anchor="middle">Benchmark C</text><path class="axis" d="M400 80L400 290"/><path class="violet-line" d="M386 210h-6V250h6" stroke-width="1.5"/><text class="num strong" x="374" y="235" text-anchor="end">+10</text><g><circle class="ink halo" cx="400" cy="210" r="8" filter="url(#glow)"/><circle class="ink ring" cx="400" cy="210" r="6"/></g><text class="num" x="412" y="215">B  60</text><g><circle class="ink halo" cx="400" cy="250" r="8" filter="url(#glow)"/><circle class="ink ring" cx="400" cy="250" r="6"/></g><text class="num" x="412" y="255">C  50</text><text class="small muted" x="400" y="318" text-anchor="middle">A: no result</text>
+<path class="ink-line" d="M462 180L512 180" stroke-width="1.5" marker-end="url(#tip-ink)"/>
+<text class="small muted" x="560" y="66" text-anchor="middle">One ordering</text><path class="axis" d="M560 80L560 290"/>
+<path class="violet-line" d="M650 118h6V172h-6" stroke-width="1.5"/><text class="num strong" x="664" y="150">10</text>
+<path class="violet-line" d="M650 188h6V242h-6" stroke-width="1.5"/><text class="num strong" x="664" y="220">10</text>
+<path class="violet-line" d="M700 118h6V242h-6" stroke-width="1.5"/><text class="num strong" x="714" y="185">20</text>
+<g><circle class="violet halo" cx="560" cy="110" r="9" filter="url(#glow)"/><circle class="violet ring" cx="560" cy="110" r="7"/></g><text class="strong" x="576" y="115">Model A</text><g><circle class="violet halo" cx="560" cy="180" r="9" filter="url(#glow)"/><circle class="violet ring" cx="560" cy="180" r="7"/></g><text class="strong" x="576" y="185">Model B</text><g><circle class="violet halo" cx="560" cy="250" r="9" filter="url(#glow)"/><circle class="violet ring" cx="560" cy="250" r="7"/></g><text class="strong" x="576" y="255">Model C</text>
 </svg>

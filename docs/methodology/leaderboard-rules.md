@@ -51,7 +51,7 @@ The selected Artificial Analysis Intelligence Index contributes its catalogued b
 
 Imputed quality, estimated resources, output-token runtime proxies, provider token prices, throughput, and latency do not satisfy this threshold. AA resource measurements remain attached to that index and never fill missing measurements for individual benchmarks.
 
-![In this illustration without index support, four direct cost pairs permit :score[Value]; three time pairs leave :score[Speed] unavailable. Hollow marks are estimates and do not count toward either threshold.](../assets/methodology/resource-publication-gate.svg)
+![In this illustration without index support, four direct cost pairs permit :score[Value]; three time pairs leave :score[Speed] unavailable. Estimates sit outside the four required slots and do not count toward either threshold.](../assets/methodology/resource-publication-gate.svg)
 
 A variant that qualifies on quality remains in the table with unavailable resource scores left blank. Raw prices and provider speed measurements remain available. Insufficient observed runtime measurements leave :score[Speed] blank even when :score[Value] is available.
 

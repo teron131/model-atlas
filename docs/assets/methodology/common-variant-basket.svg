@@ -1,38 +1,36 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 85 760 260" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 290" role="img" aria-labelledby="title desc">
 <title id="title">Common evidence is shared within a model rather than across all models</title>
-<desc id="desc">An illustrative three-variant model has one complete benchmark, one benchmark missing a paired measurement at medium, and an index. Only the complete benchmark and index enter its common comparison.</desc>
+<desc id="desc">Model 1 has low, medium, and high variants; benchmark 2 lacks a paired measurement at medium, so only benchmark 1 and the index enter Model 1's common set. Model 2 has low and high variants; benchmark 1 lacks a paired measurement at high, so its common set is benchmark 2 and the index. Each model builds its own set independently.</desc>
 <style>
-text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; }
-@media (prefers-color-scheme:dark) {
-text { fill:#ffffff; }
-[fill="#63706e"] { fill:#a6b2ae; } [stroke="#63706e"] { stroke:#a6b2ae; }
-[fill="#b5bfbc"] { fill:#3c4846; } [stroke="#b5bfbc"] { stroke:#3c4846; }
-[fill="#146cba"] { fill:#85bfff; } [stroke="#146cba"] { stroke:#85bfff; }
-[fill="#a64d0c"] { fill:#ffbc7d; } [stroke="#a64d0c"] { stroke:#ffbc7d; }
+text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:15px;fill:#202724}
+.num{font-family:"SFMono-Regular","SF Mono",Menlo,Consolas,monospace;font-size:14px}
+.small{font-size:12.5px}.big{font-size:18px}.strong{font-weight:600}
+.muted{fill-opacity:.62}.faint{opacity:.4}.half{opacity:.5}
+.grid{fill:none;stroke:#202724;stroke-opacity:.09}
+.guide{fill:none;stroke:#202724;stroke-opacity:.22}
+.axis{fill:none;stroke:#202724;stroke-opacity:.34}
+.ink{fill:#202724}.ink-line{fill:none;stroke:#202724}.ink-wash{fill:#202724;fill-opacity:.08}
+.ring{stroke:#f2f4f2;stroke-width:2;paint-order:stroke}.gap{stroke:#f2f4f2;stroke-width:2}
+.violet{fill:#6b47e0}.violet-line{fill:none;stroke:#6b47e0}.violet-wash{fill:#6b47e0;fill-opacity:.14}
+.rose{fill:#c93f78}.rose-line{fill:none;stroke:#c93f78}.rose-wash{fill:#c93f78;fill-opacity:.14}
+.amber{fill:#a8740c}.amber-line{fill:none;stroke:#a8740c}.amber-wash{fill:#a8740c;fill-opacity:.16}
+.h0{stop-color:#3557e6}.h1{stop-color:#6b47e0}.h2{stop-color:#d9467f}
+.land0{stop-color:#6b47e0;stop-opacity:.12}.land1{stop-color:#6b47e0;stop-opacity:.01}
+.halo{opacity:0}
+@media (prefers-color-scheme:dark){
+text{fill:#f2f3ed}.muted{fill-opacity:.58}
+.grid{stroke:#f2f3ed;stroke-opacity:.08}.guide{stroke:#f2f3ed;stroke-opacity:.2}.axis{stroke:#f2f3ed;stroke-opacity:.3}
+.ink{fill:#f2f3ed}.ink-line{stroke:#f2f3ed}.ink-wash{fill:#f2f3ed;fill-opacity:.1}
+.ring{stroke:#0b1016}.gap{stroke:#0b1016}
+.violet{fill:#8f6bff}.violet-line{stroke:#8f6bff}.violet-wash{fill:#8f6bff;fill-opacity:.22}
+.rose{fill:#e06296}.rose-line{stroke:#e06296}.rose-wash{fill:#e06296;fill-opacity:.2}
+.amber{fill:#b98b24}.amber-line{stroke:#b98b24}.amber-wash{fill:#b98b24;fill-opacity:.22}
+.h0{stop-color:#4a72ff}.h1{stop-color:#8f6bff}.h2{stop-color:#ff92bd}
+.land0{stop-color:#6f8cff;stop-opacity:.16}.land1{stop-color:#6f8cff;stop-opacity:.02}
+.halo{opacity:.55}
 }
 </style>
-
-
-<text x="40" y="115" font-size="16" fill="#000000" text-anchor="start" font-weight="400">Variant</text>
-<text x="280" y="115" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">Benchmark 1</text>
-<text x="437" y="115" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">Benchmark 2</text>
-<text x="606" y="115" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">Index</text>
-<text x="40" y="167" font-size="17" fill="#000000" text-anchor="start" font-weight="400">Low</text>
-<circle cx="280" cy="161" r="6" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="1"/>
-<circle cx="437" cy="161" r="6" fill="#a64d0c" stroke="#a64d0c" stroke-width="2" opacity="1"/>
-<circle cx="606" cy="161" r="6" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="1"/>
-<text x="40" y="215" font-size="17" fill="#000000" text-anchor="start" font-weight="400">Medium</text>
-<circle cx="280" cy="209" r="6" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="1"/>
-<circle cx="437" cy="209" r="6" fill="none" stroke="#a64d0c" stroke-width="2" opacity="1"/>
-<circle cx="606" cy="209" r="6" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="1"/>
-<text x="40" y="263" font-size="17" fill="#000000" text-anchor="start" font-weight="400">High</text>
-<circle cx="280" cy="257" r="6" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="1"/>
-<circle cx="437" cy="257" r="6" fill="#a64d0c" stroke="#a64d0c" stroke-width="2" opacity="1"/>
-<circle cx="606" cy="257" r="6" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="1"/>
-<line x1="40" y1="287" x2="705" y2="287" stroke="#b5bfbc" stroke-width="1"/>
-<text x="40" y="322" font-size="18" fill="#000000" text-anchor="start" font-weight="600">Included</text>
-<text x="280" y="322" font-size="18" fill="#000000" text-anchor="middle" font-weight="400">Benchmark 1</text>
-<text x="437" y="322" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">Excluded</text>
-<text x="606" y="322" font-size="18" fill="#000000" text-anchor="middle" font-weight="400">Index</text>
-
+<defs><filter id="glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="3"/></filter><marker id="tip-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="ink" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-violet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="violet" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="rose" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="amber" d="M0 0L10 5L0 10Z"/></marker></defs>
+<text class="strong" x="40" y="40">Model 1</text><rect class="violet-wash" x="172" y="82" width="48" height="132" rx="8"/><rect class="violet-wash" x="352" y="82" width="48" height="132" rx="8"/><text class="small muted" x="196" y="68" text-anchor="middle">Benchmark 1</text><text class="small muted" x="286" y="68" text-anchor="middle">Benchmark 2</text><text class="small muted" x="376" y="68" text-anchor="middle">Index</text><text class="muted" x="40" y="109">Low</text><g><circle class="ink halo" cx="196" cy="104" r="8" filter="url(#glow)"/><circle class="ink ring" cx="196" cy="104" r="6"/></g><g class="faint"><circle class="ink halo" cx="286" cy="104" r="8" filter="url(#glow)"/><circle class="ink ring" cx="286" cy="104" r="6"/></g><g><circle class="ink halo" cx="376" cy="104" r="8" filter="url(#glow)"/><circle class="ink ring" cx="376" cy="104" r="6"/></g><text class="muted" x="40" y="153">Medium</text><g><circle class="ink halo" cx="196" cy="148" r="8" filter="url(#glow)"/><circle class="ink ring" cx="196" cy="148" r="6"/></g><path class="axis" d="M279 148L293 148" stroke-width="1.5"/><g><circle class="ink halo" cx="376" cy="148" r="8" filter="url(#glow)"/><circle class="ink ring" cx="376" cy="148" r="6"/></g><text class="muted" x="40" y="197">High</text><g><circle class="ink halo" cx="196" cy="192" r="8" filter="url(#glow)"/><circle class="ink ring" cx="196" cy="192" r="6"/></g><g class="faint"><circle class="ink halo" cx="286" cy="192" r="8" filter="url(#glow)"/><circle class="ink ring" cx="286" cy="192" r="6"/></g><g><circle class="ink halo" cx="376" cy="192" r="8" filter="url(#glow)"/><circle class="ink ring" cx="376" cy="192" r="6"/></g><path class="grid" d="M40 230L406 230"/><text class="small" x="40" y="256">Common set</text><text class="small" x="196" y="256" text-anchor="middle">Included</text><text class="small muted" x="286" y="256" text-anchor="middle">Excluded</text><text class="small" x="376" y="256" text-anchor="middle">Included</text>
+<text class="strong" x="440" y="40">Model 2</text><rect class="violet-wash" x="596" y="82" width="48" height="88" rx="8"/><rect class="violet-wash" x="686" y="82" width="48" height="88" rx="8"/><text class="small muted" x="530" y="68" text-anchor="middle">Benchmark 1</text><text class="small muted" x="620" y="68" text-anchor="middle">Benchmark 2</text><text class="small muted" x="710" y="68" text-anchor="middle">Index</text><text class="muted" x="440" y="109">Low</text><g class="faint"><circle class="ink halo" cx="530" cy="104" r="8" filter="url(#glow)"/><circle class="ink ring" cx="530" cy="104" r="6"/></g><g><circle class="ink halo" cx="620" cy="104" r="8" filter="url(#glow)"/><circle class="ink ring" cx="620" cy="104" r="6"/></g><g><circle class="ink halo" cx="710" cy="104" r="8" filter="url(#glow)"/><circle class="ink ring" cx="710" cy="104" r="6"/></g><text class="muted" x="440" y="153">High</text><path class="axis" d="M523 148L537 148" stroke-width="1.5"/><g><circle class="ink halo" cx="620" cy="148" r="8" filter="url(#glow)"/><circle class="ink ring" cx="620" cy="148" r="6"/></g><g><circle class="ink halo" cx="710" cy="148" r="8" filter="url(#glow)"/><circle class="ink ring" cx="710" cy="148" r="6"/></g><path class="grid" d="M440 230L740 230"/><text class="small muted" x="530" y="256" text-anchor="middle">Excluded</text><text class="small" x="620" y="256" text-anchor="middle">Included</text><text class="small" x="710" y="256" text-anchor="middle">Included</text>
 </svg>

@@ -48,7 +48,7 @@ $$
 q_{m,b,d}=a_{b,d}x_{m,b}+c_{b,d},\qquad a_{b,d}>0.
 $$
 
-![The triangles show slope as rise divided by run: 10/20 = 0.5 on the left and 20/20 = 1 on the right. The y-intercepts, 10 and 30, are the outputs when the B result is zero. The right plot combines the B-to-A conversion with the illustrative saved A-to-reference conversion shown above it.](../assets/timeline/timeline-saved-conversion.svg)
+![The triangles show slope as rise divided by run: 10/20 = 0.5 on the left and 20/20 = 1 on the right. The y-intercepts, 10 and 30, are the outputs when the B result is zero. The right plot combines the B-to-A conversion with the illustrative saved A-to-reference conversion shown beside its equation.](../assets/timeline/timeline-saved-conversion.svg)
 
 Once saved, this conversion lets any model with a usable result on that benchmark reach the shared scale. Established conversions remain fixed as new benchmarks are added, preventing later generations from resetting the ruler. If no supported chain reaches the reference, the model remains unplaced; its release date cannot supply the missing evidence.
 
@@ -84,7 +84,7 @@ Undated names do not establish succession, and releases within the same month ar
 
 The anchor values 100 and 150 are chosen for readability. Keeping them and their saved capability positions fixed preserves the same index unit as new models arrive. This final conversion changes the displayed numbers without changing model order or adding evidence.
 
-![Changing the illustrative anchors from 20/80 to 100/150 shifts the origin and shrinks every score gap by the same proportion: the 60-point anchor gap becomes 50. Model order and evidence stay unchanged. Dashed curves illustrate selected record highs.](../assets/timeline/timeline-anchors.svg)
+![Changing the illustrative anchors from 20/80 to 100/150 shifts the origin and shrinks every score gap by the same proportion: the 60-point anchor gap becomes 50. Model order and evidence stay unchanged. Curves trace selected record highs.](../assets/timeline/timeline-anchors.svg)
 
 The saved positions $q_{L,d}$ for GPT-4 (March 2023) and $q_{H,d}$ for Claude Opus 4.5 map to index scores of 100 and 150. The [linearScale operation](../methodology/overview.md#shared-mathematical-operations) finds the model's relative position between these anchors; multiplication by $150-100$ and addition of 100 express it in index units:
 

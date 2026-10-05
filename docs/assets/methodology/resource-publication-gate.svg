@@ -1,40 +1,37 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 80 760 275" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 244" role="img" aria-labelledby="title desc">
 <title id="title">Cost and time have separate four-pair score availability requirements</title>
-<desc id="desc">In this example without index support, four direct quality-cost pairs permit Value. Three direct quality-time pairs do not permit Speed. Estimated pairs never count toward either gate.</desc>
+<desc id="desc">In this example without index support, four observed quality-and-cost pairs fill all four required slots, so Value is available; one estimated cost pair sits outside the slots. Only three observed quality-and-time pairs exist, so Speed is unavailable even though two estimated time pairs are present. Estimates never count toward either requirement.</desc>
 <style>
-text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; }
-@media (prefers-color-scheme:dark) {
-text { fill:#ffffff; }
-[fill="#63706e"] { fill:#a6b2ae; } [stroke="#63706e"] { stroke:#a6b2ae; }
-[fill="#b5bfbc"] { fill:#3c4846; } [stroke="#b5bfbc"] { stroke:#3c4846; }
-[fill="#146cba"] { fill:#85bfff; } [stroke="#146cba"] { stroke:#85bfff; }
-[fill="#a64d0c"] { fill:#ffbc7d; } [stroke="#a64d0c"] { stroke:#ffbc7d; }
+text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:15px;fill:#202724}
+.num{font-family:"SFMono-Regular","SF Mono",Menlo,Consolas,monospace;font-size:14px}
+.small{font-size:12.5px}.big{font-size:18px}.strong{font-weight:600}
+.muted{fill-opacity:.62}.faint{opacity:.4}.half{opacity:.5}
+.grid{fill:none;stroke:#202724;stroke-opacity:.09}
+.guide{fill:none;stroke:#202724;stroke-opacity:.22}
+.axis{fill:none;stroke:#202724;stroke-opacity:.34}
+.ink{fill:#202724}.ink-line{fill:none;stroke:#202724}.ink-wash{fill:#202724;fill-opacity:.08}
+.ring{stroke:#f2f4f2;stroke-width:2;paint-order:stroke}.gap{stroke:#f2f4f2;stroke-width:2}
+.violet{fill:#6b47e0}.violet-line{fill:none;stroke:#6b47e0}.violet-wash{fill:#6b47e0;fill-opacity:.14}
+.rose{fill:#c93f78}.rose-line{fill:none;stroke:#c93f78}.rose-wash{fill:#c93f78;fill-opacity:.14}
+.amber{fill:#a8740c}.amber-line{fill:none;stroke:#a8740c}.amber-wash{fill:#a8740c;fill-opacity:.16}
+.h0{stop-color:#3557e6}.h1{stop-color:#6b47e0}.h2{stop-color:#d9467f}
+.land0{stop-color:#6b47e0;stop-opacity:.12}.land1{stop-color:#6b47e0;stop-opacity:.01}
+.halo{opacity:0}
+@media (prefers-color-scheme:dark){
+text{fill:#f2f3ed}.muted{fill-opacity:.58}
+.grid{stroke:#f2f3ed;stroke-opacity:.08}.guide{stroke:#f2f3ed;stroke-opacity:.2}.axis{stroke:#f2f3ed;stroke-opacity:.3}
+.ink{fill:#f2f3ed}.ink-line{stroke:#f2f3ed}.ink-wash{fill:#f2f3ed;fill-opacity:.1}
+.ring{stroke:#0b1016}.gap{stroke:#0b1016}
+.violet{fill:#8f6bff}.violet-line{stroke:#8f6bff}.violet-wash{fill:#8f6bff;fill-opacity:.22}
+.rose{fill:#e06296}.rose-line{stroke:#e06296}.rose-wash{fill:#e06296;fill-opacity:.2}
+.amber{fill:#b98b24}.amber-line{stroke:#b98b24}.amber-wash{fill:#b98b24;fill-opacity:.22}
+.h0{stop-color:#4a72ff}.h1{stop-color:#8f6bff}.h2{stop-color:#ff92bd}
+.land0{stop-color:#6f8cff;stop-opacity:.16}.land1{stop-color:#6f8cff;stop-opacity:.02}
+.halo{opacity:.55}
 }
 </style>
-
-
-<text x="40" y="149" font-size="18" fill="#000000" text-anchor="start" font-weight="600">Cost</text>
-<circle cx="170" cy="143" r="8" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="1"/>
-<circle cx="214" cy="143" r="8" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="1"/>
-<circle cx="258" cy="143" r="8" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="1"/>
-<circle cx="302" cy="143" r="8" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="1"/>
-<circle cx="346" cy="143" r="8" fill="none" stroke="#146cba" stroke-width="2" opacity="1"/>
-<line x1="386" y1="143" x2="438" y2="143" stroke="#63706e" stroke-width="1.5"/>
-<path d="M431.86 146.36 L438 143 L431.86 139.64" fill="none" stroke="#63706e" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" opacity="1"/>
-<text x="455" y="149" font-size="19" fill="#000000" text-anchor="start" font-weight="600">Value available</text>
-<text x="455" y="174" font-size="16" fill="#000000" text-anchor="start" font-weight="400">4 direct pairs / 4 required</text>
-<text x="40" y="253" font-size="18" fill="#000000" text-anchor="start" font-weight="600">Time</text>
-<circle cx="170" cy="247" r="8" fill="#a64d0c" stroke="#a64d0c" stroke-width="2" opacity="1"/>
-<circle cx="214" cy="247" r="8" fill="#a64d0c" stroke="#a64d0c" stroke-width="2" opacity="1"/>
-<circle cx="258" cy="247" r="8" fill="#a64d0c" stroke="#a64d0c" stroke-width="2" opacity="1"/>
-<circle cx="302" cy="247" r="8" fill="none" stroke="#a64d0c" stroke-width="2" opacity="1"/>
-<circle cx="346" cy="247" r="8" fill="none" stroke="#a64d0c" stroke-width="2" opacity="1"/>
-<line x1="386" y1="247" x2="438" y2="247" stroke="#63706e" stroke-width="1.5"/>
-<path d="M431.86 250.36 L438 247 L431.86 243.64" fill="none" stroke="#63706e" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" opacity="1"/>
-<text x="455" y="253" font-size="19" fill="#000000" text-anchor="start" font-weight="600">Speed unavailable</text>
-<text x="455" y="278" font-size="16" fill="#000000" text-anchor="start" font-weight="400">3 direct pairs / 4 required</text>
-<circle cx="48" cy="334" r="6" fill="#63706e" stroke="#63706e" stroke-width="2" opacity="1"/>
-<text x="64" y="340" font-size="16" fill="#000000" text-anchor="start" font-weight="400">Observed quality + resource</text>
-<circle cx="402" cy="334" r="6" fill="none" stroke="#63706e" stroke-width="2" opacity="1"/>
-<text x="418" y="340" font-size="16" fill="#000000" text-anchor="start" font-weight="400">Estimate: not counted</text>
+<defs><filter id="glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="3"/></filter><marker id="tip-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="ink" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-violet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="violet" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="rose" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="amber" d="M0 0L10 5L0 10Z"/></marker></defs>
+<text x="40" y="49">Cost</text><path class="axis" d="M186 66v6H334v-6"/><text class="small muted" x="260" y="90" text-anchor="middle">Required</text><g><circle class="ink halo" cx="200" cy="44" r="9" filter="url(#glow)"/><circle class="ink ring" cx="200" cy="44" r="7"/></g><g><circle class="ink halo" cx="240" cy="44" r="9" filter="url(#glow)"/><circle class="ink ring" cx="240" cy="44" r="7"/></g><g><circle class="ink halo" cx="280" cy="44" r="9" filter="url(#glow)"/><circle class="ink ring" cx="280" cy="44" r="7"/></g><g><circle class="ink halo" cx="320" cy="44" r="9" filter="url(#glow)"/><circle class="ink ring" cx="320" cy="44" r="7"/></g><g><circle class="rose halo" cx="372" cy="44" r="8" filter="url(#glow)"/><circle class="rose ring" cx="372" cy="44" r="6"/></g><text class="strong" x="500" y="49">Value available</text><text class="muted" x="500" y="69">4 direct pairs / 4 required</text>
+<text x="40" y="139">Time</text><path class="axis" d="M186 156v6H334v-6"/><text class="small muted" x="260" y="180" text-anchor="middle">Required</text><g><circle class="ink halo" cx="200" cy="134" r="9" filter="url(#glow)"/><circle class="ink ring" cx="200" cy="134" r="7"/></g><g><circle class="ink halo" cx="240" cy="134" r="9" filter="url(#glow)"/><circle class="ink ring" cx="240" cy="134" r="7"/></g><g><circle class="ink halo" cx="280" cy="134" r="9" filter="url(#glow)"/><circle class="ink ring" cx="280" cy="134" r="7"/></g><path class="axis" d="M313 134L327 134" stroke-width="1.5"/><g><circle class="rose halo" cx="372" cy="134" r="8" filter="url(#glow)"/><circle class="rose ring" cx="372" cy="134" r="6"/></g><g><circle class="rose halo" cx="408" cy="134" r="8" filter="url(#glow)"/><circle class="rose ring" cx="408" cy="134" r="6"/></g><text class="strong" x="500" y="139">Speed unavailable</text><text class="muted" x="500" y="159">3 direct pairs / 4 required</text>
+<g><circle class="ink halo" cx="46" cy="220" r="8" filter="url(#glow)"/><circle class="ink ring" cx="46" cy="220" r="6"/></g><text class="muted" x="60" y="225">Observed quality + resource</text><g><circle class="rose halo" cx="330" cy="220" r="8" filter="url(#glow)"/><circle class="rose ring" cx="330" cy="220" r="6"/></g><text class="muted" x="344" y="225">Estimate: not counted</text>
 </svg>
