@@ -15,6 +15,7 @@ import { processAutomationBenchModule } from "../src/model-atlas/sources/automat
 import { insertBenchmarkRawRows } from "../src/model-atlas/sources/benchmarks";
 import { processEpochCapabilitiesIndexCsv } from "../src/model-atlas/sources/epoch/capabilities-index";
 import { epochBenchmarkObservationRows } from "../src/model-atlas/sources/epoch/results";
+import { processEpochWeirdMlCsv } from "../src/model-atlas/sources/epoch/weirdml";
 import { readBenchmarkObservationRawCache } from "../src/model-atlas/sources/observations/cache";
 import { parseCsvRecords } from "../src/model-atlas/sources/parsing";
 import { mergeCachedSourceRows, snapshotRows } from "../src/model-atlas/sources/snapshots/policy";
@@ -29,7 +30,12 @@ import {
 import type { SourceSnapshots } from "../src/model-atlas/sources/types";
 import { processValsBenchmarkPageHtml } from "../src/model-atlas/sources/vals/results";
 import { processValsRsiModule, valsRsiCacheMatches } from "../src/model-atlas/sources/vals/rsi";
-import { processWeirdMlCsv } from "../src/model-atlas/sources/weirdml";
+import {
+  mergeWeirdMlRows,
+  processWeirdMlPayload,
+  weirdMlCacheMatches,
+  weirdMlSourceCacheMatches,
+} from "../src/model-atlas/sources/weirdml";
 import { SnapshotRowCollector } from "./model-atlas-fixtures";
 
 assert.deepEqual(parseCsvRecords('name,note\r\n"A, B","line 1\nline ""2"""\r\n'), [
@@ -133,8 +139,8 @@ assert.equal(automationBenchRows[1]?.metadata.cost_annotation, "†");
 
 const conflictingModelIdLookup = buildBenchmarkObservationLookup([
   {
-    benchmark_key: "weirdml",
-    source_url: "https://epoch.ai/data/external_benchmarks/weirdml.csv",
+    benchmark_key: "weirdml_v3",
+    source_url: "https://htihle.github.io/assets/data/weirdml_v3.json",
     model_id: "gpt-5.6-sol",
     model: "GPT-5.6 Sol (max)",
     base_model: "GPT-5.6 Sol",
@@ -146,8 +152,8 @@ const conflictingModelIdLookup = buildBenchmarkObservationLookup([
     metadata: {},
   },
   {
-    benchmark_key: "weirdml",
-    source_url: "https://epoch.ai/data/external_benchmarks/weirdml.csv",
+    benchmark_key: "weirdml_v3",
+    source_url: "https://htihle.github.io/assets/data/weirdml_v3.json",
     model_id: "gpt-5.6-sol",
     model: "GPT-5.6 Sol Pro (max)",
     base_model: "GPT-5.6 Sol Pro",
@@ -168,22 +174,242 @@ assert.equal(
   0.89,
 );
 
-const weirdMl = processWeirdMlCsv(
-  "internal_model_name,display_name,model_slug,shapes_easy_acc,shapes_hard_acc,digits_unsup_acc,chess_winners_acc,kolmo_shuffle_acc,classify_sentences_acc,classify_shuffled_acc,insert_patches_acc,blunders_easy_acc,blunders_hard_acc,digits_generalize_acc,shapes_variable_acc,xor_easy_acc,xor_hard_acc,splash_easy_acc,splash_hard_acc,number_patterns_acc,avg_acc,avg_acc_standard_error,cost_per_run_usd,mean_total_output_tokens,code_len_p10,code_len_p50,code_len_p90,exec_time_median_s,release_date,API source\n" +
-    "claude,Claude Fable 5 (max),claude-fable-5,0.95,0.94,0.93,0.92,0.91,0.90,0.89,0.88,0.87,0.86,0.85,0.84,0.83,0.82,0.81,0.80,0.79,0.91,0.01,1.2,1000,10,20,30,4.5,2026-06-09,Anthropic\n",
+const weirdMlUrl = "https://htihle.github.io/assets/data/weirdml_v3.json";
+const weirdMlConfigurations = [
+  "shapes_generalize",
+  "splash_generalize",
+  "mystery_box",
+  "mystery_box--nohints",
+  "ship_detect",
+  "ship_tune",
+  "reaction_rates",
+  "reaction_rates--nohints",
+  "scan_stitch",
+  "scan_stitch--nohints",
+  "shattered_prior",
+  "shattered_prior--nohints",
+  "night_school",
+  "tod_pipeline--nohints",
+  "weirdml_bonanza",
+];
+const weirdMlModel = {
+  id: "claude-fable-5-xhigh",
+  name: "Claude Fable 5 (xhigh)",
+  slug: "anthropic/claude-fable-5",
+  reasoning_effort: "xhigh",
+  agent: "claude_code",
+  harnesses: [{ name: "claude_code", version: "2.1.270" }],
+  synthetic: false,
+  score: 0.42,
+  interval: [0.4, 0.44],
+  runs: 75,
+  mean_api_cost_usd: 12,
+  mean_output_tokens: 1000,
+  mean_final_best: 0.6,
+  configurations: Object.fromEntries(
+    weirdMlConfigurations.map((id) => [
+      id,
+      {
+        score: 0.5,
+        n: 5,
+        final_best: 0.6,
+        mean_api_cost_usd: 12,
+        mean_tokens: 2000,
+        mean_output_tokens: 1000,
+        curve: [
+          [0, 0],
+          [1, 1],
+        ],
+      },
+    ]),
+  ),
+};
+const weirdMlPayload = {
+  schema_version: 1,
+  generated: "2026-10-02T10:13:42Z",
+  mode: "real",
+  source_commit: "fd5d5d5",
+  task_count: 11,
+  configuration_count: 15,
+  configurations: weirdMlConfigurations.map((id) => ({
+    id,
+    task: id.split("--")[0],
+    name: id,
+    hint_mode: id.endsWith("--nohints") ? "No hints" : "Hints allowed",
+  })),
+  models: [weirdMlModel],
+  excluded_models: [],
+};
+const weirdMl = processWeirdMlPayload(weirdMlPayload, weirdMlUrl);
+assert.equal(weirdMl.length, 1);
+assert.equal(weirdMl[0]?.benchmark_key, "weirdml_v3");
+assert.equal(weirdMl[0]?.reasoning_effort, "xhigh");
+assert.equal(
+  weirdMl[0]?.canonical_value,
+  0.42,
+  "Use the official aggregate rather than recomputing configuration means",
 );
-assert.equal(weirdMl[0]?.reasoning_effort, "max");
-assert.equal(weirdMl[0]?.metadata.shapes_easy_acc, 0.95);
+assert.equal(weirdMl[0]?.metadata.configuration_mystery_box_score, 0.5);
+assert.equal(weirdMl[0]?.metadata["configuration_mystery_box--nohints_hint_mode"], "No hints");
+assert.equal(weirdMl[0]?.metadata.score_ci_low, 0.4);
+assert.deepEqual(weirdMl[0]?.metadata.harness_versions, ["2.1.270"]);
+assert.equal(weirdMl[0]?.task_run_count, undefined);
+assert.equal(weirdMl[0]?.cost, undefined);
+assert.ok(!JSON.stringify(weirdMl).includes("curve"));
+assert.ok(weirdMlCacheMatches(weirdMl, weirdMlUrl));
+const mixedWeirdMlCohorts = [
+  weirdMl[0]!,
+  {
+    ...weirdMl[0]!,
+    model_id: "openai/another-model",
+    metadata: {
+      ...weirdMl[0]!.metadata,
+      source_model_id: "another-config",
+      model_count: 2,
+      generated: "2026-10-03T00:00:00Z",
+    },
+  },
+];
+assert.ok(
+  weirdMlCacheMatches(mixedWeirdMlCohorts, weirdMlUrl),
+  "Retained source rows may come from earlier complete cohorts after leaderboard growth",
+);
+
+assert.ok(!weirdMlCacheMatches([], weirdMlUrl));
+assert.ok(!weirdMlCacheMatches(weirdMl, "https://htihle.github.io/data/weirdml_data.csv"));
+assert.ok(
+  !weirdMlCacheMatches(
+    weirdMl.map((row) => ({ ...row, benchmark_key: "weirdml" })),
+    weirdMlUrl,
+  ),
+);
+assert.ok(
+  !weirdMlCacheMatches(
+    weirdMl.map((row) => ({ ...row, metadata: { ...row.metadata, benchmark_version: "2" } })),
+    weirdMlUrl,
+  ),
+);
+assert.ok(
+  !weirdMlCacheMatches(
+    weirdMl.map((row) => ({ ...row, metadata: { ...row.metadata, metric: "avg_acc" } })),
+    weirdMlUrl,
+  ),
+);
+for (const invalid of [
+  { ...weirdMlPayload, schema_version: 2 },
+  { ...weirdMlPayload, mode: "synthetic" },
+  { ...weirdMlPayload, configurations: weirdMlPayload.configurations.slice(1) },
+  { ...weirdMlPayload, models: [weirdMlModel, weirdMlModel] },
+  ...[true, undefined].map((synthetic) => ({
+    ...weirdMlPayload,
+    models: [{ ...weirdMlModel, synthetic }],
+  })),
+  ...[NaN, Infinity, -0.1, 1.1, "0.42"].map((score) => ({
+    ...weirdMlPayload,
+    models: [{ ...weirdMlModel, score }],
+  })),
+  {
+    ...weirdMlPayload,
+    models: [
+      {
+        ...weirdMlModel,
+        configurations: { ...weirdMlModel.configurations, mystery_box: { score: 0.5, n: 0 } },
+      },
+    ],
+  },
+  { ...weirdMlPayload, models: [{ ...weirdMlModel, runs: 74 }] },
+  { ...weirdMlPayload, models: [{ ...weirdMlModel, interval: [0.5, 0.6] }] },
+])
+  assert.deepEqual(processWeirdMlPayload(invalid, weirdMlUrl), []);
+const weirdMlAmbiguous = processWeirdMlPayload(
+  {
+    ...weirdMlPayload,
+    models: [
+      weirdMlModel,
+      {
+        ...weirdMlModel,
+        id: "claude-fable-5-opencode",
+        agent: "opencode",
+        harnesses: [{ name: "opencode", version: "1.18.30" }],
+      },
+    ],
+  },
+  weirdMlUrl,
+);
+assert.equal(weirdMlAmbiguous.length, 2);
+assert.ok(weirdMlCacheMatches(weirdMlAmbiguous, weirdMlUrl));
+assert.ok(
+  !weirdMlCacheMatches(
+    weirdMlAmbiguous.map((row) => ({
+      ...row,
+      metadata: { ...row.metadata, assignment_eligible: true },
+    })),
+    weirdMlUrl,
+  ),
+);
+assert.ok(weirdMlAmbiguous.every((row) => row.metadata.assignment_eligible === false));
+assert.notEqual(
+  benchmarkObservationRowKey(weirdMlAmbiguous[0]!),
+  benchmarkObservationRowKey(weirdMlAmbiguous[1]!),
+);
+assert.equal(buildBenchmarkObservationLookup(weirdMlAmbiguous).size, 0);
+const weirdMlEpochUrl = "https://epoch.ai/data/external_benchmarks/weirdml_v3.csv";
+const weirdMlEpochCsv =
+  "Name,Model version,Provider slug,Reasoning effort,Agent,Harness version,Score,Score 95% CI low,Score 95% CI high,Runs,Max performance,Cost per run,Mean output tokens\n" +
+  "Claude Fable 5 max display alias,claude-fable-5_xhigh,anthropic/claude-fable-5,xhigh,claude_code,claude_code:2.1.270,0.43,0.4,0.46,75,0.6,12,1000\n";
+const weirdMlEpoch = processEpochWeirdMlCsv(weirdMlEpochCsv, weirdMlEpochUrl);
+assert.equal(weirdMlEpoch.length, 1);
+assert.equal(weirdMlEpoch[0]?.canonical_value, 0.43);
+assert.equal(weirdMlEpoch[0]?.cost, undefined, "Mirror resource means remain diagnostics");
+assert.deepEqual(
+  processEpochWeirdMlCsv("Model version,Accuracy\nmodel,0.8\n", weirdMlEpochUrl),
+  [],
+);
+const weirdMlCombined = mergeWeirdMlRows(weirdMl, weirdMlEpoch);
+assert.equal(weirdMlCombined.length, 2);
+assert.equal(
+  weirdMlCombined[1]?.base_model,
+  weirdMl[0]?.base_model,
+  "Provider/model, effort and agent reconcile aliases independently of score differences",
+);
+assert.equal(weirdMlCombined[1]?.canonical_value, 0.43, "Raw scores stay separate");
+assert.ok(weirdMlSourceCacheMatches(weirdMlCombined, weirdMlUrl, weirdMlEpochUrl));
+assert.ok(
+  weirdMlSourceCacheMatches(weirdMl, weirdMlUrl, weirdMlEpochUrl),
+  "An unavailable mirror cannot invalidate successfully cached creator evidence",
+);
+assert.ok(!weirdMlSourceCacheMatches(weirdMlCombined, weirdMlUrl, `${weirdMlEpochUrl}?old`));
+assert.ok(
+  mergeWeirdMlRows(weirdMlAmbiguous, weirdMlEpoch).every(
+    (row) => row.metadata.assignment_eligible === false,
+  ),
+  "A single mirror row cannot bypass an ambiguous creator configuration",
+);
+const weirdMlExpandedHarnessCohort = mergeWeirdMlRows(
+  weirdMl,
+  weirdMlEpoch.map((row) => ({
+    ...row,
+    metadata: {
+      ...row.metadata,
+      harness_names: ["claude_code", "claude_code"],
+      harness_versions: ["2.1.270", "2.1.280"],
+    },
+  })),
+);
+assert.ok(
+  weirdMlExpandedHarnessCohort.every((row) => row.metadata.assignment_eligible !== false),
+  "A disclosed additional harness version within the same agent is cohort context, not a lost evaluation",
+);
 assert.notEqual(
   benchmarkObservationRowKey({
     ...weirdMl[0]!,
     model_id: "example/shared-model",
-    metadata: { ...weirdMl[0]!.metadata, internal_model_name: "example:thinking" },
+    metadata: { ...weirdMl[0]!.metadata, source_model_id: "example:thinking" },
   }),
   benchmarkObservationRowKey({
     ...weirdMl[0]!,
     model_id: "example/shared-model",
-    metadata: { ...weirdMl[0]!.metadata, internal_model_name: "example:no-thinking" },
+    metadata: { ...weirdMl[0]!.metadata, source_model_id: "example:no-thinking" },
   }),
   "Source configurations sharing one model ID should retain distinct cache identities",
 );
@@ -607,19 +833,6 @@ const complexConstraints = surge.map((row) => ({
   benchmark_key: "complex_constraints",
   source_url: "https://surgehq.ai/benchmarks/complex-constraints",
 }));
-const weirdMlWithMirror = [
-  ...weirdMl,
-  ...weirdMl.map((row) => ({
-    ...row,
-    source_url: "https://epoch.ai/data/external_benchmarks/weirdml.csv",
-    metadata: {
-      ...row.metadata,
-      weirdml_origin: "epoch",
-      observation_role: "component",
-      identity_contract: "model-effort",
-    },
-  })),
-];
 const snapshots = {
   ...Object.fromEntries(
     BENCHMARK_OBSERVATION_BINDINGS.map((binding) => [binding.sourceRowsKey, []]),
@@ -639,7 +852,7 @@ const snapshots = {
   proofBenchRows: proof,
   rsiBenchmarkRows: rsi,
   terminalBenchScienceRows: [],
-  weirdMlRows: weirdMlWithMirror,
+  weirdMlRows: weirdMlCombined,
   fetchedAt: {
     ...Object.fromEntries(
       BENCHMARK_OBSERVATION_BINDINGS.map((binding) => [binding.sourceDataKey, null]),
@@ -676,7 +889,7 @@ const expectedBySourceDataKey = {
   programBench: { rows: program, fetchedAt: 1_784_000_011 },
   proofBench: { rows: proof, fetchedAt: 1_784_000_007 },
   rsiBenchmark: { rows: rsi, fetchedAt: 1_784_000_014 },
-  weirdMl: { rows: weirdMlWithMirror, fetchedAt: 1_784_000_008 },
+  weirdMl: { rows: weirdMlCombined, fetchedAt: 1_784_000_008 },
 };
 insertBenchmarkRawRows(collector, snapshots, BENCHMARK_OBSERVATION_RAW_TABLE);
 for (const [sourceDataKey, expected] of Object.entries(expectedBySourceDataKey)) {

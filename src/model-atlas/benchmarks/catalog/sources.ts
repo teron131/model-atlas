@@ -89,16 +89,6 @@ export const BENCHMARK_STANDARD_SOURCES = {
     sourceDataKey: "bioMysteryBench",
     sourceRowsKey: "bioMysteryBenchRows",
   },
-  browsecomp: {
-    group: "standalone",
-    id: "zeroeval",
-    loader: {
-      kind: "zeroeval",
-      sourceUrl: "https://api.zeroeval.com/leaderboard/benchmarks/browsecomp/details",
-    },
-    sourceDataKey: "browseComp",
-    sourceRowsKey: "browseCompRows",
-  },
   cais_capabilities_index: {
     group: "standalone",
     id: "cais",
@@ -478,18 +468,6 @@ export const BENCHMARK_STANDARD_SOURCES = {
     sourceDataKey: "textquests",
     sourceRowsKey: "textquestsRows",
   },
-  toolathlon: {
-    group: "standalone",
-    id: "zeroeval",
-    loader: {
-      kind: "zeroeval",
-      sourceUrl: "https://api.zeroeval.com/leaderboard/benchmarks/toolathlon/details",
-      rankField: "rank",
-      observedAtField: "announcement_date",
-    },
-    sourceDataKey: "toolathlon",
-    sourceRowsKey: "toolathlonRows",
-  },
   vibe_code: {
     group: "vals",
     id: "vals",
@@ -511,10 +489,14 @@ export const BENCHMARK_STANDARD_SOURCES = {
     sourceDataKey: "voxelBench",
     sourceRowsKey: "voxelBenchRows",
   },
-  weirdml: {
+  weirdml_v3: {
     group: "standalone",
-    id: "weirdml",
-    loader: { kind: "weirdml" },
+    id: "weirdml_v3",
+    loader: {
+      kind: "weirdml",
+      sourceUrl: "https://htihle.github.io/assets/data/weirdml_v3.json",
+      crosswalkSourceUrl: "https://epoch.ai/data/external_benchmarks/weirdml_v3.csv",
+    },
     sourceDataKey: "weirdMl",
     sourceRowsKey: "weirdMlRows",
   },
@@ -845,17 +827,17 @@ export const BENCHMARK_EXTENDED_SOURCES = {
       },
     ],
   },
-  weirdml: {
+  weirdml_v3: {
     inputs: [
       {
-        group: BENCHMARK_STANDARD_SOURCES.weirdml.group,
-        id: BENCHMARK_STANDARD_SOURCES.weirdml.id,
+        group: BENCHMARK_STANDARD_SOURCES.weirdml_v3.group,
+        id: BENCHMARK_STANDARD_SOURCES.weirdml_v3.id,
         roles: ["observation"],
         adapters: [
           {
             kind: "benchmark_observation",
-            sourceDataKey: BENCHMARK_STANDARD_SOURCES.weirdml.sourceDataKey,
-            sourceRowsKey: BENCHMARK_STANDARD_SOURCES.weirdml.sourceRowsKey,
+            sourceDataKey: BENCHMARK_STANDARD_SOURCES.weirdml_v3.sourceDataKey,
+            sourceRowsKey: BENCHMARK_STANDARD_SOURCES.weirdml_v3.sourceRowsKey,
           },
         ],
       },
@@ -898,9 +880,7 @@ export const BENCHMARK_PROCESSING_OVERRIDES = {
     aggregation: { kind: "custom" },
     sourceCrosswalk: { kind: "custom" },
   },
-  weirdml: {
-    sourceCrosswalk: { kind: "custom" },
-  },
+  weirdml_v3: { sourceCrosswalk: { kind: "custom" } },
 } as const satisfies Partial<Record<BenchmarkKey, Partial<BenchmarkProcessingFacet>>>;
 
 export const BENCHMARK_PERSISTENCE_OVERRIDES = {

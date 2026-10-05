@@ -871,14 +871,14 @@ assert.equal(
   "image and latest routes should not stand in for a base source row",
 );
 assert.equal(
-  asBenchmarks(matchedFlashRow).toolathlon,
+  asBenchmarks(matchedFlashRow).perception_bench,
   undefined,
   "default-variant benchmarks should not enter effort observations",
 );
 assert.equal(
-  asBenchmarks(assignedFlashVariant).toolathlon,
+  asBenchmarks(assignedFlashVariant).perception_bench,
   0.42,
-  "Toolathlon scores should attach to the default variant",
+  "PerceptionBench scores should attach to the default variant",
 );
 assert.equal(
   asBenchmarks(assignedFlashVariant).blueprint_bench_2,
@@ -1018,10 +1018,10 @@ function sourceModel(
 function modelStatsSourceData(
   artificialAnalysisRows: Record<string, unknown>[],
 ): ModelAtlasSourceData {
-  const toolathlonObservations: BenchmarkObservationRow[] = [
+  const perceptionObservations: BenchmarkObservationRow[] = [
     {
-      benchmark_key: "toolathlon",
-      source_url: "https://api.zeroeval.com/leaderboard/benchmarks/toolathlon/details",
+      benchmark_key: "perception_bench",
+      source_url: "https://raw.githubusercontent.com/MoonshotAI/PerceptionBench/master/README.md",
       model_id: null,
       rank: 1,
       model: "Example 2.5 Flash",
@@ -1167,10 +1167,6 @@ function modelStatsSourceData(
       rows: blueprintBenchModelScoreRows,
       rowsByModelName: buildBlueprintBenchMap(blueprintBenchModelScoreRows),
     },
-    browseComp: {
-      rows: [],
-      rowsByModelName: new Map(),
-    },
     caisCapabilitiesIndex: { rows: [], rowsByModelName: new Map() },
     chartography: { rows: [], rowsByModelName: new Map() },
     chessPuzzles: { rows: [], rowsByModelName: new Map() },
@@ -1204,7 +1200,10 @@ function modelStatsSourceData(
     mlsBench: { rows: [], rowsByModelName: new Map() },
     mysteryMechanism: { rows: [], rowsByModelName: new Map() },
     omniscienceAccuracy: { rows: [], rowsByModelName: new Map() },
-    perceptionBench: { rows: [], rowsByModelName: new Map() },
+    perceptionBench: {
+      rows: perceptionObservations,
+      rowsByModelName: buildBenchmarkObservationLookup(perceptionObservations),
+    },
     programBench: { rows: [], rowsByModelName: new Map() },
     proofBench: { rows: [], rowsByModelName: new Map() },
     publicBenefitsBench: { rows: [], rowsByModelName: new Map() },
@@ -1224,10 +1223,6 @@ function modelStatsSourceData(
     },
     terminalBenchScience: { rows: [], rowsByModelName: new Map() },
     textquests: { rows: [], rowsByModelName: new Map() },
-    toolathlon: {
-      rows: toolathlonObservations,
-      rowsByModelName: buildBenchmarkObservationLookup(toolathlonObservations),
-    },
     valsIndex: {
       rows: valsIndexModelScoreRows,
       rowsByModelName: buildValsIndexMap(valsIndexModelScoreRows),

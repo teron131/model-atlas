@@ -1,4 +1,4 @@
-/** Fuse independent benchmark sources into derived observations for both live assembly and restored payloads, leaving raw evidence unchanged. */
+/** Fuse declared benchmark sources into derived observations for both live assembly and restored payloads, leaving raw evidence unchanged. */
 
 import type { BenchmarkObservationRow } from "../../benchmarks/observation";
 import { BENCHMARK_RESOURCE_SOURCE_LABELS } from "../../benchmarks/resource-sources";
@@ -11,6 +11,7 @@ import { benchmarkModelEffort } from "../../identity/normalization";
 import { type AleBenchSourceRow, fuseAleBenchRows } from "../ale-bench/leaderboard";
 import type { ArtificialAnalysisBenchmarkResourceRow } from "../artificial-analysis/benchmark-resources";
 import type { TerminalBench4ModelAgentRow } from "../terminal-bench-4/leaderboard";
+import { mergeWeirdMlRows } from "../weirdml";
 
 /** Raw source arrays remain unchanged; only these derived observations enter fused matching and collapsed display. */
 export function fusedBenchmarkObservations({
@@ -62,12 +63,21 @@ export function fusedBenchmarkObservations({
   }));
   const officialScienceRows = scienceRows.filter((row) => row.metadata.source_series !== "vals");
   const valsScienceRows = scienceRows.filter((row) => row.metadata.source_series === "vals");
+  // Retention can combine observations from separate fetches, so reconcile the complete evidence before fusion.
+  const weirdRows = mergeWeirdMlRows(
+    weird.filter((row) => row.metadata.source_series === "creator"),
+    weird.filter((row) => row.metadata.source_series === "epoch"),
+  );
   return {
     ale_bench: fuseAleBenchRows(ale),
-    weirdml: crosswalkBenchmarkSources(
-      weird.filter((row) => row.metadata.weirdml_origin === "creator"),
-      weird.filter(
-        (row) => row.metadata.weirdml_origin === "epoch" && row.metadata.fusion_eligible !== false,
+    weirdml_v3: crosswalkBenchmarkSources(
+      weirdRows.filter(
+        (row) =>
+          row.metadata.source_series === "creator" && row.metadata.assignment_eligible !== false,
+      ),
+      weirdRows.filter(
+        (row) =>
+          row.metadata.source_series === "epoch" && row.metadata.assignment_eligible !== false,
       ),
       { sourceLabels: { a: "Creator", b: "Epoch" } },
     ),

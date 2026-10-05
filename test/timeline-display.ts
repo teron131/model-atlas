@@ -1,4 +1,5 @@
 /** Protect frontier eligibility, representative selection and provider-qualified visibility without changing measured scores. */
+
 import assert from "node:assert/strict";
 
 import { coverageFrontier, leadingLabs } from "../app/dashboard/graphs/timeline/frontier";

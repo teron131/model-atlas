@@ -1,4 +1,5 @@
 /** Prepare diagnostic cells and validate shared-input predictors; inferred values never become calibration observations. */
+
 import { calibrationObservations, distinctModelCount } from "../benchmarks/calibration-population";
 import { excludesVariantIndex } from "../benchmarks/index-policy";
 import { STAGE_CONFIG } from "../config/stage";

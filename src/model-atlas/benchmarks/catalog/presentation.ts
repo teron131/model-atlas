@@ -136,14 +136,6 @@ export const BENCHMARK_TOOLTIPS = {
       ["Role", "multi-artifact professional work"],
     ],
   },
-  browsecomp: {
-    title: "BrowseComp",
-    body: "Find obscure information on the web and return short, verifiable answers.",
-    rows: [
-      ["Source", "LLM Stats / ZeroEval"],
-      ["Role", "web information retrieval"],
-    ],
-  },
   cais_capabilities_index: {
     title: "CAIS Capabilities Index",
     body: "Atlas-derived mean of two Text and five Vision benchmarks from CAIS.",
@@ -552,14 +544,6 @@ export const BENCHMARK_TOOLTIPS = {
       ["Role", "long-horizon agentic reasoning"],
     ],
   },
-  toolathlon: {
-    title: "Toolathlon",
-    body: "Complete long real-world tasks by coordinating external tools.",
-    rows: [
-      ["Source", "LLM Stats / ZeroEval"],
-      ["Role", "multi-tool agent work"],
-    ],
-  },
   vals_index: {
     title: "Vals Index",
     body: "Composite score across professional finance, legal, and coding tasks.",
@@ -595,12 +579,14 @@ export const BENCHMARK_TOOLTIPS = {
       ["Role", "spatial reasoning and construction"],
     ],
   },
-  weirdml: {
-    title: "WeirdML",
-    body: "Train and refine PyTorch models on novel datasets using execution feedback.",
+  weirdml_v3: {
+    title: "WeirdML v3",
+    version: "3",
+    body: "Discover hidden structure in unfamiliar scientific data and build working solutions with coding agents. The score rewards earlier progress within a fixed token budget.",
     rows: [
-      ["Source", "WeirdML"],
-      ["Role", "iterative ML engineering"],
+      ["Source", "WeirdML creator; Epoch crosswalk"],
+      ["Metric", "official score across 11 tasks"],
+      ["Role", "scientific investigation and iterative execution"],
     ],
   },
 } as const satisfies Readonly<
@@ -630,7 +616,6 @@ export const BENCHMARK_LABELS = {
   biomysterybench: "BioMysteryBench",
   blueprint_bench_2: "Blueprint-Bench 2",
   briefcase: "Briefcase",
-  browsecomp: "BrowseComp",
   cais_capabilities_index: "CAIS Capabilities Index",
   chartography: "Chartography",
   chess_puzzles: "Chess Puzzles",
@@ -677,12 +662,11 @@ export const BENCHMARK_LABELS = {
   terminal_bench_4: "Terminal-Bench 4.0",
   terminal_bench_science: "Terminal-Bench-Science 0.1",
   textquests: "TextQuests",
-  toolathlon: "Toolathlon",
   vals_index: "Vals Index",
   vending_bench_2: "Vending-Bench 2",
   vibe_code: "Vibe Code",
   voxelbench: "VoxelBench",
-  weirdml: "WeirdML",
+  weirdml_v3: "WeirdML v3",
 } as const satisfies Readonly<Record<BenchmarkKey, string>>;
 
 export const BENCHMARK_SCORING_LABELS: Partial<Record<BenchmarkKey, string>> = {
@@ -695,7 +679,6 @@ const FRONTIER_BENCHMARK_DISPLAY_ORDER = [
   "ale_bench",
   "analyst_agent",
   "apex_agents",
-  "arc_agi_2",
   "arc_agi_3",
   "arena_agent",
   "automation_bench",
@@ -731,12 +714,13 @@ const FRONTIER_BENCHMARK_DISPLAY_ORDER = [
   "terminal_bench_4",
   "terminal_bench_science",
   "textquests",
+  "weirdml_v3",
 ] as const satisfies readonly BenchmarkKey[];
 
 const BASELINE_BENCHMARK_DISPLAY_ORDER = [
   "apex_swe",
+  "arc_agi_2",
   "arena_webdev",
-  "browsecomp",
   "chess_puzzles",
   "enterprisebench_corecraft",
   "erqa",
@@ -751,11 +735,9 @@ const BASELINE_BENCHMARK_DISPLAY_ORDER = [
   "public_benefits_bench",
   "scicode",
   "simpleqa_verified",
-  "toolathlon",
   "vending_bench_2",
   "vibe_code",
   "voxelbench",
-  "weirdml",
 ] as const satisfies readonly BenchmarkKey[];
 
 /** Preserve frontier, index, and baseline display groups without caller-owned sorting rules. */
@@ -1318,12 +1300,6 @@ export const BENCHMARK_COLUMNS = {
     format: "percent",
     defaultSort: "descending",
   },
-  browsecomp: {
-    key: "browseComp",
-    label: "Browse",
-    format: "percent",
-    defaultSort: "descending",
-  },
   cais_capabilities_index: {
     key: "caisCapabilitiesIndex",
     label: "CAIS",
@@ -1600,12 +1576,6 @@ export const BENCHMARK_COLUMNS = {
     format: "percent",
     defaultSort: "descending",
   },
-  toolathlon: {
-    key: "toolathlon",
-    label: "Toolathlon",
-    format: "percent",
-    defaultSort: "descending",
-  },
   vals_index: {
     key: "valsIndex",
     label: "Vals",
@@ -1630,9 +1600,9 @@ export const BENCHMARK_COLUMNS = {
     format: "score",
     defaultSort: "descending",
   },
-  weirdml: {
+  weirdml_v3: {
     key: "weirdMl",
-    label: "WeirdML",
+    label: "WeirdML v3",
     format: "percent",
     defaultSort: "descending",
   },
