@@ -76,6 +76,8 @@ The Pareto frontier contains models for which no other candidate is at least as 
 
 The [median](overview.md#weighted-median-and-quantiles) counts each base model with finite :score[Intelligence] and :score[Value] once, before dashboard filters. A model exactly at the median does not qualify for Pareto Value.
 
+![Illustrative frontier: Pareto Balance touches the highest curve of equal :score[Intelligence] × :score[Value], and Pareto Value has the highest :score[Value] among frontier models above the median :score[Intelligence].](../assets/methodology/pareto-highlights.svg)
+
 Pareto candidates follow model, provider, and price filters before rank and release-recency limits. The other signature roles use the displayed population.
 
 Pareto Balance has no :score[Intelligence] cutoff. Token price does not select either Pareto role or represent measured cost per task. A model may fill multiple roles; a role is omitted if no candidate qualifies.

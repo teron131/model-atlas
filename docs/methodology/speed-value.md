@@ -94,6 +94,8 @@ Permit raw resource fusion only with compatible accounting, at least 10 distinct
 
 Check original per-task amounts without fitting an offset or rescaling either source. Similar distribution shapes do not establish agreement; too few paired observations leave the sources separate.
 
+![Illustrative paired amounts on log scales; the band marks agreement within 5%. A consistent gap still fails because no offset is fitted.](../assets/methodology/resource-agreement.svg)
+
 When the check passes, two observed amounts combine as $(A+B)/2$. Passing the check does not validate a missing-source estimate; that still requires separately validated resource imputation.
 
 **Separate scoring when raw amounts are not comparable**

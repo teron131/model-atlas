@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 430" role="img" aria-labelledby="title desc">
+<title id="title">Raw resource amounts combine only when paired amounts agree within 5%</title>
+<desc id="desc">Two schematic panels, each point pairing one model's per-task amounts from Source A and Source B on log scales. The shaded band around the diagonal marks amounts within a factor of 1.05. When at least 90 percent of paired models fall inside the band, the raw amounts are averaged. On the right, a consistent gap leaves none of the pairs within the band; no offset is fitted, so those sources are scored separately.</desc>
+<style>
+text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:15px;fill:#202724}
+.num{font-family:"SFMono-Regular","SF Mono",Menlo,Consolas,monospace;font-size:14px}
+.small{font-size:12.5px}.big{font-size:18px}.strong{font-weight:600}
+.muted{fill-opacity:.62}.faint{opacity:.4}.half{opacity:.5}
+.grid{fill:none;stroke:#202724;stroke-opacity:.09}
+.guide{fill:none;stroke:#202724;stroke-opacity:.22}
+.axis{fill:none;stroke:#202724;stroke-opacity:.34}
+.ink{fill:#202724}.ink-line{fill:none;stroke:#202724}.ink-wash{fill:#202724;fill-opacity:.08}
+.ring{stroke:#f2f4f2;stroke-width:2;paint-order:stroke}.gap{stroke:#f2f4f2;stroke-width:2}
+.violet{fill:#6b47e0}.violet-line{fill:none;stroke:#6b47e0}.violet-wash{fill:#6b47e0;fill-opacity:.14}
+.rose{fill:#c93f78}.rose-line{fill:none;stroke:#c93f78}.rose-wash{fill:#c93f78;fill-opacity:.14}
+.amber{fill:#a8740c}.amber-line{fill:none;stroke:#a8740c}.amber-wash{fill:#a8740c;fill-opacity:.16}
+.h0{stop-color:#3557e6}.h1{stop-color:#6b47e0}.h2{stop-color:#d9467f}
+.land0{stop-color:#6b47e0;stop-opacity:.12}.land1{stop-color:#6b47e0;stop-opacity:.01}
+.halo{opacity:0}
+@media (prefers-color-scheme:dark){
+text{fill:#f2f3ed}.muted{fill-opacity:.58}
+.grid{stroke:#f2f3ed;stroke-opacity:.08}.guide{stroke:#f2f3ed;stroke-opacity:.2}.axis{stroke:#f2f3ed;stroke-opacity:.3}
+.ink{fill:#f2f3ed}.ink-line{stroke:#f2f3ed}.ink-wash{fill:#f2f3ed;fill-opacity:.1}
+.ring{stroke:#0b1016}.gap{stroke:#0b1016}
+.violet{fill:#8f6bff}.violet-line{stroke:#8f6bff}.violet-wash{fill:#8f6bff;fill-opacity:.22}
+.rose{fill:#e06296}.rose-line{stroke:#e06296}.rose-wash{fill:#e06296;fill-opacity:.2}
+.amber{fill:#b98b24}.amber-line{stroke:#b98b24}.amber-wash{fill:#b98b24;fill-opacity:.22}
+.h0{stop-color:#4a72ff}.h1{stop-color:#8f6bff}.h2{stop-color:#ff92bd}
+.land0{stop-color:#6f8cff;stop-opacity:.16}.land1{stop-color:#6f8cff;stop-opacity:.02}
+.halo{opacity:.55}
+}
+</style>
+<defs><filter id="glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="3"/></filter><marker id="tip-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="ink" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-violet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="violet" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="rose" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="amber" d="M0 0L10 5L0 10Z"/></marker></defs>
+<path class="ink-wash" d="M101.3 313.9L338.7 76.5L338.7 86.1L101.3 323.5Z"/><path class="guide" d="M90 330L350 70"/>
+<path class="axis" d="M90 70L90 330"/><path class="axis" d="M90 330L350 330"/>
+<text class="small muted" x="346.7" y="85.3">Within 5%</text>
+<g><circle class="ink halo" cx="112.6" cy="305.1" r="6.5" filter="url(#glow)"/><circle class="ink ring" cx="112.6" cy="305.1" r="4.5"/></g><g><circle class="ink halo" cx="130.7" cy="292" r="6.5" filter="url(#glow)"/><circle class="ink ring" cx="130.7" cy="292" r="4.5"/></g><g><circle class="ink halo" cx="148.8" cy="270.3" r="6.5" filter="url(#glow)"/><circle class="ink ring" cx="148.8" cy="270.3" r="4.5"/></g><g><circle class="ink halo" cx="166.9" cy="254.5" r="6.5" filter="url(#glow)"/><circle class="ink ring" cx="166.9" cy="254.5" r="4.5"/></g><g><circle class="ink halo" cx="185" cy="231.7" r="6.5" filter="url(#glow)"/><circle class="ink ring" cx="185" cy="231.7" r="4.5"/></g><g><circle class="ink halo" cx="203" cy="217.6" r="6.5" filter="url(#glow)"/><circle class="ink ring" cx="203" cy="217.6" r="4.5"/></g><g><circle class="ink halo" cx="221.1" cy="196.8" r="6.5" filter="url(#glow)"/><circle class="ink ring" cx="221.1" cy="196.8" r="4.5"/></g><g><circle class="ink halo" cx="239.2" cy="153.7" r="6.5" filter="url(#glow)"/><circle class="ink ring" cx="239.2" cy="153.7" r="4.5"/></g><g><circle class="ink halo" cx="257.3" cy="162.2" r="6.5" filter="url(#glow)"/><circle class="ink ring" cx="257.3" cy="162.2" r="4.5"/></g><g><circle class="ink halo" cx="275.4" cy="141.9" r="6.5" filter="url(#glow)"/><circle class="ink ring" cx="275.4" cy="141.9" r="4.5"/></g><g><circle class="ink halo" cx="293.5" cy="128.3" r="6.5" filter="url(#glow)"/><circle class="ink ring" cx="293.5" cy="128.3" r="4.5"/></g><g><circle class="ink halo" cx="316.1" cy="107.1" r="6.5" filter="url(#glow)"/><circle class="ink ring" cx="316.1" cy="107.1" r="4.5"/></g>
+<text class="muted" x="90" y="54">Source B amount</text><text class="muted" x="350" y="354" text-anchor="end">Source A amount</text>
+<text class="strong" x="90" y="392">At least 90% within 5%</text><text class="muted" x="90" y="414">Raw amounts averaged</text>
+<path class="ink-wash" d="M461.3 313.9L698.7 76.5L698.7 86.1L461.3 323.5Z"/><path class="guide" d="M450 330L710 70"/>
+<path class="axis" d="M450 70L450 330"/><path class="axis" d="M450 330L710 330"/>
+
+<g><circle class="ink halo" cx="472.6" cy="281.2" r="6.5" filter="url(#glow)"/><circle class="ink ring" cx="472.6" cy="281.2" r="4.5"/></g><g><circle class="ink halo" cx="490.7" cy="264.4" r="6.5" filter="url(#glow)"/><circle class="ink ring" cx="490.7" cy="264.4" r="4.5"/></g><g><circle class="ink halo" cx="508.8" cy="244.3" r="6.5" filter="url(#glow)"/><circle class="ink ring" cx="508.8" cy="244.3" r="4.5"/></g><g><circle class="ink halo" cx="526.9" cy="227.8" r="6.5" filter="url(#glow)"/><circle class="ink ring" cx="526.9" cy="227.8" r="4.5"/></g><g><circle class="ink halo" cx="545" cy="209.3" r="6.5" filter="url(#glow)"/><circle class="ink ring" cx="545" cy="209.3" r="4.5"/></g><g><circle class="ink halo" cx="563" cy="192.5" r="6.5" filter="url(#glow)"/><circle class="ink ring" cx="563" cy="192.5" r="4.5"/></g><g><circle class="ink halo" cx="581.1" cy="172.4" r="6.5" filter="url(#glow)"/><circle class="ink ring" cx="581.1" cy="172.4" r="4.5"/></g><g><circle class="ink halo" cx="599.2" cy="155.2" r="6.5" filter="url(#glow)"/><circle class="ink ring" cx="599.2" cy="155.2" r="4.5"/></g><g><circle class="ink halo" cx="617.3" cy="137.6" r="6.5" filter="url(#glow)"/><circle class="ink ring" cx="617.3" cy="137.6" r="4.5"/></g><g><circle class="ink halo" cx="635.4" cy="117.9" r="6.5" filter="url(#glow)"/><circle class="ink ring" cx="635.4" cy="117.9" r="4.5"/></g><g><circle class="ink halo" cx="653.5" cy="100.5" r="6.5" filter="url(#glow)"/><circle class="ink ring" cx="653.5" cy="100.5" r="4.5"/></g><g><circle class="ink halo" cx="676.1" cy="79.3" r="6.5" filter="url(#glow)"/><circle class="ink ring" cx="676.1" cy="79.3" r="4.5"/></g>
+<text class="muted" x="450" y="54">Source B amount</text><text class="muted" x="710" y="354" text-anchor="end">Source A amount</text>
+<text class="strong" x="450" y="392">None within 5%</text><text class="muted" x="450" y="414">Sources kept separate</text>
+</svg>
