@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 330" role="img" aria-labelledby="title desc">
+<title id="title">The median paired effort ratio imputes a missing high-effort cost</title>
+<desc id="desc">Schematic cost per task for one model at medium and high effort, on a log scale, so each arrow's length is that benchmark's high-to-medium cost ratio. Benchmarks A, B and C are measured at both efforts; B's ratio is the median of the three. Benchmark D is measured only at medium effort, and the same median ratio, drawn dashed, gives its estimated high-effort cost.</desc>
+<style>
+text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:15px;fill:#202724}
+.num{font-family:"SFMono-Regular","SF Mono",Menlo,Consolas,monospace;font-size:14px}
+.small{font-size:12.5px}.big{font-size:18px}.strong{font-weight:600}
+.muted{fill-opacity:.62}.faint{opacity:.4}.half{opacity:.5}
+.grid{fill:none;stroke:#202724;stroke-opacity:.09}
+.guide{fill:none;stroke:#202724;stroke-opacity:.22}
+.axis{fill:none;stroke:#202724;stroke-opacity:.34}
+.ink{fill:#202724}.ink-line{fill:none;stroke:#202724}.ink-wash{fill:#202724;fill-opacity:.08}
+.ring{stroke:#f2f4f2;stroke-width:2;paint-order:stroke}.gap{stroke:#f2f4f2;stroke-width:2}
+.violet{fill:#6b47e0}.violet-line{fill:none;stroke:#6b47e0}.violet-wash{fill:#6b47e0;fill-opacity:.14}
+.rose{fill:#c93f78}.rose-line{fill:none;stroke:#c93f78}.rose-wash{fill:#c93f78;fill-opacity:.14}
+.amber{fill:#a8740c}.amber-line{fill:none;stroke:#a8740c}.amber-wash{fill:#a8740c;fill-opacity:.16}
+.h0{stop-color:#3557e6}.h1{stop-color:#6b47e0}.h2{stop-color:#d9467f}
+.land0{stop-color:#6b47e0;stop-opacity:.12}.land1{stop-color:#6b47e0;stop-opacity:.01}
+.halo{opacity:0}
+@media (prefers-color-scheme:dark){
+text{fill:#f2f3ed}.muted{fill-opacity:.58}
+.grid{stroke:#f2f3ed;stroke-opacity:.08}.guide{stroke:#f2f3ed;stroke-opacity:.2}.axis{stroke:#f2f3ed;stroke-opacity:.3}
+.ink{fill:#f2f3ed}.ink-line{stroke:#f2f3ed}.ink-wash{fill:#f2f3ed;fill-opacity:.1}
+.ring{stroke:#0b1016}.gap{stroke:#0b1016}
+.violet{fill:#8f6bff}.violet-line{stroke:#8f6bff}.violet-wash{fill:#8f6bff;fill-opacity:.22}
+.rose{fill:#e06296}.rose-line{stroke:#e06296}.rose-wash{fill:#e06296;fill-opacity:.2}
+.amber{fill:#b98b24}.amber-line{stroke:#b98b24}.amber-wash{fill:#b98b24;fill-opacity:.22}
+.h0{stop-color:#4a72ff}.h1{stop-color:#8f6bff}.h2{stop-color:#ff92bd}
+.land0{stop-color:#6f8cff;stop-opacity:.16}.land1{stop-color:#6f8cff;stop-opacity:.02}
+.halo{opacity:.55}
+}
+</style>
+<defs><filter id="glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="3"/></filter><marker id="tip-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="ink" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-violet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="violet" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="rose" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="amber" d="M0 0L10 5L0 10Z"/></marker></defs>
+<path class="ink ring" d="M46 24L52 30L46 36L40 30Z"/><text class="muted" x="60" y="35">Medium effort</text><g><circle class="ink halo" cx="186" cy="30" r="7.5" filter="url(#glow)"/><circle class="ink ring" cx="186" cy="30" r="5.5"/></g><text class="muted" x="200" y="35">High effort</text><g><circle class="rose halo" cx="312" cy="30" r="7.5" filter="url(#glow)"/><circle class="rose ring" cx="312" cy="30" r="5.5"/></g><text class="muted" x="326" y="35">Estimated high effort</text>
+<path class="axis" d="M240 272L650 272"/>
+<text x="40" y="97">Benchmark A</text><path class="ink-line" d="M434.1 92L458 92" stroke-width="1.5" stroke-opacity=".6" marker-end="url(#tip-ink)"/><path class="ink ring" d="M425.1 86L431.1 92L425.1 98L419.1 92Z"/><g><circle class="ink halo" cx="467" cy="92" r="7.5" filter="url(#glow)"/><circle class="ink ring" cx="467" cy="92" r="5.5"/></g>
+<text x="40" y="147">Benchmark B</text><path class="violet-line" d="M531.9 142L575.7 142" stroke-width="2" marker-end="url(#tip-violet)"/><path class="ink ring" d="M522.9 136L528.9 142L522.9 148L516.9 142Z"/><g><circle class="ink halo" cx="584.7" cy="142" r="7.5" filter="url(#glow)"/><circle class="ink ring" cx="584.7" cy="142" r="5.5"/></g><text class="small muted" x="553.8" y="130" text-anchor="middle">Median ratio</text>
+<text x="40" y="197">Benchmark C</text><path class="ink-line" d="M310.7 192L374.3 192" stroke-width="1.5" stroke-opacity=".6" marker-end="url(#tip-ink)"/><path class="ink ring" d="M301.7 186L307.7 192L301.7 198L295.7 192Z"/><g><circle class="ink halo" cx="383.3" cy="192" r="7.5" filter="url(#glow)"/><circle class="ink ring" cx="383.3" cy="192" r="5.5"/></g>
+<text x="40" y="247">Benchmark D</text><path class="violet-line" d="M495.8 242L539.6 242" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#tip-violet)"/><path class="ink ring" d="M486.8 236L492.8 242L486.8 248L480.8 242Z"/><g><circle class="rose halo" cx="548.6" cy="242" r="7.5" filter="url(#glow)"/><circle class="rose ring" cx="548.6" cy="242" r="5.5"/></g><text class="small muted" x="517.7" y="230" text-anchor="middle">Same ratio</text>
+<text class="muted" x="650" y="298" text-anchor="end">Cost per task · log scale</text>
+</svg>

@@ -142,6 +142,8 @@ $$
 
 The resulting $z^A$ enters the :score[Agentic] mean, index blend, and effort comparisons. The ±15% cap does not bound the final score change: rescaling can also move scores with a neutral multiplier of 1.
 
+![Rescaling maps L to 0 and U to 100, so scores with a neutral multiplier move too.](../assets/methodology/token-rescale.svg)
+
 Evidence weights and inclusion requirements stay unchanged. :score[Value] may change indirectly through :score[Agentic]. Token counts alone cannot distinguish success from early termination or establish that an effort setting caused an efficiency gain.
 
 ### Shared-Benchmark Comparisons for :score[Intelligence]
@@ -224,7 +226,7 @@ $$
 
 The mapping expresses a percentile position in ordinary frontier score units. Observed differences influence the fitted ordering, but the mapped contribution borrows its spacing from the ordinary frontier distribution; it does not preserve latent rating distances or guarantee that the blended distribution stays unchanged. Variants outside the largest connected comparison graph retain their ordinary frontier mean. :score[Agentic] retains its existing calculation, including the token-efficiency adjustment above.
 
-For example, an ordinary frontier score of 70 and a mapped frontier pairwise score of 80 blend to 72. Add eligible index evidence and apply coverage retention once. The pairwise weight expresses how much influence to give this second interpretation of direct benchmark evidence; it does not represent independent evidence or a statistically fitted optimum.
+![Illustrative fitted variants with equal weight: each fitted rating becomes a percentile, and each percentile reads off an ordinary frontier score.](../assets/methodology/fitted-ordering-mapping.svg)
 
 ### Evidence Support and Quality Regularization
 
@@ -304,6 +306,8 @@ $$
 The sums include only available contributions with positive weight. Accepted source crosswalks count as individual-benchmark results, including for admission. Other-effort estimates can contribute individual-benchmark values with the same 1.5 multiplier, but do not become direct observations or satisfy admission. Estimates inferred from other benchmarks affect evidence support only; they do not enter this mean. Effort-labelled variants use only indexes reporting that effort; unlabelled variants use the ordinary index pool.
 
 Known constituent keys are recorded for AA and CAIS. A directly observed constituent with positive active weight in the dimension removes one breadth unit from every eligible index containing it. Otherwise, a constituent shared by multiple eligible indexes contributes an equal fraction of one breadth unit to each. These deductions happen before applying index importance and dimension allocation, and remaining breadth cannot fall below zero. Unmapped constituents retain their assigned breadth because their overlap cannot be established.
+
+![Illustrative overlap deductions for two indexes; shading shows the breadth each index keeps.](../assets/methodology/index-overlap.svg)
 
 These deductions reduce represented weight; they do not remove constituent results from the published index value. Overlap accounting therefore limits duplicate influence without reconstructing an index from its remaining benchmarks. The 1.5 multiplier is a policy preference for selected individual benchmarks, not a fitted optimum or a correction for selective reporting.
 

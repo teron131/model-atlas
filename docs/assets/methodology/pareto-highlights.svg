@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 470" role="img" aria-labelledby="title desc">
+<title id="title">Pareto Balance and Pareto Value on the Intelligence and Value frontier</title>
+<desc id="desc">Twelve illustrative models plotted by Value and Intelligence. The lit rim joins the five Pareto frontier models; fainter models are beaten on both scores. Pareto Balance, at Value 68 and Intelligence 76, touches the highest curve of equal Intelligence × Value. The median Intelligence is 52.5; among frontier models above it, the highest Value is 82, at Intelligence 58, which is Pareto Value. The frontier model at Value 90 has a higher Value but Intelligence 45, below the median, so it does not qualify.</desc>
+<style>
+text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:15px;fill:#202724}
+.num{font-family:"SFMono-Regular","SF Mono",Menlo,Consolas,monospace;font-size:14px}
+.small{font-size:12.5px}.big{font-size:18px}.strong{font-weight:600}
+.muted{fill-opacity:.62}.faint{opacity:.4}.half{opacity:.5}
+.grid{fill:none;stroke:#202724;stroke-opacity:.09}
+.guide{fill:none;stroke:#202724;stroke-opacity:.22}
+.axis{fill:none;stroke:#202724;stroke-opacity:.34}
+.ink{fill:#202724}.ink-line{fill:none;stroke:#202724}.ink-wash{fill:#202724;fill-opacity:.08}
+.ring{stroke:#f2f4f2;stroke-width:2;paint-order:stroke}.gap{stroke:#f2f4f2;stroke-width:2}
+.violet{fill:#6b47e0}.violet-line{fill:none;stroke:#6b47e0}.violet-wash{fill:#6b47e0;fill-opacity:.14}
+.rose{fill:#c93f78}.rose-line{fill:none;stroke:#c93f78}.rose-wash{fill:#c93f78;fill-opacity:.14}
+.amber{fill:#a8740c}.amber-line{fill:none;stroke:#a8740c}.amber-wash{fill:#a8740c;fill-opacity:.16}
+.h0{stop-color:#3557e6}.h1{stop-color:#6b47e0}.h2{stop-color:#d9467f}
+.land0{stop-color:#6b47e0;stop-opacity:.12}.land1{stop-color:#6b47e0;stop-opacity:.01}
+.halo{opacity:0}
+@media (prefers-color-scheme:dark){
+text{fill:#f2f3ed}.muted{fill-opacity:.58}
+.grid{stroke:#f2f3ed;stroke-opacity:.08}.guide{stroke:#f2f3ed;stroke-opacity:.2}.axis{stroke:#f2f3ed;stroke-opacity:.3}
+.ink{fill:#f2f3ed}.ink-line{stroke:#f2f3ed}.ink-wash{fill:#f2f3ed;fill-opacity:.1}
+.ring{stroke:#0b1016}.gap{stroke:#0b1016}
+.violet{fill:#8f6bff}.violet-line{stroke:#8f6bff}.violet-wash{fill:#8f6bff;fill-opacity:.22}
+.rose{fill:#e06296}.rose-line{stroke:#e06296}.rose-wash{fill:#e06296;fill-opacity:.2}
+.amber{fill:#b98b24}.amber-line{stroke:#b98b24}.amber-wash{fill:#b98b24;fill-opacity:.22}
+.h0{stop-color:#4a72ff}.h1{stop-color:#8f6bff}.h2{stop-color:#ff92bd}
+.land0{stop-color:#6f8cff;stop-opacity:.16}.land1{stop-color:#6f8cff;stop-opacity:.02}
+.halo{opacity:.55}
+}
+</style>
+<defs><filter id="glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="3"/></filter><marker id="tip-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="ink" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-violet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="violet" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="rose" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="amber" d="M0 0L10 5L0 10Z"/></marker><linearGradient id="light" gradientUnits="userSpaceOnUse" x1="110" y1="0" x2="690" y2="0"><stop class="h0" offset="0"/><stop class="h1" offset=".58"/><stop class="h2" offset="1"/></linearGradient><linearGradient id="land" gradientUnits="userSpaceOnUse" x1="0" y1="70" x2="0" y2="410"><stop class="land0" offset="0"/><stop class="land1" offset="1"/></linearGradient></defs>
+<text class="muted" x="110" y="44">Intelligence</text>
+<path class="grid" d="M255 410L255 70"/><path class="grid" d="M110 325L690 325"/><path class="grid" d="M400 410L400 70"/><path class="grid" d="M110 240L690 240"/><path class="grid" d="M545 410L545 70"/><path class="grid" d="M110 155L690 155"/><path class="grid" d="M690 410L690 70"/><path class="grid" d="M110 70L690 70"/><path class="axis" d="M110 410L690 410"/><path class="axis" d="M110 410L110 70"/>
+<path d="M110 121L240.5 121L363.8 146.5L458 172L559.5 248.5L617.5 303.8L617.5 410L110 410Z" fill="url(#land)"/><path d="M110 121L240.5 121L363.8 146.5L458 172L559.5 248.5L617.5 303.8" fill="none" stroke="url(#light)" stroke-width="8" opacity=".14" class="halo"/><path d="M110 121L240.5 121L363.8 146.5L458 172L559.5 248.5L617.5 303.8" fill="none" stroke="url(#light)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path class="guide" d="M110 271.9L690 271.9" stroke-dasharray="5 4"/><text class="small muted" x="120" y="263.9">Median Intelligence</text>
+<path class="ink-line" d="M371 102.8L373.9 105.6L376.8 108.3L379.7 111L382.6 113.7L385.5 116.3L388.4 118.9L391.3 121.5L394.2 124L397.1 126.5L400 128.9L402.9 131.4L405.8 133.8L408.7 136.1L411.6 138.4L414.5 140.7L417.4 143L420.3 145.3L423.2 147.5L426.1 149.7L429 151.8L431.9 153.9L434.8 156L437.7 158.1L440.6 160.2L443.5 162.2L446.4 164.2L449.3 166.2L452.2 168.2L455.1 170.1L458 172L460.9 173.9L463.8 175.8L466.7 177.6L469.6 179.4L472.5 181.2L475.4 183L478.3 184.8L481.2 186.5L484.1 188.2L487 189.9L489.9 191.6L492.8 193.3L495.7 194.9L498.6 196.6L501.5 198.2L504.4 199.8L507.3 201.4L510.2 202.9L513.1 204.5L516 206L518.9 207.5L521.8 209L524.7 210.5L527.6 212L530.5 213.4L533.4 214.8L536.3 216.3L539.2 217.7L542.1 219.1L545 220.5" stroke-dasharray="5 4" stroke-opacity=".5" stroke-width="1.5"/><text class="small muted" x="383" y="96.8">Equal Intelligence × Value</text>
+<g><circle class="ink halo" cx="240.5" cy="121" r="8" filter="url(#glow)"/><circle class="ink ring" cx="240.5" cy="121" r="6"/></g><g><circle class="ink halo" cx="363.8" cy="146.5" r="8" filter="url(#glow)"/><circle class="ink ring" cx="363.8" cy="146.5" r="6"/></g><g><circle class="violet halo" cx="458" cy="172" r="9" filter="url(#glow)"/><circle class="violet ring" cx="458" cy="172" r="7"/></g><g><circle class="violet halo" cx="559.5" cy="248.5" r="9" filter="url(#glow)"/><circle class="violet ring" cx="559.5" cy="248.5" r="7"/></g><g><circle class="ink halo" cx="617.5" cy="303.8" r="8" filter="url(#glow)"/><circle class="ink ring" cx="617.5" cy="303.8" r="6"/></g><g class="faint"><circle class="ink halo" cx="182.5" cy="214.5" r="7" filter="url(#glow)"/><circle class="ink ring" cx="182.5" cy="214.5" r="5"/></g><g class="faint"><circle class="ink halo" cx="313" cy="257" r="7" filter="url(#glow)"/><circle class="ink ring" cx="313" cy="257" r="5"/></g><g class="faint"><circle class="ink halo" cx="414.5" cy="299.5" r="7" filter="url(#glow)"/><circle class="ink ring" cx="414.5" cy="299.5" r="5"/></g><g class="faint"><circle class="ink halo" cx="342" cy="333.5" r="7" filter="url(#glow)"/><circle class="ink ring" cx="342" cy="333.5" r="5"/></g><g class="faint"><circle class="ink halo" cx="501.5" cy="354.8" r="7" filter="url(#glow)"/><circle class="ink ring" cx="501.5" cy="354.8" r="5"/></g><g class="faint"><circle class="ink halo" cx="139" cy="316.5" r="7" filter="url(#glow)"/><circle class="ink ring" cx="139" cy="316.5" r="5"/></g><g class="faint"><circle class="ink halo" cx="487" cy="286.8" r="7" filter="url(#glow)"/><circle class="ink ring" cx="487" cy="286.8" r="5"/></g>
+<text x="472" y="166">Pareto Balance</text><text x="573.5" y="253.5">Pareto Value</text>
+<text class="num muted" x="110" y="434" text-anchor="middle">20</text><text class="num muted" x="96" y="414.5" text-anchor="end">20</text><text class="num muted" x="255" y="434" text-anchor="middle">40</text><text class="num muted" x="96" y="329.5" text-anchor="end">40</text><text class="num muted" x="400" y="434" text-anchor="middle">60</text><text class="num muted" x="96" y="244.5" text-anchor="end">60</text><text class="num muted" x="545" y="434" text-anchor="middle">80</text><text class="num muted" x="96" y="159.5" text-anchor="end">80</text><text class="num muted" x="690" y="434" text-anchor="middle">100</text><text class="num muted" x="96" y="74.5" text-anchor="end">100</text>
+<text class="muted" x="690" y="460" text-anchor="end">Value</text>
+</svg>

@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 330" role="img" aria-labelledby="title desc">
+<title id="title">Fitted ratings become percentiles, then ordinary frontier scores</title>
+<desc id="desc">Six illustrative fitted variants with equal reference weight. Top, their fitted ratings, with uneven gaps and no score units. Middle, weightedQuantileRank turns each rating into a percentile; equal weights space the percentiles evenly, at one sixth intervals from about 8 to 92 percent. Bottom, weightedQuantile reads the ordinary frontier score at each percentile, from 52 to 88. Each variant keeps its fitted order but takes the ordinary scores' values and spacing, not the rating gaps.</desc>
+<style>
+text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:15px;fill:#202724}
+.num{font-family:"SFMono-Regular","SF Mono",Menlo,Consolas,monospace;font-size:14px}
+.small{font-size:12.5px}.big{font-size:18px}.strong{font-weight:600}
+.muted{fill-opacity:.62}.faint{opacity:.4}.half{opacity:.5}
+.grid{fill:none;stroke:#202724;stroke-opacity:.09}
+.guide{fill:none;stroke:#202724;stroke-opacity:.22}
+.axis{fill:none;stroke:#202724;stroke-opacity:.34}
+.ink{fill:#202724}.ink-line{fill:none;stroke:#202724}.ink-wash{fill:#202724;fill-opacity:.08}
+.ring{stroke:#f2f4f2;stroke-width:2;paint-order:stroke}.gap{stroke:#f2f4f2;stroke-width:2}
+.violet{fill:#6b47e0}.violet-line{fill:none;stroke:#6b47e0}.violet-wash{fill:#6b47e0;fill-opacity:.14}
+.rose{fill:#c93f78}.rose-line{fill:none;stroke:#c93f78}.rose-wash{fill:#c93f78;fill-opacity:.14}
+.amber{fill:#a8740c}.amber-line{fill:none;stroke:#a8740c}.amber-wash{fill:#a8740c;fill-opacity:.16}
+.h0{stop-color:#3557e6}.h1{stop-color:#6b47e0}.h2{stop-color:#d9467f}
+.land0{stop-color:#6b47e0;stop-opacity:.12}.land1{stop-color:#6b47e0;stop-opacity:.01}
+.halo{opacity:0}
+@media (prefers-color-scheme:dark){
+text{fill:#f2f3ed}.muted{fill-opacity:.58}
+.grid{stroke:#f2f3ed;stroke-opacity:.08}.guide{stroke:#f2f3ed;stroke-opacity:.2}.axis{stroke:#f2f3ed;stroke-opacity:.3}
+.ink{fill:#f2f3ed}.ink-line{stroke:#f2f3ed}.ink-wash{fill:#f2f3ed;fill-opacity:.1}
+.ring{stroke:#0b1016}.gap{stroke:#0b1016}
+.violet{fill:#8f6bff}.violet-line{stroke:#8f6bff}.violet-wash{fill:#8f6bff;fill-opacity:.22}
+.rose{fill:#e06296}.rose-line{stroke:#e06296}.rose-wash{fill:#e06296;fill-opacity:.2}
+.amber{fill:#b98b24}.amber-line{stroke:#b98b24}.amber-wash{fill:#b98b24;fill-opacity:.22}
+.h0{stop-color:#4a72ff}.h1{stop-color:#8f6bff}.h2{stop-color:#ff92bd}
+.land0{stop-color:#6f8cff;stop-opacity:.16}.land1{stop-color:#6f8cff;stop-opacity:.02}
+.halo{opacity:.55}
+}
+</style>
+<defs><filter id="glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="3"/></filter><marker id="tip-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="ink" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-violet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="violet" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="rose" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="amber" d="M0 0L10 5L0 10Z"/></marker></defs>
+<text x="40" y="75">Fitted rating</text><text x="40" y="185">Percentile</text><text x="40" y="295">Ordinary frontier score</text>
+<text class="num small muted" x="40" y="130">weightedQuantileRank</text><text class="num small muted" x="40" y="240">weightedQuantile</text>
+<path class="axis" d="M240 70L700 70"/><path class="axis" d="M240 180L700 180"/><path class="axis" d="M240 290L700 290"/>
+<path class="ink-line" d="M272.9 70L278.3 180" stroke-opacity=".35" stroke-width="1.25"/><path class="ink-line" d="M278.3 180L304.4 290" stroke-opacity=".35" stroke-width="1.25"/><path class="ink-line" d="M311.2 70L355 180" stroke-opacity=".35" stroke-width="1.25"/><path class="ink-line" d="M355 180L387.2 290" stroke-opacity=".35" stroke-width="1.25"/><path class="ink-line" d="M437.1 70L431.7 180" stroke-opacity=".35" stroke-width="1.25"/><path class="ink-line" d="M431.7 180L433.2 290" stroke-opacity=".35" stroke-width="1.25"/><path class="ink-line" d="M491.9 70L508.3 180" stroke-opacity=".35" stroke-width="1.25"/><path class="ink-line" d="M508.3 180L470 290" stroke-opacity=".35" stroke-width="1.25"/><path class="ink-line" d="M519.3 70L585 180" stroke-opacity=".35" stroke-width="1.25"/><path class="ink-line" d="M585 180L562 290" stroke-opacity=".35" stroke-width="1.25"/><path class="ink-line" d="M656.2 70L661.7 180" stroke-opacity=".35" stroke-width="1.25"/><path class="ink-line" d="M661.7 180L635.6 290" stroke-opacity=".35" stroke-width="1.25"/>
+<g><circle class="ink halo" cx="272.9" cy="70" r="8" filter="url(#glow)"/><circle class="ink ring" cx="272.9" cy="70" r="6"/></g><g><circle class="ink halo" cx="311.2" cy="70" r="8" filter="url(#glow)"/><circle class="ink ring" cx="311.2" cy="70" r="6"/></g><g><circle class="ink halo" cx="437.1" cy="70" r="8" filter="url(#glow)"/><circle class="ink ring" cx="437.1" cy="70" r="6"/></g><g><circle class="ink halo" cx="491.9" cy="70" r="8" filter="url(#glow)"/><circle class="ink ring" cx="491.9" cy="70" r="6"/></g><g><circle class="ink halo" cx="519.3" cy="70" r="8" filter="url(#glow)"/><circle class="ink ring" cx="519.3" cy="70" r="6"/></g><g><circle class="ink halo" cx="656.2" cy="70" r="8" filter="url(#glow)"/><circle class="ink ring" cx="656.2" cy="70" r="6"/></g><g><circle class="ink halo" cx="278.3" cy="180" r="7" filter="url(#glow)"/><circle class="ink ring" cx="278.3" cy="180" r="5"/></g><g><circle class="ink halo" cx="355" cy="180" r="7" filter="url(#glow)"/><circle class="ink ring" cx="355" cy="180" r="5"/></g><g><circle class="ink halo" cx="431.7" cy="180" r="7" filter="url(#glow)"/><circle class="ink ring" cx="431.7" cy="180" r="5"/></g><g><circle class="ink halo" cx="508.3" cy="180" r="7" filter="url(#glow)"/><circle class="ink ring" cx="508.3" cy="180" r="5"/></g><g><circle class="ink halo" cx="585" cy="180" r="7" filter="url(#glow)"/><circle class="ink ring" cx="585" cy="180" r="5"/></g><g><circle class="ink halo" cx="661.7" cy="180" r="7" filter="url(#glow)"/><circle class="ink ring" cx="661.7" cy="180" r="5"/></g><g><circle class="ink halo" cx="304.4" cy="290" r="8" filter="url(#glow)"/><circle class="ink ring" cx="304.4" cy="290" r="6"/></g><g><circle class="ink halo" cx="387.2" cy="290" r="8" filter="url(#glow)"/><circle class="ink ring" cx="387.2" cy="290" r="6"/></g><g><circle class="ink halo" cx="433.2" cy="290" r="8" filter="url(#glow)"/><circle class="ink ring" cx="433.2" cy="290" r="6"/></g><g><circle class="ink halo" cx="470" cy="290" r="8" filter="url(#glow)"/><circle class="ink ring" cx="470" cy="290" r="6"/></g><g><circle class="ink halo" cx="562" cy="290" r="8" filter="url(#glow)"/><circle class="ink ring" cx="562" cy="290" r="6"/></g><g><circle class="ink halo" cx="635.6" cy="290" r="8" filter="url(#glow)"/><circle class="ink ring" cx="635.6" cy="290" r="6"/></g>
+<path class="axis" d="M240 180L240 186"/><text class="num muted" x="240" y="204" text-anchor="middle">0%</text><path class="axis" d="M470 180L470 186"/><text class="num muted" x="470" y="204" text-anchor="middle">50%</text><path class="axis" d="M700 180L700 186"/><text class="num muted" x="700" y="204" text-anchor="middle">100%</text><path class="axis" d="M286 290L286 296"/><text class="num muted" x="286" y="316" text-anchor="middle">50</text><path class="axis" d="M378 290L378 296"/><text class="num muted" x="378" y="316" text-anchor="middle">60</text><path class="axis" d="M470 290L470 296"/><text class="num muted" x="470" y="316" text-anchor="middle">70</text><path class="axis" d="M562 290L562 296"/><text class="num muted" x="562" y="316" text-anchor="middle">80</text><path class="axis" d="M654 290L654 296"/><text class="num muted" x="654" y="316" text-anchor="middle">90</text>
+</svg>
