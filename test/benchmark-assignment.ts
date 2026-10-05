@@ -267,9 +267,6 @@ const lookups = {
   blueprintBench: {
     rowsByModelName: emptyLookup(),
   },
-  browseComp: {
-    rowsByModelName: emptyLookup(),
-  },
   caisCapabilitiesIndex: { rowsByModelName: emptyLookup() },
   chartography: {
     rowsByModelName: buildBenchmarkObservationLookup([chartographyRow]),
@@ -323,9 +320,6 @@ const lookups = {
   },
   terminalBenchScience: { rowsByModelName: emptyLookup() },
   textquests: { rowsByModelName: emptyLookup() },
-  toolathlon: {
-    rowsByModelName: emptyLookup(),
-  },
   valsIndex: {
     rowsByModelName: emptyLookup(),
   },
@@ -535,7 +529,7 @@ const replacementRows = prepareVersionReplacementBenchmarkRows(
       intelligence: { intelligence_index: 49.9 },
       benchmarks: {
         blueprint_bench_2: 0.4,
-        browsecomp: 0.55,
+        perception_bench: 0.55,
         chess_puzzles: 0.5,
         critpt: 0.7,
         epoch_capabilities_index: 0.45,
@@ -546,7 +540,7 @@ const replacementRows = prepareVersionReplacementBenchmarkRows(
       },
       scoring_sources: {
         blueprint_bench_2: { model: "Example Model" },
-        browsecomp: { model: "Example Model 0806" },
+        perception_bench: { model: "Example Model 0806" },
         chess_puzzles: {
           model: "Example Model",
           observed_at: "2026-08-01",
@@ -574,7 +568,7 @@ const replacementRows = prepareVersionReplacementBenchmarkRows(
       intelligence: { intelligence_index: 49.9 },
       benchmarks: {
         blueprint_bench_2: 0.4,
-        browsecomp: 0.55,
+        perception_bench: 0.55,
         chess_puzzles: 0.5,
         critpt: 0.7,
         epoch_capabilities_index: 0.45,
@@ -608,7 +602,7 @@ assert.equal(
 );
 assert.equal(replacementBenchmarks.riemann_bench, 0.7, "a changed benchmark should remain");
 assert.equal(
-  replacementBenchmarks.browsecomp,
+  replacementBenchmarks.perception_bench,
   0.55,
   "a source row that explicitly names the replacement version should remain",
 );

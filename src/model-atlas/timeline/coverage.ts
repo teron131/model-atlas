@@ -1,4 +1,5 @@
 /** Measure historical support against actual observed index editions, independently of model age, score, and display filters. */
+
 import { residualIndexBreadth } from "../benchmarks/index-policy";
 import { STAGE_CONFIG } from "../config/stage";
 import { effectiveCount } from "../math-utils";

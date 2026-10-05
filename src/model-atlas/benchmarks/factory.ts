@@ -75,13 +75,7 @@ export type BenchmarkObservationLoader =
     }
   | { kind: "vals_rsi"; sourceUrl: string }
   | { kind: "voxelbench"; sourceUrl: string }
-  | { kind: "weirdml" }
-  | {
-      kind: "zeroeval";
-      sourceUrl: string;
-      rankField?: string;
-      observedAtField?: string;
-    };
+  | { kind: "weirdml"; sourceUrl: string; crosswalkSourceUrl: string };
 export type BenchmarkSourceRuntime = {
   key: string;
   publicRows: boolean;

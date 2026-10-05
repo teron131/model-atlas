@@ -537,7 +537,7 @@ function benchmarkObservations(rows: PayloadRows): BenchmarkObservationsByKey {
     terminalBenchScienceRows: sourceRows("terminal_bench_science", rows.terminalBenchScienceRows),
     gdpPdfRows: sourceRows("gdp_pdf", rows.gdpPdfRows),
     aleBenchConfigurationRows: readAleBenchRawCache(rows.aleBenchRows)?.rows ?? [],
-    weirdMlRows: sourceRows("weirdml", rows.weirdMlRows),
+    weirdMlRows: sourceRows("weirdml_v3", rows.weirdMlRows),
   });
   Object.assign(observations, fused);
   return observations;

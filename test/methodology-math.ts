@@ -1,4 +1,5 @@
 /** Check statistical invariants that protect robust evidence, unit-independent comparisons, and supported resource predictions. */
+
 import assert from "node:assert/strict";
 
 import {

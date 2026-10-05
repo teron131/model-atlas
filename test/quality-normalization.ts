@@ -1,4 +1,5 @@
 /** Quality normalization preserves relative benchmark positions while resources keep their independent linear coordinates. */
+
 import assert from "node:assert/strict";
 
 import { BENCHMARK_CATALOG } from "../src/model-atlas/benchmarks/registry";
