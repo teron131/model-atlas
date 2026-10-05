@@ -111,7 +111,7 @@ assert.equal(
 
 const staleSourceRows = [{ fetched_at_epoch_seconds: 1_800_000_000 }];
 assert.equal(
-  rawSourceCacheStatusFromRows("browsecomp", staleSourceRows, 1_900_000_000, {
+  rawSourceCacheStatusFromRows("perception_bench", staleSourceRows, 1_900_000_000, {
     last_fetch_epoch_seconds: 1_900_000_000,
     source_input_count: 1,
   }).cache_hit,
@@ -119,7 +119,7 @@ assert.equal(
   "Persisted refresh metadata should keep unchanged raw rows fresh",
 );
 assert.equal(
-  rawSourceCacheStatusFromRows("browsecomp", staleSourceRows, 1_900_000_000, {
+  rawSourceCacheStatusFromRows("perception_bench", staleSourceRows, 1_900_000_000, {
     last_fetch_epoch_seconds: null,
     source_input_count: 1,
   }).cache_hit,
@@ -177,11 +177,11 @@ try {
 				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 			`)
       .run(
-        "browsecomp",
+        "perception_bench",
         0,
         1_800_000_000,
-        "browsecomp",
-        "https://api.zeroeval.com/leaderboard/benchmarks/browsecomp/details",
+        "perception_bench",
+        "https://raw.githubusercontent.com/MoonshotAI/PerceptionBench/master/README.md",
         null,
         "Claude Fable 5",
         "Claude Fable 5",
@@ -315,7 +315,7 @@ try {
       Number(
         reopenedDb
           .prepare(
-            "SELECT COUNT(*) AS count FROM benchmark_observation_raw_rows WHERE source_key = 'browsecomp'",
+            "SELECT COUNT(*) AS count FROM benchmark_observation_raw_rows WHERE source_key = 'perception_bench'",
           )
           .get()?.count ?? 0,
       ),
@@ -325,7 +325,7 @@ try {
     assert.equal(
       reopenedDb
         .prepare(
-          "SELECT observed_at FROM benchmark_observation_raw_rows WHERE source_key = 'browsecomp'",
+          "SELECT observed_at FROM benchmark_observation_raw_rows WHERE source_key = 'perception_bench'",
         )
         .get()?.observed_at,
       null,

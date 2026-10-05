@@ -33,7 +33,7 @@ const models = Array.from({ length: 8 }, (_, i) => {
     ...minimalModelAtlasModel({ id: `lab/${name}`, name }),
     provider: i === 7 ? "Anthropic" : "Lab",
     intelligence: { intelligence_index: score },
-    benchmarks: { browsecomp: 0.2 + i * 0.07, critpt: 0.2 + i * 0.07 },
+    benchmarks: { mindcube: 0.2 + i * 0.07, critpt: 0.2 + i * 0.07 },
     component_scores: { intelligence_score: score, agentic_score: score, speed_score: 42 },
     scores: { intelligence_score: score, agentic_score: score, speed_score: 42, value_score: 43 },
   };
@@ -285,7 +285,7 @@ const retired = advanceCapabilities(
   models.map((m) => ({ ...m, benchmarks: null })),
   "2026-09-15T05:00:00.000Z",
 );
-const task = retired.dataset.benchmarks.find((b) => b.key === "atlas_benchmark_browsecomp")!;
+const task = retired.dataset.benchmarks.find((b) => b.key === "atlas_benchmark_mindcube")!;
 assert.ok(task);
 assert.ok(!retired.dataset.activeBenchmarkIds!.includes(task.id));
 assert.ok(retired.dataset.observations.some((o) => o.benchmarkId === task.id));

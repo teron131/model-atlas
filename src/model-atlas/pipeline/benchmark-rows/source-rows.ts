@@ -98,10 +98,7 @@ function benchmarkObservationSourceDrafts(sourceData: ModelAtlasSourceData): Ben
     }
     return source.rows
       .filter(
-        (row) =>
-          isCanonicalBenchmarkObservation(row) ||
-          row.metadata.source_series === "vals" ||
-          (row.metadata.weirdml_origin === "epoch" && row.metadata.fusion_eligible !== false),
+        (row) => isCanonicalBenchmarkObservation(row) || row.metadata.source_series === "vals",
       )
       .map((row) => ({
         key: row.benchmark_key,

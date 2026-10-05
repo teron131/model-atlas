@@ -1472,8 +1472,8 @@ assertClose(
 
 // Default Agentic selection follows the same frontier-only rule, including its direct evidence support.
 const agenticFrontierRows = [
-  { benchmarks: { automation_bench: 0.2, browsecomp: 0.1 } },
-  { benchmarks: { automation_bench: 0.8, browsecomp: 0.9 } },
+  { benchmarks: { automation_bench: 0.2, vibe_code: 0.1 } },
+  { benchmarks: { automation_bench: 0.8, vibe_code: 0.9 } },
 ];
 const agenticFrontierContext = buildQualityScoringContext(
   agenticFrontierRows,
@@ -1481,7 +1481,7 @@ const agenticFrontierContext = buildQualityScoringContext(
 );
 const agenticFrontierResult = (baseline: number | null) =>
   buildComponentScoreResult(
-    { benchmarks: { automation_bench: 0.8, browsecomp: baseline } },
+    { benchmarks: { automation_bench: 0.8, vibe_code: baseline } },
     nullSpeed,
     [],
     STAGE_CONFIG.scoring,

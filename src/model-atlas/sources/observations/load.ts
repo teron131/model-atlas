@@ -13,7 +13,6 @@ import { automationBenchCacheMatches, getAutomationBenchStats } from "../automat
 import { caisCacheMatches, getCaisDashboardStats } from "../cais/results";
 import { getEpochCapabilitiesIndexStats } from "../epoch/capabilities-index";
 import { epochBenchmarkCacheMatches, getEpochBenchmarkStats } from "../epoch/results";
-import { WEIRDML_EPOCH_CSV_URL } from "../epoch/weirdml";
 import { getMercorStats, mercorCacheMatches } from "../mercor/results";
 import { getMlsBenchStats } from "../mls-bench";
 import { getPerceptionBenchStats } from "../perception-bench";
@@ -26,8 +25,7 @@ import {
 import { getValsSourceStats, valsBenchmarkCacheMatches } from "../vals/results";
 import { getValsRsiStats, valsRsiCacheMatches } from "../vals/rsi";
 import { getVoxelBenchStats } from "../voxelbench";
-import { getWeirdMlStats } from "../weirdml";
-import { getZeroEvalStats } from "../zeroeval";
+import { getWeirdMlStats, weirdMlSourceCacheMatches } from "../weirdml";
 
 type ObservationSource = {
   sourceUrls?: readonly string[];
@@ -144,25 +142,12 @@ export function benchmarkObservationSource(
       };
     case "weirdml":
       return {
-        sourceUrls: ["https://htihle.github.io/data/weirdml_data.csv", WEIRDML_EPOCH_CSV_URL],
-        fetchRows: () => getWeirdMlStats(),
+        sourceUrls: [loader.sourceUrl, loader.crosswalkSourceUrl],
+        fetchRows: () => getWeirdMlStats(loader.sourceUrl, loader.crosswalkSourceUrl),
         acceptsCache: (rows) =>
-          rows.some(
-            (row) =>
-              row.metadata.weirdml_origin === "epoch" &&
-              row.metadata.observation_role === "component" &&
-              row.metadata.identity_contract === "model-effort",
-          ),
-      };
-    case "zeroeval":
-      return {
-        fetchRows: () =>
-          getZeroEvalStats({
-            benchmarkKey: binding.benchmark,
-            sourceUrl: loader.sourceUrl,
-            rankField: loader.rankField,
-            observedAtField: loader.observedAtField,
-          }),
+          weirdMlSourceCacheMatches(rows, loader.sourceUrl, loader.crosswalkSourceUrl),
+        // Published means and uncertainty must update with their current run cohort.
+        mergeRow: (_cached, fetched) => fetched,
       };
     default:
       loader satisfies never;

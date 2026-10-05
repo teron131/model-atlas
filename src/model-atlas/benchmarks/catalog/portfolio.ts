@@ -51,7 +51,7 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     dimensionLoadings: { intelligence: 0, agentic: 1 },
   },
   arc_agi_2: {
-    group: "frontier",
+    group: "baseline",
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
@@ -87,11 +87,6 @@ export const BENCHMARK_SCORING_WEIGHTS = {
   },
   briefcase: {
     group: "frontier",
-    benchmarkImportance: 1,
-    dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
-  },
-  browsecomp: {
-    group: "baseline",
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
   },
@@ -313,11 +308,6 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
   },
-  toolathlon: {
-    group: "baseline",
-    benchmarkImportance: 1,
-    dimensionLoadings: { intelligence: 0, agentic: 1 },
-  },
   vals_index: INDEX_SCORING_WEIGHT,
   vending_bench_2: {
     group: "baseline",
@@ -334,8 +324,8 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
   },
-  weirdml: {
-    group: "baseline",
+  weirdml_v3: {
+    group: "frontier",
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
   },

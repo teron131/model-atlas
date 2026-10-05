@@ -1,4 +1,5 @@
 /** Effort curves follow the observed effort sequence even when quality or resource coordinates reverse direction. */
+
 import assert from "node:assert/strict";
 
 import { starConnectorSegments } from "../app/dashboard/graphs/plot/star-marks";

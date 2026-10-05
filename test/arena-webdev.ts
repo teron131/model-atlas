@@ -175,7 +175,7 @@ assert.ok(column);
 assert.equal(column.label, "WebDev");
 const tableKeys = benchmarkMetricColumns.map((value) => value.benchmark);
 assert.ok(tableKeys.indexOf("voxelbench") < tableKeys.indexOf("arena_webdev"));
-assert.ok(tableKeys.indexOf("arena_webdev") < tableKeys.indexOf("weirdml"));
+assert.ok(tableKeys.indexOf("weirdml_v3") < tableKeys.indexOf("arena_webdev"));
 const displayRows = dedupeDisplayModels(
   [1000, 1500, 2000].map((rating, index) => ({
     id: `webdev-example-${index}`,

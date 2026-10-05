@@ -1,4 +1,5 @@
 /** Protect the independent output-only resource evidence gates without losing quality-qualified table rows. */
+
 import assert from "node:assert/strict";
 
 import { frontierBenchmarkRows } from "../app/dashboard/graphs/pareto/analysis";

@@ -368,6 +368,68 @@ const unavailableAa = fusedBenchmarkObservations({
 assert.equal(unavailableAa.gdp_pdf?.length, 0);
 assert.equal(unavailableAa.terminal_bench_science?.length, 0);
 
+const weirdMlFused = fusedBenchmarkObservations({
+  terminalBench4Rows: [],
+  artificialAnalysisBenchmarkResourceRows: [],
+  terminalBenchScienceRows: [],
+  gdpPdfRows: [],
+  aleBenchConfigurationRows: [],
+  weirdMlRows: [
+    ...pairs.flatMap((pair) => [
+      {
+        ...observation(pair.name, pair.a),
+        benchmark_key: "weirdml_v3",
+        metadata: { source_series: "creator" },
+      },
+      {
+        ...observation(pair.name, pair.b),
+        benchmark_key: "weirdml_v3",
+        metadata: { source_series: "epoch" },
+      },
+    ]),
+    {
+      ...observation("creator-only", 0.4),
+      benchmark_key: "weirdml_v3",
+      metadata: { source_series: "creator" },
+    },
+    {
+      ...observation("ambiguous-agent", 0.8),
+      benchmark_key: "weirdml_v3",
+      metadata: { source_series: "epoch", assignment_eligible: false },
+    },
+    ...["creator", "epoch"].map((source_series) => ({
+      ...observation("retained-agent-mismatch", 0.5),
+      benchmark_key: "weirdml_v3",
+      metadata: {
+        source_series,
+        agent: source_series === "creator" ? "claude_code" : "opencode",
+        harness_names: [source_series === "creator" ? "claude_code" : "opencode"],
+      },
+    })),
+  ].map((row) => ({ ...row, model_id: row.base_model })),
+}).weirdml_v3!;
+assert.ok(
+  Math.abs(weirdMlFused.find((row) => row.base_model === "model-0")!.canonical_value - 0.25) <
+    1e-12,
+);
+assert.ok(
+  Math.abs(weirdMlFused.find((row) => row.base_model === "creator-only")!.canonical_value - 0.45) <
+    1e-12,
+);
+assert.equal(
+  weirdMlFused.find((row) => row.base_model === "creator-only")?.metadata.fusion_crosswalk_applied,
+  true,
+);
+assert.equal(
+  weirdMlFused.find((row) => row.base_model === "creator-only")?.metadata.source_b_label,
+  "Epoch",
+);
+assert.ok(!weirdMlFused.some((row) => row.base_model === "ambiguous-agent"));
+assert.ok(
+  !weirdMlFused.some((row) => row.base_model === "retained-agent-mismatch"),
+  "Retained rows from an earlier fetch must be reconciled with the current source before fusion",
+);
+
 const official = processTerminalBench4Payload({
   leaderboard: {
     package: "terminal-bench/terminal-bench",
@@ -459,39 +521,6 @@ const cached = readBenchmarkObservationRawCache(
 );
 assert.equal(cached?.rows.length, 2, "cache reconstruction must retain both source URLs");
 
-// Identity matching must survive differing release metadata, resources, and benchmark outcomes.
-const { mergeWeirdMlRows } = await import("../src/model-atlas/sources/weirdml");
-const creator = pairs.map((r) => ({
-  ...observation(r.name, r.a),
-  benchmark_key: "weirdml",
-  observed_at: "2026-08-31",
-  metadata: { weirdml_origin: "creator", cost_per_run_usd: 2, code_len_p50: 100 },
-}));
-const epoch = pairs.map((r) => ({
-  model_version: r.name,
-  name: r.name,
-  aliases: [r.name],
-  base_model: r.name,
-  reasoning_effort: "max",
-  provider: null,
-  accuracy: r.b,
-  cost_per_run_usd: 10,
-  code_len_p50: 120,
-  observed_at: "2026-09-01",
-}));
-const reconciled = mergeWeirdMlRows(creator, epoch);
-assert.equal(
-  reconciled.filter((row) => row.metadata.weirdml_epoch_crosswalk === "identity").length,
-  6,
-  "metadata and score differences cannot veto known identities",
-);
-assert.equal(reconciled.length, 12, "raw source values remain separate");
-assert.equal(reconciled[0]?.canonical_value, creator[0]?.canonical_value);
-const joined = crosswalkBenchmarkSources(
-  reconciled.filter((r) => r.metadata.weirdml_origin === "creator"),
-  reconciled.filter((r) => r.metadata.weirdml_origin === "epoch"),
-);
-assert.equal(joined.find((r) => r.base_model === "model-0")?.canonical_value, 0.25);
 const native = crosswalkBenchmarkSources(
   [{ ...observation("ALE model", 1400), benchmark_key: "ale_bench" }],
   [{ ...observation("ALE model", 1600), benchmark_key: "ale_bench" }],
@@ -522,32 +551,4 @@ assert.deepEqual(
   fuseAleBenchRows(aleCache!.rows),
   [],
   "one source without calibration cannot manufacture a fused score",
-);
-
-const differentEffort = mergeWeirdMlRows(
-  creator,
-  epoch.map((row) => ({ ...row, reasoning_effort: "high" })),
-);
-assert.equal(
-  differentEffort.filter((row) => row.metadata.weirdml_epoch_crosswalk === "identity").length,
-  0,
-  "same model at a different effort is not a pair",
-);
-const sameNumbers = mergeWeirdMlRows(
-  creator,
-  epoch.map((row, i) => ({
-    ...row,
-    model_version: `unrelated-${i}`,
-    name: `Unrelated ${i}`,
-    aliases: [`unrelated-${i}`],
-    base_model: `Unrelated ${i}`,
-    accuracy: creator[i]!.canonical_value,
-    cost_per_run_usd: 2,
-    code_len_p50: 100,
-  })),
-);
-assert.equal(
-  sameNumbers.filter((row) => row.metadata.weirdml_epoch_crosswalk === "identity").length,
-  0,
-  "equal measured values cannot establish model identity",
 );
