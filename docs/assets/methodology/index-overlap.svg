@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 238" role="img" aria-labelledby="title desc">
+<title id="title">Overlap deductions leave each index its remaining represented breadth</title>
+<desc id="desc">Each cell is one unit of an index's represented breadth; shading shows the units the index keeps. Constituent A is also observed directly, so it removes one unit from every index containing it. Constituent B is shared by both indexes without a direct observation, so each keeps half a unit. Constituent C and the unmapped constituents keep their full units.</desc>
+<style>
+text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:15px;fill:#202724}
+.num{font-family:"SFMono-Regular","SF Mono",Menlo,Consolas,monospace;font-size:14px}
+.small{font-size:12.5px}.big{font-size:18px}.strong{font-weight:600}
+.muted{fill-opacity:.62}.faint{opacity:.4}.half{opacity:.5}
+.grid{fill:none;stroke:#202724;stroke-opacity:.09}
+.guide{fill:none;stroke:#202724;stroke-opacity:.22}
+.axis{fill:none;stroke:#202724;stroke-opacity:.34}
+.ink{fill:#202724}.ink-line{fill:none;stroke:#202724}.ink-wash{fill:#202724;fill-opacity:.08}
+.ring{stroke:#f2f4f2;stroke-width:2;paint-order:stroke}.gap{stroke:#f2f4f2;stroke-width:2}
+.violet{fill:#6b47e0}.violet-line{fill:none;stroke:#6b47e0}.violet-wash{fill:#6b47e0;fill-opacity:.14}
+.rose{fill:#c93f78}.rose-line{fill:none;stroke:#c93f78}.rose-wash{fill:#c93f78;fill-opacity:.14}
+.amber{fill:#a8740c}.amber-line{fill:none;stroke:#a8740c}.amber-wash{fill:#a8740c;fill-opacity:.16}
+.h0{stop-color:#3557e6}.h1{stop-color:#6b47e0}.h2{stop-color:#d9467f}
+.land0{stop-color:#6b47e0;stop-opacity:.12}.land1{stop-color:#6b47e0;stop-opacity:.01}
+.halo{opacity:0}
+@media (prefers-color-scheme:dark){
+text{fill:#f2f3ed}.muted{fill-opacity:.58}
+.grid{stroke:#f2f3ed;stroke-opacity:.08}.guide{stroke:#f2f3ed;stroke-opacity:.2}.axis{stroke:#f2f3ed;stroke-opacity:.3}
+.ink{fill:#f2f3ed}.ink-line{stroke:#f2f3ed}.ink-wash{fill:#f2f3ed;fill-opacity:.1}
+.ring{stroke:#0b1016}.gap{stroke:#0b1016}
+.violet{fill:#8f6bff}.violet-line{stroke:#8f6bff}.violet-wash{fill:#8f6bff;fill-opacity:.22}
+.rose{fill:#e06296}.rose-line{stroke:#e06296}.rose-wash{fill:#e06296;fill-opacity:.2}
+.amber{fill:#b98b24}.amber-line{stroke:#b98b24}.amber-wash{fill:#b98b24;fill-opacity:.22}
+.h0{stop-color:#4a72ff}.h1{stop-color:#8f6bff}.h2{stop-color:#ff92bd}
+.land0{stop-color:#6f8cff;stop-opacity:.16}.land1{stop-color:#6f8cff;stop-opacity:.02}
+.halo{opacity:.55}
+}
+</style>
+<defs><filter id="glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="3"/></filter><marker id="tip-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="ink" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-violet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="violet" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="rose" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="amber" d="M0 0L10 5L0 10Z"/></marker></defs>
+<text x="40" y="57">Observed directly</text><path class="guide" d="M210 64L210 212" stroke-dasharray="3 4"/><g><circle class="ink halo" cx="210" cy="52" r="9" filter="url(#glow)"/><circle class="ink ring" cx="210" cy="52" r="7"/></g>
+<text class="small muted" x="290" y="100" text-anchor="middle">Shared</text>
+<path class="axis" d="M420 104v-6H652v6"/><text class="small muted" x="536" y="88" text-anchor="middle">Unmapped</text>
+<text x="40" y="131">Index 1</text><rect class="guide" x="190" y="111" width="40" height="30" stroke-dasharray="3 3"/><text class="faint" x="210" y="131" text-anchor="middle">A</text><rect class="violet-wash" x="270" y="111" width="20" height="30"/><rect class="axis" x="270" y="111" width="40" height="30"/><text x="290" y="131" text-anchor="middle">B</text><rect class="violet-wash" x="350" y="111" width="40" height="30"/><rect class="axis" x="350" y="111" width="40" height="30"/><text x="370" y="131" text-anchor="middle">C</text><rect class="violet-wash" x="420" y="111" width="40" height="30"/><rect class="axis" x="420" y="111" width="40" height="30"/><rect class="violet-wash" x="468" y="111" width="40" height="30"/><rect class="axis" x="468" y="111" width="40" height="30"/><rect class="violet-wash" x="516" y="111" width="40" height="30"/><rect class="axis" x="516" y="111" width="40" height="30"/><rect class="violet-wash" x="564" y="111" width="40" height="30"/><rect class="axis" x="564" y="111" width="40" height="30"/><rect class="violet-wash" x="612" y="111" width="40" height="30"/><rect class="axis" x="612" y="111" width="40" height="30"/>
+<text x="40" y="195">Index 2</text><rect class="guide" x="190" y="175" width="40" height="30" stroke-dasharray="3 3"/><text class="faint" x="210" y="195" text-anchor="middle">A</text><rect class="violet-wash" x="270" y="175" width="20" height="30"/><rect class="axis" x="270" y="175" width="40" height="30"/><text x="290" y="195" text-anchor="middle">B</text><rect class="violet-wash" x="420" y="175" width="40" height="30"/><rect class="axis" x="420" y="175" width="40" height="30"/><rect class="violet-wash" x="468" y="175" width="40" height="30"/><rect class="axis" x="468" y="175" width="40" height="30"/><rect class="violet-wash" x="516" y="175" width="40" height="30"/><rect class="axis" x="516" y="175" width="40" height="30"/><rect class="violet-wash" x="564" y="175" width="40" height="30"/><rect class="axis" x="564" y="175" width="40" height="30"/>
+</svg>

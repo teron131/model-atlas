@@ -218,6 +218,8 @@ $$
 
 Both terms are clipped to $[0,1]$. The final ratio uses the median log difference across all benchmarks with paired measurements. If several efforts of the same model can fill the gap, the nearest effort is preferred, with validation quality breaking ties.
 
+![Illustrative cost per task at medium and high effort; the median ratio across benchmarks with paired measurements fills the missing high-effort cost.](../assets/methodology/resource-effort-ratio.svg)
+
 If target quality is also imputed, its evidence factor multiplies the resource evidence factor: $f^{\text{quality}}f^r$. Imputed values remain outside reference peers, reference score limits, stored observations, and direct-evidence counts.
 
 ## Resource Imputation from Broader Evidence

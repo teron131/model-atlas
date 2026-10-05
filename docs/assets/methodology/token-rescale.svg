@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 280" role="img" aria-labelledby="title desc">
+<title id="title">linearScale maps L to 0 and U to 100 once a token-adjusted score passes 100</title>
+<desc id="desc">Two rulers on the same scale. Above, token-adjusted scores: two with a neutral multiplier, M equals 1, and one whose multiplier above 1 lifts it past 100 to the upper bound U. Below, the rescaled scores: 100 times linearScale maps the lower bound L, here 0, to 0 and U to 100. The shaded range narrows and every score moves, including those with a neutral multiplier.</desc>
+<style>
+text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:15px;fill:#202724}
+.num{font-family:"SFMono-Regular","SF Mono",Menlo,Consolas,monospace;font-size:14px}
+.small{font-size:12.5px}.big{font-size:18px}.strong{font-weight:600}
+.muted{fill-opacity:.62}.faint{opacity:.4}.half{opacity:.5}
+.grid{fill:none;stroke:#202724;stroke-opacity:.09}
+.guide{fill:none;stroke:#202724;stroke-opacity:.22}
+.axis{fill:none;stroke:#202724;stroke-opacity:.34}
+.ink{fill:#202724}.ink-line{fill:none;stroke:#202724}.ink-wash{fill:#202724;fill-opacity:.08}
+.ring{stroke:#f2f4f2;stroke-width:2;paint-order:stroke}.gap{stroke:#f2f4f2;stroke-width:2}
+.violet{fill:#6b47e0}.violet-line{fill:none;stroke:#6b47e0}.violet-wash{fill:#6b47e0;fill-opacity:.14}
+.rose{fill:#c93f78}.rose-line{fill:none;stroke:#c93f78}.rose-wash{fill:#c93f78;fill-opacity:.14}
+.amber{fill:#a8740c}.amber-line{fill:none;stroke:#a8740c}.amber-wash{fill:#a8740c;fill-opacity:.16}
+.h0{stop-color:#3557e6}.h1{stop-color:#6b47e0}.h2{stop-color:#d9467f}
+.land0{stop-color:#6b47e0;stop-opacity:.12}.land1{stop-color:#6b47e0;stop-opacity:.01}
+.halo{opacity:0}
+@media (prefers-color-scheme:dark){
+text{fill:#f2f3ed}.muted{fill-opacity:.58}
+.grid{stroke:#f2f3ed;stroke-opacity:.08}.guide{stroke:#f2f3ed;stroke-opacity:.2}.axis{stroke:#f2f3ed;stroke-opacity:.3}
+.ink{fill:#f2f3ed}.ink-line{stroke:#f2f3ed}.ink-wash{fill:#f2f3ed;fill-opacity:.1}
+.ring{stroke:#0b1016}.gap{stroke:#0b1016}
+.violet{fill:#8f6bff}.violet-line{stroke:#8f6bff}.violet-wash{fill:#8f6bff;fill-opacity:.22}
+.rose{fill:#e06296}.rose-line{stroke:#e06296}.rose-wash{fill:#e06296;fill-opacity:.2}
+.amber{fill:#b98b24}.amber-line{stroke:#b98b24}.amber-wash{fill:#b98b24;fill-opacity:.22}
+.h0{stop-color:#4a72ff}.h1{stop-color:#8f6bff}.h2{stop-color:#ff92bd}
+.land0{stop-color:#6f8cff;stop-opacity:.16}.land1{stop-color:#6f8cff;stop-opacity:.02}
+.halo{opacity:.55}
+}
+</style>
+<defs><filter id="glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="3"/></filter><marker id="tip-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="ink" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-violet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="violet" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="rose" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="amber" d="M0 0L10 5L0 10Z"/></marker></defs>
+<text x="40" y="117">Token-adjusted score</text><text x="40" y="237">Rescaled score</text><text class="num small muted" x="40" y="177">100 × linearScale</text>
+<path class="ink-wash" d="M240 112H677L640 232H240Z"/>
+<path class="axis" d="M240 112L640 112"/><path class="guide" d="M640 112L677 112" stroke-dasharray="4 3"/><path class="axis" d="M640 112L640 118"/>
+<text class="num muted" x="240" y="136" text-anchor="middle">L</text><text class="num muted" x="640" y="136" text-anchor="middle">100</text><text class="num muted" x="687" y="136">U</text>
+<path class="axis" d="M240 232L640 232"/><text class="num muted" x="240" y="258" text-anchor="middle">0</text><text class="num muted" x="640" y="258" text-anchor="middle">100</text>
+<path class="ink-line" d="M380 112L368.1 232" stroke-opacity=".35" stroke-width="1.25"/><path class="ink-line" d="M520 112L496.3 232" stroke-opacity=".35" stroke-width="1.25"/><path class="ink-line" d="M677 112L640 232" stroke-opacity=".35" stroke-width="1.25"/>
+<g><circle class="ink halo" cx="380" cy="112" r="8" filter="url(#glow)"/><circle class="ink ring" cx="380" cy="112" r="6"/></g><text class="num small muted" x="380" y="90" text-anchor="middle">M = 1</text><g><circle class="ink halo" cx="520" cy="112" r="8" filter="url(#glow)"/><circle class="ink ring" cx="520" cy="112" r="6"/></g><text class="num small muted" x="520" y="90" text-anchor="middle">M = 1</text><path class="ink ring" d="M620 106L626 112L620 118L614 112Z"/><path class="ink-line" d="M629 112L667 112" stroke-width="1.5" stroke-opacity=".6" marker-end="url(#tip-ink)"/><g><circle class="ink halo" cx="677" cy="112" r="8" filter="url(#glow)"/><circle class="ink ring" cx="677" cy="112" r="6"/></g><text class="num small muted" x="677" y="90" text-anchor="middle">M > 1</text>
+<g><circle class="violet halo" cx="368.1" cy="232" r="8" filter="url(#glow)"/><circle class="violet ring" cx="368.1" cy="232" r="6"/></g><g><circle class="violet halo" cx="496.3" cy="232" r="8" filter="url(#glow)"/><circle class="violet ring" cx="496.3" cy="232" r="6"/></g><g><circle class="violet halo" cx="640" cy="232" r="8" filter="url(#glow)"/><circle class="violet ring" cx="640" cy="232" r="6"/></g>
+</svg>
