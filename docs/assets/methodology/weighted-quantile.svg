@@ -1,40 +1,39 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 88 760 172" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 210" role="img" aria-labelledby="title desc">
 <title id="title">weightedQuantile(): percentile → value</title>
-<desc id="desc">The same ten peers supply target results. The 45% marker selects 0.58. The exact 60% boundary between 0.58 and 0.90 returns their mean, 0.74.</desc>
+<desc id="desc">The same ten peers supply target results, laid along cumulative weight from 0 to 100 percent: 0.12 covers the first 10 percent, 0.30 the next 20, 0.58 the next 30, and 0.90 the last 40. The 45 percent marker falls inside the 0.58 group and selects 0.58. A rank exactly on the 60 percent boundary between 0.58 and 0.90 returns their mean, 0.74.</desc>
 <style>
-text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; fill:#182421; }
-.muted { fill:#63706e; } .blue { color:#146cba; } .teal { color:#087f6b; } .orange { color:#a64d0c; } .neutral { color:#63706e; } .ink { fill:currentColor; }
-@media (prefers-color-scheme:dark) {
-text { fill:#ffffff; } .muted { fill:#a6b2ae; } .neutral { color:#a6b2ae; }
-.blue { color:#85bfff; } .teal { color:#62d6b1; } .orange { color:#ffbc7d; }
+text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:15px;fill:#202724}
+.num{font-family:"SFMono-Regular","SF Mono",Menlo,Consolas,monospace;font-size:14px}
+.small{font-size:12.5px}.big{font-size:18px}.strong{font-weight:600}
+.muted{fill-opacity:.62}.faint{opacity:.4}.half{opacity:.5}
+.grid{fill:none;stroke:#202724;stroke-opacity:.09}
+.guide{fill:none;stroke:#202724;stroke-opacity:.22}
+.axis{fill:none;stroke:#202724;stroke-opacity:.34}
+.ink{fill:#202724}.ink-line{fill:none;stroke:#202724}.ink-wash{fill:#202724;fill-opacity:.08}
+.ring{stroke:#f2f4f2;stroke-width:2;paint-order:stroke}.gap{stroke:#f2f4f2;stroke-width:2}
+.violet{fill:#6b47e0}.violet-line{fill:none;stroke:#6b47e0}.violet-wash{fill:#6b47e0;fill-opacity:.14}
+.rose{fill:#c93f78}.rose-line{fill:none;stroke:#c93f78}.rose-wash{fill:#c93f78;fill-opacity:.14}
+.amber{fill:#a8740c}.amber-line{fill:none;stroke:#a8740c}.amber-wash{fill:#a8740c;fill-opacity:.16}
+.h0{stop-color:#3557e6}.h1{stop-color:#6b47e0}.h2{stop-color:#d9467f}
+.land0{stop-color:#6b47e0;stop-opacity:.12}.land1{stop-color:#6b47e0;stop-opacity:.01}
+.halo{opacity:0}
+@media (prefers-color-scheme:dark){
+text{fill:#f2f3ed}.muted{fill-opacity:.58}
+.grid{stroke:#f2f3ed;stroke-opacity:.08}.guide{stroke:#f2f3ed;stroke-opacity:.2}.axis{stroke:#f2f3ed;stroke-opacity:.3}
+.ink{fill:#f2f3ed}.ink-line{stroke:#f2f3ed}.ink-wash{fill:#f2f3ed;fill-opacity:.1}
+.ring{stroke:#0b1016}.gap{stroke:#0b1016}
+.violet{fill:#8f6bff}.violet-line{stroke:#8f6bff}.violet-wash{fill:#8f6bff;fill-opacity:.22}
+.rose{fill:#e06296}.rose-line{stroke:#e06296}.rose-wash{fill:#e06296;fill-opacity:.2}
+.amber{fill:#b98b24}.amber-line{stroke:#b98b24}.amber-wash{fill:#b98b24;fill-opacity:.22}
+.h0{stop-color:#4a72ff}.h1{stop-color:#8f6bff}.h2{stop-color:#ff92bd}
+.land0{stop-color:#6f8cff;stop-opacity:.16}.land1{stop-color:#6f8cff;stop-opacity:.02}
+.halo{opacity:.55}
 }
 </style>
-
-
-<text x="348" y="109" text-anchor="middle" font-size="16" font-weight="600" class="orange ink">45%</text>
-<path d="M348 115 V127 M343 121 L348 128 L353 121" class="orange" fill="none" stroke="currentColor" stroke-width="2"/>
-<g class="blue"><rect x="60" y="132" width="62" height="44" rx="3" fill="currentColor" opacity="0.1"/><text x="91" y="161" text-anchor="middle" font-size="18" font-weight="400">0.12</text></g>
-<g class="blue"><rect x="124" y="132" width="62" height="44" rx="3" fill="currentColor" opacity="0.1"/><text x="155" y="161" text-anchor="middle" font-size="18" font-weight="400">0.30</text></g>
-<g class="blue"><rect x="188" y="132" width="62" height="44" rx="3" fill="currentColor" opacity="0.1"/><text x="219" y="161" text-anchor="middle" font-size="18" font-weight="400">0.30</text></g>
-<g class="blue"><rect x="252" y="132" width="62" height="44" rx="3" fill="currentColor" opacity="0.1"/><text x="283" y="161" text-anchor="middle" font-size="18" font-weight="400">0.58</text></g>
-<g class="blue"><rect x="316" y="132" width="62" height="44" rx="3" fill="currentColor" opacity="0.3"/><text x="347" y="161" text-anchor="middle" font-size="18" font-weight="600">0.58</text></g>
-<g class="blue"><rect x="380" y="132" width="62" height="44" rx="3" fill="currentColor" opacity="0.1"/><text x="411" y="161" text-anchor="middle" font-size="18" font-weight="400">0.58</text></g>
-<g class="blue"><rect x="444" y="132" width="62" height="44" rx="3" fill="currentColor" opacity="0.1"/><text x="475" y="161" text-anchor="middle" font-size="18" font-weight="400">0.90</text></g>
-<g class="blue"><rect x="508" y="132" width="62" height="44" rx="3" fill="currentColor" opacity="0.1"/><text x="539" y="161" text-anchor="middle" font-size="18" font-weight="400">0.90</text></g>
-<g class="blue"><rect x="572" y="132" width="62" height="44" rx="3" fill="currentColor" opacity="0.1"/><text x="603" y="161" text-anchor="middle" font-size="18" font-weight="400">0.90</text></g>
-<g class="blue"><rect x="636" y="132" width="62" height="44" rx="3" fill="currentColor" opacity="0.1"/><text x="667" y="161" text-anchor="middle" font-size="18" font-weight="400">0.90</text></g>
-<text x="60" y="198" text-anchor="middle" font-size="11" class="muted">0%</text>
-<text x="124" y="198" text-anchor="middle" font-size="11" class="muted">10%</text>
-<text x="188" y="198" text-anchor="middle" font-size="11" class="muted">20%</text>
-<text x="252" y="198" text-anchor="middle" font-size="11" class="muted">30%</text>
-<text x="316" y="198" text-anchor="middle" font-size="11" class="muted">40%</text>
-<text x="380" y="198" text-anchor="middle" font-size="11" class="muted">50%</text>
-<text x="444" y="198" text-anchor="middle" font-size="11" class="muted">60%</text>
-<text x="508" y="198" text-anchor="middle" font-size="11" class="muted">70%</text>
-<text x="572" y="198" text-anchor="middle" font-size="11" class="muted">80%</text>
-<text x="636" y="198" text-anchor="middle" font-size="11" class="muted">90%</text>
-<text x="700" y="198" text-anchor="middle" font-size="11" class="muted">100%</text>
-<text x="40" y="232" font-size="19" font-weight="600" class="blue ink">weightedQuantile(0.45) = 0.58</text>
-
-
+<defs><filter id="glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="3"/></filter><marker id="tip-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="ink" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-violet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="violet" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="rose" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="amber" d="M0 0L10 5L0 10Z"/></marker></defs>
+<path class="violet-line" d="M360 62L360 86" stroke-width="1.5" marker-end="url(#tip-violet)"/><text class="num strong" x="360" y="54" text-anchor="middle">45%</text>
+<path class="ink-line" d="M450 52L450 134" stroke-width="1.5" stroke-dasharray="3 3"/><text class="num" x="460" y="66">Exactly 60% → 0.74</text>
+<rect class="ink-wash" x="90" y="92" width="58" height="40" rx="3"/><text class="num big" x="119" y="117" text-anchor="middle">0.12</text><rect class="ink-wash" x="152" y="92" width="116" height="40" rx="3"/><path class="grid" d="M210 98L210 126"/><text class="num big" x="210" y="117" text-anchor="middle">0.30</text><rect class="violet-wash" x="272" y="92" width="176" height="40" rx="3"/><path class="grid" d="M330 98L330 126"/><path class="grid" d="M390 98L390 126"/><text class="num big strong" x="360" y="117" text-anchor="middle">0.58</text><rect class="ink-wash" x="452" y="92" width="238" height="40" rx="3"/><path class="grid" d="M510 98L510 126"/><path class="grid" d="M570 98L570 126"/><path class="grid" d="M630 98L630 126"/><text class="num big" x="571" y="117" text-anchor="middle">0.90</text>
+<path class="axis" d="M90 132L90 138"/><text class="num muted" x="90" y="156" text-anchor="middle">0%</text><path class="axis" d="M150 132L150 138"/><text class="num muted" x="150" y="156" text-anchor="middle">10%</text><path class="axis" d="M270 132L270 138"/><text class="num muted" x="270" y="156" text-anchor="middle">30%</text><path class="axis" d="M450 132L450 138"/><text class="num muted" x="450" y="156" text-anchor="middle">60%</text><path class="axis" d="M690 132L690 138"/><text class="num muted" x="690" y="156" text-anchor="middle">100%</text>
+<text class="num strong" x="90" y="198">weightedQuantile(0.45) = 0.58</text>
 </svg>

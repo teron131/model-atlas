@@ -1,102 +1,44 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 48 760 450" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 440" role="img" aria-labelledby="title desc">
 <title id="title">How anchors affect readability</title>
-<desc id="desc">Selected retained Intelligence scores compare saved anchors of one hundred and one hundred fifty with illustrative anchors of twenty and eighty. Four highlighted model pairs have unequal upward arrows: GPT-4, Claude Opus 4.5, GPT-6 Astra and Gemma 7B. Other scores are faded. The sixty-point anchor gap becomes fifty points, so all score gaps shrink by the same proportion. Release dates, model order and underlying evidence remain unchanged.</desc>
+<desc id="desc">Selected retained Intelligence scores under the saved anchors of 100 and 150 and under illustrative anchors of 20 and 80. Four highlighted models move up by different amounts: GPT-4 from 20 to 100, Gemma 7B from minus 14.5 to 71.2, Claude Opus 4.5 from 80 to 150, and GPT-6 Astra from 122.2 to 185.2. The 60-point anchor gap becomes 50 points, so every score gap shrinks by the same proportion. Other scores are faded. Curves trace selected record highs; the default view hides scores below 70. Release dates, model order and underlying evidence stay unchanged.</desc>
 <style>
-text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; }
-@media (prefers-color-scheme:dark) {
-text { fill:#ffffff; }
-[fill="#63706e"] { fill:#a6b2ae; } [stroke="#63706e"] { stroke:#a6b2ae; }
-[fill="#b5bfbc"] { fill:#3c4846; } [stroke="#b5bfbc"] { stroke:#3c4846; }
-[fill="#146cba"] { fill:#85bfff; } [stroke="#146cba"] { stroke:#85bfff; }
-[fill="#a64d0c"] { fill:#ffbc7d; } [stroke="#a64d0c"] { stroke:#ffbc7d; }
+text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:15px;fill:#202724}
+.num{font-family:"SFMono-Regular","SF Mono",Menlo,Consolas,monospace;font-size:14px}
+.small{font-size:12.5px}.big{font-size:18px}.strong{font-weight:600}
+.muted{fill-opacity:.62}.faint{opacity:.4}.half{opacity:.5}
+.grid{fill:none;stroke:#202724;stroke-opacity:.09}
+.guide{fill:none;stroke:#202724;stroke-opacity:.22}
+.axis{fill:none;stroke:#202724;stroke-opacity:.34}
+.ink{fill:#202724}.ink-line{fill:none;stroke:#202724}.ink-wash{fill:#202724;fill-opacity:.08}
+.ring{stroke:#f2f4f2;stroke-width:2;paint-order:stroke}.gap{stroke:#f2f4f2;stroke-width:2}
+.violet{fill:#6b47e0}.violet-line{fill:none;stroke:#6b47e0}.violet-wash{fill:#6b47e0;fill-opacity:.14}
+.rose{fill:#c93f78}.rose-line{fill:none;stroke:#c93f78}.rose-wash{fill:#c93f78;fill-opacity:.14}
+.amber{fill:#a8740c}.amber-line{fill:none;stroke:#a8740c}.amber-wash{fill:#a8740c;fill-opacity:.16}
+.h0{stop-color:#3557e6}.h1{stop-color:#6b47e0}.h2{stop-color:#d9467f}
+.land0{stop-color:#6b47e0;stop-opacity:.12}.land1{stop-color:#6b47e0;stop-opacity:.01}
+.halo{opacity:0}
+@media (prefers-color-scheme:dark){
+text{fill:#f2f3ed}.muted{fill-opacity:.58}
+.grid{stroke:#f2f3ed;stroke-opacity:.08}.guide{stroke:#f2f3ed;stroke-opacity:.2}.axis{stroke:#f2f3ed;stroke-opacity:.3}
+.ink{fill:#f2f3ed}.ink-line{stroke:#f2f3ed}.ink-wash{fill:#f2f3ed;fill-opacity:.1}
+.ring{stroke:#0b1016}.gap{stroke:#0b1016}
+.violet{fill:#8f6bff}.violet-line{stroke:#8f6bff}.violet-wash{fill:#8f6bff;fill-opacity:.22}
+.rose{fill:#e06296}.rose-line{stroke:#e06296}.rose-wash{fill:#e06296;fill-opacity:.2}
+.amber{fill:#b98b24}.amber-line{stroke:#b98b24}.amber-wash{fill:#b98b24;fill-opacity:.22}
+.h0{stop-color:#4a72ff}.h1{stop-color:#8f6bff}.h2{stop-color:#ff92bd}
+.land0{stop-color:#6f8cff;stop-opacity:.16}.land1{stop-color:#6f8cff;stop-opacity:.02}
+.halo{opacity:.55}
 }
 </style>
-<circle cx="54" cy="65" r="4" fill="#146cba"/>
-<text x="78.0" y="70.0" font-size="15" fill="#146cba" text-anchor="start" font-weight="400">Saved anchors: 100 / 150</text>
-<circle cx="400" cy="65" r="4" fill="#63706e"/>
-<text x="424.0" y="70.0" font-size="15" fill="#63706e" text-anchor="start" font-weight="400">Illustrative anchors: 20 / 80</text>
-<path d="M88 381.7 H700" fill="none" stroke="#b5bfbc" stroke-width="1.5" stroke-dasharray="3 5"/>
-<text x="72.0" y="386.7" font-size="14" fill="#63706e" text-anchor="end" font-weight="400">0</text>
-<path d="M88 248.3 H700" fill="none" stroke="#b5bfbc" stroke-width="1.5" stroke-dasharray="3 5"/>
-<text x="72.0" y="253.3" font-size="14" fill="#63706e" text-anchor="end" font-weight="400">100</text>
-<path d="M88 181.7 H700" fill="none" stroke="#b5bfbc" stroke-width="1.5" stroke-dasharray="3 5"/>
-<text x="72.0" y="186.7" font-size="14" fill="#63706e" text-anchor="end" font-weight="400">150</text>
-<path d="M88 115.0 H700" fill="none" stroke="#b5bfbc" stroke-width="1.5" stroke-dasharray="3 5"/>
-<text x="72.0" y="120.0" font-size="14" fill="#63706e" text-anchor="end" font-weight="400">200</text>
-<path d="M88 110 V435 H710" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<path d="M706 431 L710 435 L706 439" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<text x="40.0" y="104.0" font-size="14" fill="#63706e" text-anchor="start" font-weight="400">Index</text>
-<text x="700.0" y="488.0" font-size="14" fill="#63706e" text-anchor="end" font-weight="400">Release date</text>
-<path d="M88.0 435 V442" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<text x="88.0" y="464.0" font-size="14" fill="#63706e" text-anchor="middle" font-weight="400">2023</text>
-<path d="M240.9 435 V442" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<text x="240.9" y="464.0" font-size="14" fill="#63706e" text-anchor="middle" font-weight="400">2024</text>
-<path d="M394.2 435 V442" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<text x="394.2" y="464.0" font-size="14" fill="#63706e" text-anchor="middle" font-weight="400">2025</text>
-<path d="M547.1 435 V442" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<text x="547.1" y="464.0" font-size="14" fill="#63706e" text-anchor="middle" font-weight="400">2026</text>
-<path d="M88 288.3 H700" fill="none" stroke="#a64d0c" stroke-width="1.5" stroke-dasharray="2 5"/>
-<text x="695.0" y="280.3" font-size="13" fill="#a64d0c" text-anchor="end" font-weight="400">Visibility cutoff: 70</text>
-<path d="M118.2 355.0 C162.4 354.4 206.7 354.3 250.9 353.1 C266.2 352.7 281.4 348.6 296.6 344.7 C313.6 340.2 330.7 330.4 347.7 322.4 C361.1 316.0 374.5 304.2 387.9 301.6 C401.6 298.9 415.3 298.8 429.0 296.7 C447.8 293.8 466.7 289.3 485.5 284.4 C499.9 280.7 514.3 274.2 528.7 270.5 C541.7 267.2 554.6 266.2 567.6 262.3 C595.1 254.0 622.6 233.2 650.2 218.7" fill="none" stroke="#63706e" stroke-width="1.5" stroke-dasharray="5 4" opacity="0.65"/>
-<path d="M118.2 248.3 C162.4 247.8 206.7 247.7 250.9 246.8 C266.2 246.4 281.4 243.0 296.6 239.7 C313.6 236.0 330.7 227.9 347.7 221.2 C361.1 215.9 374.5 206.0 387.9 203.8 C401.6 201.6 415.3 201.5 429.0 199.7 C447.8 197.3 466.7 193.6 485.5 189.5 C499.9 186.4 514.3 181.0 528.7 178.0 C541.7 175.2 554.6 174.4 567.6 171.1 C595.1 164.2 622.6 146.9 650.2 134.7" fill="none" stroke="#146cba" stroke-width="1.5" stroke-dasharray="5 4" opacity="0.65"/>
-<g opacity="0.38">
-<circle cx="264.4" cy="368.6" r="3.5" fill="#63706e"/>
-<circle cx="264.4" cy="259.6" r="3.5" fill="#146cba"/>
-<circle cx="314.2" cy="375.6" r="3.5" fill="#63706e"/>
-<circle cx="314.2" cy="265.5" r="3.5" fill="#146cba"/>
-<circle cx="350.6" cy="343.8" r="3.5" fill="#63706e"/>
-<circle cx="350.6" cy="239.0" r="3.5" fill="#146cba"/>
-<circle cx="385.4" cy="326.1" r="3.5" fill="#63706e"/>
-<circle cx="385.4" cy="224.2" r="3.5" fill="#146cba"/>
-<circle cx="413.9" cy="358.7" r="3.5" fill="#63706e"/>
-<circle cx="413.9" cy="251.5" r="3.5" fill="#146cba"/>
-<circle cx="437.4" cy="343.7" r="3.5" fill="#63706e"/>
-<circle cx="437.4" cy="238.9" r="3.5" fill="#146cba"/>
-<circle cx="455.8" cy="316.0" r="3.5" fill="#63706e"/>
-<circle cx="455.8" cy="215.9" r="3.5" fill="#146cba"/>
-<circle cx="478.4" cy="313.5" r="3.5" fill="#63706e"/>
-<circle cx="478.4" cy="213.7" r="3.5" fill="#146cba"/>
-<circle cx="493.9" cy="323.4" r="3.5" fill="#63706e"/>
-<circle cx="493.9" cy="222.0" r="3.5" fill="#146cba"/>
-<circle cx="509.4" cy="339.4" r="3.5" fill="#63706e"/>
-<circle cx="509.4" cy="235.3" r="3.5" fill="#146cba"/>
-<circle cx="529.1" cy="291.5" r="3.5" fill="#63706e"/>
-<circle cx="529.1" cy="195.5" r="3.5" fill="#146cba"/>
-<circle cx="546.7" cy="308.7" r="3.5" fill="#63706e"/>
-<circle cx="546.7" cy="209.7" r="3.5" fill="#146cba"/>
-<circle cx="570.1" cy="295.6" r="3.5" fill="#63706e"/>
-<circle cx="570.1" cy="198.8" r="3.5" fill="#146cba"/>
-<circle cx="592.8" cy="271.1" r="3.5" fill="#63706e"/>
-<circle cx="592.8" cy="178.4" r="3.5" fill="#146cba"/>
-<circle cx="614.1" cy="340.7" r="3.5" fill="#63706e"/>
-<circle cx="614.1" cy="236.4" r="3.5" fill="#146cba"/>
-<circle cx="637.2" cy="342.0" r="3.5" fill="#63706e"/>
-<circle cx="637.2" cy="237.5" r="3.5" fill="#146cba"/>
-<circle cx="648.5" cy="319.2" r="3.5" fill="#63706e"/>
-<circle cx="648.5" cy="218.6" r="3.5" fill="#146cba"/>
-</g>
-<path d="M118.2 345.0 V258.3 m-4 6 4 -6 4 6" fill="none" stroke="#a64d0c" stroke-width="2" stroke-dasharray="4 3"/>
-<path d="M531.2 265.0 V191.7 m-4 6 4 -6 4 6" fill="none" stroke="#a64d0c" stroke-width="2" stroke-dasharray="4 3"/>
-<path d="M650.2 208.7 V144.7 m-4 6 4 -6 4 6" fill="none" stroke="#a64d0c" stroke-width="2" stroke-dasharray="4 3"/>
-<path d="M262.3 391.1 V296.7 m-4 6 4 -6 4 6" fill="none" stroke="#a64d0c" stroke-width="2" stroke-dasharray="4 3"/>
-<circle cx="118.2" cy="355.0" r="6" fill="#63706e" stroke="#63706e" stroke-width="1.5"/>
-<circle cx="118.2" cy="248.3" r="6" fill="#146cba" stroke="#146cba" stroke-width="1.5"/>
-<circle cx="531.2" cy="275.0" r="6" fill="#63706e" stroke="#63706e" stroke-width="1.5"/>
-<circle cx="531.2" cy="181.7" r="6" fill="#146cba" stroke="#146cba" stroke-width="1.5"/>
-<circle cx="650.2" cy="218.7" r="6" fill="#63706e" stroke="#63706e" stroke-width="1.5"/>
-<circle cx="650.2" cy="134.7" r="6" fill="#146cba" stroke="#146cba" stroke-width="1.5"/>
-<text x="130.2" y="210.3" font-size="16" fill="#146cba" text-anchor="start" font-weight="600">GPT-4 · Mar 2023</text>
-<text x="519.2" y="142.7" font-size="16" fill="#146cba" text-anchor="end" font-weight="600">Claude Opus 4.5</text>
-<text x="680.2" y="107.7" font-size="16" fill="#146cba" text-anchor="end" font-weight="600">GPT-6 Astra</text>
-<circle cx="262.3" cy="401.1" r="6" fill="#63706e"/>
-<circle cx="262.3" cy="286.7" r="6" fill="#146cba"/>
-<text x="274.3" y="262.7" font-size="15" fill="#146cba" font-weight="600">Gemma 7B</text>
-<text x="130.2" y="243.3" font-size="15" fill="#146cba" font-weight="600">100</text>
-<text x="130.2" y="374" font-size="15" fill="#63706e" font-weight="600">20</text>
-<text x="543.2" y="197.7" font-size="15" fill="#146cba" font-weight="600">150</text>
-<text x="543.2" y="307" font-size="15" fill="#63706e" font-weight="600">80</text>
-<text x="662.2" y="139.7" font-size="15" fill="#146cba" font-weight="600">185.2</text>
-<text x="662.2" y="223.7" font-size="15" fill="#63706e" font-weight="600">122.2</text>
-<text x="274.3" y="307.7" font-size="15" fill="#146cba" font-weight="600">71.2</text>
-<text x="274.3" y="406.1" font-size="15" fill="#63706e" font-weight="600">−14.5</text>
+<defs><filter id="glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="3"/></filter><marker id="tip-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="ink" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-violet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="violet" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="rose" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="amber" d="M0 0L10 5L0 10Z"/></marker><linearGradient id="light" gradientUnits="userSpaceOnUse" x1="100" y1="0" x2="700" y2="0"><stop class="h0" offset="0"/><stop class="h1" offset=".58"/><stop class="h2" offset="1"/></linearGradient><linearGradient id="land" gradientUnits="userSpaceOnUse" x1="0" y1="90" x2="0" y2="400"><stop class="land0" offset="0"/><stop class="land1" offset="1"/></linearGradient></defs>
+<g><circle class="ink halo" cx="46" cy="30" r="7" filter="url(#glow)"/><circle class="ink ring" cx="46" cy="30" r="5"/></g><text class="muted" x="60" y="35">Saved anchors: 100 / 150</text><circle class="ink" cx="306" cy="30" r="5" opacity=".35"/><text class="muted" x="320" y="35">Illustrative anchors: 20 / 80</text>
+<text class="muted" x="100" y="70">Index</text>
+<path class="grid" d="M100 371.8L700 371.8"/><text class="num muted" x="86" y="376.3" text-anchor="end">0</text><path class="grid" d="M100 230.9L700 230.9"/><text class="num muted" x="86" y="235.4" text-anchor="end">100</text><path class="grid" d="M100 160.5L700 160.5"/><text class="num muted" x="86" y="165" text-anchor="end">150</text><path class="grid" d="M100 90L700 90"/><text class="num muted" x="86" y="94.5" text-anchor="end">200</text>
+<path class="ink-line" d="M100 273.2L700 273.2" stroke-width="1.5" stroke-dasharray="2 5" stroke-opacity=".5"/><text class="small muted" x="145" y="265.2">Visibility cutoff: 70</text>
+<path class="ink-line" d="M129.6 343.6 C172.9 343 216.3 342.9 259.7 341.6 C274.7 341.2 289.6 336.9 304.5 332.7 C321.1 328 337.9 317.6 354.6 309.2 C367.7 302.4 380.8 290 394 287.2 C407.4 284.4 420.8 284.3 434.2 282 C452.7 279 471.2 274.2 489.6 269 C503.7 265.1 517.9 258.3 532 254.4 C544.7 250.9 557.4 249.8 570.1 245.7 C597 236.9 624 215 651.1 199.6" stroke-width="1.5" stroke-dasharray="5 4" stroke-opacity=".4"/>
+<path d="M129.6 230.9 C172.9 230.4 216.3 230.3 259.7 229.3 C274.7 228.9 289.6 225.3 304.5 221.8 C321.1 217.9 337.9 209.4 354.6 202.3 C367.7 196.7 380.8 186.2 394 183.9 C407.4 181.6 420.8 181.5 434.2 179.6 C452.7 177 471.2 173.1 489.6 168.8 C503.7 165.5 517.9 159.8 532 156.7 C544.7 153.7 557.4 152.8 570.1 149.4 C597 142.1 624 123.8 651.1 110.9" fill="none" stroke="url(#light)" stroke-width="2.5" stroke-linecap="round"/>
+<circle class="ink" cx="273" cy="358" r="3" opacity=".22"/><g class="faint"><circle class="ink halo" cx="273" cy="242.9" r="5.5" filter="url(#glow)"/><circle class="ink ring" cx="273" cy="242.9" r="3.5"/></g><circle class="ink" cx="321.7" cy="365.3" r="3" opacity=".22"/><g class="faint"><circle class="ink halo" cx="321.7" cy="249" r="5.5" filter="url(#glow)"/><circle class="ink ring" cx="321.7" cy="249" r="3.5"/></g><circle class="ink" cx="357.4" cy="331.8" r="3" opacity=".22"/><g class="faint"><circle class="ink halo" cx="357.4" cy="221" r="5.5" filter="url(#glow)"/><circle class="ink ring" cx="357.4" cy="221" r="3.5"/></g><circle class="ink" cx="391.4" cy="313.1" r="3" opacity=".22"/><g class="faint"><circle class="ink halo" cx="391.4" cy="205.4" r="5.5" filter="url(#glow)"/><circle class="ink ring" cx="391.4" cy="205.4" r="3.5"/></g><circle class="ink" cx="419.5" cy="347.6" r="3" opacity=".22"/><g class="faint"><circle class="ink halo" cx="419.5" cy="234.2" r="5.5" filter="url(#glow)"/><circle class="ink ring" cx="419.5" cy="234.2" r="3.5"/></g><circle class="ink" cx="442.4" cy="331.7" r="3" opacity=".22"/><g class="faint"><circle class="ink halo" cx="442.4" cy="220.9" r="5.5" filter="url(#glow)"/><circle class="ink ring" cx="442.4" cy="220.9" r="3.5"/></g><circle class="ink" cx="460.5" cy="302.4" r="3" opacity=".22"/><g class="faint"><circle class="ink halo" cx="460.5" cy="196.5" r="5.5" filter="url(#glow)"/><circle class="ink ring" cx="460.5" cy="196.5" r="3.5"/></g><circle class="ink" cx="482.6" cy="299.8" r="3" opacity=".22"/><g class="faint"><circle class="ink halo" cx="482.6" cy="194.4" r="5.5" filter="url(#glow)"/><circle class="ink ring" cx="482.6" cy="194.4" r="3.5"/></g><circle class="ink" cx="497.8" cy="310.2" r="3" opacity=".22"/><g class="faint"><circle class="ink halo" cx="497.8" cy="203.1" r="5.5" filter="url(#glow)"/><circle class="ink ring" cx="497.8" cy="203.1" r="3.5"/></g><circle class="ink" cx="513.1" cy="327.1" r="3" opacity=".22"/><g class="faint"><circle class="ink halo" cx="513.1" cy="217.2" r="5.5" filter="url(#glow)"/><circle class="ink ring" cx="513.1" cy="217.2" r="3.5"/></g><circle class="ink" cx="532.3" cy="276.6" r="3" opacity=".22"/><g class="faint"><circle class="ink halo" cx="532.3" cy="175" r="5.5" filter="url(#glow)"/><circle class="ink ring" cx="532.3" cy="175" r="3.5"/></g><circle class="ink" cx="549.6" cy="294.7" r="3" opacity=".22"/><g class="faint"><circle class="ink halo" cx="549.6" cy="190.2" r="5.5" filter="url(#glow)"/><circle class="ink ring" cx="549.6" cy="190.2" r="3.5"/></g><circle class="ink" cx="572.5" cy="280.9" r="3" opacity=".22"/><g class="faint"><circle class="ink halo" cx="572.5" cy="178.7" r="5.5" filter="url(#glow)"/><circle class="ink ring" cx="572.5" cy="178.7" r="3.5"/></g><circle class="ink" cx="594.8" cy="255" r="3" opacity=".22"/><g class="faint"><circle class="ink halo" cx="594.8" cy="157" r="5.5" filter="url(#glow)"/><circle class="ink ring" cx="594.8" cy="157" r="3.5"/></g><circle class="ink" cx="615.7" cy="328.6" r="3" opacity=".22"/><g class="faint"><circle class="ink halo" cx="615.7" cy="218.3" r="5.5" filter="url(#glow)"/><circle class="ink ring" cx="615.7" cy="218.3" r="3.5"/></g><circle class="ink" cx="638.3" cy="329.8" r="3" opacity=".22"/><g class="faint"><circle class="ink halo" cx="638.3" cy="219.4" r="5.5" filter="url(#glow)"/><circle class="ink ring" cx="638.3" cy="219.4" r="3.5"/></g><circle class="ink" cx="649.5" cy="305.7" r="3" opacity=".22"/><g class="faint"><circle class="ink halo" cx="649.5" cy="199.3" r="5.5" filter="url(#glow)"/><circle class="ink ring" cx="649.5" cy="199.3" r="3.5"/></g>
+<path class="violet-line" d="M129.5 336.6L129.5 239.9" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#tip-violet)"/><circle class="ink" cx="129.5" cy="343.6" r="5" opacity=".35"/><g><circle class="ink halo" cx="129.5" cy="230.9" r="8" filter="url(#glow)"/><circle class="ink ring" cx="129.5" cy="230.9" r="6"/></g><text class="strong" x="143.5" y="200.9">GPT-4 · Mar 2023</text><text class="num" x="143.5" y="218.9">20 → 100</text><path class="violet-line" d="M534.4 252.1L534.4 169.5" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#tip-violet)"/><circle class="ink" cx="534.4" cy="259.1" r="5" opacity=".35"/><g><circle class="ink halo" cx="534.4" cy="160.5" r="8" filter="url(#glow)"/><circle class="ink ring" cx="534.4" cy="160.5" r="6"/></g><text class="strong" x="520.4" y="130.5" text-anchor="end">Claude Opus 4.5</text><text class="num" x="520.4" y="148.5" text-anchor="end">80 → 150</text><path class="violet-line" d="M651.1 192.6L651.1 119.9" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#tip-violet)"/><circle class="ink" cx="651.1" cy="199.6" r="5" opacity=".35"/><g><circle class="ink halo" cx="651.1" cy="110.9" r="8" filter="url(#glow)"/><circle class="ink ring" cx="651.1" cy="110.9" r="6"/></g><text class="strong" x="637.1" y="80.9" text-anchor="end">GPT-6 Astra</text><text class="num" x="637.1" y="98.9" text-anchor="end">122.2 → 185.2</text><path class="violet-line" d="M270.8 385.3L270.8 280.4" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#tip-violet)"/><circle class="ink" cx="270.8" cy="392.3" r="5" opacity=".35"/><g><circle class="ink halo" cx="270.8" cy="271.4" r="8" filter="url(#glow)"/><circle class="ink ring" cx="270.8" cy="271.4" r="6"/></g><text class="strong" x="284.8" y="241.4">Gemma 7B</text><text class="num" x="284.8" y="259.4">−14.5 → 71.2</text>
+<path class="axis" d="M100 400L700 400"/><path class="axis" d="M100 400L100 406"/><text class="num muted" x="100" y="424" text-anchor="middle">2023</text><path class="axis" d="M250 400L250 406"/><text class="num muted" x="250" y="424" text-anchor="middle">2024</text><path class="axis" d="M400 400L400 406"/><text class="num muted" x="400" y="424" text-anchor="middle">2025</text><path class="axis" d="M550 400L550 406"/><text class="num muted" x="550" y="424" text-anchor="middle">2026</text>
+<text class="muted" x="700" y="434" text-anchor="end">Release date</text>
 </svg>

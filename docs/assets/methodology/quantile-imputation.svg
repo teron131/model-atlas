@@ -1,60 +1,39 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 458" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 360" role="img" aria-labelledby="title desc">
 <title id="title">The same percentile can map to a different raw value</title>
-<desc id="desc">Two illustrative model-balanced empirical distributions share percentile height. The weighted mean uses only direct observations on other selected benchmarks with positive weight in the same capability dimension, excluding the target and all imputed values. A weighted mean of 70 lies at the 45th-percentile midrank and maps to target value 0.58, not 0.70. Both distributions use the same ten equally weighted calibration observations, with tied values grouped.</desc>
+<desc id="desc">Two towers stack the same ten equally weighted peers by cumulative weight: on the left by their weighted mean on other observed benchmarks, on the right by their reported result on the missing benchmark. A weighted mean of 70 ties three peers whose weight spans 30 to 60 percent; counting half the tied weight puts it at 45 percent. Carried across at 45 percent, the missing benchmark's tower gives the estimate 0.58, not 0.70.</desc>
 <style>
-text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; }
-@media (prefers-color-scheme:dark) {
-text { fill:#ffffff; }
-[fill="#63706e"] { fill:#a6b2ae; } [stroke="#63706e"] { stroke:#a6b2ae; }
-[fill="#b5bfbc"] { fill:#3c4846; } [stroke="#b5bfbc"] { stroke:#3c4846; }
-[fill="#146cba"] { fill:#85bfff; } [stroke="#146cba"] { stroke:#85bfff; }
-[fill="#a64d0c"] { fill:#ffbc7d; } [stroke="#a64d0c"] { stroke:#ffbc7d; }
+text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:15px;fill:#202724}
+.num{font-family:"SFMono-Regular","SF Mono",Menlo,Consolas,monospace;font-size:14px}
+.small{font-size:12.5px}.big{font-size:18px}.strong{font-weight:600}
+.muted{fill-opacity:.62}.faint{opacity:.4}.half{opacity:.5}
+.grid{fill:none;stroke:#202724;stroke-opacity:.09}
+.guide{fill:none;stroke:#202724;stroke-opacity:.22}
+.axis{fill:none;stroke:#202724;stroke-opacity:.34}
+.ink{fill:#202724}.ink-line{fill:none;stroke:#202724}.ink-wash{fill:#202724;fill-opacity:.08}
+.ring{stroke:#f2f4f2;stroke-width:2;paint-order:stroke}.gap{stroke:#f2f4f2;stroke-width:2}
+.violet{fill:#6b47e0}.violet-line{fill:none;stroke:#6b47e0}.violet-wash{fill:#6b47e0;fill-opacity:.14}
+.rose{fill:#c93f78}.rose-line{fill:none;stroke:#c93f78}.rose-wash{fill:#c93f78;fill-opacity:.14}
+.amber{fill:#a8740c}.amber-line{fill:none;stroke:#a8740c}.amber-wash{fill:#a8740c;fill-opacity:.16}
+.h0{stop-color:#3557e6}.h1{stop-color:#6b47e0}.h2{stop-color:#d9467f}
+.land0{stop-color:#6b47e0;stop-opacity:.12}.land1{stop-color:#6b47e0;stop-opacity:.01}
+.halo{opacity:0}
+@media (prefers-color-scheme:dark){
+text{fill:#f2f3ed}.muted{fill-opacity:.58}
+.grid{stroke:#f2f3ed;stroke-opacity:.08}.guide{stroke:#f2f3ed;stroke-opacity:.2}.axis{stroke:#f2f3ed;stroke-opacity:.3}
+.ink{fill:#f2f3ed}.ink-line{stroke:#f2f3ed}.ink-wash{fill:#f2f3ed;fill-opacity:.1}
+.ring{stroke:#0b1016}.gap{stroke:#0b1016}
+.violet{fill:#8f6bff}.violet-line{stroke:#8f6bff}.violet-wash{fill:#8f6bff;fill-opacity:.22}
+.rose{fill:#e06296}.rose-line{stroke:#e06296}.rose-wash{fill:#e06296;fill-opacity:.2}
+.amber{fill:#b98b24}.amber-line{stroke:#b98b24}.amber-wash{fill:#b98b24;fill-opacity:.22}
+.h0{stop-color:#4a72ff}.h1{stop-color:#8f6bff}.h2{stop-color:#ff92bd}
+.land0{stop-color:#6f8cff;stop-opacity:.16}.land1{stop-color:#6f8cff;stop-opacity:.02}
+.halo{opacity:.55}
 }
 </style>
-<text x="86" y="43" font-size="19" fill="#000000" text-anchor="start" font-weight="600">Other observed benchmarks</text>
-<text x="444" y="43" font-size="19" fill="#000000" text-anchor="start" font-weight="600">Missing benchmark</text>
-<line x1="80" y1="301.5" x2="86" y2="301.5" stroke="#63706e" stroke-width="1"/>
-<line x1="80" y1="236" x2="86" y2="236" stroke="#63706e" stroke-width="1"/>
-<line x1="80" y1="170.5" x2="86" y2="170.5" stroke="#63706e" stroke-width="1"/>
-<line x1="80" y1="105" x2="86" y2="105" stroke="#63706e" stroke-width="1"/>
-<text x="72" y="373" font-size="16" fill="#000000" text-anchor="end" font-weight="400">0%</text>
-<text x="72" y="307.5" font-size="16" fill="#000000" text-anchor="end" font-weight="400">25%</text>
-<text x="72" y="242" font-size="16" fill="#000000" text-anchor="end" font-weight="400">50%</text>
-<text x="72" y="176.5" font-size="16" fill="#000000" text-anchor="end" font-weight="400">75%</text>
-<text x="72" y="111" font-size="16" fill="#000000" text-anchor="end" font-weight="400">100%</text>
-<line x1="86" y1="367" x2="86" y2="373" stroke="#63706e" stroke-width="1"/>
-<text x="86" y="394" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">0</text>
-<line x1="203" y1="367" x2="203" y2="373" stroke="#63706e" stroke-width="1"/>
-<text x="203" y="394" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">50</text>
-<line x1="320" y1="367" x2="320" y2="373" stroke="#63706e" stroke-width="1"/>
-<text x="320" y="394" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">100</text>
-<line x1="86" y1="367" x2="320" y2="367" stroke="#63706e" stroke-width="1"/>
-<text x="86" y="82" font-size="18" fill="#000000" text-anchor="start" font-weight="400">Percentile</text>
-<line x1="444" y1="367" x2="444" y2="373" stroke="#63706e" stroke-width="1"/>
-<text x="444" y="394" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">0</text>
-<line x1="572" y1="367" x2="572" y2="373" stroke="#63706e" stroke-width="1"/>
-<text x="572" y="394" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">0.5</text>
-<line x1="700" y1="367" x2="700" y2="373" stroke="#63706e" stroke-width="1"/>
-<text x="700" y="394" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">1</text>
-<line x1="444" y1="367" x2="700" y2="367" stroke="#63706e" stroke-width="1"/>
-<circle cx="156.2" cy="353.9" r="4" fill="none" stroke="#146cba" stroke-width="2"/>
-<circle cx="203" cy="314.6" r="4" fill="none" stroke="#146cba" stroke-width="2"/>
-<circle cx="249.8" cy="249.1" r="4" fill="none" stroke="#146cba" stroke-width="2"/>
-<circle cx="296.6" cy="157.4" r="4" fill="none" stroke="#146cba" stroke-width="2"/>
-<circle cx="474.72" cy="353.9" r="4" fill="none" stroke="#146cba" stroke-width="2"/>
-<circle cx="520.8" cy="314.6" r="4" fill="none" stroke="#146cba" stroke-width="2"/>
-<circle cx="592.48" cy="249.1" r="4" fill="none" stroke="#146cba" stroke-width="2"/>
-<circle cx="674.4" cy="157.4" r="4" fill="none" stroke="#146cba" stroke-width="2"/>
-<path d="M86 367 H156.2 V340.8 H203 V288.4 H249.8 V209.8 H296.6 V105 H320" fill="none" stroke="#146cba" stroke-width="3" stroke-linejoin="round"/>
-<path d="M444 367 H474.72 V340.8 H520.8 V288.4 H592.48 V209.8 H674.4 V105 H700" fill="none" stroke="#146cba" stroke-width="3" stroke-linejoin="round"/>
-<line x1="249.8" y1="249.1" x2="592.48" y2="249.1" stroke="#a64d0c" stroke-width="2" stroke-dasharray="5 4"/>
-<text x="398" y="231" font-size="22" text-anchor="middle" font-style="italic">45th</text>
-<circle cx="249.8" cy="249.1" r="6" fill="#a64d0c"/>
-<line x1="249.8" y1="249.1" x2="249.8" y2="367" stroke="#a64d0c" stroke-width="1" stroke-dasharray="3 5"/>
-<text x="262.8" y="280" font-size="22" font-weight="600">70</text>
-<circle cx="592.48" cy="249.1" r="6" fill="#a64d0c"/>
-<line x1="592.48" y1="249.1" x2="592.48" y2="367" stroke="#a64d0c" stroke-width="1" stroke-dasharray="3 5"/>
-<text x="605.48" y="280" font-size="22" font-weight="600">0.58</text>
-<text x="203" y="427" font-size="18" fill="#000000" text-anchor="middle" font-weight="400">Weighted mean</text>
-<text x="572" y="427" font-size="18" fill="#000000" text-anchor="middle" font-weight="400">Reported metric</text>
+<defs><filter id="glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="3"/></filter><marker id="tip-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="ink" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-violet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="violet" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="rose" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="amber" d="M0 0L10 5L0 10Z"/></marker></defs>
+<text class="strong" x="236" y="44" text-anchor="middle">Other observed benchmarks</text><text class="small muted" x="236" y="64" text-anchor="middle">Weighted mean</text><rect class="ink-wash" x="200" y="307" width="72" height="23" rx="3"/><text class="num" x="236" y="323.5" text-anchor="middle">30</text><rect class="ink-wash" x="200" y="259" width="72" height="46" rx="3"/><path class="guide" d="M204 282L214 282"/><path class="guide" d="M258 282L268 282"/><text class="num" x="236" y="287" text-anchor="middle">50</text><rect class="violet-wash" x="200" y="187" width="72" height="70" rx="3"/><path class="guide" d="M204 234L214 234"/><path class="guide" d="M258 234L268 234"/><path class="guide" d="M204 210L214 210"/><path class="guide" d="M258 210L268 210"/><text class="num strong" x="236" y="227" text-anchor="middle">70</text><rect class="ink-wash" x="200" y="90" width="72" height="95" rx="3"/><path class="guide" d="M204 162L214 162"/><path class="guide" d="M258 162L268 162"/><path class="guide" d="M204 138L214 138"/><path class="guide" d="M258 138L268 138"/><path class="guide" d="M204 114L214 114"/><path class="guide" d="M258 114L268 114"/><text class="num" x="236" y="142.5" text-anchor="middle">90</text><path class="axis" d="M196 330L200 330"/><text class="num muted" x="192" y="334.5" text-anchor="end">0%</text><path class="axis" d="M196 306L200 306"/><text class="num muted" x="192" y="310.5" text-anchor="end">10%</text><path class="axis" d="M196 258L200 258"/><text class="num muted" x="192" y="262.5" text-anchor="end">30%</text><path class="axis" d="M196 186L200 186"/><text class="num muted" x="192" y="190.5" text-anchor="end">60%</text><path class="axis" d="M196 90L200 90"/><text class="num muted" x="192" y="94.5" text-anchor="end">100%</text>
+<text class="strong" x="536" y="44" text-anchor="middle">Missing benchmark</text><text class="small muted" x="536" y="64" text-anchor="middle">Reported metric</text><rect class="ink-wash" x="500" y="307" width="72" height="23" rx="3"/><text class="num" x="536" y="323.5" text-anchor="middle">0.12</text><rect class="ink-wash" x="500" y="259" width="72" height="46" rx="3"/><path class="guide" d="M504 282L514 282"/><path class="guide" d="M558 282L568 282"/><text class="num" x="536" y="287" text-anchor="middle">0.30</text><rect class="rose-wash" x="500" y="187" width="72" height="70" rx="3"/><path class="guide" d="M504 234L514 234"/><path class="guide" d="M558 234L568 234"/><path class="guide" d="M504 210L514 210"/><path class="guide" d="M558 210L568 210"/><text class="num strong" x="536" y="227" text-anchor="middle">0.58</text><rect class="ink-wash" x="500" y="90" width="72" height="95" rx="3"/><path class="guide" d="M504 162L514 162"/><path class="guide" d="M558 162L568 162"/><path class="guide" d="M504 138L514 138"/><path class="guide" d="M558 138L568 138"/><path class="guide" d="M504 114L514 114"/><path class="guide" d="M558 114L568 114"/><text class="num" x="536" y="142.5" text-anchor="middle">0.90</text><path class="axis" d="M572 330L576 330"/><text class="num muted" x="580" y="334.5">0%</text><path class="axis" d="M572 306L576 306"/><text class="num muted" x="580" y="310.5">10%</text><path class="axis" d="M572 258L576 258"/><text class="num muted" x="580" y="262.5">30%</text><path class="axis" d="M572 186L576 186"/><text class="num muted" x="580" y="190.5">60%</text><path class="axis" d="M572 90L576 90"/><text class="num muted" x="580" y="94.5">100%</text>
+<path class="violet-line" d="M282 222L488 222" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#tip-violet)"/>
+<g><circle class="violet halo" cx="272" cy="222" r="8" filter="url(#glow)"/><circle class="violet ring" cx="272" cy="222" r="6"/></g><g><circle class="rose halo" cx="500" cy="222" r="8" filter="url(#glow)"/><circle class="rose ring" cx="500" cy="222" r="6"/></g>
+<text class="num big strong" x="386" y="208" text-anchor="middle">45%</text>
 </svg>

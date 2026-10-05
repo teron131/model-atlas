@@ -1,41 +1,44 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 330" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 320" role="img" aria-labelledby="title desc">
 <title id="title">A dated successor cannot fall below an earlier estimate</title>
-<desc id="desc">Three illustrative releases of one model at one reasoning effort have estimates one hundred twenty, one hundred sixteen and one hundred twenty-eight. The middle estimate is adjusted upward to one hundred twenty; the last remains one hundred twenty-eight. The plot shows the model assumption, not evidence that capability necessarily increased.</desc>
+<desc id="desc">Three illustrative releases of one model at one reasoning effort have evidence-based estimates of 120, 116 and 128. The middle estimate is raised to its predecessor's 120; the last remains 128. The plot shows the reconstruction assumption, not evidence that capability necessarily increased.</desc>
 <style>
-text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; }
-@media (prefers-color-scheme:dark) {
-text { fill:#ffffff; }
-[fill="#63706e"] { fill:#a6b2ae; } [stroke="#63706e"] { stroke:#a6b2ae; }
-[fill="#b5bfbc"] { fill:#3c4846; } [stroke="#b5bfbc"] { stroke:#3c4846; }
-[fill="#146cba"] { fill:#85bfff; } [stroke="#146cba"] { stroke:#85bfff; }
-[fill="#a64d0c"] { fill:#ffbc7d; } [stroke="#a64d0c"] { stroke:#ffbc7d; }
+text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:15px;fill:#202724}
+.num{font-family:"SFMono-Regular","SF Mono",Menlo,Consolas,monospace;font-size:14px}
+.small{font-size:12.5px}.big{font-size:18px}.strong{font-weight:600}
+.muted{fill-opacity:.62}.faint{opacity:.4}.half{opacity:.5}
+.grid{fill:none;stroke:#202724;stroke-opacity:.09}
+.guide{fill:none;stroke:#202724;stroke-opacity:.22}
+.axis{fill:none;stroke:#202724;stroke-opacity:.34}
+.ink{fill:#202724}.ink-line{fill:none;stroke:#202724}.ink-wash{fill:#202724;fill-opacity:.08}
+.ring{stroke:#f2f4f2;stroke-width:2;paint-order:stroke}.gap{stroke:#f2f4f2;stroke-width:2}
+.violet{fill:#6b47e0}.violet-line{fill:none;stroke:#6b47e0}.violet-wash{fill:#6b47e0;fill-opacity:.14}
+.rose{fill:#c93f78}.rose-line{fill:none;stroke:#c93f78}.rose-wash{fill:#c93f78;fill-opacity:.14}
+.amber{fill:#a8740c}.amber-line{fill:none;stroke:#a8740c}.amber-wash{fill:#a8740c;fill-opacity:.16}
+.h0{stop-color:#3557e6}.h1{stop-color:#6b47e0}.h2{stop-color:#d9467f}
+.land0{stop-color:#6b47e0;stop-opacity:.12}.land1{stop-color:#6b47e0;stop-opacity:.01}
+.halo{opacity:0}
+@media (prefers-color-scheme:dark){
+text{fill:#f2f3ed}.muted{fill-opacity:.58}
+.grid{stroke:#f2f3ed;stroke-opacity:.08}.guide{stroke:#f2f3ed;stroke-opacity:.2}.axis{stroke:#f2f3ed;stroke-opacity:.3}
+.ink{fill:#f2f3ed}.ink-line{stroke:#f2f3ed}.ink-wash{fill:#f2f3ed;fill-opacity:.1}
+.ring{stroke:#0b1016}.gap{stroke:#0b1016}
+.violet{fill:#8f6bff}.violet-line{stroke:#8f6bff}.violet-wash{fill:#8f6bff;fill-opacity:.22}
+.rose{fill:#e06296}.rose-line{stroke:#e06296}.rose-wash{fill:#e06296;fill-opacity:.2}
+.amber{fill:#b98b24}.amber-line{stroke:#b98b24}.amber-wash{fill:#b98b24;fill-opacity:.22}
+.h0{stop-color:#4a72ff}.h1{stop-color:#8f6bff}.h2{stop-color:#ff92bd}
+.land0{stop-color:#6f8cff;stop-opacity:.16}.land1{stop-color:#6f8cff;stop-opacity:.02}
+.halo{opacity:.55}
 }
 </style>
-<circle cx="45" cy="24" r="5" fill="#63706e"/>
-<text x="58" y="29" font-size="14" fill="#63706e" text-anchor="start" font-weight="400">Evidence-based estimate</text>
-<circle cx="400" cy="24" r="5" fill="#146cba"/>
-<text x="413" y="29" font-size="14" fill="#146cba" text-anchor="start" font-weight="400">After the successor assumption</text>
-<path d="M85 60 V264 H710" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<path d="M704 260 L710 264 L704 268" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<path d="M80 254 H700" fill="none" stroke="#b5bfbc" stroke-width="1.5" stroke-dasharray="3 5"/>
-<text x="70" y="259" font-size="14" fill="#63706e" text-anchor="end" font-weight="400">110</text>
-<path d="M80 174 H700" fill="none" stroke="#b5bfbc" stroke-width="1.5" stroke-dasharray="3 5"/>
-<text x="70" y="179" font-size="14" fill="#63706e" text-anchor="end" font-weight="400">120</text>
-<path d="M80 94 H700" fill="none" stroke="#b5bfbc" stroke-width="1.5" stroke-dasharray="3 5"/>
-<text x="70" y="99" font-size="14" fill="#63706e" text-anchor="end" font-weight="400">130</text>
-<text x="40" y="55" font-size="14" fill="#63706e" text-anchor="start" font-weight="400">Index</text>
-<path d="M200 174 H510" fill="none" stroke="#146cba" stroke-width="1.5" stroke-dasharray="5 4"/>
-<path d="M420 206 V174 M416 193 L420 186 L424 193" fill="none" stroke="#a64d0c" stroke-width="1.5"/>
-<circle cx="200" cy="174" r="6" fill="#146cba"/>
-<circle cx="420" cy="206" r="6" fill="#63706e"/>
-<circle cx="420" cy="174" r="6" fill="#146cba"/>
-<circle cx="640" cy="110" r="6" fill="#146cba"/>
-<text x="200" y="157" font-size="18" fill="#146cba" text-anchor="middle" font-weight="600">120</text>
-<text x="438" y="165" font-size="18" fill="#146cba" text-anchor="start" font-weight="600">120</text>
-<text x="438" y="222" font-size="17" fill="#63706e" text-anchor="start" font-weight="400">116</text>
-<text x="640" y="85" font-size="18" fill="#146cba" text-anchor="middle" font-weight="600">128</text>
-<text x="200" y="292" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">Earlier release</text>
-<text x="420" y="292" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">Dated successor</text>
-<text x="640" y="292" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">Later release</text>
-<text x="700" y="322" font-size="13" fill="#63706e" text-anchor="end" font-weight="400">Release order</text>
+<defs><filter id="glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="3"/></filter><marker id="tip-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="ink" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-violet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="violet" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="rose" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="amber" d="M0 0L10 5L0 10Z"/></marker></defs>
+<g class="half"><circle class="ink halo" cx="46" cy="30" r="7" filter="url(#glow)"/><circle class="ink ring" cx="46" cy="30" r="5"/></g><text class="muted" x="60" y="35">Evidence-based estimate</text><g><circle class="violet halo" cx="266" cy="30" r="7.5" filter="url(#glow)"/><circle class="violet ring" cx="266" cy="30" r="5.5"/></g><text class="muted" x="280" y="35">After the successor assumption</text>
+<text class="muted" x="90" y="70">Index</text>
+<path class="axis" d="M90 250L700 250"/><text class="num muted" x="76" y="254.5" text-anchor="end">110</text><path class="grid" d="M90 170L700 170"/><text class="num muted" x="76" y="174.5" text-anchor="end">120</text><path class="grid" d="M90 90L700 90"/><text class="num muted" x="76" y="94.5" text-anchor="end">130</text>
+<path class="violet-line" d="M200 170L420 170" stroke-width="1.5" stroke-dasharray="5 4"/>
+<path class="violet-line" d="M420 194L420 179" stroke-width="1.5" marker-end="url(#tip-violet)"/>
+<g class="half"><circle class="ink halo" cx="420" cy="202" r="7.5" filter="url(#glow)"/><circle class="ink ring" cx="420" cy="202" r="5.5"/></g><text class="num muted" x="434" y="207">116</text>
+<g><circle class="violet halo" cx="200" cy="170" r="8" filter="url(#glow)"/><circle class="violet ring" cx="200" cy="170" r="6"/></g><g><circle class="violet halo" cx="420" cy="170" r="8" filter="url(#glow)"/><circle class="violet ring" cx="420" cy="170" r="6"/></g><g><circle class="violet halo" cx="640" cy="106" r="8" filter="url(#glow)"/><circle class="violet ring" cx="640" cy="106" r="6"/></g>
+<text class="num strong" x="200" y="156" text-anchor="middle">120</text><text class="num strong" x="434" y="162">120</text><text class="num strong" x="640" y="92" text-anchor="middle">128</text>
+<text x="200" y="280" text-anchor="middle">Earlier release</text><text x="420" y="280" text-anchor="middle">Dated successor</text><text x="640" y="280" text-anchor="middle">Later release</text>
+<text class="small muted" x="700" y="308" text-anchor="end">Release order →</text>
 </svg>

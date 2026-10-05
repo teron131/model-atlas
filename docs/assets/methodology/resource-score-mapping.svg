@@ -1,48 +1,40 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 433" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 370" role="img" aria-labelledby="title desc">
 <title id="title">Comparison support contracts the score scale toward 50</title>
-<desc id="desc">Full support preserves the combined score. Half support moves every value halfway toward 50. With no support all comparisons are neutral. An illustrative combined score of 75 becomes 75, 62.5, or 50 respectively.</desc>
+<desc id="desc">Combined magnitude-and-percentile scores of 0, 25, 50, 75 and 100 traced across three levels of comparison support. Full support keeps each score, half support moves it halfway toward 50, and no support makes every comparison neutral at 50, so the scale funnels toward 50. A combined score of 75 becomes 75, 62.5, or 50; a score of 25 becomes 25, 37.5, or 50.</desc>
 <style>
-text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; }
-@media (prefers-color-scheme:dark) {
-text { fill:#ffffff; }
-[fill="#63706e"] { fill:#a6b2ae; } [stroke="#63706e"] { stroke:#a6b2ae; }
-[fill="#b5bfbc"] { fill:#3c4846; } [stroke="#b5bfbc"] { stroke:#3c4846; }
-[fill="#146cba"] { fill:#85bfff; } [stroke="#146cba"] { stroke:#85bfff; }
-[fill="#a64d0c"] { fill:#ffbc7d; } [stroke="#a64d0c"] { stroke:#ffbc7d; }
+text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:15px;fill:#202724}
+.num{font-family:"SFMono-Regular","SF Mono",Menlo,Consolas,monospace;font-size:14px}
+.small{font-size:12.5px}.big{font-size:18px}.strong{font-weight:600}
+.muted{fill-opacity:.62}.faint{opacity:.4}.half{opacity:.5}
+.grid{fill:none;stroke:#202724;stroke-opacity:.09}
+.guide{fill:none;stroke:#202724;stroke-opacity:.22}
+.axis{fill:none;stroke:#202724;stroke-opacity:.34}
+.ink{fill:#202724}.ink-line{fill:none;stroke:#202724}.ink-wash{fill:#202724;fill-opacity:.08}
+.ring{stroke:#f2f4f2;stroke-width:2;paint-order:stroke}.gap{stroke:#f2f4f2;stroke-width:2}
+.violet{fill:#6b47e0}.violet-line{fill:none;stroke:#6b47e0}.violet-wash{fill:#6b47e0;fill-opacity:.14}
+.rose{fill:#c93f78}.rose-line{fill:none;stroke:#c93f78}.rose-wash{fill:#c93f78;fill-opacity:.14}
+.amber{fill:#a8740c}.amber-line{fill:none;stroke:#a8740c}.amber-wash{fill:#a8740c;fill-opacity:.16}
+.h0{stop-color:#3557e6}.h1{stop-color:#6b47e0}.h2{stop-color:#d9467f}
+.land0{stop-color:#6b47e0;stop-opacity:.12}.land1{stop-color:#6b47e0;stop-opacity:.01}
+.halo{opacity:0}
+@media (prefers-color-scheme:dark){
+text{fill:#f2f3ed}.muted{fill-opacity:.58}
+.grid{stroke:#f2f3ed;stroke-opacity:.08}.guide{stroke:#f2f3ed;stroke-opacity:.2}.axis{stroke:#f2f3ed;stroke-opacity:.3}
+.ink{fill:#f2f3ed}.ink-line{stroke:#f2f3ed}.ink-wash{fill:#f2f3ed;fill-opacity:.1}
+.ring{stroke:#0b1016}.gap{stroke:#0b1016}
+.violet{fill:#8f6bff}.violet-line{stroke:#8f6bff}.violet-wash{fill:#8f6bff;fill-opacity:.22}
+.rose{fill:#e06296}.rose-line{stroke:#e06296}.rose-wash{fill:#e06296;fill-opacity:.2}
+.amber{fill:#b98b24}.amber-line{stroke:#b98b24}.amber-wash{fill:#b98b24;fill-opacity:.22}
+.h0{stop-color:#4a72ff}.h1{stop-color:#8f6bff}.h2{stop-color:#ff92bd}
+.land0{stop-color:#6f8cff;stop-opacity:.16}.land1{stop-color:#6f8cff;stop-opacity:.02}
+.halo{opacity:.55}
 }
 </style>
-<path d="M88 343 L560 80 L560 211.5 L88 211.5 Z" fill="#808080" fill-opacity="0.12" stroke="none" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" opacity="1"/>
-<line x1="88" y1="343" x2="560" y2="343" stroke="#b5bfbc" stroke-width="1"/>
-<text x="74" y="349" font-size="16" fill="#000000" text-anchor="end" font-weight="400">0</text>
-<line x1="88" y1="277.25" x2="560" y2="277.25" stroke="#b5bfbc" stroke-width="1"/>
-<text x="74" y="283.25" font-size="16" fill="#000000" text-anchor="end" font-weight="400">25</text>
-<line x1="88" y1="211.5" x2="560" y2="211.5" stroke="#b5bfbc" stroke-width="1"/>
-<text x="74" y="217.5" font-size="16" fill="#000000" text-anchor="end" font-weight="400">50</text>
-<line x1="88" y1="145.75" x2="560" y2="145.75" stroke="#b5bfbc" stroke-width="1"/>
-<text x="74" y="151.75" font-size="16" fill="#000000" text-anchor="end" font-weight="400">75</text>
-<line x1="88" y1="80" x2="560" y2="80" stroke="#b5bfbc" stroke-width="1"/>
-<text x="74" y="86" font-size="16" fill="#000000" text-anchor="end" font-weight="400">100</text>
-<line x1="88" y1="343" x2="88" y2="349" stroke="#63706e" stroke-width="1"/>
-<text x="88" y="370" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">0</text>
-<line x1="206" y1="343" x2="206" y2="349" stroke="#63706e" stroke-width="1"/>
-<text x="206" y="370" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">25</text>
-<line x1="324" y1="343" x2="324" y2="349" stroke="#63706e" stroke-width="1"/>
-<text x="324" y="370" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">50</text>
-<line x1="442" y1="343" x2="442" y2="349" stroke="#63706e" stroke-width="1"/>
-<text x="442" y="370" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">75</text>
-<line x1="560" y1="343" x2="560" y2="349" stroke="#63706e" stroke-width="1"/>
-<text x="560" y="370" font-size="16" fill="#000000" text-anchor="middle" font-weight="400">100</text>
-<line x1="88" y1="343" x2="560" y2="343" stroke="#63706e" stroke-width="1"/>
-<text x="88" y="57" font-size="18" fill="#000000" text-anchor="start" font-weight="400">Resource component score</text>
-<path d="M88 343 L560 80" fill="none" stroke="#146cba" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" opacity="1"/>
-<text x="580" y="86" font-size="17" fill="#000000" text-anchor="start" font-weight="400">Full support</text>
-<path d="M88 277.25 L560 145.75" fill="none" stroke="#a64d0c" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" opacity="1" stroke-dasharray="7 5"/>
-<text x="580" y="151.75" font-size="17" fill="#000000" text-anchor="start" font-weight="400">Half support</text>
-<path d="M88 211.5 L560 211.5" fill="none" stroke="#63706e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" opacity="1" stroke-dasharray="3 5"/>
-<text x="580" y="217.5" font-size="17" fill="#000000" text-anchor="start" font-weight="400">No support</text>
-<line x1="442" y1="343" x2="442" y2="145.75" stroke="#63706e" stroke-width="1" stroke-dasharray="3 5"/>
-<circle cx="442" cy="145.75" r="5" fill="#146cba" stroke="#146cba" stroke-width="2" opacity="1"/>
-<circle cx="442" cy="178.63" r="5" fill="#a64d0c" stroke="#a64d0c" stroke-width="2" opacity="1"/>
-<circle cx="442" cy="211.5" r="5" fill="#63706e" stroke="#63706e" stroke-width="2" opacity="1"/>
-<text x="88" y="401" font-size="18" fill="#000000" text-anchor="start" font-weight="400">Combined magnitude and percentile score</text>
+<defs><filter id="glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="3"/></filter><marker id="tip-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="ink" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-violet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="violet" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="rose" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="amber" d="M0 0L10 5L0 10Z"/></marker></defs>
+<text class="muted" x="90" y="40">Resource component score</text>
+<path class="violet-wash" d="M210 70L400 127.5L590 185L590 185L400 242.5L210 300Z" opacity=".6"/>
+<path class="grid" d="M196 300L604 300"/><text class="num muted" x="184" y="304.5" text-anchor="end">0</text><path class="grid" d="M196 242.5L604 242.5"/><text class="num muted" x="184" y="247" text-anchor="end">25</text><path class="grid" d="M196 185L604 185"/><text class="num muted" x="184" y="189.5" text-anchor="end">50</text><path class="grid" d="M196 127.5L604 127.5"/><text class="num muted" x="184" y="132" text-anchor="end">75</text><path class="grid" d="M196 70L604 70"/><text class="num muted" x="184" y="74.5" text-anchor="end">100</text>
+<path class="axis" d="M210 300L210 70"/><path class="axis" d="M400 300L400 70"/><path class="axis" d="M590 300L590 70"/>
+<path class="ink-line" d="M210 300L400 242.5L590 185" stroke-width="1.5" stroke-opacity=".35"/><circle class="ink" cx="210" cy="300" r="2.5" opacity=".5"/><circle class="ink" cx="400" cy="242.5" r="2.5" opacity=".5"/><circle class="ink" cx="590" cy="185" r="2.5" opacity=".5"/><path class="violet-line" d="M210 242.5L400 213.8L590 185" stroke-width="2"/><g><circle class="ink halo" cx="210" cy="242.5" r="7" filter="url(#glow)"/><circle class="ink ring" cx="210" cy="242.5" r="5"/></g><g><circle class="ink halo" cx="400" cy="213.8" r="7" filter="url(#glow)"/><circle class="ink ring" cx="400" cy="213.8" r="5"/></g><g><circle class="ink halo" cx="590" cy="185" r="7" filter="url(#glow)"/><circle class="ink ring" cx="590" cy="185" r="5"/></g><text class="num strong" x="222" y="260.5">25</text><text class="num strong" x="412" y="231.8">37.5</text><path class="ink-line" d="M210 185L400 185L590 185" stroke-width="1.5" stroke-opacity=".35"/><circle class="ink" cx="210" cy="185" r="2.5" opacity=".5"/><circle class="ink" cx="400" cy="185" r="2.5" opacity=".5"/><circle class="ink" cx="590" cy="185" r="2.5" opacity=".5"/><path class="violet-line" d="M210 127.5L400 156.3L590 185" stroke-width="2"/><g><circle class="ink halo" cx="210" cy="127.5" r="7" filter="url(#glow)"/><circle class="ink ring" cx="210" cy="127.5" r="5"/></g><g><circle class="ink halo" cx="400" cy="156.3" r="7" filter="url(#glow)"/><circle class="ink ring" cx="400" cy="156.3" r="5"/></g><g><circle class="ink halo" cx="590" cy="185" r="7" filter="url(#glow)"/><circle class="ink ring" cx="590" cy="185" r="5"/></g><text class="num strong" x="222" y="119.5">75</text><text class="num strong" x="412" y="148.3">62.5</text><text class="num strong" x="602" y="177">50</text><path class="ink-line" d="M210 70L400 127.5L590 185" stroke-width="1.5" stroke-opacity=".35"/><circle class="ink" cx="210" cy="70" r="2.5" opacity=".5"/><circle class="ink" cx="400" cy="127.5" r="2.5" opacity=".5"/><circle class="ink" cx="590" cy="185" r="2.5" opacity=".5"/>
+<text x="210" y="330" text-anchor="middle">Full support</text><text class="num small muted" x="210" y="350" text-anchor="middle">p = 1</text><text x="400" y="330" text-anchor="middle">Half support</text><text class="num small muted" x="400" y="350" text-anchor="middle">p = 0.5</text><text x="590" y="330" text-anchor="middle">No support</text><text class="num small muted" x="590" y="350" text-anchor="middle">p = 0</text>
 </svg>

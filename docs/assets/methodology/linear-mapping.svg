@@ -1,42 +1,44 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 340" role="img" aria-labelledby="title desc">
 <title id="title">Linear scaling with clamping</title>
-<desc id="desc">The minimum maps to zero and the maximum maps to one or one hundred, depending on the output scale. Values between min and max follow a straight line; values outside the bounds are clamped. Benchmark normalization uses observed bounds, while source-specific Elo conversion uses chosen bounds.</desc>
+<desc id="desc">The minimum maps to zero and the maximum b maps to one, or to one hundred on the score scale. Values between them follow a straight line; values below the minimum or above the maximum are clamped to the nearest end.</desc>
 <style>
-text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; }
-@media (prefers-color-scheme:dark) {
-text { fill:#ffffff; }
-[fill="#63706e"] { fill:#a6b2ae; } [stroke="#63706e"] { stroke:#a6b2ae; }
-[stroke="#b5bfbc"] { stroke:#3c4846; }
-[fill="#146cba"] { fill:#85bfff; } [stroke="#146cba"] { stroke:#85bfff; }
+text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:15px;fill:#202724}
+.num{font-family:"SFMono-Regular","SF Mono",Menlo,Consolas,monospace;font-size:14px}
+.small{font-size:12.5px}.big{font-size:18px}.strong{font-weight:600}
+.muted{fill-opacity:.62}.faint{opacity:.4}.half{opacity:.5}
+.grid{fill:none;stroke:#202724;stroke-opacity:.09}
+.guide{fill:none;stroke:#202724;stroke-opacity:.22}
+.axis{fill:none;stroke:#202724;stroke-opacity:.34}
+.ink{fill:#202724}.ink-line{fill:none;stroke:#202724}.ink-wash{fill:#202724;fill-opacity:.08}
+.ring{stroke:#f2f4f2;stroke-width:2;paint-order:stroke}.gap{stroke:#f2f4f2;stroke-width:2}
+.violet{fill:#6b47e0}.violet-line{fill:none;stroke:#6b47e0}.violet-wash{fill:#6b47e0;fill-opacity:.14}
+.rose{fill:#c93f78}.rose-line{fill:none;stroke:#c93f78}.rose-wash{fill:#c93f78;fill-opacity:.14}
+.amber{fill:#a8740c}.amber-line{fill:none;stroke:#a8740c}.amber-wash{fill:#a8740c;fill-opacity:.16}
+.h0{stop-color:#3557e6}.h1{stop-color:#6b47e0}.h2{stop-color:#d9467f}
+.land0{stop-color:#6b47e0;stop-opacity:.12}.land1{stop-color:#6b47e0;stop-opacity:.01}
+.halo{opacity:0}
+@media (prefers-color-scheme:dark){
+text{fill:#f2f3ed}.muted{fill-opacity:.58}
+.grid{stroke:#f2f3ed;stroke-opacity:.08}.guide{stroke:#f2f3ed;stroke-opacity:.2}.axis{stroke:#f2f3ed;stroke-opacity:.3}
+.ink{fill:#f2f3ed}.ink-line{stroke:#f2f3ed}.ink-wash{fill:#f2f3ed;fill-opacity:.1}
+.ring{stroke:#0b1016}.gap{stroke:#0b1016}
+.violet{fill:#8f6bff}.violet-line{stroke:#8f6bff}.violet-wash{fill:#8f6bff;fill-opacity:.22}
+.rose{fill:#e06296}.rose-line{stroke:#e06296}.rose-wash{fill:#e06296;fill-opacity:.2}
+.amber{fill:#b98b24}.amber-line{stroke:#b98b24}.amber-wash{fill:#b98b24;fill-opacity:.22}
+.h0{stop-color:#4a72ff}.h1{stop-color:#8f6bff}.h2{stop-color:#ff92bd}
+.land0{stop-color:#6f8cff;stop-opacity:.16}.land1{stop-color:#6f8cff;stop-opacity:.02}
+.halo{opacity:.55}
 }
 </style>
-<text x="106" y="38" font-size="18">Mapped value</text>
-<g stroke="#b5bfbc" stroke-width="1">
-<line x1="106" y1="80" x2="696" y2="80"/>
-<line x1="106" y1="260" x2="696" y2="260"/>
-</g>
-<g font-size="16" text-anchor="end">
-<text x="92" y="86">1 or 100</text>
-<text x="92" y="266">0</text>
-</g>
-<g stroke="#63706e" stroke-width="1" stroke-dasharray="3 5">
-<line x1="216" y1="80" x2="216" y2="260"/>
-<line x1="576" y1="80" x2="576" y2="260"/>
-</g>
-<path d="M106 260 H216 L576 80 H696" fill="none" stroke="#146cba" stroke-width="3"/>
-<g fill="#146cba">
-<circle cx="216" cy="260" r="5"/>
-<circle cx="576" cy="80" r="5"/>
-</g>
-<text x="161" y="286" font-size="16" text-anchor="middle" fill="#146cba">Clamped</text>
-<text x="636" y="106" font-size="16" text-anchor="middle" fill="#146cba">Clamped</text>
-<g stroke="#63706e" stroke-width="1">
-<line x1="216" y1="274" x2="216" y2="280"/>
-<line x1="576" y1="274" x2="576" y2="280"/>
-</g>
-<g font-size="17" text-anchor="middle">
-<text x="216" y="302">min</text>
-<text x="576" y="302">max</text>
-</g>
-<text x="396" y="333" font-size="18" text-anchor="middle">Input value x</text>
+<defs><filter id="glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="3"/></filter><marker id="tip-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="ink" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-violet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="violet" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="rose" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="amber" d="M0 0L10 5L0 10Z"/></marker><linearGradient id="light" gradientUnits="userSpaceOnUse" x1="100" y1="0" x2="700" y2="0"><stop class="h0" offset="0"/><stop class="h1" offset=".58"/><stop class="h2" offset="1"/></linearGradient><linearGradient id="land" gradientUnits="userSpaceOnUse" x1="0" y1="82" x2="0" y2="262"><stop class="land0" offset="0"/><stop class="land1" offset="1"/></linearGradient></defs>
+<text x="100" y="40">Mapped value</text>
+<path class="grid" d="M100 82L700 82"/><path class="axis" d="M100 262L700 262"/>
+<text class="num muted" x="86" y="86.5" text-anchor="end">1 or 100</text><text class="num muted" x="86" y="266.5" text-anchor="end">0</text>
+<path class="guide" d="M230 82L230 262"/><path class="guide" d="M570 82L570 262"/>
+<path d="M100 262L230 262L570 82L700 82L700 262L100 262Z" fill="url(#land)"/><path d="M100 262L230 262L570 82L700 82" fill="none" stroke="url(#light)" stroke-width="8" opacity=".14" class="halo"/><path d="M100 262L230 262L570 82L700 82" fill="none" stroke="url(#light)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+<g><circle class="ink halo" cx="230" cy="262" r="7" filter="url(#glow)"/><circle class="ink ring" cx="230" cy="262" r="5"/></g><g><circle class="ink halo" cx="570" cy="82" r="7" filter="url(#glow)"/><circle class="ink ring" cx="570" cy="82" r="5"/></g>
+<text class="muted" x="165" y="248" text-anchor="middle">Clamped</text><text class="muted" x="635" y="108" text-anchor="middle">Clamped</text>
+<path class="axis" d="M230 262L230 268"/><path class="axis" d="M570 262L570 268"/>
+<text class="num" x="230" y="288" text-anchor="middle">min</text><text class="num" x="570" y="288" text-anchor="middle">max</text>
+<text x="400" y="328" text-anchor="middle">Input value x</text>
 </svg>

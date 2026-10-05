@@ -1,47 +1,41 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 340" role="img" aria-labelledby="title">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 350" role="img" aria-labelledby="title desc">
 <title id="title">Shared benchmark gaps give 3.75, which imputes Benchmark D at high effort as 63.75</title>
-<style>text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;fill:#182421}.muted{fill:#63706e}.obs{fill:#087f6b}.imp{fill:#a64d0c}.return{fill:none;stroke:#a64d0c;stroke-width:1.5}.flow{fill:none;stroke:#63706e;stroke-width:1.5}.grid{fill:#087f6b;fill-opacity:.09;stroke:#087f6b;stroke-opacity:.25}@media(prefers-color-scheme:dark){text{fill:#ecf0ed}.muted{fill:#a6b2ae}.flow{stroke:#a6b2ae}.obs{fill:#62d6b1}.imp{fill:#ffbc7d}.return{stroke:#ffbc7d}}</style>
-<text x="246" y="24" font-size="14" text-anchor="middle">Benchmark A</text>
-<text x="246" y="45" font-size="13" class="muted" text-anchor="middle">weight 1</text>
-<text x="366" y="24" font-size="14" text-anchor="middle">Benchmark B</text>
-<text x="366" y="45" font-size="13" class="muted" text-anchor="middle">weight 2</text>
-<text x="486" y="24" font-size="14" text-anchor="middle">Benchmark C</text>
-<text x="486" y="45" font-size="13" class="muted" text-anchor="middle">weight 1</text>
-<text x="646" y="24" font-size="14" text-anchor="middle">Benchmark D</text>
-<text x="646" y="45" font-size="13" class="muted" text-anchor="middle">weight 2</text>
-<text x="32" y="104" font-size="17" text-anchor="start">Medium effort</text>
-<rect x="199" y="76" width="94" height="44" rx="3" class="grid"/>
-<text x="246" y="105" font-size="22" text-anchor="middle">60</text>
-<rect x="319" y="76" width="94" height="44" rx="3" class="grid"/>
-<text x="366" y="105" font-size="22" text-anchor="middle">50</text>
-<rect x="439" y="76" width="94" height="44" rx="3" class="grid"/>
-<text x="486" y="105" font-size="22" text-anchor="middle">40</text>
-<rect x="599" y="76" width="94" height="44" rx="3" class="grid"/>
-<text x="646" y="105" font-size="22" text-anchor="middle">60</text>
-<text x="32" y="166" font-size="17" text-anchor="start">High effort</text>
-<rect x="199" y="138" width="94" height="44" rx="3" class="grid"/>
-<text x="246" y="167" font-size="22" text-anchor="middle">70</text>
-<rect x="319" y="138" width="94" height="44" rx="3" class="grid"/>
-<text x="366" y="167" font-size="22" text-anchor="middle">55</text>
-<rect x="439" y="138" width="94" height="44" rx="3" class="grid"/>
-<text x="486" y="167" font-size="22" text-anchor="middle">35</text>
-<rect x="599" y="138" width="94" height="44" rx="3" class="grid" stroke-dasharray="4 4"/>
-<text x="646" y="167" font-size="22" text-anchor="middle">?</text>
-<text x="32" y="214" font-size="15" class="muted" text-anchor="start">High − medium</text>
-<text x="246" y="214" font-size="18" text-anchor="middle">+10</text>
-<text x="366" y="214" font-size="18" text-anchor="middle">+5</text>
-<text x="486" y="214" font-size="18" text-anchor="middle">−5</text>
-<text x="32" y="247" font-size="15" class="muted" text-anchor="start">Apply weights</text>
-<text x="246" y="247" font-size="18" text-anchor="middle">+10 × 1</text>
-<text x="366" y="247" font-size="18" text-anchor="middle">+5 × 2</text>
-<text x="486" y="247" font-size="18" text-anchor="middle">−5 × 1</text>
-<path d="M246 257 V269 H486 V257 M366 257 V285 M361 279 L366 285 L371 279" class="flow"/>
-<text x="32" y="310" font-size="15" class="muted" text-anchor="start">Weighted gap</text>
-<text x="366" y="310" font-size="22" text-anchor="middle">+15 ÷ 4 = +3.75</text>
-<text x="366" y="332" font-size="13" class="muted" text-anchor="middle">total weight: 1 + 2 + 1 = 4</text>
-<path d="M467 304 H555 M549 299 L555 304 L549 309" class="flow"/>
-<text x="646" y="310" font-size="17" text-anchor="middle">60 + 3.75 = <tspan class="imp">63.75</tspan></text>
-<text x="646" y="332" font-size="13" class="imp" text-anchor="middle">imputed</text>
-<path d="M700 98 H746 V304 H734 M740 299 L734 304 L740 309" class="return"/>
-<path d="M646 286 V190 M641 196 L646 190 L651 196" class="return"/>
+<desc id="desc">The same model at medium and high effort. On the shared benchmarks, high effort scores plus 10 on Benchmark A with weight 1, plus 5 on Benchmark B with weight 2, and minus 5 on Benchmark C with weight 1. Their weighted mean gap is 15 divided by 4, or plus 3.75. Benchmark D is observed only at medium effort, 60, so the high-effort estimate is 60 plus 3.75, or 63.75.</desc>
+<style>
+text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:15px;fill:#202724}
+.num{font-family:"SFMono-Regular","SF Mono",Menlo,Consolas,monospace;font-size:14px}
+.small{font-size:12.5px}.big{font-size:18px}.strong{font-weight:600}
+.muted{fill-opacity:.62}.faint{opacity:.4}.half{opacity:.5}
+.grid{fill:none;stroke:#202724;stroke-opacity:.09}
+.guide{fill:none;stroke:#202724;stroke-opacity:.22}
+.axis{fill:none;stroke:#202724;stroke-opacity:.34}
+.ink{fill:#202724}.ink-line{fill:none;stroke:#202724}.ink-wash{fill:#202724;fill-opacity:.08}
+.ring{stroke:#f2f4f2;stroke-width:2;paint-order:stroke}.gap{stroke:#f2f4f2;stroke-width:2}
+.violet{fill:#6b47e0}.violet-line{fill:none;stroke:#6b47e0}.violet-wash{fill:#6b47e0;fill-opacity:.14}
+.rose{fill:#c93f78}.rose-line{fill:none;stroke:#c93f78}.rose-wash{fill:#c93f78;fill-opacity:.14}
+.amber{fill:#a8740c}.amber-line{fill:none;stroke:#a8740c}.amber-wash{fill:#a8740c;fill-opacity:.16}
+.h0{stop-color:#3557e6}.h1{stop-color:#6b47e0}.h2{stop-color:#d9467f}
+.land0{stop-color:#6b47e0;stop-opacity:.12}.land1{stop-color:#6b47e0;stop-opacity:.01}
+.halo{opacity:0}
+@media (prefers-color-scheme:dark){
+text{fill:#f2f3ed}.muted{fill-opacity:.58}
+.grid{stroke:#f2f3ed;stroke-opacity:.08}.guide{stroke:#f2f3ed;stroke-opacity:.2}.axis{stroke:#f2f3ed;stroke-opacity:.3}
+.ink{fill:#f2f3ed}.ink-line{stroke:#f2f3ed}.ink-wash{fill:#f2f3ed;fill-opacity:.1}
+.ring{stroke:#0b1016}.gap{stroke:#0b1016}
+.violet{fill:#8f6bff}.violet-line{stroke:#8f6bff}.violet-wash{fill:#8f6bff;fill-opacity:.22}
+.rose{fill:#e06296}.rose-line{stroke:#e06296}.rose-wash{fill:#e06296;fill-opacity:.2}
+.amber{fill:#b98b24}.amber-line{stroke:#b98b24}.amber-wash{fill:#b98b24;fill-opacity:.22}
+.h0{stop-color:#4a72ff}.h1{stop-color:#8f6bff}.h2{stop-color:#ff92bd}
+.land0{stop-color:#6f8cff;stop-opacity:.16}.land1{stop-color:#6f8cff;stop-opacity:.02}
+.halo{opacity:.55}
+}
+</style>
+<defs><filter id="glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="3"/></filter><marker id="tip-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="ink" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-violet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="violet" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="rose" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="amber" d="M0 0L10 5L0 10Z"/></marker></defs>
+<path class="ink ring" d="M46 24L52 30L46 36L40 30Z"/><text class="muted" x="60" y="35">Medium effort</text><g><circle class="ink halo" cx="186" cy="30" r="7.5" filter="url(#glow)"/><circle class="ink ring" cx="186" cy="30" r="5.5"/></g><text class="muted" x="200" y="35">High effort</text><g><circle class="rose halo" cx="312" cy="30" r="7.5" filter="url(#glow)"/><circle class="rose ring" cx="312" cy="30" r="5.5"/></g><text class="muted" x="326" y="35">Estimated high effort</text>
+<path class="grid" d="M240 66L240 272"/><text class="num muted" x="240" y="294" text-anchor="middle">30</text><path class="grid" d="M331.1 66L331.1 272"/><text class="num muted" x="331.1" y="294" text-anchor="middle">40</text><path class="grid" d="M422.2 66L422.2 272"/><text class="num muted" x="422.2" y="294" text-anchor="middle">50</text><path class="grid" d="M513.3 66L513.3 272"/><text class="num muted" x="513.3" y="294" text-anchor="middle">60</text><path class="grid" d="M604.4 66L604.4 272"/><text class="num muted" x="604.4" y="294" text-anchor="middle">70</text>
+<text x="40" y="97">Benchmark A</text><text class="small muted" x="196" y="97" text-anchor="end">weight 1</text><path class="ink-line" d="M522.3 92L595.4 92" stroke-width="1.5" stroke-opacity=".6" marker-end="url(#tip-ink)"/><path class="ink ring" d="M513.3 86L519.3 92L513.3 98L507.3 92Z"/><g><circle class="ink halo" cx="604.4" cy="92" r="7.5" filter="url(#glow)"/><circle class="ink ring" cx="604.4" cy="92" r="5.5"/></g><text class="num" x="558.9" y="80" text-anchor="middle">+10</text>
+<text x="40" y="147">Benchmark B</text><text class="small muted" x="196" y="147" text-anchor="end">weight 2</text><path class="ink-line" d="M431.2 142L458.8 142" stroke-width="1.5" stroke-opacity=".6" marker-end="url(#tip-ink)"/><path class="ink ring" d="M422.2 136L428.2 142L422.2 148L416.2 142Z"/><g><circle class="ink halo" cx="467.8" cy="142" r="7.5" filter="url(#glow)"/><circle class="ink ring" cx="467.8" cy="142" r="5.5"/></g><text class="num" x="445" y="130" text-anchor="middle">+5</text>
+<text x="40" y="197">Benchmark C</text><text class="small muted" x="196" y="197" text-anchor="end">weight 1</text><path class="ink-line" d="M322.1 192L294.6 192" stroke-width="1.5" stroke-opacity=".6" marker-end="url(#tip-ink)"/><path class="ink ring" d="M331.1 186L337.1 192L331.1 198L325.1 192Z"/><g><circle class="ink halo" cx="285.6" cy="192" r="7.5" filter="url(#glow)"/><circle class="ink ring" cx="285.6" cy="192" r="5.5"/></g><text class="num" x="308.3" y="180" text-anchor="middle">−5</text>
+<text x="40" y="247">Benchmark D</text><text class="small muted" x="196" y="247" text-anchor="end">weight 2</text><path class="violet-line" d="M522.3 242L538.5 242" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#tip-violet)"/><path class="ink ring" d="M513.3 236L519.3 242L513.3 248L507.3 242Z"/><g><circle class="rose halo" cx="547.5" cy="242" r="7.5" filter="url(#glow)"/><circle class="rose ring" cx="547.5" cy="242" r="5.5"/></g><text class="num strong" x="530.4" y="230" text-anchor="middle">+3.75</text><text class="num strong" x="561.5" y="247">63.75</text>
+<text x="40" y="328">Weighted gap</text><text class="num" x="240" y="328">(10 × 1 + 5 × 2 − 5 × 1) ÷ (1 + 2 + 1) = +3.75</text>
 </svg>

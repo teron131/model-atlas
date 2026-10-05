@@ -1,56 +1,49 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 690" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 500" role="img" aria-labelledby="title desc">
 <title id="title">Supported model count determines comparison strength</title>
-<desc id="desc">Peer support is zero through a supported model count of one, rises smoothly to one at a count of three, and stays at one beyond it. Four peers with weight 0.5 each have total weight two and effective count four, giving supported count two and peer support 0.5.</desc>
-<style>text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;fill:#182421}.muted{fill:#63706e}.grid{stroke:#b5bfbc;stroke-width:1}.guide{fill:none;stroke:#63706e;stroke-width:1;stroke-dasharray:4 5}.curve{fill:none;stroke:#146cba;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.point{fill:#146cba}.accent{fill:#146cba}@media(prefers-color-scheme:dark){text{fill:#ecf0ed}.muted{fill:#a6b2ae}.grid{stroke:#3c4846}.guide{fill:none;stroke:#a6b2ae}.curve{stroke:#85bfff}.point,.accent{fill:#85bfff}}</style>
-<text x="90" y="28" font-size="18">Four other models</text>
-<text x="680" y="28" font-size="15" text-anchor="end" class="muted">Weight per model: 0.5</text>
-<rect x="100" y="50" width="80" height="40" rx="2" fill="none" class="grid"/>
-<rect x="100" y="70" width="80" height="20" class="point"/>
-<text x="140" y="115" font-size="15" text-anchor="middle" class="muted">Model 1</text>
-<rect x="260" y="50" width="80" height="40" rx="2" fill="none" class="grid"/>
-<rect x="260" y="70" width="80" height="20" class="point"/>
-<text x="300" y="115" font-size="15" text-anchor="middle" class="muted">Model 2</text>
-<rect x="420" y="50" width="80" height="40" rx="2" fill="none" class="grid"/>
-<rect x="420" y="70" width="80" height="20" class="point"/>
-<text x="460" y="115" font-size="15" text-anchor="middle" class="muted">Model 3</text>
-<rect x="580" y="50" width="80" height="40" rx="2" fill="none" class="grid"/>
-<rect x="580" y="70" width="80" height="20" class="point"/>
-<text x="620" y="115" font-size="15" text-anchor="middle" class="muted">Model 4</text>
-<path d="M140 128 H620 M220 128 V148 M540 128 V148" class="guide"/>
-<text x="220" y="170" font-size="17" text-anchor="middle">Total weight</text>
-<text x="220" y="198" font-size="20" text-anchor="middle" class="accent">4 × 0.5 = 2</text>
-<text x="540" y="170" font-size="17" text-anchor="middle">Effective count</text>
-<text x="540" y="198" font-size="20" text-anchor="middle">2² / (4 × 0.5²) = 4</text>
-<path d="M220 209 V226 H540 V209 M380 226 V241" class="guide"/>
-<text x="380" y="264" font-size="18" text-anchor="middle" class="accent">Smaller count: n = 2</text>
-<g transform="translate(0 290)">
-<text x="90" y="32" font-size="18">Peer support p</text>
-<path d="M90 310 H680" class="grid"/>
-<text x="72" y="315" font-size="16" text-anchor="end" class="muted">0</text>
-<path d="M90 197.5 H680" class="grid"/>
-<text x="72" y="202.5" font-size="16" text-anchor="end" class="muted">0.5</text>
-<path d="M90 85 H680" class="grid"/>
-<text x="72" y="90" font-size="16" text-anchor="end" class="muted">1</text>
-<path d="M90.0 310 v6" class="grid"/>
-<text x="90.0" y="339" font-size="16" text-anchor="middle" class="muted">0</text>
-<path d="M237.5 310 v6" class="grid"/>
-<text x="237.5" y="339" font-size="16" text-anchor="middle" class="muted">1</text>
-<path d="M385.0 310 v6" class="grid"/>
-<text x="385.0" y="339" font-size="16" text-anchor="middle" class="muted">2</text>
-<path d="M532.5 310 v6" class="grid"/>
-<text x="532.5" y="339" font-size="16" text-anchor="middle" class="muted">3</text>
-<path d="M680.0 310 v6" class="grid"/>
-<text x="680.0" y="339" font-size="16" text-anchor="middle" class="muted">4</text>
-<path d="M385 310 V197.5 H90" class="guide"/>
-<polyline points="90.00,310.00 93.69,310.00 97.38,310.00 101.06,310.00 104.75,310.00 108.44,310.00 112.12,310.00 115.81,310.00 119.50,310.00 123.19,310.00 126.88,310.00 130.56,310.00 134.25,310.00 137.94,310.00 141.62,310.00 145.31,310.00 149.00,310.00 152.69,310.00 156.38,310.00 160.06,310.00 163.75,310.00 167.44,310.00 171.12,310.00 174.81,310.00 178.50,310.00 182.19,310.00 185.88,310.00 189.56,310.00 193.25,310.00 196.94,310.00 200.62,310.00 204.31,310.00 208.00,310.00 211.69,310.00 215.38,310.00 219.06,310.00 222.75,310.00 226.44,310.00 230.12,310.00 233.81,310.00 237.50,310.00 241.19,309.90 244.88,309.59 248.56,309.07 252.25,308.37 255.94,307.47 259.62,306.39 263.31,305.13 267.00,303.70 270.69,302.10 274.38,300.33 278.06,298.41 281.75,296.33 285.44,294.11 289.12,291.74 292.81,289.24 296.50,286.60 300.19,283.84 303.88,280.95 307.56,277.95 311.25,274.84 314.94,271.63 318.62,268.31 322.31,264.90 326.00,261.40 329.69,257.81 333.38,254.15 337.06,250.41 340.75,246.61 344.44,242.74 348.12,238.81 351.81,234.83 355.50,230.80 359.19,226.73 362.88,222.62 366.56,218.48 370.25,214.32 373.94,210.13 377.62,205.93 381.31,201.72 385.00,197.50 388.69,193.28 392.38,189.07 396.06,184.87 399.75,180.68 403.44,176.52 407.12,172.38 410.81,168.27 414.50,164.20 418.19,160.17 421.88,156.19 425.56,152.26 429.25,148.39 432.94,144.59 436.62,140.85 440.31,137.19 444.00,133.60 447.69,130.10 451.38,126.69 455.06,123.37 458.75,120.16 462.44,117.05 466.12,114.05 469.81,111.16 473.50,108.40 477.19,105.76 480.88,103.26 484.56,100.89 488.25,98.67 491.94,96.59 495.62,94.67 499.31,92.90 503.00,91.30 506.69,89.87 510.38,88.61 514.06,87.53 517.75,86.63 521.44,85.93 525.12,85.41 528.81,85.10 532.50,85.00 536.19,85.00 539.88,85.00 543.56,85.00 547.25,85.00 550.94,85.00 554.62,85.00 558.31,85.00 562.00,85.00 565.69,85.00 569.38,85.00 573.06,85.00 576.75,85.00 580.44,85.00 584.12,85.00 587.81,85.00 591.50,85.00 595.19,85.00 598.88,85.00 602.56,85.00 606.25,85.00 609.94,85.00 613.62,85.00 617.31,85.00 621.00,85.00 624.69,85.00 628.38,85.00 632.06,85.00 635.75,85.00 639.44,85.00 643.12,85.00 646.81,85.00 650.50,85.00 654.19,85.00 657.88,85.00 661.56,85.00 665.25,85.00 668.94,85.00 672.62,85.00 676.31,85.00 680.00,85.00" class="curve"/>
-<circle cx="237.5" cy="310" r="5" class="point"/>
-<circle cx="385" cy="197.5" r="5" class="point"/>
-<circle cx="532.5" cy="85" r="5" class="point"/>
-<text x="100" y="288" font-size="16" class="muted">No adjustment</text>
-<text x="680" y="64" font-size="16" text-anchor="end" class="muted">Full adjustment</text>
-<path d="M393 204 L420 239" class="guide"/>
-<text x="432" y="250" font-size="16">Half the adjustment</text>
-<text x="432" y="277" font-size="18" class="accent">n = 2 → p = 0.5</text>
-<text x="385" y="382" font-size="18" text-anchor="middle">Supported model count n</text>
-</g>
+<desc id="desc">Four other models each carry peer weight 0.5 out of a possible 1. Their total weight is 2 and their effective count is 4, so the supported model count is the smaller value, 2. Peer support is zero through a supported count of 1, rises smoothly to 1 at a count of 3, and stays at 1 beyond it; a count of 2 gives half support.</desc>
+<style>
+text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:15px;fill:#202724}
+.num{font-family:"SFMono-Regular","SF Mono",Menlo,Consolas,monospace;font-size:14px}
+.small{font-size:12.5px}.big{font-size:18px}.strong{font-weight:600}
+.muted{fill-opacity:.62}.faint{opacity:.4}.half{opacity:.5}
+.grid{fill:none;stroke:#202724;stroke-opacity:.09}
+.guide{fill:none;stroke:#202724;stroke-opacity:.22}
+.axis{fill:none;stroke:#202724;stroke-opacity:.34}
+.ink{fill:#202724}.ink-line{fill:none;stroke:#202724}.ink-wash{fill:#202724;fill-opacity:.08}
+.ring{stroke:#f2f4f2;stroke-width:2;paint-order:stroke}.gap{stroke:#f2f4f2;stroke-width:2}
+.violet{fill:#6b47e0}.violet-line{fill:none;stroke:#6b47e0}.violet-wash{fill:#6b47e0;fill-opacity:.14}
+.rose{fill:#c93f78}.rose-line{fill:none;stroke:#c93f78}.rose-wash{fill:#c93f78;fill-opacity:.14}
+.amber{fill:#a8740c}.amber-line{fill:none;stroke:#a8740c}.amber-wash{fill:#a8740c;fill-opacity:.16}
+.h0{stop-color:#3557e6}.h1{stop-color:#6b47e0}.h2{stop-color:#d9467f}
+.land0{stop-color:#6b47e0;stop-opacity:.12}.land1{stop-color:#6b47e0;stop-opacity:.01}
+.halo{opacity:0}
+@media (prefers-color-scheme:dark){
+text{fill:#f2f3ed}.muted{fill-opacity:.58}
+.grid{stroke:#f2f3ed;stroke-opacity:.08}.guide{stroke:#f2f3ed;stroke-opacity:.2}.axis{stroke:#f2f3ed;stroke-opacity:.3}
+.ink{fill:#f2f3ed}.ink-line{stroke:#f2f3ed}.ink-wash{fill:#f2f3ed;fill-opacity:.1}
+.ring{stroke:#0b1016}.gap{stroke:#0b1016}
+.violet{fill:#8f6bff}.violet-line{stroke:#8f6bff}.violet-wash{fill:#8f6bff;fill-opacity:.22}
+.rose{fill:#e06296}.rose-line{stroke:#e06296}.rose-wash{fill:#e06296;fill-opacity:.2}
+.amber{fill:#b98b24}.amber-line{stroke:#b98b24}.amber-wash{fill:#b98b24;fill-opacity:.22}
+.h0{stop-color:#4a72ff}.h1{stop-color:#8f6bff}.h2{stop-color:#ff92bd}
+.land0{stop-color:#6f8cff;stop-opacity:.16}.land1{stop-color:#6f8cff;stop-opacity:.02}
+.halo{opacity:.55}
+}
+</style>
+<defs><filter id="glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="3"/></filter><marker id="tip-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="ink" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-violet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="violet" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="rose" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="amber" d="M0 0L10 5L0 10Z"/></marker><linearGradient id="light" gradientUnits="userSpaceOnUse" x1="90" y1="0" x2="690" y2="0"><stop class="h0" offset="0"/><stop class="h1" offset=".58"/><stop class="h2" offset="1"/></linearGradient><linearGradient id="land" gradientUnits="userSpaceOnUse" x1="0" y1="280" x2="0" y2="440"><stop class="land0" offset="0"/><stop class="land1" offset="1"/></linearGradient></defs>
+<text class="muted" x="90" y="40">Four other models · weight per model 0.5</text>
+<path class="grid" d="M96 70L300 70"/><text class="num muted" x="84" y="74.5" text-anchor="end">1</text><text class="num muted" x="84" y="124.5" text-anchor="end">0.5</text><path class="axis" d="M96 170L300 170"/>
+<rect class="ink-wash" x="109" y="70" width="22" height="100" rx="3" opacity=".6"/><rect class="violet" x="109" y="120" width="22" height="50" rx="3" opacity=".75"/><text class="num muted" x="120" y="192" text-anchor="middle">1</text><rect class="ink-wash" x="161" y="70" width="22" height="100" rx="3" opacity=".6"/><rect class="violet" x="161" y="120" width="22" height="50" rx="3" opacity=".75"/><text class="num muted" x="172" y="192" text-anchor="middle">2</text><rect class="ink-wash" x="213" y="70" width="22" height="100" rx="3" opacity=".6"/><rect class="violet" x="213" y="120" width="22" height="50" rx="3" opacity=".75"/><text class="num muted" x="224" y="192" text-anchor="middle">3</text><rect class="ink-wash" x="265" y="70" width="22" height="100" rx="3" opacity=".6"/><rect class="violet" x="265" y="120" width="22" height="50" rx="3" opacity=".75"/><text class="num muted" x="276" y="192" text-anchor="middle">4</text>
+<text class="muted" x="360" y="96">Total weight</text><text class="num" x="530" y="96">2</text>
+<text class="muted" x="360" y="126">Effective count</text><text class="num" x="530" y="126">4</text>
+<text x="360" y="162">Smaller count</text><text class="num strong" x="530" y="162">n = 2</text>
+<text class="muted" x="90" y="256">Peer support p</text>
+<path class="axis" d="M90 440L690 440"/><text class="num muted" x="76" y="444.5" text-anchor="end">0</text><path class="grid" d="M90 360L690 360"/><text class="num muted" x="76" y="364.5" text-anchor="end">0.5</text><path class="grid" d="M90 280L690 280"/><text class="num muted" x="76" y="284.5" text-anchor="end">1</text>
+<path class="guide" d="M390 360L390 440"/><path class="guide" d="M90 360L390 360"/>
+<path d="M90 440L93.8 440L97.5 440L101.3 440L105 440L108.8 440L112.5 440L116.3 440L120 440L123.8 440L127.5 440L131.3 440L135 440L138.8 440L142.5 440L146.3 440L150 440L153.8 440L157.5 440L161.3 440L165 440L168.8 440L172.5 440L176.3 440L180 440L183.8 440L187.5 440L191.3 440L195 440L198.8 440L202.5 440L206.3 440L210 440L213.8 440L217.5 440L221.3 440L225 440L228.8 440L232.5 440L236.3 440L240 440L243.8 439.9L247.5 439.7L251.3 439.3L255 438.8L258.8 438.2L262.5 437.4L266.3 436.5L270 435.5L273.8 434.4L277.5 433.1L281.3 431.8L285 430.3L288.8 428.7L292.5 427L296.3 425.2L300 423.4L303.8 421.4L307.5 419.3L311.3 417.2L315 415L318.8 412.7L322.5 410.4L326.3 407.9L330 405.4L333.8 402.9L337.5 400.3L341.3 397.6L345 394.9L348.8 392.2L352.5 389.4L356.3 386.5L360 383.7L363.8 380.8L367.5 377.9L371.3 374.9L375 372L378.8 369L382.5 366L386.3 363L390 360L393.8 357L397.5 354L401.3 351L405 348L408.8 345.1L412.5 342.1L416.3 339.2L420 336.3L423.8 333.5L427.5 330.6L431.3 327.8L435 325.1L438.8 322.4L442.5 319.7L446.3 317.1L450 314.6L453.8 312.1L457.5 309.6L461.3 307.3L465 305L468.8 302.8L472.5 300.7L476.3 298.6L480 296.6L483.8 294.8L487.5 293L491.3 291.3L495 289.7L498.8 288.2L502.5 286.9L506.3 285.6L510 284.5L513.8 283.5L517.5 282.6L521.3 281.8L525 281.2L528.8 280.7L532.5 280.3L536.3 280.1L540 280L543.8 280L547.5 280L551.3 280L555 280L558.8 280L562.5 280L566.3 280L570 280L573.8 280L577.5 280L581.3 280L585 280L588.8 280L592.5 280L596.3 280L600 280L603.8 280L607.5 280L611.3 280L615 280L618.8 280L622.5 280L626.3 280L630 280L633.8 280L637.5 280L641.3 280L645 280L648.8 280L652.5 280L656.3 280L660 280L663.8 280L667.5 280L671.3 280L675 280L678.8 280L682.5 280L686.3 280L690 280L690 440L90 440Z" fill="url(#land)"/><path d="M90 440L93.8 440L97.5 440L101.3 440L105 440L108.8 440L112.5 440L116.3 440L120 440L123.8 440L127.5 440L131.3 440L135 440L138.8 440L142.5 440L146.3 440L150 440L153.8 440L157.5 440L161.3 440L165 440L168.8 440L172.5 440L176.3 440L180 440L183.8 440L187.5 440L191.3 440L195 440L198.8 440L202.5 440L206.3 440L210 440L213.8 440L217.5 440L221.3 440L225 440L228.8 440L232.5 440L236.3 440L240 440L243.8 439.9L247.5 439.7L251.3 439.3L255 438.8L258.8 438.2L262.5 437.4L266.3 436.5L270 435.5L273.8 434.4L277.5 433.1L281.3 431.8L285 430.3L288.8 428.7L292.5 427L296.3 425.2L300 423.4L303.8 421.4L307.5 419.3L311.3 417.2L315 415L318.8 412.7L322.5 410.4L326.3 407.9L330 405.4L333.8 402.9L337.5 400.3L341.3 397.6L345 394.9L348.8 392.2L352.5 389.4L356.3 386.5L360 383.7L363.8 380.8L367.5 377.9L371.3 374.9L375 372L378.8 369L382.5 366L386.3 363L390 360L393.8 357L397.5 354L401.3 351L405 348L408.8 345.1L412.5 342.1L416.3 339.2L420 336.3L423.8 333.5L427.5 330.6L431.3 327.8L435 325.1L438.8 322.4L442.5 319.7L446.3 317.1L450 314.6L453.8 312.1L457.5 309.6L461.3 307.3L465 305L468.8 302.8L472.5 300.7L476.3 298.6L480 296.6L483.8 294.8L487.5 293L491.3 291.3L495 289.7L498.8 288.2L502.5 286.9L506.3 285.6L510 284.5L513.8 283.5L517.5 282.6L521.3 281.8L525 281.2L528.8 280.7L532.5 280.3L536.3 280.1L540 280L543.8 280L547.5 280L551.3 280L555 280L558.8 280L562.5 280L566.3 280L570 280L573.8 280L577.5 280L581.3 280L585 280L588.8 280L592.5 280L596.3 280L600 280L603.8 280L607.5 280L611.3 280L615 280L618.8 280L622.5 280L626.3 280L630 280L633.8 280L637.5 280L641.3 280L645 280L648.8 280L652.5 280L656.3 280L660 280L663.8 280L667.5 280L671.3 280L675 280L678.8 280L682.5 280L686.3 280L690 280" fill="none" stroke="url(#light)" stroke-width="8" opacity=".14" class="halo"/><path d="M90 440L93.8 440L97.5 440L101.3 440L105 440L108.8 440L112.5 440L116.3 440L120 440L123.8 440L127.5 440L131.3 440L135 440L138.8 440L142.5 440L146.3 440L150 440L153.8 440L157.5 440L161.3 440L165 440L168.8 440L172.5 440L176.3 440L180 440L183.8 440L187.5 440L191.3 440L195 440L198.8 440L202.5 440L206.3 440L210 440L213.8 440L217.5 440L221.3 440L225 440L228.8 440L232.5 440L236.3 440L240 440L243.8 439.9L247.5 439.7L251.3 439.3L255 438.8L258.8 438.2L262.5 437.4L266.3 436.5L270 435.5L273.8 434.4L277.5 433.1L281.3 431.8L285 430.3L288.8 428.7L292.5 427L296.3 425.2L300 423.4L303.8 421.4L307.5 419.3L311.3 417.2L315 415L318.8 412.7L322.5 410.4L326.3 407.9L330 405.4L333.8 402.9L337.5 400.3L341.3 397.6L345 394.9L348.8 392.2L352.5 389.4L356.3 386.5L360 383.7L363.8 380.8L367.5 377.9L371.3 374.9L375 372L378.8 369L382.5 366L386.3 363L390 360L393.8 357L397.5 354L401.3 351L405 348L408.8 345.1L412.5 342.1L416.3 339.2L420 336.3L423.8 333.5L427.5 330.6L431.3 327.8L435 325.1L438.8 322.4L442.5 319.7L446.3 317.1L450 314.6L453.8 312.1L457.5 309.6L461.3 307.3L465 305L468.8 302.8L472.5 300.7L476.3 298.6L480 296.6L483.8 294.8L487.5 293L491.3 291.3L495 289.7L498.8 288.2L502.5 286.9L506.3 285.6L510 284.5L513.8 283.5L517.5 282.6L521.3 281.8L525 281.2L528.8 280.7L532.5 280.3L536.3 280.1L540 280L543.8 280L547.5 280L551.3 280L555 280L558.8 280L562.5 280L566.3 280L570 280L573.8 280L577.5 280L581.3 280L585 280L588.8 280L592.5 280L596.3 280L600 280L603.8 280L607.5 280L611.3 280L615 280L618.8 280L622.5 280L626.3 280L630 280L633.8 280L637.5 280L641.3 280L645 280L648.8 280L652.5 280L656.3 280L660 280L663.8 280L667.5 280L671.3 280L675 280L678.8 280L682.5 280L686.3 280L690 280" fill="none" stroke="url(#light)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+<g><circle class="ink halo" cx="240" cy="440" r="7" filter="url(#glow)"/><circle class="ink ring" cx="240" cy="440" r="5"/></g><g><circle class="ink halo" cx="390" cy="360" r="7" filter="url(#glow)"/><circle class="ink ring" cx="390" cy="360" r="5"/></g><g><circle class="ink halo" cx="540" cy="280" r="7" filter="url(#glow)"/><circle class="ink ring" cx="540" cy="280" r="5"/></g>
+<text class="num strong" x="404" y="382">n = 2 → p = 0.5</text>
+<text class="muted" x="112.5" y="428">No adjustment</text><text class="muted" x="675" y="268" text-anchor="end">Full adjustment</text>
+<path class="axis" d="M90 440L90 446"/><text class="num muted" x="90" y="464" text-anchor="middle">0</text><path class="axis" d="M240 440L240 446"/><text class="num muted" x="240" y="464" text-anchor="middle">1</text><path class="axis" d="M390 440L390 446"/><text class="num muted" x="390" y="464" text-anchor="middle">2</text><path class="axis" d="M540 440L540 446"/><text class="num muted" x="540" y="464" text-anchor="middle">3</text><path class="axis" d="M690 440L690 446"/><text class="num muted" x="690" y="464" text-anchor="middle">4</text>
+<text x="390" y="494" text-anchor="middle">Supported model count n</text>
 </svg>

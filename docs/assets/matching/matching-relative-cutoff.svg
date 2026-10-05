@@ -1,109 +1,44 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 72 760 578" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 460" role="img" aria-labelledby="title desc">
 <title id="title">Actual full-batch matching scores and highlighted identities</title>
-<desc id="desc">Replay of all 643 cached source rows from the saved snapshot using current matching code. The 370 pre-cutoff winners range from 4.12 to 54.71, giving cutoff 21.83. The minimum is discarded, the maximum retained, exact Inkling identity retained below cutoff, and reordered Claude Sonnet 4.5 retained. The batch has 47 cutoff rejections and 273 rows without compatible winners.</desc>
+<desc id="desc">A replay of all 643 cached source rows from the saved snapshot. The 370 winners with compatible candidates score from 4.12 to 54.71, giving the cutoff 4.12 plus 0.35 times the range, 21.83. The minimum, gpt-4o-chatgpt-03-25 matched to openai/gpt-oss-safeguard-20b, shares only the gpt prefix and is rejected. The maximum, claude-sonnet-4-6, is kept. The exact identity inkling is kept despite scoring 16.41, below the cutoff. The reordered claude-4-5-sonnet-thinking matches anthropic/claude-sonnet-4.5 at 34.37 and is kept. The batch has 47 cutoff rejections and 273 rows without compatible winners.</desc>
 <style>
-text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; }
-@media (prefers-color-scheme:dark) {
-text { fill:#ffffff; }
-[fill="#63706e"] { fill:#a6b2ae; } [stroke="#63706e"] { stroke:#a6b2ae; }
-[fill="#b5bfbc"] { fill:#3c4846; } [stroke="#b5bfbc"] { stroke:#3c4846; }
-[fill="#146cba"] { fill:#85bfff; } [stroke="#146cba"] { stroke:#85bfff; }
-[fill="#a64d0c"] { fill:#ffbc7d; } [stroke="#a64d0c"] { stroke:#ffbc7d; }
+text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:15px;fill:#202724}
+.num{font-family:"SFMono-Regular","SF Mono",Menlo,Consolas,monospace;font-size:14px}
+.small{font-size:12.5px}.big{font-size:18px}.strong{font-weight:600}
+.muted{fill-opacity:.62}.faint{opacity:.4}.half{opacity:.5}
+.grid{fill:none;stroke:#202724;stroke-opacity:.09}
+.guide{fill:none;stroke:#202724;stroke-opacity:.22}
+.axis{fill:none;stroke:#202724;stroke-opacity:.34}
+.ink{fill:#202724}.ink-line{fill:none;stroke:#202724}.ink-wash{fill:#202724;fill-opacity:.08}
+.ring{stroke:#f2f4f2;stroke-width:2;paint-order:stroke}.gap{stroke:#f2f4f2;stroke-width:2}
+.violet{fill:#6b47e0}.violet-line{fill:none;stroke:#6b47e0}.violet-wash{fill:#6b47e0;fill-opacity:.14}
+.rose{fill:#c93f78}.rose-line{fill:none;stroke:#c93f78}.rose-wash{fill:#c93f78;fill-opacity:.14}
+.amber{fill:#a8740c}.amber-line{fill:none;stroke:#a8740c}.amber-wash{fill:#a8740c;fill-opacity:.16}
+.h0{stop-color:#3557e6}.h1{stop-color:#6b47e0}.h2{stop-color:#d9467f}
+.land0{stop-color:#6b47e0;stop-opacity:.12}.land1{stop-color:#6b47e0;stop-opacity:.01}
+.halo{opacity:0}
+@media (prefers-color-scheme:dark){
+text{fill:#f2f3ed}.muted{fill-opacity:.58}
+.grid{stroke:#f2f3ed;stroke-opacity:.08}.guide{stroke:#f2f3ed;stroke-opacity:.2}.axis{stroke:#f2f3ed;stroke-opacity:.3}
+.ink{fill:#f2f3ed}.ink-line{stroke:#f2f3ed}.ink-wash{fill:#f2f3ed;fill-opacity:.1}
+.ring{stroke:#0b1016}.gap{stroke:#0b1016}
+.violet{fill:#8f6bff}.violet-line{stroke:#8f6bff}.violet-wash{fill:#8f6bff;fill-opacity:.22}
+.rose{fill:#e06296}.rose-line{stroke:#e06296}.rose-wash{fill:#e06296;fill-opacity:.2}
+.amber{fill:#b98b24}.amber-line{stroke:#b98b24}.amber-wash{fill:#b98b24;fill-opacity:.22}
+.h0{stop-color:#4a72ff}.h1{stop-color:#8f6bff}.h2{stop-color:#ff92bd}
+.land0{stop-color:#6f8cff;stop-opacity:.16}.land1{stop-color:#6f8cff;stop-opacity:.02}
+.halo{opacity:.55}
 }
 </style>
-
-
-<rect x="40" y="81" width="16" height="16" fill="#146cba" opacity="0.17"/>
-<text x="64" y="94" font-size="14" fill="#000000" text-anchor="start" font-weight="400">Matching identity</text>
-<rect x="241" y="81" width="16" height="16" fill="#a64d0c" opacity="0.17"/>
-<text x="265" y="94" font-size="14" fill="#000000" text-anchor="start" font-weight="400">Different identity</text>
-<line x1="460" y1="89" x2="482" y2="89" stroke="#146cba" stroke-width="1.3" stroke-dasharray="3 3"/>
-<text x="490" y="94" font-size="14" fill="#000000" text-anchor="start" font-weight="400">Corresponding parts</text>
-<text x="580" y="126" font-size="14" fill="#000000" text-anchor="start" font-weight="600">SCORE</text>
-<text x="660" y="126" font-size="14" fill="#000000" text-anchor="start" font-weight="600">RESULT</text>
-<line x1="40" y1="137" x2="725" y2="137" stroke="#b5bfbc" stroke-width="1"/>
-<line x1="104.4" y1="175" x2="171.6" y2="190" stroke="#146cba" stroke-width="1.2" stroke-dasharray="3 3"/>
-<text x="40" y="165" font-size="12" fill="#000000" text-anchor="start" font-weight="400">From</text>
-<text x="40" y="211" font-size="12" fill="#000000" text-anchor="start" font-weight="400">To</text>
-<rect x="88" y="148" width="32.8" height="24" fill="#146cba" opacity="0.17"/>
-<text x="90" y="165" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="28.799999999999997" lengthAdjust="spacingAndGlyphs">gpt</text>
-<text x="118.8" y="165" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="9.6" lengthAdjust="spacingAndGlyphs">-</text>
-<rect x="126.4" y="148" width="157.6" height="24" fill="#a64d0c" opacity="0.17"/>
-<text x="128.4" y="165" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="153.6" lengthAdjust="spacingAndGlyphs">4o-chatgpt-03-25</text>
-<text x="90" y="211" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="67.2" lengthAdjust="spacingAndGlyphs">openai/</text>
-<rect x="155.2" y="194" width="32.8" height="24" fill="#146cba" opacity="0.17"/>
-<text x="157.2" y="211" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="28.799999999999997" lengthAdjust="spacingAndGlyphs">gpt</text>
-<text x="186" y="211" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="9.6" lengthAdjust="spacingAndGlyphs">-</text>
-<rect x="193.6" y="194" width="167.2" height="24" fill="#a64d0c" opacity="0.17"/>
-<text x="195.6" y="211" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="163.2" lengthAdjust="spacingAndGlyphs">oss-safeguard-20b</text>
-
-<text x="604" y="165" font-size="17" fill="#000000" text-anchor="middle" font-weight="400">4.12</text>
-<text x="690" y="165" font-size="15" fill="#000000" text-anchor="middle" font-weight="600">Rejected</text>
-<line x1="40" y1="262" x2="725" y2="262" stroke="#b5bfbc" stroke-width="1"/>
-<line x1="238.8" y1="301" x2="334.8" y2="316" stroke="#146cba" stroke-width="1.2" stroke-dasharray="3 3"/>
-<line x1="186" y1="301" x2="282" y2="316" stroke="#146cba" stroke-width="1.2" stroke-dasharray="3 3"/>
-<text x="40" y="291" font-size="12" fill="#000000" text-anchor="start" font-weight="400">From</text>
-<text x="40" y="337" font-size="12" fill="#000000" text-anchor="start" font-weight="400">To</text>
-<rect x="88" y="274" width="61.6" height="24" fill="#146cba" opacity="0.17"/>
-<text x="90" y="291" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="57.599999999999994" lengthAdjust="spacingAndGlyphs">claude</text>
-<text x="147.6" y="291" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="9.6" lengthAdjust="spacingAndGlyphs">-</text>
-<rect x="155.2" y="274" width="61.6" height="24" fill="#146cba" opacity="0.17"/>
-<text x="157.2" y="291" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="57.599999999999994" lengthAdjust="spacingAndGlyphs">sonnet</text>
-<text x="214.79999999999998" y="291" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="9.6" lengthAdjust="spacingAndGlyphs">-</text>
-<rect x="222.4" y="274" width="32.8" height="24" fill="#146cba" opacity="0.17"/>
-<text x="224.39999999999998" y="291" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="28.799999999999997" lengthAdjust="spacingAndGlyphs">4-6</text>
-<text x="90" y="337" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="96" lengthAdjust="spacingAndGlyphs">anthropic/</text>
-<rect x="184" y="320" width="61.6" height="24" fill="#146cba" opacity="0.17"/>
-<text x="186" y="337" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="57.599999999999994" lengthAdjust="spacingAndGlyphs">claude</text>
-<text x="243.6" y="337" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="9.6" lengthAdjust="spacingAndGlyphs">-</text>
-<rect x="251.2" y="320" width="61.6" height="24" fill="#146cba" opacity="0.17"/>
-<text x="253.2" y="337" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="57.599999999999994" lengthAdjust="spacingAndGlyphs">sonnet</text>
-<text x="310.79999999999995" y="337" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="9.6" lengthAdjust="spacingAndGlyphs">-</text>
-<rect x="318.4" y="320" width="32.8" height="24" fill="#146cba" opacity="0.17"/>
-<text x="320.4" y="337" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="28.799999999999997" lengthAdjust="spacingAndGlyphs">4.6</text>
-
-<text x="604" y="291" font-size="17" fill="#000000" text-anchor="middle" font-weight="400">54.71</text>
-<text x="690" y="291" font-size="15" fill="#000000" text-anchor="middle" font-weight="600">Kept</text>
-<line x1="40" y1="388" x2="725" y2="388" stroke="#b5bfbc" stroke-width="1"/>
-<line x1="123.6" y1="427" x2="286.8" y2="442" stroke="#146cba" stroke-width="1.2" stroke-dasharray="3 3"/>
-<text x="40" y="417" font-size="12" fill="#000000" text-anchor="start" font-weight="400">From</text>
-<text x="40" y="463" font-size="12" fill="#000000" text-anchor="start" font-weight="400">To</text>
-<rect x="88" y="400" width="71.2" height="24" fill="#146cba" opacity="0.17"/>
-<text x="90" y="417" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="67.2" lengthAdjust="spacingAndGlyphs">inkling</text>
-<text x="90" y="463" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="163.2" lengthAdjust="spacingAndGlyphs">thinkingmachines/</text>
-<rect x="251.2" y="446" width="71.2" height="24" fill="#146cba" opacity="0.17"/>
-<text x="253.2" y="463" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="67.2" lengthAdjust="spacingAndGlyphs">inkling</text>
-
-<text x="604" y="417" font-size="17" fill="#000000" text-anchor="middle" font-weight="400">16.41</text>
-<text x="690" y="417" font-size="15" fill="#000000" text-anchor="middle" font-weight="600">Kept</text>
-<line x1="40" y1="514" x2="725" y2="514" stroke="#b5bfbc" stroke-width="1"/>
-<line x1="171.6" y1="553" x2="334.8" y2="568" stroke="#146cba" stroke-width="1.2" stroke-dasharray="3 3"/>
-<line x1="224.4" y1="553" x2="282" y2="568" stroke="#146cba" stroke-width="1.2" stroke-dasharray="3 3"/>
-<text x="40" y="543" font-size="12" fill="#000000" text-anchor="start" font-weight="400">From</text>
-<text x="40" y="589" font-size="12" fill="#000000" text-anchor="start" font-weight="400">To</text>
-<rect x="88" y="526" width="61.6" height="24" fill="#146cba" opacity="0.17"/>
-<text x="90" y="543" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="57.599999999999994" lengthAdjust="spacingAndGlyphs">claude</text>
-<text x="147.6" y="543" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="9.6" lengthAdjust="spacingAndGlyphs">-</text>
-<rect x="155.2" y="526" width="32.8" height="24" fill="#146cba" opacity="0.17"/>
-<text x="157.2" y="543" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="28.799999999999997" lengthAdjust="spacingAndGlyphs">4-5</text>
-<text x="186" y="543" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="9.6" lengthAdjust="spacingAndGlyphs">-</text>
-<rect x="193.6" y="526" width="61.6" height="24" fill="#146cba" opacity="0.17"/>
-<text x="195.6" y="543" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="57.599999999999994" lengthAdjust="spacingAndGlyphs">sonnet</text>
-<text x="253.2" y="543" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="86.39999999999999" lengthAdjust="spacingAndGlyphs">-thinking</text>
-<text x="90" y="589" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="96" lengthAdjust="spacingAndGlyphs">anthropic/</text>
-<rect x="184" y="572" width="61.6" height="24" fill="#146cba" opacity="0.17"/>
-<text x="186" y="589" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="57.599999999999994" lengthAdjust="spacingAndGlyphs">claude</text>
-<text x="243.6" y="589" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="9.6" lengthAdjust="spacingAndGlyphs">-</text>
-<rect x="251.2" y="572" width="61.6" height="24" fill="#146cba" opacity="0.17"/>
-<text x="253.2" y="589" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="57.599999999999994" lengthAdjust="spacingAndGlyphs">sonnet</text>
-<text x="310.79999999999995" y="589" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="9.6" lengthAdjust="spacingAndGlyphs">-</text>
-<rect x="318.4" y="572" width="32.8" height="24" fill="#146cba" opacity="0.17"/>
-<text x="320.4" y="589" font-size="16" fill="#000000" style="font-family:Menlo,Consolas,monospace" textLength="28.799999999999997" lengthAdjust="spacingAndGlyphs">4.5</text>
-
-<text x="604" y="543" font-size="17" fill="#000000" text-anchor="middle" font-weight="400">34.37</text>
-<text x="690" y="543" font-size="15" fill="#000000" text-anchor="middle" font-weight="600">Kept</text>
-<line x1="40" y1="640" x2="725" y2="640" stroke="#b5bfbc" stroke-width="1"/>
-
-
-
+<defs><filter id="glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="3"/></filter><marker id="tip-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="ink" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-violet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="violet" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="rose" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="amber" d="M0 0L10 5L0 10Z"/></marker></defs>
+<rect class="violet-wash" x="40" y="22" width="18" height="16" rx="3"/><text class="muted" x="66" y="35">Matching identity</text><rect class="amber-wash" x="214" y="22" width="18" height="16" rx="3"/><text class="muted" x="240" y="35">Different identity</text><path class="violet-line" d="M368 30L392 30" stroke-width="1.2" stroke-dasharray="3 3"/><text class="muted" x="400" y="35">Corresponding parts</text>
+<text class="muted" x="40" y="76">Source name → catalog identity</text><text class="muted" x="545" y="76" text-anchor="middle">Winning score</text><text class="muted" x="744" y="76" text-anchor="end">Result</text>
+<rect class="ink-wash" x="454.4" y="90" width="62" height="300" opacity=".7"/>
+<path class="ink-line" d="M516.4 90L516.4 390" stroke-width="1.5" stroke-dasharray="4 4" stroke-opacity=".6"/>
+<text class="small muted" x="40" y="118">From</text><text class="small muted" x="40" y="150">To</text><rect class="violet-wash" x="91" y="103" width="27.2" height="21" rx="3"/><text class="num" x="92" y="118" style="font-size:14px" textLength="25.2" lengthAdjust="spacingAndGlyphs">gpt</text><text class="num" x="117.2" y="118" style="font-size:14px" textLength="8.4" lengthAdjust="spacingAndGlyphs">-</text><rect class="amber-wash" x="124.6" y="103" width="136.4" height="21" rx="3"/><text class="num" x="125.6" y="118" style="font-size:14px" textLength="134.4" lengthAdjust="spacingAndGlyphs">4o-chatgpt-03-25</text><text class="num" x="92" y="150" style="font-size:14px" textLength="58.8" lengthAdjust="spacingAndGlyphs">openai/</text><rect class="violet-wash" x="149.8" y="135" width="27.2" height="21" rx="3"/><text class="num" x="150.8" y="150" style="font-size:14px" textLength="25.2" lengthAdjust="spacingAndGlyphs">gpt</text><text class="num" x="176" y="150" style="font-size:14px" textLength="8.4" lengthAdjust="spacingAndGlyphs">-</text><rect class="amber-wash" x="183.4" y="135" width="144.8" height="21" rx="3"/><text class="num" x="184.4" y="150" style="font-size:14px" textLength="142.8" lengthAdjust="spacingAndGlyphs">oss-safeguard-20b</text><path class="violet-line" d="M104.6 125L163.4 134" stroke-width="1.2" stroke-dasharray="3 3"/><path class="grid" d="M440 129L650 129"/><path class="ink-line" d="M449.4 124l10 10m0 -10l-10 10" stroke-width="2" stroke-linecap="round" opacity=".6"/><text class="num" x="466.4" y="119">4.12</text><text class="muted" x="744" y="128" text-anchor="end">Rejected</text>
+<text class="small muted" x="40" y="194">From</text><text class="small muted" x="40" y="226">To</text><rect class="violet-wash" x="91" y="179" width="52.4" height="21" rx="3"/><text class="num" x="92" y="194" style="font-size:14px" textLength="50.4" lengthAdjust="spacingAndGlyphs">claude</text><text class="num" x="142.4" y="194" style="font-size:14px" textLength="8.4" lengthAdjust="spacingAndGlyphs">-</text><rect class="violet-wash" x="149.8" y="179" width="52.4" height="21" rx="3"/><text class="num" x="150.8" y="194" style="font-size:14px" textLength="50.4" lengthAdjust="spacingAndGlyphs">sonnet</text><text class="num" x="201.2" y="194" style="font-size:14px" textLength="8.4" lengthAdjust="spacingAndGlyphs">-</text><rect class="violet-wash" x="208.6" y="179" width="27.2" height="21" rx="3"/><text class="num" x="209.6" y="194" style="font-size:14px" textLength="25.2" lengthAdjust="spacingAndGlyphs">4-6</text><text class="num" x="92" y="226" style="font-size:14px" textLength="84" lengthAdjust="spacingAndGlyphs">anthropic/</text><rect class="violet-wash" x="175" y="211" width="52.4" height="21" rx="3"/><text class="num" x="176" y="226" style="font-size:14px" textLength="50.4" lengthAdjust="spacingAndGlyphs">claude</text><text class="num" x="226.4" y="226" style="font-size:14px" textLength="8.4" lengthAdjust="spacingAndGlyphs">-</text><rect class="violet-wash" x="233.8" y="211" width="52.4" height="21" rx="3"/><text class="num" x="234.8" y="226" style="font-size:14px" textLength="50.4" lengthAdjust="spacingAndGlyphs">sonnet</text><text class="num" x="285.2" y="226" style="font-size:14px" textLength="8.4" lengthAdjust="spacingAndGlyphs">-</text><rect class="violet-wash" x="292.6" y="211" width="27.2" height="21" rx="3"/><text class="num" x="293.6" y="226" style="font-size:14px" textLength="25.2" lengthAdjust="spacingAndGlyphs">4.6</text><path class="violet-line" d="M117.2 201L201.2 210" stroke-width="1.2" stroke-dasharray="3 3"/><path class="violet-line" d="M176 201L260 210" stroke-width="1.2" stroke-dasharray="3 3"/><path class="violet-line" d="M222.2 201L306.2 210" stroke-width="1.2" stroke-dasharray="3 3"/><path class="grid" d="M440 205L650 205"/><g><circle class="ink halo" cx="631.5" cy="205" r="8" filter="url(#glow)"/><circle class="ink ring" cx="631.5" cy="205" r="6"/></g><text class="num" x="619.5" y="195" text-anchor="end">54.71</text><text class="strong" x="744" y="204" text-anchor="end">Kept</text>
+<text class="small muted" x="40" y="270">From</text><text class="small muted" x="40" y="302">To</text><rect class="violet-wash" x="91" y="255" width="60.8" height="21" rx="3"/><text class="num" x="92" y="270" style="font-size:14px" textLength="58.8" lengthAdjust="spacingAndGlyphs">inkling</text><text class="num" x="92" y="302" style="font-size:14px" textLength="142.8" lengthAdjust="spacingAndGlyphs">thinkingmachines/</text><rect class="violet-wash" x="233.8" y="287" width="60.8" height="21" rx="3"/><text class="num" x="234.8" y="302" style="font-size:14px" textLength="58.8" lengthAdjust="spacingAndGlyphs">inkling</text><path class="violet-line" d="M121.4 277L264.2 286" stroke-width="1.2" stroke-dasharray="3 3"/><path class="grid" d="M440 281L650 281"/><g><circle class="ink halo" cx="497.4" cy="281" r="8" filter="url(#glow)"/><circle class="ink ring" cx="497.4" cy="281" r="6"/></g><text class="num" x="485.4" y="271" text-anchor="end">16.41</text><text class="strong" x="744" y="280" text-anchor="end">Kept</text><text class="small muted" x="744" y="298" text-anchor="end">Exact identity</text>
+<text class="small muted" x="40" y="346">From</text><text class="small muted" x="40" y="378">To</text><rect class="violet-wash" x="91" y="331" width="52.4" height="21" rx="3"/><text class="num" x="92" y="346" style="font-size:14px" textLength="50.4" lengthAdjust="spacingAndGlyphs">claude</text><text class="num" x="142.4" y="346" style="font-size:14px" textLength="8.4" lengthAdjust="spacingAndGlyphs">-</text><rect class="violet-wash" x="149.8" y="331" width="27.2" height="21" rx="3"/><text class="num" x="150.8" y="346" style="font-size:14px" textLength="25.2" lengthAdjust="spacingAndGlyphs">4-5</text><text class="num" x="176" y="346" style="font-size:14px" textLength="8.4" lengthAdjust="spacingAndGlyphs">-</text><rect class="violet-wash" x="183.4" y="331" width="52.4" height="21" rx="3"/><text class="num" x="184.4" y="346" style="font-size:14px" textLength="50.4" lengthAdjust="spacingAndGlyphs">sonnet</text><text class="num" x="234.8" y="346" style="font-size:14px" textLength="75.6" lengthAdjust="spacingAndGlyphs">-thinking</text><text class="num" x="92" y="378" style="font-size:14px" textLength="84" lengthAdjust="spacingAndGlyphs">anthropic/</text><rect class="violet-wash" x="175" y="363" width="52.4" height="21" rx="3"/><text class="num" x="176" y="378" style="font-size:14px" textLength="50.4" lengthAdjust="spacingAndGlyphs">claude</text><text class="num" x="226.4" y="378" style="font-size:14px" textLength="8.4" lengthAdjust="spacingAndGlyphs">-</text><rect class="violet-wash" x="233.8" y="363" width="52.4" height="21" rx="3"/><text class="num" x="234.8" y="378" style="font-size:14px" textLength="50.4" lengthAdjust="spacingAndGlyphs">sonnet</text><text class="num" x="285.2" y="378" style="font-size:14px" textLength="8.4" lengthAdjust="spacingAndGlyphs">-</text><rect class="violet-wash" x="292.6" y="363" width="27.2" height="21" rx="3"/><text class="num" x="293.6" y="378" style="font-size:14px" textLength="25.2" lengthAdjust="spacingAndGlyphs">4.5</text><path class="violet-line" d="M117.2 353L201.2 362" stroke-width="1.2" stroke-dasharray="3 3"/><path class="violet-line" d="M163.4 353L306.2 362" stroke-width="1.2" stroke-dasharray="3 3"/><path class="violet-line" d="M209.6 353L260 362" stroke-width="1.2" stroke-dasharray="3 3"/><path class="grid" d="M440 357L650 357"/><g><circle class="ink halo" cx="560.3" cy="357" r="8" filter="url(#glow)"/><circle class="ink ring" cx="560.3" cy="357" r="6"/></g><text class="num" x="572.3" y="347">34.37</text><text class="strong" x="744" y="356" text-anchor="end">Kept</text><text class="small muted" x="744" y="374" text-anchor="end">Reordered</text>
+<path class="axis" d="M440 390L650 390"/><path class="axis" d="M440 390L440 396"/><text class="num muted" x="440" y="414" text-anchor="middle">0</text><path class="axis" d="M510 390L510 396"/><text class="num muted" x="510" y="414" text-anchor="middle">20</text><path class="axis" d="M580 390L580 396"/><text class="num muted" x="580" y="414" text-anchor="middle">40</text><path class="axis" d="M650 390L650 396"/><text class="num muted" x="650" y="414" text-anchor="middle">60</text>
+<text class="num strong" x="516.4" y="434" text-anchor="middle">cutoff 21.83</text><text class="num muted" x="454.4" y="434" text-anchor="end">min 4.12</text><text class="num muted" x="631.5" y="434" text-anchor="middle">max 54.71</text>
 </svg>

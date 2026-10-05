@@ -1,30 +1,43 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 360" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 350" role="img" aria-labelledby="title desc">
 <title id="title">Score retention as benchmark support grows</title>
-<desc id="desc">The score retains 85 percent with little supported benchmark weight, rises smoothly, and reaches full retention when the supported weight is sufficient. Exact thresholds are stated in the accompanying text.</desc>
+<desc id="desc">The score keeps a fixed floor share with little supported benchmark weight, rises smoothly, and reaches full retention when the supported weight is sufficient. Exact thresholds are stated in the accompanying text.</desc>
 <style>
-text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; }
-@media (prefers-color-scheme:dark) {
-text { fill:#ffffff; }
-[fill="#63706e"] { fill:#a6b2ae; } [stroke="#63706e"] { stroke:#a6b2ae; }
-[fill="#b5bfbc"] { fill:#3c4846; } [stroke="#b5bfbc"] { stroke:#3c4846; }
-[fill="#146cba"] { fill:#85bfff; } [stroke="#146cba"] { stroke:#85bfff; }
+text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:15px;fill:#202724}
+.num{font-family:"SFMono-Regular","SF Mono",Menlo,Consolas,monospace;font-size:14px}
+.small{font-size:12.5px}.big{font-size:18px}.strong{font-weight:600}
+.muted{fill-opacity:.62}.faint{opacity:.4}.half{opacity:.5}
+.grid{fill:none;stroke:#202724;stroke-opacity:.09}
+.guide{fill:none;stroke:#202724;stroke-opacity:.22}
+.axis{fill:none;stroke:#202724;stroke-opacity:.34}
+.ink{fill:#202724}.ink-line{fill:none;stroke:#202724}.ink-wash{fill:#202724;fill-opacity:.08}
+.ring{stroke:#f2f4f2;stroke-width:2;paint-order:stroke}.gap{stroke:#f2f4f2;stroke-width:2}
+.violet{fill:#6b47e0}.violet-line{fill:none;stroke:#6b47e0}.violet-wash{fill:#6b47e0;fill-opacity:.14}
+.rose{fill:#c93f78}.rose-line{fill:none;stroke:#c93f78}.rose-wash{fill:#c93f78;fill-opacity:.14}
+.amber{fill:#a8740c}.amber-line{fill:none;stroke:#a8740c}.amber-wash{fill:#a8740c;fill-opacity:.16}
+.h0{stop-color:#3557e6}.h1{stop-color:#6b47e0}.h2{stop-color:#d9467f}
+.land0{stop-color:#6b47e0;stop-opacity:.12}.land1{stop-color:#6b47e0;stop-opacity:.01}
+.halo{opacity:0}
+@media (prefers-color-scheme:dark){
+text{fill:#f2f3ed}.muted{fill-opacity:.58}
+.grid{stroke:#f2f3ed;stroke-opacity:.08}.guide{stroke:#f2f3ed;stroke-opacity:.2}.axis{stroke:#f2f3ed;stroke-opacity:.3}
+.ink{fill:#f2f3ed}.ink-line{stroke:#f2f3ed}.ink-wash{fill:#f2f3ed;fill-opacity:.1}
+.ring{stroke:#0b1016}.gap{stroke:#0b1016}
+.violet{fill:#8f6bff}.violet-line{stroke:#8f6bff}.violet-wash{fill:#8f6bff;fill-opacity:.22}
+.rose{fill:#e06296}.rose-line{stroke:#e06296}.rose-wash{fill:#e06296;fill-opacity:.2}
+.amber{fill:#b98b24}.amber-line{stroke:#b98b24}.amber-wash{fill:#b98b24;fill-opacity:.22}
+.h0{stop-color:#4a72ff}.h1{stop-color:#8f6bff}.h2{stop-color:#ff92bd}
+.land0{stop-color:#6f8cff;stop-opacity:.16}.land1{stop-color:#6f8cff;stop-opacity:.02}
+.halo{opacity:.55}
 }
 </style>
-<rect x="143.8" y="65" width="309" height="215" fill="#808080" fill-opacity="0.08"/>
-<path d="M82 21 H106" fill="none" stroke="#146cba" stroke-width="3"/>
-<text x="114" y="26" fill="#000000" font-size="14" text-anchor="start">Score retention</text>
-<path d="M82 280 H700" fill="none" stroke="#b5bfbc" stroke-width="1"/>
-<text x="68" y="285" fill="#63706e" font-size="14" text-anchor="end">0%</text>
-<path d="M82 172.5 H700" fill="none" stroke="#b5bfbc" stroke-width="1"/>
-<text x="68" y="177.5" fill="#63706e" font-size="14" text-anchor="end">50%</text>
-<path d="M82 65 H700" fill="none" stroke="#b5bfbc" stroke-width="1"/>
-<text x="68" y="70" fill="#63706e" font-size="14" text-anchor="end">100%</text>
-<path d="M82 280 v5 M143.8 280 v5 M452.8 280 v5 M700 280 v5" fill="none" stroke="#63706e" stroke-width="1"/>
-<text x="143.8" y="306" fill="#63706e" font-size="14" text-anchor="middle">Little</text>
-<text x="452.8" y="306" fill="#63706e" font-size="14" text-anchor="middle">Enough</text>
-<path d="M82 97.25 L143.8 97.25 C246.8 97.25 349.8 65 452.8 65 L700 65" fill="none" stroke="#146cba" stroke-width="3"/>
-<circle cx="452.8" cy="65" r="4" fill="#146cba"/>
-<path d="M452.8 60 V280" fill="none" stroke="#63706e" stroke-width="1" stroke-dasharray="3 5"/>
-<text x="464.8" y="55" fill="#146cba" font-size="14" text-anchor="start">Full retention</text>
-<text x="390" y="342" fill="#000000" font-size="16" text-anchor="middle">Supported benchmark weight</text>
+<defs><filter id="glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="3"/></filter><marker id="tip-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="ink" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-violet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="violet" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="rose" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="amber" d="M0 0L10 5L0 10Z"/></marker><linearGradient id="light" gradientUnits="userSpaceOnUse" x1="88" y1="0" x2="716" y2="0"><stop class="h0" offset="0"/><stop class="h1" offset=".58"/><stop class="h2" offset="1"/></linearGradient><linearGradient id="land" gradientUnits="userSpaceOnUse" x1="0" y1="70" x2="0" y2="280"><stop class="land0" offset="0"/><stop class="land1" offset="1"/></linearGradient></defs>
+<text x="88" y="40">Score retention</text>
+<path class="grid" d="M88 70L716 70"/><path class="grid" d="M88 200L716 200"/><path class="axis" d="M88 280L716 280"/>
+<text class="num muted" x="76" y="75" text-anchor="end">100%</text><text class="muted" x="76" y="205" text-anchor="end">Floor</text>
+<path class="guide" d="M188.5 70L188.5 280"/><path class="guide" d="M540.2 70L540.2 280"/>
+<path d="M88 200L91.9 200L95.8 200L99.8 200L103.7 200L107.6 200L111.5 200L115.5 200L119.4 200L123.3 200L127.3 200L131.2 200L135.1 200L139 200L142.9 200L146.9 200L150.8 200L154.7 200L158.7 200L162.6 200L166.5 200L170.4 200L174.4 200L178.3 200L182.2 200L186.1 200L190.1 200L194 199.9L197.9 199.7L201.8 199.5L205.8 199.1L209.7 198.6L213.6 198.1L217.5 197.5L221.4 196.8L225.4 196L229.3 195.2L233.2 194.2L237.2 193.2L241.1 192.1L245 191L248.9 189.8L252.8 188.5L256.8 187.2L260.7 185.8L264.6 184.4L268.5 182.9L272.5 181.3L276.4 179.7L280.3 178L284.3 176.3L288.2 174.6L292.1 172.8L296 171L300 169.1L303.9 167.2L307.8 165.3L311.7 163.3L315.6 161.3L319.6 159.3L323.5 157.2L327.4 155.2L331.4 153.1L335.3 151L339.2 148.8L343.1 146.7L347.1 144.5L351 142.4L354.9 140.2L358.8 138L362.8 135.9L366.7 133.7L370.6 131.5L374.5 129.3L378.4 127.2L382.4 125L386.3 122.9L390.2 120.7L394.1 118.6L398.1 116.5L402 114.4L405.9 112.4L409.8 110.3L413.8 108.3L417.7 106.3L421.6 104.4L425.6 102.4L429.5 100.5L433.4 98.7L437.3 96.8L441.3 95.1L445.2 93.3L449.1 91.6L453 90L456.9 88.4L460.9 86.8L464.8 85.3L468.7 83.9L472.7 82.5L476.6 81.2L480.5 80L484.4 78.8L488.3 77.6L492.3 76.6L496.2 75.6L500.1 74.7L504.1 73.8L508 73.1L511.9 72.4L515.8 71.8L519.8 71.3L523.7 70.8L527.6 70.5L531.5 70.2L535.5 70.1L539.4 70L543.3 70L547.2 70L551.2 70L555.1 70L559 70L562.9 70L566.8 70L570.8 70L574.7 70L578.6 70L582.5 70L586.5 70L590.4 70L594.3 70L598.3 70L602.2 70L606.1 70L610 70L614 70L617.9 70L621.8 70L625.7 70L629.6 70L633.6 70L637.5 70L641.4 70L645.4 70L649.3 70L653.2 70L657.1 70L661 70L665 70L668.9 70L672.8 70L676.8 70L680.7 70L684.6 70L688.5 70L692.5 70L696.4 70L700.3 70L704.2 70L708.1 70L712.1 70L716 70L716 280L88 280Z" fill="url(#land)"/><path d="M88 200L91.9 200L95.8 200L99.8 200L103.7 200L107.6 200L111.5 200L115.5 200L119.4 200L123.3 200L127.3 200L131.2 200L135.1 200L139 200L142.9 200L146.9 200L150.8 200L154.7 200L158.7 200L162.6 200L166.5 200L170.4 200L174.4 200L178.3 200L182.2 200L186.1 200L190.1 200L194 199.9L197.9 199.7L201.8 199.5L205.8 199.1L209.7 198.6L213.6 198.1L217.5 197.5L221.4 196.8L225.4 196L229.3 195.2L233.2 194.2L237.2 193.2L241.1 192.1L245 191L248.9 189.8L252.8 188.5L256.8 187.2L260.7 185.8L264.6 184.4L268.5 182.9L272.5 181.3L276.4 179.7L280.3 178L284.3 176.3L288.2 174.6L292.1 172.8L296 171L300 169.1L303.9 167.2L307.8 165.3L311.7 163.3L315.6 161.3L319.6 159.3L323.5 157.2L327.4 155.2L331.4 153.1L335.3 151L339.2 148.8L343.1 146.7L347.1 144.5L351 142.4L354.9 140.2L358.8 138L362.8 135.9L366.7 133.7L370.6 131.5L374.5 129.3L378.4 127.2L382.4 125L386.3 122.9L390.2 120.7L394.1 118.6L398.1 116.5L402 114.4L405.9 112.4L409.8 110.3L413.8 108.3L417.7 106.3L421.6 104.4L425.6 102.4L429.5 100.5L433.4 98.7L437.3 96.8L441.3 95.1L445.2 93.3L449.1 91.6L453 90L456.9 88.4L460.9 86.8L464.8 85.3L468.7 83.9L472.7 82.5L476.6 81.2L480.5 80L484.4 78.8L488.3 77.6L492.3 76.6L496.2 75.6L500.1 74.7L504.1 73.8L508 73.1L511.9 72.4L515.8 71.8L519.8 71.3L523.7 70.8L527.6 70.5L531.5 70.2L535.5 70.1L539.4 70L543.3 70L547.2 70L551.2 70L555.1 70L559 70L562.9 70L566.8 70L570.8 70L574.7 70L578.6 70L582.5 70L586.5 70L590.4 70L594.3 70L598.3 70L602.2 70L606.1 70L610 70L614 70L617.9 70L621.8 70L625.7 70L629.6 70L633.6 70L637.5 70L641.4 70L645.4 70L649.3 70L653.2 70L657.1 70L661 70L665 70L668.9 70L672.8 70L676.8 70L680.7 70L684.6 70L688.5 70L692.5 70L696.4 70L700.3 70L704.2 70L708.1 70L712.1 70L716 70" fill="none" stroke="url(#light)" stroke-width="8" opacity=".14" class="halo"/><path d="M88 200L91.9 200L95.8 200L99.8 200L103.7 200L107.6 200L111.5 200L115.5 200L119.4 200L123.3 200L127.3 200L131.2 200L135.1 200L139 200L142.9 200L146.9 200L150.8 200L154.7 200L158.7 200L162.6 200L166.5 200L170.4 200L174.4 200L178.3 200L182.2 200L186.1 200L190.1 200L194 199.9L197.9 199.7L201.8 199.5L205.8 199.1L209.7 198.6L213.6 198.1L217.5 197.5L221.4 196.8L225.4 196L229.3 195.2L233.2 194.2L237.2 193.2L241.1 192.1L245 191L248.9 189.8L252.8 188.5L256.8 187.2L260.7 185.8L264.6 184.4L268.5 182.9L272.5 181.3L276.4 179.7L280.3 178L284.3 176.3L288.2 174.6L292.1 172.8L296 171L300 169.1L303.9 167.2L307.8 165.3L311.7 163.3L315.6 161.3L319.6 159.3L323.5 157.2L327.4 155.2L331.4 153.1L335.3 151L339.2 148.8L343.1 146.7L347.1 144.5L351 142.4L354.9 140.2L358.8 138L362.8 135.9L366.7 133.7L370.6 131.5L374.5 129.3L378.4 127.2L382.4 125L386.3 122.9L390.2 120.7L394.1 118.6L398.1 116.5L402 114.4L405.9 112.4L409.8 110.3L413.8 108.3L417.7 106.3L421.6 104.4L425.6 102.4L429.5 100.5L433.4 98.7L437.3 96.8L441.3 95.1L445.2 93.3L449.1 91.6L453 90L456.9 88.4L460.9 86.8L464.8 85.3L468.7 83.9L472.7 82.5L476.6 81.2L480.5 80L484.4 78.8L488.3 77.6L492.3 76.6L496.2 75.6L500.1 74.7L504.1 73.8L508 73.1L511.9 72.4L515.8 71.8L519.8 71.3L523.7 70.8L527.6 70.5L531.5 70.2L535.5 70.1L539.4 70L543.3 70L547.2 70L551.2 70L555.1 70L559 70L562.9 70L566.8 70L570.8 70L574.7 70L578.6 70L582.5 70L586.5 70L590.4 70L594.3 70L598.3 70L602.2 70L606.1 70L610 70L614 70L617.9 70L621.8 70L625.7 70L629.6 70L633.6 70L637.5 70L641.4 70L645.4 70L649.3 70L653.2 70L657.1 70L661 70L665 70L668.9 70L672.8 70L676.8 70L680.7 70L684.6 70L688.5 70L692.5 70L696.4 70L700.3 70L704.2 70L708.1 70L712.1 70L716 70" fill="none" stroke="url(#light)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+<g><circle class="ink halo" cx="540.2" cy="70" r="7" filter="url(#glow)"/><circle class="ink ring" cx="540.2" cy="70" r="5"/></g><text x="552.2" y="58">Full retention</text>
+<path class="axis" d="M188.5 280L188.5 286"/><path class="axis" d="M540.2 280L540.2 286"/>
+<text x="188.5" y="306" text-anchor="middle">Little</text><text x="540.2" y="306" text-anchor="middle">Enough</text>
+<text x="402" y="338" text-anchor="middle">Supported benchmark weight</text>
 </svg>

@@ -1,56 +1,40 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 560" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 268" role="img" aria-labelledby="title desc">
 <title id="title">Three models, three shared-benchmark links, one Laplacian</title>
-<desc id="desc">Model A and B share Benchmark A with comparison weight 2.5, A and C share Benchmark B with weight 1, and B and C share Benchmark C with weight 0.5. The links and matching off-diagonal matrix entries use the same colors. The Laplacian rows are 3.5, minus 2.5, minus 1; minus 2.5, 3, minus 0.5; and minus 1, minus 0.5, 1.5. Each positive diagonal sums a model's link weights. Each negative entry subtracts the corresponding neighbor's rating at the link's weight. These illustrative weights are not benchmark scores.</desc>
+<desc id="desc">Model A and B share a comparison with weight 2.5, A and C with weight 1, and B and C with weight 0.5; line thickness follows the weight. Each link adds a stamp to the Laplacian: its weight on both models' diagonal cells and its negative weight in the two mirrored cells between them. Summed, the stamps give L with rows 3.5, minus 2.5, minus 1; minus 2.5, 3, minus 0.5; and minus 1, minus 0.5, 1.5. Each diagonal cell shows the links it sums. These illustrative weights are not benchmark scores.</desc>
 <style>
-text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; fill:#000000; }
-.muted { fill:#63706e; } .ab { fill:#146cba; } .ac { fill:#a64d0c; } .bc { fill:#16816a; }
-.panel { fill:#ffffff; stroke:#b5bfbc; }
-@media (prefers-color-scheme:dark) {
-text { fill:#ffffff; } .muted { fill:#a6b2ae; }
-.ab { fill:#85bfff; } .ac { fill:#ffbc7d; } .bc { fill:#74d7b9; }
-.panel { fill:#101719; stroke:#3c4846; }
-[stroke="#146cba"] { stroke:#85bfff; } [stroke="#a64d0c"] { stroke:#ffbc7d; }
-[stroke="#16816a"] { stroke:#74d7b9; } [stroke="#b5bfbc"] { stroke:#3c4846; }
+text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:15px;fill:#202724}
+.num{font-family:"SFMono-Regular","SF Mono",Menlo,Consolas,monospace;font-size:14px}
+.small{font-size:12.5px}.big{font-size:18px}.strong{font-weight:600}
+.muted{fill-opacity:.62}.faint{opacity:.4}.half{opacity:.5}
+.grid{fill:none;stroke:#202724;stroke-opacity:.09}
+.guide{fill:none;stroke:#202724;stroke-opacity:.22}
+.axis{fill:none;stroke:#202724;stroke-opacity:.34}
+.ink{fill:#202724}.ink-line{fill:none;stroke:#202724}.ink-wash{fill:#202724;fill-opacity:.08}
+.ring{stroke:#f2f4f2;stroke-width:2;paint-order:stroke}.gap{stroke:#f2f4f2;stroke-width:2}
+.violet{fill:#6b47e0}.violet-line{fill:none;stroke:#6b47e0}.violet-wash{fill:#6b47e0;fill-opacity:.14}
+.rose{fill:#c93f78}.rose-line{fill:none;stroke:#c93f78}.rose-wash{fill:#c93f78;fill-opacity:.14}
+.amber{fill:#a8740c}.amber-line{fill:none;stroke:#a8740c}.amber-wash{fill:#a8740c;fill-opacity:.16}
+.h0{stop-color:#3557e6}.h1{stop-color:#6b47e0}.h2{stop-color:#d9467f}
+.land0{stop-color:#6b47e0;stop-opacity:.12}.land1{stop-color:#6b47e0;stop-opacity:.01}
+.halo{opacity:0}
+@media (prefers-color-scheme:dark){
+text{fill:#f2f3ed}.muted{fill-opacity:.58}
+.grid{stroke:#f2f3ed;stroke-opacity:.08}.guide{stroke:#f2f3ed;stroke-opacity:.2}.axis{stroke:#f2f3ed;stroke-opacity:.3}
+.ink{fill:#f2f3ed}.ink-line{stroke:#f2f3ed}.ink-wash{fill:#f2f3ed;fill-opacity:.1}
+.ring{stroke:#0b1016}.gap{stroke:#0b1016}
+.violet{fill:#8f6bff}.violet-line{stroke:#8f6bff}.violet-wash{fill:#8f6bff;fill-opacity:.22}
+.rose{fill:#e06296}.rose-line{stroke:#e06296}.rose-wash{fill:#e06296;fill-opacity:.2}
+.amber{fill:#b98b24}.amber-line{stroke:#b98b24}.amber-wash{fill:#b98b24;fill-opacity:.22}
+.h0{stop-color:#4a72ff}.h1{stop-color:#8f6bff}.h2{stop-color:#ff92bd}
+.land0{stop-color:#6f8cff;stop-opacity:.16}.land1{stop-color:#6f8cff;stop-opacity:.02}
+.halo{opacity:.55}
 }
 </style>
-<text x="24" y="30" font-size="19" font-weight="600">The Laplacian stores each model’s comparison links</text>
-<text x="24" y="54" font-size="13" class="muted">Illustrative comparison weights after benchmark weighting · not model scores</text>
-<g fill="none">
-<path d="M147 130 H293" stroke="#146cba" stroke-width="5"/>
-<path d="M97 155 L193 282" stroke="#a64d0c" stroke-width="3"/>
-<path d="M343 155 L247 282" stroke="#16816a" stroke-width="2"/>
-</g>
-<g text-anchor="middle" font-size="13">
-<text x="220" y="97" class="ab">Benchmark A</text><text x="220" y="116" class="ab" font-weight="600">weight 2.5</text>
-<text x="79" y="217" class="ac">Benchmark B</text><text x="79" y="237" class="ac" font-weight="600">weight 1</text>
-<text x="361" y="217" class="bc">Benchmark C</text><text x="361" y="237" class="bc" font-weight="600">weight 0.5</text>
-</g>
-<rect x="37" y="105" width="110" height="50" rx="12" class="panel"/>
-<rect x="293" y="105" width="110" height="50" rx="12" class="panel"/>
-<rect x="165" y="282" width="110" height="50" rx="12" class="panel"/>
-<g font-size="17" font-weight="600" text-anchor="middle">
-<text x="92" y="136">Model A</text><text x="348" y="136">Model B</text><text x="220" y="313">Model C</text>
-</g>
-<text x="479" y="98" font-size="17" font-weight="600">Same links, stored as L</text>
-<g text-anchor="middle" font-size="14" class="muted">
-<text x="524" y="134">A</text><text x="604" y="134">B</text><text x="684" y="134">C</text>
-<text x="451" y="173">A</text><text x="451" y="220">B</text><text x="451" y="267">C</text>
-</g>
-<path d="M488 145 H477 V282 H488 M720 145 H731 V282 H720" fill="none" stroke="#b5bfbc" stroke-width="2"/>
-<g text-anchor="middle" font-size="23">
-<text x="524" y="173" font-weight="600">3.5</text><text x="604" y="173" class="ab">−2.5</text><text x="684" y="173" class="ac">−1</text>
-<text x="524" y="220" class="ab">−2.5</text><text x="604" y="220" font-weight="600">3</text><text x="684" y="220" class="bc">−0.5</text>
-<text x="524" y="267" class="ac">−1</text><text x="604" y="267" class="bc">−0.5</text><text x="684" y="267" font-weight="600">1.5</text>
-</g>
-<text x="479" y="309" font-size="13" class="muted">Matching colors = the same comparison link</text>
-<path d="M24 351 H736" stroke="#b5bfbc"/>
-<text x="24" y="378" font-size="16" font-weight="600">Where Model A’s row comes from</text>
-<text x="24" y="400" font-size="13" class="muted">A, B, and C below stand for the models’ ratings.</text>
-<text x="24" y="431" font-size="21"><tspan class="ab">2.5(A − B)</tspan><tspan> + </tspan><tspan class="ac">1(A − C)</tspan></text>
-<text x="24" y="463" font-size="21"><tspan>= </tspan><tspan class="ab">2.5A − 2.5B</tspan><tspan> + </tspan><tspan class="ac">A − C</tspan></text>
-<text x="24" y="495" font-size="21"><tspan>= </tspan><tspan font-weight="600">3.5A</tspan><tspan class="ab"> − 2.5B</tspan><tspan class="ac"> − 1C</tspan></text>
-<text x="455" y="436" font-size="15" font-weight="600">Store the coefficients:</text>
-<text x="455" y="470" font-size="23"><tspan>[ </tspan><tspan font-weight="600">3.5</tspan><tspan>, </tspan><tspan class="ab">−2.5</tspan><tspan>, </tspan><tspan class="ac">−1</tspan><tspan> ]</tspan></text>
-<text x="455" y="495" font-size="13" class="muted">That is row A, in columns A, B, C.</text>
-<text x="24" y="534" font-size="14" font-weight="600">The positive diagonal combines A’s own terms. It is not an A-versus-A comparison.</text>
+<defs><filter id="glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="3"/></filter><marker id="tip-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="ink" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-violet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="violet" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="rose" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="amber" d="M0 0L10 5L0 10Z"/></marker></defs>
+<path class="violet-line" d="M44 132L152 132" stroke-width="5.5" stroke-linecap="round"/><text class="num small" x="98" y="122" text-anchor="middle">2.5</text><path class="rose-line" d="M44 132L98 222" stroke-width="2.5" stroke-linecap="round"/><text class="num small" x="55" y="181" text-anchor="end">1</text><path class="amber-line" d="M152 132L98 222" stroke-width="1.5" stroke-linecap="round"/><text class="num small" x="141" y="181">0.5</text><g><circle class="ink halo" cx="44" cy="132" r="8" filter="url(#glow)"/><circle class="ink ring" cx="44" cy="132" r="6"/></g><text class="strong" x="44" y="118" text-anchor="middle">A</text><g><circle class="ink halo" cx="152" cy="132" r="8" filter="url(#glow)"/><circle class="ink ring" cx="152" cy="132" r="6"/></g><text class="strong" x="152" y="118" text-anchor="middle">B</text><g><circle class="ink halo" cx="98" cy="222" r="8" filter="url(#glow)"/><circle class="ink ring" cx="98" cy="222" r="6"/></g><text class="strong" x="98" y="248" text-anchor="middle">C</text>
+<text class="small strong" x="214" y="80" text-anchor="middle">A</text><path class="violet-line" d="M226 76L276 76" stroke-width="5.5" stroke-linecap="round"/><text class="small strong" x="288" y="80" text-anchor="middle">B</text><path class="axis" d="M202 106H196V216H202M300 106H306V216H300" stroke-width="1.5"/><rect class="violet-wash" x="202" y="114" width="30" height="26" rx="5"/><text class="num small" x="217" y="131.5" text-anchor="middle">2.5</text><rect class="violet-wash" x="236" y="114" width="30" height="26" rx="5"/><text class="num small" x="251" y="131.5" text-anchor="middle">−2.5</text><circle class="ink" cx="285" cy="127" r="1.5" opacity=".3"/><rect class="violet-wash" x="202" y="148" width="30" height="26" rx="5"/><text class="num small" x="217" y="165.5" text-anchor="middle">−2.5</text><rect class="violet-wash" x="236" y="148" width="30" height="26" rx="5"/><text class="num small" x="251" y="165.5" text-anchor="middle">2.5</text><circle class="ink" cx="285" cy="161" r="1.5" opacity=".3"/><circle class="ink" cx="217" cy="195" r="1.5" opacity=".3"/><circle class="ink" cx="251" cy="195" r="1.5" opacity=".3"/><circle class="ink" cx="285" cy="195" r="1.5" opacity=".3"/><text class="small strong" x="344" y="80" text-anchor="middle">A</text><path class="rose-line" d="M356 76L406 76" stroke-width="2.5" stroke-linecap="round"/><text class="small strong" x="418" y="80" text-anchor="middle">C</text><path class="axis" d="M332 106H326V216H332M430 106H436V216H430" stroke-width="1.5"/><rect class="rose-wash" x="332" y="114" width="30" height="26" rx="5"/><text class="num small" x="347" y="131.5" text-anchor="middle">1</text><circle class="ink" cx="381" cy="127" r="1.5" opacity=".3"/><rect class="rose-wash" x="400" y="114" width="30" height="26" rx="5"/><text class="num small" x="415" y="131.5" text-anchor="middle">−1</text><circle class="ink" cx="347" cy="161" r="1.5" opacity=".3"/><circle class="ink" cx="381" cy="161" r="1.5" opacity=".3"/><circle class="ink" cx="415" cy="161" r="1.5" opacity=".3"/><rect class="rose-wash" x="332" y="182" width="30" height="26" rx="5"/><text class="num small" x="347" y="199.5" text-anchor="middle">−1</text><circle class="ink" cx="381" cy="195" r="1.5" opacity=".3"/><rect class="rose-wash" x="400" y="182" width="30" height="26" rx="5"/><text class="num small" x="415" y="199.5" text-anchor="middle">1</text><text class="small strong" x="474" y="80" text-anchor="middle">B</text><path class="amber-line" d="M486 76L536 76" stroke-width="1.5" stroke-linecap="round"/><text class="small strong" x="548" y="80" text-anchor="middle">C</text><path class="axis" d="M462 106H456V216H462M560 106H566V216H560" stroke-width="1.5"/><circle class="ink" cx="477" cy="127" r="1.5" opacity=".3"/><circle class="ink" cx="511" cy="127" r="1.5" opacity=".3"/><circle class="ink" cx="545" cy="127" r="1.5" opacity=".3"/><circle class="ink" cx="477" cy="161" r="1.5" opacity=".3"/><rect class="amber-wash" x="496" y="148" width="30" height="26" rx="5"/><text class="num small" x="511" y="165.5" text-anchor="middle">0.5</text><rect class="amber-wash" x="530" y="148" width="30" height="26" rx="5"/><text class="num small" x="545" y="165.5" text-anchor="middle">−0.5</text><circle class="ink" cx="477" cy="195" r="1.5" opacity=".3"/><rect class="amber-wash" x="496" y="182" width="30" height="26" rx="5"/><text class="num small" x="511" y="199.5" text-anchor="middle">−0.5</text><rect class="amber-wash" x="530" y="182" width="30" height="26" rx="5"/><text class="num small" x="545" y="199.5" text-anchor="middle">0.5</text>
+<text class="num big" x="316" y="167" text-anchor="middle">+</text><text class="num big" x="446" y="167" text-anchor="middle">+</text><text class="num big" x="580" y="167" text-anchor="middle">=</text>
+<text class="num strong" x="596" y="83" text-anchor="end">L</text><text class="small muted" x="622" y="83" text-anchor="middle">A</text><text class="small muted" x="666" y="83" text-anchor="middle">B</text><text class="small muted" x="710" y="83" text-anchor="middle">C</text>
+<path class="axis" d="M602 91H596V231H602M730 91H736V231H730" stroke-width="1.5"/>
+<text class="num strong" x="622" y="120" text-anchor="middle">3.5</text><rect class="violet" x="608" y="126" width="19" height="4" rx="1.5"/><rect class="rose" x="628" y="126" width="7" height="4" rx="1.5"/><rect class="violet-wash" x="647" y="103" width="38" height="28" rx="6"/><text class="num" x="666" y="122" text-anchor="middle">−2.5</text><rect class="rose-wash" x="691" y="103" width="38" height="28" rx="6"/><text class="num" x="710" y="122" text-anchor="middle">−1</text><rect class="violet-wash" x="603" y="147" width="38" height="28" rx="6"/><text class="num" x="622" y="166" text-anchor="middle">−2.5</text><text class="num strong" x="666" y="164" text-anchor="middle">3</text><rect class="violet" x="654" y="170" width="19" height="4" rx="1.5"/><rect class="amber" x="674" y="170" width="3" height="4" rx="1.5"/><rect class="amber-wash" x="691" y="147" width="38" height="28" rx="6"/><text class="num" x="710" y="166" text-anchor="middle">−0.5</text><rect class="rose-wash" x="603" y="191" width="38" height="28" rx="6"/><text class="num" x="622" y="210" text-anchor="middle">−1</text><rect class="amber-wash" x="647" y="191" width="38" height="28" rx="6"/><text class="num" x="666" y="210" text-anchor="middle">−0.5</text><text class="num strong" x="710" y="208" text-anchor="middle">1.5</text><rect class="rose" x="704" y="214" width="7" height="4" rx="1.5"/><rect class="amber" x="712" y="214" width="3" height="4" rx="1.5"/>
 </svg>

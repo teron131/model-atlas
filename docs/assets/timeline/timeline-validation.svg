@@ -1,104 +1,50 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 375" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 380" role="img" aria-labelledby="title desc">
 <title id="title">Leave one model family out, then predict its result</title>
-<desc id="desc">Left: five training families determine a benchmark conversion. The withheld family has benchmark A result 65, predicting B result 75; its observed B result is 80. The error is 5 over a training B range of 50, or 10 normalized points. Right: six validation rounds each leave out a different family, including all its reasoning configurations.</desc>
+<desc id="desc">Left: five training families fit the benchmark conversion. The withheld family has benchmark A result 65, which predicts benchmark B result 75; its actual B result is 80. The error of 5 is 10 percent of the training B range from 30 to 80. Right: six validation rounds each leave out a different family, including all its reasoning configurations.</desc>
 <style>
-text { font-family:"Avenir Next","Segoe UI",Arial,sans-serif; }
-@media (prefers-color-scheme:dark) {
-text { fill:#ffffff; }
-[fill="#63706e"] { fill:#a6b2ae; } [stroke="#63706e"] { stroke:#a6b2ae; }
-[fill="#b5bfbc"] { fill:#3c4846; } [stroke="#b5bfbc"] { stroke:#3c4846; }
-[fill="#146cba"] { fill:#85bfff; } [stroke="#146cba"] { stroke:#85bfff; }
-[fill="#a64d0c"] { fill:#ffbc7d; } [stroke="#a64d0c"] { stroke:#ffbc7d; }
+text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:15px;fill:#202724}
+.num{font-family:"SFMono-Regular","SF Mono",Menlo,Consolas,monospace;font-size:14px}
+.small{font-size:12.5px}.big{font-size:18px}.strong{font-weight:600}
+.muted{fill-opacity:.62}.faint{opacity:.4}.half{opacity:.5}
+.grid{fill:none;stroke:#202724;stroke-opacity:.09}
+.guide{fill:none;stroke:#202724;stroke-opacity:.22}
+.axis{fill:none;stroke:#202724;stroke-opacity:.34}
+.ink{fill:#202724}.ink-line{fill:none;stroke:#202724}.ink-wash{fill:#202724;fill-opacity:.08}
+.ring{stroke:#f2f4f2;stroke-width:2;paint-order:stroke}.gap{stroke:#f2f4f2;stroke-width:2}
+.violet{fill:#6b47e0}.violet-line{fill:none;stroke:#6b47e0}.violet-wash{fill:#6b47e0;fill-opacity:.14}
+.rose{fill:#c93f78}.rose-line{fill:none;stroke:#c93f78}.rose-wash{fill:#c93f78;fill-opacity:.14}
+.amber{fill:#a8740c}.amber-line{fill:none;stroke:#a8740c}.amber-wash{fill:#a8740c;fill-opacity:.16}
+.h0{stop-color:#3557e6}.h1{stop-color:#6b47e0}.h2{stop-color:#d9467f}
+.land0{stop-color:#6b47e0;stop-opacity:.12}.land1{stop-color:#6b47e0;stop-opacity:.01}
+.halo{opacity:0}
+@media (prefers-color-scheme:dark){
+text{fill:#f2f3ed}.muted{fill-opacity:.58}
+.grid{stroke:#f2f3ed;stroke-opacity:.08}.guide{stroke:#f2f3ed;stroke-opacity:.2}.axis{stroke:#f2f3ed;stroke-opacity:.3}
+.ink{fill:#f2f3ed}.ink-line{stroke:#f2f3ed}.ink-wash{fill:#f2f3ed;fill-opacity:.1}
+.ring{stroke:#0b1016}.gap{stroke:#0b1016}
+.violet{fill:#8f6bff}.violet-line{stroke:#8f6bff}.violet-wash{fill:#8f6bff;fill-opacity:.22}
+.rose{fill:#e06296}.rose-line{stroke:#e06296}.rose-wash{fill:#e06296;fill-opacity:.2}
+.amber{fill:#b98b24}.amber-line{stroke:#b98b24}.amber-wash{fill:#b98b24;fill-opacity:.22}
+.h0{stop-color:#4a72ff}.h1{stop-color:#8f6bff}.h2{stop-color:#ff92bd}
+.land0{stop-color:#6f8cff;stop-opacity:.16}.land1{stop-color:#6f8cff;stop-opacity:.02}
+.halo{opacity:.55}
 }
 </style>
-<text x="45" y="25" fill="#000000" font-size="18" text-anchor="start">Predict the withheld family</text>
-<text x="510" y="25" fill="#000000" font-size="18" text-anchor="start">Repeat for each family</text>
-<text x="45" y="59" fill="#63706e" font-size="14" text-anchor="start">Benchmark B result</text>
-<path d="M65 75 V310 H382" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<path d="M65 310.0 H382" fill="none" stroke="#b5bfbc" stroke-width="1.5" stroke-dasharray="3 5"/>
-<text x="53" y="315.0" fill="#63706e" font-size="13" text-anchor="end">20</text>
-<path d="M65 244.0 H382" fill="none" stroke="#b5bfbc" stroke-width="1.5" stroke-dasharray="3 5"/>
-<text x="53" y="249.0" fill="#63706e" font-size="13" text-anchor="end">40</text>
-<path d="M65 178.0 H382" fill="none" stroke="#b5bfbc" stroke-width="1.5" stroke-dasharray="3 5"/>
-<text x="53" y="183.0" fill="#63706e" font-size="13" text-anchor="end">60</text>
-<path d="M65 112.0 H382" fill="none" stroke="#b5bfbc" stroke-width="1.5" stroke-dasharray="3 5"/>
-<text x="53" y="117.0" fill="#63706e" font-size="13" text-anchor="end">80</text>
-<path d="M65.0 310 v5" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<text x="65.0" y="334" fill="#63706e" font-size="13" text-anchor="middle">20</text>
-<path d="M169.0 310 v5" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<text x="169.0" y="334" fill="#63706e" font-size="13" text-anchor="middle">40</text>
-<path d="M273.0 310 v5" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<text x="273.0" y="334" fill="#63706e" font-size="13" text-anchor="middle">60</text>
-<path d="M377.0 310 v5" fill="none" stroke="#63706e" stroke-width="1.5"/>
-<text x="377.0" y="334" fill="#63706e" font-size="13" text-anchor="middle">80</text>
-<text x="226" y="359" fill="#63706e" font-size="14" text-anchor="middle">Benchmark A result</text>
-<path d="M65.0 277.0 L351.0 95.5" fill="none" stroke="#146cba" stroke-width="1.5"/>
-<circle cx="65.0" cy="277.0" r="5" fill="#146cba" stroke="#146cba" stroke-width="2"/>
-<circle cx="117.0" cy="227.5" r="5" fill="#146cba" stroke="#146cba" stroke-width="2"/>
-<circle cx="195.0" cy="220.2656214113457" r="5" fill="#146cba" stroke="#146cba" stroke-width="2"/>
-<circle cx="247.0" cy="152.23437858865432" r="5" fill="#146cba" stroke="#146cba" stroke-width="2"/>
-<circle cx="325.0" cy="112.0" r="5" fill="#146cba" stroke="#146cba" stroke-width="2"/>
-<path d="M299.0 310 V112.0" fill="none" stroke="#a64d0c" stroke-width="1.5" stroke-dasharray="4 5"/>
-<circle cx="299.0" cy="128.5" r="6" fill="none" stroke="#a64d0c" stroke-width="2"/>
-<circle cx="299.0" cy="112.0" r="6" fill="#a64d0c" stroke="#a64d0c" stroke-width="2"/>
-<text x="283" y="92" fill="#a64d0c" font-size="14" text-anchor="end">Actual 80</text>
-<text x="283" y="134" fill="#a64d0c" font-size="14" text-anchor="end">Predicted 75</text>
-<path d="M312.0 112.0 h8 v16.5 h-8" fill="none" stroke="#a64d0c" stroke-width="1.5"/>
-<text x="332" y="124" fill="#a64d0c" font-size="14" text-anchor="start">Error 5</text>
-<text x="299.0" y="334" fill="#a64d0c" font-size="13" text-anchor="middle">65</text>
-<text x="515" y="63" fill="#63706e" font-size="13" text-anchor="start">Round</text>
-<text x="654" y="63" fill="#63706e" font-size="13" text-anchor="middle">Model family</text>
-<text x="587" y="86" fill="#63706e" font-size="12" text-anchor="middle">1</text>
-<text x="614" y="86" fill="#63706e" font-size="12" text-anchor="middle">2</text>
-<text x="641" y="86" fill="#63706e" font-size="12" text-anchor="middle">3</text>
-<text x="668" y="86" fill="#63706e" font-size="12" text-anchor="middle">4</text>
-<text x="695" y="86" fill="#63706e" font-size="12" text-anchor="middle">5</text>
-<text x="722" y="86" fill="#63706e" font-size="12" text-anchor="middle">6</text>
-<text x="535" y="114" fill="#63706e" font-size="13" text-anchor="middle">1</text>
-<rect x="579" y="101" width="16" height="16" rx="2" fill="#a64d0c"/>
-<rect x="606" y="101" width="16" height="16" rx="2" fill="#146cba"/>
-<rect x="633" y="101" width="16" height="16" rx="2" fill="#146cba"/>
-<rect x="660" y="101" width="16" height="16" rx="2" fill="#146cba"/>
-<rect x="687" y="101" width="16" height="16" rx="2" fill="#146cba"/>
-<rect x="714" y="101" width="16" height="16" rx="2" fill="#146cba"/>
-<text x="535" y="145" fill="#63706e" font-size="13" text-anchor="middle">2</text>
-<rect x="579" y="132" width="16" height="16" rx="2" fill="#146cba"/>
-<rect x="606" y="132" width="16" height="16" rx="2" fill="#a64d0c"/>
-<rect x="633" y="132" width="16" height="16" rx="2" fill="#146cba"/>
-<rect x="660" y="132" width="16" height="16" rx="2" fill="#146cba"/>
-<rect x="687" y="132" width="16" height="16" rx="2" fill="#146cba"/>
-<rect x="714" y="132" width="16" height="16" rx="2" fill="#146cba"/>
-<text x="535" y="176" fill="#63706e" font-size="13" text-anchor="middle">3</text>
-<rect x="579" y="163" width="16" height="16" rx="2" fill="#146cba"/>
-<rect x="606" y="163" width="16" height="16" rx="2" fill="#146cba"/>
-<rect x="633" y="163" width="16" height="16" rx="2" fill="#a64d0c"/>
-<rect x="660" y="163" width="16" height="16" rx="2" fill="#146cba"/>
-<rect x="687" y="163" width="16" height="16" rx="2" fill="#146cba"/>
-<rect x="714" y="163" width="16" height="16" rx="2" fill="#146cba"/>
-<text x="535" y="207" fill="#63706e" font-size="13" text-anchor="middle">4</text>
-<rect x="579" y="194" width="16" height="16" rx="2" fill="#146cba"/>
-<rect x="606" y="194" width="16" height="16" rx="2" fill="#146cba"/>
-<rect x="633" y="194" width="16" height="16" rx="2" fill="#146cba"/>
-<rect x="660" y="194" width="16" height="16" rx="2" fill="#a64d0c"/>
-<rect x="687" y="194" width="16" height="16" rx="2" fill="#146cba"/>
-<rect x="714" y="194" width="16" height="16" rx="2" fill="#146cba"/>
-<text x="535" y="238" fill="#63706e" font-size="13" text-anchor="middle">5</text>
-<rect x="579" y="225" width="16" height="16" rx="2" fill="#146cba"/>
-<rect x="606" y="225" width="16" height="16" rx="2" fill="#146cba"/>
-<rect x="633" y="225" width="16" height="16" rx="2" fill="#146cba"/>
-<rect x="660" y="225" width="16" height="16" rx="2" fill="#146cba"/>
-<rect x="687" y="225" width="16" height="16" rx="2" fill="#a64d0c"/>
-<rect x="714" y="225" width="16" height="16" rx="2" fill="#146cba"/>
-<text x="535" y="269" fill="#63706e" font-size="13" text-anchor="middle">6</text>
-<rect x="579" y="256" width="16" height="16" rx="2" fill="#146cba"/>
-<rect x="606" y="256" width="16" height="16" rx="2" fill="#146cba"/>
-<rect x="633" y="256" width="16" height="16" rx="2" fill="#146cba"/>
-<rect x="660" y="256" width="16" height="16" rx="2" fill="#146cba"/>
-<rect x="687" y="256" width="16" height="16" rx="2" fill="#146cba"/>
-<rect x="714" y="256" width="16" height="16" rx="2" fill="#a64d0c"/>
-<circle cx="528" cy="305" r="4" fill="#146cba" stroke="#146cba" stroke-width="2"/>
-<text x="541" y="310" fill="#63706e" font-size="13" text-anchor="start">Used to fit</text>
-<circle cx="528" cy="333" r="4" fill="#a64d0c" stroke="#a64d0c" stroke-width="2"/>
-<text x="541" y="338" fill="#63706e" font-size="13" text-anchor="start">Left out</text>
-
+<defs><filter id="glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="3"/></filter><marker id="tip-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="ink" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-violet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="violet" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="rose" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="amber" d="M0 0L10 5L0 10Z"/></marker></defs>
+<text class="muted" x="100" y="40">Benchmark B result</text>
+<path class="axis" d="M100 300L400 300"/><text class="num muted" x="86" y="304.5" text-anchor="end">20</text><path class="axis" d="M100 300L100 306"/><text class="num muted" x="100" y="324" text-anchor="middle">20</text><path class="grid" d="M100 230L400 230"/><text class="num muted" x="86" y="234.5" text-anchor="end">40</text><path class="axis" d="M200 300L200 306"/><text class="num muted" x="200" y="324" text-anchor="middle">40</text><path class="grid" d="M100 160L400 160"/><text class="num muted" x="86" y="164.5" text-anchor="end">60</text><path class="axis" d="M300 300L300 306"/><text class="num muted" x="300" y="324" text-anchor="middle">60</text><path class="grid" d="M100 90L400 90"/><text class="num muted" x="86" y="94.5" text-anchor="end">80</text><path class="axis" d="M400 300L400 306"/><text class="num muted" x="400" y="324" text-anchor="middle">80</text>
+<path class="axis" d="M414 90h6V265h-6" stroke-width="1.5"/><text class="small muted" x="430" y="173.5">Training</text><text class="small muted" x="430" y="191.5">range 30–80</text>
+<path class="violet-line" d="M100 265L375 72.5" stroke-width="2"/>
+<g><circle class="ink halo" cx="100" cy="265" r="7" filter="url(#glow)"/><circle class="ink ring" cx="100" cy="265" r="5"/></g><g><circle class="ink halo" cx="150" cy="212.5" r="7" filter="url(#glow)"/><circle class="ink ring" cx="150" cy="212.5" r="5"/></g><g><circle class="ink halo" cx="225" cy="204.8" r="7" filter="url(#glow)"/><circle class="ink ring" cx="225" cy="204.8" r="5"/></g><g><circle class="ink halo" cx="275" cy="132.7" r="7" filter="url(#glow)"/><circle class="ink ring" cx="275" cy="132.7" r="5"/></g><g><circle class="ink halo" cx="350" cy="90" r="7" filter="url(#glow)"/><circle class="ink ring" cx="350" cy="90" r="5"/></g>
+<path class="guide" d="M325 90L325 300"/>
+<path class="rose-line" d="M313 90h-6V107.5h6" stroke-width="1.5"/>
+<g><circle class="rose halo" cx="325" cy="107.5" r="7.5" filter="url(#glow)"/><circle class="rose ring" cx="325" cy="107.5" r="5.5"/></g><g><circle class="ink halo" cx="325" cy="90" r="7.5" filter="url(#glow)"/><circle class="ink ring" cx="325" cy="90" r="5.5"/></g>
+<text class="num" x="325" y="76" text-anchor="middle">Actual 80</text><text class="num" x="337" y="125.5">Predicted 75</text>
+<text class="num strong" x="299" y="103.8" text-anchor="end">Error 5</text>
+<text class="num strong" x="325" y="324" text-anchor="middle">65</text>
+<text x="250" y="360" text-anchor="middle">Benchmark A result</text>
+<text class="muted" x="530" y="56" text-anchor="end">Round</text><text class="muted" x="635" y="56" text-anchor="middle">Model family</text>
+<text class="num muted" x="560" y="80" text-anchor="middle">1</text><text class="num muted" x="590" y="80" text-anchor="middle">2</text><text class="num muted" x="620" y="80" text-anchor="middle">3</text><text class="num muted" x="650" y="80" text-anchor="middle">4</text><text class="num muted" x="680" y="80" text-anchor="middle">5</text><text class="num muted" x="710" y="80" text-anchor="middle">6</text>
+<g><circle class="rose halo" cx="560" cy="104" r="7.5" filter="url(#glow)"/><circle class="rose ring" cx="560" cy="104" r="5.5"/></g><g><circle class="ink halo" cx="590" cy="104" r="6" filter="url(#glow)"/><circle class="ink ring" cx="590" cy="104" r="4"/></g><g><circle class="ink halo" cx="620" cy="104" r="6" filter="url(#glow)"/><circle class="ink ring" cx="620" cy="104" r="4"/></g><g><circle class="ink halo" cx="650" cy="104" r="6" filter="url(#glow)"/><circle class="ink ring" cx="650" cy="104" r="4"/></g><g><circle class="ink halo" cx="680" cy="104" r="6" filter="url(#glow)"/><circle class="ink ring" cx="680" cy="104" r="4"/></g><g><circle class="ink halo" cx="710" cy="104" r="6" filter="url(#glow)"/><circle class="ink ring" cx="710" cy="104" r="4"/></g><text class="num muted" x="530" y="108.5" text-anchor="end">1</text><g><circle class="ink halo" cx="560" cy="136" r="6" filter="url(#glow)"/><circle class="ink ring" cx="560" cy="136" r="4"/></g><g><circle class="rose halo" cx="590" cy="136" r="7.5" filter="url(#glow)"/><circle class="rose ring" cx="590" cy="136" r="5.5"/></g><g><circle class="ink halo" cx="620" cy="136" r="6" filter="url(#glow)"/><circle class="ink ring" cx="620" cy="136" r="4"/></g><g><circle class="ink halo" cx="650" cy="136" r="6" filter="url(#glow)"/><circle class="ink ring" cx="650" cy="136" r="4"/></g><g><circle class="ink halo" cx="680" cy="136" r="6" filter="url(#glow)"/><circle class="ink ring" cx="680" cy="136" r="4"/></g><g><circle class="ink halo" cx="710" cy="136" r="6" filter="url(#glow)"/><circle class="ink ring" cx="710" cy="136" r="4"/></g><text class="num muted" x="530" y="140.5" text-anchor="end">2</text><g><circle class="ink halo" cx="560" cy="168" r="6" filter="url(#glow)"/><circle class="ink ring" cx="560" cy="168" r="4"/></g><g><circle class="ink halo" cx="590" cy="168" r="6" filter="url(#glow)"/><circle class="ink ring" cx="590" cy="168" r="4"/></g><g><circle class="rose halo" cx="620" cy="168" r="7.5" filter="url(#glow)"/><circle class="rose ring" cx="620" cy="168" r="5.5"/></g><g><circle class="ink halo" cx="650" cy="168" r="6" filter="url(#glow)"/><circle class="ink ring" cx="650" cy="168" r="4"/></g><g><circle class="ink halo" cx="680" cy="168" r="6" filter="url(#glow)"/><circle class="ink ring" cx="680" cy="168" r="4"/></g><g><circle class="ink halo" cx="710" cy="168" r="6" filter="url(#glow)"/><circle class="ink ring" cx="710" cy="168" r="4"/></g><text class="num muted" x="530" y="172.5" text-anchor="end">3</text><g><circle class="ink halo" cx="560" cy="200" r="6" filter="url(#glow)"/><circle class="ink ring" cx="560" cy="200" r="4"/></g><g><circle class="ink halo" cx="590" cy="200" r="6" filter="url(#glow)"/><circle class="ink ring" cx="590" cy="200" r="4"/></g><g><circle class="ink halo" cx="620" cy="200" r="6" filter="url(#glow)"/><circle class="ink ring" cx="620" cy="200" r="4"/></g><g><circle class="rose halo" cx="650" cy="200" r="7.5" filter="url(#glow)"/><circle class="rose ring" cx="650" cy="200" r="5.5"/></g><g><circle class="ink halo" cx="680" cy="200" r="6" filter="url(#glow)"/><circle class="ink ring" cx="680" cy="200" r="4"/></g><g><circle class="ink halo" cx="710" cy="200" r="6" filter="url(#glow)"/><circle class="ink ring" cx="710" cy="200" r="4"/></g><text class="num muted" x="530" y="204.5" text-anchor="end">4</text><g><circle class="ink halo" cx="560" cy="232" r="6" filter="url(#glow)"/><circle class="ink ring" cx="560" cy="232" r="4"/></g><g><circle class="ink halo" cx="590" cy="232" r="6" filter="url(#glow)"/><circle class="ink ring" cx="590" cy="232" r="4"/></g><g><circle class="ink halo" cx="620" cy="232" r="6" filter="url(#glow)"/><circle class="ink ring" cx="620" cy="232" r="4"/></g><g><circle class="ink halo" cx="650" cy="232" r="6" filter="url(#glow)"/><circle class="ink ring" cx="650" cy="232" r="4"/></g><g><circle class="rose halo" cx="680" cy="232" r="7.5" filter="url(#glow)"/><circle class="rose ring" cx="680" cy="232" r="5.5"/></g><g><circle class="ink halo" cx="710" cy="232" r="6" filter="url(#glow)"/><circle class="ink ring" cx="710" cy="232" r="4"/></g><text class="num muted" x="530" y="236.5" text-anchor="end">5</text><g><circle class="ink halo" cx="560" cy="264" r="6" filter="url(#glow)"/><circle class="ink ring" cx="560" cy="264" r="4"/></g><g><circle class="ink halo" cx="590" cy="264" r="6" filter="url(#glow)"/><circle class="ink ring" cx="590" cy="264" r="4"/></g><g><circle class="ink halo" cx="620" cy="264" r="6" filter="url(#glow)"/><circle class="ink ring" cx="620" cy="264" r="4"/></g><g><circle class="ink halo" cx="650" cy="264" r="6" filter="url(#glow)"/><circle class="ink ring" cx="650" cy="264" r="4"/></g><g><circle class="ink halo" cx="680" cy="264" r="6" filter="url(#glow)"/><circle class="ink ring" cx="680" cy="264" r="4"/></g><g><circle class="rose halo" cx="710" cy="264" r="7.5" filter="url(#glow)"/><circle class="rose ring" cx="710" cy="264" r="5.5"/></g><text class="num muted" x="530" y="268.5" text-anchor="end">6</text>
+<g><circle class="ink halo" cx="556" cy="320" r="6" filter="url(#glow)"/><circle class="ink ring" cx="556" cy="320" r="4"/></g><text class="muted" x="570" y="325">Used to fit</text><g><circle class="rose halo" cx="556" cy="346" r="7.5" filter="url(#glow)"/><circle class="rose ring" cx="556" cy="346" r="5.5"/></g><text class="muted" x="570" y="351">Left out</text>
 </svg>
