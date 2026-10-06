@@ -4,7 +4,7 @@
 
 import { ArrowRight, ArrowUp } from "lucide-react";
 import dynamic from "next/dynamic";
-import { type CSSProperties, memo, useMemo, useRef, useState } from "react";
+import { type CSSProperties, memo, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { BotIcon, BrainIcon, DollarIcon } from "../shared/DashboardIcons";
 import { formatCost } from "../table/format";
@@ -21,11 +21,19 @@ const FrontierField = dynamic(
   () => import("./FrontierField").then((module) => module.FrontierField),
   { ssr: false },
 );
+// The horizon rests just under the title, this share of its type size below the title's line box.
+const HORIZON_GAP = 0.1;
 
-/** The hero's fixed field layers sit in the dashboard's stacking context, so the hero must not create one of its own. */
+/**
+ * The hero's fixed field layers sit in the dashboard's stacking context, so the hero must not create one of its own.
+ *
+ * The hero owns where the horizon sits: it measures the title at rest and hands that line to both the CSS atmosphere and the WebGL sky.
+ */
 export const ModelSignature = memo(function ModelSignature(population: SignaturePopulation) {
   const heroRef = useRef<HTMLElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
   const [focusKey, setFocusKey] = useState<string | null>(null);
+  const [horizon, setHorizon] = useState<number | null>(null);
   const signatureModelRows = useMemo(
     () =>
       signatureModels(population).map((model) => ({
@@ -44,12 +52,33 @@ export const ModelSignature = memo(function ModelSignature(population: Signature
     [population.models, population.referenceModels, signatureModelRows],
   );
 
+  // The title moves whenever the viewport or the key and register below it change size.
+  useLayoutEffect(() => {
+    const hero = heroRef.current;
+    const title = titleRef.current;
+    if (hero == null || title == null) return;
+    const measure = () => {
+      const gap = Number.parseFloat(getComputedStyle(title).fontSize) * HORIZON_GAP;
+      setHorizon(Math.round(title.getBoundingClientRect().bottom + window.scrollY + gap));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(hero);
+    for (const row of Array.from(hero.children)) observer.observe(row);
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <section ref={heroRef} className={styles.signature} aria-labelledby="model-signature-title">
+    <section
+      ref={heroRef}
+      className={styles.signature}
+      style={horizon == null ? undefined : ({ "--horizon": `${horizon}px` } as CSSProperties)}
+      aria-labelledby="model-signature-title"
+    >
       <div className={styles.atmosphere} aria-hidden="true" />
       <div className={styles.grain} aria-hidden="true" />
-      <FrontierField stars={stars} focusKey={focusKey} heroRef={heroRef} />
-      <h2 id="model-signature-title" className={styles.title}>
+      <FrontierField stars={stars} focusKey={focusKey} horizon={horizon} heroRef={heroRef} />
+      <h2 ref={titleRef} id="model-signature-title" className={styles.title}>
         <span className={styles.titleStart}>Mapping</span>{" "}
         <span className={styles.titleEnd}>Frontiers</span>
       </h2>
