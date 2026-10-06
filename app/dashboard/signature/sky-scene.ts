@@ -8,14 +8,16 @@ import { clamp01, smoothstep } from "../../../src/model-atlas/math-utils";
 export const CAMERA_DISTANCE = 12;
 export const FIELD_OF_VIEW = 30;
 const TAN_HALF_FOV = Math.tan((FIELD_OF_VIEW / 360) * Math.PI);
-// Horizon height in the hero, as a share of the viewport measured from the bottom.
+// Horizon height until the hero measures where its title ends, as a share of the viewport measured from the bottom.
 const HORIZON = 0.3;
-// Scoping in leaves the planet: its horizon falls this far below the hero height while its vertical limb tightens, both in viewport heights.
-const HORIZON_FALL = 0.64;
-const PLANET_LIMB = 0.6;
-// Horizontal radii use viewport widths so resizing preserves the same shallow arc and zoom transition.
-const HERO_RADIUS_X = 1.45;
-const LIMB_RADIUS_X = 0.86;
+// Scoping in leaves the planet: its horizon falls to this height, below the viewport.
+const SCOPED_HORIZON = -0.34;
+// The planet is a circle sized in viewport widths, so its arc keeps one shape at every aspect ratio; scoping in tightens it toward the limb.
+const PLANET_RADIUS = 1.5;
+const LIMB_RADIUS = 0.9;
+// Stars fill the sky above the horizon, as shares of its height: the weakest hang just over the glow and the strongest top out below the header.
+const STAR_FLOOR = 0.06;
+const STAR_CEILING = 0.29;
 const DUST = 1_400;
 // Depth band of model stars; the camera never travels past the nearest of them.
 const NEAREST_STAR = -2;
@@ -109,14 +111,14 @@ void main() {
   float across = vUv.x - 0.5;
   // Tighten the visible arc before the pan carries it below the viewport.
   float curveScope = 1.0 - pow(1.0 - scope, 2.5);
-  float radiusX = ${HERO_RADIUS_X.toFixed(2)} * pow(${LIMB_RADIUS_X.toFixed(2)} / ${HERO_RADIUS_X.toFixed(2)}, curveScope);
-  float radiusY = 0.95 * pow(${PLANET_LIMB.toFixed(2)} / 0.95, curveScope);
-  float shrink = radiusY / 0.95;
-  float side = clamp(abs(across) / (radiusX * 0.46), 0.0, 1.0);
+  float shrink = pow(${(LIMB_RADIUS / PLANET_RADIUS).toFixed(4)}, curveScope);
+  // Distances run in viewport heights, while the radius is set in widths.
+  float radius = ${PLANET_RADIUS.toFixed(2)} * shrink * aspect;
+  float side = clamp(abs(across) / (0.67 * shrink), 0.0, 1.0);
   vec3 rim = mix(vec3(0.42, 0.56, 1.0), vec3(0.64, 0.44, 1.0), smoothstep(0.1, 0.6, side));
   rim = mix(rim, vec3(1.0, 0.56, 0.72), smoothstep(0.55, 1.0, side));
   float breathe = (0.9 + 0.1 * sin(time * 0.4)) * dawn;
-  float toRim = (length(vec2(across / radiusX, (p.y - (horizon - radiusY)) / radiusY)) - 1.0) * radiusY;
+  float toRim = length(p - vec2(0.0, horizon - radius)) - radius;
   float inside = smoothstep(0.003, -0.003, toRim);
   vec3 sky = mix(vec3(0.05, 0.09, 0.38), vec3(0.006, 0.01, 0.045), smoothstep(horizon - 0.05, 1.0, vUv.y));
   sky += rim * exp(-max(toRim, 0.0) * 4.5 / shrink) * 0.42 * breathe;
@@ -311,12 +313,17 @@ export function createSky(scene: THREE.Scene, camera: THREE.PerspectiveCamera) {
   let width = 1;
   let height = 1;
   let scope = 0;
+  let horizonTop: number | null = null;
   const colour = new THREE.Color();
   const projected = new THREE.Vector3();
+
+  /** Hero horizon height as a share of the viewport from the bottom. */
+  const restingHorizon = () => (horizonTop == null ? HORIZON : 1 - horizonTop / height);
 
   /** Recompute world positions so each star lands on its hero screen position at its own depth. */
   const layout = () => {
     const unitsPerPixel = (2 * CAMERA_DISTANCE * TAN_HALF_FOV) / height;
+    const sky = height * (1 - restingHorizon());
     const positions = new Float32Array(stars.length * 3);
     const tints = new Float32Array(stars.length * 3);
     const sizes = new Float32Array(stars.length);
@@ -328,9 +335,9 @@ export function createSky(scene: THREE.Scene, camera: THREE.PerspectiveCamera) {
       const seed = hashUnit(star.key);
       const depth = NEAREST_STAR - seed * STAR_DEPTH;
       const perspective = (CAMERA_DISTANCE - depth) / CAMERA_DISTANCE;
-      // The strongest models top out below the lede; the weakest hang just over the horizon glow.
       const screenX = width * (0.07 + star.across * 0.8);
-      const screenY = height * (1 - HORIZON - 0.04 - star.altitude ** 1.2 * 0.46);
+      const screenY =
+        sky * (1 - STAR_FLOOR - star.altitude ** 1.2 * (1 - STAR_FLOOR - STAR_CEILING));
       const x = (screenX - width / 2) * unitsPerPixel * perspective;
       const y = -(screenY - height / 2) * unitsPerPixel * perspective;
       positions.set([x, y, depth], index * 3);
@@ -378,6 +385,11 @@ export function createSky(scene: THREE.Scene, camera: THREE.PerspectiveCamera) {
       uniforms.aspect.value = width / height;
       layout();
     },
+    /** Where the hero horizon sits, in CSS pixels from the top of the viewport at rest; null keeps the default height. */
+    setHorizon(top: number | null) {
+      horizonTop = top;
+      layout();
+    },
     stars: () => stars,
     /** The star nearest a pointer position, if any lies within reach in CSS pixels. */
     nearest(x: number, y: number, reach: number): number | null {
@@ -423,7 +435,8 @@ export function createSky(scene: THREE.Scene, camera: THREE.PerspectiveCamera) {
       uniforms.time.value = frame.time;
       uniforms.intro.value = frame.intro;
       // The planet falls away and dims as the camera tilts up and scopes into the sky; its curve tightens in the shader.
-      uniforms.horizon.value = HORIZON - HORIZON_FALL * scope ** 1.15;
+      const resting = restingHorizon();
+      uniforms.horizon.value = resting + (SCOPED_HORIZON - resting) * scope ** 1.15;
       uniforms.dawn.value = 1 - scope * 0.85;
       uniforms.scope.value = scope;
       uniforms.rise.value = frame.scroll * frame.unitsPerPixel * 0.35;

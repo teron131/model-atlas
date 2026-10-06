@@ -33,21 +33,25 @@ const FIELD_FRAME_INTERVAL = 1000 / 12;
  * Scroll scopes the camera from the hero horizon into the star field and back; ambient twinkle stops while the page is hidden.
  *
  * In the hero, pointing near a star identifies its model, and `focusKey` lets the register light a role's star.
+ * `horizon` is where the hero places its horizon, in CSS pixels from the top of the viewport at rest.
  * Reduced motion keeps the hero composition still: no camera travel, parallax, or twinkle.
  */
 export function FrontierField({
   stars,
   focusKey,
+  horizon,
   heroRef,
 }: {
   stars: SkyStar[];
   focusKey: string | null;
+  horizon: number | null;
   heroRef: RefObject<HTMLElement | null>;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const starsRef = useRef(stars);
   const focusKeyRef = useRef(focusKey);
+  const horizonRef = useRef(horizon);
   const skyRef = useRef<ReturnType<typeof createSky> | null>(null);
   const invalidateRef = useRef<(() => void) | null>(null);
   const labelElements = useRef(new Map<string, HTMLSpanElement>());
@@ -69,6 +73,12 @@ export function FrontierField({
   }, [focusKey]);
 
   useEffect(() => {
+    horizonRef.current = horizon;
+    skyRef.current?.setHorizon(horizon);
+    invalidateRef.current?.();
+  }, [horizon]);
+
+  useEffect(() => {
     const host = hostRef.current;
     const hero = heroRef.current;
     if (!host || !hero) return;
@@ -86,6 +96,7 @@ export function FrontierField({
     const camera = new THREE.PerspectiveCamera(FIELD_OF_VIEW, 1, 0.1, 200);
     camera.position.set(0, 0, CAMERA_DISTANCE);
     const sky = createSky(scene, camera);
+    sky.setHorizon(horizonRef.current);
     sky.setStars(starsRef.current);
     skyRef.current = sky;
 
