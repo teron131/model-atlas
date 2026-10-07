@@ -2,9 +2,9 @@
 
 Model Atlas compares language models across capability, execution, speed, and cost. Its benchmark portfolio favors difficult, consequential tasks with credible grading and useful separation between current models. Each score answers a different question, so the leaderboard keeps those trade-offs visible.
 
-- **Compare similar work.** Agentic includes a bounded adjustment for token use, with discounted estimates where supported. Speed and Value compare resources among models at similar quality, so a cheap or fast result is interpreted alongside what the model achieved.
-- **Keep evidence visible.** Validated estimates receive discounted credit and can reduce uncertainty penalties. Supported sibling estimates can correct missing tasks in the quality mean, but never overwrite observations or count as direct evidence for admission.
-- **Count models fairly.** Each reasoning effort keeps its own results, while a model's variants share its weight in calibration. Missing tasks can use a sibling’s direct result and the measured gap on shared tasks, without assuming that higher effort always wins.
+- **Compare similar work.** Agentic includes a bounded adjustment for token efficiency, with discounted estimates where supported. Speed and Value compare resources among models at similar quality, so a cheap or fast result is interpreted alongside what the model achieved.
+- **Keep evidence visible.** Validated estimates can reduce the penalty for missing evidence. They never overwrite observations or count as direct evidence for dashboard inclusion.
+- **Count models fairly.** Each reasoning effort keeps its own results, while a model's variants share one reference weight in calibration. A missing benchmark result can use another effort’s direct result and the measured gap on shared benchmarks, without assuming that higher effort always wins.
 
 ## Scores
 
@@ -26,9 +26,9 @@ Coding benchmarks default to primarily Agentic evidence. Intelligence loading is
 | [Benchmark standards](docs/standards.md) | Defines how benchmarks are reviewed, admitted, retained, and rejected. |
 | [Benchmark portfolio](docs/benchmarks.md) | Records the selected benchmarks, scoring roles, source policies, weights, and capability decisions. |
 | [Model matching](docs/matching.md) | Explains how source-specific names resolve to stable model identities. |
-| [Methodology](docs/methodology/overview.md) | Specifies the scoring mathematics, imputation, evidence support, quality regularization, and public admission. |
+| [Methodology](docs/methodology/overview.md) | Specifies the scoring mathematics, imputation, evidence support, score retention, and public admission. |
 
-The source code is authoritative when documentation and implementation disagree. Portfolio decisions live in `src/model-atlas/benchmarks/catalog/portfolio.ts`; benchmark descriptions live in `src/model-atlas/benchmarks/catalog/presentation.ts`. The [methodology article](docs/methodology/overview.md) explains the formulas, worked examples, and reasons behind the scoring choices.
+The source code is authoritative when documentation and implementation disagree. Portfolio decisions live in `src/model-atlas/benchmarks/catalog/portfolio.ts`; benchmark descriptions live in `src/model-atlas/benchmarks/catalog/presentation.ts`. The [methodology article](docs/methodology/overview.md) explains the formulas and the reasons behind the scoring choices.
 
 ## Development
 

@@ -2,13 +2,15 @@
 
 ## Introduction
 
-Inspired by the [Epoch Capabilities Index (ECI)](https://epoch.ai/eci), the Intelligence Index combines retained benchmark results and published indexes to estimate Intelligence across model generations. Its scores support comparisons between models, but are neither benchmark success rates nor ratios of capability: 150 does not mean 50% more capable than 100. The index is separate from the leaderboard’s [relative scores](../methodology/overview.md) and is currently shown on the Timeline chart. Its display units remain provisional.
+Inspired by the [Epoch Capabilities Index (ECI)](https://epoch.ai/eci), the Intelligence Index combines retained benchmark results and published indexes to estimate Intelligence across model generations. Its scores support comparisons between models, but are neither benchmark success rates nor ratios of capability.
 
-The [fixed anchors](calculation.md#set-index-units-with-fixed-anchors) assign saved positions for GPT-4 (March 2023) and Claude Opus 4.5 index scores of 100 and 150 for Intelligence.
+The index is separate from the leaderboard’s [relative scores](../methodology/overview.md) and is currently shown on the Timeline chart. Its display units remain provisional.
+
+The [fixed anchors](calculation.md#set-index-units-with-fixed-anchors) assign index scores of 100 and 150 to the saved positions of GPT-4 (March 2023) and Claude Opus 4.5, respectively.
 
 ## From Evidence to Index
 
-The framework establishes a fixed reference from an initial snapshot of supported scores, uses retained evidence to place older models, and extends forward as new results arrive. Models measured on overlapping benchmarks connect these generations to the same scale; future models need a supported connection before they can be placed. Published positions and benchmark mappings stay fixed across ordinary refreshes. Newly supported configurations are appended; diagnostics and evidence coverage continue to reflect incoming results.
+The framework establishes a fixed reference from an initial snapshot of supported scores, uses retained evidence to place older models, and extends forward as new results arrive. Models measured on overlapping benchmarks connect these generations to the same scale; future models need a supported connection before they can be placed. Published positions and benchmark mappings stay fixed across ordinary refreshes. Newly supported variants are appended; diagnostics and evidence coverage continue to reflect incoming results.
 
 > [!FLOW]
 >
@@ -36,7 +38,7 @@ The framework establishes a fixed reference from an initial snapshot of supporte
 >
 >    Assign the saved GPT-4 (March 2023) and Claude Opus 4.5 positions values of 100 and 150, preserving the unit as new models arrive.
 
-The published index uses Intelligence relevance weights. :score[Agentic] remains a relative leaderboard score.
+The published index uses the Intelligence base weights. :score[Agentic] remains a relative leaderboard score.
 
 Read [Calculation](calculation.md) for the equations, benchmark connection checks, and evidence-weighting rules.
 
@@ -46,16 +48,16 @@ The chart shows evidence support alongside capability so a sparsely supported es
 
 | Chart feature | Meaning |
 | --- | --- |
-| Filled point | A supported reference or task-supported estimate. |
+| Filled point | A supported reference or benchmark-supported estimate. |
 | Outlined point | An index-only estimate. |
 | Fainter point | Less evidence support. |
 | Frontier | Successive record-high scores with at least 60% support in the selected dimension. |
 
-The task coverage used for blending and the support used for frontier eligibility are different measures. Frontier support takes the strongest available support from saved reference evidence, direct tasks or eligible index breadth; overlapping sources are not added together to inflate it.
+The benchmark coverage used for blending and the support used for frontier eligibility are different measures. Frontier support takes the strongest available support from saved reference evidence, direct benchmarks or eligible index breadth; overlapping sources are not added together to inflate it.
 
-Each model family uses one representative Intelligence configuration. Selection prefers current configurations ranked by their saved main-leaderboard :score[Intelligence] scores; historical-only families use their strongest available Intelligence Index estimate. Every configuration retains its own measurements and score. The default chart starts with GPT-4's March 2023 release and hides scores below 70.
+Each model family uses one representative variant. Selection prefers current variants ranked by their saved main-leaderboard :score[Intelligence] scores; historical-only families use their strongest available Intelligence Index estimate. Every variant retains its own measurements and score. The default chart starts with GPT-4's March 2023 release and hides scores below 70.
 
-The default view emphasizes broadly impactful model progress. It excludes OpenAI Pro configurations, Gemini Deep Think and Claude Mythos because of their specialized resourcing, operating policies or assets. Ordinary Gemini Pro models and other high-reasoning configurations remain eligible. Visibility rules, search, dates and lab filters apply after scoring: hiding a model changes neither its score nor the calibration of other models.
+The default view emphasizes broadly impactful model progress. It excludes OpenAI Pro, Gemini Deep Think and Claude Mythos models because of their specialized resourcing, operating policies or assets. Ordinary Gemini Pro models and other high-reasoning variants remain eligible. Visibility rules, search, dates and lab filters apply after scoring: hiding a model changes neither its score nor the calibration of other models.
 
 ## Evidence and Validation Maps
 

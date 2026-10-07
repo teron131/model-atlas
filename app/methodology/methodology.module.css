@@ -619,24 +619,33 @@
   color: var(--faint);
 }
 
-.flowchart > ol {
-  margin: 28px 0;
+.flowchart {
+  container-type: inline-size;
+}
+
+.flowchart ol,
+.flowchart ul {
+  margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.flowchart > ol > li {
+.flowchart > ol {
+  margin: 28px 0;
+}
+
+.flowchart ol > li {
   position: relative;
   margin: 0;
   padding: 0 0 28px 32px;
   overflow-wrap: anywhere;
 }
 
-.flowchart > ol > li:last-child {
+.flowchart ol > li:last-child {
   padding-bottom: 0;
 }
 
-.flowchart > ol > li::before {
+.flowchart ol > li::before {
   position: absolute;
   top: 0.6em;
   left: 3px;
@@ -647,7 +656,7 @@
   content: "";
 }
 
-.flowchart > ol > li:not(:last-child)::after {
+.flowchart ol > li:not(:last-child)::after {
   position: absolute;
   top: calc(0.6em + 13px);
   bottom: 8px;
@@ -668,28 +677,65 @@
   content: "";
 }
 
-.flowchart > ol > li > p {
+.flowchart ol > li > p {
   margin: 0;
 }
 
-.flowchart > ol > li > p:first-child {
+.flowchart ol > li > p:first-child {
   margin-bottom: 4px;
 }
 
-.article h2[id="pipeline-overview"] + p + ol {
-  margin: 20px 0 28px;
-  padding-left: 28px;
+/* A step that branches into parallel paths draws each path as a thin line of small step marks. */
+.flowchart ol > li > ul {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px 32px;
 }
 
-.article h2[id="pipeline-overview"] + p + ol > li {
-  padding: 8px 0 8px 10px;
-  border-bottom: 1px solid var(--line);
+.flowchart ol > li > ul > li {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
 }
 
-.article h2[id="pipeline-overview"] + p + ol > li::marker {
-  color: var(--ink);
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
+.flowchart ol > li > ul > li > p:first-child {
+  margin: 0 0 12px;
+}
+
+.flowchart ol ol > li {
+  padding: 0 0 14px 22px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.flowchart ol ol > li::before {
+  top: 0.5em;
+  left: 0;
+  box-sizing: border-box;
+  border: 1px solid var(--muted);
+  background: transparent;
+}
+
+.flowchart ol ol > li:not(:last-child)::after {
+  top: calc(0.5em + 9px);
+  bottom: calc(2px - 0.5em);
+  width: 1px;
+  background: var(--muted);
+  clip-path: none;
+}
+
+.flowchart ol ol > li > p:first-child {
+  margin-bottom: 0;
+}
+
+.flowchart ol ol > li > p + p {
+  color: var(--muted);
+}
+
+@container (max-width: 600px) {
+  .flowchart ol > li > ul {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .tableViewport {
@@ -977,131 +1023,4 @@
 .pageSequence a:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 4px;
-}
-
-/* Markdown links form a responsive navigation diagram without image scaling or theme filters. */
-.documentMap {
-  container-type: inline-size;
-  margin: 30px 0 36px;
-}
-
-.documentMap > p {
-  position: relative;
-  width: fit-content;
-  margin: 0 auto;
-  padding: 8px 16px;
-  border: 1px solid var(--line-strong);
-  text-align: center;
-  font-weight: 600;
-}
-
-.documentMap > p::after {
-  content: "";
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  height: 12px;
-  border-left: 1px solid var(--line-strong);
-}
-
-.documentMap ul {
-  list-style: none;
-}
-
-.documentMap > ul {
-  position: relative;
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
-  margin: 0;
-  padding: 24px 0 0;
-}
-
-.documentMap > ul::before {
-  content: "";
-  position: absolute;
-  top: 12px;
-  left: calc(12.5% - 6px);
-  right: calc(12.5% - 6px);
-  border-top: 1px solid var(--line-strong);
-}
-
-.documentMap li {
-  position: relative;
-  min-width: 0;
-  margin: 0;
-  font-size: 14px;
-}
-
-.documentMap > ul > li::before {
-  content: "";
-  position: absolute;
-  top: -12px;
-  left: 50%;
-  height: 12px;
-  border-left: 1px solid var(--line-strong);
-}
-
-.documentMap > ul > li > a {
-  display: block;
-  align-content: center;
-  min-height: 64px;
-  padding: 8px;
-  border: 1px solid var(--line-strong);
-  text-align: center;
-  font-weight: 600;
-}
-
-.documentMap ul ul {
-  margin: 0 0 0 8px;
-  padding: 8px 0 0 12px;
-  border-left: 1px solid var(--line-strong);
-}
-
-.documentMap ul ul li {
-  padding: 6px 0 6px 0;
-  color: var(--muted);
-}
-
-.documentMap ul ul li::before {
-  content: "";
-  position: absolute;
-  top: 17px;
-  left: -12px;
-  width: 8px;
-  border-top: 1px solid var(--line-strong);
-}
-
-.documentMap a {
-  --link-underline-color: transparent;
-  color: var(--ink);
-  text-decoration: none;
-  overflow-wrap: anywhere;
-}
-
-.documentMap ul ul a {
-  display: block;
-}
-
-.documentMap a:hover,
-.documentMap a:focus-visible {
-  text-decoration: underline;
-}
-
-@container (max-width: 700px) {
-  .documentMap > ul {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .documentMap > ul::before,
-  .documentMap > ul > li::before,
-  .documentMap > p::after {
-    display: none;
-  }
-}
-
-@container (max-width: 420px) {
-  .documentMap > ul {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }

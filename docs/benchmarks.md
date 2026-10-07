@@ -20,16 +20,16 @@ Writing, modifying, testing, debugging, and delivering software primarily test A
 | Setting | Role |
 | --- | --- |
 | Group | Selects frontier benchmarks for both Intelligence and Agentic; baseline results remain visible |
-| Importance | Standard policy: 1 for both task benchmarks and aggregate indexes; represented index breadth supplies the aggregate multiplier |
+| Importance | Standard policy: 1 for both individual benchmarks and aggregate indexes; represented index breadth supplies the aggregate multiplier |
 | Allocation (dimension loading) | Intelligence/Agentic split: 100/0, 75/25, 50/50, 25/75, or 0/100 |
 
-Base weight is importance × allocation. Both capability scores use frontier benchmark contributions. :score[Intelligence] blends its frontier [weighted mean](methodology/overview.md#weighted-mean) with shared frontier comparisons at 80% ordinary score and 20% pairwise score. The capability calculation multiplies individual benchmark weights by 1.5 when determining their relative share against eligible indexes; index weights use remaining represented breadth. See [Methodology](methodology/intelligence-agentic.md#combining-benchmarks-and-aggregate-indexes). Score retention uses supported active benchmark weight and reaches full credit at 12. The displayed evidence share and admission use their own weights without the 1.5 multiplier.
+Base weight is importance × allocation. Both capability scores use frontier benchmark contributions. :score[Intelligence] blends its frontier [weighted mean](methodology/overview.md#weighted-mean) with shared frontier comparisons at 80% ordinary score and 20% pairwise score. The capability calculation multiplies individual benchmark weights by 1.5 when determining their relative share against eligible indexes; index weights use remaining represented breadth. See [Methodology](methodology/intelligence-agentic.md#combining-benchmarks-and-aggregate-indexes). Score retention uses supported active benchmark weight and reaches full credit at 12. Evidence support and admission use their own weights without the 1.5 multiplier.
 
 The allocation follows the five-level scale in [Standards](standards.md). Coding tasks are primarily Agentic evidence; an Intelligence share depends on substantial reasoning in the task's actual demands.
 
-The current configuration has two task-importance exceptions: FrontierMath Erdős and EnterpriseBench CoreCraft remain at 0.5, as recorded in the tables below.
+The current portfolio has two importance exceptions: FrontierMath Erdős and EnterpriseBench CoreCraft remain at 0.5, as recorded in the tables below.
 
-Each table records the capability being measured and the reason for its weight. The source policies below specify which observations and task resources are eligible.
+Each table records the capability being measured and the reason for its weight. The source policies below specify which observations and resources per task are eligible.
 
 ### Resource Quality Coordinates
 
@@ -39,12 +39,12 @@ AA aggregate output tokens remain attached to its own Intelligence Index; index 
 
 ### Indexes
 
-An aggregate index summarizes several evaluations. It offers broad coverage, but its components can overlap selected tasks and its source controls the aggregation. Keeping indexes separate makes that limitation visible.
+An aggregate index summarizes several evaluations. It offers broad coverage, but its components can overlap selected benchmarks and its source controls the aggregation. Keeping indexes separate makes that limitation visible.
 
 | Index | Importance | Intelligence Loading | Agentic Loading | Capability and Decision |
 | --- | ---: | ---: | ---: | --- |
 | Artificial Analysis Intelligence Index | 1 | 50% | 50% | Broad source-owned aggregate whose represented breadth is reduced for exact known standalone overlap. |
-| CAIS Capabilities Index | 1 | 75% | 25% | Atlas-derived weighted coverage proxy across two Text and five Vision components. Exact component keys prevent directly observed CAIS tasks from receiving duplicate proxy weight. |
+| CAIS Capabilities Index | 1 | 75% | 25% | Atlas-derived weighted coverage proxy across two Text and five Vision components. Exact component keys prevent directly observed CAIS benchmarks from receiving duplicate proxy weight. |
 | Epoch Capabilities Index | 1 | 50% | 50% | Opaque broad fallback evidence assigned the fixed 7.5 median index breadth. |
 | Surge Intelligence Index | 1 | 50% | 50% | Opaque professional-reasoning, writing, and agent evidence weighted by its declared breadth. |
 | Vals Index | 1 | 50% | 50% | Opaque finance, legal, and coding evidence weighted by its declared breadth. |
@@ -53,7 +53,7 @@ Indexes remain separate from the frontier benchmark scores. Their share relative
 
 ### Frontier Benchmarks
 
-These tasks provide demanding evidence that separates current leading models. Each row records the capability rationale and any reduction in importance.
+These benchmarks provide demanding evidence that separates current leading models. Each row records the capability rationale and any reduction in importance.
 
 | Benchmark | Importance | Intelligence Loading | Agentic Loading | Capability and Decision |
 | --- | ---: | ---: | ---: | --- |
@@ -74,7 +74,7 @@ These tasks provide demanding evidence that separates current leading models. Ea
 | DAYJOB: Finance | 1 | 50% | 50% | Financial judgment across long document-heavy assignments and reliable production of finished analyses both determine rubric credit. Current leaders retain substantial headroom; the public release has 50 tasks while the publisher describes an 80-task scored set. |
 | DAYJOB: Healthcare | 1 | 50% | 50% | Clinical interpretation across fragmented records and reliable completion of care or coverage deliverables jointly determine rubric credit. The 50-task series separates current leaders while many systems remain near the floor. |
 | DeepSWE | 1 | 25% | 75% | Repository-level implementation, testing, and delivery of a correct committed patch primarily measure Agentic ability. Difficult program analysis and algorithmic changes retain a secondary Intelligence loading. |
-| EBR-Bench | 1 | 25% | 75% | Repeated play measures exploration, learning from feedback, persistent notes, and stateful adaptation. Models remain far below expert human performance, and the task's distinct unsolved capability earns ordinary task-level importance. |
+| EBR-Bench | 1 | 25% | 75% | Repeated play measures exploration, learning from feedback, persistent notes, and stateful adaptation. Models remain far below expert human performance, and the task's distinct unsolved capability earns ordinary importance. |
 | EMB | 1 | 75% | 25% | Correct financial-model construction and professional judgment dominate the score. Coordinating spreadsheet operations and multi-step requirements adds a secondary Agentic component. |
 | EnigmaEval | 1 | 100% | 0% | Long multimodal puzzle-hunt problems require discovering hidden structure, synthesizing clues, and carrying out multi-step deductions. CAIS supplies broad current coverage; source version and original-versus-transcription format remain part of the adoption audit. |
 | FrontierCode | 1 | 25% | 75% | Producing mergeable repository changes primarily measures reliable coding execution, constraint following, and verification. Architectural and algorithmic reasoning needed for difficult maintainer-defined tasks retains a secondary Intelligence loading. |
@@ -135,27 +135,27 @@ Watchlist benchmarks remain outside the scoring portfolio. Time Horizon Index is
 
 Combining results is justified only when they refer to compatible tasks and versions, metrics, scoring protocols, units, aggregation, model identities, and reasoning efforts. For explicitly coding benchmarks, different harness rows remain distinct unless the benchmark defines how to aggregate them.
 
-Declared source pairs use fixed 50/50 fusion, including mirrors: identical scores remain unchanged and differing scores are averaged. Missing counterparts require validation on overlapping model-effort pairs. Two source rows still contribute one benchmark result, and ambiguous duplicates are excluded from fusion. Measurements from different methods stay separate unless a benchmark policy explicitly defines their combination.
+Declared source pairs use fixed 50/50 fusion, including mirrors: identical scores remain unchanged and differing scores are averaged. Missing counterparts require validation on overlapping variants. Two source rows still contribute one benchmark result, and ambiguous duplicates are excluded from fusion. Measurements from different methods stay separate unless a benchmark policy explicitly defines their combination.
 
-An unlabelled configuration is the source default. If every configuration names an effort, the highest reported effort supplies the default as one complete observation. Individual effort rows still belong to their matching variants. Choosing one complete observation prevents a synthetic default assembled from the best field in each row.
+An unlabelled observation is the source default. If every observation names an effort, the highest reported effort supplies the default as one complete observation. Individual effort rows still belong to their matching variants. Choosing one complete observation prevents a synthetic default assembled from the best field in each row.
 
 ### Shared Inputs
 
-**Artificial Analysis** supplies its aggregate index and index-level resources from the main model table. Selected task-level AA benchmarks instead use their dedicated evaluation pages; unselected main-table fields, including `coding_index`, remain source context only.
+**Artificial Analysis** supplies its aggregate index and index-level resources from the main model table. Selected standalone AA benchmarks instead use their dedicated evaluation pages; unselected main-table fields, including `coding_index`, remain source context only.
 
 **OpenRouter** supplies current route pricing and provider speed measurements used for blended price and the provider serving-performance components. Catalog metadata can help identify comparable model entries, but it is not itself a scoring input.
 
 ## Aggregate Index Policies
 
-**Artificial Analysis Intelligence Index** uses the published v4.3.2 aggregate directly as one index observation, with represented breadth currently 10. The recorded constituents are AA-Briefcase v1.1, GDPval-AA v2.1, AutomationBench-AA, Terminal-Bench 4.0, SciCode, HLE, GDP.pdf, CritPt, AA-Omniscience, and AA-LCR v1.1. Their canonical benchmark keys allow exact direct and cross-index overlap deductions. Its own paired per-task cost, runtime, and output tokens can contribute under the resource rules in [Methodology](methodology/leaderboard-rules.md#resource-score-availability). This telemetry remains attached to the index and never fills missing standalone task measurements.
+**Artificial Analysis Intelligence Index** uses the published v4.3.2 aggregate directly as one index observation, with represented breadth currently 10. The recorded constituents are AA-Briefcase v1.1, GDPval-AA v2.1, AutomationBench-AA, Terminal-Bench 4.0, SciCode, HLE, GDP.pdf, CritPt, AA-Omniscience, and AA-LCR v1.1. Their canonical benchmark keys allow exact direct and cross-index overlap deductions. Its own paired per-task cost, runtime, and output tokens can contribute under the resource rules in [Methodology](methodology/leaderboard-rules.md#resource-score-availability). This telemetry remains attached to the index and never fills missing standalone benchmark measurements.
 
-**CAIS Capabilities Index** is derived from HLE, TextQuests, EnigmaEval, ERQA, IntPhys 2, MindCube Tiny, and SpatialViz-Bench with equal weight per component, expressed as `(2 × Text + 5 × Vision) / 7`. Directly observed components reduce its remaining weight, so a fully represented basket adds no second index vote. A disclosed composite fallback excludes that model from the aggregate while preserving its component values and provenance. CAIS supplies no task-level resource telemetry.
+**CAIS Capabilities Index** is derived from HLE, TextQuests, EnigmaEval, ERQA, IntPhys 2, MindCube Tiny, and SpatialViz-Bench with equal weight per component, expressed as `(2 × Text + 5 × Vision) / 7`. Directly observed components reduce its remaining weight, so a fully represented basket adds no second index vote. A disclosed composite fallback excludes that model from the aggregate while preserving its component values and provenance. CAIS supplies no per-task resource telemetry.
 
-**Epoch Capabilities Index** uses the published ECI value with fixed represented breadth 7.5, the [median](methodology/overview.md#weighted-median-and-quantiles) of the fixed index baskets. Its model-specific fitted benchmark count remains source metadata but does not alter scoring weight. Component identities are not fully available for overlap accounting; the assigned breadth does not create missing task measurements.
+**Epoch Capabilities Index** uses the published ECI value with fixed represented breadth 7.5, the [median](methodology/overview.md#weighted-median-and-quantiles) of the fixed index baskets. Its model-specific fitted benchmark count remains source metadata but does not alter scoring weight. Component identities are not fully available for overlap accounting; the assigned breadth does not create missing benchmark measurements.
 
 **Surge Intelligence Index** uses the published aggregate directly. It remains fallback evidence, and the absence of a reproducible index-level resource contract keeps it out of :score[Speed] and :score[Value].
 
-**Vals Index** uses the overall percentage directly. Its proprietary mix of non-public Vals datasets and public coding benchmarks makes it aggregate fallback evidence, while its cost and latency lack a comparable task-level aggregation and remain outside :score[Speed] and :score[Value].
+**Vals Index** uses the overall percentage directly. Its proprietary mix of non-public Vals datasets and public coding benchmarks makes it aggregate fallback evidence, while its cost and latency lack a comparable per-task aggregation and remain outside :score[Speed] and :score[Value].
 
 ## Benchmark Source Policies
 
@@ -165,13 +165,13 @@ Only non-default source, metric, selection, exclusion, and resource rules are de
 
 ### Shared Source Families
 
-**CAIS benchmark family:** TextQuests, EnigmaEval, ERQA, IntPhys 2, MindCube Tiny, and SpatialViz-Bench use the dashboard's component observations. These remain separate from the derived CAIS index and have no task-level resource telemetry.
+**CAIS benchmark family:** TextQuests, EnigmaEval, ERQA, IntPhys 2, MindCube Tiny, and SpatialViz-Bench use the dashboard's component observations. These remain separate from the derived CAIS index and have no per-task resource telemetry.
 
-**Artificial Analysis benchmark family:** AnalystAgent, Briefcase, CritPt, GDPval-AA v2.1, HLE, MLCR-AA, Omniscience, and SciCode use their dedicated evaluation pages for both scores and any eligible resources. The shared model table does not supply their task-level scores.
+**Artificial Analysis benchmark family:** AnalystAgent, Briefcase, CritPt, GDPval-AA v2.1, HLE, MLCR-AA, Omniscience, and SciCode use their dedicated evaluation pages for both scores and any eligible resources. The shared model table does not supply their standalone scores.
 
 AnalystAgent uses headline pass^5 across 80 private questions; its published totals are normalized per question before resource scoring. APEX Agents uses Mercor's creator-owned Loop Pass@1 leaderboard directly; model and reasoning-effort variants remain distinct, and missing benchmark-specific resources stay missing.
 
-Briefcase and GDPval-AA v2.1 retain raw page Elo but normalize it with `clamp((Elo - 500) / 2000)` for scoring and linear resource comparison. GDPval may use the main-table normalized value as a compatible fallback after overlap validates the conversion. MLCR-AA resources cover 180 attempts, and SciCode divides aggregate cost and tokens by 288 task runs. Missing benchmark-specific telemetry stays missing in observed graphs; the overall Artificial Analysis Intelligence Index cost or token average cannot replace it. Validated sibling-effort resource estimates may contribute discounted scoring evidence without becoming observed graph points.
+Briefcase and GDPval-AA v2.1 retain raw page Elo but normalize it with `clamp((Elo - 500) / 2000)` for scoring and linear resource comparison. GDPval may use the main-table normalized value as a compatible fallback after overlap validates the conversion. MLCR-AA resources cover 180 attempts, and SciCode divides aggregate cost and tokens by 288 task runs. Missing benchmark-specific telemetry stays missing in observed graphs; the overall Artificial Analysis Intelligence Index cost or token average cannot replace it. Validated resource estimates from another effort of the same model may contribute discounted scoring evidence without becoming observed graph points.
 
 **ARC Prize benchmark family:** ARC-AGI-2 and ARC-AGI-3 use only the official verified semi-private leaderboard and discard public-demo, community, competition, custom, refinement, and synthesis systems. ARC-AGI-2 uses task success and reported task cost. These costs affect :score[Value] only within their respective benchmarks.
 
@@ -219,13 +219,13 @@ FrontierMath Erdős accepts only the fixed Epoch task `FrontierMath-Erdos`: one 
 
 **Blueprint-Bench 2** uses normalized connectivity similarity; Andon's internal identifiers are not model-matching inputs.
 
-**AutomationBench** uses Zapier's official `task_completed_correctly` rate, which requires every final-state assertion for a task to pass. Partial credit remains diagnostic only. Model-effort rows remain distinct, combined fallback systems are excluded from standalone assignment, and only the official row's comparable per-task cost can affect :score[Value].
+**AutomationBench** uses Zapier's official `task_completed_correctly` rate, which requires every final-state assertion for a task to pass. Partial credit remains diagnostic only. Variant rows remain distinct, combined fallback systems are excluded from standalone assignment, and only the official row's comparable per-task cost can affect :score[Value].
 
-**DeepSWE** uses pass@1 at each explicitly reported reasoning effort, attaching quality and resources from the same observation. The highest labelled effort remains the source default, but does not replace other reported efforts or fill an unreported effort. Mean duration and cost can affect :score[Speed] and :score[Value]; mean output tokens can supply the task-time fallback and the quality-adjusted :score[Agentic] token modifier.
+**DeepSWE** uses pass@1 at each explicitly reported reasoning effort, attaching quality and resources from the same observation. The highest labelled effort remains the source default, but does not replace other reported efforts or fill an unreported effort. Mean duration and cost can affect :score[Speed] and :score[Value]; mean output tokens can supply the task-time fallback and the quality-adjusted :score[Agentic] token multiplier.
 
 **FrontierCode** uses Cognition 1.1 Main `new_score`; Main per-task cost can affect :score[Value] and token averages can supply :score[Speed]'s task-time fallback. Explicit efforts match only their variants, the default follows the ordinary highest-labelled-effort rule, and proprietary SWE-1.7 and Composer 2.5 rows remain non-scoring.
 
-**GDP.pdf** combines Surge's PDF-input run and Artificial Analysis's OCR-text-and-page-image run on the same 100-task set at fixed 50/50 quality weight. Both use strict all-criteria task success, but their input delivery and judges differ. Missing counterparts require the validated quality crosswalk; the sources remain separately attributable. Surge publishes no comparable task resources, so only Artificial Analysis's own per-attempt cost, runtime, and tokens can contribute, paired with its own observed quality.
+**GDP.pdf** combines Surge's PDF-input run and Artificial Analysis's OCR-text-and-page-image run on the same 100-task set at fixed 50/50 quality weight. Both use strict all-criteria task success, but their input delivery and judges differ. Missing counterparts require the validated source crosswalk; the sources remain separately attributable. Surge publishes no comparable task resources, so only Artificial Analysis's own per-attempt cost, runtime, and tokens can contribute, paired with its own observed quality.
 
 **MLCR-AA** uses Artificial Analysis's headline accurate, complete, and concise pass rate across 60 held-out medical questions and three repeats. Its page-specific cost, runtime, and token totals are divided across 180 attempts. Public examples do not expose the private scored tasks, and judge disagreement limits this baseline observation.
 
@@ -239,11 +239,11 @@ FrontierMath Erdős accepts only the fixed Epoch task `FrontierMath-Erdos`: one 
 
 **Terminal-Bench 4.0** combines official 66-task quality results with Artificial Analysis's full evaluation dataset at fixed 50/50 source weight. Official totals are normalized over 330 attempts; Artificial Analysis resources use 198 attempts. Official and Artificial Analysis cost, runtime, total-token, and output-token amounts fail absolute resource agreement and remain separate. Each source resource is scored against its own observed quality and reference population with half of the benchmark's resource weight. Resource columns and comparisons identify each source with a suffix.
 
-**Terminal-Bench-Science 0.1** combines the official three-repeat 70-task quality series, Vals's single-run series, and Artificial Analysis's independent three-repeat series at fixed one-third source weights. Official cost and token totals are divided by 210; Vals's per-task resources pass through unchanged, and Artificial Analysis's totals are divided by 210. Cost, runtime, and token measurements stay source-specific, each paired with its source's observed quality and one-third of the benchmark's resource weight. Vals publishes no matching token measure. Expanded variants match exact efforts; collapsed rows select each source's highest reported effort and retain all source effort labels.
+**Terminal-Bench-Science 0.1** combines the official three-repeat 70-task quality series, Vals's single-run series, and Artificial Analysis's independent three-repeat series at fixed one-third source weights. Official cost and token totals are divided by 210; Vals's per-task resources pass through unchanged, and Artificial Analysis's totals are divided by 210. Cost, runtime, and token measurements stay source-specific, each paired with its source's observed quality and one-third of the benchmark's resource weight. Vals publishes no matching token measure. Expanded variants match exact efforts; collapsed rows select each source's highest reported effort and retain every effort label each source reports.
 
-Both terminal benchmarks use validated quality crosswalks for missing counterparts, requiring six distinct overlapping models and model-held-out median midpoint error at most 2.5 percentage points. Terminal-Bench-Science fits each source pair only on measured exact-effort overlap; mapped counterparts never train another pair. Resource values never cross from one terminal source into another. Accepted quality crosswalks count as benchmark results for normalization, pairwise comparisons, contextual prediction, and quality admission. Source measurements and mapped counterparts remain separately attributable; resource gates still require their own source-specific evidence. Extrapolation remains marked because overlap validation does not establish out-of-range accuracy.
+Both terminal benchmarks use validated source crosswalks for missing counterparts, requiring six distinct overlapping models and model-held-out median midpoint error at most 2.5 percentage points. Terminal-Bench-Science fits each source pair only on measured exact-effort overlap; mapped counterparts never train another pair. Resource values never cross from one terminal source into another. Accepted source crosswalks count as benchmark results for normalization, pairwise comparisons, imputation from other benchmarks, and quality admission. Source measurements and mapped counterparts remain separately attributable; resource gates still require their own source-specific evidence. Extrapolation remains marked because overlap validation does not establish out-of-range accuracy.
 
-**Vending-Bench 2** uses average final money balance with ordinary observed-range [linear scaling](methodology/overview.md#shared-mathematical-operations). Run count and the 365-day average balance curve remain audit evidence; costs do not affect :score[Speed] or :score[Value], and the result is interpreted as a stochastic simulation rather than a success rate.
+**Vending-Bench 2** uses average final money balance with ordinary observed-range [linear scaling](methodology/overview.md#linear-scaling-and-clamping). Run count and the 365-day average balance curve remain audit evidence; costs do not affect :score[Speed] or :score[Value], and the result is interpreted as a stochastic simulation rather than a success rate.
 
 **VoxelBench** uses the official text-prompt leaderboard’s Glicko-2 rating, with the same minimum of 50 votes as the public table. Native rating points remain in the source evidence and payload; standard observed-range linear scaling maps them to 0–100 for the table and both capability scores, as for Hemingway-bench. There is no fixed 2,500-point ceiling or probability interpretation. Labelled reasoning efforts and explicit thinking budgets stay separate. Published model slugs support exact matching, including dated releases; stealth aliases remain provenance and cannot override the displayed model identity. Successful refreshes replace each matched row’s rating and uncertainty together as votes evolve; failed refreshes retain cached evidence. Vote counts and rating deviation are retained as supporting evidence, not extra scores or Model Atlas evidence weights. Image-track ratings, duplicate win/loss summaries, and token list prices are not ingested; no VoxelBench resource contributes to :score[Speed] or :score[Value]. Generation-budget comparability and voting safeguards remain methodology caveats.
 
