@@ -2,11 +2,11 @@
 
 ## Dashboard Inclusion
 
-A model appears on the dashboard only when it meets all of these requirements:
+The dashboard lists only models with enough direct evidence to compare: a score built on a handful of benchmarks can land almost anywhere, and estimates cannot stand in for measurements. A model appears only when it meets all of these requirements:
 
 - A qualified model identity, a name, and confirmed text output.
 - An observed benchmark count reaching the inclusion threshold, currently seven, as counted below.
-- At least one observed selected input in each of Intelligence and Agentic.
+- At least one observed benchmark or index in each of Intelligence and Agentic.
 - At least two distinct observed eligible indexes, or one observed Artificial Analysis Intelligence Index or Epoch Capabilities Index.
 - Finite relative :score[Intelligence] and :score[Agentic] scores strictly greater than 10 each.
 
@@ -18,7 +18,7 @@ Count each known component once across indexes and standalone observations, usin
 
 AA’s main Intelligence Index represents ten benchmarks. Its Agentic, Coding, and Omniscience indexes do not increase the benchmark count used for inclusion. Only observed results count, including observed zeros.
 
-ECI uses fixed represented breadth 7.5, the [median](overview.md#weighted-median-and-quantiles) of the fixed index baskets. Its component overlap is unknown, so this breadth is added alongside standalone evidence. Inclusion uses observations matched to the exact configuration; imputation supplies no direct coverage.
+ECI uses fixed represented breadth 7.5, the [median](overview.md#weighted-median-and-quantiles) of the fixed index baskets. Its component overlap is unknown, so this breadth is added alongside standalone evidence. Inclusion uses observations matched to the exact variant; imputation supplies no direct evidence.
 
 The required benchmark count is the smallest known count represented by an index among AA, CAIS, Surge, and Vals, currently seven. ECI’s publication minimum is excluded because it is not a fixed benchmark basket.
 
@@ -29,11 +29,11 @@ The required benchmark count is the smallest known count represented by an index
 | Benchmark count versus index count | Standalone results can increase the benchmark count but cannot replace the index requirement. ECI's fixed breadth exceeds the seven-benchmark threshold and remains an explicit single-index exception. |
 | Timing and source | No specific index, release age, or prior publication is required. |
 
-Quality scores retain 85% through 1.2 supported benchmark weight and rise to full retention at 12, equivalent to eight units of direct benchmark weight after the 1.5 multiplier. Eligible indexes count their overlap-adjusted represented breadth for this rule. The displayed evidence share remains the literal fraction of selected portfolio weight with support. ECI breadth uses the median benchmark count represented by fixed indexes; inclusion uses the minimum count described above.
+Inclusion counts observed benchmarks separately from [score retention](intelligence-agentic.md#evidence-support-and-score-retention), which discounts thin evidence inside the score itself.
 
 **Apply display rules**
 
-The default leaderboard follows the Timeline chart's display policy: OpenAI Pro configurations, Gemini Deep Think, and Claude Mythos are hidden because of their specialized resourcing, operating policies, or assets. Ordinary Gemini Pro and other high-reasoning configurations remain eligible. This display filter leaves source evidence, scores, and the scoring reference population unchanged.
+The default leaderboard follows the Timeline chart's display policy: OpenAI Pro, Gemini Deep Think, and Claude Mythos models are hidden because of their specialized resourcing, operating policies, or assets. Ordinary Gemini Pro and other high-reasoning variants remain eligible. This display filter leaves source evidence, scores, and the scoring reference population unchanged.
 
 All included models receive numeric ranks in compact views. Missing specifications remain null; :score[Speed] and :score[Value] have separate resource requirements. The exact-variant `all` JSON view has no rank field.
 
@@ -78,7 +78,7 @@ The [median](overview.md#weighted-median-and-quantiles) counts each base model w
 
 ![Illustrative frontier: Pareto Balance touches the highest curve of equal :score[Intelligence] × :score[Value], and Pareto Value has the highest :score[Value] among frontier models above the median :score[Intelligence].](../assets/methodology/pareto-highlights.svg)
 
-Pareto candidates follow model, provider, and price filters before rank and release-recency limits. The other signature roles use the displayed population.
+Pareto candidates follow model, provider, and price filters before rank and release-recency limits. The other highlighted roles use the displayed population.
 
 Pareto Balance has no :score[Intelligence] cutoff. Token price does not select either Pareto role or represent measured cost per task. A model may fill multiple roles; a role is omitted if no candidate qualifies.
 
@@ -92,7 +92,7 @@ The selector includes individual benchmarks with results at several reasoning ef
 
 Each selected index uses its own quality result. Artificial Analysis pairs its Intelligence Index with its reported aggregate cost and runtime per task; its output-only token measurement cannot supply total token consumption. Those resources stay attached to that index. Single-index views show native index points, not percentages.
 
-Cost, Time, and Tokens each require their own paired observations. Tokens require a reported total or complete input/output pair; output-only telemetry cannot supply this axis. Imputed resources affect scoring but do not appear as direct graph measurements. Effort-labelled rows use only indexes reporting that effort, currently AA.
+Cost, Time, and Tokens each require their own paired observations. Tokens require a reported total or complete input/output pair; output-only telemetry cannot supply this axis. Imputed resources affect scoring but do not appear as direct graph measurements. Effort-labelled variants use only indexes reporting that effort, currently AA.
 
 Build each model’s comparison independently for cost, time, and tokens:
 
@@ -105,11 +105,11 @@ Build each model’s comparison independently for cost, time, and tokens:
 | Overlap | Subtract one from AA’s weight for each matching component actually included as an individual benchmark. Excluded components and unrelated benchmarks do not reduce it. |
 | No common benchmarks | Retain common index evidence alone; sparse benchmark observations cannot remove variants from the index baseline. |
 
-The remaining index weights apply to both axes and the displayed index share; the index values stay unchanged. Headline capability scores use their separate [unified evidence pool](intelligence-agentic.md#combining-benchmarks-and-aggregate-indexes), with indexes weighted by represented breadth after known overlap deductions.
+The remaining index weights apply to both axes and the displayed index share; the index values stay unchanged. Headline capability scores combine benchmarks and indexes separately, as described in [Combining Benchmarks and Aggregate Indexes](intelligence-agentic.md#combining-benchmarks-and-aggregate-indexes).
 
 Variants missing the selected index resource evidence are counted in the legend and can be compared by deselecting the indexes. Without an index that has both quality and the selected resource measurement, the graph uses common benchmarks across that model’s variants with selected resource observations. If no evidence is common, the comparison is empty.
 
-Explicitly selecting one entry retains native units. A single common entry within a multi-entry selection stays on its aggregate scale: ratios for Cost, Time, and Tokens, min–max points for quality. The default resource baskets include all active observed measurements independently of the selected published performance score. Collapsed graphs retain the Pareto envelope on every axis.
+Explicitly selecting one entry retains native units. A single common entry within a multi-entry selection stays on its aggregate scale: ratios for Cost, Time, and Tokens, min–max points for quality. The default resource baskets include all active observed measurements, whichever quality score is selected. Collapsed graphs retain the Pareto envelope on every axis.
 
 **Common within model** summarizes variant coverage and index-weight ranges. **Details** lists each model’s variants, common/selected counts, index share, included evidence, and excluded observations.
 

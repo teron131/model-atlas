@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 400" role="img" aria-labelledby="title desc">
+<title id="title">Weighted quantile from cumulative weight</title>
+<desc id="desc">Sorted values climb a step curve of cumulative weight share; each step's height is that value's weight. On the left, the line at fraction r meets a rising step, so the quantile is that step's value. On the right, r equals a step top exactly, so the line runs along the flat between two values and the quantile is their mean.</desc>
+<style>
+text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:15px;fill:#202724}
+.num{font-family:"SFMono-Regular","SF Mono",Menlo,Consolas,monospace;font-size:14px}
+.small{font-size:12.5px}.big{font-size:18px}.strong{font-weight:600}
+.muted{fill-opacity:.62}.faint{opacity:.4}.half{opacity:.5}
+.grid{fill:none;stroke:#202724;stroke-opacity:.09}
+.guide{fill:none;stroke:#202724;stroke-opacity:.22}
+.axis{fill:none;stroke:#202724;stroke-opacity:.34}
+.ink{fill:#202724}.ink-line{fill:none;stroke:#202724}.ink-wash{fill:#202724;fill-opacity:.08}
+.ring{stroke:#f2f4f2;stroke-width:2;paint-order:stroke}.gap{stroke:#f2f4f2;stroke-width:2}
+.violet{fill:#6b47e0}.violet-line{fill:none;stroke:#6b47e0}.violet-wash{fill:#6b47e0;fill-opacity:.14}
+.rose{fill:#c93f78}.rose-line{fill:none;stroke:#c93f78}.rose-wash{fill:#c93f78;fill-opacity:.14}
+.amber{fill:#a8740c}.amber-line{fill:none;stroke:#a8740c}.amber-wash{fill:#a8740c;fill-opacity:.16}
+.h0{stop-color:#3557e6}.h1{stop-color:#6b47e0}.h2{stop-color:#d9467f}
+.land0{stop-color:#6b47e0;stop-opacity:.12}.land1{stop-color:#6b47e0;stop-opacity:.01}
+.halo{opacity:0}
+.m{font-size:1.12em}.mr,.mi,.mb{font-family:"KaTeX_Main","Latin Modern Roman","STIX Two Text","Cambria","Times New Roman",serif;font-style:normal;font-weight:400}.mb{font-weight:700}.mi{font-family:"KaTeX_Math","Latin Modern Math","STIX Two Text","Cambria Math","Times New Roman",serif;font-style:italic}
+@media (prefers-color-scheme:dark){
+text{fill:#f2f3ed}.muted{fill-opacity:.58}
+.grid{stroke:#f2f3ed;stroke-opacity:.08}.guide{stroke:#f2f3ed;stroke-opacity:.2}.axis{stroke:#f2f3ed;stroke-opacity:.3}
+.ink{fill:#f2f3ed}.ink-line{stroke:#f2f3ed}.ink-wash{fill:#f2f3ed;fill-opacity:.1}
+.ring{stroke:#0b1016}.gap{stroke:#0b1016}
+.violet{fill:#8f6bff}.violet-line{stroke:#8f6bff}.violet-wash{fill:#8f6bff;fill-opacity:.22}
+.rose{fill:#e06296}.rose-line{stroke:#e06296}.rose-wash{fill:#e06296;fill-opacity:.2}
+.amber{fill:#b98b24}.amber-line{stroke:#b98b24}.amber-wash{fill:#b98b24;fill-opacity:.22}
+.h0{stop-color:#4a72ff}.h1{stop-color:#8f6bff}.h2{stop-color:#ff92bd}
+.land0{stop-color:#6f8cff;stop-opacity:.16}.land1{stop-color:#6f8cff;stop-opacity:.02}
+.halo{opacity:.55}
+}
+</style>
+<defs><filter id="glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="3"/></filter><marker id="tip-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="ink" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-violet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="violet" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="rose" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="amber" d="M0 0L10 5L0 10Z"/></marker><linearGradient id="light13" gradientUnits="userSpaceOnUse" x1="80" y1="0" x2="380" y2="0"><stop class="h0" offset="0"/><stop class="h1" offset=".58"/><stop class="h2" offset="1"/></linearGradient><linearGradient id="land13" gradientUnits="userSpaceOnUse" x1="0" y1="110" x2="0" y2="300"><stop class="land0" offset="0"/><stop class="land1" offset="1"/></linearGradient><linearGradient id="light19" gradientUnits="userSpaceOnUse" x1="440" y1="0" x2="740" y2="0"><stop class="h0" offset="0"/><stop class="h1" offset=".58"/><stop class="h2" offset="1"/></linearGradient><linearGradient id="land19" gradientUnits="userSpaceOnUse" x1="0" y1="110" x2="0" y2="300"><stop class="land0" offset="0"/><stop class="land1" offset="1"/></linearGradient></defs>
+<text class="muted" x="80" y="40">Cumulative weight share</text>
+<text class="strong" x="230" y="66" text-anchor="middle"><tspan class="m"><tspan class="mi">r</tspan></tspan> falls inside a step</text>
+<path class="grid" d="M80 110L380 110"/><path class="axis" d="M80 300L380 300"/><path class="axis" d="M80 110L80 300"/>
+<text class="num muted" x="70" y="114.5" text-anchor="end">1</text><text class="num muted" x="70" y="304.5" text-anchor="end">0</text>
+<path d="M80 300L130 300L130 276.3L180 276.3L180 252.5L230 252.5L230 205L280 205L280 133.8L330 133.8L330 110L380 110L380 300L80 300Z" fill="url(#land13)"/><path d="M80 300L130 300L130 276.3L180 276.3L180 252.5L230 252.5L230 205L280 205L280 133.8L330 133.8L330 110L380 110" fill="none" stroke="url(#light13)" stroke-width="8" opacity=".14" class="halo"/><path d="M80 300L130 300L130 276.3L180 276.3L180 252.5L230 252.5L230 205L280 205L280 133.8L330 133.8L330 110L380 110" fill="none" stroke="url(#light13)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path class="ink-line" d="M80 231.6L230 231.6" stroke-width="1.5" stroke-dasharray="4 4"/><path class="ink-line" d="M230 231.6L230 300" stroke-width="1.5" stroke-dasharray="4 4"/><g><circle class="ink halo" cx="130" cy="276.3" r="6.5" filter="url(#glow)"/><circle class="ink ring" cx="130" cy="276.3" r="4.5"/></g><g><circle class="ink halo" cx="180" cy="252.5" r="6.5" filter="url(#glow)"/><circle class="ink ring" cx="180" cy="252.5" r="4.5"/></g><g><circle class="ink halo" cx="230" cy="205" r="6.5" filter="url(#glow)"/><circle class="ink ring" cx="230" cy="205" r="4.5"/></g><g><circle class="ink halo" cx="280" cy="133.8" r="6.5" filter="url(#glow)"/><circle class="ink ring" cx="280" cy="133.8" r="4.5"/></g><g><circle class="ink halo" cx="330" cy="110" r="6.5" filter="url(#glow)"/><circle class="ink ring" cx="330" cy="110" r="4.5"/></g><g><circle class="violet halo" cx="230" cy="231.6" r="8" filter="url(#glow)"/><circle class="violet ring" cx="230" cy="231.6" r="6"/></g>
+<text x="70" y="236.1" text-anchor="end"><tspan class="m"><tspan class="mi">r</tspan></tspan></text>
+<text x="230" y="322" text-anchor="middle"><tspan class="m"><tspan class="mi">x</tspan><tspan dy="5" font-size="0.72em"><tspan class="mi">i</tspan></tspan><tspan dy="-5">​</tspan></tspan></text>
+<text class="strong" x="590" y="66" text-anchor="middle"><tspan class="m"><tspan class="mi">r</tspan></tspan> lands exactly on a step top</text>
+<path class="grid" d="M440 110L740 110"/><path class="axis" d="M440 300L740 300"/><path class="axis" d="M440 110L440 300"/>
+<text class="num muted" x="430" y="114.5" text-anchor="end">1</text><text class="num muted" x="430" y="304.5" text-anchor="end">0</text>
+<path d="M440 300L490 300L490 276.3L540 276.3L540 252.5L590 252.5L590 205L640 205L640 133.8L690 133.8L690 110L740 110L740 300L440 300Z" fill="url(#land19)"/><path d="M440 300L490 300L490 276.3L540 276.3L540 252.5L590 252.5L590 205L640 205L640 133.8L690 133.8L690 110L740 110" fill="none" stroke="url(#light19)" stroke-width="8" opacity=".14" class="halo"/><path d="M440 300L490 300L490 276.3L540 276.3L540 252.5L590 252.5L590 205L640 205L640 133.8L690 133.8L690 110L740 110" fill="none" stroke="url(#light19)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path class="ink-line" d="M440 133.8L690 133.8" stroke-width="1.5" stroke-dasharray="4 4"/><path class="ink-line" d="M665 133.8L665 300" stroke-width="1.5" stroke-dasharray="4 4"/><g><circle class="ink halo" cx="490" cy="276.3" r="6.5" filter="url(#glow)"/><circle class="ink ring" cx="490" cy="276.3" r="4.5"/></g><g><circle class="ink halo" cx="540" cy="252.5" r="6.5" filter="url(#glow)"/><circle class="ink ring" cx="540" cy="252.5" r="4.5"/></g><g><circle class="ink halo" cx="590" cy="205" r="6.5" filter="url(#glow)"/><circle class="ink ring" cx="590" cy="205" r="4.5"/></g><g><circle class="ink halo" cx="640" cy="133.8" r="6.5" filter="url(#glow)"/><circle class="ink ring" cx="640" cy="133.8" r="4.5"/></g><g><circle class="ink halo" cx="690" cy="110" r="6.5" filter="url(#glow)"/><circle class="ink ring" cx="690" cy="110" r="4.5"/></g><g><circle class="violet halo" cx="665" cy="133.8" r="8" filter="url(#glow)"/><circle class="violet ring" cx="665" cy="133.8" r="6"/></g>
+<text x="430" y="138.3" text-anchor="end"><tspan class="m"><tspan class="mi">r</tspan><tspan class="mr"> = </tspan><tspan class="mi">r</tspan><tspan dy="5" font-size="0.72em"><tspan class="mi">i</tspan></tspan><tspan dy="-5">​</tspan></tspan></text>
+<text x="640" y="322" text-anchor="middle"><tspan class="m"><tspan class="mi">x</tspan><tspan dy="5" font-size="0.72em"><tspan class="mi">i</tspan></tspan><tspan dy="-5">​</tspan></tspan></text><text x="690" y="322" text-anchor="middle"><tspan class="m"><tspan class="mi">x</tspan><tspan dy="5" font-size="0.72em"><tspan class="mi">i</tspan><tspan class="mr">+1</tspan></tspan><tspan dy="-5">​</tspan></tspan></text><text class="small muted" x="665" y="348" text-anchor="middle">Mean</text>
+<text x="410" y="388" text-anchor="middle">Sorted values <tspan class="m"><tspan class="mi">x</tspan></tspan></text>
+</svg>
