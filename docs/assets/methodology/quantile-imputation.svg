@@ -17,6 +17,7 @@ text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:15px;fill:#
 .h0{stop-color:#3557e6}.h1{stop-color:#6b47e0}.h2{stop-color:#d9467f}
 .land0{stop-color:#6b47e0;stop-opacity:.12}.land1{stop-color:#6b47e0;stop-opacity:.01}
 .halo{opacity:0}
+.m{font-size:1.12em}.mr,.mi,.mb{font-family:"KaTeX_Main","Latin Modern Roman","STIX Two Text","Cambria","Times New Roman",serif;font-style:normal;font-weight:400}.mb{font-weight:700}.mi{font-family:"KaTeX_Math","Latin Modern Math","STIX Two Text","Cambria Math","Times New Roman",serif;font-style:italic}
 @media (prefers-color-scheme:dark){
 text{fill:#f2f3ed}.muted{fill-opacity:.58}
 .grid{stroke:#f2f3ed;stroke-opacity:.08}.guide{stroke:#f2f3ed;stroke-opacity:.2}.axis{stroke:#f2f3ed;stroke-opacity:.3}

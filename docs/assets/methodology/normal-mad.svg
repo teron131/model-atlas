@@ -17,6 +17,7 @@ text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:15px;fill:#
 .h0{stop-color:#3557e6}.h1{stop-color:#6b47e0}.h2{stop-color:#d9467f}
 .land0{stop-color:#6b47e0;stop-opacity:.12}.land1{stop-color:#6b47e0;stop-opacity:.01}
 .halo{opacity:0}
+.m{font-size:1.12em}.mr,.mi,.mb{font-family:"KaTeX_Main","Latin Modern Roman","STIX Two Text","Cambria","Times New Roman",serif;font-style:normal;font-weight:400}.mb{font-weight:700}.mi{font-family:"KaTeX_Math","Latin Modern Math","STIX Two Text","Cambria Math","Times New Roman",serif;font-style:italic}
 @media (prefers-color-scheme:dark){
 text{fill:#f2f3ed}.muted{fill-opacity:.58}
 .grid{stroke:#f2f3ed;stroke-opacity:.08}.guide{stroke:#f2f3ed;stroke-opacity:.2}.axis{stroke:#f2f3ed;stroke-opacity:.3}
@@ -38,6 +39,6 @@ text{fill:#f2f3ed}.muted{fill-opacity:.58}
 <text class="num big" x="380" y="158" text-anchor="middle">50%</text><text class="small muted" x="380" y="180" text-anchor="middle">of values</text>
 <text class="num big" x="267.5" y="212" text-anchor="middle">25%</text><text class="num big" x="492.5" y="212" text-anchor="middle">25%</text>
 <path class="axis" d="M98.8 230L98.8 236"/><text class="num muted" x="98.8" y="256" text-anchor="middle">−3σ</text><path class="axis" d="M192.5 230L192.5 236"/><text class="num muted" x="192.5" y="256" text-anchor="middle">−2σ</text><path class="axis" d="M286.3 230L286.3 236"/><text class="num muted" x="286.3" y="256" text-anchor="middle">−1σ</text><path class="axis" d="M380 230L380 236"/><text class="num muted" x="380" y="256" text-anchor="middle">0</text><path class="axis" d="M473.8 230L473.8 236"/><text class="num muted" x="473.8" y="256" text-anchor="middle">1σ</text><path class="axis" d="M567.5 230L567.5 236"/><text class="num muted" x="567.5" y="256" text-anchor="middle">2σ</text><path class="axis" d="M661.3 230L661.3 236"/><text class="num muted" x="661.3" y="256" text-anchor="middle">3σ</text>
-<path class="violet-line" d="M380 289V303M380 296H443.2M443.2 289V303" stroke-width="2"/><text class="num" x="457.2" y="300.5">MAD = 0.67449σ</text>
-<path class="ink-line" d="M380 331V345M380 338H473.8M473.8 331V345" stroke-width="2"/><text x="487.8" y="342.5">Standard deviation = σ</text>
+<path class="violet-line" d="M380 289V303M380 296H443.2M443.2 289V303" stroke-width="2"/><text class="num" x="457.2" y="300.5">MAD <tspan class="m"><tspan class="mr">= 0.67449</tspan><tspan class="mi">σ</tspan></tspan></text>
+<path class="ink-line" d="M380 331V345M380 338H473.8M473.8 331V345" stroke-width="2"/><text x="487.8" y="342.5">Standard deviation <tspan class="m"><tspan class="mr">= </tspan><tspan class="mi">σ</tspan></tspan></text>
 </svg>
