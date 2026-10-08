@@ -89,9 +89,10 @@
   backdrop-filter: blur(14px) saturate(1.25);
 }
 
+/* Region links, the model search that takes the open middle, then profiles and filters (a toggle on phones). */
 .instrumentBar {
   display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
+  grid-template-columns: max-content minmax(0, 1fr) auto;
   min-height: 48px;
   border-right: 1px solid var(--line);
   align-items: stretch;

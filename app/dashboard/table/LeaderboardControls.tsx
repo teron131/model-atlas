@@ -2,29 +2,34 @@
 
 /** The table toolbar owns column presets, column search, and display limits; model selection belongs to the global filters. */
 
-import { Columns3, Search } from "lucide-react";
+import { ArrowRight, Columns3, Search } from "lucide-react";
 
 import { DisplayControls, type DisplayControlsProps } from "../shared/DisplayControls";
 import { TABLE_COLUMN_PRESETS, type TableColumnPreset } from "./column-views";
 
 import styles from "./leaderboard-controls.module.css";
 
+/** `modelMatchCount` counts the models a column query would find as a model search; above zero, the toolbar offers that search. */
 export function LeaderboardControls({
   preset,
   columnQuery,
   columnSearchResultLabel,
+  modelMatchCount,
   isColumnSearch,
   display,
   onPresetChange,
   onColumnQueryChange,
+  onSearchModels,
 }: {
   preset: TableColumnPreset;
   columnQuery: string;
   columnSearchResultLabel: string | null;
+  modelMatchCount: number;
   isColumnSearch: boolean;
   display: DisplayControlsProps;
   onPresetChange: (preset: TableColumnPreset) => void;
   onColumnQueryChange: (query: string) => void;
+  onSearchModels: () => void;
 }) {
   return (
     <section className={styles.controls} aria-label="Leaderboard controls" data-capture-exclude>
@@ -59,6 +64,17 @@ export function LeaderboardControls({
           <output className={styles.result} aria-live="polite">
             {columnSearchResultLabel}
           </output>
+        ) : null}
+        {modelMatchCount > 0 ? (
+          <button
+            type="button"
+            className={styles.modelSearch}
+            aria-label={`Search models for “${columnQuery.trim()}”: ${modelMatchCount} ${modelMatchCount === 1 ? "match" : "matches"}`}
+            onClick={onSearchModels}
+          >
+            Search models · {modelMatchCount}
+            <ArrowRight size={13} aria-hidden="true" />
+          </button>
         ) : null}
         <div className={styles.display}>
           <DisplayControls {...display} />

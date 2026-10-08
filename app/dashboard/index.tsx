@@ -1,6 +1,6 @@
 "use client";
 
-/** Client dashboard composition for live payloads, global model controls, graphs, and leaderboard. */
+/** Client dashboard composition for live payloads, global model controls, graphs, leaderboard, and the model sheet. */
 
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 
@@ -9,6 +9,7 @@ import { ModelAtlasHeader } from "../shared/ModelAtlasHeader";
 import { DashboardLeaderboard } from "./DashboardLeaderboard";
 import { DashboardGraphs } from "./graphs/DashboardGraphs";
 import { useLivePayload } from "./live-payload";
+import { ModelSheet } from "./model-sheet/ModelSheet";
 import {
   type GlobalModelFilters,
   modelsForVariantDisplay,
@@ -77,6 +78,7 @@ export function Dashboard({
           />
         }
       />
+      <ModelSheet payload={payload} />
     </main>
   );
 }

@@ -5,6 +5,7 @@
 import { type CSSProperties, type PointerEvent as ReactPointerEvent, useState } from "react";
 
 import type { ModelAtlasModel } from "../../../../src/model-atlas/stats/types";
+import { openModelSheet } from "../../model-sheet/open";
 import { modelName } from "../../shared/model-display";
 import { focusHover, type HoverRow, type HoverSetter, pointHover } from "../hover-state";
 import type { PlotBounds } from "./Primitives";
@@ -187,6 +188,7 @@ export function PointHitTarget({
         type="button"
         className={styles.pointButton}
         aria-label={`Show details for ${displayName}`}
+        aria-haspopup="dialog"
         onPointerEnter={(event) => {
           if (event.pointerType === "touch") return;
           setActive(true);
@@ -209,10 +211,10 @@ export function PointHitTarget({
                 },
           );
         }}
-        onClick={(event) => {
-          event.currentTarget.focus();
-          setActive(true);
-          setHover(focusHover(event.currentTarget, model, rows, displayName));
+        // Hover and focus preview a star; choosing it opens the model's full sheet.
+        onClick={() => {
+          setHover(null);
+          openModelSheet(model);
         }}
         onPointerLeave={(event) => {
           if (event.pointerType === "touch" || event.currentTarget === document.activeElement)

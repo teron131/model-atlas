@@ -4,6 +4,7 @@ import { canonicalModelKey } from "../../../src/model-atlas/identity/normalizati
 import { clamp01, medianOfFinite } from "../../../src/model-atlas/math-utils";
 import { type ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 import { paretoFrontier } from "../graphs/plot/pareto-frontier";
+import type { ModelSheetModel } from "../model-sheet/open";
 import { modelsForVariantDisplay, modelVariantKey, shortLabel } from "../shared/model-display";
 import {
   providerChartColor,
@@ -33,6 +34,8 @@ export type SignatureMetric = {
 type SignatureModel = {
   key: string;
   family: string;
+  /** The model the role was chosen from, a reasoning variant when the role compared variants, so its sheet shows the score the register names. */
+  sheet: ModelSheetModel;
   role: string;
   metric: SignatureMetric;
   name: string;
@@ -175,6 +178,7 @@ export function signatureModels({
   return selectedModels.map(({ model, role, metric }) => ({
     key: `${modelVariantKey(model)}:${role}`,
     family: canonicalModelKey(model),
+    sheet: { id: model.id, name: model.name, reasoning_effort: model.reasoning_effort },
     role,
     metric,
     name: shortLabel({ ...model, reasoning_effort: null }),

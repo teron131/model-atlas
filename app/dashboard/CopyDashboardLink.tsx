@@ -1,6 +1,6 @@
 "use client";
 
-/** Copy the explicit dashboard configuration for its owning section without changing browser history. */
+/** Copy the explicit dashboard configuration, anchored to its owning section when there is one, without changing browser history. */
 
 import { Check as CheckIcon, CircleAlert, Link as LinkIcon } from "lucide-react";
 import { useState } from "react";
@@ -15,14 +15,14 @@ const feedback = {
   error: { label: "Copy failed — use the address bar", Icon: CircleAlert },
 };
 
-export function CopyDashboardLink({ sectionId }: { sectionId: ResearchRegionId }) {
+export function CopyDashboardLink({ sectionId }: { sectionId?: ResearchRegionId }) {
   const [status, setStatus] = useState<keyof typeof feedback>("idle");
   const { label, Icon } = feedback[status];
 
   /** Preserve the current query while targeting this section, and report clipboard denial without navigating. */
   async function copyLink() {
     const url = new URL(window.location.href);
-    url.hash = sectionId;
+    if (sectionId != null) url.hash = sectionId;
     try {
       await navigator.clipboard.writeText(url.href);
       setStatus("saved");

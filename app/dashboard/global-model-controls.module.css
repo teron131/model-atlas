@@ -1,102 +1,36 @@
-/* Global filters expand to one ruled row; overflow scrolls sideways and secondary choices use the top layer. */
-.trigger {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-  min-height: 48px;
-  padding: 0 13px;
-  border: 0;
-  border-left: 1px solid var(--line);
-  background: transparent;
-  color: var(--muted);
-  font: var(--type-label-weight) var(--type-label-size) / 1.4 var(--font-mono);
-  text-transform: uppercase;
-  cursor: pointer;
-}
-.trigger > span {
-  flex: 0 0 auto;
-}
-.trigger b {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  text-align: right;
-  color: var(--ink);
-  font: inherit;
-}
-.trigger i {
-  font-style: normal;
-}
-.trigger:hover,
-.trigger[aria-expanded="true"] {
-  color: var(--ink);
-}
-.panel {
-  grid-column: 1 / -1;
-  min-width: 0;
-  border-top: 1px solid var(--line);
-  border-left: 1px solid var(--line);
-}
-.panel[hidden] {
-  display: none;
-}
-.row {
-  display: flex;
-  align-items: stretch;
-  height: 48px;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scrollbar-width: thin;
-}
-.row input,
-.row button,
-.menu button {
-  min-width: 0;
-  border: 0;
-  border-radius: 0;
-  background: var(--paper);
-  color: var(--ink);
-  font: 500 12px / 1.4 var(--font-mono);
-}
-.row button {
-  flex: 0 0 auto;
-  padding: 0 10px;
-  cursor: pointer;
-}
-.row button:hover {
-  background: rgb(var(--ink-rgb) / 0.05);
-}
-.row button:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
+/* The model search always holds the rail's open middle; profiles and additional filters follow it on wide screens and fold into a second ruled row on phones, while secondary choices use the top layer. */
 .search {
-  flex: 1 1 270px;
-  min-width: 130px;
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
   padding: 0 12px;
+  border-left: 1px solid var(--line);
+  color: var(--muted);
+  cursor: text;
 }
 .search > svg {
   flex: 0 0 auto;
-  color: var(--muted);
+}
+.search:focus-within > svg {
+  color: var(--ink);
 }
 .search input {
+  flex: 1;
   width: 100%;
+  min-width: 0;
   height: 34px;
   padding: 0 2px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  font: 500 12px / 1.4 var(--font-mono);
   text-overflow: ellipsis;
 }
 .search input:focus-visible {
   outline: none;
   box-shadow: none;
-}
-.search:focus-within > svg {
-  color: var(--ink);
 }
 .search input::placeholder {
   color: var(--muted);
@@ -108,8 +42,79 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--muted);
   font: 500 10px / 1.4 var(--font-mono);
+}
+/* The keycap teaches the "/" shortcut to pointer and keyboard readers and steps aside while the field has focus. */
+.shortcut {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border: 1px solid var(--line-strong);
+  color: var(--muted);
+  font: 600 11px / 1 var(--font-mono);
+}
+.search:focus-within .shortcut {
+  visibility: hidden;
+}
+@media (hover: none) {
+  .shortcut {
+    display: none;
+  }
+}
+/* Only phones fold the panel behind this toggle. */
+.trigger {
+  position: relative;
+  display: none;
+  place-items: center;
+  width: 40px;
+  padding: 0;
+  border: 0;
+  border-left: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.trigger:hover,
+.trigger[aria-expanded="true"] {
+  color: var(--ink);
+}
+.panel {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  border-left: 1px solid var(--line);
+}
+.panel input,
+.panel button {
+  min-width: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  font: 500 12px / 1.4 var(--font-mono);
+}
+.menu button {
+  min-width: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 500 12px / 1.4 var(--font-mono);
+}
+.panel button {
+  flex: 0 0 auto;
+  padding: 0 10px;
+  cursor: pointer;
+}
+.panel button:hover {
+  background: rgb(var(--ink-rgb) / 0.05);
+}
+.panel button:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 .profiles,
 .profiles form {
@@ -117,14 +122,11 @@
   align-items: stretch;
   flex: 0 0 auto;
 }
-.profiles {
-  border-left: 1px solid var(--line);
-}
 .profiles form input {
   width: 150px;
   padding: 0 10px;
 }
-.row .iconButton {
+.panel .iconButton {
   display: grid;
   place-items: center;
   width: 40px;
@@ -222,7 +224,7 @@
   color: var(--muted);
 }
 .trigger:focus-visible,
-.row button:focus-visible {
+.panel button:focus-visible {
   outline: none;
   box-shadow: inset 0 -2px 0 var(--ink);
 }
@@ -237,17 +239,28 @@
 }
 @media (max-width: 760px) {
   .trigger {
-    gap: 8px;
-    padding-inline: 10px;
+    display: grid;
+  }
+  .panel {
+    display: none;
+    grid-column: 1 / -1;
+    height: 48px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+    border-top: 1px solid var(--line);
+    border-left: 0;
+  }
+  .panel[data-open="true"] {
+    display: flex;
   }
   .search {
-    min-width: 100px;
     padding-inline: 10px;
   }
   .profileToggle {
     max-width: 125px;
   }
-  .row .iconButton {
+  .panel .iconButton {
     width: 38px;
   }
   .menu label {
@@ -259,13 +272,16 @@
   .profileToggle span {
     display: none;
   }
-  .row:has(.profiles form) .search {
-    display: none;
+  .search {
+    gap: 6px;
+    padding-inline: 8px;
   }
-  .row:has(.profiles form) .profiles {
+  .search input {
+    font-size: 11px;
+  }
+  .panel:has(.profiles form) .profiles {
     flex: 1;
     min-width: 0;
-    border-left: 0;
   }
   .profiles form {
     flex: 1;
