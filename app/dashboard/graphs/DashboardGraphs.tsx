@@ -197,7 +197,7 @@ export function DashboardGraphs({
         />
       </section>
       <section className={`${styles.sectionGrid} ${styles.leadGrid}`}>
-        <TimelinePanel />
+        <TimelinePanel currentModels={deferredReferenceModels} />
       </section>
       {hover ? <HoverCard hover={hover} /> : null}
     </section>

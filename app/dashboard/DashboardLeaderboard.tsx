@@ -17,15 +17,10 @@ import type {
   ModelAtlasColumnTooltips,
 } from "../../src/model-atlas/config/tooltips";
 import { canonicalModelKey } from "../../src/model-atlas/identity/normalization";
-import {
-  type ResourceRatioObservation,
-  resourceRatioObservations,
-  resourceRatioReferences,
-  summarizeResourceRatios,
-} from "../../src/model-atlas/stats/resource-ratios";
-import type { ModelAtlasModel, ModelAtlasPayload } from "../../src/model-atlas/stats/types";
+import type { ModelAtlasPayload } from "../../src/model-atlas/stats/types";
 import { LeaderboardCapture } from "./capture/LeaderboardCapture";
 import { CopyDashboardLink } from "./CopyDashboardLink";
+import { focusModelSearch } from "./GlobalModelControls";
 import { researchRegionOrdinal } from "./research-index";
 import {
   ColumnTooltip,
@@ -45,6 +40,8 @@ import { LeaderboardControls } from "./table/LeaderboardControls";
 import {
   dashboardMetricColumns,
   dedupeDisplayModels,
+  leaderboardRows,
+  resourceRatioReferenceSets,
   sortedRows,
   sorters,
   type SortKey,
@@ -55,8 +52,6 @@ import type { ScoreChangeHandler } from "./table/Rows";
 import { scoreChangeTooltip, tableColumnTooltip } from "./table/tooltips";
 import type { DashboardUrlPatch } from "./url-state";
 import { updateDashboardUrl, useUrlState } from "./use-url-state";
-
-const ratioKinds = ["cost", "time", "tokens"] as const;
 
 const emptyColumnTooltips: ModelAtlasColumnTooltips = {};
 const TOOLTIP_FADE_OUT_MS = 1_000;
@@ -102,53 +97,13 @@ export function DashboardLeaderboard({
   const deferredFilters = useDeferredValue(filters);
   const [, startSortTransition] = useTransition();
   const ratioReferences = useMemo(
-    () =>
-      payload == null
-        ? []
-        : ratioKinds.map((kind) => ({
-            kind,
-            references: resourceRatioReferences(
-              resourceRatioObservations(
-                payload.models,
-                payload.metadata.scoring.benchmark_portfolio,
-                kind,
-              ),
-            ),
-          })),
+    () => (payload == null ? [] : resourceRatioReferenceSets(payload)),
     [payload],
   );
-  const tableRows = useMemo(() => {
-    const rows = dedupeDisplayModels(
-      modelsForVariantDisplay(
-        payload?.models ?? [],
-        deferredShowVariants,
-        payload?.benchmark_observations,
-      ),
-    );
-    if (payload == null) return rows;
-    const metrics = ratioReferences.map(({ kind, references }) => {
-      const observations = new Map<ModelAtlasModel, ResourceRatioObservation[]>();
-      for (const observation of resourceRatioObservations(
-        rows.map((row) => row.model),
-        payload.metadata.scoring.benchmark_portfolio,
-        kind,
-      )) {
-        const group = observations.get(observation.model) ?? [];
-        group.push(observation);
-        observations.set(observation.model, group);
-      }
-      return { kind, references, observations };
-    });
-    return rows.map((row) => ({
-      ...row,
-      resourceRatios: Object.fromEntries(
-        metrics.map(({ kind, references, observations }) => [
-          kind,
-          summarizeResourceRatios(observations.get(row.model) ?? [], references),
-        ]),
-      ) as Record<(typeof ratioKinds)[number], ReturnType<typeof summarizeResourceRatios>>,
-    }));
-  }, [deferredShowVariants, payload, ratioReferences]);
+  const tableRows = useMemo(
+    () => leaderboardRows(payload, deferredShowVariants, ratioReferences),
+    [deferredShowVariants, payload, ratioReferences],
+  );
 
   const filterScope = useMemo(
     () => ({
@@ -224,6 +179,19 @@ export function DashboardLeaderboard({
   const columnSearchResultLabel = hasSearchQuery(deferredColumnQuery)
     ? `${columnSearchMatchCount} ${columnSearchMatchCount === 1 ? "column" : "columns"}`
     : null;
+  // A model name typed into the column search finds no columns; count the models it would find as a model search instead.
+  const modelMatchCount = useMemo(
+    () =>
+      hasSearchQuery(deferredColumnQuery) && columnSearchMatchCount === 0
+        ? filterByGlobalModelFilters(
+            tableRows,
+            (row) => row.model,
+            { ...deferredFilters, q: deferredColumnQuery },
+            filterScope,
+          ).length
+        : 0,
+    [columnSearchMatchCount, deferredColumnQuery, deferredFilters, filterScope, tableRows],
+  );
   const emptyMessage = errorMessage ?? (payload == null ? "Loading stats" : "No models");
 
   useEffect(() => {
@@ -290,6 +258,10 @@ export function DashboardLeaderboard({
     (query: string) => changeColumnView({ "column-q": query }),
     [changeColumnView],
   );
+  const searchModelsInstead = useCallback(() => {
+    updateDashboardUrl({ q: columnQuery.trim(), "column-q": "" });
+    focusModelSearch();
+  }, [columnQuery]);
 
   const clearTooltipFadeTimeout = useCallback(() => {
     if (tooltipFadeTimeoutRef.current != null) {
@@ -399,6 +371,7 @@ export function DashboardLeaderboard({
           preset={columnPreset}
           columnQuery={columnQuery}
           columnSearchResultLabel={columnSearchResultLabel}
+          modelMatchCount={modelMatchCount}
           isColumnSearch={hasSearchQuery(columnFilterQuery)}
           display={{
             itemKind: rowKind,
@@ -410,6 +383,7 @@ export function DashboardLeaderboard({
           }}
           onPresetChange={handleColumnPresetChange}
           onColumnQueryChange={handleColumnQueryChange}
+          onSearchModels={searchModelsInstead}
         />
         <ModelTable
           sortState={sortState}

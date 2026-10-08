@@ -358,6 +358,22 @@
   width: calc(100% - 16px);
 }
 
+/* Each role opens its model sheet through a button laid over the whole entry, so the register keeps its layout and halo. */
+.registerOpen {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.registerOpen:focus-visible {
+  outline: 2px solid rgb(238 242 255 / 0.6);
+  outline-offset: 2px;
+}
+
 .registerRole {
   color: var(--scene-faint);
   font-family: var(--font-mono);

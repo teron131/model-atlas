@@ -80,6 +80,39 @@
 .readout > div:first-child > span {
   padding-left: 26px;
 }
+/* A model in today's snapshot opens its full catalogue entry, the model sheet, from its name. */
+.readoutOpen {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.readoutOpen svg {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  color: var(--muted);
+  transition:
+    color 0.18s ease,
+    transform 0.18s ease;
+}
+.readoutOpen:hover svg,
+.readoutOpen:focus-visible svg {
+  color: var(--ink);
+  transform: translate(1px, -1px);
+}
+.readoutOpen:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
 /* The same ringed star the chart draws for this model, at catalogue scale. */
 .readoutStar {
   flex: 0 0 auto;

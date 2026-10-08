@@ -581,8 +581,8 @@ html[data-model-atlas-theme="light"] .theme-icon-dark {
   );
   overflow-x: auto;
   overflow-y: auto;
+  /* Vertical scrolling hands off to the page at either end, so the table never traps a reader moving down the dashboard. */
   overscroll-behavior-x: none;
-  overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -682,6 +682,42 @@ tbody tr:nth-child(2n) {
 tbody tr:nth-child(2n):hover {
   background: color-mix(in srgb, var(--row-provider, var(--ink)) 6%, var(--hover));
   --sticky-cell-background: color-mix(in srgb, var(--paper) 93%, var(--row-provider, var(--ink)));
+}
+
+/* Every model row opens its model sheet; the row whose sheet is open keeps a stronger trace of its provider colour and a provider rule at its leading edge. */
+.model-row {
+  cursor: pointer;
+}
+
+tbody tr.model-row[data-sheet-open] {
+  background: color-mix(in srgb, var(--row-provider, var(--ink)) 12%, var(--hover));
+  --sticky-cell-background: color-mix(in srgb, var(--paper) 86%, var(--row-provider, var(--ink)));
+}
+
+tbody tr.model-row[data-sheet-open] td:first-child {
+  box-shadow: inset 2px 0 0 var(--row-provider, var(--ink));
+}
+
+.model-sheet-trigger {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.model-sheet-trigger:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 3px;
+}
+
+.model-sheet-trigger:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 
 .loading-row {

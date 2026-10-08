@@ -33,6 +33,9 @@ export type DashboardUrlState = {
   performance: PerformanceMetric;
   benchmark: string[] | null;
   axes: FrontierBenchmarkAxisKey;
+  /** The model sheet's model, by published id; with `effort`, one reasoning variant, otherwise the collapsed model. */
+  model: string | null;
+  effort: string | null;
 };
 
 export type DashboardUrlKey = keyof DashboardUrlState;
@@ -53,6 +56,8 @@ const dashboardKeys = new Set<DashboardUrlKey>([
   "timeline-view",
   "timeline-period",
   "timeline-provider",
+  "model",
+  "effort",
 ]);
 const benchmarkKeys = new Set(Object.keys(BENCHMARK_COLUMNS));
 
@@ -120,6 +125,12 @@ export function readUrlValue<K extends DashboardUrlKey>(
     }
     case "axes":
       result = choice(value, ["cost", "time", "tokens", "speed", "value"], "cost");
+      break;
+    case "model":
+      result = value?.trim() || null;
+      break;
+    case "effort":
+      result = value != null && /^[a-z]+$/.test(value) ? value : null;
       break;
     default:
       result = value ?? "";

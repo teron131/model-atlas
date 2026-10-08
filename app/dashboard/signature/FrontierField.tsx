@@ -32,7 +32,7 @@ const FIELD_FRAME_INTERVAL = 1000 / 12;
 /**
  * Scroll scopes the camera from the hero horizon into the star field and back; ambient twinkle stops while the page is hidden.
  *
- * In the hero, pointing near a star identifies its model, and `focusKey` lets the register light a role's star.
+ * In the hero, pointing near a star identifies its model, clicking it reports its key through `onSelectStar`, and `focusKey` lets the register light a role's star.
  * `horizon` is where the hero places its horizon, in CSS pixels from the top of the viewport at rest.
  * Reduced motion keeps the hero composition still: no camera travel, parallax, or twinkle.
  */
@@ -41,16 +41,19 @@ export function FrontierField({
   focusKey,
   horizon,
   heroRef,
+  onSelectStar,
 }: {
   stars: SkyStar[];
   focusKey: string | null;
   horizon: number | null;
   heroRef: RefObject<HTMLElement | null>;
+  onSelectStar: (key: string) => void;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const starsRef = useRef(stars);
   const focusKeyRef = useRef(focusKey);
+  const onSelectStarRef = useRef(onSelectStar);
   const horizonRef = useRef(horizon);
   const skyRef = useRef<ReturnType<typeof createSky> | null>(null);
   const invalidateRef = useRef<(() => void) | null>(null);
@@ -66,6 +69,10 @@ export function FrontierField({
     skyRef.current?.setStars(stars);
     invalidateRef.current?.();
   }, [stars]);
+
+  useEffect(() => {
+    onSelectStarRef.current = onSelectStar;
+  }, [onSelectStar]);
 
   useEffect(() => {
     focusKeyRef.current = focusKey;
@@ -121,6 +128,7 @@ export function FrontierField({
     let pointerY = 0;
     let pointer: { x: number; y: number } | null = null;
     let cardKey: string | null = null;
+    let hoveredKey: string | null = null;
 
     const ambient = () => !motion.matches && !document.hidden;
     const easePointer = (elapsed: number) => {
@@ -201,6 +209,7 @@ export function FrontierField({
       const exploring = frameState.progress < EXPLORE_UNTIL && frameState.intro >= 1;
       const hovered =
         exploring && pointer != null ? sky.nearest(pointer.x, pointer.y, STAR_REACH) : null;
+      hoveredKey = hovered == null ? null : (sky.stars()[hovered]?.key ?? null);
       const linked = exploring
         ? sky.stars().findIndex((star) => star.key === focusKeyRef.current)
         : -1;
@@ -274,6 +283,13 @@ export function FrontierField({
       pointer = null;
       invalidate();
     };
+    // Only the star under the pointer is chosen, and never through a control that sits over the sky.
+    const select = (event: MouseEvent) => {
+      if (event.button !== 0 || hoveredKey == null) return;
+      if (event.target instanceof Element && event.target.closest("a, button, input, label"))
+        return;
+      onSelectStarRef.current(hoveredKey);
+    };
     const visibility = () => {
       // A tab opened in the background plays the opening when it is first seen.
       if (!document.hidden && lastRender === 0) introStart = performance.now();
@@ -292,6 +308,7 @@ export function FrontierField({
     observer.observe(hero);
     window.addEventListener("scroll", invalidate, { passive: true });
     window.addEventListener("pointermove", track, { passive: true });
+    window.addEventListener("click", select);
     document.documentElement.addEventListener("pointerleave", leave);
     document.addEventListener("visibilitychange", visibility);
     motion.addEventListener("change", invalidate);
@@ -303,6 +320,7 @@ export function FrontierField({
       observer.disconnect();
       window.removeEventListener("scroll", invalidate);
       window.removeEventListener("pointermove", track);
+      window.removeEventListener("click", select);
       document.documentElement.removeEventListener("pointerleave", leave);
       document.removeEventListener("visibilitychange", visibility);
       motion.removeEventListener("change", invalidate);

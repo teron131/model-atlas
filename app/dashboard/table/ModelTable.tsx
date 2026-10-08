@@ -14,8 +14,10 @@ import {
 
 import { canonicalModelKey } from "../../../src/model-atlas/identity/normalization";
 import { clamp } from "../../../src/model-atlas/math-utils";
+import { rowShowsModelSheet } from "../model-sheet/open";
 import type { HeaderTooltipHandler } from "../shared/ColumnTooltip";
 import { modelVariantKey } from "../shared/model-display";
+import { useUrlState } from "../use-url-state";
 import { staticSortableColumns } from "./Columns";
 import type {
   DashboardMetricColumn,
@@ -64,6 +66,8 @@ export const ModelTable = memo(function ModelTable({
   metricColumns,
 }: ModelTableProps) {
   const visibleColumnKeySet = useMemo(() => new Set(visibleColumnKeys), [visibleColumnKeys]);
+  const [sheetModel] = useUrlState("model");
+  const [sheetEffort] = useUrlState("effort");
   const ruledColumnKeySet = useMemo(
     () => tableColumnRuleKeys(visibleColumnKeys),
     [visibleColumnKeys],
@@ -153,6 +157,10 @@ export const ModelTable = memo(function ModelTable({
                     metricColumns={metricColumns}
                     visibleColumnKeySet={visibleColumnKeySet}
                     ruledColumnKeySet={ruledColumnKeySet}
+                    sheetOpen={
+                      sheetModel != null &&
+                      rowShowsModelSheet(rowData.model, sheetModel, sheetEffort)
+                    }
                     onScoreChange={onScoreChange}
                   />
                 ))}
