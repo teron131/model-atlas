@@ -3,6 +3,7 @@
 import { type CSSProperties, memo, type MouseEvent } from "react";
 
 import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
+import { openModelSheet } from "../model-sheet/open";
 import {
   AudioInputIcon,
   ImageInputIcon,
@@ -12,7 +13,7 @@ import {
 import { modelDisplayName } from "../shared/model-display";
 import { providerBrandColor } from "../shared/provider-theme";
 import { ProviderLogo } from "../shared/ProviderLogo";
-import { formatResourceRatio } from "../shared/resource-ratio-display";
+import { formatResourceRatio, ratioTrackStyle } from "../shared/resource-ratio-display";
 import { resourceRatioColumns } from "./Columns";
 import {
   formatConfidence,
@@ -49,7 +50,7 @@ const LOADING_ROW_KEYS = [
   "loading-row-11",
   "loading-row-12",
 ] as const;
-const inputModalities = [
+export const inputModalities = [
   { key: "text", label: "text", Icon: TextInputIcon },
   { key: "image", label: "image", Icon: ImageInputIcon },
   { key: "audio", label: "audio", Icon: AudioInputIcon },
@@ -129,21 +130,38 @@ export const ModelRow = memo(function ModelRow({
   metricColumns,
   visibleColumnKeySet,
   ruledColumnKeySet,
+  sheetOpen,
   onScoreChange,
 }: {
   rowData: TableRow;
   metricColumns: DashboardMetricColumn[];
   visibleColumnKeySet: ReadonlySet<TableColumnKey>;
   ruledColumnKeySet: ReadonlySet<TableColumnKey>;
+  sheetOpen: boolean;
   onScoreChange: ScoreChangeHandler;
 }) {
   const model = rowData.model;
   return (
-    <tr style={rowProviderStyle(model.provider)}>
+    <tr
+      className="model-row"
+      data-sheet-open={sheetOpen || undefined}
+      style={rowProviderStyle(model.provider)}
+      onClick={(event) => {
+        // The name button and other controls handle their own clicks, and a drag that selects text is not a request to open.
+        if (
+          (event.target instanceof Element && event.target.closest("button, a, input, label")) ||
+          window.getSelection()?.isCollapsed === false
+        ) {
+          return;
+        }
+        openModelSheet(model);
+      }}
+    >
       <ModelScoreCells
         rowData={rowData}
         visibleColumnKeySet={visibleColumnKeySet}
         ruledColumnKeySet={ruledColumnKeySet}
+        opensSheet
       />
       {resourceRatioColumns
         .filter((column) => visibleColumnKeySet.has(column.key))
@@ -221,14 +239,17 @@ function rowProviderStyle(provider: string | null | undefined) {
   return { "--row-provider": providerBrandColor(provider) } as CSSProperties;
 }
 
+/** `opensSheet` makes the model name the keyboard path to the model sheet; exported rows stay plain text. */
 function ModelScoreCells({
   rowData,
   visibleColumnKeySet,
   ruledColumnKeySet,
+  opensSheet = false,
 }: {
   rowData: TableRow;
   visibleColumnKeySet?: ReadonlySet<TableColumnKey>;
   ruledColumnKeySet?: ReadonlySet<TableColumnKey>;
+  opensSheet?: boolean;
 }) {
   const model = rowData.model;
   const visibleName = visibleModelName(modelDisplayName(model));
@@ -242,7 +263,18 @@ function ModelScoreCells({
           <ProviderLogo model={model} />
           <div className="model-copy">
             <div className="model" title={model.name ?? undefined}>
-              {visibleName}
+              {opensSheet ? (
+                <button
+                  type="button"
+                  className="model-sheet-trigger"
+                  aria-haspopup="dialog"
+                  onClick={() => openModelSheet(model)}
+                >
+                  {visibleName}
+                </button>
+              ) : (
+                visibleName
+              )}
             </div>
             <div className="id" title={model.id ?? undefined}>
               {visibleSlug}
@@ -582,11 +614,6 @@ function AmountCell({
   );
 }
 
-// Bars reach the track's ends at 16× or 1/16× (four doublings); every column shares this fixed scale, however wide its spread.
-const RATIO_TRACK_DOUBLINGS = 4;
-// A power below one on the doubling count widens small factors and keeps large ones apart: 0.74× still reads as a saving, 1.05× stays a stub, and 6.2× and 11× draw visibly apart.
-const RATIO_CURVE = 0.6;
-
 /** Draw a median-relative bar beneath its readout, the ratio itself or a measured amount, on a fixed doubling scale; the exact ratio stays in the number or the hover. */
 function RatioCell({
   ratio,
@@ -602,18 +629,10 @@ function RatioCell({
   if (ratio == null || !Number.isFinite(ratio) || ratio <= 0) {
     return <TableCell text={text} className={className} title={title} />;
   }
-  const doublings = Math.log2(ratio);
-  const extent = Math.min(1, (Math.abs(doublings) / RATIO_TRACK_DOUBLINGS) ** RATIO_CURVE);
-  const position = 0.5 + (Math.sign(doublings) * extent) / 2;
-  // Fixed precision keeps server and browser logarithms serializing the same style.
-  const style = {
-    "--ratio-bar-start": `${(Math.min(position, 0.5) * 100).toFixed(2)}%`,
-    "--ratio-bar-width": `${(Math.abs(position - 0.5) * 100).toFixed(2)}%`,
-  } as CSSProperties;
   return (
     <td className={className} title={title}>
       {text}
-      <span className="ratio-track" style={style} aria-hidden="true" />
+      <span className="ratio-track" style={ratioTrackStyle(ratio)} aria-hidden="true" />
     </td>
   );
 }

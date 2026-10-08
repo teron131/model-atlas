@@ -19,6 +19,14 @@ export type TimelinePoint = {
   indexOnly: boolean;
 };
 
+// `capabilityModelId` keys catalog-backed positions as `atlas-model:<catalog id>::<effort>`; archived source identities carry no catalog id.
+const CATALOG_POSITION_ID = /^atlas-model:(.+)::[^:]*$/;
+
+/** The catalog model id behind a Timeline point, so a point can open the current snapshot's model sheet. */
+export function timelineCatalogId(point: Pick<TimelinePoint, "id">): string | null {
+  return CATALOG_POSITION_ID.exec(point.id)?.[1] ?? null;
+}
+
 /** Select the same family representatives, visibility floor and evidence support as the detailed explorer; never refit scores. */
 export function timelineChartPoints(data: HistoricalDataset): TimelinePoint[] {
   const calibration = data.prepared?.calibrations.intelligence;

@@ -1,0 +1,402 @@
+/* The model sheet floats over the dashboard as an opaque research plane at the viewport's edge, lit along its top edge like the other floating surfaces; it scrolls on its own so long benchmark lists never move the page. It starts below the header's height, so the header and the pinned rail stay usable while it is open. */
+.sheet {
+  --sheet-inset: clamp(8px, 1.2vw, 16px);
+  --sheet-pad: clamp(14px, 1.6vw, 20px);
+  position: fixed;
+  z-index: 35;
+  top: calc(var(--header-height) + env(safe-area-inset-top));
+  right: var(--sheet-inset);
+  bottom: var(--sheet-inset);
+  display: flex;
+  flex-direction: column;
+  width: min(448px, calc(100vw - 2 * var(--sheet-inset)));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--research-edge);
+  background: var(--paper);
+  box-shadow: var(--research-shadow);
+  color: var(--ink);
+  scrollbar-width: thin;
+  animation: sheet-enter 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes sheet-enter {
+  from {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet {
+    animation: none;
+  }
+}
+
+/* The identity stays pinned while the evidence scrolls beneath it. */
+.head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+  padding: var(--sheet-pad) var(--sheet-pad) 14px;
+  border-bottom: 1px solid var(--line);
+  background:
+    var(--horizon-gradient) top / 100% 1px no-repeat,
+    var(--paper);
+}
+
+.identity {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.kicker,
+.section h3,
+.benchmarkGroup h4,
+.fact dt,
+.amountsTitle,
+.scoreHead {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: var(--type-caption-size);
+  font-weight: var(--type-label-weight);
+  letter-spacing: var(--type-label-tracking);
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.kicker {
+  margin: 0 0 4px;
+}
+
+/* The name reads at the readout size shared by the Pareto summary and the Timeline's catalogue entry. */
+.name {
+  margin: 0;
+  font-size: var(--type-readout-size);
+  font-weight: var(--type-heading-weight);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+/* The name receives focus only so the sheet is announced when it opens; it is not a control, so it draws no ring. */
+.name:focus {
+  outline: none;
+}
+
+.slug {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: var(--model-id);
+  overflow-wrap: anywhere;
+}
+
+.actions {
+  display: flex;
+  gap: 2px;
+}
+
+.notice {
+  margin: 0;
+  padding: var(--sheet-pad);
+  color: var(--muted);
+  font-size: var(--sans-note);
+}
+
+.body {
+  display: grid;
+  gap: 26px;
+  padding: 18px var(--sheet-pad) calc(var(--sheet-pad) + 6px);
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.fact {
+  min-width: 0;
+}
+
+.fact dd {
+  margin: 4px 0 0;
+  font-family: var(--font-mono);
+  font-size: var(--type-data-size);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.fact :global(.modality-icons) {
+  justify-content: flex-start;
+}
+
+.section h3 {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 10px;
+  padding-bottom: 7px;
+  border-bottom: 1px solid var(--line);
+}
+
+.section h3 small,
+.benchmarkGroup h4 small {
+  color: var(--faint);
+  font-size: inherit;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* Score rows mirror the leaderboard cell: the number carries the row and the provider star sits on its 0–100 track. */
+.score,
+.scoreHead {
+  display: grid;
+  grid-template-columns: 112px 42px minmax(48px, 1fr) 40px 44px;
+  align-items: center;
+  gap: 10px;
+}
+
+.scoreHead {
+  margin-bottom: 4px;
+}
+
+.scoreHead span:first-child {
+  grid-column: 4;
+}
+
+.scoreHead span {
+  text-align: right;
+}
+
+.scores,
+.ratios,
+.benchmarks {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.scores {
+  gap: 9px;
+}
+
+.scoreLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: var(--type-heading-weight);
+}
+
+.scoreLabel svg {
+  flex: 0 0 auto;
+  width: 15px;
+  height: 15px;
+  color: var(--muted);
+}
+
+.scoreValue,
+.ratios strong,
+.benchmarks strong {
+  font-family: var(--font-mono);
+  font-size: var(--type-data-size);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  text-align: right;
+}
+
+.score :global(.score-meter),
+.benchmarks :global(.score-meter) {
+  width: 100%;
+  margin: 0;
+  background: linear-gradient(var(--score-track), var(--score-track)) 50% 50% / 1px 7px no-repeat;
+}
+
+.rank,
+.support {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: var(--type-caption-size);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  text-align: right;
+}
+
+.ratios {
+  gap: 8px;
+}
+
+.ratios li {
+  display: grid;
+  grid-template-columns: 112px 52px minmax(60px, 1fr);
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.ratios :global(.ratio-track) {
+  width: 100%;
+  margin: 0;
+}
+
+.amounts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 16px;
+}
+
+.amounts dl {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+}
+
+.amounts .fact {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.amounts .fact dt {
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.amounts .fact dd {
+  margin: 0;
+}
+
+.amountsTitle {
+  margin: 0 0 9px;
+}
+
+/* Effort choices are lit by the shared selection star; the collapsed choice is the leaderboard's own row. Even columns keep a long effort ladder from wrapping raggedly, and each choice keeps its own width so the star centres under its label. */
+.efforts {
+  --selection-star-bottom: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 2px 12px;
+}
+
+.efforts button {
+  display: inline-flex;
+  justify-self: start;
+  align-items: baseline;
+  gap: 6px;
+  min-height: 34px;
+  padding: 4px 2px 9px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  letter-spacing: var(--type-label-tracking);
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.efforts button b {
+  color: var(--faint);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.efforts button:hover,
+.efforts button[aria-pressed="true"] {
+  color: var(--ink);
+}
+
+.efforts button[aria-pressed="true"] b {
+  color: var(--muted);
+}
+
+.efforts button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.benchmarkGroup + .benchmarkGroup {
+  margin-top: 16px;
+}
+
+.benchmarkGroup h4 {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 4px;
+}
+
+.benchmarks li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 64px 72px;
+  align-items: center;
+  gap: 10px;
+  min-height: 30px;
+  border-bottom: 1px solid var(--line);
+}
+
+.benchmarkName {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.note {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--sans-note);
+  line-height: 1.5;
+}
+
+.changeRows {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+}
+
+@media (max-width: 600px) {
+  .facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .score,
+  .scoreHead {
+    grid-template-columns: 96px 40px minmax(36px, 1fr) 34px 38px;
+    gap: 8px;
+  }
+
+  .ratios li {
+    grid-template-columns: 96px 48px minmax(48px, 1fr);
+    gap: 8px;
+  }
+
+  .amounts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

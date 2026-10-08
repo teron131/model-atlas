@@ -3,9 +3,12 @@
 /** The dashboard's historical view loads only published chart points and owns its independent time window. */
 
 import { scaleLinear, scaleUtc } from "d3-scale";
+import { ArrowUpRight } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 
+import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
+import { openModelSheet } from "../model-sheet/open";
 import { providerChartColor, providerDisplayName } from "../shared/provider-theme";
 import { useUrlState } from "../use-url-state";
 import { GraphToggle } from "./GraphToggle";
@@ -24,7 +27,7 @@ import {
   XAxisTicks,
   YAxisTicks,
 } from "./plot/Primitives";
-import type { TimelinePoint } from "./timeline/chart-data";
+import { timelineCatalogId, type TimelinePoint } from "./timeline/chart-data";
 import { coverageFrontier, leadingLabs } from "./timeline/frontier";
 import { LabsPlot } from "./timeline/LabsPlot";
 import { OrganizationSelect } from "./timeline/OrganizationSelect";
@@ -42,8 +45,8 @@ const TimelineEvidence = dynamic(
   { loading: () => <p role="status">Loading evidence matrices…</p> },
 );
 
-/** Keep the historical population independent from present-day price, rank and recency filters. */
-export function TimelinePanel() {
+/** Keep the historical population independent from present-day price, rank and recency filters; `currentModels` only links a selected model to its sheet when today's snapshot has it. */
+export function TimelinePanel({ currentModels }: { currentModels: readonly ModelAtlasModel[] }) {
   const [points, setPoints] = useState<TimelinePoint[] | null>(null);
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
@@ -124,11 +127,25 @@ export function TimelinePanel() {
       }),
     [labs, end],
   );
+  const currentModelLookup = useMemo(() => {
+    const byId = new Map<string, ModelAtlasModel>();
+    const byName = new Map<string, ModelAtlasModel>();
+    for (const model of currentModels) {
+      if (model.id != null) byId.set(model.id, model);
+      if (model.name != null) byName.set(model.name, model);
+    }
+    return { byId, byName };
+  }, [currentModels]);
   const chosen =
     preview ??
     (view === "labs"
       ? (population.find((point) => point.id === selected) ?? labLeaders[0])
       : (visible.find((point) => point.id === selected) ?? frontier.at(-1) ?? visible.at(-1)));
+  const chosenModel =
+    chosen == null
+      ? undefined
+      : (currentModelLookup.byId.get(timelineCatalogId(chosen) ?? "") ??
+        currentModelLookup.byName.get(chosen.name));
   const { chartRef, width } = useChartWidth(SCATTER_CHART_WIDTH);
   const height = compact ? 400 : 520;
   const margin = {
@@ -528,7 +545,20 @@ export function TimelinePanel() {
               <div>
                 <strong>
                   <span className={timeline.readoutStar} aria-hidden="true" />
-                  {chosen?.name}
+                  {chosenModel == null ? (
+                    chosen?.name
+                  ) : (
+                    <button
+                      type="button"
+                      className={timeline.readoutOpen}
+                      aria-haspopup="dialog"
+                      aria-label={`Show details for ${chosen?.name}`}
+                      onClick={() => openModelSheet({ ...chosenModel, reasoning_effort: null })}
+                    >
+                      {chosen?.name}
+                      <ArrowUpRight aria-hidden="true" />
+                    </button>
+                  )}
                 </strong>
                 <span>{chosen && providerDisplayName(chosen.provider)}</span>
               </div>

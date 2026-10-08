@@ -1,11 +1,13 @@
 "use client";
 
-/** The hero opens on the frontier sky: displayed models rise as stars over the horizon above the title and the frontier register. */
+/** The hero opens on the frontier sky: displayed models rise as stars over the horizon above the title and the frontier register, and choosing a star or a role opens its model sheet. */
 
 import { ArrowRight, ArrowUp } from "lucide-react";
 import dynamic from "next/dynamic";
 import { type CSSProperties, memo, useLayoutEffect, useMemo, useRef, useState } from "react";
 
+import { canonicalModelKey } from "../../../src/model-atlas/identity/normalization";
+import { openModelSheet } from "../model-sheet/open";
 import { BotIcon, BrainIcon, DollarIcon } from "../shared/DashboardIcons";
 import { formatCost } from "../table/format";
 import {
@@ -77,7 +79,18 @@ export const ModelSignature = memo(function ModelSignature(population: Signature
     >
       <div className={styles.atmosphere} aria-hidden="true" />
       <div className={styles.grain} aria-hidden="true" />
-      <FrontierField stars={stars} focusKey={focusKey} horizon={horizon} heroRef={heroRef} />
+      <FrontierField
+        stars={stars}
+        focusKey={focusKey}
+        horizon={horizon}
+        heroRef={heroRef}
+        onSelectStar={(family) => {
+          const model = population.models.find(
+            (candidate) => canonicalModelKey(candidate) === family,
+          );
+          if (model != null) openModelSheet({ ...model, reasoning_effort: null });
+        }}
+      />
       <h2 ref={titleRef} id="model-signature-title" className={styles.title}>
         <span className={styles.titleStart}>Mapping</span>{" "}
         <span className={styles.titleEnd}>Frontiers</span>
@@ -111,6 +124,16 @@ export const ModelSignature = memo(function ModelSignature(population: Signature
             onPointerEnter={() => setFocusKey(model.family)}
             onPointerLeave={() => setFocusKey(null)}
           >
+            {/* The whole role opens its model sheet; focus lights the role's star like hovering does. */}
+            <button
+              type="button"
+              className={styles.registerOpen}
+              aria-label={`Show details for ${model.name}, ${model.role}`}
+              aria-haspopup="dialog"
+              onClick={() => openModelSheet(model.sheet)}
+              onFocus={() => setFocusKey(model.family)}
+              onBlur={() => setFocusKey(null)}
+            />
             <span className={styles.registerRole}>{model.role}</span>
             <span className={styles.registerModel}>
               <span className={styles.registerIcon} aria-hidden="true">

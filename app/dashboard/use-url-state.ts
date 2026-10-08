@@ -65,6 +65,16 @@ export function updateDashboardUrl(patch: DashboardUrlPatch, editing = false) {
   window.dispatchEvent(new Event(changeEvent));
 }
 
+/** Rewrite the current history entry for a follow-up choice inside an open view, such as switching the model sheet's model, so Back still leaves the view in one step. */
+export function replaceDashboardUrl(patch: DashboardUrlPatch) {
+  const current = new URL(window.location.href);
+  const next = patchDashboardUrl(current, patch);
+  resetEditing();
+  if (next.href === current.href) return;
+  window.history.replaceState(window.history.state, "", next);
+  window.dispatchEvent(new Event(changeEvent));
+}
+
 /** Select a single serialized field so unrelated table interactions do not invalidate global graph state. */
 export function useUrlState<K extends DashboardUrlKey>(key: K, fallback?: DashboardUrlState[K]) {
   const initialSearch = useContext(InitialSearch);

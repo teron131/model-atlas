@@ -4,7 +4,7 @@
 
 import { ArrowUp, ListTree } from "lucide-react";
 import Link from "next/link";
-import { type ReactNode, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useLayoutEffect, useState } from "react";
 
 import { ModelAtlasHeader } from "../shared/ModelAtlasHeader";
 import { useHorizontalChoice } from "../shared/use-horizontal-choice";
@@ -15,6 +15,8 @@ import { ScoreText } from "./ScoreText";
 import styles from "./methodology.module.css";
 
 const NAVIGATION_STORAGE_KEY = "model-atlas-document-navigation-open";
+// Matches the stylesheet breakpoint where shown navigation stacks above the text instead of sitting beside it.
+const STACKED_NAVIGATION_QUERY = "(max-width: 719px)";
 
 /**
  * The documentation has two modes, navigation shown or hidden, switched by the Navigation button at every width.
@@ -33,26 +35,27 @@ export function DocumentShell({
 }) {
   const currentDocument = DOCUMENTS.find((item) => item.slug === activeDocument)!;
   const stripRef = useHorizontalChoice<HTMLUListElement>(activeDocument);
-  const hydrated = useRef(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [navigationOpen, setNavigationOpen] = useState(false);
-  const toggleNavigation = useCallback(() => setNavigationOpen((open) => !open), []);
-
-  // Navigation starts shown unless the reader hid it; the choice is remembered across documents.
-  useLayoutEffect(() => {
-    if (!hydrated.current) {
-      hydrated.current = true;
-      try {
-        setNavigationOpen(window.localStorage.getItem(NAVIGATION_STORAGE_KEY) !== "false");
-      } catch {
-        setNavigationOpen(true);
-      }
-      return;
-    }
+  // Only the reader's own toggles are remembered, so a phone's default never hides navigation on a wide screen.
+  const toggleNavigation = useCallback(() => {
+    const next = !navigationOpen;
+    setNavigationOpen(next);
     try {
-      window.localStorage.setItem(NAVIGATION_STORAGE_KEY, String(navigationOpen));
+      window.localStorage.setItem(NAVIGATION_STORAGE_KEY, String(next));
     } catch {}
   }, [navigationOpen]);
+
+  // Navigation starts shown beside the text and hidden on phones, where it would push the text below the fold, unless the reader chose otherwise.
+  useLayoutEffect(() => {
+    let stored: string | null = null;
+    try {
+      stored = window.localStorage.getItem(NAVIGATION_STORAGE_KEY);
+    } catch {}
+    setNavigationOpen(
+      stored == null ? !window.matchMedia(STACKED_NAVIGATION_QUERY).matches : stored !== "false",
+    );
+  }, []);
 
   useEffect(() => {
     const updateVisibility = () => setShowBackToTop(window.scrollY > 480);

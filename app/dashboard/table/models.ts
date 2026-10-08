@@ -17,13 +17,17 @@ import {
 } from "../../../src/model-atlas/math-utils";
 import { clampScore } from "../../../src/model-atlas/pipeline/scores/normalization";
 import { benchmarkMetricValue as modelBenchmarkMetricValue } from "../../../src/model-atlas/pipeline/scores/resource-metrics";
-import type {
-  ResourceRatioKind,
-  ResourceRatioSummary,
+import {
+  type ResourceRatioKind,
+  type ResourceRatioObservation,
+  resourceRatioObservations,
+  resourceRatioReferences,
+  type ResourceRatioSummary,
+  summarizeResourceRatios,
 } from "../../../src/model-atlas/stats/resource-ratios";
-import { type ModelAtlasModel } from "../../../src/model-atlas/stats/types";
+import { type ModelAtlasModel, type ModelAtlasPayload } from "../../../src/model-atlas/stats/types";
 import { compareBenchmarkDisplayKeys } from "../shared/constants";
-import { modelDisplayName } from "../shared/model-display";
+import { modelDisplayName, modelsForVariantDisplay } from "../shared/model-display";
 
 export type SortDirection = "ascending" | "descending";
 
@@ -294,15 +298,18 @@ const operationColumnKeys = new Set<TableColumnKey>([
 const profileColumnKeys = new Set<TableColumnKey>(["release", "openWeights"]);
 const benchmarkColumnGroupsByKey = new Map<TableColumnKey, TableColumnGroup>();
 for (const { benchmark, columns } of benchmarkColumnGroups) {
-  const group =
-    BENCHMARK_SCORING_WEIGHTS[benchmark].group === "frontier"
-      ? "frontier"
-      : isAggregateIndex(benchmark)
-        ? "indexes"
-        : "baseline";
+  const group = benchmarkEvidenceGroup(benchmark);
   for (const column of columns) {
     benchmarkColumnGroupsByKey.set(column.key, group);
   }
+}
+
+/** Frontier benchmarks carry score weight, aggregate indexes summarize other benchmarks, and baseline benchmarks stay visible without direct weight; the table rules and the model sheet share these groups. */
+export function benchmarkEvidenceGroup(
+  benchmark: BenchmarkKey,
+): "frontier" | "indexes" | "baseline" {
+  if (BENCHMARK_SCORING_WEIGHTS[benchmark].group === "frontier") return "frontier";
+  return isAggregateIndex(benchmark) ? "indexes" : "baseline";
 }
 
 /** Resolve group-ending rules against the columns that are actually visible. */
@@ -470,6 +477,67 @@ const amountColumns: { key: TableColumnKey; get: (model: ModelAtlasModel) => unk
     get: (model: ModelAtlasModel) => dashboardMetricValue(model, column),
   })),
 ];
+
+const RESOURCE_RATIO_KINDS = [
+  "cost",
+  "time",
+  "tokens",
+] as const satisfies readonly ResourceRatioKind[];
+
+export type ResourceRatioReferenceSet = {
+  kind: ResourceRatioKind;
+  references: Map<string, number>;
+};
+
+/** Reference medians for each resource ratio come from every published variant, so every display measures against the same population. */
+export function resourceRatioReferenceSets(
+  payload: ModelAtlasPayload,
+): ResourceRatioReferenceSet[] {
+  const portfolio = payload.metadata.scoring.benchmark_portfolio;
+  return RESOURCE_RATIO_KINDS.map((kind) => ({
+    kind,
+    references: resourceRatioReferences(resourceRatioObservations(payload.models, portfolio, kind)),
+  }));
+}
+
+/**
+ * Shape one variant display of the payload into leaderboard rows with their resource ratios.
+ *
+ * Observations are allocated across the same display population before each row is summarized against the shared references, so the table and the model sheet read identical numbers.
+ */
+export function leaderboardRows(
+  payload: ModelAtlasPayload | null,
+  showVariants: boolean,
+  referenceSets: readonly ResourceRatioReferenceSet[],
+): TableRow[] {
+  const rows = dedupeDisplayModels(
+    modelsForVariantDisplay(payload?.models ?? [], showVariants, payload?.benchmark_observations),
+  );
+  if (payload == null) return rows;
+  const portfolio = payload.metadata.scoring.benchmark_portfolio;
+  const metrics = referenceSets.map(({ kind, references }) => {
+    const observations = new Map<ModelAtlasModel, ResourceRatioObservation[]>();
+    for (const observation of resourceRatioObservations(
+      rows.map((row) => row.model),
+      portfolio,
+      kind,
+    )) {
+      const group = observations.get(observation.model) ?? [];
+      group.push(observation);
+      observations.set(observation.model, group);
+    }
+    return { kind, references, observations };
+  });
+  return rows.map((row) => ({
+    ...row,
+    resourceRatios: Object.fromEntries(
+      metrics.map(({ kind, references, observations }) => [
+        kind,
+        summarizeResourceRatios(observations.get(row.model) ?? [], references),
+      ]),
+    ) as Record<ResourceRatioKind, ResourceRatioSummary>,
+  }));
+}
 
 /** Collapse duplicate routes and scale benchmark meters and amount ratios against the full incoming population before filtering or limiting rows. */
 export function dedupeDisplayModels(models: ModelAtlasModel[]) {

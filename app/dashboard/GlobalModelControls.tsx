@@ -1,6 +1,6 @@
 "use client";
 
-/** One expandable row owns global model filters and browser profiles; secondary choices float above the page without increasing the row height. */
+/** The rail always shows the global model search; profiles and additional filters sit beside it on wide screens and fold behind a toggle on phones, while secondary choices float above the page. */
 
 import {
   AlertCircle,
@@ -9,6 +9,7 @@ import {
   Check,
   ChevronDown,
   CopyPlus,
+  Ellipsis,
   RotateCcw,
   Save,
   Search,
@@ -41,6 +42,24 @@ import { providerLogo } from "./shared/provider-theme";
 import { updateDashboardUrl, useUrlState } from "./use-url-state";
 
 import styles from "./global-model-controls.module.css";
+
+const MODEL_SEARCH_ID = "global-model-search";
+// A pinned rail keeps its search this close to the viewport top; anywhere lower, the rail has not reached the top yet.
+const PINNED_SEARCH_TOP = 64;
+
+/**
+ * Focus the rail's model search from anywhere, selecting any current query so typing replaces it.
+ * Until the rail is pinned, as in the hero, the leaderboard scrolls up beneath it first, so results are in view while typing.
+ */
+export function focusModelSearch() {
+  const input = document.getElementById(MODEL_SEARCH_ID);
+  if (!(input instanceof HTMLInputElement)) return;
+  if (input.getBoundingClientRect().top > PINNED_SEARCH_TOP) {
+    document.getElementById("leaderboard")?.scrollIntoView({ block: "start" });
+  }
+  input.focus({ preventScroll: true });
+  input.select();
+}
 
 /** Validate the current full model group before every create/update, even while the charts are rendering a deferred configuration. */
 export function GlobalModelControls({
@@ -122,9 +141,27 @@ export function GlobalModelControls({
     if (saveOpen) nameRef.current?.focus();
   }, [saveOpen]);
 
+  // "/" reaches the model search from anywhere except while typing in another field.
+  useEffect(() => {
+    const focusOnSlash = (event: KeyboardEvent) => {
+      if (event.key !== "/" || event.defaultPrevented || event.metaKey || event.ctrlKey) return;
+      const target = event.target;
+      if (
+        target instanceof HTMLElement &&
+        (target.isContentEditable || target.matches("input, textarea, select"))
+      ) {
+        return;
+      }
+      event.preventDefault();
+      focusModelSearch();
+    };
+    document.addEventListener("keydown", focusOnSlash);
+    return () => document.removeEventListener("keydown", focusOnSlash);
+  }, []);
+
   // A fixed popover must close when its toolbar moves, while its own list remains scrollable.
   useEffect(() => {
-    if (!open) return;
+    if (!menuOpen) return;
     const close = (event: Event) => {
       if (event.target instanceof Node && menuRef.current?.contains(event.target)) return;
       menuRef.current?.hidePopover();
@@ -135,10 +172,10 @@ export function GlobalModelControls({
       window.removeEventListener("scroll", close, true);
       window.removeEventListener("resize", close);
     };
-  }, [open]);
+  }, [menuOpen]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open && !saveOpen) return;
     const escape = (event: KeyboardEvent) => {
       if (event.key !== "Escape" || menuRef.current?.matches(":popover-open")) return;
       if (saveOpen) setSaveOpen(false);
@@ -204,9 +241,6 @@ export function GlobalModelControls({
     setSaveError("");
   };
 
-  const selectionLabel = activeProfile
-    ? `${activeProfile.name}${modified ? " *" : ""}`
-    : filters.q.trim() || "All models";
   const toggleMenu = (button: HTMLButtonElement, next: "profiles" | "filters") => {
     if (menuRef.current?.matches(":popover-open") && menu === next) {
       menuRef.current.hidePopover();
@@ -232,11 +266,45 @@ export function GlobalModelControls({
 
   return (
     <>
+      <label className={styles.search}>
+        <Search size={15} aria-hidden="true" />
+        <input
+          id={MODEL_SEARCH_ID}
+          type="search"
+          aria-label="Global model search"
+          aria-keyshortcuts="/"
+          placeholder="Search models…"
+          title="Use * as a wildcard; separate alternatives with commas. Press / to search from anywhere."
+          autoComplete="off"
+          spellCheck={false}
+          value={filters.q}
+          onChange={(event) => {
+            updateDashboardUrl({ q: event.target.value }, true);
+            setMessage("");
+            setSaveError("");
+          }}
+        />
+        {/* The count stays mounted as a live region; while no filter applies, the "/" keycap takes its place on screen. */}
+        <output
+          className={isDefault ? styles.visuallyHidden : undefined}
+          aria-live="polite"
+          aria-label={`${matchedCount} matching models`}
+          title={`${matchedCount} matching models`}
+        >
+          {matchedCount}
+        </output>
+        {isDefault ? (
+          <kbd className={styles.shortcut} aria-hidden="true">
+            /
+          </kbd>
+        ) : null}
+      </label>
       <button
         ref={triggerRef}
         className={styles.trigger}
         type="button"
-        aria-label="Global filters"
+        aria-label="Profiles and filters"
+        title="Profiles and filters"
         aria-controls="global-model-filters"
         aria-expanded={open}
         onClick={() => {
@@ -244,166 +312,145 @@ export function GlobalModelControls({
           setOpen(!open);
         }}
       >
-        <span>Filters</span>
-        <b>{!open ? selectionLabel : ""}</b>
-        <i aria-hidden="true">{open ? "−" : "+"}</i>
+        <Ellipsis size={18} aria-hidden="true" />
+        {activeProfile != null || activeFilters.length ? (
+          <span className={styles.activeDot} />
+        ) : null}
       </button>
-      <div id="global-model-filters" className={styles.panel} hidden={!open}>
-        <div className={styles.row} role="group" aria-label="Global model filters">
-          <label className={styles.search}>
-            <Search size={15} aria-hidden="true" />
-            <input
-              type="search"
-              aria-label="Global model search"
-              placeholder="Search models…"
-              title="Use * as a wildcard; separate alternatives with commas."
-              autoComplete="off"
-              spellCheck={false}
-              value={filters.q}
-              onChange={(event) => {
-                updateDashboardUrl({ q: event.target.value }, true);
-                setMessage("");
-                setSaveError("");
+      <div
+        id="global-model-filters"
+        className={styles.panel}
+        data-open={open}
+        role="group"
+        aria-label="Profiles and filters"
+      >
+        <div className={styles.profiles}>
+          {saveOpen ? (
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                save(false);
               }}
-            />
-            <output
-              aria-live="polite"
-              aria-label={`${matchedCount} matching models`}
-              title={`${matchedCount} matching models`}
             >
-              {matchedCount}
-            </output>
-          </label>
-          <div className={styles.profiles}>
-            {saveOpen ? (
-              <form
-                onSubmit={(event) => {
+              <input
+                ref={nameRef}
+                aria-label="Profile name"
+                placeholder="Profile name"
+                aria-invalid={saveError ? true : undefined}
+                aria-describedby={saveError ? "global-profile-error" : undefined}
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                required
+              />
+              <button
+                type="submit"
+                className={styles.iconButton}
+                disabled={!canSave || !name.trim()}
+                aria-label="Save profile"
+                title="Save profile"
+              >
+                <Check size={16} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className={styles.iconButton}
+                aria-label="Cancel saving profile"
+                title="Cancel"
+                onClick={() => setSaveOpen(false)}
+              >
+                <X size={15} aria-hidden="true" />
+              </button>
+            </form>
+          ) : (
+            <>
+              <button
+                type="button"
+                className={styles.profileToggle}
+                aria-label="Profiles"
+                title={
+                  activeProfile
+                    ? `${activeProfile.name} · Profiles`
+                    : "Load and manage browser profiles"
+                }
+                aria-expanded={menuOpen && menu === "profiles"}
+                aria-controls="global-filter-menu"
+                popoverTarget="global-filter-menu"
+                onClick={(event) => {
                   event.preventDefault();
-                  save(false);
+                  toggleMenu(event.currentTarget, "profiles");
                 }}
               >
-                <input
-                  ref={nameRef}
-                  aria-label="Profile name"
-                  placeholder="Profile name"
-                  aria-invalid={saveError ? true : undefined}
-                  aria-describedby={saveError ? "global-profile-error" : undefined}
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  required
-                />
-                <button
-                  type="submit"
-                  className={styles.iconButton}
-                  disabled={!canSave || !name.trim()}
-                  aria-label="Save profile"
-                  title="Save profile"
-                >
-                  <Check size={16} aria-hidden="true" />
-                </button>
+                <Bookmark size={15} aria-hidden="true" />
+                <span>
+                  {activeProfile ? `${activeProfile.name}${modified ? " *" : ""}` : "Profiles"}
+                </span>
+                <ChevronDown size={12} aria-hidden="true" />
+              </button>
+              {activeProfile == null || modified ? (
                 <button
                   type="button"
                   className={styles.iconButton}
-                  aria-label="Cancel saving profile"
-                  title="Cancel"
-                  onClick={() => setSaveOpen(false)}
-                >
-                  <X size={15} aria-hidden="true" />
-                </button>
-              </form>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  className={styles.profileToggle}
-                  aria-label="Profiles"
+                  aria-label={modified ? "Update profile" : "Save profile as"}
                   title={
-                    activeProfile
-                      ? `${activeProfile.name} · Profiles`
-                      : "Load and manage browser profiles"
+                    !canSave
+                      ? "At least one model must match"
+                      : modified
+                        ? "Update profile"
+                        : "Save profile as…"
                   }
-                  aria-expanded={menuOpen && menu === "profiles"}
-                  aria-controls="global-filter-menu"
-                  popoverTarget="global-filter-menu"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    toggleMenu(event.currentTarget, "profiles");
-                  }}
+                  disabled={!canSave}
+                  onClick={() => (modified ? save(true) : openSave())}
                 >
-                  <Bookmark size={15} aria-hidden="true" />
-                  <span>
-                    {activeProfile ? `${activeProfile.name}${modified ? " *" : ""}` : "Profiles"}
-                  </span>
-                  <ChevronDown size={12} aria-hidden="true" />
+                  <Save size={16} aria-hidden="true" />
                 </button>
-                {activeProfile == null || modified ? (
-                  <button
-                    type="button"
-                    className={styles.iconButton}
-                    aria-label={modified ? "Update profile" : "Save profile as"}
-                    title={
-                      !canSave
-                        ? "At least one model must match"
-                        : modified
-                          ? "Update profile"
-                          : "Save profile as…"
-                    }
-                    disabled={!canSave}
-                    onClick={() => (modified ? save(true) : openSave())}
-                  >
-                    <Save size={16} aria-hidden="true" />
-                  </button>
-                ) : null}
-              </>
-            )}
-          </div>
-          {storageError || saveError ? (
-            <span
-              id="global-profile-error"
-              className={styles.error}
-              role="alert"
-              title={storageError || saveError}
-            >
-              <AlertCircle size={15} aria-hidden="true" />
-              <span className={styles.visuallyHidden}>{storageError || saveError}</span>
-            </span>
-          ) : null}
-          <span className={styles.visuallyHidden} role="status">
-            {message}
+              ) : null}
+            </>
+          )}
+        </div>
+        {storageError || saveError ? (
+          <span
+            id="global-profile-error"
+            className={styles.error}
+            role="alert"
+            title={storageError || saveError}
+          >
+            <AlertCircle size={15} aria-hidden="true" />
+            <span className={styles.visuallyHidden}>{storageError || saveError}</span>
           </span>
+        ) : null}
+        <span className={styles.visuallyHidden} role="status">
+          {message}
+        </span>
+        <button
+          type="button"
+          className={styles.iconButton}
+          aria-label="Additional filters"
+          title={activeFilters.length ? activeFilters.join(" / ") : "Provider, cost, date and rank"}
+          aria-expanded={menuOpen && menu === "filters"}
+          aria-controls="global-filter-menu"
+          popoverTarget="global-filter-menu"
+          onClick={(event) => {
+            event.preventDefault();
+            toggleMenu(event.currentTarget, "filters");
+          }}
+        >
+          <SlidersHorizontal size={16} aria-hidden="true" />
+          {activeFilters.length ? <span className={styles.activeDot} /> : null}
+        </button>
+        {!isDefault ? (
           <button
             type="button"
             className={styles.iconButton}
-            aria-label="Additional filters"
-            title={
-              activeFilters.length ? activeFilters.join(" / ") : "Provider, cost, date and rank"
-            }
-            aria-expanded={menuOpen && menu === "filters"}
-            aria-controls="global-filter-menu"
-            popoverTarget="global-filter-menu"
-            onClick={(event) => {
-              event.preventDefault();
-              toggleMenu(event.currentTarget, "filters");
+            aria-label="Reset global filters"
+            title="Reset global filters"
+            onClick={() => {
+              setActiveId("");
+              apply(DEFAULT_PROFILE_FILTERS);
             }}
           >
-            <SlidersHorizontal size={16} aria-hidden="true" />
-            {activeFilters.length ? <span className={styles.activeDot} /> : null}
+            <RotateCcw size={15} aria-hidden="true" />
           </button>
-          {!isDefault ? (
-            <button
-              type="button"
-              className={styles.iconButton}
-              aria-label="Reset global filters"
-              title="Reset global filters"
-              onClick={() => {
-                setActiveId("");
-                apply(DEFAULT_PROFILE_FILTERS);
-              }}
-            >
-              <RotateCcw size={15} aria-hidden="true" />
-            </button>
-          ) : null}
-        </div>
+        ) : null}
       </div>
       <div
         ref={menuRef}
