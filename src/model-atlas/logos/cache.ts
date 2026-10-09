@@ -1,4 +1,7 @@
-/** Disk-backed provider logo caching owns fetch coalescing, resize bounds, and local/Vercel cache paths. */
+/**
+ * Disk-backed provider logo caching owns fetch coalescing, resize bounds, and local/Vercel cache paths.
+ * A logo that cannot be fetched falls back to its provider's Models.dev logo and otherwise to none, so a payload never carries a dead link.
+ */
 
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -6,11 +9,13 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import { fetchWithTimeout } from "../runtime";
+import { modelsDevLogoUrl, modelsDevPlaceholderFor } from "./resolve";
 
 const LOGO_CACHE_SIZE = 64;
 const LOGO_FETCH_TIMEOUT_MS = 15_000;
 
 const pendingLogoRequestByKey = new Map<string, Promise<string>>();
+let modelsDevPlaceholder: Promise<Buffer | null> | null = null;
 
 function safeLogoCacheStem(cacheKey: string | null | undefined): string | null {
   const normalized = cacheKey
@@ -119,17 +124,39 @@ async function buildCachedLogoDataUrl(source: string, cacheKey?: string | null):
   }
 
   const imageBuffer = Buffer.from(await response.arrayBuffer());
+  const placeholderUrl = modelsDevPlaceholderFor(source);
+  if (placeholderUrl != null && (await isModelsDevPlaceholder(placeholderUrl, imageBuffer))) {
+    throw new Error(`Models.dev does not list this provider: ${source}`);
+  }
   const resizedLogoBuffer = await resizeLogoToPng(imageBuffer);
   await saveCachedLogoBuffer(cachePath, resizedLogoBuffer);
   return pngDataUrl(resizedLogoBuffer);
 }
 
+/** Models.dev serves one placeholder for every provider it does not list; fetch it once per process to recognize it. */
+async function isModelsDevPlaceholder(
+  placeholderUrl: string,
+  imageBuffer: Buffer,
+): Promise<boolean> {
+  modelsDevPlaceholder ??= fetchWithTimeout(
+    placeholderUrl,
+    { method: "GET" },
+    LOGO_FETCH_TIMEOUT_MS,
+  )
+    .then(async (response) => (response.ok ? Buffer.from(await response.arrayBuffer()) : null))
+    .catch(() => null);
+  const placeholder = await modelsDevPlaceholder;
+  return placeholder != null && placeholder.equals(imageBuffer);
+}
+
+type LogoSource = { source: string; cacheKey: string | null; fallback: string | null };
+
 /** Logo fetches are deduplicated by source while cache files can still use stable model or provider keys. */
-function uniqueLogoSources<TModel extends { logo: string }>(
+function uniqueLogoSources<TModel extends { logo: string; provider?: string | null }>(
   models: TModel[],
   cacheKeyForModel: (model: TModel) => string | null | undefined,
-): Array<{ source: string; cacheKey: string | null }> {
-  const sourceEntries = new Map<string, { source: string; cacheKey: string | null }>();
+): LogoSource[] {
+  const sourceEntries = new Map<string, LogoSource>();
   for (const model of models) {
     if (model.logo.length === 0 || sourceEntries.has(model.logo)) {
       continue;
@@ -137,13 +164,18 @@ function uniqueLogoSources<TModel extends { logo: string }>(
     sourceEntries.set(model.logo, {
       source: model.logo,
       cacheKey: safeLogoCacheStem(cacheKeyForModel(model)),
+      fallback: modelsDevLogoUrl(model.provider),
     });
   }
   return [...sourceEntries.values()];
 }
 
-/** Cache one remote logo source and return the cached data URL when possible. */
-async function cacheModelLogo(source: string, cacheKey?: string | null): Promise<string> {
+/** Cache one remote logo source and return the cached data URL, trying the Models.dev `fallback` when the source fails and returning no logo when both do. */
+async function cacheModelLogo(
+  source: string,
+  cacheKey: string | null,
+  fallback: string | null,
+): Promise<string> {
   if (source.length === 0 || !/^https?:\/\//i.test(source)) {
     return source;
   }
@@ -155,7 +187,9 @@ async function cacheModelLogo(source: string, cacheKey?: string | null): Promise
   }
 
   const request = buildCachedLogoDataUrl(source, cacheKey)
-    .catch(() => source)
+    .catch(() =>
+      fallback != null && fallback !== source ? cacheModelLogo(fallback, cacheKey, null) : "",
+    )
     .finally(() => {
       pendingLogoRequestByKey.delete(requestKey);
     });
@@ -167,6 +201,7 @@ async function cacheModelLogo(source: string, cacheKey?: string | null): Promise
 export async function cacheModelLogos<
   TModel extends {
     logo: string;
+    provider?: string | null;
   },
 >(
   models: TModel[],
@@ -176,8 +211,8 @@ export async function cacheModelLogos<
   const uniqueSources = uniqueLogoSources(models, cacheKeyForModel);
 
   await Promise.all(
-    uniqueSources.map(async ({ source, cacheKey }) => {
-      cachedLogoBySource.set(source, await cacheModelLogo(source, cacheKey));
+    uniqueSources.map(async ({ source, cacheKey, fallback }) => {
+      cachedLogoBySource.set(source, await cacheModelLogo(source, cacheKey, fallback));
     }),
   );
 
