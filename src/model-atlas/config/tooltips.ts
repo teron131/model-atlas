@@ -189,6 +189,8 @@ const qualityBenchmarkRows = (
     },
     {
       title: "Aggregate indexes",
+      // An index has no fixed weight: its share depends on how much of it each model's direct results already cover, so the section states that once and lists the indexes alone.
+      weight: "overlap-adjusted share",
       rows: benchmarkRows.indexes,
     },
   ] as const;
@@ -217,13 +219,7 @@ const benchmarkRowsByGroup = (
     ),
   indexes: keys
     .filter((key) => isAggregateIndex(key))
-    .map(
-      (key) =>
-        [
-          BENCHMARK_CATALOG[key].presentation.scoringLabel,
-          "model-specific share after overlap",
-        ] as const,
-    ),
+    .map((key) => [BENCHMARK_CATALOG[key].presentation.scoringLabel, ""] as const),
 });
 
 const INTELLIGENCE_BENCHMARK_ROWS = benchmarkRowsByGroup(

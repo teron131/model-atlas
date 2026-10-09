@@ -1,0 +1,73 @@
+/* A model search's suggestions hang beneath its positioned container as a floating surface, lit along its top edge like the dashboard's other popovers. */
+.suggestions {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 1px);
+  left: 0;
+  width: min(440px, 100%);
+  max-height: min(360px, 60dvh);
+  margin: 0;
+  padding: 6px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--line-strong);
+  background:
+    var(--horizon-gradient) top / 100% 1px no-repeat,
+    var(--paper);
+  box-shadow: var(--tooltip-shadow);
+  list-style: none;
+}
+
+/* The chosen match carries the same trace of its provider colour as a hovered leaderboard row. */
+.suggestions li {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 38px;
+  padding: 0 10px;
+  cursor: pointer;
+}
+
+.suggestions li[aria-selected="true"] {
+  background: color-mix(in srgb, var(--row-provider, var(--ink)) 8%, var(--hover));
+}
+
+.logo {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+.name {
+  min-width: 0;
+  overflow: hidden;
+  font: 600 13px / 1.3 var(--font-sans);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.score {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+  font: 650 12px / 1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.score svg {
+  width: 13px;
+  height: 13px;
+}
+
+@media (max-width: 760px) {
+  .suggestions {
+    right: 0;
+    width: auto;
+  }
+
+  .suggestions li {
+    min-height: 44px;
+  }
+}

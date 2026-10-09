@@ -2,7 +2,9 @@
 
 /** Measure dashboard chart widths and follow the shared compact-layout breakpoint. */
 
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useLayoutEffect, useState } from "react";
+
+import { useMediaQuery } from "../shared/use-media-query";
 
 const COMPACT_CHART_MEDIA_QUERY = "(max-width: 820px)";
 
@@ -26,15 +28,5 @@ export function useChartWidth(maxWidth: number) {
 
 /** Follow the shared compact-chart boundary without changing the server render. */
 export function useCompactChartLayout(): boolean {
-  const [compact, setCompact] = useState(false);
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia(COMPACT_CHART_MEDIA_QUERY);
-    const update = () => setCompact(mediaQuery.matches);
-    update();
-    mediaQuery.addEventListener("change", update);
-    return () => mediaQuery.removeEventListener("change", update);
-  }, []);
-
-  return compact;
+  return useMediaQuery(COMPACT_CHART_MEDIA_QUERY);
 }

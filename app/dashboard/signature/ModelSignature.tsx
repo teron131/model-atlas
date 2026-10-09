@@ -23,8 +23,9 @@ const FrontierField = dynamic(
   () => import("./FrontierField").then((module) => module.FrontierField),
   { ssr: false },
 );
-// The horizon rests just under the title, this share of its type size below the title's line box.
+// The horizon rests under the title: this share of its type size below the title's line box, or this share of the open sky down to the key when a tall hero leaves more.
 const HORIZON_GAP = 0.1;
+const HORIZON_SPACE_SHARE = 0.15;
 
 /**
  * The hero's fixed field layers sit in the dashboard's stacking context, so the hero must not create one of its own.
@@ -60,8 +61,16 @@ export const ModelSignature = memo(function ModelSignature(population: Signature
     const title = titleRef.current;
     if (hero == null || title == null) return;
     const measure = () => {
-      const gap = Number.parseFloat(getComputedStyle(title).fontSize) * HORIZON_GAP;
-      setHorizon(Math.round(title.getBoundingClientRect().bottom + window.scrollY + gap));
+      const bottom = title.getBoundingClientRect().bottom;
+      // The first row shown below the title: the key, or the register where the key is hidden.
+      let next = title.nextElementSibling;
+      while (next != null && next.getClientRects().length === 0) next = next.nextElementSibling;
+      const open = (next?.getBoundingClientRect().top ?? bottom) - bottom;
+      const gap = Math.max(
+        Number.parseFloat(getComputedStyle(title).fontSize) * HORIZON_GAP,
+        open * HORIZON_SPACE_SHARE,
+      );
+      setHorizon(Math.round(bottom + window.scrollY + gap));
     };
     measure();
     const observer = new ResizeObserver(measure);

@@ -297,10 +297,13 @@ const operationColumnKeys = new Set<TableColumnKey>([
 ]);
 const profileColumnKeys = new Set<TableColumnKey>(["release", "openWeights"]);
 const benchmarkColumnGroupsByKey = new Map<TableColumnKey, TableColumnGroup>();
+// Each benchmark column's benchmark, so a run of columns can count the benchmarks it covers.
+const benchmarkByColumnKey = new Map<TableColumnKey, BenchmarkKey>();
 for (const { benchmark, columns } of benchmarkColumnGroups) {
   const group = benchmarkEvidenceGroup(benchmark);
   for (const column of columns) {
     benchmarkColumnGroupsByKey.set(column.key, group);
+    benchmarkByColumnKey.set(column.key, benchmark);
   }
 }
 
@@ -310,6 +313,33 @@ export function benchmarkEvidenceGroup(
 ): "frontier" | "indexes" | "baseline" {
   if (BENCHMARK_SCORING_WEIGHTS[benchmark].group === "frontier") return "frontier";
   return isAggregateIndex(benchmark) ? "indexes" : "baseline";
+}
+
+/** A stretch of consecutive visible columns in one group, as the table's group rail names it; the trailing release, weights, evidence, and change columns read as one `details` stretch. */
+export type TableColumnRun = {
+  group: "scores" | "operations" | "frontier" | "indexes" | "baseline" | "details";
+  /** Position of its first column among the visible columns. */
+  first: number;
+  /** Distinct benchmarks among its columns; zero outside the benchmark groups. */
+  benchmarks: number;
+};
+
+/** Split the visible columns after the pinned rank and model into the runs the group rail navigates. */
+export function tableColumnRuns(visibleColumnKeys: readonly TableColumnKey[]): TableColumnRun[] {
+  const runs: (Omit<TableColumnRun, "benchmarks"> & { benchmarkKeys: Set<BenchmarkKey> })[] = [];
+  visibleColumnKeys.forEach((key, index) => {
+    const own = tableColumnGroup(key);
+    if (own === "fixed") return;
+    const group = own === "profile" || own === "confidence" || own === "change" ? "details" : own;
+    let run = runs.at(-1);
+    if (run?.group !== group) {
+      run = { group, first: index, benchmarkKeys: new Set() };
+      runs.push(run);
+    }
+    const benchmark = benchmarkByColumnKey.get(key);
+    if (benchmark != null) run.benchmarkKeys.add(benchmark);
+  });
+  return runs.map(({ benchmarkKeys, ...run }) => ({ ...run, benchmarks: benchmarkKeys.size }));
 }
 
 /** Resolve group-ending rules against the columns that are actually visible. */

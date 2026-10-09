@@ -2,7 +2,7 @@
 
 /** The overview retains the full time range while pointer capture and keyboard controls edit the chart window. */
 
-import { ChevronLeft, ChevronRight, Minus, Plus, RotateCcw } from "lucide-react";
+import { ChevronLeft, ChevronRight, Minus, Play, Plus, RotateCcw, Square } from "lucide-react";
 import { type PointerEvent, useId, useRef } from "react";
 
 import { providerChartColor } from "../../shared/provider-theme";
@@ -21,6 +21,8 @@ export function TimelineNavigator({
   onChange,
   preset,
   onPreset,
+  replayAt = null,
+  onReplay,
 }: {
   preset: string;
   onPreset: (value: "all" | "year") => void;
@@ -28,6 +30,10 @@ export function TimelineNavigator({
   bounds: [number, number];
   range: [number, number];
   onChange: (range: [number, number]) => void;
+  /** How far a running replay has reached, on the same normalized scale as `range`; `null` while idle. */
+  replayAt?: number | null;
+  /** Start or stop the frontier replay; absent where the view has no record frontier to replay. */
+  onReplay?: () => void;
 }) {
   const drag = useRef<{ x: number; width: number; range: [number, number]; mode: string } | null>(
     null,
@@ -46,6 +52,7 @@ export function TimelineNavigator({
         ? [Math.max(0, Math.min(range[1] - minimum, value)), range[1]]
         : [range[0], Math.min(1, Math.max(range[0] + minimum, value))],
     );
+  const replayLabel = replayAt == null ? "Replay the frontier's rise" : "Stop replay";
   const date = (value: number) =>
     new Date(bounds[0] + value * (bounds[1] - bounds[0])).toISOString().slice(0, 10);
   const low = Math.min(...points.map((p) => p.score));
@@ -107,6 +114,11 @@ export function TimelineNavigator({
       </div>
       <div className={styles.timeTransport}>
         <div>
+          {onReplay == null ? null : (
+            <button aria-label={replayLabel} title={replayLabel} onClick={onReplay}>
+              {replayAt == null ? <Play size={15} /> : <Square size={13} />}
+            </button>
+          )}
           <button
             aria-label="Pan earlier"
             title="Pan earlier"
@@ -124,7 +136,7 @@ export function TimelineNavigator({
             <ChevronRight size={16} />
           </button>
           <span>
-            {date(range[0])} — {date(range[1])}
+            {date(range[0])} — {date(replayAt ?? range[1])}
           </span>
         </div>
         <div>

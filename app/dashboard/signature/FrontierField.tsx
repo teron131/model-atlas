@@ -22,6 +22,8 @@ const INTRO_DURATION = 2600;
 const STAR_CLEARANCE = 12;
 const LABEL_GAP = 5;
 const LABEL_HEIGHT = 12;
+// Names keep this far inside the window's sides.
+const LABEL_EDGE = 8;
 // How close the pointer must come to a star to identify it, and how far into the scroll stars stay explorable.
 const STAR_REACH = 16;
 const EXPLORE_UNTIL = 0.35;
@@ -162,7 +164,7 @@ export function FrontierField({
       return frameState.intro < 1;
     };
 
-    /** Put each name beside its star without covering another name or star: right, left, then below or above. */
+    /** Put each name beside its star, inside the window, without covering another name or star: right, left, then below or above. */
     const placeLabels = (entries: SkyLabel[]) => {
       const occupied = entries.map(({ x, y }) => ({
         left: x - STAR_CLEARANCE,
@@ -187,16 +189,20 @@ export function FrontierField({
           right: entry.x + dx + width,
           bottom: entry.y + dy + LABEL_HEIGHT,
         }));
+        type Box = (typeof boxes)[number];
+        const inside = (box: Box) =>
+          box.left >= LABEL_EDGE && box.right <= frameState.width - LABEL_EDGE;
+        const clear = (box: Box) =>
+          occupied.every(
+            (other) =>
+              box.right <= other.left ||
+              box.left >= other.right ||
+              box.bottom <= other.top ||
+              box.top >= other.bottom,
+          );
+        // A name never leaves the window; crowding another name is the lesser fault.
         const free =
-          boxes.find((box) =>
-            occupied.every(
-              (other) =>
-                box.right <= other.left ||
-                box.left >= other.right ||
-                box.bottom <= other.top ||
-                box.top >= other.bottom,
-            ),
-          ) ?? boxes[0]!;
+          boxes.find((box) => inside(box) && clear(box)) ?? boxes.find(inside) ?? boxes[0]!;
         occupied.push(free);
         element.style.transform = `translate3d(${free.left.toFixed(1)}px, ${free.top.toFixed(1)}px, 0)`;
         element.style.opacity = entry.opacity.toFixed(3);

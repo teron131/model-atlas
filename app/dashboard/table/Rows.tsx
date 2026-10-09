@@ -14,7 +14,7 @@ import { modelDisplayName } from "../shared/model-display";
 import { providerBrandColor } from "../shared/provider-theme";
 import { ProviderLogo } from "../shared/ProviderLogo";
 import { formatResourceRatio, ratioTrackStyle } from "../shared/resource-ratio-display";
-import { resourceRatioColumns } from "./Columns";
+import { resourceRatioColumns, scoreMetricColumns } from "./Columns";
 import {
   formatConfidence,
   formatContext,
@@ -130,6 +130,7 @@ export const ModelRow = memo(function ModelRow({
   metricColumns,
   visibleColumnKeySet,
   ruledColumnKeySet,
+  scoreStrip,
   sheetOpen,
   onScoreChange,
 }: {
@@ -137,6 +138,7 @@ export const ModelRow = memo(function ModelRow({
   metricColumns: DashboardMetricColumn[];
   visibleColumnKeySet: ReadonlySet<TableColumnKey>;
   ruledColumnKeySet: ReadonlySet<TableColumnKey>;
+  scoreStrip: boolean;
   sheetOpen: boolean;
   onScoreChange: ScoreChangeHandler;
 }) {
@@ -162,6 +164,7 @@ export const ModelRow = memo(function ModelRow({
         visibleColumnKeySet={visibleColumnKeySet}
         ruledColumnKeySet={ruledColumnKeySet}
         opensSheet
+        scoreStrip={scoreStrip}
       />
       {resourceRatioColumns
         .filter((column) => visibleColumnKeySet.has(column.key))
@@ -239,17 +242,19 @@ function rowProviderStyle(provider: string | null | undefined) {
   return { "--row-provider": providerBrandColor(provider) } as CSSProperties;
 }
 
-/** `opensSheet` makes the model name the keyboard path to the model sheet; exported rows stay plain text. */
+/** `opensSheet` makes the model name the keyboard path to the model sheet; exported rows stay plain text. `scoreStrip` sets the four scores under the name, for phones, where the caller leaves their columns out. */
 function ModelScoreCells({
   rowData,
   visibleColumnKeySet,
   ruledColumnKeySet,
   opensSheet = false,
+  scoreStrip = false,
 }: {
   rowData: TableRow;
   visibleColumnKeySet?: ReadonlySet<TableColumnKey>;
   ruledColumnKeySet?: ReadonlySet<TableColumnKey>;
   opensSheet?: boolean;
+  scoreStrip?: boolean;
 }) {
   const model = rowData.model;
   const visibleName = visibleModelName(modelDisplayName(model));
@@ -279,6 +284,17 @@ function ModelScoreCells({
             <div className="id" title={model.id ?? undefined}>
               {visibleSlug}
             </div>
+            {scoreStrip ? (
+              <ScoreStrip
+                values={[
+                  scores.intelligence_score,
+                  scores.agentic_score,
+                  scores.speed_score,
+                  scores.value_score,
+                ]}
+                provider={model.provider}
+              />
+            ) : null}
           </div>
         </div>
       </td>
@@ -637,6 +653,36 @@ function RatioCell({
   );
 }
 
+/** The four scores under a model's name, in the score columns' order: each value over its 0–100 star track, named for screen readers. */
+function ScoreStrip({
+  values,
+  provider,
+}: {
+  values: (number | null | undefined)[];
+  provider: string | null | undefined;
+}) {
+  const color = providerBrandColor(provider);
+  return (
+    <span className="score-strip">
+      {scoreMetricColumns.map((column, index) => {
+        const value = values[index];
+        const score = typeof value === "number" && Number.isFinite(value) ? value : null;
+        return (
+          <span
+            key={column.key}
+            className="score-strip-item"
+            style={score == null ? undefined : scoreMeterStyle(score, color)}
+          >
+            <span className="visually-hidden">{column.name} </span>
+            <span className="score-value">{formatScore(score)}</span>
+            {score == null ? null : <span className="score-meter" aria-hidden="true" />}
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
 /** Keep the marker on the same 0–100 scale as its displayed score, independent of table filters. */
 function scoreCell(
   value: number | null | undefined,
@@ -647,15 +693,21 @@ function scoreCell(
   if (score == null) {
     return <TableCell text={formatScore(score)} className={`score-cell ${className}`.trim()} />;
   }
-  const displayColor = providerBrandColor(provider);
-  const style = {
-    "--score": String(Math.max(0, Math.min(100, score))),
-    "--score-color": displayColor,
-  } as CSSProperties;
   return (
-    <td className={`score-cell ${className}`.trim()} style={style}>
+    <td
+      className={`score-cell ${className}`.trim()}
+      style={scoreMeterStyle(score, providerBrandColor(provider))}
+    >
       <span className="score-value">{formatScore(score)}</span>
       <span className="score-meter" />
     </td>
   );
+}
+
+/** Place a score's star on its 0–100 track in the provider's colour. */
+function scoreMeterStyle(score: number, color: string | undefined) {
+  return {
+    "--score": String(Math.max(0, Math.min(100, score))),
+    "--score-color": color,
+  } as CSSProperties;
 }

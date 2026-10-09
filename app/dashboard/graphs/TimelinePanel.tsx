@@ -5,7 +5,7 @@
 import { scaleLinear, scaleUtc } from "d3-scale";
 import { ArrowUpRight } from "lucide-react";
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 import { openModelSheet } from "../model-sheet/open";
@@ -40,6 +40,11 @@ import timeline from "./timeline.module.css";
 const TIMELINE_CAPTION =
   "Compare model generations on a fixed Intelligence Index. The glowing frontier rises with each new record. This historical view uses its own filters.";
 
+// A replay sweeps the window in this long, redrawing about this many times, or in a few still steps under reduced motion.
+const REPLAY_MS = 9000;
+const REPLAY_FRAMES = 120;
+const REPLAY_STILL_STEPS = 8;
+
 const TimelineEvidence = dynamic(
   () => import("./timeline/TimelineEvidence").then((module) => module.TimelineEvidence),
   { loading: () => <p role="status">Loading evidence matrices…</p> },
@@ -60,6 +65,8 @@ export function TimelinePanel({ currentModels }: { currentModels: readonly Model
     scope: "",
     range: [0, 1],
   });
+  // A running replay reveals models released up to `replay.at` inside the window, which keeps its axis still.
+  const replay = useFrontierReplay();
   const scope = `${view}:${period}:${providers?.join(",") ?? "all"}`;
   const compact = useCompactChartLayout();
 
@@ -109,13 +116,21 @@ export function TimelinePanel({ currentModels }: { currentModels: readonly Model
 
   const start = fullStart + range[0] * (fullEnd - fullStart);
   const end = fullStart + range[1] * (fullEnd - fullStart);
-  const visible = useMemo(
+  const windowed = useMemo(
     () =>
       population.filter((point) => {
         const date = Date.parse(point.releaseDate);
         return date >= start && date <= end;
       }),
     [population, start, end],
+  );
+  const cutoff = replay.at;
+  const visible = useMemo(
+    () =>
+      cutoff == null
+        ? windowed
+        : windowed.filter((point) => Date.parse(point.releaseDate) <= cutoff),
+    [windowed, cutoff],
   );
   const frontier = useMemo(() => coverageFrontier(visible, 0.6), [visible]);
   const frontierIds = new Set(frontier.map((point) => point.id));
@@ -158,7 +173,8 @@ export function TimelinePanel({ currentModels }: { currentModels: readonly Model
   const x = scaleUtc()
     .domain([new Date(start - padding), new Date(end + padding)])
     .range([margin.left, width - margin.right]);
-  const scores = visible.map((point) => point.score);
+  // The window's scores set the scale, so a replay reveals models without rescaling the plot.
+  const scores = windowed.map((point) => point.score);
   const y = scaleLinear()
     .domain([
       Math.floor((Math.min(...scores) - 5) / 20) * 20,
@@ -264,12 +280,23 @@ export function TimelinePanel({ currentModels }: { currentModels: readonly Model
         points={population}
         bounds={bounds}
         range={range}
-        onChange={(range) => setWindowState({ scope, range })}
+        onChange={(range) => {
+          replay.stop();
+          setWindowState({ scope, range });
+        }}
         preset={preset}
         onPreset={(value) => {
+          replay.stop();
           setWindowState({ scope: "", range: [0, 1] });
           setPeriod(value);
         }}
+        replayAt={replay.at == null ? null : (replay.at - fullStart) / (fullEnd - fullStart)}
+        // Only the models view has a record frontier to replay.
+        onReplay={
+          view === "models"
+            ? () => (replay.at == null ? replay.start(start, end) : replay.stop())
+            : undefined
+        }
       />
     ) : null;
 
@@ -290,6 +317,7 @@ export function TimelinePanel({ currentModels }: { currentModels: readonly Model
               legend="Timeline view"
               selectedKey={view}
               onSelect={(value) => {
+                replay.stop();
                 setSelected(null);
                 setView(value as "models" | "labs");
               }}
@@ -459,6 +487,15 @@ export function TimelinePanel({ currentModels }: { currentModels: readonly Model
                     bounds={plotBoundsFor(width, height, margin)}
                     open="right"
                   />
+                  {replay.at == null ? null : (
+                    <line
+                      className={timeline.replayLine}
+                      x1={x(new Date(replay.at))}
+                      x2={x(new Date(replay.at))}
+                      y1={margin.top}
+                      y2={height - margin.bottom}
+                    />
+                  )}
                   {/* Only records on the frontier and the selected model glow. */}
                   <StarGlows
                     bounds={plotBoundsFor(width, height, margin)}
@@ -613,4 +650,49 @@ export function TimelinePanel({ currentModels }: { currentModels: readonly Model
       </details>
     </Panel>
   );
+}
+
+/**
+ * A replay of the record frontier: a reveal cutoff that sweeps from `from` to `to` over a few seconds, redrawing about `REPLAY_FRAMES` times or in a few still steps under reduced motion, then clears itself.
+ * Starting again restarts it, the panel stops it on any window, preset, or view change, and it never outlives the panel.
+ */
+function useFrontierReplay() {
+  const [at, setAt] = useState<number | null>(null);
+  const frame = useRef<number | null>(null);
+  const stop = () => {
+    if (frame.current != null) cancelAnimationFrame(frame.current);
+    frame.current = null;
+    setAt(null);
+  };
+  const start = (from: number, to: number) => {
+    stop();
+    const steps = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      ? REPLAY_STILL_STEPS
+      : REPLAY_FRAMES;
+    const began = performance.now();
+    let shown = 0;
+    const tick = (now: number) => {
+      const progress = (now - began) / REPLAY_MS;
+      if (progress >= 1) {
+        frame.current = null;
+        setAt(null);
+        return;
+      }
+      const step = Math.floor(progress * steps);
+      if (step !== shown) {
+        shown = step;
+        setAt(from + (step / steps) * (to - from));
+      }
+      frame.current = requestAnimationFrame(tick);
+    };
+    setAt(from);
+    frame.current = requestAnimationFrame(tick);
+  };
+  useEffect(
+    () => () => {
+      if (frame.current != null) cancelAnimationFrame(frame.current);
+    },
+    [],
+  );
+  return { at, start, stop };
 }

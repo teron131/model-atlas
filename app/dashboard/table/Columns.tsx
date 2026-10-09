@@ -12,24 +12,35 @@ type SortableColumnDefinition = {
   className?: string;
 };
 
-export const scoreMetricColumns: SortableColumnDefinition[] = [
+/** A score column also carries its mark and full name, which the phone score strip uses in place of the column header. */
+type ScoreColumnDefinition = SortableColumnDefinition & { name: string; icon: ReactNode };
+
+export const scoreMetricColumns: ScoreColumnDefinition[] = [
   {
     key: "intelligence",
+    name: "Intelligence",
+    icon: <BrainIcon />,
     label: metricLabel(<BrainIcon />, "Intel"),
     searchText: "Intel Intelligence",
   },
   {
     key: "agentic",
+    name: "Agentic",
+    icon: <BotIcon />,
     label: metricLabel(<BotIcon />, "Agent"),
     searchText: "Agent Agentic",
   },
   {
     key: "speed",
+    name: "Speed",
+    icon: <LightningIcon />,
     label: metricLabel(<LightningIcon />, "Speed"),
     searchText: "Speed",
   },
   {
     key: "value",
+    name: "Value",
+    icon: <DollarIcon />,
     label: metricLabel(<DollarIcon />, "Value"),
     searchText: "Value",
   },
