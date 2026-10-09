@@ -1,4 +1,10 @@
-/* The model search always holds the rail's open middle; profiles and additional filters follow it on wide screens and fold into a second ruled row on phones, while secondary choices use the top layer. */
+/* The model search always holds the rail's open middle; active filter chips, profiles, and additional filters follow it on wide screens and fold into a second ruled row on phones, while secondary choices use the top layer. */
+/* Suggestions hang beneath the search on wide screens and span the whole rail on phones, where the search is narrow. */
+.query {
+  position: relative;
+  display: grid;
+  min-width: 0;
+}
 .search {
   display: flex;
   align-items: center;
@@ -266,6 +272,9 @@
   .menu label {
     min-height: 44px;
   }
+  .query {
+    position: static;
+  }
 }
 
 @media (max-width: 520px) {
@@ -344,6 +353,108 @@
   color: var(--ink);
 }
 
+/* Each active filter is a ruled chip that removes only itself; provider chips keep their provider mark. */
+.chips {
+  display: flex;
+  align-items: center;
+  flex: 0 1 auto;
+  gap: 6px;
+  min-width: 0;
+  max-width: min(42vw, 520px);
+  padding: 0 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.chips::-webkit-scrollbar {
+  display: none;
+}
+.panel .chip {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 6px;
+  height: 26px;
+  padding: 0 7px 0 8px;
+  border: 1px solid var(--line-strong);
+  color: var(--ink);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.chip svg {
+  color: var(--muted);
+}
+.chip:hover svg,
+.chip:focus-visible svg {
+  color: var(--ink);
+}
+.panel .chip:focus-visible {
+  box-shadow: 0 0 0 2px var(--focus-ring);
+}
+.suggestions {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 1px);
+  left: 0;
+  width: min(440px, 100%);
+  max-height: min(360px, 60dvh);
+  margin: 0;
+  padding: 6px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--line-strong);
+  background:
+    var(--horizon-gradient) top / 100% 1px no-repeat,
+    var(--paper);
+  box-shadow: var(--tooltip-shadow);
+  list-style: none;
+}
+/* The chosen match carries the same trace of its provider colour as a hovered leaderboard row. */
+.suggestions li {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 38px;
+  padding: 0 10px;
+  cursor: pointer;
+}
+.suggestions li[aria-selected="true"] {
+  background: color-mix(in srgb, var(--row-provider, var(--ink)) 8%, var(--hover));
+}
+.suggestionName {
+  min-width: 0;
+  overflow: hidden;
+  font: 600 13px / 1.3 var(--font-sans);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.suggestionScore {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+  font: 650 12px / 1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.suggestionScore svg {
+  width: 13px;
+  height: 13px;
+}
+@media (max-width: 760px) {
+  /* The folded row scrolls as a whole, so chips keep their natural width instead of shrinking under the controls beside them. */
+  .chips {
+    flex: 0 0 auto;
+    max-width: none;
+    overflow: visible;
+  }
+  .suggestions {
+    right: 0;
+    width: auto;
+  }
+  .suggestions li {
+    min-height: 44px;
+  }
+}
 .activeDot {
   position: absolute;
   top: 10px;

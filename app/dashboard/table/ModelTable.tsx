@@ -68,6 +68,9 @@ export const ModelTable = memo(function ModelTable({
   const visibleColumnKeySet = useMemo(() => new Set(visibleColumnKeys), [visibleColumnKeys]);
   const [sheetModel] = useUrlState("model");
   const [sheetEffort] = useUrlState("effort");
+  // A model pinned for comparison keeps its row marked while other rows open beside it, and while a click elsewhere has hidden the sheet.
+  const [pinnedModel] = useUrlState("compare");
+  const [pinnedEffort] = useUrlState("compare-effort");
   const ruledColumnKeySet = useMemo(
     () => tableColumnRuleKeys(visibleColumnKeys),
     [visibleColumnKeys],
@@ -158,8 +161,10 @@ export const ModelTable = memo(function ModelTable({
                     visibleColumnKeySet={visibleColumnKeySet}
                     ruledColumnKeySet={ruledColumnKeySet}
                     sheetOpen={
-                      sheetModel != null &&
-                      rowShowsModelSheet(rowData.model, sheetModel, sheetEffort)
+                      (sheetModel != null &&
+                        rowShowsModelSheet(rowData.model, sheetModel, sheetEffort)) ||
+                      (pinnedModel != null &&
+                        rowShowsModelSheet(rowData.model, pinnedModel, pinnedEffort))
                     }
                     onScoreChange={onScoreChange}
                   />
