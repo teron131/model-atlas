@@ -284,18 +284,18 @@ function ModelScoreCells({
             <div className="id" title={model.id ?? undefined}>
               {visibleSlug}
             </div>
-            {scoreStrip ? (
-              <ScoreStrip
-                values={[
-                  scores.intelligence_score,
-                  scores.agentic_score,
-                  scores.speed_score,
-                  scores.value_score,
-                ]}
-                provider={model.provider}
-              />
-            ) : null}
           </div>
+          {scoreStrip ? (
+            <ScoreStrip
+              values={[
+                scores.intelligence_score,
+                scores.agentic_score,
+                scores.speed_score,
+                scores.value_score,
+              ]}
+              provider={model.provider}
+            />
+          ) : null}
         </div>
       </td>
       {visibleColumnKeySet == null || visibleColumnKeySet.has("intelligence")

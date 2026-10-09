@@ -3,6 +3,7 @@
 import { type CSSProperties, type ReactNode, useRef } from "react";
 
 import { CaptureButton } from "../capture/CaptureButton";
+import { ARTIFACT_WIDTH } from "../capture/png";
 import { CopyDashboardLink } from "../CopyDashboardLink";
 import { type ResearchRegionId, researchRegionOrdinal } from "../research-index";
 
@@ -15,7 +16,6 @@ export function Panel({
   title,
   children,
   wide = false,
-  captureWidth,
   captureFileName,
 }: {
   sectionId: ResearchRegionId;
@@ -23,13 +23,11 @@ export function Panel({
   title: string;
   children: ReactNode;
   wide?: boolean;
-  captureWidth: number;
   captureFileName?: string;
 }) {
   const panelRef = useRef<HTMLElement>(null);
-  const artifactWidth = captureWidth + 48;
   const captureStyle = {
-    "--capture-artifact-width": `${artifactWidth}px`,
+    "--capture-artifact-width": `${ARTIFACT_WIDTH}px`,
   } as CSSProperties;
   const titleId = `${sectionId}-title`;
   const ordinal = researchRegionOrdinal(sectionId);
@@ -49,7 +47,7 @@ export function Panel({
         </h2>
         <div className="dashboard-section-actions" data-capture-exclude>
           <CaptureButton
-            captureWidth={artifactWidth}
+            captureWidth={ARTIFACT_WIDTH}
             fileName={captureFileName}
             targetRef={panelRef}
             title={title}

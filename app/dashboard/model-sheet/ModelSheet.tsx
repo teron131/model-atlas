@@ -14,6 +14,7 @@ import {
 
 import type { ModelAtlasModel, ModelAtlasPayload } from "../../../src/model-atlas/stats/types";
 import { CaptureButton } from "../capture/CaptureButton";
+import { ARTIFACT_WIDTH, WIDE_ARTIFACT_WIDTH } from "../capture/png";
 import { CopyDashboardLink } from "../CopyDashboardLink";
 import { benchmarkLabels } from "../shared/constants";
 import { BotIcon, BrainIcon, DollarIcon, LightningIcon } from "../shared/DashboardIcons";
@@ -93,6 +94,10 @@ const SCORES: { label: string; icon: ReactNode; score: ScoreGetter; support: Sco
   },
 ];
 // Labels follow the leaderboard's column headers, so a sheet reads against the table it was opened from; directions follow its sort arrows, and fewer tokens are not plainly better.
+// The exported card's benchmark lists take this many columns, for one model and for a comparison.
+const CARD_COLUMNS = 3;
+const COMPARE_CARD_COLUMNS = 2;
+
 const RESOURCE_RATIOS = [
   { kind: "cost", label: "Cost×", direction: "ascending" },
   { kind: "time", label: "Time×", direction: "ascending" },
@@ -104,8 +109,8 @@ const PRICES: { label: string; value: (model: ModelAtlasModel) => number | null 
   { label: "Output", value: (model) => model.cost?.weighted_output },
 ];
 const BENCHMARK_GROUPS = [
-  { key: "frontier", label: "Frontier" },
   { key: "indexes", label: "Indexes" },
+  { key: "frontier", label: "Frontier" },
   { key: "baseline", label: "Baseline" },
 ] as const;
 
@@ -211,13 +216,13 @@ export function ModelSheet({ payload }: { payload: ModelAtlasPayload | null }) {
   const comparing = pinned != null && pinned.row !== opened.row;
   const entries = comparing ? [pinned, opened] : [opened];
   const captureTitle = entries.map(familyName).join(" vs ");
-  // The image is the card as it reads on this screen, at its current width and full length.
+  // The image is a wide card for sharing, laid out in columns rather than the panel's single tall column.
   const capture = (
     <CaptureButton
       targetRef={sheetRef}
       title={captureTitle}
       kind="sheet"
-      captureWidth={(sheet) => Math.round(sheet.getBoundingClientRect().width)}
+      captureWidth={comparing ? WIDE_ARTIFACT_WIDTH : ARTIFACT_WIDTH}
     />
   );
   return (
@@ -720,7 +725,16 @@ function BenchmarkEvidence({ entries }: { entries: readonly SheetEntry[] }) {
             </small>
           </h4>
           {group.rows.length ? (
-            <ul className={styles.benchmarks}>
+            <ul
+              className={styles.benchmarks}
+              style={
+                {
+                  "--card-benchmark-rows": Math.ceil(
+                    group.rows.length / (comparing ? COMPARE_CARD_COLUMNS : CARD_COLUMNS),
+                  ),
+                } as CSSProperties
+              }
+            >
               {group.rows.map((row) => (
                 <li key={row.key}>
                   <span className={styles.benchmarkName} title={row.label}>

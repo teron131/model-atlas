@@ -7,14 +7,12 @@ import { type RefObject, useCallback, useEffect, useRef, useState } from "react"
 import { downloadElementPng } from "./png";
 
 type CaptureState = "idle" | "rendering" | "saved" | "error";
-/** A fixed artifact width, or one read from the target when the capture starts, for a surface sized by the viewport. */
-export type CaptureWidth = number | ((target: HTMLElement) => number);
 
 /** Capture a referenced element while exposing compact progress and completion state. */
 export function usePngCapture(
   targetRef: RefObject<HTMLElement | null>,
   fileName: string,
-  captureWidth?: CaptureWidth,
+  captureWidth?: number,
 ) {
   const [state, setState] = useState<CaptureState>("idle");
   const resetTimeoutRef = useRef<number | null>(null);
@@ -29,11 +27,7 @@ export function usePngCapture(
     }
     setState("rendering");
     try {
-      await downloadElementPng(
-        target,
-        fileName,
-        typeof captureWidth === "function" ? captureWidth(target) : captureWidth,
-      );
+      await downloadElementPng(target, fileName, captureWidth);
       setState("saved");
     } catch (error) {
       console.error("Unable to render PNG", error);
