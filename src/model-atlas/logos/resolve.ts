@@ -1,51 +1,14 @@
-/** Resolves provider logos to Artificial Analysis assets before model-logo caching. */
+/** Resolves where a model's logo comes from: the creator logo Artificial Analysis publishes, else the Models.dev logo of the model's provider; caching drops a source that cannot be fetched. */
 const ARTIFICIAL_ANALYSIS_LOGO_BASE_URL = "https://artificialanalysis.ai/img/logos";
+const MODELS_DEV_LOGO_BASE_URL = "https://models.dev/logos";
 
-const ARTIFICIAL_ANALYSIS_ASSET_BY_PROVIDER: Record<string, string> = {
-  ai2: "ai2_small.svg",
-  ai21: "ai21_small.svg",
-  alibaba: "alibaba_small.svg",
-  allenai: "ai2_small.svg",
-  amazon: "aws_small.svg",
-  anthropic: "anthropic_small.svg",
-  arcee: "arcee_small.svg",
-  "arcee-ai": "arcee_small.svg",
-  aws: "aws_small.svg",
-  baidu: "baidu_small.svg",
-  bytedance: "bytedance_small.svg",
-  "bytedance-seed": "bytedance_small.svg",
-  cohere: "cohere_small.svg",
-  deepseek: "deepseek_small.svg",
-  google: "google_small.svg",
-  ibm: "ibm_small.svg",
-  "ibm-granite": "ibm_small.svg",
-  inception: "inceptionlabs_small.jpg",
-  kimi: "kimi_small.png",
-  liquid: "liquidai_small.svg",
-  "liquid-ai": "liquidai_small.svg",
-  meituan: "meituan_small.svg",
-  meta: "meta_small.svg",
-  "meta-llama": "meta_small.svg",
-  microsoft: "microsoft_small.svg",
-  "microsoft-azure": "microsoft_small.svg",
-  minimax: "minimax_small.svg",
-  mistral: "mistral_small.png",
-  mistralai: "mistral_small.png",
-  moonshotai: "kimi_small.png",
-  nvidia: "nvidia_small.svg",
-  openai: "openai_small.svg",
-  openrouter: "openrouter_small.svg",
-  perplexity: "perplexity_small.png",
-  "prime-intellect": "prime-intellect_small.svg",
-  qwen: "alibaba_small.svg",
-  stepfun: "stepfun_small.svg",
-  tencent: "tencent_small.svg",
-  thinkingmachines: "thinking_machines.svg",
-  upstage: "upstage_small.svg",
-  "x-ai": "xai.svg",
-  xai: "xai.svg",
-  xiaomi: "xiaomi_small.svg",
-  "z-ai": "zai_small.svg",
+// Model creators whose Models.dev provider id differs from their own slug.
+const MODELS_DEV_PROVIDER_BY_CREATOR: Record<string, string> = {
+  "meta-llama": "meta",
+  mistralai: "mistral",
+  qwen: "alibaba",
+  "x-ai": "xai",
+  "z-ai": "zai",
 };
 
 function nonEmptyString(value: string | null | undefined): string | null {
@@ -86,15 +49,31 @@ function absoluteLogoUrl(logoUrl: string | null | undefined): string | null {
   return `${ARTIFICIAL_ANALYSIS_LOGO_BASE_URL}/${logoValue}`;
 }
 
+/** The logo a model shows before caching: the source's own logo, else its provider's Models.dev logo, else none. */
 export function resolveModelLogo(options: {
   provider?: string | null;
   explicitLogo?: string | null;
 }): string {
-  const provider = normalizeProvider(options.provider);
-  const providerAsset = provider ? ARTIFICIAL_ANALYSIS_ASSET_BY_PROVIDER[provider] : null;
-  return (
-    absoluteLogoUrl(options.explicitLogo) ??
-    (providerAsset ? `${ARTIFICIAL_ANALYSIS_LOGO_BASE_URL}/${providerAsset}` : null) ??
-    ""
-  );
+  return absoluteLogoUrl(options.explicitLogo) ?? modelsDevLogoUrl(options.provider) ?? "";
+}
+
+/**
+ * The Models.dev logo URL for a provider.
+ * Models.dev answers any provider id it does not list with one shared placeholder, so the cache compares fetched logos against `modelsDevPlaceholderFor()` rather than trusting a successful response.
+ */
+export function modelsDevLogoUrl(provider: string | null | undefined): string | null {
+  const normalizedProvider = normalizeProvider(provider);
+  if (!normalizedProvider) {
+    return null;
+  }
+  const modelsDevProvider =
+    MODELS_DEV_PROVIDER_BY_CREATOR[normalizedProvider] ?? normalizedProvider;
+  return `${MODELS_DEV_LOGO_BASE_URL}/${modelsDevProvider}.svg`;
+}
+
+/** For a Models.dev logo URL, the URL of the placeholder it serves for providers it does not list; `null` for any other source. */
+export function modelsDevPlaceholderFor(source: string): string | null {
+  return source.startsWith(`${MODELS_DEV_LOGO_BASE_URL}/`)
+    ? `${MODELS_DEV_LOGO_BASE_URL}/model-atlas-unlisted-provider.svg`
+    : null;
 }
