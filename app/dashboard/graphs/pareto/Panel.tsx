@@ -253,10 +253,10 @@ export const ParetoPanel = memo(function ParetoPanel({
         xAxisControl={
           <GraphToggle
             legend="X axis"
-            options={Object.entries(frontierBenchmarkAxisConfig).map(([key, config]) => ({
-              key: key as FrontierBenchmarkAxisKey,
-              label: config.shortLabel,
-            }))}
+            // Each choice names what the axis would plot: a ratio such as Cost× across several benchmarks, the measured amount for one.
+            options={(Object.keys(frontierBenchmarkAxisConfig) as FrontierBenchmarkAxisKey[]).map(
+              (key) => ({ key, label: frontierBenchmarkAxisConfigFor(key, aggregate).shortLabel }),
+            )}
             selectedKey={axisKey}
             onSelect={setAxisKey}
           />

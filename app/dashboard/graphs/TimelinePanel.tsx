@@ -283,41 +283,93 @@ export function TimelinePanel({ currentModels }: { currentModels: readonly Model
       wide
     >
       <div className={timeline.content}>
-        <div className={timeline.viewControls}>
-          <GraphToggle
-            legend="Timeline view"
-            selectedKey={view}
-            onSelect={(value) => {
-              setSelected(null);
-              setView(value as "models" | "labs");
-            }}
-            options={[
-              { key: "models", label: "Models" },
-              { key: "labs", label: "Labs" },
-            ]}
-          />
-          {view === "models" ? (
-            <OrganizationSelect
-              points={points ?? []}
-              selected={providers}
-              onChange={setProviders}
+        {/* The view choices share the figure's top edge with the chosen model's catalogue entry, as Pareto's choices share it with their summary, so reading a star never leaves the plot. */}
+        <div className={timeline.top}>
+          <div className={timeline.viewControls}>
+            <GraphToggle
+              legend="Timeline view"
+              selectedKey={view}
+              onSelect={(value) => {
+                setSelected(null);
+                setView(value as "models" | "labs");
+              }}
+              options={[
+                { key: "models", label: "Models" },
+                { key: "labs", label: "Labs" },
+              ]}
             />
-          ) : (
-            <dl className={timeline.labScope} aria-label="Lab eligibility">
+            {view === "models" ? (
+              <OrganizationSelect
+                points={points ?? []}
+                selected={providers}
+                onChange={setProviders}
+              />
+            ) : (
+              <dl className={timeline.labScope} aria-label="Lab eligibility">
+                <div>
+                  <dt>Labs</dt>
+                  <dd>Top 10</dd>
+                </div>
+                <div>
+                  <dt>Models per lab</dt>
+                  <dd>&gt; 5</dd>
+                </div>
+                <div>
+                  <dt>Frontier support</dt>
+                  <dd>≥ 60%</dd>
+                </div>
+              </dl>
+            )}
+          </div>
+          {points && (visible.length > 0 || view === "labs") ? (
+            // The selected star's catalogue entry, ringed in its provider colour like its mark in the chart.
+            <div
+              className={timeline.readout}
+              aria-live="polite"
+              aria-label="Timeline model details"
+              style={
+                chosen == null ? undefined : starCore(6, providerChartColor(chosen.provider)).style
+              }
+            >
               <div>
-                <dt>Labs</dt>
-                <dd>Top 10</dd>
+                <strong>
+                  <span className={timeline.readoutStar} aria-hidden="true" />
+                  {chosenModel == null ? (
+                    <span className={timeline.readoutName} title={chosen?.name}>
+                      {chosen?.name}
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      className={timeline.readoutOpen}
+                      aria-haspopup="dialog"
+                      aria-label={`Show details for ${chosen?.name}`}
+                      title={chosen?.name}
+                      onClick={() => openModelSheet({ ...chosenModel, reasoning_effort: null })}
+                    >
+                      <span className={timeline.readoutName}>{chosen?.name}</span>
+                      <ArrowUpRight aria-hidden="true" />
+                    </button>
+                  )}
+                </strong>
+                <span>{chosen && providerDisplayName(chosen.provider)}</span>
               </div>
               <div>
-                <dt>Models per lab</dt>
-                <dd>&gt; 5</dd>
+                <span>Intelligence Index</span>
+                <strong>{chosen?.score.toFixed(1)}</strong>
               </div>
               <div>
-                <dt>Frontier support</dt>
-                <dd>≥ 60%</dd>
+                <span>Released</span>
+                <strong>{chosen?.releaseDate}</strong>
               </div>
-            </dl>
-          )}
+              <div>
+                <span>Evidence support</span>
+                <strong>
+                  {chosen?.coverage == null ? "Unknown" : `${Math.round(chosen.coverage * 100)}%`}
+                </strong>
+              </div>
+            </div>
+          ) : null}
         </div>
         {!points ? (
           <div className={timeline.loading} role="status">
@@ -532,50 +584,6 @@ export function TimelinePanel({ currentModels }: { currentModels: readonly Model
               ) : (
                 <span>Lines connect each lab’s supported records.</span>
               )}
-            </div>
-            {/* The selected star's catalogue entry, ringed in its provider colour like its mark in the chart. */}
-            <div
-              className={timeline.readout}
-              aria-live="polite"
-              aria-label="Timeline model details"
-              style={
-                chosen == null ? undefined : starCore(6, providerChartColor(chosen.provider)).style
-              }
-            >
-              <div>
-                <strong>
-                  <span className={timeline.readoutStar} aria-hidden="true" />
-                  {chosenModel == null ? (
-                    chosen?.name
-                  ) : (
-                    <button
-                      type="button"
-                      className={timeline.readoutOpen}
-                      aria-haspopup="dialog"
-                      aria-label={`Show details for ${chosen?.name}`}
-                      onClick={() => openModelSheet({ ...chosenModel, reasoning_effort: null })}
-                    >
-                      {chosen?.name}
-                      <ArrowUpRight aria-hidden="true" />
-                    </button>
-                  )}
-                </strong>
-                <span>{chosen && providerDisplayName(chosen.provider)}</span>
-              </div>
-              <div>
-                <span>Intelligence Index</span>
-                <strong>{chosen?.score.toFixed(1)}</strong>
-              </div>
-              <div>
-                <span>Released</span>
-                <strong>{chosen?.releaseDate}</strong>
-              </div>
-              <div>
-                <span>Evidence support</span>
-                <strong>
-                  {chosen?.coverage == null ? "Unknown" : `${Math.round(chosen.coverage * 100)}%`}
-                </strong>
-              </div>
             </div>
           </>
         )}
