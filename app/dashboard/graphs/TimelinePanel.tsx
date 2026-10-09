@@ -305,7 +305,6 @@ export function TimelinePanel({ currentModels }: { currentModels: readonly Model
       sectionId="timeline"
       sectionLabel="Timeline"
       title="Intelligence over time"
-      captureWidth={SCATTER_CHART_WIDTH}
       captureFileName="model-atlas-timeline"
       wide
     >
@@ -625,13 +624,15 @@ export function TimelinePanel({ currentModels }: { currentModels: readonly Model
           </>
         )}
         {!visible.length && view === "models" && navigator}
-        <div className={styles.figureCaption}>
+        {/* The caption and evidence read on the page; an exported image is the figure alone. */}
+        <div className={styles.figureCaption} data-capture-exclude>
           <p>{TIMELINE_CAPTION}</p>
         </div>
       </div>
       <details
         className={styles.commonEvidence}
         aria-label="Timeline evidence"
+        data-capture-exclude
         onToggle={(event) => {
           if (event.currentTarget.open) setEvidenceRequested(true);
         }}

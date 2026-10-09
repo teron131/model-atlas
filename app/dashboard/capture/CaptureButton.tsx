@@ -6,7 +6,7 @@ import type { RefObject } from "react";
 
 import { ScreenshotIcon } from "../shared/DashboardIcons";
 import { captureFileToken } from "./png";
-import { type CaptureWidth, usePngCapture } from "./use-png";
+import { usePngCapture } from "./use-png";
 
 import styles from "./capture.module.css";
 
@@ -20,7 +20,7 @@ export function CaptureButton({
 }: {
   targetRef: RefObject<HTMLElement | null>;
   title: string;
-  captureWidth: CaptureWidth;
+  captureWidth: number;
   fileName?: string;
   kind?: string;
 }) {

@@ -29,13 +29,63 @@
   width: min(880px, calc(100vw - 2 * var(--sheet-inset)));
 }
 
-/* A captured sheet is staged off screen at the card's width and lays out at full length, so the image holds every section rather than the scrolled box. */
+/* A captured sheet is staged off screen as a wide card at full length, so the image holds every section rather than the scrolled box. */
 .sheet[data-capture-layout="artifact"] {
   position: static;
   height: auto;
   overflow: visible;
   animation: none;
   box-shadow: none;
+}
+
+/* The card sets the identity and evidence in a left column and the plots in a right one, on a fixed grid so the staged layout and the rendered image agree; the benchmarks then run across the card in their own columns. */
+.sheet[data-capture-layout="artifact"] .body {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 48px;
+  align-items: start;
+}
+
+.sheet[data-capture-layout="artifact"] .body > * {
+  grid-column: 1;
+}
+
+.sheet[data-capture-layout="artifact"] .body > [aria-labelledby="model-sheet-frontier"] {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+
+.sheet[data-capture-layout="artifact"] .body > [aria-labelledby="model-sheet-efforts"] {
+  grid-column: 2;
+  grid-row: 3;
+}
+
+.sheet[data-capture-layout="artifact"] .body > [aria-labelledby="model-sheet-benchmarks"],
+.sheet[data-capture-layout="artifact"] .body > [aria-labelledby="model-sheet-change"] {
+  grid-column: 1 / -1;
+}
+
+/* A comparison's names sit over the left column, where their values are. */
+.sheet[data-compare][data-capture-layout="artifact"] .head {
+  padding-right: calc(50% + 24px);
+}
+
+/* Each benchmark group fills the card's columns top to bottom, its row count set by the sheet so every column but the last is full. */
+.sheet[data-capture-layout="artifact"] .benchmarks {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(var(--card-benchmark-rows, 1), auto);
+  column-gap: 40px;
+}
+
+/* A comparison's benchmark rows carry a value per model, so they need the wider columns of two. */
+.sheet[data-compare][data-capture-layout="artifact"] .benchmarks {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* The card leaves the actions out, so a comparison's second name takes their room. */
+.sheet[data-compare][data-capture-layout="artifact"] .headEntry + .headEntry {
+  padding-right: 0;
 }
 
 @keyframes sheet-enter {

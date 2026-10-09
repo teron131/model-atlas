@@ -26,12 +26,10 @@ const RUN_LABELS: Record<TableColumnRun["group"], string> = {
 // Rail labels are measurement labels, estimated at this width per character to keep neighbours apart.
 const RAIL_LABEL_CHAR_PX = 8.1;
 const RAIL_LABEL_GAP_PX = 16;
-// A nudged name may sit this far from where its group starts before the rail hides crowded names instead.
-const RAIL_LABEL_MAX_DRIFT_PX = 72;
 
 /**
  * Mirror the table viewport in an accessible scroll rail and translate pointer, drag, and keyboard input back to horizontal table positions.
- * The rail is a flight path over the columns, styled as the research rail: each group's name sits near where its columns start with its waypoint beneath it, and a star travels waypoint to waypoint with its path lit behind it and passed waypoints violet.
+ * The rail is a flight path over the columns, styled as the research rail: each group's name sits near where its group starts on the rail with its waypoint beneath it, and a star travels waypoint to waypoint with its path lit behind it and passed waypoints violet.
  * A name scrolls its group to just after the pinned columns, or as near as the table's end allows; dragging anywhere on the track moves the star to the pointer.
  */
 export function TableScrollRail({
@@ -47,18 +45,30 @@ export function TableScrollRail({
   regionId: string;
   tableScrollRef: RefObject<HTMLDivElement | null>;
   tableRef: RefObject<HTMLTableElement | null>;
-  onScrollTo: (scrollLeft: number) => void;
+  onScrollTo: (scrollLeft: number, options?: { smooth?: boolean }) => void;
   runs: readonly TableColumnRun[];
   columnWidths: readonly number[];
   pinnedWidth: number;
 }) {
   const snapshot = useTableScrollSnapshot(tableScrollRef, tableRef);
-  const total = columnWidths.reduce((sum, width) => sum + width, 0);
+  // Each group's stretch of rail follows what its name counts: benchmarks for the benchmark groups, so Frontier 40 runs twice as far as Baseline 20 whatever resource columns ride with them, and columns for the rest; the shape then holds across column views.
+  const weights = runs.map((run, index) =>
+    run.benchmarks > 0
+      ? run.benchmarks
+      : (runs[index + 1]?.first ?? columnWidths.length) - run.first,
+  );
+  const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+  const starts = weights.map(
+    (_, index) =>
+      weights.slice(0, index).reduce((sum, weight) => sum + weight, 0) / Math.max(1, totalWeight),
+  );
   const offsets = runs.map((run) =>
     columnWidths.slice(0, run.first).reduce((sum, width) => sum + width, 0),
   );
-  // Each group reaches the reading line, just after the pinned columns, at this scroll.
-  const reach = offsets.map((offset) => offset - pinnedWidth);
+  // Each group reaches the reading line, just after the pinned columns, at this scroll; the first group opens the view beside the model column, so it counts as reached from the start and the star rests on it.
+  const reach = offsets.map((offset, index) =>
+    index === 0 ? Math.min(0, offset - pinnedWidth) : offset - pinnedWidth,
+  );
   const canScroll = snapshot.maxScrollLeft > 1;
   const labels = runs.map((run) => ({
     name: RUN_LABELS[run.group],
@@ -70,16 +80,16 @@ export function TableScrollRail({
   // A crowded rail keeps the name of the group at the reading line.
   const placements = railLabelPlacements(
     labels.map(({ name, count }) => `${name} ${count}`.trim().length),
-    offsets.map((offset) => (total > 0 ? offset / total : 0)),
+    starts,
     snapshot.clientWidth,
     lastReached(reach),
   );
   // As on the research rail, each waypoint sits under its name rather than at the exact column, so the two never drift apart.
   const waypoints = placements.map((placement) => placement.center);
-  const knots = flightKnots(reach, waypoints, snapshot.maxScrollLeft);
-  const journey = alongFlight(knots, "scroll", "track", snapshot.scrollLeft);
+  const flight = smoothFlight(flightKnots(reach, waypoints, snapshot.maxScrollLeft));
+  const journey = flight.trackAt(snapshot.scrollLeft);
   // Where the table must scroll for the star to meet each waypoint; the group being read is the last one the star has met.
-  const arrivals = waypoints.map((waypoint) => alongFlight(knots, "track", "scroll", waypoint));
+  const arrivals = waypoints.map((waypoint) => flight.scrollAt(waypoint));
   const active = lastReached(arrivals);
   const trackRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
@@ -94,9 +104,9 @@ export function TableScrollRail({
       }
       const trackLeft = track.getBoundingClientRect().left + track.clientLeft;
       const position = clamp((clientX - trackLeft) / track.clientWidth, 0, 1);
-      onScrollTo(alongFlight(knots, "track", "scroll", position));
+      onScrollTo(flight.scrollAt(position));
     },
-    [canScroll, knots, onScrollTo],
+    [canScroll, flight, onScrollTo],
   );
   const handlePointerDown = useCallback(
     (event: PointerEvent<HTMLDivElement>) => {
@@ -177,7 +187,7 @@ export function TableScrollRail({
               data-crowded={placements[index]!.crowded}
               aria-controls={regionId}
               title={`Show the ${name.toLowerCase()} columns`}
-              onClick={() => onScrollTo(Math.max(0, reach[index]!))}
+              onClick={() => onScrollTo(Math.max(0, reach[index]!), { smooth: true })}
             >
               {name}
               {count ? <b>{count}</b> : null}
@@ -239,28 +249,74 @@ function flightKnots(
   return knots;
 }
 
-/** Read one coordinate of the flight from the other, linearly between knots and held at either end. */
-function alongFlight(
-  knots: readonly FlightKnot[],
-  from: keyof FlightKnot,
-  to: keyof FlightKnot,
-  value: number,
-): number {
-  for (let index = 1; index < knots.length; index += 1) {
+/**
+ * The star's flight as a smooth curve through the knots, read in both directions and held at either end.
+ * A monotone cubic (Fritsch–Carlson) keeps the star on each waypoint and never moving backwards, while its pace changes gradually between groups instead of turning a corner at every waypoint.
+ */
+function smoothFlight(knots: readonly FlightKnot[]) {
+  const first = knots[0]!;
+  const last = knots.at(-1)!;
+  const secants = knots.slice(1).map((knot, index) => {
+    const span = knot.scroll - knots[index]!.scroll;
+    return span > 0 ? (knot.track - knots[index]!.track) / span : 0;
+  });
+  const slopes = knots.map((_, index) => {
+    const before = secants[index - 1];
+    const after = secants[index];
+    if (before == null) return after ?? 0;
+    if (after == null) return before;
+    return before * after <= 0 ? 0 : (before + after) / 2;
+  });
+  secants.forEach((secant, index) => {
+    if (secant === 0) {
+      slopes[index] = 0;
+      slopes[index + 1] = 0;
+      return;
+    }
+    const start = slopes[index]! / secant;
+    const end = slopes[index + 1]! / secant;
+    const size = start * start + end * end;
+    if (size > 9) {
+      const scale = 3 / Math.sqrt(size);
+      slopes[index] = scale * start * secant;
+      slopes[index + 1] = scale * end * secant;
+    }
+  });
+  const trackAt = (scroll: number) => {
+    if (scroll <= first.scroll) return first.track;
+    if (scroll >= last.scroll) return last.track;
+    const index = knots.findIndex((knot) => scroll <= knot.scroll);
     const before = knots[index - 1]!;
     const after = knots[index]!;
-    if (value <= after[from] || index === knots.length - 1) {
-      const span = after[from] - before[from];
-      const progress = span > 0 ? clamp((value - before[from]) / span, 0, 1) : 1;
-      return before[to] + progress * (after[to] - before[to]);
+    const span = after.scroll - before.scroll;
+    if (span <= 0) return after.track;
+    const t = (scroll - before.scroll) / span;
+    return (
+      (2 * t ** 3 - 3 * t ** 2 + 1) * before.track +
+      (t ** 3 - 2 * t ** 2 + t) * span * slopes[index - 1]! +
+      (-2 * t ** 3 + 3 * t ** 2) * after.track +
+      (t ** 3 - t ** 2) * span * slopes[index]!
+    );
+  };
+  /** The scroll that puts the star at a track position, found by halving since the curve only rises. */
+  const scrollAt = (track: number) => {
+    if (track <= first.track) return first.scroll;
+    if (track >= last.track) return last.scroll;
+    let low = first.scroll;
+    let high = last.scroll;
+    for (let step = 0; step < 40; step += 1) {
+      const middle = (low + high) / 2;
+      if (trackAt(middle) < track) low = middle;
+      else high = middle;
     }
-  }
-  return knots[0]![to];
+    return high;
+  };
+  return { trackAt, scrollAt };
 }
 
 /**
- * Place each group's name from where its columns start (`starts`, as fractions of the rail), held inside the rail, returning each name's centre as a fraction of the rail's width.
- * Names first nudge apart, rightward and then back from the rail's end, staying near their starts; when the rail is too narrow for that, the group being read keeps its name and any other name that would crowd a placed one is hidden until it takes keyboard focus.
+ * Place each group's name from where its group starts on the rail (`starts`, as fractions of the rail), held inside the rail, returning each name's centre as a fraction of the rail's width.
+ * Names first nudge apart, rightward and then back from the rail's end, staying as near their starts as the names before and after them allow; waypoints follow the names, so drift costs only proportion. Only when the rail is too narrow for every name does the group being read keep its name while any other name that would crowd a placed one is hidden until it takes keyboard focus.
  */
 function railLabelPlacements(
   lengths: readonly number[],
@@ -288,11 +344,7 @@ function railLabelPlacements(
         : nudged[index + 1]! - RAIL_LABEL_GAP_PX - widths[index]!;
     nudged[index] = Math.min(nudged[index]!, limit);
   }
-  if (
-    nudged.every(
-      (left, index) => left >= 0 && Math.abs(left - anchors[index]!) <= RAIL_LABEL_MAX_DRIFT_PX,
-    )
-  ) {
+  if (nudged.every((left) => left >= 0)) {
     return nudged.map((left, index) => ({ center: center(left, index), crowded: false }));
   }
   const placed: { left: number; right: number }[] = [];

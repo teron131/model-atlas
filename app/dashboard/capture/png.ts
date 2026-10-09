@@ -1,7 +1,12 @@
 /** Browser-side PNG renderer for dashboard panels and export-only leaderboard views. */
 
-const PNG_PIXEL_RATIO = 1;
+// Every export shares one width, wider only for a two-model comparison card, and renders at twice its CSS size so text stays sharp when shared or zoomed.
+export const ARTIFACT_WIDTH = 1200;
+export const WIDE_ARTIFACT_WIDTH = 1440;
+const PNG_PIXEL_RATIO = 2;
 const CAPTURE_STAGE_OFFSET = "-10000px";
+// An image still loading after this long renders as an empty slot rather than holding the export.
+const IMAGE_WAIT_MS = 5_000;
 // A logo that fails to load renders as an empty slot, as it does on the page, instead of failing the whole export.
 const MISSING_IMAGE =
   "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
@@ -81,6 +86,14 @@ function stageGraphRender(element: HTMLElement, width: number) {
   captureElement.style.width = `${width}px`;
   captureElement.style.maxWidth = "none";
   captureElement.style.margin = "0";
+  // Parts left out of the image leave the clone before layout, so they leave no gap behind.
+  captureElement.querySelectorAll("[data-capture-exclude]").forEach((node) => {
+    node.remove();
+  });
+  // Lazy images never start loading in an off-screen stage, so the clone asks for every image now.
+  captureElement.querySelectorAll("img").forEach((image) => {
+    image.loading = "eager";
+  });
   stage.append(captureElement);
   (
     element.closest("[data-capture-theme]") ??
@@ -141,7 +154,7 @@ function captureBackgroundColor(element: HTMLElement): string {
   return window.getComputedStyle(element).getPropertyValue("--paper").trim() || "#080909";
 }
 
-/** Wait for image resources in the cloned surface so logos are present in the PNG. */
+/** Wait for image resources in the cloned surface so logos are present in the PNG, giving each a bounded time so one stuck image cannot hold the export. */
 async function waitForImages(element: HTMLElement): Promise<void> {
   await Promise.all(
     Array.from(element.querySelectorAll("img")).map(
@@ -153,6 +166,7 @@ async function waitForImages(element: HTMLElement): Promise<void> {
           }
           image.addEventListener("load", () => resolve(), { once: true });
           image.addEventListener("error", () => resolve(), { once: true });
+          window.setTimeout(resolve, IMAGE_WAIT_MS);
         }),
     ),
   );

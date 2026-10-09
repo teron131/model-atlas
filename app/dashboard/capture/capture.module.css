@@ -76,9 +76,9 @@
   pointer-events: none;
 }
 
+/* The image takes the shared export width from its stage. */
 .leaderboard {
   position: relative;
-  width: 1180px;
   overflow: hidden;
   padding: 8px;
   background: var(--paper);
@@ -101,7 +101,7 @@
 }
 
 .modelColumn {
-  width: 460px;
+  width: 480px;
 }
 
 .scoreColumn {

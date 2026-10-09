@@ -16,7 +16,7 @@ import { GraphToggle } from "../GraphToggle";
 import type { HoverSetter } from "../hover-state";
 import { Panel } from "../Panel";
 import { scoreAxisScale } from "../plot/axis-scale";
-import { SCATTER_CHART_MARGIN, SCATTER_CHART_WIDTH } from "../plot/Primitives";
+import { SCATTER_CHART_MARGIN } from "../plot/Primitives";
 import { useCompactChartLayout } from "../use-chart-layout";
 import {
   automaticResourceKeys,
@@ -196,12 +196,7 @@ export const ParetoPanel = memo(function ParetoPanel({
       ? `${frontierAxisDescription(axisKey, aggregate, rows[0])}${showVariants ? " Hover a point or label to connect its model's variants in reasoning-effort order." : ""}`
       : null;
   return (
-    <Panel
-      {...PARETO_PANEL_CONTENT}
-      captureWidth={SCATTER_CHART_WIDTH}
-      captureFileName={captureFileName}
-      wide
-    >
+    <Panel {...PARETO_PANEL_CONTENT} captureFileName={captureFileName} wide>
       <ParetoFigureTop
         yAxisControl={
           <BenchmarkSelect
@@ -268,7 +263,8 @@ export const ParetoPanel = memo(function ParetoPanel({
         showVariants={showVariants}
         onShowVariantsChange={onShowVariantsChange}
       />
-      <div className={styles.figureCaption}>
+      {/* The caption and evidence read on the page; an exported image is the figure alone. */}
+      <div className={styles.figureCaption} data-capture-exclude>
         <p>
           {PARETO_CAPTION}
           {rows.length > 0 && explanation ? ` ${explanation}` : ""}
