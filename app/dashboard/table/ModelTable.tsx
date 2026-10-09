@@ -1,24 +1,14 @@
-/** Leaderboard table with sticky headers, pinned columns, and mirrored horizontal scroll. */
+/** Leaderboard table with sticky headers, pinned columns, and mirrored horizontal scroll, navigated by a group rail above its headers. */
 
-import {
-  type CSSProperties,
-  type KeyboardEvent,
-  memo,
-  type PointerEvent,
-  type ReactNode,
-  type RefObject,
-  useCallback,
-  useMemo,
-  useRef,
-} from "react";
+import { type CSSProperties, memo, type ReactNode, useMemo } from "react";
 
 import { canonicalModelKey } from "../../../src/model-atlas/identity/normalization";
-import { clamp } from "../../../src/model-atlas/math-utils";
 import { rowShowsModelSheet } from "../model-sheet/open";
 import type { HeaderTooltipHandler } from "../shared/ColumnTooltip";
 import { modelVariantKey } from "../shared/model-display";
+import { useMediaQuery } from "../shared/use-media-query";
 import { useUrlState } from "../use-url-state";
-import { staticSortableColumns } from "./Columns";
+import { scoreMetricColumns, staticSortableColumns } from "./Columns";
 import type {
   DashboardMetricColumn,
   SortDirection,
@@ -27,11 +17,15 @@ import type {
   TableColumnKey,
   TableRow,
 } from "./models";
-import { tableColumnRuleKeys } from "./models";
+import { tableColumnRuleKeys, tableColumnRuns } from "./models";
 import { EmptyStateRow, LoadingRows, ModelRow, type ScoreChangeHandler } from "./Rows";
-import { useTableScrollSnapshot, useTableViewport } from "./viewport";
+import { TableScrollRail } from "./TableScrollRail";
+import { useTableViewport } from "./viewport";
 
 const TABLE_SCROLL_REGION_ID = "model-table-scroll-region";
+const SCORE_KEYS = new Set<TableColumnKey>(scoreMetricColumns.map((column) => column.key));
+// Phones gather the four scores under each model's name, at the stylesheet's 760px phone boundary.
+const SCORE_STRIP_MEDIA_QUERY = "(max-width: 760px)";
 
 type ModelTableProps = {
   sortState: SortState;
@@ -47,11 +41,6 @@ type ModelTableProps = {
   metricColumns: DashboardMetricColumn[];
 };
 
-const SCROLL_THUMB_MIN_PERCENT = 8;
-const SCROLL_THUMB_MIN_WIDTH_PX = 58;
-const TABLE_SCROLL_KEY_STEP_PX = 80;
-const SCROLL_PAGE_STEP_RATIO = 0.85;
-
 export const ModelTable = memo(function ModelTable({
   sortState,
   fitColumnContent,
@@ -65,16 +54,21 @@ export const ModelTable = memo(function ModelTable({
   onScoreChange,
   metricColumns,
 }: ModelTableProps) {
-  const visibleColumnKeySet = useMemo(() => new Set(visibleColumnKeys), [visibleColumnKeys]);
+  // On phones the four scores ride under each name rather than in columns, while still sorting the table.
+  const scoreStrip = useMediaQuery(SCORE_STRIP_MEDIA_QUERY);
+  const columnKeys = useMemo(
+    () =>
+      scoreStrip ? visibleColumnKeys.filter((key) => !SCORE_KEYS.has(key)) : visibleColumnKeys,
+    [scoreStrip, visibleColumnKeys],
+  );
+  const visibleColumnKeySet = useMemo(() => new Set(columnKeys), [columnKeys]);
   const [sheetModel] = useUrlState("model");
   const [sheetEffort] = useUrlState("effort");
   // A model pinned for comparison keeps its row marked while other rows open beside it, and while a click elsewhere has hidden the sheet.
   const [pinnedModel] = useUrlState("compare");
   const [pinnedEffort] = useUrlState("compare-effort");
-  const ruledColumnKeySet = useMemo(
-    () => tableColumnRuleKeys(visibleColumnKeys),
-    [visibleColumnKeys],
-  );
+  const ruledColumnKeySet = useMemo(() => tableColumnRuleKeys(columnKeys), [columnKeys]);
+  const runs = useMemo(() => tableColumnRuns(columnKeys), [columnKeys]);
   const {
     tableScrollRef,
     headerScrollRef,
@@ -85,10 +79,10 @@ export const ModelTable = memo(function ModelTable({
     handleScroll,
     scrollTableTo,
   } = useTableViewport({
-    columnCount: visibleColumnKeys.length,
+    columnCount: columnKeys.length,
     onTooltipEnd,
   });
-  const isStickyHeaderReady = columnWidths.length === visibleColumnKeys.length;
+  const isStickyHeaderReady = columnWidths.length === columnKeys.length;
   const rowKeys = useMemo(() => stableModelRowKeys(visibleRows), [visibleRows]);
   const stickyHeaderWidth = columnWidths.reduce((sum, width) => sum + width, 0);
   const stickyHeaderWidthStyle = `${stickyHeaderWidth}px`;
@@ -112,11 +106,21 @@ export const ModelTable = memo(function ModelTable({
       data-fit-column-content={fitColumnContent}
       data-pinned-columns={pinnedColumnsEnabled}
       data-sticky-head-ready={isStickyHeaderReady}
+      data-score-strip={scoreStrip}
       style={tableShellStyle}
     >
+      <TableScrollRail
+        regionId={TABLE_SCROLL_REGION_ID}
+        tableScrollRef={tableScrollRef}
+        tableRef={tableRef}
+        onScrollTo={scrollTableTo}
+        runs={isStickyHeaderReady ? runs : []}
+        columnWidths={columnWidths}
+        pinnedWidth={pinnedColumnsEnabled ? (columnWidths[0] ?? 0) + (columnWidths[1] ?? 0) : 0}
+      />
       <div className="table-sticky-head" ref={headerScrollRef} onScroll={handleScroll}>
         <table className="sticky-header-table" style={stickyHeaderTableStyle}>
-          <ColumnGroup widths={columnWidths} columnKeys={visibleColumnKeys} />
+          <ColumnGroup widths={columnWidths} columnKeys={columnKeys} />
           <thead>
             <TableHeaderRow
               metricColumns={metricColumns}
@@ -126,6 +130,7 @@ export const ModelTable = memo(function ModelTable({
               onTooltipEnd={onTooltipEnd}
               visibleColumnKeySet={visibleColumnKeySet}
               ruledColumnKeySet={ruledColumnKeySet}
+              scoreStrip={scoreStrip}
             />
           </thead>
         </table>
@@ -146,11 +151,12 @@ export const ModelTable = memo(function ModelTable({
               onTooltipEnd={onTooltipEnd}
               visibleColumnKeySet={visibleColumnKeySet}
               ruledColumnKeySet={ruledColumnKeySet}
+              scoreStrip={scoreStrip}
             />
           </thead>
           <tbody>
             {isLoading ? (
-              <LoadingRows columnKeys={visibleColumnKeys} ruledColumnKeySet={ruledColumnKeySet} />
+              <LoadingRows columnKeys={columnKeys} ruledColumnKeySet={ruledColumnKeySet} />
             ) : (
               <>
                 {visibleRows.map((rowData, index) => (
@@ -160,6 +166,7 @@ export const ModelTable = memo(function ModelTable({
                     metricColumns={metricColumns}
                     visibleColumnKeySet={visibleColumnKeySet}
                     ruledColumnKeySet={ruledColumnKeySet}
+                    scoreStrip={scoreStrip}
                     sheetOpen={
                       (sheetModel != null &&
                         rowShowsModelSheet(rowData.model, sheetModel, sheetEffort)) ||
@@ -170,18 +177,13 @@ export const ModelTable = memo(function ModelTable({
                   />
                 ))}
                 {visibleRows.length === 0 && (
-                  <EmptyStateRow message={emptyMessage} columnCount={visibleColumnKeys.length} />
+                  <EmptyStateRow message={emptyMessage} columnCount={columnKeys.length} />
                 )}
               </>
             )}
           </tbody>
         </table>
       </div>
-      <TableScrollRail
-        tableScrollRef={tableScrollRef}
-        tableRef={tableRef}
-        onScrollTo={scrollTableTo}
-      />
     </div>
   );
 });
@@ -204,146 +206,6 @@ function stableModelRowKeys(rows: readonly TableRow[]): string[] {
     const modelKey = canonicalModelKey(row.model);
     return strongestIndexByModel.get(modelKey) === index ? modelKey : modelVariantKey(row.model);
   });
-}
-
-/** Mirror the table viewport in an accessible scroll rail and translate pointer, drag, and keyboard input back to horizontal table positions. */
-function TableScrollRail({
-  tableScrollRef,
-  tableRef,
-  onScrollTo,
-}: {
-  tableScrollRef: RefObject<HTMLDivElement | null>;
-  tableRef: RefObject<HTMLTableElement | null>;
-  onScrollTo: (scrollLeft: number) => void;
-}) {
-  const snapshot = useTableScrollSnapshot(tableScrollRef, tableRef);
-  const trackRef = useRef<HTMLDivElement>(null);
-  const thumbRef = useRef<HTMLDivElement>(null);
-  const dragOffsetRef = useRef<number | null>(null);
-  const canScroll = snapshot.maxScrollLeft > 1;
-  const thumbWidthPercent = canScroll
-    ? Math.max(SCROLL_THUMB_MIN_PERCENT, (snapshot.clientWidth / snapshot.scrollWidth) * 100)
-    : 100;
-  const scrollProgress = canScroll ? snapshot.scrollLeft / snapshot.maxScrollLeft : 0;
-  const percentScrolled = Math.round(scrollProgress * 100);
-  const railStyle = {
-    "--table-scrollbar-thumb-left": `calc((100% - max(${SCROLL_THUMB_MIN_WIDTH_PX}px, ${thumbWidthPercent}%)) * ${scrollProgress})`,
-    "--table-scrollbar-thumb-min-width": `${SCROLL_THUMB_MIN_WIDTH_PX}px`,
-    "--table-scrollbar-thumb-width": `${thumbWidthPercent}%`,
-  } as CSSProperties;
-  const scrollToPointer = useCallback(
-    (clientX: number) => {
-      const track = trackRef.current;
-      if (track == null || !canScroll) {
-        return;
-      }
-      const trackLeft = track.getBoundingClientRect().left + track.clientLeft;
-      const thumbWidth = thumbRef.current?.getBoundingClientRect().width ?? 0;
-      const maxThumbLeft = track.clientWidth - thumbWidth;
-      if (maxThumbLeft <= 0) {
-        return;
-      }
-      const nextThumbLeft = clamp(
-        clientX - trackLeft - (dragOffsetRef.current ?? thumbWidth / 2),
-        0,
-        maxThumbLeft,
-      );
-      onScrollTo((nextThumbLeft / maxThumbLeft) * snapshot.maxScrollLeft);
-    },
-    [canScroll, onScrollTo, snapshot.maxScrollLeft],
-  );
-  const handlePointerDown = useCallback(
-    (event: PointerEvent<HTMLDivElement>) => {
-      if (!canScroll) {
-        return;
-      }
-      const thumbRect = thumbRef.current?.getBoundingClientRect();
-      dragOffsetRef.current =
-        event.target === thumbRef.current && thumbRect != null
-          ? event.clientX - thumbRect.left
-          : (thumbRect?.width ?? 0) / 2;
-      event.currentTarget.setPointerCapture(event.pointerId);
-      scrollToPointer(event.clientX);
-    },
-    [canScroll, scrollToPointer],
-  );
-  const handlePointerMove = useCallback(
-    (event: PointerEvent<HTMLDivElement>) => {
-      if (dragOffsetRef.current == null) {
-        return;
-      }
-      scrollToPointer(event.clientX);
-    },
-    [scrollToPointer],
-  );
-  const handlePointerEnd = useCallback((event: PointerEvent<HTMLDivElement>) => {
-    dragOffsetRef.current = null;
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
-  }, []);
-  const handleKeyDown = useCallback(
-    (event: KeyboardEvent<HTMLDivElement>) => {
-      if (!canScroll) {
-        return;
-      }
-      const pageStep = snapshot.clientWidth * SCROLL_PAGE_STEP_RATIO;
-      if (event.key === "ArrowLeft") {
-        event.preventDefault();
-        onScrollTo(snapshot.scrollLeft - TABLE_SCROLL_KEY_STEP_PX);
-        return;
-      }
-      if (event.key === "ArrowRight") {
-        event.preventDefault();
-        onScrollTo(snapshot.scrollLeft + TABLE_SCROLL_KEY_STEP_PX);
-        return;
-      }
-      if (event.key === "PageUp") {
-        event.preventDefault();
-        onScrollTo(snapshot.scrollLeft - pageStep);
-        return;
-      }
-      if (event.key === "PageDown") {
-        event.preventDefault();
-        onScrollTo(snapshot.scrollLeft + pageStep);
-        return;
-      }
-      if (event.key === "Home") {
-        event.preventDefault();
-        onScrollTo(0);
-        return;
-      }
-      if (event.key === "End") {
-        event.preventDefault();
-        onScrollTo(snapshot.maxScrollLeft);
-      }
-    },
-    [canScroll, onScrollTo, snapshot],
-  );
-
-  return (
-    <div className="table-scrollbar" data-scrollable={canScroll} style={railStyle}>
-      <div
-        aria-controls={TABLE_SCROLL_REGION_ID}
-        aria-label="Table columns"
-        aria-orientation="horizontal"
-        aria-valuemax={100}
-        aria-valuemin={0}
-        aria-valuenow={percentScrolled}
-        className="table-scrollbar-track"
-        onKeyDown={handleKeyDown}
-        onPointerCancel={handlePointerEnd}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerEnd}
-        ref={trackRef}
-        role="scrollbar"
-        tabIndex={canScroll ? 0 : -1}
-      >
-        <div className="table-scrollbar-thumb" ref={thumbRef} />
-      </div>
-    </div>
-  );
 }
 
 function ColumnGroup({
@@ -374,6 +236,7 @@ function TableHeaderRow({
   onTooltipEnd,
   visibleColumnKeySet,
   ruledColumnKeySet,
+  scoreStrip,
 }: Omit<
   ModelTableProps,
   | "visibleRows"
@@ -385,6 +248,7 @@ function TableHeaderRow({
 > & {
   visibleColumnKeySet: ReadonlySet<TableColumnKey>;
   ruledColumnKeySet: ReadonlySet<TableColumnKey>;
+  scoreStrip: boolean;
 }) {
   return (
     <tr>
@@ -405,7 +269,11 @@ function TableHeaderRow({
             onSort={onSort}
             onTooltip={onTooltip}
             onTooltipEnd={onTooltipEnd}
-          />
+          >
+            {scoreStrip && column.key === "model" ? (
+              <ScoreSortStrip sortState={sortState} onSort={onSort} />
+            ) : null}
+          </SortableHeader>
         ))}
       {metricColumns
         .filter((column) => visibleColumnKeySet.has(column.key))
@@ -458,6 +326,7 @@ function TableHeaderRow({
   );
 }
 
+/** `children` follow the sort button inside the header cell. */
 function SortableHeader({
   label,
   keyName,
@@ -466,6 +335,7 @@ function SortableHeader({
   onSort,
   onTooltip,
   onTooltipEnd,
+  children,
 }: {
   label: ReactNode;
   keyName: SortKey;
@@ -474,12 +344,13 @@ function SortableHeader({
   onSort: (key: SortKey) => void;
   onTooltip: HeaderTooltipHandler<TableColumnKey>;
   onTooltipEnd: () => void;
+  children?: ReactNode;
 }) {
   const sortDirection = sortState.key === keyName ? sortState.direction : "none";
   return (
     <th
       className={className}
-      aria-sort={sortState.key === keyName ? sortState.direction : "none"}
+      aria-sort={sortDirection}
       data-column-key={keyName}
       data-sort-state={sortDirection}
     >
@@ -495,7 +366,39 @@ function SortableHeader({
         {label}
         <span className="sort-indicator" />
       </button>
+      {children}
     </th>
+  );
+}
+
+/** On phones the model header also sorts by each score, with the score marks the strip beneath each name lines up under; the marks carry spoken names instead of column tooltips, whose phone layer would catch the tap. */
+function ScoreSortStrip({
+  sortState,
+  onSort,
+}: {
+  sortState: SortState;
+  onSort: (key: SortKey) => void;
+}) {
+  return (
+    <span className="score-strip score-strip-head" role="group" aria-label="Sort by score">
+      {scoreMetricColumns.map((column) => {
+        const direction = sortState.key === column.key ? sortState.direction : "none";
+        return (
+          <button
+            key={column.key}
+            type="button"
+            className="header-button sort-button score-strip-sort"
+            aria-label={`Sort by ${column.name}`}
+            aria-pressed={direction !== "none"}
+            data-sort-state={direction}
+            onClick={() => onSort(column.key)}
+          >
+            {column.icon}
+            <span className="sort-indicator" />
+          </button>
+        );
+      })}
+    </span>
   );
 }
 

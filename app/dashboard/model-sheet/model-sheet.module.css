@@ -12,7 +12,7 @@
   bottom: var(--sheet-inset);
   display: flex;
   flex-direction: column;
-  width: min(448px, calc(100vw - 2 * var(--sheet-inset)));
+  width: min(496px, calc(100vw - 2 * var(--sheet-inset)));
   overflow-y: auto;
   overscroll-behavior: contain;
   border: 1px solid var(--research-edge);
@@ -27,6 +27,15 @@
 .sheet[data-compare] {
   --sheet-label: 150px;
   width: min(880px, calc(100vw - 2 * var(--sheet-inset)));
+}
+
+/* A captured sheet is staged off screen at the card's width and lays out at full length, so the image holds every section rather than the scrolled box. */
+.sheet[data-capture-layout="artifact"] {
+  position: static;
+  height: auto;
+  overflow: visible;
+  animation: none;
+  box-shadow: none;
 }
 
 @keyframes sheet-enter {
@@ -112,7 +121,7 @@
 }
 
 .sheet[data-compare] .headEntry + .headEntry {
-  padding-right: 72px;
+  padding-right: 108px;
 }
 
 /* The name reads at the readout size shared by the Pareto summary and the Timeline's catalogue entry. */
@@ -194,6 +203,52 @@
   margin: 0;
   color: var(--muted);
   font-size: 13px;
+}
+
+/* A waiting comparison's search reads as the rail's model search, on a ruled field the width of the head. */
+.compareSearch {
+  display: grid;
+  gap: 6px;
+}
+
+.compareQuery {
+  position: relative;
+}
+
+.compareField {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border: 1px solid var(--line-strong);
+  color: var(--muted);
+  cursor: text;
+}
+
+.compareField:focus-within {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.compareField input {
+  flex: 1;
+  min-width: 0;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: 500 12px / 1.4 var(--font-mono);
+  text-overflow: ellipsis;
+}
+
+.compareField input:focus-visible {
+  outline: none;
+}
+
+.compareField input::placeholder {
+  color: var(--muted);
+  opacity: 1;
 }
 
 .body {

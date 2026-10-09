@@ -46,6 +46,14 @@
   max-width: 760px;
   margin-left: auto;
 }
+/* A replay's reveal edge: a faint rule of horizon light at the date the replay has reached. */
+.replayLine {
+  stroke: var(--chart-horizon-core);
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+  opacity: 0.7;
+  pointer-events: none;
+}
 .readoutName {
   min-width: 0;
   overflow: hidden;

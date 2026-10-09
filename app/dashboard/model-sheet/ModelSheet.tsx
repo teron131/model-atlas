@@ -13,6 +13,7 @@ import {
 } from "react";
 
 import type { ModelAtlasModel, ModelAtlasPayload } from "../../../src/model-atlas/stats/types";
+import { CaptureButton } from "../capture/CaptureButton";
 import { CopyDashboardLink } from "../CopyDashboardLink";
 import { benchmarkLabels } from "../shared/constants";
 import { BotIcon, BrainIcon, DollarIcon, LightningIcon } from "../shared/DashboardIcons";
@@ -40,6 +41,7 @@ import {
 import { inputModalities } from "../table/Rows";
 import { scoreChangeTooltip, scoreDimensionLabel } from "../table/tooltips";
 import { useUrlState } from "../use-url-state";
+import { CompareSearch } from "./CompareSearch";
 import { familyName, type SheetEntry, useSheetEntries } from "./entries";
 import { FrontierInset } from "./FrontierInset";
 import {
@@ -208,6 +210,16 @@ export function ModelSheet({ payload }: { payload: ModelAtlasPayload | null }) {
   // A pin naming the opened model itself waits for another model before the sheet splits.
   const comparing = pinned != null && pinned.row !== opened.row;
   const entries = comparing ? [pinned, opened] : [opened];
+  const captureTitle = entries.map(familyName).join(" vs ");
+  // The image is the card as it reads on this screen, at its current width and full length.
+  const capture = (
+    <CaptureButton
+      targetRef={sheetRef}
+      title={captureTitle}
+      kind="sheet"
+      captureWidth={(sheet) => Math.round(sheet.getBoundingClientRect().width)}
+    />
+  );
   return (
     <aside
       ref={sheetRef}
@@ -223,13 +235,14 @@ export function ModelSheet({ payload }: { payload: ModelAtlasPayload | null }) {
       <header className={styles.head}>
         {comparing ? (
           <>
-            {/* The Compare toggle holds the label column; link and close keep the single sheet's top-right corner, so each name keeps its column's full width. */}
+            {/* The Compare toggle holds the label column, which stays in the image without it; the other actions keep the single sheet's top-right corner, so each name keeps its column's full width. */}
             <div className={styles.compareControls}>
               <CompareToggle entry={opened} comparing />
             </div>
             <SheetIdentity entry={pinned} titleId="model-sheet-pinned-title" />
             <SheetIdentity entry={opened} titleId="model-sheet-title" headingRef={headingRef} />
-            <div className={`${styles.actions} ${styles.compareActions}`}>
+            <div className={`${styles.actions} ${styles.compareActions}`} data-capture-exclude>
+              {capture}
               <CopyDashboardLink />
               <CloseButton />
             </div>
@@ -242,19 +255,22 @@ export function ModelSheet({ payload }: { payload: ModelAtlasPayload | null }) {
             actions={
               <>
                 <CompareToggle entry={opened} comparing={compareKey != null} />
+                {capture}
                 <CopyDashboardLink />
                 <CloseButton />
               </>
             }
           />
         )}
-        {/* The waiting comparison stays in the sticky head, so it reads wherever the sheet is scrolled. */}
+        {/* The waiting comparison stays in the sticky head, so its search reads wherever the sheet is scrolled. */}
         {compareKey != null && !comparing ? (
-          <p className={styles.pinNote} role="status">
-            {pinned == null
-              ? `${compareKey} is set to compare but is not in the current snapshot.`
-              : "Open another model from any row, star, or role to compare it here."}
-          </p>
+          pinned == null ? (
+            <p className={styles.pinNote} role="status" data-capture-exclude>
+              {compareKey} is set to compare but is not in the current snapshot.
+            </p>
+          ) : (
+            <CompareSearch pinned={pinned} models={payload.models} />
+          )
         ) : null}
       </header>
 
@@ -309,7 +325,11 @@ function SheetIdentity({
           {model.id ? <p className={styles.slug}>{model.id}</p> : null}
         </div>
       </div>
-      {actions == null ? null : <div className={styles.actions}>{actions}</div>}
+      {actions == null ? null : (
+        <div className={styles.actions} data-capture-exclude>
+          {actions}
+        </div>
+      )}
     </div>
   );
 }
@@ -324,6 +344,8 @@ function CompareToggle({ entry, comparing }: { entry: SheetEntry; comparing: boo
     <button
       type="button"
       className={`selection-choice ${styles.compareToggle}`}
+      data-compare-toggle
+      data-capture-exclude
       aria-pressed={comparing}
       title={comparing ? "Stop comparing" : "Keep this model here and open another to compare"}
       onClick={() => (comparing ? unpinModelSheet() : pinModelSheet(key, entry.effort))}

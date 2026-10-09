@@ -4,11 +4,20 @@
 
 import { median } from "d3-array";
 import { scaleLinear, scaleLog } from "d3-scale";
-import { type CSSProperties, useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  type PointerEvent,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { type ModelAtlasModel } from "../../../../src/model-atlas/stats/types";
 import { reasoningVariantGroups } from "../../shared/model-display";
 import { providerChartColor } from "../../shared/provider-theme";
+import { formatResourceRatio } from "../../shared/resource-ratio-display";
 import { type HoverRow, type HoverSetter, pointHover } from "../hover-state";
 import {
   CursorCapture,
@@ -50,6 +59,8 @@ import styles from "../graphs.module.css";
 
 type ScatterMetric<Row> = {
   label: string;
+  /** What the X axis measures, as a frontier step names its trade: `6.3× cost`, `−12.3 Speed Score`. */
+  noun: string;
   get: (row: Row) => number;
   format: (value: number) => string;
   xHigherIsBetter?: boolean;
@@ -141,6 +152,26 @@ export function FrontierBenchmarkScatterPlot<Row>({
     x: xPoint(metric.get(row)),
     y: yPoint(getScore(row)),
   }));
+  // The frontier step being read, by the position of the model it reaches.
+  const [activeStep, setActiveStep] = useState<number | null>(null);
+  // A frontier model's card states its step from the frontier model before it in X order, whether read from its star or from the frontier between them.
+  const hoverRows = (row: Row): HoverRow[] => {
+    const index = frontier.indexOf(row);
+    if (index < 1) return getHoverRows(row);
+    const from = frontier[index - 1]!;
+    return [...getHoverRows(row), [`From ${getLabel(from)}`, stepTrade(from, row)]];
+  };
+  const hoverFor = (event: PointerEvent<Element>, row: Row) =>
+    pointHover(event, getModel(row), hoverRows(row), getHoverTitle?.(row));
+  /** One step's trade, worded as the sheet's effort steps are: the signed score change at the X change, a multiple on log axes and a signed amount on linear ones. */
+  const stepTrade = (from: Row, to: Row) => {
+    const gain = getScore(to) - getScore(from);
+    const [fromX, toX] = [metric.get(from), metric.get(to)];
+    const change = metric.logarithmic
+      ? formatResourceRatio(toX / fromX)
+      : `${toX < fromX ? "−" : "+"}${metric.format(Math.abs(toX - fromX))}`;
+    return `${gain < 0 ? "−" : "+"}${Math.abs(gain).toFixed(1)} at ${change} ${metric.noun}`;
+  };
   // A mid-scoring model matches the leaderboard's score star: 6px wide, or 5px on compact layouts.
   const [minMarkRadius, maxMarkRadius] = compactLayout ? [1.75, 3.25] : [2, 3.75];
   const markRadius = (row: Row) => starMarkRadius(getModel(row), minMarkRadius, maxMarkRadius);
@@ -426,6 +457,35 @@ export function FrontierBenchmarkScatterPlot<Row>({
           open={horizonOpenSide}
           muted={activeVariantKey != null}
         />
+        {/* Each step along the frontier answers the pointer with the trade it makes; the stars' own targets sit above it. */}
+        {frontier.map((row, index) => {
+          if (index === 0) return null;
+          const segment = {
+            x1: frontierPoints[index - 1]!.x,
+            y1: frontierPoints[index - 1]!.y,
+            x2: frontierPoints[index]!.x,
+            y2: frontierPoints[index]!.y,
+          };
+          return (
+            <g key={`step-${getKey(row)}`}>
+              {activeStep === index ? <line className={styles.frontierStep} {...segment} /> : null}
+              <line
+                className={styles.frontierStepReach}
+                data-capture-exclude
+                {...segment}
+                onPointerEnter={(event) => {
+                  setActiveStep(index);
+                  setHover(hoverFor(event, row));
+                }}
+                onPointerMove={(event) => setHover(hoverFor(event, row))}
+                onPointerLeave={() => {
+                  setActiveStep(null);
+                  setHover(null);
+                }}
+              />
+            </g>
+          );
+        })}
         {/* Only frontier models glow; a muted effort variant loses its glow while another model is hovered. */}
         <StarGlows
           bounds={plot}
@@ -459,7 +519,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
                 cx={cx}
                 cy={cy}
                 model={model}
-                rows={getHoverRows(row)}
+                rows={hoverRows(row)}
                 setHover={setHover}
                 hoverTitle={getHoverTitle?.(row)}
                 snapProjection={{
@@ -481,7 +541,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
               key={`label-${key}`}
               onPointerEnter={(event) => {
                 setHighlightedVariantKey(getKey(row));
-                setHover(pointHover(event, getModel(row), getHoverRows(row), getHoverTitle?.(row)));
+                setHover(hoverFor(event, row));
               }}
               onPointerLeave={() => {
                 setHighlightedVariantKey(null);

@@ -1,4 +1,4 @@
-/** Direct graph screenshot action. */
+/** Direct screenshot action for a dashboard surface: a graph panel or a model sheet. */
 
 "use client";
 
@@ -6,21 +6,23 @@ import type { RefObject } from "react";
 
 import { ScreenshotIcon } from "../shared/DashboardIcons";
 import { captureFileToken } from "./png";
-import { usePngCapture } from "./use-png";
+import { type CaptureWidth, usePngCapture } from "./use-png";
 
 import styles from "./capture.module.css";
 
-/** Download a referenced graph panel while keeping the action itself out of the image. */
+/** Download a referenced surface while keeping the action itself out of the image; `kind` names the surface in the button's label. */
 export function CaptureButton({
   targetRef,
   title,
   captureWidth,
   fileName,
+  kind = "graph",
 }: {
   targetRef: RefObject<HTMLElement | null>;
   title: string;
-  captureWidth: number;
+  captureWidth: CaptureWidth;
   fileName?: string;
+  kind?: string;
 }) {
   const { capture, state } = usePngCapture(
     targetRef,
@@ -29,12 +31,12 @@ export function CaptureButton({
   );
   const label =
     state === "rendering"
-      ? `Rendering ${title} graph PNG`
+      ? `Rendering ${title} ${kind} PNG`
       : state === "saved"
-        ? `${title} graph PNG saved`
+        ? `${title} ${kind} PNG saved`
         : state === "error"
-          ? `${title} graph PNG failed`
-          : `Download ${title} graph PNG`;
+          ? `${title} ${kind} PNG failed`
+          : `Download ${title} ${kind} PNG`;
 
   return (
     <button
