@@ -2,6 +2,9 @@
 .sheet {
   --sheet-inset: clamp(8px, 1.2vw, 16px);
   --sheet-pad: clamp(14px, 1.6vw, 20px);
+  /* Aligned rows open with this label column, then one column per model. */
+  --sheet-label: 112px;
+  --sheet-columns: var(--sheet-label) repeat(var(--sheet-entries, 1), minmax(0, 1fr));
   position: fixed;
   z-index: 35;
   top: calc(var(--header-height) + env(safe-area-inset-top));
@@ -20,6 +23,12 @@
   animation: sheet-enter 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
+/* A comparison widens the plane so both models keep the single sheet's tracks and meters. */
+.sheet[data-compare] {
+  --sheet-label: 150px;
+  width: min(880px, calc(100vw - 2 * var(--sheet-inset)));
+}
+
 @keyframes sheet-enter {
   from {
     opacity: 0;
@@ -33,20 +42,32 @@
   }
 }
 
-/* The identity stays pinned while the evidence scrolls beneath it. */
+/* The identity stays pinned while the evidence scrolls beneath it; a comparison sets each identity above its own column. */
 .head {
   position: sticky;
   top: 0;
   z-index: 1;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
-  gap: 12px;
+  gap: 10px;
   padding: var(--sheet-pad) var(--sheet-pad) 14px;
   border-bottom: 1px solid var(--line);
   background:
     var(--horizon-gradient) top / 100% 1px no-repeat,
     var(--paper);
+}
+
+.sheet[data-compare] .head {
+  grid-template-columns: var(--sheet-columns);
+}
+
+.headEntry {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+  min-width: 0;
 }
 
 .identity {
@@ -74,6 +95,24 @@
 
 .kicker {
   margin: 0 0 4px;
+}
+
+.compareControls {
+  display: grid;
+  align-content: start;
+  justify-items: start;
+  min-width: 0;
+}
+
+/* In a comparison, link and close keep the single sheet's top-right corner, and the opened model's name leaves room for them. */
+.compareActions {
+  position: absolute;
+  top: var(--sheet-pad);
+  right: var(--sheet-pad);
+}
+
+.sheet[data-compare] .headEntry + .headEntry {
+  padding-right: 72px;
 }
 
 /* The name reads at the readout size shared by the Pareto summary and the Timeline's catalogue entry. */
@@ -104,11 +143,57 @@
   gap: 2px;
 }
 
+/* Compare reads as the dashboard's other choices: a measurement label that turns full ink and is lit by the selection star while on. */
+.compareToggle {
+  --selection-star-bottom: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 8px 4px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  letter-spacing: var(--type-label-tracking);
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.compareToggle svg {
+  flex: 0 0 auto;
+  width: 15px;
+  height: 15px;
+}
+
+.compareToggle:hover,
+.compareToggle[aria-pressed="true"] {
+  color: var(--ink);
+}
+
+.compareToggle:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.compareControls .compareToggle {
+  margin-left: -8px;
+}
+
 .notice {
   margin: 0;
   padding: var(--sheet-pad);
   color: var(--muted);
   font-size: var(--sans-note);
+}
+
+.pinNote {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .body {
@@ -141,6 +226,23 @@
   justify-content: flex-start;
 }
 
+/* Compared facts read across: the label, then each model's value under its name. */
+.sheet[data-compare] .facts {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+.sheet[data-compare] .fact {
+  display: grid;
+  grid-template-columns: var(--sheet-columns);
+  align-items: baseline;
+  gap: 10px;
+}
+
+.sheet[data-compare] .fact dd {
+  margin: 0;
+}
+
 .section h3 {
   display: flex;
   align-items: baseline;
@@ -164,17 +266,21 @@
 .score,
 .scoreHead {
   display: grid;
-  grid-template-columns: 112px 42px minmax(48px, 1fr) 40px 44px;
+  grid-template-columns: var(--sheet-columns);
   align-items: center;
   gap: 10px;
 }
 
-.scoreHead {
-  margin-bottom: 4px;
+.scoreCell {
+  display: grid;
+  grid-template-columns: 42px minmax(48px, 1fr) 40px 44px;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
 }
 
-.scoreHead span:first-child {
-  grid-column: 4;
+.scoreHead {
+  margin-bottom: 4px;
 }
 
 .scoreHead span {
@@ -209,6 +315,13 @@
   color: var(--muted);
 }
 
+.scoreLabel span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .scoreValue,
 .ratios strong,
 .benchmarks strong {
@@ -219,7 +332,7 @@
   text-align: right;
 }
 
-.score :global(.score-meter),
+.scoreCell :global(.score-meter),
 .benchmarks :global(.score-meter) {
   width: 100%;
   margin: 0;
@@ -242,14 +355,23 @@
 
 .ratios li {
   display: grid;
-  grid-template-columns: 112px 52px minmax(60px, 1fr);
+  grid-template-columns: var(--sheet-columns);
   align-items: center;
   gap: 10px;
   font-size: 13px;
   font-weight: 500;
 }
 
-.ratios :global(.ratio-track) {
+.ratioCell {
+  display: grid;
+  grid-template-columns: 52px minmax(60px, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.ratios :global(.ratio-track),
+.benchmarks :global(.ratio-track) {
   width: 100%;
   margin: 0;
 }
@@ -259,6 +381,10 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
   margin-top: 16px;
+}
+
+.sheet[data-compare] .amounts {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .amounts dl {
@@ -291,50 +417,189 @@
   margin: 0 0 9px;
 }
 
-/* Effort choices are lit by the shared selection star; the collapsed choice is the leaderboard's own row. Even columns keep a long effort ladder from wrapping raggedly, and each choice keeps its own width so the star centres under its label. */
-.efforts {
-  --selection-star-bottom: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
-  gap: 2px 12px;
+/* The sheet's plots share the chart pigments and size to the sheet, never past it. */
+.plot {
+  width: 100%;
+  margin: 0 0 6px;
 }
 
-.efforts button {
-  display: inline-flex;
-  justify-self: start;
-  align-items: baseline;
-  gap: 6px;
-  min-height: 34px;
-  padding: 4px 2px 9px;
-  border: 0;
-  background: transparent;
-  color: var(--muted);
+.plot svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.plotTick,
+.plotAxis {
   font-family: var(--font-mono);
-  font-size: var(--type-label-size);
+  font-size: var(--type-micro-size);
   font-weight: var(--type-label-weight);
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.plotTick {
+  fill: var(--chart-label-fill);
+}
+
+.plotAxis {
+  fill: var(--chart-label-strong);
   letter-spacing: var(--type-label-tracking);
   text-transform: uppercase;
+}
+
+/* The population reads as faint dust beneath the horizon; only the sheet's own models are stars. */
+.dust circle {
+  fill: rgb(var(--ink-rgb) / 0.3);
+}
+
+/* Efforts are joined in effort order like the Pareto chart's variants, but always drawn and solid, since the curve is the section's subject. */
+.effortLine {
+  stroke-width: 1.2;
+  stroke-linecap: round;
+  opacity: 0.8;
+  pointer-events: none;
+  transition:
+    opacity 0.12s ease,
+    stroke-width 0.12s ease;
+}
+
+.effortStar {
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+}
+
+/* A series being pointed at reads as the Pareto chart's hovered family: its line strengthens and the other series steps back. */
+.effortLine[data-active] {
+  stroke-width: 1.7;
+  opacity: 1;
+}
+
+.effortLine[data-muted],
+.effortStar[data-muted] {
+  opacity: 0.22;
+}
+
+/* Each star answers the pointer across a wider transparent reach, so close efforts stay easy to point at and choose. */
+.effortReach {
+  fill: transparent;
   cursor: pointer;
 }
 
-.efforts button b {
-  color: var(--faint);
-  font-weight: 600;
-  letter-spacing: 0;
+/* A curve answers along a band as wide as a Timeline lab line's, under the stars' own reach. */
+.effortLineReach {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 14;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: stroke;
+  cursor: pointer;
 }
 
-.efforts button:hover,
-.efforts button[aria-pressed="true"] {
-  color: var(--ink);
-}
-
-.efforts button[aria-pressed="true"] b {
+.effortStep {
+  margin: 0 0 10px;
   color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: var(--type-caption-size);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--type-label-weight);
 }
 
-.efforts button:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 2px;
+/* One row of effort choices per model, in the dashboard's segmented style; a comparison names each row with its curve's star. */
+.effortChoices {
+  display: grid;
+  gap: 6px;
+}
+
+.effortChoiceRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.sheet[data-compare] .effortChoiceRow {
+  grid-template-columns: var(--sheet-label) minmax(0, 1fr);
+}
+
+.effortModel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: var(--type-heading-weight);
+}
+
+.effortModel > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The same ringed star the curve draws for this model, at label scale. */
+.effortModelStar {
+  flex: 0 0 auto;
+  width: 9px;
+  height: 9px;
+  border: 2.5px solid var(--star);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--star) 30%, #fff);
+}
+
+:global(html[data-model-atlas-theme="light"]) .effortModelStar {
+  background: var(--star);
+}
+
+.effortNone {
+  margin: 0;
+  color: var(--faint);
+  font-family: var(--font-mono);
+  font-size: var(--type-caption-size);
+  font-weight: var(--type-label-weight);
+  letter-spacing: var(--type-label-tracking);
+  text-transform: uppercase;
+}
+
+/* In a comparison each cell gains a margin column after its value: the better value's lead over the other, by points on a score scale or by proportion for amounts. */
+.sheet[data-compare] .scoreCell {
+  grid-template-columns: 42px 44px minmax(40px, 1fr) 40px 44px;
+}
+
+.sheet[data-compare] .ratioCell {
+  grid-template-columns: 52px 44px minmax(60px, 1fr);
+}
+
+.sheet[data-compare] .benchmarkCell {
+  grid-template-columns: var(--benchmark-value) 52px 72px;
+}
+
+.delta {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: var(--type-caption-size);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--type-label-weight);
+  white-space: nowrap;
+}
+
+.fact dd .delta {
+  margin-left: 8px;
+}
+
+/* A comparison keeps each row's better value in full ink with its meter lit and steps the other back, so each column's wins read at a glance. */
+.sheet[data-compare] [data-lead="worse"] > strong,
+.sheet[data-compare] dd[data-lead="worse"] {
+  color: var(--faint);
+  font-weight: 500;
+}
+
+.sheet[data-compare] [data-lead="worse"] > :global(.score-meter),
+.sheet[data-compare] [data-lead="worse"] > :global(.ratio-track) {
+  opacity: 0.4;
 }
 
 .benchmarkGroup + .benchmarkGroup {
@@ -349,13 +614,32 @@
   margin: 0 0 4px;
 }
 
+/* Every result's value column fits the widest result, a dollar balance included, so values and their margins keep one right edge down the list. */
+.benchmarks {
+  --benchmark-value: 82px;
+}
+
 .benchmarks li {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 64px 72px;
+  grid-template-columns:
+    minmax(0, 1fr)
+    repeat(var(--sheet-entries, 1), calc(var(--benchmark-value) + 82px));
   align-items: center;
   gap: 10px;
   min-height: 30px;
   border-bottom: 1px solid var(--line);
+}
+
+.sheet[data-compare] .benchmarks li {
+  grid-template-columns: var(--sheet-columns);
+}
+
+.benchmarkCell {
+  display: grid;
+  grid-template-columns: var(--benchmark-value) 72px;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
 }
 
 .benchmarkName {
@@ -381,22 +665,102 @@
 }
 
 @media (max-width: 600px) {
+  .sheet {
+    --sheet-label: 96px;
+  }
+
+  .sheet[data-compare] {
+    --sheet-label: 100px;
+  }
+
+  /* On phones the Compare toggle takes its own row, which link and close share at its right, so the names below keep their places over the value columns and need no room for the actions. */
+  .sheet[data-compare] .compareControls {
+    grid-column: 1 / -1;
+  }
+
+  .sheet[data-compare] .headEntry + .headEntry {
+    padding-right: 0;
+  }
+
+  .sheet[data-compare] .compareControls + .headEntry {
+    grid-column: 2;
+  }
+
+  .sheet[data-compare] .scoreLabel {
+    gap: 6px;
+    font-size: 13px;
+  }
+
+  /* Phone columns keep each name readable: a smaller mark and name, and no slug. */
+  .sheet[data-compare] .name {
+    font-size: 18px;
+  }
+
+  .sheet[data-compare] .identity {
+    grid-template-columns: 22px minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .sheet[data-compare] .identity :global(.provider-logo) {
+    width: 22px;
+    height: 22px;
+  }
+
+  .sheet[data-compare] .slug {
+    display: none;
+  }
+
   .facts {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .score,
-  .scoreHead {
-    grid-template-columns: 96px 40px minmax(36px, 1fr) 34px 38px;
+  .scoreHead,
+  .ratios li,
+  .sheet[data-compare] .fact,
+  .sheet[data-compare] .benchmarks li {
     gap: 8px;
   }
 
-  .ratios li {
-    grid-template-columns: 96px 48px minmax(48px, 1fr);
+  .scoreCell {
+    grid-template-columns: 40px minmax(36px, 1fr) 34px 38px;
+    gap: 8px;
+  }
+
+  .ratioCell {
+    grid-template-columns: 48px minmax(48px, 1fr);
     gap: 8px;
   }
 
   .amounts {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Two phone columns keep each value, its margin, and its rank; support and every meter or bar (each cell's third slot) stay on the single sheet. */
+  .sheet[data-compare] .scoreCell {
+    grid-template-columns: 38px minmax(30px, 1fr) 30px;
+    gap: 6px;
+  }
+
+  .sheet[data-compare] .scoreCell > :nth-child(3),
+  .sheet[data-compare] .scoreCell > :last-child,
+  .sheet[data-compare] .ratioCell > :nth-child(3),
+  .sheet[data-compare] .benchmarkCell > :nth-child(3) {
+    display: none;
+  }
+
+  /* Phone data runs at 12px, so a narrower value column still fits a dollar balance; values keep one right edge so margins line up down the list. */
+  .benchmarks {
+    --benchmark-value: 70px;
+  }
+
+  .sheet[data-compare] .ratioCell {
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .sheet[data-compare] .benchmarkCell {
+    grid-template-columns: var(--benchmark-value) minmax(0, 1fr);
+    gap: 6px;
   }
 }

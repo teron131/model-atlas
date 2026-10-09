@@ -223,6 +223,14 @@
   animation-delay: 140ms;
 }
 
+/* Tall heroes run the lit horizon behind the key and register, so their text keeps a tight night edge: enough to hold over the rim, too small to cloud the open sky. */
+.skyKey,
+.register {
+  text-shadow:
+    0 0 2px rgb(2 4 15 / 0.85),
+    0 0 6px rgb(2 4 15 / 0.35);
+}
+
 /* A star-chart legend states the sky's mapping in plain words. */
 .skyKey {
   display: flex;
@@ -233,11 +241,6 @@
   color: var(--scene-ink);
   font-family: var(--font-sans);
   font-size: var(--type-label-size);
-  /* The key sits on the lit stipple just under the horizon, so it carries the deepest night halo in the hero. */
-  text-shadow:
-    0 0 4px rgb(2 4 15 / 1),
-    0 0 10px rgb(2 4 15 / 0.9),
-    0 0 22px rgb(2 4 15 / 0.6);
   font-weight: var(--type-body-weight);
   line-height: 1.4;
   list-style: none;
@@ -297,10 +300,6 @@
   margin: 0 0 clamp(22px, 4svh, 40px);
   padding: 0;
   list-style: none;
-  /* The register sits on the planet's stipple, so its text carries a soft night halo. */
-  text-shadow:
-    0 0 6px rgb(2 4 15 / 0.95),
-    0 0 14px rgb(2 4 15 / 0.75);
 }
 
 .registerItem {

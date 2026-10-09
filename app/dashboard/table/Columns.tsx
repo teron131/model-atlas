@@ -43,17 +43,17 @@ export const scoreSortableColumns: SortableColumnDefinition[] = [
 
 /** Descriptive resource use follows the scores without replacing quality-adjusted Speed and Value. */
 export const resourceRatioColumns = [
-  { key: "taskCostRatio", kind: "cost", label: "Cost × ↓", searchText: "Relative task cost" },
+  { key: "taskCostRatio", kind: "cost", label: "Cost× ↓", searchText: "Relative task cost" },
   {
     key: "taskTimeRatio",
     kind: "time",
-    label: "Time × ↓",
+    label: "Time× ↓",
     searchText: "Relative task time runtime",
   },
   {
     key: "totalTokenRatio",
     kind: "tokens",
-    label: "Tokens ×",
+    label: "Tokens×",
     searchText: "Relative total input output tokens",
   },
 ] as const;

@@ -1,6 +1,6 @@
 "use client";
 
-/** The rail always shows the global model search; profiles and additional filters sit beside it on wide screens and fold behind a toggle on phones, while secondary choices float above the page. */
+/** The rail always shows the global model search, which suggests matching models to open directly; active filters, profiles, and additional filters sit beside it on wide screens and fold behind a toggle on phones, while secondary choices float above the page. */
 
 import {
   AlertCircle,
@@ -17,7 +17,14 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  type KeyboardEvent as ReactKeyboardEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import type { ModelAtlasModel } from "../../src/model-atlas/stats/types";
 import { fmtMoney } from "./graphs/format";
@@ -31,21 +38,34 @@ import {
   sameProfileFilters,
   saveModelProfile,
 } from "./model-profiles";
+import { openModelSheet } from "./model-sheet/open";
+import { BrainIcon } from "./shared/DashboardIcons";
 import {
   costFilterOptions,
+  filterByGlobalModelFilters,
   type GlobalModelFilters,
+  modelLogo,
+  modelName,
   modelRankFilterOptions,
+  modelsForVariantDisplay,
   type ProviderOption,
   recencyFilterOptions,
 } from "./shared/model-display";
-import { providerLogo } from "./shared/provider-theme";
+import { providerBrandColor, providerLogo } from "./shared/provider-theme";
+import { hasSearchQuery } from "./shared/search";
+import { formatScore } from "./table/format";
 import { updateDashboardUrl, useUrlState } from "./use-url-state";
 
 import styles from "./global-model-controls.module.css";
 
 const MODEL_SEARCH_ID = "global-model-search";
+const MODEL_SUGGESTIONS_ID = "global-model-suggestions";
+const MAX_SUGGESTIONS = 6;
 // A pinned rail keeps its search this close to the viewport top; anywhere lower, the rail has not reached the top yet.
 const PINNED_SEARCH_TOP = 64;
+
+/** One active global filter, shown as a chip that removes only itself. */
+type FilterChip = { key: string; label: string; logo?: string; remove: GlobalModelFilters };
 
 /**
  * Focus the rail's model search from anywhere, selecting any current query so typing replaces it.
@@ -97,24 +117,22 @@ export function GlobalModelControls({
   const [menu, setMenu] = useState<"profiles" | "filters">("profiles");
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
+  const [suggesting, setSuggesting] = useState(false);
+  const [activeSuggestion, setActiveSuggestion] = useState(-1);
   const matchedCount = useMemo(
     () => matchingProfileModelCount(models, filters, fetchedAt),
     [models, fetchedAt, filters],
   );
+  const suggestions = useMemo(
+    () => modelSuggestions(models, filters, fetchedAt),
+    [models, fetchedAt, filters],
+  );
+  const suggestionsOpen = suggesting && suggestions.length > 0;
   const activeProfile = profiles.find((profile) => profile.id === activeId);
   const isDefault = sameProfileFilters(filters, DEFAULT_PROFILE_FILTERS);
   const modified = activeProfile != null && !sameProfileFilters(activeProfile.filters, filters);
   const canSave = storageReady && matchedCount > 0;
-  const activeFilters = [
-    filters.provider.length
-      ? filters.provider
-          .map((slug) => providerChoices.find((p) => p.slug === slug)?.label ?? slug)
-          .join(" + ")
-      : "",
-    filters["max-cost"] !== "all" ? `Cost ≤ ${fmtMoney(filters["max-cost"])}` : "",
-    filters.days !== "all" ? `Last ${filters.days} days` : "",
-    filters.rank !== "all" ? `Rank ≤ ${filters.rank}` : "",
-  ].filter(Boolean);
+  const chips = filterChips(filters, providerChoices);
 
   useEffect(() => {
     const read = () => {
@@ -194,6 +212,33 @@ export function GlobalModelControls({
     setSaveError("");
   };
 
+  /** A suggestion opens its collapsed model's sheet and leaves the search, and so the filtered views, as typed. */
+  const openSuggestion = (model: ModelAtlasModel) => {
+    setSuggesting(false);
+    setActiveSuggestion(-1);
+    openModelSheet({ ...model, reasoning_effort: null });
+  };
+
+  /** Arrows move through the suggestions, wrapping at either end and reopening a closed list; Enter opens the chosen match, or the first; the first Escape only closes the list and keeps the search's text. */
+  const navigateSuggestions = (event: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      if (suggestions.length === 0) return;
+      event.preventDefault();
+      const step = event.key === "ArrowDown" ? 1 : -1;
+      setSuggesting(true);
+      setActiveSuggestion((index) => {
+        if (!suggestionsOpen || index < 0) return step > 0 ? 0 : suggestions.length - 1;
+        return (index + step + suggestions.length) % suggestions.length;
+      });
+    } else if (event.key === "Enter" && suggestionsOpen) {
+      event.preventDefault();
+      openSuggestion(suggestions[activeSuggestion] ?? suggestions[0]!);
+    } else if (event.key === "Escape" && suggestionsOpen) {
+      event.preventDefault();
+      setSuggesting(false);
+    }
+  };
+
   /** Read storage again before writing so another tab's edits are retained. */
   const save = (updating: boolean) => {
     if (!canSave) return;
@@ -266,39 +311,92 @@ export function GlobalModelControls({
 
   return (
     <>
-      <label className={styles.search}>
-        <Search size={15} aria-hidden="true" />
-        <input
-          id={MODEL_SEARCH_ID}
-          type="search"
-          aria-label="Global model search"
-          aria-keyshortcuts="/"
-          placeholder="Search models…"
-          title="Use * as a wildcard; separate alternatives with commas. Press / to search from anywhere."
-          autoComplete="off"
-          spellCheck={false}
-          value={filters.q}
-          onChange={(event) => {
-            updateDashboardUrl({ q: event.target.value }, true);
-            setMessage("");
-            setSaveError("");
-          }}
-        />
-        {/* The count stays mounted as a live region; while no filter applies, the "/" keycap takes its place on screen. */}
-        <output
-          className={isDefault ? styles.visuallyHidden : undefined}
-          aria-live="polite"
-          aria-label={`${matchedCount} matching models`}
-          title={`${matchedCount} matching models`}
-        >
-          {matchedCount}
-        </output>
-        {isDefault ? (
-          <kbd className={styles.shortcut} aria-hidden="true">
-            /
-          </kbd>
+      <div className={styles.query}>
+        <label className={styles.search}>
+          <Search size={15} aria-hidden="true" />
+          {/* Typing filters every view as before and also lists the strongest matches; arrows choose one and Enter opens its sheet, the first match when none is chosen. */}
+          <input
+            id={MODEL_SEARCH_ID}
+            type="search"
+            role="combobox"
+            aria-label="Global model search"
+            aria-keyshortcuts="/"
+            aria-autocomplete="list"
+            aria-expanded={suggestionsOpen}
+            aria-controls={MODEL_SUGGESTIONS_ID}
+            aria-activedescendant={
+              suggestionsOpen && activeSuggestion >= 0
+                ? `${MODEL_SUGGESTIONS_ID}-${activeSuggestion}`
+                : undefined
+            }
+            placeholder="Search models…"
+            title="Use * as a wildcard; separate alternatives with commas. Press / to search from anywhere."
+            autoComplete="off"
+            spellCheck={false}
+            value={filters.q}
+            onChange={(event) => {
+              updateDashboardUrl({ q: event.target.value }, true);
+              setSuggesting(true);
+              setActiveSuggestion(-1);
+              setMessage("");
+              setSaveError("");
+            }}
+            onBlur={() => setSuggesting(false)}
+            onKeyDown={navigateSuggestions}
+          />
+          {/* The count stays mounted as a live region; while no filter applies, the "/" keycap takes its place on screen. */}
+          <output
+            className={isDefault ? styles.visuallyHidden : undefined}
+            aria-live="polite"
+            aria-label={`${matchedCount} matching models`}
+            title={`${matchedCount} matching models`}
+          >
+            {matchedCount}
+          </output>
+          {isDefault ? (
+            <kbd className={styles.shortcut} aria-hidden="true">
+              /
+            </kbd>
+          ) : null}
+        </label>
+        {suggestionsOpen ? (
+          <ul
+            id={MODEL_SUGGESTIONS_ID}
+            className={styles.suggestions}
+            role="listbox"
+            aria-label="Matching models"
+          >
+            {suggestions.map((model, index) => {
+              const logo = modelLogo(model);
+              return (
+                <li
+                  key={model.id ?? model.name}
+                  id={`${MODEL_SUGGESTIONS_ID}-${index}`}
+                  role="option"
+                  aria-selected={index === activeSuggestion}
+                  style={{ "--row-provider": providerBrandColor(model.provider) } as CSSProperties}
+                  // Keep focus in the search so choosing never blurs and closes the list first.
+                  onMouseDown={(event) => event.preventDefault()}
+                  onMouseEnter={() => setActiveSuggestion(index)}
+                  onClick={() => openSuggestion(model)}
+                >
+                  {logo ? (
+                    <img className={styles.providerLogo} src={logo} alt="" width={16} height={16} />
+                  ) : (
+                    <span className={styles.providerLogo} aria-hidden="true" />
+                  )}
+                  <span className={styles.suggestionName}>{modelName(model)}</span>
+                  <span className={styles.suggestionScore}>
+                    <BrainIcon />
+                    <span className={styles.visuallyHidden}>Intelligence</span>
+                    {formatScore(model.scores.intelligence_score)}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
         ) : null}
-      </label>
+      </div>
       <button
         ref={triggerRef}
         className={styles.trigger}
@@ -313,9 +411,7 @@ export function GlobalModelControls({
         }}
       >
         <Ellipsis size={18} aria-hidden="true" />
-        {activeProfile != null || activeFilters.length ? (
-          <span className={styles.activeDot} />
-        ) : null}
+        {activeProfile != null || chips.length ? <span className={styles.activeDot} /> : null}
       </button>
       <div
         id="global-model-filters"
@@ -324,6 +420,32 @@ export function GlobalModelControls({
         role="group"
         aria-label="Profiles and filters"
       >
+        {chips.length ? (
+          <div className={styles.chips} role="group" aria-label="Active filters">
+            {chips.map((chip) => (
+              <button
+                key={chip.key}
+                type="button"
+                className={styles.chip}
+                aria-label={`Remove filter: ${chip.label}`}
+                title={`Remove ${chip.label}`}
+                onClick={() => apply(chip.remove)}
+              >
+                {chip.logo ? (
+                  <img
+                    className={styles.providerLogo}
+                    src={chip.logo}
+                    alt=""
+                    width={14}
+                    height={14}
+                  />
+                ) : null}
+                <span>{chip.label}</span>
+                <X size={12} aria-hidden="true" />
+              </button>
+            ))}
+          </div>
+        ) : null}
         <div className={styles.profiles}>
           {saveOpen ? (
             <form
@@ -425,7 +547,11 @@ export function GlobalModelControls({
           type="button"
           className={styles.iconButton}
           aria-label="Additional filters"
-          title={activeFilters.length ? activeFilters.join(" / ") : "Provider, cost, date and rank"}
+          title={
+            chips.length
+              ? chips.map((chip) => chip.label).join(" / ")
+              : "Provider, cost, date and rank"
+          }
           aria-expanded={menuOpen && menu === "filters"}
           aria-controls="global-filter-menu"
           popoverTarget="global-filter-menu"
@@ -435,7 +561,7 @@ export function GlobalModelControls({
           }}
         >
           <SlidersHorizontal size={16} aria-hidden="true" />
-          {activeFilters.length ? <span className={styles.activeDot} /> : null}
+          {chips.length ? <span className={styles.activeDot} /> : null}
         </button>
         {!isDefault ? (
           <button
@@ -579,6 +705,62 @@ export function GlobalModelControls({
       </div>
     </>
   );
+}
+
+/** Each active global filter as a chip named in the filter menu's terms; removing one keeps every other filter. */
+function filterChips(filters: GlobalModelFilters, providerChoices: ProviderOption[]): FilterChip[] {
+  const providers = filters.provider.map((slug) => ({
+    key: `provider-${slug}`,
+    label: providerChoices.find((provider) => provider.slug === slug)?.label ?? slug,
+    logo: providerLogo(slug) || undefined,
+    remove: { ...filters, provider: filters.provider.filter((other) => other !== slug) },
+  }));
+  const choices: (FilterChip | null)[] = [
+    filters["max-cost"] === "all"
+      ? null
+      : {
+          key: "max-cost",
+          label: `Cost ≤ ${fmtMoney(filters["max-cost"])}`,
+          remove: { ...filters, "max-cost": "all" },
+        },
+    filters.days === "all"
+      ? null
+      : { key: "days", label: `Last ${filters.days} days`, remove: { ...filters, days: "all" } },
+    filters.rank === "all"
+      ? null
+      : { key: "rank", label: `Top ${filters.rank}`, remove: { ...filters, rank: "all" } },
+  ];
+  return [...providers, ...choices.filter((chip) => chip != null)];
+}
+
+/**
+ * The strongest collapsed models the current search and filters admit, an exact name or id first.
+ * Suggestions read the same filter pipeline as every view, so the list never offers a model the table hides.
+ */
+function modelSuggestions(
+  models: ModelAtlasModel[],
+  filters: GlobalModelFilters,
+  fetchedAt: number | null,
+): ModelAtlasModel[] {
+  if (!hasSearchQuery(filters.q)) return [];
+  const query = filters.q.trim().toLocaleLowerCase("en");
+  const exact = (model: ModelAtlasModel) =>
+    model.id?.toLocaleLowerCase("en") === query || model.name?.toLocaleLowerCase("en") === query;
+  return filterByGlobalModelFilters(
+    modelsForVariantDisplay(models, false),
+    (model) => model,
+    filters,
+    {
+      observedAtEpochSeconds: fetchedAt,
+      rankingModels: models,
+    },
+  )
+    .sort(
+      (left, right) =>
+        Number(exact(right)) - Number(exact(left)) ||
+        (right.scores.intelligence_score ?? -1) - (left.scores.intelligence_score ?? -1),
+    )
+    .slice(0, MAX_SUGGESTIONS);
 }
 
 /** Keep all preset groups on the same accessible, single-choice button pattern; mixed variant modes have no selected choice. */

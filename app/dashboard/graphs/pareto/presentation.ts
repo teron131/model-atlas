@@ -54,7 +54,7 @@ export const frontierBenchmarkAxisConfig: Record<
     get: (row) => frontierAxisValue(row, "cost"),
     format: fmtMoney,
     detailLabel: (row) => resourceMetricLabel(row, "cost"),
-    normalizedLabel: "Relative Cost ↓",
+    normalizedLabel: "Cost× ↓",
   },
   time: {
     label: "Time ↓",
@@ -62,7 +62,7 @@ export const frontierBenchmarkAxisConfig: Record<
     get: (row) => frontierAxisValue(row, "time"),
     format: fmtDurationShort,
     detailLabel: (row) => resourceMetricLabel(row, "time"),
-    normalizedLabel: "Relative Time ↓",
+    normalizedLabel: "Time× ↓",
   },
   tokens: {
     label: "Tokens ↓",
@@ -70,7 +70,7 @@ export const frontierBenchmarkAxisConfig: Record<
     get: (row) => frontierAxisValue(row, "tokens"),
     format: fmtCompact,
     detailLabel: (row) => resourceMetricLabel(row, "tokens"),
-    normalizedLabel: "Relative Tokens ↓",
+    normalizedLabel: "Tokens× ↓",
   },
   speed: {
     label: "Speed Score",
@@ -110,6 +110,7 @@ export function frontierBenchmarkAxisConfigFor(
   return {
     ...axisConfig,
     label: axisConfig.normalizedLabel,
+    shortLabel: `${axisConfig.shortLabel}×`,
     format: formatResourceRatio,
     detailLabel: () => axisConfig.normalizedLabel,
     logarithmic: true,

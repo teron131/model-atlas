@@ -229,7 +229,7 @@ const hover = frontierBenchmarkHoverRows(
   "intelligence",
 );
 assert.equal(hover[0]?.[0], "Intelligence Score");
-assert.match(hover[1]?.[0] as string, /Relative Cost/);
+assert.match(hover[1]?.[0] as string, /Cost×/);
 assert.ok(hover.every(([label]) => label !== "Speed and Value Scores"));
 const missingValue = { ...low, scores: { ...low.scores, value_score: null } };
 const missingValueRow = { ...evidence[0]!, model: missingValue };
@@ -333,7 +333,7 @@ assert.match(frontierBenchmarkAxisConfigFor("time", true).format(0.5), /0.50×/)
 assert.ok(
   frontierXAxisScale([0.5, 1.5], "time", frontierBenchmarkAxisConfigFor("time", true)).domain[1] <
     10,
-  "Relative Time uses a ratio axis instead of a 0–100 score axis",
+  "Time× uses a ratio axis instead of a 0–100 score axis",
 );
 
 // Tick selection must fit the observations instead of reserving another full interval on the right.

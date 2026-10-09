@@ -36,15 +36,21 @@
   box-shadow: 0 0 8px rgb(143 107 255 / 0.7);
 }
 /* The selected model reads as a star-catalogue entry: its name and figures at display size, labels in measurement type. */
-/* The name takes the spare width; each figure keeps its natural width so dates never break. */
+/* The name takes the spare width on one line and each figure keeps its natural width, so following the pointer from star to star never resizes the entry or moves the plot beneath it. */
 .readout {
   display: grid;
+  flex: 1 1 620px;
   grid-template-columns: minmax(0, 1fr) repeat(3, max-content);
   align-items: end;
-  gap: 24px clamp(20px, 4vw, 56px);
-  padding: 24px 0 22px;
-  border-top: 1px solid var(--line);
-  min-height: 110px;
+  gap: 20px clamp(18px, 3vw, 40px);
+  max-width: 760px;
+  margin-left: auto;
+}
+.readoutName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .readout > div {
   display: flex;
@@ -55,7 +61,8 @@
 .readout > div:not(:first-child) {
   flex-direction: column-reverse;
 }
-.readout span {
+/* Only each figure's own label takes measurement type; the name inside the heading keeps the readout size. */
+.readout > div > span {
   color: var(--muted);
   font: var(--type-label-weight) var(--type-caption-size) var(--font-mono);
   text-transform: uppercase;
@@ -298,19 +305,26 @@
   font: var(--type-label-weight) var(--type-caption-size) / 1 var(--font-mono);
 }
 
-/* The figure's controls, legend, and readout share the graph's width and edges, like the Pareto figure. */
-.viewControls,
-.legend,
-.readout {
+/* The figure's top edge and legend share the graph's width and edges, like the Pareto figure. */
+.top,
+.legend {
   width: min(100%, 1120px);
   margin-inline: auto;
+}
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px 34px;
+  padding-block: 24px 4px;
 }
 .viewControls {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 20px;
-  padding-block: 24px 4px;
+  min-width: 0;
 }
 .viewControls .organizationPicker {
   padding: 0;

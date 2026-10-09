@@ -36,6 +36,9 @@ export type DashboardUrlState = {
   /** The model sheet's model, by published id; with `effort`, one reasoning variant, otherwise the collapsed model. */
   model: string | null;
   effort: string | null;
+  /** A model pinned beside the sheet's model for comparison, named the same way as `model` and `effort`. */
+  compare: string | null;
+  "compare-effort": string | null;
 };
 
 export type DashboardUrlKey = keyof DashboardUrlState;
@@ -58,6 +61,8 @@ const dashboardKeys = new Set<DashboardUrlKey>([
   "timeline-provider",
   "model",
   "effort",
+  "compare",
+  "compare-effort",
 ]);
 const benchmarkKeys = new Set(Object.keys(BENCHMARK_COLUMNS));
 
@@ -127,9 +132,11 @@ export function readUrlValue<K extends DashboardUrlKey>(
       result = choice(value, ["cost", "time", "tokens", "speed", "value"], "cost");
       break;
     case "model":
+    case "compare":
       result = value?.trim() || null;
       break;
     case "effort":
+    case "compare-effort":
       result = value != null && /^[a-z]+$/.test(value) ? value : null;
       break;
     default:
