@@ -393,7 +393,7 @@ function ScoreSortStrip({
             data-sort-state={direction}
             onClick={() => onSort(column.key)}
           >
-            {column.icon}
+            {column.label}
             <span className="sort-indicator" />
           </button>
         );

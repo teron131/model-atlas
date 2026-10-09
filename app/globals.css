@@ -1450,6 +1450,11 @@ html[data-model-atlas-theme="light"] .score-meter::after {
   --model-column-width: clamp(220px, 64vw, 300px);
 }
 
+/* The model header grows a second line of score marks, so every column name keeps to its first line instead of centring against it. */
+.table-shell[data-score-strip="true"] thead th {
+  vertical-align: top;
+}
+
 .score-strip {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1474,16 +1479,20 @@ html[data-model-atlas-theme="light"] .score-meter::after {
   margin: 6px 0 0 28px;
 }
 
+/* Each mark starts its cell, over the number it sorts, rather than taking the right-aligned header button's end. */
 .score-strip-sort {
   display: flex;
+  justify-self: start;
+  justify-content: flex-start;
   align-items: center;
   gap: 3px;
+  margin: 0;
   padding: 0;
 }
 
-.score-strip-sort svg {
-  width: 13px;
-  height: 13px;
+/* Strip headers are the score columns' names, as every other header is; their icons would not fit the strip's narrow cells. */
+.score-strip-sort .metric-head svg {
+  display: none;
 }
 
 .score-strip-sort[data-sort-state] .sort-indicator::before,
