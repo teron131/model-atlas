@@ -205,7 +205,8 @@ export function useTableScrollSnapshot(
     clientWidth: 0,
     scrollWidth: 0,
   });
-  useLayoutEffect(() => {
+  // A passive effect runs after every ref in the table shell is attached, so the rail may render before the table it mirrors.
+  useEffect(() => {
     const viewport = tableScrollRef.current;
     if (viewport == null) return;
     let animationFrame: number | null = null;

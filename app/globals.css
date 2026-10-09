@@ -45,8 +45,6 @@
   --provider-openai-color: var(--ink);
   --scrollbar-track: rgb(var(--ink-rgb) / 0.035);
   --scrollbar-thumb: rgb(var(--ink-rgb) / 0.34);
-  --table-scrollbar-track: rgb(var(--ink-rgb) / 0.12);
-  --table-scrollbar-thumb: rgb(var(--ink-rgb) / 0.55);
   --sticky-head-background: rgb(var(--paper-rgb) / 0.94);
   --row-alt: color-mix(in srgb, var(--paper) 99.3%, var(--ink));
   --loading-sheen: rgb(var(--ink-rgb) / 0.11);
@@ -83,8 +81,6 @@ html[data-model-atlas-theme="light"] {
   --line-strong: rgb(var(--ink-rgb) / 0.18);
   --focus-ring: rgb(var(--ink-rgb) / 0.55);
   --scrollbar-track: rgb(var(--ink-rgb) / 0.055);
-  --table-scrollbar-track: rgb(var(--ink-rgb) / 0.1);
-  --table-scrollbar-thumb: rgb(var(--ink-rgb) / 0.46);
   --row-alt: color-mix(in srgb, var(--paper) 98.2%, var(--ink));
   --loading-sheen: rgb(var(--ink-rgb) / 0.105);
   --loading-fill: rgb(var(--ink-rgb) / 0.055);
@@ -232,7 +228,8 @@ html:has(.document-main) body {
 .document-main {
   --research-inset: clamp(14px, 2vw, 28px);
   --research-radius: 0;
-  --research-gap: clamp(88px, 13svh, 148px);
+  /* One gap of sky sets every region apart, from the rail to the first region's name and from each plane to the next name, well over the space between a name and its own plane. */
+  --research-gap: clamp(48px, 7svh, 80px);
   --research-edge: rgb(222 230 255 / 0.16);
   /* Planes float in the sky: a deep drop beneath and a faint violet bloom along the lit top edge. */
   --research-shadow:
@@ -466,7 +463,7 @@ html[data-model-atlas-theme="light"] .theme-icon-dark {
 }
 
 .leaderboard-section {
-  margin-top: clamp(64px, 10svh, 112px);
+  margin-top: var(--research-gap);
 }
 
 /* Each research region opens on the sky the way the hero does: its name at display size, the rail's ordinal, and its actions. */
@@ -594,24 +591,90 @@ html[data-model-atlas-theme="light"] .theme-icon-dark {
   height: 0;
 }
 
+/* The table's group rail is the research rail's flight path laid over its columns: the same measurement labels above a hairline track, a waypoint under each group's name, and the selection star with the path behind it lit in horizon light. */
+/* The names sit as far below the toolbar's rule as above their track. */
 .table-scrollbar {
+  display: grid;
+  gap: 2px;
+  padding: 8px 0 10px;
+}
+
+.table-scrollbar-labels {
+  position: relative;
+  height: 20px;
+}
+
+/* Each name is centred on its waypoint, as the region links are. */
+.table-scrollbar-label {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
   display: flex;
-  align-items: center;
-  height: 22px;
-  padding: 6px 0 2px;
+  align-items: baseline;
+  gap: 7px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  letter-spacing: var(--type-label-tracking);
+  line-height: 20px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* A group's benchmark count reads as the research rail's ordinals do. */
+.table-scrollbar-label b {
+  color: var(--faint);
+  font: inherit;
+  font-size: var(--type-caption-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.table-scrollbar-label:hover,
+.table-scrollbar-label[data-active="true"] {
+  color: var(--ink);
+}
+
+.table-scrollbar-label:hover b,
+.table-scrollbar-label[data-active="true"] b {
+  color: var(--muted);
+}
+
+.table-scrollbar-label:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* A name that would crowd its neighbour stays reachable by keyboard and shows while focused. */
+.table-scrollbar-label[data-crowded="true"]:not(:focus-visible) {
+  clip-path: inset(50%);
 }
 
 .table-scrollbar-track {
   position: relative;
   width: 100%;
-  height: 12px;
+  height: 15px;
   cursor: ew-resize;
   touch-action: none;
-  background:
-    linear-gradient(var(--table-scrollbar-track), var(--table-scrollbar-track)) center / 100% 6px
-      no-repeat,
-    linear-gradient(90deg, transparent, rgb(var(--ink-rgb) / 0.14), transparent);
-  border: 1px solid var(--line);
+  background: linear-gradient(var(--line-strong), var(--line-strong)) 0 7px / 100% 1px no-repeat;
+}
+
+/* The path already flown is lit in horizon light up to the star. */
+.table-scrollbar-track::before {
+  position: absolute;
+  top: 7px;
+  left: 0;
+  width: var(--table-scrollbar-journey, 0);
+  height: 1px;
+  background: linear-gradient(90deg, rgb(74 114 255 / 0.25), var(--horizon-violet));
+  box-shadow: 0 0 8px rgb(143 107 255 / 0.55);
+  content: "";
+  pointer-events: none;
 }
 
 .table-scrollbar-track:focus-visible {
@@ -621,17 +684,43 @@ html[data-model-atlas-theme="light"] .theme-icon-dark {
   outline: 0;
 }
 
-.table-scrollbar-thumb {
+.table-scrollbar-waypoint {
   position: absolute;
-  top: 2px;
-  left: var(--table-scrollbar-thumb-left, 0);
-  width: var(--table-scrollbar-thumb-width, 100%);
-  min-width: var(--table-scrollbar-thumb-min-width, 58px);
-  height: 8px;
-  background: var(--table-scrollbar-thumb);
-  box-shadow:
-    0 0 0 1px rgb(var(--ink-rgb) / 0.12),
-    0 4px 16px rgb(0 0 0 / 0.26);
+  top: 6px;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--line-strong);
+  transform: translateX(-50%);
+  pointer-events: none;
+  transition: background-color 140ms ease-out;
+}
+
+.table-scrollbar-waypoint[data-passed="true"] {
+  background: var(--horizon-violet);
+}
+
+.table-scrollbar-star {
+  position: absolute;
+  z-index: 1;
+  top: 5px;
+  left: var(--table-scrollbar-journey, 0);
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--selection-star);
+  box-shadow: var(--selection-glow);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+html[data-model-atlas-theme="light"] .table-scrollbar-waypoint[data-passed="true"],
+html[data-model-atlas-theme="light"] .table-scrollbar-track::before {
+  background: var(--selection-star);
+}
+
+html[data-model-atlas-theme="light"] .table-scrollbar-track::before {
+  box-shadow: 0 0 8px color-mix(in srgb, var(--selection-star) 55%, transparent);
 }
 
 .table-scrollbar[data-scrollable="false"] {
@@ -1356,6 +1445,59 @@ html[data-model-atlas-theme="light"] .score-meter::after {
   background: color-mix(in srgb, var(--score-color, var(--ink)) 85%, var(--ink));
 }
 
+/* On phones the four scores ride under each model's name instead of in columns, so a row reads whole without a sideways scroll; the model header sorts by them from the same four tracks. */
+.table-shell[data-score-strip="true"] {
+  --model-column-width: clamp(220px, 64vw, 300px);
+}
+
+.score-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.score-strip-item {
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: var(--mono-data);
+  font-variant-numeric: tabular-nums;
+}
+
+.score-strip-item .score-meter {
+  width: 100%;
+  margin: 3px 0 0;
+}
+
+/* The header's score marks sit over the strips, past the provider logo's column. */
+.score-strip-head {
+  margin: 6px 0 0 28px;
+}
+
+.score-strip-sort {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0;
+}
+
+.score-strip-sort svg {
+  width: 13px;
+  height: 13px;
+}
+
+.score-strip-sort[data-sort-state] .sort-indicator::before,
+.score-strip-sort[data-sort-state] .sort-indicator::after {
+  opacity: 0.3;
+  color: inherit;
+}
+
+.score-strip-sort[data-sort-state="ascending"] .sort-indicator::before,
+.score-strip-sort[data-sort-state="descending"] .sort-indicator::after {
+  opacity: 1;
+  color: var(--ink);
+}
+
 /* Every meter sits beneath its number, so the readout carries the row and columns stay narrow; tracks keep one width, so they still line up down each column. A half-way tick on every score track is a faint guide at 50. */
 .score-cell .score-meter {
   background: linear-gradient(var(--score-track), var(--score-track)) 50% 50% / 1px 7px no-repeat;
@@ -1564,10 +1706,6 @@ td.modality-cell {
     margin-top: 0;
     padding-right: 0;
     padding-left: 0;
-  }
-
-  .leaderboard-section {
-    margin-top: 48px;
   }
 
   .dashboard-section-head {

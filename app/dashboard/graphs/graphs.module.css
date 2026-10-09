@@ -660,6 +660,23 @@
   stroke-width: 1;
 }
 
+/* A frontier step answers the pointer along a band as wide as a Timeline lab line, and its stretch of rim lights while its trade is read. */
+.frontierStepReach {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 14;
+  stroke-linecap: round;
+  pointer-events: stroke;
+}
+
+.frontierStep {
+  stroke: var(--chart-horizon-core);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 4px var(--chart-horizon-core));
+  pointer-events: none;
+}
+
 /* Chart stars echo the leaderboard's score stars without blooming: a lit centre inside a solid ring of the provider colour. */
 .starCore {
   fill: color-mix(in srgb, var(--star) 30%, #fff);
@@ -788,11 +805,6 @@
 @media (max-width: 760px) {
   .sectionGrid {
     gap: 48px;
-  }
-
-  .leadGrid {
-    margin-top: 32px;
-    margin-bottom: 48px;
   }
 
   .researchIndexLinks {

@@ -163,6 +163,10 @@ export const ParetoPanel = memo(function ParetoPanel({
   const chartMetric = useMemo(
     () => ({
       label: `${xLabel}${axisConfig.logarithmic ? " · log₁₀" : ""}`,
+      // Resource steps read as "6.3× cost"; score axes keep their own names.
+      noun: isScoreAxis(axisKey)
+        ? axisConfig.shortLabel
+        : frontierBenchmarkAxisConfig[axisKey].shortLabel.toLowerCase(),
       get: (row: FrontierBenchmarkRow) => axisConfig.get(row)!,
       format: isScoreAxis(axisKey) ? fmtTooltipNumber : axisConfig.format,
       xHigherIsBetter: axisConfig.xHigherIsBetter,
