@@ -1448,6 +1448,25 @@ html[data-model-atlas-theme="light"] .score-meter::after {
 /* On phones the four scores ride under each model's name instead of in columns, so a row reads whole without a sideways scroll; the model header sorts by them from the same four tracks. */
 .table-shell[data-score-strip="true"] {
   --model-column-width: clamp(220px, 64vw, 300px);
+  /* Where the four scores start inside the model cell: clear of the MODEL header, which they share a line with. */
+  --score-strip-indent: 64px;
+}
+
+/* The MODEL header keeps its place while the score marks take the same line beside it. */
+.table-shell[data-score-strip="true"] th[data-column-key="model"] > .sort-button {
+  position: absolute;
+}
+
+/* The scores take their own line under the name and slug, which keep the logo beside them as on wider screens; logo and gap put the name 40px into the cell, so the scores move on to the marks' indent. */
+.model-cell > .score-strip {
+  grid-column: 2;
+  margin-left: calc(var(--score-strip-indent) - 40px);
+}
+
+/* The rank lines up with the logo, beside the name and slug rather than the middle of the taller row. */
+.table-shell[data-score-strip="true"] table tbody td.rank {
+  vertical-align: top;
+  padding-top: calc(var(--table-row-padding-y) + var(--score-strip-rank-offset, 11px));
 }
 
 /* The model header grows a second line of score marks, so every column name keeps to its first line instead of centring against it. */
@@ -1459,11 +1478,13 @@ html[data-model-atlas-theme="light"] .score-meter::after {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
-  margin-top: 6px;
+  margin-top: 12px;
 }
 
+/* Scores right-align in their cells, as in the score columns, so each sits under its mark. */
 .score-strip-item {
   min-width: 0;
+  text-align: right;
   font-family: var(--font-mono);
   font-size: var(--mono-data);
   font-variant-numeric: tabular-nums;
@@ -1476,23 +1497,23 @@ html[data-model-atlas-theme="light"] .score-meter::after {
 
 /* The header's score marks sit over the strips, past the provider logo's column. */
 .score-strip-head {
-  margin: 6px 0 0 28px;
+  margin: 0 0 0 var(--score-strip-indent);
 }
 
-/* Each mark starts its cell, over the number it sorts, rather than taking the right-aligned header button's end. */
+/* Each mark ends its cell, over the number it sorts, as the score columns' headers end over their numbers. */
 .score-strip-sort {
   display: flex;
-  justify-self: start;
-  justify-content: flex-start;
+  justify-self: end;
+  justify-content: flex-end;
   align-items: center;
   gap: 3px;
   margin: 0;
   padding: 0;
 }
 
-/* Strip headers are the score columns' names, as every other header is; their icons would not fit the strip's narrow cells. */
-.score-strip-sort .metric-head svg {
-  display: none;
+.score-strip-sort svg {
+  width: 13px;
+  height: 13px;
 }
 
 .score-strip-sort[data-sort-state] .sort-indicator::before,
@@ -1758,8 +1779,8 @@ td.modality-cell {
   }
 
   .table-shell .model-cell {
-    grid-template-columns: 23px minmax(0, 1fr);
-    gap: 5px;
+    grid-template-columns: 28px minmax(0, 1fr);
+    gap: 0 12px;
     width: calc(var(--model-column-width) - 14px);
   }
 
@@ -1775,8 +1796,8 @@ td.modality-cell {
   }
 
   .provider-logo {
-    width: 23px;
-    height: 23px;
+    width: 28px;
+    height: 28px;
   }
 
   .score-cell {

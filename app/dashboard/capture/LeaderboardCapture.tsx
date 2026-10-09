@@ -8,6 +8,7 @@ import { ScreenshotIcon } from "../shared/DashboardIcons";
 import { scoreMetricColumns, scoreSortableColumns } from "../table/Columns";
 import type { SortState, TableRow } from "../table/models";
 import { ScoreModelRow } from "../table/Rows";
+import { ARTIFACT_WIDTH } from "./png";
 import { usePngCapture } from "./use-png";
 
 import styles from "./capture.module.css";
@@ -67,7 +68,7 @@ export function LeaderboardCapture({
       </button>
       {captureStageMounted ? (
         <div className={styles.stage} aria-hidden="true" inert>
-          <div className={styles.leaderboard} ref={captureRef}>
+          <div className={styles.leaderboard} ref={captureRef} style={{ width: ARTIFACT_WIDTH }}>
             <table>
               <colgroup>
                 <col className={styles.rankColumn} />

@@ -44,7 +44,7 @@ export function CommonEvidence({
           "",
         );
   return (
-    <details className={styles.commonEvidence} aria-label="Common evidence">
+    <details className={styles.commonEvidence} aria-label="Common evidence" data-capture-exclude>
       <summary className={styles.chartFooterCaption}>
         <span>Common evidence</span>
         <span>

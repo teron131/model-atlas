@@ -34,7 +34,8 @@ type UseTableViewportResult = {
   columnWidths: number[];
   pinnedColumnsEnabled: boolean;
   handleScroll: (event: UIEvent<HTMLDivElement>) => void;
-  scrollTableTo: (scrollLeft: number) => void;
+  /** `smooth` glides to the position, unless the reader prefers reduced motion; the header follows through the scroll handler. */
+  scrollTableTo: (scrollLeft: number, options?: { smooth?: boolean }) => void;
 };
 
 const PINNED_COLUMNS_WIDTH_MULTIPLIER = 2;
@@ -112,14 +113,19 @@ export function useTableViewport({
     [mirrorScroll],
   );
   const scrollTableTo = useCallback(
-    (scrollLeft: number) => {
+    (scrollLeft: number, options?: { smooth?: boolean }) => {
       const tableScroll = tableScrollRef.current;
       if (tableScroll == null) {
         return;
       }
       const { maxScrollLeft } = horizontalScrollSnapshot(tableScroll);
-      tableScroll.scrollLeft = clamp(scrollLeft, 0, maxScrollLeft);
+      const left = clamp(scrollLeft, 0, maxScrollLeft);
       onTooltipEnd();
+      if (options?.smooth && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        tableScroll.scrollTo({ left, behavior: "smooth" });
+        return;
+      }
+      tableScroll.scrollLeft = left;
       mirrorScroll(tableScroll, "header");
     },
     [mirrorScroll, onTooltipEnd],

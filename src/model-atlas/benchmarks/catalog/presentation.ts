@@ -740,10 +740,10 @@ const BASELINE_BENCHMARK_DISPLAY_ORDER = [
   "voxelbench",
 ] as const satisfies readonly BenchmarkKey[];
 
-/** Preserve frontier, index, and baseline display groups without caller-owned sorting rules. */
+/** Preserve index, frontier, and baseline display groups without caller-owned sorting rules; the few familiar aggregate indexes read first, before the long benchmark lists. */
 export const BENCHMARK_DISPLAY_ORDER = [
-  ...FRONTIER_BENCHMARK_DISPLAY_ORDER,
   ...INDEX_BENCHMARK_KEYS,
+  ...FRONTIER_BENCHMARK_DISPLAY_ORDER,
   ...BASELINE_BENCHMARK_DISPLAY_ORDER,
 ] as const satisfies readonly BenchmarkKey[];
 
