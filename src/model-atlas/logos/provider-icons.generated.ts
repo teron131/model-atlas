@@ -6,6 +6,10 @@ type ProviderIcon = {
 };
 
 export const providerIcons = {
+  ai9star: {
+    color: "#9371d4",
+    logo: "/provider-icons/ai9star.svg",
+  },
   alibaba: {
     color: "#e86217",
     logo: "/provider-icons/alibaba.svg",
@@ -13,6 +17,10 @@ export const providerIcons = {
   anthropic: {
     color: "#eeeeea",
     logo: "/provider-icons/anthropic.svg",
+  },
+  apodex: {
+    color: "#eeeeea",
+    logo: "/provider-icons/apodex.svg",
   },
   "arcee-ai": {
     color: "#16dfdf",
@@ -34,9 +42,21 @@ export const providerIcons = {
     color: "#40a6ec",
     logo: "/provider-icons/inclusionai.svg",
   },
+  kwaipilot: {
+    color: "#55bc38",
+    logo: "/provider-icons/kwaipilot.svg",
+  },
+  meituan: {
+    color: "#39e461",
+    logo: "/provider-icons/meituan.svg",
+  },
   meta: {
     color: "#1781e4",
     logo: "/provider-icons/meta.svg",
+  },
+  "meta-llama": {
+    color: "#1782e4",
+    logo: "/provider-icons/meta-llama.svg",
   },
   minimax: {
     color: "#ec4062",
@@ -74,9 +94,21 @@ export const providerIcons = {
     color: "#e86117",
     logo: "/provider-icons/qwen.svg",
   },
+  spacexai: {
+    color: "#eeeeea",
+    logo: "/provider-icons/spacexai.svg",
+  },
   stepfun: {
     color: "#16e0d6",
     logo: "/provider-icons/stepfun.svg",
+  },
+  tencent: {
+    color: "#1662df",
+    logo: "/provider-icons/tencent.svg",
+  },
+  thinkingmachines: {
+    color: "#eeeeea",
+    logo: "/provider-icons/thinkingmachines.svg",
   },
   upstage: {
     color: "#806af0",
@@ -85,6 +117,10 @@ export const providerIcons = {
   "x-ai": {
     color: "#eeeeea",
     logo: "/provider-icons/x-ai.svg",
+  },
+  xai: {
+    color: "#eeeeea",
+    logo: "/provider-icons/xai.svg",
   },
   xiaomi: {
     color: "#e9711d",

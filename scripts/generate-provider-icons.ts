@@ -1,10 +1,12 @@
-/** Materialize provider logo modules and public SVGs from the current database snapshot and logo cache. */
+/** Materialize provider logo modules and public SVGs from the current display snapshot (the published one, or the local checkpoint with MODEL_ATLAS_LOCAL_DATABASE=1) and the logo cache. */
 
+import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { loadEnvFile } from "node:process";
 import { pathToFileURL } from "node:url";
 
-import { readDatabasePayload } from "../src/model-atlas/database";
+import { readDisplaySnapshotPayload } from "../src/model-atlas/database/runtime-snapshot";
 import { modelLogoCacheDir, resizeLogoToPng } from "../src/model-atlas/logos/cache";
 import { providerIconColor } from "../src/model-atlas/logos/color";
 
@@ -22,8 +24,12 @@ const LOGO_SIZE = 64;
 
 const force = process.argv.includes("--force");
 
+if (existsSync(".env")) {
+  loadEnvFile(".env");
+}
+
 const existingAssets = force ? {} : await readExistingAssets();
-const logoSources = readLogoSources();
+const logoSources = await readLogoSources();
 const nextAssets: ProviderAssetMap = { ...existingAssets };
 
 for (const [provider, source] of [...logoSources].sort()) {
@@ -76,15 +82,17 @@ async function readExistingAssets(): Promise<ProviderAssetMap> {
   }
 }
 
-function readLogoSources() {
+/** One logo per provider, preferring a logo the snapshot already embeds over a remote link, which may have gone dead. */
+async function readLogoSources() {
   const sources = new Map<string, string>();
-  for (const model of readDatabasePayload().models) {
+  const rank = (logo: string) => (logo.startsWith("data:image/") ? 2 : logo ? 1 : 0);
+  for (const model of (await readDisplaySnapshotPayload()).models) {
     const provider = providerSlug(model.provider);
     if (provider.length === 0) {
       continue;
     }
     const logo = typeof model.logo === "string" ? model.logo : "";
-    if (!sources.has(provider) || (sources.get(provider) === "" && logo)) {
+    if (!sources.has(provider) || rank(logo) > rank(sources.get(provider)!)) {
       sources.set(provider, logo);
     }
   }
