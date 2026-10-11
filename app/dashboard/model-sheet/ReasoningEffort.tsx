@@ -16,7 +16,7 @@ import { GraphToggle } from "../graphs/GraphToggle";
 import { type HoverRow, type HoverState, pointHover } from "../graphs/hover-state";
 import { linearAxisScale } from "../graphs/plot/axis-scale";
 import { calloutLabelPlacements } from "../graphs/plot/label-placement";
-import { starCore, StarGlows, TextPointLabel, useLabelSizes } from "../graphs/plot/Primitives";
+import { TextPointLabel, useLabelSizes } from "../graphs/plot/Primitives";
 import { starConnectorSegments } from "../graphs/plot/star-marks";
 import { providerChartColor } from "../shared/provider-theme";
 import { formatResourceRatio } from "../shared/resource-ratio-display";
@@ -24,7 +24,13 @@ import { formatScore } from "../table/format";
 import type { TableRow } from "../table/models";
 import { type EffortPoint, familyName, type SheetEntry } from "./entries";
 import { type ModelSheetSlot, selectModelSheetEffort } from "./open";
-import { LABEL_MARGIN, SheetPlotFrame, useSheetPlot } from "./SheetPlot";
+import {
+  LABEL_MARGIN,
+  LIT_STAR_RADIUS,
+  SheetPlotFrame,
+  SheetStar,
+  useSheetPlot,
+} from "./SheetPlot";
 
 import graphStyles from "../graphs/graphs.module.css";
 import styles from "./model-sheet.module.css";
@@ -33,8 +39,8 @@ const COLLAPSED = "collapsed";
 const COLLAPSED_TITLE =
   "The leaderboard's collapsed row: the strongest variant, with other efforts' direct results filling its gaps";
 const CURVE_HEIGHT = 168;
-const STAR_RADIUS = 3.4;
-const CHOSEN_STAR_RADIUS = 4.6;
+// Efforts other than the lit one sit a little smaller than its star.
+const STAR_RADIUS = 2.4;
 // A star answers the pointer this far from its centre, so small, close efforts stay easy to find.
 const STAR_REACH = 11;
 
@@ -123,12 +129,11 @@ function EffortPlot({
         point,
         previous: curve[index - 1],
         muted,
-        chosen: point.effort === chosen,
         lit: !muted && (point.effort === chosen || previewed),
         cx: plot.x(point.cost),
         cy: plot.y(point.intelligence),
         // Labels keep their places while a preview enlarges a star.
-        radius: point.effort === chosen ? CHOSEN_STAR_RADIUS : STAR_RADIUS,
+        radius: point.effort === chosen ? LIT_STAR_RADIUS : STAR_RADIUS,
         color,
       };
     });
@@ -226,27 +231,15 @@ function EffortPlot({
             stroke={segment.color}
           />
         ))}
-        <StarGlows
-          bounds={plot.bounds}
-          stars={marks
-            .filter((mark) => mark.lit)
-            .map(({ key, chosen, cx, cy, color }) => ({
-              key,
-              cx,
-              cy,
-              radius: CHOSEN_STAR_RADIUS,
-              color,
-              emphasis: chosen ? ("selected" as const) : ("frontier" as const),
-            }))}
-        />
         {marks.map((mark) => (
-          <circle
+          <SheetStar
             key={mark.key}
-            className={`${graphStyles.starCore} ${styles.effortStar}`}
-            data-muted={mark.muted || undefined}
             cx={mark.cx}
             cy={mark.cy}
-            {...starCore(mark.lit ? CHOSEN_STAR_RADIUS : STAR_RADIUS, mark.color)}
+            radius={mark.lit ? LIT_STAR_RADIUS : STAR_RADIUS}
+            color={mark.color}
+            lit={mark.lit}
+            muted={mark.muted}
           />
         ))}
         {labels.map((label) => (

@@ -9,8 +9,6 @@ import { paretoFrontier } from "../graphs/plot/pareto-frontier";
 import {
   FrontierHorizon,
   horizonRim,
-  starCore,
-  StarGlows,
   TextPointLabel,
   useLabelSizes,
 } from "../graphs/plot/Primitives";
@@ -20,7 +18,13 @@ import { formatResourceRatio } from "../shared/resource-ratio-display";
 import { formatScore } from "../table/format";
 import type { TableRow } from "../table/models";
 import type { SheetEntry } from "./entries";
-import { LABEL_MARGIN, SheetPlotFrame, useSheetPlot } from "./SheetPlot";
+import {
+  LABEL_MARGIN,
+  LIT_STAR_RADIUS,
+  SheetPlotFrame,
+  SheetStar,
+  useSheetPlot,
+} from "./SheetPlot";
 
 import graphStyles from "../graphs/graphs.module.css";
 import styles from "./model-sheet.module.css";
@@ -28,7 +32,6 @@ import styles from "./model-sheet.module.css";
 const INSET_HEIGHT = 176;
 const SCORE_DOMAIN = [0, 100] as const;
 const SCORE_TICKS = [0, 50, 100];
-const STAR_RADIUS = 4.4;
 const DUST_RADIUS = 1.5;
 
 type InsetPoint = { row: TableRow; cost: number; intelligence: number };
@@ -86,7 +89,7 @@ export function FrontierInset({
         label: shortLabel(model),
         cx,
         cy,
-        radius: STAR_RADIUS,
+        radius: LIT_STAR_RADIUS,
       }))
     : [];
   const { svgRef, labelSizes } = useLabelSizes(
@@ -146,26 +149,8 @@ export function FrontierInset({
               />
             ))}
           </g>
-          <StarGlows
-            bounds={plot.bounds}
-            stars={stars.map(({ key, cx, cy, color }) => ({
-              key,
-              cx,
-              cy,
-              radius: STAR_RADIUS,
-              color,
-              emphasis: "selected" as const,
-            }))}
-          />
           {stars.map(({ key, cx, cy, color }) => (
-            <circle
-              key={key}
-              className={graphStyles.starCore}
-              cx={cx}
-              cy={cy}
-              {...starCore(STAR_RADIUS, color)}
-              aria-hidden="true"
-            />
+            <SheetStar key={key} cx={cx} cy={cy} radius={LIT_STAR_RADIUS} color={color} lit />
           ))}
           {labels.map((label) => (
             <TextPointLabel

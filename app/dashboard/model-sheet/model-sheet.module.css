@@ -559,6 +559,23 @@
   fill: rgb(var(--ink-rgb) / 0.3);
 }
 
+/* The sheet's own models are drawn as the leaderboard's score star, not a chart's ringed mark: a solid core in the provider's light, and for a lit model the score star's soft bloom, so a lone star never reads as a ringed orb. */
+.plotStar {
+  fill: color-mix(in srgb, var(--star) 45%, #fff);
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+}
+
+/* A blurred shadow of so small a core is fainter than the score star's spread shadow, so a tight glare sits inside the wide bloom. */
+.plotStar[data-lit] {
+  filter: drop-shadow(0 0 1.5px var(--star))
+    drop-shadow(0 0 7px color-mix(in srgb, var(--star) 80%, transparent));
+}
+
+:global(html[data-model-atlas-theme="light"]) .plotStar {
+  fill: color-mix(in srgb, var(--star) 85%, var(--ink));
+}
+
 /* Efforts are joined in effort order like the Pareto chart's variants, but always drawn and solid, since the curve is the section's subject. */
 .effortLine {
   stroke-width: 1.2;
@@ -570,11 +587,6 @@
     stroke-width 0.12s ease;
 }
 
-.effortStar {
-  pointer-events: none;
-  transition: opacity 0.12s ease;
-}
-
 /* A series being pointed at reads as the Pareto chart's hovered family: its line strengthens and the other series steps back. */
 .effortLine[data-active] {
   stroke-width: 1.7;
@@ -582,7 +594,7 @@
 }
 
 .effortLine[data-muted],
-.effortStar[data-muted] {
+.plotStar[data-muted] {
   opacity: 0.22;
 }
 
@@ -645,18 +657,17 @@
   white-space: nowrap;
 }
 
-/* The same ringed star the curve draws for this model, at label scale. */
+/* The same star the curve draws for this model, at label scale. */
 .effortModelStar {
   flex: 0 0 auto;
-  width: 9px;
-  height: 9px;
-  border: 2.5px solid var(--star);
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--star) 30%, #fff);
+  background: color-mix(in srgb, var(--star) 45%, #fff);
 }
 
 :global(html[data-model-atlas-theme="light"]) .effortModelStar {
-  background: var(--star);
+  background: color-mix(in srgb, var(--star) 85%, var(--ink));
 }
 
 .effortNone {
@@ -769,49 +780,104 @@
   margin: 12px 0 0;
 }
 
-@media (max-width: 600px) {
-  .sheet {
-    --sheet-label: 96px;
-  }
-
-  .sheet[data-compare] {
-    --sheet-label: 100px;
-  }
-
-  /* On phones the Compare toggle takes its own row, which link and close share at its right, so the names below keep their places over the value columns and need no room for the actions. */
-  .sheet[data-compare] .compareControls {
+/* A comparison narrower than its 880px plane gives the Compare toggle its own row, which link and close share at its right, so the names below keep their places over the value columns and need no room for the actions. */
+/* A saved card is staged at its own width whatever the window's, so the comparison rules that follow the window leave it alone. */
+@media (max-width: 900px) {
+  .sheet[data-compare]:not([data-capture-layout="artifact"]) .compareControls {
     grid-column: 1 / -1;
   }
 
-  .sheet[data-compare] .headEntry + .headEntry {
+  .sheet[data-compare]:not([data-capture-layout="artifact"]) .headEntry + .headEntry {
     padding-right: 0;
   }
 
-  .sheet[data-compare] .compareControls + .headEntry {
+  .sheet[data-compare]:not([data-capture-layout="artifact"]) .compareControls + .headEntry {
     grid-column: 2;
   }
+}
 
-  .sheet[data-compare] .scoreLabel {
+/* Two columns too narrow for the full cells keep each value, its margin, and its rank; support and every meter or bar (each cell's third slot) stay on the single sheet. */
+@media (max-width: 720px) {
+  .sheet[data-compare]:not([data-capture-layout="artifact"]) .scoreCell {
+    grid-template-columns: 38px minmax(30px, 1fr) 30px;
+    gap: 6px;
+  }
+
+  .sheet[data-compare]:not([data-capture-layout="artifact"])
+    :is(
+      .scoreCell > :nth-child(3),
+      .scoreCell > :last-child,
+      .ratioCell > :nth-child(3),
+      .benchmarkCell > :nth-child(3)
+    ) {
+    display: none;
+  }
+
+  /* Phone data runs at 12px, so a narrower value column still fits a dollar balance; values keep one right edge so margins line up down the list. */
+  .benchmarks {
+    --benchmark-value: 70px;
+  }
+
+  .sheet[data-compare]:not([data-capture-layout="artifact"]) .ratioCell {
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .sheet[data-compare]:not([data-capture-layout="artifact"]) .benchmarkCell {
+    grid-template-columns: var(--benchmark-value) minmax(0, 1fr);
+    gap: 6px;
+  }
+}
+
+@media (max-width: 600px) {
+  /* The label column gives way on the narrowest phones so the score track keeps its room. */
+  .sheet {
+    --sheet-label: clamp(96px, 28vw, 104px);
+  }
+
+  /* On phones the single sheet's actions take their own row above the identity, Compare at its start and the rest at its end as in a comparison, so the name and slug keep the sheet's full width. */
+  .sheet:not([data-compare]) .headEntry {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+
+  .sheet:not([data-compare]) .headEntry > .actions {
+    order: -1;
+    margin-top: -8px;
+  }
+
+  .sheet:not([data-compare]) .headEntry > .actions > .compareToggle {
+    align-self: center;
+    margin-right: auto;
+    margin-left: -8px;
+  }
+
+  /* Score names read at the data rows' size, so the longest keeps to the label column. */
+  .scoreLabel {
     gap: 6px;
     font-size: 13px;
   }
 
-  /* Phone columns keep each name readable: a smaller mark and name, and no slug. */
-  .sheet[data-compare] .name {
-    font-size: 18px;
+  .sheet[data-compare]:not([data-capture-layout="artifact"]) {
+    --sheet-label: 100px;
   }
 
-  .sheet[data-compare] .identity {
+  /* Phone columns keep each name readable: a smaller mark and name, and no slug. */
+  .sheet[data-compare]:not([data-capture-layout="artifact"]) .name {
+    font-size: 16px;
+  }
+
+  .sheet[data-compare]:not([data-capture-layout="artifact"]) .identity {
     grid-template-columns: 22px minmax(0, 1fr);
     gap: 8px;
   }
 
-  .sheet[data-compare] .identity :global(.provider-logo) {
+  .sheet[data-compare]:not([data-capture-layout="artifact"]) .identity :global(.provider-logo) {
     width: 22px;
     height: 22px;
   }
 
-  .sheet[data-compare] .slug {
+  .sheet[data-compare]:not([data-capture-layout="artifact"]) .slug {
     display: none;
   }
 
@@ -822,13 +888,13 @@
   .score,
   .scoreHead,
   .ratios li,
-  .sheet[data-compare] .fact,
-  .sheet[data-compare] .benchmarks li {
+  .sheet[data-compare]:not([data-capture-layout="artifact"]) :is(.fact, .benchmarks li) {
     gap: 8px;
   }
 
+  /* Rank and support keep their headers over them: the support column is as wide as its header. */
   .scoreCell {
-    grid-template-columns: 40px minmax(36px, 1fr) 34px 38px;
+    grid-template-columns: 40px minmax(32px, 1fr) 30px 46px;
     gap: 8px;
   }
 
@@ -840,32 +906,51 @@
   .amounts {
     grid-template-columns: minmax(0, 1fr);
   }
+}
 
-  /* Two phone columns keep each value, its margin, and its rank; support and every meter or bar (each cell's third slot) stay on the single sheet. */
-  .sheet[data-compare] .scoreCell {
-    grid-template-columns: 38px minmax(30px, 1fr) 30px;
+/* Phone columns are too narrow for a mark beside a name, so each mark sits above its name, which steps down with its kicker to keep to a line or two. */
+@media (max-width: 480px) {
+  .sheet[data-compare]:not([data-capture-layout="artifact"]) .identity {
+    grid-template-columns: minmax(0, 1fr);
     gap: 6px;
   }
 
-  .sheet[data-compare] .scoreCell > :nth-child(3),
-  .sheet[data-compare] .scoreCell > :last-child,
-  .sheet[data-compare] .ratioCell > :nth-child(3),
-  .sheet[data-compare] .benchmarkCell > :nth-child(3) {
+  .sheet[data-compare]:not([data-capture-layout="artifact"]) .name {
+    font-size: 15px;
+  }
+
+  .sheet[data-compare]:not([data-capture-layout="artifact"]) .kicker {
+    font-size: var(--type-micro-size);
+  }
+}
+
+/* The narrowest phones close up the label column and the cells so value, margin, and rank still fit. */
+@media (max-width: 380px) {
+  .sheet[data-compare]:not([data-capture-layout="artifact"]) {
+    --sheet-label: 92px;
+  }
+
+  .sheet[data-compare]:not([data-capture-layout="artifact"]) .scoreCell {
+    gap: 4px;
+  }
+
+  .sheet[data-compare]:not([data-capture-layout="artifact"]) .benchmarks {
+    --benchmark-value: 62px;
+  }
+}
+
+/* Below 350px two columns hold only each value and its margin, so ranks stay on the single sheet. */
+@media (max-width: 349px) {
+  .sheet[data-compare]:not([data-capture-layout="artifact"])
+    :is(.scoreHead, .scoreCell > :nth-child(4), [aria-labelledby="model-sheet-scores"] h3 small) {
     display: none;
   }
 
-  /* Phone data runs at 12px, so a narrower value column still fits a dollar balance; values keep one right edge so margins line up down the list. */
-  .benchmarks {
-    --benchmark-value: 70px;
+  .sheet[data-compare]:not([data-capture-layout="artifact"]) .scoreCell {
+    grid-template-columns: 38px minmax(30px, 1fr);
   }
 
-  .sheet[data-compare] .ratioCell {
-    grid-template-columns: 44px minmax(0, 1fr);
-    gap: 6px;
-  }
-
-  .sheet[data-compare] .benchmarkCell {
-    grid-template-columns: var(--benchmark-value) minmax(0, 1fr);
-    gap: 6px;
+  .sheet[data-compare]:not([data-capture-layout="artifact"]) .benchmarks {
+    --benchmark-value: 50px;
   }
 }

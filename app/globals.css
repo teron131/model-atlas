@@ -99,6 +99,11 @@ html[data-model-atlas-theme="light"] {
   scrollbar-width: none;
 }
 
+/* Until a strip has measured itself it clips sideways without scrolling, so one wider than a phone never widens the page before hydration; clipping this axis alone leaves the selection star's bloom beneath it whole. */
+.horizontal-choice-strip:not([data-overflow-end]) {
+  overflow-x: clip;
+}
+
 .horizontal-choice-strip:is([data-overflow-start="true"], [data-overflow-end="true"]) {
   overflow-x: auto;
 }
@@ -484,7 +489,7 @@ html[data-model-atlas-theme="light"] .theme-icon-dark {
   margin: 0;
   color: var(--scene-ink);
   font-family: var(--font-sans);
-  font-size: clamp(54px, 8.8vw, 136px);
+  font-size: clamp(44px, 8.8vw, 136px);
   font-weight: 500;
   letter-spacing: -0.054em;
   line-height: 0.86;
@@ -1686,7 +1691,10 @@ td.modality-cell {
   :root {
     --page-gutter: 14px;
     --dashboard-icon-button-size: 44px;
-    --mono-data: 12px;
+    /* Phone planes are a third as wide, so the readout, note, and data sizes each step down; labels, captions, and the micro floor hold. */
+    --type-readout-size: 20px;
+    --type-note-size: 14px;
+    --type-data-size: 12px;
     --sans-note: 13px;
     --model-name: 14px;
     --model-id: 11px;

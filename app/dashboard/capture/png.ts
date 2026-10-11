@@ -38,16 +38,21 @@ export function captureFileToken(value: string): string {
     .replace(/^-|-$/g, "");
 }
 
-/** Render one dashboard element at its deterministic CSS pixel dimensions. */
+/**
+ * Render one dashboard element at its deterministic CSS pixel dimensions.
+ * A copy staged at `captureWidth` only restyles the live markup, so `onStaged` lets the surface redraw whatever it measured to its on-screen width, such as a plot, for the copy's own width before the image renders.
+ */
 export async function downloadElementPng(
   element: HTMLElement,
   fileName: string,
   captureWidth?: number,
+  onStaged?: (staged: HTMLElement) => void,
 ): Promise<void> {
   const rendererPromise = import("html-to-image");
   await document.fonts.ready;
   const stagedCapture = captureWidth == null ? null : stageGraphRender(element, captureWidth);
   const captureElement = stagedCapture?.element ?? element;
+  if (stagedCapture != null) onStaged?.(stagedCapture.element);
   const [{ toBlob }] = await Promise.all([rendererPromise, waitForImages(captureElement)]);
   const backgroundColor = captureBackgroundColor(captureElement);
   const restoreSvgStyles = materializeSvgStyles(captureElement);

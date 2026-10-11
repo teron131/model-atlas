@@ -10,24 +10,27 @@ import { usePngCapture } from "./use-png";
 
 import styles from "./capture.module.css";
 
-/** Download a referenced surface while keeping the action itself out of the image; `kind` names the surface in the button's label. */
+/** Download a referenced surface while keeping the action itself out of the image; `kind` names the surface in the button's label, and `onStaged` lets the surface redraw its staged copy for the image's width. */
 export function CaptureButton({
   targetRef,
   title,
   captureWidth,
   fileName,
   kind = "graph",
+  onStaged,
 }: {
   targetRef: RefObject<HTMLElement | null>;
   title: string;
   captureWidth: number;
   fileName?: string;
   kind?: string;
+  onStaged?: (staged: HTMLElement) => void;
 }) {
   const { capture, state } = usePngCapture(
     targetRef,
     fileName ?? `model-atlas-${captureFileToken(title)}`,
     captureWidth,
+    onStaged,
   );
   const label =
     state === "rendering"

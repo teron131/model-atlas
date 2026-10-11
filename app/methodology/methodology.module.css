@@ -881,6 +881,13 @@
   display: none;
 }
 
+/* Longer titles wrap below about 1000px; a wrapped title takes the hero's leading, so the first line's descenders clear the second. */
+@media (max-width: 1100px) {
+  .documentTitle:global(.dashboard-section-title) {
+    line-height: 0.98;
+  }
+}
+
 /* Narrow screens keep the full document strip, scrolling sideways, and shown navigation stacks above the text instead of beside it; the current document keeps only its star's tight glow so the scroll box never clips a bloom. */
 @media (max-width: 719px) {
   .page {
@@ -912,6 +919,11 @@
 
   .documentSwitcher > ul > li:has(> ul:not([hidden])) {
     grid-column: 1 / -1;
+  }
+
+  /* A phone title sits over a 22px section heading and often wraps, so it scales from 28px up to the frame's size at this width. */
+  .documentTitle:global(.dashboard-section-title) {
+    font-size: clamp(28px, calc(11.5vw - 15px), 60px);
   }
 
   .article h2 {
