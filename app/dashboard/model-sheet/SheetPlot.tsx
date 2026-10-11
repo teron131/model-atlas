@@ -3,6 +3,15 @@
 /** The sheet's small plots share one frame: Intelligence up the side and Cost× along a base-10 log foot with the 1× benchmark-median guide, measured to the sheet's width. */
 
 import { scaleLinear, scaleLog } from "d3-scale";
+import {
+  createContext,
+  type CSSProperties,
+  type RefObject,
+  useCallback,
+  useContext,
+  useState,
+} from "react";
+import { flushSync } from "react-dom";
 
 import { logRatioAxisScale } from "../graphs/plot/axis-scale";
 import { type Margin, plotBoundsFor, stableSvgScale } from "../graphs/plot/Primitives";
@@ -22,6 +31,33 @@ const MIN_TICK_GAP = 46;
 const AXIS_TITLE_BOX = { width: 92, height: 18 };
 /** Point labels place themselves within the plot bounds, so they clamp to the plot with no extra margin. */
 export const LABEL_MARGIN: Margin = { top: 0, right: 0, bottom: 0, left: 0 };
+/** A lit model's star takes the leaderboard score star's size. */
+export const LIT_STAR_RADIUS = 3;
+/** The plot width of a saved card while the sheet redraws for it, so the image's plots are drawn at the card's size instead of being scaled from the sheet's. */
+export const CardPlotWidth = createContext<number | null>(null);
+
+/**
+ * Redraw a saved card's plots for the card rather than magnifying the sheet's.
+ * `redraw` takes the staged card: the sheet's plots draw to the card's plot width for one synchronous render, their marks replace the staged copies, and the sheet returns to its own width before the browser paints.
+ * `width` feeds `CardPlotWidth` around the sheet's plots.
+ */
+export function useCardPlotRedraw(sheetRef: RefObject<HTMLElement | null>) {
+  const [width, setWidth] = useState<number | null>(null);
+  const redraw = useCallback(
+    (card: HTMLElement) => {
+      const plots = sheetRef.current?.querySelectorAll(`.${styles.plot}`) ?? [];
+      const staged = card.querySelectorAll(`.${styles.plot}`);
+      if (staged.length === 0 || plots.length !== staged.length) return;
+      flushSync(() => setWidth(staged[0]!.clientWidth));
+      staged.forEach((host, index) => {
+        host.replaceChildren(...Array.from(plots[index]!.children, (mark) => mark.cloneNode(true)));
+      });
+      flushSync(() => setWidth(null));
+    },
+    [sheetRef],
+  );
+  return { width, redraw };
+}
 
 /** Fit a plot to its host: Cost× on a log scale that always reaches the 1× median, Intelligence over `scoreDomain`. */
 export function useSheetPlot(
@@ -29,7 +65,8 @@ export function useSheetPlot(
   costs: readonly number[],
   scoreDomain: readonly [number, number],
 ) {
-  const { chartRef, width } = useChartWidth(PLOT_MAX_WIDTH);
+  const { chartRef, width: hostWidth } = useChartWidth(PLOT_MAX_WIDTH);
+  const width = Math.min(PLOT_MAX_WIDTH, useContext(CardPlotWidth) ?? hostWidth);
   const axis = logRatioAxisScale([...costs], formatResourceRatio);
   const bounds = plotBoundsFor(width, height, PLOT_MARGIN);
   const x = stableSvgScale(
@@ -67,6 +104,36 @@ export function useSheetPlot(
 }
 
 export type SheetPlotGeometry = ReturnType<typeof useSheetPlot>;
+
+/** One of the sheet's own models, drawn as the leaderboard's score star rather than a chart's ringed mark: a solid core in the provider's light that blooms when lit and steps back when muted. */
+export function SheetStar({
+  cx,
+  cy,
+  radius,
+  color,
+  lit = false,
+  muted = false,
+}: {
+  cx: number;
+  cy: number;
+  radius: number;
+  color: string;
+  lit?: boolean;
+  muted?: boolean;
+}) {
+  return (
+    <circle
+      className={styles.plotStar}
+      data-lit={lit || undefined}
+      data-muted={muted || undefined}
+      cx={cx}
+      cy={cy}
+      r={radius}
+      style={{ "--star": color } as CSSProperties}
+      aria-hidden="true"
+    />
+  );
+}
 
 /** The plot's field, score gridlines, cost labels, median guide, and axis titles, drawn beneath its marks. */
 export function SheetPlotFrame({

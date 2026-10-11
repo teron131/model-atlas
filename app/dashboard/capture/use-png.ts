@@ -8,11 +8,12 @@ import { downloadElementPng } from "./png";
 
 type CaptureState = "idle" | "rendering" | "saved" | "error";
 
-/** Capture a referenced element while exposing compact progress and completion state. */
+/** Capture a referenced element while exposing compact progress and completion state; `onStaged` receives the copy staged at `captureWidth` before it renders. */
 export function usePngCapture(
   targetRef: RefObject<HTMLElement | null>,
   fileName: string,
   captureWidth?: number,
+  onStaged?: (staged: HTMLElement) => void,
 ) {
   const [state, setState] = useState<CaptureState>("idle");
   const resetTimeoutRef = useRef<number | null>(null);
@@ -27,7 +28,7 @@ export function usePngCapture(
     }
     setState("rendering");
     try {
-      await downloadElementPng(target, fileName, captureWidth);
+      await downloadElementPng(target, fileName, captureWidth, onStaged);
       setState("saved");
     } catch (error) {
       console.error("Unable to render PNG", error);
@@ -37,7 +38,7 @@ export function usePngCapture(
       setState("idle");
       resetTimeoutRef.current = null;
     }, 1800);
-  }, [captureWidth, fileName, state, targetRef]);
+  }, [captureWidth, fileName, onStaged, state, targetRef]);
 
   useEffect(() => {
     return () => {

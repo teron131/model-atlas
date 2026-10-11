@@ -2,7 +2,6 @@
 
 /** The hero opens on the frontier sky: displayed models rise as stars over the horizon above the title and the frontier register, and choosing a star or a role opens its model sheet. */
 
-import { ArrowRight, ArrowUp } from "lucide-react";
 import dynamic from "next/dynamic";
 import { type CSSProperties, memo, useLayoutEffect, useMemo, useRef, useState } from "react";
 
@@ -23,7 +22,7 @@ const FrontierField = dynamic(
   () => import("./FrontierField").then((module) => module.FrontierField),
   { ssr: false },
 );
-// The horizon rests under the title: this share of its type size below the title's line box, or this share of the open sky down to the key when a tall hero leaves more.
+// The horizon rests under the title: this share of its type size below the title's line box, or this share of the open sky down to the register when a tall hero leaves more.
 const HORIZON_GAP = 0.1;
 const HORIZON_SPACE_SHARE = 0.15;
 
@@ -55,14 +54,14 @@ export const ModelSignature = memo(function ModelSignature(population: Signature
     [population.models, population.referenceModels, signatureModelRows],
   );
 
-  // The title moves whenever the viewport or the key and register below it change size.
+  // The title moves whenever the viewport or the register below it changes size.
   useLayoutEffect(() => {
     const hero = heroRef.current;
     const title = titleRef.current;
     if (hero == null || title == null) return;
     const measure = () => {
       const bottom = title.getBoundingClientRect().bottom;
-      // The first row shown below the title: the key, or the register where the key is hidden.
+      // The first row shown below the title.
       let next = title.nextElementSibling;
       while (next != null && next.getClientRects().length === 0) next = next.nextElementSibling;
       const open = (next?.getBoundingClientRect().top ?? bottom) - bottom;
@@ -104,25 +103,6 @@ export const ModelSignature = memo(function ModelSignature(population: Signature
         <span className={styles.titleStart}>Mapping</span>{" "}
         <span className={styles.titleEnd}>Frontiers</span>
       </h2>
-      {/* The key states how the decorative sky maps scores, like the legend on a star chart. */}
-      <ul className={styles.skyKey} aria-hidden="true" hidden={stars.length === 0}>
-        <li>
-          <span className={styles.keyStar} />
-          Each star is a model
-        </li>
-        <li>
-          <ArrowUp />
-          Higher is more intelligent
-        </li>
-        <li>
-          <ArrowRight />
-          Further right is newer
-        </li>
-        <li>
-          <span className={styles.keyRays} />
-          Stars with rays hold frontier roles
-        </li>
-      </ul>
       <ol className={styles.register} aria-label="Frontier roles">
         {signatureModelRows.map((model) => (
           <li

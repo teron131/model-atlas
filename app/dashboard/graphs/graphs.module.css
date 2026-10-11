@@ -1494,6 +1494,15 @@
     max-width: 100%;
   }
 
+  /* A phone plot is a third of the desktop's width, so its ticks, titles, and model names take the caption size and leave the plot to the stars; labels are measured as rendered, so placement follows. */
+  .axisLabel,
+  .axisTitle,
+  .medianLabel,
+  .pointLabel,
+  .cursorProjectionLabel {
+    font-size: var(--type-caption-size);
+  }
+
   .figureTop,
   .figureFoot {
     --axis-control-height: 44px;

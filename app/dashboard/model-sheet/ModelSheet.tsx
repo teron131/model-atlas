@@ -53,6 +53,7 @@ import {
   unpinModelSheet,
 } from "./open";
 import { ReasoningEffort } from "./ReasoningEffort";
+import { CardPlotWidth, useCardPlotRedraw } from "./SheetPlot";
 
 import captureStyles from "../capture/capture.module.css";
 import styles from "./model-sheet.module.css";
@@ -184,6 +185,8 @@ export function ModelSheet({ payload }: { payload: ModelAtlasPayload | null }) {
     return () => document.removeEventListener("click", dismissOnClickElsewhere);
   }, [open]);
 
+  const cardPlots = useCardPlotRedraw(sheetRef);
+
   if (!open) return null;
   if (opened == null) {
     return (
@@ -223,6 +226,7 @@ export function ModelSheet({ payload }: { payload: ModelAtlasPayload | null }) {
       title={captureTitle}
       kind="sheet"
       captureWidth={comparing ? WIDE_ARTIFACT_WIDTH : ARTIFACT_WIDTH}
+      onStaged={cardPlots.redraw}
     />
   );
   return (
@@ -283,10 +287,12 @@ export function ModelSheet({ payload }: { payload: ModelAtlasPayload | null }) {
         <Facts entries={entries} />
         <Scores entries={entries} />
         <Resources entries={entries} />
-        <FrontierInset population={opened.rows} entries={entries} />
-        {entries.some((entry) => entry.variants.length > 1) ? (
-          <ReasoningEffort entries={entries} />
-        ) : null}
+        <CardPlotWidth.Provider value={cardPlots.width}>
+          <FrontierInset population={opened.rows} entries={entries} />
+          {entries.some((entry) => entry.variants.length > 1) ? (
+            <ReasoningEffort entries={entries} />
+          ) : null}
+        </CardPlotWidth.Provider>
         <BenchmarkEvidence entries={entries} />
         {!comparing && opened.row.model.latest_change ? (
           <LatestChange model={opened.row.model} change={opened.row.model.latest_change} />

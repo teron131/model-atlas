@@ -10,7 +10,7 @@
   --provider-openai-color: var(--scene-ink);
   position: relative;
   display: grid;
-  grid-template-rows: minmax(0, 1fr) auto auto;
+  grid-template-rows: minmax(0, 1fr) auto;
   min-height: max(640px, calc(100svh - var(--header-height) - env(safe-area-inset-top)));
   padding: 0 var(--research-inset);
   color: var(--scene-ink);
@@ -223,68 +223,11 @@
   animation-delay: 140ms;
 }
 
-/* Tall heroes run the lit horizon behind the key and register, so their text keeps a tight night edge: enough to hold over the rim, too small to cloud the open sky. */
-.skyKey,
+/* Tall heroes run the lit horizon behind the register, so its text keeps a tight night edge: enough to hold over the rim, too small to cloud the open sky. */
 .register {
   text-shadow:
     0 0 2px rgb(2 4 15 / 0.85),
     0 0 6px rgb(2 4 15 / 0.35);
-}
-
-/* A star-chart legend states the sky's mapping in plain words. */
-.skyKey {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 22px;
-  margin: 0 0 18px;
-  padding: 0;
-  color: var(--scene-ink);
-  font-family: var(--font-sans);
-  font-size: var(--type-label-size);
-  font-weight: var(--type-body-weight);
-  line-height: 1.4;
-  list-style: none;
-  animation: title-rise 1100ms 600ms cubic-bezier(0.2, 0.75, 0, 1) both;
-}
-
-.skyKey[hidden] {
-  display: none;
-}
-
-.skyKey li {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-}
-
-.skyKey svg {
-  width: 12px;
-  height: 12px;
-  stroke-width: 2.2;
-  color: var(--scene-muted);
-}
-
-.keyStar,
-.keyRays {
-  display: inline-block;
-  flex: 0 0 auto;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-}
-
-.keyStar {
-  background: radial-gradient(circle, #fff 0 1.5px, rgb(170 190 255 / 0.55) 2.5px, transparent 6px);
-}
-
-/* Frontier stars carry tapered diffraction rays in the sky; the key draws the same star small. */
-.keyRays {
-  border-radius: 0;
-  background:
-    radial-gradient(circle, #fff 0 1.3px, rgb(170 190 255 / 0.5) 2.3px, transparent 4.5px),
-    linear-gradient(90deg, transparent, rgb(222 230 255 / 0.85), transparent) center / 100% 1px
-      no-repeat,
-    linear-gradient(transparent, rgb(222 230 255 / 0.85), transparent) center / 1px 100% no-repeat;
 }
 
 @keyframes title-rise {
@@ -458,7 +401,6 @@
 @media (prefers-reduced-motion: reduce) {
   .titleStart,
   .titleEnd,
-  .skyKey,
   .registerItem {
     animation: none;
   }
@@ -477,13 +419,8 @@
 }
 
 @media (max-width: 720px) {
-  .starLabel,
-  .starCard {
-    display: none;
-  }
-
   .signature {
-    grid-template-rows: auto auto auto;
+    grid-template-rows: auto auto;
     min-height: 0;
   }
 
@@ -491,12 +428,6 @@
     align-self: start;
     margin: 18vw 0 30vw;
     font-size: clamp(44px, 16.5vw, 120px);
-  }
-
-  .skyKey {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px 14px;
   }
 
   .register {
@@ -517,5 +448,13 @@
 
   .registerMetricVisual {
     justify-content: flex-end;
+  }
+}
+
+/* Star names and the identification card belong to a pointer: a phone goes without them, while a desktop window narrowed or zoomed to a phone's width keeps both, each name shown where it finds room. */
+@media (max-width: 600px) and (hover: none) {
+  .starLabel,
+  .starCard {
+    display: none;
   }
 }

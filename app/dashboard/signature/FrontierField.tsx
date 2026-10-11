@@ -22,8 +22,12 @@ const INTRO_DURATION = 2600;
 const STAR_CLEARANCE = 12;
 const LABEL_GAP = 5;
 const LABEL_HEIGHT = 12;
-// Names keep this far inside the window's sides.
+// A name set a row above or below its star's line keeps this gap from the name on that line.
+const LABEL_ROW_GAP = 2;
+// Names keep this far inside the window's sides and the hero's top.
 const LABEL_EDGE = 8;
+// The share of a title line's box above its capitals, which a name may enter.
+const TITLE_HEADROOM = 0.14;
 // How close the pointer must come to a star to identify it, and how far into the scroll stars stay explorable.
 const STAR_REACH = 16;
 const EXPLORE_UNTIL = 0.35;
@@ -131,6 +135,12 @@ export function FrontierField({
     let pointer: { x: number; y: number } | null = null;
     let cardKey: string | null = null;
     let hoveredKey: string | null = null;
+    // The title's lines as set, so names keep off the words rather than off their full-width boxes.
+    const titleLines = Array.from(hero.querySelectorAll("h2 > span"), (line) => {
+      const range = document.createRange();
+      range.selectNodeContents(line);
+      return range;
+    });
 
     const ambient = () => !motion.matches && !document.hidden;
     const easePointer = (elapsed: number) => {
@@ -164,24 +174,41 @@ export function FrontierField({
       return frameState.intro < 1;
     };
 
-    /** Put each name beside its star, inside the window, without covering another name or star: right, left, then below or above. */
+    /**
+     * Put each name by its star, inside the window and the hero, clear of every star, every other name, and the title.
+     * It tries the star's right and left, then below and above running either way, then a row above or below its line; a name with nowhere clear gives way rather than cover something, so a narrow or zoomed window names the stars it has room for.
+     */
     const placeLabels = (entries: SkyLabel[]) => {
-      const occupied = entries.map(({ x, y }) => ({
-        left: x - STAR_CLEARANCE,
-        top: y - STAR_CLEARANCE,
-        right: x + STAR_CLEARANCE,
-        bottom: y + STAR_CLEARANCE,
-      }));
+      const occupied = [
+        ...entries.map(({ x, y }) => ({
+          left: x - STAR_CLEARANCE,
+          top: y - STAR_CLEARANCE,
+          right: x + STAR_CLEARANCE,
+          bottom: y + STAR_CLEARANCE,
+        })),
+        ...titleLines.map((line) => {
+          const { left, top, right, bottom } = line.getBoundingClientRect();
+          return { left, top: top + (bottom - top) * TITLE_HEADROOM, right, bottom };
+        }),
+      ];
+      const ceiling = hero.getBoundingClientRect().top + LABEL_EDGE;
       for (const entry of [...entries].sort((left, right) => left.y - right.y)) {
         const element = labelElements.current.get(entry.label);
         if (element == null) continue;
         const width = element.offsetWidth;
         const beside = STAR_CLEARANCE + LABEL_GAP;
+        const row = LABEL_HEIGHT + LABEL_ROW_GAP;
         const offsets = [
           [beside, -LABEL_HEIGHT / 2],
           [-beside - width, -LABEL_HEIGHT / 2],
-          [beside - STAR_CLEARANCE, beside],
-          [beside - STAR_CLEARANCE, -beside - LABEL_HEIGHT],
+          [LABEL_GAP, beside],
+          [LABEL_GAP, -beside - LABEL_HEIGHT],
+          [-LABEL_GAP - width, beside],
+          [-LABEL_GAP - width, -beside - LABEL_HEIGHT],
+          [beside, -LABEL_HEIGHT / 2 - row],
+          [beside, -LABEL_HEIGHT / 2 + row],
+          [-beside - width, -LABEL_HEIGHT / 2 - row],
+          [-beside - width, -LABEL_HEIGHT / 2 + row],
         ] as const;
         const boxes = offsets.map(([dx, dy]) => ({
           left: entry.x + dx,
@@ -191,7 +218,9 @@ export function FrontierField({
         }));
         type Box = (typeof boxes)[number];
         const inside = (box: Box) =>
-          box.left >= LABEL_EDGE && box.right <= frameState.width - LABEL_EDGE;
+          box.left >= LABEL_EDGE &&
+          box.right <= frameState.width - LABEL_EDGE &&
+          box.top >= ceiling;
         const clear = (box: Box) =>
           occupied.every(
             (other) =>
@@ -200,9 +229,11 @@ export function FrontierField({
               box.bottom <= other.top ||
               box.top >= other.bottom,
           );
-        // A name never leaves the window; crowding another name is the lesser fault.
-        const free =
-          boxes.find((box) => inside(box) && clear(box)) ?? boxes.find(inside) ?? boxes[0]!;
+        const free = boxes.find((box) => inside(box) && clear(box));
+        if (free == null) {
+          element.style.opacity = "0";
+          continue;
+        }
         occupied.push(free);
         element.style.transform = `translate3d(${free.left.toFixed(1)}px, ${free.top.toFixed(1)}px, 0)`;
         element.style.opacity = entry.opacity.toFixed(3);
