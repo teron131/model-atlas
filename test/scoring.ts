@@ -189,8 +189,8 @@ for (const key of INDEX_BENCHMARK_KEYS) {
 assert.equal(INDEX_REPRESENTED_BENCHMARK_COUNTS.aa_intelligence_index, 10);
 assert.equal(INDEX_REPRESENTED_BENCHMARK_COUNTS.cais_capabilities_index, 7);
 assert.equal(INDEX_REPRESENTED_BENCHMARK_COUNTS.surge_intelligence_index, 8);
-assert.equal(INDEX_REPRESENTED_BENCHMARK_COUNTS.vals_index, 7);
-assert.equal(INDEX_REPRESENTED_BENCHMARK_COUNTS.epoch_capabilities_index, 7.5);
+assert.equal(INDEX_REPRESENTED_BENCHMARK_COUNTS.vals_index, 8);
+assert.equal(INDEX_REPRESENTED_BENCHMARK_COUNTS.epoch_capabilities_index, 8);
 assert.equal(
   INDEX_REPRESENTED_BENCHMARK_MEDIAN,
   medianOfFinite(
@@ -239,7 +239,6 @@ assert.deepEqual(
     "gdpval_normalized",
     "hle",
     "mlcr_aa",
-    "scicode",
     "terminal_bench_4",
     "terminal_bench_science",
   ],
@@ -2224,7 +2223,7 @@ const undercoveredScore = buildComponentScoreResult(
   undercoveredContext,
 ).componentScores?.intelligence_score;
 // The task groups keep their 80/20 budget before the direct and index union weights are combined.
-const expectedUndercoveredScore = (80 * 2 + 70 * 5 + 30 * 3.5) / 10.5;
+const expectedUndercoveredScore = (80 * 2 + 70 * 5 + 30 * 4) / 11;
 assertClose(undercoveredScore, expectedUndercoveredScore);
 assertClose(
   buildComponentScoreResult(
@@ -2260,7 +2259,7 @@ assertClose(
     lowImportanceIndexConfig,
     buildQualityScoringContext(undercoveredModels, lowImportanceIndexConfig),
   ).componentScores?.intelligence_score,
-  (80 * 2 + 70 * 0.5 + 30 * 0.35) / 2.85,
+  (80 * 2 + 70 * 0.5 + 30 * 0.4) / 2.9,
 );
 const coveredScore = buildComponentScoreResult(
   coveredModel,
@@ -2269,7 +2268,7 @@ const coveredScore = buildComponentScoreResult(
   undercoveredConfig,
   undercoveredContext,
 ).componentScores?.intelligence_score;
-assertClose(coveredScore, (60 * 8 + 100 * 8.5) / 16.5);
+assertClose(coveredScore, (60 * 8 + 100 * 9) / 17);
 
 const nearlyCoveredModel = {
   ...coveredModel,
@@ -2282,7 +2281,7 @@ const nearlyCoveredScore = buildComponentScoreResult(
   undercoveredConfig,
   undercoveredContext,
 ).componentScores?.intelligence_score;
-assertClose(nearlyCoveredScore, (60 * 7 + 100 * 8.5) / 15.5);
+assertClose(nearlyCoveredScore, (60 * 7 + 100 * 9) / 16);
 assert.ok(
   Math.abs(nearlyCoveredScore! - coveredScore!) < 10,
   "one additional direct benchmark must change only its own evidence weight",
@@ -2325,12 +2324,12 @@ assertClose(
     undercoveredConfig,
     undercoveredContext,
   ).componentScores?.intelligence_score,
-  (100 * 8.5 + 60 * 4) / 12.5,
+  (100 * 9 + 60 * 4) / 13,
 );
 assertClose(
   buildComponentScoreResult(fourTaskModel, nullSpeed, [], undercoveredConfig, undercoveredContext)
     .componentScores?.intelligence_score,
-  (100 * 8.5 + 60 * 4) / 12.5,
+  (100 * 9 + 60 * 4) / 13,
 );
 const noTaskModel = { ...coveredModel, benchmarks: { vals_index: 100 } };
 assertEqual(

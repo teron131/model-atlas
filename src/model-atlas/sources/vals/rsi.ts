@@ -4,6 +4,7 @@
  * Page source: https://www.vals.ai/benchmarks/rsi_index
  */
 
+import { BENCHMARK_STANDARD_SOURCES } from "../../benchmarks/catalog/sources";
 import type {
   BenchmarkObservationMetadata,
   BenchmarkObservationPayload,
@@ -15,12 +16,12 @@ import { findObjectEnd, htmlAttribute, percentToUnitScore } from "../parsing";
 import { fetchSource } from "../request-scheduler";
 
 const RSI_VERSION = "1.1";
+const RSI_METRIC = BENCHMARK_STANDARD_SOURCES.rsi_benchmark.revision;
 const DEFAULT_TIMEOUT_MS = 30_000;
 const TASKS = [
   "overall",
   "compression",
   "lm_training",
-  "parameter_golf",
   "harness_engineering",
   "post_training",
 ] as const;
@@ -50,7 +51,7 @@ export async function getValsRsiStats(sourceUrl: string): Promise<BenchmarkObser
   }
 }
 
-/** Extract declarative leaderboard literals without executing the publisher's JavaScript. Reject the whole refresh unless the declared version, all six task views, model counts, and harness assignments form one complete cohort. */
+/** Extract declarative leaderboard literals without executing the publisher's JavaScript. Reject the whole refresh unless the declared version, four-task composition, model counts, and harness assignments form one complete cohort. */
 export function processValsRsiModule(
   moduleSource: string,
   componentSource: string,
@@ -67,6 +68,7 @@ export function processValsRsiModule(
   if (
     !metadata.includes('benchmark_id:"rsi_index"') ||
     version !== RSI_VERSION ||
+    !hasCurrentTaskComposition(metadata) ||
     updated == null ||
     modelCount == null ||
     !Number.isInteger(modelCount) ||
@@ -89,12 +91,11 @@ export function valsRsiCacheMatches(rows: readonly BenchmarkObservationRow[]): b
     TASKS.every((task) => rows.some((row) => row.metadata.task === task)) &&
     rows.every(
       (row) =>
+        TASKS.some((task) => row.metadata.task === task) &&
         row.metadata.benchmark_version === RSI_VERSION &&
         typeof row.metadata.harness === "string" &&
         row.metadata.metric ===
-          (row.metadata.task === "overall"
-            ? "five_task_reference_mean"
-            : "reference_scaled_task_score") &&
+          (row.metadata.task === "overall" ? RSI_METRIC : "reference_scaled_task_score") &&
         row.metadata.observation_role ===
           (row.metadata.task === "overall" ? undefined : "component"),
     )
@@ -133,7 +134,7 @@ function harnessMap(componentSource: string): Record<string, string> | null {
   return null;
 }
 
-/** Convert one task's results into model-plus-agent observations. The overall task remains scoring evidence, while the five subtasks are marked diagnostic and the caller rejects an incomplete task cohort. */
+/** Convert one task's results into model-plus-agent observations. The overall task remains scoring evidence, while the four subtasks are marked diagnostic and the caller rejects an incomplete task cohort. */
 function taskObservations(
   moduleSource: string,
   task: (typeof TASKS)[number],
@@ -168,7 +169,7 @@ function taskObservations(
     const metadata: BenchmarkObservationMetadata = {
       task,
       benchmark_version: version,
-      metric: task === "overall" ? "five_task_reference_mean" : "reference_scaled_task_score",
+      metric: task === "overall" ? RSI_METRIC : "reference_scaled_task_score",
       harness,
       ...(task === "overall" ? {} : { observation_role: "component" }),
     };
@@ -195,6 +196,19 @@ function taskObservations(
         (left.model_id ?? "").localeCompare(right.model_id ?? ""),
     )
     .map((row, index) => ({ ...row, rank: index + 1 }));
+}
+
+/** The publisher reused version 1.1 after removing Parameter Golf, so the declared task set is part of the contract. */
+function hasCurrentTaskComposition(metadata: string): boolean {
+  const fieldStart = metadata.indexOf("tasks:{");
+  if (fieldStart < 0) return false;
+  const start = fieldStart + "tasks:".length;
+  const end = findObjectEnd(metadata, start);
+  if (end < 0) return false;
+  const tasks = [...metadata.slice(start, end + 1).matchAll(/(?:^|[,{])([a-z_]+):"/g)].map(
+    (match) => match[1],
+  );
+  return tasks.length === TASKS.length && TASKS.every((task) => tasks.includes(task));
 }
 
 function stringField(value: string, key: string): string | null {

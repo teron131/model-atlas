@@ -87,7 +87,6 @@ assertDeepEqual(
     "gdpval_normalized",
     "hle",
     "mlcr_aa",
-    "scicode",
     "terminal_bench_4",
     "terminal_bench_science",
   ],

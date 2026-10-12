@@ -26,7 +26,7 @@ try {
   // Model an existing production checkpoint without the newly introduced archive.
   db.exec(`
     DROP TABLE historical_evidence;
-    INSERT INTO snapshot_metadata VALUES (1789000000);
+    INSERT INTO snapshot_metadata (updated_at_epoch_seconds) VALUES (1789000000);
     CREATE TABLE retired_raw_rows (row_index INTEGER, fetched_at_epoch_seconds INTEGER, model TEXT, value REAL);
     INSERT INTO retired_raw_rows VALUES (0, 1789000000, 'Removed upstream', 0.5);
     INSERT INTO model_atlas_schema_manifest VALUES ('table', 'retired_raw_rows');

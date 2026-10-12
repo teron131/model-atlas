@@ -41,8 +41,7 @@ import { SNAPSHOT_TABLES, type SnapshotTableName } from "./tables";
 
 type DbRow = Record<string, unknown>;
 
-export const SNAPSHOT_METADATA_SQL =
-  "SELECT updated_at_epoch_seconds FROM snapshot_metadata LIMIT 1";
+export const SNAPSHOT_METADATA_SQL = "SELECT * FROM snapshot_metadata LIMIT 1";
 
 type PayloadRowGroupOptions = {
   columns?: readonly string[];
@@ -211,7 +210,10 @@ export const PAYLOAD_ROW_GROUPS = [
 
 export type PayloadRowGroup = (typeof PAYLOAD_ROW_GROUPS)[number];
 type PayloadRowKey = PayloadRowGroup["key"];
-type PayloadRows = { fetchedAt: number | null } & Record<PayloadRowKey, DbRow[]>;
+type PayloadRows = {
+  fetchedAt: number | null;
+  snapshotPreservationVersion: number | null;
+} & Record<PayloadRowKey, DbRow[]>;
 
 const INPUT_MODALITY_COLUMNS = [
   ["input_modality_text", "text"],
@@ -422,22 +424,19 @@ function scoredCandidateFromRow(
   };
 }
 
-/** Reads the singleton snapshot publication timestamp. */
-export function payloadFetchedAtFromRow(row: unknown): number | null {
-  return asFiniteNumber(asRecord(row).updated_at_epoch_seconds);
-}
-
 /** Keeps every storage adapter aligned on the row groups required by the public payload. */
 export function buildPayloadRows(
-  fetchedAt: number | null,
+  snapshotMetadata: unknown,
   rowGroups: ReadonlyArray<readonly [PayloadRowKey, DbRow[]]>,
 ): PayloadRows {
+  const metadata = asRecord(snapshotMetadata);
   const rowsByKey = new Map(rowGroups);
   const rows = Object.fromEntries(
     PAYLOAD_ROW_GROUPS.map(({ key }) => [key, rowsByKey.get(key) ?? []]),
   ) as Record<PayloadRowKey, DbRow[]>;
   return {
-    fetchedAt,
+    fetchedAt: asFiniteNumber(metadata.updated_at_epoch_seconds),
+    snapshotPreservationVersion: asFiniteNumber(metadata.snapshot_preservation_version),
     ...rows,
   };
 }
@@ -668,6 +667,7 @@ export function buildPayloadFromRows(rows: PayloadRows): ModelAtlasPayload {
       healthModels: models,
       sourceHealth,
       sourceRowsByKey,
+      snapshotPreservationVersion: rows.snapshotPreservationVersion,
     }),
     models,
     benchmark_observations: benchmarkObservations(rows),

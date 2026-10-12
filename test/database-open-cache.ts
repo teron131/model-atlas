@@ -442,7 +442,9 @@ try {
       false,
       "A fallback-only DeepSWE snapshot should not suppress a v1.1 retry",
     );
-    reopenedDb.exec("DELETE FROM snapshot_metadata; INSERT INTO snapshot_metadata VALUES (100)");
+    reopenedDb.exec(
+      "DELETE FROM snapshot_metadata; INSERT INTO snapshot_metadata (updated_at_epoch_seconds) VALUES (100)",
+    );
     reopenedDb.exec("PRAGMA wal_checkpoint(TRUNCATE); PRAGMA wal_autocheckpoint = 0");
     assert.equal(readDatabasePayload(databasePath).fetched_at_epoch_seconds, 100);
     reopenedDb.exec("UPDATE snapshot_metadata SET updated_at_epoch_seconds = 101");

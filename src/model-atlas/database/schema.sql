@@ -16,7 +16,8 @@ CREATE TABLE IF NOT EXISTS model_atlas_schema_manifest (
 );
 
 CREATE TABLE IF NOT EXISTS snapshot_metadata (
-	updated_at_epoch_seconds INTEGER NOT NULL
+	updated_at_epoch_seconds INTEGER NOT NULL,
+	snapshot_preservation_version INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS artificial_analysis_raw_models (
@@ -374,6 +375,8 @@ CREATE TABLE IF NOT EXISTS vals_index_raw_rows (
 	model TEXT NOT NULL,
 	provider TEXT,
 	score REAL NOT NULL,
+	observed_at TEXT,
+	metadata_json TEXT NOT NULL DEFAULT '{}',
 	PRIMARY KEY (row_index)
 );
 

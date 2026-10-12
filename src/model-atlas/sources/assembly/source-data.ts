@@ -10,7 +10,7 @@ import {
   type BenchmarkObservationBinding,
 } from "../../benchmarks/registry";
 import type { CrosswalkObservation } from "../../benchmarks/sources-crosswalk";
-import { buildBenchmarkModelMap, modelSlugFromModelId } from "../../identity/normalization";
+import { buildBenchmarkModelMap } from "../../identity/normalization";
 import {
   type AgentsLastExamModelScoreRow,
   type AgentsLastExamRowsByModelName,
@@ -104,7 +104,7 @@ export type ModelAtlasSourceData = BenchmarkObservationData & {
   >;
   artificialAnalysis: {
     rows: unknown[];
-    bySlug: Map<string, ArtificialAnalysisModel>;
+    byId: Map<string, ArtificialAnalysisModel>;
   };
   artificialAnalysisBenchmarkResources: {
     rows: ArtificialAnalysisBenchmarkResourceRow[];
@@ -175,7 +175,7 @@ export function buildSourceData(rows: ModelAtlasSourceRows): ModelAtlasSourceDat
     ),
     artificialAnalysis: {
       rows: rows.artificialAnalysisRows,
-      bySlug: buildArtificialAnalysisBySlug(rows.artificialAnalysisRows),
+      byId: buildArtificialAnalysisById(rows.artificialAnalysisRows),
     },
     artificialAnalysisBenchmarkResources: {
       rows: rows.artificialAnalysisBenchmarkResourceRows,
@@ -255,14 +255,14 @@ function buildBenchmarkObservationData(rows: ModelAtlasSourceRows): BenchmarkObs
   ) as BenchmarkObservationData;
 }
 
-function buildArtificialAnalysisBySlug(rows: unknown[]): Map<string, ArtificialAnalysisModel> {
-  const bySlug = new Map<string, ArtificialAnalysisModel>();
+/** Provider-qualified source IDs prevent aliases sharing one slug from replacing each other's observations. */
+function buildArtificialAnalysisById(rows: unknown[]): Map<string, ArtificialAnalysisModel> {
+  const byId = new Map<string, ArtificialAnalysisModel>();
   for (const row of rows) {
     const model = row as ArtificialAnalysisModel;
-    const slug = modelSlugFromModelId(model.model_id);
-    if (slug) {
-      bySlug.set(slug, model);
+    if (typeof model.model_id === "string" && model.model_id.length > 0) {
+      byId.set(model.model_id, model);
     }
   }
-  return bySlug;
+  return byId;
 }

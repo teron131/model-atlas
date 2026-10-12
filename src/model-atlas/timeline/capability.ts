@@ -13,7 +13,7 @@ import { stableJson } from "../runtime";
 import { prepareTimelineBenchmarkEvidence } from "./benchmark-evidence";
 import { calibrateTimeline } from "./calibration";
 import { historicalNameKey, historicalSourceModel } from "./model-identity";
-import { prepareTimelineRelease } from "./scale";
+import { historicalReleaseId, prepareTimelineRelease } from "./scale";
 import type {
   HistoricalBenchmark,
   HistoricalCalibration,
@@ -52,12 +52,13 @@ export function capabilityModelId(model: Pick<ModelInput, "id" | "reasoning_effo
   return `atlas-model:${publicOpenRouterModelId(model.id)}::${canonicalReasoningEffort(model.reasoning_effort) ?? "unknown"}`;
 }
 
-/** Retain archived evidence for linking, apply the current portfolio to new estimates, and never replace a published model/dimension position. */
+/** Retain supported archived evidence, discard superseded current-only editions, and never replace a published model/dimension position. */
 export function advanceCapabilities(
   previous: CapabilityState,
   models: readonly ModelInput[],
   observedAt: string,
 ): CapabilityState {
+  previous = retainCurrentEditions(previous);
   const evidence = currentEvidence(models, observedAt);
   const externalIds = previous.dataset.benchmarks
     .filter((benchmark) => !benchmark.primary && !benchmark.key.startsWith("model_atlas_"))
@@ -87,6 +88,101 @@ export function advanceCapabilities(
     policy.id,
   );
   return { ...next, dataset: publishedDataset(next, calibration) };
+}
+
+/** Explicit source revisions replace internal Atlas editions; frozen coordinates remain published facts while their retired evidence stops participating in future fits. */
+function retainCurrentEditions(state: CapabilityState): CapabilityState {
+  const current = new Map(
+    Object.entries(BENCHMARK_CATALOG)
+      .filter(([, definition]) => definition.source.revision != null)
+      .map(([key]) => [`atlas_benchmark_${key}`, checkpointBenchmarkId(key)]),
+  );
+  const removed = new Set(
+    [...state.dataset.benchmarks, ...(state.dataset.scale?.benchmarks ?? [])]
+      .filter(
+        (benchmark) => current.has(benchmark.key) && current.get(benchmark.key) !== benchmark.id,
+      )
+      .map((benchmark) => benchmark.id),
+  );
+  if (!removed.size) return state;
+  const benchmarks = state.dataset.benchmarks
+    .filter((benchmark) => !removed.has(benchmark.id))
+    .map((benchmark) => {
+      const retained = { ...benchmark };
+      if (retained.supersededBy && removed.has(retained.supersededBy)) delete retained.supersededBy;
+      if (retained.editions) retained.editions = retained.editions.filter((id) => !removed.has(id));
+      if (retained.componentIds)
+        retained.componentIds = retained.componentIds.filter((id) => !removed.has(id));
+      return retained;
+    });
+  const dataset: HistoricalDataset = {
+    ...state.dataset,
+    benchmarks,
+    observations: state.dataset.observations.filter((row) => !removed.has(row.benchmarkId)),
+    activeBenchmarkIds: state.dataset.activeBenchmarkIds?.filter((id) => !removed.has(id)),
+    portfolios: state.dataset.portfolios.map((entry) => ({
+      ...entry,
+      components: entry.components.filter(
+        (component) => component.benchmarkId == null || !removed.has(component.benchmarkId),
+      ),
+    })),
+  };
+  delete dataset.prepared;
+  dataset.releaseId = historicalReleaseId(dataset);
+  if (state.dataset.scale) {
+    const previous = state.dataset.scale;
+    const retainDimension = (dimension: TimelineDimension) => {
+      const links = previous.dimensions[dimension].links.filter(
+        (link) => !removed.has(link.left) && !removed.has(link.right),
+      );
+      const retainedLinks = new Set(links.map((link) => link.id));
+      const nodes = previous.dimensions[dimension].nodes
+        .filter((node) => !removed.has(node.benchmarkId))
+        .map((node) => ({
+          ...node,
+          path: node.path.filter((id) => !removed.has(id)),
+          errors: node.errors.filter((error) => retainedLinks.has(error.linkId)),
+        }));
+      return { links, nodes };
+    };
+    const dimensions = {
+      intelligence: retainDimension("intelligence"),
+      agentic: retainDimension("agentic"),
+    };
+    dataset.scale = {
+      ...previous,
+      id: createHash("sha256")
+        .update(
+          stableJson({
+            parameters: previous.parameters,
+            qualityTransform: previous.qualityTransform,
+            minimumReferenceConfidence: previous.minimumReferenceConfidence,
+            releaseId: dataset.releaseId,
+            dimensions,
+          }),
+        )
+        .digest("hex"),
+      parentId: previous.id,
+      benchmarks,
+      observations: dataset.observations,
+      dimensions,
+    };
+  }
+  return {
+    ...state,
+    dataset,
+    policies: Object.fromEntries(
+      Object.entries(state.policies).map(([id, policy]) => [
+        id,
+        {
+          benchmarkIds: policy.benchmarkIds.filter((benchmarkId) => !removed.has(benchmarkId)),
+          weights: Object.fromEntries(
+            Object.entries(policy.weights).filter(([benchmarkId]) => !removed.has(benchmarkId)),
+          ),
+        },
+      ]),
+    ),
+  };
 }
 
 /** A catalog route can change without a new model release; only an unambiguous matching name, provider, effort, and release date may carry the published coordinate. */

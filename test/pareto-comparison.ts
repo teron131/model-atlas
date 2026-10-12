@@ -283,21 +283,21 @@ assert.deepEqual(
 // Table and default graph consume the same observed basket and fixed reference medians.
 const displayedA = {
   ...minimalModelAtlasModel({ id: "test/a", name: "Displayed A" }),
-  benchmarks: { hle: 0.4, scicode: 0.6 },
+  benchmarks: { hle: 0.4, mlcr_aa: 0.6 },
   task_metrics: {
     hle: { cost: 2, seconds: 2, tokens: 100, output_tokens: 20 },
-    scicode: { cost: 8, seconds: 10, tokens: 500, output_tokens: 40 },
+    mlcr_aa: { cost: 8, seconds: 10, tokens: 500, output_tokens: 40 },
   },
 };
 const displayedB = {
   ...minimalModelAtlasModel({ id: "test/b", name: "Displayed B" }),
-  benchmarks: { hle: 0.8, scicode: 0.7 },
+  benchmarks: { hle: 0.8, mlcr_aa: 0.7 },
   task_metrics: {
     hle: { cost: 6, seconds: 6, tokens: 300, output_tokens: 60 },
-    scicode: { cost: 24, seconds: 30, tokens: 1500, output_tokens: 120 },
+    mlcr_aa: { cost: 24, seconds: 30, tokens: 1500, output_tokens: 120 },
   },
 };
-const displayPortfolio = { hle: { ...automaticPortfolio.a }, scicode: { ...automaticPortfolio.b } };
+const displayPortfolio = { hle: { ...automaticPortfolio.a }, mlcr_aa: { ...automaticPortfolio.b } };
 for (const kind of ["cost", "time", "tokens"] as const) {
   const observations = resourceRatioObservations([displayedA, displayedB], displayPortfolio, kind);
   const references = resourceRatioReferences(observations);

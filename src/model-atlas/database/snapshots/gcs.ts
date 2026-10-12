@@ -1,8 +1,8 @@
 /** GCS publication uploads complete immutable artifacts and commits their manifest with compare-and-swap. */
 
-import { randomUUID } from "node:crypto";
-import { createReadStream } from "node:fs";
-import { writeFile } from "node:fs/promises";
+import { createHash, randomUUID } from "node:crypto";
+import type { ReadStream } from "node:fs";
+import { open, writeFile } from "node:fs/promises";
 import type { IncomingMessage } from "node:http";
 import { pipeline } from "node:stream/promises";
 import { promisify } from "node:util";
@@ -168,68 +168,76 @@ export class SnapshotStorage {
       throw new Error("Refusing to publish an empty Model Atlas snapshot");
     }
     const { timeline, ...leaderboard } = payload;
-    const [checkpoint, dashboard, index] = await Promise.all([
-      compressCheckpoint(databasePath),
+    const [dashboard, index] = await Promise.all([
       compress(JSON.stringify(leaderboard)),
       timeline ? compress(JSON.stringify(packTimelineDataset(timeline))) : null,
     ]);
     const dataHash = snapshotDataHash(payload);
-    const manifest: SnapshotManifest = {
-      version: randomUUID(),
-      fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
-      payload_sha256: snapshotHash(dashboard),
-      checkpoint_sha256: snapshotHash(checkpoint),
-      intelligence_index_sha256: index ? snapshotHash(index) : null,
-      data_sha256: dataHash,
-      previous: retainedSnapshotVersions(previous.manifest, dataHash),
-    };
-    const artifacts = [
+    const version = randomUUID();
+    const checkpointFile = this.checkpointBucket.file(snapshotObject(version, "checkpoint"));
+    const publicArtifacts = [
       {
-        file: this.checkpointBucket.file(snapshotObject(manifest.version, "checkpoint")),
-        bytes: checkpoint,
-        cacheControl: "private, no-store",
-      },
-      {
-        file: this.publicBucket.file(snapshotObject(manifest.version, "payload")),
+        file: this.publicBucket.file(snapshotObject(version, "payload")),
         bytes: dashboard,
-        cacheControl: "public, max-age=31536000, immutable",
       },
       ...(index
         ? [
             {
-              file: this.publicBucket.file(snapshotObject(manifest.version, "intelligence-index")),
+              file: this.publicBucket.file(snapshotObject(version, "intelligence-index")),
               bytes: index,
-              cacheControl: "public, max-age=31536000, immutable",
             },
           ]
         : []),
     ];
-    const manifestBytes = Buffer.from(JSON.stringify(manifest));
+    const files = [checkpointFile, ...publicArtifacts.map(({ file }) => file)];
+    const checkpointSource = (await open(databasePath, "r")).createReadStream();
+    let publication: { manifest: SnapshotManifest; bytes: number } | null = null;
     try {
-      const uploads = await Promise.allSettled(
-        artifacts.map(({ file, bytes, cacheControl }) => {
+      const [checkpoint, ...uploads] = await Promise.allSettled([
+        uploadCheckpoint(checkpointFile, checkpointSource),
+        ...publicArtifacts.map(({ file, bytes }) => {
           const resumable = bytes.length > RESUMABLE_UPLOAD_THRESHOLD_BYTES;
           return file.save(bytes, {
             resumable,
             ...(resumable ? { chunkSize: UPLOAD_CHUNK_BYTES } : {}),
             validation: "crc32c",
             preconditionOpts: { ifGenerationMatch: 0 },
-            metadata: { contentType: "application/gzip", cacheControl },
+            metadata: {
+              contentType: "application/gzip",
+              cacheControl: "public, max-age=31536000, immutable",
+            },
           });
         }),
-      );
+      ] as const);
+      if (checkpoint.status === "rejected") throw checkpoint.reason;
       for (const upload of uploads) if (upload.status === "rejected") throw upload.reason;
+      const manifest: SnapshotManifest = {
+        version,
+        fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
+        payload_sha256: snapshotHash(dashboard),
+        checkpoint_sha256: checkpoint.value.sha256,
+        intelligence_index_sha256: index ? snapshotHash(index) : null,
+        data_sha256: dataHash,
+        previous: retainedSnapshotVersions(previous.manifest, dataHash),
+      };
+      const manifestBytes = Buffer.from(JSON.stringify(manifest));
+      publication = {
+        manifest,
+        bytes:
+          checkpoint.value.bytes + dashboard.length + (index?.length ?? 0) + manifestBytes.length,
+      };
       await this.commitManifest(manifestBytes, previous.generation);
     } catch (error) {
       // A lost response can follow a successful commit; never retire artifacts until the commit state is known.
       const observed = await this.current().catch(() => null);
       if (
+        publication == null ||
         !observed?.manifest ||
-        !snapshotVersions(observed.manifest).some((entry) => entry.version === manifest.version)
+        !snapshotVersions(observed.manifest).some((entry) => entry.version === version)
       ) {
         if (observed != null) {
           await Promise.allSettled(
-            artifacts.map(({ file }) => file.setMetadata({ customTime: new Date().toISOString() })),
+            files.map((file) => file.setMetadata({ customTime: new Date().toISOString() })),
           );
         }
         throw new Error(
@@ -239,7 +247,10 @@ export class SnapshotStorage {
           { cause: error },
         );
       }
+    } finally {
+      checkpointSource.destroy();
     }
+    const { manifest, bytes } = publication;
     const warnings: string[] = [];
     if (previous.manifest) {
       const retained = new Set(manifest.previous.map((entry) => entry.version));
@@ -272,8 +283,7 @@ export class SnapshotStorage {
     }
     return {
       manifest,
-      bytes_uploaded:
-        checkpoint.length + dashboard.length + (index?.length ?? 0) + manifestBytes.length,
+      bytes_uploaded: bytes,
       maintenance_warnings: warnings,
     };
   }
@@ -288,13 +298,29 @@ export class SnapshotStorage {
   }
 }
 
-/** Retain only compressed bytes for the retryable upload instead of buffering the entire SQLite checkpoint. */
-async function compressCheckpoint(databasePath: string): Promise<Buffer> {
-  const chunks: Buffer[] = [];
-  await pipeline(createReadStream(databasePath), createGzip(), async (source) => {
-    for await (const chunk of source) chunks.push(chunk);
-  });
-  return Buffer.concat(chunks);
+/** Hash compressed bytes as they flow into a bounded resumable upload; only a completed upload can supply a manifest checksum. */
+async function uploadCheckpoint(file: File, checkpoint: ReadStream) {
+  const hash = createHash("sha256");
+  let bytes = 0;
+  await pipeline(
+    checkpoint,
+    createGzip(),
+    async function* (source) {
+      for await (const chunk of source) {
+        hash.update(chunk);
+        bytes += chunk.length;
+        yield chunk;
+      }
+    },
+    file.createWriteStream({
+      resumable: true,
+      chunkSize: UPLOAD_CHUNK_BYTES,
+      validation: "crc32c",
+      preconditionOpts: { ifGenerationMatch: 0 },
+      metadata: { contentType: "application/gzip", cacheControl: "private, no-store" },
+    }),
+  );
+  return { sha256: hash.digest("hex"), bytes };
 }
 
 /** GCS and teeny-request attach overlapping pipelines to each response; budget their bounded listeners without hiding warnings globally. */

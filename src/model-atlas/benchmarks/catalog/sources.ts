@@ -7,6 +7,7 @@ import type {
   BenchmarkSourceDeclarationFacet,
   BenchmarkSourceGroup,
 } from "../factory";
+import { INDEX_POLICIES } from "../index-policy";
 import type { BenchmarkKey } from "./portfolio";
 
 /** Standard sources use the shared benchmark-observation loader and persistence contract. */
@@ -236,9 +237,11 @@ export const BENCHMARK_STANDARD_SOURCES = {
   frontiermath_tier_4: {
     group: "epoch",
     id: "epoch",
+    revision: "2.1.0",
     loader: {
       kind: "epoch_runs",
       task: "FrontierMath-Tier-4-v2-Private",
+      eligibility: { taskVersion: "2.1.0" },
     },
     sourceDataKey: "frontierMathTier4",
     sourceRowsKey: "frontierMathTier4Rows",
@@ -384,6 +387,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
   rsi_benchmark: {
     group: "vals",
     id: "vals",
+    revision: "four_task_reference_mean",
     loader: { kind: "vals_rsi", sourceUrl: "https://www.vals.ai/benchmarks/rsi_index" },
     sourceDataKey: "rsiBenchmark",
     sourceRowsKey: "rsiBenchmarkRows",
@@ -507,6 +511,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
       {
         group: BenchmarkSourceGroup;
         id: string;
+        revision?: string;
         roles?: readonly ["observation"] | readonly ["observation", "resource"];
         loader: BenchmarkObservationLoader;
         sourceDataKey: string;
@@ -733,23 +738,6 @@ export const BENCHMARK_EXTENDED_SOURCES = {
       },
     ],
   },
-  scicode: {
-    inputs: [
-      {
-        group: "artificial_analysis",
-        id: "artificial_analysis",
-        roles: ["observation", "resource"],
-        adapters: [
-          {
-            kind: "artificial_analysis_resource_page",
-            scoreKey: "scicode",
-            resourceKey: "scicode",
-            url: "https://artificialanalysis.ai/evaluations/scicode",
-          },
-        ],
-      },
-    ],
-  },
   terminal_bench_4: {
     inputs: [
       {
@@ -808,6 +796,7 @@ export const BENCHMARK_EXTENDED_SOURCES = {
     ],
   },
   vals_index: {
+    revision: INDEX_POLICIES.vals_index.version,
     inputs: [
       {
         group: "vals",

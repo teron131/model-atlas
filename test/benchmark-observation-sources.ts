@@ -1,4 +1,4 @@
-/** Exercises benchmark CSV, Astro, HTML, matching, eligibility, and domain-owned persistence. */
+/** Exercises benchmark CSV, JSON, HTML, matching, eligibility, and domain-owned persistence. */
 
 import assert from "node:assert/strict";
 
@@ -28,7 +28,7 @@ import {
   processSurgeIntelligenceIndexPageHtml,
 } from "../src/model-atlas/sources/surge/results";
 import type { SourceSnapshots } from "../src/model-atlas/sources/types";
-import { processValsBenchmarkPageHtml } from "../src/model-atlas/sources/vals/results";
+import { processValsBenchmarkView } from "../src/model-atlas/sources/vals/results";
 import { processValsRsiModule, valsRsiCacheMatches } from "../src/model-atlas/sources/vals/rsi";
 import {
   mergeWeirdMlRows,
@@ -59,8 +59,8 @@ assert.equal(
 
 const epochRuns = parseCsvRecords(
   "id_runs,task,model,Best score (across scorers),started_at,Status,task version,id_model_version,Display name,Unique display name,Organization,mean_score,stderr,best_score,original_task_name,Scores\n" +
-    "new,FrontierMath-Tier-4-v2-Private,gpt,0.56,2026-07-01T00:00:00Z,Success,2.0.0,gpt-5.6,GPT-5.6 Sol,GPT-5.6 Sol (max),OpenAI,0.561,0.02,0.56,frontiermath,[]\n" +
-    'pro,FrontierMath-Tier-4-v2-Private,gpt,0.52,2026-07-02T00:00:00Z,Success,2.0.0,gpt-5.6-sol_promax,GPT-5.6 Sol,"GPT-5.6 Sol (pro, max)",OpenAI,0.52,0.03,0.52,frontiermath,[]\n' +
+    "new,FrontierMath-Tier-4-v2-Private,gpt,0.56,2026-07-01T00:00:00Z,Success,2.1.0,gpt-5.6,GPT-5.6 Sol,GPT-5.6 Sol (max),OpenAI,0.561,0.02,0.56,frontiermath,[]\n" +
+    'pro,FrontierMath-Tier-4-v2-Private,gpt,0.52,2026-07-02T00:00:00Z,Success,2.1.0,gpt-5.6-sol_promax,GPT-5.6 Sol,"GPT-5.6 Sol (pro, max)",OpenAI,0.52,0.03,0.52,frontiermath,[]\n' +
     "old,FrontierMath-Tier-4-2025-07-01-Private,gpt,0.31,2025-07-01T00:00:00Z,Success,1.0.0,gpt-5.6,GPT-5.6 Sol,GPT-5.6 Sol (max),OpenAI,0.3125,0.02,0.31,frontiermath,[]\n",
 );
 assert.deepEqual(benchmarkModelEffort("GPT-5.6 Sol (pro, max)"), {
@@ -86,7 +86,7 @@ const frontierMath = epochBenchmarkObservationRows(
 );
 assert.equal(frontierMath.length, 2);
 assert.equal(frontierMath[0]?.canonical_value, 0.561);
-assert.equal(frontierMath[0]?.metadata.task_version, "2.0.0");
+assert.equal(frontierMath[0]?.metadata.task_version, "2.1.0");
 assert.equal(frontierMath[1]?.base_model, "GPT-5.6 Sol pro");
 const epochFrontierMathLookup = buildBenchmarkObservationLookup(frontierMath);
 assert.equal(epochFrontierMathLookup.get("gpt-5-6-sol")?.canonical_value, 0.561);
@@ -414,10 +414,6 @@ assert.notEqual(
   "Source configurations sharing one model ID should retain distinct cache identities",
 );
 
-function astro(value: unknown): unknown[] {
-  return [0, value];
-}
-
 function benchmarkObservationBinding(sourceDataKey: string) {
   const binding = BENCHMARK_OBSERVATION_BINDINGS.find(
     (candidate) => candidate.sourceDataKey === sourceDataKey,
@@ -426,67 +422,51 @@ function benchmarkObservationBinding(sourceDataKey: string) {
   return binding;
 }
 
-function valsPage(tasks: Record<string, unknown>): string {
-  return `<astro-island component-url="/_astro/BenchmarkView.hash.js" props="${JSON.stringify({
-    benchmarkView: astro({
-      default: astro({
-        metadata: astro({ updated: astro("2026-09-03"), version: astro("1") }),
-        tasks: astro(tasks),
-      }),
-    }),
-  }).replace(/"/g, "&quot;")}"></astro-island>`;
+function valsView(tasks: Record<string, unknown>) {
+  return { metadata: { updated: "2026-10-07", version: "1" }, tasks };
 }
 
-const proofHtml = `<astro-island component-url="/_astro/BenchmarkView.hash.js" props="${JSON.stringify(
-  {
-    benchmarkView: astro({
-      default: astro({
-        metadata: astro({ updated: astro("2026-07-17"), version: astro("1") }),
-        tasks: astro({
-          overall: astro({
-            "openai/gpt-5.6-sol": astro({
-              accuracy: astro(77),
-              provider: astro("OpenAI"),
-              reasoning_effort: astro("max"),
-              stderr: astro(4.2),
-            }),
-            "aristotle/aristotle": astro({
-              accuracy: astro(71),
-              provider: astro("Aristotle"),
-            }),
-          }),
-        }),
-      }),
-    }),
-  },
-).replace(/"/g, "&quot;")}"></astro-island>`;
 const proofBinding = benchmarkObservationBinding("proofBench");
 assert.equal(proofBinding.loader.kind, "vals");
 if (proofBinding.loader.kind !== "vals") throw new Error("Expected VALS loader");
-const proof = processValsBenchmarkPageHtml(proofHtml, {
-  benchmarkKey: proofBinding.benchmark,
-  canonicalTask: proofBinding.loader.canonicalTask,
-  includeReasoningEffortInModel:
-    "includeReasoningEffortInModel" in proofBinding.loader
-      ? proofBinding.loader.includeReasoningEffortInModel
-      : undefined,
-  isScoreEligible: (_task, modelId) => modelId.toLowerCase() !== "aristotle/aristotle",
-  sourceUrl: proofBinding.loader.sourceUrl,
-});
+const proof = processValsBenchmarkView(
+  valsView({
+    overall: {
+      "openai/gpt-5.6-sol": {
+        accuracy: 77,
+        provider: "OpenAI",
+        reasoning_effort: "max",
+        stderr: 4.2,
+      },
+      "aristotle/aristotle": { accuracy: 71, provider: "Aristotle" },
+    },
+  }),
+  {
+    benchmarkKey: proofBinding.benchmark,
+    canonicalTask: proofBinding.loader.canonicalTask,
+    includeReasoningEffortInModel:
+      "includeReasoningEffortInModel" in proofBinding.loader
+        ? proofBinding.loader.includeReasoningEffortInModel
+        : undefined,
+    isScoreEligible: (_task, modelId) => modelId.toLowerCase() !== "aristotle/aristotle",
+    sourceUrl: proofBinding.loader.sourceUrl,
+  },
+);
 assert.equal(proof.length, 1);
 assert.equal(
   proof.some((row) => row.model_id === "aristotle/aristotle"),
   false,
 );
+assert.equal(JSON.parse(String(proof[0]?.metadata.source_result_json)).stderr, 4.2);
 
 const programBinding = benchmarkObservationBinding("programBench");
 assert.equal(programBinding.loader.kind, "vals");
 if (programBinding.loader.kind !== "vals") throw new Error("Expected VALS loader");
-const program = processValsBenchmarkPageHtml(
-  valsPage({
-    partial: astro({ "openai/gpt-5.6-sol": astro({ accuracy: astro(82.3) }) }),
-    almost: astro({ "openai/gpt-5.6-sol": astro({ accuracy: astro(41.5) }) }),
-    strict: astro({ "openai/gpt-5.6-sol": astro({ accuracy: astro(3) }) }),
+const program = processValsBenchmarkView(
+  valsView({
+    partial: { "openai/gpt-5.6-sol": { accuracy: 82.3 } },
+    almost: { "openai/gpt-5.6-sol": { accuracy: 41.5 } },
+    strict: { "openai/gpt-5.6-sol": { accuracy: 3 } },
   }),
   {
     benchmarkKey: programBinding.benchmark,
@@ -502,10 +482,10 @@ assert.deepEqual(
 const sreBinding = benchmarkObservationBinding("sreBench");
 assert.equal(sreBinding.loader.kind, "vals");
 if (sreBinding.loader.kind !== "vals") throw new Error("Expected VALS loader");
-const sre = processValsBenchmarkPageHtml(
-  valsPage({
-    overall: astro({ "openai/gpt-5.6-sol": astro({ accuracy: astro(12) }) }),
-    partial: astro({ "openai/gpt-5.6-sol": astro({ accuracy: astro(59.542) }) }),
+const sre = processValsBenchmarkView(
+  valsView({
+    overall: { "openai/gpt-5.6-sol": { accuracy: 12 } },
+    partial: { "openai/gpt-5.6-sol": { accuracy: 59.542 } },
   }),
   {
     benchmarkKey: sreBinding.benchmark,
@@ -521,13 +501,13 @@ assert.deepEqual(
 const bioBinding = benchmarkObservationBinding("bioMysteryBench");
 assert.equal(bioBinding.loader.kind, "vals");
 if (bioBinding.loader.kind !== "vals") throw new Error("Expected VALS loader");
-const bio = processValsBenchmarkPageHtml(
-  valsPage({
-    overall: astro({
-      "openai/gpt-6-astra": astro({ accuracy: astro(79.259), reasoning_effort: astro("max") }),
-      "openai/gpt-6-sol": astro({ accuracy: astro(74.815), reasoning_effort: astro("max") }),
-    }),
-    human_difficult: astro({ "openai/gpt-6-astra": astro({ accuracy: astro(37.255) }) }),
+const bio = processValsBenchmarkView(
+  valsView({
+    overall: {
+      "openai/gpt-6-astra": { accuracy: 79.259, reasoning_effort: "max" },
+      "openai/gpt-6-sol": { accuracy: 74.815, reasoning_effort: "max" },
+    },
+    human_difficult: { "openai/gpt-6-astra": { accuracy: 37.255 } },
   }),
   {
     benchmarkKey: bioBinding.benchmark,
@@ -544,12 +524,12 @@ assert.equal(bio[0]?.metadata.benchmark_version, "1");
 const mysteryBinding = benchmarkObservationBinding("mysteryMechanism");
 assert.equal(mysteryBinding.loader.kind, "vals");
 if (mysteryBinding.loader.kind !== "vals") throw new Error("Expected VALS loader");
-const mystery = processValsBenchmarkPageHtml(
-  valsPage({
-    overall: astro({
-      "openai/gpt-6-astra": astro({ accuracy: astro(53.153), reasoning_effort: astro("max") }),
-      "anthropic/claude-opus-5-5": astro({ accuracy: astro(49.55), compute_effort: astro("max") }),
-    }),
+const mystery = processValsBenchmarkView(
+  valsView({
+    overall: {
+      "openai/gpt-6-astra": { accuracy: 53.153, reasoning_effort: "max" },
+      "anthropic/claude-opus-5-5": { accuracy: 49.55, compute_effort: "max" },
+    },
   }),
   {
     benchmarkKey: mysteryBinding.benchmark,
@@ -564,15 +544,8 @@ assert.deepEqual(
 
 const rsiComponent =
   'const h={"anthropic/claude-fable-5-1":"Claude Code","openai/gpt-6-astra":"Codex"};';
-const rsiTasks = [
-  "overall",
-  "compression",
-  "lm_training",
-  "parameter_golf",
-  "harness_engineering",
-  "post_training",
-];
-const rsiModule = `const m={benchmark:"Vals RSI Index",benchmark_id:"rsi_index",version:"1.1",updated:"2026-09-21",total_models:2},t={${rsiTasks
+const rsiTasks = ["overall", "compression", "lm_training", "harness_engineering", "post_training"];
+const rsiModule = `const m={benchmark:"Vals RSI Index",benchmark_id:"rsi_index",version:"1.1",updated:"2026-10-01",tasks:{${rsiTasks.map((task) => `${task}:"${task}"`).join(",")}},total_models:2},t={${rsiTasks
   .map(
     (task) =>
       `${task}:{"anthropic/claude-fable-5-1":{accuracy:35.03,compute_effort:"max",provider:"Anthropic"},"openai/gpt-6-astra":{accuracy:29.03,reasoning_effort:"max",provider:"OpenAI"}}`,
@@ -582,16 +555,38 @@ const rsiBinding = benchmarkObservationBinding("rsiBenchmark");
 assert.equal(rsiBinding.loader.kind, "vals_rsi");
 if (rsiBinding.loader.kind !== "vals_rsi") throw new Error("Expected Vals RSI loader");
 const rsi = processValsRsiModule(rsiModule, rsiComponent, rsiBinding.loader.sourceUrl);
-assert.equal(rsi.length, 12);
+assert.equal(rsi.length, 10);
 assert.deepEqual(
   rsi.filter((row) => row.metadata.task === "overall").map((row) => row.canonical_value),
   [0.3503, 0.2903],
 );
-assert.equal(rsi.filter((row) => row.metadata.observation_role === "component").length, 10);
+assert.equal(rsi.filter((row) => row.metadata.observation_role === "component").length, 8);
 assert.equal(rsi[0]?.metadata.harness, "Claude Code");
 assert.equal(buildBenchmarkObservationLookup(rsi).get("gpt-6-astra--max")?.canonical_value, 0.2903);
 assert.equal(valsRsiCacheMatches(rsi), true);
 assert.equal(valsRsiCacheMatches(rsi.filter((row) => row.metadata.task !== "compression")), false);
+assert.equal(
+  valsRsiCacheMatches(
+    rsi.map((row) => ({
+      ...row,
+      metadata: {
+        ...row.metadata,
+        ...(row.metadata.task === "overall" ? { metric: "five_task_reference_mean" } : {}),
+      },
+    })),
+  ),
+  false,
+  "The previous five-task aggregate cannot supply the four-task suite under the reused version label",
+);
+assert.deepEqual(
+  processValsRsiModule(
+    rsiModule.replace("tasks:{", 'tasks:{parameter_golf:"Parameter Golf",'),
+    rsiComponent,
+    rsiBinding.loader.sourceUrl,
+  ),
+  [],
+  "A five-task publisher declaration cannot be relabelled as a four-task aggregate",
+);
 assert.deepEqual(
   processValsRsiModule(
     rsiModule.replace('version:"1.1"', 'version:"1"'),

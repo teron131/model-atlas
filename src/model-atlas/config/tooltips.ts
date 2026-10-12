@@ -1,6 +1,6 @@
 /** Column tooltip copy stays aligned with active scoring weights and benchmark resource policy. */
 
-import { isAggregateIndex } from "../benchmarks/index-policy";
+import { INDEX_REPRESENTED_BENCHMARK_MEDIAN, isAggregateIndex } from "../benchmarks/index-policy";
 import {
   BENCHMARK_CATALOG,
   BENCHMARK_KEYS,
@@ -175,7 +175,7 @@ const qualityBenchmarkRows = (
     ["Coverage regularization", QUALITY_REGULARIZATION_SCALE],
     [
       "Aggregate-index proxy",
-      "known direct and cross-index component overlap counts once; ECI uses fixed breadth 7.5; effort-labelled variants use effort-aware AA and CAIS indexes",
+      `known direct and cross-index component overlap counts once; ECI uses fixed breadth ${INDEX_REPRESENTED_BENCHMARK_MEDIAN}; effort-labelled variants use effort-aware AA and CAIS indexes`,
     ],
     {
       title: "Frontier benchmarks",

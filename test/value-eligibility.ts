@@ -17,7 +17,7 @@ import type { ModelAtlasPayload } from "../src/model-atlas/stats/types";
 import { minimalModelAtlasModel, minimalModelAtlasPayload } from "./model-atlas-fixtures";
 
 const portfolio = STAGE_CONFIG.scoring.benchmarkPortfolio;
-const keys = ["hle", "scicode", "critpt", "arc_agi_2"];
+const keys = ["hle", "briefcase", "critpt", "arc_agi_2"];
 const model = {
   ...minimalModelAtlasModel({ id: "test/model", name: "Test Model" }),
   reasoning_effort: "high",
@@ -219,7 +219,7 @@ assert.deepEqual(
 );
 assert.deepEqual(
   observedResourceEvidenceCounts(
-    { ...aaWithTasks, task_metrics: { ...aaWithTasks.task_metrics, scicode: { cost: 1 } } },
+    { ...aaWithTasks, task_metrics: { ...aaWithTasks.task_metrics, briefcase: { cost: 1 } } },
     portfolio,
   ),
   { cost: 11, time: 11 },

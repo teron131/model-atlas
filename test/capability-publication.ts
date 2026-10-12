@@ -20,6 +20,7 @@ import {
   capabilityIndex,
   capabilityModelId,
   type CapabilityState,
+  checkpointBenchmarkId,
 } from "../src/model-atlas/timeline/capability";
 import { historicalSourceModel } from "../src/model-atlas/timeline/model-identity";
 import { prepareTimelineRelease } from "../src/model-atlas/timeline/scale";
@@ -310,6 +311,138 @@ assert.equal(
     (e) => e.modelId === capabilityModelId(models[0]!),
   )!.value,
   models[0]!.component_scores.intelligence_score,
+);
+
+const revisedKeys = ["frontiermath_tier_4", "rsi_benchmark", "vals_index"] as const;
+const superseded = revisedKeys.map((key) => ({
+  ...task,
+  id: `atlas:benchmark:${key}:previous-contract`,
+  key: `atlas_benchmark_${key}`,
+}));
+const priorEditionDataset = prepareTimelineRelease(
+  {
+    ...initial.dataset,
+    benchmarks: [...initial.dataset.benchmarks, ...superseded],
+    observations: [
+      ...initial.dataset.observations,
+      ...superseded.flatMap((benchmark) =>
+        models.map((model, i) => ({
+          modelId: capabilityModelId(model),
+          benchmarkId: benchmark.id,
+          value: 0.2 + i * 0.07,
+          observedAt: capturedAt,
+          source: "Previous Atlas edition",
+        })),
+      ),
+    ],
+    activeBenchmarkIds: [...initial.dataset.activeBenchmarkIds!, ...superseded.map((b) => b.id)],
+    portfolios: [
+      ...initial.dataset.portfolios,
+      {
+        id: "superseded-fixture",
+        label: "Previous editions",
+        source: "fixture",
+        note: "",
+        components: superseded.map((benchmark) => ({
+          label: benchmark.label,
+          benchmarkId: benchmark.id,
+        })),
+      },
+    ],
+  },
+  initial.dataset.scale!.parameters,
+);
+const oldIds = new Set(superseded.map((benchmark) => benchmark.id));
+assert.ok(
+  priorEditionDataset.scale!.dimensions.intelligence.links.some(
+    (link) => oldIds.has(link.left) || oldIds.has(link.right),
+  ),
+  "The regression fixture must include fitted links for the retired editions",
+);
+const priorEditions: CapabilityState = {
+  ...initial,
+  dataset: priorEditionDataset,
+  policies: {
+    ...initial.policies,
+    "previous-editions": {
+      benchmarkIds: ["external", ...oldIds],
+      weights: Object.fromEntries(
+        ["external", ...oldIds].map((id) => [id, { intelligence: 1, agentic: 1 }]),
+      ),
+    },
+  },
+};
+const currentEditions = advanceCapabilities(
+  priorEditions,
+  models.map((model, i) => ({
+    ...model,
+    benchmarks: {
+      ...model.benchmarks,
+      ...Object.fromEntries(revisedKeys.map((key) => [key, 0.25 + i * 0.06])),
+    },
+  })),
+  "2026-10-12T08:00:00.000Z",
+);
+assert.deepEqual(currentEditions.positions, initial.positions);
+assert.deepEqual(currentEditions.anchors, initial.anchors);
+assert.deepEqual(currentEditions.dataset.reference, initial.dataset.reference);
+assert.deepEqual(currentEditions.dataset.rootBenchmarkIds, initial.dataset.rootBenchmarkIds);
+const liveDataset = currentEditions.dataset;
+for (const key of revisedKeys)
+  assert.deepEqual(
+    liveDataset.benchmarks
+      .filter((benchmark) => benchmark.key === `atlas_benchmark_${key}`)
+      .map((b) => b.id),
+    [checkpointBenchmarkId(key)],
+  );
+for (const dataset of [liveDataset, liveDataset.scale!]) {
+  assert.ok(dataset.benchmarks.every((benchmark) => !oldIds.has(benchmark.id)));
+  assert.ok(dataset.observations.every((observation) => !oldIds.has(observation.benchmarkId)));
+  assert.ok(dataset.observations.some((observation) => observation.benchmarkId === "external"));
+}
+for (const dimension of ["intelligence", "agentic"] as const) {
+  const graph = liveDataset.scale!.dimensions[dimension];
+  assert.ok(graph.links.every((link) => !oldIds.has(link.left) && !oldIds.has(link.right)));
+  assert.ok(
+    graph.nodes.every(
+      (node) => !oldIds.has(node.benchmarkId) && node.path.every((id) => !oldIds.has(id)),
+    ),
+  );
+  const linkIds = new Set(graph.links.map((link) => link.id));
+  assert.ok(graph.nodes.every((node) => node.errors.every((error) => linkIds.has(error.linkId))));
+  for (const node of priorEditionDataset.scale!.dimensions[dimension].nodes) {
+    if (oldIds.has(node.benchmarkId)) continue;
+    const retainedNode = graph.nodes.find(
+      (candidate) => candidate.benchmarkId === node.benchmarkId,
+    )!;
+    assert.equal(retainedNode.slope, node.slope);
+    assert.equal(retainedNode.offset, node.offset);
+  }
+}
+assert.ok(liveDataset.activeBenchmarkIds!.every((id) => !oldIds.has(id)));
+assert.ok(
+  liveDataset.portfolios.every((portfolio) =>
+    portfolio.components.every(
+      (component) => component.benchmarkId == null || !oldIds.has(component.benchmarkId),
+    ),
+  ),
+);
+assert.ok(
+  Object.values(currentEditions.policies).every(
+    (policy) =>
+      policy.benchmarkIds.every((id) => !oldIds.has(id)) &&
+      Object.keys(policy.weights).every((id) => !oldIds.has(id)),
+  ),
+);
+assert.ok(
+  liveDataset.prepared!.evidence.cells.every(
+    (cell) => !oldIds.has(cell.benchmarkId) && cell.inputs.every((id) => !oldIds.has(id)),
+  ),
+);
+assert.ok(
+  liveDataset.prepared!.evidence.predictors.every(
+    (predictor) => !oldIds.has(predictor.target) && predictor.inputs.every((id) => !oldIds.has(id)),
+  ),
 );
 db.close();
 console.log(

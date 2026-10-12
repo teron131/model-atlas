@@ -27,7 +27,10 @@ import {
   type RefreshRunRow,
 } from "../stats/payload/changes";
 import { buildCurrentModelAtlasMetadata } from "../stats/payload/metadata";
-import { preserveHighSignalSnapshotModels } from "../stats/payload/snapshot-preservation";
+import {
+  preserveHighSignalSnapshotModels,
+  SNAPSHOT_PRESERVATION_VERSION,
+} from "../stats/payload/snapshot-preservation";
 import type { ModelAtlasModel, ModelAtlasPayload } from "../stats/types";
 import type { CapabilityState } from "../timeline/capability";
 import { buildDebugTraceRows, type DebugTraceRow, insertDebugTraceRows } from "./debug-trace";
@@ -259,9 +262,9 @@ export function writeCheckpoint(db: DatabaseWriter, rows: DatabaseSnapshotRows):
   for (const { write } of [...SNAPSHOT_REPLACE_WRITERS, ...SNAPSHOT_APPEND_WRITERS]) {
     write(db, rows);
   }
-  db.prepare("INSERT INTO snapshot_metadata (updated_at_epoch_seconds) VALUES (?)").run(
-    nowEpochSeconds(),
-  );
+  db.prepare(
+    "INSERT INTO snapshot_metadata (updated_at_epoch_seconds, snapshot_preservation_version) VALUES (?, ?)",
+  ).run(nowEpochSeconds(), SNAPSHOT_PRESERVATION_VERSION);
 }
 
 /** Persist source quarantines as part of the checkpoint's existing replacement transaction. */

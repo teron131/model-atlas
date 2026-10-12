@@ -106,7 +106,7 @@ export function modelRowsFromMatchDiagnostics(
 ): Record<string, unknown>[] {
   return matchDiagnostics.models.flatMap((match) => {
     const matchedModelId = match.best_match?.model_id ?? null;
-    const source = sourceData.artificialAnalysis.bySlug.get(match.artificial_analysis_slug);
+    const source = sourceData.artificialAnalysis.byId.get(match.artificial_analysis_id ?? "");
     if (!source) {
       return [];
     }
