@@ -212,7 +212,6 @@ const graphKeys = [
   "vals_index",
   "briefcase",
   "gdpval_normalized",
-  "scicode",
   "hle",
   "gdp_pdf",
   "critpt",

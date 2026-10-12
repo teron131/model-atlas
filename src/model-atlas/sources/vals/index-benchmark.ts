@@ -4,10 +4,11 @@
  * Page source: https://www.vals.ai/benchmarks/vals_index
  */
 
+import { INDEX_POLICIES } from "../../benchmarks/index-policy";
+import type { BenchmarkObservationMetadata } from "../../benchmarks/observation";
 import { normalizeModelToken } from "../../identity/normalization";
-import { asFiniteNumber, asRecord, nowEpochSeconds, stringValue } from "../../runtime";
-import { htmlAttribute } from "../parsing";
-import { fetchSource } from "../request-scheduler";
+import { asFiniteNumber, asRecord, nowEpochSeconds, stableJson, stringValue } from "../../runtime";
+import { getValsBenchmarkView, parseValsBenchmarkView } from "./view";
 
 export const DEFAULT_LEADERBOARD_URL = "https://www.vals.ai/benchmarks/vals_index";
 
@@ -28,6 +29,8 @@ type ValsIndexMetadata = {
   dataset_type: string | null;
   industry: string | null;
   task_labels: Record<string, string>;
+  runner: string | null;
+  mode: string | null;
 };
 
 export type ValsIndexTaskScoreRow = {
@@ -37,6 +40,8 @@ export type ValsIndexTaskScoreRow = {
   model: string;
   provider: string | null;
   score: number;
+  observed_at: string | null;
+  metadata: BenchmarkObservationMetadata;
 };
 
 export type ValsIndexModelScoreRow = ValsIndexTaskScoreRow & {
@@ -45,31 +50,29 @@ export type ValsIndexModelScoreRow = ValsIndexTaskScoreRow & {
 
 export type ValsIndexRowsByModelName = Map<string, ValsIndexModelScoreRow>;
 
-type ValsIndexParsedPage = {
+type ValsIndexResults = {
   metadata: ValsIndexMetadata | null;
   task_rows: ValsIndexTaskScoreRow[];
   model_scores: ValsIndexModelScoreRow[];
 };
 
-type ValsIndexModelScorePayload = ValsIndexParsedPage & {
+type ValsIndexPayload = ValsIndexResults & {
   fetched_at_epoch_seconds: number | null;
 };
 
 export async function getValsIndexStats(
   options: ValsIndexScraperOptions = {},
-): Promise<ValsIndexModelScorePayload> {
+): Promise<ValsIndexPayload> {
   try {
-    const url = options.url ?? DEFAULT_LEADERBOARD_URL;
-    const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-    return await fetchSource(url, {}, timeoutMs, async (response) => {
-      if (!response.ok) {
-        throw new Error(`Vals Index scrape failed: ${response.status}`);
-      }
-      return {
-        fetched_at_epoch_seconds: nowEpochSeconds(),
-        ...processValsIndexPageHtml(await response.text()),
-      };
-    });
+    const view = await getValsBenchmarkView(
+      options.url ?? DEFAULT_LEADERBOARD_URL,
+      options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+    );
+    const parsed = processValsIndexView(view);
+    return {
+      fetched_at_epoch_seconds: parsed.model_scores.length > 0 ? nowEpochSeconds() : null,
+      ...parsed,
+    };
   } catch {
     return {
       fetched_at_epoch_seconds: null,
@@ -80,30 +83,59 @@ export async function getValsIndexStats(
   }
 }
 
-export function processValsIndexPageHtml(pageHtml: string): ValsIndexParsedPage {
-  const props = asRecord(benchmarkViewProps(pageHtml));
-  const benchmarkView = asRecord(props.benchmarkView);
-  const view = asRecord(benchmarkView.default);
-  const metadataRecord = asRecord(view.metadata);
-  const metadata =
-    Object.keys(metadataRecord).length === 0 ? null : valsIndexMetadata(metadataRecord);
-  const taskLabels = metadata?.task_labels ?? {};
-  const tasks = asRecord(view.tasks);
+/** Keep the declared edition's overall score and all component diagnostics under one persisted source contract. */
+export function processValsIndexView(value: unknown): ValsIndexResults {
+  const view = parseValsBenchmarkView(value);
+  if (view == null) return { metadata: null, task_rows: [], model_scores: [] };
+  const metadata = valsIndexMetadata(view.metadata);
+  const componentTasks = Object.keys(metadata.task_labels).filter(
+    (key) => key !== OVERALL_TASK_KEY,
+  );
+  if (
+    metadata.version !== INDEX_POLICIES.vals_index.version ||
+    componentTasks.length !== INDEX_POLICIES.vals_index.representedBenchmarks
+  ) {
+    return { metadata: null, task_rows: [], model_scores: [] };
+  }
+  const taskLabelsJson = stableJson(metadata.task_labels);
   const taskRows: ValsIndexTaskScoreRow[] = [];
-  for (const [task, taskValue] of Object.entries(tasks)) {
-    const taskLabel = taskLabels[task] ?? task;
-    for (const [modelId, rowValue] of Object.entries(asRecord(taskValue))) {
-      const row = valsIndexTaskScoreRow(task, taskLabel, modelId, rowValue);
-      if (row != null) {
-        taskRows.push(row);
-      }
+  for (const [task, models] of Object.entries(view.tasks)) {
+    for (const [modelId, row] of Object.entries(models)) {
+      const score = percentToUnitScore(row.accuracy);
+      if (score == null || modelId.length === 0) continue;
+      taskRows.push({
+        task,
+        task_label: metadata.task_labels[task] ?? task,
+        model_id: modelId,
+        model: modelSlug(modelId),
+        provider: stringValue(row.provider),
+        score,
+        observed_at: metadata.updated,
+        metadata: {
+          benchmark_version: metadata.version,
+          benchmark_count: componentTasks.length,
+          component_tasks: [...componentTasks],
+          task_labels_json: taskLabelsJson,
+          dataset_type: metadata.dataset_type,
+          runner: metadata.runner,
+          mode: metadata.mode,
+          source_result_json: stableJson(row),
+        },
+      });
     }
   }
-  const sortedTaskRows = sortValsIndexRows(taskRows);
+  taskRows.sort(
+    (left, right) =>
+      right.score - left.score ||
+      left.task.localeCompare(right.task) ||
+      left.model_id.localeCompare(right.model_id),
+  );
   return {
     metadata,
-    task_rows: sortedTaskRows,
-    model_scores: sortValsIndexRows(sortedTaskRows.filter(isOverallRow)),
+    task_rows: taskRows,
+    model_scores: taskRows.filter(
+      (row): row is ValsIndexModelScoreRow => row.task === OVERALL_TASK_KEY,
+    ),
   };
 }
 
@@ -117,51 +149,32 @@ export function buildValsIndexMap(rows: ValsIndexModelScoreRow[]): ValsIndexRows
   return rowsByModelName;
 }
 
-export function findValsIndexScore(
+/** Return the matched observation intact so scoring retains its edition, breadth, and source date. */
+export function findValsIndexRow(
   candidateNames: unknown[],
   valsIndexRowsByModelName: ValsIndexRowsByModelName,
-): number | null {
+): ValsIndexModelScoreRow | null {
   for (const candidateName of candidateNames) {
     if (typeof candidateName !== "string" || candidateName.length === 0) {
       continue;
     }
     const row = valsIndexRowsByModelName.get(normalizeModelToken(candidateName));
     if (row) {
-      return row.score;
+      return row;
     }
   }
   return null;
 }
 
-function benchmarkViewProps(pageHtml: string): unknown {
-  const island = pageHtml.match(
-    /<astro-island\b(?=[^>]*component-url="\/_astro\/BenchmarkView[^"]*")[^>]*>/,
-  )?.[0];
-  const props = island == null ? null : htmlAttribute(island, "props");
-  if (props == null) {
-    return null;
-  }
-  return reviveAstroValue(JSON.parse(props));
-}
-
-function reviveAstroValue(value: unknown): unknown {
-  if (Array.isArray(value) && value.length === 2 && typeof value[0] === "number") {
-    if (value[0] === 0) {
-      return reviveAstroValue(value[1]);
-    }
-    if (value[0] === 1) {
-      return Array.isArray(value[1]) ? value[1].map((item) => reviveAstroValue(item)) : [];
-    }
-  }
-  if (Array.isArray(value)) {
-    return value.map((item) => reviveAstroValue(item));
-  }
-  if (value != null && typeof value === "object") {
-    return Object.fromEntries(
-      Object.entries(value).map(([key, item]) => [key, reviveAstroValue(item)]),
-    );
-  }
-  return value;
+/** Unversioned and prior-edition caches cannot supply the current index or receive its breadth. */
+export function valsIndexCacheMatches(rows: readonly ValsIndexTaskScoreRow[]): boolean {
+  return rows.every(
+    (row) =>
+      row.metadata.benchmark_version === INDEX_POLICIES.vals_index.version &&
+      row.metadata.benchmark_count === INDEX_POLICIES.vals_index.representedBenchmarks &&
+      Array.isArray(row.metadata.component_tasks) &&
+      row.metadata.component_tasks.length === INDEX_POLICIES.vals_index.representedBenchmarks,
+  );
 }
 
 function valsIndexMetadata(value: unknown): ValsIndexMetadata {
@@ -174,6 +187,8 @@ function valsIndexMetadata(value: unknown): ValsIndexMetadata {
     dataset_type: stringValue(metadata.dataset_type),
     industry: stringValue(metadata.industry),
     task_labels: taskLabelsFromMetadata(metadata.tasks),
+    runner: stringValue(metadata.runner),
+    mode: stringValue(metadata.mode),
   };
 }
 
@@ -187,27 +202,6 @@ function taskLabelsFromMetadata(metadata: unknown): Record<string, string> {
   return labels;
 }
 
-function valsIndexTaskScoreRow(
-  task: string,
-  taskLabel: string,
-  modelId: string,
-  value: unknown,
-): ValsIndexTaskScoreRow | null {
-  const row = asRecord(value);
-  const score = percentToUnitScore(row.accuracy);
-  if (score == null || modelId.length === 0) {
-    return null;
-  }
-  return {
-    task,
-    task_label: taskLabel,
-    model_id: modelId,
-    model: modelSlug(modelId),
-    provider: stringValue(row.provider),
-    score,
-  };
-}
-
 function percentToUnitScore(value: unknown): number | null {
   const percent = asFiniteNumber(value);
   if (percent == null || percent < 0 || percent > 100) {
@@ -218,19 +212,6 @@ function percentToUnitScore(value: unknown): number | null {
 
 function modelSlug(modelId: string): string {
   return modelId.split("/").at(-1) ?? modelId;
-}
-
-function sortValsIndexRows<T extends ValsIndexTaskScoreRow>(rows: T[]): T[] {
-  return [...rows].sort(
-    (left, right) =>
-      right.score - left.score ||
-      left.task.localeCompare(right.task) ||
-      left.model_id.localeCompare(right.model_id),
-  );
-}
-
-function isOverallRow(row: ValsIndexTaskScoreRow): row is ValsIndexModelScoreRow {
-  return row.task === OVERALL_TASK_KEY;
 }
 
 function modelKeyCandidates(row: ValsIndexModelScoreRow): string[] {

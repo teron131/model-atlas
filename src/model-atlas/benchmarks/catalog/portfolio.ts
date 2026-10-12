@@ -267,11 +267,6 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
   },
-  scicode: {
-    group: "baseline",
-    benchmarkImportance: 1,
-    dimensionLoadings: { intelligence: 1, agentic: 0 },
-  },
   simpleqa_verified: {
     group: "baseline",
     benchmarkImportance: 1,
@@ -346,7 +341,6 @@ export const BENCHMARK_RESOURCE_PROFILES = {
   gdpval_normalized: { taskRunCount: 220 },
   hle: { taskRunCount: 2_158 },
   mlcr_aa: { taskRunCount: 180 },
-  scicode: { taskRunCount: 288 },
   terminal_bench_4: { taskRunCount: 330 },
   terminal_bench_science: { taskRunCount: 210 },
 } as const satisfies Partial<Record<BenchmarkKey, BenchmarkResourceProfile>>;
@@ -367,7 +361,6 @@ export const BENCHMARK_RESOURCE_POLICIES = {
   gdpval_normalized: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
   hle: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
   mlcr_aa: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
-  scicode: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
   terminal_bench_4: BENCHMARK_PER_TASK_RESOURCE,
   terminal_bench_science: BENCHMARK_PER_TASK_RESOURCE,
 } as const satisfies Partial<Record<BenchmarkKey, BenchmarkResourcePolicy>>;

@@ -1,0 +1,59 @@
+/** Current Epoch task revisions exclude older runs from fresh observations and persisted source caches. */
+
+import assert from "node:assert/strict";
+
+import { BENCHMARK_STANDARD_SOURCES } from "../src/model-atlas/benchmarks/catalog";
+import { BENCHMARK_OBSERVATION_BINDINGS } from "../src/model-atlas/benchmarks/registry";
+import { epochBenchmarkObservationRows } from "../src/model-atlas/sources/epoch/results";
+import { readBenchmarkObservationRawCache } from "../src/model-atlas/sources/observations/cache";
+
+const loader = BENCHMARK_STANDARD_SOURCES.frontiermath_tier_4.loader;
+const binding = BENCHMARK_OBSERVATION_BINDINGS.find(
+  (candidate) => candidate.benchmark === "frontiermath_tier_4",
+);
+assert.ok(binding);
+
+const rows = ["2.0.0", "2.1.0"].map((version) => ({
+  id_runs: `tier4-${version}`,
+  task: loader.task,
+  "task version": version,
+  Status: "Success",
+  id_model_version: "gpt-6-1-sol",
+  "Unique display name": "GPT-6.1 Sol (max)",
+  Organization: "OpenAI",
+  mean_score: version === "2.1.0" ? "1" : "0.9",
+}));
+
+const observations = epochBenchmarkObservationRows(
+  rows,
+  "frontiermath_tier_4",
+  loader.task,
+  loader.eligibility,
+);
+assert.deepEqual(
+  observations.map((row) => row.metadata.task_version),
+  ["2.1.0"],
+);
+assert.equal(observations[0]?.canonical_value, 1);
+
+const rawRows = epochBenchmarkObservationRows(rows, "frontiermath_tier_4", loader.task).map(
+  (row, index) => ({
+    source_key: row.benchmark_key,
+    row_index: index,
+    fetched_at_epoch_seconds: 1791322553,
+    benchmark_key: row.benchmark_key,
+    url: row.source_url,
+    model_id: row.model_id,
+    model: row.model,
+    base_model: row.base_model,
+    reasoning_effort: row.reasoning_effort,
+    canonical_value: row.canonical_value,
+    metadata_json: JSON.stringify(row.metadata),
+  }),
+);
+assert.equal(readBenchmarkObservationRawCache(rawRows.slice(0, 1), binding), null);
+assert.equal(readBenchmarkObservationRawCache(rawRows, binding), null);
+assert.equal(
+  readBenchmarkObservationRawCache(rawRows.slice(1), binding)?.rows[0]?.metadata.task_version,
+  "2.1.0",
+);

@@ -16,17 +16,17 @@ function model(id: string, effort: string, costs: Record<string, number>): Model
     ...minimalModelAtlasModel({ id, name: id }),
     provider: "test",
     reasoning_effort: effort,
-    benchmarks: { hle: 0.5, scicode: 0.5 },
+    benchmarks: { hle: 0.5, mlcr_aa: 0.5 },
     task_metrics: Object.fromEntries(Object.entries(costs).map(([key, cost]) => [key, { cost }])),
     component_scores: null,
     scores: null,
   };
 }
-const source = model("test/target", "high", { hle: 10, scicode: 10 });
-const target = model("test/target", "low", { scicode: 2.5 });
+const source = model("test/target", "high", { hle: 10, mlcr_aa: 10 });
+const target = model("test/target", "low", { mlcr_aa: 2.5 });
 const donors = ["a", "b", "c"].flatMap((id) => [
-  model(`test/${id}`, "high", { hle: 10, scicode: 10 }),
-  model(`test/${id}`, "low", { hle: 5, scicode: 5 }),
+  model(`test/${id}`, "high", { hle: 10, mlcr_aa: 10 }),
+  model(`test/${id}`, "low", { hle: 5, mlcr_aa: 5 }),
 ]);
 const models = [target, source, ...donors];
 const config = STAGE_CONFIG.scoring;
@@ -58,7 +58,7 @@ assert.equal(
   null,
   "The source must be the same model",
 );
-const unrelated = { ...source, benchmarks: { scicode: 0.5 } };
+const unrelated = { ...source, benchmarks: { mlcr_aa: 0.5 } };
 assert.equal(
   prepareBroaderResourceEstimator(models, config, "cost")(target, unrelated, "hle"),
   null,
@@ -72,7 +72,7 @@ const prepared = prepareEffortResourceImputation(
 assert.deepEqual(imputedTaskResource(prepared, target, "hle", "cost"), estimate);
 assert.equal(imputedTaskResource(prepared, target, "hle", "time"), null);
 assert.equal(
-  imputedTaskResource(prepared, target, "scicode", "cost"),
+  imputedTaskResource(prepared, target, "mlcr_aa", "cost"),
   null,
   "Observed costs remain authoritative",
 );
@@ -80,14 +80,14 @@ assert.deepEqual(models, before);
 
 const datedTarget = { ...model("test/dated-target", "low", {}), release_date: "2026-01-01" };
 const datedSource = {
-  ...model("test/dated-target", "high", { hle: 10, scicode: 10 }),
+  ...model("test/dated-target", "high", { hle: 10, mlcr_aa: 10 }),
   release_date: "2026-01-01",
 };
 const datedDonors = [0, 1, 2].flatMap((index) =>
   ["low", "high"].map((effort) => ({
     ...model(`test/dated-${index}`, effort, {
       hle: effort === "high" ? 10 : index === 0 ? 8 : 4,
-      scicode: effort === "high" ? 10 : index === 0 ? 8 : 4,
+      mlcr_aa: effort === "high" ? 10 : index === 0 ? 8 : 4,
     }),
     release_date: index === 0 ? "2025-11-02" : "2024-01-01",
   })),
@@ -204,7 +204,7 @@ assert.deepEqual(
   "Time support leaves cost estimates unchanged",
 );
 assert.equal(
-  imputedTaskResource(timedPreparation, timedTarget, "scicode", "time"),
+  imputedTaskResource(timedPreparation, timedTarget, "mlcr_aa", "time"),
   null,
   "Reported timing remains authoritative",
 );

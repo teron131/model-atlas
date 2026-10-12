@@ -27,6 +27,7 @@ import type { ArtificialAnalysisBenchmarkResourceRow } from "../src/model-atlas/
 import { buildDeepSWEMap } from "../src/model-atlas/sources/deep-swe/leaderboard";
 import type { FrontierCodeModelEffortRow } from "../src/model-atlas/sources/frontier-code/leaderboard";
 import type { TerminalBench4ModelAgentRow } from "../src/model-atlas/sources/terminal-bench-4/leaderboard";
+import { buildValsIndexMap } from "../src/model-atlas/sources/vals/index-benchmark";
 import type { VendingBench2ModelScoreRow } from "../src/model-atlas/sources/vending-bench-2/leaderboard";
 
 const deepSWERow = {
@@ -374,6 +375,23 @@ assert.equal(
 const defaultVariantAssignment = buildDefaultVariantBenchmarks(["Example Model"], lookups, {
   hle: 0.4,
 });
+
+const valsIndexRow = {
+  task: "overall" as const,
+  task_label: "Overall",
+  model_id: "test/example-model",
+  model: "Example Model",
+  provider: "Test",
+  score: 0.64,
+  observed_at: "2026-10-07",
+  metadata: { benchmark_version: "2.1", benchmark_count: 8 },
+};
+const indexAssignment = buildDefaultVariantBenchmarks(["Example Model"], {
+  ...lookups,
+  valsIndex: { rowsByModelName: buildValsIndexMap([valsIndexRow]) },
+});
+assert.equal(indexAssignment.benchmarks.vals_index, 0.64);
+assert.deepEqual(indexAssignment.scoringSources.vals_index, valsIndexRow);
 
 const arenaHighLookups = {
   ...lookups,

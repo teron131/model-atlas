@@ -3,8 +3,15 @@
 import assert from "node:assert/strict";
 
 import { BENCHMARK_DISPLAY_ORDER } from "../src/model-atlas/benchmarks/catalog";
-import { INDEX_BENCHMARK_KEYS } from "../src/model-atlas/benchmarks/index-policy";
-import { BENCHMARK_CATALOG, BENCHMARK_RUNTIME_KEYS } from "../src/model-atlas/benchmarks/registry";
+import {
+  AA_INDEX_COMPONENT_BENCHMARK_KEYS,
+  INDEX_BENCHMARK_KEYS,
+} from "../src/model-atlas/benchmarks/index-policy";
+import {
+  BENCHMARK_CATALOG,
+  BENCHMARK_RUNTIME_KEYS,
+  MODEL_ATLAS_BENCHMARK_KEYS,
+} from "../src/model-atlas/benchmarks/registry";
 import { STAGE_CONFIG } from "../src/model-atlas/config";
 import type { FinalStageConfig, ScoringConfig } from "../src/model-atlas/config/stage";
 import { canonicalModelKey } from "../src/model-atlas/identity/normalization";
@@ -25,11 +32,14 @@ import { minimalModelAtlasModel } from "./model-atlas-fixtures";
 // Retired benchmarks must stay out of scoring, presentation, and scheduled source loading.
 for (const keys of [
   STAGE_CONFIG.scoring.intelligenceBenchmarkKeys,
+  STAGE_CONFIG.scoring.intelligenceBenchmarkDisplayKeys,
   STAGE_CONFIG.scoring.agenticBenchmarkKeys,
+  STAGE_CONFIG.scoring.agenticBenchmarkDisplayKeys,
   BENCHMARK_DISPLAY_ORDER,
   BENCHMARK_RUNTIME_KEYS,
+  MODEL_ATLAS_BENCHMARK_KEYS,
 ]) {
-  for (const retiredKey of ["cursorbench", "itbench_sre"]) {
+  for (const retiredKey of ["cursorbench", "itbench_sre", "scicode"]) {
     assert.equal(
       keys.some((key: string) => key === retiredKey),
       false,
@@ -37,6 +47,9 @@ for (const keys of [
   }
 }
 assert.equal("itbench_sre" in STAGE_CONFIG.scoring.benchmarkPortfolio, false);
+assert.equal("scicode" in STAGE_CONFIG.scoring.benchmarkPortfolio, false);
+assert.equal("scicode" in BENCHMARK_CATALOG, false);
+assert.equal(AA_INDEX_COMPONENT_BENCHMARK_KEYS.has("scicode"), true);
 const selectedIndexKeys = new Set<string>(INDEX_BENCHMARK_KEYS);
 for (const dimension of ["intelligence", "agentic"] as const) {
   for (const key of STAGE_CONFIG.scoring[`${dimension}BenchmarkKeys`]) {
@@ -63,6 +76,7 @@ assert.equal(STAGE_CONFIG.scoring.benchmarkPortfolio.aa_intelligence_index?.vers
 assert.equal(BENCHMARK_CATALOG.briefcase.version, "1.1");
 assert.equal(BENCHMARK_CATALOG.gdpval_normalized.version, "2.1");
 assert.equal(BENCHMARK_CATALOG.terminal_bench_science.version, "0.1.0");
+assert.equal(BENCHMARK_CATALOG.vals_index.version, "2.1");
 assert.equal("version" in BENCHMARK_CATALOG.mlcr_aa, false);
 
 const sourceData = {
@@ -209,8 +223,8 @@ function admitsWeight(benchmarks: Record<string, number>, minimumObservedWeight:
   });
 }
 assert.equal(admitsWeight({ aa_intelligence_index: 0 }, 10), true);
-assert.equal(admitsWeight({ epoch_capabilities_index: 100 }, 7.5), true);
-assert.equal(admitsWeight({ epoch_capabilities_index: 100 }, 7.500001), false);
+assert.equal(admitsWeight({ epoch_capabilities_index: 100 }, 8), true);
+assert.equal(admitsWeight({ epoch_capabilities_index: 100 }, 8.000001), false);
 for (const count of [4, 7, 40]) {
   assert.equal(
     hasRequiredBenchmarkEvidence(

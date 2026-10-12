@@ -163,12 +163,15 @@ function prepareImputation(
     inputs.length > 0 &&
     distinctModelCount(targets) >= parameters.minModels &&
     Math.max(...targetValues) > Math.min(...targetValues);
+  const intelligenceKeys = definitions.filter((b) => b.weights.intelligence > 0).map((b) => b.id);
+  const agenticKeys = definitions.filter((b) => b.weights.agentic > 0).map((b) => b.id);
   const config = {
     ...STAGE_CONFIG.scoring,
-    intelligenceBenchmarkKeys: definitions
-      .filter((b) => b.weights.intelligence > 0)
-      .map((b) => b.id),
-    agenticBenchmarkKeys: definitions.filter((b) => b.weights.agentic > 0).map((b) => b.id),
+    intelligenceBenchmarkKeys: intelligenceKeys,
+    agenticBenchmarkKeys: agenticKeys,
+    // Historical predictors use only their declared inputs; unrelated dashboard keys would rebuild empty ranges for every held-out model.
+    intelligenceBenchmarkDisplayKeys: intelligenceKeys,
+    agenticBenchmarkDisplayKeys: agenticKeys,
     benchmarkPortfolio: Object.fromEntries(
       definitions.map((b) => [
         b.id,

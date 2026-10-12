@@ -600,6 +600,8 @@ const valsVersionRow: ValsIndexModelScoreRow = {
   model: "example-v4-flash-0731",
   provider: "Example",
   score: 0.64,
+  observed_at: "2026-10-07",
+  metadata: { benchmark_version: "2.1", benchmark_count: 8 },
 };
 versionedAliasSourceData.valsIndex = {
   rows: [valsVersionRow],
@@ -849,6 +851,47 @@ assert.equal(
   "debug traces should explain matcher-owned variant rejections",
 );
 const matchedRows = modelRowsFromMatchDiagnostics(sourceData, matchDiagnostics);
+const sharedSlugSources = [
+  {
+    model_id: "xai/shared-model",
+    name: "Shared model",
+    provider: "xai",
+    intelligence: { intelligence_index: 40 },
+    input_modalities: ["text"],
+  },
+  {
+    model_id: "spacexai/shared-model",
+    name: "Shared model",
+    provider: "spacexai",
+    intelligence: { intelligence_index: 27 },
+    input_modalities: [],
+  },
+];
+for (const rows of [sharedSlugSources, [...sharedSlugSources].reverse()]) {
+  const diagnostics = buildMatchDiagnostics({
+    matcherConfig: STAGE_CONFIG.matcher,
+    scrapedRows: rows,
+    modelsDevModels: [],
+  });
+  const matched = modelRowsFromMatchDiagnostics(
+    {
+      ...sourceData,
+      artificialAnalysis: { rows, byId: new Map(rows.map((row) => [row.model_id, row])) },
+    },
+    diagnostics,
+  );
+  assert.deepEqual(
+    matched
+      .map((row) => [
+        row.artificial_analysis_id,
+        row.intelligence,
+        (row.modalities as { input: string[] }).input,
+      ])
+      .sort(),
+    sharedSlugSources.map((row) => [row.model_id, row.intelligence, row.input_modalities]).sort(),
+    "Each match must keep its exact source observation when provider aliases share a slug, regardless of cache ordering",
+  );
+}
 const matchedFlashRow = matchedRows.find(
   (row) => row.artificial_analysis_id === "google/example-2-5-flash",
 );
@@ -1070,6 +1113,8 @@ function modelStatsSourceData(
       model: "example-2.5-flash",
       provider: "Google",
       score: 0.64,
+      observed_at: "2026-10-07",
+      metadata: { benchmark_version: "2.1", benchmark_count: 8 },
     },
   ];
   const artificialAnalysisResourceRows: ArtificialAnalysisBenchmarkResourceRow[] = [
@@ -1117,11 +1162,11 @@ function modelStatsSourceData(
     model("openrouter", "google/example-3-pro-image-preview", "Example Pro Image"),
     model("openrouter", "~google/example-pro-latest", "Example Pro Latest"),
   ];
-  const artificialAnalysisBySlug = new Map<string, Record<string, unknown>>();
+  const artificialAnalysisById = new Map<string, Record<string, unknown>>();
   for (const row of artificialAnalysisRows) {
     const modelId = row.model_id;
     if (typeof modelId === "string") {
-      artificialAnalysisBySlug.set(modelId.split("/").at(-1) ?? modelId, row);
+      artificialAnalysisById.set(modelId, row);
     }
   }
 
@@ -1129,7 +1174,7 @@ function modelStatsSourceData(
     fusedBenchmarks: {},
     artificialAnalysis: {
       rows: artificialAnalysisRows,
-      bySlug: artificialAnalysisBySlug,
+      byId: artificialAnalysisById,
     },
     artificialAnalysisBenchmarkResources: {
       rows: artificialAnalysisResourceRows,

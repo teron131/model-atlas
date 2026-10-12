@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { Readable } from "node:stream";
+import { Readable, Writable } from "node:stream";
 import { gunzipSync } from "node:zlib";
 
 import type { Storage } from "@google-cloud/storage";
@@ -22,6 +22,7 @@ import {
   snapshotObject,
   snapshotVersions,
 } from "../src/model-atlas/database/snapshots/manifest";
+import { SNAPSHOT_PRESERVATION_VERSION } from "../src/model-atlas/stats/payload/snapshot-preservation";
 import {
   DEFAULT_TIMELINE_ANCHORS,
   DEFAULT_TIMELINE_PARAMETERS,
@@ -33,6 +34,7 @@ type StoredObject = { bytes: Buffer; generation: string; metadata: Record<string
 const objects = new Map<string, StoredObject>();
 let generation = 0;
 let failUpload = false;
+let failCheckpointUpload = false;
 let loseCommitResponse = false;
 let failRetirement = false;
 let publishBeforeLostResponse: (() => Promise<void>) | null = null;
@@ -58,6 +60,24 @@ const storage = {
                 yield get().bytes;
               })(),
             );
+          },
+          createWriteStream(options: {
+            preconditionOpts: { ifGenerationMatch: string | number };
+            metadata: Record<string, unknown>;
+          }) {
+            const chunks: Buffer[] = [];
+            const save = this.save.bind(this);
+            return new Writable({
+              write(chunk, _encoding, callback) {
+                if (failCheckpointUpload)
+                  return callback(new Error("Interrupted checkpoint upload"));
+                chunks.push(chunk);
+                callback();
+              },
+              final(callback) {
+                save(Buffer.concat(chunks), options).then(() => callback(), callback);
+              },
+            });
           },
           async save(
             bytes: Buffer,
@@ -121,6 +141,7 @@ try {
       },
     ],
   });
+  payload.metadata.scoring.snapshot_preservation_version = SNAPSHOT_PRESERVATION_VERSION - 1;
   const store = new SnapshotStorage("public-bucket", "private-bucket", storage);
   assert.throws(() => new SnapshotStorage("same", "same", storage), /separate/);
   assert.throws(() => parseSnapshotManifest({ version: "../private" }), /invalid/);
@@ -154,6 +175,15 @@ try {
     undefined,
   );
   failUpload = false;
+
+  failCheckpointUpload = true;
+  await assert.rejects(store.publish(checkpoint, payload, committed), /publication failed/);
+  assert.equal(
+    (await store.current()).manifest?.version,
+    first.manifest.version,
+    "A failed checkpoint stream cannot advance the manifest even if both public artifacts upload",
+  );
+  failCheckpointUpload = false;
 
   const competing = await Promise.allSettled([
     store.publish(checkpoint, payload, committed),
@@ -212,6 +242,11 @@ try {
   ]);
   assert.equal(read, concurrent);
   assert.deepEqual(read.models, payload.models, "Local development must read the GCS snapshot");
+  assert.equal(
+    read.metadata.scoring.snapshot_preservation_version,
+    SNAPSHOT_PRESERVATION_VERSION - 1,
+    "Refreshing display metadata must not mark older scored rows as compatible with today's policy",
+  );
   assert.equal(manifestReads, 1);
   assert.equal(payloadReads, 1);
   await readDisplaySnapshotPayload();
@@ -312,7 +347,7 @@ try {
   reordered.models.reverse();
   reordered.models[0]!.benchmark_dates = { gpqa: "2026-09-03" };
   reordered.models[0]!.logo = "updated artwork";
-  reordered.metadata.scoring.snapshot_preservation_version++;
+  reordered.metadata.scoring.snapshot_preservation_version = SNAPSHOT_PRESERVATION_VERSION;
   assert.equal(
     snapshotDataHash(ordered),
     snapshotDataHash(reordered),

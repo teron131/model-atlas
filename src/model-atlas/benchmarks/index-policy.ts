@@ -7,6 +7,7 @@ import type { BenchmarkPortfolioEntry, BenchmarkResourcePolicy } from "./factory
 
 type IndexPolicy = {
   representedBenchmarks: number;
+  version?: string;
   effortAware: boolean;
   componentBenchmarkKeys: readonly string[] | null;
   resources: {
@@ -20,7 +21,7 @@ const REPORTED_BREADTH = {
   aa_intelligence_index: 10,
   cais_capabilities_index: 7,
   surge_intelligence_index: 8,
-  vals_index: 7,
+  vals_index: 8,
 } as const;
 
 export const INDEX_REPRESENTED_BENCHMARK_MEDIAN = requiredMedian(Object.values(REPORTED_BREADTH));
@@ -83,6 +84,7 @@ export const INDEX_POLICIES = {
   },
   vals_index: {
     representedBenchmarks: REPORTED_BREADTH.vals_index,
+    version: "2.1",
     effortAware: false,
     resources: null,
     componentBenchmarkKeys: null,

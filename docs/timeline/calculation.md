@@ -64,7 +64,7 @@ $$
 q_{m,d}=\frac{1.5\sum_b \omega_{b,d}q_{m,b,d}+\sum_k \omega_{k,d}n_{m,k,d}q_{m,k,d}}{1.5\sum_b \omega_{b,d}+\sum_k \omega_{k,d}n_{m,k,d}}.
 $$
 
-Each benchmark or index series contributes only its latest usable observed edition. A replacement must have both an observed result and a saved conversion before the older benchmark is dropped. Overlap deductions reduce represented weight while keeping the published index value intact. ECI uses fixed breadth 7.5 rather than a model-specific fitted count.
+Each benchmark or index series contributes only its latest usable observed edition. A replacement must have both an observed result and a saved conversion before the older benchmark is dropped. Overlap deductions reduce represented weight while keeping the published index value intact. ECI uses fixed breadth 8 rather than a model-specific fitted count.
 
 Adding unobserved benchmarks to the retained portfolio does not alter the relative influence of evidence already present. Benchmark coverage remains a diagnostic and support measure; it does not add a separate blend between benchmarks and indexes.
 

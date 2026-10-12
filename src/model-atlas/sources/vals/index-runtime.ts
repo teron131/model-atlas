@@ -1,8 +1,9 @@
 /** Vals Index runtime owns raw-cache reconstruction, snapshot refresh, and raw-row serialization. */
 
+import { parseBenchmarkObservationMetadata } from "../../benchmarks/observation";
 import { SNAPSHOT_TABLES } from "../../database/tables";
 import type { DatabaseWriter } from "../../database/writers/database";
-import { asFiniteNumber, stringValue } from "../../runtime";
+import { asFiniteNumber, stableJson, stringValue } from "../../runtime";
 import { defineBenchmarkRuntime } from "../benchmark-runtime";
 import { type CacheRowSource, firstEpochSecond, sourceCacheRows } from "../cache/rows";
 import { snapshotRows, snapshotRowsWithStates, sourceKey } from "../snapshots/policy";
@@ -16,6 +17,7 @@ import type {
 import {
   DEFAULT_LEADERBOARD_URL,
   getValsIndexStats,
+  valsIndexCacheMatches,
   type ValsIndexModelScoreRow,
   type ValsIndexTaskScoreRow,
 } from "./index-benchmark";
@@ -56,20 +58,31 @@ function readValsIndexRawCache(cache: CacheRowSource): {
     const modelId = stringValue(row.model_id);
     const model = stringValue(row.model);
     const score = asFiniteNumber(row.score);
-    return task != null && taskLabel != null && modelId != null && model != null && score != null
-      ? [
-          {
-            task,
-            task_label: taskLabel,
-            model_id: modelId,
-            model,
-            provider: stringValue(row.provider),
-            score,
-          },
-        ]
-      : [];
+    const metadata = parseBenchmarkObservationMetadata(row.metadata_json);
+    if (
+      task == null ||
+      taskLabel == null ||
+      modelId == null ||
+      model == null ||
+      score == null ||
+      metadata == null
+    ) {
+      return [];
+    }
+    return [
+      {
+        task,
+        task_label: taskLabel,
+        model_id: modelId,
+        model,
+        provider: stringValue(row.provider),
+        score,
+        observed_at: stringValue(row.observed_at),
+        metadata,
+      },
+    ];
   });
-  if (cachedRows.length === 0) {
+  if (cachedRows.length !== cacheRows.length || !valsIndexCacheMatches(cachedRows)) {
     return null;
   }
   return {
@@ -137,8 +150,8 @@ function insertValsIndexRawRows(db: DatabaseWriter, snapshots: SourceSnapshots):
   const statement = db.prepare(`
 		INSERT INTO vals_index_raw_rows (
 			row_index, fetched_at_epoch_seconds, url, task, task_label,
-			row_kind, model_id, model, provider, score
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			row_kind, model_id, model, provider, score, observed_at, metadata_json
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
   for (const [index, row] of snapshots.valsIndexRows.entries()) {
     statement.run(
@@ -152,6 +165,8 @@ function insertValsIndexRawRows(db: DatabaseWriter, snapshots: SourceSnapshots):
       row.model,
       row.provider,
       row.score,
+      row.observed_at,
+      stableJson(row.metadata),
     );
   }
 }

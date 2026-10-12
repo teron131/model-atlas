@@ -9,7 +9,6 @@ import {
   buildPayloadFromRows,
   buildPayloadRows,
   PAYLOAD_ROW_GROUPS,
-  payloadFetchedAtFromRow,
   type PayloadRowGroup,
   SNAPSHOT_METADATA_SQL,
 } from "./payload-rows";
@@ -39,9 +38,8 @@ export function readDatabasePayload(databasePath = DEFAULT_DATABASE_PATH): Model
   let timeline: ModelAtlasPayload["timeline"];
   try {
     db.exec("BEGIN");
-    const fetchedAt = payloadFetchedAtFromRow(db.prepare(SNAPSHOT_METADATA_SQL).get());
     rows = buildPayloadRows(
-      fetchedAt,
+      db.prepare(SNAPSHOT_METADATA_SQL).get(),
       PAYLOAD_ROW_GROUPS.map((rowGroup) => [rowGroup.key, readPayloadRowGroup(db, rowGroup)]),
     );
     timeline = readCapabilityState(db)?.dataset;

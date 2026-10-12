@@ -106,7 +106,7 @@ export type ModelAtlasMetadata = {
     benchmark_portfolio: BenchmarkPortfolio;
     quality_coverage: QualityCoverageThresholds;
     column_tooltips: ModelAtlasColumnTooltips;
-    snapshot_preservation_version: number;
+    snapshot_preservation_version: number | null;
   };
 };
 

@@ -33,7 +33,7 @@ import {
 import type { ModelAtlasSourceData } from "../../sources/assembly";
 import { findBlueprintBenchScore } from "../../sources/blueprint-bench/leaderboard";
 import { findRiemannBenchScore } from "../../sources/surge/riemann-bench";
-import { findValsIndexScore } from "../../sources/vals/index-benchmark";
+import { findValsIndexRow } from "../../sources/vals/index-benchmark";
 import type { ModelAtlasScoringSources } from "../model-types";
 
 type BenchmarkObservationLookups = {
@@ -470,9 +470,10 @@ export function buildDefaultVariantBenchmarks(
   if (riemannBenchScore != null) {
     benchmarks.riemann_bench = riemannBenchScore;
   }
-  const valsIndexScore = findValsIndexScore(modelNameCandidates, lookups.valsIndex.rowsByModelName);
-  if (valsIndexScore != null) {
-    benchmarks.vals_index = valsIndexScore;
+  const valsIndexRow = findValsIndexRow(modelNameCandidates, lookups.valsIndex.rowsByModelName);
+  if (valsIndexRow != null) {
+    benchmarks.vals_index = valsIndexRow.score;
+    scoringSources.vals_index = valsIndexRow;
   }
 
   assignFusedBenchmarks(

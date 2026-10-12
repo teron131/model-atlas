@@ -5,8 +5,9 @@ import type {
   BenchmarkPresentationDetail,
   BenchmarkTaskMetricColumnFacet,
 } from "../factory";
-import { INDEX_BENCHMARK_KEYS } from "../index-policy";
+import { INDEX_BENCHMARK_KEYS, INDEX_POLICIES } from "../index-policy";
 import { BENCHMARK_RESOURCE_PROFILES, type BenchmarkKey } from "./portfolio";
+import { BENCHMARK_STANDARD_SOURCES } from "./sources";
 
 export const BENCHMARK_TOOLTIPS = {
   aa_intelligence_index: {
@@ -295,9 +296,11 @@ export const BENCHMARK_TOOLTIPS = {
   },
   frontiermath_tier_4: {
     title: "FrontierMath Tier 4",
+    version: "2",
     body: "Solve original, expert-written research-level mathematics problems.",
     rows: [
       ["Source", "Epoch AI"],
+      ["Task revision", BENCHMARK_STANDARD_SOURCES.frontiermath_tier_4.revision],
       ["Role", "research-level mathematics"],
     ],
   },
@@ -456,17 +459,9 @@ export const BENCHMARK_TOOLTIPS = {
     body: "Conduct autonomous LLM research across compression, training, harness design, and post-training.",
     rows: [
       ["Source", "Vals RSI Index"],
-      ["Metric", "mean of five reference-anchored task scores"],
+      ["Metric", "mean of four reference-anchored task scores"],
       ["Harness", "model-specific agent products; model-plus-agent evidence"],
       ["Role", "autonomous LLM R&D"],
-    ],
-  },
-  scicode: {
-    title: "SciCode",
-    body: "Solve expert-written scientific Python problems, graded by subproblem unit tests.",
-    rows: [
-      ["Source", "Artificial Analysis"],
-      ["Role", "structured code reasoning"],
     ],
   },
   simpleqa_verified: {
@@ -546,10 +541,11 @@ export const BENCHMARK_TOOLTIPS = {
   },
   vals_index: {
     title: "Vals Index",
-    body: "Composite score across professional finance, legal, and coding tasks.",
+    version: INDEX_POLICIES.vals_index.version,
+    body: "GDP-weighted composite score across eight finance, coding, legal, and tax evaluations.",
     rows: [
       ["Source", "Vals AI"],
-      ["Role", "professional finance, legal, and coding work"],
+      ["Role", "professional finance, coding, legal, and tax work"],
     ],
   },
   vending_bench_2: {
@@ -653,7 +649,6 @@ export const BENCHMARK_LABELS = {
   public_benefits_bench: "Public Benefits Bench",
   riemann_bench: "Riemann-bench",
   rsi_benchmark: "RSI",
-  scicode: "SciCode",
   simpleqa_verified: "SimpleQA Verified",
   spatialviz: "SpatialViz-Bench",
   sre_bench: "SRE Bench",
@@ -733,7 +728,6 @@ const BASELINE_BENCHMARK_DISPLAY_ORDER = [
   "perception_bench",
   "proofbench",
   "public_benefits_bench",
-  "scicode",
   "simpleqa_verified",
   "vending_bench_2",
   "vibe_code",
@@ -1522,12 +1516,6 @@ export const BENCHMARK_COLUMNS = {
     format: "percent",
     defaultSort: "descending",
   },
-  scicode: {
-    key: "scicode",
-    label: "SciCode",
-    format: "percent",
-    defaultSort: "descending",
-  },
   simpleqa_verified: {
     key: "simpleQaVerified",
     label: "SimpleQA",
@@ -1608,6 +1596,7 @@ export const BENCHMARK_COLUMNS = {
   },
 } as const satisfies Readonly<Record<BenchmarkKey, BenchmarkColumnFacet>>;
 
+/** Preserve native AA context fields, including rejected standalone constituents still present in its published index. */
 export const ARTIFICIAL_ANALYSIS_ADDITIONAL_BENCHMARK_ALIASES = {
   critpt: ["critpt"],
   gdpval_normalized: ["gdpvalNormalized", "gdpval_normalized"],

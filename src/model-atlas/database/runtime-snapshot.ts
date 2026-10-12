@@ -141,7 +141,7 @@ async function readArtifact<T>(
   return promise;
 }
 
-/** Keep snapshot rows, but apply the deployed code's current metadata policy. */
+/** Refresh display metadata while retaining the preservation version that produced the saved model rows. */
 function withCurrentMetadata(payload: ModelAtlasPayload): ModelAtlasPayload {
   return {
     ...payload,
@@ -152,6 +152,7 @@ function withCurrentMetadata(payload: ModelAtlasPayload): ModelAtlasPayload {
       sourceHealth: payload.metadata?.source_health,
       benchmarkUpdateHealth: payload.metadata?.benchmark_update_health,
       availabilitySource: "metadata",
+      snapshotPreservationVersion: payload.metadata.scoring.snapshot_preservation_version ?? null,
     }),
   };
 }

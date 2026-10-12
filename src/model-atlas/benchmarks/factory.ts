@@ -89,12 +89,15 @@ export type BenchmarkSourceInput = {
   runtime?: BenchmarkSourceRuntime;
 };
 export type BenchmarkSourceFacet = {
+  /** Measurement revision distinguishes retained editions when a source changes its evaluation contract. */
+  revision?: string;
   inputs: readonly [BenchmarkSourceInput, ...BenchmarkSourceInput[]];
 };
 type BenchmarkSourceInputDeclaration = Omit<BenchmarkSourceInput, "adapters"> & {
   adapters?: readonly BenchmarkSourceAdapterDeclaration[];
 };
 export type BenchmarkSourceDeclarationFacet = {
+  revision?: string;
   inputs: readonly [BenchmarkSourceInputDeclaration, ...BenchmarkSourceInputDeclaration[]];
 };
 export type BenchmarkGroup = "baseline" | "frontier";

@@ -1,7 +1,9 @@
 /** Verifies benchmarks and task resources round-trip through normalized final-model tables. */
 
 import assert from "node:assert/strict";
+import { DatabaseSync } from "node:sqlite";
 
+import { STAGE_CONFIG } from "../src/model-atlas/config";
 import { readDatabasePayload } from "../src/model-atlas/database";
 import { openDatabase, removeDatabaseFiles } from "../src/model-atlas/database/schema";
 import {
@@ -9,6 +11,10 @@ import {
   insertModels,
   insertModelTaskMetrics,
 } from "../src/model-atlas/database/writers/models";
+import {
+  preserveHighSignalSnapshotModels,
+  SNAPSHOT_PRESERVATION_VERSION,
+} from "../src/model-atlas/stats/payload/snapshot-preservation";
 
 const databasePath = ".cache/test-database-aa-resource-task-metrics.sqlite";
 
@@ -162,6 +168,49 @@ try {
     },
     "database payloads should preserve models without optional resource scores",
   );
+  assert.ok(model);
+  const degraded = {
+    ...payload,
+    models: [
+      {
+        ...model,
+        benchmarks: {},
+        scores: { ...model.scores, intelligence_score: 50, speed_score: null },
+      },
+    ],
+  };
+  const checkpoint = new DatabaseSync(databasePath);
+  try {
+    for (const version of [
+      null,
+      SNAPSHOT_PRESERVATION_VERSION - 1,
+      SNAPSHOT_PRESERVATION_VERSION,
+    ]) {
+      checkpoint
+        .prepare("UPDATE snapshot_metadata SET snapshot_preservation_version = ?")
+        .run(version);
+      const previous = readDatabasePayload(databasePath);
+      assert.equal(previous.metadata.scoring.snapshot_preservation_version, version);
+      assert.equal(
+        preserveHighSignalSnapshotModels(
+          degraded,
+          previous,
+          STAGE_CONFIG.snapshotPreservation,
+          STAGE_CONFIG.scoring,
+        ).models[0]?.scores.intelligence_score,
+        version === SNAPSHOT_PRESERVATION_VERSION ? 90 : 50,
+        "Only rows built under the current policy can restore a degraded model after checkpoint read",
+      );
+    }
+    checkpoint.exec("ALTER TABLE snapshot_metadata DROP COLUMN snapshot_preservation_version");
+    assert.equal(
+      readDatabasePayload(databasePath).metadata.scoring.snapshot_preservation_version,
+      null,
+      "A checkpoint predating version storage must remain unknown before schema migration",
+    );
+  } finally {
+    checkpoint.close();
+  }
 } finally {
   await removeDatabaseFiles(databasePath);
 }

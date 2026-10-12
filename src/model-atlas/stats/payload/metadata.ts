@@ -41,6 +41,8 @@ type CurrentModelAtlasMetadataOptions = {
   sourceRowsByKey?: BenchmarkRowsByKey;
   matcherConfig?: MatcherConfig;
   availabilitySource?: MetadataAvailabilitySource;
+  /** Saved rows retain their build version; null marks checkpoints that did not record one. */
+  snapshotPreservationVersion?: number | null;
 };
 
 function sortedUniqueKeys(values: Iterable<string>): string[] {
@@ -120,6 +122,7 @@ export function buildCurrentModelAtlasMetadata({
   sourceRowsByKey,
   matcherConfig = STAGE_CONFIG.matcher,
   availabilitySource = "models",
+  snapshotPreservationVersion = SNAPSHOT_PRESERVATION_VERSION,
 }: CurrentModelAtlasMetadataOptions): ModelAtlasMetadata {
   const modelAvailableMetrics = buildAvailableMetrics(models);
   const outputAvailableMetrics = availableMetrics ?? modelAvailableMetrics;
@@ -178,7 +181,7 @@ export function buildCurrentModelAtlasMetadata({
         agentic: { ...scoringConfig.qualityCoverage.agentic },
       },
       column_tooltips: columnTooltipsForActiveComponents(resourceComponents),
-      snapshot_preservation_version: SNAPSHOT_PRESERVATION_VERSION,
+      snapshot_preservation_version: snapshotPreservationVersion,
     },
   };
 }

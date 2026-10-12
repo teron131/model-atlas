@@ -2,6 +2,7 @@
 
 import { copyFile, mkdir, mkdtemp, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
+import { resourceUsage } from "node:process";
 
 import { buildDatabase } from "../build";
 import { readDatabasePayload } from "../sqlite-payload";
@@ -41,6 +42,7 @@ export async function publishSnapshot(seedPath?: string) {
       source_cache: built.source_cache,
       maintenance_warnings: publication.maintenance_warnings,
       duration_ms: Math.round(performance.now() - startedAt),
+      peak_rss_bytes: resourceUsage().maxRSS * 1024,
     };
   });
 }
