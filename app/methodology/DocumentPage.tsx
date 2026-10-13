@@ -1,8 +1,6 @@
 /** Server-rendered reading surface for repository documentation. */
 
 import "katex/dist/katex.min.css";
-import Link from "next/link";
-
 import benchmarks from "../../docs/benchmarks.md";
 import matching from "../../docs/matching.md";
 import imputation from "../../docs/methodology/imputation.md";
@@ -13,6 +11,7 @@ import speedValue from "../../docs/methodology/speed-value.md";
 import standards from "../../docs/standards.md";
 import timelineCalculation from "../../docs/timeline/calculation.md";
 import timeline from "../../docs/timeline/overview.md";
+import { NavigationLink } from "../shared/NavigationLink";
 import {
   documentHref,
   DOCUMENTS,
@@ -63,26 +62,26 @@ export function DocumentPage({ document }: { document: DocumentSlug }) {
         {previous || next ? (
           <nav className={styles.pageSequence} aria-label="Reading order">
             {previous ? (
-              <Link href={documentHref(previous.slug)} prefetch={false} rel="prev">
+              <NavigationLink href={documentHref(previous.slug)} rel="prev">
                 <small>Previous</small>
                 <span>
                   <span className={styles.linkLabel}>
                     <ScoreText>{documentTitles[previous.slug]}</ScoreText>
                   </span>
                 </span>
-              </Link>
+              </NavigationLink>
             ) : (
               <span />
             )}
             {next ? (
-              <Link href={documentHref(next.slug)} prefetch={false} rel="next">
+              <NavigationLink href={documentHref(next.slug)} rel="next">
                 <small>Next</small>
                 <span>
                   <span className={styles.linkLabel}>
                     <ScoreText>{documentTitles[next.slug]}</ScoreText>
                   </span>
                 </span>
-              </Link>
+              </NavigationLink>
             ) : null}
           </nav>
         ) : null}

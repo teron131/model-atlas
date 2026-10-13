@@ -3,10 +3,10 @@
 /** Documentation shell: the document title on the sky, then one research plane holding the document strip, navigation, and text. */
 
 import { ArrowUp, ListTree } from "lucide-react";
-import Link from "next/link";
 import { type ReactNode, useCallback, useEffect, useLayoutEffect, useState } from "react";
 
 import { ModelAtlasHeader } from "../shared/ModelAtlasHeader";
+import { NavigationLink } from "../shared/NavigationLink";
 import { useHorizontalChoice } from "../shared/use-horizontal-choice";
 import { DocumentNavigation } from "./DocumentNavigation";
 import { documentHref, DOCUMENTS, type DocumentSlug, type TableOfContentsItem } from "./documents";
@@ -98,10 +98,9 @@ export function DocumentShell({
           <ul ref={stripRef} className="horizontal-choice-strip">
             {DOCUMENTS.filter((item) => item.parent === null).map((item) => (
               <li key={item.slug}>
-                <Link
+                <NavigationLink
                   className="selection-choice"
                   href={documentHref(item.slug)}
-                  prefetch={false}
                   aria-current={
                     item.slug === activeDocument || item.slug === currentDocument.parent
                       ? "page"
@@ -112,7 +111,7 @@ export function DocumentShell({
                     <ScoreText>{titles[item.slug]}</ScoreText>
                   </span>
                   <small>{item.description}</small>
-                </Link>
+                </NavigationLink>
               </li>
             ))}
           </ul>

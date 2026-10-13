@@ -1,5 +1,8 @@
 /** Read the local development checkpoint or share production manifest revalidation across runtime artifacts. */
 
+import { statSync } from "node:fs";
+import { resolve } from "node:path";
+
 import { buildCurrentModelAtlasMetadata } from "../stats/payload/metadata";
 import type { ModelAtlasPayload } from "../stats/types";
 import type { HistoricalDataset } from "../timeline/schemas";
@@ -31,6 +34,7 @@ type SnapshotReadState = {
 
 const snapshotReadState = globalThis as typeof globalThis & {
   __modelAtlasArtifactReadState?: SnapshotReadState;
+  __modelAtlasLocalReadState?: { fingerprint: string; payload: ModelAtlasPayload };
 };
 const DISPLAY_SNAPSHOT_CACHE_MS = 30_000;
 
@@ -38,7 +42,14 @@ const DISPLAY_SNAPSHOT_CACHE_MS = 30_000;
 export async function readDisplaySnapshotPayload(): Promise<ModelAtlasPayload> {
   if (process.env.MODEL_ATLAS_LOCAL_DATABASE === "1") {
     const { readDatabasePayload } = await import("./sqlite-payload");
-    return withCurrentMetadata(readDatabasePayload());
+    const { DEFAULT_DATABASE_PATH } = await import("./schema");
+    const path = resolve(DEFAULT_DATABASE_PATH);
+    const fingerprint = localCheckpointFingerprint(path);
+    const cached = snapshotReadState.__modelAtlasLocalReadState;
+    if (cached?.fingerprint === fingerprint) return cached.payload;
+    const payload = withCurrentMetadata(readDatabasePayload(path));
+    snapshotReadState.__modelAtlasLocalReadState = { fingerprint, payload };
+    return payload;
   }
   const state = readState();
   const manifest = await readManifest(state);
@@ -55,6 +66,20 @@ export async function readIntelligenceIndex(): Promise<HistoricalDataset | null>
   return readArtifact(state, manifest, "intelligence-index", state.index, (bytes) =>
     decodeIntelligenceIndex(bytes, manifest.intelligence_index_sha256!),
   );
+}
+
+/** Invalidate on atomic replacement, in-place writes, and committed WAL changes while keeping tooling reads uncached. */
+function localCheckpointFingerprint(path: string): string {
+  const files = [
+    statSync(path, { bigint: true }),
+    statSync(`${path}-wal`, { bigint: true, throwIfNoEntry: false }),
+  ];
+  return [
+    path,
+    ...files.map((stat) =>
+      stat ? [stat.dev, stat.ino, stat.size, stat.mtimeNs, stat.ctimeNs].join(":") : "",
+    ),
+  ].join(";");
 }
 
 function readState(): SnapshotReadState {

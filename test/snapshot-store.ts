@@ -1,8 +1,8 @@
-/** Proves atomic publication, private checkpoint recovery, and cloud-only display reads even in local development. */
+/** Proves atomic publication, private recovery, cloud read caching, and stat-invalidated explicit local display reads. */
 
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { join, resolve } from "node:path";
 import { Readable, Writable } from "node:stream";
 import { gunzipSync } from "node:zlib";
 
@@ -15,6 +15,7 @@ import {
   readDisplaySnapshotPayload,
   readIntelligenceIndex,
 } from "../src/model-atlas/database/runtime-snapshot";
+import { openDatabase } from "../src/model-atlas/database/schema";
 import { SnapshotStorage } from "../src/model-atlas/database/snapshots/gcs";
 import {
   parseSnapshotManifest,
@@ -119,12 +120,14 @@ const storage = {
 } as unknown as Storage;
 
 await mkdir(".cache", { recursive: true });
-const workspace = await mkdtemp(".cache/snapshot-test-");
+const workspace = await mkdtemp(resolve(".cache/snapshot-test-"));
+const originalCwd = process.cwd();
 const originalFetch = globalThis.fetch;
 const originalBucket = process.env.MODEL_ATLAS_SNAPSHOT_BUCKET;
 const originalEnvironment = {
   NODE_ENV: process.env.NODE_ENV,
   VERCEL: process.env.VERCEL,
+  MODEL_ATLAS_LOCAL_DATABASE: process.env.MODEL_ATLAS_LOCAL_DATABASE,
 };
 const originalNow = Date.now;
 try {
@@ -641,8 +644,46 @@ try {
   );
   indexObject.bytes = intactIndex;
 
+  process.chdir(workspace);
+  process.env.MODEL_ATLAS_LOCAL_DATABASE = "1";
+  const localPath = resolve(".cache/database.sqlite");
+  const localDb = await openDatabase(localPath);
+  try {
+    localDb.exec(
+      "INSERT INTO snapshot_metadata (updated_at_epoch_seconds) VALUES (100); PRAGMA wal_checkpoint(TRUNCATE); PRAGMA wal_autocheckpoint = 0",
+    );
+    const localRead = await readDisplaySnapshotPayload();
+    assert.equal(localRead.fetched_at_epoch_seconds, 100);
+    assert.equal(
+      await readDisplaySnapshotPayload(),
+      localRead,
+      "Unchanged local checkpoints reuse the parsed display payload",
+    );
+    localDb.exec("UPDATE snapshot_metadata SET updated_at_epoch_seconds = 101");
+    const committed = await readDisplaySnapshotPayload();
+    assert.equal(committed.fetched_at_epoch_seconds, 101, "WAL commits invalidate local reads");
+    localDb.exec("BEGIN; UPDATE snapshot_metadata SET updated_at_epoch_seconds = 102");
+    assert.equal((await readDisplaySnapshotPayload()).fetched_at_epoch_seconds, 101);
+    localDb.exec("ROLLBACK; PRAGMA wal_checkpoint(TRUNCATE)");
+    assert.deepEqual(await readDisplaySnapshotPayload(), committed);
+  } finally {
+    localDb.close();
+  }
+  const replacement = await openDatabase(`${localPath}.replacement`);
+  replacement.exec("INSERT INTO snapshot_metadata (updated_at_epoch_seconds) VALUES (103)");
+  replacement.close();
+  await rename(`${localPath}.replacement`, localPath);
+  assert.equal(
+    (await readDisplaySnapshotPayload()).fetched_at_epoch_seconds,
+    103,
+    "Atomic checkpoint replacement invalidates the previous inode's cached payload",
+  );
+  await rm(localPath);
+  await assert.rejects(readDisplaySnapshotPayload(), /ENOENT/);
+
   console.log("Snapshot publication, recovery, concurrency, and read caching checks passed");
 } finally {
+  process.chdir(originalCwd);
   globalThis.fetch = originalFetch;
   Date.now = originalNow;
   if (originalBucket === undefined) delete process.env.MODEL_ATLAS_SNAPSHOT_BUCKET;
