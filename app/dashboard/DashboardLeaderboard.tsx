@@ -2,15 +2,7 @@
 
 /** Leaderboard state, filtering, sorting, table rendering, and tooltips for the dashboard. */
 
-import {
-  useCallback,
-  useDeferredValue,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useTransition,
-} from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 
 import type {
   ModelAtlasColumnTooltip,
@@ -95,7 +87,8 @@ export function DashboardLeaderboard({
   }, [requestedSort, columnPreset, columnFilterQuery, visibleColumnKeys]);
   const deferredShowVariants = useDeferredValue(showVariants);
   const deferredFilters = useDeferredValue(filters);
-  const [, startSortTransition] = useTransition();
+  // URL subscriptions update synchronously; defer the row reorder so the chosen header can paint first.
+  const deferredSortState = useDeferredValue(sortState);
   const ratioReferences = useMemo(
     () => (payload == null ? [] : resourceRatioReferenceSets(payload)),
     [payload],
@@ -155,7 +148,10 @@ export function DashboardLeaderboard({
       selectedModels.has(canonicalModelKey(row.model)),
     ).length;
   }, [globallyFilteredExpandedRows, limitedRows]);
-  const visibleRows = useMemo(() => sortedRows(limitedRows, sortState), [limitedRows, sortState]);
+  const visibleRows = useMemo(
+    () => sortedRows(limitedRows, deferredSortState),
+    [limitedRows, deferredSortState],
+  );
   const orderedMetricColumns = useMemo(() => {
     const orderByKey = new Map(visibleColumnKeys.map((key, index) => [key, index]));
     return [...dashboardMetricColumns].sort(
@@ -201,14 +197,12 @@ export function DashboardLeaderboard({
   const handleSort = useCallback(
     (key: SortKey) => {
       const defaultDirection = sorters[key].direction;
-      startSortTransition(() => {
-        setSortState({
-          key,
-          direction:
-            sortState.key === key && sortState.direction === defaultDirection
-              ? reverseDirection(defaultDirection)
-              : defaultDirection,
-        });
+      setSortState({
+        key,
+        direction:
+          sortState.key === key && sortState.direction === defaultDirection
+            ? reverseDirection(defaultDirection)
+            : defaultDirection,
       });
     },
     [sortState, setSortState],
@@ -362,7 +356,7 @@ export function DashboardLeaderboard({
           <span>Models</span>
         </h2>
         <div className="dashboard-section-actions" data-capture-exclude>
-          <LeaderboardCapture rows={visibleRows} rowKind={rowKind} sortState={sortState} />
+          <LeaderboardCapture rows={visibleRows} rowKind={rowKind} sortState={deferredSortState} />
           <CopyDashboardLink sectionId="leaderboard" />
         </div>
       </header>
@@ -392,6 +386,7 @@ export function DashboardLeaderboard({
           visibleRows={visibleRows}
           emptyMessage={emptyMessage}
           isLoading={isLoading}
+          isSorting={deferredSortState !== sortState}
           metricColumns={orderedMetricColumns}
           onSort={handleSort}
           onScoreChange={showScoreChange}

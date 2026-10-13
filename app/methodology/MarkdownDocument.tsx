@@ -5,13 +5,13 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import Image from "next/image";
-import Link from "next/link";
 import { Children, type ReactNode } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import rehypeKatex from "rehype-katex";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 
+import { NavigationLink } from "../shared/NavigationLink";
 import { DocumentHeading } from "./DocumentHeading";
 import {
   documentAssetPath,
@@ -41,9 +41,9 @@ export function MarkdownDocument({
         a: ({ href = "", children, ...props }) => {
           const resolvedHref = documentLink(href, document);
           return resolvedHref.startsWith("/") ? (
-            <Link href={resolvedHref} prefetch={false} {...props}>
+            <NavigationLink href={resolvedHref} {...props}>
               <span className={styles.linkLabel}>{children}</span>
-            </Link>
+            </NavigationLink>
           ) : (
             <a href={resolvedHref} {...props}>
               <span className={styles.linkLabel}>{children}</span>

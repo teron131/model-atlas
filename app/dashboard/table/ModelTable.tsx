@@ -34,6 +34,7 @@ type ModelTableProps = {
   visibleRows: TableRow[];
   emptyMessage: string;
   isLoading: boolean;
+  isSorting: boolean;
   onSort: (key: SortKey) => void;
   onTooltip: HeaderTooltipHandler<TableColumnKey>;
   onTooltipEnd: () => void;
@@ -48,6 +49,7 @@ export const ModelTable = memo(function ModelTable({
   visibleRows,
   emptyMessage,
   isLoading,
+  isSorting,
   onSort,
   onTooltip,
   onTooltipEnd,
@@ -138,6 +140,7 @@ export const ModelTable = memo(function ModelTable({
       <div
         id={TABLE_SCROLL_REGION_ID}
         className="table-wrap"
+        aria-busy={isLoading || isSorting}
         ref={tableScrollRef}
         onScroll={handleScroll}
       >
@@ -242,6 +245,7 @@ function TableHeaderRow({
   | "visibleRows"
   | "emptyMessage"
   | "isLoading"
+  | "isSorting"
   | "visibleColumnKeys"
   | "fitColumnContent"
   | "onScoreChange"

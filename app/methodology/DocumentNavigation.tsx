@@ -3,9 +3,9 @@
 /** Inline document switcher and section tree, shown beside the text on wide screens and above it on phones. */
 
 import { ChevronDown, ChevronRight } from "lucide-react";
-import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { NavigationLink } from "../shared/NavigationLink";
 import { DocumentOutline } from "./DocumentOutline";
 import { documentHref, DOCUMENTS, type DocumentSlug, type TableOfContentsItem } from "./documents";
 import { ScoreText } from "./ScoreText";
@@ -41,16 +41,15 @@ export function DocumentNavigation({
           {DOCUMENTS.filter((item) => item.parent === null).map((item) => (
             <li key={item.slug}>
               <div className={styles.documentRow}>
-                <Link
+                <NavigationLink
                   href={documentHref(item.slug)}
-                  prefetch={false}
                   aria-current={item.slug === activeDocument ? "page" : undefined}
                 >
                   <span>
                     <ScoreText>{titles[item.slug]}</ScoreText>
                   </span>
                   <small>{item.description}</small>
-                </Link>
+                </NavigationLink>
                 {DOCUMENTS.some((child) => child.parent === item.slug) ? (
                   <button
                     type="button"
@@ -78,16 +77,15 @@ export function DocumentNavigation({
                 <ul id={`document-children-${item.slug}`} hidden={!expanded.includes(item.slug)}>
                   {DOCUMENTS.filter((child) => child.parent === item.slug).map((child) => (
                     <li key={child.slug}>
-                      <Link
+                      <NavigationLink
                         href={documentHref(child.slug)}
-                        prefetch={false}
                         aria-current={child.slug === activeDocument ? "page" : undefined}
                       >
                         <span>
                           <ScoreText>{titles[child.slug]}</ScoreText>
                         </span>
                         <small>{child.description}</small>
-                      </Link>
+                      </NavigationLink>
                     </li>
                   ))}
                 </ul>

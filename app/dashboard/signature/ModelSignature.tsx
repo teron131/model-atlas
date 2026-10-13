@@ -18,9 +18,11 @@ import {
 
 import styles from "./signature.module.css";
 
+// Server-render the field's markup so its graphics chunk loads with the page; WebGL still starts only in the client effect.
+// Keep a separate loading boundary so the dashboard can hydrate while the graphics module loads.
 const FrontierField = dynamic(
   () => import("./FrontierField").then((module) => module.FrontierField),
-  { ssr: false },
+  { loading: () => null },
 );
 // The horizon rests under the title: this share of its type size below the title's line box, or this share of the open sky down to the register when a tall hero leaves more.
 const HORIZON_GAP = 0.1;

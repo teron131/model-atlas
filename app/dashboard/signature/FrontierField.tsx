@@ -130,6 +130,7 @@ export function FrontierField({
     let frame = 0;
     let dirty = true;
     let lost = false;
+    let compiled = false;
     let pointerX = 0;
     let pointerY = 0;
     let pointer: { x: number; y: number } | null = null;
@@ -294,7 +295,7 @@ export function FrontierField({
     };
     const invalidate = () => {
       dirty = true;
-      if (frame !== 0 || document.hidden || lost) return;
+      if (!compiled || frame !== 0 || document.hidden || lost) return;
       lastNow = performance.now();
       frame = requestAnimationFrame(loop);
     };
@@ -351,7 +352,14 @@ export function FrontierField({
     motion.addEventListener("change", invalidate);
     renderer.domElement.addEventListener("webglcontextlost", contextLost);
     resize();
-    setReady(true);
+    // Finish shader compilation before starting the reveal, so its first frames do not pay for graphics setup.
+    void renderer.compileAsync(scene, camera).then(() => {
+      if (skyRef.current !== sky || lost) return;
+      compiled = true;
+      introStart = performance.now();
+      invalidate();
+      setReady(true);
+    });
     return () => {
       cancelAnimationFrame(frame);
       observer.disconnect();
