@@ -36,7 +36,7 @@ text{fill:#f2f3ed}.muted{fill-opacity:.58}
 <path class="grid" d="M90 289.4L700 289.4"/><text class="num muted" x="76" y="293.9" text-anchor="end">100</text><path class="grid" d="M90 237.9L700 237.9"/><text class="num muted" x="76" y="242.4" text-anchor="end">125</text><path class="grid" d="M90 186.4L700 186.4"/><text class="num muted" x="76" y="190.9" text-anchor="end">150</text><path class="grid" d="M90 134.9L700 134.9"/><text class="num muted" x="76" y="139.4" text-anchor="end">175</text><path class="axis" d="M90 310L700 310"/>
 <rect class="violet-wash" x="300" y="186.4" width="180" height="70.4" rx="4"/>
 <path class="violet-line" d="M486 186.4h6V256.8h-6" stroke-width="1.5"/><text class="small" x="500" y="226.6">Saved range</text>
-<path class="grid" d="M290 104L290 310"/><path class="grid" d="M540 104L540 310"/>
+<path class="grid" d="M290 104L290 310"/><path class="grid" d="M540 104L540 214.6M540 231.3L540 310"/>
 <text class="strong" x="390" y="76" text-anchor="middle">1  Freeze reference</text><text class="small muted" x="390" y="96" text-anchor="middle">≥60% evidence support</text>
 <path class="ink-line" d="M282 86L150 86" stroke-width="1.5" marker-end="url(#tip-ink)"/><text class="strong" x="196" y="76" text-anchor="middle">2  Look back</text>
 <path class="ink-line" d="M548 86L700 86" stroke-width="1.5" marker-end="url(#tip-ink)"/><text class="strong" x="624" y="76" text-anchor="middle">3  Extend forward</text>

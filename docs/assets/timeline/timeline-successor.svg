@@ -39,7 +39,7 @@ text{fill:#f2f3ed}.muted{fill-opacity:.58}
 <path class="violet-line" d="M420 194L420 179" stroke-width="1.5" marker-end="url(#tip-violet)"/>
 <g class="half"><circle class="ink halo" cx="420" cy="202" r="7.5" filter="url(#glow)"/><circle class="ink ring" cx="420" cy="202" r="5.5"/></g><text class="num muted" x="434" y="207">116</text>
 <g><circle class="violet halo" cx="200" cy="170" r="8" filter="url(#glow)"/><circle class="violet ring" cx="200" cy="170" r="6"/></g><g><circle class="violet halo" cx="420" cy="170" r="8" filter="url(#glow)"/><circle class="violet ring" cx="420" cy="170" r="6"/></g><g><circle class="violet halo" cx="640" cy="106" r="8" filter="url(#glow)"/><circle class="violet ring" cx="640" cy="106" r="6"/></g>
-<text class="num strong" x="200" y="156" text-anchor="middle">120</text><text class="num strong" x="434" y="162">120</text><text class="num strong" x="640" y="92" text-anchor="middle">128</text>
+<text class="num strong" x="200" y="156" text-anchor="middle">120</text><text class="num strong" x="434" y="162">120</text><text class="num strong" x="654" y="111">128</text>
 <text x="200" y="280" text-anchor="middle">Earlier release</text><text x="420" y="280" text-anchor="middle">Dated successor</text><text x="640" y="280" text-anchor="middle">Later release</text>
 <text class="small muted" x="700" y="308" text-anchor="end">Release order →</text>
 </svg>
