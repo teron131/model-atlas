@@ -1554,6 +1554,11 @@ html[data-model-atlas-theme="light"] .score-meter::after {
   font-weight: 600;
 }
 
+/* The ratio track plus the cell's padding, held even where no ratio is measured: only rows near the table's viewport draw their cells, so a column's width must not depend on which of them carry a bar. */
+.ratio-cell {
+  min-width: 76px;
+}
+
 /* Ratios read as a bar rather than a star: from the 1× median tick a solid bar in the score trail's provider colour grows toward the model's ratio, so the columns never echo the score stars. The track runs a little longer than the score tracks so overspends of 6× and 11× still draw apart while small savings stay visible. */
 .ratio-track {
   position: relative;

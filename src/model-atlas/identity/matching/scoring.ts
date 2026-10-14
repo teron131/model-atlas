@@ -25,6 +25,9 @@ type MatchName = {
   tokens: string[];
 };
 
+type CandidateNames = { base: MatchName; name: MatchName };
+
+const candidateNamesByCandidate = new WeakMap<MatchCandidateInput, CandidateNames>();
 const TOKEN_PREFIX_WEIGHTS = [5, 4, 3, 2, 1] as const;
 const TOKEN_PREFIX_REWARD_MULTIPLIER = 2;
 const NUMERIC_EXACT_MATCH_REWARD = 2;
@@ -444,7 +447,25 @@ export function compareCandidates(left: MatchCandidate, right: MatchCandidate): 
   return left.model_id.localeCompare(right.model_id);
 }
 
-/** Apply the first-token gate and scoring rules while preparing source tokens once and candidate tokens once per comparison. */
+/**
+ * A caller that ranks many sources against one candidate list reuses each candidate's tokens.
+ * Tokenizing them again for every source was most of a checkpoint read.
+ * The entry follows the candidate object and is rebuilt if its id or name has changed.
+ */
+function candidateNames(candidate: MatchCandidateInput): CandidateNames {
+  const modelName = candidate.model_name ?? "";
+  let names = candidateNamesByCandidate.get(candidate);
+  if (names == null || names.base.value !== candidate.model_id || names.name.value !== modelName) {
+    names = {
+      base: { value: candidate.model_id, tokens: splitBaseModelTokens(candidate.model_id) },
+      name: { value: modelName, tokens: splitTokens(modelName) },
+    };
+    candidateNamesByCandidate.set(candidate, names);
+  }
+  return names;
+}
+
+/** Apply the first-token gate and scoring rules while preparing source tokens once per ranking and each candidate's tokens once per candidate. */
 export function rankMatchCandidates(
   sourceSlug: string,
   candidates: readonly MatchCandidateInput[],
@@ -456,14 +477,7 @@ export function rankMatchCandidates(
   const source: MatchName = { value: sourceSlug, tokens: splitTokens(sourceSlug) };
   return candidates
     .flatMap((candidate) => {
-      const base: MatchName = {
-        value: candidate.model_id,
-        tokens: splitBaseModelTokens(candidate.model_id),
-      };
-      const name: MatchName = {
-        value: candidate.model_name ?? "",
-        tokens: splitTokens(candidate.model_name ?? ""),
-      };
+      const { base, name } = candidateNames(candidate);
       if (
         !hasFirstTokenMatch(source, base, name) ||
         (options.requireSourceTokenCoverage === true && !hasSourceTokenCoverage(source, base, name))

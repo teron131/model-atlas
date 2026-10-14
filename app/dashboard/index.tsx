@@ -22,9 +22,12 @@ const REASONING_VARIANT_STORAGE_KEY = "model-atlas:expand-reasoning-variants";
 
 export function Dashboard({
   initialPayload,
+  initialPayloadEtag = null,
   initialShowReasoningVariants = false,
 }: {
   initialPayload: ModelAtlasPayload | null;
+  /** The dashboard view's validator for the snapshot `initialPayload` was drawn from. */
+  initialPayloadEtag?: string | null;
   initialShowReasoningVariants?: boolean;
 }) {
   const [showReasoningVariants, setShowReasoningVariants] = useReasoningVariantDisplay(
@@ -39,7 +42,7 @@ export function Dashboard({
     () => ({ q, provider, "max-cost": maxCost, rank, days }),
     [q, provider, maxCost, rank, days],
   );
-  const { payload, errorMessage } = useLivePayload(initialPayload);
+  const { payload, errorMessage } = useLivePayload(initialPayload, initialPayloadEtag);
 
   const referenceModels = useMemo(() => payload?.models ?? [], [payload]);
   const displayPayload = useMemo(() => {

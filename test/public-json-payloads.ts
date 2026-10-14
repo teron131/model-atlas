@@ -1,17 +1,21 @@
-/** Verify the public model boundary and JSON projections. */
+/** Verify the public model boundary, the JSON projections, and which of them each root route answers with. */
 
 import assert from "node:assert/strict";
+
+import { NextRequest } from "next/server";
 
 import { compactModelVariants } from "../app/leaderboard/model-variants";
 import {
   benchmarksJsonPayload,
   coreJsonPayload,
   dashboardJsonPayload,
+  embeddedDashboardPayload,
   type FullJsonPayload,
   fullJsonPayload,
   publicJsonPayload,
   scoreJsonPayload,
 } from "../app/leaderboard/public-json";
+import { proxy } from "../proxy";
 import type { BenchmarkObservationEvidenceRow } from "../src/model-atlas/benchmarks/observation";
 import { STAGE_CONFIG } from "../src/model-atlas/config";
 import {
@@ -242,6 +246,61 @@ assert.equal(
   "https://example.com/ingestion-only",
   "Dashboard projection must not mutate the source observation",
 );
+const embeddedLogo = "data:image/png;base64,AAAA";
+const logoPayload = minimalModelAtlasPayload({
+  fetchedAt: 1,
+  models: [
+    {
+      ...minimalModelAtlasModel({ id: "openai/icon-file-model", name: "Icon File Model" }),
+      provider: "openai",
+      logo: embeddedLogo,
+    },
+    {
+      ...minimalModelAtlasModel({ id: "unlisted-lab/embedded-model", name: "Embedded Model" }),
+      provider: "unlisted-lab",
+      logo: embeddedLogo,
+    },
+    {
+      ...minimalModelAtlasModel({ id: "unlisted-lab/no-logo-model", name: "No Logo Model" }),
+      provider: "unlisted-lab",
+    },
+  ],
+});
+logoPayload.metadata = {
+  ...logoPayload.metadata,
+  source_health: { generated_at_epoch_seconds: 1, sources: {} },
+  benchmark_update_health: {},
+};
+const publicDashboard = publicJsonPayload(logoPayload, "dashboard");
+assert.deepEqual(
+  publicDashboard.models.map((model) => model.logo),
+  ["/provider-icons/openai.svg", embeddedLogo, ""],
+  "The dashboard view names a provider's icon file by URL and keeps the embedded image only where the app serves no icon file",
+);
+assert.deepEqual(
+  publicJsonPayload(logoPayload, "dashboard", "https://atlas.test").models.map(
+    (model) => model.logo,
+  ),
+  ["https://atlas.test/provider-icons/openai.svg", embeddedLogo, ""],
+  "Given the site's address, the dashboard view returns an icon URL a caller on another host can load",
+);
+assert.equal(
+  logoPayload.models[0]!.logo,
+  embeddedLogo,
+  "Dashboard projection must not mutate the source model",
+);
+assert.deepEqual(
+  Object.keys(publicDashboard.metadata),
+  ["available_metrics", "scoring", "source_health", "benchmark_update_health"],
+  "The public dashboard view keeps its health diagnostics; callers outside the app may read them",
+);
+const embeddedDashboard = embeddedDashboardPayload(publicDashboard);
+assert.deepEqual(
+  Object.keys(embeddedDashboard.metadata),
+  ["available_metrics", "scoring"],
+  "The page's embedded copy leaves out the health diagnostics no dashboard component reads",
+);
+assert.deepEqual(embeddedDashboard.models, publicDashboard.models);
 assert.deepEqual(
   [
     scoreJsonPayload(reasoningVariantPayload).scores.length,
@@ -575,6 +634,25 @@ assert.deepEqual(
   "benchmarks JSON should use tied competition ranks",
 );
 
+assert.equal(destination("/", { accept: "*/*" }), "/api/llm-stats");
+assert.equal(destination("/", {}), "/api/llm-stats");
+assert.equal(destination("/core", { accept: "application/json" }), "/api/llm-stats?view=core");
+assert.equal(destination("/", { accept: "text/html,application/xhtml+xml,*/*;q=0.8" }), "app");
+assert.equal(destination("/score", { accept: "text/html" }), "redirect /");
+assert.equal(
+  destination("/", { accept: "*/*", rsc: "1", "next-url": "/methodology" }),
+  "app",
+  "The app router's own route fetch must receive the route payload, or returning to the leaderboard reloads the page",
+);
+assert.equal(destination("/score", { accept: "*/*", "next-url": "/methodology" }), "redirect /");
+assert.equal(
+  destination("/core", { accept: "*/*", "sec-fetch-site": "same-origin" }),
+  "/api/llm-stats?view=core",
+  "A script on the site's own origin keeps its JSON view, like any other client",
+);
+assert.equal(destination("/", { accept: "*/*", "sec-fetch-site": "cross-site" }), "/api/llm-stats");
+assert.equal(destination("/methodology", { accept: "*/*" }), "app");
+
 function rankedModel(id: string, name: string, intelligenceScore: number) {
   const model = minimalModelAtlasModel({ id, name });
   return {
@@ -584,4 +662,17 @@ function rankedModel(id: string, name: string, intelligenceScore: number) {
       intelligence_score: intelligenceScore,
     },
   };
+}
+
+/** Name where the proxy sends a request: the rewritten API path, a redirect target, or `app` for the unchanged route. */
+function destination(path: string, headers: Record<string, string>): string {
+  const response = proxy(new NextRequest(`https://model-atlas.test${path}`, { headers }));
+  const rewrite = response.headers.get("x-middleware-rewrite");
+  if (rewrite != null) {
+    const url = new URL(rewrite);
+    return `${url.pathname}${url.search}`;
+  }
+  const redirect = response.headers.get("location");
+  if (redirect != null) return `redirect ${new URL(redirect).pathname}`;
+  return response.headers.get("x-middleware-next") === "1" ? "app" : "unknown";
 }

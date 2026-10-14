@@ -1,14 +1,7 @@
 /** Public LLM stats API for Model Atlas. */
 
-import { createHash } from "node:crypto";
-
 import { readDisplaySnapshotPayload } from "../../../src/model-atlas/database/runtime-snapshot";
-import type { ModelAtlasPayload } from "../../../src/model-atlas/stats/types";
-import {
-  type ModelAtlasJsonView,
-  publicJsonPayload,
-  publicJsonView,
-} from "../../leaderboard/public-json";
+import { publicJsonView, serializedPublicJson } from "../../leaderboard/public-json";
 import { matchesEtag, publicCacheHeaders } from "../cache-headers";
 
 export const dynamic = "force-dynamic";
@@ -21,31 +14,16 @@ const SNAPSHOT_CACHE_HEADERS = publicCacheHeaders({
   staleWhileRevalidateSeconds: 3600,
 });
 
-const serializedSnapshots = new WeakMap<
-  ModelAtlasPayload,
-  Partial<Record<ModelAtlasJsonView, { body: string; etag: string }>>
->();
-
 export async function GET(request: Request) {
   const view = publicJsonView(
     new URL(request.url).searchParams.get("view") ?? request.headers.get("x-model-atlas-view"),
   );
   try {
-    const snapshot = await readDisplaySnapshotPayload();
-    let views = serializedSnapshots.get(snapshot);
-    if (!views) {
-      views = {};
-      serializedSnapshots.set(snapshot, views);
-    }
-    let serialized = views[view];
-    if (!serialized) {
-      const body = JSON.stringify(publicJsonPayload(snapshot, view));
-      serialized = {
-        body,
-        etag: `W/"${createHash("sha256").update(body).digest("hex")}"`,
-      };
-      views[view] = serialized;
-    }
+    const serialized = serializedPublicJson(
+      await readDisplaySnapshotPayload(),
+      view,
+      siteOrigin(request),
+    );
     const headers = new Headers(SNAPSHOT_CACHE_HEADERS);
     headers.set("Content-Type", "application/json; charset=utf-8");
     headers.set("ETag", serialized.etag);
@@ -64,4 +42,16 @@ export async function GET(request: Request) {
       },
     });
   }
+}
+
+/**
+ * The public address to prefix a response's own URLs with.
+ *
+ * Vercel's production domain is used where it is known, so the body is the same for every host that may share the CDN's copy.
+ * Elsewhere it is the address the server itself reports for the request, which a local server gives as `localhost`.
+ * Forwarding headers are never read: a client can set them, and this response is cached for other callers.
+ */
+function siteOrigin(request: Request): string {
+  const productionHost = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+  return productionHost ? `https://${productionHost}` : new URL(request.url).origin;
 }
