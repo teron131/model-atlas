@@ -33,7 +33,6 @@ import {
   dashboardMetricColumns,
   dedupeDisplayModels,
   leaderboardRows,
-  resourceRatioReferenceSets,
   sortedRows,
   sorters,
   type SortKey,
@@ -89,13 +88,9 @@ export function DashboardLeaderboard({
   const deferredFilters = useDeferredValue(filters);
   // URL subscriptions update synchronously; defer the row reorder so the chosen header can paint first.
   const deferredSortState = useDeferredValue(sortState);
-  const ratioReferences = useMemo(
-    () => (payload == null ? [] : resourceRatioReferenceSets(payload)),
-    [payload],
-  );
   const tableRows = useMemo(
-    () => leaderboardRows(payload, deferredShowVariants, ratioReferences),
-    [deferredShowVariants, payload, ratioReferences],
+    () => leaderboardRows(payload, deferredShowVariants),
+    [deferredShowVariants, payload],
   );
 
   const filterScope = useMemo(

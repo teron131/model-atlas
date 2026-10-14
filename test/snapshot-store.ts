@@ -10,7 +10,7 @@ import type { Storage } from "@google-cloud/storage";
 
 import { GET } from "../app/api/llm-stats/route";
 import { GET as indexGET } from "../app/api/timeline/route";
-import { publicJsonPayload } from "../app/leaderboard/public-json";
+import { publicJsonPayload, serializedPublicJson } from "../app/leaderboard/public-json";
 import {
   readDisplaySnapshotPayload,
   readIntelligenceIndex,
@@ -140,6 +140,7 @@ try {
     models: [
       {
         ...minimalModelAtlasModel({ id: "test/model", name: "Test model" }),
+        provider: "openai",
         release_date: "1970-01-01",
       },
     ],
@@ -255,12 +256,43 @@ try {
   await readDisplaySnapshotPayload();
   assert.equal(manifestReads, 1);
 
+  delete process.env.VERCEL_PROJECT_PRODUCTION_URL;
   const url = "http://localhost/api/llm-stats?view=dashboard";
   const firstResponse = await GET(new Request(url));
   assert.equal(firstResponse.status, 200);
-  assert.deepEqual(await firstResponse.json(), publicJsonPayload(read, "dashboard"));
+  const firstBody = await firstResponse.json();
+  assert.deepEqual(firstBody, publicJsonPayload(read, "dashboard", "http://localhost"));
+  assert.equal(firstBody.models[0]?.logo, "http://localhost/provider-icons/openai.svg");
+  const forwardedResponse = await GET(
+    new Request(url, {
+      headers: { "X-Forwarded-Host": "attacker.test", "X-Forwarded-Proto": "https" },
+    }),
+  );
+  assert.deepEqual(
+    await forwardedResponse.json(),
+    firstBody,
+    "A client's forwarding headers must not choose the address written into a response that is cached for other callers",
+  );
+  process.env.VERCEL_PROJECT_PRODUCTION_URL = "atlas.test";
+  const productionResponse = await GET(new Request(url));
+  delete process.env.VERCEL_PROJECT_PRODUCTION_URL;
+  assert.equal(
+    (await productionResponse.json()).models[0].logo,
+    "https://atlas.test/provider-icons/openai.svg",
+    "The site's production domain, where known, is the address every host answers with",
+  );
   const etag = firstResponse.headers.get("etag")!;
   assert.ok(etag.startsWith('W/"'));
+  assert.equal(
+    serializedPublicJson(read, "dashboard").etag,
+    etag,
+    "The page must start the dashboard's refreshes from the validator the endpoint answers to",
+  );
+  assert.equal(
+    serializedPublicJson(read, "dashboard", "https://atlas.test").etag,
+    etag,
+    "The validator identifies the snapshot's view whichever site address its URLs carry",
+  );
   assert.equal(firstResponse.headers.get("vary"), "x-model-atlas-view");
   assert.equal(firstResponse.headers.get("cache-control"), "public, max-age=60");
   for (const validator of [etag, etag.slice(2), `"other", ${etag}`, "*"]) {

@@ -22,15 +22,25 @@ type RefreshPayloadOptions = {
   retryWhenGuarded?: boolean;
 };
 
-/** Keeps the dashboard payload current while cached data covers compact or unavailable initial responses. */
-export function useLivePayload(initialPayload: ModelAtlasPayload | null) {
+/**
+ * Keeps the dashboard payload current while cached data covers compact or unavailable initial responses.
+ *
+ * `initialEtag` is the dashboard view's validator for the snapshot the server rendered `initialPayload` from.
+ * Without it the first refresh of every visit downloaded the whole view and re-rendered the dashboard with identical data.
+ */
+export function useLivePayload(
+  initialPayload: ModelAtlasPayload | null,
+  initialEtag: string | null = null,
+) {
   const [payload, setPayload] = useState<ModelAtlasPayload | null>(initialPayload);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const refreshInFlightRef = useRef<Promise<void> | null>(null);
   const refreshRetryTimeoutRef = useRef<number | null>(null);
   const currentPayloadRef = useRef<CachedPayload | null>(
-    initialPayload == null ? null : { etag: null, payload: initialPayload },
+    initialPayload == null ? null : { etag: initialEtag, payload: initialPayload },
   );
+  // The browser copy is written once a refresh confirms the payload, whether or not the snapshot had changed.
+  const storedPayloadRef = useRef<CachedPayload | null>(null);
 
   const refreshPayload = useCallback((options?: RefreshPayloadOptions) => {
     if (refreshInFlightRef.current != null) {
@@ -55,10 +65,13 @@ export function useLivePayload(initialPayload: ModelAtlasPayload | null) {
     const current = currentPayloadRef.current;
     refreshInFlightRef.current = fetchDashboardPayload(current)
       .then((next) => {
+        if (next !== storedPayloadRef.current) {
+          storedPayloadRef.current = next;
+          schedulePayloadCacheWrite(next);
+        }
         if (next === current) return;
         currentPayloadRef.current = next;
         setPayload(next.payload);
-        schedulePayloadCacheWrite(next);
       })
       .catch((error) => {
         console.error("Unable to refresh stats", error);
@@ -75,6 +88,7 @@ export function useLivePayload(initialPayload: ModelAtlasPayload | null) {
     const cached = readCachedPayload();
     if (cached != null && (initialPayload == null || hasSelectedBenchmarks(cached.payload))) {
       currentPayloadRef.current = cached;
+      storedPayloadRef.current = cached;
       setPayload(cached.payload);
     }
     void refreshPayload({ retryWhenGuarded: true });

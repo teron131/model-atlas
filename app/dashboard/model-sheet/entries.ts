@@ -19,7 +19,7 @@ import {
 } from "../graphs/pareto/analysis";
 import { sharedFrontierBenchmarkComparison } from "../graphs/pareto/common-evidence";
 import { modelName } from "../shared/model-display";
-import { leaderboardRows, resourceRatioReferenceSets, type TableRow } from "../table/models";
+import { leaderboardRows, type TableRow } from "../table/models";
 import { isModelSheetModel, type ModelSheetSlot } from "./open";
 
 /** One reasoning effort on its family's curve: Intelligence against median-relative cost on the family's shared benchmarks. */
@@ -54,7 +54,7 @@ type CostEvidence = {
 
 /**
  * Resolve the opened (`model`, `effort`) and pinned (`compare`, `compare-effort`) URL names once per payload.
- * A name the snapshot lacks resolves to `null`; both populations and the cost evidence are built only while the sheet is open.
+ * A name the snapshot lacks resolves to `null`; the populations are the leaderboard's own row displays, kept for the snapshot, and the cost evidence is built only while the sheet is open.
  */
 export function useSheetEntries(
   payload: ModelAtlasPayload | null,
@@ -66,13 +66,12 @@ export function useSheetEntries(
   const open = payload != null && modelKey != null;
   const populations = useMemo(() => {
     if (!open) return null;
-    const referenceSets = resourceRatioReferenceSets(payload);
     const portfolio = payload.metadata.scoring.benchmark_portfolio;
     // The Pareto chart's full-population cost rows set the references and resource keys its effort curves use.
     const referenceRows = frontierBenchmarkRows(payload.models, portfolio, "cost");
     return {
-      collapsed: leaderboardRows(payload, false, referenceSets),
-      variants: leaderboardRows(payload, true, referenceSets),
+      collapsed: leaderboardRows(payload, false),
+      variants: leaderboardRows(payload, true),
       cost: { portfolio, referenceRows, keys: automaticResourceKeys(referenceRows, "cost") },
     };
   }, [open, payload]);

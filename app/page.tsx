@@ -1,4 +1,4 @@
-/** Render the complete cached dashboard immediately from the API's dashboard view; the client refreshes its snapshot in the background. */
+/** Render the complete cached dashboard immediately from the API's dashboard view, without its health diagnostics; the client refreshes its snapshot in the background, starting from that view's validator. */
 
 import { cookies } from "next/headers";
 
@@ -6,7 +6,11 @@ import { readDisplaySnapshotPayload } from "../src/model-atlas/database/runtime-
 import { Dashboard } from "./dashboard";
 import { GRAPH_VARIANTS_COOKIE } from "./dashboard/url-state";
 import { DashboardUrlProvider } from "./dashboard/use-url-state";
-import { publicJsonPayload } from "./leaderboard/public-json";
+import {
+  embeddedDashboardPayload,
+  publicJsonPayload,
+  serializedPublicJson,
+} from "./leaderboard/public-json";
 
 export const runtime = "nodejs";
 
@@ -15,7 +19,7 @@ export default async function Home({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const [initialPayload, selections, savedPreferences] = await Promise.all([
+  const [snapshot, selections, savedPreferences] = await Promise.all([
     readDisplaySnapshotPayload(),
     searchParams,
     cookies(),
@@ -38,7 +42,8 @@ export default async function Home({
       />
       <DashboardUrlProvider search={search.toString()}>
         <Dashboard
-          initialPayload={publicJsonPayload(initialPayload, "dashboard")}
+          initialPayload={embeddedDashboardPayload(publicJsonPayload(snapshot, "dashboard"))}
+          initialPayloadEtag={serializedPublicJson(snapshot, "dashboard").etag}
           initialShowReasoningVariants={savedPreferences.get(GRAPH_VARIANTS_COOKIE)?.value === "1"}
         />
       </DashboardUrlProvider>

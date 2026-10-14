@@ -22,7 +22,10 @@ type ScrollSnapshot = {
 };
 
 type UseTableViewportOptions = {
-  columnCount: number;
+  /** The columns drawn, in order. */
+  columnKeys: readonly string[];
+  /** The rows drawn; a new list, like a new column list, has the column widths measured afresh. */
+  rows: readonly unknown[];
   onTooltipEnd: () => void;
 };
 
@@ -32,6 +35,8 @@ type UseTableViewportResult = {
   tableRef: RefObject<HTMLTableElement | null>;
   rowHeight: number | null;
   columnWidths: number[];
+  /** Whether the body table should pin its columns to `columnWidths` as minimums. */
+  columnWidthsHeld: boolean;
   pinnedColumnsEnabled: boolean;
   handleScroll: (event: UIEvent<HTMLDivElement>) => void;
   /** `smooth` glides to the position, unless the reader prefers reduced motion; the header follows through the scroll handler. */
@@ -43,11 +48,19 @@ const PINNED_COLUMNS_ENABLE_BUFFER_PX = 24;
 const UNPIN_COLUMNS_MEDIA_QUERY = "(max-width: 720px)";
 const NON_PASSIVE_WHEEL_OPTIONS: AddEventListenerOptions = { passive: false };
 
-/** Manage mirrored table/header horizontal scrolling and rendered layout measurements. */
+/**
+ * Manage mirrored table/header horizontal scrolling and rendered layout measurements.
+ *
+ * Only rows near the viewport draw their cells, so a column's natural width follows whichever of them are drawn.
+ * Once measured, the widths are held as minimums so a column cannot narrow while its rows scroll; it can still widen for a wider value.
+ * A change of columns, rows, viewport width, or loaded fonts releases the hold for one commit, so the table is laid out naturally before it is measured and held again.
+ */
 export function useTableViewport({
-  columnCount,
+  columnKeys,
+  rows,
   onTooltipEnd,
 }: UseTableViewportOptions): UseTableViewportResult {
+  const columnCount = columnKeys.length;
   const tableScrollRef = useRef<HTMLDivElement>(null);
   const headerScrollRef = useRef<HTMLDivElement>(null);
   const tableRef = useRef<HTMLTableElement>(null);
@@ -56,11 +69,34 @@ export function useTableViewport({
     header: null,
   });
   const widestPinnedWidthRef = useRef(0);
+  const viewportWidthRef = useRef<number | null>(null);
   const [rowHeight, setRowHeight] = useState<number | null>(null);
   const [columnWidths, setColumnWidths] = useState<number[]>([]);
   const [pinnedColumnsEnabled, setPinnedColumnsEnabled] = useState(false);
+  // Counts the viewport-width and font changes that require fresh widths for unchanged columns and rows.
+  const [measureEpoch, setMeasureEpoch] = useState(0);
+  const [held, setHeld] = useState<{
+    columnKeys: readonly string[];
+    rows: readonly unknown[];
+    epoch: number;
+  } | null>(null);
+  const columnWidthsHeld =
+    held != null &&
+    held.columnKeys === columnKeys &&
+    held.rows === rows &&
+    held.epoch === measureEpoch;
   const syncTableLayoutMeasurements = useCallback(() => {
     const table = tableRef.current;
+    const viewportWidth = tableScrollRef.current?.clientWidth;
+    if (viewportWidth != null) {
+      if (
+        viewportWidthRef.current != null &&
+        Math.abs(viewportWidth - viewportWidthRef.current) >= 0.5
+      ) {
+        setMeasureEpoch((epoch) => epoch + 1);
+      }
+      viewportWidthRef.current = viewportWidth;
+    }
     const measuredRowHeight =
       table
         ?.querySelector<HTMLTableCellElement>("tbody td.model-column")
@@ -171,13 +207,23 @@ export function useTableViewport({
       observer.observe(tableScrollRef.current);
     }
     window.addEventListener("resize", syncTableLayoutMeasurements);
-    document.fonts?.ready.then(syncTableLayoutMeasurements).catch(() => {});
+    // Fonts that finish loading can narrow columns as well as widen them, which held widths would hide.
+    if (document.fonts?.status === "loading") {
+      document.fonts.ready.then(() => setMeasureEpoch((epoch) => epoch + 1)).catch(() => {});
+    }
     return () => {
       window.cancelAnimationFrame(animationFrame);
       observer.disconnect();
       window.removeEventListener("resize", syncTableLayoutMeasurements);
     };
   }, [syncTableLayoutMeasurements]);
+
+  useLayoutEffect(() => {
+    if (columnWidthsHeld) return;
+    // The commit that released the widths laid the table out naturally; measure that before holding again.
+    syncTableLayoutMeasurements();
+    setHeld({ columnKeys, rows, epoch: measureEpoch });
+  }, [columnWidthsHeld, columnKeys, rows, measureEpoch, syncTableLayoutMeasurements]);
 
   useLayoutEffect(() => {
     const tableScroll = tableScrollRef.current;
@@ -194,6 +240,7 @@ export function useTableViewport({
     tableRef,
     rowHeight,
     columnWidths,
+    columnWidthsHeld,
     pinnedColumnsEnabled,
     handleScroll,
     scrollTableTo,
@@ -236,6 +283,53 @@ export function useTableScrollSnapshot(
     };
   }, [tableRef, tableScrollRef]);
   return snapshot;
+}
+
+/** Rows of the table drawn in full, as a half-open index range; rows outside it keep only their rank and model. */
+type DetailedRowRange = { start: number; end: number };
+
+// Rows kept in full beyond each edge of the viewport, so ordinary scrolling reaches finished rows.
+const DETAILED_ROW_OVERSCAN = 8;
+// The range moves in steps, so scrolling re-renders the table once every few rows rather than on every one.
+const DETAILED_ROW_STEP = 4;
+// Before the row height is measured, the eight-row viewport and its overscan below.
+const INITIAL_DETAILED_ROWS: DetailedRowRange = { start: 0, end: 16 };
+
+/**
+ * Track which rows sit in or near the table's vertical viewport.
+ *
+ * Most of the table's cells belong to rows scrolled out of its eight-row window, and drawing them all made every load, sort, and column change restyle the whole table.
+ * The range starts at the top rows for server rendering and hydration, then follows the scroll position once a row has been measured.
+ */
+export function useDetailedRowRange(
+  tableScrollRef: RefObject<HTMLDivElement | null>,
+  rowHeight: number | null,
+): DetailedRowRange {
+  const [range, setRange] = useState(INITIAL_DETAILED_ROWS);
+  useLayoutEffect(() => {
+    const viewport = tableScrollRef.current;
+    if (viewport == null || rowHeight == null || rowHeight <= 0) return;
+    const update = () => {
+      const first = Math.floor(viewport.scrollTop / rowHeight);
+      const last = Math.ceil((viewport.scrollTop + viewport.clientHeight) / rowHeight);
+      const start =
+        Math.floor(Math.max(0, first - DETAILED_ROW_OVERSCAN) / DETAILED_ROW_STEP) *
+        DETAILED_ROW_STEP;
+      const end = Math.ceil((last + DETAILED_ROW_OVERSCAN) / DETAILED_ROW_STEP) * DETAILED_ROW_STEP;
+      setRange((current) =>
+        current.start === start && current.end === end ? current : { start, end },
+      );
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(viewport);
+    viewport.addEventListener("scroll", update, { passive: true });
+    return () => {
+      observer.disconnect();
+      viewport.removeEventListener("scroll", update);
+    };
+  }, [rowHeight, tableScrollRef]);
+  return range;
 }
 
 function measuredTableColumnWidths(

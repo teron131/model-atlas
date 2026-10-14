@@ -20,7 +20,7 @@ import type {
 import { tableColumnRuleKeys, tableColumnRuns } from "./models";
 import { EmptyStateRow, LoadingRows, ModelRow, type ScoreChangeHandler } from "./Rows";
 import { TableScrollRail } from "./TableScrollRail";
-import { useTableViewport } from "./viewport";
+import { useDetailedRowRange, useTableViewport } from "./viewport";
 
 const TABLE_SCROLL_REGION_ID = "model-table-scroll-region";
 const SCORE_KEYS = new Set<TableColumnKey>(scoreMetricColumns.map((column) => column.key));
@@ -77,14 +77,17 @@ export const ModelTable = memo(function ModelTable({
     tableRef,
     rowHeight,
     columnWidths,
+    columnWidthsHeld,
     pinnedColumnsEnabled,
     handleScroll,
     scrollTableTo,
   } = useTableViewport({
-    columnCount: columnKeys.length,
+    columnKeys,
+    rows: visibleRows,
     onTooltipEnd,
   });
   const isStickyHeaderReady = columnWidths.length === columnKeys.length;
+  const detailedRows = useDetailedRowRange(tableScrollRef, rowHeight);
   const rowKeys = useMemo(() => stableModelRowKeys(visibleRows), [visibleRows]);
   const stickyHeaderWidth = columnWidths.reduce((sum, width) => sum + width, 0);
   const stickyHeaderWidthStyle = `${stickyHeaderWidth}px`;
@@ -145,6 +148,9 @@ export const ModelTable = memo(function ModelTable({
         onScroll={handleScroll}
       >
         <table ref={tableRef}>
+          {columnWidthsHeld && isStickyHeaderReady ? (
+            <ColumnGroup widths={columnWidths} columnKeys={columnKeys} />
+          ) : null}
           <thead>
             <TableHeaderRow
               metricColumns={metricColumns}
@@ -170,6 +176,7 @@ export const ModelTable = memo(function ModelTable({
                     visibleColumnKeySet={visibleColumnKeySet}
                     ruledColumnKeySet={ruledColumnKeySet}
                     scoreStrip={scoreStrip}
+                    detailed={index >= detailedRows.start && index < detailedRows.end}
                     sheetOpen={
                       (sheetModel != null &&
                         rowShowsModelSheet(rowData.model, sheetModel, sheetEffort)) ||
@@ -231,7 +238,8 @@ function ColumnGroup({
   );
 }
 
-function TableHeaderRow({
+/** Memoized so the body's scroll-driven row range does not re-render either header copy. */
+const TableHeaderRow = memo(function TableHeaderRow({
   metricColumns,
   sortState,
   onSort,
@@ -328,7 +336,7 @@ function TableHeaderRow({
       ) : null}
     </tr>
   );
-}
+});
 
 /** `children` follow the sort button inside the header cell. */
 function SortableHeader({

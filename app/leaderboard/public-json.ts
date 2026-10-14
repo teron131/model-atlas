@@ -1,9 +1,12 @@
-/** Build stable public JSON views for the Model Atlas stats endpoints. */
+/** Build stable public JSON views for the Model Atlas stats endpoints, with their serialized bodies and validators. */
+
+import { createHash } from "node:crypto";
 
 import { INDEX_REPRESENTED_BENCHMARK_MEDIAN } from "../../src/model-atlas/benchmarks/index-policy";
 import type { BenchmarkObservationEvidenceRow } from "../../src/model-atlas/benchmarks/observation";
 import { applyResourceEvidenceRequirements } from "../../src/model-atlas/pipeline/scores/resource-metrics";
 import type { ModelAtlasModel, ModelAtlasPayload } from "../../src/model-atlas/stats/types";
+import { providerLogo } from "../dashboard/shared/provider-theme";
 import { compactModelVariants } from "./model-variants";
 
 const SCORE_SCHEMA = "model_atlas.score";
@@ -28,6 +31,18 @@ type PublicJsonPayload =
   | BenchmarksJsonPayload
   | FullJsonPayload
   | ModelAtlasPayload;
+
+type SerializedPublicJson = { body: string; etag: string };
+
+const serializedBySnapshot = new WeakMap<
+  ModelAtlasPayload,
+  {
+    /** Each view with site-relative URLs; its hash is the view's validator whichever site origin is asked for. */
+    views: Partial<Record<ModelAtlasJsonView, SerializedPublicJson>>;
+    /** The dashboard view's body with absolute icon URLs, for the site origin last asked for. */
+    dashboard?: { siteOrigin: string; body: string };
+  }
+>();
 
 type CoreJsonPayload = {
   schema: typeof CORE_SCHEMA;
@@ -153,15 +168,25 @@ export function publicJsonView(view: string | null): ModelAtlasJsonView {
   }
 }
 
-/** Keep the default public endpoint loader-friendly; callers opt into heavier table, benchmark, or full views explicitly. */
-export function publicJsonPayload(payload: ModelAtlasPayload, view: "dashboard"): ModelAtlasPayload;
+/**
+ * Keep the default public endpoint loader-friendly; callers opt into heavier table, benchmark, or full views explicitly.
+ *
+ * `siteOrigin` is the public address the response is served from, such as `https://example.com`; the dashboard view prefixes its icon URLs with it, and without it they stay relative to the site.
+ */
+export function publicJsonPayload(
+  payload: ModelAtlasPayload,
+  view: "dashboard",
+  siteOrigin?: string,
+): ModelAtlasPayload;
 export function publicJsonPayload(
   payload: ModelAtlasPayload,
   view: string | null,
+  siteOrigin?: string,
 ): PublicJsonPayload;
 export function publicJsonPayload(
   payload: ModelAtlasPayload,
   view: string | null,
+  siteOrigin = "",
 ): PublicJsonPayload {
   const { timeline: _timeline, ...leaderboard } = payload;
   payload = {
@@ -172,7 +197,7 @@ export function publicJsonPayload(
   };
   switch (publicJsonView(view)) {
     case "dashboard":
-      return dashboardJsonPayload(payload);
+      return dashboardJsonPayload(payload, siteOrigin);
     case "all":
       return fullJsonPayload(payload);
     case "core":
@@ -184,9 +209,57 @@ export function publicJsonPayload(
   }
 }
 
-/** Keep complete model and benchmark evidence for immediate rendering without shipping ingestion diagnostics that no dashboard consumer reads. */
-export function dashboardJsonPayload(payload: ModelAtlasPayload): ModelAtlasPayload {
-  const { timeline: _timeline, benchmark_observations: observations, ...dashboard } = payload;
+/**
+ * Serialize a view once per snapshot object, shared by the stats endpoint and the dashboard page that asks whether its view has changed.
+ *
+ * The validator is a hash of the site-relative body, so it changes with the snapshot's data and with the view's shape, and the same snapshot yields the same validator wherever it is asked for.
+ * It stays valid for a body with absolute URLs because a validator only ever compares responses for one URL, whose host fixes the origin.
+ */
+export function serializedPublicJson(
+  snapshot: ModelAtlasPayload,
+  view: ModelAtlasJsonView,
+  siteOrigin = "",
+): SerializedPublicJson {
+  let serialized = serializedBySnapshot.get(snapshot);
+  if (!serialized) {
+    serialized = { views: {} };
+    serializedBySnapshot.set(snapshot, serialized);
+  }
+  let relative = serialized.views[view];
+  if (!relative) {
+    const body = JSON.stringify(publicJsonPayload(snapshot, view));
+    relative = { body, etag: `W/"${createHash("sha256").update(body).digest("hex")}"` };
+    serialized.views[view] = relative;
+  }
+  if (view !== "dashboard" || siteOrigin === "") return relative;
+  if (serialized.dashboard?.siteOrigin !== siteOrigin) {
+    serialized.dashboard = {
+      siteOrigin,
+      body: JSON.stringify(publicJsonPayload(snapshot, view, siteOrigin)),
+    };
+  }
+  return { body: serialized.dashboard.body, etag: relative.etag };
+}
+
+/**
+ * Keep complete model and benchmark evidence for immediate rendering without shipping ingestion diagnostics that no dashboard consumer reads.
+ *
+ * A model's logo is the URL of its provider's icon file where the app serves one, as the dashboard draws it, and the snapshot's embedded image otherwise.
+ * The URL is absolute when `siteOrigin` is given, so a caller on another host can load it, and relative to the site without it.
+ * One embedded image repeated per model was most of the compressed response.
+ */
+export function dashboardJsonPayload(
+  payload: ModelAtlasPayload,
+  siteOrigin = "",
+): ModelAtlasPayload {
+  const { timeline: _timeline, benchmark_observations: observations, ...leaderboard } = payload;
+  const dashboard = {
+    ...leaderboard,
+    models: leaderboard.models.map((model) => {
+      const iconPath = providerLogo(model.provider);
+      return iconPath ? { ...model, logo: `${siteOrigin}${iconPath}` } : model;
+    }),
+  };
   if (observations == null) return dashboard;
   return {
     ...dashboard,
@@ -194,6 +267,20 @@ export function dashboardJsonPayload(payload: ModelAtlasPayload): ModelAtlasPayl
       Object.entries(observations).map(([key, rows]) => [key, rows.map(dashboardObservation)]),
     ),
   };
+}
+
+/**
+ * The dashboard view as the dashboard page embeds it in its own document, without the health diagnostics no dashboard component reads.
+ *
+ * Only that page's own script reads the embedded copy, so trimming it changes no public response; the endpoint's dashboard view keeps them.
+ */
+export function embeddedDashboardPayload(dashboard: ModelAtlasPayload): ModelAtlasPayload {
+  const {
+    source_health: _sourceHealth,
+    benchmark_update_health: _benchmarkUpdateHealth,
+    ...metadata
+  } = dashboard.metadata;
+  return { ...dashboard, metadata };
 }
 
 /** The core view is the compact table contract: stable scalar columns without dashboard-only decoration. */

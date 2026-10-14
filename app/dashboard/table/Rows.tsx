@@ -1,6 +1,13 @@
 /** Leaderboard row rendering applies model display, cell formatting, and interaction rules. */
 
-import { type CSSProperties, memo, type MouseEvent } from "react";
+import {
+  type CSSProperties,
+  memo,
+  type MouseEvent,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 
 import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 import { openModelSheet } from "../model-sheet/open";
@@ -36,6 +43,9 @@ import {
 import { scoreDimensionLabel } from "./tooltips";
 
 const HIDDEN_MODEL_DISPLAY_TOKENS = new Set(["instruct", "preview"]);
+// Every row leads with its rank and model cells, whichever columns are shown.
+const IDENTITY_COLUMN_COUNT = 2;
+const NO_COLUMN_KEYS: ReadonlySet<TableColumnKey> = new Set();
 const LOADING_ROW_KEYS = [
   "loading-row-01",
   "loading-row-02",
@@ -125,6 +135,12 @@ function LoadingRow({
   );
 }
 
+/**
+ * One leaderboard row.
+ *
+ * A `detailed` row draws every visible column, and so does a row holding keyboard focus, so a focused control is never removed by scrolling.
+ * Otherwise the row keeps its rank and model, so it holds its height, stays findable by name, and still opens its model sheet, and leaves the remaining columns as one empty cell until it scrolls near the table's viewport.
+ */
 export const ModelRow = memo(function ModelRow({
   rowData,
   metricColumns,
@@ -132,6 +148,7 @@ export const ModelRow = memo(function ModelRow({
   ruledColumnKeySet,
   scoreStrip,
   sheetOpen,
+  detailed,
   onScoreChange,
 }: {
   rowData: TableRow;
@@ -140,14 +157,28 @@ export const ModelRow = memo(function ModelRow({
   ruledColumnKeySet: ReadonlySet<TableColumnKey>;
   scoreStrip: boolean;
   sheetOpen: boolean;
+  detailed: boolean;
   onScoreChange: ScoreChangeHandler;
 }) {
   const model = rowData.model;
+  const rowRef = useRef<HTMLTableRowElement>(null);
+  const [focusWithin, setFocusWithin] = useState(false);
+  const drawsEveryColumn = detailed || focusWithin;
+  // A focused control that an update removes fires no blur, so the flag is checked against the document after each render.
+  useLayoutEffect(() => {
+    if (focusWithin && !rowRef.current?.contains(document.activeElement)) setFocusWithin(false);
+  });
+  const pendingColumnCount = visibleColumnKeySet.size - IDENTITY_COLUMN_COUNT;
   return (
     <tr
+      ref={rowRef}
       className="model-row"
       data-sheet-open={sheetOpen || undefined}
       style={rowProviderStyle(model.provider)}
+      onFocus={() => setFocusWithin(true)}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setFocusWithin(false);
+      }}
       onClick={(event) => {
         // The name button and other controls handle their own clicks, and a drag that selects text is not a request to open.
         if (
@@ -161,69 +192,75 @@ export const ModelRow = memo(function ModelRow({
     >
       <ModelScoreCells
         rowData={rowData}
-        visibleColumnKeySet={visibleColumnKeySet}
+        visibleColumnKeySet={drawsEveryColumn ? visibleColumnKeySet : NO_COLUMN_KEYS}
         ruledColumnKeySet={ruledColumnKeySet}
         opensSheet
         scoreStrip={scoreStrip}
       />
-      {resourceRatioColumns
-        .filter((column) => visibleColumnKeySet.has(column.key))
-        .map((column) => {
-          const summary = rowData.resourceRatios?.[column.kind];
-          return (
-            <RatioCell
-              key={column.key}
-              ratio={summary?.ratio}
-              className={tableCellClassName(column.key, ruledColumnKeySet)}
-              title={
-                summary == null
-                  ? undefined
-                  : `${summary.benchmarkCount} measured benchmarks · ${summary.sourceCount} source measurements`
-              }
+      {drawsEveryColumn ? (
+        <>
+          {resourceRatioColumns
+            .filter((column) => visibleColumnKeySet.has(column.key))
+            .map((column) => {
+              const summary = rowData.resourceRatios?.[column.kind];
+              return (
+                <RatioCell
+                  key={column.key}
+                  ratio={summary?.ratio}
+                  className={tableCellClassName(column.key, ruledColumnKeySet)}
+                  title={
+                    summary == null
+                      ? undefined
+                      : `${summary.benchmarkCount} measured benchmarks · ${summary.sourceCount} source measurements`
+                  }
+                />
+              );
+            })}
+          {visibleColumnKeySet.has("blend") ? (
+            <AmountCell
+              rowData={rowData}
+              columnKey="blend"
+              text={formatCost(model.cost?.blended_price)}
+              className={tableCellClassName("blend", ruledColumnKeySet)}
             />
-          );
-        })}
-      {visibleColumnKeySet.has("blend") ? (
-        <AmountCell
-          rowData={rowData}
-          columnKey="blend"
-          text={formatCost(model.cost?.blended_price)}
-          className={tableCellClassName("blend", ruledColumnKeySet)}
-        />
-      ) : null}
-      {speedMetricColumns
-        .filter((column) => visibleColumnKeySet.has(column.key))
-        .map((column) => (
-          <DashboardMetricCell
-            key={column.key}
-            rowData={rowData}
-            column={column}
-            hasRuleAfter={ruledColumnKeySet.has(column.key)}
-          />
-        ))}
-      {visibleColumnKeySet.has("context") ? (
-        <AmountCell
-          rowData={rowData}
-          columnKey="context"
-          text={formatContext(contextWindowValue(model))}
-          className={tableCellClassName("context", ruledColumnKeySet)}
-        />
-      ) : null}
-      {metricColumns
-        .filter((column) => visibleColumnKeySet.has(column.key))
-        .map((column) => (
-          <DashboardMetricCell
-            key={column.key}
-            rowData={rowData}
-            column={column}
-            hasRuleAfter={ruledColumnKeySet.has(column.key)}
-          />
-        ))}
-      {visibleColumnKeySet.has("confidence") ? (
-        <ConfidenceCell confidence={model.confidence} />
-      ) : null}
-      {visibleColumnKeySet.has("change") ? (
-        <ScoreChangeCell model={model} onScoreChange={onScoreChange} />
+          ) : null}
+          {speedMetricColumns
+            .filter((column) => visibleColumnKeySet.has(column.key))
+            .map((column) => (
+              <DashboardMetricCell
+                key={column.key}
+                rowData={rowData}
+                column={column}
+                hasRuleAfter={ruledColumnKeySet.has(column.key)}
+              />
+            ))}
+          {visibleColumnKeySet.has("context") ? (
+            <AmountCell
+              rowData={rowData}
+              columnKey="context"
+              text={formatContext(contextWindowValue(model))}
+              className={tableCellClassName("context", ruledColumnKeySet)}
+            />
+          ) : null}
+          {metricColumns
+            .filter((column) => visibleColumnKeySet.has(column.key))
+            .map((column) => (
+              <DashboardMetricCell
+                key={column.key}
+                rowData={rowData}
+                column={column}
+                hasRuleAfter={ruledColumnKeySet.has(column.key)}
+              />
+            ))}
+          {visibleColumnKeySet.has("confidence") ? (
+            <ConfidenceCell confidence={model.confidence} />
+          ) : null}
+          {visibleColumnKeySet.has("change") ? (
+            <ScoreChangeCell model={model} onScoreChange={onScoreChange} />
+          ) : null}
+        </>
+      ) : pendingColumnCount > 0 ? (
+        <td colSpan={pendingColumnCount} />
       ) : null}
     </tr>
   );
@@ -642,11 +679,13 @@ function RatioCell({
   className: string;
   title?: string;
 }) {
+  // An unmeasured cell reserves its bar's width, so the column is as wide whichever rows are drawn in full.
+  const cellClassName = `${className} ratio-cell`;
   if (ratio == null || !Number.isFinite(ratio) || ratio <= 0) {
-    return <TableCell text={text} className={className} title={title} />;
+    return <TableCell text={text} className={cellClassName} title={title} />;
   }
   return (
-    <td className={className} title={title}>
+    <td className={cellClassName} title={title}>
       {text}
       <span className="ratio-track" style={ratioTrackStyle(ratio)} aria-hidden="true" />
     </td>

@@ -514,15 +514,23 @@ const RESOURCE_RATIO_KINDS = [
   "tokens",
 ] as const satisfies readonly ResourceRatioKind[];
 
-export type ResourceRatioReferenceSet = {
+type ResourceRatioReferenceSet = {
   kind: ResourceRatioKind;
   references: Map<string, number>;
 };
 
+/** One snapshot's reference medians and the two row displays measured against them, each display shaped when first read. */
+type RowDisplays = {
+  references: ResourceRatioReferenceSet[];
+  models?: TableRow[];
+  variants?: TableRow[];
+};
+
+// The leaderboard and the model sheet read the same snapshot; without this each built its own rows, and the sheet rebuilt both displays on every open.
+const rowDisplaysByPayload = new WeakMap<ModelAtlasPayload, RowDisplays>();
+
 /** Reference medians for each resource ratio come from every published variant, so every display measures against the same population. */
-export function resourceRatioReferenceSets(
-  payload: ModelAtlasPayload,
-): ResourceRatioReferenceSet[] {
+function resourceRatioReferenceSets(payload: ModelAtlasPayload): ResourceRatioReferenceSet[] {
   const portfolio = payload.metadata.scoring.benchmark_portfolio;
   return RESOURCE_RATIO_KINDS.map((kind) => ({
     kind,
@@ -534,16 +542,31 @@ export function resourceRatioReferenceSets(
  * Shape one variant display of the payload into leaderboard rows with their resource ratios.
  *
  * Observations are allocated across the same display population before each row is summarized against the shared references, so the table and the model sheet read identical numbers.
+ * Each display is shaped once per snapshot and the same rows are returned to every reader, so a caller that reorders them must copy first.
  */
 export function leaderboardRows(
   payload: ModelAtlasPayload | null,
   showVariants: boolean,
+): readonly TableRow[] {
+  if (payload == null) return [];
+  let displays = rowDisplaysByPayload.get(payload);
+  if (displays == null) {
+    displays = { references: resourceRatioReferenceSets(payload) };
+    rowDisplaysByPayload.set(payload, displays);
+  }
+  const display = showVariants ? "variants" : "models";
+  displays[display] ??= buildLeaderboardRows(payload, showVariants, displays.references);
+  return displays[display];
+}
+
+function buildLeaderboardRows(
+  payload: ModelAtlasPayload,
+  showVariants: boolean,
   referenceSets: readonly ResourceRatioReferenceSet[],
 ): TableRow[] {
   const rows = dedupeDisplayModels(
-    modelsForVariantDisplay(payload?.models ?? [], showVariants, payload?.benchmark_observations),
+    modelsForVariantDisplay(payload.models, showVariants, payload.benchmark_observations),
   );
-  if (payload == null) return rows;
   const portfolio = payload.metadata.scoring.benchmark_portfolio;
   const metrics = referenceSets.map(({ kind, references }) => {
     const observations = new Map<ModelAtlasModel, ResourceRatioObservation[]>();
