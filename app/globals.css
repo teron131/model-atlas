@@ -1468,10 +1468,15 @@ html[data-model-atlas-theme="light"] .score-meter::after {
   margin-left: calc(var(--score-strip-indent) - 40px);
 }
 
+/* A strip row stacks three lines of text, so name, slug, and scores set tighter than the table's line height and the two tiers stay compact. */
+.table-shell[data-score-strip="true"] :is(.model, .id, .score-strip-item) {
+  line-height: 1.25;
+}
+
 /* The rank lines up with the logo, beside the name and slug rather than the middle of the taller row. */
 .table-shell[data-score-strip="true"] table tbody td.rank {
   vertical-align: top;
-  padding-top: calc(var(--table-row-padding-y) + var(--score-strip-rank-offset, 11px));
+  padding-top: calc(var(--table-row-padding-y) + var(--score-strip-rank-offset, 8px));
 }
 
 /* The model header grows a second line of score marks, so every column name keeps to its first line instead of centring against it. */
@@ -1483,7 +1488,7 @@ html[data-model-atlas-theme="light"] .score-meter::after {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
-  margin-top: 12px;
+  margin-top: 6px;
 }
 
 /* Scores right-align in their cells, as in the score columns, so each sits under its mark. */

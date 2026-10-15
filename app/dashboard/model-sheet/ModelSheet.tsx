@@ -226,7 +226,10 @@ export function ModelSheet({ payload }: { payload: ModelAtlasPayload | null }) {
       title={captureTitle}
       kind="sheet"
       captureWidth={comparing ? WIDE_ARTIFACT_WIDTH : ARTIFACT_WIDTH}
-      onStaged={cardPlots.redraw}
+      onStaged={(card) => {
+        clearCopiedLabelColumn(card);
+        cardPlots.redraw(card);
+      }}
     />
   );
   return (
@@ -300,6 +303,12 @@ export function ModelSheet({ payload }: { payload: ModelAtlasPayload | null }) {
       </div>
     </aside>
   );
+}
+
+/** Staging copies the sheet's resolved custom properties onto the card, a phone's narrower label column among them; the card drops that column to take its own, so a phone-saved image keeps a desktop one's labels whole. */
+function clearCopiedLabelColumn(card: HTMLElement) {
+  card.style.removeProperty("--sheet-label");
+  card.style.removeProperty("--sheet-columns");
 }
 
 /** A model's catalogue identity: provider, the effort it shows, its name at the readout size, and its slug, with the sheet's actions beside a single model. */
