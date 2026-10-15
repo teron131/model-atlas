@@ -32,7 +32,7 @@ text{fill:#f2f3ed}.muted{fill-opacity:.58}
 }
 </style>
 <defs><filter id="glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="3"/></filter><marker id="tip-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="ink" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-violet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="violet" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="rose" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="amber" d="M0 0L10 5L0 10Z"/></marker><linearGradient id="light" gradientUnits="userSpaceOnUse" x1="100" y1="0" x2="700" y2="0"><stop class="h0" offset="0"/><stop class="h1" offset=".58"/><stop class="h2" offset="1"/></linearGradient><linearGradient id="land" gradientUnits="userSpaceOnUse" x1="0" y1="82" x2="0" y2="262"><stop class="land0" offset="0"/><stop class="land1" offset="1"/></linearGradient></defs>
-<text x="100" y="40">Mapped value</text>
+<text class="muted" x="100" y="40">Output</text>
 <path class="grid" d="M100 82L700 82"/><path class="axis" d="M100 262L700 262"/>
 <text class="num muted" x="86" y="86.5" text-anchor="end">1 or 100</text><text class="num muted" x="86" y="266.5" text-anchor="end">0</text>
 <path class="guide" d="M230 82L230 262"/><path class="guide" d="M570 82L570 262"/>
@@ -41,5 +41,5 @@ text{fill:#f2f3ed}.muted{fill-opacity:.58}
 <text class="muted" x="165" y="248" text-anchor="middle">Clamped</text><text class="muted" x="635" y="108" text-anchor="middle">Clamped</text>
 <path class="axis" d="M230 262L230 268"/><path class="axis" d="M570 262L570 268"/>
 <text class="num" x="230" y="288" text-anchor="middle">min</text><text class="num" x="570" y="288" text-anchor="middle">max</text>
-<text x="400" y="328" text-anchor="middle">Input value <tspan class="m"><tspan class="mi">x</tspan></tspan></text>
+<text x="400" y="328" text-anchor="middle">Input <tspan class="m"><tspan class="mi">x</tspan></tspan></text>
 </svg>

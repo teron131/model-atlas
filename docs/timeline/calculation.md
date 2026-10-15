@@ -24,7 +24,7 @@ $$
 
 Here, $\bar x_A,\bar x_B$ are the means and $\sigma_A,\sigma_B$ the standard deviations of reported results from models tested on both benchmarks. Each base model contributes one unit of [reference weight](../methodology/intelligence-agentic.md#sharing-weight-across-variants) across its variants, so extra efforts do not give it extra influence. The translated value estimates a corresponding position on the other scale; it is not an observed benchmark result.
 
-![50 is 10 above A's mean of 40; 80 is 20 above B's mean of 60. Each distance is one standard deviation, so both results have z-score +1. The distribution shapes are illustrative; the mapping does not require bell-shaped results.](../assets/timeline/timeline-standard-scores.svg)
+![Each highlighted result lies one standard deviation above its benchmark's mean, so both have z-score +1 even though B's results spread more widely. The distribution shapes are illustrative; the mapping does not require bell-shaped results.](../assets/timeline/timeline-standard-scores.svg)
 
 ### Validate the Benchmark Connection
 
@@ -40,7 +40,7 @@ The translation must be accurate enough and better than a simple guess. The base
 
 Accepted connections make comparison across eras possible. Suppose benchmark A already has a conversion to the fixed reference scale, and a new benchmark B shares tested models with A. A result from B can be translated to A's scale, then to the reference scale. If a later benchmark C overlaps B, the same chain connects C to the original ruler—even if no model was tested on both A and C. This works for older benchmarks too.
 
-![Shared model results connect old, middle and new benchmarks to the same ruler. A future model needs results on a connected benchmark, not on every earlier benchmark. Estimated results never establish these connections.](../assets/timeline/timeline-benchmark-links.svg)
+![Shared model results connect old, middle and new benchmarks to the same ruler. A future model's result maps onto the ruler once its benchmark is connected, without results on every earlier benchmark; placing the model still needs enough mapped evidence. Estimated results never establish these connections.](../assets/timeline/timeline-benchmark-links.svg)
 
 The accepted connections determine a saved conversion from each benchmark's own units to the shared reference units. Here, $x$ is a reported benchmark result and $q$ is its position on the shared reference scale, before results are combined and the final index anchors are applied. For model $m$, benchmark $b$ and capability dimension $d$, the conversion multiplies $x_{m,b}$ by a slope $\beta_{b,d}$ and adds an intercept $\alpha_{b,d}$:
 
@@ -84,7 +84,7 @@ Undated names do not establish succession, and releases within the same month ar
 
 The anchor values 100 and 150 are chosen for readability. Keeping them and their saved capability positions fixed preserves the same index unit as new models arrive. This final conversion changes the displayed numbers without changing model order or adding evidence.
 
-![Changing the illustrative anchors from 20/80 to 100/150 shifts the origin and shrinks every score gap by the same proportion: the 60-point anchor gap becomes 50. Model order and evidence stay unchanged. Curves trace selected record highs.](../assets/timeline/timeline-anchors.svg)
+![Changing the illustrative anchors from 20/80 to 100/150 shifts the origin and shrinks every score gap by the same proportion: the 60-point anchor gap becomes 50. Model order and evidence stay unchanged. Curves trace record highs, and scores below 0 carry no meaning.](../assets/timeline/timeline-anchors.svg)
 
 The saved positions $q_{L,d}$ for GPT-4 (March 2023) and $q_{H,d}$ for Claude Opus 4.5 map to index scores of 100 and 150. The [linearScale operation](../methodology/overview.md#linear-scaling-and-clamping) finds the model's relative position between these anchors; multiplication by $150-100$ and addition of 100 express it in index units:
 

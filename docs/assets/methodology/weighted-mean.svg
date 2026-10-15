@@ -32,10 +32,10 @@ text{fill:#f2f3ed}.muted{fill-opacity:.58}
 }
 </style>
 <defs><filter id="glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="3"/></filter><marker id="tip-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="ink" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-violet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="violet" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="rose" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="amber" d="M0 0L10 5L0 10Z"/></marker></defs>
-<text class="muted" x="90" y="40">Point area = weight</text>
+<text class="small muted" x="690" y="40" text-anchor="end">Point area = weight</text>
 <path class="axis" d="M90 132L690 132"/>
 <g><circle class="ink halo" cx="166" cy="126" r="8" filter="url(#glow)"/><circle class="ink ring" cx="166" cy="126" r="6"/></g><g><circle class="ink halo" cx="250" cy="126" r="8" filter="url(#glow)"/><circle class="ink ring" cx="250" cy="126" r="6"/></g><g><circle class="ink halo" cx="334" cy="126" r="8" filter="url(#glow)"/><circle class="ink ring" cx="334" cy="126" r="6"/></g><g><circle class="ink halo" cx="586" cy="118.6" r="15.416407864998739" filter="url(#glow)"/><circle class="ink ring" cx="586" cy="118.6" r="13.416407864998739"/></g>
-<path class="ink-line" d="M334 133L334 154" stroke-width="1.5" stroke-dasharray="3 3"/>
+<path class="ink-line" d="M334 133L334 154" stroke-width="1.5" stroke-dasharray="0.5 4" stroke-linecap="round" stroke-opacity=".55"/>
 <path class="violet" d="M460 133L472 154L448 154Z"/>
 <text class="muted" x="334" y="178" text-anchor="middle">Ordinary mean</text><text x="460" y="178" text-anchor="middle">Weighted mean</text>
 <text x="390" y="218" text-anchor="middle">Value <tspan class="m"><tspan class="mi">x</tspan></tspan></text>
