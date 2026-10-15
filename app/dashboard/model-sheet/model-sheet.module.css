@@ -83,6 +83,15 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+/* In those columns each result keeps only its own width, its bar at the leaderboard track's 52px, and the name takes the rest, so long names stay whole instead of stopping at the plane's label column. */
+.sheet[data-compare][data-capture-layout="artifact"] .benchmarks li {
+  grid-template-columns: minmax(0, 1fr) repeat(var(--sheet-entries, 1), max-content);
+}
+
+.sheet[data-compare][data-capture-layout="artifact"] .benchmarkCell {
+  grid-template-columns: var(--benchmark-value) 52px 52px;
+}
+
 /* The card leaves the actions out, so a comparison's second name takes their room. */
 .sheet[data-compare][data-capture-layout="artifact"] .headEntry + .headEntry {
   padding-right: 0;
