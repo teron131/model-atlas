@@ -94,9 +94,11 @@ $$
 
 The first [weighted median](overview.md#weighted-median-and-quantiles), $\tilde y_b$, finds the center of the log token counts; the second finds the typical absolute distance from that center, the median absolute deviation (MAD). Medians limit the effect of extreme counts. This is the spread of log token counts, not of prediction residuals.
 
-The illustration shows the two stages: values equally far below and above the center fold onto the same absolute distance, retaining their weights. Each median splits its distribution’s weight in half. The curves are illustrative, not measured token data.
+The illustrations show the two stages: values equally far below and above the center fold onto the same absolute distance, retaining their weights, and each median splits its distribution’s weight in half. The first draws the fold as a dashed copy of the lower half; the second follows individual weighted values. Both are illustrative, not measured token data.
 
 ![Center first; then fold into distances and find their median.](../assets/methodology/weighted-mad.svg)
+
+![The same fold on individual values: each moves to its distance from the median, and the weight laid end to end in order of distance passes 50% at the MAD.](../assets/methodology/weighted-mad-points.svg)
 
 The factor 1.4826 calibrates MAD to a standard-deviation scale: for a normal distribution with standard deviation $\sigma$, half the values lie within $0.67449\sigma$ of the center, so $1/0.67449\approx1.4826$. This is a statistical convention, not a fitted Model Atlas parameter. Log token counts need not be normally distributed; for other shapes, the scaled MAD need not equal their standard deviation.
 
@@ -174,9 +176,9 @@ $$
 
 These comparisons need not agree perfectly: A may beat B, B may beat C, and C may beat A on different shared baskets. Least squares finds a compromise, with larger edge weights making disagreement more costly. It does not guarantee that every direct pairwise winner ranks higher globally.
 
-![Each pair of models compares only the benchmark they share; the graph fit connects those comparisons into one ordering.](../assets/methodology/graph-laplacian.svg)
+![Each pair of models compares only the benchmark they share; the graph fit reconciles their conflicting gaps in one ordering.](../assets/methodology/graph-laplacian.svg)
 
-The illustration shows three models from a larger normalization population; models defining each benchmark's 0 and 100 endpoints are omitted. No benchmark is shared by all three pictured models. Each link compares matching benchmark results, and their hypothetical gaps agree. With several shared benchmarks, a pair's comparison combines their weighted differences.
+The illustration shows three models from a larger normalization population; models defining each benchmark's 0 and 100 endpoints are omitted. No benchmark is shared by all three pictured models, so each benchmark compares one pair. The observed gaps conflict: the A–B and B–C gaps add up to less than the A–C gap. With equal weights, least squares spreads that disagreement across all three comparisons, so no fitted gap matches its observation exactly. With several shared benchmarks, a pair's comparison combines their weighted differences.
 
 **What the Laplacian does**
 
@@ -248,7 +250,7 @@ The sums include only available contributions with positive weight. Accepted sou
 
 The constituent benchmarks of the AA and CAIS indexes are known. A directly observed constituent with positive active weight in the dimension removes one breadth unit from every eligible index containing it. Otherwise, a constituent shared by multiple eligible indexes contributes an equal fraction of one breadth unit to each. These deductions happen before applying index importance and dimension allocation, and remaining breadth cannot fall below zero. Unmapped constituents retain their assigned breadth because their overlap cannot be established.
 
-![Illustrative overlap deductions for two indexes; shading shows the breadth each index keeps.](../assets/methodology/index-overlap.svg)
+![Illustrative overlap deductions for two indexes; shading shows the breadth each index keeps, and the two halves of a shared constituent add up to one unit.](../assets/methodology/index-overlap.svg)
 
 These deductions reduce represented weight; they do not remove constituent results from the published index value. Overlap accounting therefore limits duplicate influence without reconstructing an index from its remaining benchmarks. The 1.5 multiplier is a policy preference for selected individual benchmarks, not a fitted optimum or a correction for selective reporting.
 

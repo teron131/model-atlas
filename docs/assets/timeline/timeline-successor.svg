@@ -35,7 +35,7 @@ text{fill:#f2f3ed}.muted{fill-opacity:.58}
 <g class="half"><circle class="ink halo" cx="46" cy="30" r="7" filter="url(#glow)"/><circle class="ink ring" cx="46" cy="30" r="5"/></g><text class="muted" x="60" y="35">Evidence-based estimate</text><g><circle class="violet halo" cx="266" cy="30" r="7.5" filter="url(#glow)"/><circle class="violet ring" cx="266" cy="30" r="5.5"/></g><text class="muted" x="280" y="35">After the successor assumption</text>
 <text class="muted" x="90" y="70">Index</text>
 <path class="axis" d="M90 250L700 250"/><text class="num muted" x="76" y="254.5" text-anchor="end">110</text><path class="grid" d="M90 170L700 170"/><text class="num muted" x="76" y="174.5" text-anchor="end">120</text><path class="grid" d="M90 90L700 90"/><text class="num muted" x="76" y="94.5" text-anchor="end">130</text>
-<path class="violet-line" d="M200 170L420 170" stroke-width="1.5" stroke-dasharray="5 4"/>
+<path class="violet-line" d="M200 170L420 170" stroke-width="1.5" stroke-dasharray="4 4"/>
 <path class="violet-line" d="M420 194L420 179" stroke-width="1.5" marker-end="url(#tip-violet)"/>
 <g class="half"><circle class="ink halo" cx="420" cy="202" r="7.5" filter="url(#glow)"/><circle class="ink ring" cx="420" cy="202" r="5.5"/></g><text class="num muted" x="434" y="207">116</text>
 <g><circle class="violet halo" cx="200" cy="170" r="8" filter="url(#glow)"/><circle class="violet ring" cx="200" cy="170" r="6"/></g><g><circle class="violet halo" cx="420" cy="170" r="8" filter="url(#glow)"/><circle class="violet ring" cx="420" cy="170" r="6"/></g><g><circle class="violet halo" cx="640" cy="106" r="8" filter="url(#glow)"/><circle class="violet ring" cx="640" cy="106" r="6"/></g>

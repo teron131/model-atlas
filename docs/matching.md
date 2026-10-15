@@ -4,7 +4,7 @@ The same model can appear under different names on benchmark pages, catalogs, an
 
 A mistaken join can give one model another model's evidence. The matcher therefore leaves uncertain associations unmatched. A rejected catalog match does not erase a separately identified benchmark model; it leaves catalog metadata unavailable.
 
-![A catalog match adds compatible metadata while preserving the source’s variant observations. A qualified source identity can survive without an accepted catalog match.](assets/matching/matching-boundary.svg)
+![An accepted catalog match supplies the public identity and catalog metadata while preserving the source’s variant observations. A qualified source identity can survive without an accepted catalog match, keeping only its own reported metadata.](assets/matching/matching-boundary.svg)
 
 ## Identity Sources
 

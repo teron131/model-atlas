@@ -136,7 +136,7 @@ x_i, & \text{otherwise}.
 \end{cases}
 $$
 
-![Each step rises by one value’s weight share. A line at r that meets a rising step returns that value; a line exactly on a step top runs along the flat and returns the mean of its two neighbors.](../assets/methodology/weighted-quantile-steps.svg)
+![Each step rises by one value’s weight share. A line at r that crosses a rise returns that value; a line exactly on a step top runs along the flat and returns the mean of its two neighbors.](../assets/methodology/weighted-quantile-steps.svg)
 
 At $r=0$ or $r=1$, return the smallest or largest value. The weighted median is $\operatorname{weightedMedian}_i(x_i;w_i)=\operatorname{weightedQuantile}(0.5)$. The ordinary median $\operatorname{median}_i(x_i)$ uses equal weights, so an even number of values gives the mean of the two middle values. Taking the mean at an exact boundary is the convention used here; other weighted-quantile definitions exist.
 
@@ -168,9 +168,7 @@ $$
 
 Only the proportions matter: scaling every weight by the same factor leaves the count unchanged. Invalid or nonpositive weights are excluded; with none remaining, the count is 0. Effective count describes the distribution of influence, not prediction accuracy or independence between inputs.
 
-![Equal shares give a count equal to the number of inputs; concentrating the weight brings it toward 1.](../assets/methodology/effective-count.svg)
-
-![The same three splits on the count curve: as one input’s share grows, the count falls from n toward 1.](../assets/methodology/effective-count-curve.svg)
+![As the largest input’s share grows, the maximum count falls from n toward 1. The curve shares the rest of the weight equally; with the same largest share, an uneven rest gives a lower count.](../assets/methodology/effective-count-curve.svg)
 
 ### Smoothstep
 

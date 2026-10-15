@@ -69,7 +69,7 @@ For an accepted crosswalk, use $\delta$ fitted from all paired observations. A h
 
 Apply [clamp](overview.md#linear-scaling-and-clamping) to the combined value using the benchmark’s permitted score range. Raw source results remain separate.
 
-![Crosswalked means carry a band of typical prediction error, not a confidence interval; a crosswalk whose validation error exceeds the limit is rejected.](../assets/methodology/source-crosswalk.svg)
+![Paired models set the offset δ and its held-out error e, which must stay within the limit before single-source models borrow δ. Crosswalked means carry a band of typical prediction error, not a confidence interval.](../assets/methodology/source-crosswalk.svg)
 
 **Three sources**
 
@@ -141,8 +141,6 @@ $$
 \hat x=\operatorname{weightedQuantile}(r).
 $$
 
-![The 45% rank selects 0.58. At the exact 60% boundary, the neighboring values 0.58 and 0.90 give a mean of 0.74.](../assets/methodology/weighted-quantile.svg)
-
 **Combine and validate**
 
 If both capability dimensions produce predictions, take their weighted mean using the benchmark’s dimension allocations. If only one predicts, use that prediction.
@@ -166,10 +164,6 @@ Apply the shared [effective count](overview.md#effective-count) to the weights o
 $$
 n^{\text{eff}}=\operatorname{effectiveCount}_b(\omega_b).
 $$
-
-The illustration keeps three shared benchmarks: one takes a growing share of the weight while the other two split the remainder equally. The count measures how broadly this reference effort is supported by the shared benchmarks.
-
-![Three shared benchmarks: equal weights give an effective count of 3; concentrating the weight brings it toward 1.](../assets/methodology/effective-benchmark-count.svg)
 
 **Estimate the missing score**
 

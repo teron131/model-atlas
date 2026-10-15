@@ -243,11 +243,15 @@ $$
 
 The percentile score $S^{\text{pct}}_{m,b}$ uses [weightedPercentileRank](overview.md#weighted-ranks) on the negative residual, so lower resource use scores higher. It counts all tied weight; benchmark imputation counts half. Both reference distributions give each base model equal total weight.
 
-The mean $\bar S_{m,b}$ combines magnitude $S^{\text{mag}}_{m,b}$ and percentile $S^{\text{pct}}_{m,b}$ equally. Peer support $p_{m,b}$ then pulls the component score $S^{\text{res}}_{m,b}$ toward 50:
+The mean $\bar S_{m,b}$ combines magnitude $S^{\text{mag}}_{m,b}$ and percentile $S^{\text{pct}}_{m,b}$ equally:
 
 $$
 \bar S_{m,b}=\frac{S^{\text{mag}}_{m,b}+S^{\text{pct}}_{m,b}}{2}.
 $$
+
+![Illustrative supported models with equal weight. One wasteful model sets U, so the magnitude score crowds the others near 100; the percentile score spaces the same models evenly, and each mean lies halfway between its two scores.](../assets/methodology/resource-efficiency-score.svg)
+
+Peer support $p_{m,b}$ then pulls the component score $S^{\text{res}}_{m,b}$ toward 50:
 
 $$
 S^{\text{res}}_{m,b}=50+p_{m,b}(\bar S_{m,b}-50).
@@ -316,7 +320,7 @@ c_{m,\text{value}}&=\frac{\sum_iw_{m,i,\text{value}}}{W^{\text{total}}_{\text{va
 \end{aligned}
 $$
 
-![The shared coverage multiplier scales each effort’s own resource mean. In this illustrative pair, 35% evidence support for the shared reference variant gives both efforts a multiplier of one-half, producing scores of 40 and 30.](../assets/methodology/resource-coverage.svg)
+![The shared coverage multiplier scales each effort’s own resource mean. In this illustrative pair, 35% evidence support for the shared reference variant gives both efforts a multiplier of 0.5, so each keeps half its mean, below 50 as well as above it.](../assets/methodology/resource-coverage.svg)
 
 The Price vs Cost Efficiency graph compares observed cost efficiency per task on benchmarks separately from the full :score[Value] score. It also shares the reference variant's coverage multiplier across ordinary efforts, so different observation counts alone do not create different penalties within one model.
 
