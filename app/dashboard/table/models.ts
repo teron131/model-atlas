@@ -141,6 +141,18 @@ const profileMetricColumns = [
   },
 ] as const;
 
+const communityMetricColumns = [
+  {
+    key: "tmbIndex",
+    group: "community",
+    field: "tmb_index",
+    direction: "ascending",
+    type: "number",
+    label: "TMB",
+  },
+] as const;
+const communityColumnKeys = new Set<string>(communityMetricColumns.map((column) => column.key));
+
 const costMetricColumns = [
   {
     key: "effectiveInputPrice",
@@ -215,11 +227,13 @@ const scaledBenchmarkMetricColumns = benchmarkMetricColumns.filter(
 
 export type TaskMetricColumn = (typeof taskMetricColumns)[number] & BenchmarkTaskMetricColumnFacet;
 type ProfileMetricColumn = (typeof profileMetricColumns)[number];
+type CommunityMetricColumn = (typeof communityMetricColumns)[number];
 type CostMetricColumn = (typeof costMetricColumns)[number];
 type SpeedMetricColumn = (typeof speedMetricColumns)[number];
 type BenchmarkMetricColumn = (typeof benchmarkMetricColumns)[number];
 export type DashboardMetricColumn =
   | ProfileMetricColumn
+  | CommunityMetricColumn
   | CostMetricColumn
   | SpeedMetricColumn
   | BenchmarkMetricColumn
@@ -237,6 +251,7 @@ export type SortKey =
   | "blend"
   | "context"
   | ProfileMetricColumn["key"]
+  | CommunityMetricColumn["key"]
   | CostMetricColumn["key"]
   | SpeedMetricColumn["key"]
   | TaskMetricColumn["key"]
@@ -266,7 +281,13 @@ const benchmarkColumnGroups = benchmarkMetricColumns.map((column) => ({
 export const dashboardMetricColumns: DashboardMetricColumn[] = [
   ...profileMetricColumns.filter((column) => column.key === "modalities"),
   ...costMetricColumns,
-  ...benchmarkColumnGroups.flatMap(({ columns }) => columns),
+  ...benchmarkColumnGroups
+    .filter(({ benchmark }) => isAggregateIndex(benchmark))
+    .flatMap(({ columns }) => columns),
+  ...communityMetricColumns,
+  ...benchmarkColumnGroups
+    .filter(({ benchmark }) => !isAggregateIndex(benchmark))
+    .flatMap(({ columns }) => columns),
   ...profileMetricColumns.filter((column) => column.key !== "modalities"),
 ];
 
@@ -326,7 +347,7 @@ export type TableColumnRun = {
 
 /** Split the visible columns after the pinned rank and model into the runs the group rail navigates. */
 export function tableColumnRuns(visibleColumnKeys: readonly TableColumnKey[]): TableColumnRun[] {
-  const runs: (Omit<TableColumnRun, "benchmarks"> & { benchmarkKeys: Set<BenchmarkKey> })[] = [];
+  const runs: (Omit<TableColumnRun, "benchmarks"> & { benchmarkKeys: Set<string> })[] = [];
   visibleColumnKeys.forEach((key, index) => {
     const own = tableColumnGroup(key);
     if (own === "fixed") return;
@@ -336,7 +357,8 @@ export function tableColumnRuns(visibleColumnKeys: readonly TableColumnKey[]): T
       run = { group, first: index, benchmarkKeys: new Set() };
       runs.push(run);
     }
-    const benchmark = benchmarkByColumnKey.get(key);
+    // The TMB column counts as one index.
+    const benchmark = benchmarkByColumnKey.get(key) ?? (communityColumnKeys.has(key) ? key : null);
     if (benchmark != null) run.benchmarkKeys.add(benchmark);
   });
   return runs.map(({ benchmarkKeys, ...run }) => ({ ...run, benchmarks: benchmarkKeys.size }));
@@ -378,6 +400,9 @@ function tableColumnGroup(key: TableColumnKey): TableColumnGroup {
   }
   if (key === "change") {
     return "change";
+  }
+  if (communityColumnKeys.has(key)) {
+    return "indexes";
   }
   return benchmarkColumnGroupsByKey.get(key) ?? "baseline";
 }
@@ -669,6 +694,10 @@ export function dashboardMetricValue(model: ModelAtlasModel, column: DashboardMe
   }
   if (column.group === "speed") {
     return model.speed?.[column.field];
+  }
+  if (column.group === "community") {
+    // Sorts by best place; the cell shows the range.
+    return model[column.field]?.best ?? null;
   }
   return profileMetricValue(model, column);
 }

@@ -317,6 +317,22 @@ $$
 S'_{m,d}=M^{\text{ret}}_{m,d}S_{m,d}.
 $$
 
+### Trust Me Bro Index
+
+The Trust Me Bro Index moves :score[Intelligence] for the newest leading models only where what their users report contradicts the benchmark order. Benchmarks measure fixed tasks, while people using a model on real work notice reliability, judgment, and recovery that a benchmark basket can miss; a model can rank high on easier benchmarks yet fall short in everyday use. The index keeps that view separate and lets it correct the published order slightly, without replacing it.
+
+Each ranking states one overall judgment of the candidates as one or more compatible inequalities: the candidates are the ten highest unadjusted :score[Intelligence] models, kept only if released within the preceding two calendar months. A research run writes them from concrete situations that Reddit and YouTube users report about real work in the two calendar months before the ranking, including experiences with a single model, and logs the sources behind every relationship. Benchmark and leaderboard citations, one-shot demonstrations, and preferences driven by cost or speed do not count. Each link uses = for comparable, ≥ for preferred or comparable, > for preferred, and ≫ for much preferred. A model may appear in several inequalities, so A > B > C and B > D place D below A and B while leaving C versus D unresolved rather than forcing a complete order; a model the research cannot place at all is left out rather than put last. Every accepted ranking is kept under its completion time, which serves as its version, and the newest one is active. The table shows the places each model's relationships allow: one place when they fix it, and a range such as #3–4 when they leave it open. Models joined by = share a place.
+
+The adjustment finds the scores closest to the benchmark scores that satisfy every stated relationship at once, counting each model once however many inequalities repeat it. Models joined by = first share their mean score. Any set of models whose scores contradict the relationships is pooled to its mean, which is isotonic regression over the partial order the inequalities state; an unresolved pair adds no constraint. Because isotonic regression already allows related models to end equal, ≥, >, and ≫ all act as "not above the model before it"; their difference is published in the inequalities rather than in the adjustment. A model whose score already agrees keeps it, so its target $S^{\text{TMB}}_m$ equals its published :score[Intelligence] $S_m$. Every placed model then moves part of the way toward its target:
+
+![The inequalities merge into one order; models whose scores contradict it share a pooled target, the rest keep their own scores, each contradicting model moves part of the way toward its target, and places the relationships leave open show as ranges.](../assets/methodology/tmb-joint-target.svg)
+
+$$
+S'_m=S_m+r\,(S^{\text{TMB}}_m-S_m),\qquad r=\min\!\left(0.4,\ \frac{5}{\max_j\lvert S^{\text{TMB}}_j-S_j\rvert}\right).
+$$
+
+Pooling preserves the placed models' total score, so the adjustment neither lifts nor sinks them as a group. Every target stays inside their own score range, so no placed model is pushed below the weakest of them, and models outside the ranking keep their scores. The shared fraction $r$ keeps gains and losses balanced, and it falls below 0.4 when a correction would otherwise move a model more than five points. Every reasoning-effort variant of a model shares the shift computed from its highest score. The adjustment applies when the site reads the published benchmark snapshot, after all four scores are computed, so :score[Speed] and :score[Value] do not change, the snapshot itself stays benchmark-only, and a new ranking takes effect without a benchmark refresh.
+
 ## Parameter Choices
 
 These values are scoring-policy choices, not fitted claims about model behavior.
@@ -330,3 +346,5 @@ These values are scoring-policy choices, not fitted claims about model behavior.
 | Aggregate-index breadth | Represented benchmark count after exact known overlap deductions | Gives broad indexes influence in proportion to their published evidence while counting known direct and cross-index overlap once. |
 | ECI breadth | 8, the median fixed-index breadth | ECI publishes no fixed benchmark basket, so it uses a typical breadth instead of a count that varies by model. |
 | :score[Agentic] token multiplier | ±15%, reached at two spread units | Limits how much token efficiency can alter benchmark quality before rescaling. |
+| Trust Me Bro candidates | :score[Intelligence] top 10 released within two calendar months | Limits community judgment to recently released leading models that users are actively comparing. |
+| Trust Me Bro pull | 40% toward the agreeing order, at most 5 points per model | Lets consistent user experience correct close benchmark orderings without overriding clear benchmark gaps. |
