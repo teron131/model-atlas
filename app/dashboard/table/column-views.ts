@@ -47,7 +47,7 @@ const staticColumnSearchText = new Map<TableColumnKey, string>(
 );
 const scoreColumnKeys = new Set<TableColumnKey>(
   dashboardMetricColumns
-    .filter((column) => column.group === "benchmarks")
+    .filter((column) => column.group === "benchmarks" || column.group === "community")
     .map((column) => column.key),
 );
 const costColumnKeys = new Set<TableColumnKey>([
@@ -99,9 +99,12 @@ export function tableColumnView(
   const searchQuery = searchMatchCount > 0 ? query : "";
   // Reuse the full-column ranking so the visible set and match count cannot promote different fuzzy matches.
   const matchingKeys = searchMatchCount > 0 ? new Set(searchMatches) : presetColumnKeys[preset];
+  // The TMB column shows only while an active ranking supplies its header card.
   const keys: TableColumnKey[] = [
     ...ALWAYS_VISIBLE_TABLE_COLUMN_KEYS,
-    ...optionalColumnKeys.filter((key) => matchingKeys.has(key)),
+    ...optionalColumnKeys.filter(
+      (key) => matchingKeys.has(key) && (key !== "tmbIndex" || columnTooltips.tmbIndex != null),
+    ),
     "change",
   ];
   return { searchQuery, searchMatchCount, keys };

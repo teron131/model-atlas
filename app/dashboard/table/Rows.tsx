@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 
+import { tmbPlaceLabel } from "../../../src/model-atlas/stats/tmb-index";
 import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 import { openModelSheet } from "../model-sheet/open";
 import {
@@ -393,6 +394,17 @@ const DashboardMetricCell = memo(function DashboardMetricCell({
         text={formatDashboardMetric(value, column)}
         className={className}
       />
+    );
+  }
+  if (column.group === "community") {
+    const place = model.tmb_index;
+    if (place == null) return <TableCell text="-" className={`${className} benchmark-cell`} />;
+    // A hidden meter keeps the shared cell geometry; places have no 0–100 score.
+    return (
+      <td className={`${className} benchmark-cell place-cell`}>
+        <span className="score-value">{tmbPlaceLabel(place)}</span>
+        <span className="score-meter benchmark-meter" aria-hidden="true" />
+      </td>
     );
   }
   if ("benchmark" in column) {

@@ -198,6 +198,7 @@ type ModelFields = {
   benchmark_dates: Record<string, string> | null;
   confidence: ModelAtlasConfidence;
   latest_change?: ModelAtlasScoreChange | null;
+  tmb_index?: { best: number; worst: number };
 };
 
 export type ModelAtlasCandidate = ModelFields & {

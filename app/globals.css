@@ -1403,6 +1403,10 @@ tbody tr:nth-child(-n + 3) .rank {
   letter-spacing: 0;
 }
 
+.place-cell .score-meter {
+  visibility: hidden;
+}
+
 /* Each score is a star on its 0–100 track: the trail brightens toward it in the model's provider colour. */
 .score-meter {
   --score-star-size: 5px;

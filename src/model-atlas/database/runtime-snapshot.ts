@@ -1,9 +1,10 @@
-/** Read the local development checkpoint or share production manifest revalidation across runtime artifacts. */
+/** Read the local development checkpoint or share production manifest revalidation across runtime artifacts, then overlay the active Trust Me Bro Index ranking for display. */
 
 import { statSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { buildCurrentModelAtlasMetadata } from "../stats/payload/metadata";
+import { applyTmbIndex } from "../stats/tmb-index";
 import type { ModelAtlasPayload } from "../stats/types";
 import type { HistoricalDataset } from "../timeline/schemas";
 import {
@@ -16,6 +17,7 @@ import {
   snapshotObject,
   snapshotUrl,
 } from "./snapshots/manifest";
+import { readActiveTmbRanking } from "./snapshots/tmb-rankings";
 
 type ArtifactCache<T> = {
   hash?: string;
@@ -35,11 +37,28 @@ type SnapshotReadState = {
 const snapshotReadState = globalThis as typeof globalThis & {
   __modelAtlasArtifactReadState?: SnapshotReadState;
   __modelAtlasLocalReadState?: { fingerprint: string; payload: ModelAtlasPayload };
+  __modelAtlasTmbOverlay?: {
+    base: ModelAtlasPayload;
+    rankedAt: string | null;
+    value: ModelAtlasPayload;
+  };
 };
 const DISPLAY_SNAPSHOT_CACHE_MS = 30_000;
 
-/** An explicit local override reads the SQLite checkpoint; normal runtime reads use the published payload artifact. */
+/** The published payload with the active Trust Me Bro Index ranking applied, memoized per payload and ranking so serialization caches keep working. */
 export async function readDisplaySnapshotPayload(): Promise<ModelAtlasPayload> {
+  const payload = await readPublishedSnapshot();
+  const ranking = await readActiveTmbRanking().catch(() => null);
+  const rankedAt = ranking?.ranked_at ?? null;
+  const cached = snapshotReadState.__modelAtlasTmbOverlay;
+  if (cached?.base === payload && cached.rankedAt === rankedAt) return cached.value;
+  const value = applyTmbIndex(payload, ranking);
+  snapshotReadState.__modelAtlasTmbOverlay = { base: payload, rankedAt, value };
+  return value;
+}
+
+/** The unadjusted payload: the SQLite checkpoint under an explicit local override, otherwise the published artifact. */
+export async function readPublishedSnapshot(): Promise<ModelAtlasPayload> {
   if (process.env.MODEL_ATLAS_LOCAL_DATABASE === "1") {
     const { readDatabasePayload } = await import("./sqlite-payload");
     const { DEFAULT_DATABASE_PATH } = await import("./schema");
