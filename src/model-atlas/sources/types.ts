@@ -44,6 +44,8 @@ export type ModelAtlasSourceHealth = {
 
 export type SourceRefreshOptions = {
   replaceSourceRows?: boolean;
+  /** Refetch changed adapters while retaining their cached evidence if the fetch fails. */
+  refreshSources?: readonly RawSourceName[];
 };
 
 export type RawSourceCacheStatus = {

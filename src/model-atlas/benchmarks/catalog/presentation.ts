@@ -156,9 +156,11 @@ export const BENCHMARK_TOOLTIPS = {
   },
   chess_puzzles: {
     title: "Chess Puzzles",
-    body: "Choose the best move in 100 novel, engine-generated FEN positions.",
+    version: "2",
+    body: "Choose the best move in 100 novel, engine-generated FEN positions using the submission-tool harness.",
     rows: [
       ["Source", "Epoch AI"],
+      ["Metric", "exact-move accuracy; 1M output-token budget"],
       ["Role", "planning and game reasoning"],
     ],
   },
@@ -284,16 +286,6 @@ export const BENCHMARK_TOOLTIPS = {
       ["Role", "repository-scale software engineering"],
     ],
   },
-  frontiermath_erdos: {
-    title: "FrontierMath Erdős",
-    body: "Resolve open Erdős problems with complete Lean proofs or disproofs in Epoch's official scaffold.",
-    rows: [
-      ["Source", "Epoch AI"],
-      ["Metric", "verified conjectures resolved"],
-      ["Scope", "68 open problems; one official attempt each"],
-      ["Role", "mathematical research and formalization"],
-    ],
-  },
   frontiermath_tier_4: {
     title: "FrontierMath Tier 4",
     version: "2",
@@ -384,15 +376,6 @@ export const BENCHMARK_TOOLTIPS = {
       ["Role", "medical long-context reasoning"],
     ],
   },
-  mls_bench: {
-    title: "MLS-Bench Lite",
-    body: "Improve ML methods across 30 controlled research tasks through five hours of experimentation.",
-    rows: [
-      ["Source", "MLS-Bench"],
-      ["Metric", "baseline-normalized performance"],
-      ["Role", "iterative machine-learning research"],
-    ],
-  },
   mysterymechanism: {
     title: "MysteryMechanism",
     body: "Recover hidden mathematical relationships by choosing bounded experiments and fitting an executable law.",
@@ -426,15 +409,6 @@ export const BENCHMARK_TOOLTIPS = {
       ["Source", "Vals AI"],
       ["Metric", "almost resolved (at least 95% of tests)"],
       ["Role", "program construction"],
-    ],
-  },
-  proofbench: {
-    title: "ProofBench",
-    body: "Write compiling Lean 4 proofs for graduate and advanced-undergraduate mathematics.",
-    rows: [
-      ["Source", "Vals AI"],
-      ["Metric", "overall compiler-verified accuracy"],
-      ["Role", "formal theorem proving"],
     ],
   },
   public_benefits_bench: {
@@ -629,7 +603,6 @@ export const BENCHMARK_LABELS = {
   erqa: "ERQA",
   finance_agent_v2: "Finance Agent V2",
   frontier_code: "FrontierCode",
-  frontiermath_erdos: "FrontierMath Erdős",
   frontiermath_tier_4: "FrontierMath Tier 4",
   gdp_pdf: "GDP.pdf",
   gdpval_normalized: "GDPval-AA",
@@ -640,12 +613,10 @@ export const BENCHMARK_LABELS = {
   mindcube: "MindCube Tiny",
   mirrorcode: "MirrorCode",
   mlcr_aa: "MLCR-AA",
-  mls_bench: "MLS-Bench Lite",
   mysterymechanism: "MysteryMechanism",
   omniscience_accuracy: "Omniscience",
   perception_bench: "PerceptionBench",
   programbench: "ProgramBench",
-  proofbench: "ProofBench",
   public_benefits_bench: "Public Benefits Bench",
   riemann_bench: "Riemann-bench",
   rsi_benchmark: "RSI",
@@ -691,14 +662,12 @@ const FRONTIER_BENCHMARK_DISPLAY_ORDER = [
   "emb",
   "enigmaeval",
   "frontier_code",
-  "frontiermath_erdos",
   "frontiermath_tier_4",
   "gdp_pdf",
   "gdpval_normalized",
   "handbook_md",
   "hle",
   "mirrorcode",
-  "mls_bench",
   "mysterymechanism",
   "programbench",
   "riemann_bench",
@@ -726,7 +695,6 @@ const BASELINE_BENCHMARK_DISPLAY_ORDER = [
   "mlcr_aa",
   "omniscience_accuracy",
   "perception_bench",
-  "proofbench",
   "public_benefits_bench",
   "simpleqa_verified",
   "vending_bench_2",
@@ -855,23 +823,6 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
         details: [
           ["Source", "ARC Prize"],
           ["Metric", "cost per environment"],
-        ],
-      },
-    },
-  ],
-  arena_agent: [
-    {
-      key: "arenaAgentCost",
-      metric: "cost",
-      direction: "ascending",
-      label: "Agent$",
-      tooltip: {
-        title: "Arena Agent cost ↓",
-        body: "Median USD cost per task from real Agent Mode sessions over the last 14 days, using at most the first three tasks per session.",
-        details: [
-          ["Source", "Arena"],
-          ["Metric", "cost per task (P50)"],
-          ["Workload", "real user tasks"],
         ],
       },
     },
@@ -1396,12 +1347,6 @@ export const BENCHMARK_COLUMNS = {
     format: "percent",
     defaultSort: "descending",
   },
-  frontiermath_erdos: {
-    key: "frontierMathErdos",
-    label: "FM Erdős",
-    format: "percent",
-    defaultSort: "descending",
-  },
   frontiermath_tier_4: {
     key: "frontierMathTier4",
     label: "FM T4",
@@ -1462,12 +1407,6 @@ export const BENCHMARK_COLUMNS = {
     format: "percent",
     defaultSort: "descending",
   },
-  mls_bench: {
-    key: "mlsBench",
-    label: "MLS",
-    format: "percent",
-    defaultSort: "descending",
-  },
   mysterymechanism: {
     key: "mysteryMechanism",
     label: "Mystery",
@@ -1489,12 +1428,6 @@ export const BENCHMARK_COLUMNS = {
   programbench: {
     key: "programBench",
     label: "Program",
-    format: "percent",
-    defaultSort: "descending",
-  },
-  proofbench: {
-    key: "proofBench",
-    label: "Proof",
     format: "percent",
     defaultSort: "descending",
   },

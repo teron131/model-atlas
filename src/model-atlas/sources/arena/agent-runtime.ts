@@ -5,7 +5,7 @@ import type { DatabaseWriter } from "../../database/writers/database";
 import { asFiniteNumber, stringValue } from "../../runtime";
 import { defineBenchmarkRuntime } from "../benchmark-runtime";
 import { type CacheRowSource, firstEpochSecond, sourceCacheRows } from "../cache/rows";
-import { mergeSourceEvidence, sourceKey } from "../snapshots/policy";
+import { sourceKey } from "../snapshots/policy";
 import { snapshotSourceRows } from "../snapshots/row-snapshot";
 import type {
   RawSourceCacheStatus,
@@ -14,6 +14,7 @@ import type {
   SourceSnapshotStatus,
 } from "../types";
 import { type ArenaAgentModelScoreRow, DEFAULT_LEADERBOARD_URL, getArenaAgentStats } from "./agent";
+import { ARENA_AGENT_DATASET_URL, arenaRefreshIsCurrent } from "./dataset";
 
 type ArenaAgentSnapshot = {
   arenaAgentModelScoreRows: ArenaAgentModelScoreRow[];
@@ -39,7 +40,9 @@ export function readArenaAgentRawCache(cache: CacheRowSource): {
   const cacheRows = sourceCacheRows(cache, "SELECT * FROM arena_agent_raw_rows ORDER BY row_index");
   if (
     cacheRows.length === 0 ||
-    cacheRows.some((row) => stringValue(row.url) !== DEFAULT_LEADERBOARD_URL)
+    cacheRows.some(
+      (row) => ![DEFAULT_LEADERBOARD_URL, ARENA_AGENT_DATASET_URL].includes(String(row.url)),
+    )
   ) {
     return null;
   }
@@ -59,6 +62,8 @@ export function readArenaAgentRawCache(cache: CacheRowSource): {
       score != null
       ? [
           {
+            source_url: String(row.url),
+            observed_at: stringValue(row.observed_at),
             rank,
             contender_name: contenderName,
             model,
@@ -66,7 +71,7 @@ export function readArenaAgentRawCache(cache: CacheRowSource): {
             reasoning_effort: reasoningEffort,
             organization,
             score,
-            cost_per_task_usd: asFiniteNumber(row.cost_per_task_usd),
+            cost_per_task_usd: null,
           },
         ]
       : [];
@@ -74,7 +79,7 @@ export function readArenaAgentRawCache(cache: CacheRowSource): {
   return rows.length === 0 ? null : { rows, fetchedAt: firstEpochSecond(cacheRows) };
 }
 
-/** Loads Arena Agent rows keyed by contender identity so renamed display labels remain auditable. */
+/** Replace accepted Arena publications as a complete row set; failed or older publications retain cached evidence. */
 async function arenaAgentSnapshot(
   cached: ReturnType<typeof readArenaAgentRawCache>,
   status: RawSourceCacheStatus,
@@ -90,13 +95,12 @@ async function arenaAgentSnapshot(
     previousMissingSince,
     nowEpochSeconds,
     fetchRows: getArenaAgentStats,
+    acceptsRefresh: arenaRefreshIsCurrent,
+    replaceRowsOnRefresh: true,
     rowKey: (row) => sourceKey(row.contender_name, row.reasoning_effort),
     rowLabel: (row) => row.model,
-    mergeRow: (cachedRow, fetchedRow) => ({
-      ...mergeSourceEvidence(cachedRow, fetchedRow),
-      // The current rolling-window median replaces the earlier measurement.
-      cost_per_task_usd: fetchedRow.cost_per_task_usd,
-    }),
+    // Net Improvement and rank belong to the current publication; unavailable costs stay missing.
+    mergeRow: (_cachedRow, fetchedRow) => fetchedRow,
   });
   return {
     arenaAgentModelScoreRows: snapshot.rows,
@@ -110,19 +114,19 @@ async function arenaAgentSnapshot(
   };
 }
 
-/** Persist Arena Agent's causal effect and median task cost for the same contender and effort. */
+/** Persist each row's actual source and publication date without the retired Agent task-cost measurements. */
 function insertArenaAgentRawRows(db: DatabaseWriter, snapshots: SourceSnapshots): void {
   const statement = db.prepare(`
 		INSERT INTO arena_agent_raw_rows (
 			row_index, fetched_at_epoch_seconds, url, rank, contender_name,
-			model, base_model, reasoning_effort, organization, score, cost_per_task_usd
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			model, base_model, reasoning_effort, organization, score, cost_per_task_usd, observed_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
   for (const [index, row] of snapshots.arenaAgentModelScoreRows.entries()) {
     statement.run(
       index,
       snapshots.fetchedAt.arenaAgent,
-      DEFAULT_LEADERBOARD_URL,
+      row.source_url,
       row.rank,
       row.contender_name,
       row.model,
@@ -130,7 +134,8 @@ function insertArenaAgentRawRows(db: DatabaseWriter, snapshots: SourceSnapshots)
       row.reasoning_effort,
       row.organization,
       row.score,
-      row.cost_per_task_usd,
+      null,
+      row.observed_at,
     );
   }
 }

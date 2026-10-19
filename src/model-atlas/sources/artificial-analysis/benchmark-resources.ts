@@ -4,9 +4,6 @@
  * Page source: https://artificialanalysis.ai/evaluations
  */
 
-import { createDecipheriv, createHash } from "node:crypto";
-import { gunzipSync } from "node:zlib";
-
 import { ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES as BENCHMARK_RESOURCE_PAGES } from "../../benchmarks/registry";
 import {
   canonicalReasoningEffort,
@@ -20,22 +17,18 @@ import {
   nowEpochSeconds,
   stringValue,
 } from "../../runtime";
-import { extractNextFlightCorpus, findObjectEnd, parseFlightJsonObject } from "../parsing";
-import { fetchSource, SourceQueueTimeoutError } from "../request-scheduler";
+import { SourceQueueTimeoutError } from "../request-scheduler";
 import {
   cleanArtificialAnalysisModelName,
   parseArtificialAnalysisReasoningEffort,
 } from "./model-labels";
+import { getArtificialAnalysisPageModels } from "./page-data";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 
 const DEFAULT_CONCURRENCY = 3;
 
 const PAGE_FETCH_ATTEMPTS = 2;
-
-const ROW_DETECTION_KEY = "canonicalEvalTokenCounts";
-
-const MODEL_SEARCH_BACKTRACK_CHARS = 70_000;
 
 const REASONING_EFFORT_SUFFIXES = [
   "non-reasoning",
@@ -74,7 +67,6 @@ type ArtificialAnalysisBenchmarkResourcePage = {
   score_path?: JsonPath;
   resource_key: string;
   url: string;
-  full_model_coverage?: boolean;
   task_run_count: number;
 };
 
@@ -120,7 +112,6 @@ export const ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES = BENCHMARK_RESOURCE_P
     ...(page.scorePath == null ? {} : { score_path: page.scorePath }),
     resource_key: page.resourceKey,
     url: page.url,
-    ...(page.fullModelCoverage ? { full_model_coverage: true } : {}),
     task_run_count: page.taskRunCount,
   }),
 );
@@ -260,14 +251,15 @@ export function findArtificialAnalysisBenchmarkResourceRow(
   return null;
 }
 
-/** Retry one page once and require at least one complete score-resource row before accepting it. */
+/** Retry one complete dataset once; a preview or missing dataset never advances source freshness. */
 async function getCompleteBenchmarkResourceRows(
   page: ArtificialAnalysisBenchmarkResourcePage,
   timeoutMs: number,
 ): Promise<ArtificialAnalysisBenchmarkResourceRow[]> {
   for (let attempt = 0; attempt < PAGE_FETCH_ATTEMPTS; attempt += 1) {
     try {
-      const rows = await getBenchmarkResourceRows(page, timeoutMs);
+      const models = await getArtificialAnalysisPageModels(page.url, timeoutMs);
+      const rows = processArtificialAnalysisBenchmarkResourceRows(models, page);
       if (rows.length > 0) {
         return rows;
       }
@@ -276,77 +268,6 @@ async function getCompleteBenchmarkResourceRows(
     }
   }
   return [];
-}
-
-async function getBenchmarkResourceRows(
-  page: ArtificialAnalysisBenchmarkResourcePage,
-  timeoutMs: number,
-): Promise<ArtificialAnalysisBenchmarkResourceRow[]> {
-  const html = await fetchSource(page.url, {}, timeoutMs, async (response) => {
-    if (!response.ok)
-      throw new Error(`Artificial Analysis evaluation page failed: ${response.status}`);
-    return response.text();
-  });
-  if (!page.full_model_coverage)
-    return processArtificialAnalysisBenchmarkResourceRows(extractRowsFromPageHtml(html), page);
-  const corpus = extractNextFlightCorpus(html);
-  const manifestMatch = corpus.match(/"manifest":(\{[^}]+\})/);
-  if (manifestMatch == null)
-    throw new Error(`Missing full-model manifest for ${page.benchmark_key}`);
-  const manifest = asRecord(JSON.parse(manifestMatch[1]!));
-  const path = stringValue(manifest.path);
-  if (path == null) throw new Error("Missing Artificial Analysis page-data path");
-  const dataUrl = new URL(path, page.url);
-  if (dataUrl.origin !== new URL(page.url).origin)
-    throw new Error("Unexpected Artificial Analysis page-data origin");
-  const data = await fetchSource(dataUrl, {}, timeoutMs, async (response) => {
-    if (!response.ok) throw new Error(`Artificial Analysis page data failed: ${response.status}`);
-    if (typeof manifest.key !== "string") return response.json();
-    const encrypted = Buffer.from(await response.arrayBuffer());
-    const key = Buffer.from(manifest.key, "hex");
-    const iv = createHash("sha256").update(key).digest().subarray(0, 12);
-    const decipher = createDecipheriv("aes-256-gcm", key, iv);
-    decipher.setAuthTag(encrypted.subarray(-16));
-    return JSON.parse(
-      gunzipSync(
-        Buffer.concat([decipher.update(encrypted.subarray(0, -16)), decipher.final()]),
-      ).toString(),
-    );
-  });
-  const models = asRecord(data).models;
-  if (!Array.isArray(models)) throw new Error("Missing Artificial Analysis page-data models");
-  return processArtificialAnalysisBenchmarkResourceRows(models, page);
-}
-
-function extractRowsFromPageHtml(pageHtml: string): Record<string, unknown>[] {
-  const flightCorpus = extractNextFlightCorpus(pageHtml);
-  const resourceRowsById = new Map<string, Record<string, unknown>>();
-  let cursor = 0;
-  while (true) {
-    const hitIndex = flightCorpus.indexOf(`"${ROW_DETECTION_KEY}":`, cursor);
-    if (hitIndex === -1) {
-      break;
-    }
-    cursor = hitIndex + 1;
-    const searchStart = Math.max(0, hitIndex - MODEL_SEARCH_BACKTRACK_CHARS);
-    for (let backIndex = hitIndex; backIndex >= searchStart; backIndex -= 1) {
-      if (flightCorpus[backIndex] !== "{") {
-        continue;
-      }
-      const endIndex = findObjectEnd(flightCorpus, backIndex);
-      if (endIndex === -1 || endIndex < hitIndex) {
-        continue;
-      }
-      const candidateRow = parseFlightJsonObject(flightCorpus.slice(backIndex, endIndex + 1));
-      const rowId = stringValue(candidateRow?.id) ?? stringValue(candidateRow?.slug);
-      if (candidateRow == null || rowId == null || !(ROW_DETECTION_KEY in candidateRow)) {
-        continue;
-      }
-      resourceRowsById.set(rowId, candidateRow);
-      break;
-    }
-  }
-  return [...resourceRowsById.values()];
 }
 
 function resourceRow(
@@ -385,13 +306,7 @@ function resourceRow(
     provider == null ||
     providerId == null ||
     model == null ||
-    score == null ||
-    (!page.full_model_coverage &&
-      (resolvedCostPerTask == null ||
-        resolvedSecondsPerTask == null ||
-        inputTokensPerTask == null ||
-        effectiveOutputTokensPerTask == null ||
-        tokensPerTask == null))
+    score == null
   ) {
     return null;
   }
@@ -483,12 +398,14 @@ function tokenBreakdown(
   tokenCounts: Record<string, unknown>,
 ): CostCategories | null {
   const input = tokenCount(tokenCounts, "input");
-  const answer = tokenCount(tokenCounts, "answer") ?? 0;
-  const reasoning = tokenCount(tokenCounts, "reasoning") ?? 0;
+  const answerTokens = tokenCount(tokenCounts, "answer");
+  const reasoningTokens = tokenCount(tokenCounts, "reasoning");
   const cacheableInput = tokenCount(tokenCounts, "cacheableInput");
-  if (input == null) {
+  if (input == null || (answerTokens == null && reasoningTokens == null)) {
     return null;
   }
+  const answer = answerTokens ?? 0;
+  const reasoning = reasoningTokens ?? 0;
   if (cacheableInput == null) {
     return { input, cacheHit: 0, cacheWrite: 0, answer, reasoning };
   }

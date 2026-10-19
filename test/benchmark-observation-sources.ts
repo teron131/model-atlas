@@ -95,18 +95,11 @@ assert.equal(epochFrontierMathLookup.get("gpt-5-6-sol-pro")?.canonical_value, 0.
 
 const selectedEpochRuns = parseCsvRecords(
   "id_runs,task,started_at,Status,task version,id_model_version,Display name,Unique display name,Organization,mean_score,original_task_name\n" +
-    "erdos,FrontierMath-Erdos,2026-08-20,Success,1.0.0,gpt-6-astra,GPT-6 Astra,GPT-6 Astra (max),OpenAI,0.0294118,FrontierMath-Erdos\n" +
     "mirrorcode-ml-2l-fable,MirrorCode,2026-08-20,Success,1.0.0,claude-fable-5,Claude Fable 5,Claude Fable 5 (max),Anthropic,0.64,MirrorCode\n" +
     "mirrorcode-paper-sol,MirrorCode,2026-08-20,Success,1.0.0,gpt-5-6-sol,GPT-5.6 Sol,GPT-5.6 Sol (max),OpenAI,0.8,MirrorCode\n" +
     "simple-current,SimpleQA Verified,2026-08-27,Success,1.2.0,gemini-3-1-pro,Gemini 3.1 Pro,Gemini 3.1 Pro,Google,0.71,SimpleQA Verified (anti-abstention)\n" +
     "simple-old,SimpleQA Verified,2026-08-20,Success,1.1.0,gpt-5-6-sol,GPT-5.6 Sol,GPT-5.6 Sol,OpenAI,0.9,SimpleQA Verified\n" +
     "simple-contaminated,SimpleQA Verified,2026-08-27,Success,1.2.0,qwen3-max-2025-09-23,Qwen3 Max,Qwen3 Max,Alibaba,0.99,SimpleQA Verified (anti-abstention)\n",
-);
-assert.deepEqual(
-  epochBenchmarkObservationRows(selectedEpochRuns, "frontiermath_erdos", "FrontierMath-Erdos").map(
-    (row) => row.canonical_value,
-  ),
-  [0.0294118],
 );
 assert.deepEqual(
   epochBenchmarkObservationRows(selectedEpochRuns, "mirrorcode", "MirrorCode", {
@@ -116,7 +109,7 @@ assert.deepEqual(
 );
 assert.deepEqual(
   epochBenchmarkObservationRows(selectedEpochRuns, "simpleqa_verified", "SimpleQA Verified", {
-    taskVersion: "1.2.0",
+    taskVersions: ["1.2.0"],
     originalTaskName: "SimpleQA Verified (anti-abstention)",
     excludedModelIds: ["qwen3-max-2025-09-23"],
   }).map((row) => row.model_id),
@@ -426,39 +419,6 @@ function valsView(tasks: Record<string, unknown>) {
   return { metadata: { updated: "2026-10-07", version: "1" }, tasks };
 }
 
-const proofBinding = benchmarkObservationBinding("proofBench");
-assert.equal(proofBinding.loader.kind, "vals");
-if (proofBinding.loader.kind !== "vals") throw new Error("Expected VALS loader");
-const proof = processValsBenchmarkView(
-  valsView({
-    overall: {
-      "openai/gpt-5.6-sol": {
-        accuracy: 77,
-        provider: "OpenAI",
-        reasoning_effort: "max",
-        stderr: 4.2,
-      },
-      "aristotle/aristotle": { accuracy: 71, provider: "Aristotle" },
-    },
-  }),
-  {
-    benchmarkKey: proofBinding.benchmark,
-    canonicalTask: proofBinding.loader.canonicalTask,
-    includeReasoningEffortInModel:
-      "includeReasoningEffortInModel" in proofBinding.loader
-        ? proofBinding.loader.includeReasoningEffortInModel
-        : undefined,
-    isScoreEligible: (_task, modelId) => modelId.toLowerCase() !== "aristotle/aristotle",
-    sourceUrl: proofBinding.loader.sourceUrl,
-  },
-);
-assert.equal(proof.length, 1);
-assert.equal(
-  proof.some((row) => row.model_id === "aristotle/aristotle"),
-  false,
-);
-assert.equal(JSON.parse(String(proof[0]?.metadata.source_result_json)).stderr, 4.2);
-
 const programBinding = benchmarkObservationBinding("programBench");
 assert.equal(programBinding.loader.kind, "vals");
 if (programBinding.loader.kind !== "vals") throw new Error("Expected VALS loader");
@@ -504,7 +464,7 @@ if (bioBinding.loader.kind !== "vals") throw new Error("Expected VALS loader");
 const bio = processValsBenchmarkView(
   valsView({
     overall: {
-      "openai/gpt-6-astra": { accuracy: 79.259, reasoning_effort: "max" },
+      "openai/gpt-6-astra": { accuracy: 79.259, reasoning_effort: "max", stderr: 0.98 },
       "openai/gpt-6-sol": { accuracy: 74.815, reasoning_effort: "max" },
     },
     human_difficult: { "openai/gpt-6-astra": { accuracy: 37.255 } },
@@ -520,6 +480,7 @@ assert.deepEqual(
   [0.79259, 0.74815],
 );
 assert.equal(bio[0]?.metadata.benchmark_version, "1");
+assert.equal(JSON.parse(String(bio[0]?.metadata.source_result_json)).stderr, 0.98);
 
 const mysteryBinding = benchmarkObservationBinding("mysteryMechanism");
 assert.equal(mysteryBinding.loader.kind, "vals");
@@ -775,7 +736,6 @@ assert.equal(
   0.561,
 );
 assert.equal(findBenchmarkObservation(["GPT-5.6 Sol"], "high", frontierMathLookup), null);
-assert.equal(buildBenchmarkObservationLookup(proof).has("aristotle"), false);
 
 const frontierMathRow = frontierMath[0];
 assert.ok(frontierMathRow);
@@ -806,7 +766,7 @@ const collector = new SnapshotRowCollector();
 const chess = frontierMath.map((row) => ({
   ...row,
   benchmark_key: "chess_puzzles",
-  metadata: { ...row.metadata, task: "Chess Puzzles" },
+  metadata: { ...row.metadata, task: "Chess Puzzles", task_version: "2.0.0" },
 }));
 const ebr = frontierMath.map((row) => ({
   ...row,
@@ -844,7 +804,6 @@ const snapshots = {
   hemingwayBenchRows: hemingway,
   mysteryMechanismRows: mystery,
   programBenchRows: program,
-  proofBenchRows: proof,
   rsiBenchmarkRows: rsi,
   terminalBenchScienceRows: [],
   weirdMlRows: weirdMlCombined,
@@ -864,7 +823,6 @@ const snapshots = {
     hemingwayBench: 1_784_000_010,
     mysteryMechanism: 1_784_000_013,
     programBench: 1_784_000_011,
-    proofBench: 1_784_000_007,
     rsiBenchmark: 1_784_000_014,
     weirdMl: 1_784_000_008,
   },
@@ -882,7 +840,6 @@ const expectedBySourceDataKey = {
   hemingwayBench: { rows: hemingway, fetchedAt: 1_784_000_010 },
   mysteryMechanism: { rows: mystery, fetchedAt: 1_784_000_013 },
   programBench: { rows: program, fetchedAt: 1_784_000_011 },
-  proofBench: { rows: proof, fetchedAt: 1_784_000_007 },
   rsiBenchmark: { rows: rsi, fetchedAt: 1_784_000_014 },
   weirdMl: { rows: weirdMlCombined, fetchedAt: 1_784_000_008 },
 };

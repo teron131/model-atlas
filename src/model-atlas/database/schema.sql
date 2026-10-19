@@ -185,6 +185,7 @@ CREATE TABLE IF NOT EXISTS arena_agent_raw_rows (
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,
 	url TEXT NOT NULL,
+	observed_at TEXT,
 	rank INTEGER NOT NULL,
 	contender_name TEXT NOT NULL,
 	model TEXT NOT NULL,

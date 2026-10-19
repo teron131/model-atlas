@@ -26,6 +26,8 @@ type SourceRowSnapshotConfig<Row> = {
   previousMissingSince: ReadonlyMap<string, number>;
   nowEpochSeconds: number;
   fetchRows: () => Promise<SourceRowsPayload<Row>>;
+  acceptsRefresh?: (cachedRows: readonly Row[], fetchedRows: readonly Row[]) => boolean;
+  replaceRowsOnRefresh?: boolean;
   rowKey: (row: Row) => string | null;
   rowLabel: (row: Row) => string | null;
   mergeRow?: (cachedRow: Row, fetchedRow: Row) => Row;
@@ -120,7 +122,14 @@ export async function snapshotSourceRows<Row>(
     };
   }
 
-  const fetched = await config.fetchRows();
+  const loaded = await config.fetchRows();
+  // A delayed alternate publication must not make newer cached evidence disappear or look newly fetched.
+  const fetched: SourceRowsPayload<Row> =
+    config.cached != null &&
+    shouldUseFetchedRows(loaded.fetched_at_epoch_seconds, loaded.data.length) &&
+    config.acceptsRefresh?.(config.cached.rows, loaded.data) === false
+      ? { fetched_at_epoch_seconds: null, data: [] }
+      : loaded;
   const hasUsableFetchedRows = shouldUseFetchedRows(
     fetched.fetched_at_epoch_seconds,
     fetched.data.length,
@@ -130,7 +139,10 @@ export async function snapshotSourceRows<Row>(
     cachedRows: config.cached?.rows,
     fetchedRows: fetched.data,
     fetchedAtEpochSeconds: fetched.fetched_at_epoch_seconds,
-    options: config.options,
+    options:
+      hasUsableFetchedRows && config.replaceRowsOnRefresh
+        ? { ...config.options, replaceSourceRows: true }
+        : config.options,
     rowKey: config.rowKey,
     rowLabel: config.rowLabel,
     mergeRow: config.mergeRow,

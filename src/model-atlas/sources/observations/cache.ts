@@ -128,8 +128,12 @@ async function benchmarkObservationSnapshot(
   previousMissingSince: ReadonlyMap<string, number>,
   nowEpochSeconds: number,
 ): Promise<BenchmarkObservationSnapshot> {
-  const { fetchRows, mergeRow = mergeBenchmarkObservationRow } =
-    benchmarkObservationSource(binding);
+  const {
+    fetchRows,
+    acceptsRefresh,
+    replaceRowsOnRefresh,
+    mergeRow = mergeBenchmarkObservationRow,
+  } = benchmarkObservationSource(binding);
   const snapshot = await snapshotSourceRows({
     source: binding.benchmark,
     cached,
@@ -138,6 +142,8 @@ async function benchmarkObservationSnapshot(
     previousMissingSince,
     nowEpochSeconds,
     fetchRows,
+    acceptsRefresh,
+    replaceRowsOnRefresh,
     rowKey: benchmarkObservationRowKey,
     rowLabel: (row) => `${row.benchmark_key}: ${row.model}`,
     mergeRow,

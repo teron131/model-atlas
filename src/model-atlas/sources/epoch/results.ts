@@ -52,7 +52,8 @@ export function epochBenchmarkObservationRows(
   return rows.flatMap((row) => {
     if (
       row.task !== task ||
-      (eligibility.taskVersion != null && row["task version"] !== eligibility.taskVersion) ||
+      (eligibility.taskVersions != null &&
+        !eligibility.taskVersions.includes(row["task version"] ?? "")) ||
       (eligibility.originalTaskName != null &&
         row.original_task_name !== eligibility.originalTaskName) ||
       (eligibility.runIdPrefix != null && !row.id_runs?.startsWith(eligibility.runIdPrefix)) ||
@@ -75,7 +76,9 @@ export function epochBenchmarkCacheMatches(
   return rows.every(
     (row) =>
       row.metadata.task === task &&
-      (eligibility.taskVersion == null || row.metadata.task_version === eligibility.taskVersion) &&
+      (eligibility.taskVersions == null ||
+        (typeof row.metadata.task_version === "string" &&
+          eligibility.taskVersions.includes(row.metadata.task_version))) &&
       (eligibility.originalTaskName == null ||
         row.metadata.original_task_name === eligibility.originalTaskName) &&
       (eligibility.runIdPrefix == null ||

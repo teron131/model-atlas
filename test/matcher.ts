@@ -1231,7 +1231,6 @@ function modelStatsSourceData(
     erqa: { rows: [], rowsByModelName: new Map() },
     financeAgentV2: { rows: [], rowsByModelName: new Map() },
     frontierCode: { rows: [], rowsByModelName: new Map() },
-    frontierMathErdos: { rows: [], rowsByModelName: new Map() },
     frontierMathTier4: { rows: [], rowsByModelName: new Map() },
     gdpPdf: {
       rows: gdpPdfRows,
@@ -1242,7 +1241,6 @@ function modelStatsSourceData(
     intphys2: { rows: [], rowsByModelName: new Map() },
     mindcube: { rows: [], rowsByModelName: new Map() },
     mirrorCode: { rows: [], rowsByModelName: new Map() },
-    mlsBench: { rows: [], rowsByModelName: new Map() },
     mysteryMechanism: { rows: [], rowsByModelName: new Map() },
     omniscienceAccuracy: { rows: [], rowsByModelName: new Map() },
     perceptionBench: {
@@ -1250,7 +1248,6 @@ function modelStatsSourceData(
       rowsByModelName: buildBenchmarkObservationLookup(perceptionObservations),
     },
     programBench: { rows: [], rowsByModelName: new Map() },
-    proofBench: { rows: [], rowsByModelName: new Map() },
     publicBenefitsBench: { rows: [], rowsByModelName: new Map() },
     riemannBench: {
       rows: riemannBenchModelScoreRows,

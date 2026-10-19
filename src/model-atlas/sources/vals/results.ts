@@ -23,8 +23,6 @@ type ValsScraperOptions = {
 export type ValsBenchmarkDefinition = {
   benchmarkKey: string;
   canonicalTask: string;
-  includeReasoningEffortInModel?: boolean;
-  isScoreEligible?: (task: string, modelId: string) => boolean;
   sourceUrl: string;
 };
 
@@ -83,12 +81,7 @@ function scoreRow(
   value: Record<string, unknown>,
 ): BenchmarkObservationRow | null {
   const canonicalValue = percentScore(value.accuracy);
-  if (
-    canonicalValue == null ||
-    modelId.length === 0 ||
-    task !== definition.canonicalTask ||
-    definition.isScoreEligible?.(task, modelId) === false
-  ) {
+  if (canonicalValue == null || modelId.length === 0 || task !== definition.canonicalTask) {
     return null;
   }
   const baseModel = modelId.split("/").at(-1) ?? modelId;
@@ -113,10 +106,7 @@ function scoreRow(
     benchmark_key: definition.benchmarkKey,
     source_url: definition.sourceUrl,
     model_id: modelId,
-    model:
-      reasoningEffort == null || definition.includeReasoningEffortInModel === false
-        ? baseModel
-        : `${baseModel} (${reasoningEffort})`,
+    model: reasoningEffort == null ? baseModel : `${baseModel} (${reasoningEffort})`,
     base_model: baseModel,
     reasoning_effort: reasoningEffort,
     model_creator: stringValue(value.provider),

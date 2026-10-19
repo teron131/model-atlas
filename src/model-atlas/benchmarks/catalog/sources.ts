@@ -113,7 +113,12 @@ export const BENCHMARK_STANDARD_SOURCES = {
   chess_puzzles: {
     group: "epoch",
     id: "epoch",
-    loader: { kind: "epoch_runs", task: "Chess Puzzles" },
+    revision: "2",
+    loader: {
+      kind: "epoch_runs",
+      task: "Chess Puzzles",
+      eligibility: { taskVersions: ["2.0.0", "2.0.1"] },
+    },
     sourceDataKey: "chessPuzzles",
     sourceRowsKey: "chessPuzzleRows",
   },
@@ -227,13 +232,6 @@ export const BENCHMARK_STANDARD_SOURCES = {
     sourceDataKey: "financeAgentV2",
     sourceRowsKey: "financeAgentV2Rows",
   },
-  frontiermath_erdos: {
-    group: "epoch",
-    id: "epoch",
-    loader: { kind: "epoch_runs", task: "FrontierMath-Erdos" },
-    sourceDataKey: "frontierMathErdos",
-    sourceRowsKey: "frontierMathErdosRows",
-  },
   frontiermath_tier_4: {
     group: "epoch",
     id: "epoch",
@@ -241,7 +239,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
     loader: {
       kind: "epoch_runs",
       task: "FrontierMath-Tier-4-v2-Private",
-      eligibility: { taskVersion: "2.1.0" },
+      eligibility: { taskVersions: ["2.1.0"] },
     },
     sourceDataKey: "frontierMathTier4",
     sourceRowsKey: "frontierMathTier4Rows",
@@ -308,16 +306,6 @@ export const BENCHMARK_STANDARD_SOURCES = {
     sourceDataKey: "mirrorCode",
     sourceRowsKey: "mirrorCodeRows",
   },
-  mls_bench: {
-    group: "standalone",
-    id: "mls_bench",
-    loader: {
-      kind: "mls_bench",
-      sourceUrl: "https://mls-bench.com/leaderboard",
-    },
-    sourceDataKey: "mlsBench",
-    sourceRowsKey: "mlsBenchRows",
-  },
   mysterymechanism: {
     group: "vals",
     id: "vals",
@@ -360,19 +348,6 @@ export const BENCHMARK_STANDARD_SOURCES = {
     sourceDataKey: "programBench",
     sourceRowsKey: "programBenchRows",
   },
-  proofbench: {
-    group: "vals",
-    id: "vals",
-    loader: {
-      kind: "vals",
-      canonicalTask: "overall",
-      includeReasoningEffortInModel: false,
-      eligibility: "exclude_aristotle",
-      sourceUrl: "https://www.vals.ai/benchmarks/proof_bench",
-    },
-    sourceDataKey: "proofBench",
-    sourceRowsKey: "proofBenchRows",
-  },
   public_benefits_bench: {
     group: "vals",
     id: "vals",
@@ -399,7 +374,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
       kind: "epoch_runs",
       task: "SimpleQA Verified",
       eligibility: {
-        taskVersion: "1.2.0",
+        taskVersions: ["1.2.0"],
         originalTaskName: "SimpleQA Verified (anti-abstention)",
         excludedModelIds: ["qwen3-max-2025-09-23"],
       },
@@ -575,7 +550,7 @@ export const BENCHMARK_EXTENDED_SOURCES = {
       {
         group: "standalone",
         id: "arena_agent",
-        roles: ["observation", "resource"],
+        roles: ["observation"],
         runtime: { key: "arena_agent", publicRows: true },
       },
     ],
@@ -668,7 +643,6 @@ export const BENCHMARK_EXTENDED_SOURCES = {
             scoreKey: "gdpPdfAllPass",
             resourceKey: "gdpPdf",
             url: "https://artificialanalysis.ai/evaluations/gdp-pdf",
-            fullModelCoverage: true,
             taskRunCount: 500,
           },
         ],
@@ -721,7 +695,6 @@ export const BENCHMARK_EXTENDED_SOURCES = {
             scoreKey: "mlcrOverall",
             resourceKey: "mlcr",
             url: "https://artificialanalysis.ai/evaluations/mlcr-aa",
-            fullModelCoverage: true,
             taskRunCount: 180,
           },
         ],
@@ -748,7 +721,6 @@ export const BENCHMARK_EXTENDED_SOURCES = {
           {
             kind: "artificial_analysis_resource_page",
             url: "https://artificialanalysis.ai/evaluations/terminalbench-4-0",
-            fullModelCoverage: true,
             scoreKey: "terminalBench40",
             resourceKey: "terminalBench40",
             taskRunCount: 198,
@@ -788,7 +760,6 @@ export const BENCHMARK_EXTENDED_SOURCES = {
             scoreKey: "terminalBenchScience",
             resourceKey: "terminalBenchScience",
             url: "https://artificialanalysis.ai/evaluations/terminal-bench-science",
-            fullModelCoverage: true,
             taskRunCount: 210,
           },
         ],

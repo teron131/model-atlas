@@ -97,6 +97,8 @@ const STANDALONE_BENCHMARK_PAYLOAD_ROW_GROUPS = {
   }),
   arena_agent: payloadRowGroup("arenaAgentRows", SNAPSHOT_TABLES.arena_agent, "row_index", {
     columns: [
+      "url",
+      "observed_at",
       "contender_name",
       "model",
       "base_model",
