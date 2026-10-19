@@ -229,7 +229,6 @@ assert.deepEqual(
     "analyst_agent",
     "arc_agi_2",
     "arc_agi_3",
-    "arena_agent",
     "automation_bench",
     "briefcase",
     "critpt",

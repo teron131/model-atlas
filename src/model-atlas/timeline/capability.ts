@@ -90,8 +90,9 @@ export function advanceCapabilities(
   return { ...next, dataset: publishedDataset(next, calibration) };
 }
 
-/** Explicit source revisions replace internal Atlas editions; frozen coordinates remain published facts while their retired evidence stops participating in future fits. */
+/** Removed benchmarks and superseded source revisions stop participating in future fits; frozen coordinates remain published facts. */
 function retainCurrentEditions(state: CapabilityState): CapabilityState {
+  const selected = new Set(Object.keys(BENCHMARK_CATALOG).map((key) => `atlas_benchmark_${key}`));
   const current = new Map(
     Object.entries(BENCHMARK_CATALOG)
       .filter(([, definition]) => definition.source.revision != null)
@@ -100,7 +101,9 @@ function retainCurrentEditions(state: CapabilityState): CapabilityState {
   const removed = new Set(
     [...state.dataset.benchmarks, ...(state.dataset.scale?.benchmarks ?? [])]
       .filter(
-        (benchmark) => current.has(benchmark.key) && current.get(benchmark.key) !== benchmark.id,
+        (benchmark) =>
+          (benchmark.key.startsWith("atlas_benchmark_") && !selected.has(benchmark.key)) ||
+          (current.has(benchmark.key) && current.get(benchmark.key) !== benchmark.id),
       )
       .map((benchmark) => benchmark.id),
   );

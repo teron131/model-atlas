@@ -57,3 +57,40 @@ assert.equal(
   readBenchmarkObservationRawCache(rawRows.slice(1), binding)?.rows[0]?.metadata.task_version,
   "2.1.0",
 );
+
+const chessLoader = BENCHMARK_STANDARD_SOURCES.chess_puzzles.loader;
+const chessBinding = BENCHMARK_OBSERVATION_BINDINGS.find(
+  (candidate) => candidate.benchmark === "chess_puzzles",
+);
+assert.ok(chessBinding);
+const chessRuns = ["1.1.6", "2.0.0", "2.0.1", "2.1.0"].map((version) => ({
+  ...rows[0]!,
+  id_runs: `chess-${version}`,
+  task: chessLoader.task,
+  "task version": version,
+}));
+const chess = epochBenchmarkObservationRows(
+  chessRuns,
+  "chess_puzzles",
+  chessLoader.task,
+  chessLoader.eligibility,
+);
+assert.deepEqual(
+  chess.map((row) => row.metadata.task_version),
+  ["2.0.0", "2.0.1"],
+);
+const chessRaw = rawRows.map((row, index) => ({
+  ...row,
+  source_key: "chess_puzzles",
+  benchmark_key: "chess_puzzles",
+  metadata_json: JSON.stringify(chess[index]!.metadata),
+}));
+assert.equal(readBenchmarkObservationRawCache(chessRaw, chessBinding)?.rows.length, 2);
+for (const task_version of ["1.1.6", "2.1.0", null]) {
+  const incompatible = {
+    ...chessRaw[0]!,
+    metadata_json: JSON.stringify({ ...chess[0]!.metadata, task_version }),
+  };
+  assert.equal(readBenchmarkObservationRawCache([incompatible], chessBinding), null);
+  assert.equal(readBenchmarkObservationRawCache([...chessRaw, incompatible], chessBinding), null);
+}

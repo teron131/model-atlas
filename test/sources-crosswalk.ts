@@ -477,7 +477,6 @@ const sparse = processArtificialAnalysisBenchmarkResourceRows(
     resource_key: "terminalbenchV40",
     url: "https://artificialanalysis.ai/evaluations/terminalbench-v4-0",
     task_run_count: 198,
-    full_model_coverage: true,
   },
 );
 assert.equal(sparse[0]?.score, 0.4);

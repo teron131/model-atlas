@@ -39,7 +39,14 @@ for (const keys of [
   BENCHMARK_RUNTIME_KEYS,
   MODEL_ATLAS_BENCHMARK_KEYS,
 ]) {
-  for (const retiredKey of ["cursorbench", "itbench_sre", "scicode"]) {
+  for (const retiredKey of [
+    "cursorbench",
+    "itbench_sre",
+    "scicode",
+    "proofbench",
+    "frontiermath_erdos",
+    "mls_bench",
+  ]) {
     assert.equal(
       keys.some((key: string) => key === retiredKey),
       false,
@@ -215,8 +222,12 @@ const minimumEvidenceModel = {
   },
 };
 /** Pin evidence totals independently of score normalization and model metadata. */
-function admitsWeight(benchmarks: Record<string, number>, minimumObservedWeight: number): boolean {
-  return hasRequiredBenchmarkEvidence({ intelligence: null, benchmarks }, STAGE_CONFIG.scoring, {
+function admitsWeight(
+  benchmarks: Record<string, number>,
+  minimumObservedWeight: number,
+  scoring = STAGE_CONFIG.scoring,
+): boolean {
+  return hasRequiredBenchmarkEvidence({ intelligence: null, benchmarks }, scoring, {
     minimumObservedWeight,
     minimumObservedPerDimension: 0,
     minimumObservedIndexes: 0,
@@ -253,9 +264,16 @@ assert.equal(
   false,
   "HLE counts once across both indexes and standalone evidence",
 );
-assert.equal(admitsWeight({ critpt: 0.5, frontiermath_erdos: 0.5 }, 1.5), true);
+const halfImportanceScoring = {
+  ...STAGE_CONFIG.scoring,
+  benchmarkPortfolio: {
+    ...STAGE_CONFIG.scoring.benchmarkPortfolio,
+    critpt: { ...STAGE_CONFIG.scoring.benchmarkPortfolio.critpt!, benchmarkImportance: 0.5 },
+  },
+};
+assert.equal(admitsWeight({ critpt: 0.5 }, 0.5, halfImportanceScoring), true);
 assert.equal(
-  admitsWeight({ critpt: 0.5, frontiermath_erdos: 0.5 }, 2),
+  admitsWeight({ critpt: 0.5 }, 1, halfImportanceScoring),
   false,
   "half-importance standalone evidence contributes half a unit",
 );

@@ -313,8 +313,14 @@ assert.equal(
   models[0]!.component_scores.intelligence_score,
 );
 
-const revisedKeys = ["frontiermath_tier_4", "rsi_benchmark", "vals_index"] as const;
-const superseded = revisedKeys.map((key) => ({
+const revisedKeys = [
+  "chess_puzzles",
+  "frontiermath_tier_4",
+  "rsi_benchmark",
+  "vals_index",
+] as const;
+const retiredKeys = ["proofbench", "frontiermath_erdos", "mls_bench"];
+const superseded = [...revisedKeys, ...retiredKeys].map((key) => ({
   ...task,
   id: `atlas:benchmark:${key}:previous-contract`,
   key: `atlas_benchmark_${key}`,
@@ -388,6 +394,10 @@ assert.deepEqual(currentEditions.anchors, initial.anchors);
 assert.deepEqual(currentEditions.dataset.reference, initial.dataset.reference);
 assert.deepEqual(currentEditions.dataset.rootBenchmarkIds, initial.dataset.rootBenchmarkIds);
 const liveDataset = currentEditions.dataset;
+for (const key of retiredKeys)
+  assert.ok(
+    liveDataset.benchmarks.every((benchmark) => benchmark.key !== `atlas_benchmark_${key}`),
+  );
 for (const key of revisedKeys)
   assert.deepEqual(
     liveDataset.benchmarks

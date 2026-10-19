@@ -17,7 +17,6 @@ export type BenchmarkSourceAdapter =
   | {
       kind: "artificial_analysis_resource_page";
       url: string;
-      fullModelCoverage?: boolean;
       taskRunCount: number;
       scoreKey?: string;
       scorePath?: BenchmarkJsonPath;
@@ -32,7 +31,7 @@ type BenchmarkSourceAdapterDeclaration =
     > & { taskRunCount?: number });
 
 export type EpochRunEligibility = {
-  taskVersion?: string;
+  taskVersions?: readonly string[];
   originalTaskName?: string;
   runIdPrefix?: string;
   excludedModelIds?: readonly string[];
@@ -62,7 +61,6 @@ export type BenchmarkObservationLoader =
       sourceUrl: string;
       harness: "terminus-2" | "loop_truncated_tools_agent" | null;
     }
-  | { kind: "mls_bench"; sourceUrl: string }
   | { kind: "perception_bench"; sourceUrl: string }
   | { kind: "surge"; sourceUrl: string; scoreKind?: "elo"; view?: "index" }
   | { kind: "terminal_bench_science"; sourceUrl: string }
@@ -70,8 +68,6 @@ export type BenchmarkObservationLoader =
       kind: "vals";
       sourceUrl: string;
       canonicalTask: string;
-      includeReasoningEffortInModel?: boolean;
-      eligibility?: "exclude_aristotle";
     }
   | { kind: "vals_rsi"; sourceUrl: string }
   | { kind: "voxelbench"; sourceUrl: string }

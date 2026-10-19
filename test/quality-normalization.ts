@@ -19,9 +19,9 @@ close(linearScale({ min: 10, max: 20 }, 30), 2);
 close(linearScale({ min: 5, max: 5 }, 5), 1);
 const rows = [
   {
-    benchmarks: { hle: 0.01, mlcr_aa: 0.41, critpt: 0.45, proofbench: 0.1, gdpval_normalized: 40 },
+    benchmarks: { hle: 0.01, mlcr_aa: 0.41, critpt: 0.45, mindcube: 0.1, gdpval_normalized: 40 },
   },
-  { benchmarks: { hle: 0.2, mlcr_aa: 0.6, critpt: 0.55, proofbench: 0.9, gdpval_normalized: 60 } },
+  { benchmarks: { hle: 0.2, mlcr_aa: 0.6, critpt: 0.55, mindcube: 0.9, gdpval_normalized: 60 } },
 ];
 const keys = Object.keys(rows[0]!.benchmarks);
 const ranges = observedRangesByBenchmark(rows, keys);

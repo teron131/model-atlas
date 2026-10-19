@@ -1,6 +1,10 @@
 /** Exercises Artificial Analysis leaderboard projection and scoring inputs. */
 
 import assert from "node:assert/strict";
+import { createCipheriv, createHash } from "node:crypto";
+import { createServer } from "node:http";
+import type { AddressInfo } from "node:net";
+import { gzipSync } from "node:zlib";
 
 import {
   buildBenchmarkImputationByModel,
@@ -9,6 +13,7 @@ import {
 import { buildQualityScoringContext } from "../src/model-atlas/pipeline/scores/quality-context";
 import {
   ARTIFICIAL_ANALYSIS_LEADERBOARD_COLUMNS,
+  getArtificialAnalysisLeaderboardRawStats,
   processArtificialAnalysisLeaderboardRows,
 } from "../src/model-atlas/sources/artificial-analysis/leaderboard";
 import {
@@ -16,6 +21,7 @@ import {
   parseArtificialAnalysisReasoningEffort,
 } from "../src/model-atlas/sources/artificial-analysis/model-labels";
 import { processArtificialAnalysisOmnisciencePage } from "../src/model-atlas/sources/artificial-analysis/omniscience";
+import { getArtificialAnalysisPageModels } from "../src/model-atlas/sources/artificial-analysis/page-data";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
   const actualJson = stableJson(actual);
@@ -404,3 +410,105 @@ assert.ok(
 );
 assert.equal(componentScoresWithMissingApex?.intelligence_score, null);
 assert.equal(componentScoresWithMissingApex?.speed_score, null);
+
+// The leaderboard preview is no longer the complete index-resource contract.
+const richModels = [
+  {
+    slug: "example-max",
+    name: "Example (max)",
+    modelCreatorName: "Example Lab",
+    intelligenceIndex: 50,
+    intelligenceIndexCostPerTask: { cost: { total: 5.98 } },
+    intelligenceIndexTimePerTask: 799,
+    intelligenceIndexOutputTokensPerTask: { output: 119_166 },
+  },
+  {
+    slug: "older-model",
+    name: "Older Model",
+    modelCreatorName: "Example Lab",
+    deprecated: true,
+    intelligenceIndex: 30,
+    intelligenceIndexCostPerTask: 0.72,
+  },
+];
+const flight = (value: unknown) =>
+  `<script>self.__next_f.push([1,${JSON.stringify(JSON.stringify(value))}])</script>`;
+const dataKey = Buffer.alloc(32, 7);
+const cipher = createCipheriv(
+  "aes-256-gcm",
+  dataKey,
+  createHash("sha256").update(dataKey).digest().subarray(0, 12),
+);
+const encryptedModels = Buffer.concat([
+  cipher.update(gzipSync(JSON.stringify({ models: richModels }))),
+  cipher.final(),
+  cipher.getAuthTag(),
+]);
+let dataUnavailable = false;
+const modelServer = createServer((request, response) => {
+  if (request.url === "/leaderboards/models") {
+    response.end(
+      flight({
+        models: [
+          {
+            ...richModels[0],
+            intelligenceIndexCostPerTask: 5.98,
+            intelligenceIndexTimePerTask: undefined,
+            intelligenceIndexOutputTokensPerTask: undefined,
+          },
+        ],
+      }),
+    );
+  } else if (request.url === "/models/example-max") {
+    response.end(
+      flight({ manifest: { path: "/data/providers" } }) +
+        flight({ manifest: { path: "/data/models", key: dataKey.toString("hex") } }),
+    );
+  } else if (request.url === "/data/providers") {
+    response.end(JSON.stringify([{ modelSlug: "example-max", host: { name: "Provider" } }]));
+  } else if (request.url === "/data/models" && !dataUnavailable) {
+    response.end(encryptedModels);
+  } else if (request.url === "/wrong-origin") {
+    response.end(flight({ manifest: { path: "https://example.com/data/models" } }));
+  } else {
+    response.writeHead(503);
+    response.end();
+  }
+});
+await new Promise<void>((resolve) => modelServer.listen(0, "127.0.0.1", resolve));
+try {
+  const origin = `http://127.0.0.1:${(modelServer.address() as AddressInfo).port}`;
+  const raw = await getArtificialAnalysisLeaderboardRawStats({
+    url: `${origin}/leaderboards/models`,
+  });
+  assert.deepEqual(raw.data, richModels);
+  assert.ok(raw.fetched_at_epoch_seconds);
+  const projected = processArtificialAnalysisLeaderboardRows(raw.data, {
+    selectedColumns: ["intelligence_index_cost"],
+  });
+  assert.equal(
+    (projected[0]!.intelligence_index_cost as Record<string, unknown>).seconds_per_task,
+    799,
+  );
+  assert.equal(
+    (projected[0]!.intelligence_index_cost as Record<string, unknown>).output_tokens_per_task,
+    119_166,
+  );
+  assert.equal(
+    (projected[1]!.intelligence_index_cost as Record<string, unknown>).cost_per_task,
+    0.72,
+  );
+  await assert.rejects(getArtificialAnalysisPageModels(`${origin}/wrong-origin`, 1_000), /origin/);
+  dataUnavailable = true;
+  assert.deepEqual(
+    await getArtificialAnalysisLeaderboardRawStats({ url: `${origin}/leaderboards/models` }),
+    {
+      fetched_at_epoch_seconds: null,
+      data: [],
+    },
+  );
+} finally {
+  await new Promise<void>((resolve, reject) =>
+    modelServer.close((error) => (error ? reject(error) : resolve())),
+  );
+}

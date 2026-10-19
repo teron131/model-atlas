@@ -7,6 +7,7 @@ import type {
 } from "../../benchmarks/observation";
 import type { BenchmarkObservationBinding } from "../../benchmarks/registry";
 import { arcPrizeCacheMatches, getArcPrizeStats } from "../arc-prize";
+import { ARENA_WEBDEV_DATASET_URL, arenaRefreshIsCurrent } from "../arena/dataset";
 import { getArenaWebDevStats } from "../arena/webdev";
 import { getArtificialAnalysisOmniscienceStats } from "../artificial-analysis/omniscience";
 import { automationBenchCacheMatches, getAutomationBenchStats } from "../automation-bench";
@@ -14,7 +15,6 @@ import { caisCacheMatches, getCaisDashboardStats } from "../cais/results";
 import { getEpochCapabilitiesIndexStats } from "../epoch/capabilities-index";
 import { epochBenchmarkCacheMatches, getEpochBenchmarkStats } from "../epoch/results";
 import { getMercorStats, mercorCacheMatches } from "../mercor/results";
-import { getMlsBenchStats } from "../mls-bench";
 import { getPerceptionBenchStats } from "../perception-bench";
 import { getSurgeIntelligenceIndexStats, getSurgeLeaderboardStats } from "../surge/results";
 import {
@@ -31,6 +31,11 @@ type ObservationSource = {
   sourceUrls?: readonly string[];
   fetchRows: () => Promise<BenchmarkObservationPayload>;
   acceptsCache?: (rows: readonly BenchmarkObservationRow[]) => boolean;
+  acceptsRefresh?: (
+    cachedRows: readonly BenchmarkObservationRow[],
+    fetchedRows: readonly BenchmarkObservationRow[],
+  ) => boolean;
+  replaceRowsOnRefresh?: boolean;
   mergeRow?: (
     cached: BenchmarkObservationRow,
     fetched: BenchmarkObservationRow,
@@ -60,7 +65,10 @@ export function benchmarkObservationSource(
     }
     case "arena_webdev":
       return {
+        sourceUrls: [loader.sourceUrl, ARENA_WEBDEV_DATASET_URL],
         fetchRows: () => getArenaWebDevStats(loader.sourceUrl),
+        acceptsRefresh: arenaRefreshIsCurrent,
+        replaceRowsOnRefresh: true,
         // Preference ratings, vote counts, and intervals describe the current voting pool.
         mergeRow: (_cached, fetched) => fetched,
       };
@@ -97,8 +105,6 @@ export function benchmarkObservationSource(
         fetchRows: () => getMercorStats(binding.benchmark, loader),
         acceptsCache: (rows) => mercorCacheMatches(rows, loader),
       };
-    case "mls_bench":
-      return { fetchRows: () => getMlsBenchStats(loader.sourceUrl) };
     case "perception_bench":
       return { fetchRows: () => getPerceptionBenchStats(loader.sourceUrl) };
     case "surge":
@@ -120,11 +126,6 @@ export function benchmarkObservationSource(
           getValsSourceStats({
             benchmarkKey: binding.benchmark,
             canonicalTask: loader.canonicalTask,
-            includeReasoningEffortInModel: loader.includeReasoningEffortInModel,
-            isScoreEligible:
-              loader.eligibility === "exclude_aristotle"
-                ? (_task, modelId) => modelId.toLowerCase() !== "aristotle/aristotle"
-                : undefined,
             sourceUrl: loader.sourceUrl,
           }),
         acceptsCache: (rows) => valsBenchmarkCacheMatches(rows, loader.canonicalTask),

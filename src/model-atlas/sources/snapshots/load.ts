@@ -78,6 +78,9 @@ export async function refreshSourceSnapshots(
   scoringConfig: ScoringConfig,
   options: SourceRefreshOptions = {},
 ): Promise<SourceSnapshotCacheResult> {
+  for (const source of options.refreshSources ?? []) {
+    sourceCache[source] = { ...sourceCache[source], cache_hit: false };
+  }
   const previousMissingSince = missingSinceBySource(previousSourceRowStates);
   const [
     artificialAnalysis,

@@ -2,6 +2,7 @@
  * Arena WebDev leaderboard ratings from Arena.
  *
  * Page source: https://arena.ai/leaderboard/code/webdev
+ * Dataset source: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/viewer/webdev/latest
  */
 
 import type {
@@ -9,15 +10,17 @@ import type {
   BenchmarkObservationRow,
 } from "../../benchmarks/observation";
 import { benchmarkModelEffort, normalizeModelToken } from "../../identity/normalization";
+import { providerIdentityKey } from "../../identity/provider";
 import { hasQwenMaxTier } from "../../identity/qwen";
 import { asFiniteNumber, asRecord, nowEpochSeconds, stringValue } from "../../runtime";
 import { extractNextFlightCorpus, findObjectEnd, parseFlightJsonObject } from "../parsing";
 import { fetchSource } from "../request-scheduler";
+import { ARENA_WEBDEV_DATASET_URL, arenaDatasetIdentity, fetchArenaDataset } from "./dataset";
 
 const SOURCE_URL = "https://arena.ai/leaderboard/code/webdev";
 const PAYLOAD_MARKER = '{"arena":{"slug":"code"';
 
-/** Fetch the current Overall human-vote series; failed requests leave cached evidence available. */
+/** Prefer the live Overall series; the dated official dataset is used only when the website cannot supply rows. */
 export async function getArenaWebDevStats(
   sourceUrl = SOURCE_URL,
 ): Promise<BenchmarkObservationPayload> {
@@ -25,10 +28,16 @@ export async function getArenaWebDevStats(
     return await fetchSource(sourceUrl, {}, 30_000, async (response) => {
       if (!response.ok) throw new Error(`Arena WebDev scrape failed: ${response.status}`);
       const data = processArenaWebDevPageHtml(await response.text(), sourceUrl);
-      return { fetched_at_epoch_seconds: data.length > 0 ? nowEpochSeconds() : null, data };
+      if (data.length === 0) throw new Error("Arena WebDev website has no usable rows");
+      return { fetched_at_epoch_seconds: nowEpochSeconds(), data };
     });
   } catch {
-    return { fetched_at_epoch_seconds: null, data: [] };
+    try {
+      const data = processArenaWebDevDatasetRows(await fetchArenaDataset("webdev"));
+      return { fetched_at_epoch_seconds: data.length > 0 ? nowEpochSeconds() : null, data };
+    } catch {
+      return { fetched_at_epoch_seconds: null, data: [] };
+    }
   }
 }
 
@@ -68,14 +77,7 @@ export function processArenaWebDevPageHtml(
       group.push(row);
       configurations.set(key, group);
     }
-    for (const group of configurations.values()) {
-      if (group.length < 2) continue;
-      for (const row of group) {
-        row.metadata.assignment_eligible = false;
-        row.metadata.assignment_exclusion =
-          "multiple source configurations for one model and effort";
-      }
-    }
+    excludeAmbiguousConfigurations(configurations);
     if (rows.size > 0) return [...rows.values()];
   }
   return [];
@@ -157,4 +159,93 @@ function webDevRow(
       vote_cutoff: cutoff,
     },
   };
+}
+
+/** Preserve the official fallback's disclosed identity and publication without asserting website configuration equivalence. */
+export function processArenaWebDevDatasetRows(
+  values: Record<string, unknown>[],
+): BenchmarkObservationRow[] {
+  const rows: BenchmarkObservationRow[] = [];
+  const occurrences = new Map<string, number>();
+  const configurations = new Map<string, BenchmarkObservationRow[]>();
+  for (const value of values) {
+    if (value.category !== "overall") continue;
+    const name = stringValue(value.model_name);
+    const organization = stringValue(value.organization);
+    const rating = asFiniteNumber(value.rating);
+    const votes = asFiniteNumber(value.vote_count);
+    const rank = asFiniteNumber(value.rank);
+    const observedAt = stringValue(value.leaderboard_publish_date);
+    if (
+      name == null ||
+      rating == null ||
+      votes == null ||
+      !Number.isInteger(votes) ||
+      votes <= 0 ||
+      rank == null ||
+      !Number.isInteger(rank) ||
+      rank < 1 ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(observedAt ?? "")
+    )
+      throw new Error("Invalid Arena WebDev dataset row");
+    const identity = arenaDatasetIdentity(name);
+    const sourceIdentity = `${organization ?? ""}:${name}`;
+    const occurrence = (occurrences.get(sourceIdentity) ?? 0) + 1;
+    occurrences.set(sourceIdentity, occurrence);
+    const row: BenchmarkObservationRow = {
+      benchmark_key: "arena_webdev",
+      source_url: ARENA_WEBDEV_DATASET_URL,
+      model_id: null,
+      model:
+        identity.reasoningEffort == null
+          ? identity.baseModel
+          : `${identity.baseModel} (${identity.reasoningEffort})`,
+      base_model: identity.baseModel,
+      reasoning_effort: identity.reasoningEffort,
+      model_creator: organization,
+      rank,
+      canonical_value: rating,
+      observed_at: observedAt,
+      metadata: {
+        source_model_id: `dataset:${sourceIdentity}:${occurrence}`,
+        source_identity_kind: "dataset-name-occurrence",
+        source_model_name: name,
+        track: "overall",
+        harness: identity.harness,
+        effort_token_budget: identity.budget,
+        votes,
+        rating_lower: asFiniteNumber(value.rating_lower),
+        rating_upper: asFiniteNumber(value.rating_upper),
+        dataset: "lmarena-ai/leaderboard-dataset",
+        dataset_split: "latest",
+        leaderboard_publish_date: observedAt,
+        ...(identity.unknown
+          ? {
+              assignment_eligible: false,
+              assignment_exclusion: "undisclosed meaning of source configuration qualifier",
+            }
+          : {}),
+      },
+    };
+    rows.push(row);
+    const key = `${providerIdentityKey(organization)}|${normalizeModelToken(identity.baseModel)}|${identity.reasoningEffort ?? ""}`;
+    const group = configurations.get(key) ?? [];
+    group.push(row);
+    configurations.set(key, group);
+  }
+  excludeAmbiguousConfigurations(configurations);
+  return rows;
+}
+
+/** Keep conflicting source configurations inspectable without choosing one score for a model and effort. */
+function excludeAmbiguousConfigurations(
+  configurations: ReadonlyMap<string, BenchmarkObservationRow[]>,
+): void {
+  for (const group of configurations.values()) {
+    if (group.length < 2) continue;
+    for (const row of group) {
+      row.metadata.assignment_eligible = false;
+      row.metadata.assignment_exclusion = "multiple source configurations for one model and effort";
+    }
+  }
 }

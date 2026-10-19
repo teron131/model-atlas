@@ -13,6 +13,7 @@ import {
   cleanArtificialAnalysisModelName,
   parseArtificialAnalysisReasoningEffort,
 } from "./model-labels";
+import { getArtificialAnalysisPageModels } from "./page-data";
 
 const DEFAULT_SCRAPE_URL = "https://artificialanalysis.ai/leaderboards/models";
 
@@ -91,21 +92,29 @@ export async function getArtificialAnalysisLeaderboardRawStats(
     const url = options.url ?? DEFAULT_SCRAPE_URL;
     const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 
-    return await fetchSource(url, {}, timeoutMs, async (response) => {
+    const pageHtml = await fetchSource(url, {}, timeoutMs, async (response) => {
       if (!response.ok) {
         throw new Error(`Artificial Analysis scrape failed: ${response.status}`);
       }
-      const pageHtml = await response.text();
-      const flightCorpus = extractNextFlightCorpus(pageHtml);
-      const leaderboardRows = sortLeaderboardRows(
-        extractLeaderboardRowsFromCorpus(flightCorpus).filter(isLeaderboardModelRow),
-      );
-
-      return {
-        fetched_at_epoch_seconds: nowEpochSeconds(),
-        data: leaderboardRows,
-      };
+      return response.text();
     });
+    const preview = sortLeaderboardRows(
+      extractLeaderboardRowsFromCorpus(extractNextFlightCorpus(pageHtml)).filter(
+        isLeaderboardModelRow,
+      ),
+    );
+    const modelSlug = preview.find((row) => row.deprecated !== true)?.slug;
+    if (typeof modelSlug !== "string" || modelSlug.length === 0)
+      throw new Error("Missing Artificial Analysis model-detail link");
+    // Model pages publish the complete comparison dataset with index resources; the leaderboard preview omits them.
+    const models = await getArtificialAnalysisPageModels(
+      new URL(`/models/${encodeURIComponent(modelSlug)}`, url).href,
+      timeoutMs,
+    );
+    return {
+      fetched_at_epoch_seconds: nowEpochSeconds(),
+      data: sortLeaderboardRows(models.filter(isLeaderboardModelRow)),
+    };
   } catch {
     return {
       fetched_at_epoch_seconds: null,
@@ -629,7 +638,8 @@ function pickIntelligenceIndexCost(row: JsonObject): JsonObject {
         ? totalTokens
         : firstNumber(row, ["total_tokens"]),
     cost_per_task:
-      firstNumber(costPerTaskBreakdown, ["total"]) ?? firstNumber(row, ["cost_per_task"]),
+      firstNumber(costPerTaskBreakdown, ["total"]) ??
+      firstNumber(row, ["intelligenceIndexCostPerTask", "cost_per_task"]),
     seconds_per_task: firstNumber(row, ["intelligenceIndexTimePerTask", "seconds_per_task"]),
     output_tokens_per_task:
       firstNumber(outputTokensPerTaskRecord, ["output"]) ??

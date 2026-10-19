@@ -167,11 +167,6 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
   },
-  frontiermath_erdos: {
-    group: "frontier",
-    benchmarkImportance: 0.5,
-    dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
-  },
   frontiermath_tier_4: {
     group: "frontier",
     benchmarkImportance: 1,
@@ -222,11 +217,6 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
-  mls_bench: {
-    group: "frontier",
-    benchmarkImportance: 1,
-    dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
-  },
   mysterymechanism: {
     group: "frontier",
     benchmarkImportance: 1,
@@ -246,11 +236,6 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     group: "frontier",
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
-  },
-  proofbench: {
-    group: "baseline",
-    benchmarkImportance: 1,
-    dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
   public_benefits_bench: {
     group: "baseline",
@@ -351,7 +336,6 @@ export const BENCHMARK_RESOURCE_POLICIES = {
   analyst_agent: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
   arc_agi_2: BENCHMARK_PER_TASK_RESOURCE,
   arc_agi_3: BENCHMARK_PER_TASK_RESOURCE,
-  arena_agent: BENCHMARK_PER_TASK_RESOURCE,
   automation_bench: BENCHMARK_PER_TASK_RESOURCE,
   briefcase: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
   critpt: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,

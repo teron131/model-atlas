@@ -1,6 +1,7 @@
 /** Verify current WebDev ratings, configuration identity, baseline display, and quality-only persistence. */
 
 import assert from "node:assert/strict";
+import { test } from "node:test";
 
 import {
   benchmarkDisplayValue,
@@ -20,7 +21,12 @@ import {
 } from "../src/model-atlas/benchmarks/registry";
 import { STAGE_CONFIG } from "../src/model-atlas/config";
 import { buildTaskMetrics } from "../src/model-atlas/pipeline/selection/candidate";
-import { processArenaWebDevPageHtml } from "../src/model-atlas/sources/arena/webdev";
+import { ARENA_WEBDEV_DATASET_URL } from "../src/model-atlas/sources/arena/dataset";
+import {
+  getArenaWebDevStats,
+  processArenaWebDevDatasetRows,
+  processArenaWebDevPageHtml,
+} from "../src/model-atlas/sources/arena/webdev";
 import {
   insertBenchmarkObservationRows,
   readBenchmarkObservationRawCache,
@@ -225,6 +231,11 @@ const failed = await snapshotSourceRows({
   fetchRows: async () => ({ fetched_at_epoch_seconds: null, data: [] }),
 });
 assert.deepEqual(failed.rows, [rows[0]]);
+assert.equal(
+  failed.fetchedAt,
+  100,
+  "An inaccessible website must not make cached ratings look freshly fetched",
+);
 const collector = new SnapshotRowCollector();
 insertBenchmarkObservationRows(collector, {
   ...Object.fromEntries(BENCHMARK_OBSERVATION_BINDINGS.map((value) => [value.sourceRowsKey, []])),
@@ -238,3 +249,47 @@ const restored = readBenchmarkObservationRawCache(
 assert.deepEqual(restored?.rows, rows);
 assert.equal(restored?.rows.filter(isCanonicalBenchmarkObservation).length, 3);
 console.log("Arena WebDev checks passed");
+
+test("WebDev website wins, with explicitly dated HF fallback only after unusable website responses", async (t) => {
+  let websiteWorks = true;
+  let requests = 0;
+  const dataset = {
+    model_name: "GPT-6 Astra (Max)",
+    organization: "OpenAI",
+    category: "overall",
+    leaderboard_publish_date: "2026-10-18",
+    rank: 1,
+    rating: 1775.65,
+    rating_lower: 1765.47,
+    rating_upper: 1785.83,
+    vote_count: 6172,
+  };
+  t.mock.method(globalThis, "fetch", async (url: string | URL) => {
+    requests += 1;
+    if (String(url).startsWith("https://arena.ai/"))
+      return new Response(websiteWorks ? page([entry]) : "<title>Just a moment...</title>");
+    return new Response(
+      JSON.stringify({
+        rows: [{ row_idx: 0, row: dataset, truncated_cells: [] }],
+        num_rows_total: 1,
+        partial: false,
+      }),
+    );
+  });
+  const site = await getArenaWebDevStats();
+  assert.equal(site.data[0]?.source_url, "https://arena.ai/leaderboard/code/webdev");
+  assert.equal(requests, 1);
+  websiteWorks = false;
+  const fallback = await getArenaWebDevStats();
+  assert.equal(fallback.data[0]?.source_url, ARENA_WEBDEV_DATASET_URL);
+  assert.equal(fallback.data[0]?.observed_at, "2026-10-18");
+  assert.equal(fallback.data[0]?.metadata.harness, null);
+  assert.equal(requests, 3);
+  const duplicates = processArenaWebDevDatasetRows([dataset, dataset]);
+  assert.equal(duplicates.length, 2);
+  assert.ok(duplicates.every((row) => row.metadata.assignment_eligible === false));
+  assert.notEqual(
+    benchmarkObservationRowKey(duplicates[0]!),
+    benchmarkObservationRowKey(duplicates[1]!),
+  );
+});

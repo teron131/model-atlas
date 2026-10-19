@@ -117,7 +117,6 @@ for (const [benchmarkKey, scoreKey, resourceKey, url, taskRunCount] of [
     score_key: scoreKey,
     resource_key: resourceKey,
     url,
-    full_model_coverage: true,
     task_run_count: taskRunCount,
   });
 }
@@ -226,6 +225,54 @@ const [cachedInputRow] = processArtificialAnalysisBenchmarkResourceRows(
   hlePage,
 );
 assertApprox(cachedInputRow?.cost_per_task_usd, 0.00174);
+
+const partialResources = processArtificialAnalysisBenchmarkResourceRows(
+  [
+    {
+      name: "Missing Speed",
+      slug: "missing-speed",
+      creator: { name: "Test", slug: "test" },
+      hle: 0.5,
+      canonicalEvalTokenCounts: { hle: { input: 100, answer: 20, reasoning: 30 } },
+      price1mInputTokens: 10,
+      price1mOutputTokens: 50,
+    },
+    {
+      name: "Missing Price",
+      slug: "missing-price",
+      creator: { name: "Test", slug: "test" },
+      hle: 0.4,
+      canonicalEvalTokenCounts: { hle: { input: 100, answer: 20, reasoning: 30 } },
+      medianCanonicalAnswerOutputSpeed: 25,
+    },
+  ],
+  hlePage,
+);
+const withoutSpeed = partialResources.find((row) => row.model === "Missing Speed")!;
+assertApprox(withoutSpeed.cost_per_task_usd, 0.00175);
+assertDeepEqual(withoutSpeed.seconds_per_task, null);
+assertDeepEqual(withoutSpeed.output_tokens_per_task, 25);
+const withoutPrice = partialResources.find((row) => row.model === "Missing Price")!;
+assertDeepEqual(withoutPrice.cost_per_task_usd, null);
+assertDeepEqual(withoutPrice.seconds_per_task, 1);
+assertDeepEqual(withoutPrice.output_tokens_per_task, 25);
+const [withoutOutput] = processArtificialAnalysisBenchmarkResourceRows(
+  [
+    {
+      name: "Unknown Output",
+      slug: "unknown-output",
+      creator: { name: "Test", slug: "test" },
+      hle: 0.5,
+      canonicalEvalTokenCounts: { hle: { input: 100 } },
+      price1mInputTokens: 10,
+      price1mOutputTokens: 50,
+    },
+  ],
+  hlePage,
+);
+assertDeepEqual(withoutOutput?.cost_per_task_usd, null);
+assertDeepEqual(withoutOutput?.output_tokens_per_task, null);
+assertDeepEqual(withoutOutput?.input_tokens_per_task, 50);
 
 assertDeepEqual(
   processArtificialAnalysisBenchmarkResourceRows(

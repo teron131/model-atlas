@@ -45,6 +45,8 @@ const deepSWERow = {
   mean_output_tokens: 12_000,
 };
 const arenaAgentRow: ArenaAgentModelScoreRow = {
+  source_url: "https://arena.ai/leaderboard/agent",
+  observed_at: null,
   rank: 1,
   contender_name: "contenders/example-model-agent",
   model: "Example Model",
@@ -290,7 +292,6 @@ const lookups = {
   frontierCode: {
     rowsByModelName: buildBenchmarkModelMap([frontierCodeRow]),
   },
-  frontierMathErdos: { rowsByModelName: emptyLookup() },
   frontierMathTier4: { rowsByModelName: new Map() },
   gdpPdf: {
     rowsByModelName: emptyLookup(),
@@ -300,12 +301,10 @@ const lookups = {
   intphys2: { rowsByModelName: emptyLookup() },
   mindcube: { rowsByModelName: emptyLookup() },
   mirrorCode: { rowsByModelName: emptyLookup() },
-  mlsBench: { rowsByModelName: emptyLookup() },
   mysteryMechanism: { rowsByModelName: emptyLookup() },
   omniscienceAccuracy: { rowsByModelName: emptyLookup() },
   perceptionBench: { rowsByModelName: emptyLookup() },
   programBench: { rowsByModelName: emptyLookup() },
-  proofBench: { rowsByModelName: new Map() },
   publicBenefitsBench: { rowsByModelName: emptyLookup() },
   riemannBench: {
     rowsByModelName: emptyLookup(),
