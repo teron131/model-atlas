@@ -1,22 +1,29 @@
-/** Submit a Trust Me Bro Index ranking and verify the read-back matches it exactly; the token comes only from the environment. */
+/** Validate and submit the dated TMB and Slop graphs together, then verify the complete stored record; the token comes only from the environment. */
 
 import { readFileSync } from "node:fs";
 import { isDeepStrictEqual } from "node:util";
 
+import { parseCommunityRanking } from "../src/model-atlas/community/rankings";
+
 const [file] = process.argv.slice(2);
-const token = process.env.MODEL_ATLAS_TMB_SUBMIT_TOKEN;
-const baseUrl = (process.env.MODEL_ATLAS_TMB_BASE_URL ?? "https://llmstats.vercel.app").replace(
-  /\/+$/,
-  "",
-);
+const token = process.env.MODEL_ATLAS_COMMUNITY_SUBMIT_TOKEN;
+const baseUrl = (
+  process.env.MODEL_ATLAS_COMMUNITY_BASE_URL ?? "https://llmstats.vercel.app"
+).replace(/\/+$/, "");
 if (!file || !token) {
-  console.error("Usage: MODEL_ATLAS_TMB_SUBMIT_TOKEN=<token> pnpm tmb:submit <ranking.json>");
+  console.error(
+    "Usage: MODEL_ATLAS_COMMUNITY_SUBMIT_TOKEN=<token> pnpm community:submit <ranking.json>",
+  );
   process.exit(2);
 }
 
 const body = readFileSync(file, "utf8");
-const sent = JSON.parse(body) as { ranked_at?: unknown };
-const response = await fetch(`${baseUrl}/api/tmb/rankings`, {
+const { ranking: sent, errors } = parseCommunityRanking(JSON.parse(body));
+if (sent == null) {
+  console.error(`Invalid ranking: ${errors.join("; ")}`);
+  process.exit(1);
+}
+const response = await fetch(`${baseUrl}/api/community/rankings`, {
   method: "POST",
   headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
   body,
@@ -29,7 +36,7 @@ if (response.status !== 200 && response.status !== 201) {
   process.exit(1);
 }
 
-const readBackUrl = `${baseUrl}/api/tmb/rankings/${encodeURIComponent(String(sent.ranked_at))}`;
+const readBackUrl = `${baseUrl}/api/community/rankings/${encodeURIComponent(sent.ranked_at)}`;
 const readBack = await fetch(readBackUrl, { signal: AbortSignal.timeout(30_000) });
 const stored = (await readBack.json()) as { ranking?: unknown };
 if (!readBack.ok || !isDeepStrictEqual(stored.ranking, sent)) {

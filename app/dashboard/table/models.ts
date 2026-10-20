@@ -9,6 +9,7 @@ import {
 } from "../../../src/model-atlas/benchmarks/catalog";
 import type { BenchmarkTaskMetricColumnFacet } from "../../../src/model-atlas/benchmarks/factory";
 import { isAggregateIndex } from "../../../src/model-atlas/benchmarks/index-policy";
+import { COMMUNITY_INDEXES } from "../../../src/model-atlas/community/catalog";
 import {
   linearScore,
   medianOfFinite,
@@ -141,16 +142,17 @@ const profileMetricColumns = [
   },
 ] as const;
 
-const communityMetricColumns = [
-  {
-    key: "tmbIndex",
-    group: "community",
-    field: "tmb_index",
-    direction: "ascending",
-    type: "number",
-    label: "TMB",
-  },
-] as const;
+const communityMetricColumns = COMMUNITY_INDEXES.map(
+  (index) =>
+    ({
+      key: index.columnKey,
+      group: "community",
+      field: index.key,
+      direction: "ascending",
+      type: "number",
+      label: index.label,
+    }) as const,
+);
 const communityColumnKeys = new Set<string>(communityMetricColumns.map((column) => column.key));
 
 const costMetricColumns = [
@@ -357,7 +359,7 @@ export function tableColumnRuns(visibleColumnKeys: readonly TableColumnKey[]): T
       run = { group, first: index, benchmarkKeys: new Set() };
       runs.push(run);
     }
-    // The TMB column counts as one index.
+    // Each community column counts as one index.
     const benchmark = benchmarkByColumnKey.get(key) ?? (communityColumnKeys.has(key) ? key : null);
     if (benchmark != null) run.benchmarkKeys.add(benchmark);
   });
@@ -697,7 +699,7 @@ export function dashboardMetricValue(model: ModelAtlasModel, column: DashboardMe
   }
   if (column.group === "community") {
     // Sorts by best place; the cell shows the range.
-    return model[column.field]?.best ?? null;
+    return model.community_indexes?.[column.field]?.best ?? null;
   }
   return profileMetricValue(model, column);
 }

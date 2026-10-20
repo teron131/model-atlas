@@ -1,9 +1,9 @@
-/** Trust Me Bro Index read-back by `ranked_at`, or the active ranking at `current`. */
+/** Read back both graphs and their research log by shared `ranked_at`, or the active record at `current`. */
 
 import {
-  readActiveTmbRanking,
-  readTmbRanking,
-} from "../../../../../src/model-atlas/database/snapshots/tmb-rankings";
+  readActiveCommunityRanking,
+  readCommunityRanking,
+} from "../../../../../src/model-atlas/database/snapshots/community-rankings";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -18,12 +18,12 @@ export async function GET(
   const { rankedAt } = await params;
   try {
     if (rankedAt === "current") {
-      const ranking = await readActiveTmbRanking();
+      const ranking = await readActiveCommunityRanking();
       return ranking == null
         ? Response.json({ errors: ["No ranking is active"] }, { status: 404, headers: NO_STORE })
         : Response.json({ active: true, ranking }, { headers: NO_STORE });
     }
-    const stored = await readTmbRanking(rankedAt);
+    const stored = await readCommunityRanking(rankedAt);
     return stored == null
       ? Response.json({ errors: ["Unknown ranking"] }, { status: 404, headers: NO_STORE })
       : Response.json(stored, { headers: NO_STORE });

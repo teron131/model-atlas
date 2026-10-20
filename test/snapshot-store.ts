@@ -1,7 +1,7 @@
 /** Proves atomic publication, private recovery, cloud read caching, and stat-invalidated explicit local display reads. */
 
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { Readable, Writable } from "node:stream";
 import { gunzipSync } from "node:zlib";
@@ -686,10 +686,12 @@ try {
     );
     const localRead = await readDisplaySnapshotPayload();
     assert.equal(localRead.fetched_at_epoch_seconds, 100);
+    const walPath = `${localPath}-wal`;
+    await chmod(walPath, (await stat(walPath)).mode ^ 0o040);
     assert.equal(
       await readDisplaySnapshotPayload(),
       localRead,
-      "Unchanged local checkpoints reuse the parsed display payload",
+      "WAL permission changes without a commit reuse the parsed display payload",
     );
     localDb.exec("UPDATE snapshot_metadata SET updated_at_epoch_seconds = 101");
     const committed = await readDisplaySnapshotPayload();

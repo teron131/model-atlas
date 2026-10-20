@@ -99,11 +99,13 @@ export function tableColumnView(
   const searchQuery = searchMatchCount > 0 ? query : "";
   // Reuse the full-column ranking so the visible set and match count cannot promote different fuzzy matches.
   const matchingKeys = searchMatchCount > 0 ? new Set(searchMatches) : presetColumnKeys[preset];
-  // The TMB column shows only while an active ranking supplies its header card.
+  // Community columns show only while an active ranking supplies their header card.
   const keys: TableColumnKey[] = [
     ...ALWAYS_VISIBLE_TABLE_COLUMN_KEYS,
     ...optionalColumnKeys.filter(
-      (key) => matchingKeys.has(key) && (key !== "tmbIndex" || columnTooltips.tmbIndex != null),
+      (key) =>
+        matchingKeys.has(key) &&
+        (metricColumnsByKey.get(key)?.group !== "community" || columnTooltips[key] != null),
     ),
     "change",
   ];

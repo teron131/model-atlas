@@ -16,7 +16,7 @@ Model Atlas turns benchmark results, token use, prices, and runtimes into four s
 - **Capability can overlap.** Implementing a specification is primarily Agentic; deriving a difficult algorithm or scientific solution can also contribute to Intelligence.
 - **Efficiency accounts for quality.** :score[Speed] and :score[Value] compare resource use at similar quality, so a cheaper but much less capable model does not automatically score well on :score[Value].
 - **Resource effects are limited.** :score[Agentic] includes a bounded token-efficiency adjustment. Price and latency do not affect either capability score.
-- **Community judgment is bounded.** The [Trust Me Bro Index](intelligence-agentic.md#trust-me-bro-index) moves :score[Intelligence] for the newest leading models only where users' reported experience contradicts the benchmark order.
+- **Community judgment is bounded.** The [Trust Me Bro and Slop Indexes](intelligence-agentic.md#trust-me-bro-and-slop-indexes) share one :score[Intelligence] correction, blending overall practical experience with judgments of visual output quality.
 
 ## How to Read the Scores
 
