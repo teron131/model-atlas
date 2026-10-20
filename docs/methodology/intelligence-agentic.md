@@ -317,21 +317,36 @@ $$
 S'_{m,d}=M^{\text{ret}}_{m,d}S_{m,d}.
 $$
 
-### Trust Me Bro Index
+### Trust Me Bro and Slop Indexes
 
-The Trust Me Bro Index moves :score[Intelligence] for the newest leading models only where what their users report contradicts the benchmark order. Benchmarks measure fixed tasks, while people using a model on real work notice reliability, judgment, and recovery that a benchmark basket can miss; a model can rank high on easier benchmarks yet fall short in everyday use. The index keeps that view separate and lets it correct the published order slightly, without replacing it.
+The Trust Me Bro and Slop Indexes adjust :score[Intelligence] where people's experience contradicts the benchmark order. TMB expresses overall practical capability across substantive work, including design. Slop focuses on the quality of websites, interfaces, and 2D or 3D visual work created by models. Human judgments of taste, composition, and coherent behavior can reveal differences the benchmark basket misses. The indexes share one bounded correction, with 75% allocated to TMB and 25% to Slop.
 
-Each ranking states one overall judgment of the candidates as one or more compatible inequalities: the candidates are the ten highest unadjusted :score[Intelligence] models, kept only if released within the preceding two calendar months. A research run writes them from concrete situations that Reddit and YouTube users report about real work in the two calendar months before the ranking, including experiences with a single model, and logs the sources behind every relationship. Benchmark and leaderboard citations, one-shot demonstrations, and preferences driven by cost or speed do not count. Each link uses = for comparable, ≥ for preferred or comparable, > for preferred, and ≫ for much preferred. A model may appear in several inequalities, so A > B > C and B > D place D below A and B while leaving C versus D unresolved rather than forcing a complete order; a model the research cannot place at all is left out rather than put last. Every accepted ranking is kept under its completion time, which serves as its version, and the newest one is active. The table shows the places each model's relationships allow: one place when they fix it, and a range such as #3–4 when they leave it open. Models joined by = share a place.
+Both indexes consider the ten highest unadjusted :score[Intelligence] models, retaining only releases from the preceding two calendar months. One research run reads Reddit and YouTube sources from the same window and forms a separate judgment for each index. Sustained practical experience drives TMB; the quality of the visual result drives Slop. Benchmark rankings and preferences driven by cost or speed do not determine either order.
 
-The adjustment finds the scores closest to the benchmark scores that satisfy every stated relationship at once, counting each model once however many inequalities repeat it. Models joined by = first share their mean score. Any set of models whose scores contradict the relationships is pooled to its mean, which is isotonic regression over the partial order the inequalities state; an unresolved pair adds no constraint. Because isotonic regression already allows related models to end equal, ≥, >, and ≫ all act as "not above the model before it"; their difference is published in the inequalities rather than in the adjustment. A model whose score already agrees keeps it, so its target $S^{\text{TMB}}_m$ equals its published :score[Intelligence] $S_m$. Every placed model then moves part of the way toward its target:
+Each judgment is a graph expressed as one or more compatible inequalities. Links use = for comparable, ≥ for a close preference with comparable standing plausible, > for a clear preference, and ≫ for a large perceived gap. Uncertainty leaves a relationship unspecified rather than becoming equality or last place. A model may appear in several chains: A > B > C and B > D place D below A and B while leaving C versus D unresolved. Each graph must be internally consistent, but the two indexes can prefer different models. The table shows exact places or ranges such as #3–4 independently for each index, with = models sharing a place. One immutable completion timestamp versions both graphs and their evidence together; the newest record is active.
 
-![The inequalities merge into one order; models whose scores contradict it share a pooled target, the rest keep their own scores, each contradicting model moves part of the way toward its target, and places the relationships leave open show as ranges.](../assets/methodology/tmb-joint-target.svg)
+For each graph separately, isotonic regression finds the scores closest to the original benchmark scores that satisfy every stated relationship, counting each distinct model once. Contradicting sets are pooled to their mean, = requires equal target scores, and an unresolved pair adds no constraint. The other three operators all require the lower model's target not to exceed the upper model's target; their qualitative differences stay visible in the graph rather than becoming invented numerical distances.
+
+Let $S_g$ be the original :score[Intelligence] of base model $g$ at its highest-scoring effort, and let $S^{\text{TMB}}_g$ and $S^{\text{Slop}}_g$ be its targets from the two graphs. Both projections start from the same original scores. A model absent from a graph uses $S_g$ as that graph's target, contributing no movement; missing influence is not redistributed. With Slop weight $w=0.25$, the blended difference is:
 
 $$
-S'_m=S_m+r\,(S^{\text{TMB}}_m-S_m),\qquad r=\min\!\left(0.4,\ \frac{5}{\max_j\lvert S^{\text{TMB}}_j-S_j\rvert}\right).
+\Delta_g=(1-w)(S^{\text{TMB}}_g-S_g)+w(S^{\text{Slop}}_g-S_g).
 $$
 
-Pooling preserves the placed models' total score, so the adjustment neither lifts nor sinks them as a group. Every target stays inside their own score range, so no placed model is pushed below the weakest of them, and models outside the ranking keep their scores. The shared fraction $r$ keeps gains and losses balanced, and it falls below 0.4 when a correction would otherwise move a model more than five points. Every reasoning-effort variant of a model shares the shift computed from its highest score. The adjustment applies when the site reads the published benchmark snapshot, after all four scores are computed, so :score[Speed] and :score[Value] do not change, the snapshot itself stays benchmark-only, and a new ranking takes effect without a benchmark refresh.
+Apply the same fraction $r$ to every base model, reducing the 40% pull when any move would exceed five points:
+
+$$
+S'_g=S_g+r\Delta_g,\qquad
+r=\min\!\left(0.4,\ \frac{5}{\max_g|\Delta_g|}\right).
+$$
+
+When every $\Delta_g$ is zero, there is no correction. The uncapped movement is 30% of the distance to the TMB target plus 10% of the distance to the Slop target. Processing order cannot change the result, repeated refreshes do not compound the correction, and identical graphs receive one 40% pull rather than two.
+
+![Illustrative case where both graphs agree: the targets coincide, purple points show the single 40% pull, and unresolved comparisons retain place ranges.](../assets/methodology/community-joint-target.svg)
+
+Each projection preserves the sum of the base models' reference scores, as does their weighted blend and shared pull. The corrected reference scores stay within their original range, with no move exceeding five points. Models absent from both graphs keep their scores; an empty graph contributes none of its allocated influence. Every reasoning-effort variant shares its base model's shift.
+
+The adjustment runs when the site reads the benchmark snapshot, after all four scores are computed. :score[Agentic], :score[Speed], and :score[Value] stay unchanged, the snapshot remains benchmark-only, and a new dated record updates both indexes without a benchmark refresh.
 
 ## Parameter Choices
 
@@ -346,5 +361,6 @@ These values are scoring-policy choices, not fitted claims about model behavior.
 | Aggregate-index breadth | Represented benchmark count after exact known overlap deductions | Gives broad indexes influence in proportion to their published evidence while counting known direct and cross-index overlap once. |
 | ECI breadth | 8, the median fixed-index breadth | ECI publishes no fixed benchmark basket, so it uses a typical breadth instead of a count that varies by model. |
 | :score[Agentic] token multiplier | ±15%, reached at two spread units | Limits how much token efficiency can alter benchmark quality before rescaling. |
-| Trust Me Bro candidates | :score[Intelligence] top 10 released within two calendar months | Limits community judgment to recently released leading models that users are actively comparing. |
-| Trust Me Bro pull | 40% toward the agreeing order, at most 5 points per model | Lets consistent user experience correct close benchmark orderings without overriding clear benchmark gaps. |
+| Community index candidates | :score[Intelligence] top 10 released within two calendar months | Limits both judgments to recently released leading models that users are actively comparing. |
+| Community index blend | 75% TMB, 25% Slop | Keeps overall practical capability dominant while giving visual quality explicit influence. |
+| Community index pull | 40% toward the blended targets, at most 5 points per model | Shares one correction allowance across overlapping evidence without forcing either final order. |

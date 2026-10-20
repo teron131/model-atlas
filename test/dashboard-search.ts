@@ -9,6 +9,11 @@ import {
   ALWAYS_VISIBLE_TABLE_COLUMN_KEYS,
   tableColumnView,
 } from "../app/dashboard/table/column-views";
+import {
+  dashboardMetricColumns,
+  dashboardMetricValue,
+  tableColumnRuns,
+} from "../app/dashboard/table/models";
 import { minimalModelAtlasModel } from "./model-atlas-fixtures";
 
 const documents = [
@@ -52,6 +57,45 @@ assert.deepEqual(
   tableColumnView("cost", "", {}),
   "A search without column matches retains the selected preset",
 );
+
+const communityTooltips = {
+  tmbIndex: { title: "Trust Me Bro Index", body: "Overall practical capability." },
+  slopIndex: { title: "Slop Index", body: "Visual quality of frontend design and animation." },
+};
+assert.deepEqual(
+  tableColumnView("scores", "", communityTooltips).keys.filter(
+    (key) => key === "tmbIndex" || key === "slopIndex",
+  ),
+  ["tmbIndex", "slopIndex"],
+);
+assert.equal(tableColumnView("all", "", {}).keys.includes("slopIndex"), false);
+assert.equal(
+  tableColumnView("all", "", { slopIndex: communityTooltips.slopIndex }).keys.includes("tmbIndex"),
+  false,
+);
+assert.deepEqual(tableColumnView("all", "slop", communityTooltips).keys, [
+  ...ALWAYS_VISIBLE_TABLE_COLUMN_KEYS,
+  "slopIndex",
+  "change",
+]);
+assert.equal(
+  tableColumnView("all", "animation", communityTooltips).keys.includes("slopIndex"),
+  true,
+);
+assert.deepEqual(tableColumnRuns(["tmbIndex", "slopIndex"]), [
+  { group: "indexes", first: 0, benchmarks: 2 },
+]);
+const slopColumn = dashboardMetricColumns.find((column) => column.key === "slopIndex")!;
+const unrankedModel = minimalModelAtlasModel({ id: "test/model", name: "Test model" });
+assert.equal(slopColumn.direction, "ascending");
+assert.equal(
+  dashboardMetricValue(
+    { ...unrankedModel, community_indexes: { slop: { best: 3, worst: 5 } } },
+    slopColumn,
+  ),
+  3,
+);
+assert.equal(dashboardMetricValue(unrankedModel, slopColumn), null);
 
 // Narrowing provider or cost must not promote a weak fuzzy match after an exact match is excluded.
 const models = [

@@ -1,12 +1,13 @@
-/** Read the local development checkpoint or share production manifest revalidation across runtime artifacts, then overlay the active Trust Me Bro Index ranking for display. */
+/** Read the local checkpoint or published benchmark artifacts, then apply the active TMB and Slop graphs together for display. */
 
 import { statSync } from "node:fs";
 import { resolve } from "node:path";
 
+import { applyCommunityIndexes } from "../community/rankings";
 import { buildCurrentModelAtlasMetadata } from "../stats/payload/metadata";
-import { applyTmbIndex } from "../stats/tmb-index";
 import type { ModelAtlasPayload } from "../stats/types";
 import type { HistoricalDataset } from "../timeline/schemas";
+import { readActiveCommunityRanking } from "./snapshots/community-rankings";
 import {
   decodeIntelligenceIndex,
   decodeSnapshotPayload,
@@ -17,7 +18,6 @@ import {
   snapshotObject,
   snapshotUrl,
 } from "./snapshots/manifest";
-import { readActiveTmbRanking } from "./snapshots/tmb-rankings";
 
 type ArtifactCache<T> = {
   hash?: string;
@@ -37,7 +37,7 @@ type SnapshotReadState = {
 const snapshotReadState = globalThis as typeof globalThis & {
   __modelAtlasArtifactReadState?: SnapshotReadState;
   __modelAtlasLocalReadState?: { fingerprint: string; payload: ModelAtlasPayload };
-  __modelAtlasTmbOverlay?: {
+  __modelAtlasCommunityOverlay?: {
     base: ModelAtlasPayload;
     rankedAt: string | null;
     value: ModelAtlasPayload;
@@ -45,15 +45,15 @@ const snapshotReadState = globalThis as typeof globalThis & {
 };
 const DISPLAY_SNAPSHOT_CACHE_MS = 30_000;
 
-/** The published payload with the active Trust Me Bro Index ranking applied, memoized per payload and ranking so serialization caches keep working. */
+/** Both indexes share one dated record, so a cached display never mixes graphs from different research runs. */
 export async function readDisplaySnapshotPayload(): Promise<ModelAtlasPayload> {
   const payload = await readPublishedSnapshot();
-  const ranking = await readActiveTmbRanking().catch(() => null);
+  const ranking = await readActiveCommunityRanking().catch(() => null);
   const rankedAt = ranking?.ranked_at ?? null;
-  const cached = snapshotReadState.__modelAtlasTmbOverlay;
+  const cached = snapshotReadState.__modelAtlasCommunityOverlay;
   if (cached?.base === payload && cached.rankedAt === rankedAt) return cached.value;
-  const value = applyTmbIndex(payload, ranking);
-  snapshotReadState.__modelAtlasTmbOverlay = { base: payload, rankedAt, value };
+  const value = applyCommunityIndexes(payload, ranking);
+  snapshotReadState.__modelAtlasCommunityOverlay = { base: payload, rankedAt, value };
   return value;
 }
 
@@ -93,11 +93,10 @@ function localCheckpointFingerprint(path: string): string {
     statSync(path, { bigint: true }),
     statSync(`${path}-wal`, { bigint: true, throwIfNoEntry: false }),
   ];
+  // SQLite readers can change WAL permissions and ctime without changing its contents.
   return [
     path,
-    ...files.map((stat) =>
-      stat ? [stat.dev, stat.ino, stat.size, stat.mtimeNs, stat.ctimeNs].join(":") : "",
-    ),
+    ...files.map((stat) => (stat ? [stat.dev, stat.ino, stat.size, stat.mtimeNs].join(":") : "")),
   ].join(";");
 }
 

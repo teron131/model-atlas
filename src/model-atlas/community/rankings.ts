@@ -1,4 +1,4 @@
-/** Trust Me Bro Index candidates, ranking contract, places, Intelligence correction, and header card; the method is in docs/methodology/intelligence-agentic.md and storage in database/snapshots/tmb-rankings.ts. */
+/** Community rankings share candidates and publication time; each index projects its own graph before one bounded Intelligence correction. */
 
 import type {
   ModelAtlasColumnTooltip,
@@ -6,38 +6,43 @@ import type {
   ModelAtlasColumnTooltipRow,
 } from "../config/tooltips";
 import { asRecord, stringValue } from "../runtime";
-import { modelDisplayExclusion } from "./model-visibility";
-import type { ModelAtlasModel, ModelAtlasPayload } from "./types";
+import { modelDisplayExclusion } from "../stats/model-visibility";
+import type { ModelAtlasModel, ModelAtlasPayload } from "../stats/types";
+import {
+  COMMUNITY_INDEXES,
+  type CommunityIndex,
+  type CommunityIndexKey,
+  type CommunityIndexPlace,
+  communityPlaceLabel,
+} from "./catalog";
 
-const TMB_RELATIONS = ["=", "≥", ">", "≫"] as const;
+const INDEX_RELATIONS = ["=", "≥", ">", "≫"] as const;
 const CANDIDATE_COUNT = 10;
 const CANDIDATE_RELEASE_MONTHS = 2;
 const PULL = 0.4;
 const MAX_MOVE_POINTS = 5;
 const RANKED_AT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
 
-type TmbRelation = (typeof TMB_RELATIONS)[number];
-type TmbEntry = { model_id: string; relation?: TmbRelation };
-type TmbPlace = NonNullable<ModelAtlasModel["tmb_index"]>;
+type IndexRelation = (typeof INDEX_RELATIONS)[number];
+type IndexEntry = { model_id: string; relation?: IndexRelation };
 
-export type TmbCandidate = { model_id: string; name: string; release_date: string };
+export type CommunityCandidate = { model_id: string; name: string; release_date: string };
 
-/** Stored exactly as submitted; any other fields are the run's log. */
-export type TmbRanking = {
+/** Every index shares one immutable version; other fields remain the run's log. */
+export type CommunityRanking = {
   ranked_at: string;
-  inequalities: TmbEntry[][];
+  indexes: Record<CommunityIndexKey, IndexEntry[][]>;
 };
 
-export function isTmbRankedAt(value: string): boolean {
+export function isCommunityRankedAt(value: string): boolean {
   return RANKED_AT.test(value) && !Number.isNaN(Date.parse(value));
 }
 
-export function tmbPlaceLabel(place: TmbPlace): string {
-  return place.best === place.worst ? `#${place.best}` : `#${place.best}–${place.worst}`;
-}
-
 /** Sorted by id so the list does not reveal benchmark order. */
-export function tmbCandidates(payload: ModelAtlasPayload, asOf: string): TmbCandidate[] {
+export function communityCandidates(
+  payload: ModelAtlasPayload,
+  asOf: string,
+): CommunityCandidate[] {
   const releaseCutoff = shiftMonths(asOf, -CANDIDATE_RELEASE_MONTHS);
   return [...highestVariants(payload).values()]
     .sort((left, right) => right.scores.intelligence_score - left.scores.intelligence_score)
@@ -57,77 +62,127 @@ export function tmbCandidates(payload: ModelAtlasPayload, asOf: string): TmbCand
 }
 
 /** Validates only the fields the site reads, returns the submission untouched, and rejects chains that contradict each other. */
-export function parseTmbRanking(value: unknown): { ranking: TmbRanking | null; errors: string[] } {
+export function parseCommunityRanking(value: unknown): {
+  ranking: CommunityRanking | null;
+  errors: string[];
+} {
   const errors: string[] = [];
   const record = asRecord(value);
   const rankedAt = stringValue(record.ranked_at);
-  if (rankedAt == null || !isTmbRankedAt(rankedAt)) {
+  if (rankedAt == null || !isCommunityRankedAt(rankedAt)) {
     errors.push("ranked_at must be a UTC datetime like 2026-10-19T05:00:00Z");
   }
-  const inequalities: unknown[] = Array.isArray(record.inequalities) ? record.inequalities : [];
-  if (inequalities.length === 0) errors.push("inequalities must contain at least one chain");
-  inequalities.forEach((item, chainIndex) => {
-    const at = `inequalities[${chainIndex}]`;
-    const chain: unknown[] = Array.isArray(item) ? item : [];
-    if (chain.length < 2) errors.push(`${at} must be a list of at least two models`);
-    const seen = new Set<string>();
-    chain.forEach((value, index) => {
-      const entry = asRecord(value);
-      const modelId = stringValue(entry.model_id);
-      if (modelId == null) errors.push(`${at}[${index}].model_id is required`);
-      else if (seen.has(modelId)) errors.push(`${at} lists ${modelId} more than once`);
-      else seen.add(modelId);
-      if (index === 0 && entry.relation != null) {
-        errors.push(`${at}[0] is the chain's strongest model and has no relation`);
-      }
-      if (index > 0 && !TMB_RELATIONS.includes(entry.relation as TmbRelation)) {
-        errors.push(`${at}[${index}].relation must be one of = ≥ > ≫`);
-      }
+  const indexes = asRecord(record.indexes);
+  for (const key of Object.keys(indexes)) {
+    if (!COMMUNITY_INDEXES.some((index) => index.key === key)) {
+      errors.push(`indexes.${key} is not a supported community index`);
+    }
+  }
+  for (const { key } of COMMUNITY_INDEXES) {
+    const field = `indexes.${key}`;
+    const inequalities: unknown[] = Array.isArray(indexes[key]) ? indexes[key] : [];
+    if (!Array.isArray(indexes[key])) errors.push(`${field} must be an array of chains`);
+    inequalities.forEach((item, chainIndex) => {
+      const at = `${field}[${chainIndex}]`;
+      const chain: unknown[] = Array.isArray(item) ? item : [];
+      if (chain.length < 2) errors.push(`${at} must be a list of at least two models`);
+      const seen = new Set<string>();
+      chain.forEach((value, index) => {
+        const entry = asRecord(value);
+        const modelId = stringValue(entry.model_id);
+        if (modelId == null) errors.push(`${at}[${index}].model_id is required`);
+        else if (seen.has(modelId)) errors.push(`${at} lists ${modelId} more than once`);
+        else seen.add(modelId);
+        if (index === 0 && entry.relation != null) {
+          errors.push(`${at}[0] is the chain's strongest model and has no relation`);
+        }
+        if (index > 0 && !INDEX_RELATIONS.includes(entry.relation as IndexRelation)) {
+          errors.push(`${at}[${index}].relation must be one of = ≥ > ≫`);
+        }
+      });
     });
-  });
+  }
   if (errors.length > 0) return { ranking: null, errors };
-  const ranking = record as TmbRanking;
-  const { conflicts } = tmbOrder(ranking.inequalities);
+  const ranking = record as CommunityRanking;
+  if (COMMUNITY_INDEXES.every(({ key }) => ranking.indexes[key].length === 0)) {
+    return { ranking: null, errors: ["At least one index must contain a supported chain"] };
+  }
+  const conflicts = COMMUNITY_INDEXES.flatMap(({ key }) =>
+    indexOrder(ranking.indexes[key]).conflicts.map((error) => `indexes.${key}: ${error}`),
+  );
   return conflicts.length > 0 ? { ranking: null, errors: conflicts } : { ranking, errors };
 }
 
-export function tmbCandidateErrors(
-  ranking: TmbRanking,
-  candidates: readonly TmbCandidate[],
+export function communityCandidateErrors(
+  ranking: CommunityRanking,
+  candidates: readonly CommunityCandidate[],
 ): string[] {
   const candidateIds = new Set(candidates.map((model) => model.model_id));
-  const placed = new Set(ranking.inequalities.flat().map((entry) => entry.model_id));
+  const placed = new Set(
+    COMMUNITY_INDEXES.flatMap(({ key }) => ranking.indexes[key])
+      .flat()
+      .map((entry) => entry.model_id),
+  );
   return [...placed].filter((id) => !candidateIds.has(id)).map((id) => `${id} is not a candidate`);
 }
 
-/** Adds each ranked model's places and moves its Intelligence toward the joint target; effort variants share their best variant's shift. */
-export function applyTmbIndex(
+/** Both graphs start from the unadjusted payload; absent placements contribute no movement, and effort variants share their best variant's shift. */
+export function applyCommunityIndexes(
   payload: ModelAtlasPayload,
-  ranking: TmbRanking | null,
+  ranking: CommunityRanking | null,
 ): ModelAtlasPayload {
   if (ranking == null) return payload;
   const best = highestVariants(payload);
-  const order = tmbOrder(ranking.inequalities);
-  const places = tmbPlaces(order);
   const scores = new Map([...best].map(([id, model]) => [id, model.scores.intelligence_score]));
-  const gaps = [...tmbTargets(order, scores)].map(
-    ([id, target]) => [id, target - scores.get(id)!] as const,
+  const indexes = COMMUNITY_INDEXES.map((definition) => {
+    const inequalities = ranking.indexes[definition.key];
+    const order = indexOrder(inequalities);
+    return {
+      definition,
+      inequalities,
+      places: indexPlaces(order),
+      targets: indexTargets(order, scores),
+    };
+  });
+  const gaps = [...scores].map(
+    ([id, score]) =>
+      [
+        id,
+        indexes.reduce(
+          (gap, { definition, targets }) =>
+            gap + definition.weight * ((targets.get(id) ?? score) - score),
+          0,
+        ),
+      ] as const,
   );
   const largestGap = Math.max(0, ...gaps.map(([, gap]) => Math.abs(gap)));
   const fraction = largestGap === 0 ? 0 : Math.min(PULL, MAX_MOVE_POINTS / largestGap);
   const shifts = new Map(gaps.map(([id, gap]) => [id, fraction * gap]));
+  const columnTooltips = Object.fromEntries(
+    indexes
+      .filter(({ places }) => places.size > 0)
+      .map(({ definition, inequalities, places }) => [
+        definition.columnKey,
+        indexTooltip(definition, ranking.ranked_at, inequalities, places, best),
+      ]),
+  );
 
   return {
     ...payload,
     models: payload.models.map((model) => {
-      const place = model.id == null ? undefined : places.get(model.id);
-      if (place == null) return model;
+      const id = model.id;
+      if (id == null) return model;
+      const placements = indexes.flatMap(({ definition, places }) => {
+        const place = places.get(id);
+        return place == null ? [] : [[definition.key, place] as const];
+      });
+      if (placements.length === 0) return model;
       return {
         ...model,
-        tmb_index: place,
+        community_indexes: Object.fromEntries(placements),
         scores: {
           ...model.scores,
-          intelligence_score: model.scores.intelligence_score + (shifts.get(model.id!) ?? 0),
+          intelligence_score: model.scores.intelligence_score + (shifts.get(id) ?? 0),
         },
       };
     }),
@@ -137,7 +192,7 @@ export function applyTmbIndex(
         ...payload.metadata.scoring,
         column_tooltips: {
           ...payload.metadata.scoring.column_tooltips,
-          tmbIndex: tmbIndexTooltip(ranking, places, best),
+          ...columnTooltips,
         },
       },
     },
@@ -158,14 +213,14 @@ function highestVariants(payload: ModelAtlasPayload) {
   return best;
 }
 
-type TmbOrder = {
+type IndexOrder = {
   groups: string[][];
   below: Set<number>[];
   conflicts: string[];
 };
 
 /** The partial order the chains state, with "=" groups and transitive `below` sets; a group below itself means the chains conflict. */
-function tmbOrder(inequalities: readonly (readonly TmbEntry[])[]): TmbOrder {
+function indexOrder(inequalities: readonly (readonly IndexEntry[])[]): IndexOrder {
   const parent = new Map<string, string>();
   const root = (id: string): string => {
     const next = parent.get(id) ?? id;
@@ -220,11 +275,11 @@ function tmbOrder(inequalities: readonly (readonly TmbEntry[])[]): TmbOrder {
   return { groups, below, conflicts };
 }
 
-function tmbPlaces({ groups, below }: TmbOrder): Map<string, TmbPlace> {
+function indexPlaces({ groups, below }: IndexOrder): Map<string, CommunityIndexPlace> {
   const size = (indices: Iterable<number>) =>
     [...indices].reduce((total, index) => total + groups[index]!.length, 0);
   const total = size(groups.keys());
-  const places = new Map<string, TmbPlace>();
+  const places = new Map<string, CommunityIndexPlace>();
   groups.forEach((members, index) => {
     const above = size(below.flatMap((reached, other) => (reached.has(index) ? [other] : [])));
     const place = { best: above + 1, worst: total - size(below[index]!) - members.length + 1 };
@@ -234,7 +289,7 @@ function tmbPlaces({ groups, below }: TmbOrder): Map<string, TmbPlace> {
 }
 
 /** Isotonic regression over the partial order by Brunk's minimum lower sets, exact by subset enumeration for at most ten candidates. */
-function tmbTargets(order: TmbOrder, scores: ReadonlyMap<string, number>): Map<string, number> {
+function indexTargets(order: IndexOrder, scores: ReadonlyMap<string, number>): Map<string, number> {
   const nodes = order.groups.flatMap((members, index) => {
     const scored = members.filter((id) => scores.has(id));
     if (scored.length === 0) return [];
@@ -272,30 +327,33 @@ function tmbTargets(order: TmbOrder, scores: ReadonlyMap<string, number>): Map<s
   return targets;
 }
 
-function tmbIndexTooltip(
-  ranking: TmbRanking,
-  places: ReadonlyMap<string, TmbPlace>,
+function indexTooltip(
+  index: CommunityIndex,
+  rankedAt: string,
+  inequalities: readonly (readonly IndexEntry[])[],
+  places: ReadonlyMap<string, CommunityIndexPlace>,
   models: ReadonlyMap<string, ModelAtlasModel>,
 ): ModelAtlasColumnTooltip {
-  const chains = ranking.inequalities.map(
+  const chains = inequalities.map(
     (chain, index): ModelAtlasColumnTooltipNestedSection => ({
-      title: ranking.inequalities.length === 1 ? "Inequality" : `Inequality ${index + 1}`,
+      title: inequalities.length === 1 ? "Inequality" : `Inequality ${index + 1}`,
       rows: chain.map((entry): ModelAtlasColumnTooltipRow => {
         const name = models.get(entry.model_id)?.name ?? entry.model_id;
         return [
           entry.relation == null ? name : `${entry.relation} ${name}`,
-          tmbPlaceLabel(places.get(entry.model_id)!),
+          communityPlaceLabel(places.get(entry.model_id)!),
         ];
       }),
     }),
   );
   return {
-    title: "Trust Me Bro Index",
-    body: "How people who use these models on real work rank them; a range is a place the stated relationships leave open. Intelligence moves 40% toward these relationships only where benchmark scores contradict them.",
+    title: index.title,
+    body: `${index.description} ${index.label} supplies ${index.weight * 100}% of the shared Intelligence correction.`,
     rows: [
       ["Source", "Reddit and YouTube users' experiences"],
       ["Candidates", "Intelligence top 10 released within two months"],
-      ["Ranked", `${ranking.ranked_at.slice(0, 16).replace("T", " ")} UTC`],
+      ["Intelligence", "40% toward the blended targets, capped at 5 points per model"],
+      ["Ranked", `${rankedAt.slice(0, 16).replace("T", " ")} UTC`],
     ],
     sections: [{ title: "Inequalities", hideTitle: true, rows: chains }],
   };

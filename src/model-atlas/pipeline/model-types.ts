@@ -2,6 +2,7 @@
 
 import type { BenchmarkObservationRow } from "../benchmarks/observation";
 import type { BenchmarkKey, BenchmarkResourceKey } from "../benchmarks/registry";
+import type { CommunityIndexKey, CommunityIndexPlace } from "../community/catalog";
 import type { NumberOrNull } from "../math-utils";
 import type { JsonObject } from "../runtime";
 import type { AgentsLastExamModelScoreRow } from "../sources/agents-last-exam/leaderboard";
@@ -198,7 +199,7 @@ type ModelFields = {
   benchmark_dates: Record<string, string> | null;
   confidence: ModelAtlasConfidence;
   latest_change?: ModelAtlasScoreChange | null;
-  tmb_index?: { best: number; worst: number };
+  community_indexes?: Partial<Record<CommunityIndexKey, CommunityIndexPlace>>;
 };
 
 export type ModelAtlasCandidate = ModelFields & {

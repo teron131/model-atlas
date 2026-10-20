@@ -1,13 +1,13 @@
-/** Trust Me Bro Index submissions, authenticated by MODEL_ATLAS_TMB_SUBMIT_TOKEN; status codes are listed in .agents/skills/tmb-index/SKILL.md. */
+/** One authenticated submission publishes the TMB and Slop graphs atomically; status codes and the shared contract are in .agents/skills/community-indexes/SKILL.md. */
 
 import { createHash, timingSafeEqual } from "node:crypto";
 
+import { communityCandidates } from "../../../../src/model-atlas/community/rankings";
 import { readPublishedSnapshot } from "../../../../src/model-atlas/database/runtime-snapshot";
 import {
-  submitTmbRanking,
-  TmbRankingStorage,
-} from "../../../../src/model-atlas/database/snapshots/tmb-rankings";
-import { tmbCandidates } from "../../../../src/model-atlas/stats/tmb-index";
+  CommunityRankingStorage,
+  submitCommunityRanking,
+} from "../../../../src/model-atlas/database/snapshots/community-rankings";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -16,10 +16,10 @@ export const runtime = "nodejs";
 const NO_STORE = { "Cache-Control": "no-store" };
 
 export async function POST(request: Request) {
-  const token = process.env.MODEL_ATLAS_TMB_SUBMIT_TOKEN;
-  if (!token || (process.env.VERCEL && !process.env.MODEL_ATLAS_TMB_WRITER_CREDENTIALS)) {
+  const token = process.env.MODEL_ATLAS_COMMUNITY_SUBMIT_TOKEN;
+  if (!token || (process.env.VERCEL && !process.env.MODEL_ATLAS_COMMUNITY_WRITER_CREDENTIALS)) {
     return Response.json(
-      { errors: ["TMB submissions are not configured"] },
+      { errors: ["Community index submissions are not configured"] },
       { status: 503, headers: NO_STORE },
     );
   }
@@ -40,9 +40,9 @@ export async function POST(request: Request) {
   }
   try {
     const now = new Date();
-    const result = await submitTmbRanking(new TmbRankingStorage(), body, {
+    const result = await submitCommunityRanking(new CommunityRankingStorage(), body, {
       candidates: async () =>
-        tmbCandidates(await readPublishedSnapshot(), now.toISOString().slice(0, 10)),
+        communityCandidates(await readPublishedSnapshot(), now.toISOString().slice(0, 10)),
       now,
     });
     return Response.json(result.body, { status: result.status, headers: NO_STORE });

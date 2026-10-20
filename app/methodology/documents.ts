@@ -102,7 +102,7 @@ const METHODOLOGY_ASSETS = {
   "weighted-mad.svg": { directory: "methodology", width: 760, height: 453 },
   "weighted-mad-points.svg": { directory: "methodology", width: 760, height: 500 },
   "confidence.svg": { directory: "methodology", width: 760, height: 350 },
-  "tmb-joint-target.svg": { directory: "methodology", width: 760, height: 450 },
+  "community-joint-target.svg": { directory: "methodology", width: 760, height: 450 },
   "index-overlap.svg": { directory: "methodology", width: 760, height: 238 },
   "resource-coverage.svg": { directory: "methodology", width: 760, height: 400 },
   "resource-agreement.svg": { directory: "methodology", width: 760, height: 460 },
