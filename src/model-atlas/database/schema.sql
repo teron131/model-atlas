@@ -1,4 +1,4 @@
--- SQLite snapshot schema for source evidence, public model rows, and matcher audit traces.
+-- Authoritative SQLite checkpoint for benchmark evidence, model rows, community research, and audit history.
 
 PRAGMA journal_mode = WAL;
 PRAGMA synchronous = NORMAL;
@@ -7,6 +7,13 @@ PRAGMA synchronous = NORMAL;
 CREATE TABLE IF NOT EXISTS capability_state (
   singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
   state_gzip BLOB NOT NULL
+);
+
+-- Immutable community research travels with the checkpoint and survives benchmark rebuilds.
+CREATE TABLE IF NOT EXISTS community_rankings (
+  ranked_at TEXT PRIMARY KEY NOT NULL,
+  ranking_json TEXT NOT NULL CHECK (json_valid(ranking_json)),
+  CHECK (json_extract(ranking_json, '$.ranked_at') IS ranked_at)
 );
 
 CREATE TABLE IF NOT EXISTS model_atlas_schema_manifest (

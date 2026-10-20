@@ -1,18 +1,35 @@
-/** Validate and submit the dated TMB and Slop graphs together, then verify the complete stored record; the token comes only from the environment. */
+/** Submit both dated graphs and verify the stored record, with authentication from the environment or Secret Manager. */
 
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { loadEnvFile } from "node:process";
 import { isDeepStrictEqual } from "node:util";
+
+import { Storage } from "@google-cloud/storage";
 
 import { parseCommunityRanking } from "../src/model-atlas/community/rankings";
 
 const [file] = process.argv.slice(2);
-const token = process.env.MODEL_ATLAS_COMMUNITY_SUBMIT_TOKEN;
+if (existsSync(".env")) loadEnvFile(".env");
+let token = process.env.MODEL_ATLAS_COMMUNITY_SUBMIT_TOKEN;
+const tokenSecret = process.env.MODEL_ATLAS_COMMUNITY_TOKEN_SECRET;
+if (!token && tokenSecret) {
+  try {
+    const response = await new Storage().authClient.request<{ payload: { data: string } }>({
+      url: `https://secretmanager.googleapis.com/v1/${tokenSecret}:access`,
+      timeout: 15_000,
+    });
+    token = Buffer.from(response.data.payload.data, "base64").toString("utf8");
+  } catch {
+    console.error("Unable to read the community submission token from Secret Manager");
+    process.exit(1);
+  }
+}
 const baseUrl = (
   process.env.MODEL_ATLAS_COMMUNITY_BASE_URL ?? "https://llmstats.vercel.app"
 ).replace(/\/+$/, "");
 if (!file || !token) {
   console.error(
-    "Usage: MODEL_ATLAS_COMMUNITY_SUBMIT_TOKEN=<token> pnpm community:submit <ranking.json>",
+    "Usage: pnpm community:submit <ranking.json> with MODEL_ATLAS_COMMUNITY_SUBMIT_TOKEN or MODEL_ATLAS_COMMUNITY_TOKEN_SECRET configured",
   );
   process.exit(2);
 }
@@ -27,7 +44,7 @@ const response = await fetch(`${baseUrl}/api/community/rankings`, {
   method: "POST",
   headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
   body,
-  signal: AbortSignal.timeout(60_000),
+  signal: AbortSignal.timeout(300_000),
 });
 const receipt = (await response.json()) as { ranked_at?: string; errors?: string[] };
 if (response.status !== 200 && response.status !== 201) {

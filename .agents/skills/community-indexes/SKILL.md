@@ -20,7 +20,8 @@ Keep discovery and judgment in the scheduled conversation so its searches, sourc
 Record `prompt_version` in the run log as `community-research-` followed by the SHA-256 of the research prompt used.
 3. For a configured publishing run, `pnpm community:submit ranking.json` posts the file and reads it back from `/api/community/rankings/{ranked_at}`.
 It exits non-zero unless the stored ranking is exactly what was sent.
-It reads `MODEL_ATLAS_COMMUNITY_SUBMIT_TOKEN` from the existing environment; `MODEL_ATLAS_COMMUNITY_BASE_URL` overrides the default `https://llmstats.vercel.app`.
+It loads the repository environment and reads `MODEL_ATLAS_COMMUNITY_SUBMIT_TOKEN`, or retrieves `MODEL_ATLAS_COMMUNITY_TOKEN_SECRET` from Google Secret Manager using application-default credentials.
+`MODEL_ATLAS_COMMUNITY_BASE_URL` overrides the default `https://llmstats.vercel.app`.
 Never put the token in prompts, files, command text, or logs.
 
 For a rehearsal, stop after writing the local report and ranking; do not submit it or turn a trial into an initial published ranking.
@@ -28,7 +29,8 @@ For a rehearsal, stop after writing the local report and ranking; do not submit 
 ## Ownership
 
 `src/model-atlas/community/catalog.ts` declares the peer indexes, their influence, and their presentation order; `src/model-atlas/community/rankings.ts` owns the shared graph contract and correction.
-`src/model-atlas/database/snapshots/community-rankings.ts` owns dated persistence, while `/api/community` and `scripts/community-submit.ts` are its HTTP and automation entrypoints.
+`src/model-atlas/database/community-rankings.ts` owns the append-only SQLite records; `src/model-atlas/database/snapshots/community-rankings.ts` owns publication through the shared checkpoint.
+`/api/community` forwards submissions to the Cloud Run writer started by `scripts/community-server.ts`; `scripts/community-submit.ts` is the automation entrypoint.
 
 The [research prompt](research.md) owns discovery, the two-month source window, current-candidate shorthand, source preferences, evidence standards, and judgment.
 TMB follows accumulated impressions after substantive use as a main working partner; Slop follows judgments of the delivered visual result.
@@ -96,17 +98,25 @@ The backend never invents a complete order: the table shows the place a model's 
 
 - `201` new ranking accepted; `200` identical retry of an accepted ranking.
 The receipt contains `ranked_at` and `active`, which is false when a newer ranking is already active.
-- `400 { errors: [...] }` lists validation problems; `409` means different content already holds that `ranked_at`; `401` bad token; `503` submissions not configured; `500` storage failure.
+- `400 { errors: [...] }` lists validation problems; `409` means different content already holds that `ranked_at`; `401` bad token; `413` submission exceeds 4 MiB; `503` submissions not configured; `500` writer failure; `502` publication could not be confirmed through the site.
 Treat errors as unverified publication; after a storage failure, retry the identical file and verify its read-back rather than assuming nothing was written.
 - `GET /api/community/rankings/{ranked_at}` returns `{ ranking, active }`; `GET /api/community/rankings/current` returns the active ranking.
 
-Accepted rankings store both graphs atomically at `community/rankings/{ranked_at}.json` in the public snapshot bucket; a correction is a new record with a later `ranked_at`.
-`community/current.json` names the active ranking and is replaced only by compare-and-swap: the newest `ranked_at` wins, and a late older ranking is stored without displacing a newer one.
-The site rechecks the active pointer every 30 seconds; no deployment or benchmark refresh is needed for a new ranking.
-Benchmark refreshes, snapshot publication, and checkpoint restores never touch `community/`.
+Accepted rankings are rows in `community_rankings` in the same authoritative SQLite checkpoint as benchmark evidence.
+`ranked_at` is the primary key; the stored record preserves both graphs and the full research log, and the latest timestamp is active.
+The writer restores the current checkpoint, validates candidates from its unadjusted scores, inserts the record, and publishes through the same compare-and-swap manifest as benchmark refreshes.
+If another publisher wins, the submission restores the newer checkpoint and retries up to three times; it never overwrites a concurrent refresh or ranking.
+An identical accepted retry returns its receipt without republishing.
+Publication may take several minutes because it transfers the checkpoint; the submission script allows five minutes, and an uncertain timeout must be retried with the identical file.
+
+The public ranking artifact is generated from SQLite and published under the same snapshot version as the benchmark payload; it is a read cache, not an independently writable store.
+The site rechecks that shared snapshot every 30 seconds, while ranking API read-back revalidates immediately.
+Benchmark refreshes preserve ranking history; an explicit snapshot rollback restores the rankings captured in that database version.
 
 ## Server configuration
 
-The site needs `MODEL_ATLAS_COMMUNITY_SUBMIT_TOKEN` (a long random secret shared with the automation) and `MODEL_ATLAS_COMMUNITY_WRITER_CREDENTIALS` (a service-account JSON key).
-That account needs `storage.objects.get`, `storage.objects.create`, and `storage.objects.delete` on objects under `community/` in the public snapshot bucket, for example through an IAM condition on the `community/` name prefix; delete is required because replacing `community/current.json` overwrites it.
-Without the configured submission credentials, submissions return `503` and the site shows the last accepted ranking, or none.
+The site needs `MODEL_ATLAS_COMMUNITY_WRITER_URL`, the Cloud Run service origin.
+The writer uses the existing benchmark publisher service account and both snapshot buckets, plus `MODEL_ATLAS_COMMUNITY_SUBMIT_TOKEN` supplied from Secret Manager.
+Run it with `pnpm community:serve`; deployment shares the benchmark image, limits each instance to one request, and scales to zero when idle.
+The automation can use the token directly in its environment or set `MODEL_ATLAS_COMMUNITY_TOKEN_SECRET` to a Secret Manager version resource such as `projects/<project>/secrets/<secret>/versions/latest`.
+No service-account key is required on the site or in the automation prompt.

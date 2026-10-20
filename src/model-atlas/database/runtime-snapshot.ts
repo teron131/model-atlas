@@ -3,12 +3,16 @@
 import { statSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { applyCommunityIndexes } from "../community/rankings";
+import {
+  applyCommunityIndexes,
+  type CommunityRanking,
+  isCommunityRankedAt,
+} from "../community/rankings";
 import { buildCurrentModelAtlasMetadata } from "../stats/payload/metadata";
 import type { ModelAtlasPayload } from "../stats/types";
 import type { HistoricalDataset } from "../timeline/schemas";
-import { readActiveCommunityRanking } from "./snapshots/community-rankings";
 import {
+  decodeCommunityRankings,
   decodeIntelligenceIndex,
   decodeSnapshotPayload,
   parseSnapshotManifest,
@@ -32,6 +36,7 @@ type SnapshotReadState = {
   readInFlight: Promise<SnapshotManifest> | null;
   payload: ArtifactCache<ModelAtlasPayload>;
   index: ArtifactCache<HistoricalDataset>;
+  rankings: ArtifactCache<CommunityRanking[]>;
 };
 
 const snapshotReadState = globalThis as typeof globalThis & {
@@ -47,12 +52,25 @@ const DISPLAY_SNAPSHOT_CACHE_MS = 30_000;
 
 /** Both indexes share one dated record, so a cached display never mixes graphs from different research runs. */
 export async function readDisplaySnapshotPayload(): Promise<ModelAtlasPayload> {
-  const payload = await readPublishedSnapshot();
-  const ranking = await readActiveCommunityRanking().catch(() => null);
+  let payload: ModelAtlasPayload;
+  let rankings: CommunityRanking[];
+  if (process.env.MODEL_ATLAS_LOCAL_DATABASE === "1") {
+    payload = await readPublishedSnapshot();
+    rankings = payload.community_rankings ?? [];
+  } else {
+    const state = readState();
+    const manifest = await readManifest(state);
+    [payload, rankings] = await Promise.all([
+      readBenchmarkPayload(state, manifest),
+      readRankingArtifact(state, manifest),
+    ]);
+  }
+  const ranking = rankings.at(-1) ?? null;
   const rankedAt = ranking?.ranked_at ?? null;
   const cached = snapshotReadState.__modelAtlasCommunityOverlay;
   if (cached?.base === payload && cached.rankedAt === rankedAt) return cached.value;
-  const value = applyCommunityIndexes(payload, ranking);
+  const { community_rankings, ...benchmarkPayload } = payload;
+  const value = applyCommunityIndexes(community_rankings ? benchmarkPayload : payload, ranking);
   snapshotReadState.__modelAtlasCommunityOverlay = { base: payload, rankedAt, value };
   return value;
 }
@@ -72,8 +90,38 @@ export async function readPublishedSnapshot(): Promise<ModelAtlasPayload> {
   }
   const state = readState();
   const manifest = await readManifest(state);
+  return readBenchmarkPayload(state, manifest);
+}
+
+function readBenchmarkPayload(state: SnapshotReadState, manifest: SnapshotManifest) {
   return readArtifact(state, manifest, "payload", state.payload, async (bytes) =>
     withCurrentMetadata(await decodeSnapshotPayload(bytes, manifest)),
+  );
+}
+
+export async function readCommunityRanking(
+  rankedAt: string,
+): Promise<{ ranking: CommunityRanking; active: boolean } | null> {
+  if (rankedAt !== "current" && !isCommunityRankedAt(rankedAt)) return null;
+  let records: CommunityRanking[];
+  if (process.env.MODEL_ATLAS_LOCAL_DATABASE === "1") {
+    records = (await readPublishedSnapshot()).community_rankings ?? [];
+  } else {
+    const state = readState();
+    // Submission read-back must observe a just-published version without waiting for the dashboard cache.
+    state.cacheExpiresAt = 0;
+    records = await readRankingArtifact(state, await readManifest(state));
+  }
+  const latest = records.at(-1);
+  const ranking =
+    rankedAt === "current" ? latest : records.find((record) => record.ranked_at === rankedAt);
+  return ranking ? { ranking, active: ranking.ranked_at === latest?.ranked_at } : null;
+}
+
+function readRankingArtifact(state: SnapshotReadState, manifest: SnapshotManifest) {
+  if (!manifest.community_rankings_sha256) return Promise.resolve([]);
+  return readArtifact(state, manifest, "community-rankings", state.rankings, (bytes) =>
+    decodeCommunityRankings(bytes, manifest.community_rankings_sha256!),
   );
 }
 
@@ -111,6 +159,7 @@ function readState(): SnapshotReadState {
       readInFlight: null,
       payload: {},
       index: {},
+      rankings: {},
     };
   }
   return snapshotReadState.__modelAtlasArtifactReadState;
@@ -147,11 +196,15 @@ async function fetchManifest(state: SnapshotReadState): Promise<SnapshotManifest
 async function readArtifact<T>(
   state: SnapshotReadState,
   manifest: SnapshotManifest,
-  kind: "payload" | "intelligence-index",
+  kind: "payload" | "intelligence-index" | "community-rankings",
   cache: ArtifactCache<T>,
   decode: (bytes: Buffer) => Promise<T>,
 ): Promise<T> {
-  const hash = kind === "payload" ? manifest.payload_sha256 : manifest.intelligence_index_sha256!;
+  const hash = {
+    payload: manifest.payload_sha256,
+    "intelligence-index": manifest.intelligence_index_sha256!,
+    "community-rankings": manifest.community_rankings_sha256!,
+  }[kind];
   if (cache.hash === hash && cache.value !== undefined) return cache.value;
   if (cache.pending?.hash === hash) return cache.pending.promise;
   const promise = (async () => {

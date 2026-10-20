@@ -174,8 +174,8 @@ export function processArtificialAnalysisLeaderboardRows(
 
 function sortLeaderboardRows(rows: JsonObject[]): JsonObject[] {
   return [...rows].sort((left, right) => {
-    const leftIntelligence = firstNumber(left, ["intelligenceIndex"]);
-    const rightIntelligence = firstNumber(right, ["intelligenceIndex"]);
+    const leftIntelligence = firstNumber(left, ["intelligenceIndex", "intelligence_index"]);
+    const rightIntelligence = firstNumber(right, ["intelligenceIndex", "intelligence_index"]);
     if (leftIntelligence == null && rightIntelligence == null) {
       return (firstString(left, ["slug"]) ?? "").localeCompare(firstString(right, ["slug"]) ?? "");
     }

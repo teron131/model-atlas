@@ -32,7 +32,10 @@ type VariantShape = "preserve" | "collapse";
 
 function hasIntelligenceCost(row: JsonObject): boolean {
   const intelligenceIndexCost = asRecord(row.intelligence_index_cost);
-  return asFiniteNumber(intelligenceIndexCost.total_cost) != null;
+  return (
+    asFiniteNumber(intelligenceIndexCost.total_cost) != null ||
+    asFiniteNumber(intelligenceIndexCost.cost_per_task) != null
+  );
 }
 
 function hasComponentScoreSignal(row: JsonObject): boolean {
