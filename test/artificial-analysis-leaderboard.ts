@@ -106,6 +106,16 @@ assertDeepEqual(rows[0]?.median_end_to_end_response_time, 103);
 assertDeepEqual(
   processArtificialAnalysisLeaderboardRows(
     [
+      { model_id: "acme/beta", intelligence_index: 65 },
+      { model_id: "acme/alpha", intelligence_index: 70 },
+    ],
+    { selectedColumns: ["model_id"] },
+  ),
+  [{ model_id: "acme/alpha" }, { model_id: "acme/beta" }],
+);
+assertDeepEqual(
+  processArtificialAnalysisLeaderboardRows(
+    [
       {
         slug: "structured-effort",
         name: "Structured Effort (max)",

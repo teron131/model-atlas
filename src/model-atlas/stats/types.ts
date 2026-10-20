@@ -116,6 +116,7 @@ export type ModelAtlasPayload = {
   models: ModelAtlasModel[];
   benchmark_observations?: BenchmarkObservationsByKey;
   timeline?: import("../timeline/schemas").HistoricalDataset;
+  community_rankings?: import("../community/rankings").CommunityRanking[];
 };
 
 export type ModelAtlasOptions = {

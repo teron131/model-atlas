@@ -5,6 +5,7 @@ import { DatabaseSync } from "node:sqlite";
 import { asRecord } from "../runtime";
 import type { ModelAtlasPayload } from "../stats/types";
 import { readCapabilityState } from "./capability-state";
+import { readCommunityRankings } from "./community-rankings";
 import {
   buildPayloadFromRows,
   buildPayloadRows,
@@ -36,6 +37,7 @@ export function readDatabasePayload(databasePath = DEFAULT_DATABASE_PATH): Model
   const db = new DatabaseSync(databasePath, { readOnly: true });
   let rows: ReturnType<typeof buildPayloadRows>;
   let timeline: ModelAtlasPayload["timeline"];
+  let communityRankings: ModelAtlasPayload["community_rankings"];
   try {
     db.exec("BEGIN");
     rows = buildPayloadRows(
@@ -43,9 +45,14 @@ export function readDatabasePayload(databasePath = DEFAULT_DATABASE_PATH): Model
       PAYLOAD_ROW_GROUPS.map((rowGroup) => [rowGroup.key, readPayloadRowGroup(db, rowGroup)]),
     );
     timeline = readCapabilityState(db)?.dataset;
+    communityRankings = readCommunityRankings(db);
     db.exec("COMMIT");
   } finally {
     db.close();
   }
-  return { ...buildPayloadFromRows(rows), ...(timeline ? { timeline } : {}) };
+  return {
+    ...buildPayloadFromRows(rows),
+    ...(timeline ? { timeline } : {}),
+    ...(communityRankings.length ? { community_rankings: communityRankings } : {}),
+  };
 }

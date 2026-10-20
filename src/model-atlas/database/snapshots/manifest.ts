@@ -1,9 +1,10 @@
-/** One manifest binds independent leaderboard and Intelligence Index artifacts to their private recovery checkpoint. */
+/** One manifest binds the leaderboard, Intelligence Index, and community history to their authoritative SQLite checkpoint. */
 
 import { createHash } from "node:crypto";
 import { promisify } from "node:util";
 import { gunzip } from "node:zlib";
 
+import { type CommunityRanking, parseCommunityRanking } from "../../community/rankings";
 import { asRecord, stableJson } from "../../runtime";
 import { isModelAtlasPayload } from "../../stats/payload/validation";
 import type { ModelAtlasPayload } from "../../stats/types";
@@ -15,6 +16,7 @@ type SnapshotArtifacts = {
   payload_sha256: string;
   checkpoint_sha256: string;
   intelligence_index_sha256: string | null;
+  community_rankings_sha256: string | null;
 };
 
 export type SnapshotVersion = SnapshotArtifacts & { data_sha256: string };
@@ -34,7 +36,7 @@ export function snapshotBucket(): string {
 
 export function snapshotObject(
   version: string,
-  kind: "payload" | "checkpoint" | "intelligence-index",
+  kind: "payload" | "checkpoint" | "intelligence-index" | "community-rankings",
 ): string {
   const name = kind === "checkpoint" ? "database.sqlite.gz" : `${kind}.json.gz`;
   return `snapshots/${version}/${name}`;
@@ -55,7 +57,8 @@ export function parseSnapshotArtifacts(value: unknown): SnapshotArtifacts {
     (manifest.fetched_at_epoch_seconds ?? 0) <= 0 ||
     !isHash(manifest.payload_sha256) ||
     !isHash(manifest.checkpoint_sha256) ||
-    (manifest.intelligence_index_sha256 !== null && !isHash(manifest.intelligence_index_sha256))
+    (manifest.intelligence_index_sha256 !== null && !isHash(manifest.intelligence_index_sha256)) ||
+    (manifest.community_rankings_sha256 !== null && !isHash(manifest.community_rankings_sha256))
   ) {
     throw new Error("GCS contains an invalid snapshot manifest");
   }
@@ -65,6 +68,7 @@ export function parseSnapshotArtifacts(value: unknown): SnapshotArtifacts {
     payload_sha256: manifest.payload_sha256,
     checkpoint_sha256: manifest.checkpoint_sha256,
     intelligence_index_sha256: manifest.intelligence_index_sha256,
+    community_rankings_sha256: manifest.community_rankings_sha256,
   };
 }
 
@@ -109,7 +113,7 @@ export function retainedSnapshotVersions(
     .slice(0, RECOVERY_VERSION_COUNT);
 }
 
-/** Fingerprint model and benchmark values, not freshness, change-log records, artwork, or collection ordering. */
+/** Fingerprint benchmark values and ordered community history; benchmark freshness, change logs, artwork, and collection ordering do not create versions. */
 export function snapshotDataHash(payload: ModelAtlasPayload): string {
   const data = {
     models: payload.models.map(
@@ -125,6 +129,7 @@ export function snapshotDataHash(payload: ModelAtlasPayload): string {
   };
   return createHash("sha256")
     .update(stableJson(canonicalSnapshotData(data)))
+    .update(payload.community_rankings?.length ? stableJson(payload.community_rankings) : "")
     .digest("hex");
 }
 
@@ -197,4 +202,27 @@ export function parseSnapshotPayload(bytes: Buffer): ModelAtlasPayload {
     throw new Error("GCS contains an invalid dashboard snapshot");
   }
   return payload;
+}
+
+/** Ranking history is derived from SQLite and bound to the same manifest as the benchmark scores. */
+export async function decodeCommunityRankings(
+  bytes: Buffer,
+  expectedHash: string,
+): Promise<CommunityRanking[]> {
+  const value: unknown = JSON.parse(
+    (await decodeSnapshotBytes(bytes, expectedHash)).toString("utf8"),
+  );
+  if (!Array.isArray(value)) throw new Error("GCS contains invalid community ranking history");
+  const records = value.map((entry) => {
+    const { ranking, errors } = parseCommunityRanking(entry);
+    if (!ranking)
+      throw new Error(`GCS contains an invalid community ranking: ${errors.join("; ")}`);
+    return ranking;
+  });
+  if (
+    records.some((record, index) => index > 0 && record.ranked_at <= records[index - 1]!.ranked_at)
+  ) {
+    throw new Error("GCS community ranking history is not in unique chronological order");
+  }
+  return records;
 }

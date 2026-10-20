@@ -1,6 +1,9 @@
 /** TMB and Slop graph validation, shared correction, partial places, and atomic dated publication. */
 
 import assert from "node:assert/strict";
+import { copyFile, mkdir, mkdtemp, rm } from "node:fs/promises";
+import { join, resolve } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 import { gzipSync } from "node:zlib";
 
 import { GET as candidatesGET } from "../app/api/community/candidates/route";
@@ -14,15 +17,25 @@ import {
   type CommunityRanking,
   parseCommunityRanking,
 } from "../src/model-atlas/community/rankings";
-import { readDisplaySnapshotPayload } from "../src/model-atlas/database/runtime-snapshot";
 import {
-  type CommunityPointer,
-  CommunityRankingStorage,
-  type CommunityStore,
-  readActiveCommunityRanking,
+  insertCommunityRanking,
+  readCommunityRankings,
+} from "../src/model-atlas/database/community-rankings";
+import {
   readCommunityRanking,
-  submitCommunityRanking,
-} from "../src/model-atlas/database/snapshots/community-rankings";
+  readDisplaySnapshotPayload,
+} from "../src/model-atlas/database/runtime-snapshot";
+import { openDatabase } from "../src/model-atlas/database/schema";
+import { submitCommunityRanking } from "../src/model-atlas/database/snapshots/community-rankings";
+import {
+  type CurrentSnapshot,
+  SnapshotConflictError,
+  SnapshotStorage,
+} from "../src/model-atlas/database/snapshots/gcs";
+import {
+  type SnapshotManifest,
+  type SnapshotVersion,
+} from "../src/model-atlas/database/snapshots/manifest";
 import { snapshotHash } from "../src/model-atlas/database/snapshots/manifest";
 import type { ModelAtlasModel } from "../src/model-atlas/stats/types";
 import { minimalModelAtlasModel, minimalModelAtlasPayload } from "./model-atlas-fixtures";
@@ -81,7 +94,7 @@ function ranking(overrides: Record<string, unknown> = {}) {
             sources: ["https://www.reddit.com/r/codex/comments/abc/def/"],
           },
           {
-            relation: ">",
+            relation: ">" as const,
             model_id: "b",
             reason: "Misses requirements",
             sources: ["https://www.youtube.com/watch?v=xyz"],
@@ -515,259 +528,199 @@ assert.ok(
   ),
 );
 
-function memoryStore() {
-  const rankings = new Map<string, CommunityRanking>();
-  const state: { pointer: CommunityPointer | null; generation: number } = {
-    pointer: null,
-    generation: 0,
+// Exercise the submission workflow against real SQLite files; object publication races are covered by snapshot-store.
+await mkdir(".cache", { recursive: true });
+const workspace = await mkdtemp(resolve(".cache/community-publication-"));
+const checkpoint = join(workspace, "database.sqlite");
+(await openDatabase(checkpoint)).close();
+const now = new Date("2026-10-19T06:00:00Z");
+const initialPayload = minimalModelAtlasPayload({ fetchedAt: 1, models });
+
+class CheckpointStore extends SnapshotStorage {
+  payload = initialPayload;
+  generation = 1;
+  beforePublish: (() => Promise<void>) | null = null;
+  manifest: SnapshotManifest = {
+    version: "00000000-0000-4000-8000-000000000001",
+    fetched_at_epoch_seconds: 1,
+    payload_sha256: "0".repeat(64),
+    checkpoint_sha256: "0".repeat(64),
+    intelligence_index_sha256: null,
+    community_rankings_sha256: null,
+    data_sha256: "0".repeat(64),
+    previous: [],
   };
-  const store: CommunityStore = {
-    async createRanking(ranking) {
-      if (rankings.has(ranking.ranked_at)) return false;
-      rankings.set(ranking.ranked_at, structuredClone(ranking));
-      return true;
-    },
-    async readRanking(rankedAt) {
-      return rankings.get(rankedAt) ?? null;
-    },
-    async readPointer() {
-      return { pointer: state.pointer, generation: state.generation };
-    },
-    async writePointer(pointer, generation) {
-      if (generation !== state.generation) return false;
-      state.pointer = pointer;
-      state.generation += 1;
-      return true;
-    },
-  };
-  return { store, state };
+  constructor() {
+    super("community-test", "community-private");
+  }
+  override async current() {
+    return { manifest: this.manifest, generation: this.generation };
+  }
+  override async restore(_manifest: SnapshotVersion, path: string) {
+    await copyFile(checkpoint, path);
+    return structuredClone(this.payload);
+  }
+  override async publish(path: string, payload: typeof initialPayload, previous: CurrentSnapshot) {
+    if (this.beforePublish) {
+      const before = this.beforePublish;
+      this.beforePublish = null;
+      await before();
+    }
+    if (previous.generation !== this.generation)
+      throw new SnapshotConflictError("Concurrent publication");
+    await copyFile(path, checkpoint);
+    this.payload = structuredClone(payload);
+    this.generation += 1;
+    return { manifest: this.manifest, bytes_uploaded: 0, maintenance_warnings: [] };
+  }
 }
-
-const options = { candidates: async () => candidates, now: new Date("2026-10-19T06:00:00Z") };
-
-{
-  const { store, state } = memoryStore();
-  const first = await submitCommunityRanking(store, ranking(), options);
-  assert.equal(first.status, 201);
-  assert.deepEqual(first.body, { ranked_at: "2026-10-19T05:00:00Z", active: true });
-  assert.deepEqual(await store.readRanking("2026-10-19T05:00:00Z"), ranking());
-  const missingSlop = await submitCommunityRanking(
-    store,
-    ranking({ ranked_at: "2026-10-19T05:10:00Z", indexes: { tmb: [], slop: undefined } }),
-    options,
-  );
-  assert.equal(missingSlop.status, 400);
-  assert.equal(await store.readRanking("2026-10-19T05:10:00Z"), null);
-  const invalidSlop = await submitCommunityRanking(
-    store,
-    ranking({
-      ranked_at: "2026-10-19T05:15:00Z",
-      indexes: { tmb: [], slop: [[{ model_id: "a" }, { relation: ">", model_id: "z" }]] },
-    }),
-    options,
-  );
-  assert.equal(invalidSlop.status, 400);
-  assert.equal(await store.readRanking("2026-10-19T05:15:00Z"), null);
-  assert.equal(state.pointer?.ranked_at, "2026-10-19T05:00:00Z");
-
-  // A retry needs no candidates; different content at the same time conflicts.
-  const unavailable = {
-    candidates: async () => {
-      throw new Error("snapshot unavailable");
-    },
-    now: new Date("2026-10-19T07:00:00Z"),
-  };
-  const retry = await submitCommunityRanking(store, ranking(), unavailable);
-  assert.equal(retry.status, 200);
-  assert.deepEqual(retry.body, first.body);
+const store = new CheckpointStore();
+const storedRecords = () => {
+  const db = new DatabaseSync(checkpoint, { readOnly: true });
+  try {
+    return readCommunityRankings(db);
+  } finally {
+    db.close();
+  }
+};
+try {
+  const first = await submitCommunityRanking(store, ranking(), now);
+  assert.deepEqual(first, { status: 201, body: { ranked_at: ranking().ranked_at, active: true } });
+  assert.deepEqual(storedRecords(), [ranking()]);
+  const generation = store.generation;
+  assert.equal((await submitCommunityRanking(store, ranking(), now)).status, 200);
+  assert.equal(store.generation, generation, "An identical retry does not republish the database");
   assert.equal(
-    (await submitCommunityRanking(store, ranking({ prompt_version: "situations-2" }), options))
-      .status,
+    (await submitCommunityRanking(store, ranking({ prompt_version: "changed" }), now)).status,
     409,
   );
-
-  // A late older ranking is stored without becoming active.
-  const late = await submitCommunityRanking(
-    store,
-    ranking({ ranked_at: "2026-10-18T23:00:00Z" }),
-    options,
-  );
-  assert.equal(late.status, 201);
-  assert.ok("active" in late.body && !late.body.active);
-  assert.equal(state.pointer?.ranked_at, "2026-10-19T05:00:00Z");
-
-  const newer = await submitCommunityRanking(
-    store,
-    ranking({ ranked_at: "2026-10-19T05:30:00Z" }),
-    options,
-  );
-  assert.ok("active" in newer.body && newer.body.active);
-  assert.equal(state.pointer?.ranked_at, "2026-10-19T05:30:00Z");
-
   for (const overrides of [
     { ranked_at: "2026-10-20T00:00:00Z" },
-    { ranked_at: "2026-10-19T05:45:00Z", indexes: { tmb: [], slop: [] } },
+    { indexes: { tmb: [], slop: [] } },
+    { indexes: { tmb: [], slop: undefined } },
     {
-      ranked_at: "2026-10-19T05:45:00Z",
-      indexes: { tmb: [[{ model_id: "a" }, { relation: ">", model_id: "z" }]], slop: [] },
+      ranked_at: "2026-10-19T05:10:00Z",
+      indexes: { tmb: [], slop: [[{ model_id: "a" }, { model_id: "z", relation: ">" }]] },
     },
-  ]) {
-    assert.equal((await submitCommunityRanking(store, ranking(overrides), options)).status, 400);
-  }
-  assert.equal(state.pointer?.ranked_at, "2026-10-19T05:30:00Z");
-}
-
-// A newer ranking winning the pointer race keeps it.
-{
-  const { store, state } = memoryStore();
-  let raced = false;
-  const racing: CommunityStore = {
-    ...store,
-    async writePointer(pointer, generation) {
-      if (!raced) {
-        raced = true;
-        await store.writePointer({ ranked_at: "2026-10-19T09:00:00Z" }, generation);
-      }
-      return store.writePointer(pointer, generation);
-    },
+  ])
+    assert.equal((await submitCommunityRanking(store, ranking(overrides), now)).status, 400);
+  assert.deepEqual(storedRecords(), [ranking()]);
+  const late = ranking({ ranked_at: "2026-10-18T23:00:00Z" });
+  assert.deepEqual(await submitCommunityRanking(store, late, now), {
+    status: 201,
+    body: { ranked_at: late.ranked_at, active: false },
+  });
+  const concurrent = ranking({ ranked_at: "2026-10-19T05:30:00Z" });
+  store.beforePublish = async () => {
+    const db = new DatabaseSync(checkpoint);
+    insertCommunityRanking(db, concurrent);
+    db.close();
+    store.payload = {
+      ...store.payload,
+      fetched_at_epoch_seconds: 2,
+      community_rankings: storedRecords(),
+    };
+    store.generation += 1;
   };
-  const result = await submitCommunityRanking(racing, ranking(), options);
-  assert.equal(result.status, 201);
-  assert.ok("active" in result.body && !result.body.active);
-  assert.equal(state.pointer?.ranked_at, "2026-10-19T09:00:00Z");
-}
-
-// Public reads: no pointer means no overlay.
-{
-  const { store } = memoryStore();
-  await submitCommunityRanking(store, ranking(), options);
-  const objects = new Map<string, unknown>([
-    ["community/current.json", (await store.readPointer()).pointer],
-    [
-      "community/rankings/2026-10-19T05:00:00Z.json",
-      await store.readRanking("2026-10-19T05:00:00Z"),
-    ],
-  ]);
-  const realFetch = globalThis.fetch;
-  process.env.MODEL_ATLAS_SNAPSHOT_BUCKET = "atlas-test-bucket";
-  globalThis.fetch = (async (input: string | URL | Request) => {
-    const object = String(input).replace("https://storage.googleapis.com/atlas-test-bucket/", "");
-    return objects.has(object)
-      ? Response.json(objects.get(object))
-      : new Response("missing", { status: 404 });
-  }) as typeof fetch;
-  try {
-    assert.deepEqual(await readActiveCommunityRanking(), ranking());
-    assert.equal((await readCommunityRanking("2026-10-19T05:00:00Z"))?.active, true);
-    assert.equal(await readCommunityRanking("2026-10-18T00:00:00Z"), null);
-    assert.equal(await readCommunityRanking("unknown"), null);
-    process.env.MODEL_ATLAS_SNAPSHOT_BUCKET = "atlas-empty-bucket";
-    assert.equal(await readActiveCommunityRanking(), null);
-  } finally {
-    globalThis.fetch = realFetch;
-  }
-}
-
-// Real route handlers and runtime overlay share an in-memory object store instead of production GCS.
-{
-  const { store, state } = memoryStore();
-  const savedMethods = {
-    createRanking: CommunityRankingStorage.prototype.createRanking,
-    readRanking: CommunityRankingStorage.prototype.readRanking,
-    readPointer: CommunityRankingStorage.prototype.readPointer,
-    writePointer: CommunityRankingStorage.prototype.writePointer,
+  const incoming = ranking({ ranked_at: "2026-10-19T05:15:00Z" });
+  assert.deepEqual(await submitCommunityRanking(store, incoming, now), {
+    status: 201,
+    body: { ranked_at: incoming.ranked_at, active: false },
+  });
+  assert.equal(
+    store.payload.fetched_at_epoch_seconds,
+    2,
+    "A ranking retry keeps the concurrent benchmark refresh",
+  );
+  assert.deepEqual(storedRecords(), [late, ranking(), incoming, concurrent]);
+  store.beforePublish = async () => {
+    throw new Error("Interrupted upload");
   };
+  await assert.rejects(
+    submitCommunityRanking(store, ranking({ ranked_at: "2026-10-19T05:45:00Z" }), now),
+    /Interrupted upload/,
+  );
+  assert.deepEqual(storedRecords(), [late, ranking(), incoming, concurrent]);
+
+  // Dated/current reads and the UI consume a database-derived artifact pinned to the benchmark manifest.
   const savedFetch = globalThis.fetch;
   const savedEnv = {
     MODEL_ATLAS_SNAPSHOT_BUCKET: process.env.MODEL_ATLAS_SNAPSHOT_BUCKET,
     MODEL_ATLAS_LOCAL_DATABASE: process.env.MODEL_ATLAS_LOCAL_DATABASE,
-    MODEL_ATLAS_COMMUNITY_SUBMIT_TOKEN: process.env.MODEL_ATLAS_COMMUNITY_SUBMIT_TOKEN,
-    MODEL_ATLAS_COMMUNITY_WRITER_CREDENTIALS: process.env.MODEL_ATLAS_COMMUNITY_WRITER_CREDENTIALS,
-    VERCEL: process.env.VERCEL,
+    MODEL_ATLAS_COMMUNITY_WRITER_URL: process.env.MODEL_ATLAS_COMMUNITY_WRITER_URL,
   };
-  const rankedAt = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
-  const submitted = { ...dualRanking, ranked_at: rankedAt, research: { sources: ["fixture"] } };
+  const submitted = {
+    ...dualRanking,
+    ranked_at: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
+    research: { sources: ["fixture"] },
+  };
   const payload = {
     ...dualPayload,
-    models: dualPayload.models.map((entry) => ({ ...entry, release_date: rankedAt.slice(0, 10) })),
+    models: dualPayload.models.map((entry) => ({
+      ...entry,
+      release_date: submitted.ranked_at.slice(0, 10),
+    })),
   };
   const compressed = gzipSync(JSON.stringify(payload));
-  const version = "00000000-0000-4000-8000-000000000001";
-  const hash = snapshotHash(compressed);
-  process.env.MODEL_ATLAS_SNAPSHOT_BUCKET = "community-route-test";
-  process.env.MODEL_ATLAS_COMMUNITY_SUBMIT_TOKEN = "local-test-token";
-  delete process.env.MODEL_ATLAS_LOCAL_DATABASE;
-  delete process.env.MODEL_ATLAS_COMMUNITY_WRITER_CREDENTIALS;
-  delete process.env.VERCEL;
-  Object.assign(CommunityRankingStorage.prototype, store);
-  globalThis.fetch = async (input) => {
-    const object = new URL(String(input)).pathname.replace("/community-route-test/", "");
-    if (object === "current.json") {
-      return Response.json({
-        version,
-        fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
-        payload_sha256: hash,
-        checkpoint_sha256: hash,
-        intelligence_index_sha256: null,
-        data_sha256: hash,
-        previous: [],
-      });
-    }
-    if (object === `snapshots/${version}/payload.json.gz`) {
-      return new Response(new Uint8Array(compressed));
-    }
-    if (object === "community/current.json") {
-      return state.pointer == null
-        ? new Response(null, { status: 404 })
-        : Response.json(state.pointer);
-    }
-    if (object === `community/rankings/${rankedAt}.json`) {
-      const stored = await store.readRanking(rankedAt);
-      return stored == null ? new Response(null, { status: 404 }) : Response.json(stored);
-    }
-    throw new Error(`Unexpected request: ${object}`);
+  const history = gzipSync(JSON.stringify([submitted]));
+  const manifest = {
+    ...store.manifest,
+    payload_sha256: snapshotHash(compressed),
+    community_rankings_sha256: snapshotHash(history),
   };
-  const request = (body: unknown, token = "local-test-token") =>
-    new Request("http://localhost/api/community/rankings", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+  process.env.MODEL_ATLAS_SNAPSHOT_BUCKET = "community-route-test";
+  process.env.MODEL_ATLAS_COMMUNITY_WRITER_URL = "https://writer.test";
+  delete process.env.MODEL_ATLAS_LOCAL_DATABASE;
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    if (url.origin === "https://writer.test") {
+      assert.equal(url.pathname, "/api/community/rankings");
+      assert.equal(new Headers(init?.headers).get("authorization"), "Bearer test-token");
+      assert.deepEqual(JSON.parse(String(init?.body)), submitted);
+      return Response.json({ ranked_at: submitted.ranked_at, active: true }, { status: 201 });
+    }
+    const object = url.pathname.replace("/community-route-test/", "");
+    if (object === "current.json") return Response.json(manifest);
+    if (object === `snapshots/${manifest.version}/payload.json.gz`)
+      return new Response(new Uint8Array(compressed));
+    if (object === `snapshots/${manifest.version}/community-rankings.json.gz`)
+      return new Response(new Uint8Array(history));
+    throw new Error(`Unexpected request: ${url}`);
+  };
   try {
-    assert.equal((await rankingPOST(request(submitted, "wrong-token"))).status, 401);
-    const invalid = {
-      ...submitted,
-      indexes: {
-        ...submitted.indexes,
-        slop: [[{ model_id: "unknown" }, { relation: ">", model_id: "a" }]],
-      },
-    };
-    assert.equal((await rankingPOST(request(invalid))).status, 400);
-    assert.equal(await store.readRanking(rankedAt), null);
-    const accepted = await rankingPOST(request(submitted));
+    const request = new Request("http://localhost/api/community/rankings", {
+      method: "POST",
+      headers: { Authorization: "Bearer test-token" },
+      body: JSON.stringify(submitted),
+    });
+    const accepted = await rankingPOST(request);
     assert.equal(accepted.status, 201);
-    assert.deepEqual(await accepted.json(), { ranked_at: rankedAt, active: true });
-    assert.equal((await rankingPOST(request(submitted))).status, 200);
-    const readBack = await rankingGET(new Request("http://localhost"), {
-      params: Promise.resolve({ rankedAt }),
-    });
-    assert.deepEqual(await readBack.json(), { ranking: submitted, active: true });
-    const active = await rankingGET(new Request("http://localhost"), {
-      params: Promise.resolve({ rankedAt: "current" }),
-    });
-    assert.deepEqual(await active.json(), { ranking: submitted, active: true });
+    assert.deepEqual(await accepted.json(), { ranked_at: submitted.ranked_at, active: true });
+    for (const rankedAt of [submitted.ranked_at, "current"]) {
+      const response = await rankingGET(new Request("http://localhost"), {
+        params: Promise.resolve({ rankedAt }),
+      });
+      assert.deepEqual(await response.json(), { ranking: submitted, active: true });
+    }
+    assert.equal(await readCommunityRanking("unknown"), null);
+    assert.equal(await readCommunityRanking("2026-10-18T00:00:00Z"), null);
     const display = await readDisplaySnapshotPayload();
     close(intelligence(display.models, "a"), 92.6);
     assert.equal(display.models[0]!.community_indexes?.slop?.best, 2);
     assert.equal(display.metadata.scoring.column_tooltips.slopIndex?.title, "Slop Index");
     assert.equal(
+      display.community_rankings,
+      undefined,
+      "Research history stays out of the leaderboard payload",
+    );
+    assert.equal(
       await readDisplaySnapshotPayload(),
       display,
-      "Repeated reads must not compound either correction",
+      "Repeated reads do not compound corrections",
     );
-    const fetchedCandidates = await candidatesGET();
-    assert.equal(fetchedCandidates.status, 200);
-    const candidateBody = await fetchedCandidates.json();
+    const candidateResponse = await candidatesGET();
+    assert.equal(candidateResponse.status, 200);
+    const candidateBody = await candidateResponse.json();
     assert.deepEqual(
       candidateBody.models.map((entry: { model_id: string }) => entry.model_id),
       ["a", "b", "c", "unranked"],
@@ -777,12 +730,18 @@ const options = { candidates: async () => candidates, now: new Date("2026-10-19T
         (entry: object) => !("scores" in entry) && !("community_indexes" in entry),
       ),
     );
+    delete process.env.MODEL_ATLAS_COMMUNITY_WRITER_URL;
+    assert.equal(
+      (await rankingPOST(new Request("http://localhost", { method: "POST" }))).status,
+      503,
+    );
   } finally {
-    Object.assign(CommunityRankingStorage.prototype, savedMethods);
     globalThis.fetch = savedFetch;
     for (const [key, value] of Object.entries(savedEnv)) {
       if (value == null) delete process.env[key];
       else process.env[key] = value;
     }
   }
+} finally {
+  await rm(workspace, { recursive: true, force: true });
 }

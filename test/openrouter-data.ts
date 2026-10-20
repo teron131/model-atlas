@@ -74,6 +74,34 @@ const expandedVariantRows = buildModelVariants([...effortObservations]);
 assertEqual(expandedVariantRows.length, 2);
 assertEqual(expandedVariantRows[0]?.reasoning_effort, "max");
 assertEqual(expandedVariantRows[1]?.reasoning_effort, "xhigh");
+for (const costPerTask of [0, 2.73]) {
+  const alias = {
+    id: "x-ai/grok-4.7",
+    provider_id: "x-ai",
+    artificial_analysis_id: "spacexai/grok-4-7-high",
+    artificial_analysis_slug: "grok-4-7-high",
+    reasoning_effort: "high",
+    intelligence: { intelligence_index: 50 },
+    intelligence_index_cost: { total_cost: null, cost_per_task: null, seconds_per_task: null },
+  };
+  const measured = {
+    ...alias,
+    artificial_analysis_id: "xai/grok-4-7-high",
+    intelligence_index_cost: {
+      total_cost: null,
+      cost_per_task: costPerTask,
+      seconds_per_task: 760,
+    },
+  };
+  for (const candidates of [
+    [alias, measured],
+    [measured, alias],
+  ]) {
+    const [variant] = buildModelVariants(candidates);
+    assertEqual(variant?.artificial_analysis_id, measured.artificial_analysis_id);
+    assertEqual(variant?.intelligence_index_cost, measured.intelligence_index_cost);
+  }
+}
 const explicitEffortWithCatalogAliasRows = buildModelVariants([
   effortObservations[1],
   {

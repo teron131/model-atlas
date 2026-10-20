@@ -61,11 +61,13 @@ export async function migrateSnapshotRetention() {
   return configuredSnapshotStorage().migrateRetention();
 }
 
-function configuredSnapshotStorage(publicBucket = snapshotBucket()): SnapshotStorage {
+export function configuredSnapshotStorage(publicBucket = snapshotBucket()): SnapshotStorage {
   return new SnapshotStorage(publicBucket, process.env.MODEL_ATLAS_CHECKPOINT_BUCKET ?? "");
 }
 
-async function withCheckpointWorkspace<T>(run: (databasePath: string) => Promise<T>): Promise<T> {
+export async function withCheckpointWorkspace<T>(
+  run: (databasePath: string) => Promise<T>,
+): Promise<T> {
   const cacheRoot = resolve(".cache");
   await mkdir(cacheRoot, { recursive: true });
   const workspace = await mkdtemp(join(cacheRoot, "snapshot-publication-"));

@@ -35,12 +35,13 @@ export async function buildDatabase(
   options: SourceRefreshOptions & { previousPayload?: ModelAtlasPayload | null } = {},
 ): Promise<DatabaseBuildResult> {
   const startedAtEpochSeconds = nowEpochSeconds();
-  const previousPayload = relativeScoreBaseline(
-    options.previousPayload ?? (existsSync(outputPath) ? readDatabasePayload(outputPath) : null),
-  );
+  const existed = existsSync(outputPath);
   let db: DatabaseSync | null = await openDatabase(outputPath);
 
   try {
+    const previousPayload = relativeScoreBaseline(
+      options.previousPayload ?? (existed ? readDatabasePayload(outputPath) : null),
+    );
     const capabilityState = readCapabilityState(db);
     const { snapshots, sourceCache } = await loadSourceSnapshots(
       db,

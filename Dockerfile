@@ -1,4 +1,4 @@
-# Refreshes the private checkpoint and publishes GCS snapshots as a bounded Cloud Run batch job.
+# Shared Cloud Run runtime for benchmark refreshes and authenticated community ranking writes to the SQLite checkpoint.
 
 FROM node:24-bookworm-slim
 

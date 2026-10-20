@@ -16,7 +16,7 @@ import {
   readIntelligenceIndex,
 } from "../src/model-atlas/database/runtime-snapshot";
 import { openDatabase } from "../src/model-atlas/database/schema";
-import { SnapshotStorage } from "../src/model-atlas/database/snapshots/gcs";
+import { SnapshotConflictError, SnapshotStorage } from "../src/model-atlas/database/snapshots/gcs";
 import {
   parseSnapshotManifest,
   snapshotDataHash,
@@ -195,6 +195,11 @@ try {
   ]);
   assert.equal(competing.filter((result) => result.status === "fulfilled").length, 1);
   assert.equal(competing.filter((result) => result.status === "rejected").length, 1);
+  assert.ok(
+    competing.some(
+      (result) => result.status === "rejected" && result.reason instanceof SnapshotConflictError,
+    ),
+  );
   assert.ok(
     objects.get(`private-bucket/${snapshotObject(first.manifest.version, "checkpoint")}`)?.metadata
       .customTime,
@@ -675,6 +680,105 @@ try {
     /checksum/,
   );
   indexObject.bytes = intactIndex;
+
+  const ranking = {
+    ranked_at: "2026-10-19T05:00:00Z",
+    indexes: {
+      tmb: [[{ model_id: "test/model" }, { model_id: "test/other", relation: ">" as const }]],
+      slop: [],
+    },
+    research: { sources: ["Full retained research"], decision: { confidence: 0.8 } },
+  };
+  const rankedPayload = {
+    ...indexedPayload,
+    fetched_at_epoch_seconds: 800,
+    community_rankings: [ranking],
+  };
+  assert.notEqual(snapshotDataHash(indexedPayload), snapshotDataHash(rankedPayload));
+  const reverseRanking = structuredClone(rankedPayload);
+  reverseRanking.community_rankings[0]!.indexes.tmb[0]![0]!.model_id = "test/other";
+  reverseRanking.community_rankings[0]!.indexes.tmb[0]![1]!.model_id = "test/model";
+  assert.notEqual(
+    snapshotDataHash(rankedPayload),
+    snapshotDataHash(reverseRanking),
+    "The order of models in a ranking chain changes its meaning and recovery identity",
+  );
+  const revisedResearch = structuredClone(rankedPayload);
+  revisedResearch.community_rankings[0]!.research.decision.confidence = 0.9;
+  assert.notEqual(snapshotDataHash(rankedPayload), snapshotDataHash(revisedResearch));
+  const beforeRanking = (await store.current()).manifest!;
+  const ranked = await store.publish(checkpoint, rankedPayload, await store.current());
+  assert.equal(ranked.manifest.previous[0]!.version, beforeRanking.version);
+  assert.ok(ranked.manifest.community_rankings_sha256);
+  assert.equal(ranked.manifest.payload_sha256, beforeRanking.payload_sha256);
+  assert.deepEqual(
+    await store.restore(ranked.manifest, join(workspace, "community.sqlite")),
+    rankedPayload,
+  );
+  const rankingObject = objects.get(
+    `public-bucket/${snapshotObject(ranked.manifest.version, "community-rankings")}`,
+  )!;
+  assert.deepEqual(JSON.parse(gunzipSync(rankingObject.bytes).toString()), [ranking]);
+  const leaderboardObject = objects.get(
+    `public-bucket/${snapshotObject(ranked.manifest.version, "payload")}`,
+  )!;
+  assert.equal(
+    JSON.parse(gunzipSync(leaderboardObject.bytes).toString()).community_rankings,
+    undefined,
+  );
+  const intactRanking = rankingObject.bytes;
+  rankingObject.bytes = Buffer.from("corrupt ranking history");
+  await assert.rejects(
+    store.restore(ranked.manifest, join(workspace, "corrupt-community.sqlite")),
+    /checksum/,
+  );
+  rankingObject.bytes = intactRanking;
+  const laterRanked = await store.publish(
+    checkpoint,
+    {
+      ...rankedPayload,
+      community_rankings: [ranking, { ...ranking, ranked_at: "2026-10-20T05:00:00Z" }],
+    },
+    await store.current(),
+  );
+  assert.equal(laterRanked.manifest.previous[0]!.version, ranked.manifest.version);
+  assert.equal(rankingObject.metadata.customTime, undefined);
+  const rankingRollback = await store.rollback(
+    ranked.manifest.version,
+    join(workspace, "community-rollback.sqlite"),
+  );
+  assert.equal(rankingRollback.manifest.data_sha256, ranked.manifest.data_sha256);
+  assert.deepEqual(
+    (
+      await store.restore(
+        rankingRollback.manifest,
+        join(workspace, "restored-community-rollback.sqlite"),
+      )
+    ).community_rankings,
+    [ranking],
+  );
+  const artifactsBeforeFailure = new Set(objects.keys());
+  failUpload = true;
+  await assert.rejects(
+    store.publish(checkpoint, rankedPayload, await store.current()),
+    /publication failed/,
+  );
+  failUpload = false;
+  const failedRankingArtifacts = [...objects.entries()].filter(
+    ([key]) => !artifactsBeforeFailure.has(key) && key.endsWith("/community-rankings.json.gz"),
+  );
+  assert.equal(failedRankingArtifacts.length, 1);
+  assert.ok(failedRankingArtifacts[0]![1].metadata.customTime);
+  const rollbackRankingObject = objects.get(
+    `public-bucket/${snapshotObject(rankingRollback.manifest.version, "community-rankings")}`,
+  )!;
+  for (const score of [41, 42, 43, 44]) {
+    await store.publish(checkpoint, dataVersion(score), await store.current());
+  }
+  assert.ok(
+    rollbackRankingObject.metadata.customTime,
+    "Evicted ranking history becomes eligible for cleanup with its checkpoint",
+  );
 
   process.chdir(workspace);
   process.env.MODEL_ATLAS_LOCAL_DATABASE = "1";

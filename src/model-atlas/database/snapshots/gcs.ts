@@ -13,6 +13,7 @@ import { type File, Storage } from "@google-cloud/storage";
 import type { ModelAtlasPayload } from "../../stats/types";
 import { packTimelineDataset } from "../../timeline/schemas";
 import {
+  decodeCommunityRankings,
   decodeIntelligenceIndex,
   decodeSnapshotBytes,
   decodeSnapshotPayload,
@@ -33,6 +34,8 @@ export type CurrentSnapshot = {
   manifest: SnapshotManifest | null;
   generation: string | number;
 };
+
+export class SnapshotConflictError extends Error {}
 
 const compress = promisify(gzip);
 const RESUMABLE_UPLOAD_THRESHOLD_BYTES = 5 * 1024 * 1024;
@@ -117,7 +120,7 @@ export class SnapshotStorage {
   }
 
   async restore(manifest: SnapshotVersion, databasePath: string): Promise<ModelAtlasPayload> {
-    const [checkpoint, dashboard, index] = await Promise.all([
+    const [checkpoint, dashboard, index, rankings] = await Promise.all([
       downloadSnapshotObject(
         this.checkpointBucket.file(snapshotObject(manifest.version, "checkpoint")),
       ),
@@ -127,11 +130,24 @@ export class SnapshotStorage {
             this.publicBucket.file(snapshotObject(manifest.version, "intelligence-index")),
           )
         : null,
+      manifest.community_rankings_sha256
+        ? downloadSnapshotObject(
+            this.publicBucket.file(snapshotObject(manifest.version, "community-rankings")),
+          )
+        : null,
     ]);
     const payload = {
       ...(await decodeSnapshotPayload(dashboard, manifest)),
       ...(index
         ? { timeline: await decodeIntelligenceIndex(index, manifest.intelligence_index_sha256!) }
+        : {}),
+      ...(rankings
+        ? {
+            community_rankings: await decodeCommunityRankings(
+              rankings,
+              manifest.community_rankings_sha256!,
+            ),
+          }
         : {}),
     };
     if (snapshotDataHash(payload) !== manifest.data_sha256)
@@ -167,10 +183,11 @@ export class SnapshotStorage {
     if (payload.models.length === 0 || !payload.fetched_at_epoch_seconds) {
       throw new Error("Refusing to publish an empty Model Atlas snapshot");
     }
-    const { timeline, ...leaderboard } = payload;
-    const [dashboard, index] = await Promise.all([
+    const { timeline, community_rankings, ...leaderboard } = payload;
+    const [dashboard, index, rankings] = await Promise.all([
       compress(JSON.stringify(leaderboard)),
       timeline ? compress(JSON.stringify(packTimelineDataset(timeline))) : null,
+      community_rankings?.length ? compress(JSON.stringify(community_rankings)) : null,
     ]);
     const dataHash = snapshotDataHash(payload);
     const version = randomUUID();
@@ -185,6 +202,14 @@ export class SnapshotStorage {
             {
               file: this.publicBucket.file(snapshotObject(version, "intelligence-index")),
               bytes: index,
+            },
+          ]
+        : []),
+      ...(rankings
+        ? [
+            {
+              file: this.publicBucket.file(snapshotObject(version, "community-rankings")),
+              bytes: rankings,
             },
           ]
         : []),
@@ -217,6 +242,7 @@ export class SnapshotStorage {
         payload_sha256: snapshotHash(dashboard),
         checkpoint_sha256: checkpoint.value.sha256,
         intelligence_index_sha256: index ? snapshotHash(index) : null,
+        community_rankings_sha256: rankings ? snapshotHash(rankings) : null,
         data_sha256: dataHash,
         previous: retainedSnapshotVersions(previous.manifest, dataHash),
       };
@@ -240,7 +266,11 @@ export class SnapshotStorage {
             files.map((file) => file.setMetadata({ customTime: new Date().toISOString() })),
           );
         }
-        throw new Error(
+        const PublicationError =
+          observed != null && (error as { code?: number }).code === 412
+            ? SnapshotConflictError
+            : Error;
+        throw new PublicationError(
           observed == null
             ? "Unable to confirm snapshot publication; inspect current.json before retrying"
             : "Snapshot publication failed; this version is not current",
@@ -269,6 +299,13 @@ export class SnapshotStorage {
               ? [
                   this.publicBucket
                     .file(snapshotObject(entry.version, "intelligence-index"))
+                    .setMetadata({ customTime: retiredAt }),
+                ]
+              : []),
+            ...(entry.community_rankings_sha256
+              ? [
+                  this.publicBucket
+                    .file(snapshotObject(entry.version, "community-rankings"))
                     .setMetadata({ customTime: retiredAt }),
                 ]
               : []),

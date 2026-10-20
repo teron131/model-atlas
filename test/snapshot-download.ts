@@ -31,6 +31,7 @@ const manifest = {
   payload_sha256: snapshotHash(compressedPayload),
   checkpoint_sha256: snapshotHash(compressedCheckpoint),
   intelligence_index_sha256: null,
+  community_rankings_sha256: null,
 };
 const objects = new Map([
   [snapshotObject(manifest.version, "checkpoint"), compressedCheckpoint],
