@@ -70,7 +70,10 @@ const COVERAGE_IGNORED_TOKENS = new Set([
   "minimal",
   "non",
 ]);
-/** Collapse Artificial Analysis effort-specific slugs while retaining Qwen's semantic Max tier. */
+/**
+ * Collapse Artificial Analysis effort-specific slugs while retaining Qwen's semantic Max tier.
+ * `"gpt-5-1-codex-max"` → `"gpt-5-1-codex"`, but `"qwen3-max"` stays whole.
+ */
 export function artificialAnalysisMatchSlug(sourceSlug: string): string {
   for (const suffix of ARTIFICIAL_ANALYSIS_EFFORT_SUFFIXES) {
     if (sourceSlug.endsWith(suffix)) {
@@ -112,7 +115,6 @@ function variantLabels(modelId: string, matcherConfig: MatcherConfig): Set<strin
   return labels;
 }
 
-/** Reject candidates whose configured model variants disagree with the source identity. */
 export function hasVariantConflict(
   sourceSlug: string,
   candidateModelId: string,
@@ -360,7 +362,6 @@ function coverageRewardOrPenalty(source: MatchName, base: MatchName, name: Match
   const baseSet = new Set(base.tokens);
   const nameSet = new Set(name.tokens);
 
-  /** Compare one candidate token set against the source token set. */
   function compareSets(candidateSet: Set<string>): number {
     if (sourceSet.size === 0) {
       return 0;
@@ -449,7 +450,7 @@ export function compareCandidates(left: MatchCandidate, right: MatchCandidate): 
 
 /**
  * A caller that ranks many sources against one candidate list reuses each candidate's tokens.
- * Tokenizing them again for every source was most of a checkpoint read.
+ * Tokenizing them again for every source would dominate a checkpoint read.
  * The entry follows the candidate object and is rebuilt if its id or name has changed.
  */
 function candidateNames(candidate: MatchCandidateInput): CandidateNames {
@@ -490,7 +491,6 @@ export function rankMatchCandidates(
     .sort(compareCandidates);
 }
 
-/** Select the highest-ranked candidate whose configured model variants agree with the source. */
 export function firstVariantCompatibleCandidate(
   sourceSlug: string,
   candidates: readonly MatchCandidate[],

@@ -119,7 +119,6 @@ function providerFromModel(model: JsonObject): string | null {
   return typeof model.provider_id === "string" ? model.provider_id : null;
 }
 
-/** Projects input and output modalities when source data provides them. */
 function buildModalities(model: JsonObject): ModelAtlasModalities | null {
   const modalities = asRecord(model.modalities);
   const input = Array.isArray(modalities.input)
@@ -184,7 +183,6 @@ function hasPricingData(pricing: JsonObject): boolean {
   return (input != null && input >= 0) || (output != null && output >= 0);
 }
 
-/** Looks up OpenRouter data by exact and normalized model IDs. */
 function lookupOpenRouterData(
   valuesById: Map<string, JsonObject>,
   modelId: string | null,
@@ -226,7 +224,6 @@ function buildCostBreakdown(value: unknown): ModelAtlasCostBreakdown | null {
   return hasFields(cost) ? cost : null;
 }
 
-/** Projects one tiered pricing record for public output. */
 function buildCostTier(value: unknown): ModelAtlasCostTier | null {
   const source = asRecord(value);
   const costTier: ModelAtlasCostTier = {
@@ -331,7 +328,6 @@ function taskCostMultiplier(
   return multiplier;
 }
 
-/** Normalize source telemetry into unit-neutral task metrics. */
 export function buildTaskMetrics(
   artificialAnalysisSource: unknown,
   scoringSources: ModelAtlasScoringSources,
@@ -482,7 +478,6 @@ function minimumFiniteNumber(...values: unknown[]): number | null {
   return minimum;
 }
 
-/** Translate known source resource fields into the benchmark-neutral task-metric contract. */
 function buildSourceMetrics(source: unknown): ModelAtlasTaskMetricValues | null {
   const row = asRecord(source);
   const cost =

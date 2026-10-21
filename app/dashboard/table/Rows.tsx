@@ -137,8 +137,6 @@ function LoadingRow({
 }
 
 /**
- * One leaderboard row.
- *
  * A `detailed` row draws every visible column, and so does a row holding keyboard focus, so a focused control is never removed by scrolling.
  * Otherwise the row keeps its rank and model, so it holds its height, stays findable by name, and still opens its model sheet, and leaves the remaining columns as one empty cell until it scrolls near the table's viewport.
  */
@@ -660,7 +658,6 @@ function TableCell({
   );
 }
 
-/** Show a measured amount with its bar against the column median, and the ratio on hover. */
 function AmountCell({
   rowData,
   columnKey,
@@ -708,7 +705,6 @@ function RatioCell({
   );
 }
 
-/** The four scores under a model's name, in the score columns' order: each value over its 0–100 star track, named for screen readers. */
 function ScoreStrip({
   values,
   provider,
@@ -759,7 +755,6 @@ function scoreCell(
   );
 }
 
-/** Place a score's star on its 0–100 track in the provider's colour. */
 function scoreMeterStyle(score: number, color: string | undefined) {
   return {
     "--score": String(Math.max(0, Math.min(100, score))),

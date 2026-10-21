@@ -18,12 +18,15 @@ export function splitBaseModelTokens(modelId: string): string[] {
   return splitTokens(modelSlugFromModelId(modelId) ?? modelId);
 }
 
-/** Produces a strict model identity key after removing matcher-owned non-identity labels. */
+/**
+ * Produces a strict model identity key after removing matcher-owned non-identity labels.
+ * `"qwen/qwen3-235b-a22b-thinking-2507"` → `"qwen-3-235b-a22b-2507"`.
+ */
 export function modelNameIdentityKey(value: string): string {
   return splitBaseModelTokens(value).join("-");
 }
 
-/** Split mixed alpha-numeric variants while preserving parameter-scale tokens. */
+/** Split mixed alpha-numeric variants while preserving parameter-scale tokens: `"qwen3"` → `["qwen", "3"]`, but `"235b"` and `"a22b"` stay whole. */
 function splitMixedAlphaNumericToken(token: string): string[] {
   if (/^\d+b$/.test(token) || /^a\d+b$/.test(token)) {
     return [token];

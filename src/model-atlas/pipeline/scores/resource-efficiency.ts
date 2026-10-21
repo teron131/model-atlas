@@ -44,7 +44,6 @@ export function modelBalancedMinMaxScores<T extends { id?: unknown; name?: unkno
   );
 }
 
-/** Translate model-balanced calibration evidence into the package-wide quality-local comparison. */
 function qualityLocalResourceComparisons<T extends { id?: unknown; name?: unknown }>(
   models: readonly T[],
   qualityCoordinates: readonly (number | null)[],

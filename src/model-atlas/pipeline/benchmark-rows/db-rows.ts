@@ -107,7 +107,6 @@ function dbSourceDrafts(source: DbSourceSpec): BenchmarkRowDraft[] {
 
 type StandaloneBenchmarkAdapter = (rows: BenchmarkDbRows) => BenchmarkRowDraft[];
 
-/** Persisted standalone row adapters mirror the live standalone registry without sharing row schemas. */
 const STANDALONE_BENCHMARK_ADAPTERS = {
   agents_last_exam: (rows) =>
     dbSourceDrafts({

@@ -68,7 +68,6 @@ type Hsl = {
   l: number;
 };
 
-/** Checks whether a pixel has enough saturation and lightness to represent a logo. */
 function isUsableChroma({ s, l }: Hsl) {
   return s >= 0.28 && l >= 0.13 && l <= 0.9;
 }

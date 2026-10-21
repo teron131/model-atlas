@@ -761,8 +761,7 @@ tbody tr {
   transition: background-color 0.18s ease;
 }
 
-/* A trace of the row's own provider colour rides the hover wash, carrying the signature's
-   material-as-identity idea into the leaderboard without breaking the single-chroma rule. */
+/* A trace of the row's own provider colour rides the hover wash, carrying the signature's material-as-identity idea into the leaderboard without breaking the single-chroma rule. */
 tbody tr:hover {
   background: color-mix(in srgb, var(--row-provider, var(--ink)) 6%, var(--hover));
   --sticky-cell-background: color-mix(in srgb, var(--paper) 92%, var(--row-provider, var(--ink)));

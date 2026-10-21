@@ -127,7 +127,6 @@ export function filterByGlobalModelFilters<T>(
   return filterByIntelligenceRank(recent, getModel, filters.rank, scope.rankingModels);
 }
 
-/** Filter model-backed rows through the shared weighted keyword policy and explicit model metadata projection. */
 function filterByModelQuery<T>(
   items: readonly T[],
   getModel: (item: T) => ModelAtlasModel,

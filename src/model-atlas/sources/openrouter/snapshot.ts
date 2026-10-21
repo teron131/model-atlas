@@ -35,7 +35,6 @@ export async function loadOpenRouterRawPayload(
   );
 }
 
-/** Refreshes OpenRouter data from a storage-independent cache value. */
 export async function refreshOpenRouterRawPayload(
   cached: OpenRouterSourcePayload | null,
   status: RawSourceCacheStatus,

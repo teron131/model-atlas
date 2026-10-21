@@ -22,7 +22,6 @@ type ScrollSnapshot = {
 };
 
 type UseTableViewportOptions = {
-  /** The columns drawn, in order. */
   columnKeys: readonly string[];
   /** The rows drawn; a new list, like a new column list, has the column widths measured afresh. */
   rows: readonly unknown[];
@@ -49,8 +48,6 @@ const UNPIN_COLUMNS_MEDIA_QUERY = "(max-width: 720px)";
 const NON_PASSIVE_WHEEL_OPTIONS: AddEventListenerOptions = { passive: false };
 
 /**
- * Manage mirrored table/header horizontal scrolling and rendered layout measurements.
- *
  * Only rows near the viewport draw their cells, so a column's natural width follows whichever of them are drawn.
  * Once measured, the widths are held as minimums so a column cannot narrow while its rows scroll; it can still widen for a wider value.
  * A change of columns, rows, viewport width, or loaded fonts releases the hold for one commit, so the table is laid out naturally before it is measured and held again.
@@ -296,9 +293,7 @@ const DETAILED_ROW_STEP = 4;
 const INITIAL_DETAILED_ROWS: DetailedRowRange = { start: 0, end: 16 };
 
 /**
- * Track which rows sit in or near the table's vertical viewport.
- *
- * Most of the table's cells belong to rows scrolled out of its eight-row window, and drawing them all made every load, sort, and column change restyle the whole table.
+ * Most of the table's cells belong to rows scrolled out of its eight-row window, and drawing them all would make every load, sort, and column change restyle the whole table.
  * The range starts at the top rows for server rendering and hydration, then follows the scroll position once a row has been measured.
  */
 export function useDetailedRowRange(

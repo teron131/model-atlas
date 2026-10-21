@@ -40,12 +40,11 @@ export function scatterChartMargin(margin: Margin, compact: boolean): Margin {
   return compact ? { top: 48, right: 8, bottom: 60, left: 8 } : margin;
 }
 
-/** Return stable SVG number attributes across server and client rendering. */
+/** Rounds so server and client renders serialize identical SVG attributes. */
 export function stableSvgNumber(value: number): number {
   return Number(value.toFixed(SVG_NUMBER_DECIMALS));
 }
 
-/** Wrap a D3 scale so generated SVG coordinates use stable precision. */
 export function stableSvgScale(scale: (value: number) => number) {
   return (value: number) => stableSvgNumber(scale(value));
 }
@@ -54,7 +53,6 @@ export function stableSvgScale(scale: (value: number) => number) {
 const STAR_RING_CENTRE = 0.72;
 const STAR_RING_WIDTH = 0.56;
 
-/** Circle attributes that draw a star like the leaderboard's score stars, crisp enough to read in a dense chart: a lit centre inside a solid ring of its provider colour. */
 export function starCore(radius: number, color: string) {
   return {
     r: stableSvgNumber(radius * STAR_RING_CENTRE),
@@ -63,7 +61,6 @@ export function starCore(radius: number, color: string) {
   };
 }
 
-/** One emphasised star's light in a chart's glow layer. */
 type StarLight = {
   key: string;
   cx: number;
@@ -118,7 +115,6 @@ export function StarGlows({ stars, bounds }: { stars: readonly StarLight[]; boun
   );
 }
 
-/** Calculate drawable chart bounds from an SVG size and margin. */
 export function plotBoundsFor(width: number, height: number, margin: Margin): PlotBounds {
   return {
     left: margin.left,
@@ -208,7 +204,6 @@ export function FrontierHorizon({
   const land = `${id}-land`;
   const stipple = `${id}-stipple`;
   const clip = `${id}-clip`;
-  // Gradient stops are literal so PNG exports, which drop stylesheet rules inside SVG, keep the same light.
   return (
     <g
       className={muted ? `${styles.horizon} ${styles.horizonMuted}` : styles.horizon}
@@ -290,7 +285,6 @@ export function FrontierHorizon({
   );
 }
 
-/** Median guides span the plot; the Y median label sits inside its right edge. */
 export function MedianCross({
   x,
   y,

@@ -963,7 +963,6 @@ assert.equal(
   0.295,
   "an effort-unspecified benchmark row should remain the source's highest-effort default",
 );
-/** Return a typed empty lookup map for sources not involved in this test. */
 function emptyLookup(): Map<string, never> {
   return new Map<string, never>();
 }

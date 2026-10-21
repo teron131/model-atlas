@@ -23,7 +23,6 @@ const DUST = 1_400;
 const NEAREST_STAR = -2;
 const STAR_DEPTH = 10;
 
-/** One model as a star: release date runs across the sky and Intelligence sets its height over the horizon. */
 export type SkyStar = {
   key: string;
   /** Release-date position from 0 (oldest) to 1 (newest). */
@@ -225,11 +224,7 @@ void main() {
 }
 `;
 
-/**
- * Builds the horizon, dust, model stars, and the explored star's flare, and owns the camera choreography.
- *
- * Stars are placed by their hero screen position at their own depth, so the opening composition is exact while scrolling still produces true parallax.
- */
+/** Stars are placed by their hero screen position at their own depth, so the opening composition is exact while scrolling still produces true parallax. */
 export function createSky(scene: THREE.Scene, camera: THREE.PerspectiveCamera) {
   const pixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
   const uniforms = {
@@ -320,7 +315,6 @@ export function createSky(scene: THREE.Scene, camera: THREE.PerspectiveCamera) {
   /** Hero horizon height as a share of the viewport from the bottom. */
   const restingHorizon = () => (horizonTop == null ? HORIZON : 1 - horizonTop / height);
 
-  /** Recompute world positions so each star lands on its hero screen position at its own depth. */
   const layout = () => {
     const unitsPerPixel = (2 * CAMERA_DISTANCE * TAN_HALF_FOV) / height;
     const sky = height * (1 - restingHorizon());

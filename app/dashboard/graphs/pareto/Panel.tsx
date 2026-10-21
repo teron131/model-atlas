@@ -46,7 +46,6 @@ import { FrontierBenchmarkScatterPlot } from "./ScatterPlot";
 
 import styles from "../graphs.module.css";
 
-/** Keep published scores intact and disclose the actual resource basket used by each effort curve. */
 export const ParetoPanel = memo(function ParetoPanel({
   payload,
   models,

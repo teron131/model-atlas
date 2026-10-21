@@ -421,7 +421,7 @@ assert.ok(
 assert.equal(componentScoresWithMissingApex?.intelligence_score, null);
 assert.equal(componentScoresWithMissingApex?.speed_score, null);
 
-// The leaderboard preview is no longer the complete index-resource contract.
+// The leaderboard preview omits index resources, so the model page's complete dataset must supply them.
 const richModels = [
   {
     slug: "example-max",

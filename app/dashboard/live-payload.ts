@@ -26,7 +26,7 @@ type RefreshPayloadOptions = {
  * Keeps the dashboard payload current while cached data covers compact or unavailable initial responses.
  *
  * `initialEtag` is the dashboard view's validator for the snapshot the server rendered `initialPayload` from.
- * Without it the first refresh of every visit downloaded the whole view and re-rendered the dashboard with identical data.
+ * Without it, the first refresh of every visit would download the whole view and re-render the dashboard with identical data.
  */
 export function useLivePayload(
   initialPayload: ModelAtlasPayload | null,

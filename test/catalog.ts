@@ -869,7 +869,6 @@ function catalogModel(id: string, name: string, family: string): ModelsDevFlatMo
   };
 }
 
-/** Exercise both selection phases while keeping the existing catalog fixtures and final-output expectations. */
 function buildTestModels(
   openRouterData: OpenRouterModelData,
   id: string | null | undefined,

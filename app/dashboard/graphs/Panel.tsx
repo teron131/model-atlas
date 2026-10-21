@@ -9,7 +9,7 @@ import { type ResearchRegionId, researchRegionOrdinal } from "../research-index"
 
 import styles from "./graphs.module.css";
 
-/** The heading opens the region on the sky and the plane below holds its figure; exports capture both but drop the actions. */
+/** Exports capture the heading and its figure but drop the actions. */
 export function Panel({
   sectionId,
   sectionLabel,

@@ -14,7 +14,10 @@ const REASONING_EFFORT_PATTERNS = [
   { effort: "minimal", pattern: /\bminimal(?: effort)?\b/ },
 ] as const;
 
-/** Remove transient availability/fallback qualifiers from Artificial Analysis model names. */
+/**
+ * Remove transient availability/fallback qualifiers from Artificial Analysis model names.
+ * `"Claude 4.5 Sonnet (Adaptive Reasoning, Max Effort)"` → `"Claude 4.5 Sonnet"`, while an effort label such as `"GPT-5 (high)"` stays.
+ */
 export function cleanArtificialAnalysisModelName(value: unknown): string | null {
   if (typeof value !== "string" || value.length === 0) {
     return null;
@@ -23,7 +26,7 @@ export function cleanArtificialAnalysisModelName(value: unknown): string | null 
   return cleaned.length > 0 ? cleaned : value;
 }
 
-/** Extract one consistent reasoning effort from Artificial Analysis name parentheticals. */
+/** Extract one consistent reasoning effort from Artificial Analysis name parentheticals: `"GPT-5 (high)"` → `"high"`, and disagreeing values yield `null`. */
 export function parseArtificialAnalysisReasoningEffort(...values: unknown[]): string | null {
   let resolvedEffort: string | null = null;
   for (const value of values) {

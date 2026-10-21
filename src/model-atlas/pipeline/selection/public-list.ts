@@ -96,7 +96,6 @@ function toPublicModel(model: ModelAtlasScoredCandidate & ModelAtlasModel): Mode
   };
 }
 
-/** Validate and project one scored candidate onto the exact public model contract. */
 export function publicModelFromCandidate(model: ModelAtlasScoredCandidate): ModelAtlasModel | null {
   return hasRequiredQualityScores(model) ? toPublicModel(model) : null;
 }

@@ -13,7 +13,6 @@ import { usePngCapture } from "./use-png";
 
 import styles from "./capture.module.css";
 
-/** Render the visible leaderboard row selection as the compact four-score PNG. */
 export function LeaderboardCapture({
   rows,
   rowKind,

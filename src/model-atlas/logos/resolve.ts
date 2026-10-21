@@ -1,4 +1,5 @@
 /** Resolves where a model's logo comes from: the creator logo Artificial Analysis publishes, else the Models.dev logo of the model's provider; caching drops a source that cannot be fetched. */
+
 const ARTIFICIAL_ANALYSIS_LOGO_BASE_URL = "https://artificialanalysis.ai/img/logos";
 const MODELS_DEV_LOGO_BASE_URL = "https://models.dev/logos";
 
@@ -57,10 +58,7 @@ export function resolveModelLogo(options: {
   return absoluteLogoUrl(options.explicitLogo) ?? modelsDevLogoUrl(options.provider) ?? "";
 }
 
-/**
- * The Models.dev logo URL for a provider.
- * Models.dev answers any provider id it does not list with one shared placeholder, so the cache compares fetched logos against `modelsDevPlaceholderFor()` rather than trusting a successful response.
- */
+/** Models.dev answers any provider id it does not list with one shared placeholder, so the cache compares fetched logos against `modelsDevPlaceholderFor()` rather than trusting a successful response. */
 export function modelsDevLogoUrl(provider: string | null | undefined): string | null {
   const normalizedProvider = normalizeProvider(provider);
   if (!normalizedProvider) {

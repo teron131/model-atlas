@@ -1,3 +1,5 @@
+/* Styles for the model search suggestion list. */
+
 /* A model search's suggestions hang beneath its positioned container as a floating surface, lit along its top edge like the dashboard's other popovers. */
 .suggestions {
   position: absolute;

@@ -125,7 +125,6 @@ export function withoutBenchmarkImputationForModels(
   };
 }
 
-/** Resolve direct or prepared benchmark quality together with its scoring evidence weight. */
 export function benchmarkQualityEvidence(
   model: BenchmarkScoringModel,
   key: string,
@@ -221,7 +220,6 @@ function dimensionBenchmarkContext(
   };
 }
 
-/** Convert held-out normalized error into partial evidence credit for a validated prediction. */
 function imputationEvidenceFactor(diagnostic: BenchmarkImputationDiagnostic): number {
   const normalizedError = diagnostic.normalizedMedianAbsoluteError;
   if (!diagnostic.imputationAllowed || normalizedError == null) {
@@ -544,7 +542,6 @@ export function buildBenchmarkImputationDiagnosticsByKey(
   return prepareBenchmarkImputation(models, scoringConfig).imputationDiagnosticsByKey;
 }
 
-/** Prepare benchmark imputations and quality normalization context in dependency order. */
 export function prepareBenchmarkScoring(
   models: JsonObject[],
   scoringConfig: ScoringConfig,

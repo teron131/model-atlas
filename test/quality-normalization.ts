@@ -44,7 +44,7 @@ for (const key of keys) {
     normalizedQualityBenchmarkValue(rows[0]!, key, value, "agentic", context),
   );
 }
-// Resource ranges remain linear, and flat quality populations retain the established all-equal score.
+// Resource ranges remain linear, and a flat quality population scores every model 100.
 close(linearScore(minMaxRange([40, 60]), 50), 50);
 close(
   linearScore(observedRangesByBenchmark([{ benchmarks: { hle: 0.5 } }], ["hle"]).get("hle")!, 0.5),

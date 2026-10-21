@@ -80,7 +80,6 @@ export type OpenRouterCandidateStats = {
   pricing: OpenRouterEffectivePricingResponse | null;
 };
 
-/** The source snapshot keeps directory and route evidence together for cache persistence and later normalization. */
 export type OpenRouterSourcePayload = {
   fetched_at_epoch_seconds: number;
   directory: OpenRouterFrontendModel[];

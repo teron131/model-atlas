@@ -138,7 +138,6 @@ function artificialAnalysisRowIndexById(snapshots: SourceSnapshots): Map<string,
   return byModelId;
 }
 
-/** Models.dev raw indexes let debug traces point back to the catalog candidate row. */
 function modelsDevRowIndexByKey(snapshots: SourceSnapshots): Map<string, number> {
   const byKey = new Map<string, number>();
   let rowIndex = 0;
@@ -206,7 +205,6 @@ function unmatchedDebugTraceRow(
   };
 }
 
-/** Explains why a matcher candidate was selected, skipped, or rejected. */
 function debugRejectionReason(
   isSelected: boolean,
   hasVariantRejection: boolean,

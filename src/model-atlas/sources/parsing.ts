@@ -2,9 +2,9 @@
 
 import { asRecord, type JsonObject } from "../runtime";
 
+// Captures the escaped string in each `self.__next_f.push([1,"…"])</script>` Flight chunk.
 const NEXT_FLIGHT_CHUNK_REGEX = /self\.__next_f\.push\(\[1,"([\s\S]*?)"\]\)<\/script>/g;
 
-/** Map CSV body rows to their source header names. */
 export function parseCsvRecords(csv: string): Record<string, string>[] {
   const [headers, ...rows] = parseCsvRows(csv);
   if (headers == null) return [];
@@ -77,7 +77,7 @@ export function htmlAttribute(html: string, name: string): string | null {
   return match == null ? null : decodeHtmlEntities(match[2] ?? "").trim();
 }
 
-/** Turns scraped HTML into normalized visible text lines. */
+/** Turns scraped HTML into normalized visible text lines, breaking at every tag: `"<td>GPT-5 <b>(high)</b></td>"` → `["GPT-5", "(high)"]`. */
 export function htmlTextLines(pageHtml: string): string[] {
   return decodeHtmlEntities(
     pageHtml
@@ -98,7 +98,7 @@ export function providerFromLogoAlt(value: string | null): string | null {
   return provider.length > 0 ? provider : null;
 }
 
-/** Source-page percentages enter benchmark scoring on the shared 0-1 scale. */
+/** Source-page percentages enter benchmark scoring on the shared 0-1 scale: `"45.2"` → `0.452`, and values outside 0–100 → `null`. */
 export function percentToUnitScore(value: string | null | undefined): number | null {
   if (value == null) {
     return null;
@@ -169,7 +169,6 @@ function decodeHtmlEntities(value: string): string {
     .replace(/&#8212;/g, "\u2014");
 }
 
-/** Escapes user-visible labels before building scraper regular expressions. */
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

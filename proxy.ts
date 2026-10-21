@@ -50,11 +50,9 @@ function setModelAtlasApiUrl(
 }
 
 /**
- * Decide between the JSON view and the app shell for one of the root routes.
- *
  * The app router fetches a route's payload with a wildcard Accept, and Next removes `rsc` and its other router headers before this proxy runs.
  * It leaves `next-url`, which only the app router sends, so that header marks the router's own fetches without changing the answer for any other client.
- * Answering those fetches with JSON made every in-app return to the leaderboard a full page reload.
+ * Answering those fetches with JSON would turn every in-app return to the leaderboard into a full page reload.
  */
 function wantsJsonResponse(headers: Headers): boolean {
   const accept = (headers.get("accept") ?? "").toLowerCase();

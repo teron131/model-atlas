@@ -127,7 +127,6 @@ type BenchmarkSources = {
   [Key in BenchmarkKey]: ResolvedBenchmarkSourceFacet<DeclaredBenchmarkSources[Key]>;
 };
 
-/** Compose source facets from extended declarations and standard observation sources. */
 function composeBenchmarkSources(): BenchmarkSources {
   return Object.fromEntries(
     Object.keys(BENCHMARK_SCORING_WEIGHTS).map((key) => {
@@ -247,7 +246,6 @@ type BenchmarkCatalog = Readonly<{
   };
 }>;
 
-/** Join literal catalog facets and apply shared defaults at the registry boundary. */
 function composeBenchmarkCatalog(): BenchmarkCatalog {
   return Object.fromEntries(
     Object.entries(BENCHMARK_SCORING).map(([key, scoring]) => {
@@ -312,7 +310,6 @@ type BenchmarkRuntimeBindingUnion = BenchmarkSourceInputUnion extends infer Inpu
 
 export type BenchmarkRuntimeKey = BenchmarkRuntimeBindingUnion["key"];
 
-/** Derive executable source runtime keys from the source declarations. */
 export const BENCHMARK_RUNTIME_KEYS = Object.values(BENCHMARK_SOURCES).flatMap((source) =>
   source.inputs.flatMap((input) => (input.runtime == null ? [] : [input.runtime.key])),
 ) as BenchmarkRuntimeKey[];
@@ -374,16 +371,13 @@ export const MODEL_ATLAS_BENCHMARK_KEYS = BENCHMARK_KEYS.flatMap((key) => [
   )[key] ?? []),
 ]);
 
-/** Return the declared payload location for a known benchmark. */
 export const benchmarkValueLocation = (key: string) =>
   BENCHMARK_CATALOG[key as BenchmarkKey]?.persistence.location ?? null;
 
-/** Apply one benchmark's declarative source transform to a normalized source value. */
 export function transformBenchmarkSourceValue(key: BenchmarkKey, value: number): number {
   return applyBenchmarkTransform(value, BENCHMARK_CATALOG[key].processing.transform);
 }
 
-/** Look up the portfolio entry for a benchmark key. */
 export const benchmarkPortfolioEntry = (key: string) =>
   BENCHMARK_PORTFOLIO[key as BenchmarkKey] ?? null;
 export const benchmarkResourcePolicy = (
@@ -393,7 +387,7 @@ export const benchmarkResourcePolicy = (
 const benchmarkKeysInGroup = (group: BenchmarkGroup) =>
   BENCHMARK_KEYS.filter((key) => BENCHMARK_PORTFOLIO[key].group === group);
 
-/** Return a benchmark's effective dimension weight as importance multiplied by loading. */
+/** Benchmark importance multiplied by its loading on `dimension`; a benchmark outside the portfolio weighs zero. */
 export const benchmarkDimensionWeight = (
   key: string,
   dimension: BenchmarkDimension,

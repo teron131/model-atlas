@@ -241,7 +241,6 @@ export function FrontierField({
       }
     };
 
-    /** Focus the star under the pointer, or the register's role, and keep its identification card beside it. */
     const exploreStars = () => {
       const card = cardRef.current;
       const exploring = frameState.progress < EXPLORE_UNTIL && frameState.intro >= 1;

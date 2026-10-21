@@ -69,7 +69,6 @@ export async function loadSourceSnapshots(
   );
 }
 
-/** Refreshes normalized source snapshots from storage-independent cached source values. */
 export async function refreshSourceSnapshots(
   caches: SourceSnapshotCaches,
   sourceCache: Record<RawSourceName, RawSourceCacheStatus>,
@@ -199,7 +198,6 @@ function updateSourceCacheStatuses(
   }
 }
 
-/** Updates source cache status after source refresh snapshots. */
 function updatedSourceCacheStatus(
   status: RawSourceCacheStatus,
   lastFetchEpochSeconds: number | null,

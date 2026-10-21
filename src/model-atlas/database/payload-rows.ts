@@ -84,7 +84,6 @@ const BENCHMARK_OBSERVATION_PAYLOAD_COLUMNS = [
   "metadata_json",
 ] as const;
 
-/** Standalone benchmarks retain distinct row contracts behind one catalog-keyed payload registry. */
 const STANDALONE_BENCHMARK_PAYLOAD_ROW_GROUPS = {
   agents_last_exam: payloadRowGroup(
     "agentsLastExamRows",
@@ -374,7 +373,6 @@ function buildCost(row: DbRow): ModelAtlasCost {
   return hasFields(cost) ? (cost as NonNullable<ModelAtlasCost>) : null;
 }
 
-/** Reconstruct one scored candidate from a selected model row and its normalized child records. */
 function scoredCandidateFromRow(
   row: DbRow,
   benchmarks: ModelAtlasBenchmarks | null,
@@ -475,7 +473,6 @@ function benchmarkDatesByModelRow(rows: readonly DbRow[]): Map<number, Record<st
   return benchmarkDatesByModel;
 }
 
-/** Decode persisted source evidence needed by post-read benchmark policy. */
 function benchmarkObservations(rows: PayloadRows): BenchmarkObservationsByKey {
   const observations: BenchmarkObservationsByKey = {};
   for (const { benchmark, sourceRowsKey } of BENCHMARK_OBSERVATION_BINDINGS) {
@@ -640,7 +637,6 @@ function sourceHealthFromRows(
   };
 }
 
-/** Assembles the public Model Atlas payload from database row groups. */
 export function buildPayloadFromRows(rows: PayloadRows): ModelAtlasPayload {
   const benchmarksByModel = benchmarksByModelRow(rows.modelBenchmarkRows);
   const benchmarkDatesByModel = benchmarkDatesByModelRow(rows.modelBenchmarkRows);

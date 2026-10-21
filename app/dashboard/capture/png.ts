@@ -30,7 +30,7 @@ const SVG_STYLE_PROPERTIES = [
   "visibility",
 ] as const;
 
-/** Normalize a visible capture option into a filesystem-safe filename token. */
+/** Filesystem-safe filename token for a visible capture option: `"GPT-5 (high)"` → `"gpt-5-high"`. */
 export function captureFileToken(value: string): string {
   return value
     .toLowerCase()
@@ -76,7 +76,6 @@ export async function downloadElementPng(
   downloadBlob(blob, `${fileName}.png`);
 }
 
-/** Render a graph panel clone at its intrinsic artifact width outside the responsive browser layout. */
 function stageGraphRender(element: HTMLElement, width: number) {
   const stage = document.createElement("div");
   stage.style.position = "fixed";
@@ -159,7 +158,6 @@ function captureBackgroundColor(element: HTMLElement): string {
   return window.getComputedStyle(element).getPropertyValue("--paper").trim() || "#080909";
 }
 
-/** Wait for image resources in the cloned surface so logos are present in the PNG, giving each a bounded time so one stuck image cannot hold the export. */
 async function waitForImages(element: HTMLElement): Promise<void> {
   await Promise.all(
     Array.from(element.querySelectorAll("img")).map(
@@ -177,7 +175,6 @@ async function waitForImages(element: HTMLElement): Promise<void> {
   );
 }
 
-/** Trigger the browser download and release the temporary object URL afterward. */
 function downloadBlob(blob: Blob, fileName: string): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");

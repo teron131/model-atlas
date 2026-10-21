@@ -1,4 +1,5 @@
 /** Public API cache headers and conditional-request validators for Model Atlas. */
+
 type PublicCacheHeaderOptions = {
   browserMaxAgeSeconds: number;
   cdnMaxAgeSeconds?: number;

@@ -176,7 +176,7 @@ export function aggregateFrontierBenchmarkRows(
     .sort((left, right) => right.score - left.score);
 }
 
-/** Fixed full-population source medians define resource ratios; quality retains its established min–max reference. */
+/** Fixed full-population source medians define resource ratios; quality keeps its min–max reference. */
 export function normalizedFrontierBenchmarkRows(
   rows: FrontierBenchmarkRow[],
   referenceRows: FrontierBenchmarkRow[] = rows,
@@ -241,12 +241,10 @@ export function frontierBenchmarkCorrelationByBenchmark(
   return correlations;
 }
 
-/** Published resource scores are independent coordinates, never an implicit efficiency blend. */
 export function isScoreAxis(axisKey: FrontierBenchmarkAxisKey): boolean {
   return axisKey === "speed" || axisKey === "value";
 }
 
-/** Resource selection and displayed coordinates share one value lookup, independent of axis labels and formatting. */
 export function frontierAxisValue(
   row: FrontierBenchmarkRow,
   key: FrontierBenchmarkAxisKey,
@@ -325,7 +323,6 @@ function medianMetric(
     .ratio;
 }
 
-/** Preserve source identity and allocation when graph coordinates enter the shared resource calculation. */
 function metricObservations(
   rows: FrontierBenchmarkRow[],
   get: (row: FrontierBenchmarkRow) => number | null,

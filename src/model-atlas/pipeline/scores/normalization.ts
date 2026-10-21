@@ -5,7 +5,6 @@ import { clamp, linearScale, smoothstep } from "../../math-utils";
 const COVERAGE_MULTIPLIER_FLOOR = 0.1;
 const COVERAGE_MULTIPLIER_FULL = 0.6;
 
-/** Clamp public score-scale values to 0-100 after normalization or interpolation. */
 export function clampScore(value: number): number {
   return clamp(value, 0, 100);
 }
@@ -24,7 +23,7 @@ export function coverageMultiplier(supportedWeight: number, totalWeight: number)
   );
 }
 
-/** Calculate the retention factor from supported weight between the configured thresholds. */
+/** Zero at or below `floor`, one at or above `full`, and a smoothstep between; invalid thresholds throw a `RangeError`. */
 export function evidenceRetentionFactor(
   supportedWeight: number,
   floor: number,

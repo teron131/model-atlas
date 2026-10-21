@@ -1,4 +1,8 @@
-/** Parses Omniscience accuracy from the dedicated Artificial Analysis page's model data while resource telemetry remains owned by the shared evaluation-page scraper. */
+/**
+ * AA-Omniscience accuracy from Artificial Analysis.
+ *
+ * Page source: https://artificialanalysis.ai/evaluations/omniscience
+ */
 
 import type {
   BenchmarkObservationPayload,
@@ -27,7 +31,6 @@ type ArtificialAnalysisOmniscienceOptions = {
   timeoutMs?: number;
 };
 
-/** Fetch the Artificial Analysis Omniscience page and select its declared benchmark dataset. */
 export async function getArtificialAnalysisOmniscienceStats(
   options: ArtificialAnalysisOmniscienceOptions,
 ): Promise<BenchmarkObservationPayload> {
@@ -48,7 +51,10 @@ export async function getArtificialAnalysisOmniscienceStats(
   );
 }
 
-/** Normalize model-level accuracy from the page's Flight data into shared benchmark observations. */
+/**
+ * Normalize model-level accuracy from the page's Flight data into shared benchmark observations.
+ * Resource telemetry for this benchmark comes from the shared evaluation-page scraper instead.
+ */
 export function processArtificialAnalysisOmnisciencePage(
   pageHtml: string,
   options: Omit<ArtificialAnalysisOmniscienceOptions, "timeoutMs">,

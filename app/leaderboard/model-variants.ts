@@ -34,7 +34,6 @@ type ObservationLookups = ReadonlyMap<
 // Payload observations are immutable once published, so every projection of one payload shares its lookups.
 const observationLookupsByPayload = new WeakMap<BenchmarkObservationsByKey, ObservationLookups>();
 
-/** Collapse each model's variants while applying model-level benchmark observation policy. */
 export function compactModelVariants(
   models: readonly ModelAtlasModel[],
   benchmarkObservations: BenchmarkObservationsByKey = {},
@@ -159,7 +158,6 @@ export function compactModelVariants(
   });
 }
 
-/** Index each benchmark's observations, and its fusion-collapsed subset, once per payload. */
 function benchmarkObservationLookups(
   benchmarkObservations: BenchmarkObservationsByKey,
 ): ObservationLookups {

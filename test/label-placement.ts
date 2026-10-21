@@ -68,7 +68,7 @@ assert.equal(
   "An immediately adjacent label should not need a leader",
 );
 
-// The lower-left callout previously routed through the upper-left model's marker.
+// The lower-left callout must not route through the upper-left model's marker.
 const crowded = (
   [
     [94, 82],
@@ -110,7 +110,7 @@ for (const label of crowded) {
   }
 }
 
-// Full names in this cluster previously caused a leader to run through another label.
+// Full names in this cluster must not run a leader through another label.
 const fullNames = (
   [
     [97, 107],

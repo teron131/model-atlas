@@ -289,7 +289,6 @@ const addTerminalBench4: StandaloneBenchmarkOperation = ({
   }
 };
 
-/** Standalone assignment adapters keep benchmark-specific matching behind one exhaustive runtime registry. */
 const STANDALONE_BENCHMARK_ADAPTERS = {
   agents_last_exam: {
     defaultVariant: ({ assignedBenchmarks, lookups, modelNameCandidates }) => {

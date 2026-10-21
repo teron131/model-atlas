@@ -23,7 +23,6 @@ import type { LabFrontier } from "./frontier";
 import styles from "../graphs.module.css";
 import timeline from "../timeline.module.css";
 
-/** Share hover and pinned selection across each lab’s complete line, endpoint icon and ranked row. */
 export function LabsPlot({
   labs,
   start,
@@ -44,7 +43,6 @@ export function LabsPlot({
   const [inspection, setInspection] = useState<TimelinePoint | null>(null);
   const [active, setActive] = useState<string | null>(null);
   const [hovered, setHovered] = useState<string | null>(null);
-  /** Keep line, icon and list previews synchronized without changing the pinned lab. */
   function showPreview(point: TimelinePoint | null) {
     setHovered(point?.provider ?? null);
     setInspection(point);

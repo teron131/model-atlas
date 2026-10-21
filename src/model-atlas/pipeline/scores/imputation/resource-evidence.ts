@@ -53,7 +53,7 @@ export function resourceVariantKey(
   return `${canonicalModelKey(model)}\u0000${canonicalReasoningEffort(model.reasoning_effort) ?? ""}`;
 }
 
-/** Within-model time ratios retain the existing throughput fallback; token totals and output-only amounts stay separate. */
+/** Time falls back to the throughput runtime proxy when wall time is missing; token totals and output-only amounts stay separate. */
 export function directTaskResource(
   model: ModelAtlasCandidate,
   key: string,

@@ -246,7 +246,7 @@ export function serializedPublicJson(
  *
  * A model's logo is the URL of its provider's icon file where the app serves one, as the dashboard draws it, and the snapshot's embedded image otherwise.
  * The URL is absolute when `siteOrigin` is given, so a caller on another host can load it, and relative to the site without it.
- * One embedded image repeated per model was most of the compressed response.
+ * Repeating one embedded image per model would make up most of the compressed response.
  */
 export function dashboardJsonPayload(
   payload: ModelAtlasPayload,
@@ -329,7 +329,6 @@ export function fullJsonPayload(payload: ModelAtlasPayload): FullJsonPayload {
   };
 }
 
-/** Preserve display policy and resource fields while excluding source-ingestion diagnostics. */
 function dashboardObservation({
   metadata,
   ...row

@@ -54,7 +54,6 @@ const MODEL_SUGGESTIONS_ID = "global-model-suggestions";
 // A pinned rail keeps its search this close to the viewport top; anywhere lower, the rail has not reached the top yet.
 const PINNED_SEARCH_TOP = 64;
 
-/** One active global filter, shown as a chip that removes only itself. */
 type FilterChip = { key: string; label: string; logo?: string; remove: GlobalModelFilters };
 
 /**
@@ -278,7 +277,7 @@ export function GlobalModelControls({
       <div className={styles.query}>
         <label className={styles.search}>
           <Search size={15} aria-hidden="true" />
-          {/* Typing filters every view as before and also lists the strongest matches; arrows choose one and Enter opens its sheet, the first match when none is chosen. */}
+          {/* Typing filters every view and also lists the strongest matches; arrows choose one and Enter opens its sheet, the first match when none is chosen. */}
           <input
             id={MODEL_SEARCH_ID}
             type="search"
@@ -622,7 +621,6 @@ export function GlobalModelControls({
   );
 }
 
-/** Each active global filter as a chip named in the filter menu's terms; removing one keeps every other filter. */
 function filterChips(filters: GlobalModelFilters, providerChoices: ProviderOption[]): FilterChip[] {
   const providers = filters.provider.map((slug) => ({
     key: `provider-${slug}`,
@@ -648,7 +646,7 @@ function filterChips(filters: GlobalModelFilters, providerChoices: ProviderOptio
   return [...providers, ...choices.filter((chip) => chip != null)];
 }
 
-/** Keep all preset groups on the same accessible, single-choice button pattern; mixed variant modes have no selected choice. */
+/** Mixed variant modes have no selected choice. */
 function FilterChoices<T extends string | number | boolean>({
   label,
   options,

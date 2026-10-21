@@ -23,7 +23,7 @@ const path = join(directory, "checkpoint.sqlite");
 let db = new DatabaseSync(path);
 try {
   db.exec(await loadSchemaSql());
-  // Model an existing production checkpoint without the newly introduced archive.
+  // Model an existing production checkpoint that predates the evidence archive table.
   db.exec(`
     DROP TABLE historical_evidence;
     INSERT INTO snapshot_metadata (updated_at_epoch_seconds) VALUES (1789000000);
@@ -152,7 +152,7 @@ try {
   };
   prepareArchiveAppend(db)("index_source_artifact", "2026-09-04", largeArtifact, "artifact:large");
   const archived = db.prepare("SELECT * FROM historical_evidence ORDER BY content_hash").all();
-  // Recreate the previous on-disk contract to exercise an actual existing-checkpoint migration.
+  // Recreate the older text-archive layout to exercise a real existing-checkpoint migration.
   db.exec(`
     ALTER TABLE historical_evidence RENAME TO compressed_archive_fixture;
     CREATE TABLE historical_evidence (content_hash TEXT NOT NULL PRIMARY KEY, source_table TEXT NOT NULL, captured_at TEXT NOT NULL, record_json TEXT NOT NULL);

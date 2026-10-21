@@ -353,7 +353,6 @@ function EffortChoices({
   );
 }
 
-/** The dashboard's hover-card rows for one effort: its score, its shared-benchmark cost, and its step from the effort below. */
 function effortHoverRows(point: EffortPoint, previous: EffortPoint | undefined): HoverRow[] {
   const rows: HoverRow[] = [
     ["Intelligence Score", formatScore(point.intelligence)],
@@ -388,7 +387,6 @@ function effortStep({ entry, points }: EffortCurve): string {
   return `${from.effort} → ${to.effort}: ${gain} Intelligence at ${cost} the cost`;
 }
 
-/** One step between efforts: the signed Intelligence change and the cost multiplier. */
 function step(from: EffortPoint, to: EffortPoint) {
   const gain = to.intelligence - from.intelligence;
   return {

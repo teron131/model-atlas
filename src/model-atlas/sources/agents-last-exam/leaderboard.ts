@@ -293,7 +293,6 @@ async function fetchPlaywrightRows(
   });
 }
 
-/** API rows are narrowed to the stable source shape before summary and harness joins run. */
 function asHarnessRow(value: unknown): AgentsLastExamHarnessRow | null {
   const row = asRecord(value);
   const split = typeof row.split === "string" ? row.split : null;
