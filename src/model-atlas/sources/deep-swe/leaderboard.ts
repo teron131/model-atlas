@@ -213,7 +213,6 @@ function asDeepSWELeaderboardRow(value: unknown): DeepSWELeaderboardRow | null {
   };
 }
 
-/** Infers the DeepSWE source version from a leaderboard URL. */
 function sourceVersionForUrl(url: string): DeepSWESourceVersion | null {
   if (url.includes("/artifacts/v1.1/")) {
     return "v1.1";
@@ -240,7 +239,6 @@ function deepSwePreferenceKey(row: DeepSWERawLeaderboardRow): string {
   return [normalizeModelToken(row.model), row.reasoning_effort ?? "", row.config ?? ""].join("\0");
 }
 
-/** Strip raw-source provenance from DeepSWE rows before public/scoring use. */
 function stripDeepSWESourceVersion(row: DeepSWERawLeaderboardRow): DeepSWELeaderboardRow {
   return {
     model: row.model,

@@ -187,7 +187,6 @@ function artificialAnalysisBenchmarkRowDrafts(
 
 type StandaloneBenchmarkAdapter = (sourceData: ModelAtlasSourceData) => BenchmarkRowDraft[];
 
-/** Standalone benchmark adapters retain source-specific row rules behind one exhaustive registry. */
 const STANDALONE_BENCHMARK_ADAPTERS = {
   agents_last_exam: (sourceData) =>
     benchmarkRowDrafts("agents_last_exam", sourceData.agentsLastExam.rows, (row) => ({

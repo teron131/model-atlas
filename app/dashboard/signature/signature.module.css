@@ -1,3 +1,5 @@
+/* Styles for the dashboard hero: its fixed sky layers, star card and labels, title, and frontier register. */
+
 /* The horizon line the hero measures under its title, from the top of the viewport at rest; registered so the static atmosphere glides from its default height instead of jumping. */
 @property --horizon {
   syntax: "<length-percentage>";

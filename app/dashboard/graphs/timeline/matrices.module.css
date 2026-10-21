@@ -1,3 +1,5 @@
+/* Styles for the Timeline evidence matrices and their cell readouts. */
+
 /* Two coordinated workspaces keep matrix navigation and inspection in the same visual field. */
 .matrices {
   display: grid;

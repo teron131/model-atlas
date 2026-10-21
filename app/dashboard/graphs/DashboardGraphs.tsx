@@ -37,7 +37,6 @@ import { TimelinePanel } from "./TimelinePanel";
 
 import styles from "./graphs.module.css";
 
-/** Coordinate deferred dashboard filtering, shared hover state, and research-region panels while keeping controls responsive during payload changes. */
 export function DashboardGraphs({
   payload,
   referenceModels,

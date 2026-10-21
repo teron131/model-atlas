@@ -84,6 +84,7 @@ export function providerPreferenceRank(providerId: string): number | null {
   return null;
 }
 
+/** `"Claude 4.5 Sonnet: Thinking"` → `"claude-4-5-sonnet-thinking"`. */
 export function normalizeModelToken(value: string): string {
   return value
     .toLowerCase()
@@ -93,7 +94,7 @@ export function normalizeModelToken(value: string): string {
     .replace(/^[-/]+|[-/]+$/g, "");
 }
 
-/** Remove a repeated creator prefix while retaining the complete source display model elsewhere. */
+/** Remove a repeated creator prefix while retaining the complete source display model elsewhere: `("Google Gemini 2.5 Pro", "Google")` → `"Gemini 2.5 Pro"`. */
 export function modelNameWithoutCreatorPrefix(modelName: string, creator: unknown): string {
   if (typeof creator !== "string") return modelName;
   const prefix = creator.trim();
@@ -104,7 +105,10 @@ export function modelNameWithoutCreatorPrefix(modelName: string, creator: unknow
   return unprefixed.length > 0 ? unprefixed : modelName;
 }
 
-/** Canonicalize source effort labels while preserving actual null for unknown or unreported values. */
+/**
+ * Canonicalize source effort labels while preserving actual null for unknown or unreported values.
+ * `"Extra High"` → `"xhigh"`, `"Non-reasoning"` → `"none"`, and `"null"` → `null`.
+ */
 export function canonicalReasoningEffort(value: unknown): string | null {
   if (typeof value !== "string") {
     return null;
@@ -117,7 +121,10 @@ export function canonicalReasoningEffort(value: unknown): string | null {
   return normalized === "non-reasoning" ? "none" : normalized;
 }
 
-/** Strip effort suffixes; GPT product qualifiers beside an effort remain part of GPT identity. */
+/**
+ * Strip effort suffixes; GPT product qualifiers beside an effort remain part of GPT identity.
+ * `"GPT-5.2 (Pro, xhigh)"` → `{ baseModel: "GPT-5.2 Pro", reasoningEffort: "xhigh" }`, while `"Claude Sonnet 4.5 (Thinking, high)"` → `{ baseModel: "Claude Sonnet 4.5", reasoningEffort: "high" }`.
+ */
 export function benchmarkModelEffort(value: string): BenchmarkModelEffort {
   const match = BENCHMARK_EFFORT_SUFFIX_PATTERN.exec(value);
   if (match == null) {
@@ -237,7 +244,10 @@ export function normalizeProviderModelId(modelId: string): string {
   return `${provider}/${baseModelId}`;
 }
 
-/** Group reasoning-effort variants under one canonical model identity. */
+/**
+ * Group reasoning-effort variants under one canonical model identity, preferring the name over the id.
+ * `{ name: "Claude 4.5 Sonnet (Reasoning)" }` → `"name:claude-4-5-sonnet"` and `{ id: "openai/gpt-5.1" }` → `"openai/gpt-5-1"`.
+ */
 export function canonicalModelKey(model: { id?: unknown; name?: unknown }): string {
   if (typeof model.name === "string" && model.name.length > 0) {
     return `name:${normalizeModelToken(model.name.replace(MODEL_CONFIGURATION_LABEL_PATTERN, ""))}`;

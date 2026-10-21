@@ -101,7 +101,7 @@ function applyMaxMinRangeVoid(
   return { threshold, voided };
 }
 
-/** Run the matcher over source rows and return ranked candidates plus post-void summary counts. */
+/** Summary counts are taken after the void threshold. */
 export function runMatcher(
   sourceModels: MatcherSourceModel[],
   providerPools: PreferredProviderPools,

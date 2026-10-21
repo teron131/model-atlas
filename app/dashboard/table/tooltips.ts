@@ -311,7 +311,6 @@ export function tableColumnTooltip(
   };
 }
 
-/** Build the row-owned evidence popover from one persisted material change. */
 export function scoreChangeTooltip(model: ModelAtlasModel): ModelAtlasColumnTooltip {
   const change = model.latest_change!;
   const scoreBefore = change.score_before == null ? "New" : change.score_before.toFixed(1);

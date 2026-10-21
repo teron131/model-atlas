@@ -267,7 +267,6 @@ export function writeCheckpoint(db: DatabaseWriter, rows: DatabaseSnapshotRows):
   ).run(nowEpochSeconds(), SNAPSHOT_PRESERVATION_VERSION);
 }
 
-/** Persist source quarantines as part of the checkpoint's existing replacement transaction. */
 function insertSourceQuarantines(db: DatabaseWriter, snapshots: SourceSnapshots): void {
   const statement = db.prepare(`
 		INSERT INTO source_quarantines (

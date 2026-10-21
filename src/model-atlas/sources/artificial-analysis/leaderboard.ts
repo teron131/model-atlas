@@ -1,7 +1,7 @@
 /**
- * Artificial Analysis leaderboard scraper owns aggregate indexes and general model metrics.
+ * Aggregate indexes and general model metrics from the Artificial Analysis leaderboard.
  *
- * Task-level benchmark scores are sourced from their evaluation pages so the centralized table does not silently become a second benchmark authority.
+ * Page source: https://artificialanalysis.ai/leaderboards/models
  */
 
 import { ARTIFICIAL_ANALYSIS_CONTEXT_KEY_BY_ALIAS } from "../../benchmarks/registry";
@@ -82,8 +82,7 @@ type RowSelectionContext = {
 
 /**
  * Raw Artificial Analysis page rows stay unflattened so downstream snapshot code owns projection.
- *
- * This function intentionally performs no flattening/cleaning/selection.
+ * Any fetch or parse failure returns an empty payload with no fetch time.
  */
 export async function getArtificialAnalysisLeaderboardRawStats(
   options: Pick<ArtificialAnalysisLeaderboardOptions, "url" | "timeoutMs"> = {},
@@ -123,7 +122,6 @@ export async function getArtificialAnalysisLeaderboardRawStats(
   }
 }
 
-/** Scrape the Artificial Analysis leaderboard with the selected columns used by source matching and scoring. */
 export async function getArtificialAnalysisLeaderboardStats(
   options: Omit<ArtificialAnalysisLeaderboardOptions, "selectedColumns"> = {},
 ): Promise<ArtificialAnalysisLeaderboardPayload> {
@@ -334,7 +332,6 @@ function modelUrlPathFromRow(row: JsonObject, fallbackSlug: string | null): stri
   return urlPath.length > 0 ? urlPath : fallbackSlug;
 }
 
-/** Drop columns that are mostly null for Artificial Analysis scraper. */
 function dropMostlyNullColumns(rows: JsonObject[], nullRatioThreshold: number): JsonObject[] {
   if (rows.length === 0) {
     return rows;
@@ -574,6 +571,7 @@ function selectModalities(row: JsonObject, direction: "input" | "output"): strin
   ].filter((value): value is string => value != null);
 }
 
+/** Only context fields are kept; task-level benchmark scores come from their evaluation pages, so this table never becomes a second benchmark authority. */
 function pickBenchmarks(row: JsonObject): JsonObject {
   const benchmarks: JsonObject = {};
   for (const [key, value] of Object.entries(row)) {
@@ -596,6 +594,7 @@ function benchmarkKeyBySourceKey(key: string): string | null {
   );
 }
 
+// `"gpqaDiamond"` → `"gpqa_diamond"`.
 function normalizeMetricKey(key: string): string {
   return key.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();
 }

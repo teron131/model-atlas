@@ -1,4 +1,5 @@
 /** Require evidence support for every record, independently of release age or current portfolio membership. */
+
 export const TIMELINE_START_DATE = "2023-03-14";
 
 type Candidate = {

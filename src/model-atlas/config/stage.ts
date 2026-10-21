@@ -134,7 +134,6 @@ export type ModelAtlasStageConfig = {
 const isFrontierOrIndex = (key: keyof typeof BENCHMARK_PORTFOLIO) =>
   isAggregateIndex(key) || BENCHMARK_PORTFOLIO[key].group === "frontier";
 
-/** Centralized stage config for matching, route data, pruning, and scoring. */
 export const STAGE_CONFIG = {
   matcher: {
     variantTokens: [

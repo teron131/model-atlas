@@ -76,7 +76,6 @@ export function mergeBenchmarkObservationRow(
   };
 }
 
-/** Decides whether fetched rows should replace cached source rows. */
 export function shouldUseFetchedRows(
   fetchedAtEpochSeconds: number | null,
   rowCount: number,

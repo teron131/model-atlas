@@ -39,7 +39,6 @@ type AgenticTokenAdjustment = {
 
 const TOKEN_MEASURES = ["tokens", "output_tokens"] as const;
 
-/** Precompute finite comparison ranges used to normalize quality fields before averaging. */
 export function buildQualityScoringContext(
   models: JsonObject[],
   scoringConfig: ScoringConfig,
@@ -51,7 +50,7 @@ export function buildQualityScoringContext(
   return { benchmarkRangesByKey };
 }
 
-/** Normalize a raw observation against the shared measured population. */
+/** Normalize a raw observation to 0–100 against the shared measured population, clamping values outside it. */
 export function normalizedMetricValue(
   rangesByKey: ReadonlyMap<string, MinMaxRange | null>,
   key: string,

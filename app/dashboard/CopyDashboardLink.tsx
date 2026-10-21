@@ -19,7 +19,6 @@ export function CopyDashboardLink({ sectionId }: { sectionId?: ResearchRegionId 
   const [status, setStatus] = useState<keyof typeof feedback>("idle");
   const { label, Icon } = feedback[status];
 
-  /** Preserve the current query while targeting this section, and report clipboard denial without navigating. */
   async function copyLink() {
     const url = new URL(window.location.href);
     if (sectionId != null) url.hash = sectionId;

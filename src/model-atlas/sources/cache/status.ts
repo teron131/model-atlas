@@ -81,7 +81,6 @@ export function rawSourceCacheStatusFromRows(
   };
 }
 
-/** Checks whether a source cache has the current persisted row shape. */
 function isSourceCacheShapeCurrent(db: DatabaseSync, source: RawSourceName): boolean {
   if (source === "artificial_analysis") {
     return artificialAnalysisCacheHasHiddenRows(db);

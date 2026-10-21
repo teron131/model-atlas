@@ -32,7 +32,6 @@ export type BenchmarkResourceAggregate = {
   total_tokens?: number;
 };
 
-/** Direct benchmark evidence normalized for matching, scoring, and freshness. */
 export type BenchmarkObservationRow = Partial<BenchmarkResourceAggregate> & {
   benchmark_key: string;
   source_url: string;
@@ -49,7 +48,6 @@ export type BenchmarkObservationRow = Partial<BenchmarkResourceAggregate> & {
   metadata: BenchmarkObservationMetadata;
 };
 
-/** Normalize one aggregate resource total onto the shared task-run unit. */
 export function resourcePerTaskRun(total: number, taskRunCount: number): number {
   return Number((total / taskRunCount).toFixed(6));
 }

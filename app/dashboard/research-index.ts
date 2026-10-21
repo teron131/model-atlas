@@ -12,7 +12,7 @@ export const RESEARCH_REGION_IDS: readonly ResearchRegionId[] = RESEARCH_REGIONS
   (region) => region.id,
 );
 
-/** Return the one-based, zero-padded display position of a research region. */
+/** One-based, zero-padded display position of a research region: `"pareto-analysis"` → `"02"`. */
 export function researchRegionOrdinal(sectionId: ResearchRegionId): string {
   return String(RESEARCH_REGION_IDS.indexOf(sectionId) + 1).padStart(2, "0");
 }

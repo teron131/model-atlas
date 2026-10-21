@@ -30,7 +30,6 @@ export type MatcherConfig = {
   variantTokens: readonly string[];
 };
 
-/** Identity fields needed to score one candidate against a source slug. */
 export type MatchCandidateInput = {
   model_id: string;
   provider_id: string;
@@ -38,14 +37,12 @@ export type MatchCandidateInput = {
   model_name: string | null;
 };
 
-/** Candidate model from models.dev for one Artificial Analysis source model. */
 export type MatchCandidate = MatchCandidateInput & {
   score: number;
 };
 
 export type MatchResult = MatchCandidate | null;
 
-/** Mapping entry for one Artificial Analysis model and its ranked match candidates. */
 type MatchMappedModel = {
   artificial_analysis_id: string | null;
   artificial_analysis_slug: string;

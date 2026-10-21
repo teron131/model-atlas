@@ -1,5 +1,5 @@
 /**
- * Models.dev scraper owns provider flattening plus Vercel overlay details for recent model rows.
+ * Model catalog rows from Models.dev, with Vercel AI Gateway details for recent models.
  *
  * JSON source: https://models.dev/api.json
  * Overlay page source: https://vercel.com/ai-gateway/models

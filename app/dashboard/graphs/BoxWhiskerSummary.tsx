@@ -10,7 +10,7 @@ import { finite } from "./format";
 
 import styles from "./graphs.module.css";
 
-/** Compute quartiles from finite observations, retaining the established zero-valued empty summary. */
+/** Quartiles use finite observations only; with none, every summary statistic reads zero. */
 export function BoxWhiskerSummary({
   label,
   values,

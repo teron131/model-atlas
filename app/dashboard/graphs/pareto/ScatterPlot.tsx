@@ -76,7 +76,6 @@ const PLOT_TOP_GUTTER = 48;
 const MEDIAN_LABEL_CLEARANCE = 64;
 const HOVER_EXIT_DELAY_MS = 150;
 
-/** Render a generic frontier benchmark scatter plot with configurable axes, labels, effort connections, cursor projections, and hover payloads. */
 export function FrontierBenchmarkScatterPlot<Row>({
   rows,
   metric,

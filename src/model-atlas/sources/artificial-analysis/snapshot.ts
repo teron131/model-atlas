@@ -72,7 +72,6 @@ export function mergeArtificialAnalysisRow(
   return fetchedRow;
 }
 
-/** Loads raw Artificial Analysis rows and projects the leaderboard rows consumed by stats. */
 export async function artificialAnalysisSnapshot(
   cached: ReturnType<typeof readArtificialAnalysisRawCache>,
   status: RawSourceCacheStatus,

@@ -32,7 +32,6 @@ type BenchmarkObservationSnapshot = {
   sourceStatus: SourceSnapshotStatus;
 };
 
-/** Refresh every direct benchmark-observation source declared by the benchmark catalog. */
 export async function benchmarkObservationSnapshots(
   caches: Readonly<Record<string, ReturnType<typeof readBenchmarkObservationRawCache> | undefined>>,
   statuses: Record<RawSourceName, RawSourceCacheStatus>,
@@ -58,7 +57,6 @@ export async function benchmarkObservationSnapshots(
   );
 }
 
-/** Reconstruct one catalog-declared benchmark-observation source from SQLite or collected rows. */
 export function readBenchmarkObservationRawCache(
   cache: CacheRowSource,
   binding: BenchmarkObservationBinding,
@@ -77,7 +75,6 @@ export function readBenchmarkObservationRawCache(
   return cached;
 }
 
-/** Insert a catalog-declared benchmark-observation snapshot through its shared row contract. */
 export function insertBenchmarkObservationRows(
   db: DatabaseWriter,
   snapshots: SourceSnapshots,

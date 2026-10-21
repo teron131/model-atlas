@@ -72,9 +72,8 @@ type RequestContext = {
 };
 
 /**
- * Scrape OpenRouter raw stat responses for a finalized set of model IDs.
- *
- * The raw responses are still scoped to selected model IDs; this avoids full catalog stat scraping while preserving daily points and permaslug resolution. Aliases share route groups and successful endpoint responses only within this call, so a failed candidate retries only its missing endpoints.
+ * Raw responses stay scoped to the selected model IDs, which avoids full catalog stat scraping while preserving daily points and permaslug resolution.
+ * Aliases share route groups and successful endpoint responses only within this call, so a failed candidate retries only its missing endpoints.
  */
 export async function getOpenRouterRawScrapedStats(
   options: ScraperOptions,

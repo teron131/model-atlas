@@ -94,11 +94,11 @@ const SCORES: { label: string; icon: ReactNode; score: ScoreGetter; support: Sco
     support: (model) => model.confidence?.value,
   },
 ];
-// Labels follow the leaderboard's column headers, so a sheet reads against the table it was opened from; directions follow its sort arrows, and fewer tokens are not plainly better.
 // The exported card's benchmark lists take this many columns, for one model and for a comparison.
 const CARD_COLUMNS = 3;
 const COMPARE_CARD_COLUMNS = 2;
 
+// Labels follow the leaderboard's column headers, so a sheet reads against the table it was opened from; directions follow its sort arrows, and fewer tokens are not plainly better.
 const RESOURCE_RATIOS = [
   { kind: "cost", label: "Cost×", direction: "ascending" },
   { kind: "time", label: "Time×", direction: "ascending" },
@@ -311,7 +311,6 @@ function clearCopiedLabelColumn(card: HTMLElement) {
   card.style.removeProperty("--sheet-columns");
 }
 
-/** A model's catalogue identity: provider, the effort it shows, its name at the readout size, and its slug, with the sheet's actions beside a single model. */
 function SheetIdentity({
   entry,
   titleId,
@@ -354,9 +353,6 @@ function SheetIdentity({
   );
 }
 
-/**
- * A labelled toggle, lit by the selection star while on: turning it on keeps this model in the sheet so the next model opened from any row, star, or role appears beside it; turning it off returns to the opened model alone.
- */
 function CompareToggle({ entry, comparing }: { entry: SheetEntry; comparing: boolean }) {
   const key = entry.row.model.id ?? entry.row.model.name;
   if (key == null) return null;
@@ -390,7 +386,6 @@ function CloseButton() {
   );
 }
 
-/** One fact per row in a comparison, or the label above its value on a single sheet. */
 function Fact({
   label,
   values,
@@ -417,10 +412,7 @@ function Fact({
   );
 }
 
-/**
- * A measured cell's value, with its lead spoken to screen readers and, in a comparison, its margin column.
- * The margin column is always drawn in a comparison, empty for the trailing value, so each cell keeps the same tracks and values stay aligned.
- */
+/** In a comparison the margin column is always drawn, empty for the trailing value, so each cell keeps the same tracks and values stay aligned. */
 function ComparedValue({
   text,
   comparison,
@@ -443,7 +435,6 @@ function ComparedValue({
   );
 }
 
-/** A compared value's margin over the other. */
 function Delta({ comparison }: { comparison: Comparison }) {
   return <span className={styles.delta}>{comparison.delta}</span>;
 }
@@ -811,7 +802,6 @@ function benchmarkResult(
   };
 }
 
-/** The leaderboard's latest material score event, named by the score it moved. */
 function LatestChange({
   model,
   change,

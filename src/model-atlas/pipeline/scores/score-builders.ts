@@ -379,7 +379,6 @@ export function deriveSpeedOutputTokenAnchors(
   });
 }
 
-/** Build quality and speed components from normalized benchmark evidence and resource metrics while preserving missing scores and evidence support. */
 export function buildComponentScoreResult(
   model: JsonObject,
   speed: ModelAtlasSpeed,

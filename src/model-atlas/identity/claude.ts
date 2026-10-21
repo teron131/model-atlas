@@ -34,7 +34,10 @@ function buildClaudeIdentity(
   };
 }
 
-/** Parses historical ordering and the compact `35` token alongside current tier-first names. */
+/**
+ * Parses historical ordering and the compact `35` token alongside current tier-first names.
+ * `"claude-3-5-sonnet-20241022"`, `"claude-35-sonnet"`, and `"claude-sonnet-3.5"` all → `{ tier: "sonnet", version: "3.5" }`.
+ */
 export function parseClaudeIdentity(value: string): ClaudeIdentity | null {
   const normalized = normalizeModelToken(value);
   const versionFirstMatch = normalized.match(VERSION_FIRST_PATTERN);
@@ -47,12 +50,15 @@ export function parseClaudeIdentity(value: string): ClaudeIdentity | null {
     : buildClaudeIdentity(tierFirstMatch[1], tierFirstMatch[2], tierFirstMatch[3]);
 }
 
-/** Formats a parsed Claude tier/version as its canonical model identity. */
+/** Canonical Claude identity: `{ tier: "sonnet", version: "3.5" }` → `"claude-sonnet-3.5"`. */
 export function claudeIdentityKey(identity: ClaudeIdentity): string {
   return `claude-${identity.tier}-${identity.version}`;
 }
 
-/** Returns the normal route-form identity only when the input contains no extra configuration labels. */
+/**
+ * Returns the normal route-form identity only when the input contains no extra configuration labels.
+ * `"anthropic/claude-sonnet-4-5"` → `"claude-sonnet-4.5"`, but `"claude-sonnet-4-5-thinking"` → `null`.
+ */
 export function claudeRouteIdentityKey(value: string): string | null {
   const identity = parseClaudeIdentity(value);
   if (identity == null) {

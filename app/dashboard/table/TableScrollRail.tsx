@@ -27,11 +27,7 @@ const RUN_LABELS: Record<TableColumnRun["group"], string> = {
 const RAIL_LABEL_CHAR_PX = 8.1;
 const RAIL_LABEL_GAP_PX = 16;
 
-/**
- * Mirror the table viewport in an accessible scroll rail and translate pointer, drag, and keyboard input back to horizontal table positions.
- * The rail is a flight path over the columns, styled as the research rail: each group's name sits near where its group starts on the rail with its waypoint beneath it, and a star travels waypoint to waypoint with its path lit behind it and passed waypoints violet.
- * A name scrolls its group to just after the pinned columns, or as near as the table's end allows; dragging anywhere on the track moves the star to the pointer.
- */
+/** A name scrolls its group to just after the pinned columns, or as near as the table's end allows; dragging anywhere on the track moves the star to the pointer. */
 export function TableScrollRail({
   regionId,
   tableScrollRef,

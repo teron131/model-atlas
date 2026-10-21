@@ -254,7 +254,6 @@ export function defineBenchmarks<const TDefinitions extends BenchmarkDefinitions
   };
 }
 
-/** Apply the catalog-declared source transform. */
 export function applyBenchmarkTransform(
   value: number,
   transform: BenchmarkSourceTransform,
@@ -284,7 +283,6 @@ export function validateBenchmarkPortfolio(portfolio: BenchmarkPortfolio): void 
   }
 }
 
-/** Reject invalid domain configuration at the single benchmark definition boundary. */
 function validateDefinitions(definitions: BenchmarkDefinitions): void {
   validateBenchmarkPolicies(definitions);
   const displayOrders = new Set<number>();
@@ -374,7 +372,6 @@ function validateDefinitions(definitions: BenchmarkDefinitions): void {
   }
 }
 
-/** Reject invalid benchmark policies before runtime consumers use them. */
 function validateBenchmarkPolicies(
   definitions: Readonly<Record<string, BenchmarkPolicyFacets>>,
 ): void {

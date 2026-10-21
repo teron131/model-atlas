@@ -24,7 +24,6 @@ import type { RawSourceCacheStatus, SourceRefreshOptions, SourceSnapshots } from
 import { valsIndexRuntime } from "./vals/index-runtime";
 import { vendingBench2Runtime } from "./vending-bench-2/runtime";
 
-/** Standalone source runtimes share orchestration while retaining independent implementations. */
 const STANDALONE_BENCHMARK_RUNTIMES = {
   agents_last_exam: agentsLastExamRuntime,
   ale_bench: aleBenchRuntime,
@@ -97,7 +96,6 @@ export const BENCHMARK_RAW_WRITERS = [
   },
 ] satisfies readonly BenchmarkRawWriter[];
 
-/** Fetch every custom benchmark through the registry that owns its ingest lifecycle. */
 export async function fetchBenchmarkSourceRows(): Promise<BenchmarkSourceRows> {
   const entries = await Promise.all(
     Object.values(BENCHMARK_RUNTIMES).map(async (runtime) => [
@@ -108,7 +106,6 @@ export async function fetchBenchmarkSourceRows(): Promise<BenchmarkSourceRows> {
   return Object.fromEntries(entries) as BenchmarkSourceRows;
 }
 
-/** Project persisted custom benchmark snapshots back into normalized source rows. */
 export function benchmarkSourceRowsFromSnapshots(snapshots: SourceSnapshots): BenchmarkSourceRows {
   return Object.fromEntries(
     Object.values(BENCHMARK_RUNTIMES).map((runtime) => [
@@ -118,14 +115,12 @@ export function benchmarkSourceRowsFromSnapshots(snapshots: SourceSnapshots): Be
   ) as BenchmarkSourceRows;
 }
 
-/** Read every benchmark runtime cache through its source-group registry. */
 export function readBenchmarkSnapshotCaches(db: DatabaseSync): BenchmarkSnapshotCaches {
   return Object.fromEntries(
     Object.values(BENCHMARK_RUNTIMES).map((runtime) => [runtime.cacheKey, runtime.readCache(db)]),
   ) as BenchmarkSnapshotCaches;
 }
 
-/** Refresh every benchmark through its registered source-specific implementation. */
 export async function refreshBenchmarkSnapshots(
   caches: BenchmarkSnapshotCaches,
   statuses: Record<RawSourceName, RawSourceCacheStatus>,
@@ -144,7 +139,6 @@ export async function refreshBenchmarkSnapshots(
   return Object.fromEntries(entries) as BenchmarkSnapshots;
 }
 
-/** Compose heterogeneous custom outputs into the common source-snapshot object. */
 export function benchmarkSnapshotRows(snapshots: BenchmarkSnapshots): BenchmarkSnapshotRows {
   return Object.assign(
     {},
@@ -152,7 +146,6 @@ export function benchmarkSnapshotRows(snapshots: BenchmarkSnapshots): BenchmarkS
   ) as BenchmarkSnapshotRows;
 }
 
-/** Write one benchmark raw table through its registered source runtime. */
 export function insertBenchmarkRawRows(
   db: DatabaseWriter,
   snapshots: SourceSnapshots,

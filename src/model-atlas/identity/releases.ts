@@ -4,7 +4,10 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
 export const DATE_LABEL =
   /\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)['’]?\s+['’]?(\d{4}|\d{2})\b/i;
 
-/** Read an explicit year-bearing snapshot date; shortened version suffixes do not establish a year by themselves. */
+/**
+ * Read an explicit year-bearing snapshot date; shortened version suffixes do not establish a year by themselves.
+ * `"claude-sonnet-4-5-20250929"` → `"2025-09-29"`, but `"deepseek-r1-0528"` → `null`.
+ */
 export function versionDate(version: string): string | null {
   const match = /(?:^|-)(20\d{2})-?(\d{2})-?(\d{2})(?:$|[-_])/.exec(version);
   if (!match) return null;
@@ -13,7 +16,7 @@ export function versionDate(version: string): string | null {
   return Number.isFinite(parsed.getTime()) && parsed.toISOString().startsWith(date) ? date : null;
 }
 
-/** Read a named release month without treating an undated model's launch metadata as a snapshot identifier. */
+/** Read a named release month without treating an undated model's launch metadata as a snapshot identifier: `"Gemini 2.5 Pro (Jun '25)"` → `"2025-06"`. */
 export function releaseLabelPeriod(name: string): string | null {
   const match = DATE_LABEL.exec(name);
   if (!match) return null;
@@ -29,6 +32,7 @@ export function sameRelease(period: string, date: string): boolean {
   return Math.abs(Date.parse(period) - Date.parse(date)) <= 86_400_000;
 }
 
+/** `"Gemini 2.5 Pro (June '25)"` → `"Gemini 2.5 Pro (Jun 2025)"`. */
 export function normalizedDateLabel(name: string): string {
   return name.replace(DATE_LABEL, (_text, month: string, year: string) => {
     const short = MONTHS.find((m) => m.toLowerCase() === month.slice(0, 3).toLowerCase())!;

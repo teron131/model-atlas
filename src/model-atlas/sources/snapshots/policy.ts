@@ -169,7 +169,6 @@ export function snapshotRowsWithStates<T>(config: SnapshotRowsConfig<T>): Snapsh
   return { rows, states };
 }
 
-/** Persisted source-row state participates in the next preservation pass. */
 export function persistedSourceRowStates(db: DatabaseSync): SourceRowState[] {
   return sourceRowStatesFromRows(
     db
@@ -180,7 +179,6 @@ export function persistedSourceRowStates(db: DatabaseSync): SourceRowState[] {
   );
 }
 
-/** Decodes persisted source-row state independently of the storage transport. */
 export function sourceRowStatesFromRows(
   rows: readonly Record<string, unknown>[],
 ): SourceRowState[] {
@@ -274,7 +272,6 @@ export function buildModelsDevSourceStates(
   return states;
 }
 
-/** Completed snapshot health records source freshness and row-preservation status beside the run. */
 export function buildSourceHealth({
   generatedAtEpochSeconds,
   sourceCache,
@@ -333,7 +330,6 @@ function rowStateCounts(source: RawSourceName, sourceRowStates: readonly SourceR
   return { active, quarantinedRows };
 }
 
-/** Classifies one raw source as fresh, cached, empty, or stale. */
 function healthStatusFromCache(status: RawSourceCacheStatus): ModelAtlasSourceHealthStatus {
   if (status.source_input_count <= 0) {
     return "empty";

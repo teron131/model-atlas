@@ -29,7 +29,6 @@ export function calibrationObservations<T extends { id?: unknown; name?: unknown
   }));
 }
 
-/** Count the independent model units represented by a calibration population. */
 export function distinctModelCount(observations: readonly { modelKey: string }[]): number {
   return new Set(observations.map(({ modelKey }) => modelKey)).size;
 }

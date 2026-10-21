@@ -552,7 +552,7 @@ function fitAdditiveSourceCrosswalk(
   }
 }
 
-/** Model-name reconciliation follows the existing provider-neutral identity vocabulary; efforts remain separate keys. */
+/** Model names reconcile through the shared provider-neutral identity vocabulary; efforts remain separate keys. */
 function pairObservations(
   a: readonly CrosswalkObservation[],
   b: readonly CrosswalkObservation[],

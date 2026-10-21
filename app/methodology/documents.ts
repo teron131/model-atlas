@@ -175,6 +175,7 @@ export function tableOfContents(markdown: string): TableOfContentsItem[] {
   });
 }
 
+/** Anchor for a heading label, matching local Markdown links: `"Speed & Value: shared coverage"` → `"speed-value-shared-coverage"`. */
 export function headingId(label: string): string {
   return plainScoreText(label)
     .toLowerCase()
@@ -198,7 +199,6 @@ export function documentLink(href: string, document: DocumentSlug): string {
   return `${documentHref(target.slug)}${resolved.search}${resolved.hash}`;
 }
 
-/** Resolve registered artwork to its documentation-owned subject directory. */
 export function documentAssetPath(asset: MethodologyAsset): string {
   return `assets/${METHODOLOGY_ASSETS[asset].directory}/${asset}`;
 }

@@ -208,7 +208,6 @@ const inputModalityScores = [
   ["video", 1],
 ] as const;
 
-/** Preserve frontier, index, and baseline groups while ordering table columns by their visible headers. */
 export const benchmarkMetricColumns = BENCHMARK_DISPLAY_ORDER.map((benchmark) => {
   const column = BENCHMARK_COLUMNS[benchmark];
   return {
@@ -553,7 +552,7 @@ type RowDisplays = {
   variants?: TableRow[];
 };
 
-// The leaderboard and the model sheet read the same snapshot; without this each built its own rows, and the sheet rebuilt both displays on every open.
+// The leaderboard and the model sheet read the same snapshot, so they share its rows instead of rebuilding both displays on every sheet open.
 const rowDisplaysByPayload = new WeakMap<ModelAtlasPayload, RowDisplays>();
 
 /** Reference medians for each resource ratio come from every published variant, so every display measures against the same population. */

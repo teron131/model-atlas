@@ -1,4 +1,5 @@
 /** Package-wide numeric and statistical primitives used across Model Atlas domains. */
+
 export type NumberOrNull = number | null;
 
 export type MinMaxRange = {
@@ -167,7 +168,6 @@ export function meanOfFinite(values: Array<number | null>): number | null {
   return finite.reduce((sum, value) => sum + value, 0) / finite.length;
 }
 
-/** Exclude missing and nonfinite numeric values from statistical summaries. */
 export function finiteValues(values: ReadonlyArray<number | null | undefined>): number[] {
   return values.filter((value): value is number => value != null && Number.isFinite(value));
 }
@@ -214,7 +214,7 @@ export function minMaxRange(values: ReadonlyArray<number | null>): MinMaxRange |
   return min === Infinity ? null : { min, max };
 }
 
-/** Map reference bounds to 0–1 without clamping; missing inputs stay missing and equal bounds use the established upper-end convention. */
+/** Map reference bounds to 0–1 without clamping; missing inputs stay missing, and equal bounds map every value to 1. */
 export function linearScale(range: MinMaxRange | null, value: number | null): number | null {
   if (value == null || range == null) return null;
   if (range.max === range.min) return 1;
@@ -227,7 +227,7 @@ export function linearScore(range: MinMaxRange | null, value: number | null): nu
   return position == null ? null : position * 100;
 }
 
-/** Min-max normalize finite signals in the requested scoring direction. */
+/** Scores land on 0–100, with `"lower"` putting the smallest value at 100; nonfinite inputs stay `null`. */
 export function minMaxScores(
   values: ReadonlyArray<number | null>,
   direction: "higher" | "lower",

@@ -51,7 +51,6 @@ function canonicalize(value: unknown): unknown {
   return value;
 }
 
-/** Bound external fetches with AbortController while preserving the caller's request options. */
 export async function fetchWithTimeout(
   input: string | URL,
   init: RequestInit,
@@ -69,7 +68,6 @@ export async function fetchWithTimeout(
   }
 }
 
-/** Run async work through a small worker pool so scraper fan-out stays friendly to source hosts. */
 export async function mapWithConcurrency<T, R>(
   items: readonly T[],
   concurrency: number,

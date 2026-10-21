@@ -216,7 +216,6 @@ export function DashboardLeaderboard({
     [effectiveLimit, expandedVariantCount, setLimit, setShowVariants],
   );
 
-  /** Keep a column change and any required sort fallback in one navigable action. */
   const changeColumnView = useCallback(
     (patch: Pick<DashboardUrlPatch, "view" | "column-q">) => {
       const preset = patch.view ?? columnPreset;

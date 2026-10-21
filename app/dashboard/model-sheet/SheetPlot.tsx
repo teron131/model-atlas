@@ -105,7 +105,6 @@ export function useSheetPlot(
 
 export type SheetPlotGeometry = ReturnType<typeof useSheetPlot>;
 
-/** One of the sheet's own models, drawn as the leaderboard's score star rather than a chart's ringed mark: a solid core in the provider's light that blooms when lit and steps back when muted. */
 export function SheetStar({
   cx,
   cy,
@@ -135,7 +134,6 @@ export function SheetStar({
   );
 }
 
-/** The plot's field, score gridlines, cost labels, median guide, and axis titles, drawn beneath its marks. */
 export function SheetPlotFrame({
   plot,
   scoreTicks,

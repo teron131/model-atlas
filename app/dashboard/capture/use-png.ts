@@ -8,7 +8,7 @@ import { downloadElementPng } from "./png";
 
 type CaptureState = "idle" | "rendering" | "saved" | "error";
 
-/** Capture a referenced element while exposing compact progress and completion state; `onStaged` receives the copy staged at `captureWidth` before it renders. */
+/** `onStaged` receives the copy staged at `captureWidth` before it renders. */
 export function usePngCapture(
   targetRef: RefObject<HTMLElement | null>,
   fileName: string,

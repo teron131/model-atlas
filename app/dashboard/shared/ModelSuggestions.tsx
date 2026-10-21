@@ -110,7 +110,6 @@ export function useModelSuggestions(
   };
 }
 
-/** The listbox beneath a model search: each match with its provider mark and Intelligence, the chosen one traced in its provider colour. */
 export function ModelSuggestionList({
   id,
   suggestions,

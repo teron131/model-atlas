@@ -1,3 +1,5 @@
+/* Styles for the model sheet panel, its comparison columns, its plots, and its saved card. */
+
 /* The model sheet floats over the dashboard as an opaque research plane at the viewport's edge, lit along its top edge like the other floating surfaces; it scrolls on its own so long benchmark lists never move the page. It starts below the header's height, so the header and the pinned rail stay usable while it is open. */
 .sheet {
   --sheet-inset: clamp(8px, 1.2vw, 16px);

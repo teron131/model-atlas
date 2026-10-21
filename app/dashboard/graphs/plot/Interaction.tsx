@@ -28,7 +28,6 @@ type ProjectionConfig = {
 
 type ProjectionTarget = Omit<ProjectionConfig, "event">;
 
-/** Snap a pointer event to the nearest projected chart point within range. */
 function projectCursor({
   event,
   bounds: plot,
@@ -65,7 +64,6 @@ function projectCursor({
   return nearestPoint && nearestDistance <= snapDistance ? nearestPoint : null;
 }
 
-/** Track nearest-point cursor projection state for SVG charts. */
 export function useCursorProjection() {
   const [cursorProjection, setCursorProjection] = useState<CursorProjection | null>(null);
 
@@ -89,7 +87,6 @@ export function useCursorProjection() {
   };
 }
 
-/** Disable the hit area while the measured plot bounds are empty or reversed. */
 export function CursorCapture({ bounds }: { bounds: PlotBounds }) {
   return (
     <rect

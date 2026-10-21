@@ -1,3 +1,5 @@
+/* Styles for the dashboard's research regions, instrument rail, and analytical charts. */
+
 /* Chart typography and pigments inherit the page theme while giving dense plots a readable scale; `chartTokens` lends the same pigments to plots outside the dashboard regions, such as the model sheet's. */
 .atlas,
 .chartTokens {

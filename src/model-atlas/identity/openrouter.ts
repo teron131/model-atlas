@@ -41,7 +41,7 @@ const CATALOG_ALIAS_STRIP_SUFFIXES = [...CATALOG_ALIAS_SUFFIXES].sort(
 );
 const DATED_PREVIEW_ROUTE_PATTERN = /^(.+)-preview-\d{2}-(?:\d{2}|\d{4})$/;
 
-/** Removes dated and preview suffixes from OpenRouter model names. */
+/** Removes dated and preview suffixes from OpenRouter model names: `"gemini-2.5-pro-preview-06-05"` → `"gemini-2.5-pro"`, `"gpt-4o-2024-08-06"` → `"gpt-4o"`. */
 function stripVersionSuffix(modelName: string): string {
   return modelName
     .replace(/-(?:preview|beta|experimental)(?:-\d{2,4}(?:-\d{2,4})*)?$/i, "")
@@ -97,7 +97,10 @@ export function isSameOpenRouterModelRoute(targetRoute: string, candidateRoute: 
   );
 }
 
-/** Removes catalog-only effort and alias suffixes before matching. */
+/**
+ * Removes catalog-only effort and alias suffixes before matching.
+ * `"anthropic/claude-sonnet-4-5-20250929"` → `"anthropic/claude-sonnet-4-5"` and `"openai/gpt-5-high"` → `"openai/gpt-5"`.
+ */
 export function stripCatalogAliasSuffixes(value: string): string {
   let normalized = value.replace(/-\d{8}$/, "");
   for (const suffix of CATALOG_ALIAS_STRIP_SUFFIXES) {
@@ -155,6 +158,7 @@ export function nonFreeOpenRouterModelId(modelId: string): string | null {
     : null;
 }
 
+/** `"anthropic/claude-sonnet-4-5-20250929"` → `"anthropic/claude-sonnet-4.5"` and `"google/gemini-2.5-pro-preview-06-05:free"` → `"google/gemini-2.5-pro"`. */
 export function publicOpenRouterModelId(modelId: string | null): string | null {
   if (modelId == null) {
     return null;
@@ -175,7 +179,10 @@ export function hasPublicFreeRouteLabel(modelName: string | null | undefined): b
   return /\s+\(free\)\s*$/i.test(modelName ?? "");
 }
 
-/** Removes transient preview/latest/free and route-owned release labels from public model names. */
+/**
+ * Removes transient preview/latest/free and route-owned release labels from public model names.
+ * `"Gemini 2.5 Pro Preview 06-05"` → `"Gemini 2.5 Pro"` and `"DeepSeek V3.1 (free)"` → `"DeepSeek V3.1"`.
+ */
 export function publicOpenRouterModelName(
   modelName: string | null,
   modelId: string | null = null,

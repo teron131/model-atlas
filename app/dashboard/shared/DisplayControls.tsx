@@ -9,7 +9,6 @@ import styles from "./display-controls.module.css";
 const MINIMUM_DISPLAY_ITEMS = 3;
 export const DEFAULT_DISPLAY_ITEMS = 50;
 
-/** Keep a requested display count inside the available data-backed range. */
 function clampDisplayLimit(limit: number, maximum: number): number {
   if (maximum <= 0) return 0;
   return Math.min(Math.max(Math.trunc(limit), Math.min(MINIMUM_DISPLAY_ITEMS, maximum)), maximum);

@@ -13,7 +13,6 @@ export const PARETO_PANEL_CONTENT = {
 export const PARETO_CAPTION =
   "Compare model performance and resources. The glowing frontier marks the best visible tradeoffs.";
 
-/** The figure's top edge: performance choices over the y-axis, and the score summary at the plot's right. */
 export function ParetoFigureTop({
   yAxisControl,
   summary,
@@ -34,7 +33,6 @@ export function ParetoFigureTop({
   );
 }
 
-/** The figure's foot: resource choices under the x-axis, headed by their title and the local variant toggle. */
 export function ParetoFigureFoot({
   xAxisControl,
   showVariants,

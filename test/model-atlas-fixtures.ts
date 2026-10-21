@@ -183,7 +183,7 @@ export type HistoricalSourceRelease = {
   portfolios: HistoricalPortfolio[];
 };
 
-/** Assemble retained-release fixtures without depending on removed live collectors; same-date conflicts remain excluded. */
+/** Assemble a historical dataset from retained-release fixtures alone; same-date conflicts remain excluded. */
 export function historicalDatasetFromReleases(
   releases: HistoricalSourceRelease[],
   currentRows: Record<string, unknown>[] = [],
