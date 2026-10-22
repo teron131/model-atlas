@@ -546,7 +546,7 @@
 .medianLabel {
   fill: var(--chart-label-fill);
   font-family: var(--font-mono);
-  font-size: var(--type-data-size);
+  font-size: var(--type-caption-size);
   font-weight: var(--type-label-weight);
 }
 
@@ -600,7 +600,7 @@
 .axisLabel,
 .axisTitle {
   fill: var(--muted);
-  font-size: var(--type-data-size);
+  font-size: var(--type-caption-size);
   font-weight: var(--type-label-weight);
 }
 
@@ -633,7 +633,7 @@
   text-transform: uppercase;
 }
 
-/* A frontier reads as a horizon: a hot rim, horizon-coloured light, and stipple over the region it reaches. */
+/* A frontier reads as a horizon: a crisp lit rim whose light rises into the open sky above it. */
 .horizon {
   pointer-events: none;
   transition: opacity 0.12s ease;
@@ -643,8 +643,8 @@
   opacity: 0.4;
 }
 
-.horizonStipple,
-.horizonGlow,
+.horizonSky,
+.horizonHalo,
 .horizonEdge,
 .horizonRim {
   fill: none;
@@ -652,14 +652,30 @@
   stroke-linejoin: round;
 }
 
+.horizonSky {
+  opacity: 0.5;
+}
+
+.horizonHalo {
+  opacity: 0.7;
+}
+
 .horizonEdge {
-  stroke-width: 2.6;
-  opacity: 0.9;
+  stroke-width: 1.4;
 }
 
 .horizonRim {
   stroke: var(--chart-horizon-core);
-  stroke-width: 1;
+  stroke-width: 0.6;
+}
+
+/* Light on mineral paper reads as smudge, so the light-theme horizon keeps its rim and only tints the sky above. */
+:global(html[data-model-atlas-theme="light"]) .horizonSky {
+  opacity: 0.17;
+}
+
+:global(html[data-model-atlas-theme="light"]) .horizonHalo {
+  opacity: 0.3;
 }
 
 /* A frontier step answers the pointer along a band as wide as a Timeline lab line, and its stretch of rim lights while its trade is read. */
@@ -790,8 +806,8 @@
   pointer-events: none;
   fill: var(--chart-point-label);
   font-family: var(--font-mono);
-  font-size: var(--type-data-size);
-  font-weight: var(--type-label-weight);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-body-weight);
   paint-order: stroke;
   stroke: var(--chart-point-label-stroke);
   stroke-width: 3px;

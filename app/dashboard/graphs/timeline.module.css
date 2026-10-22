@@ -29,11 +29,11 @@
 .frontierKey {
   display: inline-block;
   width: 18px;
-  height: 2px;
+  height: 1.5px;
   margin-right: 7px;
   vertical-align: middle;
   background: var(--horizon-gradient);
-  box-shadow: 0 0 8px rgb(143 107 255 / 0.7);
+  box-shadow: 0 -2px 6px rgb(143 107 255 / 0.45);
 }
 /* The selected model reads as a star-catalogue entry: its name and figures at display size, labels in measurement type. */
 /* The name takes the spare width on one line and each figure keeps its natural width, so following the pointer from star to star never resizes the entry or moves the plot beneath it. */
