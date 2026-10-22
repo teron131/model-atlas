@@ -182,8 +182,9 @@ export function TimelinePanel({ currentModels }: { currentModels: readonly Model
     ])
     .range([height - margin.bottom, margin.top]);
   const xPoint = (point: TimelinePoint) => x(new Date(point.releaseDate));
+  // Stars share the Pareto plot's scale; this field is far denser, so they sit at the small end of it.
   const pointRadius = (point: TimelinePoint) =>
-    chosen?.id === point.id ? 4.8 : frontierIds.has(point.id) ? 3.6 : 3.2;
+    chosen?.id === point.id ? 3.6 : frontierIds.has(point.id) ? 2.8 : 2.4;
   // Evidence support dims a star; the chosen model always shines at full strength.
   const pointOpacity = (point: TimelinePoint) =>
     chosen?.id === point.id ? 1 : 0.35 + 0.65 * (point.coverage ?? 0);

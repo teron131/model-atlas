@@ -289,7 +289,7 @@ export function LabsPlot({
                       className={styles.starCore}
                       cx={x(new Date(point.releaseDate))}
                       cy={y(point.score)}
-                      {...starCore(highlight === lab.provider ? 4 : 3, color)}
+                      {...starCore(highlight === lab.provider ? 3.2 : 2.4, color)}
                       pointerEvents="none"
                     />
                   </g>

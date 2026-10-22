@@ -76,8 +76,8 @@ type StarLight = {
 
 // Glow size in star radii and its strength before the blur softens it; kept tight so marks stay legible.
 const STAR_GLOW = {
-  frontier: { reach: 1.55, strength: 0.42 },
-  selected: { reach: 1.9, strength: 0.6 },
+  frontier: { reach: 1.3, strength: 0.24 },
+  selected: { reach: 1.6, strength: 0.4 },
 } as const;
 const STAR_GLOW_BLUR = 1.6;
 
@@ -129,24 +129,15 @@ type ScreenPoint = { x: number; y: number };
 /** The side where a frontier's reached region continues past its outermost model to the plot edge. */
 type HorizonOpenSide = "left" | "right";
 
-// Light along the rim, widest and faintest first; only the half under the rim survives the land clip.
-const HORIZON_GLOW = [
-  { width: 46, opacity: 0.07 },
-  { width: 22, opacity: 0.12 },
-  { width: 9, opacity: 0.22 },
+// The rim's light rises into the open sky above it: a tight glow over a broad, faint one, so brightness falls away evenly instead of ending as a band.
+const HORIZON_SKY = [
+  { width: 4, blur: 4 },
+  { width: 12, blur: 16 },
 ] as const;
-// One tile of the stipple scattered under the rim, as [x, y, radius] in plot pixels.
-const STIPPLE_TILE = 17;
-const STIPPLE = [
-  [1.5, 2.5, 0.7],
-  [9.5, 1, 0.55],
-  [14.5, 6.5, 0.75],
-  [5, 8, 0.6],
-  [11, 11.5, 0.7],
-  [2, 14, 0.55],
-  [7.5, 15.5, 0.65],
-  [15.5, 14, 0.5],
-] as const;
+// The sky light is sized for a full dashboard plot this tall and shrinks with smaller plots, such as the phone layout and the model sheet's inset, so it never outweighs them.
+const HORIZON_SKY_PLOT_HEIGHT = 480;
+// A tight halo keeps the rim luminous without widening it.
+const HORIZON_HALO = { width: 3, blur: 2.5 } as const;
 
 /** The horizon's cobalt-to-violet-to-rose light as SVG gradient stops, matching the --horizon-gradient token; literal so PNG exports, which drop stylesheet rules inside SVG, keep the same light. */
 export function HorizonLightStops() {
@@ -174,9 +165,9 @@ export function horizonRim(
 }
 
 /**
- * Draw a frontier the way the sky draws its horizon: a hot rim over the region the frontier reaches, with light and stipple along its underside.
+ * Draw a frontier the way the sky draws its horizon: a crisp lit rim whose light rises into the open sky above it.
  *
- * Every model the frontier outperforms sits inside the lit region, so the rim reads as the edge of what has been reached.
+ * Every model the frontier outperforms sits inside the region below the rim, which keeps only a faint wash, so the light never clouds those models.
  */
 export function FrontierHorizon({
   points,
@@ -199,11 +190,24 @@ export function FrontierHorizon({
   const rimPath = rim
     .map(({ x, y }, index) => `${index ? "L" : "M"}${stableSvgNumber(x)},${stableSvgNumber(y)}`)
     .join("");
+  const skyScale = Math.min(1, (bounds.bottom - bounds.top) / HORIZON_SKY_PLOT_HEIGHT);
+  const skyLayers = HORIZON_SKY.map(({ width, blur }) => ({
+    width: stableSvgNumber(width * skyScale),
+    blur: stableSvgNumber(blur * skyScale),
+  }));
+  const reach = Math.max(...HORIZON_SKY.map(({ width, blur }) => width / 2 + blur * 3));
   const landPath = `${rimPath}L${stableSvgNumber(last.x)},${stableSvgNumber(bounds.bottom)}L${stableSvgNumber(first.x)},${stableSvgNumber(bounds.bottom)}Z`;
   const light = `${id}-light`;
   const land = `${id}-land`;
-  const stipple = `${id}-stipple`;
-  const clip = `${id}-clip`;
+  const skyMask = `${id}-sky-mask`;
+  const skyLight = `${id}-sky-light`;
+  const halo = `${id}-halo`;
+  const region = {
+    x: bounds.left - reach,
+    y: bounds.top - reach,
+    width: bounds.right - bounds.left + reach * 2,
+    height: bounds.bottom - bounds.top + reach * 2,
+  };
   return (
     <g
       className={muted ? `${styles.horizon} ${styles.horizonMuted}` : styles.horizon}
@@ -228,56 +232,48 @@ export function FrontierHorizon({
           x2={0}
           y2={bounds.bottom}
         >
-          <stop offset="0" stopColor="#6f8cff" stopOpacity="0.15" />
-          <stop offset="1" stopColor="#6f8cff" stopOpacity="0.025" />
+          <stop offset="0" stopColor="#6f8cff" stopOpacity="0.08" />
+          <stop offset="1" stopColor="#6f8cff" stopOpacity="0" />
         </linearGradient>
-        <pattern
-          id={stipple}
-          width={STIPPLE_TILE}
-          height={STIPPLE_TILE}
-          patternUnits="userSpaceOnUse"
-        >
-          {STIPPLE.map(([x, y, radius]) => (
-            <circle key={`${x}-${y}`} cx={x} cy={y} r={radius} fill="currentColor" />
-          ))}
-        </pattern>
-        <clipPath id={clip}>
-          <path d={landPath} />
-        </clipPath>
+        {skyLayers.map(({ blur }, index) => (
+          <filter key={blur} id={`${skyLight}-${index}`} filterUnits="userSpaceOnUse" {...region}>
+            <feGaussianBlur stdDeviation={blur} />
+          </filter>
+        ))}
+        <filter id={halo} filterUnits="userSpaceOnUse" {...region}>
+          <feGaussianBlur stdDeviation={HORIZON_HALO.blur} />
+        </filter>
+        {/* Only the reached region is kept dark, so the light fades out naturally past the frontier's ends while staying inside the plot's width. */}
+        <mask id={skyMask} maskUnits="userSpaceOnUse" {...region}>
+          <rect
+            x={bounds.left}
+            y={region.y}
+            width={bounds.right - bounds.left}
+            height={region.height}
+            fill="#fff"
+          />
+          <path d={landPath} fill="#000" />
+        </mask>
       </defs>
-      <path className={styles.horizonLand} d={landPath} fill={`url(#${land})`} />
-      <g clipPath={`url(#${clip})`}>
-        <path
-          className={styles.horizonStipple}
-          d={rimPath}
-          stroke={`url(#${stipple})`}
-          strokeWidth={34}
-          opacity={0.32}
-        />
-        <path
-          className={styles.horizonStipple}
-          d={rimPath}
-          stroke={`url(#${stipple})`}
-          strokeWidth={14}
-          opacity={0.5}
-        />
-        {HORIZON_GLOW.map(({ width, opacity }) => (
+      <path d={landPath} fill={`url(#${land})`} />
+      <g mask={`url(#${skyMask})`}>
+        {skyLayers.map(({ width }, index) => (
           <path
             key={width}
-            className={styles.horizonGlow}
+            className={styles.horizonSky}
             d={rimPath}
             stroke={`url(#${light})`}
             strokeWidth={width}
-            opacity={opacity}
+            filter={`url(#${skyLight}-${index})`}
           />
         ))}
       </g>
       <path
-        className={styles.horizonGlow}
+        className={styles.horizonHalo}
         d={rimPath}
         stroke={`url(#${light})`}
-        strokeWidth={8}
-        opacity={0.16}
+        strokeWidth={HORIZON_HALO.width}
+        filter={`url(#${halo})`}
       />
       <path className={styles.horizonEdge} d={rimPath} stroke={`url(#${light})`} />
       <path className={styles.horizonRim} d={rimPath} />
