@@ -593,10 +593,80 @@ assert.equal(
 );
 const surgeLookup = buildBenchmarkObservationLookup(surge);
 assert.equal(
+  findBenchmarkObservation(["Kimi K3"], "max", surgeLookup)?.canonical_value,
+  0.43,
+  "The branded source model remains matchable when its stored base model omits the creator",
+);
+assert.equal(findBenchmarkObservation(["Kimi K3"], "high", surgeLookup), null);
+assert.equal(findBenchmarkObservation(["Kimi K3"], null, surgeLookup)?.canonical_value, 0.43);
+assert.equal(
   surgeLookup.has("max--max"),
   false,
   "Effort-label slashes should not create cross-model lookup aliases",
 );
+
+const sudoL7 = processSurgeBenchmarkPageHtml(
+  `
+  <div role="listitem" data-score="41.7"><img alt="Anthropic Logo"><div class="head-rank-table-brand">Claude</div><div class="head-rank-table-name">Opus 5.5 (Adaptive/Max) [Claude Code]</div></div>
+  <div role="listitem" data-score="41.7"><img alt="Anthropic Logo"><div class="head-rank-table-brand">Claude</div><div class="head-rank-table-name">Sonnet 5.5 (Adaptive/Max) [Claude Code]</div></div>
+  <div role="listitem" data-score="33.9"><img alt="OpenAI Logo"><div class="head-rank-table-brand">GPT</div><div class="head-rank-table-name">6 Astra (Max reasoning) [Codex]</div></div>
+  <div role="listitem" data-score="20.6"><img alt="Qwen Logo"><div class="head-rank-table-brand">Qwen</div><div class="head-rank-table-name">3.8 Max (xHigh reasoning) [Qwen Code]</div></div>
+  <section><div role="listitem" data-score="99"><div class="lboard-perc-row-title">Unrelated benchmark card</div></div></section>
+  `,
+  "sudo_l7",
+  "https://surgehq.ai/benchmarks/sudo-l7",
+);
+assert.deepEqual(
+  sudoL7.map(({ model, reasoning_effort, rank, canonical_value, metadata }) => ({
+    model,
+    reasoning_effort,
+    rank,
+    canonical_value,
+    harness: metadata.harness,
+  })),
+  [
+    {
+      model: "Claude Opus 5.5 (Adaptive/Max)",
+      reasoning_effort: "max",
+      rank: 1,
+      canonical_value: 0.417,
+      harness: "Claude Code",
+    },
+    {
+      model: "Claude Sonnet 5.5 (Adaptive/Max)",
+      reasoning_effort: "max",
+      rank: 1,
+      canonical_value: 0.417,
+      harness: "Claude Code",
+    },
+    {
+      model: "GPT 6 Astra (Max reasoning)",
+      reasoning_effort: "max",
+      rank: 3,
+      canonical_value: 0.339,
+      harness: "Codex",
+    },
+    {
+      model: "Qwen 3.8 Max (xHigh reasoning)",
+      reasoning_effort: "xhigh",
+      rank: 4,
+      canonical_value: 0.206,
+      harness: "Qwen Code",
+    },
+  ],
+);
+const sudoL7Lookup = buildBenchmarkObservationLookup(sudoL7);
+assert.equal(
+  findBenchmarkObservation(["Claude Opus 5.5"], "max", sudoL7Lookup)?.canonical_value,
+  0.417,
+);
+assert.equal(findBenchmarkObservation(["Claude Opus 5.5"], "high", sudoL7Lookup), null);
+assert.equal(findBenchmarkObservation(["Qwen3.8 Max"], null, sudoL7Lookup)?.canonical_value, 0.206);
+assert.equal(
+  findBenchmarkObservation(["Qwen3.8 Max"], "xhigh", sudoL7Lookup)?.canonical_value,
+  0.206,
+);
+assert.equal(findBenchmarkObservation(["Qwen3.8 Max"], "high", sudoL7Lookup), null);
 
 const surgeIndex = processSurgeIntelligenceIndexPageHtml(
   `

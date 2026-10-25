@@ -267,6 +267,11 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
   },
+  sudo_l7: {
+    group: "frontier",
+    benchmarkImportance: 1,
+    dimensionLoadings: { intelligence: 0, agentic: 1 },
+  },
   superchem: {
     group: "frontier",
     benchmarkImportance: 1,

@@ -84,7 +84,7 @@ The four scores follow two paths from the same observed inputs, and each path en
 
 Benchmark, reasoning-effort, and resource coverage is uneven. **Imputation** fills supported gaps from relationships among observed results. **Imputed values help estimate scores; they never count as direct evidence.** Observations alone set reference scales and satisfy inclusion and resource-availability requirements. Validated [source crosswalks](imputation.md#source-crosswalks) differ: they combine comparable sources of one benchmark into an accepted benchmark result without assuming either source is better. [Benchmark imputation](imputation.md#benchmark-results-and-imputation) and [resource imputation](imputation.md#resource-imputation-across-reasoning-efforts) explain how estimates enter scoring and how their support is assessed.
 
-![Imputation fills a gap from another effort of the same model or from the model’s other benchmarks; a gap without enough evidence stays missing.](../assets/methodology/imputation-overview.svg)
+![Imputation fills a gap from an observed result at another effort of the same model, or from the model’s other benchmarks; a gap without enough evidence stays missing.](../assets/methodology/imputation-overview.svg)
 
 ## Shared Mathematical Operations
 

@@ -5,6 +5,7 @@ import {
   normalizeModelToken,
   reasoningEffortRank,
 } from "../identity/normalization";
+import { canonicalQwenName } from "../identity/qwen";
 
 export type BenchmarkObservationMetadata = Record<
   string,
@@ -127,9 +128,14 @@ function modelIdConflictsWithBaseModel(row: BenchmarkObservationEvidenceRow): bo
   );
 }
 
+function baseModelNames(row: BenchmarkObservationEvidenceRow): string[] {
+  const model = benchmarkModelEffort(row.model).baseModel;
+  return [row.base_model, model, canonicalQwenName(model)];
+}
+
 function modelKeys(row: BenchmarkObservationEvidenceRow): string[] {
   const modelId = modelIdConflictsWithBaseModel(row) ? null : row.model_id;
-  return [modelId, row.model, row.base_model]
+  return [modelId, row.model, ...baseModelNames(row)]
     .flatMap((value) => {
       if (value == null) return [];
       return [value, trailingModelAlias(value)];
@@ -195,17 +201,18 @@ export function buildBenchmarkObservationLookup<Row extends BenchmarkObservation
         rowsByModel.set(exactKey, row);
       }
     }
-    const baseKey = normalizeModelToken(row.base_model);
-    const currentDefault = defaultByBase.get(baseKey);
-    if (
-      currentDefault == null ||
-      reasoningEffortRank(row.reasoning_effort) >
-        reasoningEffortRank(currentDefault.reasoning_effort) ||
-      (reasoningEffortRank(row.reasoning_effort) ===
-        reasoningEffortRank(currentDefault.reasoning_effort) &&
-        isNewer(row, currentDefault))
-    ) {
-      defaultByBase.set(baseKey, row);
+    for (const baseKey of new Set(baseModelNames(row).map(normalizeModelToken))) {
+      const currentDefault = defaultByBase.get(baseKey);
+      if (
+        currentDefault == null ||
+        reasoningEffortRank(row.reasoning_effort) >
+          reasoningEffortRank(currentDefault.reasoning_effort) ||
+        (reasoningEffortRank(row.reasoning_effort) ===
+          reasoningEffortRank(currentDefault.reasoning_effort) &&
+          isNewer(row, currentDefault))
+      ) {
+        defaultByBase.set(baseKey, row);
+      }
     }
   }
   for (const [baseKey, row] of defaultByBase) {

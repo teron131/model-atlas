@@ -7,6 +7,7 @@
  * - https://surgehq.ai/benchmarks/enterprisebench-corecraft
  * - https://surgehq.ai/benchmarks/handbook
  * - https://surgehq.ai/benchmarks/hemingway-bench
+ * - https://surgehq.ai/benchmarks/sudo-l7
  * - https://surgehq.ai/benchmarks
  * - https://surgehq.ai/leaderboards/gdp-pdf
  */
@@ -102,24 +103,26 @@ export function processSurgeBenchmarkPageHtml(
     .filter((row): row is SurgeLeaderboardScoreRow => row != null);
   let rank = 0;
   let previousScore: number | null = null;
-  return rows.map((row, index) => {
+  return rows.map((row, index): BenchmarkObservationRow => {
     if (previousScore == null || row.score !== previousScore) {
       rank = index + 1;
     }
     previousScore = row.score;
-    const parsed = benchmarkModelEffort(row.model);
+    const [suffix, harness] = row.model.match(/\s*\[([^\]]+)\]\s*$/) ?? [];
+    const model = suffix == null ? row.model : row.model.slice(0, -suffix.length).trim();
+    const parsed = benchmarkModelEffort(model);
     return {
       benchmark_key: benchmarkKey,
       source_url: sourceUrl,
       model_id: null,
-      model: row.model,
+      model,
       base_model: modelNameWithoutCreatorPrefix(parsed.baseModel, row.provider),
       reasoning_effort: parsed.reasoningEffort,
       model_creator: row.provider,
       rank,
       canonical_value: row.score,
       observed_at: row.last_updated,
-      metadata: {},
+      metadata: harness == null ? {} : { harness: harness.trim() },
     };
   });
 }

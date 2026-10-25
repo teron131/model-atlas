@@ -313,6 +313,7 @@ const lookups = {
   simpleQaVerified: { rowsByModelName: emptyLookup() },
   spatialviz: { rowsByModelName: emptyLookup() },
   sreBench: { rowsByModelName: emptyLookup() },
+  sudoL7: { rowsByModelName: emptyLookup() },
   superchem: { rowsByModelName: emptyLookup() },
   surgeIntelligenceIndex: { rowsByModelName: emptyLookup() },
   terminalBench4: {

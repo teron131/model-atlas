@@ -403,6 +403,16 @@ export const BENCHMARK_STANDARD_SOURCES = {
     sourceDataKey: "sreBench",
     sourceRowsKey: "sreBenchRows",
   },
+  sudo_l7: {
+    group: "surge",
+    id: "surge",
+    loader: {
+      kind: "surge",
+      sourceUrl: "https://surgehq.ai/benchmarks/sudo-l7",
+    },
+    sourceDataKey: "sudoL7",
+    sourceRowsKey: "sudoL7Rows",
+  },
   superchem: {
     group: "standalone",
     id: "mercor",
