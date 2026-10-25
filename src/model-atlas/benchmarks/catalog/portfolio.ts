@@ -177,6 +177,11 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
+  gdp_xlsx: {
+    group: "frontier",
+    benchmarkImportance: 1,
+    dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
+  },
   gdpval_normalized: {
     group: "frontier",
     benchmarkImportance: 1,

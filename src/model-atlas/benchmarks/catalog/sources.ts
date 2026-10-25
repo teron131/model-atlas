@@ -254,6 +254,16 @@ export const BENCHMARK_STANDARD_SOURCES = {
     sourceDataKey: "gdpPdf",
     sourceRowsKey: "gdpPdfRows",
   },
+  gdp_xlsx: {
+    group: "surge",
+    id: "surge",
+    loader: {
+      kind: "surge",
+      sourceUrl: "https://surgehq.ai/benchmarks/gdp-xlsx",
+    },
+    sourceDataKey: "gdpXlsx",
+    sourceRowsKey: "gdpXlsxRows",
+  },
   handbook_md: {
     group: "surge",
     id: "surge",

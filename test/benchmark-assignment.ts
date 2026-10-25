@@ -296,6 +296,7 @@ const lookups = {
   gdpPdf: {
     rowsByModelName: emptyLookup(),
   },
+  gdpXlsx: { rowsByModelName: emptyLookup() },
   handbookMd: { rowsByModelName: new Map() },
   hemingwayBench: { rowsByModelName: emptyLookup() },
   intphys2: { rowsByModelName: emptyLookup() },

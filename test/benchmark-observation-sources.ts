@@ -17,6 +17,7 @@ import { processEpochCapabilitiesIndexCsv } from "../src/model-atlas/sources/epo
 import { epochBenchmarkObservationRows } from "../src/model-atlas/sources/epoch/results";
 import { processEpochWeirdMlCsv } from "../src/model-atlas/sources/epoch/weirdml";
 import { readBenchmarkObservationRawCache } from "../src/model-atlas/sources/observations/cache";
+import { benchmarkObservationSource } from "../src/model-atlas/sources/observations/load";
 import { parseCsvRecords } from "../src/model-atlas/sources/parsing";
 import { mergeCachedSourceRows, snapshotRows } from "../src/model-atlas/sources/snapshots/policy";
 import {
@@ -667,6 +668,52 @@ assert.equal(
   0.206,
 );
 assert.equal(findBenchmarkObservation(["Qwen3.8 Max"], "high", sudoL7Lookup), null);
+
+const healthcare = processSurgeBenchmarkPageHtml(
+  `
+  <div role="listitem" data-score="18"><img alt="Meta Logo"><div class="head-rank-table-brand">Muse</div><div class="head-rank-table-name">Wonder 1.0 (Max reasoning)</div></div>
+  <div role="listitem" data-score="10.8"><img alt="Google Logo"><div class="head-rank-table-brand">Gemini</div><div class="head-rank-table-name">4 Argon (High reasoning)</div></div>
+  `,
+  "dayjob_healthcare",
+  "https://surgehq.ai/benchmarks/dayjob-healthcare",
+);
+const healthcareLookup = buildBenchmarkObservationLookup(healthcare);
+assert.equal(
+  findBenchmarkObservation(["Muse Wonder"], "max", healthcareLookup)?.canonical_value,
+  0.18,
+);
+assert.equal(findBenchmarkObservation(["Muse Wonder Full"], "max", healthcareLookup), null);
+assert.equal(findBenchmarkObservation(["Muse Wonder"], "high", healthcareLookup), null);
+const healthcareBinding = BENCHMARK_OBSERVATION_BINDINGS.find(
+  (binding) => binding.benchmark === "dayjob_healthcare",
+);
+assert.ok(healthcareBinding);
+const healthcareSource = benchmarkObservationSource(healthcareBinding);
+const updatedHealthcare = healthcare[1];
+assert.ok(updatedHealthcare);
+const cachedHealthcare = { ...updatedHealthcare, canonical_value: 0.096 };
+assert.deepEqual(
+  snapshotRows(
+    [cachedHealthcare],
+    [updatedHealthcare],
+    1_794_000_000,
+    {},
+    benchmarkObservationRowKey,
+    healthcareSource.mergeRow,
+  ),
+  [updatedHealthcare],
+);
+assert.deepEqual(
+  snapshotRows(
+    [cachedHealthcare],
+    [],
+    null,
+    {},
+    benchmarkObservationRowKey,
+    healthcareSource.mergeRow,
+  ),
+  [cachedHealthcare],
+);
 
 const surgeIndex = processSurgeIntelligenceIndexPageHtml(
   `
