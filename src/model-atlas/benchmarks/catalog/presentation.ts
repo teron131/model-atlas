@@ -467,6 +467,16 @@ export const BENCHMARK_TOOLTIPS = {
       ["Role", "binary reverse engineering"],
     ],
   },
+  sudo_l7: {
+    title: "sudo L7",
+    body: "Complete software engineering tasks that require system understanding, practical judgment, verification, and truthful reporting.",
+    rows: [
+      ["Source", "Surge AI"],
+      ["Metric", "published leaderboard percentage"],
+      ["Scope", "60 tasks; model-plus-agent results"],
+      ["Role", "reliable software engineering"],
+    ],
+  },
   superchem: {
     title: "SUPERChem",
     body: "Solve 500 expert-curated multimodal chemistry problems.",
@@ -623,6 +633,7 @@ export const BENCHMARK_LABELS = {
   simpleqa_verified: "SimpleQA Verified",
   spatialviz: "SpatialViz-Bench",
   sre_bench: "SRE Bench",
+  sudo_l7: "sudo L7",
   superchem: "SUPERChem",
   surge_intelligence_index: "Surge Intelligence Index",
   terminal_bench_4: "Terminal-Bench 4.0",
@@ -674,6 +685,7 @@ const FRONTIER_BENCHMARK_DISPLAY_ORDER = [
   "rsi_benchmark",
   "spatialviz",
   "sre_bench",
+  "sudo_l7",
   "superchem",
   "terminal_bench_4",
   "terminal_bench_science",
@@ -1464,6 +1476,12 @@ export const BENCHMARK_COLUMNS = {
   sre_bench: {
     key: "sreBench",
     label: "SRE",
+    format: "percent",
+    defaultSort: "descending",
+  },
+  sudo_l7: {
+    key: "sudoL7",
+    label: "sudo L7",
     format: "percent",
     defaultSort: "descending",
   },

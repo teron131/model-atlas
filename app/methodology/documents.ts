@@ -106,7 +106,7 @@ const METHODOLOGY_ASSETS = {
   "index-overlap.svg": { directory: "methodology", width: 760, height: 238 },
   "resource-coverage.svg": { directory: "methodology", width: 760, height: 400 },
   "resource-agreement.svg": { directory: "methodology", width: 760, height: 460 },
-  "imputation-overview.svg": { directory: "methodology", width: 760, height: 306 },
+  "imputation-overview.svg": { directory: "methodology", width: 760, height: 354 },
   "weighted-mean.svg": { directory: "methodology", width: 760, height: 230 },
   "weighted-quantile-steps.svg": { directory: "methodology", width: 760, height: 400 },
   "weighted-ranks.svg": { directory: "methodology", width: 760, height: 296 },

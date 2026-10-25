@@ -1257,6 +1257,7 @@ function modelStatsSourceData(
     simpleQaVerified: { rows: [], rowsByModelName: new Map() },
     spatialviz: { rows: [], rowsByModelName: new Map() },
     sreBench: { rows: [], rowsByModelName: new Map() },
+    sudoL7: { rows: [], rowsByModelName: new Map() },
     superchem: { rows: [], rowsByModelName: new Map() },
     surgeIntelligenceIndex: { rows: [], rowsByModelName: new Map() },
     terminalBench4: {
