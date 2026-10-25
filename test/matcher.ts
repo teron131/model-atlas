@@ -54,6 +54,10 @@ assert.notEqual(
   modelNameIdentityKey("google/gemini-3.1-pro-preview"),
   modelNameIdentityKey("Gemini 3.5 Pro"),
 );
+assert.equal(modelNameIdentityKey("Muse Wonder 1.0"), modelNameIdentityKey("Muse Wonder"));
+assert.equal(modelNameIdentityKey("meta/muse-wonder-1.0"), modelNameIdentityKey("Muse Wonder"));
+assert.notEqual(modelNameIdentityKey("Muse Wonder 1.0"), modelNameIdentityKey("Muse Wonder Full"));
+assert.notEqual(modelNameIdentityKey("Muse Wonder 1.1"), modelNameIdentityKey("Muse Wonder"));
 
 // Provider identity is a prerequisite, even when another publisher's base model has a stronger name score.
 const publisherMatches = buildMatchDiagnostics({
@@ -1236,6 +1240,7 @@ function modelStatsSourceData(
       rows: gdpPdfRows,
       rowsByModelName: buildBenchmarkObservationLookup(gdpPdfRows),
     },
+    gdpXlsx: { rows: [], rowsByModelName: new Map() },
     handbookMd: { rows: [], rowsByModelName: new Map() },
     hemingwayBench: { rows: [], rowsByModelName: new Map() },
     intphys2: { rows: [], rowsByModelName: new Map() },

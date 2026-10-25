@@ -195,8 +195,8 @@ export const BENCHMARK_TOOLTIPS = {
     body: "Complete complex finance assignments from documents, calculations, and business context.",
     rows: [
       ["Source", "Surge AI"],
-      ["Metric", "published mean rubric credit across five attempts"],
-      ["Scope", "publisher reports 80 tasks; 50 are public"],
+      ["Metric", "strict pass@1 (five attempts per task)"],
+      ["Scope", "80 tasks; 3 public samples"],
       ["Role", "financial reasoning and deliverable completion"],
     ],
   },
@@ -205,8 +205,8 @@ export const BENCHMARK_TOOLTIPS = {
     body: "Complete clinical care and coverage assignments from fragmented medical records.",
     rows: [
       ["Source", "Surge AI"],
-      ["Metric", "published mean rubric credit across five attempts"],
-      ["Scope", "50 public tasks"],
+      ["Metric", "strict pass@1 (five attempts per task)"],
+      ["Scope", "50 tasks; 3 public samples"],
       ["Role", "clinical judgment and deliverable completion"],
     ],
   },
@@ -302,6 +302,16 @@ export const BENCHMARK_TOOLTIPS = {
     rows: [
       ["Source", "Surge AI"],
       ["Role", "document reasoning"],
+    ],
+  },
+  gdp_xlsx: {
+    title: "GDP.xlsx",
+    body: "Answer professional questions by reconciling workbook data, formulas, formatting, and business rules across sheets.",
+    rows: [
+      ["Source", "Surge AI"],
+      ["Metric", "mean rubric credit across five attempts"],
+      ["Scope", "70 tasks; 3 public samples"],
+      ["Role", "spreadsheet reasoning and analysis"],
     ],
   },
   gdpval_normalized: {
@@ -615,6 +625,7 @@ export const BENCHMARK_LABELS = {
   frontier_code: "FrontierCode",
   frontiermath_tier_4: "FrontierMath Tier 4",
   gdp_pdf: "GDP.pdf",
+  gdp_xlsx: "GDP.xlsx",
   gdpval_normalized: "GDPval-AA",
   handbook_md: "HANDBOOK.md",
   hemingway_bench: "Hemingway-bench",
@@ -675,6 +686,7 @@ const FRONTIER_BENCHMARK_DISPLAY_ORDER = [
   "frontier_code",
   "frontiermath_tier_4",
   "gdp_pdf",
+  "gdp_xlsx",
   "gdpval_normalized",
   "handbook_md",
   "hle",
@@ -1368,6 +1380,12 @@ export const BENCHMARK_COLUMNS = {
   gdp_pdf: {
     key: "gdpPdf",
     label: "GDP.pdf",
+    format: "percent",
+    defaultSort: "descending",
+  },
+  gdp_xlsx: {
+    key: "gdpXlsx",
+    label: "GDP.xlsx",
     format: "percent",
     defaultSort: "descending",
   },

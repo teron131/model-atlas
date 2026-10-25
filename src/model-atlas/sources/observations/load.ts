@@ -113,6 +113,8 @@ export function benchmarkObservationSource(
           loader.view === "index"
             ? () => getSurgeIntelligenceIndexStats(binding.benchmark, loader.sourceUrl)
             : () => getSurgeLeaderboardStats(binding.benchmark, loader.sourceUrl, loader.scoreKind),
+        // Surge revises published results under the same model-effort row identity.
+        mergeRow: (_cached, fetched) => fetched,
       };
     case "terminal_bench_science":
       return {

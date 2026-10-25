@@ -5,11 +5,12 @@
  * - https://surgehq.ai/benchmarks/chartography
  * - https://surgehq.ai/benchmarks/complex-constraints
  * - https://surgehq.ai/benchmarks/enterprisebench-corecraft
+ * - https://surgehq.ai/benchmarks/gdp-pdf
+ * - https://surgehq.ai/benchmarks/gdp-xlsx
  * - https://surgehq.ai/benchmarks/handbook
  * - https://surgehq.ai/benchmarks/hemingway-bench
  * - https://surgehq.ai/benchmarks/sudo-l7
  * - https://surgehq.ai/benchmarks
- * - https://surgehq.ai/leaderboards/gdp-pdf
  */
 
 import type {

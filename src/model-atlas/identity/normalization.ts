@@ -1,6 +1,7 @@
 /** Model identity normalization owns provider, model-token, and reasoning-effort rules used across ingestion and scoring. */
 
 import { isGptModelIdentity } from "./gpt";
+import { canonicalMuseToken } from "./muse";
 
 export const PRIMARY_PROVIDER_ID = "openrouter" as const;
 const SECONDARY_PROVIDER_ID = "vercel" as const;
@@ -84,14 +85,14 @@ export function providerPreferenceRank(providerId: string): number | null {
   return null;
 }
 
-/** `"Claude 4.5 Sonnet: Thinking"` → `"claude-4-5-sonnet-thinking"`. */
 export function normalizeModelToken(value: string): string {
-  return value
+  const token = value
     .toLowerCase()
     .replace(/[._:\s]+/g, "-")
     .replace(/[^a-z0-9/-]+/g, "")
     .replace(/-+/g, "-")
     .replace(/^[-/]+|[-/]+$/g, "");
+  return canonicalMuseToken(token);
 }
 
 /** Remove a repeated creator prefix while retaining the complete source display model elsewhere: `("Google Gemini 2.5 Pro", "Google")` → `"Gemini 2.5 Pro"`. */
