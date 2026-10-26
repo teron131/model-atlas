@@ -36,6 +36,16 @@ export function firstEpochSecond(rowsToScan: readonly CacheDbRow[]): number | nu
   return null;
 }
 
+/** Decode a JSON text column; an absent or malformed value reads as missing evidence. */
+export function jsonValue(value: unknown): unknown {
+  if (typeof value !== "string") return null;
+  try {
+    return JSON.parse(value) as unknown;
+  } catch {
+    return null;
+  }
+}
+
 export function booleanFromSql(value: unknown): boolean | null {
   if (value === 1) {
     return true;

@@ -129,32 +129,21 @@ export type BenchmarkSourceTransform =
       clamp: boolean;
     };
 
-export type BenchmarkAggregationPolicy =
-  | { kind: "direct" }
-  | { kind: "highest_effort" }
-  | { kind: "mean" }
-  | { kind: "custom" };
+export type BenchmarkAggregationPolicy = { kind: "direct" } | { kind: "custom" };
 
-type BenchmarkSourceCrosswalkPolicy = { kind: "validated_merge" } | { kind: "custom" };
+type BenchmarkSourceCrosswalkPolicy = { kind: "custom" };
 
 export type BenchmarkProcessingFacet = {
   transform: BenchmarkSourceTransform;
+  /** Frozen labels: nothing branches on `aggregation` or `sourceCrosswalk`, but `checkpointBenchmarkId` hashes them into persisted timeline edition ids, so editing one splits that benchmark's timeline; declare real edition changes with `source.revision`. */
   aggregation: BenchmarkAggregationPolicy;
   sourceCrosswalk?: BenchmarkSourceCrosswalkPolicy;
 };
-
-type BenchmarkNormalizationPolicy =
-  | { kind: "min_max"; output: readonly [minimum: number, maximum: number] }
-  | { kind: "identity" };
-
-export type BenchmarkImputationPolicy = { kind: "none" } | { kind: "contextual" };
 
 export type BenchmarkScoringFacet = {
   group: BenchmarkGroup;
   benchmarkImportance: number;
   dimensionLoadings: BenchmarkDimensionLoadings;
-  normalization: BenchmarkNormalizationPolicy;
-  imputation: BenchmarkImputationPolicy;
 };
 
 type BenchmarkValueLocation = { kind: "benchmark" } | { kind: "intelligence"; field: string };
@@ -391,7 +380,6 @@ function validateBenchmarkPolicies(
     validatePersistence(key, definition.persistence);
     if (definition.scoring != null) {
       validateBenchmarkWeight(key, definition.scoring);
-      validateNormalization(key, definition.scoring.normalization);
     }
   }
 }
@@ -492,17 +480,6 @@ function validateProcessing(
   }
   if (source.inputs.length < 2) {
     throw new Error(`Benchmark source crosswalk requires multiple sources for ${key}`);
-  }
-}
-
-function validateNormalization(key: string, normalization: BenchmarkNormalizationPolicy): void {
-  if (
-    normalization.kind === "min_max" &&
-    (!Number.isFinite(normalization.output[0]) ||
-      !Number.isFinite(normalization.output[1]) ||
-      normalization.output[0] === normalization.output[1])
-  ) {
-    throw new Error(`Benchmark min-max normalization requires a finite output range for ${key}`);
   }
 }
 

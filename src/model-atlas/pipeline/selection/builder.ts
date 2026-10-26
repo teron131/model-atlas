@@ -6,7 +6,12 @@ import {
   reportedIndexBenchmarkCount,
   residualIndexBreadth,
 } from "../../benchmarks/index-policy";
-import type { BenchmarkAdmissionConfig, FinalStageConfig, ScoringConfig } from "../../config/stage";
+import {
+  type BenchmarkAdmissionConfig,
+  type FinalStageConfig,
+  type ScoringConfig,
+  selectedBenchmarkKeys,
+} from "../../config/stage";
 import { cacheModelLogos } from "../../logos/cache";
 import { asFiniteNumber, asRecord } from "../../runtime";
 import { advanceCapabilities, type CapabilityState } from "../../timeline/capability";
@@ -322,12 +327,6 @@ function buildCandidates(
     );
     return versionCandidateBenchmarkData(candidate, previousModelForRow(asRecord(row)), versioning);
   });
-}
-
-function selectedBenchmarkKeys(scoringConfig: ScoringConfig): string[] {
-  return [
-    ...new Set([...scoringConfig.intelligenceBenchmarkKeys, ...scoringConfig.agenticBenchmarkKeys]),
-  ];
 }
 
 /** Admission requires an identified text model; optional specifications stay nullable. */

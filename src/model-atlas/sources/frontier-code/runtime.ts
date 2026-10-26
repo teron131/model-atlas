@@ -8,6 +8,7 @@ import {
   booleanFromSql,
   type CacheRowSource,
   firstEpochSecond,
+  jsonValue,
   sourceCacheRows,
 } from "../cache/rows";
 import { sourceKey } from "../snapshots/policy";
@@ -106,15 +107,6 @@ export function readFrontierCodeRawCache(cache: CacheRowSource): {
     ];
   });
   return rows.length !== cacheRows.length ? null : { rows, fetchedAt: firstEpochSecond(cacheRows) };
-}
-
-function jsonValue(value: unknown): unknown | null {
-  if (typeof value !== "string") return null;
-  try {
-    return JSON.parse(value) as unknown;
-  } catch {
-    return null;
-  }
 }
 
 /** Restore Cognition's source field names inside the persisted subset evidence JSON. */

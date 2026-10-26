@@ -5,14 +5,10 @@
  */
 
 import { AGENTIC_INDEX_KEYS, INTELLIGENCE_INDEX_KEYS } from "../../benchmarks/field-keys";
-import type { ScoringConfig } from "../../config/stage";
+import { type ScoringConfig, selectedBenchmarkKeys } from "../../config/stage";
 import { asFiniteNumber, asRecord, type JsonObject, stringValue } from "../../runtime";
-import { snapshotRowsWithStates, sourceKey } from "../snapshots/policy";
-import {
-  shouldUseFetchedRows,
-  snapshotFetchedAt,
-  snapshotSourceRows,
-} from "../snapshots/row-snapshot";
+import { sourceKey } from "../snapshots/policy";
+import { snapshotSourceRows } from "../snapshots/row-snapshot";
 import type {
   RawSourceCacheStatus,
   SourceRefreshOptions,
@@ -80,61 +76,27 @@ export async function artificialAnalysisSnapshot(
   previousMissingSince: ReadonlyMap<string, number>,
   nowEpochSeconds: number,
 ): Promise<ArtificialAnalysisSnapshot> {
-  if (status.cache_hit && cached != null && options.replaceSourceRows !== true) {
-    const cachedRowSnapshot = snapshotRowsWithStates({
-      source: "artificial_analysis",
-      cachedRows: cached.artificialAnalysisRawRows,
-      fetchedRows: [],
-      fetchedAtEpochSeconds: null,
-      options,
-      rowKey: artificialAnalysisModelId,
-      rowLabel: (row) => stringValue(row.name),
-      previousMissingSince,
-      nowEpochSeconds,
-    });
-    return {
-      artificialAnalysisRawRows: cachedRowSnapshot.rows,
-      artificialAnalysisSelectedRows: projectLeaderboardRows(cachedRowSnapshot.rows),
-      sourceStatus: {
-        source: "artificial_analysis",
-        fetchedAt: cached.fetchedAt,
-        sourceInputCount: cachedRowSnapshot.rows.length,
-        sourceRowStates: cachedRowSnapshot.states,
-        fetchedAtKey: "artificialAnalysis",
-      },
-    };
-  }
-  const fetchedLeaderboardPayload = await getArtificialAnalysisLeaderboardRawStats();
-  const hasUsableFetchedRows = shouldUseFetchedRows(
-    fetchedLeaderboardPayload.fetched_at_epoch_seconds,
-    fetchedLeaderboardPayload.data.length,
-  );
-  const rowSnapshot = snapshotRowsWithStates({
+  const snapshot = await snapshotSourceRows({
     source: "artificial_analysis",
-    cachedRows: cached?.artificialAnalysisRawRows,
-    fetchedRows: fetchedLeaderboardPayload.data,
-    fetchedAtEpochSeconds: fetchedLeaderboardPayload.fetched_at_epoch_seconds,
+    cached,
+    status,
     options,
+    previousMissingSince,
+    nowEpochSeconds,
+    fetchRows: getArtificialAnalysisLeaderboardRawStats,
     rowKey: artificialAnalysisModelId,
     rowLabel: (row) => stringValue(row.name),
     mergeRow: (cachedRow, fetchedRow) =>
       mergeArtificialAnalysisRow(cachedRow, fetchedRow, scoringConfig),
-    previousMissingSince,
-    nowEpochSeconds,
   });
-  const fetchedAt = snapshotFetchedAt(
-    hasUsableFetchedRows,
-    cached?.fetchedAt,
-    fetchedLeaderboardPayload.fetched_at_epoch_seconds,
-  );
   return {
-    artificialAnalysisRawRows: rowSnapshot.rows,
-    artificialAnalysisSelectedRows: projectLeaderboardRows(rowSnapshot.rows),
+    artificialAnalysisRawRows: snapshot.rows,
+    artificialAnalysisSelectedRows: projectLeaderboardRows(snapshot.rows),
     sourceStatus: {
       source: "artificial_analysis",
-      fetchedAt,
-      sourceInputCount: rowSnapshot.rows.length,
-      sourceRowStates: rowSnapshot.states,
+      fetchedAt: snapshot.fetchedAt,
+      sourceInputCount: snapshot.rows.length,
+      sourceRowStates: snapshot.sourceRowStates,
       fetchedAtKey: "artificialAnalysis",
     },
   };
@@ -227,8 +189,7 @@ function signalKeys(scoringConfig: ScoringConfig): Set<string> {
   for (const key of [
     ...INTELLIGENCE_INDEX_KEYS,
     ...AGENTIC_INDEX_KEYS,
-    ...scoringConfig.intelligenceBenchmarkKeys,
-    ...scoringConfig.agenticBenchmarkKeys,
+    ...selectedBenchmarkKeys(scoringConfig),
   ]) {
     keys.add(key);
     keys.add(camelMetricKey(key));

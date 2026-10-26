@@ -142,6 +142,9 @@ function readRankingArtifact(state: SnapshotReadState, manifest: SnapshotManifes
 
 /** Only the historical view pays for the index artifact; its cache is independent of dashboard reads. */
 export async function readIntelligenceIndex(): Promise<HistoricalDataset | null> {
+  if (process.env.MODEL_ATLAS_LOCAL_DATABASE === "1") {
+    return (await readPublishedSnapshot()).timeline ?? null;
+  }
   const state = readState();
   const manifest = await readManifest(state);
   if (!manifest.intelligence_index_sha256) return null;

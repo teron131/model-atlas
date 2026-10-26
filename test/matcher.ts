@@ -39,6 +39,7 @@ import {
   buildValsIndexMap,
   type ValsIndexModelScoreRow,
 } from "../src/model-atlas/sources/vals/index-benchmark";
+import { loadLiveOpenRouterStats } from "../src/model-atlas/stats/live";
 import { SnapshotRowCollector } from "./model-atlas-fixtures";
 
 const sourceRows: MatcherSourceModel[] = [
@@ -782,7 +783,9 @@ globalThis.fetch = async (input) => {
   throw new Error("Offline derivation check");
 };
 try {
-  const uncovered = await deriveModelStats(uncoveredSourceData);
+  const uncovered = await deriveModelStats(uncoveredSourceData, {
+    loadOpenRouter: loadLiveOpenRouterStats,
+  });
   assert.ok(uncovered.modelRows.length > 0);
   assert.equal(
     openRouterRequests,

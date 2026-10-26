@@ -33,6 +33,14 @@ type SnapshotRowsResult<T> = {
   states: SourceRowState[];
 };
 
+type RowStateContext = {
+  hasUsableFetchedRows: boolean;
+  fetchedKeys: ReadonlySet<string>;
+  previousMissingSince: ReadonlyMap<string, number>;
+  nowEpochSeconds: number;
+  options: SourceRefreshOptions;
+};
+
 /** Stable source-row keys are persisted, so every caller must use the same empty-part normalization. */
 export function sourceKey(...parts: (number | string | null | undefined)[]): string {
   return parts.map((part) => String(part ?? "")).join("|");
@@ -171,33 +179,45 @@ export function snapshotRowsWithStates<T>(config: SnapshotRowsConfig<T>): Snapsh
           .filter((key): key is string => key != null)
       : [],
   );
+  const context = {
+    hasUsableFetchedRows,
+    fetchedKeys,
+    previousMissingSince: config.previousMissingSince,
+    nowEpochSeconds: config.nowEpochSeconds,
+    options: config.options,
+  };
   const states = rows.flatMap((row) => {
     const key = config.rowKey(row);
-    if (key == null) {
-      return [];
-    }
-    const wasPreviouslyMissing = config.previousMissingSince.has(key);
-    const isMissingNow =
-      hasUsableFetchedRows && !fetchedKeys.has(key) && config.options.replaceSourceRows !== true;
-    const status: SourceRowStatus =
-      isMissingNow || (!hasUsableFetchedRows && wasPreviouslyMissing)
-        ? "quarantined_missing_from_source"
-        : "active";
-    const missingSince =
-      status === "quarantined_missing_from_source"
-        ? (config.previousMissingSince.get(key) ?? config.nowEpochSeconds)
-        : null;
-    return [
-      {
-        source: config.source,
-        row_key: key,
-        row_label: config.rowLabel(row),
-        status,
-        missing_from_source_since_epoch_seconds: missingSince,
-      },
-    ];
+    return key == null ? [] : [sourceRowState(config.source, key, config.rowLabel(row), context)];
   });
   return { rows, states };
+}
+
+/** A usable refresh that omits a row quarantines it, a failed refresh keeps an earlier quarantine, and a quarantined row keeps its first missing time. */
+function sourceRowState(
+  source: RawSourceName,
+  rowKey: string,
+  rowLabel: string | null,
+  context: RowStateContext,
+): SourceRowState {
+  const isMissingNow =
+    context.hasUsableFetchedRows &&
+    !context.fetchedKeys.has(rowKey) &&
+    context.options.replaceSourceRows !== true;
+  const status: SourceRowStatus =
+    isMissingNow || (!context.hasUsableFetchedRows && context.previousMissingSince.has(rowKey))
+      ? "quarantined_missing_from_source"
+      : "active";
+  return {
+    source,
+    row_key: rowKey,
+    row_label: rowLabel,
+    status,
+    missing_from_source_since_epoch_seconds:
+      status === "quarantined_missing_from_source"
+        ? (context.previousMissingSince.get(rowKey) ?? context.nowEpochSeconds)
+        : null,
+  };
 }
 
 export function persistedSourceRowStates(db: DatabaseSync): SourceRowState[] {
@@ -277,27 +297,24 @@ export function buildModelsDevSourceStates(
       }
     }
   }
+  const context = {
+    hasUsableFetchedRows,
+    fetchedKeys,
+    previousMissingSince,
+    nowEpochSeconds,
+    options,
+  };
   const states: SourceRowState[] = [];
   for (const [providerId, provider] of Object.entries(payload)) {
     for (const [modelId, model] of Object.entries(provider.models ?? {})) {
-      const key = sourceKey(providerId, modelId);
-      const wasPreviouslyMissing = previousMissingSince.has(key);
-      const isMissingNow =
-        hasUsableFetchedRows && !fetchedKeys.has(key) && options.replaceSourceRows !== true;
-      const status: SourceRowStatus =
-        isMissingNow || (!hasUsableFetchedRows && wasPreviouslyMissing)
-          ? "quarantined_missing_from_source"
-          : "active";
-      states.push({
-        source: "models_dev",
-        row_key: key,
-        row_label: typeof model.name === "string" && model.name.length > 0 ? model.name : modelId,
-        status,
-        missing_from_source_since_epoch_seconds:
-          status === "quarantined_missing_from_source"
-            ? (previousMissingSince.get(key) ?? nowEpochSeconds)
-            : null,
-      });
+      states.push(
+        sourceRowState(
+          "models_dev",
+          sourceKey(providerId, modelId),
+          typeof model.name === "string" && model.name.length > 0 ? model.name : modelId,
+          context,
+        ),
+      );
     }
   }
   return states;

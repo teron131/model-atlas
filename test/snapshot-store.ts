@@ -152,6 +152,20 @@ try {
   const empty = await store.current();
   assert.deepEqual(empty, { manifest: null, generation: 0 });
   await assert.rejects(store.publish(checkpoint, { ...payload, models: [] }, empty), /empty/);
+  await assert.rejects(
+    store.publish(
+      checkpoint,
+      {
+        ...payload,
+        models: payload.models.map((model) => ({
+          ...model,
+          scores: { ...model.scores, intelligence_score: NaN },
+        })),
+      },
+      empty,
+    ),
+    /readers would reject/,
+  );
   await assert.rejects(store.publish(join(workspace, "missing.sqlite"), payload, empty), /ENOENT/);
   assert.equal(objects.size, 0, "Failed streaming reads must not start publication");
   const first = await store.publish(checkpoint, payload, empty);

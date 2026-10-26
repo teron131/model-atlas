@@ -4,7 +4,7 @@ import { SNAPSHOT_TABLES } from "../../database/tables";
 import type { DatabaseWriter } from "../../database/writers/database";
 import { asFiniteNumber, stringValue } from "../../runtime";
 import { defineBenchmarkRuntime } from "../benchmark-runtime";
-import { type CacheRowSource, firstEpochSecond, sourceCacheRows } from "../cache/rows";
+import { type CacheRowSource, firstEpochSecond, jsonValue, sourceCacheRows } from "../cache/rows";
 import { ALE_BENCH_EPOCH_RESULTS_URL, type AleBenchEpochRow } from "../epoch/ale-bench";
 import { sourceKey } from "../snapshots/policy";
 import { snapshotSourceRows } from "../snapshots/row-snapshot";
@@ -78,15 +78,6 @@ export function readAleBenchRawCache(cache: CacheRowSource): {
     return parsed == null ? [] : [parsed];
   });
   return rows.length !== cacheRows.length ? null : { rows, fetchedAt: firstEpochSecond(cacheRows) };
-}
-
-function jsonValue(value: unknown): unknown | null {
-  if (typeof value !== "string") return null;
-  try {
-    return JSON.parse(value) as unknown;
-  } catch {
-    return null;
-  }
 }
 
 /** Loads all ALE refinement checkpoints while scoring remains restricted to the source-default row. */

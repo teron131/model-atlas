@@ -1,7 +1,11 @@
 /** Public model selection owns score gating, sparse benchmark pruning, and route collapse. */
 
 import { BENCHMARK_KEYS } from "../../benchmarks/registry";
-import type { FinalStageConfig, ScoringConfig } from "../../config/stage";
+import {
+  type FinalStageConfig,
+  type ScoringConfig,
+  selectedBenchmarkKeys,
+} from "../../config/stage";
 import {
   hasPublicFreeRouteLabel,
   isOpenRouterFreeRouteId,
@@ -130,11 +134,7 @@ function pruneSparseBenchmarks<Model extends ModelAtlasModel>(
 ): Model[] {
   if (models.length === 0) return models;
   // Baseline observations stay visible even when they do not contribute to capability scores.
-  const retainedKeys = new Set([
-    ...BENCHMARK_KEYS,
-    ...scoringConfig.intelligenceBenchmarkKeys,
-    ...scoringConfig.agenticBenchmarkKeys,
-  ]);
+  const retainedKeys = new Set([...BENCHMARK_KEYS, ...selectedBenchmarkKeys(scoringConfig)]);
   const candidates = new Set(models.flatMap((model) => Object.keys(model.benchmarks ?? {})));
   const sample = selectPruneSampleModels(models, finalConfig);
   const sparseKeys = new Set(

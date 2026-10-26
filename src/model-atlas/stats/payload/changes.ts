@@ -60,6 +60,7 @@ const MIN_RANK_CORRELATION_MODELS = 5;
 /** Record only material adjacent changes while retaining the last material event across quiet refreshes. */
 export function buildRefreshChanges(
   refreshId: number,
+  previousRefreshId: number | null,
   previousPayload: ModelAtlasPayload | null | undefined,
   currentModels: readonly ModelAtlasModel[],
   currentScoring: ModelAtlasMetadata["scoring"],
@@ -158,7 +159,7 @@ export function buildRefreshChanges(
     refreshRunRows: [
       {
         refresh_id: refreshId,
-        previous_refresh_id: previousPayload?.fetched_at_epoch_seconds ?? null,
+        previous_refresh_id: previousRefreshId,
         methodology_changed: methodologyChanged,
         model_change_count: changedModelCount,
         score_change_count: modelScoreChangeRows.length,

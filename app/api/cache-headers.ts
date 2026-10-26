@@ -4,14 +4,12 @@ type PublicCacheHeaderOptions = {
   browserMaxAgeSeconds: number;
   cdnMaxAgeSeconds?: number;
   staleWhileRevalidateSeconds?: number;
-  contentType?: string;
 };
 
 export function publicCacheHeaders({
   browserMaxAgeSeconds,
   cdnMaxAgeSeconds,
   staleWhileRevalidateSeconds,
-  contentType,
 }: PublicCacheHeaderOptions): HeadersInit {
   const headers: Record<string, string> = {
     "Cache-Control": `public, max-age=${browserMaxAgeSeconds}`,
@@ -28,11 +26,14 @@ export function publicCacheHeaders({
     headers["CDN-Cache-Control"] = cdnCacheControl;
     headers["Vercel-CDN-Cache-Control"] = cdnCacheControl;
   }
-  if (contentType != null) {
-    headers["Content-Type"] = contentType;
-  }
   return headers;
 }
+
+export const LOGO_CACHE_HEADERS = publicCacheHeaders({
+  browserMaxAgeSeconds: 3600,
+  cdnMaxAgeSeconds: 86400,
+  staleWhileRevalidateSeconds: 604800,
+});
 
 /** GET validators accept weak tags, lists, and the wildcard without changing the representation's own ETag. */
 export function matchesEtag(ifNoneMatch: string | null, etag: string): boolean {

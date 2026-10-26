@@ -184,8 +184,17 @@ export class SnapshotStorage {
       throw new Error("Refusing to publish an empty Model Atlas snapshot");
     }
     const { timeline, community_rankings, ...leaderboard } = payload;
+    const leaderboardJson = JSON.stringify(leaderboard);
+    try {
+      parseSnapshotPayload(Buffer.from(leaderboardJson));
+    } catch (error) {
+      // A payload its own readers reject would fail every display read and the next refresh's restore.
+      throw new Error("Refusing to publish a Model Atlas snapshot that readers would reject", {
+        cause: error,
+      });
+    }
     const [dashboard, index, rankings] = await Promise.all([
-      compress(JSON.stringify(leaderboard)),
+      compress(leaderboardJson),
       timeline ? compress(JSON.stringify(packTimelineDataset(timeline))) : null,
       community_rankings?.length ? compress(JSON.stringify(community_rankings)) : null,
     ]);

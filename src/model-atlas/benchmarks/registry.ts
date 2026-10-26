@@ -210,16 +210,6 @@ const BENCHMARK_PERSISTENCE = Object.fromEntries(
       DEFAULT_BENCHMARK_PERSISTENCE,
   ]),
 ) as Readonly<Record<BenchmarkKey, BenchmarkPersistenceFacet>>;
-const BENCHMARK_SCORING = Object.fromEntries(
-  Object.entries(BENCHMARK_SCORING_WEIGHTS).map(([key, weight]) => [
-    key,
-    {
-      ...weight,
-      normalization: { kind: "min_max", output: [0, 100] },
-      imputation: { kind: "contextual" },
-    },
-  ]),
-) as unknown as Readonly<Record<BenchmarkKey, BenchmarkScoringFacet>>;
 const BENCHMARK_ORDER_BY_KEY = Object.fromEntries(
   BENCHMARK_DISPLAY_ORDER.map((key, order) => [key, order]),
 ) as Readonly<Record<BenchmarkKey, number>>;
@@ -248,7 +238,7 @@ type BenchmarkCatalog = Readonly<{
 
 function composeBenchmarkCatalog(): BenchmarkCatalog {
   return Object.fromEntries(
-    Object.entries(BENCHMARK_SCORING).map(([key, scoring]) => {
+    Object.entries(BENCHMARK_SCORING_WEIGHTS).map(([key, scoring]) => {
       const tooltip = BENCHMARK_TOOLTIPS[key as BenchmarkKey];
       return [
         key,

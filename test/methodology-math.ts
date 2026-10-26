@@ -9,12 +9,14 @@ import {
 import { STAGE_CONFIG } from "../src/model-atlas/config/stage";
 import {
   pearsonCorrelation,
-  qualityLocalResiduals,
   weightedMedianOfFinite,
   weightedQuantile,
   weightedQuantileRank,
 } from "../src/model-atlas/math-utils";
-import { qualityLocalResourceScores } from "../src/model-atlas/pipeline/scores/resource-efficiency";
+import {
+  qualityLocalResiduals,
+  qualityLocalResourceScores,
+} from "../src/model-atlas/pipeline/scores/resource-efficiency";
 import { effectiveTaskSeconds } from "../src/model-atlas/pipeline/scores/resource-metrics";
 import { minimalModelAtlasModel } from "./model-atlas-fixtures";
 

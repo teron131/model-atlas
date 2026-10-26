@@ -40,25 +40,21 @@ export function artificialAnalysisCacheHasHiddenRows(db: DatabaseSync): boolean 
   );
 }
 
-export function artificialAnalysisRawCacheFromRows(cacheRows: CacheDbRow[]): {
-  artificialAnalysisRawRows: JsonObject[];
-  artificialAnalysisSelectedRows: JsonObject[];
+export function readArtificialAnalysisRawCache(db: DatabaseSync): {
+  rows: JsonObject[];
   fetchedAt: number | null;
 } | null {
+  const cacheRows = queryCacheRows(
+    db,
+    "SELECT * FROM artificial_analysis_raw_models ORDER BY row_index",
+  );
   if (cacheRows.length === 0) {
     return null;
   }
   return {
-    artificialAnalysisRawRows: cacheRows.map((row) => rawRowFromCache(row)),
-    artificialAnalysisSelectedRows: cacheRows.map((row) => selectedRowFromCache(row)),
+    rows: cacheRows.map((row) => rawRowFromCache(row)),
     fetchedAt: firstEpochSecond(cacheRows),
   };
-}
-
-export function readArtificialAnalysisRawCache(db: DatabaseSync) {
-  return artificialAnalysisRawCacheFromRows(
-    queryCacheRows(db, "SELECT * FROM artificial_analysis_raw_models ORDER BY row_index"),
-  );
 }
 
 export function artificialAnalysisBenchmarkResourceRawCacheFromRows(cacheRows: CacheDbRow[]): {
@@ -186,46 +182,4 @@ function cachedReasoningEffort(row: CacheDbRow): string | null {
     stringValue(row.reasoning_effort) ??
     parseArtificialAnalysisReasoningEffort(row.name, row.short_name)
   );
-}
-
-function selectedRowFromCache(row: CacheDbRow): JsonObject {
-  const selectedRow: JsonObject = {};
-  assignIfString(selectedRow, "model_id", row.model_id);
-  assignIfString(selectedRow, "name", row.name);
-  assignIfString(selectedRow, "model_url", row.model_url);
-  assignIfString(selectedRow, "logo", row.logo_url);
-  assignIfString(selectedRow, "reasoning_effort", cachedReasoningEffort(row));
-  const cost = {
-    input: asFiniteNumber(row.price_1m_input_tokens),
-    output: asFiniteNumber(row.price_1m_output_tokens),
-  };
-  if (cost.input != null || cost.output != null) selectedRow.cost = cost;
-  assignIfNumber(selectedRow, "median_speed", row.median_output_tokens_per_second);
-  assignIfNumber(selectedRow, "median_time", row.median_time_to_first_token_seconds);
-  assignIfNumber(
-    selectedRow,
-    "median_end_to_end_response_time",
-    row.median_end_to_end_response_time_seconds,
-  );
-  const intelligence = nestedNumbers(row, ARTIFICIAL_ANALYSIS_INTELLIGENCE_KEYS);
-  const benchmarks = nestedNumbers(row, ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_KEYS);
-  const intelligenceIndexCost = nestedNumbers(row, ARTIFICIAL_ANALYSIS_COST_KEYS);
-  if (nonEmptyRecord(intelligence) != null) {
-    selectedRow.intelligence = intelligence;
-  }
-  if (nonEmptyRecord(benchmarks) != null) {
-    selectedRow.benchmarks = benchmarks;
-  }
-  if (nonEmptyRecord(intelligenceIndexCost) != null) {
-    selectedRow.intelligence_index_cost = intelligenceIndexCost;
-  }
-  return selectedRow;
-}
-
-function nestedNumbers(row: CacheDbRow, keys: readonly string[]): JsonObject {
-  const record: JsonObject = {};
-  for (const key of keys) {
-    assignIfNumber(record, key, row[key]);
-  }
-  return record;
 }

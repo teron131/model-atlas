@@ -145,13 +145,3 @@ export function benchmarkSnapshotRows(snapshots: BenchmarkSnapshots): BenchmarkS
     ...Object.values(snapshots).map(({ sourceStatus: _sourceStatus, ...rows }) => rows),
   ) as BenchmarkSnapshotRows;
 }
-
-export function insertBenchmarkRawRows(
-  db: DatabaseWriter,
-  snapshots: SourceSnapshots,
-  table: SnapshotTableName,
-): void {
-  const writer = BENCHMARK_RAW_WRITERS.find((candidate) => candidate.table === table);
-  if (writer == null) throw new Error(`Missing benchmark raw writer: ${table}`);
-  writer.write(db, snapshots);
-}

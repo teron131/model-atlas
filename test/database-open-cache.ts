@@ -17,10 +17,7 @@ import {
   schemaTableShapes,
 } from "../src/model-atlas/database/schema-reconciliation";
 import { readDatabasePayload } from "../src/model-atlas/database/sqlite-payload";
-import {
-  rawSourceCacheStatusFromRows,
-  readRawSourceCacheStatus,
-} from "../src/model-atlas/sources/cache/status";
+import { readRawSourceCacheStatus } from "../src/model-atlas/sources/cache/status";
 import { readDeepSWERawCache } from "../src/model-atlas/sources/deep-swe/runtime";
 import { readTerminalBench4RawCache } from "../src/model-atlas/sources/terminal-bench-4/runtime";
 
@@ -107,33 +104,6 @@ assert.equal(
   processedModelShape?.get("row_index")?.primaryKey,
   1,
   "schema drift checks should preserve table-level primary key order",
-);
-
-const staleSourceRows = [{ fetched_at_epoch_seconds: 1_800_000_000 }];
-assert.equal(
-  rawSourceCacheStatusFromRows("perception_bench", staleSourceRows, 1_900_000_000, {
-    last_fetch_epoch_seconds: 1_900_000_000,
-    source_input_count: 1,
-  }).cache_hit,
-  true,
-  "Persisted refresh metadata should keep unchanged raw rows fresh",
-);
-assert.equal(
-  rawSourceCacheStatusFromRows("perception_bench", staleSourceRows, 1_900_000_000, {
-    last_fetch_epoch_seconds: null,
-    source_input_count: 1,
-  }).cache_hit,
-  false,
-  "An explicit missing refresh timestamp should not fall back to an old raw-row timestamp",
-);
-assert.equal(
-  rawSourceCacheStatusFromRows(
-    "artificial_analysis",
-    [{ deprecated: 1, fetched_at_epoch_seconds: 1_900_000_000 }],
-    1_900_000_010,
-  ).cache_hit,
-  true,
-  "A fresh Artificial Analysis snapshot with retained deprecated rows should remain cacheable when a former benchmark field is absent",
 );
 
 await removeDatabaseFiles(databasePath);

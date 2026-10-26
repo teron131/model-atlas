@@ -16,7 +16,7 @@ import { parseCsvRecords } from "../parsing";
 import { fetchSource } from "../request-scheduler";
 
 const EPOCH_CAPABILITIES_INDEX_CSV_URL = "https://epoch.ai/data/eci_scores.csv";
-const EPOCH_BENCHMARKS_CSV_URL = "https://epoch.ai/data/eci_benchmarks.csv";
+const EPOCH_CAPABILITIES_INDEX_BENCHMARKS_CSV_URL = "https://epoch.ai/data/eci_benchmarks.csv";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 
@@ -32,7 +32,7 @@ export async function getEpochCapabilitiesIndexStats(
       });
     const [scores, benchmarks] = await Promise.all([
       read(sourceUrl),
-      read(EPOCH_BENCHMARKS_CSV_URL),
+      read(EPOCH_CAPABILITIES_INDEX_BENCHMARKS_CSV_URL),
     ]);
     return {
       fetched_at_epoch_seconds: nowEpochSeconds(),

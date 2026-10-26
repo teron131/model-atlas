@@ -5,8 +5,12 @@ import {
   distinctModelCount,
 } from "../../../benchmarks/calibration-population";
 import type { BenchmarkDimension } from "../../../benchmarks/factory";
-import { BENCHMARK_CATALOG, benchmarkDimensionWeight } from "../../../benchmarks/registry";
-import { MAX_NORMALIZED_IMPUTATION_ERROR, type ScoringConfig } from "../../../config/stage";
+import { benchmarkDimensionWeight } from "../../../benchmarks/registry";
+import {
+  MAX_NORMALIZED_IMPUTATION_ERROR,
+  type ScoringConfig,
+  selectedBenchmarkKeys,
+} from "../../../config/stage";
 import { canonicalModelKey, canonicalReasoningEffort } from "../../../identity/normalization";
 import {
   clamp01,
@@ -440,9 +444,7 @@ export function prepareBenchmarkImputation(
   minimumEvidenceValues = MIN_IMPUTATION_EVIDENCE_VALUES,
   queryModels = models,
 ): ImputationPreparation {
-  const selectedKeys = [
-    ...new Set([...scoringConfig.intelligenceBenchmarkKeys, ...scoringConfig.agenticBenchmarkKeys]),
-  ];
+  const selectedKeys = selectedBenchmarkKeys(scoringConfig);
   const benchmarkKeys = [
     ...new Set([
       ...scoringConfig.intelligenceBenchmarkDisplayKeys,
@@ -474,11 +476,6 @@ export function prepareBenchmarkImputation(
   for (const key of targetKeys ?? selectedKeys) {
     const portfolioEntry = scoringConfig.benchmarkPortfolio[key];
     if (portfolioEntry == null) {
-      continue;
-    }
-    const imputationPolicy =
-      BENCHMARK_CATALOG[key as keyof typeof BENCHMARK_CATALOG]?.scoring.imputation;
-    if (imputationPolicy != null && imputationPolicy.kind !== "contextual") {
       continue;
     }
     const diagnostic = imputationDiagnostic(

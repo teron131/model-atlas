@@ -39,9 +39,8 @@ export async function buildDatabase(
   let db: DatabaseSync | null = await openDatabase(outputPath);
 
   try {
-    const previousPayload = relativeScoreBaseline(
-      options.previousPayload ?? (existed ? readDatabasePayload(outputPath) : null),
-    );
+    const previousPayload =
+      options.previousPayload ?? (existed ? readDatabasePayload(outputPath) : null);
     const capabilityState = readCapabilityState(db);
     const { snapshots, sourceCache } = await loadSourceSnapshots(
       db,
@@ -63,6 +62,7 @@ export async function buildDatabase(
         ),
       {
         previousPayload,
+        previousRefreshId: latestRefreshId(db),
         capabilityState: capabilityState ?? undefined,
         replaceSourceRows: options.replaceSourceRows,
       },
@@ -93,28 +93,10 @@ export async function buildDatabase(
   }
 }
 
-/** Compare refreshes in relative-score units, including checkpoints whose public fields previously displayed the separate fixed index. */
-function relativeScoreBaseline(payload: ModelAtlasPayload | null): ModelAtlasPayload | null {
-  if (!payload) return null;
-  return {
-    ...payload,
-    models: payload.models.map((model) => {
-      const intelligence = model.component_scores.intelligence_score;
-      const agentic = model.component_scores.agentic_score;
-      const changedUnits =
-        intelligence !== model.scores.intelligence_score || agentic !== model.scores.agentic_score;
-      const { latest_change, ...rest } = model;
-      return {
-        ...rest,
-        ...(!changedUnits ||
-        !latest_change ||
-        !["intelligence", "agentic"].includes(latest_change.dimension)
-          ? { latest_change }
-          : {}),
-        scores: { ...model.scores, intelligence_score: intelligence, agentic_score: agentic },
-      };
-    }),
-  };
+/** The newest audited refresh produced the checkpoint's current rows, so it is the previous run of this refresh. */
+function latestRefreshId(db: DatabaseSync): number | null {
+  const row = db.prepare("SELECT MAX(refresh_id) AS refresh_id FROM refresh_runs").get();
+  return typeof row?.refresh_id === "number" ? row.refresh_id : null;
 }
 
 /** Wrap the synchronous database build so partial snapshot writes roll back together on failure. */
