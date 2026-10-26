@@ -1,8 +1,6 @@
 /** Dashboard provider labels, brand assets, and chart colors. */
 
-import { providerIdentityKey as providerFilterKey } from "../../../src/model-atlas/identity/provider";
-export { providerIdentityKey as providerFilterKey } from "../../../src/model-atlas/identity/provider";
-
+import { providerIdentityKey } from "../../../src/model-atlas/identity/provider";
 import { providerIcons } from "../../../src/model-atlas/logos/provider-icons.generated";
 
 type ProviderLike = { provider?: string | null };
@@ -80,7 +78,7 @@ const fallbackProviderColors = [
 
 export function providerDisplayName(source: ProviderLike | string | null) {
   const provider = typeof source === "string" ? source : source?.provider;
-  const key = providerFilterKey(provider);
+  const key = providerIdentityKey(provider);
   return providerLabels[key] ?? provider ?? "Unknown";
 }
 
@@ -93,13 +91,13 @@ function providerAssetKey(provider: string | null | undefined) {
 }
 
 function providerIcon(provider: string | null | undefined) {
-  const key = providerFilterKey(provider);
+  const key = providerIdentityKey(provider);
   const assetKey = key === "xai" ? "x-ai" : key === "zai" ? "z-ai" : key;
   return providerIcons[assetKey as ProviderIconKey];
 }
 
 export function providerChartColor(provider: string | null | undefined) {
-  const key = providerFilterKey(provider);
+  const key = providerIdentityKey(provider);
   if (providerColorOverrides[key]) {
     return providerColorOverrides[key];
   }

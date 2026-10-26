@@ -8,37 +8,31 @@ import type {
   ModelAtlasColumnTooltip,
   ModelAtlasColumnTooltips,
 } from "../../src/model-atlas/config/tooltips";
-import { canonicalModelKey } from "../../src/model-atlas/identity/normalization";
 import type { ModelAtlasPayload } from "../../src/model-atlas/stats/types";
 import { LeaderboardCapture } from "./capture/LeaderboardCapture";
-import { CopyDashboardLink } from "./CopyDashboardLink";
 import { focusModelSearch } from "./GlobalModelControls";
-import { researchRegionOrdinal } from "./research-index";
+import { ResearchRegion } from "./ResearchRegions";
+import { filterByGlobalModelFilters, type GlobalModelFilters } from "./shared/model-display";
+import { hasSearchQuery } from "./shared/search";
+import { type TableColumnPreset, tableColumnView, visibleSort } from "./table/column-views";
 import {
   ColumnTooltip,
   type HeaderTooltipHandler,
   tooltipPositionFromElement,
   type TooltipState,
-} from "./shared/ColumnTooltip";
-import { DEFAULT_DISPLAY_ITEMS, useDisplayLimit } from "./shared/DisplayControls";
-import {
-  filterByGlobalModelFilters,
-  type GlobalModelFilters,
-  modelsForVariantDisplay,
-} from "./shared/model-display";
-import { hasSearchQuery } from "./shared/search";
-import { type TableColumnPreset, tableColumnSortKey, tableColumnView } from "./table/column-views";
+} from "./table/ColumnTooltip";
+import { useDisplayLimit } from "./table/DisplayControls";
 import { LeaderboardControls } from "./table/LeaderboardControls";
 import {
-  dashboardMetricColumns,
-  dedupeDisplayModels,
+  effortChoices,
   leaderboardRows,
+  rowEffort,
   sortedRows,
-  sorters,
   type SortKey,
   type TableColumnKey,
+  toggledSort,
 } from "./table/models";
-import { ModelTable, reverseDirection } from "./table/ModelTable";
+import { ModelTable } from "./table/ModelTable";
 import type { ScoreChangeHandler } from "./table/Rows";
 import { scoreChangeTooltip, tableColumnTooltip } from "./table/tooltips";
 import type { DashboardUrlPatch } from "./url-state";
@@ -47,7 +41,7 @@ import { updateDashboardUrl, useUrlState } from "./use-url-state";
 const emptyColumnTooltips: ModelAtlasColumnTooltips = {};
 const TOOLTIP_FADE_OUT_MS = 1_000;
 
-type DashboardTooltipState = Omit<TooltipState, "key"> &
+type DashboardTooltipState = TooltipState &
   ({ kind: "column"; key: TableColumnKey } | { kind: "change"; content: ModelAtlasColumnTooltip });
 
 /** Isolate leaderboard interactions so slider and sort updates do not re-render dashboard graphs. */
@@ -63,12 +57,12 @@ export function DashboardLeaderboard({
   filters: GlobalModelFilters;
 }) {
   const tooltipFadeTimeoutRef = useRef<number | null>(null);
-  const collapsedLimitRef = useRef(DEFAULT_DISPLAY_ITEMS);
   const [requestedSort, setSortState] = useUrlState("sort");
   const [columnQuery] = useUrlState("column-q");
   const [columnPreset] = useUrlState("view");
   const [tooltip, setTooltip] = useState<DashboardTooltipState | null>(null);
-  const [showVariants, setShowVariants] = useUrlState("table-variants");
+  const [showVariants] = useUrlState("table-variants");
+  const [requestedEfforts] = useUrlState("table-effort");
   const deferredColumnQuery = useDeferredValue(columnQuery);
   const columnTooltips = payload?.metadata?.scoring?.column_tooltips ?? emptyColumnTooltips;
   const {
@@ -79,12 +73,12 @@ export function DashboardLeaderboard({
     () => tableColumnView(columnPreset, deferredColumnQuery, columnTooltips),
     [columnPreset, deferredColumnQuery, columnTooltips],
   );
-  const sortState = useMemo(() => {
-    if (visibleColumnKeys.includes(requestedSort.key)) return requestedSort;
-    const key = tableColumnSortKey(columnPreset, columnFilterQuery, visibleColumnKeys);
-    return { key, direction: sorters[key].direction };
-  }, [requestedSort, columnPreset, columnFilterQuery, visibleColumnKeys]);
+  const sortState = useMemo(
+    () => visibleSort(requestedSort, columnPreset, columnFilterQuery, visibleColumnKeys),
+    [requestedSort, columnPreset, columnFilterQuery, visibleColumnKeys],
+  );
   const deferredShowVariants = useDeferredValue(showVariants);
+  const deferredEfforts = useDeferredValue(requestedEfforts);
   const deferredFilters = useDeferredValue(filters);
   // URL subscriptions update synchronously; defer the row reorder so the chosen header can paint first.
   const deferredSortState = useDeferredValue(sortState);
@@ -100,27 +94,34 @@ export function DashboardLeaderboard({
     }),
     [payload],
   );
-  const scopedRows = useMemo(
+  const filteredRows = useMemo(
     () => filterByGlobalModelFilters(tableRows, (row) => row.model, deferredFilters, filterScope),
     [tableRows, deferredFilters, filterScope],
   );
-  const expandedTableRows = useMemo(
+  // Efforts narrow reasoning-variant rows only; collapsed rows carry no effort.
+  const efforts = deferredShowVariants ? deferredEfforts : null;
+  const scopedRows = useMemo(
     () =>
-      dedupeDisplayModels(
-        modelsForVariantDisplay(payload?.models ?? [], true, payload?.benchmark_observations),
-      ),
-    [payload],
+      efforts == null
+        ? filteredRows
+        : filteredRows.filter((row) => efforts.includes(rowEffort(row.model))),
+    [filteredRows, efforts],
   );
-  // Expanded counts follow the displayed families, so recency and rank are already applied through them.
-  const globallyFilteredExpandedRows = useMemo(
+  const expandedTableRows = useMemo(() => leaderboardRows(payload, true), [payload]);
+  // The effort checklist counts every variant the global filters admit, whichever efforts are chosen.
+  const effortOptions = useMemo(
     () =>
-      filterByGlobalModelFilters(
-        expandedTableRows,
-        (row) => row.model,
-        { ...deferredFilters, days: "all", rank: "all" },
-        filterScope,
+      effortChoices(
+        deferredShowVariants
+          ? filteredRows
+          : filterByGlobalModelFilters(
+              expandedTableRows,
+              (row) => row.model,
+              deferredFilters,
+              filterScope,
+            ),
       ),
-    [expandedTableRows, deferredFilters, filterScope],
+    [deferredShowVariants, filteredRows, expandedTableRows, deferredFilters, filterScope],
   );
   const matchingRows = useMemo(
     () =>
@@ -137,24 +138,10 @@ export function DashboardLeaderboard({
     () => matchingRows.slice(0, deferredLimit),
     [deferredLimit, matchingRows],
   );
-  const expandedVariantCount = useMemo(() => {
-    const selectedModels = new Set(limitedRows.map((row) => canonicalModelKey(row.model)));
-    return globallyFilteredExpandedRows.filter((row) =>
-      selectedModels.has(canonicalModelKey(row.model)),
-    ).length;
-  }, [globallyFilteredExpandedRows, limitedRows]);
   const visibleRows = useMemo(
     () => sortedRows(limitedRows, deferredSortState),
     [limitedRows, deferredSortState],
   );
-  const orderedMetricColumns = useMemo(() => {
-    const orderByKey = new Map(visibleColumnKeys.map((key, index) => [key, index]));
-    return [...dashboardMetricColumns].sort(
-      (left, right) =>
-        (orderByKey.get(left.key) ?? Number.MAX_SAFE_INTEGER) -
-        (orderByKey.get(right.key) ?? Number.MAX_SAFE_INTEGER),
-    );
-  }, [visibleColumnKeys]);
 
   const rowKind = deferredShowVariants ? "variants" : "models";
   const activeTooltipContent =
@@ -191,30 +178,8 @@ export function DashboardLeaderboard({
   }, [scopedRows.length, setLimit]);
 
   const handleSort = useCallback(
-    (key: SortKey) => {
-      const defaultDirection = sorters[key].direction;
-      setSortState({
-        key,
-        direction:
-          sortState.key === key && sortState.direction === defaultDirection
-            ? reverseDirection(defaultDirection)
-            : defaultDirection,
-      });
-    },
+    (key: SortKey) => setSortState(toggledSort(sortState, key)),
     [sortState, setSortState],
-  );
-
-  const handleVariantDisplay = useCallback(
-    (expanded: boolean) => {
-      if (expanded) {
-        collapsedLimitRef.current = effectiveLimit;
-        setLimit(expandedVariantCount);
-      } else {
-        setLimit(collapsedLimitRef.current);
-      }
-      setShowVariants(expanded);
-    },
-    [effectiveLimit, expandedVariantCount, setLimit, setShowVariants],
   );
 
   const changeColumnView = useCallback(
@@ -222,16 +187,9 @@ export function DashboardLeaderboard({
       const preset = patch.view ?? columnPreset;
       const searchQuery = patch["column-q"] ?? columnQuery;
       const { searchQuery: query, keys } = tableColumnView(preset, searchQuery, columnTooltips);
-      const key = keys.includes(sortState.key)
-        ? sortState.key
-        : tableColumnSortKey(preset, query, keys);
+      const sort = visibleSort(sortState, preset, query, keys);
       updateDashboardUrl(
-        {
-          ...patch,
-          ...(key !== requestedSort.key
-            ? { sort: { key, direction: sorters[key].direction } }
-            : {}),
-        },
+        { ...patch, ...(sort.key !== requestedSort.key ? { sort } : {}) },
         patch.view == null,
       );
     },
@@ -340,22 +298,20 @@ export function DashboardLeaderboard({
   }, [clearTooltipFadeTimeout]);
 
   return (
-    <section
-      id="leaderboard"
-      className="dashboard-research-section leaderboard-section"
-      aria-labelledby="leaderboard-title"
-    >
-      <header className="dashboard-section-head">
-        <h2 id="leaderboard-title" className="dashboard-section-title">
-          <b aria-hidden="true">{researchRegionOrdinal("leaderboard")}</b>
-          <span>Models</span>
-        </h2>
-        <div className="dashboard-section-actions" data-capture-exclude>
-          <LeaderboardCapture rows={visibleRows} rowKind={rowKind} sortState={deferredSortState} />
-          <CopyDashboardLink sectionId="leaderboard" />
-        </div>
-      </header>
-      <div className="dashboard-deck research-plane">
+    <>
+      <ResearchRegion
+        id="leaderboard"
+        plane="dashboard-deck"
+        capture={{
+          action: (
+            <LeaderboardCapture
+              rows={visibleRows}
+              rowKind={rowKind}
+              sortState={deferredSortState}
+            />
+          ),
+        }}
+      >
         <LeaderboardControls
           preset={columnPreset}
           columnQuery={columnQuery}
@@ -367,8 +323,11 @@ export function DashboardLeaderboard({
             maximum: maximumLimit,
             value: effectiveLimit,
             onValueChange: setLimit,
-            showVariants,
-            onShowVariantsChange: handleVariantDisplay,
+            efforts: {
+              options: effortOptions,
+              selected: showVariants ? requestedEfforts : null,
+              onChange: chooseEfforts,
+            },
           }}
           onPresetChange={handleColumnPresetChange}
           onColumnQueryChange={handleColumnQueryChange}
@@ -382,13 +341,12 @@ export function DashboardLeaderboard({
           emptyMessage={emptyMessage}
           isLoading={isLoading}
           isSorting={deferredSortState !== sortState}
-          metricColumns={orderedMetricColumns}
           onSort={handleSort}
           onScoreChange={showScoreChange}
           onTooltip={showTooltip}
           onTooltipEnd={clearTooltip}
         />
-      </div>
+      </ResearchRegion>
       {tooltip != null && activeTooltipContent != null && (
         <ColumnTooltip
           content={activeTooltipContent}
@@ -400,6 +358,11 @@ export function DashboardLeaderboard({
           top={tooltip.top}
         />
       )}
-    </section>
+    </>
   );
+}
+
+// Choosing efforts asks for reasoning-variant rows, so a collapsed table expands to show them.
+function chooseEfforts(efforts: string[] | null) {
+  updateDashboardUrl({ "table-variants": true, "table-effort": efforts });
 }

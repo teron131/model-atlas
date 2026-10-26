@@ -34,8 +34,10 @@ import { benchmarkLabels } from "../../shared/constants";
 import { modelVariantKey } from "../../shared/model-display";
 import { finiteValue, toPercent } from "../format";
 
-export type FrontierBenchmarkAxisKey = "cost" | "time" | "tokens" | "speed" | "value";
-export type PerformanceMetric = "intelligence" | "agentic" | "benchmarks";
+export const FRONTIER_AXIS_KEYS = ["cost", "time", "tokens", "speed", "value"] as const;
+export type FrontierBenchmarkAxisKey = (typeof FRONTIER_AXIS_KEYS)[number];
+export const PERFORMANCE_METRICS = ["intelligence", "agentic", "benchmarks"] as const;
+export type PerformanceMetric = (typeof PERFORMANCE_METRICS)[number];
 
 export type FrontierBenchmarkRow = {
   benchmarkKey: string;
@@ -70,6 +72,31 @@ const EFFORT_BENCHMARK_KEYS = new Set([
   "terminal_bench_4",
   "terminal_bench_science",
 ]);
+
+// The Pareto chart and the model sheet both read a snapshot's whole population against the same references, so its rows are built once per population and axis.
+const referenceRowsByPopulation = new WeakMap<
+  readonly ModelAtlasModel[],
+  Map<FrontierBenchmarkAxisKey, FrontierBenchmarkRow[]>
+>();
+
+/** `frontierBenchmarkRows` for a snapshot's whole population, shared by every reader of that snapshot; `portfolio` must be the same snapshot's, and readers must not modify the rows. */
+export function referenceFrontierBenchmarkRows(
+  models: ModelAtlasModel[],
+  portfolio: BenchmarkPortfolio,
+  axisKey: FrontierBenchmarkAxisKey,
+): FrontierBenchmarkRow[] {
+  let byAxis = referenceRowsByPopulation.get(models);
+  if (byAxis == null) {
+    byAxis = new Map();
+    referenceRowsByPopulation.set(models, byAxis);
+  }
+  let rows = byAxis.get(axisKey);
+  if (rows == null) {
+    rows = frontierBenchmarkRows(models, portfolio, axisKey);
+    byAxis.set(axisKey, rows);
+  }
+  return rows;
+}
 
 /** Build native quality/resource pairs for the selected axis without substituting output-only telemetry for total tokens. */
 export function frontierBenchmarkRows(
@@ -179,7 +206,7 @@ export function aggregateFrontierBenchmarkRows(
 /** Fixed full-population source medians define resource ratios; quality keeps its min–max reference. */
 export function normalizedFrontierBenchmarkRows(
   rows: FrontierBenchmarkRow[],
-  referenceRows: FrontierBenchmarkRow[] = rows,
+  referenceRows: FrontierBenchmarkRow[],
 ): FrontierBenchmarkRow[] {
   const references = (get: (row: FrontierBenchmarkRow) => number | null) =>
     resourceRatioReferences(metricObservations(referenceRows, get));
@@ -199,7 +226,7 @@ export function normalizedFrontierBenchmarkRows(
 /** Normalize benchmark-native quality values onto the shared 0-100 chart scale without changing resource measurements. */
 export function normalizedFrontierBenchmarkScoreRows(
   rows: FrontierBenchmarkRow[],
-  referenceRows: FrontierBenchmarkRow[] = rows,
+  referenceRows: FrontierBenchmarkRow[],
 ): FrontierBenchmarkRow[] {
   const rangesByBenchmark = new Map(
     [...groupBy(referenceRows, (row) => row.benchmarkKey)].map(([key, benchmarkRows]) => [

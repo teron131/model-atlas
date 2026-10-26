@@ -18,7 +18,7 @@ import { type ModelAtlasModel } from "../../../../src/model-atlas/stats/types";
 import { reasoningVariantGroups } from "../../shared/model-display";
 import { providerChartColor } from "../../shared/provider-theme";
 import { formatResourceRatio } from "../../shared/resource-ratio-display";
-import { type HoverRow, type HoverSetter, pointHover } from "../hover-state";
+import { type HoverRow, type HoverSetter, pointHover } from "../HoverCard";
 import {
   CursorCapture,
   CursorProjectionLayer,

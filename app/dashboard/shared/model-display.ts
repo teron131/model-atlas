@@ -5,15 +5,12 @@ import {
   canonicalModelKey,
   reasoningEffortRank,
 } from "../../../src/model-atlas/identity/normalization";
+import { providerIdentityKey } from "../../../src/model-atlas/identity/provider";
+import { strongestModelVariants } from "../../../src/model-atlas/stats/model-variants";
 import { modelDisplayExclusion } from "../../../src/model-atlas/stats/model-visibility";
 import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 import { compactModelVariants } from "../../leaderboard/model-variants";
-import {
-  providerChartColor,
-  providerDisplayName,
-  providerFilterKey,
-  providerLogo,
-} from "./provider-theme";
+import { providerChartColor, providerDisplayName, providerLogo } from "./provider-theme";
 import { filterSearchDocuments, type SearchDocument } from "./search";
 
 const MILLISECONDS_PER_DAY = 86_400_000;
@@ -58,7 +55,7 @@ export function modelCount(models: ModelAtlasModel[]): number {
 
 /** Expand every reasoning variant when requested; otherwise retain the highest-scoring variant per model. */
 export function modelsForVariantDisplay(
-  models: ModelAtlasModel[],
+  models: readonly ModelAtlasModel[],
   showVariants: boolean,
   benchmarkObservations: BenchmarkObservationsByKey = {},
 ): ModelAtlasModel[] {
@@ -74,6 +71,17 @@ export function modelsForVariantDisplay(
   const modelVariants = [...variantsByIdentity.values()];
   if (showVariants) return modelVariants;
   return compactModelVariants(modelVariants, benchmarkObservations).map((model) => ({
+    ...model,
+    reasoning_effort: null,
+  }));
+}
+
+/**
+ * One row per model: its strongest variant, without an effort label.
+ * A row carries only that variant's own results, which is all score, identity, and filter readers use; the leaderboard's collapsed rows from `modelsForVariantDisplay` also fill benchmark results from other efforts, at several times the cost.
+ */
+export function collapsedModels(models: readonly ModelAtlasModel[]): ModelAtlasModel[] {
+  return strongestModelVariants(modelsForVariantDisplay(models, true)).map((model) => ({
     ...model,
     reasoning_effort: null,
   }));
@@ -146,7 +154,7 @@ export function providerOptions(models: ModelAtlasModel[]): ProviderOption[] {
 
   const optionsBySlug = new Map<string, ProviderOptionDraft>();
   for (const model of models) {
-    const slug = providerFilterKey(model.provider);
+    const slug = providerIdentityKey(model.provider);
     const intelligenceScore = finiteNumber(model.scores?.intelligence_score);
     const option = optionsBySlug.get(slug) ?? {
       slug,
@@ -306,7 +314,7 @@ function modelMatchesControls(
   maxCost: CostFilter,
   providerKeys: ReadonlySet<string> | null,
 ) {
-  if (providerKeys != null && !providerKeys.has(providerFilterKey(model.provider))) {
+  if (providerKeys != null && !providerKeys.has(providerIdentityKey(model.provider))) {
     return false;
   }
   if (maxCost === "all") {

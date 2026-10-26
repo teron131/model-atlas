@@ -9,7 +9,7 @@ import {
   fmtPercentScore,
   fmtTooltipScore,
 } from "../format";
-import type { HoverRow } from "../hover-state";
+import type { HoverRow } from "../HoverCard";
 import {
   type AxisScale,
   linearAxisScale,
@@ -95,7 +95,6 @@ export const frontierBenchmarkAxisConfig: Record<
 const BENCHMARK_SCORE_AXIS_OPTIONS = {
   formatTick: (tick: number) => `${tick}%`,
   max: 100,
-  minimumTicks: 5,
   steps: [10, 5, 2] as const,
 };
 
@@ -142,18 +141,19 @@ export function frontierAxisDescription(
 }
 
 export function frontierAxisMetricLabel(
-  axisConfig: FrontierBenchmarkAxisConfig,
+  axisKey: FrontierBenchmarkAxisKey,
   isAggregateView: boolean,
   rows: FrontierBenchmarkRow[],
 ): string {
+  const axisConfig = frontierBenchmarkAxisConfigFor(axisKey, isAggregateView);
   if (isAggregateView) {
     return axisConfig.label;
   }
   const row = rows.find((candidate) => positiveMetric(axisConfig.get(candidate)));
   if (row == null || axisConfig.xHigherIsBetter) return axisConfig.label;
   const unit = row.resourcePolicy?.unit === "total" ? "run" : "task";
-  if (axisConfig.get === frontierBenchmarkAxisConfig.cost.get) return `Cost ($ / ${unit})`;
-  if (axisConfig.get === frontierBenchmarkAxisConfig.time.get) return `Time / ${unit}`;
+  if (axisKey === "cost") return `Cost ($ / ${unit})`;
+  if (axisKey === "time") return `Time / ${unit}`;
   return `Tokens / ${unit}`;
 }
 

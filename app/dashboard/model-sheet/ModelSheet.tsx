@@ -17,10 +17,14 @@ import { CaptureButton } from "../capture/CaptureButton";
 import { ARTIFACT_WIDTH, WIDE_ARTIFACT_WIDTH } from "../capture/png";
 import { CopyDashboardLink } from "../CopyDashboardLink";
 import { benchmarkLabels } from "../shared/constants";
-import { BotIcon, BrainIcon, DollarIcon, LightningIcon } from "../shared/DashboardIcons";
 import { providerBrandColor, providerDisplayName } from "../shared/provider-theme";
 import { ProviderLogo } from "../shared/ProviderLogo";
-import { formatResourceRatio, ratioTrackStyle } from "../shared/resource-ratio-display";
+import { formatResourceRatio, isDrawableRatio } from "../shared/resource-ratio-display";
+import {
+  resourceRatioColumns,
+  scoreColumnsByDimension,
+  scoreMetricColumns,
+} from "../table/Columns";
 import {
   formatConfidence,
   formatContext,
@@ -36,11 +40,13 @@ import {
   contextWindowValue,
   dashboardMetricValue,
   isAmountColumn,
+  type SortDirection,
   speedMetricColumns,
+  TABLE_COLUMN_GROUP_LABELS,
   type TableRow,
 } from "../table/models";
-import { inputModalities } from "../table/Rows";
-import { scoreChangeTooltip, scoreDimensionLabel } from "../table/tooltips";
+import { ModalityIcons, RatioTrack, ScoreMeter } from "../table/Rows";
+import { scoreChangeTooltip } from "../table/tooltips";
 import { useUrlState } from "../use-url-state";
 import { CompareSearch } from "./CompareSearch";
 import { familyName, type SheetEntry, useSheetEntries } from "./entries";
@@ -55,65 +61,27 @@ import {
 import { ReasoningEffort } from "./ReasoningEffort";
 import { CardPlotWidth, useCardPlotRedraw } from "./SheetPlot";
 
-import captureStyles from "../capture/capture.module.css";
 import styles from "./model-sheet.module.css";
 
-type ScoreGetter = (model: ModelAtlasModel) => number | null | undefined;
+type ScoreGetter = (model: ModelAtlasModel) => number | null;
 /** Where a compared value stands against the other in its row's direction. */
 type Lead = "better" | "worse";
-/** A row's sort direction: `descending` rows favour the higher value, `ascending` rows the lower. */
-type Direction = "ascending" | "descending";
 /** How a row's values differ: by points on a score scale, or by proportion for amounts. */
 type Difference = "points" | "proportion";
 /** One compared value: whether it leads, and for the better value its margin over the other. */
 type Comparison = { lead?: Lead; delta?: string };
 
-const SCORES: { label: string; icon: ReactNode; score: ScoreGetter; support: ScoreGetter }[] = [
-  {
-    label: "Intelligence",
-    icon: <BrainIcon />,
-    score: (model) => model.scores.intelligence_score,
-    support: (model) => model.confidence?.intelligence,
-  },
-  {
-    label: "Agentic",
-    icon: <BotIcon />,
-    score: (model) => model.scores.agentic_score,
-    support: (model) => model.confidence?.agentic,
-  },
-  {
-    label: "Speed",
-    icon: <LightningIcon />,
-    score: (model) => model.scores.speed_score,
-    support: (model) => model.confidence?.speed,
-  },
-  {
-    label: "Value",
-    icon: <DollarIcon />,
-    score: (model) => model.scores.value_score,
-    support: (model) => model.confidence?.value,
-  },
-];
 // The exported card's benchmark lists take this many columns, for one model and for a comparison.
 const CARD_COLUMNS = 3;
 const COMPARE_CARD_COLUMNS = 2;
 
-// Labels follow the leaderboard's column headers, so a sheet reads against the table it was opened from; directions follow its sort arrows, and fewer tokens are not plainly better.
-const RESOURCE_RATIOS = [
-  { kind: "cost", label: "Cost×", direction: "ascending" },
-  { kind: "time", label: "Time×", direction: "ascending" },
-  { kind: "tokens", label: "Tokens×", direction: null },
-] as const;
 const PRICES: { label: string; value: (model: ModelAtlasModel) => number | null | undefined }[] = [
   { label: "Blended", value: (model) => model.cost?.blended_price },
   { label: "Input", value: (model) => model.cost?.weighted_input },
   { label: "Output", value: (model) => model.cost?.weighted_output },
 ];
-const BENCHMARK_GROUPS = [
-  { key: "indexes", label: "Indexes" },
-  { key: "frontier", label: "Frontier" },
-  { key: "baseline", label: "Baseline" },
-] as const;
+// The sheet leads its benchmark evidence with the indexes, then the table's other groups.
+const BENCHMARK_GROUPS = ["indexes", "frontier", "baseline"] as const;
 
 /**
  * Render the sheet named by the URL over the dashboard, measuring each model against the same display population as the leaderboard: collapsed models for a model, every reasoning variant for a variant.
@@ -376,7 +344,7 @@ function CloseButton() {
   return (
     <button
       type="button"
-      className={captureStyles.actionButton}
+      className="dashboard-action-button"
       aria-label="Close model sheet"
       title="Close"
       onClick={closeModelSheet}
@@ -444,28 +412,6 @@ function BetterNote({ lead }: { lead?: Lead }) {
   return lead === "better" ? <span className="visually-hidden"> (better)</span> : null;
 }
 
-/** The leaderboard's 0–100 score track with the model's provider star at `score`. */
-function ScoreMeter({ score, color }: { score: number; color: string }) {
-  return (
-    <span
-      className="score-meter"
-      style={{ "--score": score, "--score-color": color } as CSSProperties}
-      aria-hidden="true"
-    />
-  );
-}
-
-/** The leaderboard's median-relative bar for a positive ratio, in the model's provider colour. */
-function RatioTrack({ ratio, color }: { ratio: number; color: string }) {
-  return (
-    <span
-      className="ratio-track"
-      style={{ ...ratioTrackStyle(ratio), "--row-provider": color } as CSSProperties}
-      aria-hidden="true"
-    />
-  );
-}
-
 function Facts({ entries }: { entries: readonly SheetEntry[] }) {
   const models = entries.map((entry) => entry.row.model);
   return (
@@ -516,7 +462,7 @@ function Scores({ entries }: { entries: readonly SheetEntry[] }) {
         ))}
       </div>
       <ul className={styles.scores}>
-        {SCORES.map(({ label, icon, score, support }) => {
+        {scoreMetricColumns.map(({ key, name, icon, score, support }) => {
           const values = entries.map((entry) => finiteScore(score(entry.row.model)));
           const comparisons = compareValues(
             values,
@@ -525,10 +471,10 @@ function Scores({ entries }: { entries: readonly SheetEntry[] }) {
             "points",
           );
           return (
-            <li key={label} className={styles.score}>
+            <li key={key} className={styles.score}>
               <span className={styles.scoreLabel}>
                 {icon}
-                <span>{label}</span>
+                <span>{name}</span>
               </span>
               {entries.map((entry, index) => {
                 const model = entry.row.model;
@@ -575,19 +521,19 @@ function Resources({ entries }: { entries: readonly SheetEntry[] }) {
         Resources <small>1× is the benchmark median</small>
       </h3>
       <ul className={styles.ratios}>
-        {RESOURCE_RATIOS.map(({ kind, label, direction }) => {
-          const ratios = entries.map((entry) => entry.row.resourceRatios?.[kind]?.ratio);
+        {resourceRatioColumns.map(({ kind, name, better }) => {
+          const ratios = entries.map((entry) => entry.row.resourceRatios[kind].ratio);
           const comparisons = compareValues(
             ratios,
             ratios.map(formatResourceRatio),
-            direction,
+            better,
             "proportion",
           );
           return (
             <li key={kind}>
-              <span>{label}</span>
+              <span>{name}</span>
               {entries.map((entry, index) => {
-                const summary = entry.row.resourceRatios?.[kind];
+                const summary = entry.row.resourceRatios[kind];
                 const ratio = summary?.ratio;
                 const comparison = comparisons[index]!;
                 return (
@@ -606,7 +552,7 @@ function Resources({ entries }: { entries: readonly SheetEntry[] }) {
                       comparison={comparison}
                       comparing={comparing}
                     />
-                    {ratio != null && Number.isFinite(ratio) && ratio > 0 ? (
+                    {isDrawableRatio(ratio) ? (
                       <RatioTrack
                         ratio={ratio}
                         color={providerBrandColor(entry.row.model.provider)}
@@ -661,29 +607,6 @@ function Resources({ entries }: { entries: readonly SheetEntry[] }) {
   );
 }
 
-function ModalityIcons({ inputs }: { inputs: string[] | undefined }) {
-  const available = new Set((inputs ?? []).map((input) => input.toLowerCase()));
-  const label = inputModalities
-    .filter(({ key }) => available.has(key))
-    .map(({ label }) => label)
-    .join(", ");
-  return (
-    <span className="modality-icons">
-      <span className="visually-hidden">{label || "none"}</span>
-      {inputModalities.map(({ Icon, key, label }) => (
-        <span
-          key={key}
-          className={`modality-icon ${available.has(key) ? "" : "unavailable"}`}
-          title={`${label} input is ${available.has(key) ? "available" : "unavailable"}`}
-          aria-hidden="true"
-        >
-          <Icon />
-        </span>
-      ))}
-    </span>
-  );
-}
-
 type BenchmarkResult = { value: number; text: string; meter: number | null; ratio: number | null };
 
 /**
@@ -692,7 +615,7 @@ type BenchmarkResult = { value: number; text: string; meter: number | null; rati
  */
 function BenchmarkEvidence({ entries }: { entries: readonly SheetEntry[] }) {
   const comparing = entries.length > 1;
-  const groups = BENCHMARK_GROUPS.map(({ key, label }) => {
+  const groups = BENCHMARK_GROUPS.map((key) => {
     const columns = benchmarkMetricColumns.filter(
       (column) => benchmarkEvidenceGroup(column.benchmark) === key,
     );
@@ -717,7 +640,7 @@ function BenchmarkEvidence({ entries }: { entries: readonly SheetEntry[] }) {
     const counts = entries.map(
       (_, index) => rows.filter((row) => row.results[index] != null).length,
     );
-    return { key, label, rows, counts, total: columns.length };
+    return { key, label: TABLE_COLUMN_GROUP_LABELS[key], rows, counts, total: columns.length };
   }).filter((group) => group.total > 0);
   return (
     <section className={styles.section} aria-labelledby="model-sheet-benchmarks">
@@ -798,7 +721,7 @@ function benchmarkResult(
     text: formatDashboardMetric(value, column),
     meter: benchmarkMeterValue(row, column),
     // A result reported as an amount draws the table's bar from the column median rather than a score track.
-    ratio: ratio != null && Number.isFinite(ratio) && ratio > 0 ? ratio : null,
+    ratio: isDrawableRatio(ratio) ? ratio : null,
   };
 }
 
@@ -813,7 +736,7 @@ function LatestChange({
   return (
     <section className={styles.section} aria-labelledby="model-sheet-change">
       <h3 id="model-sheet-change">
-        Latest change <small>{scoreDimensionLabel(change.dimension)}</small>
+        Latest change <small>{scoreColumnsByDimension[change.dimension].name}</small>
       </h3>
       <p className={styles.note}>{event.body}</p>
       {event.rows?.length ? (
@@ -834,7 +757,7 @@ function LatestChange({
 function compareValues(
   values: readonly unknown[],
   texts: readonly string[],
-  direction: Direction | null,
+  direction: SortDirection | null,
   difference: Difference,
 ): Comparison[] {
   const [first, second] = values;
@@ -866,7 +789,7 @@ function displayedNumber(text: string): number {
 }
 
 /** An amount's margin as a share of the other value: how much less it spends or takes, or how much more it delivers, as a multiple once it doubles. */
-function proportion(better: number, worse: number, direction: Direction): string | undefined {
+function proportion(better: number, worse: number, direction: SortDirection): string | undefined {
   if (!(better > 0 && worse > 0)) return undefined;
   if (direction === "ascending") return `−${percent(1 - better / worse)}`;
   const ratio = better / worse;

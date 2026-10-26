@@ -7,8 +7,6 @@ import { useState } from "react";
 
 import type { ResearchRegionId } from "./research-index";
 
-import styles from "./capture/capture.module.css";
-
 const feedback = {
   idle: { label: "Copy link", Icon: LinkIcon },
   saved: { label: "Link copied", Icon: CheckIcon },
@@ -31,7 +29,7 @@ export function CopyDashboardLink({ sectionId }: { sectionId?: ResearchRegionId 
   }
   return (
     <button
-      className={styles.actionButton}
+      className="dashboard-action-button"
       type="button"
       data-state={status}
       aria-label={label}

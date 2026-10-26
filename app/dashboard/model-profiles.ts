@@ -7,17 +7,10 @@ import {
   modelCount,
   modelsForVariantDisplay,
 } from "./shared/model-display";
-import { readUrlValue } from "./url-state";
+import { readGlobalModelFilters } from "./url-state";
 
 export type ModelProfile = { id: string; name: string; filters: GlobalModelFilters };
 export const MODEL_PROFILES_STORAGE_KEY = "model-atlas:model-profiles";
-export const DEFAULT_PROFILE_FILTERS: GlobalModelFilters = {
-  q: "",
-  provider: [],
-  "max-cost": "all",
-  rank: "all",
-  days: "all",
-};
 
 /** Count visible canonical families matching the full global configuration, including variants that lack plot coordinates. */
 export function matchingProfileModelCount(
@@ -65,13 +58,7 @@ export function readModelProfiles(storage: Pick<Storage, "getItem">): ModelProfi
     params.set("q", values.q);
     for (const provider of values.provider) params.append("provider", provider);
     for (const key of ["max-cost", "rank", "days"] as const) params.set(key, String(values[key]));
-    const parsed: GlobalModelFilters = {
-      q: readUrlValue(params, "q"),
-      provider: readUrlValue(params, "provider"),
-      "max-cost": readUrlValue(params, "max-cost"),
-      rank: readUrlValue(params, "rank"),
-      days: readUrlValue(params, "days"),
-    };
+    const parsed = readGlobalModelFilters(params);
     if (!sameProfileFilters(parsed, values as GlobalModelFilters))
       throw new Error("Saved profiles could not be read.");
     ids.add(id);

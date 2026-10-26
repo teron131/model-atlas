@@ -3,10 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 
 import { providerDisplayName, providerLogo } from "../../shared/provider-theme";
+import { useDismissibleDetails } from "../../shared/use-dismissible-details";
 import type { TimelinePoint } from "./chart-data";
 
 import styles from "../graphs.module.css";
-import timeline from "../timeline.module.css";
+import timeline from "./timeline.module.css";
 
 /** Null selects all labs; an empty basket selects none, including when search hides selected rows. */
 export function OrganizationSelect({
@@ -45,24 +46,7 @@ export function OrganizationSelect({
   useEffect(() => {
     if (bulk.current) bulk.current.indeterminate = !all && active.size > 0;
   }, [all, active.size]);
-  useEffect(() => {
-    const outside = (event: PointerEvent) => {
-      if (root.current?.open && !root.current.contains(event.target as Node))
-        root.current.open = false;
-    };
-    const escape = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && root.current?.open) {
-        root.current.open = false;
-        root.current.querySelector("summary")?.focus();
-      }
-    };
-    document.addEventListener("pointerdown", outside);
-    document.addEventListener("keydown", escape);
-    return () => {
-      document.removeEventListener("pointerdown", outside);
-      document.removeEventListener("keydown", escape);
-    };
-  }, []);
+  useDismissibleDetails(root);
   const visible = options.filter((option) =>
     `${option.label} ${option.key}`.toLowerCase().includes(query.toLowerCase()),
   );
@@ -74,7 +58,7 @@ export function OrganizationSelect({
         </summary>
         <div className={styles.benchmarkSelectMenu}>
           <label className={styles.benchmarkSelectSearch}>
-            <span className={styles.visuallyHidden}>Filter organizations</span>
+            <span className="visually-hidden">Filter organizations</span>
             <input
               type="search"
               placeholder="Filter organizations"

@@ -1,71 +1,8 @@
-/** Shared section-action button styling and the export-only leaderboard surface. */
-
-.actionButton {
-  font-family: var(--font-mono);
-  font-weight: var(--type-label-weight);
-  text-transform: uppercase;
-  cursor: pointer;
-  transition:
-    background-color 0.16s ease,
-    border-color 0.16s ease,
-    color 0.16s ease,
-    transform 0.16s ease;
-  display: inline-grid;
-  width: 34px;
-  height: 34px;
-  padding: 0;
-  place-items: center;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  color: var(--muted);
-}
-
-.actionButton:hover,
-.actionButton:focus-visible,
-.actionButton[data-state="saved"] {
-  background: var(--hover);
-  color: var(--ink);
-  outline: 0;
-}
-
-.actionButton:focus-visible {
-  box-shadow: 0 0 0 2px var(--focus-ring);
-}
-
-.actionButton:active {
-  transform: translateY(1px);
-}
-
-.actionButton:disabled {
-  cursor: wait;
-  opacity: 0.58;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .actionButton {
-    transition: none;
-  }
-}
-
-.actionButton svg {
-  width: 16px;
-  height: 16px;
-  stroke: currentColor;
-  fill: none;
-  stroke-width: 2;
-}
+/** The leaderboard's export-only surface: an off-screen stage holding the four-score table at the export's type size. */
 
 .leaderboardCapture {
   position: relative;
   flex: 0 0 auto;
-}
-
-@media (max-width: 720px) {
-  .actionButton {
-    width: var(--dashboard-icon-button-size);
-    height: var(--dashboard-icon-button-size);
-  }
 }
 
 .stage {

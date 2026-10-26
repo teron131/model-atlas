@@ -7,12 +7,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { canonicalModelKey } from "../../../src/model-atlas/identity/normalization";
 import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
-import { DEFAULT_PROFILE_FILTERS } from "../model-profiles";
 import {
   ModelSuggestionList,
   modelSuggestions,
   useModelSuggestions,
 } from "../shared/ModelSuggestions";
+import { DEFAULT_GLOBAL_MODEL_FILTERS } from "../url-state";
 import { familyName, type SheetEntry } from "./entries";
 import { openModelSheet } from "./open";
 
@@ -36,7 +36,7 @@ export function CompareSearch({
   const family = canonicalModelKey(pinned.row.model);
   const suggestions = useMemo(
     () =>
-      modelSuggestions(models, { ...DEFAULT_PROFILE_FILTERS, q: query }, null).filter(
+      modelSuggestions(models, { ...DEFAULT_GLOBAL_MODEL_FILTERS, q: query }, null).filter(
         (model) => canonicalModelKey(model) !== family,
       ),
     [models, query, family],

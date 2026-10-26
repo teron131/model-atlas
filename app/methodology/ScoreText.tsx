@@ -1,17 +1,18 @@
 /** Render author-selected score labels with shared icons, inheriting surrounding Markdown emphasis and link decoration. */
 
-import { type ReactNode } from "react";
+import { type ComponentType, type ReactNode } from "react";
 
-import { BotIcon, BrainIcon, DollarIcon, LightningIcon } from "../dashboard/shared/DashboardIcons";
+import { SCORE_ICONS } from "../dashboard/shared/DashboardIcons";
 import { scoreMarkers, type ScoreName } from "./score-markers";
 
 import styles from "./methodology.module.css";
 
-const scoreIcons = {
-  Intelligence: BrainIcon,
-  Agentic: BotIcon,
-  Speed: LightningIcon,
-  Value: DollarIcon,
+// Markers name a score as the pages print it; its mark is the dashboard's.
+const scoreIcons: Record<ScoreName, ComponentType> = {
+  Intelligence: SCORE_ICONS.intelligence,
+  Agentic: SCORE_ICONS.agentic,
+  Speed: SCORE_ICONS.speed,
+  Value: SCORE_ICONS.value,
 };
 
 /** Preserve plain words and replace only explicit :score[...] annotations, including in source-derived navigation labels. */

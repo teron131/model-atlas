@@ -1,6 +1,6 @@
 /** One comparison surface owns its shareable performance, evidence, and resource selections, plotting published scores or selected benchmarks against measured resources or published resource scores. */
 
-import { memo, useMemo } from "react";
+import { memo, useMemo, useState } from "react";
 
 import { isAggregateIndex } from "../../../../src/model-atlas/benchmarks/index-policy";
 import {
@@ -8,19 +8,19 @@ import {
   type ModelAtlasPayload,
 } from "../../../../src/model-atlas/stats/types";
 import { captureFileToken } from "../../capture/png";
+import { ResearchRegion } from "../../ResearchRegions";
 import { modelName, modelVariantKey, shortLabel } from "../../shared/model-display";
 import { updateDashboardUrl, useUrlState } from "../../use-url-state";
 import { BoxWhiskerSummary } from "../BoxWhiskerSummary";
 import { finite, fmtPercentScore, fmtTooltipNumber, fmtTooltipScore } from "../format";
 import { GraphToggle } from "../GraphToggle";
-import type { HoverSetter } from "../hover-state";
-import { Panel } from "../Panel";
+import { HoverCard, type HoverSetter, type HoverState } from "../HoverCard";
 import { scoreAxisScale } from "../plot/axis-scale";
 import { SCATTER_CHART_MARGIN } from "../plot/Primitives";
 import { useCompactChartLayout } from "../use-chart-layout";
 import {
   automaticResourceKeys,
-  type FrontierBenchmarkAxisKey,
+  FRONTIER_AXIS_KEYS,
   frontierBenchmarkCorrelationByBenchmark,
   frontierBenchmarkOptions,
   type FrontierBenchmarkRow,
@@ -28,11 +28,12 @@ import {
   isScoreAxis,
   performanceComparisonRows,
   positiveMetric,
+  referenceFrontierBenchmarkRows,
 } from "./analysis";
 import { BenchmarkSelect } from "./BenchmarkSelect";
 import { sharedFrontierBenchmarkComparison } from "./common-evidence";
 import { CommonEvidence } from "./CommonEvidence";
-import { PARETO_CAPTION, PARETO_PANEL_CONTENT, ParetoFigureFoot, ParetoFigureTop } from "./Figure";
+import { PARETO_CAPTION, ParetoFigureFoot, ParetoFigureTop } from "./Figure";
 import {
   frontierAxisDescription,
   frontierAxisMetricLabel,
@@ -46,21 +47,33 @@ import { FrontierBenchmarkScatterPlot } from "./ScatterPlot";
 
 import styles from "../graphs.module.css";
 
-export const ParetoPanel = memo(function ParetoPanel({
+type ParetoPanelProps = {
+  payload: ModelAtlasPayload;
+  models: ModelAtlasModel[];
+  referenceModels: ModelAtlasModel[];
+  showVariants: boolean;
+  onShowVariantsChange: (show: boolean) => void;
+};
+
+/** The hover card sits beside the figure, so a pointer move redraws only the card. */
+export const ParetoPanel = memo(function ParetoPanel(props: ParetoPanelProps) {
+  const [hover, setHover] = useState<HoverState | null>(null);
+  return (
+    <>
+      <ParetoFigure {...props} setHover={setHover} />
+      {hover ? <HoverCard hover={hover} /> : null}
+    </>
+  );
+});
+
+const ParetoFigure = memo(function ParetoFigure({
   payload,
   models,
   referenceModels,
   showVariants,
   onShowVariantsChange,
   setHover,
-}: {
-  payload: ModelAtlasPayload;
-  models: ModelAtlasModel[];
-  referenceModels: ModelAtlasModel[];
-  showVariants: boolean;
-  onShowVariantsChange: (show: boolean) => void;
-  setHover: HoverSetter;
-}) {
+}: ParetoPanelProps & { setHover: HoverSetter }) {
   const compactLayout = useCompactChartLayout();
   const [performance, setPerformance] = useUrlState("performance");
   const [benchmarkKeys] = useUrlState("benchmark");
@@ -71,7 +84,11 @@ export const ParetoPanel = memo(function ParetoPanel({
   );
   const referenceRows = useMemo(
     () =>
-      frontierBenchmarkRows(referenceModels, payload.metadata.scoring.benchmark_portfolio, axisKey),
+      referenceFrontierBenchmarkRows(
+        referenceModels,
+        payload.metadata.scoring.benchmark_portfolio,
+        axisKey,
+      ),
     [referenceModels, payload.metadata.scoring.benchmark_portfolio, axisKey],
   );
   const benchmarkOptions = useMemo(
@@ -144,7 +161,7 @@ export const ParetoPanel = memo(function ParetoPanel({
     : normalizedScore
       ? "Normalized Performance"
       : `${selectedLabel} Score`;
-  const xLabel = frontierAxisMetricLabel(axisConfig, aggregate, rows);
+  const xLabel = frontierAxisMetricLabel(axisKey, aggregate, rows);
   const formatScore =
     publishedPerformance || normalizedScore || indexScore ? fmtTooltipScore : fmtPercentScore;
   const formatScoreTick =
@@ -195,7 +212,12 @@ export const ParetoPanel = memo(function ParetoPanel({
       ? `${frontierAxisDescription(axisKey, aggregate, rows[0])}${showVariants ? " Hover a point or label to connect its model's variants in reasoning-effort order." : ""}`
       : null;
   return (
-    <Panel {...PARETO_PANEL_CONTENT} captureFileName={captureFileName} wide>
+    <ResearchRegion
+      id="pareto-analysis"
+      className={styles.section}
+      plane={styles.panel}
+      capture={{ title: "Performance tradeoffs", fileName: captureFileName }}
+    >
       <ParetoFigureTop
         yAxisControl={
           <BenchmarkSelect
@@ -252,9 +274,10 @@ export const ParetoPanel = memo(function ParetoPanel({
           <GraphToggle
             legend="X axis"
             // Each choice names what the axis would plot: a ratio such as Cost× across several benchmarks, the measured amount for one.
-            options={(Object.keys(frontierBenchmarkAxisConfig) as FrontierBenchmarkAxisKey[]).map(
-              (key) => ({ key, label: frontierBenchmarkAxisConfigFor(key, aggregate).shortLabel }),
-            )}
+            options={FRONTIER_AXIS_KEYS.map((key) => ({
+              key,
+              label: frontierBenchmarkAxisConfigFor(key, aggregate).shortLabel,
+            }))}
             selectedKey={axisKey}
             onSelect={setAxisKey}
           />
@@ -280,6 +303,6 @@ export const ParetoPanel = memo(function ParetoPanel({
           showVariants={showVariants}
         />
       ) : null}
-    </Panel>
+    </ResearchRegion>
   );
 });

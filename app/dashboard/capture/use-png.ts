@@ -6,7 +6,7 @@ import { type RefObject, useCallback, useEffect, useRef, useState } from "react"
 
 import { downloadElementPng } from "./png";
 
-type CaptureState = "idle" | "rendering" | "saved" | "error";
+export type CaptureState = "idle" | "rendering" | "saved" | "error";
 
 /** `onStaged` receives the copy staged at `captureWidth` before it renders. */
 export function usePngCapture(

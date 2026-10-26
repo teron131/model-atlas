@@ -17,6 +17,7 @@ import { readRevalidatedSnapshot } from "../../src/model-atlas/database/runtime-
 import { NavigationLink } from "../shared/NavigationLink";
 import {
   CATALOG_EDITIONS,
+  documentGroup,
   documentHref,
   DOCUMENTS,
   type DocumentSlug,
@@ -57,8 +58,7 @@ export async function DocumentPage({ document }: { document: DocumentSlug }) {
   const { markdown, revision } = DOCUMENT_CONTENT[document];
   const editions = { ...CATALOG_EDITIONS, ...(await servedEditions()) };
   const outline = tableOfContents(markdown);
-  const current = DOCUMENTS.find((item) => item.slug === document)!;
-  const parent = current.parent ?? current.slug;
+  const parent = documentGroup(document);
   const sequence = DOCUMENTS.filter((item) => item.slug === parent || item.parent === parent);
   const index = sequence.findIndex((item) => item.slug === document);
   const previous = sequence[index - 1];

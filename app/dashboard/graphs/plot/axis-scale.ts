@@ -10,8 +10,10 @@ export type AxisScale = {
 
 const SCORE_AXIS_STEPS = [20, 10, 5] as const;
 const SCORE_AXIS_DOMAIN: [number, number] = [0, 100];
+// A stepped axis widens its domain by up to half a step rather than show fewer ticks than this.
+const MINIMUM_TICKS = 5;
 
-export function roundTick(value: number) {
+function roundTick(value: number) {
   if (Math.abs(value) >= 100) {
     return Number(value.toFixed(0));
   }
@@ -39,7 +41,6 @@ type LinearAxisOptions = LinearDomainOptions & {
 
 type SteppedAxisOptions = LinearDomainOptions & {
   formatTick?: (value: number) => string;
-  minimumTicks?: number;
   steps: readonly number[];
 };
 
@@ -102,9 +103,8 @@ export function scoreAxisScale(values: number[], options: ScoreAxisOptions = {})
 
 export function steppedLinearAxisScale(values: number[], options: SteppedAxisOptions): AxisScale {
   const domain = paddedLinearDomain(values, options);
-  const minimumTicks = options.minimumTicks ?? 5;
   const candidates = options.steps
-    .flatMap((step) => steppedAxisCandidates(domain, step, minimumTicks, options))
+    .flatMap((step) => steppedAxisCandidates(domain, step, options))
     .sort(
       (left, right) =>
         left.ticks.length - right.ticks.length ||
@@ -119,7 +119,7 @@ export function steppedLinearAxisScale(values: number[], options: SteppedAxisOpt
     };
   }
   const step = options.steps.at(-1) ?? 1;
-  const expandedDomain = expandDomainForMinimumTicks(domain, step, minimumTicks, options);
+  const expandedDomain = expandDomainForMinimumTicks(domain, step, options);
   return {
     domain: expandedDomain,
     ticks: ticksForStep(expandedDomain, step, options.formatTick),
@@ -172,12 +172,11 @@ function ticksWithUniqueLabels(ticks: number[], formatTick: (value: number) => s
 function steppedAxisCandidates(
   domain: [number, number],
   step: number,
-  minimumTicks: number,
   options: SteppedAxisOptions,
 ) {
   const snappedDomain = snapDomainToNearbyStep(domain, step, options);
   const ticks = ticksForStep(snappedDomain, step, options.formatTick);
-  if (ticks.length >= minimumTicks) {
+  if (ticks.length >= MINIMUM_TICKS) {
     return [
       {
         domain: snappedDomain,
@@ -187,10 +186,10 @@ function steppedAxisCandidates(
       },
     ];
   }
-  const expandedDomain = expandDomainForMinimumTicks(domain, step, minimumTicks, options);
+  const expandedDomain = expandDomainForMinimumTicks(domain, step, options);
   const expansion = domainExpansion(domain, expandedDomain);
   const expandedTicks = ticksForStep(expandedDomain, step, options.formatTick);
-  if (expandedTicks.length >= minimumTicks && expansion <= step / 2) {
+  if (expandedTicks.length >= MINIMUM_TICKS && expansion <= step / 2) {
     return [
       {
         domain: expandedDomain,
@@ -240,13 +239,12 @@ function ticksForStep(
 function expandDomainForMinimumTicks(
   domain: [number, number],
   step: number,
-  minimumTicks: number,
   options: LinearDomainOptions & {
     formatTick?: (value: number) => string;
   },
 ): [number, number] {
   let [low, high] = domain;
-  while (ticksForStep([low, high], step, options.formatTick).length < minimumTicks) {
+  while (ticksForStep([low, high], step, options.formatTick).length < MINIMUM_TICKS) {
     const lowerTick = Math.ceil(low / step) * step - step;
     const upperTick = Math.floor(high / step) * step + step;
     const nextLow = options.min == null ? lowerTick : Math.max(options.min, lowerTick);

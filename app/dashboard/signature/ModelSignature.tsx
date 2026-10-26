@@ -7,7 +7,7 @@ import { type CSSProperties, memo, useLayoutEffect, useMemo, useRef, useState } 
 
 import { canonicalModelKey } from "../../../src/model-atlas/identity/normalization";
 import { openModelSheet } from "../model-sheet/open";
-import { BotIcon, BrainIcon, DollarIcon } from "../shared/DashboardIcons";
+import { SCORE_ICONS } from "../shared/DashboardIcons";
 import { formatCost } from "../table/format";
 import {
   type SignatureMetric,
@@ -136,21 +136,17 @@ export const ModelSignature = memo(function ModelSignature(population: Signature
             <span className={styles.registerMetric}>
               <span className="visually-hidden">{model.metric.accessible}</span>
               <span className={styles.registerMetricVisual} aria-hidden="true">
-                {model.metric.parts.map((part, index) =>
-                  part.kind === "text" ? (
-                    <span key={`${part.value}-${index}`}>{part.value}</span>
-                  ) : (
+                {model.metric.parts.map((part, index) => {
+                  if (part.kind === "text") {
+                    return <span key={`${part.value}-${index}`}>{part.value}</span>;
+                  }
+                  const Icon = SCORE_ICONS[part.kind];
+                  return (
                     <span className={styles.registerMetricIcon} key={`${part.kind}-${index}`}>
-                      {part.kind === "intelligence" ? (
-                        <BrainIcon />
-                      ) : part.kind === "agentic" ? (
-                        <BotIcon />
-                      ) : (
-                        <DollarIcon />
-                      )}
+                      <Icon />
                     </span>
-                  ),
-                )}
+                  );
+                })}
                 {model.metric.price != null ? (
                   <span className={styles.registerPrice} title="Blended price per million tokens">
                     {model.metric.price}

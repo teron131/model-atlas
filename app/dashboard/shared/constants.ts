@@ -7,10 +7,6 @@ import {
 } from "../../../src/model-atlas/benchmarks/catalog";
 import type { ModelAtlasColumnTooltip } from "../../../src/model-atlas/config/tooltips";
 
-export const tooltipHorizontalPadding = 18;
-export const tooltipMaxWidth = 360;
-export const tooltipOffsetTop = 12;
-
 export const benchmarkLabels: Readonly<Record<string, string>> = BENCHMARK_LABELS;
 const benchmarkDisplayOrder = new Map(BENCHMARK_DISPLAY_ORDER.map((key, order) => [key, order]));
 

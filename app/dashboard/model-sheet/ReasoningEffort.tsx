@@ -11,9 +11,9 @@ import {
   useState,
 } from "react";
 
-import { HoverCard } from "../graphs/ChartComponents";
+import { strongestModelVariants } from "../../../src/model-atlas/stats/model-variants";
 import { GraphToggle } from "../graphs/GraphToggle";
-import { type HoverRow, type HoverState, pointHover } from "../graphs/hover-state";
+import { HoverCard, type HoverRow, type HoverState, pointHover } from "../graphs/HoverCard";
 import { linearAxisScale } from "../graphs/plot/axis-scale";
 import { calloutLabelPlacements } from "../graphs/plot/label-placement";
 import { TextPointLabel, useLabelSizes } from "../graphs/plot/Primitives";
@@ -21,7 +21,6 @@ import { starConnectorSegments } from "../graphs/plot/star-marks";
 import { providerChartColor } from "../shared/provider-theme";
 import { formatResourceRatio } from "../shared/resource-ratio-display";
 import { formatScore } from "../table/format";
-import type { TableRow } from "../table/models";
 import { type EffortPoint, familyName, type SheetEntry } from "./entries";
 import { type ModelSheetSlot, selectModelSheetEffort } from "./open";
 import {
@@ -368,14 +367,8 @@ function effortHoverRows(point: EffortPoint, previous: EffortPoint | undefined):
 /** The effort a sheet model shows: its own, or for a collapsed row the variant whose headline scores the row carries. */
 function chosenEffort(entry: SheetEntry): string | null {
   if (entry.effort != null) return entry.effort;
-  let best: TableRow | null = null;
-  for (const variant of entry.variants) {
-    const score = variant.model.scores.intelligence_score;
-    if (score != null && score > (best?.model.scores.intelligence_score ?? -Infinity)) {
-      best = variant;
-    }
-  }
-  return best?.model.reasoning_effort ?? null;
+  const [strongest] = strongestModelVariants(entry.variants.map((variant) => variant.model));
+  return strongest?.reasoning_effort ?? null;
 }
 
 /** Describe the chosen effort's step up from the effort below it; the lowest effort describes the whole ladder instead. */

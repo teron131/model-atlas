@@ -4,14 +4,21 @@ import type { ModelAtlasColumnTooltips } from "../../../src/model-atlas/config/t
 import { benchmarkLabels } from "../shared/constants";
 import { filterSearchDocuments, hasSearchQuery, type SearchDocument } from "../shared/search";
 import { staticSortableColumns } from "./Columns";
-import { dashboardMetricColumns, type SortKey, type TableColumnKey } from "./models";
+import {
+  dashboardMetricColumns,
+  sorters,
+  type SortKey,
+  type SortState,
+  type TableColumnKey,
+} from "./models";
 import { tableColumnTooltip } from "./tooltips";
 
+// The default view leads.
 export const TABLE_COLUMN_PRESETS = [
+  { key: "all", label: "All" },
   { key: "scores", label: "Scores" },
   { key: "cost", label: "Cost" },
   { key: "time", label: "Time" },
-  { key: "all", label: "All" },
 ] as const;
 
 export type TableColumnPreset = (typeof TABLE_COLUMN_PRESETS)[number]["key"];
@@ -25,7 +32,7 @@ export const ALWAYS_VISIBLE_TABLE_COLUMN_KEYS = [
   "value",
 ] as const satisfies readonly TableColumnKey[];
 
-export const ALL_TABLE_COLUMN_KEYS: readonly TableColumnKey[] = [
+const ALL_TABLE_COLUMN_KEYS: readonly TableColumnKey[] = [
   ...staticSortableColumns.map((column) => column.key),
   ...dashboardMetricColumns.map((column) => column.key),
   "confidence",
@@ -45,12 +52,12 @@ const metricColumnsByKey = new Map<TableColumnKey, (typeof dashboardMetricColumn
 const staticColumnSearchText = new Map<TableColumnKey, string>(
   staticSortableColumns.map((column) => [column.key, column.searchText]),
 );
-const scoreColumnKeys = new Set<TableColumnKey>(
+const scoresPresetKeys = new Set<TableColumnKey>(
   dashboardMetricColumns
     .filter((column) => column.group === "benchmarks" || column.group === "community")
     .map((column) => column.key),
 );
-const costColumnKeys = new Set<TableColumnKey>([
+const costPresetKeys = new Set<TableColumnKey>([
   "taskCostRatio",
   "totalTokenRatio",
   "blend",
@@ -60,7 +67,7 @@ const costColumnKeys = new Set<TableColumnKey>([
     .filter((column) => column.group === "tasks" && column.metric === "cost")
     .map((column) => column.key),
 ]);
-const timeColumnKeys = new Set<TableColumnKey>([
+const timePresetKeys = new Set<TableColumnKey>([
   "taskTimeRatio",
   "totalTokenRatio",
   "throughput",
@@ -71,9 +78,9 @@ const timeColumnKeys = new Set<TableColumnKey>([
     .map((column) => column.key),
 ]);
 const presetColumnKeys: Record<TableColumnPreset, ReadonlySet<TableColumnKey>> = {
-  scores: scoreColumnKeys,
-  cost: costColumnKeys,
-  time: timeColumnKeys,
+  scores: scoresPresetKeys,
+  cost: costPresetKeys,
+  time: timePresetKeys,
   all: new Set(optionalColumnKeys),
 };
 const presetDefaultSortKeys: Record<TableColumnPreset, SortKey> = {
@@ -112,8 +119,20 @@ export function tableColumnView(
   return { searchQuery, searchMatchCount, keys };
 }
 
+/** The sort a view shows: the requested one while its column is visible, otherwise the view's default column in that column's own direction. */
+export function visibleSort(
+  requested: SortState,
+  preset: TableColumnPreset,
+  query: string,
+  visibleColumnKeys: readonly TableColumnKey[],
+): SortState {
+  if (visibleColumnKeys.includes(requested.key)) return requested;
+  const key = tableColumnSortKey(preset, query, visibleColumnKeys);
+  return { key, direction: sorters[key].direction };
+}
+
 /** Keep sorting visible when a preset or search removes the active sort column. */
-export function tableColumnSortKey(
+function tableColumnSortKey(
   preset: TableColumnPreset,
   query: string,
   visibleColumnKeys: readonly TableColumnKey[],

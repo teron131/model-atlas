@@ -359,8 +359,8 @@
   left: -1px;
   width: 1px;
   height: var(--outline-star, 16px);
-  background: linear-gradient(180deg, rgb(74 114 255 / 0.25), var(--horizon-violet));
-  box-shadow: 0 0 8px rgb(143 107 255 / 0.55);
+  background: linear-gradient(180deg, var(--flight-lit-from), var(--flight-lit-to));
+  box-shadow: var(--flight-lit-glow);
 }
 
 .outline ol::after {
@@ -390,7 +390,7 @@
 }
 
 .outline a[data-reached="true"]::before {
-  background: var(--horizon-violet);
+  background: var(--flight-passed);
 }
 
 .outline li {

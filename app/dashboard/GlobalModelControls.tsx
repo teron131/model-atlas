@@ -22,7 +22,6 @@ import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react"
 import type { ModelAtlasModel } from "../../src/model-atlas/stats/types";
 import { fmtMoney } from "./graphs/format";
 import {
-  DEFAULT_PROFILE_FILTERS,
   matchingProfileModelCount,
   MODEL_PROFILES_STORAGE_KEY,
   type ModelProfile,
@@ -45,6 +44,7 @@ import {
   useModelSuggestions,
 } from "./shared/ModelSuggestions";
 import { providerLogo } from "./shared/provider-theme";
+import { DEFAULT_GLOBAL_MODEL_FILTERS } from "./url-state";
 import { updateDashboardUrl, useUrlState } from "./use-url-state";
 
 import styles from "./global-model-controls.module.css";
@@ -119,7 +119,7 @@ export function GlobalModelControls({
     openModelSheet({ ...model, reasoning_effort: null }),
   );
   const activeProfile = profiles.find((profile) => profile.id === activeId);
-  const isDefault = sameProfileFilters(filters, DEFAULT_PROFILE_FILTERS);
+  const isDefault = sameProfileFilters(filters, DEFAULT_GLOBAL_MODEL_FILTERS);
   const modified = activeProfile != null && !sameProfileFilters(activeProfile.filters, filters);
   const canSave = storageReady && matchedCount > 0;
   const chips = filterChips(filters, providerChoices);
@@ -296,7 +296,7 @@ export function GlobalModelControls({
           />
           {/* The count stays mounted as a live region; while no filter applies, the "/" keycap takes its place on screen. */}
           <output
-            className={isDefault ? styles.visuallyHidden : undefined}
+            className={isDefault ? "visually-hidden" : undefined}
             aria-live="polite"
             aria-label={`${matchedCount} matching models`}
             title={`${matchedCount} matching models`}
@@ -451,10 +451,10 @@ export function GlobalModelControls({
             title={storageError || saveError}
           >
             <AlertCircle size={15} aria-hidden="true" />
-            <span className={styles.visuallyHidden}>{storageError || saveError}</span>
+            <span className="visually-hidden">{storageError || saveError}</span>
           </span>
         ) : null}
-        <span className={styles.visuallyHidden} role="status">
+        <span className="visually-hidden" role="status">
           {message}
         </span>
         <button
@@ -485,7 +485,7 @@ export function GlobalModelControls({
             title="Reset global filters"
             onClick={() => {
               setActiveId("");
-              apply(DEFAULT_PROFILE_FILTERS);
+              apply(DEFAULT_GLOBAL_MODEL_FILTERS);
             }}
           >
             <RotateCcw size={15} aria-hidden="true" />

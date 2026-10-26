@@ -8,6 +8,8 @@ import { clamp01, smoothstep } from "../../../src/model-atlas/math-utils";
 export const CAMERA_DISTANCE = 12;
 export const FIELD_OF_VIEW = 30;
 const TAN_HALF_FOV = Math.tan((FIELD_OF_VIEW / 360) * Math.PI);
+// The sky draws at most this many device pixels per CSS pixel, so dense screens keep its frame cost bounded.
+const MAX_PIXEL_RATIO = 1.5;
 // Horizon height until the hero measures where its title ends, as a share of the viewport measured from the bottom.
 const HORIZON = 0.3;
 // Scoping in leaves the planet: its horizon falls to this height, below the viewport.
@@ -41,10 +43,11 @@ const MAX_STREAK = 14;
 // Depth band of model stars; the camera never travels past the nearest of them.
 const NEAREST_STAR = -2;
 const STAR_DEPTH = 10;
-// The opening replays release order: starting this far into it, a sweep crosses the sky over this share of it, igniting each star as it passes the star's release position, so the newest frontier lights last.
+// The opening scatters ignition: starting this far into it, each star lights at its own moment within this share of it, so the sky fills in everywhere at once rather than along any direction.
 const IGNITION_START = 0.2;
-const IGNITION_SWEEP = 0.58;
-// After the opening, a pulse of light runs along the rim from left to right once every this many seconds, taking this long to cross.
+const IGNITION_SPREAD = 0.58;
+// A pulse of light runs along the rim from left to right, first this many seconds into the opening as the first stars light, then once every this many seconds, taking this long to cross.
+const RIM_PULSE_START = 0.7;
 const RIM_PULSE_PERIOD = 15;
 const RIM_PULSE_CROSSING = 2.5;
 // Time constant, in seconds, of the explored star's flare.
@@ -112,8 +115,6 @@ const SKY_DEFINES = Object.fromEntries(
     TAN_HALF_FOV,
     PLANET_RADIUS,
     LIMB_RADIUS,
-    RELEASE_LEFT,
-    RELEASE_SPAN,
     STAR_SPRITE,
     FRONTIER_SPRITE,
     GRAVITY_REACH,
@@ -121,8 +122,7 @@ const SKY_DEFINES = Object.fromEntries(
     DUST_GRAVITY,
     DUST_WANDER,
     MAX_STREAK,
-    IGNITION_START,
-    IGNITION_SWEEP,
+    RIM_PULSE_START,
     RIM_PULSE_PERIOD,
     RIM_PULSE_CROSSING,
   }).map(([name, value]) => [name, Number.isInteger(value) ? value.toFixed(1) : String(value)]),
@@ -156,7 +156,7 @@ float rimDistance(vec2 uv, float shrink) {
 
 // A dark mound with a stippled, glowing rim under a cobalt sky; the rim shifts from cobalt to violet and rose toward the sides.
 // It renders at full strength from the first frame because the dashboard's fade-in already reveals it.
-// The opening's sweep lights the rim as it crosses with the igniting stars, and the same pulse of light runs along the rim every RIM_PULSE_PERIOD seconds after.
+// A pulse of light crosses the rim as the stars begin to light and every RIM_PULSE_PERIOD seconds after, on its own path rather than following the igniting stars.
 const HORIZON_VERTEX = /* glsl */ `
 varying vec2 vUv;
 void main() {
@@ -204,12 +204,10 @@ void main() {
   vec3 rim = mix(vec3(0.42, 0.56, 1.0), vec3(0.64, 0.44, 1.0), smoothstep(0.1, 0.6, side));
   rim = mix(rim, vec3(1.0, 0.56, 0.72), smoothstep(0.55, 1.0, side));
   float breathe = (0.9 + 0.1 * sin(time * 0.4)) * dawn;
-  float sweep = (intro - IGNITION_START) / IGNITION_SWEEP;
-  float sweepOffset = (vUv.x - RELEASE_LEFT - sweep * RELEASE_SPAN) * aspect / 0.05;
-  // The first period holds no pulse, since the opening's sweep has just crossed; between crossings the pulse waits off screen to the right.
-  float pulse = time < RIM_PULSE_PERIOD ? 9.0 : mod(time, RIM_PULSE_PERIOD) / RIM_PULSE_CROSSING;
+  // Between crossings the pulse waits off screen to the right, as it does on a clock frozen at zero under reduced motion.
+  float pulse = mod(time - RIM_PULSE_START, RIM_PULSE_PERIOD) / RIM_PULSE_CROSSING;
   float pulseOffset = (vUv.x + 0.05 - pulse * 1.1) * aspect / 0.05;
-  float passing = exp(-sweepOffset * sweepOffset) * smoothstep(0.0, 0.1, sweep) * smoothstep(1.1, 0.9, sweep) + exp(-pulseOffset * pulseOffset);
+  float passing = exp(-pulseOffset * pulseOffset);
   float limbLight = 1.0 + exp(-abs(toRim) * 12.0 / shrink) * passing * 0.8;
   float inside = smoothstep(0.003, -0.003, toRim);
   vec3 sky = mix(vec3(0.05, 0.09, 0.38), vec3(0.006, 0.01, 0.045), smoothstep(horizon - 0.05, 1.0, vUv.y));
@@ -392,9 +390,19 @@ void main() {
 }
 `;
 
+/** The renderer and the star sprites share this pixel ratio, so sprites keep their size in device pixels. */
+export function skyPixelRatio(): number {
+  return Math.min(window.devicePixelRatio || 1, MAX_PIXEL_RATIO);
+}
+
+/** Scene units one CSS pixel spans at the star plane, for a viewport `height` pixels tall. */
+export function skyUnitsPerPixel(height: number): number {
+  return (2 * CAMERA_DISTANCE * TAN_HALF_FOV) / height;
+}
+
 /** Stars are placed by their hero screen position at their own depth, so the opening composition is exact while scrolling still produces true parallax. */
 export function createSky(scene: THREE.Scene, camera: THREE.PerspectiveCamera) {
-  const pixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
+  const pixelRatio = skyPixelRatio();
   const uniforms = {
     time: { value: 0 },
     intro: { value: 0 },
@@ -507,7 +515,7 @@ export function createSky(scene: THREE.Scene, camera: THREE.PerspectiveCamera) {
   const restingHorizon = () => (horizonTop == null ? HORIZON : 1 - horizonTop / height);
 
   const layout = () => {
-    const unitsPerPixel = (2 * CAMERA_DISTANCE * TAN_HALF_FOV) / height;
+    const unitsPerPixel = skyUnitsPerPixel(height);
     const sky = height * (1 - restingHorizon());
     const positions = new Float32Array(stars.length * 3);
     const tints = new Float32Array(stars.length * 3);
@@ -525,7 +533,7 @@ export function createSky(scene: THREE.Scene, camera: THREE.PerspectiveCamera) {
         sky * (1 - STAR_FLOOR - star.altitude ** 1.2 * (1 - STAR_FLOOR - STAR_CEILING));
       const x = (screenX - width / 2) * unitsPerPixel * perspective;
       const y = -(screenY - height / 2) * unitsPerPixel * perspective;
-      const ignition = IGNITION_START + star.across * IGNITION_SWEEP;
+      const ignition = IGNITION_START + hashUnit(`${star.key}:ignition`) * IGNITION_SPREAD;
       positions.set([x, y, depth], index * 3);
       colour.set(star.colour);
       tints.set([colour.r, colour.g, colour.b], index * 3);

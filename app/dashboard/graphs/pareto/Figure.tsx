@@ -4,12 +4,6 @@ import type { ReactNode } from "react";
 
 import styles from "../graphs.module.css";
 
-export const PARETO_PANEL_CONTENT = {
-  sectionId: "pareto-analysis",
-  sectionLabel: "Pareto",
-  title: "Performance tradeoffs",
-} as const;
-
 export const PARETO_CAPTION =
   "Compare model performance and resources. The glowing frontier marks the best visible tradeoffs.";
 

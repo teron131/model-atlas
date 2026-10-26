@@ -8,11 +8,11 @@ import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 import { formatScore } from "../table/format";
 import { BrainIcon } from "./DashboardIcons";
 import {
+  collapsedModels,
   filterByGlobalModelFilters,
   type GlobalModelFilters,
   modelLogo,
   modelName,
-  modelsForVariantDisplay,
 } from "./model-display";
 import { providerBrandColor } from "./provider-theme";
 import { hasSearchQuery } from "./search";
@@ -34,15 +34,10 @@ export function modelSuggestions(
   const query = filters.q.trim().toLocaleLowerCase("en");
   const exact = (model: ModelAtlasModel) =>
     model.id?.toLocaleLowerCase("en") === query || model.name?.toLocaleLowerCase("en") === query;
-  return filterByGlobalModelFilters(
-    modelsForVariantDisplay(models, false),
-    (model) => model,
-    filters,
-    {
-      observedAtEpochSeconds: fetchedAt,
-      rankingModels: models,
-    },
-  )
+  return filterByGlobalModelFilters(collapsedModels(models), (model) => model, filters, {
+    observedAtEpochSeconds: fetchedAt,
+    rankingModels: models,
+  })
     .sort(
       (left, right) =>
         Number(exact(right)) - Number(exact(left)) ||

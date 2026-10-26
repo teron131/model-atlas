@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useHorizontalChoice } from "../../../shared/use-horizontal-choice";
 import { benchmarkTooltips } from "../../shared/constants";
 import { filterSearchDocuments } from "../../shared/search";
+import { useDismissibleDetails } from "../../shared/use-dismissible-details";
 import { type FrontierBenchmarkOption, type PerformanceMetric } from "./analysis";
 import { PERFORMANCE_SCORES } from "./presentation";
 
@@ -74,31 +75,16 @@ export function BenchmarkSelect({
     }
   }, [partiallySelected]);
 
+  useDismissibleDetails(rootRef);
+  // The menu sits in the top layer at a fixed position, so it closes when the page under it moves.
   useEffect(() => {
-    const closeOutside = (event: PointerEvent) => {
-      const root = rootRef.current;
-      if (root?.open && !root.contains(event.target as Node)) {
-        root.open = false;
-      }
-    };
-    const closeOnEscape = (event: KeyboardEvent) => {
-      const root = rootRef.current;
-      if (event.key === "Escape" && root?.open) {
-        root.open = false;
-        root.querySelector("summary")?.focus();
-      }
-    };
     const closeOnMove = (event: Event) => {
       if (event.target instanceof Node && menuRef.current?.contains(event.target)) return;
       if (rootRef.current?.open) rootRef.current.open = false;
     };
-    document.addEventListener("pointerdown", closeOutside);
-    document.addEventListener("keydown", closeOnEscape);
     window.addEventListener("scroll", closeOnMove, true);
     window.addEventListener("resize", closeOnMove);
     return () => {
-      document.removeEventListener("pointerdown", closeOutside);
-      document.removeEventListener("keydown", closeOnEscape);
       window.removeEventListener("scroll", closeOnMove, true);
       window.removeEventListener("resize", closeOnMove);
     };
@@ -149,7 +135,7 @@ export function BenchmarkSelect({
       className={`${styles.metricToggle} ${styles.performanceToggle} horizontal-choice-strip`}
       ref={stripRef}
     >
-      <legend className={styles.visuallyHidden}>Performance</legend>
+      <legend className="visually-hidden">Performance</legend>
       {PERFORMANCE_SCORES.map((option) => (
         <button
           type="button"
@@ -185,7 +171,7 @@ export function BenchmarkSelect({
         </summary>
         <div className={styles.benchmarkSelectMenu} ref={menuRef} popover="manual">
           <label className={styles.benchmarkSelectSearch}>
-            <span className={styles.visuallyHidden}>
+            <span className="visually-hidden">
               Filter benchmarks and indexes by name or description
             </span>
             <input
@@ -211,7 +197,7 @@ export function BenchmarkSelect({
                     onChange={() => onChange(allSelected ? [] : null)}
                   />
                   <span className={styles.benchmarkSelectBulkMark} aria-hidden="true" />
-                  <span className={styles.visuallyHidden}>All benchmarks and indexes</span>
+                  <span className="visually-hidden">All benchmarks and indexes</span>
                 </label>
               </span>
               <BenchmarkSortHeader

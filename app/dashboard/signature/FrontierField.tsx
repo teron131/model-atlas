@@ -12,7 +12,9 @@ import {
   FIELD_OF_VIEW,
   type SkyFrame,
   type SkyLabel,
+  skyPixelRatio,
   type SkyStar,
+  skyUnitsPerPixel,
 } from "./sky-scene";
 
 import styles from "./signature.module.css";
@@ -105,7 +107,7 @@ export function FrontierField({
       setMode("static");
       return;
     }
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+    renderer.setPixelRatio(skyPixelRatio());
     renderer.setClearColor(0x02040f, 1);
     host.appendChild(renderer.domElement);
     const scene = new THREE.Scene();
@@ -161,8 +163,7 @@ export function FrontierField({
       const pageRemainder = document.documentElement.scrollHeight - heroEnd - frameState.height;
       frameState.intro = motion.matches ? 1 : clamp01((now - introStart) / INTRO_DURATION);
       frameState.scroll = scroll;
-      frameState.unitsPerPixel =
-        (2 * CAMERA_DISTANCE * Math.tan((FIELD_OF_VIEW / 360) * Math.PI)) / frameState.height;
+      frameState.unitsPerPixel = skyUnitsPerPixel(frameState.height);
       frameState.progress = motion.matches ? 0 : clamp01(scroll / heroEnd);
       frameState.flight = motion.matches
         ? 0
@@ -302,6 +303,8 @@ export function FrontierField({
       if (opened || !compiled || starsRef.current.length === 0) return;
       opened = true;
       introStart = performance.now();
+      // The sky's clock starts with the opening, so the rim's first pulse crosses while the stars light rather than before the page shows.
+      frameState.time = 0;
       invalidate();
     };
     const resize = () => {

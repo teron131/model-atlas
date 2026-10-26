@@ -1,6 +1,11 @@
 /** Require evidence support for every record, independently of release age or current portfolio membership. */
 
 export const TIMELINE_START_DATE = "2023-03-14";
+/** The evidence support a model needs to set a record, in the models view and on each lab's line. */
+export const RECORD_MINIMUM_SUPPORT = 0.6;
+/** The labs view follows this many labs, each charting more than `LAB_MINIMUM_MODELS` models. */
+export const LEADING_LAB_COUNT = 10;
+export const LAB_MINIMUM_MODELS = 5;
 
 type Candidate = {
   score: number;
@@ -42,13 +47,13 @@ export function leadingLabs<T extends Candidate & { id: string; provider: string
   return [...groups]
     .flatMap(([provider, group]) => {
       const models = [...group.values()];
-      if (models.length <= 5) return [];
-      const records = coverageFrontier(models, 0.6);
+      if (models.length <= LAB_MINIMUM_MODELS) return [];
+      const records = coverageFrontier(models, RECORD_MINIMUM_SUPPORT);
       return records.length ? [{ provider, models, records }] : [];
     })
     .sort(
       (a, b) =>
         b.records.at(-1)!.score - a.records.at(-1)!.score || a.provider.localeCompare(b.provider),
     )
-    .slice(0, 10);
+    .slice(0, LEADING_LAB_COUNT);
 }

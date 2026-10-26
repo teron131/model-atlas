@@ -1,0 +1,163 @@
+/* The research rail: the region index on its flight path beside the global model controls. */
+
+/* Sticky so the global filters stay reachable from any region, not only from the top of the page. */
+.rail {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: grid;
+  max-height: 100dvh;
+  grid-template-columns: minmax(0, 1fr);
+  border: 1px solid var(--research-edge);
+  background: rgb(var(--paper-rgb) / 0.8);
+  box-shadow: var(--research-shadow);
+  -webkit-backdrop-filter: blur(14px) saturate(1.25);
+  backdrop-filter: blur(14px) saturate(1.25);
+}
+
+/* Region links, the model search that takes the open middle, then profiles and filters (a toggle on phones); on phones the search's suggestions hang from the whole bar. */
+.bar {
+  position: relative;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr) auto;
+  min-height: 48px;
+  border-right: 1px solid var(--line);
+  align-items: stretch;
+}
+
+/* The region links sit on one flight path: a track along the rail's foot with a waypoint under each region and a star that travels as the page scrolls. */
+.index {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.index::-webkit-scrollbar {
+  display: none;
+}
+
+.index::before,
+.index::after {
+  position: absolute;
+  bottom: 7px;
+  left: var(--journey-start, 13px);
+  height: 1px;
+  content: "";
+  pointer-events: none;
+}
+
+.index::before {
+  width: max(0px, calc(var(--journey-end, 0px) - var(--journey-start, 13px)));
+  background: var(--line-strong);
+}
+
+/* The path already flown is lit in horizon light up to the star. */
+.index::after {
+  width: max(0px, calc(var(--journey, 13px) - var(--journey-start, 13px)));
+  background: linear-gradient(90deg, var(--flight-lit-from), var(--flight-lit-to));
+  box-shadow: var(--flight-lit-glow);
+}
+
+.journeyStar {
+  position: absolute;
+  z-index: 1;
+  bottom: 5px;
+  left: var(--journey, 13px);
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--selection-star);
+  box-shadow: var(--selection-glow);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.index a {
+  position: relative;
+  display: flex;
+  min-height: 46px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 7px;
+  padding: 0 13px;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  letter-spacing: var(--type-label-tracking);
+  text-decoration: none;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* Each region is a waypoint on the path, lit once the star has passed it. */
+.index a::after {
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--line-strong);
+  content: "";
+  transform: translateX(-50%);
+  transition: background-color 140ms ease-out;
+}
+
+.index a[data-reached="true"]::after {
+  background: var(--flight-passed);
+}
+
+/* The same ordinal the region heads carry, so the index and the page agree on the sequence. */
+.index a b {
+  color: var(--faint);
+  font: inherit;
+  font-size: var(--type-caption-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.index a:hover,
+.index a:focus-visible,
+.index a[aria-current="location"] {
+  color: var(--ink);
+}
+
+.index a:hover b,
+.index a:focus-visible b,
+.index a[aria-current="location"] b {
+  color: var(--muted);
+}
+
+.index a:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -3px;
+}
+
+@media (max-width: 760px) {
+  .index {
+    mask-image: linear-gradient(
+      to right,
+      var(--ink) 0,
+      var(--ink) calc(100% - 24px),
+      transparent 100%
+    );
+  }
+}
+
+/* Keep the research destinations readable across the full compact rail. */
+@media (max-width: 520px) {
+  .index {
+    mask-image: none;
+  }
+  .index a {
+    padding-inline: 7px;
+    gap: 4px;
+    font-size: 11px;
+  }
+  .index a b {
+    display: none;
+  }
+}

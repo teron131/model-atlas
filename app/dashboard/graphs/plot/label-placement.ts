@@ -52,7 +52,6 @@ export function calloutLabelPlacements({
   segments = [],
   reservedBoxes = [],
   directions = DIRECTIONS,
-  segmentWeight = 1,
 }: {
   labels: Label[];
   obstacles: PointObstacle[];
@@ -60,7 +59,6 @@ export function calloutLabelPlacements({
   segments?: Segment[];
   reservedBoxes?: Box[];
   directions?: readonly (readonly [number, number])[];
-  segmentWeight?: number;
 }): Map<string, PointLabelPlacement> {
   const ordered = labels
     .map((label, order) => ({ ...label, order }))
@@ -68,7 +66,7 @@ export function calloutLabelPlacements({
       (left, right) => (right.priority ?? 0) - (left.priority ?? 0) || left.order - right.order,
     );
   const candidates = ordered.map((label) =>
-    labelCandidates(label, bounds, obstacles, segments, reservedBoxes, directions, segmentWeight),
+    labelCandidates(label, bounds, obstacles, segments, reservedBoxes, directions),
   );
   const pairCost = cachedPairCost(candidates);
   // Keep alternative partial layouts so an early label cannot trap a later leader through text.
@@ -116,7 +114,6 @@ function labelCandidates(
   segments: Segment[],
   reservedBoxes: Box[],
   directions: readonly (readonly [number, number])[],
-  segmentWeight: number,
 ): Candidate[] {
   const size = label.size ?? {
     width: Math.max(18, label.label.length * 7.8),
@@ -183,8 +180,8 @@ function labelCandidates(
         }
       }
       for (const segment of segments) {
-        if (segmentHitsBox(segment, box)) cost += 200 * segmentWeight;
-        if (segmentsCross(connector, segment)) cost += 1_000 * segmentWeight;
+        if (segmentHitsBox(segment, box)) cost += 200;
+        if (segmentsCross(connector, segment)) cost += 1_000;
       }
       candidates.push({
         x: left,
@@ -353,7 +350,7 @@ function segmentDistance(a: Segment, b: Segment): number {
 }
 
 /** Measure the shortest distance to a plotted segment, including a segment reduced to one point. */
-export function pointSegmentDistance(x: number, y: number, line: Segment): number {
+function pointSegmentDistance(x: number, y: number, line: Segment): number {
   const dx = line.x2 - line.x1;
   const dy = line.y2 - line.y1;
   const squaredLength = dx * dx + dy * dy;

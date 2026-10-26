@@ -10,7 +10,7 @@ module.exports = function documentLoader(markdown) {
   const images = new Set(
     [
       ...markdown.matchAll(
-        /!\[[^\n]*?\]\(((?:\.\.\/)?assets\/(?:methodology|matching|timeline|shared)\/[a-z0-9-]+\.svg)\)/g,
+        /!\[[^\n]*?\]\(((?:\.\.\/)?assets\/(?:methodology|matching|timeline)\/[a-z0-9-]+\.svg)\)/g,
       ),
     ].map((match) => match[1]),
   );

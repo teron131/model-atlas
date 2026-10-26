@@ -3,21 +3,22 @@
 import { type CSSProperties, memo, type ReactNode, useMemo } from "react";
 
 import { canonicalModelKey } from "../../../src/model-atlas/identity/normalization";
+import { strongestModelVariants } from "../../../src/model-atlas/stats/model-variants";
 import { rowShowsModelSheet } from "../model-sheet/open";
-import type { HeaderTooltipHandler } from "../shared/ColumnTooltip";
 import { modelVariantKey } from "../shared/model-display";
 import { useMediaQuery } from "../shared/use-media-query";
 import { useUrlState } from "../use-url-state";
 import { scoreMetricColumns, staticSortableColumns } from "./Columns";
-import type {
-  DashboardMetricColumn,
-  SortDirection,
-  SortKey,
-  SortState,
-  TableColumnKey,
-  TableRow,
+import type { HeaderTooltipHandler } from "./ColumnTooltip";
+import {
+  dashboardMetricColumns,
+  type SortKey,
+  type SortState,
+  type TableColumnKey,
+  tableColumnRuleKeys,
+  tableColumnRuns,
+  type TableRow,
 } from "./models";
-import { tableColumnRuleKeys, tableColumnRuns } from "./models";
 import { EmptyStateRow, LoadingRows, ModelRow, type ScoreChangeHandler } from "./Rows";
 import { TableScrollRail } from "./TableScrollRail";
 import { useDetailedRowRange, useTableViewport } from "./viewport";
@@ -39,7 +40,6 @@ type ModelTableProps = {
   onTooltip: HeaderTooltipHandler<TableColumnKey>;
   onTooltipEnd: () => void;
   onScoreChange: ScoreChangeHandler;
-  metricColumns: DashboardMetricColumn[];
 };
 
 export const ModelTable = memo(function ModelTable({
@@ -54,7 +54,6 @@ export const ModelTable = memo(function ModelTable({
   onTooltip,
   onTooltipEnd,
   onScoreChange,
-  metricColumns,
 }: ModelTableProps) {
   // On phones the four scores ride under each name rather than in columns, while still sorting the table.
   const scoreStrip = useMediaQuery(SCORE_STRIP_MEDIA_QUERY);
@@ -128,7 +127,6 @@ export const ModelTable = memo(function ModelTable({
           <ColumnGroup widths={columnWidths} columnKeys={columnKeys} />
           <thead>
             <TableHeaderRow
-              metricColumns={metricColumns}
               sortState={sortState}
               onSort={onSort}
               onTooltip={onTooltip}
@@ -153,7 +151,6 @@ export const ModelTable = memo(function ModelTable({
           ) : null}
           <thead>
             <TableHeaderRow
-              metricColumns={metricColumns}
               sortState={sortState}
               onSort={onSort}
               onTooltip={onTooltip}
@@ -172,7 +169,6 @@ export const ModelTable = memo(function ModelTable({
                   <ModelRow
                     key={rowKeys[index] ?? `${rowData.originalIndex}`}
                     rowData={rowData}
-                    metricColumns={metricColumns}
                     visibleColumnKeySet={visibleColumnKeySet}
                     ruledColumnKeySet={ruledColumnKeySet}
                     scoreStrip={scoreStrip}
@@ -200,22 +196,10 @@ export const ModelTable = memo(function ModelTable({
 
 /** Keep each model's representative row mounted when expanded effort rows appear. */
 function stableModelRowKeys(rows: readonly TableRow[]): string[] {
-  const strongestIndexByModel = new Map<string, number>();
-  for (const [index, row] of rows.entries()) {
-    const modelKey = canonicalModelKey(row.model);
-    const strongestIndex = strongestIndexByModel.get(modelKey);
-    if (
-      strongestIndex == null ||
-      (row.model.scores.intelligence_score ?? Number.NEGATIVE_INFINITY) >
-        (rows[strongestIndex]?.model.scores.intelligence_score ?? Number.NEGATIVE_INFINITY)
-    ) {
-      strongestIndexByModel.set(modelKey, index);
-    }
-  }
-  return rows.map((row, index) => {
-    const modelKey = canonicalModelKey(row.model);
-    return strongestIndexByModel.get(modelKey) === index ? modelKey : modelVariantKey(row.model);
-  });
+  const representatives = new Set(strongestModelVariants(rows.map((row) => row.model)));
+  return rows.map((row) =>
+    representatives.has(row.model) ? canonicalModelKey(row.model) : modelVariantKey(row.model),
+  );
 }
 
 function ColumnGroup({
@@ -240,7 +224,6 @@ function ColumnGroup({
 
 /** Memoized so the body's scroll-driven row range does not re-render either header copy. */
 const TableHeaderRow = memo(function TableHeaderRow({
-  metricColumns,
   sortState,
   onSort,
   onTooltip,
@@ -287,7 +270,7 @@ const TableHeaderRow = memo(function TableHeaderRow({
             ) : null}
           </SortableHeader>
         ))}
-      {metricColumns
+      {dashboardMetricColumns
         .filter((column) => visibleColumnKeySet.has(column.key))
         .map((column) => (
           <SortableHeader
@@ -412,8 +395,4 @@ function ScoreSortStrip({
       })}
     </span>
   );
-}
-
-export function reverseDirection(direction: SortDirection): SortDirection {
-  return direction === "ascending" ? "descending" : "ascending";
 }

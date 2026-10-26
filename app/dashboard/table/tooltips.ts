@@ -1,19 +1,22 @@
-/** Resolve dashboard table header and row-change tooltips from table policy and payload metadata. */
+/** Resolve dashboard table header and row-change tooltips from table policy and payload metadata; a benchmark's header adds its coverage in the current view and its configured weights. */
 
+import { benchmarkDimensionWeight } from "../../../src/model-atlas/benchmarks/registry";
 import { COLUMN_TOOLTIPS } from "../../../src/model-atlas/config";
 import {
   CONFIDENCE_TOOLTIP,
   type ModelAtlasColumnTooltip,
   type ModelAtlasColumnTooltipNestedSection,
+  type ModelAtlasColumnTooltipRow,
   type ModelAtlasColumnTooltips,
 } from "../../../src/model-atlas/config/tooltips";
-import type {
-  ModelAtlasModel,
-  ModelAtlasScoreDimension,
-} from "../../../src/model-atlas/stats/types";
-import { benchmarkTooltip, type BenchmarkTooltipContext } from "../shared/benchmark-tooltips";
+import {
+  type BenchmarkMetricModel,
+  benchmarkMetricValue,
+} from "../../../src/model-atlas/pipeline/scores/resource-metrics";
+import type { ModelAtlasMetadata, ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 import { benchmarkTooltips } from "../shared/constants";
 import { modelDisplayName } from "../shared/model-display";
+import { scoreColumnsByDimension } from "./Columns";
 import {
   benchmarkMetricColumns,
   type SortKey,
@@ -311,6 +314,75 @@ export function tableColumnTooltip(
   };
 }
 
+type BenchmarkTooltipContext = {
+  models: readonly BenchmarkMetricModel[];
+  scoring: ModelAtlasMetadata["scoring"] | undefined;
+  editions: ModelAtlasMetadata["benchmark_editions"];
+  unit?: "models" | "variants";
+};
+
+/** Enrich a benchmark's explanation without treating missing or estimated results as observed coverage. */
+function benchmarkTooltip(
+  key: string,
+  { models, scoring, editions, unit = "models" }: BenchmarkTooltipContext,
+): ModelAtlasColumnTooltip | undefined {
+  const tooltip = benchmarkTooltips[key];
+  if (tooltip == null) {
+    return undefined;
+  }
+  const coverage = benchmarkCoverage(models, key);
+  const coverageValue =
+    coverage.total === 0
+      ? `No ${unit} in current view`
+      : `${coverage.observed} of ${coverage.total} ${unit} (${benchmarkCoverageLabel(coverage)})`;
+  // The served edition replaces the catalog's Version row, so an automatically adopted edition shows at once.
+  const edition = editions?.[key];
+  const rows: ModelAtlasColumnTooltipRow[] = [
+    ...(edition == null ? [] : [["Version", `v${edition}`] satisfies ModelAtlasColumnTooltipRow]),
+    ...(tooltip.rows ?? []).filter(
+      ([label]) => label !== "Role" && (edition == null || label !== "Version"),
+    ),
+  ];
+  const entry = scoring?.benchmark_portfolio[key];
+  if (scoring != null && entry != null) {
+    rows.push(
+      ["Class", entry.group === "frontier" ? "Frontier" : "Baseline"],
+      [
+        "Weights",
+        `I ${dimensionWeightLabel(key, "intelligence", scoring)} · A ${dimensionWeightLabel(key, "agentic", scoring)}`,
+      ],
+    );
+  }
+  rows.push(["Coverage", coverageValue]);
+  return {
+    ...tooltip,
+    rows,
+  };
+}
+
+/** Count direct benchmark values, including zero scores, in the supplied display population. */
+function benchmarkCoverage(models: readonly BenchmarkMetricModel[], key: string) {
+  return {
+    observed: models.filter((model) => benchmarkMetricValue(model, key) != null).length,
+    total: models.length,
+  };
+}
+
+function benchmarkCoverageLabel({ observed, total }: { observed: number; total: number }) {
+  return total === 0 ? "-" : `${Math.round((observed / total) * 100)}%`;
+}
+
+function dimensionWeightLabel(
+  key: string,
+  dimension: "intelligence" | "agentic",
+  scoring: ModelAtlasMetadata["scoring"],
+): string {
+  const keys = scoring[`${dimension}_benchmark_keys`];
+  const portfolio = scoring.benchmark_portfolio;
+  const weight = keys.includes(key) ? benchmarkDimensionWeight(key, dimension, portfolio) : 0;
+  return `${Number((weight * 100).toFixed(1))}%`;
+}
+
 export function scoreChangeTooltip(model: ModelAtlasModel): ModelAtlasColumnTooltip {
   const change = model.latest_change!;
   const scoreBefore = change.score_before == null ? "New" : change.score_before.toFixed(1);
@@ -339,7 +411,7 @@ export function scoreChangeTooltip(model: ModelAtlasModel): ModelAtlasColumnTool
       ? ""
       : " Spearman ρ describes agreement between benchmark and overall ordering; model balancing limits repeated effort variants.";
   return {
-    title: `${modelDisplayName(model)} · Material ${scoreDimensionLabel(change.dimension)} change`,
+    title: `${modelDisplayName(model)} · Material ${scoreColumnsByDimension[change.dimension].name} change`,
     body: `Latest material event. ${scoreSummary}${rankAlignment}`,
     rows: [
       ...(rank == null ? [] : [[rankLabel, rank] as [string, string]]),
@@ -359,16 +431,6 @@ export function scoreChangeTooltip(model: ModelAtlasModel): ModelAtlasColumnTool
             },
           ],
   };
-}
-
-export function scoreDimensionLabel(dimension: ModelAtlasScoreDimension): string {
-  return dimension === "intelligence"
-    ? "Intelligence"
-    : dimension === "agentic"
-      ? "Agentic"
-      : dimension === "speed"
-        ? "Speed"
-        : "Value";
 }
 
 function signedScore(value: number): string {

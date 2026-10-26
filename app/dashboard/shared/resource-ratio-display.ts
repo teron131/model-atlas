@@ -14,6 +14,11 @@ export function formatResourceRatio(value: number | null | undefined): string {
   return `${value >= 10 ? value.toFixed(0) : value.toPrecision(2)}×`;
 }
 
+/** Zero or missing amounts have no place on a ratio's log track, so only a positive finite ratio draws a bar. */
+export function isDrawableRatio(ratio: number | null | undefined): ratio is number {
+  return ratio != null && Number.isFinite(ratio) && ratio > 0;
+}
+
 /** Place a positive ratio's bar on the fixed doubling track, growing from the 1× median tick, as the `.ratio-track` CSS variables. */
 export function ratioTrackStyle(ratio: number): CSSProperties {
   const doublings = Math.log2(ratio);

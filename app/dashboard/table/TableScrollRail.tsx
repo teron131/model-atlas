@@ -10,19 +10,11 @@ import {
 } from "react";
 
 import { clamp } from "../../../src/model-atlas/math-utils";
-import type { TableColumnRun } from "./models";
+import { TABLE_COLUMN_GROUP_LABELS, type TableColumnRun } from "./models";
 import { useTableScrollSnapshot } from "./viewport";
 
 const TABLE_SCROLL_KEY_STEP_PX = 80;
 const SCROLL_PAGE_STEP_RATIO = 0.85;
-const RUN_LABELS: Record<TableColumnRun["group"], string> = {
-  scores: "Scores",
-  operations: "Resources",
-  frontier: "Frontier",
-  indexes: "Indexes",
-  baseline: "Baseline",
-  details: "Details",
-};
 // Rail labels are measurement labels, estimated at this width per character to keep neighbours apart.
 const RAIL_LABEL_CHAR_PX = 8.1;
 const RAIL_LABEL_GAP_PX = 16;
@@ -67,7 +59,7 @@ export function TableScrollRail({
   );
   const canScroll = snapshot.maxScrollLeft > 1;
   const labels = runs.map((run) => ({
-    name: RUN_LABELS[run.group],
+    name: TABLE_COLUMN_GROUP_LABELS[run.group],
     count: run.benchmarks > 0 ? String(run.benchmarks) : "",
   }));
   // The last group whose scroll position the table has reached, given each group's position in order.

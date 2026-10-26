@@ -7,10 +7,13 @@ import { type CSSProperties, type PointerEvent as ReactPointerEvent, useState } 
 import type { ModelAtlasModel } from "../../../../src/model-atlas/stats/types";
 import { openModelSheet } from "../../model-sheet/open";
 import { modelName } from "../../shared/model-display";
-import { focusHover, type HoverRow, type HoverSetter, pointHover } from "../hover-state";
+import { focusHover, type HoverRow, type HoverSetter, pointHover } from "../HoverCard";
 import type { PlotBounds } from "./Primitives";
 
 import styles from "../graphs.module.css";
+
+// A cursor projection snaps to the nearest point within this many plot units, and to none farther away.
+const SNAP_DISTANCE = 24;
 
 type CursorProjection = {
   x: number;
@@ -23,17 +26,11 @@ type ProjectionConfig = {
   event: ReactPointerEvent<SVGSVGElement>;
   bounds: PlotBounds;
   points: CursorProjection[];
-  snapDistance?: number;
 };
 
 type ProjectionTarget = Omit<ProjectionConfig, "event">;
 
-function projectCursor({
-  event,
-  bounds: plot,
-  points,
-  snapDistance = 24,
-}: ProjectionConfig): CursorProjection | null {
+function projectCursor({ event, bounds: plot, points }: ProjectionConfig): CursorProjection | null {
   const svg = event.currentTarget;
   const bounds = svg.getBoundingClientRect();
   const viewBox = svg.viewBox.baseVal;
@@ -61,7 +58,7 @@ function projectCursor({
     }
   }
 
-  return nearestPoint && nearestDistance <= snapDistance ? nearestPoint : null;
+  return nearestPoint && nearestDistance <= SNAP_DISTANCE ? nearestPoint : null;
 }
 
 export function useCursorProjection() {
@@ -69,9 +66,9 @@ export function useCursorProjection() {
 
   return {
     cursorProjection,
-    cursorHandlers: ({ bounds, points, snapDistance }: ProjectionTarget) => ({
+    cursorHandlers: ({ bounds, points }: ProjectionTarget) => ({
       onPointerMove: (event: ReactPointerEvent<SVGSVGElement>) => {
-        const next = projectCursor({ event, bounds, points, snapDistance });
+        const next = projectCursor({ event, bounds, points });
         setCursorProjection((previous) =>
           previous?.x === next?.x &&
           previous?.y === next?.y &&

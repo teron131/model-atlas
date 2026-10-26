@@ -1,19 +1,25 @@
 /** Dashboard URL contract validates explicit selections without materializing absent defaults. */
 
 import { BENCHMARK_COLUMNS } from "../../src/model-atlas/benchmarks/catalog";
-import type { FrontierBenchmarkAxisKey, PerformanceMetric } from "./graphs/pareto/analysis";
+import {
+  FRONTIER_AXIS_KEYS,
+  type FrontierBenchmarkAxisKey,
+  PERFORMANCE_METRICS,
+  type PerformanceMetric,
+} from "./graphs/pareto/analysis";
 import { RESEARCH_REGION_IDS, type ResearchRegionId } from "./research-index";
 import {
   type CostFilter,
   costFilterOptions,
   DEFAULT_MODEL_RANK_FILTER,
   DEFAULT_RECENCY_FILTER,
+  type GlobalModelFilters,
   type ModelRankFilter,
   modelRankFilterOptions,
   type RecencyFilter,
   recencyFilterOptions,
 } from "./shared/model-display";
-import type { TableColumnPreset } from "./table/column-views";
+import { TABLE_COLUMN_PRESETS, type TableColumnPreset } from "./table/column-views";
 import { sorters, type SortState } from "./table/models";
 
 export type DashboardUrlState = {
@@ -26,6 +32,8 @@ export type DashboardUrlState = {
   days: RecencyFilter;
   "column-q": string;
   "table-variants": boolean;
+  /** The reasoning efforts the leaderboard's variant rows keep, `default` naming a model's one unlabelled setting; `null` keeps every effort. */
+  "table-effort": string[] | null;
   "graph-variants": boolean;
   "timeline-view": "models" | "labs";
   "timeline-period": "all" | "year";
@@ -45,7 +53,13 @@ export type DashboardUrlKey = keyof DashboardUrlState;
 export type DashboardUrlPatch = Partial<DashboardUrlState>;
 export const GRAPH_VARIANTS_COOKIE = "model-atlas-graph-variants";
 
-const tableKeys = new Set<DashboardUrlKey>(["view", "sort", "column-q", "table-variants"]);
+const tableKeys = new Set<DashboardUrlKey>([
+  "view",
+  "sort",
+  "column-q",
+  "table-variants",
+  "table-effort",
+]);
 const paretoKeys = new Set<DashboardUrlKey>(["performance", "benchmark", "axes"]);
 const dashboardKeys = new Set<DashboardUrlKey>([
   ...tableKeys,
@@ -65,6 +79,7 @@ const dashboardKeys = new Set<DashboardUrlKey>([
   "compare-effort",
 ]);
 const benchmarkKeys = new Set(Object.keys(BENCHMARK_COLUMNS));
+const tableColumnPresetKeys = TABLE_COLUMN_PRESETS.map((preset) => preset.key);
 
 /** Decode one control independently so absent or malformed values retain the owning UI default. */
 export function readUrlValue<K extends DashboardUrlKey>(
@@ -75,7 +90,7 @@ export function readUrlValue<K extends DashboardUrlKey>(
   let result: DashboardUrlState[DashboardUrlKey];
   switch (key) {
     case "view":
-      result = choice(value, ["scores", "cost", "time", "all"], "all");
+      result = choice(value, tableColumnPresetKeys, "all");
       break;
     case "sort": {
       const match = /^(.*)\.(asc|desc)$/.exec(value ?? "");
@@ -117,8 +132,13 @@ export function readUrlValue<K extends DashboardUrlKey>(
     case "graph-variants":
       result = value === "1";
       break;
+    case "table-effort":
+      result = params.has(key)
+        ? [...new Set(params.getAll(key).filter((item) => /^[a-z]+$/.test(item)))]
+        : null;
+      break;
     case "performance":
-      result = choice(value, ["intelligence", "agentic", "benchmarks"], "intelligence");
+      result = choice(value, PERFORMANCE_METRICS, "intelligence");
       break;
     case "benchmark": {
       const values = params.getAll(key);
@@ -129,7 +149,7 @@ export function readUrlValue<K extends DashboardUrlKey>(
       break;
     }
     case "axes":
-      result = choice(value, ["cost", "time", "tokens", "speed", "value"], "cost");
+      result = choice(value, FRONTIER_AXIS_KEYS, "cost");
       break;
     case "model":
     case "compare":
@@ -144,6 +164,20 @@ export function readUrlValue<K extends DashboardUrlKey>(
   }
   return result as DashboardUrlState[K];
 }
+
+/** The dashboard-wide model filters a URL selects, each absent or malformed field at its default. */
+export function readGlobalModelFilters(params: URLSearchParams): GlobalModelFilters {
+  return {
+    q: readUrlValue(params, "q"),
+    provider: readUrlValue(params, "provider"),
+    "max-cost": readUrlValue(params, "max-cost"),
+    rank: readUrlValue(params, "rank"),
+    days: readUrlValue(params, "days"),
+  };
+}
+
+/** The global model filters of a URL that selects none: every model in the snapshot. */
+export const DEFAULT_GLOBAL_MODEL_FILTERS = readGlobalModelFilters(new URLSearchParams());
 
 /** Keep custom selections shareable while omitting defaults and preserving unrelated URL parameters. */
 export function patchDashboardUrl(url: URL, patch: DashboardUrlPatch): URL {
@@ -168,6 +202,8 @@ export function patchDashboardUrl(url: URL, patch: DashboardUrlPatch): URL {
       next.searchParams.set(key, String(value));
     }
   }
+  // An effort choice filters reasoning-variant rows, so it leaves with them.
+  if (next.searchParams.get("table-variants") !== "1") next.searchParams.delete("table-effort");
   const defaults = new URLSearchParams();
   for (const key of dashboardKeys) {
     // An explicit graph-variant value can override the saved cookie preference.

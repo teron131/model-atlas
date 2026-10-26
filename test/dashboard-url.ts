@@ -167,6 +167,21 @@ assert.equal(
   null,
 );
 
+const effortLink = patchDashboardUrl(base, { "table-variants": true, "table-effort": ["max"] });
+assert.equal(dashboardUrlSection(effortLink), "leaderboard");
+assert.deepEqual(readUrlValue(effortLink.searchParams, "table-effort"), ["max"]);
+assert.equal(readUrlValue(base.searchParams, "table-effort"), null);
+assert.deepEqual(
+  readUrlValue(patchDashboardUrl(effortLink, { "table-effort": [] }).searchParams, "table-effort"),
+  [],
+  "An emptied effort basket keeps no variant rows rather than every one",
+);
+assert.equal(
+  patchDashboardUrl(effortLink, { "table-variants": false }).searchParams.has("table-effort"),
+  false,
+  "An effort choice leaves with the variant rows it filters",
+);
+
 const stacked = new URL(
   "?timeline-period=all&performance=benchmarks&benchmark=all&rank=all&campaign=test#timeline",
   base,
