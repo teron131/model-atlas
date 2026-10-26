@@ -17,7 +17,7 @@ import {
 
 import styles from "./signature.module.css";
 
-const INTRO_DURATION = 2600;
+const INTRO_DURATION = 3600;
 // Half the space a named star's rays occupy on screen, and the gap between those rays and its name.
 const STAR_CLEARANCE = 12;
 const LABEL_GAP = 5;
@@ -31,16 +31,16 @@ const TITLE_HEADROOM = 0.14;
 // How close the pointer must come to a star to identify it, and how far into the scroll stars stay explorable.
 const STAR_REACH = 16;
 const EXPLORE_UNTIL = 0.35;
-// Ambient twinkle is slow; past the hero it only needs a low cadence, while scrolling always renders at full rate.
+// Ambient twinkle is slow; past the hero it only needs a low cadence, while scrolling, the opening, and settling transitions render at full rate.
 const HERO_FRAME_INTERVAL = 1000 / 24;
 const FIELD_FRAME_INTERVAL = 1000 / 12;
 
 /**
  * Scroll scopes the camera from the hero horizon into the star field and back; ambient twinkle stops while the page is hidden.
  *
- * In the hero, pointing near a star identifies its model, clicking it reports its key through `onSelectStar`, and `focusKey` lets the register light a role's star.
+ * In the hero, stars near the pointer lean toward it, pointing near a star identifies its model, clicking it reports its key through `onSelectStar`, and `focusKey` lets the register light a role's star.
  * `horizon` is where the hero places its horizon, in CSS pixels from the top of the viewport at rest.
- * Reduced motion keeps the hero composition still: no camera travel, parallax, or twinkle.
+ * Reduced motion keeps the hero composition still: no camera travel, pointer pull, or twinkle.
  */
 export function FrontierField({
   stars,
@@ -119,6 +119,7 @@ export function FrontierField({
     const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
     const frameState: SkyFrame = {
       time: 0,
+      elapsed: Infinity,
       intro: 0,
       progress: 0,
       flight: 0,
@@ -126,17 +127,18 @@ export function FrontierField({
       unitsPerPixel: 1,
       width: 1,
       height: 1,
+      pointer: null,
     };
     let introStart = performance.now();
     let lastNow = introStart;
     let lastRender = 0;
+    let previousRender = 0;
+    let animating = false;
     let frame = 0;
     let dirty = true;
     let lost = false;
     let compiled = false;
     let opened = false;
-    let pointerX = 0;
-    let pointerY = 0;
     let pointer: { x: number; y: number } | null = null;
     let cardKey: string | null = null;
     let hoveredKey: string | null = null;
@@ -148,19 +150,12 @@ export function FrontierField({
     });
 
     const ambient = () => !motion.matches && !document.hidden;
-    const easePointer = (elapsed: number) => {
-      const step = 1 - Math.exp(-elapsed * 0.003);
-      const targetX = motion.matches ? 0 : pointerX * 0.22;
-      const targetY = motion.matches ? 0 : -pointerY * 0.12;
-      if (Math.abs(targetX - camera.position.x) + Math.abs(targetY - camera.position.y) < 0.0005) {
-        return false;
-      }
-      camera.position.x += (targetX - camera.position.x) * step;
-      camera.position.y += (targetY - camera.position.y) * step;
-      return true;
-    };
 
+    /** Draw one frame and report whether the opening or a transition still needs frames. */
     const render = (now: number) => {
+      frameState.elapsed =
+        motion.matches || previousRender === 0 ? Infinity : (now - previousRender) / 1000;
+      previousRender = now;
       const scroll = Math.max(0, window.scrollY);
       const heroEnd = Math.max(1, (hero.getBoundingClientRect().bottom + scroll) * 0.85);
       const pageRemainder = document.documentElement.scrollHeight - heroEnd - frameState.height;
@@ -172,15 +167,16 @@ export function FrontierField({
       frameState.flight = motion.matches
         ? 0
         : clamp01((scroll - heroEnd) / Math.max(1, pageRemainder));
+      frameState.pointer = motion.matches || frameState.progress >= EXPLORE_UNTIL ? null : pointer;
       sky.update(frameState);
       renderer.render(scene, camera);
       placeLabels(sky.labels());
       exploreStars();
-      return frameState.intro < 1;
+      return frameState.intro < 1 || sky.settling();
     };
 
     /**
-     * Put each name by its star, inside the window and the hero, clear of every star, every other name, and the title.
+     * Put each name by its star, inside the window and the hero, clear of every star, every other name, the title, and the register, which scrolling carries across the stars.
      * It tries the star's right and left, then below and above running either way, then a row above or below its line; a name with nowhere clear gives way rather than cover something, so a narrow or zoomed window names the stars it has room for.
      */
     const placeLabels = (entries: SkyLabel[]) => {
@@ -195,6 +191,7 @@ export function FrontierField({
           const { left, top, right, bottom } = line.getBoundingClientRect();
           return { left, top: top + (bottom - top) * TITLE_HEADROOM, right, bottom };
         }),
+        ...Array.from(hero.querySelectorAll("ol > li"), (entry) => entry.getBoundingClientRect()),
       ];
       const ceiling = hero.getBoundingClientRect().top + LABEL_EDGE;
       for (const entry of [...entries].sort((left, right) => left.y - right.y)) {
@@ -285,16 +282,14 @@ export function FrontierField({
       lastNow = now;
       const moving = ambient();
       if (moving) frameState.time += elapsed / 1000;
-      const easing = easePointer(elapsed);
       const interval =
         window.scrollY > hero.offsetHeight ? FIELD_FRAME_INTERVAL : HERO_FRAME_INTERVAL;
-      let introRunning = false;
-      if (dirty || easing || (moving && now - lastRender >= interval)) {
+      if (dirty || animating || (moving && now - lastRender >= interval)) {
         dirty = false;
         lastRender = now;
-        introRunning = render(now);
+        animating = render(now);
       }
-      if (moving || easing || introRunning) frame = requestAnimationFrame(loop);
+      if (moving || animating) frame = requestAnimationFrame(loop);
     };
     const invalidate = () => {
       dirty = true;
@@ -320,8 +315,6 @@ export function FrontierField({
     };
     const track = (event: PointerEvent) => {
       if (event.pointerType !== "mouse") return;
-      pointerX = (event.clientX / frameState.width - 0.5) * 2;
-      pointerY = (event.clientY / frameState.height - 0.5) * 2;
       const heroBox = hero.getBoundingClientRect();
       const insideHero = event.clientY >= heroBox.top && event.clientY <= heroBox.bottom;
       pointer = insideHero ? { x: event.clientX, y: event.clientY } : null;
