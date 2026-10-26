@@ -266,16 +266,19 @@ assert.deepEqual(
     },
     code_migration: {
       group: "frontier",
+      version: "1.1",
       benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
     },
     emb: {
       group: "frontier",
+      version: "1.1",
       benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
     },
     finance_agent_v2: {
       group: "baseline",
+      version: "2.1",
       benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
     },
@@ -296,6 +299,7 @@ assert.deepEqual(
     },
     rsi_benchmark: {
       group: "frontier",
+      version: "1.1",
       benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
     },

@@ -91,7 +91,7 @@ export async function fetchArenaDataset(config: "agent" | "webdev", timeoutMs = 
   return overall;
 }
 
-/** Interpret only disclosed effort, harness, budget, and release qualifiers; unknown labels cannot supply an assignment. */
+/** Release and supported precision qualifiers stay in model identity; unknown labels cannot supply an assignment. */
 export function arenaDatasetIdentity(name: string) {
   const suffix = /^(.*?)\s+\(([^()]+)\)$/.exec(name);
   let baseModel = suffix?.[1] ?? name;
@@ -107,7 +107,7 @@ export function arenaDatasetIdentity(name: string) {
     else if (/^[\w -]+ harness$/i.test(qualifier))
       harness = qualifier.toLowerCase().replace(/\s+/g, "-");
     else if (/^\d+k$/i.test(qualifier)) budget = qualifier.toLowerCase();
-    else if (/^\d{4,8}$/.test(qualifier)) baseModel += `-${qualifier}`;
+    else if (/^(?:\d{4,8}|NVFP4)$/i.test(qualifier)) baseModel += `-${qualifier}`;
     else unknown = true;
   }
   const parsed = benchmarkModelEffort(baseModel);

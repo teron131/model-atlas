@@ -24,6 +24,8 @@ export type ValsBenchmarkDefinition = {
   benchmarkKey: string;
   canonicalTask: string;
   sourceUrl: string;
+  /** Pins one edition where another source's suite must match; omitted, the page's current version is used. */
+  version?: string;
 };
 
 /** Fetch one VALS source independently and fail quietly to an empty evidence payload. */
@@ -43,13 +45,17 @@ export async function getValsSourceStats(
   }
 }
 
-/** Emit only canonical, score-eligible Vals rows. */
+/** Emit only canonical, score-eligible Vals rows, each tagged with the page's published version. */
 export function processValsBenchmarkView(
   value: unknown,
   definition: ValsBenchmarkDefinition,
 ): BenchmarkObservationRow[] {
   const view = parseValsBenchmarkView(value);
-  if (view == null) return [];
+  if (
+    view == null ||
+    (definition.version != null && stringValue(view.metadata.version) !== definition.version)
+  )
+    return [];
   return Object.entries(view.tasks).flatMap(([task, models]) =>
     Object.entries(models)
       .flatMap(([modelId, value]) => {

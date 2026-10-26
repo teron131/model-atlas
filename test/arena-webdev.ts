@@ -293,3 +293,25 @@ test("WebDev website wins, with explicitly dated HF fallback only after unusable
     benchmarkObservationRowKey(duplicates[1]!),
   );
 });
+
+test("WebDev fallback keeps precision variants eligible as distinct model identities", () => {
+  const baseModel = "NVIDIA-Nemotron-3.5-Super-VL-120B-A12B";
+  const dataset = {
+    model_name: baseModel,
+    organization: "NVIDIA",
+    category: "overall",
+    leaderboard_publish_date: "2026-10-23",
+    rank: 1,
+    rating: 1050,
+    vote_count: 80,
+  };
+  const parsed = processArenaWebDevDatasetRows([
+    dataset,
+    { ...dataset, model_name: `${baseModel} (NVFP4)`, rank: 2, rating: 1040 },
+  ]);
+  assert.deepEqual(
+    parsed.map((row) => row.base_model),
+    [baseModel, `${baseModel}-NVFP4`],
+  );
+  assert.ok(parsed.every((row) => row.metadata.assignment_eligible !== false));
+});

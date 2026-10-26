@@ -119,16 +119,14 @@ export function asDeepSWERawLeaderboardRow(value: unknown): DeepSWERawLeaderboar
   };
 }
 
+/** Score only the newest published artifact; older-edition rows remain raw provenance rather than filling models the newest edition lacks. */
 export function preferredDeepSWELeaderboardRows(
   rows: DeepSWERawLeaderboardRow[],
 ): DeepSWELeaderboardRow[] {
-  const v11Rows = rows.filter((row) => row.source_version === "v1.1");
-  const v11RowKeys = new Set(v11Rows.map(deepSwePreferenceKey));
-  const v1OnlyRows = rows.filter(
-    (row) => row.source_version !== "v1.1" && !v11RowKeys.has(deepSwePreferenceKey(row)),
-  );
-  const preferredRows = v11Rows.length > 0 ? [...v11Rows, ...v1OnlyRows] : rows;
-  return preferredRows.map(stripDeepSWESourceVersion);
+  const newest = deepSWESourceVersionForRows(rows);
+  return rows
+    .filter((row) => newest == null || row.source_version === newest)
+    .map(stripDeepSWESourceVersion);
 }
 
 /** Retain exact effort keys alongside the highest-effort base-model default. */
@@ -233,10 +231,6 @@ function deepSWESourceVersionForRows(
     return "v1";
   }
   return null;
-}
-
-function deepSwePreferenceKey(row: DeepSWERawLeaderboardRow): string {
-  return [normalizeModelToken(row.model), row.reasoning_effort ?? "", row.config ?? ""].join("\0");
 }
 
 function stripDeepSWESourceVersion(row: DeepSWERawLeaderboardRow): DeepSWELeaderboardRow {

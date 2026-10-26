@@ -21,7 +21,7 @@ import {
   parseArtificialAnalysisReasoningEffort,
 } from "../src/model-atlas/sources/artificial-analysis/model-labels";
 import { processArtificialAnalysisOmnisciencePage } from "../src/model-atlas/sources/artificial-analysis/omniscience";
-import { getArtificialAnalysisPageModels } from "../src/model-atlas/sources/artificial-analysis/page-data";
+import { getArtificialAnalysisPage } from "../src/model-atlas/sources/artificial-analysis/page-data";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
   const actualJson = stableJson(actual);
@@ -508,7 +508,7 @@ try {
     (projected[1]!.intelligence_index_cost as Record<string, unknown>).cost_per_task,
     0.72,
   );
-  await assert.rejects(getArtificialAnalysisPageModels(`${origin}/wrong-origin`, 1_000), /origin/);
+  await assert.rejects(getArtificialAnalysisPage(`${origin}/wrong-origin`, 1_000), /origin/);
   dataUnavailable = true;
   assert.deepEqual(
     await getArtificialAnalysisLeaderboardRawStats({ url: `${origin}/leaderboards/models` }),

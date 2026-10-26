@@ -20,7 +20,6 @@ import type {
 } from "../types";
 import {
   FRONTIER_CODE_LEADERBOARD_URL,
-  FRONTIER_CODE_SOURCE_REVISION,
   type FrontierCodeModelEffortRow,
   type FrontierCodeSubsetMetrics,
   getFrontierCodeStats,
@@ -44,7 +43,7 @@ export const frontierCodeRuntime = defineBenchmarkRuntime({
   sourceRowsFromSnapshots: (snapshots) => snapshots.frontierCodeRows,
 });
 
-/** Reconstruct every FrontierCode effort only when the persisted revision and both subsets are complete. */
+/** Reconstruct every FrontierCode effort only when all rows share one persisted revision and both subsets are complete. */
 export function readFrontierCodeRawCache(cache: CacheRowSource): {
   rows: FrontierCodeModelEffortRow[];
   fetchedAt: number | null;
@@ -53,12 +52,13 @@ export function readFrontierCodeRawCache(cache: CacheRowSource): {
     cache,
     "SELECT * FROM frontier_code_raw_rows ORDER BY row_index",
   );
+  const revision = stringValue(cacheRows[0]?.revision);
   if (
-    cacheRows.length === 0 ||
+    revision == null ||
     cacheRows.some(
       (row) =>
         stringValue(row.url) !== FRONTIER_CODE_LEADERBOARD_URL ||
-        stringValue(row.revision) !== FRONTIER_CODE_SOURCE_REVISION,
+        stringValue(row.revision) !== revision,
     )
   ) {
     return null;
@@ -88,7 +88,7 @@ export function readFrontierCodeRawCache(cache: CacheRowSource): {
     }
     return [
       {
-        revision: FRONTIER_CODE_SOURCE_REVISION,
+        revision,
         model,
         base_model: baseModel,
         source_effort: sourceEffort,
@@ -146,6 +146,7 @@ async function frontierCodeSnapshot(
     previousMissingSince,
     nowEpochSeconds,
     fetchRows: getFrontierCodeStats,
+    editions: { editionOf: (row) => row.revision },
     rowKey: (row) => sourceKey(row.base_model, row.source_effort),
     rowLabel: (row) => `${row.model}: ${row.harness}`,
   });

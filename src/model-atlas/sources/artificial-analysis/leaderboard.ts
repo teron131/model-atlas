@@ -13,7 +13,7 @@ import {
   cleanArtificialAnalysisModelName,
   parseArtificialAnalysisReasoningEffort,
 } from "./model-labels";
-import { getArtificialAnalysisPageModels } from "./page-data";
+import { getArtificialAnalysisPage } from "./page-data";
 
 const DEFAULT_SCRAPE_URL = "https://artificialanalysis.ai/leaderboards/models";
 
@@ -106,7 +106,7 @@ export async function getArtificialAnalysisLeaderboardRawStats(
     if (typeof modelSlug !== "string" || modelSlug.length === 0)
       throw new Error("Missing Artificial Analysis model-detail link");
     // Model pages publish the complete comparison dataset with index resources; the leaderboard preview omits them.
-    const models = await getArtificialAnalysisPageModels(
+    const { models } = await getArtificialAnalysisPage(
       new URL(`/models/${encodeURIComponent(modelSlug)}`, url).href,
       timeoutMs,
     );

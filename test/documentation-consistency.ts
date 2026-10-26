@@ -1,4 +1,4 @@
-/** Check published Markdown formulas, local heading links, and registered figure dimensions; editorial choices and mathematical meaning require contextual review. */
+/** Check published Markdown formulas, local heading links, edition markers, and registered figure dimensions; editorial choices and mathematical meaning require contextual review. */
 
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
@@ -7,8 +7,10 @@ import { dirname, join, normalize } from "node:path";
 import katex from "katex";
 
 import {
+  CATALOG_EDITIONS,
   documentAssetPath,
   documentImageSize,
+  fillEditionMarkers,
   headingId,
   METHODOLOGY_ASSET_NAMES,
 } from "../app/methodology/documents";
@@ -24,6 +26,12 @@ for (const file of files) {
   const text = read(file);
   const prose = text.replace(/`[^`\n]*`/g, "");
   const math = mathExpressions(prose);
+
+  try {
+    fillEditionMarkers(prose, CATALOG_EDITIONS);
+  } catch (error) {
+    problems.push(`${file}: ${String(error)}; add a catalog version`);
+  }
 
   for (const { tex, display } of math) {
     try {

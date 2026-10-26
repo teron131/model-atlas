@@ -83,7 +83,7 @@ assert.equal(STAGE_CONFIG.scoring.benchmarkPortfolio.aa_intelligence_index?.vers
 assert.equal(BENCHMARK_CATALOG.briefcase.version, "1.1");
 assert.equal(BENCHMARK_CATALOG.gdpval_normalized.version, "2.1");
 assert.equal(BENCHMARK_CATALOG.terminal_bench_science.version, "0.1.0");
-assert.equal(BENCHMARK_CATALOG.vals_index.version, "2.1");
+assert.equal(BENCHMARK_CATALOG.vals_index.version, "2.2");
 assert.equal("version" in BENCHMARK_CATALOG.mlcr_aa, false);
 
 const sourceData = {

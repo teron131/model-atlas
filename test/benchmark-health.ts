@@ -114,6 +114,7 @@ const fixture = (identity: string, value: number, reasoningEffort: string | null
   provider: null,
   reasoningEffort,
   value,
+  edition: null,
 });
 const summarize = (rows: ReturnType<typeof fixture>[]) =>
   buildBenchmarkUpdateHealth([], config, { superchem: rows }).superchem!;

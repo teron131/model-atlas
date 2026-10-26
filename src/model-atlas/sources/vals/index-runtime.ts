@@ -6,7 +6,12 @@ import type { DatabaseWriter } from "../../database/writers/database";
 import { asFiniteNumber, stableJson, stringValue } from "../../runtime";
 import { defineBenchmarkRuntime } from "../benchmark-runtime";
 import { type CacheRowSource, firstEpochSecond, sourceCacheRows } from "../cache/rows";
-import { snapshotRows, snapshotRowsWithStates, sourceKey } from "../snapshots/policy";
+import {
+  snapshotRows,
+  snapshotRowsWithStates,
+  sourceKey,
+  withoutSupersededEditions,
+} from "../snapshots/policy";
 import { shouldUseFetchedRows, snapshotFetchedAt } from "../snapshots/row-snapshot";
 import type {
   RawSourceCacheStatus,
@@ -42,7 +47,6 @@ export const valsIndexRuntime = defineBenchmarkRuntime({
 
 function readValsIndexRawCache(cache: CacheRowSource): {
   rows: ValsIndexTaskScoreRow[];
-  modelScores: ValsIndexModelScoreRow[];
   fetchedAt: number | null;
 } | null {
   const cacheRows = sourceCacheRows(cache, "SELECT * FROM vals_index_raw_rows ORDER BY row_index");
@@ -87,7 +91,6 @@ function readValsIndexRawCache(cache: CacheRowSource): {
   }
   return {
     rows: cachedRows,
-    modelScores: cachedRows.filter((row): row is ValsIndexModelScoreRow => row.task === "overall"),
     fetchedAt: firstEpochSecond(cacheRows),
   };
 }
@@ -109,17 +112,25 @@ async function valsIndexSnapshot(
     fetched?.fetched_at_epoch_seconds ?? null,
     fetchedRows.length,
   );
+  const cachedRows =
+    hasUsableFetchedRows && cached != null
+      ? withoutSupersededEditions(cached.rows, fetchedRows, {
+          editionOf: (row) => row.metadata.benchmark_version,
+        })
+      : cached?.rows;
   const rows = snapshotRows(
-    cached?.rows,
+    cachedRows,
     fetchedRows,
     fetched?.fetched_at_epoch_seconds ?? null,
     options,
     (row) => sourceKey(row.task, row.model_id),
+    // Vals revises published index scores under the same model identity.
+    (_cached, fetchedRow) => fetchedRow,
   );
-  const modelScores = rows.filter((row): row is ValsIndexModelScoreRow => row.task === "overall");
+  const modelScores = rows.filter(isModelScore);
   const states = snapshotRowsWithStates({
     source: "vals_index",
-    cachedRows: cached?.modelScores,
+    cachedRows: cachedRows?.filter(isModelScore),
     fetchedRows: fetched?.model_scores ?? [],
     fetchedAtEpochSeconds: fetched?.fetched_at_epoch_seconds ?? null,
     options,
@@ -169,4 +180,8 @@ function insertValsIndexRawRows(db: DatabaseWriter, snapshots: SourceSnapshots):
       stableJson(row.metadata),
     );
   }
+}
+
+function isModelScore(row: ValsIndexTaskScoreRow): row is ValsIndexModelScoreRow {
+  return row.task === "overall";
 }

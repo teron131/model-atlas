@@ -166,6 +166,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   code_migration: {
     title: "Code Migration",
+    version: "1.1",
     body: "Port programs to new languages, checked by hidden behavioral tests and anti-cheat checks.",
     rows: [
       ["Source", "Vals AI"],
@@ -184,7 +185,8 @@ export const BENCHMARK_TOOLTIPS = {
   },
   critpt: {
     title: "CritPt",
-    body: "Solve research-level physics problems with numeric, symbolic, and code-based answers.",
+    version: "2",
+    body: "Solve research-level physics challenges with an offline Python agent, graded by the authors' answer server.",
     rows: [
       ["Source", "Artificial Analysis"],
       ["Role", "physics reasoning"],
@@ -228,6 +230,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   emb: {
     title: "EMB",
+    version: "1.1",
     body: "Build Excel financial models from prompts and spreadsheets, including LBO, DCF, and M&A.",
     rows: [
       ["Source", "Vals AI"],
@@ -271,6 +274,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   finance_agent_v2: {
     title: "Finance Agent V2",
+    version: "2.1",
     body: "Analyze public-company filings using research, calculation, and retrieval tools.",
     rows: [
       ["Source", "Vals AI"],
@@ -280,6 +284,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   frontier_code: {
     title: "FrontierCode",
+    version: "1.1",
     body: "Make repository-wide changes tested for correctness, quality, and mergeability.",
     rows: [
       ["Source", "Cognition"],
@@ -440,6 +445,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   rsi_benchmark: {
     title: "RSI",
+    version: "1.1",
     body: "Conduct autonomous LLM research across compression, training, harness design, and post-training.",
     rows: [
       ["Source", "Vals RSI Index"],
@@ -450,6 +456,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   simpleqa_verified: {
     title: "SimpleQA Verified",
+    version: "1.2",
     body: "Answer 1,000 general-knowledge questions under Epoch's anti-abstention methodology.",
     rows: [
       ["Source", "Epoch AI"],

@@ -151,6 +151,7 @@ const vendingBench2Row: VendingBench2ModelScoreRow = {
 const artificialAnalysisHleResourceRow = {
   benchmark_key: "hle",
   source_url: "https://artificialanalysis.ai/evaluations/humanitys-last-exam",
+  benchmark_version: null,
   model_id: "test/example-model",
   model: "Example Model",
   provider: "Test",
@@ -169,6 +170,7 @@ const artificialAnalysisHleResourceRow = {
 const briefcaseResourceRow = {
   benchmark_key: "briefcase",
   source_url: "https://artificialanalysis.ai/evaluations/aa-briefcase",
+  benchmark_version: null,
   model_id: "test/example-model",
   model: "Example Model",
   provider: "Test",
@@ -187,6 +189,7 @@ const briefcaseResourceRow = {
 const analystAgentResourceRow = {
   benchmark_key: "analyst_agent",
   source_url: "https://artificialanalysis.ai/evaluations/aa-analyst-agent",
+  benchmark_version: null,
   model_id: "test/example-model",
   model: "Example Model",
   provider: "Test",
@@ -385,7 +388,7 @@ const valsIndexRow = {
   provider: "Test",
   score: 0.64,
   observed_at: "2026-10-07",
-  metadata: { benchmark_version: "2.1", benchmark_count: 8 },
+  metadata: { benchmark_version: "2.2", benchmark_count: 8 },
 };
 const indexAssignment = buildDefaultVariantBenchmarks(["Example Model"], {
   ...lookups,

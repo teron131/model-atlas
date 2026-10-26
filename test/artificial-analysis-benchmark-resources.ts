@@ -5,6 +5,7 @@ import type { AddressInfo } from "node:net";
 
 import {
   ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES,
+  artificialAnalysisEvaluationVersion,
   buildArtificialAnalysisResourceLookup,
   buildArtificialAnalysisSourceDefaultResourceLookup,
   findArtificialAnalysisBenchmarkResourceRow,
@@ -91,15 +92,30 @@ assertDeepEqual(
     "terminal_bench_science",
   ],
 );
-for (const [benchmarkKey, scoreKey, resourceKey, url, taskRunCount] of [
-  ["gdp_pdf", "gdpPdfAllPass", "gdpPdf", "https://artificialanalysis.ai/evaluations/gdp-pdf", 500],
-  ["mlcr_aa", "mlcrOverall", "mlcr", "https://artificialanalysis.ai/evaluations/mlcr-aa", 180],
+for (const [benchmarkKey, scoreKey, resourceKey, url, taskRunCount, version] of [
+  [
+    "gdp_pdf",
+    "gdpPdfAllPass",
+    "gdpPdf",
+    "https://artificialanalysis.ai/evaluations/gdp-pdf",
+    500,
+    null,
+  ],
+  [
+    "mlcr_aa",
+    "mlcrOverall",
+    "mlcr",
+    "https://artificialanalysis.ai/evaluations/mlcr-aa",
+    180,
+    null,
+  ],
   [
     "terminal_bench_4",
     "terminalBench40",
     "terminalBench40",
     "https://artificialanalysis.ai/evaluations/terminalbench-4-0",
     198,
+    "4.0",
   ],
   [
     "terminal_bench_science",
@@ -107,6 +123,7 @@ for (const [benchmarkKey, scoreKey, resourceKey, url, taskRunCount] of [
     "terminalBenchScience",
     "https://artificialanalysis.ai/evaluations/terminal-bench-science",
     210,
+    "0.1",
   ],
 ] as const) {
   const page = ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.find(
@@ -118,8 +135,40 @@ for (const [benchmarkKey, scoreKey, resourceKey, url, taskRunCount] of [
     resource_key: resourceKey,
     url,
     task_run_count: taskRunCount,
+    ...(version == null ? {} : { version }),
   });
 }
+assertDeepEqual(
+  [
+    "GDPval-AA v2.1 Benchmark | Artificial Analysis",
+    "AA-Briefcase v1.1: Agentic Knowledge Work Benchmark | Artificial Analysis",
+    "Terminal-Bench 4.0 Benchmark | Artificial Analysis",
+    "GDP.pdf Benchmark | Artificial Analysis",
+  ].map(artificialAnalysisEvaluationVersion),
+  ["2.1", "1.1", "4.0", null],
+);
+const sciencePage = ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.find(
+  (page) => page.benchmark_key === "terminal_bench_science",
+)!;
+const scienceRows = [
+  {
+    slug: "example-model",
+    name: "Example Model",
+    creator: { name: "OpenAI", slug: "openai" },
+    terminalBenchScience: 0.5,
+  },
+];
+assertDeepEqual(
+  processArtificialAnalysisBenchmarkResourceRows(scienceRows, sciencePage, "0.1").map(
+    (row) => row.benchmark_version,
+  ),
+  ["0.1"],
+);
+// The fused series stays on the official suite's version, so a page that moved to another one supplies nothing.
+assertDeepEqual(
+  processArtificialAnalysisBenchmarkResourceRows(scienceRows, sciencePage, "0.2"),
+  [],
+);
 const configuredBriefcasePage = ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.find(
   (page) => page.benchmark_key === "briefcase",
 );
@@ -170,12 +219,14 @@ const hleRows = processArtificialAnalysisBenchmarkResourceRows(
     },
   ],
   hlePage,
+  null,
 );
 
 assertDeepEqual(hleRows, [
   {
     benchmark_key: "hle",
     source_url: "https://artificialanalysis.ai/evaluations/humanitys-last-exam",
+    benchmark_version: null,
     model_id: "anthropic/claude-fable-5",
     model: "Claude Fable 5",
     provider: "Anthropic",
@@ -223,6 +274,7 @@ const [cachedInputRow] = processArtificialAnalysisBenchmarkResourceRows(
     },
   ],
   hlePage,
+  null,
 );
 assertApprox(cachedInputRow?.cost_per_task_usd, 0.00174);
 
@@ -247,6 +299,7 @@ const partialResources = processArtificialAnalysisBenchmarkResourceRows(
     },
   ],
   hlePage,
+  null,
 );
 const withoutSpeed = partialResources.find((row) => row.model === "Missing Speed")!;
 assertApprox(withoutSpeed.cost_per_task_usd, 0.00175);
@@ -269,6 +322,7 @@ const [withoutOutput] = processArtificialAnalysisBenchmarkResourceRows(
     },
   ],
   hlePage,
+  null,
 );
 assertDeepEqual(withoutOutput?.cost_per_task_usd, null);
 assertDeepEqual(withoutOutput?.output_tokens_per_task, null);
@@ -300,6 +354,7 @@ assertDeepEqual(
       },
     ],
     briefcasePage,
+    null,
   )[0]?.seconds_per_task,
   6,
 );
@@ -380,6 +435,7 @@ const effortRows = processArtificialAnalysisBenchmarkResourceRows(
     },
   ],
   hlePage,
+  null,
 );
 const effortLookup = buildArtificialAnalysisSourceDefaultResourceLookup(effortRows);
 const effortObservationLookup = buildArtificialAnalysisResourceLookup(effortRows);

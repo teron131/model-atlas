@@ -8,7 +8,17 @@ import { BENCHMARK_CATALOG } from "../src/model-atlas/benchmarks/registry";
 import { stableJson } from "../src/model-atlas/runtime";
 import { checkpointBenchmarkId } from "../src/model-atlas/timeline/capability";
 
-const changedKeys = ["chess_puzzles", "frontiermath_tier_4", "rsi_benchmark", "vals_index"];
+const changedKeys = [
+  "chess_puzzles",
+  "code_migration",
+  "critpt",
+  "emb",
+  "finance_agent_v2",
+  "frontiermath_tier_4",
+  "handbook_md",
+  "rsi_benchmark",
+  "vals_index",
+];
 assert.deepEqual(
   Object.entries(BENCHMARK_CATALOG)
     .filter(([, definition]) => definition.source.revision != null)

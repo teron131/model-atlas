@@ -21,6 +21,8 @@ export type BenchmarkSourceAdapter =
       scoreKey?: string;
       scorePath?: BenchmarkJsonPath;
       resourceKey: string;
+      /** Pin a series fused with another source to that source's suite version. */
+      version?: string;
     };
 
 type BenchmarkSourceAdapterDeclaration =
@@ -31,7 +33,8 @@ type BenchmarkSourceAdapterDeclaration =
     > & { taskRunCount?: number });
 
 export type EpochRunEligibility = {
-  taskVersions?: readonly string[];
+  /** Accept only runs in the task's newest published major.minor edition, pooling its patch revisions. */
+  latestTaskEdition?: true;
   originalTaskName?: string;
   runIdPrefix?: string;
   excludedModelIds?: readonly string[];
@@ -62,7 +65,14 @@ export type BenchmarkObservationLoader =
       harness: "terminus-2" | "loop_truncated_tools_agent" | null;
     }
   | { kind: "perception_bench"; sourceUrl: string }
-  | { kind: "surge"; sourceUrl: string; scoreKind?: "elo"; view?: "index" }
+  | {
+      kind: "surge";
+      sourceUrl: string;
+      scoreKind?: "elo";
+      view?: "index";
+      /** Surge publishes no versions, so an Atlas-declared edition marks rows from an unannounced rerun. */
+      edition?: string;
+    }
   | { kind: "terminal_bench_science"; sourceUrl: string }
   | {
       kind: "vals";

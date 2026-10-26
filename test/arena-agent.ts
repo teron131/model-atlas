@@ -122,6 +122,26 @@ const datasetPage = (values: unknown[], offset = 0, total = values.length) => ({
   partial: false,
 });
 
+test("Agent fallback preserves precision variants and rejects opaque qualifiers", () => {
+  const baseModel = "NVIDIA-Nemotron-3.5-Super-VL-120B-A12B";
+  const ordinary = { ...datasetRow, model_name: baseModel, organization: "NVIDIA", rank: 2 };
+  const quantized = { ...ordinary, model_name: `${baseModel} (NVFP4)`, rank: 3 };
+  const parsed = processArenaAgentDatasetRows([datasetRow, ordinary, quantized]);
+  assert.equal(parsed.length, 3);
+  assert.equal(parsed[1]?.base_model, baseModel);
+  assert.equal(parsed[2]?.base_model, `${baseModel}-NVFP4`);
+  assert.equal(parsed[2]?.model, quantized.model_name);
+  assert.equal(parsed[2]?.reasoning_effort, null);
+  assert.throws(
+    () =>
+      processArenaAgentDatasetRows([
+        datasetRow,
+        { ...ordinary, model_name: `${baseModel} (opaque configuration)` },
+      ]),
+    /Ambiguous Arena Agent dataset identity/,
+  );
+});
+
 test("Agent tries the website first and labels fallback data with its own publication and source", async (t) => {
   const requested: string[] = [];
   let websiteWorks = true;

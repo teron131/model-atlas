@@ -130,6 +130,7 @@ async function terminalBench4Snapshot(
     fetchRows: getTerminalBench4Stats,
     rowKey: (row) => sourceKey(row.base_model, row.reasoning_effort, row.harness),
     rowLabel: (row) => `${row.model}: ${row.harness}`,
+    editions: { editionOf: (row) => row.revision },
   });
   return {
     terminalBench4Rows: snapshot.rows,

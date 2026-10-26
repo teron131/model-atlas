@@ -3,6 +3,7 @@
 import assert from "node:assert/strict";
 
 import {
+  type BenchmarkObservationRow,
   buildBenchmarkObservationLookup,
   findBenchmarkObservation,
 } from "../src/model-atlas/benchmarks/observation";
@@ -19,7 +20,11 @@ import { processEpochWeirdMlCsv } from "../src/model-atlas/sources/epoch/weirdml
 import { readBenchmarkObservationRawCache } from "../src/model-atlas/sources/observations/cache";
 import { benchmarkObservationSource } from "../src/model-atlas/sources/observations/load";
 import { parseCsvRecords } from "../src/model-atlas/sources/parsing";
-import { mergeCachedSourceRows, snapshotRows } from "../src/model-atlas/sources/snapshots/policy";
+import {
+  mergeCachedSourceRows,
+  snapshotRows,
+  withoutSupersededEditions,
+} from "../src/model-atlas/sources/snapshots/policy";
 import {
   benchmarkObservationRowKey,
   mergeBenchmarkObservationRow,
@@ -27,6 +32,7 @@ import {
 import {
   processSurgeBenchmarkPageHtml,
   processSurgeIntelligenceIndexPageHtml,
+  withSurgeEdition,
 } from "../src/model-atlas/sources/surge/results";
 import type { SourceSnapshots } from "../src/model-atlas/sources/types";
 import { processValsBenchmarkView } from "../src/model-atlas/sources/vals/results";
@@ -84,6 +90,7 @@ const frontierMath = epochBenchmarkObservationRows(
   epochRuns,
   "frontiermath_tier_4",
   "FrontierMath-Tier-4-v2-Private",
+  { latestTaskEdition: true },
 );
 assert.equal(frontierMath.length, 2);
 assert.equal(frontierMath[0]?.canonical_value, 0.561);
@@ -100,8 +107,15 @@ const selectedEpochRuns = parseCsvRecords(
     "mirrorcode-paper-sol,MirrorCode,2026-08-20,Success,1.0.0,gpt-5-6-sol,GPT-5.6 Sol,GPT-5.6 Sol (max),OpenAI,0.8,MirrorCode\n" +
     "simple-current,SimpleQA Verified,2026-08-27,Success,1.2.0,gemini-3-1-pro,Gemini 3.1 Pro,Gemini 3.1 Pro,Google,0.71,SimpleQA Verified (anti-abstention)\n" +
     "simple-old,SimpleQA Verified,2026-08-20,Success,1.1.0,gpt-5-6-sol,GPT-5.6 Sol,GPT-5.6 Sol,OpenAI,0.9,SimpleQA Verified\n" +
-    "simple-contaminated,SimpleQA Verified,2026-08-27,Success,1.2.0,qwen3-max-2025-09-23,Qwen3 Max,Qwen3 Max,Alibaba,0.99,SimpleQA Verified (anti-abstention)\n",
+    "simple-contaminated,SimpleQA Verified,2026-08-27,Success,1.2.0,qwen3-max-2025-09-23,Qwen3 Max,Qwen3 Max,Alibaba,0.99,SimpleQA Verified (anti-abstention)\n" +
+    "simple-patch,SimpleQA Verified,2026-08-28,Success,1.2.1,gpt-6-astra,GPT-6 Astra,GPT-6 Astra,OpenAI,0.75,SimpleQA Verified (anti-abstention)\n" +
+    "simple-prior,SimpleQA Verified,2026-08-01,Success,1.1.0,claude-opus-5,Claude Opus 5,Claude Opus 5,Anthropic,0.6,SimpleQA Verified (anti-abstention)\n",
 );
+const simpleQaEligibility = {
+  latestTaskEdition: true,
+  originalTaskName: "SimpleQA Verified (anti-abstention)",
+  excludedModelIds: ["qwen3-max-2025-09-23"],
+} as const;
 assert.deepEqual(
   epochBenchmarkObservationRows(selectedEpochRuns, "mirrorcode", "MirrorCode", {
     runIdPrefix: "mirrorcode-ml-2l-",
@@ -109,12 +123,33 @@ assert.deepEqual(
   ["claude-fable-5"],
 );
 assert.deepEqual(
-  epochBenchmarkObservationRows(selectedEpochRuns, "simpleqa_verified", "SimpleQA Verified", {
-    taskVersions: ["1.2.0"],
-    originalTaskName: "SimpleQA Verified (anti-abstention)",
-    excludedModelIds: ["qwen3-max-2025-09-23"],
-  }).map((row) => row.model_id),
-  ["gemini-3-1-pro"],
+  epochBenchmarkObservationRows(
+    selectedEpochRuns,
+    "simpleqa_verified",
+    "SimpleQA Verified",
+    simpleQaEligibility,
+  ).map((row) => [row.model_id, row.metadata.benchmark_version]),
+  [
+    ["gemini-3-1-pro", "1.2"],
+    ["gpt-6-astra", "1.2"],
+  ],
+  "The newest major.minor edition pools its patch revisions and excludes earlier editions",
+);
+assert.deepEqual(
+  epochBenchmarkObservationRows(
+    [
+      ...selectedEpochRuns,
+      ...parseCsvRecords(
+        "id_runs,task,started_at,Status,task version,id_model_version,Display name,Unique display name,Organization,mean_score,original_task_name\n" +
+          "simple-next,SimpleQA Verified,2026-09-01,Success,1.3.0,gpt-6-1-sol,GPT-6.1 Sol,GPT-6.1 Sol,OpenAI,0.78,SimpleQA Verified (anti-abstention)\n",
+      ),
+    ],
+    "simpleqa_verified",
+    "SimpleQA Verified",
+    simpleQaEligibility,
+  ).map((row) => row.model_id),
+  ["gpt-6-1-sol"],
+  "A newer task edition replaces the previous one",
 );
 
 const automationBenchRows = processAutomationBenchModule(
@@ -416,15 +451,19 @@ function benchmarkObservationBinding(sourceDataKey: string) {
   return binding;
 }
 
-function valsView(tasks: Record<string, unknown>) {
-  return { metadata: { updated: "2026-10-07", version: "1" }, tasks };
+const observationEditions = {
+  editionOf: (row: BenchmarkObservationRow) => row.metadata.benchmark_version,
+};
+
+function valsView(version: string, tasks: Record<string, unknown>) {
+  return { metadata: { updated: "2026-10-07", version }, tasks };
 }
 
 const programBinding = benchmarkObservationBinding("programBench");
 assert.equal(programBinding.loader.kind, "vals");
 if (programBinding.loader.kind !== "vals") throw new Error("Expected VALS loader");
 const program = processValsBenchmarkView(
-  valsView({
+  valsView("1", {
     partial: { "openai/gpt-5.6-sol": { accuracy: 82.3 } },
     almost: { "openai/gpt-5.6-sol": { accuracy: 41.5 } },
     strict: { "openai/gpt-5.6-sol": { accuracy: 3 } },
@@ -444,7 +483,7 @@ const sreBinding = benchmarkObservationBinding("sreBench");
 assert.equal(sreBinding.loader.kind, "vals");
 if (sreBinding.loader.kind !== "vals") throw new Error("Expected VALS loader");
 const sre = processValsBenchmarkView(
-  valsView({
+  valsView("1", {
     overall: { "openai/gpt-5.6-sol": { accuracy: 12 } },
     partial: { "openai/gpt-5.6-sol": { accuracy: 59.542 } },
   }),
@@ -463,7 +502,7 @@ const bioBinding = benchmarkObservationBinding("bioMysteryBench");
 assert.equal(bioBinding.loader.kind, "vals");
 if (bioBinding.loader.kind !== "vals") throw new Error("Expected VALS loader");
 const bio = processValsBenchmarkView(
-  valsView({
+  valsView("1", {
     overall: {
       "openai/gpt-6-astra": { accuracy: 79.259, reasoning_effort: "max", stderr: 0.98 },
       "openai/gpt-6-sol": { accuracy: 74.815, reasoning_effort: "max" },
@@ -487,7 +526,7 @@ const mysteryBinding = benchmarkObservationBinding("mysteryMechanism");
 assert.equal(mysteryBinding.loader.kind, "vals");
 if (mysteryBinding.loader.kind !== "vals") throw new Error("Expected VALS loader");
 const mystery = processValsBenchmarkView(
-  valsView({
+  valsView("1", {
     overall: {
       "openai/gpt-6-astra": { accuracy: 53.153, reasoning_effort: "max" },
       "anthropic/claude-opus-5-5": { accuracy: 49.55, compute_effort: "max" },
@@ -503,6 +542,61 @@ assert.deepEqual(
   mystery.map((row) => row.canonical_value),
   [0.53153, 0.4955],
 );
+
+for (const binding of BENCHMARK_OBSERVATION_BINDINGS) {
+  if (binding.loader.kind !== "vals") continue;
+  const source = benchmarkObservationSource(binding);
+  const definition = {
+    benchmarkKey: binding.benchmark,
+    canonicalTask: binding.loader.canonicalTask,
+    sourceUrl: binding.loader.sourceUrl,
+  };
+  const task = binding.loader.canonicalTask;
+  const tasks = (accuracy: number) => ({
+    [task]: {
+      "anthropic/claude-opus-5-5": { accuracy, compute_effort: "max", stderr: 0.7 },
+    },
+  });
+  for (const accuracy of [0, 90]) {
+    const current: BenchmarkObservationRow = processValsBenchmarkView(
+      valsView("1", tasks(accuracy)),
+      definition,
+    )[0]!;
+    const cached = {
+      ...current,
+      canonical_value: 0.5,
+      cost: 2,
+      observed_at: "2026-09-01",
+      metadata: { ...current.metadata, source_result_json: '{"accuracy":50,"stderr":1}' },
+    };
+    assert.deepEqual(
+      snapshotRows(
+        [cached],
+        [current],
+        1_793_000_000,
+        {},
+        benchmarkObservationRowKey,
+        source.mergeRow,
+      ),
+      [current],
+      `${binding.benchmark} must replace a revised observation, including zero scores and missing resources`,
+    );
+    assert.deepEqual(
+      snapshotRows([cached], [], null, {}, benchmarkObservationRowKey, source.mergeRow),
+      [cached],
+      `${binding.benchmark} must retain its observation when the source fetch fails`,
+    );
+  }
+  const previous = processValsBenchmarkView(valsView("1", tasks(90)), definition);
+  const successor = processValsBenchmarkView(valsView("1.1", tasks(90)), definition);
+  assert.equal(successor[0]?.metadata.benchmark_version, "1.1");
+  assert.deepEqual(withoutSupersededEditions(previous, previous, observationEditions), previous);
+  assert.deepEqual(
+    withoutSupersededEditions(previous, successor, observationEditions),
+    [],
+    `${binding.benchmark} must replace its cached rows when the page publishes another version`,
+  );
+}
 
 const rsiComponent =
   'const h={"anthropic/claude-fable-5-1":"Claude Code","openai/gpt-6-astra":"Codex"};';
@@ -549,13 +643,20 @@ assert.deepEqual(
   [],
   "A five-task publisher declaration cannot be relabelled as a four-task aggregate",
 );
+const rsiNextVersion = processValsRsiModule(
+  rsiModule.replace('version:"1.1"', 'version:"1.2"'),
+  rsiComponent,
+  rsiBinding.loader.sourceUrl,
+);
 assert.deepEqual(
-  processValsRsiModule(
-    rsiModule.replace('version:"1.1"', 'version:"1"'),
-    rsiComponent,
-    rsiBinding.loader.sourceUrl,
-  ),
+  [...new Set(rsiNextVersion.map((row) => row.metadata.benchmark_version))],
+  ["1.2"],
+  "A new version of the same four-task suite is adopted from the same page",
+);
+assert.deepEqual(
+  withoutSupersededEditions(rsi, rsiNextVersion, observationEditions),
   [],
+  "Adopting a new RSI version replaces the cached suite",
 );
 
 const surge = processSurgeBenchmarkPageHtml(
@@ -714,6 +815,24 @@ assert.deepEqual(
   ),
   [cachedHealthcare],
 );
+const handbookBinding = benchmarkObservationBinding("handbookMd");
+if (handbookBinding.loader.kind !== "surge" || !("edition" in handbookBinding.loader))
+  throw new Error("Expected an edition-pinned Surge loader");
+const handbookEdition = handbookBinding.loader.edition;
+const handbookSource = benchmarkObservationSource(handbookBinding);
+const handbookRow = { ...updatedHealthcare, benchmark_key: "handbook_md" };
+assert.equal(
+  handbookSource.acceptsCache?.([handbookRow]),
+  false,
+  "Rows from before the HANDBOOK.md rerun cannot rejoin the current edition",
+);
+assert.equal(
+  handbookSource.acceptsCache?.(
+    withSurgeEdition({ fetched_at_epoch_seconds: 1, data: [handbookRow] }, handbookEdition).data,
+  ),
+  true,
+);
+assert.equal(healthcareSource.acceptsCache, undefined);
 
 const surgeIndex = processSurgeIntelligenceIndexPageHtml(
   `
@@ -883,7 +1002,12 @@ const collector = new SnapshotRowCollector();
 const chess = frontierMath.map((row) => ({
   ...row,
   benchmark_key: "chess_puzzles",
-  metadata: { ...row.metadata, task: "Chess Puzzles", task_version: "2.0.0" },
+  metadata: {
+    ...row.metadata,
+    task: "Chess Puzzles",
+    task_version: "2.0.0",
+    benchmark_version: "2.0",
+  },
 }));
 const ebr = frontierMath.map((row) => ({
   ...row,
@@ -894,6 +1018,7 @@ const handbook = surge.map((row) => ({
   ...row,
   benchmark_key: "handbook_md",
   source_url: "https://surgehq.ai/benchmarks/handbook",
+  metadata: { ...row.metadata, edition: handbookEdition },
 }));
 const coreCraft = surge.map((row) => ({
   ...row,

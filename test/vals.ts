@@ -29,7 +29,7 @@ const indexView = {
   metadata: {
     benchmark: "Vals Index",
     slug: "vals_index",
-    version: "2.1",
+    version: "2.2",
     updated: "2026-10-07",
     dataset_type: "private",
     runner: "external",
@@ -68,10 +68,12 @@ assert.equal(
 );
 assert.equal(JSON.parse(String(index.model_scores[0]?.metadata.source_result_json)).stderr, 0.9);
 assert.deepEqual(
-  processValsIndexView({ ...indexView, metadata: { ...indexView.metadata, version: "2" } })
-    .model_scores,
-  [],
-  "An older index edition must not receive the current edition's breadth",
+  processValsIndexView({
+    ...indexView,
+    metadata: { ...indexView.metadata, version: "2.3" },
+  }).model_scores.map((row) => row.metadata.benchmark_version),
+  ["2.3"],
+  "A new version with the same eight-component basket is adopted from the same page",
 );
 const { tax_agent_bench: _tax, ...oldTaskLabels } = indexView.metadata.tasks;
 assert.deepEqual(
@@ -105,7 +107,7 @@ try {
   assert.equal(
     valsIndexRuntime.readCache(db),
     null,
-    "Older editions cannot survive through cache fallback",
+    "Baskets of another size cannot survive through cache fallback",
   );
 
   const currentDefinition = schemaSql.match(

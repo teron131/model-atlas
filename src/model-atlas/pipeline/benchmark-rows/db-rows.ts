@@ -12,11 +12,14 @@ import {
 } from "../../benchmarks/registry";
 import { asFiniteNumber, stringValue } from "../../runtime";
 import { agentsLastExamBenchmarkScore } from "../../sources/agents-last-exam/leaderboard";
+import { artificialAnalysisBenchmarkResourceRawCacheFromRows } from "../../sources/artificial-analysis/cache";
 import {
   asDeepSWERawLeaderboardRow,
   preferredDeepSWELeaderboardRows,
 } from "../../sources/deep-swe/leaderboard";
+import { frontierCodeVersion } from "../../sources/frontier-code/leaderboard";
 import {
+  artificialAnalysisResourceDrafts,
   type BenchmarkRowDraft,
   type BenchmarkRowsByKey,
   finalizeBenchmarkRows,
@@ -31,6 +34,7 @@ type DbSourceSpec = {
   value: (row: DbBenchmarkRow) => unknown;
   providerColumn?: string;
   rowKind?: string;
+  edition?: (row: DbBenchmarkRow) => unknown;
 };
 
 type BenchmarkObservationDbRows = {
@@ -39,6 +43,7 @@ type BenchmarkObservationDbRows = {
 
 type BenchmarkDbRows = BenchmarkObservationDbRows & {
   artificialAnalysisRows: readonly DbBenchmarkRow[];
+  artificialAnalysisResourceRows: readonly DbBenchmarkRow[];
   arenaAgentRows: readonly DbBenchmarkRow[];
   agentsLastExamRows: readonly DbBenchmarkRow[];
   aleBenchRows: readonly DbBenchmarkRow[];
@@ -72,6 +77,7 @@ function benchmarkObservationDbDrafts(rows: BenchmarkDbRows): BenchmarkRowDraft[
           provider: stringValue(row.model_creator),
           reasoningEffort: row.reasoning_effort,
           value: row.canonical_value,
+          edition: parseBenchmarkObservationMetadata(row.metadata_json)?.benchmark_version,
         },
       ];
     });
@@ -100,6 +106,7 @@ function dbSourceDrafts(source: DbSourceSpec): BenchmarkRowDraft[] {
         label: stringValue(row.model),
         provider: source.providerColumn == null ? null : stringValue(row[source.providerColumn]),
         value: source.value(row),
+        edition: source.edition?.(row),
       },
     ];
   });
@@ -161,8 +168,9 @@ const STANDALONE_BENCHMARK_ADAPTERS = {
       value: row.pass_at_1,
     })),
   frontier_code: (rows) =>
-    rows.frontierCodeRows.flatMap((row) =>
-      row.score_eligible === 1
+    rows.frontierCodeRows.flatMap((row) => {
+      const revision = stringValue(row.revision);
+      return row.score_eligible === 1
         ? [
             {
               key: "frontier_code",
@@ -171,10 +179,11 @@ const STANDALONE_BENCHMARK_ADAPTERS = {
               label: stringValue(row.model),
               reasoningEffort: row.reasoning_effort,
               value: row.main_score,
+              edition: revision == null ? null : frontierCodeVersion(revision),
             },
           ]
-        : [],
-    ),
+        : [];
+    }),
   terminal_bench_4: (rows) =>
     rows.terminalBench4Rows.map((row) => ({
       key: "terminal_bench_4",
@@ -213,6 +222,10 @@ export function benchmarkRowsFromDb(rows: BenchmarkDbRows): BenchmarkRowsByKey {
             value: row[key],
           }));
     }),
+    ...artificialAnalysisResourceDrafts(
+      artificialAnalysisBenchmarkResourceRawCacheFromRows([...rows.artificialAnalysisResourceRows])
+        ?.rows ?? [],
+    ),
     ...Object.values(STANDALONE_BENCHMARK_ADAPTERS).flatMap((adapter) => adapter(rows)),
     ...rows.riemannBenchRows.flatMap((row) => {
       const model = stringValue(row.model);
@@ -232,6 +245,7 @@ export function benchmarkRowsFromDb(rows: BenchmarkDbRows): BenchmarkRowsByKey {
       value: (row) => row.score,
       providerColumn: "provider",
       rowKind: "overall",
+      edition: (row) => parseBenchmarkObservationMetadata(row.metadata_json)?.benchmark_version,
     }),
   ]);
 }

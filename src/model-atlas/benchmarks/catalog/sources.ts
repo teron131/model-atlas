@@ -117,7 +117,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
     loader: {
       kind: "epoch_runs",
       task: "Chess Puzzles",
-      eligibility: { taskVersions: ["2.0.0", "2.0.1"] },
+      eligibility: { latestTaskEdition: true },
     },
     sourceDataKey: "chessPuzzles",
     sourceRowsKey: "chessPuzzleRows",
@@ -125,10 +125,11 @@ export const BENCHMARK_STANDARD_SOURCES = {
   code_migration: {
     group: "vals",
     id: "vals",
+    revision: "1.1",
     loader: {
       kind: "vals",
       canonicalTask: "overall",
-      sourceUrl: "https://www.vals.ai/benchmarks/code-migration",
+      sourceUrl: "https://www.vals.ai/benchmarks/code-migration-v1-1",
     },
     sourceDataKey: "codeMigration",
     sourceRowsKey: "codeMigrationRows",
@@ -173,10 +174,11 @@ export const BENCHMARK_STANDARD_SOURCES = {
   emb: {
     group: "vals",
     id: "vals",
+    revision: "1.1",
     loader: {
       kind: "vals",
       canonicalTask: "overall",
-      sourceUrl: "https://www.vals.ai/benchmarks/emb",
+      sourceUrl: "https://www.vals.ai/benchmarks/emb-v1-1",
     },
     sourceDataKey: "emb",
     sourceRowsKey: "embRows",
@@ -224,10 +226,11 @@ export const BENCHMARK_STANDARD_SOURCES = {
   finance_agent_v2: {
     group: "vals",
     id: "vals",
+    revision: "2.1",
     loader: {
       kind: "vals",
       canonicalTask: "all_pass",
-      sourceUrl: "https://www.vals.ai/benchmarks/fabv2",
+      sourceUrl: "https://www.vals.ai/benchmarks/fabv2-1",
     },
     sourceDataKey: "financeAgentV2",
     sourceRowsKey: "financeAgentV2Rows",
@@ -239,7 +242,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
     loader: {
       kind: "epoch_runs",
       task: "FrontierMath-Tier-4-v2-Private",
-      eligibility: { taskVersions: ["2.1.0"] },
+      eligibility: { latestTaskEdition: true },
     },
     sourceDataKey: "frontierMathTier4",
     sourceRowsKey: "frontierMathTier4Rows",
@@ -267,9 +270,11 @@ export const BENCHMARK_STANDARD_SOURCES = {
   handbook_md: {
     group: "surge",
     id: "surge",
+    revision: "2026-10-19",
     loader: {
       kind: "surge",
       sourceUrl: "https://surgehq.ai/benchmarks/handbook",
+      edition: "2026-10-19",
     },
     sourceDataKey: "handbookMd",
     sourceRowsKey: "handbookMdRows",
@@ -384,7 +389,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
       kind: "epoch_runs",
       task: "SimpleQA Verified",
       eligibility: {
-        taskVersions: ["1.2.0"],
+        latestTaskEdition: true,
         originalTaskName: "SimpleQA Verified (anti-abstention)",
         excludedModelIds: ["qwen3-max-2025-09-23"],
       },
@@ -603,6 +608,7 @@ export const BENCHMARK_EXTENDED_SOURCES = {
     ],
   },
   critpt: {
+    revision: "2",
     inputs: [
       {
         group: "artificial_analysis",
@@ -611,9 +617,9 @@ export const BENCHMARK_EXTENDED_SOURCES = {
         adapters: [
           {
             kind: "artificial_analysis_resource_page",
-            scoreKey: "critpt",
-            resourceKey: "critpt",
-            url: "https://artificialanalysis.ai/evaluations/critpt",
+            scoreKey: "critptAgentic",
+            resourceKey: "critptAgentic",
+            url: "https://artificialanalysis.ai/evaluations/critpt-v2",
           },
         ],
       },
@@ -744,6 +750,7 @@ export const BENCHMARK_EXTENDED_SOURCES = {
             scoreKey: "terminalBench40",
             resourceKey: "terminalBench40",
             taskRunCount: 198,
+            version: "4.0",
           },
         ],
       },
@@ -781,6 +788,7 @@ export const BENCHMARK_EXTENDED_SOURCES = {
             resourceKey: "terminalBenchScience",
             url: "https://artificialanalysis.ai/evaluations/terminal-bench-science",
             taskRunCount: 210,
+            version: "0.1",
           },
         ],
       },

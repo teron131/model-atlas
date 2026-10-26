@@ -12,10 +12,12 @@ import {
   transformBenchmarkSourceValue,
 } from "../../benchmarks/registry";
 import { benchmarkModelEffort, canonicalReasoningEffort } from "../../identity/normalization";
-import { asFiniteNumber, asRecord } from "../../runtime";
+import { asFiniteNumber, asRecord, stringValue } from "../../runtime";
 import { agentsLastExamBenchmarkScore } from "../../sources/agents-last-exam/leaderboard";
 import { aleBenchModelEffort } from "../../sources/ale-bench/leaderboard";
+import type { ArtificialAnalysisBenchmarkResourceRow } from "../../sources/artificial-analysis/benchmark-resources";
 import type { ModelAtlasSourceData } from "../../sources/assembly";
+import { frontierCodeVersion } from "../../sources/frontier-code/leaderboard";
 
 export type BenchmarkSourceRow = {
   id: string | null;
@@ -24,6 +26,8 @@ export type BenchmarkSourceRow = {
   provider: string | null;
   reasoningEffort: string | null;
   value: number;
+  /** The source-published version this row belongs to; null where the source publishes none. */
+  edition: string | null;
 };
 
 export type BenchmarkRowsByKey = Readonly<Record<string, readonly BenchmarkSourceRow[]>>;
@@ -36,6 +40,7 @@ export type BenchmarkRowDraft = {
   provider?: string | null;
   reasoningEffort?: unknown;
   value: unknown;
+  edition?: unknown;
 };
 
 type ModelScoreDraftRow = {
@@ -44,6 +49,7 @@ type ModelScoreDraftRow = {
   provider: string | null;
   reasoning_effort?: unknown;
   score: unknown;
+  metadata: Readonly<Record<string, unknown>>;
 };
 
 function benchmarkRowDrafts<T>(
@@ -68,6 +74,7 @@ function modelScoreRowDrafts(
     provider: row.provider,
     reasoningEffort: row.reasoning_effort,
     value: row.score,
+    edition: row.metadata.benchmark_version,
   }));
 }
 
@@ -108,6 +115,7 @@ function benchmarkObservationSourceDrafts(sourceData: ModelAtlasSourceData): Ben
         provider: row.model_creator,
         reasoningEffort: row.reasoning_effort,
         value: row.canonical_value,
+        edition: row.metadata.benchmark_version,
       }));
   });
 }
@@ -132,6 +140,7 @@ function addBenchmarkRowDraft(
     provider: draft.provider ?? null,
     reasoningEffort: canonicalReasoningEffort(draft.reasoningEffort),
     value,
+    edition: stringValue(draft.edition),
   });
 }
 
@@ -166,12 +175,20 @@ function artificialAnalysisBenchmarkRowDrafts(
       value: benchmarks[key],
     }));
   });
-  const resourceDrafts = ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.flatMap(({ benchmarkKey }) =>
+  return [
+    ...contextDrafts,
+    ...artificialAnalysisResourceDrafts(sourceData.artificialAnalysisBenchmarkResources.rows),
+  ];
+}
+
+/** Evaluation-page rows enter health checks under their page's benchmark on the scoring scale. */
+export function artificialAnalysisResourceDrafts(
+  rows: readonly ArtificialAnalysisBenchmarkResourceRow[],
+): BenchmarkRowDraft[] {
+  return ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.flatMap(({ benchmarkKey }) =>
     benchmarkRowDrafts(
       benchmarkKey,
-      sourceData.artificialAnalysisBenchmarkResources.rows.filter(
-        (row) => row.benchmark_key === benchmarkKey,
-      ),
+      rows.filter((row) => row.benchmark_key === benchmarkKey),
       (row) => ({
         id: row.model_id,
         identity: row.model_id,
@@ -179,10 +196,10 @@ function artificialAnalysisBenchmarkRowDrafts(
         provider: row.provider,
         reasoningEffort: row.reasoning_effort,
         value: transformBenchmarkSourceValue(benchmarkKey, row.score),
+        edition: row.benchmark_version,
       }),
     ),
   );
-  return [...contextDrafts, ...resourceDrafts];
 }
 
 type StandaloneBenchmarkAdapter = (sourceData: ModelAtlasSourceData) => BenchmarkRowDraft[];
@@ -248,6 +265,7 @@ const STANDALONE_BENCHMARK_ADAPTERS = {
         label: row.model,
         reasoningEffort: row.reasoning_effort,
         value: row.score,
+        edition: frontierCodeVersion(row.revision),
       }),
     ),
   terminal_bench_4: (sourceData) =>

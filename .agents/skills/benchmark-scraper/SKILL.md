@@ -70,6 +70,11 @@ After field selection:
 - Preserve raw leaderboard rows separately from summarized model rows.
 - Keep benchmark-specific metadata such as split, domain, harness, effort, tie, and source provenance.
 - Preserve multiple reasoning-effort or budget rows when available; higher-effort regressions are review signals, not parser noise.
+- Record the version the source publishes on every row, wherever the source shows it, page titles included: `metadata.benchmark_version` for benchmark observations, or a version or revision column for a runtime table, declared through the `editions` option of `snapshotSourceRows`. Benchmark observations get the edition rule automatically, and a source that builds its own snapshot calls `withoutSupersededEditions` directly, as Vals Index does. When one source table holds several benchmarks, also give `seriesOf`, as Artificial Analysis's evaluation pages do, so each benchmark's version is compared on its own. Do not pin the version: the shared refresh adopts a new edition and replaces the old rows, and a version fixed by the URL simply never changes. Pin only when a fused source must stay on another source's suite.
+- Guard structure rather than version: a payload whose task key, component basket, or subset layout changed should yield no rows, so the cache remains until a decision is made.
+- For per-run versions, select the newest major.minor edition, as Epoch's `latestTaskEdition` does. If the source publishes no version and can rerun silently, give the rerun an Atlas-declared edition label, as Surge's `edition` does.
+- Choose the row merge deliberately. The default keeps populated cached values, which freezes a source that revises published results; such a source needs `mergeRow` to return the fetched row, as Vals does.
+- When a defect shows in one source, check whether a shared step causes it before fixing that source alone. Vals revisions froze because of the shared merge, and the same freeze affected every versioned source until the edition rule moved into the shared snapshot policy.
 - Match model names conservatively: exact first, narrow aliases second, no broad fuzzy matching without review.
 - Keep unmatched rows inspectable.
 - Add focused fixture tests that cover the weird cases found in the real leaderboard.
@@ -97,10 +102,12 @@ Do not bury bonus, median, max, domain-lead, effort, or harness aggregation choi
 After scoring policy is agreed:
 
 - Wire the benchmark through source data, model matching, score inputs, database schema/writers, payload reading, public exports, dashboard labels, and tooltips as needed.
+- When moving to a successor published at a new address, update the catalog address and the timeline `revision` together; docs and tooltips take the observed edition from the snapshot through `:edition[key]` markers and `metadata.benchmark_editions`.
 - Add or update tests for scraper, matching, scoring, and payload behavior.
-- Run focused tests first, then the repo checks appropriate to the touched surface.
-- Follow the current package scripts: `scripts/database.ts` refreshes the local SQLite checkpoint, while `scripts/publish-snapshot.ts` owns remote snapshot publication. When production is in scope, use that publication workflow and verify the affected served artifact through the runtime/manifest contract; a local refresh does not publish it.
-- Run `pnpm run typecheck` and `pnpm run build` when TypeScript or UI surfaces changed.
+- Run focused tests first, then checks scaled to the touched surface: `pnpm run typecheck` for any TypeScript change, the full test suite for shared snapshot policy or payload contracts, and `pnpm run build` for docs or UI.
+- Verify a data fix offline where possible: apply the changed parser, merge, or cache-acceptance function to saved payloads or a read-only copy of the checkpoint instead of rebuilding the database.
+- Follow the current package scripts: `scripts/database.ts` refreshes the local SQLite checkpoint, while `scripts/publish-snapshot.ts` owns remote snapshot publication; a local refresh publishes nothing.
+- Stop at a verified working tree unless the user asks for a production step. Production follows the repository: a push to `main` runs the deploy workflow, and the scheduled refresh publishes the next snapshot. Do not build or deploy images from uncommitted files, repoint production jobs, restore or republish production checkpoints, or wait for CDN convergence on your own initiative: a hand-built deploy leaves production running code that git lacks, and the next push silently replaces it. Report the remaining step instead. When the user does ask, use the publication workflow and verify the served artifact through the runtime and manifest contract.
 - Check `git diff --check`.
 - Summarize the final benchmark role, scoring method, refresh result, and any unmatched or excluded rows.
 
