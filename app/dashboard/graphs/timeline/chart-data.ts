@@ -1,10 +1,10 @@
 /** Project published historical evidence into the small, fixed-scale series used by the dashboard. */
 
+import { providerIdentityKey } from "../../../../src/model-atlas/identity/provider";
 import { modelDisplayExclusion } from "../../../../src/model-atlas/stats/model-visibility";
 import { anchorTimeline } from "../../../../src/model-atlas/timeline/calibration";
 import { timelineCoverage } from "../../../../src/model-atlas/timeline/coverage";
 import type { HistoricalDataset } from "../../../../src/model-atlas/timeline/schemas";
-import { providerFilterKey } from "../../shared/provider-theme";
 import { TIMELINE_START_DATE } from "./frontier";
 import { timelineModelName } from "./model-display";
 import { modelRepresentatives, representativeScores } from "./model-representatives";
@@ -25,6 +25,11 @@ const CATALOG_POSITION_ID = /^atlas-model:(.+)::[^:]*$/;
 /** The catalog model id behind a Timeline point, so a point can open the current snapshot's model sheet. */
 export function timelineCatalogId(point: Pick<TimelinePoint, "id">): string | null {
   return CATALOG_POSITION_ID.exec(point.id)?.[1] ?? null;
+}
+
+/** A point's chart label: GPT-4, the Timeline's landmark, goes by its short name. */
+export function timelinePointLabel(point: Pick<TimelinePoint, "name">): string {
+  return point.name === "GPT-4 (Mar 2023)" ? "GPT-4" : point.name;
 }
 
 /** Select the same family representatives, visibility floor and evidence support as the detailed explorer; never refit scores. */
@@ -57,7 +62,7 @@ export function timelineChartPoints(data: HistoricalDataset): TimelinePoint[] {
         {
           id: model.id,
           name: timelineModelName(model),
-          provider: providerFilterKey(model.provider),
+          provider: providerIdentityKey(model.provider),
           releaseDate: model.releaseDate,
           score,
           coverage: coverage.get(model.id)?.fraction ?? null,

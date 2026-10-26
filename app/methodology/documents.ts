@@ -161,6 +161,11 @@ export function isDocumentSlug(value: string): value is DocumentSlug {
   return DOCUMENTS.some((document) => document.slug === value);
 }
 
+/** The top-level document a document belongs to: its parent, or itself when it has none. */
+export function documentGroup(slug: DocumentSlug): DocumentSlug {
+  return documentEntry(slug).parent ?? slug;
+}
+
 export function isMethodologyAsset(value: string): value is MethodologyAsset {
   return Object.hasOwn(METHODOLOGY_ASSETS, value);
 }
@@ -212,8 +217,7 @@ export function documentLink(href: string, document: DocumentSlug): string {
   if (href.startsWith("#")) {
     return href;
   }
-  const current = DOCUMENTS.find((item) => item.slug === document)!;
-  const resolved = new URL(href, `https://docs.local/${current.source}`);
+  const resolved = new URL(href, `https://docs.local/${documentEntry(document).source}`);
   const target = DOCUMENTS.find((item) => `/${item.source}` === resolved.pathname);
   if (resolved.origin !== "https://docs.local" || target == null) {
     return href;
@@ -225,20 +229,24 @@ export function documentAssetPath(asset: MethodologyAsset): string {
   return `assets/${METHODOLOGY_ASSETS[asset].directory}/${asset}`;
 }
 
-/** Map methodology diagram paths onto the static asset endpoint. */
-export function documentImageSource(source: string): string {
-  const match =
-    /^(?:\.\.\/)?assets\/(?:methodology|matching|timeline|shared)\/([a-z0-9-]+\.svg)$/.exec(source);
-  const asset = match?.[1];
-  return asset != null && isMethodologyAsset(asset) ? `/methodology-assets/${asset}` : source;
+/** The registered illustration a Markdown image path names, or `null` for any other image. */
+export function methodologyAsset(source: string): MethodologyAsset | null {
+  const asset = /^(?:\.\.\/)?assets\/(?:methodology|matching|timeline)\/([a-z0-9-]+\.svg)$/.exec(
+    source,
+  )?.[1];
+  return asset != null && isMethodologyAsset(asset) ? asset : null;
 }
 
 export function documentImageSize(source: string): {
   width: number;
   height: number;
 } {
-  const asset = source.split("/").at(-1);
-  return asset != null && isMethodologyAsset(asset)
-    ? METHODOLOGY_ASSETS[asset]
-    : { width: 720, height: 420 };
+  const asset = methodologyAsset(source);
+  return asset == null ? { width: 720, height: 420 } : METHODOLOGY_ASSETS[asset];
+}
+
+function documentEntry(slug: DocumentSlug) {
+  const document = DOCUMENTS.find((entry) => entry.slug === slug);
+  if (document == null) throw new Error(`Unknown document ${slug}`);
+  return document;
 }

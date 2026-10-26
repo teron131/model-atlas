@@ -16,6 +16,7 @@ import {
   type FrontierBenchmarkRow,
   frontierBenchmarkRows,
   performanceComparisonRows,
+  referenceFrontierBenchmarkRows,
 } from "../graphs/pareto/analysis";
 import { sharedFrontierBenchmarkComparison } from "../graphs/pareto/common-evidence";
 import { modelName } from "../shared/model-display";
@@ -53,8 +54,8 @@ type CostEvidence = {
 };
 
 /**
- * Resolve the opened (`model`, `effort`) and pinned (`compare`, `compare-effort`) URL names once per payload.
- * A name the snapshot lacks resolves to `null`; the populations are the leaderboard's own row displays, kept for the snapshot, and the cost evidence is built only while the sheet is open.
+ * Resolve the opened (`model`, `effort`) and pinned (`compare`, `compare-effort`) URL names against the snapshot.
+ * A name the snapshot lacks resolves to `null`; the populations are the leaderboard's own row displays and the cost evidence the Pareto chart's own reference rows, each built once per snapshot.
  */
 export function useSheetEntries(
   payload: ModelAtlasPayload | null,
@@ -68,7 +69,7 @@ export function useSheetEntries(
     if (!open) return null;
     const portfolio = payload.metadata.scoring.benchmark_portfolio;
     // The Pareto chart's full-population cost rows set the references and resource keys its effort curves use.
-    const referenceRows = frontierBenchmarkRows(payload.models, portfolio, "cost");
+    const referenceRows = referenceFrontierBenchmarkRows(payload.models, portfolio, "cost");
     return {
       collapsed: leaderboardRows(payload, false),
       variants: leaderboardRows(payload, true),

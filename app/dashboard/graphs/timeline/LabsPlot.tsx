@@ -17,11 +17,11 @@ import {
   YAxisTicks,
 } from "../plot/Primitives";
 import { useChartWidth } from "../use-chart-layout";
-import type { TimelinePoint } from "./chart-data";
+import { type TimelinePoint, timelinePointLabel } from "./chart-data";
 import type { LabFrontier } from "./frontier";
 
 import styles from "../graphs.module.css";
-import timeline from "../timeline.module.css";
+import timeline from "./timeline.module.css";
 
 export function LabsPlot({
   labs,
@@ -124,20 +124,18 @@ export function LabsPlot({
       );
   }
   const labeled = series.find((lab) => lab.provider === highlight)?.samples ?? [];
-  const modelLabel = (point: TimelinePoint) =>
-    point.name === "GPT-4 (Mar 2023)" ? "GPT-4" : point.name;
   const { svgRef, labelSizes } = useLabelSizes(
-    labeled.map(({ point }) => modelLabel(point)).join("\0"),
+    labeled.map(({ point }) => timelinePointLabel(point)).join("\0"),
     compact,
   );
   const labelLayoutKey = JSON.stringify({
     labels: labeled.map(({ time, point }) => ({
       key: point.id,
-      label: modelLabel(point),
+      label: timelinePointLabel(point),
       cx: x(new Date(time)),
       cy: y(point.score),
       radius: 4,
-      size: labelSizes[modelLabel(point)],
+      size: labelSizes[timelinePointLabel(point)],
     })),
     obstacles: labeled.map(({ time, point }) => ({
       key: point.id,
@@ -361,7 +359,7 @@ export function LabsPlot({
             {labeled.map(({ time, point }) => (
               <TextPointLabel
                 key={point.id}
-                label={modelLabel(point)}
+                label={timelinePointLabel(point)}
                 cx={x(new Date(time))}
                 cy={y(point.score)}
                 width={width}

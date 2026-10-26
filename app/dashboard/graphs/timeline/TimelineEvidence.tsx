@@ -1,7 +1,7 @@
 "use client";
 
 /** Load timeline evidence on demand and display observed results, inferred cells, and prediction validation. */
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 
 import type {
   HistoricalCalibration,
@@ -282,7 +282,7 @@ function benchmarkLabel(label: string): string {
 }
 
 /** Fetch detailed evidence only after disclosure; preserve the current chart population and selection. */
-export function TimelineEvidence({
+export const TimelineEvidence = memo(function TimelineEvidence({
   modelIds,
   onSelect,
 }: {
@@ -336,4 +336,4 @@ export function TimelineEvidence({
       onSelect={onSelect}
     />
   );
-}
+});

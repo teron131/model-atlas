@@ -7,7 +7,13 @@ import { useEffect, useState } from "react";
 
 import { NavigationLink } from "../shared/NavigationLink";
 import { DocumentOutline } from "./DocumentOutline";
-import { documentHref, DOCUMENTS, type DocumentSlug, type TableOfContentsItem } from "./documents";
+import {
+  documentGroup,
+  documentHref,
+  DOCUMENTS,
+  type DocumentSlug,
+  type TableOfContentsItem,
+} from "./documents";
 import { ScoreText } from "./ScoreText";
 
 import styles from "./methodology.module.css";
@@ -22,8 +28,7 @@ export function DocumentNavigation({
   outline: TableOfContentsItem[];
   titles: Record<DocumentSlug, string>;
 }) {
-  const activeGroup =
-    DOCUMENTS.find((item) => item.slug === activeDocument)!.parent ?? activeDocument;
+  const activeGroup = documentGroup(activeDocument);
   const [expanded, setExpanded] = useState<DocumentSlug[]>([activeGroup]);
 
   useEffect(() => {

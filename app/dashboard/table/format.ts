@@ -61,14 +61,14 @@ function formatTaskMetric(value: number | null | undefined, column: TaskMetricCo
   return formatCompactNumber(value);
 }
 
-export function benchmarkPercentValue(value: number | null | undefined) {
+function benchmarkPercentValue(value: number | null | undefined) {
   if (typeof value !== "number" || !Number.isFinite(value)) {
     return null;
   }
   return Math.abs(value) <= 1 ? value * 100 : value;
 }
 
-export function formatBenchmarkMetric(
+function formatBenchmarkMetric(
   value: number | null | undefined,
   format: "percent" | "score" | "number" | "currency" = "percent",
 ) {

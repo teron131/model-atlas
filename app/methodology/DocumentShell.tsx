@@ -3,13 +3,19 @@
 /** Documentation shell: the document title on the sky, then one research plane holding the document strip, navigation, and text. */
 
 import { ArrowUp, ListTree } from "lucide-react";
-import { type ReactNode, useCallback, useEffect, useLayoutEffect, useState } from "react";
+import { type ReactNode, useEffect, useLayoutEffect, useState } from "react";
 
 import { ModelAtlasHeader } from "../shared/ModelAtlasHeader";
 import { NavigationLink } from "../shared/NavigationLink";
 import { useHorizontalChoice } from "../shared/use-horizontal-choice";
 import { DocumentNavigation } from "./DocumentNavigation";
-import { documentHref, DOCUMENTS, type DocumentSlug, type TableOfContentsItem } from "./documents";
+import {
+  documentGroup,
+  documentHref,
+  DOCUMENTS,
+  type DocumentSlug,
+  type TableOfContentsItem,
+} from "./documents";
 import { ScoreText } from "./ScoreText";
 
 import styles from "./methodology.module.css";
@@ -33,18 +39,18 @@ export function DocumentShell({
   outline: TableOfContentsItem[];
   titles: Record<DocumentSlug, string>;
 }) {
-  const currentDocument = DOCUMENTS.find((item) => item.slug === activeDocument)!;
+  const activeGroup = documentGroup(activeDocument);
   const stripRef = useHorizontalChoice<HTMLUListElement>(activeDocument);
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [navigationOpen, setNavigationOpen] = useState(false);
   // Only the reader's own toggles are remembered, so a phone's default never hides navigation on a wide screen.
-  const toggleNavigation = useCallback(() => {
+  const toggleNavigation = () => {
     const next = !navigationOpen;
     setNavigationOpen(next);
     try {
       window.localStorage.setItem(NAVIGATION_STORAGE_KEY, String(next));
     } catch {}
-  }, [navigationOpen]);
+  };
 
   // Navigation starts shown beside the text and hidden on phones, where it would push the text below the fold, unless the reader chose otherwise.
   useLayoutEffect(() => {
@@ -64,10 +70,8 @@ export function DocumentShell({
     return () => window.removeEventListener("scroll", updateVisibility);
   }, []);
 
-  const scrollToPageTop = () => {
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
-  };
+  // The page's scroll-behavior decides whether the return glides, so reduced motion jumps.
+  const scrollToPageTop = () => window.scrollTo({ top: 0 });
 
   return (
     <main className={`document-main ${styles.page}`}>
@@ -101,11 +105,7 @@ export function DocumentShell({
                 <NavigationLink
                   className="selection-choice"
                   href={documentHref(item.slug)}
-                  aria-current={
-                    item.slug === activeDocument || item.slug === currentDocument.parent
-                      ? "page"
-                      : undefined
-                  }
+                  aria-current={item.slug === activeGroup ? "page" : undefined}
                 >
                   <span>
                     <ScoreText>{titles[item.slug]}</ScoreText>

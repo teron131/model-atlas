@@ -1,4 +1,4 @@
-/** Pareto frontier selection shared by the Pareto chart and the hero register, with independent goals per axis. */
+/** Pareto frontier selection shared by the Pareto chart, the hero register, and the model sheet's frontier inset, with independent goals per axis. */
 
 type ParetoGoal = "maximize" | "minimize";
 

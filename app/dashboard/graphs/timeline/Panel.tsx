@@ -5,15 +5,15 @@
 import { scaleLinear, scaleUtc } from "d3-scale";
 import { ArrowUpRight } from "lucide-react";
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 
-import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
-import { openModelSheet } from "../model-sheet/open";
-import { providerChartColor, providerDisplayName } from "../shared/provider-theme";
-import { useUrlState } from "../use-url-state";
-import { GraphToggle } from "./GraphToggle";
-import { Panel } from "./Panel";
-import { calloutLabelPlacements } from "./plot/label-placement";
+import type { ModelAtlasModel } from "../../../../src/model-atlas/stats/types";
+import { openModelSheet } from "../../model-sheet/open";
+import { ResearchRegion } from "../../ResearchRegions";
+import { providerChartColor, providerDisplayName } from "../../shared/provider-theme";
+import { useUrlState } from "../../use-url-state";
+import { GraphToggle } from "../GraphToggle";
+import { calloutLabelPlacements } from "../plot/label-placement";
 import {
   AxisTitles,
   FrontierHorizon,
@@ -26,15 +26,21 @@ import {
   useLabelSizes,
   XAxisTicks,
   YAxisTicks,
-} from "./plot/Primitives";
-import { timelineCatalogId, type TimelinePoint } from "./timeline/chart-data";
-import { coverageFrontier, leadingLabs } from "./timeline/frontier";
-import { LabsPlot } from "./timeline/LabsPlot";
-import { OrganizationSelect } from "./timeline/OrganizationSelect";
-import { TimelineNavigator } from "./timeline/TimelineNavigator";
-import { useChartWidth, useCompactChartLayout } from "./use-chart-layout";
+} from "../plot/Primitives";
+import { useChartWidth, useCompactChartLayout } from "../use-chart-layout";
+import { timelineCatalogId, type TimelinePoint, timelinePointLabel } from "./chart-data";
+import {
+  coverageFrontier,
+  LAB_MINIMUM_MODELS,
+  LEADING_LAB_COUNT,
+  leadingLabs,
+  RECORD_MINIMUM_SUPPORT,
+} from "./frontier";
+import { LabsPlot } from "./LabsPlot";
+import { OrganizationSelect } from "./OrganizationSelect";
+import { TimelineNavigator } from "./TimelineNavigator";
 
-import styles from "./graphs.module.css";
+import styles from "../graphs.module.css";
 import timeline from "./timeline.module.css";
 
 const TIMELINE_CAPTION =
@@ -46,12 +52,16 @@ const REPLAY_FRAMES = 120;
 const REPLAY_STILL_STEPS = 8;
 
 const TimelineEvidence = dynamic(
-  () => import("./timeline/TimelineEvidence").then((module) => module.TimelineEvidence),
+  () => import("./TimelineEvidence").then((module) => module.TimelineEvidence),
   { loading: () => <p role="status">Loading evidence matrices…</p> },
 );
 
 /** Keep the historical population independent from present-day price, rank and recency filters; `currentModels` only links a selected model to its sheet when today's snapshot has it. */
-export function TimelinePanel({ currentModels }: { currentModels: readonly ModelAtlasModel[] }) {
+export const TimelinePanel = memo(function TimelinePanel({
+  currentModels,
+}: {
+  currentModels: readonly ModelAtlasModel[];
+}) {
   const [points, setPoints] = useState<TimelinePoint[] | null>(null);
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
@@ -132,7 +142,11 @@ export function TimelinePanel({ currentModels }: { currentModels: readonly Model
         : windowed.filter((point) => Date.parse(point.releaseDate) <= cutoff),
     [windowed, cutoff],
   );
-  const frontier = useMemo(() => coverageFrontier(visible, 0.6), [visible]);
+  const frontier = useMemo(() => coverageFrontier(visible, RECORD_MINIMUM_SUPPORT), [visible]);
+  const evidenceModelIds = useMemo(
+    () => [...visible].sort((a, b) => b.score - a.score).map((point) => point.id),
+    [visible],
+  );
   const frontierIds = new Set(frontier.map((point) => point.id));
   const labLeaders = useMemo(
     () =>
@@ -228,9 +242,8 @@ export function TimelinePanel({ currentModels }: { currentModels: readonly Model
     }
     return nearest;
   };
-  const pointLabel = (point: TimelinePoint) => (point.id === gpt4?.id ? "GPT-4" : point.name);
-  const { svgRef, labelSizes } = useLabelSizes(labeled.map(pointLabel).join("\0"), compact);
-  const previewName = preview ? pointLabel(preview) : "";
+  const { svgRef, labelSizes } = useLabelSizes(labeled.map(timelinePointLabel).join("\0"), compact);
+  const previewName = preview ? timelinePointLabel(preview) : "";
   const previewLabel = `${previewName.slice(0, compact ? 28 : 42)}${previewName.length > (compact ? 28 : 42) ? "…" : ""} · ${preview?.score.toFixed(1) ?? ""}`;
   const previewWidth = previewLabel.length * (compact ? 10.2 : 9.6);
   const previewOnLeft = preview
@@ -239,12 +252,12 @@ export function TimelinePanel({ currentModels }: { currentModels: readonly Model
   const layoutKey = JSON.stringify({
     labels: labeled.map((point) => ({
       key: point.id,
-      label: pointLabel(point),
+      label: timelinePointLabel(point),
       cx: xPoint(point),
       cy: y(point.score),
       radius: 6,
-      size: labelSizes[pointLabel(point)] ?? {
-        width: pointLabel(point).length * (compact ? 10.2 : 7.8),
+      size: labelSizes[timelinePointLabel(point)] ?? {
+        width: timelinePointLabel(point).length * (compact ? 10.2 : 7.8),
         ascent: compact ? 15 : 12,
         descent: 3,
       },
@@ -302,12 +315,11 @@ export function TimelinePanel({ currentModels }: { currentModels: readonly Model
     ) : null;
 
   return (
-    <Panel
-      sectionId="timeline"
-      sectionLabel="Timeline"
-      title="Intelligence over time"
-      captureFileName="model-atlas-timeline"
-      wide
+    <ResearchRegion
+      id="timeline"
+      className={styles.section}
+      plane={styles.panel}
+      capture={{ title: "Intelligence over time", fileName: "model-atlas-timeline" }}
     >
       <div className={timeline.content}>
         {/* The view choices share the figure's top edge with the chosen model's catalogue entry, as Pareto's choices share it with their summary, so reading a star never leaves the plot. */}
@@ -319,7 +331,7 @@ export function TimelinePanel({ currentModels }: { currentModels: readonly Model
               onSelect={(value) => {
                 replay.stop();
                 setSelected(null);
-                setView(value as "models" | "labs");
+                setView(value);
               }}
               options={[
                 { key: "models", label: "Models" },
@@ -336,15 +348,15 @@ export function TimelinePanel({ currentModels }: { currentModels: readonly Model
               <dl className={timeline.labScope} aria-label="Lab eligibility">
                 <div>
                   <dt>Labs</dt>
-                  <dd>Top 10</dd>
+                  <dd>Top {LEADING_LAB_COUNT}</dd>
                 </div>
                 <div>
                   <dt>Models per lab</dt>
-                  <dd>&gt; 5</dd>
+                  <dd>&gt; {LAB_MINIMUM_MODELS}</dd>
                 </div>
                 <div>
                   <dt>Frontier support</dt>
-                  <dd>≥ 60%</dd>
+                  <dd>≥ {Math.round(RECORD_MINIMUM_SUPPORT * 100)}%</dd>
                 </div>
               </dl>
             )}
@@ -593,7 +605,7 @@ export function TimelinePanel({ currentModels }: { currentModels: readonly Model
                     {labeled.map((point) => (
                       <TextPointLabel
                         key={point.id}
-                        label={pointLabel(point)}
+                        label={timelinePointLabel(point)}
                         cx={xPoint(point)}
                         cy={y(point.score)}
                         width={width}
@@ -615,7 +627,7 @@ export function TimelinePanel({ currentModels }: { currentModels: readonly Model
                   <span>○ Index-only</span>
                   <span>
                     <i className={timeline.frontierKey} aria-hidden="true" />
-                    Frontier · ≥60% evidence support
+                    Frontier · ≥{Math.round(RECORD_MINIMUM_SUPPORT * 100)}% evidence support
                   </span>
                 </>
               ) : (
@@ -644,15 +656,12 @@ export function TimelinePanel({ currentModels }: { currentModels: readonly Model
           <span>Details</span>
         </summary>
         {evidenceRequested && (
-          <TimelineEvidence
-            modelIds={[...visible].sort((a, b) => b.score - a.score).map((point) => point.id)}
-            onSelect={setSelected}
-          />
+          <TimelineEvidence modelIds={evidenceModelIds} onSelect={setSelected} />
         )}
       </details>
-    </Panel>
+    </ResearchRegion>
   );
-}
+});
 
 /**
  * A replay of the record frontier: a reveal cutoff that sweeps from `from` to `to` over a few seconds, redrawing about `REPLAY_FRAMES` times or in a few still steps under reduced motion, then clears itself.

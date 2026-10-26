@@ -16,11 +16,10 @@ import { DocumentHeading } from "./DocumentHeading";
 import {
   documentAssetPath,
   documentImageSize,
-  documentImageSource,
   documentLink,
   type DocumentSlug,
   headingId,
-  isMethodologyAsset,
+  methodologyAsset,
 } from "./documents";
 import { plainScoreText, scoreMentions, type ScoreName } from "./score-markers";
 import { ScoreLabel, ScoreText } from "./ScoreText";
@@ -109,12 +108,12 @@ const MarkdownImage: NonNullable<Components["img"]> = async ({ src = "", alt = "
     return null;
   }
   const size = documentImageSize(src);
-  let imageSource = documentImageSource(src);
-  const asset = src.split("/").at(-1);
-  if (imageSource !== src && asset != null && isMethodologyAsset(asset)) {
+  const asset = methodologyAsset(src);
+  let imageSource = src;
+  if (asset != null) {
     const source = await readFile(join(process.cwd(), "docs", documentAssetPath(asset)));
     const revision = createHash("sha256").update(source).digest("hex").slice(0, 16);
-    imageSource += `?v=${revision}`;
+    imageSource = `/methodology-assets/${asset}?v=${revision}`;
   }
   return (
     <span className={styles.figure}>

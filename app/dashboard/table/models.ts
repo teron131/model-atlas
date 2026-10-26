@@ -10,6 +10,7 @@ import {
 import type { BenchmarkTaskMetricColumnFacet } from "../../../src/model-atlas/benchmarks/factory";
 import { isAggregateIndex } from "../../../src/model-atlas/benchmarks/index-policy";
 import { COMMUNITY_INDEXES } from "../../../src/model-atlas/community/catalog";
+import { reasoningEffortRank } from "../../../src/model-atlas/identity/normalization";
 import {
   linearScore,
   medianOfFinite,
@@ -295,7 +296,7 @@ export const dashboardMetricColumns: DashboardMetricColumn[] = [
 type TableColumnGroup =
   | "fixed"
   | "scores"
-  | "operations"
+  | "resources"
   | "frontier"
   | "indexes"
   | "baseline"
@@ -304,7 +305,7 @@ type TableColumnGroup =
   | "change";
 
 const scoreColumnKeys = new Set<TableColumnKey>(["intelligence", "agentic", "speed", "value"]);
-const operationColumnKeys = new Set<TableColumnKey>([
+const resourceColumnKeys = new Set<TableColumnKey>([
   "taskCostRatio",
   "totalTokenRatio",
   "taskTimeRatio",
@@ -339,11 +340,21 @@ export function benchmarkEvidenceGroup(
 
 /** A stretch of consecutive visible columns in one group, as the table's group rail names it; the trailing release, weights, evidence, and change columns read as one `details` stretch. */
 export type TableColumnRun = {
-  group: "scores" | "operations" | "frontier" | "indexes" | "baseline" | "details";
+  group: "scores" | "resources" | "frontier" | "indexes" | "baseline" | "details";
   /** Position of its first column among the visible columns. */
   first: number;
   /** Distinct benchmarks among its columns; zero outside the benchmark groups. */
   benchmarks: number;
+};
+
+/** Each column group's name, as the group rail and the model sheet's benchmark sections show it. */
+export const TABLE_COLUMN_GROUP_LABELS: Record<TableColumnRun["group"], string> = {
+  scores: "Scores",
+  resources: "Resources",
+  frontier: "Frontier",
+  indexes: "Indexes",
+  baseline: "Baseline",
+  details: "Details",
 };
 
 /** Split the visible columns after the pinned rank and model into the runs the group rail navigates. */
@@ -390,8 +401,8 @@ function tableColumnGroup(key: TableColumnKey): TableColumnGroup {
   if (scoreColumnKeys.has(key)) {
     return "scores";
   }
-  if (operationColumnKeys.has(key)) {
-    return "operations";
+  if (resourceColumnKeys.has(key)) {
+    return "resources";
   }
   if (profileColumnKeys.has(key)) {
     return "profile";
@@ -416,10 +427,12 @@ export type TableRow = {
   benchmarkDisplayScores: Partial<Record<BenchmarkMetricColumn["key"], number | null>>;
   /** Each measured amount (price, speed, context, benchmark resources) relative to its column's median across the incoming population. */
   metricRatios: Partial<Record<TableColumnKey, number | null>>;
-  resourceRatios?: Record<ResourceRatioKind, ResourceRatioSummary>;
+  resourceRatios: Record<ResourceRatioKind, ResourceRatioSummary>;
 };
 
-type UnrankedTableRow = Omit<TableRow, "intelligenceRank">;
+/** A row before its resource ratios, which are measured once the whole display population is known. */
+type DisplayRow = Omit<TableRow, "resourceRatios">;
+type UnrankedTableRow = Omit<DisplayRow, "intelligenceRank">;
 
 type Sorter = {
   direction: SortDirection;
@@ -475,17 +488,17 @@ export const sorters: Record<SortKey, Sorter> = {
   taskCostRatio: {
     direction: "ascending",
     type: "number",
-    get: (row) => row.resourceRatios?.cost.ratio,
+    get: (row) => row.resourceRatios.cost.ratio,
   },
   totalTokenRatio: {
     direction: "ascending",
     type: "number",
-    get: (row) => row.resourceRatios?.tokens.ratio,
+    get: (row) => row.resourceRatios.tokens.ratio,
   },
   taskTimeRatio: {
     direction: "ascending",
     type: "number",
-    get: (row) => row.resourceRatios?.time.ratio,
+    get: (row) => row.resourceRatios.time.ratio,
   },
   blend: {
     direction: "ascending",
@@ -499,6 +512,13 @@ export const sorters: Record<SortKey, Sorter> = {
   },
   ...dashboardMetricSorters,
 };
+
+/** A header click sorts by its column in the column's own direction, and a second click on that column reverses it. */
+export function toggledSort(current: SortState, key: SortKey): SortState {
+  const direction = sorters[key].direction;
+  if (current.key !== key || current.direction !== direction) return { key, direction };
+  return { key, direction: direction === "ascending" ? "descending" : "ascending" };
+}
 
 /** Sort a copy of the visible rows, preserving source order as the final stable tie-breaker. */
 export function sortedRows(rows: readonly TableRow[], sortState: SortState) {
@@ -619,7 +639,7 @@ function buildLeaderboardRows(
 }
 
 /** Collapse duplicate routes and scale benchmark meters and amount ratios against the full incoming population before filtering or limiting rows. */
-export function dedupeDisplayModels(models: ModelAtlasModel[]) {
+export function dedupeDisplayModels(models: ModelAtlasModel[]): DisplayRow[] {
   const ranges = new Map(
     scaledBenchmarkMetricColumns.map((column) => [
       column.key,
@@ -668,15 +688,46 @@ export function benchmarkMetricValue(model: ModelAtlasModel, column: BenchmarkMe
 }
 
 /** Return a benchmark's normalized display score when its source scale is not directly comparable. */
-export function benchmarkDisplayValue(row: TableRow, column: BenchmarkMetricColumn) {
+export function benchmarkDisplayValue(
+  row: Pick<TableRow, "model" | "benchmarkDisplayScores">,
+  column: BenchmarkMetricColumn,
+) {
   return column.format === "score"
     ? row.benchmarkDisplayScores[column.key]
     : benchmarkMetricValue(row.model, column);
 }
 
 /** Return a benchmark's 0-100 meter position while preserving its formatted display value. */
-export function benchmarkMeterValue(row: TableRow, column: BenchmarkMetricColumn) {
+export function benchmarkMeterValue(
+  row: Pick<TableRow, "benchmarkDisplayScores">,
+  column: BenchmarkMetricColumn,
+) {
   return row.benchmarkDisplayScores[column.key] ?? null;
+}
+
+/** A variant row's effort as the leaderboard's effort filter names it: a model with one unlabelled setting is `default`. */
+export function rowEffort(model: ModelAtlasModel): string {
+  return model.reasoning_effort ?? "default";
+}
+
+export type EffortChoice = { key: string; count: number };
+
+/** The efforts among reasoning-variant rows and how many rows each holds, `default` first and the rest in effort order. */
+export function effortChoices(rows: readonly TableRow[]): EffortChoice[] {
+  const counts = new Map<string, number>();
+  for (const row of rows) {
+    const effort = rowEffort(row.model);
+    counts.set(effort, (counts.get(effort) ?? 0) + 1);
+  }
+  return [...counts]
+    .map(([key, count]) => ({ key, count }))
+    .sort((left, right) =>
+      left.key === "default"
+        ? -1
+        : right.key === "default"
+          ? 1
+          : reasoningEffortRank(left.key) - reasoningEffortRank(right.key),
+    );
 }
 
 export function contextWindowValue(model: ModelAtlasModel) {
@@ -728,7 +779,7 @@ function inputModalityRank(model: ModelAtlasModel) {
   );
 }
 
-function attachIntelligenceRanks(rows: UnrankedTableRow[]): TableRow[] {
+function attachIntelligenceRanks(rows: UnrankedTableRow[]): DisplayRow[] {
   const rankedRows = [...rows].sort(compareIntelligenceRank);
   const rankByOriginalIndex = new Map<number, number>();
   for (const [rankIndex, row] of rankedRows.entries()) {

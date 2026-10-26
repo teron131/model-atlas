@@ -3,7 +3,6 @@
 import assert from "node:assert/strict";
 
 import {
-  DEFAULT_PROFILE_FILTERS,
   matchingProfileModelCount,
   MODEL_PROFILES_STORAGE_KEY,
   readModelProfiles,
@@ -11,6 +10,7 @@ import {
   sameProfileFilters,
   saveModelProfile,
 } from "../app/dashboard/model-profiles";
+import { DEFAULT_GLOBAL_MODEL_FILTERS } from "../app/dashboard/url-state";
 import type { ModelAtlasModel } from "../src/model-atlas/stats/types";
 
 const models = [
@@ -43,8 +43,8 @@ const models = [
   },
 ] as ModelAtlasModel[];
 const fetchedAt = Date.parse("2026-10-01T00:00:00Z") / 1000;
-const filters = { ...DEFAULT_PROFILE_FILTERS, q: "GPT*" };
-assert.equal(matchingProfileModelCount(models, DEFAULT_PROFILE_FILTERS, fetchedAt), 2);
+const filters = { ...DEFAULT_GLOBAL_MODEL_FILTERS, q: "GPT*" };
+assert.equal(matchingProfileModelCount(models, DEFAULT_GLOBAL_MODEL_FILTERS, fetchedAt), 2);
 assert.equal(
   matchingProfileModelCount(models, filters, fetchedAt),
   1,
@@ -55,7 +55,7 @@ assert.equal(matchingProfileModelCount(models, { ...filters, "max-cost": 1 }, fe
 assert.equal(
   matchingProfileModelCount(
     models,
-    { ...DEFAULT_PROFILE_FILTERS, q: "Grok*", days: 90 },
+    { ...DEFAULT_GLOBAL_MODEL_FILTERS, q: "Grok*", days: 90 },
     fetchedAt,
   ),
   0,

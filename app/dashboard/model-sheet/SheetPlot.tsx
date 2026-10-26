@@ -103,7 +103,7 @@ export function useSheetPlot(
   };
 }
 
-export type SheetPlotGeometry = ReturnType<typeof useSheetPlot>;
+type SheetPlotGeometry = ReturnType<typeof useSheetPlot>;
 
 export function SheetStar({
   cx,

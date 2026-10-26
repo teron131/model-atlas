@@ -3,15 +3,15 @@
 /** The overview retains the full time range while pointer capture and keyboard controls edit the chart window. */
 
 import { ChevronLeft, ChevronRight, Minus, Play, Plus, RotateCcw, Square } from "lucide-react";
-import { type PointerEvent, useId, useRef } from "react";
+import { type PointerEvent, useId, useMemo, useRef } from "react";
 
 import { providerChartColor } from "../../shared/provider-theme";
 import { GraphToggle } from "../GraphToggle";
 import { HorizonLightStops } from "../plot/Primitives";
 import type { TimelinePoint } from "./chart-data";
-import { coverageFrontier } from "./frontier";
+import { coverageFrontier, RECORD_MINIMUM_SUPPORT } from "./frontier";
 
-import styles from "../timeline.module.css";
+import styles from "./timeline.module.css";
 
 /** Edit a normalized time window without filtering the overview; keep pointer and keyboard resizing within its minimum span. */
 export function TimelineNavigator({
@@ -63,7 +63,8 @@ export function TimelineNavigator({
     56 - ((point.score - low) / Math.max(1, high - low)) * 48;
   // The overview carries the chart's frontier as a small horizon, so the window frames a stretch of it.
   const horizonId = useId();
-  const horizon = coverageFrontier(points, 0.6).map((point) => ({
+  const records = useMemo(() => coverageFrontier(points, RECORD_MINIMUM_SUPPORT), [points]);
+  const horizon = records.map((point) => ({
     x: overviewX(point),
     y: overviewY(point),
   }));

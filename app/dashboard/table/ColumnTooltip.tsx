@@ -10,10 +10,12 @@ import type {
   ModelAtlasColumnTooltipSectionItem,
 } from "../../../src/model-atlas/config/tooltips";
 import { clamp } from "../../../src/model-atlas/math-utils";
-import { tooltipHorizontalPadding, tooltipMaxWidth, tooltipOffsetTop } from "./constants";
+
+const tooltipHorizontalPadding = 18;
+const tooltipMaxWidth = 360;
+const tooltipOffsetTop = 12;
 
 export type TooltipState = {
-  key: string;
   left: number;
   top: number;
   phase: "visible" | "leaving";
@@ -26,19 +28,19 @@ export type HeaderTooltipHandler<TKey extends string = string> = (
 
 export function ColumnTooltip({
   content,
-  phase = "visible",
+  phase,
   left,
   onMouseEnter,
   onMouseLeave,
-  role = "tooltip",
+  role,
   top,
 }: {
   content: ModelAtlasColumnTooltip;
-  phase?: TooltipState["phase"];
+  phase: TooltipState["phase"];
   left: number;
-  onMouseEnter?: () => void;
-  onMouseLeave?: () => void;
-  role?: "dialog" | "tooltip";
+  onMouseEnter: () => void;
+  onMouseLeave: () => void;
+  role: "dialog" | "tooltip";
   top: number;
 }) {
   const tooltipRef = useRef<HTMLDivElement>(null);

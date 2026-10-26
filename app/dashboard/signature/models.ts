@@ -1,17 +1,18 @@
 /** Select the established frontier roles and translate the displayed models into stars for the frontier sky. */
 
 import { canonicalModelKey } from "../../../src/model-atlas/identity/normalization";
+import { providerIdentityKey } from "../../../src/model-atlas/identity/provider";
 import { clamp01, medianOfFinite } from "../../../src/model-atlas/math-utils";
 import { type ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 import { paretoFrontier } from "../graphs/plot/pareto-frontier";
 import type { ModelSheetModel } from "../model-sheet/open";
-import { modelsForVariantDisplay, modelVariantKey, shortLabel } from "../shared/model-display";
 import {
-  providerChartColor,
-  providerDisplayName,
-  providerFilterKey,
-  providerLogo,
-} from "../shared/provider-theme";
+  collapsedModels,
+  modelsForVariantDisplay,
+  modelVariantKey,
+  shortLabel,
+} from "../shared/model-display";
+import { providerChartColor, providerDisplayName, providerLogo } from "../shared/provider-theme";
 import type { SkyStar } from "./sky-scene";
 
 // Star tint when a provider's colour is theme-dependent; the sky is dark in both themes.
@@ -81,11 +82,10 @@ export function signatureStars(
 
 /** Model families with an Intelligence score and a dated release, the only models the sky can place. */
 function datedModels(models: ModelAtlasModel[]) {
-  return modelsForVariantDisplay(
+  return collapsedModels(
     models.filter(
       (model) => model.name != null && Number.isFinite(model.scores.intelligence_score),
     ),
-    false,
   ).flatMap((model) => {
     const released = Date.parse(`${model.release_date?.slice(0, 10)}T00:00:00Z`);
     return Number.isFinite(released) ? [{ model, released }] : [];
@@ -104,7 +104,7 @@ export function signatureModels({
     ),
     true,
   );
-  const baseModels = modelsForVariantDisplay(variants, false);
+  const baseModels = collapsedModels(variants);
   const valueModels = intelligenceValueModels(paretoModels);
   const medianIntelligence = medianOfFinite(
     intelligenceValueModels(referenceModels).map(intelligenceScore),
@@ -121,10 +121,10 @@ export function signatureModels({
   const representedLabs = new Set(
     [intelligenceRanking[0], agenticRanking[0]]
       .filter((model): model is ModelAtlasModel => model != null)
-      .map((model) => providerFilterKey(model.provider)),
+      .map((model) => providerIdentityKey(model.provider)),
   );
   const anotherLab = intelligenceRanking.find(
-    (model) => !representedLabs.has(providerFilterKey(model.provider)),
+    (model) => !representedLabs.has(providerIdentityKey(model.provider)),
   );
   const selectedModels = selectRolesWithTopFiveFallback(
     [
@@ -270,10 +270,9 @@ function intelligenceValueMetric(model: ModelAtlasModel): SignatureMetric {
 }
 
 function intelligenceValueModels(models: ModelAtlasModel[]): ModelAtlasModel[] {
-  return modelsForVariantDisplay(
+  return collapsedModels(
     models.filter(
       (model) => model.name != null && Number.isFinite(model.scores.intelligence_score),
     ),
-    false,
   ).filter((model) => Number.isFinite(model.scores.value_score));
 }

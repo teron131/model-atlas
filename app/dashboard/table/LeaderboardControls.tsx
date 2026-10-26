@@ -1,11 +1,11 @@
 "use client";
 
-/** The table toolbar owns column presets, column search, and display limits; model selection belongs to the global filters. */
+/** The table toolbar owns column presets, column search, and how rows display (their limit and the efforts variant rows keep); which models appear belongs to the global filters. */
 
 import { ArrowRight, Columns3, Search } from "lucide-react";
 
-import { DisplayControls, type DisplayControlsProps } from "../shared/DisplayControls";
 import { TABLE_COLUMN_PRESETS, type TableColumnPreset } from "./column-views";
+import { DisplayControls, type DisplayControlsProps } from "./DisplayControls";
 
 import styles from "./leaderboard-controls.module.css";
 

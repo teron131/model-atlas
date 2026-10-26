@@ -1,4 +1,4 @@
-/* Styles for the dashboard's research regions, instrument rail, and analytical charts. */
+/* Styles for the analytical charts: the Pareto and Timeline regions, their shared plot kit, and the chart tokens other plots borrow. */
 
 /* Chart typography and pigments inherit the page theme while giving dense plots a readable scale; `chartTokens` lends the same pigments to plots outside the dashboard regions, such as the model sheet's. */
 .atlas,
@@ -77,179 +77,12 @@
 .axisLabel {
   font-family: var(--font-mono);
   letter-spacing: var(--type-label-tracking);
-  text-transform: uppercase;
 }
 
-/* Sticky so the global filters stay reachable from any region, not only from the top of the page. */
-.instrumentRail {
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  display: grid;
-  max-height: 100dvh;
-  grid-template-columns: minmax(0, 1fr);
-  border: 1px solid var(--research-edge);
-  background: rgb(var(--paper-rgb) / 0.8);
-  box-shadow: var(--research-shadow);
-  -webkit-backdrop-filter: blur(14px) saturate(1.25);
-  backdrop-filter: blur(14px) saturate(1.25);
-}
-
-/* Region links, the model search that takes the open middle, then profiles and filters (a toggle on phones); on phones the search's suggestions hang from the whole bar. */
-.instrumentBar {
-  position: relative;
-  display: grid;
-  grid-template-columns: max-content minmax(0, 1fr) auto;
-  min-height: 48px;
-  border-right: 1px solid var(--line);
-  align-items: stretch;
-}
-
-/* The region links sit on one flight path: a track along the rail's foot with a waypoint under each region and a star that travels as the page scrolls. */
-.researchIndexLinks {
-  position: relative;
-  display: flex;
-  min-width: 0;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scrollbar-width: none;
-}
-
-.researchIndexLinks::-webkit-scrollbar {
-  display: none;
-}
-
-.researchIndexLinks::before,
-.researchIndexLinks::after {
-  position: absolute;
-  bottom: 7px;
-  left: var(--journey-start, 13px);
-  height: 1px;
-  content: "";
-  pointer-events: none;
-}
-
-.researchIndexLinks::before {
-  width: max(0px, calc(var(--journey-end, 0px) - var(--journey-start, 13px)));
-  background: var(--line-strong);
-}
-
-/* The path already flown is lit in horizon light up to the star. */
-.researchIndexLinks::after {
-  width: max(0px, calc(var(--journey, 13px) - var(--journey-start, 13px)));
-  background: linear-gradient(90deg, rgb(74 114 255 / 0.25), var(--horizon-violet));
-  box-shadow: 0 0 8px rgb(143 107 255 / 0.55);
-}
-
-:global(html[data-model-atlas-theme="light"]) .researchIndexLinks::after {
-  background: var(--selection-star);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--selection-star) 55%, transparent);
-}
-
-.journeyStar {
-  position: absolute;
-  z-index: 1;
-  bottom: 5px;
-  left: var(--journey, 13px);
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--selection-star);
-  box-shadow: var(--selection-glow);
-  transform: translateX(-50%);
-  pointer-events: none;
-}
-
-.researchIndexLinks a {
-  position: relative;
-  display: flex;
-  min-height: 46px;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: 7px;
-  padding: 0 13px;
-  color: var(--muted);
-  font-family: var(--font-mono);
-  font-size: var(--type-label-size);
-  font-weight: var(--type-label-weight);
-  letter-spacing: var(--type-label-tracking);
-  text-decoration: none;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-/* Each region is a waypoint on the path, lit once the star has passed it. */
-.researchIndexLinks a::after {
-  position: absolute;
-  bottom: 6px;
-  left: 50%;
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  background: var(--line-strong);
-  content: "";
-  transform: translateX(-50%);
-  transition: background-color 140ms ease-out;
-}
-
-.researchIndexLinks a[data-reached="true"]::after {
-  background: var(--horizon-violet);
-}
-
-:global(html[data-model-atlas-theme="light"]) .researchIndexLinks a[data-reached="true"]::after {
-  background: var(--selection-star);
-}
-
-/* The same ordinal the region heads carry, so the index and the page agree on the sequence. */
-.researchIndexLinks a b {
-  color: var(--faint);
-  font: inherit;
-  font-size: var(--type-caption-size);
-  font-variant-numeric: tabular-nums;
-}
-
-.researchIndexLinks a:hover,
-.researchIndexLinks a:focus-visible,
-.researchIndexLinks a[aria-current="location"] {
-  color: var(--ink);
-}
-
-.researchIndexLinks a:hover b,
-.researchIndexLinks a:focus-visible b,
-.researchIndexLinks a[aria-current="location"] b {
-  color: var(--muted);
-}
-
-.researchIndexLinks a:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: -3px;
-}
 .metricToggle button:focus-visible,
 .pointButton:focus-visible {
   box-shadow: 0 0 0 2px var(--focus-ring);
   outline: 0;
-}
-
-.visuallyHidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-.sectionGrid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 64px;
-}
-
-.leadGrid {
-  margin-top: var(--research-gap);
 }
 
 /* A research region is a sky-set heading over one opaque plane; only the plane carries the surface. */
@@ -261,10 +94,6 @@
   min-width: 0;
   overflow: hidden;
   padding: 0 var(--research-inset) 20px;
-}
-
-.wide {
-  grid-column: 1 / -1;
 }
 
 /* Analyses read as figures: the chart leads its plane, choices sit on the axes they control, and prose becomes a caption beneath. Every row shares the graph's own width and edges, not the plane's. */
@@ -821,19 +650,6 @@
 }
 
 @media (max-width: 760px) {
-  .sectionGrid {
-    gap: 48px;
-  }
-
-  .researchIndexLinks {
-    mask-image: linear-gradient(
-      to right,
-      var(--ink) 0,
-      var(--ink) calc(100% - 24px),
-      transparent 100%
-    );
-  }
-
   .metricToggle button {
     min-height: 44px;
   }
@@ -1237,15 +1053,6 @@
   min-height: var(--axis-control-height);
 }
 
-.visuallyHidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-}
-
 .chartFooterCaption {
   display: flex;
   flex-wrap: wrap;
@@ -1577,7 +1384,6 @@
 
 /* Graph exports use chart-owned intrinsic geometry instead of the browser viewport. */
 .section[data-capture-layout="artifact"] {
-  width: var(--capture-artifact-width);
   max-width: none;
   overflow: hidden;
   padding: 18px 24px 20px;
@@ -1675,19 +1481,4 @@
 
 .section[data-capture-layout="artifact"] .cornerDirectionGlyph {
   fill: var(--chart-corner-fill);
-}
-
-/* Keep the research destinations readable across the full compact rail. */
-@media (max-width: 520px) {
-  .researchIndexLinks {
-    mask-image: none;
-  }
-  .researchIndexLinks a {
-    padding-inline: 7px;
-    gap: 4px;
-    font-size: 11px;
-  }
-  .researchIndexLinks a b {
-    display: none;
-  }
 }

@@ -181,7 +181,7 @@ export function FrontierInset({
 }
 
 function insetPoint(row: TableRow): InsetPoint | null {
-  const cost = row.resourceRatios?.cost?.ratio;
+  const cost = row.resourceRatios.cost.ratio;
   const intelligence = row.model.scores.intelligence_score;
   return cost != null &&
     Number.isFinite(cost) &&

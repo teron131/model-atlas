@@ -80,7 +80,7 @@ export function fmtTooltipNumber(value: number | null | undefined) {
     : tooltipDecimalFormatter.format(value);
 }
 
-export function fmtSeconds(value: number) {
+function fmtSeconds(value: number) {
   if (Number.isInteger(value)) {
     return `${value.toFixed(0)}s`;
   }

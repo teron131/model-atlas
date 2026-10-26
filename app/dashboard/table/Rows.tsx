@@ -18,11 +18,15 @@ import {
   TextInputIcon,
   VideoInputIcon,
 } from "../shared/DashboardIcons";
-import { modelDisplayName } from "../shared/model-display";
+import { modelName } from "../shared/model-display";
 import { providerBrandColor } from "../shared/provider-theme";
 import { ProviderLogo } from "../shared/ProviderLogo";
-import { formatResourceRatio, ratioTrackStyle } from "../shared/resource-ratio-display";
-import { resourceRatioColumns, scoreMetricColumns } from "./Columns";
+import {
+  formatResourceRatio,
+  isDrawableRatio,
+  ratioTrackStyle,
+} from "../shared/resource-ratio-display";
+import { resourceRatioColumns, scoreColumnsByDimension, scoreMetricColumns } from "./Columns";
 import {
   formatConfidence,
   formatContext,
@@ -35,13 +39,13 @@ import {
   benchmarkMeterValue,
   contextWindowValue,
   type DashboardMetricColumn,
+  dashboardMetricColumns,
   dashboardMetricValue,
   isAmountColumn,
   speedMetricColumns,
   type TableColumnKey,
   type TableRow,
 } from "./models";
-import { scoreDimensionLabel } from "./tooltips";
 
 const HIDDEN_MODEL_DISPLAY_TOKENS = new Set(["instruct", "preview"]);
 // Every row leads with its rank and model cells, whichever columns are shown.
@@ -61,7 +65,7 @@ const LOADING_ROW_KEYS = [
   "loading-row-11",
   "loading-row-12",
 ] as const;
-export const inputModalities = [
+const inputModalities = [
   { key: "text", label: "text", Icon: TextInputIcon },
   { key: "image", label: "image", Icon: ImageInputIcon },
   { key: "audio", label: "audio", Icon: AudioInputIcon },
@@ -142,7 +146,6 @@ function LoadingRow({
  */
 export const ModelRow = memo(function ModelRow({
   rowData,
-  metricColumns,
   visibleColumnKeySet,
   ruledColumnKeySet,
   scoreStrip,
@@ -151,7 +154,6 @@ export const ModelRow = memo(function ModelRow({
   onScoreChange,
 }: {
   rowData: TableRow;
-  metricColumns: DashboardMetricColumn[];
   visibleColumnKeySet: ReadonlySet<TableColumnKey>;
   ruledColumnKeySet: ReadonlySet<TableColumnKey>;
   scoreStrip: boolean;
@@ -201,7 +203,7 @@ export const ModelRow = memo(function ModelRow({
           {resourceRatioColumns
             .filter((column) => visibleColumnKeySet.has(column.key))
             .map((column) => {
-              const summary = rowData.resourceRatios?.[column.kind];
+              const summary = rowData.resourceRatios[column.kind];
               return (
                 <RatioCell
                   key={column.key}
@@ -241,7 +243,7 @@ export const ModelRow = memo(function ModelRow({
               className={tableCellClassName("context", ruledColumnKeySet)}
             />
           ) : null}
-          {metricColumns
+          {dashboardMetricColumns
             .filter((column) => visibleColumnKeySet.has(column.key))
             .map((column) => (
               <DashboardMetricCell
@@ -251,9 +253,7 @@ export const ModelRow = memo(function ModelRow({
                 hasRuleAfter={ruledColumnKeySet.has(column.key)}
               />
             ))}
-          {visibleColumnKeySet.has("confidence") ? (
-            <ConfidenceCell confidence={model.confidence} />
-          ) : null}
+          {visibleColumnKeySet.has("confidence") ? <ConfidenceCell model={model} /> : null}
           {visibleColumnKeySet.has("change") ? (
             <ScoreChangeCell model={model} onScoreChange={onScoreChange} />
           ) : null}
@@ -293,9 +293,8 @@ function ModelScoreCells({
   scoreStrip?: boolean;
 }) {
   const model = rowData.model;
-  const visibleName = visibleModelName(modelDisplayName(model));
+  const visibleName = visibleModelName(modelName(model));
   const visibleSlug = visibleModelSlug(model.id);
-  const scores = model.scores ?? {};
   return (
     <>
       <TableCell text={String(rowData.intelligenceRank).padStart(2, "0")} className="rank" />
@@ -321,47 +320,19 @@ function ModelScoreCells({
               {visibleSlug}
             </div>
           </div>
-          {scoreStrip ? (
-            <ScoreStrip
-              values={[
-                scores.intelligence_score,
-                scores.agentic_score,
-                scores.speed_score,
-                scores.value_score,
-              ]}
-              provider={model.provider}
-            />
-          ) : null}
+          {scoreStrip ? <ScoreStrip model={model} /> : null}
         </div>
       </td>
-      {visibleColumnKeySet == null || visibleColumnKeySet.has("intelligence")
-        ? scoreCell(
-            scores.intelligence_score,
-            model.provider,
-            ruledColumnKeySet?.has("intelligence") ? "column-group-end" : "",
-          )
-        : null}
-      {visibleColumnKeySet == null || visibleColumnKeySet.has("agentic")
-        ? scoreCell(
-            scores.agentic_score,
-            model.provider,
-            ruledColumnKeySet?.has("agentic") ? "column-group-end" : "",
-          )
-        : null}
-      {visibleColumnKeySet == null || visibleColumnKeySet.has("speed")
-        ? scoreCell(
-            scores.speed_score,
-            model.provider,
-            ruledColumnKeySet?.has("speed") ? "column-group-end" : "",
-          )
-        : null}
-      {visibleColumnKeySet == null || visibleColumnKeySet.has("value")
-        ? scoreCell(
-            scores.value_score,
-            model.provider,
-            ruledColumnKeySet?.has("value") ? "column-group-end" : "",
-          )
-        : null}
+      {scoreMetricColumns.map((column) =>
+        visibleColumnKeySet == null || visibleColumnKeySet.has(column.key) ? (
+          <ScoreCell
+            key={column.key}
+            score={column.score(model)}
+            provider={model.provider}
+            className={ruledColumnKeySet?.has(column.key) ? "column-group-end" : ""}
+          />
+        ) : null,
+      )}
     </>
   );
 }
@@ -492,65 +463,64 @@ function ModalityInputCell({
   inputs: string[] | undefined;
   hasRuleAfter: boolean;
 }) {
-  const availableSet = new Set((inputs ?? []).map((input) => input.toLowerCase()));
-  const availableModalities = inputModalities.filter((modality) => availableSet.has(modality.key));
-  const label =
-    availableModalities.length === 0
-      ? "none"
-      : availableModalities.map((modality) => modality.label).join(", ");
   return (
     <td className={`data-cell modality-cell${hasRuleAfter ? " column-group-end" : ""}`}>
-      <span className="modality-icons" title={`Input modalities: ${label}`}>
-        <span className="visually-hidden">Input modalities: {label}</span>
-        {inputModalities.map(({ Icon, key, label }) => {
-          const isAvailable = availableSet.has(key);
-          return (
-            <span
-              className={`modality-icon ${isAvailable ? "" : "unavailable"}`}
-              key={key}
-              title={`${label} input is ${isAvailable ? "available" : "unavailable"}`}
-            >
-              <Icon />
-            </span>
-          );
-        })}
-      </span>
+      <ModalityIcons inputs={inputs} prefix="Input modalities: " />
     </td>
   );
 }
 
-const ConfidenceCell = memo(function ConfidenceCell({
-  confidence,
+/** The input modalities as one mark each, dimmed where the model lacks it, read aloud as `prefix` and the available list. */
+export function ModalityIcons({
+  inputs,
+  prefix = "",
 }: {
-  confidence?: ModelAtlasModel["confidence"];
+  inputs: string[] | undefined;
+  prefix?: string;
 }) {
-  const intelligence = formatConfidence(confidence?.intelligence);
-  const agentic = formatConfidence(confidence?.agentic);
-  const speed = formatConfidence(confidence?.speed);
-  const value = formatConfidence(confidence?.value);
-  const missing = intelligence === "-" && agentic === "-" && speed === "-" && value === "-";
+  const available = new Set((inputs ?? []).map((input) => input.toLowerCase()));
+  const label = `${prefix}${
+    inputModalities
+      .filter(({ key }) => available.has(key))
+      .map(({ label }) => label)
+      .join(", ") || "none"
+  }`;
+  return (
+    <span className="modality-icons" title={label}>
+      <span className="visually-hidden">{label}</span>
+      {inputModalities.map(({ Icon, key, label }) => (
+        <span
+          key={key}
+          className={`modality-icon ${available.has(key) ? "" : "unavailable"}`}
+          title={`${label} input is ${available.has(key) ? "available" : "unavailable"}`}
+          aria-hidden="true"
+        >
+          <Icon />
+        </span>
+      ))}
+    </span>
+  );
+}
+
+const ConfidenceCell = memo(function ConfidenceCell({ model }: { model: ModelAtlasModel }) {
+  const supports = scoreMetricColumns.map((column) => ({
+    column,
+    text: formatConfidence(column.support(model)),
+  }));
   return (
     <td
-      aria-label={`Intelligence evidence support ${intelligence}; Agentic evidence support ${agentic}; Speed evidence support ${speed}; Value evidence support ${value}`}
-      className={`data-cell confidence-cell${missing ? " missing" : ""}`}
+      aria-label={supports
+        .map(({ column, text }) => `${column.name} evidence support ${text}`)
+        .join("; ")}
+      className={`data-cell confidence-cell${supports.every(({ text }) => text === "-") ? " missing" : ""}`}
     >
       <span aria-hidden="true" className="confidence-values">
-        <span>
-          <span className="confidence-dimension">I</span>
-          {intelligence}
-        </span>
-        <span>
-          <span className="confidence-dimension">A</span>
-          {agentic}
-        </span>
-        <span>
-          <span className="confidence-dimension">S</span>
-          {speed}
-        </span>
-        <span>
-          <span className="confidence-dimension">V</span>
-          {value}
-        </span>
+        {supports.map(({ column, text }) => (
+          <span key={column.key}>
+            <span className="confidence-dimension">{column.name.charAt(0)}</span>
+            {text}
+          </span>
+        ))}
       </span>
     </td>
   );
@@ -579,7 +549,7 @@ const ScoreChangeCell = memo(function ScoreChangeCell({
     <td className="data-cell change-cell">
       <button
         aria-haspopup="dialog"
-        aria-label={`${scoreDimensionLabel(change.dimension)} change: ${scoreChangeButtonText(change)}`}
+        aria-label={`${scoreColumnsByDimension[change.dimension].name} change: ${scoreChangeButtonText(change)}`}
         className="score-change-button"
         data-direction={direction}
         onClick={(event) => onScoreChange(event, model)}
@@ -592,7 +562,7 @@ const ScoreChangeCell = memo(function ScoreChangeCell({
 });
 
 function scoreChangeButtonText(change: NonNullable<ModelAtlasModel["latest_change"]>): string {
-  const prefix = scoreDimensionLabel(change.dimension).slice(0, 1);
+  const prefix = scoreColumnsByDimension[change.dimension].name.slice(0, 1);
   if (change.score_delta == null) {
     return change.rank_after === 1 ? `${prefix} New #1` : `${prefix} New`;
   }
@@ -694,29 +664,43 @@ function RatioCell({
 }) {
   // An unmeasured cell reserves its bar's width, so the column is as wide whichever rows are drawn in full.
   const cellClassName = `${className} ratio-cell`;
-  if (ratio == null || !Number.isFinite(ratio) || ratio <= 0) {
+  if (!isDrawableRatio(ratio)) {
     return <TableCell text={text} className={cellClassName} title={title} />;
   }
   return (
     <td className={cellClassName} title={title}>
       {text}
-      <span className="ratio-track" style={ratioTrackStyle(ratio)} aria-hidden="true" />
+      <RatioTrack ratio={ratio} />
     </td>
   );
 }
 
-function ScoreStrip({
-  values,
-  provider,
-}: {
-  values: (number | null | undefined)[];
-  provider: string | null | undefined;
-}) {
-  const color = providerBrandColor(provider);
+/** The median-relative bar for a drawable ratio, in the row's provider colour unless `color` gives one. */
+export function RatioTrack({ ratio, color }: { ratio: number; color?: string }) {
+  return (
+    <span
+      className="ratio-track"
+      style={
+        color == null
+          ? ratioTrackStyle(ratio)
+          : ({ ...ratioTrackStyle(ratio), "--row-provider": color } as CSSProperties)
+      }
+      aria-hidden="true"
+    />
+  );
+}
+
+/** The 0–100 score track with the provider star at `score`, drawn in `color`. */
+export function ScoreMeter({ score, color }: { score: number; color: string | undefined }) {
+  return <span className="score-meter" style={scoreMeterStyle(score, color)} aria-hidden="true" />;
+}
+
+function ScoreStrip({ model }: { model: ModelAtlasModel }) {
+  const color = providerBrandColor(model.provider);
   return (
     <span className="score-strip">
-      {scoreMetricColumns.map((column, index) => {
-        const value = values[index];
+      {scoreMetricColumns.map((column) => {
+        const value = column.score(model);
         const score = typeof value === "number" && Number.isFinite(value) ? value : null;
         return (
           <span
@@ -735,11 +719,15 @@ function ScoreStrip({
 }
 
 /** Keep the marker on the same 0–100 scale as its displayed score, independent of table filters. */
-function scoreCell(
-  value: number | null | undefined,
-  provider: string | null | undefined,
-  className = "",
-) {
+function ScoreCell({
+  score: value,
+  provider,
+  className,
+}: {
+  score: number | null;
+  provider: string | null | undefined;
+  className: string;
+}) {
   const score = typeof value === "number" && Number.isFinite(value) ? value : null;
   if (score == null) {
     return <TableCell text={formatScore(score)} className={`score-cell ${className}`.trim()} />;

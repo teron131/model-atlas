@@ -4,10 +4,10 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { ScreenshotIcon } from "../shared/DashboardIcons";
 import { scoreMetricColumns, scoreSortableColumns } from "../table/Columns";
 import type { SortState, TableRow } from "../table/models";
 import { ScoreModelRow } from "../table/Rows";
+import { CaptureAction } from "./CaptureButton";
 import { ARTIFACT_WIDTH } from "./png";
 import { usePngCapture } from "./use-png";
 
@@ -29,16 +29,6 @@ export function LeaderboardCapture({
     captureRef,
     `model-atlas-leaderboard-top-${rows.length}-${rowKind}`,
   );
-  const label =
-    captureStageMounted && state === "idle"
-      ? "Preparing leaderboard PNG"
-      : state === "rendering"
-        ? "Rendering leaderboard PNG"
-        : state === "saved"
-          ? "Leaderboard PNG saved"
-          : state === "error"
-            ? "Leaderboard PNG failed"
-            : "Screenshot";
 
   useEffect(() => {
     if (!captureStageMounted || captureStartedRef.current || captureRef.current == null) {
@@ -53,18 +43,13 @@ export function LeaderboardCapture({
 
   return (
     <div className={styles.leaderboardCapture} data-capture-exclude>
-      <button
-        className={styles.actionButton}
-        type="button"
-        aria-label={label}
-        aria-busy={captureStageMounted || state === "rendering"}
-        data-state={state}
-        disabled={captureStageMounted || state === "rendering" || rows.length === 0}
-        title={label}
-        onClick={() => setCaptureStageMounted(true)}
-      >
-        <ScreenshotIcon />
-      </button>
+      <CaptureAction
+        subject="leaderboard"
+        state={state}
+        preparing={captureStageMounted}
+        disabled={rows.length === 0}
+        onCapture={() => setCaptureStageMounted(true)}
+      />
       {captureStageMounted ? (
         <div className={styles.stage} aria-hidden="true" inert>
           <div className={styles.leaderboard} ref={captureRef} style={{ width: ARTIFACT_WIDTH }}>

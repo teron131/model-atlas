@@ -1,0 +1,94 @@
+/* Styles for the table's row-limit and reasoning-effort display controls. */
+
+/* Table display choices stay on one compact line; the model search remains the primary control. */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: var(--muted);
+  font: 500 var(--mono-chip) / 1.4 var(--font-mono);
+}
+.limit {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+}
+/* The field fits a three-digit row count, so no empty underline trails the number. */
+.limit input {
+  width: calc(3ch + 4px);
+  min-height: 32px;
+  padding: 4px 2px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+.limit input::-webkit-inner-spin-button,
+.limit input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+/* The effort checklist borrows the benchmark picker's menu but reads in this toolbar's case and size, opens leftward from the toolbar's end, and is only as wide and tall as its one-word rows need. */
+.controls .effort {
+  position: relative;
+  margin-left: 6px;
+  font: inherit;
+  letter-spacing: normal;
+  text-transform: none;
+}
+.controls .effort summary {
+  min-height: 36px;
+}
+/* The menu hangs over the table, so it sits above the table's right-edge fade (z-index 8 on narrow screens), which would otherwise wash out its counts. */
+.controls .effortMenu {
+  right: 0;
+  left: auto;
+  z-index: 9;
+  width: max-content;
+}
+/* Every effort fits without the checklist's scroll, so max is never below the fold. */
+.controls .effortMenu > * {
+  max-height: none;
+}
+.controls .effortRow {
+  grid-template-columns: 14px minmax(0, 1fr) auto;
+  min-height: 34px;
+}
+.controls .effortRow > :last-child {
+  padding-left: 16px;
+}
+.limit input:focus-visible {
+  outline: none;
+  box-shadow: none;
+  border-bottom-color: var(--ink);
+}
+.controls :disabled {
+  opacity: 0.45;
+}
+@media (max-width: 760px) {
+  .limit,
+  .controls .effort summary,
+  .controls .effortRow {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 600px) {
+  .controls,
+  .limit {
+    gap: 4px;
+  }
+  .controls .effort {
+    margin-left: 0;
+  }
+}

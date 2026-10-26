@@ -254,6 +254,11 @@ html:has(.document-main) body {
   --selection-star: color-mix(in srgb, var(--horizon-violet) 40%, #fff);
   --selection-glow: 0 0 6px 1px rgb(143 107 255 / 0.75);
   --selection-bloom: 0 0 20px 9px rgb(143 107 255 / 0.22);
+  /* Every flight path (the research rail, the leaderboard's group rail, and the document outline) lights the stretch already travelled in horizon light and turns passed waypoints violet. */
+  --flight-lit-from: rgb(74 114 255 / 0.25);
+  --flight-lit-to: var(--horizon-violet);
+  --flight-lit-glow: 0 0 8px rgb(143 107 255 / 0.55);
+  --flight-passed: var(--horizon-violet);
 }
 
 /* The dashboard is the stacking root for the field: its fixed layers sit below every research plane. */
@@ -283,6 +288,10 @@ html[data-model-atlas-theme="light"] .document-main {
   --selection-star: color-mix(in srgb, var(--horizon-violet) 78%, var(--ink));
   --selection-glow: 0 0 6px 1px color-mix(in srgb, var(--selection-star) 70%, transparent);
   --selection-bloom: 0 0 20px 9px rgb(143 107 255 / 0.15);
+  --flight-lit-from: var(--selection-star);
+  --flight-lit-to: var(--selection-star);
+  --flight-lit-glow: 0 0 8px color-mix(in srgb, var(--selection-star) 55%, transparent);
+  --flight-passed: var(--selection-star);
   --research-edge: rgb(255 255 255 / 0.62);
   --research-shadow: 0 48px 96px -40px rgb(0 2 14 / 0.8), 0 18px 44px -20px rgb(0 2 14 / 0.5);
 }
@@ -482,12 +491,10 @@ html[data-model-atlas-theme="light"] .theme-icon-dark {
   overflow: visible;
 }
 
+/* One even gap of sky separates the rail from the first region's name and each plane from the next name. */
 .dashboard-research-section {
-  scroll-margin-top: calc(var(--dashboard-rail-height, 48px) + 8px);
-}
-
-.leaderboard-section {
   margin-top: var(--research-gap);
+  scroll-margin-top: calc(var(--dashboard-rail-height, 48px) + 8px);
 }
 
 /* Each research region opens on the sky the way the hero does: its name at display size, the rail's ordinal, and its actions. */
@@ -535,6 +542,63 @@ html[data-model-atlas-theme="light"] .theme-icon-dark {
   flex: 0 0 auto;
   align-items: center;
   gap: 4px;
+}
+
+/* A region's or the model sheet's square actions: save an image, copy a link, close. */
+.dashboard-action-button {
+  display: inline-grid;
+  width: var(--dashboard-icon-button-size);
+  height: var(--dashboard-icon-button-size);
+  padding: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-weight: var(--type-label-weight);
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease,
+    transform 0.16s ease;
+}
+
+.dashboard-action-button:hover,
+.dashboard-action-button:focus-visible,
+.dashboard-action-button[data-state="saved"] {
+  background: var(--hover);
+  color: var(--ink);
+  outline: 0;
+}
+
+.dashboard-action-button:focus-visible {
+  box-shadow: 0 0 0 2px var(--focus-ring);
+}
+
+.dashboard-action-button:active {
+  transform: translateY(1px);
+}
+
+.dashboard-action-button:disabled {
+  cursor: wait;
+  opacity: 0.58;
+}
+
+.dashboard-action-button svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-action-button {
+    transition: none;
+  }
 }
 
 .dashboard-subsection-title {
@@ -695,8 +759,8 @@ html[data-model-atlas-theme="light"] .theme-icon-dark {
   left: 0;
   width: var(--table-scrollbar-journey, 0);
   height: 1px;
-  background: linear-gradient(90deg, rgb(74 114 255 / 0.25), var(--horizon-violet));
-  box-shadow: 0 0 8px rgb(143 107 255 / 0.55);
+  background: linear-gradient(90deg, var(--flight-lit-from), var(--flight-lit-to));
+  box-shadow: var(--flight-lit-glow);
   content: "";
   pointer-events: none;
 }
@@ -721,7 +785,7 @@ html[data-model-atlas-theme="light"] .theme-icon-dark {
 }
 
 .table-scrollbar-waypoint[data-passed="true"] {
-  background: var(--horizon-violet);
+  background: var(--flight-passed);
 }
 
 .table-scrollbar-star {
@@ -736,15 +800,6 @@ html[data-model-atlas-theme="light"] .theme-icon-dark {
   box-shadow: var(--selection-glow);
   transform: translateX(-50%);
   pointer-events: none;
-}
-
-html[data-model-atlas-theme="light"] .table-scrollbar-waypoint[data-passed="true"],
-html[data-model-atlas-theme="light"] .table-scrollbar-track::before {
-  background: var(--selection-star);
-}
-
-html[data-model-atlas-theme="light"] .table-scrollbar-track::before {
-  box-shadow: 0 0 8px color-mix(in srgb, var(--selection-star) 55%, transparent);
 }
 
 .table-scrollbar[data-scrollable="false"] {
@@ -1183,7 +1238,6 @@ th[data-sort-state="descending"] .sort-indicator::after {
 .column-tooltip-label,
 .column-tooltip-value {
   min-width: 0;
-  overflow-wrap: anywhere;
 }
 
 .column-tooltip-label {

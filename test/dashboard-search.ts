@@ -2,7 +2,6 @@
 
 import assert from "node:assert/strict";
 
-import { DEFAULT_PROFILE_FILTERS } from "../app/dashboard/model-profiles";
 import { filterByGlobalModelFilters } from "../app/dashboard/shared/model-display";
 import { filterSearchDocuments, hasSearchQuery } from "../app/dashboard/shared/search";
 import {
@@ -14,6 +13,7 @@ import {
   dashboardMetricValue,
   tableColumnRuns,
 } from "../app/dashboard/table/models";
+import { DEFAULT_GLOBAL_MODEL_FILTERS } from "../app/dashboard/url-state";
 import { minimalModelAtlasModel } from "./model-atlas-fixtures";
 
 const documents = [
@@ -112,8 +112,8 @@ const models = [
 ];
 const scope = { observedAtEpochSeconds: null, rankingModels: models };
 for (const filters of [
-  { ...DEFAULT_PROFILE_FILTERS, q: "mini", provider: ["google"] },
-  { ...DEFAULT_PROFILE_FILTERS, q: "mini", "max-cost": 1 },
+  { ...DEFAULT_GLOBAL_MODEL_FILTERS, q: "mini", provider: ["google"] },
+  { ...DEFAULT_GLOBAL_MODEL_FILTERS, q: "mini", "max-cost": 1 },
 ]) {
   assert.deepEqual(
     filterByGlobalModelFilters(models, (model) => model, filters, scope),

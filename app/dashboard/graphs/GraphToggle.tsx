@@ -1,4 +1,4 @@
-/** Segmented control shared by graph panels for choosing one analytical option. */
+/** Segmented control for choosing one option beside a plot: the graph panels' axes and views, and the model sheet's reasoning efforts. */
 
 import { useHorizontalChoice } from "../../shared/use-horizontal-choice";
 
@@ -28,7 +28,7 @@ export function GraphToggle<TKey extends string>({
   const stripRef = useHorizontalChoice<HTMLFieldSetElement>(selectedKey);
   return (
     <fieldset className={`${styles.metricToggle} horizontal-choice-strip`} ref={stripRef}>
-      <legend className={styles.visuallyHidden}>{legend}</legend>
+      <legend className="visually-hidden">{legend}</legend>
       {options.map((option) => (
         <button
           key={option.key}

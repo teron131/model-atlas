@@ -1,4 +1,4 @@
-/** Browser-side PNG renderer for dashboard panels and export-only leaderboard views. */
+/** Browser-side PNG renderer for dashboard captures: a research region or the model sheet restaged at the export width, or an export-only surface such as the leaderboard's captured as it is. */
 
 // Every export shares one width, wider only for a two-model comparison card, and renders at twice its CSS size so text stays sharp when shared or zoomed.
 export const ARTIFACT_WIDTH = 1200;
@@ -50,7 +50,7 @@ export async function downloadElementPng(
 ): Promise<void> {
   const rendererPromise = import("html-to-image");
   await document.fonts.ready;
-  const stagedCapture = captureWidth == null ? null : stageGraphRender(element, captureWidth);
+  const stagedCapture = captureWidth == null ? null : stageCapture(element, captureWidth);
   const captureElement = stagedCapture?.element ?? element;
   if (stagedCapture != null) onStaged?.(stagedCapture.element);
   const [{ toBlob }] = await Promise.all([rendererPromise, waitForImages(captureElement)]);
@@ -76,7 +76,7 @@ export async function downloadElementPng(
   downloadBlob(blob, `${fileName}.png`);
 }
 
-function stageGraphRender(element: HTMLElement, width: number) {
+function stageCapture(element: HTMLElement, width: number) {
   const stage = document.createElement("div");
   stage.style.position = "fixed";
   stage.style.top = "0";

@@ -8,6 +8,8 @@ colors:
   ink-dark: "#f2f3ed"
   muted-light: "#5f665d"
   muted-dark: "#bbc1b7"
+  faint-light: "#656d63"
+  faint-dark: "#969f93"
   horizon-cobalt: "#4a72ff"
   horizon-violet: "#8f6bff"
   horizon-rose: "#ff92bd"
@@ -18,56 +20,62 @@ typography:
     fontWeight: 500
     lineHeight: 0.98
     letterSpacing: "-0.058em"
+  region:
+    fontFamily: '"Avenir Next", "Segoe UI", Helvetica, Arial, sans-serif'
+    fontSize: "clamp(44px, 8.8vw, 136px)"
+    fontWeight: 500
+    lineHeight: 0.86
+    letterSpacing: "-0.054em"
+  readout:
+    fontFamily: '"Avenir Next", "Segoe UI", Helvetica, Arial, sans-serif'
+    fontSize: "24px"
+    fontWeight: 620
+    letterSpacing: "-0.035em"
   body:
     fontFamily: '"Avenir Next", "Segoe UI", Helvetica, Arial, sans-serif'
-    fontSize: "1rem"
+    fontSize: "16px"
     fontWeight: 500
-    lineHeight: 1.58
+    lineHeight: 1.5
+  model-name:
+    fontFamily: '"Avenir Next", "Segoe UI", Helvetica, Arial, sans-serif'
+    fontSize: "15px"
+    fontWeight: 600
+    letterSpacing: "-0.015em"
+  data:
+    fontFamily: '"SFMono-Regular", "SF Mono", Menlo, Consolas, monospace'
+    fontSize: "13px"
+    fontWeight: 500
   label:
     fontFamily: '"SFMono-Regular", "SF Mono", Menlo, Consolas, monospace'
     fontSize: "12px"
     fontWeight: 650
-    lineHeight: 1.2
     letterSpacing: "0.035em"
-  detail:
-    fontFamily: '"Avenir Next", "Segoe UI", Helvetica, Arial, sans-serif'
-    fontSize: "13px"
-    fontWeight: 500
-    lineHeight: 1.5
   caption:
     fontFamily: '"SFMono-Regular", "SF Mono", Menlo, Consolas, monospace'
     fontSize: "11px"
     fontWeight: 650
-    lineHeight: 1.2
     letterSpacing: "0.035em"
   micro:
     fontFamily: '"SFMono-Regular", "SF Mono", Menlo, Consolas, monospace'
     fontSize: "10px"
     fontWeight: 650
-    lineHeight: 1.2
     letterSpacing: "0.035em"
   note:
     fontFamily: '"Avenir Next", "Segoe UI", Helvetica, Arial, sans-serif'
     fontSize: "15px"
     fontWeight: 500
-    lineHeight: 1.55
-  data-compact:
-    fontFamily: '"SFMono-Regular", "SF Mono", Menlo, Consolas, monospace'
-    fontSize: "12px"
-    fontWeight: 650
-    lineHeight: 1.2
   document-title:
     fontFamily: '"Avenir Next", "Segoe UI", Helvetica, Arial, sans-serif'
-    fontSize: "clamp(36px, 4vw, 46px)"
-    fontWeight: 600
-    lineHeight: 1.08
-    letterSpacing: "-0.035em"
+    fontSize: "clamp(36px, min(9vw, calc(var(--document-frame) * 0.068)), 72px)"
+    fontWeight: 500
+    lineHeight: 0.86
+    letterSpacing: "-0.054em"
   document-heading:
     fontFamily: '"Avenir Next", "Segoe UI", Helvetica, Arial, sans-serif'
     fontSize: "24px"
     fontWeight: 600
     lineHeight: 1.2
-    letterSpacing: "-0.025em"
+    letterSpacing: "-0.03em"
   document-subheading:
     fontFamily: '"Avenir Next", "Segoe UI", Helvetica, Arial, sans-serif'
     fontSize: "18px"
@@ -79,17 +87,17 @@ rounded:
   icon: "3px"
   research: "0"
 spacing:
-  control: "8px"
-  section: "48px"
+  page-gutter: "clamp(24px, 4.2vw, 72px)"
+  research-inset: "clamp(14px, 2vw, 28px)"
+  research-gap: "clamp(48px, 7svh, 80px)"
 components:
-  segmented-control:
-    backgroundColor: "transparent"
-    textColor: "{colors.muted-light}"
-    rounded: "{rounded.square}"
-    padding: "10px 12px"
-  data-surface:
+  research-plane:
     backgroundColor: "{colors.paper-dark}"
     textColor: "{colors.ink-dark}"
+    rounded: "{rounded.research}"
+  research-plane-light:
+    backgroundColor: "{colors.paper-light}"
+    textColor: "{colors.ink-light}"
     rounded: "{rounded.research}"
 ---
 
@@ -99,154 +107,199 @@ components:
 
 **Creative North Star: "Frontier Sky"**
 
-Model Atlas is a star atlas for language models. Every displayed model is a star over a glowing planetary horizon: the newest and strongest rise highest, and the frontier roles are named like stars on a chart. Scrolling scopes the camera past the horizon into the star field, where each research region opens with its name set large on the sky over a charcoal plane holding the dense, factual tables and charts. Inside the planes the same physics holds: every frontier is drawn as a lit horizon and every leading model shines like a star. The methodology route shares the sky as a still reading page: its document title on the sky, then one research plane holding the document strip, navigation, and text.
+Model Atlas is a star atlas for language models. Every displayed model is a star over a glowing planetary horizon, placed by release date and Intelligence, and the frontier roles are named like stars on a chart. Scrolling scopes the camera past the horizon into the star field, where each research region opens with its name set large on the sky above an opaque charcoal plane holding dense, factual tables and charts. Inside the planes the same physics holds: every frontier is drawn as a lit horizon and every model is a star. The methodology pages share the sky as a still reading page.
+
+The sky carries the drama and the planes carry the evidence. The sky may move, glow, and leave its mapping implicit; nothing in a plane depends on it, so planes stay opaque, factual, and explicit about how values become marks.
 
 **Key Characteristics:**
 
-- Continuous one-column research surface
-- Models as stars in the hero sky, mapped from published scores
-- Provider colour and icon as persistent model identity
-- Measurement typography for labels and data
-- Models as round stars in the sky, in every chart, and on the leaderboard's score tracks
+- One continuous column of research regions under a full-bleed sky
+- Models as round stars everywhere: in the sky, in every chart, and on the leaderboard's score tracks
+- Provider colour and icon as each model's persistent identity
 - Frontiers drawn as lit horizons over the region they reach
 - Region names at display size on the sky, above their planes
-- Opaque charcoal research planes lit along their top edge, floating in the sky
+- Measurement typography for labels and data
+- Opaque research planes lit along their top edge, distinct from the sky
 
 ## Colors
 
-Dark is the default: blue-charcoal research planes with chalk ink, deliberately neutral against the navy sky so every content boundary reads at a glance. Light mode keeps mineral paper planes over the same night sky. Both are real surfaces, not a darkened or inverted illustration.
+Dark is the default: blue-charcoal planes with chalk ink, kept neutral against the navy sky so every content boundary reads at a glance. The light theme sets mineral-paper planes under the same night sky. Both are real surfaces, not a darkened or inverted illustration.
 
 ### Primary
 
-The horizon glow (cobalt, violet, rose) is the environment: the sky, panel edges, active navigation rules, and the horizons that draw analytical frontiers. Analytical marks retain provider colour as data; numerical emphasis remains ink against the surface.
+- **Horizon Cobalt** (#4a72ff), **Horizon Violet** (#8f6bff), **Horizon Rose** (#ff92bd): the environment's light, usually together as the horizon gradient. They colour the planet's rim, the lit top edge of every plane and floating surface, navigation flight paths, selection stars, and the horizons that draw analytical frontiers.
 
 ### Neutral
 
-- **Mineral Paper** (#f2f4f2): light research planes.
-- **Blue Charcoal** (#0b1016): dark research planes and chart fields; never matched to the sky.
-- **Carbon Ink** (#202724): primary light-mode text and structural marks.
-- **Chalk Ink** (#f2f3ed): primary dark-mode text and structural marks.
+- **Blue Charcoal** (#0b1016) and **Mineral Paper** (#f2f4f2): dark and light research planes and chart fields.
+- **Chalk Ink** (#f2f3ed) and **Carbon Ink** (#202724): primary text, numbers, and structural marks.
+- **Muted** (#bbc1b7 dark, #5f665d light): secondary text and idle controls.
+- **Faint** (#969f93 dark, #656d63 light): placeholders and values that step back, such as the weaker side of a comparison.
 
 ### Named Rules
 
-**Evidence Chroma Rule.** Provider colours belong to model evidence, including the provider tint of each sky star and each chart star's ring and glow. Horizon colours are confined to the environment, chrome, and frontier horizons, which mark where the data reaches and never identify a model or provider; analytical selection and orientation marks inside the data remain ink.
+**The Evidence Chroma Rule.** Provider colours are data: they stay on every model's star, mark, icon, label, and row, selected or not. Horizon colours belong to the environment, chrome, and frontiers, which mark where the data reaches, so they never identify a model or provider. Selection and orientation marks inside the data stay ink.
 
-**Provider Identity Rule.** Provider colours are data and stay attached to every model mark, star, label, icon, and row.
-
-**Shared Width Rule.** The dashboard header, hero text, research navigation, leaderboard, and chart panels use the same main content width. Only the sky itself is full-bleed.
+**The Distinct Planes Rule.** Planes are never tinted toward the sky, so content boundaries always read against it.
 
 ## Typography
 
-**Display Font:** Avenir Next with Segoe UI and Helvetica fallbacks
-**Body Font:** Avenir Next with Segoe UI and Helvetica fallbacks
-**Label/Mono Font:** SFMono-Regular with Menlo and Consolas fallbacks
+**Display and body:** Avenir Next, with Segoe UI, Helvetica, and Arial fallbacks.
+**Labels and data:** SFMono-Regular, with SF Mono, Menlo, and Consolas fallbacks.
 
-**Character:** Wide, calm sans-serif headings establish the field; compact monospaced labels carry measurements, parameters, and state.
+**Character:** a wide, calm sans sets the field and names things; compact monospace carries measurements, parameters, and state.
 
 ### Hierarchy
 
-- **Display** (500, clamp(64px, min(15.2vw, 26svh), 232px), 0.98): the hero title in two lines with a fixed stagger, the second indented 1.4em, so it keeps one shape at every width and aspect ratio and only scales; just enough leading that the first line's descenders clear the second.
-- **Region** (500, clamp(44px, 8.8vw, 136px), 0.86, -0.054em): research region names, set on the sky above their planes, 44px on phones so a name stays in scale with its plane; exports reduce them to 30px on the surface.
-- **Readout** (24px; 20px on phones, tabular): the Pareto summary's median, the Timeline's catalogue entry, and the model sheet's name, one size so the figures' headline numbers agree at every width.
-- **Body** (500, 1rem, 1.58): factual explanation with a maximum measure near 68ch.
-- **Data** (600, 0.8125rem; 12px on phones, tabular): scores, prices, ranks, and model metadata.
-- **Label** (650, 0.75rem, 0.035em, uppercase): parameters, axes, and compact controls.
-- **Caption** (650, 0.6875rem, 0.035em, uppercase): secondary annotations.
-- **Micro** (650, 10px, 0.035em, uppercase): the compact-width floor for captions and dense rail annotations. Nothing shrinks below it.
-- **Note** (500, 15px; 14px for figure captions and 13px for sheet notes on phones): panel copy and tooltip prose.
-- **Model name** (600, 15px; 14px on phones): leaderboard model names and ranks, the table's primary reading line.
-- **Data compact** (650, 12px, tabular): chips and secondary readouts.
-- **Model identifier** (500, 11px, mono): the slug beneath each leaderboard model name.
-- **Document title** (500, 28–72px scaled to the documentation frame, about 30px on phones, -0.054em): the methodology title, set on the sky in the region-name style.
-- **Document heading / subheading** (600, 24px / 18px): methodology sections inside the plane.
+- **Display** (500, clamp(64px, min(15.2vw, 26svh), 232px), 0.98): the hero title in two lines with the second indented 1.4em, so it keeps one shape at every width and aspect ratio and only scales.
+- **Region** (500, clamp(44px, 8.8vw, 136px), 0.86): research region names on the sky. The methodology title uses the same style scaled to its frame, and image exports set region names at 30px.
+- **Readout** (620, 24px, tabular): the headline figure of an analysis, such as the Pareto summary's median and the Timeline catalogue entry, and the model sheet's name at 600. One size keeps the headline numbers in agreement.
+- **Body** (500, 16px, 1.5): factual prose.
+- **Note** (500, 15px): panel copy, figure captions, and tooltip prose.
+- **Model name** (600, 15px): leaderboard model names; ranks share the size at 500, and the slug beneath is mono at 11px.
+- **Data** (mono, 13px, tabular): scores, prices, and model metadata in tables; the model sheet sets its readouts at 600.
+- **Label** (mono, 650, 12px, 0.035em, usually uppercase): parameters, axes, column headers, and compact controls.
+- **Caption** (mono, 650, 11px): secondary annotations.
+- **Micro** (mono, 650, 10px): the floor for dense annotations; nothing is set smaller.
+- **Document heading and subheading** (600, 24px and 18px): methodology sections inside the plane.
+
+### Named Rules
+
+**The Shrinking Planes Rule.** A phone plane is about a third of the desktop's width, so type steps down with it rather than holding desktop sizes in less room. At 720px and below the readout drops to 20px, notes to 14px (13px in the model sheet), data to 12px, and model names to 14px, and a phone chart's ticks, axis titles, and plotted names take the caption size.
 
 ## Layout
 
-The dashboard stays one column. The hero fills the first viewport on the sky with only the staggered "Mapping / Frontiers" title and the frontier register of six roles; no lede, status line, or controls compete with the sky. A persistent research index follows, connecting three numbered regions: Models, Pareto, and Timeline. The index numbering is real and shared: each region opens on the sky with its name at display size and the same two-digit ordinal hanging at its cap height, with the region's capture and link actions at the far edge. One module owns the sequence, so the rail and the heads cannot disagree about it. The region's opaque plane follows directly below its name; the leaderboard plane and one analytical plane per row continue down the page, separated by one even gap of sky, the same from the rail to the first region's name as from each plane to the next name, and well over the space between a name and its own plane, so each name reads with the plane it opens. Content may become horizontally scrollable where its data density requires it, but the page itself must not overflow. Below 760px, labels and controls reflow while the model evidence remains visible. On phones the four score columns fold into a strip beneath each model's name, the same numbers over the same star tracks, so a row's scores read beside its name without scrolling sideways; four score marks share the model header's line, each over its number, and sort the table as the columns did. Phone planes are about a third of the desktop's width, so the type steps down with them rather than holding desktop sizes in less room: chart ticks, axis titles, and model names in a plot take the caption size. Below 820px the Timeline's catalogue entry sets its name on its own line above its three figures, so an ordinary name is never cut short beside them; on phones the figures share the row's width with their labels wrapping under them at the micro size.
+The dashboard is one column. Header, hero text, research rail, leaderboard, and analysis planes share one content width, and only the sky is full-bleed. Content may scroll sideways where its density requires it, but the page itself never overflows.
+
+The hero fills the first viewport with only the title and the frontier register; no lede, status line, or controls compete with the sky. The register lists the frontier roles in order (Best Intelligence, Best Agentic, Another Lab, Best Open Weight, Pareto Balance, Pareto Value) in six columns, three at 1100px and below, and one at 720px and below. A role without a distinct model falls back to the next strongest by Intelligence, while the Pareto roles drop out instead.
+
+A sticky research rail follows, linking three numbered regions: Models, Pareto, and Timeline. Each region opens on the sky with its name at display size, the same two-digit ordinal hanging at its cap height, and its capture and link actions at the far edge; one module owns the sequence, so the rail and the region heads cannot disagree. The plane follows directly below its name. One even gap of sky separates the rail from the first region and each plane from the next name, well over the gap between a name and its own plane, so each name reads with the plane it opens.
+
+Responsive changes keep the model evidence visible:
+
+- At 820px and below, the Timeline catalogue entry sets its name on its own line above its three figures, so an ordinary name is never cut short.
+- At 760px and below, labels and controls reflow, and the leaderboard folds its four score columns into a strip beneath each model's name: the same numbers over the same star tracks, sorted by four score marks on the model header's line.
+- At 520px and below, the rail drops its ordinals.
 
 ## Elevation & Depth
 
-One fixed WebGL layer renders the sky behind the dashboard: a dark stippled horizon mound with a cobalt-to-violet-and-rose rim glow, wrapping dust stars, the model stars, a flare on the star being explored, and faint nebulae deeper in. After the opening, a pulse of light runs along the rim from left to right every 15 seconds, and the rim rests calm between pulses. The planet is solid, so dust sets behind it rather than showing through. Each model star is a white-hot core in a corona of its provider's colour; the frontier roles add long rays whose tips disperse red beyond blue and along which light runs slowly outward. The pointer stirs only the sky around it: stars and motes within reach lean toward it as if it had gravity, each star at its own pace, and ease back when it leaves, while the rest of the sky holds still; the lean fades to nothing at the pointer itself, so a star under it stays put to be explored. Every star and mote also floats on its own slow path a few pixels from its place, and the names keep to their stars' resting places. Nearer motes blur into dimmer discs so they never outshine a model, and while the camera moves, each mote smears briefly along its own path. The explored star's flare takes its provider's light and fades in and out. Fine film grain sits above the sky. Where WebGL cannot run, CSS draws the same horizon still; the dashboard stays dark until one of the two can draw, then fades in whole. The opening replays release order: a sweep crosses the sky, igniting each star with a brief flash as it passes the star's release position, extending the frontier rays and their names as it goes, so the newest frontier lights last; the same sweep lights the rim as it passes, while the horizon itself is at full strength from the first frame. The camera starts at the hero composition; scrolling tilts it up and pushes it forward as if leaving the planet: the horizon tightens from a shallow arc into a tighter limb while it is still in view, then pans down and out as the stars spread with true perspective parallax. The arc is proportioned to the viewport, so every width shows the same starting curve and the same tightening. Past the hero it continues a slow flight that ends before the nearest star.
+Depth comes from the sky behind and opaque planes floating in it.
 
-Research planes are opaque so model and chart contrast never depends on the sky: blue charcoal, a fine edge, a horizon-gradient line along the lit top edge, and a deep shadow with a soft violet bloom. The sticky research index is the one translucent surface. Controls and data cells remain flat.
+### The sky
 
-The sky renders at 24 FPS in the hero and 12 FPS past it, always at full rate while scrolling, during the opening, and while the flare settles, with a capped pixel ratio. Ambient motion stops for hidden documents. Reduced motion keeps the hero composition still: no camera travel, pointer pull, twinkle, wandering, rim pulses, or opening sweep, and transitions snap. Graph exports omit the decorative edge, outer shadow, border, and rounding. Every image export shares one size: 1200px wide, or 1440px for a two-model comparison card, rendered at twice that resolution so text stays sharp; graph images hold the figure alone, leaving out its caption and evidence disclosure, and parts left out of an image leave no gap where they were.
+One fixed WebGL layer renders the sky behind the dashboard: a dark stippled planet whose rim glows cobalt at its centre through violet to rose at its sides, drifting dust motes, the model stars, a flare on the star being explored, and faint nebulae that strengthen as the camera scopes in. A CSS film grain sits above it. The planet is solid, so dust sets behind it rather than showing through. Nearer motes blur into dimmer discs so they never outshine a model, and while the camera moves each mote smears briefly along its own path.
+
+Each model star is a white-hot core in a corona of its provider's colour, and frontier roles add long rays whose tips disperse red beyond blue, with light running slowly outward along them. Every star and mote drifts on its own slow path a few pixels from its place, and names keep to their stars' resting places.
+
+The pointer stirs only the sky near it: stars and motes within reach lean toward it as if it had gravity, each star at its own pace, and ease back when it leaves, while the rest of the sky holds still. The lean fades to nothing at the pointer itself, so a star under it stays put to be explored.
+
+A pulse of light runs along the rim from left to right as the stars begin to light and every 15 seconds after, and the rim rests calm between pulses.
+
+**Opening.** The dashboard stays dark until the sky can draw and the hero has its models, then fades in whole over 1.2 seconds; where WebGL cannot run, CSS draws the same horizon still, and a ten-second safety net shows the page without scripts or data. The horizon is at full strength from the first frame. The stars light scattered across the sky, each at its own moment with a brief flash, its rays extending and its name appearing as it lights, so no edge or direction leads, while the rim's first pulse crosses on its own path.
+
+**Scroll.** The camera starts at the hero composition. Scrolling tilts it up and pushes it forward as if leaving the planet: the horizon tightens from a shallow arc into a limb while still in view, then pans down and out as the stars spread with true perspective parallax. The arc is proportioned to the viewport, so every width shows the same curve and the same tightening. Past the hero the camera continues a slow flight that ends before the nearest star.
+
+**Cost.** The sky renders at 24 FPS in the hero and 12 FPS past it, at full rate while scrolling, during the opening, and while a flare settles, with a capped pixel ratio, and ambient motion stops while the page is hidden. Reduced motion keeps the hero still, with no camera travel, pointer pull, twinkle, drift, rim pulses, or staggered opening, while hovering still identifies stars.
+
+### Planes and floating surfaces
+
+Research planes are opaque so model and chart contrast never depends on the sky: the theme's paper, a fine edge, a horizon-gradient line along the lit top edge, and a deep shadow that blooms violet in the dark theme. Floating surfaces, from hover cards, column tooltips, and filter menus to the model sheet, share the lit top line. The sticky research rail is the one frosted surface, blurred over whatever passes beneath it. Controls and data cells stay flat.
 
 ## Shapes
 
-Research surfaces have sharp corners; controls remain square and compact provider icons retain their existing small radius. Models are round stars everywhere: in the sky, as chart points, and as the marker on each leaderboard score track. A chart star's area tracks the mean of the model's available scores; the hover card and leaderboard carry the individual scores.
-
-The backend score contract remains the source of truth for Intelligence, Agentic, Speed, and Value. Analytical plots translate those fetched scores only inside their star-mark geometry module. The sky uses its own star adapter; it does not depend on graph geometry or introduce a parallel frontend score model.
+Research planes and everything in them have square corners, controls are square and compact, and provider icons keep a 3px radius. Models are round stars everywhere. In the Pareto chart a star's area tracks the mean of the model's available scores, while hover cards and the leaderboard carry the individual scores.
 
 ## Components
 
-### Buttons
+### Selection and buttons
 
-- **Shape:** square, borderless or 1px ruled.
-- **Primary:** the selected option turns full ink and is lit by a small selection star beneath it, the leaderboard's score star in horizon-violet light, with a soft violet bloom around the star that faintly lights its label; the bloom belongs to the star, so no control box clips it. Hover previews a dimmer star. No underline rules, tracks, or pills mark selection.
-- **Hover / Focus:** strengthen foreground and show a visible 2px focus ring without changing layout.
+The selected option turns full ink and is lit by a small selection star beneath it: the leaderboard's score star in horizon-violet light, with a soft bloom that faintly lights its label. The bloom belongs to the star, so no control box clips it. Hover previews a dimmer star. No underline, track, or pill marks selection. Buttons are square, borderless or 1px ruled, and keyboard focus draws a 2px ring without moving the layout.
 
-### Chips
+### Inputs
 
-- **Style:** compact ruled measurement controls with provider icon, label, and count.
-- **State:** provider colour remains visible in both selected and unselected states.
+Fields are transparent. Search fields show focus by brightening their search icon, with no line or ring, in the rail's model search and the leaderboard's column search alike; ruled fields, such as the leaderboard's row count, strengthen their rule.
 
-### Cards / Containers
-
-- **Corner Style:** square on complete research regions and within them.
-- **Background:** opaque theme surface to preserve model and chart contrast, distinct in hue from the sky.
-- **Shadow Strategy:** shared deep elevation with a soft violet bloom along the lit edge.
-- **Border:** one fine enclosing edge, a horizon-gradient line along the top, and internal measurement rules.
-- **Floating surfaces:** hover cards, column tooltips, and filter menus share the horizon-gradient top line.
-
-### Inputs / Fields
-
-- **Style:** transparent field with a 1px baseline or rule.
-- **Focus:** stronger rule plus the shared focus ring.
+Checklists for benchmarks, organizations, and efforts open from a ruled summary into one shared menu: a bulk checkbox, square marks, and a right-aligned count per option. A press outside or Escape closes them.
 
 ### Navigation
 
-Route and section navigation use measurement labels. The research rail is a flight path: a hairline track along its foot with a waypoint under each region link and a selection star that travels with the scroll, approaching the first region from the track start and running on through the last. The path already flown is lit in horizon light and passed waypoints turn violet; no tab underline, divider, pill, or filled background marks the current region. Region names hang the shared ordinal at their cap height. The global model search holds the rail's open middle at every width, and / reaches it from anywhere on the dashboard, first bringing the leaderboard up beneath the pinned rail when the reader is still in the hero; typing still filters every view and also lists the strongest matching models beneath the search, where arrows choose one and Enter opens its model sheet. Each active global filter is a ruled chip after the search that removes only itself, provider chips keeping their provider mark; chips, profiles, and additional filters follow the search on wide screens and fold behind a toggle on phones. The leaderboard's horizontal scrollbar sits above its headers as a second flight path over the columns, drawn exactly as the research rail: the same measurement labels, each column group's name placed near where its group starts with its waypoint centred beneath it, each group's stretch following what its name counts (benchmarks for the benchmark groups, columns for the rest) so Frontier 40 runs twice as far as Baseline 20 in every column view, benchmark groups adding their count where the research rail shows ordinals, and the selection star with its path lit behind it and passed waypoints violet. Names nudge apart to stay legible and their waypoints move with them, so a name and its waypoint never part; only where the rail is too narrow does a crowded name give way to the group being read, returning when it takes keyboard focus. The star meets each group's waypoint as that group reaches the pinned rank and model, and reaches the track's end at the scroll limit, passing groups too near the end to reach the pinned columns on the way. A name scrolls its group to just after the pinned columns, or as near as the table's end allows, so the last groups land in view with the star past their waypoints; dragging anywhere on the track moves the star to the pointer.
+Navigation is a flight path. The research rail draws a hairline track with a waypoint under each region link and a selection star that travels with the scroll; the stretch already flown is lit in horizon light and passed waypoints turn violet. No tab underline, divider, pill, or filled background marks the current region.
+
+The global model search holds the rail's open middle at every width, and / reaches it from anywhere, first bringing the leaderboard up beneath the rail when the reader is still in the hero. Typing filters every view and lists the strongest matching models beneath the search, where arrows choose one and Enter opens its model sheet. Each active filter is a ruled chip after the search that removes only itself, provider chips keeping their provider mark, and on phones the chips, profiles, and additional filters fold behind a toggle. Whether reasoning variants expand is one of those filters, applied to the graphs and the leaderboard together.
+
+The leaderboard's horizontal scrollbar is a second flight path above its headers, drawn as the rail is. Each column group's name sits where the group starts, with its waypoint beneath it, and each group's stretch follows what it counts (benchmarks for benchmark groups, columns otherwise), so its length reads as its size. Names nudge apart to stay legible, a crowded name gives way to the group being read unless it has keyboard focus, a name scrolls its group to just past the pinned columns, and dragging along the track scrolls to the pointer.
+
+### Leaderboard
+
+The toolbar holds column presets (All first, then Scores, Cost, and Time), a column search that takes the free width and offers a model search when the query names models instead, the row count, and an effort checklist for reasoning-variant rows.
+
+Rows read as a measurement table:
+
+- Ranks are set in the sans at the model-name size, bright for the leading three, and model names lead each row with the slug beneath.
+- Score cells keep the number primary at 700 with its meter directly beneath: a track from 0 to 100 with the provider-coloured star at the score and a trail brightening toward it. Tracks share one width and a half-way tick, so reading down a column still shows gaps and clusters.
+- Resource ratios (Cost×, Time×, Tokens×) draw a provider-coloured bar from a 1× median tick on one fixed doubling scale that reaches the track's ends at 16× and 1/16×, so a wide tail never shrinks everyone else and the same factor draws the same length in every column. No star marks a ratio. Cost× and Time× carry a down arrow because lower is better there; Tokens× carries none because fewer tokens are not plainly better.
+- Every other measured amount, from prices, throughput, latency, and context to each benchmark's own cost, time, and tokens, keeps its value as the readout and draws the same bar against its column's median, with the ratio on hover. Position always means amount, never goodness.
+- Hairline rules close each column group so the wide table never reads as one band; they never box a single column.
+- Row hover blends 6% of the row's provider colour into the ink wash, and the row whose model sheet is open keeps 12% with a provider rule at its leading edge. The tint is always the model's own data colour.
+
+### Analytical figures
+
+Each analysis reads as a published figure. The chart leads the plane, and each axis control sits on the axis it controls: Pareto performance above the y-axis beside the score summary, resources beneath the x-axis, and the Timeline's view choices above its plot beside its catalogue entry. Controls, legend, readout, and caption share the graph's own width and edges. The region's description, evidence note, and axis note become a caption beneath the chart, followed by the evidence disclosure.
+
+Frontiers are drawn as the sky's horizon: a white-hot rim over a horizon-gradient edge with a soft glow above, extended at the outermost model's height to the plot edge on the side the reached region continues, over a faint wash of the region it reaches. Every model the frontier outperforms sits inside the lit region. Each Pareto frontier step answers the pointer: its stretch of rim lights, and the hover card of the model it reaches adds the trade from the frontier model before it. The Timeline's record frontier joins each record directly to the next, a rising ridge rather than a staircase.
+
+Chart stars echo the score stars without blooming: a lit centre in a solid ring of the provider colour, crisp enough to separate neighbours in dense clusters. Only frontier models, and the Timeline's chosen model, glow, from one blurred layer beneath the marks, so a chart costs a single filter. Index-only Timeline models are hollow rings, and in the light theme stars are solid with fainter glows. Hover cards set the model name semibold beside a neutral logo frame, and their edge takes a trace of the provider colour.
+
+The Pareto score summary is a box-and-whisker instrument: the median dominates as a readout and an ink line, while the range and quartile box stay hairline.
+
+The Timeline's selected model reads as a star-catalogue entry on the figure's top edge: its ringed provider star, name, Intelligence Index, release date, and evidence support at the readout size, the name kept to one line so following the pointer never moves the plot. The overview strip carries the same frontier as a small horizon. In the models view a replay control sweeps the window from start to end in nine seconds: models appear as their release dates pass, the record frontier draws itself to the date reached, and the catalogue entry follows each new record. The axes hold still, reduced motion steps through still frames, and changing the window, preset, or view stops it.
+
+Scores have one model: the backend score contract is the source of truth for Intelligence, Agentic, Speed, and Value, charts translate it only in their star-mark geometry, and the sky maps it through its own adapter.
 
 ### Model sheet
 
-A model's complete catalogue entry opens as an opaque research plane floating at the viewport's right edge below the header, so the header and the pinned rail stay usable, lit along its top edge like the other floating surfaces. Every leaderboard row, every Pareto star, every frontier role, a star chosen in the hero sky, and the Timeline's catalogue entry (when today's snapshot has that model) open it; the URL's `model` and `effort` name it, so a sheet is shareable, and Back, Escape, or its close button return focus to whatever opened it. It is non-modal, so choosing another row or star switches it in place, and a click anywhere else on the page hides it. The sheet measures the model against the same population as the leaderboard: collapsed models for a model, every reasoning variant for a variant. It holds the identity (provider, the name at the readout size, the slug), release, context, weights, and input modalities, then the four scores on the table's star tracks with rank and evidence support, resources on the table's ratio bars with prices and speed, the model's frontier position, the reasoning efforts, benchmark evidence in the table's index, frontier, and baseline groups with the table's meters, and the latest material change. The frontier position is a small plot of the sheet's population by Intelligence against Cost×, the sheet's own numbers, as faint dust beneath the lit horizon those models reach, with the model lit as a star and named on or behind the frontier. Both of the sheet's plots draw their models as the leaderboard's score star rather than a chart's ringed mark: a solid core in the provider's light, with the score star's soft bloom on a lit model, so a lone star never reads as a ringed orb. The reasoning efforts read as a curve of Intelligence against cost placed exactly as the Pareto chart places variants: each effort's cost comes from the benchmarks all of the family's efforts share, so a step compares like with like rather than each variant's own Cost×, whose benchmarks can differ between efforts. The efforts join in effort order with the shown effort lit and its step from the effort below stated beneath; pointing at a star, or along its curve at the nearest star, opens the dashboard's hover card for that variant, and in a comparison pointing at a series, by its star or its choice row, lights it as the Pareto chart lights a variant family: its efforts are named and the other curve steps back. Beneath the plot, one row of segmented effort choices per model switches the sheet, the collapsed choice being the leaderboard's own row, and pointing at a choice lights its star; a comparison names each row with its curve's star. Compare, a labelled toggle lit by the selection star while on, keeps the model in the sheet: the next model opened from any surface appears beside it, the kept model on the left, and the plane widens so every row aligns across both, one frontier plot lighting both stars and one effort plot drawing both curves. The toggle then holds the label column while capture, link, and close keep the single sheet's top-right corner, so the head stays one row and each name keeps its column. While the kept model waits for a partner, the sticky head offers a search beneath it that suggests models from the whole snapshot, whatever the dashboard's filters hide, and never the kept model itself; choosing one opens it beside the kept model, as any row, star, or role still does. In a comparison each row's better value keeps full ink with its meter lit and states its margin beside it, by points on a score scale or by proportion for amounts, while the other steps back, following the table's sort directions; tokens and descriptive facts mark neither. The URL's `compare` and `compare-effort` name the kept model, so a comparison is shareable. A click elsewhere hides the sheet but keeps the model, its leaderboard row staying marked until the next model opens beside it; Escape and the close button let it go. The capture action saves the card as a wide image for sharing, 1200px for one model and 1440px for a comparison: the identity across the top, facts, scores, and resources in a left column beside the frontier and reasoning-effort plots, then each benchmark group laid across three columns, or two in a comparison, filled top to bottom; the actions, the Compare toggle, and the search stay out of the image. The card's two plots are redrawn at the card's own width as it is saved, never magnified from the sheet's, so an image saved from a phone carries the same labels and stars as one saved from a desktop. At 496px the single sheet leaves the name room beside its four actions; on phones the actions take their own row above the identity, Compare at its start, so the name and slug keep the sheet's full width. A comparison narrower than its 880px plane does the same with its Compare toggle, which link and close share; below 720px its two columns keep each value, its margin, and its rank, leaving support, meters, and bars to the single sheet, and phones up to 480px set each mark above its name at 15px, so a name keeps to a line or two and breaks only between words.
+A model's full catalogue entry opens as an opaque plane at the viewport's right edge below the header. It is non-modal, so the header and rail stay usable. Leaderboard rows, chart stars, frontier roles, hero stars, and the Timeline entry open it; the URL names it (`model`, `effort`), so a sheet is shareable, and Back, Escape, or its close button return focus to whatever opened it. Choosing another model switches it in place, and a click elsewhere hides it.
+
+The sheet measures the model against the leaderboard's own population (collapsed models, or every reasoning variant for a variant) and reuses the table's marks: identity and facts, the four scores on star tracks with rank and support, resources on ratio bars, a frontier-position plot of Intelligence against Cost×, the reasoning efforts as a curve of Intelligence against cost, benchmark evidence in the table's groups, and the latest material change. Its plots draw models as the leaderboard's score star, a solid core with a soft bloom on the lit model, never a chart's ringed mark. The effort curve places variants as the Pareto chart does, each effort's cost taken from the benchmarks all of the family's efforts share, so a step compares like with like; beneath it, segmented effort choices switch the sheet, the collapsed choice being the leaderboard's own row.
+
+Compare keeps the current model, and the next one opened appears beside it, the kept model on the left with every row aligned, one frontier plot lighting both stars and one effort plot drawing both curves. Each row's better value keeps full ink and states its margin while the other steps back; tokens and descriptive facts mark neither. While the kept model waits, a search beneath the head suggests partners from the whole snapshot, whatever the dashboard's filters hide. The URL's `compare` and `compare-effort` make a comparison shareable. A click elsewhere hides the sheet but keeps the kept model, while Escape and close let it go.
+
+The sheet is 496px wide, or 880px when comparing. On phones its actions take their own row so the name keeps the full width, and a comparison too narrow for its plane keeps each value, margin, and rank while leaving meters and bars to the single sheet.
+
+### Image exports
+
+Every image export is 1200px wide, or 1440px for a comparison card, rendered at twice that resolution so text stays sharp. A region capture holds its heading and figure without the plane's decorative edge, shadow, border, or rounding; captions, evidence disclosures, actions, and other interactive parts stay out and leave no gap. The model card is laid out wide, with the identity across the top, facts, scores, and resources beside the two plots, and benchmark groups in columns below. Its plots are redrawn at the card's own width as it is saved, so a card saved from a phone matches one saved from a desktop.
+
+### Hero sky
+
+Each displayed model family is one star: release order runs across the sky, and Intelligence sets its height and size. Both are scaled across the full model population, so filters remove stars without moving the rest. Stars carry their provider's tint, and filter changes redraw the sky from the displayed models.
+
+The mapping stays implicit, so the hero carries no key or legend. Pointing near a star identifies it with a flare and a card giving name, provider, Intelligence, and release date; hovering a role in the register flares its star the same way, and clicking an identified star opens its model sheet. The cursor never changes, and no ring or sight marks a star. Exploration is mouse-only, while the register and leaderboard carry the same information accessibly.
+
+Frontier role stars carry rays and a small name placed clear of other stars, names, the title, and the register, kept inside the window and fading as the camera scopes in; a name with no room gives way rather than cover something. Names are hidden on touch phones but stay in a narrowed desktop window. Role text stays neutral and factual, with a tight night edge so it holds where the register crosses the rim.
 
 ### Methodology
 
-The documentation sits under a still sky rather than the WebGL field: sparse CSS stars over the dashboard's night gradient with a faint dawn at the top, in both themes. The document title opens on the sky; one opaque research plane, lit along its top edge, holds the document strip, the docked navigation, and the Markdown text, so reading stays one uninterrupted surface. The current document is lit by the selection star and its bloom. The on-page outline is the research rail's flight path turned vertical: a track with a waypoint beside each section, the path already read lit in horizon light, and one star that glides continuously with the scroll and rests on the last section at the page's end; side rails keep only the star's tight glow so their scroll boxes never clip it. Document tables read in the body face with measurement-label headers. The documentation has exactly two modes, navigation shown or hidden, switched by the icon-only navigation toggle at the start of the document strip at every width and remembered across documents. Shown navigation sits beside the text from 720px and stacks above it on phones; it never overlays the page as a drawer. Phones start with navigation hidden, since stacked navigation would push the text below the fold, and only the reader's own toggle is remembered. The full document strip shows at every width, scrolling sideways when it does not fit and keeping the current document in view. The frame is sized for the navigation beside one reading column of up to 860px and centred, and it never changes when the navigation is toggled: hidden navigation hands its space to the text. The header, title, and plane share that frame, so every extra pixel of width is sky rather than empty plane. The title scales with the frame, not the window, so it keeps one line wherever it fits, and takes the hero's leading below 1100px, where longer titles wrap. Prose, tables, and figures fill the column and end at the same right edge just inside the plane.
+The documentation sits under a still CSS sky, sparse stars over the dashboard's night gradient with a faint dawn at the top, in both themes. The title opens on the sky in the region-name style, scaled to the documentation frame and taking the hero's leading below 1100px, where long titles wrap. One opaque plane holds the document strip, the docked navigation, and the Markdown text, so reading stays one surface; the full strip shows at every width, scrolling sideways to keep the current document in view. Document tables read in the body face under measurement-label headers, and prose, tables, and figures share one right edge. The current document is lit by the selection star, and the on-page outline is the rail's flight path turned vertical, with one star gliding with the scroll.
 
-### Frontier Sky
-
-The hero sky is the signature. Each displayed model family is one star: release order runs across the sky, and Intelligence sets height above the horizon and brightness. Both are scaled across the full model population, so filters remove stars without moving the rest and a lone filtered model keeps its true place. Stars carry their provider's tint. Filter changes redraw the sky from the displayed models.
-
-The sky's mapping stays implicit: the hero carries no key or legend spelling out that each star is a model, that height is Intelligence and position is release order, or that rays mark frontier roles. In the hero, pointing near a star identifies it with a flare and a card giving name, provider, Intelligence, and release date; hovering a role in the register flares its star the same way and extends the role's provider mark. Clicking an identified star opens its model sheet. The cursor never changes, and no ring or sight marks a star. Exploration is mouse-only; the register and leaderboard carry the same information accessibly, and each role opens its model sheet, a reasoning variant's when the role compared variants.
-
-The frontier register shows the established roles in order: Best Intelligence, Best Agentic, Another Lab, Best Open Weight, Pareto Balance, and Pareto Value. Existing role selection and Pareto scope remain unchanged. The role models' stars carry diffraction rays and a small chart label placed to avoid other labels and stars and kept inside the window; the labels are decorative, hidden on phones, and fade as the camera scopes in; a desktop window narrowed or zoomed to a phone's width keeps them, and a name with no room clear of the stars, the other names, the title, and the register gives way rather than cover something, while the register carries the same roles accessibly. Role text remains neutral and factual, with no selected-row wash or model selector. Where the hero is tall, as on phones and portrait tablets, the register crosses the lit horizon, so its text carries a tight night edge that holds over the rim and stipple without clouding the open sky.
-
-### Analytical Marks
-
-Frontiers in the Pareto and Timeline charts are drawn as the sky's horizon: a white-hot rim over a horizon-gradient edge, extended at the outermost model's height to the plot edge on the side the reached region continues, with horizon light and stipple along its underside and a faint wash over the region it reaches. Every model the frontier outperforms sits inside that lit region. Each step of the Pareto frontier answers the pointer: its stretch of rim lights, and the hover card of the model it reaches adds the trade from the frontier model before it, the signed score change at the resource multiple on log axes or at the signed amount on linear ones; the card read from that model's star carries the same line. The Timeline's record frontier joins each record directly to the next, reading as one rising ridge rather than a staircase. Chart stars echo the leaderboard's score stars without blooming: a lit centre inside a solid ring of the provider colour, crisp enough to read hue and separate neighbours in dense clusters. Only frontier models and the selected model glow, tightly and faintly, from one softly blurred layer beneath the marks, so the effect costs a single filter per chart. Index-only Timeline models remain hollow rings with dark centres, and in the light theme stars are solid with fainter glows. Leaderboard ranks are set in the display face at the model name's 15px size, bright for the leading three; the rank column's header stays a measurement label like every other header. Leaderboard score cells keep the number primary, set at a heavier 700 weight so the readout carries the row. Every leaderboard meter sits directly beneath its number at every width, so the readout carries the row and columns stay narrow. Score tracks run 0–100 with the model's provider-colour star at its score and a trail that brightens toward it; tracks share one width and a half-way tick at 50, so reading down a column still shows the gaps and clusters between models. Resource ratios read on their own log track, rounded to two significant figures: a tick marks the 1× median, and a solid bar in the score trail's provider colour grows from it toward the model's ratio. Bars use one fixed doubling scale rather than any column's spread, so a wide tail never shrinks everyone else: on a 60px track, a little longer than the score tracks, a bar's length follows the doubling count raised to 0.6 and reaches the end at 16× or 1/16×, so a 26% saving still reads as a bar, near-median noise stays a stub, overspends of 6× and 11× draw visibly apart, and the same factor draws the same length in every column; no star marks a ratio, so the Cost, Time, and Tokens columns stay apart from the score stars. The Cost and Time headers carry the Pareto axis's down arrow, since lower is cheaper or faster there; Tokens carries none because fewer tokens are not plainly better. Every other measured amount, the blended and input/output prices, throughput, latency, end-to-end time, context, and each benchmark's own cost, time, and token columns, keeps its value as the readout and draws the same bar against that column's median across the table, with the ratio on hover; position always means amount, never goodness. The leaderboard is wide enough that adjacent columns read as one undifferentiated band, so hairline rules close the measurement groups the columns actually form: the four scores, then the price and context pair, then benchmark evidence. These rules close groups; they never box a single column. Chart hover cards use a medium-weight model name and a neutral logo frame without provider-colour glow or shadow.
-
-Row hover carries a faint trace of the row's own provider colour blended into the ink hover wash (6% mix), extending the signature's material-as-identity idea into the leaderboard without introducing a second hue: the tint is always the model's own data colour, never a decorative accent. Every model row opens its model sheet, and the row whose sheet is open keeps a stronger trace (12%) with a provider rule at its leading edge.
-
-Each analysis reads as a figure. Its chart leads the plane; the axis choices sit on the axes they control, with Pareto performance above the y-axis beside the score summary and resources centred beneath the x-axis, and the Timeline's view choices above its plot beside its catalogue entry. Controls, legend, readout, and caption share the graph's own width and edges, axes included, rather than the plane's or the plot grid's. The region's description, the evidence explanation, and the axis note become a caption beneath the chart, as in a published figure, followed by the evidence disclosure.
-
-The Timeline's selected model reads as a star-catalogue entry: its ringed provider star, name, Intelligence Index, release date, and evidence support at the readout size shared with the Pareto summary, over measurement-type labels. The entry sits on the figure's top edge, where the Pareto summary sits, so a star read under the pointer is named beside the plot; it keeps one size, the name on one line, so following the pointer never moves the plot. The Timeline overview strip carries the same frontier as a small horizon, so its window frames a stretch of it. In the models view, a replay control leads the overview's transport and sweeps the window from its start to its end in nine seconds: models appear as their release dates pass, the record frontier draws itself up to a faint dashed rule at the date reached, the window's end date counts along, and an unselected catalogue entry follows each new record. The axes hold still throughout, reduced motion steps through a few still frames, and any window, preset, or view change stops it.
-
-Box-and-whisker summaries behave as compact measuring instruments. The median is dominant; the label and population remain quiet; the range and quartile box stay hairline, and the ink median stays explicit. Dense two-sided rankings retain their readable intrinsic width on compact screens and become horizontally scrollable with keyboard access rather than shrinking their labels.
+Navigation has two modes, shown or hidden, switched by an icon toggle at the start of the document strip and remembered across documents. Shown navigation sits beside the text from 720px and stacks above it on phones; it never overlays the page as a drawer. Phones start hidden, since stacked navigation would push the text below the fold. The frame fits the navigation beside one reading column of up to 860px and never changes when the navigation toggles: hidden navigation hands its space to the text, and every extra pixel of window width is sky.
 
 ## Do's and Don'ts
 
 ### Do:
 
-- **Do** preserve the wide leaderboard, box plots, chart axes, methodology routes, provider icons, and provider colours.
-- **Do** preserve light and dark themes, the frontier-role register, and one sky responsive to the displayed models.
-- **Do** keep analytical copy in the research planes factual and explicit about score-to-visual mappings; the hero sky's own mapping stays implicit.
+- **Do** keep provider colours and icons on every model mark, in both themes.
+- **Do** keep analytical copy in the planes factual and explicit about how values map to marks; only the hero sky's mapping stays implicit.
+- **Do** give every dashboard region the shared content width.
+- **Do** preserve the wide leaderboard, chart axes, the frontier register, both themes, and one sky drawn from the displayed models.
 
 ### Don't:
 
-- **Don't** apply generic blue text or selected-row highlighting to the model-role information, or use different outer widths for dashboard regions.
-- **Don't** replace provider identity with one generic accent colour, or use horizon colours to identify a model or provider.
-- **Don't** let the sky show through data surfaces or trade table and chart density for decorative whitespace.
-- **Don't** use a plain white cursor circle as an interaction effect, change the cursor to a crosshair, or mark models with rings, sights, or reticles.
+- **Don't** add a key, legend, or explanatory caption to the hero, or name stars beyond the frontier roles.
+- **Don't** show a placeholder sky or part of the page before the sky can draw.
+- **Don't** sweep the opening in one direction or make the rim's light follow the stars as they light.
+- **Don't** restyle the horizon with glints, floating airglow arcs, limb bands, or banded stipple.
+- **Don't** pan the whole sky with the pointer; pointer effects stay local to nearby stars.
+- **Don't** mark models with rings, sights, or reticles, change the cursor to a crosshair, or follow it with a plain white circle.
+- **Don't** tint planes toward the sky, let the sky show through data, or trade table and chart density for decorative whitespace.
+- **Don't** use horizon colours to identify a model or provider, replace provider identity with one accent colour, or give role text generic blue or a selected-row wash.
