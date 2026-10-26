@@ -85,6 +85,8 @@ export type ModelAtlasMetadata = {
   };
   source_health?: ModelAtlasSourceHealth;
   benchmark_update_health?: ModelAtlasBenchmarkUpdateHealth;
+  /** Source-published edition per benchmark; absent from snapshots built before editions were published. */
+  benchmark_editions?: Readonly<Record<string, string>>;
   scoring: {
     /** Record the effective group and pairwise weights alongside published scores. */
     intelligence_scoring?: {

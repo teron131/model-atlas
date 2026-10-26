@@ -11,15 +11,21 @@ import { asRecord, type JsonObject, stringValue } from "../../runtime";
 import { extractNextFlightCorpus } from "../parsing";
 import { fetchSource } from "../request-scheduler";
 
-/** Read the complete model dataset, never the limited preview or a provider-inference table. */
-export async function getArtificialAnalysisPageModels(
+type ArtificialAnalysisPage = {
+  title: string | null;
+  models: JsonObject[];
+};
+
+/** Read a page's title and complete model dataset, never the limited preview or a provider-inference table. */
+export async function getArtificialAnalysisPage(
   url: string,
   timeoutMs: number,
-): Promise<JsonObject[]> {
+): Promise<ArtificialAnalysisPage> {
   const html = await fetchSource(url, {}, timeoutMs, async (response) => {
     if (!response.ok) throw new Error(`Artificial Analysis page failed: ${response.status}`);
     return response.text();
   });
+  const title = /<title>([^<]*)<\/title>/.exec(html)?.[1] ?? null;
   const corpus = extractNextFlightCorpus(html);
   for (const match of corpus.matchAll(/"manifest":(\{[^}]+\})/g)) {
     const manifest = asRecord(JSON.parse(match[1]!));
@@ -43,7 +49,7 @@ export async function getArtificialAnalysisPageModels(
       );
     });
     const models = asRecord(data).models;
-    if (Array.isArray(models) && models.length > 0) return models.map(asRecord);
+    if (Array.isArray(models) && models.length > 0) return { title, models: models.map(asRecord) };
   }
   throw new Error("Missing complete Artificial Analysis model dataset");
 }

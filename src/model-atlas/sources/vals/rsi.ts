@@ -15,7 +15,6 @@ import { nowEpochSeconds } from "../../runtime";
 import { findObjectEnd, htmlAttribute, percentToUnitScore } from "../parsing";
 import { fetchSource } from "../request-scheduler";
 
-const RSI_VERSION = "1.1";
 const RSI_METRIC = BENCHMARK_STANDARD_SOURCES.rsi_benchmark.revision;
 const DEFAULT_TIMEOUT_MS = 30_000;
 const TASKS = [
@@ -51,7 +50,7 @@ export async function getValsRsiStats(sourceUrl: string): Promise<BenchmarkObser
   }
 }
 
-/** Extract declarative leaderboard literals without executing the publisher's JavaScript. Reject the whole refresh unless the declared version, four-task composition, model counts, and harness assignments form one complete cohort. */
+/** Extract declarative leaderboard literals without executing the publisher's JavaScript. Reject the whole refresh unless a declared version, the four-task composition, model counts, and harness assignments form one complete cohort. */
 export function processValsRsiModule(
   moduleSource: string,
   componentSource: string,
@@ -67,7 +66,7 @@ export function processValsRsiModule(
   const modelCount = numberField(metadata, "total_models");
   if (
     !metadata.includes('benchmark_id:"rsi_index"') ||
-    version !== RSI_VERSION ||
+    version == null ||
     !hasCurrentTaskComposition(metadata) ||
     updated == null ||
     modelCount == null ||
@@ -85,14 +84,14 @@ export function processValsRsiModule(
   return rows.length === TASKS.length * modelCount ? rows : [];
 }
 
-/** The cached suite must contain every task under the current source version and disclosed harness mapping. */
+/** The cached suite must contain every task under a declared source version and disclosed harness mapping. */
 export function valsRsiCacheMatches(rows: readonly BenchmarkObservationRow[]): boolean {
   return (
     TASKS.every((task) => rows.some((row) => row.metadata.task === task)) &&
     rows.every(
       (row) =>
         TASKS.some((task) => row.metadata.task === task) &&
-        row.metadata.benchmark_version === RSI_VERSION &&
+        typeof row.metadata.benchmark_version === "string" &&
         typeof row.metadata.harness === "string" &&
         row.metadata.metric ===
           (row.metadata.task === "overall" ? RSI_METRIC : "reference_scaled_task_score") &&

@@ -50,6 +50,7 @@ export async function getTerminalBenchScienceStats(
         benchmarkKey: "terminal_bench_science",
         canonicalTask: "overall",
         sourceUrl: TERMINAL_BENCH_SCIENCE_VALS_URL,
+        version: "0.1",
       }),
     ]);
     if (vals.data.length === 0)

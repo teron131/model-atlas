@@ -52,8 +52,8 @@ const RESOURCE_SIGNAL_KEYS = [
   "output_tokens_per_task",
 ] as const;
 
-const ACTIVE_BENCHMARK_RESOURCE_KEYS = new Set(
-  ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.map((page) => page.benchmark_key),
+const ACTIVE_BENCHMARK_RESOURCE_PAGE_URLS = new Map(
+  ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.map((page) => [page.benchmark_key, page.url]),
 );
 
 /** Replace available AA rows as one current score/resource observation; retain stronger evidence only for unavailable shells. */
@@ -148,15 +148,24 @@ export async function artificialAnalysisBenchmarkResourceSnapshot(
   previousMissingSince: ReadonlyMap<string, number>,
   nowEpochSeconds: number,
 ): Promise<ArtificialAnalysisBenchmarkResourceSnapshot> {
+  // A benchmark that moved to another evaluation page is a new series; rows from its earlier page cannot be retained beside it.
+  const current = cached && {
+    ...cached,
+    rows: cached.rows.filter(
+      (row) =>
+        (ACTIVE_BENCHMARK_RESOURCE_PAGE_URLS.get(row.benchmark_key) ?? row.source_url) ===
+        row.source_url,
+    ),
+  };
   const requiredPagesPresent = ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.every((page) =>
-    cached?.rows.some(
+    current?.rows.some(
       (row) =>
         row.benchmark_key === page.benchmark_key && row.task_run_count === page.task_run_count,
     ),
   );
   const snapshot = await snapshotSourceRows({
     source: "artificial_analysis_benchmark_resources",
-    cached,
+    cached: current,
     status: requiredPagesPresent ? status : { ...status, cache_hit: false },
     options,
     previousMissingSince,
@@ -165,9 +174,10 @@ export async function artificialAnalysisBenchmarkResourceSnapshot(
     rowKey: artificialAnalysisBenchmarkResourceSourceKey,
     rowLabel: (row) => `${row.benchmark_key}: ${row.model}`,
     mergeRow: (_cachedRow, fetchedRow) => fetchedRow,
+    editions: { editionOf: (row) => row.benchmark_version, seriesOf: (row) => row.benchmark_key },
   });
   const activeRows = snapshot.rows.filter((row) =>
-    ACTIVE_BENCHMARK_RESOURCE_KEYS.has(row.benchmark_key),
+    ACTIVE_BENCHMARK_RESOURCE_PAGE_URLS.has(row.benchmark_key),
   );
   const activeRowKeys = new Set(activeRows.map(artificialAnalysisBenchmarkResourceSourceKey));
   return {

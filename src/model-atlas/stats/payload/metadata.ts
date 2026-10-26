@@ -38,12 +38,23 @@ type CurrentModelAtlasMetadataOptions = {
   availableMetrics?: ModelAtlasMetadata["available_metrics"];
   sourceHealth?: ModelAtlasSourceHealth;
   benchmarkUpdateHealth?: ModelAtlasBenchmarkUpdateHealth;
+  benchmarkEditions?: Readonly<Record<string, string>>;
   sourceRowsByKey?: BenchmarkRowsByKey;
   matcherConfig?: MatcherConfig;
   availabilitySource?: MetadataAvailabilitySource;
   /** Saved rows retain their build version; null marks checkpoints that did not record one. */
   snapshotPreservationVersion?: number | null;
 };
+
+/** Publish a benchmark's edition only when all of its current rows report the same one. */
+function observedBenchmarkEditions(rowsByKey: BenchmarkRowsByKey): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(rowsByKey).flatMap(([key, rows]) => {
+      const [edition, ...others] = new Set(rows.flatMap((row) => row.edition ?? []));
+      return edition != null && others.length === 0 ? [[key, edition]] : [];
+    }),
+  );
+}
 
 function sortedUniqueKeys(values: Iterable<string>): string[] {
   return [...new Set(values)].sort((left, right) => left.localeCompare(right));
@@ -119,6 +130,7 @@ export function buildCurrentModelAtlasMetadata({
   availableMetrics,
   sourceHealth,
   benchmarkUpdateHealth,
+  benchmarkEditions,
   sourceRowsByKey,
   matcherConfig = STAGE_CONFIG.matcher,
   availabilitySource = "models",
@@ -148,10 +160,13 @@ export function buildCurrentModelAtlasMetadata({
         : computedBenchmarkUpdateHealth[key]!,
     ]),
   );
+  const currentBenchmarkEditions =
+    sourceRowsByKey == null ? benchmarkEditions : observedBenchmarkEditions(sourceRowsByKey);
   return {
     available_metrics: outputAvailableMetrics,
     ...(sourceHealth == null ? {} : { source_health: sourceHealth }),
     benchmark_update_health: currentBenchmarkUpdateHealth,
+    ...(currentBenchmarkEditions == null ? {} : { benchmark_editions: currentBenchmarkEditions }),
     scoring: {
       intelligence_scoring: {
         group_weights: { ...scoringConfig.intelligenceGroupWeights },

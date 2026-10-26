@@ -1,6 +1,8 @@
 /** Server-rendered reading surface for repository documentation. */
 
 import "katex/dist/katex.min.css";
+import { unstable_rethrow } from "next/navigation";
+
 import benchmarks from "../../docs/benchmarks.md";
 import matching from "../../docs/matching.md";
 import imputation from "../../docs/methodology/imputation.md";
@@ -11,12 +13,15 @@ import speedValue from "../../docs/methodology/speed-value.md";
 import standards from "../../docs/standards.md";
 import timelineCalculation from "../../docs/timeline/calculation.md";
 import timeline from "../../docs/timeline/overview.md";
+import { readRevalidatedSnapshot } from "../../src/model-atlas/database/runtime-snapshot";
 import { NavigationLink } from "../shared/NavigationLink";
 import {
+  CATALOG_EDITIONS,
   documentHref,
   DOCUMENTS,
   type DocumentSlug,
   documentTitle,
+  fillEditionMarkers,
   tableOfContents,
 } from "./documents";
 import { DocumentShell } from "./DocumentShell";
@@ -24,6 +29,9 @@ import { MarkdownDocument } from "./MarkdownDocument";
 import { ScoreText } from "./ScoreText";
 
 import styles from "./methodology.module.css";
+
+// The snapshot read sets this page's regeneration interval.
+const EDITION_REVALIDATE_SECONDS = 3600;
 
 const DOCUMENT_CONTENT = {
   standards,
@@ -45,8 +53,9 @@ const documentTitles = Object.fromEntries(
   ]),
 ) as Record<DocumentSlug, string>;
 
-export function DocumentPage({ document }: { document: DocumentSlug }) {
+export async function DocumentPage({ document }: { document: DocumentSlug }) {
   const { markdown, revision } = DOCUMENT_CONTENT[document];
+  const editions = { ...CATALOG_EDITIONS, ...(await servedEditions()) };
   const outline = tableOfContents(markdown);
   const current = DOCUMENTS.find((item) => item.slug === document)!;
   const parent = current.parent ?? current.slug;
@@ -58,7 +67,7 @@ export function DocumentPage({ document }: { document: DocumentSlug }) {
   return (
     <DocumentShell activeDocument={document} outline={outline} titles={documentTitles}>
       <article className={styles.article} data-document-revision={revision}>
-        <MarkdownDocument markdown={markdown} document={document} />
+        <MarkdownDocument markdown={fillEditionMarkers(markdown, editions)} document={document} />
         {previous || next ? (
           <nav className={styles.pageSequence} aria-label="Reading order">
             {previous ? (
@@ -88,4 +97,17 @@ export function DocumentPage({ document }: { document: DocumentSlug }) {
       </article>
     </DocumentShell>
   );
+}
+
+/** Documentation stays renderable with catalog editions when the served snapshot is unreachable, such as during an offline build. */
+async function servedEditions(): Promise<Readonly<Record<string, string>>> {
+  try {
+    return (
+      (await readRevalidatedSnapshot(EDITION_REVALIDATE_SECONDS)).metadata.benchmark_editions ?? {}
+    );
+  } catch (error) {
+    unstable_rethrow(error);
+    console.warn("Documentation editions fell back to catalog versions", error);
+    return {};
+  }
 }

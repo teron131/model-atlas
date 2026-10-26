@@ -90,6 +90,7 @@ CREATE TABLE IF NOT EXISTS artificial_analysis_benchmarks_raw_rows (
 	fetched_at_epoch_seconds INTEGER,
 	url TEXT NOT NULL,
 	benchmark_key TEXT NOT NULL,
+	benchmark_version TEXT,
 	model_id TEXT NOT NULL,
 	model TEXT NOT NULL,
 	provider TEXT NOT NULL,

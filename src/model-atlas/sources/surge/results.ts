@@ -79,6 +79,24 @@ export async function getSurgeLeaderboardStats(
   }
 }
 
+export function withSurgeEdition(
+  payload: BenchmarkObservationPayload,
+  edition: string,
+): BenchmarkObservationPayload {
+  return {
+    ...payload,
+    data: payload.data.map((row) => ({ ...row, metadata: { ...row.metadata, edition } })),
+  };
+}
+
+/** Only rows stamped with the declared edition can serve as cache, so rows from before an unannounced rerun never rejoin it. */
+export function surgeCacheMatches(
+  rows: readonly BenchmarkObservationRow[],
+  edition: string,
+): boolean {
+  return rows.every((row) => row.metadata.edition === edition);
+}
+
 export function surgeLeaderboardScoreRows(pageHtml: string): SurgeLeaderboardScoreRow[] {
   const lastUpdated = surgeLastUpdated(pageHtml);
   return surgeLeaderboardRows(pageHtml)

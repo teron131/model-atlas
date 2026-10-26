@@ -16,7 +16,12 @@ import { getEpochCapabilitiesIndexStats } from "../epoch/capabilities-index";
 import { epochBenchmarkCacheMatches, getEpochBenchmarkStats } from "../epoch/results";
 import { getMercorStats, mercorCacheMatches } from "../mercor/results";
 import { getPerceptionBenchStats } from "../perception-bench";
-import { getSurgeIntelligenceIndexStats, getSurgeLeaderboardStats } from "../surge/results";
+import {
+  getSurgeIntelligenceIndexStats,
+  getSurgeLeaderboardStats,
+  surgeCacheMatches,
+  withSurgeEdition,
+} from "../surge/results";
 import {
   getTerminalBenchScienceStats,
   TERMINAL_BENCH_SCIENCE_VALS_URL,
@@ -107,15 +112,23 @@ export function benchmarkObservationSource(
       };
     case "perception_bench":
       return { fetchRows: () => getPerceptionBenchStats(loader.sourceUrl) };
-    case "surge":
+    case "surge": {
+      const { edition } = loader;
+      const fetchRows =
+        loader.view === "index"
+          ? () => getSurgeIntelligenceIndexStats(binding.benchmark, loader.sourceUrl)
+          : () => getSurgeLeaderboardStats(binding.benchmark, loader.sourceUrl, loader.scoreKind);
       return {
-        fetchRows:
-          loader.view === "index"
-            ? () => getSurgeIntelligenceIndexStats(binding.benchmark, loader.sourceUrl)
-            : () => getSurgeLeaderboardStats(binding.benchmark, loader.sourceUrl, loader.scoreKind),
+        ...(edition == null
+          ? { fetchRows }
+          : {
+              fetchRows: async () => withSurgeEdition(await fetchRows(), edition),
+              acceptsCache: (rows) => surgeCacheMatches(rows, edition),
+            }),
         // Surge revises published results under the same model-effort row identity.
         mergeRow: (_cached, fetched) => fetched,
       };
+    }
     case "terminal_bench_science":
       return {
         sourceUrls: [loader.sourceUrl, TERMINAL_BENCH_SCIENCE_VALS_URL],
@@ -131,6 +144,8 @@ export function benchmarkObservationSource(
             sourceUrl: loader.sourceUrl,
           }),
         acceptsCache: (rows) => valsBenchmarkCacheMatches(rows, loader.canonicalTask),
+        // Vals revises scores and run metadata under stable model-effort identities.
+        mergeRow: (_cached, fetched) => fetched,
       };
     case "vals_rsi":
       return {

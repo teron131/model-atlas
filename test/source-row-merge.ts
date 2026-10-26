@@ -18,10 +18,17 @@ import {
   mergeArtificialAnalysisRow,
 } from "../src/model-atlas/sources/artificial-analysis/snapshot";
 import {
+  type DeepSWERawLeaderboardRow,
+  preferredDeepSWELeaderboardRows,
+} from "../src/model-atlas/sources/deep-swe/leaderboard";
+import { processFrontierCodePayload } from "../src/model-atlas/sources/frontier-code/leaderboard";
+import {
   mergeCachedSourceRows,
   snapshotRows,
   snapshotRowsWithStates,
+  withoutSupersededEditions,
 } from "../src/model-atlas/sources/snapshots/policy";
+import { snapshotSourceRows } from "../src/model-atlas/sources/snapshots/row-snapshot";
 
 type ArtificialAnalysisFixtureRow = {
   model_id: string;
@@ -275,6 +282,7 @@ const effortResourceRow = (
 ): ArtificialAnalysisBenchmarkResourceRow => ({
   benchmark_key: "hle",
   source_url: "https://example.com/hle",
+  benchmark_version: null,
   model_id: "openai/gpt-test",
   model: `GPT Test (${reasoningEffort})`,
   provider: "OpenAI",
@@ -309,14 +317,20 @@ assert.deepEqual(
 const activeResourceRows = ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.map((page) => ({
   ...effortResourceRow("high", 100),
   benchmark_key: page.benchmark_key,
+  source_url: page.url,
   task_run_count: page.task_run_count,
 }));
 const retiredResourceRow = { ...effortResourceRow("high", 100), benchmark_key: "tau_banking" };
 const cachedResourceRows = [...activeResourceRows, retiredResourceRow];
+const previousPageRow = {
+  ...activeResourceRows[0]!,
+  reasoning_effort: "low",
+  source_url: `${activeResourceRows[0]!.source_url}-previous-edition`,
+};
 const activeResourceKey = artificialAnalysisBenchmarkResourceSourceKey(activeResourceRows[0]!);
 const retiredResourceKey = artificialAnalysisBenchmarkResourceSourceKey(retiredResourceRow);
 const resourceSnapshot = await artificialAnalysisBenchmarkResourceSnapshot(
-  { rows: cachedResourceRows, fetchedAt: 1_800_000_000 },
+  { rows: [...cachedResourceRows, previousPageRow], fetchedAt: 1_800_000_000 },
   {
     last_fetch_epoch_seconds: 1_800_000_000,
     source_input_count: cachedResourceRows.length,
@@ -330,9 +344,10 @@ const resourceSnapshot = await artificialAnalysisBenchmarkResourceSnapshot(
   ]),
   1_800_000_999,
 );
-assert.equal(
-  resourceSnapshot.artificialAnalysisBenchmarkResourceRows.length,
-  cachedResourceRows.length,
+assert.deepEqual(
+  resourceSnapshot.artificialAnalysisBenchmarkResourceRows,
+  cachedResourceRows,
+  "Rows from a benchmark's earlier evaluation page leave the cache when its page changes",
 );
 assert.equal(resourceSnapshot.sourceStatus.sourceInputCount, activeResourceRows.length);
 assert.deepEqual(
@@ -341,4 +356,133 @@ assert.deepEqual(
     .map((state) => state.row_key),
   [activeResourceKey],
   "Retired AA benchmark resource rows remain cached but leave public source health",
+);
+
+const editionRows = (edition: string | null, model: string) => ({ model, edition });
+const byEdition = { editionOf: (row: { edition: string | null }) => row.edition };
+assert.deepEqual(
+  withoutSupersededEditions(
+    [editionRows("1", "a"), editionRows("1", "b")],
+    [editionRows("1.1", "a")],
+    byEdition,
+  ),
+  [],
+  "A source that publishes another edition replaces its cached rows",
+);
+assert.deepEqual(
+  withoutSupersededEditions([editionRows("1", "a")], [editionRows("1", "a")], byEdition),
+  [editionRows("1", "a")],
+);
+assert.deepEqual(
+  withoutSupersededEditions(
+    [editionRows(null, "mirror"), editionRows("3", "creator")],
+    [editionRows("3", "creator")],
+    byEdition,
+  ),
+  [editionRows(null, "mirror"), editionRows("3", "creator")],
+  "Rows without an edition, such as another source's mirror, take no part",
+);
+assert.deepEqual(
+  withoutSupersededEditions(
+    [editionRows("v1", "a"), editionRows("v1.1", "a")],
+    [editionRows("v1", "a")],
+    byEdition,
+  ),
+  [editionRows("v1", "a"), editionRows("v1.1", "a")],
+  "A partial refresh of a multi-artifact source still shares an edition, so it merges",
+);
+
+const seriesRow = (series: string, edition: string, model: string) => ({ series, edition, model });
+const seriesSnapshot = await snapshotSourceRows({
+  source: "artificial_analysis_benchmark_resources",
+  cached: {
+    rows: [seriesRow("a", "1", "x"), seriesRow("a", "1", "y"), seriesRow("b", "1", "z")],
+    fetchedAt: 1_800_000_000,
+  },
+  status: {
+    last_fetch_epoch_seconds: 1_800_000_000,
+    source_input_count: 3,
+    cache_hit: false,
+    refreshed: false,
+  },
+  options: {},
+  previousMissingSince: new Map(),
+  nowEpochSeconds: 1_800_000_999,
+  fetchRows: async () => ({
+    fetched_at_epoch_seconds: 1_800_000_999,
+    data: [seriesRow("a", "2", "x"), seriesRow("b", "1", "w")],
+  }),
+  rowKey: (row) => `${row.series}|${row.model}`,
+  rowLabel: (row) => row.model,
+  editions: { editionOf: (row) => row.edition, seriesOf: (row) => row.series },
+});
+assert.deepEqual(
+  seriesSnapshot.rows.map((row) => `${row.series}${row.edition}:${row.model}`).sort(),
+  ["a2:x", "b1:w", "b1:z"],
+  "A benchmark that publishes a new version replaces its own cached rows while the source's other benchmarks still merge",
+);
+assert.deepEqual(
+  seriesSnapshot.sourceRowStates
+    .filter((state) => state.status === "quarantined_missing_from_source")
+    .map((state) => state.row_key),
+  ["b|z"],
+);
+
+const frontierCodeRevision = (score: number) => ({
+  models: ["GPT-6 Astra"],
+  harness: { "GPT-6 Astra": "codex" },
+  efforts: { "GPT-6 Astra": ["max"] },
+  subsets: { main: 100, extended: 150 },
+  data: {
+    "GPT-6 Astra": {
+      max: {
+        main: { correct: score, new_score: score },
+        extended: { correct: score, new_score: score },
+      },
+    },
+  },
+});
+assert.deepEqual(
+  processFrontierCodePayload({
+    v1: frontierCodeRevision(0.4),
+    v1_1: frontierCodeRevision(0.5),
+    v1_10: frontierCodeRevision(0.6),
+  }).map((row) => [row.revision, row.score]),
+  [["v1_10", 0.6]],
+  "FrontierCode follows the newest revision in its shared artifact",
+);
+assert.deepEqual(
+  processFrontierCodePayload({
+    v1_1: frontierCodeRevision(0.5),
+    v1_2: { ...frontierCodeRevision(0.6), subsets: { main: 120, extended: 150 } },
+  }),
+  [],
+  "A newest revision with another subset layout yields no rows",
+);
+
+const deepSweRow = (
+  source_version: DeepSWERawLeaderboardRow["source_version"],
+  model: string,
+): DeepSWERawLeaderboardRow => ({
+  model,
+  reasoning_effort: "max",
+  config: null,
+  pass_at_1: 0.7,
+  ci_lo: null,
+  ci_hi: null,
+  ci_half: null,
+  n_tasks_attempted: 113,
+  mean_cost_usd: 2,
+  mean_duration_seconds: null,
+  mean_output_tokens: 1_000,
+  source_version,
+});
+assert.deepEqual(
+  preferredDeepSWELeaderboardRows([
+    deepSweRow("v1", "shared-model"),
+    deepSweRow("v1.1", "shared-model"),
+    deepSweRow("v1", "older-only-model"),
+  ]).map((row) => row.model),
+  ["shared-model"],
+  "DeepSWE scores only its newest artifact instead of filling gaps from the previous edition",
 );

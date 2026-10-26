@@ -1,5 +1,5 @@
 /**
- * FrontierCode revision 1.1 leaderboard results from Cognition.
+ * FrontierCode leaderboard results from Cognition.
  *
  * Page source: https://cognition.com/frontiercode
  * JSON source: https://cognition.com/data/frontiercode-leaderboard/data.json
@@ -10,8 +10,6 @@ import { asFiniteNumber, asRecord, nowEpochSeconds } from "../../runtime";
 import { fetchSource } from "../request-scheduler";
 
 const FRONTIER_CODE_DATA_URL = "https://cognition.com/data/frontiercode-leaderboard/data.json";
-
-export const FRONTIER_CODE_SOURCE_REVISION = "v1_1";
 
 export const FRONTIER_CODE_LEADERBOARD_URL = "https://cognition.com/frontiercode";
 
@@ -34,7 +32,7 @@ export type FrontierCodeSubsetMetrics = {
 };
 
 export type FrontierCodeModelEffortRow = {
-  revision: typeof FRONTIER_CODE_SOURCE_REVISION;
+  revision: string;
   model: string;
   base_model: string;
   source_effort: string;
@@ -62,7 +60,10 @@ type FrontierCodeScraperOptions = {
   timeoutMs?: number;
 };
 
-type ParsedEffortRow = Omit<FrontierCodeModelEffortRow, "official_rank" | "official_best_effort">;
+type ParsedEffortRow = Omit<
+  FrontierCodeModelEffortRow,
+  "revision" | "official_rank" | "official_best_effort"
+>;
 
 /** Fetch Cognition's versioned structured artifact rather than scraping the rendered leaderboard. */
 export async function getFrontierCodeStats(
@@ -79,7 +80,7 @@ export async function getFrontierCodeStats(
         }
         const data = processFrontierCodePayload(await response.json());
         if (data.length === 0) {
-          throw new Error("FrontierCode scrape returned no revision 1.1 rows");
+          throw new Error("FrontierCode scrape returned no rows for its newest revision");
         }
         return { fetched_at_epoch_seconds: nowEpochSeconds(), data };
       },
@@ -108,10 +109,12 @@ export function processFrontierCodeSubsetMetrics(value: unknown): FrontierCodeSu
   };
 }
 
-/** Parse every current model-effort observation and reproduce Cognition's best-effort model ranks without collapsing rows. */
+/** Parse every model-effort observation of the newest published revision and reproduce Cognition's best-effort model ranks without collapsing rows; a newest revision with another subset layout yields none. */
 export function processFrontierCodePayload(value: unknown): FrontierCodeModelEffortRow[] {
   const root = asRecord(value);
-  const revision = asRecord(root[FRONTIER_CODE_SOURCE_REVISION]);
+  const revisionKey = newestRevisionKey(Object.keys(root));
+  if (revisionKey == null) return [];
+  const revision = asRecord(root[revisionKey]);
   const subsets = asRecord(revision.subsets);
   if (
     SUBSETS.some(
@@ -159,10 +162,30 @@ export function processFrontierCodePayload(value: unknown): FrontierCodeModelEff
       .map((row, index) => [row.base_model, index + 1]),
   );
   return parsedRows.map((row) => ({
+    revision: revisionKey,
     ...row,
     official_rank: officialRankByModel.get(row.base_model) as number,
     official_best_effort: bestRowByModel.get(row.base_model) === row,
   }));
+}
+
+/** Cognition's revision keys read as dotted versions, dropping the `v` prefix and joining parts with dots. */
+export function frontierCodeVersion(revision: string): string {
+  return revision.replace(/^v/, "").replaceAll("_", ".");
+}
+
+/** Cognition keys revisions as `v<major>` or `v<major>_<minor>`; other root keys are not revisions. */
+function newestRevisionKey(keys: readonly string[]): string | null {
+  let newest: { key: string; major: number; minor: number } | null = null;
+  for (const key of keys) {
+    const match = /^v(\d+)(?:_(\d+))?$/.exec(key);
+    if (match == null) continue;
+    const major = Number(match[1]);
+    const minor = Number(match[2] ?? 0);
+    if (newest == null || major > newest.major || (major === newest.major && minor > newest.minor))
+      newest = { key, major, minor };
+  }
+  return newest?.key ?? null;
 }
 
 function optionalNonNegativeNumber(value: unknown): number | null {
@@ -184,7 +207,6 @@ function processEffortRow(
   }
   const reasoningEffort = frontierCodeReasoningEffort(sourceEffort);
   return {
-    revision: FRONTIER_CODE_SOURCE_REVISION,
     model: reasoningEffort == null ? baseModel : `${baseModel} (${reasoningEffort})`,
     base_model: baseModel,
     source_effort: sourceEffort,

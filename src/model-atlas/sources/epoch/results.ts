@@ -49,11 +49,9 @@ export function epochBenchmarkObservationRows(
   eligibility: EpochRunEligibility = {},
 ): BenchmarkObservationRow[] {
   const excludedModelIds = new Set(eligibility.excludedModelIds ?? []);
-  return rows.flatMap((row) => {
+  const scoreRows = rows.flatMap((row) => {
     if (
       row.task !== task ||
-      (eligibility.taskVersions != null &&
-        !eligibility.taskVersions.includes(row["task version"] ?? "")) ||
       (eligibility.originalTaskName != null &&
         row.original_task_name !== eligibility.originalTaskName) ||
       (eligibility.runIdPrefix != null && !row.id_runs?.startsWith(eligibility.runIdPrefix)) ||
@@ -64,27 +62,33 @@ export function epochBenchmarkObservationRows(
     const scoreRow = epochRunScoreRow(row, benchmarkKey);
     return scoreRow == null ? [] : [scoreRow];
   });
+  if (eligibility.latestTaskEdition !== true) return scoreRows;
+  const edition = newestTaskEdition(scoreRows);
+  if (edition == null) return [];
+  return scoreRows
+    .filter((row) => taskEdition(row.metadata.task_version)?.label === edition)
+    .map((row) => ({ ...row, metadata: { ...row.metadata, benchmark_version: edition } }));
 }
 
-/** Reject cached runs from a different task, revision, run prefix, or excluded model cohort. */
+/** Reject cached runs from a different task, run prefix, or excluded model cohort, and caches that mix task editions. */
 export function epochBenchmarkCacheMatches(
   rows: readonly BenchmarkObservationRow[],
   task: string,
   eligibility: EpochRunEligibility = {},
 ): boolean {
   const excludedModelIds = new Set(eligibility.excludedModelIds ?? []);
-  return rows.every(
-    (row) =>
-      row.metadata.task === task &&
-      (eligibility.taskVersions == null ||
-        (typeof row.metadata.task_version === "string" &&
-          eligibility.taskVersions.includes(row.metadata.task_version))) &&
-      (eligibility.originalTaskName == null ||
-        row.metadata.original_task_name === eligibility.originalTaskName) &&
-      (eligibility.runIdPrefix == null ||
-        (typeof row.metadata.run_id === "string" &&
-          row.metadata.run_id.startsWith(eligibility.runIdPrefix))) &&
-      (row.model_id == null || !excludedModelIds.has(row.model_id)),
+  return (
+    (eligibility.latestTaskEdition !== true || holdsOneTaskEdition(rows)) &&
+    rows.every(
+      (row) =>
+        row.metadata.task === task &&
+        (eligibility.originalTaskName == null ||
+          row.metadata.original_task_name === eligibility.originalTaskName) &&
+        (eligibility.runIdPrefix == null ||
+          (typeof row.metadata.run_id === "string" &&
+            row.metadata.run_id.startsWith(eligibility.runIdPrefix))) &&
+        (row.model_id == null || !excludedModelIds.has(row.model_id)),
+    )
   );
 }
 
@@ -110,6 +114,41 @@ async function requestEpochBenchmarkRows(): Promise<EpochBenchmarkRowsPayload> {
   } catch {
     return { fetched_at_epoch_seconds: null, data: [] };
   }
+}
+
+/** A task version's major.minor edition; patch revisions within it stay comparable. */
+function taskEdition(version: unknown): { label: string; major: number; minor: number } | null {
+  const match = typeof version === "string" ? /^(\d+)\.(\d+)(?:\.\d+)?$/.exec(version) : null;
+  if (match == null) return null;
+  const major = Number(match[1]);
+  const minor = Number(match[2]);
+  return { label: `${major}.${minor}`, major, minor };
+}
+
+function newestTaskEdition(rows: readonly BenchmarkObservationRow[]): string | null {
+  let newest: ReturnType<typeof taskEdition> = null;
+  for (const row of rows) {
+    const edition = taskEdition(row.metadata.task_version);
+    if (
+      edition != null &&
+      (newest == null ||
+        edition.major > newest.major ||
+        (edition.major === newest.major && edition.minor > newest.minor))
+    )
+      newest = edition;
+  }
+  return newest?.label ?? null;
+}
+
+/** Every row carries the same edition label, and that label matches the row's own task version. */
+function holdsOneTaskEdition(rows: readonly BenchmarkObservationRow[]): boolean {
+  const [edition, ...others] = new Set(rows.map((row) => row.metadata.benchmark_version));
+  return (
+    others.length === 0 &&
+    rows.every(
+      (row) => edition != null && taskEdition(row.metadata.task_version)?.label === edition,
+    )
+  );
 }
 
 /** Normalize one successful Epoch run while retaining its exact task/version identity. */

@@ -116,7 +116,14 @@ const STANDALONE_BENCHMARK_PAYLOAD_ROW_GROUPS = {
   ),
   deep_swe: payloadRowGroup("deepSWERows", SNAPSHOT_TABLES.deep_swe, "pass_at_1 DESC, row_index"),
   frontier_code: payloadRowGroup("frontierCodeRows", SNAPSHOT_TABLES.frontier_code, "row_index", {
-    columns: ["model", "base_model", "reasoning_effort", "score_eligible", "main_score"],
+    columns: [
+      "model",
+      "base_model",
+      "reasoning_effort",
+      "score_eligible",
+      "main_score",
+      "revision",
+    ],
     optional: true,
   }),
   terminal_bench_4: payloadRowGroup(
@@ -152,7 +159,7 @@ const SURGE_BENCHMARK_PAYLOAD_ROW_GROUPS = {
 
 const VALS_BENCHMARK_PAYLOAD_ROW_GROUPS = {
   vals_index: payloadRowGroup("valsIndexRows", SNAPSHOT_TABLES.vals_index, "row_index", {
-    columns: ["model_id", "model", "provider", "row_kind", "score"],
+    columns: ["model_id", "model", "provider", "row_kind", "score", "metadata_json"],
     optional: true,
   }),
 } as const satisfies Record<

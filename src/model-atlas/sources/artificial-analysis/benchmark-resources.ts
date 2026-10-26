@@ -22,7 +22,7 @@ import {
   cleanArtificialAnalysisModelName,
   parseArtificialAnalysisReasoningEffort,
 } from "./model-labels";
-import { getArtificialAnalysisPageModels } from "./page-data";
+import { getArtificialAnalysisPage } from "./page-data";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 
@@ -68,6 +68,7 @@ type ArtificialAnalysisBenchmarkResourcePage = {
   resource_key: string;
   url: string;
   task_run_count: number;
+  version?: string;
 };
 
 type ArtificialAnalysisBenchmarkResourceOptions = {
@@ -79,6 +80,8 @@ type ArtificialAnalysisBenchmarkResourceOptions = {
 export type ArtificialAnalysisBenchmarkResourceRow = {
   benchmark_key: string;
   source_url: string;
+  /** The version in the evaluation page's title; null where the title carries none. */
+  benchmark_version: string | null;
   model_id: string;
   model: string;
   provider: string;
@@ -113,6 +116,7 @@ export const ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES = BENCHMARK_RESOURCE_P
     resource_key: page.resourceKey,
     url: page.url,
     task_run_count: page.taskRunCount,
+    ...(page.version == null ? {} : { version: page.version }),
   }),
 );
 
@@ -145,15 +149,27 @@ export async function getArtificialAnalysisBenchmarkResourceStats(
 export function processArtificialAnalysisBenchmarkResourceRows(
   rows: unknown[],
   page: ArtificialAnalysisBenchmarkResourcePage,
+  version: string | null,
 ): ArtificialAnalysisBenchmarkResourceRow[] {
+  if (page.version != null && version !== page.version) return [];
   return rows
-    .map((row) => resourceRow(row, page))
+    .map((row) => resourceRow(row, page, version))
     .filter((row): row is ArtificialAnalysisBenchmarkResourceRow => row != null)
     .sort((left, right) =>
       `${left.benchmark_key}/${left.model_id}`.localeCompare(
         `${right.benchmark_key}/${right.model_id}`,
       ),
     );
+}
+
+/** AA titles an evaluation page "<name>[: subtitle] Benchmark | Artificial Analysis"; the version is the name's last word when that word is a dotted number, with or without a leading `v`. */
+export function artificialAnalysisEvaluationVersion(title: string | null): string | null {
+  const name =
+    title
+      ?.replace(/ \| .*$/, "")
+      .replace(/:.*$/, "")
+      .replace(/ Benchmark$/, "") ?? "";
+  return /\sv?(\d+(?:\.\d+)*)$/.exec(name)?.[1] ?? null;
 }
 
 /** Builds exact benchmark-resource lookups without collapsing effort observations. */
@@ -258,8 +274,12 @@ async function getCompleteBenchmarkResourceRows(
 ): Promise<ArtificialAnalysisBenchmarkResourceRow[]> {
   for (let attempt = 0; attempt < PAGE_FETCH_ATTEMPTS; attempt += 1) {
     try {
-      const models = await getArtificialAnalysisPageModels(page.url, timeoutMs);
-      const rows = processArtificialAnalysisBenchmarkResourceRows(models, page);
+      const { title, models } = await getArtificialAnalysisPage(page.url, timeoutMs);
+      const rows = processArtificialAnalysisBenchmarkResourceRows(
+        models,
+        page,
+        artificialAnalysisEvaluationVersion(title),
+      );
       if (rows.length > 0) {
         return rows;
       }
@@ -273,6 +293,7 @@ async function getCompleteBenchmarkResourceRows(
 function resourceRow(
   sourceRow: unknown,
   page: ArtificialAnalysisBenchmarkResourcePage,
+  version: string | null,
 ): ArtificialAnalysisBenchmarkResourceRow | null {
   const row = asRecord(sourceRow);
   const modelSlug = stringValue(row.slug);
@@ -313,6 +334,7 @@ function resourceRow(
   return {
     benchmark_key: page.benchmark_key,
     source_url: page.url,
+    benchmark_version: version,
     model_id: `${providerId}/${modelSlug}`,
     model,
     provider,

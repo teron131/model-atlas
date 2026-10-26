@@ -97,6 +97,7 @@ export function artificialAnalysisBenchmarkResourceRawCacheFromRows(cacheRows: C
         {
           benchmark_key: benchmarkKey,
           source_url: sourceUrl,
+          benchmark_version: stringValue(row.benchmark_version),
           model_id: modelId,
           model,
           provider,

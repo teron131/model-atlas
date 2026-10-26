@@ -83,7 +83,7 @@ export async function getValsIndexStats(
   }
 }
 
-/** Keep the declared edition's overall score and all component diagnostics under one persisted source contract. */
+/** Keep the page's current edition and all component diagnostics under one persisted source contract; a basket of another size changes the represented breadth, so it yields no rows. */
 export function processValsIndexView(value: unknown): ValsIndexResults {
   const view = parseValsBenchmarkView(value);
   if (view == null) return { metadata: null, task_rows: [], model_scores: [] };
@@ -92,7 +92,7 @@ export function processValsIndexView(value: unknown): ValsIndexResults {
     (key) => key !== OVERALL_TASK_KEY,
   );
   if (
-    metadata.version !== INDEX_POLICIES.vals_index.version ||
+    metadata.version == null ||
     componentTasks.length !== INDEX_POLICIES.vals_index.representedBenchmarks
   ) {
     return { metadata: null, task_rows: [], model_scores: [] };
@@ -166,11 +166,11 @@ export function findValsIndexRow(
   return null;
 }
 
-/** Unversioned and prior-edition caches cannot supply the current index or receive its breadth. */
+/** Unversioned caches and baskets of another size cannot supply the index or receive its breadth. */
 export function valsIndexCacheMatches(rows: readonly ValsIndexTaskScoreRow[]): boolean {
   return rows.every(
     (row) =>
-      row.metadata.benchmark_version === INDEX_POLICIES.vals_index.version &&
+      typeof row.metadata.benchmark_version === "string" &&
       row.metadata.benchmark_count === INDEX_POLICIES.vals_index.representedBenchmarks &&
       Array.isArray(row.metadata.component_tasks) &&
       row.metadata.component_tasks.length === INDEX_POLICIES.vals_index.representedBenchmarks,

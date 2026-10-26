@@ -1,4 +1,4 @@
-/** Current Epoch task revisions exclude older runs from fresh observations and persisted source caches. */
+/** Epoch's newest task edition replaces older editions in fresh observations and source caches, while pooling its patch revisions. */
 
 import assert from "node:assert/strict";
 
@@ -36,8 +36,14 @@ assert.deepEqual(
 );
 assert.equal(observations[0]?.canonical_value, 1);
 
-const rawRows = epochBenchmarkObservationRows(rows, "frontiermath_tier_4", loader.task).map(
-  (row, index) => ({
+const rawRows = rows.map((run, index) => {
+  const row = epochBenchmarkObservationRows(
+    [run],
+    "frontiermath_tier_4",
+    loader.task,
+    loader.eligibility,
+  )[0]!;
+  return {
     source_key: row.benchmark_key,
     row_index: index,
     fetched_at_epoch_seconds: 1791322553,
@@ -49,10 +55,19 @@ const rawRows = epochBenchmarkObservationRows(rows, "frontiermath_tier_4", loade
     reasoning_effort: row.reasoning_effort,
     canonical_value: row.canonical_value,
     metadata_json: JSON.stringify(row.metadata),
-  }),
+  };
+});
+assert.equal(
+  readBenchmarkObservationRawCache(rawRows.slice(0, 1), binding)?.rows[0]?.metadata
+    .benchmark_version,
+  "2.0",
+  "A cache holding one earlier edition remains the fallback until a refresh replaces it",
 );
-assert.equal(readBenchmarkObservationRawCache(rawRows.slice(0, 1), binding), null);
-assert.equal(readBenchmarkObservationRawCache(rawRows, binding), null);
+assert.equal(
+  readBenchmarkObservationRawCache(rawRows, binding),
+  null,
+  "A cache cannot mix editions",
+);
 assert.equal(
   readBenchmarkObservationRawCache(rawRows.slice(1), binding)?.rows[0]?.metadata.task_version,
   "2.1.0",
@@ -63,7 +78,7 @@ const chessBinding = BENCHMARK_OBSERVATION_BINDINGS.find(
   (candidate) => candidate.benchmark === "chess_puzzles",
 );
 assert.ok(chessBinding);
-const chessRuns = ["1.1.6", "2.0.0", "2.0.1", "2.1.0"].map((version) => ({
+const chessRuns = ["1.1.6", "2.0.0", "2.0.1"].map((version) => ({
   ...rows[0]!,
   id_runs: `chess-${version}`,
   task: chessLoader.task,
@@ -76,8 +91,21 @@ const chess = epochBenchmarkObservationRows(
   chessLoader.eligibility,
 );
 assert.deepEqual(
-  chess.map((row) => row.metadata.task_version),
-  ["2.0.0", "2.0.1"],
+  chess.map((row) => [row.metadata.task_version, row.metadata.benchmark_version]),
+  [
+    ["2.0.0", "2.0"],
+    ["2.0.1", "2.0"],
+  ],
+);
+assert.deepEqual(
+  epochBenchmarkObservationRows(
+    [...chessRuns, { ...chessRuns[0]!, id_runs: "chess-2.1.0", "task version": "2.1.0" }],
+    "chess_puzzles",
+    chessLoader.task,
+    chessLoader.eligibility,
+  ).map((row) => row.metadata.task_version),
+  ["2.1.0"],
+  "A newer task edition replaces the pooled patch revisions of the previous one",
 );
 const chessRaw = rawRows.map((row, index) => ({
   ...row,

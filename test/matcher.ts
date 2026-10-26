@@ -516,6 +516,7 @@ assert.equal(
 const versionedResourceRow: ArtificialAnalysisBenchmarkResourceRow = {
   benchmark_key: "hle",
   source_url: "https://artificialanalysis.ai/evaluations/humanitys-last-exam",
+  benchmark_version: null,
   model_id: "example/example-v4-flash",
   model: "Example V4 Flash 0731 (max)",
   provider: "Example",
@@ -605,7 +606,7 @@ const valsVersionRow: ValsIndexModelScoreRow = {
   provider: "Example",
   score: 0.64,
   observed_at: "2026-10-07",
-  metadata: { benchmark_version: "2.1", benchmark_count: 8 },
+  metadata: { benchmark_version: "2.2", benchmark_count: 8 },
 };
 versionedAliasSourceData.valsIndex = {
   rows: [valsVersionRow],
@@ -1118,13 +1119,14 @@ function modelStatsSourceData(
       provider: "Google",
       score: 0.64,
       observed_at: "2026-10-07",
-      metadata: { benchmark_version: "2.1", benchmark_count: 8 },
+      metadata: { benchmark_version: "2.2", benchmark_count: 8 },
     },
   ];
   const artificialAnalysisResourceRows: ArtificialAnalysisBenchmarkResourceRow[] = [
     {
       benchmark_key: "hle",
       source_url: "https://artificialanalysis.ai/evaluations/humanitys-last-exam",
+      benchmark_version: null,
       model_id: "google/example-2-5-flash",
       model: "Example 2.5 Flash (high)",
       provider: "Google",
@@ -1143,6 +1145,7 @@ function modelStatsSourceData(
     {
       benchmark_key: "hle",
       source_url: "https://artificialanalysis.ai/evaluations/humanitys-last-exam",
+      benchmark_version: null,
       model_id: "google/example-2-5-flash-non-reasoning",
       model: "Example 2.5 Flash",
       provider: "Google",

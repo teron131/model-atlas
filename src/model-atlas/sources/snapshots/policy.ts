@@ -121,6 +121,37 @@ export function snapshotRows<T>(
   return mergeCachedSourceRows(cachedRows, fetchedRows, rowKey, mergeRow);
 }
 
+/** Where a source's rows record their published version, and which rows share one, such as each benchmark of a multi-benchmark source; the whole source is one series by default. */
+export type EditionRule<T> = {
+  editionOf: (row: T) => unknown;
+  seriesOf?: (row: T) => string;
+};
+
+/** A series whose refresh shares no published edition with its cached rows is a new edition, so its cached rows are dropped and the refresh replaces them instead of merging, keeping two editions off one scale. Rows without an edition take no part, and a partial refresh of a multi-artifact source still shares an edition, so it merges as usual. */
+export function withoutSupersededEditions<T>(
+  cachedRows: readonly T[],
+  fetchedRows: readonly T[],
+  { editionOf, seriesOf = () => "" }: EditionRule<T>,
+): T[] {
+  const editions = (rows: readonly T[], series: string) =>
+    new Set(
+      rows
+        .filter((row) => seriesOf(row) === series)
+        .map(editionOf)
+        .filter((edition) => edition != null),
+    );
+  const supersededSeries = new Set(
+    [...new Set(fetchedRows.map(seriesOf))].filter((series) => {
+      const cached = editions(cachedRows, series);
+      const fetched = editions(fetchedRows, series);
+      return (
+        cached.size > 0 && fetched.size > 0 && [...fetched].every((edition) => !cached.has(edition))
+      );
+    }),
+  );
+  return cachedRows.filter((row) => !supersededSeries.has(seriesOf(row)));
+}
+
 /** Preservation state records which known rows vanished without deleting their cached evidence immediately. */
 export function snapshotRowsWithStates<T>(config: SnapshotRowsConfig<T>): SnapshotRowsResult<T> {
   const hasUsableFetchedRows =

@@ -93,6 +93,21 @@ export async function readPublishedSnapshot(): Promise<ModelAtlasPayload> {
   return readBenchmarkPayload(state, manifest);
 }
 
+/** Prerendered pages read the manifest through Next's revalidating data cache, because the display reader's uncached manifest poll would make them dynamic. */
+export async function readRevalidatedSnapshot(
+  revalidateSeconds: number,
+): Promise<ModelAtlasPayload> {
+  if (process.env.MODEL_ATLAS_LOCAL_DATABASE === "1") return readPublishedSnapshot();
+  const state = readState();
+  const response = await fetch(snapshotUrl(state.bucket, SNAPSHOT_MANIFEST_OBJECT), {
+    next: { revalidate: revalidateSeconds },
+    signal: AbortSignal.timeout(15_000),
+  });
+  if (!response.ok)
+    throw new Error(`Unable to fetch Model Atlas manifest: HTTP ${response.status}`);
+  return readBenchmarkPayload(state, parseSnapshotManifest(await response.json()));
+}
+
 function readBenchmarkPayload(state: SnapshotReadState, manifest: SnapshotManifest) {
   return readArtifact(state, manifest, "payload", state.payload, async (bytes) =>
     withCurrentMetadata(await decodeSnapshotPayload(bytes, manifest)),
@@ -247,6 +262,7 @@ function withCurrentMetadata(payload: ModelAtlasPayload): ModelAtlasPayload {
       availableMetrics: payload.metadata?.available_metrics,
       sourceHealth: payload.metadata?.source_health,
       benchmarkUpdateHealth: payload.metadata?.benchmark_update_health,
+      benchmarkEditions: payload.metadata?.benchmark_editions,
       availabilitySource: "metadata",
       snapshotPreservationVersion: payload.metadata.scoring.snapshot_preservation_version ?? null,
     }),

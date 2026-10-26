@@ -84,7 +84,7 @@ export const INDEX_POLICIES = {
   },
   vals_index: {
     representedBenchmarks: REPORTED_BREADTH.vals_index,
-    version: "2.1",
+    version: "2.2",
     effortAware: false,
     resources: null,
     componentBenchmarkKeys: null,

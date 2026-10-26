@@ -70,12 +70,12 @@ export function insertArtificialAnalysisBenchmarkResourceRawRows(
 ): void {
   const statement = db.prepare(`
 		INSERT INTO artificial_analysis_benchmarks_raw_rows (
-			row_index, fetched_at_epoch_seconds, url, benchmark_key, model_id,
-			model, provider, provider_id, reasoning_effort, score, task_run_count,
+			row_index, fetched_at_epoch_seconds, url, benchmark_key, benchmark_version,
+			model_id, model, provider, provider_id, reasoning_effort, score, task_run_count,
 			cost_per_task_usd, seconds_per_task, tokens_per_task,
 			input_tokens_per_task, output_tokens_per_task, answer_tokens_per_task,
 			reasoning_tokens_per_task
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
   for (const [index, row] of snapshots.artificialAnalysisBenchmarkResourceRows.entries()) {
     statement.run(
@@ -83,6 +83,7 @@ export function insertArtificialAnalysisBenchmarkResourceRawRows(
       snapshots.fetchedAt.artificialAnalysisBenchmarkResources,
       row.source_url,
       row.benchmark_key,
+      row.benchmark_version,
       row.model_id,
       row.model,
       row.provider,
