@@ -13,7 +13,7 @@ import {
 } from "./payload-cache";
 
 const PAYLOAD_REFRESH_ATTEMPT_KEY = "model-atlas:selected-payload-refresh-at";
-// Cache is only a display substitute; missing or incomplete server payloads still refresh through this guard policy.
+// The stored copy only stands in for the live view, so a dashboard drawn from it still refreshes, spaced by this guard.
 const AUTOMATIC_REFRESH_GUARD_MS = 15_000;
 const ACTIVE_REFRESH_INTERVAL_MS = 60_000;
 const REFRESH_RETRY_SLACK_MS = 25;
@@ -22,23 +22,13 @@ type RefreshPayloadOptions = {
   retryWhenGuarded?: boolean;
 };
 
-/**
- * Keeps the dashboard payload current while cached data covers compact or unavailable initial responses.
- *
- * `initialEtag` is the dashboard view's validator for the snapshot the server rendered `initialPayload` from.
- * Without it, the first refresh of every visit would download the whole view and re-render the dashboard with identical data.
- */
-export function useLivePayload(
-  initialPayload: ModelAtlasPayload | null,
-  initialEtag: string | null = null,
-) {
-  const [payload, setPayload] = useState<ModelAtlasPayload | null>(initialPayload);
+/** Draws the dashboard from the browser's stored copy at once when there is one, and keeps it current from the dashboard view. */
+export function useLivePayload() {
+  const [payload, setPayload] = useState<ModelAtlasPayload | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const refreshInFlightRef = useRef<Promise<void> | null>(null);
   const refreshRetryTimeoutRef = useRef<number | null>(null);
-  const currentPayloadRef = useRef<CachedPayload | null>(
-    initialPayload == null ? null : { etag: initialEtag, payload: initialPayload },
-  );
+  const currentPayloadRef = useRef<CachedPayload | null>(null);
   // The browser copy is written once a refresh confirms the payload, whether or not the snapshot had changed.
   const storedPayloadRef = useRef<CachedPayload | null>(null);
 
@@ -46,7 +36,8 @@ export function useLivePayload(
     if (refreshInFlightRef.current != null) {
       return refreshInFlightRef.current;
     }
-    const remainingGuardMs = refreshGuardRemainingMs();
+    // The guard only spaces out refreshes of data already on screen; a dashboard with nothing to draw downloads at once.
+    const remainingGuardMs = currentPayloadRef.current == null ? 0 : refreshGuardRemainingMs();
     if (remainingGuardMs > 0) {
       if (options?.retryWhenGuarded && refreshRetryTimeoutRef.current == null) {
         refreshRetryTimeoutRef.current = window.setTimeout(() => {
@@ -84,15 +75,14 @@ export function useLivePayload(
   }, []);
 
   useLayoutEffect(() => {
-    if (initialPayload != null && hasSelectedBenchmarks(initialPayload)) return;
     const cached = readCachedPayload();
-    if (cached != null && (initialPayload == null || hasSelectedBenchmarks(cached.payload))) {
+    if (cached != null) {
       currentPayloadRef.current = cached;
       storedPayloadRef.current = cached;
       setPayload(cached.payload);
     }
     void refreshPayload({ retryWhenGuarded: true });
-  }, [initialPayload, refreshPayload]);
+  }, [refreshPayload]);
 
   useEffect(() => {
     const refreshWhenActive = () => {
@@ -118,10 +108,6 @@ export function useLivePayload(
     payload,
     errorMessage,
   };
-}
-
-function hasSelectedBenchmarks(payload: ModelAtlasPayload): boolean {
-  return payload.metadata.scoring.selected_benchmark_keys.length > 0;
 }
 
 function refreshGuardRemainingMs(): number {

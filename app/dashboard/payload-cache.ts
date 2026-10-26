@@ -3,7 +3,7 @@
 import { isModelAtlasPayload } from "../../src/model-atlas/stats/payload/validation";
 import type { ModelAtlasPayload } from "../../src/model-atlas/stats/types";
 
-const DASHBOARD_PAYLOAD_PATH = "/api/llm-stats?view=dashboard";
+export const DASHBOARD_PAYLOAD_PATH = "/api/llm-stats?view=dashboard";
 const PAYLOAD_CACHE_KEY = "model-atlas:selected-payload";
 const PAYLOAD_DOWNLOAD_TIMEOUT_MS = 30_000;
 
@@ -14,10 +14,14 @@ export type CachedPayload = {
 
 let pendingCacheWrite: CachedPayload | null = null;
 
-/** Reuse a validator only while its validated payload is available to render. */
+/**
+ * Reuse a validator only while its validated payload is available to render.
+ *
+ * With nothing stored, the download may take the browser's copy, which is how it receives the response the page preloads; a refresh always asks the server.
+ */
 export async function fetchDashboardPayload(current: CachedPayload | null): Promise<CachedPayload> {
   const response = await fetch(DASHBOARD_PAYLOAD_PATH, {
-    cache: "no-cache",
+    cache: current == null ? "default" : "no-cache",
     headers: current?.etag ? { "If-None-Match": current.etag } : {},
     signal: AbortSignal.timeout(PAYLOAD_DOWNLOAD_TIMEOUT_MS),
   });

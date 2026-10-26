@@ -63,8 +63,10 @@ export function FrontierField({
   const horizonRef = useRef(horizon);
   const skyRef = useRef<ReturnType<typeof createSky> | null>(null);
   const invalidateRef = useRef<(() => void) | null>(null);
+  const openRef = useRef<(() => void) | null>(null);
   const labelElements = useRef(new Map<string, HTMLSpanElement>());
-  const [ready, setReady] = useState(false);
+  // Rendered as `data-sky`, which the sky layers' styles and the dashboard's loading gate in globals.css both read.
+  const [mode, setMode] = useState<"loading" | "webgl" | "static">("loading");
   const labels = useMemo(
     () => stars.flatMap((star) => (star.label == null ? [] : [star.label])),
     [stars],
@@ -73,6 +75,7 @@ export function FrontierField({
   useEffect(() => {
     starsRef.current = stars;
     skyRef.current?.setStars(stars);
+    openRef.current?.();
     invalidateRef.current?.();
   }, [stars]);
 
@@ -99,7 +102,7 @@ export function FrontierField({
     try {
       renderer = new THREE.WebGLRenderer({ alpha: false, antialias: true });
     } catch {
-      // The CSS atmosphere beneath the canvas remains as the static field.
+      setMode("static");
       return;
     }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
@@ -131,6 +134,7 @@ export function FrontierField({
     let dirty = true;
     let lost = false;
     let compiled = false;
+    let opened = false;
     let pointerX = 0;
     let pointerY = 0;
     let pointer: { x: number; y: number } | null = null;
@@ -298,6 +302,13 @@ export function FrontierField({
       lastNow = performance.now();
       frame = requestAnimationFrame(loop);
     };
+    // The opening plays once, from when the shaders are ready and the stars have arrived, since the page appears only then.
+    const open = () => {
+      if (opened || !compiled || starsRef.current.length === 0) return;
+      opened = true;
+      introStart = performance.now();
+      invalidate();
+    };
     const resize = () => {
       frameState.width = Math.max(1, host.clientWidth);
       frameState.height = Math.max(1, host.clientHeight);
@@ -337,9 +348,10 @@ export function FrontierField({
       lost = true;
       cancelAnimationFrame(frame);
       frame = 0;
-      setReady(false);
+      setMode("static");
     };
     invalidateRef.current = invalidate;
+    openRef.current = open;
     const observer = new ResizeObserver(resize);
     observer.observe(host);
     observer.observe(hero);
@@ -355,9 +367,9 @@ export function FrontierField({
     void renderer.compileAsync(scene, camera).then(() => {
       if (skyRef.current !== sky || lost) return;
       compiled = true;
-      introStart = performance.now();
+      open();
       invalidate();
-      setReady(true);
+      setMode("webgl");
     });
     return () => {
       cancelAnimationFrame(frame);
@@ -370,18 +382,19 @@ export function FrontierField({
       motion.removeEventListener("change", invalidate);
       renderer.domElement.removeEventListener("webglcontextlost", contextLost);
       invalidateRef.current = null;
+      openRef.current = null;
       skyRef.current = null;
       sky.dispose();
       renderer.dispose();
       renderer.forceContextLoss();
       renderer.domElement.remove();
-      setReady(false);
+      setMode("loading");
     };
   }, [heroRef]);
 
   // Frontier names are decorative here; the register below carries the same roles accessibly.
   return (
-    <div className={styles.field} ref={hostRef} data-ready={ready} aria-hidden="true">
+    <div className={styles.field} ref={hostRef} data-sky={mode} aria-hidden="true">
       {labels.map((label) => (
         <span
           key={label}

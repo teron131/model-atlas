@@ -210,7 +210,7 @@ export function publicJsonPayload(
 }
 
 /**
- * Serialize a view once per snapshot object, shared by the stats endpoint and the dashboard page that asks whether its view has changed.
+ * Serialize a view once per snapshot object, so the stats endpoint answers every request for that snapshot from one body and validator.
  *
  * The validator is a hash of the site-relative body, so it changes with the snapshot's data and with the view's shape, and the same snapshot yields the same validator wherever it is asked for.
  * It stays valid for a body with absolute URLs because a validator only ever compares responses for one URL, whose host fixes the origin.
@@ -267,20 +267,6 @@ export function dashboardJsonPayload(
       Object.entries(observations).map(([key, rows]) => [key, rows.map(dashboardObservation)]),
     ),
   };
-}
-
-/**
- * The dashboard view as the dashboard page embeds it in its own document, without the health diagnostics no dashboard component reads.
- *
- * Only that page's own script reads the embedded copy, so trimming it changes no public response; the endpoint's dashboard view keeps them.
- */
-export function embeddedDashboardPayload(dashboard: ModelAtlasPayload): ModelAtlasPayload {
-  const {
-    source_health: _sourceHealth,
-    benchmark_update_health: _benchmarkUpdateHealth,
-    ...metadata
-  } = dashboard.metadata;
-  return { ...dashboard, metadata };
 }
 
 /** The core view is the compact table contract: stable scalar columns without dashboard-only decoration. */

@@ -128,6 +128,7 @@ try {
     "304 reuses the same object without a render update",
   );
   fetchMock.mock.mockImplementation(async (_url: unknown, init: RequestInit) => {
+    assert.equal(init.cache, "default", "a first download takes the browser's preloaded copy");
     assert.equal(new Headers(init.headers).get("If-None-Match"), null);
     return Response.json(payload, { headers: { ETag: cached.etag! } });
   });
