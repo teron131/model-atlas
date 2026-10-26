@@ -4,7 +4,6 @@
 
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 
-import { type ModelAtlasPayload } from "../../src/model-atlas/stats/types";
 import { ModelAtlasHeader } from "../shared/ModelAtlasHeader";
 import { DashboardLeaderboard } from "./DashboardLeaderboard";
 import { DashboardGraphs } from "./graphs/DashboardGraphs";
@@ -21,13 +20,8 @@ import { updateDashboardUrl, useUrlState } from "./use-url-state";
 const REASONING_VARIANT_STORAGE_KEY = "model-atlas:expand-reasoning-variants";
 
 export function Dashboard({
-  initialPayload,
-  initialPayloadEtag = null,
   initialShowReasoningVariants = false,
 }: {
-  initialPayload: ModelAtlasPayload | null;
-  /** The dashboard view's validator for the snapshot `initialPayload` was drawn from. */
-  initialPayloadEtag?: string | null;
   initialShowReasoningVariants?: boolean;
 }) {
   const [showReasoningVariants, setShowReasoningVariants] = useReasoningVariantDisplay(
@@ -42,7 +36,7 @@ export function Dashboard({
     () => ({ q, provider, "max-cost": maxCost, rank, days }),
     [q, provider, maxCost, rank, days],
   );
-  const { payload, errorMessage } = useLivePayload(initialPayload, initialPayloadEtag);
+  const { payload, errorMessage } = useLivePayload();
 
   const referenceModels = useMemo(() => payload?.models ?? [], [payload]);
   const displayPayload = useMemo(() => {

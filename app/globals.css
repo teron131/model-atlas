@@ -180,6 +180,11 @@ html {
     animation: none;
     transition: none;
   }
+
+  /* Only the fade stops: `animation: none` above would also cancel the dashboard's sky-wait safety net. */
+  .dashboard-main {
+    transition: none;
+  }
 }
 
 body {
@@ -257,6 +262,20 @@ html:has(.document-main) body {
   position: relative;
   isolation: isolate;
   padding-bottom: var(--research-gap);
+  transition: opacity 1200ms ease;
+}
+
+/* Nothing shows until the hero has its models and its sky can draw, in WebGL or in CSS where WebGL cannot run; if either never comes, as without scripts or data, the page shows anyway after ten seconds. */
+.dashboard-main:not(:has([data-sky="webgl"], [data-sky="static"])),
+.dashboard-main:has([aria-busy="true"] [data-sky]) {
+  opacity: 0;
+  animation: sky-wait 0s 10s forwards;
+}
+
+@keyframes sky-wait {
+  to {
+    opacity: 1;
+  }
 }
 
 html[data-model-atlas-theme="light"] .dashboard-main,

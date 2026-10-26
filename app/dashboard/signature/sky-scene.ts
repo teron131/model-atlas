@@ -64,7 +64,7 @@ uniform float pixelRatio;
 `;
 
 // A dark mound with a stippled, glowing rim under a cobalt sky; the rim shifts from cobalt to violet and rose toward the sides.
-// It renders at full strength from the first frame because the CSS atmosphere already shows the same horizon; only the stars play the opening.
+// It renders at full strength from the first frame because the field's fade-in already reveals it; only the stars play the opening.
 const HORIZON_VERTEX = /* glsl */ `
 varying vec2 vUv;
 void main() {

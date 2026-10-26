@@ -9,7 +9,6 @@ import {
   benchmarksJsonPayload,
   coreJsonPayload,
   dashboardJsonPayload,
-  embeddedDashboardPayload,
   type FullJsonPayload,
   fullJsonPayload,
   publicJsonPayload,
@@ -294,13 +293,6 @@ assert.deepEqual(
   ["available_metrics", "scoring", "source_health", "benchmark_update_health"],
   "The public dashboard view keeps its health diagnostics; callers outside the app may read them",
 );
-const embeddedDashboard = embeddedDashboardPayload(publicDashboard);
-assert.deepEqual(
-  Object.keys(embeddedDashboard.metadata),
-  ["available_metrics", "scoring"],
-  "The page's embedded copy leaves out the health diagnostics no dashboard component reads",
-);
-assert.deepEqual(embeddedDashboard.models, publicDashboard.models);
 assert.deepEqual(
   [
     scoreJsonPayload(reasoningVariantPayload).scores.length,

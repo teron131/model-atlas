@@ -86,6 +86,7 @@ export const ModelSignature = memo(function ModelSignature(population: Signature
       className={styles.signature}
       style={horizon == null ? undefined : ({ "--horizon": `${horizon}px` } as CSSProperties)}
       aria-labelledby="model-signature-title"
+      aria-busy={population.referenceModels.length === 0}
     >
       <div className={styles.atmosphere} aria-hidden="true" />
       <div className={styles.grain} aria-hidden="true" />
