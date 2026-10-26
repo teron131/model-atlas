@@ -13,7 +13,6 @@ import {
   type RawSourceName,
 } from "../registry";
 import type { RawSourceCacheStatus } from "../types";
-import { type CacheDbRow, firstEpochSecond } from "./rows";
 
 export function refreshedCacheStatus(
   lastFetchEpochSeconds: number | null,
@@ -56,31 +55,6 @@ export function readRawSourceCacheStatus(
   };
 }
 
-/** Computes source freshness from collected rows without a local database. */
-export function rawSourceCacheStatusFromRows(
-  source: RawSourceName,
-  rows: readonly CacheDbRow[],
-  nowEpochSeconds: number,
-  persistedStatus?: Pick<RawSourceCacheStatus, "last_fetch_epoch_seconds" | "source_input_count">,
-): RawSourceCacheStatus {
-  const lastFetch =
-    persistedStatus == null ? firstEpochSecond(rows) : persistedStatus.last_fetch_epoch_seconds;
-  const sourceInputCount =
-    persistedStatus == null ? rows.length : persistedStatus.source_input_count;
-  return {
-    last_fetch_epoch_seconds: lastFetch,
-    source_input_count: sourceInputCount,
-    cache_hit:
-      rows.length > 0 &&
-      sourceInputCount > 0 &&
-      lastFetch != null &&
-      nowEpochSeconds - lastFetch >= 0 &&
-      nowEpochSeconds - lastFetch <= rawSourceCacheSeconds(source) &&
-      rowsHaveCurrentShape(source, rows),
-    refreshed: false,
-  };
-}
-
 function isSourceCacheShapeCurrent(db: DatabaseSync, source: RawSourceName): boolean {
   if (source === "artificial_analysis") {
     return artificialAnalysisCacheHasHiddenRows(db);
@@ -101,20 +75,4 @@ function hasPreferredDeepSWECacheVersion(db: DatabaseSync): boolean {
       .prepare("SELECT 1 FROM deep_swe_raw_rows WHERE source_version = ? LIMIT 1")
       .get(DEEP_SWE_PREFERRED_SOURCE_VERSION) != null
   );
-}
-
-function rowsHaveCurrentShape(source: RawSourceName, rows: readonly CacheDbRow[]): boolean {
-  if (source === "artificial_analysis") {
-    return rows.some((row) => row.deprecated === 1);
-  }
-  if (source === "deep_swe") {
-    return rows.some((row) => row.source_version === DEEP_SWE_PREFERRED_SOURCE_VERSION);
-  }
-  if (source === "openrouter") {
-    return openRouterCacheHasCurrentShape([...rows]);
-  }
-  if (source === "arena_agent") {
-    return rows.every((row) => Object.hasOwn(row, "cost_per_task_usd"));
-  }
-  return true;
 }

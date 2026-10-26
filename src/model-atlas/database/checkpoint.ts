@@ -147,6 +147,7 @@ const SNAPSHOT_APPEND_WRITERS = [
 type DatabaseSnapshotVersioning = {
   capabilityState?: CapabilityState;
   previousPayload?: ModelAtlasPayload | null;
+  previousRefreshId: number | null;
   replaceSourceRows?: boolean;
 };
 
@@ -158,7 +159,7 @@ export async function deriveDatabaseSnapshot(
   snapshots: SourceSnapshots,
   sourceCache: Record<RawSourceName, RawSourceCacheStatus>,
   loadOpenRouter: OpenRouterLoader,
-  versioning: DatabaseSnapshotVersioning = {},
+  versioning: DatabaseSnapshotVersioning,
 ): Promise<DerivedDatabaseSnapshot> {
   const observedDate = new Date(startedAtEpochSeconds * 1000).toISOString().slice(0, 10);
   const previousModels = versioning.previousPayload?.models ?? [];
@@ -203,6 +204,7 @@ export async function deriveDatabaseSnapshot(
   // The refresh audit compares the published rows, so it follows snapshot preservation.
   const changes = buildRefreshChanges(
     startedAtEpochSeconds,
+    versioning.previousRefreshId,
     versioning.previousPayload,
     preservedModels,
     buildCurrentModelAtlasMetadata({ models: preservedModels, healthModels: preservedModels })

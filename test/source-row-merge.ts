@@ -427,6 +427,29 @@ assert.deepEqual(
     .map((state) => state.row_key),
   ["b|z"],
 );
+const throwingSnapshot = await snapshotSourceRows({
+  source: "artificial_analysis_benchmark_resources",
+  cached: { rows: [seriesRow("a", "1", "x")], fetchedAt: 1_800_000_000 },
+  status: {
+    last_fetch_epoch_seconds: 1_800_000_000,
+    source_input_count: 1,
+    cache_hit: false,
+    refreshed: false,
+  },
+  options: {},
+  previousMissingSince: new Map(),
+  nowEpochSeconds: 1_800_000_999,
+  fetchRows: async () => {
+    throw new Error("scrape failed");
+  },
+  rowKey: (row) => `${row.series}|${row.model}`,
+  rowLabel: (row) => row.model,
+});
+assert.deepEqual(
+  [throwingSnapshot.rows, throwingSnapshot.fetchedAt],
+  [[seriesRow("a", "1", "x")], 1_800_000_000],
+  "A scraper that throws keeps its cached rows and fetch time instead of failing the refresh",
+);
 
 const frontierCodeRevision = (score: number) => ({
   models: ["GPT-6 Astra"],

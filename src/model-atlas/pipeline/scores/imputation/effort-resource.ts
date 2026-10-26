@@ -9,7 +9,7 @@ import {
 } from "../../../identity/normalization";
 import { clamp01, medianOfFinite, positiveFiniteNumber } from "../../../math-utils";
 import type { ModelAtlasCandidate } from "../../model-types";
-import { qualityLocalResourceScores } from "../resource-efficiency";
+import { heldOutResourceScorer } from "../resource-efficiency";
 import { benchmarkMetricValue } from "../resource-metrics";
 import { benchmarkQualityEvidence, type BenchmarkScoringPreparation } from "./benchmark";
 import { prepareBroaderResourceEstimator } from "./broader-resource";
@@ -25,6 +25,7 @@ import {
 
 const MIN_PAIRED_BENCHMARKS = 3;
 const MAX_MEDIAN_LOG_RESOURCE_ERROR = Math.LN2;
+type TargetResourceScorer = (key: string) => (logResource: number) => number | null;
 type ValidatedEffortRatio = {
   evidenceFactor: number;
   kind: TaskResourceKind;
@@ -39,6 +40,7 @@ function validatedEffortRatio(
   sourceIndex: number,
   scoringConfig: ScoringConfig,
   kind: TaskResourceKind,
+  targetResourceScorer: TargetResourceScorer,
 ): ValidatedEffortRatio | null {
   const target = models[targetIndex];
   const source = models[sourceIndex];
@@ -75,31 +77,9 @@ function validatedEffortRatio(
     const predictedTargetAmount = sourceAmount * Math.exp(logRatio);
     rawErrors.push(Math.abs(Math.log(predictedTargetAmount / actualTargetAmount)));
 
-    const qualities = models.map((model) => benchmarkMetricValue(model, key));
-    const actualResources = models.map((model) => {
-      const amount = directTaskResource(model, key, scoringConfig, kind);
-      return amount == null ? null : Math.log(amount);
-    });
-    const calibrationMask = models.map(
-      (_, index) =>
-        index !== targetIndex && qualities[index] != null && actualResources[index] != null,
-    );
-    const actualScores = qualityLocalResourceScores(
-      models,
-      qualities,
-      actualResources,
-      calibrationMask,
-    );
-    const predictedResources = [...actualResources];
-    predictedResources[targetIndex] = Math.log(predictedTargetAmount);
-    const predictedScores = qualityLocalResourceScores(
-      models,
-      qualities,
-      predictedResources,
-      calibrationMask,
-    );
-    const actualScore = actualScores[targetIndex] ?? null;
-    const predictedScore = predictedScores[targetIndex] ?? null;
+    const scoreTarget = targetResourceScorer(key);
+    const actualScore = scoreTarget(Math.log(actualTargetAmount));
+    const predictedScore = scoreTarget(Math.log(predictedTargetAmount));
     if (actualScore != null && predictedScore != null) {
       scoreErrors.push(Math.abs(predictedScore - actualScore));
     }
@@ -152,15 +132,55 @@ export function prepareEffortResourceImputation(
   const broaderEstimators = new Map(
     kinds.map((kind) => [kind, prepareBroaderResourceEstimator(models, scoringConfig, kind)]),
   );
+  const populationByKindAndKey = new Map<
+    string,
+    { qualities: (number | null)[]; logResources: (number | null)[] }
+  >();
+  const resourcePopulation = (kind: TaskResourceKind, key: string) => {
+    const populationKey = `${kind}\u0000${key}`;
+    let population = populationByKindAndKey.get(populationKey);
+    if (population == null) {
+      population = {
+        qualities: models.map((model) => benchmarkMetricValue(model, key)),
+        logResources: models.map((model) => {
+          const amount = directTaskResource(model, key, scoringConfig, kind);
+          return amount == null ? null : Math.log(amount);
+        }),
+      };
+      populationByKindAndKey.set(populationKey, population);
+    }
+    return population;
+  };
   const ratios: ValidatedEffortRatio[] = [];
   for (const indexes of indexesByModel.values()) {
     for (const targetIndex of indexes) {
+      // Every reference effort validates against the same target-held-out population, so it is prepared once per kind and benchmark.
+      const scorersByKindAndKey = new Map<string, (logResource: number) => number | null>();
+      const targetResourceScorer =
+        (kind: TaskResourceKind): TargetResourceScorer =>
+        (key) => {
+          const scorerKey = `${kind}\u0000${key}`;
+          let scorer = scorersByKindAndKey.get(scorerKey);
+          if (scorer == null) {
+            const { qualities, logResources } = resourcePopulation(kind, key);
+            scorer = heldOutResourceScorer(models, qualities, logResources, targetIndex);
+            scorersByKindAndKey.set(scorerKey, scorer);
+          }
+          return scorer;
+        };
       for (const sourceIndex of indexes) {
         if (targetIndex === sourceIndex) {
           continue;
         }
         for (const kind of kinds) {
-          const ratio = validatedEffortRatio(models, targetIndex, sourceIndex, scoringConfig, kind);
+          const ratio = validatedEffortRatio(
+            models,
+            targetIndex,
+            sourceIndex,
+            scoringConfig,
+            kind,
+            targetResourceScorer(kind),
+          );
           if (ratio != null) {
             ratios.push(ratio);
           }

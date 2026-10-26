@@ -2,7 +2,7 @@
 
 import { benchmarkValueLocation } from "../../benchmarks/registry";
 import { STAGE_CONFIG } from "../../config";
-import type { ScoringConfig } from "../../config/stage";
+import { type ScoringConfig, selectedBenchmarkKeys } from "../../config/stage";
 import {
   type ActiveResourceComponents,
   columnTooltipsForActiveComponents,
@@ -140,20 +140,17 @@ export function buildCurrentModelAtlasMetadata({
   const outputAvailableMetrics = availableMetrics ?? modelAvailableMetrics;
   const availabilityMetrics =
     availabilitySource === "metadata" ? outputAvailableMetrics : modelAvailableMetrics;
-  const selectedBenchmarkKeys = sortedUniqueKeys([
-    ...scoringConfig.intelligenceBenchmarkKeys,
-    ...scoringConfig.agenticBenchmarkKeys,
-  ]);
+  const selectedKeys = sortedUniqueKeys(selectedBenchmarkKeys(scoringConfig));
   const resourceComponents = activeResourceComponents(resourceModels, scoringConfig);
   const hasCompleteStoredBenchmarkHealth =
     sourceRowsByKey == null &&
     benchmarkUpdateHealth != null &&
-    selectedBenchmarkKeys.every((key) => isCurrentBenchmarkHealth(benchmarkUpdateHealth[key]));
+    selectedKeys.every((key) => isCurrentBenchmarkHealth(benchmarkUpdateHealth[key]));
   const computedBenchmarkUpdateHealth = hasCompleteStoredBenchmarkHealth
     ? {}
     : buildBenchmarkUpdateHealth(healthModels, scoringConfig, sourceRowsByKey, matcherConfig);
   const currentBenchmarkUpdateHealth = Object.fromEntries(
-    selectedBenchmarkKeys.map((key) => [
+    selectedKeys.map((key) => [
       key,
       hasCompleteStoredBenchmarkHealth
         ? benchmarkUpdateHealth![key]!
@@ -187,7 +184,7 @@ export function buildCurrentModelAtlasMetadata({
       missing_agentic_benchmark_keys: scoringConfig.agenticBenchmarkKeys.filter(
         (key) => !benchmarkAvailable(key, availabilityMetrics),
       ),
-      selected_benchmark_keys: selectedBenchmarkKeys,
+      selected_benchmark_keys: selectedKeys,
       benchmark_portfolio: { ...scoringConfig.benchmarkPortfolio },
       quality_coverage: {
         intelligence: {

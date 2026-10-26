@@ -129,7 +129,10 @@ export async function snapshotSourceRows<Row>(
     };
   }
 
-  const loaded = await config.fetchRows();
+  // A scraper that throws is treated like one that returned no rows, so it falls back to its cached evidence instead of failing the whole refresh.
+  const loaded = await config
+    .fetchRows()
+    .catch((): SourceRowsPayload<Row> => ({ fetched_at_epoch_seconds: null, data: [] }));
   // A delayed alternate publication must not make newer cached evidence disappear or look newly fetched.
   const fetched: SourceRowsPayload<Row> =
     config.cached != null &&

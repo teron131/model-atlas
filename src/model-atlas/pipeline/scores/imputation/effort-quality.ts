@@ -2,7 +2,7 @@
 
 import { isAggregateIndex } from "../../../benchmarks/index-policy";
 import { benchmarkDimensionWeight } from "../../../benchmarks/registry";
-import type { ScoringConfig } from "../../../config/stage";
+import { countsTowardIntelligence, type ScoringConfig } from "../../../config/stage";
 import {
   canonicalModelKey,
   canonicalReasoningEffort,
@@ -44,13 +44,7 @@ export function prepareEffortQualityScoringContext(
       const variants = group.map((model) => ({
         model,
         inputs: keys.flatMap((key) => {
-          if (
-            dimension === "intelligence" &&
-            !isAggregateIndex(key) &&
-            scoringConfig.intelligenceGroupWeights[
-              scoringConfig.benchmarkPortfolio[key]?.group ?? "baseline"
-            ] === 0
-          ) {
+          if (dimension === "intelligence" && !countsTowardIntelligence(key, scoringConfig)) {
             return [];
           }
           const weight = benchmarkDimensionWeight(key, dimension, scoringConfig.benchmarkPortfolio);

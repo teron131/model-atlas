@@ -13,11 +13,13 @@ import {
 } from "../src/model-atlas/benchmarks/registry";
 import { benchmarkModelEffort } from "../src/model-atlas/identity/normalization";
 import { processAutomationBenchModule } from "../src/model-atlas/sources/automation-bench";
-import { insertBenchmarkRawRows } from "../src/model-atlas/sources/benchmarks";
 import { processEpochCapabilitiesIndexCsv } from "../src/model-atlas/sources/epoch/capabilities-index";
 import { epochBenchmarkObservationRows } from "../src/model-atlas/sources/epoch/results";
 import { processEpochWeirdMlCsv } from "../src/model-atlas/sources/epoch/weirdml";
-import { readBenchmarkObservationRawCache } from "../src/model-atlas/sources/observations/cache";
+import {
+  insertBenchmarkObservationRows,
+  readBenchmarkObservationRawCache,
+} from "../src/model-atlas/sources/observations/cache";
 import { benchmarkObservationSource } from "../src/model-atlas/sources/observations/load";
 import { parseCsvRecords } from "../src/model-atlas/sources/parsing";
 import {
@@ -1085,7 +1087,7 @@ const expectedBySourceDataKey = {
   rsiBenchmark: { rows: rsi, fetchedAt: 1_784_000_014 },
   weirdMl: { rows: weirdMlCombined, fetchedAt: 1_784_000_008 },
 };
-insertBenchmarkRawRows(collector, snapshots, BENCHMARK_OBSERVATION_RAW_TABLE);
+insertBenchmarkObservationRows(collector, snapshots);
 for (const [sourceDataKey, expected] of Object.entries(expectedBySourceDataKey)) {
   const binding = benchmarkObservationBinding(sourceDataKey);
   assert.deepEqual(

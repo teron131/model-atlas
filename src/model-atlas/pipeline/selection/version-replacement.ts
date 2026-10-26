@@ -6,7 +6,7 @@ import {
   type BenchmarkKey,
   benchmarkValueLocation,
 } from "../../benchmarks/registry";
-import type { ScoringConfig } from "../../config/stage";
+import { type ScoringConfig, selectedBenchmarkKeys } from "../../config/stage";
 import { artificialAnalysisMatchSlug, type MatchDiagnosticsPayload } from "../../identity";
 import {
   benchmarkModelEffort,
@@ -252,13 +252,6 @@ export function isVersionReplacementRow(row: JsonObject): boolean {
   return typeof row[REPLACEMENT_SOURCE_ID_FIELD] === "string";
 }
 
-function selectedBenchmarkKeys(scoringConfig: ScoringConfig): ReadonlySet<string> {
-  return new Set([
-    ...scoringConfig.intelligenceBenchmarkKeys,
-    ...scoringConfig.agenticBenchmarkKeys,
-  ]);
-}
-
 function isObservationSource(source: { roles: readonly string[] }): boolean {
   return source.roles.includes("observation");
 }
@@ -378,7 +371,7 @@ export function prepareVersionReplacementBenchmarkRows(
   scoringConfig: ScoringConfig,
 ): Record<string, unknown>[] {
   const previousModelForRow = buildPreviousModelLookup(previousModels);
-  const selectedKeys = selectedBenchmarkKeys(scoringConfig);
+  const selectedKeys = new Set(selectedBenchmarkKeys(scoringConfig));
   return rows.map((inputRow) => {
     const row = asRecord(inputRow);
     if (!isVersionReplacementRow(row)) {
@@ -413,7 +406,7 @@ export function versionReplacementBenchmarkWeights(
     return undefined;
   }
   return new Map(
-    [...selectedBenchmarkKeys(scoringConfig)]
+    selectedBenchmarkKeys(scoringConfig)
       .filter((key) => benchmarkUsesFreshnessAuthority(row, key))
       .map((key) => [key, FRESHNESS_AUTHORITY_WEIGHT]),
   );

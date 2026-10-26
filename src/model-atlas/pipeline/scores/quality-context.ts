@@ -6,7 +6,7 @@ import {
 } from "../../benchmarks/calibration-population";
 import type { BenchmarkDimension } from "../../benchmarks/factory";
 import { indexPolicy } from "../../benchmarks/index-policy";
-import type { ScoringConfig } from "../../config/stage";
+import { type ScoringConfig, selectedBenchmarkKeys } from "../../config/stage";
 import { canonicalModelKey, canonicalReasoningEffort } from "../../identity/normalization";
 import { clamp, linearScore, minMaxRange, type MinMaxRange } from "../../math-utils";
 import type { JsonObject } from "../../runtime";
@@ -43,10 +43,10 @@ export function buildQualityScoringContext(
   models: JsonObject[],
   scoringConfig: ScoringConfig,
 ): QualityScoringContext {
-  const benchmarkKeys = [
-    ...new Set([...scoringConfig.intelligenceBenchmarkKeys, ...scoringConfig.agenticBenchmarkKeys]),
-  ];
-  const benchmarkRangesByKey = observedRangesByBenchmark(models, benchmarkKeys);
+  const benchmarkRangesByKey = observedRangesByBenchmark(
+    models,
+    selectedBenchmarkKeys(scoringConfig),
+  );
   return { benchmarkRangesByKey };
 }
 

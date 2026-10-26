@@ -2,13 +2,7 @@
 
 import { MODEL_ATLAS_BENCHMARK_KEYS } from "../../benchmarks/registry";
 import { asFiniteNumber, asRecord, type JsonObject } from "../../runtime";
-import {
-  type DatabaseWriter,
-  firstString,
-  modalityFlagValue,
-  sqliteBooleanValue,
-  type SqlValue,
-} from "./database";
+import { type DatabaseWriter, firstString, sqliteBooleanValue, type SqlValue } from "./database";
 
 export function insertModels(db: DatabaseWriter, rows: readonly unknown[]): void {
   const statement = db.prepare(`
@@ -16,8 +10,8 @@ export function insertModels(db: DatabaseWriter, rows: readonly unknown[]): void
 			row_index, model_id, provider_id, name,
 			reasoning_effort, logo,
 			reasoning, release_date,
-			open_weights, context, context_input, context_output, input_modality_text,
-			input_modality_image, input_modality_audio, input_modality_video,
+			open_weights, context, context_input, context_output,
+			input_modalities_json, output_modalities_json,
 			throughput_tokens_per_second_median, latency_seconds_median,
 			e2e_latency_seconds_median, cost_input, cost_output, cost_cache_read,
 			cost_cache_write, cost_weighted_input, cost_weighted_output,
@@ -31,7 +25,7 @@ export function insertModels(db: DatabaseWriter, rows: readonly unknown[]): void
 			value_score,
 			intelligence_confidence, agentic_confidence, speed_confidence, value_confidence,
 			latest_change_json
-		) VALUES (${Array.from({ length: 47 }, () => "?").join(", ")})
+		) VALUES (${Array.from({ length: 45 }, () => "?").join(", ")})
 	`);
   for (const [index, row] of rows.entries()) {
     const model = asRecord(row);
@@ -206,11 +200,14 @@ function modelContextValues(model: JsonObject): SqlValue[] {
     asFiniteNumber(context.context) ?? asFiniteNumber(limit.context),
     asFiniteNumber(context.input) ?? asFiniteNumber(limit.input),
     asFiniteNumber(context.output) ?? asFiniteNumber(limit.output),
-    modalityFlagValue(modalities.input, "text"),
-    modalityFlagValue(modalities.input, "image"),
-    modalityFlagValue(modalities.input, "audio"),
-    modalityFlagValue(modalities.input, "video"),
+    modalitiesJson(modalities.input),
+    modalitiesJson(modalities.output),
   ];
+}
+
+/** Store a modality list verbatim, because the processed models mix source vocabularies such as `audio`, `speech`, and `pdf`. */
+function modalitiesJson(values: unknown): string | null {
+  return Array.isArray(values) && values.length > 0 ? JSON.stringify(values) : null;
 }
 
 function modelSpeedAndCostValues(model: JsonObject): SqlValue[] {

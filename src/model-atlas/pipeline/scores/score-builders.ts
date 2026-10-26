@@ -8,7 +8,7 @@ import {
   reportedIndexBenchmarkCount,
 } from "../../benchmarks/index-policy";
 import { benchmarkDimensionWeight } from "../../benchmarks/registry";
-import type { ScoringConfig } from "../../config/stage";
+import { countsTowardIntelligence, type ScoringConfig } from "../../config/stage";
 import { clamp01, meanOfFinite, quantileFromSorted, weightedMeanOfFinite } from "../../math-utils";
 import { asFiniteNumber, asRecord, type JsonObject } from "../../runtime";
 import type {
@@ -77,13 +77,7 @@ function selectedBenchmarkScoreInputs(
 ): BenchmarkScoreInput[] {
   const inputs: BenchmarkScoreInput[] = [];
   for (const key of keys) {
-    if (
-      dimension === "intelligence" &&
-      !isAggregateIndex(key) &&
-      scoringConfig.intelligenceGroupWeights[
-        scoringConfig.benchmarkPortfolio[key]?.group ?? "baseline"
-      ] === 0
-    ) {
+    if (dimension === "intelligence" && !countsTowardIntelligence(key, scoringConfig)) {
       continue;
     }
     const dimensionWeight =

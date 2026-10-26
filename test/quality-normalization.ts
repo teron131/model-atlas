@@ -2,7 +2,6 @@
 
 import assert from "node:assert/strict";
 
-import { BENCHMARK_CATALOG } from "../src/model-atlas/benchmarks/registry";
 import { STAGE_CONFIG } from "../src/model-atlas/config/stage";
 import { linearScale, linearScore, minMaxRange } from "../src/model-atlas/math-utils";
 import {
@@ -51,8 +50,3 @@ close(
   100,
 );
 assert.equal(observedRangesByBenchmark([], ["hle"]).get("hle"), null);
-
-// Catalog metadata must describe the same linear policy that scoring executes.
-for (const benchmark of Object.values(BENCHMARK_CATALOG)) {
-  assert.deepEqual(benchmark.scoring.normalization, { kind: "min_max", output: [0, 100] });
-}

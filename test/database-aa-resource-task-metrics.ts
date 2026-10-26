@@ -33,7 +33,7 @@ try {
         name: "AA Resource Model",
         reasoning_effort: "xhigh",
         logo: "https://example.com/logo.svg",
-        modalities: { input: ["text"] },
+        modalities: { input: ["text", "pdf", "speech"], output: ["text", "image"] },
         benchmarks: { hle: 0.9, gdpval_normalized: 0.8 },
         benchmark_dates: { hle: "2026-07-30", gdpval_normalized: "2026-07-30" },
         task_metrics: {
@@ -119,6 +119,16 @@ try {
   const payload = readDatabasePayload(databasePath);
   assert.equal(payload.models.length, 2);
   const model = payload.models.find((candidate) => candidate.id === "example/aa-resource-model");
+  assert.deepEqual(
+    model?.modalities,
+    { input: ["text", "pdf", "speech"], output: ["text", "image"] },
+    "Published models keep every source modality, including outputs",
+  );
+  assert.equal(
+    payload.models.find((candidate) => candidate.id === "example/sparse-resource-model")
+      ?.modalities,
+    null,
+  );
   assert.deepEqual(model?.task_metrics?.hle, {
     cost: 0.1,
     observed_cost: 0.1,

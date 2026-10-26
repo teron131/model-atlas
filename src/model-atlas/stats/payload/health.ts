@@ -1,6 +1,6 @@
 /** Benchmark health reports matching coverage and observed spread, never freshness or capability verdicts from rank agreement. */
 
-import type { ScoringConfig } from "../../config/stage";
+import { type ScoringConfig, selectedBenchmarkKeys } from "../../config/stage";
 import {
   firstVariantCompatibleCandidate,
   type MatchCandidateInput,
@@ -105,9 +105,7 @@ export function buildBenchmarkUpdateHealth(
       .filter((model) => model.id != null)
       .map((model) => [model.id!, canonicalModelKey(model)]),
   );
-  const keys = [
-    ...new Set([...scoringConfig.intelligenceBenchmarkKeys, ...scoringConfig.agenticBenchmarkKeys]),
-  ].sort();
+  const keys = selectedBenchmarkKeys(scoringConfig).sort();
   const matchSource = sourceMatcher(models, matcherConfig);
   return Object.fromEntries(
     keys.map((key) => {

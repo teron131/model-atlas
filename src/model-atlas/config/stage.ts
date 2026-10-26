@@ -190,3 +190,25 @@ export const STAGE_CONFIG = {
     intelligenceGroupWeights: { frontier: 1, baseline: 0 },
   },
 } satisfies ModelAtlasStageConfig;
+
+/** A direct benchmark scores Intelligence only while its portfolio group carries weight; aggregate indexes always do. */
+export function countsTowardIntelligence(
+  key: string,
+  scoringConfig: Pick<ScoringConfig, "benchmarkPortfolio" | "intelligenceGroupWeights">,
+): boolean {
+  return (
+    isAggregateIndex(key) ||
+    scoringConfig.intelligenceGroupWeights[
+      scoringConfig.benchmarkPortfolio[key]?.group ?? "baseline"
+    ] !== 0
+  );
+}
+
+/** Benchmarks that score either quality dimension, each once, Intelligence keys first. */
+export function selectedBenchmarkKeys(
+  scoringConfig: Pick<ScoringConfig, "intelligenceBenchmarkKeys" | "agenticBenchmarkKeys">,
+): string[] {
+  return [
+    ...new Set([...scoringConfig.intelligenceBenchmarkKeys, ...scoringConfig.agenticBenchmarkKeys]),
+  ];
+}

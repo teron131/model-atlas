@@ -5,8 +5,8 @@ import type { DatabaseWriter } from "../../database/writers/database";
 import { asFiniteNumber, stringValue } from "../../runtime";
 import { defineBenchmarkRuntime } from "../benchmark-runtime";
 import { type CacheRowSource, firstEpochSecond, sourceCacheRows } from "../cache/rows";
-import { snapshotRowsWithStates, sourceKey } from "../snapshots/policy";
-import { shouldUseFetchedRows, snapshotFetchedAt } from "../snapshots/row-snapshot";
+import { sourceKey } from "../snapshots/policy";
+import { snapshotSourceRows } from "../snapshots/row-snapshot";
 import type {
   RawSourceCacheStatus,
   SourceRefreshOptions,
@@ -111,59 +111,25 @@ async function agentsLastExamSnapshot(
   previousMissingSince: ReadonlyMap<string, number>,
   nowEpochSeconds: number,
 ): Promise<AgentsLastExamSnapshot> {
-  if (status.cache_hit && cached != null && options.replaceSourceRows !== true) {
-    const cachedSnapshot = snapshotRowsWithStates({
-      source: "agents_last_exam",
-      cachedRows: cached.rows,
-      fetchedRows: [],
-      fetchedAtEpochSeconds: null,
-      options,
-      rowKey: (row) => sourceKey(row.split, row.harness, row.model, row.harness_variant),
-      rowLabel: (row) => `${row.model} ${row.split}`,
-      previousMissingSince,
-      nowEpochSeconds,
-    });
-    return {
-      agentsLastExamRows: cachedSnapshot.rows,
-      agentsLastExamModelScores: summarizeAgentsLastExamModelScores(cachedSnapshot.rows),
-      sourceStatus: {
-        source: "agents_last_exam",
-        fetchedAt: cached.fetchedAt,
-        sourceInputCount: cachedSnapshot.rows.length,
-        sourceRowStates: cachedSnapshot.states,
-        fetchedAtKey: "agentsLastExam",
-      },
-    };
-  }
-  const fetched = await getAgentsLastExamHarnessStats();
-  const hasUsableFetchedRows = shouldUseFetchedRows(
-    fetched.fetched_at_epoch_seconds,
-    fetched.data.length,
-  );
-  const snapshot = snapshotRowsWithStates({
+  const snapshot = await snapshotSourceRows({
     source: "agents_last_exam",
-    cachedRows: cached?.rows,
-    fetchedRows: fetched.data,
-    fetchedAtEpochSeconds: fetched.fetched_at_epoch_seconds,
+    cached,
+    status,
     options,
-    rowKey: (row) => sourceKey(row.split, row.harness, row.model, row.harness_variant),
-    rowLabel: (row) => `${row.model} ${row.split}`,
     previousMissingSince,
     nowEpochSeconds,
+    fetchRows: getAgentsLastExamHarnessStats,
+    rowKey: (row) => sourceKey(row.split, row.harness, row.model, row.harness_variant),
+    rowLabel: (row) => `${row.model} ${row.split}`,
   });
-  const fetchedAt = snapshotFetchedAt(
-    hasUsableFetchedRows,
-    cached?.fetchedAt,
-    fetched.fetched_at_epoch_seconds,
-  );
   return {
     agentsLastExamRows: snapshot.rows,
     agentsLastExamModelScores: summarizeAgentsLastExamModelScores(snapshot.rows),
     sourceStatus: {
       source: "agents_last_exam",
-      fetchedAt,
+      fetchedAt: snapshot.fetchedAt,
       sourceInputCount: snapshot.rows.length,
-      sourceRowStates: snapshot.states,
+      sourceRowStates: snapshot.sourceRowStates,
       fetchedAtKey: "agentsLastExam",
     },
   };

@@ -17,18 +17,6 @@ type FiniteWeightedValue = {
   weight: number;
 };
 
-export type QualityResourcePoint = {
-  group: string;
-  quality: number | null;
-  resource: number | null;
-  weight: number;
-};
-
-type LocalResiduals = {
-  residuals: Array<number | null>;
-  peerSupport: number[];
-};
-
 /** Estimate an IQR-based standard-deviation-like spread with an explicit floor. */
 export function weightedRobustDeviation(
   values: readonly WeightedValue[],
@@ -37,114 +25,6 @@ export function weightedRobustDeviation(
   const q25 = weightedQuantile(values, 0.25);
   const q75 = weightedQuantile(values, 0.75);
   return q25 == null || q75 == null ? null : Math.max((q75 - q25) / 1.349, minimumDeviation);
-}
-
-/** Blend a stable local trend with the peer mean as peer support grows, evaluating the trend only within observed peer bounds. */
-export function qualityLocalResiduals(
-  points: readonly QualityResourcePoint[],
-  bandwidth: number,
-  minimumDeviation: number,
-  fullSupport: number,
-): LocalResiduals {
-  const references = points.filter(
-    (point) => point.quality != null && point.resource != null && point.weight > 0,
-  );
-  const observations = references.map((point) => ({ value: point.quality, weight: point.weight }));
-  const median = weightedQuantile(observations, 0.5);
-  const deviation = weightedRobustDeviation(observations, minimumDeviation);
-  const result: LocalResiduals = {
-    residuals: points.map(() => null),
-    peerSupport: points.map(() => 0),
-  };
-  if (median == null || deviation == null) return result;
-  const coordinateOf = (quality: number) =>
-    deviation > 0 ? (quality - median) / deviation : quality === median ? 0 : Infinity;
-  const peers = references.map((point) => ({
-    ...point,
-    coordinate: coordinateOf(point.quality!),
-  }));
-  for (const [index, point] of points.entries()) {
-    if (point.quality == null || point.resource == null) continue;
-    result.residuals[index] = 0;
-    const coordinate = coordinateOf(point.quality);
-    const comparisons = new Map<string, { resourceTotal: number; weight: number }>();
-    let qualityTotal = 0;
-    let qualitySquares = 0;
-    let qualityResourceTotal = 0;
-    let minimumQuality = Infinity;
-    let maximumQuality = -Infinity;
-    let minimumResource = Infinity;
-    let maximumResource = -Infinity;
-    for (const peer of peers) {
-      if (peer.group === point.group) continue;
-      const weight = peer.weight * gaussianWeight(coordinate, peer.coordinate, bandwidth);
-      if (!(weight > 0)) continue;
-      const distance = peer.coordinate - coordinate;
-      qualityTotal += weight * distance;
-      qualitySquares += weight * distance * distance;
-      qualityResourceTotal += weight * distance * peer.resource!;
-      minimumQuality = Math.min(minimumQuality, peer.coordinate);
-      maximumQuality = Math.max(maximumQuality, peer.coordinate);
-      minimumResource = Math.min(minimumResource, peer.resource!);
-      maximumResource = Math.max(maximumResource, peer.resource!);
-      const comparison = comparisons.get(peer.group) ?? { resourceTotal: 0, weight: 0 };
-      comparison.resourceTotal += weight * peer.resource!;
-      comparison.weight += weight;
-      comparisons.set(peer.group, comparison);
-    }
-    const groups = [...comparisons.values()];
-    const totalWeight = groups.reduce((sum, group) => sum + group.weight, 0);
-    if (totalWeight <= 0) continue;
-    const resourceTotal = groups.reduce((sum, group) => sum + group.resourceTotal, 0);
-    let expectedSignal = resourceTotal / totalWeight;
-    const supportedModelCount = Math.min(
-      totalWeight,
-      effectiveCount(groups.map((group) => group.weight)),
-    );
-    result.peerSupport[index] = smoothstep((supportedModelCount - 1) / (fullSupport - 1));
-    const determinant = totalWeight * qualitySquares - qualityTotal ** 2;
-    const stableSlope = determinant > Number.EPSILON * totalWeight * qualitySquares * 32;
-    if (stableSlope && result.peerSupport[index]! > 0) {
-      const intercept =
-        (qualitySquares * resourceTotal - qualityTotal * qualityResourceTotal) / determinant;
-      const slope =
-        (totalWeight * qualityResourceTotal - qualityTotal * resourceTotal) / determinant;
-      const offset = clamp(coordinate, minimumQuality, maximumQuality) - coordinate;
-      const fittedSignal = clamp(intercept + slope * offset, minimumResource, maximumResource);
-      expectedSignal += result.peerSupport[index]! * (fittedSignal - expectedSignal);
-    }
-    const residual = point.resource - expectedSignal;
-    const tolerance =
-      Number.EPSILON * Math.max(1, Math.abs(point.resource), Math.abs(expectedSignal)) * 32;
-    result.residuals[index] = Math.abs(residual) <= tolerance ? 0 : residual;
-  }
-  return result;
-}
-
-/** Map residuals to a neutral-one multiplier using the original weighted resource MAD and comparison support. */
-export function boundedResidualMultipliers(
-  comparisons: LocalResiduals,
-  referenceValues: readonly WeightedValue[],
-  cap: number,
-): number[] {
-  const median = weightedQuantile(referenceValues, 0.5);
-  const mad =
-    median == null
-      ? null
-      : weightedQuantile(
-          referenceValues.map(({ value, weight }) => ({
-            value: value == null ? null : Math.abs(value - median),
-            weight,
-          })),
-          0.5,
-        );
-  if (cap === 0 || mad == null || mad <= 0) return comparisons.residuals.map(() => 1);
-  const scale = 1.4826 * mad;
-  return comparisons.residuals.map((residual, index) =>
-    residual == null
-      ? 1
-      : 1 - cap * comparisons.peerSupport[index]! * clamp(residual / scale / 2, -1, 1),
-  );
 }
 
 export function positiveFiniteNumber(value: unknown): number | null {
@@ -240,32 +120,28 @@ export function minMaxScores(
   return directedValues.map((value) => linearScore(range, value));
 }
 
-/** Min-max normalize against weighted anchors while winsorizing only the favorable tail. */
-export function winsorizedMinMaxScores(
-  values: ReadonlyArray<number | null>,
+/** Min-max normalize against weighted anchors while winsorizing only the favorable tail, preparing the anchors once for every value scored. */
+export function winsorizedMinMaxScorer(
   calibrationValues: readonly WeightedValue[],
   direction: "higher" | "lower",
   tailShare: number,
-): Array<number | null> {
+): (value: number | null) => number | null {
   const boundedTailShare = Math.min(0.5, clamp01(tailShare));
   const lower = weightedQuantile(calibrationValues, direction === "lower" ? boundedTailShare : 0);
   const upper = weightedQuantile(
     calibrationValues,
     direction === "higher" ? 1 - boundedTailShare : 1,
   );
-  if (lower == null || upper == null) {
-    return values.map(() => null);
-  }
-  if (upper <= lower) {
-    return values.map((value) => (value == null || !Number.isFinite(value) ? null : 100));
-  }
-  return values.map((value) => {
-    if (value == null || !Number.isFinite(value)) {
+  return (value) => {
+    if (lower == null || upper == null || value == null || !Number.isFinite(value)) {
       return null;
+    }
+    if (upper <= lower) {
+      return 100;
     }
     const normalized = (clamp(value, lower, upper) - lower) / (upper - lower);
     return 100 * (direction === "higher" ? normalized : 1 - normalized);
-  });
+  };
 }
 
 /** Log raw positive inputs before min-max normalization in the requested direction. */
@@ -334,24 +210,22 @@ function aggregateWeightedValues(parts: readonly WeightedValue[]): FiniteWeighte
   return [...weightByValue].map(([value, weight]) => ({ value, weight }));
 }
 
-/** Generalize the empirical less-than-or-equal percentile to weighted observations. */
-export function weightedPercentileRank(
+/** Generalize the empirical less-than-or-equal percentile to weighted observations, aggregating the distribution once for every value ranked. */
+export function weightedPercentileRanker(
   parts: readonly WeightedValue[],
-  value: number | null,
-): number | null {
-  if (value == null || !Number.isFinite(value)) {
-    return null;
-  }
+): (value: number | null) => number | null {
   const observations = aggregateWeightedValues(parts);
   const totalWeight = observations.reduce((sum, observation) => sum + observation.weight, 0);
-  if (totalWeight <= 0) {
-    return null;
-  }
-  const lessOrEqualWeight = observations.reduce(
-    (sum, observation) => (observation.value <= value ? sum + observation.weight : sum),
-    0,
-  );
-  return Number(((100 * lessOrEqualWeight) / totalWeight).toFixed(4));
+  return (value) => {
+    if (value == null || !Number.isFinite(value) || totalWeight <= 0) {
+      return null;
+    }
+    const lessOrEqualWeight = observations.reduce(
+      (sum, observation) => (observation.value <= value ? sum + observation.weight : sum),
+      0,
+    );
+    return Number(((100 * lessOrEqualWeight) / totalWeight).toFixed(4));
+  };
 }
 
 /** Invert cumulative weight without spreading tied mass across gaps; average adjacent values only at an exact mass boundary. */

@@ -4,7 +4,11 @@ import { modelCalibrationWeights } from "../../benchmarks/calibration-population
 import type { BenchmarkDimension, BenchmarkGroup } from "../../benchmarks/factory";
 import { isAggregateIndex } from "../../benchmarks/index-policy";
 import { benchmarkDimensionWeight } from "../../benchmarks/registry";
-import type { ScoringConfig } from "../../config/stage";
+import {
+  countsTowardIntelligence,
+  type ScoringConfig,
+  selectedBenchmarkKeys,
+} from "../../config/stage";
 import { canonicalModelKey } from "../../identity/normalization";
 import {
   linearScore,
@@ -58,10 +62,7 @@ export function fitPairwiseQualityScores(
   scoringConfig: ScoringConfig,
   group?: BenchmarkGroup,
 ): PairwiseQualityResult {
-  const ranges = observedRangesByBenchmark(models, [
-    ...scoringConfig.intelligenceBenchmarkKeys,
-    ...scoringConfig.agenticBenchmarkKeys,
-  ]);
+  const ranges = observedRangesByBenchmark(models, selectedBenchmarkKeys(scoringConfig));
   const edges: PairwiseEdge[] = [];
   let benchmarkCount = 0;
   const keys = (
@@ -71,10 +72,7 @@ export function fitPairwiseQualityScores(
   ).filter(
     (key) =>
       !isAggregateIndex(key) &&
-      (dimension !== "intelligence" ||
-        scoringConfig.intelligenceGroupWeights[
-          scoringConfig.benchmarkPortfolio[key]?.group ?? "baseline"
-        ] > 0) &&
+      (dimension !== "intelligence" || countsTowardIntelligence(key, scoringConfig)) &&
       (group == null || scoringConfig.benchmarkPortfolio[key]?.group === group),
   );
 

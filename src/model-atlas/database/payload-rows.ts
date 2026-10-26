@@ -223,13 +223,6 @@ type PayloadRows = {
   snapshotPreservationVersion: number | null;
 } & Record<PayloadRowKey, DbRow[]>;
 
-const INPUT_MODALITY_COLUMNS = [
-  ["input_modality_text", "text"],
-  ["input_modality_image", "image"],
-  ["input_modality_audio", "audio"],
-  ["input_modality_video", "video"],
-] as const;
-
 function booleanValue(value: unknown): boolean | null {
   if (value === 1) {
     return true;
@@ -346,10 +339,23 @@ function numericObject<T extends object>(row: DbRow, keys: readonly string[]): T
 }
 
 function buildModalities(row: DbRow): ModelAtlasModalities | null {
-  const input = INPUT_MODALITY_COLUMNS.flatMap(([column, modality]) =>
-    booleanValue(row[column]) === true ? [modality] : [],
-  );
-  return input.length > 0 ? { input } : null;
+  const input = modalitiesFromJson(row.input_modalities_json);
+  const output = modalitiesFromJson(row.output_modalities_json);
+  return input == null && output == null
+    ? null
+    : { ...(input == null ? {} : { input }), ...(output == null ? {} : { output }) };
+}
+
+function modalitiesFromJson(value: unknown): string[] | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const parsed: unknown = JSON.parse(value);
+  return Array.isArray(parsed) &&
+    parsed.length > 0 &&
+    parsed.every((item) => typeof item === "string")
+    ? parsed
+    : null;
 }
 
 function buildContextWindow(row: DbRow): ModelAtlasContextWindow {

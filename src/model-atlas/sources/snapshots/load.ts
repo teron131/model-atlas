@@ -69,7 +69,7 @@ export async function loadSourceSnapshots(
   );
 }
 
-export async function refreshSourceSnapshots(
+async function refreshSourceSnapshots(
   caches: SourceSnapshotCaches,
   sourceCache: Record<RawSourceName, RawSourceCacheStatus>,
   previousSourceRowStates: readonly SourceRowState[],

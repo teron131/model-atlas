@@ -21,10 +21,10 @@ import {
   minMaxRange,
   minMaxScores,
   quantileFromSorted,
-  weightedPercentileRank,
+  weightedPercentileRanker,
   weightedQuantile,
   weightedQuantileRank,
-  winsorizedMinMaxScores,
+  winsorizedMinMaxScorer,
 } from "../src/model-atlas/math-utils";
 import {
   attachFinalScores,
@@ -158,8 +158,8 @@ assertClose(
   weightedQuantile(weightedCalibrationValues, 0.75) ?? 0,
 );
 assertClose(
-  weightedPercentileRank(splitWeightedCalibrationValues, 50),
-  weightedPercentileRank(weightedCalibrationValues, 50) ?? 0,
+  weightedPercentileRanker(splitWeightedCalibrationValues)(50),
+  weightedPercentileRanker(weightedCalibrationValues)(50) ?? 0,
 );
 assertClose(weightedQuantileRank(weightedCalibrationValues, 50), 50);
 assertClose(
@@ -171,11 +171,12 @@ assertClose(
 );
 assertClose(effectiveCount([1, 1, 1]), 3);
 assertClose(effectiveCount([0.5, 0.5]), 2);
-const winsorizedScores = winsorizedMinMaxScores(
-  [1, 2, 3, 10],
-  [1, 2, 3, 10].map((value) => ({ value, weight: 1 })),
-  "lower",
-  0.25,
+const winsorizedScores = [1, 2, 3, 10].map(
+  winsorizedMinMaxScorer(
+    [1, 2, 3, 10].map((value) => ({ value, weight: 1 })),
+    "lower",
+    0.25,
+  ),
 );
 assertClose(winsorizedScores[0], 100);
 assertClose(winsorizedScores[3], 0);
