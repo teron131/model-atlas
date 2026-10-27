@@ -20,8 +20,8 @@ import {
 import { coverageMultiplier } from "./normalization";
 import { modelBalancedMinMaxScores, qualityLocalResourceScores } from "./resource-efficiency";
 import {
-  benchmarkMetricValue,
   benchmarkTaskMetrics,
+  benchmarkValue,
   effectiveTaskSeconds,
   separatedBenchmarkResourceEvidence,
 } from "./resource-metrics";
@@ -76,7 +76,7 @@ function taskResourceEfficiencyEvidence(
   models: ResourceScoringModel[],
   scoringConfig: ScoringConfig,
   kind: TaskResourceKind,
-  benchmarkPreparation?: BenchmarkScoringPreparation,
+  scoringPreparation?: BenchmarkScoringPreparation,
   resourceImputation?: EffortResourceImputation,
 ): WeightedResourceEfficiencyEvidence {
   const signalsByModel = models.map(() => [] as WeightedSignal[]);
@@ -114,7 +114,7 @@ function taskResourceEfficiencyEvidence(
       continue;
     }
     const evidence = models.map((model) => {
-      const quality = benchmarkQualityEvidence(model, key, benchmarkPreparation);
+      const quality = benchmarkQualityEvidence(model, key, scoringPreparation);
       if (quality == null) {
         return null;
       }
@@ -125,7 +125,7 @@ function taskResourceEfficiencyEvidence(
           : effectiveTaskSeconds(model, taskMetrics);
       if (directAmount != null) {
         return {
-          calibration: benchmarkMetricValue(model, key) != null,
+          calibration: benchmarkValue(model, key) != null,
           quality: quality.value,
           resource: Math.log(directAmount),
           weight: quality.evidenceFactor,
@@ -250,7 +250,7 @@ function buildResourceScoreInputs(
   models: ResourceScoringModel[],
   qualityCoordinates: readonly (number | null)[],
   scoringConfig: ScoringConfig,
-  benchmarkPreparation?: BenchmarkScoringPreparation,
+  scoringPreparation?: BenchmarkScoringPreparation,
   resourceImputation?: EffortResourceImputation,
 ): ResourceScoreInputs {
   const logBlendedPriceSignals = models.map((model) => logBlendedPrice(blendedPrice(model)));
@@ -278,14 +278,14 @@ function buildResourceScoreInputs(
     models,
     scoringConfig,
     "time",
-    benchmarkPreparation,
+    scoringPreparation,
     resourceImputation,
   );
   const taskCostComponentEvidence = taskResourceEfficiencyEvidence(
     models,
     scoringConfig,
     "cost",
-    benchmarkPreparation,
+    scoringPreparation,
     resourceImputation,
   );
   return {
@@ -299,7 +299,7 @@ function buildResourceScoreInputs(
 export function attachFinalScores(
   models: ModelAtlasCandidate[],
   scoringConfig: ScoringConfig,
-  benchmarkPreparation?: BenchmarkScoringPreparation,
+  scoringPreparation?: BenchmarkScoringPreparation,
   resourceImputation?: EffortResourceImputation,
 ): ModelAtlasScoredCandidate[] {
   const intelligenceScores = models.map(
@@ -313,7 +313,7 @@ export function attachFinalScores(
     models,
     qualityCoordinates,
     scoringConfig,
-    benchmarkPreparation,
+    scoringPreparation,
     resourceImputation,
   );
   const speed = scoreResourceDimension(

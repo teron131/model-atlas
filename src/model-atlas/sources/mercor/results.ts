@@ -9,12 +9,12 @@ import type {
   BenchmarkObservationPayload,
   BenchmarkObservationRow,
 } from "../../benchmarks/observation";
-import { benchmarkModelEffort, canonicalReasoningEffort } from "../../identity/normalization";
-import { asFiniteNumber, asRecord, nowEpochSeconds, stringValue } from "../../runtime";
+import { canonicalReasoningEffort, parseModelEffort } from "../../identity/normalization";
+import { asFiniteNumber, asNonEmptyString, asRecord, nowEpochSeconds } from "../../runtime";
 import { extractNextFlightCorpus, findObjectEnd, parseFlightJsonObject } from "../parsing";
 import { fetchSource } from "../request-scheduler";
 
-type MercorSource = Omit<Extract<BenchmarkObservationLoader, { kind: "mercor" }>, "kind">;
+type MercorLoader = Omit<Extract<BenchmarkObservationLoader, { kind: "mercor" }>, "kind">;
 
 const RESULT_MARKER = '{"model":{"_id":';
 const METRIC = "pass-1";
@@ -22,7 +22,7 @@ const METRIC = "pass-1";
 /** Fetch the declared series without substituting a different harness or metric when it is absent. */
 export async function getMercorStats(
   benchmarkKey: string,
-  source: MercorSource,
+  source: MercorLoader,
   timeoutMs = 30_000,
 ): Promise<BenchmarkObservationPayload> {
   try {
@@ -39,7 +39,7 @@ export async function getMercorStats(
 /** Reject cached evidence if the selected metric, source, or harness contract has changed. */
 export function mercorCacheMatches(
   rows: readonly BenchmarkObservationRow[],
-  source: MercorSource,
+  source: MercorLoader,
 ): boolean {
   return rows.every(
     (row) =>
@@ -53,7 +53,7 @@ export function mercorCacheMatches(
 export function processMercorPageHtml(
   html: string,
   benchmarkKey: string,
-  source: MercorSource,
+  source: MercorLoader,
 ): BenchmarkObservationRow[] {
   const corpus = `${html}\n${extractNextFlightCorpus(html)}`;
   const rows = new Map<string, BenchmarkObservationRow>();
@@ -76,21 +76,21 @@ export function processMercorPageHtml(
 function parseResult(
   raw: unknown,
   benchmarkKey: string,
-  source: MercorSource,
+  source: MercorLoader,
 ): BenchmarkObservationRow | null {
   const result = asRecord(raw);
   const model = asRecord(result.model);
-  const name = stringValue(model.modelName);
-  const id = stringValue(model.modelId);
+  const name = asNonEmptyString(model.modelName);
+  const id = asNonEmptyString(model.modelId);
   if (name == null || id == null || !Array.isArray(result.passScores)) return null;
-  const metric = asRecord(result.passScores.find((item) => asRecord(item).pass === METRIC));
-  const harnesses = Array.isArray(metric.harnessScores) ? metric.harnessScores : [];
+  const passScore = asRecord(result.passScores.find((item) => asRecord(item).pass === METRIC));
+  const harnessScores = Array.isArray(passScore.harnessScores) ? passScore.harnessScores : [];
   const selected =
     source.harness == null
-      ? metric
-      : asRecord(harnesses.find((item) => asRecord(item).harness === source.harness));
+      ? passScore
+      : asRecord(harnessScores.find((item) => asRecord(item).harness === source.harness));
   // An unconfigured aggregate must not silently become a mixture of newly introduced harnesses.
-  if (source.harness == null && harnesses.length > 0) return null;
+  if (source.harness == null && harnessScores.length > 0) return null;
   const score = asFiniteNumber(selected.score);
   if (score == null || score < 0 || score > 100) return null;
   const identity = mercorIdentity(name, model.effort);
@@ -102,8 +102,8 @@ function parseResult(
     base_model: identity.baseModel,
     reasoning_effort: identity.reasoningEffort,
     model_creator:
-      stringValue(asRecord(model.provider).name) ??
-      stringValue(asRecord(model.provider).providerId),
+      asNonEmptyString(asRecord(model.provider).name) ??
+      asNonEmptyString(asRecord(model.provider).providerId),
     rank: null,
     canonical_value: Number((score / 100).toFixed(6)),
     observed_at: null,
@@ -125,7 +125,7 @@ function mercorIdentity(name: string, effort: unknown) {
     canonicalReasoningEffort(effort) ??
     (pro || name.toLowerCase().includes("(thinking)")
       ? "max"
-      : benchmarkModelEffort(name).reasoningEffort);
+      : parseModelEffort(name).reasoningEffort);
   const unqualified = name.replace(/\s+\([^)]*\)\s*$/, "").trim();
   const baseModel = (
     /^(?:Opus|Sonnet|Fable)\b/.test(unqualified) ? `Claude ${unqualified}` : unqualified

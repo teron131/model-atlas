@@ -2,7 +2,7 @@
 
 import type { DatabaseSync } from "node:sqlite";
 
-import { asRecord, stringValue } from "../../runtime";
+import { asNonEmptyString, asRecord } from "../../runtime";
 import type { ModelsDevPayload } from "../models-dev/catalog";
 import { RAW_SOURCE_NAMES, type RawSourceName } from "../registry";
 import type {
@@ -42,7 +42,7 @@ type RowStateContext = {
 };
 
 /** Stable source-row keys are persisted, so every caller must use the same empty-part normalization. */
-export function sourceKey(...parts: (number | string | null | undefined)[]): string {
+export function sourceRowKey(...parts: (number | string | null | undefined)[]): string {
   return parts.map((part) => String(part ?? "")).join("|");
 }
 
@@ -239,7 +239,7 @@ export function sourceRowStatesFromRows(
       typeof state.source === "string" && RAW_SOURCE_NAMES.includes(state.source as RawSourceName)
         ? (state.source as RawSourceName)
         : null;
-    const rowKeyValue = stringValue(state.row_key);
+    const rowKeyValue = asNonEmptyString(state.row_key);
     const status =
       state.status === "active" || state.status === "quarantined_missing_from_source"
         ? state.status
@@ -251,7 +251,7 @@ export function sourceRowStatesFromRows(
       {
         source,
         row_key: rowKeyValue,
-        row_label: stringValue(state.row_label),
+        row_label: asNonEmptyString(state.row_label),
         status,
         missing_from_source_since_epoch_seconds:
           typeof state.missing_from_source_since_epoch_seconds === "number"
@@ -293,7 +293,7 @@ export function buildModelsDevSourceStates(
   if (hasUsableFetchedRows) {
     for (const [providerId, provider] of Object.entries(fetchedPayload ?? {})) {
       for (const modelId of Object.keys(provider.models ?? {})) {
-        fetchedKeys.add(sourceKey(providerId, modelId));
+        fetchedKeys.add(sourceRowKey(providerId, modelId));
       }
     }
   }
@@ -310,7 +310,7 @@ export function buildModelsDevSourceStates(
       states.push(
         sourceRowState(
           "models_dev",
-          sourceKey(providerId, modelId),
+          sourceRowKey(providerId, modelId),
           typeof model.name === "string" && model.name.length > 0 ? model.name : modelId,
           context,
         ),
@@ -322,18 +322,18 @@ export function buildModelsDevSourceStates(
 
 export function buildSourceHealth({
   generatedAtEpochSeconds,
-  sourceCache,
+  sourceCacheStatuses,
   sourceRowStates,
 }: {
   generatedAtEpochSeconds: number | null;
-  sourceCache: Record<RawSourceName, RawSourceCacheStatus>;
+  sourceCacheStatuses: Record<RawSourceName, RawSourceCacheStatus>;
   sourceRowStates: readonly SourceRowState[];
 }): ModelAtlasSourceHealth {
   return {
     generated_at_epoch_seconds: generatedAtEpochSeconds,
     sources: Object.fromEntries(
       RAW_SOURCE_NAMES.map((source): [RawSourceName, ModelAtlasSourceHealthEntry] => {
-        const status = sourceCache[source];
+        const status = sourceCacheStatuses[source];
         const counts = rowStateCounts(source, sourceRowStates);
         return [
           source,

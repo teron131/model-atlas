@@ -51,7 +51,7 @@ import {
 } from "../surge/riemann-bench";
 import {
   buildTerminalBench4Map,
-  type TerminalBench4ModelAgentRow,
+  type TerminalBench4ModelHarnessRow,
   type TerminalBench4RowsByModelName,
 } from "../terminal-bench-4/leaderboard";
 import {
@@ -129,7 +129,7 @@ export type ModelAtlasSourceData = BenchmarkObservationData & {
   };
   frontierCode: IndexedSourceRows<FrontierCodeModelEffortRow, FrontierCodeRowsByModelName>;
   riemannBench: IndexedSourceRows<RiemannBenchModelScoreRow, RiemannBenchRowsByModelName>;
-  terminalBench4: IndexedSourceRows<TerminalBench4ModelAgentRow, TerminalBench4RowsByModelName>;
+  terminalBench4: IndexedSourceRows<TerminalBench4ModelHarnessRow, TerminalBench4RowsByModelName>;
   valsIndex: IndexedSourceRows<ValsIndexModelScoreRow, ValsIndexRowsByModelName>;
   vendingBench2: IndexedSourceRows<VendingBench2ModelScoreRow, VendingBench2RowsByModelName>;
 };
@@ -150,7 +150,7 @@ export type ModelAtlasSourceRows = BenchmarkObservationRows & {
   frontierCodeRows: ModelAtlasSourceData["frontierCode"]["rows"];
   riemannBenchRows: ModelAtlasSourceData["riemannBench"]["rows"];
   terminalBench4Rows: ModelAtlasSourceData["terminalBench4"]["rows"];
-  valsIndexRows: ModelAtlasSourceData["valsIndex"]["rows"];
+  valsIndexTaskScoreRows: ModelAtlasSourceData["valsIndex"]["rows"];
   vendingBench2Rows: ModelAtlasSourceData["vendingBench2"]["rows"];
 };
 
@@ -227,8 +227,8 @@ export function buildSourceData(rows: ModelAtlasSourceRows): ModelAtlasSourceDat
       rowsByModelName: buildTerminalBench4Map(rows.terminalBench4Rows),
     },
     valsIndex: {
-      rows: rows.valsIndexRows,
-      rowsByModelName: buildValsIndexMap(rows.valsIndexRows),
+      rows: rows.valsIndexTaskScoreRows,
+      rowsByModelName: buildValsIndexMap(rows.valsIndexTaskScoreRows),
     },
     vendingBench2: {
       rows: rows.vendingBench2Rows,

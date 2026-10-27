@@ -13,7 +13,7 @@ import {
   normalizeModelToken,
 } from "../../identity/normalization";
 import type { BenchmarkRowsByKey, BenchmarkSourceRow } from "../../pipeline/benchmark-rows";
-import { benchmarkMetricValue } from "../../pipeline/scores/resource-metrics";
+import { benchmarkValue } from "../../pipeline/scores/resource-metrics";
 import type {
   ModelAtlasBenchmarkHealthLeader,
   ModelAtlasBenchmarkUpdateEntry,
@@ -28,7 +28,7 @@ type HealthModel = Pick<
 >;
 
 /** Older rank-overlap summaries must never survive as current descriptive health evidence. */
-export function isCurrentBenchmarkHealth(
+export function isValidBenchmarkUpdateHealth(
   entry: ModelAtlasBenchmarkUpdateEntry | undefined,
 ): boolean {
   if (
@@ -189,7 +189,7 @@ function matchingStatus(total: number, matched: number): ModelAtlasBenchmarkUpda
 function modelObservations(models: readonly HealthModel[], key: string): BenchmarkSourceRow[] {
   return models.flatMap((model) => {
     const id = model.id ?? model.name;
-    const value = benchmarkMetricValue(model, key);
+    const value = benchmarkValue(model, key);
     if (id == null || value == null) return [];
     return [
       {

@@ -62,7 +62,7 @@ assert.notEqual(modelNameIdentityKey("Muse Wonder 1.1"), modelNameIdentityKey("M
 
 // Provider identity is a prerequisite, even when another publisher's base model has a stronger name score.
 const publisherMatches = buildMatchDiagnostics({
-  scrapedRows: [
+  artificialAnalysisRows: [
     { model_id: "nvidia/llama-3-1-nemotron-instruct-70b", name: "Llama 3.1 Nemotron 70B" },
     { model_id: "meta/llama-3-instruct-8b", name: "Llama 3 8B" },
     { model_id: "alibaba/qwen3-32b", name: "Qwen3 32B" },
@@ -91,7 +91,7 @@ const turboReleases = [
   },
 ];
 const releaseMatches = buildMatchDiagnostics({
-  scrapedRows: [
+  artificialAnalysisRows: [
     {
       model_id: "openai/gpt-4-turbo",
       name: "GPT-4 Turbo (April 2024)",
@@ -111,7 +111,7 @@ assert.deepEqual(
 );
 assert.equal(
   buildMatchDiagnostics({
-    scrapedRows: [{ model_id: "openai/gpt-4-turbo", name: "GPT-4 Turbo (Apr 2024)" }],
+    artificialAnalysisRows: [{ model_id: "openai/gpt-4-turbo", name: "GPT-4 Turbo (Apr 2024)" }],
     modelsDevModels: [model("openrouter", "openai/gpt-4-turbo", "GPT-4 Turbo")],
     matcherConfig: STAGE_CONFIG.matcher,
   }).models[0]!.best_match,
@@ -125,7 +125,7 @@ assert.equal(
 assert.notEqual(modelNameIdentityKey("Example+"), modelNameIdentityKey("Example"));
 
 const providerPools: PreferredProviderPools = {
-  primary: [
+  openRouter: [
     model("openrouter", "example/example-medium-3-5", "Example Medium 3.5"),
     model("openrouter", "example/example-medium-3.1", "Example Medium 3.1"),
   ],
@@ -149,7 +149,7 @@ assert.equal(
 const exactFallbackOutput = runMatcher(
   [source("claude-fable-5", "anthropic/claude-fable-5")],
   {
-    primary: [model("openrouter", "~anthropic/claude-fable-latest", "Claude Fable Latest")],
+    openRouter: [model("openrouter", "~anthropic/claude-fable-latest", "Claude Fable Latest")],
     fallback: [model("anthropic", "claude-fable-5", "Claude Fable 5")],
   },
   5,
@@ -166,7 +166,7 @@ assert.equal(exactFallbackOutput.models[0]?.best_match?.model_id, "claude-fable-
 const unsafeVersionOutput = runMatcher(
   [source("grok-4-20-0309", "Grok 4.20")],
   {
-    primary: [model("openrouter", "x-ai/grok-4.5", "Grok 4.5")],
+    openRouter: [model("openrouter", "x-ai/grok-4.5", "Grok 4.5")],
     fallback: [],
   },
   5,
@@ -181,7 +181,7 @@ assert.equal(
 const reorderedClaudeOutput = runMatcher(
   [source("claude-3-opus", "Claude 3 Opus")],
   {
-    primary: [
+    openRouter: [
       model("openrouter", "anthropic/claude-3-haiku", "Claude 3 Haiku"),
       model("openrouter", "anthropic/claude-opus-3", "Claude Opus 3"),
     ],
@@ -199,7 +199,7 @@ assert.equal(
 const compactClaudeVersionOutput = runMatcher(
   [source("claude-35-sonnet", "Claude 3.5 Sonnet")],
   {
-    primary: [model("openrouter", "anthropic/claude-sonnet-3.5", "Claude Sonnet 3.5")],
+    openRouter: [model("openrouter", "anthropic/claude-sonnet-3.5", "Claude Sonnet 3.5")],
     fallback: [],
   },
   5,
@@ -214,7 +214,7 @@ assert.equal(
 const missingClaudeTierOutput = runMatcher(
   [source("claude-3-opus", "Claude 3 Opus")],
   {
-    primary: [model("openrouter", "anthropic/claude-3-haiku", "Claude 3 Haiku")],
+    openRouter: [model("openrouter", "anthropic/claude-3-haiku", "Claude 3 Haiku")],
     fallback: [],
   },
   5,
@@ -229,7 +229,7 @@ assert.equal(
 const missingScaleOutput = runMatcher(
   [source("qwen3-5-2b", "Qwen3.5 2B")],
   {
-    primary: [model("openrouter", "alibaba/qwen3.5-plus", "Qwen3.5 Plus")],
+    openRouter: [model("openrouter", "alibaba/qwen3.5-plus", "Qwen3.5 Plus")],
     fallback: [],
   },
   5,
@@ -244,7 +244,7 @@ assert.equal(
 const lowerValidVariantOutput = runMatcher(
   [source("example-3-flash", "Example 3 Flash")],
   {
-    primary: [
+    openRouter: [
       model("openrouter", "google/example-3", "Example 3 Flash"),
       model("openrouter", "google/example-3-flash-preview", "Example Preview"),
     ],
@@ -267,7 +267,7 @@ assert.equal(lowerValidVariantOutput.matchedCount, 1);
 
 const effortDiagnostics = buildMatchDiagnostics({
   matcherConfig: STAGE_CONFIG.matcher,
-  scrapedRows: [
+  artificialAnalysisRows: [
     {
       model_id: "example/example-3-max",
       name: "Example 3 Max Effort",
@@ -383,7 +383,7 @@ for (const trace of linkedTraces) {
 const qwenMaxOutput = runMatcher(
   [source("qwen3-8-max", "Qwen3.8 Max")],
   {
-    primary: [
+    openRouter: [
       model("openrouter", "qwen/qwen3.8", "Qwen3.8"),
       model("openrouter", "qwen/qwen3.8-max", "Qwen3.8 Max"),
     ],
@@ -401,7 +401,7 @@ assert.equal(
 const shortExactIdentityOutput = runMatcher(
   [source("inkling", "Inkling"), source("claude-fable-5", "Claude Fable 5")],
   {
-    primary: [
+    openRouter: [
       model("openrouter", "thinkingmachines/inkling", "Inkling"),
       model("openrouter", "anthropic/claude-fable-5", "Claude Fable 5"),
     ],
@@ -419,7 +419,7 @@ assert.equal(
 const allVariantConflictsOutput = runMatcher(
   [source("example-3-pro", "Example 3 Pro")],
   {
-    primary: [model("openrouter", "google/example-3", "Example 3 Pro")],
+    openRouter: [model("openrouter", "google/example-3", "Example 3 Pro")],
     fallback: [],
   },
   5,
@@ -463,7 +463,7 @@ for (const [sourceSlug, sourceName, candidateId, candidateName] of [
   const conflictOutput = runMatcher(
     [source(sourceSlug, sourceName)],
     {
-      primary: [model("openrouter", candidateId, candidateName)],
+      openRouter: [model("openrouter", candidateId, candidateName)],
       fallback: [],
     },
     5,
@@ -479,7 +479,9 @@ for (const [sourceSlug, sourceName, candidateId, candidateName] of [
 const exactVisionLanguageOutput = runMatcher(
   [source("qwen3-vl-30b-a3b-instruct", "Qwen3 VL 30B A3B Instruct")],
   {
-    primary: [model("openrouter", "qwen/qwen3-vl-30b-a3b-instruct", "Qwen3 VL 30B A3B Instruct")],
+    openRouter: [
+      model("openrouter", "qwen/qwen3-vl-30b-a3b-instruct", "Qwen3 VL 30B A3B Instruct"),
+    ],
     fallback: [],
   },
   5,
@@ -498,7 +500,7 @@ const unversionedCurrentModelOutput = runMatcher(
     source("claude-fable-5", "Claude Fable 5"),
   ],
   {
-    primary: [
+    openRouter: [
       model("openrouter", "test/alpha-z", "Alpha Z"),
       model("vercel", "meta/muse-spark-1.1", "Muse Spark 1.1"),
       model("openrouter", "anthropic/claude-fable-5", "Claude Fable 5"),
@@ -744,7 +746,7 @@ const sourceData = modelStatsSourceData([
 ]);
 const matchDiagnostics = buildMatchDiagnostics({
   matcherConfig: STAGE_CONFIG.matcher,
-  scrapedRows: sourceData.artificialAnalysis.rows,
+  artificialAnalysisRows: sourceData.artificialAnalysis.rows,
   modelsDevModels: sourceData.modelsDev.rows,
 });
 const sharedDerivation = await deriveModelStats(sourceData, {
@@ -878,7 +880,7 @@ const sharedSlugSources = [
 for (const rows of [sharedSlugSources, [...sharedSlugSources].reverse()]) {
   const diagnostics = buildMatchDiagnostics({
     matcherConfig: STAGE_CONFIG.matcher,
-    scrapedRows: rows,
+    artificialAnalysisRows: rows,
     modelsDevModels: [],
   });
   const matched = modelRowsFromMatchDiagnostics(
@@ -1125,7 +1127,7 @@ function modelStatsSourceData(
       metadata: { benchmark_version: "2.2", benchmark_count: 8 },
     },
   ];
-  const artificialAnalysisResourceRows: ArtificialAnalysisBenchmarkResourceRow[] = [
+  const artificialAnalysisBenchmarkResourceRows: ArtificialAnalysisBenchmarkResourceRow[] = [
     {
       benchmark_key: "hle",
       source_url: "https://artificialanalysis.ai/evaluations/humanitys-last-exam",
@@ -1187,10 +1189,12 @@ function modelStatsSourceData(
       byId: artificialAnalysisById,
     },
     artificialAnalysisBenchmarkResources: {
-      rows: artificialAnalysisResourceRows,
-      observationLookup: buildArtificialAnalysisResourceLookup(artificialAnalysisResourceRows),
+      rows: artificialAnalysisBenchmarkResourceRows,
+      observationLookup: buildArtificialAnalysisResourceLookup(
+        artificialAnalysisBenchmarkResourceRows,
+      ),
       sourceDefaultLookup: buildArtificialAnalysisSourceDefaultResourceLookup(
-        artificialAnalysisResourceRows,
+        artificialAnalysisBenchmarkResourceRows,
       ),
     },
     modelsDev: {

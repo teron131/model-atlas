@@ -4,7 +4,7 @@
  * Page source: https://www.vals.ai/benchmarks
  */
 
-import { asRecord, stringValue } from "../../runtime";
+import { asNonEmptyString, asRecord } from "../../runtime";
 import { htmlAttribute } from "../parsing";
 import { fetchSource } from "../request-scheduler";
 
@@ -28,7 +28,7 @@ export async function getValsBenchmarkView(
   const props = island == null ? null : htmlAttribute(island, "props");
   const reference = props == null ? null : asRecord(JSON.parse(props)).benchmarkViewUrl;
   const assetPath =
-    Array.isArray(reference) && reference[0] === 0 ? stringValue(reference[1]) : null;
+    Array.isArray(reference) && reference[0] === 0 ? asNonEmptyString(reference[1]) : null;
   if (assetPath == null) throw new Error("Vals page has no benchmark JSON reference");
   const assetUrl = new URL(assetPath, pageUrl);
   if (assetUrl.origin !== new URL(pageUrl).origin) {

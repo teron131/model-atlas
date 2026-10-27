@@ -7,7 +7,7 @@
 import { createDecipheriv, createHash } from "node:crypto";
 import { gunzipSync } from "node:zlib";
 
-import { asRecord, type JsonObject, stringValue } from "../../runtime";
+import { asNonEmptyString, asRecord, type JsonObject } from "../../runtime";
 import { extractNextFlightCorpus } from "../parsing";
 import { fetchSource } from "../request-scheduler";
 
@@ -29,7 +29,7 @@ export async function getArtificialAnalysisPage(
   const corpus = extractNextFlightCorpus(html);
   for (const match of corpus.matchAll(/"manifest":(\{[^}]+\})/g)) {
     const manifest = asRecord(JSON.parse(match[1]!));
-    const path = stringValue(manifest.path);
+    const path = asNonEmptyString(manifest.path);
     if (path == null) throw new Error("Missing Artificial Analysis page-data path");
     const dataUrl = new URL(path, url);
     if (dataUrl.origin !== new URL(url).origin)

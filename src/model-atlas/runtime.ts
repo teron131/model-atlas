@@ -28,7 +28,7 @@ export function asFiniteNumber(value: unknown): NumberOrNull {
 }
 
 /** Accept only non-empty strings from source payloads and stored rows; empty and non-string values are missing evidence. */
-export function stringValue(value: unknown): string | null {
+export function asNonEmptyString(value: unknown): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
 }
 

@@ -3,7 +3,7 @@
 import type { DatabaseSync } from "node:sqlite";
 
 import { asFiniteNumber, asRecord } from "../../runtime";
-import { artificialAnalysisCacheHasHiddenRows } from "../artificial-analysis/cache";
+import { artificialAnalysisCacheHasDeprecatedRows } from "../artificial-analysis/cache";
 import { DEEP_SWE_PREFERRED_SOURCE_VERSION } from "../deep-swe/leaderboard";
 import { openRouterCacheHasCurrentShape } from "../openrouter/cache";
 import {
@@ -57,7 +57,7 @@ export function readRawSourceCacheStatus(
 
 function isSourceCacheShapeCurrent(db: DatabaseSync, source: RawSourceName): boolean {
   if (source === "artificial_analysis") {
-    return artificialAnalysisCacheHasHiddenRows(db);
+    return artificialAnalysisCacheHasDeprecatedRows(db);
   }
   if (source === "deep_swe") {
     return hasPreferredDeepSWECacheVersion(db);

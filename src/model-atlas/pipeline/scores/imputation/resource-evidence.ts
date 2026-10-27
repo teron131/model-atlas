@@ -2,7 +2,7 @@
 
 import { indexPolicy } from "../../../benchmarks/index-policy";
 import type { ScoringConfig } from "../../../config/stage";
-import { canonicalModelKey, canonicalReasoningEffort } from "../../../identity/normalization";
+import { canonicalVariantKey } from "../../../identity/normalization";
 import { positiveFiniteNumber } from "../../../math-utils";
 import type { ModelAtlasCandidate } from "../../model-types";
 import {
@@ -28,7 +28,7 @@ export type EffortResourceImputation = {
   >;
 };
 
-/** AA token telemetry can support its own index; aggregate cost and time never stand in for task resources. */
+/** Artificial Analysis token telemetry can support its own index; aggregate cost and time never stand in for task resources. */
 function supportsResourceImputation(
   config: ScoringConfig,
   key: string,
@@ -47,12 +47,6 @@ export function resourceImputationKeys(config: ScoringConfig, kind: TaskResource
 }
 
 /** Stable lookup survives model projection without merging different reasoning variants. */
-export function resourceVariantKey(
-  model: Pick<ModelAtlasCandidate, "id" | "name" | "reasoning_effort">,
-) {
-  return `${canonicalModelKey(model)}\u0000${canonicalReasoningEffort(model.reasoning_effort) ?? ""}`;
-}
-
 /** Time falls back to the throughput runtime proxy when wall time is missing; token totals and output-only amounts stay separate. */
 export function directTaskResource(
   model: ModelAtlasCandidate,
@@ -79,7 +73,7 @@ export function imputedTaskResource(
 ): ImputedTaskResource | null {
   return (
     benchmarkFusionResourceEstimate(model, key, kind) ??
-    preparation.byVariant.get(resourceVariantKey(model))?.get(key)?.[kind] ??
+    preparation.byVariant.get(canonicalVariantKey(model))?.get(key)?.[kind] ??
     null
   );
 }

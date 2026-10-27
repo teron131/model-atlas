@@ -16,8 +16,8 @@ import { clampScore } from "./normalization";
 import { qualityAdjustedResourceMultipliers } from "./resource-efficiency";
 import {
   type BenchmarkMetricModel,
-  benchmarkMetricValue,
   type BenchmarkTokenMeasure,
+  benchmarkValue,
   directBenchmarkTokens,
   separatedBenchmarkResourceEvidence,
   type SeparatedBenchmarkResourceEvidence,
@@ -67,7 +67,7 @@ export function observedRangesByBenchmark(
 ): Map<string, MinMaxRange | null> {
   return new Map(
     [...new Set(benchmarkKeys)].map(
-      (key) => [key, minMaxRange(models.map((model) => benchmarkMetricValue(model, key)))] as const,
+      (key) => [key, minMaxRange(models.map((model) => benchmarkValue(model, key)))] as const,
     ),
   );
 }
@@ -92,7 +92,7 @@ export function buildAgenticTokenScoringContext(
     const qualityRanges = qualityContext.benchmarkRangesByKey;
     const qualityRange = qualityRanges.get(key);
     if (qualityRange == null || !(qualityRange.min < qualityRange.max)) continue;
-    const qualities = models.map((model) => benchmarkMetricValue(model, key));
+    const qualities = models.map((model) => benchmarkValue(model, key));
     for (const measure of TOKEN_MEASURES) {
       const separated = models.map((model) =>
         separatedBenchmarkResourceEvidence(model, resourceKey, measure),
@@ -141,7 +141,7 @@ export function buildAgenticTokenScoringContext(
         ]),
       );
       const observations = calibrationObservations(models, (model) =>
-        benchmarkMetricValue(model, key) == null ? null : (directTokensByModel.get(model) ?? null),
+        benchmarkValue(model, key) == null ? null : (directTokensByModel.get(model) ?? null),
       );
       if (distinctModelCount(observations) < 3) continue;
       const tokens = observations.map(({ value }) => value);
@@ -258,7 +258,7 @@ export function normalizedQualityBenchmarkValue(
   const value = normalizedMetricValue(ranges, key, rawValue);
   const adjustment = dimension === "agentic" ? context.agenticTokenAdjustments?.get(key) : null;
   if (value == null || adjustment == null) return value;
-  const observed = benchmarkMetricValue(model, key);
+  const observed = benchmarkValue(model, key);
   const multiplier =
     observed == null
       ? 1

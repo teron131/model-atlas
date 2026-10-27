@@ -9,10 +9,10 @@ import type {
   BenchmarkObservationPayload,
   BenchmarkObservationRow,
 } from "../../benchmarks/observation";
-import { benchmarkModelEffort, normalizeModelToken } from "../../identity/normalization";
+import { normalizeModelToken, parseModelEffort } from "../../identity/normalization";
 import { providerIdentityKey } from "../../identity/provider";
 import { hasQwenMaxTier } from "../../identity/qwen";
-import { asFiniteNumber, asRecord, nowEpochSeconds, stringValue } from "../../runtime";
+import { asFiniteNumber, asNonEmptyString, asRecord, nowEpochSeconds } from "../../runtime";
 import { extractNextFlightCorpus, findObjectEnd, parseFlightJsonObject } from "../parsing";
 import { fetchSource } from "../request-scheduler";
 import { ARENA_WEBDEV_DATASET_URL, arenaDatasetIdentity, fetchArenaDataset } from "./dataset";
@@ -63,7 +63,7 @@ export function processArenaWebDevPageHtml(
     )
       continue;
     if (!Array.isArray(leaderboard.entries)) continue;
-    const cutoff = stringValue(leaderboard.voteCutoffISOString);
+    const cutoff = asNonEmptyString(leaderboard.voteCutoffISOString);
     const observedAt = cutoff && /^\d{4}-\d{2}-\d{2}T/.test(cutoff) ? cutoff.slice(0, 10) : null;
     const rows = new Map<string, BenchmarkObservationRow>();
     for (const entry of leaderboard.entries) {
@@ -91,9 +91,9 @@ function webDevRow(
   cutoff: string | null,
 ): BenchmarkObservationRow | null {
   const entry = asRecord(value);
-  const id = stringValue(entry.modelKey);
-  const name = stringValue(entry.modelDisplayName);
-  const organization = stringValue(entry.modelOrganization);
+  const id = asNonEmptyString(entry.modelKey);
+  const name = asNonEmptyString(entry.modelDisplayName);
+  const organization = asNonEmptyString(entry.modelOrganization);
   const rating = asFiniteNumber(entry.rating);
   const votes = asFiniteNumber(entry.votes);
   const rank = asFiniteNumber(entry.rank);
@@ -118,7 +118,7 @@ function webDevRow(
   );
   const thinkingEffort = /\s+\(thinking-(minimal|low|medium|high|xhigh|max)\)$/i.exec(modelName);
   const nonThinking = /\s+\(non-thinking\)$/i.exec(modelName);
-  let parsed = benchmarkModelEffort(modelName);
+  let parsed = parseModelEffort(modelName);
   if (thinkingEffort) {
     parsed = {
       baseModel: modelName.slice(0, thinkingEffort.index),
@@ -155,7 +155,7 @@ function webDevRow(
       rating_upper: asFiniteNumber(entry.ratingUpper),
       rank_lower: asFiniteNumber(entry.rankLower),
       rank_upper: asFiniteNumber(entry.rankUpper),
-      release_type: stringValue(entry.releaseType),
+      release_type: asNonEmptyString(entry.releaseType),
       vote_cutoff: cutoff,
     },
   };
@@ -170,12 +170,12 @@ export function processArenaWebDevDatasetRows(
   const configurations = new Map<string, BenchmarkObservationRow[]>();
   for (const value of values) {
     if (value.category !== "overall") continue;
-    const name = stringValue(value.model_name);
-    const organization = stringValue(value.organization);
+    const name = asNonEmptyString(value.model_name);
+    const organization = asNonEmptyString(value.organization);
     const rating = asFiniteNumber(value.rating);
     const votes = asFiniteNumber(value.vote_count);
     const rank = asFiniteNumber(value.rank);
-    const observedAt = stringValue(value.leaderboard_publish_date);
+    const observedAt = asNonEmptyString(value.leaderboard_publish_date);
     if (
       name == null ||
       rating == null ||

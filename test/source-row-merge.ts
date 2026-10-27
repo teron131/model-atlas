@@ -13,8 +13,8 @@ import {
   processArtificialAnalysisLeaderboardRows,
 } from "../src/model-atlas/sources/artificial-analysis/leaderboard";
 import {
+  artificialAnalysisBenchmarkResourceRowKey,
   artificialAnalysisBenchmarkResourceSnapshot,
-  artificialAnalysisBenchmarkResourceSourceKey,
   mergeArtificialAnalysisRow,
 } from "../src/model-atlas/sources/artificial-analysis/snapshot";
 import {
@@ -303,7 +303,7 @@ const refreshedEffortResources = [effortResourceRow("high", 90)];
 const preservedEffortResources = mergeCachedSourceRows(
   cachedEffortResources,
   refreshedEffortResources,
-  artificialAnalysisBenchmarkResourceSourceKey,
+  artificialAnalysisBenchmarkResourceRowKey,
 );
 assert.deepEqual(
   preservedEffortResources.map((row) => [row.reasoning_effort, row.seconds_per_task]),
@@ -327,8 +327,8 @@ const previousPageRow = {
   reasoning_effort: "low",
   source_url: `${activeResourceRows[0]!.source_url}-previous-edition`,
 };
-const activeResourceKey = artificialAnalysisBenchmarkResourceSourceKey(activeResourceRows[0]!);
-const retiredResourceKey = artificialAnalysisBenchmarkResourceSourceKey(retiredResourceRow);
+const activeResourceKey = artificialAnalysisBenchmarkResourceRowKey(activeResourceRows[0]!);
+const retiredResourceKey = artificialAnalysisBenchmarkResourceRowKey(retiredResourceRow);
 const resourceSnapshot = await artificialAnalysisBenchmarkResourceSnapshot(
   { rows: [...cachedResourceRows, previousPageRow], fetchedAt: 1_800_000_000 },
   {
@@ -483,7 +483,7 @@ assert.deepEqual(
   "A newest revision with another subset layout yields no rows",
 );
 
-const deepSweRow = (
+const deepSWERow = (
   source_version: DeepSWERawLeaderboardRow["source_version"],
   model: string,
 ): DeepSWERawLeaderboardRow => ({
@@ -502,9 +502,9 @@ const deepSweRow = (
 });
 assert.deepEqual(
   preferredDeepSWELeaderboardRows([
-    deepSweRow("v1", "shared-model"),
-    deepSweRow("v1.1", "shared-model"),
-    deepSweRow("v1", "older-only-model"),
+    deepSWERow("v1", "shared-model"),
+    deepSWERow("v1.1", "shared-model"),
+    deepSWERow("v1", "older-only-model"),
   ]).map((row) => row.model),
   ["shared-model"],
   "DeepSWE scores only its newest artifact instead of filling gaps from the previous edition",

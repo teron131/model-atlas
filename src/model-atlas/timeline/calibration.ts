@@ -9,7 +9,7 @@ import {
 } from "../benchmarks/index-policy";
 import { MAX_NORMALIZED_IMPUTATION_ERROR, STAGE_CONFIG } from "../config/stage";
 import { effectiveCount, weightedMeanOfFinite } from "../math-utils";
-import { informativeBenchmark } from "./benchmark-evidence";
+import { isInformativeValue } from "./benchmark-evidence";
 import { MINIMUM_TIMELINE_TASKS } from "./coverage";
 import { timelineInformation, timelineNativeValue } from "./linking";
 import { historicalVersionSeries } from "./model-identity";
@@ -194,7 +194,7 @@ export function calibrateTimeline(
         definition &&
         definition.weights[dimension] > 0 &&
         !definition.key.startsWith("model_atlas_") &&
-        !informativeBenchmark(definition, o.value, parameters)
+        !isInformativeValue(definition, o.value, parameters)
       );
     }).length;
     const reference = references.get(model.id);

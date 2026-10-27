@@ -1,14 +1,14 @@
 /** Generic source-row snapshot lifecycle for cache-aware fetched payloads. */
 
 import type { BenchmarkObservationRow } from "../../benchmarks/observation";
-import { benchmarkModelEffort } from "../../identity/normalization";
+import { parseModelEffort } from "../../identity/normalization";
 import type { RawSourceName } from "../registry";
 import type { RawSourceCacheStatus, SourceRefreshOptions, SourceRowState } from "../types";
 import {
   type EditionRule,
   mergeSourceEvidence,
   snapshotRowsWithStates,
-  sourceKey,
+  sourceRowKey,
   withoutSupersededEditions,
 } from "./policy";
 
@@ -50,13 +50,13 @@ type SourceRowSnapshotResult<Row> = {
 
 /** Uses stable model identity rather than mutable source labels across benchmark row variants. */
 export function benchmarkObservationRowKey(row: BenchmarkObservationRow): string {
-  const parsedModel = benchmarkModelEffort(row.model);
+  const parsedModel = parseModelEffort(row.model);
   const baseModel = row.base_model === row.model ? parsedModel.baseModel : row.base_model;
   const metadataIdentity = (key: string): string | number | null => {
     const value = row.metadata[key];
     return typeof value === "string" || typeof value === "number" ? value : null;
   };
-  return sourceKey(
+  return sourceRowKey(
     row.benchmark_key,
     metadataIdentity("task"),
     metadataIdentity("track"),

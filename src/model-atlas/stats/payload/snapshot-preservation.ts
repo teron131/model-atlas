@@ -1,6 +1,9 @@
 /** Preserve high-signal snapshot rows when a refresh loses source evidence. */
 
-import { AGENTIC_INDEX_KEYS, INTELLIGENCE_INDEX_KEYS } from "../../benchmarks/field-keys";
+import {
+  ARTIFICIAL_ANALYSIS_AGENTIC_INDEX_KEYS,
+  ARTIFICIAL_ANALYSIS_INTELLIGENCE_INDEX_KEYS,
+} from "../../benchmarks/field-keys";
 import type { ScoringConfig, SnapshotPreservationConfig } from "../../config/stage";
 import { canonicalReasoningEffort, normalizeModelToken } from "../../identity/normalization";
 import { asFiniteNumber, asRecord } from "../../runtime";
@@ -54,8 +57,8 @@ function scoreSignalCount(model: ModelAtlasModel, scoringConfig: ScoringConfig):
   const intelligence = asRecord(model.intelligence);
   const benchmarks = asRecord(model.benchmarks);
   const benchmarkKeys = [
-    ...INTELLIGENCE_INDEX_KEYS,
-    ...AGENTIC_INDEX_KEYS,
+    ...ARTIFICIAL_ANALYSIS_INTELLIGENCE_INDEX_KEYS,
+    ...ARTIFICIAL_ANALYSIS_AGENTIC_INDEX_KEYS,
     ...scoringConfig.intelligenceBenchmarkKeys,
     ...scoringConfig.agenticBenchmarkKeys,
   ];

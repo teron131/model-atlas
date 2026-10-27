@@ -10,7 +10,7 @@ import type {
   BenchmarkObservationPayload,
   BenchmarkObservationRow,
 } from "../../benchmarks/observation";
-import { benchmarkModelEffort } from "../../identity/normalization";
+import { parseModelEffort } from "../../identity/normalization";
 import { asFiniteNumber, nowEpochSeconds } from "../../runtime";
 import { parseCsvRecords } from "../parsing";
 import { fetchSource } from "../request-scheduler";
@@ -53,7 +53,7 @@ export function processEpochCapabilitiesIndexCsv(
     const score = asFiniteNumber(row.eci);
     const model = row["Display name"] || row.Model || "";
     if (score == null || model.length === 0) return [];
-    const parsed = benchmarkModelEffort(model);
+    const parsed = parseModelEffort(model);
     return [
       {
         benchmark_key: "epoch_capabilities_index",

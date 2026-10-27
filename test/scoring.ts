@@ -54,8 +54,8 @@ import {
   qualityLocalResourceScores,
 } from "../src/model-atlas/pipeline/scores/resource-efficiency";
 import {
-  benchmarkMetricValue,
   benchmarkTaskMetrics,
+  benchmarkValue,
 } from "../src/model-atlas/pipeline/scores/resource-metrics";
 import { buildCurrentModelAtlasMetadata } from "../src/model-atlas/stats/payload/metadata";
 import type { BenchmarkPortfolio, ModelAtlasCandidate } from "../src/model-atlas/stats/types";
@@ -340,23 +340,17 @@ for (const key of [
   );
 }
 assertEqual(
-  benchmarkMetricValue({ intelligence: { intelligence_index: 73.5 } }, "aa_intelligence_index"),
+  benchmarkValue({ intelligence: { intelligence_index: 73.5 } }, "aa_intelligence_index"),
   73.5,
 );
 assertEqual(
-  benchmarkMetricValue({ benchmarks: { aa_intelligence_index: 71.25 } }, "aa_intelligence_index"),
+  benchmarkValue({ benchmarks: { aa_intelligence_index: 71.25 } }, "aa_intelligence_index"),
   71.25,
 );
+assertEqual(benchmarkValue({ benchmarks: { custom_benchmark: 0.625 } }, "custom_benchmark"), 0.625);
+assertEqual(benchmarkValue({ intelligence: { custom_benchmark: 0.75 } }, "custom_benchmark"), 0.75);
 assertEqual(
-  benchmarkMetricValue({ benchmarks: { custom_benchmark: 0.625 } }, "custom_benchmark"),
-  0.625,
-);
-assertEqual(
-  benchmarkMetricValue({ intelligence: { custom_benchmark: 0.75 } }, "custom_benchmark"),
-  0.75,
-);
-assertEqual(
-  benchmarkMetricValue({ intelligence: { omniscience_accuracy: 0.82 } }, "omniscience_accuracy"),
+  benchmarkValue({ intelligence: { omniscience_accuracy: 0.82 } }, "omniscience_accuracy"),
   0.82,
 );
 assertThrowsWithMessage(

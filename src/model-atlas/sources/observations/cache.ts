@@ -10,9 +10,9 @@ import {
   type BenchmarkObservationBinding,
 } from "../../benchmarks/registry";
 import type { DatabaseWriter } from "../../database/writers/database";
-import { benchmarkModelEffort, normalizeModelToken } from "../../identity/normalization";
-import { asFiniteNumber, stringValue } from "../../runtime";
-import { type CacheRowSource, firstEpochSecond, queryCacheRows } from "../cache/rows";
+import { normalizeModelToken, parseModelEffort } from "../../identity/normalization";
+import { asFiniteNumber, asNonEmptyString } from "../../runtime";
+import { type CacheRowSource, firstFetchedAt, queryCacheRows } from "../cache/rows";
 import type { RawSourceName } from "../registry";
 import {
   benchmarkObservationRowKey,
@@ -41,15 +41,15 @@ export async function benchmarkObservationSnapshots(
 ) {
   return Promise.all(
     BENCHMARK_OBSERVATION_BINDINGS.map(async (binding) => {
-      const source = binding.benchmark;
+      const benchmarkKey = binding.benchmark;
       return {
         binding,
         snapshot: await benchmarkObservationSnapshot(
           binding,
           caches[binding.sourceDataKey] ?? null,
-          statuses[source],
+          statuses[benchmarkKey],
           options,
-          previousMissingSince[source],
+          previousMissingSince[benchmarkKey],
           nowEpochSeconds,
         ),
       };
@@ -168,16 +168,16 @@ function readBenchmarkObservationRows(
   fetchedAt: number | null;
 } | null {
   const cacheRows = Array.isArray(cache)
-    ? cache.filter((row) => stringValue(row.source_key) === benchmarkKey)
+    ? cache.filter((row) => asNonEmptyString(row.source_key) === benchmarkKey)
     : queryCacheRows(cache, `SELECT * FROM ${table} WHERE source_key = ? ORDER BY row_index`, [
         benchmarkKey,
       ]);
   if (cacheRows.length === 0) return null;
   const rows = cacheRows.flatMap((row) => {
-    const rowBenchmarkKey = stringValue(row.benchmark_key);
-    const sourceUrl = stringValue(row.url);
-    const model = stringValue(row.model);
-    const baseModel = stringValue(row.base_model);
+    const rowBenchmarkKey = asNonEmptyString(row.benchmark_key);
+    const sourceUrl = asNonEmptyString(row.url);
+    const model = asNonEmptyString(row.model);
+    const baseModel = asNonEmptyString(row.base_model);
     const canonicalValue = asFiniteNumber(row.canonical_value);
     const cost = asFiniteNumber(row.cost);
     const tokensPerTask = asFiniteNumber(row.tokens_per_task);
@@ -185,7 +185,7 @@ function readBenchmarkObservationRows(
     const totalCostUsd = asFiniteNumber(row.total_cost_usd);
     const totalTokens = asFiniteNumber(row.total_tokens);
     const metadata = parseBenchmarkObservationMetadata(row.metadata_json);
-    const reasoningEffort = stringValue(row.reasoning_effort);
+    const reasoningEffort = asNonEmptyString(row.reasoning_effort);
     if (
       rowBenchmarkKey !== benchmarkKey ||
       sourceUrl == null ||
@@ -203,7 +203,7 @@ function readBenchmarkObservationRows(
     ) {
       return [];
     }
-    const parsedModel = benchmarkModelEffort(model);
+    const parsedModel = parseModelEffort(model);
     const storedBaseKey = normalizeModelToken(baseModel);
     const parsedBaseKey = normalizeModelToken(parsedModel.baseModel);
     const normalizedDisplay = model.toLowerCase();
@@ -217,14 +217,14 @@ function readBenchmarkObservationRows(
       {
         benchmark_key: benchmarkKey,
         source_url: sourceUrl,
-        model_id: stringValue(row.model_id),
+        model_id: asNonEmptyString(row.model_id),
         model,
         base_model:
           parsedModel.reasoningEffort === reasoningEffort && storedBaseWasParserDerived
             ? parsedModel.baseModel
             : baseModel,
         reasoning_effort: reasoningEffort,
-        model_creator: stringValue(row.model_creator),
+        model_creator: asNonEmptyString(row.model_creator),
         rank: asFiniteNumber(row.rank),
         canonical_value: canonicalValue,
         ...(cost == null ? {} : { cost }),
@@ -232,10 +232,10 @@ function readBenchmarkObservationRows(
         ...(taskRunCount == null ? {} : { task_run_count: taskRunCount }),
         ...(totalCostUsd == null ? {} : { total_cost_usd: totalCostUsd }),
         ...(totalTokens == null ? {} : { total_tokens: totalTokens }),
-        observed_at: stringValue(row.observed_at),
+        observed_at: asNonEmptyString(row.observed_at),
         metadata,
       },
     ];
   });
-  return rows.length === 0 ? null : { rows, fetchedAt: firstEpochSecond(cacheRows) };
+  return rows.length === 0 ? null : { rows, fetchedAt: firstFetchedAt(cacheRows) };
 }

@@ -7,22 +7,22 @@ import {
   type CrosswalkObservation,
   crosswalkThreeBenchmarkSources,
 } from "../../benchmarks/sources-crosswalk";
-import { benchmarkModelEffort } from "../../identity/normalization";
+import { parseModelEffort } from "../../identity/normalization";
 import { type AleBenchSourceRow, fuseAleBenchRows } from "../ale-bench/leaderboard";
 import type { ArtificialAnalysisBenchmarkResourceRow } from "../artificial-analysis/benchmark-resources";
-import type { TerminalBench4ModelAgentRow } from "../terminal-bench-4/leaderboard";
+import type { TerminalBench4ModelHarnessRow } from "../terminal-bench-4/leaderboard";
 import { mergeWeirdMlRows } from "../weirdml";
 
 /** Raw source arrays remain unchanged; only these derived observations enter fused matching and collapsed display. */
 export function fusedBenchmarkObservations({
   terminalBench4Rows: official,
-  artificialAnalysisBenchmarkResourceRows: aa,
+  artificialAnalysisBenchmarkResourceRows: artificialAnalysisRows,
   terminalBenchScienceRows: science,
   gdpPdfRows: gdpPdf,
   aleBenchConfigurationRows: ale,
   weirdMlRows: weird,
 }: {
-  terminalBench4Rows: TerminalBench4ModelAgentRow[];
+  terminalBench4Rows: TerminalBench4ModelHarnessRow[];
   artificialAnalysisBenchmarkResourceRows: ArtificialAnalysisBenchmarkResourceRow[];
   terminalBenchScienceRows: BenchmarkObservationRow[];
   gdpPdfRows: BenchmarkObservationRow[];
@@ -52,7 +52,7 @@ export function fusedBenchmarkObservations({
     base_model: claudeName(
       row.metadata.source_series === "vals"
         ? row.base_model
-        : benchmarkModelEffort(row.model).baseModel,
+        : parseModelEffort(row.model).baseModel,
     ),
     seconds_per_task:
       typeof row.metadata.seconds_per_task === "number" ? row.metadata.seconds_per_task : null,
@@ -81,19 +81,23 @@ export function fusedBenchmarkObservations({
       ),
       { sourceLabels: { a: "Creator", b: "Epoch" } },
     ),
-    gdp_pdf: crosswalkBenchmarkSources(gdpPdf, aaObservations("gdp_pdf"), {
+    gdp_pdf: crosswalkBenchmarkSources(gdpPdf, artificialAnalysisObservations("gdp_pdf"), {
       sourceLabels: { a: "Surge", b: "Artificial Analysis" },
     }),
-    terminal_bench_4: crosswalkBenchmarkSources(officialRows, aaObservations("terminal_bench_4"), {
-      sourceLabels: {
-        a: BENCHMARK_RESOURCE_SOURCE_LABELS.terminal_bench_4.source_a,
-        b: BENCHMARK_RESOURCE_SOURCE_LABELS.terminal_bench_4.source_b,
+    terminal_bench_4: crosswalkBenchmarkSources(
+      officialRows,
+      artificialAnalysisObservations("terminal_bench_4"),
+      {
+        sourceLabels: {
+          a: BENCHMARK_RESOURCE_SOURCE_LABELS.terminal_bench_4.source_a,
+          b: BENCHMARK_RESOURCE_SOURCE_LABELS.terminal_bench_4.source_b,
+        },
       },
-    }),
+    ),
     terminal_bench_science: crosswalkThreeBenchmarkSources(
       officialScienceRows,
       valsScienceRows,
-      aaObservations("terminal_bench_science"),
+      artificialAnalysisObservations("terminal_bench_science"),
       {
         sourceLabels: {
           a: BENCHMARK_RESOURCE_SOURCE_LABELS.terminal_bench_science.source_a,
@@ -104,16 +108,16 @@ export function fusedBenchmarkObservations({
     ),
   };
 
-  /** AA resource pages share the same quality, effort, and decode-time observation contract. */
-  function aaObservations(key: string): CrosswalkObservation[] {
-    return aa
+  /** Artificial Analysis resource pages share the same quality, effort, and decode-time observation contract. */
+  function artificialAnalysisObservations(key: string): CrosswalkObservation[] {
+    return artificialAnalysisRows
       .filter((row) => row.benchmark_key === key)
       .map((row) => ({
         benchmark_key: row.benchmark_key,
         source_url: row.source_url,
         model_id: row.model_id,
         model: row.model,
-        base_model: benchmarkModelEffort(row.model).baseModel,
+        base_model: parseModelEffort(row.model).baseModel,
         reasoning_effort: row.reasoning_effort,
         model_creator: row.provider,
         rank: null,

@@ -97,7 +97,7 @@ const changedEstimate = qualityLocalResourceScores(
 masked.slice(0, 40).forEach((score, i) => assert.equal(score, changedEstimate[i]));
 
 const line = models.map((model, i) => ({
-  group: model.id,
+  modelKey: model.id,
   quality: i,
   resource: 0.1 * i,
   weight: 1,
@@ -109,8 +109,8 @@ assert.equal(fitted.peerSupport[20], 1);
 assert.ok(fitted.residuals[0]! < 0);
 assert.ok(fitted.residuals[40]! > 0);
 const hidden = [
-  ...line.map((point) => ({ ...point, weight: point.group === "model-20" ? 0 : point.weight })),
-  { group: "model-20", quality: 20, resource: 200, weight: 0 },
+  ...line.map((point) => ({ ...point, weight: point.modelKey === "model-20" ? 0 : point.weight })),
+  { modelKey: "model-20", quality: 20, resource: 200, weight: 0 },
 ];
 const hiddenPrediction = qualityLocalResiduals(hidden, 0.5, 0.35, 3);
 assert.ok(Math.abs(hiddenPrediction.residuals.at(-1)! - 198) < 1e-10);
@@ -123,7 +123,7 @@ const flat = qualityLocalResiduals(
 assert.equal(flat.residuals[20], 0);
 assert.ok(flat.residuals.every((value) => value != null && Number.isFinite(value)));
 const noPeers = qualityLocalResiduals(
-  line.map((point) => ({ ...point, group: "same-family" })),
+  line.map((point) => ({ ...point, modelKey: "same-family" })),
   0.5,
   0.35,
   3,
@@ -134,7 +134,7 @@ assert.ok(sparse.peerSupport.every((value) => value < 1));
 // The same resource amount must not jump when comparison quality crosses a peer endpoint.
 const boundaryResidual = (quality: number) =>
   qualityLocalResiduals(
-    [...line, { group: "held-out", quality, resource: 5, weight: 0 }],
+    [...line, { modelKey: "held-out", quality, resource: 5, weight: 0 }],
     0.5,
     0.35,
     3,

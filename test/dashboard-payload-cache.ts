@@ -52,7 +52,7 @@ try {
   assert.ok(isModelAtlasPayload(undated), "browser payloads may have no publication timestamp");
   assert.throws(
     () => parseSnapshotPayload(Buffer.from(JSON.stringify(undated))),
-    /invalid dashboard snapshot/,
+    /invalid snapshot payload/,
   );
   assert.deepEqual(parseSnapshotPayload(Buffer.from(JSON.stringify(payload))), payload);
   for (const invalid of [
@@ -72,7 +72,7 @@ try {
     );
     assert.throws(
       () => parseSnapshotPayload(Buffer.from(JSON.stringify(invalid))),
-      /invalid dashboard snapshot/,
+      /invalid snapshot payload/,
     );
   }
   const incomplete = {

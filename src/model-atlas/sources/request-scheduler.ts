@@ -76,7 +76,7 @@ export async function scheduleSourcePage<T extends unknown[]>(
   requests: { [K in keyof T]: () => Promise<T[K]> },
 ): Promise<T> {
   const host = sourceHost(input);
-  const queues = getHostQueues(host);
+  const queues = hostQueuesFor(host);
   return enqueue(host, queues, queues.pages, async () => {
     const results = await Promise.allSettled(
       requests.map((request) => Promise.resolve().then(request)),
@@ -96,7 +96,7 @@ export async function scheduleSourceRequest<T>(
 ): Promise<T> {
   signal?.throwIfAborted();
   const host = sourceHost(input);
-  const queues = getHostQueues(host);
+  const queues = hostQueuesFor(host);
   return enqueue(host, queues, queues.requests, request, signal);
 }
 
@@ -104,7 +104,7 @@ function sourceHost(input: string | URL): string {
   return new URL(input).hostname.replace(/^www\./, "");
 }
 
-function getHostQueues(host: string): HostQueues {
+function hostQueuesFor(host: string): HostQueues {
   const existing = hosts.get(host);
   if (existing) return existing;
   const policy = host === "openrouter.ai" ? OPENROUTER_REQUEST_POLICY : DEFAULT_REQUEST_POLICY;

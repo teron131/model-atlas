@@ -12,7 +12,7 @@ import {
   type BenchmarkObservationRow,
   buildBenchmarkObservationLookup,
   findBenchmarkObservation,
-  isCanonicalBenchmarkObservation,
+  isAssignableBenchmarkObservation,
 } from "../src/model-atlas/benchmarks/observation";
 import {
   BENCHMARK_CATALOG,
@@ -247,7 +247,7 @@ const restored = readBenchmarkObservationRawCache(
   binding,
 );
 assert.deepEqual(restored?.rows, rows);
-assert.equal(restored?.rows.filter(isCanonicalBenchmarkObservation).length, 3);
+assert.equal(restored?.rows.filter(isAssignableBenchmarkObservation).length, 3);
 console.log("Arena WebDev checks passed");
 
 test("WebDev website wins, with explicitly dated HF fallback only after unusable website responses", async (t) => {

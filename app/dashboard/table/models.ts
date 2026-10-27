@@ -18,7 +18,7 @@ import {
   positiveFiniteNumber,
 } from "../../../src/model-atlas/math-utils";
 import { clampScore } from "../../../src/model-atlas/pipeline/scores/normalization";
-import { benchmarkMetricValue as modelBenchmarkMetricValue } from "../../../src/model-atlas/pipeline/scores/resource-metrics";
+import { benchmarkValue } from "../../../src/model-atlas/pipeline/scores/resource-metrics";
 import {
   type ResourceRatioKind,
   type ResourceRatioObservation,
@@ -684,7 +684,7 @@ export function dedupeDisplayModels(models: ModelAtlasModel[]): DisplayRow[] {
 }
 
 export function benchmarkMetricValue(model: ModelAtlasModel, column: BenchmarkMetricColumn) {
-  return modelBenchmarkMetricValue(model, column.benchmark);
+  return benchmarkValue(model, column.benchmark);
 }
 
 /** Return a benchmark's normalized display score when its source scale is not directly comparable. */

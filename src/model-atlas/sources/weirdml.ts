@@ -13,7 +13,7 @@ import type {
   BenchmarkObservationPayload,
   BenchmarkObservationRow,
 } from "../benchmarks/observation";
-import { benchmarkModelEffort, canonicalReasoningEffort } from "../identity/normalization";
+import { canonicalReasoningEffort, parseModelEffort } from "../identity/normalization";
 import { asRecord, nowEpochSeconds } from "../runtime";
 import { processEpochWeirdMlCsv, weirdMlEpochCacheMatches } from "./epoch/weirdml";
 import { fetchSource } from "./request-scheduler";
@@ -48,17 +48,17 @@ const CONFIGURATION_DIAGNOSTICS = [
 /** Fetch the creator cohort and supporting Epoch mirror independently so one unavailable source cannot discard the other source's raw evidence. */
 export async function getWeirdMlStats(
   sourceUrl: string,
-  crosswalkSourceUrl: string,
+  epochSourceUrl: string,
 ): Promise<BenchmarkObservationPayload> {
-  const [creator, epoch] = await Promise.all([
+  const [weirdMlRows, epochRows] = await Promise.all([
     fetchSource(sourceUrl, {}, 30_000, async (response) =>
       response.ok ? processWeirdMlPayload(await response.json(), sourceUrl) : [],
     ).catch(() => []),
-    fetchSource(crosswalkSourceUrl, {}, 30_000, async (response) =>
-      response.ok ? processEpochWeirdMlCsv(await response.text(), crosswalkSourceUrl) : [],
+    fetchSource(epochSourceUrl, {}, 30_000, async (response) =>
+      response.ok ? processEpochWeirdMlCsv(await response.text(), epochSourceUrl) : [],
     ).catch(() => []),
   ]);
-  const data = mergeWeirdMlRows(creator, epoch);
+  const data = mergeWeirdMlRows(weirdMlRows, epochRows);
   return { fetched_at_epoch_seconds: data.length > 0 ? nowEpochSeconds() : null, data };
 }
 
@@ -73,9 +73,9 @@ export function processWeirdMlPayload(
     payload.mode !== "real" ||
     payload.task_count !== 11 ||
     payload.configuration_count !== CONFIGURATIONS.length ||
-    !text(payload.generated) ||
+    !trimmedString(payload.generated) ||
     !Number.isFinite(Date.parse(String(payload.generated))) ||
-    !text(payload.source_commit) ||
+    !trimmedString(payload.source_commit) ||
     !Array.isArray(payload.configurations) ||
     payload.configurations.length !== CONFIGURATIONS.length ||
     !Array.isArray(payload.models) ||
@@ -87,13 +87,13 @@ export function processWeirdMlPayload(
   const configurations = new Map<string, Record<string, unknown>>();
   for (const value of payload.configurations) {
     const configuration = asRecord(value);
-    const id = text(configuration.id);
+    const id = trimmedString(configuration.id);
     if (
       !id ||
       !CONFIGURATIONS.includes(id as (typeof CONFIGURATIONS)[number]) ||
       configurations.has(id) ||
       configuration.task !== id.split("--")[0] ||
-      !text(configuration.name) ||
+      !trimmedString(configuration.name) ||
       !(
         configuration.hint_mode === null ||
         configuration.hint_mode === "Hints allowed" ||
@@ -109,7 +109,7 @@ export function processWeirdMlPayload(
   const excluded = new Set<string>();
   for (const value of payload.excluded_models) {
     const model = asRecord(value);
-    const id = text(model.id);
+    const id = trimmedString(model.id);
     if (
       !id ||
       excluded.has(id) ||
@@ -127,10 +127,10 @@ export function processWeirdMlPayload(
   const ids = new Set<string>();
   for (const value of payload.models) {
     const model = asRecord(value);
-    const id = text(model.id);
-    const name = text(model.name);
-    const slug = text(model.slug);
-    const agent = text(model.agent);
+    const id = trimmedString(model.id);
+    const name = trimmedString(model.name);
+    const slug = trimmedString(model.slug);
+    const agent = trimmedString(model.agent);
     const effort = canonicalReasoningEffort(model.reasoning_effort);
     const interval = model.interval;
     if (
@@ -142,22 +142,24 @@ export function processWeirdMlPayload(
       !agent ||
       !effort ||
       model.synthetic !== false ||
-      !unitScore(model.score) ||
+      !isUnitScore(model.score) ||
       !Array.isArray(interval) ||
       interval.length !== 2 ||
-      !interval.every(unitScore) ||
+      !interval.every(isUnitScore) ||
       interval[0]! > model.score ||
       interval[1]! < model.score ||
-      !positiveInteger(model.runs) ||
-      !DIAGNOSTICS.every((key) => nonnegativeNumber(model[key])) ||
-      !unitScore(model.mean_final_best) ||
+      !isPositiveInteger(model.runs) ||
+      !DIAGNOSTICS.every((key) => isNonNegativeNumber(model[key])) ||
+      !isUnitScore(model.mean_final_best) ||
       !Array.isArray(model.harnesses) ||
       model.harnesses.length === 0
     )
       return [];
     const harnesses = model.harnesses.map(asRecord);
     if (
-      !harnesses.every((harness) => text(harness.name) && text(harness.version)) ||
+      !harnesses.every(
+        (harness) => trimmedString(harness.name) && trimmedString(harness.version),
+      ) ||
       !harnesses.some((harness) => harness.name === agent)
     )
       return [];
@@ -191,10 +193,10 @@ export function processWeirdMlPayload(
     for (const key of CONFIGURATIONS) {
       const summary = asRecord(summaries[key]);
       if (
-        !unitScore(summary.score) ||
-        !positiveInteger(summary.n) ||
-        !CONFIGURATION_DIAGNOSTICS.every((field) => nonnegativeNumber(summary[field])) ||
-        !unitScore(summary.final_best)
+        !isUnitScore(summary.score) ||
+        !isPositiveInteger(summary.n) ||
+        !CONFIGURATION_DIAGNOSTICS.every((field) => isNonNegativeNumber(summary[field])) ||
+        !isUnitScore(summary.final_best)
       )
         return [];
       const configuration = configurations.get(key)!;
@@ -214,7 +216,7 @@ export function processWeirdMlPayload(
       source_url: sourceUrl,
       model_id: slug,
       model: name,
-      base_model: benchmarkModelEffort(name).baseModel,
+      base_model: parseModelEffort(name).baseModel,
       reasoning_effort: effort,
       model_creator: null,
       rank: rows.length + 1,
@@ -267,35 +269,35 @@ export function weirdMlCacheMatches(
         metadata.schema_version === 1 &&
         metadata.mode === "real" &&
         metadata.synthetic === false &&
-        positiveInteger(metadata.model_count) &&
+        isPositiveInteger(metadata.model_count) &&
         metadata.task_count === 11 &&
         metadata.configuration_count === CONFIGURATIONS.length &&
-        text(metadata.source_model_id) != null &&
-        text(metadata.harness) != null &&
-        text(metadata.source_commit) != null &&
-        text(metadata.generated) != null &&
+        trimmedString(metadata.source_model_id) != null &&
+        trimmedString(metadata.harness) != null &&
+        trimmedString(metadata.source_commit) != null &&
+        trimmedString(metadata.generated) != null &&
         Number.isFinite(Date.parse(String(metadata.generated))) &&
         Array.isArray(metadata.harness_names) &&
         metadata.harness_names.length > 0 &&
-        metadata.harness_names.every((name) => text(name) != null) &&
+        metadata.harness_names.every((name) => trimmedString(name) != null) &&
         Array.isArray(metadata.harness_versions) &&
         metadata.harness_versions.length === metadata.harness_names.length &&
-        metadata.harness_versions.every((version) => text(version) != null) &&
-        unitScore(row.canonical_value) &&
-        unitScore(metadata.score_ci_low) &&
-        unitScore(metadata.score_ci_high) &&
+        metadata.harness_versions.every((version) => trimmedString(version) != null) &&
+        isUnitScore(row.canonical_value) &&
+        isUnitScore(metadata.score_ci_low) &&
+        isUnitScore(metadata.score_ci_high) &&
         metadata.score_ci_low <= row.canonical_value &&
         metadata.score_ci_high >= row.canonical_value &&
-        positiveInteger(metadata.runs) &&
-        DIAGNOSTICS.every((key) => nonnegativeNumber(metadata[key])) &&
-        unitScore(metadata.mean_final_best) &&
+        isPositiveInteger(metadata.runs) &&
+        DIAGNOSTICS.every((key) => isNonNegativeNumber(metadata[key])) &&
+        isUnitScore(metadata.mean_final_best) &&
         CONFIGURATIONS.every(
           (key) =>
-            unitScore(metadata[`configuration_${key}_score`]) &&
-            positiveInteger(metadata[`configuration_${key}_n`]) &&
+            isUnitScore(metadata[`configuration_${key}_score`]) &&
+            isPositiveInteger(metadata[`configuration_${key}_n`]) &&
             metadata[`configuration_${key}_task`] === key.split("--")[0] &&
             CONFIGURATION_DIAGNOSTICS.every((field) =>
-              nonnegativeNumber(metadata[`configuration_${key}_${field}`]),
+              isNonNegativeNumber(metadata[`configuration_${key}_${field}`]),
             ),
         ) &&
         CONFIGURATIONS.reduce(
@@ -312,24 +314,27 @@ export function weirdMlCacheMatches(
 export function weirdMlSourceCacheMatches(
   rows: readonly BenchmarkObservationRow[],
   sourceUrl: string,
-  crosswalkSourceUrl: string,
+  epochSourceUrl: string,
 ): boolean {
-  const creator = rows.filter((row) => row.metadata.source_series === "creator");
-  const epoch = rows.filter((row) => row.metadata.source_series === "epoch");
+  const weirdMlRows = rows.filter((row) => row.metadata.source_series === "creator");
+  const epochRows = rows.filter((row) => row.metadata.source_series === "epoch");
   return (
     rows.length > 0 &&
-    creator.length + epoch.length === rows.length &&
-    (creator.length === 0 || weirdMlCacheMatches(creator, sourceUrl)) &&
-    weirdMlEpochCacheMatches(epoch, crosswalkSourceUrl)
+    weirdMlRows.length + epochRows.length === rows.length &&
+    (weirdMlRows.length === 0 || weirdMlCacheMatches(weirdMlRows, sourceUrl)) &&
+    weirdMlEpochCacheMatches(epochRows, epochSourceUrl)
   );
 }
 
 /** Exact provider/model, effort, and agent identities align labels while preserving source scores and disclosed harness versions; ambiguous agents remain raw only. */
 export function mergeWeirdMlRows(
-  creator: readonly BenchmarkObservationRow[],
-  epoch: readonly BenchmarkObservationRow[],
+  weirdMlRows: readonly BenchmarkObservationRow[],
+  epochRows: readonly BenchmarkObservationRow[],
 ): BenchmarkObservationRow[] {
-  const rows = [...creator, ...epoch].map((row) => ({ ...row, metadata: { ...row.metadata } }));
+  const rows = [...weirdMlRows, ...epochRows].map((row) => ({
+    ...row,
+    metadata: { ...row.metadata },
+  }));
   const groups = new Map<string, BenchmarkObservationRow[]>();
   for (const row of rows) {
     const key = `${row.model_id}|${row.reasoning_effort}`;
@@ -367,18 +372,18 @@ export function mergeWeirdMlRows(
   return rows;
 }
 
-function text(value: unknown): string | null {
+function trimmedString(value: unknown): string | null {
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
 }
 
-function nonnegativeNumber(value: unknown): value is number {
+function isNonNegativeNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value) && value >= 0;
 }
 
-function unitScore(value: unknown): value is number {
-  return nonnegativeNumber(value) && value <= 1;
+function isUnitScore(value: unknown): value is number {
+  return isNonNegativeNumber(value) && value <= 1;
 }
 
-function positiveInteger(value: unknown): value is number {
-  return nonnegativeNumber(value) && Number.isInteger(value) && value > 0;
+function isPositiveInteger(value: unknown): value is number {
+  return isNonNegativeNumber(value) && Number.isInteger(value) && value > 0;
 }

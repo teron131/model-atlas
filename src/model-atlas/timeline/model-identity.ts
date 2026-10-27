@@ -1,31 +1,31 @@
-/** Construct, reconcile, and audit historical model identities; publisher, release date, and effort constrain which observations may be joined. */
+/** Construct, reconcile, and audit historical model identities; provider, effort, release date, and Artificial Analysis version constrain which observations may be joined. */
 
 import { STAGE_CONFIG } from "../config";
 import { modelNameIdentityKey } from "../identity";
 import { runMatcher } from "../identity/matching/pipeline";
 import {
-  benchmarkModelEffort,
   canonicalModelKey,
   normalizeModelToken,
+  parseModelEffort,
 } from "../identity/normalization";
 import { providerIdentityKey } from "../identity/provider";
 import {
-  DATE_LABEL,
-  normalizedDateLabel,
+  isSameRelease,
+  MONTH_YEAR_LABEL,
+  normalizeDateLabel,
   releaseLabelPeriod,
-  sameRelease,
   versionDate,
 } from "../identity/releases";
 import type { HistoricalDataset, HistoricalModel, HistoricalObservation } from "./schemas";
 
-/** Construct a source identity from its base name, effort, and date before publisher reconciliation. */
+/** Construct a source identity from its base name, effort, and date before Artificial Analysis reconciliation. */
 export function historicalSourceModel(
   name: string,
   provider: string,
   effort: string | null,
   date: unknown,
 ): HistoricalModel {
-  const parsed = benchmarkModelEffort(
+  const parsed = parseModelEffort(
     name.replace(/\s*\((?:Non-reasoning|Reasoning)\)\s*/gi, " ").trim(),
   );
   const family = canonicalModelKey({ name: parsed.baseModel });
@@ -49,7 +49,7 @@ function dateOrNull(value: unknown): string | null {
     : null;
 }
 
-/** Reconcile AA publisher slugs against retained dated API versions, never against a filtered or current-only catalog. */
+/** Reconcile Artificial Analysis slugs against retained dated API versions, never against a filtered or current-only catalog. */
 export function resolveHistoricalModelIdentities(
   models: HistoricalModel[],
   observations: HistoricalObservation[],
@@ -88,7 +88,7 @@ export function resolveHistoricalModelIdentities(
     const next = parent.get(id)!;
     return next === id ? id : root(next);
   };
-  const join = (left: string, right: string) => {
+  const tryJoin = (left: string, right: string) => {
     const a = root(left),
       b = root(right);
     if (a === b) return true;
@@ -101,7 +101,7 @@ export function resolveHistoricalModelIdentities(
       if (
         previous &&
         (Math.abs(previous.value - observation.value) > 1e-9 ||
-          (previous.source.includes("artificialanalysis.ai/") &&
+          (isArtificialAnalysisObservation(previous) &&
             previous.sourceModelVersion !== observation.sourceModelVersion))
       )
         return false;
@@ -110,9 +110,9 @@ export function resolveHistoricalModelIdentities(
     parent.set(a < b ? b : a, a < b ? a : b);
     return true;
   };
-  const publisherGroups = new Map<string, { version: string; ids: Set<string> }>();
+  const artificialAnalysisGroups = new Map<string, { version: string; ids: Set<string> }>();
   const matchedIds = new Set<string>();
-  const publisherVersions = new Map<string, Set<string>>();
+  const artificialAnalysisVersions = new Map<string, Set<string>>();
   const measuredVersions = new Map<string, Set<string>>();
   const datedVersions = new Map<
     string,
@@ -125,23 +125,21 @@ export function resolveHistoricalModelIdentities(
     if (!model?.id.startsWith("name:") || !version) continue;
     const date =
       versionDate(version) ??
-      (!observation.source.includes("artificialanalysis.ai/")
-        ? validHistoricalReleaseDate(model)
-        : null);
+      (!isArtificialAnalysisObservation(observation) ? validHistoricalReleaseDate(model) : null);
     if (date) datedVersions.set(`${model.id}\0${version}`, { model, version, date });
-    if (!observation.source.includes("artificialanalysis.ai/")) {
+    if (!isArtificialAnalysisObservation(observation)) {
       const versions = measuredVersions.get(model.id) ?? new Set<string>();
       versions.add(version);
       measuredVersions.set(model.id, versions);
       continue;
     }
-    const versions = publisherVersions.get(model.id) ?? new Set<string>();
+    const versions = artificialAnalysisVersions.get(model.id) ?? new Set<string>();
     versions.add(version);
-    publisherVersions.set(model.id, versions);
+    artificialAnalysisVersions.set(model.id, versions);
     const key = `${providerIdentityKey(model.provider)}\0${model.effort}\0${version}\0${/with fallback/i.test(model.name)}`;
-    const group = publisherGroups.get(key) ?? { version, ids: new Set<string>() };
+    const group = artificialAnalysisGroups.get(key) ?? { version, ids: new Set<string>() };
     group.ids.add(model.id);
-    publisherGroups.set(key, group);
+    artificialAnalysisGroups.set(key, group);
   }
   // Frozen catalog names still identify models even when their checkpoint did not retain external source slugs.
   const nameOnlyReferences = new Set<string>();
@@ -149,34 +147,34 @@ export function resolveHistoricalModelIdentities(
     if (
       !frozenIds.has(model.id) ||
       !model.releaseDate ||
-      publisherVersions.has(model.id) ||
+      artificialAnalysisVersions.has(model.id) ||
       measuredVersions.has(model.id)
     )
       continue;
     nameOnlyReferences.add(model.id);
-    const version = normalizeModelToken(normalizedDateLabel(model.name));
+    const version = normalizeModelToken(normalizeDateLabel(model.name));
     datedVersions.set(`${model.id}\0${version}`, { model, version, date: model.releaseDate });
   }
-  // A publisher's stable slug joins shortened labels before cross-source matching.
-  for (const [key, { ids }] of publisherGroups) {
+  // An Artificial Analysis stable slug joins shortened labels before cross-source matching.
+  for (const [key, { ids }] of artificialAnalysisGroups) {
     for (const id of ids)
-      if (publisherVersions.get(id)!.size > 1 || (measuredVersions.get(id)?.size ?? 0) > 1)
+      if (artificialAnalysisVersions.get(id)!.size > 1 || (measuredVersions.get(id)?.size ?? 0) > 1)
         ids.delete(id);
     if (!ids.size) {
-      publisherGroups.delete(key);
+      artificialAnalysisGroups.delete(key);
       continue;
     }
     const members = [...ids].map((id) => original.get(id)!);
     const periods = members.flatMap((m) => releasePeriod(m) ?? []);
-    if (periods.some((a) => periods.some((b) => !sameRelease(a, b)))) {
+    if (periods.some((a) => periods.some((b) => !isSameRelease(a, b)))) {
       // Reused slugs remain separate by known release; an undated member cannot choose between generations.
-      publisherGroups.delete(key);
+      artificialAnalysisGroups.delete(key);
       for (const period of new Set(periods)) {
         const datedIds = new Set(
           members.filter((model) => releasePeriod(model) === period).map((model) => model.id),
         );
-        publisherGroups.set(`${key}\0${period}`, {
-          version: publisherVersions
+        artificialAnalysisGroups.set(`${key}\0${period}`, {
+          version: artificialAnalysisVersions
             .get([...datedIds][0]!)!
             .values()
             .next().value!,
@@ -185,10 +183,10 @@ export function resolveHistoricalModelIdentities(
       }
       continue;
     }
-    for (const id of ids) join([...ids][0]!, id);
+    for (const id of ids) tryJoin([...ids][0]!, id);
     const dated = members.find((m) => m.releaseDate);
     if (members.length > 1 && dated) {
-      const version = publisherGroups.get(key)!.version;
+      const version = artificialAnalysisGroups.get(key)!.version;
       const exact = runMatcher(
         [
           {
@@ -200,7 +198,7 @@ export function resolveHistoricalModelIdentities(
           },
         ],
         {
-          primary: [
+          openRouter: [
             {
               provider_id: dated.provider,
               provider_name: dated.provider,
@@ -226,11 +224,13 @@ export function resolveHistoricalModelIdentities(
     .filter(
       ({ model }) =>
         datesByModel.get(model.id)!.size === 1 &&
-        (publisherVersions.get(model.id)?.size ?? 0) <= 1 &&
+        (artificialAnalysisVersions.get(model.id)?.size ?? 0) <= 1 &&
         (measuredVersions.get(model.id)?.size ?? 0) <= 1,
     )
     .sort((a, b) => a.model.id.localeCompare(b.model.id) || a.version.localeCompare(b.version));
-  for (const [, { version, ids }] of [...publisherGroups].sort(([a], [b]) => a.localeCompare(b))) {
+  for (const [, { version, ids }] of [...artificialAnalysisGroups].sort(([a], [b]) =>
+    a.localeCompare(b),
+  )) {
     const groupRoot = root([...ids][0]!);
     const members = models.filter((m) => root(m.id) === groupRoot);
     const source =
@@ -244,7 +244,7 @@ export function resolveHistoricalModelIdentities(
         (!nameOnlyReferences.has(model.id) ||
           historicalNameKey(model.name) === historicalNameKey(source.name) ||
           historicalNameKey(model.name) === shortVersionBase(source)) &&
-        sameRelease(period, model.releaseDate ?? date),
+        isSameRelease(period, model.releaseDate ?? date),
     );
     if (!eligible.length) continue;
     const result = runMatcher(
@@ -258,16 +258,16 @@ export function resolveHistoricalModelIdentities(
           matchSlugOverride: eligible.some(
             ({ model }) => historicalNameKey(model.name) === historicalNameKey(source.name),
           )
-            ? normalizeModelToken(normalizedDateLabel(source.name))
+            ? normalizeModelToken(normalizeDateLabel(source.name))
             : undefined,
         },
       ],
       {
-        primary: eligible.map(({ model, version: candidateVersion }) => ({
+        openRouter: eligible.map(({ model, version: candidateVersion }) => ({
           provider_id: model.provider,
           provider_name: model.provider,
           model_id: candidateVersion,
-          model: { name: normalizedDateLabel(model.name), release_date: model.releaseDate },
+          model: { name: normalizeDateLabel(model.name), release_date: model.releaseDate },
         })),
         fallback: [],
       },
@@ -283,21 +283,21 @@ export function resolveHistoricalModelIdentities(
     );
     if (competing) continue;
     const targetSlugs = new Set(
-      targets.flatMap(({ model }) => [...(publisherVersions.get(model.id) ?? [])]),
+      targets.flatMap(({ model }) => [...(artificialAnalysisVersions.get(model.id) ?? [])]),
     );
     if (targetSlugs.size > 1) continue;
     const target = targets[0]!;
     if (members.some((m) => m.current && m.id !== target.model.id) && target.model.current)
       continue;
-    if (!join(source.id, target.model.id)) continue;
+    if (!tryJoin(source.id, target.model.id)) continue;
     // Replaying a saved release can retain both the old label and its matched label for one exact API version.
-    for (const candidate of targets) join(target.model.id, candidate.model.id);
+    for (const candidate of targets) tryJoin(target.model.id, candidate.model.id);
     matchedIds.add(source.id);
     matchedIds.add(target.model.id);
   }
-  // Explicit source IDs protect configurations from fuzzy matching, but must not duplicate an exact, independently compatible publisher identity.
-  for (const [source, target] of exactPublisherAliases(models, observations)) {
-    join(source.id, target.id);
+  // Explicit source IDs protect configurations from fuzzy matching, but must not duplicate an exact, independently compatible Artificial Analysis identity.
+  for (const [source, target] of exactArtificialAnalysisAliases(models, observations)) {
+    tryJoin(source.id, target.id);
     matchedIds.add(source.id);
     matchedIds.add(target.id);
   }
@@ -316,7 +316,7 @@ export function resolveHistoricalModelIdentities(
         Number(frozenIds.has(b.id)) - Number(frozenIds.has(a.id)) ||
         Number(b.current) - Number(a.current) ||
         Number(b.releaseDate != null) - Number(a.releaseDate != null) ||
-        Number(DATE_LABEL.test(b.name)) - Number(DATE_LABEL.test(a.name)) ||
+        Number(MONTH_YEAR_LABEL.test(b.name)) - Number(MONTH_YEAR_LABEL.test(a.name)) ||
         a.id.localeCompare(b.id),
     );
     const preferred = ordered[0]!;
@@ -329,7 +329,7 @@ export function resolveHistoricalModelIdentities(
       continue;
     }
     const frozen = frozenIds.has(preferred.id) || preferred.current;
-    const name = frozen ? preferred.name : normalizedDateLabel(preferred.name);
+    const name = frozen ? preferred.name : normalizeDateLabel(preferred.name);
     const family = frozen ? preferred.family : canonicalModelKey({ name });
     const id = frozen ? preferred.id : `${family}::${preferred.effort ?? "unknown"}`;
     if (original.has(id) && root(id) !== root(preferred.id)) {
@@ -481,7 +481,7 @@ function reconcileFamilyLabels(
     if (!model.releaseDate) continue;
     const name = model.name
       .replace(/\bpreview\b/gi, "")
-      .replace(DATE_LABEL, "")
+      .replace(MONTH_YEAR_LABEL, "")
       .replace(/\(\s*\)/g, "")
       .trim();
     const key = `${providerIdentityKey(model.provider)}\0${shortVersionBase({ ...model, name }) ?? historicalNameKey(name)}\0${model.releaseDate}`;
@@ -494,13 +494,13 @@ function reconcileFamilyLabels(
     if (
       new Set(group.map((m) => m.family)).size < 2 ||
       !group.some(
-        (m) => /\bpreview\b/i.test(m.name) || DATE_LABEL.test(m.name) || shortVersionBase(m),
+        (m) => /\bpreview\b/i.test(m.name) || MONTH_YEAR_LABEL.test(m.name) || shortVersionBase(m),
       )
     )
       continue;
     const preferred =
       group.find((m) => frozenIds.has(m.id) || m.current) ??
-      group.find((m) => DATE_LABEL.test(m.name) && !/\bpreview\b/i.test(m.name)) ??
+      group.find((m) => MONTH_YEAR_LABEL.test(m.name) && !/\bpreview\b/i.test(m.name)) ??
       group.find((m) => !/\bpreview\b/i.test(m.name)) ??
       group[0]!;
     for (const model of group) families.set(model.id, preferred.family);
@@ -510,7 +510,7 @@ function reconcileFamilyLabels(
   );
 }
 
-/** Keep archived publisher releases separate from a later current snapshot even when the source reused its generic name. */
+/** Keep archived Artificial Analysis releases separate from a later current snapshot even when the source reused its generic name. */
 function separateHistoricalReleases(
   models: HistoricalModel[],
   observations: HistoricalObservation[],
@@ -539,7 +539,7 @@ function separateHistoricalReleases(
     `${providerIdentityKey(model.provider)}\0${model.effort}\0${version}`;
   for (const observation of observations) {
     const model = byId.get(observation.modelId);
-    if (!model || !observation.source.includes("artificialanalysis.ai/")) continue;
+    if (!model || !isArtificialAnalysisObservation(observation)) continue;
     const date =
       observation.sourceReleaseDate ?? (shortVersionBase(model) ? model.releaseDate : null);
     if (!date || !Number.isFinite(Date.parse(date)) || date > observation.observedAt.slice(0, 10))
@@ -554,7 +554,7 @@ function separateHistoricalReleases(
       model.current &&
       model.releaseDate &&
       observation.observedAt.slice(0, 10) < model.releaseDate &&
-      !sameRelease(date, model.releaseDate)
+      !isSameRelease(date, model.releaseDate)
     ) {
       const dates = earlyDates.get(model.id) ?? new Set<string>();
       dates.add(date);
@@ -563,11 +563,7 @@ function separateHistoricalReleases(
   }
   observations = observations.map((observation) => {
     const model = byId.get(observation.modelId);
-    if (
-      !model ||
-      !earlyDates.has(model.id) ||
-      !observation.source.includes("artificialanalysis.ai/")
-    )
+    if (!model || !earlyDates.has(model.id) || !isArtificialAnalysisObservation(observation))
       return observation;
     const candidates = observation.sourceModelVersion
       ? datesByVersion.get(versionKey(model, observation.sourceModelVersion))
@@ -592,8 +588,11 @@ function shortVersionBase(model: HistoricalModel): string | null {
     : null;
 }
 
-/** Require a single exact publisher version, compatible dates and names, and agreement on overlapping measurements before reconciling an explicit source configuration. */
-function exactPublisherAliases(models: HistoricalModel[], observations: HistoricalObservation[]) {
+/** Require a single exact Artificial Analysis version, compatible dates and names, and agreement on overlapping measurements before reconciling an explicit source configuration. */
+function exactArtificialAnalysisAliases(
+  models: HistoricalModel[],
+  observations: HistoricalObservation[],
+) {
   const rows = new Map<string, HistoricalObservation[]>();
   for (const observation of observations) {
     const existing = rows.get(observation.modelId) ?? [];
@@ -607,7 +606,7 @@ function exactPublisherAliases(models: HistoricalModel[], observations: Historic
     if (
       versions.size !== 1 ||
       !model.releaseDate ||
-      !measured.some((o) => o.source.includes("artificialanalysis.ai/"))
+      !measured.some(isArtificialAnalysisObservation)
     )
       continue;
     const key = `${providerIdentityKey(model.provider)}\0${model.effort}\0${[...versions][0]}\0${historicalNameKey(model.name)}\0${/with fallback/i.test(model.name)}`;
@@ -623,7 +622,7 @@ function exactPublisherAliases(models: HistoricalModel[], observations: Historic
         .length > 1
     )
       continue;
-    if (members.some((a) => members.some((b) => !sameRelease(a.releaseDate!, b.releaseDate!))))
+    if (members.some((a) => members.some((b) => !isSameRelease(a.releaseDate!, b.releaseDate!))))
       continue;
     const measurements = new Map<string, number>();
     let conflict = false;
@@ -649,7 +648,7 @@ function exactPublisherAliases(models: HistoricalModel[], observations: Historic
           },
         ],
         {
-          primary: [
+          openRouter: [
             {
               provider_id: target.provider,
               provider_name: target.provider,
@@ -675,7 +674,7 @@ export function historicalReleaseName(name: string, date: string): string {
     year: "numeric",
     timeZone: "UTC",
   });
-  return DATE_LABEL.test(name) ? name.replace(DATE_LABEL, label) : `${name} (${label})`;
+  return MONTH_YEAR_LABEL.test(name) ? name.replace(MONTH_YEAR_LABEL, label) : `${name} (${label})`;
 }
 
 function releasePeriod(model: HistoricalModel): string | null {
@@ -703,11 +702,15 @@ export function historicalVersionSeries(model: HistoricalModel): {
 } {
   const period = releasePeriod({ ...model, releaseDate: null });
   const name = model.name
-    .replace(DATE_LABEL, "")
+    .replace(MONTH_YEAR_LABEL, "")
     .replace(/\(\s*\)/g, "")
     .trim();
   return {
     key: `${providerIdentityKey(model.provider)}|${historicalNameKey(name)}|${model.effort ?? "unknown"}`,
     period,
   };
+}
+
+function isArtificialAnalysisObservation(observation: HistoricalObservation): boolean {
+  return observation.source.includes("artificialanalysis.ai/");
 }

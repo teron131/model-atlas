@@ -21,7 +21,7 @@ const RESOURCE_TAIL_SHARE = 0.025;
 const FULL_RESOURCE_SUPPORT = 3;
 
 type QualityResourcePoint = {
-  group: string;
+  modelKey: string;
   quality: number | null;
   resource: number | null;
   weight: number;
@@ -121,7 +121,7 @@ export function heldOutResourceScorer<T extends { id?: unknown; name?: unknown }
   if (peers == null || heldOut?.quality == null) {
     return () => null;
   }
-  const { group, quality } = heldOut;
+  const { modelKey, quality } = heldOut;
   const scale = resourceScoreScale(
     models,
     localResiduals(points, peers, RESOURCE_QUALITY_SIGMA, FULL_RESOURCE_SUPPORT),
@@ -129,7 +129,7 @@ export function heldOutResourceScorer<T extends { id?: unknown; name?: unknown }
   );
   return (resourceSignal) => {
     const { residual, peerSupport } = localResidual(
-      group,
+      modelKey,
       quality,
       resourceSignal,
       peers,
@@ -197,7 +197,7 @@ function comparisonPopulation<T extends { id?: unknown; name?: unknown }>(
   const qualityRange =
     qualityValues.length > 0 ? Math.max(...qualityValues) - Math.min(...qualityValues) : 0;
   const points = models.map((model, index) => ({
-    group: canonicalModelKey(model),
+    modelKey: canonicalModelKey(model),
     quality: qualityCoordinates[index] ?? null,
     resource: resourceSignals[index] ?? null,
     weight: weights.get(model) ?? 0,
@@ -235,7 +235,7 @@ function localResiduals(
   const comparisons = points.map((point) =>
     peers == null || point.quality == null || point.resource == null
       ? null
-      : localResidual(point.group, point.quality, point.resource, peers, bandwidth, fullSupport),
+      : localResidual(point.modelKey, point.quality, point.resource, peers, bandwidth, fullSupport),
   );
   return {
     residuals: comparisons.map((comparison) => comparison?.residual ?? null),
@@ -243,9 +243,9 @@ function localResiduals(
   };
 }
 
-/** Compare one point with peers from other groups only, so a model's own variants never set its expectation. */
+/** Compare one point with peers from other models only, so a model's own variants never set its expectation. */
 function localResidual(
-  group: string,
+  modelKey: string,
   quality: number,
   resource: number,
   { peers, coordinateOf }: ResidualPeers,
@@ -254,47 +254,48 @@ function localResidual(
 ): LocalResidual {
   const coordinate = coordinateOf(quality);
   const comparisons = new Map<string, { resourceTotal: number; weight: number }>();
-  let qualityTotal = 0;
-  let qualitySquares = 0;
-  let qualityResourceTotal = 0;
-  let minimumQuality = Infinity;
-  let maximumQuality = -Infinity;
+  let distanceTotal = 0;
+  let distanceSquares = 0;
+  let distanceResourceTotal = 0;
+  let minimumCoordinate = Infinity;
+  let maximumCoordinate = -Infinity;
   let minimumResource = Infinity;
   let maximumResource = -Infinity;
   for (const peer of peers) {
-    if (peer.group === group) continue;
+    if (peer.modelKey === modelKey) continue;
     const weight = peer.weight * gaussianWeight(coordinate, peer.coordinate, bandwidth);
     if (!(weight > 0)) continue;
     const distance = peer.coordinate - coordinate;
-    qualityTotal += weight * distance;
-    qualitySquares += weight * distance * distance;
-    qualityResourceTotal += weight * distance * peer.resource;
-    minimumQuality = Math.min(minimumQuality, peer.coordinate);
-    maximumQuality = Math.max(maximumQuality, peer.coordinate);
+    distanceTotal += weight * distance;
+    distanceSquares += weight * distance * distance;
+    distanceResourceTotal += weight * distance * peer.resource;
+    minimumCoordinate = Math.min(minimumCoordinate, peer.coordinate);
+    maximumCoordinate = Math.max(maximumCoordinate, peer.coordinate);
     minimumResource = Math.min(minimumResource, peer.resource);
     maximumResource = Math.max(maximumResource, peer.resource);
-    const comparison = comparisons.get(peer.group) ?? { resourceTotal: 0, weight: 0 };
+    const comparison = comparisons.get(peer.modelKey) ?? { resourceTotal: 0, weight: 0 };
     comparison.resourceTotal += weight * peer.resource;
     comparison.weight += weight;
-    comparisons.set(peer.group, comparison);
+    comparisons.set(peer.modelKey, comparison);
   }
-  const peerGroups = [...comparisons.values()];
-  const totalWeight = peerGroups.reduce((sum, peerGroup) => sum + peerGroup.weight, 0);
+  const peerModels = [...comparisons.values()];
+  const totalWeight = peerModels.reduce((sum, peerModel) => sum + peerModel.weight, 0);
   if (totalWeight <= 0) return { residual: 0, peerSupport: 0 };
-  const resourceTotal = peerGroups.reduce((sum, peerGroup) => sum + peerGroup.resourceTotal, 0);
+  const resourceTotal = peerModels.reduce((sum, peerModel) => sum + peerModel.resourceTotal, 0);
   let expectedSignal = resourceTotal / totalWeight;
   const supportedModelCount = Math.min(
     totalWeight,
-    effectiveCount(peerGroups.map((peerGroup) => peerGroup.weight)),
+    effectiveCount(peerModels.map((peerModel) => peerModel.weight)),
   );
   const peerSupport = smoothstep((supportedModelCount - 1) / (fullSupport - 1));
-  const determinant = totalWeight * qualitySquares - qualityTotal ** 2;
-  const stableSlope = determinant > Number.EPSILON * totalWeight * qualitySquares * 32;
+  const determinant = totalWeight * distanceSquares - distanceTotal ** 2;
+  const stableSlope = determinant > Number.EPSILON * totalWeight * distanceSquares * 32;
   if (stableSlope && peerSupport > 0) {
     const intercept =
-      (qualitySquares * resourceTotal - qualityTotal * qualityResourceTotal) / determinant;
-    const slope = (totalWeight * qualityResourceTotal - qualityTotal * resourceTotal) / determinant;
-    const offset = clamp(coordinate, minimumQuality, maximumQuality) - coordinate;
+      (distanceSquares * resourceTotal - distanceTotal * distanceResourceTotal) / determinant;
+    const slope =
+      (totalWeight * distanceResourceTotal - distanceTotal * resourceTotal) / determinant;
+    const offset = clamp(coordinate, minimumCoordinate, maximumCoordinate) - coordinate;
     const fittedSignal = clamp(intercept + slope * offset, minimumResource, maximumResource);
     expectedSignal += peerSupport * (fittedSignal - expectedSignal);
   }

@@ -3,7 +3,7 @@
 import { benchmarkDimensionWeight } from "../../../src/model-atlas/benchmarks/registry";
 import { COLUMN_TOOLTIPS } from "../../../src/model-atlas/config";
 import {
-  CONFIDENCE_TOOLTIP,
+  EVIDENCE_SUPPORT_TOOLTIP,
   type ModelAtlasColumnTooltip,
   type ModelAtlasColumnTooltipNestedSection,
   type ModelAtlasColumnTooltipRow,
@@ -11,7 +11,7 @@ import {
 } from "../../../src/model-atlas/config/tooltips";
 import {
   type BenchmarkMetricModel,
-  benchmarkMetricValue,
+  benchmarkValue,
 } from "../../../src/model-atlas/pipeline/scores/resource-metrics";
 import type { ModelAtlasMetadata, ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 import { benchmarkTooltips } from "../shared/constants";
@@ -214,7 +214,7 @@ const staticTableColumnTooltips = {
       ["Provider weighting", "estimated OpenRouter token share"],
     ],
   },
-  confidence: CONFIDENCE_TOOLTIP,
+  confidence: EVIDENCE_SUPPORT_TOOLTIP,
   change: {
     title: "Latest material change",
     body: "The latest material change in score, evidence support, or rank among continuing models. New entrants and removals do not create a cascade of rank-change events. Gaining or losing first place among continuing models still counts. Open a row value for its before-and-after evidence.",
@@ -363,7 +363,7 @@ function benchmarkTooltip(
 /** Count direct benchmark values, including zero scores, in the supplied display population. */
 function benchmarkCoverage(models: readonly BenchmarkMetricModel[], key: string) {
   return {
-    observed: models.filter((model) => benchmarkMetricValue(model, key) != null).length,
+    observed: models.filter((model) => benchmarkValue(model, key) != null).length,
     total: models.length,
   };
 }

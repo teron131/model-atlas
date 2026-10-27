@@ -11,7 +11,7 @@ import { hasQwenMaxTier } from "./qwen";
 const OPENROUTER_FREE_ROUTE_SUFFIX = ":free";
 const MMDD_RELEASE_TOKEN_PATTERN = /^(?:0[1-9]|1[0-2])(?:[0-2]\d|3[01])$/;
 
-const REASONING_EFFORT_ROUTES = [
+const REASONING_EFFORT_BY_SUFFIX = [
   ["-reasoning-ultra", "ultra"],
   ["-ultra", "ultra"],
   ["-reasoning-max", "max"],
@@ -30,13 +30,13 @@ const REASONING_EFFORT_ROUTES = [
   ["-reasoning", "minimal"],
   ["-non-reasoning", "none"],
 ] as const;
-const REASONING_EFFORT_SUFFIXES = REASONING_EFFORT_ROUTES.map(([suffix]) => suffix);
+const REASONING_EFFORT_SUFFIXES = REASONING_EFFORT_BY_SUFFIX.map(([suffix]) => suffix);
 const CATALOG_ALIAS_SUFFIXES = [
   "-fast",
   "-non-reasoning-low-effort",
   ...REASONING_EFFORT_SUFFIXES,
 ] as const;
-const CATALOG_ALIAS_STRIP_SUFFIXES = [...CATALOG_ALIAS_SUFFIXES].sort(
+const CATALOG_ALIAS_SUFFIXES_LONGEST_FIRST = [...CATALOG_ALIAS_SUFFIXES].sort(
   (left, right) => right.length - left.length,
 );
 const DATED_PREVIEW_ROUTE_PATTERN = /^(.+)-preview-\d{2}-(?:\d{2}|\d{4})$/;
@@ -103,7 +103,7 @@ export function isSameOpenRouterModelRoute(targetRoute: string, candidateRoute: 
  */
 export function stripCatalogAliasSuffixes(value: string): string {
   let normalized = value.replace(/-\d{8}$/, "");
-  for (const suffix of CATALOG_ALIAS_STRIP_SUFFIXES) {
+  for (const suffix of CATALOG_ALIAS_SUFFIXES_LONGEST_FIRST) {
     if (normalized.endsWith(suffix)) {
       if (suffix === "-max" && hasQwenMaxTier(normalized)) {
         return normalized;
@@ -129,7 +129,7 @@ export function reasoningEffortSelectionPriority(
   const exactRoute = normalizedArtificialAnalysisSlug === normalizedCanonicalSlug;
   const routeIndex = exactRoute
     ? -1
-    : REASONING_EFFORT_ROUTES.findIndex(
+    : REASONING_EFFORT_BY_SUFFIX.findIndex(
         ([suffix]) => normalizedArtificialAnalysisSlug === `${normalizedCanonicalSlug}${suffix}`,
       );
   const reportedRank =
@@ -139,7 +139,7 @@ export function reasoningEffortSelectionPriority(
   const inferredRank = exactRoute
     ? reasoningEffortRank(null)
     : routeIndex >= 0
-      ? reasoningEffortRank(REASONING_EFFORT_ROUTES[routeIndex]?.[1])
+      ? reasoningEffortRank(REASONING_EFFORT_BY_SUFFIX[routeIndex]?.[1])
       : -1;
   const effortRank = reportedRank >= 0 ? reportedRank : inferredRank;
   if (effortRank < 0) {
@@ -147,8 +147,8 @@ export function reasoningEffortSelectionPriority(
   }
   const routeTieBreak =
     exactRoute || routeIndex < 0
-      ? REASONING_EFFORT_ROUTES.length + 1
-      : REASONING_EFFORT_ROUTES.length - routeIndex;
+      ? REASONING_EFFORT_BY_SUFFIX.length + 1
+      : REASONING_EFFORT_BY_SUFFIX.length - routeIndex;
   return (effortRank + 1) * 100 + routeTieBreak;
 }
 

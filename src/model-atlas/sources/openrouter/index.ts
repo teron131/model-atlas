@@ -13,8 +13,7 @@ export {
   buildOpenRouterSlugCandidates,
   parseOpenRouterWeeklyTokens,
   processOpenRouterModelStats,
-  sanitizeModelId,
   selectOpenRouterRawModelStats,
   summarizeEndpointPerformance,
 } from "./stats";
-export { getOpenRouterRawScrapedStats, OPENROUTER_MODELS_URL } from "./workflow";
+export { getOpenRouterStats, OPENROUTER_MODELS_URL } from "./workflow";

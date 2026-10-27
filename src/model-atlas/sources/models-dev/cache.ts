@@ -2,13 +2,13 @@
 
 import type { DatabaseSync } from "node:sqlite";
 
-import { asFiniteNumber, stringValue } from "../../runtime";
+import { asFiniteNumber, asNonEmptyString } from "../../runtime";
 import {
   assignIfBoolean,
   assignIfNumber,
   assignIfString,
   type CacheDbRow,
-  firstEpochSecond,
+  firstFetchedAt,
   modalityList,
   queryCacheRows,
 } from "../cache/rows";
@@ -24,15 +24,15 @@ export function modelsDevRawCacheFromRows(cacheRows: CacheDbRow[]): {
   }
   const payload: ModelsDevPayload = {};
   for (const row of cacheRows) {
-    const providerId = stringValue(row.provider_id);
-    const modelId = stringValue(row.model_id);
+    const providerId = asNonEmptyString(row.provider_id);
+    const modelId = asNonEmptyString(row.model_id);
     if (providerId == null || modelId == null) {
       continue;
     }
     const provider = payload[providerId] ?? {
       id: providerId,
-      name: stringValue(row.provider_name) ?? providerId,
-      api: stringValue(row.provider_api) ?? undefined,
+      name: asNonEmptyString(row.provider_name) ?? providerId,
+      api: asNonEmptyString(row.provider_api) ?? undefined,
       models: {},
     };
     provider.models ??= {};
@@ -41,7 +41,7 @@ export function modelsDevRawCacheFromRows(cacheRows: CacheDbRow[]): {
   }
   return {
     payload,
-    fetchedAt: firstEpochSecond(cacheRows),
+    fetchedAt: firstFetchedAt(cacheRows),
     statusCode: asFiniteNumber(cacheRows[0]?.status_code),
   };
 }

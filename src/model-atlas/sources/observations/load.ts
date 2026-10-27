@@ -27,7 +27,7 @@ import {
   TERMINAL_BENCH_SCIENCE_VALS_URL,
   terminalBenchScienceCacheMatches,
 } from "../terminal-bench-science";
-import { getValsSourceStats, valsBenchmarkCacheMatches } from "../vals/results";
+import { getValsBenchmarkStats, valsBenchmarkCacheMatches } from "../vals/results";
 import { getValsRsiStats, valsRsiCacheMatches } from "../vals/rsi";
 import { getVoxelBenchStats } from "../voxelbench";
 import { getWeirdMlStats, weirdMlSourceCacheMatches } from "../weirdml";
@@ -138,7 +138,7 @@ export function benchmarkObservationSource(
     case "vals":
       return {
         fetchRows: () =>
-          getValsSourceStats({
+          getValsBenchmarkStats({
             benchmarkKey: binding.benchmark,
             canonicalTask: loader.canonicalTask,
             sourceUrl: loader.sourceUrl,

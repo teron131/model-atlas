@@ -6,6 +6,7 @@ import {
   type MatchDiagnosticsPayload,
   type MatcherConfig,
 } from "../identity";
+import { OPENROUTER_PROVIDER_ID } from "../identity/normalization";
 import { publicOpenRouterModelId } from "../identity/openrouter";
 import { artificialAnalysisModelId } from "../sources/artificial-analysis/leaderboard";
 import type { OpenRouterSourcePayload } from "../sources/openrouter";
@@ -94,7 +95,7 @@ export function buildDebugTraceRows(
       const isSelected = candidate.model_id === selectedModelId;
       const variantRejected = hasVariantConflict(matchSlug, candidate.model_id, matcherConfig);
       const openRouterModelId =
-        candidate.provider_id === "openrouter"
+        candidate.provider_id === OPENROUTER_PROVIDER_ID
           ? (publicOpenRouterModelId(candidate.model_id) ?? candidate.model_id)
           : null;
       rows.push({

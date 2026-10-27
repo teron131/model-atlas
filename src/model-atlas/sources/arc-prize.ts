@@ -17,11 +17,11 @@ import {
   RESOURCE_SOURCE_AGREEMENT_POLICY,
 } from "../benchmarks/resource-sources";
 import {
-  benchmarkModelEffort,
   modelNameWithoutCreatorPrefix,
   normalizeModelToken,
+  parseModelEffort,
 } from "../identity/normalization";
-import { asFiniteNumber, asRecord, nowEpochSeconds, stringValue } from "../runtime";
+import { asFiniteNumber, asNonEmptyString, asRecord, nowEpochSeconds } from "../runtime";
 import { fetchSource } from "./request-scheduler";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -90,11 +90,11 @@ export function processArcPrizeLeaderboardJson(
   options: ArcPrizeLeaderboardOptions,
 ): BenchmarkObservationRow[] {
   const root = asRecord(payload);
-  const observedAt = stringValue(root.generatedAt);
+  const observedAt = asNonEmptyString(root.generatedAt);
   const evaluations = Array.isArray(root.evaluations) ? root.evaluations : [];
   const seenRows = new Set<string>();
   const rows = evaluations
-    .map((value, sourceIndex) => arcPrizeObservation(value, sourceIndex, options))
+    .map((value, sourceIndex) => parseArcPrizeEvaluation(value, sourceIndex, options))
     .filter((row): row is ParsedArcPrizeRow => row != null)
     .filter((row) => {
       const key = JSON.stringify([
@@ -153,7 +153,7 @@ export function arcPrizeCacheMatches(
 }
 
 /** Keep one displayed, comparable general-model evaluation and its scoring provenance. */
-function arcPrizeObservation(
+function parseArcPrizeEvaluation(
   value: unknown,
   sourceIndex: number,
   options: ArcPrizeLeaderboardOptions,
@@ -163,10 +163,10 @@ function arcPrizeObservation(
     return null;
   }
 
-  const modelId = stringValue(row.modelId);
-  const displayName = stringValue(row.modelDisplayName);
-  const creator = stringValue(row.providerDisplayName) ?? stringValue(row.providerId);
-  const modelType = stringValue(row.modelType);
+  const modelId = asNonEmptyString(row.modelId);
+  const displayName = asNonEmptyString(row.modelDisplayName);
+  const creator = asNonEmptyString(row.providerDisplayName) ?? asNonEmptyString(row.providerId);
+  const modelType = asNonEmptyString(row.modelType);
   const score = asFiniteNumber(row.score);
   const harness = arcPrizeHarness(row, options.datasetId);
   if (
@@ -212,9 +212,9 @@ function arcPrizeHarness(
   datasetId: ArcPrizeLeaderboardOptions["datasetId"],
 ): ArcPrizeHarness | null {
   if (datasetId === "v2_Semi_Private") return null;
-  const modelId = stringValue(row.modelId) ?? "";
-  const model = stringValue(row.modelDisplayName) ?? "";
-  const modelGroup = stringValue(row.modelGroup) ?? "";
+  const modelId = asNonEmptyString(row.modelId) ?? "";
+  const model = asNonEmptyString(row.modelDisplayName) ?? "";
+  const modelGroup = asNonEmptyString(row.modelGroup) ?? "";
   const displayUsesProviderAdapter = /\s-\sProvider Adapter(?:\s*\(|$)/i.test(model);
   const idUsesProviderAdapter = /-provider-adapter$/i.test(modelId);
   const groupUsesProviderAdapter = /-provider-adapter$/i.test(modelGroup);
@@ -233,7 +233,7 @@ function arcModelIdentity(
   baseModel: string;
   reasoningEffort: string | null;
 } {
-  const parsed = benchmarkModelEffort(model);
+  const parsed = parseModelEffort(model);
   let baseModel = modelNameWithoutCreatorPrefix(parsed.baseModel, creator);
   if (
     normalizeModelToken(creator) === "anthropic" &&
@@ -272,7 +272,7 @@ function canonicalArcModelId(
   harness: ArcPrizeHarness | null,
 ): string {
   if (harness == null) return modelId;
-  const modelGroup = stringValue(row.modelGroup) ?? modelId;
+  const modelGroup = asNonEmptyString(row.modelGroup) ?? modelId;
   return modelGroup.replace(/-provider-adapter$/i, "");
 }
 

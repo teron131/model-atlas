@@ -8,7 +8,7 @@
  */
 
 import type { BenchmarkObservationRow } from "../../benchmarks/observation";
-import { benchmarkModelEffort, canonicalReasoningEffort } from "../../identity/normalization";
+import { canonicalReasoningEffort, parseModelEffort } from "../../identity/normalization";
 import { asFiniteNumber } from "../../runtime";
 import { parseCsvRecords } from "../parsing";
 
@@ -61,7 +61,7 @@ export function processEpochWeirdMlCsv(csv: string, sourceUrl: string): Benchmar
       source_url: sourceUrl,
       model_id: slug,
       model,
-      base_model: benchmarkModelEffort(model).baseModel,
+      base_model: parseModelEffort(model).baseModel,
       reasoning_effort: effort,
       model_creator: record.Organization?.trim() || null,
       rank: null,

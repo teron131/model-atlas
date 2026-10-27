@@ -10,7 +10,7 @@ import type {
   BenchmarkObservationPayload,
   BenchmarkObservationRow,
 } from "../../benchmarks/observation";
-import { benchmarkModelEffort } from "../../identity/normalization";
+import { parseModelEffort } from "../../identity/normalization";
 import { asFiniteNumber, nowEpochSeconds } from "../../runtime";
 import { parseCsvRecords } from "../parsing";
 import { fetchSource } from "../request-scheduler";
@@ -163,7 +163,7 @@ function epochRunScoreRow(
     asFiniteNumber(row.best_score);
   const model = row["Unique display name"] || row["Display name"] || row.Model || row.model || "";
   if (score == null || model.length === 0) return null;
-  const parsed = benchmarkModelEffort(model);
+  const parsed = parseModelEffort(model);
   return {
     benchmark_key: benchmarkKey,
     source_url: EPOCH_BENCHMARKS_CSV_URL,

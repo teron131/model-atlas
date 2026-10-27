@@ -100,7 +100,7 @@ export async function fetchBenchmarkSourceRows(): Promise<BenchmarkSourceRows> {
   const entries = await Promise.all(
     Object.values(BENCHMARK_RUNTIMES).map(async (runtime) => [
       runtime.sourceRowsKey,
-      await runtime.loadSourceRows(),
+      await runtime.fetchSourceRows(),
     ]),
   );
   return Object.fromEntries(entries) as BenchmarkSourceRows;

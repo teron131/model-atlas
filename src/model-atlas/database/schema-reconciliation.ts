@@ -458,7 +458,7 @@ function splitObjectKey(key: string): ["index" | "table", string] {
   return [type, name];
 }
 
-function sqlStringLiteral(value: string): string {
+export function sqlStringLiteral(value: string): string {
   return `'${value.replaceAll("'", "''")}'`;
 }
 

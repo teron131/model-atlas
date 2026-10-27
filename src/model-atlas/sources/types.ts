@@ -16,7 +16,7 @@ import type { FrontierCodeModelEffortRow } from "./frontier-code/leaderboard";
 import type { ModelsDevFlatModel, ModelsDevPayload } from "./models-dev/catalog";
 import type { RawSourceName } from "./registry";
 import type { RiemannBenchModelScoreRow } from "./surge/riemann-bench";
-import type { TerminalBench4ModelAgentRow } from "./terminal-bench-4/leaderboard";
+import type { TerminalBench4ModelHarnessRow } from "./terminal-bench-4/leaderboard";
 import type { ValsIndexModelScoreRow, ValsIndexTaskScoreRow } from "./vals/index-benchmark";
 import type { VendingBench2ModelScoreRow } from "./vending-bench-2/leaderboard";
 
@@ -92,8 +92,8 @@ export type SourceSnapshots = BenchmarkObservationSnapshotRows & {
   frontierCodeRows: FrontierCodeModelEffortRow[];
   riemannBenchModelScoreRows: RiemannBenchModelScoreRow[];
   riemannBenchSourceUrl: string;
-  terminalBench4Rows: TerminalBench4ModelAgentRow[];
-  valsIndexRows: ValsIndexTaskScoreRow[];
+  terminalBench4Rows: TerminalBench4ModelHarnessRow[];
+  valsIndexTaskScoreRows: ValsIndexTaskScoreRow[];
   valsIndexModelScoreRows: ValsIndexModelScoreRow[];
   vendingBench2ModelScoreRows: VendingBench2ModelScoreRow[];
   vendingBench2DataUrl: string | null;

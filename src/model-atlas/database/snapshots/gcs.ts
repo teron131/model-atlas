@@ -13,6 +13,7 @@ import { type File, Storage } from "@google-cloud/storage";
 import type { ModelAtlasPayload } from "../../stats/types";
 import { packTimelineDataset } from "../../timeline/schemas";
 import {
+  artifactSha256,
   decodeCommunityRankings,
   decodeIntelligenceIndex,
   decodeSnapshotBytes,
@@ -23,7 +24,6 @@ import {
   retainedSnapshotVersions,
   SNAPSHOT_MANIFEST_OBJECT,
   snapshotDataHash,
-  snapshotHash,
   type SnapshotManifest,
   snapshotObject,
   type SnapshotVersion,
@@ -101,14 +101,14 @@ export class SnapshotStorage {
     if (value != null && typeof value === "object" && "previous" in value)
       return parseSnapshotManifest(value);
     const snapshot = parseSnapshotArtifacts(value);
-    const [dashboard, checkpoint] = await Promise.all([
+    const [leaderboard, checkpoint] = await Promise.all([
       downloadSnapshotObject(this.publicBucket.file(snapshotObject(snapshot.version, "payload"))),
       downloadSnapshotObject(
         this.checkpointBucket.file(snapshotObject(snapshot.version, "checkpoint")),
       ),
     ]);
     const payload = parseSnapshotPayload(
-      await decodeSnapshotBytes(dashboard, snapshot.payload_sha256),
+      await decodeSnapshotBytes(leaderboard, snapshot.payload_sha256),
     );
     await decodeSnapshotBytes(checkpoint, snapshot.checkpoint_sha256);
     if (payload.fetched_at_epoch_seconds !== snapshot.fetched_at_epoch_seconds) {
@@ -120,7 +120,7 @@ export class SnapshotStorage {
   }
 
   async restore(manifest: SnapshotVersion, databasePath: string): Promise<ModelAtlasPayload> {
-    const [checkpoint, dashboard, index, rankings] = await Promise.all([
+    const [checkpoint, leaderboard, index, rankings] = await Promise.all([
       downloadSnapshotObject(
         this.checkpointBucket.file(snapshotObject(manifest.version, "checkpoint")),
       ),
@@ -137,7 +137,7 @@ export class SnapshotStorage {
         : null,
     ]);
     const payload = {
-      ...(await decodeSnapshotPayload(dashboard, manifest)),
+      ...(await decodeSnapshotPayload(leaderboard, manifest)),
       ...(index
         ? { timeline: await decodeIntelligenceIndex(index, manifest.intelligence_index_sha256!) }
         : {}),
@@ -183,8 +183,8 @@ export class SnapshotStorage {
     if (payload.models.length === 0 || !payload.fetched_at_epoch_seconds) {
       throw new Error("Refusing to publish an empty Model Atlas snapshot");
     }
-    const { timeline, community_rankings, ...leaderboard } = payload;
-    const leaderboardJson = JSON.stringify(leaderboard);
+    const { timeline, community_rankings, ...leaderboardPayload } = payload;
+    const leaderboardJson = JSON.stringify(leaderboardPayload);
     try {
       parseSnapshotPayload(Buffer.from(leaderboardJson));
     } catch (error) {
@@ -193,7 +193,7 @@ export class SnapshotStorage {
         cause: error,
       });
     }
-    const [dashboard, index, rankings] = await Promise.all([
+    const [leaderboard, index, rankings] = await Promise.all([
       compress(leaderboardJson),
       timeline ? compress(JSON.stringify(packTimelineDataset(timeline))) : null,
       community_rankings?.length ? compress(JSON.stringify(community_rankings)) : null,
@@ -204,7 +204,7 @@ export class SnapshotStorage {
     const publicArtifacts = [
       {
         file: this.publicBucket.file(snapshotObject(version, "payload")),
-        bytes: dashboard,
+        bytes: leaderboard,
       },
       ...(index
         ? [
@@ -248,10 +248,10 @@ export class SnapshotStorage {
       const manifest: SnapshotManifest = {
         version,
         fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
-        payload_sha256: snapshotHash(dashboard),
+        payload_sha256: artifactSha256(leaderboard),
         checkpoint_sha256: checkpoint.value.sha256,
-        intelligence_index_sha256: index ? snapshotHash(index) : null,
-        community_rankings_sha256: rankings ? snapshotHash(rankings) : null,
+        intelligence_index_sha256: index ? artifactSha256(index) : null,
+        community_rankings_sha256: rankings ? artifactSha256(rankings) : null,
         data_sha256: dataHash,
         previous: retainedSnapshotVersions(previous.manifest, dataHash),
       };
@@ -259,7 +259,7 @@ export class SnapshotStorage {
       publication = {
         manifest,
         bytes:
-          checkpoint.value.bytes + dashboard.length + (index?.length ?? 0) + manifestBytes.length,
+          checkpoint.value.bytes + leaderboard.length + (index?.length ?? 0) + manifestBytes.length,
       };
       await this.commitManifest(manifestBytes, previous.generation);
     } catch (error) {

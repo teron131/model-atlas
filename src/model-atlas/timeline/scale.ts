@@ -1,10 +1,10 @@
-/** Persist observed calibration evidence and append benchmark units without rebasing the initial cross-era coordinate. */
+/** Prepare each timeline release from observed calibration evidence, appending benchmark units without rebasing the initial cross-era coordinate. */
 
 import { createHash } from "node:crypto";
 
 import { excludesVariantIndex } from "../benchmarks/index-policy";
 import { stableJson } from "../runtime";
-import { informativeBenchmark } from "./benchmark-evidence";
+import { isInformativeValue } from "./benchmark-evidence";
 import { extendTimelineGraph, fitTimelineLink, timelineNativeValue } from "./linking";
 import { resolveHistoricalModelIdentities } from "./model-identity";
 import {
@@ -127,7 +127,7 @@ export function prepareTimelineRelease(
     )
       continue;
     const definition = benchmarks.get(observation.benchmarkId);
-    if (!definition || !informativeBenchmark(definition, observation.value, parameters)) continue;
+    if (!definition || !isInformativeValue(definition, observation.value, parameters)) continue;
     if (
       excludesVariantIndex(
         { reasoning_effort: modelEfforts.get(observation.modelId) },

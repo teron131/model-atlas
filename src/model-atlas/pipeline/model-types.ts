@@ -11,7 +11,7 @@ import type { ArenaAgentModelScoreRow } from "../sources/arena/agent";
 import type { ArtificialAnalysisBenchmarkResourceRow } from "../sources/artificial-analysis/benchmark-resources";
 import type { DeepSWEModelScoreRow } from "../sources/deep-swe/leaderboard";
 import type { FrontierCodeModelEffortRow } from "../sources/frontier-code/leaderboard";
-import type { TerminalBench4ModelAgentRow } from "../sources/terminal-bench-4/leaderboard";
+import type { TerminalBench4ModelHarnessRow } from "../sources/terminal-bench-4/leaderboard";
 import type { VendingBench2ModelScoreRow } from "../sources/vending-bench-2/leaderboard";
 
 export type ModelAtlasModalities = {
@@ -101,7 +101,7 @@ type ScoringSourceRow =
   | BenchmarkObservationRow
   | DeepSWEModelScoreRow
   | FrontierCodeModelEffortRow
-  | TerminalBench4ModelAgentRow
+  | TerminalBench4ModelHarnessRow
   | VendingBench2ModelScoreRow;
 
 export type ModelAtlasScoringSources =
@@ -113,10 +113,39 @@ export type ModelAtlasScoringSources =
       automation_bench?: BenchmarkObservationRow | null;
       deep_swe?: DeepSWEModelScoreRow | null;
       frontier_code?: FrontierCodeModelEffortRow | null;
-      terminal_bench_4?: TerminalBench4ModelAgentRow | null;
+      terminal_bench_4?: TerminalBench4ModelHarnessRow | null;
       vending_bench_2?: VendingBench2ModelScoreRow | null;
     })
   | null;
+
+/** A catalog model between source matching and candidate projection; its evidence objects keep source values for scoring to coerce. */
+export type ModelRow = {
+  id: string | null;
+  name?: string | null;
+  provider_id?: string | null;
+  openrouter_id?: string | null;
+  artificial_analysis_id?: string | null;
+  artificial_analysis_slug?: string | null;
+  reasoning_effort?: string | null;
+  family?: string | null;
+  logo?: string | null;
+  release_date?: string | null;
+  reasoning?: boolean | null;
+  open_weights?: boolean | null;
+  modalities?: JsonObject;
+  cost?: JsonObject;
+  limit?: JsonObject;
+  artificial_analysis_cost?: JsonObject;
+  median_output_tokens_per_second?: number;
+  median_time_to_first_token_seconds?: number;
+  median_end_to_end_response_time_seconds?: number;
+  benchmarks?: JsonObject;
+  intelligence?: JsonObject;
+  intelligence_index_cost?: JsonObject;
+  scoring_sources?: JsonObject;
+  /** Marks a version-replacement row with the undated Artificial Analysis source id it resolved from; the previous published model is looked up under that id first. */
+  version_replacement_source_id?: string;
+};
 
 export type ModelAtlasCandidateComponentScores = {
   intelligence_score: NumberOrNull;

@@ -8,7 +8,7 @@ import type {
   BenchmarkObservationPayload,
   BenchmarkObservationRow,
 } from "../benchmarks/observation";
-import { benchmarkModelEffort } from "../identity/normalization";
+import { parseModelEffort } from "../identity/normalization";
 import { nowEpochSeconds } from "../runtime";
 import { htmlAttribute, percentToUnitScore } from "./parsing";
 import { fetchSource } from "./request-scheduler";
@@ -77,7 +77,7 @@ export function processAutomationBenchModule(
     ) {
       continue;
     }
-    const parsed = benchmarkModelEffort(model);
+    const parsed = parseModelEffort(model);
     rows.push({
       benchmark_key: "automation_bench",
       source_url: sourceUrl,

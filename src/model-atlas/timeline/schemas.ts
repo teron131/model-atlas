@@ -77,7 +77,7 @@ export type HistoricalDataset = {
   scale?: TimelineScale;
   prepared?: {
     parameters: TimelineParameters;
-    evidence: { cells: TimelineBenchmarkEvidence[]; predictors: TimelinePredictor[] };
+    evidence: { cells: TimelineEvidenceCell[]; predictors: TimelinePredictor[] };
     calibrations: { intelligence: HistoricalCalibration; agentic?: HistoricalCalibration };
   };
 };
@@ -100,7 +100,7 @@ export type TimelinePredictor = {
   accepted: boolean;
 };
 
-export type TimelineBenchmarkEvidence = {
+export type TimelineEvidenceCell = {
   modelId: string;
   benchmarkId: string;
   value: number;

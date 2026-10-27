@@ -17,7 +17,7 @@ import type {
   BenchmarkObservationPayload,
   BenchmarkObservationRow,
 } from "../../benchmarks/observation";
-import { benchmarkModelEffort, modelNameWithoutCreatorPrefix } from "../../identity/normalization";
+import { modelNameWithoutCreatorPrefix, parseModelEffort } from "../../identity/normalization";
 import { nowEpochSeconds } from "../../runtime";
 import { htmlAttribute, percentToUnitScore, providerFromLogoAlt, stripHtmlTags } from "../parsing";
 import { fetchSource } from "../request-scheduler";
@@ -99,7 +99,7 @@ export function surgeCacheMatches(
 
 export function surgeLeaderboardScoreRows(pageHtml: string): SurgeLeaderboardScoreRow[] {
   const lastUpdated = surgeLastUpdated(pageHtml);
-  return surgeLeaderboardRows(pageHtml)
+  return surgeLeaderboardRowHtml(pageHtml)
     .map((rowHtml) => surgeLeaderboardScoreRow(rowHtml, lastUpdated))
     .filter((row): row is SurgeLeaderboardScoreRow => row != null)
     .map((row) => ({
@@ -117,7 +117,7 @@ export function processSurgeBenchmarkPageHtml(
   scoreKind: SurgeScoreKind = "percent",
 ): BenchmarkObservationRow[] {
   const lastUpdated = surgeLastUpdated(pageHtml);
-  const rows = surgeLeaderboardRows(pageHtml)
+  const rows = surgeLeaderboardRowHtml(pageHtml)
     .map((rowHtml) => surgeLeaderboardScoreRow(rowHtml, lastUpdated, scoreKind))
     .filter((row): row is SurgeLeaderboardScoreRow => row != null);
   let rank = 0;
@@ -129,7 +129,7 @@ export function processSurgeBenchmarkPageHtml(
     previousScore = row.score;
     const [suffix, harness] = row.model.match(/\s*\[([^\]]+)\]\s*$/) ?? [];
     const model = suffix == null ? row.model : row.model.slice(0, -suffix.length).trim();
-    const parsed = benchmarkModelEffort(model);
+    const parsed = parseModelEffort(model);
     return {
       benchmark_key: benchmarkKey,
       source_url: sourceUrl,
@@ -170,7 +170,7 @@ export function processSurgeIntelligenceIndexPageHtml(
         reasoningLabel == null || reasoningLabel.toLowerCase() === "default"
           ? model
           : `${model} (${reasoningLabel})`;
-      const parsed = benchmarkModelEffort(sourceModel);
+      const parsed = parseModelEffort(sourceModel);
       return {
         provider,
         model,
@@ -206,7 +206,7 @@ function surgeLastUpdated(pageHtml: string): string | null {
   return match?.[1] ?? null;
 }
 
-function surgeLeaderboardRows(pageHtml: string): string[] {
+function surgeLeaderboardRowHtml(pageHtml: string): string[] {
   return [...surgeLeaderboardSegment(pageHtml).matchAll(LIST_ITEM_PATTERN)].map(
     (match) => match[0] ?? "",
   );

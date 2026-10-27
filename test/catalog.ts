@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 
 import { BENCHMARK_DISPLAY_ORDER } from "../src/model-atlas/benchmarks/catalog";
 import {
-  AA_INDEX_COMPONENT_BENCHMARK_KEYS,
+  ARTIFICIAL_ANALYSIS_INDEX_COMPONENT_BENCHMARK_KEYS,
   INDEX_BENCHMARK_KEYS,
 } from "../src/model-atlas/benchmarks/index-policy";
 import {
@@ -16,15 +16,18 @@ import { STAGE_CONFIG } from "../src/model-atlas/config";
 import type { FinalStageConfig, ScoringConfig } from "../src/model-atlas/config/stage";
 import { canonicalModelKey } from "../src/model-atlas/identity/normalization";
 import { buildModelCatalogRows } from "../src/model-atlas/pipeline/model-catalog";
+import type { ModelRow } from "../src/model-atlas/pipeline/model-types";
 import type { OpenRouterModelData } from "../src/model-atlas/pipeline/openrouter-data";
+import type { BenchmarkVersioningOptions } from "../src/model-atlas/pipeline/selection/benchmark-versioning";
 import {
   buildFinalModels,
-  hasRequiredBenchmarkEvidence,
-  hasRequiredPublicRelevance,
   prepareModelSelection,
   selectOpenRouterModelRows,
 } from "../src/model-atlas/pipeline/selection/builder";
-import type { BenchmarkVersioningOptions } from "../src/model-atlas/pipeline/selection/candidate";
+import {
+  hasRequiredBenchmarkEvidence,
+  hasRequiredPublicRelevance,
+} from "../src/model-atlas/pipeline/selection/public-list";
 import type { ModelsDevFlatModel } from "../src/model-atlas/sources/models-dev/catalog";
 import type { BenchmarkPortfolio } from "../src/model-atlas/stats/types";
 import { minimalModelAtlasModel } from "./model-atlas-fixtures";
@@ -56,7 +59,7 @@ for (const keys of [
 assert.equal("itbench_sre" in STAGE_CONFIG.scoring.benchmarkPortfolio, false);
 assert.equal("scicode" in STAGE_CONFIG.scoring.benchmarkPortfolio, false);
 assert.equal("scicode" in BENCHMARK_CATALOG, false);
-assert.equal(AA_INDEX_COMPONENT_BENCHMARK_KEYS.has("scicode"), true);
+assert.equal(ARTIFICIAL_ANALYSIS_INDEX_COMPONENT_BENCHMARK_KEYS.has("scicode"), true);
 const selectedIndexKeys = new Set<string>(INDEX_BENCHMARK_KEYS);
 for (const dimension of ["intelligence", "agentic"] as const) {
   for (const key of STAGE_CONFIG.scoring[`${dimension}BenchmarkKeys`]) {
@@ -430,7 +433,6 @@ assert.deepEqual(
 const enrichedQualityModels = await buildFinalModels(
   qualitySelection,
   {
-    modelRows: qualityRows,
     speedByModelId: new Map([["provider/quality-1", completeBasicSpecs.speed]]),
     pricingByModelId: new Map([["provider/quality-1", { weighted_input: 3, weighted_output: 6 }]]),
     outputTokenAnchors: [200, 500, 1_000, 2_000, 8_000],
@@ -595,8 +597,8 @@ const completeMetadataRow = evidenceRow(incompleteMetadataId, "Metadata Preview"
 const incompleteMetadataRow = {
   ...completeMetadataRow,
   release_date: null,
-  cost: null,
-  limit: null,
+  cost: undefined,
+  limit: undefined,
 };
 assert.deepEqual(
   selectOpenRouterModelRows(
@@ -609,8 +611,8 @@ assert.deepEqual(
           intelligence: { agentic_index: 70 },
           benchmarks: { ...incompleteMetadataRow.benchmarks, aa_intelligence_index: 75 },
         },
-        { ...admissionRows[0]!, id: "provider/missing-context", limit: null },
-        { ...incompleteMetadataRow, id: "provider/no-index", intelligence: null },
+        { ...admissionRows[0]!, id: "provider/missing-context", limit: undefined },
+        { ...incompleteMetadataRow, id: "provider/no-index", intelligence: undefined },
         { ...incompleteMetadataRow, id: "provider/non-text", modalities: { output: ["image"] } },
       ],
       STAGE_CONFIG.scoring,
@@ -631,10 +633,10 @@ const metadataModels = await buildTestModels(
       {
         ...incompleteMetadataRow,
         id: "provider/sparse-metadata",
-        intelligence: null,
+        intelligence: undefined,
         benchmarks: { critpt: 0.7 },
       },
-      { ...incompleteMetadataRow, id: "provider/no-index-metadata", intelligence: null },
+      { ...incompleteMetadataRow, id: "provider/no-index-metadata", intelligence: undefined },
       { ...incompleteMetadataRow, id: "provider/non-text", modalities: { output: ["image"] } },
     ],
     speedByModelId: new Map(),
@@ -690,7 +692,7 @@ assert.notEqual(
 const singleIndexRow = {
   ...completeMetadataRow,
   id: "provider/recent-single-index",
-  intelligence: null,
+  intelligence: undefined,
   benchmarks: {
     aa_intelligence_index: 0.7,
     critpt: 0.7,
@@ -704,7 +706,7 @@ const singleIndexRows = [
   { ...singleIndexRow, id: "provider/expired-single-index", release_date: "2026-07-28" },
   { ...singleIndexRow, id: "provider/future-single-index", release_date: "2026-08-28" },
   { ...singleIndexRow, id: "provider/undated-single-index", release_date: null },
-  { ...singleIndexRow, id: "provider/incomplete-single-index", cost: null },
+  { ...singleIndexRow, id: "provider/incomplete-single-index", cost: undefined },
   {
     ...singleIndexRow,
     id: "provider/aa-subindex-only",
@@ -788,7 +790,7 @@ assert.ok(
 );
 const primaryModels = await buildTestModels(
   {
-    modelRows: [{ ...fallbackRows[0], cost: { input: 8, output: 40 } }],
+    modelRows: [{ ...fallbackRows[0]!, cost: { input: 8, output: 40 } }],
     speedByModelId: new Map([
       [
         incompleteMetadataId,
@@ -870,12 +872,12 @@ function catalogModel(id: string, name: string, family: string): ModelsDevFlatMo
 }
 
 function buildTestModels(
-  openRouterData: OpenRouterModelData,
+  { modelRows, ...openRouterData }: OpenRouterModelData & { modelRows: ModelRow[] },
   id: string | null | undefined,
   finalConfig: FinalStageConfig,
   scoringConfig: ScoringConfig,
   versioning?: BenchmarkVersioningOptions,
 ) {
-  const selection = prepareModelSelection(openRouterData.modelRows, scoringConfig, versioning);
+  const selection = prepareModelSelection(modelRows, scoringConfig, versioning);
   return buildFinalModels(selection, openRouterData, id, finalConfig, scoringConfig);
 }

@@ -1,9 +1,9 @@
-/** Resolves where a model's logo comes from: the creator logo Artificial Analysis publishes, else the Models.dev logo of the model's provider; caching drops a source that cannot be fetched. */
+/** Resolves where a model's logo comes from: the creator logo Artificial Analysis publishes, else the models.dev logo of the model's provider; caching drops a source that cannot be fetched. */
 
 const ARTIFICIAL_ANALYSIS_LOGO_BASE_URL = "https://artificialanalysis.ai/img/logos";
 const MODELS_DEV_LOGO_BASE_URL = "https://models.dev/logos";
 
-// Model creators whose Models.dev provider id differs from their own slug.
+// Model creators whose models.dev provider id differs from their own slug.
 const MODELS_DEV_PROVIDER_BY_CREATOR: Record<string, string> = {
   "meta-llama": "meta",
   mistralai: "mistral",
@@ -50,15 +50,17 @@ function absoluteLogoUrl(logoUrl: string | null | undefined): string | null {
   return `${ARTIFICIAL_ANALYSIS_LOGO_BASE_URL}/${logoValue}`;
 }
 
-/** The logo a model shows before caching: the source's own logo, else its provider's Models.dev logo, else none. */
+/** The logo a model shows before caching: its Artificial Analysis creator logo, else its provider's models.dev logo, else none. */
 export function resolveModelLogo(options: {
   provider?: string | null;
-  explicitLogo?: string | null;
+  artificialAnalysisLogo?: string | null;
 }): string {
-  return absoluteLogoUrl(options.explicitLogo) ?? modelsDevLogoUrl(options.provider) ?? "";
+  return (
+    absoluteLogoUrl(options.artificialAnalysisLogo) ?? modelsDevLogoUrl(options.provider) ?? ""
+  );
 }
 
-/** Models.dev answers any provider id it does not list with one shared placeholder, so the cache compares fetched logos against `modelsDevPlaceholderFor()` rather than trusting a successful response. */
+/** models.dev answers any provider id it does not list with one shared placeholder, so the cache compares fetched logos against `modelsDevPlaceholderFor()` rather than trusting a successful response. */
 export function modelsDevLogoUrl(provider: string | null | undefined): string | null {
   const normalizedProvider = normalizeProvider(provider);
   if (!normalizedProvider) {
@@ -69,7 +71,7 @@ export function modelsDevLogoUrl(provider: string | null | undefined): string | 
   return `${MODELS_DEV_LOGO_BASE_URL}/${modelsDevProvider}.svg`;
 }
 
-/** For a Models.dev logo URL, the URL of the placeholder it serves for providers it does not list; `null` for any other source. */
+/** For a models.dev logo URL, the URL of the placeholder it serves for providers it does not list; `null` for any other source. */
 export function modelsDevPlaceholderFor(source: string): string | null {
   return source.startsWith(`${MODELS_DEV_LOGO_BASE_URL}/`)
     ? `${MODELS_DEV_LOGO_BASE_URL}/model-atlas-unlisted-provider.svg`

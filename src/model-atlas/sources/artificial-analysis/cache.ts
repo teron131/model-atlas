@@ -4,20 +4,20 @@ import type { DatabaseSync } from "node:sqlite";
 
 import { ARTIFICIAL_ANALYSIS_INTELLIGENCE_KEYS } from "../../benchmarks/field-keys";
 import { ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_KEYS } from "../../benchmarks/registry";
-import { asFiniteNumber, type JsonObject, stringValue } from "../../runtime";
+import { asFiniteNumber, asNonEmptyString, type JsonObject } from "../../runtime";
 import {
   assignIfBoolean,
   assignIfNumber,
   assignIfString,
   type CacheDbRow,
-  firstEpochSecond,
+  firstFetchedAt,
   nonEmptyRecord,
   queryCacheRows,
 } from "../cache/rows";
 import type { ArtificialAnalysisBenchmarkResourceRow } from "./benchmark-resources";
 import { parseArtificialAnalysisReasoningEffort } from "./model-labels";
 
-const ARTIFICIAL_ANALYSIS_COST_KEYS = [
+const ARTIFICIAL_ANALYSIS_USAGE_KEYS = [
   "input_cost",
   "reasoning_cost",
   "output_cost",
@@ -33,7 +33,7 @@ const ARTIFICIAL_ANALYSIS_COST_KEYS = [
 ] as const;
 
 /** Hidden retained Artificial Analysis rows prove the cache is new enough to preserve deprecated benchmark carriers. */
-export function artificialAnalysisCacheHasHiddenRows(db: DatabaseSync): boolean {
+export function artificialAnalysisCacheHasDeprecatedRows(db: DatabaseSync): boolean {
   return (
     queryCacheRows(db, "SELECT 1 FROM artificial_analysis_raw_models WHERE deprecated = 1 LIMIT 1")
       .length > 0
@@ -53,7 +53,7 @@ export function readArtificialAnalysisRawCache(db: DatabaseSync): {
   }
   return {
     rows: cacheRows.map((row) => rawRowFromCache(row)),
-    fetchedAt: firstEpochSecond(cacheRows),
+    fetchedAt: firstFetchedAt(cacheRows),
   };
 }
 
@@ -66,11 +66,11 @@ export function artificialAnalysisBenchmarkResourceRawCacheFromRows(cacheRows: C
   }
   return {
     rows: cacheRows.flatMap((row) => {
-      const benchmarkKey = stringValue(row.benchmark_key);
-      const sourceUrl = stringValue(row.url);
-      const modelId = stringValue(row.model_id);
-      const model = stringValue(row.model);
-      const provider = stringValue(row.provider);
+      const benchmarkKey = asNonEmptyString(row.benchmark_key);
+      const sourceUrl = asNonEmptyString(row.url);
+      const modelId = asNonEmptyString(row.model_id);
+      const model = asNonEmptyString(row.model);
+      const provider = asNonEmptyString(row.provider);
       const score = asFiniteNumber(row.score);
       const taskCount = asFiniteNumber(row.task_run_count);
       const costPerTaskUsd = asFiniteNumber(row.cost_per_task_usd);
@@ -93,12 +93,12 @@ export function artificialAnalysisBenchmarkResourceRawCacheFromRows(cacheRows: C
         {
           benchmark_key: benchmarkKey,
           source_url: sourceUrl,
-          benchmark_version: stringValue(row.benchmark_version),
+          benchmark_version: asNonEmptyString(row.benchmark_version),
           model_id: modelId,
           model,
           provider,
-          provider_id: stringValue(row.provider_id),
-          reasoning_effort: stringValue(row.reasoning_effort),
+          provider_id: asNonEmptyString(row.provider_id),
+          reasoning_effort: asNonEmptyString(row.reasoning_effort),
           score,
           task_run_count: taskCount,
           cost_per_task_usd: costPerTaskUsd,
@@ -111,7 +111,7 @@ export function artificialAnalysisBenchmarkResourceRawCacheFromRows(cacheRows: C
         },
       ];
     }),
-    fetchedAt: firstEpochSecond(cacheRows),
+    fetchedAt: firstFetchedAt(cacheRows),
   };
 }
 
@@ -162,7 +162,7 @@ function rawRowFromCache(row: CacheDbRow): JsonObject {
   for (const key of ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_KEYS) {
     assignIfNumber(rawRow, key, row[key]);
   }
-  for (const key of ARTIFICIAL_ANALYSIS_COST_KEYS) {
+  for (const key of ARTIFICIAL_ANALYSIS_USAGE_KEYS) {
     assignIfNumber(rawRow, key, row[key]);
   }
   if (nonEmptyRecord(tokenCounts) != null) {
@@ -179,7 +179,7 @@ function rawRowFromCache(row: CacheDbRow): JsonObject {
 
 function cachedReasoningEffort(row: CacheDbRow): string | null {
   return (
-    stringValue(row.reasoning_effort) ??
+    asNonEmptyString(row.reasoning_effort) ??
     parseArtificialAnalysisReasoningEffort(row.name, row.short_name)
   );
 }

@@ -1,7 +1,7 @@
 /** Translate persisted SQLite row groups into benchmark update source rows. */
 
 import {
-  isCanonicalBenchmarkObservation,
+  isAssignableBenchmarkObservation,
   parseBenchmarkObservationMetadata,
 } from "../../benchmarks/observation";
 import {
@@ -10,7 +10,7 @@ import {
   type BenchmarkObservationRowsKey,
   type PublicBenchmarkRuntimeKeyFor,
 } from "../../benchmarks/registry";
-import { asFiniteNumber, stringValue } from "../../runtime";
+import { asFiniteNumber, asNonEmptyString } from "../../runtime";
 import { agentsLastExamBenchmarkScore } from "../../sources/agents-last-exam/leaderboard";
 import { artificialAnalysisBenchmarkResourceRawCacheFromRows } from "../../sources/artificial-analysis/cache";
 import {
@@ -43,7 +43,7 @@ type BenchmarkObservationDbRows = {
 
 type BenchmarkDbRows = BenchmarkObservationDbRows & {
   artificialAnalysisRows: readonly DbBenchmarkRow[];
-  artificialAnalysisResourceRows: readonly DbBenchmarkRow[];
+  artificialAnalysisBenchmarkResourceRows: readonly DbBenchmarkRow[];
   arenaAgentRows: readonly DbBenchmarkRow[];
   agentsLastExamRows: readonly DbBenchmarkRow[];
   aleBenchRows: readonly DbBenchmarkRow[];
@@ -52,13 +52,13 @@ type BenchmarkDbRows = BenchmarkObservationDbRows & {
   frontierCodeRows: readonly DbBenchmarkRow[];
   riemannBenchRows: readonly DbBenchmarkRow[];
   terminalBench4Rows: readonly DbBenchmarkRow[];
-  valsIndexRows: readonly DbBenchmarkRow[];
+  valsIndexTaskScoreRows: readonly DbBenchmarkRow[];
   vendingBench2Rows: readonly DbBenchmarkRow[];
 };
 
-function isCanonicalBenchmarkObservationDbRow(row: DbBenchmarkRow): boolean {
+function isAssignableBenchmarkObservationDbRow(row: DbBenchmarkRow): boolean {
   const metadata = parseBenchmarkObservationMetadata(row.metadata_json);
-  return metadata == null || isCanonicalBenchmarkObservation({ metadata });
+  return metadata == null || isAssignableBenchmarkObservation({ metadata });
 }
 
 function benchmarkObservationDbDrafts(rows: BenchmarkDbRows): BenchmarkRowDraft[] {
@@ -67,14 +67,14 @@ function benchmarkObservationDbDrafts(rows: BenchmarkDbRows): BenchmarkRowDraft[
     if (!Array.isArray(sourceRows)) {
       throw new Error(`Persisted benchmark observation rows are missing: ${sourceRowsKey}`);
     }
-    return sourceRows.filter(isCanonicalBenchmarkObservationDbRow).flatMap((row) => {
+    return sourceRows.filter(isAssignableBenchmarkObservationDbRow).flatMap((row) => {
       return [
         {
           key: benchmark,
-          id: stringValue(row.model_id),
-          identity: stringValue(row.base_model),
-          label: stringValue(row.model),
-          provider: stringValue(row.model_creator),
+          id: asNonEmptyString(row.model_id),
+          identity: asNonEmptyString(row.base_model),
+          label: asNonEmptyString(row.model),
+          provider: asNonEmptyString(row.model_creator),
           reasoningEffort: row.reasoning_effort,
           value: row.canonical_value,
           edition: parseBenchmarkObservationMetadata(row.metadata_json)?.benchmark_version,
@@ -84,7 +84,7 @@ function benchmarkObservationDbDrafts(rows: BenchmarkDbRows): BenchmarkRowDraft[
   });
 }
 
-/** Persisted ALE health rows use the same median-or-mean rule as scoring. */
+/** Persisted Agents' Last Exam health rows use the same median-or-mean rule as scoring. */
 function agentsLastExamDbScore(row: DbBenchmarkRow): number | null {
   const medianScore = asFiniteNumber(row.median_score);
   const meanScore = asFiniteNumber(row.mean_score);
@@ -98,13 +98,14 @@ function agentsLastExamDbScore(row: DbBenchmarkRow): number | null {
 
 function dbSourceDrafts(source: DbSourceSpec): BenchmarkRowDraft[] {
   return source.rows.flatMap((row) => {
-    if (source.rowKind != null && stringValue(row.row_kind) !== source.rowKind) return [];
+    if (source.rowKind != null && asNonEmptyString(row.row_kind) !== source.rowKind) return [];
     return [
       {
         key: source.key,
-        id: stringValue(row.model_id),
-        label: stringValue(row.model),
-        provider: source.providerColumn == null ? null : stringValue(row[source.providerColumn]),
+        id: asNonEmptyString(row.model_id),
+        label: asNonEmptyString(row.model),
+        provider:
+          source.providerColumn == null ? null : asNonEmptyString(row[source.providerColumn]),
         value: source.value(row),
         edition: source.edition?.(row),
       },
@@ -112,9 +113,9 @@ function dbSourceDrafts(source: DbSourceSpec): BenchmarkRowDraft[] {
   });
 }
 
-type StandaloneBenchmarkAdapter = (rows: BenchmarkDbRows) => BenchmarkRowDraft[];
+type StandaloneDbRowAdapter = (rows: BenchmarkDbRows) => BenchmarkRowDraft[];
 
-const STANDALONE_BENCHMARK_ADAPTERS = {
+const STANDALONE_DB_ROW_ADAPTERS = {
   agents_last_exam: (rows) =>
     dbSourceDrafts({
       key: "agents_last_exam",
@@ -128,9 +129,9 @@ const STANDALONE_BENCHMARK_ADAPTERS = {
         ? [
             {
               key: "ale_bench",
-              id: stringValue(row.base_model),
-              identity: stringValue(row.base_model),
-              label: stringValue(row.base_model),
+              id: asNonEmptyString(row.base_model),
+              identity: asNonEmptyString(row.base_model),
+              label: asNonEmptyString(row.base_model),
               reasoningEffort: row.reasoning_effort,
               value: row.performance_mean,
             },
@@ -140,10 +141,10 @@ const STANDALONE_BENCHMARK_ADAPTERS = {
   arena_agent: (rows) =>
     rows.arenaAgentRows.map((row) => ({
       key: "arena_agent",
-      id: stringValue(row.contender_name),
-      identity: stringValue(row.base_model),
-      label: stringValue(row.model),
-      provider: stringValue(row.organization),
+      id: asNonEmptyString(row.contender_name),
+      identity: asNonEmptyString(row.base_model),
+      label: asNonEmptyString(row.model),
+      provider: asNonEmptyString(row.organization),
       reasoningEffort: row.reasoning_effort,
       value: row.score,
     })),
@@ -169,14 +170,14 @@ const STANDALONE_BENCHMARK_ADAPTERS = {
     })),
   frontier_code: (rows) =>
     rows.frontierCodeRows.flatMap((row) => {
-      const revision = stringValue(row.revision);
+      const revision = asNonEmptyString(row.revision);
       return row.score_eligible === 1
         ? [
             {
               key: "frontier_code",
-              id: stringValue(row.base_model),
-              identity: stringValue(row.base_model),
-              label: stringValue(row.model),
+              id: asNonEmptyString(row.base_model),
+              identity: asNonEmptyString(row.base_model),
+              label: asNonEmptyString(row.model),
               reasoningEffort: row.reasoning_effort,
               value: row.main_score,
               edition: revision == null ? null : frontierCodeVersion(revision),
@@ -187,29 +188,29 @@ const STANDALONE_BENCHMARK_ADAPTERS = {
   terminal_bench_4: (rows) =>
     rows.terminalBench4Rows.map((row) => ({
       key: "terminal_bench_4",
-      id: stringValue(row.base_model),
-      identity: stringValue(row.base_model),
-      label: stringValue(row.model),
+      id: asNonEmptyString(row.base_model),
+      identity: asNonEmptyString(row.base_model),
+      label: asNonEmptyString(row.model),
       reasoningEffort: row.reasoning_effort,
       value: row.score,
     })),
   vending_bench_2: (rows) =>
     rows.vendingBench2Rows.map((row) => ({
       key: "vending_bench_2",
-      identity: stringValue(row.base_model),
-      label: stringValue(row.model),
+      identity: asNonEmptyString(row.base_model),
+      label: asNonEmptyString(row.model),
       reasoningEffort: row.reasoning_effort,
       value: row.final_balance_usd,
     })),
-} satisfies Record<PublicBenchmarkRuntimeKeyFor<"standalone">, StandaloneBenchmarkAdapter>;
+} satisfies Record<PublicBenchmarkRuntimeKeyFor<"standalone">, StandaloneDbRowAdapter>;
 
 /** Persisted benchmark rows enter update-health checks through the same benchmark-keyed contract as live rows. */
 export function benchmarkRowsFromDb(rows: BenchmarkDbRows): BenchmarkRowsByKey {
   return finalizeBenchmarkRows([
     ...benchmarkObservationDbDrafts(rows),
     ...rows.artificialAnalysisRows.flatMap((row) => {
-      const modelId = stringValue(row.model_id);
-      const label = stringValue(row.name) ?? stringValue(row.short_name) ?? modelId;
+      const modelId = asNonEmptyString(row.model_id);
+      const label = asNonEmptyString(row.name) ?? asNonEmptyString(row.short_name) ?? modelId;
       return label == null
         ? []
         : ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_KEYS.map((key) => ({
@@ -223,25 +224,26 @@ export function benchmarkRowsFromDb(rows: BenchmarkDbRows): BenchmarkRowsByKey {
           }));
     }),
     ...artificialAnalysisResourceDrafts(
-      artificialAnalysisBenchmarkResourceRawCacheFromRows([...rows.artificialAnalysisResourceRows])
-        ?.rows ?? [],
+      artificialAnalysisBenchmarkResourceRawCacheFromRows([
+        ...rows.artificialAnalysisBenchmarkResourceRows,
+      ])?.rows ?? [],
     ),
-    ...Object.values(STANDALONE_BENCHMARK_ADAPTERS).flatMap((adapter) => adapter(rows)),
+    ...Object.values(STANDALONE_DB_ROW_ADAPTERS).flatMap((adapter) => adapter(rows)),
     ...rows.riemannBenchRows.flatMap((row) => {
-      const model = stringValue(row.model);
+      const model = asNonEmptyString(row.model);
       return model == null
         ? []
         : [
             riemannBenchmarkDraft({
               model,
-              provider: stringValue(row.provider),
+              provider: asNonEmptyString(row.provider),
               score: row.score,
             }),
           ];
     }),
     ...dbSourceDrafts({
       key: "vals_index",
-      rows: rows.valsIndexRows,
+      rows: rows.valsIndexTaskScoreRows,
       value: (row) => row.score,
       providerColumn: "provider",
       rowKind: "overall",

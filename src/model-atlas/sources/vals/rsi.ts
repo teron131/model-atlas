@@ -17,7 +17,7 @@ import { fetchSource } from "../request-scheduler";
 
 const RSI_METRIC = BENCHMARK_STANDARD_SOURCES.rsi_benchmark.revision;
 const DEFAULT_TIMEOUT_MS = 30_000;
-const TASKS = [
+const RSI_TASKS = [
   "overall",
   "compression",
   "lm_training",
@@ -29,11 +29,10 @@ const TASKS = [
 export async function getValsRsiStats(sourceUrl: string): Promise<BenchmarkObservationPayload> {
   try {
     const page = await fetchText(sourceUrl);
-    const componentPath = page.match(
+    const islandTag = page.match(
       /<astro-island\b(?=[^>]*component-url="\/_astro\/RsiBenchmarkView\.[^"]+\.js")[^>]*>/,
     )?.[0];
-    const componentUrl =
-      componentPath == null ? null : htmlAttribute(componentPath, "component-url");
+    const componentUrl = islandTag == null ? null : htmlAttribute(islandTag, "component-url");
     if (componentUrl == null) return { fetched_at_epoch_seconds: null, data: [] };
     const component = await fetchText(new URL(componentUrl, sourceUrl).href);
     const dataModulePath = component.match(
@@ -77,20 +76,20 @@ export function processValsRsiModule(
 
   const harnesses = harnessMap(componentSource);
   if (harnesses == null) return [];
-  const rows = TASKS.flatMap((task) => {
+  const rows = RSI_TASKS.flatMap((task) => {
     const taskRows = taskObservations(moduleSource, task, version, updated, harnesses, sourceUrl);
     return taskRows.length === modelCount ? taskRows : [];
   });
-  return rows.length === TASKS.length * modelCount ? rows : [];
+  return rows.length === RSI_TASKS.length * modelCount ? rows : [];
 }
 
 /** The cached suite must contain every task under a declared source version and disclosed harness mapping. */
 export function valsRsiCacheMatches(rows: readonly BenchmarkObservationRow[]): boolean {
   return (
-    TASKS.every((task) => rows.some((row) => row.metadata.task === task)) &&
+    RSI_TASKS.every((task) => rows.some((row) => row.metadata.task === task)) &&
     rows.every(
       (row) =>
-        TASKS.some((task) => row.metadata.task === task) &&
+        RSI_TASKS.some((task) => row.metadata.task === task) &&
         typeof row.metadata.benchmark_version === "string" &&
         typeof row.metadata.harness === "string" &&
         row.metadata.metric ===
@@ -136,7 +135,7 @@ function harnessMap(componentSource: string): Record<string, string> | null {
 /** Convert one task's results into model-plus-agent observations. The overall task remains scoring evidence, while the four subtasks are marked diagnostic and the caller rejects an incomplete task cohort. */
 function taskObservations(
   moduleSource: string,
-  task: (typeof TASKS)[number],
+  task: (typeof RSI_TASKS)[number],
   version: string,
   updated: string,
   harnesses: Readonly<Record<string, string>>,
@@ -207,7 +206,7 @@ function hasCurrentTaskComposition(metadata: string): boolean {
   const tasks = [...metadata.slice(start, end + 1).matchAll(/(?:^|[,{])([a-z_]+):"/g)].map(
     (match) => match[1],
   );
-  return tasks.length === TASKS.length && TASKS.every((task) => tasks.includes(task));
+  return tasks.length === RSI_TASKS.length && RSI_TASKS.every((task) => tasks.includes(task));
 }
 
 function stringField(value: string, key: string): string | null {

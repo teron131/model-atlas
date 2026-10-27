@@ -1,13 +1,17 @@
 /**
- * Model catalog rows from Models.dev, with Vercel AI Gateway details for recent models.
+ * Model catalog rows from models.dev, with Vercel AI Gateway details for recent models.
  *
  * JSON source: https://models.dev/api.json
  * Overlay page source: https://vercel.com/ai-gateway/models
  */
 
 import { claudeIdentityKey, parseClaudeIdentity } from "../../identity/claude";
-import { normalizeModelToken, normalizeProviderModelId } from "../../identity/normalization";
-import { nowEpochSeconds } from "../../runtime";
+import {
+  normalizeModelToken,
+  normalizeProviderModelId,
+  VERCEL_PROVIDER_ID,
+} from "../../identity/normalization";
+import { asFiniteNumber, nowEpochSeconds } from "../../runtime";
 import { fetchSource } from "../request-scheduler";
 
 const MODELS_DEV_URL = "https://models.dev/api.json";
@@ -15,8 +19,6 @@ const MODELS_DEV_URL = "https://models.dev/api.json";
 const VERCEL_AI_GATEWAY_MODELS_URL = "https://vercel.com/ai-gateway/models";
 
 const REQUEST_TIMEOUT_MS = 30_000;
-
-const VERCEL_PROVIDER_ID = "vercel";
 
 const VERCEL_PROVIDER_NAME = "Vercel AI Gateway";
 
@@ -285,11 +287,6 @@ function shouldRetainModel(
       options.retainedModelNames?.has(normalizeModelToken(row.model.name)) === true) ||
     matchesRetainedClaudeIdentity
   );
-}
-
-function asFiniteNumber(value: unknown): number | null {
-  const numeric = Number(value);
-  return Number.isFinite(numeric) ? numeric : null;
 }
 
 function flattenModels(payload: ModelsDevPayload): ModelsDevFlatModel[] {

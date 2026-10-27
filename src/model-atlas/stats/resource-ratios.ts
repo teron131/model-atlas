@@ -17,8 +17,8 @@ import { canonicalModelKey } from "../identity/normalization";
 import { positiveFiniteNumber, weightedMedianOfFinite } from "../math-utils";
 import type { ModelAtlasModel } from "../pipeline/model-types";
 import {
-  benchmarkMetricValue,
   benchmarkTaskMetrics,
+  benchmarkValue,
   separatedBenchmarkResourceSources,
 } from "../pipeline/scores/resource-metrics";
 import { asFiniteNumber, asRecord } from "../runtime";
@@ -53,7 +53,7 @@ export function resourceRatioObservations(
     }
     for (const key of INDEX_BENCHMARK_KEYS) {
       const policy = indexPolicy(key);
-      const quality = benchmarkMetricValue(model, key);
+      const quality = benchmarkValue(model, key);
       if (
         portfolio[key] == null ||
         policy?.resources == null ||
@@ -152,7 +152,7 @@ function benchmarkObservations(
     metadata[`fusion_${field}_comparable`] === false
       ? null
       : metricAmount(benchmarkTaskMetrics(model, key), kind);
-  const quality = benchmarkMetricValue(model, key);
+  const quality = benchmarkValue(model, key);
   if (direct != null && quality != null)
     return [
       {

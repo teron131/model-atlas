@@ -9,17 +9,16 @@ import {
 import { type ScoringConfig, selectedBenchmarkKeys } from "../../config/stage";
 import { artificialAnalysisMatchSlug, type MatchDiagnosticsPayload } from "../../identity";
 import {
-  benchmarkModelEffort,
   canonicalReasoningEffort,
   modelSlugFromModelId,
   normalizeModelToken,
+  parseModelEffort,
 } from "../../identity/normalization";
-import { asRecord, type JsonObject } from "../../runtime";
+import { asRecord } from "../../runtime";
 import type { ModelAtlasSourceData } from "../../sources/assembly";
-import type { ModelAtlasModel } from "../model-types";
-import { benchmarkMetricValue } from "../scores/resource-metrics";
+import type { ModelAtlasModel, ModelRow } from "../model-types";
+import { benchmarkValue } from "../scores/resource-metrics";
 
-const REPLACEMENT_SOURCE_ID_FIELD = "version_replacement_source_id";
 const FRESHNESS_AUTHORITY_SOURCE_GROUPS = new Set(["artificial_analysis", "vals"]);
 const FRESHNESS_AUTHORITY_HOSTNAMES = ["artificialanalysis.ai", "vals.ai"];
 const FRESHNESS_AUTHORITY_WEIGHT = 2;
@@ -89,8 +88,8 @@ function addVersionEvidence(
 export function buildVersionReplacementMatchSlugOverrides(
   sourceData: ModelAtlasSourceData,
 ): ReadonlyMap<string, string> {
-  const sourceIdByFamily = new Map<string, string>();
-  const sourceLabelEvidenceByFamily = new Map<string, Set<string>>();
+  const artificialAnalysisIdByFamily = new Map<string, string>();
+  const artificialAnalysisLabelEvidenceByFamily = new Map<string, Set<string>>();
   for (const row of sourceData.artificialAnalysis.rows) {
     const record = asRecord(row);
     const sourceId = record.model_id;
@@ -100,12 +99,12 @@ export function buildVersionReplacementMatchSlugOverrides(
     const sourceSlug = modelSlugFromModelId(sourceId);
     const family = artificialAnalysisSourceFamily(sourceId);
     if (sourceSlug != null && family === normalizeModelToken(sourceSlug)) {
-      sourceIdByFamily.set(family, sourceId);
+      artificialAnalysisIdByFamily.set(family, sourceId);
       for (const label of [record.name, record.short_name, record.shortName]) {
         if (typeof label !== "string") continue;
         const matchSlug = datedReleaseExtension(family, label);
         if (matchSlug != null) {
-          addVersionEvidence(sourceLabelEvidenceByFamily, family, matchSlug);
+          addVersionEvidence(artificialAnalysisLabelEvidenceByFamily, family, matchSlug);
         }
       }
     }
@@ -115,7 +114,7 @@ export function buildVersionReplacementMatchSlugOverrides(
   const valsEvidenceByFamily = new Map<string, Set<string>>();
   for (const row of sourceData.modelsDev.rows) {
     const candidateSlug = modelSlugFromModelId(row.model_id) ?? row.model_id;
-    for (const family of sourceIdByFamily.keys()) {
+    for (const family of artificialAnalysisIdByFamily.keys()) {
       const matchSlug = datedReleaseExtension(family, candidateSlug);
       if (matchSlug != null) {
         addVersionEvidence(catalogEvidenceByFamily, family, matchSlug);
@@ -124,7 +123,7 @@ export function buildVersionReplacementMatchSlugOverrides(
   }
   for (const row of sourceData.valsIndex.rows) {
     const candidateSlug = modelSlugFromModelId(row.model_id) ?? row.model;
-    for (const family of sourceIdByFamily.keys()) {
+    for (const family of artificialAnalysisIdByFamily.keys()) {
       const matchSlug = datedReleaseExtension(family, candidateSlug);
       if (matchSlug != null) {
         addVersionEvidence(valsEvidenceByFamily, family, matchSlug);
@@ -133,9 +132,9 @@ export function buildVersionReplacementMatchSlugOverrides(
   }
   const overridesBySourceId = new Map<string, string>();
   for (const [family, catalogEvidence] of catalogEvidenceByFamily) {
-    const sourceId = sourceIdByFamily.get(family);
+    const sourceId = artificialAnalysisIdByFamily.get(family);
     const corroboratingEvidence = new Set([
-      ...(sourceLabelEvidenceByFamily.get(family) ?? []),
+      ...(artificialAnalysisLabelEvidenceByFamily.get(family) ?? []),
       ...(valsEvidenceByFamily.get(family) ?? []),
     ]);
     if (sourceId == null || catalogEvidence.size !== 1 || corroboratingEvidence.size !== 1) {
@@ -198,58 +197,56 @@ function supersededArtificialAnalysisIds(
 }
 
 /** Mark confirmed replacement rows and discard sibling observations tied to the superseded route. */
-export function prepareVersionReplacementMatchedRows(
-  rows: readonly Record<string, unknown>[],
+export function markVersionReplacementRows(
+  rows: readonly ModelRow[],
   matchDiagnostics: MatchDiagnosticsPayload,
   matchSlugOverridesBySourceId: ReadonlyMap<string, string>,
-): Record<string, unknown>[] {
+): ModelRow[] {
   const supersededSourceIds = supersededArtificialAnalysisIds(
     matchDiagnostics,
     matchSlugOverridesBySourceId,
   );
-  const preparedRows: Record<string, unknown>[] = [];
+  const preparedRows: ModelRow[] = [];
   for (const row of rows) {
     const sourceId = row.artificial_analysis_id;
-    if (typeof sourceId === "string" && supersededSourceIds.has(sourceId)) {
+    if (sourceId == null) {
+      preparedRows.push(row);
       continue;
     }
-    const matchSlug =
-      typeof sourceId === "string" ? matchSlugOverridesBySourceId.get(sourceId) : undefined;
+    if (supersededSourceIds.has(sourceId)) {
+      continue;
+    }
+    const matchSlug = matchSlugOverridesBySourceId.get(sourceId);
     preparedRows.push(
-      typeof sourceId === "string" &&
-        typeof row.id === "string" &&
-        matchSlug != null &&
-        routeMatchesVersionEvidence(row.id, matchSlug)
-        ? { ...row, [REPLACEMENT_SOURCE_ID_FIELD]: sourceId }
+      row.id != null && matchSlug != null && routeMatchesVersionEvidence(row.id, matchSlug)
+        ? { ...row, version_replacement_source_id: sourceId }
         : row,
     );
   }
   return preparedRows;
 }
 
-function variantKey(modelId: unknown, reasoningEffort: unknown): string {
+function modelIdEffortKey(modelId: unknown, reasoningEffort: unknown): string {
   return `${typeof modelId === "string" ? modelId : ""}\u0000${canonicalReasoningEffort(reasoningEffort) ?? ""}`;
 }
 
 /** Resolve the prior published identity while a replacement route is being established. */
 export function buildPreviousModelLookup(
   previousModels: readonly ModelAtlasModel[],
-): (row: JsonObject) => ModelAtlasModel | null {
+): (row: ModelRow) => ModelAtlasModel | null {
   const previousByVariant = new Map(
-    previousModels.map((model) => [variantKey(model.id, model.reasoning_effort), model]),
+    previousModels.map((model) => [modelIdEffortKey(model.id, model.reasoning_effort), model]),
   );
-  return (row) => {
-    const replacementSourceId = row[REPLACEMENT_SOURCE_ID_FIELD];
-    return (
-      previousByVariant.get(variantKey(replacementSourceId, row.reasoning_effort)) ??
-      previousByVariant.get(variantKey(row.id, row.reasoning_effort)) ??
-      null
-    );
-  };
+  return (row) =>
+    previousByVariant.get(
+      modelIdEffortKey(row.version_replacement_source_id, row.reasoning_effort),
+    ) ??
+    previousByVariant.get(modelIdEffortKey(row.id, row.reasoning_effort)) ??
+    null;
 }
 
-export function isVersionReplacementRow(row: JsonObject): boolean {
-  return typeof row[REPLACEMENT_SOURCE_ID_FIELD] === "string";
+export function isVersionReplacementRow(row: ModelRow): boolean {
+  return row.version_replacement_source_id != null;
 }
 
 function isObservationSource(source: { roles: readonly string[] }): boolean {
@@ -263,7 +260,7 @@ function isFreshnessAuthorityHostname(hostname: string): boolean {
   );
 }
 
-function benchmarkUsesFreshnessAuthority(row: JsonObject, key: string): boolean {
+function benchmarkUsesFreshnessAuthority(row: ModelRow, key: string): boolean {
   const definition = BENCHMARK_CATALOG[key as BenchmarkKey];
   const observationSources = definition?.source.inputs.filter(isObservationSource) ?? [];
   if (
@@ -273,7 +270,7 @@ function benchmarkUsesFreshnessAuthority(row: JsonObject, key: string): boolean 
     return true;
   }
 
-  const sourceUrl = asRecord(asRecord(row.scoring_sources)[key]).source_url;
+  const sourceUrl = asRecord(row.scoring_sources?.[key]).source_url;
   if (typeof sourceUrl !== "string") {
     return false;
   }
@@ -288,17 +285,17 @@ function sourceModelSlug(value: unknown): string | null {
   if (typeof value !== "string") {
     return null;
   }
-  const baseModel = benchmarkModelEffort(value).baseModel;
+  const baseModel = parseModelEffort(value).baseModel;
   return normalizeModelToken(modelSlugFromModelId(baseModel) ?? baseModel);
 }
 
-function benchmarkSourceIdentifiesCurrentVersion(row: JsonObject, key: string): boolean {
+function benchmarkSourceIdentifiesCurrentVersion(row: ModelRow, key: string): boolean {
   const currentSlug = sourceModelSlug(row.id);
   if (currentSlug == null) {
     return false;
   }
-  const replacementSourceSlug = sourceModelSlug(row[REPLACEMENT_SOURCE_ID_FIELD]);
-  const source = asRecord(asRecord(row.scoring_sources)[key]);
+  const replacementSourceSlug = sourceModelSlug(row.version_replacement_source_id);
+  const source = asRecord(row.scoring_sources?.[key]);
   const sourceSlugs = [
     source.model_id,
     source.model,
@@ -323,11 +320,11 @@ function calendarDate(value: unknown): string | null {
 }
 
 function benchmarkSourceIsNewer(
-  row: JsonObject,
+  row: ModelRow,
   previous: ModelAtlasModel | null | undefined,
   key: string,
 ): boolean {
-  const sourceDate = calendarDate(asRecord(asRecord(row.scoring_sources)[key]).observed_at);
+  const sourceDate = calendarDate(asRecord(row.scoring_sources?.[key]).observed_at);
   const releaseDate = calendarDate(row.release_date);
   const previousDate = calendarDate(previous?.benchmark_dates?.[key]);
   return (
@@ -338,10 +335,10 @@ function benchmarkSourceIsNewer(
   );
 }
 
-function omitBenchmarkValues(row: JsonObject, keys: readonly string[]): JsonObject {
-  const benchmarks = { ...asRecord(row.benchmarks) };
-  const intelligence = { ...asRecord(row.intelligence) };
-  const scoringSources = { ...asRecord(row.scoring_sources) };
+function omitBenchmarkValues(row: ModelRow, keys: readonly string[]): ModelRow {
+  const benchmarks = { ...row.benchmarks };
+  const intelligence = { ...row.intelligence };
+  const scoringSources = { ...row.scoring_sources };
   for (const key of keys) {
     const location = benchmarkValueLocation(key);
     if (location?.kind === "intelligence") {
@@ -365,25 +362,24 @@ function omitBenchmarkValues(row: JsonObject, keys: readonly string[]): JsonObje
  * Give freshness authorities extra weight after filtering.
  * Authority alone does not make an unnamed observation current-version evidence.
  */
-export function prepareVersionReplacementBenchmarkRows(
-  rows: readonly Record<string, unknown>[],
+export function dropStaleReplacementBenchmarks(
+  rows: readonly ModelRow[],
   previousModels: readonly ModelAtlasModel[],
   scoringConfig: ScoringConfig,
-): Record<string, unknown>[] {
+): ModelRow[] {
   const previousModelForRow = buildPreviousModelLookup(previousModels);
   const selectedKeys = new Set(selectedBenchmarkKeys(scoringConfig));
-  return rows.map((inputRow) => {
-    const row = asRecord(inputRow);
+  return rows.map((row) => {
     if (!isVersionReplacementRow(row)) {
-      return inputRow;
+      return row;
     }
     const previous = previousModelForRow(row);
     const staleKeys = BENCHMARK_KEYS.filter((key) => {
-      const currentValue = benchmarkMetricValue(row, key);
+      const currentValue = benchmarkValue(row, key);
       if (!selectedKeys.has(key) || currentValue == null) {
         return false;
       }
-      const previousValue = previous == null ? null : benchmarkMetricValue(previous, key);
+      const previousValue = previous == null ? null : benchmarkValue(previous, key);
       const changed = previousValue != null && previousValue !== currentValue;
       const previouslyAccepted = previous?.id === row.id && previousValue != null;
       return (
@@ -393,13 +389,13 @@ export function prepareVersionReplacementBenchmarkRows(
         !benchmarkSourceIsNewer(row, previous, key)
       );
     });
-    return staleKeys.length === 0 ? inputRow : omitBenchmarkValues(row, staleKeys);
+    return staleKeys.length === 0 ? row : omitBenchmarkValues(row, staleKeys);
   });
 }
 
 /** Give designated freshness authorities extra influence only while a replacement row is active. */
 export function versionReplacementBenchmarkWeights(
-  row: JsonObject,
+  row: ModelRow,
   scoringConfig: ScoringConfig,
 ): ReadonlyMap<string, number> | undefined {
   if (!isVersionReplacementRow(row)) {

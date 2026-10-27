@@ -1,4 +1,4 @@
-/** Models.dev source snapshot merge policy and row-state preservation. */
+/** models.dev source snapshot merge policy and row-state preservation. */
 
 import { buildModelsDevSourceStates } from "../snapshots/policy";
 import { shouldUseFetchedRows, snapshotFetchedAt } from "../snapshots/row-snapshot";
@@ -51,7 +51,7 @@ export function mergeModelsDevPayload(
   return mergedPayload;
 }
 
-/** Merges refreshed Models.dev providers into cache while preserving per-model row state. */
+/** Merges refreshed models.dev providers into cache while preserving per-model row state. */
 export async function modelsDevSnapshot(
   cached: ReturnType<typeof readModelsDevRawCache>,
   status: RawSourceCacheStatus,
@@ -115,7 +115,7 @@ export async function modelsDevSnapshot(
   };
 }
 
-/** Freshness counts concrete Models.dev model rows rather than provider wrapper objects. */
+/** Freshness counts concrete models.dev model rows rather than provider wrapper objects. */
 function modelsDevSourceInputCount(payload: ModelsDevSnapshot["modelsDevPayload"]): number {
   return Object.values(payload).reduce(
     (count, provider) => count + Object.keys(provider.models ?? {}).length,

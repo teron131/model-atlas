@@ -44,7 +44,7 @@ export type ModelAtlasColumnTooltips = Record<string, ModelAtlasColumnTooltip>;
 const QUALITY_REGULARIZATION_SCALE =
   "retain 85% of the score through 1.2 supported benchmark weight, rising smoothly to 100% at 12; eligible indexes count their overlap-adjusted breadth";
 
-export const CONFIDENCE_TOOLTIP = {
+export const EVIDENCE_SUPPORT_TOOLTIP = {
   title: "Evidence support",
   body: "How much of each score's input weight is supported by direct results or discounted, validated estimates. This is evidence coverage, not a confidence interval or the probability that a rank is correct.",
   rows: [

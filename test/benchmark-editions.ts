@@ -6,7 +6,7 @@ import { createHash } from "node:crypto";
 import { indexPolicy } from "../src/model-atlas/benchmarks/index-policy";
 import { BENCHMARK_CATALOG } from "../src/model-atlas/benchmarks/registry";
 import { stableJson } from "../src/model-atlas/runtime";
-import { checkpointBenchmarkId } from "../src/model-atlas/timeline/capability";
+import { benchmarkEditionId } from "../src/model-atlas/timeline/capability";
 
 const changedKeys = [
   "chess_puzzles",
@@ -40,13 +40,9 @@ for (const [key, definition] of Object.entries(BENCHMARK_CATALOG)) {
   };
   const previousId = `atlas:benchmark:${key}:${createHash("sha256").update(stableJson(previousContract)).digest("hex").slice(0, 20)}`;
   if (changedKeys.includes(key)) {
-    assert.notEqual(
-      checkpointBenchmarkId(key),
-      previousId,
-      `${key} needs a new measurement edition`,
-    );
+    assert.notEqual(benchmarkEditionId(key), previousId, `${key} needs a new measurement edition`);
   } else {
-    assert.equal(checkpointBenchmarkId(key), previousId, `${key} retains its existing edition`);
+    assert.equal(benchmarkEditionId(key), previousId, `${key} retains its existing edition`);
   }
 }
 

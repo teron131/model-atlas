@@ -13,10 +13,10 @@ import {
   resourcePerTaskRun,
 } from "../benchmarks/observation";
 import { canonicalReasoningEffort, modelNameWithoutCreatorPrefix } from "../identity/normalization";
-import { asFiniteNumber, asRecord, nowEpochSeconds, stringValue } from "../runtime";
+import { asFiniteNumber, asNonEmptyString, asRecord, nowEpochSeconds } from "../runtime";
 import { percentToUnitScore } from "./parsing";
 import { fetchSource } from "./request-scheduler";
-import { getValsSourceStats } from "./vals/results";
+import { getValsBenchmarkStats } from "./vals/results";
 
 const TERMINAL_BENCH_SCIENCE_DATA_URL =
   "https://www.terminal-bench-science.ai/api/leaderboard?package=terminal-bench-science%2Fterminal-bench-science&name=v0-1-eval";
@@ -46,7 +46,7 @@ export async function getTerminalBenchScienceStats(
         }
         return { fetched_at_epoch_seconds: nowEpochSeconds(), data };
       }),
-      getValsSourceStats({
+      getValsBenchmarkStats({
         benchmarkKey: "terminal_bench_science",
         canonicalTask: "overall",
         sourceUrl: TERMINAL_BENCH_SCIENCE_VALS_URL,
@@ -90,7 +90,7 @@ export function processTerminalBenchSciencePayload(
     leaderboard.name !== TERMINAL_BENCH_SCIENCE_NAME ||
     !Array.isArray(datasetVersionIds) ||
     datasetVersionIds.length === 0 ||
-    datasetVersionIds.some((id) => stringValue(id) == null)
+    datasetVersionIds.some((id) => asNonEmptyString(id) == null)
   ) {
     return [];
   }
@@ -135,9 +135,9 @@ function terminalBenchScienceObservation(
 
   const metadata = asRecord(row.metadata);
   const metrics = asRecord(row.metrics);
-  const model = stringValue(asRecord(metadata.model_display).label);
-  const creator = stringValue(asRecord(metadata.model_org).label);
-  const harness = stringValue(asRecord(metadata.agent_display).label);
+  const model = asNonEmptyString(asRecord(metadata.model_display).label);
+  const creator = asNonEmptyString(asRecord(metadata.model_org).label);
+  const harness = asNonEmptyString(asRecord(metadata.agent_display).label);
   const rank = asFiniteNumber(row.rank);
   const score = percentToUnitScore(String(metrics.accuracy ?? ""));
   const scoreStandardError = percentToUnitScore(String(metrics.accuracy_stderr ?? ""));
@@ -180,7 +180,7 @@ function terminalBenchScienceObservation(
     total_tokens: totalTokens,
     cost: resourcePerTaskRun(totalCostUsd, taskRunCount),
     tokens_per_task: resourcePerTaskRun(totalTokens, taskRunCount),
-    observed_at: stringValue(row.updated_at),
+    observed_at: asNonEmptyString(row.updated_at),
     metadata: {
       source_series: "official",
       source_revision: TERMINAL_BENCH_SCIENCE_NAME,

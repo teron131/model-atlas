@@ -1,4 +1,4 @@
-/** Pipeline stage switches for matching, route data, public selection, and scoring. */
+/** Pipeline stage switches for matching, OpenRouter data, public selection, and scoring. */
 
 import type { BenchmarkDimension, BenchmarkPortfolio } from "../benchmarks/factory";
 import { isAggregateIndex, MINIMUM_REPORTED_INDEX_BREADTH } from "../benchmarks/index-policy";

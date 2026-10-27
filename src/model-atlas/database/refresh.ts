@@ -1,4 +1,4 @@
-/** Build a complete SQLite checkpoint while retaining source caches and append-only audit history. */
+/** Refresh the SQLite checkpoint while retaining source caches and append-only audit history. */
 
 import { existsSync } from "node:fs";
 import { rename } from "node:fs/promises";
@@ -19,21 +19,22 @@ import { archiveCheckpoint } from "./archive";
 import { readCapabilityState, writeCapabilityState } from "./capability-state";
 import { deriveDatabaseSnapshot, writeCheckpoint } from "./checkpoint";
 import { DEFAULT_DATABASE_PATH, openDatabase, removeDatabaseFiles } from "./schema";
+import { sqlStringLiteral } from "./schema-reconciliation";
 import { readDatabasePayload } from "./sqlite-payload";
 
-export type DatabaseBuildResult = {
+export type DatabaseRefreshResult = {
   path: string;
-  source_rows: Record<string, number>;
+  table_row_counts: Record<string, number>;
   source_cache: Record<RawSourceName, RawSourceCacheStatus>;
   source_health: ModelAtlasSourceHealth;
   final_model_count: number;
 };
 
 /** Refresh the local checkpoint; the GCS publisher owns making it visible to runtime readers. */
-export async function buildDatabase(
+export async function refreshDatabase(
   outputPath = DEFAULT_DATABASE_PATH,
   options: SourceRefreshOptions & { previousPayload?: ModelAtlasPayload | null } = {},
-): Promise<DatabaseBuildResult> {
+): Promise<DatabaseRefreshResult> {
   const startedAtEpochSeconds = nowEpochSeconds();
   const existed = existsSync(outputPath);
   let db: DatabaseSync | null = await openDatabase(outputPath);
@@ -42,7 +43,7 @@ export async function buildDatabase(
     const previousPayload =
       options.previousPayload ?? (existed ? readDatabasePayload(outputPath) : null);
     const capabilityState = readCapabilityState(db);
-    const { snapshots, sourceCache } = await loadSourceSnapshots(
+    const { snapshots, sourceCacheStatuses } = await loadSourceSnapshots(
       db,
       startedAtEpochSeconds,
       STAGE_CONFIG.scoring,
@@ -51,7 +52,7 @@ export async function buildDatabase(
     const derived = await deriveDatabaseSnapshot(
       startedAtEpochSeconds,
       snapshots,
-      sourceCache,
+      sourceCacheStatuses,
       (modelIds) =>
         loadOpenRouterRawPayload(
           db as DatabaseSync,
@@ -80,12 +81,12 @@ export async function buildDatabase(
     }
     const result = {
       path: outputPath,
-      source_rows: countTableRows(activeDb),
-      source_cache: derived.sourceCache,
+      table_row_counts: countTableRows(activeDb),
+      source_cache: derived.sourceCacheStatuses,
       source_health: derived.rows.sourceHealth,
       final_model_count: derived.rows.finalModelRows.length,
     };
-    await publishDatabaseFile(activeDb, outputPath);
+    await compactDatabaseFile(activeDb, outputPath);
     db = null;
     return result;
   } finally {
@@ -99,7 +100,7 @@ function latestRefreshId(db: DatabaseSync): number | null {
   return typeof row?.refresh_id === "number" ? row.refresh_id : null;
 }
 
-/** Wrap the synchronous database build so partial snapshot writes roll back together on failure. */
+/** Wrap the synchronous checkpoint writes so a partial refresh rolls back together on failure. */
 function runInTransaction<T>(db: DatabaseSync, write: () => T): T {
   db.exec("BEGIN");
   try {
@@ -133,16 +134,12 @@ function countTableRows(db: DatabaseSync): Record<string, number> {
   return counts;
 }
 
-/** Publish by vacuuming to a replacement file first so readers never see a partially rewritten database. */
-async function publishDatabaseFile(db: DatabaseSync, outputPath: string): Promise<void> {
+/** Compact by vacuuming into a replacement file first so readers never see a partially rewritten database. */
+async function compactDatabaseFile(db: DatabaseSync, outputPath: string): Promise<void> {
   const persistedPath = `${outputPath}.persisted`;
   await removeDatabaseFiles(persistedPath);
   db.exec(`VACUUM INTO ${sqlStringLiteral(persistedPath)}`);
   db.close();
   await removeDatabaseFiles(outputPath);
   await rename(persistedPath, outputPath);
-}
-
-function sqlStringLiteral(value: string): string {
-  return `'${value.replace(/'/g, "''")}'`;
 }

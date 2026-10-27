@@ -9,7 +9,7 @@ import type {
   BenchmarkObservationPayload,
   BenchmarkObservationRow,
 } from "../benchmarks/observation";
-import { benchmarkModelEffort } from "../identity/normalization";
+import { parseModelEffort } from "../identity/normalization";
 import { asFiniteNumber, asRecord, nowEpochSeconds } from "../runtime";
 import { fetchSource } from "./request-scheduler";
 
@@ -58,7 +58,7 @@ export function processVoxelBenchLeaderboard(
       deviation < 0
     )
       continue;
-    const parsed = benchmarkModelEffort(model);
+    const parsed = parseModelEffort(model);
     const budget = /\s+\((\d+k) Thinking\)$/i.exec(model);
     const slug = typeof row.modelSlug === "string" ? row.modelSlug.trim() : "";
     rows.push({

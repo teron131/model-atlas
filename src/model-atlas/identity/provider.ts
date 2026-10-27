@@ -1,5 +1,7 @@
 /** Canonical organization aliases shared by identity matching and presentation; service-route IDs remain separate. */
 
+import { OPENROUTER_PROVIDER_ID, VERCEL_PROVIDER_ID } from "./normalization";
+
 const PROVIDER_ALIASES: Record<string, string> = {
   "google-deepmind": "google",
   deepmind: "google",
@@ -46,6 +48,8 @@ export function providerIdentityKey(provider: string | null | undefined) {
 /** Qualified catalog IDs carry the publisher namespace; an unqualified gateway route does not establish ownership. */
 export function modelProviderIdentity(modelId: string, providerId?: string | null): string | null {
   const namespace = modelId.includes("/") ? modelId.split("/")[0] : providerId;
-  if (!namespace || ["openrouter", "vercel"].includes(namespace)) return null;
+  if (!namespace || namespace === OPENROUTER_PROVIDER_ID || namespace === VERCEL_PROVIDER_ID) {
+    return null;
+  }
   return providerIdentityKey(namespace);
 }

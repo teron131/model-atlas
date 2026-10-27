@@ -57,7 +57,7 @@ export const SOURCE_URLS = {
   openrouter_stats: "https://openrouter.ai/api/frontend/v1/stats/*",
 } as const;
 
-/** High-volume route telemetry refreshes daily while newly requested model IDs still bypass its populated cache. */
+/** High-volume OpenRouter telemetry refreshes daily while newly requested model IDs still bypass its populated cache. */
 export function rawSourceCacheSeconds(source: RawSourceName): number {
   return source === "openrouter" ? OPENROUTER_CACHE_SECONDS : SCHEDULED_SOURCE_CACHE_SECONDS;
 }

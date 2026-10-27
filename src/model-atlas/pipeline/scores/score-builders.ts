@@ -22,7 +22,7 @@ import {
   normalizedQualityBenchmarkValue,
   type QualityScoringContext,
 } from "./quality-context";
-import { benchmarkMetricValue } from "./resource-metrics";
+import { benchmarkValue } from "./resource-metrics";
 
 type BenchmarkScoreInput = {
   key: string;
@@ -59,10 +59,7 @@ type ComponentScoreResult = {
 /** Count observed benchmarks without allowing imputed values to satisfy admission. */
 export function observedBenchmarkCount(model: unknown, keys: readonly string[]): number {
   const modelRecord = asRecord(model);
-  return keys.reduce(
-    (count, key) => count + (benchmarkMetricValue(modelRecord, key) != null ? 1 : 0),
-    0,
-  );
+  return keys.reduce((count, key) => count + (benchmarkValue(modelRecord, key) != null ? 1 : 0), 0);
 }
 
 function selectedBenchmarkScoreInputs(
@@ -105,7 +102,7 @@ function benchmarkScoreInput(
   weight: number,
   imputed?: { value: number | null; evidenceFactor: number },
 ): BenchmarkScoreInput {
-  const observedValue = benchmarkMetricValue(model, key);
+  const observedValue = benchmarkValue(model, key);
   const effortEstimate = context.effortQualityEstimates
     ?.get(effortQualityKey(model, dimension))
     ?.get(key);

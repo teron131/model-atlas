@@ -15,7 +15,7 @@ import {
 } from "./model-labels";
 import { getArtificialAnalysisPage } from "./page-data";
 
-const DEFAULT_SCRAPE_URL = "https://artificialanalysis.ai/leaderboards/models";
+const ARTIFICIAL_ANALYSIS_LEADERBOARD_URL = "https://artificialanalysis.ai/leaderboards/models";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 
@@ -76,7 +76,7 @@ type RowSelectionContext = {
   modelCreators: JsonObject;
   providerSlug: string | null;
   modelSlug: string | null;
-  modelRouteCreatorSlug: string | null;
+  modelUrlCreatorSlug: string | null;
   modelUrlPath: string | null;
 };
 
@@ -88,7 +88,7 @@ export async function getArtificialAnalysisLeaderboardRawStats(
   options: Pick<ArtificialAnalysisLeaderboardOptions, "url" | "timeoutMs"> = {},
 ): Promise<ArtificialAnalysisLeaderboardRawPayload> {
   try {
-    const url = options.url ?? DEFAULT_SCRAPE_URL;
+    const url = options.url ?? ARTIFICIAL_ANALYSIS_LEADERBOARD_URL;
     const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 
     const pageHtml = await fetchSource(url, {}, timeoutMs, async (response) => {
@@ -141,12 +141,12 @@ export function artificialAnalysisModelId(row: JsonObject): string | null {
   if (explicitModelId != null) {
     return explicitModelId;
   }
-  const { modelRouteCreatorSlug, modelSlug, modelUrlPath } = buildRowSelectionContext(row);
+  const { modelUrlCreatorSlug, modelSlug, modelUrlPath } = buildRowSelectionContext(row);
   if (typeof modelUrlPath === "string" && modelUrlPath.includes("/")) {
     return modelUrlPath;
   }
-  if (modelRouteCreatorSlug != null && modelUrlPath != null) {
-    return `${modelRouteCreatorSlug}/${modelUrlPath}`;
+  if (modelUrlCreatorSlug != null && modelUrlPath != null) {
+    return `${modelUrlCreatorSlug}/${modelUrlPath}`;
   }
   return modelUrlPath ?? modelSlug;
 }
@@ -236,7 +236,7 @@ function extractLeaderboardRowsFromCorpus(flightCorpus: string): JsonObject[] {
       if (!(ROW_DETECTION_KEY in candidateRow)) {
         continue;
       }
-      const rowId = getRowIdentifier(candidateRow);
+      const rowId = rowIdentifier(candidateRow);
       if (!rowId) {
         continue;
       }
@@ -247,7 +247,7 @@ function extractLeaderboardRowsFromCorpus(flightCorpus: string): JsonObject[] {
   return [...leaderboardRowsById.values()];
 }
 
-function getRowIdentifier(row: JsonObject): string | null {
+function rowIdentifier(row: JsonObject): string | null {
   if (typeof row.id === "string") {
     return row.id;
   }
@@ -281,9 +281,9 @@ function buildRowSelectionContext(row: JsonObject): RowSelectionContext {
     ...flatCreatorFieldsFromRow(row),
     ...asRecord(row.model_creators),
   };
-  const providerSlug = getProviderSlug(row, creator);
+  const providerSlug = creatorNameSlug(row, creator);
   const modelSlug = firstString(row, ["slug"]);
-  const modelRouteCreatorSlug =
+  const modelUrlCreatorSlug =
     firstString(modelCreators, ["slug"]) ?? firstString(creator, ["slug"]) ?? providerSlug;
   const modelUrlPath = modelUrlPathFromRow(row, modelSlug);
   return {
@@ -291,7 +291,7 @@ function buildRowSelectionContext(row: JsonObject): RowSelectionContext {
     modelCreators,
     providerSlug,
     modelSlug,
-    modelRouteCreatorSlug,
+    modelUrlCreatorSlug,
     modelUrlPath,
   };
 }
@@ -306,17 +306,17 @@ function flatCreatorFieldsFromRow(row: JsonObject): JsonObject {
   };
 }
 
-function getProviderSlug(row: JsonObject, creator: JsonObject): string | null {
-  const providerName =
+function creatorNameSlug(row: JsonObject, creator: JsonObject): string | null {
+  const creatorName =
     typeof creator.name === "string"
       ? creator.name
       : typeof row.provider === "string"
         ? row.provider
         : firstString(row, ["modelCreatorName", "modelCreatorSlug"]);
-  if (providerName == null) {
+  if (creatorName == null) {
     return null;
   }
-  return providerName
+  return creatorName
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
@@ -407,7 +407,7 @@ function selectColumns(rows: JsonObject[], selectedColumns: string[]): JsonObjec
     const selectionContext = buildRowSelectionContext(row);
 
     for (const column of selectedColumnSet) {
-      const projectedValue = getSelectedColumnValue(column, row, selectionContext);
+      const projectedValue = selectedColumnValue(column, row, selectionContext);
       if (projectedValue !== NO_COLUMN_VALUE) {
         projectedRow[column] = normalizeUndefinedToNull(projectedValue);
       } else {
@@ -418,12 +418,12 @@ function selectColumns(rows: JsonObject[], selectedColumns: string[]): JsonObjec
   });
 }
 
-function getSelectedColumnValue(
+function selectedColumnValue(
   column: string,
   row: JsonObject,
   context: RowSelectionContext,
 ): unknown {
-  const { creator, modelCreators, providerSlug, modelSlug, modelRouteCreatorSlug } = context;
+  const { creator, modelCreators, providerSlug, modelSlug, modelUrlCreatorSlug } = context;
 
   switch (column) {
     case "id":
@@ -433,9 +433,7 @@ function getSelectedColumnValue(
     case "model_url":
       return (
         row.model_url ??
-        (modelRouteCreatorSlug && modelSlug
-          ? `/models/${modelRouteCreatorSlug}/${modelSlug}`
-          : null) ??
+        (modelUrlCreatorSlug && modelSlug ? `/models/${modelUrlCreatorSlug}/${modelSlug}` : null) ??
         (typeof row.id === "string" ? row.id : null)
       );
     case "model_id":

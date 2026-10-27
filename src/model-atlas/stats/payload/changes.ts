@@ -2,7 +2,7 @@
 
 import { BENCHMARK_LABELS } from "../../benchmarks/catalog";
 import { pearsonCorrelation } from "../../math-utils";
-import { benchmarkMetricValue } from "../../pipeline/scores/resource-metrics";
+import { benchmarkValue } from "../../pipeline/scores/resource-metrics";
 import { stableJson } from "../../runtime";
 import type {
   ModelAtlasBenchmarkRankDriver,
@@ -276,7 +276,7 @@ function rankDriversForModel(
     .flatMap((benchmarkKey) => {
       const observations = population.flatMap((model) => {
         const score = finiteNumber(model.scores[policy.scoreKey]);
-        const benchmark = benchmarkMetricValue(model, benchmarkKey);
+        const benchmark = benchmarkValue(model, benchmarkKey);
         return model.id == null || score == null || benchmark == null
           ? []
           : [{ modelId: model.id, score, benchmark }];
@@ -454,7 +454,7 @@ function changedEvidenceLabels(
         ? scoring.intelligence_benchmark_keys
         : scoring.agentic_benchmark_keys;
     return keys
-      .filter((key) => benchmarkMetricValue(current, key) !== benchmarkMetricValue(previous, key))
+      .filter((key) => benchmarkValue(current, key) !== benchmarkValue(previous, key))
       .map(benchmarkLabel);
   }
   const labels: string[] = [];
@@ -473,8 +473,7 @@ function changedEvidenceLabels(
         currentMetrics?.[field as keyof typeof currentMetrics] !==
         previousMetrics?.[field as keyof typeof previousMetrics],
     );
-    const benchmarkChanged =
-      benchmarkMetricValue(current, key) !== benchmarkMetricValue(previous, key);
+    const benchmarkChanged = benchmarkValue(current, key) !== benchmarkValue(previous, key);
     if (taskChanged || benchmarkChanged) {
       labels.push(benchmarkLabel(key));
     }

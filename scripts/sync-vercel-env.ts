@@ -1,4 +1,4 @@
-/** Mirror local dotenv keys into selected Vercel scopes and remove absent keys from those same scopes. */
+/** Mirror local dotenv keys into selected Vercel environments and remove absent keys from those same environments. */
 
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
@@ -85,12 +85,15 @@ for (const [key, value] of entries) {
 }
 
 for (const env of listEnvs().filter((env) => !localKeys.has(env.key))) {
-  // Deletions must use the same scopes and explicit preview branches as additions.
+  // Deletions must use the same environments and explicit preview branches as additions.
   const selected = targets.filter(
-    ([scope, branch]) => env.target.includes(scope) && (env.gitBranch ?? "") === (branch ?? ""),
+    ([environment, branch]) =>
+      env.target.includes(environment) && (env.gitBranch ?? "") === (branch ?? ""),
   );
   if (selected.length === 0) continue;
-  const remaining = env.target.filter((scope) => !selected.some(([target]) => target === scope));
+  const remaining = env.target.filter(
+    (environment) => !selected.some(([selectedEnvironment]) => selectedEnvironment === environment),
+  );
   console.log(`remove ${env.key} ${selected.map((target) => target.join("/")).join(",")}`);
   if (remaining.length > 0 || env.customEnvironmentIds?.length) {
     // `env remove` deletes the entire record; a target-only patch preserves Preview, custom environments, and the stored secret.

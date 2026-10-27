@@ -3,12 +3,12 @@
 import { isGptModelIdentity } from "./gpt";
 import { canonicalMuseToken } from "./muse";
 
-export const PRIMARY_PROVIDER_ID = "openrouter" as const;
-const SECONDARY_PROVIDER_ID = "vercel" as const;
-const TERTIARY_PROVIDER_IDS = ["openai", "google", "anthropic"] as const;
+export const OPENROUTER_PROVIDER_ID = "openrouter" as const;
+export const VERCEL_PROVIDER_ID = "vercel" as const;
+const FIRST_PARTY_PROVIDER_IDS = ["openai", "google", "anthropic"] as const;
 export const FALLBACK_PROVIDER_IDS: ReadonlySet<string> = new Set([
-  SECONDARY_PROVIDER_ID,
-  ...TERTIARY_PROVIDER_IDS,
+  VERCEL_PROVIDER_ID,
+  ...FIRST_PARTY_PROVIDER_IDS,
 ]);
 const REASONING_EFFORT_RANK = {
   none: 0,
@@ -35,7 +35,7 @@ const BENCHMARK_EFFORT_LABELS = new Set([
   "adaptive",
 ]);
 
-type BenchmarkModelEffort = {
+type ParsedModelEffort = {
   baseModel: string;
   reasoningEffort: string | null;
 };
@@ -51,7 +51,7 @@ export function normalizeProviderId(providerId: string): string {
 }
 
 /** Preserve qualified model IDs; otherwise qualify the usable primary or fallback ID with its provider. */
-export function canonicalProviderModelId(
+export function qualifyModelId(
   modelId: unknown,
   providerId: unknown,
   fallbackModelId: unknown,
@@ -71,14 +71,16 @@ export function canonicalProviderModelId(
 /** Provider preference is OpenRouter first, Vercel second, then trusted first-party fallbacks. */
 export function providerPreferenceRank(providerId: string): number | null {
   const normalizedProviderId = normalizeProviderId(providerId);
-  if (normalizedProviderId === PRIMARY_PROVIDER_ID) {
+  if (normalizedProviderId === OPENROUTER_PROVIDER_ID) {
     return 0;
   }
-  if (normalizedProviderId === SECONDARY_PROVIDER_ID) {
+  if (normalizedProviderId === VERCEL_PROVIDER_ID) {
     return 1;
   }
   if (
-    TERTIARY_PROVIDER_IDS.includes(normalizedProviderId as (typeof TERTIARY_PROVIDER_IDS)[number])
+    FIRST_PARTY_PROVIDER_IDS.includes(
+      normalizedProviderId as (typeof FIRST_PARTY_PROVIDER_IDS)[number],
+    )
   ) {
     return 2;
   }
@@ -126,7 +128,7 @@ export function canonicalReasoningEffort(value: unknown): string | null {
  * Strip effort suffixes; GPT product qualifiers beside an effort remain part of GPT identity.
  * `"GPT-5.2 (Pro, xhigh)"` → `{ baseModel: "GPT-5.2 Pro", reasoningEffort: "xhigh" }`, while `"Claude Sonnet 4.5 (Thinking, high)"` → `{ baseModel: "Claude Sonnet 4.5", reasoningEffort: "high" }`.
  */
-export function benchmarkModelEffort(value: string): BenchmarkModelEffort {
+export function parseModelEffort(value: string): ParsedModelEffort {
   const match = BENCHMARK_EFFORT_SUFFIX_PATTERN.exec(value);
   if (match == null) {
     return { baseModel: value, reasoningEffort: null };
@@ -257,4 +259,12 @@ export function canonicalModelKey(model: { id?: unknown; name?: unknown }): stri
     return normalizeProviderModelId(model.id);
   }
   return "name:";
+}
+
+export function canonicalVariantKey(model: {
+  id?: unknown;
+  name?: unknown;
+  reasoning_effort?: unknown;
+}): string {
+  return `${canonicalModelKey(model)}\u0000${canonicalReasoningEffort(model.reasoning_effort) ?? ""}`;
 }

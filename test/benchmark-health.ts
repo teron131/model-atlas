@@ -6,7 +6,7 @@ import { STAGE_CONFIG } from "../src/model-atlas/config";
 import { finalizeBenchmarkRows } from "../src/model-atlas/pipeline/benchmark-rows/source-rows";
 import {
   buildBenchmarkUpdateHealth,
-  isCurrentBenchmarkHealth,
+  isValidBenchmarkUpdateHealth,
 } from "../src/model-atlas/stats/payload/health";
 import { buildCurrentModelAtlasMetadata } from "../src/model-atlas/stats/payload/metadata";
 import type { ModelAtlasBenchmarkUpdateHealth } from "../src/model-atlas/stats/types";
@@ -72,7 +72,7 @@ assert.equal(fallback.spread.leader_gap, null);
 const legacy = {
   superchem: { status: "stale_possible", observed_count: 99 },
 } as unknown as ModelAtlasBenchmarkUpdateHealth;
-assert.equal(isCurrentBenchmarkHealth(legacy.superchem), false);
+assert.equal(isValidBenchmarkUpdateHealth(legacy.superchem), false);
 const metadata = buildCurrentModelAtlasMetadata({
   models: [],
   scoringConfig: config,
@@ -84,16 +84,16 @@ assert.equal(metadata.benchmark_update_health?.superchem?.status, "unmatched");
 
 // Broken stored summaries must not bypass recomputation merely by claiming the latest version.
 const broken = { schema_version: 2, status: "matched" } as typeof partial;
-assert.equal(isCurrentBenchmarkHealth(broken), false);
-assert.equal(isCurrentBenchmarkHealth({ ...partial, matched_model_count: -1 }), false);
-assert.equal(isCurrentBenchmarkHealth({ ...partial, observed_count: 0 }), false);
-assert.equal(isCurrentBenchmarkHealth({ ...partial, source_leaders: [] }), false);
+assert.equal(isValidBenchmarkUpdateHealth(broken), false);
+assert.equal(isValidBenchmarkUpdateHealth({ ...partial, matched_model_count: -1 }), false);
+assert.equal(isValidBenchmarkUpdateHealth({ ...partial, observed_count: 0 }), false);
+assert.equal(isValidBenchmarkUpdateHealth({ ...partial, source_leaders: [] }), false);
 assert.equal(
-  isCurrentBenchmarkHealth({ ...partial, spread: { ...partial.spread, leader_gap: NaN } }),
+  isValidBenchmarkUpdateHealth({ ...partial, spread: { ...partial.spread, leader_gap: NaN } }),
   false,
 );
 assert.equal(
-  isCurrentBenchmarkHealth({
+  isValidBenchmarkUpdateHealth({
     ...partial,
     source_leaders: [{ ...partial.source_leaders[0]!, value: Infinity }],
   }),
@@ -105,7 +105,7 @@ const restored = buildCurrentModelAtlasMetadata({
   benchmarkUpdateHealth: { superchem: broken },
 });
 assert.equal(restored.benchmark_update_health?.superchem?.status, "missing");
-assert.equal(isCurrentBenchmarkHealth(restored.benchmark_update_health?.superchem), true);
+assert.equal(isValidBenchmarkUpdateHealth(restored.benchmark_update_health?.superchem), true);
 
 const fixture = (identity: string, value: number, reasoningEffort: string | null = null) => ({
   id: identity,

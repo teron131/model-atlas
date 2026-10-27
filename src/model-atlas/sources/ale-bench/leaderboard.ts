@@ -10,7 +10,7 @@ import {
   crosswalkBenchmarkSources,
   type CrosswalkObservation,
 } from "../../benchmarks/sources-crosswalk";
-import { benchmarkModelEffort, canonicalReasoningEffort } from "../../identity/normalization";
+import { canonicalReasoningEffort, parseModelEffort } from "../../identity/normalization";
 import { asFiniteNumber, asRecord, nowEpochSeconds } from "../../runtime";
 import {
   ALE_BENCH_EPOCH_RESULTS_URL,
@@ -146,7 +146,7 @@ export async function getAleBenchStats(
   }
 }
 
-/** Parse ALE's slug-style effort suffixes without treating model-family tokens as reasoning labels. */
+/** Parse ALE-Bench's slug-style effort suffixes without treating model-family tokens as reasoning labels. */
 export function aleBenchModelEffort(model: string) {
   const slugMatch = SLUG_EFFORT_SUFFIX_PATTERN.exec(model);
   if (slugMatch != null) {
@@ -156,7 +156,7 @@ export function aleBenchModelEffort(model: string) {
       return { baseModel, reasoningEffort };
     }
   }
-  return benchmarkModelEffort(model);
+  return parseModelEffort(model);
 }
 
 export function processAleBenchConfigurationRow(
@@ -244,11 +244,11 @@ export function summarizeAleBenchSourceDefaultRows(
         !("epoch" in row) && row.num_self_refine === DEFAULT_SELF_REFINE_COUNT,
     )
     .map((row) => {
-      const effort = aleBenchModelEffort(row.model);
+      const parsedModel = aleBenchModelEffort(row.model);
       return {
         ...row,
-        base_model: effort.baseModel,
-        reasoning_effort: effort.reasoningEffort,
+        base_model: parsedModel.baseModel,
+        reasoning_effort: parsedModel.reasoningEffort,
         score: row.performance.all.mean,
         cost_per_task_usd: row.cost.all.mean,
         tokens_per_task: row.total_tokens.all.mean,
@@ -260,7 +260,7 @@ export function summarizeAleBenchSourceDefaultRows(
 
 /** Fuse Performance in its native units; no probability clamp or primary-source precedence applies. */
 export function fuseAleBenchRows(rows: readonly AleBenchSourceRow[]): CrosswalkObservation[] {
-  const primary = summarizeAleBenchSourceDefaultRows(rows).map((row) => ({
+  const sakanaObservations = summarizeAleBenchSourceDefaultRows(rows).map((row) => ({
     benchmark_key: "ale_bench",
     source_url: ALE_BENCH_LEADERBOARD_URL,
     model_id: null,
@@ -276,18 +276,18 @@ export function fuseAleBenchRows(rows: readonly AleBenchSourceRow[]): CrosswalkO
     observed_at: null,
     metadata: {},
   }));
-  const mirror = rows.flatMap((source): CrosswalkObservation[] => {
+  const epochObservations = rows.flatMap((source): CrosswalkObservation[] => {
     if (!("epoch" in source)) return [];
     const row = source.epoch;
-    const effort = aleBenchModelEffort(row.model);
+    const parsedModel = aleBenchModelEffort(row.model);
     return [
       {
         benchmark_key: "ale_bench",
         source_url: ALE_BENCH_EPOCH_RESULTS_URL,
         model_id: null,
         model: row.model,
-        base_model: effort.baseModel,
-        reasoning_effort: effort.reasoningEffort,
+        base_model: parsedModel.baseModel,
+        reasoning_effort: parsedModel.reasoningEffort,
         model_creator: null,
         rank: null,
         canonical_value: row.performance,
@@ -299,7 +299,7 @@ export function fuseAleBenchRows(rows: readonly AleBenchSourceRow[]): CrosswalkO
       },
     ];
   });
-  return crosswalkBenchmarkSources(primary, mirror, {
+  return crosswalkBenchmarkSources(sakanaObservations, epochObservations, {
     maximumScoreError: MAX_CROSSWALK_MEDIAN_ABSOLUTE_ERROR,
     normalizeScore: (score) => Math.max(0, score),
     sourceLabels: { a: "Sakana AI", b: "Epoch" },
