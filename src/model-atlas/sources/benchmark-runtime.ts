@@ -20,7 +20,7 @@ type BenchmarkRuntime<
   Snapshot extends { sourceStatus: SourceSnapshotStatus },
 > = {
   sourceRowsKey: SourceRowsKey;
-  loadSourceRows: () => Promise<ModelAtlasSourceRows[SourceRowsKey]>;
+  fetchSourceRows: () => Promise<ModelAtlasSourceRows[SourceRowsKey]>;
   sourceRowsFromSnapshots: (snapshots: SourceSnapshots) => ModelAtlasSourceRows[SourceRowsKey];
   cacheKey: CacheKey;
   source: Source;

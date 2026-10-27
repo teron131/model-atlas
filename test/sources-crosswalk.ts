@@ -12,8 +12,8 @@ import {
 import { benchmarkQualityEvidence } from "../src/model-atlas/pipeline/scores/imputation/benchmark";
 import {
   benchmarkFusionResourceEstimate,
-  benchmarkMetricValue,
   benchmarkTaskMetrics,
+  benchmarkValue,
   separatedBenchmarkResourceEvidence,
 } from "../src/model-atlas/pipeline/scores/resource-metrics";
 import { observedBenchmarkCount } from "../src/model-atlas/pipeline/scores/score-builders";
@@ -97,10 +97,7 @@ const candidate = {
 assert.equal(crosswalked.metadata.fusion_crosswalk_applied, true);
 assert.equal(crosswalked.metadata.source_a_score, null);
 assert.equal(crosswalked.metadata.source_b_score, 0.7);
-assert.equal(
-  benchmarkMetricValue(candidate, "terminal_bench_science"),
-  crosswalked.canonical_value,
-);
+assert.equal(benchmarkValue(candidate, "terminal_bench_science"), crosswalked.canonical_value);
 assert.equal(observedBenchmarkCount(candidate, ["terminal_bench_science"]), 1);
 assert.deepEqual(benchmarkQualityEvidence(candidate, "terminal_bench_science"), {
   evidenceFactor: 1,

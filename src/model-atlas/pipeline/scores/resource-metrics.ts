@@ -135,7 +135,7 @@ export function applyResourceEvidenceRequirements<
     : { ...model, scores: { ...model.scores, speed_score: speedScore, value_score: valueScore } };
 }
 
-/** AA supplies only residual breadth and only for its own measured quality/resource pair; standalone task telemetry stays untouched. */
+/** Artificial Analysis supplies only residual breadth and only for its own measured quality/resource pair; standalone task telemetry stays untouched. */
 export function observedResourceEvidenceCounts(
   model: ResourceMetricModel,
   portfolio: BenchmarkPortfolio,
@@ -147,7 +147,7 @@ export function observedResourceEvidenceCounts(
     if (
       policy?.resources == null ||
       portfolio[indexKey] == null ||
-      benchmarkMetricValue(model, indexKey) == null
+      benchmarkValue(model, indexKey) == null
     )
       continue;
     const metrics = benchmarkTaskMetrics(model, policy.resources.key);
@@ -159,7 +159,7 @@ export function observedResourceEvidenceCounts(
       const overlap = (policy.componentBenchmarkKeys ?? []).filter(
         (key) =>
           portfolio[key]?.resourcePolicy != null &&
-          benchmarkMetricValue(model, key) != null &&
+          benchmarkValue(model, key) != null &&
           hasObservedBenchmarkResource(model, key, kind),
       );
       counts[kind] += residualIndexBreadth(indexKey, overlap);
@@ -181,7 +181,7 @@ export function observedResourceBenchmarkCounts(
   for (const [key, entry] of Object.entries(portfolio)) {
     if (entry.resourcePolicy == null) continue;
     counts.selected += 1;
-    if (benchmarkMetricValue(model, key) == null) continue;
+    if (benchmarkValue(model, key) == null) continue;
     if (hasObservedBenchmarkResource(model, key, "cost")) counts.cost += 1;
     if (hasObservedBenchmarkResource(model, key, "time")) counts.time += 1;
   }
@@ -223,7 +223,7 @@ export function directBenchmarkTokens(
   return measure === "tokens" ? positiveFiniteNumber(metrics.tokens) : null;
 }
 
-export function benchmarkMetricValue(model: BenchmarkMetricModel, key: string): number | null {
+export function benchmarkValue(model: BenchmarkMetricModel, key: string): number | null {
   const location = benchmarkValueLocation(key);
   if (location?.kind === "intelligence") {
     return (

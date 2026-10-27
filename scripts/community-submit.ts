@@ -11,11 +11,11 @@ import { parseCommunityRanking } from "../src/model-atlas/community/rankings";
 const [file] = process.argv.slice(2);
 if (existsSync(".env")) loadEnvFile(".env");
 let token = process.env.MODEL_ATLAS_COMMUNITY_SUBMIT_TOKEN;
-const tokenSecret = process.env.MODEL_ATLAS_COMMUNITY_TOKEN_SECRET;
-if (!token && tokenSecret) {
+const tokenSecretName = process.env.MODEL_ATLAS_COMMUNITY_TOKEN_SECRET;
+if (!token && tokenSecretName) {
   try {
     const response = await new Storage().authClient.request<{ payload: { data: string } }>({
-      url: `https://secretmanager.googleapis.com/v1/${tokenSecret}:access`,
+      url: `https://secretmanager.googleapis.com/v1/${tokenSecretName}:access`,
       timeout: 15_000,
     });
     token = Buffer.from(response.data.payload.data, "base64").toString("utf8");

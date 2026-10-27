@@ -23,7 +23,7 @@ import {
 } from "../src/model-atlas/database/community-rankings";
 import {
   readCommunityRanking,
-  readDisplaySnapshotPayload,
+  readDisplayPayload,
 } from "../src/model-atlas/database/runtime-snapshot";
 import { openDatabase } from "../src/model-atlas/database/schema";
 import { submitCommunityRanking } from "../src/model-atlas/database/snapshots/community-rankings";
@@ -36,7 +36,7 @@ import {
   type SnapshotManifest,
   type SnapshotVersion,
 } from "../src/model-atlas/database/snapshots/manifest";
-import { snapshotHash } from "../src/model-atlas/database/snapshots/manifest";
+import { artifactSha256 } from "../src/model-atlas/database/snapshots/manifest";
 import type { ModelAtlasModel } from "../src/model-atlas/stats/types";
 import { minimalModelAtlasModel, minimalModelAtlasPayload } from "./model-atlas-fixtures";
 
@@ -665,8 +665,8 @@ try {
   const history = gzipSync(JSON.stringify([submitted]));
   const manifest = {
     ...store.manifest,
-    payload_sha256: snapshotHash(compressed),
-    community_rankings_sha256: snapshotHash(history),
+    payload_sha256: artifactSha256(compressed),
+    community_rankings_sha256: artifactSha256(history),
   };
   process.env.MODEL_ATLAS_SNAPSHOT_BUCKET = "community-route-test";
   process.env.MODEL_ATLAS_COMMUNITY_WRITER_URL = "https://writer.test";
@@ -704,7 +704,7 @@ try {
     }
     assert.equal(await readCommunityRanking("unknown"), null);
     assert.equal(await readCommunityRanking("2026-10-18T00:00:00Z"), null);
-    const display = await readDisplaySnapshotPayload();
+    const display = await readDisplayPayload();
     close(intelligence(display.models, "a"), 92.6);
     assert.equal(display.models[0]!.community_indexes?.slop?.best, 2);
     assert.equal(display.metadata.scoring.column_tooltips.slopIndex?.title, "Slop Index");
@@ -713,11 +713,7 @@ try {
       undefined,
       "Research history stays out of the leaderboard payload",
     );
-    assert.equal(
-      await readDisplaySnapshotPayload(),
-      display,
-      "Repeated reads do not compound corrections",
-    );
+    assert.equal(await readDisplayPayload(), display, "Repeated reads do not compound corrections");
     const candidateResponse = await candidatesGET();
     assert.equal(candidateResponse.status, 200);
     const candidateBody = await candidateResponse.json();

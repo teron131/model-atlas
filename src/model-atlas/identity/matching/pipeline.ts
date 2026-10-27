@@ -2,9 +2,13 @@
 
 import { minMaxRange } from "../../math-utils";
 import { asRecord } from "../../runtime";
-import { FALLBACK_PROVIDER_IDS, modelSlugFromModelId, PRIMARY_PROVIDER_ID } from "../normalization";
+import {
+  FALLBACK_PROVIDER_IDS,
+  modelSlugFromModelId,
+  OPENROUTER_PROVIDER_ID,
+} from "../normalization";
 import { modelProviderIdentity, providerIdentityKey } from "../provider";
-import { releaseLabelPeriod, sameRelease, versionDate } from "../releases";
+import { isSameRelease, releaseLabelPeriod, versionDate } from "../releases";
 import { modelNameIdentityKey } from "./name-tokens";
 import {
   artificialAnalysisMatchSlug,
@@ -53,7 +57,7 @@ function collectCandidatesForSourceSlug(
           (typeof candidate.model.release_date === "string"
             ? versionDate(candidate.model.release_date)
             : null);
-        return period != null && sameRelease(sourcePeriod, period);
+        return period != null && isSameRelease(sourcePeriod, period);
       })
       .map((modelsDevModel) => {
         const modelsDevModelName =
@@ -113,10 +117,10 @@ export function runMatcher(
   );
   const models = sourceModels.map((sourceModel, index) => {
     const matchSlug = matchSlugs[index] ?? "";
-    const primaryCandidates = collectCandidatesForSourceSlug(
+    const openRouterCandidates = collectCandidatesForSourceSlug(
       matchSlug,
       sourceModel,
-      providerPools.primary,
+      providerPools.openRouter,
     );
     const fallbackCandidates = collectCandidatesForSourceSlug(
       matchSlug,
@@ -124,9 +128,9 @@ export function runMatcher(
       providerPools.fallback,
     );
     const candidates = (
-      primaryCandidates.length === 0
+      openRouterCandidates.length === 0
         ? fallbackCandidates
-        : [...primaryCandidates, ...fallbackCandidates].sort(compareCandidates)
+        : [...openRouterCandidates, ...fallbackCandidates].sort(compareCandidates)
     ).slice(0, maxCandidates);
     return {
       artificial_analysis_id: sourceModel.sourceId,
@@ -159,22 +163,21 @@ export function runMatcher(
 export function buildMatchDiagnostics(options: MatchDiagnosticsOptions): MatchDiagnosticsPayload {
   const maxCandidates = options.maxCandidates ?? DEFAULT_MAX_CANDIDATES;
   const providerPools = {
-    primary: options.modelsDevModels.filter(
-      (modelsDevModel) => modelsDevModel.provider_id === PRIMARY_PROVIDER_ID,
+    openRouter: options.modelsDevModels.filter(
+      (modelsDevModel) => modelsDevModel.provider_id === OPENROUTER_PROVIDER_ID,
     ),
     fallback: options.modelsDevModels.filter((modelsDevModel) =>
       FALLBACK_PROVIDER_IDS.has(modelsDevModel.provider_id),
     ),
   };
   const totalScopedModels = new Set(
-    [...providerPools.primary, ...providerPools.fallback].map(
+    [...providerPools.openRouter, ...providerPools.fallback].map(
       (modelsDevModel) => modelsDevModel.model_id,
     ),
   ).size;
-  const sourceModels = options.scrapedRows.map((scrapedRow) => {
-    const scrapedRowRecord = asRecord(scrapedRow);
-    const modelId =
-      typeof scrapedRowRecord.model_id === "string" ? scrapedRowRecord.model_id : null;
+  const sourceModels = options.artificialAnalysisRows.map((artificialAnalysisRow) => {
+    const record = asRecord(artificialAnalysisRow);
+    const modelId = typeof record.model_id === "string" ? record.model_id : null;
     const sourceSlug = modelSlugFromModelId(modelId) ?? "";
     return {
       sourceId: modelId,
@@ -182,9 +185,8 @@ export function buildMatchDiagnostics(options: MatchDiagnosticsOptions): MatchDi
       sourceProvider: modelProviderIdentity(modelId ?? ""),
       matchSlugOverride:
         modelId == null ? undefined : options.matchSlugOverridesBySourceId?.get(modelId),
-      sourceName: typeof scrapedRowRecord.name === "string" ? scrapedRowRecord.name : null,
-      sourceReleaseDate:
-        typeof scrapedRowRecord.release_date === "string" ? scrapedRowRecord.release_date : null,
+      sourceName: typeof record.name === "string" ? record.name : null,
+      sourceReleaseDate: typeof record.release_date === "string" ? record.release_date : null,
     };
   });
   const matcherOutput = runMatcher(
@@ -195,7 +197,7 @@ export function buildMatchDiagnostics(options: MatchDiagnosticsOptions): MatchDi
   );
 
   return {
-    total_scraped_models: options.scrapedRows.length,
+    total_scraped_models: options.artificialAnalysisRows.length,
     total_models_dev_models: totalScopedModels,
     max_candidates: maxCandidates,
     pre_void_matched_count: matcherOutput.preVoidMatchedCount,

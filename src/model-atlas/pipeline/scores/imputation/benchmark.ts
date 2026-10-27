@@ -11,7 +11,7 @@ import {
   type ScoringConfig,
   selectedBenchmarkKeys,
 } from "../../../config/stage";
-import { canonicalModelKey, canonicalReasoningEffort } from "../../../identity/normalization";
+import { canonicalModelKey, canonicalVariantKey } from "../../../identity/normalization";
 import {
   clamp01,
   linearScore,
@@ -29,7 +29,7 @@ import {
   observedRangesByBenchmark,
   type QualityScoringContext,
 } from "../quality-context";
-import { benchmarkMetricValue } from "../resource-metrics";
+import { benchmarkValue } from "../resource-metrics";
 
 export type BenchmarkImputationByModel = ReadonlyMap<JsonObject, ReadonlyMap<string, number>>;
 
@@ -79,52 +79,48 @@ const MIN_IMPUTATION_REFERENCE_MODELS = 3;
 const MIN_IMPUTATION_VALIDATION_MODELS = 4;
 const IMPUTATION_DIMENSIONS = ["intelligence", "agentic"] as const;
 
-function scoringVariantKey(model: BenchmarkScoringModelIdentity): string {
-  return `${canonicalModelKey(model)}\u0000${canonicalReasoningEffort(model.reasoning_effort) ?? ""}`;
-}
-
 /** Resolve prepared benchmark values after candidate and public-model projection replace row identity. */
 export function benchmarkImputationValues(
-  preparation: BenchmarkScoringPreparation,
+  scoringPreparation: BenchmarkScoringPreparation,
   model: BenchmarkScoringModelIdentity,
 ): ReadonlyMap<string, number> | undefined {
   return (
-    preparation.imputationByModel.get(model as JsonObject) ??
-    preparation.imputationByVariant.get(scoringVariantKey(model))
+    scoringPreparation.imputationByModel.get(model as JsonObject) ??
+    scoringPreparation.imputationByVariant.get(canonicalVariantKey(model))
   );
 }
 
 /** Resolve prepared benchmark evidence factors after candidate and public-model projection replace row identity. */
 export function benchmarkImputationFactors(
-  preparation: BenchmarkScoringPreparation,
+  scoringPreparation: BenchmarkScoringPreparation,
   model: BenchmarkScoringModelIdentity,
 ): ReadonlyMap<string, number> | undefined {
   return (
-    preparation.imputationFactorsByModel.get(model as JsonObject) ??
-    preparation.imputationFactorsByVariant.get(scoringVariantKey(model))
+    scoringPreparation.imputationFactorsByModel.get(model as JsonObject) ??
+    scoringPreparation.imputationFactorsByVariant.get(canonicalVariantKey(model))
   );
 }
 
 /** Remove generic benchmark estimates for rows whose direct evidence must stand on its own. */
 export function withoutBenchmarkImputationForModels(
-  preparation: BenchmarkScoringPreparation,
+  scoringPreparation: BenchmarkScoringPreparation,
   models: readonly BenchmarkScoringModelIdentity[],
 ): BenchmarkScoringPreparation {
   const modelSet = new Set(models as readonly JsonObject[]);
-  const variantKeys = new Set(models.map(scoringVariantKey));
+  const variantKeys = new Set(models.map(canonicalVariantKey));
   return {
-    ...preparation,
+    ...scoringPreparation,
     imputationByModel: new Map(
-      [...preparation.imputationByModel].filter(([model]) => !modelSet.has(model)),
+      [...scoringPreparation.imputationByModel].filter(([model]) => !modelSet.has(model)),
     ),
     imputationFactorsByModel: new Map(
-      [...preparation.imputationFactorsByModel].filter(([model]) => !modelSet.has(model)),
+      [...scoringPreparation.imputationFactorsByModel].filter(([model]) => !modelSet.has(model)),
     ),
     imputationByVariant: new Map(
-      [...preparation.imputationByVariant].filter(([key]) => !variantKeys.has(key)),
+      [...scoringPreparation.imputationByVariant].filter(([key]) => !variantKeys.has(key)),
     ),
     imputationFactorsByVariant: new Map(
-      [...preparation.imputationFactorsByVariant].filter(([key]) => !variantKeys.has(key)),
+      [...scoringPreparation.imputationFactorsByVariant].filter(([key]) => !variantKeys.has(key)),
     ),
   };
 }
@@ -132,17 +128,17 @@ export function withoutBenchmarkImputationForModels(
 export function benchmarkQualityEvidence(
   model: BenchmarkScoringModel,
   key: string,
-  preparation?: BenchmarkScoringPreparation,
+  scoringPreparation?: BenchmarkScoringPreparation,
 ): { evidenceFactor: number; value: number } | null {
-  const direct = benchmarkMetricValue(model, key);
+  const direct = benchmarkValue(model, key);
   if (direct != null) {
     return { evidenceFactor: 1, value: direct };
   }
-  if (preparation == null) {
+  if (scoringPreparation == null) {
     return null;
   }
-  const value = benchmarkImputationValues(preparation, model)?.get(key) ?? null;
-  const evidenceFactor = benchmarkImputationFactors(preparation, model)?.get(key) ?? null;
+  const value = benchmarkImputationValues(scoringPreparation, model)?.get(key) ?? null;
+  const evidenceFactor = benchmarkImputationFactors(scoringPreparation, model)?.get(key) ?? null;
   return value == null || evidenceFactor == null || evidenceFactor <= 0
     ? null
     : { evidenceFactor: clamp01(evidenceFactor), value };
@@ -170,7 +166,7 @@ function observedEvidenceSupport(
       continue;
     }
     possibleWeight += weight;
-    if (benchmarkMetricValue(model, key) != null) {
+    if (benchmarkValue(model, key) != null) {
       observedWeight += weight;
     }
   }
@@ -188,7 +184,7 @@ function observedNormalizedEvidenceScore(
   const parts = benchmarkKeys
     .filter((key) => key !== excludedBenchmarkKey)
     .map((key) => ({
-      value: normalizedMetricValue(rangesByKey, key, benchmarkMetricValue(model, key)),
+      value: normalizedMetricValue(rangesByKey, key, benchmarkValue(model, key)),
       weight: benchmarkWeights.get(key) ?? 0,
     }));
   return weightedFinitePartCount(parts) >= minimumEvidenceValues
@@ -248,7 +244,7 @@ function buildDimensionPredictor(
 ): ((model: JsonObject) => ContextualPrediction | null) | null {
   const { benchmarkKeys, benchmarkWeights } = dimensionBenchmarkContext(dimension, scoringConfig);
   const referenceContextScores = calibrationObservations(models, (model) => {
-    if (benchmarkMetricValue(model, targetBenchmarkKey) == null) {
+    if (benchmarkValue(model, targetBenchmarkKey) == null) {
       return null;
     }
     return observedNormalizedEvidenceScore(
@@ -262,7 +258,7 @@ function buildDimensionPredictor(
   });
   const targetObservations = referenceContextScores.map((observation) => ({
     ...observation,
-    value: benchmarkMetricValue(observation.item, targetBenchmarkKey) as number,
+    value: benchmarkValue(observation.item, targetBenchmarkKey) as number,
   }));
   if (distinctModelCount(referenceContextScores) < MIN_IMPUTATION_REFERENCE_MODELS) {
     return null;
@@ -376,7 +372,7 @@ function imputationDiagnostic(
     }
   >();
   for (const heldOutModel of models) {
-    const actualValue = benchmarkMetricValue(heldOutModel, targetBenchmarkKey);
+    const actualValue = benchmarkValue(heldOutModel, targetBenchmarkKey);
     if (actualValue == null) {
       continue;
     }
@@ -396,7 +392,7 @@ function imputationDiagnostic(
         targetRange: trainingRangesByKey.get(targetBenchmarkKey) ?? null,
         baseline: weightedMedianOfFinite(
           calibrationObservations(trainingModels, (model) =>
-            benchmarkMetricValue(model, targetBenchmarkKey),
+            benchmarkValue(model, targetBenchmarkKey),
           ),
         ),
       };
@@ -498,7 +494,7 @@ export function prepareBenchmarkImputation(
       minimumEvidenceValues,
     );
     for (const model of queryModels) {
-      if (benchmarkMetricValue(model, key) != null || imputationByModel.get(model)?.has(key)) {
+      if (benchmarkValue(model, key) != null || imputationByModel.get(model)?.has(key)) {
         continue;
       }
       const prediction = predictedBenchmarkValue(model, predictors);
@@ -551,7 +547,7 @@ export function prepareBenchmarkScoring(
   const imputationByVariant = new Map<string, ReadonlyMap<string, number>>();
   const imputationFactorsByVariant = new Map<string, ReadonlyMap<string, number>>();
   for (const model of models) {
-    const key = scoringVariantKey(model);
+    const key = canonicalVariantKey(model);
     const values = imputationByModel.get(model);
     const factorsByKey = imputationFactorsByModel.get(model);
     if (values != null) {

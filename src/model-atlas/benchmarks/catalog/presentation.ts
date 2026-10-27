@@ -1572,8 +1572,8 @@ export const BENCHMARK_COLUMNS = {
   },
 } as const satisfies Readonly<Record<BenchmarkKey, BenchmarkColumnFacet>>;
 
-/** Preserve native AA context fields, including rejected standalone constituents still present in its published index. */
-export const ARTIFICIAL_ANALYSIS_ADDITIONAL_BENCHMARK_ALIASES = {
+/** Preserve native Artificial Analysis context fields, including rejected standalone constituents still present in its published index. */
+export const ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_ALIASES = {
   critpt: ["critpt"],
   gdpval_normalized: ["gdpvalNormalized", "gdpval_normalized"],
   gpqa: ["gpqa"],
@@ -1582,10 +1582,10 @@ export const ARTIFICIAL_ANALYSIS_ADDITIONAL_BENCHMARK_ALIASES = {
   scicode: ["scicode"],
 } as const;
 
-export const ARTIFICIAL_ANALYSIS_ADDITIONAL_BENCHMARK_KEYS_AFTER = {
+export const ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_KEYS_AFTER = {
   gdpval_normalized: ["critpt", "gdpval_normalized", "gpqa", "hle", "mmmu_pro", "scicode"],
 } as const satisfies Partial<Record<BenchmarkKey, readonly string[]>>;
 
-export const MODEL_ATLAS_ADDITIONAL_BENCHMARK_KEYS_AFTER = {
+export const MODEL_ATLAS_CONTEXT_BENCHMARK_KEYS_AFTER = {
   gdpval_normalized: ["gpqa", "mmmu_pro"],
 } as const satisfies Partial<Record<BenchmarkKey, readonly string[]>>;

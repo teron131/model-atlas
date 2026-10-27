@@ -4,10 +4,13 @@
  * Page source: https://artificialanalysis.ai/leaderboards/models
  */
 
-import { AGENTIC_INDEX_KEYS, INTELLIGENCE_INDEX_KEYS } from "../../benchmarks/field-keys";
+import {
+  ARTIFICIAL_ANALYSIS_AGENTIC_INDEX_KEYS,
+  ARTIFICIAL_ANALYSIS_INTELLIGENCE_INDEX_KEYS,
+} from "../../benchmarks/field-keys";
 import { type ScoringConfig, selectedBenchmarkKeys } from "../../config/stage";
-import { asFiniteNumber, asRecord, type JsonObject, stringValue } from "../../runtime";
-import { sourceKey } from "../snapshots/policy";
+import { asFiniteNumber, asNonEmptyString, asRecord, type JsonObject } from "../../runtime";
+import { sourceRowKey } from "../snapshots/policy";
 import { snapshotSourceRows } from "../snapshots/row-snapshot";
 import type {
   RawSourceCacheStatus,
@@ -52,7 +55,7 @@ const ACTIVE_BENCHMARK_RESOURCE_PAGE_URLS = new Map(
   ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.map((page) => [page.benchmark_key, page.url]),
 );
 
-/** Replace available AA rows as one current score/resource observation; retain stronger evidence only for unavailable shells. */
+/** Replace available Artificial Analysis rows as one current score/resource observation; retain stronger evidence only for unavailable shells. */
 export function mergeArtificialAnalysisRow(
   cachedRow: JsonObject,
   fetchedRow: JsonObject,
@@ -85,7 +88,7 @@ export async function artificialAnalysisSnapshot(
     nowEpochSeconds,
     fetchRows: getArtificialAnalysisLeaderboardRawStats,
     rowKey: artificialAnalysisModelId,
-    rowLabel: (row) => stringValue(row.name),
+    rowLabel: (row) => asNonEmptyString(row.name),
     mergeRow: (cachedRow, fetchedRow) =>
       mergeArtificialAnalysisRow(cachedRow, fetchedRow, scoringConfig),
   });
@@ -133,7 +136,7 @@ export async function artificialAnalysisBenchmarkResourceSnapshot(
     previousMissingSince,
     nowEpochSeconds,
     fetchRows: getArtificialAnalysisBenchmarkResourceStats,
-    rowKey: artificialAnalysisBenchmarkResourceSourceKey,
+    rowKey: artificialAnalysisBenchmarkResourceRowKey,
     rowLabel: (row) => `${row.benchmark_key}: ${row.model}`,
     mergeRow: (_cachedRow, fetchedRow) => fetchedRow,
     editions: { editionOf: (row) => row.benchmark_version, seriesOf: (row) => row.benchmark_key },
@@ -141,7 +144,7 @@ export async function artificialAnalysisBenchmarkResourceSnapshot(
   const activeRows = snapshot.rows.filter((row) =>
     ACTIVE_BENCHMARK_RESOURCE_PAGE_URLS.has(row.benchmark_key),
   );
-  const activeRowKeys = new Set(activeRows.map(artificialAnalysisBenchmarkResourceSourceKey));
+  const activeRowKeys = new Set(activeRows.map(artificialAnalysisBenchmarkResourceRowKey));
   return {
     artificialAnalysisBenchmarkResourceRows: snapshot.rows,
     sourceStatus: {
@@ -155,10 +158,10 @@ export async function artificialAnalysisBenchmarkResourceSnapshot(
 }
 
 /** Builds a stable cache key that keeps benchmark reasoning-effort observations distinct. */
-export function artificialAnalysisBenchmarkResourceSourceKey(
+export function artificialAnalysisBenchmarkResourceRowKey(
   row: ArtificialAnalysisBenchmarkResourceRow,
 ): string {
-  return sourceKey(row.benchmark_key, row.model_id, row.reasoning_effort);
+  return sourceRowKey(row.benchmark_key, row.model_id, row.reasoning_effort);
 }
 
 function isRowUnavailable(row: JsonObject): boolean {
@@ -187,8 +190,8 @@ function signalCount(row: JsonObject, scoringConfig: ScoringConfig): number {
 function signalKeys(scoringConfig: ScoringConfig): Set<string> {
   const keys = new Set<string>(RESOURCE_SIGNAL_KEYS);
   for (const key of [
-    ...INTELLIGENCE_INDEX_KEYS,
-    ...AGENTIC_INDEX_KEYS,
+    ...ARTIFICIAL_ANALYSIS_INTELLIGENCE_INDEX_KEYS,
+    ...ARTIFICIAL_ANALYSIS_AGENTIC_INDEX_KEYS,
     ...selectedBenchmarkKeys(scoringConfig),
   ]) {
     keys.add(key);

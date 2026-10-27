@@ -13,7 +13,7 @@ import {
   canonicalReasoningEffort,
   normalizeModelToken,
 } from "../../identity/normalization";
-import { asFiniteNumber, asRecord, nowEpochSeconds, stringValue } from "../../runtime";
+import { asFiniteNumber, asNonEmptyString, asRecord, nowEpochSeconds } from "../../runtime";
 import { fetchSource } from "../request-scheduler";
 
 const TERMINAL_BENCH_4_DATA_URL =
@@ -31,7 +31,7 @@ const DEFAULT_TIMEOUT_MS = 30_000;
 
 export const TERMINAL_BENCH_4_SOURCE_REVISION = "4_0_0";
 
-export type TerminalBench4ModelAgentRow = BenchmarkModelRow &
+export type TerminalBench4ModelHarnessRow = BenchmarkModelRow &
   Required<BenchmarkResourceAggregate> & {
     revision: typeof TERMINAL_BENCH_4_SOURCE_REVISION;
     harness: string;
@@ -43,11 +43,11 @@ export type TerminalBench4ModelAgentRow = BenchmarkModelRow &
     output_tokens_per_task?: number | null;
   };
 
-export type TerminalBench4RowsByModelName = Map<string, TerminalBench4ModelAgentRow>;
+export type TerminalBench4RowsByModelName = Map<string, TerminalBench4ModelHarnessRow>;
 
 type TerminalBench4Payload = {
   fetched_at_epoch_seconds: number | null;
-  data: TerminalBench4ModelAgentRow[];
+  data: TerminalBench4ModelHarnessRow[];
 };
 
 type TerminalBench4ScraperOptions = {
@@ -85,7 +85,7 @@ export async function getTerminalBench4Stats(
 }
 
 /** Parse every displayed Terminal-Bench 4.0 row without collapsing model, effort, or agent configurations. */
-export function processTerminalBench4Payload(value: unknown): TerminalBench4ModelAgentRow[] {
+export function processTerminalBench4Payload(value: unknown): TerminalBench4ModelHarnessRow[] {
   const root = asRecord(value);
   const leaderboard = asRecord(root.leaderboard);
   const datasetVersionIds = leaderboard.dataset_version_ids;
@@ -95,7 +95,7 @@ export function processTerminalBench4Payload(value: unknown): TerminalBench4Mode
     leaderboard.title !== TERMINAL_BENCH_4_TITLE ||
     !Array.isArray(datasetVersionIds) ||
     datasetVersionIds.length === 0 ||
-    datasetVersionIds.some((id) => stringValue(id) == null)
+    datasetVersionIds.some((id) => asNonEmptyString(id) == null)
   ) {
     return [];
   }
@@ -112,9 +112,9 @@ export function processTerminalBench4Payload(value: unknown): TerminalBench4Mode
  * Raw persistence retains every model-agent row; this projection only settles scoring when the source later publishes more than one agent for the same model and effort.
  */
 export function buildTerminalBench4Map(
-  rows: readonly TerminalBench4ModelAgentRow[],
+  rows: readonly TerminalBench4ModelHarnessRow[],
 ): TerminalBench4RowsByModelName {
-  const strongestByModelEffort = new Map<string, TerminalBench4ModelAgentRow>();
+  const strongestByModelEffort = new Map<string, TerminalBench4ModelHarnessRow>();
   for (const row of rows) {
     const key = normalizeModelToken(row.model);
     const current = strongestByModelEffort.get(key);
@@ -143,15 +143,15 @@ export function buildTerminalBench4Map(
   return rowsByModelName;
 }
 
-function modelAgentRow(value: unknown): TerminalBench4ModelAgentRow | null {
+function modelAgentRow(value: unknown): TerminalBench4ModelHarnessRow | null {
   const row = asRecord(value);
   if (row.status !== "display") {
     return null;
   }
   const metadata = asRecord(row.metadata);
   const metrics = asRecord(row.metrics);
-  const baseModel = stringValue(asRecord(metadata.model_display).label);
-  const harness = stringValue(asRecord(metadata.agent_display).label);
+  const baseModel = asNonEmptyString(asRecord(metadata.model_display).label);
+  const harness = asNonEmptyString(asRecord(metadata.agent_display).label);
   const reasoningEffort = canonicalReasoningEffort(metadata.reasoning_effort);
   const score = percentToUnitScore(metrics.accuracy);
   const scoreCi95HalfWidth = percentToUnitScore(metrics.accuracy_ci95_half_width);

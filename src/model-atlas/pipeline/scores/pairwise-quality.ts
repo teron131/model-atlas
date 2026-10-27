@@ -18,7 +18,7 @@ import {
 } from "../../math-utils";
 import type { ModelAtlasCandidate } from "../model-types";
 import { effortQualityKey, observedRangesByBenchmark } from "./quality-context";
-import { type BenchmarkMetricModel, benchmarkMetricValue } from "./resource-metrics";
+import { type BenchmarkMetricModel, benchmarkValue } from "./resource-metrics";
 import type { IntelligenceScoreParts } from "./score-builders";
 
 type PairwiseQualityModel = BenchmarkMetricModel & {
@@ -83,7 +83,7 @@ export function fitPairwiseQualityScores(
       scoringConfig.benchmarkPortfolio,
     );
     if (!(benchmarkWeight > 0)) continue;
-    const observations = benchmarkObservations(models, key, ranges.get(key) ?? null);
+    const observations = pairwiseObservationsForKey(models, key, ranges.get(key) ?? null);
     const baseModelCount = new Set(observations.map(({ modelKey }) => modelKey)).size;
     if (baseModelCount < 2) continue;
     benchmarkCount += 1;
@@ -223,13 +223,13 @@ function referenceWeightsForIndexes(
 }
 
 /** Preserve proportional observed score gaps; each base model shares one unit of reference mass across its measured efforts. */
-function benchmarkObservations(
+function pairwiseObservationsForKey(
   models: readonly PairwiseQualityModel[],
   key: string,
   range: MinMaxRange | null,
 ): PairwiseObservation[] {
   const values = models.flatMap((model, modelIndex) => {
-    const value = benchmarkMetricValue(model, key);
+    const value = benchmarkValue(model, key);
     return value == null || !Number.isFinite(value)
       ? []
       : [{ modelIndex, modelKey: canonicalModelKey(model), value }];

@@ -2,10 +2,10 @@
 
 import { SNAPSHOT_TABLES } from "../../database/tables";
 import type { DatabaseWriter } from "../../database/writers/database";
-import { asFiniteNumber, stringValue } from "../../runtime";
+import { asFiniteNumber, asNonEmptyString } from "../../runtime";
 import { defineBenchmarkRuntime } from "../benchmark-runtime";
-import { type CacheRowSource, firstEpochSecond, sourceCacheRows } from "../cache/rows";
-import { sourceKey } from "../snapshots/policy";
+import { type CacheRowSource, firstFetchedAt, sourceCacheRows } from "../cache/rows";
+import { sourceRowKey } from "../snapshots/policy";
 import { snapshotSourceRows } from "../snapshots/row-snapshot";
 import type {
   RawSourceCacheStatus,
@@ -14,8 +14,8 @@ import type {
   SourceSnapshotStatus,
 } from "../types";
 import {
-  DEFAULT_LEADERBOARD_URL,
   getVendingBench2Stats,
+  VENDING_BENCH_2_LEADERBOARD_URL,
   type VendingBench2ModelScoreRow,
 } from "./leaderboard";
 
@@ -33,7 +33,7 @@ export const vendingBench2Runtime = defineBenchmarkRuntime({
   snapshot: vendingBench2Snapshot,
   write: insertVendingBench2RawRows,
   sourceRowsKey: "vendingBench2Rows",
-  loadSourceRows: async () => (await getVendingBench2Stats()).data,
+  fetchSourceRows: async () => (await getVendingBench2Stats()).data,
   sourceRowsFromSnapshots: (snapshots) => snapshots.vendingBench2ModelScoreRows,
 });
 
@@ -48,15 +48,15 @@ export function readVendingBench2RawCache(cache: CacheRowSource): {
   );
   if (
     cacheRows.length === 0 ||
-    cacheRows.some((row) => stringValue(row.url) !== DEFAULT_LEADERBOARD_URL)
+    cacheRows.some((row) => asNonEmptyString(row.url) !== VENDING_BENCH_2_LEADERBOARD_URL)
   ) {
     return null;
   }
   const rows = cacheRows.flatMap((row) => {
     const rank = asFiniteNumber(row.rank);
-    const model = stringValue(row.model);
-    const baseModel = stringValue(row.base_model);
-    const reasoningEffort = stringValue(row.reasoning_effort);
+    const model = asNonEmptyString(row.model);
+    const baseModel = asNonEmptyString(row.base_model);
+    const reasoningEffort = asNonEmptyString(row.reasoning_effort);
     const runCount = asFiniteNumber(row.run_count);
     const finalBalanceUsd = asFiniteNumber(row.final_balance_usd);
     const dailyBalanceUsd = numberArray(row.daily_balance_usd_json);
@@ -84,8 +84,8 @@ export function readVendingBench2RawCache(cache: CacheRowSource): {
   }
   return {
     rows,
-    fetchedAt: firstEpochSecond(cacheRows),
-    sourceUrl: stringValue(cacheRows[0]?.data_url) ?? undefined,
+    fetchedAt: firstFetchedAt(cacheRows),
+    sourceUrl: asNonEmptyString(cacheRows[0]?.data_url) ?? undefined,
   };
 }
 
@@ -121,7 +121,7 @@ async function vendingBench2Snapshot(
     previousMissingSince,
     nowEpochSeconds,
     fetchRows: getVendingBench2Stats,
-    rowKey: (row) => sourceKey(row.model, row.reasoning_effort),
+    rowKey: (row) => sourceRowKey(row.model, row.reasoning_effort),
     rowLabel: (row) => row.model,
   });
   return {
@@ -149,7 +149,7 @@ function insertVendingBench2RawRows(db: DatabaseWriter, snapshots: SourceSnapsho
     statement.run(
       index,
       snapshots.fetchedAt.vendingBench2,
-      DEFAULT_LEADERBOARD_URL,
+      VENDING_BENCH_2_LEADERBOARD_URL,
       snapshots.vendingBench2DataUrl,
       row.rank,
       row.model,

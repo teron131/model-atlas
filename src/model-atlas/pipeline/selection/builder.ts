@@ -1,25 +1,10 @@
 /** Model selection prepares quality scores before route enrichment, then finalizes resource scores, admission, and logo hydration. */
 
-import {
-  indexPolicy,
-  isAggregateIndex,
-  reportedIndexBenchmarkCount,
-  residualIndexBreadth,
-} from "../../benchmarks/index-policy";
-import {
-  type BenchmarkAdmissionConfig,
-  type FinalStageConfig,
-  type ScoringConfig,
-  selectedBenchmarkKeys,
-} from "../../config/stage";
+import type { FinalStageConfig, ScoringConfig } from "../../config/stage";
 import { cacheModelLogos } from "../../logos/cache";
-import { asFiniteNumber, asRecord } from "../../runtime";
-import { advanceCapabilities, type CapabilityState } from "../../timeline/capability";
-import type {
-  ModelAtlasCandidate,
-  ModelAtlasModel,
-  ModelAtlasScoredCandidate,
-} from "../model-types";
+import { asRecord } from "../../runtime";
+import { advanceCapabilityState, type CapabilityState } from "../../timeline/capability";
+import type { ModelAtlasCandidate, ModelAtlasModel, ModelRow } from "../model-types";
 import { type OpenRouterModelData, prepareOpenRouterModelData } from "../openrouter-data";
 import { attachFinalScores } from "../scores";
 import {
@@ -34,37 +19,29 @@ import { prepareEffortQualityScoringContext } from "../scores/imputation/effort-
 import { blendPairwiseQualityScores } from "../scores/pairwise-quality";
 import { buildAgenticTokenScoringContext } from "../scores/quality-context";
 import { applyResourceEvidenceRequirements } from "../scores/resource-metrics";
-import { buildComponentScoreResult, observedBenchmarkCount } from "../scores/score-builders";
+import { buildComponentScoreResult } from "../scores/score-builders";
 import {
   type BenchmarkVersioningOptions,
-  buildModelCandidate,
-  enrichModelResources,
   versionCandidateBenchmarkData,
-} from "./candidate";
+} from "./benchmark-versioning";
+import { buildModelCandidate, enrichModelResources } from "./candidate";
 import {
+  hasRequiredBenchmarkEvidence,
+  hasRequiredModelIdentity,
+  hasRequiredPublicRelevance,
   hasRequiredQualityScores,
   publicModelFromCandidate,
   selectReferenceModels,
 } from "./public-list";
 import {
   buildPreviousModelLookup,
+  dropStaleReplacementBenchmarks,
   isVersionReplacementRow,
-  prepareVersionReplacementBenchmarkRows,
   versionReplacementBenchmarkWeights,
 } from "./version-replacement";
 
-const MIN_PUBLIC_RELATIVE_SCORE = 10;
-const PUBLIC_QUALITY_SCORE_KEYS = ["intelligence_score", "agentic_score"] as const;
-
-type IdentityCandidate = Pick<ModelAtlasCandidate, "id" | "name" | "modalities">;
-
-type BenchmarkEvidenceCandidate = Pick<
-  ModelAtlasScoredCandidate,
-  "intelligence" | "benchmarks" | "scoring_sources"
->;
-
 export type ModelSelection = {
-  modelRows: Record<string, unknown>[];
+  modelRows: ModelRow[];
   candidates: ModelAtlasCandidate[];
   scoringPreparation: BenchmarkScoringPreparation;
   capabilityState?: CapabilityState;
@@ -72,7 +49,7 @@ export type ModelSelection = {
 
 /** Compute quality once against the complete benchmark population before choosing per-model network work. */
 export function prepareModelSelection(
-  rows: Record<string, unknown>[],
+  rows: ModelRow[],
   scoringConfig: ScoringConfig,
   versioning: BenchmarkVersioningOptions = {
     baselineDate: new Date().toISOString().slice(0, 10),
@@ -82,27 +59,24 @@ export function prepareModelSelection(
   capabilityState?: CapabilityState,
 ): ModelSelection {
   const openRouterData = prepareOpenRouterModelData(rows, scoringConfig, null);
-  const modelRows = prepareVersionReplacementBenchmarkRows(
-    openRouterData.modelRows,
-    previousModels,
-    scoringConfig,
-  );
-  const preparedOpenRouterData = { ...openRouterData, modelRows };
-  const replacementRows = modelRows.filter((row) => isVersionReplacementRow(asRecord(row)));
+  const modelRows = dropStaleReplacementBenchmarks(rows, previousModels, scoringConfig);
+  const replacementRows = modelRows.filter(isVersionReplacementRow);
   const scoringPreparation = withoutBenchmarkImputationForModels(
     prepareBenchmarkScoring(modelRows, scoringConfig),
     replacementRows,
   );
-  const provisionalCandidates = buildCandidates(
-    preparedOpenRouterData,
+  const candidatesWithRows = buildCandidates(
+    modelRows,
+    openRouterData,
     scoringConfig,
     scoringPreparation,
     previousModels,
     versioning,
   );
-  const imputationCandidates = provisionalCandidates.filter(
-    (_model, index) => !isVersionReplacementRow(asRecord(modelRows[index])),
-  );
+  const provisionalCandidates = candidatesWithRows.map(({ candidate }) => candidate);
+  const imputationCandidates = candidatesWithRows
+    .filter(({ row }) => !isVersionReplacementRow(row))
+    .map(({ candidate }) => candidate);
   const tokenImputation = prepareEffortResourceImputation(
     imputationCandidates,
     scoringConfig,
@@ -120,11 +94,10 @@ export function prepareModelSelection(
     scoringConfig,
     scoringPreparation.qualityContext,
   );
-  const rescored = provisionalCandidates.map((model, index) => {
-    const row = asRecord(modelRows[index]);
+  const rescored = candidatesWithRows.map(({ row, candidate }) => {
     const result = buildComponentScoreResult(
-      asRecord(model),
-      model.speed,
+      asRecord(candidate),
+      candidate.speed,
       openRouterData.outputTokenAnchors,
       scoringConfig,
       scoringPreparation.qualityContext,
@@ -134,7 +107,7 @@ export function prepareModelSelection(
     );
     return {
       candidate: {
-        ...model,
+        ...candidate,
         component_scores: result.componentScores,
         confidence: result.confidence,
       },
@@ -147,7 +120,7 @@ export function prepareModelSelection(
     rescored.map(({ intelligenceParts }) => intelligenceParts),
   );
   if (capabilityState) {
-    capabilityState = advanceCapabilities(
+    capabilityState = advanceCapabilityState(
       capabilityState,
       qualityScoredCandidates,
       versioning.observedAt ?? new Date().toISOString(),
@@ -166,53 +139,53 @@ export function selectOpenRouterModelRows(
   selection: ModelSelection,
   finalConfig: FinalStageConfig,
   scoringConfig: ScoringConfig,
-): Record<string, unknown>[] {
+): ModelRow[] {
   const { modelRows, candidates } = selection;
   return modelRows.filter((_row, index) => {
-    const model = candidates[index]!;
+    const candidate = candidates[index]!;
     if (
-      model.id == null ||
-      model.name == null ||
-      model.modalities?.output?.includes("text") !== true
+      candidate.id == null ||
+      candidate.name == null ||
+      candidate.modalities?.output?.includes("text") !== true
     ) {
       return false;
     }
     const broadEvidence = hasRequiredBenchmarkEvidence(
-      model,
+      candidate,
       scoringConfig,
       finalConfig.benchmarkAdmission,
     );
-    return broadEvidence && hasRequiredPublicRelevance({ scores: model.component_scores });
+    return broadEvidence && hasRequiredPublicRelevance({ scores: candidate.component_scores });
   });
 }
 
-/** Enrich the prepared population with route telemetry, then finish resource scoring and public admission. */
+/** Enrich the prepared population with OpenRouter telemetry, then finish resource scoring and public admission. */
 export async function buildFinalModels(
   selection: ModelSelection,
   openRouterData: OpenRouterModelData,
-  id: string | null | undefined,
+  modelId: string | null | undefined,
   finalConfig: FinalStageConfig,
   scoringConfig: ScoringConfig,
 ): Promise<ModelAtlasModel[]> {
   const { modelRows, candidates, scoringPreparation } = selection;
-  const candidateModels = candidates.map((model, index) =>
-    enrichModelResources(model, modelRows[index]!, openRouterData),
+  const enrichedCandidates = candidates.map((candidate, index) =>
+    enrichModelResources(candidate, modelRows[index]!, openRouterData),
   );
   const resourceImputation = prepareEffortResourceImputation(
-    candidateModels,
+    enrichedCandidates,
     scoringConfig,
     scoringPreparation,
     ["cost", "time"],
   );
   const scoredCandidates = attachFinalScores(
-    candidateModels,
+    enrichedCandidates,
     scoringConfig,
     scoringPreparation,
     resourceImputation,
   );
   const selectedReferenceModels = selectReferenceModels(
     scoredCandidates,
-    id,
+    modelId,
     finalConfig,
     scoringConfig,
   );
@@ -243,99 +216,26 @@ export async function buildFinalModels(
   );
 }
 
-/** Require observed breadth and both dimensions, plus two indexes or one trusted AA/Epoch index; estimates cannot satisfy admission. */
-export function hasRequiredBenchmarkEvidence(
-  model: BenchmarkEvidenceCandidate,
-  scoringConfig: ScoringConfig,
-  admissionConfig: BenchmarkAdmissionConfig,
-): boolean {
-  const observedWeight = observedBenchmarkWeight(model, scoringConfig);
-  const observedIntelligenceCount = observedBenchmarkCount(
-    model,
-    scoringConfig.intelligenceBenchmarkKeys,
-  );
-  const observedAgenticCount = observedBenchmarkCount(model, scoringConfig.agenticBenchmarkKeys);
-  const selectedIndexes = selectedBenchmarkKeys(scoringConfig).filter(isAggregateIndex);
-  const observedIndexCount = observedBenchmarkCount(model, selectedIndexes);
-  const hasTrustedIndex = selectedIndexes.some(
-    (key) =>
-      (key === "aa_intelligence_index" || key === "epoch_capabilities_index") &&
-      observedBenchmarkCount(model, [key]) > 0,
-  );
-  return (
-    observedWeight >= admissionConfig.minimumObservedWeight &&
-    observedIntelligenceCount >= admissionConfig.minimumObservedPerDimension &&
-    observedAgenticCount >= admissionConfig.minimumObservedPerDimension &&
-    (observedIndexCount >= admissionConfig.minimumObservedIndexes || hasTrustedIndex)
-  );
-}
-
-/** Union known component evidence and add opaque index breadth; imputed values never enter this observed-only measure. */
-function observedBenchmarkWeight(
-  model: BenchmarkEvidenceCandidate,
-  scoringConfig: ScoringConfig,
-): number {
-  const namedWeights = new Map<string, number>();
-  let opaqueWeight = 0;
-  for (const key of selectedBenchmarkKeys(scoringConfig)) {
-    if (observedBenchmarkCount(model, [key]) === 0) continue;
-    const policy = indexPolicy(key);
-    if (policy != null) {
-      const components = new Set(policy.componentBenchmarkKeys ?? []);
-      opaqueWeight += Math.max(
-        0,
-        residualIndexBreadth(key, [], reportedIndexBenchmarkCount(model, key)) - components.size,
-      );
-      for (const component of components) {
-        namedWeights.set(component, Math.max(namedWeights.get(component) ?? 0, 1));
-      }
-    } else {
-      const importance = scoringConfig.benchmarkPortfolio[key]?.benchmarkImportance ?? 0;
-      namedWeights.set(key, Math.max(namedWeights.get(key) ?? 0, importance));
-    }
-  }
-  return opaqueWeight + [...namedWeights.values()].reduce((sum, weight) => sum + weight, 0);
-}
-
-/** Relative Intelligence and Agentic must both exceed 10; release age remains a dashboard filter. */
-export function hasRequiredPublicRelevance(model: {
-  scores: Partial<ModelAtlasScoredCandidate["scores"]> | null;
-}): boolean {
-  return PUBLIC_QUALITY_SCORE_KEYS.every((key) => {
-    const score = asFiniteNumber(model.scores?.[key]);
-    return score != null && score > MIN_PUBLIC_RELATIVE_SCORE;
-  });
-}
-
 function buildCandidates(
+  rows: ModelRow[],
   openRouterData: OpenRouterModelData,
   scoringConfig: ScoringConfig,
   scoringPreparation: BenchmarkScoringPreparation,
   previousModels: readonly ModelAtlasModel[],
   versioning: BenchmarkVersioningOptions,
-): ModelAtlasCandidate[] {
+): { row: ModelRow; candidate: ModelAtlasCandidate }[] {
   const previousModelForRow = buildPreviousModelLookup(previousModels);
-  return openRouterData.modelRows.map((row) => {
+  return rows.map((row) => {
     const candidate = buildModelCandidate(
       row,
-      openRouterData.speedByModelId,
-      openRouterData.pricingByModelId,
-      openRouterData.outputTokenAnchors,
+      openRouterData,
       scoringConfig,
       scoringPreparation,
-      versionReplacementBenchmarkWeights(asRecord(row), scoringConfig),
+      versionReplacementBenchmarkWeights(row, scoringConfig),
     );
-    return versionCandidateBenchmarkData(candidate, previousModelForRow(asRecord(row)), versioning);
+    return {
+      row,
+      candidate: versionCandidateBenchmarkData(candidate, previousModelForRow(row), versioning),
+    };
   });
-}
-
-/** Admission requires an identified text model; optional specifications stay nullable. */
-function hasRequiredModelIdentity(model: IdentityCandidate): boolean {
-  return (
-    model.id != null &&
-    /^[^/\s]+\/[^/\s]+$/.test(model.id) &&
-    model.name != null &&
-    model.name.trim().length > 0 &&
-    model.modalities?.output?.includes("text") === true
-  );
 }

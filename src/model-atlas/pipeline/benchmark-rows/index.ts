@@ -1,10 +1,5 @@
-/** Exposes benchmark row reconstruction, assignment, and scoring key groups. */
+/** Exposes benchmark row reconstruction and assignment. */
 
-export {
-  AGENTIC_INDEX_KEYS,
-  ARTIFICIAL_ANALYSIS_INTELLIGENCE_KEYS,
-  INTELLIGENCE_INDEX_KEYS,
-} from "../../benchmarks/field-keys";
 export {
   assignBenchmarksToVariants,
   type BenchmarkAssignmentLookups,

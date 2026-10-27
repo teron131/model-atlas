@@ -1,8 +1,8 @@
 /** Benchmark observations preserve source evidence while sharing conservative model-effort matching. */
 
 import {
-  benchmarkModelEffort,
   normalizeModelToken,
+  parseModelEffort,
   reasoningEffortRank,
 } from "../identity/normalization";
 import { canonicalQwenName } from "../identity/qwen";
@@ -91,7 +91,7 @@ function isNewer<Row extends BenchmarkObservationEvidenceRow>(row: Row, current:
 }
 
 /** Component and ambiguous configuration observations retain provenance without entering model assignment or display defaults. */
-export function isCanonicalBenchmarkObservation(
+export function isAssignableBenchmarkObservation(
   row: Pick<BenchmarkObservationEvidenceRow, "metadata">,
 ): boolean {
   return (
@@ -129,7 +129,7 @@ function modelIdConflictsWithBaseModel(row: BenchmarkObservationEvidenceRow): bo
 }
 
 function baseModelNames(row: BenchmarkObservationEvidenceRow): string[] {
-  const model = benchmarkModelEffort(row.model).baseModel;
+  const model = parseModelEffort(row.model).baseModel;
   return [row.base_model, model, canonicalQwenName(model)];
 }
 
@@ -150,7 +150,7 @@ export function candidateModelKeys(candidateNames: unknown[]): ReadonlySet<strin
   return new Set(
     candidateNames.flatMap((candidate) => {
       if (typeof candidate !== "string" || candidate.length === 0) return [];
-      const parsed = benchmarkModelEffort(candidate);
+      const parsed = parseModelEffort(candidate);
       return [candidate, parsed.baseModel, trailingModelAlias(candidate)]
         .filter((value): value is string => value != null)
         .map(normalizeModelToken)
@@ -192,7 +192,7 @@ export function buildBenchmarkObservationLookup<Row extends BenchmarkObservation
   const rowsByModel = new Map<string, Row>();
   const defaultByBase = new Map<string, Row>();
   for (const row of rows) {
-    if (!isCanonicalBenchmarkObservation(row)) continue;
+    if (!isAssignableBenchmarkObservation(row)) continue;
     for (const key of modelKeys(row)) {
       const exactKey =
         row.reasoning_effort == null ? key : `${key}--${normalizeModelToken(row.reasoning_effort)}`;
@@ -231,7 +231,7 @@ export function findBenchmarkObservation<Row extends BenchmarkObservationEvidenc
     typeof targetReasoningEffort === "string" ? normalizeModelToken(targetReasoningEffort) : null;
   for (const candidate of candidateNames) {
     if (typeof candidate !== "string" || candidate.length === 0) continue;
-    const parsed = benchmarkModelEffort(candidate);
+    const parsed = parseModelEffort(candidate);
     const effort =
       parsed.reasoningEffort == null ? targetEffort : normalizeModelToken(parsed.reasoningEffort);
     for (const value of [candidate, parsed.baseModel, trailingModelAlias(candidate)]) {

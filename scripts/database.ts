@@ -3,13 +3,13 @@
 import { existsSync } from "node:fs";
 import { loadEnvFile } from "node:process";
 
-import { buildDatabase } from "../src/model-atlas/database";
+import { refreshDatabase } from "../src/model-atlas/database";
 
 if (existsSync(".env")) {
   loadEnvFile(".env");
 }
 
-const result = await buildDatabase(undefined, {
+const result = await refreshDatabase(undefined, {
   replaceSourceRows: process.env.MODEL_ATLAS_REPLACE_SOURCE_ROWS === "1",
 });
 
@@ -19,7 +19,7 @@ console.log(
       path: result.path,
       final_model_count: result.final_model_count,
       source_cache: result.source_cache,
-      tables: result.source_rows,
+      tables: result.table_row_counts,
     },
     null,
     2,

@@ -2,7 +2,7 @@
 
 import {
   type BenchmarkObservationRow,
-  isCanonicalBenchmarkObservation,
+  isAssignableBenchmarkObservation,
 } from "../../benchmarks/observation";
 import {
   ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES,
@@ -11,8 +11,8 @@ import {
   type PublicBenchmarkRuntimeKeyFor,
   transformBenchmarkSourceValue,
 } from "../../benchmarks/registry";
-import { benchmarkModelEffort, canonicalReasoningEffort } from "../../identity/normalization";
-import { asFiniteNumber, asRecord, stringValue } from "../../runtime";
+import { canonicalReasoningEffort, parseModelEffort } from "../../identity/normalization";
+import { asFiniteNumber, asNonEmptyString, asRecord } from "../../runtime";
 import { agentsLastExamBenchmarkScore } from "../../sources/agents-last-exam/leaderboard";
 import { aleBenchModelEffort } from "../../sources/ale-bench/leaderboard";
 import type { ArtificialAnalysisBenchmarkResourceRow } from "../../sources/artificial-analysis/benchmark-resources";
@@ -84,7 +84,7 @@ export function riemannBenchmarkDraft(row: {
   provider: string | null;
   score: unknown;
 }): BenchmarkRowDraft {
-  const parsed = benchmarkModelEffort(row.model);
+  const parsed = parseModelEffort(row.model);
   return {
     key: "riemann_bench",
     identity: parsed.baseModel,
@@ -105,7 +105,7 @@ function benchmarkObservationSourceDrafts(sourceData: ModelAtlasSourceData): Ben
     }
     return source.rows
       .filter(
-        (row) => isCanonicalBenchmarkObservation(row) || row.metadata.source_series === "vals",
+        (row) => isAssignableBenchmarkObservation(row) || row.metadata.source_series === "vals",
       )
       .map((row) => ({
         key: row.benchmark_key,
@@ -140,7 +140,7 @@ function addBenchmarkRowDraft(
     provider: draft.provider ?? null,
     reasoningEffort: canonicalReasoningEffort(draft.reasoningEffort),
     value,
-    edition: stringValue(draft.edition),
+    edition: asNonEmptyString(draft.edition),
   });
 }
 
@@ -202,9 +202,9 @@ export function artificialAnalysisResourceDrafts(
   );
 }
 
-type StandaloneBenchmarkAdapter = (sourceData: ModelAtlasSourceData) => BenchmarkRowDraft[];
+type StandaloneSourceRowAdapter = (sourceData: ModelAtlasSourceData) => BenchmarkRowDraft[];
 
-const STANDALONE_BENCHMARK_ADAPTERS = {
+const STANDALONE_SOURCE_ROW_ADAPTERS = {
   agents_last_exam: (sourceData) =>
     benchmarkRowDrafts("agents_last_exam", sourceData.agentsLastExam.rows, (row) => ({
       label: row.model,
@@ -283,14 +283,14 @@ const STANDALONE_BENCHMARK_ADAPTERS = {
       reasoningEffort: row.reasoning_effort,
       value: row.final_balance_usd,
     })),
-} satisfies Record<PublicBenchmarkRuntimeKeyFor<"standalone">, StandaloneBenchmarkAdapter>;
+} satisfies Record<PublicBenchmarkRuntimeKeyFor<"standalone">, StandaloneSourceRowAdapter>;
 
 /** Live source data enters benchmark-update health through the same draft contract as database restorations. */
 export function benchmarkRowsFromSourceData(sourceData: ModelAtlasSourceData): BenchmarkRowsByKey {
   return finalizeBenchmarkRows([
     ...benchmarkObservationSourceDrafts(sourceData),
     ...artificialAnalysisBenchmarkRowDrafts(sourceData),
-    ...Object.values(STANDALONE_BENCHMARK_ADAPTERS).flatMap((adapter) => adapter(sourceData)),
+    ...Object.values(STANDALONE_SOURCE_ROW_ADAPTERS).flatMap((adapter) => adapter(sourceData)),
     ...sourceData.riemannBench.rows.map(riemannBenchmarkDraft),
     ...modelScoreRowDrafts("vals_index", sourceData.valsIndex.rows),
   ]);

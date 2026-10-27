@@ -1,6 +1,6 @@
 /** Benchmark contracts are validated once, then projected into configured definitions and portfolio views. */
 
-export type BenchmarkSourceGroup =
+export type BenchmarkSourceFamily =
   | "artificial_analysis"
   | "epoch"
   | "surge"
@@ -87,7 +87,7 @@ export type BenchmarkSourceRuntime = {
   publicRows: boolean;
 };
 export type BenchmarkSourceInput = {
-  group: BenchmarkSourceGroup;
+  group: BenchmarkSourceFamily;
   id: string;
   roles: readonly [BenchmarkSourceRole, ...BenchmarkSourceRole[]];
   evidenceKey?: string;
@@ -135,7 +135,7 @@ type BenchmarkSourceCrosswalkPolicy = { kind: "custom" };
 
 export type BenchmarkProcessingFacet = {
   transform: BenchmarkSourceTransform;
-  /** Frozen labels: nothing branches on `aggregation` or `sourceCrosswalk`, but `checkpointBenchmarkId` hashes them into persisted timeline edition ids, so editing one splits that benchmark's timeline; declare real edition changes with `source.revision`. */
+  /** Frozen labels: nothing branches on `aggregation` or `sourceCrosswalk`, but `benchmarkEditionId` hashes them into persisted timeline edition ids, so editing one splits that benchmark's timeline; declare real edition changes with `source.revision`. */
   aggregation: BenchmarkAggregationPolicy;
   sourceCrosswalk?: BenchmarkSourceCrosswalkPolicy;
 };
@@ -435,7 +435,9 @@ function validateSourceAdapters(key: string, input: BenchmarkSourceInput): void 
       adapter.kind === "benchmark_observation" &&
       (adapter.sourceDataKey.trim().length === 0 || adapter.sourceRowsKey.trim().length === 0)
     ) {
-      throw new Error(`Benchmark score adapter requires a source-data key for ${key}/${input.id}`);
+      throw new Error(
+        `Benchmark observation adapter requires source-data and source-rows keys for ${key}/${input.id}`,
+      );
     }
     if (adapter.kind === "artificial_analysis_resource_page") {
       if (

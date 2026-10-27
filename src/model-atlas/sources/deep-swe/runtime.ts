@@ -3,8 +3,8 @@
 import { SNAPSHOT_TABLES } from "../../database/tables";
 import type { DatabaseWriter } from "../../database/writers/database";
 import { defineBenchmarkRuntime } from "../benchmark-runtime";
-import { type CacheRowSource, firstEpochSecond, sourceCacheRows } from "../cache/rows";
-import { sourceKey } from "../snapshots/policy";
+import { type CacheRowSource, firstFetchedAt, sourceCacheRows } from "../cache/rows";
+import { sourceRowKey } from "../snapshots/policy";
 import { snapshotSourceRows } from "../snapshots/row-snapshot";
 import type {
   RawSourceCacheStatus,
@@ -34,7 +34,7 @@ export const deepSWERuntime = defineBenchmarkRuntime({
   snapshot: deepSWESnapshot,
   write: insertDeepSWERawRows,
   sourceRowsKey: "deepSWEEffortRows",
-  loadSourceRows: async () => (await getDeepSWELeaderboardStats()).data,
+  fetchSourceRows: async () => (await getDeepSWELeaderboardStats()).data,
   sourceRowsFromSnapshots: (snapshots) => preferredDeepSWELeaderboardRows(snapshots.deepSWERawRows),
 });
 
@@ -46,13 +46,13 @@ export function readDeepSWERawCache(cache: CacheRowSource): {
   if (cacheRows.length === 0) {
     return null;
   }
-  const deepSweRows = cacheRows.flatMap((row) => {
+  const deepSWERows = cacheRows.flatMap((row) => {
     const parsedRow = asDeepSWERawLeaderboardRow(row);
     return parsedRow == null ? [] : [parsedRow];
   });
   return {
-    rows: deepSweRows,
-    fetchedAt: firstEpochSecond(cacheRows),
+    rows: deepSWERows,
+    fetchedAt: firstFetchedAt(cacheRows),
   };
 }
 
@@ -75,7 +75,7 @@ async function deepSWESnapshot(
     previousMissingSince,
     nowEpochSeconds,
     fetchRows: getDeepSWERawLeaderboardSourceRows,
-    rowKey: (row) => sourceKey(row.source_version, row.model, row.reasoning_effort, row.config),
+    rowKey: (row) => sourceRowKey(row.source_version, row.model, row.reasoning_effort, row.config),
     editions: { editionOf: (row) => row.source_version },
     rowLabel: (row) => row.model,
   });

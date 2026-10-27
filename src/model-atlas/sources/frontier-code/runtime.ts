@@ -2,16 +2,16 @@
 
 import { SNAPSHOT_TABLES } from "../../database/tables";
 import { type DatabaseWriter, sqliteBooleanValue } from "../../database/writers/database";
-import { asFiniteNumber, stringValue } from "../../runtime";
+import { asFiniteNumber, asNonEmptyString } from "../../runtime";
 import { defineBenchmarkRuntime } from "../benchmark-runtime";
 import {
   booleanFromSql,
   type CacheRowSource,
-  firstEpochSecond,
+  firstFetchedAt,
   jsonValue,
   sourceCacheRows,
 } from "../cache/rows";
-import { sourceKey } from "../snapshots/policy";
+import { sourceRowKey } from "../snapshots/policy";
 import { snapshotSourceRows } from "../snapshots/row-snapshot";
 import type {
   RawSourceCacheStatus,
@@ -40,7 +40,7 @@ export const frontierCodeRuntime = defineBenchmarkRuntime({
   snapshot: frontierCodeSnapshot,
   write: insertFrontierCodeRawRows,
   sourceRowsKey: "frontierCodeRows",
-  loadSourceRows: async () => (await getFrontierCodeStats()).data,
+  fetchSourceRows: async () => (await getFrontierCodeStats()).data,
   sourceRowsFromSnapshots: (snapshots) => snapshots.frontierCodeRows,
 });
 
@@ -53,22 +53,22 @@ export function readFrontierCodeRawCache(cache: CacheRowSource): {
     cache,
     "SELECT * FROM frontier_code_raw_rows ORDER BY row_index",
   );
-  const revision = stringValue(cacheRows[0]?.revision);
+  const revision = asNonEmptyString(cacheRows[0]?.revision);
   if (
     revision == null ||
     cacheRows.some(
       (row) =>
-        stringValue(row.url) !== FRONTIER_CODE_LEADERBOARD_URL ||
-        stringValue(row.revision) !== revision,
+        asNonEmptyString(row.url) !== FRONTIER_CODE_LEADERBOARD_URL ||
+        asNonEmptyString(row.revision) !== revision,
     )
   ) {
     return null;
   }
   const rows = cacheRows.flatMap<FrontierCodeModelEffortRow>((row) => {
-    const model = stringValue(row.model);
-    const baseModel = stringValue(row.base_model);
-    const sourceEffort = stringValue(row.source_effort);
-    const harness = stringValue(row.harness);
+    const model = asNonEmptyString(row.model);
+    const baseModel = asNonEmptyString(row.base_model);
+    const sourceEffort = asNonEmptyString(row.source_effort);
+    const harness = asNonEmptyString(row.harness);
     const scoreEligible = booleanFromSql(row.score_eligible);
     const officialRank = asFiniteNumber(row.official_rank);
     const officialBestEffort = booleanFromSql(row.official_best_effort);
@@ -93,7 +93,7 @@ export function readFrontierCodeRawCache(cache: CacheRowSource): {
         model,
         base_model: baseModel,
         source_effort: sourceEffort,
-        reasoning_effort: stringValue(row.reasoning_effort),
+        reasoning_effort: asNonEmptyString(row.reasoning_effort),
         harness,
         score_eligible: scoreEligible,
         official_rank: officialRank,
@@ -106,7 +106,7 @@ export function readFrontierCodeRawCache(cache: CacheRowSource): {
       },
     ];
   });
-  return rows.length !== cacheRows.length ? null : { rows, fetchedAt: firstEpochSecond(cacheRows) };
+  return rows.length !== cacheRows.length ? null : { rows, fetchedAt: firstFetchedAt(cacheRows) };
 }
 
 /** Restore Cognition's source field names inside the persisted subset evidence JSON. */
@@ -139,7 +139,7 @@ async function frontierCodeSnapshot(
     nowEpochSeconds,
     fetchRows: getFrontierCodeStats,
     editions: { editionOf: (row) => row.revision },
-    rowKey: (row) => sourceKey(row.base_model, row.source_effort),
+    rowKey: (row) => sourceRowKey(row.base_model, row.source_effort),
     rowLabel: (row) => `${row.model}: ${row.harness}`,
   });
   return {

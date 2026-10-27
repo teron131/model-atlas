@@ -1,6 +1,6 @@
 /** Public LLM stats API for Model Atlas. */
 
-import { readDisplaySnapshotPayload } from "../../../src/model-atlas/database/runtime-snapshot";
+import { readDisplayPayload } from "../../../src/model-atlas/database/runtime-snapshot";
 import { publicJsonView, serializedPublicJson } from "../../leaderboard/public-json";
 import { matchesEtag, publicCacheHeaders } from "../cache-headers";
 
@@ -19,11 +19,7 @@ export async function GET(request: Request) {
     new URL(request.url).searchParams.get("view") ?? request.headers.get("x-model-atlas-view"),
   );
   try {
-    const serialized = serializedPublicJson(
-      await readDisplaySnapshotPayload(),
-      view,
-      siteOrigin(request),
-    );
+    const serialized = serializedPublicJson(await readDisplayPayload(), view, siteOrigin(request));
     const headers = new Headers(SNAPSHOT_CACHE_HEADERS);
     headers.set("Content-Type", "application/json; charset=utf-8");
     headers.set("ETag", serialized.etag);

@@ -1,7 +1,7 @@
 /** Pareto comparison prepares model and benchmark coordinates, common reference normalization, and resource selection independently of plot presentation. */
 
 import {
-  AA_INDEX_COMPONENT_BENCHMARK_KEYS,
+  ARTIFICIAL_ANALYSIS_INDEX_COMPONENT_BENCHMARK_KEYS,
   indexPolicy,
   isAggregateIndex,
   residualIndexBreadth,
@@ -16,8 +16,8 @@ import {
 } from "../../../../src/model-atlas/math-utils";
 import { clampScore } from "../../../../src/model-atlas/pipeline/scores/normalization";
 import {
-  benchmarkMetricValue,
   benchmarkTaskMetrics,
+  benchmarkValue,
 } from "../../../../src/model-atlas/pipeline/scores/resource-metrics";
 import {
   type ResourceRatioObservation,
@@ -111,7 +111,7 @@ export function frontierBenchmarkRows(
     .filter(
       ([key, entry]) =>
         EFFORT_BENCHMARK_KEYS.has(key) ||
-        AA_INDEX_COMPONENT_BENCHMARK_KEYS.has(key) ||
+        ARTIFICIAL_ANALYSIS_INDEX_COMPONENT_BENCHMARK_KEYS.has(key) ||
         isAggregateIndex(key) ||
         entry.resourcePolicy != null,
     )
@@ -129,7 +129,7 @@ export function frontierBenchmarkRows(
         const resourcePolicy = policy?.resources?.policy ?? portfolio[key]?.resourcePolicy ?? null;
         const measured =
           byModel.get(model)?.filter((observation) => observation.baseBenchmarkKey === key) ?? [];
-        const nativeScore = benchmarkMetricValue(model, key);
+        const nativeScore = benchmarkValue(model, key);
         if (measured.length === 0 && nativeScore == null) return [];
         const components =
           measured.length > 0

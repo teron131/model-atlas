@@ -2,11 +2,11 @@
 
 import { SNAPSHOT_TABLES } from "../../database/tables";
 import type { DatabaseWriter } from "../../database/writers/database";
-import { asFiniteNumber, stringValue } from "../../runtime";
+import { asFiniteNumber, asNonEmptyString } from "../../runtime";
 import { defineBenchmarkRuntime } from "../benchmark-runtime";
-import { type CacheRowSource, firstEpochSecond, jsonValue, sourceCacheRows } from "../cache/rows";
+import { type CacheRowSource, firstFetchedAt, jsonValue, sourceCacheRows } from "../cache/rows";
 import { ALE_BENCH_EPOCH_RESULTS_URL, type AleBenchEpochRow } from "../epoch/ale-bench";
-import { sourceKey } from "../snapshots/policy";
+import { sourceRowKey } from "../snapshots/policy";
 import { snapshotSourceRows } from "../snapshots/row-snapshot";
 import type {
   RawSourceCacheStatus,
@@ -35,11 +35,11 @@ export const aleBenchRuntime = defineBenchmarkRuntime({
   snapshot: aleBenchSnapshot,
   write: insertAleBenchRawRows,
   sourceRowsKey: "aleBenchConfigurationRows",
-  loadSourceRows: async () => (await getAleBenchStats()).data,
+  fetchSourceRows: async () => (await getAleBenchStats()).data,
   sourceRowsFromSnapshots: (snapshots) => snapshots.aleBenchConfigurationRows,
 });
 
-/** Reconstruct every ALE refinement configuration without accepting a partial raw cache. */
+/** Reconstruct every ALE-Bench refinement configuration without accepting a partial raw cache. */
 export function readAleBenchRawCache(cache: CacheRowSource): {
   rows: AleBenchSourceRow[];
   fetchedAt: number | null;
@@ -50,7 +50,7 @@ export function readAleBenchRawCache(cache: CacheRowSource): {
     cacheRows.some(
       (row) =>
         ![ALE_BENCH_LEADERBOARD_URL, ALE_BENCH_EPOCH_RESULTS_URL].includes(
-          stringValue(row.url) ?? "",
+          asNonEmptyString(row.url) ?? "",
         ),
     )
   ) {
@@ -61,8 +61,8 @@ export function readAleBenchRawCache(cache: CacheRowSource): {
       const epoch = jsonValue(row.epoch_json) as AleBenchEpochRow | null;
       return epoch == null ? [] : [{ model: epoch.model, epoch }];
     }
-    const model = stringValue(row.model);
-    const detailPath = stringValue(row.detail_path);
+    const model = asNonEmptyString(row.model);
+    const detailPath = asNonEmptyString(row.detail_path);
     const numSelfRefine = asFiniteNumber(row.num_self_refine);
     if (model == null || detailPath == null || numSelfRefine == null) return [];
     const parsed = processAleBenchConfigurationRow(model, detailPath, {
@@ -77,10 +77,10 @@ export function readAleBenchRawCache(cache: CacheRowSource): {
     });
     return parsed == null ? [] : [parsed];
   });
-  return rows.length !== cacheRows.length ? null : { rows, fetchedAt: firstEpochSecond(cacheRows) };
+  return rows.length !== cacheRows.length ? null : { rows, fetchedAt: firstFetchedAt(cacheRows) };
 }
 
-/** Loads all ALE refinement checkpoints while scoring remains restricted to the source-default row. */
+/** Loads all ALE-Bench refinement checkpoints while scoring remains restricted to the source-default row. */
 async function aleBenchSnapshot(
   cached: ReturnType<typeof readAleBenchRawCache>,
   status: RawSourceCacheStatus,
@@ -102,7 +102,7 @@ async function aleBenchSnapshot(
         data: payload.data,
       };
     },
-    rowKey: (row) => sourceKey(row.model, "epoch" in row ? "epoch" : row.num_self_refine),
+    rowKey: (row) => sourceRowKey(row.model, "epoch" in row ? "epoch" : row.num_self_refine),
     rowLabel: (row) =>
       "epoch" in row ? `${row.model} (Epoch)` : `${row.model} x${row.num_self_refine}`,
   });
@@ -118,7 +118,7 @@ async function aleBenchSnapshot(
   };
 }
 
-/** Insert every ALE refinement checkpoint with scalar scoring resources and complete raw evidence. */
+/** Insert every ALE-Bench refinement checkpoint with scalar scoring resources and complete raw evidence. */
 function insertAleBenchRawRows(db: DatabaseWriter, snapshots: SourceSnapshots): void {
   const statement = db.prepare(`
 		INSERT INTO ale_bench_raw_rows (
@@ -131,15 +131,15 @@ function insertAleBenchRawRows(db: DatabaseWriter, snapshots: SourceSnapshots): 
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
   for (const [index, row] of snapshots.aleBenchConfigurationRows.entries()) {
-    const effort = aleBenchModelEffort(row.model);
+    const parsedModel = aleBenchModelEffort(row.model);
     if ("epoch" in row) {
       statement.run(
         index,
         snapshots.fetchedAt.aleBench,
         ALE_BENCH_EPOCH_RESULTS_URL,
         row.model,
-        effort.baseModel,
-        effort.reasoningEffort,
+        parsedModel.baseModel,
+        parsedModel.reasoningEffort,
         null,
         null,
         row.epoch.performance,
@@ -164,8 +164,8 @@ function insertAleBenchRawRows(db: DatabaseWriter, snapshots: SourceSnapshots): 
       snapshots.fetchedAt.aleBench,
       ALE_BENCH_LEADERBOARD_URL,
       row.model,
-      effort.baseModel,
-      effort.reasoningEffort,
+      parsedModel.baseModel,
+      parsedModel.reasoningEffort,
       row.detail_path,
       row.num_self_refine,
       row.performance.all.mean,

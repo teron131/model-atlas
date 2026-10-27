@@ -6,7 +6,7 @@ import { resolve } from "node:path";
 import { loadEnvFile } from "node:process";
 import { pathToFileURL } from "node:url";
 
-import { readDisplaySnapshotPayload } from "../src/model-atlas/database/runtime-snapshot";
+import { readDisplayPayload } from "../src/model-atlas/database/runtime-snapshot";
 import { modelLogoCacheDir, resizeLogoToPng } from "../src/model-atlas/logos/cache";
 import { providerIconColor } from "../src/model-atlas/logos/color";
 
@@ -86,7 +86,7 @@ async function readExistingAssets(): Promise<ProviderAssetMap> {
 async function readLogoSources() {
   const sources = new Map<string, string>();
   const rank = (logo: string) => (logo.startsWith("data:image/") ? 2 : logo ? 1 : 0);
-  for (const model of (await readDisplaySnapshotPayload()).models) {
+  for (const model of (await readDisplayPayload()).models) {
     const provider = providerSlug(model.provider);
     if (provider.length === 0) {
       continue;

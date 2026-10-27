@@ -12,8 +12,8 @@ import { positiveFiniteNumber } from "../../math-utils";
 import type { BenchmarkRowsByKey } from "../../pipeline/benchmark-rows";
 import {
   type BenchmarkMetricModel,
-  benchmarkMetricValue,
   benchmarkTaskMetrics,
+  benchmarkValue,
   effectiveTaskSeconds,
   type ResourceMetricModel,
 } from "../../pipeline/scores/resource-metrics";
@@ -23,7 +23,7 @@ import type {
   ModelAtlasMetadata,
   ModelAtlasSourceHealth,
 } from "../types";
-import { buildBenchmarkUpdateHealth, isCurrentBenchmarkHealth } from "./health";
+import { buildBenchmarkUpdateHealth, isValidBenchmarkUpdateHealth } from "./health";
 import { SNAPSHOT_PRESERVATION_VERSION } from "./snapshot-preservation";
 
 type BenchmarkHealthModels = Parameters<typeof buildBenchmarkUpdateHealth>[0];
@@ -105,7 +105,7 @@ function activeResourceComponents(
       const resourcePolicy = entry.resourcePolicy;
       return resourcePolicy != null &&
         models.some(
-          (model) => benchmarkMetricValue(model, key) != null && hasPositiveTaskMetric(model, key),
+          (model) => benchmarkValue(model, key) != null && hasPositiveTaskMetric(model, key),
         )
         ? [{ key, resourcePolicy }]
         : [];
@@ -145,7 +145,7 @@ export function buildCurrentModelAtlasMetadata({
   const hasCompleteStoredBenchmarkHealth =
     sourceRowsByKey == null &&
     benchmarkUpdateHealth != null &&
-    selectedKeys.every((key) => isCurrentBenchmarkHealth(benchmarkUpdateHealth[key]));
+    selectedKeys.every((key) => isValidBenchmarkUpdateHealth(benchmarkUpdateHealth[key]));
   const computedBenchmarkUpdateHealth = hasCompleteStoredBenchmarkHealth
     ? {}
     : buildBenchmarkUpdateHealth(healthModels, scoringConfig, sourceRowsByKey, matcherConfig);

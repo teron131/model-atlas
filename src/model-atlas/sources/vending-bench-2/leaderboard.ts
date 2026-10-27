@@ -4,12 +4,12 @@
  * Page source: https://andonlabs.com/evals/vending-bench-2
  */
 
-import { benchmarkModelEffort } from "../../identity/normalization";
+import { parseModelEffort } from "../../identity/normalization";
 import { nowEpochSeconds } from "../../runtime";
 import { findObjectEnd } from "../parsing";
 import { fetchSource } from "../request-scheduler";
 
-export const DEFAULT_LEADERBOARD_URL = "https://andonlabs.com/evals/vending-bench-2";
+export const VENDING_BENCH_2_LEADERBOARD_URL = "https://andonlabs.com/evals/vending-bench-2";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 
@@ -54,9 +54,9 @@ export async function getVendingBench2Stats(
   options: VendingBench2ScraperOptions = {},
 ): Promise<VendingBench2Payload> {
   try {
-    const url = options.url ?? DEFAULT_LEADERBOARD_URL;
+    const url = options.url ?? VENDING_BENCH_2_LEADERBOARD_URL;
     const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-    const pageHtml = await responseText(url, timeoutMs);
+    const pageHtml = await fetchText(url, timeoutMs);
     const dataModule = await vendingDataModule(pageHtml, url, timeoutMs);
     const data = dataModule == null ? [] : processVendingBench2DataModule(dataModule.text);
     return {
@@ -97,7 +97,7 @@ export function processVendingBench2DataModule(dataModule: string): VendingBench
     ) {
       continue;
     }
-    const { baseModel, reasoningEffort } = benchmarkModelEffort(model);
+    const { baseModel, reasoningEffort } = parseModelEffort(model);
     rows.push({
       model,
       base_model: baseModel,
@@ -112,7 +112,7 @@ export function processVendingBench2DataModule(dataModule: string): VendingBench
     .map((row, index) => ({ rank: index + 1, ...row }));
 }
 
-async function responseText(url: string, timeoutMs: number): Promise<string> {
+async function fetchText(url: string, timeoutMs: number): Promise<string> {
   return await fetchSource(url, {}, timeoutMs, async (response) => {
     if (!response.ok) {
       throw new Error(`Vending-Bench 2 asset fetch failed: ${response.status}`);
@@ -134,7 +134,7 @@ async function vendingDataModule(
   const routeModules = await Promise.all(
     routeModuleUrls.map(async (url) => ({
       url,
-      text: await responseText(url, timeoutMs),
+      text: await fetchText(url, timeoutMs),
     })),
   );
   // Svelte route nodes are listed root-to-leaf, so inspect the leaf first and fall back through shared layouts.
@@ -149,7 +149,7 @@ async function vendingDataModule(
     const chunks = await Promise.all(
       chunkUrls.map(async (url) => ({
         url,
-        text: await responseText(url, timeoutMs),
+        text: await fetchText(url, timeoutMs),
       })),
     );
     const dataModule = chunks.find((chunk) => chunk.text.includes(VB2_RUNS_MARKER));

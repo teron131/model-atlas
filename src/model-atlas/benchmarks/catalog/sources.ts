@@ -5,7 +5,7 @@ import type {
   BenchmarkPersistenceFacet,
   BenchmarkProcessingFacet,
   BenchmarkSourceDeclarationFacet,
-  BenchmarkSourceGroup,
+  BenchmarkSourceFamily,
 } from "../factory";
 import { INDEX_POLICIES } from "../index-policy";
 import type { BenchmarkKey } from "./portfolio";
@@ -509,7 +509,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
     Record<
       BenchmarkKey,
       {
-        group: BenchmarkSourceGroup;
+        group: BenchmarkSourceFamily;
         id: string;
         revision?: string;
         roles?: readonly ["observation"] | readonly ["observation", "resource"];

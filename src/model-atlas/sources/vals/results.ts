@@ -10,7 +10,7 @@ import type {
   BenchmarkObservationRow,
 } from "../../benchmarks/observation";
 import { canonicalReasoningEffort } from "../../identity/normalization";
-import { asFiniteNumber, nowEpochSeconds, stableJson, stringValue } from "../../runtime";
+import { asFiniteNumber, asNonEmptyString, nowEpochSeconds, stableJson } from "../../runtime";
 import { getValsBenchmarkView, parseValsBenchmarkView, type ValsBenchmarkView } from "./view";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -28,8 +28,8 @@ export type ValsBenchmarkDefinition = {
   version?: string;
 };
 
-/** Fetch one VALS source independently and fail quietly to an empty evidence payload. */
-export async function getValsSourceStats(
+/** Fetch one Vals source independently and fail quietly to an empty evidence payload. */
+export async function getValsBenchmarkStats(
   definition: ValsBenchmarkDefinition,
   options: ValsScraperOptions = {},
 ): Promise<BenchmarkObservationPayload> {
@@ -53,7 +53,7 @@ export function processValsBenchmarkView(
   const view = parseValsBenchmarkView(value);
   if (
     view == null ||
-    (definition.version != null && stringValue(view.metadata.version) !== definition.version)
+    (definition.version != null && asNonEmptyString(view.metadata.version) !== definition.version)
   )
     return [];
   return Object.entries(view.tasks).flatMap(([task, models]) =>
@@ -100,11 +100,11 @@ function scoreRow(
   if (outputTokensPerTask != null) metadata.output_tokens_per_task = outputTokensPerTask;
   for (const [key, metadataValue] of [
     ["task", task],
-    ["benchmark_version", stringValue(view.metadata.version)],
-    ["dataset_type", stringValue(view.metadata.dataset_type)],
-    ["runner", stringValue(view.metadata.runner)],
-    ["mode", stringValue(view.metadata.mode)],
-    ["harness", stringValue(value.harness)],
+    ["benchmark_version", asNonEmptyString(view.metadata.version)],
+    ["dataset_type", asNonEmptyString(view.metadata.dataset_type)],
+    ["runner", asNonEmptyString(view.metadata.runner)],
+    ["mode", asNonEmptyString(view.metadata.mode)],
+    ["harness", asNonEmptyString(value.harness)],
   ] as const) {
     if (metadataValue != null) metadata[key] = metadataValue;
   }
@@ -115,11 +115,11 @@ function scoreRow(
     model: reasoningEffort == null ? baseModel : `${baseModel} (${reasoningEffort})`,
     base_model: baseModel,
     reasoning_effort: reasoningEffort,
-    model_creator: stringValue(value.provider),
+    model_creator: asNonEmptyString(value.provider),
     rank: null,
     canonical_value: canonicalValue,
     ...(costPerTask == null ? {} : { cost: costPerTask }),
-    observed_at: stringValue(view.metadata.updated),
+    observed_at: asNonEmptyString(view.metadata.updated),
     metadata,
   };
 }

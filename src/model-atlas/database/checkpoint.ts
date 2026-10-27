@@ -3,7 +3,7 @@
 import { BENCHMARK_OBSERVATION_BINDINGS } from "../benchmarks/registry";
 import { BENCHMARK_VERSION_BASELINE_DATE, STAGE_CONFIG } from "../config";
 import { deriveModelStats } from "../pipeline/derivation";
-import { taskMetricVersionValue } from "../pipeline/selection/candidate";
+import { taskMetricFingerprint } from "../pipeline/selection/benchmark-versioning";
 import { nowEpochSeconds } from "../runtime";
 import {
   insertArtificialAnalysisBenchmarkResourceRawRows,
@@ -74,7 +74,7 @@ type OpenRouterLoader = (modelIds: string[]) => Promise<{
 
 type DerivedDatabaseSnapshot = {
   rows: DatabaseSnapshotRows;
-  sourceCache: Record<RawSourceName, RawSourceCacheStatus>;
+  sourceCacheStatuses: Record<RawSourceName, RawSourceCacheStatus>;
 };
 
 type SnapshotWriter = {
@@ -151,13 +151,13 @@ type DatabaseSnapshotVersioning = {
   replaceSourceRows?: boolean;
 };
 
-type BenchmarkObservation = Omit<BenchmarkVersionLogRow, "change_kind">;
+type VersionLogEntry = Omit<BenchmarkVersionLogRow, "change_kind">;
 
 /** Derives model stages from normalized source snapshots while the caller owns storage-specific cache loading. */
 export async function deriveDatabaseSnapshot(
   startedAtEpochSeconds: number,
   snapshots: SourceSnapshots,
-  sourceCache: Record<RawSourceName, RawSourceCacheStatus>,
+  sourceCacheStatuses: Record<RawSourceName, RawSourceCacheStatus>,
   loadOpenRouter: OpenRouterLoader,
   versioning: DatabaseSnapshotVersioning,
 ): Promise<DerivedDatabaseSnapshot> {
@@ -197,8 +197,8 @@ export async function deriveDatabaseSnapshot(
     matchDiagnostics,
     STAGE_CONFIG.matcher,
   );
-  const finalSourceCache = {
-    ...sourceCache,
+  const finalSourceCacheStatuses = {
+    ...sourceCacheStatuses,
     openrouter: openRouterLoad.cacheStatus,
   };
   // The refresh audit compares the published rows, so it follows snapshot preservation.
@@ -218,7 +218,7 @@ export async function deriveDatabaseSnapshot(
     debugTraceRows,
     sourceHealth: buildSourceHealth({
       generatedAtEpochSeconds: startedAtEpochSeconds,
-      sourceCache: finalSourceCache,
+      sourceCacheStatuses: finalSourceCacheStatuses,
       sourceRowStates: snapshots.sourceRowStates,
     }),
     benchmarkVersionLogRows: buildBenchmarkVersionLogRows(
@@ -232,7 +232,7 @@ export async function deriveDatabaseSnapshot(
   };
   return {
     rows,
-    sourceCache: finalSourceCache,
+    sourceCacheStatuses: finalSourceCacheStatuses,
   };
 }
 
@@ -327,34 +327,34 @@ export function buildBenchmarkVersionLogRows(
     ].join("\u0000");
     revisions.set(key, revision);
   };
-  const previousObservations = collectBenchmarkObservations(previousModels, baselineDate);
-  const currentObservations = collectBenchmarkObservations(currentModels, observedDate);
-  for (const observation of previousObservations.values()) {
+  const previousEntries = collectVersionLogEntries(previousModels, baselineDate);
+  const currentEntries = collectVersionLogEntries(currentModels, observedDate);
+  for (const entry of previousEntries.values()) {
     addRevision({
-      ...observation,
+      ...entry,
       change_kind: "baseline",
     });
   }
-  for (const [identity, observation] of currentObservations) {
-    const previous = previousObservations.get(identity);
+  for (const [identity, entry] of currentEntries) {
+    const previous = previousEntries.get(identity);
     if (previous == null) {
       addRevision({
-        ...observation,
+        ...entry,
         change_kind: "added",
       });
-    } else if (previous.value_json !== observation.value_json) {
+    } else if (previous.value_json !== entry.value_json) {
       addRevision({
-        ...observation,
+        ...entry,
         change_kind: "changed",
       });
     }
   }
-  for (const [identity, observation] of previousObservations) {
-    if (currentObservations.has(identity)) {
+  for (const [identity, entry] of previousEntries) {
+    if (currentEntries.has(identity)) {
       continue;
     }
     addRevision({
-      ...observation,
+      ...entry,
       version_date: observedDate,
       change_kind: "removed",
       value_json: null,
@@ -370,13 +370,13 @@ export function buildBenchmarkVersionLogRows(
   );
 }
 
-function collectBenchmarkObservations(
+function collectVersionLogEntries(
   models: readonly ModelAtlasModel[],
   fallbackDate: string,
-): Map<string, BenchmarkObservation> {
-  const observations = new Map<string, BenchmarkObservation>();
-  const addObservation = (observation: BenchmarkObservation) => {
-    observations.set(benchmarkIdentity(observation), observation);
+): Map<string, VersionLogEntry> {
+  const entries = new Map<string, VersionLogEntry>();
+  const addEntry = (entry: VersionLogEntry) => {
+    entries.set(benchmarkIdentity(entry), entry);
   };
   for (const model of models) {
     if (model.id == null) {
@@ -387,7 +387,7 @@ function collectBenchmarkObservations(
       if (typeof value !== "number") {
         continue;
       }
-      addObservation({
+      addEntry({
         model_id: model.id,
         reasoning_effort: reasoningEffort,
         benchmark_key: benchmarkKey,
@@ -400,24 +400,21 @@ function collectBenchmarkObservations(
       if (metrics == null) {
         continue;
       }
-      addObservation({
+      addEntry({
         model_id: model.id,
         reasoning_effort: reasoningEffort,
         benchmark_key: benchmarkKey,
         metric_kind: "task",
         version_date: metrics.observed_at ?? fallbackDate,
-        value_json: taskMetricVersionValue(metrics),
+        value_json: taskMetricFingerprint(metrics),
       });
     }
   }
-  return observations;
+  return entries;
 }
 
-function benchmarkIdentity(observation: BenchmarkObservation): string {
-  return [
-    observation.model_id,
-    observation.reasoning_effort,
-    observation.benchmark_key,
-    observation.metric_kind,
-  ].join("\u0000");
+function benchmarkIdentity(entry: VersionLogEntry): string {
+  return [entry.model_id, entry.reasoning_effort, entry.benchmark_key, entry.metric_kind].join(
+    "\u0000",
+  );
 }

@@ -11,8 +11,8 @@ import { CRC32C, Storage } from "@google-cloud/storage";
 
 import { SnapshotStorage } from "../src/model-atlas/database/snapshots/gcs";
 import {
+  artifactSha256,
   snapshotDataHash,
-  snapshotHash,
   snapshotObject,
 } from "../src/model-atlas/database/snapshots/manifest";
 import { minimalModelAtlasModel, minimalModelAtlasPayload } from "./model-atlas-fixtures";
@@ -28,8 +28,8 @@ const manifest = {
   version: "test-version",
   data_sha256: snapshotDataHash(payload),
   fetched_at_epoch_seconds: 1,
-  payload_sha256: snapshotHash(compressedPayload),
-  checkpoint_sha256: snapshotHash(compressedCheckpoint),
+  payload_sha256: artifactSha256(compressedPayload),
+  checkpoint_sha256: artifactSha256(compressedCheckpoint),
   intelligence_index_sha256: null,
   community_rankings_sha256: null,
 };

@@ -9,7 +9,7 @@ import type { RawSourceCacheStatus, SourceRefreshOptions } from "../types";
 import { readOpenRouterRawCache } from "./cache";
 import { processOpenRouterModelStats } from "./stats";
 import type { OpenRouterSourceModel, OpenRouterSourcePayload } from "./types";
-import { getOpenRouterRawScrapedStats } from "./workflow";
+import { getOpenRouterStats } from "./workflow";
 
 const PARTIAL_FETCH_TIMEOUT_MS = 10_000;
 
@@ -68,7 +68,7 @@ export async function refreshOpenRouterRawPayload(
     const fetchedPayload =
       modelIdsToRefresh.length === 0
         ? null
-        : await getOpenRouterRawScrapedStats({
+        : await getOpenRouterStats({
             modelIds: modelIdsToRefresh,
             concurrency: speedConcurrency,
             ...(isPartialRefresh

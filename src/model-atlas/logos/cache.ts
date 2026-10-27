@@ -1,6 +1,6 @@
 /**
  * Disk-backed provider logo caching owns fetch coalescing, resize bounds, and local/Vercel cache paths.
- * A logo that cannot be fetched falls back to its provider's Models.dev logo and otherwise to none, so a payload never carries a dead link.
+ * A logo that cannot be fetched falls back to its provider's models.dev logo and otherwise to none, so a payload never carries a dead link.
  */
 
 import { createHash } from "node:crypto";
@@ -11,7 +11,7 @@ import { resolve } from "node:path";
 import { fetchWithTimeout } from "../runtime";
 import { modelsDevLogoUrl, modelsDevPlaceholderFor } from "./resolve";
 
-const LOGO_CACHE_SIZE = 64;
+const LOGO_MAX_PX = 64;
 const LOGO_FETCH_TIMEOUT_MS = 15_000;
 
 const pendingLogoRequestByKey = new Map<string, Promise<string>>();
@@ -57,9 +57,9 @@ async function loadCachedLogoDataUrl(cachePath: string): Promise<string | null> 
     const metadata = await sharp(imageBuffer).metadata();
     if (
       metadata.width != null &&
-      metadata.width <= LOGO_CACHE_SIZE &&
+      metadata.width <= LOGO_MAX_PX &&
       metadata.height != null &&
-      metadata.height <= LOGO_CACHE_SIZE
+      metadata.height <= LOGO_MAX_PX
     ) {
       return pngDataUrl(imageBuffer);
     }
@@ -90,7 +90,7 @@ export async function resizeLogoToPng(imageBuffer: Buffer): Promise<Buffer> {
       },
       threshold: 8,
     })
-    .resize(LOGO_CACHE_SIZE, LOGO_CACHE_SIZE, {
+    .resize(LOGO_MAX_PX, LOGO_MAX_PX, {
       fit: "contain",
       background: {
         r: 0,
@@ -132,7 +132,7 @@ async function buildCachedLogoDataUrl(source: string, cacheKey?: string | null):
   return pngDataUrl(resizedLogoBuffer);
 }
 
-/** Models.dev serves one placeholder for every provider it does not list; fetch it once per process to recognize it. */
+/** models.dev serves one placeholder for every provider it does not list; fetch it once per process to recognize it. */
 async function isModelsDevPlaceholder(
   placeholderUrl: string,
   imageBuffer: Buffer,
@@ -169,7 +169,7 @@ function uniqueLogoSources<TModel extends { logo: string; provider?: string | nu
   return [...sourceEntries.values()];
 }
 
-/** Cache one remote logo source and return the cached data URL, trying the Models.dev `fallback` when the source fails and returning no logo when both do. */
+/** Cache one remote logo source and return the cached data URL, trying the models.dev `fallback` when the source fails and returning no logo when both do. */
 async function cacheModelLogo(
   source: string,
   cacheKey: string | null,

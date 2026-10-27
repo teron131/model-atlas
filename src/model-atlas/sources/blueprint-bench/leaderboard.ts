@@ -9,7 +9,7 @@ import { nowEpochSeconds } from "../../runtime";
 import { htmlTextLines } from "../parsing";
 import { fetchSource } from "../request-scheduler";
 
-export const DEFAULT_LEADERBOARD_URL = "https://andonlabs.com/evals/blueprint-bench-2";
+export const BLUEPRINT_BENCH_LEADERBOARD_URL = "https://andonlabs.com/evals/blueprint-bench-2";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 
@@ -40,7 +40,7 @@ export async function getBlueprintBenchStats(
   options: BlueprintBenchScraperOptions = {},
 ): Promise<BlueprintBenchModelScorePayload> {
   try {
-    const url = options.url ?? DEFAULT_LEADERBOARD_URL;
+    const url = options.url ?? BLUEPRINT_BENCH_LEADERBOARD_URL;
     const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     return await fetchSource(url, {}, timeoutMs, async (response) => {
       if (!response.ok) {

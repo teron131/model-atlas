@@ -5,7 +5,7 @@ import { benchmarkRowsFromSourceData } from "../pipeline/benchmark-rows";
 import { deriveModelStats } from "../pipeline/derivation";
 import { nowEpochSeconds } from "../runtime";
 import { fetchSourceData } from "../sources/assembly";
-import { getOpenRouterRawScrapedStats, type OpenRouterSourcePayload } from "../sources/openrouter";
+import { getOpenRouterStats, type OpenRouterSourcePayload } from "../sources/openrouter";
 import { buildCurrentModelAtlasMetadata } from "./payload/metadata";
 import type { ModelAtlasOptions, ModelAtlasPayload } from "./types";
 
@@ -40,7 +40,7 @@ export async function getLiveModelAtlasPayload(
   }
 }
 
-/** Scrape route telemetry directly, skipping an empty cohort; a failed scrape scores without route data instead of failing the live payload. */
+/** Scrape OpenRouter telemetry directly, skipping an empty cohort; a failed scrape scores without OpenRouter data instead of failing the live payload. */
 export async function loadLiveOpenRouterStats(
   modelIds: string[],
 ): Promise<{ rawPayload: OpenRouterSourcePayload | null }> {
@@ -48,7 +48,7 @@ export async function loadLiveOpenRouterStats(
     rawPayload:
       modelIds.length === 0
         ? null
-        : await getOpenRouterRawScrapedStats({
+        : await getOpenRouterStats({
             modelIds,
             concurrency: STAGE_CONFIG.openrouter.speedConcurrency,
           }).catch(() => null),

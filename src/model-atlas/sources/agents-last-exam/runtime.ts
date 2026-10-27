@@ -2,10 +2,10 @@
 
 import { SNAPSHOT_TABLES } from "../../database/tables";
 import type { DatabaseWriter } from "../../database/writers/database";
-import { asFiniteNumber, stringValue } from "../../runtime";
+import { asFiniteNumber, asNonEmptyString } from "../../runtime";
 import { defineBenchmarkRuntime } from "../benchmark-runtime";
-import { type CacheRowSource, firstEpochSecond, sourceCacheRows } from "../cache/rows";
-import { sourceKey } from "../snapshots/policy";
+import { type CacheRowSource, firstFetchedAt, sourceCacheRows } from "../cache/rows";
+import { sourceRowKey } from "../snapshots/policy";
 import { snapshotSourceRows } from "../snapshots/row-snapshot";
 import type {
   RawSourceCacheStatus,
@@ -14,9 +14,9 @@ import type {
   SourceSnapshotStatus,
 } from "../types";
 import {
+  AGENTS_LAST_EXAM_LEADERBOARD_URL,
   type AgentsLastExamHarnessRow,
   type AgentsLastExamModelScoreRow,
-  DEFAULT_LEADERBOARD_URL,
   getAgentsLastExamHarnessStats,
   getAgentsLastExamStats,
   summarizeAgentsLastExamModelScores,
@@ -36,7 +36,7 @@ export const agentsLastExamRuntime = defineBenchmarkRuntime({
   snapshot: agentsLastExamSnapshot,
   write: insertAgentsLastExamRawRows,
   sourceRowsKey: "agentsLastExamRows",
-  loadSourceRows: async () => (await getAgentsLastExamStats()).data,
+  fetchSourceRows: async () => (await getAgentsLastExamStats()).data,
   sourceRowsFromSnapshots: (snapshots) => snapshots.agentsLastExamModelScores,
 });
 
@@ -53,9 +53,9 @@ function readAgentsLastExamRawCache(cache: CacheRowSource): {
   }
   return {
     rows: cacheRows.flatMap((row) => {
-      const split = stringValue(row.split);
-      const harness = stringValue(row.harness);
-      const model = stringValue(row.model);
+      const split = asNonEmptyString(row.split);
+      const harness = asNonEmptyString(row.harness);
+      const model = asNonEmptyString(row.model);
       const runs = asFiniteNumber(row.runs);
       const tasks = asFiniteNumber(row.tasks);
       const splitTasks = asFiniteNumber(row.split_tasks);
@@ -83,7 +83,7 @@ function readAgentsLastExamRawCache(cache: CacheRowSource): {
               split,
               harness,
               model,
-              harness_variant: stringValue(row.harness_variant),
+              harness_variant: asNonEmptyString(row.harness_variant),
               runs,
               tasks,
               split_tasks: splitTasks,
@@ -94,12 +94,12 @@ function readAgentsLastExamRawCache(cache: CacheRowSource): {
               total_input_tokens: totalInputTokens,
               total_output_tokens: totalOutputTokens,
               total_cost_usd: totalCostUsd,
-              cost_source: stringValue(row.cost_source),
+              cost_source: asNonEmptyString(row.cost_source),
             },
           ]
         : [];
     }),
-    fetchedAt: firstEpochSecond(cacheRows),
+    fetchedAt: firstFetchedAt(cacheRows),
   };
 }
 
@@ -119,7 +119,7 @@ async function agentsLastExamSnapshot(
     previousMissingSince,
     nowEpochSeconds,
     fetchRows: getAgentsLastExamHarnessStats,
-    rowKey: (row) => sourceKey(row.split, row.harness, row.model, row.harness_variant),
+    rowKey: (row) => sourceRowKey(row.split, row.harness, row.model, row.harness_variant),
     rowLabel: (row) => `${row.model} ${row.split}`,
   });
   return {
@@ -159,7 +159,7 @@ function insertAgentsLastExamRawRows(db: DatabaseWriter, snapshots: SourceSnapsh
     statement.run(
       rowIndex,
       snapshots.fetchedAt.agentsLastExam,
-      DEFAULT_LEADERBOARD_URL,
+      AGENTS_LAST_EXAM_LEADERBOARD_URL,
       row.split,
       row.harness,
       row.model,
@@ -202,7 +202,7 @@ function insertAgentsLastExamRawRows(db: DatabaseWriter, snapshots: SourceSnapsh
     statement.run(
       rowIndex,
       snapshots.fetchedAt.agentsLastExam,
-      DEFAULT_LEADERBOARD_URL,
+      AGENTS_LAST_EXAM_LEADERBOARD_URL,
       row.split,
       null,
       row.model,

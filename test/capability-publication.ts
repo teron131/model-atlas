@@ -15,12 +15,12 @@ import {
 } from "../src/model-atlas/pipeline/selection/builder";
 import { DEFAULT_TIMELINE_PARAMETERS } from "../src/model-atlas/timeline/calibration";
 import {
-  advanceCapabilities,
+  advanceCapabilityState,
+  benchmarkEditionId,
   capabilityDataset,
   capabilityIndex,
   capabilityModelId,
   type CapabilityState,
-  checkpointBenchmarkId,
 } from "../src/model-atlas/timeline/capability";
 import { historicalSourceModel } from "../src/model-atlas/timeline/model-identity";
 import { prepareTimelineRelease } from "../src/model-atlas/timeline/scale";
@@ -131,10 +131,13 @@ const seed: CapabilityState = {
     fixture: { benchmarkIds: ["external"], weights: { external: { intelligence: 1, agentic: 1 } } },
   },
 };
-const initial = advanceCapabilities(seed, models, capturedAt);
+const initial = advanceCapabilityState(seed, models, capturedAt);
 const relativeRows = models.map((m) => ({
-  ...m,
   id: m.id!.replaceAll(" ", "-"),
+  name: m.name,
+  logo: m.logo,
+  intelligence: m.intelligence,
+  benchmarks: m.benchmarks,
   modalities: { output: ["text"] },
 }));
 const versioning = {
@@ -156,7 +159,6 @@ assert.deepEqual(
   "The separate index cannot overwrite relative scores or their resource-comparison coordinates",
 );
 const resourceInputs = {
-  modelRows: relativeRows,
   speedByModelId: new Map(),
   pricingByModelId: new Map(),
   outputTokenAnchors: [200, 500, 1000, 2000, 8000],
@@ -222,7 +224,7 @@ assert.equal(
   150,
 );
 
-const next = advanceCapabilities(stored, models, "2026-09-15T02:00:00.000Z");
+const next = advanceCapabilityState(stored, models, "2026-09-15T02:00:00.000Z");
 assert.equal(
   next.dataset.scale,
   stored.dataset.scale,
@@ -238,7 +240,7 @@ assert.equal(
   capabilityModelId({ ...models[0]!, id: "lab/reference" }),
 );
 const movedRoute = { ...models[0]!, id: "lab/replacement-route" };
-const moved = advanceCapabilities(
+const moved = advanceCapabilityState(
   stored,
   [...models.slice(1), movedRoute],
   "2026-09-15T02:00:00.000Z",
@@ -262,7 +264,7 @@ const future = {
   intelligence: { intelligence_index: 90 },
   benchmarks: null,
 };
-const extended = advanceCapabilities(next, [...models, future], "2026-09-15T03:00:00.000Z");
+const extended = advanceCapabilityState(next, [...models, future], "2026-09-15T03:00:00.000Z");
 assert.ok(extended.positions[capabilityModelId(future)]?.coordinates.intelligence != null);
 assert.equal(extended.positions[capabilityModelId(future)]?.coordinates.agentic, undefined);
 assert.ok(
@@ -274,14 +276,14 @@ assert.ok(
 );
 for (const [id, position] of Object.entries(initial.positions))
   assert.deepEqual(extended.positions[id], position);
-const corrected = advanceCapabilities(
+const corrected = advanceCapabilityState(
   extended,
   [...models, { ...future, intelligence: { intelligence_index: 95 } }],
   "2026-09-15T04:00:00.000Z",
 );
 assert.deepEqual(corrected.positions, extended.positions);
 
-const retired = advanceCapabilities(
+const retired = advanceCapabilityState(
   corrected,
   models.map((m) => ({ ...m, benchmarks: null })),
   "2026-09-15T05:00:00.000Z",
@@ -378,7 +380,7 @@ const priorEditions: CapabilityState = {
     },
   },
 };
-const currentEditions = advanceCapabilities(
+const currentEditions = advanceCapabilityState(
   priorEditions,
   models.map((model, i) => ({
     ...model,
@@ -403,7 +405,7 @@ for (const key of revisedKeys)
     liveDataset.benchmarks
       .filter((benchmark) => benchmark.key === `atlas_benchmark_${key}`)
       .map((b) => b.id),
-    [checkpointBenchmarkId(key)],
+    [benchmarkEditionId(key)],
   );
 for (const dataset of [liveDataset, liveDataset.scale!]) {
   assert.ok(dataset.benchmarks.every((benchmark) => !oldIds.has(benchmark.id)));

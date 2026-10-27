@@ -18,7 +18,7 @@ import type {
 } from "../src/model-atlas/database/writers/database";
 import { SNAPSHOT_PRESERVATION_VERSION } from "../src/model-atlas/stats/payload/snapshot-preservation";
 import type { ModelAtlasModel, ModelAtlasPayload } from "../src/model-atlas/stats/types";
-import { checkpointBenchmarkId } from "../src/model-atlas/timeline/capability";
+import { benchmarkEditionId } from "../src/model-atlas/timeline/capability";
 import {
   historicalSourceModel,
   resolveHistoricalModelIdentities,
@@ -285,7 +285,7 @@ export function historicalDatasetFromReleases(
       const key = observation.benchmark_key;
       const definition = BENCHMARK_CATALOG[key as keyof typeof BENCHMARK_CATALOG];
       if (!definition || !Number.isFinite(observation.value)) continue;
-      const id = checkpointBenchmarkId(key);
+      const id = benchmarkEditionId(key);
       const weights = definition.scoring.dimensionLoadings;
       benchmarks.set(id, {
         id,

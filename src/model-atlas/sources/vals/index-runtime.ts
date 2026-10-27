@@ -3,13 +3,13 @@
 import { parseBenchmarkObservationMetadata } from "../../benchmarks/observation";
 import { SNAPSHOT_TABLES } from "../../database/tables";
 import type { DatabaseWriter } from "../../database/writers/database";
-import { asFiniteNumber, stableJson, stringValue } from "../../runtime";
+import { asFiniteNumber, asNonEmptyString, stableJson } from "../../runtime";
 import { defineBenchmarkRuntime } from "../benchmark-runtime";
-import { type CacheRowSource, firstEpochSecond, sourceCacheRows } from "../cache/rows";
+import { type CacheRowSource, firstFetchedAt, sourceCacheRows } from "../cache/rows";
 import {
   snapshotRows,
   snapshotRowsWithStates,
-  sourceKey,
+  sourceRowKey,
   withoutSupersededEditions,
 } from "../snapshots/policy";
 import { shouldUseFetchedRows, snapshotFetchedAt } from "../snapshots/row-snapshot";
@@ -20,15 +20,15 @@ import type {
   SourceSnapshotStatus,
 } from "../types";
 import {
-  DEFAULT_LEADERBOARD_URL,
   getValsIndexStats,
+  VALS_INDEX_LEADERBOARD_URL,
   valsIndexCacheMatches,
   type ValsIndexModelScoreRow,
   type ValsIndexTaskScoreRow,
 } from "./index-benchmark";
 
 type ValsIndexSnapshot = {
-  valsIndexRows: ValsIndexTaskScoreRow[];
+  valsIndexTaskScoreRows: ValsIndexTaskScoreRow[];
   valsIndexModelScoreRows: ValsIndexModelScoreRow[];
   sourceStatus: SourceSnapshotStatus;
 };
@@ -40,8 +40,8 @@ export const valsIndexRuntime = defineBenchmarkRuntime({
   readCache: readValsIndexRawCache,
   snapshot: valsIndexSnapshot,
   write: insertValsIndexRawRows,
-  sourceRowsKey: "valsIndexRows",
-  loadSourceRows: async () => (await getValsIndexStats()).model_scores,
+  sourceRowsKey: "valsIndexTaskScoreRows",
+  fetchSourceRows: async () => (await getValsIndexStats()).model_scores,
   sourceRowsFromSnapshots: (snapshots) => snapshots.valsIndexModelScoreRows,
 });
 
@@ -53,14 +53,14 @@ function readValsIndexRawCache(cache: CacheRowSource): {
   if (cacheRows.length === 0) {
     return null;
   }
-  if (cacheRows.some((row) => stringValue(row.url) !== DEFAULT_LEADERBOARD_URL)) {
+  if (cacheRows.some((row) => asNonEmptyString(row.url) !== VALS_INDEX_LEADERBOARD_URL)) {
     return null;
   }
   const cachedRows = cacheRows.flatMap((row) => {
-    const task = stringValue(row.task);
-    const taskLabel = stringValue(row.task_label);
-    const modelId = stringValue(row.model_id);
-    const model = stringValue(row.model);
+    const task = asNonEmptyString(row.task);
+    const taskLabel = asNonEmptyString(row.task_label);
+    const modelId = asNonEmptyString(row.model_id);
+    const model = asNonEmptyString(row.model);
     const score = asFiniteNumber(row.score);
     const metadata = parseBenchmarkObservationMetadata(row.metadata_json);
     if (
@@ -79,9 +79,9 @@ function readValsIndexRawCache(cache: CacheRowSource): {
         task_label: taskLabel,
         model_id: modelId,
         model,
-        provider: stringValue(row.provider),
+        provider: asNonEmptyString(row.provider),
         score,
-        observed_at: stringValue(row.observed_at),
+        observed_at: asNonEmptyString(row.observed_at),
         metadata,
       },
     ];
@@ -91,7 +91,7 @@ function readValsIndexRawCache(cache: CacheRowSource): {
   }
   return {
     rows: cachedRows,
-    fetchedAt: firstEpochSecond(cacheRows),
+    fetchedAt: firstFetchedAt(cacheRows),
   };
 }
 
@@ -123,7 +123,7 @@ async function valsIndexSnapshot(
     fetchedRows,
     fetched?.fetched_at_epoch_seconds ?? null,
     options,
-    (row) => sourceKey(row.task, row.model_id),
+    (row) => sourceRowKey(row.task, row.model_id),
     // Vals revises published index scores under the same model identity.
     (_cached, fetchedRow) => fetchedRow,
   );
@@ -134,7 +134,7 @@ async function valsIndexSnapshot(
     fetchedRows: fetched?.model_scores ?? [],
     fetchedAtEpochSeconds: fetched?.fetched_at_epoch_seconds ?? null,
     options,
-    rowKey: (row) => sourceKey(row.model_id),
+    rowKey: (row) => sourceRowKey(row.model_id),
     rowLabel: (row) => row.model,
     previousMissingSince,
     nowEpochSeconds,
@@ -145,7 +145,7 @@ async function valsIndexSnapshot(
     fetched?.fetched_at_epoch_seconds ?? null,
   );
   return {
-    valsIndexRows: rows,
+    valsIndexTaskScoreRows: rows,
     valsIndexModelScoreRows: modelScores,
     sourceStatus: {
       source: "vals_index",
@@ -164,11 +164,11 @@ function insertValsIndexRawRows(db: DatabaseWriter, snapshots: SourceSnapshots):
 			row_kind, model_id, model, provider, score, observed_at, metadata_json
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
-  for (const [index, row] of snapshots.valsIndexRows.entries()) {
+  for (const [index, row] of snapshots.valsIndexTaskScoreRows.entries()) {
     statement.run(
       index,
       snapshots.fetchedAt.valsIndex,
-      DEFAULT_LEADERBOARD_URL,
+      VALS_INDEX_LEADERBOARD_URL,
       row.task,
       row.task_label,
       row.task === "overall" ? "overall" : "component",

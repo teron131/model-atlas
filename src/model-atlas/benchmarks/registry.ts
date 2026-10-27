@@ -1,8 +1,8 @@
 /** Composes Model Atlas benchmark declarations into configured runtime and presentation views. */
 
 import {
-  ARTIFICIAL_ANALYSIS_ADDITIONAL_BENCHMARK_ALIASES,
-  ARTIFICIAL_ANALYSIS_ADDITIONAL_BENCHMARK_KEYS_AFTER,
+  ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_ALIASES,
+  ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_KEYS_AFTER,
   BENCHMARK_COLUMNS,
   BENCHMARK_DISPLAY_ORDER,
   BENCHMARK_EXTENDED_SOURCES,
@@ -17,7 +17,7 @@ import {
   BENCHMARK_TASK_METRIC_COLUMNS,
   BENCHMARK_TOOLTIPS,
   type BenchmarkKey,
-  MODEL_ATLAS_ADDITIONAL_BENCHMARK_KEYS_AFTER,
+  MODEL_ATLAS_CONTEXT_BENCHMARK_KEYS_AFTER,
 } from "./catalog";
 import {
   applyBenchmarkTransform,
@@ -33,7 +33,7 @@ import {
   type BenchmarkSourceAdapter,
   type BenchmarkSourceDeclarationFacet,
   type BenchmarkSourceFacet,
-  type BenchmarkSourceGroup,
+  type BenchmarkSourceFamily,
   type BenchmarkSourceRuntime,
   type BenchmarkSourceTransform,
   defineBenchmarks,
@@ -287,7 +287,7 @@ type BenchmarkSourceInputUnion = {
 }[BenchmarkKey];
 type BenchmarkRuntimeBindingUnion = BenchmarkSourceInputUnion extends infer Input
   ? Input extends {
-      group: BenchmarkSourceGroup;
+      group: BenchmarkSourceFamily;
       runtime: BenchmarkSourceRuntime;
     }
     ? {
@@ -304,11 +304,11 @@ export const BENCHMARK_RUNTIME_KEYS = Object.values(BENCHMARK_SOURCES).flatMap((
   source.inputs.flatMap((input) => (input.runtime == null ? [] : [input.runtime.key])),
 ) as BenchmarkRuntimeKey[];
 
-export type BenchmarkRuntimeKeyFor<Group extends BenchmarkSourceGroup> = Extract<
+export type BenchmarkRuntimeKeyFor<Group extends BenchmarkSourceFamily> = Extract<
   BenchmarkRuntimeBindingUnion,
   { sourceGroup: Group }
 >["key"];
-export type PublicBenchmarkRuntimeKeyFor<Group extends BenchmarkSourceGroup> = Extract<
+export type PublicBenchmarkRuntimeKeyFor<Group extends BenchmarkSourceFamily> = Extract<
   BenchmarkRuntimeBindingUnion,
   { sourceGroup: Group; publicRows: true }
 >["key"];
@@ -342,14 +342,14 @@ export const ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES = BENCHMARK_KEYS.flatM
   ),
 );
 export const ARTIFICIAL_ANALYSIS_CONTEXT_KEY_BY_ALIAS = Object.fromEntries(
-  Object.entries(ARTIFICIAL_ANALYSIS_ADDITIONAL_BENCHMARK_ALIASES).flatMap(([key, aliases]) =>
+  Object.entries(ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_ALIASES).flatMap(([key, aliases]) =>
     aliases.map((alias) => [alias, key] as const),
   ),
 ) as Readonly<Record<string, string>>;
 export const ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_KEYS = BENCHMARK_KEYS.flatMap(
   (key) =>
     (
-      ARTIFICIAL_ANALYSIS_ADDITIONAL_BENCHMARK_KEYS_AFTER as Partial<
+      ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_KEYS_AFTER as Partial<
         Record<BenchmarkKey, readonly string[]>
       >
     )[key] ?? [],
@@ -357,7 +357,7 @@ export const ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_KEYS = BENCHMARK_KEYS.flatMap
 export const MODEL_ATLAS_BENCHMARK_KEYS = BENCHMARK_KEYS.flatMap((key) => [
   ...(BENCHMARK_CATALOG[key].persistence.location.kind === "benchmark" ? [key] : []),
   ...((
-    MODEL_ATLAS_ADDITIONAL_BENCHMARK_KEYS_AFTER as Partial<Record<BenchmarkKey, readonly string[]>>
+    MODEL_ATLAS_CONTEXT_BENCHMARK_KEYS_AFTER as Partial<Record<BenchmarkKey, readonly string[]>>
   )[key] ?? []),
 ]);
 

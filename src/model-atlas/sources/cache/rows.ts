@@ -2,7 +2,7 @@
 
 import type { DatabaseSync, SQLInputValue } from "node:sqlite";
 
-import { asFiniteNumber, asRecord, type JsonObject, stringValue } from "../../runtime";
+import { asFiniteNumber, asNonEmptyString, asRecord, type JsonObject } from "../../runtime";
 
 export type CacheDbRow = JsonObject;
 
@@ -26,7 +26,7 @@ export function sourceCacheRows(cache: CacheRowSource, sql: string): CacheDbRow[
 }
 
 /** Source cache freshness follows the persisted fetch timestamp carried by the source row set. */
-export function firstEpochSecond(rowsToScan: readonly CacheDbRow[]): number | null {
+export function firstFetchedAt(rowsToScan: readonly CacheDbRow[]): number | null {
   for (const row of rowsToScan) {
     const fetchedAt = asFiniteNumber(row.fetched_at_epoch_seconds);
     if (fetchedAt != null) {
@@ -57,7 +57,7 @@ export function booleanFromSql(value: unknown): boolean | null {
 }
 
 export function assignIfString(target: JsonObject, key: string, value: unknown): void {
-  const parsed = stringValue(value);
+  const parsed = asNonEmptyString(value);
   if (parsed != null) {
     target[key] = parsed;
   }

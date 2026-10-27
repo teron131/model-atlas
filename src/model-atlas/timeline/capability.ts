@@ -8,7 +8,7 @@ import { canonicalReasoningEffort } from "../identity/normalization";
 import { publicOpenRouterModelId } from "../identity/openrouter";
 import { providerIdentityKey } from "../identity/provider";
 import type { ModelAtlasCandidate } from "../pipeline/model-types";
-import { benchmarkMetricValue } from "../pipeline/scores/resource-metrics";
+import { benchmarkValue } from "../pipeline/scores/resource-metrics";
 import { stableJson } from "../runtime";
 import { prepareTimelineBenchmarkEvidence } from "./benchmark-evidence";
 import { calibrateTimeline } from "./calibration";
@@ -53,7 +53,7 @@ export function capabilityModelId(model: Pick<ModelInput, "id" | "reasoning_effo
 }
 
 /** Retain supported archived evidence, discard superseded current-only editions, and never replace a published model/dimension position. */
-export function advanceCapabilities(
+export function advanceCapabilityState(
   previous: CapabilityState,
   models: readonly ModelInput[],
   observedAt: string,
@@ -96,7 +96,7 @@ function retainCurrentEditions(state: CapabilityState): CapabilityState {
   const current = new Map(
     Object.entries(BENCHMARK_CATALOG)
       .filter(([, definition]) => definition.source.revision != null)
-      .map(([key]) => [`atlas_benchmark_${key}`, checkpointBenchmarkId(key)]),
+      .map(([key]) => [`atlas_benchmark_${key}`, benchmarkEditionId(key)]),
   );
   const removed = new Set(
     [...state.dataset.benchmarks, ...(state.dataset.scale?.benchmarks ?? [])]
@@ -287,9 +287,9 @@ function appendPositions(
 }
 
 /** Capture provenance never defines a benchmark edition; only the declared measurement and source-crosswalk contract does. */
-export function checkpointBenchmarkId(key: string): string {
+export function benchmarkEditionId(key: string): string {
   const definition = BENCHMARK_CATALOG[key as keyof typeof BENCHMARK_CATALOG];
-  if (!definition) throw new Error(`Unknown checkpoint benchmark: ${key}`);
+  if (!definition) throw new Error(`Unknown benchmark: ${key}`);
   const contract = {
     key,
     source: definition.source,
@@ -306,7 +306,7 @@ function currentEvidence(models: readonly ModelInput[], observedAt: string) {
   // Benchmark editions and weights are shared by every model in this refresh.
   const catalog = Object.entries(BENCHMARK_CATALOG).map(([key, definition]) => {
     const benchmark: HistoricalBenchmark = {
-      id: checkpointBenchmarkId(key),
+      id: benchmarkEditionId(key),
       key: `atlas_benchmark_${key}`,
       label: definition.presentation.label,
       kind: (INDEX_BENCHMARK_KEYS as readonly string[]).includes(key) ? "index" : "task",
@@ -340,7 +340,7 @@ function currentEvidence(models: readonly ModelInput[], observedAt: string) {
     };
     identities.push(identity);
     for (const { key, benchmark } of catalog) {
-      const value = benchmarkMetricValue(model, key);
+      const value = benchmarkValue(model, key);
       if (value == null || !Number.isFinite(value)) continue;
       definitions.set(benchmark.id, benchmark);
       observations.push({

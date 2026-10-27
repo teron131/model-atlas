@@ -18,33 +18,29 @@ function assertEqual(actual: unknown, expected: unknown): void {
   }
 }
 
-const openRouterData = prepareOpenRouterModelData(
-  collapseModelVariants([
-    {
-      id: "anthropic/claude-opus-4.8-fast",
-      openrouter_id: "anthropic/claude-opus-4.8-fast",
-      provider_id: "openrouter",
-      artificial_analysis_id: "aa/claude-opus-4.8",
-      intelligence: {
-        intelligence_index: 90,
-      },
+const fastAliasRows = collapseModelVariants([
+  {
+    id: "anthropic/claude-opus-4.8-fast",
+    openrouter_id: "anthropic/claude-opus-4.8-fast",
+    provider_id: "openrouter",
+    artificial_analysis_id: "aa/claude-opus-4.8",
+    intelligence: {
+      intelligence_index: 90,
     },
-    {
-      id: "anthropic/claude-opus-4.8",
-      openrouter_id: "anthropic/claude-opus-4.8",
-      provider_id: "openrouter",
-      intelligence: {
-        intelligence_index: 90,
-      },
+  },
+  {
+    id: "anthropic/claude-opus-4.8",
+    openrouter_id: "anthropic/claude-opus-4.8",
+    provider_id: "openrouter",
+    intelligence: {
+      intelligence_index: 90,
     },
-  ]),
-  STAGE_CONFIG.scoring,
-  null,
-);
+  },
+]);
 
-assertEqual(openRouterData.modelRows.length, 1);
-assertEqual(openRouterData.modelRows[0]?.id, "anthropic/claude-opus-4.8");
-assertEqual(openRouterData.modelRows[0]?.openrouter_id, "anthropic/claude-opus-4.8");
+assertEqual(fastAliasRows.length, 1);
+assertEqual(fastAliasRows[0]?.id, "anthropic/claude-opus-4.8");
+assertEqual(fastAliasRows[0]?.openrouter_id, "anthropic/claude-opus-4.8");
 
 const effortObservations = [
   {
@@ -369,24 +365,20 @@ assertEqual(
   47,
 );
 
-const aliasOnlyData = prepareOpenRouterModelData(
-  collapseModelVariants([
-    {
-      id: "openai/gpt-5.5-xhigh",
-      openrouter_id: "openai/gpt-5.5-xhigh",
-      provider_id: "openrouter",
-      intelligence: {
-        intelligence_index: 90,
-      },
+const aliasOnlyRows = collapseModelVariants([
+  {
+    id: "openai/gpt-5.5-xhigh",
+    openrouter_id: "openai/gpt-5.5-xhigh",
+    provider_id: "openrouter",
+    intelligence: {
+      intelligence_index: 90,
     },
-  ]),
-  STAGE_CONFIG.scoring,
-  null,
-);
+  },
+]);
 
-assertEqual(aliasOnlyData.modelRows.length, 1);
-assertEqual(aliasOnlyData.modelRows[0]?.id, "openai/gpt-5.5");
-assertEqual(aliasOnlyData.modelRows[0]?.openrouter_id, "openai/gpt-5.5");
+assertEqual(aliasOnlyRows.length, 1);
+assertEqual(aliasOnlyRows[0]?.id, "openai/gpt-5.5");
+assertEqual(aliasOnlyRows[0]?.openrouter_id, "openai/gpt-5.5");
 
 const qualifiedFallbackRows = collapseModelVariants([
   {
@@ -399,21 +391,17 @@ const qualifiedFallbackRows = collapseModelVariants([
 assertEqual(qualifiedFallbackRows[0]?.id, "openai/gpt-test");
 assertEqual(qualifiedFallbackRows[0]?.openrouter_id, "openai/gpt-test");
 
-const datedGeminiPreviewData = prepareOpenRouterModelData(
-  collapseModelVariants([
-    {
-      id: "google/gemini-2.5-flash-preview-09-2025",
-      openrouter_id: "google/gemini-2.5-flash-preview-09-2025",
-      provider_id: "vercel",
-      intelligence: {
-        intelligence_index: 90,
-      },
+const datedGeminiPreviewRows = collapseModelVariants([
+  {
+    id: "google/gemini-2.5-flash-preview-09-2025",
+    openrouter_id: "google/gemini-2.5-flash-preview-09-2025",
+    provider_id: "vercel",
+    intelligence: {
+      intelligence_index: 90,
     },
-  ]),
-  STAGE_CONFIG.scoring,
-  null,
-);
+  },
+]);
 
-assertEqual(datedGeminiPreviewData.modelRows.length, 1);
-assertEqual(datedGeminiPreviewData.modelRows[0]?.id, "google/gemini-2.5-flash");
-assertEqual(datedGeminiPreviewData.modelRows[0]?.openrouter_id, "google/gemini-2.5-flash");
+assertEqual(datedGeminiPreviewRows.length, 1);
+assertEqual(datedGeminiPreviewRows[0]?.id, "google/gemini-2.5-flash");
+assertEqual(datedGeminiPreviewRows[0]?.openrouter_id, "google/gemini-2.5-flash");

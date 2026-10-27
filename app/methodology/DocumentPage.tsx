@@ -13,7 +13,7 @@ import speedValue from "../../docs/methodology/speed-value.md";
 import standards from "../../docs/standards.md";
 import timelineCalculation from "../../docs/timeline/calculation.md";
 import timeline from "../../docs/timeline/overview.md";
-import { readRevalidatedSnapshot } from "../../src/model-atlas/database/runtime-snapshot";
+import { readRevalidatedPayload } from "../../src/model-atlas/database/runtime-snapshot";
 import { NavigationLink } from "../shared/NavigationLink";
 import {
   CATALOG_EDITIONS,
@@ -103,7 +103,7 @@ export async function DocumentPage({ document }: { document: DocumentSlug }) {
 async function servedEditions(): Promise<Readonly<Record<string, string>>> {
   try {
     return (
-      (await readRevalidatedSnapshot(EDITION_REVALIDATE_SECONDS)).metadata.benchmark_editions ?? {}
+      (await readRevalidatedPayload(EDITION_REVALIDATE_SECONDS)).metadata.benchmark_editions ?? {}
     );
   } catch (error) {
     unstable_rethrow(error);

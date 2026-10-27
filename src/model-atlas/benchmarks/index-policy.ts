@@ -99,7 +99,7 @@ export const INDEX_REPRESENTED_BENCHMARK_COUNTS = Object.fromEntries(
   INDEX_BENCHMARK_KEYS.map((key) => [key, INDEX_POLICIES[key].representedBenchmarks]),
 ) as Record<IndexBenchmarkKey, number>;
 
-export const AA_INDEX_COMPONENT_BENCHMARK_KEYS: ReadonlySet<string> = new Set(
+export const ARTIFICIAL_ANALYSIS_INDEX_COMPONENT_BENCHMARK_KEYS: ReadonlySet<string> = new Set(
   INDEX_POLICIES.aa_intelligence_index.componentBenchmarkKeys,
 );
 

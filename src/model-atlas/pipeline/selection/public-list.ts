@@ -1,7 +1,14 @@
-/** Public model selection owns score gating, sparse benchmark pruning, and route collapse. */
+/** Public model selection owns admission (identity, observed evidence, quality, and relevance gates), sparse benchmark pruning, and route collapse. */
 
+import {
+  indexPolicy,
+  isAggregateIndex,
+  reportedIndexBenchmarkCount,
+  residualIndexBreadth,
+} from "../../benchmarks/index-policy";
 import { BENCHMARK_KEYS } from "../../benchmarks/registry";
 import {
+  type BenchmarkAdmissionConfig,
   type FinalStageConfig,
   type ScoringConfig,
   selectedBenchmarkKeys,
@@ -14,12 +21,22 @@ import {
 } from "../../identity/openrouter";
 import { asFiniteNumber } from "../../runtime";
 import type {
+  ModelAtlasCandidate,
   ModelAtlasCandidateComponentScores,
   ModelAtlasModel,
   ModelAtlasScoredCandidate,
 } from "../model-types";
+import { observedBenchmarkCount } from "../scores/score-builders";
 
 const REQUIRED_QUALITY_SCORE_KEYS = ["intelligence_score", "agentic_score"] as const;
+const MIN_PUBLIC_RELATIVE_SCORE = 10;
+
+type IdentityCandidate = Pick<ModelAtlasCandidate, "id" | "name" | "modalities">;
+
+type BenchmarkEvidenceCandidate = Pick<
+  ModelAtlasScoredCandidate,
+  "intelligence" | "benchmarks" | "scoring_sources"
+>;
 
 function sortByIntelligenceScore<Model extends ModelAtlasModel>(models: Model[]): Model[] {
   return [...models].sort((left, right) => {
@@ -59,8 +76,83 @@ export function hasRequiredQualityScores(
   return REQUIRED_QUALITY_SCORE_KEYS.every((key) => asFiniteNumber(scores[key]) != null);
 }
 
+/** Require observed breadth and both dimensions, plus two indexes or one trusted Artificial Analysis or Epoch index; estimates cannot satisfy admission. */
+export function hasRequiredBenchmarkEvidence(
+  model: BenchmarkEvidenceCandidate,
+  scoringConfig: ScoringConfig,
+  admissionConfig: BenchmarkAdmissionConfig,
+): boolean {
+  const observedWeight = observedBenchmarkWeight(model, scoringConfig);
+  const observedIntelligenceCount = observedBenchmarkCount(
+    model,
+    scoringConfig.intelligenceBenchmarkKeys,
+  );
+  const observedAgenticCount = observedBenchmarkCount(model, scoringConfig.agenticBenchmarkKeys);
+  const selectedIndexes = selectedBenchmarkKeys(scoringConfig).filter(isAggregateIndex);
+  const observedIndexCount = observedBenchmarkCount(model, selectedIndexes);
+  const hasTrustedIndex = selectedIndexes.some(
+    (key) =>
+      (key === "aa_intelligence_index" || key === "epoch_capabilities_index") &&
+      observedBenchmarkCount(model, [key]) > 0,
+  );
+  return (
+    observedWeight >= admissionConfig.minimumObservedWeight &&
+    observedIntelligenceCount >= admissionConfig.minimumObservedPerDimension &&
+    observedAgenticCount >= admissionConfig.minimumObservedPerDimension &&
+    (observedIndexCount >= admissionConfig.minimumObservedIndexes || hasTrustedIndex)
+  );
+}
+
+/** Union known component evidence and add opaque index breadth; imputed values never enter this observed-only measure. */
+function observedBenchmarkWeight(
+  model: BenchmarkEvidenceCandidate,
+  scoringConfig: ScoringConfig,
+): number {
+  const namedWeights = new Map<string, number>();
+  let opaqueWeight = 0;
+  for (const key of selectedBenchmarkKeys(scoringConfig)) {
+    if (observedBenchmarkCount(model, [key]) === 0) continue;
+    const policy = indexPolicy(key);
+    if (policy != null) {
+      const components = new Set(policy.componentBenchmarkKeys ?? []);
+      opaqueWeight += Math.max(
+        0,
+        residualIndexBreadth(key, [], reportedIndexBenchmarkCount(model, key)) - components.size,
+      );
+      for (const component of components) {
+        namedWeights.set(component, Math.max(namedWeights.get(component) ?? 0, 1));
+      }
+    } else {
+      const importance = scoringConfig.benchmarkPortfolio[key]?.benchmarkImportance ?? 0;
+      namedWeights.set(key, Math.max(namedWeights.get(key) ?? 0, importance));
+    }
+  }
+  return opaqueWeight + [...namedWeights.values()].reduce((sum, weight) => sum + weight, 0);
+}
+
+/** Relative Intelligence and Agentic must both exceed 10; release age remains a dashboard filter. */
+export function hasRequiredPublicRelevance(model: {
+  scores: Partial<ModelAtlasScoredCandidate["scores"]> | null;
+}): boolean {
+  return REQUIRED_QUALITY_SCORE_KEYS.every((key) => {
+    const score = asFiniteNumber(model.scores?.[key]);
+    return score != null && score > MIN_PUBLIC_RELATIVE_SCORE;
+  });
+}
+
+/** Admission requires an identified text model; optional specifications stay nullable. */
+export function hasRequiredModelIdentity(model: IdentityCandidate): boolean {
+  return (
+    model.id != null &&
+    /^[^/\s]+\/[^/\s]+$/.test(model.id) &&
+    model.name != null &&
+    model.name.trim().length > 0 &&
+    model.modalities?.output?.includes("text") === true
+  );
+}
+
 /** Project scored candidates onto the public contract before pruning can preserve internal fields. */
-function publishedModelFields(model: ModelAtlasScoredCandidate) {
+function publicModelFields(model: ModelAtlasScoredCandidate) {
   return {
     id: model.id,
     name: model.name,
@@ -84,7 +176,7 @@ function publishedModelFields(model: ModelAtlasScoredCandidate) {
 
 function toPublicModel(model: ModelAtlasScoredCandidate & ModelAtlasModel): ModelAtlasModel {
   return {
-    ...publishedModelFields(model),
+    ...publicModelFields(model),
     ...(model.latest_change == null ? {} : { latest_change: model.latest_change }),
     component_scores: {
       intelligence_score: model.component_scores.intelligence_score,
@@ -135,10 +227,10 @@ function pruneSparseBenchmarks<Model extends ModelAtlasModel>(
   if (models.length === 0) return models;
   // Baseline observations stay visible even when they do not contribute to capability scores.
   const retainedKeys = new Set([...BENCHMARK_KEYS, ...selectedBenchmarkKeys(scoringConfig)]);
-  const candidates = new Set(models.flatMap((model) => Object.keys(model.benchmarks ?? {})));
+  const benchmarkKeys = new Set(models.flatMap((model) => Object.keys(model.benchmarks ?? {})));
   const sample = selectPruneSampleModels(models, finalConfig);
   const sparseKeys = new Set(
-    [...candidates].filter(
+    [...benchmarkKeys].filter(
       (key) =>
         !retainedKeys.has(key) &&
         sample.filter((model) => model.benchmarks?.[key] == null).length / sample.length >
@@ -160,7 +252,7 @@ function pruneSparseBenchmarks<Model extends ModelAtlasModel>(
 
 /** Free routes collapse within each reasoning variant so the dashboard can expand variants without duplicate routes. */
 function collapseFreeRoutesByVariant<Model extends ModelAtlasModel>(models: Model[]): Model[] {
-  const modelByPublicId = new Map<string, { model: Model; isFreeRoute: boolean }>();
+  const modelByVariantId = new Map<string, { model: Model; isFreeRoute: boolean }>();
   const passthrough: Model[] = [];
 
   for (const model of models) {
@@ -178,9 +270,9 @@ function collapseFreeRoutesByVariant<Model extends ModelAtlasModel>(models: Mode
     const candidateIsFreeRoute =
       isOpenRouterFreeRouteId(model.id) || hasPublicFreeRouteLabel(model.name);
     const variantId = `${publicId}\u0000${model.reasoning_effort ?? ""}`;
-    const existing = modelByPublicId.get(variantId);
+    const existing = modelByVariantId.get(variantId);
     if (!existing || (existing.isFreeRoute && !candidateIsFreeRoute)) {
-      modelByPublicId.set(variantId, {
+      modelByVariantId.set(variantId, {
         model: normalizedModel,
         isFreeRoute: candidateIsFreeRoute,
       });
@@ -189,7 +281,7 @@ function collapseFreeRoutesByVariant<Model extends ModelAtlasModel>(models: Mode
 
   return sortByIntelligenceScore([
     ...passthrough,
-    ...[...modelByPublicId.values()].map(({ model }) => model),
+    ...[...modelByVariantId.values()].map(({ model }) => model),
   ]);
 }
 
@@ -207,7 +299,7 @@ function normalizedModelsForId<Model extends ModelAtlasModel>(
 /** Select public-facing rows while retaining each winning route's provenance for final scoring and admission. */
 export function selectReferenceModels(
   scoredCandidates: ModelAtlasScoredCandidate[],
-  id: string | null | undefined,
+  modelId: string | null | undefined,
   finalConfig: FinalStageConfig,
   scoringConfig: ScoringConfig,
 ): (ModelAtlasModel & Pick<ModelAtlasScoredCandidate, "scoring_sources">)[] {
@@ -217,5 +309,5 @@ export function selectReferenceModels(
   });
   const sortedModels = sortByIntelligenceScore(signalModels);
   const prunedModels = pruneSparseBenchmarks(sortedModels, finalConfig, scoringConfig);
-  return normalizedModelsForId(prunedModels, id);
+  return normalizedModelsForId(prunedModels, modelId);
 }

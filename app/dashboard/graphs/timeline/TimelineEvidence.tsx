@@ -7,7 +7,7 @@ import type {
   HistoricalCalibration,
   HistoricalDataset,
   HistoricalModel,
-  TimelineBenchmarkEvidence,
+  TimelineEvidenceCell,
   TimelinePredictor,
 } from "../../../../src/model-atlas/timeline/schemas";
 import { MatrixOverview } from "./MatrixOverview";
@@ -34,7 +34,7 @@ function DiagnosticMatrices({
   data: HistoricalDataset;
   models: HistoricalModel[];
   calibration: HistoricalCalibration | null;
-  evidence: TimelineBenchmarkEvidence[];
+  evidence: TimelineEvidenceCell[];
   benchmarkPredictors: TimelinePredictor[];
   maxError: number;
   onSelect: (id: string) => void;

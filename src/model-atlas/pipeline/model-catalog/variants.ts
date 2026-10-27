@@ -6,7 +6,7 @@ import {
   modelSlugFromModelId,
   normalizeModelToken,
   normalizeProviderModelId,
-  PRIMARY_PROVIDER_ID,
+  OPENROUTER_PROVIDER_ID,
   reasoningEffortRank,
 } from "../../identity/normalization";
 import {
@@ -15,7 +15,8 @@ import {
   reasoningEffortSelectionPriority,
   stripCatalogAliasSuffixes,
 } from "../../identity/openrouter";
-import { asFiniteNumber, asRecord, type JsonObject } from "../../runtime";
+import { asFiniteNumber, type JsonObject } from "../../runtime";
+import type { ModelRow } from "../model-types";
 
 const CATALOG_MERGED_OBJECT_FIELDS = ["cost", "limit", "modalities"] as const;
 const ALIAS_MERGED_OBJECT_FIELDS = [
@@ -24,58 +25,49 @@ const ALIAS_MERGED_OBJECT_FIELDS = [
   "intelligence",
   "intelligence_index_cost",
   "scoring_sources",
-  "component_scores",
 ] as const;
 type MergedObjectField = (typeof ALIAS_MERGED_OBJECT_FIELDS)[number];
 
 type VariantShape = "preserve" | "collapse";
 
-function hasIntelligenceCost(row: JsonObject): boolean {
-  const intelligenceIndexCost = asRecord(row.intelligence_index_cost);
+function hasIntelligenceIndexCost(row: ModelRow): boolean {
   return (
-    asFiniteNumber(intelligenceIndexCost.total_cost) != null ||
-    asFiniteNumber(intelligenceIndexCost.cost_per_task) != null
+    asFiniteNumber(row.intelligence_index_cost?.total_cost) != null ||
+    asFiniteNumber(row.intelligence_index_cost?.cost_per_task) != null
   );
 }
 
-function hasComponentScoreSignal(row: JsonObject): boolean {
-  const componentScores = asRecord(row.component_scores);
-  return (
-    asFiniteNumber(componentScores.intelligence_score) != null ||
-    asFiniteNumber(componentScores.agentic_score) != null ||
-    asFiniteNumber(componentScores.speed_score) != null
-  );
-}
-
-function hasBenchmarkSignal(row: JsonObject): boolean {
-  const intelligence = asRecord(row.intelligence);
-  const benchmarks = asRecord(row.benchmarks);
-  return [...Object.values(intelligence), ...Object.values(benchmarks)].some(
+function hasBenchmarkSignal(row: ModelRow): boolean {
+  return [...Object.values(row.intelligence ?? {}), ...Object.values(row.benchmarks ?? {})].some(
     (value) => asFiniteNumber(value) != null,
   );
 }
 
 /** Duplicate resolution favors benchmark-bearing rows first, then OpenRouter-backed rows with usable public scoring data. */
-function rowPriority(row: JsonObject, normalizedId: string): number {
-  const artificialAnalysisIdentityBoost =
-    typeof row.artificial_analysis_id === "string" ? 4_000_000 : 0;
-  const openRouterBoost = row.provider_id === PRIMARY_PROVIDER_ID ? 1_000_000 : 0;
+function rowPriority(row: ModelRow, dedupeKey: string): number {
+  const artificialAnalysisIdentityBoost = row.artificial_analysis_id != null ? 4_000_000 : 0;
+  const openRouterBoost = row.provider_id === OPENROUTER_PROVIDER_ID ? 1_000_000 : 0;
   const benchmarkBoost = hasBenchmarkSignal(row) ? 2_000_000 : 0;
-  const intelligenceCostBoost = hasIntelligenceCost(row) ? 1_000 : 0;
-  const componentScoreBoost = hasComponentScoreSignal(row) ? 10 : 0;
-  const artificialAnalysisSlug =
-    typeof row.artificial_analysis_slug === "string" ? row.artificial_analysis_slug : null;
-  const canonicalSlug = canonicalSlugFromDedupeKey(normalizedId);
+  const intelligenceCostBoost = hasIntelligenceIndexCost(row) ? 1_000 : 0;
   const reasoningEffortBoost =
-    reasoningEffortSelectionPriority(row.reasoning_effort, artificialAnalysisSlug, canonicalSlug) *
-    10_000_000;
+    reasoningEffortSelectionPriority(
+      row.reasoning_effort,
+      row.artificial_analysis_slug ?? null,
+      canonicalSlugFromDedupeKey(dedupeKey),
+    ) * 10_000_000;
   return (
     reasoningEffortBoost +
     artificialAnalysisIdentityBoost +
     benchmarkBoost +
     openRouterBoost +
-    intelligenceCostBoost +
-    componentScoreBoost
+    intelligenceCostBoost
+  );
+}
+
+/** Ties go to the earliest row. */
+function highestPriorityRow(rows: readonly ModelRow[], dedupeKey: string): ModelRow {
+  return rows.reduce((winner, row) =>
+    rowPriority(row, dedupeKey) > rowPriority(winner, dedupeKey) ? row : winner,
   );
 }
 
@@ -96,11 +88,8 @@ function dedupeKeyForRowId(modelId: string): string {
   return `${provider}/${slug}`;
 }
 
-function versionKeyForRow(row: JsonObject): string | null {
-  const artificialAnalysisSlug =
-    typeof row.artificial_analysis_slug === "string" ? row.artificial_analysis_slug : null;
-  const id = typeof row.id === "string" ? row.id : null;
-  const slug = artificialAnalysisSlug ?? (id == null ? null : modelSlugFromModelId(id));
+function versionKeyForRow(row: ModelRow): string | null {
+  const slug = row.artificial_analysis_slug ?? modelSlugFromModelId(row.id);
   if (slug == null) {
     return null;
   }
@@ -112,30 +101,28 @@ function versionKeyForRow(row: JsonObject): string | null {
 
 /** Benchmark-version keys keep Artificial Analysis rows attached while provider suffixes collapse into one public route. */
 function dedupeKeyForRow(
-  row: JsonObject,
-  benchmarkVersionKeys: ReadonlySet<string>,
+  row: ModelRow,
+  benchmarkedVersionKeys: ReadonlySet<string>,
   alignedVersionKeyByRoute: ReadonlyMap<string, string>,
 ): string | null {
-  const id = typeof row.id === "string" ? row.id : null;
-  if (id == null) {
+  if (row.id == null) {
     return null;
   }
   const versionKey = versionKeyForRow(row);
-  if (versionKey != null && benchmarkVersionKeys.has(versionKey)) {
-    return `artificial_analysis:${alignedVersionKeyByRoute.get(dedupeKeyForRowId(id)) ?? versionKey}`;
+  if (versionKey != null && benchmarkedVersionKeys.has(versionKey)) {
+    return `artificial_analysis:${alignedVersionKeyByRoute.get(dedupeKeyForRowId(row.id)) ?? versionKey}`;
   }
-  return dedupeKeyForRowId(id);
+  return dedupeKeyForRowId(row.id);
 }
 
 function mergeObjectField(
-  target: JsonObject,
+  target: ModelRow,
   field: MergedObjectField,
-  candidates: readonly JsonObject[],
+  rows: readonly ModelRow[],
 ): void {
-  const merged: JsonObject = { ...asRecord(target[field]) };
-  for (const candidate of candidates) {
-    const candidateValue = asRecord(candidate[field]);
-    for (const [key, value] of Object.entries(candidateValue)) {
+  const merged: JsonObject = { ...target[field] };
+  for (const row of rows) {
+    for (const [key, value] of Object.entries(row[field] ?? {})) {
       if (merged[key] == null && value != null) {
         merged[key] = value;
       }
@@ -146,59 +133,56 @@ function mergeObjectField(
   }
 }
 
-function primaryRouteIdForGroup(group: readonly JsonObject[]): string | null {
-  for (const candidate of group) {
-    if (candidate.provider_id !== PRIMARY_PROVIDER_ID) {
+function openRouterRouteIdForGroup(group: readonly ModelRow[]): string | null {
+  for (const row of group) {
+    if (row.provider_id !== OPENROUTER_PROVIDER_ID) {
       continue;
     }
-    const openRouterId = candidate.openrouter_id ?? candidate.id;
-    if (typeof openRouterId === "string" && openRouterId.length > 0) {
+    const openRouterId = row.openrouter_id ?? row.id;
+    if (openRouterId) {
       return publicOpenRouterModelId(openRouterId);
     }
   }
   return null;
 }
 
-function catalogRowRouteId(row: JsonObject): string | null {
-  const openRouterId = row.openrouter_id;
-  if (typeof openRouterId === "string" && openRouterId.length > 0 && openRouterId.includes("/")) {
+/** The route a catalog row stands for: a provider-qualified OpenRouter id, else the row id, else a bare OpenRouter id. */
+export function catalogRowRouteId(row: ModelRow): string | null {
+  const openRouterId = row.openrouter_id || null;
+  if (openRouterId?.includes("/")) {
     return openRouterId;
   }
-  if (typeof row.id === "string" && row.id.length > 0) {
-    return row.id;
-  }
-  return typeof openRouterId === "string" && openRouterId.length > 0 ? openRouterId : null;
+  return row.id || openRouterId;
 }
 
 /** The exact public catalog route owns the canonical name; alias routes must not rename it. */
 function canonicalCatalogRouteName(
-  group: readonly JsonObject[],
+  group: readonly ModelRow[],
   publicRouteId: string,
 ): string | null {
-  for (const candidate of group) {
+  for (const row of group) {
     if (
-      candidate.provider_id === PRIMARY_PROVIDER_ID &&
-      catalogRowRouteId(candidate) === publicRouteId &&
-      typeof candidate.name === "string" &&
-      candidate.name.length > 0
+      row.provider_id === OPENROUTER_PROVIDER_ID &&
+      catalogRowRouteId(row) === publicRouteId &&
+      row.name
     ) {
-      return publicOpenRouterModelName(candidate.name, publicRouteId);
+      return publicOpenRouterModelName(row.name, publicRouteId);
     }
   }
   return null;
 }
 
 function mergeDuplicateRows(
-  winner: JsonObject,
-  group: readonly JsonObject[],
+  winner: ModelRow,
+  group: readonly ModelRow[],
   objectFields: readonly MergedObjectField[],
-): JsonObject {
-  const merged: JsonObject = { ...winner };
+): ModelRow {
+  const merged: ModelRow = { ...winner };
   for (const field of objectFields) {
     mergeObjectField(merged, field, group);
   }
   const openRouterId =
-    primaryRouteIdForGroup(group) ?? publicOpenRouterModelId(catalogRowRouteId(merged));
+    openRouterRouteIdForGroup(group) ?? publicOpenRouterModelId(catalogRowRouteId(merged));
   if (openRouterId != null) {
     merged.id = openRouterId;
     merged.openrouter_id = openRouterId;
@@ -207,37 +191,36 @@ function mergeDuplicateRows(
   return merged;
 }
 
-function mergeCollapsedModelRows(winner: JsonObject, group: readonly JsonObject[]): JsonObject {
+function mergeCollapsedModelRows(winner: ModelRow, group: readonly ModelRow[]): ModelRow {
   const collapsedRow = mergeDuplicateRows(winner, group, CATALOG_MERGED_OBJECT_FIELDS);
   delete collapsedRow.reasoning_effort;
   return collapsedRow;
 }
 
-function isAlignedObservationRow(row: JsonObject, canonicalSlug: string | null): boolean {
-  const artificialAnalysisSlug =
-    typeof row.artificial_analysis_slug === "string" ? row.artificial_analysis_slug : null;
+function isAlignedObservationRow(row: ModelRow, canonicalSlug: string | null): boolean {
   return (
     canonicalSlug != null &&
-    reasoningEffortSelectionPriority(row.reasoning_effort, artificialAnalysisSlug, canonicalSlug) >
-      0
+    reasoningEffortSelectionPriority(
+      row.reasoning_effort,
+      row.artificial_analysis_slug ?? null,
+      canonicalSlug,
+    ) > 0
   );
 }
 
-function isGenericReasoningObservationRow(row: JsonObject): boolean {
-  const artificialAnalysisSlug =
-    typeof row.artificial_analysis_slug === "string" ? row.artificial_analysis_slug : null;
+function isGenericReasoningObservationRow(row: ModelRow): boolean {
   return (
     canonicalReasoningEffort(row.reasoning_effort) == null &&
-    artificialAnalysisSlug != null &&
-    /-(?:reasoning|thinking)$/.test(normalizeModelToken(artificialAnalysisSlug))
+    row.artificial_analysis_slug != null &&
+    /-(?:reasoning|thinking)$/.test(normalizeModelToken(row.artificial_analysis_slug))
   );
 }
 
 function preferredObservationRows(
-  group: readonly JsonObject[],
+  group: readonly ModelRow[],
   canonicalSlug: string | null,
-): readonly JsonObject[] {
-  const observationRows = group.filter((row) => typeof row.artificial_analysis_id === "string");
+): readonly ModelRow[] {
+  const observationRows = group.filter((row) => row.artificial_analysis_id != null);
   const preferredRows = observationRows.filter(
     (row) => isAlignedObservationRow(row, canonicalSlug) || isGenericReasoningObservationRow(row),
   );
@@ -248,26 +231,23 @@ function preferredObservationRows(
 }
 
 /** Preserve one Artificial Analysis observation per explicit effort while sharing route-owned catalog fields. */
-function mergeRowsByReasoningEffort(
-  group: readonly JsonObject[],
-  normalizedId: string,
-): JsonObject[] {
-  const canonicalSlug = canonicalSlugFromDedupeKey(normalizedId);
-  const rowsByEffort = new Map<string | null, JsonObject[]>();
+function mergeRowsByReasoningEffort(group: readonly ModelRow[], dedupeKey: string): ModelRow[] {
+  const canonicalSlug = canonicalSlugFromDedupeKey(dedupeKey);
+  const rowsByEffort = new Map<string | null, ModelRow[]>();
   for (const row of preferredObservationRows(group, canonicalSlug)) {
     const effort = canonicalReasoningEffort(row.reasoning_effort);
     const effortRows = rowsByEffort.get(effort) ?? [];
     effortRows.push(row);
     rowsByEffort.set(effort, effortRows);
   }
-  const defaultRows = rowsByEffort.get(null);
+  const unspecifiedEffortRows = rowsByEffort.get(null);
   const highestExplicitReasoningEffort = [...rowsByEffort.keys()]
     .filter((effort): effort is string => effort != null && effort !== "none")
     .sort((left, right) => reasoningEffortRank(right) - reasoningEffortRank(left))[0];
-  if (defaultRows != null && highestExplicitReasoningEffort != null) {
+  if (unspecifiedEffortRows != null && highestExplicitReasoningEffort != null) {
     rowsByEffort.set(highestExplicitReasoningEffort, [
       ...(rowsByEffort.get(highestExplicitReasoningEffort) ?? []),
-      ...defaultRows,
+      ...unspecifiedEffortRows,
     ]);
     rowsByEffort.delete(null);
   }
@@ -276,10 +256,10 @@ function mergeRowsByReasoningEffort(
       effort == null
         ? effortRows
         : effortRows.filter((row) => canonicalReasoningEffort(row.reasoning_effort) === effort);
-    const winnerCandidates = explicitEffortRows.length > 0 ? explicitEffortRows : effortRows;
-    const winner = [...winnerCandidates].sort(
-      (left, right) => rowPriority(right, normalizedId) - rowPriority(left, normalizedId),
-    )[0] as JsonObject;
+    const winner = highestPriorityRow(
+      explicitEffortRows.length > 0 ? explicitEffortRows : effortRows,
+      dedupeKey,
+    );
     return {
       ...mergeDuplicateRows(winner, group, CATALOG_MERGED_OBJECT_FIELDS),
       reasoning_effort: effort,
@@ -287,27 +267,21 @@ function mergeRowsByReasoningEffort(
   });
 }
 
-function buildModelRows(
-  rows: Record<string, unknown>[],
-  variantShape: VariantShape,
-): Record<string, unknown>[] {
-  const groupedByNormalizedId = new Map<string, JsonObject[]>();
-  const passthrough: Record<string, unknown>[] = [];
-  const benchmarkVersionKeys = new Set(
+function buildModelRows(rows: ModelRow[], variantShape: VariantShape): ModelRow[] {
+  const rowsByDedupeKey = new Map<string, ModelRow[]>();
+  const passthrough: ModelRow[] = [];
+  const benchmarkedVersionKeys = new Set(
     rows
-      .map(asRecord)
       .filter(hasBenchmarkSignal)
       .map(versionKeyForRow)
-      .filter((key): key is string => key != null),
+      .filter((key) => key != null),
   );
   const alignedVersionKeyByRoute = new Map<string, string>();
-  for (const inputRow of rows) {
-    const row = asRecord(inputRow);
-    const id = typeof row.id === "string" ? row.id : null;
-    if (id == null) {
+  for (const row of rows) {
+    if (row.id == null) {
       continue;
     }
-    const routeKey = dedupeKeyForRowId(id);
+    const routeKey = dedupeKeyForRowId(row.id);
     const canonicalSlug = canonicalSlugFromDedupeKey(routeKey);
     const versionKey = versionKeyForRow(row);
     if (versionKey != null && isAlignedObservationRow(row, canonicalSlug)) {
@@ -316,42 +290,40 @@ function buildModelRows(
   }
 
   for (const row of rows) {
-    const rowRecord = asRecord(row);
-    const key = dedupeKeyForRow(rowRecord, benchmarkVersionKeys, alignedVersionKeyByRoute);
+    const key = dedupeKeyForRow(row, benchmarkedVersionKeys, alignedVersionKeyByRoute);
     if (key == null) {
       passthrough.push(row);
       continue;
     }
-    const group = groupedByNormalizedId.get(key) ?? [];
-    group.push(rowRecord);
-    groupedByNormalizedId.set(key, group);
+    const group = rowsByDedupeKey.get(key) ?? [];
+    group.push(row);
+    rowsByDedupeKey.set(key, group);
   }
 
-  const dedupedRows: JsonObject[] = [];
-  for (const [normalizedId, group] of groupedByNormalizedId.entries()) {
-    const winner = [...group].sort(
-      (left, right) => rowPriority(right, normalizedId) - rowPriority(left, normalizedId),
-    )[0] as JsonObject;
-    if (normalizedId.startsWith("artificial_analysis:")) {
+  const dedupedRows: ModelRow[] = [];
+  for (const [dedupeKey, group] of rowsByDedupeKey.entries()) {
+    if (dedupeKey.startsWith("artificial_analysis:")) {
       dedupedRows.push(
         ...(variantShape === "preserve"
-          ? mergeRowsByReasoningEffort(group, normalizedId)
-          : [mergeCollapsedModelRows(winner, group)]),
+          ? mergeRowsByReasoningEffort(group, dedupeKey)
+          : [mergeCollapsedModelRows(highestPriorityRow(group, dedupeKey), group)]),
       );
       continue;
     }
-    dedupedRows.push(mergeDuplicateRows(winner, group, ALIAS_MERGED_OBJECT_FIELDS));
+    dedupedRows.push(
+      mergeDuplicateRows(highestPriorityRow(group, dedupeKey), group, ALIAS_MERGED_OBJECT_FIELDS),
+    );
   }
 
   return [...passthrough, ...dedupedRows];
 }
 
 /** Collapse route aliases while preserving Artificial Analysis reasoning variants as distinct model rows. */
-export function buildModelVariants(rows: Record<string, unknown>[]): Record<string, unknown>[] {
+export function buildModelVariants(rows: ModelRow[]): ModelRow[] {
   return buildModelRows(rows, "preserve");
 }
 
 /** Collapse route aliases and reasoning variants into one representative row per model. */
-export function collapseModelVariants(rows: Record<string, unknown>[]): Record<string, unknown>[] {
+export function collapseModelVariants(rows: ModelRow[]): ModelRow[] {
   return buildModelRows(rows, "collapse");
 }

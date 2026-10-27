@@ -8,7 +8,7 @@ import type {
   BenchmarkObservationPayload,
   BenchmarkObservationRow,
 } from "../../benchmarks/observation";
-import { benchmarkModelEffort } from "../../identity/normalization";
+import { parseModelEffort } from "../../identity/normalization";
 import { asFiniteNumber, asRecord, nowEpochSeconds } from "../../runtime";
 import { extractNextFlightCorpus, findObjectEnd, parseFlightJsonObject } from "../parsing";
 import { fetchSource } from "../request-scheduler";
@@ -69,7 +69,7 @@ export function processArtificialAnalysisOmnisciencePage(
         return [];
       }
       const model = cleanArtificialAnalysisModelName(label) ?? label;
-      const parsedModel = benchmarkModelEffort(model);
+      const parsedModel = parseModelEffort(model);
       return [
         {
           benchmark_key: options.benchmarkKey,

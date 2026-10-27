@@ -7,10 +7,16 @@
 import { INDEX_POLICIES } from "../../benchmarks/index-policy";
 import type { BenchmarkObservationMetadata } from "../../benchmarks/observation";
 import { normalizeModelToken } from "../../identity/normalization";
-import { asFiniteNumber, asRecord, nowEpochSeconds, stableJson, stringValue } from "../../runtime";
+import {
+  asFiniteNumber,
+  asNonEmptyString,
+  asRecord,
+  nowEpochSeconds,
+  stableJson,
+} from "../../runtime";
 import { getValsBenchmarkView, parseValsBenchmarkView } from "./view";
 
-export const DEFAULT_LEADERBOARD_URL = "https://www.vals.ai/benchmarks/vals_index";
+export const VALS_INDEX_LEADERBOARD_URL = "https://www.vals.ai/benchmarks/vals_index";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 
@@ -65,7 +71,7 @@ export async function getValsIndexStats(
 ): Promise<ValsIndexPayload> {
   try {
     const view = await getValsBenchmarkView(
-      options.url ?? DEFAULT_LEADERBOARD_URL,
+      options.url ?? VALS_INDEX_LEADERBOARD_URL,
       options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
     );
     const parsed = processValsIndexView(view);
@@ -108,7 +114,7 @@ export function processValsIndexView(value: unknown): ValsIndexResults {
         task_label: metadata.task_labels[task] ?? task,
         model_id: modelId,
         model: modelSlug(modelId),
-        provider: stringValue(row.provider),
+        provider: asNonEmptyString(row.provider),
         score,
         observed_at: metadata.updated,
         metadata: {
@@ -142,7 +148,7 @@ export function processValsIndexView(value: unknown): ValsIndexResults {
 export function buildValsIndexMap(rows: ValsIndexModelScoreRow[]): ValsIndexRowsByModelName {
   const rowsByModelName: ValsIndexRowsByModelName = new Map();
   for (const row of rows) {
-    for (const key of modelKeyCandidates(row)) {
+    for (const key of valsIndexKeyCandidates(row)) {
       rowsByModelName.set(key, row);
     }
   }
@@ -180,15 +186,15 @@ export function valsIndexCacheMatches(rows: readonly ValsIndexTaskScoreRow[]): b
 function valsIndexMetadata(value: unknown): ValsIndexMetadata {
   const metadata = asRecord(value);
   return {
-    benchmark: stringValue(metadata.benchmark),
-    slug: stringValue(metadata.slug),
-    version: stringValue(metadata.version),
-    updated: stringValue(metadata.updated),
-    dataset_type: stringValue(metadata.dataset_type),
-    industry: stringValue(metadata.industry),
+    benchmark: asNonEmptyString(metadata.benchmark),
+    slug: asNonEmptyString(metadata.slug),
+    version: asNonEmptyString(metadata.version),
+    updated: asNonEmptyString(metadata.updated),
+    dataset_type: asNonEmptyString(metadata.dataset_type),
+    industry: asNonEmptyString(metadata.industry),
     task_labels: taskLabelsFromMetadata(metadata.tasks),
-    runner: stringValue(metadata.runner),
-    mode: stringValue(metadata.mode),
+    runner: asNonEmptyString(metadata.runner),
+    mode: asNonEmptyString(metadata.mode),
   };
 }
 
@@ -214,7 +220,7 @@ function modelSlug(modelId: string): string {
   return modelId.split("/").at(-1) ?? modelId;
 }
 
-function modelKeyCandidates(row: ValsIndexModelScoreRow): string[] {
+function valsIndexKeyCandidates(row: ValsIndexModelScoreRow): string[] {
   const slug = modelSlug(row.model_id);
   return [row.model_id, row.model, slug]
     .map(normalizeModelToken)

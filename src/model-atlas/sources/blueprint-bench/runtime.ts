@@ -2,10 +2,10 @@
 
 import { SNAPSHOT_TABLES } from "../../database/tables";
 import type { DatabaseWriter } from "../../database/writers/database";
-import { asFiniteNumber, stringValue } from "../../runtime";
+import { asFiniteNumber, asNonEmptyString } from "../../runtime";
 import { defineBenchmarkRuntime } from "../benchmark-runtime";
-import { type CacheRowSource, firstEpochSecond, sourceCacheRows } from "../cache/rows";
-import { sourceKey } from "../snapshots/policy";
+import { type CacheRowSource, firstFetchedAt, sourceCacheRows } from "../cache/rows";
+import { sourceRowKey } from "../snapshots/policy";
 import { snapshotSourceRows } from "../snapshots/row-snapshot";
 import type {
   RawSourceCacheStatus,
@@ -14,8 +14,8 @@ import type {
   SourceSnapshotStatus,
 } from "../types";
 import {
+  BLUEPRINT_BENCH_LEADERBOARD_URL,
   type BlueprintBenchModelScoreRow,
-  DEFAULT_LEADERBOARD_URL,
   getBlueprintBenchStats,
 } from "./leaderboard";
 
@@ -32,7 +32,7 @@ export const blueprintBenchRuntime = defineBenchmarkRuntime({
   snapshot: blueprintBenchSnapshot,
   write: insertBlueprintBenchRawRows,
   sourceRowsKey: "blueprintBenchRows",
-  loadSourceRows: async () => (await getBlueprintBenchStats()).data,
+  fetchSourceRows: async () => (await getBlueprintBenchStats()).data,
   sourceRowsFromSnapshots: (snapshots) => snapshots.blueprintBenchModelScoreRows,
 });
 
@@ -47,11 +47,11 @@ function readBlueprintBenchRawCache(cache: CacheRowSource): {
   if (cacheRows.length === 0) {
     return null;
   }
-  if (cacheRows.some((row) => stringValue(row.url) !== DEFAULT_LEADERBOARD_URL)) {
+  if (cacheRows.some((row) => asNonEmptyString(row.url) !== BLUEPRINT_BENCH_LEADERBOARD_URL)) {
     return null;
   }
   const cachedRows = cacheRows.flatMap((row) => {
-    const model = stringValue(row.model);
+    const model = asNonEmptyString(row.model);
     const score = asFiniteNumber(row.score);
     return model != null && score != null
       ? [
@@ -67,7 +67,7 @@ function readBlueprintBenchRawCache(cache: CacheRowSource): {
   }
   return {
     rows: cachedRows,
-    fetchedAt: firstEpochSecond(cacheRows),
+    fetchedAt: firstFetchedAt(cacheRows),
   };
 }
 
@@ -87,7 +87,7 @@ async function blueprintBenchSnapshot(
     previousMissingSince,
     nowEpochSeconds,
     fetchRows: getBlueprintBenchStats,
-    rowKey: (row) => sourceKey(row.model),
+    rowKey: (row) => sourceRowKey(row.model),
     rowLabel: (row) => row.model,
   });
   return {
@@ -112,7 +112,7 @@ function insertBlueprintBenchRawRows(db: DatabaseWriter, snapshots: SourceSnapsh
     statement.run(
       index,
       snapshots.fetchedAt.blueprintBench,
-      DEFAULT_LEADERBOARD_URL,
+      BLUEPRINT_BENCH_LEADERBOARD_URL,
       row.model,
       row.score,
     );

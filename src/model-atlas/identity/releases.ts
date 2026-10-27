@@ -1,7 +1,7 @@
 /** Release labels distinguish evaluated snapshots from generic model launch metadata for both current and retained identities. */
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-export const DATE_LABEL =
+export const MONTH_YEAR_LABEL =
   /\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)['’]?\s+['’]?(\d{4}|\d{2})\b/i;
 
 /**
@@ -18,7 +18,7 @@ export function versionDate(version: string): string | null {
 
 /** Read a named release month without treating an undated model's launch metadata as a snapshot identifier: `"Gemini 2.5 Pro (Jun '25)"` → `"2025-06"`. */
 export function releaseLabelPeriod(name: string): string | null {
-  const match = DATE_LABEL.exec(name);
+  const match = MONTH_YEAR_LABEL.exec(name);
   if (!match) return null;
   const month =
     MONTHS.findIndex((m) => m.toLowerCase() === match[1]!.slice(0, 3).toLowerCase()) + 1;
@@ -26,15 +26,15 @@ export function releaseLabelPeriod(name: string): string | null {
   return `${year}-${String(month).padStart(2, "0")}`;
 }
 
-export function sameRelease(period: string, date: string): boolean {
+export function isSameRelease(period: string, date: string): boolean {
   if (period.length === 7 || date.length === 7) return period.slice(0, 7) === date.slice(0, 7);
   // Sources sometimes report the adjacent calendar date for one launch; months and versions still remain distinct.
   return Math.abs(Date.parse(period) - Date.parse(date)) <= 86_400_000;
 }
 
 /** `"Gemini 2.5 Pro (June '25)"` → `"Gemini 2.5 Pro (Jun 2025)"`. */
-export function normalizedDateLabel(name: string): string {
-  return name.replace(DATE_LABEL, (_text, month: string, year: string) => {
+export function normalizeDateLabel(name: string): string {
+  return name.replace(MONTH_YEAR_LABEL, (_text, month: string, year: string) => {
     const short = MONTHS.find((m) => m.toLowerCase() === month.slice(0, 3).toLowerCase())!;
     return `${short} ${year.length === 2 ? `20${year}` : year}`;
   });

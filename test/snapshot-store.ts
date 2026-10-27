@@ -12,7 +12,7 @@ import { GET } from "../app/api/llm-stats/route";
 import { GET as indexGET } from "../app/api/timeline/route";
 import { publicJsonPayload, serializedPublicJson } from "../app/leaderboard/public-json";
 import {
-  readDisplaySnapshotPayload,
+  readDisplayPayload,
   readIntelligenceIndex,
 } from "../src/model-atlas/database/runtime-snapshot";
 import { openDatabase } from "../src/model-atlas/database/schema";
@@ -230,7 +230,7 @@ try {
 
   Object.assign(process.env, { NODE_ENV: "development", VERCEL: "0" });
   delete process.env.MODEL_ATLAS_SNAPSHOT_BUCKET;
-  await assert.rejects(readDisplaySnapshotPayload(), /MODEL_ATLAS_SNAPSHOT_BUCKET/);
+  await assert.rejects(readDisplayPayload(), /MODEL_ATLAS_SNAPSHOT_BUCKET/);
   process.env.MODEL_ATLAS_SNAPSHOT_BUCKET = "public-bucket";
   let clock = 1000;
   Date.now = () => clock;
@@ -259,10 +259,7 @@ try {
     }
     return new Response(new Uint8Array(object.bytes), { headers: { etag: object.generation } });
   };
-  const [read, concurrent] = await Promise.all([
-    readDisplaySnapshotPayload(),
-    readDisplaySnapshotPayload(),
-  ]);
+  const [read, concurrent] = await Promise.all([readDisplayPayload(), readDisplayPayload()]);
   assert.equal(read, concurrent);
   assert.deepEqual(read.models, payload.models, "Local development must read the GCS snapshot");
   assert.equal(
@@ -272,7 +269,7 @@ try {
   );
   assert.equal(manifestReads, 1);
   assert.equal(payloadReads, 1);
-  await readDisplaySnapshotPayload();
+  await readDisplayPayload();
   assert.equal(manifestReads, 1);
 
   delete process.env.VERCEL_PROJECT_PRODUCTION_URL;
@@ -346,7 +343,7 @@ try {
   assert.equal(fullResponse.status, 304, "Alias and header-selected views use the same validator");
   assert.equal(manifestReads, 1, "API revalidation reuses the existing snapshot freshness window");
   clock += 31_000;
-  await readDisplaySnapshotPayload();
+  await readDisplayPayload();
   assert.equal(manifestReads, 2);
   assert.equal(payloadReads, 1, "304 revalidation must not redownload the payload");
 
@@ -364,7 +361,7 @@ try {
     [{ ...next.manifest, data_sha256: "0".repeat(64) }, /fingerprint/],
   ] as const) {
     nextManifestObject.bytes = Buffer.from(JSON.stringify(manifest));
-    if (error.source === "timestamp") await assert.rejects(readDisplaySnapshotPayload(), error);
+    if (error.source === "timestamp") await assert.rejects(readDisplayPayload(), error);
     await assert.rejects(store.restore(manifest, invalidCheckpoint), error);
     await assert.rejects(readFile(invalidCheckpoint), { code: "ENOENT" });
   }
@@ -375,7 +372,7 @@ try {
   const goodBytes = artifact.bytes;
   artifact.bytes = Buffer.from("corrupted");
   clock += 31_000;
-  await assert.rejects(readDisplaySnapshotPayload(), /checksum/);
+  await assert.rejects(readDisplayPayload(), /checksum/);
   const failedResponse = await GET(new Request(url, { headers: { "If-None-Match": etag } }));
   assert.equal(
     failedResponse.status,
@@ -385,7 +382,7 @@ try {
   assert.equal(failedResponse.headers.get("cache-control"), "no-store");
   artifact.bytes = goodBytes;
   assert.equal(
-    (await readDisplaySnapshotPayload()).fetched_at_epoch_seconds,
+    (await readDisplayPayload()).fetched_at_epoch_seconds,
     200,
     "failed reads must not cache the new ETag",
   );
@@ -639,7 +636,7 @@ try {
   assert.equal(encodedIndex.scale.models, undefined);
   clock += 31_000;
   const readsBefore = payloadReads;
-  assert.equal((await readDisplaySnapshotPayload()).timeline, undefined);
+  assert.equal((await readDisplayPayload()).timeline, undefined);
   assert.equal(
     payloadReads,
     readsBefore + 1,
@@ -802,22 +799,22 @@ try {
     localDb.exec(
       "INSERT INTO snapshot_metadata (updated_at_epoch_seconds) VALUES (100); PRAGMA wal_checkpoint(TRUNCATE); PRAGMA wal_autocheckpoint = 0",
     );
-    const localRead = await readDisplaySnapshotPayload();
+    const localRead = await readDisplayPayload();
     assert.equal(localRead.fetched_at_epoch_seconds, 100);
     const walPath = `${localPath}-wal`;
     await chmod(walPath, (await stat(walPath)).mode ^ 0o040);
     assert.equal(
-      await readDisplaySnapshotPayload(),
+      await readDisplayPayload(),
       localRead,
       "WAL permission changes without a commit reuse the parsed display payload",
     );
     localDb.exec("UPDATE snapshot_metadata SET updated_at_epoch_seconds = 101");
-    const committed = await readDisplaySnapshotPayload();
+    const committed = await readDisplayPayload();
     assert.equal(committed.fetched_at_epoch_seconds, 101, "WAL commits invalidate local reads");
     localDb.exec("BEGIN; UPDATE snapshot_metadata SET updated_at_epoch_seconds = 102");
-    assert.equal((await readDisplaySnapshotPayload()).fetched_at_epoch_seconds, 101);
+    assert.equal((await readDisplayPayload()).fetched_at_epoch_seconds, 101);
     localDb.exec("ROLLBACK; PRAGMA wal_checkpoint(TRUNCATE)");
-    assert.deepEqual(await readDisplaySnapshotPayload(), committed);
+    assert.deepEqual(await readDisplayPayload(), committed);
   } finally {
     localDb.close();
   }
@@ -826,12 +823,12 @@ try {
   replacement.close();
   await rename(`${localPath}.replacement`, localPath);
   assert.equal(
-    (await readDisplaySnapshotPayload()).fetched_at_epoch_seconds,
+    (await readDisplayPayload()).fetched_at_epoch_seconds,
     103,
     "Atomic checkpoint replacement invalidates the previous inode's cached payload",
   );
   await rm(localPath);
-  await assert.rejects(readDisplaySnapshotPayload(), /ENOENT/);
+  await assert.rejects(readDisplayPayload(), /ENOENT/);
 
   console.log("Snapshot publication, recovery, concurrency, and read caching checks passed");
 } finally {

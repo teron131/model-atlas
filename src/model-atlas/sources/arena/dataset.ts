@@ -4,8 +4,8 @@
  * Dataset source: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
  */
 
-import { benchmarkModelEffort } from "../../identity/normalization";
-import { asFiniteNumber, asRecord, stringValue } from "../../runtime";
+import { parseModelEffort } from "../../identity/normalization";
+import { asFiniteNumber, asNonEmptyString, asRecord } from "../../runtime";
 import { fetchSource } from "../request-scheduler";
 
 const DATASET_URL = "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset";
@@ -85,7 +85,7 @@ export async function fetchArenaDataset(config: "agent" | "webdev", timeoutMs = 
     if (rows.length > total) throw new Error(`Oversized Arena ${config} dataset page`);
   }
   const overall = rows.filter((row) => row.category === "overall");
-  const dates = new Set(overall.map((row) => stringValue(row.leaderboard_publish_date)));
+  const dates = new Set(overall.map((row) => asNonEmptyString(row.leaderboard_publish_date)));
   if (dates.size !== 1 || !/^\d{4}-\d{2}-\d{2}$/.test([...dates][0] ?? ""))
     throw new Error(`Inconsistent Arena ${config} publication dates`);
   return overall;
@@ -110,7 +110,7 @@ export function arenaDatasetIdentity(name: string) {
     else if (/^(?:\d{4,8}|NVFP4)$/i.test(qualifier)) baseModel += `-${qualifier}`;
     else unknown = true;
   }
-  const parsed = benchmarkModelEffort(baseModel);
+  const parsed = parseModelEffort(baseModel);
   return {
     baseModel: parsed.baseModel,
     reasoningEffort: reasoningEffort ?? parsed.reasoningEffort,

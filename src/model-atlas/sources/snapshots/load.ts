@@ -36,9 +36,9 @@ import type {
 } from "../types";
 import { missingSinceBySource, persistedSourceRowStates } from "./policy";
 
-type SourceSnapshotCacheResult = {
+type LoadedSourceSnapshots = {
   snapshots: SourceSnapshots;
-  sourceCache: Record<RawSourceName, RawSourceCacheStatus>;
+  sourceCacheStatuses: Record<RawSourceName, RawSourceCacheStatus>;
 };
 
 export type SourceSnapshotCaches = BenchmarkSnapshotCaches & {
@@ -58,7 +58,7 @@ export async function loadSourceSnapshots(
   nowEpochSeconds: number,
   scoringConfig: ScoringConfig,
   options: SourceRefreshOptions = {},
-): Promise<SourceSnapshotCacheResult> {
+): Promise<LoadedSourceSnapshots> {
   return refreshSourceSnapshots(
     readSqliteSourceCaches(db),
     readSourceCacheStatuses(db, nowEpochSeconds),
@@ -71,14 +71,14 @@ export async function loadSourceSnapshots(
 
 async function refreshSourceSnapshots(
   caches: SourceSnapshotCaches,
-  sourceCache: Record<RawSourceName, RawSourceCacheStatus>,
+  sourceCacheStatuses: Record<RawSourceName, RawSourceCacheStatus>,
   previousSourceRowStates: readonly SourceRowState[],
   nowEpochSeconds: number,
   scoringConfig: ScoringConfig,
   options: SourceRefreshOptions = {},
-): Promise<SourceSnapshotCacheResult> {
+): Promise<LoadedSourceSnapshots> {
   for (const source of options.refreshSources ?? []) {
-    sourceCache[source] = { ...sourceCache[source], cache_hit: false };
+    sourceCacheStatuses[source] = { ...sourceCacheStatuses[source], cache_hit: false };
   }
   const previousMissingSince = missingSinceBySource(previousSourceRowStates);
   const [
@@ -90,7 +90,7 @@ async function refreshSourceSnapshots(
   ] = await Promise.all([
     artificialAnalysisSnapshot(
       caches.artificialAnalysis,
-      sourceCache.artificial_analysis,
+      sourceCacheStatuses.artificial_analysis,
       options,
       scoringConfig,
       previousMissingSince.artificial_analysis,
@@ -98,22 +98,28 @@ async function refreshSourceSnapshots(
     ),
     artificialAnalysisBenchmarkResourceSnapshot(
       caches.artificialAnalysisBenchmarkResources,
-      sourceCache.artificial_analysis_benchmark_resources,
+      sourceCacheStatuses.artificial_analysis_benchmark_resources,
       options,
       previousMissingSince.artificial_analysis_benchmark_resources,
       nowEpochSeconds,
     ),
     modelsDevSnapshot(
       caches.modelsDev,
-      sourceCache.models_dev,
+      sourceCacheStatuses.models_dev,
       options,
       previousMissingSince.models_dev,
       nowEpochSeconds,
     ),
-    refreshBenchmarkSnapshots(caches, sourceCache, options, previousMissingSince, nowEpochSeconds),
+    refreshBenchmarkSnapshots(
+      caches,
+      sourceCacheStatuses,
+      options,
+      previousMissingSince,
+      nowEpochSeconds,
+    ),
     benchmarkObservationSnapshots(
       caches.benchmarkObservations,
-      sourceCache,
+      sourceCacheStatuses,
       options,
       previousMissingSince,
       nowEpochSeconds,
@@ -136,7 +142,7 @@ async function refreshSourceSnapshots(
     ...Object.values(benchmarks).map((snapshot) => snapshot.sourceStatus),
     ...benchmarkObservations.map(({ snapshot }) => snapshot.sourceStatus),
   ];
-  updateSourceCacheStatuses(sourceCache, sourceStatuses);
+  updateSourceCacheStatuses(sourceCacheStatuses, sourceStatuses);
   const snapshots = {
     artificialAnalysisRawRows: artificialAnalysis.artificialAnalysisRawRows,
     artificialAnalysisSelectedRows: artificialAnalysis.artificialAnalysisSelectedRows,
@@ -153,7 +159,7 @@ async function refreshSourceSnapshots(
   } satisfies SourceSnapshots;
   return {
     snapshots,
-    sourceCache,
+    sourceCacheStatuses,
   };
 }
 
@@ -186,12 +192,12 @@ function readSourceCacheStatuses(
 }
 
 function updateSourceCacheStatuses(
-  sourceCache: Record<RawSourceName, RawSourceCacheStatus>,
+  sourceCacheStatuses: Record<RawSourceName, RawSourceCacheStatus>,
   sourceStatuses: SourceSnapshotStatus[],
 ): void {
   for (const sourceStatus of sourceStatuses) {
-    sourceCache[sourceStatus.source] = updatedSourceCacheStatus(
-      sourceCache[sourceStatus.source],
+    sourceCacheStatuses[sourceStatus.source] = updatedSourceCacheStatus(
+      sourceCacheStatuses[sourceStatus.source],
       sourceStatus.fetchedAt,
       sourceStatus.sourceInputCount,
     );

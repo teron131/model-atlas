@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 
 import {
-  getOpenRouterRawScrapedStats,
+  getOpenRouterStats,
   processOpenRouterModelStats,
 } from "../src/model-atlas/sources/openrouter";
 
@@ -52,7 +52,7 @@ globalThis.fetch = async (input) => {
 };
 
 try {
-  const firstScrape = getOpenRouterRawScrapedStats({
+  const firstScrape = getOpenRouterStats({
     modelIds,
     modelDirectory: directory,
     concurrency: 2,
@@ -94,7 +94,7 @@ try {
   );
 
   requests.length = 0;
-  const sequential = await getOpenRouterRawScrapedStats({
+  const sequential = await getOpenRouterStats({
     modelIds,
     modelDirectory: directory,
     concurrency: 1,
@@ -105,7 +105,7 @@ try {
 
   requests.length = 0;
   nextEndpointStatus = 503;
-  const recovered = await getOpenRouterRawScrapedStats({
+  const recovered = await getOpenRouterStats({
     modelIds,
     modelDirectory: directory,
     concurrency: 1,
@@ -129,7 +129,7 @@ try {
   for (const status of [403, 404]) {
     requests.length = 0;
     nextEndpointStatus = status;
-    const rejected = await getOpenRouterRawScrapedStats({
+    const rejected = await getOpenRouterStats({
       modelIds: [modelIds[0]!],
       modelDirectory: directory,
       maxRetries: 3,
@@ -145,7 +145,7 @@ try {
 
   requests.length = 0;
   nextEndpointStatus = 429;
-  const retried = await getOpenRouterRawScrapedStats({
+  const retried = await getOpenRouterStats({
     modelIds: [modelIds[0]!],
     modelDirectory: directory,
     maxRetries: 3,

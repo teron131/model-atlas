@@ -19,9 +19,9 @@ const OPENROUTER_PROVIDER_ALIASES: Readonly<Record<string, string>> = {
   xai: "x-ai",
 };
 
-const MILLISECONDS_TO_SECONDS = 0.001;
+const SECONDS_PER_MILLISECOND = 0.001;
 
-export function sanitizeModelId(modelId: string): string {
+export function sanitizeOpenRouterModelId(modelId: string): string {
   const normalized = modelId
     .trim()
     .toLowerCase()
@@ -54,7 +54,7 @@ export function summarizeEndpointPerformance(
   return {
     throughput_tokens_per_second_median: highestThroughput,
     latency_seconds_median:
-      lowestLatencyMs == null ? null : lowestLatencyMs * MILLISECONDS_TO_SECONDS,
+      lowestLatencyMs == null ? null : lowestLatencyMs * SECONDS_PER_MILLISECOND,
     e2e_latency_seconds_median: null,
   };
 }
@@ -75,7 +75,7 @@ export function buildOpenRouterSeriesTokenWeights(
   return weights;
 }
 
-export function emptyRawScrapedModel(
+export function emptyOpenRouterSourceModel(
   modelId: string,
   candidatePermaslugs: string[] = [],
 ): OpenRouterSourceModel {
@@ -101,7 +101,7 @@ export function processOpenRouterModelStats(
 }
 
 export function buildOpenRouterSlugCandidates(modelId: string, availableSlugs: string[]): string[] {
-  const normalized = sanitizeModelId(modelId);
+  const normalized = sanitizeOpenRouterModelId(modelId);
   const [provider, modelName = ""] = normalized.split("/", 2);
   if (!provider || !modelName) {
     return [normalized];
@@ -115,7 +115,7 @@ export function buildOpenRouterSlugCandidates(modelId: string, availableSlugs: s
   return [normalized, ...versionCandidates];
 }
 
-export function resolvePermaslugCandidates(
+export function resolveOpenRouterPermaslugCandidates(
   modelId: string,
   availableSlugs: string[],
   permaslugBySlug: Map<string, string>,
@@ -181,12 +181,12 @@ function summarizePerformance(stats: OpenRouterPerformance): OpenRouterPerforman
   const weightedLatency = tokenWeightedMeanValue(
     stats.latency ?? null,
     stats.series_token_weights,
-    MILLISECONDS_TO_SECONDS,
+    SECONDS_PER_MILLISECOND,
   );
   const weightedE2eLatency = tokenWeightedMeanValue(
     stats.latency_e2e ?? null,
     stats.series_token_weights,
-    MILLISECONDS_TO_SECONDS,
+    SECONDS_PER_MILLISECOND,
   );
   return {
     throughput_tokens_per_second_median:

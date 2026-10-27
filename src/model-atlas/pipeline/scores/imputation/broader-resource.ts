@@ -10,11 +10,7 @@ import {
   weightedMedianOfFinite,
 } from "../../../math-utils";
 import type { ModelAtlasCandidate } from "../../model-types";
-import {
-  benchmarkMetricValue,
-  benchmarkTaskMetrics,
-  directBenchmarkTokens,
-} from "../resource-metrics";
+import { benchmarkTaskMetrics, benchmarkValue, directBenchmarkTokens } from "../resource-metrics";
 import {
   type ImputedTaskResource,
   resourceImputationKeys,
@@ -193,10 +189,10 @@ function observedResource(
   kind: TaskResourceKind,
 ): number | null {
   if (kind === "tokens" || kind === "output_tokens")
-    return benchmarkMetricValue(model, key) == null
+    return benchmarkValue(model, key) == null
       ? null
       : directBenchmarkTokens(model, indexPolicy(key)?.resources?.key ?? key, kind);
-  return benchmarkMetricValue(model, key) == null
+  return benchmarkValue(model, key) == null
     ? null
     : positiveFiniteNumber(
         benchmarkTaskMetrics(model, key)?.[kind === "cost" ? "cost" : "seconds"],

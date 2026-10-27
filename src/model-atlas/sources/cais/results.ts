@@ -13,7 +13,7 @@ import { canonicalReasoningEffort } from "../../identity/normalization";
 import { asFiniteNumber, asRecord, nowEpochSeconds } from "../../runtime";
 import { fetchSource } from "../request-scheduler";
 
-type CaisSource = Omit<Extract<BenchmarkObservationLoader, { kind: "cais_dashboard" }>, "kind">;
+type CaisLoader = Omit<Extract<BenchmarkObservationLoader, { kind: "cais_dashboard" }>, "kind">;
 type CaisDashboardModel = {
   raw: Record<string, unknown>;
   name: string;
@@ -44,10 +44,10 @@ type CaisDashboardPage = {
 /** Fetch one dashboard deployment once while concurrent benchmark bindings consume its shared page. */
 export async function getCaisDashboardStats(
   benchmarkKey: string,
-  source: CaisSource,
+  source: CaisLoader,
 ): Promise<BenchmarkObservationPayload> {
   try {
-    const page = await loadCaisDashboardPage(source.sourceUrl);
+    const page = await fetchCaisDashboardPageOnce(source.sourceUrl);
     const data = processCaisDashboardModels(
       page.models,
       benchmarkKey,
@@ -66,7 +66,7 @@ export async function getCaisDashboardStats(
 /** Reject cached rows from a different CAIS source contract or benchmark metric. */
 export function caisCacheMatches(
   rows: readonly BenchmarkObservationRow[],
-  source: CaisSource,
+  source: CaisLoader,
 ): boolean {
   return rows.every(
     (row) =>
@@ -137,11 +137,11 @@ function aggregateRow(
     COMPONENTS.map((component) => [component, asFiniteNumber(model.scores[component])]),
   ) as Record<(typeof COMPONENTS)[number], number | null>;
   if (Object.values(scores).some((score) => score == null || score < 0 || score > 100)) return [];
-  const hasCompositeResult = COMPONENTS.some((component) => {
+  const hasFallbackScore = COMPONENTS.some((component) => {
     const note = model.scoreNotes[component];
     return typeof note === "string" && /fallback|fall back/i.test(note);
   });
-  if (hasCompositeResult) return [];
+  if (hasFallbackScore) return [];
   const textScore =
     TEXT_COMPONENTS.reduce((sum, component) => sum + scores[component]!, 0) /
     TEXT_COMPONENTS.length;
@@ -221,7 +221,7 @@ function caisReasoningEffort(modelId: string): string | null {
   return match == null ? null : canonicalReasoningEffort(match[1]);
 }
 
-async function loadCaisDashboardPage(sourceUrl: string): Promise<CaisDashboardPage> {
+async function fetchCaisDashboardPageOnce(sourceUrl: string): Promise<CaisDashboardPage> {
   const existing = inFlightPages.get(sourceUrl);
   if (existing != null) return existing;
   const request = fetchCaisDashboardPage(sourceUrl);

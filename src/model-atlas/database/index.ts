@@ -1,4 +1,4 @@
-/** Public database boundary for building snapshots and reading payloads back out. */
+/** Public database boundary for refreshing the checkpoint and reading payloads back out. */
 
-export { buildDatabase } from "./build";
+export { refreshDatabase } from "./refresh";
 export { readDatabasePayload } from "./sqlite-payload";

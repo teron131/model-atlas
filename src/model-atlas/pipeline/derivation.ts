@@ -11,17 +11,17 @@ import type { CapabilityState } from "../timeline/capability";
 import { assignBenchmarksToVariants } from "./benchmark-rows";
 import { modelRowsFromMatchDiagnostics } from "./matched-rows";
 import { buildModelCatalogRows, buildModelVariants } from "./model-catalog";
-import type { ModelAtlasModel } from "./model-types";
-import { prepareOpenRouterModelData } from "./openrouter-data";
+import type { ModelAtlasModel, ModelRow } from "./model-types";
+import { backfillFreeModelCosts, prepareOpenRouterModelData } from "./openrouter-data";
+import type { BenchmarkVersioningOptions } from "./selection/benchmark-versioning";
 import {
   buildFinalModels,
   prepareModelSelection,
   selectOpenRouterModelRows,
 } from "./selection/builder";
-import type { BenchmarkVersioningOptions } from "./selection/candidate";
 import {
   buildVersionReplacementMatchSlugOverrides,
-  prepareVersionReplacementMatchedRows,
+  markVersionReplacementRows,
 } from "./selection/version-replacement";
 
 type OpenRouterLoadResult = {
@@ -41,7 +41,7 @@ type ModelDerivationOptions<LoadResult extends OpenRouterLoadResult> = {
 type ModelDerivationResult<LoadResult extends OpenRouterLoadResult> = {
   capabilityState?: CapabilityState;
   matchDiagnostics: MatchDiagnosticsPayload;
-  modelRows: Record<string, unknown>[];
+  modelRows: ModelRow[];
   models: ModelAtlasModel[];
   benchmarkObservations: BenchmarkObservationsByKey;
   openRouterLoad: LoadResult;
@@ -55,21 +55,21 @@ export async function deriveModelStats<LoadResult extends OpenRouterLoadResult>(
   const matchSlugOverridesBySourceId = buildVersionReplacementMatchSlugOverrides(sourceData);
   const matchDiagnostics = buildMatchDiagnostics({
     matcherConfig: STAGE_CONFIG.matcher,
-    scrapedRows: sourceData.artificialAnalysis.rows,
+    artificialAnalysisRows: sourceData.artificialAnalysis.rows,
     modelsDevModels: sourceData.modelsDev.rows,
     matchSlugOverridesBySourceId,
   });
-  const matchedRows = prepareVersionReplacementMatchedRows(
+  const matchedRows = markVersionReplacementRows(
     modelRowsFromMatchDiagnostics(sourceData, matchDiagnostics),
     matchDiagnostics,
     matchSlugOverridesBySourceId,
   );
   const catalogRows = buildModelCatalogRows(sourceData, matchedRows);
   const variantRows = buildModelVariants(catalogRows);
-  const assignedVariantRows = assignBenchmarksToVariants(variantRows, sourceData);
-  const observations = benchmarkObservations(sourceData);
+  const modelRows = backfillFreeModelCosts(assignBenchmarksToVariants(variantRows, sourceData));
+  const observations = observationsFromSourceData(sourceData);
   const selection = prepareModelSelection(
-    assignedVariantRows,
+    modelRows,
     STAGE_CONFIG.scoring,
     options.benchmarkVersioning,
     options.benchmarkVersioning?.previousModels,
@@ -82,7 +82,7 @@ export async function deriveModelStats<LoadResult extends OpenRouterLoadResult>(
   );
   const openRouterLoad = await options.loadOpenRouter(openRouterModelIds(eligibleRows));
   const openRouterData = prepareOpenRouterModelData(
-    assignedVariantRows,
+    modelRows,
     STAGE_CONFIG.scoring,
     openRouterLoad.rawPayload,
   );
@@ -96,14 +96,14 @@ export async function deriveModelStats<LoadResult extends OpenRouterLoadResult>(
   return {
     capabilityState: selection.capabilityState,
     matchDiagnostics,
-    modelRows: openRouterData.modelRows,
+    modelRows,
     models,
     benchmarkObservations: observations,
     openRouterLoad,
   };
 }
 
-function benchmarkObservations(sourceData: ModelAtlasSourceData): BenchmarkObservationsByKey {
+function observationsFromSourceData(sourceData: ModelAtlasSourceData): BenchmarkObservationsByKey {
   const observations: BenchmarkObservationsByKey = {};
   for (const { benchmark, sourceDataKey } of BENCHMARK_OBSERVATION_BINDINGS) {
     observations[benchmark] = sourceData[sourceDataKey].rows.map((row) => ({
@@ -127,12 +127,12 @@ function benchmarkObservations(sourceData: ModelAtlasSourceData): BenchmarkObser
   return observations;
 }
 
-function openRouterModelIds(rows: Record<string, unknown>[]): string[] {
+function openRouterModelIds(rows: ModelRow[]): string[] {
   return Array.from(
     new Set(
       rows
         .map((row) => row.openrouter_id ?? row.id)
-        .filter((id): id is string => typeof id === "string" && id.length > 0)
+        .filter((id): id is string => id != null && id.length > 0)
         .map((id) => publicOpenRouterModelId(id) ?? id),
     ),
   );

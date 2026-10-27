@@ -18,7 +18,7 @@ import {
   canonicalReasoningEffort,
   reasoningEffortRank,
 } from "../../src/model-atlas/identity/normalization";
-import { benchmarkMetricValue } from "../../src/model-atlas/pipeline/scores/resource-metrics";
+import { benchmarkValue } from "../../src/model-atlas/pipeline/scores/resource-metrics";
 import { strongestModelVariants } from "../../src/model-atlas/stats/model-variants";
 import { modelDisplayExclusion } from "../../src/model-atlas/stats/model-visibility";
 import type { ModelAtlasModel } from "../../src/model-atlas/stats/types";
@@ -80,11 +80,11 @@ export function compactModelVariants(
         hasAddedBenchmarks = true;
         continue;
       }
-      if (benchmarkMetricValue(representative, key) != null) {
+      if (benchmarkValue(representative, key) != null) {
         continue;
       }
       const variantObservations = variants.flatMap((model) => {
-        const value = benchmarkMetricValue(model, key);
+        const value = benchmarkValue(model, key);
         return value == null ? [] : [{ model, value }];
       });
       const sourceObservations = findBenchmarkObservations(candidateKeys, lookups.variants);

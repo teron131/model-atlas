@@ -14,7 +14,7 @@ import {
 import { canonicalReasoningEffort } from "../identity/normalization";
 import { benchmarkRowsFromDb } from "../pipeline/benchmark-rows";
 import { publicModelFromCandidate } from "../pipeline/selection/public-list";
-import { asFiniteNumber, asRecord, stringValue } from "../runtime";
+import { asFiniteNumber, asNonEmptyString, asRecord } from "../runtime";
 import { readAleBenchRawCache } from "../sources/ale-bench/runtime";
 import { artificialAnalysisBenchmarkResourceRawCacheFromRows } from "../sources/artificial-analysis/cache";
 import { fusedBenchmarkObservations } from "../sources/assembly";
@@ -37,6 +37,7 @@ import type {
   ModelAtlasTaskMetrics,
   ModelAtlasTaskMetricValues,
 } from "../stats/types";
+import { sqlStringLiteral } from "./schema-reconciliation";
 import { SNAPSHOT_TABLES, type SnapshotTableName } from "./tables";
 
 type DbRow = Record<string, unknown>;
@@ -57,7 +58,7 @@ function payloadRowGroup<Key extends string>(
   { columns = ["*"], optional = false, sourceKey = null }: PayloadRowGroupOptions = {},
 ) {
   const sourcePredicate =
-    sourceKey == null ? "" : ` WHERE source_key = '${sourceKey.replaceAll("'", "''")}'`;
+    sourceKey == null ? "" : ` WHERE source_key = ${sqlStringLiteral(sourceKey)}`;
   return {
     key,
     table,
@@ -158,7 +159,7 @@ const SURGE_BENCHMARK_PAYLOAD_ROW_GROUPS = {
 >;
 
 const VALS_BENCHMARK_PAYLOAD_ROW_GROUPS = {
-  vals_index: payloadRowGroup("valsIndexRows", SNAPSHOT_TABLES.vals_index, "row_index", {
+  vals_index: payloadRowGroup("valsIndexTaskScoreRows", SNAPSHOT_TABLES.vals_index, "row_index", {
     columns: ["model_id", "model", "provider", "row_kind", "score", "metadata_json"],
     optional: true,
   }),
@@ -175,7 +176,7 @@ const BENCHMARK_SOURCE_PAYLOAD_ROW_GROUPS = {
 
 export const PAYLOAD_ROW_GROUPS = [
   payloadRowGroup(
-    "artificialAnalysisResourceRows",
+    "artificialAnalysisBenchmarkResourceRows",
     SNAPSHOT_TABLES.artificial_analysis_benchmark_resources,
     "row_index",
     { optional: true },
@@ -223,7 +224,7 @@ type PayloadRows = {
   snapshotPreservationVersion: number | null;
 } & Record<PayloadRowKey, DbRow[]>;
 
-function booleanValue(value: unknown): boolean | null {
+function booleanFromSqlite(value: unknown): boolean | null {
   if (value === 1) {
     return true;
   }
@@ -259,7 +260,7 @@ function scoreChangeFromJson(value: unknown): ModelAtlasScoreChange | null {
     return null;
   }
   const refreshId = asFiniteNumber(change.refresh_id);
-  const dimension = stringValue(change.dimension) as ModelAtlasScoreDimension | null;
+  const dimension = asNonEmptyString(change.dimension) as ModelAtlasScoreDimension | null;
   const scoreAfter = asFiniteNumber(change.score_after);
   if (
     refreshId == null ||
@@ -272,8 +273,8 @@ function scoreChangeFromJson(value: unknown): ModelAtlasScoreChange | null {
   const causes = Array.isArray(change.causes)
     ? change.causes.flatMap((value) => {
         const cause = asRecord(value);
-        const kind = stringValue(cause.kind) as ModelAtlasScoreChangeCause["kind"] | null;
-        const label = stringValue(cause.label);
+        const kind = asNonEmptyString(cause.kind) as ModelAtlasScoreChangeCause["kind"] | null;
+        const label = asNonEmptyString(cause.label);
         return kind == null || label == null || !SCORE_CHANGE_CAUSE_KINDS.has(kind)
           ? []
           : [{ kind, label }];
@@ -282,8 +283,8 @@ function scoreChangeFromJson(value: unknown): ModelAtlasScoreChange | null {
   const rankDrivers = Array.isArray(change.rank_drivers)
     ? change.rank_drivers.flatMap((value) => {
         const driver = asRecord(value);
-        const benchmarkKey = stringValue(driver.benchmark_key);
-        const label = stringValue(driver.label);
+        const benchmarkKey = asNonEmptyString(driver.benchmark_key);
+        const label = asNonEmptyString(driver.label);
         const benchmarkRank = asFiniteNumber(driver.benchmark_rank);
         const benchmarkModelCount = asFiniteNumber(driver.benchmark_model_count);
         const rankCorrelation = asFiniteNumber(driver.rank_correlation);
@@ -392,18 +393,18 @@ function scoredCandidateFromRow(
   benchmarkDates: Record<string, string> | null,
   taskMetrics: ModelAtlasTaskMetrics,
 ): ModelAtlasScoredCandidate {
-  const modelId = stringValue(row.model_id);
-  const provider = stringValue(row.provider_id) ?? modelId?.split("/")[0] ?? null;
+  const modelId = asNonEmptyString(row.model_id);
+  const provider = asNonEmptyString(row.provider_id) ?? modelId?.split("/")[0] ?? null;
   return {
     id: modelId,
-    name: stringValue(row.name),
+    name: asNonEmptyString(row.name),
     provider,
-    logo: stringValue(row.logo) ?? "",
-    reasoning: booleanValue(row.reasoning),
+    logo: asNonEmptyString(row.logo) ?? "",
+    reasoning: booleanFromSqlite(row.reasoning),
     reasoning_effort: canonicalReasoningEffort(row.reasoning_effort),
-    release_date: stringValue(row.release_date),
+    release_date: asNonEmptyString(row.release_date),
     modalities: buildModalities(row),
-    open_weights: booleanValue(row.open_weights),
+    open_weights: booleanFromSqlite(row.open_weights),
     cost: buildCost(row),
     context_window: buildContextWindow(row),
     speed: {
@@ -458,7 +459,7 @@ function benchmarksByModelRow(rows: readonly DbRow[]): Map<number, ModelAtlasBen
   const benchmarksByModel = new Map<number, ModelAtlasBenchmarks>();
   for (const row of rows) {
     const modelRowIndex = asFiniteNumber(row.model_row_index);
-    const benchmarkKey = stringValue(row.benchmark_key);
+    const benchmarkKey = asNonEmptyString(row.benchmark_key);
     const value = asFiniteNumber(row.value);
     if (modelRowIndex == null || benchmarkKey == null || value == null) {
       continue;
@@ -474,8 +475,8 @@ function benchmarkDatesByModelRow(rows: readonly DbRow[]): Map<number, Record<st
   const benchmarkDatesByModel = new Map<number, Record<string, string>>();
   for (const row of rows) {
     const modelRowIndex = asFiniteNumber(row.model_row_index);
-    const benchmarkKey = stringValue(row.benchmark_key);
-    const observedAt = stringValue(row.observed_at);
+    const benchmarkKey = asNonEmptyString(row.benchmark_key);
+    const observedAt = asNonEmptyString(row.observed_at);
     if (modelRowIndex == null || benchmarkKey == null || observedAt == null) {
       continue;
     }
@@ -486,13 +487,13 @@ function benchmarkDatesByModelRow(rows: readonly DbRow[]): Map<number, Record<st
   return benchmarkDatesByModel;
 }
 
-function benchmarkObservations(rows: PayloadRows): BenchmarkObservationsByKey {
+function observationsFromPayloadRows(rows: PayloadRows): BenchmarkObservationsByKey {
   const observations: BenchmarkObservationsByKey = {};
   for (const { benchmark, sourceRowsKey } of BENCHMARK_OBSERVATION_BINDINGS) {
     const benchmarkRows: BenchmarkObservationEvidenceRow[] = [];
     for (const row of rows[sourceRowsKey]) {
-      const model = stringValue(row.model);
-      const baseModel = stringValue(row.base_model);
+      const model = asNonEmptyString(row.model);
+      const baseModel = asNonEmptyString(row.base_model);
       const canonicalValue = asFiniteNumber(row.canonical_value);
       if (model == null || baseModel == null || canonicalValue == null) {
         continue;
@@ -504,7 +505,7 @@ function benchmarkObservations(rows: PayloadRows): BenchmarkObservationsByKey {
       const totalTokens = asFiniteNumber(row.total_tokens);
       const metadata = parseBenchmarkObservationMetadata(row.metadata_json);
       benchmarkRows.push({
-        model_id: stringValue(row.model_id),
+        model_id: asNonEmptyString(row.model_id),
         model,
         base_model: baseModel,
         reasoning_effort: canonicalReasoningEffort(row.reasoning_effort),
@@ -514,7 +515,7 @@ function benchmarkObservations(rows: PayloadRows): BenchmarkObservationsByKey {
         ...(taskRunCount == null ? {} : { task_run_count: taskRunCount }),
         ...(totalCostUsd == null ? {} : { total_cost_usd: totalCostUsd }),
         ...(totalTokens == null ? {} : { total_tokens: totalTokens }),
-        observed_at: stringValue(row.observed_at),
+        observed_at: asNonEmptyString(row.observed_at),
         ...(metadata?.observation_role == null &&
         metadata?.benchmark_count == null &&
         benchmark !== "terminal_bench_science"
@@ -527,24 +528,25 @@ function benchmarkObservations(rows: PayloadRows): BenchmarkObservationsByKey {
   const sourceRows = (key: string, raw: DbRow[]) =>
     raw.map((row) => ({
       benchmark_key: key,
-      source_url: stringValue(row.url) ?? "",
-      model_id: stringValue(row.model_id),
-      model: stringValue(row.model) ?? "",
-      base_model: stringValue(row.base_model) ?? "",
-      reasoning_effort: stringValue(row.reasoning_effort),
-      model_creator: stringValue(row.model_creator),
+      source_url: asNonEmptyString(row.url) ?? "",
+      model_id: asNonEmptyString(row.model_id),
+      model: asNonEmptyString(row.model) ?? "",
+      base_model: asNonEmptyString(row.base_model) ?? "",
+      reasoning_effort: asNonEmptyString(row.reasoning_effort),
+      model_creator: asNonEmptyString(row.model_creator),
       rank: asFiniteNumber(row.rank),
       canonical_value: asFiniteNumber(row.canonical_value) ?? 0,
       cost: asFiniteNumber(row.cost),
       tokens_per_task: asFiniteNumber(row.tokens_per_task),
-      observed_at: stringValue(row.observed_at),
+      observed_at: asNonEmptyString(row.observed_at),
       metadata: parseBenchmarkObservationMetadata(row.metadata_json) ?? {},
     }));
   const fused = fusedBenchmarkObservations({
     terminalBench4Rows: readTerminalBench4RawCache(rows.terminalBench4Rows)?.rows ?? [],
     artificialAnalysisBenchmarkResourceRows:
-      artificialAnalysisBenchmarkResourceRawCacheFromRows(rows.artificialAnalysisResourceRows)
-        ?.rows ?? [],
+      artificialAnalysisBenchmarkResourceRawCacheFromRows(
+        rows.artificialAnalysisBenchmarkResourceRows,
+      )?.rows ?? [],
     terminalBenchScienceRows: sourceRows("terminal_bench_science", rows.terminalBenchScienceRows),
     gdpPdfRows: sourceRows("gdp_pdf", rows.gdpPdfRows),
     aleBenchConfigurationRows: readAleBenchRawCache(rows.aleBenchRows)?.rows ?? [],
@@ -560,7 +562,7 @@ function taskMetricsByModelRow(
   const taskMetricsByModel = new Map<number, NonNullable<ModelAtlasTaskMetrics>>();
   for (const row of rows) {
     const modelRowIndex = asFiniteNumber(row.model_row_index);
-    const sourceKey = stringValue(row.source_key);
+    const sourceKey = asNonEmptyString(row.source_key);
     if (modelRowIndex == null || sourceKey == null) {
       continue;
     }
@@ -573,7 +575,7 @@ function taskMetricsByModelRow(
     assignNumber(metrics, "input_tokens", row.input_tokens);
     assignNumber(metrics, "output_tokens", row.output_tokens);
     assignNumber(metrics, "cost_price_ratio", row.cost_price_ratio);
-    const observedAt = stringValue(row.observed_at);
+    const observedAt = asNonEmptyString(row.observed_at);
     if (observedAt != null) {
       metrics.observed_at = observedAt;
     }
@@ -594,15 +596,15 @@ function sourceHealthFromRows(
   }
   const quarantinesBySource = new Map<string, ModelAtlasSourceQuarantine[]>();
   for (const row of quarantineRows) {
-    const source = stringValue(row.source);
-    const rowKey = stringValue(row.row_key);
+    const source = asNonEmptyString(row.source);
+    const rowKey = asNonEmptyString(row.row_key);
     if (source == null || rowKey == null) {
       continue;
     }
     const quarantines = quarantinesBySource.get(source) ?? [];
     quarantines.push({
       row_key: rowKey,
-      row_label: stringValue(row.row_label),
+      row_label: asNonEmptyString(row.row_label),
       missing_from_source_since_epoch_seconds: asFiniteNumber(
         row.missing_from_source_since_epoch_seconds,
       ),
@@ -621,8 +623,8 @@ function sourceHealthFromRows(
     generated_at_epoch_seconds: generatedAt,
     sources: Object.fromEntries(
       rows.flatMap((row) => {
-        const source = stringValue(row.source);
-        const status = stringValue(row.status);
+        const source = asNonEmptyString(row.source);
+        const status = asNonEmptyString(row.status);
         if (
           source == null ||
           (status !== "cache_hit" &&
@@ -681,6 +683,6 @@ export function buildPayloadFromRows(rows: PayloadRows): ModelAtlasPayload {
       snapshotPreservationVersion: rows.snapshotPreservationVersion,
     }),
     models,
-    benchmark_observations: benchmarkObservations(rows),
+    benchmark_observations: observationsFromPayloadRows(rows),
   };
 }

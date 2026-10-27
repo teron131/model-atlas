@@ -13,18 +13,18 @@ import {
 } from "../../benchmarks/registry";
 import { modelNameIdentityKey } from "../../identity";
 import {
-  benchmarkModelEffort,
   type BenchmarkModelRow,
   canonicalModelKey,
   canonicalReasoningEffort,
   modelSlugFromModelId,
   normalizeModelToken,
+  parseModelEffort,
   reasoningEffortRank,
 } from "../../identity/normalization";
 import { asRecord } from "../../runtime";
 import {
   agentsLastExamBenchmarkScore,
-  findAgentsLastExamModelScore,
+  findAgentsLastExamModelScoreRow,
 } from "../../sources/agents-last-exam/leaderboard";
 import {
   type ArtificialAnalysisBenchmarkResourceLookup,
@@ -34,7 +34,7 @@ import type { ModelAtlasSourceData } from "../../sources/assembly";
 import { findBlueprintBenchScore } from "../../sources/blueprint-bench/leaderboard";
 import { findRiemannBenchScore } from "../../sources/surge/riemann-bench";
 import { findValsIndexRow } from "../../sources/vals/index-benchmark";
-import type { ModelAtlasScoringSources } from "../model-types";
+import type { ModelAtlasScoringSources, ModelRow } from "../model-types";
 
 type BenchmarkObservationLookups = {
   [Key in BenchmarkObservationDataKey]: Pick<ModelAtlasSourceData[Key], "rowsByModelName">;
@@ -94,8 +94,8 @@ function benchmarkObservationLookup(
   return lookup.rowsByModelName;
 }
 
-function modelNameCandidates(row: Record<string, unknown>): unknown[] {
-  return typeof row.artificial_analysis_id === "string"
+function rowNameCandidates(row: ModelRow): unknown[] {
+  return row.artificial_analysis_id != null
     ? [
         row.id,
         row.openrouter_id,
@@ -111,10 +111,10 @@ function modelNameCandidates(row: Record<string, unknown>): unknown[] {
 function mergeVariantBenchmarkFields(
   baseFields: Record<string, unknown>,
   defaultVariantFields: Record<string, unknown>,
-  benchmarkSources: NonNullable<ModelAtlasScoringSources>,
+  scoringSources: NonNullable<ModelAtlasScoringSources>,
 ): Record<string, unknown> {
   const fields = { ...defaultVariantFields, ...baseFields };
-  for (const [key, sourceRow] of Object.entries(benchmarkSources)) {
+  for (const [key, sourceRow] of Object.entries(scoringSources)) {
     if (asRecord(sourceRow).benchmark_key === key && key in defaultVariantFields) {
       fields[key] = defaultVariantFields[key];
     }
@@ -154,9 +154,7 @@ function findBaseModelSourceRow<T>(
   rowsByModelName: ReadonlyMap<string, T>,
 ): T | null {
   const baseModelCandidates = candidateNames.map((candidateName) =>
-    typeof candidateName === "string"
-      ? benchmarkModelEffort(candidateName).baseModel
-      : candidateName,
+    typeof candidateName === "string" ? parseModelEffort(candidateName).baseModel : candidateName,
   );
   return findSourceRow(baseModelCandidates, rowsByModelName);
 }
@@ -174,7 +172,7 @@ function findEffortSourceRow<T extends BenchmarkModelRow>(
     if (typeof candidateName !== "string") {
       return [];
     }
-    const baseModel = benchmarkModelEffort(candidateName).baseModel;
+    const baseModel = parseModelEffort(candidateName).baseModel;
     return [`${baseModel} (${effort})`];
   });
   const row = findSourceRow(effortCandidates, rowsByModelName);
@@ -292,7 +290,7 @@ const addTerminalBench4: StandaloneBenchmarkOperation = ({
 const STANDALONE_BENCHMARK_ADAPTERS = {
   agents_last_exam: {
     defaultVariant: ({ assignedBenchmarks, lookups, modelNameCandidates }) => {
-      const row = findAgentsLastExamModelScore(
+      const row = findAgentsLastExamModelScoreRow(
         modelNameCandidates,
         lookups.agentsLastExam.rowsByModelName,
       );
@@ -489,16 +487,15 @@ export function buildDefaultVariantBenchmarks(
 
 /** Assigns model-level benchmarks to one default variant without replacing exact variant observations. */
 export function assignBenchmarksToVariants(
-  rows: Record<string, unknown>[],
+  rows: ModelRow[],
   lookups: BenchmarkAssignmentLookups,
-): Record<string, unknown>[] {
-  const defaultVariantByModel = new Map<string, Record<string, unknown>>();
+): ModelRow[] {
+  const defaultVariantByModel = new Map<string, ModelRow>();
   for (const row of rows) {
     const modelKey = canonicalModelKey(row);
     const currentDefaultVariant = defaultVariantByModel.get(modelKey);
-    const hasArtificialAnalysisMatch = typeof row.artificial_analysis_id === "string";
-    const currentHasArtificialAnalysisMatch =
-      typeof currentDefaultVariant?.artificial_analysis_id === "string";
+    const hasArtificialAnalysisMatch = row.artificial_analysis_id != null;
+    const currentHasArtificialAnalysisMatch = currentDefaultVariant?.artificial_analysis_id != null;
     if (
       currentDefaultVariant == null ||
       (hasArtificialAnalysisMatch && !currentHasArtificialAnalysisMatch) ||
@@ -514,9 +511,9 @@ export function assignBenchmarksToVariants(
     if (defaultVariantByModel.get(canonicalModelKey(row)) !== row) {
       return row;
     }
-    const baseBenchmarks = asRecord(row.benchmarks);
+    const baseBenchmarks = row.benchmarks ?? {};
     const defaultVariantBenchmarks = buildDefaultVariantBenchmarks(
-      modelNameCandidates(row),
+      rowNameCandidates(row),
       lookups,
       baseBenchmarks,
       row.reasoning_effort,
@@ -527,7 +524,7 @@ export function assignBenchmarksToVariants(
       defaultVariantBenchmarks.scoringSources,
     );
     const scoringSources = mergeVariantBenchmarkFields(
-      asRecord(row.scoring_sources),
+      row.scoring_sources ?? {},
       defaultVariantBenchmarks.scoringSources,
       defaultVariantBenchmarks.scoringSources,
     );

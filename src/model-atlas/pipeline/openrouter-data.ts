@@ -1,4 +1,4 @@
-/** OpenRouter model data prepares route telemetry, scoring anchors, and free-route cost continuity. */
+/** OpenRouter route data owns free-route cost continuity for catalog rows and the route telemetry index, its lookups, and scoring anchors. */
 
 import type { ScoringConfig } from "../config/stage";
 import { normalizeProviderModelId } from "../identity/normalization";
@@ -9,10 +9,11 @@ import {
 } from "../identity/openrouter";
 import { asFiniteNumber, asRecord, type JsonObject } from "../runtime";
 import { type OpenRouterSourcePayload, processOpenRouterModelStats } from "../sources/openrouter";
+import { catalogRowRouteId } from "./model-catalog";
+import type { ModelRow } from "./model-types";
 import { deriveSpeedOutputTokenAnchors } from "./scores";
 
 export type OpenRouterModelData = {
-  modelRows: Record<string, unknown>[];
   speedByModelId: Map<string, JsonObject>;
   pricingByModelId: Map<string, JsonObject>;
   outputTokenAnchors: number[];
@@ -20,46 +21,54 @@ export type OpenRouterModelData = {
 
 /** Normalize already-loaded route evidence; fetching and admission stay in the shared derivation workflow. */
 export function prepareOpenRouterModelData(
-  rows: Record<string, unknown>[],
+  rows: readonly ModelRow[],
   scoringConfig: ScoringConfig,
   rawPayload: OpenRouterSourcePayload | null,
 ): OpenRouterModelData {
-  const costBackfilledRows = backfillFreeModelCosts(rows);
   const { speedById: speedByModelId, pricingById: pricingByModelId } = buildOpenRouterDataById(
-    costBackfilledRows,
+    rows,
     rawPayload,
   );
-  const outputTokenAnchors = deriveSpeedOutputTokenAnchors(speedByModelId, scoringConfig);
   return {
-    modelRows: costBackfilledRows,
     speedByModelId,
     pricingByModelId,
-    outputTokenAnchors,
+    outputTokenAnchors: deriveSpeedOutputTokenAnchors(speedByModelId, scoringConfig),
   };
 }
 
+/** A model's OpenRouter speed telemetry, trying its exact id before its normalized id and preferring whichever entry carries data. */
+export function lookupOpenRouterSpeed(
+  data: OpenRouterModelData,
+  modelId: string | null,
+): JsonObject | null {
+  return lookupOpenRouterData(data.speedByModelId, modelId, hasSpeedData);
+}
+
+/** A model's effective OpenRouter pricing, looked up like `lookupOpenRouterSpeed`. */
+export function lookupOpenRouterPricing(
+  data: OpenRouterModelData,
+  modelId: string | null,
+): JsonObject | null {
+  return lookupOpenRouterData(data.pricingByModelId, modelId, hasPricingData);
+}
+
 /** Free OpenRouter routes inherit the paid route's base costs so price comparisons keep a realistic fallback. */
-function backfillFreeModelCosts(rows: Record<string, unknown>[]): Record<string, unknown>[] {
+export function backfillFreeModelCosts(rows: ModelRow[]): ModelRow[] {
   const nonFreeCostById = new Map<string, JsonObject>();
   for (const row of rows) {
-    const rowRecord = asRecord(row);
-    const id = typeof rowRecord.id === "string" ? rowRecord.id : null;
-    if (!id || isOpenRouterFreeRouteId(id)) {
+    if (!row.id || isOpenRouterFreeRouteId(row.id)) {
       continue;
     }
-    const cost = asRecord(rowRecord.cost);
-    if (hasPositiveCostFields(cost)) {
-      nonFreeCostById.set(id, cost);
+    if (row.cost != null && hasPositiveCostFields(row.cost)) {
+      nonFreeCostById.set(row.id, row.cost);
     }
   }
 
   return rows.map((row) => {
-    const rowRecord = asRecord(row);
-    const id = typeof rowRecord.id === "string" ? rowRecord.id : null;
-    if (!id) {
+    if (!row.id) {
       return row;
     }
-    const baseId = nonFreeOpenRouterModelId(id);
+    const baseId = nonFreeOpenRouterModelId(row.id);
     if (!baseId) {
       return row;
     }
@@ -68,7 +77,7 @@ function backfillFreeModelCosts(rows: Record<string, unknown>[]): Record<string,
       return row;
     }
     return {
-      ...rowRecord,
+      ...row,
       cost: {
         ...baseCost,
       },
@@ -77,7 +86,7 @@ function backfillFreeModelCosts(rows: Record<string, unknown>[]): Record<string,
 }
 
 function buildOpenRouterDataById(
-  rows: Record<string, unknown>[],
+  rows: readonly ModelRow[],
   rawPayload: OpenRouterSourcePayload | null,
 ): {
   speedById: Map<string, JsonObject>;
@@ -161,13 +170,13 @@ function hasPricingData(pricing: JsonObject): boolean {
 }
 
 function indexPublicRouteData(
-  rows: Record<string, unknown>[],
+  rows: readonly ModelRow[],
   speedById: Map<string, JsonObject>,
   pricingById: Map<string, JsonObject>,
 ): void {
   for (const row of rows) {
-    const publicId = rowModelId(row);
-    const openRouterId = rowOpenRouterModelId(row);
+    const publicId = row.id || null;
+    const openRouterId = catalogRowRouteId(row);
     if (publicId == null || openRouterId == null || publicId === openRouterId) {
       continue;
     }
@@ -195,21 +204,23 @@ function indexRouteData(
   }
 }
 
-function rowModelId(row: Record<string, unknown>): string | null {
-  const id = asRecord(row).id;
-  return typeof id === "string" && id.length > 0 ? id : null;
-}
-
-function rowOpenRouterModelId(row: Record<string, unknown>): string | null {
-  const rowRecord = asRecord(row);
-  const openRouterId = rowRecord.openrouter_id;
-  if (typeof openRouterId === "string" && openRouterId.length > 0 && openRouterId.includes("/")) {
-    return openRouterId;
+function lookupOpenRouterData(
+  valuesById: Map<string, JsonObject>,
+  modelId: string | null,
+  hasData: (value: JsonObject) => boolean,
+): JsonObject | null {
+  if (modelId == null) {
+    return null;
   }
-  return (
-    rowModelId(row) ??
-    (typeof openRouterId === "string" && openRouterId.length > 0 ? openRouterId : null)
-  );
+  const exact = valuesById.get(modelId);
+  const normalized = valuesById.get(normalizeProviderModelId(modelId));
+  if (exact != null && hasData(exact)) {
+    return exact;
+  }
+  if (normalized != null && hasData(normalized)) {
+    return normalized;
+  }
+  return exact ?? normalized ?? null;
 }
 
 function findRouteData(map: Map<string, JsonObject>, modelId: string): JsonObject | null {

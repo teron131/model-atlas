@@ -5,14 +5,14 @@
  * Dataset source: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/viewer/agent/latest
  */
 
-import { benchmarkModelEffort, normalizeModelToken } from "../../identity/normalization";
+import { normalizeModelToken, parseModelEffort } from "../../identity/normalization";
 import { providerIdentityKey } from "../../identity/provider";
-import { asFiniteNumber, asRecord, nowEpochSeconds, stringValue } from "../../runtime";
+import { asFiniteNumber, asNonEmptyString, asRecord, nowEpochSeconds } from "../../runtime";
 import { extractNextFlightCorpus, findObjectEnd, parseFlightJsonObject } from "../parsing";
 import { fetchSource } from "../request-scheduler";
 import { ARENA_AGENT_DATASET_URL, arenaDatasetIdentity, fetchArenaDataset } from "./dataset";
 
-export const DEFAULT_LEADERBOARD_URL = "https://arena.ai/leaderboard/agent";
+export const ARENA_AGENT_LEADERBOARD_URL = "https://arena.ai/leaderboard/agent";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 
@@ -48,7 +48,7 @@ export async function getArenaAgentStats(
   options: ArenaAgentScraperOptions = {},
 ): Promise<ArenaAgentPayload> {
   try {
-    const url = options.url ?? DEFAULT_LEADERBOARD_URL;
+    const url = options.url ?? ARENA_AGENT_LEADERBOARD_URL;
     return await fetchSource(url, {}, options.timeoutMs ?? DEFAULT_TIMEOUT_MS, async (response) => {
       if (!response.ok) {
         throw new Error(`Arena Agent scrape failed: ${response.status}`);
@@ -90,7 +90,7 @@ export function processArenaAgentPageHtml(pageHtml: string): ArenaAgentModelScor
     }
     const snapshot = asRecord(payload.snapshot);
     const rows = Array.isArray(snapshot.rows) ? snapshot.rows : [];
-    const lastUpdated = stringValue(snapshot.lastUpdated);
+    const lastUpdated = asNonEmptyString(snapshot.lastUpdated);
     const observedAt =
       lastUpdated && /^\d{4}-\d{2}-\d{2}T/.test(lastUpdated) ? lastUpdated.slice(0, 10) : null;
     const parsedRows = rows.flatMap((row) => {
@@ -108,9 +108,9 @@ function arenaAgentRow(value: unknown, observedAt: string | null): ArenaAgentMod
   const row = asRecord(value);
   const avgScore = asRecord(row.avgScore);
   const rank = integerValue(row.rank);
-  const contenderName = stringValue(row.contenderName);
-  const model = stringValue(row.model);
-  const organization = stringValue(row.modelOrganization);
+  const contenderName = asNonEmptyString(row.contenderName);
+  const model = asNonEmptyString(row.model);
+  const organization = asNonEmptyString(row.modelOrganization);
   const score = asFiniteNumber(avgScore.value);
   if (
     rank == null ||
@@ -121,9 +121,9 @@ function arenaAgentRow(value: unknown, observedAt: string | null): ArenaAgentMod
   ) {
     return null;
   }
-  const { baseModel, reasoningEffort } = benchmarkModelEffort(model);
+  const { baseModel, reasoningEffort } = parseModelEffort(model);
   return {
-    source_url: DEFAULT_LEADERBOARD_URL,
+    source_url: ARENA_AGENT_LEADERBOARD_URL,
     observed_at: observedAt,
     rank,
     contender_name: contenderName,
@@ -154,11 +154,11 @@ export function processArenaAgentDatasetRows(
   const identities = new Set<string>();
   for (const value of values) {
     if (value.category !== "overall") continue;
-    const model = stringValue(value.model_name);
-    const organization = stringValue(value.organization);
+    const model = asNonEmptyString(value.model_name);
+    const organization = asNonEmptyString(value.organization);
     const score = asFiniteNumber(value.score);
     const rank = integerValue(value.rank);
-    const observedAt = stringValue(value.leaderboard_publish_date);
+    const observedAt = asNonEmptyString(value.leaderboard_publish_date);
     if (
       model == null ||
       organization == null ||

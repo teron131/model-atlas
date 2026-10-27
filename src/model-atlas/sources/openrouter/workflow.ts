@@ -16,10 +16,10 @@ import { mapWithConcurrency, nowEpochSeconds } from "../../runtime";
 import { fetchSource, scheduleSourcePage, SourceQueueTimeoutError } from "../request-scheduler";
 import {
   buildOpenRouterSeriesTokenWeights,
-  emptyRawScrapedModel,
+  emptyOpenRouterSourceModel,
   parseOpenRouterWeeklyTokens,
-  resolvePermaslugCandidates,
-  sanitizeModelId,
+  resolveOpenRouterPermaslugCandidates,
+  sanitizeOpenRouterModelId,
   selectOpenRouterRawModelStats,
   summarizeEndpointPerformance,
 } from "./stats";
@@ -75,7 +75,7 @@ type RequestContext = {
  * Raw responses stay scoped to the selected model IDs, which avoids full catalog stat scraping while preserving daily points and permaslug resolution.
  * Aliases share route groups and successful endpoint responses only within this call, so a failed candidate retries only its missing endpoints.
  */
-export async function getOpenRouterRawScrapedStats(
+export async function getOpenRouterStats(
   options: ScraperOptions,
 ): Promise<OpenRouterSourcePayload> {
   const concurrency = options.concurrency ?? DEFAULT_CONCURRENCY;
@@ -134,7 +134,7 @@ function buildPermaslugLookup(models: OpenRouterFrontendModel[]): Map<string, st
     if (typeof model.slug !== "string" || typeof model.permaslug !== "string") {
       continue;
     }
-    const slug = sanitizeModelId(model.slug);
+    const slug = sanitizeOpenRouterModelId(model.slug);
     const permaslug = model.permaslug.trim();
     if (!slug || !permaslug) {
       continue;
@@ -192,10 +192,14 @@ async function fetchBestModelStats(
   permaslugBySlug: Map<string, string>,
   fetchCandidate: (permaslug: string) => Promise<OpenRouterCandidateStats>,
 ): Promise<OpenRouterSourceModel> {
-  const permaslugCandidates = resolvePermaslugCandidates(modelId, availableSlugs, permaslugBySlug);
+  const permaslugCandidates = resolveOpenRouterPermaslugCandidates(
+    modelId,
+    availableSlugs,
+    permaslugBySlug,
+  );
 
   if (permaslugCandidates.length === 0) {
-    return emptyRawScrapedModel(modelId);
+    return emptyOpenRouterSourceModel(modelId);
   }
 
   const resolvedCandidates: OpenRouterCandidateStats[] = [];
@@ -209,7 +213,7 @@ async function fetchBestModelStats(
 
   return resolvedCandidates.length > 0
     ? selectOpenRouterRawModelStats(modelId, resolvedCandidates)
-    : emptyRawScrapedModel(modelId, permaslugCandidates);
+    : emptyOpenRouterSourceModel(modelId, permaslugCandidates);
 }
 
 /** Cache decoded responses after the full retry lifecycle so aliases retain successful siblings but can retry failed endpoints. */

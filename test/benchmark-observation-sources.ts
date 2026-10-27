@@ -11,7 +11,7 @@ import {
   BENCHMARK_OBSERVATION_BINDINGS,
   BENCHMARK_OBSERVATION_RAW_TABLE,
 } from "../src/model-atlas/benchmarks/registry";
-import { benchmarkModelEffort } from "../src/model-atlas/identity/normalization";
+import { parseModelEffort } from "../src/model-atlas/identity/normalization";
 import { processAutomationBenchModule } from "../src/model-atlas/sources/automation-bench";
 import { processEpochCapabilitiesIndexCsv } from "../src/model-atlas/sources/epoch/capabilities-index";
 import { epochBenchmarkObservationRows } from "../src/model-atlas/sources/epoch/results";
@@ -72,19 +72,19 @@ const epochRuns = parseCsvRecords(
     'pro,FrontierMath-Tier-4-v2-Private,gpt,0.52,2026-07-02T00:00:00Z,Success,2.1.0,gpt-5.6-sol_promax,GPT-5.6 Sol,"GPT-5.6 Sol (pro, max)",OpenAI,0.52,0.03,0.52,frontiermath,[]\n' +
     "old,FrontierMath-Tier-4-2025-07-01-Private,gpt,0.31,2025-07-01T00:00:00Z,Success,1.0.0,gpt-5.6,GPT-5.6 Sol,GPT-5.6 Sol (max),OpenAI,0.3125,0.02,0.31,frontiermath,[]\n",
 );
-assert.deepEqual(benchmarkModelEffort("GPT-5.6 Sol (pro, max)"), {
+assert.deepEqual(parseModelEffort("GPT-5.6 Sol (pro, max)"), {
   baseModel: "GPT-5.6 Sol pro",
   reasoningEffort: "max",
 });
-assert.deepEqual(benchmarkModelEffort("Claude Opus 4.8 (Adaptive/Default)"), {
+assert.deepEqual(parseModelEffort("Claude Opus 4.8 (Adaptive/Default)"), {
   baseModel: "Claude Opus 4.8",
   reasoningEffort: "adaptive",
 });
-assert.deepEqual(benchmarkModelEffort("Claude Opus 5 (Adaptive/High)"), {
+assert.deepEqual(parseModelEffort("Claude Opus 5 (Adaptive/High)"), {
   baseModel: "Claude Opus 5",
   reasoningEffort: "high",
 });
-assert.deepEqual(benchmarkModelEffort("claude-opus-4.5 (high, 16k)"), {
+assert.deepEqual(parseModelEffort("claude-opus-4.5 (high, 16k)"), {
   baseModel: "claude-opus-4.5",
   reasoningEffort: "high",
 });

@@ -56,7 +56,7 @@ export type MatchDiagnosticsOptions = {
   matcherConfig: MatcherConfig;
   maxCandidates?: number;
   modelsDevModels: ModelsDevModel[];
-  scrapedRows: unknown[];
+  artificialAnalysisRows: unknown[];
   matchSlugOverridesBySourceId?: ReadonlyMap<string, string>;
 };
 
@@ -75,7 +75,7 @@ export type MatchDiagnosticsPayload = {
 };
 
 export type PreferredProviderPools = {
-  primary: ModelsDevModel[];
+  openRouter: ModelsDevModel[];
   fallback: ModelsDevModel[];
 };
 

@@ -5,18 +5,10 @@ import {
   resourceSourceMetricKey,
   resourceSourcesFromMetadata,
 } from "../../benchmarks/resource-sources";
-import {
-  type ScoringConfig,
-  TASK_COST_PRICE_TRANSITIONS,
-  type TaskCostPriceTransition,
-} from "../../config/stage";
-import {
-  canonicalReasoningEffort,
-  normalizeProviderId,
-  normalizeProviderModelId,
-} from "../../identity/normalization";
+import type { ScoringConfig } from "../../config/stage";
+import { canonicalReasoningEffort, normalizeProviderId } from "../../identity/normalization";
 import { resolveModelLogo } from "../../logos/resolve";
-import { asFiniteNumber, asRecord, type JsonObject } from "../../runtime";
+import { asFiniteNumber, asRecord } from "../../runtime";
 import type {
   ModelAtlasBenchmarks,
   ModelAtlasCandidate,
@@ -26,13 +18,17 @@ import type {
   ModelAtlasCostTier,
   ModelAtlasIntelligence,
   ModelAtlasModalities,
-  ModelAtlasModel,
   ModelAtlasScoringSources,
   ModelAtlasSpeed,
   ModelAtlasTaskMetrics,
   ModelAtlasTaskMetricValues,
+  ModelRow,
 } from "../model-types";
-import type { OpenRouterModelData } from "../openrouter-data";
+import {
+  lookupOpenRouterPricing,
+  lookupOpenRouterSpeed,
+  type OpenRouterModelData,
+} from "../openrouter-data";
 import {
   benchmarkImputationFactors,
   benchmarkImputationValues,
@@ -41,26 +37,6 @@ import {
   buildComponentScoreResult,
   buildSpeedComponentScore,
 } from "../scores";
-
-type TaskMetricNumericKey =
-  | "quality"
-  | "cost"
-  | "seconds"
-  | "tokens"
-  | "input_tokens"
-  | "output_tokens";
-
-const EMPTY_OPENROUTER_PRICING = {
-  weighted_input: null,
-  weighted_output: null,
-} as const;
-const PRICE_RATIO_TOLERANCE = 1e-9;
-
-export type BenchmarkVersioningOptions = {
-  observedAt?: string;
-  baselineDate: string;
-  observedDate: string;
-};
 
 function hasFields(record: object): boolean {
   return Object.keys(record).length > 0;
@@ -80,12 +56,12 @@ function buildNumericMap<T extends Record<string, number | null | undefined>>(
 }
 
 /** Place selected quality values in their declared public persistence location after scoring consumes the source row. */
-function buildPersistedQualityValues(model: JsonObject): {
+function buildPersistedQualityValues(row: ModelRow): {
   intelligence: ModelAtlasIntelligence | null;
   benchmarks: ModelAtlasBenchmarks | null;
 } {
-  const intelligence = buildNumericMap<ModelAtlasIntelligence>(model.intelligence) ?? {};
-  const benchmarks = buildNumericMap<ModelAtlasBenchmarks>(model.benchmarks) ?? {};
+  const intelligence = buildNumericMap<ModelAtlasIntelligence>(row.intelligence) ?? {};
+  const benchmarks = buildNumericMap<ModelAtlasBenchmarks>(row.benchmarks) ?? {};
   for (const [key, value] of Object.entries(benchmarks)) {
     const location = benchmarkValueLocation(key);
     if (location?.kind !== "intelligence" || value == null) {
@@ -100,8 +76,8 @@ function buildPersistedQualityValues(model: JsonObject): {
   };
 }
 
-function providerFromId(modelId: unknown): string | null {
-  if (typeof modelId !== "string") {
+function providerFromId(modelId: string | null): string | null {
+  if (modelId == null) {
     return null;
   }
   const slashIndex = modelId.indexOf("/");
@@ -111,16 +87,12 @@ function providerFromId(modelId: unknown): string | null {
   return normalizeProviderId(modelId.slice(0, slashIndex));
 }
 
-function providerFromModel(model: JsonObject): string | null {
-  const fromId = providerFromId(model.id);
-  if (fromId) {
-    return fromId;
-  }
-  return typeof model.provider_id === "string" ? model.provider_id : null;
+function providerFromRow(row: ModelRow): string | null {
+  return providerFromId(row.id) || (row.provider_id ?? null);
 }
 
-function buildModalities(model: JsonObject): ModelAtlasModalities | null {
-  const modalities = asRecord(model.modalities);
+function buildModalities(row: ModelRow): ModelAtlasModalities | null {
+  const modalities = row.modalities ?? {};
   const input = Array.isArray(modalities.input)
     ? modalities.input.filter((value): value is string => typeof value === "string")
     : undefined;
@@ -137,8 +109,8 @@ function buildModalities(model: JsonObject): ModelAtlasModalities | null {
   return Object.keys(normalized).length > 0 ? normalized : null;
 }
 
-function buildContextWindow(model: JsonObject): ModelAtlasContextWindow {
-  const limit = asRecord(model.limit);
+function buildContextWindow(row: ModelRow): ModelAtlasContextWindow {
+  const limit = row.limit ?? {};
   const context = asFiniteNumber(limit.context);
   const input = asFiniteNumber(limit.input);
   const output = asFiniteNumber(limit.output);
@@ -152,54 +124,23 @@ function buildContextWindow(model: JsonObject): ModelAtlasContextWindow {
   };
 }
 
-/** Fill missing route telemetry from the exact Artificial Analysis observation, never a sibling effort. */
-function buildSpeed(model: JsonObject, speedByModelId: Map<string, JsonObject>): ModelAtlasSpeed {
-  const modelId = typeof model.id === "string" ? model.id : null;
-  const openRouterSpeed = lookupOpenRouterData(speedByModelId, modelId, hasSpeedData);
+/** Fill missing OpenRouter telemetry from the exact Artificial Analysis observation, never a sibling effort. */
+function buildSpeed(row: ModelRow, openRouterData: OpenRouterModelData): ModelAtlasSpeed {
+  const openRouterSpeed = lookupOpenRouterSpeed(openRouterData, row.id);
   return {
     throughput_tokens_per_second_median:
       asFiniteNumber(openRouterSpeed?.throughput_tokens_per_second_median) ??
-      asFiniteNumber(model.median_output_tokens_per_second),
+      row.median_output_tokens_per_second ??
+      null,
     latency_seconds_median:
       asFiniteNumber(openRouterSpeed?.latency_seconds_median) ??
-      asFiniteNumber(model.median_time_to_first_token_seconds),
+      row.median_time_to_first_token_seconds ??
+      null,
     e2e_latency_seconds_median:
       asFiniteNumber(openRouterSpeed?.e2e_latency_seconds_median) ??
-      asFiniteNumber(model.median_end_to_end_response_time_seconds),
+      row.median_end_to_end_response_time_seconds ??
+      null,
   };
-}
-
-function hasSpeedData(speed: JsonObject): boolean {
-  return (
-    asFiniteNumber(speed.throughput_tokens_per_second_median) != null ||
-    asFiniteNumber(speed.latency_seconds_median) != null ||
-    asFiniteNumber(speed.e2e_latency_seconds_median) != null
-  );
-}
-
-function hasPricingData(pricing: JsonObject): boolean {
-  const input = asFiniteNumber(pricing.weighted_input);
-  const output = asFiniteNumber(pricing.weighted_output);
-  return (input != null && input >= 0) || (output != null && output >= 0);
-}
-
-function lookupOpenRouterData(
-  valuesById: Map<string, JsonObject>,
-  modelId: string | null,
-  hasData: (value: JsonObject) => boolean,
-): JsonObject | null {
-  if (modelId == null) {
-    return null;
-  }
-  const exact = valuesById.get(modelId);
-  const normalized = valuesById.get(normalizeProviderModelId(modelId));
-  if (exact != null && hasData(exact)) {
-    return exact;
-  }
-  if (normalized != null && hasData(normalized)) {
-    return normalized;
-  }
-  return exact ?? normalized ?? null;
 }
 
 function buildCostBreakdown(value: unknown): ModelAtlasCostBreakdown | null {
@@ -241,15 +182,14 @@ function buildCostTier(value: unknown): ModelAtlasCostTier | null {
   return hasFields(costTier) ? costTier : null;
 }
 
-/** Keep catalog prices and effective route prices authoritative, filling only missing fields from Artificial Analysis USD-per-million-token prices. */
-function buildCost(model: JsonObject, openRouterPricing: JsonObject): ModelAtlasCost {
-  const baseCost = asRecord(model.cost);
+/** Keep catalog prices and effective OpenRouter prices authoritative, filling only missing fields from Artificial Analysis USD-per-million-token prices. */
+function buildCost(row: ModelRow, openRouterData: OpenRouterModelData): ModelAtlasCost {
+  const baseCost = row.cost ?? {};
   const cost: Exclude<ModelAtlasCost, null> = {
     ...buildCostBreakdown(baseCost),
   };
-  const artificialAnalysisCost = asRecord(model.artificial_analysis_cost);
   for (const key of ["input", "output"] as const) {
-    const fallback = asFiniteNumber(artificialAnalysisCost[key]);
+    const fallback = asFiniteNumber(row.artificial_analysis_cost?.[key]);
     if (cost[key] == null && fallback != null && fallback >= 0) cost[key] = fallback;
   }
   const contextOver200k = buildCostBreakdown(baseCost.context_over_200k);
@@ -264,8 +204,9 @@ function buildCost(model: JsonObject, openRouterPricing: JsonObject): ModelAtlas
       cost.tiers = tiers;
     }
   }
-  const weightedInput = asFiniteNumber(openRouterPricing.weighted_input) ?? cost.input;
-  const weightedOutput = asFiniteNumber(openRouterPricing.weighted_output) ?? cost.output;
+  const openRouterPricing = lookupOpenRouterPricing(openRouterData, row.id);
+  const weightedInput = asFiniteNumber(openRouterPricing?.weighted_input) ?? cost.input;
+  const weightedOutput = asFiniteNumber(openRouterPricing?.weighted_output) ?? cost.output;
   if (weightedInput != null) {
     cost.weighted_input = weightedInput;
   }
@@ -279,9 +220,9 @@ function buildCost(model: JsonObject, openRouterPricing: JsonObject): ModelAtlas
   return hasFields(cost) ? cost : null;
 }
 
-function buildScoringSources(model: JsonObject): ModelAtlasScoringSources {
+function buildScoringSources(row: ModelRow): ModelAtlasScoringSources {
   const scoringSources: NonNullable<ModelAtlasScoringSources> = {};
-  for (const [key, value] of Object.entries(asRecord(model.scoring_sources))) {
+  for (const [key, value] of Object.entries(row.scoring_sources ?? {})) {
     const source = asRecord(value);
     if (hasFields(source)) {
       scoringSources[key] = source;
@@ -290,46 +231,8 @@ function buildScoringSources(model: JsonObject): ModelAtlasScoringSources {
   return hasFields(scoringSources) ? scoringSources : null;
 }
 
-function uniformPriceRatio(transition: TaskCostPriceTransition): number {
-  const inputRatio = transition.priceFrom.input / transition.priceBefore.input;
-  const outputRatio = transition.priceFrom.output / transition.priceBefore.output;
-  if (
-    !Number.isFinite(inputRatio) ||
-    !Number.isFinite(outputRatio) ||
-    inputRatio <= 0 ||
-    Math.abs(inputRatio - outputRatio) > PRICE_RATIO_TOLERANCE
-  ) {
-    throw new Error(
-      `Task-cost repricing requires one positive input/output ratio for ${transition.modelId}`,
-    );
-  }
-  return inputRatio;
-}
-
-function taskCostMultiplier(
-  modelId: string | null,
-  observedAt: string | null,
-  options: BenchmarkVersioningOptions,
-): number {
-  if (modelId == null || observedAt == null) {
-    return 1;
-  }
-  let multiplier = 1;
-  for (const transition of TASK_COST_PRICE_TRANSITIONS) {
-    if (
-      transition.modelId !== modelId ||
-      options.observedDate < transition.effectiveDate ||
-      observedAt > transition.effectiveDate
-    ) {
-      continue;
-    }
-    multiplier *= uniformPriceRatio(transition);
-  }
-  return multiplier;
-}
-
 export function buildTaskMetrics(
-  artificialAnalysisSource: unknown,
+  intelligenceIndexCost: unknown,
   scoringSources: ModelAtlasScoringSources,
 ): ModelAtlasTaskMetrics {
   const taskMetrics: NonNullable<ModelAtlasTaskMetrics> = {};
@@ -337,129 +240,28 @@ export function buildTaskMetrics(
     const sourceTaskMetrics = buildSourceMetrics(source);
     if (sourceTaskMetrics != null) {
       const metadata = asRecord(asRecord(source).metadata);
-      const scoringMetrics = { ...sourceTaskMetrics };
-      if (metadata.fusion_cost_comparable === false) delete scoringMetrics.cost;
-      if (metadata.fusion_seconds_per_task_comparable === false) delete scoringMetrics.seconds;
-      if (metadata.fusion_tokens_per_task_comparable === false) delete scoringMetrics.tokens;
+      const comparableMetrics = { ...sourceTaskMetrics };
+      if (metadata.fusion_cost_comparable === false) delete comparableMetrics.cost;
+      if (metadata.fusion_seconds_per_task_comparable === false) delete comparableMetrics.seconds;
+      if (metadata.fusion_tokens_per_task_comparable === false) delete comparableMetrics.tokens;
       if (metadata.fusion_output_tokens_per_task_comparable === false)
-        delete scoringMetrics.output_tokens;
-      if (hasFields(scoringMetrics)) taskMetrics[key] = scoringMetrics;
+        delete comparableMetrics.output_tokens;
+      if (hasFields(comparableMetrics)) taskMetrics[key] = comparableMetrics;
     }
     for (const [sourceKey, metrics] of buildSeparatedSourceMetrics(key, source)) {
       taskMetrics[sourceKey] = metrics;
     }
   }
-  const artificialAnalysis = buildSourceMetrics(artificialAnalysisSource);
+  const artificialAnalysis = buildSourceMetrics(intelligenceIndexCost);
   if (artificialAnalysis != null) {
     taskMetrics.artificial_analysis = artificialAnalysis;
   }
   return hasFields(taskMetrics) ? taskMetrics : null;
 }
 
-function rawTaskMetricValue(
-  metrics: ModelAtlasTaskMetricValues | null | undefined,
-  key: TaskMetricNumericKey,
-): number | null {
-  if (metrics == null) {
-    return null;
-  }
-  if (key === "cost") {
-    return asFiniteNumber(metrics.observed_cost) ?? asFiniteNumber(metrics.cost);
-  }
-  return asFiniteNumber(metrics[key]);
-}
-
-/** Serialize the normalized source-reported task row used by both change detection and history. */
-export function taskMetricVersionValue(metrics: ModelAtlasTaskMetricValues): string {
-  return JSON.stringify({
-    quality: rawTaskMetricValue(metrics, "quality"),
-    cost: rawTaskMetricValue(metrics, "cost"),
-    seconds: rawTaskMetricValue(metrics, "seconds"),
-    tokens: rawTaskMetricValue(metrics, "tokens"),
-    input_tokens: rawTaskMetricValue(metrics, "input_tokens"),
-    output_tokens: rawTaskMetricValue(metrics, "output_tokens"),
-  });
-}
-
-function taskMetricContentMatches(
-  current: ModelAtlasTaskMetricValues,
-  previous: ModelAtlasTaskMetricValues | null | undefined,
-): boolean {
-  return previous != null && taskMetricVersionValue(current) === taskMetricVersionValue(previous);
-}
-
-/**
- * Date benchmark observations against the previous published model and reprice only task rows whose complete normalized telemetry remains unchanged across a model-price transition.
- */
-export function versionCandidateBenchmarkData(
-  candidate: ModelAtlasCandidate,
-  previous: ModelAtlasModel | null | undefined,
-  options: BenchmarkVersioningOptions,
-): ModelAtlasCandidate {
-  const previousBenchmarks = previous?.benchmarks ?? {};
-  const previousBenchmarkDates = previous?.benchmark_dates ?? {};
-  const benchmarkDates = Object.fromEntries(
-    Object.entries(candidate.benchmarks ?? {}).flatMap(([key, value]) => {
-      const currentValue = asFiniteNumber(value);
-      if (currentValue == null) {
-        return [];
-      }
-      const previousValue = asFiniteNumber(previousBenchmarks[key]);
-      return [
-        [
-          key,
-          previousValue === currentValue
-            ? (previousBenchmarkDates[key] ?? options.baselineDate)
-            : options.observedDate,
-        ],
-      ];
-    }),
-  );
-  const previousTaskMetrics = previous?.task_metrics ?? {};
-  const taskMetrics = Object.fromEntries(
-    Object.entries(candidate.task_metrics ?? {}).flatMap(([key, metrics]) => {
-      if (metrics == null) {
-        return [];
-      }
-      const previousMetrics = previousTaskMetrics[key];
-      const rowUnchanged = taskMetricContentMatches(metrics, previousMetrics);
-      const observedAt = rowUnchanged
-        ? (previousMetrics?.observed_at ?? options.baselineDate)
-        : options.observedDate;
-      const sourceMetadata = asRecord(asRecord(asRecord(candidate.scoring_sources)[key]).metadata);
-      const observedCost =
-        sourceMetadata.fusion_cost_estimated === true ? null : rawTaskMetricValue(metrics, "cost");
-      const costPriceRatio = rowUnchanged
-        ? taskCostMultiplier(candidate.id, observedAt, options)
-        : 1;
-      return [
-        [
-          key,
-          {
-            ...metrics,
-            observed_at: observedAt,
-            ...(observedCost == null
-              ? {}
-              : {
-                  observed_cost: observedCost,
-                  cost: observedCost * costPriceRatio,
-                  cost_price_ratio: costPriceRatio,
-                }),
-          },
-        ],
-      ];
-    }),
-  );
-  return {
-    ...candidate,
-    task_metrics: hasFields(taskMetrics) ? taskMetrics : null,
-    benchmark_dates: hasFields(benchmarkDates) ? benchmarkDates : null,
-  };
-}
-
 function firstFiniteNumber(...values: unknown[]): number | null {
-  for (const candidate of values) {
-    const value = asFiniteNumber(candidate);
+  for (const raw of values) {
+    const value = asFiniteNumber(raw);
     if (value != null) {
       return value;
     }
@@ -469,8 +271,8 @@ function firstFiniteNumber(...values: unknown[]): number | null {
 
 function minimumFiniteNumber(...values: unknown[]): number | null {
   let minimum: number | null = null;
-  for (const candidate of values) {
-    const value = asFiniteNumber(candidate);
+  for (const raw of values) {
+    const value = asFiniteNumber(raw);
     if (value != null && (minimum == null || value < minimum)) {
       minimum = value;
     }
@@ -555,53 +357,44 @@ function buildSeparatedSourceMetrics(
 }
 
 export function buildModelCandidate(
-  row: unknown,
-  speedByModelId: Map<string, JsonObject>,
-  pricingByModelId: Map<string, JsonObject>,
-  outputTokenAnchors: number[],
+  row: ModelRow,
+  openRouterData: OpenRouterModelData,
   scoringConfig: ScoringConfig,
   scoringPreparation: BenchmarkScoringPreparation,
   benchmarkWeightMultipliersByKey?: ReadonlyMap<string, number>,
 ): ModelAtlasCandidate {
-  const model = asRecord(row);
-  const provider = providerFromModel(model);
-  const modelId = typeof model.id === "string" ? model.id : null;
-  const speed = buildSpeed(model, speedByModelId);
-  const pricing =
-    lookupOpenRouterData(pricingByModelId, modelId, hasPricingData) ?? EMPTY_OPENROUTER_PRICING;
-  const cost = buildCost(model, pricing);
-  const scoringSources = buildScoringSources(model);
-  const qualityValues = buildPersistedQualityValues(model);
-  const imputedValues = benchmarkImputationValues(scoringPreparation, model);
-  const imputedConfidence = benchmarkImputationFactors(scoringPreparation, model);
+  const provider = providerFromRow(row);
+  const speed = buildSpeed(row, openRouterData);
+  const cost = buildCost(row, openRouterData);
+  const scoringSources = buildScoringSources(row);
+  const qualityValues = buildPersistedQualityValues(row);
+  const imputedValues = benchmarkImputationValues(scoringPreparation, row);
+  const imputedFactors = benchmarkImputationFactors(scoringPreparation, row);
   const { componentScores, confidence } = buildComponentScoreResult(
-    model,
+    row,
     speed,
-    outputTokenAnchors,
+    openRouterData.outputTokenAnchors,
     scoringConfig,
     scoringPreparation.qualityContext,
     imputedValues,
-    imputedConfidence,
+    imputedFactors,
     benchmarkWeightMultipliersByKey,
   );
   return {
-    id: modelId,
-    name: typeof model.name === "string" ? model.name : null,
+    id: row.id,
+    name: row.name ?? null,
     provider,
-    logo: resolveModelLogo({
-      provider,
-      explicitLogo: typeof model.logo === "string" ? model.logo : null,
-    }),
-    reasoning: typeof model.reasoning === "boolean" ? model.reasoning : null,
-    reasoning_effort: canonicalReasoningEffort(model.reasoning_effort),
-    release_date: typeof model.release_date === "string" ? model.release_date : null,
-    modalities: buildModalities(model),
-    open_weights: typeof model.open_weights === "boolean" ? model.open_weights : null,
+    logo: resolveModelLogo({ provider, artificialAnalysisLogo: row.logo ?? null }),
+    reasoning: row.reasoning ?? null,
+    reasoning_effort: canonicalReasoningEffort(row.reasoning_effort),
+    release_date: row.release_date ?? null,
+    modalities: buildModalities(row),
+    open_weights: row.open_weights ?? null,
     cost,
-    context_window: buildContextWindow(model),
+    context_window: buildContextWindow(row),
     speed,
     intelligence: qualityValues.intelligence,
-    task_metrics: buildTaskMetrics(model.intelligence_index_cost, scoringSources),
+    task_metrics: buildTaskMetrics(row.intelligence_index_cost, scoringSources),
     benchmarks: qualityValues.benchmarks,
     benchmark_dates: null,
     confidence,
@@ -611,20 +404,17 @@ export function buildModelCandidate(
   };
 }
 
-/** Attach route speed and effective pricing to an already-scored candidate without recomputing or changing its quality. */
+/** Attach OpenRouter speed and effective pricing to an already-scored candidate without recomputing or changing its quality. */
 export function enrichModelResources(
   candidate: ModelAtlasCandidate,
-  row: Record<string, unknown>,
+  row: ModelRow,
   openRouterData: OpenRouterModelData,
 ): ModelAtlasCandidate {
-  const speed = buildSpeed(row, openRouterData.speedByModelId);
-  const pricing =
-    lookupOpenRouterData(openRouterData.pricingByModelId, candidate.id, hasPricingData) ??
-    EMPTY_OPENROUTER_PRICING;
+  const speed = buildSpeed(row, openRouterData);
   const speedScore = buildSpeedComponentScore(speed, openRouterData.outputTokenAnchors);
   return {
     ...candidate,
-    cost: buildCost(row, pricing),
+    cost: buildCost(row, openRouterData),
     speed,
     component_scores:
       candidate.component_scores == null && speedScore == null

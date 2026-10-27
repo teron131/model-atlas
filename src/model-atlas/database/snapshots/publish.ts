@@ -4,14 +4,14 @@ import { copyFile, mkdir, mkdtemp, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { resourceUsage } from "node:process";
 
-import { buildDatabase } from "../build";
+import { refreshDatabase } from "../refresh";
 import { readDatabasePayload } from "../sqlite-payload";
 import { SnapshotStorage } from "./gcs";
-import { snapshotBucket } from "./manifest";
+import { publicSnapshotBucket } from "./manifest";
 
 /** An explicit seed is accepted only for an empty store; normal runs always restore the current checkpoint. */
 export async function publishSnapshot(seedPath?: string) {
-  const publicBucket = snapshotBucket();
+  const publicBucket = publicSnapshotBucket();
   const store = configuredSnapshotStorage(publicBucket);
   const current = await store.current();
   if (seedPath && current.manifest)
@@ -24,7 +24,7 @@ export async function publishSnapshot(seedPath?: string) {
       ? await store.restore(current.manifest, databasePath)
       : null;
     if (!current.manifest && seedPath) await copyFile(resolve(seedPath), databasePath);
-    const built = await buildDatabase(databasePath, {
+    const refreshed = await refreshDatabase(databasePath, {
       previousPayload,
       replaceSourceRows: process.env.MODEL_ATLAS_REPLACE_SOURCE_ROWS === "1",
     });
@@ -39,7 +39,7 @@ export async function publishSnapshot(seedPath?: string) {
       model_count: payload.models.length,
       fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
       bytes_uploaded: publication.bytes_uploaded,
-      source_cache: built.source_cache,
+      source_cache: refreshed.source_cache,
       maintenance_warnings: publication.maintenance_warnings,
       duration_ms: Math.round(performance.now() - startedAt),
       peak_rss_bytes: resourceUsage().maxRSS * 1024,
@@ -61,7 +61,7 @@ export async function migrateSnapshotRetention() {
   return configuredSnapshotStorage().migrateRetention();
 }
 
-export function configuredSnapshotStorage(publicBucket = snapshotBucket()): SnapshotStorage {
+export function configuredSnapshotStorage(publicBucket = publicSnapshotBucket()): SnapshotStorage {
   return new SnapshotStorage(publicBucket, process.env.MODEL_ATLAS_CHECKPOINT_BUCKET ?? "");
 }
 

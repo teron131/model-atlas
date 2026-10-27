@@ -2,11 +2,11 @@
 
 import { SNAPSHOT_TABLES } from "../../database/tables";
 import type { DatabaseWriter } from "../../database/writers/database";
-import { benchmarkModelEffort, modelNameWithoutCreatorPrefix } from "../../identity/normalization";
-import { asFiniteNumber, stringValue } from "../../runtime";
+import { modelNameWithoutCreatorPrefix, parseModelEffort } from "../../identity/normalization";
+import { asFiniteNumber, asNonEmptyString } from "../../runtime";
 import { defineBenchmarkRuntime } from "../benchmark-runtime";
-import { type CacheRowSource, firstEpochSecond, sourceCacheRows } from "../cache/rows";
-import { mergeSourceEvidence, sourceKey } from "../snapshots/policy";
+import { type CacheRowSource, firstFetchedAt, sourceCacheRows } from "../cache/rows";
+import { mergeSourceEvidence, sourceRowKey } from "../snapshots/policy";
 import { snapshotSourceRows } from "../snapshots/row-snapshot";
 import type {
   RawSourceCacheStatus,
@@ -30,7 +30,7 @@ export const riemannBenchRuntime = defineBenchmarkRuntime({
   snapshot: riemannBenchSnapshot,
   write: insertRiemannBenchRawRows,
   sourceRowsKey: "riemannBenchRows",
-  loadSourceRows: async () => (await getRiemannBenchStats()).data,
+  fetchSourceRows: async () => (await getRiemannBenchStats()).data,
   sourceRowsFromSnapshots: (snapshots) => snapshots.riemannBenchModelScoreRows,
 });
 
@@ -46,7 +46,7 @@ export function readRiemannBenchRawCache(cache: CacheRowSource): {
   if (cacheRows.length === 0) {
     return null;
   }
-  const sourceUrls = new Set(cacheRows.map((row) => stringValue(row.url)));
+  const sourceUrls = new Set(cacheRows.map((row) => asNonEmptyString(row.url)));
   if (sourceUrls.size !== 1 || sourceUrls.has(null)) {
     return null;
   }
@@ -55,15 +55,15 @@ export function readRiemannBenchRawCache(cache: CacheRowSource): {
     return null;
   }
   const cachedRows = cacheRows.flatMap((row) => {
-    const model = stringValue(row.model);
+    const model = asNonEmptyString(row.model);
     const score = asFiniteNumber(row.score);
     return model != null && score != null
       ? [
           {
-            provider: stringValue(row.provider),
+            provider: asNonEmptyString(row.provider),
             model,
             score,
-            last_updated: stringValue(row.last_updated),
+            last_updated: asNonEmptyString(row.last_updated),
           },
         ]
       : [];
@@ -73,7 +73,7 @@ export function readRiemannBenchRawCache(cache: CacheRowSource): {
   }
   return {
     rows: cachedRows,
-    fetchedAt: firstEpochSecond(cacheRows),
+    fetchedAt: firstFetchedAt(cacheRows),
     sourceUrl,
   };
 }
@@ -95,8 +95,8 @@ async function riemannBenchSnapshot(
     nowEpochSeconds,
     fetchRows: getRiemannBenchStats,
     rowKey: (row) => {
-      const parsedModel = benchmarkModelEffort(row.model);
-      return sourceKey(
+      const parsedModel = parseModelEffort(row.model);
+      return sourceRowKey(
         row.provider,
         modelNameWithoutCreatorPrefix(parsedModel.baseModel, row.provider),
         parsedModel.reasoningEffort,

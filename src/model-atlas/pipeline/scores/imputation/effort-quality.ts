@@ -15,7 +15,7 @@ import {
   normalizedQualityBenchmarkValue,
   type QualityScoringContext,
 } from "../quality-context";
-import { benchmarkMetricValue } from "../resource-metrics";
+import { benchmarkValue } from "../resource-metrics";
 
 const MIN_SHARED_BENCHMARKS = 3;
 
@@ -41,7 +41,7 @@ export function prepareEffortQualityScoringContext(
         dimension === "intelligence"
           ? scoringConfig.intelligenceBenchmarkKeys
           : scoringConfig.agenticBenchmarkKeys;
-      const variants = group.map((model) => ({
+      const variantInputs = group.map((model) => ({
         model,
         inputs: keys.flatMap((key) => {
           if (dimension === "intelligence" && !countsTowardIntelligence(key, scoringConfig)) {
@@ -49,7 +49,7 @@ export function prepareEffortQualityScoringContext(
           }
           const weight = benchmarkDimensionWeight(key, dimension, scoringConfig.benchmarkPortfolio);
           if (!(weight > 0) || isAggregateIndex(key)) return [];
-          const rawValue = benchmarkMetricValue(model, key);
+          const rawValue = benchmarkValue(model, key);
           if (rawValue == null) return [];
           const value = normalizedQualityBenchmarkValue(
             model,
@@ -61,9 +61,9 @@ export function prepareEffortQualityScoringContext(
           return value == null ? [] : [{ key, value, weight }];
         }),
       }));
-      for (const target of variants) {
+      for (const target of variantInputs) {
         const observedKeys = new Set(target.inputs.map(({ key }) => key));
-        const referenceVariants = variants
+        const referenceVariants = variantInputs
           .flatMap((referenceVariant) => {
             if (
               canonicalReasoningEffort(referenceVariant.model.reasoning_effort) ===

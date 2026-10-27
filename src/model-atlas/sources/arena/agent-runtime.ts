@@ -2,10 +2,10 @@
 
 import { SNAPSHOT_TABLES } from "../../database/tables";
 import type { DatabaseWriter } from "../../database/writers/database";
-import { asFiniteNumber, stringValue } from "../../runtime";
+import { asFiniteNumber, asNonEmptyString } from "../../runtime";
 import { defineBenchmarkRuntime } from "../benchmark-runtime";
-import { type CacheRowSource, firstEpochSecond, sourceCacheRows } from "../cache/rows";
-import { sourceKey } from "../snapshots/policy";
+import { type CacheRowSource, firstFetchedAt, sourceCacheRows } from "../cache/rows";
+import { sourceRowKey } from "../snapshots/policy";
 import { snapshotSourceRows } from "../snapshots/row-snapshot";
 import type {
   RawSourceCacheStatus,
@@ -13,7 +13,11 @@ import type {
   SourceSnapshots,
   SourceSnapshotStatus,
 } from "../types";
-import { type ArenaAgentModelScoreRow, DEFAULT_LEADERBOARD_URL, getArenaAgentStats } from "./agent";
+import {
+  ARENA_AGENT_LEADERBOARD_URL,
+  type ArenaAgentModelScoreRow,
+  getArenaAgentStats,
+} from "./agent";
 import { ARENA_AGENT_DATASET_URL, arenaRefreshIsCurrent } from "./dataset";
 
 type ArenaAgentSnapshot = {
@@ -29,7 +33,7 @@ export const arenaAgentRuntime = defineBenchmarkRuntime({
   snapshot: arenaAgentSnapshot,
   write: insertArenaAgentRawRows,
   sourceRowsKey: "arenaAgentRows",
-  loadSourceRows: async () => (await getArenaAgentStats()).data,
+  fetchSourceRows: async () => (await getArenaAgentStats()).data,
   sourceRowsFromSnapshots: (snapshots) => snapshots.arenaAgentModelScoreRows,
 });
 
@@ -41,18 +45,18 @@ export function readArenaAgentRawCache(cache: CacheRowSource): {
   if (
     cacheRows.length === 0 ||
     cacheRows.some(
-      (row) => ![DEFAULT_LEADERBOARD_URL, ARENA_AGENT_DATASET_URL].includes(String(row.url)),
+      (row) => ![ARENA_AGENT_LEADERBOARD_URL, ARENA_AGENT_DATASET_URL].includes(String(row.url)),
     )
   ) {
     return null;
   }
   const rows = cacheRows.flatMap((row) => {
     const rank = asFiniteNumber(row.rank);
-    const contenderName = stringValue(row.contender_name);
-    const model = stringValue(row.model);
-    const baseModel = stringValue(row.base_model);
-    const reasoningEffort = stringValue(row.reasoning_effort);
-    const organization = stringValue(row.organization);
+    const contenderName = asNonEmptyString(row.contender_name);
+    const model = asNonEmptyString(row.model);
+    const baseModel = asNonEmptyString(row.base_model);
+    const reasoningEffort = asNonEmptyString(row.reasoning_effort);
+    const organization = asNonEmptyString(row.organization);
     const score = asFiniteNumber(row.score);
     return rank != null &&
       contenderName != null &&
@@ -63,7 +67,7 @@ export function readArenaAgentRawCache(cache: CacheRowSource): {
       ? [
           {
             source_url: String(row.url),
-            observed_at: stringValue(row.observed_at),
+            observed_at: asNonEmptyString(row.observed_at),
             rank,
             contender_name: contenderName,
             model,
@@ -76,7 +80,7 @@ export function readArenaAgentRawCache(cache: CacheRowSource): {
         ]
       : [];
   });
-  return rows.length === 0 ? null : { rows, fetchedAt: firstEpochSecond(cacheRows) };
+  return rows.length === 0 ? null : { rows, fetchedAt: firstFetchedAt(cacheRows) };
 }
 
 /** Replace accepted Arena publications as a complete row set; failed or older publications retain cached evidence. */
@@ -97,7 +101,7 @@ async function arenaAgentSnapshot(
     fetchRows: getArenaAgentStats,
     acceptsRefresh: arenaRefreshIsCurrent,
     replaceRowsOnRefresh: true,
-    rowKey: (row) => sourceKey(row.contender_name, row.reasoning_effort),
+    rowKey: (row) => sourceRowKey(row.contender_name, row.reasoning_effort),
     rowLabel: (row) => row.model,
     // Net Improvement and rank belong to the current publication; unavailable costs stay missing.
     mergeRow: (_cachedRow, fetchedRow) => fetchedRow,

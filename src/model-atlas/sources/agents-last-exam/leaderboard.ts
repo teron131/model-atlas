@@ -10,7 +10,7 @@ import { meanOfFinite, medianOfFinite } from "../../math-utils";
 import { asFiniteNumber, asRecord, nowEpochSeconds } from "../../runtime";
 import { fetchSource, scheduleSourceRequest, SourceQueueTimeoutError } from "../request-scheduler";
 
-export const DEFAULT_LEADERBOARD_URL = "https://agents-last-exam.org/leaderboard";
+export const AGENTS_LAST_EXAM_LEADERBOARD_URL = "https://agents-last-exam.org/leaderboard";
 
 const DEFAULT_API_URL = "https://agents-last-exam.org/api/demo/leaderboard";
 
@@ -84,7 +84,7 @@ export async function getAgentsLastExamHarnessStats(
   options: AgentsLastExamScraperOptions = {},
 ): Promise<AgentsLastExamHarnessPayload> {
   const apiUrl = options.apiUrl ?? DEFAULT_API_URL;
-  const url = options.url ?? DEFAULT_LEADERBOARD_URL;
+  const url = options.url ?? AGENTS_LAST_EXAM_LEADERBOARD_URL;
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   try {
     const rows = await fetchApiRows(apiUrl, timeoutMs);
@@ -132,7 +132,7 @@ export function processAgentsLastExamLeaderboardRows(rows: unknown[]): AgentsLas
     .filter((row): row is AgentsLastExamHarnessRow => row != null);
 }
 
-/** The public ALE benchmark keeps the stronger median or mean harness summary. */
+/** The public Agents' Last Exam benchmark keeps the stronger median or mean harness summary. */
 export function agentsLastExamBenchmarkScore(
   row: Pick<AgentsLastExamModelScoreRow, "median_score" | "mean_score">,
 ): number {
@@ -236,7 +236,7 @@ export function buildAgentsLastExamMap(
   return rowsByModelName;
 }
 
-export function findAgentsLastExamModelScore(
+export function findAgentsLastExamModelScoreRow(
   candidateNames: unknown[],
   rowsByModelName: AgentsLastExamRowsByModelName,
 ): AgentsLastExamModelScoreRow | null {
@@ -347,7 +347,7 @@ function asHarnessRow(value: unknown): AgentsLastExamHarnessRow | null {
   };
 }
 
-/** ALE totals sum task-level averages, so distinct evaluated tasks are the normalization denominator. */
+/** Agents' Last Exam totals sum task-level averages, so distinct evaluated tasks are the normalization denominator. */
 function perTask(value: number | null, row: AgentsLastExamHarnessRow): number | null {
   return value != null && row.tasks > 0 ? value / row.tasks : null;
 }

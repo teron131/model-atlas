@@ -5,7 +5,7 @@ import type {
   ModelAtlasColumnTooltipNestedSection,
   ModelAtlasColumnTooltipRow,
 } from "../config/tooltips";
-import { asRecord, stringValue } from "../runtime";
+import { asNonEmptyString, asRecord } from "../runtime";
 import { modelDisplayExclusion } from "../stats/model-visibility";
 import type { ModelAtlasModel, ModelAtlasPayload } from "../stats/types";
 import {
@@ -16,26 +16,26 @@ import {
   communityPlaceLabel,
 } from "./catalog";
 
-const INDEX_RELATIONS = ["=", "≥", ">", "≫"] as const;
-const CANDIDATE_COUNT = 10;
+const CHAIN_RELATIONS = ["=", "≥", ">", "≫"] as const;
+const CANDIDATE_POOL_SIZE = 10;
 const CANDIDATE_RELEASE_MONTHS = 2;
 const PULL = 0.4;
 const MAX_MOVE_POINTS = 5;
-const RANKED_AT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
+const RANKED_AT_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
 
-type IndexRelation = (typeof INDEX_RELATIONS)[number];
-type IndexEntry = { model_id: string; relation?: IndexRelation };
+type ChainRelation = (typeof CHAIN_RELATIONS)[number];
+type ChainEntry = { model_id: string; relation?: ChainRelation };
 
 export type CommunityCandidate = { model_id: string; name: string; release_date: string };
 
 /** Every index shares one immutable version; other fields remain the run's log. */
 export type CommunityRanking = {
   ranked_at: string;
-  indexes: Record<CommunityIndexKey, IndexEntry[][]>;
+  indexes: Record<CommunityIndexKey, ChainEntry[][]>;
 };
 
-export function isCommunityRankedAt(value: string): boolean {
-  return RANKED_AT.test(value) && !Number.isNaN(Date.parse(value));
+export function isValidRankedAt(value: string): boolean {
+  return RANKED_AT_PATTERN.test(value) && !Number.isNaN(Date.parse(value));
 }
 
 /** Sorted by id so the list does not reveal benchmark order. */
@@ -46,7 +46,7 @@ export function communityCandidates(
   const releaseCutoff = shiftMonths(asOf, -CANDIDATE_RELEASE_MONTHS);
   return [...highestVariants(payload).values()]
     .sort((left, right) => right.scores.intelligence_score - left.scores.intelligence_score)
-    .slice(0, CANDIDATE_COUNT)
+    .slice(0, CANDIDATE_POOL_SIZE)
     .filter(
       (model) =>
         model.release_date != null &&
@@ -68,35 +68,35 @@ export function parseCommunityRanking(value: unknown): {
 } {
   const errors: string[] = [];
   const record = asRecord(value);
-  const rankedAt = stringValue(record.ranked_at);
-  if (rankedAt == null || !isCommunityRankedAt(rankedAt)) {
+  const rankedAt = asNonEmptyString(record.ranked_at);
+  if (rankedAt == null || !isValidRankedAt(rankedAt)) {
     errors.push("ranked_at must be a UTC datetime like 2026-10-19T05:00:00Z");
   }
   const indexes = asRecord(record.indexes);
   for (const key of Object.keys(indexes)) {
-    if (!COMMUNITY_INDEXES.some((index) => index.key === key)) {
+    if (!COMMUNITY_INDEXES.some((definition) => definition.key === key)) {
       errors.push(`indexes.${key} is not a supported community index`);
     }
   }
   for (const { key } of COMMUNITY_INDEXES) {
     const field = `indexes.${key}`;
-    const inequalities: unknown[] = Array.isArray(indexes[key]) ? indexes[key] : [];
+    const chains: unknown[] = Array.isArray(indexes[key]) ? indexes[key] : [];
     if (!Array.isArray(indexes[key])) errors.push(`${field} must be an array of chains`);
-    inequalities.forEach((item, chainIndex) => {
+    chains.forEach((item, chainIndex) => {
       const at = `${field}[${chainIndex}]`;
       const chain: unknown[] = Array.isArray(item) ? item : [];
       if (chain.length < 2) errors.push(`${at} must be a list of at least two models`);
       const seen = new Set<string>();
       chain.forEach((value, index) => {
         const entry = asRecord(value);
-        const modelId = stringValue(entry.model_id);
+        const modelId = asNonEmptyString(entry.model_id);
         if (modelId == null) errors.push(`${at}[${index}].model_id is required`);
         else if (seen.has(modelId)) errors.push(`${at} lists ${modelId} more than once`);
         else seen.add(modelId);
         if (index === 0 && entry.relation != null) {
           errors.push(`${at}[0] is the chain's strongest model and has no relation`);
         }
-        if (index > 0 && !INDEX_RELATIONS.includes(entry.relation as IndexRelation)) {
+        if (index > 0 && !CHAIN_RELATIONS.includes(entry.relation as ChainRelation)) {
           errors.push(`${at}[${index}].relation must be one of = ≥ > ≫`);
         }
       });
@@ -135,11 +135,11 @@ export function applyCommunityIndexes(
   const best = highestVariants(payload);
   const scores = new Map([...best].map(([id, model]) => [id, model.scores.intelligence_score]));
   const indexes = COMMUNITY_INDEXES.map((definition) => {
-    const inequalities = ranking.indexes[definition.key];
-    const order = indexOrder(inequalities);
+    const chains = ranking.indexes[definition.key];
+    const order = indexOrder(chains);
     return {
       definition,
-      inequalities,
+      chains,
       places: indexPlaces(order),
       targets: indexTargets(order, scores),
     };
@@ -161,9 +161,9 @@ export function applyCommunityIndexes(
   const columnTooltips = Object.fromEntries(
     indexes
       .filter(({ places }) => places.size > 0)
-      .map(({ definition, inequalities, places }) => [
+      .map(({ definition, chains, places }) => [
         definition.columnKey,
-        indexTooltip(definition, ranking.ranked_at, inequalities, places, best),
+        indexTooltip(definition, ranking.ranked_at, chains, places, best),
       ]),
   );
 
@@ -220,13 +220,13 @@ type IndexOrder = {
 };
 
 /** The partial order the chains state, with "=" groups and transitive `below` sets; a group below itself means the chains conflict. */
-function indexOrder(inequalities: readonly (readonly IndexEntry[])[]): IndexOrder {
+function indexOrder(chains: readonly (readonly ChainEntry[])[]): IndexOrder {
   const parent = new Map<string, string>();
   const root = (id: string): string => {
     const next = parent.get(id) ?? id;
     return next === id ? id : root(next);
   };
-  for (const chain of inequalities) {
+  for (const chain of chains) {
     chain.forEach((entry, index) => {
       if (!parent.has(entry.model_id)) parent.set(entry.model_id, entry.model_id);
       if (entry.relation === "=") {
@@ -248,7 +248,7 @@ function indexOrder(inequalities: readonly (readonly IndexEntry[])[]): IndexOrde
     groups[group]!.push(id);
   }
   const directlyBelow = groups.map(() => new Set<number>());
-  for (const chain of inequalities) {
+  for (const chain of chains) {
     chain.forEach((entry, index) => {
       if (index === 0 || entry.relation === "=") return;
       directlyBelow[groupOf.get(chain[index - 1]!.model_id)!]!.add(groupOf.get(entry.model_id)!);
@@ -328,15 +328,15 @@ function indexTargets(order: IndexOrder, scores: ReadonlyMap<string, number>): M
 }
 
 function indexTooltip(
-  index: CommunityIndex,
+  definition: CommunityIndex,
   rankedAt: string,
-  inequalities: readonly (readonly IndexEntry[])[],
+  chains: readonly (readonly ChainEntry[])[],
   places: ReadonlyMap<string, CommunityIndexPlace>,
   models: ReadonlyMap<string, ModelAtlasModel>,
 ): ModelAtlasColumnTooltip {
-  const chains = inequalities.map(
+  const chainSections = chains.map(
     (chain, index): ModelAtlasColumnTooltipNestedSection => ({
-      title: inequalities.length === 1 ? "Inequality" : `Inequality ${index + 1}`,
+      title: chains.length === 1 ? "Inequality" : `Inequality ${index + 1}`,
       rows: chain.map((entry): ModelAtlasColumnTooltipRow => {
         const name = models.get(entry.model_id)?.name ?? entry.model_id;
         return [
@@ -347,15 +347,15 @@ function indexTooltip(
     }),
   );
   return {
-    title: index.title,
-    body: `${index.description} ${index.label} supplies ${index.weight * 100}% of the shared Intelligence correction.`,
+    title: definition.title,
+    body: `${definition.description} ${definition.label} supplies ${definition.weight * 100}% of the shared Intelligence correction.`,
     rows: [
       ["Source", "Reddit and YouTube users' experiences"],
       ["Candidates", "Intelligence top 10 released within two months"],
       ["Intelligence", "40% toward the blended targets, capped at 5 points per model"],
       ["Ranked", `${rankedAt.slice(0, 16).replace("T", " ")} UTC`],
     ],
-    sections: [{ title: "Inequalities", hideTitle: true, rows: chains }],
+    sections: [{ title: "Inequalities", hideTitle: true, rows: chainSections }],
   };
 }
 

@@ -64,7 +64,7 @@ export function buildRiemannBenchMap(
 ): RiemannBenchRowsByModelName {
   const rowsByModelName: RiemannBenchRowsByModelName = new Map();
   for (const row of rows) {
-    for (const key of modelKeyCandidates(row.model, row.provider)) {
+    for (const key of riemannBenchKeyCandidates(row.model, row.provider)) {
       rowsByModelName.set(key, row);
     }
   }
@@ -79,7 +79,7 @@ export function findRiemannBenchScore(
     if (typeof candidateName !== "string" || candidateName.length === 0) {
       continue;
     }
-    for (const key of modelKeyCandidates(candidateName)) {
+    for (const key of riemannBenchKeyCandidates(candidateName)) {
       const row = riemannBenchRowsByModelName.get(key);
       if (row) {
         return row.score;
@@ -89,7 +89,7 @@ export function findRiemannBenchScore(
   return null;
 }
 
-function modelKeyCandidates(model: string, provider: string | null = null): string[] {
+function riemannBenchKeyCandidates(model: string, provider: string | null = null): string[] {
   const withoutParenthetical = model.replace(/\s*\([^)]*\)/g, "").trim();
   const withoutCreator = modelNameWithoutCreatorPrefix(withoutParenthetical, provider);
   const slashParts = withoutParenthetical

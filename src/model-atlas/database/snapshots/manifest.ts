@@ -26,7 +26,7 @@ export const SNAPSHOT_MANIFEST_OBJECT = "current.json";
 const RECOVERY_VERSION_COUNT = 3;
 const decompress = promisify(gunzip);
 
-export function snapshotBucket(): string {
+export function publicSnapshotBucket(): string {
   const bucket = process.env.MODEL_ATLAS_SNAPSHOT_BUCKET;
   if (!bucket || !/^[a-z0-9][a-z0-9._-]+[a-z0-9]$/.test(bucket)) {
     throw new Error("MODEL_ATLAS_SNAPSHOT_BUCKET must name the public GCS snapshot bucket");
@@ -150,7 +150,7 @@ function canonicalSnapshotData(value: unknown): unknown {
   return value;
 }
 
-export function snapshotHash(bytes: Uint8Array): string {
+export function artifactSha256(bytes: Uint8Array): string {
   return createHash("sha256").update(bytes).digest("hex");
 }
 
@@ -160,7 +160,7 @@ function isHash(value: unknown): value is string {
 
 /** Verify the compressed artifact before decompression; corrupt snapshots never replace a cached good version. */
 export async function decodeSnapshotBytes(bytes: Buffer, expectedHash: string): Promise<Buffer> {
-  if (snapshotHash(bytes) !== expectedHash) {
+  if (artifactSha256(bytes) !== expectedHash) {
     throw new Error("GCS snapshot checksum mismatch");
   }
   return decompress(bytes);
@@ -199,7 +199,7 @@ export async function decodeIntelligenceIndex(
 export function parseSnapshotPayload(bytes: Buffer): ModelAtlasPayload {
   const payload: unknown = JSON.parse(bytes.toString("utf8"));
   if (!isModelAtlasPayload(payload) || !Number.isSafeInteger(payload.fetched_at_epoch_seconds)) {
-    throw new Error("GCS contains an invalid dashboard snapshot");
+    throw new Error("GCS contains an invalid snapshot payload");
   }
   return payload;
 }

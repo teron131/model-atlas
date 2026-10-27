@@ -7,7 +7,7 @@ import { prepareBenchmarkImputation } from "../pipeline/scores/imputation/benchm
 import type {
   HistoricalBenchmark,
   HistoricalDataset,
-  TimelineBenchmarkEvidence,
+  TimelineEvidenceCell,
   TimelineParameters,
   TimelinePredictor,
 } from "./schemas";
@@ -25,7 +25,7 @@ const cache = new WeakMap<HistoricalDataset, Map<string, ReturnType<typeof build
 export function prepareTimelineBenchmarkEvidence(
   data: HistoricalDataset,
   parameters: TimelineParameters,
-): { cells: TimelineBenchmarkEvidence[]; predictors: TimelinePredictor[] } {
+): { cells: TimelineEvidenceCell[]; predictors: TimelinePredictor[] } {
   const key = JSON.stringify(parameters);
   if (data.prepared && JSON.stringify(data.prepared.parameters) === key)
     return data.prepared.evidence;
@@ -58,12 +58,12 @@ function buildEvidence(data: HistoricalDataset, parameters: TimelineParameters) 
         byId.get(observation.modelId)!,
         definition.key.replace(/^atlas_benchmark_/, ""),
       ) &&
-      informativeBenchmark(definition, observation.value, parameters)
+      isInformativeValue(definition, observation.value, parameters)
     )
       byId.get(observation.modelId)!.benchmarks[definition.id] = observation.value;
   }
   const predictors: TimelinePredictor[] = [];
-  const cells: TimelineBenchmarkEvidence[] = [];
+  const cells: TimelineEvidenceCell[] = [];
   for (const task of tasks) {
     const related = tasks
       .filter(
@@ -95,7 +95,7 @@ function buildEvidence(data: HistoricalDataset, parameters: TimelineParameters) 
           value: observation.value,
           observed: true,
           confidence: 1,
-          informative: informativeBenchmark(task, observation.value, parameters),
+          informative: isInformativeValue(task, observation.value, parameters),
           inputs: [task.id],
           viaIndex: false,
         });
@@ -111,7 +111,7 @@ function buildEvidence(data: HistoricalDataset, parameters: TimelineParameters) 
       }
       const candidates = [context, ...indexContexts].flatMap((predictor) => {
         const prediction = predictor?.predict(row);
-        return prediction && informativeBenchmark(task, prediction.value, parameters)
+        return prediction && isInformativeValue(task, prediction.value, parameters)
           ? [{ ...prediction, predictor: predictor! }]
           : [];
       });
@@ -224,7 +224,7 @@ function prepareImputation(
 }
 
 /** Retain endpoints as measurements, but exclude near-floor and near-ceiling probability scores from exact transfers. */
-export function informativeBenchmark(
+export function isInformativeValue(
   benchmark: HistoricalBenchmark,
   value: number,
   parameters: TimelineParameters,

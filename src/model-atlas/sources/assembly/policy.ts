@@ -6,7 +6,7 @@ import {
   modelSlugFromModelId,
   normalizeModelToken,
   normalizeProviderModelId,
-  PRIMARY_PROVIDER_ID,
+  OPENROUTER_PROVIDER_ID,
   providerPreferenceRank,
 } from "../../identity/normalization";
 import {
@@ -41,7 +41,7 @@ export function pickPreferredModelsDevRows<Model extends ModelsDevFlatModel>(
 ): Model[] {
   const preferredModels = modelsDevModels.filter(
     (modelsDevModel) =>
-      modelsDevModel.provider_id === PRIMARY_PROVIDER_ID ||
+      modelsDevModel.provider_id === OPENROUTER_PROVIDER_ID ||
       FALLBACK_PROVIDER_IDS.has(modelsDevModel.provider_id),
   );
   const byModelId = new Map<string, Model>();

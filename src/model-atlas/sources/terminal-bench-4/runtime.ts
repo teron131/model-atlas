@@ -3,10 +3,10 @@
 import { BENCHMARK_RESOURCE_PROFILES } from "../../benchmarks/catalog/portfolio";
 import { SNAPSHOT_TABLES } from "../../database/tables";
 import type { DatabaseWriter } from "../../database/writers/database";
-import { asFiniteNumber, stringValue } from "../../runtime";
+import { asFiniteNumber, asNonEmptyString } from "../../runtime";
 import { defineBenchmarkRuntime } from "../benchmark-runtime";
-import { type CacheRowSource, firstEpochSecond, sourceCacheRows } from "../cache/rows";
-import { sourceKey } from "../snapshots/policy";
+import { type CacheRowSource, firstFetchedAt, sourceCacheRows } from "../cache/rows";
+import { sourceRowKey } from "../snapshots/policy";
 import { snapshotSourceRows } from "../snapshots/row-snapshot";
 import type {
   RawSourceCacheStatus,
@@ -18,11 +18,11 @@ import {
   getTerminalBench4Stats,
   TERMINAL_BENCH_4_LEADERBOARD_URL,
   TERMINAL_BENCH_4_SOURCE_REVISION,
-  type TerminalBench4ModelAgentRow,
+  type TerminalBench4ModelHarnessRow,
 } from "./leaderboard";
 
 type TerminalBench4Snapshot = {
-  terminalBench4Rows: TerminalBench4ModelAgentRow[];
+  terminalBench4Rows: TerminalBench4ModelHarnessRow[];
   sourceStatus: SourceSnapshotStatus;
 };
 
@@ -34,13 +34,13 @@ export const terminalBench4Runtime = defineBenchmarkRuntime({
   snapshot: terminalBench4Snapshot,
   write: insertTerminalBench4RawRows,
   sourceRowsKey: "terminalBench4Rows",
-  loadSourceRows: async () => (await getTerminalBench4Stats()).data,
+  fetchSourceRows: async () => (await getTerminalBench4Stats()).data,
   sourceRowsFromSnapshots: (snapshots) => snapshots.terminalBench4Rows,
 });
 
 /** Reconstruct the cache only when every persisted row matches the current source revision. */
 export function readTerminalBench4RawCache(cache: CacheRowSource): {
-  rows: TerminalBench4ModelAgentRow[];
+  rows: TerminalBench4ModelHarnessRow[];
   fetchedAt: number | null;
 } | null {
   const cacheRows = sourceCacheRows(
@@ -51,16 +51,16 @@ export function readTerminalBench4RawCache(cache: CacheRowSource): {
     cacheRows.length === 0 ||
     cacheRows.some(
       (row) =>
-        stringValue(row.url) !== TERMINAL_BENCH_4_LEADERBOARD_URL ||
-        stringValue(row.revision) !== TERMINAL_BENCH_4_SOURCE_REVISION,
+        asNonEmptyString(row.url) !== TERMINAL_BENCH_4_LEADERBOARD_URL ||
+        asNonEmptyString(row.revision) !== TERMINAL_BENCH_4_SOURCE_REVISION,
     )
   ) {
     return null;
   }
-  const rows = cacheRows.flatMap<TerminalBench4ModelAgentRow>((row) => {
-    const model = stringValue(row.model);
-    const baseModel = stringValue(row.base_model);
-    const harness = stringValue(row.harness);
+  const rows = cacheRows.flatMap<TerminalBench4ModelHarnessRow>((row) => {
+    const model = asNonEmptyString(row.model);
+    const baseModel = asNonEmptyString(row.base_model);
+    const harness = asNonEmptyString(row.harness);
     const score = asFiniteNumber(row.score);
     const scoreCi95HalfWidth = asFiniteNumber(row.score_ci95_half_width);
     const taskRunCount = asFiniteNumber(row.task_run_count);
@@ -91,7 +91,7 @@ export function readTerminalBench4RawCache(cache: CacheRowSource): {
         revision: TERMINAL_BENCH_4_SOURCE_REVISION,
         model,
         base_model: baseModel,
-        reasoning_effort: stringValue(row.reasoning_effort),
+        reasoning_effort: asNonEmptyString(row.reasoning_effort),
         harness,
         score,
         score_ci95_half_width: scoreCi95HalfWidth,
@@ -105,7 +105,7 @@ export function readTerminalBench4RawCache(cache: CacheRowSource): {
       },
     ];
   });
-  return rows.length === cacheRows.length ? { rows, fetchedAt: firstEpochSecond(cacheRows) } : null;
+  return rows.length === cacheRows.length ? { rows, fetchedAt: firstFetchedAt(cacheRows) } : null;
 }
 
 /** Refresh every model-agent observation while keeping effort and harness in row identity. */
@@ -128,7 +128,7 @@ async function terminalBench4Snapshot(
     previousMissingSince,
     nowEpochSeconds,
     fetchRows: getTerminalBench4Stats,
-    rowKey: (row) => sourceKey(row.base_model, row.reasoning_effort, row.harness),
+    rowKey: (row) => sourceRowKey(row.base_model, row.reasoning_effort, row.harness),
     rowLabel: (row) => `${row.model}: ${row.harness}`,
     editions: { editionOf: (row) => row.revision },
   });

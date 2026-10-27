@@ -16,17 +16,15 @@ import {
   buildObservationBenchmarks,
 } from "../src/model-atlas/pipeline/benchmark-rows";
 import type { ModelAtlasCandidate, ModelAtlasModel } from "../src/model-atlas/pipeline/model-types";
-import {
-  buildTaskMetrics,
-  versionCandidateBenchmarkData,
-} from "../src/model-atlas/pipeline/selection/candidate";
-import { prepareVersionReplacementBenchmarkRows } from "../src/model-atlas/pipeline/selection/version-replacement";
+import { versionCandidateBenchmarkData } from "../src/model-atlas/pipeline/selection/benchmark-versioning";
+import { buildTaskMetrics } from "../src/model-atlas/pipeline/selection/candidate";
+import { dropStaleReplacementBenchmarks } from "../src/model-atlas/pipeline/selection/version-replacement";
 import type { AleBenchModelScoreRow } from "../src/model-atlas/sources/ale-bench/leaderboard";
 import type { ArenaAgentModelScoreRow } from "../src/model-atlas/sources/arena/agent";
 import type { ArtificialAnalysisBenchmarkResourceRow } from "../src/model-atlas/sources/artificial-analysis/benchmark-resources";
 import { buildDeepSWEMap } from "../src/model-atlas/sources/deep-swe/leaderboard";
 import type { FrontierCodeModelEffortRow } from "../src/model-atlas/sources/frontier-code/leaderboard";
-import type { TerminalBench4ModelAgentRow } from "../src/model-atlas/sources/terminal-bench-4/leaderboard";
+import type { TerminalBench4ModelHarnessRow } from "../src/model-atlas/sources/terminal-bench-4/leaderboard";
 import { buildValsIndexMap } from "../src/model-atlas/sources/vals/index-benchmark";
 import type { VendingBench2ModelScoreRow } from "../src/model-atlas/sources/vending-bench-2/leaderboard";
 
@@ -112,7 +110,7 @@ const frontierCodeRow: FrontierCodeModelEffortRow = {
   cost_per_task_usd: 0.75,
   tokens_per_task: 4_500,
 };
-const terminalBench4Row: TerminalBench4ModelAgentRow = {
+const terminalBench4Row: TerminalBench4ModelHarnessRow = {
   revision: "4_0_0",
   model: "Example Model (high)",
   base_model: "Example Model",
@@ -541,7 +539,7 @@ assert.deepEqual(buildTaskMetrics(null, defaultVariantAssignment.scoringSources)
     tokens: 1_000,
   },
 });
-const replacementRows = prepareVersionReplacementBenchmarkRows(
+const replacementRows = dropStaleReplacementBenchmarks(
   [
     {
       id: "example/example-model-0806",
@@ -659,7 +657,7 @@ assert.equal(
   "stale task telemetry should be removed with its benchmark",
 );
 
-const establishedReplacementRows = prepareVersionReplacementBenchmarkRows(
+const establishedReplacementRows = dropStaleReplacementBenchmarks(
   replacementRows,
   [replacementRow as unknown as ModelAtlasModel],
   STAGE_CONFIG.scoring,
@@ -670,7 +668,7 @@ assert.strictEqual(
   "later refreshes should keep already-clean replacement evidence stable",
 );
 
-const laterReplacementRows = prepareVersionReplacementBenchmarkRows(
+const laterReplacementRows = dropStaleReplacementBenchmarks(
   [
     {
       ...replacementRow,

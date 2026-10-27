@@ -8,12 +8,12 @@ import { loadSchemaSql } from "../src/model-atlas/database/schema";
 import { schemaReconciliationPlan } from "../src/model-atlas/database/schema-reconciliation";
 import type { SourceSnapshots } from "../src/model-atlas/sources/types";
 import {
-  DEFAULT_LEADERBOARD_URL,
   getValsIndexStats,
   processValsIndexView,
+  VALS_INDEX_LEADERBOARD_URL,
 } from "../src/model-atlas/sources/vals/index-benchmark";
 import { valsIndexRuntime } from "../src/model-atlas/sources/vals/index-runtime";
-import { getValsSourceStats } from "../src/model-atlas/sources/vals/results";
+import { getValsBenchmarkStats } from "../src/model-atlas/sources/vals/results";
 
 const components = [
   "finance_agent",
@@ -88,7 +88,7 @@ try {
   const schemaSql = await loadSchemaSql();
   db.exec(schemaSql);
   valsIndexRuntime.write(db, {
-    valsIndexRows: index.task_rows,
+    valsIndexTaskScoreRows: index.task_rows,
     fetchedAt: { valsIndex: 1_791_324_553 },
   } as SourceSnapshots);
   const cached = valsIndexRuntime.readCache(db);
@@ -123,7 +123,16 @@ try {
   db.exec(legacyDefinition);
   db.prepare(
     "INSERT INTO vals_index_raw_rows (row_index, url, task, task_label, row_kind, model_id, model, score) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-  ).run(0, DEFAULT_LEADERBOARD_URL, "overall", "Overall", "overall", "test/legacy", "Legacy", 0.64);
+  ).run(
+    0,
+    VALS_INDEX_LEADERBOARD_URL,
+    "overall",
+    "Overall",
+    "overall",
+    "test/legacy",
+    "Legacy",
+    0.64,
+  );
   const catalog = db
     .prepare("SELECT type, name, sql FROM sqlite_master WHERE type IN ('table', 'index')")
     .all();
@@ -161,7 +170,7 @@ const bodies = new Map([
       },
     }),
   ],
-  [DEFAULT_LEADERBOARD_URL, loaderPage("/_astro/benchmark_view_vals_index.fixture.json")],
+  [VALS_INDEX_LEADERBOARD_URL, loaderPage("/_astro/benchmark_view_vals_index.fixture.json")],
   [indexAsset, JSON.stringify(indexView)],
 ]);
 const requests: string[] = [];
@@ -178,7 +187,7 @@ try {
     canonicalTask: "almost",
     sourceUrl: genericUrl,
   };
-  const generic = await getValsSourceStats(definition);
+  const generic = await getValsBenchmarkStats(definition);
   assert.notEqual(generic.fetched_at_epoch_seconds, null);
   assert.equal(generic.data.length, 1);
   assert.equal(generic.data[0]?.canonical_value, 0.423);
@@ -188,7 +197,7 @@ try {
   assert.notEqual(fetchedIndex.fetched_at_epoch_seconds, null);
   assert.deepEqual(fetchedIndex.model_scores, index.model_scores);
   bodies.set(genericAsset, JSON.stringify({ metadata: {}, tasks: {} }));
-  assert.deepEqual(await getValsSourceStats(definition), {
+  assert.deepEqual(await getValsBenchmarkStats(definition), {
     fetched_at_epoch_seconds: null,
     data: [],
   });
