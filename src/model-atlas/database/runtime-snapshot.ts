@@ -265,7 +265,7 @@ function withCurrentMetadata(payload: ModelAtlasPayload): ModelAtlasPayload {
       availableMetrics: payload.metadata?.available_metrics,
       sourceHealth: payload.metadata?.source_health,
       benchmarkUpdateHealth: payload.metadata?.benchmark_update_health,
-      benchmarkEditions: payload.metadata?.benchmark_editions,
+      benchmarkVersions: payload.metadata?.benchmark_versions,
       availabilitySource: "metadata",
       snapshotPreservationVersion: payload.metadata.scoring.snapshot_preservation_version ?? null,
     }),

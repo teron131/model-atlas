@@ -18,7 +18,7 @@ import type {
 } from "../src/model-atlas/database/writers/database";
 import { SNAPSHOT_PRESERVATION_VERSION } from "../src/model-atlas/stats/payload/snapshot-preservation";
 import type { ModelAtlasModel, ModelAtlasPayload } from "../src/model-atlas/stats/types";
-import { benchmarkEditionId } from "../src/model-atlas/timeline/capability";
+import { benchmarkVersionId } from "../src/model-atlas/timeline/capability";
 import {
   historicalSourceModel,
   resolveHistoricalModelIdentities,
@@ -279,13 +279,13 @@ export function historicalDatasetFromReleases(
   const referenceId = createHash("sha256")
     .update(JSON.stringify({ referenceCapturedAt, referenceRows }))
     .digest("hex");
-  // Checkpoint benchmarks retain their exact stored units and source identity; external editions are separate evidence, not aliases.
+  // Checkpoint benchmarks retain their exact stored units and source identity; external versions are separate evidence, not aliases.
   for (const row of referenceRows) {
     for (const observation of row.benchmarkObservations) {
       const key = observation.benchmark_key;
       const definition = BENCHMARK_CATALOG[key as keyof typeof BENCHMARK_CATALOG];
       if (!definition || !Number.isFinite(observation.value)) continue;
-      const id = benchmarkEditionId(key);
+      const id = benchmarkVersionId(key);
       const weights = definition.scoring.dimensionLoadings;
       benchmarks.set(id, {
         id,

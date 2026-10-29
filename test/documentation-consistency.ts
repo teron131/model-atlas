@@ -1,4 +1,4 @@
-/** Check published Markdown formulas, local heading links, edition markers, and registered figure dimensions; editorial choices and mathematical meaning require contextual review. */
+/** Check published Markdown formulas, local heading links, version markers, and registered figure dimensions; editorial choices and mathematical meaning require contextual review. */
 
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
@@ -7,10 +7,10 @@ import { dirname, join, normalize } from "node:path";
 import katex from "katex";
 
 import {
-  CATALOG_EDITIONS,
+  CATALOG_VERSIONS,
   documentAssetPath,
   documentImageSize,
-  fillEditionMarkers,
+  fillVersionMarkers,
   headingId,
   METHODOLOGY_ASSET_NAMES,
 } from "../app/methodology/documents";
@@ -28,7 +28,7 @@ for (const file of files) {
   const math = mathExpressions(prose);
 
   try {
-    fillEditionMarkers(prose, CATALOG_EDITIONS);
+    fillVersionMarkers(prose, CATALOG_VERSIONS);
   } catch (error) {
     problems.push(`${file}: ${String(error)}; add a catalog version`);
   }

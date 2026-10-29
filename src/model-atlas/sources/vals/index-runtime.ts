@@ -10,7 +10,7 @@ import {
   snapshotRows,
   snapshotRowsWithStates,
   sourceRowKey,
-  withoutSupersededEditions,
+  withoutSupersededVersions,
 } from "../snapshots/policy";
 import { shouldUseFetchedRows, snapshotFetchedAt } from "../snapshots/row-snapshot";
 import type {
@@ -114,8 +114,8 @@ async function valsIndexSnapshot(
   );
   const cachedRows =
     hasUsableFetchedRows && cached != null
-      ? withoutSupersededEditions(cached.rows, fetchedRows, {
-          editionOf: (row) => row.metadata.benchmark_version,
+      ? withoutSupersededVersions(cached.rows, fetchedRows, {
+          versionOf: (row) => row.metadata.benchmark_version,
         })
       : cached?.rows;
   const rows = snapshotRows(

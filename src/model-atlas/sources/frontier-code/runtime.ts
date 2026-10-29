@@ -44,7 +44,7 @@ export const frontierCodeRuntime = defineBenchmarkRuntime({
   sourceRowsFromSnapshots: (snapshots) => snapshots.frontierCodeRows,
 });
 
-/** Reconstruct every FrontierCode effort only when all rows share one persisted revision and both subsets are complete. */
+/** Reconstruct every FrontierCode effort only when all rows share one persisted revision and carry complete Main metrics. */
 export function readFrontierCodeRawCache(cache: CacheRowSource): {
   rows: FrontierCodeModelEffortRow[];
   fetchedAt: number | null;
@@ -73,7 +73,6 @@ export function readFrontierCodeRawCache(cache: CacheRowSource): {
     const officialRank = asFiniteNumber(row.official_rank);
     const officialBestEffort = booleanFromSql(row.official_best_effort);
     const main = processFrontierCodeSubsetMetrics(jsonValue(row.main_json));
-    const extended = processFrontierCodeSubsetMetrics(jsonValue(row.extended_json));
     if (
       model == null ||
       baseModel == null ||
@@ -82,8 +81,7 @@ export function readFrontierCodeRawCache(cache: CacheRowSource): {
       scoreEligible == null ||
       officialRank == null ||
       officialBestEffort == null ||
-      main == null ||
-      extended == null
+      main == null
     ) {
       return [];
     }
@@ -99,7 +97,6 @@ export function readFrontierCodeRawCache(cache: CacheRowSource): {
         official_rank: officialRank,
         official_best_effort: officialBestEffort,
         main,
-        extended,
         score: main.score,
         cost_per_task_usd: main.cost_per_task_usd,
         tokens_per_task: main.tokens_per_task,
@@ -117,7 +114,6 @@ function buildFrontierCodeStoredSubset(metrics: FrontierCodeSubsetMetrics) {
     cost: metrics.cost_per_task_usd,
     tokens: metrics.tokens_per_task,
     tool_calls: metrics.tool_calls_per_task,
-    steps: metrics.steps_per_task,
     ote: metrics.output_token_equivalent_per_task,
   };
 }
@@ -138,7 +134,7 @@ async function frontierCodeSnapshot(
     previousMissingSince,
     nowEpochSeconds,
     fetchRows: getFrontierCodeStats,
-    editions: { editionOf: (row) => row.revision },
+    versions: { versionOf: (row) => row.revision },
     rowKey: (row) => sourceRowKey(row.base_model, row.source_effort),
     rowLabel: (row) => `${row.model}: ${row.harness}`,
   });
@@ -154,16 +150,15 @@ async function frontierCodeSnapshot(
   };
 }
 
-/** Insert all FrontierCode effort and subset evidence while retaining the Main scoring projection. */
+/** Insert all FrontierCode effort and Main subset evidence while retaining the Main scoring projection. */
 function insertFrontierCodeRawRows(db: DatabaseWriter, snapshots: SourceSnapshots): void {
   const statement = db.prepare(`
 		INSERT INTO frontier_code_raw_rows (
 			row_index, fetched_at_epoch_seconds, url, revision, model, base_model,
 			source_effort, reasoning_effort, harness, score_eligible,
 			official_rank, official_best_effort, main_score, main_pass_rate,
-			main_cost_per_task_usd, main_tokens_per_task, extended_score,
-			extended_pass_rate, main_json, extended_json
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			main_cost_per_task_usd, main_tokens_per_task, main_json
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
   for (const [index, row] of snapshots.frontierCodeRows.entries()) {
     statement.run(
@@ -183,10 +178,7 @@ function insertFrontierCodeRawRows(db: DatabaseWriter, snapshots: SourceSnapshot
       row.main.pass_rate,
       row.main.cost_per_task_usd,
       row.main.tokens_per_task,
-      row.extended.score,
-      row.extended.pass_rate,
       JSON.stringify(buildFrontierCodeStoredSubset(row.main)),
-      JSON.stringify(buildFrontierCodeStoredSubset(row.extended)),
     );
   }
 }

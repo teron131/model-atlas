@@ -2,6 +2,7 @@
 
 import assert from "node:assert/strict";
 
+import { ARTIFICIAL_ANALYSIS_INDEX_COMPONENTS } from "../src/model-atlas/benchmarks/index-policy";
 import { STAGE_CONFIG } from "../src/model-atlas/config";
 import {
   ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES,
@@ -21,12 +22,15 @@ import {
   type DeepSWERawLeaderboardRow,
   preferredDeepSWELeaderboardRows,
 } from "../src/model-atlas/sources/deep-swe/leaderboard";
-import { processFrontierCodePayload } from "../src/model-atlas/sources/frontier-code/leaderboard";
+import {
+  frontierCodeVersion,
+  processFrontierCodePayload,
+} from "../src/model-atlas/sources/frontier-code/leaderboard";
 import {
   mergeCachedSourceRows,
   snapshotRows,
   snapshotRowsWithStates,
-  withoutSupersededEditions,
+  withoutSupersededVersions,
 } from "../src/model-atlas/sources/snapshots/policy";
 import { snapshotSourceRows } from "../src/model-atlas/sources/snapshots/row-snapshot";
 
@@ -115,6 +119,7 @@ const refreshedIndex = mergeArtificialAnalysisRow(
     modelCreatorSlug: "openai",
     shortName: "GPT-5.5 (high)",
     intelligenceIndex: 37.29,
+    intelligenceIndexComponents: Object.keys(ARTIFICIAL_ANALYSIS_INDEX_COMPONENTS),
     intelligenceIndexCostPerTask: { cost: { total: 1.54 } },
     intelligenceIndexOutputTokensPerTask: null,
   },
@@ -318,14 +323,13 @@ const activeResourceRows = ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.map((pag
   ...effortResourceRow("high", 100),
   benchmark_key: page.benchmark_key,
   source_url: page.url,
-  task_run_count: page.task_run_count,
 }));
 const retiredResourceRow = { ...effortResourceRow("high", 100), benchmark_key: "tau_banking" };
 const cachedResourceRows = [...activeResourceRows, retiredResourceRow];
 const previousPageRow = {
   ...activeResourceRows[0]!,
   reasoning_effort: "low",
-  source_url: `${activeResourceRows[0]!.source_url}-previous-edition`,
+  source_url: `${activeResourceRows[0]!.source_url}-previous-version`,
 };
 const activeResourceKey = artificialAnalysisBenchmarkResourceRowKey(activeResourceRows[0]!);
 const retiredResourceKey = artificialAnalysisBenchmarkResourceRowKey(retiredResourceRow);
@@ -358,41 +362,41 @@ assert.deepEqual(
   "Retired AA benchmark resource rows remain cached but leave public source health",
 );
 
-const editionRows = (edition: string | null, model: string) => ({ model, edition });
-const byEdition = { editionOf: (row: { edition: string | null }) => row.edition };
+const versionRows = (version: string | null, model: string) => ({ model, version });
+const byVersion = { versionOf: (row: { version: string | null }) => row.version };
 assert.deepEqual(
-  withoutSupersededEditions(
-    [editionRows("1", "a"), editionRows("1", "b")],
-    [editionRows("1.1", "a")],
-    byEdition,
+  withoutSupersededVersions(
+    [versionRows("1", "a"), versionRows("1", "b")],
+    [versionRows("1.1", "a")],
+    byVersion,
   ),
   [],
-  "A source that publishes another edition replaces its cached rows",
+  "A source that publishes another version replaces its cached rows",
 );
 assert.deepEqual(
-  withoutSupersededEditions([editionRows("1", "a")], [editionRows("1", "a")], byEdition),
-  [editionRows("1", "a")],
+  withoutSupersededVersions([versionRows("1", "a")], [versionRows("1", "a")], byVersion),
+  [versionRows("1", "a")],
 );
 assert.deepEqual(
-  withoutSupersededEditions(
-    [editionRows(null, "mirror"), editionRows("3", "creator")],
-    [editionRows("3", "creator")],
-    byEdition,
+  withoutSupersededVersions(
+    [versionRows(null, "mirror"), versionRows("3", "creator")],
+    [versionRows("3", "creator")],
+    byVersion,
   ),
-  [editionRows(null, "mirror"), editionRows("3", "creator")],
-  "Rows without an edition, such as another source's mirror, take no part",
+  [versionRows(null, "mirror"), versionRows("3", "creator")],
+  "Rows without a version, such as another source's mirror, take no part",
 );
 assert.deepEqual(
-  withoutSupersededEditions(
-    [editionRows("v1", "a"), editionRows("v1.1", "a")],
-    [editionRows("v1", "a")],
-    byEdition,
+  withoutSupersededVersions(
+    [versionRows("v1", "a"), versionRows("v1.1", "a")],
+    [versionRows("v1", "a")],
+    byVersion,
   ),
-  [editionRows("v1", "a"), editionRows("v1.1", "a")],
-  "A partial refresh of a multi-artifact source still shares an edition, so it merges",
+  [versionRows("v1", "a"), versionRows("v1.1", "a")],
+  "A partial refresh of a multi-artifact source still shares a version, so it merges",
 );
 
-const seriesRow = (series: string, edition: string, model: string) => ({ series, edition, model });
+const seriesRow = (series: string, version: string, model: string) => ({ series, version, model });
 const seriesSnapshot = await snapshotSourceRows({
   source: "artificial_analysis_benchmark_resources",
   cached: {
@@ -414,10 +418,10 @@ const seriesSnapshot = await snapshotSourceRows({
   }),
   rowKey: (row) => `${row.series}|${row.model}`,
   rowLabel: (row) => row.model,
-  editions: { editionOf: (row) => row.edition, seriesOf: (row) => row.series },
+  versions: { versionOf: (row) => row.version, seriesOf: (row) => row.series },
 });
 assert.deepEqual(
-  seriesSnapshot.rows.map((row) => `${row.series}${row.edition}:${row.model}`).sort(),
+  seriesSnapshot.rows.map((row) => `${row.series}${row.version}:${row.model}`).sort(),
   ["a2:x", "b1:w", "b1:z"],
   "A benchmark that publishes a new version replaces its own cached rows while the source's other benchmarks still merge",
 );
@@ -451,37 +455,43 @@ assert.deepEqual(
   "A scraper that throws keeps its cached rows and fetch time instead of failing the refresh",
 );
 
-const frontierCodeRevision = (score: number) => ({
-  models: ["GPT-6 Astra"],
-  harness: { "GPT-6 Astra": "codex" },
-  efforts: { "GPT-6 Astra": ["max"] },
-  subsets: { main: 100, extended: 150 },
+const frontierCodeArtifact = {
+  models: ["GPT-6 Astra", "SWE-2"],
+  harness: { "GPT-6 Astra": "codex", "SWE-2": "devin" },
+  efforts: { "GPT-6 Astra": ["high", "max"], "SWE-2": ["max"] },
+  subsets: { main: 132 },
   data: {
     "GPT-6 Astra": {
-      max: {
-        main: { correct: score, new_score: score },
-        extended: { correct: score, new_score: score },
-      },
+      high: { main: { correct: 0.5, new_score: 0.45, cost: 1.2, tokens: 9_000, ote: null } },
+      max: { main: { correct: 0.6, new_score: 0.55, cost: 2.4, tokens: 18_000, ote: null } },
     },
+    "SWE-2": { max: { main: { correct: 0.3, new_score: 0.25, cost: null, tokens: null } } },
   },
-});
+};
 assert.deepEqual(
-  processFrontierCodePayload({
-    v1: frontierCodeRevision(0.4),
-    v1_1: frontierCodeRevision(0.5),
-    v1_10: frontierCodeRevision(0.6),
-  }).map((row) => [row.revision, row.score]),
-  [["v1_10", 0.6]],
-  "FrontierCode follows the newest revision in its shared artifact",
+  processFrontierCodePayload(frontierCodeArtifact).map((row) => [
+    frontierCodeVersion(row.revision),
+    row.model,
+    row.score,
+    row.cost_per_task_usd,
+    row.score_eligible,
+    row.official_rank,
+    row.official_best_effort,
+  ]),
+  [
+    ["2.0", "GPT-6 Astra (high)", 0.45, 1.2, true, 1, false],
+    ["2.0", "GPT-6 Astra (max)", 0.55, 2.4, true, 1, true],
+    ["2.0", "SWE-2 (max)", 0.25, null, false, 2, true],
+  ],
+  "FrontierCode reads every 2.0 Main effort as version 2.0 and keeps Cognition's own systems out of scoring",
 );
-assert.deepEqual(
-  processFrontierCodePayload({
-    v1_1: frontierCodeRevision(0.5),
-    v1_2: { ...frontierCodeRevision(0.6), subsets: { main: 120, extended: 150 } },
-  }),
-  [],
-  "A newest revision with another subset layout yields no rows",
-);
+for (const subsets of [{ main: 100 }, { main: 132, extended: 150 }]) {
+  assert.deepEqual(
+    processFrontierCodePayload({ ...frontierCodeArtifact, subsets }),
+    [],
+    "An artifact with another subset layout yields no rows",
+  );
+}
 
 const deepSWERow = (
   source_version: DeepSWERawLeaderboardRow["source_version"],
@@ -507,5 +517,5 @@ assert.deepEqual(
     deepSWERow("v1", "older-only-model"),
   ]).map((row) => row.model),
   ["shared-model"],
-  "DeepSWE scores only its newest artifact instead of filling gaps from the previous edition",
+  "DeepSWE scores only its newest artifact instead of filling gaps from the previous version",
 );

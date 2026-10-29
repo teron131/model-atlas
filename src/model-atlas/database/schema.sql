@@ -54,15 +54,15 @@ CREATE TABLE IF NOT EXISTS artificial_analysis_raw_models (
 	median_time_to_first_token_seconds REAL,
 	median_end_to_end_response_time_seconds REAL,
 	intelligence_index REAL,
+	intelligence_index_version TEXT,
+	intelligence_index_components TEXT,
 	agentic_index REAL,
 	coding_index REAL,
 	omniscience_index REAL,
 	omniscience_accuracy REAL,
 	apex_agents REAL,
-	critpt REAL,
 	gdpval_normalized REAL,
 	gpqa REAL,
-	hle REAL,
 	itbench_sre REAL,
 	mmmu_pro REAL,
 	scicode REAL,
@@ -334,10 +334,7 @@ CREATE TABLE IF NOT EXISTS frontier_code_raw_rows (
 	main_pass_rate REAL NOT NULL,
 	main_cost_per_task_usd REAL,
 	main_tokens_per_task REAL,
-	extended_score REAL NOT NULL,
-	extended_pass_rate REAL NOT NULL,
 	main_json TEXT NOT NULL,
-	extended_json TEXT NOT NULL,
 	PRIMARY KEY (row_index)
 );
 

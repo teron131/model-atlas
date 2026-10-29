@@ -52,13 +52,13 @@ export function capabilityModelId(model: Pick<ModelInput, "id" | "reasoning_effo
   return `atlas-model:${publicOpenRouterModelId(model.id)}::${canonicalReasoningEffort(model.reasoning_effort) ?? "unknown"}`;
 }
 
-/** Retain supported archived evidence, discard superseded current-only editions, and never replace a published model/dimension position. */
+/** Retain supported archived evidence, discard superseded current-only versions, and never replace a published model/dimension position. */
 export function advanceCapabilityState(
   previous: CapabilityState,
   models: readonly ModelInput[],
   observedAt: string,
 ): CapabilityState {
-  previous = retainCurrentEditions(previous);
+  previous = retainCurrentVersions(previous);
   const evidence = currentEvidence(models, observedAt);
   const externalIds = previous.dataset.benchmarks
     .filter((benchmark) => !benchmark.primary && !benchmark.key.startsWith("model_atlas_"))
@@ -91,12 +91,12 @@ export function advanceCapabilityState(
 }
 
 /** Removed benchmarks and superseded source revisions stop participating in future fits; frozen coordinates remain published facts. */
-function retainCurrentEditions(state: CapabilityState): CapabilityState {
+function retainCurrentVersions(state: CapabilityState): CapabilityState {
   const selected = new Set(Object.keys(BENCHMARK_CATALOG).map((key) => `atlas_benchmark_${key}`));
   const current = new Map(
     Object.entries(BENCHMARK_CATALOG)
       .filter(([, definition]) => definition.source.revision != null)
-      .map(([key]) => [`atlas_benchmark_${key}`, benchmarkEditionId(key)]),
+      .map(([key]) => [`atlas_benchmark_${key}`, benchmarkVersionId(key)]),
   );
   const removed = new Set(
     [...state.dataset.benchmarks, ...(state.dataset.scale?.benchmarks ?? [])]
@@ -113,7 +113,7 @@ function retainCurrentEditions(state: CapabilityState): CapabilityState {
     .map((benchmark) => {
       const retained = { ...benchmark };
       if (retained.supersededBy && removed.has(retained.supersededBy)) delete retained.supersededBy;
-      if (retained.editions) retained.editions = retained.editions.filter((id) => !removed.has(id));
+      if (retained.versions) retained.versions = retained.versions.filter((id) => !removed.has(id));
       if (retained.componentIds)
         retained.componentIds = retained.componentIds.filter((id) => !removed.has(id));
       return retained;
@@ -286,8 +286,8 @@ function appendPositions(
   return { ...state, positions };
 }
 
-/** Capture provenance never defines a benchmark edition; only the declared measurement and source-crosswalk contract does. */
-export function benchmarkEditionId(key: string): string {
+/** Capture provenance never defines a benchmark version; only the declared measurement and source-crosswalk contract does. */
+export function benchmarkVersionId(key: string): string {
   const definition = BENCHMARK_CATALOG[key as keyof typeof BENCHMARK_CATALOG];
   if (!definition) throw new Error(`Unknown benchmark: ${key}`);
   const contract = {
@@ -303,10 +303,10 @@ export function benchmarkEditionId(key: string): string {
 }
 
 function currentEvidence(models: readonly ModelInput[], observedAt: string) {
-  // Benchmark editions and weights are shared by every model in this refresh.
+  // Benchmark versions and weights are shared by every model in this refresh.
   const catalog = Object.entries(BENCHMARK_CATALOG).map(([key, definition]) => {
     const benchmark: HistoricalBenchmark = {
-      id: benchmarkEditionId(key),
+      id: benchmarkVersionId(key),
       key: `atlas_benchmark_${key}`,
       label: definition.presentation.label,
       kind: (INDEX_BENCHMARK_KEYS as readonly string[]).includes(key) ? "index" : "task",

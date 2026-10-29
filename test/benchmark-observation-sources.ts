@@ -25,7 +25,7 @@ import { parseCsvRecords } from "../src/model-atlas/sources/parsing";
 import {
   mergeCachedSourceRows,
   snapshotRows,
-  withoutSupersededEditions,
+  withoutSupersededVersions,
 } from "../src/model-atlas/sources/snapshots/policy";
 import {
   benchmarkObservationRowKey,
@@ -34,7 +34,7 @@ import {
 import {
   processSurgeBenchmarkPageHtml,
   processSurgeIntelligenceIndexPageHtml,
-  withSurgeEdition,
+  withSurgeVersion,
 } from "../src/model-atlas/sources/surge/results";
 import type { SourceSnapshots } from "../src/model-atlas/sources/types";
 import { processValsBenchmarkView } from "../src/model-atlas/sources/vals/results";
@@ -92,7 +92,7 @@ const frontierMath = epochBenchmarkObservationRows(
   epochRuns,
   "frontiermath_tier_4",
   "FrontierMath-Tier-4-v2-Private",
-  { latestTaskEdition: true },
+  { latestTaskVersion: true },
 );
 assert.equal(frontierMath.length, 2);
 assert.equal(frontierMath[0]?.canonical_value, 0.561);
@@ -114,7 +114,7 @@ const selectedEpochRuns = parseCsvRecords(
     "simple-prior,SimpleQA Verified,2026-08-01,Success,1.1.0,claude-opus-5,Claude Opus 5,Claude Opus 5,Anthropic,0.6,SimpleQA Verified (anti-abstention)\n",
 );
 const simpleQaEligibility = {
-  latestTaskEdition: true,
+  latestTaskVersion: true,
   originalTaskName: "SimpleQA Verified (anti-abstention)",
   excludedModelIds: ["qwen3-max-2025-09-23"],
 } as const;
@@ -135,7 +135,7 @@ assert.deepEqual(
     ["gemini-3-1-pro", "1.2"],
     ["gpt-6-astra", "1.2"],
   ],
-  "The newest major.minor edition pools its patch revisions and excludes earlier editions",
+  "The newest major.minor version pools its patch revisions and excludes earlier versions",
 );
 assert.deepEqual(
   epochBenchmarkObservationRows(
@@ -151,7 +151,7 @@ assert.deepEqual(
     simpleQaEligibility,
   ).map((row) => row.model_id),
   ["gpt-6-1-sol"],
-  "A newer task edition replaces the previous one",
+  "A newer task version replaces the previous one",
 );
 
 const automationBenchRows = processAutomationBenchModule(
@@ -453,8 +453,8 @@ function benchmarkObservationBinding(sourceDataKey: string) {
   return binding;
 }
 
-const observationEditions = {
-  editionOf: (row: BenchmarkObservationRow) => row.metadata.benchmark_version,
+const observationVersions = {
+  versionOf: (row: BenchmarkObservationRow) => row.metadata.benchmark_version,
 };
 
 function valsView(version: string, tasks: Record<string, unknown>) {
@@ -592,9 +592,9 @@ for (const binding of BENCHMARK_OBSERVATION_BINDINGS) {
   const previous = processValsBenchmarkView(valsView("1", tasks(90)), definition);
   const successor = processValsBenchmarkView(valsView("1.1", tasks(90)), definition);
   assert.equal(successor[0]?.metadata.benchmark_version, "1.1");
-  assert.deepEqual(withoutSupersededEditions(previous, previous, observationEditions), previous);
+  assert.deepEqual(withoutSupersededVersions(previous, previous, observationVersions), previous);
   assert.deepEqual(
-    withoutSupersededEditions(previous, successor, observationEditions),
+    withoutSupersededVersions(previous, successor, observationVersions),
     [],
     `${binding.benchmark} must replace its cached rows when the page publishes another version`,
   );
@@ -656,7 +656,7 @@ assert.deepEqual(
   "A new version of the same four-task suite is adopted from the same page",
 );
 assert.deepEqual(
-  withoutSupersededEditions(rsi, rsiNextVersion, observationEditions),
+  withoutSupersededVersions(rsi, rsiNextVersion, observationVersions),
   [],
   "Adopting a new RSI version replaces the cached suite",
 );
@@ -818,19 +818,19 @@ assert.deepEqual(
   [cachedHealthcare],
 );
 const handbookBinding = benchmarkObservationBinding("handbookMd");
-if (handbookBinding.loader.kind !== "surge" || !("edition" in handbookBinding.loader))
-  throw new Error("Expected an edition-pinned Surge loader");
-const handbookEdition = handbookBinding.loader.edition;
+if (handbookBinding.loader.kind !== "surge" || !("version" in handbookBinding.loader))
+  throw new Error("Expected a version-pinned Surge loader");
+const handbookVersion = handbookBinding.loader.version;
 const handbookSource = benchmarkObservationSource(handbookBinding);
 const handbookRow = { ...updatedHealthcare, benchmark_key: "handbook_md" };
 assert.equal(
   handbookSource.acceptsCache?.([handbookRow]),
   false,
-  "Rows from before the HANDBOOK.md rerun cannot rejoin the current edition",
+  "Rows from before the HANDBOOK.md rerun cannot rejoin the current version",
 );
 assert.equal(
   handbookSource.acceptsCache?.(
-    withSurgeEdition({ fetched_at_epoch_seconds: 1, data: [handbookRow] }, handbookEdition).data,
+    withSurgeVersion({ fetched_at_epoch_seconds: 1, data: [handbookRow] }, handbookVersion).data,
   ),
   true,
 );
@@ -1020,7 +1020,7 @@ const handbook = surge.map((row) => ({
   ...row,
   benchmark_key: "handbook_md",
   source_url: "https://surgehq.ai/benchmarks/handbook",
-  metadata: { ...row.metadata, edition: handbookEdition },
+  metadata: { ...row.metadata, declared_version: handbookVersion },
 }));
 const coreCraft = surge.map((row) => ({
   ...row,

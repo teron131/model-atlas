@@ -152,7 +152,7 @@ export function DashboardLeaderboard({
         : tableColumnTooltip(tooltip.key, columnTooltips, {
             models: visibleRows.map((row) => row.model),
             scoring: payload?.metadata.scoring,
-            editions: payload?.metadata.benchmark_editions,
+            versions: payload?.metadata.benchmark_versions,
             unit: rowKind,
           });
   const columnSearchResultLabel = hasSearchQuery(deferredColumnQuery)

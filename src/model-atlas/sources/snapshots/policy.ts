@@ -130,30 +130,30 @@ export function snapshotRows<T>(
 }
 
 /** Where a source's rows record their published version, and which rows share one, such as each benchmark of a multi-benchmark source; the whole source is one series by default. */
-export type EditionRule<T> = {
-  editionOf: (row: T) => unknown;
+export type VersionRule<T> = {
+  versionOf: (row: T) => unknown;
   seriesOf?: (row: T) => string;
 };
 
-/** A series whose refresh shares no published edition with its cached rows is a new edition, so its cached rows are dropped and the refresh replaces them instead of merging, keeping two editions off one scale. Rows without an edition take no part, and a partial refresh of a multi-artifact source still shares an edition, so it merges as usual. */
-export function withoutSupersededEditions<T>(
+/** A series whose refresh shares no published version with its cached rows is a new version, so its cached rows are dropped and the refresh replaces them instead of merging, keeping two versions off one scale. Rows without a version take no part, and a partial refresh of a multi-artifact source still shares a version, so it merges as usual. */
+export function withoutSupersededVersions<T>(
   cachedRows: readonly T[],
   fetchedRows: readonly T[],
-  { editionOf, seriesOf = () => "" }: EditionRule<T>,
+  { versionOf, seriesOf = () => "" }: VersionRule<T>,
 ): T[] {
-  const editions = (rows: readonly T[], series: string) =>
+  const versions = (rows: readonly T[], series: string) =>
     new Set(
       rows
         .filter((row) => seriesOf(row) === series)
-        .map(editionOf)
-        .filter((edition) => edition != null),
+        .map(versionOf)
+        .filter((version) => version != null),
     );
   const supersededSeries = new Set(
     [...new Set(fetchedRows.map(seriesOf))].filter((series) => {
-      const cached = editions(cachedRows, series);
-      const fetched = editions(fetchedRows, series);
+      const cached = versions(cachedRows, series);
+      const fetched = versions(fetchedRows, series);
       return (
-        cached.size > 0 && fetched.size > 0 && [...fetched].every((edition) => !cached.has(edition))
+        cached.size > 0 && fetched.size > 0 && [...fetched].every((version) => !cached.has(version))
       );
     }),
   );

@@ -1,4 +1,4 @@
-/** Changed source measurement contracts receive distinct timeline editions without renaming unrelated historical benchmarks. */
+/** Changed source measurement contracts receive distinct timeline versions without renaming unrelated historical benchmarks. */
 
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
@@ -6,16 +6,19 @@ import { createHash } from "node:crypto";
 import { indexPolicy } from "../src/model-atlas/benchmarks/index-policy";
 import { BENCHMARK_CATALOG } from "../src/model-atlas/benchmarks/registry";
 import { stableJson } from "../src/model-atlas/runtime";
-import { benchmarkEditionId } from "../src/model-atlas/timeline/capability";
+import { benchmarkVersionId } from "../src/model-atlas/timeline/capability";
 
 const changedKeys = [
+  "aa_intelligence_index",
   "chess_puzzles",
   "code_migration",
   "critpt",
   "emb",
   "finance_agent_v2",
+  "frontier_code",
   "frontiermath_tier_4",
   "handbook_md",
+  "hle",
   "rsi_benchmark",
   "vals_index",
 ];
@@ -40,9 +43,9 @@ for (const [key, definition] of Object.entries(BENCHMARK_CATALOG)) {
   };
   const previousId = `atlas:benchmark:${key}:${createHash("sha256").update(stableJson(previousContract)).digest("hex").slice(0, 20)}`;
   if (changedKeys.includes(key)) {
-    assert.notEqual(benchmarkEditionId(key), previousId, `${key} needs a new measurement edition`);
+    assert.notEqual(benchmarkVersionId(key), previousId, `${key} needs a new measurement version`);
   } else {
-    assert.equal(benchmarkEditionId(key), previousId, `${key} retains its existing edition`);
+    assert.equal(benchmarkVersionId(key), previousId, `${key} retains its existing version`);
   }
 }
 
@@ -51,3 +54,4 @@ assert.equal(BENCHMARK_CATALOG.chess_puzzles.source.revision, "2");
 assert.equal(BENCHMARK_CATALOG.chess_puzzles.version, "2");
 assert.equal(BENCHMARK_CATALOG.rsi_benchmark.source.revision, "four_task_reference_mean");
 assert.equal(BENCHMARK_CATALOG.vals_index.source.revision, indexPolicy("vals_index")?.version);
+assert.equal(BENCHMARK_CATALOG.aa_intelligence_index.source.revision, "5.0");

@@ -5,11 +5,11 @@ import { parseModelEffort } from "../../identity/normalization";
 import type { RawSourceName } from "../registry";
 import type { RawSourceCacheStatus, SourceRefreshOptions, SourceRowState } from "../types";
 import {
-  type EditionRule,
   mergeSourceEvidence,
   snapshotRowsWithStates,
   sourceRowKey,
-  withoutSupersededEditions,
+  type VersionRule,
+  withoutSupersededVersions,
 } from "./policy";
 
 type RawRowsCache<Row> = {
@@ -35,7 +35,7 @@ type SourceRowSnapshotConfig<Row> = {
   acceptsRefresh?: (cachedRows: readonly Row[], fetchedRows: readonly Row[]) => boolean;
   replaceRowsOnRefresh?: boolean;
   /** Omitted for sources that publish no version. */
-  editions?: EditionRule<Row>;
+  versions?: VersionRule<Row>;
   rowKey: (row: Row) => string | null;
   rowLabel: (row: Row) => string | null;
   mergeRow?: (cachedRow: Row, fetchedRow: Row) => Row;
@@ -147,8 +147,8 @@ export async function snapshotSourceRows<Row>(
   const snapshot = snapshotRowsWithStates({
     source: config.source,
     cachedRows:
-      hasUsableFetchedRows && config.cached != null && config.editions != null
-        ? withoutSupersededEditions(config.cached.rows, fetched.data, config.editions)
+      hasUsableFetchedRows && config.cached != null && config.versions != null
+        ? withoutSupersededVersions(config.cached.rows, fetched.data, config.versions)
         : config.cached?.rows,
     fetchedRows: fetched.data,
     fetchedAtEpochSeconds: fetched.fetched_at_epoch_seconds,

@@ -3,24 +3,24 @@
 import { BENCHMARK_TOOLTIPS } from "../../src/model-atlas/benchmarks/catalog";
 import { plainScoreText } from "./score-markers";
 
-const EDITION_MARKER = /:edition\[([a-z0-9_]+)\]/g;
+const VERSION_MARKER = /:version\[([a-z0-9_]+)\]/g;
 
-/** Catalog versions stand in wherever the served snapshot has not published a benchmark's edition. */
-export const CATALOG_EDITIONS: Readonly<Record<string, string>> = Object.fromEntries(
+/** Catalog versions stand in wherever the served snapshot has not published a benchmark's version. */
+export const CATALOG_VERSIONS: Readonly<Record<string, string>> = Object.fromEntries(
   Object.entries(BENCHMARK_TOOLTIPS).flatMap(([key, tooltip]) =>
     "version" in tooltip ? [[key, tooltip.version]] : [],
   ),
 );
 
-/** Replace each `:edition[benchmark_key]` marker with that benchmark's current edition; an unresolvable marker is an authoring error. */
-export function fillEditionMarkers(
+/** Replace each `:version[benchmark_key]` marker with that benchmark's current version; an unresolvable marker is an authoring error. */
+export function fillVersionMarkers(
   markdown: string,
-  editions: Readonly<Record<string, string>>,
+  versions: Readonly<Record<string, string>>,
 ): string {
-  return markdown.replace(EDITION_MARKER, (_marker, key: string) => {
-    const edition = editions[key];
-    if (edition == null) throw new Error(`No edition for documentation marker :edition[${key}]`);
-    return edition;
+  return markdown.replace(VERSION_MARKER, (_marker, key: string) => {
+    const version = versions[key];
+    if (version == null) throw new Error(`No version for documentation marker :version[${key}]`);
+    return version;
   });
 }
 

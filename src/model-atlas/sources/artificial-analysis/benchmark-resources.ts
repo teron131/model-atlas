@@ -2,6 +2,7 @@
  * Artificial Analysis benchmark scores and per-task resource measurements from public evaluation pages.
  *
  * Page source: https://artificialanalysis.ai/evaluations
+ * Page source: https://artificialanalysis.ai/methodology/intelligence-benchmarking
  */
 
 import { ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES as BENCHMARK_RESOURCE_PAGES } from "../../benchmarks/registry";
@@ -17,12 +18,15 @@ import {
   mapWithConcurrency,
   nowEpochSeconds,
 } from "../../runtime";
-import { SourceQueueTimeoutError } from "../request-scheduler";
+import { stripHtmlTags } from "../parsing";
+import { fetchSource, SourceQueueTimeoutError } from "../request-scheduler";
 import {
   cleanArtificialAnalysisModelName,
   parseArtificialAnalysisReasoningEffort,
 } from "./model-labels";
 import { getArtificialAnalysisPage } from "./page-data";
+
+const METHODOLOGY_URL = "https://artificialanalysis.ai/methodology/intelligence-benchmarking";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 
@@ -67,12 +71,17 @@ type ArtificialAnalysisBenchmarkResourcePage = {
   score_path?: JsonPath;
   resource_key: string;
   url: string;
-  task_run_count: number;
+  methodology_name: string;
   version?: string;
+};
+
+type RunCountedPage = Omit<ArtificialAnalysisBenchmarkResourcePage, "methodology_name"> & {
+  task_run_count: number;
 };
 
 type ArtificialAnalysisBenchmarkResourceOptions = {
   pages?: readonly ArtificialAnalysisBenchmarkResourcePage[];
+  methodologyUrl?: string;
   timeoutMs?: number;
   concurrency?: number;
 };
@@ -115,7 +124,7 @@ export const ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES = BENCHMARK_RESOURCE_P
     ...(page.scorePath == null ? {} : { score_path: page.scorePath }),
     resource_key: page.resourceKey,
     url: page.url,
-    task_run_count: page.taskRunCount,
+    methodology_name: page.methodologyName,
     ...(page.version == null ? {} : { version: page.version }),
   }),
 );
@@ -126,13 +135,25 @@ export async function getArtificialAnalysisBenchmarkResourceStats(
   const pages = options.pages ?? ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES;
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const concurrency = options.concurrency ?? DEFAULT_CONCURRENCY;
-  const pageResults = await mapWithConcurrency(pages, concurrency, (page) =>
-    getCompleteBenchmarkResourceRows(page, timeoutMs),
-  );
+  if (pages.length === 0) return { fetched_at_epoch_seconds: null, data: [] };
+  let runCounts: ReadonlyMap<string, number>;
+  try {
+    runCounts = await getArtificialAnalysisRunCounts(
+      options.methodologyUrl ?? METHODOLOGY_URL,
+      timeoutMs,
+    );
+  } catch {
+    return { fetched_at_epoch_seconds: null, data: [] };
+  }
+  // A page the methodology table no longer lists cannot be divided into runs, so it completes nothing and its cached rows stay in place.
+  const pageResults = await mapWithConcurrency(pages, concurrency, async (page) => {
+    const taskRunCount = runCounts.get(evaluationName(page.methodology_name));
+    return taskRunCount == null
+      ? []
+      : getCompleteBenchmarkResourceRows({ ...page, task_run_count: taskRunCount }, timeoutMs);
+  });
   const allPagesComplete =
-    pages.length > 0 &&
-    pageResults.length === pages.length &&
-    pageResults.every((rows) => rows.length > 0);
+    pageResults.length === pages.length && pageResults.every((rows) => rows.length > 0);
   const resourceRows = pageResults
     .flat()
     .sort((left, right) =>
@@ -146,9 +167,35 @@ export async function getArtificialAnalysisBenchmarkResourceStats(
   };
 }
 
+/** Each methodology table row gives an evaluation's questions and repeats, whose product is its runs; a name listed twice, or a count given only approximately, resolves to nothing. */
+export function processArtificialAnalysisRunCounts(html: string): Map<string, number> {
+  const runs = new Map<string, number>();
+  const repeatedNames = new Set<string>();
+  for (const table of html.match(/<table[\s\S]*?<\/table>/g) ?? []) {
+    const headers = tableCells(table, "th");
+    const columns = ["Evaluation", "Questions", "Repeats"].map((header) => headers.indexOf(header));
+    if (columns.some((column) => column < 0)) continue;
+    for (const tableRow of table.match(/<tr[\s\S]*?<\/tr>/g) ?? []) {
+      const cells = tableCells(tableRow, "td");
+      if (cells.length === 0) continue;
+      // Leading cells such as the category span several rows, so the rows after the first omit them.
+      const offset = headers.length - cells.length;
+      const [name, questions, repeats] = columns.map((column) => cells[column - offset]);
+      const questionCount = leadingCount(questions);
+      const repeatCount = leadingCount(repeats);
+      if (name == null || questionCount == null || repeatCount == null) continue;
+      const key = evaluationName(name);
+      if (runs.has(key)) repeatedNames.add(key);
+      runs.set(key, questionCount * repeatCount);
+    }
+  }
+  for (const name of repeatedNames) runs.delete(name);
+  return runs;
+}
+
 export function processArtificialAnalysisBenchmarkResourceRows(
   rows: unknown[],
-  page: ArtificialAnalysisBenchmarkResourcePage,
+  page: RunCountedPage,
   version: string | null,
 ): ArtificialAnalysisBenchmarkResourceRow[] {
   if (page.version != null && version !== page.version) return [];
@@ -267,9 +314,39 @@ export function findArtificialAnalysisBenchmarkResourceRow(
   return null;
 }
 
+async function getArtificialAnalysisRunCounts(
+  url: string,
+  timeoutMs: number,
+): Promise<Map<string, number>> {
+  const html = await fetchSource(url, {}, timeoutMs, async (response) => {
+    if (!response.ok) throw new Error(`Artificial Analysis methodology failed: ${response.status}`);
+    return response.text();
+  });
+  return processArtificialAnalysisRunCounts(html);
+}
+
+/** Version tokens are dropped so a methodology row keeps matching its page across versions. */
+function evaluationName(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter((token) => !/^v?\d+(?:\.\d+)*$/.test(token))
+    .join(" ");
+}
+
+function tableCells(html: string, tag: "td" | "th"): string[] {
+  return [...html.matchAll(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`, "g"))].map((match) =>
+    stripHtmlTags(match[1] ?? ""),
+  );
+}
+
+function leadingCount(cell: string | undefined): number | null {
+  const digits = /^\d[\d,]*/.exec(cell ?? "")?.[0];
+  return digits == null ? null : Number(digits.replaceAll(",", ""));
+}
+
 /** Retry one complete dataset once; a preview or missing dataset never advances source freshness. */
 async function getCompleteBenchmarkResourceRows(
-  page: ArtificialAnalysisBenchmarkResourcePage,
+  page: RunCountedPage,
   timeoutMs: number,
 ): Promise<ArtificialAnalysisBenchmarkResourceRow[]> {
   for (let attempt = 0; attempt < PAGE_FETCH_ATTEMPTS; attempt += 1) {
@@ -292,7 +369,7 @@ async function getCompleteBenchmarkResourceRows(
 
 function resourceRow(
   sourceRow: unknown,
-  page: ArtificialAnalysisBenchmarkResourcePage,
+  page: RunCountedPage,
   version: string | null,
 ): ArtificialAnalysisBenchmarkResourceRow | null {
   const row = asRecord(sourceRow);
@@ -379,7 +456,7 @@ function reasoningEffortFromSlug(modelSlug: string | null): string | null {
 
 function tokenCountsRecord(
   row: Record<string, unknown>,
-  page: ArtificialAnalysisBenchmarkResourcePage,
+  page: RunCountedPage,
 ): Record<string, unknown> {
   return asRecord(nestedValue(row, ["canonicalEvalTokenCounts", page.resource_key]));
 }
@@ -392,10 +469,7 @@ function nestedValue(row: Record<string, unknown>, path: readonly string[]) {
   return value;
 }
 
-function scoreValue(
-  row: Record<string, unknown>,
-  page: ArtificialAnalysisBenchmarkResourcePage,
-): number | null {
+function scoreValue(row: Record<string, unknown>, page: RunCountedPage): number | null {
   return asFiniteNumber(
     page.score_path == null
       ? row[page.score_key ?? page.benchmark_key]
@@ -406,7 +480,7 @@ function scoreValue(
 function rowCostPerTask(
   row: Record<string, unknown>,
   tokenCounts: Record<string, unknown>,
-  page: ArtificialAnalysisBenchmarkResourcePage,
+  page: RunCountedPage,
 ): CostPerTask | null {
   const tokens = categoryTokenCounts(row, tokenCounts);
   const prices = sourceTokenPrices(row);

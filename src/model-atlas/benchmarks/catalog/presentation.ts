@@ -11,9 +11,8 @@ import { BENCHMARK_STANDARD_SOURCES } from "./sources";
 
 export const BENCHMARK_TOOLTIPS = {
   aa_intelligence_index: {
-    version: "4.3.2",
     title: "Artificial Analysis Intelligence Index",
-    body: "Composite score across mathematics, science, coding, knowledge, and agentic evaluations.",
+    body: "Composite score weighted equally across knowledge work, coding, science, and general-knowledge evaluations.",
     rows: [
       ["Source", "Artificial Analysis"],
       ["Role", "broad intelligence index"],
@@ -189,6 +188,7 @@ export const BENCHMARK_TOOLTIPS = {
     body: "Solve research-level physics challenges with an offline Python agent, graded by the authors' answer server.",
     rows: [
       ["Source", "Artificial Analysis"],
+      ["Split", "Hard subset (40 of 70 challenges)"],
       ["Role", "physics reasoning"],
     ],
   },
@@ -284,7 +284,7 @@ export const BENCHMARK_TOOLTIPS = {
   },
   frontier_code: {
     title: "FrontierCode",
-    version: "1.1",
+    version: "2.0",
     body: "Make repository-wide changes tested for correctness, quality, and mergeability.",
     rows: [
       ["Source", "Cognition"],
@@ -347,8 +347,8 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   hle: {
-    title: "HLE",
-    body: "Answer expert questions across mathematics, science, humanities, and other academic fields.",
+    title: "HLE-Diamond",
+    body: "Answer 1,000 refined expert questions across mathematics, science, humanities, and other academic fields, including image questions.",
     rows: [
       ["Source", "Artificial Analysis"],
       ["Role", "frontier reasoning"],
@@ -636,7 +636,7 @@ export const BENCHMARK_LABELS = {
   gdpval_normalized: "GDPval-AA",
   handbook_md: "HANDBOOK.md",
   hemingway_bench: "Hemingway-bench",
-  hle: "HLE",
+  hle: "HLE-Diamond",
   intphys2: "IntPhys 2",
   mindcube: "MindCube Tiny",
   mirrorcode: "MirrorCode",
@@ -1572,18 +1572,16 @@ export const BENCHMARK_COLUMNS = {
   },
 } as const satisfies Readonly<Record<BenchmarkKey, BenchmarkColumnFacet>>;
 
-/** Preserve native Artificial Analysis context fields, including rejected standalone constituents still present in its published index. */
+/** Preserve native Artificial Analysis context fields, including rejected standalone constituents still present in its published index. A selected benchmark appears here only when the shared table reports the version Atlas scores, because these values fill models its evaluation page leaves unmatched. */
 export const ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_ALIASES = {
-  critpt: ["critpt"],
   gdpval_normalized: ["gdpvalNormalized", "gdpval_normalized"],
   gpqa: ["gpqa"],
-  hle: ["hle"],
   mmmu_pro: ["mmmuPro", "mmmu_pro"],
   scicode: ["scicode"],
 } as const;
 
 export const ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_KEYS_AFTER = {
-  gdpval_normalized: ["critpt", "gdpval_normalized", "gpqa", "hle", "mmmu_pro", "scicode"],
+  gdpval_normalized: ["gdpval_normalized", "gpqa", "mmmu_pro", "scicode"],
 } as const satisfies Partial<Record<BenchmarkKey, readonly string[]>>;
 
 export const MODEL_ATLAS_CONTEXT_BENCHMARK_KEYS_AFTER = {

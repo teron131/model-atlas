@@ -119,7 +119,7 @@ export function asDeepSWERawLeaderboardRow(value: unknown): DeepSWERawLeaderboar
   };
 }
 
-/** Score only the newest published artifact; older-edition rows remain raw provenance rather than filling models the newest edition lacks. */
+/** Score only the newest published artifact; older-version rows remain raw provenance rather than filling models the newest version lacks. */
 export function preferredDeepSWELeaderboardRows(
   rows: DeepSWERawLeaderboardRow[],
 ): DeepSWELeaderboardRow[] {

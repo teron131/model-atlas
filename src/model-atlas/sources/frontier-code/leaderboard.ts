@@ -2,24 +2,25 @@
  * FrontierCode leaderboard results from Cognition.
  *
  * Page source: https://cognition.com/frontiercode
- * JSON source: https://cognition.com/data/frontiercode-leaderboard/data.json
+ * JSON source: https://cognition.com/data/frontier-code-2.0/data.json
  */
 
 import { canonicalReasoningEffort, reasoningEffortRank } from "../../identity/normalization";
 import { asFiniteNumber, asRecord, nowEpochSeconds } from "../../runtime";
 import { fetchSource } from "../request-scheduler";
 
-const FRONTIER_CODE_DATA_URL = "https://cognition.com/data/frontiercode-leaderboard/data.json";
+const FRONTIER_CODE_DATA_URL = "https://cognition.com/data/frontier-code-2.0/data.json";
+
+/** The 2.0 artifact carries no revision key, so this keeps the `v<major>_<minor>` form of the 1.x artifact's keys that persisted rows and `frontierCodeVersion` read. */
+const FRONTIER_CODE_REVISION = "v2_0";
 
 export const FRONTIER_CODE_LEADERBOARD_URL = "https://cognition.com/frontiercode";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 
-const EXPECTED_SUBSET_TASK_COUNTS = { main: 100, extended: 150 } as const;
+const EXPECTED_MAIN_TASK_COUNT = 132;
 
-const NON_GENERAL_MODEL_SYSTEMS = new Set(["Composer 2.5", "SWE-1.7"]);
-
-const SUBSETS = ["main", "extended"] as const;
+const NON_GENERAL_MODEL_SYSTEMS = new Set(["SWE-1.6", "SWE-1.7", "SWE-2"]);
 
 export type FrontierCodeSubsetMetrics = {
   pass_rate: number;
@@ -27,7 +28,6 @@ export type FrontierCodeSubsetMetrics = {
   cost_per_task_usd: number | null;
   tokens_per_task: number | null;
   tool_calls_per_task: number | null;
-  steps_per_task: number | null;
   output_token_equivalent_per_task: number | null;
 };
 
@@ -42,7 +42,6 @@ export type FrontierCodeModelEffortRow = {
   official_rank: number;
   official_best_effort: boolean;
   main: FrontierCodeSubsetMetrics;
-  extended: FrontierCodeSubsetMetrics;
   score: number;
   cost_per_task_usd: number | null;
   tokens_per_task: number | null;
@@ -80,7 +79,7 @@ export async function getFrontierCodeStats(
         }
         const data = processFrontierCodePayload(await response.json());
         if (data.length === 0) {
-          throw new Error("FrontierCode scrape returned no rows for its newest revision");
+          throw new Error("FrontierCode scrape returned no rows");
         }
         return { fetched_at_epoch_seconds: nowEpochSeconds(), data };
       },
@@ -104,29 +103,24 @@ export function processFrontierCodeSubsetMetrics(value: unknown): FrontierCodeSu
     cost_per_task_usd: optionalNonNegativeNumber(row.cost),
     tokens_per_task: optionalNonNegativeNumber(row.tokens),
     tool_calls_per_task: optionalNonNegativeNumber(row.tool_calls),
-    steps_per_task: optionalNonNegativeNumber(row.steps),
     output_token_equivalent_per_task: optionalNonNegativeNumber(row.ote),
   };
 }
 
-/** Parse every model-effort observation of the newest published revision and reproduce Cognition's best-effort model ranks without collapsing rows; a newest revision with another subset layout yields none. */
+/** Parse every model-effort observation of the 2.0 artifact and reproduce Cognition's best-effort model ranks without collapsing rows; an artifact whose subsets are not exactly the 132-task Main yields none. */
 export function processFrontierCodePayload(value: unknown): FrontierCodeModelEffortRow[] {
   const root = asRecord(value);
-  const revisionKey = newestRevisionKey(Object.keys(root));
-  if (revisionKey == null) return [];
-  const revision = asRecord(root[revisionKey]);
-  const subsets = asRecord(revision.subsets);
+  const subsets = asRecord(root.subsets);
   if (
-    SUBSETS.some(
-      (subset) => asFiniteNumber(subsets[subset]) !== EXPECTED_SUBSET_TASK_COUNTS[subset],
-    )
+    Object.keys(subsets).length !== 1 ||
+    asFiniteNumber(subsets.main) !== EXPECTED_MAIN_TASK_COUNT
   ) {
     return [];
   }
-  const models = Array.isArray(revision.models) ? revision.models : [];
-  const effortsByModel = asRecord(revision.efforts);
-  const harnessByModel = asRecord(revision.harness);
-  const dataByModel = asRecord(revision.data);
+  const models = Array.isArray(root.models) ? root.models : [];
+  const effortsByModel = asRecord(root.efforts);
+  const harnessByModel = asRecord(root.harness);
+  const dataByModel = asRecord(root.data);
   const parsedRows: ParsedEffortRow[] = [];
   for (const modelValue of models) {
     if (typeof modelValue !== "string" || modelValue.trim().length === 0) {
@@ -162,30 +156,16 @@ export function processFrontierCodePayload(value: unknown): FrontierCodeModelEff
       .map((row, index) => [row.base_model, index + 1]),
   );
   return parsedRows.map((row) => ({
-    revision: revisionKey,
+    revision: FRONTIER_CODE_REVISION,
     ...row,
     official_rank: officialRankByModel.get(row.base_model) as number,
     official_best_effort: bestRowByModel.get(row.base_model) === row,
   }));
 }
 
-/** Cognition's revision keys read as dotted versions, dropping the `v` prefix and joining parts with dots. */
+/** Revisions read as dotted versions, dropping the `v` prefix and joining parts with dots. */
 export function frontierCodeVersion(revision: string): string {
   return revision.replace(/^v/, "").replaceAll("_", ".");
-}
-
-/** Cognition keys revisions as `v<major>` or `v<major>_<minor>`; other root keys are not revisions. */
-function newestRevisionKey(keys: readonly string[]): string | null {
-  let newest: { key: string; major: number; minor: number } | null = null;
-  for (const key of keys) {
-    const match = /^v(\d+)(?:_(\d+))?$/.exec(key);
-    if (match == null) continue;
-    const major = Number(match[1]);
-    const minor = Number(match[2] ?? 0);
-    if (newest == null || major > newest.major || (major === newest.major && minor > newest.minor))
-      newest = { key, major, minor };
-  }
-  return newest?.key ?? null;
 }
 
 function optionalNonNegativeNumber(value: unknown): number | null {
@@ -201,8 +181,7 @@ function processEffortRow(
 ): ParsedEffortRow | null {
   const row = asRecord(value);
   const main = processFrontierCodeSubsetMetrics(row.main);
-  const extended = processFrontierCodeSubsetMetrics(row.extended);
-  if (main == null || extended == null) {
+  if (main == null) {
     return null;
   }
   const reasoningEffort = frontierCodeReasoningEffort(sourceEffort);
@@ -214,7 +193,6 @@ function processEffortRow(
     harness,
     score_eligible: !NON_GENERAL_MODEL_SYSTEMS.has(baseModel),
     main,
-    extended,
     score: main.score,
     cost_per_task_usd: main.cost_per_task_usd,
     tokens_per_task: main.tokens_per_task,

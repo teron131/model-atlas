@@ -199,7 +199,7 @@ function modelObservations(models: readonly HealthModel[], key: string): Benchma
         provider: null,
         reasoningEffort: canonicalReasoningEffort(model.reasoning_effort),
         value,
-        edition: null,
+        version: null,
       },
     ];
   });

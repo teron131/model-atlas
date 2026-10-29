@@ -117,7 +117,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
     loader: {
       kind: "epoch_runs",
       task: "Chess Puzzles",
-      eligibility: { latestTaskEdition: true },
+      eligibility: { latestTaskVersion: true },
     },
     sourceDataKey: "chessPuzzles",
     sourceRowsKey: "chessPuzzleRows",
@@ -242,7 +242,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
     loader: {
       kind: "epoch_runs",
       task: "FrontierMath-Tier-4-v2-Private",
-      eligibility: { latestTaskEdition: true },
+      eligibility: { latestTaskVersion: true },
     },
     sourceDataKey: "frontierMathTier4",
     sourceRowsKey: "frontierMathTier4Rows",
@@ -274,7 +274,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
     loader: {
       kind: "surge",
       sourceUrl: "https://surgehq.ai/benchmarks/handbook",
-      edition: "2026-10-19",
+      version: "2026-10-19",
     },
     sourceDataKey: "handbookMd",
     sourceRowsKey: "handbookMdRows",
@@ -389,7 +389,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
       kind: "epoch_runs",
       task: "SimpleQA Verified",
       eligibility: {
-        latestTaskEdition: true,
+        latestTaskVersion: true,
         originalTaskName: "SimpleQA Verified (anti-abstention)",
         excludedModelIds: ["qwen3-max-2025-09-23"],
       },
@@ -524,6 +524,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
 /** Extended sources declare complete source facets when the standard contract is insufficient. */
 export const BENCHMARK_EXTENDED_SOURCES = {
   aa_intelligence_index: {
+    revision: "5.0",
     inputs: [
       {
         group: "artificial_analysis",
@@ -565,6 +566,7 @@ export const BENCHMARK_EXTENDED_SOURCES = {
             scoreKey: "analystAgent",
             resourceKey: "analystAgent",
             url: "https://artificialanalysis.ai/evaluations/aa-analyst-agent",
+            methodologyName: "AA-AnalystAgent",
           },
         ],
       },
@@ -602,13 +604,14 @@ export const BENCHMARK_EXTENDED_SOURCES = {
             scoreKey: "briefcaseElo",
             resourceKey: "briefcase",
             url: "https://artificialanalysis.ai/evaluations/aa-briefcase",
+            methodologyName: "AA-Briefcase",
           },
         ],
       },
     ],
   },
   critpt: {
-    revision: "2",
+    revision: "2-hard",
     inputs: [
       {
         group: "artificial_analysis",
@@ -617,9 +620,10 @@ export const BENCHMARK_EXTENDED_SOURCES = {
         adapters: [
           {
             kind: "artificial_analysis_resource_page",
-            scoreKey: "critptAgentic",
-            resourceKey: "critptAgentic",
-            url: "https://artificialanalysis.ai/evaluations/critpt-v2",
+            scoreKey: "critptAgenticHard",
+            resourceKey: "critptAgenticHard",
+            url: "https://artificialanalysis.ai/evaluations/critpt-v2?critpt-subset=hard",
+            methodologyName: "CritPt (Hard Subset)",
           },
         ],
       },
@@ -636,6 +640,7 @@ export const BENCHMARK_EXTENDED_SOURCES = {
     ],
   },
   frontier_code: {
+    revision: "2.0",
     inputs: [
       {
         group: "standalone",
@@ -669,7 +674,7 @@ export const BENCHMARK_EXTENDED_SOURCES = {
             scoreKey: "gdpPdfAllPass",
             resourceKey: "gdpPdf",
             url: "https://artificialanalysis.ai/evaluations/gdp-pdf",
-            taskRunCount: 500,
+            methodologyName: "GDP.pdf",
           },
         ],
       },
@@ -687,12 +692,14 @@ export const BENCHMARK_EXTENDED_SOURCES = {
             scoreKey: "gdpval",
             resourceKey: "gdpval",
             url: "https://artificialanalysis.ai/evaluations/gdpval-aa",
+            methodologyName: "GDPval-AA",
           },
         ],
       },
     ],
   },
   hle: {
+    revision: "diamond",
     inputs: [
       {
         group: "artificial_analysis",
@@ -701,9 +708,10 @@ export const BENCHMARK_EXTENDED_SOURCES = {
         adapters: [
           {
             kind: "artificial_analysis_resource_page",
-            scoreKey: "hle",
-            resourceKey: "hle",
-            url: "https://artificialanalysis.ai/evaluations/humanitys-last-exam",
+            scoreKey: "hleDiamond",
+            resourceKey: "hleDiamond",
+            url: "https://artificialanalysis.ai/evaluations/hle-diamond",
+            methodologyName: "HLE-Diamond",
           },
         ],
       },
@@ -721,7 +729,7 @@ export const BENCHMARK_EXTENDED_SOURCES = {
             scoreKey: "mlcrOverall",
             resourceKey: "mlcr",
             url: "https://artificialanalysis.ai/evaluations/mlcr-aa",
-            taskRunCount: 180,
+            methodologyName: "MLCR-AA",
           },
         ],
       },
@@ -747,9 +755,9 @@ export const BENCHMARK_EXTENDED_SOURCES = {
           {
             kind: "artificial_analysis_resource_page",
             url: "https://artificialanalysis.ai/evaluations/terminalbench-4-0",
+            methodologyName: "Terminal-Bench",
             scoreKey: "terminalBench40",
             resourceKey: "terminalBench40",
-            taskRunCount: 198,
             version: "4.0",
           },
         ],
@@ -787,7 +795,7 @@ export const BENCHMARK_EXTENDED_SOURCES = {
             scoreKey: "terminalBenchScience",
             resourceKey: "terminalBenchScience",
             url: "https://artificialanalysis.ai/evaluations/terminal-bench-science",
-            taskRunCount: 210,
+            methodologyName: "Terminal-Bench-Science",
             version: "0.1",
           },
         ],

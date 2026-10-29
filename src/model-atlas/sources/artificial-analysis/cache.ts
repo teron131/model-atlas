@@ -11,6 +11,7 @@ import {
   assignIfString,
   type CacheDbRow,
   firstFetchedAt,
+  jsonValue,
   nonEmptyRecord,
   queryCacheRows,
 } from "../cache/rows";
@@ -159,6 +160,9 @@ function rawRowFromCache(row: CacheDbRow): JsonObject {
   for (const key of ARTIFICIAL_ANALYSIS_INTELLIGENCE_KEYS) {
     assignIfNumber(rawRow, key, row[key]);
   }
+  assignIfString(rawRow, "intelligenceIndexVersion", row.intelligence_index_version);
+  const components = jsonValue(row.intelligence_index_components);
+  if (Array.isArray(components)) rawRow.intelligenceIndexComponents = components;
   for (const key of ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_KEYS) {
     assignIfNumber(rawRow, key, row[key]);
   }

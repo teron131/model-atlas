@@ -204,6 +204,8 @@ export const PAYLOAD_ROW_GROUPS = [
       "name",
       "short_name",
       "reasoning_effort",
+      "intelligence_index",
+      "intelligence_index_version",
       ...ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_KEYS,
     ],
   }),

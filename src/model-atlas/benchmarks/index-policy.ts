@@ -17,8 +17,21 @@ type IndexPolicy = {
   } | null;
 };
 
+/** Artificial Analysis lists its index constituents by evaluation slug; this basket sets the index's represented breadth and the overlap Atlas deducts. */
+export const ARTIFICIAL_ANALYSIS_INDEX_COMPONENTS = {
+  "aa-briefcase": "briefcase",
+  "automationbench-aa": "automation_bench",
+  "critpt-v2-hard": "critpt",
+  "frontiercode-2-0": "frontier_code",
+  "gdp-pdf": "gdp_pdf",
+  "hle-diamond": "hle",
+  omniscience: "omniscience_accuracy",
+  "terminal-bench-science": "terminal_bench_science",
+  "terminalbench-4-0": "terminal_bench_4",
+} as const satisfies Record<string, string>;
+
 const REPORTED_BREADTH = {
-  aa_intelligence_index: 10,
+  aa_intelligence_index: Object.keys(ARTIFICIAL_ANALYSIS_INDEX_COMPONENTS).length,
   cais_capabilities_index: 7,
   surge_intelligence_index: 8,
   vals_index: 8,
@@ -43,18 +56,7 @@ export const INDEX_POLICIES = {
       },
       imputationKinds: ["tokens", "output_tokens"],
     },
-    componentBenchmarkKeys: [
-      "briefcase",
-      "gdpval_normalized",
-      "automation_bench",
-      "terminal_bench_4",
-      "scicode",
-      "hle",
-      "gdp_pdf",
-      "critpt",
-      "omniscience_accuracy",
-      "aa_lcr",
-    ],
+    componentBenchmarkKeys: Object.values(ARTIFICIAL_ANALYSIS_INDEX_COMPONENTS),
   },
   cais_capabilities_index: {
     representedBenchmarks: REPORTED_BREADTH.cais_capabilities_index,
@@ -185,7 +187,7 @@ export function qualityIndexBreadths(
   );
 }
 
-/** ECI deliberately uses the fixed cross-index median; other indexes may retain edition-specific reported breadth. */
+/** ECI deliberately uses the fixed cross-index median; other indexes may retain version-specific reported breadth. */
 function representedIndexBreadth(key: string, reportedCount?: number | null): number {
   const policy = indexPolicy(key);
   if (key === "epoch_capabilities_index") return INDEX_REPRESENTED_BENCHMARK_MEDIAN;

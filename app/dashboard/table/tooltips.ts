@@ -317,14 +317,14 @@ export function tableColumnTooltip(
 type BenchmarkTooltipContext = {
   models: readonly BenchmarkMetricModel[];
   scoring: ModelAtlasMetadata["scoring"] | undefined;
-  editions: ModelAtlasMetadata["benchmark_editions"];
+  versions: ModelAtlasMetadata["benchmark_versions"];
   unit?: "models" | "variants";
 };
 
 /** Enrich a benchmark's explanation without treating missing or estimated results as observed coverage. */
 function benchmarkTooltip(
   key: string,
-  { models, scoring, editions, unit = "models" }: BenchmarkTooltipContext,
+  { models, scoring, versions, unit = "models" }: BenchmarkTooltipContext,
 ): ModelAtlasColumnTooltip | undefined {
   const tooltip = benchmarkTooltips[key];
   if (tooltip == null) {
@@ -335,12 +335,12 @@ function benchmarkTooltip(
     coverage.total === 0
       ? `No ${unit} in current view`
       : `${coverage.observed} of ${coverage.total} ${unit} (${benchmarkCoverageLabel(coverage)})`;
-  // The served edition replaces the catalog's Version row, so an automatically adopted edition shows at once.
-  const edition = editions?.[key];
+  // The served version replaces the catalog's Version row, so an automatically adopted version shows at once.
+  const version = versions?.[key];
   const rows: ModelAtlasColumnTooltipRow[] = [
-    ...(edition == null ? [] : [["Version", `v${edition}`] satisfies ModelAtlasColumnTooltipRow]),
+    ...(version == null ? [] : [["Version", `v${version}`] satisfies ModelAtlasColumnTooltipRow]),
     ...(tooltip.rows ?? []).filter(
-      ([label]) => label !== "Role" && (edition == null || label !== "Version"),
+      ([label]) => label !== "Role" && (version == null || label !== "Version"),
     ),
   ];
   const entry = scoring?.benchmark_portfolio[key];

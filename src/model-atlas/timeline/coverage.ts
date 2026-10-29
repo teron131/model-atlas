@@ -1,4 +1,4 @@
-/** Measure historical support against actual observed index editions, independently of model age, score, and display filters. */
+/** Measure historical support against actual observed index versions, independently of model age, score, and display filters. */
 
 import { residualIndexBreadth } from "../benchmarks/index-policy";
 import { STAGE_CONFIG } from "../config/stage";
@@ -31,7 +31,7 @@ export function timelineCoverage(
           const b = definitions.get(id);
           return b?.kind === "task" &&
             b.weights[dimension] > 0 &&
-            !b.id.includes(":unresolved-edition")
+            !b.id.includes(":unresolved-version")
             ? [[b.key, b] as const]
             : [];
         }),

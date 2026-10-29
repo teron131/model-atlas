@@ -76,7 +76,7 @@ async function deepSWESnapshot(
     nowEpochSeconds,
     fetchRows: getDeepSWERawLeaderboardSourceRows,
     rowKey: (row) => sourceRowKey(row.source_version, row.model, row.reasoning_effort, row.config),
-    editions: { editionOf: (row) => row.source_version },
+    versions: { versionOf: (row) => row.source_version },
     rowLabel: (row) => row.model,
   });
   return {

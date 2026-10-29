@@ -12,7 +12,7 @@ import {
   frontierBenchmarkAxisConfigFor,
   frontierXAxisScale,
 } from "../app/dashboard/graphs/pareto/presentation";
-import { residualIndexBreadth } from "../src/model-atlas/benchmarks/index-policy";
+import { INDEX_POLICIES, residualIndexBreadth } from "../src/model-atlas/benchmarks/index-policy";
 import { minimalModelAtlasModel } from "./model-atlas-fixtures";
 
 const low = {
@@ -173,10 +173,11 @@ const breadthMean = aggregateFrontierBenchmarkRows([
   row(low, "aa_intelligence_index", 100, 10, 20),
   row(low, "a", 0, 1, 2),
 ])[0]!;
+const aaBreadth = INDEX_POLICIES.aa_intelligence_index.representedBenchmarks;
 assert.equal(
   breadthMean.score,
-  1000 / 11,
-  "AA carries ten tasks of represented breadth, not one row",
+  (aaBreadth * 100) / (aaBreadth + 1),
+  "AA carries its represented breadth, not one row",
 );
 assert.equal(breadthMean.cost, 10, "Median resource use retains the index’s represented breadth");
 assert.equal(breadthMean.seconds, 20, "Runtime also uses a breadth-weighted median");
@@ -211,12 +212,11 @@ const graphKeys = [
   "surge_intelligence_index",
   "vals_index",
   "briefcase",
-  "gdpval_normalized",
   "hle",
   "gdp_pdf",
   "critpt",
 ];
-const allEvidenceKeys = [...graphKeys, "arena_agent", "vending_bench_2"];
+const allEvidenceKeys = [...graphKeys, "arena_agent", "gdpval_normalized", "vending_bench_2"];
 const restrictedRows = frontierBenchmarkRows(
   [{ ...low, benchmarks: Object.fromEntries(allEvidenceKeys.map((key) => [key, 0.5])) }],
   Object.fromEntries(allEvidenceKeys.map((key) => [key, { ...policy, group: "frontier" }])),
@@ -232,39 +232,39 @@ assert.deepEqual(
   "The effort graph includes the approved task benchmarks, standalone AA components, and index proxies",
 );
 
-assert.equal(residualIndexBreadth("aa_intelligence_index", ["scicode"]), 9);
+assert.equal(residualIndexBreadth("aa_intelligence_index", ["critpt"]), aaBreadth - 1);
 assert.equal(
-  residualIndexBreadth("aa_intelligence_index", ["scicode", "hle", "scicode"]),
-  8,
+  residualIndexBreadth("aa_intelligence_index", ["critpt", "hle", "critpt"]),
+  aaBreadth - 2,
   "Each separately included component reduces AA breadth once",
 );
 assert.equal(
   residualIndexBreadth("aa_intelligence_index", ["arc_agi_2", "terminal_bench_4"]),
-  9,
+  aaBreadth - 1,
   "Only the exact current Terminal-Bench component reduces AA breadth",
 );
 const residualMean = aggregateFrontierBenchmarkRows([
   row(low, "aa_intelligence_index", 100, 10, 20),
-  row(low, "scicode", 0, 0, 0),
+  row(low, "critpt", 0, 0, 0),
 ])[0]!;
-assert.equal(residualMean.score, 90);
+assert.equal(residualMean.score, ((aaBreadth - 1) * 100) / aaBreadth);
 assert.equal(residualMean.cost, 10);
 assert.equal(residualMean.seconds, 20);
 const incompleteComponent = sharedFrontierBenchmarkComparison(
   [
     row(low, "aa_intelligence_index", 40, 2),
     row(high, "aa_intelligence_index", 50, 4),
-    row(low, "scicode", 70, 1),
-    row(high, "scicode", 80, null),
+    row(low, "critpt", 70, 1),
+    row(high, "critpt", 80, null),
   ],
   [
     row(low, "aa_intelligence_index", 40, 2),
     row(high, "aa_intelligence_index", 50, 4),
-    row(low, "scicode", 70, 1),
-    row(high, "scicode", 80, null),
+    row(low, "critpt", 70, 1),
+    row(high, "critpt", 80, null),
     row({ ...low, name: "Reference", id: "test/reference" }, indexKey, 30, 3),
   ],
-  ["aa_intelligence_index", "scicode"],
+  ["aa_intelligence_index", "critpt"],
   "cost",
 );
 assert.deepEqual(incompleteComponent.groups[0]?.benchmarkKeys, ["aa_intelligence_index"]);

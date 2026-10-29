@@ -16,7 +16,7 @@ The framework establishes a fixed reference from an initial snapshot of supporte
 >
 > 1. **Preprocess the data**
 >
->    Reconcile source names and match records without merging distinct model releases, reasoning settings or benchmark editions.
+>    Reconcile source names and match records without merging distinct model releases, reasoning settings or benchmark versions.
 >
 > 2. **[Freeze the initial reference](calculation.md#freeze-the-initial-reference)**
 >
@@ -65,7 +65,7 @@ The evidence map shows what supports each model's estimate. The validation map s
 
 | Map | Rows | Columns | What the colors show |
 | --- | --- | --- | --- |
-| Evidence | Models | Benchmark editions | Results used in the estimate, other observations, inferred results or missing evidence. |
+| Evidence | Models | Benchmark versions | Results used in the estimate, other observations, inferred results or missing evidence. |
 | Validation | Target benchmarks | Input combinations | Normalized prediction error; brighter means higher error, and empty cells have no validation result. |
 
 Read prediction error together with baseline error and the number of validation models: a small error is more useful when it improves on a simple guess and is supported by several independent models. “Accepted” means the predictor passed those checks. Inferred cells remain estimates; they do not become observations or establish benchmark connections.

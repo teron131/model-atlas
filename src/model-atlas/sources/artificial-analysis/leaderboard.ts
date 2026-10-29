@@ -4,11 +4,13 @@
  * Page source: https://artificialanalysis.ai/leaderboards/models
  */
 
+import { ARTIFICIAL_ANALYSIS_INDEX_COMPONENTS } from "../../benchmarks/index-policy";
 import { ARTIFICIAL_ANALYSIS_CONTEXT_KEY_BY_ALIAS } from "../../benchmarks/registry";
 import { canonicalReasoningEffort } from "../../identity/normalization";
 import { asRecord, type JsonObject, nowEpochSeconds } from "../../runtime";
 import { extractNextFlightCorpus, findObjectEnd, parseFlightJsonObject } from "../parsing";
 import { fetchSource } from "../request-scheduler";
+import { artificialAnalysisEvaluationVersion } from "./benchmark-resources";
 import {
   cleanArtificialAnalysisModelName,
   parseArtificialAnalysisReasoningEffort,
@@ -65,9 +67,14 @@ export const ARTIFICIAL_ANALYSIS_LEADERBOARD_COLUMNS = [
   "median_time",
   "median_end_to_end_response_time",
   "intelligence",
+  "intelligence_index_version",
   "intelligence_index_cost",
   "benchmarks",
 ] as const;
+
+const RECORDED_INDEX_COMPONENTS: ReadonlySet<string> = new Set(
+  Object.keys(ARTIFICIAL_ANALYSIS_INDEX_COMPONENTS),
+);
 
 const NO_COLUMN_VALUE = Symbol("no_column_value");
 
@@ -97,10 +104,12 @@ export async function getArtificialAnalysisLeaderboardRawStats(
       }
       return response.text();
     });
+    const corpus = extractNextFlightCorpus(pageHtml);
+    const intelligenceIndexVersion = publishedIntelligenceIndexVersion(corpus);
+    if (intelligenceIndexVersion == null)
+      throw new Error("Missing Artificial Analysis Intelligence Index version");
     const preview = sortLeaderboardRows(
-      extractLeaderboardRowsFromCorpus(extractNextFlightCorpus(pageHtml)).filter(
-        isLeaderboardModelRow,
-      ),
+      extractLeaderboardRowsFromCorpus(corpus).filter(isLeaderboardModelRow),
     );
     const modelSlug = preview.find((row) => row.deprecated !== true)?.slug;
     if (typeof modelSlug !== "string" || modelSlug.length === 0)
@@ -112,7 +121,13 @@ export async function getArtificialAnalysisLeaderboardRawStats(
     );
     return {
       fetched_at_epoch_seconds: nowEpochSeconds(),
-      data: sortLeaderboardRows(models.filter(isLeaderboardModelRow)),
+      data: sortLeaderboardRows(
+        models.filter(isLeaderboardModelRow).map((row) => ({
+          ...row,
+          intelligenceIndexVersion,
+          intelligenceIndexComponents: intelligenceIndexComponentSlugs(row),
+        })),
+      ),
     };
   } catch {
     return {
@@ -206,6 +221,24 @@ function firstString(row: JsonObject, keys: string[]): string | null {
     }
   }
   return null;
+}
+
+/** The leaderboard names its index evaluation with the version it currently publishes; null when that name is missing. */
+function publishedIntelligenceIndexVersion(flightCorpus: string): string | null {
+  const name = /"slug":"artificial-analysis-intelligence-index","name":"([^"]+)"/.exec(
+    flightCorpus,
+  )?.[1];
+  return name == null ? null : artificialAnalysisEvaluationVersion(name);
+}
+
+function intelligenceIndexComponentSlugs(row: JsonObject): string[] {
+  const evaluations = row.intelligenceIndexEvaluations;
+  return Array.isArray(evaluations)
+    ? evaluations.flatMap((evaluation) => {
+        const slug = asRecord(evaluation).slug;
+        return typeof slug === "string" ? [slug] : [];
+      })
+    : [];
 }
 
 function extractLeaderboardRowsFromCorpus(flightCorpus: string): JsonObject[] {
@@ -529,8 +562,10 @@ function selectedColumnValue(
       return pickBenchmarks(row);
     case "intelligence":
       return pickIntelligence(row);
+    case "intelligence_index_version":
+      return firstString(row, ["intelligenceIndexVersion"]);
     case "intelligence_index_cost":
-      return pickIntelligenceIndexCost(row);
+      return pickIntelligenceIndexCost(hasRecordedIntelligenceIndexComponents(row) ? row : {});
     default:
       return NO_COLUMN_VALUE;
   }
@@ -597,9 +632,22 @@ function normalizeMetricKey(key: string): string {
   return key.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();
 }
 
+/** An index value and its per-task telemetry count only when the row lists exactly the recorded constituents: a changed basket alters breadth and overlap, so it waits for review instead of scoring, and rows kept from before constituents were recorded never count. */
+function hasRecordedIntelligenceIndexComponents(row: JsonObject): boolean {
+  const components = row.intelligenceIndexComponents;
+  if (!Array.isArray(components)) return false;
+  const slugs = new Set(components);
+  return (
+    slugs.size === RECORDED_INDEX_COMPONENTS.size &&
+    [...slugs].every((slug) => typeof slug === "string" && RECORDED_INDEX_COMPONENTS.has(slug))
+  );
+}
+
 function pickIntelligence(row: JsonObject): JsonObject {
   return {
-    intelligence_index: firstNumber(row, ["intelligenceIndex", "intelligence_index"]),
+    intelligence_index: hasRecordedIntelligenceIndexComponents(row)
+      ? firstNumber(row, ["intelligenceIndex", "intelligence_index"])
+      : null,
     agentic_index: firstNumber(row, ["agenticIndex", "agentic_index"]),
     coding_index: firstNumber(row, ["codingIndex", "coding_index"]),
     omniscience_index: firstNumber(row, ["omniscience", "omniscience_index"]),

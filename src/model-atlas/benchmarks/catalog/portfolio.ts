@@ -328,14 +328,7 @@ export type BenchmarkResourceProfile = {
 };
 
 export const BENCHMARK_RESOURCE_PROFILES = {
-  analyst_agent: { taskRunCount: 80 },
   arc_agi_3: { taskRunCount: 55 },
-  briefcase: { taskRunCount: 91 },
-  critpt: { taskRunCount: 70 },
-  gdp_pdf: { taskRunCount: 500 },
-  gdpval_normalized: { taskRunCount: 220 },
-  hle: { taskRunCount: 2_158 },
-  mlcr_aa: { taskRunCount: 180 },
   terminal_bench_4: { taskRunCount: 330 },
   terminal_bench_science: { taskRunCount: 210 },
 } as const satisfies Partial<Record<BenchmarkKey, BenchmarkResourceProfile>>;

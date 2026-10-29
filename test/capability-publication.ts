@@ -16,7 +16,7 @@ import {
 import { DEFAULT_TIMELINE_PARAMETERS } from "../src/model-atlas/timeline/calibration";
 import {
   advanceCapabilityState,
-  benchmarkEditionId,
+  benchmarkVersionId,
   capabilityDataset,
   capabilityIndex,
   capabilityModelId,
@@ -327,7 +327,7 @@ const superseded = [...revisedKeys, ...retiredKeys].map((key) => ({
   id: `atlas:benchmark:${key}:previous-contract`,
   key: `atlas_benchmark_${key}`,
 }));
-const priorEditionDataset = prepareTimelineRelease(
+const priorVersionDataset = prepareTimelineRelease(
   {
     ...initial.dataset,
     benchmarks: [...initial.dataset.benchmarks, ...superseded],
@@ -339,7 +339,7 @@ const priorEditionDataset = prepareTimelineRelease(
           benchmarkId: benchmark.id,
           value: 0.2 + i * 0.07,
           observedAt: capturedAt,
-          source: "Previous Atlas edition",
+          source: "Previous Atlas version",
         })),
       ),
     ],
@@ -348,7 +348,7 @@ const priorEditionDataset = prepareTimelineRelease(
       ...initial.dataset.portfolios,
       {
         id: "superseded-fixture",
-        label: "Previous editions",
+        label: "Previous versions",
         source: "fixture",
         note: "",
         components: superseded.map((benchmark) => ({
@@ -362,17 +362,17 @@ const priorEditionDataset = prepareTimelineRelease(
 );
 const oldIds = new Set(superseded.map((benchmark) => benchmark.id));
 assert.ok(
-  priorEditionDataset.scale!.dimensions.intelligence.links.some(
+  priorVersionDataset.scale!.dimensions.intelligence.links.some(
     (link) => oldIds.has(link.left) || oldIds.has(link.right),
   ),
-  "The regression fixture must include fitted links for the retired editions",
+  "The regression fixture must include fitted links for the retired versions",
 );
-const priorEditions: CapabilityState = {
+const priorVersions: CapabilityState = {
   ...initial,
-  dataset: priorEditionDataset,
+  dataset: priorVersionDataset,
   policies: {
     ...initial.policies,
-    "previous-editions": {
+    "previous-versions": {
       benchmarkIds: ["external", ...oldIds],
       weights: Object.fromEntries(
         ["external", ...oldIds].map((id) => [id, { intelligence: 1, agentic: 1 }]),
@@ -380,8 +380,8 @@ const priorEditions: CapabilityState = {
     },
   },
 };
-const currentEditions = advanceCapabilityState(
-  priorEditions,
+const currentVersions = advanceCapabilityState(
+  priorVersions,
   models.map((model, i) => ({
     ...model,
     benchmarks: {
@@ -391,11 +391,11 @@ const currentEditions = advanceCapabilityState(
   })),
   "2026-10-12T08:00:00.000Z",
 );
-assert.deepEqual(currentEditions.positions, initial.positions);
-assert.deepEqual(currentEditions.anchors, initial.anchors);
-assert.deepEqual(currentEditions.dataset.reference, initial.dataset.reference);
-assert.deepEqual(currentEditions.dataset.rootBenchmarkIds, initial.dataset.rootBenchmarkIds);
-const liveDataset = currentEditions.dataset;
+assert.deepEqual(currentVersions.positions, initial.positions);
+assert.deepEqual(currentVersions.anchors, initial.anchors);
+assert.deepEqual(currentVersions.dataset.reference, initial.dataset.reference);
+assert.deepEqual(currentVersions.dataset.rootBenchmarkIds, initial.dataset.rootBenchmarkIds);
+const liveDataset = currentVersions.dataset;
 for (const key of retiredKeys)
   assert.ok(
     liveDataset.benchmarks.every((benchmark) => benchmark.key !== `atlas_benchmark_${key}`),
@@ -405,7 +405,7 @@ for (const key of revisedKeys)
     liveDataset.benchmarks
       .filter((benchmark) => benchmark.key === `atlas_benchmark_${key}`)
       .map((b) => b.id),
-    [benchmarkEditionId(key)],
+    [benchmarkVersionId(key)],
   );
 for (const dataset of [liveDataset, liveDataset.scale!]) {
   assert.ok(dataset.benchmarks.every((benchmark) => !oldIds.has(benchmark.id)));
@@ -422,7 +422,7 @@ for (const dimension of ["intelligence", "agentic"] as const) {
   );
   const linkIds = new Set(graph.links.map((link) => link.id));
   assert.ok(graph.nodes.every((node) => node.errors.every((error) => linkIds.has(error.linkId))));
-  for (const node of priorEditionDataset.scale!.dimensions[dimension].nodes) {
+  for (const node of priorVersionDataset.scale!.dimensions[dimension].nodes) {
     if (oldIds.has(node.benchmarkId)) continue;
     const retainedNode = graph.nodes.find(
       (candidate) => candidate.benchmarkId === node.benchmarkId,
@@ -440,7 +440,7 @@ assert.ok(
   ),
 );
 assert.ok(
-  Object.values(currentEditions.policies).every(
+  Object.values(currentVersions.policies).every(
     (policy) =>
       policy.benchmarkIds.every((id) => !oldIds.has(id)) &&
       Object.keys(policy.weights).every((id) => !oldIds.has(id)),

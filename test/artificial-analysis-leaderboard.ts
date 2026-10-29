@@ -6,11 +6,13 @@ import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { gzipSync } from "node:zlib";
 
+import { ARTIFICIAL_ANALYSIS_INDEX_COMPONENTS } from "../src/model-atlas/benchmarks/index-policy";
 import {
   buildBenchmarkImputationByModel,
   buildComponentScoreResult,
 } from "../src/model-atlas/pipeline/scores";
 import { buildQualityScoringContext } from "../src/model-atlas/pipeline/scores/quality-context";
+import { asRecord } from "../src/model-atlas/runtime";
 import {
   ARTIFICIAL_ANALYSIS_LEADERBOARD_COLUMNS,
   getArtificialAnalysisLeaderboardRawStats,
@@ -88,11 +90,9 @@ const rows = processArtificialAnalysisLeaderboardRows(
   },
 );
 
-// A legacy source field remains in the raw row but cannot re-enter the active benchmark projection.
+// Legacy source fields, including the shared table's superseded CritPt and HLE versions, remain in the raw row but cannot re-enter the active benchmark projection.
 assertDeepEqual(rows[0]?.benchmarks, {
-  critpt: 0.31,
   gdpval_normalized: 0.61,
-  hle: 0.41,
   mmmu_pro: 0.24,
   scicode: 0.42,
 });
@@ -193,36 +193,50 @@ assertDeepEqual(
     },
   ],
 );
-assertDeepEqual(
-  processArtificialAnalysisLeaderboardRows(
-    [
-      {
-        model_id: "anthropic/claude-fable-5",
-        model_url: "https://artificialanalysis.ai/models/anthropic/claude-fable-5",
-        name: "Claude Fable 5",
-        modelCreatorName: "Anthropic",
-        modelCreatorSlug: "anthropic",
-        intelligence_index: 64.9,
-        agentic_index: 80.5,
-        scicode: 0.58,
-        input_cost: 10,
-        output_cost: 50,
-        total_tokens: 2_000_000,
-        intelligenceIndexCostPerTask: {
-          cost: {
-            total: 1.5,
-          },
-        },
-        intelligenceIndexTimePerTask: 120,
-        intelligenceIndexOutputTokensPerTask: {
-          output: 42_000,
-        },
-      },
-    ],
-    {
-      selectedColumns: ["model_id", "intelligence", "intelligence_index_cost", "benchmarks"],
+const recordedComponents = Object.keys(ARTIFICIAL_ANALYSIS_INDEX_COMPONENTS);
+const indexedRow = {
+  model_id: "anthropic/claude-fable-5",
+  model_url: "https://artificialanalysis.ai/models/anthropic/claude-fable-5",
+  name: "Claude Fable 5",
+  modelCreatorName: "Anthropic",
+  modelCreatorSlug: "anthropic",
+  intelligence_index: 64.9,
+  intelligenceIndexComponents: recordedComponents,
+  agentic_index: 80.5,
+  scicode: 0.58,
+  input_cost: 10,
+  output_cost: 50,
+  total_tokens: 2_000_000,
+  intelligenceIndexCostPerTask: {
+    cost: {
+      total: 1.5,
     },
-  ),
+  },
+  intelligenceIndexTimePerTask: 120,
+  intelligenceIndexOutputTokensPerTask: {
+    output: 42_000,
+  },
+};
+// A changed basket, a row without one, or a row kept from before baskets were recorded keeps none of its index score or telemetry.
+for (const intelligenceIndexComponents of [
+  [...recordedComponents.slice(1), "scicode"],
+  [],
+  undefined,
+]) {
+  const [row] = processArtificialAnalysisLeaderboardRows(
+    [{ ...indexedRow, intelligenceIndexComponents }],
+    { selectedColumns: ["intelligence", "intelligence_index_cost"] },
+  );
+  assertDeepEqual(asRecord(row?.intelligence).intelligence_index, null);
+  assertDeepEqual(
+    Object.values(asRecord(row?.intelligence_index_cost)).every((value) => value == null),
+    true,
+  );
+}
+assertDeepEqual(
+  processArtificialAnalysisLeaderboardRows([indexedRow], {
+    selectedColumns: ["model_id", "intelligence", "intelligence_index_cost", "benchmarks"],
+  }),
   [
     {
       model_id: "anthropic/claude-fable-5",
@@ -428,6 +442,7 @@ const richModels = [
     name: "Example (max)",
     modelCreatorName: "Example Lab",
     intelligenceIndex: 50,
+    intelligenceIndexEvaluations: recordedComponents.map((slug) => ({ slug })),
     intelligenceIndexCostPerTask: { cost: { total: 5.98 } },
     intelligenceIndexTimePerTask: 799,
     intelligenceIndexOutputTokensPerTask: { output: 119_166 },
@@ -438,6 +453,7 @@ const richModels = [
     modelCreatorName: "Example Lab",
     deprecated: true,
     intelligenceIndex: 30,
+    intelligenceIndexEvaluations: recordedComponents.map((slug) => ({ slug })),
     intelligenceIndexCostPerTask: 0.72,
   },
 ];
@@ -459,6 +475,12 @@ const modelServer = createServer((request, response) => {
   if (request.url === "/leaderboards/models") {
     response.end(
       flight({
+        evaluations: {
+          intelligenceIndex: {
+            slug: "artificial-analysis-intelligence-index",
+            name: "Artificial Analysis Intelligence Index v5.0",
+          },
+        },
         models: [
           {
             ...richModels[0],
@@ -469,6 +491,8 @@ const modelServer = createServer((request, response) => {
         ],
       }),
     );
+  } else if (request.url === "/leaderboards/unversioned") {
+    response.end(flight({ models: [richModels[0]] }));
   } else if (request.url === "/models/example-max") {
     response.end(
       flight({ manifest: { path: "/data/providers" } }) +
@@ -491,7 +515,14 @@ try {
   const raw = await getArtificialAnalysisLeaderboardRawStats({
     url: `${origin}/leaderboards/models`,
   });
-  assert.deepEqual(raw.data, richModels);
+  assert.deepEqual(
+    raw.data,
+    richModels.map((row) => ({
+      ...row,
+      intelligenceIndexVersion: "5.0",
+      intelligenceIndexComponents: recordedComponents,
+    })),
+  );
   assert.ok(raw.fetched_at_epoch_seconds);
   const projected = processArtificialAnalysisLeaderboardRows(raw.data, {
     selectedColumns: ["intelligence_index_cost"],
@@ -509,6 +540,11 @@ try {
     0.72,
   );
   await assert.rejects(getArtificialAnalysisPage(`${origin}/wrong-origin`, 1_000), /origin/);
+  // Without the index's published version, the refresh fails and the cache stays in place rather than scoring unversioned values.
+  assert.deepEqual(
+    await getArtificialAnalysisLeaderboardRawStats({ url: `${origin}/leaderboards/unversioned` }),
+    { fetched_at_epoch_seconds: null, data: [] },
+  );
   dataUnavailable = true;
   assert.deepEqual(
     await getArtificialAnalysisLeaderboardRawStats({ url: `${origin}/leaderboards/models` }),

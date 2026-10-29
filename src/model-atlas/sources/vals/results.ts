@@ -24,7 +24,7 @@ export type ValsBenchmarkDefinition = {
   benchmarkKey: string;
   canonicalTask: string;
   sourceUrl: string;
-  /** Pins one edition where another source's suite must match; omitted, the page's current version is used. */
+  /** Pins one version where another source's suite must match; omitted, the page's current version is used. */
   version?: string;
 };
 

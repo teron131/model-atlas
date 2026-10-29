@@ -10,7 +10,6 @@ import {
   BENCHMARK_PERSISTENCE_OVERRIDES,
   BENCHMARK_PROCESSING_OVERRIDES,
   BENCHMARK_RESOURCE_POLICIES,
-  BENCHMARK_RESOURCE_PROFILES,
   BENCHMARK_SCORING_LABELS,
   BENCHMARK_SCORING_WEIGHTS,
   BENCHMARK_STANDARD_SOURCES,
@@ -32,7 +31,6 @@ import {
   type BenchmarkScoringFacet,
   type BenchmarkSourceAdapter,
   type BenchmarkSourceDeclarationFacet,
-  type BenchmarkSourceFacet,
   type BenchmarkSourceFamily,
   type BenchmarkSourceRuntime,
   type BenchmarkSourceTransform,
@@ -135,7 +133,7 @@ function composeBenchmarkSources(): BenchmarkSources {
         benchmarkKey as keyof typeof BENCHMARK_EXTENDED_SOURCES
       ] as BenchmarkSourceDeclarationFacet | undefined;
       if (extended != null) {
-        return [benchmarkKey, resolveBenchmarkSource(benchmarkKey, extended)];
+        return [benchmarkKey, extended];
       }
 
       const source = BENCHMARK_STANDARD_SOURCES[benchmarkKey as BenchmarkObservationKey];
@@ -164,34 +162,6 @@ function composeBenchmarkSources(): BenchmarkSources {
       ];
     }),
   ) as unknown as BenchmarkSources;
-}
-
-function resolveBenchmarkSource(
-  benchmarkKey: BenchmarkKey,
-  source: BenchmarkSourceDeclarationFacet,
-): BenchmarkSourceFacet {
-  const taskRunCount =
-    BENCHMARK_RESOURCE_PROFILES[benchmarkKey as keyof typeof BENCHMARK_RESOURCE_PROFILES]
-      ?.taskRunCount;
-  return {
-    ...(source.revision == null ? {} : { revision: source.revision }),
-    inputs: source.inputs.map((input) => ({
-      ...input,
-      ...(input.adapters == null
-        ? {}
-        : {
-            adapters: input.adapters.map((adapter) => {
-              if (adapter.kind !== "artificial_analysis_resource_page") return adapter;
-              if (taskRunCount == null) {
-                throw new Error(
-                  `Artificial Analysis resource page requires a resource profile for ${benchmarkKey}`,
-                );
-              }
-              return { ...adapter, taskRunCount: adapter.taskRunCount ?? taskRunCount };
-            }),
-          }),
-    })) as unknown as BenchmarkSourceFacet["inputs"],
-  };
 }
 
 const BENCHMARK_SOURCES = composeBenchmarkSources();

@@ -127,8 +127,8 @@ function DiagnosticMatrices({
           label="Model evidence overview"
           rowLabel="models"
           rowDescription="Highest score at the top"
-          columnDescription="Each column is one evaluation edition"
-          columnLabel="benchmark editions"
+          columnDescription="Each column is one evaluation version"
+          columnLabel="benchmark versions"
           colors={EVIDENCE_COLORS}
           rows={rows}
           columns={columns}

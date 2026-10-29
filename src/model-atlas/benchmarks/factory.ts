@@ -17,7 +17,8 @@ export type BenchmarkSourceAdapter =
   | {
       kind: "artificial_analysis_resource_page";
       url: string;
-      taskRunCount: number;
+      /** The evaluation's name in Artificial Analysis's methodology table, without version tokens; its questions times repeats there give the runs that per-task resources divide by. */
+      methodologyName: string;
       scoreKey?: string;
       scorePath?: BenchmarkJsonPath;
       resourceKey: string;
@@ -25,16 +26,9 @@ export type BenchmarkSourceAdapter =
       version?: string;
     };
 
-type BenchmarkSourceAdapterDeclaration =
-  | Extract<BenchmarkSourceAdapter, { kind: "benchmark_observation" }>
-  | (Omit<
-      Extract<BenchmarkSourceAdapter, { kind: "artificial_analysis_resource_page" }>,
-      "taskRunCount"
-    > & { taskRunCount?: number });
-
 export type EpochRunEligibility = {
-  /** Accept only runs in the task's newest published major.minor edition, pooling its patch revisions. */
-  latestTaskEdition?: true;
+  /** Accept only runs in the task's newest published major.minor version, pooling its patch revisions. */
+  latestTaskVersion?: true;
   originalTaskName?: string;
   runIdPrefix?: string;
   excludedModelIds?: readonly string[];
@@ -70,8 +64,8 @@ export type BenchmarkObservationLoader =
       sourceUrl: string;
       scoreKind?: "elo";
       view?: "index";
-      /** Surge publishes no versions, so an Atlas-declared edition marks rows from an unannounced rerun. */
-      edition?: string;
+      /** Surge publishes no versions, so an Atlas-declared version marks rows from an unannounced rerun. */
+      version?: string;
     }
   | { kind: "terminal_bench_science"; sourceUrl: string }
   | {
@@ -95,12 +89,12 @@ export type BenchmarkSourceInput = {
   runtime?: BenchmarkSourceRuntime;
 };
 export type BenchmarkSourceFacet = {
-  /** Measurement revision distinguishes retained editions when a source changes its evaluation contract. */
+  /** Measurement revision distinguishes retained versions when a source changes its evaluation contract. */
   revision?: string;
   inputs: readonly [BenchmarkSourceInput, ...BenchmarkSourceInput[]];
 };
 type BenchmarkSourceInputDeclaration = Omit<BenchmarkSourceInput, "adapters"> & {
-  adapters?: readonly BenchmarkSourceAdapterDeclaration[];
+  adapters?: readonly BenchmarkSourceAdapter[];
 };
 export type BenchmarkSourceDeclarationFacet = {
   revision?: string;
@@ -135,7 +129,7 @@ type BenchmarkSourceCrosswalkPolicy = { kind: "custom" };
 
 export type BenchmarkProcessingFacet = {
   transform: BenchmarkSourceTransform;
-  /** Frozen labels: nothing branches on `aggregation` or `sourceCrosswalk`, but `benchmarkEditionId` hashes them into persisted timeline edition ids, so editing one splits that benchmark's timeline; declare real edition changes with `source.revision`. */
+  /** Frozen labels: nothing branches on `aggregation` or `sourceCrosswalk`, but `benchmarkVersionId` hashes them into persisted timeline version ids, so editing one splits that benchmark's timeline; declare real version changes with `source.revision`. */
   aggregation: BenchmarkAggregationPolicy;
   sourceCrosswalk?: BenchmarkSourceCrosswalkPolicy;
 };
@@ -440,13 +434,9 @@ function validateSourceAdapters(key: string, input: BenchmarkSourceInput): void 
       );
     }
     if (adapter.kind === "artificial_analysis_resource_page") {
-      if (
-        adapter.url.trim().length === 0 ||
-        !Number.isInteger(adapter.taskRunCount) ||
-        adapter.taskRunCount <= 0
-      ) {
+      if (adapter.url.trim().length === 0 || adapter.methodologyName.trim().length === 0) {
         throw new Error(
-          `Artificial Analysis resource page requires a URL and positive task count for ${key}/${input.id}`,
+          `Artificial Analysis resource page requires a URL and methodology name for ${key}/${input.id}`,
         );
       }
     }
