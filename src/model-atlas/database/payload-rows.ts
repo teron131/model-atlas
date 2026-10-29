@@ -1,13 +1,11 @@
 /** Payload assembly turns normalized checkpoint rows into the public stats contract. */
 
-import { ARTIFICIAL_ANALYSIS_INTELLIGENCE_KEYS } from "../benchmarks/field-keys";
 import {
   type BenchmarkObservationEvidenceRow,
   type BenchmarkObservationsByKey,
   parseBenchmarkObservationMetadata,
 } from "../benchmarks/observation";
 import {
-  ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_KEYS,
   BENCHMARK_OBSERVATION_BINDINGS,
   type PublicBenchmarkRuntimeKeyFor,
 } from "../benchmarks/registry";
@@ -43,6 +41,12 @@ import { SNAPSHOT_TABLES, type SnapshotTableName } from "./tables";
 type DbRow = Record<string, unknown>;
 
 export const SNAPSHOT_METADATA_SQL = "SELECT * FROM snapshot_metadata LIMIT 1";
+
+const INTELLIGENCE_KEYS = [
+  "intelligence_index",
+  "omniscience_index",
+  "omniscience_accuracy",
+] as const satisfies readonly (keyof ModelAtlasIntelligence)[];
 
 type PayloadRowGroupOptions = {
   columns?: readonly string[];
@@ -206,7 +210,6 @@ export const PAYLOAD_ROW_GROUPS = [
       "reasoning_effort",
       "intelligence_index",
       "intelligence_index_version",
-      ...ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_KEYS,
     ],
   }),
   ...Object.values(BENCHMARK_SOURCE_PAYLOAD_ROW_GROUPS),
@@ -415,7 +418,7 @@ function scoredCandidateFromRow(
       latency_seconds_median: asFiniteNumber(row.latency_seconds_median) ?? null,
       e2e_latency_seconds_median: asFiniteNumber(row.e2e_latency_seconds_median) ?? null,
     },
-    intelligence: numericObject<ModelAtlasIntelligence>(row, ARTIFICIAL_ANALYSIS_INTELLIGENCE_KEYS),
+    intelligence: numericObject<ModelAtlasIntelligence>(row, INTELLIGENCE_KEYS),
     task_metrics: taskMetrics,
     benchmarks,
     benchmark_dates: benchmarkDates,

@@ -100,12 +100,10 @@ export function buildVersionReplacementMatchSlugOverrides(
     const family = artificialAnalysisSourceFamily(sourceId);
     if (sourceSlug != null && family === normalizeModelToken(sourceSlug)) {
       artificialAnalysisIdByFamily.set(family, sourceId);
-      for (const label of [record.name, record.short_name, record.shortName]) {
-        if (typeof label !== "string") continue;
-        const matchSlug = datedReleaseExtension(family, label);
-        if (matchSlug != null) {
-          addVersionEvidence(artificialAnalysisLabelEvidenceByFamily, family, matchSlug);
-        }
+      const matchSlug =
+        typeof record.name === "string" ? datedReleaseExtension(family, record.name) : null;
+      if (matchSlug != null) {
+        addVersionEvidence(artificialAnalysisLabelEvidenceByFamily, family, matchSlug);
       }
     }
   }

@@ -17,15 +17,14 @@ export function insertModels(db: DatabaseWriter, rows: readonly unknown[]): void
 			cost_cache_write, cost_weighted_input, cost_weighted_output,
 			cost_blended_price, context_over_200k_input, context_over_200k_output,
 			context_over_200k_cache_read, context_over_200k_cache_write,
-			intelligence_index, agentic_index, coding_index, omniscience_index,
-			omniscience_accuracy,
+			intelligence_index, omniscience_index, omniscience_accuracy,
 			component_intelligence_score, component_agentic_score, component_speed_score,
 			intelligence_score, agentic_score,
 			speed_score,
 			value_score,
 			intelligence_confidence, agentic_confidence, speed_confidence, value_confidence,
 			latest_change_json
-		) VALUES (${Array.from({ length: 45 }, () => "?").join(", ")})
+		) VALUES (${Array.from({ length: 43 }, () => "?").join(", ")})
 	`);
   for (const [index, row] of rows.entries()) {
     const model = asRecord(row);
@@ -236,8 +235,6 @@ function modelIntelligenceValues(model: JsonObject): SqlValue[] {
   const intelligence = asRecord(model.intelligence);
   return [
     asFiniteNumber(intelligence.intelligence_index),
-    asFiniteNumber(intelligence.agentic_index),
-    asFiniteNumber(intelligence.coding_index),
     asFiniteNumber(intelligence.omniscience_index),
     asFiniteNumber(intelligence.omniscience_accuracy),
   ];

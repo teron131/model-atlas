@@ -7,6 +7,7 @@ import {
   type BenchmarkObservationRow,
   buildBenchmarkObservationLookup,
 } from "../src/model-atlas/benchmarks/observation";
+import { BENCHMARK_OBSERVATION_BINDINGS } from "../src/model-atlas/benchmarks/registry";
 import { STAGE_CONFIG } from "../src/model-atlas/config";
 import { buildDebugTraceRows } from "../src/model-atlas/database/debug-trace";
 import { buildMatchDiagnostics } from "../src/model-atlas/identity";
@@ -583,22 +584,23 @@ assert.equal(
   "qwen3-8-max-0902",
   "a unique dated source label and matching catalog route should resolve the undated source identity",
 );
+const conflictingValsRow: ValsIndexModelScoreRow = {
+  task: "overall",
+  task_label: "Overall",
+  model_id: "alibaba/qwen3.8-max-0803",
+  model: "qwen3.8-max-0803",
+  provider: "Alibaba",
+  score: 0.6,
+  observed_at: "2026-10-07",
+  metadata: { benchmark_version: "2.2", benchmark_count: 8 },
+};
 assert.equal(
   buildVersionReplacementMatchSlugOverrides({
     ...sourceLabelVersionData,
-    artificialAnalysis: {
-      ...sourceLabelVersionData.artificialAnalysis,
-      rows: [
-        {
-          ...sourceModel("alibaba/qwen3-8-max", 45),
-          name: "Qwen3.8 Max (0902)",
-          short_name: "Qwen3.8 Max (0803)",
-        },
-      ],
-    },
+    valsIndex: { rows: [conflictingValsRow], rowsByModelName: new Map() },
   }).has("alibaba/qwen3-8-max"),
   false,
-  "conflicting dated labels must not choose a replacement route",
+  "a source label and Vals naming different dates must not choose a replacement route",
 );
 
 const valsVersionRow: ValsIndexModelScoreRow = {
@@ -737,11 +739,8 @@ assert.equal(
 );
 
 const sourceData = modelStatsSourceData([
-  {
-    ...sourceModel("google/example-2-5-flash", 20, "high", 0.4),
-    benchmarks: { hle: 0.4, omniscience_accuracy: 0.4, automation_bench: 0.4 },
-  },
-  sourceModel("google/example-2-5-flash-non-reasoning", 10, "none", 0.1),
+  sourceModel("google/example-2-5-flash", 20, "high"),
+  sourceModel("google/example-2-5-flash-non-reasoning", 10, "none"),
   sourceModel("google/example-3-pro", 50),
 ]);
 const matchDiagnostics = buildMatchDiagnostics({
@@ -797,24 +796,17 @@ try {
 } finally {
   globalThis.fetch = originalFetch;
 }
+const scoredModels = [
+  { id: "google/example-2-5-flash", score: 0.9 },
+  { id: "google/example-2-5-flash-lite", score: 0.0001 },
+];
 const scoredSourceData = modelStatsSourceData(
-  [
-    { id: "google/example-2-5-flash", score: 0.9 },
-    { id: "google/example-2-5-flash-lite", score: 0.0001 },
-  ].map(({ id, score }) => {
-    return {
-      ...sourceModel(id, score * 100),
-      intelligence: { intelligence_index: score * 100, agentic_index: score * 100 },
-      benchmarks: Object.fromEntries(
-        [
-          ...STAGE_CONFIG.scoring.intelligenceBenchmarkKeys,
-          ...STAGE_CONFIG.scoring.agenticBenchmarkKeys,
-        ]
-          .filter((key) => key !== "aa_intelligence_index")
-          .map((key) => [key, score]),
-      ),
-    };
-  }),
+  scoredModels.map(({ id, score }) => sourceModel(id, score * 100)),
+);
+reportObservations(
+  scoredSourceData,
+  scoredModels.map(({ id, score }) => ({ id, name: id, effort: null, value: score })),
+  () => true,
 );
 await deriveModelStats(scoredSourceData, {
   loadOpenRouter: async (modelIds) => {
@@ -967,42 +959,29 @@ assert.equal(
 assert.equal(asBenchmarks(assignedFlashVariant).hle, 0.4);
 assert.equal(assignedFlashVariant?.reasoning_effort, undefined);
 
-const uncatalogedIndexKeys = new Set<string>(INDEX_BENCHMARK_KEYS);
+const uncatalogedEfforts = ["max", "high", "none"];
 const uncatalogedSourceData = modelStatsSourceData(
-  ["max", "high", "none"].map((effort) => ({
+  uncatalogedEfforts.map((effort) => ({
     model_id: `example/private-model-${effort === "none" ? "non-reasoning" : effort}`,
     name: `Private Model (${effort === "none" ? "Non-reasoning" : effort})`,
     provider: "example",
     output_modalities: ["text"],
     reasoning_effort: effort,
-    intelligence: { intelligence_index: 75, agentic_index: 70 },
-    benchmarks: Object.fromEntries(
-      [
-        ...STAGE_CONFIG.scoring.intelligenceBenchmarkKeys,
-        ...STAGE_CONFIG.scoring.agenticBenchmarkKeys,
-      ]
-        .filter((key) => !uncatalogedIndexKeys.has(key))
-        .map((key) => [key, 0.7]),
-    ),
+    intelligence: { intelligence_index: 75 },
   })),
 );
-const uncatalogedIndexRows: BenchmarkObservationRow[] = ["max", "high", "none"].map((effort) => ({
-  benchmark_key: "cais_capabilities_index",
-  source_url: "https://dashboard.safe.ai/",
-  model_id: `example/private-model-${effort === "none" ? "non-reasoning" : effort}`,
-  model: `Private Model (${effort === "none" ? "Non-reasoning" : effort})`,
-  base_model: "Private Model",
-  reasoning_effort: effort,
-  model_creator: "example",
-  rank: null,
-  canonical_value: 0.7,
-  observed_at: null,
-  metadata: {},
-}));
-uncatalogedSourceData.caisCapabilitiesIndex = {
-  rows: uncatalogedIndexRows,
-  rowsByModelName: buildBenchmarkObservationLookup(uncatalogedIndexRows),
-};
+// Standalone observations supply the breadth beside the AA index, with CAIS as the one further index.
+const uncatalogedIndexKeys = new Set<string>(INDEX_BENCHMARK_KEYS);
+reportObservations(
+  uncatalogedSourceData,
+  uncatalogedEfforts.map((effort) => ({
+    id: `example/private-model-${effort === "none" ? "non-reasoning" : effort}`,
+    name: `Private Model (${effort === "none" ? "Non-reasoning" : effort})`,
+    effort,
+    value: 0.7,
+  })),
+  (benchmark) => benchmark === "cais_capabilities_index" || !uncatalogedIndexKeys.has(benchmark),
+);
 const uncatalogedDerivation = await deriveModelStats(uncatalogedSourceData, {
   loadOpenRouter: async () => ({ rawPayload: null }),
 });
@@ -1057,15 +1036,38 @@ function sourceModel(
   modelId: string,
   intelligenceIndex: number,
   reasoningEffort: string | null = null,
-  hle = 0.4,
 ): Record<string, unknown> {
   return {
     model_id: modelId,
     reasoning_effort: reasoningEffort,
     intelligence: { intelligence_index: intelligenceIndex },
-    benchmarks: { hle },
     intelligence_index_cost: {},
   };
+}
+
+/** Reports each included observation-backed benchmark for the models, the path standalone results take into model rows. */
+function reportObservations(
+  sourceData: ModelAtlasSourceData,
+  models: readonly { id: string; name: string; effort: string | null; value: number }[],
+  includes: (benchmark: string) => boolean,
+): void {
+  for (const { benchmark, sourceDataKey } of BENCHMARK_OBSERVATION_BINDINGS) {
+    if (!includes(benchmark)) continue;
+    const rows: BenchmarkObservationRow[] = models.map(({ id, name, effort, value }) => ({
+      benchmark_key: benchmark,
+      source_url: "https://example.com/observations",
+      model_id: id,
+      model: name,
+      base_model: name,
+      reasoning_effort: effort,
+      model_creator: null,
+      rank: null,
+      canonical_value: value,
+      observed_at: null,
+      metadata: {},
+    }));
+    sourceData[sourceDataKey] = { rows, rowsByModelName: buildBenchmarkObservationLookup(rows) };
+  }
 }
 
 function modelStatsSourceData(

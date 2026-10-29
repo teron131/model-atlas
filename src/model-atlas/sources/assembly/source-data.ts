@@ -82,7 +82,6 @@ export type ArtificialAnalysisModel = {
   median_end_to_end_response_time?: unknown;
   intelligence?: unknown;
   intelligence_index_cost?: unknown;
-  benchmarks?: unknown;
 };
 
 type IndexedSourceRows<Row, Lookup> = {

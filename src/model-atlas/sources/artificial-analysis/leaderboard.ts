@@ -5,7 +5,6 @@
  */
 
 import { ARTIFICIAL_ANALYSIS_INDEX_COMPONENTS } from "../../benchmarks/index-policy";
-import { ARTIFICIAL_ANALYSIS_CONTEXT_KEY_BY_ALIAS } from "../../benchmarks/registry";
 import { canonicalReasoningEffort } from "../../identity/normalization";
 import { asRecord, type JsonObject, nowEpochSeconds } from "../../runtime";
 import { extractNextFlightCorpus, findObjectEnd, parseFlightJsonObject } from "../parsing";
@@ -23,24 +22,11 @@ const DEFAULT_TIMEOUT_MS = 30_000;
 
 const ROW_DETECTION_KEY = "intelligenceIndex";
 
-const SPARSE_COLUMN_NULL_RATIO = 0.5;
-
 const MODEL_SEARCH_BACKTRACK_CHARS = 20_000;
-
-const MIN_INTELLIGENCE_COST_TOTAL_TOKENS = 1_000_000;
 
 type ArtificialAnalysisLeaderboardOptions = {
   url?: string;
   timeoutMs?: number;
-  flatten?: boolean;
-  dropMostlyNullColumns?: boolean;
-  selectedColumns?: string[];
-};
-
-type ArtificialAnalysisLeaderboardProcessOptions = {
-  flatten?: boolean;
-  dropMostlyNullColumns?: boolean;
-  selectedColumns?: string[];
 };
 
 type ArtificialAnalysisLeaderboardRawPayload = {
@@ -69,7 +55,6 @@ export const ARTIFICIAL_ANALYSIS_LEADERBOARD_COLUMNS = [
   "intelligence",
   "intelligence_index_version",
   "intelligence_index_cost",
-  "benchmarks",
 ] as const;
 
 const RECORDED_INDEX_COMPONENTS: ReadonlySet<string> = new Set(
@@ -80,7 +65,6 @@ const NO_COLUMN_VALUE = Symbol("no_column_value");
 
 type RowSelectionContext = {
   creator: JsonObject;
-  modelCreators: JsonObject;
   providerSlug: string | null;
   modelSlug: string | null;
   modelUrlCreatorSlug: string | null;
@@ -92,7 +76,7 @@ type RowSelectionContext = {
  * Any fetch or parse failure returns an empty payload with no fetch time.
  */
 export async function getArtificialAnalysisLeaderboardRawStats(
-  options: Pick<ArtificialAnalysisLeaderboardOptions, "url" | "timeoutMs"> = {},
+  options: ArtificialAnalysisLeaderboardOptions = {},
 ): Promise<ArtificialAnalysisLeaderboardRawPayload> {
   try {
     const url = options.url ?? ARTIFICIAL_ANALYSIS_LEADERBOARD_URL;
@@ -138,15 +122,14 @@ export async function getArtificialAnalysisLeaderboardRawStats(
 }
 
 export async function getArtificialAnalysisLeaderboardStats(
-  options: Omit<ArtificialAnalysisLeaderboardOptions, "selectedColumns"> = {},
+  options: ArtificialAnalysisLeaderboardOptions = {},
 ): Promise<ArtificialAnalysisLeaderboardPayload> {
   const rawPayload = await getArtificialAnalysisLeaderboardRawStats(options);
   return {
     fetched_at_epoch_seconds: rawPayload.fetched_at_epoch_seconds,
-    data: processArtificialAnalysisLeaderboardRows(rawPayload.data, {
-      ...options,
-      selectedColumns: [...ARTIFICIAL_ANALYSIS_LEADERBOARD_COLUMNS],
-    }),
+    data: processArtificialAnalysisLeaderboardRows(rawPayload.data, [
+      ...ARTIFICIAL_ANALYSIS_LEADERBOARD_COLUMNS,
+    ]),
   };
 }
 
@@ -168,27 +151,15 @@ export function artificialAnalysisModelId(row: JsonObject): string | null {
 
 export function processArtificialAnalysisLeaderboardRows(
   rows: JsonObject[],
-  options: ArtificialAnalysisLeaderboardProcessOptions = {},
+  selectedColumns: readonly string[],
 ): JsonObject[] {
-  const shouldFlatten = options.flatten ?? true;
-  const shouldDropMostlyNullColumns = options.dropMostlyNullColumns ?? true;
-  const selectedColumns = options.selectedColumns ?? [];
-
-  const sortedRows = sortLeaderboardRows(rows);
-  const flattenedRows = shouldFlatten ? sortedRows.map(flattenExpandedRow) : sortedRows;
-  if (selectedColumns.length > 0) {
-    return selectColumns(flattenedRows, selectedColumns);
-  }
-  const rowsWithPrunedColumns = shouldDropMostlyNullColumns
-    ? dropMostlyNullColumns(flattenedRows, SPARSE_COLUMN_NULL_RATIO)
-    : flattenedRows;
-  return selectColumns(rowsWithPrunedColumns, selectedColumns);
+  return selectColumns(sortLeaderboardRows(rows), selectedColumns);
 }
 
 function sortLeaderboardRows(rows: JsonObject[]): JsonObject[] {
   return [...rows].sort((left, right) => {
-    const leftIntelligence = firstNumber(left, ["intelligenceIndex", "intelligence_index"]);
-    const rightIntelligence = firstNumber(right, ["intelligenceIndex", "intelligence_index"]);
+    const leftIntelligence = firstNumber(left, ["intelligenceIndex"]);
+    const rightIntelligence = firstNumber(right, ["intelligenceIndex"]);
     if (leftIntelligence == null && rightIntelligence == null) {
       return (firstString(left, ["slug"]) ?? "").localeCompare(firstString(right, ["slug"]) ?? "");
     }
@@ -293,66 +264,38 @@ function rowIdentifier(row: JsonObject): string | null {
   return null;
 }
 
+/** Leaderboard preview rows name their creator inline, while model-page rows nest it. */
 function isLeaderboardModelRow(row: JsonObject): boolean {
   if (!(ROW_DETECTION_KEY in row)) {
     return false;
   }
-  const slug = firstString(row, ["slug"]);
-  const name = firstString(row, ["name", "shortName", "short_name"]);
-  const creatorSlug = firstString(row, ["modelCreatorSlug"]);
   const creatorName =
     firstString(row, ["modelCreatorName"]) ?? firstString(asRecord(row.creator), ["name"]);
-  return slug != null && name != null && (creatorSlug != null || creatorName != null);
+  return (
+    firstString(row, ["slug"]) != null && firstString(row, ["name"]) != null && creatorName != null
+  );
 }
 
 function buildRowSelectionContext(row: JsonObject): RowSelectionContext {
-  const creator = {
-    ...flatCreatorFieldsFromRow(row),
-    ...asRecord(row.creator),
-  };
-  const modelCreators = {
-    ...flatCreatorFieldsFromRow(row),
-    ...asRecord(row.model_creators),
-  };
-  const providerSlug = creatorNameSlug(row, creator);
+  const creator = asRecord(row.creator);
+  const providerSlug = creatorNameSlug(creator);
   const modelSlug = firstString(row, ["slug"]);
-  const modelUrlCreatorSlug =
-    firstString(modelCreators, ["slug"]) ?? firstString(creator, ["slug"]) ?? providerSlug;
-  const modelUrlPath = modelUrlPathFromRow(row, modelSlug);
   return {
     creator,
-    modelCreators,
     providerSlug,
     modelSlug,
-    modelUrlCreatorSlug,
-    modelUrlPath,
+    modelUrlCreatorSlug: firstString(creator, ["slug"]) ?? providerSlug,
+    modelUrlPath: modelUrlPathFromRow(row, modelSlug),
   };
 }
 
-/** Inline creator fields are normalized to the nested creator shape used by hydrated page rows. */
-function flatCreatorFieldsFromRow(row: JsonObject): JsonObject {
-  return {
-    name: firstString(row, ["modelCreatorName"]),
-    slug: firstString(row, ["modelCreatorSlug"]),
-    logo: firstString(row, ["modelCreatorLogo"]),
-    color: firstString(row, ["modelCreatorColor"]),
-  };
-}
-
-function creatorNameSlug(row: JsonObject, creator: JsonObject): string | null {
-  const creatorName =
-    typeof creator.name === "string"
-      ? creator.name
-      : typeof row.provider === "string"
-        ? row.provider
-        : firstString(row, ["modelCreatorName", "modelCreatorSlug"]);
-  if (creatorName == null) {
-    return null;
-  }
-  return creatorName
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+function creatorNameSlug(creator: JsonObject): string | null {
+  return (
+    firstString(creator, ["name"])
+      ?.toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") ?? null
+  );
 }
 
 function modelUrlPathFromRow(row: JsonObject, fallbackSlug: string | null): string | null {
@@ -365,70 +308,7 @@ function modelUrlPathFromRow(row: JsonObject, fallbackSlug: string | null): stri
   return urlPath.length > 0 ? urlPath : fallbackSlug;
 }
 
-function dropMostlyNullColumns(rows: JsonObject[], nullRatioThreshold: number): JsonObject[] {
-  if (rows.length === 0) {
-    return rows;
-  }
-  const columns = [...new Set(rows.flatMap((row) => Object.keys(row)))];
-  const columnsToDrop = new Set<string>();
-
-  for (const column of columns) {
-    let nullLikeCount = 0;
-    for (const row of rows) {
-      if (isNullLike(row[column])) {
-        nullLikeCount += 1;
-      }
-    }
-    if (nullLikeCount / rows.length > nullRatioThreshold) {
-      columnsToDrop.add(column);
-    }
-  }
-
-  if (columnsToDrop.size === 0) {
-    return rows;
-  }
-  return rows.map((row) =>
-    Object.fromEntries(Object.entries(row).filter(([column]) => !columnsToDrop.has(column))),
-  );
-}
-
-function isNullLike(value: unknown): boolean {
-  return (
-    value == null ||
-    value === "" ||
-    value === "$undefined" ||
-    (Array.isArray(value) && value.length === 0)
-  );
-}
-
-function flattenExpandedRow(row: JsonObject): JsonObject {
-  const timescaleData = asRecord(row.timescaleData);
-  const responseTimeMetrics = asRecord(row.end_to_end_response_time_metrics);
-  const firstPerformanceRow = Array.isArray(row.performanceByPromptLength)
-    ? asRecord(row.performanceByPromptLength[0])
-    : {};
-
-  const flattenedRow: JsonObject = { ...row };
-
-  for (const metricSource of [timescaleData, responseTimeMetrics]) {
-    for (const [key, value] of Object.entries(metricSource)) {
-      if (flattenedRow[key] == null && value !== undefined) {
-        flattenedRow[key] = value;
-      }
-    }
-  }
-
-  if (
-    flattenedRow.prompt_length_type_default == null &&
-    firstPerformanceRow.prompt_length_type != null
-  ) {
-    flattenedRow.prompt_length_type_default = firstPerformanceRow.prompt_length_type;
-  }
-
-  return flattenedRow;
-}
-
-function selectColumns(rows: JsonObject[], selectedColumns: string[]): JsonObject[] {
+function selectColumns(rows: JsonObject[], selectedColumns: readonly string[]): JsonObject[] {
   const selectedColumnSet = new Set(
     selectedColumns.filter((column) => typeof column === "string" && column.length > 0),
   );
@@ -456,61 +336,28 @@ function selectedColumnValue(
   row: JsonObject,
   context: RowSelectionContext,
 ): unknown {
-  const { creator, modelCreators, providerSlug, modelSlug, modelUrlCreatorSlug } = context;
+  const { creator, providerSlug, modelSlug, modelUrlCreatorSlug } = context;
 
   switch (column) {
-    case "id":
-      return providerSlug && modelSlug
-        ? `${providerSlug}/${modelSlug}`
-        : (modelSlug ?? row.id ?? null);
     case "model_url":
       return (
         row.model_url ??
-        (modelUrlCreatorSlug && modelSlug ? `/models/${modelUrlCreatorSlug}/${modelSlug}` : null) ??
-        (typeof row.id === "string" ? row.id : null)
+        (modelUrlCreatorSlug && modelSlug ? `/models/${modelUrlCreatorSlug}/${modelSlug}` : null)
       );
     case "model_id":
       return artificialAnalysisModelId(row);
     case "name":
-      return cleanArtificialAnalysisModelName(
-        row.short_name ??
-          row.shortName ??
-          row.name ??
-          (typeof row.slug === "string" ? row.slug : null),
-      );
+      return cleanArtificialAnalysisModelName(row.shortName ?? row.name ?? modelSlug);
     case "provider":
-      return (
-        providerSlug ??
-        creator.name ??
-        modelCreators.name ??
-        row.model_creator_id ??
-        row.creator_name ??
-        null
-      );
+      return providerSlug;
     case "logo":
-      return absoluteLogoUrl(
-        row.logo_small_url ??
-          row.logo_url ??
-          row.logoSmall ??
-          row.logo_small ??
-          row.modelCreatorLogo ??
-          modelCreators.logo_small_url ??
-          modelCreators.logo_url ??
-          modelCreators.logo_small ??
-          modelCreators.logo ??
-          creator.logo_small_url ??
-          creator.logo_url ??
-          creator.logo_small ??
-          creator.logo,
-      );
+      return absoluteLogoUrl(creator.logo);
     case "reasoning":
-    case "reasoning_model":
-      return firstBoolean(row, ["reasoningModel"]);
+      return firstBoolean(row, ["isReasoning"]);
     case "reasoning_effort":
       return (
-        canonicalReasoningEffort(
-          row.reasoning_effort ?? row.reasoningEffort ?? asRecord(row.effort).slug,
-        ) ?? parseArtificialAnalysisReasoningEffort(row.name, row.short_name, row.shortName)
+        canonicalReasoningEffort(row.reasoning_effort ?? asRecord(row.effort).slug) ??
+        parseArtificialAnalysisReasoningEffort(row.name, row.shortName)
       );
     case "input_modalities":
       return selectModalities(row, "input");
@@ -523,43 +370,12 @@ function selectedColumnValue(
         input: firstNumber(row, ["price1mInputTokens"]),
         output: firstNumber(row, ["price1mOutputTokens"]),
       };
-    case "input_tokens": {
-      const intelligenceTokenCounts = asRecord(row.intelligenceIndexTokenCounts);
-      return intelligenceTokenCounts.inputTokens ?? null;
-    }
-    case "output_tokens": {
-      const intelligenceTokenCounts = asRecord(row.intelligenceIndexTokenCounts);
-      const answerTokens = firstNumber(intelligenceTokenCounts, ["answerTokens"]);
-      const reasoningTokens = firstNumber(intelligenceTokenCounts, ["reasoningTokens"]);
-      const outputFromParts =
-        (answerTokens ?? 0) + (reasoningTokens ?? 0) > 0
-          ? (answerTokens ?? 0) + (reasoningTokens ?? 0)
-          : null;
-      return intelligenceTokenCounts.outputTokens ?? outputFromParts ?? null;
-    }
     case "median_speed":
-      return (
-        row.median_output_speed ??
-        row.medianOutputTokensPerSecond ??
-        asRecord(row.timescaleData).median_output_speed ??
-        null
-      );
+      return firstNumber(asRecord(row.timescaleData), ["medianOutputSpeed"]);
     case "median_time":
-      return (
-        row.median_time_to_first_chunk ??
-        row.medianTimeToFirstTokenSeconds ??
-        asRecord(row.timescaleData).median_time_to_first_chunk ??
-        null
-      );
+      return firstNumber(asRecord(row.timescaleData), ["medianTimeToFirstChunk"]);
     case "median_end_to_end_response_time":
-      return (
-        row.median_end_to_end_response_time ??
-        row.medianEndToEndResponseTimeSeconds ??
-        asRecord(row.end_to_end_response_time_metrics).median_end_to_end_response_time ??
-        null
-      );
-    case "benchmarks":
-      return pickBenchmarks(row);
+      return firstNumber(asRecord(row.endToEndResponseTime), ["total"]);
     case "intelligence":
       return pickIntelligence(row);
     case "intelligence_index_version":
@@ -597,39 +413,11 @@ function firstBoolean(row: JsonObject, keys: string[]): boolean | null {
 
 function selectModalities(row: JsonObject, direction: "input" | "output"): string[] {
   return [
-    row[`${direction}_modality_text`] || row[`${direction}ModalityText`] ? "text" : null,
-    row[`${direction}_modality_image`] || row[`${direction}ModalityImage`] ? "image" : null,
-    row[`${direction}_modality_video`] || row[`${direction}ModalityVideo`] ? "video" : null,
-    row[`${direction}_modality_speech`] || row[`${direction}ModalitySpeech`] ? "speech" : null,
+    row[`${direction}ModalityText`] ? "text" : null,
+    row[`${direction}ModalityImage`] ? "image" : null,
+    row[`${direction}ModalityVideo`] ? "video" : null,
+    row[`${direction}ModalitySpeech`] ? "speech" : null,
   ].filter((value): value is string => value != null);
-}
-
-/** Only context fields are kept; task-level benchmark scores come from their evaluation pages, so this table never becomes a second benchmark authority. */
-function pickBenchmarks(row: JsonObject): JsonObject {
-  const benchmarks: JsonObject = {};
-  for (const [key, value] of Object.entries(row)) {
-    const benchmarkKey = benchmarkKeyBySourceKey(key);
-    if (benchmarkKey == null) {
-      continue;
-    }
-    if (typeof value === "number" || typeof value === "boolean") {
-      benchmarks[benchmarkKey] = value;
-    }
-  }
-  return benchmarks;
-}
-
-function benchmarkKeyBySourceKey(key: string): string | null {
-  return (
-    ARTIFICIAL_ANALYSIS_CONTEXT_KEY_BY_ALIAS[key] ??
-    ARTIFICIAL_ANALYSIS_CONTEXT_KEY_BY_ALIAS[normalizeMetricKey(key)] ??
-    null
-  );
-}
-
-// `"gpqaDiamond"` → `"gpqa_diamond"`.
-function normalizeMetricKey(key: string): string {
-  return key.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();
 }
 
 /** An index value and its per-task telemetry count only when the row lists exactly the recorded constituents: a changed basket alters breadth and overlap, so it waits for review instead of scoring, and rows kept from before constituents were recorded never count. */
@@ -646,49 +434,21 @@ function hasRecordedIntelligenceIndexComponents(row: JsonObject): boolean {
 function pickIntelligence(row: JsonObject): JsonObject {
   return {
     intelligence_index: hasRecordedIntelligenceIndexComponents(row)
-      ? firstNumber(row, ["intelligenceIndex", "intelligence_index"])
+      ? firstNumber(row, ["intelligenceIndex"])
       : null,
-    agentic_index: firstNumber(row, ["agenticIndex", "agentic_index"]),
-    coding_index: firstNumber(row, ["codingIndex", "coding_index"]),
-    omniscience_index: firstNumber(row, ["omniscience", "omniscience_index"]),
+    omniscience_index: firstNumber(row, ["omniscience"]),
   };
 }
 
 function pickIntelligenceIndexCost(row: JsonObject): JsonObject {
-  const intelligenceTokenCounts = asRecord(row.intelligenceIndexTokenCounts);
-  const costPerTaskRecord = asRecord(row.intelligenceIndexCostPerTask);
-  const costPerTaskBreakdown = asRecord(costPerTaskRecord.cost);
-  const outputTokensPerTaskRecord = asRecord(row.intelligenceIndexOutputTokensPerTask);
-  const inputTokens = firstNumber(intelligenceTokenCounts, ["inputTokens"]);
-  const outputTokens = firstNumber(intelligenceTokenCounts, ["outputTokens"]);
-  const answerTokens = firstNumber(intelligenceTokenCounts, ["answerTokens"]);
-  const reasoningTokens = firstNumber(intelligenceTokenCounts, ["reasoningTokens"]);
-  const outputFromParts =
-    (answerTokens ?? 0) + (reasoningTokens ?? 0) > 0
-      ? (answerTokens ?? 0) + (reasoningTokens ?? 0)
-      : null;
-  const totalTokens = outputTokens ?? outputFromParts;
-
   return {
-    input_cost: firstNumber(row, ["intelligenceIndexCostInput", "input_cost"]),
-    reasoning_cost: firstNumber(row, ["intelligenceIndexCostReasoning", "reasoning_cost"]),
-    output_cost: firstNumber(row, ["intelligenceIndexCostOutput", "output_cost"]),
-    total_cost: firstNumber(row, ["intelligenceIndexCostTotal", "total_cost"]),
-    input_tokens: inputTokens ?? firstNumber(row, ["input_tokens"]),
-    reasoning_tokens: reasoningTokens ?? firstNumber(row, ["reasoning_tokens"]),
-    answer_tokens: answerTokens ?? firstNumber(row, ["answer_tokens"]),
-    output_tokens: outputTokens ?? firstNumber(row, ["output_tokens"]),
-    total_tokens:
-      typeof totalTokens === "number" && totalTokens >= MIN_INTELLIGENCE_COST_TOTAL_TOKENS
-        ? totalTokens
-        : firstNumber(row, ["total_tokens"]),
-    cost_per_task:
-      firstNumber(costPerTaskBreakdown, ["total"]) ??
-      firstNumber(row, ["intelligenceIndexCostPerTask", "cost_per_task"]),
-    seconds_per_task: firstNumber(row, ["intelligenceIndexTimePerTask", "seconds_per_task"]),
-    output_tokens_per_task:
-      firstNumber(outputTokensPerTaskRecord, ["output"]) ??
-      firstNumber(row, ["output_tokens_per_task"]),
+    cost_per_task: firstNumber(asRecord(asRecord(row.intelligenceIndexCostPerTask).cost), [
+      "total",
+    ]),
+    seconds_per_task: firstNumber(row, ["intelligenceIndexTimePerTask"]),
+    output_tokens_per_task: firstNumber(asRecord(row.intelligenceIndexOutputTokensPerTask), [
+      "output",
+    ]),
   };
 }
 

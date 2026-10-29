@@ -6,7 +6,6 @@ import {
 } from "../../benchmarks/observation";
 import {
   ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES,
-  ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_KEYS,
   BENCHMARK_OBSERVATION_BINDINGS,
   type PublicBenchmarkRuntimeKeyFor,
   transformBenchmarkSourceValue,
@@ -156,25 +155,15 @@ export function finalizeBenchmarkRows(drafts: readonly BenchmarkRowDraft[]): Ben
 function artificialAnalysisBenchmarkRowDrafts(
   sourceData: ModelAtlasSourceData,
 ): BenchmarkRowDraft[] {
-  const contextDrafts = sourceData.artificialAnalysis.rows.flatMap((row) => {
+  const indexDrafts = sourceData.artificialAnalysis.rows.flatMap((row) => {
     const record = asRecord(row);
     const modelId =
       typeof record.model_id === "string" && record.model_id.length > 0 ? record.model_id : null;
     const label = typeof record.name === "string" && record.name.length > 0 ? record.name : modelId;
-    const benchmarks = asRecord(record.benchmarks);
     if (label == null) {
       return [];
     }
     return [
-      ...ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_KEYS.map((key) => ({
-        key,
-        id: modelId,
-        identity: modelId,
-        label,
-        provider: null,
-        reasoningEffort: record.reasoning_effort,
-        value: benchmarks[key],
-      })),
       {
         key: "aa_intelligence_index",
         id: modelId,
@@ -188,7 +177,7 @@ function artificialAnalysisBenchmarkRowDrafts(
     ];
   });
   return [
-    ...contextDrafts,
+    ...indexDrafts,
     ...artificialAnalysisResourceDrafts(sourceData.artificialAnalysisBenchmarkResources.rows),
   ];
 }

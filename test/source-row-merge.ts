@@ -3,7 +3,6 @@
 import assert from "node:assert/strict";
 
 import { ARTIFICIAL_ANALYSIS_INDEX_COMPONENTS } from "../src/model-atlas/benchmarks/index-policy";
-import { STAGE_CONFIG } from "../src/model-atlas/config";
 import {
   ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES,
   type ArtificialAnalysisBenchmarkResourceRow,
@@ -38,6 +37,7 @@ type ArtificialAnalysisFixtureRow = {
   model_id: string;
   name: string;
   intelligenceIndex?: number;
+  intelligenceIndexComponents?: string[];
   deprecated?: boolean;
 };
 
@@ -46,6 +46,7 @@ const cachedRows: ArtificialAnalysisFixtureRow[] = [
     model_id: "anthropic/claude-fable-5",
     name: "Claude Fable 5",
     intelligenceIndex: 64.9,
+    intelligenceIndexComponents: Object.keys(ARTIFICIAL_ANALYSIS_INDEX_COMPONENTS),
   },
   {
     model_id: "anthropic/claude-opus-4-6",
@@ -75,7 +76,6 @@ const mergeArtificialAnalysisFixtureRow = (
   mergeArtificialAnalysisRow(
     cachedRow as Record<string, unknown>,
     fetchedRow as Record<string, unknown>,
-    STAGE_CONFIG.scoring,
   ) as ArtificialAnalysisFixtureRow;
 
 const cachedArtificialAnalysisRow = {
@@ -86,7 +86,7 @@ const cachedArtificialAnalysisRow = {
 const liveArtificialAnalysisRow = {
   id: "live-page-uuid",
   slug: "gpt-5-6-sol",
-  modelCreatorSlug: "openai",
+  creator: { slug: "openai" },
   name: "GPT-5.6 Sol (Adaptive Reasoning, Max Effort)",
   intelligenceIndex: 58.9,
 };
@@ -101,39 +101,35 @@ assert.equal(
   "Persisted and live Artificial Analysis shapes for one model must merge into one source row",
 );
 
-// Cached rows can carry projected fields as well as raw aliases; a refresh must replace both together.
+// A refresh replaces the whole cached row, telemetry included.
 const refreshedIndex = mergeArtificialAnalysisRow(
   {
     model_id: "openai/gpt-5-5-high",
     name: "GPT-5.5 (high)",
     intelligenceIndex: 54.67,
-    intelligence_index: 54.67,
-    intelligence: { intelligence_index: 54.67 },
-    cost_per_task: 0.82,
-    output_tokens_per_task: 10_717,
-    intelligence_index_cost: { cost_per_task: 0.82, output_tokens_per_task: 10_717 },
+    intelligenceIndexComponents: Object.keys(ARTIFICIAL_ANALYSIS_INDEX_COMPONENTS),
+    intelligenceIndexCostPerTask: { cost: { total: 0.82 } },
+    intelligenceIndexOutputTokensPerTask: { output: 10_717 },
   },
   {
     slug: "gpt-5-5-high",
     deprecated: true,
-    modelCreatorSlug: "openai",
+    creator: { slug: "openai" },
     shortName: "GPT-5.5 (high)",
     intelligenceIndex: 37.29,
     intelligenceIndexComponents: Object.keys(ARTIFICIAL_ANALYSIS_INDEX_COMPONENTS),
     intelligenceIndexCostPerTask: { cost: { total: 1.54 } },
     intelligenceIndexOutputTokensPerTask: null,
   },
-  STAGE_CONFIG.scoring,
 );
-const refreshedIndexProjection = processArtificialAnalysisLeaderboardRows([refreshedIndex], {
-  selectedColumns: [...ARTIFICIAL_ANALYSIS_LEADERBOARD_COLUMNS],
-})[0]!;
+const refreshedIndexProjection = processArtificialAnalysisLeaderboardRows(
+  [refreshedIndex],
+  [...ARTIFICIAL_ANALYSIS_LEADERBOARD_COLUMNS],
+)[0]!;
 assert.deepEqual(
   refreshedIndexProjection.intelligence,
   {
     intelligence_index: 37.29,
-    agentic_index: null,
-    coding_index: null,
     omniscience_index: null,
   },
   "An AA refresh must adopt a revised index even when it decreases",
@@ -150,8 +146,7 @@ const refreshedArtificialAnalysisIdentity = mergeArtificialAnalysisRow(
   {
     model_id: "google/gemini-3-5-flash",
     name: "Gemini 3.5 Flash",
-    shortName: "Gemini 3.5 Flash",
-    short_name: "Gemini 3.5 Flash (medium)",
+    shortName: "Gemini 3.5 Flash (medium)",
     intelligenceIndex: 51.9,
   },
   {
@@ -159,7 +154,6 @@ const refreshedArtificialAnalysisIdentity = mergeArtificialAnalysisRow(
     name: "Gemini 3.5 Flash (high)",
     shortName: "Gemini 3.5 Flash",
   },
-  STAGE_CONFIG.scoring,
 );
 assert.equal(
   refreshedArtificialAnalysisIdentity.name,
@@ -167,7 +161,6 @@ assert.equal(
   "AA refreshes should adopt current full names so newly exposed effort labels reach the parser",
 );
 assert.equal(refreshedArtificialAnalysisIdentity.shortName, "Gemini 3.5 Flash");
-assert.equal(refreshedArtificialAnalysisIdentity.short_name, undefined);
 assert.equal(
   refreshedArtificialAnalysisIdentity.intelligenceIndex,
   undefined,

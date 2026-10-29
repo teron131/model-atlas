@@ -50,8 +50,8 @@ const effortObservations = [
     artificial_analysis_slug: "gpt-5-6-sol",
     reasoning_effort: "max",
     benchmarks: { scicode: 0.56, terminal_bench_4: 0.88 },
-    intelligence: { coding_index: 77, intelligence_index: 59 },
-    intelligence_index_cost: { total_cost: 12 },
+    intelligence: { omniscience_index: 77, intelligence_index: 59 },
+    intelligence_index_cost: { cost_per_task: 12 },
   },
   {
     id: "openai/gpt-5.6-sol",
@@ -60,8 +60,8 @@ const effortObservations = [
     artificial_analysis_slug: "gpt-5-6-sol-xhigh",
     reasoning_effort: "xhigh",
     benchmarks: { scicode: 0.55, terminal_bench_4: 0.9 },
-    intelligence: { coding_index: 78, intelligence_index: 58 },
-    intelligence_index_cost: { total_cost: 10 },
+    intelligence: { omniscience_index: 78, intelligence_index: 58 },
+    intelligence_index_cost: { cost_per_task: 10 },
   },
 ] as const;
 const preservedEffortObservations = JSON.stringify(effortObservations);
@@ -78,13 +78,12 @@ for (const costPerTask of [0, 2.73]) {
     artificial_analysis_slug: "grok-4-7-high",
     reasoning_effort: "high",
     intelligence: { intelligence_index: 50 },
-    intelligence_index_cost: { total_cost: null, cost_per_task: null, seconds_per_task: null },
+    intelligence_index_cost: { cost_per_task: null, seconds_per_task: null },
   };
   const measured = {
     ...alias,
     artificial_analysis_id: "xai/grok-4-7-high",
     intelligence_index_cost: {
-      total_cost: null,
       cost_per_task: costPerTask,
       seconds_per_task: 760,
     },
@@ -211,9 +210,9 @@ assertEqual(collapsedVariantRow.artificial_analysis_id, "openai/gpt-5-6-sol");
 assertEqual(collapsedVariantRow.reasoning_effort, undefined);
 assertEqual(collapsedVariantBenchmarks.scicode, 0.56);
 assertEqual(collapsedVariantBenchmarks.terminal_bench_4, 0.88);
-assertEqual(collapsedVariantIntelligence.coding_index, 77);
+assertEqual(collapsedVariantIntelligence.omniscience_index, 77);
 assertEqual(collapsedVariantIntelligence.intelligence_index, 59);
-assertEqual(collapsedVariantIntelligenceCost.total_cost, 12);
+assertEqual(collapsedVariantIntelligenceCost.cost_per_task, 12);
 assertEqual(JSON.stringify(effortObservations), preservedEffortObservations);
 
 const versionedReplacementRows = buildModelVariants([

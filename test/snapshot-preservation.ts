@@ -18,7 +18,6 @@ const preservedFable = {
   },
   intelligence: {
     intelligence_index: 59.8,
-    agentic_index: 80.5,
   },
   benchmarks: {
     gpqa: 0.92,
@@ -40,7 +39,6 @@ const degradedFable = {
   }),
   intelligence: {
     intelligence_index: 59.8,
-    agentic_index: 80.5,
   },
   scores: {
     intelligence_score: 78.5,

@@ -46,7 +46,6 @@ export async function refreshDatabase(
     const { snapshots, sourceCacheStatuses } = await loadSourceSnapshots(
       db,
       startedAtEpochSeconds,
-      STAGE_CONFIG.scoring,
       options,
     );
     const derived = await deriveDatabaseSnapshot(

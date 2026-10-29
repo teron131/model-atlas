@@ -151,7 +151,7 @@ An unlabelled observation is the source default. If every observation names an e
 
 ### Shared Inputs
 
-**Artificial Analysis** supplies its aggregate index and index-level resources from the complete model comparison dataset linked by its model-detail pages. The main leaderboard discovers a current model-detail page; its compact preview does not supply complete telemetry. Selected standalone AA benchmarks use the full datasets linked by their dedicated evaluation pages; unselected main-table fields, including `coding_index`, remain source context only. Missing time, price, or token data remains independently missing and never discards other valid measurements.
+**Artificial Analysis** supplies its aggregate index and index-level resources from the complete model comparison dataset linked by its model-detail pages. The main leaderboard discovers a current model-detail page; its compact preview does not supply complete telemetry. Missing time, price, or token data remains independently missing and never discards other valid measurements.
 
 **OpenRouter** supplies current route pricing and provider speed measurements used for blended price and the provider serving-performance components. Catalog metadata can help identify comparable model entries, but it is not itself a scoring input.
 
@@ -183,7 +183,7 @@ Only non-default source, metric, selection, exclusion, and resource rules are de
 
 AnalystAgent uses headline pass^5 across 80 private questions. APEX Agents uses Mercor's creator-owned Loop Pass@1 leaderboard directly; model and reasoning-effort variants remain distinct, and missing benchmark-specific resources stay missing.
 
-Briefcase and GDPval-AA retain raw page Elo but normalize it with `clamp((Elo - 500) / 2000)` for scoring and linear resource comparison. GDPval may use the main-table normalized value as a compatible fallback after overlap validates the conversion. MLCR-AA resources cover 180 attempts. Missing benchmark-specific telemetry stays missing in observed graphs; the overall Artificial Analysis Intelligence Index cost or token average cannot replace it. Validated resource estimates from another effort of the same model may contribute discounted scoring evidence without becoming observed graph points.
+Briefcase and GDPval-AA retain raw page Elo but normalize it with `clamp((Elo - 500) / 2000)` for scoring and linear resource comparison. MLCR-AA resources cover 180 attempts. Missing benchmark-specific telemetry stays missing in observed graphs; the overall Artificial Analysis Intelligence Index cost or token average cannot replace it. Validated resource estimates from another effort of the same model may contribute discounted scoring evidence without becoming observed graph points.
 
 **ARC Prize benchmark family:** ARC-AGI-2 and ARC-AGI-3 use only the official verified semi-private leaderboard and discard public-demo, community, competition, custom, refinement, and synthesis systems. ARC-AGI-2 uses task success and reported task cost. These costs affect :score[Value] only within their respective benchmarks.
 

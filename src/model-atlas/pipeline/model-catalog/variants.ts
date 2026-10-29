@@ -31,10 +31,7 @@ type MergedObjectField = (typeof ALIAS_MERGED_OBJECT_FIELDS)[number];
 type VariantShape = "preserve" | "collapse";
 
 function hasIntelligenceIndexCost(row: ModelRow): boolean {
-  return (
-    asFiniteNumber(row.intelligence_index_cost?.total_cost) != null ||
-    asFiniteNumber(row.intelligence_index_cost?.cost_per_task) != null
-  );
+  return asFiniteNumber(row.intelligence_index_cost?.cost_per_task) != null;
 }
 
 function hasBenchmarkSignal(row: ModelRow): boolean {

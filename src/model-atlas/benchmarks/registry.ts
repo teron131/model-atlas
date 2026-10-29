@@ -1,8 +1,6 @@
 /** Composes Model Atlas benchmark declarations into configured runtime and presentation views. */
 
 import {
-  ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_ALIASES,
-  ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_KEYS_AFTER,
   BENCHMARK_COLUMNS,
   BENCHMARK_DISPLAY_ORDER,
   BENCHMARK_EXTENDED_SOURCES,
@@ -16,7 +14,6 @@ import {
   BENCHMARK_TASK_METRIC_COLUMNS,
   BENCHMARK_TOOLTIPS,
   type BenchmarkKey,
-  MODEL_ATLAS_CONTEXT_BENCHMARK_KEYS_AFTER,
 } from "./catalog";
 import {
   applyBenchmarkTransform,
@@ -311,25 +308,9 @@ export const ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES = BENCHMARK_KEYS.flatM
     ),
   ),
 );
-export const ARTIFICIAL_ANALYSIS_CONTEXT_KEY_BY_ALIAS = Object.fromEntries(
-  Object.entries(ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_ALIASES).flatMap(([key, aliases]) =>
-    aliases.map((alias) => [alias, key] as const),
-  ),
-) as Readonly<Record<string, string>>;
-export const ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_KEYS = BENCHMARK_KEYS.flatMap(
-  (key) =>
-    (
-      ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_KEYS_AFTER as Partial<
-        Record<BenchmarkKey, readonly string[]>
-      >
-    )[key] ?? [],
+export const MODEL_ATLAS_BENCHMARK_KEYS = BENCHMARK_KEYS.filter(
+  (key) => BENCHMARK_CATALOG[key].persistence.location.kind === "benchmark",
 );
-export const MODEL_ATLAS_BENCHMARK_KEYS = BENCHMARK_KEYS.flatMap((key) => [
-  ...(BENCHMARK_CATALOG[key].persistence.location.kind === "benchmark" ? [key] : []),
-  ...((
-    MODEL_ATLAS_CONTEXT_BENCHMARK_KEYS_AFTER as Partial<Record<BenchmarkKey, readonly string[]>>
-  )[key] ?? []),
-]);
 
 export const benchmarkValueLocation = (key: string) =>
   BENCHMARK_CATALOG[key as BenchmarkKey]?.persistence.location ?? null;

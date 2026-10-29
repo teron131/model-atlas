@@ -2,8 +2,6 @@
 
 import type { DatabaseSync } from "node:sqlite";
 
-import { ARTIFICIAL_ANALYSIS_INTELLIGENCE_KEYS } from "../../benchmarks/field-keys";
-import { ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_KEYS } from "../../benchmarks/registry";
 import { asFiniteNumber, asNonEmptyString, type JsonObject } from "../../runtime";
 import {
   assignIfBoolean,
@@ -17,21 +15,6 @@ import {
 } from "../cache/rows";
 import type { ArtificialAnalysisBenchmarkResourceRow } from "./benchmark-resources";
 import { parseArtificialAnalysisReasoningEffort } from "./model-labels";
-
-const ARTIFICIAL_ANALYSIS_USAGE_KEYS = [
-  "input_cost",
-  "reasoning_cost",
-  "output_cost",
-  "total_cost",
-  "input_tokens",
-  "reasoning_tokens",
-  "answer_tokens",
-  "output_tokens",
-  "total_tokens",
-  "cost_per_task",
-  "seconds_per_task",
-  "output_tokens_per_task",
-] as const;
 
 /** Hidden retained Artificial Analysis rows prove the cache is new enough to preserve deprecated benchmark carriers. */
 export function artificialAnalysisCacheHasDeprecatedRows(db: DatabaseSync): boolean {
@@ -122,59 +105,52 @@ export function readArtificialAnalysisBenchmarkResourceRawCache(db: DatabaseSync
   );
 }
 
+/** Rows are rebuilt in the model page's own field names and nested shapes, so cached and fetched rows share one projection; only the derived model id and URL are stored flat. */
 function rawRowFromCache(row: CacheDbRow): JsonObject {
-  const tokenCounts: JsonObject = {};
-  assignIfNumber(tokenCounts, "inputTokens", row.input_tokens);
-  assignIfNumber(tokenCounts, "reasoningTokens", row.reasoning_tokens);
-  assignIfNumber(tokenCounts, "answerTokens", row.answer_tokens);
-  assignIfNumber(tokenCounts, "outputTokens", row.output_tokens);
   const rawRow: JsonObject = {};
   assignIfString(rawRow, "model_id", row.model_id);
   assignIfString(rawRow, "name", row.name);
   assignIfString(rawRow, "shortName", row.short_name);
   assignIfString(rawRow, "model_url", row.model_url);
   assignIfString(rawRow, "releaseDate", row.release_date);
-  assignIfString(rawRow, "logo_url", row.logo_url);
   assignIfString(rawRow, "reasoning_effort", cachedReasoningEffort(row));
   assignIfNumber(rawRow, "price1mInputTokens", row.price_1m_input_tokens);
   assignIfNumber(rawRow, "price1mOutputTokens", row.price_1m_output_tokens);
-  assignIfNumber(rawRow, "median_output_speed", row.median_output_tokens_per_second);
-  assignIfNumber(rawRow, "medianTimeToFirstTokenSeconds", row.median_time_to_first_token_seconds);
-  assignIfNumber(
-    rawRow,
-    "medianEndToEndResponseTimeSeconds",
-    row.median_end_to_end_response_time_seconds,
-  );
-  assignIfBoolean(rawRow, "deprecated", row.deprecated);
-  assignIfBoolean(rawRow, "reasoningModel", row.reasoning_model);
-  assignIfBoolean(rawRow, "isOpenWeights", row.open_weights);
-  assignIfBoolean(rawRow, "commercialAllowed", row.commercial_allowed);
-  assignIfBoolean(rawRow, "input_modality_text", row.input_modality_text);
-  assignIfBoolean(rawRow, "input_modality_image", row.input_modality_image);
-  assignIfBoolean(rawRow, "input_modality_video", row.input_modality_video);
-  assignIfBoolean(rawRow, "input_modality_speech", row.input_modality_speech);
-  assignIfBoolean(rawRow, "output_modality_text", row.output_modality_text);
-  assignIfBoolean(rawRow, "output_modality_image", row.output_modality_image);
-  assignIfBoolean(rawRow, "output_modality_video", row.output_modality_video);
-  assignIfBoolean(rawRow, "output_modality_speech", row.output_modality_speech);
-  for (const key of ARTIFICIAL_ANALYSIS_INTELLIGENCE_KEYS) {
-    assignIfNumber(rawRow, key, row[key]);
+  const timescaleData: JsonObject = {};
+  assignIfNumber(timescaleData, "medianOutputSpeed", row.median_output_tokens_per_second);
+  assignIfNumber(timescaleData, "medianTimeToFirstChunk", row.median_time_to_first_token_seconds);
+  if (nonEmptyRecord(timescaleData) != null) rawRow.timescaleData = timescaleData;
+  const endToEndResponseTime: JsonObject = {};
+  assignIfNumber(endToEndResponseTime, "total", row.median_end_to_end_response_time_seconds);
+  if (nonEmptyRecord(endToEndResponseTime) != null) {
+    rawRow.endToEndResponseTime = endToEndResponseTime;
   }
+  assignIfBoolean(rawRow, "deprecated", row.deprecated);
+  assignIfBoolean(rawRow, "isReasoning", row.reasoning_model);
+  assignIfBoolean(rawRow, "isOpenWeights", row.open_weights);
+  assignIfBoolean(rawRow, "inputModalityText", row.input_modality_text);
+  assignIfBoolean(rawRow, "inputModalityImage", row.input_modality_image);
+  assignIfBoolean(rawRow, "inputModalityVideo", row.input_modality_video);
+  assignIfBoolean(rawRow, "inputModalitySpeech", row.input_modality_speech);
+  assignIfBoolean(rawRow, "outputModalityText", row.output_modality_text);
+  assignIfBoolean(rawRow, "outputModalityImage", row.output_modality_image);
+  assignIfBoolean(rawRow, "outputModalityVideo", row.output_modality_video);
+  assignIfBoolean(rawRow, "outputModalitySpeech", row.output_modality_speech);
+  assignIfNumber(rawRow, "intelligenceIndex", row.intelligence_index);
+  assignIfNumber(rawRow, "omniscience", row.omniscience_index);
   assignIfString(rawRow, "intelligenceIndexVersion", row.intelligence_index_version);
   const components = jsonValue(row.intelligence_index_components);
   if (Array.isArray(components)) rawRow.intelligenceIndexComponents = components;
-  for (const key of ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_KEYS) {
-    assignIfNumber(rawRow, key, row[key]);
-  }
-  for (const key of ARTIFICIAL_ANALYSIS_USAGE_KEYS) {
-    assignIfNumber(rawRow, key, row[key]);
-  }
-  if (nonEmptyRecord(tokenCounts) != null) {
-    rawRow.intelligenceIndexTokenCounts = tokenCounts;
+  const costPerTask = asFiniteNumber(row.cost_per_task);
+  if (costPerTask != null) rawRow.intelligenceIndexCostPerTask = { cost: { total: costPerTask } };
+  assignIfNumber(rawRow, "intelligenceIndexTimePerTask", row.seconds_per_task);
+  const outputTokensPerTask = asFiniteNumber(row.output_tokens_per_task);
+  if (outputTokensPerTask != null) {
+    rawRow.intelligenceIndexOutputTokensPerTask = { output: outputTokensPerTask };
   }
   const creator: JsonObject = {};
   assignIfString(creator, "name", row.creator_name);
-  assignIfString(creator, "logo_url", row.logo_url);
+  assignIfString(creator, "logo", row.logo_url);
   if (nonEmptyRecord(creator) != null) {
     rawRow.creator = creator;
   }
