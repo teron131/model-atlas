@@ -57,9 +57,10 @@ export function advanceCapabilityState(
   previous: CapabilityState,
   models: readonly ModelInput[],
   observedAt: string,
+  benchmarkVersions: Readonly<Record<string, string>>,
 ): CapabilityState {
-  previous = retainCurrentVersions(previous);
-  const evidence = currentEvidence(models, observedAt);
+  const evidence = currentEvidence(models, observedAt, benchmarkVersions);
+  previous = retainCurrentVersions(previous, evidence.benchmarks);
   const externalIds = previous.dataset.benchmarks
     .filter((benchmark) => !benchmark.primary && !benchmark.key.startsWith("model_atlas_"))
     .map((benchmark) => benchmark.id);
@@ -90,20 +91,22 @@ export function advanceCapabilityState(
   return { ...next, dataset: publishedDataset(next, calibration) };
 }
 
-/** Removed benchmarks and superseded source revisions stop participating in future fits; frozen coordinates remain published facts. */
-function retainCurrentVersions(state: CapabilityState): CapabilityState {
-  const selected = new Set(Object.keys(BENCHMARK_CATALOG).map((key) => `atlas_benchmark_${key}`));
-  const current = new Map(
-    Object.entries(BENCHMARK_CATALOG)
-      .filter(([, definition]) => definition.source.revision != null)
-      .map(([key]) => [`atlas_benchmark_${key}`, benchmarkVersionId(key)]),
+/** A catalog benchmark keeps one live identity: leaving the catalog retires all of its identities, and an observation under a new identity retires the earlier ones, while an unobserved benchmark keeps its own. Retired identities stop participating in future fits; frozen coordinates remain published facts. */
+function retainCurrentVersions(
+  state: CapabilityState,
+  observed: readonly HistoricalBenchmark[],
+): CapabilityState {
+  const catalogKeys = new Set(
+    Object.keys(BENCHMARK_CATALOG).map((key) => `atlas_benchmark_${key}`),
   );
+  const current = new Map(observed.map((benchmark) => [benchmark.key, benchmark.id]));
   const removed = new Set(
     [...state.dataset.benchmarks, ...(state.dataset.scale?.benchmarks ?? [])]
       .filter(
         (benchmark) =>
-          (benchmark.key.startsWith("atlas_benchmark_") && !selected.has(benchmark.key)) ||
-          (current.has(benchmark.key) && current.get(benchmark.key) !== benchmark.id),
+          benchmark.key.startsWith("atlas_benchmark_") &&
+          (!catalogKeys.has(benchmark.key) ||
+            (current.has(benchmark.key) && current.get(benchmark.key) !== benchmark.id)),
       )
       .map((benchmark) => benchmark.id),
   );
@@ -286,27 +289,46 @@ function appendPositions(
   return { ...state, positions };
 }
 
-/** Capture provenance never defines a benchmark version; only the declared measurement and source-crosswalk contract does. */
-export function benchmarkVersionId(key: string): string {
+/** The measurement contract and the version its source published define a benchmark version; capture provenance and resource bookkeeping never do. */
+export function benchmarkVersionId(key: string, sourceVersion?: string): string {
   const definition = BENCHMARK_CATALOG[key as keyof typeof BENCHMARK_CATALOG];
   if (!definition) throw new Error(`Unknown benchmark: ${key}`);
   const contract = {
     key,
-    source: definition.source,
+    source: {
+      ...definition.source,
+      inputs: definition.source.inputs.map((input) => ({
+        ...input,
+        adapters: input.adapters?.map((adapter) => {
+          if (adapter.kind !== "artificial_analysis_resource_page") return adapter;
+          const {
+            methodologyName: _methodologyName,
+            resourceKey: _resourceKey,
+            ...scored
+          } = adapter;
+          return scored;
+        }),
+      })),
+    },
     processing: definition.processing,
     location: definition.persistence.location,
     format: definition.presentation.column.format,
     indexBreadth:
       key === "aa_intelligence_index" ? indexPolicy(key)?.representedBenchmarks : undefined,
+    sourceVersion,
   };
   return `atlas:benchmark:${key}:${createHash("sha256").update(stableJson(contract)).digest("hex").slice(0, 20)}`;
 }
 
-function currentEvidence(models: readonly ModelInput[], observedAt: string) {
+function currentEvidence(
+  models: readonly ModelInput[],
+  observedAt: string,
+  benchmarkVersions: Readonly<Record<string, string>>,
+) {
   // Benchmark versions and weights are shared by every model in this refresh.
   const catalog = Object.entries(BENCHMARK_CATALOG).map(([key, definition]) => {
     const benchmark: HistoricalBenchmark = {
-      id: benchmarkVersionId(key),
+      id: benchmarkVersionId(key, benchmarkVersions[key]),
       key: `atlas_benchmark_${key}`,
       label: definition.presentation.label,
       kind: (INDEX_BENCHMARK_KEYS as readonly string[]).includes(key) ? "index" : "task",

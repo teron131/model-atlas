@@ -8,7 +8,11 @@ import { publicOpenRouterModelId } from "../identity/openrouter";
 import type { ModelAtlasSourceData } from "../sources/assembly";
 import type { OpenRouterSourcePayload } from "../sources/openrouter";
 import type { CapabilityState } from "../timeline/capability";
-import { assignBenchmarksToVariants } from "./benchmark-rows";
+import {
+  assignBenchmarksToVariants,
+  benchmarkRowsFromSourceData,
+  observedBenchmarkVersions,
+} from "./benchmark-rows";
 import { modelRowsFromMatchDiagnostics } from "./matched-rows";
 import { buildModelCatalogRows, buildModelVariants } from "./model-catalog";
 import type { ModelAtlasModel, ModelRow } from "./model-types";
@@ -73,7 +77,10 @@ export async function deriveModelStats<LoadResult extends OpenRouterLoadResult>(
     STAGE_CONFIG.scoring,
     options.benchmarkVersioning,
     options.benchmarkVersioning?.previousModels,
-    options.capabilityState,
+    options.capabilityState && {
+      state: options.capabilityState,
+      benchmarkVersions: observedBenchmarkVersions(benchmarkRowsFromSourceData(sourceData)),
+    },
   );
   const eligibleRows = selectOpenRouterModelRows(
     selection,

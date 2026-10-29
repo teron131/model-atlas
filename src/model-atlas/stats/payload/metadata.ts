@@ -9,7 +9,7 @@ import {
 } from "../../config/tooltips";
 import type { MatcherConfig } from "../../identity";
 import { positiveFiniteNumber } from "../../math-utils";
-import type { BenchmarkRowsByKey } from "../../pipeline/benchmark-rows";
+import { type BenchmarkRowsByKey, observedBenchmarkVersions } from "../../pipeline/benchmark-rows";
 import {
   type BenchmarkMetricModel,
   benchmarkTaskMetrics,
@@ -45,16 +45,6 @@ type CurrentModelAtlasMetadataOptions = {
   /** Saved rows retain their build version; null marks checkpoints that did not record one. */
   snapshotPreservationVersion?: number | null;
 };
-
-/** Publish a benchmark's version only when all of its current rows report the same one. */
-function observedBenchmarkVersions(rowsByKey: BenchmarkRowsByKey): Record<string, string> {
-  return Object.fromEntries(
-    Object.entries(rowsByKey).flatMap(([key, rows]) => {
-      const [version, ...others] = new Set(rows.flatMap((row) => row.version ?? []));
-      return version != null && others.length === 0 ? [[key, version]] : [];
-    }),
-  );
-}
 
 function sortedUniqueKeys(values: Iterable<string>): string[] {
   return [...new Set(values)].sort((left, right) => left.localeCompare(right));
