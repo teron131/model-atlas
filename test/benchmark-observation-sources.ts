@@ -1022,11 +1022,6 @@ const handbook = surge.map((row) => ({
   source_url: "https://surgehq.ai/benchmarks/handbook",
   metadata: { ...row.metadata, declared_version: handbookVersion },
 }));
-const coreCraft = surge.map((row) => ({
-  ...row,
-  benchmark_key: "enterprisebench_corecraft",
-  source_url: "https://surgehq.ai/benchmarks/enterprisebench-corecraft",
-}));
 const complexConstraints = surge.map((row) => ({
   ...row,
   benchmark_key: "complex_constraints",
@@ -1041,7 +1036,6 @@ const snapshots = {
   chessPuzzleRows: chess,
   complexConstraintsRows: complexConstraints,
   ebrBenchRows: ebr,
-  enterpriseBenchCoreCraftRows: coreCraft,
   epochCapabilitiesIndexRows: eci,
   frontierMathTier4Rows: frontierMath,
   handbookMdRows: handbook,
@@ -1060,7 +1054,6 @@ const snapshots = {
     chessPuzzles: 1_784_000_002,
     complexConstraints: 1_784_000_009,
     ebrBench: 1_784_000_003,
-    enterpriseBenchCoreCraft: 1_784_000_006,
     epochCapabilitiesIndex: 1_784_000_000,
     frontierMathTier4: 1_784_000_001,
     handbookMd: 1_784_000_005,
@@ -1077,7 +1070,6 @@ const expectedBySourceDataKey = {
   chessPuzzles: { rows: chess, fetchedAt: 1_784_000_002 },
   complexConstraints: { rows: complexConstraints, fetchedAt: 1_784_000_009 },
   ebrBench: { rows: ebr, fetchedAt: 1_784_000_003 },
-  enterpriseBenchCoreCraft: { rows: coreCraft, fetchedAt: 1_784_000_006 },
   epochCapabilitiesIndex: { rows: eci, fetchedAt: 1_784_000_000 },
   frontierMathTier4: { rows: frontierMath, fetchedAt: 1_784_000_001 },
   handbookMd: { rows: handbook, fetchedAt: 1_784_000_005 },

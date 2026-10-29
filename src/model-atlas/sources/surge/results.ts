@@ -4,7 +4,6 @@
  * Page sources:
  * - https://surgehq.ai/benchmarks/chartography
  * - https://surgehq.ai/benchmarks/complex-constraints
- * - https://surgehq.ai/benchmarks/enterprisebench-corecraft
  * - https://surgehq.ai/benchmarks/gdp-pdf
  * - https://surgehq.ai/benchmarks/gdp-xlsx
  * - https://surgehq.ai/benchmarks/handbook
@@ -246,10 +245,6 @@ function surgeLeaderboardScoreRow(
 }
 
 function surgeModelName(rowHtml: string): string | null {
-  const corecraftModel = classText(rowHtml, "corecraft-model");
-  if (corecraftModel != null) {
-    return corecraftModel;
-  }
   return combinedModelName(
     classText(rowHtml, "head-rank-table-brand"),
     classText(rowHtml, "head-rank-table-name"),

@@ -170,18 +170,18 @@ assert.equal(identityRows[2]?.base_model, "gemini-3-flash");
 assert.equal(identityRows[2]?.reasoning_effort, "minimal");
 
 const definition = BENCHMARK_CATALOG.arena_webdev;
-assert.equal(definition.scoring.group, "baseline");
+assert.equal(definition.scoring.group, "frontier");
 assert.equal(definition.scoring.benchmarkImportance, 1);
 assert.deepEqual(definition.scoring.dimensionLoadings, { intelligence: 0, agentic: 1 });
 assert.equal("resources" in definition, false);
-assert.equal(STAGE_CONFIG.scoring.agenticBenchmarkKeys.includes("arena_webdev"), false);
+assert.ok(STAGE_CONFIG.scoring.agenticBenchmarkKeys.includes("arena_webdev"));
 assert.ok(STAGE_CONFIG.scoring.agenticBenchmarkDisplayKeys.includes("arena_webdev"));
 const column = benchmarkMetricColumns.find((value) => value.benchmark === "arena_webdev");
 assert.ok(column);
 assert.equal(column.label, "WebDev");
 const tableKeys = benchmarkMetricColumns.map((value) => value.benchmark);
-assert.ok(tableKeys.indexOf("voxelbench") < tableKeys.indexOf("arena_webdev"));
-assert.ok(tableKeys.indexOf("weirdml_v3") < tableKeys.indexOf("arena_webdev"));
+assert.ok(tableKeys.indexOf("arena_webdev") < tableKeys.indexOf("weirdml_v3"));
+assert.ok(tableKeys.indexOf("weirdml_v3") < tableKeys.indexOf("voxelbench"));
 const displayRows = dedupeDisplayModels(
   [1000, 1500, 2000].map((rating, index) => ({
     id: `webdev-example-${index}`,

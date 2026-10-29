@@ -193,16 +193,6 @@ export const BENCHMARK_STANDARD_SOURCES = {
     sourceDataKey: "enigmaeval",
     sourceRowsKey: "enigmaevalRows",
   },
-  enterprisebench_corecraft: {
-    group: "surge",
-    id: "surge",
-    loader: {
-      kind: "surge",
-      sourceUrl: "https://surgehq.ai/benchmarks/enterprisebench-corecraft",
-    },
-    sourceDataKey: "enterpriseBenchCoreCraft",
-    sourceRowsKey: "enterpriseBenchCoreCraftRows",
-  },
   epoch_capabilities_index: {
     group: "epoch",
     id: "epoch",

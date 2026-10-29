@@ -2,6 +2,20 @@
 
 A benchmark earns ranking space by testing consequential capabilities with credible grading and useful evidence about current models. Difficulty, popularity, and a polished leaderboard do not establish that value. [Benchmarks](benchmarks.md) records the selected evaluations and source policies; [Methodology](methodology/overview.md) explains their scoring.
 
+## Review Evidence
+
+Review the primary methodology, evaluation code, dataset documentation, leaderboard artifacts, grading rules, and run configurations. Inspect **at least two complete real tasks** when accessible, including instructions and scoring. This checks whether the benchmark's stated purpose matches what success actually requires. Record unavailable evidence and the judgment it prevents.
+
+| Check | Question |
+| --- | --- |
+| Capability fit | What determines success, what causes realistic failures, and which capability gap does the benchmark fill? |
+| Grading | Would an informed reviewer accept the results as justified by the outputs, and is the ranking distribution plausible? Can position, length, formatting, or shortcuts decide outcomes instead of quality? |
+| Integrity | How are task origins, train/test separation, answer exposure, benchmark-aware tuning, and maintenance handled? |
+| Separation | How much headroom remains, and do results show interpretable capability differences among serious current models? |
+| Comparability | Are model versions, efforts, tools, budgets, harnesses, task subsets, metrics, units, and aggregation compatible? |
+| Current coverage | Are results attributable, maintainable, and available for serious current systems? |
+| Portfolio value | Does this add breadth, stability, or stronger evidence beyond the selected benchmarks? |
+
 ## Capability Fit
 
 Capability loading follows what a model must do to succeed, so the same benchmark is not credited to a dimension merely because of its name, topic, or harness.
@@ -13,34 +27,13 @@ Coding defaults to Agentic. Intelligence weight requires substantial algorithmic
 
 Ordinary prompt compliance is insufficient Agentic evidence. Tasks must deliberately stress execution or interdependent, conditional, conflicting, implicit, long-horizon, or state-dependent requirements. Running a verifier alone does not establish tool orchestration; final-output grading can still measure execution without grading intermediate actions.
 
+Taste and design are capabilities in their own right. Building a visual or interactive artifact judged on its result shows detail, fidelity to the request, and aesthetic judgment that pass/fail checks rarely reach, so such evaluations complement verifier-graded benchmarks rather than standing in for them.
+
 Choose Intelligence/Agentic loadings from **100/0, 75/25, 50/50, 25/75, or 0/100**. This coarse scale keeps the judgment explainable. Every nonzero share needs a rationale based on the task's demands.
 
-## Classification
+## Grading and Integrity
 
-Classification describes why a benchmark belongs in the portfolio. Importance separately determines its numerical weight; class does not change how missing evidence is treated.
-
-| Class | Requirement |
-| --- | --- |
-| `frontier` | Credible, demanding tasks separate current leading systems, with remaining headroom in that cohort. |
-| `baseline` | Reliable evidence adds important capability breadth or stability, even with modest top-model separation. |
-| `rejected` | The evidence adds insufficient capability information or is materially compromised. |
-
-Specialist and private benchmarks can qualify as frontier. Sparse coverage requires stronger supporting evidence, but a well-supported standout can be informative even when other leaders cluster. If frontier value declines, retain the benchmark as baseline only when its remaining signal still earns a place.
-
-Reject evidence dominated by benchmark tricks, compromised tasks, weak or exploitable grading, incompatible configurations, safety or policy behavior rather than capability, stale coverage, unauditable claims, or redundancy with stronger selected benchmarks. Saturation or clustering warrants rejection when no important baseline value remains.
-
-## Review Evidence
-
-Review the primary methodology, evaluation code, dataset documentation, leaderboard artifacts, grading rules, and run configurations. Inspect **at least two complete real tasks** when accessible, including instructions and scoring. This checks whether the benchmark's stated purpose matches what success actually requires. Record unavailable evidence and the judgment it prevents.
-
-| Check | Question |
-| --- | --- |
-| Task meaning | What determines success, what causes realistic failures, and which capability gap does the benchmark fill? |
-| Grading | Do verifiers, rubrics, or judges reward that capability, or can formatting, verbosity, or shortcuts dominate? |
-| Integrity | How are task origins, train/test separation, answer exposure, benchmark-aware tuning, and maintenance handled? |
-| Comparability | Are model versions, efforts, tools, budgets, harnesses, task subsets, metrics, units, and aggregation compatible? |
-| Current coverage | Are results attributable, maintainable, and available for serious current systems? |
-| Portfolio value | Does this add breadth, stability, or stronger evidence beyond the selected benchmarks? |
+Who or what grades is not the test; whether the results are justifiable is. Verifiers, rubrics, and blind pairwise comparison by experts, panels, or strong model judges are all acceptable for work deliverables, writing, and design alike, and subjective criteria such as taste are not weaker evidence than objective ones. A judged benchmark earns trust the way a verified one does: blind comparison of outputs for the same task, enough judgments for stable ratings, controls for order and presentation effects, and a ranking whose shape holds up against the rest of the evidence.
 
 Public availability alone does not establish contamination, and privacy does not establish quality. Private tasks need stronger supporting methodology and validation because direct inspection is limited. Difficulty cannot compensate for materially compromised evidence.
 
@@ -55,13 +48,27 @@ Public availability alone does not establish contamination, and privacy does not
 
 No single percentage-point threshold works across accuracy, Elo, progress metrics, sample sizes, and task types. Report unresolved close orderings without treating numerical spread as proof of quality. A credible breakthrough can justify frontier status without a neatly separated top five; an isolated claim with an unclear configuration cannot.
 
-## Sources and Model Ordering
+Unexpected winners and higher-effort regressions require investigation, not forced agreement with release order or overall Atlas rank. Check task fit, noise, timeouts, formatting, overthinking, and configuration. Persistent unexplained underperformance by strong current systems is more concerning than an isolated specialist reversal; neither justifies inventing best-effort results.
+
+## Sources and Comparability
 
 Source labels such as official, independent, vendor-reported, and self-reported describe provenance, not quality. Prefer attributable, comparable observations, and inspect contradictions or claims of independent verification. Alternative sites can improve coverage or protocol clarity, but different subsets, metrics, and configurations remain distinct. Mirrors do not create independent evidence or justify extra weight.
 
-Retain harness provenance without using it to assign capability loading. For coding benchmarks, separate harness rows remain distinct unless the benchmark defines a transparent aggregation rule.
+Retain harness provenance. For coding benchmarks, separate harness rows remain distinct unless the benchmark defines a transparent aggregation rule.
 
-Unexpected winners and higher-effort regressions require investigation, not forced agreement with release order or overall Atlas rank. Check task fit, noise, timeouts, formatting, overthinking, and configuration. Persistent unexplained underperformance by strong current systems is more concerning than an isolated specialist reversal; neither justifies inventing best-effort results.
+## Classification
+
+Classification describes why a benchmark belongs in the portfolio. Importance separately determines its numerical weight; class does not change how missing evidence is treated.
+
+| Class | Requirement |
+| --- | --- |
+| `frontier` | Credible, demanding tasks separate current leading systems, with remaining headroom in that cohort. |
+| `baseline` | Reliable evidence adds important capability breadth or stability, even with modest top-model separation. |
+| `rejected` | The evidence adds insufficient capability information or is materially compromised. |
+
+Specialist and private benchmarks can qualify as frontier. Sparse coverage requires stronger supporting evidence, but a well-supported standout can be informative even when other leaders cluster. If frontier value declines, retain the benchmark as baseline only when its remaining signal still earns a place.
+
+Reject evidence dominated by benchmark tricks, compromised tasks, weak or exploitable grading, incompatible configurations, safety or policy behavior rather than capability, stale coverage, unauditable claims, or redundancy with stronger selected benchmarks. Saturation or clustering warrants rejection when no important baseline value remains.
 
 ## Merit and Adoption Readiness
 
@@ -79,8 +86,8 @@ Selection is revisited because task quality, model coverage, and frontier separa
 | `watch` | Useful, but a material unresolved weakness needs follow-up. |
 | `review` | Classification or continued inclusion needs reconsideration. |
 
-Health verdicts do not automatically change scoring classes. Automated summaries report source availability, matching coverage, and descriptive spread; they do not assign these verdicts or infer freshness from agreement with Atlas ranks. Their top-five summaries use the best reported result per distinct model, retain effort details, and separate source leaders from matched leaders. These diagnostic representatives never replace scoring observations. Spread uses source units across available models, not an inferred current-frontier cohort; fetch and cache health remain separate.
+A health verdict does not change a scoring class; that takes a separate classification decision. Inspect current source leaders, coverage, spread, missing or quarantined rows, provenance, effort behavior, and portfolio value. Thin coverage in the final Atlas table alone does not establish benchmark decline. Reconcile aliases, renamed configurations, and newly disclosed efforts before treating missing rows as lost evaluations.
 
-Inspect current source leaders, coverage, spread, missing or quarantined rows, provenance, effort behavior, and portfolio value. Thin coverage in the final Atlas table alone does not establish benchmark decline. Reconcile aliases, renamed configurations, and newly disclosed efforts before treating missing rows as lost evaluations.
+Automated summaries report source availability, matching coverage, and descriptive spread; they do not assign these verdicts or infer freshness from agreement with Atlas ranks. Their top-five summaries use the best reported result per distinct model, retain effort details, and separate source leaders from matched leaders. These diagnostic representatives never replace scoring observations. Spread uses source units across available models, not an inferred current-frontier cohort; fetch and cache health remain separate.
 
 Every concern must state **what changed, the best-supported cause, and whether it affects benchmark merit or only ingestion, matching, or visibility**. Conclude with the classification or unresolved blocker, capability rationale, source choice, and adoption requirements.

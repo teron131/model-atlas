@@ -66,7 +66,7 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     dimensionLoadings: { intelligence: 0, agentic: 1 },
   },
   arena_webdev: {
-    group: "baseline",
+    group: "frontier",
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0, agentic: 1 },
   },
@@ -145,11 +145,6 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     group: "frontier",
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
-  },
-  enterprisebench_corecraft: {
-    group: "baseline",
-    benchmarkImportance: 0.5,
-    dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
   },
   epoch_capabilities_index: INDEX_SCORING_WEIGHT,
   erqa: {

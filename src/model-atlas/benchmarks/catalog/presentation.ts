@@ -247,14 +247,6 @@ export const BENCHMARK_TOOLTIPS = {
       ["Role", "creative and unstructured reasoning"],
     ],
   },
-  enterprisebench_corecraft: {
-    title: "EnterpriseBench CoreCraft",
-    body: "Complete customer, operations, and knowledge tasks at a simulated hardware startup using enterprise tools and policy.",
-    rows: [
-      ["Source", "Surge AI"],
-      ["Role", "enterprise tool use"],
-    ],
-  },
   epoch_capabilities_index: {
     title: "Epoch Capabilities Index",
     body: "Combine diverse capability benchmarks to compare models over time.",
@@ -625,7 +617,6 @@ export const BENCHMARK_LABELS = {
   ebr_bench: "EBR-Bench",
   emb: "EMB",
   enigmaeval: "EnigmaEval",
-  enterprisebench_corecraft: "EnterpriseBench CoreCraft",
   epoch_capabilities_index: "Epoch Capabilities Index",
   erqa: "ERQA",
   finance_agent_v2: "Finance Agent V2",
@@ -676,6 +667,7 @@ const FRONTIER_BENCHMARK_DISPLAY_ORDER = [
   "apex_agents",
   "arc_agi_3",
   "arena_agent",
+  "arena_webdev",
   "automation_bench",
   "biomysterybench",
   "blueprint_bench_2",
@@ -715,9 +707,7 @@ const FRONTIER_BENCHMARK_DISPLAY_ORDER = [
 const BASELINE_BENCHMARK_DISPLAY_ORDER = [
   "apex_swe",
   "arc_agi_2",
-  "arena_webdev",
   "chess_puzzles",
-  "enterprisebench_corecraft",
   "erqa",
   "finance_agent_v2",
   "hemingway_bench",
@@ -1345,12 +1335,6 @@ export const BENCHMARK_COLUMNS = {
   enigmaeval: {
     key: "enigmaeval",
     label: "Enigma",
-    format: "percent",
-    defaultSort: "descending",
-  },
-  enterprisebench_corecraft: {
-    key: "enterpriseBenchCoreCraft",
-    label: "CoreCraft",
     format: "percent",
     defaultSort: "descending",
   },
