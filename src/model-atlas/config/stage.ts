@@ -59,8 +59,6 @@ export const QUALITY_RETENTION = {
 };
 
 export type FinalStageConfig = {
-  nullFieldPruneThreshold: number;
-  nullFieldPruneRecentLookbackDays: number;
   benchmarkAdmission: BenchmarkAdmissionConfig;
 };
 
@@ -159,8 +157,6 @@ export const STAGE_CONFIG = {
     speedConcurrency: 8,
   },
   final: {
-    nullFieldPruneThreshold: 0.5,
-    nullFieldPruneRecentLookbackDays: 90,
     benchmarkAdmission: {
       minimumObservedWeight: MINIMUM_REPORTED_INDEX_BREADTH,
       minimumObservedPerDimension: 1,

@@ -61,8 +61,6 @@ export type ModelAtlasBenchmarkValues = {
 
 export type ModelAtlasIntelligence = ModelAtlasBenchmarkValues & {
   intelligence_index?: NumberOrNull;
-  agentic_index?: NumberOrNull;
-  coding_index?: NumberOrNull;
   omniscience_index?: NumberOrNull;
   omniscience_accuracy?: NumberOrNull;
 };
@@ -87,10 +85,7 @@ export type ModelAtlasTaskMetrics =
   | null;
 
 export type ModelAtlasBenchmarks = ModelAtlasBenchmarkValues &
-  Partial<Record<BenchmarkKey, NumberOrNull>> & {
-    gpqa?: NumberOrNull;
-    mmmu_pro?: NumberOrNull;
-  };
+  Partial<Record<BenchmarkKey, NumberOrNull>>;
 
 type ScoringSourceRow =
   | JsonObject

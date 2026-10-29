@@ -1571,19 +1571,3 @@ export const BENCHMARK_COLUMNS = {
     defaultSort: "descending",
   },
 } as const satisfies Readonly<Record<BenchmarkKey, BenchmarkColumnFacet>>;
-
-/** Preserve native Artificial Analysis context fields, including rejected standalone constituents still present in its published index. A selected benchmark appears here only when the shared table reports the version Atlas scores, because these values fill models its evaluation page leaves unmatched. */
-export const ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_ALIASES = {
-  gdpval_normalized: ["gdpvalNormalized", "gdpval_normalized"],
-  gpqa: ["gpqa"],
-  mmmu_pro: ["mmmuPro", "mmmu_pro"],
-  scicode: ["scicode"],
-} as const;
-
-export const ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_KEYS_AFTER = {
-  gdpval_normalized: ["gdpval_normalized", "gpqa", "mmmu_pro", "scicode"],
-} as const satisfies Partial<Record<BenchmarkKey, readonly string[]>>;
-
-export const MODEL_ATLAS_CONTEXT_BENCHMARK_KEYS_AFTER = {
-  gdpval_normalized: ["gpqa", "mmmu_pro"],
-} as const satisfies Partial<Record<BenchmarkKey, readonly string[]>>;

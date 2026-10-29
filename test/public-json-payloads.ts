@@ -16,7 +16,6 @@ import {
 } from "../app/leaderboard/public-json";
 import { proxy } from "../proxy";
 import type { BenchmarkObservationEvidenceRow } from "../src/model-atlas/benchmarks/observation";
-import { STAGE_CONFIG } from "../src/model-atlas/config";
 import {
   publicModelFromCandidate,
   selectReferenceModels,
@@ -45,12 +44,7 @@ const internalCandidate = {
     value_score: 50,
   },
 } satisfies ModelAtlasScoredCandidate & { internal_probe: string };
-const [referenceModel] = selectReferenceModels(
-  [internalCandidate],
-  null,
-  STAGE_CONFIG.final,
-  STAGE_CONFIG.scoring,
-);
+const [referenceModel] = selectReferenceModels([internalCandidate], null);
 const projectedPublicModel = publicModelFromCandidate(referenceModel!);
 assert.deepEqual(
   Object.keys(projectedPublicModel ?? {}).sort(),
@@ -78,12 +72,7 @@ for (const candidates of [
   [internalCandidate, freeRoute],
   [freeRoute, internalCandidate],
 ]) {
-  const [selected] = selectReferenceModels(
-    candidates,
-    null,
-    STAGE_CONFIG.final,
-    STAGE_CONFIG.scoring,
-  );
+  const [selected] = selectReferenceModels(candidates, null);
   assert.equal(selected?.id, internalCandidate.id);
   assert.deepEqual(selected?.scoring_sources, internalCandidate.scoring_sources);
   assert.equal("scoring_sources" in publicModelFromCandidate(selected!)!, false);
@@ -103,12 +92,7 @@ const sparseResourceCandidate: ModelAtlasScoredCandidate = {
     value_score: null,
   },
 };
-const [sparseResourceModel] = selectReferenceModels(
-  [sparseResourceCandidate],
-  null,
-  STAGE_CONFIG.final,
-  STAGE_CONFIG.scoring,
-);
+const [sparseResourceModel] = selectReferenceModels([sparseResourceCandidate], null);
 assert.deepEqual(
   sparseResourceModel?.scores,
   {
@@ -118,25 +102,6 @@ assert.deepEqual(
     value_score: null,
   },
   "public selection should preserve models without optional resource scores",
-);
-
-const sparseBaselineModels = selectReferenceModels(
-  [
-    {
-      ...internalCandidate,
-      benchmarks: { mlcr_aa: 0.71, vending_bench_2: 15_515, unselected_probe: 1 },
-    },
-    { ...internalCandidate, id: "provider/other-one", benchmarks: {} },
-    { ...internalCandidate, id: "provider/other-two", benchmarks: {} },
-  ],
-  null,
-  STAGE_CONFIG.final,
-  STAGE_CONFIG.scoring,
-);
-assert.deepEqual(
-  sparseBaselineModels[0]?.benchmarks,
-  { mlcr_aa: 0.71, vending_bench_2: 15_515 },
-  "selected baseline observations remain visible even when most public models lack them",
 );
 
 const lowScoreCandidate: ModelAtlasScoredCandidate = {
@@ -155,7 +120,7 @@ const lowScoreCandidate: ModelAtlasScoredCandidate = {
   },
 };
 assert.equal(
-  selectReferenceModels([lowScoreCandidate], null, STAGE_CONFIG.final, STAGE_CONFIG.scoring).length,
+  selectReferenceModels([lowScoreCandidate], null).length,
   1,
   "low finite scores should remain public when evidence admission is handled separately",
 );
@@ -176,8 +141,6 @@ const reasoningEffortModels = selectReferenceModels(
     },
   ],
   null,
-  STAGE_CONFIG.final,
-  STAGE_CONFIG.scoring,
 );
 assert.deepEqual(
   reasoningEffortModels.map((model) => model.reasoning_effort),
@@ -449,7 +412,6 @@ const fullPayload = minimalModelAtlasPayload({
       },
       intelligence: {
         intelligence_index: 80,
-        agentic_index: 70,
         gpqa: 0.9,
       },
       task_metrics: {

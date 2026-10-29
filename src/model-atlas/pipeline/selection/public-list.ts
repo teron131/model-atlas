@@ -1,4 +1,4 @@
-/** Public model selection owns admission (identity, observed evidence, quality, and relevance gates), sparse benchmark pruning, and route collapse. */
+/** Public model selection owns admission (identity, observed evidence, quality, and relevance gates) and route collapse. */
 
 import {
   indexPolicy,
@@ -6,10 +6,8 @@ import {
   reportedIndexBenchmarkCount,
   residualIndexBreadth,
 } from "../../benchmarks/index-policy";
-import { BENCHMARK_KEYS } from "../../benchmarks/registry";
 import {
   type BenchmarkAdmissionConfig,
-  type FinalStageConfig,
   type ScoringConfig,
   selectedBenchmarkKeys,
 } from "../../config/stage";
@@ -196,60 +194,6 @@ export function publicModelFromCandidate(model: ModelAtlasScoredCandidate): Mode
   return hasRequiredQualityScores(model) ? toPublicModel(model) : null;
 }
 
-function isWithinRecentLookback(releaseDate: string | null, lookbackDays: number): boolean {
-  if (typeof releaseDate !== "string" || releaseDate.length === 0) {
-    return false;
-  }
-  const releaseTimestampMs = Date.parse(releaseDate);
-  if (!Number.isFinite(releaseTimestampMs)) {
-    return false;
-  }
-  const cutoffMs = Date.now() - lookbackDays * 24 * 60 * 60 * 1000;
-  return releaseTimestampMs >= cutoffMs;
-}
-
-function selectPruneSampleModels(
-  models: ModelAtlasModel[],
-  finalConfig: FinalStageConfig,
-): ModelAtlasModel[] {
-  const recentModels = models.filter((model) =>
-    isWithinRecentLookback(model.release_date, finalConfig.nullFieldPruneRecentLookbackDays),
-  );
-  return recentModels.length > 0 ? recentModels : models;
-}
-
-/** Prune only unregistered, null-heavy benchmark fields; the public projection already fixes every top-level field. */
-function pruneSparseBenchmarks<Model extends ModelAtlasModel>(
-  models: Model[],
-  finalConfig: FinalStageConfig,
-  scoringConfig: ScoringConfig,
-): Model[] {
-  if (models.length === 0) return models;
-  // Baseline observations stay visible even when they do not contribute to capability scores.
-  const retainedKeys = new Set([...BENCHMARK_KEYS, ...selectedBenchmarkKeys(scoringConfig)]);
-  const benchmarkKeys = new Set(models.flatMap((model) => Object.keys(model.benchmarks ?? {})));
-  const sample = selectPruneSampleModels(models, finalConfig);
-  const sparseKeys = new Set(
-    [...benchmarkKeys].filter(
-      (key) =>
-        !retainedKeys.has(key) &&
-        sample.filter((model) => model.benchmarks?.[key] == null).length / sample.length >
-          finalConfig.nullFieldPruneThreshold,
-    ),
-  );
-  if (sparseKeys.size === 0) return models;
-  return models.map((model) =>
-    model.benchmarks == null
-      ? model
-      : {
-          ...model,
-          benchmarks: Object.fromEntries(
-            Object.entries(model.benchmarks).filter(([key]) => !sparseKeys.has(key)),
-          ),
-        },
-  );
-}
-
 /** Free routes collapse within each reasoning variant so the dashboard can expand variants without duplicate routes. */
 function collapseFreeRoutesByVariant<Model extends ModelAtlasModel>(models: Model[]): Model[] {
   const modelByVariantId = new Map<string, { model: Model; isFreeRoute: boolean }>();
@@ -300,14 +244,10 @@ function normalizedModelsForId<Model extends ModelAtlasModel>(
 export function selectReferenceModels(
   scoredCandidates: ModelAtlasScoredCandidate[],
   modelId: string | null | undefined,
-  finalConfig: FinalStageConfig,
-  scoringConfig: ScoringConfig,
 ): (ModelAtlasModel & Pick<ModelAtlasScoredCandidate, "scoring_sources">)[] {
   const signalModels = scoredCandidates.flatMap((model) => {
     const publicModel = publicModelFromCandidate(model);
     return publicModel == null ? [] : [{ ...publicModel, scoring_sources: model.scoring_sources }];
   });
-  const sortedModels = sortByIntelligenceScore(signalModels);
-  const prunedModels = pruneSparseBenchmarks(sortedModels, finalConfig, scoringConfig);
-  return normalizedModelsForId(prunedModels, modelId);
+  return normalizedModelsForId(sortByIntelligenceScore(signalModels), modelId);
 }

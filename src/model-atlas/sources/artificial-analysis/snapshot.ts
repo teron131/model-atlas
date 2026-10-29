@@ -4,11 +4,6 @@
  * Page source: https://artificialanalysis.ai/leaderboards/models
  */
 
-import {
-  ARTIFICIAL_ANALYSIS_AGENTIC_INDEX_KEYS,
-  ARTIFICIAL_ANALYSIS_INTELLIGENCE_INDEX_KEYS,
-} from "../../benchmarks/field-keys";
-import { type ScoringConfig, selectedBenchmarkKeys } from "../../config/stage";
 import { asFiniteNumber, asNonEmptyString, asRecord, type JsonObject } from "../../runtime";
 import { sourceRowKey } from "../snapshots/policy";
 import { snapshotSourceRows } from "../snapshots/row-snapshot";
@@ -45,12 +40,6 @@ type ArtificialAnalysisBenchmarkResourceSnapshot = {
   sourceStatus: SourceSnapshotStatus;
 };
 
-const RESOURCE_SIGNAL_KEYS = [
-  "cost_per_task",
-  "seconds_per_task",
-  "output_tokens_per_task",
-] as const;
-
 const ACTIVE_BENCHMARK_RESOURCE_PAGE_URLS = new Map(
   ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.map((page) => [page.benchmark_key, page.url]),
 );
@@ -59,12 +48,11 @@ const ACTIVE_BENCHMARK_RESOURCE_PAGE_URLS = new Map(
 export function mergeArtificialAnalysisRow(
   cachedRow: JsonObject,
   fetchedRow: JsonObject,
-  scoringConfig: ScoringConfig,
 ): JsonObject {
   if (
     isRowUnavailable(fetchedRow) &&
-    asFiniteNumber(fetchedRow.intelligenceIndex ?? fetchedRow.intelligence_index) == null &&
-    signalCount(cachedRow, scoringConfig) > signalCount(fetchedRow, scoringConfig)
+    asFiniteNumber(fetchedRow.intelligenceIndex) == null &&
+    signalCount(cachedRow) > signalCount(fetchedRow)
   ) {
     return cachedRow;
   }
@@ -75,7 +63,6 @@ export async function artificialAnalysisSnapshot(
   cached: ReturnType<typeof readArtificialAnalysisRawCache>,
   status: RawSourceCacheStatus,
   options: SourceRefreshOptions,
-  scoringConfig: ScoringConfig,
   previousMissingSince: ReadonlyMap<string, number>,
   nowEpochSeconds: number,
 ): Promise<ArtificialAnalysisSnapshot> {
@@ -92,8 +79,7 @@ export async function artificialAnalysisSnapshot(
     fetchRows: getArtificialAnalysisLeaderboardRawStats,
     rowKey: artificialAnalysisModelId,
     rowLabel: (row) => asNonEmptyString(row.name),
-    mergeRow: (cachedRow, fetchedRow) =>
-      mergeArtificialAnalysisRow(cachedRow, fetchedRow, scoringConfig),
+    mergeRow: mergeArtificialAnalysisRow,
     // The page publishes one index version for every row, so a new version replaces the cached rows, including those kept for retired models.
     versions: { versionOf: (row) => row.intelligenceIndexVersion },
   });
@@ -175,41 +161,22 @@ function isRowUnavailable(row: JsonObject): boolean {
   );
 }
 
-function signalCount(row: JsonObject, scoringConfig: ScoringConfig): number {
-  const intelligence = asRecord(row.intelligence);
-  const benchmarks = asRecord(row.benchmarks);
-  const cost = asRecord(row.intelligence_index_cost);
-  const keys = signalKeys(scoringConfig);
-  return [...keys].filter(
-    (key) =>
-      asFiniteNumber(row[key]) != null ||
-      asFiniteNumber(intelligence[key]) != null ||
-      asFiniteNumber(benchmarks[key]) != null ||
-      asFiniteNumber(cost[key]) != null,
-  ).length;
-}
-
-function signalKeys(scoringConfig: ScoringConfig): Set<string> {
-  const keys = new Set<string>(RESOURCE_SIGNAL_KEYS);
-  for (const key of [
-    ...ARTIFICIAL_ANALYSIS_INTELLIGENCE_INDEX_KEYS,
-    ...ARTIFICIAL_ANALYSIS_AGENTIC_INDEX_KEYS,
-    ...selectedBenchmarkKeys(scoringConfig),
-  ]) {
-    keys.add(key);
-    keys.add(camelMetricKey(key));
-  }
-  return keys;
-}
-
-function camelMetricKey(key: string): string {
-  return key.replace(/_([a-z0-9])/g, (_match, char: string) => char.toUpperCase());
+/** Counts the index and per-task values the leaderboard projection would publish from the row. */
+function signalCount(row: JsonObject): number {
+  const [projected] = processArtificialAnalysisLeaderboardRows(
+    [row],
+    ["intelligence", "intelligence_index_cost"],
+  );
+  return [
+    ...Object.values(asRecord(projected?.intelligence)),
+    ...Object.values(asRecord(projected?.intelligence_index_cost)),
+  ].filter((value) => asFiniteNumber(value) != null).length;
 }
 
 function projectLeaderboardRows(
   rows: SourceSnapshots["artificialAnalysisRawRows"],
 ): SourceSnapshots["artificialAnalysisSelectedRows"] {
-  return processArtificialAnalysisLeaderboardRows(rows, {
-    selectedColumns: [...ARTIFICIAL_ANALYSIS_LEADERBOARD_COLUMNS],
-  });
+  return processArtificialAnalysisLeaderboardRows(rows, [
+    ...ARTIFICIAL_ANALYSIS_LEADERBOARD_COLUMNS,
+  ]);
 }

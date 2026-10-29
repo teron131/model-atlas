@@ -51,65 +51,45 @@ const rows = processArtificialAnalysisLeaderboardRows(
     {
       slug: "alpha",
       name: "Alpha",
-      modelCreatorName: "Acme",
-      modelCreatorSlug: "acme",
+      creator: { name: "Acme", slug: "acme" },
       intelligenceIndex: 70,
       price1mInputTokens: 10,
       price1mOutputTokens: 50,
-      medianOutputTokensPerSecond: 59,
-      medianTimeToFirstTokenSeconds: 94,
-      medianEndToEndResponseTimeSeconds: 103,
-      apexAgents: 0.47,
-      critpt: 0.31,
-      gdpvalNormalized: 0.61,
-      hle: 0.41,
-      scicode: 0.42,
-      tauBanking: 0.52,
-      itbenchSre: 0.31,
-      mmmuPro: 0.24,
+      isReasoning: true,
+      timescaleData: { medianOutputSpeed: 59, medianTimeToFirstChunk: 94 },
+      endToEndResponseTime: { total: 103 },
     },
     {
       slug: "beta",
       name: "Beta",
-      modelCreatorName: "Acme",
-      modelCreatorSlug: "acme",
+      creator: { name: "Acme", slug: "acme" },
       intelligenceIndex: 65,
-      scicode: 0.36,
     },
     {
       slug: "gamma",
       name: "Gamma",
-      modelCreatorName: "Acme",
-      modelCreatorSlug: "acme",
+      creator: { name: "Acme", slug: "acme" },
       intelligenceIndex: 60,
-      scicode: 0.28,
     },
   ],
-  {
-    selectedColumns: [...ARTIFICIAL_ANALYSIS_LEADERBOARD_COLUMNS],
-  },
+  [...ARTIFICIAL_ANALYSIS_LEADERBOARD_COLUMNS],
 );
 
-// Legacy source fields, including the shared table's superseded CritPt and HLE versions, remain in the raw row but cannot re-enter the active benchmark projection.
-assertDeepEqual(rows[0]?.benchmarks, {
-  gdpval_normalized: 0.61,
-  mmmu_pro: 0.24,
-  scicode: 0.42,
-});
 assertDeepEqual(rows[0]?.name, "Alpha");
 assertDeepEqual(rows[0]?.cost, { input: 10, output: 50 });
 assertDeepEqual(rows[1]?.cost, { input: null, output: null });
-assertDeepEqual(rows[1]?.benchmarks, { scicode: 0.36 });
+assertDeepEqual(rows[0]?.reasoning, true);
+assertDeepEqual(rows[1]?.reasoning, null);
 assertDeepEqual(rows[0]?.median_speed, 59);
 assertDeepEqual(rows[0]?.median_time, 94);
 assertDeepEqual(rows[0]?.median_end_to_end_response_time, 103);
 assertDeepEqual(
   processArtificialAnalysisLeaderboardRows(
     [
-      { model_id: "acme/beta", intelligence_index: 65 },
-      { model_id: "acme/alpha", intelligence_index: 70 },
+      { model_id: "acme/beta", intelligenceIndex: 65 },
+      { model_id: "acme/alpha", intelligenceIndex: 70 },
     ],
-    { selectedColumns: ["model_id"] },
+    ["model_id"],
   ),
   [{ model_id: "acme/alpha" }, { model_id: "acme/beta" }],
 );
@@ -120,34 +100,30 @@ assertDeepEqual(
         slug: "structured-effort",
         name: "Structured Effort (max)",
         effort: { slug: "high" },
-        modelCreatorName: "Test",
-        modelCreatorSlug: "test",
+        creator: { name: "Test", slug: "test" },
         intelligenceIndex: 60,
       },
       {
         slug: "gpt-5-5",
         name: "GPT-5.5 (xhigh)",
-        modelCreatorName: "OpenAI",
-        modelCreatorSlug: "openai",
+        creator: { name: "OpenAI", slug: "openai" },
         intelligenceIndex: 55,
       },
       {
         slug: "claude-opus-4-7",
         name: "Claude Opus 4.7 (Non-reasoning, high)",
-        modelCreatorName: "Anthropic",
-        modelCreatorSlug: "anthropic",
+        creator: { name: "Anthropic", slug: "anthropic" },
         intelligenceIndex: 43,
       },
       {
         slug: "gemini-3-5-flash",
         name: "Gemini 3.5 Flash (high)",
         shortName: "Gemini 3.5 Flash",
-        modelCreatorName: "Google",
-        modelCreatorSlug: "google",
+        creator: { name: "Google", slug: "google" },
         intelligenceIndex: 52,
       },
     ],
-    { selectedColumns: ["model_id", "name", "reasoning_effort"] },
+    ["model_id", "name", "reasoning_effort"],
   ),
   [
     {
@@ -179,12 +155,11 @@ assertDeepEqual(
         slug: "claude-fable-5",
         model_url: "https://artificialanalysis.ai/models/anthropic/claude-fable-5",
         name: "Claude Fable 5 (Adaptive Reasoning, Max Effort, Opus 4.8 Fallback)",
-        modelCreatorName: "Anthropic",
-        modelCreatorSlug: "anthropic",
+        creator: { name: "Anthropic", slug: "anthropic" },
         intelligenceIndex: 64.9,
       },
     ],
-    { selectedColumns: ["model_id", "name"] },
+    ["model_id", "name"],
   ),
   [
     {
@@ -198,15 +173,9 @@ const indexedRow = {
   model_id: "anthropic/claude-fable-5",
   model_url: "https://artificialanalysis.ai/models/anthropic/claude-fable-5",
   name: "Claude Fable 5",
-  modelCreatorName: "Anthropic",
-  modelCreatorSlug: "anthropic",
-  intelligence_index: 64.9,
+  creator: { name: "Anthropic", slug: "anthropic" },
+  intelligenceIndex: 64.9,
   intelligenceIndexComponents: recordedComponents,
-  agentic_index: 80.5,
-  scicode: 0.58,
-  input_cost: 10,
-  output_cost: 50,
-  total_tokens: 2_000_000,
   intelligenceIndexCostPerTask: {
     cost: {
       total: 1.5,
@@ -225,7 +194,7 @@ for (const intelligenceIndexComponents of [
 ]) {
   const [row] = processArtificialAnalysisLeaderboardRows(
     [{ ...indexedRow, intelligenceIndexComponents }],
-    { selectedColumns: ["intelligence", "intelligence_index_cost"] },
+    ["intelligence", "intelligence_index_cost"],
   );
   assertDeepEqual(asRecord(row?.intelligence).intelligence_index, null);
   assertDeepEqual(
@@ -234,34 +203,21 @@ for (const intelligenceIndexComponents of [
   );
 }
 assertDeepEqual(
-  processArtificialAnalysisLeaderboardRows([indexedRow], {
-    selectedColumns: ["model_id", "intelligence", "intelligence_index_cost", "benchmarks"],
-  }),
+  processArtificialAnalysisLeaderboardRows(
+    [indexedRow],
+    ["model_id", "intelligence", "intelligence_index_cost"],
+  ),
   [
     {
       model_id: "anthropic/claude-fable-5",
       intelligence: {
-        agentic_index: 80.5,
-        coding_index: null,
         intelligence_index: 64.9,
         omniscience_index: null,
       },
       intelligence_index_cost: {
-        answer_tokens: null,
-        input_cost: 10,
-        input_tokens: null,
-        output_cost: 50,
-        output_tokens: null,
-        reasoning_cost: null,
-        reasoning_tokens: null,
-        total_cost: null,
-        total_tokens: 2_000_000,
         cost_per_task: 1.5,
         seconds_per_task: 120,
         output_tokens_per_task: 42000,
-      },
-      benchmarks: {
-        scicode: 0.58,
       },
     },
   ],
@@ -326,9 +282,6 @@ assertDeepEqual(
 
 const scoringRows = [
   {
-    intelligence: {
-      agentic_index: 40,
-    },
     benchmarks: {
       gdpval_normalized: 0.4,
       scicode: 0.4,
@@ -337,9 +290,6 @@ const scoringRows = [
     },
   },
   {
-    intelligence: {
-      agentic_index: 60,
-    },
     benchmarks: {
       apex_agents: 0.3,
       gdpval_normalized: 0.6,
@@ -348,9 +298,6 @@ const scoringRows = [
     },
   },
   {
-    intelligence: {
-      agentic_index: 80,
-    },
     benchmarks: {
       apex_agents: 0.5,
       gdpval_normalized: 0.8,
@@ -359,9 +306,6 @@ const scoringRows = [
     },
   },
   {
-    intelligence: {
-      agentic_index: 70,
-    },
     benchmarks: {
       gdpval_normalized: 0.7,
       scicode: 0.7,
@@ -440,7 +384,7 @@ const richModels = [
   {
     slug: "example-max",
     name: "Example (max)",
-    modelCreatorName: "Example Lab",
+    creator: { name: "Example Lab", slug: "example-lab" },
     intelligenceIndex: 50,
     intelligenceIndexEvaluations: recordedComponents.map((slug) => ({ slug })),
     intelligenceIndexCostPerTask: { cost: { total: 5.98 } },
@@ -450,11 +394,11 @@ const richModels = [
   {
     slug: "older-model",
     name: "Older Model",
-    modelCreatorName: "Example Lab",
+    creator: { name: "Example Lab", slug: "example-lab" },
     deprecated: true,
     intelligenceIndex: 30,
     intelligenceIndexEvaluations: recordedComponents.map((slug) => ({ slug })),
-    intelligenceIndexCostPerTask: 0.72,
+    intelligenceIndexCostPerTask: { cost: { total: 0.72 } },
   },
 ];
 const flight = (value: unknown) =>
@@ -524,9 +468,7 @@ try {
     })),
   );
   assert.ok(raw.fetched_at_epoch_seconds);
-  const projected = processArtificialAnalysisLeaderboardRows(raw.data, {
-    selectedColumns: ["intelligence_index_cost"],
-  });
+  const projected = processArtificialAnalysisLeaderboardRows(raw.data, ["intelligence_index_cost"]);
   assert.equal(
     (projected[0]!.intelligence_index_cost as Record<string, unknown>).seconds_per_task,
     799,

@@ -3,7 +3,6 @@
 import type { DatabaseSync } from "node:sqlite";
 
 import { BENCHMARK_OBSERVATION_BINDINGS } from "../../benchmarks/registry";
-import type { ScoringConfig } from "../../config/stage";
 import {
   readArtificialAnalysisBenchmarkResourceRawCache,
   readArtificialAnalysisRawCache,
@@ -56,7 +55,6 @@ export type SourceSnapshotCaches = BenchmarkSnapshotCaches & {
 export async function loadSourceSnapshots(
   db: DatabaseSync,
   nowEpochSeconds: number,
-  scoringConfig: ScoringConfig,
   options: SourceRefreshOptions = {},
 ): Promise<LoadedSourceSnapshots> {
   return refreshSourceSnapshots(
@@ -64,7 +62,6 @@ export async function loadSourceSnapshots(
     readSourceCacheStatuses(db, nowEpochSeconds),
     persistedSourceRowStates(db),
     nowEpochSeconds,
-    scoringConfig,
     options,
   );
 }
@@ -74,7 +71,6 @@ async function refreshSourceSnapshots(
   sourceCacheStatuses: Record<RawSourceName, RawSourceCacheStatus>,
   previousSourceRowStates: readonly SourceRowState[],
   nowEpochSeconds: number,
-  scoringConfig: ScoringConfig,
   options: SourceRefreshOptions = {},
 ): Promise<LoadedSourceSnapshots> {
   for (const source of options.refreshSources ?? []) {
@@ -92,7 +88,6 @@ async function refreshSourceSnapshots(
       caches.artificialAnalysis,
       sourceCacheStatuses.artificial_analysis,
       options,
-      scoringConfig,
       previousMissingSince.artificial_analysis,
       nowEpochSeconds,
     ),

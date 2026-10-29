@@ -1,8 +1,7 @@
-/** SQLite writer for Artificial Analysis raw rows, selected benchmark fields, and source metadata. */
+/** SQLite writer for Artificial Analysis leaderboard models and evaluation-page resource rows. */
 
 import {
   type DatabaseWriter,
-  firstNumber,
   firstString,
   sqliteBooleanValue,
   type SqlValue,
@@ -27,40 +26,28 @@ export function insertArtificialAnalysisRawModels(
 		INSERT INTO artificial_analysis_raw_models (
 			row_index, fetched_at_epoch_seconds, url, model_id, name,
 			short_name, creator_name, model_url, release_date, deprecated,
-			reasoning_model, reasoning_effort, open_weights, commercial_allowed,
+			reasoning_model, reasoning_effort, open_weights,
 			input_modality_text, input_modality_image, input_modality_video, input_modality_speech,
 			output_modality_text, output_modality_image, output_modality_video,
 			output_modality_speech,
 			median_output_tokens_per_second,
 			median_time_to_first_token_seconds,
 			median_end_to_end_response_time_seconds, intelligence_index, intelligence_index_version,
-			intelligence_index_components,
-			agentic_index, coding_index, omniscience_index, omniscience_accuracy,
-			apex_agents, gdpval_normalized, gpqa,
-			itbench_sre, mmmu_pro, scicode, tau_banking,
+			intelligence_index_components, omniscience_index,
 			price_1m_input_tokens, price_1m_output_tokens,
-			input_cost, reasoning_cost, output_cost, total_cost, input_tokens, reasoning_tokens,
-			answer_tokens, output_tokens, total_tokens, cost_per_task,
-			seconds_per_task, output_tokens_per_task, logo_url
-		) VALUES (${Array.from({ length: 54 }, () => "?").join(", ")})
+			cost_per_task, seconds_per_task, output_tokens_per_task, logo_url
+		) VALUES (${Array.from({ length: 34 }, () => "?").join(", ")})
 	`);
   for (const [index, row] of snapshots.artificialAnalysisRawRows.entries()) {
-    const selectedRow =
-      selectedRows.get(artificialAnalysisModelId(row) ?? "") ??
-      snapshots.artificialAnalysisSelectedRows[index] ??
-      {};
-    const creator = {
-      ...asRecord(row.creator),
-      ...asRecord(row.model_creators),
-    };
+    const selectedRow = selectedRows.get(artificialAnalysisModelId(row) ?? "") ?? {};
     statement.run(
       index,
       snapshots.fetchedAt.artificialAnalysis,
       SOURCE_URLS.artificial_analysis,
-      ...identityValues(row, selectedRow, creator),
+      ...identityValues(row, selectedRow),
       ...modalityValues(row),
-      ...benchmarkValues(row, selectedRow),
-      ...costAndLogoValues(row, selectedRow, creator),
+      ...timingAndIndexValues(row, selectedRow),
+      ...costAndLogoValues(selectedRow),
     );
   }
 }
@@ -114,29 +101,21 @@ function selectedRowsByKey(rows: readonly JsonObject[]): Map<string, JsonObject>
   return rowsByKey;
 }
 
-function identityValues(row: JsonObject, selectedRow: JsonObject, creator: JsonObject): SqlValue[] {
-  const modelId =
-    typeof selectedRow.model_id === "string"
-      ? selectedRow.model_id
-      : firstString(row, ["model_id", "model_url", "id"]);
+function identityValues(row: JsonObject, selectedRow: JsonObject): SqlValue[] {
   const fullName = firstString(row, ["name"]) ?? firstString(selectedRow, ["name"]);
-  const sourceName =
-    firstString(row, ["shortName", "short_name", "name"]) ?? firstString(selectedRow, ["name"]);
+  const sourceName = firstString(row, ["shortName", "name"]) ?? firstString(selectedRow, ["name"]);
   return [
-    modelId,
+    firstString(selectedRow, ["model_id"]),
     cleanArtificialAnalysisModelName(fullName),
     cleanArtificialAnalysisModelName(sourceName),
-    firstString(creator, ["name"]) ?? firstString(row, ["modelCreatorName"]),
-    absoluteArtificialAnalysisUrl(
-      firstString(selectedRow, ["model_url"]) ?? firstString(row, ["model_url"]),
-    ),
-    firstString(row, ["releaseDate", "release_date"]),
+    firstString(asRecord(row.creator), ["name"]),
+    absoluteArtificialAnalysisUrl(firstString(selectedRow, ["model_url"])),
+    firstString(row, ["releaseDate"]),
     sqliteBooleanValue(row.deprecated),
-    sqliteBooleanValue(row.reasoningModel),
+    sqliteBooleanValue(selectedRow.reasoning),
     firstString(selectedRow, ["reasoning_effort"]) ??
       parseArtificialAnalysisReasoningEffort(fullName, sourceName),
     sqliteBooleanValue(row.isOpenWeights),
-    sqliteBooleanValue(row.commercialAllowed),
   ];
 }
 
@@ -154,75 +133,41 @@ function absoluteArtificialAnalysisUrl(value: string | null): string | null {
 
 function modalityValues(row: JsonObject): SqlValue[] {
   return [
-    sqliteBooleanValue(row.input_modality_text ?? row.inputModalityText),
-    sqliteBooleanValue(row.input_modality_image ?? row.inputModalityImage),
-    sqliteBooleanValue(row.input_modality_video ?? row.inputModalityVideo),
-    sqliteBooleanValue(row.input_modality_speech ?? row.inputModalitySpeech),
-    sqliteBooleanValue(row.output_modality_text ?? row.outputModalityText),
-    sqliteBooleanValue(row.output_modality_image ?? row.outputModalityImage),
-    sqliteBooleanValue(row.output_modality_video ?? row.outputModalityVideo),
-    sqliteBooleanValue(row.output_modality_speech ?? row.outputModalitySpeech),
+    sqliteBooleanValue(row.inputModalityText),
+    sqliteBooleanValue(row.inputModalityImage),
+    sqliteBooleanValue(row.inputModalityVideo),
+    sqliteBooleanValue(row.inputModalitySpeech),
+    sqliteBooleanValue(row.outputModalityText),
+    sqliteBooleanValue(row.outputModalityImage),
+    sqliteBooleanValue(row.outputModalityVideo),
+    sqliteBooleanValue(row.outputModalitySpeech),
   ];
 }
 
-function benchmarkValues(row: JsonObject, selectedRow: JsonObject): SqlValue[] {
+function timingAndIndexValues(row: JsonObject, selectedRow: JsonObject): SqlValue[] {
   const intelligence = asRecord(selectedRow.intelligence);
-  const benchmarks = asRecord(selectedRow.benchmarks);
   return [
-    firstNumber(row, ["median_output_speed", "medianOutputTokensPerSecond"]),
-    firstNumber(row, ["median_time_to_first_chunk", "medianTimeToFirstTokenSeconds"]),
-    firstNumber(selectedRow, ["median_end_to_end_response_time"]) ??
-      firstNumber(row, ["median_end_to_end_response_time", "medianEndToEndResponseTimeSeconds"]),
+    asFiniteNumber(selectedRow.median_speed),
+    asFiniteNumber(selectedRow.median_time),
+    asFiniteNumber(selectedRow.median_end_to_end_response_time),
     asFiniteNumber(intelligence.intelligence_index),
     firstString(row, ["intelligenceIndexVersion"]),
     Array.isArray(row.intelligenceIndexComponents)
       ? JSON.stringify(row.intelligenceIndexComponents)
       : null,
-    asFiniteNumber(intelligence.agentic_index),
-    asFiniteNumber(intelligence.coding_index),
     asFiniteNumber(intelligence.omniscience_index),
-    asFiniteNumber(intelligence.omniscience_accuracy),
-    asFiniteNumber(benchmarks.apex_agents),
-    asFiniteNumber(benchmarks.gdpval_normalized),
-    asFiniteNumber(benchmarks.gpqa),
-    asFiniteNumber(benchmarks.itbench_sre),
-    asFiniteNumber(benchmarks.mmmu_pro),
-    asFiniteNumber(benchmarks.scicode),
-    asFiniteNumber(benchmarks.tau_banking),
   ];
 }
 
-function costAndLogoValues(
-  row: JsonObject,
-  selectedRow: JsonObject,
-  creator: JsonObject,
-): SqlValue[] {
+function costAndLogoValues(selectedRow: JsonObject): SqlValue[] {
   const cost = asRecord(selectedRow.cost);
   const intelligenceIndexCost = asRecord(selectedRow.intelligence_index_cost);
-  const tokenCounts = asRecord(row.intelligenceIndexTokenCounts);
   return [
     asFiniteNumber(cost.input),
     asFiniteNumber(cost.output),
-    asFiniteNumber(intelligenceIndexCost.input_cost),
-    asFiniteNumber(intelligenceIndexCost.reasoning_cost),
-    asFiniteNumber(intelligenceIndexCost.output_cost),
-    asFiniteNumber(intelligenceIndexCost.total_cost),
-    asFiniteNumber(tokenCounts.inputTokens),
-    asFiniteNumber(tokenCounts.reasoningTokens),
-    asFiniteNumber(tokenCounts.answerTokens),
-    asFiniteNumber(tokenCounts.outputTokens),
-    asFiniteNumber(intelligenceIndexCost.total_tokens),
     asFiniteNumber(intelligenceIndexCost.cost_per_task),
     asFiniteNumber(intelligenceIndexCost.seconds_per_task),
     asFiniteNumber(intelligenceIndexCost.output_tokens_per_task),
-    firstString(selectedRow, ["logo"]) ??
-      firstString(row, [
-        "logo_small_url",
-        "logo_url",
-        "logoSmall",
-        "logo_small",
-        "modelCreatorLogo",
-      ]) ??
-      firstString(creator, ["logo_small_url", "logo_url", "logo_small", "logo"]),
+    firstString(selectedRow, ["logo"]),
   ];
 }

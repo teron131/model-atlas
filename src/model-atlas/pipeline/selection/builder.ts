@@ -183,12 +183,7 @@ export async function buildFinalModels(
     scoringPreparation,
     resourceImputation,
   );
-  const selectedReferenceModels = selectReferenceModels(
-    scoredCandidates,
-    modelId,
-    finalConfig,
-    scoringConfig,
-  );
+  const selectedReferenceModels = selectReferenceModels(scoredCandidates, modelId);
   const rescoredReferenceModels = attachFinalScores(
     selectedReferenceModels.map((model) => ({
       ...model,

@@ -25,7 +25,6 @@ function buildMatchedRow(
   const artificialAnalysisId =
     typeof artificialAnalysisModel.model_id === "string" ? artificialAnalysisModel.model_id : null;
   const artificialAnalysisSlug = modelSlugFromModelId(artificialAnalysisId);
-  const benchmarks = { ...asRecord(artificialAnalysisModel.benchmarks) };
   const matchedModelsDev =
     matchedModelId == null ? null : (lookups.modelsDev.byId.get(matchedModelId) ?? null);
   let name = artificialAnalysisId;
@@ -44,10 +43,9 @@ function buildMatchedRow(
   const observationBenchmarks = buildObservationBenchmarks(
     observationNameCandidates,
     lookups,
-    benchmarks,
+    {},
     artificialAnalysisModel.reasoning_effort,
   );
-  Object.assign(benchmarks, observationBenchmarks.benchmarks);
   const providerId = matchedModelsDev?.provider_id ?? artificialAnalysisModel.provider;
   const canonicalId = qualifyModelId(
     matchedModelsDev?.model?.id ?? matchedModelId ?? artificialAnalysisId,
@@ -100,7 +98,7 @@ function buildMatchedRow(
     ...(Object.keys(observationBenchmarks.scoringSources).length === 0
       ? {}
       : { scoring_sources: observationBenchmarks.scoringSources }),
-    benchmarks,
+    benchmarks: observationBenchmarks.benchmarks,
     intelligence: asRecord(artificialAnalysisModel.intelligence),
     intelligence_index_cost: asRecord(artificialAnalysisModel.intelligence_index_cost),
   };

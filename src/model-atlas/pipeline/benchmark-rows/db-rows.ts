@@ -5,7 +5,6 @@ import {
   parseBenchmarkObservationMetadata,
 } from "../../benchmarks/observation";
 import {
-  ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_KEYS,
   BENCHMARK_OBSERVATION_BINDINGS,
   type BenchmarkObservationRowsKey,
   type PublicBenchmarkRuntimeKeyFor,
@@ -214,15 +213,6 @@ export function benchmarkRowsFromDb(rows: BenchmarkDbRows): BenchmarkRowsByKey {
       return label == null
         ? []
         : [
-            ...ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_KEYS.map((key) => ({
-              key,
-              id: modelId,
-              identity: modelId,
-              label,
-              provider: null,
-              reasoningEffort: row.reasoning_effort,
-              value: row[key],
-            })),
             {
               key: "aa_intelligence_index",
               id: modelId,

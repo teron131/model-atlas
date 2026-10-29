@@ -48,8 +48,6 @@ export function archiveCheckpoint(db: DatabaseSync): void {
       reasoning_effort: row.reasoning_effort,
       release_date: row.release_date,
       intelligence_index: row.intelligence_index,
-      agentic_index: row.agentic_index,
-      coding_index: row.coding_index,
       omniscience_index: row.omniscience_index,
       omniscience_accuracy: row.omniscience_accuracy,
       benchmarks: benchmarks.get(Number(row.row_index)) ?? [],

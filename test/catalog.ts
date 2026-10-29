@@ -280,10 +280,7 @@ assert.equal(
   false,
   "half-importance standalone evidence contributes half a unit",
 );
-assert.equal(
-  admitsWeight({ coding_index: 80, agentic_index: 80, omniscience_index: 80 }, 1),
-  false,
-);
+assert.equal(admitsWeight({ omniscience_index: 80 }, 1), false);
 assert.equal(
   hasRequiredBenchmarkEvidence(
     {
@@ -309,7 +306,6 @@ for (const [benchmarks, expected] of [
   [{ surge_intelligence_index: 0 }, false],
   [{ aa_intelligence_index: 0 }, true],
   [{ epoch_capabilities_index: 100 }, true],
-  [{ surge_intelligence_index: 0, coding_index: 80, agentic_index: 80 }, false],
   [{ surge_intelligence_index: 0, vals_index: 0 }, true],
   [{ aa_intelligence_index: 0, cais_capabilities_index: 0 }, true],
 ] as const) {
@@ -400,7 +396,7 @@ const qualityRows = [0.0001, 0.9].map((value, index) => ({
   modalities: { output: ["text"] },
   cost: { input: 1, output: 2 },
   limit: { context: 100_000, output: 10_000 },
-  intelligence: { intelligence_index: value * 100, agentic_index: value * 100 },
+  intelligence: { intelligence_index: value * 100 },
   benchmarks: Object.fromEntries(
     selectedBenchmarkKeys
       .filter((key) => key !== "aa_intelligence_index")
@@ -497,33 +493,21 @@ const expiredPreviewId = "provider/expired-preview";
 // Keep index quality equally strong so these admission checks isolate age and evidence rather than the relevance floor.
 const admissionRows = [
   {
-    ...evidenceRow(knownPreviewId, "Known Preview", {
-      intelligence_index: 75,
-      agentic_index: 65,
-    }),
+    ...evidenceRow(knownPreviewId, "Known Preview", { intelligence_index: 75 }),
     release_date: "2026-07-29",
     benchmarks: { critpt: 0.7, automation_bench: 0.7, omniscience_accuracy: 0.7, vals_index: 70 },
   },
   evidenceRow(unknownPreviewId, "Unknown Preview"),
   {
-    ...evidenceRow(coveredRecentId, "Covered Recent", {
-      intelligence_index: 75,
-      agentic_index: 70,
-    }),
+    ...evidenceRow(coveredRecentId, "Covered Recent", { intelligence_index: 75 }),
     release_date: "2026-08-27",
   },
   {
-    ...evidenceRow(coveredOlderId, "Covered Older", {
-      intelligence_index: 75,
-      agentic_index: 70,
-    }),
+    ...evidenceRow(coveredOlderId, "Covered Older", { intelligence_index: 75 }),
     release_date: "2026-07-28",
   },
   {
-    ...evidenceRow(expiredPreviewId, "Expired Preview", {
-      intelligence_index: 75,
-      agentic_index: 65,
-    }),
+    ...evidenceRow(expiredPreviewId, "Expired Preview", { intelligence_index: 75 }),
     release_date: "2026-07-28",
     benchmarks: { critpt: 0.7, automation_bench: 0.7, omniscience_accuracy: 0.7, vals_index: 70 },
   },
@@ -592,7 +576,6 @@ assert.deepEqual(
 const incompleteMetadataId = "provider/metadata-preview";
 const completeMetadataRow = evidenceRow(incompleteMetadataId, "Metadata Preview", {
   intelligence_index: 75,
-  agentic_index: 70,
 });
 const incompleteMetadataRow = {
   ...completeMetadataRow,
@@ -608,7 +591,7 @@ assert.deepEqual(
         {
           ...incompleteMetadataRow,
           id: "provider/benchmark-index",
-          intelligence: { agentic_index: 70 },
+          intelligence: {},
           benchmarks: { ...incompleteMetadataRow.benchmarks, aa_intelligence_index: 75 },
         },
         { ...admissionRows[0]!, id: "provider/missing-context", limit: undefined },
@@ -711,7 +694,7 @@ const singleIndexRows = [
     ...singleIndexRow,
     id: "provider/aa-subindex-only",
     benchmarks: {},
-    intelligence: { agentic_index: 80, coding_index: 80 },
+    intelligence: { omniscience_index: 80 },
   },
   {
     ...singleIndexRow,
@@ -833,11 +816,7 @@ function duplicateRouteRow(name: string, releaseDate: string, benchmarkValue: nu
   };
 }
 
-function evidenceRow(
-  id: string,
-  name: string,
-  intelligence?: { intelligence_index: number; agentic_index: number },
-) {
+function evidenceRow(id: string, name: string, intelligence?: { intelligence_index: number }) {
   return {
     id,
     name,

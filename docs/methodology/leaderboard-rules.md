@@ -16,7 +16,7 @@ Standalone benchmarks contribute their configured importance once across both di
 
 Count each known component once across indexes and standalone observations, using the larger of its standalone importance and the one unit represented within an observed index. Add each index’s remaining count of unnamed benchmarks separately. This avoids double counting known overlap and prevents a lower-importance standalone observation from reducing existing index coverage.
 
-AA’s main Intelligence Index represents nine benchmarks. Its Agentic, Coding, and Omniscience indexes do not increase the benchmark count used for inclusion. Only observed results count, including observed zeros.
+AA’s main Intelligence Index represents nine benchmarks. Its separate Omniscience Index does not increase the benchmark count used for inclusion. Only observed results count, including observed zeros.
 
 ECI uses fixed represented breadth 8, the [median](overview.md#weighted-median-and-quantiles) of the fixed index baskets. Its component overlap is unknown, so this breadth is added alongside standalone evidence. Inclusion uses observations matched to the exact variant; imputation supplies no direct evidence.
 
