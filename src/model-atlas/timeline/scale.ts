@@ -55,7 +55,7 @@ export function prepareTimelineRelease(
         existing.kind !== definition.kind)
     )
       throw new Error(
-        `Benchmark ${definition.id} changed its measurement definition; give the changed edition a distinct identity.`,
+        `Benchmark ${definition.id} changed its measurement definition; give the changed version a distinct identity.`,
       );
     benchmarks.set(definition.id, definition);
   }
@@ -146,7 +146,7 @@ export function prepareTimelineRelease(
     const definitions = data.benchmarks.filter(
       (b) =>
         b.weights[dimension] > 0 &&
-        !b.id.includes(":unresolved-edition") &&
+        !b.id.includes(":unresolved-version") &&
         (!b.key.startsWith("model_atlas_") || b.id === rootBenchmarkIds[dimension]),
     );
     const links = new Map(

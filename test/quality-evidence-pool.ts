@@ -3,6 +3,7 @@
 import assert from "node:assert/strict";
 
 import {
+  INDEX_POLICIES,
   qualityIndexBreadths,
   residualIndexBreadth,
 } from "../src/model-atlas/benchmarks/index-policy";
@@ -10,6 +11,7 @@ import { type ScoringConfig, STAGE_CONFIG } from "../src/model-atlas/config/stag
 import { buildQualityScoringContext } from "../src/model-atlas/pipeline/scores/quality-context";
 import { buildComponentScoreResult } from "../src/model-atlas/pipeline/scores/score-builders";
 
+const aaBreadth = INDEX_POLICIES.aa_intelligence_index.representedBenchmarks;
 const indexKeys = [
   "aa_intelligence_index",
   "epoch_capabilities_index",
@@ -88,8 +90,9 @@ for (const taskCount of [4, 40]) {
 }
 
 const multiplierFixture = fixture(4, 1);
-// Coverage discounts the entire score at both sides of 50, even when AA supplies index evidence.
+// Coverage discounts the entire score at both sides of 50, even when AA supplies index evidence; retention starts at the AA evidence alone and is full at two observed tasks.
 const coverageFixture = fixture(19, 1, 0.05);
+const aaEvidence = 0.05 * aaBreadth * 0.5;
 for (const [observedTasks, multiplier] of [
   [0, 0.85],
   [1, 0.925],
@@ -105,7 +108,7 @@ for (const [observedTasks, multiplier] of [
       {
         ...coverageFixture.config,
         qualityCoverageMinimumRetention: 0.85,
-        qualityRetention: { floor: 0.25, full: 1.75 },
+        qualityRetention: { floor: aaEvidence, full: aaEvidence + 1.5 },
       },
       coverageFixture.context,
     );
@@ -158,7 +161,10 @@ for (const multiplier of [1.5, 2]) {
     { ...multiplierFixture.config, directBenchmarkWeightMultiplier: multiplier },
     multiplierFixture.context,
   ).componentScores!.intelligence_score!;
-  assert.ok(Math.abs(score - (multiplier * 4 * 60 + 10 * 100) / (multiplier * 4 + 10)) < 1e-10);
+  assert.ok(
+    Math.abs(score - (multiplier * 4 * 60 + aaBreadth * 100) / (multiplier * 4 + aaBreadth)) <
+      1e-10,
+  );
 }
 
 const convergence = fixture(8, 4);
@@ -189,18 +195,18 @@ assert.ok(imputed.confidence.agentic! > direct.confidence.agentic!);
 
 assert.equal(residualIndexBreadth("epoch_capabilities_index", [], 4), 8);
 assert.equal(residualIndexBreadth("epoch_capabilities_index", [], 40), 8);
-assert.equal(residualIndexBreadth("aa_intelligence_index", ["terminal_bench_4"]), 9);
+assert.equal(residualIndexBreadth("aa_intelligence_index", ["terminal_bench_4"]), aaBreadth - 1);
 const sharedIndexBreadths = qualityIndexBreadths([
   { key: "aa_intelligence_index" },
   { key: "cais_capabilities_index" },
 ]);
-assert.equal(sharedIndexBreadths.get("aa_intelligence_index"), 9.5);
+assert.equal(sharedIndexBreadths.get("aa_intelligence_index"), aaBreadth - 0.5);
 assert.equal(sharedIndexBreadths.get("cais_capabilities_index"), 6.5);
 const directlyObservedSharedIndexBreadths = qualityIndexBreadths(
   [{ key: "aa_intelligence_index" }, { key: "cais_capabilities_index" }],
   ["hle"],
 );
-assert.equal(directlyObservedSharedIndexBreadths.get("aa_intelligence_index"), 9);
+assert.equal(directlyObservedSharedIndexBreadths.get("aa_intelligence_index"), aaBreadth - 1);
 assert.equal(directlyObservedSharedIndexBreadths.get("cais_capabilities_index"), 6);
 
 const indexOnly = fixture(0, 4);

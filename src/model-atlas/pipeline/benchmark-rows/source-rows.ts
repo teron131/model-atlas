@@ -27,7 +27,7 @@ export type BenchmarkSourceRow = {
   reasoningEffort: string | null;
   value: number;
   /** The source-published version this row belongs to; null where the source publishes none. */
-  edition: string | null;
+  version: string | null;
 };
 
 export type BenchmarkRowsByKey = Readonly<Record<string, readonly BenchmarkSourceRow[]>>;
@@ -40,7 +40,7 @@ export type BenchmarkRowDraft = {
   provider?: string | null;
   reasoningEffort?: unknown;
   value: unknown;
-  edition?: unknown;
+  version?: unknown;
 };
 
 type ModelScoreDraftRow = {
@@ -74,7 +74,7 @@ function modelScoreRowDrafts(
     provider: row.provider,
     reasoningEffort: row.reasoning_effort,
     value: row.score,
-    edition: row.metadata.benchmark_version,
+    version: row.metadata.benchmark_version,
   }));
 }
 
@@ -115,7 +115,7 @@ function benchmarkObservationSourceDrafts(sourceData: ModelAtlasSourceData): Ben
         provider: row.model_creator,
         reasoningEffort: row.reasoning_effort,
         value: row.canonical_value,
-        edition: row.metadata.benchmark_version,
+        version: row.metadata.benchmark_version,
       }));
   });
 }
@@ -140,7 +140,7 @@ function addBenchmarkRowDraft(
     provider: draft.provider ?? null,
     reasoningEffort: canonicalReasoningEffort(draft.reasoningEffort),
     value,
-    edition: asNonEmptyString(draft.edition),
+    version: asNonEmptyString(draft.version),
   });
 }
 
@@ -165,15 +165,27 @@ function artificialAnalysisBenchmarkRowDrafts(
     if (label == null) {
       return [];
     }
-    return ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_KEYS.map((key) => ({
-      key,
-      id: modelId,
-      identity: modelId,
-      label,
-      provider: null,
-      reasoningEffort: record.reasoning_effort,
-      value: benchmarks[key],
-    }));
+    return [
+      ...ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_KEYS.map((key) => ({
+        key,
+        id: modelId,
+        identity: modelId,
+        label,
+        provider: null,
+        reasoningEffort: record.reasoning_effort,
+        value: benchmarks[key],
+      })),
+      {
+        key: "aa_intelligence_index",
+        id: modelId,
+        identity: modelId,
+        label,
+        provider: null,
+        reasoningEffort: record.reasoning_effort,
+        value: asRecord(record.intelligence).intelligence_index,
+        version: record.intelligence_index_version,
+      },
+    ];
   });
   return [
     ...contextDrafts,
@@ -196,7 +208,7 @@ export function artificialAnalysisResourceDrafts(
         provider: row.provider,
         reasoningEffort: row.reasoning_effort,
         value: transformBenchmarkSourceValue(benchmarkKey, row.score),
-        edition: row.benchmark_version,
+        version: row.benchmark_version,
       }),
     ),
   );
@@ -265,7 +277,7 @@ const STANDALONE_SOURCE_ROW_ADAPTERS = {
         label: row.model,
         reasoningEffort: row.reasoning_effort,
         value: row.score,
-        edition: frontierCodeVersion(row.revision),
+        version: frontierCodeVersion(row.revision),
       }),
     ),
   terminal_bench_4: (sourceData) =>

@@ -16,7 +16,7 @@ Standalone benchmarks contribute their configured importance once across both di
 
 Count each known component once across indexes and standalone observations, using the larger of its standalone importance and the one unit represented within an observed index. Add each index’s remaining count of unnamed benchmarks separately. This avoids double counting known overlap and prevents a lower-importance standalone observation from reducing existing index coverage.
 
-AA’s main Intelligence Index represents ten benchmarks. Its Agentic, Coding, and Omniscience indexes do not increase the benchmark count used for inclusion. Only observed results count, including observed zeros.
+AA’s main Intelligence Index represents nine benchmarks. Its Agentic, Coding, and Omniscience indexes do not increase the benchmark count used for inclusion. Only observed results count, including observed zeros.
 
 ECI uses fixed represented breadth 8, the [median](overview.md#weighted-median-and-quantiles) of the fixed index baskets. Its component overlap is unknown, so this breadth is added alongside standalone evidence. Inclusion uses observations matched to the exact variant; imputation supplies no direct evidence.
 
@@ -47,7 +47,7 @@ A listed token price or serving speed alone does not show the resources needed t
 
 A dashboard variant needs observed quality-and-resource coverage representing at least four distinct benchmarks to display :score[Value] or :score[Speed]. Each selected individual benchmark contributes one when it has observed quality paired with positive cost or directly reported seconds.
 
-The selected Artificial Analysis Intelligence Index contributes its catalogued benchmark count, currently 10, when its observed score is paired with its own positive aggregate cost or runtime. Deduct separately counted AA components for each resource so overlapping evidence counts once. AA cost coverage does not establish runtime coverage.
+The selected Artificial Analysis Intelligence Index contributes its catalogued benchmark count, currently 9, when its observed score is paired with its own positive aggregate cost or runtime. Deduct separately counted AA components for each resource so overlapping evidence counts once. AA cost coverage does not establish runtime coverage.
 
 Imputed quality, estimated resources, output-token runtime proxies, provider token prices, throughput, and latency do not satisfy this threshold. AA resource measurements remain attached to that index and never fill missing measurements for individual benchmarks.
 

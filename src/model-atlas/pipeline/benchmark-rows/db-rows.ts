@@ -34,7 +34,7 @@ type DbSourceSpec = {
   value: (row: DbBenchmarkRow) => unknown;
   providerColumn?: string;
   rowKind?: string;
-  edition?: (row: DbBenchmarkRow) => unknown;
+  version?: (row: DbBenchmarkRow) => unknown;
 };
 
 type BenchmarkObservationDbRows = {
@@ -77,7 +77,7 @@ function benchmarkObservationDbDrafts(rows: BenchmarkDbRows): BenchmarkRowDraft[
           provider: asNonEmptyString(row.model_creator),
           reasoningEffort: row.reasoning_effort,
           value: row.canonical_value,
-          edition: parseBenchmarkObservationMetadata(row.metadata_json)?.benchmark_version,
+          version: parseBenchmarkObservationMetadata(row.metadata_json)?.benchmark_version,
         },
       ];
     });
@@ -107,7 +107,7 @@ function dbSourceDrafts(source: DbSourceSpec): BenchmarkRowDraft[] {
         provider:
           source.providerColumn == null ? null : asNonEmptyString(row[source.providerColumn]),
         value: source.value(row),
-        edition: source.edition?.(row),
+        version: source.version?.(row),
       },
     ];
   });
@@ -180,7 +180,7 @@ const STANDALONE_DB_ROW_ADAPTERS = {
               label: asNonEmptyString(row.model),
               reasoningEffort: row.reasoning_effort,
               value: row.main_score,
-              edition: revision == null ? null : frontierCodeVersion(revision),
+              version: revision == null ? null : frontierCodeVersion(revision),
             },
           ]
         : [];
@@ -213,15 +213,27 @@ export function benchmarkRowsFromDb(rows: BenchmarkDbRows): BenchmarkRowsByKey {
       const label = asNonEmptyString(row.name) ?? asNonEmptyString(row.short_name) ?? modelId;
       return label == null
         ? []
-        : ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_KEYS.map((key) => ({
-            key,
-            id: modelId,
-            identity: modelId,
-            label,
-            provider: null,
-            reasoningEffort: row.reasoning_effort,
-            value: row[key],
-          }));
+        : [
+            ...ARTIFICIAL_ANALYSIS_CONTEXT_BENCHMARK_KEYS.map((key) => ({
+              key,
+              id: modelId,
+              identity: modelId,
+              label,
+              provider: null,
+              reasoningEffort: row.reasoning_effort,
+              value: row[key],
+            })),
+            {
+              key: "aa_intelligence_index",
+              id: modelId,
+              identity: modelId,
+              label,
+              provider: null,
+              reasoningEffort: row.reasoning_effort,
+              value: row.intelligence_index,
+              version: row.intelligence_index_version,
+            },
+          ];
     }),
     ...artificialAnalysisResourceDrafts(
       artificialAnalysisBenchmarkResourceRawCacheFromRows([
@@ -247,7 +259,7 @@ export function benchmarkRowsFromDb(rows: BenchmarkDbRows): BenchmarkRowsByKey {
       value: (row) => row.score,
       providerColumn: "provider",
       rowKind: "overall",
-      edition: (row) => parseBenchmarkObservationMetadata(row.metadata_json)?.benchmark_version,
+      version: (row) => parseBenchmarkObservationMetadata(row.metadata_json)?.benchmark_version,
     }),
   ]);
 }

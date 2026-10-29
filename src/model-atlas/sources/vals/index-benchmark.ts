@@ -89,7 +89,7 @@ export async function getValsIndexStats(
   }
 }
 
-/** Keep the page's current edition and all component diagnostics under one persisted source contract; a basket of another size changes the represented breadth, so it yields no rows. */
+/** Keep the page's current version and all component diagnostics under one persisted source contract; a basket of another size changes the represented breadth, so it yields no rows. */
 export function processValsIndexView(value: unknown): ValsIndexResults {
   const view = parseValsBenchmarkView(value);
   if (view == null) return { metadata: null, task_rows: [], model_scores: [] };
@@ -155,7 +155,7 @@ export function buildValsIndexMap(rows: ValsIndexModelScoreRow[]): ValsIndexRows
   return rowsByModelName;
 }
 
-/** Return the matched observation intact so scoring retains its edition, breadth, and source date. */
+/** Return the matched observation intact so scoring retains its version, breadth, and source date. */
 export function findValsIndexRow(
   candidateNames: unknown[],
   valsIndexRowsByModelName: ValsIndexRowsByModelName,

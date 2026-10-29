@@ -11,6 +11,7 @@ import {
   findArtificialAnalysisBenchmarkResourceRow,
   getArtificialAnalysisBenchmarkResourceStats,
   processArtificialAnalysisBenchmarkResourceRows,
+  processArtificialAnalysisRunCounts,
 } from "../src/model-atlas/sources/artificial-analysis/benchmark-resources";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
@@ -76,7 +77,7 @@ assertDeepEqual(configuredAnalystAgentPage, {
   score_key: "analystAgent",
   resource_key: "analystAgent",
   url: "https://artificialanalysis.ai/evaluations/aa-analyst-agent",
-  task_run_count: 80,
+  methodology_name: "AA-AnalystAgent",
 });
 assertDeepEqual(
   ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.map((page) => page.benchmark_key).sort(),
@@ -92,13 +93,13 @@ assertDeepEqual(
     "terminal_bench_science",
   ],
 );
-for (const [benchmarkKey, scoreKey, resourceKey, url, taskRunCount, version] of [
+for (const [benchmarkKey, scoreKey, resourceKey, url, methodologyName, version] of [
   [
     "gdp_pdf",
     "gdpPdfAllPass",
     "gdpPdf",
     "https://artificialanalysis.ai/evaluations/gdp-pdf",
-    500,
+    "GDP.pdf",
     null,
   ],
   [
@@ -106,7 +107,7 @@ for (const [benchmarkKey, scoreKey, resourceKey, url, taskRunCount, version] of 
     "mlcrOverall",
     "mlcr",
     "https://artificialanalysis.ai/evaluations/mlcr-aa",
-    180,
+    "MLCR-AA",
     null,
   ],
   [
@@ -114,7 +115,7 @@ for (const [benchmarkKey, scoreKey, resourceKey, url, taskRunCount, version] of 
     "terminalBench40",
     "terminalBench40",
     "https://artificialanalysis.ai/evaluations/terminalbench-4-0",
-    198,
+    "Terminal-Bench",
     "4.0",
   ],
   [
@@ -122,7 +123,7 @@ for (const [benchmarkKey, scoreKey, resourceKey, url, taskRunCount, version] of 
     "terminalBenchScience",
     "terminalBenchScience",
     "https://artificialanalysis.ai/evaluations/terminal-bench-science",
-    210,
+    "Terminal-Bench-Science",
     "0.1",
   ],
 ] as const) {
@@ -134,7 +135,7 @@ for (const [benchmarkKey, scoreKey, resourceKey, url, taskRunCount, version] of 
     score_key: scoreKey,
     resource_key: resourceKey,
     url,
-    task_run_count: taskRunCount,
+    methodology_name: methodologyName,
     ...(version == null ? {} : { version }),
   });
 }
@@ -147,9 +148,12 @@ assertDeepEqual(
   ].map(artificialAnalysisEvaluationVersion),
   ["2.1", "1.1", "4.0", null],
 );
-const sciencePage = ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.find(
-  (page) => page.benchmark_key === "terminal_bench_science",
-)!;
+const sciencePage = {
+  ...ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.find(
+    (page) => page.benchmark_key === "terminal_bench_science",
+  )!,
+  task_run_count: 210,
+};
 const scienceRows = [
   {
     slug: "example-model",
@@ -476,10 +480,33 @@ for (const candidateName of [
   assertApprox(defaultRow?.cost_per_task_usd, 3);
 }
 
+// Runs are questions times repeats; category cells span rows, versions are ignored, and approximate or repeated names resolve to nothing.
+const methodologyHtml = `
+<table><thead><tr><th>Category</th><th>Evaluation</th><th>Questions</th><th>Repeats</th></tr></thead><tbody>
+<tr><td rowspan="2">Science (25%)</td><td>Terminal-Bench-Science 0.1</td><td>70 (5 domains)</td><td>3</td></tr>
+<tr><td>CritPt v2 (Hard Subset)</td><td>40 (hard subset of 70)</td><td>5</td></tr>
+<tr><td>General</td><td>HLE-Diamond</td><td>1,000 (500 reasoning, 500 knowledge)</td><td>1</td></tr>
+</tbody></table>
+<table><tr><th>Category</th><th>Evaluation</th><th>Questions</th><th>Repeats</th></tr>
+<tr><td rowspan="3">Other</td><td>CritPt v2</td><td>70</td><td>5</td></tr>
+<tr><td>Global-MMLU-Lite</td><td>~6,000 (~400 per language)</td><td>1</td></tr>
+<tr><td>HLE-Diamond</td><td>1,000</td><td>1</td></tr>
+</table>
+<table><tr><th></th><th>Artificial Analysis</th></tr><tr><td>Judge</td><td>GPT-5.6 Luna</td></tr></table>`;
+assertDeepEqual(Object.fromEntries(processArtificialAnalysisRunCounts(methodologyHtml)), {
+  "Terminal-Bench-Science": 210,
+  "CritPt (Hard Subset)": 200,
+  CritPt: 350,
+});
+
 let activeRequests = 0;
 let maxActiveRequests = 0;
 let completedRequests = 0;
-const server = createServer((_request, response) => {
+const server = createServer((request, response) => {
+  if (request.url === "/methodology") {
+    response.end(methodologyHtml);
+    return;
+  }
   activeRequests += 1;
   maxActiveRequests = Math.max(maxActiveRequests, activeRequests);
   setTimeout(() => {
@@ -503,12 +530,13 @@ try {
   const failedPayload = await getArtificialAnalysisBenchmarkResourceStats({
     concurrency: 2,
     timeoutMs: 1_000,
+    methodologyUrl: `http://127.0.0.1:${address.port}/methodology`,
     pages: Array.from({ length: 6 }, (_, index) => ({
       benchmark_key: `test_${index}`,
       score_key: `test_${index}`,
       resource_key: `test_${index}`,
       url: `http://127.0.0.1:${address.port}/${index}`,
-      task_run_count: 1,
+      methodology_name: "CritPt (Hard Subset)",
     })),
   });
   assertDeepEqual(failedPayload.fetched_at_epoch_seconds, null);

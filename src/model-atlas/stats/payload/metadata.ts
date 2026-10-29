@@ -38,7 +38,7 @@ type CurrentModelAtlasMetadataOptions = {
   availableMetrics?: ModelAtlasMetadata["available_metrics"];
   sourceHealth?: ModelAtlasSourceHealth;
   benchmarkUpdateHealth?: ModelAtlasBenchmarkUpdateHealth;
-  benchmarkEditions?: Readonly<Record<string, string>>;
+  benchmarkVersions?: Readonly<Record<string, string>>;
   sourceRowsByKey?: BenchmarkRowsByKey;
   matcherConfig?: MatcherConfig;
   availabilitySource?: MetadataAvailabilitySource;
@@ -46,12 +46,12 @@ type CurrentModelAtlasMetadataOptions = {
   snapshotPreservationVersion?: number | null;
 };
 
-/** Publish a benchmark's edition only when all of its current rows report the same one. */
-function observedBenchmarkEditions(rowsByKey: BenchmarkRowsByKey): Record<string, string> {
+/** Publish a benchmark's version only when all of its current rows report the same one. */
+function observedBenchmarkVersions(rowsByKey: BenchmarkRowsByKey): Record<string, string> {
   return Object.fromEntries(
     Object.entries(rowsByKey).flatMap(([key, rows]) => {
-      const [edition, ...others] = new Set(rows.flatMap((row) => row.edition ?? []));
-      return edition != null && others.length === 0 ? [[key, edition]] : [];
+      const [version, ...others] = new Set(rows.flatMap((row) => row.version ?? []));
+      return version != null && others.length === 0 ? [[key, version]] : [];
     }),
   );
 }
@@ -130,7 +130,7 @@ export function buildCurrentModelAtlasMetadata({
   availableMetrics,
   sourceHealth,
   benchmarkUpdateHealth,
-  benchmarkEditions,
+  benchmarkVersions,
   sourceRowsByKey,
   matcherConfig = STAGE_CONFIG.matcher,
   availabilitySource = "models",
@@ -157,13 +157,13 @@ export function buildCurrentModelAtlasMetadata({
         : computedBenchmarkUpdateHealth[key]!,
     ]),
   );
-  const currentBenchmarkEditions =
-    sourceRowsByKey == null ? benchmarkEditions : observedBenchmarkEditions(sourceRowsByKey);
+  const currentBenchmarkVersions =
+    sourceRowsByKey == null ? benchmarkVersions : observedBenchmarkVersions(sourceRowsByKey);
   return {
     available_metrics: outputAvailableMetrics,
     ...(sourceHealth == null ? {} : { source_health: sourceHealth }),
     benchmark_update_health: currentBenchmarkUpdateHealth,
-    ...(currentBenchmarkEditions == null ? {} : { benchmark_editions: currentBenchmarkEditions }),
+    ...(currentBenchmarkVersions == null ? {} : { benchmark_versions: currentBenchmarkVersions }),
     scoring: {
       intelligence_scoring: {
         group_weights: { ...scoringConfig.intelligenceGroupWeights },

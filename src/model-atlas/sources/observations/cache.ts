@@ -143,7 +143,7 @@ async function benchmarkObservationSnapshot(
     replaceRowsOnRefresh,
     rowKey: benchmarkObservationRowKey,
     rowLabel: (row) => `${row.benchmark_key}: ${row.model}`,
-    editions: { editionOf: (row) => row.metadata.benchmark_version },
+    versions: { versionOf: (row) => row.metadata.benchmark_version },
     mergeRow,
   });
   return {

@@ -3,6 +3,7 @@
 import assert from "node:assert/strict";
 
 import type { BenchmarkPortfolio } from "../src/model-atlas/benchmarks/factory";
+import { INDEX_POLICIES } from "../src/model-atlas/benchmarks/index-policy";
 import type { ModelAtlasModel } from "../src/model-atlas/pipeline/model-types";
 import {
   resourceRatioObservations,
@@ -153,18 +154,7 @@ assert.deepEqual(
 );
 
 // A fully overlapping index stays extractable for index-only graph selections and contributes no duplicate coverage in the complete basket.
-const components = [
-  "briefcase",
-  "gdpval_normalized",
-  "automation_bench",
-  "terminal_bench_4",
-  "scicode",
-  "hle",
-  "gdp_pdf",
-  "critpt",
-  "omniscience_accuracy",
-  "aa_lcr",
-];
+const components = INDEX_POLICIES.aa_intelligence_index.componentBenchmarkKeys;
 const completePortfolio: BenchmarkPortfolio = {
   ...Object.fromEntries(components.map((key) => [key, entry])),
   aa_intelligence_index: { ...entry, resourcePolicy: undefined },
@@ -178,12 +168,12 @@ const completeModel = model(
   { ...Object.fromEntries(components.map((key) => [key, 0.5])), aa_intelligence_index: 50 },
 );
 const completeRows = resourceRatioObservations([completeModel], completePortfolio, "cost");
-assert.equal(completeRows.length, 11);
+assert.equal(completeRows.length, components.length + 1);
 const completeReferences = new Map(completeRows.map((row) => [row.benchmarkKey, 1]));
 assert.deepEqual(summarizeResourceRatios(completeRows, completeReferences), {
   ratio: 2,
-  benchmarkCount: 10,
-  sourceCount: 10,
+  benchmarkCount: components.length,
+  sourceCount: components.length,
 });
 assert.deepEqual(
   summarizeResourceRatios(
@@ -193,6 +183,9 @@ assert.deepEqual(
   { ratio: 10, benchmarkCount: 1, sourceCount: 1 },
 );
 completeReferences.delete("hle");
-assert.equal(summarizeResourceRatios(completeRows, completeReferences).sourceCount, 10);
+assert.equal(
+  summarizeResourceRatios(completeRows, completeReferences).sourceCount,
+  components.length,
+);
 
 console.log("Resource ratio checks passed");

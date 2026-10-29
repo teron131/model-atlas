@@ -97,18 +97,18 @@ Prioritize source vitality and leader quality over final-table coverage. For eac
 
 Inspect source leaderboard leaders before judging only the subset that survives final-model selection. Treat a current top-tier excluded row as evidence that the source remains active, and state why it is excluded before interpreting matched-rank agreement.
 
-## Check Editions
+## Check Versions
 
-The standing policy is to use each benchmark's newest published edition and never pool two editions. The refresh pipeline already adopts a new version published at the address Atlas reads when the structure is unchanged: a refresh that shares no version with the cached rows replaces them (`withoutSupersededEditions` in `src/model-atlas/sources/snapshots/policy.ts`). A version fixed by the address never changes, so the rule never fires there. Sort each selected benchmark's edition state, and report maintenance separately from decisions:
+The standing policy is to use each benchmark's newest published version and never pool two versions. The refresh pipeline already adopts a new version published at the address Atlas reads when the structure is unchanged: a refresh that shares no version with the cached rows replaces them (`withoutSupersededVersions` in `src/model-atlas/sources/snapshots/policy.ts`). A version fixed by the address never changes, so the rule never fires there. Sort each selected benchmark's version state, and report maintenance separately from decisions:
 
-- **Adopted automatically.** The observed edition (served `metadata.benchmark_editions`, or row `benchmark_version` or `revision` in the checkpoint) differs from the catalog's timeline `revision` in `src/model-atlas/benchmarks/catalog/sources.ts`. Scores and displayed editions are already current; bumping the revision so the timeline starts a new edition is maintenance, not drift.
-- **Successor at a new address.** A version selector, a superseded or replaced-by notice, a new artifact URL, or a new evaluation page means the newest edition moved. Switching the catalog address is maintenance under the newest-edition policy; escalate only class or loading questions the new edition raises, such as changed tasks, tools, harness, or grading.
+- **Adopted automatically.** The observed version (served `metadata.benchmark_versions`, or row `benchmark_version` or `revision` in the checkpoint) differs from the catalog's timeline `revision` in `src/model-atlas/benchmarks/catalog/sources.ts`. Scores and displayed versions are already current; bumping the revision so the timeline starts a new version is maintenance, not drift.
+- **Successor at a new address.** A version selector, a superseded or replaced-by notice, a new artifact URL, or a new evaluation page means the newest version moved. Switching the catalog address is maintenance under the newest-version policy; escalate only class or loading questions the new version raises, such as changed tasks, tools, harness, or grading.
 - **Rejected for structure.** A new version with a different component basket, subset layout, or task set yields no rows, so source health shows cached rows. Report the structural change and the breadth, metric, or loading decision it needs.
-- **No published version.** For sources that publish none, such as Surge or an Artificial Analysis page whose title carries no version, look for silent reruns: shared rows moving together, a changed score granularity, or a cohort reset. Treat a confirmed rerun as a new edition.
+- **No published version.** For sources that publish none, such as Surge or an Artificial Analysis page whose title carries no version, look for silent reruns: shared rows moving together, a changed score granularity, or a cohort reset. Treat a confirmed rerun as a new version.
 - **Deliberate pin.** A version pinned so a fused source matches another source's suite, such as Terminal-Bench-Science's Vals series, is not stale while that suite is unchanged.
-- **Gap filling across editions.** A rule that fills models missing from the newest edition with an older edition's rows pools two editions. Report it as a scoring defect, not as coverage.
+- **Gap filling across versions.** A rule that fills models missing from the newest version with an older version's rows pools two versions. Report it as a scoring defect, not as coverage.
 
-Compare prior evidence only within one edition.
+Compare prior evidence only within one version.
 
 ## Diagnose Signals Before Judging Them
 
@@ -124,7 +124,7 @@ When a symptom suggests a source-wide schema, naming, or presentation change, in
 
 Keep stock and flow separate. A quarantine count is the current stock of preserved missing keys; churn is the set of additions, disappearances, recoveries, and identity transitions between runs. Stable counts can hide turnover, while a large persistent count can consist entirely of harmless renamed aliases. Compare row keys when available and state when only net counts can be measured.
 
-Quarantined rows still score. A row missing from the current source is retained as evidence, not only recorded as state, so after a board is rerun, pruned, or moved to a new protocol, its earlier rows keep scoring beside the current ones until an edition boundary drops them. Before calling missing rows harmless, check that the retained and current rows belong to one edition and protocol; HANDBOOK.md's silent rerun left dozens of earlier-protocol rows scoring this way.
+Quarantined rows still score. A row missing from the current source is retained as evidence, not only recorded as state, so after a board is rerun, pruned, or moved to a new protocol, its earlier rows keep scoring beside the current ones until a version boundary drops them. Before calling missing rows harmless, check that the retained and current rows belong to one version and protocol; HANDBOOK.md's silent rerun left dozens of earlier-protocol rows scoring this way.
 
 Reproduce a suspected pipeline cause before reporting it. Apply the current merge, parser, or cache-acceptance function to the cached and current rows in memory, show that it yields the served value, and name the function and row keys. This turns a symptom such as stale scores into a located defect that a fix can target.
 
@@ -156,9 +156,9 @@ Distinguish:
 
 Lead with the verdict and the strongest evidence. For portfolio audits, give keep/watch/review counts, a compact comparison table, attention notes only for watch/review items, and non-code next actions. For individual reviews, use the smallest structure that makes the judgment auditable.
 
-Separate maintenance from decisions. Maintenance needs no user decision under standing policy: edition catch-ups, switching to a newer edition's address, and fixing a pipeline defect whose cause has been reproduced. Decisions are class, loading, importance, breadth, metric, and removal choices.
+Separate maintenance from decisions. Maintenance needs no user decision under standing policy: version catch-ups, switching to a newer version's address, and fixing a pipeline defect whose cause has been reproduced. Decisions are class, loading, importance, breadth, metric, and removal choices.
 
-Do not leave a decision blocked when read-only evidence can settle it. For a revised or successor edition, collect the successor's distribution on the same current cohort, how much of the task set and protocol changed, and whether the source still evaluates new models on the old edition; then recommend a class with its main risk. Reserve a blocked verdict for evidence that cannot be obtained, and name what would unblock it.
+Do not leave a decision blocked when read-only evidence can settle it. For a revised or successor version, collect the successor's distribution on the same current cohort, how much of the task set and protocol changed, and whether the source still evaluates new models on the old version; then recommend a class with its main risk. Reserve a blocked verdict for evidence that cannot be obtained, and name what would unblock it.
 
 For every watch or review item, report the observed symptom, the best-supported cause, whether the cause affects benchmark merit or only ingestion/identity/observability, and why that effect is material enough for the verdict. Do not leave the user to infer significance from dates, counts, provenance labels, or health statuses.
 

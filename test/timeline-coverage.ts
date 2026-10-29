@@ -1,4 +1,4 @@
-/** Verify measured era-specific coverage without age, index-only, duplicated-edition, or imputation shortcuts. */
+/** Verify measured era-specific coverage without age, index-only, duplicated-version, or imputation shortcuts. */
 
 import assert from "node:assert/strict";
 
@@ -12,11 +12,11 @@ import {
 const broad = historicalSourceModel("Broad old model", "Lab", null, "2020-01-01");
 const sparse = historicalSourceModel("Sparse old model", "Lab", null, "2020-01-01");
 const indexOnly = historicalSourceModel("Index only", "Lab", null, "2030-01-01");
-const split = historicalSourceModel("Split editions", "Lab", null, "2020-01-01");
+const split = historicalSourceModel("Split versions", "Lab", null, "2020-01-01");
 const models = [broad, sparse, indexOnly, split];
-const benchmarks = ["old", "later"].flatMap((edition) =>
+const benchmarks = ["old", "later"].flatMap((version) =>
   [0, 1, 2, 3].map((i) => ({
-    id: `${edition}:${i}`,
+    id: `${version}:${i}`,
     key: `task:${i}`,
     label: `Task ${i}`,
     kind: "task" as const,
@@ -39,14 +39,14 @@ const release: HistoricalSourceRelease = {
   portfolios: [],
   benchmarks: [
     ...benchmarks,
-    ...["old", "later"].map((edition) => ({
-      id: `index:${edition}`,
+    ...["old", "later"].map((version) => ({
+      id: `index:${version}`,
       key: "source-index",
       label: "Observed source index",
       kind: "index" as const,
       scale: "linear" as const,
       weights: { intelligence: 0.5, agentic: 0.5 },
-      componentIds: benchmarks.filter((b) => b.id.startsWith(edition)).map((b) => b.id),
+      componentIds: benchmarks.filter((b) => b.id.startsWith(version)).map((b) => b.id),
     })),
   ],
   observations: [
@@ -75,7 +75,7 @@ const coverage = timelineCoverage(data, "agentic", []);
 assert.equal(
   coverage.get(broad.id)!.fraction,
   2 / 3,
-  "Coverage uses fractional task weights in the measured edition",
+  "Coverage uses fractional task weights in the measured version",
 );
 assert.equal(coverage.get(broad.id)!.source, "index:old");
 assert.equal(
@@ -91,7 +91,7 @@ assert.equal(
 assert.equal(
   coverage.get(split.id)!.fraction,
   0.1,
-  "Partial results from different editions cannot invent one complete basket",
+  "Partial results from different versions cannot invent one complete basket",
 );
 assert.equal(
   timelineCoverage(data, "intelligence", []).get(broad.id)!.fraction,

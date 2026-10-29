@@ -16,13 +16,13 @@ import timeline from "../../docs/timeline/overview.md";
 import { readRevalidatedPayload } from "../../src/model-atlas/database/runtime-snapshot";
 import { NavigationLink } from "../shared/NavigationLink";
 import {
-  CATALOG_EDITIONS,
+  CATALOG_VERSIONS,
   documentGroup,
   documentHref,
   DOCUMENTS,
   type DocumentSlug,
   documentTitle,
-  fillEditionMarkers,
+  fillVersionMarkers,
   tableOfContents,
 } from "./documents";
 import { DocumentShell } from "./DocumentShell";
@@ -32,7 +32,7 @@ import { ScoreText } from "./ScoreText";
 import styles from "./methodology.module.css";
 
 // The snapshot read sets this page's regeneration interval.
-const EDITION_REVALIDATE_SECONDS = 3600;
+const VERSION_REVALIDATE_SECONDS = 3600;
 
 const DOCUMENT_CONTENT = {
   standards,
@@ -56,7 +56,7 @@ const documentTitles = Object.fromEntries(
 
 export async function DocumentPage({ document }: { document: DocumentSlug }) {
   const { markdown, revision } = DOCUMENT_CONTENT[document];
-  const editions = { ...CATALOG_EDITIONS, ...(await servedEditions()) };
+  const versions = { ...CATALOG_VERSIONS, ...(await servedVersions()) };
   const outline = tableOfContents(markdown);
   const parent = documentGroup(document);
   const sequence = DOCUMENTS.filter((item) => item.slug === parent || item.parent === parent);
@@ -67,7 +67,7 @@ export async function DocumentPage({ document }: { document: DocumentSlug }) {
   return (
     <DocumentShell activeDocument={document} outline={outline} titles={documentTitles}>
       <article className={styles.article} data-document-revision={revision}>
-        <MarkdownDocument markdown={fillEditionMarkers(markdown, editions)} document={document} />
+        <MarkdownDocument markdown={fillVersionMarkers(markdown, versions)} document={document} />
         {previous || next ? (
           <nav className={styles.pageSequence} aria-label="Reading order">
             {previous ? (
@@ -99,15 +99,15 @@ export async function DocumentPage({ document }: { document: DocumentSlug }) {
   );
 }
 
-/** Documentation stays renderable with catalog editions when the served snapshot is unreachable, such as during an offline build. */
-async function servedEditions(): Promise<Readonly<Record<string, string>>> {
+/** Documentation stays renderable with catalog versions when the served snapshot is unreachable, such as during an offline build. */
+async function servedVersions(): Promise<Readonly<Record<string, string>>> {
   try {
     return (
-      (await readRevalidatedPayload(EDITION_REVALIDATE_SECONDS)).metadata.benchmark_editions ?? {}
+      (await readRevalidatedPayload(VERSION_REVALIDATE_SECONDS)).metadata.benchmark_versions ?? {}
     );
   } catch (error) {
     unstable_rethrow(error);
-    console.warn("Documentation editions fell back to catalog versions", error);
+    console.warn("Documentation versions fell back to catalog versions", error);
     return {};
   }
 }

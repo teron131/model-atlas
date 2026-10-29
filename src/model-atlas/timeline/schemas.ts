@@ -14,7 +14,7 @@ export type HistoricalBenchmark = {
   releaseDate?: string | null;
   normalization?: string;
   supersededBy?: string;
-  editions?: string[];
+  versions?: string[];
   componentIds?: string[];
   representedBenchmarks?: number;
   benchmarkNames?: string[];

@@ -1,4 +1,4 @@
-/** Epoch's newest task edition replaces older editions in fresh observations and source caches, while pooling its patch revisions. */
+/** Epoch's newest task version replaces older versions in fresh observations and source caches, while pooling its patch revisions. */
 
 import assert from "node:assert/strict";
 
@@ -61,12 +61,12 @@ assert.equal(
   readBenchmarkObservationRawCache(rawRows.slice(0, 1), binding)?.rows[0]?.metadata
     .benchmark_version,
   "2.0",
-  "A cache holding one earlier edition remains the fallback until a refresh replaces it",
+  "A cache holding one earlier version remains the fallback until a refresh replaces it",
 );
 assert.equal(
   readBenchmarkObservationRawCache(rawRows, binding),
   null,
-  "A cache cannot mix editions",
+  "A cache cannot mix versions",
 );
 assert.equal(
   readBenchmarkObservationRawCache(rawRows.slice(1), binding)?.rows[0]?.metadata.task_version,
@@ -105,7 +105,7 @@ assert.deepEqual(
     chessLoader.eligibility,
   ).map((row) => row.metadata.task_version),
   ["2.1.0"],
-  "A newer task edition replaces the pooled patch revisions of the previous one",
+  "A newer task version replaces the pooled patch revisions of the previous one",
 );
 const chessRaw = rawRows.map((row, index) => ({
   ...row,

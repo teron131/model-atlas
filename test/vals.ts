@@ -1,4 +1,4 @@
-/** Verify external Vals JSON loading, edition-safe index persistence, and failed-fetch cache behavior. */
+/** Verify external Vals JSON loading, version-safe index persistence, and failed-fetch cache behavior. */
 
 import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
@@ -80,7 +80,7 @@ assert.deepEqual(
   processValsIndexView({ ...indexView, metadata: { ...indexView.metadata, tasks: oldTaskLabels } })
     .model_scores,
   [],
-  "The current edition requires its eight-component composition",
+  "The current version requires its eight-component composition",
 );
 
 const db = new DatabaseSync(":memory:");
@@ -143,7 +143,7 @@ try {
   assert.equal(
     migrated?.metadata_json,
     "{}",
-    "Migration cannot invent an edition for unversioned evidence",
+    "Migration cannot invent a version for unversioned evidence",
   );
   assert.equal(valsIndexRuntime.readCache(db), null);
 } finally {

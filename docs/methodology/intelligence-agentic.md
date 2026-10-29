@@ -254,7 +254,7 @@ The constituent benchmarks of the AA and CAIS indexes are known. A directly obse
 
 These deductions reduce represented weight; they do not remove constituent results from the published index value. Overlap accounting therefore limits duplicate influence without reconstructing an index from its remaining benchmarks. The 1.5 multiplier is a policy preference for selected individual benchmarks, not a fitted optimum or a correction for selective reporting.
 
-AA, CAIS, Surge, and Vals use their declared or edition-specific represented breadth. ECI uses the median fixed-index breadth, currently 8 from the counts 7, 8, 8, and 10.
+AA, CAIS, Surge, and Vals use their declared or version-specific represented breadth. ECI uses the median fixed-index breadth, currently 8 from the counts 7, 8, 8, and 10.
 
 Index-only evidence can supply an :score[Agentic] score; :score[Intelligence] requires a frontier benchmark contribution. Without an eligible index, the 1.5 multiplier cancels out and the score is the benchmark mean alone. The multiplier and represented breadth do not inflate displayed evidence support, admission uses its separate [observed-evidence rules](leaderboard-rules.md#dashboard-inclusion), and no further adjustment depends on reasoning effort.
 

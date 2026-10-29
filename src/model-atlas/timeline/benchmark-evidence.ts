@@ -37,7 +37,7 @@ export function prepareTimelineBenchmarkEvidence(
 
 function buildEvidence(data: HistoricalDataset, parameters: TimelineParameters) {
   const definitions = data.benchmarks.filter(
-    (b) => !b.key.startsWith("model_atlas_") && !b.id.includes(":unresolved-edition"),
+    (b) => !b.key.startsWith("model_atlas_") && !b.id.includes(":unresolved-version"),
   );
   const tasks = definitions.filter((b) => b.kind === "task");
   const indexes = definitions.filter((b) => b.kind === "index");
@@ -115,7 +115,7 @@ function buildEvidence(data: HistoricalDataset, parameters: TimelineParameters) 
           ? [{ ...prediction, predictor: predictor! }]
           : [];
       });
-      // Task context takes precedence; correlated index editions are alternatives rather than independent votes.
+      // Task context takes precedence; correlated index versions are alternatives rather than independent votes.
       const best = candidates.sort(
         (a, b) =>
           Number(a.predictor.details.kind === "index") -
@@ -139,7 +139,7 @@ function buildEvidence(data: HistoricalDataset, parameters: TimelineParameters) 
   return { cells, predictors };
 }
 
-/** Each donor observes the target and every requested input; unavailable editions never silently change its basket. */
+/** Each donor observes the target and every requested input; unavailable versions never silently change its basket. */
 function prepareImputation(
   rows: TimelineRow[],
   target: HistoricalBenchmark,

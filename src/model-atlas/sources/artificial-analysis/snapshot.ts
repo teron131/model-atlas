@@ -79,10 +79,13 @@ export async function artificialAnalysisSnapshot(
   previousMissingSince: ReadonlyMap<string, number>,
   nowEpochSeconds: number,
 ): Promise<ArtificialAnalysisSnapshot> {
+  // Rows saved before index constituents were recorded can never score their index, so such a cache is refetched instead of reused.
+  const recordsIndexComponents =
+    cached?.rows.some((row) => Array.isArray(row.intelligenceIndexComponents)) ?? false;
   const snapshot = await snapshotSourceRows({
     source: "artificial_analysis",
     cached,
-    status,
+    status: recordsIndexComponents ? status : { ...status, cache_hit: false },
     options,
     previousMissingSince,
     nowEpochSeconds,
@@ -91,6 +94,8 @@ export async function artificialAnalysisSnapshot(
     rowLabel: (row) => asNonEmptyString(row.name),
     mergeRow: (cachedRow, fetchedRow) =>
       mergeArtificialAnalysisRow(cachedRow, fetchedRow, scoringConfig),
+    // The page publishes one index version for every row, so a new version replaces the cached rows, including those kept for retired models.
+    versions: { versionOf: (row) => row.intelligenceIndexVersion },
   });
   return {
     artificialAnalysisRawRows: snapshot.rows,
@@ -123,10 +128,7 @@ export async function artificialAnalysisBenchmarkResourceSnapshot(
     ),
   };
   const requiredPagesPresent = ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.every((page) =>
-    current?.rows.some(
-      (row) =>
-        row.benchmark_key === page.benchmark_key && row.task_run_count === page.task_run_count,
-    ),
+    current?.rows.some((row) => row.benchmark_key === page.benchmark_key),
   );
   const snapshot = await snapshotSourceRows({
     source: "artificial_analysis_benchmark_resources",
@@ -139,7 +141,7 @@ export async function artificialAnalysisBenchmarkResourceSnapshot(
     rowKey: artificialAnalysisBenchmarkResourceRowKey,
     rowLabel: (row) => `${row.benchmark_key}: ${row.model}`,
     mergeRow: (_cachedRow, fetchedRow) => fetchedRow,
-    editions: { editionOf: (row) => row.benchmark_version, seriesOf: (row) => row.benchmark_key },
+    versions: { versionOf: (row) => row.benchmark_version, seriesOf: (row) => row.benchmark_key },
   });
   const activeRows = snapshot.rows.filter((row) =>
     ACTIVE_BENCHMARK_RESOURCE_PAGE_URLS.has(row.benchmark_key),

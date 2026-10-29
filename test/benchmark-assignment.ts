@@ -79,7 +79,7 @@ const aleBenchRow: AleBenchModelScoreRow = {
   output_tokens_per_task: 2_000,
 };
 const frontierCodeRow: FrontierCodeModelEffortRow = {
-  revision: "v1_1",
+  revision: "v2_0",
   model: "Example Model (high)",
   base_model: "Example Model",
   source_effort: "high",
@@ -94,17 +94,7 @@ const frontierCodeRow: FrontierCodeModelEffortRow = {
     cost_per_task_usd: 0.75,
     tokens_per_task: 4_500,
     tool_calls_per_task: 18,
-    steps_per_task: 12,
     output_token_equivalent_per_task: 2_000,
-  },
-  extended: {
-    pass_rate: 0.4,
-    score: 0.35,
-    cost_per_task_usd: 0.6,
-    tokens_per_task: 3_500,
-    tool_calls_per_task: 14,
-    steps_per_task: 10,
-    output_token_equivalent_per_task: 1_500,
   },
   score: 0.535,
   cost_per_task_usd: 0.75,

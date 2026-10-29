@@ -20,7 +20,7 @@ import {
   getSurgeIntelligenceIndexStats,
   getSurgeLeaderboardStats,
   surgeCacheMatches,
-  withSurgeEdition,
+  withSurgeVersion,
 } from "../surge/results";
 import {
   getTerminalBenchScienceStats,
@@ -113,17 +113,17 @@ export function benchmarkObservationSource(
     case "perception_bench":
       return { fetchRows: () => getPerceptionBenchStats(loader.sourceUrl) };
     case "surge": {
-      const { edition } = loader;
+      const { version } = loader;
       const fetchRows =
         loader.view === "index"
           ? () => getSurgeIntelligenceIndexStats(binding.benchmark, loader.sourceUrl)
           : () => getSurgeLeaderboardStats(binding.benchmark, loader.sourceUrl, loader.scoreKind);
       return {
-        ...(edition == null
+        ...(version == null
           ? { fetchRows }
           : {
-              fetchRows: async () => withSurgeEdition(await fetchRows(), edition),
-              acceptsCache: (rows) => surgeCacheMatches(rows, edition),
+              fetchRows: async () => withSurgeVersion(await fetchRows(), version),
+              acceptsCache: (rows) => surgeCacheMatches(rows, version),
             }),
         // Surge revises published results under the same model-effort row identity.
         mergeRow: (_cached, fetched) => fetched,

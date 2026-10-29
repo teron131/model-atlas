@@ -59,7 +59,9 @@ for (const keys of [
 assert.equal("itbench_sre" in STAGE_CONFIG.scoring.benchmarkPortfolio, false);
 assert.equal("scicode" in STAGE_CONFIG.scoring.benchmarkPortfolio, false);
 assert.equal("scicode" in BENCHMARK_CATALOG, false);
-assert.equal(ARTIFICIAL_ANALYSIS_INDEX_COMPONENT_BENCHMARK_KEYS.has("scicode"), true);
+for (const key of ARTIFICIAL_ANALYSIS_INDEX_COMPONENT_BENCHMARK_KEYS) {
+  assert.ok(key in BENCHMARK_CATALOG, `${key} must name a catalog benchmark to deduct overlap`);
+}
 const selectedIndexKeys = new Set<string>(INDEX_BENCHMARK_KEYS);
 for (const dimension of ["intelligence", "agentic"] as const) {
   for (const key of STAGE_CONFIG.scoring[`${dimension}BenchmarkKeys`]) {
@@ -81,8 +83,6 @@ for (const dimension of ["intelligence", "agentic"] as const) {
 
 assert.equal("itbench_sre" in BENCHMARK_CATALOG, false);
 
-assert.equal(BENCHMARK_CATALOG.aa_intelligence_index.version, "4.3.2");
-assert.equal(STAGE_CONFIG.scoring.benchmarkPortfolio.aa_intelligence_index?.version, "4.3.2");
 assert.equal(BENCHMARK_CATALOG.briefcase.version, "1.1");
 assert.equal(BENCHMARK_CATALOG.gdpval_normalized.version, "2.1");
 assert.equal(BENCHMARK_CATALOG.terminal_bench_science.version, "0.1.0");
@@ -236,7 +236,7 @@ function admitsWeight(
     minimumObservedIndexes: 0,
   });
 }
-assert.equal(admitsWeight({ aa_intelligence_index: 0 }, 10), true);
+assert.equal(admitsWeight({ aa_intelligence_index: 0 }, 9), true);
 assert.equal(admitsWeight({ epoch_capabilities_index: 100 }, 8), true);
 assert.equal(admitsWeight({ epoch_capabilities_index: 100 }, 8.000001), false);
 for (const count of [4, 7, 40]) {
@@ -254,16 +254,16 @@ for (const count of [4, 7, 40]) {
   );
 }
 assert.equal(
-  admitsWeight({ aa_intelligence_index: 50, hle: 0.5 }, 10.5),
+  admitsWeight({ aa_intelligence_index: 50, hle: 0.5 }, 9.5),
   false,
   "an observed component cannot increase the breadth of its own index",
 );
 assert.equal(
-  admitsWeight({ aa_intelligence_index: 50, cais_capabilities_index: 50, hle: 0.5 }, 16),
+  admitsWeight({ aa_intelligence_index: 50, cais_capabilities_index: 50, hle: 0.5 }, 15),
   true,
 );
 assert.equal(
-  admitsWeight({ aa_intelligence_index: 50, cais_capabilities_index: 50, hle: 0.5 }, 16.5),
+  admitsWeight({ aa_intelligence_index: 50, cais_capabilities_index: 50, hle: 0.5 }, 15.5),
   false,
   "HLE counts once across both indexes and standalone evidence",
 );

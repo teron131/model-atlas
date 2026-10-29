@@ -62,15 +62,15 @@ export function epochBenchmarkObservationRows(
     const scoreRow = epochRunScoreRow(row, benchmarkKey);
     return scoreRow == null ? [] : [scoreRow];
   });
-  if (eligibility.latestTaskEdition !== true) return scoreRows;
-  const edition = newestTaskEdition(scoreRows);
-  if (edition == null) return [];
+  if (eligibility.latestTaskVersion !== true) return scoreRows;
+  const version = newestTaskVersion(scoreRows);
+  if (version == null) return [];
   return scoreRows
-    .filter((row) => taskEdition(row.metadata.task_version)?.label === edition)
-    .map((row) => ({ ...row, metadata: { ...row.metadata, benchmark_version: edition } }));
+    .filter((row) => majorMinorVersion(row.metadata.task_version)?.label === version)
+    .map((row) => ({ ...row, metadata: { ...row.metadata, benchmark_version: version } }));
 }
 
-/** Reject cached runs from a different task, run prefix, or excluded model cohort, and caches that mix task editions. */
+/** Reject cached runs from a different task, run prefix, or excluded model cohort, and caches that mix task versions. */
 export function epochBenchmarkCacheMatches(
   rows: readonly BenchmarkObservationRow[],
   task: string,
@@ -78,7 +78,7 @@ export function epochBenchmarkCacheMatches(
 ): boolean {
   const excludedModelIds = new Set(eligibility.excludedModelIds ?? []);
   return (
-    (eligibility.latestTaskEdition !== true || holdsOneTaskEdition(rows)) &&
+    (eligibility.latestTaskVersion !== true || holdsOneTaskVersion(rows)) &&
     rows.every(
       (row) =>
         row.metadata.task === task &&
@@ -116,8 +116,10 @@ async function requestEpochBenchmarkRows(): Promise<EpochBenchmarkRowsPayload> {
   }
 }
 
-/** A task version's major.minor edition; patch revisions within it stay comparable. */
-function taskEdition(version: unknown): { label: string; major: number; minor: number } | null {
+/** The major.minor version of a task version; patch revisions within it stay comparable. */
+function majorMinorVersion(
+  version: unknown,
+): { label: string; major: number; minor: number } | null {
   const match = typeof version === "string" ? /^(\d+)\.(\d+)(?:\.\d+)?$/.exec(version) : null;
   if (match == null) return null;
   const major = Number(match[1]);
@@ -125,28 +127,28 @@ function taskEdition(version: unknown): { label: string; major: number; minor: n
   return { label: `${major}.${minor}`, major, minor };
 }
 
-function newestTaskEdition(rows: readonly BenchmarkObservationRow[]): string | null {
-  let newest: ReturnType<typeof taskEdition> = null;
+function newestTaskVersion(rows: readonly BenchmarkObservationRow[]): string | null {
+  let newest: ReturnType<typeof majorMinorVersion> = null;
   for (const row of rows) {
-    const edition = taskEdition(row.metadata.task_version);
+    const version = majorMinorVersion(row.metadata.task_version);
     if (
-      edition != null &&
+      version != null &&
       (newest == null ||
-        edition.major > newest.major ||
-        (edition.major === newest.major && edition.minor > newest.minor))
+        version.major > newest.major ||
+        (version.major === newest.major && version.minor > newest.minor))
     )
-      newest = edition;
+      newest = version;
   }
   return newest?.label ?? null;
 }
 
-/** Every row carries the same edition label, and that label matches the row's own task version. */
-function holdsOneTaskEdition(rows: readonly BenchmarkObservationRow[]): boolean {
-  const [edition, ...others] = new Set(rows.map((row) => row.metadata.benchmark_version));
+/** Every row carries the same version label, and that label matches the row's own task version. */
+function holdsOneTaskVersion(rows: readonly BenchmarkObservationRow[]): boolean {
+  const [version, ...others] = new Set(rows.map((row) => row.metadata.benchmark_version));
   return (
     others.length === 0 &&
     rows.every(
-      (row) => edition != null && taskEdition(row.metadata.task_version)?.label === edition,
+      (row) => version != null && majorMinorVersion(row.metadata.task_version)?.label === version,
     )
   );
 }

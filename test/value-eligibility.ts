@@ -8,6 +8,7 @@ import {
   frontierBenchmarkHoverRows,
 } from "../app/dashboard/graphs/pareto/presentation";
 import { publicJsonPayload } from "../app/leaderboard/public-json";
+import { INDEX_POLICIES } from "../src/model-atlas/benchmarks/index-policy";
 import { STAGE_CONFIG } from "../src/model-atlas/config/stage";
 import {
   applyResourceEvidenceRequirements,
@@ -207,6 +208,7 @@ assert.deepEqual(
   "A retained source-specific task must overlap an AA index like the direct task",
 );
 
+const aaBreadth = INDEX_POLICIES.aa_intelligence_index.representedBenchmarks;
 const aaWithTasks = {
   ...aaOnly,
   benchmarks: { ...model.benchmarks, aa_intelligence_index: 50 },
@@ -214,7 +216,7 @@ const aaWithTasks = {
 };
 assert.deepEqual(
   observedResourceEvidenceCounts(aaWithTasks, portfolio),
-  { cost: 11, time: 11 },
+  { cost: aaBreadth + 1, time: aaBreadth + 1 },
   "Three overlapping AA components count once; the separate ARC task adds one",
 );
 assert.deepEqual(
@@ -222,6 +224,6 @@ assert.deepEqual(
     { ...aaWithTasks, task_metrics: { ...aaWithTasks.task_metrics, briefcase: { cost: 1 } } },
     portfolio,
   ),
-  { cost: 11, time: 11 },
+  { cost: aaBreadth + 1, time: aaBreadth + 1 },
   "Missing component runtime leaves that runtime covered by AA rather than subtracting it",
 );
