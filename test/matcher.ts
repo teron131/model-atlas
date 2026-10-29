@@ -1242,7 +1242,6 @@ function modelStatsSourceData(
     ebrBench: { rows: [], rowsByModelName: new Map() },
     emb: { rows: [], rowsByModelName: new Map() },
     enigmaeval: { rows: [], rowsByModelName: new Map() },
-    enterpriseBenchCoreCraft: { rows: [], rowsByModelName: new Map() },
     epochCapabilitiesIndex: { rows: [], rowsByModelName: new Map() },
     erqa: { rows: [], rowsByModelName: new Map() },
     financeAgentV2: { rows: [], rowsByModelName: new Map() },

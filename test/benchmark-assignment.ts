@@ -276,7 +276,6 @@ const lookups = {
   ebrBench: { rowsByModelName: new Map() },
   emb: { rowsByModelName: emptyLookup() },
   enigmaeval: { rowsByModelName: emptyLookup() },
-  enterpriseBenchCoreCraft: { rowsByModelName: new Map() },
   epochCapabilitiesIndex: { rowsByModelName: new Map() },
   erqa: { rowsByModelName: emptyLookup() },
   financeAgentV2: { rowsByModelName: emptyLookup() },
