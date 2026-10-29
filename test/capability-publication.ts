@@ -131,7 +131,7 @@ const seed: CapabilityState = {
     fixture: { benchmarkIds: ["external"], weights: { external: { intelligence: 1, agentic: 1 } } },
   },
 };
-const initial = advanceCapabilityState(seed, models, capturedAt);
+const initial = advanceCapabilityState(seed, models, capturedAt, {});
 const relativeRows = models.map((m) => ({
   id: m.id!.replaceAll(" ", "-"),
   name: m.name,
@@ -146,13 +146,10 @@ const versioning = {
   observedAt: capturedAt,
 };
 const relativeSelection = prepareModelSelection(relativeRows, STAGE_CONFIG.scoring, versioning);
-const indexedSelection = prepareModelSelection(
-  relativeRows,
-  STAGE_CONFIG.scoring,
-  versioning,
-  [],
-  initial,
-);
+const indexedSelection = prepareModelSelection(relativeRows, STAGE_CONFIG.scoring, versioning, [], {
+  state: initial,
+  benchmarkVersions: {},
+});
 assert.deepEqual(
   indexedSelection.candidates.map((m) => m.component_scores),
   relativeSelection.candidates.map((m) => m.component_scores),
@@ -224,7 +221,7 @@ assert.equal(
   150,
 );
 
-const next = advanceCapabilityState(stored, models, "2026-09-15T02:00:00.000Z");
+const next = advanceCapabilityState(stored, models, "2026-09-15T02:00:00.000Z", {});
 assert.equal(
   next.dataset.scale,
   stored.dataset.scale,
@@ -244,6 +241,7 @@ const moved = advanceCapabilityState(
   stored,
   [...models.slice(1), movedRoute],
   "2026-09-15T02:00:00.000Z",
+  {},
 );
 assert.deepEqual(
   moved.positions[capabilityModelId(movedRoute)]!.coordinates,
@@ -264,7 +262,7 @@ const future = {
   intelligence: { intelligence_index: 90 },
   benchmarks: null,
 };
-const extended = advanceCapabilityState(next, [...models, future], "2026-09-15T03:00:00.000Z");
+const extended = advanceCapabilityState(next, [...models, future], "2026-09-15T03:00:00.000Z", {});
 assert.ok(extended.positions[capabilityModelId(future)]?.coordinates.intelligence != null);
 assert.equal(extended.positions[capabilityModelId(future)]?.coordinates.agentic, undefined);
 assert.ok(
@@ -280,6 +278,7 @@ const corrected = advanceCapabilityState(
   extended,
   [...models, { ...future, intelligence: { intelligence_index: 95 } }],
   "2026-09-15T04:00:00.000Z",
+  {},
 );
 assert.deepEqual(corrected.positions, extended.positions);
 
@@ -287,6 +286,7 @@ const retired = advanceCapabilityState(
   corrected,
   models.map((m) => ({ ...m, benchmarks: null })),
   "2026-09-15T05:00:00.000Z",
+  {},
 );
 const task = retired.dataset.benchmarks.find((b) => b.key === "atlas_benchmark_mindcube")!;
 assert.ok(task);
@@ -322,6 +322,8 @@ const revisedKeys = [
   "vals_index",
 ] as const;
 const retiredKeys = ["proofbench", "frontiermath_erdos", "mls_bench"];
+// A source-published version is part of the identity, so a newly observed one retires the stored identity.
+const revisedVersions: Record<string, string> = { vals_index: "2.3" };
 const superseded = [...revisedKeys, ...retiredKeys].map((key) => ({
   ...task,
   id: `atlas:benchmark:${key}:previous-contract`,
@@ -390,6 +392,7 @@ const currentVersions = advanceCapabilityState(
     },
   })),
   "2026-10-12T08:00:00.000Z",
+  revisedVersions,
 );
 assert.deepEqual(currentVersions.positions, initial.positions);
 assert.deepEqual(currentVersions.anchors, initial.anchors);
@@ -405,7 +408,7 @@ for (const key of revisedKeys)
     liveDataset.benchmarks
       .filter((benchmark) => benchmark.key === `atlas_benchmark_${key}`)
       .map((b) => b.id),
-    [benchmarkVersionId(key)],
+    [benchmarkVersionId(key, revisedVersions[key])],
   );
 for (const dataset of [liveDataset, liveDataset.scale!]) {
   assert.ok(dataset.benchmarks.every((benchmark) => !oldIds.has(benchmark.id)));

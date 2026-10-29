@@ -56,7 +56,7 @@ export function prepareModelSelection(
     observedDate: new Date().toISOString().slice(0, 10),
   },
   previousModels: readonly ModelAtlasModel[] = [],
-  capabilityState?: CapabilityState,
+  capability?: { state: CapabilityState; benchmarkVersions: Readonly<Record<string, string>> },
 ): ModelSelection {
   const openRouterData = prepareOpenRouterModelData(rows, scoringConfig, null);
   const modelRows = dropStaleReplacementBenchmarks(rows, previousModels, scoringConfig);
@@ -119,18 +119,18 @@ export function prepareModelSelection(
     scoringConfig,
     rescored.map(({ intelligenceParts }) => intelligenceParts),
   );
-  if (capabilityState) {
-    capabilityState = advanceCapabilityState(
-      capabilityState,
-      qualityScoredCandidates,
-      versioning.observedAt ?? new Date().toISOString(),
-    );
-  }
   return {
     modelRows,
     candidates: qualityScoredCandidates,
     scoringPreparation,
-    capabilityState,
+    capabilityState:
+      capability &&
+      advanceCapabilityState(
+        capability.state,
+        qualityScoredCandidates,
+        versioning.observedAt ?? new Date().toISOString(),
+        capability.benchmarkVersions,
+      ),
   };
 }
 

@@ -1,4 +1,4 @@
-/** Changed source measurement contracts receive distinct timeline versions without renaming unrelated historical benchmarks. */
+/** Changed measurement contracts and source-published versions receive distinct timeline versions, while resource bookkeeping and unrelated benchmarks keep theirs. */
 
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
@@ -34,7 +34,21 @@ for (const [key, definition] of Object.entries(BENCHMARK_CATALOG)) {
   const { revision: _revision, ...unversionedSource } = definition.source;
   const previousContract = {
     key,
-    source: unversionedSource,
+    source: {
+      ...unversionedSource,
+      inputs: unversionedSource.inputs.map((input) => ({
+        ...input,
+        adapters: input.adapters?.map((adapter) => {
+          if (adapter.kind !== "artificial_analysis_resource_page") return adapter;
+          const {
+            methodologyName: _methodologyName,
+            resourceKey: _resourceKey,
+            ...scored
+          } = adapter;
+          return scored;
+        }),
+      })),
+    },
     processing: definition.processing,
     location: definition.persistence.location,
     format: definition.presentation.column.format,
@@ -48,6 +62,10 @@ for (const [key, definition] of Object.entries(BENCHMARK_CATALOG)) {
     assert.equal(benchmarkVersionId(key), previousId, `${key} retains its existing version`);
   }
 }
+
+assert.equal(benchmarkVersionId("vals_index", undefined), benchmarkVersionId("vals_index"));
+assert.notEqual(benchmarkVersionId("vals_index", "2.2"), benchmarkVersionId("vals_index"));
+assert.notEqual(benchmarkVersionId("vals_index", "2.3"), benchmarkVersionId("vals_index", "2.2"));
 
 assert.equal(BENCHMARK_CATALOG.frontiermath_tier_4.source.revision, "2.1.0");
 assert.equal(BENCHMARK_CATALOG.chess_puzzles.source.revision, "2");

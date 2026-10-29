@@ -31,6 +31,16 @@ export type BenchmarkSourceRow = {
 
 export type BenchmarkRowsByKey = Readonly<Record<string, readonly BenchmarkSourceRow[]>>;
 
+/** Publish a benchmark's version only when all of its current rows report the same one. */
+export function observedBenchmarkVersions(rowsByKey: BenchmarkRowsByKey): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(rowsByKey).flatMap(([key, rows]) => {
+      const [version, ...others] = new Set(rows.flatMap((row) => row.version ?? []));
+      return version != null && others.length === 0 ? [[key, version]] : [];
+    }),
+  );
+}
+
 export type BenchmarkRowDraft = {
   key: string;
   id?: string | null;

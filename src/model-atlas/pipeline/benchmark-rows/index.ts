@@ -11,4 +11,5 @@ export {
   type BenchmarkRowsByKey,
   type BenchmarkSourceRow,
   benchmarkRowsFromSourceData,
+  observedBenchmarkVersions,
 } from "./source-rows";
