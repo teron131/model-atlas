@@ -67,6 +67,10 @@
 .controls .effortRow > :last-child {
   padding-left: 16px;
 }
+/* Default excludes every effort below it, so a stronger rule sets it apart from the checklist. */
+.controls .defaultRow {
+  border-bottom-color: var(--line-strong);
+}
 .limit input:focus-visible {
   outline: none;
   box-shadow: none;

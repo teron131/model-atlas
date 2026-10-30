@@ -705,29 +705,18 @@ export function benchmarkMeterValue(
   return row.benchmarkDisplayScores[column.key] ?? null;
 }
 
-/** A variant row's effort as the leaderboard's effort filter names it: a model with one unlabelled setting is `default`. */
-export function rowEffort(model: ModelAtlasModel): string {
-  return model.reasoning_effort ?? "default";
-}
-
 export type EffortChoice = { key: string; count: number };
 
-/** The efforts among reasoning-variant rows and how many rows each holds, `default` first and the rest in effort order. */
+/** The efforts among reasoning-variant rows and how many rows each holds, in effort order. */
 export function effortChoices(rows: readonly TableRow[]): EffortChoice[] {
   const counts = new Map<string, number>();
-  for (const row of rows) {
-    const effort = rowEffort(row.model);
-    counts.set(effort, (counts.get(effort) ?? 0) + 1);
+  for (const { model } of rows) {
+    if (model.reasoning_effort == null) continue;
+    counts.set(model.reasoning_effort, (counts.get(model.reasoning_effort) ?? 0) + 1);
   }
   return [...counts]
     .map(([key, count]) => ({ key, count }))
-    .sort((left, right) =>
-      left.key === "default"
-        ? -1
-        : right.key === "default"
-          ? 1
-          : reasoningEffortRank(left.key) - reasoningEffortRank(right.key),
-    );
+    .sort((left, right) => reasoningEffortRank(left.key) - reasoningEffortRank(right.key));
 }
 
 export function contextWindowValue(model: ModelAtlasModel) {
