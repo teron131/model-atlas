@@ -17,8 +17,8 @@ import {
 } from "./catalog";
 
 const CHAIN_RELATIONS = ["=", "≥", ">", "≫"] as const;
-const CANDIDATE_POOL_SIZE = 10;
-const CANDIDATE_RELEASE_MONTHS = 2;
+const CANDIDATE_POOL_SIZE = 15;
+const CANDIDATE_RELEASE_DAYS = 60;
 const PULL = 0.4;
 const MAX_MOVE_POINTS = 5;
 const RANKED_AT_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
@@ -43,7 +43,7 @@ export function communityCandidates(
   payload: ModelAtlasPayload,
   asOf: string,
 ): CommunityCandidate[] {
-  const releaseCutoff = shiftMonths(asOf, -CANDIDATE_RELEASE_MONTHS);
+  const releaseCutoff = shiftDays(asOf, -CANDIDATE_RELEASE_DAYS);
   return [...highestVariants(payload).values()]
     .sort((left, right) => right.scores.intelligence_score - left.scores.intelligence_score)
     .slice(0, CANDIDATE_POOL_SIZE)
@@ -288,7 +288,7 @@ function indexPlaces({ groups, below }: IndexOrder): Map<string, CommunityIndexP
   return places;
 }
 
-/** Isotonic regression over the partial order by Brunk's minimum lower sets, exact by subset enumeration for at most ten candidates. */
+/** Isotonic regression over the partial order by Brunk's minimum lower sets, exact by subset enumeration for at most fifteen candidates. */
 function indexTargets(order: IndexOrder, scores: ReadonlyMap<string, number>): Map<string, number> {
   const nodes = order.groups.flatMap((members, index) => {
     const scored = members.filter((id) => scores.has(id));
@@ -351,7 +351,7 @@ function indexTooltip(
     body: `${definition.description} ${definition.label} supplies ${definition.weight * 100}% of the shared Intelligence correction.`,
     rows: [
       ["Source", "Reddit and YouTube users' experiences"],
-      ["Candidates", "Intelligence top 10 released within two months"],
+      ["Candidates", "Intelligence top 15 released within 60 days"],
       ["Intelligence", "40% toward the blended targets, capped at 5 points per model"],
       ["Ranked", `${rankedAt.slice(0, 16).replace("T", " ")} UTC`],
     ],
@@ -359,8 +359,8 @@ function indexTooltip(
   };
 }
 
-function shiftMonths(isoDate: string, months: number) {
+function shiftDays(isoDate: string, days: number) {
   const date = new Date(`${isoDate}T00:00:00Z`);
-  date.setUTCMonth(date.getUTCMonth() + months);
+  date.setUTCDate(date.getUTCDate() + days);
   return date.toISOString().slice(0, 10);
 }

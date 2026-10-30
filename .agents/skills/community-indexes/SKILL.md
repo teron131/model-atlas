@@ -32,7 +32,7 @@ For a rehearsal, stop after writing the local report and ranking; do not submit 
 `src/model-atlas/database/community-rankings.ts` owns the append-only SQLite records; `src/model-atlas/database/snapshots/community-rankings.ts` owns publication through the shared checkpoint.
 `/api/community` forwards submissions to the Cloud Run writer started by `scripts/community-server.ts`; `scripts/community-submit.ts` is the automation entrypoint.
 
-The [research prompt](research.md) owns discovery, the two-month source window, current-candidate shorthand, source preferences, evidence standards, and judgment.
+The [research prompt](research.md) owns discovery, the 60-day source window, current-candidate shorthand, source preferences, evidence standards, and judgment.
 TMB follows accumulated impressions after substantive use as a main working partner; Slop follows judgments of the delivered visual result.
 This file owns the automation workflow and output contract.
 Research produces qualitative comparisons, never numerical ratings, distances, confidence weights, places, or adjusted scores.
@@ -40,8 +40,10 @@ Research produces qualitative comparisons, never numerical ratings, distances, c
 ## Candidates
 
 `GET /api/community/candidates` returns `{ "as_of": "YYYY-MM-DD", "models": [{ "model_id", "name", "release_date" }] }`.
-Candidates are the unadjusted Intelligence top ten of the current benchmark snapshot, then only releases after the date two calendar months before `as_of` (today, UTC), with no backfill.
-A submission is checked against the candidates current when it arrives; if a benchmark refresh changed them, the error names the model that no longer qualifies.
+Candidates are the unadjusted Intelligence top 15 of the current benchmark snapshot, then only releases from the 60 days ending at `as_of` (today, UTC), with no backfill.
+A submission is checked against the candidates current when it arrives; if a benchmark refresh or the moving window changed them, the error names the model that no longer qualifies.
+Fetch the candidates again just before submitting.
+Remove only the relationships of a placed model that no longer qualifies and record them in the run log as withdrawn findings; account for a newly qualifying model as omitted because it entered after research.
 Models are sorted by id, with no scores or earlier index order supplied to the researcher.
 
 ## Ranking contract
@@ -89,7 +91,7 @@ The backend solves each graph independently from the same original Intelligence 
 Only `=` requires equal target scores; `≥`, `>`, and `≫` all constrain the lower model's target not to exceed the upper model's target.
 Their qualitative differences remain visible in the inequalities rather than becoming numerical distances.
 Unknown comparisons add no constraint; they do not mean equality, last place, or exemption from other supported relationships.
-The targets are blended 75% TMB and 25% Slop, then one shared 40% pull and five-point movement cap apply.
+The targets are blended equally, 50% TMB and 50% Slop, then one shared 40% pull and five-point movement cap apply.
 A model absent from one graph uses its original score as that graph's target; missing influence is not redistributed.
 The agent never calculates the correction or applies one index after the other.
 The backend never invents a complete order: the table shows the place a model's relationships fix, or the range they leave open, such as `#3–4`.
@@ -100,6 +102,7 @@ The backend never invents a complete order: the table shows the place a model's 
 The receipt contains `ranked_at` and `active`, which is false when a newer ranking is already active.
 - `400 { errors: [...] }` lists validation problems; `409` means different content already holds that `ranked_at`; `401` bad token; `413` submission exceeds 4 MiB; `503` submissions not configured; `500` writer failure; `502` publication could not be confirmed through the site.
 Treat errors as unverified publication; after a storage failure, retry the identical file and verify its read-back rather than assuming nothing was written.
+After three identical attempts fail the same way, stop and report the run as unpublished with the saved file, which stays valid for a later retry while every placed model still qualifies.
 - `GET /api/community/rankings/{ranked_at}` returns `{ ranking, active }`; `GET /api/community/rankings/current` returns the active ranking.
 
 Accepted rankings are rows in `community_rankings` in the same authoritative SQLite checkpoint as benchmark evidence.

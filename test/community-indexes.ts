@@ -60,12 +60,12 @@ function chain(entries: [relation: string | null, id: string][]) {
   })) as CommunityRanking["indexes"]["tmb"][number];
 }
 
-// Top ten by Intelligence, then releases after 2026-08-19, sorted by id.
+// Top fifteen by Intelligence, then releases in the 60 days ending 2026-10-19 (after 2026-08-20), sorted by id.
 const field = [
   model("k", 99, "2026-10-01"),
   model("j", 98, "2026-06-01"),
-  ...["a", "b", "c", "d", "e", "f", "g", "h"].map((id, index) =>
-    model(id, 90 - index, index === 3 ? "2026-08-19" : "2026-09-15"),
+  ...["a", "b", "c", "d", "e", "f", "g", "h", "i", "l", "m", "n", "o"].map((id, index) =>
+    model(id, 90 - index, index === 3 ? "2026-08-20" : "2026-09-15"),
   ),
   model("late", 50, "2026-10-10"),
 ];
@@ -73,7 +73,7 @@ assert.deepEqual(
   communityCandidates(minimalModelAtlasPayload({ fetchedAt: 1, models: field }), "2026-10-19").map(
     (entry) => entry.model_id,
   ),
-  ["a", "b", "c", "e", "f", "g", "h", "k"],
+  ["a", "b", "c", "e", "f", "g", "h", "i", "k", "l", "m", "n", "o"],
 );
 
 const candidates = ["a", "b", "c"].map((id) => ({
@@ -242,12 +242,12 @@ const adjusted = applyCommunityIndexes(minimalModelAtlasPayload({ fetchedAt: 1, 
   },
 });
 const pooled = (70 + 66 + 72) / 3;
-close(intelligence(adjusted.models, "a"), 81.5);
-close(intelligence(adjusted.models, "b"), 88.5);
-close(intelligence(adjusted.models, "b", "low"), 68.5);
-close(intelligence(adjusted.models, "c"), 70 + 0.3 * (pooled - 70));
-close(intelligence(adjusted.models, "d"), 66 + 0.3 * (pooled - 66));
-close(intelligence(adjusted.models, "e"), 72 + 0.3 * (pooled - 72));
+close(intelligence(adjusted.models, "a"), 81);
+close(intelligence(adjusted.models, "b"), 89);
+close(intelligence(adjusted.models, "b", "low"), 69);
+close(intelligence(adjusted.models, "c"), 70 + 0.2 * (pooled - 70));
+close(intelligence(adjusted.models, "d"), 66 + 0.2 * (pooled - 66));
+close(intelligence(adjusted.models, "e"), 72 + 0.2 * (pooled - 72));
 assert.equal(intelligence(adjusted.models, "unranked"), 60);
 assert.deepEqual(
   adjusted.models
@@ -272,11 +272,11 @@ assert.deepEqual(adjusted.metadata.scoring.column_tooltips.tmbIndex?.sections?.[
   },
 ]);
 
-// Missing Slop contributes zero; TMB's 7.5-point movement is capped at five.
+// Missing Slop contributes zero; TMB's 6-point movement is capped at five.
 const capped = applyCommunityIndexes(
   minimalModelAtlasPayload({
     fetchedAt: 1,
-    models: [model("a", 40, "2026-10-01"), model("b", 90, "2026-10-01")],
+    models: [model("a", 30, "2026-10-01"), model("b", 90, "2026-10-01")],
   }),
   {
     ranked_at: "2026-10-19T05:00:00Z",
@@ -291,7 +291,7 @@ const capped = applyCommunityIndexes(
     },
   },
 ).models;
-close(intelligence(capped, "a"), 45);
+close(intelligence(capped, "a"), 35);
 close(intelligence(capped, "b"), 85);
 assert.equal(
   applyCommunityIndexes(minimalModelAtlasPayload({ fetchedAt: 1, models }), null).models,
@@ -321,10 +321,10 @@ const partial = applyCommunityIndexes(partialPayload, {
   ranked_at: "2026-10-19T05:00:00Z",
   indexes: { tmb: [abc, bd], slop: [] },
 });
-close(intelligence(partial.models, "a"), 81.5);
+close(intelligence(partial.models, "a"), 81);
 close(intelligence(partial.models, "b"), 85);
 close(intelligence(partial.models, "c"), 70);
-close(intelligence(partial.models, "d"), 88.5);
+close(intelligence(partial.models, "d"), 89);
 assert.deepEqual(
   partial.models.map((entry) => communityPlaceLabel(entry.community_indexes!.tmb!)),
   ["#1", "#2", "#3–4", "#3–4"],
@@ -422,9 +422,9 @@ assert.deepEqual(parseCommunityRanking(dualRanking).errors, []);
 const dual = applyCommunityIndexes(dualPayload, dualRanking);
 // TMB targets 90/90/90, Slop targets 92/92/86, both calculated from 94/90/86.
 for (const [id, expected] of [
-  ["a", 92.6],
-  ["b", 90.2],
-  ["c", 87.2],
+  ["a", 92.8],
+  ["b", 90.4],
+  ["c", 86.8],
 ] as const) {
   close(intelligence(dual.models, id), expected);
 }
@@ -465,8 +465,8 @@ const slopOnly = applyCommunityIndexes(dualPayload, {
   ...dualRanking,
   indexes: { ...dualRanking.indexes, tmb: [] },
 });
-close(intelligence(slopOnly.models, "a"), 93.8);
-close(intelligence(slopOnly.models, "b"), 90.2);
+close(intelligence(slopOnly.models, "a"), 93.6);
+close(intelligence(slopOnly.models, "b"), 90.4);
 assert.equal(slopOnly.models[0]!.community_indexes?.tmb, undefined);
 assert.equal(slopOnly.metadata.scoring.column_tooltips.tmbIndex, undefined);
 assert.deepEqual(
@@ -496,9 +496,9 @@ const opposed = applyCommunityIndexes(dualPayload, {
     ],
   },
 });
-close(intelligence(opposed.models, "a"), 93.8);
-close(intelligence(opposed.models, "b"), 89.6);
-close(intelligence(opposed.models, "c"), 86.6);
+close(intelligence(opposed.models, "a"), 93.6);
+close(intelligence(opposed.models, "b"), 90);
+close(intelligence(opposed.models, "c"), 86.4);
 close(total(opposed.models), total(dualPayload.models));
 
 // A larger field checks the shared cap and conservation even when graphs disagree.
@@ -705,7 +705,7 @@ try {
     assert.equal(await readCommunityRanking("unknown"), null);
     assert.equal(await readCommunityRanking("2026-10-18T00:00:00Z"), null);
     const display = await readDisplayPayload();
-    close(intelligence(display.models, "a"), 92.6);
+    close(intelligence(display.models, "a"), 92.8);
     assert.equal(display.models[0]!.community_indexes?.slop?.best, 2);
     assert.equal(display.metadata.scoring.column_tooltips.slopIndex?.title, "Slop Index");
     assert.equal(
