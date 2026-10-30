@@ -1,7 +1,7 @@
 /** Tooltip layout for dashboard score explanations and formula breakdowns. */
 
 import type { FocusEvent, MouseEvent } from "react";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import type {
   ModelAtlasColumnTooltip,
@@ -10,9 +10,12 @@ import type {
   ModelAtlasColumnTooltipSectionItem,
 } from "../../../src/model-atlas/config/tooltips";
 import { clamp } from "../../../src/model-atlas/math-utils";
+import { InequalityGraph, layoutInequalityGraph } from "./InequalityGraph";
 
 const tooltipHorizontalPadding = 18;
 const tooltipMaxWidth = 360;
+// The card's 13px side padding and 1px border on each side.
+const tooltipInset = 28;
 const tooltipOffsetTop = 12;
 
 export type TooltipState = {
@@ -47,11 +50,18 @@ export function ColumnTooltip({
   const [position, setPosition] = useState({ left, top });
   const hasRows = (content.rows?.length ?? 0) > 0;
   const hasSections = (content.sections?.length ?? 0) > 0;
+  const graphLayout = useMemo(
+    () => (content.graph == null ? null : layoutInequalityGraph(content.graph)),
+    [content.graph],
+  );
   const availableWidth =
     typeof window === "undefined"
       ? tooltipMaxWidth
       : window.innerWidth - tooltipHorizontalPadding * 2;
-  const tooltipWidth = Math.min(tooltipMaxWidth, availableWidth);
+  const tooltipWidth = Math.min(
+    Math.max(tooltipMaxWidth, (graphLayout?.width ?? 0) + tooltipInset),
+    availableWidth,
+  );
 
   useLayoutEffect(() => {
     const rect = tooltipRef.current?.getBoundingClientRect();
@@ -70,7 +80,7 @@ export function ColumnTooltip({
   return (
     <div
       aria-label={role === "dialog" ? content.title : undefined}
-      className={`column-tooltip visible${phase === "leaving" ? " leaving" : ""}`}
+      className={`column-tooltip visible${phase === "leaving" ? " leaving" : ""}${graphLayout != null ? " has-graph" : ""}`}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       ref={tooltipRef}
@@ -79,25 +89,42 @@ export function ColumnTooltip({
     >
       <div className="column-tooltip-title">{content.title}</div>
       <p className="column-tooltip-body">{content.body}</p>
-      {(hasRows || hasSections) && <div className="column-tooltip-rule" />}
-      {hasRows && (
-        <div className="column-tooltip-rows">
-          {content.rows?.map(([label, value]) => (
-            <TooltipRow key={`${label}:${value}`} label={label} value={value} />
-          ))}
-        </div>
-      )}
-      {hasSections && (
-        <div className="column-tooltip-sections">
-          {content.sections?.map((section) => (
-            <div className="column-tooltip-section" key={section.title}>
-              {section.hideTitle !== true && (
-                <TooltipSectionTitle title={section.title} weight={section.weight} />
-              )}
-              <TooltipSectionRows items={section.rows} />
+      {graphLayout != null ? (
+        <>
+          <InequalityGraph layout={graphLayout} />
+          {hasRows && (
+            <p className="column-tooltip-details">
+              {content.rows?.map(([label, value]) => (
+                <span key={`${label}:${value}`}>
+                  <span className="column-tooltip-label">{label}</span> {value}
+                </span>
+              ))}
+            </p>
+          )}
+        </>
+      ) : (
+        <>
+          {(hasRows || hasSections) && <div className="column-tooltip-rule" />}
+          {hasRows && (
+            <div className="column-tooltip-rows">
+              {content.rows?.map(([label, value]) => (
+                <TooltipRow key={`${label}:${value}`} label={label} value={value} />
+              ))}
             </div>
-          ))}
-        </div>
+          )}
+          {hasSections && (
+            <div className="column-tooltip-sections">
+              {content.sections?.map((section) => (
+                <div className="column-tooltip-section" key={section.title}>
+                  {section.hideTitle !== true && (
+                    <TooltipSectionTitle title={section.title} weight={section.weight} />
+                  )}
+                  <TooltipSectionRows items={section.rows} />
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );

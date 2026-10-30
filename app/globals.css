@@ -1383,6 +1383,130 @@ th[data-sort-state="descending"] .sort-indicator::after {
   margin-left: 0;
 }
 
+/* A column holding many models makes a tall graph, so on wider screens its card may grow past the usual cap rather than scroll. */
+@media (min-width: 561px) {
+  .column-tooltip.has-graph {
+    max-height: min(760px, calc(100dvh - 36px));
+  }
+}
+
+/* A wide graph keeps its size and scrolls sideways on narrow screens instead of shrinking its text. */
+.column-tooltip-graph {
+  margin-top: 12px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x pan-y;
+}
+
+.column-tooltip-graph svg {
+  display: block;
+  overflow: visible;
+}
+
+.column-tooltip-graph g,
+.column-tooltip-graph-link,
+.column-tooltip-graph-sign {
+  transition: opacity 160ms ease;
+}
+
+.column-tooltip-graph [data-state="dim"] {
+  opacity: 0.22;
+}
+
+.column-tooltip-graph-hit {
+  fill: transparent;
+}
+
+/* A provider without an icon is marked by the leaderboard's score star: a pale core in its provider's light inside the same soft bloom. SVG has no spread shadow, so three chained glows stand in for the score star's spread box-shadow; two read as a flat dot beside the table's stars. */
+.column-tooltip-graph-star {
+  fill: color-mix(in srgb, var(--star) 45%, #fff);
+  filter: drop-shadow(0 0 1.5px var(--star)) drop-shadow(0 0 3.5px var(--star))
+    drop-shadow(0 0 7px color-mix(in srgb, var(--star) 70%, transparent));
+}
+
+html[data-model-atlas-theme="light"] .column-tooltip-graph-star {
+  fill: color-mix(in srgb, var(--star) 85%, var(--ink));
+}
+
+/* The same treatment as the table's provider logos. */
+.column-tooltip-graph-icon {
+  filter: saturate(0.96) contrast(1.08);
+}
+
+.column-tooltip-graph-link {
+  fill: none;
+  stroke: rgb(var(--ink-rgb) / 0.32);
+  stroke-width: 1;
+}
+
+.column-tooltip-graph-link.is-close {
+  stroke: rgb(var(--ink-rgb) / 0.2);
+}
+
+.column-tooltip-graph-link.is-large {
+  stroke: rgb(var(--ink-rgb) / 0.5);
+  stroke-width: 1.4;
+}
+
+.column-tooltip-graph-link[data-state="lit"] {
+  stroke: rgb(var(--ink-rgb) / 0.72);
+}
+
+.column-tooltip-graph-sign,
+.column-tooltip-graph-name,
+.column-tooltip-graph-place text {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  dominant-baseline: central;
+}
+
+.column-tooltip-graph-sign {
+  fill: var(--ink);
+  font-size: 12px;
+  text-anchor: middle;
+}
+
+.column-tooltip-graph-sign.is-close,
+.column-tooltip-graph-sign.is-tie {
+  fill: var(--faint);
+}
+
+.column-tooltip-graph-sign.is-large {
+  font-size: 14px;
+}
+
+.column-tooltip-graph-sign[data-state="lit"] {
+  fill: var(--ink);
+}
+
+.column-tooltip-graph-place text {
+  fill: var(--faint);
+}
+
+.column-tooltip-graph-place rect {
+  fill: var(--paper);
+}
+
+.column-tooltip-graph-name {
+  fill: var(--ink);
+}
+
+/* Items wrap between each other, never inside a short value such as the ranked time. */
+.column-tooltip-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 14px;
+  margin: 10px 0 0;
+  padding-top: 9px;
+  border-top: 1px solid rgb(var(--ink-rgb) / 0.14);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
 @media (max-width: 560px) {
   .column-tooltip {
     max-height: min(72dvh, calc(100dvh - 36px));

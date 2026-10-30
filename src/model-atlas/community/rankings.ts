@@ -19,8 +19,9 @@ import {
 const CHAIN_RELATIONS = ["=", "≥", ">", "≫"] as const;
 const CANDIDATE_POOL_SIZE = 15;
 const CANDIDATE_RELEASE_DAYS = 60;
-const PULL = 0.4;
+const PULL = 0.5;
 const MAX_MOVE_POINTS = 5;
+const NICKNAME_MAX_LENGTH = 12;
 const RANKED_AT_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
 
 type ChainRelation = (typeof CHAIN_RELATIONS)[number];
@@ -32,6 +33,8 @@ export type CommunityCandidate = { model_id: string; name: string; release_date:
 export type CommunityRanking = {
   ranked_at: string;
   indexes: Record<CommunityIndexKey, ChainEntry[][]>;
+  /** Short graph labels by model id; stored rankings may lack them. */
+  nicknames?: Record<string, string>;
 };
 
 export function isValidRankedAt(value: string): boolean {
@@ -107,23 +110,31 @@ export function parseCommunityRanking(value: unknown): {
   if (COMMUNITY_INDEXES.every(({ key }) => ranking.indexes[key].length === 0)) {
     return { ranking: null, errors: ["At least one index must contain a supported chain"] };
   }
-  const conflicts = COMMUNITY_INDEXES.flatMap(({ key }) =>
-    indexOrder(ranking.indexes[key]).conflicts.map((error) => `indexes.${key}: ${error}`),
-  );
-  return conflicts.length > 0 ? { ranking: null, errors: conflicts } : { ranking, errors };
+  const rankingErrors = [
+    ...COMMUNITY_INDEXES.flatMap(({ key }) =>
+      indexOrder(ranking.indexes[key]).conflicts.map((error) => `indexes.${key}: ${error}`),
+    ),
+    ...(record.nicknames === undefined
+      ? []
+      : nicknameErrors(record.nicknames, placedModels(ranking))),
+  ];
+  return rankingErrors.length > 0 ? { ranking: null, errors: rankingErrors } : { ranking, errors };
 }
 
-export function communityCandidateErrors(
+/** Rules a new submission must meet when it arrives but stored history need not: current candidates and nicknames. */
+export function communitySubmissionErrors(
   ranking: CommunityRanking,
   candidates: readonly CommunityCandidate[],
 ): string[] {
   const candidateIds = new Set(candidates.map((model) => model.model_id));
-  const placed = new Set(
-    COMMUNITY_INDEXES.flatMap(({ key }) => ranking.indexes[key])
-      .flat()
-      .map((entry) => entry.model_id),
-  );
-  return [...placed].filter((id) => !candidateIds.has(id)).map((id) => `${id} is not a candidate`);
+  return [
+    ...[...placedModels(ranking)]
+      .filter((id) => !candidateIds.has(id))
+      .map((id) => `${id} is not a candidate`),
+    ...(ranking.nicknames === undefined
+      ? ["nicknames must give every placed model its graph label"]
+      : []),
+  ];
 }
 
 /** Both graphs start from the unadjusted payload; absent placements contribute no movement, and effort variants share their best variant's shift. */
@@ -135,11 +146,9 @@ export function applyCommunityIndexes(
   const best = highestVariants(payload);
   const scores = new Map([...best].map(([id, model]) => [id, model.scores.intelligence_score]));
   const indexes = COMMUNITY_INDEXES.map((definition) => {
-    const chains = ranking.indexes[definition.key];
-    const order = indexOrder(chains);
+    const order = indexOrder(ranking.indexes[definition.key]);
     return {
       definition,
-      chains,
       places: indexPlaces(order),
       targets: indexTargets(order, scores),
     };
@@ -161,9 +170,9 @@ export function applyCommunityIndexes(
   const columnTooltips = Object.fromEntries(
     indexes
       .filter(({ places }) => places.size > 0)
-      .map(({ definition, chains, places }) => [
+      .map(({ definition, places }) => [
         definition.columnKey,
-        indexTooltip(definition, ranking.ranked_at, chains, places, best),
+        indexTooltip(definition, ranking, places, best),
       ]),
   );
 
@@ -275,6 +284,39 @@ function indexOrder(chains: readonly (readonly ChainEntry[])[]): IndexOrder {
   return { groups, below, conflicts };
 }
 
+function placedModels(ranking: CommunityRanking) {
+  return new Set(
+    COMMUNITY_INDEXES.flatMap(({ key }) => ranking.indexes[key])
+      .flat()
+      .map((entry) => entry.model_id),
+  );
+}
+
+/** Each placed model gets exactly one nickname, and no two share one, so every graph label names one model. */
+function nicknameErrors(value: unknown, placed: ReadonlySet<string>): string[] {
+  const nicknames = asRecord(value);
+  if (nicknames !== value) return ["nicknames must be an object keyed by model_id"];
+  const errors = [...placed]
+    .filter((id) => !Object.hasOwn(nicknames, id))
+    .map((id) => `nicknames.${id} is required for every placed model`);
+  const owners = new Map<string, string>();
+  for (const [id, nickname] of Object.entries(nicknames)) {
+    if (!placed.has(id)) errors.push(`nicknames.${id} names a model placed in no chain`);
+    if (
+      typeof nickname !== "string" ||
+      nickname.length === 0 ||
+      nickname.length > NICKNAME_MAX_LENGTH
+    ) {
+      errors.push(`nicknames.${id} must be 1 to ${NICKNAME_MAX_LENGTH} characters`);
+    } else if (owners.has(nickname)) {
+      errors.push(`nicknames.${id} repeats ${owners.get(nickname)}'s nickname "${nickname}"`);
+    } else {
+      owners.set(nickname, id);
+    }
+  }
+  return errors;
+}
+
 function indexPlaces({ groups, below }: IndexOrder): Map<string, CommunityIndexPlace> {
   const size = (indices: Iterable<number>) =>
     [...indices].reduce((total, index) => total + groups[index]!.length, 0);
@@ -329,33 +371,55 @@ function indexTargets(order: IndexOrder, scores: ReadonlyMap<string, number>): M
 
 function indexTooltip(
   definition: CommunityIndex,
-  rankedAt: string,
-  chains: readonly (readonly ChainEntry[])[],
+  ranking: CommunityRanking,
   places: ReadonlyMap<string, CommunityIndexPlace>,
   models: ReadonlyMap<string, ModelAtlasModel>,
 ): ModelAtlasColumnTooltip {
+  const chains = ranking.indexes[definition.key];
+  const name = (id: string) => models.get(id)?.name ?? id;
+  const place = (id: string) => communityPlaceLabel(places.get(id)!);
   const chainSections = chains.map(
     (chain, index): ModelAtlasColumnTooltipNestedSection => ({
       title: chains.length === 1 ? "Inequality" : `Inequality ${index + 1}`,
-      rows: chain.map((entry): ModelAtlasColumnTooltipRow => {
-        const name = models.get(entry.model_id)?.name ?? entry.model_id;
-        return [
-          entry.relation == null ? name : `${entry.relation} ${name}`,
-          communityPlaceLabel(places.get(entry.model_id)!),
-        ];
-      }),
+      rows: chain.map(
+        (entry): ModelAtlasColumnTooltipRow => [
+          entry.relation == null
+            ? name(entry.model_id)
+            : `${entry.relation} ${name(entry.model_id)}`,
+          place(entry.model_id),
+        ],
+      ),
     }),
   );
   return {
     title: definition.title,
-    body: `${definition.description} ${definition.label} supplies ${definition.weight * 100}% of the shared Intelligence correction.`,
+    body: `${definition.description} ${definition.label} has a ${definition.weight * 100}% say when the community indexes adjust Intelligence.`,
     rows: [
       ["Source", "Reddit and YouTube users' experiences"],
       ["Candidates", "Intelligence top 15 released within 60 days"],
-      ["Intelligence", "40% toward the blended targets, capped at 5 points per model"],
-      ["Ranked", `${rankedAt.slice(0, 16).replace("T", " ")} UTC`],
+      [
+        "Intelligence",
+        `moves ${PULL * 100}% of the way to where the community indexes place each model, at most ${MAX_MOVE_POINTS} points`,
+      ],
+      ["Ranked", `${ranking.ranked_at.slice(0, 16).replace("T", " ")} UTC`],
     ],
     sections: [{ title: "Inequalities", hideTitle: true, rows: chainSections }],
+    graph: {
+      nodes: [...new Set(chains.flat().map((entry) => entry.model_id))].map((id) => ({
+        id,
+        name: name(id),
+        label: ranking.nicknames?.[id] ?? name(id),
+        provider: models.get(id)?.provider ?? null,
+        place: place(id),
+      })),
+      edges: chains.flatMap((chain) =>
+        chain.slice(1).map((entry, index) => ({
+          from: chain[index]!.model_id,
+          to: entry.model_id,
+          relation: entry.relation!,
+        })),
+      ),
+    },
   };
 }
 
