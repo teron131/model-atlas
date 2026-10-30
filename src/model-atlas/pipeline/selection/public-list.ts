@@ -179,7 +179,6 @@ function toPublicModel(model: ModelAtlasScoredCandidate & ModelAtlasModel): Mode
     component_scores: {
       intelligence_score: model.component_scores.intelligence_score,
       agentic_score: model.component_scores.agentic_score,
-      speed_score: model.component_scores.speed_score,
     },
     scores: {
       intelligence_score: model.scores.intelligence_score,

@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 
 import { NextRequest } from "next/server";
 
+import { leaderboardRows } from "../app/dashboard/table/models";
 import { compactModelVariants } from "../app/leaderboard/model-variants";
 import {
   benchmarksJsonPayload,
@@ -35,7 +36,6 @@ const internalCandidate = {
   component_scores: {
     intelligence_score: 80,
     agentic_score: 70,
-    speed_score: 60,
   },
   scores: {
     intelligence_score: 80,
@@ -82,10 +82,6 @@ const sparseResourceCandidate: ModelAtlasScoredCandidate = {
   ...internalCandidate,
   id: "provider/sparse-resource-candidate",
   name: "Sparse Resource Candidate",
-  component_scores: {
-    ...internalCandidate.component_scores,
-    speed_score: null,
-  },
   scores: {
     ...internalCandidate.scores,
     speed_score: null,
@@ -168,11 +164,21 @@ const fusedObservation = {
     fusion_output_tokens_per_task_accounting_compatible: true,
   },
 } satisfies BenchmarkObservationEvidenceRow;
+// Fused rows reach the payload as whole crosswalk rows carrying bookkeeping outside the evidence row type.
+const crosswalkObservation = {
+  ...fusedObservation,
+  benchmark_key: "arc_agi_2",
+  source_url: "https://example.com/leaderboard",
+  model_creator: "Provider",
+  rank: 3,
+  seconds_per_task: null,
+  output_tokens_per_task: 800,
+};
 const observationPayload: ModelAtlasPayload = {
   ...reasoningVariantPayload,
   benchmark_observations: {
     arc_agi_2: [
-      fusedObservation,
+      crosswalkObservation,
       {
         ...fusedObservation,
         reasoning_effort: "max",
@@ -202,6 +208,21 @@ assert.deepEqual(
     },
     { observation_role: "component" },
   ],
+);
+assert.deepEqual(
+  Object.keys(
+    JSON.parse(JSON.stringify(dashboardProjection.benchmark_observations!.arc_agi_2![0])),
+  ),
+  [
+    "model_id",
+    "model",
+    "base_model",
+    "reasoning_effort",
+    "canonical_value",
+    "observed_at",
+    "metadata",
+  ],
+  "Dashboard rows publish only declared evidence fields",
 );
 assert.equal(
   fusedObservation.metadata.source_a_url,
@@ -290,7 +311,6 @@ const incompleteModel = publicModelFromCandidate({
   component_scores: {
     intelligence_score: 95,
     agentic_score: 85,
-    speed_score: null,
   },
 });
 const incompletePayload = minimalModelAtlasPayload({
@@ -504,6 +524,9 @@ assert.deepEqual(corePayload.columns, [
   "speed_confidence",
   "value_score",
   "value_confidence",
+  "task_cost_ratio",
+  "task_time_ratio",
+  "total_token_ratio",
   "blended_price",
   "context_window_tokens",
   "effective_input_price_per_million_tokens",
@@ -588,6 +611,50 @@ assert.deepEqual(
   "benchmarks JSON should use tied competition ranks",
 );
 
+// The API reports the leaderboard's own resource ratios: each amount over its benchmark's median.
+const ratioPayload = minimalModelAtlasPayload({
+  fetchedAt: 123,
+  models: [
+    resourceModel("provider/frugal", "Frugal", 90, 2),
+    resourceModel("provider/typical", "Typical", 80, 4),
+    resourceModel("provider/costly", "Costly", 70, 8),
+  ],
+});
+ratioPayload.metadata.scoring.benchmark_portfolio = {
+  hle: {
+    group: "frontier",
+    benchmarkImportance: 1,
+    dimensionLoadings: { intelligence: 1, agentic: 0 },
+    resourcePolicy: { source: "benchmark", unit: "per_task", tokenMeasure: "tokens" },
+  },
+};
+const coreRatios = coreJsonPayload(ratioPayload).models.map(
+  ({ task_cost_ratio, task_time_ratio, total_token_ratio }) => [
+    task_cost_ratio,
+    task_time_ratio,
+    total_token_ratio,
+  ],
+);
+assert.deepEqual(coreRatios, [
+  [0.5, 0.5, 0.5],
+  [1, 1, 1],
+  [2, 2, 2],
+]);
+assert.deepEqual(
+  leaderboardRows(ratioPayload, false).map(({ resourceRatios: { cost, time, tokens } }) => [
+    cost.ratio,
+    time.ratio,
+    tokens.ratio,
+  ]),
+  coreRatios,
+  "core ratios should match the leaderboard's",
+);
+assert.deepEqual(fullJsonPayload(ratioPayload).models[0]?.resource_ratios, {
+  cost: { ratio: 0.5, benchmark_count: 1, source_count: 1 },
+  time: { ratio: 0.5, benchmark_count: 1, source_count: 1 },
+  tokens: { ratio: 0.5, benchmark_count: 1, source_count: 1 },
+});
+
 assert.equal(destination("/", { accept: "*/*" }), "/api/llm-stats");
 assert.equal(destination("/", {}), "/api/llm-stats");
 assert.equal(destination("/core", { accept: "application/json" }), "/api/llm-stats?view=core");
@@ -615,6 +682,14 @@ function rankedModel(id: string, name: string, intelligenceScore: number) {
       ...model.scores,
       intelligence_score: intelligenceScore,
     },
+  };
+}
+
+function resourceModel(id: string, name: string, intelligenceScore: number, amount: number) {
+  return {
+    ...rankedModel(id, name, intelligenceScore),
+    benchmarks: { hle: intelligenceScore / 100 },
+    task_metrics: { hle: { cost: amount, seconds: amount, tokens: amount } },
   };
 }
 

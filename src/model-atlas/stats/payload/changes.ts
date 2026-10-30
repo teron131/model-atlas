@@ -550,20 +550,14 @@ function rankMovementImpact(change: ModelAtlasScoreChange): number {
 
 function scoringMethodology(scoring: ModelAtlasMetadata["scoring"]): unknown {
   const intelligence = scoring.intelligence_scoring;
-  const normalization = scoring.quality_normalization;
   return {
     intelligence_scoring: intelligence && {
       group_weights: intelligence.group_weights,
       pairwise_weight: intelligence.pairwise_weight,
     },
-    quality_normalization: normalization && {
-      transform: normalization.transform,
-      score_range: normalization.score_range,
-    },
     intelligence_benchmark_keys: scoring.intelligence_benchmark_keys,
     agentic_benchmark_keys: scoring.agentic_benchmark_keys,
     benchmark_portfolio: scoring.benchmark_portfolio,
-    quality_coverage: scoring.quality_coverage,
     agentic_token_modifier_cap: scoring.agentic_token_modifier_cap,
     snapshot_preservation_version: scoring.snapshot_preservation_version,
   };

@@ -159,10 +159,6 @@ export function buildCurrentModelAtlasMetadata({
         group_weights: { ...scoringConfig.intelligenceGroupWeights },
         pairwise_weight: scoringConfig.pairwiseIntelligenceWeight,
       },
-      quality_normalization: {
-        transform: "linear",
-        score_range: [0, 100],
-      },
       intelligence_benchmark_keys: [...scoringConfig.intelligenceBenchmarkKeys],
       intelligence_benchmark_display_keys: [...scoringConfig.intelligenceBenchmarkDisplayKeys],
       missing_intelligence_benchmark_keys: scoringConfig.intelligenceBenchmarkKeys.filter(
@@ -176,12 +172,6 @@ export function buildCurrentModelAtlasMetadata({
       ),
       selected_benchmark_keys: selectedKeys,
       benchmark_portfolio: { ...scoringConfig.benchmarkPortfolio },
-      quality_coverage: {
-        intelligence: {
-          ...scoringConfig.qualityCoverage.intelligence,
-        },
-        agentic: { ...scoringConfig.qualityCoverage.agentic },
-      },
       column_tooltips: columnTooltipsForActiveComponents(resourceComponents),
       snapshot_preservation_version: snapshotPreservationVersion,
     },

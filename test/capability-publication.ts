@@ -158,7 +158,6 @@ assert.deepEqual(
 const resourceInputs = {
   speedByModelId: new Map(),
   pricingByModelId: new Map(),
-  outputTokenAnchors: [200, 500, 1000, 2000, 8000],
 };
 const relativeModels = await buildFinalModels(
   relativeSelection,

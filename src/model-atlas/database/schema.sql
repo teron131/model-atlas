@@ -435,7 +435,6 @@ CREATE TABLE IF NOT EXISTS models (
 	omniscience_accuracy REAL,
 	component_intelligence_score REAL,
 	component_agentic_score REAL,
-	component_speed_score REAL,
 	intelligence_score REAL,
 	agentic_score REAL,
 	speed_score REAL,

@@ -28,7 +28,6 @@ export function isModelAtlasPayload(value: unknown): value is ModelAtlasPayload 
   }
   if (
     !isRecord(scoring.benchmark_portfolio) ||
-    !isRecord(scoring.quality_coverage) ||
     !isRecord(scoring.column_tooltips) ||
     !Number.isFinite(scoring.agentic_token_modifier_cap) ||
     !Number.isSafeInteger(scoring.snapshot_preservation_version)

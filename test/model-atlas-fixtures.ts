@@ -10,7 +10,6 @@ import {
   type BenchmarkObservationRowsKey,
   INDEX_BENCHMARK_KEYS,
 } from "../src/model-atlas/benchmarks/registry";
-import { QUALITY_COVERAGE } from "../src/model-atlas/config/stage";
 import type {
   DatabaseStatement,
   DatabaseWriter,
@@ -114,7 +113,6 @@ export function minimalModelAtlasPayload({
         missing_agentic_benchmark_keys: [],
         selected_benchmark_keys: [],
         benchmark_portfolio: {},
-        quality_coverage: QUALITY_COVERAGE,
         agentic_token_modifier_cap: 0.15,
         column_tooltips: {},
         snapshot_preservation_version: SNAPSHOT_PRESERVATION_VERSION,
@@ -162,7 +160,6 @@ export function minimalModelAtlasModel({
     component_scores: {
       intelligence_score: 0,
       agentic_score: 0,
-      speed_score: 0,
     },
     scores: {
       intelligence_score: 0,

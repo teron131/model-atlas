@@ -20,12 +20,10 @@ import {
 import { clampScore } from "../../../src/model-atlas/pipeline/scores/normalization";
 import { benchmarkValue } from "../../../src/model-atlas/pipeline/scores/resource-metrics";
 import {
-  type ResourceRatioKind,
-  type ResourceRatioObservation,
-  resourceRatioObservations,
-  resourceRatioReferences,
-  type ResourceRatioSummary,
-  summarizeResourceRatios,
+  displayResourceRatios,
+  type ResourceRatioReferenceSets,
+  resourceRatioReferenceSets,
+  type ResourceRatios,
 } from "../../../src/model-atlas/stats/resource-ratios";
 import { type ModelAtlasModel, type ModelAtlasPayload } from "../../../src/model-atlas/stats/types";
 import { compareBenchmarkDisplayKeys } from "../shared/constants";
@@ -427,7 +425,7 @@ export type TableRow = {
   benchmarkDisplayScores: Partial<Record<BenchmarkMetricColumn["key"], number | null>>;
   /** Each measured amount (price, speed, context, benchmark resources) relative to its column's median across the incoming population. */
   metricRatios: Partial<Record<TableColumnKey, number | null>>;
-  resourceRatios: Record<ResourceRatioKind, ResourceRatioSummary>;
+  resourceRatios: ResourceRatios;
 };
 
 /** A row before its resource ratios, which are measured once the whole display population is known. */
@@ -554,20 +552,9 @@ const amountColumns: { key: TableColumnKey; get: (model: ModelAtlasModel) => unk
   })),
 ];
 
-const RESOURCE_RATIO_KINDS = [
-  "cost",
-  "time",
-  "tokens",
-] as const satisfies readonly ResourceRatioKind[];
-
-type ResourceRatioReferenceSet = {
-  kind: ResourceRatioKind;
-  references: Map<string, number>;
-};
-
 /** One snapshot's reference medians and the two row displays measured against them, each display shaped when first read. */
 type RowDisplays = {
-  references: ResourceRatioReferenceSet[];
+  references: ResourceRatioReferenceSets;
   models?: TableRow[];
   variants?: TableRow[];
 };
@@ -575,19 +562,9 @@ type RowDisplays = {
 // The leaderboard and the model sheet read the same snapshot, so they share its rows instead of rebuilding both displays on every sheet open.
 const rowDisplaysByPayload = new WeakMap<ModelAtlasPayload, RowDisplays>();
 
-/** Reference medians for each resource ratio come from every published variant, so every display measures against the same population. */
-function resourceRatioReferenceSets(payload: ModelAtlasPayload): ResourceRatioReferenceSet[] {
-  const portfolio = payload.metadata.scoring.benchmark_portfolio;
-  return RESOURCE_RATIO_KINDS.map((kind) => ({
-    kind,
-    references: resourceRatioReferences(resourceRatioObservations(payload.models, portfolio, kind)),
-  }));
-}
-
 /**
  * Shape one variant display of the payload into leaderboard rows with their resource ratios.
  *
- * Observations are allocated across the same display population before each row is summarized against the shared references, so the table and the model sheet read identical numbers.
  * Each display is shaped once per snapshot and the same rows are returned to every reader, so a caller that reorders them must copy first.
  */
 export function leaderboardRows(
@@ -597,7 +574,12 @@ export function leaderboardRows(
   if (payload == null) return [];
   let displays = rowDisplaysByPayload.get(payload);
   if (displays == null) {
-    displays = { references: resourceRatioReferenceSets(payload) };
+    displays = {
+      references: resourceRatioReferenceSets(
+        payload.models,
+        payload.metadata.scoring.benchmark_portfolio,
+      ),
+    };
     rowDisplaysByPayload.set(payload, displays);
   }
   const display = showVariants ? "variants" : "models";
@@ -608,34 +590,17 @@ export function leaderboardRows(
 function buildLeaderboardRows(
   payload: ModelAtlasPayload,
   showVariants: boolean,
-  referenceSets: readonly ResourceRatioReferenceSet[],
+  references: ResourceRatioReferenceSets,
 ): TableRow[] {
   const rows = dedupeDisplayModels(
     modelsForVariantDisplay(payload.models, showVariants, payload.benchmark_observations),
   );
-  const portfolio = payload.metadata.scoring.benchmark_portfolio;
-  const metrics = referenceSets.map(({ kind, references }) => {
-    const observations = new Map<ModelAtlasModel, ResourceRatioObservation[]>();
-    for (const observation of resourceRatioObservations(
-      rows.map((row) => row.model),
-      portfolio,
-      kind,
-    )) {
-      const group = observations.get(observation.model) ?? [];
-      group.push(observation);
-      observations.set(observation.model, group);
-    }
-    return { kind, references, observations };
-  });
-  return rows.map((row) => ({
-    ...row,
-    resourceRatios: Object.fromEntries(
-      metrics.map(({ kind, references, observations }) => [
-        kind,
-        summarizeResourceRatios(observations.get(row.model) ?? [], references),
-      ]),
-    ) as Record<ResourceRatioKind, ResourceRatioSummary>,
-  }));
+  const ratios = displayResourceRatios(
+    rows.map((row) => row.model),
+    payload.metadata.scoring.benchmark_portfolio,
+    references,
+  );
+  return rows.map((row, index) => ({ ...row, resourceRatios: ratios[index]! }));
 }
 
 /** Collapse duplicate routes and scale benchmark meters and amount ratios against the full incoming population before filtering or limiting rows. */

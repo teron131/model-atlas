@@ -101,7 +101,6 @@ function candidate(id: string, score: number, left: number, right: number): Mode
     component_scores: {
       intelligence_score: score,
       agentic_score: 50,
-      speed_score: null,
     },
     scores: null,
   };

@@ -320,10 +320,6 @@ const scoringConfig = {
   agenticBenchmarkKeys: ["apex_agents", "gdpval_normalized", "scicode", "terminal_bench_4"],
   agenticBenchmarkDisplayKeys: ["apex_agents", "gdpval_normalized", "scicode", "terminal_bench_4"],
   previewAdditionalIntelligenceBenchmarkKeys: [],
-  defaultSpeedOutputTokenAnchors: [],
-  speedOutputTokenRangeMin: 0,
-  speedOutputTokenRangeMax: 0,
-  speedAnchorQuantiles: [],
   benchmarkPortfolio: {
     scicode: {
       group: "baseline",
@@ -358,15 +354,8 @@ const scoringConfig = {
 } as const;
 const imputationByModel = buildBenchmarkImputationByModel(scoringRows, scoringConfig);
 const qualityScoringContext = buildQualityScoringContext(scoringRows, scoringConfig);
-const emptySpeed = {
-  throughput_tokens_per_second_median: null,
-  latency_seconds_median: null,
-  e2e_latency_seconds_median: null,
-};
 const componentScoresWithMissingApex = buildComponentScoreResult(
   scoringRows[3] ?? {},
-  emptySpeed,
-  [],
   scoringConfig,
   qualityScoringContext,
   imputationByModel.get(scoringRows[3] ?? {}),
@@ -377,7 +366,6 @@ assert.ok(
     componentScoresWithMissingApex.agentic_score < 75,
 );
 assert.equal(componentScoresWithMissingApex?.intelligence_score, null);
-assert.equal(componentScoresWithMissingApex?.speed_score, null);
 
 // The leaderboard preview omits index resources, so the model page's complete dataset must supply them.
 const richModels = [

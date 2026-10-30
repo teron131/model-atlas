@@ -1,6 +1,5 @@
 /** Verifies OpenRouter alias collapse, variant selection, and route telemetry lookup. */
 
-import { STAGE_CONFIG } from "../src/model-atlas/config";
 import {
   isSameOpenRouterModelRoute,
   publicOpenRouterModelId,
@@ -341,7 +340,6 @@ const qwenRouteData = prepareOpenRouterModelData(
       },
     },
   ],
-  STAGE_CONFIG.scoring,
   {
     fetched_at_epoch_seconds: 123,
     directory: [],

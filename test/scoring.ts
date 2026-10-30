@@ -60,12 +60,6 @@ import {
 import { buildCurrentModelAtlasMetadata } from "../src/model-atlas/stats/payload/metadata";
 import type { BenchmarkPortfolio, ModelAtlasCandidate } from "../src/model-atlas/stats/types";
 
-const nullSpeed = {
-  throughput_tokens_per_second_median: null,
-  latency_seconds_median: null,
-  e2e_latency_seconds_median: null,
-};
-
 function assertEqual(actual: unknown, expected: unknown): void {
   if (actual !== expected) {
     throw new Error(`Expected ${expected}, got ${actual}`);
@@ -395,10 +389,6 @@ const aaOnlyResourceMetadata = buildCurrentModelAtlasMetadata({
 });
 const aaOnlyTimeTooltip = JSON.stringify(aaOnlyResourceMetadata.scoring.column_tooltips.speed);
 const aaOnlyValueTooltip = JSON.stringify(aaOnlyResourceMetadata.scoring.column_tooltips.value);
-assert.deepEqual(
-  aaOnlyResourceMetadata.scoring.quality_coverage,
-  STAGE_CONFIG.scoring.qualityCoverage,
-);
 assertEqual(aaOnlyTimeTooltip.includes("33.3% each"), false);
 assertEqual(aaOnlyTimeTooltip.includes("Frontier benchmark runtime"), false);
 assertEqual(aaOnlyValueTooltip.includes("25.0% each"), false);
@@ -714,16 +704,12 @@ const fractionalBenchmarkModels = [
 ];
 const fractionalBenchmarkComponentScores = buildComponentScoreResult(
   fractionalBenchmarkModels[2] ?? {},
-  nullSpeed,
-  [],
   fractionalBenchmarkConfig,
   buildQualityScoringContext(fractionalBenchmarkModels, fractionalBenchmarkConfig),
 ).componentScores;
 assertClose(fractionalBenchmarkComponentScores?.intelligence_score, 80);
 const priorityWeightedComponentScores = buildComponentScoreResult(
   fractionalBenchmarkModels[2] ?? {},
-  nullSpeed,
-  [],
   fractionalBenchmarkConfig,
   buildQualityScoringContext(fractionalBenchmarkModels, fractionalBenchmarkConfig),
   new Map(),
@@ -753,8 +739,6 @@ const importanceWeightedContext = buildQualityScoringContext(
 );
 const importanceWeightedScores = buildComponentScoreResult(
   fractionalBenchmarkModels[2] ?? {},
-  nullSpeed,
-  [],
   importanceWeightedConfig,
   importanceWeightedContext,
 ).componentScores;
@@ -762,8 +746,6 @@ assertClose(importanceWeightedScores?.intelligence_score, 80);
 
 const groupFlippedScores = buildComponentScoreResult(
   fractionalBenchmarkModels[2] ?? {},
-  nullSpeed,
-  [],
   {
     ...importanceWeightedConfig,
     benchmarkPortfolio: {
@@ -783,8 +765,6 @@ assertClose(groupFlippedScores?.intelligence_score, 20);
 
 const fractionalEvidenceComponentScores = buildComponentScoreResult(
   { id: "fractional-sparse", benchmarks: { frontier_metric: 100 } },
-  nullSpeed,
-  [],
   fractionalBenchmarkConfig,
   buildQualityScoringContext(fractionalBenchmarkModels, fractionalBenchmarkConfig),
 ).componentScores;
@@ -801,22 +781,16 @@ const frontierOnlyContext = buildQualityScoringContext(
 );
 const frontierOnlyObserved = buildComponentScoreResult(
   fractionalBenchmarkModels[2]!,
-  nullSpeed,
-  [],
   frontierOnlyScoringConfig,
   frontierOnlyContext,
 );
 const frontierOnlyBaselineChanged = buildComponentScoreResult(
   { id: "fractional-target", benchmarks: { baseline_metric: 100, frontier_metric: 100 } },
-  nullSpeed,
-  [],
   frontierOnlyScoringConfig,
   frontierOnlyContext,
 );
 const frontierOnlyMissingBaseline = buildComponentScoreResult(
   { id: "fractional-target", benchmarks: { frontier_metric: 100 } },
-  nullSpeed,
-  [],
   frontierOnlyScoringConfig,
   frontierOnlyContext,
 );
@@ -838,8 +812,6 @@ const imputationConfidenceConfig = {
 } as const;
 const imputationConfidenceResult = buildComponentScoreResult(
   { id: "imputation-confidence", benchmarks: { baseline_metric: 100 } },
-  nullSpeed,
-  [],
   imputationConfidenceConfig,
   importanceWeightedContext,
   new Map([["frontier_metric", 0]]),
@@ -894,8 +866,6 @@ const sparseEvidenceModels = [
 ];
 const sparseEvidenceResult = buildComponentScoreResult(
   sparseEvidenceModels[2] ?? {},
-  nullSpeed,
-  [],
   sparseEvidenceConfig,
   buildQualityScoringContext(sparseEvidenceModels, sparseEvidenceConfig),
 );
@@ -907,8 +877,6 @@ assertClose(
 assertClose(sparseEvidenceResult.confidence.intelligence, 2 / 12);
 const sparseLowEvidenceResult = buildComponentScoreResult(
   { id: "sparse-low", benchmarks: { quality_0: 0, quality_1: 0 } },
-  nullSpeed,
-  [],
   sparseEvidenceConfig,
   buildQualityScoringContext(sparseEvidenceModels, sparseEvidenceConfig),
 );
@@ -1479,8 +1447,6 @@ const agenticFrontierContext = buildQualityScoringContext(
 const agenticFrontierResult = (baseline: number | null) =>
   buildComponentScoreResult(
     { benchmarks: { automation_bench: 0.8, vibe_code: baseline } },
-    nullSpeed,
-    [],
     STAGE_CONFIG.scoring,
     agenticFrontierContext,
   );
@@ -1952,16 +1918,12 @@ const imputationEvidenceConfig = {
 } as const;
 const untrustedImputationScores = buildComponentScoreResult(
   imputationEvidenceTarget,
-  nullSpeed,
-  [],
   imputationEvidenceConfig,
   imputationEvidenceContext,
   imputedHighValues,
 ).componentScores;
 const validatedImputationScores = buildComponentScoreResult(
   imputationEvidenceTarget,
-  nullSpeed,
-  [],
   imputationEvidenceConfig,
   imputationEvidenceContext,
   imputedHighValues,
@@ -2054,7 +2016,6 @@ function modelCandidate(options: {
     component_scores: {
       intelligence_score: options.intelligenceScore ?? null,
       agentic_score: options.agenticScore ?? null,
-      speed_score: null,
     },
     scores: null,
   };
@@ -2108,16 +2069,9 @@ const siblingContext = prepareEffortQualityScoringContext(
   siblingCalibrationConfig,
   buildQualityScoringContext(siblingCalibrationModels, siblingCalibrationConfig),
 );
-const siblingSpeed = {
-  throughput_tokens_per_second_median: null,
-  latency_seconds_median: null,
-  e2e_latency_seconds_median: null,
-};
 const siblingScore = (model: (typeof siblingCalibrationModels)[number], context = siblingContext) =>
   buildComponentScoreResult(
     model,
-    siblingSpeed,
-    [],
     {
       ...siblingCalibrationConfig,
       qualityCoverage: { intelligence: { floor: 0, full: 1 }, agentic: { floor: 0, full: 1 } },
@@ -2208,15 +2162,8 @@ const coveredModel = {
 };
 const undercoveredModels = [...undercoveredReferences, undercoveredModel, coveredModel];
 const undercoveredContext = buildQualityScoringContext(undercoveredModels, undercoveredConfig);
-const qualityTestSpeed = {
-  throughput_tokens_per_second_median: null,
-  latency_seconds_median: null,
-  e2e_latency_seconds_median: null,
-};
 const undercoveredScore = buildComponentScoreResult(
   undercoveredModel,
-  qualityTestSpeed,
-  [],
   undercoveredConfig,
   undercoveredContext,
 ).componentScores?.intelligence_score;
@@ -2228,13 +2175,8 @@ const expectedUndercoveredScore =
   (80 * 2 + 70 * aaUnionWeight + 30 * valsUnionWeight) / (2 + indexUnionWeight);
 assertClose(undercoveredScore, expectedUndercoveredScore);
 assertClose(
-  buildComponentScoreResult(
-    undercoveredModel,
-    nullSpeed,
-    [],
-    undercoveredConfig,
-    undercoveredContext,
-  ).componentScores?.intelligence_score,
+  buildComponentScoreResult(undercoveredModel, undercoveredConfig, undercoveredContext)
+    .componentScores?.intelligence_score,
   expectedUndercoveredScore,
 );
 const lowImportanceIndexConfig = {
@@ -2256,8 +2198,6 @@ const lowImportanceIndexConfig = {
 assertClose(
   buildComponentScoreResult(
     undercoveredModel,
-    qualityTestSpeed,
-    [],
     lowImportanceIndexConfig,
     buildQualityScoringContext(undercoveredModels, lowImportanceIndexConfig),
   ).componentScores?.intelligence_score,
@@ -2265,8 +2205,6 @@ assertClose(
 );
 const coveredScore = buildComponentScoreResult(
   coveredModel,
-  qualityTestSpeed,
-  [],
   undercoveredConfig,
   undercoveredContext,
 ).componentScores?.intelligence_score;
@@ -2278,8 +2216,6 @@ const nearlyCoveredModel = {
 };
 const nearlyCoveredScore = buildComponentScoreResult(
   nearlyCoveredModel,
-  qualityTestSpeed,
-  [],
   undercoveredConfig,
   undercoveredContext,
 ).componentScores?.intelligence_score;
@@ -2297,15 +2233,11 @@ const weightedCoverageConfig: ScoringConfig = {
 };
 const beforeLastTask = buildComponentScoreResult(
   nearlyCoveredModel,
-  qualityTestSpeed,
-  [],
   weightedCoverageConfig,
   undercoveredContext,
 ).componentScores?.intelligence_score;
 const afterLastTask = buildComponentScoreResult(
   coveredModel,
-  qualityTestSpeed,
-  [],
   weightedCoverageConfig,
   undercoveredContext,
 ).componentScores?.intelligence_score;
@@ -2319,29 +2251,19 @@ const fourTaskModel = {
   benchmarks: { vals_index: 100, b1: 60, b2: 60, b3: 60, b4: 60 },
 };
 assertClose(
-  buildComponentScoreResult(
-    fourTaskModel,
-    qualityTestSpeed,
-    [],
-    undercoveredConfig,
-    undercoveredContext,
-  ).componentScores?.intelligence_score,
+  buildComponentScoreResult(fourTaskModel, undercoveredConfig, undercoveredContext).componentScores
+    ?.intelligence_score,
   (100 * indexUnionWeight + 60 * 4) / (4 + indexUnionWeight),
 );
 assertClose(
-  buildComponentScoreResult(fourTaskModel, nullSpeed, [], undercoveredConfig, undercoveredContext)
-    .componentScores?.intelligence_score,
+  buildComponentScoreResult(fourTaskModel, undercoveredConfig, undercoveredContext).componentScores
+    ?.intelligence_score,
   (100 * indexUnionWeight + 60 * 4) / (4 + indexUnionWeight),
 );
 const noTaskModel = { ...coveredModel, benchmarks: { vals_index: 100 } };
 assertEqual(
-  buildComponentScoreResult(
-    noTaskModel,
-    qualityTestSpeed,
-    [],
-    undercoveredConfig,
-    undercoveredContext,
-  ).componentScores?.intelligence_score ?? null,
+  buildComponentScoreResult(noTaskModel, undercoveredConfig, undercoveredContext).componentScores
+    ?.intelligence_score ?? null,
   null,
 );
 const fakeTaskEstimates = new Map(
@@ -2350,8 +2272,6 @@ const fakeTaskEstimates = new Map(
 assertClose(
   buildComponentScoreResult(
     undercoveredModel,
-    qualityTestSpeed,
-    [],
     undercoveredConfig,
     undercoveredContext,
     fakeTaskEstimates,
@@ -2368,8 +2288,8 @@ const extendedConfig = {
   },
 };
 assertClose(
-  buildComponentScoreResult(coveredModel, qualityTestSpeed, [], extendedConfig, undercoveredContext)
-    .componentScores?.intelligence_score,
+  buildComponentScoreResult(coveredModel, extendedConfig, undercoveredContext).componentScores
+    ?.intelligence_score,
   coveredScore!,
 );
 
@@ -2533,20 +2453,8 @@ const tokenRawContext = buildQualityScoringContext(tokenModels, tokenConfig);
 const tokenEvidenceBefore = JSON.stringify(tokenModels);
 const tokenContext = buildAgenticTokenScoringContext(tokenModels, tokenConfig, tokenRawContext);
 for (const model of tokenModels) {
-  const original = buildComponentScoreResult(
-    { ...model },
-    nullSpeed,
-    [],
-    tokenConfig,
-    tokenRawContext,
-  );
-  const adjusted = buildComponentScoreResult(
-    { ...model },
-    nullSpeed,
-    [],
-    tokenConfig,
-    tokenContext,
-  );
+  const original = buildComponentScoreResult({ ...model }, tokenConfig, tokenRawContext);
+  const adjusted = buildComponentScoreResult({ ...model }, tokenConfig, tokenContext);
   assert.equal(
     adjusted.componentScores?.intelligence_score,
     original.componentScores?.intelligence_score,
@@ -2564,8 +2472,7 @@ function tokenAgenticScores(models: ModelAtlasCandidate[], config = tokenConfig)
   const context = buildAgenticTokenScoringContext(models, config, rawContext);
   return models.map(
     (model) =>
-      buildComponentScoreResult({ ...model }, nullSpeed, [], config, context).componentScores
-        ?.agentic_score,
+      buildComponentScoreResult({ ...model }, config, context).componentScores?.agentic_score,
   );
 }
 
@@ -2693,8 +2600,8 @@ const estimatedTokenContext = (evidenceFactor: number) =>
     ]),
   });
 const tokenEstimateScore = (context: ReturnType<typeof estimatedTokenContext>) =>
-  buildComponentScoreResult(tokenEstimateTarget, nullSpeed, [], tokenConfig, context)
-    .componentScores!.agentic_score!;
+  buildComponentScoreResult(tokenEstimateTarget, tokenConfig, context).componentScores!
+    .agentic_score!;
 const noTokenEstimate = buildAgenticTokenScoringContext(
   tokenEstimatePopulation,
   tokenConfig,
@@ -2709,15 +2616,11 @@ assertClose(
 );
 for (const m of tokenModels)
   assert.equal(
-    buildComponentScoreResult(m, nullSpeed, [], tokenConfig, fullTokenEstimate).componentScores!
-      .agentic_score,
-    buildComponentScoreResult(m, nullSpeed, [], tokenConfig, noTokenEstimate).componentScores!
-      .agentic_score,
+    buildComponentScoreResult(m, tokenConfig, fullTokenEstimate).componentScores!.agentic_score,
+    buildComponentScoreResult(m, tokenConfig, noTokenEstimate).componentScores!.agentic_score,
   );
 assert.deepEqual(
-  buildComponentScoreResult(tokenEstimateTarget, nullSpeed, [], tokenConfig, fullTokenEstimate)
-    .confidence,
-  buildComponentScoreResult(tokenEstimateTarget, nullSpeed, [], tokenConfig, noTokenEstimate)
-    .confidence,
+  buildComponentScoreResult(tokenEstimateTarget, tokenConfig, fullTokenEstimate).confidence,
+  buildComponentScoreResult(tokenEstimateTarget, tokenConfig, noTokenEstimate).confidence,
 );
 assert.equal(tokenEstimateTarget.task_metrics, null);

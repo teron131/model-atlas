@@ -88,11 +88,7 @@ export async function deriveModelStats<LoadResult extends OpenRouterLoadResult>(
     STAGE_CONFIG.scoring,
   );
   const openRouterLoad = await options.loadOpenRouter(openRouterModelIds(eligibleRows));
-  const openRouterData = prepareOpenRouterModelData(
-    modelRows,
-    STAGE_CONFIG.scoring,
-    openRouterLoad.rawPayload,
-  );
+  const openRouterData = prepareOpenRouterModelData(modelRows, openRouterLoad.rawPayload);
   const models = await buildFinalModels(
     selection,
     openRouterData,

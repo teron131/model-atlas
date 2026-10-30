@@ -2,7 +2,6 @@
 
 import type { BenchmarkPortfolio } from "../benchmarks/factory";
 import type { BenchmarkObservationsByKey } from "../benchmarks/observation";
-import type { QualityCoverageThresholds } from "../config/stage";
 import type { ModelAtlasColumnTooltips } from "../config/tooltips";
 import type { ModelAtlasModel } from "../pipeline/model-types";
 import type { ModelAtlasSourceHealth } from "../sources/types";
@@ -93,10 +92,6 @@ export type ModelAtlasMetadata = {
       group_weights: { frontier: number; baseline: number };
       pairwise_weight: number;
     };
-    quality_normalization?: {
-      transform: "linear";
-      score_range: [number, number];
-    };
     intelligence_benchmark_keys: string[];
     intelligence_benchmark_display_keys: string[];
     missing_intelligence_benchmark_keys: string[];
@@ -106,7 +101,6 @@ export type ModelAtlasMetadata = {
     missing_agentic_benchmark_keys: string[];
     selected_benchmark_keys: string[];
     benchmark_portfolio: BenchmarkPortfolio;
-    quality_coverage: QualityCoverageThresholds;
     column_tooltips: ModelAtlasColumnTooltips;
     snapshot_preservation_version: number | null;
   };

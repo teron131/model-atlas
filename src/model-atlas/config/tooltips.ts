@@ -404,7 +404,10 @@ export function columnTooltipsForActiveComponents(
           "Value availability",
           "at least 4 benchmarks of observed cost-and-quality coverage, including residual AA index breadth",
         ],
-        ["Without eligible Value", "quality remains in the table; excluded from all graphs"],
+        [
+          "Without eligible Value",
+          "quality remains in the table; omitted only where Value is plotted",
+        ],
         ["Model coverage", "shared source-default multiplier; full from 60% coverage"],
       ],
       sections: [
