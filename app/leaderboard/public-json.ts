@@ -5,6 +5,13 @@ import { createHash } from "node:crypto";
 import { INDEX_REPRESENTED_BENCHMARK_MEDIAN } from "../../src/model-atlas/benchmarks/index-policy";
 import type { BenchmarkObservationEvidenceRow } from "../../src/model-atlas/benchmarks/observation";
 import { applyResourceEvidenceRequirements } from "../../src/model-atlas/pipeline/scores/resource-metrics";
+import {
+  displayResourceRatios,
+  type ResourceRatioKind,
+  resourceRatioReferenceSets,
+  type ResourceRatios,
+  type ResourceRatioSummary,
+} from "../../src/model-atlas/stats/resource-ratios";
 import type { ModelAtlasModel, ModelAtlasPayload } from "../../src/model-atlas/stats/types";
 import { providerLogo } from "../dashboard/shared/provider-theme";
 import { compactModelVariants } from "./model-variants";
@@ -57,7 +64,15 @@ export type FullJsonPayload = Omit<ModelAtlasPayload, "models" | "benchmark_obse
   models: PublicFullJsonModel[];
 };
 
-type PublicFullJsonModel = Omit<ModelAtlasModel, "reasoning" | "logo">;
+type PublicFullJsonModel = Omit<ModelAtlasModel, "reasoning" | "logo"> & {
+  resource_ratios: Record<ResourceRatioKind, PublicResourceRatio>;
+};
+
+type PublicResourceRatio = {
+  ratio: number | null;
+  benchmark_count: number;
+  source_count: number;
+};
 
 type ScoreJsonPayload = {
   schema: typeof SCORE_SCHEMA;
@@ -116,6 +131,9 @@ type CoreJsonModel = {
   speed_confidence: number | null;
   value_score: number | null;
   value_confidence: number | null;
+  task_cost_ratio: number | null;
+  task_time_ratio: number | null;
+  total_token_ratio: number | null;
   blended_price: number | null;
   context_window_tokens: number | null;
   effective_input_price_per_million_tokens: number | null;
@@ -140,6 +158,9 @@ const CORE_MODEL_COLUMNS = [
   "speed_confidence",
   "value_score",
   "value_confidence",
+  "task_cost_ratio",
+  "task_time_ratio",
+  "total_token_ratio",
   "blended_price",
   "context_window_tokens",
   "effective_input_price_per_million_tokens",
@@ -272,13 +293,17 @@ export function dashboardJsonPayload(
 /** The core view is the compact table contract: stable scalar columns without dashboard-only decoration. */
 export function coreJsonPayload(payload: ModelAtlasPayload): CoreJsonPayload {
   const rows = compactLeaderboardRows(payload);
+  const ratios = resourceRatios(
+    payload,
+    rows.map(({ model }) => model),
+  );
   return {
     schema: CORE_SCHEMA,
     fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
     score_scale: SCORE_SCALE,
     methodology: methodologyText(),
     columns: [...CORE_MODEL_COLUMNS],
-    models: rows.map(({ model, rank }) => coreJsonModel(model, rank)),
+    models: rows.map(({ model, rank }, index) => coreJsonModel(model, rank, ratios[index]!)),
   };
 }
 
@@ -309,19 +334,65 @@ export function benchmarksJsonPayload(payload: ModelAtlasPayload): BenchmarksJso
 /** Preserve every scored variant for power users while removing fields that only make sense in the rendered dashboard. */
 export function fullJsonPayload(payload: ModelAtlasPayload): FullJsonPayload {
   const { benchmark_observations: _benchmarkObservations, models, ...publicPayload } = payload;
+  const ratios = resourceRatios(payload, models);
   return {
     ...publicPayload,
-    models: models.map(({ logo: _logo, reasoning: _reasoning, ...model }) => model),
+    models: models.map(({ logo: _logo, reasoning: _reasoning, ...model }, index) => {
+      const { cost, time, tokens } = ratios[index]!;
+      return {
+        ...model,
+        resource_ratios: {
+          cost: publicResourceRatio(cost),
+          time: publicResourceRatio(time),
+          tokens: publicResourceRatio(tokens),
+        },
+      };
+    }),
   };
 }
 
-function dashboardObservation({
-  metadata,
-  ...row
-}: BenchmarkObservationEvidenceRow): BenchmarkObservationEvidenceRow {
-  if (metadata == null) return row;
+/** Measure a view's rows against medians from every published variant, as the leaderboard does. */
+function resourceRatios(
+  payload: ModelAtlasPayload,
+  models: readonly ModelAtlasModel[],
+): ResourceRatios[] {
+  const portfolio = payload.metadata.scoring.benchmark_portfolio;
+  return displayResourceRatios(
+    models,
+    portfolio,
+    resourceRatioReferenceSets(payload.models, portfolio),
+  );
+}
+
+function publicResourceRatio({
+  ratio,
+  benchmarkCount,
+  sourceCount,
+}: ResourceRatioSummary): PublicResourceRatio {
+  return { ratio, benchmark_count: benchmarkCount, source_count: sourceCount };
+}
+
+/** Fused rows arrive as whole crosswalk rows, so only the evidence fields the row type declares are published. */
+function dashboardObservation(
+  row: BenchmarkObservationEvidenceRow,
+): BenchmarkObservationEvidenceRow {
+  const evidence = {
+    model_id: row.model_id,
+    model: row.model,
+    base_model: row.base_model,
+    reasoning_effort: row.reasoning_effort,
+    canonical_value: row.canonical_value,
+    cost: row.cost,
+    tokens_per_task: row.tokens_per_task,
+    observed_at: row.observed_at,
+    task_run_count: row.task_run_count,
+    total_cost_usd: row.total_cost_usd,
+    total_tokens: row.total_tokens,
+  };
+  const { metadata } = row;
+  if (metadata == null) return evidence;
   return {
-    ...row,
+    ...evidence,
     metadata: Object.fromEntries(
       DASHBOARD_OBSERVATION_METADATA_KEYS.filter((field) => Object.hasOwn(metadata, field)).map(
         (field) => [field, metadata[field]!],
@@ -331,7 +402,7 @@ function dashboardObservation({
 }
 
 function methodologyText(): string {
-  return `Model Atlas reports Intelligence, Agentic, Speed, and Value separately on 0-100 scales. These are comparative scores, not task-success probabilities. Direct benchmark results are normalized within their observed range and weighted by importance × dimension allocation. Validated estimates from other benchmarks add discounted evidence support and can relax sparse-score regularization. Supported estimates from other efforts also enter missing benchmark contributions in quality scores; no estimate satisfies admission. Public confidence fields report literal weighted evidence support, not statistical confidence intervals. Eligible direct benchmarks and aggregate indexes share one quality-evidence pool. Effort-labelled variants use indexes with direct effort coverage, currently Artificial Analysis and CAIS; other index results remain table and admission evidence. Direct benchmark weights combine a 1.5 multiplier with importance and dimension allocation; index weights use importance and dimension allocation multiplied by represented breadth after exact known direct and cross-index overlap is counted once. ECI uses fixed breadth ${INDEX_REPRESENTED_BENCHMARK_MEDIAN}, the median fixed-index breadth, rather than model-specific fitted counts. There is no additional category-level benchmark/index split; Intelligence blends a 20% pairwise comparison of shared direct results. Index breadth does not create observed benchmark results or inflate displayed evidence support; it supplies represented coverage for admission and score retention. Quality scores retain 85% through 1.2 supported benchmark weight and rise smoothly to full retention at 12, including scores below 50 and models with indexes. Direct benchmarks contribute 1.5 times their supported dimension weight; eligible indexes contribute their overlap-adjusted represented breadth times dimension weight. Displayed confidence remains the literal supported share of selected portfolio weight, not the score-retention fraction. Reasoning efforts retain their own results. A missing benchmark score can use another effort's observed result plus the weighted gap on at least three directly shared benchmarks. Reference efforts are chosen by effective benchmark count, then effort proximity. Estimates enter the unified evidence pool without filling raw benchmark fields, increasing evidence support, or assuming higher effort always wins. No whole-score effort adjustment follows. Agentic can multiply a matched benchmark contribution by 0.85-1.15 according to measured or evidence-discounted estimated token use versus directly measured independent peers at similar quality, then remaps the contribution to 0-100. The cap applies before remapping, not to the final score change. Unsupported missing token evidence is neutral; token estimates use the same validated ratio and broader-evidence fallback policies as cost and time, keep totals separate from output-only counts, and cannot become peer evidence or move normalization anchors; Artificial Analysis aggregate tokens apply only to its own index. Value requires observed cost-and-quality coverage representing four benchmarks at the exact effort. AA contributes its catalogued breadth only with its own observed quality and resource; separately counted AA components are deducted for each resource. Variants below the required cost coverage remain in the quality-qualified table but are excluded from all graphs. Speed independently requires observed time-and-quality coverage representing four benchmarks at the exact effort, including residual AA breadth; estimated runtimes and provider speed do not count. Insufficient runtime evidence leaves Speed unavailable without suppressing eligible Value. Speed and Value assign 70% of base weight to benchmark task resources and 30% to provider speed or price, then compare resource use among nearby-quality models. Resource expectations blend a stable local trend with the peer mean as support grows. The trend is evaluated at the nearest observed peer quality and bounded by observed resource amounts, avoiding unsupported extrapolation and boundary jumps. Benchmark resources require benchmark-specific telemetry; source-wide means cannot fill missing benchmark measurements. Every resource comparison uses linear quality coordinates with a spread floor proportional to the observed reference range. Missing costs, times, and token counts first use separately validated same-model effort ratios, then the same fixed-shrinkage global/lab/release-proximity/model fallback with at least two other base models. Total-token and output-token estimates remain separate. Lab corrections use shrinkage 16; same-lab release proximity uses a 60-day Gaussian width; release and model corrections use shrinkage 4. Estimated resources remain discounted and do not satisfy observed-evidence thresholds. Throughput-based runtime proxies require output tokens; total tokens cannot replace output tokens. Independently learned runtime estimates use measured seconds. Weighted quantiles retain tied observation mass. Weak peer support pulls each comparison toward 50. Estimated inputs receive discounted weight, and the source-default variant supplies the shared model coverage multiplier: zero through 10% and full at 60% coverage. Each effort still reports its own evidence share. Admission needs a qualified named text-model identity, observed represented benchmark weight reaching the minimum known benchmark breadth across the selected indexes, excluding ECI's minimum publication count, an observed input in each capability dimension, and Intelligence and Agentic scores strictly greater than 10. Standalone benchmarks contribute their importance; indexes contribute represented breadth. Known components count once across indexes and standalone observations, while unmapped index breadth remains estimated. AA contributes only its main Intelligence Index. The index gate requires two observed selected aggregate indexes or one observed AA Intelligence or Epoch Capabilities index; breadth and dimension checks still apply. No particular release age is required. Missing specifications remain null without affecting rank eligibility. There is no release-age exception for insufficient evidence. AA specialist subindexes do not qualify. Compact views rank the strongest-Intelligence model representative and show the highest available direct effort for missing benchmark fields. Compact views hide OpenAI Pro, Gemini Deep Think, and Claude Mythos configurations under the shared display policy without changing source evidence or scores. All displayed models receive numeric ranks, including models with missing specifications. The all view preserves exact efforts and has no rank. Full formulas, examples, and rationales are available at /methodology.`;
+  return `Model Atlas reports Intelligence, Agentic, Speed, and Value separately on 0-100 scales. These are comparative scores, not task-success probabilities. Direct benchmark results are normalized within their observed range and weighted by importance × dimension allocation. Validated estimates from other benchmarks add discounted evidence support and can relax sparse-score regularization. Supported estimates from other efforts also enter missing benchmark contributions in quality scores; no estimate satisfies admission. Public confidence fields report literal weighted evidence support, not statistical confidence intervals. Eligible direct benchmarks and aggregate indexes share one quality-evidence pool. Effort-labelled variants use indexes with direct effort coverage, currently Artificial Analysis and CAIS; other index results remain table and admission evidence. Direct benchmark weights combine a 1.5 multiplier with importance and dimension allocation; index weights use importance and dimension allocation multiplied by represented breadth after exact known direct and cross-index overlap is counted once. ECI uses fixed breadth ${INDEX_REPRESENTED_BENCHMARK_MEDIAN}, the median fixed-index breadth, rather than model-specific fitted counts. There is no additional category-level benchmark/index split; Intelligence blends a 20% pairwise comparison of shared direct results. Index breadth does not create observed benchmark results or inflate displayed evidence support; it supplies represented coverage for admission and score retention. Quality scores retain 85% through 1.2 supported benchmark weight and rise smoothly to full retention at 12, including scores below 50 and models with indexes. Direct benchmarks contribute 1.5 times their supported dimension weight; eligible indexes contribute their overlap-adjusted represented breadth times dimension weight. Displayed confidence remains the literal supported share of selected portfolio weight, not the score-retention fraction. Reasoning efforts retain their own results. A missing benchmark score can use another effort's observed result plus the weighted gap on at least three directly shared benchmarks. Reference efforts are chosen by effective benchmark count, then effort proximity. Estimates enter the unified evidence pool without filling raw benchmark fields, increasing evidence support, or assuming higher effort always wins. No whole-score effort adjustment follows. Agentic can multiply a matched benchmark contribution by 0.85-1.15 according to measured or evidence-discounted estimated token use versus directly measured independent peers at similar quality, then remaps the contribution to 0-100. The cap applies before remapping, not to the final score change. Unsupported missing token evidence is neutral; token estimates use the same validated ratio and broader-evidence fallback policies as cost and time, keep totals separate from output-only counts, and cannot become peer evidence or move normalization anchors; Artificial Analysis aggregate tokens apply only to its own index. Value requires observed cost-and-quality coverage representing four benchmarks at the exact effort. AA contributes its catalogued breadth only with its own observed quality and resource; separately counted AA components are deducted for each resource. Variants below the required cost coverage keep a null Value; graphs omit them only where Value is plotted. Speed independently requires observed time-and-quality coverage representing four benchmarks at the exact effort, including residual AA breadth; estimated runtimes and provider speed do not count. Insufficient runtime evidence leaves Speed unavailable without suppressing eligible Value. Speed and Value assign 70% of base weight to benchmark task resources and 30% to provider speed or price, then compare resource use among nearby-quality models. Resource expectations blend a stable local trend with the peer mean as support grows. The trend is evaluated at the nearest observed peer quality and bounded by observed resource amounts, avoiding unsupported extrapolation and boundary jumps. Benchmark resources require benchmark-specific telemetry; source-wide means cannot fill missing benchmark measurements. Every resource comparison uses linear quality coordinates with a spread floor proportional to the observed reference range. Missing costs, times, and token counts first use separately validated same-model effort ratios, then the same fixed-shrinkage global/lab/release-proximity/model fallback with at least two other base models. Total-token and output-token estimates remain separate. Lab corrections use shrinkage 16; same-lab release proximity uses a 60-day Gaussian width; release and model corrections use shrinkage 4. Estimated resources remain discounted and do not satisfy observed-evidence thresholds. Throughput-based runtime proxies require output tokens; total tokens cannot replace output tokens. Independently learned runtime estimates use measured seconds. Weighted quantiles retain tied observation mass. Weak peer support pulls each comparison toward 50. Estimated inputs receive discounted weight, and the source-default variant supplies the shared model coverage multiplier: zero through 10% and full at 60% coverage. Each effort still reports its own evidence share. Resource ratios are descriptive and do not feed Speed or Value: each is the weighted median of a model's observed task cost, reported runtime, or total tokens divided by that benchmark's median across every published variant, with each base model counted once, so 1 is typical and lower means less use regardless of achieved quality. Core rows report them as task_cost_ratio, task_time_ratio, and total_token_ratio for the compact row, including benchmark resources it shows from another effort; the all view's resource_ratios measure each exact effort and also count the measured benchmarks and source measurements behind each ratio. Imputed and throughput-derived amounts never count toward them. Admission needs a qualified named text-model identity, observed represented benchmark weight reaching the minimum known benchmark breadth across the selected indexes, excluding ECI's minimum publication count, an observed input in each capability dimension, and Intelligence and Agentic scores strictly greater than 10. Standalone benchmarks contribute their importance; indexes contribute represented breadth. Known components count once across indexes and standalone observations, while unmapped index breadth remains estimated. The index gate requires two observed selected aggregate indexes or one observed AA Intelligence or Epoch Capabilities index; breadth and dimension checks still apply. No particular release age is required. Missing specifications remain null without affecting rank eligibility. There is no release-age exception for insufficient evidence. Compact views rank the strongest-Intelligence model representative and show the highest available direct effort for missing benchmark fields. Compact views hide OpenAI Pro, Gemini Deep Think, and Claude Mythos configurations under the shared display policy without changing source evidence or scores. All displayed models receive numeric ranks, including models with missing specifications. The all view preserves exact efforts and has no rank. Full formulas, examples, and rationales are available at /methodology.`;
 }
 
 /** Compact variants, then assign competition ranks: tied Intelligence scores share a rank and leave the next ordinal gap. */
@@ -387,7 +458,11 @@ function benchmarksJsonModel(model: ModelAtlasModel, rank: number): BenchmarksJs
   };
 }
 
-function coreJsonModel(model: ModelAtlasModel, rank: number): CoreJsonModel {
+function coreJsonModel(
+  model: ModelAtlasModel,
+  rank: number,
+  ratios: ResourceRatios,
+): CoreJsonModel {
   return {
     rank,
     id: model.id,
@@ -403,6 +478,9 @@ function coreJsonModel(model: ModelAtlasModel, rank: number): CoreJsonModel {
     speed_confidence: model.confidence.speed,
     value_score: model.scores.value_score,
     value_confidence: model.confidence.value,
+    task_cost_ratio: ratios.cost.ratio,
+    task_time_ratio: ratios.time.ratio,
+    total_token_ratio: ratios.tokens.ratio,
     blended_price: model.cost?.blended_price ?? null,
     context_window_tokens: model.context_window?.context ?? null,
     effective_input_price_per_million_tokens: model.cost?.weighted_input ?? null,

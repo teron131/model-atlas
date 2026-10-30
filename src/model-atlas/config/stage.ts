@@ -107,10 +107,6 @@ export type ScoringConfig = {
   agenticBenchmarkKeys: readonly string[];
   agenticBenchmarkDisplayKeys: readonly string[];
   agenticTokenModifierCap: number;
-  defaultSpeedOutputTokenAnchors: readonly number[];
-  speedOutputTokenRangeMin: number;
-  speedOutputTokenRangeMax: number;
-  speedAnchorQuantiles: readonly number[];
   benchmarkPortfolio: BenchmarkPortfolio;
   qualityCoverage: QualityCoverageThresholds;
   qualityRetention: { floor: number; full: number };
@@ -173,10 +169,6 @@ export const STAGE_CONFIG = {
     agenticBenchmarkKeys: SELECTED_AGENTIC_BENCHMARKS.filter(isFrontierOrIndex),
     agenticBenchmarkDisplayKeys: SELECTED_AGENTIC_BENCHMARKS,
     agenticTokenModifierCap: 0.15,
-    defaultSpeedOutputTokenAnchors: [200, 500, 1_000, 2_000, 8_000],
-    speedOutputTokenRangeMin: 200,
-    speedOutputTokenRangeMax: 8_000,
-    speedAnchorQuantiles: [0.25, 0.5, 0.75],
     benchmarkPortfolio: BENCHMARK_PORTFOLIO,
     qualityCoverage: QUALITY_COVERAGE,
     qualityRetention: QUALITY_RETENTION,

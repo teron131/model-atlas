@@ -37,6 +37,8 @@ export type ResourceRatioSummary = {
   benchmarkCount: number;
   sourceCount: number;
 };
+export type ResourceRatios = Record<ResourceRatioKind, ResourceRatioSummary>;
+export type ResourceRatioReferenceSets = Record<ResourceRatioKind, ReadonlyMap<string, number>>;
 
 /** Keep observed quality-resource pairs only, reserving missing source shares; index breadth is allocated after a caller selects its supported basket. */
 export function resourceRatioObservations(
@@ -137,6 +139,38 @@ export function summarizeResourceRatios(
   };
 }
 
+/** Medians come from every published variant, so every display of one snapshot measures against the same population. */
+export function resourceRatioReferenceSets(
+  models: readonly ModelAtlasModel[],
+  portfolio: BenchmarkPortfolio,
+): ResourceRatioReferenceSets {
+  return byKind((kind) =>
+    resourceRatioReferences(resourceRatioObservations(models, portfolio, kind)),
+  );
+}
+
+/** Ratios for each model of one display, in `models` order; source shares are reserved across the whole display first, so the leaderboard, the model sheet, and the API read identical numbers for the same rows. */
+export function displayResourceRatios(
+  models: readonly ModelAtlasModel[],
+  portfolio: BenchmarkPortfolio,
+  references: ResourceRatioReferenceSets,
+): ResourceRatios[] {
+  const observations = byKind((kind) => {
+    const byModel = new Map<ModelAtlasModel, ResourceRatioObservation[]>();
+    for (const observation of resourceRatioObservations(models, portfolio, kind)) {
+      const group = byModel.get(observation.model) ?? [];
+      group.push(observation);
+      byModel.set(observation.model, group);
+    }
+    return byModel;
+  });
+  return models.map((model) =>
+    byKind((kind) =>
+      summarizeResourceRatios(observations[kind].get(model) ?? [], references[kind]),
+    ),
+  );
+}
+
 /** Prefer compatible direct telemetry; otherwise preserve each observed source’s paired quality and reserved weight. */
 function benchmarkObservations(
   model: ModelAtlasModel,
@@ -225,4 +259,8 @@ function sourceAllocations(
       return [key, slots.size];
     }),
   );
+}
+
+function byKind<T>(read: (kind: ResourceRatioKind) => T): Record<ResourceRatioKind, T> {
+  return { cost: read("cost"), time: read("time"), tokens: read("tokens") };
 }

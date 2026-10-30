@@ -18,11 +18,6 @@ const indexKeys = [
   "surge_intelligence_index",
   "vals_index",
 ];
-const nullSpeed = {
-  throughput_tokens_per_second_median: null,
-  latency_seconds_median: null,
-  e2e_latency_seconds_median: null,
-};
 
 function fixture(taskCount: number, indexCount: number, indexImportance = 1) {
   const tasks = Array.from({ length: taskCount }, (_, index) => `task_${index}`);
@@ -57,7 +52,7 @@ function fixture(taskCount: number, indexCount: number, indexImportance = 1) {
     ]),
   });
   const score = (value: ReturnType<typeof model>) =>
-    buildComponentScoreResult(value, nullSpeed, [], config, context);
+    buildComponentScoreResult(value, config, context);
   return { tasks, indexes, config, context, model, score };
 }
 
@@ -103,8 +98,6 @@ for (const [observedTasks, multiplier] of [
     model.benchmarks.aa_intelligence_index = value;
     const result = buildComponentScoreResult(
       model,
-      nullSpeed,
-      [],
       {
         ...coverageFixture.config,
         qualityCoverageMinimumRetention: 0.85,
@@ -126,8 +119,6 @@ for (const [observedTasks, multiplier] of [
 const directCoverage = fixture(40, 1);
 const fullDirectCoverage = buildComponentScoreResult(
   directCoverage.model(16, 60, []),
-  nullSpeed,
-  [],
   { ...directCoverage.config, qualityCoverageMinimumRetention: 0.85 },
   directCoverage.context,
 );
@@ -135,8 +126,6 @@ assert.ok(Math.abs(fullDirectCoverage.componentScores!.intelligence_score! - 60)
 assert.ok(fullDirectCoverage.confidence.intelligence! < 0.6);
 const sparseDirectCoverage = buildComponentScoreResult(
   directCoverage.model(15, 60, []),
-  nullSpeed,
-  [],
   { ...directCoverage.config, qualityCoverageMinimumRetention: 0.85 },
   directCoverage.context,
 );
@@ -145,8 +134,6 @@ assert.ok(sparseDirectCoverage.componentScores!.intelligence_score! < 60);
 const indexCoverage = fixture(40, 4);
 const fullIndexCoverage = buildComponentScoreResult(
   indexCoverage.model(0, 60),
-  nullSpeed,
-  [],
   { ...indexCoverage.config, qualityCoverageMinimumRetention: 0.85 },
   indexCoverage.context,
 );
@@ -156,8 +143,6 @@ assert.ok(fullIndexCoverage.confidence.intelligence! < 0.1);
 for (const multiplier of [1.5, 2]) {
   const score = buildComponentScoreResult(
     multiplierFixture.model(),
-    nullSpeed,
-    [],
     { ...multiplierFixture.config, directBenchmarkWeightMultiplier: multiplier },
     multiplierFixture.context,
   ).componentScores!.intelligence_score!;
@@ -183,8 +168,6 @@ const partial = convergence.model(3);
 const direct = convergence.score(partial);
 const imputed = buildComponentScoreResult(
   partial,
-  nullSpeed,
-  [],
   convergence.config,
   convergence.context,
   new Map(convergence.tasks.slice(3).map((key) => [key, 100])),

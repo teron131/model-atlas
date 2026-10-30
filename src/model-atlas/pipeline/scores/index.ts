@@ -17,12 +17,6 @@ export {
   prepareEffortResourceImputation,
 } from "./imputation";
 export { attachFinalScores } from "./final-scoring";
-export {
-  blendedPriceValue,
-  buildComponentScoreResult,
-  buildSpeedComponentScore,
-  deriveSpeedOutputTokenAnchors,
-  logBlendedPrice,
-} from "./score-builders";
+export { blendedPriceValue, buildComponentScoreResult, logBlendedPrice } from "./score-builders";
 export { buildQualityScoringContext } from "./quality-context";
 export type { QualityScoringContext } from "./quality-context";

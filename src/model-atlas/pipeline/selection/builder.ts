@@ -58,7 +58,7 @@ export function prepareModelSelection(
   previousModels: readonly ModelAtlasModel[] = [],
   capability?: { state: CapabilityState; benchmarkVersions: Readonly<Record<string, string>> },
 ): ModelSelection {
-  const openRouterData = prepareOpenRouterModelData(rows, scoringConfig, null);
+  const openRouterData = prepareOpenRouterModelData(rows, null);
   const modelRows = dropStaleReplacementBenchmarks(rows, previousModels, scoringConfig);
   const replacementRows = modelRows.filter(isVersionReplacementRow);
   const scoringPreparation = withoutBenchmarkImputationForModels(
@@ -97,8 +97,6 @@ export function prepareModelSelection(
   const rescored = candidatesWithRows.map(({ row, candidate }) => {
     const result = buildComponentScoreResult(
       asRecord(candidate),
-      candidate.speed,
-      openRouterData.outputTokenAnchors,
       scoringConfig,
       scoringPreparation.qualityContext,
       benchmarkImputationValues(scoringPreparation, row),

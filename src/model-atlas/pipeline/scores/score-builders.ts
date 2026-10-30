@@ -1,4 +1,4 @@
-/** Capability score assembly owns benchmark weighting, speed anchors, and confidence. */
+/** Capability score assembly owns benchmark weighting and confidence. */
 
 import type { BenchmarkDimension } from "../../benchmarks/factory";
 import {
@@ -9,13 +9,9 @@ import {
 } from "../../benchmarks/index-policy";
 import { benchmarkDimensionWeight } from "../../benchmarks/registry";
 import { countsTowardIntelligence, type ScoringConfig } from "../../config/stage";
-import { clamp01, meanOfFinite, quantileFromSorted, weightedMeanOfFinite } from "../../math-utils";
+import { clamp01, weightedMeanOfFinite } from "../../math-utils";
 import { asFiniteNumber, asRecord, type JsonObject } from "../../runtime";
-import type {
-  ModelAtlasCandidateComponentScores,
-  ModelAtlasConfidence,
-  ModelAtlasSpeed,
-} from "../model-types";
+import type { ModelAtlasCandidateComponentScores, ModelAtlasConfidence } from "../model-types";
 import { evidenceRetentionFactor } from "./normalization";
 import {
   effortQualityKey,
@@ -311,69 +307,8 @@ export function logBlendedPrice(price: number | null): number | null {
   return price == null ? null : Math.log(Math.max(price, MINIMUM_LOG_BLENDED_PRICE));
 }
 
-/** Derive representative output-token workloads from observed latency and throughput, falling back when evidence cannot produce five usable anchors. */
-export function deriveSpeedOutputTokenAnchors(
-  speedByModelId: Map<string, JsonObject>,
-  scoringConfig: ScoringConfig,
-): number[] {
-  const impliedTokenUsages = Array.from(speedByModelId.values())
-    .map((speed) => {
-      const throughputTokensPerSecond = asFiniteNumber(speed.throughput_tokens_per_second_median);
-      const latencySeconds = asFiniteNumber(speed.latency_seconds_median);
-      const e2eLatencySeconds = asFiniteNumber(speed.e2e_latency_seconds_median);
-      if (
-        throughputTokensPerSecond == null ||
-        throughputTokensPerSecond <= 0 ||
-        latencySeconds == null ||
-        e2eLatencySeconds == null
-      ) {
-        return null;
-      }
-      const generationSeconds = e2eLatencySeconds - latencySeconds;
-      if (generationSeconds <= 0) {
-        return null;
-      }
-      return generationSeconds * throughputTokensPerSecond;
-    })
-    .filter((value): value is number => value != null && Number.isFinite(value))
-    .sort((left, right) => left - right);
-
-  if (impliedTokenUsages.length === 0) {
-    return [...scoringConfig.defaultSpeedOutputTokenAnchors];
-  }
-
-  const q0 = impliedTokenUsages[0] ?? null;
-  const [q1, q2, q3] = scoringConfig.speedAnchorQuantiles.map((quantile) =>
-    quantileFromSorted(impliedTokenUsages, quantile),
-  );
-  const q4 = impliedTokenUsages.at(-1) ?? null;
-  const anchors = [q0, q1, q2, q3, q4].filter(
-    (value): value is number => value != null && Number.isFinite(value),
-  );
-  if (anchors.length !== 5) {
-    return [...scoringConfig.defaultSpeedOutputTokenAnchors];
-  }
-
-  const sourceMin = anchors[0] as number;
-  const sourceMax = anchors.at(-1) as number;
-  if (!(sourceMax > sourceMin)) {
-    return [...scoringConfig.defaultSpeedOutputTokenAnchors];
-  }
-
-  return anchors.map((anchor) => {
-    const normalized = (anchor - sourceMin) / (sourceMax - sourceMin);
-    const mapped =
-      scoringConfig.speedOutputTokenRangeMin +
-      normalized *
-        (scoringConfig.speedOutputTokenRangeMax - scoringConfig.speedOutputTokenRangeMin);
-    return Math.round(mapped);
-  });
-}
-
 export function buildComponentScoreResult(
   model: JsonObject,
-  speed: ModelAtlasSpeed,
-  speedOutputTokenAnchors: number[],
   scoringConfig: ScoringConfig,
   qualityContext: QualityScoringContext,
   imputedValuesByKey: ReadonlyMap<string, number> = new Map(),
@@ -407,16 +342,11 @@ export function buildComponentScoreResult(
     scoringConfig.qualityCoverageMinimumRetention,
     scoringConfig.qualityRetention,
   );
-  const speedScore = buildSpeedComponentScore(speed, speedOutputTokenAnchors);
   return {
     componentScores:
-      intelligence.score == null && agentic.score == null && speedScore == null
+      intelligence.score == null && agentic.score == null
         ? null
-        : {
-            intelligence_score: intelligence.score,
-            agentic_score: agentic.score,
-            speed_score: speedScore,
-          },
+        : { intelligence_score: intelligence.score, agentic_score: agentic.score },
     confidence: {
       intelligence: intelligence.evidenceSupport,
       agentic: agentic.evidenceSupport,
@@ -425,28 +355,4 @@ export function buildComponentScoreResult(
     },
     intelligenceScoreParts: intelligence.parts,
   };
-}
-
-/** Compute route delivery speed independently of quality so enrichment cannot alter the score-filter decision. */
-export function buildSpeedComponentScore(
-  speed: ModelAtlasSpeed,
-  speedOutputTokenAnchors: number[],
-): number | null {
-  const latencySeconds = asFiniteNumber(speed.latency_seconds_median);
-  const throughputTokensPerSecond = asFiniteNumber(speed.throughput_tokens_per_second_median);
-  const e2eLatencySeconds = asFiniteNumber(speed.e2e_latency_seconds_median);
-  const estimatedSpeedScore = meanOfFinite(
-    speedOutputTokenAnchors.map((targetTokens) =>
-      latencySeconds != null && throughputTokensPerSecond != null && throughputTokensPerSecond > 0
-        ? targetTokens / (latencySeconds + targetTokens / throughputTokensPerSecond)
-        : null,
-    ),
-  );
-  const sortedAnchors = [...speedOutputTokenAnchors].sort((left, right) => left - right);
-  const representativeTargetTokens = quantileFromSorted(sortedAnchors, 0.5);
-  const observedE2eSpeedScore =
-    representativeTargetTokens != null && e2eLatencySeconds != null && e2eLatencySeconds > 0
-      ? representativeTargetTokens / e2eLatencySeconds
-      : null;
-  return meanOfFinite([estimatedSpeedScore, observedE2eSpeedScore]);
 }

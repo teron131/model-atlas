@@ -35,7 +35,6 @@ import {
   type BenchmarkScoringPreparation,
   blendedPriceValue,
   buildComponentScoreResult,
-  buildSpeedComponentScore,
 } from "../scores";
 
 function hasFields(record: object): boolean {
@@ -372,8 +371,6 @@ export function buildModelCandidate(
   const imputedFactors = benchmarkImputationFactors(scoringPreparation, row);
   const { componentScores, confidence } = buildComponentScoreResult(
     row,
-    speed,
-    openRouterData.outputTokenAnchors,
     scoringConfig,
     scoringPreparation.qualityContext,
     imputedValues,
@@ -410,19 +407,9 @@ export function enrichModelResources(
   row: ModelRow,
   openRouterData: OpenRouterModelData,
 ): ModelAtlasCandidate {
-  const speed = buildSpeed(row, openRouterData);
-  const speedScore = buildSpeedComponentScore(speed, openRouterData.outputTokenAnchors);
   return {
     ...candidate,
     cost: buildCost(row, openRouterData),
-    speed,
-    component_scores:
-      candidate.component_scores == null && speedScore == null
-        ? null
-        : {
-            intelligence_score: candidate.component_scores?.intelligence_score ?? null,
-            agentic_score: candidate.component_scores?.agentic_score ?? null,
-            speed_score: speedScore,
-          },
+    speed: buildSpeed(row, openRouterData),
   };
 }

@@ -17,9 +17,9 @@ https://llmstats.vercel.app/api/llm-stats?view=all
 Views:
 
 - `score`: compact rank and intelligence/agentic/speed/value scores.
-- `core`: model selection columns such as date, modalities, price, context, speed, and score.
+- `core`: model selection columns such as date, modalities, price, context, speed, score, and the leaderboard's resource ratios `task_cost_ratio`, `task_time_ratio`, and `total_token_ratio` (Cost×, Time×, Tokens×). A ratio is the model's typical task cost, runtime, or total tokens relative to each benchmark's median: 1 is typical, 0.5 is half, and lower means less use regardless of achieved quality.
 - `benchmarks`: selected benchmark values by model.
-- `all`: fuller Model Atlas payload with every scored reasoning-effort variant. Use `reasoning_effort` to distinguish variants; `null` means the source did not report a separate effort label, not `none`.
+- `all`: fuller Model Atlas payload with every scored reasoning-effort variant. Use `reasoning_effort` to distinguish variants; `null` means the source did not report a separate effort label, not `none`. Each model's `resource_ratios` holds its `cost`, `time`, and `tokens` ratios with the `benchmark_count` and `source_count` measured behind each; a ratio from one or two benchmarks is weak evidence.
 
 The `score`, `core`, and `benchmarks` views represent each base model with its highest-Intelligence scored variant.
 

@@ -18,13 +18,13 @@ export function insertModels(db: DatabaseWriter, rows: readonly unknown[]): void
 			cost_blended_price, context_over_200k_input, context_over_200k_output,
 			context_over_200k_cache_read, context_over_200k_cache_write,
 			intelligence_index, omniscience_index, omniscience_accuracy,
-			component_intelligence_score, component_agentic_score, component_speed_score,
+			component_intelligence_score, component_agentic_score,
 			intelligence_score, agentic_score,
 			speed_score,
 			value_score,
 			intelligence_confidence, agentic_confidence, speed_confidence, value_confidence,
 			latest_change_json
-		) VALUES (${Array.from({ length: 43 }, () => "?").join(", ")})
+		) VALUES (${Array.from({ length: 42 }, () => "?").join(", ")})
 	`);
   for (const [index, row] of rows.entries()) {
     const model = asRecord(row);
@@ -247,7 +247,6 @@ function modelScoreValues(model: JsonObject): SqlValue[] {
   return [
     asFiniteNumber(componentScores.intelligence_score),
     asFiniteNumber(componentScores.agentic_score),
-    asFiniteNumber(componentScores.speed_score),
     asFiniteNumber(scores.intelligence_score),
     asFiniteNumber(scores.agentic_score),
     asFiniteNumber(scores.speed_score),

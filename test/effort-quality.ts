@@ -56,11 +56,6 @@ const config = {
     ]),
   ),
 };
-const speed = {
-  throughput_tokens_per_second_median: null,
-  latency_seconds_median: null,
-  e2e_latency_seconds_median: null,
-};
 const references = [0, 100].map((v, i) => ({
   ...modelCandidate({ id: `test/reference-${i}` }),
   benchmarks: Object.fromEntries(keys.map((key) => [key, v])),
@@ -85,8 +80,7 @@ const partial = {
 const population = [...references, broad, partial];
 const base = buildQualityScoringContext(population, config);
 const context = prepareEffortQualityScoringContext(population, config, base);
-const score = (model: typeof broad, ctx = context) =>
-  buildComponentScoreResult(model, speed, [], config, ctx);
+const score = (model: typeof broad, ctx = context) => buildComponentScoreResult(model, config, ctx);
 const close = (a: number | null | undefined, b: number) =>
   assert.ok(a != null && Math.abs(a - b) < 1e-9, `${a} != ${b}`);
 // The inferred hard-task zero keeps its configured unit weight in the baseline group beside the AA proxy, which weighs as much as its represented breadth.

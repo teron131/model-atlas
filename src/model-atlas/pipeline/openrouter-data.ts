@@ -1,6 +1,5 @@
-/** OpenRouter route data owns free-route cost continuity for catalog rows and the route telemetry index, its lookups, and scoring anchors. */
+/** OpenRouter route data owns free-route cost continuity for catalog rows and the route telemetry index with its lookups. */
 
-import type { ScoringConfig } from "../config/stage";
 import { normalizeProviderModelId } from "../identity/normalization";
 import {
   isOpenRouterFreeRouteId,
@@ -11,18 +10,15 @@ import { asFiniteNumber, asRecord, type JsonObject } from "../runtime";
 import { type OpenRouterSourcePayload, processOpenRouterModelStats } from "../sources/openrouter";
 import { catalogRowRouteId } from "./model-catalog";
 import type { ModelRow } from "./model-types";
-import { deriveSpeedOutputTokenAnchors } from "./scores";
 
 export type OpenRouterModelData = {
   speedByModelId: Map<string, JsonObject>;
   pricingByModelId: Map<string, JsonObject>;
-  outputTokenAnchors: number[];
 };
 
 /** Normalize already-loaded route evidence; fetching and admission stay in the shared derivation workflow. */
 export function prepareOpenRouterModelData(
   rows: readonly ModelRow[],
-  scoringConfig: ScoringConfig,
   rawPayload: OpenRouterSourcePayload | null,
 ): OpenRouterModelData {
   const { speedById: speedByModelId, pricingById: pricingByModelId } = buildOpenRouterDataById(
@@ -32,7 +28,6 @@ export function prepareOpenRouterModelData(
   return {
     speedByModelId,
     pricingByModelId,
-    outputTokenAnchors: deriveSpeedOutputTokenAnchors(speedByModelId, scoringConfig),
   };
 }
 

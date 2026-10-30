@@ -432,7 +432,6 @@ function scoredCandidateFromRow(
     component_scores: {
       intelligence_score: asFiniteNumber(row.component_intelligence_score) ?? null,
       agentic_score: asFiniteNumber(row.component_agentic_score) ?? null,
-      speed_score: asFiniteNumber(row.component_speed_score) ?? null,
     },
     scores: {
       intelligence_score: asFiniteNumber(row.intelligence_score) ?? null,

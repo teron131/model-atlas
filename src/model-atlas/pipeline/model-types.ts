@@ -145,13 +145,12 @@ export type ModelRow = {
 export type ModelAtlasCandidateComponentScores = {
   intelligence_score: NumberOrNull;
   agentic_score: NumberOrNull;
-  speed_score: NumberOrNull;
 };
 
+/** Benchmark-derived quality scores, before community indexes move the published Intelligence. */
 export type ModelAtlasComponentScores = {
   intelligence_score: number;
   agentic_score: number;
-  speed_score: NumberOrNull;
 };
 
 export type ModelAtlasConfidence = {
