@@ -121,7 +121,7 @@ Weighted means, medians, quantiles, and ranks use only finite values with positi
 
 A weighted quantile at fraction $r$ is the value reached when the running total of weight first covers $r$ of the total weight. The weighted median is the quantile at $r=0.5$: half the weight lies at or below it. Medians resist extreme values, so they are used wherever one unusual model should not move a reference.
 
-Merge the weights of equal values, sort the distinct values as $x_1<\cdots<x_n$, and let $r_i$ be the share of total weight held by the first $i$ values:
+Merge the weights of equal values, sort the distinct values as $x_1<\cdots<x_n$, and compute the share $r_i$ of total weight held by the first $i$ values:
 
 $$
 r_i=\frac{w_1+\cdots+w_i}{w_1+\cdots+w_n}.
