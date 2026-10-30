@@ -2,7 +2,7 @@
 
 - Keep only UI documentation and its assets in `docs/`, except this file. No temporary docs, plans, reports, or implementation notes; put findings in the conversation.
 - These rules cover prose, captions, alt text, and illustration text.
-- Write directly and neutrally, focusing on the method rather than its authors. Introduce symbols in the surrounding explanation.
+- Write directly and neutrally, focusing on the method rather than its authors: never use “we,” “our,” or “us.” Introduce symbols in the surrounding explanation, never with “Let …”.
 - Keep each paragraph on one source line; separate paragraphs with blank lines. No manual wrapping or sentence-per-line formatting.
 - Explain a calculation's concrete effect and its important conditions before the details. Introduce its purpose, assumptions, and equations in the order that makes the explanation easiest to follow; do not force every mechanism into the same paragraph template.
 - Explain why a mechanism is useful, distinguishing mathematical consequences, scoring-policy choices, assumptions, and validated findings. When intent is not established, describe the consequence rather than inventing a motive. Prefer the general rule to specific numeric examples: use a number only when it shows a policy's scale or makes an unfamiliar operation concrete, never to illustrate how a score should be read, and omit arithmetic that adds no understanding.

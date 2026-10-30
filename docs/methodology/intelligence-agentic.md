@@ -327,7 +327,7 @@ Each judgment is a graph expressed as one or more compatible inequalities. Links
 
 For each graph separately, isotonic regression finds the scores closest to the original benchmark scores that satisfy every stated relationship, counting each distinct model once. Contradicting sets are pooled to their mean, = requires equal target scores, and an unresolved pair adds no constraint. The other three operators all require the lower model's target not to exceed the upper model's target; their qualitative differences stay visible in the graph rather than becoming invented numerical distances.
 
-Let $S_g$ be the original :score[Intelligence] of base model $g$ at its highest-scoring effort, and let $S^{\text{TMB}}_g$ and $S^{\text{Slop}}_g$ be its targets from the two graphs. Both projections start from the same original scores. A model absent from a graph uses $S_g$ as that graph's target, contributing no movement; missing influence is not redistributed. With Slop weight $w=0.5$, the blended difference is:
+Both projections start from the same original scores: base model $g$ has original :score[Intelligence] $S_g$ at its highest-scoring effort, and the two graphs give it targets $S^{\text{TMB}}_g$ and $S^{\text{Slop}}_g$. A model absent from a graph uses $S_g$ as that graph's target, contributing no movement; missing influence is not redistributed. With Slop weight $w=0.5$, the blended difference is:
 
 $$
 \Delta_g=(1-w)(S^{\text{TMB}}_g-S_g)+w(S^{\text{Slop}}_g-S_g).
