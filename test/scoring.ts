@@ -227,7 +227,6 @@ assert.deepEqual(
     "automation_bench",
     "briefcase",
     "critpt",
-    "deep_swe",
     "frontier_code",
     "gdp_pdf",
     "gdpval_normalized",
@@ -401,15 +400,15 @@ assertEqual(aaOnlyValueTooltip.includes("15.0%"), true);
 const mixedResourceMetadata = buildCurrentModelAtlasMetadata({
   models: [
     {
-      benchmarks: { hle: 0.9, deep_swe: 0.8 },
+      benchmarks: { hle: 0.9, agents_last_exam: 0.8 },
     },
   ],
   resourceModels: [
     {
-      benchmarks: { hle: 0.9, deep_swe: 0.8 },
+      benchmarks: { hle: 0.9, agents_last_exam: 0.8 },
       task_metrics: {
         hle: { cost: 0.1, seconds: 10 },
-        deep_swe: { cost: 0.2, seconds: 20 },
+        agents_last_exam: { cost: 0.2, seconds: 20 },
       },
     },
   ],
@@ -426,15 +425,15 @@ assertEqual(mixedValueTooltip.includes("35.0%"), true);
 const tokenProxyResourceMetadata = buildCurrentModelAtlasMetadata({
   models: [
     {
-      benchmarks: { deep_swe: 0.8 },
+      benchmarks: { agents_last_exam: 0.8 },
     },
   ],
   resourceModels: [
     {
-      benchmarks: { deep_swe: 0.8 },
+      benchmarks: { agents_last_exam: 0.8 },
       speed: { throughput_tokens_per_second_median: 50 },
       task_metrics: {
-        deep_swe: { cost: 0.2, output_tokens: 1_000 },
+        agents_last_exam: { cost: 0.2, output_tokens: 1_000 },
       },
     },
   ],
@@ -443,7 +442,7 @@ const tokenProxyResourceMetadata = buildCurrentModelAtlasMetadata({
 });
 assertEqual(
   JSON.stringify(tokenProxyResourceMetadata.scoring.column_tooltips.speed).includes(
-    "DeepSWE runtime",
+    "Agents' Last Exam runtime",
   ),
   true,
 );
@@ -511,18 +510,18 @@ const tokenProxySpeedModels = attachFinalScores(
   [
     modelCandidate({
       id: "test/token-proxy-fast",
-      deepSWEScore: 0.9,
-      deepSWECost: 1,
-      deepSWEOutputTokens: 1_000,
+      agentsLastExamScore: 0.9,
+      agentsLastExamCost: 1,
+      agentsLastExamOutputTokens: 1_000,
       throughputTokensPerSecond: 100,
       latencySeconds: 1,
       disableBaseCost: true,
     }),
     modelCandidate({
       id: "test/token-proxy-slow",
-      deepSWEScore: 0.8,
-      deepSWECost: 1,
-      deepSWEOutputTokens: 1_000,
+      agentsLastExamScore: 0.8,
+      agentsLastExamCost: 1,
+      agentsLastExamOutputTokens: 1_000,
       throughputTokensPerSecond: 10,
       latencySeconds: 1,
       disableBaseCost: true,
@@ -886,25 +885,25 @@ const directResourceScoredModels = attachFinalScores(
   [
     modelCandidate({
       id: "test/frontier-efficient",
-      deepSWEScore: 0.9,
-      deepSWECost: 0.1,
-      deepSWESeconds: 90,
+      agentsLastExamScore: 0.9,
+      agentsLastExamCost: 0.1,
+      agentsLastExamSeconds: 90,
       throughputTokensPerSecond: 100,
       latencySeconds: 1,
     }),
     modelCandidate({
       id: "test/frontier-middle",
-      deepSWEScore: 0.5,
-      deepSWECost: 0.5,
-      deepSWESeconds: 50,
+      agentsLastExamScore: 0.5,
+      agentsLastExamCost: 0.5,
+      agentsLastExamSeconds: 50,
       throughputTokensPerSecond: 100,
       latencySeconds: 1,
     }),
     modelCandidate({
       id: "test/frontier-fast",
-      deepSWEScore: 0.1,
-      deepSWECost: 0.9,
-      deepSWESeconds: 10,
+      agentsLastExamScore: 0.1,
+      agentsLastExamCost: 0.9,
+      agentsLastExamSeconds: 10,
       throughputTokensPerSecond: 100,
       latencySeconds: 1,
     }),
@@ -1021,26 +1020,26 @@ const isolatedQualityResourceModels = attachFinalScores(
   [
     modelCandidate({
       id: "test/ordinary-quality-a",
-      deepSWEScore: 0.1,
-      deepSWECost: 1,
+      agentsLastExamScore: 0.1,
+      agentsLastExamCost: 1,
       disableBaseCost: true,
     }),
     modelCandidate({
       id: "test/ordinary-quality-b",
-      deepSWEScore: 0.2,
-      deepSWECost: 1,
+      agentsLastExamScore: 0.2,
+      agentsLastExamCost: 1,
       disableBaseCost: true,
     }),
     modelCandidate({
       id: "test/ordinary-quality-c",
-      deepSWEScore: 0.3,
-      deepSWECost: 1,
+      agentsLastExamScore: 0.3,
+      agentsLastExamCost: 1,
       disableBaseCost: true,
     }),
     modelCandidate({
       id: "test/isolated-expensive-frontier",
-      deepSWEScore: 0.99,
-      deepSWECost: 1_000,
+      agentsLastExamScore: 0.99,
+      agentsLastExamCost: 1_000,
       disableBaseCost: true,
     }),
   ],
@@ -1078,20 +1077,20 @@ const valueScoredModels = attachFinalScores(
   [
     modelCandidate({
       id: "test/cost-efficiency-cheap",
-      deepSWEScore: 0.5,
-      deepSWECost: 0.1,
+      agentsLastExamScore: 0.5,
+      agentsLastExamCost: 0.1,
       disableBaseCost: true,
     }),
     modelCandidate({
       id: "test/cost-efficiency-middle",
-      deepSWEScore: 0.5,
-      deepSWECost: 0.5,
+      agentsLastExamScore: 0.5,
+      agentsLastExamCost: 0.5,
       disableBaseCost: true,
     }),
     modelCandidate({
       id: "test/cost-efficiency-expensive",
-      deepSWEScore: 0.5,
-      deepSWECost: 0.9,
+      agentsLastExamScore: 0.5,
+      agentsLastExamCost: 0.9,
       disableBaseCost: true,
     }),
   ],
@@ -1168,12 +1167,12 @@ const sparseResourceCoverageModels = attachFinalScores(
       benchmarks: {
         gdpval_normalized: 0.5,
         hle: 0.5,
-        deep_swe: 0.5,
+        agents_last_exam: 0.5,
       },
       task_metrics: {
         gdpval_normalized: { seconds: 10, cost: 1 },
         hle: { seconds: 10, cost: 1 },
-        deep_swe: { seconds: 10, cost: 1 },
+        agents_last_exam: { seconds: 10, cost: 1 },
       },
     },
     {
@@ -1945,10 +1944,10 @@ function modelCandidate(options: {
   blendedPrice?: number | null;
   artificialAnalysisCost?: number | null;
   artificialAnalysisSeconds?: number | null;
-  deepSWEScore?: number | null;
-  deepSWECost?: number | null;
-  deepSWESeconds?: number | null;
-  deepSWEOutputTokens?: number | null;
+  agentsLastExamScore?: number | null;
+  agentsLastExamCost?: number | null;
+  agentsLastExamSeconds?: number | null;
+  agentsLastExamOutputTokens?: number | null;
   throughputTokensPerSecond?: number | null;
   latencySeconds?: number | null;
   gdpvalScore?: number | null;
@@ -1965,7 +1964,9 @@ function modelCandidate(options: {
         };
   const benchmarks = {
     ...(options.gdpvalScore == null ? {} : { gdpval_normalized: options.gdpvalScore }),
-    ...(options.deepSWEScore == null ? {} : { deep_swe: options.deepSWEScore }),
+    ...(options.agentsLastExamScore == null
+      ? {}
+      : { agents_last_exam: options.agentsLastExamScore }),
   };
   return {
     id: options.id,
@@ -1998,10 +1999,10 @@ function modelCandidate(options: {
         cost: options.artificialAnalysisCost,
         seconds: options.artificialAnalysisSeconds,
       },
-      deep_swe: {
-        cost: options.deepSWECost,
-        seconds: options.deepSWESeconds,
-        output_tokens: options.deepSWEOutputTokens,
+      agents_last_exam: {
+        cost: options.agentsLastExamCost,
+        seconds: options.agentsLastExamSeconds,
+        output_tokens: options.agentsLastExamOutputTokens,
       },
       ...(gdpvalTask == null ? {} : { gdpval_normalized: gdpvalTask }),
     },
@@ -2303,9 +2304,9 @@ function resourceModel(
       id: `test/resource-model-${modelKey}`,
       intelligenceScore: 50,
       agenticScore: 50,
-      deepSWEScore: 0.5,
-      deepSWECost: resourceScale,
-      deepSWESeconds: resourceScale * 10,
+      agentsLastExamScore: 0.5,
+      agentsLastExamCost: resourceScale,
+      agentsLastExamSeconds: resourceScale * 10,
       throughputTokensPerSecond: 100,
       latencySeconds: 1,
       disableBaseCost: true,
@@ -2404,8 +2405,8 @@ const tokenAmounts = [1, 10, 100, 1000, 10000];
 const tokenModels = tokenAmounts.map((tokens, index) =>
   modelCandidate({
     id: `test/token-${index}`,
-    deepSWEScore: index === 0 ? 0.7 : index === 4 ? 0.704 : 0.702,
-    deepSWEOutputTokens: tokens,
+    agentsLastExamScore: index === 0 ? 0.7 : index === 4 ? 0.704 : 0.702,
+    agentsLastExamOutputTokens: tokens,
   }),
 );
 const tokenCoordinates = tokenModels.map(() => 0.7);
@@ -2440,8 +2441,8 @@ assert.deepEqual(
 
 const tokenConfig: ScoringConfig = {
   ...STAGE_CONFIG.scoring,
-  intelligenceBenchmarkKeys: ["deep_swe"],
-  agenticBenchmarkKeys: ["deep_swe"],
+  intelligenceBenchmarkKeys: ["agents_last_exam"],
+  agenticBenchmarkKeys: ["agents_last_exam"],
   // Isolate token modulation from sparse-evidence regularization in this one-task fixture.
   qualityCoverage: {
     intelligence: { floor: 0, full: 0.1 },
@@ -2492,15 +2493,15 @@ for (const [index, expected] of [0, midpointScore, midpointScore, midpointScore,
 function separatedTokenModels(sourceBScale: number): ModelAtlasCandidate[] {
   return tokenModels.map((model, index) => ({
     ...model,
-    benchmarks: { source_split: model.benchmarks?.deep_swe ?? null },
+    benchmarks: { source_split: model.benchmarks?.agents_last_exam ?? null },
     scoring_sources: {
       source_split: {
-        canonical_value: model.benchmarks?.deep_swe ?? null,
+        canonical_value: model.benchmarks?.agents_last_exam ?? null,
         metadata: {
           source_a_label: "Official",
           source_b_label: "Publisher",
-          source_a_score: model.benchmarks?.deep_swe ?? null,
-          source_b_score: model.benchmarks?.deep_swe ?? null,
+          source_a_score: model.benchmarks?.agents_last_exam ?? null,
+          source_b_score: model.benchmarks?.agents_last_exam ?? null,
           source_a_tokens_per_task: tokenAmounts[index]!,
           source_b_tokens_per_task: tokenAmounts[index]! * sourceBScale,
           fusion_tokens_per_task_comparable: false,
@@ -2549,7 +2550,7 @@ assert.deepEqual(tokenAgenticScores(sparseTokens), neutralTokenScores);
 const flatInputOutputTokens = tokenModels.map((model, index) => ({
   ...model,
   task_metrics: {
-    deep_swe: {
+    agents_last_exam: {
       input_tokens: 10000 - tokenAmounts[index]!,
       output_tokens: tokenAmounts[index]!,
       tokens: tokenAmounts[index]!,
@@ -2559,7 +2560,7 @@ const flatInputOutputTokens = tokenModels.map((model, index) => ({
 assert.deepEqual(tokenAgenticScores(flatInputOutputTokens), neutralTokenScores);
 const flatTotalTokens = tokenModels.map((model, index) => ({
   ...model,
-  task_metrics: { deep_swe: { output_tokens: tokenAmounts[index]!, tokens: 10000 } },
+  task_metrics: { agents_last_exam: { output_tokens: tokenAmounts[index]!, tokens: 10000 } },
 }));
 assert.deepEqual(tokenAgenticScores(flatTotalTokens), neutralTokenScores);
 
@@ -2572,7 +2573,7 @@ assert.deepEqual(
 const duplicateTokenRows = [
   ...tokenModels,
   missingTokenDuplicate,
-  { ...tokenModels[1]!, task_metrics: { deep_swe: { output_tokens: 1000 } } },
+  { ...tokenModels[1]!, task_metrics: { agents_last_exam: { output_tokens: 1000 } } },
 ];
 const duplicateTokenScores = tokenAgenticScores(duplicateTokenRows);
 assert(duplicateTokenScores[1]! > duplicateTokenScores.at(-1)!);
@@ -2595,7 +2596,7 @@ const estimatedTokenContext = (evidenceFactor: number) =>
     byVariant: new Map([
       [
         tokenEstimateKey,
-        new Map([["deep_swe", { output_tokens: { amount: 10, evidenceFactor } }]]),
+        new Map([["agents_last_exam", { output_tokens: { amount: 10, evidenceFactor } }]]),
       ],
     ]),
   });

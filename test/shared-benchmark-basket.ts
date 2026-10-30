@@ -205,7 +205,6 @@ const graphKeys = [
   "arc_agi_2",
   "frontier_code",
   "automation_bench",
-  "deep_swe",
   "arc_agi_3",
   "aa_intelligence_index",
   "epoch_capabilities_index",

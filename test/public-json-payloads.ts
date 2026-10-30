@@ -440,7 +440,7 @@ const fullPayload = minimalModelAtlasPayload({
           seconds: 2,
           output_tokens: 3,
         },
-        deep_swe: {
+        frontier_code: {
           cost: 3,
           seconds: 4,
           output_tokens: 5,
@@ -448,23 +448,23 @@ const fullPayload = minimalModelAtlasPayload({
       },
       benchmarks: {
         gpqa: 0.9,
-        deep_swe: 0.6,
+        frontier_code: 0.6,
       },
       benchmark_dates: {
         gpqa: "2026-07-30",
-        deep_swe: "2026-07-31",
+        frontier_code: "2026-07-31",
       },
     },
   ],
 });
-fullPayload.metadata.scoring.selected_benchmark_keys = ["gpqa", "deep_swe"];
+fullPayload.metadata.scoring.selected_benchmark_keys = ["gpqa", "frontier_code"];
 fullPayload.metadata.scoring.benchmark_portfolio = {
   gpqa: {
     group: "baseline",
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
-  deep_swe: {
+  frontier_code: {
     group: "frontier",
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0, agentic: 1 },
@@ -482,9 +482,9 @@ const methodology = scorePayload.methodology;
 assert.ok(typeof methodology === "string" && methodology.length > 0);
 
 assert.equal(
-  "deep_swe" in fullJson,
+  "frontier_code" in fullJson,
   false,
-  "the full public view should not expose raw DeepSWE source rows",
+  "the full public view should not expose raw FrontierCode source rows",
 );
 assert.equal(scorePayload.schema, "model_atlas.score");
 assert.equal(scorePayload.score_scale, "relative_0_100");
@@ -556,8 +556,8 @@ assert.deepEqual(fullJsonModel?.confidence, {
   value: 1,
 });
 assert.equal(fullJsonModel?.reasoning_effort, null);
-assert.equal(fullJsonModel?.benchmarks?.deep_swe, 0.6);
-assert.deepEqual(fullJsonModel?.task_metrics?.deep_swe, {
+assert.equal(fullJsonModel?.benchmarks?.frontier_code, 0.6);
+assert.deepEqual(fullJsonModel?.task_metrics?.frontier_code, {
   cost: 3,
   seconds: 4,
   output_tokens: 5,
@@ -578,11 +578,11 @@ assert.deepEqual(benchmarksModel, {
   provider: null,
   benchmarks: {
     gpqa: 0.9,
-    deep_swe: 0.6,
+    frontier_code: 0.6,
   },
   benchmark_dates: {
     gpqa: "2026-07-30",
-    deep_swe: "2026-07-31",
+    frontier_code: "2026-07-31",
   },
 });
 

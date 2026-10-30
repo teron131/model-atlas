@@ -17,12 +17,6 @@ const BENCHMARK_PER_TASK_RESOURCE = {
   tokenMeasure: "tokens",
 } as const satisfies BenchmarkResourcePolicy;
 
-const BENCHMARK_OUTPUT_PER_TASK_RESOURCE = {
-  source: "benchmark",
-  unit: "per_task",
-  tokenMeasure: "output_tokens",
-} as const satisfies BenchmarkResourcePolicy;
-
 export const BENCHMARK_SCORING_WEIGHTS = {
   aa_intelligence_index: INDEX_SCORING_WEIGHT,
   agents_last_exam: {
@@ -125,11 +119,6 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     group: "frontier",
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
-  },
-  deep_swe: {
-    group: "frontier",
-    benchmarkImportance: 1,
-    dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
   },
   ebr_bench: {
     group: "frontier",
@@ -337,7 +326,6 @@ export const BENCHMARK_RESOURCE_POLICIES = {
   automation_bench: BENCHMARK_PER_TASK_RESOURCE,
   briefcase: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
   critpt: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
-  deep_swe: BENCHMARK_OUTPUT_PER_TASK_RESOURCE,
   frontier_code: BENCHMARK_PER_TASK_RESOURCE,
   gdp_pdf: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
   gdpval_normalized: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,

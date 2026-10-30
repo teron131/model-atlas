@@ -212,14 +212,6 @@ export const BENCHMARK_TOOLTIPS = {
       ["Role", "clinical judgment and deliverable completion"],
     ],
   },
-  deep_swe: {
-    title: "DeepSWE",
-    body: "Solve original engineering tasks by inspecting, editing, and testing open-source repositories.",
-    rows: [
-      ["Source", "DeepSWE leaderboard"],
-      ["Role", "repository software engineering"],
-    ],
-  },
   ebr_bench: {
     title: "EBR-Bench",
     body: "Learn an unfamiliar strategy game through repeated play and persistent notes.",
@@ -613,7 +605,6 @@ export const BENCHMARK_LABELS = {
   critpt: "CritPt",
   dayjob_finance: "DAYJOB: Finance",
   dayjob_healthcare: "DAYJOB: Healthcare",
-  deep_swe: "DeepSWE",
   ebr_bench: "EBR-Bench",
   emb: "EMB",
   enigmaeval: "EnigmaEval",
@@ -678,7 +669,6 @@ const FRONTIER_BENCHMARK_DISPLAY_ORDER = [
   "critpt",
   "dayjob_finance",
   "dayjob_healthcare",
-  "deep_swe",
   "ebr_bench",
   "emb",
   "enigmaeval",
@@ -882,50 +872,6 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
       metric: "tokens",
       direction: "ascending",
       label: "Crit Tok",
-    },
-  ],
-  deep_swe: [
-    {
-      key: "deepSWECost",
-      metric: "cost",
-      direction: "ascending",
-      label: "DSWE$",
-      tooltip: {
-        title: "DeepSWE cost per task ↓",
-        body: "Mean cost for one DeepSWE task.",
-        details: [
-          ["Source", "DeepSWE leaderboard"],
-          ["Metric", "mean cost per task"],
-        ],
-      },
-    },
-    {
-      key: "deepSWESeconds",
-      metric: "seconds",
-      direction: "ascending",
-      label: "DSWE Sec",
-      tooltip: {
-        title: "DeepSWE seconds per task ↓",
-        body: "Mean runtime for one DeepSWE task.",
-        details: [
-          ["Source", "DeepSWE leaderboard"],
-          ["Metric", "mean runtime per task"],
-        ],
-      },
-    },
-    {
-      key: "deepSWETokens",
-      metric: "output_tokens",
-      direction: "descending",
-      label: "DSWE Tok",
-      tooltip: {
-        title: "DeepSWE output tokens per task",
-        body: "Mean output tokens for one DeepSWE task.",
-        details: [
-          ["Source", "DeepSWE leaderboard"],
-          ["Metric", "mean output tokens per task"],
-        ],
-      },
     },
   ],
   frontier_code: [
@@ -1311,12 +1257,6 @@ export const BENCHMARK_COLUMNS = {
   dayjob_healthcare: {
     key: "dayjobHealthcare",
     label: "DayHealth",
-    format: "percent",
-    defaultSort: "descending",
-  },
-  deep_swe: {
-    key: "deepSWE",
-    label: "DSWE",
     format: "percent",
     defaultSort: "descending",
   },

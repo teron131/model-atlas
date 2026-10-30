@@ -1235,10 +1235,6 @@ function modelStatsSourceData(
     complexConstraints: { rows: [], rowsByModelName: new Map() },
     dayjobFinance: { rows: [], rowsByModelName: new Map() },
     dayjobHealthcare: { rows: [], rowsByModelName: new Map() },
-    deepSWE: {
-      rows: [],
-      rowsByModelName: new Map(),
-    },
     ebrBench: { rows: [], rowsByModelName: new Map() },
     emb: { rows: [], rowsByModelName: new Map() },
     enigmaeval: { rows: [], rowsByModelName: new Map() },

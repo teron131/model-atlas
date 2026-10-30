@@ -18,10 +18,6 @@ import {
   mergeArtificialAnalysisRow,
 } from "../src/model-atlas/sources/artificial-analysis/snapshot";
 import {
-  type DeepSWERawLeaderboardRow,
-  preferredDeepSWELeaderboardRows,
-} from "../src/model-atlas/sources/deep-swe/leaderboard";
-import {
   frontierCodeVersion,
   processFrontierCodePayload,
 } from "../src/model-atlas/sources/frontier-code/leaderboard";
@@ -485,30 +481,3 @@ for (const subsets of [{ main: 100 }, { main: 132, extended: 150 }]) {
     "An artifact with another subset layout yields no rows",
   );
 }
-
-const deepSWERow = (
-  source_version: DeepSWERawLeaderboardRow["source_version"],
-  model: string,
-): DeepSWERawLeaderboardRow => ({
-  model,
-  reasoning_effort: "max",
-  config: null,
-  pass_at_1: 0.7,
-  ci_lo: null,
-  ci_hi: null,
-  ci_half: null,
-  n_tasks_attempted: 113,
-  mean_cost_usd: 2,
-  mean_duration_seconds: null,
-  mean_output_tokens: 1_000,
-  source_version,
-});
-assert.deepEqual(
-  preferredDeepSWELeaderboardRows([
-    deepSWERow("v1", "shared-model"),
-    deepSWERow("v1.1", "shared-model"),
-    deepSWERow("v1", "older-only-model"),
-  ]).map((row) => row.model),
-  ["shared-model"],
-  "DeepSWE scores only its newest artifact instead of filling gaps from the previous version",
-);

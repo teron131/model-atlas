@@ -50,7 +50,6 @@ export type BenchmarkAssignmentLookups = BenchmarkObservationLookups & {
   agentsLastExam: Pick<ModelAtlasSourceData["agentsLastExam"], "rowsByModelName">;
   aleBench: Pick<ModelAtlasSourceData["aleBench"], "rowsByModelName">;
   blueprintBench: Pick<ModelAtlasSourceData["blueprintBench"], "rowsByModelName">;
-  deepSWE: Pick<ModelAtlasSourceData["deepSWE"], "rowsByModelName">;
   frontierCode: Pick<ModelAtlasSourceData["frontierCode"], "rowsByModelName">;
   riemannBench: Pick<ModelAtlasSourceData["riemannBench"], "rowsByModelName">;
   terminalBench4: Pick<ModelAtlasSourceData["terminalBench4"], "rowsByModelName">;
@@ -252,15 +251,6 @@ const addAleBench: StandaloneBenchmarkOperation = ({ assignedBenchmarks, lookups
   }
 };
 
-/** Attach quality and resources from the same exact DeepSWE effort observation. */
-const addDeepSWE: StandaloneBenchmarkOperation = ({ assignedBenchmarks, lookups, ...context }) => {
-  const row = context.resolveSourceRow(lookups.deepSWE.rowsByModelName);
-  if (row != null) {
-    assignedBenchmarks.benchmarks.deep_swe = row.pass_at_1;
-    assignedBenchmarks.scoringSources.deep_swe = row;
-  }
-};
-
 /** Adds FrontierCode only when the effort-matched source row is eligible for general-model scoring. */
 const addFrontierCode: StandaloneBenchmarkOperation = ({
   assignedBenchmarks,
@@ -335,16 +325,6 @@ const STANDALONE_BENCHMARK_ADAPTERS = {
         assignedBenchmarks.benchmarks.blueprint_bench_2 = score;
       }
     },
-  },
-  deep_swe: {
-    defaultVariant: ({ assignedBenchmarks, lookups, modelNameCandidates }) => {
-      const row = findSourceRow(modelNameCandidates, lookups.deepSWE.rowsByModelName);
-      if (row != null) {
-        assignedBenchmarks.benchmarks.deep_swe = row.pass_at_1;
-        assignedBenchmarks.scoringSources.deep_swe = row;
-      }
-    },
-    observation: addDeepSWE,
   },
   frontier_code: {
     defaultVariant: addFrontierCode,

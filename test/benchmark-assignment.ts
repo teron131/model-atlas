@@ -22,26 +22,11 @@ import { dropStaleReplacementBenchmarks } from "../src/model-atlas/pipeline/sele
 import type { AleBenchModelScoreRow } from "../src/model-atlas/sources/ale-bench/leaderboard";
 import type { ArenaAgentModelScoreRow } from "../src/model-atlas/sources/arena/agent";
 import type { ArtificialAnalysisBenchmarkResourceRow } from "../src/model-atlas/sources/artificial-analysis/benchmark-resources";
-import { buildDeepSWEMap } from "../src/model-atlas/sources/deep-swe/leaderboard";
 import type { FrontierCodeModelEffortRow } from "../src/model-atlas/sources/frontier-code/leaderboard";
 import type { TerminalBench4ModelHarnessRow } from "../src/model-atlas/sources/terminal-bench-4/leaderboard";
 import { buildValsIndexMap } from "../src/model-atlas/sources/vals/index-benchmark";
 import type { VendingBench2ModelScoreRow } from "../src/model-atlas/sources/vending-bench-2/leaderboard";
 
-const deepSWERow = {
-  base_model: "Example Model Preview",
-  model: "Example Model Preview",
-  reasoning_effort: null,
-  config: null,
-  pass_at_1: 0.72,
-  ci_lo: null,
-  ci_hi: null,
-  ci_half: null,
-  n_tasks_attempted: 113,
-  mean_cost_usd: 4.2,
-  mean_duration_seconds: 300,
-  mean_output_tokens: 12_000,
-};
 const arenaAgentRow: ArenaAgentModelScoreRow = {
   source_url: "https://arena.ai/leaderboard/agent",
   observed_at: null,
@@ -270,9 +255,6 @@ const lookups = {
   complexConstraints: { rowsByModelName: emptyLookup() },
   dayjobFinance: { rowsByModelName: emptyLookup() },
   dayjobHealthcare: { rowsByModelName: emptyLookup() },
-  deepSWE: {
-    rowsByModelName: new Map([["example-model-preview", deepSWERow]]),
-  },
   ebrBench: { rowsByModelName: new Map() },
   emb: { rowsByModelName: emptyLookup() },
   enigmaeval: { rowsByModelName: emptyLookup() },
@@ -332,13 +314,11 @@ assert.deepEqual(observationAssignment.benchmarks, {
   ale_bench: 700,
   analyst_agent: 0.5,
   briefcase: 0.5,
-  deep_swe: 0.72,
   frontier_code: 0.535,
   hle: 0.4,
   terminal_bench_4: 0.4353,
   vending_bench_2: 9_000,
 });
-assert.equal((observationAssignment.benchmarks as Record<string, unknown>).deep_swe, 0.72);
 assert.equal((observationAssignment.benchmarks as Record<string, unknown>).arc_agi_3, undefined);
 
 const effortObservationAssignment = buildObservationBenchmarks(
@@ -419,7 +399,6 @@ assert.deepEqual(defaultVariantAssignment.benchmarks, {
   automation_bench: 0.3044,
   briefcase: 0.5,
   chartography: 0.47,
-  deep_swe: 0.72,
   frontier_code: 0.535,
   hle: 0.4,
   terminal_bench_4: 0.4353,
@@ -434,7 +413,6 @@ assert.deepEqual(defaultVariantAssignment.scoringSources, {
   automation_bench: automationBenchRow,
   briefcase: briefcaseResourceRow,
   chartography: chartographyRow,
-  deep_swe: deepSWERow,
   frontier_code: frontierCodeRow,
   hle: artificialAnalysisHleResourceRow,
   terminal_bench_4: terminalBench4Row,
@@ -510,11 +488,6 @@ assert.deepEqual(buildTaskMetrics(null, defaultVariantAssignment.scoringSources)
   frontier_code: {
     cost: 0.75,
     tokens: 4_500,
-  },
-  deep_swe: {
-    cost: 4.2,
-    seconds: 300,
-    output_tokens: 12000,
   },
   hle: {
     cost: 0.02,
@@ -684,7 +657,7 @@ const versionedLuna = versionCandidateBenchmarkData(
     id: "openai/gpt-5.6-luna",
     reasoning_effort: "max",
     task_metrics: {
-      deep_swe: {
+      agents_last_exam: {
         cost: 4.2,
         seconds: 300,
         output_tokens: 12_000,
@@ -695,7 +668,7 @@ const versionedLuna = versionCandidateBenchmarkData(
       },
     },
     benchmarks: {
-      deep_swe: 0.72,
+      agents_last_exam: 0.72,
       terminal_bench_science: 0.52,
     },
   } as ModelAtlasCandidate,
@@ -703,7 +676,7 @@ const versionedLuna = versionCandidateBenchmarkData(
     id: "openai/gpt-5.6-luna",
     reasoning_effort: "max",
     task_metrics: {
-      deep_swe: {
+      agents_last_exam: {
         cost: 4.2,
         seconds: 300,
         output_tokens: 12_000,
@@ -714,7 +687,7 @@ const versionedLuna = versionCandidateBenchmarkData(
       },
     },
     benchmarks: {
-      deep_swe: 0.72,
+      agents_last_exam: 0.72,
       terminal_bench_science: 0.5,
       vending_bench_2: 4_094.712,
     },
@@ -728,13 +701,13 @@ const versionedLuna = versionCandidateBenchmarkData(
 assert.deepEqual(
   versionedLuna.benchmark_dates,
   {
-    deep_swe: "2026-07-30",
+    agents_last_exam: "2026-07-30",
     terminal_bench_science: "2026-07-31",
   },
   "unchanged benchmark values should retain the seeded date while changed values advance",
 );
 assert.deepEqual(
-  versionedLuna.task_metrics?.deep_swe,
+  versionedLuna.task_metrics?.agents_last_exam,
   {
     cost: 0.8400000000000001,
     observed_cost: 4.2,
@@ -762,7 +735,7 @@ const lunaVersionLog = buildBenchmarkVersionLogRows(
       id: "openai/gpt-5.6-luna",
       reasoning_effort: "max",
       task_metrics: {
-        deep_swe: {
+        agents_last_exam: {
           cost: 4.2,
           seconds: 300,
           output_tokens: 12_000,
@@ -773,7 +746,7 @@ const lunaVersionLog = buildBenchmarkVersionLogRows(
         },
       },
       benchmarks: {
-        deep_swe: 0.72,
+        agents_last_exam: 0.72,
         vending_bench_2: 4_094.712,
       },
       benchmark_dates: null,
@@ -958,32 +931,6 @@ assert.equal(
 function emptyLookup(): Map<string, never> {
   return new Map<string, never>();
 }
-
-// DeepSWE retains exact lower efforts and their own resource measurements.
-const deepEffortRows = [
-  { ...deepSWERow, reasoning_effort: "low", pass_at_1: 0.5, mean_cost_usd: 1 },
-  { ...deepSWERow, reasoning_effort: "max", pass_at_1: 0.7, mean_cost_usd: 5 },
-];
-const deepEffortLookups = {
-  ...lookups,
-  deepSWE: { rowsByModelName: buildDeepSWEMap(deepEffortRows) },
-};
-for (const row of deepEffortRows) {
-  const assigned = buildObservationBenchmarks(
-    [row.model],
-    deepEffortLookups,
-    {},
-    row.reasoning_effort,
-  );
-  assert.equal(assigned.benchmarks.deep_swe, row.pass_at_1);
-  assert.equal(buildTaskMetrics(null, assigned.scoringSources)?.deep_swe?.cost, row.mean_cost_usd);
-}
-assert.equal(
-  buildObservationBenchmarks([deepSWERow.model], deepEffortLookups, {}, "medium").benchmarks
-    .deep_swe,
-  undefined,
-  "An unreported effort cannot borrow the default observation",
-);
 
 const effortAwareLookups = {
   ...lookups,

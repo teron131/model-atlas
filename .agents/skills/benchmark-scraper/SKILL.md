@@ -116,7 +116,6 @@ After scoring policy is agreed:
 Start with the closest current benchmark implementation rather than inventing a new shape. Useful references commonly include:
 
 - Terminal-Bench-style raw rows plus summarized model rows.
-- DeepSWE-style effort rows and best-effort summarization.
 - AutomationBench-style domain/effort/tie preservation and conservative model matching.
 - Agents' Last Exam-style split/harness handling.
 - BrowseComp-style model-level lookup shape.

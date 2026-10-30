@@ -258,14 +258,6 @@ const STANDALONE_SOURCE_ROW_ADAPTERS = {
       label: row.model,
       value: row.score,
     })),
-  deep_swe: (sourceData) =>
-    benchmarkRowDrafts("deep_swe", sourceData.deepSWE.rows, (row) => ({
-      id: row.model,
-      identity: row.model,
-      label: row.model,
-      reasoningEffort: row.reasoning_effort,
-      value: row.pass_at_1,
-    })),
   frontier_code: (sourceData) =>
     benchmarkRowDrafts(
       "frontier_code",

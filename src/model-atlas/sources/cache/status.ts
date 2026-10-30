@@ -4,7 +4,6 @@ import type { DatabaseSync } from "node:sqlite";
 
 import { asFiniteNumber, asRecord } from "../../runtime";
 import { artificialAnalysisCacheHasDeprecatedRows } from "../artificial-analysis/cache";
-import { DEEP_SWE_PREFERRED_SOURCE_VERSION } from "../deep-swe/leaderboard";
 import { openRouterCacheHasCurrentShape } from "../openrouter/cache";
 import {
   isBenchmarkObservationRawSource,
@@ -59,20 +58,8 @@ function isSourceCacheShapeCurrent(db: DatabaseSync, source: RawSourceName): boo
   if (source === "artificial_analysis") {
     return artificialAnalysisCacheHasDeprecatedRows(db);
   }
-  if (source === "deep_swe") {
-    return hasPreferredDeepSWECacheVersion(db);
-  }
   if (source === "openrouter") {
     return openRouterCacheHasCurrentShape(db);
   }
   return true;
-}
-
-/** Fallback DeepSWE rows remain usable evidence but cannot make the preferred source cache current. */
-function hasPreferredDeepSWECacheVersion(db: DatabaseSync): boolean {
-  return (
-    db
-      .prepare("SELECT 1 FROM deep_swe_raw_rows WHERE source_version = ? LIMIT 1")
-      .get(DEEP_SWE_PREFERRED_SOURCE_VERSION) != null
-  );
 }

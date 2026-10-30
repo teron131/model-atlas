@@ -119,7 +119,6 @@ const STANDALONE_BENCHMARK_PAYLOAD_ROW_GROUPS = {
     "row_index",
     { columns: ["model", "score"] },
   ),
-  deep_swe: payloadRowGroup("deepSWERows", SNAPSHOT_TABLES.deep_swe, "pass_at_1 DESC, row_index"),
   frontier_code: payloadRowGroup("frontierCodeRows", SNAPSHOT_TABLES.frontier_code, "row_index", {
     columns: [
       "model",
