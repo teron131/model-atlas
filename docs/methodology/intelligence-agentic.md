@@ -333,16 +333,16 @@ $$
 \Delta_g=(1-w)(S^{\text{TMB}}_g-S_g)+w(S^{\text{Slop}}_g-S_g).
 $$
 
-Apply the same fraction $r$ to every base model, reducing the 40% pull when any move would exceed five points:
+Apply the same fraction $r$ to every base model, reducing the 50% pull when any move would exceed five points:
 
 $$
 S'_g=S_g+r\Delta_g,\qquad
-r=\min\!\left(0.4,\ \frac{5}{\max_g|\Delta_g|}\right).
+r=\min\!\left(0.5,\ \frac{5}{\max_g|\Delta_g|}\right).
 $$
 
-When every $\Delta_g$ is zero, there is no correction. The uncapped movement is 20% of the distance to each graph's target. Processing order cannot change the result, repeated refreshes do not compound the correction, and identical graphs receive one 40% pull rather than two.
+When every $\Delta_g$ is zero, there is no correction. The uncapped movement is 25% of the distance to each graph's target. Processing order cannot change the result, repeated refreshes do not compound the correction, and identical graphs receive one 50% pull rather than two.
 
-![Illustrative case where both graphs agree: the targets coincide, purple points show the single 40% pull, and unresolved comparisons retain place ranges.](../assets/methodology/community-joint-target.svg)
+![Illustrative case where both graphs agree: the targets coincide, purple points show the single 50% pull, and unresolved comparisons retain place ranges.](../assets/methodology/community-joint-target.svg)
 
 Each projection preserves the sum of the base models' reference scores, as does their weighted blend and shared pull. The corrected reference scores stay within their original range, with no move exceeding five points. Models absent from both graphs keep their scores; an empty graph contributes none of its allocated influence. Every reasoning-effort variant shares its base model's shift.
 
@@ -363,4 +363,4 @@ These values are scoring-policy choices, not fitted claims about model behavior.
 | :score[Agentic] token multiplier | ±15%, reached at two spread units | Limits how much token efficiency can alter benchmark quality before rescaling. |
 | Community index candidates | :score[Intelligence] top 15 released within 60 days | Limits both judgments to recently released leading models that users are actively comparing. The release window does most of the narrowing, so the wider pool keeps a run's field stable when a benchmark refresh moves models near the cutoff, and a fixed day count keeps the window the same length every day. |
 | Community index blend | 50% TMB, 50% Slop | Gives the two judgments equal influence. Because TMB also weighs design, visual quality carries more than half of the combined correction. |
-| Community index pull | 40% toward the blended targets, at most 5 points per model | Shares one correction allowance across overlapping evidence without forcing either final order. |
+| Community index pull | 50% toward the blended targets, at most 5 points per model | A contradicted score lands halfway between its benchmark result and the blended target, so measured results and community judgment count equally; one shared allowance covers overlapping evidence without forcing either final order. |

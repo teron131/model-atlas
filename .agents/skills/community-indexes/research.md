@@ -154,6 +154,7 @@ If access prevents a supportable result, report the missing evidence rather than
 
 Write the ranking JSON from the skill contract with the actual UTC completion `ranked_at` to the second, ending in `Z`.
 Put the TMB chains in `indexes.tmb` and the Slop chains in `indexes.slop`; both arrays share the same `ranked_at`.
+Give every placed model a nickname under `nicknames`, following the skill's naming rule.
 Keep in the log the shared candidate list and `as_of`, the `prompt_version`, the queries and discovery paths, and the dated passages behind consequential claims.
 For each index separately, record each relationship's reasons and sources marked as direct comparison or synthesis, consequential unresolved comparisons, reasons for omitted candidates, and material disagreements.
 When one index has no supported relationship, return an empty array with the evidence gap; when both are unsupported, report the gap without publication.

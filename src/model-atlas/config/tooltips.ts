@@ -32,11 +32,26 @@ type ModelAtlasColumnTooltipSection = {
   rows: readonly ModelAtlasColumnTooltipSectionItem[];
 };
 
+export type ModelAtlasColumnTooltipGraph = {
+  nodes: readonly {
+    id: string;
+    name: string;
+    /** The ranking's nickname for the model, or its name when the ranking has none. */
+    label: string;
+    provider: string | null;
+    place: string;
+  }[];
+  /** Links as stated, so shortcuts that other links already imply can appear. */
+  edges: readonly { from: string; to: string; relation: "=" | "≥" | ">" | "≫" }[];
+};
+
 export type ModelAtlasColumnTooltip = {
   title: string;
   body: string;
   rows?: readonly ModelAtlasColumnTooltipRow[];
   sections?: readonly ModelAtlasColumnTooltipSection[];
+  /** The dashboard draws this in place of `sections`, which keep the same content as text for other readers. */
+  graph?: ModelAtlasColumnTooltipGraph;
 };
 
 export type ModelAtlasColumnTooltips = Record<string, ModelAtlasColumnTooltip>;

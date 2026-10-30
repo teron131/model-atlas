@@ -1,8 +1,8 @@
 /** Ranking submissions edit the authoritative checkpoint and use the benchmark publisher's atomic commit point. */
 
 import {
-  communityCandidateErrors,
   communityCandidates,
+  communitySubmissionErrors,
   parseCommunityRanking,
 } from "../../community/rankings";
 import { insertCommunityRanking, readCommunityRankings } from "../community-rankings";
@@ -41,11 +41,11 @@ export async function submitCommunityRanking(
         try {
           records = readCommunityRankings(db);
           if (!records.some((record) => record.ranked_at === ranking.ranked_at)) {
-            const candidateErrors = communityCandidateErrors(
+            const submissionErrors = communitySubmissionErrors(
               ranking,
               communityCandidates(payload, now.toISOString().slice(0, 10)),
             );
-            if (candidateErrors.length) return { status: 400, body: { errors: candidateErrors } };
+            if (submissionErrors.length) return { status: 400, body: { errors: submissionErrors } };
           }
           status = insertCommunityRanking(db, ranking);
           if (status === "conflict") {

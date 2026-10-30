@@ -12,9 +12,9 @@ import { POST as rankingPOST } from "../app/api/community/rankings/route";
 import { communityPlaceLabel } from "../src/model-atlas/community/catalog";
 import {
   applyCommunityIndexes,
-  communityCandidateErrors,
   communityCandidates,
   type CommunityRanking,
+  communitySubmissionErrors,
   parseCommunityRanking,
 } from "../src/model-atlas/community/rankings";
 import {
@@ -103,6 +103,7 @@ function ranking(overrides: Record<string, unknown> = {}) {
       ],
       slop: [],
     },
+    nicknames: { a: "Alpha", b: "Beta" },
     prompt_version: "situations-1",
     left_out: [{ model_id: "c", reason: "No usable experience yet" }],
     ...overrides,
@@ -113,12 +114,14 @@ function ranking(overrides: Record<string, unknown> = {}) {
 const parsed = parseCommunityRanking(ranking());
 assert.deepEqual(parsed.errors, []);
 assert.deepEqual(parsed.ranking, ranking());
-assert.deepEqual(communityCandidateErrors(parsed.ranking!, candidates), []);
+assert.deepEqual(communitySubmissionErrors(parsed.ranking!, candidates), []);
+// Stored rankings may lack nicknames; only new submissions must carry them.
+assert.deepEqual(parseCommunityRanking(ranking({ nicknames: undefined })).errors, []);
 function problems(overrides: Record<string, unknown>) {
   const { ranking: parsedRanking, errors } = parseCommunityRanking(ranking(overrides));
   return parsedRanking == null
     ? errors
-    : [...errors, ...communityCandidateErrors(parsedRanking, candidates)];
+    : [...errors, ...communitySubmissionErrors(parsedRanking, candidates)];
 }
 // Opposing directions, or an ordered pair that "=" also joins, are conflicts.
 const rejected = [
@@ -157,7 +160,14 @@ const rejected = [
   }),
   ...problems({
     indexes: { tmb: [[{ model_id: "a" }, { relation: ">", model_id: "z" }]], slop: [] },
+    nicknames: { a: "Alpha", z: "Zed" },
   }),
+  ...problems({ nicknames: undefined }),
+  ...problems({ nicknames: ["Alpha", "Beta"] }),
+  ...problems({ nicknames: { a: "Alpha" } }),
+  ...problems({ nicknames: { a: "Alpha", b: "Beta", c: "Gamma" } }),
+  ...problems({ nicknames: { a: "Alpha", b: "Beta Thirteen" } }),
+  ...problems({ nicknames: { a: "Same", b: "Same" } }),
   ...problems({
     indexes: {
       tmb: [
@@ -200,6 +210,12 @@ for (const problem of [
   /indexes\.tmb must be an array/,
   /indexes\.unknown is not a supported community index/,
   /indexes\.slop:.*both above and below/,
+  /nicknames must give every placed model/,
+  /nicknames must be an object/,
+  /nicknames\.b is required/,
+  /nicknames\.c names a model placed in no chain/,
+  /nicknames\.b must be 1 to 12 characters/,
+  /nicknames\.b repeats a's nickname "Same"/,
 ]) {
   assert.ok(
     rejected.some((error) => problem.test(error)),
@@ -240,14 +256,15 @@ const adjusted = applyCommunityIndexes(minimalModelAtlasPayload({ fetchedAt: 1, 
     ],
     slop: [],
   },
+  nicknames: { a: "Alpha", b: "Bravo", c: "Charlie", d: "Delta", e: "Echo" },
 });
 const pooled = (70 + 66 + 72) / 3;
-close(intelligence(adjusted.models, "a"), 81);
-close(intelligence(adjusted.models, "b"), 89);
-close(intelligence(adjusted.models, "b", "low"), 69);
-close(intelligence(adjusted.models, "c"), 70 + 0.2 * (pooled - 70));
-close(intelligence(adjusted.models, "d"), 66 + 0.2 * (pooled - 66));
-close(intelligence(adjusted.models, "e"), 72 + 0.2 * (pooled - 72));
+close(intelligence(adjusted.models, "a"), 81.25);
+close(intelligence(adjusted.models, "b"), 88.75);
+close(intelligence(adjusted.models, "b", "low"), 68.75);
+close(intelligence(adjusted.models, "c"), 70 + 0.25 * (pooled - 70));
+close(intelligence(adjusted.models, "d"), 66 + 0.25 * (pooled - 66));
+close(intelligence(adjusted.models, "e"), 72 + 0.25 * (pooled - 72));
 assert.equal(intelligence(adjusted.models, "unranked"), 60);
 assert.deepEqual(
   adjusted.models
@@ -258,6 +275,27 @@ assert.deepEqual(
         : communityPlaceLabel(entry.community_indexes?.tmb),
     ),
   ["#1", "#2", "#3", "#3", "#5", null],
+);
+assert.deepEqual(adjusted.metadata.scoring.column_tooltips.tmbIndex?.graph?.edges, [
+  { from: "a", to: "b", relation: ">" },
+  { from: "b", to: "c", relation: "≥" },
+  { from: "c", to: "d", relation: "=" },
+  { from: "d", to: "e", relation: "≫" },
+]);
+assert.deepEqual(
+  adjusted.metadata.scoring.column_tooltips.tmbIndex?.graph?.nodes.map((node) => [
+    node.id,
+    node.name,
+    node.label,
+    node.place,
+  ]),
+  [
+    ["a", "A", "Alpha", "#1"],
+    ["b", "B", "Bravo", "#2"],
+    ["c", "C", "Charlie", "#3"],
+    ["d", "D", "Delta", "#3"],
+    ["e", "E", "Echo", "#5"],
+  ],
 );
 assert.deepEqual(adjusted.metadata.scoring.column_tooltips.tmbIndex?.sections?.[0]?.rows, [
   {
@@ -272,7 +310,7 @@ assert.deepEqual(adjusted.metadata.scoring.column_tooltips.tmbIndex?.sections?.[
   },
 ]);
 
-// Missing Slop contributes zero; TMB's 6-point movement is capped at five.
+// Missing Slop contributes zero; TMB's 7.5-point movement is capped at five.
 const capped = applyCommunityIndexes(
   minimalModelAtlasPayload({
     fetchedAt: 1,
@@ -321,10 +359,10 @@ const partial = applyCommunityIndexes(partialPayload, {
   ranked_at: "2026-10-19T05:00:00Z",
   indexes: { tmb: [abc, bd], slop: [] },
 });
-close(intelligence(partial.models, "a"), 81);
+close(intelligence(partial.models, "a"), 81.25);
 close(intelligence(partial.models, "b"), 85);
 close(intelligence(partial.models, "c"), 70);
-close(intelligence(partial.models, "d"), 89);
+close(intelligence(partial.models, "d"), 88.75);
 assert.deepEqual(
   partial.models.map((entry) => communityPlaceLabel(entry.community_indexes!.tmb!)),
   ["#1", "#2", "#3–4", "#3–4"],
@@ -420,11 +458,15 @@ const dualRanking = {
 // Different directions across indexes are valid: each answers a different question.
 assert.deepEqual(parseCommunityRanking(dualRanking).errors, []);
 const dual = applyCommunityIndexes(dualPayload, dualRanking);
+// A ranking without nicknames labels its graph with full names.
+for (const node of dual.metadata.scoring.column_tooltips.tmbIndex!.graph!.nodes) {
+  assert.equal(node.label, node.name);
+}
 // TMB targets 90/90/90, Slop targets 92/92/86, both calculated from 94/90/86.
 for (const [id, expected] of [
-  ["a", 92.8],
-  ["b", 90.4],
-  ["c", 86.8],
+  ["a", 92.5],
+  ["b", 90.5],
+  ["c", 87],
 ] as const) {
   close(intelligence(dual.models, id), expected);
 }
@@ -452,21 +494,21 @@ for (const [index, entry] of dual.models.entries()) {
   assert.equal(entry.scores.value_score, dualPayload.models[index]!.scores.value_score);
 }
 
-// Identical graphs use the one 40% allowance rather than doubling the correction.
+// Identical graphs use the one 50% allowance rather than doubling the correction.
 const same = applyCommunityIndexes(dualPayload, {
   ...dualRanking,
   indexes: { ...dualRanking.indexes, slop: dualRanking.indexes.tmb },
 });
-close(intelligence(same.models, "a"), 92.4);
-close(intelligence(same.models, "c"), 87.6);
+close(intelligence(same.models, "a"), 92);
+close(intelligence(same.models, "c"), 88);
 
 // A model absent from one graph gets only the other graph's allocated influence.
 const slopOnly = applyCommunityIndexes(dualPayload, {
   ...dualRanking,
   indexes: { ...dualRanking.indexes, tmb: [] },
 });
-close(intelligence(slopOnly.models, "a"), 93.6);
-close(intelligence(slopOnly.models, "b"), 90.4);
+close(intelligence(slopOnly.models, "a"), 93.5);
+close(intelligence(slopOnly.models, "b"), 90.5);
 assert.equal(slopOnly.models[0]!.community_indexes?.tmb, undefined);
 assert.equal(slopOnly.metadata.scoring.column_tooltips.tmbIndex, undefined);
 assert.deepEqual(
@@ -496,9 +538,9 @@ const opposed = applyCommunityIndexes(dualPayload, {
     ],
   },
 });
-close(intelligence(opposed.models, "a"), 93.6);
+close(intelligence(opposed.models, "a"), 93.5);
 close(intelligence(opposed.models, "b"), 90);
-close(intelligence(opposed.models, "c"), 86.4);
+close(intelligence(opposed.models, "c"), 86.5);
 close(total(opposed.models), total(dualPayload.models));
 
 // A larger field checks the shared cap and conservation even when graphs disagree.
@@ -705,7 +747,7 @@ try {
     assert.equal(await readCommunityRanking("unknown"), null);
     assert.equal(await readCommunityRanking("2026-10-18T00:00:00Z"), null);
     const display = await readDisplayPayload();
-    close(intelligence(display.models, "a"), 92.8);
+    close(intelligence(display.models, "a"), 92.5);
     assert.equal(display.models[0]!.community_indexes?.slop?.best, 2);
     assert.equal(display.metadata.scoring.column_tooltips.slopIndex?.title, "Slop Index");
     assert.equal(

@@ -43,7 +43,7 @@ Research produces qualitative comparisons, never numerical ratings, distances, c
 Candidates are the unadjusted Intelligence top 15 of the current benchmark snapshot, then only releases from the 60 days ending at `as_of` (today, UTC), with no backfill.
 A submission is checked against the candidates current when it arrives; if a benchmark refresh or the moving window changed them, the error names the model that no longer qualifies.
 Fetch the candidates again just before submitting.
-Remove only the relationships of a placed model that no longer qualifies and record them in the run log as withdrawn findings; account for a newly qualifying model as omitted because it entered after research.
+Remove only the relationships and nickname of a placed model that no longer qualifies and record them in the run log as withdrawn findings; account for a newly qualifying model as omitted because it entered after research.
 Models are sorted by id, with no scores or earlier index order supplied to the researcher.
 
 ## Ranking contract
@@ -54,6 +54,7 @@ Models are sorted by id, with no scores or earlier index order supplied to the r
 | --- | --- |
 | `ranked_at` | Actual UTC completion time to the second, like `2026-10-19T05:00:00Z`; not in the future. It is the ranking's version and id. |
 | `indexes` | Object with `tmb` and `slop` graphs, each an array of strongest-to-weakest chains containing at least two entries. |
+| `nicknames` | Object mapping every `model_id` placed in either index to the label its header-card graph draws: unique within the ranking and at most 12 characters. |
 
 Both `indexes.tmb` and `indexes.slop` are required.
 An array may be empty when that index has no supported relationship; record the evidence gap and do not fabricate one.
@@ -67,11 +68,12 @@ For example, a run can publish different directions under the two standards:
   "indexes": {
     "tmb": [[{ "model_id": "A" }, { "model_id": "B", "relation": ">" }]],
     "slop": [[{ "model_id": "B" }, { "model_id": "A", "relation": "≥" }]]
-  }
+  },
+  "nicknames": { "A": "A", "B": "B" }
 }
 ```
 
-Replace the illustrative A and B with candidate IDs.
+Replace the illustrative A and B with candidate IDs and their nicknames.
 Each chain entry has a candidate `model_id` and a `relation` to the entry immediately above it.
 The first entry has no relation; subsequent entries use `=`, `≥`, `>`, or `≫`.
 A model occurs at most once within a chain and may occur in multiple chains to connect supported relationships.
@@ -81,7 +83,11 @@ For example, the chains `A > B > C` and `B > D` place D below A and B while leav
 The backend rejects conflicting directions within either graph, including an ordered pair that `=` also joins.
 Different directions between the two indexes are allowed because they answer different questions; never merge their edges into one graph.
 
-These two fields are the site's ranking contract; `/api/community` carries the shared record.
+Nicknames keep the header-card graph narrow; its hover, the inequality text, and the table keep full names.
+Give each placed model the shortest name people commonly use for it that no other placed model shares.
+Keep a version where people say it or where it tells two placed models apart, and drop the maker or family when the rest stays unambiguous: `Claude Opus 5.5` becomes `Opus 5.5`, and `GPT-6.1 Sol` beside `GPT-6 Sol` becomes `6.1 Sol` and `6 Sol`.
+
+These three fields are the site's ranking contract; `/api/community` carries the shared record.
 Everything else, such as `as_of`, candidates, `prompt_version`, relationship reasons and sources, unresolved comparisons, and why candidates were omitted, remains in the stored ranking verbatim as the run log.
 Account for every candidate separately for each index: included in at least one inequality, or omitted with a reason because no comparative placement is supported.
 
@@ -91,7 +97,7 @@ The backend solves each graph independently from the same original Intelligence 
 Only `=` requires equal target scores; `≥`, `>`, and `≫` all constrain the lower model's target not to exceed the upper model's target.
 Their qualitative differences remain visible in the inequalities rather than becoming numerical distances.
 Unknown comparisons add no constraint; they do not mean equality, last place, or exemption from other supported relationships.
-The targets are blended equally, 50% TMB and 50% Slop, then one shared 40% pull and five-point movement cap apply.
+The targets are blended equally, 50% TMB and 50% Slop, then one shared 50% pull and five-point movement cap apply.
 A model absent from one graph uses its original score as that graph's target; missing influence is not redistributed.
 The agent never calculates the correction or applies one index after the other.
 The backend never invents a complete order: the table shows the place a model's relationships fix, or the range they leave open, such as `#3–4`.
