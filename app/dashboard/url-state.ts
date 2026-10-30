@@ -32,7 +32,7 @@ export type DashboardUrlState = {
   days: RecencyFilter;
   "column-q": string;
   "table-variants": boolean;
-  /** The reasoning efforts the leaderboard's variant rows keep, `default` naming a model's one unlabelled setting; `null` keeps every effort. */
+  /** The reasoning efforts the leaderboard's variant rows keep; `null` keeps every effort. */
   "table-effort": string[] | null;
   "graph-variants": boolean;
   "timeline-view": "models" | "labs";

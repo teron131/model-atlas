@@ -32,12 +32,18 @@ export type DisplayControlsProps = {
   efforts: EffortSelectProps;
 };
 
+/** `default` shows one row per model; otherwise the rows are the chosen efforts' reasoning variants, `null` choosing every effort. */
+export type EffortSelection = "default" | string[] | null;
+
 type EffortSelectProps = {
   options: readonly EffortChoice[];
-  /** `null` keeps every effort; an empty basket keeps none. */
-  selected: readonly string[] | null;
-  onChange: (keys: string[] | null) => void;
+  modelCount: number;
+  selected: EffortSelection;
+  onChange: (selection: EffortSelection) => void;
 };
+
+const DEFAULT_TITLE =
+  "One row per model: its strongest effort, with other efforts' direct results filling its gaps";
 
 /** Commit a typed count on Enter or blur so editing a multi-digit value does not prematurely clamp its first digit. */
 export function DisplayControls({
@@ -86,28 +92,53 @@ export function DisplayControls({
   );
 }
 
-/** The variant rows' efforts as a checklist; choosing every effort reports `null`, so efforts that later enter the options stay chosen. */
-function EffortSelect({ options, selected, onChange }: EffortSelectProps) {
+/**
+ * `default` above an effort checklist, the two exclusive: ticking an effort leaves default, and unticking the last returns to it.
+ * Choosing every effort reports `null`, so efforts that later enter the options stay chosen.
+ */
+function EffortSelect({ options, modelCount, selected, onChange }: EffortSelectProps) {
   const rootRef = useRef<HTMLDetailsElement>(null);
   const bulkRef = useRef<HTMLInputElement>(null);
   useDismissibleDetails(rootRef);
   const keys = options.map((option) => option.key);
-  const active = new Set(selected ?? keys);
+  const active = new Set(selected === "default" ? [] : (selected ?? keys));
   const all = keys.length > 0 && keys.every((key) => active.has(key));
   const some = keys.some((key) => active.has(key));
   useEffect(() => {
     if (bulkRef.current) bulkRef.current.indeterminate = !all && some;
   }, [all, some]);
+  const choose = (chosen: string[]) =>
+    onChange(chosen.length === 0 ? "default" : chosen.length === keys.length ? null : chosen);
   const summary =
-    selected == null ? "All" : selected.length === 1 ? selected[0] : String(selected.length);
+    selected === "default"
+      ? "default"
+      : selected == null
+        ? "All"
+        : selected.length === 1
+          ? selected[0]
+          : String(selected.length);
   return (
     <details ref={rootRef} className={`${basket.benchmarkSelect} ${styles.effort}`}>
       <summary
-        aria-label={`Reasoning efforts: ${selected == null ? "all" : selected.join(", ") || "none"}`}
+        aria-label={`Reasoning efforts: ${selected === "default" ? "default, one row per model" : selected == null ? "all" : selected.join(", ") || "none"}`}
       >
         Effort · {summary}
       </summary>
       <div className={`${basket.benchmarkSelectMenu} ${styles.effortMenu}`}>
+        <label
+          className={`${basket.benchmarkSelectOption} ${styles.effortRow} ${styles.defaultRow}`}
+          title={DEFAULT_TITLE}
+        >
+          <input
+            type="radio"
+            aria-label="default: one row per model"
+            checked={selected === "default"}
+            onChange={() => onChange("default")}
+          />
+          <span className={basket.benchmarkSelectOptionMark} aria-hidden="true" />
+          <span className={basket.benchmarkSelectOptionLabel}>default</span>
+          <span className={basket.benchmarkSelectOptionCoverage}>{modelCount} models</span>
+        </label>
         <div className={basket.benchmarkSelectOptions}>
           <div className={`${basket.benchmarkSelectHeader} ${styles.effortRow}`}>
             <label className={basket.benchmarkSelectBulk}>
@@ -116,7 +147,7 @@ function EffortSelect({ options, selected, onChange }: EffortSelectProps) {
                 type="checkbox"
                 aria-label="All efforts"
                 checked={all}
-                onChange={() => onChange(all ? [] : null)}
+                onChange={() => choose(all ? [] : keys)}
               />
               <span className={basket.benchmarkSelectBulkMark} aria-hidden="true" />
             </label>
@@ -132,13 +163,13 @@ function EffortSelect({ options, selected, onChange }: EffortSelectProps) {
                 type="checkbox"
                 aria-label={option.key}
                 checked={active.has(option.key)}
-                onChange={(event) => {
-                  const next = new Set(active);
-                  if (event.target.checked) next.add(option.key);
-                  else next.delete(option.key);
-                  const chosen = keys.filter((key) => next.has(key));
-                  onChange(chosen.length === keys.length ? null : chosen);
-                }}
+                onChange={(event) =>
+                  choose(
+                    keys.filter((key) =>
+                      key === option.key ? event.target.checked : active.has(key),
+                    ),
+                  )
+                }
               />
               <span className={basket.benchmarkSelectOptionMark} aria-hidden="true" />
               <span className={basket.benchmarkSelectOptionLabel}>{option.key}</span>

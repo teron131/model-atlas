@@ -21,12 +21,11 @@ import {
   tooltipPositionFromElement,
   type TooltipState,
 } from "./table/ColumnTooltip";
-import { useDisplayLimit } from "./table/DisplayControls";
+import { type EffortSelection, useDisplayLimit } from "./table/DisplayControls";
 import { LeaderboardControls } from "./table/LeaderboardControls";
 import {
   effortChoices,
   leaderboardRows,
-  rowEffort,
   sortedRows,
   type SortKey,
   type TableColumnKey,
@@ -98,31 +97,34 @@ export function DashboardLeaderboard({
     () => filterByGlobalModelFilters(tableRows, (row) => row.model, deferredFilters, filterScope),
     [tableRows, deferredFilters, filterScope],
   );
-  // Efforts narrow reasoning-variant rows only; collapsed rows carry no effort.
-  const efforts = deferredShowVariants ? deferredEfforts : null;
+  // Variant rows keep the chosen efforts, every effort when `null`; a model without an effort label shows only in the default view.
   const scopedRows = useMemo(
     () =>
-      efforts == null
-        ? filteredRows
-        : filteredRows.filter((row) => efforts.includes(rowEffort(row.model))),
-    [filteredRows, efforts],
+      deferredShowVariants
+        ? filteredRows.filter(
+            ({ model }) =>
+              model.reasoning_effort != null &&
+              (deferredEfforts?.includes(model.reasoning_effort) ?? true),
+          )
+        : filteredRows,
+    [filteredRows, deferredShowVariants, deferredEfforts],
   );
-  const expandedTableRows = useMemo(() => leaderboardRows(payload, true), [payload]);
-  // The effort checklist counts every variant the global filters admit, whichever efforts are chosen.
-  const effortOptions = useMemo(
+  // The effort menu counts both views the global filters admit, whichever one the table shows.
+  const otherViewRows = useMemo(
     () =>
-      effortChoices(
-        deferredShowVariants
-          ? filteredRows
-          : filterByGlobalModelFilters(
-              expandedTableRows,
-              (row) => row.model,
-              deferredFilters,
-              filterScope,
-            ),
+      filterByGlobalModelFilters(
+        leaderboardRows(payload, !deferredShowVariants),
+        (row) => row.model,
+        deferredFilters,
+        filterScope,
       ),
-    [deferredShowVariants, filteredRows, expandedTableRows, deferredFilters, filterScope],
+    [payload, deferredShowVariants, deferredFilters, filterScope],
   );
+  const effortOptions = useMemo(
+    () => effortChoices(deferredShowVariants ? filteredRows : otherViewRows),
+    [deferredShowVariants, filteredRows, otherViewRows],
+  );
+  const modelCount = deferredShowVariants ? otherViewRows.length : filteredRows.length;
   const matchingRows = useMemo(
     () =>
       sortedRows(scopedRows, {
@@ -325,7 +327,8 @@ export function DashboardLeaderboard({
             onValueChange: setLimit,
             efforts: {
               options: effortOptions,
-              selected: showVariants ? requestedEfforts : null,
+              modelCount,
+              selected: showVariants ? requestedEfforts : "default",
               onChange: chooseEfforts,
             },
           }}
@@ -363,6 +366,10 @@ export function DashboardLeaderboard({
 }
 
 // Choosing efforts asks for reasoning-variant rows, so a collapsed table expands to show them.
-function chooseEfforts(efforts: string[] | null) {
-  updateDashboardUrl({ "table-variants": true, "table-effort": efforts });
+function chooseEfforts(selection: EffortSelection) {
+  updateDashboardUrl(
+    selection === "default"
+      ? { "table-variants": false }
+      : { "table-variants": true, "table-effort": selection },
+  );
 }
