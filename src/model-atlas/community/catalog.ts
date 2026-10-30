@@ -8,7 +8,7 @@ export const COMMUNITY_INDEXES = [
     title: "Trust Me Bro Index",
     description:
       "Overall practical capability, judged from people's substantive work with these models.",
-    weight: 0.75,
+    weight: 0.5,
   },
   {
     key: "slop",
@@ -17,7 +17,7 @@ export const COMMUNITY_INDEXES = [
     title: "Slop Index",
     description:
       "Quality of websites, interfaces, and 2D or 3D visual work created by these models, including design and coherent behavior.",
-    weight: 0.25,
+    weight: 0.5,
   },
 ] as const;
 

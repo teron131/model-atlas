@@ -56,7 +56,7 @@ Do not claim to have visually inspected an output from its transcript alone.
 
 Use YouTube and Reddit only: video passages, creators' experiences, audience comments and replies, original posts, and comments.
 Web search may discover these sources, but outside articles, X, Hacker News, and benchmark or leaderboard rankings are not evidence, and a leaderboard conclusion repeated in a video or post remains a leaderboard conclusion.
-Retain only sources published in the two calendar months ending at the supplied `as_of` date; verify and record original publication dates, and exclude older parent threads and videos together with their newer replies.
+Retain only sources published in the 60 days ending at the supplied `as_of` date; verify and record original publication dates, and exclude older parent threads and videos together with their newer replies.
 
 Give deliberate attention to these verified channels, inspecting their uploads through the source window and their later follow-ups as well as launch reviews:
 
@@ -92,6 +92,7 @@ Finish when additional reading mainly repeats the represented impressions and di
 Open promising discussions rather than stopping at search excerpts, and read substantive replies, corrections, and follow-ups, including prominent and recent replies and those favoring the other model.
 Preserve the difference between a general judgment and an account of one unusual task, and the reported exposure: a few chats, repeated tasks in one project, and sustained use across projects are different kinds of experience.
 Preserve the scope of each claim: comparable results, sufficient capability for someone's work, better value, and greater overall capability are different assessments.
+A remark about a model the source did not test or show in that comparison is recollection, not a direct comparison; weigh it as that person's general impression.
 Treat several posts or videos from one person as an evolving view when the versions, question, and context are comparable, and keep both scopes when they are not; recency alone does not let a narrow assessment replace a broader one or one person's opinion supersede others'.
 Record relevant effort, harness, help supplied, and corrections without inventing explanations for inconvenient outcomes, and label private outcomes as reported.
 Prefer assessments grounded in meaningful use, including research, analysis, technical documents, and difficult work beyond coding, and state when coverage is developer-heavy or concentrated in a few people's projects.

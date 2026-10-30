@@ -319,15 +319,15 @@ $$
 
 ### Trust Me Bro and Slop Indexes
 
-The Trust Me Bro and Slop Indexes adjust :score[Intelligence] where people's experience contradicts the benchmark order. TMB expresses overall practical capability across substantive work, including design. Slop focuses on the quality of websites, interfaces, and 2D or 3D visual work created by models. Human judgments of taste, composition, and coherent behavior can reveal differences the benchmark basket misses. The indexes share one bounded correction, with 75% allocated to TMB and 25% to Slop.
+The Trust Me Bro and Slop Indexes adjust :score[Intelligence] where people's experience contradicts the benchmark order. TMB expresses overall practical capability across substantive work, including design. Slop focuses on the quality of websites, interfaces, and 2D or 3D visual work created by models. Human judgments of taste, composition, and coherent behavior can reveal differences the benchmark basket misses. The indexes share one bounded correction, split equally between TMB and Slop.
 
-Both indexes consider the ten highest unadjusted :score[Intelligence] models, retaining only releases from the preceding two calendar months. One research run reads Reddit and YouTube sources from the same window and forms a separate judgment for each index. Sustained practical experience drives TMB; the quality of the visual result drives Slop. Benchmark rankings and preferences driven by cost or speed do not determine either order.
+Both indexes consider the 15 highest unadjusted :score[Intelligence] models, retaining only releases from the preceding 60 days. One research run reads Reddit and YouTube sources from the same window and forms a separate judgment for each index. Sustained practical experience drives TMB; the quality of the visual result drives Slop. Benchmark rankings and preferences driven by cost or speed do not determine either order.
 
 Each judgment is a graph expressed as one or more compatible inequalities. Links use = for comparable, ≥ for a close preference with comparable standing plausible, > for a clear preference, and ≫ for a large perceived gap. Uncertainty leaves a relationship unspecified rather than becoming equality or last place. A model may appear in several chains: A > B > C and B > D place D below A and B while leaving C versus D unresolved. Each graph must be internally consistent, but the two indexes can prefer different models. The table shows exact places or ranges such as #3–4 independently for each index, with = models sharing a place. One immutable completion timestamp versions both graphs and their evidence together; the newest record is active.
 
 For each graph separately, isotonic regression finds the scores closest to the original benchmark scores that satisfy every stated relationship, counting each distinct model once. Contradicting sets are pooled to their mean, = requires equal target scores, and an unresolved pair adds no constraint. The other three operators all require the lower model's target not to exceed the upper model's target; their qualitative differences stay visible in the graph rather than becoming invented numerical distances.
 
-Let $S_g$ be the original :score[Intelligence] of base model $g$ at its highest-scoring effort, and let $S^{\text{TMB}}_g$ and $S^{\text{Slop}}_g$ be its targets from the two graphs. Both projections start from the same original scores. A model absent from a graph uses $S_g$ as that graph's target, contributing no movement; missing influence is not redistributed. With Slop weight $w=0.25$, the blended difference is:
+Let $S_g$ be the original :score[Intelligence] of base model $g$ at its highest-scoring effort, and let $S^{\text{TMB}}_g$ and $S^{\text{Slop}}_g$ be its targets from the two graphs. Both projections start from the same original scores. A model absent from a graph uses $S_g$ as that graph's target, contributing no movement; missing influence is not redistributed. With Slop weight $w=0.5$, the blended difference is:
 
 $$
 \Delta_g=(1-w)(S^{\text{TMB}}_g-S_g)+w(S^{\text{Slop}}_g-S_g).
@@ -340,7 +340,7 @@ S'_g=S_g+r\Delta_g,\qquad
 r=\min\!\left(0.4,\ \frac{5}{\max_g|\Delta_g|}\right).
 $$
 
-When every $\Delta_g$ is zero, there is no correction. The uncapped movement is 30% of the distance to the TMB target plus 10% of the distance to the Slop target. Processing order cannot change the result, repeated refreshes do not compound the correction, and identical graphs receive one 40% pull rather than two.
+When every $\Delta_g$ is zero, there is no correction. The uncapped movement is 20% of the distance to each graph's target. Processing order cannot change the result, repeated refreshes do not compound the correction, and identical graphs receive one 40% pull rather than two.
 
 ![Illustrative case where both graphs agree: the targets coincide, purple points show the single 40% pull, and unresolved comparisons retain place ranges.](../assets/methodology/community-joint-target.svg)
 
@@ -361,6 +361,6 @@ These values are scoring-policy choices, not fitted claims about model behavior.
 | Aggregate-index breadth | Represented benchmark count after exact known overlap deductions | Gives broad indexes influence in proportion to their published evidence while counting known direct and cross-index overlap once. |
 | ECI breadth | 8, the median fixed-index breadth | ECI publishes no fixed benchmark basket, so it uses a typical breadth instead of a count that varies by model. |
 | :score[Agentic] token multiplier | ±15%, reached at two spread units | Limits how much token efficiency can alter benchmark quality before rescaling. |
-| Community index candidates | :score[Intelligence] top 10 released within two calendar months | Limits both judgments to recently released leading models that users are actively comparing. |
-| Community index blend | 75% TMB, 25% Slop | Keeps overall practical capability dominant while giving visual quality explicit influence. |
+| Community index candidates | :score[Intelligence] top 15 released within 60 days | Limits both judgments to recently released leading models that users are actively comparing. The release window does most of the narrowing, so the wider pool keeps a run's field stable when a benchmark refresh moves models near the cutoff, and a fixed day count keeps the window the same length every day. |
+| Community index blend | 50% TMB, 50% Slop | Gives the two judgments equal influence. Because TMB also weighs design, visual quality carries more than half of the combined correction. |
 | Community index pull | 40% toward the blended targets, at most 5 points per model | Shares one correction allowance across overlapping evidence without forcing either final order. |
