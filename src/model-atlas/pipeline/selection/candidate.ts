@@ -283,20 +283,10 @@ function buildSourceMetrics(source: unknown): ModelAtlasTaskMetricValues | null 
   const row = asRecord(source);
   const cost =
     firstFiniteNumber(row.cost, row.cost_per_task, row.cost_per_task_usd) ??
-    minimumFiniteNumber(
-      row.median_cost_usd_per_task,
-      row.mean_cost_usd_per_task,
-      row.median_cost_usd,
-      row.mean_cost_usd,
-    );
+    minimumFiniteNumber(row.median_cost_usd_per_task, row.mean_cost_usd_per_task);
   const seconds =
     firstFiniteNumber(row.seconds_per_task, row.duration_seconds_per_task) ??
-    minimumFiniteNumber(
-      row.median_duration_seconds_per_task,
-      row.mean_duration_seconds_per_task,
-      row.median_duration_seconds,
-      row.mean_duration_seconds,
-    );
+    minimumFiniteNumber(row.median_duration_seconds_per_task, row.mean_duration_seconds_per_task);
   const tokens =
     firstFiniteNumber(row.tokens_per_task) ??
     minimumFiniteNumber(row.median_tokens_per_task, row.mean_tokens_per_task);
@@ -305,12 +295,7 @@ function buildSourceMetrics(source: unknown): ModelAtlasTaskMetricValues | null 
     minimumFiniteNumber(row.median_input_tokens_per_task, row.mean_input_tokens_per_task);
   const outputTokens =
     firstFiniteNumber(row.output_tokens_per_task) ??
-    minimumFiniteNumber(
-      row.median_output_tokens_per_task,
-      row.mean_output_tokens_per_task,
-      row.median_output_tokens,
-      row.mean_output_tokens,
-    );
+    minimumFiniteNumber(row.median_output_tokens_per_task, row.mean_output_tokens_per_task);
   const taskMetrics: ModelAtlasTaskMetricValues = {
     ...(cost != null && cost >= 0 ? { cost } : {}),
     ...(seconds != null && seconds >= 0 ? { seconds } : {}),

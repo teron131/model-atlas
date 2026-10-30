@@ -619,16 +619,6 @@ export const BENCHMARK_EXTENDED_SOURCES = {
       },
     ],
   },
-  deep_swe: {
-    inputs: [
-      {
-        group: "standalone",
-        id: "deep_swe",
-        roles: ["observation", "resource"],
-        runtime: { key: "deep_swe", publicRows: true },
-      },
-    ],
-  },
   frontier_code: {
     revision: "2.0",
     inputs: [

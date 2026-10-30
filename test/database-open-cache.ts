@@ -18,20 +18,9 @@ import {
 } from "../src/model-atlas/database/schema-reconciliation";
 import { readDatabasePayload } from "../src/model-atlas/database/sqlite-payload";
 import { readRawSourceCacheStatus } from "../src/model-atlas/sources/cache/status";
-import { readDeepSWERawCache } from "../src/model-atlas/sources/deep-swe/runtime";
 import { readTerminalBench4RawCache } from "../src/model-atlas/sources/terminal-bench-4/runtime";
 
 const databasePath = ".cache/test-database-open-cache.sqlite";
-const DEEP_SWE_V1_1_URL = "https://deepswe.datacurve.ai/artifacts/v1.1/leaderboard-live.json";
-const DEEP_SWE_V1_URL = "https://deepswe.datacurve.ai/artifacts/v1/leaderboard-live.json";
-const DEEP_SWE_INSERT_SQL = `
-	INSERT INTO deep_swe_raw_rows (
-		row_index, fetched_at_epoch_seconds, url, source_version,
-		model, reasoning_effort, config, pass_at_1, ci_lo, ci_hi, ci_half,
-		n_tasks_attempted, mean_cost_usd, mean_duration_seconds,
-		mean_output_tokens
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-`;
 
 const schemaSql = await loadSchemaSql();
 assert.equal(
@@ -132,12 +121,12 @@ try {
       .prepare(
         "INSERT INTO model_benchmarks (model_row_index, benchmark_key, value, observed_at) VALUES (?, ?, ?, ?)",
       )
-      .run(0, "deep_swe", 0.7, "2026-07-30");
+      .run(0, "frontier_code", 0.7, "2026-07-30");
     firstDb
       .prepare(
         "INSERT INTO model_task_metrics (model_row_index, source_key, cost, observed_at) VALUES (?, ?, ?, ?)",
       )
-      .run(0, "deep_swe", 2, "2026-07-30");
+      .run(0, "frontier_code", 2, "2026-07-30");
     firstDb
       .prepare(`
 				INSERT INTO benchmark_observation_raw_rows (
@@ -201,25 +190,6 @@ try {
         "Legacy Agent",
         0.4,
         0.03,
-      );
-    firstDb
-      .prepare(DEEP_SWE_INSERT_SQL)
-      .run(
-        0,
-        1_800_000_000,
-        DEEP_SWE_V1_1_URL,
-        "v1.1",
-        "Current DeepSWE Model",
-        "xhigh",
-        null,
-        0.7,
-        null,
-        null,
-        null,
-        113,
-        2,
-        4,
-        6,
       );
   } finally {
     firstDb.close();
@@ -352,65 +322,25 @@ try {
       /new required column new_required_field needs a DEFAULT/,
       "Automatic reconciliation should refuse required columns without a migration value",
     );
-    const deepSWEStatement = reopenedDb.prepare(DEEP_SWE_INSERT_SQL);
-    for (const [fetchedAt, model, score, cost, seconds, outputTokens] of [
-      [1_800_000_010, "Current DeepSWE Model", 0.8, 3, 5, 7],
-    ] as const) {
-      reopenedDb.prepare("DELETE FROM deep_swe_raw_rows").run();
-      deepSWEStatement.run(
-        0,
-        fetchedAt,
-        DEEP_SWE_V1_1_URL,
-        "v1.1",
-        model,
-        "xhigh",
-        null,
-        score,
-        null,
-        null,
-        null,
-        113,
-        cost,
-        seconds,
-        outputTokens,
-      );
-    }
-    const deepSWECache = readDeepSWERawCache(reopenedDb);
-    assert.equal(deepSWECache?.rows[0]?.model, "Current DeepSWE Model");
-    assert.equal(deepSWECache?.rows[0]?.source_version, "v1.1");
-    const deepSWEStatus = readRawSourceCacheStatus(reopenedDb, "deep_swe", 1_800_000_020);
+    reopenedDb
+      .prepare(
+        "INSERT INTO blueprint_bench_2_raw_rows (row_index, fetched_at_epoch_seconds, url, model, score) VALUES (?, ?, ?, ?, ?)",
+      )
+      .run(0, 1_800_000_010, "https://andonlabs.com/evals/blueprint-bench-2", "Current Model", 0.8);
+    const blueprintStatus = readRawSourceCacheStatus(
+      reopenedDb,
+      "blueprint_bench_2",
+      1_800_000_020,
+    );
     assert.equal(
-      deepSWEStatus.source_input_count,
+      blueprintStatus.source_input_count,
       1,
       "source cache status should count the current source rows",
     );
     assert.equal(
-      deepSWEStatus.last_fetch_epoch_seconds,
+      blueprintStatus.last_fetch_epoch_seconds,
       1_800_000_010,
       "source cache status should use the current source timestamp",
-    );
-    reopenedDb.prepare("DELETE FROM deep_swe_raw_rows").run();
-    deepSWEStatement.run(
-      0,
-      1_800_000_020,
-      DEEP_SWE_V1_URL,
-      "v1",
-      "Fallback DeepSWE Model",
-      "xhigh",
-      null,
-      0.6,
-      null,
-      null,
-      null,
-      113,
-      1,
-      3,
-      5,
-    );
-    assert.equal(
-      readRawSourceCacheStatus(reopenedDb, "deep_swe", 1_800_000_030).cache_hit,
-      false,
-      "A fallback-only DeepSWE snapshot should not suppress a v1.1 retry",
     );
     reopenedDb.exec(
       "DELETE FROM snapshot_metadata; INSERT INTO snapshot_metadata (updated_at_epoch_seconds) VALUES (100)",

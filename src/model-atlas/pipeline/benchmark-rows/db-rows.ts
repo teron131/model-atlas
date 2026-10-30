@@ -12,10 +12,6 @@ import {
 import { asFiniteNumber, asNonEmptyString } from "../../runtime";
 import { agentsLastExamBenchmarkScore } from "../../sources/agents-last-exam/leaderboard";
 import { artificialAnalysisBenchmarkResourceRawCacheFromRows } from "../../sources/artificial-analysis/cache";
-import {
-  asDeepSWERawLeaderboardRow,
-  preferredDeepSWELeaderboardRows,
-} from "../../sources/deep-swe/leaderboard";
 import { frontierCodeVersion } from "../../sources/frontier-code/leaderboard";
 import {
   artificialAnalysisResourceDrafts,
@@ -47,7 +43,6 @@ type BenchmarkDbRows = BenchmarkObservationDbRows & {
   agentsLastExamRows: readonly DbBenchmarkRow[];
   aleBenchRows: readonly DbBenchmarkRow[];
   blueprintBenchRows: readonly DbBenchmarkRow[];
-  deepSWERows: readonly DbBenchmarkRow[];
   frontierCodeRows: readonly DbBenchmarkRow[];
   riemannBenchRows: readonly DbBenchmarkRow[];
   terminalBench4Rows: readonly DbBenchmarkRow[];
@@ -153,20 +148,6 @@ const STANDALONE_DB_ROW_ADAPTERS = {
       rows: rows.blueprintBenchRows,
       value: (row) => row.score,
     }),
-  deep_swe: (rows) =>
-    preferredDeepSWELeaderboardRows(
-      rows.deepSWERows.flatMap((row) => {
-        const parsed = asDeepSWERawLeaderboardRow(row);
-        return parsed == null ? [] : [parsed];
-      }),
-    ).map((row) => ({
-      key: "deep_swe",
-      id: row.model,
-      identity: row.model,
-      label: row.model,
-      reasoningEffort: row.reasoning_effort,
-      value: row.pass_at_1,
-    })),
   frontier_code: (rows) =>
     rows.frontierCodeRows.flatMap((row) => {
       const revision = asNonEmptyString(row.revision);

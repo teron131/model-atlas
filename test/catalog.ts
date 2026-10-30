@@ -44,6 +44,7 @@ for (const keys of [
 ]) {
   for (const retiredKey of [
     "cursorbench",
+    "deep_swe",
     "itbench_sre",
     "scicode",
     "proofbench",
