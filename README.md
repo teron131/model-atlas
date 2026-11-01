@@ -1,44 +1,28 @@
 # Model Atlas
 
-Model Atlas compares language models across capability, execution, speed, and cost. Its benchmark portfolio favors difficult, consequential tasks with credible grading and useful separation between current models. Each score answers a different question, so the leaderboard keeps those trade-offs visible.
+Model Atlas turns benchmark results, token use, prices, and runtimes into four separate 0–100 scores for language models. Intelligence and Agentic describe capability; Speed and Value describe resource efficiency, responsiveness, and affordability. Its benchmark portfolio favors difficult, consequential tasks with credible grading that still separate current leading models.
 
-- **Compare similar work.** Agentic includes a bounded adjustment for token efficiency, with discounted estimates where supported. Speed and Value compare resources among models at similar quality, so a cheap or fast result is interpreted alongside what the model achieved.
-- **Keep evidence visible.** Validated estimates can reduce the penalty for missing evidence. They never overwrite observations or count as direct evidence for dashboard inclusion.
-- **Count models fairly.** Each reasoning effort keeps its own results, while a model's variants share one reference weight in calibration. A missing benchmark result can use another effort’s direct result and the measured gap on shared benchmarks, without assuming that higher effort always wins.
+See it live at [llmstats.vercel.app](https://llmstats.vercel.app), or read the same data from the public API at `/api/llm-stats`.
 
-## Scores
-
-The four scores answer different questions:
-
-| Score | Question |
+| Score | What it measures |
 | --- | --- |
-| Intelligence | How well does the model solve difficult problems using knowledge, perception, understanding, abstract reasoning, and judgment? |
-| Agentic | How reliably does the model turn goals and specifications into working results through instruction following, planning, coding, tool use, verification, and recovery? |
-| Speed | How quickly does the model complete work at comparable quality, generate tokens, and begin and finish responses? |
-| Value | How economically does the model deliver comparable-quality work, considering cost per task, token affordability, and price efficiency at comparable capability? |
+| Intelligence | Solving difficult problems using knowledge, perception, understanding, abstract reasoning, and judgment. |
+| Agentic | Reliably turning goals and specifications into working results through instruction following, planning, coding, tool use, verification, and recovery. |
+| Speed | Completing work quickly at comparable quality, with fast token generation, low first-token latency, and short total response times. |
+| Value | Delivering comparable-quality work at lower cost, combining cost per task with token prices assessed for affordability and efficiency at comparable capability. |
 
-Coding benchmarks default to primarily Agentic evidence. Intelligence loading is earned when success requires substantial algorithmic, mathematical, scientific, or research reasoning beyond routine software implementation.
+Every model is scored separately at each reasoning effort, and each model's weight is shared across its efforts, so reporting more efforts gives it no extra say. Sources cover different models, and labs publish only some efforts. A missing result is [estimated from another effort of the same model](docs/methodology/imputation.md#imputation-across-reasoning-efforts), shifted by their gap on shared benchmarks, or from the model's standing on its other benchmarks when held-out tests show that prediction works. Estimates shape scores but never count as direct evidence: a model is listed only once enough of its benchmark results are observed.
 
-## Documentation
+Scores are relative: each benchmark maps its weakest observed result to 0 and its strongest to 100, so 100 means the strongest current result, not perfect task completion. Intelligence also draws on head-to-head comparisons on the benchmarks each pair of models shares, and Agentic gives a bounded bonus for using fewer tokens than expected at that quality, or a penalty for using more. Speed and Value compare time and cost per task with [models of similar quality](docs/methodology/speed-value.md#similar-quality-peers), so a cheap model that achieves less does not win Value. All four scores are discounted where evidence is thin, and the [Trust Me Bro and Slop Indexes](docs/methodology/intelligence-agentic.md#trust-me-bro-and-slop-indexes) nudge Intelligence, within a small limit, where community experience contradicts the benchmarks.
 
-| Document | Purpose |
-| --- | --- |
-| [Benchmark standards](docs/standards.md) | Defines how benchmarks are reviewed, admitted, retained, and rejected. |
-| [Benchmark portfolio](docs/benchmarks.md) | Records the selected benchmarks, scoring roles, source policies, weights, and capability decisions. |
-| [Model matching](docs/matching.md) | Explains how source-specific names resolve to stable model identities. |
-| [Methodology](docs/methodology/overview.md) | Specifies the scoring mathematics, imputation, evidence support, score retention, and public admission. |
+The [methodology](docs/methodology/overview.md) explains how the scores are calculated, and the [benchmark portfolio](docs/benchmarks.md) lists the benchmarks behind them.
 
-The source code is authoritative when documentation and implementation disagree. Portfolio decisions live in `src/model-atlas/benchmarks/catalog/portfolio.ts`; benchmark descriptions live in `src/model-atlas/benchmarks/catalog/presentation.ts`. The [methodology article](docs/methodology/overview.md) explains the formulas and the reasons behind the scoring choices.
+![How Model Atlas turns observed results into four scores: every model at every reasoning effort, gaps estimated but never counted as evidence, then two paths to Intelligence and Agentic and to Speed and Value](.github/assets/methodology.svg)
 
-## Development
+[![The Model Atlas dashboard's first screen](.github/assets/hero.jpg)](https://llmstats.vercel.app)
 
-Model Atlas requires Node.js 24 or newer and uses pnpm.
+![The leaderboard's Scores view with the four scores, aggregate indexes, and community index places](.github/assets/leaderboard.jpg)
 
-```sh
-pnpm install
-pnpm dev
-```
+![The Pareto graph of Intelligence against relative task cost, plotting every reasoning-effort variant under the frontier no other model beats on both](.github/assets/pareto.jpg)
 
-Named model profiles save the global search and any additional provider, cost, release, or rank filters in browser storage. Save and Update require at least one matching model; Remove deletes the saved profile while keeping the current filters; loading a profile restores its URL settings without changing the table column search or display choices. Column search uses `column-q`; model search belongs to the global filters. A model sheet is shareable: `model` names the model's published id, and `effort` selects one reasoning variant.
-
-The dashboard is a Next.js application. The package export at `src/model-atlas/index.ts` exposes the public data-building and scoring boundaries used by repository consumers.
+![The Timeline graph of the Intelligence Index by release date, with the frontier across model generations](.github/assets/timeline.jpg)

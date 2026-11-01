@@ -49,6 +49,8 @@ for (const file of files) {
     }
   }
 
+  // The app serves only the docs, so README images, which GitHub shows, need no registration.
+  if (file === "README.md") continue;
   for (const [, source] of text.matchAll(/\]\(([^)\s]+\.svg)\)/g)) {
     const asset = source!.split("/").at(-1)!;
     if (!(METHODOLOGY_ASSET_NAMES as readonly string[]).includes(asset)) {
