@@ -1,0 +1,125 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="600" viewBox="0 0 1240 600" role="img" aria-labelledby="title desc">
+<!--
+Evidence for each part, relative to the repository root:
+- Observed results per model and reasoning effort: docs/methodology/overview.md (Observed inputs), src/model-atlas/identity/matching, src/model-atlas/sources.
+- Estimates from another effort or other benchmarks, never direct evidence: docs/methodology/imputation.md, src/model-atlas/pipeline/scores/imputation.
+- Rescale each benchmark (observed minimum to 0, maximum to 100): docs/methodology/intelligence-agentic.md#benchmark-scores-and-dimension-weights.
+- Intelligence head to head: pairwiseIntelligenceWeight in src/model-atlas/config/stage.ts.
+- Agentic token efficiency: agenticTokenModifierCap in src/model-atlas/config/stage.ts.
+- Pale tops, thin evidence: qualityCoverageMinimumRetention in src/model-atlas/config/stage.ts and the shared coverage multiplier in docs/methodology/speed-value.md.
+- Time and cost per task with provider speed and prices: benchmark/nonBenchmark weights in src/model-atlas/config/stage.ts.
+- Similar-quality peers: docs/methodology/speed-value.md#similar-quality-peers.
+- Community judgment, a bounded nudge to Intelligence: PULL and MAX_MOVE_POINTS in src/model-atlas/community/rankings.ts.
+-->
+<title id="title">How Model Atlas turns observed results into four scores</title>
+<desc id="desc">Observed benchmark results are gathered for every model at every reasoning effort. In the example, Model A at max effort has every result; its high and low efforts miss some, which are estimated from another effort of the same model, and Model B's gap is estimated from its other benchmarks. Model C has too few results, so its gaps stay missing. Estimates never count as direct evidence. Benchmark results are rescaled so the weakest observed result is 0 and the strongest 100, then feed Intelligence, which also draws on head-to-head comparisons on shared benchmarks, and Agentic, which adjusts results within a bound for token efficiency. Time and cost per task, with provider speed and prices, are compared with models of similar quality to give Speed and Value. Every score is discounted where evidence is thin, and the Trust Me Bro and Slop community indexes nudge Intelligence within a small limit.</desc>
+<style>
+.name{font-family:"Schibsted Grotesk","Helvetica Neue",Helvetica,Arial,sans-serif;font-weight:700;font-size:19px;letter-spacing:-0.01em;fill:#151a2d}
+.stop-name{font-size:16px}
+.note{font-family:"Source Serif 4",Georgia,"Times New Roman",serif;font-style:italic;font-size:15px;fill:#4c5468}
+.row{font-family:"Schibsted Grotesk","Helvetica Neue",Helvetica,Arial,sans-serif;font-weight:600;font-size:13.5px;fill:#4c5468}
+.plate{fill:#fafaf7;stroke:#151a2d;stroke-width:1.2}
+.route{fill:none;stroke:#151a2d;stroke-width:4;stroke-linecap:round}
+.feed{fill:none;stroke:#151a2d;stroke-opacity:.45;stroke-width:1.5;stroke-dasharray:3 4;stroke-linecap:round}
+.stop{fill:#fafaf7;stroke:#151a2d;stroke-width:3}
+.joint{fill:#fafaf7;stroke:#151a2d;stroke-width:2}
+.estimate polygon{fill-opacity:.35;stroke:#151a2d;stroke-opacity:.45;stroke-width:1;stroke-dasharray:3 3;stroke-linejoin:round}
+.cap polygon{fill-opacity:.75;stroke:#151a2d;stroke-opacity:.4;stroke-width:1;stroke-dasharray:3 3;stroke-linejoin:round}
+.missing{fill:none;stroke:#80879a;stroke-width:1;stroke-dasharray:3 3}
+.mark{fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+</style>
+<defs>
+  <pattern id="lattice" width="47.63" height="27.5" patternUnits="userSpaceOnUse" x="300" y="150">
+    <g fill="#151a2d" opacity="0.2"><circle cx="0" cy="0" r="1.1"/><circle cx="23.815" cy="13.75" r="1.1"/><circle cx="47.63" cy="0" r="1.1"/><circle cx="0" cy="27.5" r="1.1"/><circle cx="47.63" cy="27.5" r="1.1"/></g>
+  </pattern>
+  <radialGradient id="fade" cx="0.5" cy="0.5" r="0.55"><stop offset="0.35" stop-color="#fff"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+  <mask id="fade-mask"><rect width="1240" height="600" fill="url(#fade)"/></mask>
+</defs>
+<rect width="1240" height="600" rx="14" fill="#fafaf7"/>
+<rect width="1240" height="600" fill="url(#lattice)" mask="url(#fade-mask)"/>
+
+<g id="routes">
+  <path class="route" d="M 447.2 235.0 H 900.0 M 706.0 235.0 L 900.0 123.0"/>
+  <path class="route" d="M 470.0 482.0 H 900.0 M 709.5 482.0 L 900.0 372.0"/>
+  <path class="feed" d="M 830.0 100.5 V 155.4"/>
+  <circle class="joint" cx="706.0" cy="235.0" r="5"/>
+  <circle class="joint" cx="709.5" cy="482.0" r="5"/>
+  <circle class="joint" cx="830.0" cy="163.4" r="5"/>
+</g>
+
+<g id="stops">
+  <circle class="stop" cx="585.0" cy="235.0" r="8"/><text class="name stop-name" x="585.0" y="195.0" text-anchor="middle">Rescale each benchmark</text><text class="note" x="585.0" y="214.0" text-anchor="middle">weakest 0, strongest 100</text>
+  <circle class="stop" cx="600.0" cy="482.0" r="8"/><text class="name stop-name" x="600.0" y="516.0" text-anchor="middle">Similar-quality peers</text><text class="note" x="600.0" y="535.0" text-anchor="middle">time and cost compared</text>
+</g>
+
+<g id="observed-results">
+  <polygon points="123.3,252.0 270.6,337.0 270.6,347.0 123.3,262.0" fill="#dfe1e4"/><polygon points="270.6,337.0 447.2,235.0 447.2,245.0 270.6,347.0" fill="#dfe1e4" opacity="0.82"/><polygon class="plate" points="300.0,150.0 447.2,235.0 270.6,337.0 123.3,252.0"/>
+  <polygon points="300.0,155.0 320.8,143.0 320.8,167.0 300.0,179.0" fill="#1d3fc4"/><polygon points="279.2,143.0 300.0,155.0 300.0,179.0 279.2,167.0" fill="#2449e0"/><polygon points="300.0,131.0 320.8,143.0 300.0,155.0 279.2,143.0" fill="#2e5bff"/>
+    <polygon points="270.6,172.0 291.3,160.0 291.3,184.0 270.6,196.0" fill="#6127d2"/><polygon points="249.8,160.0 270.6,172.0 270.6,196.0 249.8,184.0" fill="#6e3ce5"/><polygon points="270.6,148.0 291.3,160.0 270.6,172.0 249.8,160.0" fill="#8052fe"/>
+    <polygon points="329.4,172.0 350.2,160.0 350.2,184.0 329.4,196.0" fill="#1d3fc4"/><polygon points="308.7,160.0 329.4,172.0 329.4,196.0 308.7,184.0" fill="#2449e0"/><polygon points="329.4,148.0 350.2,160.0 329.4,172.0 308.7,160.0" fill="#2e5bff"/>
+    <polygon points="241.1,189.0 261.9,177.0 261.9,201.0 241.1,213.0" fill="#6127d2"/><polygon points="220.3,177.0 241.1,189.0 241.1,213.0 220.3,201.0" fill="#6e3ce5"/><polygon points="241.1,165.0 261.9,177.0 241.1,189.0 220.3,177.0" fill="#8052fe"/>
+    <polygon points="300.0,189.0 320.8,177.0 320.8,201.0 300.0,213.0" fill="#6127d2"/><polygon points="279.2,177.0 300.0,189.0 300.0,213.0 279.2,201.0" fill="#6e3ce5"/><polygon points="300.0,165.0 320.8,177.0 300.0,189.0 279.2,177.0" fill="#8052fe"/>
+    <polygon points="358.9,189.0 379.7,177.0 379.7,201.0 358.9,213.0" fill="#1d3fc4"/><polygon points="338.1,177.0 358.9,189.0 358.9,213.0 338.1,201.0" fill="#2449e0"/><polygon points="358.9,165.0 379.7,177.0 358.9,189.0 338.1,177.0" fill="#2e5bff"/>
+    <polygon points="211.7,206.0 232.5,194.0 232.5,218.0 211.7,230.0" fill="#8d1ebd"/><polygon points="190.9,194.0 211.7,206.0 211.7,230.0 190.9,218.0" fill="#9f37d1"/><polygon points="211.7,182.0 232.5,194.0 211.7,206.0 190.9,194.0" fill="#b54ce9"/>
+    <polygon points="270.6,206.0 291.3,194.0 291.3,218.0 270.6,230.0" fill="#6127d2"/><polygon points="249.8,194.0 270.6,206.0 270.6,230.0 249.8,218.0" fill="#6e3ce5"/><polygon points="270.6,182.0 291.3,194.0 270.6,206.0 249.8,194.0" fill="#8052fe"/>
+    <polygon points="329.4,206.0 350.2,194.0 350.2,218.0 329.4,230.0" fill="#6127d2"/><polygon points="308.7,194.0 329.4,206.0 329.4,230.0 308.7,218.0" fill="#6e3ce5"/><polygon points="329.4,182.0 350.2,194.0 329.4,206.0 308.7,194.0" fill="#8052fe"/>
+    <polygon points="388.3,206.0 409.1,194.0 409.1,218.0 388.3,230.0" fill="#1d3fc4"/><polygon points="367.5,194.0 388.3,206.0 388.3,230.0 367.5,218.0" fill="#2449e0"/><polygon points="388.3,182.0 409.1,194.0 388.3,206.0 367.5,194.0" fill="#2e5bff"/>
+    <polygon points="182.2,223.0 203.0,211.0 203.0,235.0 182.2,247.0" fill="#b1169b"/><polygon points="161.4,211.0 182.2,223.0 182.2,247.0 161.4,235.0" fill="#c734af"/><polygon points="182.2,199.0 203.0,211.0 182.2,223.0 161.4,211.0" fill="#df4ac6"/>
+    <g class="estimate"><polygon points="241.1,223.0 261.9,211.0 261.9,235.0 241.1,247.0" fill="#b7bcc5"/><polygon points="220.3,211.0 241.1,223.0 241.1,247.0 220.3,235.0" fill="#c9cdd4"/><polygon points="241.1,199.0 261.9,211.0 241.1,223.0 220.3,211.0" fill="#dcdfe4"/></g>
+    <polygon points="300.0,223.0 320.8,211.0 320.8,235.0 300.0,247.0" fill="#6127d2"/><polygon points="279.2,211.0 300.0,223.0 300.0,247.0 279.2,235.0" fill="#6e3ce5"/><polygon points="300.0,199.0 320.8,211.0 300.0,223.0 279.2,211.0" fill="#8052fe"/>
+    <g class="estimate"><polygon points="358.9,223.0 379.7,211.0 379.7,235.0 358.9,247.0" fill="#b7bcc5"/><polygon points="338.1,211.0 358.9,223.0 358.9,247.0 338.1,235.0" fill="#c9cdd4"/><polygon points="358.9,199.0 379.7,211.0 358.9,223.0 338.1,211.0" fill="#dcdfe4"/></g>
+    <polygon points="417.8,223.0 438.6,211.0 438.6,235.0 417.8,247.0" fill="#1d3fc4"/><polygon points="397.0,211.0 417.8,223.0 417.8,247.0 397.0,235.0" fill="#2449e0"/><polygon points="417.8,199.0 438.6,211.0 417.8,223.0 397.0,211.0" fill="#2e5bff"/>
+    <polygon points="152.8,240.0 173.6,228.0 173.6,252.0 152.8,264.0" fill="#c8246f"/><polygon points="132.0,228.0 152.8,240.0 152.8,264.0 132.0,252.0" fill="#e8357f"/><polygon points="152.8,216.0 173.6,228.0 152.8,240.0 132.0,228.0" fill="#ff4f9a"/>
+    <polygon points="211.7,240.0 232.5,228.0 232.5,252.0 211.7,264.0" fill="#b1169b"/><polygon points="190.9,228.0 211.7,240.0 211.7,264.0 190.9,252.0" fill="#c734af"/><polygon points="211.7,216.0 232.5,228.0 211.7,240.0 190.9,228.0" fill="#df4ac6"/>
+    <g class="estimate"><polygon points="270.6,240.0 291.3,228.0 291.3,252.0 270.6,264.0" fill="#b7bcc5"/><polygon points="249.8,228.0 270.6,240.0 270.6,264.0 249.8,252.0" fill="#c9cdd4"/><polygon points="270.6,216.0 291.3,228.0 270.6,240.0 249.8,228.0" fill="#dcdfe4"/></g>
+    <polygon points="329.4,240.0 350.2,228.0 350.2,252.0 329.4,264.0" fill="#6127d2"/><polygon points="308.7,228.0 329.4,240.0 329.4,264.0 308.7,252.0" fill="#6e3ce5"/><polygon points="329.4,216.0 350.2,228.0 329.4,240.0 308.7,228.0" fill="#8052fe"/>
+    <polygon points="388.3,240.0 409.1,228.0 409.1,252.0 388.3,264.0" fill="#6127d2"/><polygon points="367.5,228.0 388.3,240.0 388.3,264.0 367.5,252.0" fill="#6e3ce5"/><polygon points="388.3,216.0 409.1,228.0 388.3,240.0 367.5,228.0" fill="#8052fe"/>
+    <polygon points="182.2,257.0 203.0,245.0 203.0,269.0 182.2,281.0" fill="#c8246f"/><polygon points="161.4,245.0 182.2,257.0 182.2,281.0 161.4,269.0" fill="#e8357f"/><polygon points="182.2,233.0 203.0,245.0 182.2,257.0 161.4,245.0" fill="#ff4f9a"/>
+    <g class="estimate"><polygon points="241.1,257.0 261.9,245.0 261.9,269.0 241.1,281.0" fill="#b7bcc5"/><polygon points="220.3,245.0 241.1,257.0 241.1,281.0 220.3,269.0" fill="#c9cdd4"/><polygon points="241.1,233.0 261.9,245.0 241.1,257.0 220.3,245.0" fill="#dcdfe4"/></g>
+    <polygon points="300.0,257.0 320.8,245.0 320.8,269.0 300.0,281.0" fill="#8d1ebd"/><polygon points="279.2,245.0 300.0,257.0 300.0,281.0 279.2,269.0" fill="#9f37d1"/><polygon points="300.0,233.0 320.8,245.0 300.0,257.0 279.2,245.0" fill="#b54ce9"/>
+    <polygon class="missing" points="358.9,257.0 379.7,269.0 358.9,281.0 338.1,269.0"/>
+    <g class="estimate"><polygon points="211.7,274.0 232.5,262.0 232.5,286.0 211.7,298.0" fill="#b7bcc5"/><polygon points="190.9,262.0 211.7,274.0 211.7,298.0 190.9,286.0" fill="#c9cdd4"/><polygon points="211.7,250.0 232.5,262.0 211.7,274.0 190.9,262.0" fill="#dcdfe4"/></g>
+    <polygon points="270.6,274.0 291.3,262.0 291.3,286.0 270.6,298.0" fill="#b1169b"/><polygon points="249.8,262.0 270.6,274.0 270.6,298.0 249.8,286.0" fill="#c734af"/><polygon points="270.6,250.0 291.3,262.0 270.6,274.0 249.8,262.0" fill="#df4ac6"/>
+    <polygon class="missing" points="329.4,274.0 350.2,286.0 329.4,298.0 308.7,286.0"/>
+    <polygon points="241.1,291.0 261.9,279.0 261.9,303.0 241.1,315.0" fill="#c8246f"/><polygon points="220.3,279.0 241.1,291.0 241.1,315.0 220.3,303.0" fill="#e8357f"/><polygon points="241.1,267.0 261.9,279.0 241.1,291.0 220.3,279.0" fill="#ff4f9a"/>
+    <polygon class="missing" points="300.0,291.0 320.8,303.0 300.0,315.0 279.2,303.0"/>
+    <polygon class="missing" points="270.6,308.0 291.3,320.0 270.6,332.0 249.8,320.0"/>
+  <text class="row" x="112.1" y="280.5" text-anchor="end">Model A · max</text>
+    <text class="row" x="141.5" y="297.5" text-anchor="end">Model A · high</text>
+    <text class="row" x="171.0" y="314.5" text-anchor="end">Model A · low</text>
+    <text class="row" x="200.4" y="331.5" text-anchor="end">Model B</text>
+    <text class="row" x="229.9" y="348.5" text-anchor="end">Model C</text>
+  <text class="name" x="285.3" y="60" text-anchor="middle">Observed results</text>
+  <text class="note" x="285.3" y="80" text-anchor="middle">every model at every effort, from many sources</text>
+</g>
+
+<g id="estimates-label">
+  <g class="estimate"><polygon points="430.0,298.0 443.9,290.0 443.9,306.0 430.0,314.0" fill="#b7bcc5"/><polygon points="416.1,290.0 430.0,298.0 430.0,314.0 416.1,306.0" fill="#c9cdd4"/><polygon points="430.0,282.0 443.9,290.0 430.0,298.0 416.1,290.0" fill="#dcdfe4"/></g>
+  <text class="name stop-name" x="452" y="300">Estimates</text>
+  <text class="note" x="452" y="320">from another effort or other benchmarks,</text>
+  <text class="note" x="452" y="339">never direct evidence</text>
+</g>
+
+<g id="resources">
+  <polygon points="366.1,462.0 435.4,502.0 435.4,512.0 366.1,472.0" fill="#dfe1e4"/><polygon points="435.4,502.0 470.0,482.0 470.0,492.0 435.4,512.0" fill="#dfe1e4" opacity="0.82"/><polygon class="plate" points="400.7,442.0 470.0,482.0 435.4,502.0 366.1,462.0"/>
+  <polygon points="400.7,452.0 425.0,438.0 425.0,462.0 400.7,476.0" fill="#cc9f00"/><polygon points="376.5,438.0 400.7,452.0 400.7,476.0 376.5,462.0" fill="#e6b700"/><polygon points="400.7,424.0 425.0,438.0 400.7,452.0 376.5,438.0" fill="#ffd12e"/><g class="mark" color="#151a2d" transform="matrix(0.8660254037844387 0.5 -0.8660254037844387 0.5 400.7 424.0) scale(0.7)"><circle cx="20" cy="20" r="12"/><path d="M20 20 V12 M20 20 L26 23"/></g><polygon points="435.4,472.0 459.6,458.0 459.6,482.0 435.4,496.0" fill="#0f7d57"/><polygon points="411.1,458.0 435.4,472.0 435.4,496.0 411.1,482.0" fill="#128f63"/><polygon points="435.4,444.0 459.6,458.0 435.4,472.0 411.1,458.0" fill="#17a673"/><g class="mark" color="#fafaf7" transform="matrix(0.8660254037844387 0.5 -0.8660254037844387 0.5 435.4 444.0) scale(0.7)"><rect x="7" y="12" width="26" height="16" rx="2"/><circle cx="20" cy="20" r="4"/></g>
+  <text class="name" x="348.1" y="474.0" text-anchor="end">Time and cost per task</text>
+  <text class="note" x="348.1" y="494.0" text-anchor="end">with provider speed and prices</text>
+</g>
+
+<g id="community">
+  <polygon points="791.0,54.5 843.0,84.5 843.0,94.5 791.0,64.5" fill="#dfe1e4"/><polygon points="843.0,84.5 869.0,69.5 869.0,79.5 843.0,94.5" fill="#dfe1e4" opacity="0.82"/><polygon class="plate" points="817.0,39.5 869.0,69.5 843.0,84.5 791.0,54.5"/>
+  <polygon points="817.0,48.5 834.3,38.5 834.3,54.5 817.0,64.5" fill="#0b0f1e"/><polygon points="799.7,38.5 817.0,48.5 817.0,64.5 799.7,54.5" fill="#151a2d"/><polygon points="817.0,28.5 834.3,38.5 817.0,48.5 799.7,38.5" fill="#262d48"/><polygon points="843.0,63.5 860.3,53.5 860.3,69.5 843.0,79.5" fill="#0b0f1e"/><polygon points="825.7,53.5 843.0,63.5 843.0,79.5 825.7,69.5" fill="#151a2d"/><polygon points="843.0,43.5 860.3,53.5 843.0,63.5 825.7,53.5" fill="#262d48"/>
+  <text class="name stop-name" x="775.0" y="50.5" text-anchor="end">Community judgment</text>
+  <text class="note" x="775.0" y="69.5" text-anchor="end">nudges Intelligence, within a limit</text>
+</g>
+
+<g id="scores">
+  <g><polygon points="900.0,123.0 945.0,149.0 945.0,159.0 900.0,133.0" fill="#dfe1e4"/><polygon points="945.0,149.0 990.1,123.0 990.1,133.0 945.0,159.0" fill="#dfe1e4" opacity="0.82"/><polygon class="plate" points="945.0,97.0 990.1,123.0 945.0,149.0 900.0,123.0"/><polygon points="945.0,80.0 971.0,65.0 971.0,123.0 945.0,138.0" fill="#1d3fc4"/><polygon points="919.1,65.0 945.0,80.0 945.0,138.0 919.1,123.0" fill="#2449e0"/><polygon points="945.0,50.0 971.0,65.0 945.0,80.0 919.1,65.0" fill="#2e5bff"/><g class="cap"><polygon points="945.0,66.0 971.0,51.0 971.0,65.0 945.0,80.0" fill="#b3bee7"/><polygon points="919.1,51.0 945.0,66.0 945.0,80.0 919.1,65.0" fill="#b6c1f0"/><polygon points="945.0,36.0 971.0,51.0 945.0,66.0 919.1,51.0" fill="#b9c7fa"/></g><g class="mark" color="#1d3fc4" transform="matrix(0.8660254037844387 0.5 -0.8660254037844387 0.5 945.0 36.0) scale(0.75)"><path d="M20 6 C21.6 15 25 18.4 34 20 C25 21.6 21.6 25 20 34 C18.4 25 15 21.6 6 20 C15 18.4 18.4 15 20 6 Z"/></g><text class="name" x="1012.1" y="121.0">Intelligence</text><text class="note" x="1012.1" y="141.0">includes head-to-head</text><text class="note" x="1012.1" y="160.0">comparisons</text></g>
+  <g><polygon points="900.0,235.0 945.0,261.0 945.0,271.0 900.0,245.0" fill="#dfe1e4"/><polygon points="945.0,261.0 990.1,235.0 990.1,245.0 945.0,271.0" fill="#dfe1e4" opacity="0.82"/><polygon class="plate" points="945.0,209.0 990.1,235.0 945.0,261.0 900.0,235.0"/><polygon points="945.0,192.0 971.0,177.0 971.0,235.0 945.0,250.0" fill="#c8246f"/><polygon points="919.1,177.0 945.0,192.0 945.0,250.0 919.1,235.0" fill="#e8357f"/><polygon points="945.0,162.0 971.0,177.0 945.0,192.0 919.1,177.0" fill="#ff4f9a"/><g class="cap"><polygon points="945.0,178.0 971.0,163.0 971.0,177.0 945.0,192.0" fill="#eab6cb"/><polygon points="919.1,163.0 945.0,178.0 945.0,192.0 919.1,177.0" fill="#f4bbd1"/><polygon points="945.0,148.0 971.0,163.0 945.0,178.0 919.1,163.0" fill="#fcc3d9"/></g><g class="mark" color="#c8246f" transform="matrix(0.8660254037844387 0.5 -0.8660254037844387 0.5 945.0 148.0) scale(0.75)"><rect x="9" y="13" width="22" height="18" rx="3"/><path d="M20 13 V7"/><circle cx="16" cy="22" r="2" fill="currentColor" stroke="none"/><circle cx="24" cy="22" r="2" fill="currentColor" stroke="none"/></g><text class="name" x="1012.1" y="233.0">Agentic</text><text class="note" x="1012.1" y="253.0">bounded adjustment for</text><text class="note" x="1012.1" y="272.0">token efficiency</text></g>
+  <g><polygon points="900.0,372.0 945.0,398.0 945.0,408.0 900.0,382.0" fill="#dfe1e4"/><polygon points="945.0,398.0 990.1,372.0 990.1,382.0 945.0,408.0" fill="#dfe1e4" opacity="0.82"/><polygon class="plate" points="945.0,346.0 990.1,372.0 945.0,398.0 900.0,372.0"/><polygon points="945.0,329.0 971.0,314.0 971.0,372.0 945.0,387.0" fill="#cc9f00"/><polygon points="919.1,314.0 945.0,329.0 945.0,387.0 919.1,372.0" fill="#e6b700"/><polygon points="945.0,299.0 971.0,314.0 945.0,329.0 919.1,314.0" fill="#ffd12e"/><g class="cap"><polygon points="945.0,315.0 971.0,300.0 971.0,314.0 945.0,329.0" fill="#ebdda8"/><polygon points="919.1,300.0 945.0,315.0 945.0,329.0 919.1,314.0" fill="#f4e5a8"/><polygon points="945.0,285.0 971.0,300.0 945.0,315.0 919.1,300.0" fill="#fcedb7"/></g><g class="mark" color="#cc9f00" transform="matrix(0.8660254037844387 0.5 -0.8660254037844387 0.5 945.0 285.0) scale(0.75)"><path d="M23 6 L12 22 H20 L17 34 L28 17 H20 Z"/></g><text class="name" x="1012.1" y="370.0">Speed</text><text class="note" x="1012.1" y="390.0">time at similar quality</text></g>
+  <g><polygon points="900.0,482.0 945.0,508.0 945.0,518.0 900.0,492.0" fill="#dfe1e4"/><polygon points="945.0,508.0 990.1,482.0 990.1,492.0 945.0,518.0" fill="#dfe1e4" opacity="0.82"/><polygon class="plate" points="945.0,456.0 990.1,482.0 945.0,508.0 900.0,482.0"/><polygon points="945.0,439.0 971.0,424.0 971.0,482.0 945.0,497.0" fill="#0f7d57"/><polygon points="919.1,424.0 945.0,439.0 945.0,497.0 919.1,482.0" fill="#128f63"/><polygon points="945.0,409.0 971.0,424.0 945.0,439.0 919.1,424.0" fill="#17a673"/><g class="cap"><polygon points="945.0,425.0 971.0,410.0 971.0,424.0 945.0,439.0" fill="#afd2c4"/><polygon points="919.1,410.0 945.0,425.0 945.0,439.0 919.1,424.0" fill="#b0d8c8"/><polygon points="945.0,395.0 971.0,410.0 945.0,425.0 919.1,410.0" fill="#b1dfcd"/></g><g class="mark" color="#0f7d57" transform="matrix(0.8660254037844387 0.5 -0.8660254037844387 0.5 945.0 395.0) scale(0.75)"><circle cx="20" cy="20" r="13"/><path d="M24 15.5 C23.4 14 22 13.4 20 13.4 C17.6 13.4 16.2 14.6 16.2 16.4 C16.2 20.6 23.8 19 23.8 23.6 C23.8 25.6 22.2 26.8 20 26.8 C17.8 26.8 16.4 26 15.8 24.4 M20 11 V29"/></g><text class="name" x="1012.1" y="480.0">Value</text><text class="note" x="1012.1" y="500.0">cost at similar quality</text></g>
+  <text class="name stop-name" x="1012.1" y="544.0">Thin evidence</text>
+  <text class="note" x="1012.1" y="563.0">pale tops: scores discounted</text>
+</g>
+</svg>

@@ -1,4 +1,4 @@
-/** Check published Markdown formulas, local heading links, version markers, and registered figure dimensions; editorial choices and mathematical meaning require contextual review. */
+/** Check published Markdown formulas, heading links to local or deployed documents, version markers, and registered figure dimensions; editorial choices and mathematical meaning require contextual review. */
 
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
@@ -9,13 +9,16 @@ import katex from "katex";
 import {
   CATALOG_VERSIONS,
   documentAssetPath,
+  documentHref,
   documentImageSize,
+  DOCUMENTS,
   fillVersionMarkers,
   headingId,
   METHODOLOGY_ASSET_NAMES,
 } from "../app/methodology/documents";
 
 const DOCS_DIR = "docs";
+const SITE = "https://llmstats.vercel.app";
 
 const files = [...markdownFiles(DOCS_DIR), "README.md"];
 const headings = new Map(files.map((file) => [normalize(file), headingIds(read(file))]));
@@ -42,13 +45,15 @@ for (const file of files) {
   }
 
   for (const [, target, anchor] of text.matchAll(/\]\(([^)#\s]*)#([a-z0-9-]+)\)/g)) {
-    if (target!.startsWith("http")) continue;
-    const destination = normalize(target ? join(dirname(file), target) : file);
-    if (!headings.get(destination)?.has(anchor!)) {
+    if (target!.startsWith("http") && !target!.startsWith(SITE)) continue;
+    const destination = linkedDocument(file, target!);
+    if (destination == null || !headings.get(destination)?.has(anchor!)) {
       problems.push(`${file}: link ${target}#${anchor} has no matching heading`);
     }
   }
 
+  // The app serves only the docs, so README images, which GitHub shows, need no registration.
+  if (file === "README.md") continue;
   for (const [, source] of text.matchAll(/\]\(([^)\s]+\.svg)\)/g)) {
     const asset = source!.split("/").at(-1)!;
     if (!(METHODOLOGY_ASSET_NAMES as readonly string[]).includes(asset)) {
@@ -86,6 +91,13 @@ function markdownFiles(dir: string): string[] {
     if (entry.isDirectory()) return markdownFiles(path);
     return entry.name.endsWith(".md") && entry.name !== "AGENTS.md" ? [path] : [];
   });
+}
+
+/** The Markdown file a link renders: a relative path, or a deployed document page; `null` for a deployed page no document serves. */
+function linkedDocument(file: string, target: string): string | null {
+  if (!target.startsWith(SITE)) return normalize(target ? join(dirname(file), target) : file);
+  const page = DOCUMENTS.find((document) => SITE + documentHref(document.slug) === target);
+  return page == null ? null : normalize(join(DOCS_DIR, page.source));
 }
 
 function headingIds(markdown: string): Set<string> {
