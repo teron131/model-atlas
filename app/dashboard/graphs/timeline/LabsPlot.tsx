@@ -17,7 +17,7 @@ import {
   YAxisTicks,
 } from "../plot/Primitives";
 import { useChartWidth } from "../use-chart-layout";
-import { type TimelinePoint, timelinePointLabel } from "./chart-data";
+import { type TimelinePoint, timelinePointLabel, timelineScoreDomain } from "./chart-data";
 import type { LabFrontier } from "./frontier";
 
 import styles from "../graphs.module.css";
@@ -96,16 +96,7 @@ export function LabsPlot({
     if (inspection?.id !== nearest.id) showPreview(nearest);
   }
   const scores = series.flatMap((lab) => lab.samples.map((p) => p.point.score));
-  const y = scaleLinear()
-    .domain(
-      scores.length
-        ? [
-            Math.floor((Math.min(...scores) - 5) / 20) * 20,
-            Math.ceil((Math.max(...scores) + 8) / 20) * 20,
-          ]
-        : [60, 200],
-    )
-    .range([bottom, margin.top]);
+  const y = scaleLinear().domain(timelineScoreDomain(scores)).range([bottom, margin.top]);
   // Keep all ten marks inside the plot with a fixed minimum gap, preserving score order.
   const endpoints = [...series]
     .sort((a, b) => b.leading.score - a.leading.score)

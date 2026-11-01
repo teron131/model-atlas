@@ -22,9 +22,12 @@ CREATE TABLE IF NOT EXISTS model_atlas_schema_manifest (
 	PRIMARY KEY (object_type, object_name)
 );
 
+-- Benchmark-update health and versions come from the parsed source rows at refresh; payload reads use them as stored, as published payloads do.
 CREATE TABLE IF NOT EXISTS snapshot_metadata (
 	updated_at_epoch_seconds INTEGER NOT NULL,
-	snapshot_preservation_version INTEGER
+	snapshot_preservation_version INTEGER,
+	benchmark_update_health_json TEXT CHECK (benchmark_update_health_json IS NULL OR json_valid(benchmark_update_health_json)),
+	benchmark_versions_json TEXT CHECK (benchmark_versions_json IS NULL OR json_valid(benchmark_versions_json))
 );
 
 CREATE TABLE IF NOT EXISTS artificial_analysis_raw_models (

@@ -26,7 +26,7 @@ const compressedCheckpoint = gzipSync(checkpoint);
 const compressedPayload = gzipSync(JSON.stringify(payload));
 const manifest = {
   version: "test-version",
-  data_sha256: snapshotDataHash(payload),
+  data_sha256: snapshotDataHash({ payload, timeline: null, communityRankings: [] }),
   fetched_at_epoch_seconds: 1,
   payload_sha256: artifactSha256(compressedPayload),
   checkpoint_sha256: artifactSha256(compressedCheckpoint),
@@ -76,7 +76,11 @@ try {
   const snapshots = new SnapshotStorage("local-public", "local-private", storage);
   for (let i = 0; i < 3; i++) {
     const destination = join(workspace, `${i}.sqlite`);
-    assert.deepEqual(await snapshots.restore(manifest, destination), payload);
+    assert.deepEqual(await snapshots.restore(manifest, destination), {
+      payload,
+      timeline: null,
+      communityRankings: [],
+    });
     assert.deepEqual(await readFile(destination), checkpoint);
   }
   corruptChecksum = true;

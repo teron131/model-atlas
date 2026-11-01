@@ -3,7 +3,7 @@
 import { SNAPSHOT_TABLES } from "../../database/tables";
 import type { DatabaseWriter } from "../../database/writers/database";
 import { asFiniteNumber, asNonEmptyString } from "../../runtime";
-import { defineBenchmarkRuntime } from "../benchmark-runtime";
+import { type BenchmarkSnapshotContext, defineBenchmarkRuntime } from "../benchmark-runtime";
 import { type CacheRowSource, firstFetchedAt, sourceCacheRows } from "../cache/rows";
 import { sourceRowKey } from "../snapshots/policy";
 import { snapshotSourceRows } from "../snapshots/row-snapshot";
@@ -110,9 +110,10 @@ async function agentsLastExamSnapshot(
   options: SourceRefreshOptions,
   previousMissingSince: ReadonlyMap<string, number>,
   nowEpochSeconds: number,
+  context: BenchmarkSnapshotContext,
 ): Promise<AgentsLastExamSnapshot> {
   const snapshot = await snapshotSourceRows({
-    source: "agents_last_exam",
+    source: context.source,
     cached,
     status,
     options,
@@ -125,13 +126,7 @@ async function agentsLastExamSnapshot(
   return {
     agentsLastExamRows: snapshot.rows,
     agentsLastExamModelScores: summarizeAgentsLastExamModelScores(snapshot.rows),
-    sourceStatus: {
-      source: "agents_last_exam",
-      fetchedAt: snapshot.fetchedAt,
-      sourceInputCount: snapshot.rows.length,
-      sourceRowStates: snapshot.sourceRowStates,
-      fetchedAtKey: "agentsLastExam",
-    },
+    sourceStatus: context.sourceStatus(snapshot),
   };
 }
 

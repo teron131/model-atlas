@@ -11,16 +11,12 @@ import type {
 } from "../../benchmarks/observation";
 import { canonicalReasoningEffort } from "../../identity/normalization";
 import { asFiniteNumber, asNonEmptyString, nowEpochSeconds, stableJson } from "../../runtime";
+import { percentToUnitScore } from "../parsing";
 import { getValsBenchmarkView, parseValsBenchmarkView, type ValsBenchmarkView } from "./view";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 
-type ValsScraperOptions = {
-  url?: string;
-  timeoutMs?: number;
-};
-
-export type ValsBenchmarkDefinition = {
+type ValsBenchmarkDefinition = {
   benchmarkKey: string;
   canonicalTask: string;
   sourceUrl: string;
@@ -28,21 +24,13 @@ export type ValsBenchmarkDefinition = {
   version?: string;
 };
 
-/** Fetch one Vals source independently and fail quietly to an empty evidence payload. */
+/** Fetch one Vals source independently; a page without usable rows yields an empty payload. */
 export async function getValsBenchmarkStats(
   definition: ValsBenchmarkDefinition,
-  options: ValsScraperOptions = {},
 ): Promise<BenchmarkObservationPayload> {
-  try {
-    const view = await getValsBenchmarkView(
-      options.url ?? definition.sourceUrl,
-      options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
-    );
-    const data = processValsBenchmarkView(view, definition);
-    return { fetched_at_epoch_seconds: data.length > 0 ? nowEpochSeconds() : null, data };
-  } catch {
-    return { fetched_at_epoch_seconds: null, data: [] };
-  }
+  const view = await getValsBenchmarkView(definition.sourceUrl, DEFAULT_TIMEOUT_MS);
+  const data = processValsBenchmarkView(view, definition);
+  return { fetched_at_epoch_seconds: data.length > 0 ? nowEpochSeconds() : null, data };
 }
 
 /** Emit only canonical, score-eligible Vals rows, each tagged with the page's published version. */
@@ -86,7 +74,7 @@ function scoreRow(
   modelId: string,
   value: Record<string, unknown>,
 ): BenchmarkObservationRow | null {
-  const canonicalValue = percentScore(value.accuracy);
+  const canonicalValue = percentToUnitScore(value.accuracy);
   if (canonicalValue == null || modelId.length === 0 || task !== definition.canonicalTask) {
     return null;
   }
@@ -122,9 +110,4 @@ function scoreRow(
     observed_at: asNonEmptyString(view.metadata.updated),
     metadata,
   };
-}
-
-function percentScore(value: unknown): number | null {
-  const score = asFiniteNumber(value);
-  return score != null && score >= 0 && score <= 100 ? Number((score / 100).toFixed(6)) : null;
 }

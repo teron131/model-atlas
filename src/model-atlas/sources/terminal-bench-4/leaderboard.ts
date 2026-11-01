@@ -14,6 +14,7 @@ import {
   normalizeModelToken,
 } from "../../identity/normalization";
 import { asFiniteNumber, asNonEmptyString, asRecord, nowEpochSeconds } from "../../runtime";
+import { percentToUnitScore } from "../parsing";
 import { fetchSource } from "../request-scheduler";
 
 const TERMINAL_BENCH_4_DATA_URL =
@@ -50,38 +51,27 @@ type TerminalBench4Payload = {
   data: TerminalBench4ModelHarnessRow[];
 };
 
-type TerminalBench4ScraperOptions = {
-  url?: string;
-  timeoutMs?: number;
-};
-
 /** Fetch the structured public source used by the official Terminal-Bench 4.0 leaderboard. */
-export async function getTerminalBench4Stats(
-  options: TerminalBench4ScraperOptions = {},
-): Promise<TerminalBench4Payload> {
-  try {
-    return await fetchSource(
-      options.url ?? TERMINAL_BENCH_4_DATA_URL,
-      {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ package: TERMINAL_BENCH_4_PACKAGE, name: TERMINAL_BENCH_4_NAME }),
-      },
-      options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
-      async (response) => {
-        if (!response.ok) {
-          throw new Error(`Terminal-Bench 4.0 scrape failed: ${response.status}`);
-        }
-        const data = processTerminalBench4Payload(await response.json());
-        if (data.length === 0) {
-          throw new Error("Terminal-Bench 4.0 scrape returned no 4.0 rows");
-        }
-        return { fetched_at_epoch_seconds: nowEpochSeconds(), data };
-      },
-    );
-  } catch {
-    return { fetched_at_epoch_seconds: null, data: [] };
-  }
+export async function getTerminalBench4Stats(): Promise<TerminalBench4Payload> {
+  return fetchSource(
+    TERMINAL_BENCH_4_DATA_URL,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ package: TERMINAL_BENCH_4_PACKAGE, name: TERMINAL_BENCH_4_NAME }),
+    },
+    DEFAULT_TIMEOUT_MS,
+    async (response) => {
+      if (!response.ok) {
+        throw new Error(`Terminal-Bench 4.0 scrape failed: ${response.status}`);
+      }
+      const data = processTerminalBench4Payload(await response.json());
+      if (data.length === 0) {
+        throw new Error("Terminal-Bench 4.0 scrape returned no 4.0 rows");
+      }
+      return { fetched_at_epoch_seconds: nowEpochSeconds(), data };
+    },
+  );
 }
 
 /** Parse every displayed Terminal-Bench 4.0 row without collapsing model, effort, or agent configurations. */
@@ -190,11 +180,6 @@ function modelAgentRow(value: unknown): TerminalBench4ModelHarnessRow | null {
     output_tokens_per_task:
       outputTokens == null ? null : resourcePerTaskRun(outputTokens, taskRunCount),
   };
-}
-
-function percentToUnitScore(value: unknown): number | null {
-  const score = asFiniteNumber(value);
-  return score != null && score >= 0 && score <= 100 ? Number((score / 100).toFixed(6)) : null;
 }
 
 function modelEffortLabel(baseModel: string, reasoningEffort: string | null): string {

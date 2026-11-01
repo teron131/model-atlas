@@ -5,12 +5,10 @@ import assert from "node:assert/strict";
 import { validateBenchmarkPortfolio } from "../src/model-atlas/benchmarks/factory";
 import {
   INDEX_BENCHMARK_KEYS,
-  MINIMUM_REPORTED_INDEX_BREADTH,
-} from "../src/model-atlas/benchmarks/index-policy";
-import {
   INDEX_REPRESENTED_BENCHMARK_COUNTS,
   INDEX_REPRESENTED_BENCHMARK_MEDIAN,
-} from "../src/model-atlas/benchmarks/registry";
+  MINIMUM_REPORTED_INDEX_BREADTH,
+} from "../src/model-atlas/benchmarks/index-policy";
 import { STAGE_CONFIG } from "../src/model-atlas/config";
 import type { ScoringConfig } from "../src/model-atlas/config/stage";
 import {

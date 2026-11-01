@@ -1,4 +1,4 @@
-/** Choose one strongest scored variant per canonical model for backend health checks and application projections. */
+/** Choose one strongest scored variant per canonical model for the leaderboard, public JSON, and dashboard projections. */
 
 import { canonicalModelKey } from "../identity/normalization";
 

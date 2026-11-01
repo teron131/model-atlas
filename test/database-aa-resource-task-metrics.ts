@@ -1,4 +1,4 @@
-/** Verifies benchmarks and task resources round-trip through normalized final-model tables. */
+/** Verifies benchmarks, task resources, and refresh-time benchmark health round-trip through checkpoint tables. */
 
 import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
@@ -11,6 +11,8 @@ import {
   insertModels,
   insertModelTaskMetrics,
 } from "../src/model-atlas/database/writers/models";
+import { finalizeBenchmarkRows } from "../src/model-atlas/pipeline/benchmark-rows/source-rows";
+import { buildCurrentModelAtlasMetadata } from "../src/model-atlas/stats/payload/metadata";
 import {
   preserveHighSignalSnapshotModels,
   SNAPSHOT_PRESERVATION_VERSION,
@@ -179,6 +181,43 @@ try {
     "database payloads should preserve models without optional resource scores",
   );
   assert.ok(model);
+
+  const refreshed = buildCurrentModelAtlasMetadata({
+    models: payload.models,
+    healthModels: payload.models,
+    sourceRowsByKey: finalizeBenchmarkRows([
+      {
+        key: "hle",
+        id: "example/aa-resource-model",
+        label: "AA Resource Model",
+        reasoningEffort: "xhigh",
+        value: 0.5,
+        version: "2",
+      },
+    ]),
+  });
+  const metadataTable = new DatabaseSync(databasePath);
+  try {
+    metadataTable
+      .prepare(
+        "UPDATE snapshot_metadata SET benchmark_update_health_json = ?, benchmark_versions_json = ?",
+      )
+      .run(
+        JSON.stringify(refreshed.benchmark_update_health),
+        JSON.stringify(refreshed.benchmark_versions),
+      );
+  } finally {
+    metadataTable.close();
+  }
+  const restoredMetadata = readDatabasePayload(databasePath).metadata;
+  assert.equal(restoredMetadata.benchmark_update_health?.hle?.observed_count, 1);
+  assert.deepEqual(
+    restoredMetadata.benchmark_update_health,
+    refreshed.benchmark_update_health,
+    "Payload reads report the benchmark health computed from source rows at refresh",
+  );
+  assert.deepEqual(restoredMetadata.benchmark_versions, { hle: "2" });
+
   const degraded = {
     ...payload,
     models: [
@@ -203,11 +242,11 @@ try {
       assert.equal(previous.metadata.scoring.snapshot_preservation_version, version);
       assert.equal(
         preserveHighSignalSnapshotModels(
-          degraded,
+          degraded.models,
           previous,
           STAGE_CONFIG.snapshotPreservation,
           STAGE_CONFIG.scoring,
-        ).models[0]?.scores.intelligence_score,
+        )[0]?.scores.intelligence_score,
         version === SNAPSHOT_PRESERVATION_VERSION ? 90 : 50,
         "Only rows built under the current policy can restore a degraded model after checkpoint read",
       );

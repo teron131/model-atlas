@@ -18,13 +18,27 @@ import {
   advanceCapabilityState,
   benchmarkVersionId,
   capabilityDataset,
-  capabilityIndex,
   capabilityModelId,
   type CapabilityState,
 } from "../src/model-atlas/timeline/capability";
 import { historicalSourceModel } from "../src/model-atlas/timeline/model-identity";
 import { prepareTimelineRelease } from "../src/model-atlas/timeline/scale";
+import type { TimelineAnchors, TimelineDimension } from "../src/model-atlas/timeline/schemas";
 import { historicalDatasetFromReleases, minimalModelAtlasModel } from "./model-atlas-fixtures";
+
+/** Published units for a fixed coordinate: the frozen anchor references map linearly onto the anchor scores. */
+function capabilityIndex(
+  value: number | null | undefined,
+  dimension: TimelineDimension,
+  anchors: TimelineAnchors,
+): number | null {
+  if (value == null || !Number.isFinite(value)) return null;
+  const reference = (modelId: string) =>
+    anchors.frozenReferences!.find((row) => row.modelId === modelId)!.values[dimension];
+  const low = reference(anchors.lowModelId);
+  const high = reference(anchors.highModelId);
+  return anchors.lowScore + ((anchors.highScore - anchors.lowScore) * (value - low)) / (high - low);
+}
 
 const capturedAt = "2026-09-15T01:00:00.000Z";
 const models = Array.from({ length: 8 }, (_, i) => {

@@ -4,7 +4,7 @@ import { parseBenchmarkObservationMetadata } from "../../benchmarks/observation"
 import { SNAPSHOT_TABLES } from "../../database/tables";
 import type { DatabaseWriter } from "../../database/writers/database";
 import { asFiniteNumber, asNonEmptyString, stableJson } from "../../runtime";
-import { defineBenchmarkRuntime } from "../benchmark-runtime";
+import { type BenchmarkSnapshotContext, defineBenchmarkRuntime } from "../benchmark-runtime";
 import { type CacheRowSource, firstFetchedAt, sourceCacheRows } from "../cache/rows";
 import {
   snapshotRows,
@@ -40,7 +40,7 @@ export const valsIndexRuntime = defineBenchmarkRuntime({
   readCache: readValsIndexRawCache,
   snapshot: valsIndexSnapshot,
   write: insertValsIndexRawRows,
-  sourceRowsKey: "valsIndexTaskScoreRows",
+  sourceRowsKey: "valsIndexModelScoreRows",
   fetchSourceRows: async () => (await getValsIndexStats()).model_scores,
   sourceRowsFromSnapshots: (snapshots) => snapshots.valsIndexModelScoreRows,
 });
@@ -102,6 +102,7 @@ async function valsIndexSnapshot(
   options: SourceRefreshOptions,
   previousMissingSince: ReadonlyMap<string, number>,
   nowEpochSeconds: number,
+  context: BenchmarkSnapshotContext,
 ): Promise<ValsIndexSnapshot> {
   const fetched =
     status.cache_hit && cached != null && options.replaceSourceRows !== true
@@ -129,7 +130,7 @@ async function valsIndexSnapshot(
   );
   const modelScores = rows.filter(isModelScore);
   const states = snapshotRowsWithStates({
-    source: "vals_index",
+    source: context.source,
     cachedRows: cachedRows?.filter(isModelScore),
     fetchedRows: fetched?.model_scores ?? [],
     fetchedAtEpochSeconds: fetched?.fetched_at_epoch_seconds ?? null,
@@ -147,13 +148,7 @@ async function valsIndexSnapshot(
   return {
     valsIndexTaskScoreRows: rows,
     valsIndexModelScoreRows: modelScores,
-    sourceStatus: {
-      source: "vals_index",
-      fetchedAt,
-      sourceInputCount: modelScores.length,
-      sourceRowStates: states,
-      fetchedAtKey: "valsIndex",
-    },
+    sourceStatus: context.sourceStatus({ rows: modelScores, fetchedAt, sourceRowStates: states }),
   };
 }
 

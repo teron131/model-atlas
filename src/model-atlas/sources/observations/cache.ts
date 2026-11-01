@@ -8,6 +8,7 @@ import {
   BENCHMARK_OBSERVATION_BINDINGS,
   BENCHMARK_OBSERVATION_RAW_TABLE,
   type BenchmarkObservationBinding,
+  type BenchmarkObservationRowsKey,
 } from "../../benchmarks/registry";
 import type { DatabaseWriter } from "../../database/writers/database";
 import { normalizeModelToken, parseModelEffort } from "../../identity/normalization";
@@ -38,12 +39,15 @@ export async function benchmarkObservationSnapshots(
   options: SourceRefreshOptions,
   previousMissingSince: Record<RawSourceName, ReadonlyMap<string, number>>,
   nowEpochSeconds: number,
-) {
-  return Promise.all(
+): Promise<{
+  rows: Pick<SourceSnapshots, BenchmarkObservationRowsKey>;
+  sourceStatuses: SourceSnapshotStatus[];
+}> {
+  const snapshots = await Promise.all(
     BENCHMARK_OBSERVATION_BINDINGS.map(async (binding) => {
       const benchmarkKey = binding.benchmark;
       return {
-        binding,
+        sourceRowsKey: binding.sourceRowsKey,
         snapshot: await benchmarkObservationSnapshot(
           binding,
           caches[binding.sourceDataKey] ?? null,
@@ -55,6 +59,12 @@ export async function benchmarkObservationSnapshots(
       };
     }),
   );
+  return {
+    rows: Object.fromEntries(
+      snapshots.map(({ sourceRowsKey, snapshot }) => [sourceRowsKey, snapshot.rows]),
+    ) as Pick<SourceSnapshots, BenchmarkObservationRowsKey>,
+    sourceStatuses: snapshots.map(({ snapshot }) => snapshot.sourceStatus),
+  };
 }
 
 export function readBenchmarkObservationRawCache(

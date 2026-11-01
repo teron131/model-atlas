@@ -178,10 +178,7 @@ function modelIdentityValues(model: JsonObject): SqlValue[] {
   const modelId = firstString(model, ["id"]);
   return [
     modelId,
-    firstString(model, ["provider_id"]) ??
-      firstString(model, ["provider"]) ??
-      modelId?.split("/")[0] ??
-      null,
+    firstString(model, ["provider"]) ?? modelId?.split("/")[0] ?? null,
     firstString(model, ["name"]),
     firstString(model, ["reasoning_effort"]),
     firstString(model, ["logo"]),
@@ -193,12 +190,11 @@ function modelIdentityValues(model: JsonObject): SqlValue[] {
 
 function modelContextValues(model: JsonObject): SqlValue[] {
   const context = asRecord(model.context_window);
-  const limit = asRecord(model.limit);
   const modalities = asRecord(model.modalities);
   return [
-    asFiniteNumber(context.context) ?? asFiniteNumber(limit.context),
-    asFiniteNumber(context.input) ?? asFiniteNumber(limit.input),
-    asFiniteNumber(context.output) ?? asFiniteNumber(limit.output),
+    asFiniteNumber(context.context),
+    asFiniteNumber(context.input),
+    asFiniteNumber(context.output),
     modalitiesJson(modalities.input),
     modalitiesJson(modalities.output),
   ];

@@ -10,7 +10,6 @@ import { createGzip, gzip } from "node:zlib";
 
 import { type File, Storage } from "@google-cloud/storage";
 
-import type { ModelAtlasPayload } from "../../stats/types";
 import { packTimelineDataset } from "../../timeline/schemas";
 import {
   artifactSha256,
@@ -23,6 +22,7 @@ import {
   parseSnapshotPayload,
   retainedSnapshotVersions,
   SNAPSHOT_MANIFEST_OBJECT,
+  type SnapshotData,
   snapshotDataHash,
   type SnapshotManifest,
   snapshotObject,
@@ -114,12 +114,16 @@ export class SnapshotStorage {
     if (payload.fetched_at_epoch_seconds !== snapshot.fetched_at_epoch_seconds) {
       throw new Error("GCS snapshot timestamp does not match its manifest");
     }
-    const manifest = { ...snapshot, data_sha256: snapshotDataHash(payload), previous: [] };
+    const manifest = {
+      ...snapshot,
+      data_sha256: snapshotDataHash({ payload, timeline: null, communityRankings: [] }),
+      previous: [],
+    };
     await this.commitManifest(Buffer.from(JSON.stringify(manifest)), generation);
     return manifest;
   }
 
-  async restore(manifest: SnapshotVersion, databasePath: string): Promise<ModelAtlasPayload> {
+  async restore(manifest: SnapshotVersion, databasePath: string): Promise<SnapshotData> {
     const [checkpoint, leaderboard, index, rankings] = await Promise.all([
       downloadSnapshotObject(
         this.checkpointBucket.file(snapshotObject(manifest.version, "checkpoint")),
@@ -136,28 +140,23 @@ export class SnapshotStorage {
           )
         : null,
     ]);
-    const payload = {
-      ...(await decodeSnapshotPayload(leaderboard, manifest)),
-      ...(index
-        ? { timeline: await decodeIntelligenceIndex(index, manifest.intelligence_index_sha256!) }
-        : {}),
-      ...(rankings
-        ? {
-            community_rankings: await decodeCommunityRankings(
-              rankings,
-              manifest.community_rankings_sha256!,
-            ),
-          }
-        : {}),
+    const data: SnapshotData = {
+      payload: await decodeSnapshotPayload(leaderboard, manifest),
+      timeline: index
+        ? await decodeIntelligenceIndex(index, manifest.intelligence_index_sha256!)
+        : null,
+      communityRankings: rankings
+        ? await decodeCommunityRankings(rankings, manifest.community_rankings_sha256!)
+        : [],
     };
-    if (snapshotDataHash(payload) !== manifest.data_sha256)
+    if (snapshotDataHash(data) !== manifest.data_sha256)
       throw new Error("GCS snapshot data fingerprint does not match its manifest");
     await writeFile(
       databasePath,
       await decodeSnapshotBytes(checkpoint, manifest.checkpoint_sha256),
       { flag: "wx", mode: 0o600 },
     );
-    return payload;
+    return data;
   }
 
   /** Re-publish a verified recovery pair under fresh artifact names so retired-object cleanup can never remove a restored current version. */
@@ -166,25 +165,24 @@ export class SnapshotStorage {
     const selected = current.manifest?.previous.find((entry) => entry.version === version);
     if (!selected)
       throw new Error("Rollback requires a version listed in the current recovery history");
-    const payload = await this.restore(selected, databasePath);
-    return this.publish(databasePath, payload, current);
+    return this.publish(databasePath, await this.restore(selected, databasePath), current);
   }
 
   /** The manifest changes only after every verified upload finishes; stale publishers must rebuild from the new checkpoint. */
   async publish(
     databasePath: string,
-    payload: ModelAtlasPayload,
+    data: SnapshotData,
     previous: CurrentSnapshot,
   ): Promise<{
     manifest: SnapshotManifest;
     bytes_uploaded: number;
     maintenance_warnings: string[];
   }> {
+    const { payload, timeline, communityRankings } = data;
     if (payload.models.length === 0 || !payload.fetched_at_epoch_seconds) {
       throw new Error("Refusing to publish an empty Model Atlas snapshot");
     }
-    const { timeline, community_rankings, ...leaderboardPayload } = payload;
-    const leaderboardJson = JSON.stringify(leaderboardPayload);
+    const leaderboardJson = JSON.stringify(payload);
     try {
       parseSnapshotPayload(Buffer.from(leaderboardJson));
     } catch (error) {
@@ -196,9 +194,9 @@ export class SnapshotStorage {
     const [leaderboard, index, rankings] = await Promise.all([
       compress(leaderboardJson),
       timeline ? compress(JSON.stringify(packTimelineDataset(timeline))) : null,
-      community_rankings?.length ? compress(JSON.stringify(community_rankings)) : null,
+      communityRankings.length ? compress(JSON.stringify(communityRankings)) : null,
     ]);
-    const dataHash = snapshotDataHash(payload);
+    const dataHash = snapshotDataHash(data);
     const version = randomUUID();
     const checkpointFile = this.checkpointBucket.file(snapshotObject(version, "checkpoint"));
     const publicArtifacts = [
@@ -259,7 +257,11 @@ export class SnapshotStorage {
       publication = {
         manifest,
         bytes:
-          checkpoint.value.bytes + leaderboard.length + (index?.length ?? 0) + manifestBytes.length,
+          checkpoint.value.bytes +
+          leaderboard.length +
+          (index?.length ?? 0) +
+          (rankings?.length ?? 0) +
+          manifestBytes.length,
       };
       await this.commitManifest(manifestBytes, previous.generation);
     } catch (error) {

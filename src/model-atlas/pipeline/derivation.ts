@@ -10,6 +10,7 @@ import type { OpenRouterSourcePayload } from "../sources/openrouter";
 import type { CapabilityState } from "../timeline/capability";
 import {
   assignBenchmarksToVariants,
+  type BenchmarkRowsByKey,
   benchmarkRowsFromSourceData,
   observedBenchmarkVersions,
 } from "./benchmark-rows";
@@ -48,6 +49,8 @@ type ModelDerivationResult<LoadResult extends OpenRouterLoadResult> = {
   modelRows: ModelRow[];
   models: ModelAtlasModel[];
   benchmarkObservations: BenchmarkObservationsByKey;
+  /** The scored source rows as benchmark-update health compares them with published models. */
+  benchmarkRows: BenchmarkRowsByKey;
   openRouterLoad: LoadResult;
 };
 
@@ -72,6 +75,7 @@ export async function deriveModelStats<LoadResult extends OpenRouterLoadResult>(
   const variantRows = buildModelVariants(catalogRows);
   const modelRows = backfillFreeModelCosts(assignBenchmarksToVariants(variantRows, sourceData));
   const observations = observationsFromSourceData(sourceData);
+  const benchmarkRows = benchmarkRowsFromSourceData(sourceData);
   const selection = prepareModelSelection(
     modelRows,
     STAGE_CONFIG.scoring,
@@ -79,7 +83,7 @@ export async function deriveModelStats<LoadResult extends OpenRouterLoadResult>(
     options.benchmarkVersioning?.previousModels,
     options.capabilityState && {
       state: options.capabilityState,
-      benchmarkVersions: observedBenchmarkVersions(benchmarkRowsFromSourceData(sourceData)),
+      benchmarkVersions: observedBenchmarkVersions(benchmarkRows),
     },
   );
   const eligibleRows = selectOpenRouterModelRows(
@@ -102,6 +106,7 @@ export async function deriveModelStats<LoadResult extends OpenRouterLoadResult>(
     modelRows,
     models,
     benchmarkObservations: observations,
+    benchmarkRows,
     openRouterLoad,
   };
 }

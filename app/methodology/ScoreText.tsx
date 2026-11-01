@@ -2,7 +2,7 @@
 
 import { type ComponentType, type ReactNode } from "react";
 
-import { SCORE_ICONS } from "../dashboard/shared/DashboardIcons";
+import { SCORE_ICONS } from "../dashboard/shared/DashboardMarks";
 import { scoreMarkers, type ScoreName } from "./score-markers";
 
 import styles from "./methodology.module.css";

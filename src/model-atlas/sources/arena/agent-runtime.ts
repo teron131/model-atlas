@@ -3,7 +3,7 @@
 import { SNAPSHOT_TABLES } from "../../database/tables";
 import type { DatabaseWriter } from "../../database/writers/database";
 import { asFiniteNumber, asNonEmptyString } from "../../runtime";
-import { defineBenchmarkRuntime } from "../benchmark-runtime";
+import { type BenchmarkSnapshotContext, defineBenchmarkRuntime } from "../benchmark-runtime";
 import { type CacheRowSource, firstFetchedAt, sourceCacheRows } from "../cache/rows";
 import { sourceRowKey } from "../snapshots/policy";
 import { snapshotSourceRows } from "../snapshots/row-snapshot";
@@ -90,9 +90,10 @@ async function arenaAgentSnapshot(
   options: SourceRefreshOptions,
   previousMissingSince: ReadonlyMap<string, number>,
   nowEpochSeconds: number,
+  context: BenchmarkSnapshotContext,
 ): Promise<ArenaAgentSnapshot> {
   const snapshot = await snapshotSourceRows({
-    source: "arena_agent",
+    source: context.source,
     cached,
     status,
     options,
@@ -108,13 +109,7 @@ async function arenaAgentSnapshot(
   });
   return {
     arenaAgentModelScoreRows: snapshot.rows,
-    sourceStatus: {
-      source: "arena_agent",
-      fetchedAt: snapshot.fetchedAt,
-      sourceInputCount: snapshot.rows.length,
-      sourceRowStates: snapshot.sourceRowStates,
-      fetchedAtKey: "arenaAgent",
-    },
+    sourceStatus: context.sourceStatus(snapshot),
   };
 }
 

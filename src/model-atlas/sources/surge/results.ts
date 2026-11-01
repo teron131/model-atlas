@@ -45,18 +45,14 @@ export async function getSurgeIntelligenceIndexStats(
   benchmarkKey: string,
   sourceUrl: string,
 ): Promise<BenchmarkObservationPayload> {
-  try {
-    return await fetchSource(sourceUrl, {}, DEFAULT_TIMEOUT_MS, async (response) => {
-      if (!response.ok) throw new Error(`Surge ${benchmarkKey} scrape failed: ${response.status}`);
-      const pageHtml = await response.text();
-      return {
-        fetched_at_epoch_seconds: nowEpochSeconds(),
-        data: processSurgeIntelligenceIndexPageHtml(pageHtml, benchmarkKey, sourceUrl),
-      };
-    });
-  } catch {
-    return { fetched_at_epoch_seconds: null, data: [] };
-  }
+  return fetchSource(sourceUrl, {}, DEFAULT_TIMEOUT_MS, async (response) => {
+    if (!response.ok) throw new Error(`Surge ${benchmarkKey} scrape failed: ${response.status}`);
+    const pageHtml = await response.text();
+    return {
+      fetched_at_epoch_seconds: nowEpochSeconds(),
+      data: processSurgeIntelligenceIndexPageHtml(pageHtml, benchmarkKey, sourceUrl),
+    };
+  });
 }
 
 export async function getSurgeLeaderboardStats(
@@ -64,18 +60,14 @@ export async function getSurgeLeaderboardStats(
   sourceUrl: string,
   scoreKind: SurgeScoreKind = "percent",
 ): Promise<BenchmarkObservationPayload> {
-  try {
-    return await fetchSource(sourceUrl, {}, DEFAULT_TIMEOUT_MS, async (response) => {
-      if (!response.ok) throw new Error(`Surge ${benchmarkKey} scrape failed: ${response.status}`);
-      const pageHtml = await response.text();
-      return {
-        fetched_at_epoch_seconds: nowEpochSeconds(),
-        data: processSurgeBenchmarkPageHtml(pageHtml, benchmarkKey, sourceUrl, scoreKind),
-      };
-    });
-  } catch {
-    return { fetched_at_epoch_seconds: null, data: [] };
-  }
+  return fetchSource(sourceUrl, {}, DEFAULT_TIMEOUT_MS, async (response) => {
+    if (!response.ok) throw new Error(`Surge ${benchmarkKey} scrape failed: ${response.status}`);
+    const pageHtml = await response.text();
+    return {
+      fetched_at_epoch_seconds: nowEpochSeconds(),
+      data: processSurgeBenchmarkPageHtml(pageHtml, benchmarkKey, sourceUrl, scoreKind),
+    };
+  });
 }
 
 export function withSurgeVersion(
@@ -162,9 +154,7 @@ export function processSurgeIntelligenceIndexPageHtml(
     .map((match) => {
       const rowHtml = match[0] ?? "";
       const model = attributeElementText(rowHtml, "data-ii-model-bound");
-      const score = percentToUnitScore(
-        attributeElementText(rowHtml, "data-ii-score-paragraph") ?? "",
-      );
+      const score = percentToUnitScore(attributeElementText(rowHtml, "data-ii-score-paragraph"));
       if (model == null || score == null) return null;
       const provider = surgeProvider(rowHtml);
       const reasoningLabel = attributeElementText(rowHtml, "data-ii-reasoning-bound");

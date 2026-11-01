@@ -4,7 +4,7 @@ import { BENCHMARK_RESOURCE_PROFILES } from "../../benchmarks/catalog/portfolio"
 import { SNAPSHOT_TABLES } from "../../database/tables";
 import type { DatabaseWriter } from "../../database/writers/database";
 import { asFiniteNumber, asNonEmptyString } from "../../runtime";
-import { defineBenchmarkRuntime } from "../benchmark-runtime";
+import { type BenchmarkSnapshotContext, defineBenchmarkRuntime } from "../benchmark-runtime";
 import { type CacheRowSource, firstFetchedAt, sourceCacheRows } from "../cache/rows";
 import { sourceRowKey } from "../snapshots/policy";
 import { snapshotSourceRows } from "../snapshots/row-snapshot";
@@ -115,9 +115,10 @@ async function terminalBench4Snapshot(
   options: SourceRefreshOptions,
   previousMissingSince: ReadonlyMap<string, number>,
   nowEpochSeconds: number,
+  context: BenchmarkSnapshotContext,
 ): Promise<TerminalBench4Snapshot> {
   const snapshot = await snapshotSourceRows({
-    source: "terminal_bench_4",
+    source: context.source,
     cached,
     status: cached?.rows.some(
       (row) => row.seconds_per_task == null || row.output_tokens_per_task == null,
@@ -134,13 +135,7 @@ async function terminalBench4Snapshot(
   });
   return {
     terminalBench4Rows: snapshot.rows,
-    sourceStatus: {
-      source: "terminal_bench_4",
-      fetchedAt: snapshot.fetchedAt,
-      sourceInputCount: snapshot.rows.length,
-      sourceRowStates: snapshot.sourceRowStates,
-      fetchedAtKey: "terminalBench4",
-    },
+    sourceStatus: context.sourceStatus(snapshot),
   };
 }
 

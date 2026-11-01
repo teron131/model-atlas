@@ -118,7 +118,7 @@ export async function refreshOpenRouterRawPayload(
 }
 
 /** Refreshes mutable route telemetry while retaining a usable cached field when its fetch failed. */
-export function mergeOpenRouterModel(
+function mergeOpenRouterModel(
   cachedModel: OpenRouterSourceModel,
   fetchedModel: OpenRouterSourceModel,
 ): OpenRouterSourceModel {

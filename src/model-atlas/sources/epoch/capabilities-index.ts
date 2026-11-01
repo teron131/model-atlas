@@ -23,24 +23,20 @@ const DEFAULT_TIMEOUT_MS = 30_000;
 export async function getEpochCapabilitiesIndexStats(
   sourceUrl = EPOCH_CAPABILITIES_INDEX_CSV_URL,
 ): Promise<BenchmarkObservationPayload> {
-  try {
-    const read = (url: string) =>
-      fetchSource(url, {}, DEFAULT_TIMEOUT_MS, async (response) => {
-        if (!response.ok)
-          throw new Error(`Epoch Capabilities Index scrape failed: ${response.status}`);
-        return response.text();
-      });
-    const [scores, benchmarks] = await Promise.all([
-      read(sourceUrl),
-      read(EPOCH_CAPABILITIES_INDEX_BENCHMARKS_CSV_URL),
-    ]);
-    return {
-      fetched_at_epoch_seconds: nowEpochSeconds(),
-      data: processEpochCapabilitiesIndexCsv(scores, sourceUrl, benchmarks),
-    };
-  } catch {
-    return { fetched_at_epoch_seconds: null, data: [] };
-  }
+  const read = (url: string) =>
+    fetchSource(url, {}, DEFAULT_TIMEOUT_MS, async (response) => {
+      if (!response.ok)
+        throw new Error(`Epoch Capabilities Index scrape failed: ${response.status}`);
+      return response.text();
+    });
+  const [scores, benchmarks] = await Promise.all([
+    read(sourceUrl),
+    read(EPOCH_CAPABILITIES_INDEX_BENCHMARKS_CSV_URL),
+  ]);
+  return {
+    fetched_at_epoch_seconds: nowEpochSeconds(),
+    data: processEpochCapabilitiesIndexCsv(scores, sourceUrl, benchmarks),
+  };
 }
 
 export function processEpochCapabilitiesIndexCsv(

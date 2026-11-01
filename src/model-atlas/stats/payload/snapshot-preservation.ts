@@ -32,9 +32,11 @@ function modelKeys(model: ModelAtlasModel): string[] {
   return [...keys];
 }
 
-function previousModelByKey(previousPayload: ModelAtlasPayload): Map<string, ModelAtlasModel> {
+function previousModelByKey(
+  previousModels: readonly ModelAtlasModel[],
+): Map<string, ModelAtlasModel> {
   const models = new Map<string, ModelAtlasModel>();
-  for (const model of previousPayload.models) {
+  for (const model of previousModels) {
     for (const key of modelKeys(model)) {
       const existing = models.get(key);
       if (
@@ -93,22 +95,22 @@ function sortByIntelligence(models: ModelAtlasModel[]): ModelAtlasModel[] {
 
 /** Carry forward only stronger prior rows when a refresh loses evidence, keeping vanished-source protection narrow. */
 export function preserveHighSignalSnapshotModels(
-  payload: ModelAtlasPayload,
+  currentModels: ModelAtlasModel[],
   previousPayload: ModelAtlasPayload | null,
   policy: SnapshotPreservationConfig,
   scoringConfig: ScoringConfig,
-): ModelAtlasPayload {
+): ModelAtlasModel[] {
   if (previousPayload == null || previousPayload.models.length === 0) {
-    return payload;
+    return currentModels;
   }
   if (
     previousPayload.metadata.scoring.snapshot_preservation_version !== SNAPSHOT_PRESERVATION_VERSION
   ) {
-    return payload;
+    return currentModels;
   }
-  const previousByKey = previousModelByKey(previousPayload);
+  const previousByKey = previousModelByKey(previousPayload.models);
   let replaced = false;
-  const models = payload.models.map((model) => {
+  const models = currentModels.map((model) => {
     const previous = modelKeys(model)
       .map((key) => previousByKey.get(key))
       .find((candidate): candidate is ModelAtlasModel => candidate != null);
@@ -118,5 +120,5 @@ export function preserveHighSignalSnapshotModels(
     replaced = true;
     return previous;
   });
-  return replaced ? { ...payload, models: sortByIntelligence(models) } : payload;
+  return replaced ? sortByIntelligence(models) : currentModels;
 }

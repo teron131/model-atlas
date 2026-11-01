@@ -12,20 +12,11 @@ import {
 import { communityPlaceLabel } from "../../../src/model-atlas/community/catalog";
 import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 import { openModelSheet } from "../model-sheet/open";
-import {
-  AudioInputIcon,
-  ImageInputIcon,
-  TextInputIcon,
-  VideoInputIcon,
-} from "../shared/DashboardIcons";
+import { ModalityIcons, RatioTrack, scoreMeterStyle } from "../shared/DashboardMarks";
 import { modelName } from "../shared/model-display";
 import { providerBrandColor } from "../shared/provider-theme";
 import { ProviderLogo } from "../shared/ProviderLogo";
-import {
-  formatResourceRatio,
-  isDrawableRatio,
-  ratioTrackStyle,
-} from "../shared/resource-ratio-display";
+import { formatResourceRatio, isDrawableRatio } from "../shared/resource-ratio-display";
 import { resourceRatioColumns, scoreColumnsByDimension, scoreMetricColumns } from "./Columns";
 import {
   formatConfidence,
@@ -64,12 +55,6 @@ const LOADING_ROW_KEYS = [
   "loading-row-10",
   "loading-row-11",
   "loading-row-12",
-] as const;
-const inputModalities = [
-  { key: "text", label: "text", Icon: TextInputIcon },
-  { key: "image", label: "image", Icon: ImageInputIcon },
-  { key: "audio", label: "audio", Icon: AudioInputIcon },
-  { key: "video", label: "video", Icon: VideoInputIcon },
 ] as const;
 
 export type ScoreChangeHandler = (
@@ -470,38 +455,6 @@ function ModalityInputCell({
   );
 }
 
-/** The input modalities as one mark each, dimmed where the model lacks it, read aloud as `prefix` and the available list. */
-export function ModalityIcons({
-  inputs,
-  prefix = "",
-}: {
-  inputs: string[] | undefined;
-  prefix?: string;
-}) {
-  const available = new Set((inputs ?? []).map((input) => input.toLowerCase()));
-  const label = `${prefix}${
-    inputModalities
-      .filter(({ key }) => available.has(key))
-      .map(({ label }) => label)
-      .join(", ") || "none"
-  }`;
-  return (
-    <span className="modality-icons" title={label}>
-      <span className="visually-hidden">{label}</span>
-      {inputModalities.map(({ Icon, key, label }) => (
-        <span
-          key={key}
-          className={`modality-icon ${available.has(key) ? "" : "unavailable"}`}
-          title={`${label} input is ${available.has(key) ? "available" : "unavailable"}`}
-          aria-hidden="true"
-        >
-          <Icon />
-        </span>
-      ))}
-    </span>
-  );
-}
-
 const ConfidenceCell = memo(function ConfidenceCell({ model }: { model: ModelAtlasModel }) {
   const supports = scoreMetricColumns.map((column) => ({
     column,
@@ -675,26 +628,6 @@ function RatioCell({
   );
 }
 
-/** The median-relative bar for a drawable ratio, in the row's provider colour unless `color` gives one. */
-export function RatioTrack({ ratio, color }: { ratio: number; color?: string }) {
-  return (
-    <span
-      className="ratio-track"
-      style={
-        color == null
-          ? ratioTrackStyle(ratio)
-          : ({ ...ratioTrackStyle(ratio), "--row-provider": color } as CSSProperties)
-      }
-      aria-hidden="true"
-    />
-  );
-}
-
-/** The 0–100 score track with the provider star at `score`, drawn in `color`. */
-export function ScoreMeter({ score, color }: { score: number; color: string | undefined }) {
-  return <span className="score-meter" style={scoreMeterStyle(score, color)} aria-hidden="true" />;
-}
-
 function ScoreStrip({ model }: { model: ModelAtlasModel }) {
   const color = providerBrandColor(model.provider);
   return (
@@ -741,11 +674,4 @@ function ScoreCell({
       <span className="score-meter" />
     </td>
   );
-}
-
-function scoreMeterStyle(score: number, color: string | undefined) {
-  return {
-    "--score": String(Math.max(0, Math.min(100, score))),
-    "--score-color": color,
-  } as CSSProperties;
 }

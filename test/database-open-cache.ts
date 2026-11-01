@@ -360,7 +360,7 @@ try {
     );
 
     const payload = readDatabasePayload(databasePath);
-    reopenedDb.exec("DROP TABLE vals_index_raw_rows");
+    reopenedDb.exec("DROP TABLE terminal_bench_4_raw_rows");
     assert.deepEqual(
       readDatabasePayload(databasePath),
       payload,

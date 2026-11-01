@@ -209,9 +209,8 @@ export function publicJsonPayload(
   view: string | null,
   siteOrigin = "",
 ): PublicJsonPayload {
-  const { timeline: _timeline, ...leaderboard } = payload;
   payload = {
-    ...leaderboard,
+    ...payload,
     models: payload.models.map((model) =>
       applyResourceEvidenceRequirements(model, payload.metadata.scoring.benchmark_portfolio),
     ),
@@ -273,7 +272,7 @@ export function dashboardJsonPayload(
   payload: ModelAtlasPayload,
   siteOrigin = "",
 ): ModelAtlasPayload {
-  const { timeline: _timeline, benchmark_observations: observations, ...leaderboard } = payload;
+  const { benchmark_observations: observations, ...leaderboard } = payload;
   const dashboard = {
     ...leaderboard,
     models: leaderboard.models.map((model) => {

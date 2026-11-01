@@ -98,7 +98,8 @@ export async function fetchBenchmarkSourceRows(): Promise<BenchmarkSourceRows> {
   const entries = await Promise.all(
     Object.values(BENCHMARK_RUNTIMES).map(async (runtime) => [
       runtime.sourceRowsKey,
-      await runtime.fetchSourceRows(),
+      // A runtime whose scraper throws contributes no rows, matching the snapshot path's fallback in snapshotSourceRows.
+      await runtime.fetchSourceRows().catch(() => []),
     ]),
   );
   return Object.fromEntries(entries) as BenchmarkSourceRows;

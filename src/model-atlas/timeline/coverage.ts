@@ -4,7 +4,14 @@ import { residualIndexBreadth } from "../benchmarks/index-policy";
 import { STAGE_CONFIG } from "../config/stage";
 import { effectiveCount } from "../math-utils";
 import { evidenceRetentionFactor } from "../pipeline/scores/normalization";
-import type { HistoricalDataset, HistoricalEstimate, TimelineDimension } from "./schemas";
+import {
+  catalogBenchmarkKey,
+  hasUnresolvedVersion,
+  type HistoricalDataset,
+  type HistoricalEstimate,
+  isReferenceBenchmark,
+  type TimelineDimension,
+} from "./schemas";
 
 export const MINIMUM_TIMELINE_TASKS = 3;
 
@@ -20,18 +27,15 @@ export function timelineCoverage(
   for (const benchmark of data.benchmarks) {
     if (benchmark.kind !== "task") continue;
     taskNames.set(nameKey(benchmark.label), benchmark);
-    taskNames.set(nameKey(benchmark.key.replace(/^atlas_benchmark_/, "")), benchmark);
+    taskNames.set(nameKey(catalogBenchmarkKey(benchmark.key)), benchmark);
   }
   const portfolios = data.benchmarks.flatMap((index) => {
-    if (index.kind !== "index" || index.key.startsWith("model_atlas_") || !index.componentIds)
-      return [];
+    if (index.kind !== "index" || isReferenceBenchmark(index) || !index.componentIds) return [];
     const components = [
       ...new Map(
         index.componentIds.flatMap((id) => {
           const b = definitions.get(id);
-          return b?.kind === "task" &&
-            b.weights[dimension] > 0 &&
-            !b.id.includes(":unresolved-version")
+          return b?.kind === "task" && b.weights[dimension] > 0 && !hasUnresolvedVersion(b)
             ? [[b.key, b] as const]
             : [];
         }),
@@ -95,14 +99,14 @@ export function timelineCoverage(
       if (
         !definition ||
         definition.kind !== "index" ||
-        definition.key.startsWith("model_atlas_") ||
+        isReferenceBenchmark(definition) ||
         definition.weights[dimension] <= 0 ||
         !observation ||
         !observed.get(estimate.modelId)?.has(id)
       )
         continue;
       let breadth = residualIndexBreadth(
-        definition.key.replace(/^atlas_benchmark_/, ""),
+        catalogBenchmarkKey(definition.key),
         [],
         observation.benchmarkCount ?? definition.representedBenchmarks,
       );

@@ -6,7 +6,7 @@ import { type CSSProperties, type KeyboardEvent, useState } from "react";
 
 import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 import { formatScore } from "../table/format";
-import { BrainIcon } from "./DashboardIcons";
+import { BrainIcon } from "./DashboardMarks";
 import {
   collapsedModels,
   filterByGlobalModelFilters,

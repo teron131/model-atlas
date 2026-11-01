@@ -7,13 +7,8 @@
 import { INDEX_POLICIES } from "../../benchmarks/index-policy";
 import type { BenchmarkObservationMetadata } from "../../benchmarks/observation";
 import { normalizeModelToken } from "../../identity/normalization";
-import {
-  asFiniteNumber,
-  asNonEmptyString,
-  asRecord,
-  nowEpochSeconds,
-  stableJson,
-} from "../../runtime";
+import { asNonEmptyString, asRecord, nowEpochSeconds, stableJson } from "../../runtime";
+import { percentToUnitScore } from "../parsing";
 import { getValsBenchmarkView, parseValsBenchmarkView } from "./view";
 
 export const VALS_INDEX_LEADERBOARD_URL = "https://www.vals.ai/benchmarks/vals_index";
@@ -21,11 +16,6 @@ export const VALS_INDEX_LEADERBOARD_URL = "https://www.vals.ai/benchmarks/vals_i
 const DEFAULT_TIMEOUT_MS = 30_000;
 
 const OVERALL_TASK_KEY = "overall";
-
-type ValsIndexScraperOptions = {
-  url?: string;
-  timeoutMs?: number;
-};
 
 type ValsIndexMetadata = {
   benchmark: string | null;
@@ -66,14 +56,9 @@ type ValsIndexPayload = ValsIndexResults & {
   fetched_at_epoch_seconds: number | null;
 };
 
-export async function getValsIndexStats(
-  options: ValsIndexScraperOptions = {},
-): Promise<ValsIndexPayload> {
+export async function getValsIndexStats(): Promise<ValsIndexPayload> {
   try {
-    const view = await getValsBenchmarkView(
-      options.url ?? VALS_INDEX_LEADERBOARD_URL,
-      options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
-    );
+    const view = await getValsBenchmarkView(VALS_INDEX_LEADERBOARD_URL, DEFAULT_TIMEOUT_MS);
     const parsed = processValsIndexView(view);
     return {
       fetched_at_epoch_seconds: parsed.model_scores.length > 0 ? nowEpochSeconds() : null,
@@ -206,14 +191,6 @@ function taskLabelsFromMetadata(metadata: unknown): Record<string, string> {
     }
   }
   return labels;
-}
-
-function percentToUnitScore(value: unknown): number | null {
-  const percent = asFiniteNumber(value);
-  if (percent == null || percent < 0 || percent > 100) {
-    return null;
-  }
-  return Number((percent / 100).toFixed(6));
 }
 
 function modelSlug(modelId: string): string {

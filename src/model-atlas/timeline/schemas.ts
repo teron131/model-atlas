@@ -1,4 +1,4 @@
-/** Shared retained-data schemas, compact persistence, and fit-policy validation for the Intelligence Index. */
+/** Shared retained-data schemas and their key conventions, compact persistence, and fit-policy validation for the Intelligence Index. */
 
 import { MAX_NORMALIZED_IMPUTATION_ERROR } from "../config/stage";
 
@@ -20,6 +20,45 @@ export type HistoricalBenchmark = {
   benchmarkNames?: string[];
   primary?: boolean;
 };
+
+const CATALOG_BENCHMARK_KEY_PREFIX = "atlas_benchmark_";
+
+/** Catalog benchmarks enter Timeline under a prefixed key so they never collide with archived source keys. */
+export function timelineCatalogKey(catalogKey: string): string {
+  return `${CATALOG_BENCHMARK_KEY_PREFIX}${catalogKey}`;
+}
+
+export function isCatalogBenchmark(benchmark: Pick<HistoricalBenchmark, "key">): boolean {
+  return benchmark.key.startsWith(CATALOG_BENCHMARK_KEY_PREFIX);
+}
+
+/** The catalog key behind a Timeline benchmark key; archived source keys pass through unchanged. */
+export function catalogBenchmarkKey(key: string): string {
+  return key.startsWith(CATALOG_BENCHMARK_KEY_PREFIX)
+    ? key.slice(CATALOG_BENCHMARK_KEY_PREFIX.length)
+    : key;
+}
+
+/** Model Atlas's own archived score series serve as each dimension's root benchmark, not as task or index evidence. */
+export function isReferenceBenchmark(benchmark: Pick<HistoricalBenchmark, "key">): boolean {
+  return benchmark.key.startsWith("model_atlas_");
+}
+
+const CATALOG_POSITION_ID = /^atlas-model:(.+)::[^:]*$/;
+
+/** Catalog-backed positions are keyed by catalog model ID and exact effort; archived source identities carry no catalog ID. */
+export function catalogPositionId(catalogId: string, effort: string): string {
+  return `atlas-model:${catalogId}::${effort}`;
+}
+
+export function positionCatalogId(positionId: string): string | null {
+  return CATALOG_POSITION_ID.exec(positionId)?.[1] ?? null;
+}
+
+/** Archived evidence whose source version never resolved stays out of fits and coverage. */
+export function hasUnresolvedVersion(benchmark: Pick<HistoricalBenchmark, "id">): boolean {
+  return benchmark.id.includes(":unresolved-version");
+}
 
 export type HistoricalModel = {
   id: string;

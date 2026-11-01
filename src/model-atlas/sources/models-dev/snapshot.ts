@@ -21,7 +21,7 @@ type ModelsDevSnapshot = Pick<
 > & { sourceStatus: SourceSnapshotStatus };
 
 /** Refreshes returned catalog records while retaining providers and models omitted by the latest fetch. */
-export function mergeModelsDevPayload(
+function mergeModelsDevPayload(
   cachedPayload: ModelsDevPayload | undefined,
   fetchedPayload: ModelsDevPayload,
   options: SourceRefreshOptions,

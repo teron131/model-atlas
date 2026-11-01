@@ -14,10 +14,12 @@ import { MINIMUM_TIMELINE_TASKS } from "./coverage";
 import { timelineInformation, timelineNativeValue } from "./linking";
 import { historicalVersionSeries } from "./model-identity";
 import {
+  catalogBenchmarkKey,
   type HistoricalCalibration,
   type HistoricalDataset,
   type HistoricalEstimate,
   type HistoricalModel,
+  isReferenceBenchmark,
   type TimelineAnchors,
   type TimelineBenchmarkCalibration,
   type TimelineDimension,
@@ -30,15 +32,6 @@ export const DEFAULT_TIMELINE_PARAMETERS: TimelineParameters = {
   saturationHigh: 98,
   minModels: 4,
   maxError: MAX_NORMALIZED_IMPUTATION_ERROR,
-};
-
-export const DEFAULT_TIMELINE_ANCHORS: TimelineAnchors = {
-  mode: "models",
-  lowModelId: "name:gpt-4-mar-2023::unknown",
-  highModelId: "name:claude-opus-4-5::unknown",
-  lowScore: 100,
-  highScore: 150,
-  pointsPerDeviation: 20,
 };
 
 /** New observations can revise an estimate, but published benchmark curves and initial reference values remain fixed. */
@@ -94,9 +87,9 @@ export function calibrateTimeline(
         definition &&
         !excludesVariantIndex(
           { reasoning_effort: model.effort },
-          definition.key.replace(/^atlas_benchmark_/, ""),
+          catalogBenchmarkKey(definition.key),
         ) &&
-        !definition.key.startsWith("model_atlas_") &&
+        !isReferenceBenchmark(definition) &&
         definition.weights[dimension] > 0 &&
         nodes.has(definition.id) &&
         timelineNativeValue(definition, o.value) != null
@@ -115,7 +108,7 @@ export function calibrateTimeline(
         )
           return [];
         const value = node.offset + node.slope * native;
-        const indexKey = definition.key.replace(/^atlas_benchmark_/, "");
+        const indexKey = catalogBenchmarkKey(definition.key);
         return Number.isFinite(value)
           ? [
               {
@@ -147,14 +140,15 @@ export function calibrateTimeline(
     for (const candidate of candidates) {
       const key =
         candidate.definition.kind === "index"
-          ? candidate.definition.key
-              .replace(/^atlas_benchmark_/, "")
-              .replace(/^aa_quality_index$/, "aa_intelligence_index")
+          ? catalogBenchmarkKey(candidate.definition.key).replace(
+              /^aa_quality_index$/,
+              "aa_intelligence_index",
+            )
           : candidate.definition.key;
       if (!unique.has(key)) unique.set(key, candidate);
     }
     const tasks = [...unique.values()].filter((p) => p.definition.kind === "task");
-    const taskKeys = tasks.map((p) => p.definition.key.replace(/^atlas_benchmark_/, ""));
+    const taskKeys = tasks.map((p) => catalogBenchmarkKey(p.definition.key));
     const indexCandidates = [...unique.entries()].filter(([, p]) => p.definition.kind === "index");
     const indexBreadths = qualityIndexBreadths(
       indexCandidates.map(([key, part]) => ({
@@ -193,7 +187,7 @@ export function calibrateTimeline(
       return (
         definition &&
         definition.weights[dimension] > 0 &&
-        !definition.key.startsWith("model_atlas_") &&
+        !isReferenceBenchmark(definition) &&
         !isInformativeValue(definition, o.value, parameters)
       );
     }).length;

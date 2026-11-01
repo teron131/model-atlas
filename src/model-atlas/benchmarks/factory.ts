@@ -150,7 +150,6 @@ export type BenchmarkColumnFacet = {
   key: string;
   label: string;
   format: BenchmarkMetricFormat;
-  defaultSort: BenchmarkSortDirection;
 };
 
 export type BenchmarkPresentationDetail = readonly [label: string, value: string];
@@ -170,7 +169,6 @@ export type BenchmarkTaskMetricColumnFacet = {
 };
 
 type BenchmarkPresentationFacet = {
-  title: string;
   label: string;
   scoringLabel?: string;
   description: string;
@@ -303,9 +301,6 @@ function validateDefinitions(definitions: BenchmarkDefinitions): void {
         throw new Error(`Benchmark source runtime key must be unique: ${input.runtime.key}`);
       }
       runtimeKeys.add(input.runtime.key);
-    }
-    if (definition.presentation.title.trim().length === 0) {
-      throw new Error(`Benchmark title cannot be empty for ${key}`);
     }
     if (definition.presentation.label.trim().length === 0) {
       throw new Error(`Benchmark label cannot be empty for ${key}`);

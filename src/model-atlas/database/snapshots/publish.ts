@@ -5,7 +5,7 @@ import { join, resolve } from "node:path";
 import { resourceUsage } from "node:process";
 
 import { refreshDatabase } from "../refresh";
-import { readDatabasePayload } from "../sqlite-payload";
+import { readDatabaseSnapshot } from "../sqlite-payload";
 import { SnapshotStorage } from "./gcs";
 import { publicSnapshotBucket } from "./manifest";
 
@@ -20,24 +20,22 @@ export async function publishSnapshot(seedPath?: string) {
     throw new Error("The snapshot store is empty; initialize it with --seed <database.sqlite>");
   const startedAt = performance.now();
   return withCheckpointWorkspace(async (databasePath) => {
-    const previousPayload = current.manifest
-      ? await store.restore(current.manifest, databasePath)
-      : null;
+    const previous = current.manifest ? await store.restore(current.manifest, databasePath) : null;
     if (!current.manifest && seedPath) await copyFile(resolve(seedPath), databasePath);
     const refreshed = await refreshDatabase(databasePath, {
-      previousPayload,
+      previousPayload: previous?.payload ?? null,
       replaceSourceRows: process.env.MODEL_ATLAS_REPLACE_SOURCE_ROWS === "1",
     });
-    const payload = readDatabasePayload(databasePath);
-    const publication = await store.publish(databasePath, payload, current);
+    const snapshot = readDatabaseSnapshot(databasePath);
+    const publication = await store.publish(databasePath, snapshot, current);
     return {
       bucket: publicBucket,
       version: publication.manifest.version,
       data_sha256: publication.manifest.data_sha256,
       recovery_versions: publication.manifest.previous.map((entry) => entry.version),
       published: true,
-      model_count: payload.models.length,
-      fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
+      model_count: snapshot.payload.models.length,
+      fetched_at_epoch_seconds: snapshot.payload.fetched_at_epoch_seconds,
       bytes_uploaded: publication.bytes_uploaded,
       source_cache: refreshed.source_cache,
       maintenance_warnings: publication.maintenance_warnings,

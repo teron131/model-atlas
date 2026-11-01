@@ -54,39 +54,23 @@ type FrontierCodePayload = {
   data: FrontierCodeModelEffortRow[];
 };
 
-type FrontierCodeScraperOptions = {
-  url?: string;
-  timeoutMs?: number;
-};
-
 type ParsedEffortRow = Omit<
   FrontierCodeModelEffortRow,
   "revision" | "official_rank" | "official_best_effort"
 >;
 
 /** Fetch Cognition's versioned structured artifact rather than scraping the rendered leaderboard. */
-export async function getFrontierCodeStats(
-  options: FrontierCodeScraperOptions = {},
-): Promise<FrontierCodePayload> {
-  try {
-    return await fetchSource(
-      options.url ?? FRONTIER_CODE_DATA_URL,
-      {},
-      options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
-      async (response) => {
-        if (!response.ok) {
-          throw new Error(`FrontierCode scrape failed: ${response.status}`);
-        }
-        const data = processFrontierCodePayload(await response.json());
-        if (data.length === 0) {
-          throw new Error("FrontierCode scrape returned no rows");
-        }
-        return { fetched_at_epoch_seconds: nowEpochSeconds(), data };
-      },
-    );
-  } catch {
-    return { fetched_at_epoch_seconds: null, data: [] };
-  }
+export async function getFrontierCodeStats(): Promise<FrontierCodePayload> {
+  return fetchSource(FRONTIER_CODE_DATA_URL, {}, DEFAULT_TIMEOUT_MS, async (response) => {
+    if (!response.ok) {
+      throw new Error(`FrontierCode scrape failed: ${response.status}`);
+    }
+    const data = processFrontierCodePayload(await response.json());
+    if (data.length === 0) {
+      throw new Error("FrontierCode scrape returned no rows");
+    }
+    return { fetched_at_epoch_seconds: nowEpochSeconds(), data };
+  });
 }
 
 /** Parse one subset aggregate while keeping nullable resource fields distinct from required quality metrics. */

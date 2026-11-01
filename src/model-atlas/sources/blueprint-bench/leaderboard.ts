@@ -19,11 +19,6 @@ const LEADERBOARD_END = "The eval";
 
 const LEADERBOARD_ROW_RANK_PATTERN = /^\d+$/;
 
-type BlueprintBenchScraperOptions = {
-  url?: string;
-  timeoutMs?: number;
-};
-
 export type BlueprintBenchModelScoreRow = {
   model: string;
   score: number;
@@ -36,30 +31,19 @@ type BlueprintBenchModelScorePayload = {
   data: BlueprintBenchModelScoreRow[];
 };
 
-export async function getBlueprintBenchStats(
-  options: BlueprintBenchScraperOptions = {},
-): Promise<BlueprintBenchModelScorePayload> {
-  try {
-    const url = options.url ?? BLUEPRINT_BENCH_LEADERBOARD_URL;
-    const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-    return await fetchSource(url, {}, timeoutMs, async (response) => {
-      if (!response.ok) {
-        throw new Error(`Blueprint-Bench 2 scrape failed: ${response.status}`);
-      }
-      return {
-        fetched_at_epoch_seconds: nowEpochSeconds(),
-        data: processBlueprintBenchPageHtml(await response.text()),
-      };
-    });
-  } catch {
+export async function getBlueprintBenchStats(): Promise<BlueprintBenchModelScorePayload> {
+  return fetchSource(BLUEPRINT_BENCH_LEADERBOARD_URL, {}, DEFAULT_TIMEOUT_MS, async (response) => {
+    if (!response.ok) {
+      throw new Error(`Blueprint-Bench 2 scrape failed: ${response.status}`);
+    }
     return {
-      fetched_at_epoch_seconds: null,
-      data: [],
+      fetched_at_epoch_seconds: nowEpochSeconds(),
+      data: processBlueprintBenchPageHtml(await response.text()),
     };
-  }
+  });
 }
 
-export function processBlueprintBenchPageHtml(pageHtml: string): BlueprintBenchModelScoreRow[] {
+function processBlueprintBenchPageHtml(pageHtml: string): BlueprintBenchModelScoreRow[] {
   const lines = htmlTextLines(pageHtml);
   const start = lines.indexOf(LEADERBOARD_START);
   if (start === -1) {

@@ -3,10 +3,12 @@
 import assert from "node:assert/strict";
 
 import { residualIndexBreadth } from "../src/model-atlas/benchmarks/index-policy";
+import { BENCHMARK_OBSERVATION_BINDINGS } from "../src/model-atlas/benchmarks/registry";
 import {
   getCaisDashboardStats,
   processCaisDashboardModels,
 } from "../src/model-atlas/sources/cais/results";
+import { benchmarkObservationSource } from "../src/model-atlas/sources/observations/load";
 
 const sourceUrl = "https://dashboard.safe.ai/";
 const models = [
@@ -130,7 +132,11 @@ try {
   assert.equal(component.data[0]?.metadata.score_note, note);
   assert.equal(aggregate.data[0]?.canonical_value, 0.668286);
   globalThis.fetch = async () => new Response("unavailable", { status: 500 });
-  assert.deepEqual(await getCaisDashboardStats("textquests", { sourceUrl }), {
+  const textquests = BENCHMARK_OBSERVATION_BINDINGS.find(
+    (binding) => binding.benchmark === "textquests",
+  );
+  assert.ok(textquests);
+  assert.deepEqual(await benchmarkObservationSource(textquests).fetchRows(), {
     fetched_at_epoch_seconds: null,
     data: [],
   });

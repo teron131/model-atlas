@@ -61,7 +61,7 @@ type AleBenchTaskResult = {
   cost: number;
 };
 
-export type AleBenchConfigurationRow = {
+type AleBenchConfigurationRow = {
   model: string;
   detail_path: string;
   num_self_refine: number;
@@ -95,55 +95,39 @@ type AleBenchPayload = {
   data: AleBenchSourceRow[];
 };
 
-type AleBenchScraperOptions = {
-  sakanaUrl?: string;
-  epochUrl?: string;
-  timeoutMs?: number;
-};
-
 /** Fetch both observation sources; absent mirror data must not discard a successful Sakana fetch. */
-export async function getAleBenchStats(
-  options: AleBenchScraperOptions = {},
-): Promise<AleBenchPayload> {
-  try {
-    const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-    const epochRequest = fetchSource(
-      options.epochUrl ?? ALE_BENCH_EPOCH_RESULTS_URL,
-      {},
-      timeoutMs,
-      async (response) => (response.ok ? response.text() : null),
-    ).catch(() => null);
-    const sakanaPayload = await fetchSource(
-      options.sakanaUrl ?? ALE_BENCH_SAKANA_RESULTS_URL,
-      {},
-      timeoutMs,
-      async (response) => {
-        if (!response.ok) {
-          throw new Error(`ALE-Bench Sakana scrape failed: ${response.status}`);
-        }
-        return response.json();
-      },
-    );
-    const data = processAleBenchSakanaPayload(sakanaPayload);
-    if (data.length === 0) throw new Error("ALE-Bench Sakana scrape returned no rows");
+export async function getAleBenchStats(): Promise<AleBenchPayload> {
+  const epochRequest = fetchSource(
+    ALE_BENCH_EPOCH_RESULTS_URL,
+    {},
+    DEFAULT_TIMEOUT_MS,
+    async (response) => (response.ok ? response.text() : null),
+  ).catch(() => null);
+  const sakanaPayload = await fetchSource(
+    ALE_BENCH_SAKANA_RESULTS_URL,
+    {},
+    DEFAULT_TIMEOUT_MS,
+    async (response) => {
+      if (!response.ok) {
+        throw new Error(`ALE-Bench Sakana scrape failed: ${response.status}`);
+      }
+      return response.json();
+    },
+  );
+  const data = processAleBenchSakanaPayload(sakanaPayload);
+  if (data.length === 0) throw new Error("ALE-Bench Sakana scrape returned no rows");
 
-    let epochRows: AleBenchEpochRow[] = [];
-    try {
-      const epochCsv = await epochRequest;
-      if (epochCsv != null) epochRows = processAleBenchEpochCsv(epochCsv);
-    } catch {
-      // Retain successful Sakana observations when the independent Epoch fetch is unavailable.
-    }
-    return {
-      fetched_at_epoch_seconds: nowEpochSeconds(),
-      data: [...data, ...epochRows.map((epoch) => ({ model: epoch.model, epoch }))],
-    };
+  let epochRows: AleBenchEpochRow[] = [];
+  try {
+    const epochCsv = await epochRequest;
+    if (epochCsv != null) epochRows = processAleBenchEpochCsv(epochCsv);
   } catch {
-    return {
-      fetched_at_epoch_seconds: null,
-      data: [],
-    };
+    // Retain successful Sakana observations when the independent Epoch fetch is unavailable.
   }
+  return {
+    fetched_at_epoch_seconds: nowEpochSeconds(),
+    data: [...data, ...epochRows.map((epoch) => ({ model: epoch.model, epoch }))],
+  };
 }
 
 /** Parse ALE-Bench's slug-style effort suffixes without treating model-family tokens as reasoning labels. */
@@ -206,7 +190,7 @@ export function processAleBenchConfigurationRow(
 }
 
 /** Parse every Sakana model/refinement configuration without collapsing its task evidence. */
-export function processAleBenchSakanaPayload(value: unknown): AleBenchConfigurationRow[] {
+function processAleBenchSakanaPayload(value: unknown): AleBenchConfigurationRow[] {
   if (!Array.isArray(value)) return [];
   const rows: AleBenchConfigurationRow[] = [];
   for (const candidate of value) {

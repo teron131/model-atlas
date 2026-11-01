@@ -19,17 +19,18 @@ export type TimelinePoint = {
   indexOnly: boolean;
 };
 
-// `capabilityModelId` keys catalog-backed positions as `atlas-model:<catalog id>::<effort>`; archived source identities carry no catalog id.
-const CATALOG_POSITION_ID = /^atlas-model:(.+)::[^:]*$/;
-
-/** The catalog model id behind a Timeline point, so a point can open the current snapshot's model sheet. */
-export function timelineCatalogId(point: Pick<TimelinePoint, "id">): string | null {
-  return CATALOG_POSITION_ID.exec(point.id)?.[1] ?? null;
-}
-
 /** A point's chart label: GPT-4, the Timeline's landmark, goes by its short name. */
 export function timelinePointLabel(point: Pick<TimelinePoint, "name">): string {
   return point.name === "GPT-4 (Mar 2023)" ? "GPT-4" : point.name;
+}
+
+/** Both Timeline plots pad their scores out to 20-point gridlines, with a fixed range when a view has no points. */
+export function timelineScoreDomain(scores: readonly number[]): [number, number] {
+  if (scores.length === 0) return [60, 200];
+  return [
+    Math.floor((Math.min(...scores) - 5) / 20) * 20,
+    Math.ceil((Math.max(...scores) + 8) / 20) * 20,
+  ];
 }
 
 /** Select the same family representatives, visibility floor and evidence support as the detailed explorer; never refit scores. */

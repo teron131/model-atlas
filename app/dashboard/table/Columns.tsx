@@ -6,7 +6,7 @@ import type {
   ModelAtlasModel,
   ModelAtlasScoreDimension,
 } from "../../../src/model-atlas/stats/types";
-import { SCORE_ICONS } from "../shared/DashboardIcons";
+import { SCORE_ICONS } from "../shared/DashboardMarks";
 import { type SortKey, speedMetricColumns } from "./models";
 
 type SortableColumnDefinition = {

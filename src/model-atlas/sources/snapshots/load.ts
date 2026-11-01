@@ -40,7 +40,7 @@ type LoadedSourceSnapshots = {
   sourceCacheStatuses: Record<RawSourceName, RawSourceCacheStatus>;
 };
 
-export type SourceSnapshotCaches = BenchmarkSnapshotCaches & {
+type SourceSnapshotCaches = BenchmarkSnapshotCaches & {
   artificialAnalysis: ReturnType<typeof readArtificialAnalysisRawCache>;
   artificialAnalysisBenchmarkResources: ReturnType<
     typeof readArtificialAnalysisBenchmarkResourceRawCache
@@ -124,18 +124,13 @@ async function refreshSourceSnapshots(
     modelsDev.modelsDevPayload,
     artificialAnalysis.artificialAnalysisSelectedRows,
   );
-  type BenchmarkObservationRowsKey =
-    (typeof BENCHMARK_OBSERVATION_BINDINGS)[number]["sourceRowsKey"];
-  const benchmarkObservationRows = Object.fromEntries(
-    benchmarkObservations.map(({ binding, snapshot }) => [binding.sourceRowsKey, snapshot.rows]),
-  ) as Pick<SourceSnapshots, BenchmarkObservationRowsKey>;
   const benchmarkRows = benchmarkSnapshotRows(benchmarks);
   const sourceStatuses: SourceSnapshotStatus[] = [
     artificialAnalysis.sourceStatus,
     artificialAnalysisBenchmarkResources.sourceStatus,
     modelsDev.sourceStatus,
     ...Object.values(benchmarks).map((snapshot) => snapshot.sourceStatus),
-    ...benchmarkObservations.map(({ snapshot }) => snapshot.sourceStatus),
+    ...benchmarkObservations.sourceStatuses,
   ];
   updateSourceCacheStatuses(sourceCacheStatuses, sourceStatuses);
   const snapshots = {
@@ -148,7 +143,7 @@ async function refreshSourceSnapshots(
     modelsDevFetchedAt: modelsDev.modelsDevFetchedAt,
     modelsDevStatusCode: modelsDev.modelsDevStatusCode,
     ...benchmarkRows,
-    ...benchmarkObservationRows,
+    ...benchmarkObservations.rows,
     sourceRowStates: sourceStatuses.flatMap((sourceStatus) => sourceStatus.sourceRowStates),
     fetchedAt: fetchedAtFromStatuses(sourceStatuses),
   } satisfies SourceSnapshots;

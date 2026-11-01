@@ -33,6 +33,7 @@ import {
   SnapshotStorage,
 } from "../src/model-atlas/database/snapshots/gcs";
 import {
+  type SnapshotData,
   type SnapshotManifest,
   type SnapshotVersion,
 } from "../src/model-atlas/database/snapshots/manifest";
@@ -579,7 +580,7 @@ const now = new Date("2026-10-19T06:00:00Z");
 const initialPayload = minimalModelAtlasPayload({ fetchedAt: 1, models });
 
 class CheckpointStore extends SnapshotStorage {
-  payload = initialPayload;
+  snapshot: SnapshotData = { payload: initialPayload, timeline: null, communityRankings: [] };
   generation = 1;
   beforePublish: (() => Promise<void>) | null = null;
   manifest: SnapshotManifest = {
@@ -600,9 +601,9 @@ class CheckpointStore extends SnapshotStorage {
   }
   override async restore(_manifest: SnapshotVersion, path: string) {
     await copyFile(checkpoint, path);
-    return structuredClone(this.payload);
+    return structuredClone(this.snapshot);
   }
-  override async publish(path: string, payload: typeof initialPayload, previous: CurrentSnapshot) {
+  override async publish(path: string, data: SnapshotData, previous: CurrentSnapshot) {
     if (this.beforePublish) {
       const before = this.beforePublish;
       this.beforePublish = null;
@@ -611,7 +612,7 @@ class CheckpointStore extends SnapshotStorage {
     if (previous.generation !== this.generation)
       throw new SnapshotConflictError("Concurrent publication");
     await copyFile(path, checkpoint);
-    this.payload = structuredClone(payload);
+    this.snapshot = structuredClone(data);
     this.generation += 1;
     return { manifest: this.manifest, bytes_uploaded: 0, maintenance_warnings: [] };
   }
@@ -657,10 +658,10 @@ try {
     const db = new DatabaseSync(checkpoint);
     insertCommunityRanking(db, concurrent);
     db.close();
-    store.payload = {
-      ...store.payload,
-      fetched_at_epoch_seconds: 2,
-      community_rankings: storedRecords(),
+    store.snapshot = {
+      payload: { ...store.snapshot.payload, fetched_at_epoch_seconds: 2 },
+      timeline: null,
+      communityRankings: storedRecords(),
     };
     store.generation += 1;
   };
@@ -670,7 +671,7 @@ try {
     body: { ranked_at: incoming.ranked_at, active: false },
   });
   assert.equal(
-    store.payload.fetched_at_epoch_seconds,
+    store.snapshot.payload.fetched_at_epoch_seconds,
     2,
     "A ranking retry keeps the concurrent benchmark refresh",
   );
@@ -751,8 +752,8 @@ try {
     assert.equal(display.models[0]!.community_indexes?.slop?.best, 2);
     assert.equal(display.metadata.scoring.column_tooltips.slopIndex?.title, "Slop Index");
     assert.equal(
-      display.community_rankings,
-      undefined,
+      "community_rankings" in display,
+      false,
       "Research history stays out of the leaderboard payload",
     );
     assert.equal(await readDisplayPayload(), display, "Repeated reads do not compound corrections");

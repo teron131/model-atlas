@@ -4,12 +4,15 @@ import { calibrationObservations, distinctModelCount } from "../benchmarks/calib
 import { excludesVariantIndex } from "../benchmarks/index-policy";
 import { STAGE_CONFIG } from "../config/stage";
 import { prepareBenchmarkImputation } from "../pipeline/scores/imputation/benchmark";
-import type {
-  HistoricalBenchmark,
-  HistoricalDataset,
-  TimelineEvidenceCell,
-  TimelineParameters,
-  TimelinePredictor,
+import {
+  catalogBenchmarkKey,
+  hasUnresolvedVersion,
+  type HistoricalBenchmark,
+  type HistoricalDataset,
+  isReferenceBenchmark,
+  type TimelineEvidenceCell,
+  type TimelineParameters,
+  type TimelinePredictor,
 } from "./schemas";
 
 type TimelineRow = {
@@ -37,7 +40,7 @@ export function prepareTimelineBenchmarkEvidence(
 
 function buildEvidence(data: HistoricalDataset, parameters: TimelineParameters) {
   const definitions = data.benchmarks.filter(
-    (b) => !b.key.startsWith("model_atlas_") && !b.id.includes(":unresolved-version"),
+    (b) => !isReferenceBenchmark(b) && !hasUnresolvedVersion(b),
   );
   const tasks = definitions.filter((b) => b.kind === "task");
   const indexes = definitions.filter((b) => b.kind === "index");
@@ -54,10 +57,7 @@ function buildEvidence(data: HistoricalDataset, parameters: TimelineParameters) 
     const definition = byDefinition.get(observation.benchmarkId);
     if (
       definition &&
-      !excludesVariantIndex(
-        byId.get(observation.modelId)!,
-        definition.key.replace(/^atlas_benchmark_/, ""),
-      ) &&
+      !excludesVariantIndex(byId.get(observation.modelId)!, catalogBenchmarkKey(definition.key)) &&
       isInformativeValue(definition, observation.value, parameters)
     )
       byId.get(observation.modelId)!.benchmarks[definition.id] = observation.value;

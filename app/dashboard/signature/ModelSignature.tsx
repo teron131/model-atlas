@@ -7,7 +7,7 @@ import { type CSSProperties, memo, useLayoutEffect, useMemo, useRef, useState } 
 
 import { canonicalModelKey } from "../../../src/model-atlas/identity/normalization";
 import { openModelSheet } from "../model-sheet/open";
-import { SCORE_ICONS } from "../shared/DashboardIcons";
+import { SCORE_ICONS } from "../shared/DashboardMarks";
 import { formatCost } from "../table/format";
 import {
   type SignatureMetric,

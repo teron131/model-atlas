@@ -1,7 +1,6 @@
 /** Live stats coordinates source refresh and scoring, retaining current metadata when a failed refresh yields an empty payload. */
 
 import { STAGE_CONFIG } from "../config";
-import { benchmarkRowsFromSourceData } from "../pipeline/benchmark-rows";
 import { deriveModelStats } from "../pipeline/derivation";
 import { nowEpochSeconds } from "../runtime";
 import { fetchSourceData } from "../sources/assembly";
@@ -16,10 +15,13 @@ export async function getLiveModelAtlasPayload(
   try {
     const modelId = options.id ?? null;
     const sourceData = await fetchSourceData();
-    const { benchmarkObservations, modelRows, models } = await deriveModelStats(sourceData, {
-      modelId,
-      loadOpenRouter: loadLiveOpenRouterStats,
-    });
+    const { benchmarkObservations, benchmarkRows, modelRows, models } = await deriveModelStats(
+      sourceData,
+      {
+        modelId,
+        loadOpenRouter: loadLiveOpenRouterStats,
+      },
+    );
     return {
       fetched_at_epoch_seconds: nowEpochSeconds(),
       models,
@@ -28,7 +30,7 @@ export async function getLiveModelAtlasPayload(
         models: modelRows,
         resourceModels: models,
         healthModels: models,
-        sourceRowsByKey: benchmarkRowsFromSourceData(sourceData),
+        sourceRowsByKey: benchmarkRows,
       }),
     };
   } catch {

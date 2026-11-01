@@ -65,15 +65,8 @@ export function prepareModelSelection(
     prepareBenchmarkScoring(modelRows, scoringConfig),
     replacementRows,
   );
-  const candidatesWithRows = buildCandidates(
-    modelRows,
-    openRouterData,
-    scoringConfig,
-    scoringPreparation,
-    previousModels,
-    versioning,
-  );
-  const provisionalCandidates = candidatesWithRows.map(({ candidate }) => candidate);
+  const candidatesWithRows = buildCandidates(modelRows, openRouterData, previousModels, versioning);
+  const candidates = candidatesWithRows.map(({ candidate }) => candidate);
   const imputationCandidates = candidatesWithRows
     .filter(({ row }) => !isVersionReplacementRow(row))
     .map(({ candidate }) => candidate);
@@ -84,7 +77,7 @@ export function prepareModelSelection(
     ["tokens", "output_tokens"],
   );
   scoringPreparation.qualityContext = buildAgenticTokenScoringContext(
-    provisionalCandidates,
+    candidates,
     scoringConfig,
     scoringPreparation.qualityContext,
     tokenImputation,
@@ -94,7 +87,7 @@ export function prepareModelSelection(
     scoringConfig,
     scoringPreparation.qualityContext,
   );
-  const rescored = candidatesWithRows.map(({ row, candidate }) => {
+  const scored = candidatesWithRows.map(({ row, candidate }) => {
     const result = buildComponentScoreResult(
       asRecord(candidate),
       scoringConfig,
@@ -113,9 +106,9 @@ export function prepareModelSelection(
     };
   });
   const qualityScoredCandidates = blendPairwiseQualityScores(
-    rescored.map(({ candidate }) => candidate),
+    scored.map(({ candidate }) => candidate),
     scoringConfig,
-    rescored.map(({ intelligenceParts }) => intelligenceParts),
+    scored.map(({ intelligenceParts }) => intelligenceParts),
   );
   return {
     modelRows,
@@ -212,23 +205,16 @@ export async function buildFinalModels(
 function buildCandidates(
   rows: ModelRow[],
   openRouterData: OpenRouterModelData,
-  scoringConfig: ScoringConfig,
-  scoringPreparation: BenchmarkScoringPreparation,
   previousModels: readonly ModelAtlasModel[],
   versioning: BenchmarkVersioningOptions,
 ): { row: ModelRow; candidate: ModelAtlasCandidate }[] {
   const previousModelForRow = buildPreviousModelLookup(previousModels);
-  return rows.map((row) => {
-    const candidate = buildModelCandidate(
-      row,
-      openRouterData,
-      scoringConfig,
-      scoringPreparation,
-      versionReplacementBenchmarkWeights(row, scoringConfig),
-    );
-    return {
-      row,
-      candidate: versionCandidateBenchmarkData(candidate, previousModelForRow(row), versioning),
-    };
-  });
+  return rows.map((row) => ({
+    row,
+    candidate: versionCandidateBenchmarkData(
+      buildModelCandidate(row, openRouterData),
+      previousModelForRow(row),
+      versioning,
+    ),
+  }));
 }

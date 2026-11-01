@@ -14,7 +14,7 @@ import type {
 
 type BenchmarkRuntime<
   SourceRowsKey extends keyof ModelAtlasSourceRows,
-  CacheKey extends string,
+  CacheKey extends keyof SourceSnapshots["fetchedAt"],
   Source extends RawSourceName,
   Cached,
   Snapshot extends { sourceStatus: SourceSnapshotStatus },
@@ -32,20 +32,48 @@ type BenchmarkRuntime<
     options: SourceRefreshOptions,
     previousMissingSince: ReadonlyMap<string, number>,
     nowEpochSeconds: number,
+    context: BenchmarkSnapshotContext,
   ) => Promise<Snapshot>;
   write: (db: DatabaseWriter, snapshots: SourceSnapshots) => void;
+};
+
+export type BenchmarkSnapshotContext = {
+  source: RawSourceName;
+  sourceStatus: (snapshot: {
+    rows: readonly unknown[];
+    fetchedAt: number | null;
+    sourceRowStates: SourceSnapshotStatus["sourceRowStates"];
+  }) => SourceSnapshotStatus;
 };
 
 /** Preserve the source descriptor and bind correlated cache access before heterogeneous runtimes enter the registry. */
 export function defineBenchmarkRuntime<
   const SourceRowsKey extends keyof ModelAtlasSourceRows,
-  const CacheKey extends string,
+  const CacheKey extends keyof SourceSnapshots["fetchedAt"],
   const Source extends RawSourceName,
   Cached,
   Snapshot extends { sourceStatus: SourceSnapshotStatus },
 >(runtime: BenchmarkRuntime<SourceRowsKey, CacheKey, Source, Cached, Snapshot>) {
+  const context: BenchmarkSnapshotContext = {
+    source: runtime.source,
+    sourceStatus: (snapshot) => ({
+      source: runtime.source,
+      fetchedAt: snapshot.fetchedAt,
+      sourceInputCount: snapshot.rows.length,
+      sourceRowStates: snapshot.sourceRowStates,
+      fetchedAtKey: runtime.cacheKey,
+    }),
+  };
+  const snapshot = (
+    cached: Cached,
+    status: RawSourceCacheStatus,
+    options: SourceRefreshOptions,
+    previousMissingSince: ReadonlyMap<string, number>,
+    nowEpochSeconds: number,
+  ) => runtime.snapshot(cached, status, options, previousMissingSince, nowEpochSeconds, context);
   return {
     ...runtime,
+    snapshot,
     refresh: (
       caches: Record<CacheKey, Cached>,
       statuses: Record<RawSourceName, RawSourceCacheStatus>,
@@ -53,7 +81,7 @@ export function defineBenchmarkRuntime<
       previousMissingSince: Record<RawSourceName, ReadonlyMap<string, number>>,
       nowEpochSeconds: number,
     ) =>
-      runtime.snapshot(
+      snapshot(
         caches[runtime.cacheKey],
         statuses[runtime.source],
         options,

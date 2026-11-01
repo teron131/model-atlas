@@ -3,7 +3,7 @@
 import { SNAPSHOT_TABLES } from "../../database/tables";
 import type { DatabaseWriter } from "../../database/writers/database";
 import { asFiniteNumber, asNonEmptyString } from "../../runtime";
-import { defineBenchmarkRuntime } from "../benchmark-runtime";
+import { type BenchmarkSnapshotContext, defineBenchmarkRuntime } from "../benchmark-runtime";
 import { type CacheRowSource, firstFetchedAt, sourceCacheRows } from "../cache/rows";
 import { sourceRowKey } from "../snapshots/policy";
 import { snapshotSourceRows } from "../snapshots/row-snapshot";
@@ -78,9 +78,10 @@ async function blueprintBenchSnapshot(
   options: SourceRefreshOptions,
   previousMissingSince: ReadonlyMap<string, number>,
   nowEpochSeconds: number,
+  context: BenchmarkSnapshotContext,
 ): Promise<BlueprintBenchSnapshot> {
   const snapshot = await snapshotSourceRows({
-    source: "blueprint_bench_2",
+    source: context.source,
     cached,
     status,
     options,
@@ -92,13 +93,7 @@ async function blueprintBenchSnapshot(
   });
   return {
     blueprintBenchModelScoreRows: snapshot.rows,
-    sourceStatus: {
-      source: "blueprint_bench_2",
-      fetchedAt: snapshot.fetchedAt,
-      sourceInputCount: snapshot.rows.length,
-      sourceRowStates: snapshot.sourceRowStates,
-      fetchedAtKey: "blueprintBench",
-    },
+    sourceStatus: context.sourceStatus(snapshot),
   };
 }
 

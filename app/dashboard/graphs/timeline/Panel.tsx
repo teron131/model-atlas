@@ -8,6 +8,7 @@ import dynamic from "next/dynamic";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 
 import type { ModelAtlasModel } from "../../../../src/model-atlas/stats/types";
+import { positionCatalogId } from "../../../../src/model-atlas/timeline/schemas";
 import { openModelSheet } from "../../model-sheet/open";
 import { ResearchRegion } from "../../ResearchRegions";
 import { providerChartColor, providerDisplayName } from "../../shared/provider-theme";
@@ -28,7 +29,7 @@ import {
   YAxisTicks,
 } from "../plot/Primitives";
 import { useChartWidth, useCompactChartLayout } from "../use-chart-layout";
-import { timelineCatalogId, type TimelinePoint, timelinePointLabel } from "./chart-data";
+import { type TimelinePoint, timelinePointLabel, timelineScoreDomain } from "./chart-data";
 import {
   coverageFrontier,
   LAB_MINIMUM_MODELS,
@@ -173,7 +174,7 @@ export const TimelinePanel = memo(function TimelinePanel({
   const chosenModel =
     chosen == null
       ? undefined
-      : (currentModelLookup.byId.get(timelineCatalogId(chosen) ?? "") ??
+      : (currentModelLookup.byId.get(positionCatalogId(chosen.id) ?? "") ??
         currentModelLookup.byName.get(chosen.name));
   const { chartRef, width } = useChartWidth(SCATTER_CHART_WIDTH);
   const height = compact ? 400 : 520;
@@ -190,10 +191,7 @@ export const TimelinePanel = memo(function TimelinePanel({
   // The window's scores set the scale, so a replay reveals models without rescaling the plot.
   const scores = windowed.map((point) => point.score);
   const y = scaleLinear()
-    .domain([
-      Math.floor((Math.min(...scores) - 5) / 20) * 20,
-      Math.ceil((Math.max(...scores) + 8) / 20) * 20,
-    ])
+    .domain(timelineScoreDomain(scores))
     .range([height - margin.bottom, margin.top]);
   const xPoint = (point: TimelinePoint) => x(new Date(point.releaseDate));
   // Stars share the Pareto plot's scale; this field is far denser, so they sit at the small end of it.

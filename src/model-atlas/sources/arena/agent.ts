@@ -38,37 +38,28 @@ type ArenaAgentPayload = {
   data: ArenaAgentModelScoreRow[];
 };
 
-type ArenaAgentScraperOptions = {
-  url?: string;
-  timeoutMs?: number;
-};
-
 /** Prefer the live website; fallback rows retain their separate publication date and source URL. */
-export async function getArenaAgentStats(
-  options: ArenaAgentScraperOptions = {},
-): Promise<ArenaAgentPayload> {
+export async function getArenaAgentStats(): Promise<ArenaAgentPayload> {
   try {
-    const url = options.url ?? ARENA_AGENT_LEADERBOARD_URL;
-    return await fetchSource(url, {}, options.timeoutMs ?? DEFAULT_TIMEOUT_MS, async (response) => {
-      if (!response.ok) {
-        throw new Error(`Arena Agent scrape failed: ${response.status}`);
-      }
-      const data = processArenaAgentPageHtml(await response.text());
-      if (data.length === 0) throw new Error("Arena Agent website has no usable rows");
-      return {
-        fetched_at_epoch_seconds: nowEpochSeconds(),
-        data,
-      };
-    });
+    return await fetchSource(
+      ARENA_AGENT_LEADERBOARD_URL,
+      {},
+      DEFAULT_TIMEOUT_MS,
+      async (response) => {
+        if (!response.ok) {
+          throw new Error(`Arena Agent scrape failed: ${response.status}`);
+        }
+        const data = processArenaAgentPageHtml(await response.text());
+        if (data.length === 0) throw new Error("Arena Agent website has no usable rows");
+        return {
+          fetched_at_epoch_seconds: nowEpochSeconds(),
+          data,
+        };
+      },
+    );
   } catch {
-    try {
-      const data = processArenaAgentDatasetRows(
-        await fetchArenaDataset("agent", options.timeoutMs),
-      );
-      return { fetched_at_epoch_seconds: data.length > 0 ? nowEpochSeconds() : null, data };
-    } catch {
-      return { fetched_at_epoch_seconds: null, data: [] };
-    }
+    const data = processArenaAgentDatasetRows(await fetchArenaDataset("agent"));
+    return { fetched_at_epoch_seconds: data.length > 0 ? nowEpochSeconds() : null, data };
   }
 }
 

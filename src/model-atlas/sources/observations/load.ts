@@ -5,17 +5,23 @@ import type {
   BenchmarkObservationPayload,
   BenchmarkObservationRow,
 } from "../../benchmarks/observation";
-import type { BenchmarkObservationBinding } from "../../benchmarks/registry";
+import {
+  BENCHMARK_OBSERVATION_BINDINGS,
+  type BenchmarkObservationBinding,
+  type BenchmarkObservationRowsKey,
+} from "../../benchmarks/registry";
 import { arcPrizeCacheMatches, getArcPrizeStats } from "../arc-prize";
 import { ARENA_WEBDEV_DATASET_URL, arenaRefreshIsCurrent } from "../arena/dataset";
 import { getArenaWebDevStats } from "../arena/webdev";
 import { getArtificialAnalysisOmniscienceStats } from "../artificial-analysis/omniscience";
+import type { ModelAtlasSourceRows } from "../assembly/source-data";
 import { automationBenchCacheMatches, getAutomationBenchStats } from "../automation-bench";
 import { caisCacheMatches, getCaisDashboardStats } from "../cais/results";
 import { getEpochCapabilitiesIndexStats } from "../epoch/capabilities-index";
 import { epochBenchmarkCacheMatches, getEpochBenchmarkStats } from "../epoch/results";
 import { getMercorStats, mercorCacheMatches } from "../mercor/results";
 import { getPerceptionBenchStats } from "../perception-bench";
+import { fetchRowsOrNone } from "../snapshots/row-snapshot";
 import {
   getSurgeIntelligenceIndexStats,
   getSurgeLeaderboardStats,
@@ -27,6 +33,7 @@ import {
   TERMINAL_BENCH_SCIENCE_VALS_URL,
   terminalBenchScienceCacheMatches,
 } from "../terminal-bench-science";
+import type { SourceSnapshots } from "../types";
 import { getValsBenchmarkStats, valsBenchmarkCacheMatches } from "../vals/results";
 import { getValsRsiStats, valsRsiCacheMatches } from "../vals/rsi";
 import { getVoxelBenchStats } from "../voxelbench";
@@ -47,10 +54,38 @@ type ObservationSource = {
   ) => BenchmarkObservationRow;
 };
 
+type BenchmarkObservationRows = Pick<ModelAtlasSourceRows, BenchmarkObservationRowsKey>;
+
+export async function fetchBenchmarkObservationRows(): Promise<BenchmarkObservationRows> {
+  const entries = await Promise.all(
+    BENCHMARK_OBSERVATION_BINDINGS.map(async (binding) => [
+      binding.sourceRowsKey,
+      (await benchmarkObservationSource(binding).fetchRows()).data,
+    ]),
+  );
+  return Object.fromEntries(entries) as BenchmarkObservationRows;
+}
+
+export function benchmarkObservationRowsFromSnapshots(
+  snapshots: Pick<SourceSnapshots, BenchmarkObservationRowsKey>,
+): BenchmarkObservationRows {
+  return Object.fromEntries(
+    BENCHMARK_OBSERVATION_BINDINGS.map((binding) => [
+      binding.sourceRowsKey,
+      snapshots[binding.sourceRowsKey],
+    ]),
+  ) as BenchmarkObservationRows;
+}
+
 /** Resolve live and cached evidence through the same catalog binding without teaching shared persistence about source formats. */
 export function benchmarkObservationSource(
   binding: BenchmarkObservationBinding,
 ): ObservationSource {
+  const source = loaderSource(binding);
+  return { ...source, fetchRows: () => fetchRowsOrNone(source.fetchRows) };
+}
+
+function loaderSource(binding: BenchmarkObservationBinding): ObservationSource {
   const loader: BenchmarkObservationLoader = binding.loader;
   switch (loader.kind) {
     case "arc_prize": {
@@ -87,7 +122,7 @@ export function benchmarkObservationSource(
       };
     case "automation_bench":
       return {
-        fetchRows: () => getAutomationBenchStats(loader),
+        fetchRows: () => getAutomationBenchStats(loader.sourceUrl),
         acceptsCache: automationBenchCacheMatches,
       };
     case "cais_dashboard":

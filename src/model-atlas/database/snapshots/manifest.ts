@@ -22,6 +22,13 @@ type SnapshotArtifacts = {
 export type SnapshotVersion = SnapshotArtifacts & { data_sha256: string };
 export type SnapshotManifest = SnapshotVersion & { previous: SnapshotVersion[] };
 
+/** A checkpoint's published data: the leaderboard payload and the Intelligence Index and community history published beside it as separate artifacts. */
+export type SnapshotData = {
+  payload: ModelAtlasPayload;
+  timeline: HistoricalDataset | null;
+  communityRankings: CommunityRanking[];
+};
+
 export const SNAPSHOT_MANIFEST_OBJECT = "current.json";
 const RECOVERY_VERSION_COUNT = 3;
 const decompress = promisify(gunzip);
@@ -114,22 +121,22 @@ export function retainedSnapshotVersions(
 }
 
 /** Fingerprint benchmark values and ordered community history; benchmark freshness, change logs, artwork, and collection ordering do not create versions. */
-export function snapshotDataHash(payload: ModelAtlasPayload): string {
+export function snapshotDataHash({ payload, timeline, communityRankings }: SnapshotData): string {
   const data = {
     models: payload.models.map(
       ({ logo: _logo, latest_change: _change, benchmark_dates: _dates, ...model }) => model,
     ),
     benchmark_observations: payload.benchmark_observations ?? {},
-    ...(payload.timeline
+    ...(timeline
       ? {
-          capability_scale: payload.timeline.scale,
-          capability_anchors: payload.timeline.displayAnchors,
+          capability_scale: timeline.scale,
+          capability_anchors: timeline.displayAnchors,
         }
       : {}),
   };
   return createHash("sha256")
     .update(stableJson(canonicalSnapshotData(data)))
-    .update(payload.community_rankings?.length ? stableJson(payload.community_rankings) : "")
+    .update(communityRankings.length ? stableJson(communityRankings) : "")
     .digest("hex");
 }
 

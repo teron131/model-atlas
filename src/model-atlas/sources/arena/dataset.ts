@@ -41,7 +41,7 @@ function isDatasetUrl(url: string): boolean {
 }
 
 /** Require complete, untruncated pages and a single explicit publication date before using the fallback. */
-export async function fetchArenaDataset(config: "agent" | "webdev", timeoutMs = 30_000) {
+export async function fetchArenaDataset(config: "agent" | "webdev") {
   const rows: Record<string, unknown>[] = [];
   let total: number | null = null;
   while (total == null || rows.length < total) {
@@ -53,7 +53,7 @@ export async function fetchArenaDataset(config: "agent" | "webdev", timeoutMs = 
       offset: String(rows.length),
       length: String(PAGE_SIZE),
     }).toString();
-    const page = await fetchSource(url, {}, timeoutMs, async (response) => {
+    const page = await fetchSource(url, {}, 30_000, async (response) => {
       if (!response.ok) throw new Error(`Arena ${config} dataset failed: ${response.status}`);
       return asRecord(await response.json());
     });

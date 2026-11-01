@@ -12,11 +12,16 @@ import {
   useRef,
 } from "react";
 
+import {
+  BENCHMARK_DISPLAY_GROUPS,
+  benchmarkDisplayGroup,
+} from "../../../src/model-atlas/benchmarks/catalog";
 import type { ModelAtlasModel, ModelAtlasPayload } from "../../../src/model-atlas/stats/types";
 import { CaptureButton } from "../capture/CaptureButton";
 import { ARTIFACT_WIDTH, WIDE_ARTIFACT_WIDTH } from "../capture/png";
 import { CopyDashboardLink } from "../CopyDashboardLink";
 import { benchmarkLabels } from "../shared/constants";
+import { ModalityIcons, RatioTrack, ScoreMeter } from "../shared/DashboardMarks";
 import { providerBrandColor, providerDisplayName } from "../shared/provider-theme";
 import { ProviderLogo } from "../shared/ProviderLogo";
 import { formatResourceRatio, isDrawableRatio } from "../shared/resource-ratio-display";
@@ -34,7 +39,6 @@ import {
 } from "../table/format";
 import {
   benchmarkDisplayValue,
-  benchmarkEvidenceGroup,
   benchmarkMeterValue,
   benchmarkMetricColumns,
   contextWindowValue,
@@ -45,7 +49,6 @@ import {
   TABLE_COLUMN_GROUP_LABELS,
   type TableRow,
 } from "../table/models";
-import { ModalityIcons, RatioTrack, ScoreMeter } from "../table/Rows";
 import { scoreChangeTooltip } from "../table/tooltips";
 import { useUrlState } from "../use-url-state";
 import { CompareSearch } from "./CompareSearch";
@@ -80,8 +83,6 @@ const PRICES: { label: string; value: (model: ModelAtlasModel) => number | null 
   { label: "Input", value: (model) => model.cost?.weighted_input },
   { label: "Output", value: (model) => model.cost?.weighted_output },
 ];
-// The sheet leads its benchmark evidence with the indexes, then the table's other groups.
-const BENCHMARK_GROUPS = ["indexes", "frontier", "baseline"] as const;
 
 /**
  * Render the sheet named by the URL over the dashboard, measuring each model against the same display population as the leaderboard: collapsed models for a model, every reasoning variant for a variant.
@@ -615,9 +616,9 @@ type BenchmarkResult = { value: number; text: string; meter: number | null; rati
  */
 function BenchmarkEvidence({ entries }: { entries: readonly SheetEntry[] }) {
   const comparing = entries.length > 1;
-  const groups = BENCHMARK_GROUPS.map((key) => {
+  const groups = BENCHMARK_DISPLAY_GROUPS.map((key) => {
     const columns = benchmarkMetricColumns.filter(
-      (column) => benchmarkEvidenceGroup(column.benchmark) === key,
+      (column) => benchmarkDisplayGroup(column.benchmark) === key,
     );
     const rows = columns.flatMap((column) => {
       const results = entries.map((entry) => benchmarkResult(entry.row, column));

@@ -8,8 +8,11 @@ import { isInformativeValue } from "./benchmark-evidence";
 import { extendTimelineGraph, fitTimelineLink, timelineNativeValue } from "./linking";
 import { resolveHistoricalModelIdentities } from "./model-identity";
 import {
+  catalogBenchmarkKey,
+  hasUnresolvedVersion,
   type HistoricalDataset,
   type HistoricalObservation,
+  isReferenceBenchmark,
   type TimelineDimension,
   type TimelineLink,
   type TimelineParameters,
@@ -38,9 +41,7 @@ export function prepareTimelineRelease(
   const reference = previous?.reference ?? incoming.reference;
   const rootBenchmarkIds = previous?.rootBenchmarkIds ?? incoming.rootBenchmarkIds;
   const roots = new Set(Object.values(rootBenchmarkIds));
-  const incomingRoots = new Set(
-    incoming.benchmarks.filter((b) => b.key.startsWith("model_atlas_")).map((b) => b.id),
-  );
+  const incomingRoots = new Set(incoming.benchmarks.filter(isReferenceBenchmark).map((b) => b.id));
   const models = new Map((previous?.models ?? []).map((m) => [m.id, { ...m, current: false }]));
   for (const model of incoming.models) models.set(model.id, model);
   const benchmarks = new Map((previous?.benchmarks ?? []).map((b) => [b.id, b]));
@@ -131,7 +132,7 @@ export function prepareTimelineRelease(
     if (
       excludesVariantIndex(
         { reasoning_effort: modelEfforts.get(observation.modelId) },
-        definition.key.replace(/^atlas_benchmark_/, ""),
+        catalogBenchmarkKey(definition.key),
       )
     )
       continue;
@@ -146,8 +147,8 @@ export function prepareTimelineRelease(
     const definitions = data.benchmarks.filter(
       (b) =>
         b.weights[dimension] > 0 &&
-        !b.id.includes(":unresolved-version") &&
-        (!b.key.startsWith("model_atlas_") || b.id === rootBenchmarkIds[dimension]),
+        !hasUnresolvedVersion(b) &&
+        (!isReferenceBenchmark(b) || b.id === rootBenchmarkIds[dimension]),
     );
     const links = new Map(
       (previous?.dimensions[dimension].links ?? []).map((link) => [link.id, link]),

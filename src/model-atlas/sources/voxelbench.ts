@@ -20,17 +20,13 @@ const MINIMUM_VOTES = 50;
 export async function getVoxelBenchStats(
   sourceUrl = SOURCE_URL,
 ): Promise<BenchmarkObservationPayload> {
-  try {
-    return await fetchSource(sourceUrl, {}, 30_000, async (response) => {
-      if (!response.ok) throw new Error(`VoxelBench scrape failed: ${response.status}`);
-      return {
-        fetched_at_epoch_seconds: nowEpochSeconds(),
-        data: processVoxelBenchLeaderboard(await response.json(), sourceUrl),
-      };
-    });
-  } catch {
-    return { fetched_at_epoch_seconds: null, data: [] };
-  }
+  return fetchSource(sourceUrl, {}, 30_000, async (response) => {
+    if (!response.ok) throw new Error(`VoxelBench scrape failed: ${response.status}`);
+    return {
+      fetched_at_epoch_seconds: nowEpochSeconds(),
+      data: processVoxelBenchLeaderboard(await response.json(), sourceUrl),
+    };
+  });
 }
 
 /** Keep native Glicko-2 points and labelled efforts, admitting only text rows meeting the public leaderboard's vote threshold. */

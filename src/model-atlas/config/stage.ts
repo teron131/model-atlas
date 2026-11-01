@@ -1,10 +1,13 @@
 /** Pipeline stage switches for matching, OpenRouter data, public selection, and scoring. */
 
 import type { BenchmarkDimension, BenchmarkPortfolio } from "../benchmarks/factory";
-import { isAggregateIndex, MINIMUM_REPORTED_INDEX_BREADTH } from "../benchmarks/index-policy";
+import {
+  INDEX_REPRESENTED_BENCHMARK_MEDIAN,
+  isAggregateIndex,
+  MINIMUM_REPORTED_INDEX_BREADTH,
+} from "../benchmarks/index-policy";
 import {
   BENCHMARK_PORTFOLIO,
-  INDEX_REPRESENTED_BENCHMARK_MEDIAN,
   SELECTED_AGENTIC_BENCHMARKS,
   SELECTED_INTELLIGENCE_BENCHMARKS,
 } from "../benchmarks/registry";

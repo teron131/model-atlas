@@ -3,7 +3,7 @@
 import { SNAPSHOT_TABLES } from "../../database/tables";
 import type { DatabaseWriter } from "../../database/writers/database";
 import { asFiniteNumber, asNonEmptyString } from "../../runtime";
-import { defineBenchmarkRuntime } from "../benchmark-runtime";
+import { type BenchmarkSnapshotContext, defineBenchmarkRuntime } from "../benchmark-runtime";
 import { type CacheRowSource, firstFetchedAt, jsonValue, sourceCacheRows } from "../cache/rows";
 import { ALE_BENCH_EPOCH_RESULTS_URL, type AleBenchEpochRow } from "../epoch/ale-bench";
 import { sourceRowKey } from "../snapshots/policy";
@@ -87,34 +87,23 @@ async function aleBenchSnapshot(
   options: SourceRefreshOptions,
   previousMissingSince: ReadonlyMap<string, number>,
   nowEpochSeconds: number,
+  context: BenchmarkSnapshotContext,
 ): Promise<AleBenchSnapshot> {
   const snapshot = await snapshotSourceRows({
-    source: "ale_bench",
+    source: context.source,
     cached,
     status: cached?.rows.some((row) => "epoch" in row) ? status : { ...status, cache_hit: false },
     options,
     previousMissingSince,
     nowEpochSeconds,
-    fetchRows: async () => {
-      const payload = await getAleBenchStats();
-      return {
-        fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
-        data: payload.data,
-      };
-    },
+    fetchRows: getAleBenchStats,
     rowKey: (row) => sourceRowKey(row.model, "epoch" in row ? "epoch" : row.num_self_refine),
     rowLabel: (row) =>
       "epoch" in row ? `${row.model} (Epoch)` : `${row.model} x${row.num_self_refine}`,
   });
   return {
     aleBenchConfigurationRows: snapshot.rows,
-    sourceStatus: {
-      source: "ale_bench",
-      fetchedAt: snapshot.fetchedAt,
-      sourceInputCount: snapshot.rows.length,
-      sourceRowStates: snapshot.sourceRowStates,
-      fetchedAtKey: "aleBench",
-    },
+    sourceStatus: context.sourceStatus(snapshot),
   };
 }
 

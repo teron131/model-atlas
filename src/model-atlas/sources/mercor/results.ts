@@ -23,17 +23,12 @@ const METRIC = "pass-1";
 export async function getMercorStats(
   benchmarkKey: string,
   source: MercorLoader,
-  timeoutMs = 30_000,
 ): Promise<BenchmarkObservationPayload> {
-  try {
-    return await fetchSource(source.sourceUrl, {}, timeoutMs, async (response) => {
-      if (!response.ok) throw new Error(`Mercor scrape failed: ${response.status}`);
-      const data = processMercorPageHtml(await response.text(), benchmarkKey, source);
-      return { fetched_at_epoch_seconds: data.length > 0 ? nowEpochSeconds() : null, data };
-    });
-  } catch {
-    return { fetched_at_epoch_seconds: null, data: [] };
-  }
+  return fetchSource(source.sourceUrl, {}, 30_000, async (response) => {
+    if (!response.ok) throw new Error(`Mercor scrape failed: ${response.status}`);
+    const data = processMercorPageHtml(await response.text(), benchmarkKey, source);
+    return { fetched_at_epoch_seconds: data.length > 0 ? nowEpochSeconds() : null, data };
+  });
 }
 
 /** Reject cached evidence if the selected metric, source, or harness contract has changed. */

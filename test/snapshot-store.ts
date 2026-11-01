@@ -19,17 +19,21 @@ import { openDatabase } from "../src/model-atlas/database/schema";
 import { SnapshotConflictError, SnapshotStorage } from "../src/model-atlas/database/snapshots/gcs";
 import {
   parseSnapshotManifest,
+  type SnapshotData,
   snapshotDataHash,
   snapshotObject,
   snapshotVersions,
 } from "../src/model-atlas/database/snapshots/manifest";
 import { SNAPSHOT_PRESERVATION_VERSION } from "../src/model-atlas/stats/payload/snapshot-preservation";
-import {
-  DEFAULT_TIMELINE_ANCHORS,
-  DEFAULT_TIMELINE_PARAMETERS,
-} from "../src/model-atlas/timeline/calibration";
+import type { ModelAtlasPayload } from "../src/model-atlas/stats/types";
+import { DEFAULT_TIMELINE_PARAMETERS } from "../src/model-atlas/timeline/calibration";
 import type { HistoricalDataset } from "../src/model-atlas/timeline/schemas";
 import { minimalModelAtlasModel, minimalModelAtlasPayload } from "./model-atlas-fixtures";
+
+const snapshotOf = (
+  payload: ModelAtlasPayload,
+  artifacts: Partial<Omit<SnapshotData, "payload">> = {},
+): SnapshotData => ({ payload, timeline: null, communityRankings: [], ...artifacts });
 
 type StoredObject = { bytes: Buffer; generation: string; metadata: Record<string, unknown> };
 const objects = new Map<string, StoredObject>();
@@ -151,24 +155,30 @@ try {
   assert.throws(() => parseSnapshotManifest({ version: "../private" }), /invalid/);
   const empty = await store.current();
   assert.deepEqual(empty, { manifest: null, generation: 0 });
-  await assert.rejects(store.publish(checkpoint, { ...payload, models: [] }, empty), /empty/);
+  await assert.rejects(
+    store.publish(checkpoint, snapshotOf({ ...payload, models: [] }), empty),
+    /empty/,
+  );
   await assert.rejects(
     store.publish(
       checkpoint,
-      {
+      snapshotOf({
         ...payload,
         models: payload.models.map((model) => ({
           ...model,
           scores: { ...model.scores, intelligence_score: NaN },
         })),
-      },
+      }),
       empty,
     ),
     /readers would reject/,
   );
-  await assert.rejects(store.publish(join(workspace, "missing.sqlite"), payload, empty), /ENOENT/);
+  await assert.rejects(
+    store.publish(join(workspace, "missing.sqlite"), snapshotOf(payload), empty),
+    /ENOENT/,
+  );
   assert.equal(objects.size, 0, "Failed streaming reads must not start publication");
-  const first = await store.publish(checkpoint, payload, empty);
+  const first = await store.publish(checkpoint, snapshotOf(payload), empty);
   const committed = await store.current();
   assert.equal(committed.manifest?.version, first.manifest.version);
   assert.equal(
@@ -176,7 +186,7 @@ try {
     false,
   );
   const restored = join(workspace, "restored.sqlite");
-  assert.deepEqual(await store.restore(first.manifest, restored), payload);
+  assert.deepEqual(await store.restore(first.manifest, restored), snapshotOf(payload));
   assert.deepEqual(
     await readFile(restored),
     checkpointBytes,
@@ -185,7 +195,10 @@ try {
   await assert.rejects(store.restore(first.manifest, restored), /EEXIST/);
 
   failUpload = true;
-  await assert.rejects(store.publish(checkpoint, payload, committed), /publication failed/);
+  await assert.rejects(
+    store.publish(checkpoint, snapshotOf(payload), committed),
+    /publication failed/,
+  );
   assert.equal((await store.current()).manifest?.version, first.manifest.version);
   assert.equal(
     objects.get(`private-bucket/${snapshotObject(first.manifest.version, "checkpoint")}`)?.metadata
@@ -195,7 +208,10 @@ try {
   failUpload = false;
 
   failCheckpointUpload = true;
-  await assert.rejects(store.publish(checkpoint, payload, committed), /publication failed/);
+  await assert.rejects(
+    store.publish(checkpoint, snapshotOf(payload), committed),
+    /publication failed/,
+  );
   assert.equal(
     (await store.current()).manifest?.version,
     first.manifest.version,
@@ -204,8 +220,8 @@ try {
   failCheckpointUpload = false;
 
   const competing = await Promise.allSettled([
-    store.publish(checkpoint, payload, committed),
-    store.publish(checkpoint, payload, committed),
+    store.publish(checkpoint, snapshotOf(payload), committed),
+    store.publish(checkpoint, snapshotOf(payload), committed),
   ]);
   assert.equal(competing.filter((result) => result.status === "fulfilled").length, 1);
   assert.equal(competing.filter((result) => result.status === "rejected").length, 1);
@@ -219,11 +235,15 @@ try {
       .customTime,
   );
   loseCommitResponse = true;
-  const recoveredCommit = await store.publish(checkpoint, payload, await store.current());
+  const recoveredCommit = await store.publish(
+    checkpoint,
+    snapshotOf(payload),
+    await store.current(),
+  );
   assert.equal((await store.current()).manifest?.version, recoveredCommit.manifest.version);
   loseCommitResponse = false;
   failRetirement = true;
-  const warned = await store.publish(checkpoint, payload, await store.current());
+  const warned = await store.publish(checkpoint, snapshotOf(payload), await store.current());
   assert.equal(warned.maintenance_warnings.length, 2);
   assert.equal((await store.current()).manifest?.version, warned.manifest.version);
   failRetirement = false;
@@ -349,7 +369,7 @@ try {
 
   const next = await store.publish(
     checkpoint,
-    { ...payload, fetched_at_epoch_seconds: 200 },
+    snapshotOf({ ...payload, fetched_at_epoch_seconds: 200 }),
     await store.current(),
   );
   clock += 31_000;
@@ -400,8 +420,8 @@ try {
   reordered.models[0]!.logo = "updated artwork";
   reordered.metadata.scoring.snapshot_preservation_version = SNAPSHOT_PRESERVATION_VERSION;
   assert.equal(
-    snapshotDataHash(ordered),
-    snapshotDataHash(reordered),
+    snapshotDataHash(snapshotOf(ordered)),
+    snapshotDataHash(snapshotOf(reordered)),
     "Refresh metadata, artwork, and row ordering do not create data versions",
   );
   const observed = {
@@ -421,11 +441,11 @@ try {
   };
   const reobserved = structuredClone(observed);
   reobserved.benchmark_observations.probe[0]!.observed_at = "2026-09-02";
-  assert.equal(snapshotDataHash(observed), snapshotDataHash(reobserved));
+  assert.equal(snapshotDataHash(snapshotOf(observed)), snapshotDataHash(snapshotOf(reobserved)));
   reobserved.benchmark_observations.probe[0]!.canonical_value = 0.500001;
   assert.notEqual(
-    snapshotDataHash(observed),
-    snapshotDataHash(reobserved),
+    snapshotDataHash(snapshotOf(observed)),
+    snapshotDataHash(snapshotOf(reobserved)),
     "Real data changes have no arbitrary magnitude threshold",
   );
   for (const change of [
@@ -435,7 +455,7 @@ try {
     { release_date: "2026-09-03" },
   ]) {
     const modified = { ...ordered, models: [{ ...variant, ...change }, ...payload.models] };
-    assert.notEqual(snapshotDataHash(ordered), snapshotDataHash(modified));
+    assert.notEqual(snapshotDataHash(snapshotOf(ordered)), snapshotDataHash(snapshotOf(modified)));
   }
 
   const dataVersion = (score: number) => {
@@ -446,7 +466,7 @@ try {
   };
   const a = (await store.current()).manifest!;
   await writeFile(checkpoint, "checkpoint B");
-  const b = await store.publish(checkpoint, dataVersion(21), await store.current());
+  const b = await store.publish(checkpoint, snapshotOf(dataVersion(21)), await store.current());
   assert.deepEqual(
     b.manifest.previous.map((entry) => entry.version),
     [a.version],
@@ -456,7 +476,7 @@ try {
     await writeFile(checkpoint, `checkpoint B refresh ${run}`);
     refreshed = await store.publish(
       checkpoint,
-      { ...dataVersion(21), fetched_at_epoch_seconds: 400 + run },
+      snapshotOf({ ...dataVersion(21), fetched_at_epoch_seconds: 400 + run }),
       await store.current(),
     );
     assert.deepEqual(
@@ -471,13 +491,13 @@ try {
   assert.equal(await readFile(latestCheckpoint, "utf8"), "checkpoint B refresh 3");
   assert.equal(refreshed.manifest.fetched_at_epoch_seconds, 403);
 
-  const c = await store.publish(checkpoint, dataVersion(22), await store.current());
-  const d = await store.publish(checkpoint, dataVersion(23), await store.current());
+  const c = await store.publish(checkpoint, snapshotOf(dataVersion(22)), await store.current());
+  const d = await store.publish(checkpoint, snapshotOf(dataVersion(23)), await store.current());
   assert.deepEqual(
     d.manifest.previous.map((entry) => entry.version),
     [c.manifest.version, refreshed.manifest.version, a.version],
   );
-  const e = await store.publish(checkpoint, dataVersion(24), await store.current());
+  const e = await store.publish(checkpoint, snapshotOf(dataVersion(24)), await store.current());
   assert.deepEqual(
     e.manifest.previous.map((entry) => entry.version),
     [d.manifest.version, c.manifest.version, refreshed.manifest.version],
@@ -500,7 +520,11 @@ try {
   );
   assert.throws(() => parseSnapshotManifest({ ...e.manifest, previous: [e.manifest] }), /distinct/);
 
-  const returned = await store.publish(checkpoint, dataVersion(22), await store.current());
+  const returned = await store.publish(
+    checkpoint,
+    snapshotOf(dataVersion(22)),
+    await store.current(),
+  );
   assert.equal(returned.manifest.previous.length, 3);
   assert.deepEqual(
     returned.manifest.previous.map((entry) => entry.version),
@@ -540,9 +564,13 @@ try {
   );
 
   publishBeforeLostResponse = async () => {
-    await store.publish(checkpoint, dataVersion(31), await store.current());
+    await store.publish(checkpoint, snapshotOf(dataVersion(31)), await store.current());
   };
-  const overtaken = await store.publish(checkpoint, dataVersion(30), await store.current());
+  const overtaken = await store.publish(
+    checkpoint,
+    snapshotOf(dataVersion(30)),
+    await store.current(),
+  );
   const newest = (await store.current()).manifest!;
   assert.equal(newest.previous[0]!.version, overtaken.manifest.version);
   assert.equal(
@@ -616,18 +644,25 @@ try {
       observations: [],
       dimensions: { intelligence: { nodes: [], links: [] }, agentic: { nodes: [], links: [] } },
     },
-    displayAnchors: DEFAULT_TIMELINE_ANCHORS,
+    displayAnchors: {
+      mode: "models",
+      lowModelId: "name:gpt-4-mar-2023::unknown",
+      highModelId: "name:claude-opus-4-5::unknown",
+      lowScore: 100,
+      highScore: 150,
+      pointsPerDeviation: 20,
+    },
     prepared: {
       parameters: DEFAULT_TIMELINE_PARAMETERS,
       evidence: { cells: [], predictors: [] },
       calibrations: { intelligence: { estimates: [], predictors: [], connectedBenchmarks: 0 } },
     },
   };
-  const indexedPayload = { ...payload, timeline: index };
-  const indexed = await store.publish(checkpoint, indexedPayload, await store.current());
+  const indexedSnapshot = snapshotOf(payload, { timeline: index });
+  const indexed = await store.publish(checkpoint, indexedSnapshot, await store.current());
   assert.deepEqual(
     await store.restore(indexed.manifest, join(workspace, "index.sqlite")),
-    indexedPayload,
+    indexedSnapshot,
   );
   const indexObject = objects.get(
     `public-bucket/${snapshotObject(indexed.manifest.version, "intelligence-index")}`,
@@ -636,7 +671,7 @@ try {
   assert.equal(encodedIndex.scale.models, undefined);
   clock += 31_000;
   const readsBefore = payloadReads;
-  assert.equal((await readDisplayPayload()).timeline, undefined);
+  assert.equal("timeline" in (await readDisplayPayload()), false);
   assert.equal(
     payloadReads,
     readsBefore + 1,
@@ -670,7 +705,7 @@ try {
   assert.equal(payloadReads, readsBefore + 2);
   await store.publish(
     checkpoint,
-    { ...indexedPayload, fetched_at_epoch_seconds: 800 },
+    { ...indexedSnapshot, payload: { ...payload, fetched_at_epoch_seconds: 800 } },
     await store.current(),
   );
   clock += 31_000;
@@ -700,31 +735,31 @@ try {
     },
     research: { sources: ["Full retained research"], decision: { confidence: 0.8 } },
   };
-  const rankedPayload = {
-    ...indexedPayload,
-    fetched_at_epoch_seconds: 800,
-    community_rankings: [ranking],
+  const rankedSnapshot = {
+    ...indexedSnapshot,
+    payload: { ...payload, fetched_at_epoch_seconds: 800 },
+    communityRankings: [ranking],
   };
-  assert.notEqual(snapshotDataHash(indexedPayload), snapshotDataHash(rankedPayload));
-  const reverseRanking = structuredClone(rankedPayload);
-  reverseRanking.community_rankings[0]!.indexes.tmb[0]![0]!.model_id = "test/other";
-  reverseRanking.community_rankings[0]!.indexes.tmb[0]![1]!.model_id = "test/model";
+  assert.notEqual(snapshotDataHash(indexedSnapshot), snapshotDataHash(rankedSnapshot));
+  const reverseRanking = structuredClone(rankedSnapshot);
+  reverseRanking.communityRankings[0]!.indexes.tmb[0]![0]!.model_id = "test/other";
+  reverseRanking.communityRankings[0]!.indexes.tmb[0]![1]!.model_id = "test/model";
   assert.notEqual(
-    snapshotDataHash(rankedPayload),
+    snapshotDataHash(rankedSnapshot),
     snapshotDataHash(reverseRanking),
     "The order of models in a ranking chain changes its meaning and recovery identity",
   );
-  const revisedResearch = structuredClone(rankedPayload);
-  revisedResearch.community_rankings[0]!.research.decision.confidence = 0.9;
-  assert.notEqual(snapshotDataHash(rankedPayload), snapshotDataHash(revisedResearch));
+  const revisedResearch = structuredClone(rankedSnapshot);
+  revisedResearch.communityRankings[0]!.research.decision.confidence = 0.9;
+  assert.notEqual(snapshotDataHash(rankedSnapshot), snapshotDataHash(revisedResearch));
   const beforeRanking = (await store.current()).manifest!;
-  const ranked = await store.publish(checkpoint, rankedPayload, await store.current());
+  const ranked = await store.publish(checkpoint, rankedSnapshot, await store.current());
   assert.equal(ranked.manifest.previous[0]!.version, beforeRanking.version);
   assert.ok(ranked.manifest.community_rankings_sha256);
   assert.equal(ranked.manifest.payload_sha256, beforeRanking.payload_sha256);
   assert.deepEqual(
     await store.restore(ranked.manifest, join(workspace, "community.sqlite")),
-    rankedPayload,
+    rankedSnapshot,
   );
   const rankingObject = objects.get(
     `public-bucket/${snapshotObject(ranked.manifest.version, "community-rankings")}`,
@@ -747,8 +782,8 @@ try {
   const laterRanked = await store.publish(
     checkpoint,
     {
-      ...rankedPayload,
-      community_rankings: [ranking, { ...ranking, ranked_at: "2026-10-20T05:00:00Z" }],
+      ...rankedSnapshot,
+      communityRankings: [ranking, { ...ranking, ranked_at: "2026-10-20T05:00:00Z" }],
     },
     await store.current(),
   );
@@ -765,13 +800,13 @@ try {
         rankingRollback.manifest,
         join(workspace, "restored-community-rollback.sqlite"),
       )
-    ).community_rankings,
+    ).communityRankings,
     [ranking],
   );
   const artifactsBeforeFailure = new Set(objects.keys());
   failUpload = true;
   await assert.rejects(
-    store.publish(checkpoint, rankedPayload, await store.current()),
+    store.publish(checkpoint, rankedSnapshot, await store.current()),
     /publication failed/,
   );
   failUpload = false;
@@ -784,7 +819,7 @@ try {
     `public-bucket/${snapshotObject(rankingRollback.manifest.version, "community-rankings")}`,
   )!;
   for (const score of [41, 42, 43, 44]) {
-    await store.publish(checkpoint, dataVersion(score), await store.current());
+    await store.publish(checkpoint, snapshotOf(dataVersion(score)), await store.current());
   }
   assert.ok(
     rollbackRankingObject.metadata.customTime,

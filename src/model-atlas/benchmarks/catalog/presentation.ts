@@ -5,13 +5,16 @@ import type {
   BenchmarkPresentationDetail,
   BenchmarkTaskMetricColumnFacet,
 } from "../factory";
-import { INDEX_BENCHMARK_KEYS, INDEX_POLICIES } from "../index-policy";
-import { BENCHMARK_RESOURCE_PROFILES, type BenchmarkKey } from "./portfolio";
+import { INDEX_POLICIES, isAggregateIndex } from "../index-policy";
+import {
+  BENCHMARK_RESOURCE_PROFILES,
+  BENCHMARK_SCORING_WEIGHTS,
+  type BenchmarkKey,
+} from "./portfolio";
 import { BENCHMARK_STANDARD_SOURCES } from "./sources";
 
 export const BENCHMARK_TOOLTIPS = {
   aa_intelligence_index: {
-    title: "Artificial Analysis Intelligence Index",
     body: "Composite score weighted equally across knowledge work, coding, science, and general-knowledge evaluations.",
     rows: [
       ["Source", "Artificial Analysis"],
@@ -19,7 +22,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   agents_last_exam: {
-    title: "Agents' Last Exam",
     body: "Software and professional tasks with credit for complete solutions and partial progress.",
     rows: [
       ["Source", "Agents' Last Exam"],
@@ -28,7 +30,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   ale_bench: {
-    title: "ALE-Bench",
     body: "Design and refine heuristic-optimization algorithms through execution feedback.",
     rows: [
       ["Source", "Sakana AI; Epoch validation"],
@@ -36,7 +37,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   analyst_agent: {
-    title: "AnalystAgent",
     body: "Use code to answer quantitative business and science questions from spreadsheets and documents.",
     rows: [
       ["Source", "Artificial Analysis"],
@@ -45,7 +45,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   apex_agents: {
-    title: "APEX Agents",
     body: "Complete long consulting, investment-banking, and legal tasks across files and workplace tools.",
     rows: [
       ["Source", "Mercor"],
@@ -53,7 +52,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   apex_swe: {
-    title: "APEX-SWE",
     body: "Complete service integrations and diagnose software failures using production-style telemetry.",
     rows: [
       ["Source", "Mercor"],
@@ -62,7 +60,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   arc_agi_2: {
-    title: "ARC-AGI-2",
     body: "Infer abstract visual transformations from a few examples.",
     rows: [
       ["Source", "ARC Prize verified leaderboard"],
@@ -72,7 +69,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   arc_agi_3: {
-    title: "ARC-AGI-3",
     body: "Discover rules and solve unfamiliar interactive environments through efficient action and feedback.",
     rows: [
       ["Source", "ARC Prize verified leaderboard"],
@@ -83,7 +79,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   arena_agent: {
-    title: "Arena Agent",
     body: "Randomized Agent Mode sessions measuring task success, user feedback, steerability, and tool reliability by orchestrator model.",
     rows: [
       ["Source", "Arena"],
@@ -91,7 +86,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   arena_webdev: {
-    title: "Arena WebDev",
     body: "Build interactive web apps judged in human comparisons for functionality, usability, design, and fidelity. A baseline product-construction signal from evaluated model and harness configurations.",
     rows: [
       ["Source", "Arena"],
@@ -102,7 +96,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   automation_bench: {
-    title: "AutomationBench",
     body: "Complete simulated SaaS workflows; every required final-state check must pass.",
     rows: [
       ["Source", "Zapier"],
@@ -111,7 +104,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   biomysterybench: {
-    title: "BioMysteryBench",
     body: "Investigate anonymized biological datasets through analysis code, scientific tools, and domain reasoning.",
     rows: [
       ["Source", "Vals AI; tasks by Anthropic"],
@@ -120,7 +112,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   blueprint_bench_2: {
-    title: "Blueprint-Bench 2",
     body: "Reconstruct apartment floor plans from interior photographs.",
     rows: [
       ["Source", "Andon Labs"],
@@ -129,7 +120,6 @@ export const BENCHMARK_TOOLTIPS = {
   },
   briefcase: {
     version: "1.1",
-    title: "Briefcase",
     body: "Create business spreadsheets, presentations, and memos, graded for correctness, analysis, and presentation.",
     rows: [
       ["Source", "Artificial Analysis"],
@@ -137,7 +127,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   cais_capabilities_index: {
-    title: "CAIS Capabilities Index",
     body: "Atlas-derived mean of two Text and five Vision benchmarks from CAIS.",
     rows: [
       ["Source", "CAIS AI Dashboard"],
@@ -146,7 +135,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   chartography: {
-    title: "Chartography",
     body: "Interpret specialized charts using domain knowledge and multi-step reasoning.",
     rows: [
       ["Source", "Surge AI"],
@@ -154,7 +142,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   chess_puzzles: {
-    title: "Chess Puzzles",
     version: "2",
     body: "Choose the best move in 100 novel, engine-generated FEN positions using the submission-tool harness.",
     rows: [
@@ -164,7 +151,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   code_migration: {
-    title: "Code Migration",
     version: "1.1",
     body: "Port programs to new languages, checked by hidden behavioral tests and anti-cheat checks.",
     rows: [
@@ -174,7 +160,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   complex_constraints: {
-    title: "ComplexConstraints",
     body: "Complete professional writing, scheduling, and planning tasks with interdependent, conditional, implicit, and multistep requirements.",
     rows: [
       ["Source", "Surge AI"],
@@ -183,7 +168,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   critpt: {
-    title: "CritPt",
     version: "2",
     body: "Solve research-level physics challenges with an offline Python agent, graded by the authors' answer server.",
     rows: [
@@ -193,7 +177,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   dayjob_finance: {
-    title: "DAYJOB: Finance",
     body: "Complete complex finance assignments from documents, calculations, and business context.",
     rows: [
       ["Source", "Surge AI"],
@@ -203,7 +186,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   dayjob_healthcare: {
-    title: "DAYJOB: Healthcare",
     body: "Complete clinical care and coverage assignments from fragmented medical records.",
     rows: [
       ["Source", "Surge AI"],
@@ -213,7 +195,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   ebr_bench: {
-    title: "EBR-Bench",
     body: "Learn an unfamiliar strategy game through repeated play and persistent notes.",
     rows: [
       ["Source", "Epoch AI"],
@@ -221,7 +202,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   emb: {
-    title: "EMB",
     version: "1.1",
     body: "Build Excel financial models from prompts and spreadsheets, including LBO, DCF, and M&A.",
     rows: [
@@ -231,7 +211,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   enigmaeval: {
-    title: "EnigmaEval",
     body: "Solve long multimodal puzzles through hidden-pattern discovery and multi-step deduction.",
     rows: [
       ["Source", "CAIS AI Dashboard"],
@@ -240,7 +219,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   epoch_capabilities_index: {
-    title: "Epoch Capabilities Index",
     body: "Combine diverse capability benchmarks to compare models over time.",
     rows: [
       ["Source", "Epoch AI"],
@@ -248,7 +226,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   erqa: {
-    title: "ERQA",
     body: "Answer multimodal questions about spatial relations, trajectories, actions, and physical states.",
     rows: [
       ["Source", "CAIS AI Dashboard"],
@@ -257,7 +234,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   finance_agent_v2: {
-    title: "Finance Agent V2",
     version: "2.1",
     body: "Analyze public-company filings using research, calculation, and retrieval tools.",
     rows: [
@@ -267,7 +243,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   frontier_code: {
-    title: "FrontierCode",
     version: "2.0",
     body: "Make repository-wide changes tested for correctness, quality, and mergeability.",
     rows: [
@@ -276,7 +251,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   frontiermath_tier_4: {
-    title: "FrontierMath Tier 4",
     version: "2",
     body: "Solve original, expert-written research-level mathematics problems.",
     rows: [
@@ -286,7 +260,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   gdp_pdf: {
-    title: "GDP.pdf",
     body: "Answer professional questions from PDFs containing diagrams, tables, forms, and technical content.",
     rows: [
       ["Source", "Surge AI"],
@@ -294,7 +267,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   gdp_xlsx: {
-    title: "GDP.xlsx",
     body: "Answer professional questions by reconciling workbook data, formulas, formatting, and business rules across sheets.",
     rows: [
       ["Source", "Surge AI"],
@@ -305,7 +277,6 @@ export const BENCHMARK_TOOLTIPS = {
   },
   gdpval_normalized: {
     version: "2.1",
-    title: "GDPval-AA",
     body: "Create documents, spreadsheets, slides, and diagrams for 44 occupations, judged in blind comparisons.",
     rows: [
       ["Source", "Artificial Analysis"],
@@ -314,7 +285,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   handbook_md: {
-    title: "HANDBOOK.md",
     body: "Follow long company handbooks to complete enterprise tasks using internal tools and external MCP servers.",
     rows: [
       ["Source", "Surge AI"],
@@ -322,7 +292,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   hemingway_bench: {
-    title: "Hemingway-bench",
     body: "Write creative, business, and everyday text judged by experts for quality, originality, coherence, instruction following, and emotional intelligence.",
     rows: [
       ["Source", "Surge AI"],
@@ -331,7 +300,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   hle: {
-    title: "HLE-Diamond",
     body: "Answer 1,000 refined expert questions across mathematics, science, humanities, and other academic fields, including image questions.",
     rows: [
       ["Source", "Artificial Analysis"],
@@ -339,7 +307,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   intphys2: {
-    title: "IntPhys 2",
     body: "Judge physical plausibility in videos testing permanence, immutability, continuity, and solidity.",
     rows: [
       ["Source", "CAIS AI Dashboard"],
@@ -348,7 +315,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   mindcube: {
-    title: "MindCube Tiny",
     body: "Infer hidden spatial relationships and perspective changes from limited scene views.",
     rows: [
       ["Source", "CAIS AI Dashboard"],
@@ -357,7 +323,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   mirrorcode: {
-    title: "MirrorCode",
     body: "Reconstruct medium and large programs from docs and black-box execution; all visible and hidden tests must pass.",
     rows: [
       ["Source", "Epoch AI"],
@@ -367,7 +332,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   mlcr_aa: {
-    title: "MLCR-AA",
     body: "Synthesize chronology, causality, and claim relevance across long medical records.",
     rows: [
       ["Source", "Artificial Analysis; Wisedocs benchmark"],
@@ -376,7 +340,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   mysterymechanism: {
-    title: "MysteryMechanism",
     body: "Recover hidden mathematical relationships by choosing bounded experiments and fitting an executable law.",
     rows: [
       ["Source", "Vals AI"],
@@ -385,7 +348,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   omniscience_accuracy: {
-    title: "Omniscience",
     body: "Factual questions from authoritative sources, scored by accuracy.",
     rows: [
       ["Source", "Artificial Analysis"],
@@ -393,7 +355,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   perception_bench: {
-    title: "PerceptionBench",
     body: "Answer 3,000 visual questions testing 10 skills, including counting, localization, OCR, depth, and relations.",
     rows: [
       ["Source", "Moonshot AI"],
@@ -402,7 +363,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   programbench: {
-    title: "ProgramBench",
     body: "Write programs from natural-language requirements, scored by behavioral tests.",
     rows: [
       ["Source", "Vals AI"],
@@ -411,7 +371,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   public_benefits_bench: {
-    title: "Public Benefits Bench",
     body: "Answer SNAP eligibility and policy questions through web research and follow-ups, graded by expert-validated rubrics.",
     rows: [
       ["Source", "Vals AI"],
@@ -420,7 +379,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   riemann_bench: {
-    title: "Riemann-bench",
     body: "Solve private research-level mathematics problems.",
     rows: [
       ["Source", "Surge AI"],
@@ -428,7 +386,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   rsi_benchmark: {
-    title: "RSI",
     version: "1.1",
     body: "Conduct autonomous LLM research across compression, training, harness design, and post-training.",
     rows: [
@@ -439,7 +396,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   simpleqa_verified: {
-    title: "SimpleQA Verified",
     version: "1.2",
     body: "Answer 1,000 general-knowledge questions under Epoch's anti-abstention methodology.",
     rows: [
@@ -450,7 +406,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   spatialviz: {
-    title: "SpatialViz-Bench",
     body: "Mentally rotate, fold, penetrate, and animate visual structures.",
     rows: [
       ["Source", "CAIS AI Dashboard"],
@@ -459,7 +414,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   sre_bench: {
-    title: "SRE Bench",
     body: "Recover protected binary programs' behavior through reverse engineering, with deterministic grading.",
     rows: [
       ["Source", "Vals AI"],
@@ -469,7 +423,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   sudo_l7: {
-    title: "sudo L7",
     body: "Complete software engineering tasks that require system understanding, practical judgment, verification, and truthful reporting.",
     rows: [
       ["Source", "Surge AI"],
@@ -479,7 +432,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   superchem: {
-    title: "SUPERChem",
     body: "Solve 500 expert-curated multimodal chemistry problems.",
     rows: [
       ["Source", "Mercor; Peking University benchmark"],
@@ -488,7 +440,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   surge_intelligence_index: {
-    title: "Surge Intelligence Index",
     body: "Combined professional reasoning, agentic, writing, and expert-preference benchmarks.",
     rows: [
       ["Source", "Surge AI"],
@@ -497,7 +448,6 @@ export const BENCHMARK_TOOLTIPS = {
   },
   terminal_bench_4: {
     version: "4.0",
-    title: "Terminal-Bench 4.0",
     body: "Complete difficult software, infrastructure, data, and technical tasks in containerized terminals.",
     rows: [
       ["Sources", "Official + Artificial Analysis (50/50)"],
@@ -507,7 +457,6 @@ export const BENCHMARK_TOOLTIPS = {
   },
   terminal_bench_science: {
     version: "0.1.0",
-    title: "Terminal-Bench-Science 0.1",
     body: "Solve scientific research tasks by building and verifying analytical artifacts in terminals.",
     rows: [
       ["Sources", "Official + Vals (50/50)"],
@@ -516,7 +465,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   textquests: {
-    title: "TextQuests",
     body: "Navigate long text adventures through planning, trial and error, state tracking, and recovery.",
     rows: [
       ["Source", "CAIS AI Dashboard"],
@@ -525,7 +473,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   vals_index: {
-    title: "Vals Index",
     version: INDEX_POLICIES.vals_index.version,
     body: "GDP-weighted composite score across eight finance, coding, legal, and tax evaluations.",
     rows: [
@@ -534,7 +481,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   vending_bench_2: {
-    title: "Vending-Bench 2",
     body: "Run a simulated vending business for a year: inventory, suppliers, pricing, and cash flow.",
     rows: [
       ["Source", "Andon Labs"],
@@ -542,7 +488,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   vibe_code: {
-    title: "Vibe Code",
     body: "Build web apps from natural-language specs, graded by browser interaction tests.",
     rows: [
       ["Source", "Vals AI"],
@@ -551,7 +496,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   voxelbench: {
-    title: "VoxelBench",
     body: "Build 3D voxel scenes from text, judged in anonymous community comparisons. Spatial reasoning and construction count equally; generation and voting are less transparent than verifier-based grading.",
     rows: [
       ["Source", "VoxelBench"],
@@ -561,7 +505,6 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   weirdml_v3: {
-    title: "WeirdML v3",
     version: "3",
     body: "Discover hidden structure in unfamiliar scientific data and build working solutions with coding agents. The score rewards earlier progress within a fixed token budget.",
     rows: [
@@ -575,7 +518,6 @@ export const BENCHMARK_TOOLTIPS = {
     BenchmarkKey,
     {
       version?: string;
-      title: string;
       body: string;
       rows: readonly BenchmarkPresentationDetail[];
     }
@@ -651,74 +593,21 @@ export const BENCHMARK_SCORING_LABELS: Partial<Record<BenchmarkKey, string>> = {
   omniscience_accuracy: "Omniscience accuracy",
 };
 
-const FRONTIER_BENCHMARK_DISPLAY_ORDER = [
-  "agents_last_exam",
-  "ale_bench",
-  "analyst_agent",
-  "apex_agents",
-  "arc_agi_3",
-  "arena_agent",
-  "arena_webdev",
-  "automation_bench",
-  "biomysterybench",
-  "blueprint_bench_2",
-  "briefcase",
-  "chartography",
-  "code_migration",
-  "complex_constraints",
-  "critpt",
-  "dayjob_finance",
-  "dayjob_healthcare",
-  "ebr_bench",
-  "emb",
-  "enigmaeval",
-  "frontier_code",
-  "frontiermath_tier_4",
-  "gdp_pdf",
-  "gdp_xlsx",
-  "gdpval_normalized",
-  "handbook_md",
-  "hle",
-  "mirrorcode",
-  "mysterymechanism",
-  "programbench",
-  "riemann_bench",
-  "rsi_benchmark",
-  "spatialviz",
-  "sre_bench",
-  "sudo_l7",
-  "superchem",
-  "terminal_bench_4",
-  "terminal_bench_science",
-  "textquests",
-  "weirdml_v3",
-] as const satisfies readonly BenchmarkKey[];
+export const BENCHMARK_DISPLAY_GROUPS = ["indexes", "frontier", "baseline"] as const;
+export type BenchmarkDisplayGroup = (typeof BENCHMARK_DISPLAY_GROUPS)[number];
 
-const BASELINE_BENCHMARK_DISPLAY_ORDER = [
-  "apex_swe",
-  "arc_agi_2",
-  "chess_puzzles",
-  "erqa",
-  "finance_agent_v2",
-  "hemingway_bench",
-  "intphys2",
-  "mindcube",
-  "mlcr_aa",
-  "omniscience_accuracy",
-  "perception_bench",
-  "public_benefits_bench",
-  "simpleqa_verified",
-  "vending_bench_2",
-  "vibe_code",
-  "voxelbench",
-] as const satisfies readonly BenchmarkKey[];
+/** Aggregate indexes form their own display group, ahead of the frontier and baseline portfolio classes. */
+export function benchmarkDisplayGroup(key: BenchmarkKey): BenchmarkDisplayGroup {
+  return isAggregateIndex(key) ? "indexes" : BENCHMARK_SCORING_WEIGHTS[key].group;
+}
 
-/** Preserve index, frontier, and baseline display groups without caller-owned sorting rules; the few familiar aggregate indexes read first, before the long benchmark lists. */
-export const BENCHMARK_DISPLAY_ORDER = [
-  ...INDEX_BENCHMARK_KEYS,
-  ...FRONTIER_BENCHMARK_DISPLAY_ORDER,
-  ...BASELINE_BENCHMARK_DISPLAY_ORDER,
-] as const satisfies readonly BenchmarkKey[];
+/** The few familiar aggregate indexes read first, before the long frontier and baseline lists, each group in key order. */
+export const BENCHMARK_DISPLAY_ORDER: readonly BenchmarkKey[] = BENCHMARK_DISPLAY_GROUPS.flatMap(
+  (group) =>
+    (Object.keys(BENCHMARK_SCORING_WEIGHTS) as BenchmarkKey[])
+      .filter((key) => benchmarkDisplayGroup(key) === group)
+      .sort(),
+);
 
 export const BENCHMARK_TASK_METRIC_COLUMNS = {
   agents_last_exam: [
@@ -1132,366 +1021,305 @@ export const BENCHMARK_COLUMNS = {
     key: "aaIntelligenceIndex",
     label: "AA",
     format: "number",
-    defaultSort: "descending",
   },
   agents_last_exam: {
     key: "agentsLastExam",
     label: "ALE",
     format: "percent",
-    defaultSort: "descending",
   },
   ale_bench: {
     key: "aleBench",
     label: "ALE-B",
     format: "score",
-    defaultSort: "descending",
   },
   analyst_agent: {
     key: "analystAgent",
     label: "Analyst",
     format: "percent",
-    defaultSort: "descending",
   },
   apex_agents: {
     key: "apexAgents",
     label: "APEX",
     format: "percent",
-    defaultSort: "descending",
   },
   apex_swe: {
     key: "apexSwe",
     label: "APEX-SWE",
     format: "percent",
-    defaultSort: "descending",
   },
   arc_agi_2: {
     key: "arcAgi2",
     label: "AGI-2",
     format: "percent",
-    defaultSort: "descending",
   },
   arc_agi_3: {
     key: "arcAgi3",
     label: "AGI-3",
     format: "percent",
-    defaultSort: "descending",
   },
   arena_agent: {
     key: "arenaAgent",
     label: "Agent",
     format: "score",
-    defaultSort: "descending",
   },
   arena_webdev: {
     key: "arenaWebDev",
     label: "WebDev",
     format: "score",
-    defaultSort: "descending",
   },
   automation_bench: {
     key: "automationBench",
     label: "Auto",
     format: "percent",
-    defaultSort: "descending",
   },
   biomysterybench: {
     key: "bioMysteryBench",
     label: "BioMystery",
     format: "percent",
-    defaultSort: "descending",
   },
   blueprint_bench_2: {
     key: "blueprintBench",
     label: "BB2",
     format: "percent",
-    defaultSort: "descending",
   },
   briefcase: {
     key: "briefcase",
     label: "Briefcase",
     format: "percent",
-    defaultSort: "descending",
   },
   cais_capabilities_index: {
     key: "caisCapabilitiesIndex",
     label: "CAIS",
     format: "percent",
-    defaultSort: "descending",
   },
   chartography: {
     key: "chartography",
     label: "Chart",
     format: "percent",
-    defaultSort: "descending",
   },
   chess_puzzles: {
     key: "chessPuzzles",
     label: "Chess",
     format: "percent",
-    defaultSort: "descending",
   },
   code_migration: {
     key: "codeMigration",
     label: "Migration",
     format: "percent",
-    defaultSort: "descending",
   },
   complex_constraints: {
     key: "complexConstraints",
     label: "Complex",
     format: "percent",
-    defaultSort: "descending",
   },
   critpt: {
     key: "critpt",
     label: "CritPt",
     format: "percent",
-    defaultSort: "descending",
   },
   dayjob_finance: {
     key: "dayjobFinance",
     label: "DayFin",
     format: "percent",
-    defaultSort: "descending",
   },
   dayjob_healthcare: {
     key: "dayjobHealthcare",
     label: "DayHealth",
     format: "percent",
-    defaultSort: "descending",
   },
   ebr_bench: {
     key: "ebrBench",
     label: "EBR",
     format: "percent",
-    defaultSort: "descending",
   },
   emb: {
     key: "emb",
     label: "EMB",
     format: "percent",
-    defaultSort: "descending",
   },
   enigmaeval: {
     key: "enigmaeval",
     label: "Enigma",
     format: "percent",
-    defaultSort: "descending",
   },
   epoch_capabilities_index: {
     key: "epochCapabilitiesIndex",
     label: "ECI",
     format: "number",
-    defaultSort: "descending",
   },
   erqa: {
     key: "erqa",
     label: "ERQA",
     format: "percent",
-    defaultSort: "descending",
   },
   finance_agent_v2: {
     key: "financeAgentV2",
     label: "Finance",
     format: "percent",
-    defaultSort: "descending",
   },
   frontier_code: {
     key: "frontierCode",
     label: "FCode",
     format: "percent",
-    defaultSort: "descending",
   },
   frontiermath_tier_4: {
     key: "frontierMathTier4",
     label: "FM T4",
     format: "percent",
-    defaultSort: "descending",
   },
   gdp_pdf: {
     key: "gdpPdf",
     label: "GDP.pdf",
     format: "percent",
-    defaultSort: "descending",
   },
   gdp_xlsx: {
     key: "gdpXlsx",
     label: "GDP.xlsx",
     format: "percent",
-    defaultSort: "descending",
   },
   gdpval_normalized: {
     key: "gdpval",
     label: "GDPval",
     format: "percent",
-    defaultSort: "descending",
   },
   handbook_md: {
     key: "handbookMd",
     label: "Handbook",
     format: "percent",
-    defaultSort: "descending",
   },
   hemingway_bench: {
     key: "hemingwayBench",
     label: "Hemingway",
     format: "score",
-    defaultSort: "descending",
   },
   hle: {
     key: "hle",
     label: "HLE",
     format: "percent",
-    defaultSort: "descending",
   },
   intphys2: {
     key: "intphys2",
     label: "IntPhys",
     format: "percent",
-    defaultSort: "descending",
   },
   mindcube: {
     key: "mindcube",
     label: "MindCube",
     format: "percent",
-    defaultSort: "descending",
   },
   mirrorcode: {
     key: "mirrorCode",
     label: "Mirror",
     format: "percent",
-    defaultSort: "descending",
   },
   mlcr_aa: {
     key: "mlcrAa",
     label: "MLCR",
     format: "percent",
-    defaultSort: "descending",
   },
   mysterymechanism: {
     key: "mysteryMechanism",
     label: "Mystery",
     format: "percent",
-    defaultSort: "descending",
   },
   omniscience_accuracy: {
     key: "omniscience",
     label: "Omni",
     format: "percent",
-    defaultSort: "descending",
   },
   perception_bench: {
     key: "perceptionBench",
     label: "Perception",
     format: "percent",
-    defaultSort: "descending",
   },
   programbench: {
     key: "programBench",
     label: "Program",
     format: "percent",
-    defaultSort: "descending",
   },
   public_benefits_bench: {
     key: "publicBenefitsBench",
     label: "Benefits",
     format: "percent",
-    defaultSort: "descending",
   },
   riemann_bench: {
     key: "riemannBench",
     label: "Riemann",
     format: "percent",
-    defaultSort: "descending",
   },
   rsi_benchmark: {
     key: "rsiBenchmark",
     label: "RSI",
     format: "percent",
-    defaultSort: "descending",
   },
   simpleqa_verified: {
     key: "simpleQaVerified",
     label: "SimpleQA",
     format: "percent",
-    defaultSort: "descending",
   },
   spatialviz: {
     key: "spatialviz",
     label: "Spatial",
     format: "percent",
-    defaultSort: "descending",
   },
   sre_bench: {
     key: "sreBench",
     label: "SRE",
     format: "percent",
-    defaultSort: "descending",
   },
   sudo_l7: {
     key: "sudoL7",
     label: "sudo L7",
     format: "percent",
-    defaultSort: "descending",
   },
   superchem: {
     key: "superchem",
     label: "Chem",
     format: "percent",
-    defaultSort: "descending",
   },
   surge_intelligence_index: {
     key: "surgeIntelligenceIndex",
     label: "Surge",
     format: "percent",
-    defaultSort: "descending",
   },
   terminal_bench_4: {
     key: "terminalBench4",
     label: "TB4",
     format: "percent",
-    defaultSort: "descending",
   },
   terminal_bench_science: {
     key: "terminalBenchScience",
     label: "TBS",
     format: "percent",
-    defaultSort: "descending",
   },
   textquests: {
     key: "textquests",
     label: "TextQ",
     format: "percent",
-    defaultSort: "descending",
   },
   vals_index: {
     key: "valsIndex",
     label: "Vals",
     format: "percent",
-    defaultSort: "descending",
   },
   vending_bench_2: {
     key: "vendingBench2",
     label: "Vending",
     format: "currency",
-    defaultSort: "descending",
   },
   vibe_code: {
     key: "vibeCode",
     label: "Vibe",
     format: "percent",
-    defaultSort: "descending",
   },
   voxelbench: {
     key: "voxelBench",
     label: "VoxelBench",
     format: "score",
-    defaultSort: "descending",
   },
   weirdml_v3: {
     key: "weirdMl",
     label: "WeirdML v3",
     format: "percent",
-    defaultSort: "descending",
   },
 } as const satisfies Readonly<Record<BenchmarkKey, BenchmarkColumnFacet>>;

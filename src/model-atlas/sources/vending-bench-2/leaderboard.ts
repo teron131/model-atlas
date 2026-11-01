@@ -45,32 +45,19 @@ type VendingBench2Payload = {
   data: VendingBench2ModelScoreRow[];
 };
 
-type VendingBench2ScraperOptions = {
-  url?: string;
-  timeoutMs?: number;
-};
-
-export async function getVendingBench2Stats(
-  options: VendingBench2ScraperOptions = {},
-): Promise<VendingBench2Payload> {
-  try {
-    const url = options.url ?? VENDING_BENCH_2_LEADERBOARD_URL;
-    const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-    const pageHtml = await fetchText(url, timeoutMs);
-    const dataModule = await vendingDataModule(pageHtml, url, timeoutMs);
-    const data = dataModule == null ? [] : processVendingBench2DataModule(dataModule.text);
-    return {
-      fetched_at_epoch_seconds: data.length > 0 ? nowEpochSeconds() : null,
-      source_url: dataModule?.url,
-      data,
-    };
-  } catch {
-    return { fetched_at_epoch_seconds: null, data: [] };
-  }
+export async function getVendingBench2Stats(): Promise<VendingBench2Payload> {
+  const pageHtml = await fetchText(VENDING_BENCH_2_LEADERBOARD_URL);
+  const dataModule = await vendingDataModule(pageHtml, VENDING_BENCH_2_LEADERBOARD_URL);
+  const data = dataModule == null ? [] : processVendingBench2DataModule(dataModule.text);
+  return {
+    fetched_at_epoch_seconds: data.length > 0 ? nowEpochSeconds() : null,
+    source_url: dataModule?.url,
+    data,
+  };
 }
 
 /** Parse the official Svelte data module rather than the page's top-ten-only HTML table. */
-export function processVendingBench2DataModule(dataModule: string): VendingBench2ModelScoreRow[] {
+function processVendingBench2DataModule(dataModule: string): VendingBench2ModelScoreRow[] {
   const markerIndex = dataModule.indexOf(VB2_RUNS_MARKER);
   if (markerIndex === -1) {
     return [];
@@ -112,8 +99,8 @@ export function processVendingBench2DataModule(dataModule: string): VendingBench
     .map((row, index) => ({ rank: index + 1, ...row }));
 }
 
-async function fetchText(url: string, timeoutMs: number): Promise<string> {
-  return await fetchSource(url, {}, timeoutMs, async (response) => {
+async function fetchText(url: string): Promise<string> {
+  return await fetchSource(url, {}, DEFAULT_TIMEOUT_MS, async (response) => {
     if (!response.ok) {
       throw new Error(`Vending-Bench 2 asset fetch failed: ${response.status}`);
     }
@@ -124,7 +111,6 @@ async function fetchText(url: string, timeoutMs: number): Promise<string> {
 async function vendingDataModule(
   pageHtml: string,
   pageUrl: string,
-  timeoutMs: number,
 ): Promise<{ url: string; text: string } | null> {
   const routeModuleUrls = [
     ...new Set(
@@ -134,7 +120,7 @@ async function vendingDataModule(
   const routeModules = await Promise.all(
     routeModuleUrls.map(async (url) => ({
       url,
-      text: await fetchText(url, timeoutMs),
+      text: await fetchText(url),
     })),
   );
   // Svelte route nodes are listed root-to-leaf, so inspect the leaf first and fall back through shared layouts.
@@ -149,7 +135,7 @@ async function vendingDataModule(
     const chunks = await Promise.all(
       chunkUrls.map(async (url) => ({
         url,
-        text: await fetchText(url, timeoutMs),
+        text: await fetchText(url),
       })),
     );
     const dataModule = chunks.find((chunk) => chunk.text.includes(VB2_RUNS_MARKER));

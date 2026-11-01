@@ -56,23 +56,18 @@ const MODEL_EFFORTS: Readonly<Record<string, string>> = {
 /** Fetch the current creator-owned PerceptionBench leaderboard without mutating persisted data. */
 export async function getPerceptionBenchStats(
   sourceUrl = PERCEPTION_BENCH_README_URL,
-  timeoutMs = DEFAULT_TIMEOUT_MS,
 ): Promise<BenchmarkObservationPayload> {
-  try {
-    return await fetchSource(sourceUrl, {}, timeoutMs, async (response) => {
-      if (!response.ok) throw new Error(`PerceptionBench scrape failed: ${response.status}`);
-      return {
-        fetched_at_epoch_seconds: nowEpochSeconds(),
-        data: processPerceptionBenchReadme(await response.text(), sourceUrl),
-      };
-    });
-  } catch {
-    return { fetched_at_epoch_seconds: null, data: [] };
-  }
+  return fetchSource(sourceUrl, {}, DEFAULT_TIMEOUT_MS, async (response) => {
+    if (!response.ok) throw new Error(`PerceptionBench scrape failed: ${response.status}`);
+    return {
+      fetched_at_epoch_seconds: nowEpochSeconds(),
+      data: processPerceptionBenchReadme(await response.text(), sourceUrl),
+    };
+  });
 }
 
 /** Parse the official Markdown leaderboard and reject malformed or partial result rows. */
-export function processPerceptionBenchReadme(
+function processPerceptionBenchReadme(
   readme: string,
   sourceUrl = PERCEPTION_BENCH_README_URL,
 ): BenchmarkObservationRow[] {
@@ -92,7 +87,7 @@ export function processPerceptionBenchReadme(
     if (!Number.isInteger(rank) || rank < 1 || model.length === 0 || overall == null) {
       continue;
     }
-    const canonicalValue = percentToUnitScore(String(overall));
+    const canonicalValue = percentToUnitScore(overall);
     const creator = MODEL_CREATORS[model] ?? null;
     if (canonicalValue == null) continue;
 

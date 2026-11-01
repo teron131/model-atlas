@@ -1,9 +1,6 @@
-/** Benchmark source-row drafts keep live source snapshots and restored database rows on one health-check contract. */
+/** Benchmark source-row drafts put every scored source on one benchmark-update health contract; checkpoints store the health computed from them. */
 
-import {
-  type BenchmarkObservationRow,
-  isAssignableBenchmarkObservation,
-} from "../../benchmarks/observation";
+import { isAssignableBenchmarkObservation } from "../../benchmarks/observation";
 import {
   ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES,
   BENCHMARK_OBSERVATION_BINDINGS,
@@ -41,7 +38,7 @@ export function observedBenchmarkVersions(rowsByKey: BenchmarkRowsByKey): Record
   );
 }
 
-export type BenchmarkRowDraft = {
+type BenchmarkRowDraft = {
   key: string;
   id?: string | null;
   identity?: string | null;
@@ -87,8 +84,8 @@ function modelScoreRowDrafts(
   }));
 }
 
-/** Riemann rows share one effort-aware health identity across live and restored source data. */
-export function riemannBenchmarkDraft(row: {
+/** Riemann labels carry their effort, so the health identity is the label's base model. */
+function riemannBenchmarkDraft(row: {
   model: string;
   provider: string | null;
   score: unknown;
@@ -106,9 +103,7 @@ export function riemannBenchmarkDraft(row: {
 
 function benchmarkObservationSourceDrafts(sourceData: ModelAtlasSourceData): BenchmarkRowDraft[] {
   return BENCHMARK_OBSERVATION_BINDINGS.flatMap(({ sourceDataKey }) => {
-    const source = sourceData[sourceDataKey as keyof ModelAtlasSourceData] as
-      | { rows?: readonly BenchmarkObservationRow[] }
-      | undefined;
+    const source = sourceData[sourceDataKey];
     if (source?.rows == null) {
       throw new Error(`Benchmark observation source-data rows are missing: ${sourceDataKey}`);
     }
@@ -193,7 +188,7 @@ function artificialAnalysisBenchmarkRowDrafts(
 }
 
 /** Evaluation-page rows enter health checks under their page's benchmark on the scoring scale. */
-export function artificialAnalysisResourceDrafts(
+function artificialAnalysisResourceDrafts(
   rows: readonly ArtificialAnalysisBenchmarkResourceRow[],
 ): BenchmarkRowDraft[] {
   return ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.flatMap(({ benchmarkKey }) =>
@@ -288,7 +283,7 @@ const STANDALONE_SOURCE_ROW_ADAPTERS = {
     })),
 } satisfies Record<PublicBenchmarkRuntimeKeyFor<"standalone">, StandaloneSourceRowAdapter>;
 
-/** Live source data enters benchmark-update health through the same draft contract as database restorations. */
+/** Scored source data enters benchmark-update health through one draft contract. */
 export function benchmarkRowsFromSourceData(sourceData: ModelAtlasSourceData): BenchmarkRowsByKey {
   return finalizeBenchmarkRows([
     ...benchmarkObservationSourceDrafts(sourceData),

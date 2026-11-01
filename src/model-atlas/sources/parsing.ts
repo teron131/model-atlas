@@ -1,6 +1,6 @@
 /** Scraper parsing normalizes CSV, Flight, HTML, and scalar source values at the adapter boundary. */
 
-import { asRecord, type JsonObject } from "../runtime";
+import { asFiniteNumber, asRecord, type JsonObject } from "../runtime";
 
 // Captures the escaped string in each `self.__next_f.push([1,"…"])</script>` Flight chunk.
 const NEXT_FLIGHT_CHUNK_REGEX = /self\.__next_f\.push\(\[1,"([\s\S]*?)"\]\)<\/script>/g;
@@ -98,13 +98,11 @@ export function providerFromLogoAlt(value: string | null): string | null {
   return provider.length > 0 ? provider : null;
 }
 
-/** Source-page percentages enter benchmark scoring on the shared 0-1 scale: `"45.2"` → `0.452`, and values outside 0–100 → `null`. */
-export function percentToUnitScore(value: string | null | undefined): number | null {
-  if (value == null) {
-    return null;
-  }
-  const score = Number(value);
-  if (!Number.isFinite(score) || score < 0 || score > 100) {
+/** Source percentages enter benchmark scoring on the shared 0-1 scale: `"45.2"` or `45.2` → `0.452`; anything but a number or numeric string, a blank string, and out-of-range values → `null`. */
+export function percentToUnitScore(value: unknown): number | null {
+  const score =
+    typeof value === "number" || typeof value === "string" ? asFiniteNumber(value) : null;
+  if (score == null || score < 0 || score > 100) {
     return null;
   }
   return Number((score / 100).toFixed(6));

@@ -1,6 +1,5 @@
 /** Derive checkpoint rows from cached source evidence and preserve benchmark, refresh, and model-change history. */
 
-import { BENCHMARK_OBSERVATION_BINDINGS } from "../benchmarks/registry";
 import { BENCHMARK_VERSION_BASELINE_DATE, STAGE_CONFIG } from "../config";
 import { deriveModelStats } from "../pipeline/derivation";
 import { taskMetricFingerprint } from "../pipeline/selection/benchmark-versioning";
@@ -12,6 +11,7 @@ import {
 import { buildSourceData, type ModelAtlasSourceData } from "../sources/assembly";
 import { BENCHMARK_RAW_WRITERS, benchmarkSourceRowsFromSnapshots } from "../sources/benchmarks";
 import { insertModelsDevRawModels } from "../sources/models-dev/write";
+import { benchmarkObservationRowsFromSnapshots } from "../sources/observations/load";
 import type { OpenRouterSourcePayload } from "../sources/openrouter";
 import { insertOpenRouterRawRows } from "../sources/openrouter/write";
 import type { RawSourceName } from "../sources/registry";
@@ -31,7 +31,7 @@ import {
   preserveHighSignalSnapshotModels,
   SNAPSHOT_PRESERVATION_VERSION,
 } from "../stats/payload/snapshot-preservation";
-import type { ModelAtlasModel, ModelAtlasPayload } from "../stats/types";
+import type { ModelAtlasMetadata, ModelAtlasModel, ModelAtlasPayload } from "../stats/types";
 import type { CapabilityState } from "../timeline/capability";
 import { buildDebugTraceRows, type DebugTraceRow, insertDebugTraceRows } from "./debug-trace";
 import { SNAPSHOT_TABLES, type SnapshotTableName } from "./tables";
@@ -62,6 +62,8 @@ type DatabaseSnapshotRows = {
   finalModelRows: readonly ModelAtlasModel[];
   debugTraceRows: readonly DebugTraceRow[];
   sourceHealth: ModelAtlasSourceHealth;
+  benchmarkUpdateHealth: ModelAtlasMetadata["benchmark_update_health"];
+  benchmarkVersions: ModelAtlasMetadata["benchmark_versions"];
   benchmarkVersionLogRows: readonly BenchmarkVersionLogRow[];
   refreshRunRows: readonly RefreshRunRow[];
   modelScoreChangeRows: readonly ModelScoreChangeRow[];
@@ -168,6 +170,7 @@ export async function deriveDatabaseSnapshot(
     capabilityState,
     matchDiagnostics,
     models: derivedModels,
+    benchmarkRows,
     openRouterLoad,
   } = await deriveModelStats(sourceData, {
     capabilityState: versioning.capabilityState,
@@ -182,15 +185,11 @@ export async function deriveDatabaseSnapshot(
   const preservedModels = versioning.replaceSourceRows
     ? derivedModels
     : preserveHighSignalSnapshotModels(
-        {
-          fetched_at_epoch_seconds: startedAtEpochSeconds,
-          models: derivedModels,
-          metadata: buildCurrentModelAtlasMetadata({ models: derivedModels }),
-        },
+        derivedModels,
         versioning.previousPayload ?? null,
         STAGE_CONFIG.snapshotPreservation,
         STAGE_CONFIG.scoring,
-      ).models;
+      );
   const debugTraceRows = buildDebugTraceRows(
     snapshots,
     openRouterLoad.rawPayload,
@@ -201,14 +200,18 @@ export async function deriveDatabaseSnapshot(
     ...sourceCacheStatuses,
     openrouter: openRouterLoad.cacheStatus,
   };
-  // The refresh audit compares the published rows, so it follows snapshot preservation.
+  // The refresh audit and benchmark health describe the published rows, so both follow snapshot preservation.
+  const metadata = buildCurrentModelAtlasMetadata({
+    models: preservedModels,
+    healthModels: preservedModels,
+    sourceRowsByKey: benchmarkRows,
+  });
   const changes = buildRefreshChanges(
     startedAtEpochSeconds,
     versioning.previousRefreshId,
     versioning.previousPayload,
     preservedModels,
-    buildCurrentModelAtlasMetadata({ models: preservedModels, healthModels: preservedModels })
-      .scoring,
+    metadata.scoring,
   );
   const rows: DatabaseSnapshotRows = {
     capabilityState,
@@ -221,6 +224,8 @@ export async function deriveDatabaseSnapshot(
       sourceCacheStatuses: finalSourceCacheStatuses,
       sourceRowStates: snapshots.sourceRowStates,
     }),
+    benchmarkUpdateHealth: metadata.benchmark_update_health,
+    benchmarkVersions: metadata.benchmark_versions,
     benchmarkVersionLogRows: buildBenchmarkVersionLogRows(
       previousModels,
       preservedModels,
@@ -238,20 +243,12 @@ export async function deriveDatabaseSnapshot(
 
 /** Adapt restored checkpoint rows into normalized source lookups without fetching external pages. */
 function sourceDataFromSnapshots(snapshots: SourceSnapshots): ModelAtlasSourceData {
-  type BenchmarkObservationRowsKey =
-    (typeof BENCHMARK_OBSERVATION_BINDINGS)[number]["sourceRowsKey"];
-  const benchmarkObservationRows = Object.fromEntries(
-    BENCHMARK_OBSERVATION_BINDINGS.map((binding) => [
-      binding.sourceRowsKey,
-      snapshots[binding.sourceRowsKey],
-    ]),
-  ) as Pick<SourceSnapshots, BenchmarkObservationRowsKey>;
   return buildSourceData({
     artificialAnalysisRows: snapshots.artificialAnalysisSelectedRows,
     artificialAnalysisBenchmarkResourceRows: snapshots.artificialAnalysisBenchmarkResourceRows,
     modelsDevModels: snapshots.modelsDevModels,
     ...benchmarkSourceRowsFromSnapshots(snapshots),
-    ...benchmarkObservationRows,
+    ...benchmarkObservationRowsFromSnapshots(snapshots),
   });
 }
 
@@ -265,8 +262,13 @@ export function writeCheckpoint(db: DatabaseWriter, rows: DatabaseSnapshotRows):
     write(db, rows);
   }
   db.prepare(
-    "INSERT INTO snapshot_metadata (updated_at_epoch_seconds, snapshot_preservation_version) VALUES (?, ?)",
-  ).run(nowEpochSeconds(), SNAPSHOT_PRESERVATION_VERSION);
+    "INSERT INTO snapshot_metadata (updated_at_epoch_seconds, snapshot_preservation_version, benchmark_update_health_json, benchmark_versions_json) VALUES (?, ?, ?, ?)",
+  ).run(
+    nowEpochSeconds(),
+    SNAPSHOT_PRESERVATION_VERSION,
+    rows.benchmarkUpdateHealth == null ? null : JSON.stringify(rows.benchmarkUpdateHealth),
+    rows.benchmarkVersions == null ? null : JSON.stringify(rows.benchmarkVersions),
+  );
 }
 
 function insertSourceQuarantines(db: DatabaseWriter, snapshots: SourceSnapshots): void {

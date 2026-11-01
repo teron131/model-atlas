@@ -3,8 +3,9 @@
 import {
   BENCHMARK_COLUMNS,
   BENCHMARK_DISPLAY_ORDER,
-  BENCHMARK_SCORING_WEIGHTS,
   BENCHMARK_TASK_METRIC_COLUMNS,
+  type BenchmarkDisplayGroup,
+  benchmarkDisplayGroup,
   type BenchmarkKey,
 } from "../../../src/model-atlas/benchmarks/catalog";
 import type { BenchmarkTaskMetricColumnFacet } from "../../../src/model-atlas/benchmarks/factory";
@@ -96,16 +97,15 @@ const benchmarkTaskMetricColumns = BENCHMARK_DISPLAY_ORDER.flatMap<CatalogTaskMe
   compareBenchmarkTableColumns(left.benchmarkGroup, right.benchmarkGroup, left.label, right.label),
 );
 
-/** Keep the catalog's frontier, index, and baseline groups while sorting short table headers within each group. */
+/** Keep the catalog's display groups while sorting short table headers within each group. */
 function compareBenchmarkTableColumns(
   left: BenchmarkKey,
   right: BenchmarkKey,
   leftLabel: string,
   rightLabel: string,
 ): number {
-  const leftGroup = isAggregateIndex(left) ? "index" : BENCHMARK_SCORING_WEIGHTS[left].group;
-  const rightGroup = isAggregateIndex(right) ? "index" : BENCHMARK_SCORING_WEIGHTS[right].group;
-  if (leftGroup !== rightGroup) return compareBenchmarkDisplayKeys(left, right);
+  if (benchmarkDisplayGroup(left) !== benchmarkDisplayGroup(right))
+    return compareBenchmarkDisplayKeys(left, right);
   return leftLabel.localeCompare(rightLabel, "en", { sensitivity: "base" });
 }
 
@@ -213,7 +213,8 @@ export const benchmarkMetricColumns = BENCHMARK_DISPLAY_ORDER.map((benchmark) =>
     key: column.key,
     group: "benchmarks" as const,
     benchmark,
-    direction: column.defaultSort,
+    // Benchmark results are oriented so higher is better.
+    direction: "descending" as const,
     type: "number" as const,
     label: column.label,
     format: column.format,
@@ -295,9 +296,7 @@ type TableColumnGroup =
   | "fixed"
   | "scores"
   | "resources"
-  | "frontier"
-  | "indexes"
-  | "baseline"
+  | BenchmarkDisplayGroup
   | "profile"
   | "confidence"
   | "change";
@@ -321,24 +320,16 @@ const benchmarkColumnGroupsByKey = new Map<TableColumnKey, TableColumnGroup>();
 // Each benchmark column's benchmark, so a run of columns can count the benchmarks it covers.
 const benchmarkByColumnKey = new Map<TableColumnKey, BenchmarkKey>();
 for (const { benchmark, columns } of benchmarkColumnGroups) {
-  const group = benchmarkEvidenceGroup(benchmark);
+  const group = benchmarkDisplayGroup(benchmark);
   for (const column of columns) {
     benchmarkColumnGroupsByKey.set(column.key, group);
     benchmarkByColumnKey.set(column.key, benchmark);
   }
 }
 
-/** Frontier benchmarks carry score weight, aggregate indexes summarize other benchmarks, and baseline benchmarks stay visible without direct weight; the table rules and the model sheet share these groups. */
-export function benchmarkEvidenceGroup(
-  benchmark: BenchmarkKey,
-): "frontier" | "indexes" | "baseline" {
-  if (BENCHMARK_SCORING_WEIGHTS[benchmark].group === "frontier") return "frontier";
-  return isAggregateIndex(benchmark) ? "indexes" : "baseline";
-}
-
 /** A stretch of consecutive visible columns in one group, as the table's group rail names it; the trailing release, weights, evidence, and change columns read as one `details` stretch. */
 export type TableColumnRun = {
-  group: "scores" | "resources" | "frontier" | "indexes" | "baseline" | "details";
+  group: "scores" | "resources" | BenchmarkDisplayGroup | "details";
   /** Position of its first column among the visible columns. */
   first: number;
   /** Distinct benchmarks among its columns; zero outside the benchmark groups. */

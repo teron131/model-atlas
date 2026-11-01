@@ -34,7 +34,7 @@ export async function submitCommunityRanking(
       return await withCheckpointWorkspace(async (databasePath) => {
         const current = await store.current();
         if (!current.manifest) throw new Error("The benchmark checkpoint is not initialized");
-        const payload = await store.restore(current.manifest, databasePath);
+        const snapshot = await store.restore(current.manifest, databasePath);
         const db = await openDatabase(databasePath);
         let records;
         let status: "created" | "unchanged" | "conflict";
@@ -43,7 +43,7 @@ export async function submitCommunityRanking(
           if (!records.some((record) => record.ranked_at === ranking.ranked_at)) {
             const submissionErrors = communitySubmissionErrors(
               ranking,
-              communityCandidates(payload, now.toISOString().slice(0, 10)),
+              communityCandidates(snapshot.payload, now.toISOString().slice(0, 10)),
             );
             if (submissionErrors.length) return { status: 400, body: { errors: submissionErrors } };
           }
@@ -60,7 +60,7 @@ export async function submitCommunityRanking(
           db.close();
         }
         if (status === "created") {
-          await store.publish(databasePath, { ...payload, community_rankings: records }, current);
+          await store.publish(databasePath, { ...snapshot, communityRankings: records }, current);
         }
         return {
           status: status === "created" ? 201 : 200,

@@ -46,21 +46,17 @@ export async function getCaisDashboardStats(
   benchmarkKey: string,
   source: CaisLoader,
 ): Promise<BenchmarkObservationPayload> {
-  try {
-    const page = await fetchCaisDashboardPageOnce(source.sourceUrl);
-    const data = processCaisDashboardModels(
-      page.models,
-      benchmarkKey,
-      source.sourceUrl,
-      page.revision,
-    );
-    return {
-      fetched_at_epoch_seconds: data.length > 0 ? page.fetchedAt : null,
-      data,
-    };
-  } catch {
-    return { fetched_at_epoch_seconds: null, data: [] };
-  }
+  const page = await fetchCaisDashboardPageOnce(source.sourceUrl);
+  const data = processCaisDashboardModels(
+    page.models,
+    benchmarkKey,
+    source.sourceUrl,
+    page.revision,
+  );
+  return {
+    fetched_at_epoch_seconds: data.length > 0 ? page.fetchedAt : null,
+    data,
+  };
 }
 
 /** Reject cached rows from a different CAIS source contract or benchmark metric. */

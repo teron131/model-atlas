@@ -9,7 +9,7 @@ import type {
   TimelineParameters,
 } from "./schemas";
 
-export type PairedTimelineObservation = { family: string; left: number; right: number };
+type PairedTimelineObservation = { family: string; left: number; right: number };
 
 /** All benchmark coordinates retain their reported gaps; probability labels constrain valid inputs only. */
 export function timelineNativeValue(

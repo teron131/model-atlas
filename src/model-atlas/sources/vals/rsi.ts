@@ -25,28 +25,24 @@ const RSI_TASKS = [
   "post_training",
 ] as const;
 
-/** Resolve the page's hashed assets and load the published score with its task diagnostics. A missing or malformed asset returns no new evidence so the snapshot lifecycle can retain a valid cache. */
+/** Resolve the page's hashed assets and load the published score with its task diagnostics. A page without the expected asset references or a malformed module returns no new evidence, and a failed request rejects; the snapshot lifecycle keeps a valid cache either way. */
 export async function getValsRsiStats(sourceUrl: string): Promise<BenchmarkObservationPayload> {
-  try {
-    const page = await fetchText(sourceUrl);
-    const islandTag = page.match(
-      /<astro-island\b(?=[^>]*component-url="\/_astro\/RsiBenchmarkView\.[^"]+\.js")[^>]*>/,
-    )?.[0];
-    const componentUrl = islandTag == null ? null : htmlAttribute(islandTag, "component-url");
-    if (componentUrl == null) return { fetched_at_epoch_seconds: null, data: [] };
-    const component = await fetchText(new URL(componentUrl, sourceUrl).href);
-    const dataModulePath = component.match(
-      /"\.\/(benchmark_view_rsi_index\.[A-Za-z0-9_-]+\.js)"/,
-    )?.[1];
-    if (dataModulePath == null) return { fetched_at_epoch_seconds: null, data: [] };
-    const moduleSource = await fetchText(
-      new URL(dataModulePath, new URL(componentUrl, sourceUrl)).href,
-    );
-    const data = processValsRsiModule(moduleSource, component, sourceUrl);
-    return { fetched_at_epoch_seconds: data.length > 0 ? nowEpochSeconds() : null, data };
-  } catch {
-    return { fetched_at_epoch_seconds: null, data: [] };
-  }
+  const page = await fetchText(sourceUrl);
+  const islandTag = page.match(
+    /<astro-island\b(?=[^>]*component-url="\/_astro\/RsiBenchmarkView\.[^"]+\.js")[^>]*>/,
+  )?.[0];
+  const componentUrl = islandTag == null ? null : htmlAttribute(islandTag, "component-url");
+  if (componentUrl == null) return { fetched_at_epoch_seconds: null, data: [] };
+  const component = await fetchText(new URL(componentUrl, sourceUrl).href);
+  const dataModulePath = component.match(
+    /"\.\/(benchmark_view_rsi_index\.[A-Za-z0-9_-]+\.js)"/,
+  )?.[1];
+  if (dataModulePath == null) return { fetched_at_epoch_seconds: null, data: [] };
+  const moduleSource = await fetchText(
+    new URL(dataModulePath, new URL(componentUrl, sourceUrl)).href,
+  );
+  const data = processValsRsiModule(moduleSource, component, sourceUrl);
+  return { fetched_at_epoch_seconds: data.length > 0 ? nowEpochSeconds() : null, data };
 }
 
 /** Extract declarative leaderboard literals without executing the publisher's JavaScript. Reject the whole refresh unless a declared version, the four-task composition, model counts, and harness assignments form one complete cohort. */
@@ -156,7 +152,7 @@ function taskObservations(
     if (rowEnd < 0) return [];
     const sourceRow = taskBlock.slice(rowStart, rowEnd + 1);
     const accuracy = numberField(sourceRow, "accuracy");
-    const score = accuracy == null ? null : percentToUnitScore(String(accuracy));
+    const score = percentToUnitScore(accuracy);
     const provider = stringField(sourceRow, "provider");
     const harness = harnesses[modelId];
     if (score == null || provider == null || harness == null) return [];

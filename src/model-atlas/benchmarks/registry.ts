@@ -35,12 +35,6 @@ import {
 } from "./factory";
 
 export type { BenchmarkKey } from "./catalog";
-export {
-  BENCHMARK_TASK_METRIC_COLUMNS,
-  INDEX_BENCHMARK_KEYS,
-  INDEX_REPRESENTED_BENCHMARK_COUNTS,
-  INDEX_REPRESENTED_BENCHMARK_MEDIAN,
-} from "./catalog";
 
 const IDENTITY_TRANSFORM = {
   kind: "identity",
@@ -189,7 +183,6 @@ type BenchmarkCatalog = Readonly<{
   [Key in BenchmarkKey]: Omit<BenchmarkCatalogEntry, "source" | "presentation"> & {
     source: BenchmarkSources[Key];
     presentation: {
-      title: (typeof BENCHMARK_TOOLTIPS)[Key]["title"];
       label: (typeof BENCHMARK_LABELS)[Key];
       scoringLabel: string;
       description: (typeof BENCHMARK_TOOLTIPS)[Key]["body"];
@@ -216,7 +209,6 @@ function composeBenchmarkCatalog(): BenchmarkCatalog {
           persistence: BENCHMARK_PERSISTENCE[key as BenchmarkKey],
           scoring,
           presentation: {
-            title: tooltip.title,
             label: BENCHMARK_LABELS[key as BenchmarkKey],
             scoringLabel:
               BENCHMARK_SCORING_LABELS[key as BenchmarkKey] ??

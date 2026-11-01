@@ -5,22 +5,20 @@ import {
   type BenchmarkObservationsByKey,
   parseBenchmarkObservationMetadata,
 } from "../benchmarks/observation";
-import {
-  BENCHMARK_OBSERVATION_BINDINGS,
-  type PublicBenchmarkRuntimeKeyFor,
-} from "../benchmarks/registry";
+import { BENCHMARK_OBSERVATION_BINDINGS } from "../benchmarks/registry";
 import { canonicalReasoningEffort } from "../identity/normalization";
-import { benchmarkRowsFromDb } from "../pipeline/benchmark-rows";
 import { publicModelFromCandidate } from "../pipeline/selection/public-list";
 import { asFiniteNumber, asNonEmptyString, asRecord } from "../runtime";
 import { readAleBenchRawCache } from "../sources/ale-bench/runtime";
 import { artificialAnalysisBenchmarkResourceRawCacheFromRows } from "../sources/artificial-analysis/cache";
 import { fusedBenchmarkObservations } from "../sources/assembly";
+import { booleanFromSql, jsonValue } from "../sources/cache/rows";
 import { readTerminalBench4RawCache } from "../sources/terminal-bench-4/runtime";
 import { buildCurrentModelAtlasMetadata } from "../stats/payload/metadata";
 import type {
   ModelAtlasBenchmarkRankDriver,
   ModelAtlasBenchmarks,
+  ModelAtlasBenchmarkUpdateHealth,
   ModelAtlasContextWindow,
   ModelAtlasCost,
   ModelAtlasIntelligence,
@@ -65,10 +63,8 @@ function payloadRowGroup<Key extends string>(
     sourceKey == null ? "" : ` WHERE source_key = ${sqlStringLiteral(sourceKey)}`;
   return {
     key,
-    table,
     sql: `SELECT ${columns.join(", ")} FROM ${table}${sourcePredicate} ORDER BY ${orderBy}`,
     optional,
-    sourceKey,
   };
 }
 
@@ -88,94 +84,6 @@ const BENCHMARK_OBSERVATION_PAYLOAD_COLUMNS = [
   "observed_at",
   "metadata_json",
 ] as const;
-
-const STANDALONE_BENCHMARK_PAYLOAD_ROW_GROUPS = {
-  agents_last_exam: payloadRowGroup(
-    "agentsLastExamRows",
-    SNAPSHOT_TABLES.agents_last_exam,
-    "row_index",
-    { columns: ["model", "row_kind", "median_score", "mean_score"] },
-  ),
-  ale_bench: payloadRowGroup("aleBenchRows", SNAPSHOT_TABLES.ale_bench, "row_index", {
-    optional: true,
-  }),
-  arena_agent: payloadRowGroup("arenaAgentRows", SNAPSHOT_TABLES.arena_agent, "row_index", {
-    columns: [
-      "url",
-      "observed_at",
-      "contender_name",
-      "model",
-      "base_model",
-      "reasoning_effort",
-      "organization",
-      "score",
-      "cost_per_task_usd",
-    ],
-    optional: true,
-  }),
-  blueprint_bench_2: payloadRowGroup(
-    "blueprintBenchRows",
-    SNAPSHOT_TABLES.blueprint_bench_2,
-    "row_index",
-    { columns: ["model", "score"] },
-  ),
-  frontier_code: payloadRowGroup("frontierCodeRows", SNAPSHOT_TABLES.frontier_code, "row_index", {
-    columns: [
-      "model",
-      "base_model",
-      "reasoning_effort",
-      "score_eligible",
-      "main_score",
-      "revision",
-    ],
-    optional: true,
-  }),
-  terminal_bench_4: payloadRowGroup(
-    "terminalBench4Rows",
-    SNAPSHOT_TABLES.terminal_bench_4,
-    "row_index",
-    {
-      optional: true,
-    },
-  ),
-  vending_bench_2: payloadRowGroup(
-    "vendingBench2Rows",
-    SNAPSHOT_TABLES.vending_bench_2,
-    "row_index",
-    {
-      columns: ["model", "base_model", "reasoning_effort", "final_balance_usd"],
-      optional: true,
-    },
-  ),
-} as const satisfies Record<
-  PublicBenchmarkRuntimeKeyFor<"standalone">,
-  ReturnType<typeof payloadRowGroup>
->;
-
-const SURGE_BENCHMARK_PAYLOAD_ROW_GROUPS = {
-  riemann_bench: payloadRowGroup("riemannBenchRows", SNAPSHOT_TABLES.riemann_bench, "row_index", {
-    columns: ["model", "provider", "score"],
-  }),
-} as const satisfies Record<
-  PublicBenchmarkRuntimeKeyFor<"surge">,
-  ReturnType<typeof payloadRowGroup>
->;
-
-const VALS_BENCHMARK_PAYLOAD_ROW_GROUPS = {
-  vals_index: payloadRowGroup("valsIndexTaskScoreRows", SNAPSHOT_TABLES.vals_index, "row_index", {
-    columns: ["model_id", "model", "provider", "row_kind", "score", "metadata_json"],
-    optional: true,
-  }),
-} as const satisfies Record<
-  PublicBenchmarkRuntimeKeyFor<"vals">,
-  ReturnType<typeof payloadRowGroup>
->;
-
-const BENCHMARK_SOURCE_PAYLOAD_ROW_GROUPS = {
-  ...SURGE_BENCHMARK_PAYLOAD_ROW_GROUPS,
-  ...VALS_BENCHMARK_PAYLOAD_ROW_GROUPS,
-  ...STANDALONE_BENCHMARK_PAYLOAD_ROW_GROUPS,
-} as const;
 
 export const PAYLOAD_ROW_GROUPS = [
   payloadRowGroup(
@@ -201,17 +109,11 @@ export const PAYLOAD_ROW_GROUPS = [
   payloadRowGroup("sourceQuarantineRows", SNAPSHOT_TABLES.source_quarantines, "source, row_key", {
     columns: ["source", "row_key", "row_label", "missing_from_source_since_epoch_seconds"],
   }),
-  payloadRowGroup("artificialAnalysisRows", SNAPSHOT_TABLES.artificial_analysis, "row_index", {
-    columns: [
-      "model_id",
-      "name",
-      "short_name",
-      "reasoning_effort",
-      "intelligence_index",
-      "intelligence_index_version",
-    ],
+  // Fusion rebuilds these benchmarks' observations from their complete raw rows.
+  payloadRowGroup("aleBenchRows", SNAPSHOT_TABLES.ale_bench, "row_index", { optional: true }),
+  payloadRowGroup("terminalBench4Rows", SNAPSHOT_TABLES.terminal_bench_4, "row_index", {
+    optional: true,
   }),
-  ...Object.values(BENCHMARK_SOURCE_PAYLOAD_ROW_GROUPS),
   ...BENCHMARK_OBSERVATION_BINDINGS.map((binding) =>
     payloadRowGroup(binding.sourceRowsKey, binding.rawTable, "row_index", {
       columns: BENCHMARK_OBSERVATION_PAYLOAD_COLUMNS,
@@ -226,17 +128,9 @@ type PayloadRowKey = PayloadRowGroup["key"];
 type PayloadRows = {
   fetchedAt: number | null;
   snapshotPreservationVersion: number | null;
+  benchmarkUpdateHealth: ModelAtlasBenchmarkUpdateHealth | undefined;
+  benchmarkVersions: Readonly<Record<string, string>> | undefined;
 } & Record<PayloadRowKey, DbRow[]>;
-
-function booleanFromSqlite(value: unknown): boolean | null {
-  if (value === 1) {
-    return true;
-  }
-  if (value === 0) {
-    return false;
-  }
-  return null;
-}
 
 const SCORE_CHANGE_DIMENSIONS = new Set<ModelAtlasScoreDimension>([
   "intelligence",
@@ -404,11 +298,11 @@ function scoredCandidateFromRow(
     name: asNonEmptyString(row.name),
     provider,
     logo: asNonEmptyString(row.logo) ?? "",
-    reasoning: booleanFromSqlite(row.reasoning),
+    reasoning: booleanFromSql(row.reasoning),
     reasoning_effort: canonicalReasoningEffort(row.reasoning_effort),
     release_date: asNonEmptyString(row.release_date),
     modalities: buildModalities(row),
-    open_weights: booleanFromSqlite(row.open_weights),
+    open_weights: booleanFromSql(row.open_weights),
     cost: buildCost(row),
     context_window: buildContextWindow(row),
     speed: {
@@ -451,11 +345,34 @@ export function buildPayloadRows(
   const rows = Object.fromEntries(
     PAYLOAD_ROW_GROUPS.map(({ key }) => [key, rowsByKey.get(key) ?? []]),
   ) as Record<PayloadRowKey, DbRow[]>;
+  const benchmarkUpdateHealth = jsonValue(metadata.benchmark_update_health_json);
+  const benchmarkVersions = jsonValue(metadata.benchmark_versions_json);
   return {
     fetchedAt: asFiniteNumber(metadata.updated_at_epoch_seconds),
     snapshotPreservationVersion: asFiniteNumber(metadata.snapshot_preservation_version),
+    benchmarkUpdateHealth: isEntryRecord(benchmarkUpdateHealth) ? benchmarkUpdateHealth : undefined,
+    benchmarkVersions: isStringRecord(benchmarkVersions) ? benchmarkVersions : undefined,
     ...rows,
   };
+}
+
+/** Stored health is checked here only as a record of entries; metadata assembly validates each entry before use, as it does for published payloads. */
+function isEntryRecord(value: unknown): value is ModelAtlasBenchmarkUpdateHealth {
+  return (
+    value != null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    Object.values(value).every((entry) => entry != null && typeof entry === "object")
+  );
+}
+
+function isStringRecord(value: unknown): value is Readonly<Record<string, string>> {
+  return (
+    value != null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    Object.values(value).every((entry) => typeof entry === "string")
+  );
 }
 
 function benchmarksByModelRow(rows: readonly DbRow[]): Map<number, ModelAtlasBenchmarks> {
@@ -675,14 +592,14 @@ export function buildPayloadFromRows(rows: PayloadRows): ModelAtlasPayload {
     rows.sourceQuarantineRows,
     rows.fetchedAt,
   );
-  const sourceRowsByKey = benchmarkRowsFromDb(rows);
   return {
     fetched_at_epoch_seconds: rows.fetchedAt,
     metadata: buildCurrentModelAtlasMetadata({
       models,
       healthModels: models,
       sourceHealth,
-      sourceRowsByKey,
+      benchmarkUpdateHealth: rows.benchmarkUpdateHealth,
+      benchmarkVersions: rows.benchmarkVersions,
       snapshotPreservationVersion: rows.snapshotPreservationVersion,
     }),
     models,

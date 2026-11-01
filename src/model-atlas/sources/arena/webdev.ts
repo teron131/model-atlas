@@ -32,12 +32,8 @@ export async function getArenaWebDevStats(
       return { fetched_at_epoch_seconds: nowEpochSeconds(), data };
     });
   } catch {
-    try {
-      const data = processArenaWebDevDatasetRows(await fetchArenaDataset("webdev"));
-      return { fetched_at_epoch_seconds: data.length > 0 ? nowEpochSeconds() : null, data };
-    } catch {
-      return { fetched_at_epoch_seconds: null, data: [] };
-    }
+    const data = processArenaWebDevDatasetRows(await fetchArenaDataset("webdev"));
+    return { fetched_at_epoch_seconds: data.length > 0 ? nowEpochSeconds() : null, data };
   }
 }
 

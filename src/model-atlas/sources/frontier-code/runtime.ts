@@ -3,7 +3,7 @@
 import { SNAPSHOT_TABLES } from "../../database/tables";
 import { type DatabaseWriter, sqliteBooleanValue } from "../../database/writers/database";
 import { asFiniteNumber, asNonEmptyString } from "../../runtime";
-import { defineBenchmarkRuntime } from "../benchmark-runtime";
+import { type BenchmarkSnapshotContext, defineBenchmarkRuntime } from "../benchmark-runtime";
 import {
   booleanFromSql,
   type CacheRowSource,
@@ -45,7 +45,7 @@ export const frontierCodeRuntime = defineBenchmarkRuntime({
 });
 
 /** Reconstruct every FrontierCode effort only when all rows share one persisted revision and carry complete Main metrics. */
-export function readFrontierCodeRawCache(cache: CacheRowSource): {
+function readFrontierCodeRawCache(cache: CacheRowSource): {
   rows: FrontierCodeModelEffortRow[];
   fetchedAt: number | null;
 } | null {
@@ -125,9 +125,10 @@ async function frontierCodeSnapshot(
   options: SourceRefreshOptions,
   previousMissingSince: ReadonlyMap<string, number>,
   nowEpochSeconds: number,
+  context: BenchmarkSnapshotContext,
 ): Promise<FrontierCodeSnapshot> {
   const snapshot = await snapshotSourceRows({
-    source: "frontier_code",
+    source: context.source,
     cached,
     status,
     options,
@@ -140,13 +141,7 @@ async function frontierCodeSnapshot(
   });
   return {
     frontierCodeRows: snapshot.rows,
-    sourceStatus: {
-      source: "frontier_code",
-      fetchedAt: snapshot.fetchedAt,
-      sourceInputCount: snapshot.rows.length,
-      sourceRowStates: snapshot.sourceRowStates,
-      fetchedAtKey: "frontierCode",
-    },
+    sourceStatus: context.sourceStatus(snapshot),
   };
 }
 

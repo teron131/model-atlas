@@ -5,7 +5,6 @@ import {
   resourceSourceMetricKey,
   resourceSourcesFromMetadata,
 } from "../../benchmarks/resource-sources";
-import type { ScoringConfig } from "../../config/stage";
 import { canonicalReasoningEffort, normalizeProviderId } from "../../identity/normalization";
 import { resolveModelLogo } from "../../logos/resolve";
 import { asFiniteNumber, asRecord } from "../../runtime";
@@ -29,13 +28,7 @@ import {
   lookupOpenRouterSpeed,
   type OpenRouterModelData,
 } from "../openrouter-data";
-import {
-  benchmarkImputationFactors,
-  benchmarkImputationValues,
-  type BenchmarkScoringPreparation,
-  blendedPriceValue,
-  buildComponentScoreResult,
-} from "../scores";
+import { blendedPriceValue } from "../scores";
 
 function hasFields(record: object): boolean {
   return Object.keys(record).length > 0;
@@ -340,28 +333,16 @@ function buildSeparatedSourceMetrics(
   });
 }
 
+/** Project a row into the scorer's input shape; quality scores and their support are attached once the population's scoring context is complete. */
 export function buildModelCandidate(
   row: ModelRow,
   openRouterData: OpenRouterModelData,
-  scoringConfig: ScoringConfig,
-  scoringPreparation: BenchmarkScoringPreparation,
-  benchmarkWeightMultipliersByKey?: ReadonlyMap<string, number>,
 ): ModelAtlasCandidate {
   const provider = providerFromRow(row);
   const speed = buildSpeed(row, openRouterData);
   const cost = buildCost(row, openRouterData);
   const scoringSources = buildScoringSources(row);
   const qualityValues = buildPersistedQualityValues(row);
-  const imputedValues = benchmarkImputationValues(scoringPreparation, row);
-  const imputedFactors = benchmarkImputationFactors(scoringPreparation, row);
-  const { componentScores, confidence } = buildComponentScoreResult(
-    row,
-    scoringConfig,
-    scoringPreparation.qualityContext,
-    imputedValues,
-    imputedFactors,
-    benchmarkWeightMultipliersByKey,
-  );
   return {
     id: row.id,
     name: row.name ?? null,
@@ -379,9 +360,9 @@ export function buildModelCandidate(
     task_metrics: buildTaskMetrics(row.intelligence_index_cost, scoringSources),
     benchmarks: qualityValues.benchmarks,
     benchmark_dates: null,
-    confidence,
+    confidence: { intelligence: null, agentic: null, speed: null, value: null },
     scoring_sources: scoringSources,
-    component_scores: componentScores,
+    component_scores: null,
     scores: null,
   };
 }

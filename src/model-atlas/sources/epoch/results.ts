@@ -103,17 +103,13 @@ function fetchEpochBenchmarkRows(): Promise<EpochBenchmarkRowsPayload> {
 }
 
 async function requestEpochBenchmarkRows(): Promise<EpochBenchmarkRowsPayload> {
-  try {
-    return await fetchSource(EPOCH_BENCHMARKS_CSV_URL, {}, DEFAULT_TIMEOUT_MS, async (response) => {
-      if (!response.ok) throw new Error(`Epoch benchmark scrape failed: ${response.status}`);
-      return {
-        fetched_at_epoch_seconds: nowEpochSeconds(),
-        data: parseCsvRecords(await response.text()),
-      };
-    });
-  } catch {
-    return { fetched_at_epoch_seconds: null, data: [] };
-  }
+  return fetchSource(EPOCH_BENCHMARKS_CSV_URL, {}, DEFAULT_TIMEOUT_MS, async (response) => {
+    if (!response.ok) throw new Error(`Epoch benchmark scrape failed: ${response.status}`);
+    return {
+      fetched_at_epoch_seconds: nowEpochSeconds(),
+      data: parseCsvRecords(await response.text()),
+    };
+  });
 }
 
 /** The major.minor version of a task version; patch revisions within it stay comparable. */

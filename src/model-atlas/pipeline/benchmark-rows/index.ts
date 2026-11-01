@@ -6,7 +6,6 @@ export {
   buildDefaultVariantBenchmarks,
   buildObservationBenchmarks,
 } from "./assignment";
-export { benchmarkRowsFromDb } from "./db-rows";
 export {
   type BenchmarkRowsByKey,
   type BenchmarkSourceRow,

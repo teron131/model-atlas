@@ -32,53 +32,47 @@ export const TERMINAL_BENCH_SCIENCE_VALS_URL =
 /** Fetch current Terminal-Bench-Science quality and resource evidence without retaining domain or task detail. */
 export async function getTerminalBenchScienceStats(
   sourceUrl = TERMINAL_BENCH_SCIENCE_DATA_URL,
-  timeoutMs = DEFAULT_TIMEOUT_MS,
 ): Promise<BenchmarkObservationPayload> {
-  try {
-    const [official, vals] = await Promise.all([
-      fetchSource(sourceUrl, {}, timeoutMs, async (response) => {
-        if (!response.ok) {
-          throw new Error(`Terminal-Bench-Science scrape failed: ${response.status}`);
-        }
-        const data = processTerminalBenchSciencePayload(await response.json(), sourceUrl);
-        if (data.length === 0) {
-          throw new Error("Terminal-Bench-Science scrape returned no 0.1 rows");
-        }
-        return { fetched_at_epoch_seconds: nowEpochSeconds(), data };
-      }),
-      getValsBenchmarkStats({
-        benchmarkKey: "terminal_bench_science",
-        canonicalTask: "overall",
-        sourceUrl: TERMINAL_BENCH_SCIENCE_VALS_URL,
-        version: "0.1",
-      }),
-    ]);
-    if (vals.data.length === 0)
-      throw new Error("Terminal-Bench Science Vals source returned no rows");
-    return {
-      fetched_at_epoch_seconds: official.fetched_at_epoch_seconds,
-      data: [
-        ...official.data,
-        ...vals.data.map((row) => ({
-          ...row,
-          base_model:
-            row.base_model === "deepseek-v4-pro-0813" ? "DeepSeek V4 Pro" : row.base_model,
-          metadata: {
-            ...row.metadata,
-            source_series: "vals",
-            observation_role: "component",
-            time_measure: "wall",
-          },
-        })),
-      ],
-    };
-  } catch {
-    return { fetched_at_epoch_seconds: null, data: [] };
-  }
+  const [official, vals] = await Promise.all([
+    fetchSource(sourceUrl, {}, DEFAULT_TIMEOUT_MS, async (response) => {
+      if (!response.ok) {
+        throw new Error(`Terminal-Bench-Science scrape failed: ${response.status}`);
+      }
+      const data = processTerminalBenchSciencePayload(await response.json(), sourceUrl);
+      if (data.length === 0) {
+        throw new Error("Terminal-Bench-Science scrape returned no 0.1 rows");
+      }
+      return { fetched_at_epoch_seconds: nowEpochSeconds(), data };
+    }),
+    getValsBenchmarkStats({
+      benchmarkKey: "terminal_bench_science",
+      canonicalTask: "overall",
+      sourceUrl: TERMINAL_BENCH_SCIENCE_VALS_URL,
+      version: "0.1",
+    }),
+  ]);
+  if (vals.data.length === 0)
+    throw new Error("Terminal-Bench Science Vals source returned no rows");
+  return {
+    fetched_at_epoch_seconds: official.fetched_at_epoch_seconds,
+    data: [
+      ...official.data,
+      ...vals.data.map((row) => ({
+        ...row,
+        base_model: row.base_model === "deepseek-v4-pro-0813" ? "DeepSeek V4 Pro" : row.base_model,
+        metadata: {
+          ...row.metadata,
+          source_series: "vals",
+          observation_role: "component",
+          time_measure: "wall",
+        },
+      })),
+    ],
+  };
 }
 
 /** Parse every displayed model-effort-harness row while retaining only scoring and audit evidence. */
-export function processTerminalBenchSciencePayload(
+function processTerminalBenchSciencePayload(
   value: unknown,
   sourceUrl = TERMINAL_BENCH_SCIENCE_DATA_URL,
 ): BenchmarkObservationRow[] {
@@ -139,8 +133,8 @@ function terminalBenchScienceObservation(
   const creator = asNonEmptyString(asRecord(metadata.model_org).label);
   const harness = asNonEmptyString(asRecord(metadata.agent_display).label);
   const rank = asFiniteNumber(row.rank);
-  const score = percentToUnitScore(String(metrics.accuracy ?? ""));
-  const scoreStandardError = percentToUnitScore(String(metrics.accuracy_stderr ?? ""));
+  const score = percentToUnitScore(metrics.accuracy);
+  const scoreStandardError = percentToUnitScore(metrics.accuracy_stderr);
   const taskRunCount = asFiniteNumber(metrics.tasks);
   const totalTokens = asFiniteNumber(metrics.total_tokens);
   const totalCostUsd = asFiniteNumber(metrics.total_cost_usd);

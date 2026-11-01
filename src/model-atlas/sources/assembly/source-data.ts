@@ -139,7 +139,7 @@ export type ModelAtlasSourceRows = BenchmarkObservationRows & {
   frontierCodeRows: ModelAtlasSourceData["frontierCode"]["rows"];
   riemannBenchRows: ModelAtlasSourceData["riemannBench"]["rows"];
   terminalBench4Rows: ModelAtlasSourceData["terminalBench4"]["rows"];
-  valsIndexTaskScoreRows: ModelAtlasSourceData["valsIndex"]["rows"];
+  valsIndexModelScoreRows: ModelAtlasSourceData["valsIndex"]["rows"];
   vendingBench2Rows: ModelAtlasSourceData["vendingBench2"]["rows"];
 };
 
@@ -212,8 +212,8 @@ export function buildSourceData(rows: ModelAtlasSourceRows): ModelAtlasSourceDat
       rowsByModelName: buildTerminalBench4Map(rows.terminalBench4Rows),
     },
     valsIndex: {
-      rows: rows.valsIndexTaskScoreRows,
-      rowsByModelName: buildValsIndexMap(rows.valsIndexTaskScoreRows),
+      rows: rows.valsIndexModelScoreRows,
+      rowsByModelName: buildValsIndexMap(rows.valsIndexModelScoreRows),
     },
     vendingBench2: {
       rows: rows.vendingBench2Rows,

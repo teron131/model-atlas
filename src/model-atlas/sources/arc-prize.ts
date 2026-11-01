@@ -36,10 +36,6 @@ type ArcPrizeLeaderboardOptions = {
   sourceUrl: string;
 };
 
-type ArcPrizeFetchOptions = ArcPrizeLeaderboardOptions & {
-  timeoutMs?: number;
-};
-
 type ParsedArcPrizeRow = {
   model_id: string;
   canonical_model_id: string;
@@ -62,30 +58,21 @@ type ArcPrizeAggregate = {
 
 /** Fetch current official ARC Prize evidence without mutating persisted data. */
 export async function getArcPrizeStats(
-  options: ArcPrizeFetchOptions,
+  options: ArcPrizeLeaderboardOptions,
 ): Promise<BenchmarkObservationPayload> {
-  try {
-    return await fetchSource(
-      options.sourceUrl,
-      {},
-      options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
-      async (response) => {
-        if (!response.ok) {
-          throw new Error(`ARC Prize ${options.benchmarkKey} scrape failed: ${response.status}`);
-        }
-        return {
-          fetched_at_epoch_seconds: nowEpochSeconds(),
-          data: processArcPrizeLeaderboardJson(await response.json(), options),
-        };
-      },
-    );
-  } catch {
-    return { fetched_at_epoch_seconds: null, data: [] };
-  }
+  return fetchSource(options.sourceUrl, {}, DEFAULT_TIMEOUT_MS, async (response) => {
+    if (!response.ok) {
+      throw new Error(`ARC Prize ${options.benchmarkKey} scrape failed: ${response.status}`);
+    }
+    return {
+      fetched_at_epoch_seconds: nowEpochSeconds(),
+      data: processArcPrizeLeaderboardJson(await response.json(), options),
+    };
+  });
 }
 
 /** Parse one official leaderboard and rank displayed model rows by score, retaining ties. */
-export function processArcPrizeLeaderboardJson(
+function processArcPrizeLeaderboardJson(
   payload: unknown,
   options: ArcPrizeLeaderboardOptions,
 ): BenchmarkObservationRow[] {

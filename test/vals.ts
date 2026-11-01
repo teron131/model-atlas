@@ -4,8 +4,10 @@ import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
 
 import { reportedIndexBenchmarkCount } from "../src/model-atlas/benchmarks/index-policy";
+import { BENCHMARK_OBSERVATION_BINDINGS } from "../src/model-atlas/benchmarks/registry";
 import { loadSchemaSql } from "../src/model-atlas/database/schema";
 import { schemaReconciliationPlan } from "../src/model-atlas/database/schema-reconciliation";
+import { benchmarkObservationSource } from "../src/model-atlas/sources/observations/load";
 import type { SourceSnapshots } from "../src/model-atlas/sources/types";
 import {
   getValsIndexStats,
@@ -197,7 +199,11 @@ try {
   assert.notEqual(fetchedIndex.fetched_at_epoch_seconds, null);
   assert.deepEqual(fetchedIndex.model_scores, index.model_scores);
   bodies.set(genericAsset, JSON.stringify({ metadata: {}, tasks: {} }));
-  assert.deepEqual(await getValsBenchmarkStats(definition), {
+  const programbench = BENCHMARK_OBSERVATION_BINDINGS.find(
+    (binding) => binding.benchmark === "programbench",
+  );
+  assert.ok(programbench);
+  assert.deepEqual(await benchmarkObservationSource(programbench).fetchRows(), {
     fetched_at_epoch_seconds: null,
     data: [],
   });

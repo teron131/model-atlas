@@ -16,15 +16,7 @@ const DEFAULT_API_URL = "https://agents-last-exam.org/api/demo/leaderboard";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 
-const DEFAULT_SCORE_SPLIT = "full/overall";
-
-type AgentsLastExamScraperOptions = {
-  url?: string;
-  apiUrl?: string;
-  timeoutMs?: number;
-  usePlaywrightFallback?: boolean;
-  scoreSplit?: string;
-};
+const SCORE_SPLIT = "full/overall";
 
 export type AgentsLastExamHarnessRow = {
   split: string;
@@ -80,53 +72,36 @@ type AgentsLastExamModelScorePayload = {
   data: AgentsLastExamModelScoreRow[];
 };
 
-export async function getAgentsLastExamHarnessStats(
-  options: AgentsLastExamScraperOptions = {},
-): Promise<AgentsLastExamHarnessPayload> {
-  const apiUrl = options.apiUrl ?? DEFAULT_API_URL;
-  const url = options.url ?? AGENTS_LAST_EXAM_LEADERBOARD_URL;
-  const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+export async function getAgentsLastExamHarnessStats(): Promise<AgentsLastExamHarnessPayload> {
   try {
-    const rows = await fetchApiRows(apiUrl, timeoutMs);
+    const rows = await fetchApiRows();
     return {
       fetched_at_epoch_seconds: nowEpochSeconds(),
       data: rows,
     };
   } catch (error) {
-    if (options.usePlaywrightFallback === false || error instanceof SourceQueueTimeoutError) {
+    if (error instanceof SourceQueueTimeoutError) {
       return {
         fetched_at_epoch_seconds: null,
         data: [],
       };
     }
-    try {
-      return {
-        fetched_at_epoch_seconds: nowEpochSeconds(),
-        data: await fetchPlaywrightRows(url, apiUrl, timeoutMs),
-      };
-    } catch {
-      return {
-        fetched_at_epoch_seconds: null,
-        data: [],
-      };
-    }
+    return {
+      fetched_at_epoch_seconds: nowEpochSeconds(),
+      data: await fetchPlaywrightRows(),
+    };
   }
 }
 
-export async function getAgentsLastExamStats(
-  options: AgentsLastExamScraperOptions = {},
-): Promise<AgentsLastExamModelScorePayload> {
-  const payload = await getAgentsLastExamHarnessStats(options);
+export async function getAgentsLastExamStats(): Promise<AgentsLastExamModelScorePayload> {
+  const payload = await getAgentsLastExamHarnessStats();
   return {
     fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
-    data: summarizeAgentsLastExamModelScores(
-      payload.data,
-      options.scoreSplit ?? DEFAULT_SCORE_SPLIT,
-    ),
+    data: summarizeAgentsLastExamModelScores(payload.data),
   };
 }
 
-export function processAgentsLastExamLeaderboardRows(rows: unknown[]): AgentsLastExamHarnessRow[] {
+function processAgentsLastExamLeaderboardRows(rows: unknown[]): AgentsLastExamHarnessRow[] {
   return rows
     .map((row) => asHarnessRow(row))
     .filter((row): row is AgentsLastExamHarnessRow => row != null);
@@ -139,14 +114,13 @@ export function agentsLastExamBenchmarkScore(
   return Math.max(row.median_score, row.mean_score);
 }
 
-/** Group harness/model rows into model-level score rows for one leaderboard split. */
+/** Group harness/model rows into model-level score rows for the scored leaderboard split. */
 export function summarizeAgentsLastExamModelScores(
   rows: AgentsLastExamHarnessRow[],
-  scoreSplit = DEFAULT_SCORE_SPLIT,
 ): AgentsLastExamModelScoreRow[] {
   const rowsByModel = new Map<string, AgentsLastExamHarnessRow[]>();
   for (const row of rows) {
-    if (row.split !== scoreSplit) {
+    if (row.split !== SCORE_SPLIT) {
       continue;
     }
     const modelRows = rowsByModel.get(row.model) ?? [];
@@ -168,7 +142,7 @@ export function summarizeAgentsLastExamModelScores(
       const costsPerTask = modelRows.map((row) => perTask(row.total_cost_usd, row));
       return {
         model,
-        split: scoreSplit,
+        split: SCORE_SPLIT,
         median_score: medianOfFinite(scores),
         mean_score: meanOfFinite(scores),
         median_accuracy: medianOfFinite(accuracies),
@@ -255,11 +229,8 @@ export function findAgentsLastExamModelScoreRow(
   return null;
 }
 
-async function fetchApiRows(
-  apiUrl: string,
-  timeoutMs: number,
-): Promise<AgentsLastExamHarnessRow[]> {
-  return await fetchSource(apiUrl, {}, timeoutMs, async (response) => {
+async function fetchApiRows(): Promise<AgentsLastExamHarnessRow[]> {
+  return await fetchSource(DEFAULT_API_URL, {}, DEFAULT_TIMEOUT_MS, async (response) => {
     if (!response.ok) {
       throw new Error(`Agents' Last Exam scrape failed: ${response.status}`);
     }
@@ -269,21 +240,20 @@ async function fetchApiRows(
 }
 
 /** Browser fallback keeps the source usable when the direct JSON endpoint blocks plain fetches. */
-async function fetchPlaywrightRows(
-  url: string,
-  apiUrl: string,
-  timeoutMs: number,
-): Promise<AgentsLastExamHarnessRow[]> {
-  return scheduleSourceRequest(url, async () => {
+async function fetchPlaywrightRows(): Promise<AgentsLastExamHarnessRow[]> {
+  return scheduleSourceRequest(AGENTS_LAST_EXAM_LEADERBOARD_URL, async () => {
     const { chromium } = await import("playwright");
     const browser = await chromium.launch({ headless: true });
     try {
       const page = await browser.newPage();
       const responsePromise = page.waitForResponse(
-        (response) => response.url() === apiUrl && response.ok(),
-        { timeout: timeoutMs },
+        (response) => response.url() === DEFAULT_API_URL && response.ok(),
+        { timeout: DEFAULT_TIMEOUT_MS },
       );
-      await page.goto(url, { waitUntil: "domcontentloaded", timeout: timeoutMs });
+      await page.goto(AGENTS_LAST_EXAM_LEADERBOARD_URL, {
+        waitUntil: "domcontentloaded",
+        timeout: DEFAULT_TIMEOUT_MS,
+      });
       const response = await responsePromise;
       const payload = asRecord(await response.json());
       return Array.isArray(payload.rows) ? processAgentsLastExamLeaderboardRows(payload.rows) : [];

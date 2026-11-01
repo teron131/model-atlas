@@ -18,6 +18,7 @@ import {
   parseSnapshotManifest,
   publicSnapshotBucket,
   SNAPSHOT_MANIFEST_OBJECT,
+  type SnapshotData,
   type SnapshotManifest,
   snapshotObject,
   snapshotUrl,
@@ -41,7 +42,7 @@ type ArtifactReadState = {
 
 const globalCaches = globalThis as typeof globalThis & {
   __modelAtlasArtifactReadState?: ArtifactReadState;
-  __modelAtlasLocalReadState?: { fingerprint: string; payload: ModelAtlasPayload };
+  __modelAtlasLocalSnapshot?: { fingerprint: string; snapshot: SnapshotData };
   __modelAtlasCommunityOverlay?: {
     base: ModelAtlasPayload;
     rankedAt: string | null;
@@ -55,8 +56,9 @@ export async function readDisplayPayload(): Promise<ModelAtlasPayload> {
   let payload: ModelAtlasPayload;
   let rankings: CommunityRanking[];
   if (process.env.MODEL_ATLAS_LOCAL_DATABASE === "1") {
-    payload = await readPublishedPayload();
-    rankings = payload.community_rankings ?? [];
+    const snapshot = await readLocalSnapshot();
+    payload = snapshot.payload;
+    rankings = snapshot.communityRankings;
   } else {
     const state = artifactReadState();
     const manifest = await readManifest(state);
@@ -69,25 +71,14 @@ export async function readDisplayPayload(): Promise<ModelAtlasPayload> {
   const rankedAt = ranking?.ranked_at ?? null;
   const cached = globalCaches.__modelAtlasCommunityOverlay;
   if (cached?.base === payload && cached.rankedAt === rankedAt) return cached.value;
-  const { community_rankings, ...benchmarkPayload } = payload;
-  const value = applyCommunityIndexes(community_rankings ? benchmarkPayload : payload, ranking);
+  const value = applyCommunityIndexes(payload, ranking);
   globalCaches.__modelAtlasCommunityOverlay = { base: payload, rankedAt, value };
   return value;
 }
 
 /** The unadjusted payload: the SQLite checkpoint under an explicit local override, otherwise the published artifact. */
 export async function readPublishedPayload(): Promise<ModelAtlasPayload> {
-  if (process.env.MODEL_ATLAS_LOCAL_DATABASE === "1") {
-    const { readDatabasePayload } = await import("./sqlite-payload");
-    const { DEFAULT_DATABASE_PATH } = await import("./schema");
-    const path = resolve(DEFAULT_DATABASE_PATH);
-    const fingerprint = localCheckpointFingerprint(path);
-    const cached = globalCaches.__modelAtlasLocalReadState;
-    if (cached?.fingerprint === fingerprint) return cached.payload;
-    const payload = withCurrentMetadata(readDatabasePayload(path));
-    globalCaches.__modelAtlasLocalReadState = { fingerprint, payload };
-    return payload;
-  }
+  if (process.env.MODEL_ATLAS_LOCAL_DATABASE === "1") return (await readLocalSnapshot()).payload;
   const state = artifactReadState();
   const manifest = await readManifest(state);
   return readBenchmarkPayload(state, manifest);
@@ -120,7 +111,7 @@ export async function readCommunityRanking(
   if (rankedAt !== "current" && !isValidRankedAt(rankedAt)) return null;
   let records: CommunityRanking[];
   if (process.env.MODEL_ATLAS_LOCAL_DATABASE === "1") {
-    records = (await readPublishedPayload()).community_rankings ?? [];
+    records = (await readLocalSnapshot()).communityRankings;
   } else {
     const state = artifactReadState();
     // Submission read-back must observe a just-published version without waiting for the dashboard cache.
@@ -142,15 +133,27 @@ function readRankingArtifact(state: ArtifactReadState, manifest: SnapshotManifes
 
 /** Only the historical view pays for the index artifact; its cache is independent of dashboard reads. */
 export async function readIntelligenceIndex(): Promise<HistoricalDataset | null> {
-  if (process.env.MODEL_ATLAS_LOCAL_DATABASE === "1") {
-    return (await readPublishedPayload()).timeline ?? null;
-  }
+  if (process.env.MODEL_ATLAS_LOCAL_DATABASE === "1") return (await readLocalSnapshot()).timeline;
   const state = artifactReadState();
   const manifest = await readManifest(state);
   if (!manifest.intelligence_index_sha256) return null;
   return readArtifact(state, manifest, "intelligence-index", state.index, (bytes) =>
     decodeIntelligenceIndex(bytes, manifest.intelligence_index_sha256!),
   );
+}
+
+/** The SQLite checkpoint under the explicit local override, reread only when the file changes. */
+async function readLocalSnapshot(): Promise<SnapshotData> {
+  const { readDatabaseSnapshot } = await import("./sqlite-payload");
+  const { DEFAULT_DATABASE_PATH } = await import("./schema");
+  const path = resolve(DEFAULT_DATABASE_PATH);
+  const fingerprint = localCheckpointFingerprint(path);
+  const cached = globalCaches.__modelAtlasLocalSnapshot;
+  if (cached?.fingerprint === fingerprint) return cached.snapshot;
+  const stored = readDatabaseSnapshot(path);
+  const snapshot = { ...stored, payload: withCurrentMetadata(stored.payload) };
+  globalCaches.__modelAtlasLocalSnapshot = { fingerprint, snapshot };
+  return snapshot;
 }
 
 /** Invalidate on atomic replacement, in-place writes, and committed WAL changes while keeping tooling reads uncached. */

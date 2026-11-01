@@ -230,9 +230,7 @@ export function persistedSourceRowStates(db: DatabaseSync): SourceRowState[] {
   );
 }
 
-export function sourceRowStatesFromRows(
-  rows: readonly Record<string, unknown>[],
-): SourceRowState[] {
+function sourceRowStatesFromRows(rows: readonly Record<string, unknown>[]): SourceRowState[] {
   return rows.flatMap((stateRow) => {
     const state = asRecord(stateRow);
     const source =

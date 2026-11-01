@@ -4,7 +4,7 @@
 
 import type { RefObject } from "react";
 
-import { ScreenshotIcon } from "../shared/DashboardIcons";
+import { ScreenshotIcon } from "../shared/DashboardMarks";
 import { captureFileToken } from "./png";
 import { type CaptureState, usePngCapture } from "./use-png";
 

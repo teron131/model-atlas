@@ -2,8 +2,12 @@
 
 import { createHash } from "node:crypto";
 
-import { indexPolicy, reportedIndexBenchmarkCount } from "../benchmarks/index-policy";
-import { BENCHMARK_CATALOG, INDEX_BENCHMARK_KEYS } from "../benchmarks/registry";
+import {
+  INDEX_BENCHMARK_KEYS,
+  indexPolicy,
+  reportedIndexBenchmarkCount,
+} from "../benchmarks/index-policy";
+import { BENCHMARK_CATALOG } from "../benchmarks/registry";
 import { canonicalReasoningEffort } from "../identity/normalization";
 import { publicOpenRouterModelId } from "../identity/openrouter";
 import { providerIdentityKey } from "../identity/provider";
@@ -14,14 +18,18 @@ import { prepareTimelineBenchmarkEvidence } from "./benchmark-evidence";
 import { calibrateTimeline } from "./calibration";
 import { historicalNameKey, historicalSourceModel } from "./model-identity";
 import { historicalReleaseId, prepareTimelineRelease } from "./scale";
-import type {
-  HistoricalBenchmark,
-  HistoricalCalibration,
-  HistoricalDataset,
-  HistoricalModel,
-  HistoricalObservation,
-  TimelineAnchors,
-  TimelineDimension,
+import {
+  catalogPositionId,
+  type HistoricalBenchmark,
+  type HistoricalCalibration,
+  type HistoricalDataset,
+  type HistoricalModel,
+  type HistoricalObservation,
+  isCatalogBenchmark,
+  isReferenceBenchmark,
+  type TimelineAnchors,
+  timelineCatalogKey,
+  type TimelineDimension,
 } from "./schemas";
 
 type ModelInput = Pick<
@@ -48,8 +56,12 @@ export type CapabilityState = {
 
 /** Catalog identity and exact reasoning effort own a published position; display names and provider routes never supply another configuration's score. */
 export function capabilityModelId(model: Pick<ModelInput, "id" | "reasoning_effort">): string {
-  if (!model.id) throw new Error("A capability position requires a catalog model ID.");
-  return `atlas-model:${publicOpenRouterModelId(model.id)}::${canonicalReasoningEffort(model.reasoning_effort) ?? "unknown"}`;
+  const catalogId = publicOpenRouterModelId(model.id);
+  if (!catalogId) throw new Error("A capability position requires a catalog model ID.");
+  return catalogPositionId(
+    catalogId,
+    canonicalReasoningEffort(model.reasoning_effort) ?? "unknown",
+  );
 }
 
 /** Retain supported archived evidence, discard superseded current-only versions, and never replace a published model/dimension position. */
@@ -62,7 +74,7 @@ export function advanceCapabilityState(
   const evidence = currentEvidence(models, observedAt, benchmarkVersions);
   previous = retainCurrentVersions(previous, evidence.benchmarks);
   const externalIds = previous.dataset.benchmarks
-    .filter((benchmark) => !benchmark.primary && !benchmark.key.startsWith("model_atlas_"))
+    .filter((benchmark) => !benchmark.primary && !isReferenceBenchmark(benchmark))
     .map((benchmark) => benchmark.id);
   const dataset = prepareTimelineRelease(
     {
@@ -96,15 +108,13 @@ function retainCurrentVersions(
   state: CapabilityState,
   observed: readonly HistoricalBenchmark[],
 ): CapabilityState {
-  const catalogKeys = new Set(
-    Object.keys(BENCHMARK_CATALOG).map((key) => `atlas_benchmark_${key}`),
-  );
+  const catalogKeys = new Set(Object.keys(BENCHMARK_CATALOG).map(timelineCatalogKey));
   const current = new Map(observed.map((benchmark) => [benchmark.key, benchmark.id]));
   const removed = new Set(
     [...state.dataset.benchmarks, ...(state.dataset.scale?.benchmarks ?? [])]
       .filter(
         (benchmark) =>
-          benchmark.key.startsWith("atlas_benchmark_") &&
+          isCatalogBenchmark(benchmark) &&
           (!catalogKeys.has(benchmark.key) ||
             (current.has(benchmark.key) && current.get(benchmark.key) !== benchmark.id)),
       )
@@ -221,22 +231,6 @@ function retainRoutePositions(previous: CapabilityState, models: HistoricalModel
   return positions;
 }
 
-/** Convert the existing fixed coordinate to published units; there is no population rescaling or upper bound. */
-export function capabilityIndex(
-  value: number | null | undefined,
-  dimension: TimelineDimension,
-  anchors: TimelineAnchors,
-): number | null {
-  if (value == null || !Number.isFinite(value)) return null;
-  const low = anchors.frozenReferences!.find((row) => row.modelId === anchors.lowModelId)!.values[
-    dimension
-  ];
-  const high = anchors.frozenReferences!.find((row) => row.modelId === anchors.highModelId)!.values[
-    dimension
-  ];
-  return anchors.lowScore + ((anchors.highScore - anchors.lowScore) * (value - low)) / (high - low);
-}
-
 /** Publish the separate Intelligence Index through Timeline; leaderboard relative scores never read these saved positions. */
 export function capabilityDataset(state: CapabilityState): HistoricalDataset {
   if (state.dataset.prepared) return state.dataset;
@@ -329,7 +323,7 @@ function currentEvidence(
   const catalog = Object.entries(BENCHMARK_CATALOG).map(([key, definition]) => {
     const benchmark: HistoricalBenchmark = {
       id: benchmarkVersionId(key, benchmarkVersions[key]),
-      key: `atlas_benchmark_${key}`,
+      key: timelineCatalogKey(key),
       label: definition.presentation.label,
       kind: (INDEX_BENCHMARK_KEYS as readonly string[]).includes(key) ? "index" : "task",
       scale: definition.presentation.column.format === "percent" ? "probability" : "linear",

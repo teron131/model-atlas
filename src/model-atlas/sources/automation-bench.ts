@@ -20,39 +20,21 @@ const LEADERBOARD_ROW_PATTERN =
 
 const VERSION_PATTERN = /\b\w+=`(\d+\.\d+\.\d+)`,\w+=\[\[/;
 
-type AutomationBenchOptions = {
-  sourceUrl: string;
-  timeoutMs?: number;
-};
-
 /** Fetch current official Zapier results without treating partial-credit or fallback systems as model scores. */
 export async function getAutomationBenchStats(
-  options: AutomationBenchOptions,
+  sourceUrl: string,
 ): Promise<BenchmarkObservationPayload> {
-  try {
-    const pageHtml = await fetchSource(
-      options.sourceUrl,
-      {},
-      options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
-      async (response) => {
-        if (!response.ok)
-          throw new Error(`Zapier AutomationBench scrape failed: ${response.status}`);
-        return response.text();
-      },
-    );
-    const moduleSource = await fetchLeaderboardModule(
-      pageHtml,
-      options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
-    );
-    if (moduleSource == null) return { fetched_at_epoch_seconds: null, data: [] };
-    const data = processAutomationBenchModule(moduleSource, options.sourceUrl);
-    return {
-      fetched_at_epoch_seconds: data.length > 0 ? nowEpochSeconds() : null,
-      data,
-    };
-  } catch {
-    return { fetched_at_epoch_seconds: null, data: [] };
-  }
+  const pageHtml = await fetchSource(sourceUrl, {}, DEFAULT_TIMEOUT_MS, async (response) => {
+    if (!response.ok) throw new Error(`Zapier AutomationBench scrape failed: ${response.status}`);
+    return response.text();
+  });
+  const moduleSource = await fetchLeaderboardModule(pageHtml);
+  if (moduleSource == null) return { fetched_at_epoch_seconds: null, data: [] };
+  const data = processAutomationBenchModule(moduleSource, sourceUrl);
+  return {
+    fetched_at_epoch_seconds: data.length > 0 ? nowEpochSeconds() : null,
+    data,
+  };
 }
 
 /** Parse the complete versioned leaderboard array and exclude rows that combine multiple models. */
@@ -105,10 +87,10 @@ export function automationBenchCacheMatches(rows: readonly BenchmarkObservationR
   return rows.every((row) => row.metadata.metric === "task_completed_correctly");
 }
 
-async function fetchLeaderboardModule(pageHtml: string, timeoutMs: number): Promise<string | null> {
+async function fetchLeaderboardModule(pageHtml: string): Promise<string | null> {
   const modules = await Promise.all(
     modulePreloadUrls(pageHtml).map((url) =>
-      fetchSource(url, {}, timeoutMs, async (response) =>
+      fetchSource(url, {}, DEFAULT_TIMEOUT_MS, async (response) =>
         response.ok ? response.text() : "",
       ).catch(() => ""),
     ),

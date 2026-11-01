@@ -10,14 +10,9 @@ import { nowEpochSeconds } from "../../runtime";
 import { fetchSource } from "../request-scheduler";
 import { surgeLeaderboardScoreRows } from "./results";
 
-export const RIEMANN_BENCH_LEADERBOARD_URL = "https://surgehq.ai/leaderboards/riemann-bench";
+const RIEMANN_BENCH_LEADERBOARD_URL = "https://surgehq.ai/leaderboards/riemann-bench";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
-
-type RiemannBenchScraperOptions = {
-  url?: string;
-  timeoutMs?: number;
-};
 
 export type RiemannBenchModelScoreRow = {
   provider: string | null;
@@ -34,26 +29,27 @@ type RiemannBenchModelScorePayload = {
   data: RiemannBenchModelScoreRow[];
 };
 
-export async function getRiemannBenchStats(
-  options: RiemannBenchScraperOptions = {},
-): Promise<RiemannBenchModelScorePayload> {
-  const sourceUrl = options.url ?? RIEMANN_BENCH_LEADERBOARD_URL;
+export async function getRiemannBenchStats(): Promise<RiemannBenchModelScorePayload> {
   try {
-    const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-    return await fetchSource(sourceUrl, {}, timeoutMs, async (response) => {
-      if (!response.ok) {
-        throw new Error(`Riemann-bench scrape failed: ${response.status}`);
-      }
-      return {
-        fetched_at_epoch_seconds: nowEpochSeconds(),
-        source_url: sourceUrl,
-        data: surgeLeaderboardScoreRows(await response.text()),
-      };
-    });
+    return await fetchSource(
+      RIEMANN_BENCH_LEADERBOARD_URL,
+      {},
+      DEFAULT_TIMEOUT_MS,
+      async (response) => {
+        if (!response.ok) {
+          throw new Error(`Riemann-bench scrape failed: ${response.status}`);
+        }
+        return {
+          fetched_at_epoch_seconds: nowEpochSeconds(),
+          source_url: RIEMANN_BENCH_LEADERBOARD_URL,
+          data: surgeLeaderboardScoreRows(await response.text()),
+        };
+      },
+    );
   } catch {
     return {
       fetched_at_epoch_seconds: null,
-      source_url: sourceUrl,
+      source_url: RIEMANN_BENCH_LEADERBOARD_URL,
       data: [],
     };
   }

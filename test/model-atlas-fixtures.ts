@@ -2,13 +2,12 @@
 
 import { createHash } from "node:crypto";
 
-import { indexPolicy } from "../src/model-atlas/benchmarks/index-policy";
+import { INDEX_BENCHMARK_KEYS, indexPolicy } from "../src/model-atlas/benchmarks/index-policy";
 import type { BenchmarkObservationsByKey } from "../src/model-atlas/benchmarks/observation";
 import {
   BENCHMARK_CATALOG,
   BENCHMARK_OBSERVATION_BINDINGS,
   type BenchmarkObservationRowsKey,
-  INDEX_BENCHMARK_KEYS,
 } from "../src/model-atlas/benchmarks/registry";
 import type {
   DatabaseStatement,

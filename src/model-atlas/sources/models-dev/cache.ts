@@ -14,7 +14,7 @@ import {
 } from "../cache/rows";
 import type { ModelsDevModelRecord, ModelsDevPayload } from "./catalog";
 
-export function modelsDevRawCacheFromRows(cacheRows: CacheDbRow[]): {
+function modelsDevRawCacheFromRows(cacheRows: CacheDbRow[]): {
   payload: ModelsDevPayload;
   fetchedAt: number | null;
   statusCode: number | null;
