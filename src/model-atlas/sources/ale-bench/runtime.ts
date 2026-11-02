@@ -100,6 +100,7 @@ async function aleBenchSnapshot(
     rowKey: (row) => sourceRowKey(row.model, "epoch" in row ? "epoch" : row.num_self_refine),
     rowLabel: (row) =>
       "epoch" in row ? `${row.model} (Epoch)` : `${row.model} x${row.num_self_refine}`,
+    seriesOf: (row) => ("epoch" in row ? "epoch" : "sakana"),
   });
   return {
     aleBenchConfigurationRows: snapshot.rows,

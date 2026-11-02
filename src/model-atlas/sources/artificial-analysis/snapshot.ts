@@ -128,6 +128,7 @@ export async function artificialAnalysisBenchmarkResourceSnapshot(
     rowLabel: (row) => `${row.benchmark_key}: ${row.model}`,
     mergeRow: (_cachedRow, fetchedRow) => fetchedRow,
     versions: { versionOf: (row) => row.benchmark_version, seriesOf: (row) => row.benchmark_key },
+    seriesOf: (row) => row.benchmark_key,
   });
   const activeRows = snapshot.rows.filter((row) =>
     ACTIVE_BENCHMARK_RESOURCE_PAGE_URLS.has(row.benchmark_key),

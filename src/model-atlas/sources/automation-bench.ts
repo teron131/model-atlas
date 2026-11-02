@@ -46,7 +46,8 @@ export function processAutomationBenchModule(
   const rows: BenchmarkObservationRow[] = [];
   for (const match of moduleSource.matchAll(LEADERBOARD_ROW_PATTERN)) {
     const rank = Number(match[1]);
-    const model = match[2]?.trim() ?? "";
+    // The page strips trailing footnote markers from names, such as § on preliminary results.
+    const model = match[2]?.trim().replace(/[*†‡§]+$/, "") ?? "";
     const canonicalValue = percentToUnitScore(match[3]);
     const costLabel = match[4] ?? "";
     const { cost, annotation } = parseCostLabel(costLabel);

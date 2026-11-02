@@ -18,10 +18,13 @@ import type { ModelAtlasSourceRows } from "../assembly/source-data";
 import { automationBenchCacheMatches, getAutomationBenchStats } from "../automation-bench";
 import { caisCacheMatches, getCaisDashboardStats } from "../cais/results";
 import { getEpochCapabilitiesIndexStats } from "../epoch/capabilities-index";
-import { epochBenchmarkCacheMatches, getEpochBenchmarkStats } from "../epoch/results";
+import {
+  epochBenchmarkCacheMatches,
+  getEpochBenchmarkStats,
+  getEpochExternalBenchmarkStats,
+} from "../epoch/results";
 import { getMercorStats, mercorCacheMatches } from "../mercor/results";
-import { getPerceptionBenchStats } from "../perception-bench";
-import { fetchRowsOrNone } from "../snapshots/row-snapshot";
+import { fetchRowsOrNone, mergeBenchmarkObservationRow } from "../snapshots/row-snapshot";
 import {
   getSurgeIntelligenceIndexStats,
   getSurgeLeaderboardStats,
@@ -119,11 +122,16 @@ function loaderSource(binding: BenchmarkObservationBinding): ObservationSource {
             benchmarkKey: binding.benchmark,
             sourceUrl: loader.sourceUrl,
           }),
+        // Rows saved before the page version was recorded cannot be told apart from an earlier version.
+        acceptsCache: (rows) =>
+          rows.every((row) => typeof row.metadata.benchmark_version === "string"),
       };
     case "automation_bench":
       return {
         fetchRows: () => getAutomationBenchStats(loader.sourceUrl),
         acceptsCache: automationBenchCacheMatches,
+        // Zapier re-scores rows in place, such as preliminary results it marks for re-evaluation.
+        mergeRow: (_cached, fetched) => fetched,
       };
     case "cais_dashboard":
       return {
@@ -135,6 +143,12 @@ function loaderSource(binding: BenchmarkObservationBinding): ObservationSource {
         fetchRows: () => getEpochCapabilitiesIndexStats(loader.sourceUrl),
         acceptsCache: (rows) => rows.every((row) => Object.hasOwn(row.metadata, "benchmark_count")),
       };
+    case "epoch_external":
+      return {
+        fetchRows: () => getEpochExternalBenchmarkStats(binding.benchmark, loader.sourceUrl),
+        // Epoch republishes the source's current scores, which the source revises in place.
+        mergeRow: (_cached, fetched) => fetched,
+      };
     case "epoch_runs":
       return {
         fetchRows: () => getEpochBenchmarkStats(binding.benchmark, loader.task, loader.eligibility),
@@ -145,8 +159,6 @@ function loaderSource(binding: BenchmarkObservationBinding): ObservationSource {
         fetchRows: () => getMercorStats(binding.benchmark, loader),
         acceptsCache: (rows) => mercorCacheMatches(rows, loader),
       };
-    case "perception_bench":
-      return { fetchRows: () => getPerceptionBenchStats(loader.sourceUrl) };
     case "surge": {
       const { version } = loader;
       const fetchRows =
@@ -169,6 +181,11 @@ function loaderSource(binding: BenchmarkObservationBinding): ObservationSource {
         sourceUrls: [loader.sourceUrl, TERMINAL_BENCH_SCIENCE_VALS_URL],
         fetchRows: () => getTerminalBenchScienceStats(loader.sourceUrl),
         acceptsCache: terminalBenchScienceCacheMatches,
+        // Vals revises its run for each model and effort in place, as on its other benchmarks.
+        mergeRow: (cached, fetched) =>
+          fetched.source_url === TERMINAL_BENCH_SCIENCE_VALS_URL
+            ? fetched
+            : mergeBenchmarkObservationRow(cached, fetched),
       };
     case "vals":
       return {

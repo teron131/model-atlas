@@ -270,6 +270,45 @@ assert.equal(
   "Existing quarantine timestamps should survive source outages",
 );
 
+const dayLater = 1_800_000_123 + 24 * 60 * 60;
+const withdrawnSnapshot = snapshotRowsWithStates({
+  source: "artificial_analysis",
+  cachedRows,
+  fetchedRows,
+  fetchedAtEpochSeconds: dayLater,
+  options: {},
+  rowKey,
+  rowLabel: (row) => row.name,
+  previousMissingSince: new Map([["anthropic/claude-opus-4-6", 1_800_000_123]]),
+  nowEpochSeconds: dayLater,
+});
+assert.deepEqual(
+  withdrawnSnapshot.rows.map((row) => row.model_id),
+  ["anthropic/claude-fable-5", "openai/gpt-5-5"],
+  "A row still missing from a working fetch a day later is withdrawn",
+);
+assert.equal(
+  withdrawnSnapshot.states.some((state) => state.row_key === "anthropic/claude-opus-4-6"),
+  false,
+);
+const unfetchedSeriesSnapshot = snapshotRowsWithStates({
+  source: "artificial_analysis",
+  cachedRows,
+  fetchedRows,
+  fetchedAtEpochSeconds: dayLater,
+  options: {},
+  rowKey,
+  rowLabel: (row) => row.name,
+  seriesOf: (row) => (row.model_id === "anthropic/claude-opus-4-6" ? "mirror" : "primary"),
+  previousMissingSince: new Map([["anthropic/claude-opus-4-6", 1_800_000_123]]),
+  nowEpochSeconds: dayLater,
+});
+assert.equal(
+  unfetchedSeriesSnapshot.rows.length,
+  3,
+  "A series the refresh returned nothing for is not evidence of withdrawal",
+);
+
 const effortResourceRow = (
   reasoningEffort: string,
   secondsPerTask: number,

@@ -1,5 +1,6 @@
 # Model Atlas Documentation Style
 
+- The docs directory is not a fucking logbook! Strictly follow all the existing style and rules below!
 - Keep only UI documentation and its assets in `docs/`, except this file. No temporary docs, plans, reports, or implementation notes; put findings in the conversation.
 - These rules cover prose, captions, alt text, and illustration text.
 - Write directly and neutrally, focusing on the method rather than its authors: never use “we,” “our,” or “us.” Introduce symbols in the surrounding explanation, never with “Let …”.

@@ -161,20 +161,20 @@ assert.equal(missingCostPoint?.outputTokens, null);
 const sourceLabelledModel = {
   ...minimalModelAtlasModel({ id: "test/source-labelled", name: "Source Labelled" }),
   reasoning_effort: "max",
-  benchmarks: { arc_agi_3: 0.8 },
+  benchmarks: { terminal_bench_4: 0.8 },
   task_metrics: {
-    arc_agi_3__source_a: { quality: 0.6, cost: 10 },
-    arc_agi_3__source_b: { quality: 0.9, cost: 20 },
+    terminal_bench_4__source_a: { quality: 0.6, cost: 10 },
+    terminal_bench_4__source_b: { quality: 0.9, cost: 20 },
   },
 };
 const sourceLabelledRows = frontierBenchmarkRows(
   [sourceLabelledModel],
   STAGE_CONFIG.scoring.benchmarkPortfolio,
-).filter((row) => row.baseBenchmarkKey === "arc_agi_3");
+).filter((row) => row.baseBenchmarkKey === "terminal_bench_4");
 assert.deepEqual(
   sourceLabelledRows.map((row) => [row.benchmarkLabel, row.score, row.cost, row.weight]),
   [
-    ["ARC-AGI-3 — Provider Adapter", 90, 20, 0.5],
-    ["ARC-AGI-3 — Standard", 60, 10, 0.5],
+    ["Terminal-Bench 4.0 — Artificial Analysis", 90, 20, 0.5],
+    ["Terminal-Bench 4.0 — Official", 60, 10, 0.5],
   ],
 );

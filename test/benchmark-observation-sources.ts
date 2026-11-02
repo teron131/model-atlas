@@ -29,6 +29,7 @@ import {
 } from "../src/model-atlas/sources/snapshots/policy";
 import {
   benchmarkObservationRowKey,
+  benchmarkObservationRowKeyFor,
   mergeBenchmarkObservationRow,
 } from "../src/model-atlas/sources/snapshots/row-snapshot";
 import {
@@ -36,6 +37,7 @@ import {
   processSurgeIntelligenceIndexPageHtml,
   withSurgeVersion,
 } from "../src/model-atlas/sources/surge/results";
+import { TERMINAL_BENCH_SCIENCE_VALS_URL } from "../src/model-atlas/sources/terminal-bench-science";
 import type { SourceSnapshots } from "../src/model-atlas/sources/types";
 import { processValsBenchmarkView } from "../src/model-atlas/sources/vals/results";
 import { processValsRsiModule, valsRsiCacheMatches } from "../src/model-atlas/sources/vals/rsi";
@@ -105,8 +107,6 @@ assert.equal(epochFrontierMathLookup.get("gpt-5-6-sol-pro")?.canonical_value, 0.
 
 const selectedEpochRuns = parseCsvRecords(
   "id_runs,task,started_at,Status,task version,id_model_version,Display name,Unique display name,Organization,mean_score,original_task_name\n" +
-    "mirrorcode-ml-2l-fable,MirrorCode,2026-08-20,Success,1.0.0,claude-fable-5,Claude Fable 5,Claude Fable 5 (max),Anthropic,0.64,MirrorCode\n" +
-    "mirrorcode-paper-sol,MirrorCode,2026-08-20,Success,1.0.0,gpt-5-6-sol,GPT-5.6 Sol,GPT-5.6 Sol (max),OpenAI,0.8,MirrorCode\n" +
     "simple-current,SimpleQA Verified,2026-08-27,Success,1.2.0,gemini-3-1-pro,Gemini 3.1 Pro,Gemini 3.1 Pro,Google,0.71,SimpleQA Verified (anti-abstention)\n" +
     "simple-old,SimpleQA Verified,2026-08-20,Success,1.1.0,gpt-5-6-sol,GPT-5.6 Sol,GPT-5.6 Sol,OpenAI,0.9,SimpleQA Verified\n" +
     "simple-contaminated,SimpleQA Verified,2026-08-27,Success,1.2.0,qwen3-max-2025-09-23,Qwen3 Max,Qwen3 Max,Alibaba,0.99,SimpleQA Verified (anti-abstention)\n" +
@@ -118,12 +118,6 @@ const simpleQaEligibility = {
   originalTaskName: "SimpleQA Verified (anti-abstention)",
   excludedModelIds: ["qwen3-max-2025-09-23"],
 } as const;
-assert.deepEqual(
-  epochBenchmarkObservationRows(selectedEpochRuns, "mirrorcode", "MirrorCode", {
-    runIdPrefix: "mirrorcode-ml-2l-",
-  }).map((row) => row.model_id),
-  ["claude-fable-5"],
-);
 assert.deepEqual(
   epochBenchmarkObservationRows(
     selectedEpochRuns,
@@ -155,7 +149,7 @@ assert.deepEqual(
 );
 
 const automationBenchRows = processAutomationBenchModule(
-  "const v=`1.0.6`,B=[[1,`Claude Fable 5.1 with Opus 5 fallback`,`56.77%`,`$0.18*`],[2,`Gemini 3.7 Flash (High)`,`30.44%`,`$0.07`],[3,`GPT-5.6 Sol (Max)`,`28.77%`,`$0.31†`]];const metric=`task_completed_correctly`;",
+  "const v=`1.0.6`,B=[[1,`Claude Fable 5.1 with Opus 5 fallback`,`56.77%`,`$0.18*`],[2,`Gemini 3.7 Flash (High)`,`30.44%`,`$0.07`],[3,`GPT-5.6 Sol (Max)`,`28.77%`,`$0.31†`],[4,`Claude Haiku 5.5 (default fallbacks, Max)§`,`12.02%`,`$0.10`],[5,`Claude Fable 5.0 (Max)`,`11.20%`,`$0.40`]];const metric=`task_completed_correctly`;",
   "https://zapier.com/benchmarks",
 );
 assert.deepEqual(
@@ -163,7 +157,20 @@ assert.deepEqual(
   [
     { model: "Gemini 3.7 Flash (High)", canonical_value: 0.3044, cost: 0.07 },
     { model: "GPT-5.6 Sol (Max)", canonical_value: 0.2877, cost: 0.31 },
+    { model: "Claude Haiku 5.5 (default fallbacks, Max)", canonical_value: 0.1202, cost: 0.1 },
+    { model: "Claude Fable 5.0 (Max)", canonical_value: 0.112, cost: 0.4 },
   ],
+);
+const automationBenchLookup = buildBenchmarkObservationLookup(automationBenchRows);
+assert.equal(
+  findBenchmarkObservation(["Claude Haiku 5.5"], "max", automationBenchLookup)?.canonical_value,
+  0.1202,
+  "A footnote marker leaves the model and effort parseable",
+);
+assert.equal(
+  findBenchmarkObservation(["Claude Fable 5"], "max", automationBenchLookup)?.canonical_value,
+  0.112,
+  "A zero minor version answers to the bare major release",
 );
 assert.equal(automationBenchRows[0]?.metadata.benchmark_version, "1.0.6");
 assert.equal(automationBenchRows[1]?.metadata.cost_annotation, "†");
@@ -771,6 +778,86 @@ assert.equal(
   0.206,
 );
 assert.equal(findBenchmarkObservation(["Qwen3.8 Max"], "high", sudoL7Lookup), null);
+
+const sudoL7Rerun = sudoL7.map(({ metadata: _harness, ...row }) => ({
+  ...row,
+  canonical_value: row.canonical_value + 0.05,
+  metadata: {},
+}));
+assert.deepEqual(
+  snapshotRows(
+    sudoL7,
+    sudoL7Rerun,
+    1_793_000_000,
+    {},
+    benchmarkObservationRowKeyFor(sudoL7Rerun),
+    (_cached, fetched) => fetched,
+  ),
+  sudoL7Rerun,
+  "A rerun that drops harness labels must replace each model-effort row, not score beside it",
+);
+
+const valsScienceRow = {
+  ...sudoL7[0]!,
+  benchmark_key: "terminal_bench_science",
+  source_url: TERMINAL_BENCH_SCIENCE_VALS_URL,
+  canonical_value: 0.4857,
+  metadata: { task: "overall", harness: "Terminus 2" },
+};
+const valsScienceRerun = {
+  ...valsScienceRow,
+  canonical_value: 0.4714,
+  metadata: { task: "overall", harness: "Mini-SWE-agent" },
+};
+const terminalScienceSource = benchmarkObservationSource(
+  BENCHMARK_OBSERVATION_BINDINGS.find((binding) => binding.benchmark === "terminal_bench_science")!,
+);
+assert.deepEqual(
+  snapshotRows(
+    [valsScienceRow],
+    [valsScienceRerun],
+    1_793_000_000,
+    {},
+    benchmarkObservationRowKeyFor([valsScienceRerun]),
+    terminalScienceSource.mergeRow,
+  ),
+  [valsScienceRerun],
+  "A rerun under another harness must replace the earlier run when the source publishes one harness per model and effort",
+);
+const officialScienceRow = { ...valsScienceRow, source_url: "https://example.com/official" };
+const officialScienceRerun = { ...valsScienceRerun, source_url: "https://example.com/official" };
+assert.deepEqual(
+  snapshotRows(
+    [officialScienceRow],
+    [officialScienceRerun],
+    1_793_000_000,
+    {},
+    benchmarkObservationRowKeyFor([officialScienceRerun]),
+    terminalScienceSource.mergeRow,
+  ),
+  [officialScienceRerun],
+  "A rerun under another harness replaces the cached row even where cached values otherwise persist",
+);
+const multiHarnessRows = [
+  { ...valsScienceRow, source_url: "https://example.com/multi-harness" },
+  { ...valsScienceRerun, source_url: "https://example.com/multi-harness" },
+];
+const multiHarnessKey = benchmarkObservationRowKeyFor(multiHarnessRows);
+assert.notEqual(
+  multiHarnessKey(multiHarnessRows[0]!),
+  multiHarnessKey(multiHarnessRows[1]!),
+  "Harnesses published together for one model and effort remain distinct rows",
+);
+const unlabelledCombinedRow = {
+  ...multiHarnessRows[0]!,
+  metadata: { task: "overall" },
+};
+const combinedKey = benchmarkObservationRowKeyFor([unlabelledCombinedRow, multiHarnessRows[0]!]);
+assert.notEqual(
+  combinedKey(unlabelledCombinedRow),
+  combinedKey(multiHarnessRows[0]!),
+  "An unlabelled combined row beside a labelled harness row with the same result remains distinct",
+);
 
 const healthcare = processSurgeBenchmarkPageHtml(
   `

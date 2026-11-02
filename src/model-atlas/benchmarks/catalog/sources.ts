@@ -49,6 +49,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
   arc_agi_3: {
     group: "standalone",
     id: "arc_prize",
+    revision: "standard",
     roles: ["observation", "resource"],
     loader: {
       kind: "arc_prize",
@@ -89,6 +90,16 @@ export const BENCHMARK_STANDARD_SOURCES = {
     },
     sourceDataKey: "bioMysteryBench",
     sourceRowsKey: "bioMysteryBenchRows",
+  },
+  blueprint_bench_2: {
+    group: "epoch",
+    id: "epoch",
+    loader: {
+      kind: "epoch_external",
+      sourceUrl: "https://epoch.ai/data/external_benchmarks/blueprint_bench_2.csv",
+    },
+    sourceDataKey: "blueprintBench",
+    sourceRowsKey: "blueprintBenchRows",
   },
   cais_capabilities_index: {
     group: "standalone",
@@ -303,11 +314,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
   mirrorcode: {
     group: "epoch",
     id: "epoch",
-    loader: {
-      kind: "epoch_runs",
-      task: "MirrorCode",
-      eligibility: { runIdPrefix: "mirrorcode-ml-2l-" },
-    },
+    loader: { kind: "epoch_runs", task: "MirrorCode" },
     sourceDataKey: "mirrorCode",
     sourceRowsKey: "mirrorCodeRows",
   },
@@ -331,16 +338,6 @@ export const BENCHMARK_STANDARD_SOURCES = {
     },
     sourceDataKey: "omniscienceAccuracy",
     sourceRowsKey: "omniscienceAccuracyRows",
-  },
-  perception_bench: {
-    group: "standalone",
-    id: "perception_bench",
-    loader: {
-      kind: "perception_bench",
-      sourceUrl: "https://raw.githubusercontent.com/MoonshotAI/PerceptionBench/master/README.md",
-    },
-    sourceDataKey: "perceptionBench",
-    sourceRowsKey: "perceptionBenchRows",
   },
   programbench: {
     group: "vals",
@@ -569,16 +566,6 @@ export const BENCHMARK_EXTENDED_SOURCES = {
         id: "arena_agent",
         roles: ["observation"],
         runtime: { key: "arena_agent", publicRows: true },
-      },
-    ],
-  },
-  blueprint_bench_2: {
-    inputs: [
-      {
-        group: "standalone",
-        id: "andon_labs",
-        roles: ["observation"],
-        runtime: { key: "blueprint_bench_2", publicRows: true },
       },
     ],
   },

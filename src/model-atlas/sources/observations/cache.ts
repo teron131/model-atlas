@@ -16,7 +16,7 @@ import { asFiniteNumber, asNonEmptyString } from "../../runtime";
 import { type CacheRowSource, firstFetchedAt, queryCacheRows } from "../cache/rows";
 import type { RawSourceName } from "../registry";
 import {
-  benchmarkObservationRowKey,
+  benchmarkObservationRowKeyFor,
   mergeBenchmarkObservationRow,
   snapshotSourceRows,
 } from "../snapshots/row-snapshot";
@@ -151,10 +151,11 @@ async function benchmarkObservationSnapshot(
     fetchRows,
     acceptsRefresh,
     replaceRowsOnRefresh,
-    rowKey: benchmarkObservationRowKey,
+    rowKeyFor: benchmarkObservationRowKeyFor,
     rowLabel: (row) => `${row.benchmark_key}: ${row.model}`,
     versions: { versionOf: (row) => row.metadata.benchmark_version },
     mergeRow,
+    seriesOf: (row) => row.source_url,
   });
   return {
     rows: snapshot.rows,

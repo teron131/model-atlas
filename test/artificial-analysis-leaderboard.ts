@@ -254,7 +254,7 @@ assertDeepEqual(parseArtificialAnalysisReasoningEffort("Qwen3.8 Max"), null);
 assertDeepEqual(parseArtificialAnalysisReasoningEffort("Gemini 3.5 Flash (minimal)"), "minimal");
 assertDeepEqual(
   processArtificialAnalysisOmnisciencePage(
-    `<script>self.__next_f.push([1,${JSON.stringify('{"slug":"claude-opus-5","name":"Claude Opus 5 (max)","omniscienceBreakdown":{"accuracy":0.61}}')}])</script>`,
+    `<title>AA-Omniscience v1.1: Knowledge and Hallucination Benchmark | Artificial Analysis</title><script>self.__next_f.push([1,${JSON.stringify('{"slug":"claude-opus-5","name":"Claude Opus 5 (max)","omniscienceBreakdown":{"accuracy":0.61}}')}])</script>`,
     {
       benchmarkKey: "omniscience_accuracy",
       sourceUrl: "https://artificialanalysis.ai/evaluations/omniscience",
@@ -275,9 +275,22 @@ assertDeepEqual(
       metadata: {
         dataset_name: "AA-Omniscience Accuracy",
         details_url: "/models/claude-opus-5",
+        benchmark_version: "1.1",
       },
     },
   ],
+);
+assert.throws(
+  () =>
+    processArtificialAnalysisOmnisciencePage(
+      `<script>self.__next_f.push([1,${JSON.stringify('{"slug":"claude-opus-5","name":"Claude Opus 5 (max)","omniscienceBreakdown":{"accuracy":0.61}}')}])</script>`,
+      {
+        benchmarkKey: "omniscience_accuracy",
+        sourceUrl: "https://artificialanalysis.ai/evaluations/omniscience",
+      },
+    ),
+  /no version/,
+  "A page without a version must fail rather than merge into the previous version's rows",
 );
 
 const scoringRows = [

@@ -14,6 +14,7 @@ import {
 } from "../src/model-atlas/benchmarks/registry";
 import { STAGE_CONFIG } from "../src/model-atlas/config";
 import type { FinalStageConfig, ScoringConfig } from "../src/model-atlas/config/stage";
+import { loadSchemaSql } from "../src/model-atlas/database/schema";
 import { canonicalModelKey } from "../src/model-atlas/identity/normalization";
 import { buildModelCatalogRows } from "../src/model-atlas/pipeline/model-catalog";
 import type { ModelRow } from "../src/model-atlas/pipeline/model-types";
@@ -29,6 +30,7 @@ import {
   hasRequiredPublicRelevance,
 } from "../src/model-atlas/pipeline/selection/public-list";
 import type { ModelsDevFlatModel } from "../src/model-atlas/sources/models-dev/catalog";
+import { RAW_SOURCE_TABLES } from "../src/model-atlas/sources/registry";
 import type { BenchmarkPortfolio } from "../src/model-atlas/stats/types";
 import { minimalModelAtlasModel } from "./model-atlas-fixtures";
 
@@ -57,6 +59,14 @@ for (const keys of [
     );
   }
 }
+// A retired source's raw table must leave the schema too, so the next open archives its rows and drops it.
+assert.deepEqual(
+  [...(await loadSchemaSql()).matchAll(/CREATE TABLE IF NOT EXISTS (\w+_raw_(?:rows|models)) /g)]
+    .map((match) => match[1])
+    .sort(),
+  [...new Set(Object.values(RAW_SOURCE_TABLES))].sort(),
+  "schema.sql raw tables must match the source registry",
+);
 assert.equal("itbench_sre" in STAGE_CONFIG.scoring.benchmarkPortfolio, false);
 assert.equal("scicode" in STAGE_CONFIG.scoring.benchmarkPortfolio, false);
 assert.equal("scicode" in BENCHMARK_CATALOG, false);

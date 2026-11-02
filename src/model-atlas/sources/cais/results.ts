@@ -133,11 +133,6 @@ function aggregateRow(
     COMPONENTS.map((component) => [component, asFiniteNumber(model.scores[component])]),
   ) as Record<(typeof COMPONENTS)[number], number | null>;
   if (Object.values(scores).some((score) => score == null || score < 0 || score > 100)) return [];
-  const hasFallbackScore = COMPONENTS.some((component) => {
-    const note = model.scoreNotes[component];
-    return typeof note === "string" && /fallback|fall back/i.test(note);
-  });
-  if (hasFallbackScore) return [];
   const textScore =
     TEXT_COMPONENTS.reduce((sum, component) => sum + scores[component]!, 0) /
     TEXT_COMPONENTS.length;

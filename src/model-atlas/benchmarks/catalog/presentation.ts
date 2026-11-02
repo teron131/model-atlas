@@ -74,7 +74,7 @@ export const BENCHMARK_TOOLTIPS = {
       ["Source", "ARC Prize verified leaderboard"],
       ["Split", "Semi-Private"],
       ["Metric", "human-relative action efficiency"],
-      ["Harness", "mean of eligible Standard and Provider Adapter runs"],
+      ["Harness", "Standard"],
       ["Role", "interactive fluid reasoning"],
     ],
   },
@@ -354,14 +354,6 @@ export const BENCHMARK_TOOLTIPS = {
       ["Role", "knowledge accuracy"],
     ],
   },
-  perception_bench: {
-    body: "Answer 3,000 visual questions testing 10 skills, including counting, localization, OCR, depth, and relations.",
-    rows: [
-      ["Source", "Moonshot AI"],
-      ["Metric", "overall accuracy"],
-      ["Role", "atomic visual perception"],
-    ],
-  },
   programbench: {
     body: "Write programs from natural-language requirements, scored by behavioral tests.",
     rows: [
@@ -567,7 +559,6 @@ export const BENCHMARK_LABELS = {
   mlcr_aa: "MLCR-AA",
   mysterymechanism: "MysteryMechanism",
   omniscience_accuracy: "Omniscience",
-  perception_bench: "PerceptionBench",
   programbench: "ProgramBench",
   public_benefits_bench: "Public Benefits Bench",
   riemann_bench: "Riemann-bench",
@@ -714,7 +705,6 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
     {
       key: "arcAgi3Cost",
       metric: "cost",
-      metricSource: "arc_agi_3__source_a",
       direction: "ascending",
       label: "AGI-3$",
       tooltip: {
@@ -1225,11 +1215,6 @@ export const BENCHMARK_COLUMNS = {
   omniscience_accuracy: {
     key: "omniscience",
     label: "Omni",
-    format: "percent",
-  },
-  perception_bench: {
-    key: "perceptionBench",
-    label: "Perception",
     format: "percent",
   },
   programbench: {

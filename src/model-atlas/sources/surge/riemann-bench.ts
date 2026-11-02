@@ -5,6 +5,7 @@
  * Paper source: https://cdn.prod.website-files.com/68dc970bd6e945ea3fb0f426/69c2d73f5d377a9428089ff7_048c62b8b526b0f06e87457bcca0e6fa_RiemannBench.pdf
  */
 
+import { modelNameIdentityKey } from "../../identity";
 import { modelNameWithoutCreatorPrefix, normalizeModelToken } from "../../identity/normalization";
 import { nowEpochSeconds } from "../../runtime";
 import { fetchSource } from "../request-scheduler";
@@ -71,15 +72,22 @@ export function findRiemannBenchScore(
   candidateNames: unknown[],
   riemannBenchRowsByModelName: RiemannBenchRowsByModelName,
 ): number | null {
-  for (const candidateName of candidateNames) {
-    if (typeof candidateName !== "string" || candidateName.length === 0) {
-      continue;
+  const candidateKeys = candidateNames.flatMap((candidateName) =>
+    typeof candidateName === "string" && candidateName.length > 0
+      ? riemannBenchKeyCandidates(candidateName)
+      : [],
+  );
+  for (const key of candidateKeys) {
+    const row = riemannBenchRowsByModelName.get(key);
+    if (row) {
+      return row.score;
     }
-    for (const key of riemannBenchKeyCandidates(candidateName)) {
-      const row = riemannBenchRowsByModelName.get(key);
-      if (row) {
-        return row.score;
-      }
+  }
+  // Spacing such as Surge's "Qwen 3.7 Max" against "Qwen3.7 Max" differs only before the identity key.
+  const identityKeys = new Set(candidateKeys.map(modelNameIdentityKey));
+  for (const [key, row] of riemannBenchRowsByModelName) {
+    if (identityKeys.has(modelNameIdentityKey(key))) {
+      return row.score;
     }
   }
   return null;

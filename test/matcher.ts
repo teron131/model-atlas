@@ -30,10 +30,12 @@ import {
 } from "../src/model-atlas/sources/artificial-analysis/benchmark-resources";
 import { insertArtificialAnalysisRawModels } from "../src/model-atlas/sources/artificial-analysis/write";
 import type { ModelAtlasSourceData } from "../src/model-atlas/sources/assembly";
-import { buildBlueprintBenchMap } from "../src/model-atlas/sources/blueprint-bench/leaderboard";
 import type { OpenRouterSourcePayload } from "../src/model-atlas/sources/openrouter";
 import { insertOpenRouterRawRows } from "../src/model-atlas/sources/openrouter/write";
-import { buildRiemannBenchMap } from "../src/model-atlas/sources/surge/riemann-bench";
+import {
+  buildRiemannBenchMap,
+  findRiemannBenchScore,
+} from "../src/model-atlas/sources/surge/riemann-bench";
 import { buildTerminalBench4Map } from "../src/model-atlas/sources/terminal-bench-4/leaderboard";
 import type { SourceSnapshots } from "../src/model-atlas/sources/types";
 import {
@@ -916,19 +918,14 @@ assert.equal(
   "image and latest routes should not stand in for a base source row",
 );
 assert.equal(
-  asBenchmarks(matchedFlashRow).perception_bench,
+  asBenchmarks(matchedFlashRow).blueprint_bench_2,
   undefined,
   "default-variant benchmarks should not enter effort observations",
 );
 assert.equal(
-  asBenchmarks(assignedFlashVariant).perception_bench,
-  0.42,
-  "PerceptionBench scores should attach to the default variant",
-);
-assert.equal(
   asBenchmarks(assignedFlashVariant).blueprint_bench_2,
   0.36,
-  "Blueprint-Bench 2 scores should attach through display-name matching",
+  "an effort-less Blueprint-Bench 2 row should attach to the default variant",
 );
 assert.equal(
   asBenchmarks(assignedFlashVariant).gdp_pdf,
@@ -939,6 +936,16 @@ assert.equal(
   asBenchmarks(assignedFlashVariant).riemann_bench,
   0.31,
   "Riemann-bench scores should attach through normalized display-name matching",
+);
+assert.equal(
+  findRiemannBenchScore(
+    ["Qwen3.7 Max"],
+    buildRiemannBenchMap([
+      { provider: "Qwen", model: "Qwen 3.7 Max (Thinking on)", score: 0.152, last_updated: null },
+    ]),
+  ),
+  0.152,
+  "Riemann-bench names that differ only in version spacing still match",
 );
 assert.equal(
   asBenchmarks(assignedFlashVariant).vals_index,
@@ -1073,25 +1080,19 @@ function reportObservations(
 function modelStatsSourceData(
   artificialAnalysisRows: Record<string, unknown>[],
 ): ModelAtlasSourceData {
-  const perceptionObservations: BenchmarkObservationRow[] = [
+  const blueprintBenchRows: BenchmarkObservationRow[] = [
     {
-      benchmark_key: "perception_bench",
-      source_url: "https://raw.githubusercontent.com/MoonshotAI/PerceptionBench/master/README.md",
-      model_id: null,
-      rank: 1,
+      benchmark_key: "blueprint_bench_2",
+      source_url: "https://epoch.ai/data/external_benchmarks/blueprint_bench_2.csv",
+      model_id: "example-2.5-flash_unknown",
       model: "Example 2.5 Flash",
       base_model: "Example 2.5 Flash",
       reasoning_effort: null,
-      model_creator: "google",
-      canonical_value: 0.42,
+      model_creator: "Google",
+      rank: null,
+      canonical_value: 0.36,
       observed_at: null,
       metadata: {},
-    },
-  ];
-  const blueprintBenchModelScoreRows = [
-    {
-      model: "Example 2.5 Flash",
-      score: 0.36,
     },
   ];
   const gdpPdfRows: BenchmarkObservationRow[] = [
@@ -1225,8 +1226,8 @@ function modelStatsSourceData(
     automationBench: { rows: [], rowsByModelName: new Map() },
     bioMysteryBench: { rows: [], rowsByModelName: new Map() },
     blueprintBench: {
-      rows: blueprintBenchModelScoreRows,
-      rowsByModelName: buildBlueprintBenchMap(blueprintBenchModelScoreRows),
+      rows: blueprintBenchRows,
+      rowsByModelName: buildBenchmarkObservationLookup(blueprintBenchRows),
     },
     caisCapabilitiesIndex: { rows: [], rowsByModelName: new Map() },
     chartography: { rows: [], rowsByModelName: new Map() },
@@ -1255,10 +1256,6 @@ function modelStatsSourceData(
     mirrorCode: { rows: [], rowsByModelName: new Map() },
     mysteryMechanism: { rows: [], rowsByModelName: new Map() },
     omniscienceAccuracy: { rows: [], rowsByModelName: new Map() },
-    perceptionBench: {
-      rows: perceptionObservations,
-      rowsByModelName: buildBenchmarkObservationLookup(perceptionObservations),
-    },
     programBench: { rows: [], rowsByModelName: new Map() },
     publicBenefitsBench: { rows: [], rowsByModelName: new Map() },
     riemannBench: {

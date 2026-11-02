@@ -80,8 +80,11 @@ const indexRows = processCaisDashboardModels(
   sourceUrl,
   "fixture",
 );
-assert.equal(indexRows.length, 1);
-assert.equal(indexRows[0]?.model, "Claude Fable 5.1 (high)");
+assert.deepEqual(
+  indexRows.map(({ model }) => model),
+  ["Claude Fable 5.1 (high)", "Claude Fable 5 (high)"],
+  "A disclosed fallback composite scores like any other row, since fallback is part of the served model",
+);
 assert.equal(indexRows[0]?.canonical_value, 0.668286);
 assert.equal(indexRows[0]?.metadata.component_count, 7);
 assert.equal(
