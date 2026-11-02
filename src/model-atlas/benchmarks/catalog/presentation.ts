@@ -14,6 +14,15 @@ import {
 import { BENCHMARK_STANDARD_SOURCES } from "./sources";
 
 export const BENCHMARK_TOOLTIPS = {
+  aa_3d: {
+    body: "Build interactive three.js scenes from written briefs as an agent with Blender, physics, assets, and screenshot review, judged in blind human comparisons.",
+    rows: [
+      ["Source", "Artificial Analysis"],
+      ["Metric", "human preference Elo"],
+      ["Scoring", "observed-range normalization to 0–100"],
+      ["Role", "agentic 3D scene construction"],
+    ],
+  },
   aa_intelligence_index: {
     body: "Composite score weighted equally across knowledge work, coding, science, and general-knowledge evaluations.",
     rows: [
@@ -148,6 +157,15 @@ export const BENCHMARK_TOOLTIPS = {
       ["Source", "Epoch AI"],
       ["Metric", "exact-move accuracy; 1M output-token budget"],
       ["Role", "planning and game reasoning"],
+    ],
+  },
+  code2video_aa: {
+    body: "Write HTML animation code in one call from motion-design briefs, judged by a model in blind comparisons of the rendered videos.",
+    rows: [
+      ["Source", "Artificial Analysis; HeyGen benchmark"],
+      ["Metric", "model-judged pairwise Elo"],
+      ["Scoring", "observed-range normalization to 0–100"],
+      ["Role", "motion-graphics code"],
     ],
   },
   code_migration: {
@@ -517,6 +535,7 @@ export const BENCHMARK_TOOLTIPS = {
 >;
 
 export const BENCHMARK_LABELS = {
+  aa_3d: "AA-3D",
   aa_intelligence_index: "Artificial Analysis Intelligence Index",
   agents_last_exam: "Agents' Last Exam",
   ale_bench: "ALE-Bench",
@@ -534,6 +553,7 @@ export const BENCHMARK_LABELS = {
   cais_capabilities_index: "CAIS Capabilities Index",
   chartography: "Chartography",
   chess_puzzles: "Chess Puzzles",
+  code2video_aa: "Code2Video-AA",
   code_migration: "Code Migration",
   complex_constraints: "ComplexConstraints",
   critpt: "CritPt",
@@ -733,6 +753,26 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
       },
     },
   ],
+  code2video_aa: [
+    {
+      key: "code2videoAaCost",
+      metric: "cost",
+      direction: "ascending",
+      label: "C2V$",
+    },
+    {
+      key: "code2videoAaSeconds",
+      metric: "seconds",
+      direction: "ascending",
+      label: "C2V Sec",
+    },
+    {
+      key: "code2videoAaTokens",
+      metric: "tokens",
+      direction: "ascending",
+      label: "C2V Tok",
+    },
+  ],
   critpt: [
     {
       key: "critptCost",
@@ -848,6 +888,26 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
       metric: "tokens",
       direction: "ascending",
       label: "MLCR Tok",
+    },
+  ],
+  omniscience_accuracy: [
+    {
+      key: "omniscienceCost",
+      metric: "cost",
+      direction: "ascending",
+      label: "Omni$",
+    },
+    {
+      key: "omniscienceSeconds",
+      metric: "seconds",
+      direction: "ascending",
+      label: "Omni Sec",
+    },
+    {
+      key: "omniscienceTokens",
+      metric: "tokens",
+      direction: "ascending",
+      label: "Omni Tok",
     },
   ],
   terminal_bench_4: [
@@ -1007,6 +1067,11 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
 } as const satisfies Partial<Record<BenchmarkKey, readonly BenchmarkTaskMetricColumnFacet[]>>;
 
 export const BENCHMARK_COLUMNS = {
+  aa_3d: {
+    key: "aa3d",
+    label: "AA-3D",
+    format: "score",
+  },
   aa_intelligence_index: {
     key: "aaIntelligenceIndex",
     label: "AA",
@@ -1091,6 +1156,11 @@ export const BENCHMARK_COLUMNS = {
     key: "chessPuzzles",
     label: "Chess",
     format: "percent",
+  },
+  code2video_aa: {
+    key: "code2videoAa",
+    label: "Code2Video",
+    format: "score",
   },
   code_migration: {
     key: "codeMigration",

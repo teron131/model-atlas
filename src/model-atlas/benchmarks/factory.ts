@@ -40,10 +40,7 @@ export type BenchmarkObservationLoader =
       datasetId: "v2_Semi_Private" | "v3_Semi_Private";
     }
   | { kind: "arena_webdev"; sourceUrl: string }
-  | {
-      kind: "artificial_analysis_omniscience";
-      sourceUrl: string;
-    }
+  | { kind: "artificial_analysis_3d"; sourceUrl: string }
   | { kind: "automation_bench"; sourceUrl: string }
   | { kind: "cais_dashboard"; sourceUrl: string }
   | { kind: "epoch_capabilities_index"; sourceUrl: string }

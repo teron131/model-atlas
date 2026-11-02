@@ -12,6 +12,16 @@ import type { BenchmarkKey } from "./portfolio";
 
 /** Standard sources use the shared benchmark-observation loader and persistence contract. */
 export const BENCHMARK_STANDARD_SOURCES = {
+  aa_3d: {
+    group: "artificial_analysis",
+    id: "artificial_analysis",
+    loader: {
+      kind: "artificial_analysis_3d",
+      sourceUrl: "https://artificialanalysis.ai/evaluations/aa-3d",
+    },
+    sourceDataKey: "aa3d",
+    sourceRowsKey: "aa3dRows",
+  },
   apex_agents: {
     group: "standalone",
     id: "mercor",
@@ -329,16 +339,6 @@ export const BENCHMARK_STANDARD_SOURCES = {
     sourceDataKey: "mysteryMechanism",
     sourceRowsKey: "mysteryMechanismRows",
   },
-  omniscience_accuracy: {
-    group: "artificial_analysis",
-    id: "artificial_analysis",
-    loader: {
-      kind: "artificial_analysis_omniscience",
-      sourceUrl: "https://artificialanalysis.ai/evaluations/omniscience",
-    },
-    sourceDataKey: "omniscienceAccuracy",
-    sourceRowsKey: "omniscienceAccuracyRows",
-  },
   programbench: {
     group: "vals",
     id: "vals",
@@ -587,6 +587,24 @@ export const BENCHMARK_EXTENDED_SOURCES = {
       },
     ],
   },
+  code2video_aa: {
+    inputs: [
+      {
+        group: "artificial_analysis",
+        id: "artificial_analysis",
+        roles: ["observation", "resource"],
+        adapters: [
+          {
+            kind: "artificial_analysis_resource_page",
+            scoreKey: "code2videoElo",
+            resourceKey: "code2video",
+            url: "https://artificialanalysis.ai/evaluations/code2video-aa",
+            methodologyName: "Code2Video-AA",
+          },
+        ],
+      },
+    ],
+  },
   critpt: {
     revision: "2-hard",
     inputs: [
@@ -697,6 +715,24 @@ export const BENCHMARK_EXTENDED_SOURCES = {
             resourceKey: "mlcr",
             url: "https://artificialanalysis.ai/evaluations/mlcr-aa",
             methodologyName: "MLCR-AA",
+          },
+        ],
+      },
+    ],
+  },
+  omniscience_accuracy: {
+    inputs: [
+      {
+        group: "artificial_analysis",
+        id: "artificial_analysis",
+        roles: ["observation", "resource"],
+        adapters: [
+          {
+            kind: "artificial_analysis_resource_page",
+            scorePath: ["omniscienceBreakdown", "accuracy"],
+            resourceKey: "omniscience",
+            url: "https://artificialanalysis.ai/evaluations/omniscience",
+            methodologyName: "AA-Omniscience",
           },
         ],
       },

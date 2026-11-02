@@ -18,6 +18,11 @@ const BENCHMARK_PER_TASK_RESOURCE = {
 } as const satisfies BenchmarkResourcePolicy;
 
 export const BENCHMARK_SCORING_WEIGHTS = {
+  aa_3d: {
+    group: "frontier",
+    benchmarkImportance: 1,
+    dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
+  },
   aa_intelligence_index: INDEX_SCORING_WEIGHT,
   agents_last_exam: {
     group: "frontier",
@@ -94,6 +99,11 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     group: "baseline",
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
+  },
+  code2video_aa: {
+    group: "baseline",
+    benchmarkImportance: 1,
+    dimensionLoadings: { intelligence: 0, agentic: 1 },
   },
   code_migration: {
     group: "frontier",
@@ -320,12 +330,14 @@ export const BENCHMARK_RESOURCE_POLICIES = {
   arc_agi_3: BENCHMARK_PER_TASK_RESOURCE,
   automation_bench: BENCHMARK_PER_TASK_RESOURCE,
   briefcase: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
+  code2video_aa: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
   critpt: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
   frontier_code: BENCHMARK_PER_TASK_RESOURCE,
   gdp_pdf: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
   gdpval_normalized: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
   hle: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
   mlcr_aa: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
+  omniscience_accuracy: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
   terminal_bench_4: BENCHMARK_PER_TASK_RESOURCE,
   terminal_bench_science: BENCHMARK_PER_TASK_RESOURCE,
 } as const satisfies Partial<Record<BenchmarkKey, BenchmarkResourcePolicy>>;

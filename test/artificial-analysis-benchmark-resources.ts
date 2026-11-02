@@ -84,11 +84,13 @@ assertDeepEqual(
   [
     "analyst_agent",
     "briefcase",
+    "code2video_aa",
     "critpt",
     "gdp_pdf",
     "gdpval_normalized",
     "hle",
     "mlcr_aa",
+    "omniscience_accuracy",
     "terminal_bench_4",
     "terminal_bench_science",
   ],
@@ -172,6 +174,27 @@ assertDeepEqual(
 assertDeepEqual(
   processArtificialAnalysisBenchmarkResourceRows(scienceRows, sciencePage, "0.2"),
   [],
+);
+const omnisciencePage = {
+  ...ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.find(
+    (page) => page.benchmark_key === "omniscience_accuracy",
+  )!,
+  task_run_count: 3000,
+};
+assertDeepEqual(
+  processArtificialAnalysisBenchmarkResourceRows(
+    [
+      {
+        slug: "example-model",
+        name: "Example Model",
+        creator: { name: "OpenAI", slug: "openai" },
+        omniscienceBreakdown: { accuracy: 0.61 },
+      },
+    ],
+    omnisciencePage,
+    "1.1",
+  ).map((row) => row.score),
+  [0.61],
 );
 const configuredBriefcasePage = ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.find(
   (page) => page.benchmark_key === "briefcase",
