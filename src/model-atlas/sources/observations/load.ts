@@ -13,7 +13,7 @@ import {
 import { arcPrizeCacheMatches, getArcPrizeStats } from "../arc-prize";
 import { ARENA_WEBDEV_DATASET_URL, arenaRefreshIsCurrent } from "../arena/dataset";
 import { getArenaWebDevStats } from "../arena/webdev";
-import { getArtificialAnalysisOmniscienceStats } from "../artificial-analysis/omniscience";
+import { getAa3dStats } from "../artificial-analysis/aa-3d";
 import type { ModelAtlasSourceRows } from "../assembly/source-data";
 import { automationBenchCacheMatches, getAutomationBenchStats } from "../automation-bench";
 import { caisCacheMatches, getCaisDashboardStats } from "../cais/results";
@@ -115,16 +115,11 @@ function loaderSource(binding: BenchmarkObservationBinding): ObservationSource {
         // Preference ratings, vote counts, and intervals describe the current voting pool.
         mergeRow: (_cached, fetched) => fetched,
       };
-    case "artificial_analysis_omniscience":
+    case "artificial_analysis_3d":
+      // Ratings are refitted as votes accumulate, so each refresh replaces a model's cached rating.
       return {
-        fetchRows: () =>
-          getArtificialAnalysisOmniscienceStats({
-            benchmarkKey: binding.benchmark,
-            sourceUrl: loader.sourceUrl,
-          }),
-        // Rows saved before the page version was recorded cannot be told apart from an earlier version.
-        acceptsCache: (rows) =>
-          rows.every((row) => typeof row.metadata.benchmark_version === "string"),
+        fetchRows: () => getAa3dStats(loader.sourceUrl),
+        mergeRow: (_cached, fetched) => fetched,
       };
     case "automation_bench":
       return {

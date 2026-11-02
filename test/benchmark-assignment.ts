@@ -233,6 +233,7 @@ const lookups = {
   arenaAgent: {
     rowsByModelName: new Map([["example-model", arenaAgentRow]]),
   },
+  aa3d: { rowsByModelName: emptyLookup() },
   agentsLastExam: {
     rowsByModelName: emptyLookup(),
   },
@@ -275,7 +276,6 @@ const lookups = {
   mindcube: { rowsByModelName: emptyLookup() },
   mirrorCode: { rowsByModelName: emptyLookup() },
   mysteryMechanism: { rowsByModelName: emptyLookup() },
-  omniscienceAccuracy: { rowsByModelName: emptyLookup() },
   programBench: { rowsByModelName: emptyLookup() },
   publicBenefitsBench: { rowsByModelName: emptyLookup() },
   riemannBench: {

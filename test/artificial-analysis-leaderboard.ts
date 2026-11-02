@@ -13,6 +13,7 @@ import {
 } from "../src/model-atlas/pipeline/scores";
 import { buildQualityScoringContext } from "../src/model-atlas/pipeline/scores/quality-context";
 import { asRecord } from "../src/model-atlas/runtime";
+import { processAa3dRows } from "../src/model-atlas/sources/artificial-analysis/aa-3d";
 import {
   ARTIFICIAL_ANALYSIS_LEADERBOARD_COLUMNS,
   getArtificialAnalysisLeaderboardRawStats,
@@ -22,7 +23,6 @@ import {
   cleanArtificialAnalysisModelName,
   parseArtificialAnalysisReasoningEffort,
 } from "../src/model-atlas/sources/artificial-analysis/model-labels";
-import { processArtificialAnalysisOmnisciencePage } from "../src/model-atlas/sources/artificial-analysis/omniscience";
 import { getArtificialAnalysisPage } from "../src/model-atlas/sources/artificial-analysis/page-data";
 
 function assertDeepEqual(actual: unknown, expected: unknown): void {
@@ -252,45 +252,47 @@ assertDeepEqual(
 assertDeepEqual(parseArtificialAnalysisReasoningEffort("Example (No reasoning)"), "none");
 assertDeepEqual(parseArtificialAnalysisReasoningEffort("Qwen3.8 Max"), null);
 assertDeepEqual(parseArtificialAnalysisReasoningEffort("Gemini 3.5 Flash (minimal)"), "minimal");
+const aa3dUrl = "https://artificialanalysis.ai/evaluations/aa-3d";
 assertDeepEqual(
-  processArtificialAnalysisOmnisciencePage(
-    `<title>AA-Omniscience v1.1: Knowledge and Hallucination Benchmark | Artificial Analysis</title><script>self.__next_f.push([1,${JSON.stringify('{"slug":"claude-opus-5","name":"Claude Opus 5 (max)","omniscienceBreakdown":{"accuracy":0.61}}')}])</script>`,
-    {
-      benchmarkKey: "omniscience_accuracy",
-      sourceUrl: "https://artificialanalysis.ai/evaluations/omniscience",
-    },
+  processAa3dRows(
+    [
+      { slug: "gpt-6-astra", shortName: "GPT-6 Astra (max)", aa3dElo: 1164.1 },
+      {
+        slug: "claude-opus-5-5",
+        shortName: "Claude Opus 5.5 (max with fallback)",
+        aa3dElo: 1196.4,
+      },
+    ],
+    aa3dUrl,
   ),
   [
     {
-      benchmark_key: "omniscience_accuracy",
-      source_url: "https://artificialanalysis.ai/evaluations/omniscience",
-      model_id: "claude-opus-5",
-      model: "Claude Opus 5 (max)",
-      base_model: "Claude Opus 5",
+      benchmark_key: "aa_3d",
+      source_url: aa3dUrl,
+      model_id: "claude-opus-5-5",
+      model: "Claude Opus 5.5",
+      base_model: "Claude Opus 5.5",
       reasoning_effort: "max",
       model_creator: null,
       rank: 1,
-      canonical_value: 0.61,
+      canonical_value: 1196.4,
       observed_at: null,
-      metadata: {
-        dataset_name: "AA-Omniscience Accuracy",
-        details_url: "/models/claude-opus-5",
-        benchmark_version: "1.1",
-      },
+      metadata: {},
+    },
+    {
+      benchmark_key: "aa_3d",
+      source_url: aa3dUrl,
+      model_id: "gpt-6-astra",
+      model: "GPT-6 Astra (max)",
+      base_model: "GPT-6 Astra",
+      reasoning_effort: "max",
+      model_creator: null,
+      rank: 2,
+      canonical_value: 1164.1,
+      observed_at: null,
+      metadata: {},
     },
   ],
-);
-assert.throws(
-  () =>
-    processArtificialAnalysisOmnisciencePage(
-      `<script>self.__next_f.push([1,${JSON.stringify('{"slug":"claude-opus-5","name":"Claude Opus 5 (max)","omniscienceBreakdown":{"accuracy":0.61}}')}])</script>`,
-      {
-        benchmarkKey: "omniscience_accuracy",
-        sourceUrl: "https://artificialanalysis.ai/evaluations/omniscience",
-      },
-    ),
-  /no version/,
-  "A page without a version must fail rather than merge into the previous version's rows",
 );
 
 const scoringRows = [
@@ -447,6 +449,9 @@ const modelServer = createServer((request, response) => {
     response.end(JSON.stringify([{ modelSlug: "example-max", host: { name: "Provider" } }]));
   } else if (request.url === "/data/models" && !dataUnavailable) {
     response.end(encryptedModels);
+  } else if (request.url === "/evaluations/in-page") {
+    const record = { slug: "scene-max", shortName: "Scene (max)", aa3dElo: 1100 };
+    response.end(flight({ models: [record] }) + flight({ board: [record] }));
   } else if (request.url === "/wrong-origin") {
     response.end(flight({ manifest: { path: "https://example.com/data/models" } }));
   } else {
@@ -483,6 +488,15 @@ try {
     0.72,
   );
   await assert.rejects(getArtificialAnalysisPage(`${origin}/wrong-origin`, 1_000), /origin/);
+  assert.deepEqual(
+    await getArtificialAnalysisPage(`${origin}/evaluations/in-page`, 1_000, "aa3dElo"),
+    { title: null, models: [{ slug: "scene-max", shortName: "Scene (max)", aa3dElo: 1100 }] },
+  );
+  // Elsewhere in-page records are a preview, so a page without a manifest fails unless its caller names the record key.
+  await assert.rejects(
+    getArtificialAnalysisPage(`${origin}/evaluations/in-page`, 1_000),
+    /Missing complete/,
+  );
   // Without the index's published version, the refresh fails and the cache stays in place rather than scoring unversioned values.
   assert.deepEqual(
     await getArtificialAnalysisLeaderboardRawStats({ url: `${origin}/leaderboards/unversioned` }),

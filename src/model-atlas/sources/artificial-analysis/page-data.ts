@@ -1,5 +1,5 @@
 /**
- * Complete model datasets from Artificial Analysis public page manifests.
+ * Complete model datasets from Artificial Analysis public pages, read from each page's dataset manifest or, on a page without one, from its own model records.
  *
  * Page source: https://artificialanalysis.ai
  */
@@ -8,18 +8,24 @@ import { createDecipheriv, createHash } from "node:crypto";
 import { gunzipSync } from "node:zlib";
 
 import { asNonEmptyString, asRecord, type JsonObject } from "../../runtime";
-import { extractNextFlightCorpus } from "../parsing";
+import { extractNextFlightCorpus, findObjectEnd, parseFlightJsonObject } from "../parsing";
 import { fetchSource } from "../request-scheduler";
+
+const RECORD_SEARCH_BACKTRACK_CHARS = 70_000;
 
 type ArtificialAnalysisPage = {
   title: string | null;
   models: JsonObject[];
 };
 
-/** Read a page's title and complete model dataset, never the limited preview or a provider-inference table. */
+/**
+ * Read a page's title and complete model dataset, never the limited preview or a provider-inference table.
+ * Pages with a manifest carry only a preview in their own records, so `inPageRecordKey` reads the page's records carrying that key only when it publishes no manifest at all.
+ */
 export async function getArtificialAnalysisPage(
   url: string,
   timeoutMs: number,
+  inPageRecordKey?: string,
 ): Promise<ArtificialAnalysisPage> {
   const html = await fetchSource(url, {}, timeoutMs, async (response) => {
     if (!response.ok) throw new Error(`Artificial Analysis page failed: ${response.status}`);
@@ -27,7 +33,8 @@ export async function getArtificialAnalysisPage(
   });
   const title = /<title>([^<]*)<\/title>/.exec(html)?.[1] ?? null;
   const corpus = extractNextFlightCorpus(html);
-  for (const match of corpus.matchAll(/"manifest":(\{[^}]+\})/g)) {
+  const manifests = [...corpus.matchAll(/"manifest":(\{[^}]+\})/g)];
+  for (const match of manifests) {
     const manifest = asRecord(JSON.parse(match[1]!));
     const path = asNonEmptyString(manifest.path);
     if (path == null) throw new Error("Missing Artificial Analysis page-data path");
@@ -51,5 +58,32 @@ export async function getArtificialAnalysisPage(
     const models = asRecord(data).models;
     if (Array.isArray(models) && models.length > 0) return { title, models: models.map(asRecord) };
   }
+  if (manifests.length === 0 && inPageRecordKey != null) {
+    const models = inPageRecords(corpus, inPageRecordKey);
+    if (models.length > 0) return { title, models };
+  }
   throw new Error("Missing complete Artificial Analysis model dataset");
+}
+
+/** Flight repeats model records across chunks, so keep one complete record per slug. */
+function inPageRecords(corpus: string, key: string): JsonObject[] {
+  const records = new Map<string, JsonObject>();
+  let cursor = 0;
+  while (true) {
+    const hit = corpus.indexOf(`"${key}":`, cursor);
+    if (hit === -1) break;
+    cursor = hit + 1;
+    const searchStart = Math.max(0, hit - RECORD_SEARCH_BACKTRACK_CHARS);
+    for (let start = hit; start >= searchStart; start -= 1) {
+      if (corpus[start] !== "{") continue;
+      const end = findObjectEnd(corpus, start);
+      if (end < hit) continue;
+      const record = parseFlightJsonObject(corpus.slice(start, end + 1));
+      if (typeof record?.slug === "string" && record[key] != null) {
+        records.set(record.slug, record);
+        break;
+      }
+    }
+  }
+  return [...records.values()];
 }

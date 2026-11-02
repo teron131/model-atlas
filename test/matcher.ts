@@ -1219,6 +1219,7 @@ function modelStatsSourceData(
       sourceDefaultRows: [],
       rowsByModelName: new Map(),
     },
+    aa3d: { rows: [], rowsByModelName: new Map() },
     apexAgents: { rows: [], rowsByModelName: new Map() },
     apexSwe: { rows: [], rowsByModelName: new Map() },
     arcAgi2: { rows: [], rowsByModelName: new Map() },
@@ -1255,7 +1256,6 @@ function modelStatsSourceData(
     mindcube: { rows: [], rowsByModelName: new Map() },
     mirrorCode: { rows: [], rowsByModelName: new Map() },
     mysteryMechanism: { rows: [], rowsByModelName: new Map() },
-    omniscienceAccuracy: { rows: [], rowsByModelName: new Map() },
     programBench: { rows: [], rowsByModelName: new Map() },
     publicBenefitsBench: { rows: [], rowsByModelName: new Map() },
     riemannBench: {
