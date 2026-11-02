@@ -256,50 +256,6 @@ CREATE TABLE IF NOT EXISTS ale_bench_raw_rows (
 	PRIMARY KEY (row_index)
 );
 
-CREATE TABLE IF NOT EXISTS blueprint_bench_2_raw_rows (
-	row_index INTEGER NOT NULL,
-	fetched_at_epoch_seconds INTEGER,
-	url TEXT NOT NULL,
-	model TEXT NOT NULL,
-	score REAL NOT NULL,
-	PRIMARY KEY (row_index)
-);
-
-CREATE TABLE IF NOT EXISTS cursorbench_raw_rows (
-	row_index INTEGER NOT NULL,
-	fetched_at_epoch_seconds INTEGER,
-	url TEXT NOT NULL,
-	rank INTEGER NOT NULL,
-	model TEXT NOT NULL,
-	base_model TEXT NOT NULL,
-	reasoning_effort TEXT,
-	score_eligible INTEGER NOT NULL,
-	score REAL NOT NULL,
-	cost_per_task_usd REAL NOT NULL,
-	tokens_per_task INTEGER NOT NULL,
-	steps_per_task INTEGER NOT NULL,
-	PRIMARY KEY (row_index)
-);
-
-CREATE TABLE IF NOT EXISTS deep_swe_raw_rows (
-	row_index INTEGER NOT NULL,
-	fetched_at_epoch_seconds INTEGER,
-	url TEXT NOT NULL,
-	source_version TEXT,
-	model TEXT NOT NULL,
-	reasoning_effort TEXT,
-	config TEXT,
-	pass_at_1 REAL NOT NULL,
-	ci_lo REAL,
-	ci_hi REAL,
-	ci_half REAL,
-	n_tasks_attempted INTEGER,
-	mean_cost_usd REAL NOT NULL,
-	mean_duration_seconds REAL,
-	mean_output_tokens REAL NOT NULL,
-	PRIMARY KEY (row_index)
-);
-
 CREATE TABLE IF NOT EXISTS frontier_code_raw_rows (
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,

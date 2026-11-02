@@ -152,7 +152,7 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
   },
   frontiermath_tier_4: {
-    group: "frontier",
+    group: "baseline",
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
@@ -212,11 +212,6 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
   },
   omniscience_accuracy: {
-    group: "baseline",
-    benchmarkImportance: 1,
-    dimensionLoadings: { intelligence: 1, agentic: 0 },
-  },
-  perception_bench: {
     group: "baseline",
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },

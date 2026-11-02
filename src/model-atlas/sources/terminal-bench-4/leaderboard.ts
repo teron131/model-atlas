@@ -187,6 +187,6 @@ function modelEffortLabel(baseModel: string, reasoningEffort: string | null): st
 }
 
 /** Return the provider-qualified alias omitted by Terminal-Bench 4.0 for Claude family labels. */
-function claudeBaseModelAlias(baseModel: string): string | null {
+export function claudeBaseModelAlias(baseModel: string): string | null {
   return /^(?:Fable|Opus|Sonnet)\b/.test(baseModel) ? `Claude ${baseModel}` : null;
 }

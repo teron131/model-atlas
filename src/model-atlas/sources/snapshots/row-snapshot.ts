@@ -24,7 +24,12 @@ type SourceRowsPayload<Row> = {
   data: Row[];
 };
 
-type SourceRowSnapshotConfig<Row> = {
+type RowIdentity<Row> =
+  | { rowKey: (row: Row) => string | null }
+  /** Builds keys from the rows the source currently publishes: the fetched rows, or the cached rows when nothing usable was fetched. */
+  | { rowKeyFor: (currentRows: readonly Row[]) => (row: Row) => string | null };
+
+type SourceRowSnapshotConfig<Row> = RowIdentity<Row> & {
   source: RawSourceName;
   cached: RawRowsCache<Row> | null | undefined;
   status: RawSourceCacheStatus;
@@ -36,9 +41,9 @@ type SourceRowSnapshotConfig<Row> = {
   replaceRowsOnRefresh?: boolean;
   /** Omitted for sources that publish no version. */
   versions?: VersionRule<Row>;
-  rowKey: (row: Row) => string | null;
   rowLabel: (row: Row) => string | null;
   mergeRow?: (cachedRow: Row, fetchedRow: Row) => Row;
+  seriesOf?: (row: Row) => string;
 };
 
 type SourceRowSnapshotResult<Row> = {
@@ -48,8 +53,43 @@ type SourceRowSnapshotResult<Row> = {
   sourceUrl: string | null;
 };
 
+/** A harness distinguishes runs only when the current rows publish one run under several harness labels, a missing label counting as one; elsewhere it describes the run, so a changed label revises the row instead of quarantining it beside its replacement. */
+export function harnessDistinguishesRuns<Row>(
+  rows: readonly Row[],
+  runOf: (row: Row) => string,
+  harnessOf: (row: Row) => unknown,
+): boolean {
+  const harnessByRun = new Map<string, unknown>();
+  for (const row of rows) {
+    const run = runOf(row);
+    const harness = harnessOf(row) ?? null;
+    if (harnessByRun.has(run) && harnessByRun.get(run) !== harness) return true;
+    harnessByRun.set(run, harness);
+  }
+  return false;
+}
+
+/** Applies the harness rule per source series, since one benchmark can combine sources with different harness practices. The rule reads only the current rows, so a partial fetch that omits a multi-harness model merges that model's cached harness rows until a full fetch restores them. */
+export function benchmarkObservationRowKeyFor(
+  rows: readonly BenchmarkObservationRow[],
+): (row: BenchmarkObservationRow) => string {
+  const harnessSeries = new Set(
+    [...new Set(rows.map((row) => row.source_url))].filter((sourceUrl) =>
+      harnessDistinguishesRuns(
+        rows.filter((row) => row.source_url === sourceUrl),
+        (row) => benchmarkObservationRowKey(row, { harness: false }),
+        (row) => row.metadata.harness,
+      ),
+    ),
+  );
+  return (row) => benchmarkObservationRowKey(row, { harness: harnessSeries.has(row.source_url) });
+}
+
 /** Uses stable model identity rather than mutable source labels across benchmark row variants. */
-export function benchmarkObservationRowKey(row: BenchmarkObservationRow): string {
+export function benchmarkObservationRowKey(
+  row: BenchmarkObservationRow,
+  { harness = true }: { harness?: boolean } = {},
+): string {
   const parsedModel = parseModelEffort(row.model);
   const baseModel = row.base_model === row.model ? parsedModel.baseModel : row.base_model;
   const metadataIdentity = (key: string): string | number | null => {
@@ -60,7 +100,7 @@ export function benchmarkObservationRowKey(row: BenchmarkObservationRow): string
     row.benchmark_key,
     metadataIdentity("task"),
     metadataIdentity("track"),
-    metadataIdentity("harness"),
+    harness ? metadataIdentity("harness") : null,
     metadataIdentity("source_model_id") ??
       metadataIdentity("source_model") ??
       metadataIdentity("internal_model_name"),
@@ -71,11 +111,14 @@ export function benchmarkObservationRowKey(row: BenchmarkObservationRow): string
   );
 }
 
-/** Retain cached evidence while adopting the current source's normalized display identity. */
+/** Retain cached evidence while adopting the current source's normalized display identity; a row reported under another harness is a rerun, so it replaces the cached row. */
 export function mergeBenchmarkObservationRow(
   cachedRow: BenchmarkObservationRow,
   fetchedRow: BenchmarkObservationRow,
 ): BenchmarkObservationRow {
+  if ((cachedRow.metadata.harness ?? null) !== (fetchedRow.metadata.harness ?? null)) {
+    return fetchedRow;
+  }
   return {
     ...mergeSourceEvidence(cachedRow, fetchedRow),
     model: fetchedRow.model,
@@ -126,7 +169,7 @@ export async function snapshotSourceRows<Row>(
       fetchedRows: [],
       fetchedAtEpochSeconds: null,
       options: config.options,
-      rowKey: config.rowKey,
+      rowKey: resolveRowKey(config, config.cached.rows),
       rowLabel: config.rowLabel,
       mergeRow: config.mergeRow,
       previousMissingSince: config.previousMissingSince,
@@ -164,9 +207,13 @@ export async function snapshotSourceRows<Row>(
       hasUsableFetchedRows && config.replaceRowsOnRefresh
         ? { ...config.options, replaceSourceRows: true }
         : config.options,
-    rowKey: config.rowKey,
+    rowKey: resolveRowKey(
+      config,
+      hasUsableFetchedRows ? fetched.data : (config.cached?.rows ?? []),
+    ),
     rowLabel: config.rowLabel,
     mergeRow: config.mergeRow,
+    seriesOf: config.seriesOf,
     previousMissingSince: config.previousMissingSince,
     nowEpochSeconds: config.nowEpochSeconds,
   });
@@ -184,6 +231,10 @@ export async function snapshotSourceRows<Row>(
       fetched.source_url,
     ),
   };
+}
+
+function resolveRowKey<Row>(identity: RowIdentity<Row>, currentRows: readonly Row[]) {
+  return "rowKey" in identity ? identity.rowKey : identity.rowKeyFor(currentRows);
 }
 
 /** Keep provenance aligned with the source rows selected for the snapshot. */

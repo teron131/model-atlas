@@ -7,7 +7,7 @@ import { asFiniteNumber, asNonEmptyString } from "../../runtime";
 import { type BenchmarkSnapshotContext, defineBenchmarkRuntime } from "../benchmark-runtime";
 import { type CacheRowSource, firstFetchedAt, sourceCacheRows } from "../cache/rows";
 import { sourceRowKey } from "../snapshots/policy";
-import { snapshotSourceRows } from "../snapshots/row-snapshot";
+import { harnessDistinguishesRuns, snapshotSourceRows } from "../snapshots/row-snapshot";
 import type {
   RawSourceCacheStatus,
   SourceRefreshOptions,
@@ -108,7 +108,7 @@ export function readTerminalBench4RawCache(cache: CacheRowSource): {
   return rows.length === cacheRows.length ? { rows, fetchedAt: firstFetchedAt(cacheRows) } : null;
 }
 
-/** Refresh every model-agent observation while keeping effort and harness in row identity. */
+/** Refresh every model-agent observation, keeping harness in row identity only when the board lists one model and effort under several agents. */
 async function terminalBench4Snapshot(
   cached: ReturnType<typeof readTerminalBench4RawCache>,
   status: RawSourceCacheStatus,
@@ -129,9 +129,19 @@ async function terminalBench4Snapshot(
     previousMissingSince,
     nowEpochSeconds,
     fetchRows: getTerminalBench4Stats,
-    rowKey: (row) => sourceRowKey(row.base_model, row.reasoning_effort, row.harness),
+    rowKeyFor: (rows) => {
+      const harnessIdentity = harnessDistinguishesRuns(
+        rows,
+        (row) => sourceRowKey(row.base_model, row.reasoning_effort),
+        (row) => row.harness,
+      );
+      return (row) =>
+        sourceRowKey(row.base_model, row.reasoning_effort, harnessIdentity ? row.harness : null);
+    },
     rowLabel: (row) => `${row.model}: ${row.harness}`,
     versions: { versionOf: (row) => row.revision },
+    // The board revises a model's result in place, so the current result replaces the cached one.
+    mergeRow: (_cached, fetched) => fetched,
   });
   return {
     terminalBench4Rows: snapshot.rows,

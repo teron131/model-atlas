@@ -10,6 +10,7 @@ import { benchmarkVersionId } from "../src/model-atlas/timeline/capability";
 
 const changedKeys = [
   "aa_intelligence_index",
+  "arc_agi_3",
   "chess_puzzles",
   "code_migration",
   "critpt",

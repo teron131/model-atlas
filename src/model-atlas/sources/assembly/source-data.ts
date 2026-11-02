@@ -29,11 +29,6 @@ import {
   buildArtificialAnalysisResourceLookup,
   buildArtificialAnalysisSourceDefaultResourceLookup,
 } from "../artificial-analysis/benchmark-resources";
-import {
-  type BlueprintBenchModelScoreRow,
-  type BlueprintBenchRowsByModelName,
-  buildBlueprintBenchMap,
-} from "../blueprint-bench/leaderboard";
 import type {
   FrontierCodeModelEffortRow,
   FrontierCodeRowsByModelName,
@@ -116,7 +111,6 @@ export type ModelAtlasSourceData = BenchmarkObservationData & {
     sourceDefaultRows: AleBenchModelScoreRow[];
     rowsByModelName: AleBenchRowsByModelName;
   };
-  blueprintBench: IndexedSourceRows<BlueprintBenchModelScoreRow, BlueprintBenchRowsByModelName>;
   frontierCode: IndexedSourceRows<FrontierCodeModelEffortRow, FrontierCodeRowsByModelName>;
   riemannBench: IndexedSourceRows<RiemannBenchModelScoreRow, RiemannBenchRowsByModelName>;
   terminalBench4: IndexedSourceRows<TerminalBench4ModelHarnessRow, TerminalBench4RowsByModelName>;
@@ -135,7 +129,6 @@ export type ModelAtlasSourceRows = BenchmarkObservationRows & {
   arenaAgentRows: ModelAtlasSourceData["arenaAgent"]["rows"];
   agentsLastExamRows: ModelAtlasSourceData["agentsLastExam"]["rows"];
   aleBenchConfigurationRows: AleBenchSourceRow[];
-  blueprintBenchRows: ModelAtlasSourceData["blueprintBench"]["rows"];
   frontierCodeRows: ModelAtlasSourceData["frontierCode"]["rows"];
   riemannBenchRows: ModelAtlasSourceData["riemannBench"]["rows"];
   terminalBench4Rows: ModelAtlasSourceData["terminalBench4"]["rows"];
@@ -194,10 +187,6 @@ export function buildSourceData(rows: ModelAtlasSourceRows): ModelAtlasSourceDat
       rows: rows.aleBenchConfigurationRows,
       sourceDefaultRows: aleBenchSourceDefaultRows,
       rowsByModelName: buildBenchmarkModelMap(aleBenchSourceDefaultRows),
-    },
-    blueprintBench: {
-      rows: rows.blueprintBenchRows,
-      rowsByModelName: buildBlueprintBenchMap(rows.blueprintBenchRows),
     },
     frontierCode: {
       rows: rows.frontierCodeRows,

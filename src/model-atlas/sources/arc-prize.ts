@@ -13,10 +13,6 @@ import {
   resourcePerTaskRun,
 } from "../benchmarks/observation";
 import {
-  BENCHMARK_RESOURCE_SOURCE_LABELS,
-  RESOURCE_SOURCE_AGREEMENT_POLICY,
-} from "../benchmarks/resource-sources";
-import {
   modelNameWithoutCreatorPrefix,
   normalizeModelToken,
   parseModelEffort,
@@ -38,7 +34,6 @@ type ArcPrizeLeaderboardOptions = {
 
 type ParsedArcPrizeRow = {
   model_id: string;
-  canonical_model_id: string;
   model: string;
   base_model: string;
   reasoning_effort: string | null;
@@ -49,11 +44,6 @@ type ParsedArcPrizeRow = {
   task_run_count?: number;
   total_cost_usd?: number;
   source_index: number;
-};
-
-type ArcPrizeAggregate = {
-  row: ParsedArcPrizeRow;
-  components: ParsedArcPrizeRow[];
 };
 
 /** Fetch current official ARC Prize evidence without mutating persisted data. */
@@ -71,7 +61,7 @@ export async function getArcPrizeStats(
   });
 }
 
-/** Parse one official leaderboard and rank displayed model rows by score, retaining ties. */
+/** Parse one official leaderboard and rank displayed model rows by score, retaining ties. ARC-AGI-3 scores only Standard runs: Provider Adapter runs use each provider's own context handling, score far higher for the same model, and stay as unscored provenance. */
 function processArcPrizeLeaderboardJson(
   payload: unknown,
   options: ArcPrizeLeaderboardOptions,
@@ -102,30 +92,35 @@ function processArcPrizeLeaderboardJson(
     })
     .sort((left, right) => right.score - left.score || left.source_index - right.source_index);
 
-  if (options.datasetId === "v3_Semi_Private") {
-    return canonicalArcAgi3Rows(rows, options, observedAt);
-  }
-
+  const scored = rows.filter((row) => row.harness !== "provider_adapter");
   let rank = 0;
   let previousScore: number | null = null;
-  return rows.map((row, index) => {
-    if (previousScore !== row.score) rank = index + 1;
-    previousScore = row.score;
-    return arcObservationRow(row, options, observedAt, rank);
-  });
+  return [
+    ...scored.map((row, index) => {
+      if (previousScore !== row.score) rank = index + 1;
+      previousScore = row.score;
+      return arcObservationRow(row, options, observedAt, rank);
+    }),
+    ...rows
+      .filter((row) => row.harness === "provider_adapter")
+      .map((row) => arcObservationRow(row, options, observedAt, null)),
+  ];
 }
 
-/** Accept cached ARC-AGI-3 resources only when harness counts and normalized costs match the active task contract. */
+/** Accept cached ARC-AGI-3 rows only when Standard rows score, Provider Adapter rows are provenance, and costs match the active task contract. */
 export function arcPrizeCacheMatches(
   rows: readonly BenchmarkObservationRow[],
   benchmarkKey: "arc_agi_2" | "arc_agi_3",
 ): boolean {
   if (benchmarkKey !== "arc_agi_3") return true;
   return rows.every((row) => {
-    const harnessCount = arcAgi3HarnessCount(row);
+    const { harness, observation_role: role } = row.metadata;
     if (
-      harnessCount == null ||
-      row.task_run_count !== BENCHMARK_RESOURCE_PROFILES.arc_agi_3.taskRunCount * harnessCount
+      !(
+        (harness === "standard" && role == null) ||
+        (harness === "provider_adapter" && role === "component")
+      ) ||
+      row.task_run_count !== BENCHMARK_RESOURCE_PROFILES.arc_agi_3.taskRunCount
     ) {
       return false;
     }
@@ -180,7 +175,6 @@ function parseArcPrizeEvaluation(
 
   return {
     model_id: modelId,
-    canonical_model_id: canonicalArcModelId(row, modelId, harness),
     model,
     base_model: identity.baseModel,
     reasoning_effort: identity.reasoningEffort,
@@ -253,169 +247,6 @@ function arcPrizeResource(
   };
 }
 
-function canonicalArcModelId(
-  row: Record<string, unknown>,
-  modelId: string,
-  harness: ArcPrizeHarness | null,
-): string {
-  if (harness == null) return modelId;
-  const modelGroup = asNonEmptyString(row.modelGroup) ?? modelId;
-  return modelGroup.replace(/-provider-adapter$/i, "");
-}
-
-function canonicalArcAgi3Rows(
-  components: ParsedArcPrizeRow[],
-  options: ArcPrizeLeaderboardOptions,
-  observedAt: string | null,
-): BenchmarkObservationRow[] {
-  const groups = new Map<string, ParsedArcPrizeRow[]>();
-  for (const component of components) {
-    const key = arcConfigurationKey(component);
-    const rows = groups.get(key) ?? [];
-    rows.push(component);
-    groups.set(key, rows);
-  }
-  const aggregates = [...groups.values()]
-    .map((rows): ArcPrizeAggregate => {
-      const orderedComponents = [...new Map(rows.map((row) => [row.harness, row])).values()].sort(
-        (left, right) =>
-          arcHarnessOrder(left.harness) - arcHarnessOrder(right.harness) ||
-          left.source_index - right.source_index,
-      );
-      const first = orderedComponents[0]!;
-      const completeResources = orderedComponents.every(
-        (row) => row.task_run_count != null && row.total_cost_usd != null,
-      );
-      const taskRunCount = completeResources
-        ? orderedComponents.reduce((total, row) => total + (row.task_run_count ?? 0), 0)
-        : undefined;
-      const totalCostUsd = completeResources
-        ? orderedComponents.reduce((total, row) => total + (row.total_cost_usd ?? 0), 0)
-        : undefined;
-      return {
-        row: {
-          ...first,
-          model_id: first.canonical_model_id,
-          model: first.model.replace(/\s-\sProvider Adapter(?=\s*(?:\(|$))/i, ""),
-          harness: null,
-          score:
-            orderedComponents.reduce((total, row) => total + row.score, 0) /
-            orderedComponents.length,
-          cost:
-            taskRunCount == null || totalCostUsd == null
-              ? null
-              : resourcePerTaskRun(totalCostUsd, taskRunCount),
-          task_run_count: taskRunCount,
-          total_cost_usd: totalCostUsd,
-          source_index: Math.min(...orderedComponents.map((row) => row.source_index)),
-        },
-        components: orderedComponents,
-      };
-    })
-    .sort(
-      (left, right) =>
-        right.row.score - left.row.score || left.row.source_index - right.row.source_index,
-    );
-  const costAgreement = arcAgi3CostAgreement(aggregates);
-
-  let rank = 0;
-  let previousScore: number | null = null;
-  const canonicalRows = aggregates.map(({ row, components: orderedComponents }, index) => {
-    if (previousScore !== row.score) rank = index + 1;
-    previousScore = row.score;
-    const harnesses = orderedComponents
-      .map((component) => component.harness)
-      .filter((harness): harness is ArcPrizeHarness => harness != null);
-    const standard = orderedComponents.find((component) => component.harness === "standard");
-    const providerAdapter = orderedComponents.find(
-      (component) => component.harness === "provider_adapter",
-    );
-    return {
-      ...arcObservationRow(row, options, observedAt, rank),
-      metadata: {
-        observation_role: "canonical",
-        aggregation: harnesses.length > 1 ? "equal_harness_mean" : "single_harness",
-        harnesses,
-        component_model_ids: orderedComponents.map((component) => component.model_id),
-        component_scores: orderedComponents.map((component) => component.score),
-        source_a_label: BENCHMARK_RESOURCE_SOURCE_LABELS.arc_agi_3.source_a,
-        source_b_label: BENCHMARK_RESOURCE_SOURCE_LABELS.arc_agi_3.source_b,
-        source_a_score: standard?.score ?? null,
-        source_b_score: providerAdapter?.score ?? null,
-        source_a_cost: standard?.cost ?? null,
-        source_b_cost: providerAdapter?.cost ?? null,
-        fusion_cost_accounting_compatible: true,
-        fusion_cost_comparable: costAgreement.comparable,
-        fusion_cost_paired_models: costAgreement.modelCount,
-        fusion_cost_within_5_percent_share: costAgreement.withinToleranceShare,
-        fusion_cost_estimated: false,
-        fusion_cost_confidence: costAgreement.comparable ? 1 : 0,
-      },
-    } satisfies BenchmarkObservationRow;
-  });
-  return [
-    ...canonicalRows,
-    ...components.map((row) => arcObservationRow(row, options, observedAt, null)),
-  ];
-}
-
-/** ARC harness costs share one accounting contract but still need model-balanced agreement on their absolute scale. */
-function arcAgi3CostAgreement(aggregates: readonly ArcPrizeAggregate[]): {
-  comparable: boolean;
-  modelCount: number;
-  withinToleranceShare: number;
-} {
-  const pairedByModel = new Map<string, Array<{ standard: number; providerAdapter: number }>>();
-  for (const aggregate of aggregates) {
-    const standard = aggregate.components.find(
-      (component) => component.harness === "standard",
-    )?.cost;
-    const providerAdapter = aggregate.components.find(
-      (component) => component.harness === "provider_adapter",
-    )?.cost;
-    if (standard == null || standard <= 0 || providerAdapter == null || providerAdapter <= 0)
-      continue;
-    const pairs = pairedByModel.get(aggregate.row.base_model) ?? [];
-    pairs.push({ standard, providerAdapter });
-    pairedByModel.set(aggregate.row.base_model, pairs);
-  }
-  let agreeingWeight = 0;
-  for (const pairs of pairedByModel.values()) {
-    const pairWeight = 1 / pairs.length;
-    for (const pair of pairs) {
-      if (
-        Math.max(pair.standard, pair.providerAdapter) /
-          Math.min(pair.standard, pair.providerAdapter) <=
-        RESOURCE_SOURCE_AGREEMENT_POLICY.maximumRatio
-      ) {
-        agreeingWeight += pairWeight;
-      }
-    }
-  }
-  const modelCount = pairedByModel.size;
-  const withinToleranceShare = modelCount === 0 ? 0 : agreeingWeight / modelCount;
-  return {
-    comparable:
-      modelCount >= RESOURCE_SOURCE_AGREEMENT_POLICY.minimumModels &&
-      withinToleranceShare >= RESOURCE_SOURCE_AGREEMENT_POLICY.minimumShare,
-    modelCount,
-    withinToleranceShare,
-  };
-}
-
-function arcConfigurationKey(row: ParsedArcPrizeRow): string {
-  return JSON.stringify([
-    row.canonical_model_id,
-    row.base_model,
-    row.reasoning_effort,
-    row.model_creator,
-  ]);
-}
-
-function arcHarnessOrder(harness: ArcPrizeHarness | null): number {
-  return harness === "standard" ? 0 : harness === "provider_adapter" ? 1 : 2;
-}
-
 function arcObservationRow(
   row: ParsedArcPrizeRow,
   options: ArcPrizeLeaderboardOptions,
@@ -439,34 +270,8 @@ function arcObservationRow(
     metadata:
       row.harness == null
         ? {}
-        : {
-            observation_role: "component",
-            harness: row.harness,
-          },
+        : row.harness === "provider_adapter"
+          ? { observation_role: "component", harness: row.harness }
+          : { harness: row.harness },
   };
-}
-
-function arcAgi3HarnessCount(row: BenchmarkObservationRow): number | null {
-  if (row.metadata.observation_role === "component") {
-    return row.metadata.harness === "standard" || row.metadata.harness === "provider_adapter"
-      ? 1
-      : null;
-  }
-  if (row.metadata.observation_role !== "canonical") return null;
-  const harnesses = row.metadata.harnesses;
-  const validHarnesses = Array.isArray(harnesses)
-    ? harnesses.filter(
-        (harness): harness is "standard" | "provider_adapter" =>
-          harness === "standard" || harness === "provider_adapter",
-      )
-    : [];
-  if (
-    !Array.isArray(harnesses) ||
-    validHarnesses.length === 0 ||
-    validHarnesses.length !== harnesses.length ||
-    new Set(validHarnesses).size !== validHarnesses.length
-  ) {
-    return null;
-  }
-  return validHarnesses.length;
 }

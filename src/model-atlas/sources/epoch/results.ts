@@ -1,7 +1,8 @@
 /**
- * Benchmark run results from Epoch AI's bulk benchmark dataset.
+ * Benchmark results from Epoch AI: its own runs from the bulk benchmark dataset, and external leaderboards it republishes as one CSV per benchmark.
  *
  * CSV source: https://epoch.ai/data/benchmarks.csv
+ * External CSV sources: https://epoch.ai/data/external_benchmarks/<benchmark>.csv
  */
 
 import type { EpochRunEligibility } from "../../benchmarks/factory";
@@ -54,7 +55,6 @@ export function epochBenchmarkObservationRows(
       row.task !== task ||
       (eligibility.originalTaskName != null &&
         row.original_task_name !== eligibility.originalTaskName) ||
-      (eligibility.runIdPrefix != null && !row.id_runs?.startsWith(eligibility.runIdPrefix)) ||
       (row.id_model_version != null && excludedModelIds.has(row.id_model_version))
     ) {
       return [];
@@ -70,7 +70,7 @@ export function epochBenchmarkObservationRows(
     .map((row) => ({ ...row, metadata: { ...row.metadata, benchmark_version: version } }));
 }
 
-/** Reject cached runs from a different task, run prefix, or excluded model cohort, and caches that mix task versions. */
+/** Reject cached runs from a different task or excluded model cohort, and caches that mix task versions. */
 export function epochBenchmarkCacheMatches(
   rows: readonly BenchmarkObservationRow[],
   task: string,
@@ -84,12 +84,52 @@ export function epochBenchmarkCacheMatches(
         row.metadata.task === task &&
         (eligibility.originalTaskName == null ||
           row.metadata.original_task_name === eligibility.originalTaskName) &&
-        (eligibility.runIdPrefix == null ||
-          (typeof row.metadata.run_id === "string" &&
-            row.metadata.run_id.startsWith(eligibility.runIdPrefix))) &&
         (row.model_id == null || !excludedModelIds.has(row.model_id)),
     )
   );
+}
+
+/** Load one external leaderboard Epoch republishes; its rows name models without an effort and carry the source's own score. */
+export async function getEpochExternalBenchmarkStats(
+  benchmarkKey: BenchmarkObservationRow["benchmark_key"],
+  sourceUrl: string,
+): Promise<BenchmarkObservationPayload> {
+  return fetchSource(sourceUrl, {}, DEFAULT_TIMEOUT_MS, async (response) => {
+    if (!response.ok)
+      throw new Error(`Epoch external benchmark download failed: ${response.status}`);
+    return {
+      fetched_at_epoch_seconds: nowEpochSeconds(),
+      data: epochExternalBenchmarkRows(await response.text(), benchmarkKey, sourceUrl),
+    };
+  });
+}
+
+function epochExternalBenchmarkRows(
+  csv: string,
+  benchmarkKey: BenchmarkObservationRow["benchmark_key"],
+  sourceUrl: string,
+): BenchmarkObservationRow[] {
+  return parseCsvRecords(csv).flatMap((record) => {
+    const model = record.Name?.trim();
+    const score = asFiniteNumber(record.Score);
+    if (!model || score == null) return [];
+    const parsed = parseModelEffort(model);
+    return [
+      {
+        benchmark_key: benchmarkKey,
+        source_url: sourceUrl,
+        model_id: record["Model version"]?.trim() || null,
+        model,
+        base_model: parsed.baseModel,
+        reasoning_effort: parsed.reasoningEffort,
+        model_creator: record.Organization || null,
+        rank: null,
+        canonical_value: score,
+        observed_at: null,
+        metadata: {},
+      },
+    ];
+  });
 }
 
 /** Shares only an in-flight CSV request while each Epoch benchmark keeps an independent lifecycle. */

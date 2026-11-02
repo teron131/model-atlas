@@ -128,9 +128,10 @@ function modelIdConflictsWithBaseModel(row: BenchmarkObservationEvidenceRow): bo
   );
 }
 
+/** A source's zero minor version also answers to the bare major release, as "Claude Fable 5.0" for "Claude Fable 5"; catalog names keep theirs, as "Beam 1.0". */
 function baseModelNames(row: BenchmarkObservationEvidenceRow): string[] {
   const model = parseModelEffort(row.model).baseModel;
-  return [row.base_model, model, canonicalQwenName(model)];
+  return [row.base_model, model, canonicalQwenName(model), model.replace(/(\d)\.0(?!\d)/g, "$1")];
 }
 
 function modelKeys(row: BenchmarkObservationEvidenceRow): string[] {

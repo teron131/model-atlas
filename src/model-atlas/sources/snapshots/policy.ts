@@ -1,4 +1,4 @@
-/** Source snapshot policy preserves cached evidence, quarantines missing rows, and reports source health. */
+/** Source snapshot policy preserves cached evidence, retires rows a source stops listing, and reports source health. */
 
 import type { DatabaseSync } from "node:sqlite";
 
@@ -24,6 +24,8 @@ type SnapshotRowsConfig<T> = {
   rowKey: (row: T) => string | null;
   rowLabel: (row: T) => string | null;
   mergeRow?: (cachedRow: T, fetchedRow: T) => T;
+  /** The URL or page a row was fetched from, for sources that combine several; defaults to one series. */
+  seriesOf?: (row: T) => string;
   previousMissingSince: ReadonlyMap<string, number>;
   nowEpochSeconds: number;
 };
@@ -40,6 +42,9 @@ type RowStateContext = {
   nowEpochSeconds: number;
   options: SourceRefreshOptions;
 };
+
+/** A row missing from a working fetch keeps scoring this long, so one partial page cannot erase it; after that the source has withdrawn it. */
+const MISSING_ROW_GRACE_SECONDS = 24 * 60 * 60;
 
 /** Stable source-row keys are persisted, so every caller must use the same empty-part normalization. */
 export function sourceRowKey(...parts: (number | string | null | undefined)[]): string {
@@ -160,7 +165,7 @@ export function withoutSupersededVersions<T>(
   return cachedRows.filter((row) => !supersededSeries.has(seriesOf(row)));
 }
 
-/** Preservation state records which known rows vanished without deleting their cached evidence immediately. */
+/** A row a working fetch omits is quarantined and keeps scoring for a grace period, then is dropped. A series the fetch returned nothing for, like a failed fetch, is no evidence of withdrawal, so its rows keep their state. */
 export function snapshotRowsWithStates<T>(config: SnapshotRowsConfig<T>): SnapshotRowsResult<T> {
   const hasUsableFetchedRows =
     config.fetchedAtEpochSeconds != null && config.fetchedRows.length > 0;
@@ -179,18 +184,30 @@ export function snapshotRowsWithStates<T>(config: SnapshotRowsConfig<T>): Snapsh
           .filter((key): key is string => key != null)
       : [],
   );
-  const context = {
-    hasUsableFetchedRows,
-    fetchedKeys,
-    previousMissingSince: config.previousMissingSince,
-    nowEpochSeconds: config.nowEpochSeconds,
-    options: config.options,
-  };
-  const states = rows.flatMap((row) => {
+  const seriesOf = config.seriesOf ?? (() => "");
+  const fetchedSeries = new Set(hasUsableFetchedRows ? config.fetchedRows.map(seriesOf) : []);
+  const retained = rows.flatMap((row): { row: T; state: SourceRowState | null }[] => {
     const key = config.rowKey(row);
-    return key == null ? [] : [sourceRowState(config.source, key, config.rowLabel(row), context)];
+    if (key == null) return [{ row, state: null }];
+    const seriesFetched = fetchedSeries.has(seriesOf(row));
+    const state = sourceRowState(config.source, key, config.rowLabel(row), {
+      hasUsableFetchedRows: seriesFetched,
+      fetchedKeys,
+      previousMissingSince: config.previousMissingSince,
+      nowEpochSeconds: config.nowEpochSeconds,
+      options: config.options,
+    });
+    const withdrawn =
+      seriesFetched &&
+      state.missing_from_source_since_epoch_seconds != null &&
+      config.nowEpochSeconds - state.missing_from_source_since_epoch_seconds >=
+        MISSING_ROW_GRACE_SECONDS;
+    return withdrawn ? [] : [{ row, state }];
   });
-  return { rows, states };
+  return {
+    rows: retained.map(({ row }) => row),
+    states: retained.flatMap(({ state }) => (state == null ? [] : [state])),
+  };
 }
 
 /** A usable refresh that omits a row quarantines it, a failed refresh keeps an earlier quarantine, and a quarantined row keeps its first missing time. */

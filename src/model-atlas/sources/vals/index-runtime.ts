@@ -119,6 +119,23 @@ async function valsIndexSnapshot(
           versionOf: (row) => row.metadata.benchmark_version,
         })
       : cached?.rows;
+  const cachedModelScores = cachedRows?.filter(isModelScore) ?? [];
+  const modelSnapshot = snapshotRowsWithStates({
+    source: context.source,
+    cachedRows: cachedModelScores,
+    fetchedRows: fetched?.model_scores ?? [],
+    fetchedAtEpochSeconds: fetched?.fetched_at_epoch_seconds ?? null,
+    options,
+    rowKey: (row) => sourceRowKey(row.model_id),
+    rowLabel: (row) => row.model,
+    previousMissingSince,
+    nowEpochSeconds,
+  });
+  // A model Vals has withdrawn takes its task rows with it.
+  const retainedModelIds = new Set(modelSnapshot.rows.map((row) => row.model_id));
+  const withdrawnModelIds = new Set(
+    cachedModelScores.map((row) => row.model_id).filter((id) => !retainedModelIds.has(id)),
+  );
   const rows = snapshotRows(
     cachedRows,
     fetchedRows,
@@ -127,19 +144,8 @@ async function valsIndexSnapshot(
     (row) => sourceRowKey(row.task, row.model_id),
     // Vals revises published index scores under the same model identity.
     (_cached, fetchedRow) => fetchedRow,
-  );
+  ).filter((row) => !withdrawnModelIds.has(row.model_id));
   const modelScores = rows.filter(isModelScore);
-  const states = snapshotRowsWithStates({
-    source: context.source,
-    cachedRows: cachedRows?.filter(isModelScore),
-    fetchedRows: fetched?.model_scores ?? [],
-    fetchedAtEpochSeconds: fetched?.fetched_at_epoch_seconds ?? null,
-    options,
-    rowKey: (row) => sourceRowKey(row.model_id),
-    rowLabel: (row) => row.model,
-    previousMissingSince,
-    nowEpochSeconds,
-  }).states;
   const fetchedAt = snapshotFetchedAt(
     hasUsableFetchedRows,
     cached?.fetchedAt,
@@ -148,7 +154,11 @@ async function valsIndexSnapshot(
   return {
     valsIndexTaskScoreRows: rows,
     valsIndexModelScoreRows: modelScores,
-    sourceStatus: context.sourceStatus({ rows: modelScores, fetchedAt, sourceRowStates: states }),
+    sourceStatus: context.sourceStatus({
+      rows: modelScores,
+      fetchedAt,
+      sourceRowStates: modelSnapshot.states,
+    }),
   };
 }
 

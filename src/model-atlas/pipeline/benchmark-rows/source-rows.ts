@@ -14,6 +14,7 @@ import { aleBenchModelEffort } from "../../sources/ale-bench/leaderboard";
 import type { ArtificialAnalysisBenchmarkResourceRow } from "../../sources/artificial-analysis/benchmark-resources";
 import type { ModelAtlasSourceData } from "../../sources/assembly";
 import { frontierCodeVersion } from "../../sources/frontier-code/leaderboard";
+import { claudeBaseModelAlias } from "../../sources/terminal-bench-4/leaderboard";
 
 export type BenchmarkSourceRow = {
   id: string | null;
@@ -107,20 +108,26 @@ function benchmarkObservationSourceDrafts(sourceData: ModelAtlasSourceData): Ben
     if (source?.rows == null) {
       throw new Error(`Benchmark observation source-data rows are missing: ${sourceDataKey}`);
     }
-    return source.rows
-      .filter(
-        (row) => isAssignableBenchmarkObservation(row) || row.metadata.source_series === "vals",
-      )
-      .map((row) => ({
-        key: row.benchmark_key,
-        id: row.model_id,
-        identity: row.base_model,
-        label: row.model,
-        provider: row.model_creator,
-        reasoningEffort: row.reasoning_effort,
-        value: row.canonical_value,
-        version: row.metadata.benchmark_version,
-      }));
+    return (
+      source.rows
+        // Fused benchmarks publish component rows; those from the benchmark's own publishers still describe its source.
+        .filter(
+          (row) =>
+            isAssignableBenchmarkObservation(row) ||
+            row.metadata.source_series === "vals" ||
+            row.metadata.source_series === "creator",
+        )
+        .map((row) => ({
+          key: row.benchmark_key,
+          id: row.model_id,
+          identity: row.base_model,
+          label: row.model,
+          provider: row.model_creator,
+          reasoningEffort: row.reasoning_effort,
+          value: row.canonical_value,
+          version: row.metadata.benchmark_version,
+        }))
+    );
   });
 }
 
@@ -248,11 +255,6 @@ const STANDALONE_SOURCE_ROW_ADAPTERS = {
       reasoningEffort: row.reasoning_effort,
       value: row.score,
     })),
-  blueprint_bench_2: (sourceData) =>
-    benchmarkRowDrafts("blueprint_bench_2", sourceData.blueprintBench.rows, (row) => ({
-      label: row.model,
-      value: row.score,
-    })),
   frontier_code: (sourceData) =>
     benchmarkRowDrafts(
       "frontier_code",
@@ -269,7 +271,7 @@ const STANDALONE_SOURCE_ROW_ADAPTERS = {
   terminal_bench_4: (sourceData) =>
     benchmarkRowDrafts("terminal_bench_4", sourceData.terminalBench4.rows, (row) => ({
       id: row.base_model,
-      identity: row.base_model,
+      identity: claudeBaseModelAlias(row.base_model) ?? row.base_model,
       label: row.model,
       reasoningEffort: row.reasoning_effort,
       value: row.score,

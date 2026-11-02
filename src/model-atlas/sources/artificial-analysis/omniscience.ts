@@ -12,6 +12,7 @@ import { parseModelEffort } from "../../identity/normalization";
 import { asFiniteNumber, asRecord, nowEpochSeconds } from "../../runtime";
 import { extractNextFlightCorpus, findObjectEnd, parseFlightJsonObject } from "../parsing";
 import { fetchSource } from "../request-scheduler";
+import { artificialAnalysisEvaluationVersion } from "./benchmark-resources";
 import {
   cleanArtificialAnalysisModelName,
   parseArtificialAnalysisReasoningEffort,
@@ -59,6 +60,11 @@ export function processArtificialAnalysisOmnisciencePage(
   pageHtml: string,
   options: Omit<ArtificialAnalysisOmniscienceOptions, "timeoutMs">,
 ): BenchmarkObservationRow[] {
+  const version = artificialAnalysisEvaluationVersion(
+    /<title>([^<]*)<\/title>/.exec(pageHtml)?.[1] ?? null,
+  );
+  // Without the version, a new one would merge into the previous version's rows.
+  if (version == null) throw new Error("Artificial Analysis Omniscience page title has no version");
   return modelRows(pageHtml)
     .flatMap((sourceRow) => {
       const row = asRecord(sourceRow);
@@ -86,6 +92,7 @@ export function processArtificialAnalysisOmnisciencePage(
           metadata: {
             dataset_name: DATASET_NAME,
             details_url: `/models/${slug}`,
+            benchmark_version: version,
           },
         },
       ];

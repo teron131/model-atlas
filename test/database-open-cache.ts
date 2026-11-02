@@ -136,11 +136,11 @@ try {
 				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 			`)
       .run(
-        "perception_bench",
+        "ebr_bench",
         0,
         1_800_000_000,
-        "perception_bench",
-        "https://raw.githubusercontent.com/MoonshotAI/PerceptionBench/master/README.md",
+        "ebr_bench",
+        "https://epoch.ai/data/benchmarks.csv",
         null,
         "Claude Fable 5",
         "Claude Fable 5",
@@ -255,7 +255,7 @@ try {
       Number(
         reopenedDb
           .prepare(
-            "SELECT COUNT(*) AS count FROM benchmark_observation_raw_rows WHERE source_key = 'perception_bench'",
+            "SELECT COUNT(*) AS count FROM benchmark_observation_raw_rows WHERE source_key = 'ebr_bench'",
           )
           .get()?.count ?? 0,
       ),
@@ -265,7 +265,7 @@ try {
     assert.equal(
       reopenedDb
         .prepare(
-          "SELECT observed_at FROM benchmark_observation_raw_rows WHERE source_key = 'perception_bench'",
+          "SELECT observed_at FROM benchmark_observation_raw_rows WHERE source_key = 'ebr_bench'",
         )
         .get()?.observed_at,
       null,
@@ -324,21 +324,17 @@ try {
     );
     reopenedDb
       .prepare(
-        "INSERT INTO blueprint_bench_2_raw_rows (row_index, fetched_at_epoch_seconds, url, model, score) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO riemann_bench_raw_rows (row_index, fetched_at_epoch_seconds, url, model, score) VALUES (?, ?, ?, ?, ?)",
       )
-      .run(0, 1_800_000_010, "https://andonlabs.com/evals/blueprint-bench-2", "Current Model", 0.8);
-    const blueprintStatus = readRawSourceCacheStatus(
-      reopenedDb,
-      "blueprint_bench_2",
-      1_800_000_020,
-    );
+      .run(0, 1_800_000_010, "https://surgehq.ai/benchmarks/riemann-bench", "Current Model", 0.8);
+    const riemannStatus = readRawSourceCacheStatus(reopenedDb, "riemann_bench", 1_800_000_020);
     assert.equal(
-      blueprintStatus.source_input_count,
+      riemannStatus.source_input_count,
       1,
       "source cache status should count the current source rows",
     );
     assert.equal(
-      blueprintStatus.last_fetch_epoch_seconds,
+      riemannStatus.last_fetch_epoch_seconds,
       1_800_000_010,
       "source cache status should use the current source timestamp",
     );

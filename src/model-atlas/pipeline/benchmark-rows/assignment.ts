@@ -31,7 +31,6 @@ import {
   findArtificialAnalysisBenchmarkResourceRow,
 } from "../../sources/artificial-analysis/benchmark-resources";
 import type { ModelAtlasSourceData } from "../../sources/assembly";
-import { findBlueprintBenchScore } from "../../sources/blueprint-bench/leaderboard";
 import { findRiemannBenchScore } from "../../sources/surge/riemann-bench";
 import { findValsIndexRow } from "../../sources/vals/index-benchmark";
 import type { ModelAtlasScoringSources, ModelRow } from "../model-types";
@@ -49,7 +48,6 @@ export type BenchmarkAssignmentLookups = BenchmarkObservationLookups & {
   arenaAgent: Pick<ModelAtlasSourceData["arenaAgent"], "rowsByModelName">;
   agentsLastExam: Pick<ModelAtlasSourceData["agentsLastExam"], "rowsByModelName">;
   aleBench: Pick<ModelAtlasSourceData["aleBench"], "rowsByModelName">;
-  blueprintBench: Pick<ModelAtlasSourceData["blueprintBench"], "rowsByModelName">;
   frontierCode: Pick<ModelAtlasSourceData["frontierCode"], "rowsByModelName">;
   riemannBench: Pick<ModelAtlasSourceData["riemannBench"], "rowsByModelName">;
   terminalBench4: Pick<ModelAtlasSourceData["terminalBench4"], "rowsByModelName">;
@@ -312,17 +310,6 @@ const STANDALONE_BENCHMARK_ADAPTERS = {
       if (row != null) {
         assignedBenchmarks.benchmarks.arena_agent = row.score;
         assignedBenchmarks.scoringSources.arena_agent = row;
-      }
-    },
-  },
-  blueprint_bench_2: {
-    defaultVariant: ({ assignedBenchmarks, lookups, modelNameCandidates }) => {
-      const score = findBlueprintBenchScore(
-        modelNameCandidates,
-        lookups.blueprintBench.rowsByModelName,
-      );
-      if (score != null) {
-        assignedBenchmarks.benchmarks.blueprint_bench_2 = score;
       }
     },
   },

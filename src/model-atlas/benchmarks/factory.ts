@@ -30,7 +30,6 @@ export type EpochRunEligibility = {
   /** Accept only runs in the task's newest published major.minor version, pooling its patch revisions. */
   latestTaskVersion?: true;
   originalTaskName?: string;
-  runIdPrefix?: string;
   excludedModelIds?: readonly string[];
 };
 
@@ -48,6 +47,7 @@ export type BenchmarkObservationLoader =
   | { kind: "automation_bench"; sourceUrl: string }
   | { kind: "cais_dashboard"; sourceUrl: string }
   | { kind: "epoch_capabilities_index"; sourceUrl: string }
+  | { kind: "epoch_external"; sourceUrl: string }
   | {
       kind: "epoch_runs";
       task: string;
@@ -58,7 +58,6 @@ export type BenchmarkObservationLoader =
       sourceUrl: string;
       harness: "terminus-2" | "loop_truncated_tools_agent" | null;
     }
-  | { kind: "perception_bench"; sourceUrl: string }
   | {
       kind: "surge";
       sourceUrl: string;

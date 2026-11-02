@@ -11,6 +11,7 @@ import {
   canonicalModelKey,
   canonicalReasoningEffort,
   normalizeModelToken,
+  parseModelEffort,
 } from "../../identity/normalization";
 import type { BenchmarkRowsByKey, BenchmarkSourceRow } from "../../pipeline/benchmark-rows";
 import { benchmarkValue } from "../../pipeline/scores/resource-metrics";
@@ -210,6 +211,7 @@ function sourceMatcher(
   models: readonly HealthModel[],
   config: MatcherConfig | undefined,
 ): (row: BenchmarkSourceRow) => string | null {
+  if (config == null) return () => null;
   // Efforts share matching identities; rank each id/name pair once without merging distinct catalog aliases.
   const candidatesByIdentity = new Map<string, MatchCandidateInput>();
   for (const model of models) {
@@ -223,9 +225,8 @@ function sourceMatcher(
   }
   const candidates = [...candidatesByIdentity.values()];
   const modelIdBySlug = new Map<string, string | null>();
-  return (row) => {
-    if (config == null) return null;
-    const slug = normalizeModelToken(row.identity.split("/").at(-1) || row.label);
+  const matchName = (name: string): string | null => {
+    const slug = normalizeModelToken(name);
     let modelId = modelIdBySlug.get(slug);
     if (modelId === undefined) {
       const ranked = rankMatchCandidates(slug, candidates, { requireSourceTokenCoverage: true });
@@ -234,4 +235,8 @@ function sourceMatcher(
     }
     return modelId;
   };
+  // Base models can drop a creator brand that names the family, as Surge's "Grok" leaving "4.7"; the source's own name keeps it.
+  return (row) =>
+    matchName(row.identity.split("/").at(-1) || row.label) ??
+    matchName(parseModelEffort(row.label).baseModel);
 }

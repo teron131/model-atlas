@@ -13,7 +13,6 @@ import { agentsLastExamRuntime } from "./agents-last-exam/runtime";
 import { aleBenchRuntime } from "./ale-bench/runtime";
 import { arenaAgentRuntime } from "./arena/agent-runtime";
 import type { ModelAtlasSourceRows } from "./assembly/source-data";
-import { blueprintBenchRuntime } from "./blueprint-bench/runtime";
 import { frontierCodeRuntime } from "./frontier-code/runtime";
 import { insertBenchmarkObservationRows } from "./observations/cache";
 import type { RawSourceName } from "./registry";
@@ -27,7 +26,6 @@ const STANDALONE_BENCHMARK_RUNTIMES = {
   agents_last_exam: agentsLastExamRuntime,
   ale_bench: aleBenchRuntime,
   arena_agent: arenaAgentRuntime,
-  blueprint_bench_2: blueprintBenchRuntime,
   frontier_code: frontierCodeRuntime,
   terminal_bench_4: terminalBench4Runtime,
   vending_bench_2: vendingBench2Runtime,
