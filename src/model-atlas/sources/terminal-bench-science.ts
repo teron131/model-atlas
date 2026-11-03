@@ -12,7 +12,8 @@ import {
   type BenchmarkObservationRow,
   resourcePerTaskRun,
 } from "../benchmarks/observation";
-import { canonicalReasoningEffort, modelNameWithoutCreatorPrefix } from "../identity/normalization";
+import { withClaudeFamily } from "../identity/claude";
+import { canonicalReasoningEffort } from "../identity/normalization";
 import { asFiniteNumber, asNonEmptyString, asRecord, nowEpochSeconds } from "../runtime";
 import { percentToUnitScore } from "./parsing";
 import { fetchSource } from "./request-scheduler";
@@ -164,7 +165,7 @@ function terminalBenchScienceObservation(
     source_url: sourceUrl,
     model_id: null,
     model,
-    base_model: terminalBenchScienceBaseModel(model, creator),
+    base_model: withClaudeFamily(model),
     reasoning_effort: canonicalReasoningEffort(metadata.reasoning_effort),
     model_creator: creator,
     rank,
@@ -182,11 +183,4 @@ function terminalBenchScienceObservation(
       score_standard_error: scoreStandardError,
     },
   };
-}
-
-function terminalBenchScienceBaseModel(model: string, creator: string): string {
-  const baseModel = modelNameWithoutCreatorPrefix(model, creator);
-  return creator === "Anthropic" && /^(?:Fable|Opus|Sonnet)\b/.test(baseModel)
-    ? `Claude ${baseModel}`
-    : baseModel;
 }

@@ -3,7 +3,6 @@
 export { modelNameIdentityKey } from "./matching/name-tokens";
 export { buildMatchDiagnostics } from "./matching/pipeline";
 export {
-  artificialAnalysisMatchSlug,
   firstVariantCompatibleCandidate,
   hasVariantConflict,
   rankMatchCandidates,

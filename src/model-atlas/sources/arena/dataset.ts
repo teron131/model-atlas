@@ -4,7 +4,11 @@
  * Dataset source: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
  */
 
-import { parseModelEffort } from "../../identity/normalization";
+import {
+  isReasoningModeLabel,
+  parseModelEffort,
+  qualifierReasoningEffort,
+} from "../../identity/normalization";
 import { asFiniteNumber, asNonEmptyString, asRecord } from "../../runtime";
 import { fetchSource } from "../request-scheduler";
 
@@ -91,8 +95,12 @@ export async function fetchArenaDataset(config: "agent" | "webdev") {
   return overall;
 }
 
-/** Release and supported precision qualifiers stay in model identity; unknown labels cannot supply an assignment. */
-export function arenaDatasetIdentity(name: string) {
+export function arenaBoardNames(rows: readonly Record<string, unknown>[]): ReadonlySet<string> {
+  return new Set(rows.flatMap((row) => asNonEmptyString(row.model_name)?.toLowerCase() ?? []));
+}
+
+/** Release and supported precision qualifiers stay in model identity; unknown labels cannot supply an assignment. A hybrid model's thinking mode is its default variant, so an unqualified name the board also lists in thinking mode is the non-thinking mode. */
+export function arenaDatasetIdentity(name: string, boardNames: ReadonlySet<string>) {
   const suffix = /^(.*?)\s+\(([^()]+)\)$/.exec(name);
   let baseModel = suffix?.[1] ?? name;
   let reasoningEffort: string | null = null;
@@ -100,16 +108,21 @@ export function arenaDatasetIdentity(name: string) {
   let budget: string | null = null;
   let unknown = false;
   for (const qualifier of suffix?.[2]?.split(/,\s*/) ?? []) {
-    if (/^(none|minimal|low|medium|high|xhigh|max)$/i.test(qualifier))
-      reasoningEffort = qualifier.toLowerCase();
-    else if (/^(non-thinking|instant)$/i.test(qualifier)) reasoningEffort = "none";
-    else if (/^(thinking|reasoning)$/i.test(qualifier)) reasoningEffort = "thinking";
+    const effort = qualifierReasoningEffort([qualifier]);
+    if (effort != null) reasoningEffort = effort;
+    else if (/^instant$/i.test(qualifier)) reasoningEffort = "none";
+    else if (isReasoningModeLabel(qualifier)) continue;
     else if (/^[\w -]+ harness$/i.test(qualifier))
       harness = qualifier.toLowerCase().replace(/\s+/g, "-");
     else if (/^\d+k$/i.test(qualifier)) budget = qualifier.toLowerCase();
     else if (/^(?:\d{4,8}|NVFP4)$/i.test(qualifier)) baseModel += `-${qualifier}`;
     else unknown = true;
   }
+  if (
+    suffix == null &&
+    ["thinking", "reasoning"].some((mode) => boardNames.has(`${name} (${mode})`.toLowerCase()))
+  )
+    reasoningEffort = "none";
   const parsed = parseModelEffort(baseModel);
   return {
     baseModel: parsed.baseModel,

@@ -5,7 +5,7 @@
  */
 
 import { parseModelEffort } from "../../identity/normalization";
-import { nowEpochSeconds } from "../../runtime";
+import { asFiniteNumber, asRecord, nowEpochSeconds } from "../../runtime";
 import { findObjectEnd } from "../parsing";
 import { fetchSource } from "../request-scheduler";
 
@@ -17,15 +17,7 @@ const ROUTE_NODE_PATTERN = /\/_app\/immutable\/nodes\/[^"'<>\s]+\.js/g;
 
 const CHUNK_IMPORT_PATTERN = /from"(\.\.\/chunks\/[^"']+\.js)"/g;
 
-const VB2_RUNS_MARKER = "vb2:";
-
-const VB2_ROW_PATTERN = /"((?:\\.|[^"\\])+)":\{([^{}]+)\}/g;
-
-const VB2_NUM_EPOCHS_PATTERN = /(?:^|,)num_epochs:(\d+)(?:,|$)/;
-
-const VB2_TIME_SERIES_PATTERN = /(?:^|,)time_series:\[([^\]]*)\](?:,|$)/;
-
-const VB2_FINAL_VALUE_PATTERN = /(?:^|,)final_value:([-+\d.eE]+)(?:,|$)/;
+const VB2_RUNS_MARKER = '"vb2":';
 
 export type VendingBench2ModelScoreRow = {
   rank: number;
@@ -68,19 +60,21 @@ function processVendingBench2DataModule(dataModule: string): VendingBench2ModelS
     return [];
   }
   const rows: Omit<VendingBench2ModelScoreRow, "rank">[] = [];
-  for (const match of dataModule.slice(objectStart, objectEnd + 1).matchAll(VB2_ROW_PATTERN)) {
-    const model = decodeQuotedString(match[1] ?? "");
-    const fields = match[2] ?? "";
-    const runCount = Number(fields.match(VB2_NUM_EPOCHS_PATTERN)?.[1]);
-    const dailyBalanceUsd = parseNumberList(fields.match(VB2_TIME_SERIES_PATTERN)?.[1] ?? "");
-    const finalBalanceUsd = Number(fields.match(VB2_FINAL_VALUE_PATTERN)?.[1]);
+  const runs = asRecord(JSON.parse(dataModule.slice(objectStart, objectEnd + 1)));
+  for (const [model, value] of Object.entries(runs)) {
+    const run = asRecord(value);
+    const runCount = asFiniteNumber(run.num_epochs);
+    const dailyBalanceUsd = Array.isArray(run.time_series)
+      ? run.time_series.map(asFiniteNumber)
+      : [];
+    const finalBalanceUsd = asFiniteNumber(run.final_value);
     if (
-      model == null ||
+      runCount == null ||
       !Number.isInteger(runCount) ||
       runCount <= 0 ||
-      dailyBalanceUsd == null ||
       dailyBalanceUsd.length === 0 ||
-      !Number.isFinite(finalBalanceUsd)
+      !dailyBalanceUsd.every((balance): balance is number => balance != null) ||
+      finalBalanceUsd == null
     ) {
       continue;
     }
@@ -144,21 +138,4 @@ async function vendingDataModule(
     }
   }
   return null;
-}
-
-function decodeQuotedString(value: string): string | null {
-  try {
-    const parsed = JSON.parse(`"${value}"`);
-    return typeof parsed === "string" && parsed.length > 0 ? parsed : null;
-  } catch {
-    return null;
-  }
-}
-
-function parseNumberList(value: string): number[] | null {
-  if (value.trim().length === 0) {
-    return [];
-  }
-  const numbers = value.split(",").map(Number);
-  return numbers.every(Number.isFinite) ? numbers : null;
 }

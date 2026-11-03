@@ -5,7 +5,7 @@
  * JSON source: https://agents-last-exam.org/api/demo/leaderboard
  */
 
-import { normalizeModelToken } from "../../identity/normalization";
+import { canonicalReasoningEffort } from "../../identity/normalization";
 import { meanOfFinite, medianOfFinite } from "../../math-utils";
 import { asFiniteNumber, asRecord, nowEpochSeconds } from "../../runtime";
 import { fetchSource, scheduleSourceRequest, SourceQueueTimeoutError } from "../request-scheduler";
@@ -38,6 +38,8 @@ export type AgentsLastExamHarnessRow = {
 
 export type AgentsLastExamModelScoreRow = {
   model: string;
+  base_model: string;
+  reasoning_effort: string | null;
   split: string;
   median_score: number;
   mean_score: number;
@@ -59,8 +61,6 @@ export type AgentsLastExamModelScoreRow = {
   mean_cost_usd_per_task: number | null;
   frequency: number;
 };
-
-export type AgentsLastExamRowsByModelName = Map<string, AgentsLastExamModelScoreRow>;
 
 type AgentsLastExamHarnessPayload = {
   fetched_at_epoch_seconds: number | null;
@@ -114,21 +114,26 @@ export function agentsLastExamBenchmarkScore(
   return Math.max(row.median_score, row.mean_score);
 }
 
-/** Group harness/model rows into model-level score rows for the scored leaderboard split. */
+/** Summarize the scored split per model and reasoning effort; harnesses run at the same effort share one row. */
 export function summarizeAgentsLastExamModelScores(
   rows: AgentsLastExamHarnessRow[],
 ): AgentsLastExamModelScoreRow[] {
-  const rowsByModel = new Map<string, AgentsLastExamHarnessRow[]>();
+  const groups = new Map<
+    string,
+    { model: string; reasoningEffort: string | null; rows: AgentsLastExamHarnessRow[] }
+  >();
   for (const row of rows) {
     if (row.split !== SCORE_SPLIT) {
       continue;
     }
-    const modelRows = rowsByModel.get(row.model) ?? [];
-    modelRows.push(row);
-    rowsByModel.set(row.model, modelRows);
+    const reasoningEffort = canonicalReasoningEffort(row.harness_variant);
+    const key = `${row.model}\u001f${reasoningEffort ?? ""}`;
+    const group = groups.get(key) ?? { model: row.model, reasoningEffort, rows: [] };
+    group.rows.push(row);
+    groups.set(key, group);
   }
-  return [...rowsByModel.entries()]
-    .map(([model, modelRows]) => {
+  return [...groups.values()]
+    .map(({ model, reasoningEffort, rows: modelRows }) => {
       const scores = modelRows.map((row) => row.score);
       const accuracies = modelRows.map((row) => row.accuracy);
       const durationSeconds = modelRows.map((row) => row.total_duration_seconds);
@@ -141,7 +146,9 @@ export function summarizeAgentsLastExamModelScores(
       const outputTokensPerTask = modelRows.map((row) => perTask(row.total_output_tokens, row));
       const costsPerTask = modelRows.map((row) => perTask(row.total_cost_usd, row));
       return {
-        model,
+        model: reasoningEffort == null ? model : `${model} (${reasoningEffort})`,
+        base_model: model,
+        reasoning_effort: reasoningEffort,
         split: SCORE_SPLIT,
         median_score: medianOfFinite(scores),
         mean_score: meanOfFinite(scores),
@@ -186,47 +193,6 @@ export function summarizeAgentsLastExamModelScores(
     .sort(
       (left, right) => agentsLastExamBenchmarkScore(right) - agentsLastExamBenchmarkScore(left),
     );
-}
-
-export function buildAgentsLastExamMap(
-  rows: AgentsLastExamModelScoreRow[],
-): AgentsLastExamRowsByModelName {
-  const rowsByModelName: AgentsLastExamRowsByModelName = new Map();
-  for (const row of rows) {
-    const key = normalizeModelToken(row.model);
-    if (key.length === 0) {
-      continue;
-    }
-    const existing = rowsByModelName.get(key);
-    if (
-      !existing ||
-      row.frequency > existing.frequency ||
-      (row.frequency === existing.frequency &&
-        agentsLastExamBenchmarkScore(row) > agentsLastExamBenchmarkScore(existing))
-    ) {
-      rowsByModelName.set(key, row);
-    }
-  }
-  return rowsByModelName;
-}
-
-export function findAgentsLastExamModelScoreRow(
-  candidateNames: unknown[],
-  rowsByModelName: AgentsLastExamRowsByModelName,
-): AgentsLastExamModelScoreRow | null {
-  for (const candidateName of candidateNames) {
-    if (typeof candidateName !== "string" || candidateName.length === 0) {
-      continue;
-    }
-    const normalizedCandidate = normalizeModelToken(candidateName);
-    const row =
-      rowsByModelName.get(normalizedCandidate) ??
-      rowsByModelName.get(normalizedCandidate.replace(/\//g, "-"));
-    if (row) {
-      return row;
-    }
-  }
-  return null;
 }
 
 async function fetchApiRows(): Promise<AgentsLastExamHarnessRow[]> {

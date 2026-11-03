@@ -1,6 +1,7 @@
 /** Pure OpenRouter stat normalization, same-version permaslug resolution, and best-candidate selection policy. */
 
 import { isSameOpenRouterModelRoute } from "../../identity/openrouter";
+import { providerIdentityKey } from "../../identity/provider";
 import { meanOfFinite } from "../../math-utils";
 import { asFiniteNumber, asRecord } from "../../runtime";
 import type {
@@ -18,6 +19,17 @@ import type {
 const OPENROUTER_PROVIDER_ALIASES: Readonly<Record<string, string>> = {
   xai: "x-ai",
 };
+
+/** Routes OpenRouter lists under a name no general matching rule can safely reach. */
+const OPENROUTER_ROUTE_ALIASES: Readonly<Record<string, string>> = {
+  "alibaba/qwen3-8b-instruct": "qwen/qwen3-8b",
+  "deepseek/deepseek-v3": "deepseek/deepseek-chat",
+  "meta/muse-glimmer": "meta/muse-glimmer-30b",
+  "reflection/reflection-beam": "reflection/beam-1.0-501b-a23b",
+};
+
+const RELEASE_MMDD_PATTERN = /^(?:0[1-9]|1[0-2])(?:[0-2]\d|3[01])$/;
+const INSTRUCTION_TUNING_TOKENS = new Set(["instruct", "it"]);
 
 const SECONDS_PER_MILLISECOND = 0.001;
 
@@ -120,12 +132,17 @@ export function resolveOpenRouterPermaslugCandidates(
   availableSlugs: string[],
   permaslugBySlug: Map<string, string>,
 ): string[] {
-  const slugCandidates = buildOpenRouterSlugCandidates(modelId, availableSlugs);
-  return slugCandidates
-    .map((slugCandidate) => permaslugBySlug.get(slugCandidate) ?? null)
-    .filter(
-      (permaslug): permaslug is string => typeof permaslug === "string" && permaslug.length > 0,
-    );
+  const permaslugs = buildOpenRouterSlugCandidates(modelId, availableSlugs).flatMap(
+    (slug) => permaslugBySlug.get(slug) || [],
+  );
+  if (permaslugs.length > 0) {
+    return permaslugs;
+  }
+  const fallbackSlug =
+    OPENROUTER_ROUTE_ALIASES[sanitizeOpenRouterModelId(modelId)] ??
+    looseOpenRouterSlug(modelId, availableSlugs, permaslugBySlug);
+  const permaslug = fallbackSlug && permaslugBySlug.get(fallbackSlug);
+  return permaslug ? [permaslug] : [];
 }
 
 export function parseOpenRouterWeeklyTokens(html: string): number | null {
@@ -303,4 +320,73 @@ function hasWeightedPricing(pricing: OpenRouterEffectivePricingResponse | null):
   return (
     summary.weighted_input_price_per_1m != null || summary.weighted_output_price_per_1m != null
   );
+}
+
+/** Last resort for an id with no exact route: each rule must name exactly one route, and a trailing MMDD release only matches a dateless route whose permaslug carries that date, so one checkpoint never borrows another's stats. */
+function looseOpenRouterSlug(
+  modelId: string,
+  availableSlugs: string[],
+  permaslugBySlug: Map<string, string>,
+): string | null {
+  const target = openRouterRouteTokens(sanitizeOpenRouterModelId(modelId));
+  if (target == null) {
+    return null;
+  }
+  const routes = availableSlugs.flatMap((slug) => {
+    const route = openRouterRouteTokens(slug);
+    return route?.provider === target.provider
+      ? [{ slug, key: route.tokens.join("-"), tuning: tuningKey(route.tokens) }]
+      : [];
+  });
+  const targetKey = target.tokens.join("-");
+  const release = target.tokens.at(-1) ?? "";
+  const undatedKey = target.tokens.slice(0, -1).join("-");
+  const targetTuning = tuningKey(target.tokens);
+  const rules: ((route: (typeof routes)[number]) => boolean)[] = [
+    ({ key }) => key === targetKey,
+    ({ slug, key }) =>
+      RELEASE_MMDD_PATTERN.test(release) &&
+      key === undatedKey &&
+      (permaslugBySlug.get(slug)?.endsWith(release) ?? false),
+    // Gemma publishes instruction-tuned routes with an `-it` suffix.
+    ({ key }) => key === `${targetKey}-it`,
+    // Instruction tokens may sit anywhere, but base and instruct models must never match.
+    ({ tuning }) => tuning === targetTuning,
+  ];
+  for (const rule of rules) {
+    const [match, ...others] = routes.filter(rule);
+    if (match != null && others.length === 0) {
+      return match.slug;
+    }
+  }
+  return null;
+}
+
+/** Tokenize a route so publisher aliases, a repeated publisher prefix, dot or dash versions, a family name fused to its version, and a zero minor version compare equal. */
+function openRouterRouteTokens(route: string): { provider: string; tokens: string[] } | null {
+  const [publisher, rawName] = route.toLowerCase().split("/", 2);
+  if (!publisher || !rawName) {
+    return null;
+  }
+  const provider = providerIdentityKey(publisher);
+  let name = rawName.replaceAll(".", "-");
+  for (const prefix of new Set([publisher, provider])) {
+    if (name.startsWith(`${prefix}-`)) {
+      name = name.slice(prefix.length + 1);
+    }
+  }
+  const tokens = name
+    .split("-")
+    // Parameter counts such as 70b or a23b stay whole; other tokens split at letter-digit boundaries.
+    .flatMap((token) =>
+      /^a?\d+b$/.test(token) ? [token] : token.split(/(?<=\D)(?=\d)|(?<=\d)(?=\D)/),
+    )
+    .filter((token, index, all) => !(token === "0" && /^\d+$/.test(all[index - 1] ?? "")));
+  return { provider, tokens };
+}
+
+function tuningKey(tokens: string[]): string {
+  const tuning = tokens.filter((token) => INSTRUCTION_TUNING_TOKENS.has(token)).sort();
+  const rest = tokens.filter((token) => !INSTRUCTION_TUNING_TOKENS.has(token));
+  return `${rest.join("-")}|${tuning.join("-")}`;
 }

@@ -104,8 +104,6 @@ async function arenaAgentSnapshot(
     replaceRowsOnRefresh: true,
     rowKey: (row) => sourceRowKey(row.contender_name, row.reasoning_effort),
     rowLabel: (row) => row.model,
-    // Net Improvement and rank belong to the current publication; unavailable costs stay missing.
-    mergeRow: (_cachedRow, fetchedRow) => fetchedRow,
   });
   return {
     arenaAgentModelScoreRows: snapshot.rows,

@@ -11,11 +11,7 @@ import {
 } from "../../benchmarks/registry";
 import type { CrosswalkObservation } from "../../benchmarks/sources-crosswalk";
 import { buildBenchmarkModelMap } from "../../identity/normalization";
-import {
-  type AgentsLastExamModelScoreRow,
-  type AgentsLastExamRowsByModelName,
-  buildAgentsLastExamMap,
-} from "../agents-last-exam/leaderboard";
+import type { AgentsLastExamModelScoreRow } from "../agents-last-exam/leaderboard";
 import {
   type AleBenchModelScoreRow,
   type AleBenchRowsByModelName,
@@ -105,7 +101,10 @@ export type ModelAtlasSourceData = BenchmarkObservationData & {
     byId: Map<string, ModelsDevFlatModel>;
   };
   arenaAgent: IndexedSourceRows<ArenaAgentModelScoreRow, ArenaAgentRowsByModelName>;
-  agentsLastExam: IndexedSourceRows<AgentsLastExamModelScoreRow, AgentsLastExamRowsByModelName>;
+  agentsLastExam: IndexedSourceRows<
+    AgentsLastExamModelScoreRow,
+    Map<string, AgentsLastExamModelScoreRow>
+  >;
   aleBench: {
     rows: AleBenchSourceRow[];
     sourceDefaultRows: AleBenchModelScoreRow[];
@@ -181,7 +180,7 @@ export function buildSourceData(rows: ModelAtlasSourceRows): ModelAtlasSourceDat
     },
     agentsLastExam: {
       rows: rows.agentsLastExamRows,
-      rowsByModelName: buildAgentsLastExamMap(rows.agentsLastExamRows),
+      rowsByModelName: buildBenchmarkModelMap(rows.agentsLastExamRows),
     },
     aleBench: {
       rows: rows.aleBenchConfigurationRows,

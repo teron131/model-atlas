@@ -75,12 +75,11 @@ export function readTerminalBench4RawCache(cache: CacheRowSource): {
       score == null ||
       scoreCi95HalfWidth == null ||
       taskRunCount !== BENCHMARK_RESOURCE_PROFILES.terminal_bench_4.taskRunCount ||
-      totalCostUsd == null ||
-      totalCostUsd <= 0 ||
+      (totalCostUsd == null) !== (costPerTaskUsd == null) ||
+      (totalCostUsd != null && totalCostUsd <= 0) ||
+      (costPerTaskUsd != null && costPerTaskUsd <= 0) ||
       totalTokens == null ||
       totalTokens <= 0 ||
-      costPerTaskUsd == null ||
-      costPerTaskUsd <= 0 ||
       tokensPerTask == null ||
       tokensPerTask <= 0
     ) {
@@ -140,8 +139,6 @@ async function terminalBench4Snapshot(
     },
     rowLabel: (row) => `${row.model}: ${row.harness}`,
     versions: { versionOf: (row) => row.revision },
-    // The board revises a model's result in place, so the current result replaces the cached one.
-    mergeRow: (_cached, fetched) => fetched,
   });
   return {
     terminalBench4Rows: snapshot.rows,

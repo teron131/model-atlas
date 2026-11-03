@@ -186,17 +186,17 @@ const indexedRow = {
     output: 42_000,
   },
 };
-// A changed basket, a row without one, or a row kept from before baskets were recorded keeps none of its index score or telemetry.
-for (const intelligenceIndexComponents of [
-  [...recordedComponents.slice(1), "scicode"],
-  [],
-  undefined,
-]) {
+// A changed basket or a row kept from before baskets were recorded keeps none of its index score or telemetry; an empty basket keeps the score only.
+for (const [intelligenceIndexComponents, intelligenceIndex] of [
+  [[...recordedComponents.slice(1), "scicode"], null],
+  [[], 64.9],
+  [undefined, null],
+] as const) {
   const [row] = processArtificialAnalysisLeaderboardRows(
     [{ ...indexedRow, intelligenceIndexComponents }],
     ["intelligence", "intelligence_index_cost"],
   );
-  assertDeepEqual(asRecord(row?.intelligence).intelligence_index, null);
+  assertDeepEqual(asRecord(row?.intelligence).intelligence_index, intelligenceIndex);
   assertDeepEqual(
     Object.values(asRecord(row?.intelligence_index_cost)).every((value) => value == null),
     true,

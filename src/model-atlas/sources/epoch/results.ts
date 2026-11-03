@@ -55,6 +55,7 @@ export function epochBenchmarkObservationRows(
       row.task !== task ||
       (eligibility.originalTaskName != null &&
         row.original_task_name !== eligibility.originalTaskName) ||
+      (eligibility.requireStandardError === true && asFiniteNumber(row.stderr) == null) ||
       (row.id_model_version != null && excludedModelIds.has(row.id_model_version))
     ) {
       return [];
@@ -84,6 +85,7 @@ export function epochBenchmarkCacheMatches(
         row.metadata.task === task &&
         (eligibility.originalTaskName == null ||
           row.metadata.original_task_name === eligibility.originalTaskName) &&
+        (eligibility.requireStandardError !== true || row.metadata.stderr != null) &&
         (row.model_id == null || !excludedModelIds.has(row.model_id)),
     )
   );
@@ -223,6 +225,7 @@ function cleanMetadata(row: EpochBenchmarkCsvRow): BenchmarkObservationMetadata 
     task: row.task || null,
     task_version: row["task version"] || null,
     scores: row.Scores || null,
+    stderr: asFiniteNumber(row.stderr),
     best_score: asFiniteNumber(row.best_score),
     original_task_name: row.original_task_name || null,
   };

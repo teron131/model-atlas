@@ -2,6 +2,7 @@
 
 import { SNAPSHOT_TABLES } from "../../database/tables";
 import type { DatabaseWriter } from "../../database/writers/database";
+import { parseSlugEffort } from "../../identity/normalization";
 import { asFiniteNumber, asNonEmptyString } from "../../runtime";
 import { type BenchmarkSnapshotContext, defineBenchmarkRuntime } from "../benchmark-runtime";
 import { type CacheRowSource, firstFetchedAt, jsonValue, sourceCacheRows } from "../cache/rows";
@@ -16,7 +17,6 @@ import type {
 } from "../types";
 import {
   ALE_BENCH_LEADERBOARD_URL,
-  aleBenchModelEffort,
   type AleBenchSourceRow,
   getAleBenchStats,
   processAleBenchConfigurationRow,
@@ -121,7 +121,7 @@ function insertAleBenchRawRows(db: DatabaseWriter, snapshots: SourceSnapshots): 
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
   for (const [index, row] of snapshots.aleBenchConfigurationRows.entries()) {
-    const parsedModel = aleBenchModelEffort(row.model);
+    const parsedModel = parseSlugEffort(row.model);
     if ("epoch" in row) {
       statement.run(
         index,

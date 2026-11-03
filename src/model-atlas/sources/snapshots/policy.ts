@@ -1,4 +1,4 @@
-/** Source snapshot policy preserves cached evidence, retires rows a source stops listing, and reports source health. */
+/** Source snapshot policy replaces cached rows with what a source currently publishes, retires rows it stops listing, and reports source health. */
 
 import type { DatabaseSync } from "node:sqlite";
 
@@ -51,41 +51,12 @@ export function sourceRowKey(...parts: (number | string | null | undefined)[]): 
   return parts.map((part) => String(part ?? "")).join("|");
 }
 
-/** Existing source evidence is monotonic: refreshes fill missing values but do not rewrite populated facts. */
-export function mergeSourceEvidence<T>(cachedValue: T, fetchedValue: T): T {
-  if (cachedValue == null) {
-    return fetchedValue;
-  }
-  if (fetchedValue == null) {
-    return cachedValue;
-  }
-  if (Array.isArray(cachedValue) && Array.isArray(fetchedValue)) {
-    return (cachedValue.length > 0 ? cachedValue : fetchedValue) as T;
-  }
-  if (
-    typeof cachedValue === "object" &&
-    typeof fetchedValue === "object" &&
-    !Array.isArray(cachedValue) &&
-    !Array.isArray(fetchedValue)
-  ) {
-    const cached = cachedValue as Record<string, unknown>;
-    const fetched = fetchedValue as Record<string, unknown>;
-    return Object.fromEntries(
-      [...new Set([...Object.keys(cached), ...Object.keys(fetched)])].map((key) => [
-        key,
-        mergeSourceEvidence(cached[key], fetched[key]),
-      ]),
-    ) as T;
-  }
-  return cachedValue;
-}
-
-/** Fresh keyed rows fill cached keyed rows while unkeyed rows stay in their original cache/fetch groups. */
+/** A fetched row replaces the cached row with its key unless `mergeRow` says otherwise; unkeyed rows stay in their original cache/fetch groups. */
 export function mergeCachedSourceRows<T>(
   cachedRows: readonly T[],
   fetchedRows: readonly T[],
   rowKey: (row: T) => string | null,
-  mergeRow: (cachedRow: T, fetchedRow: T) => T = mergeSourceEvidence,
+  mergeRow: (cachedRow: T, fetchedRow: T) => T = (_cachedRow, fetchedRow) => fetchedRow,
 ): T[] {
   const keyedRows = new Map<string, T>();
   const unkeyedCachedRows: T[] = [];

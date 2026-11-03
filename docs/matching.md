@@ -122,12 +122,14 @@ An accepted catalog match uses the winning provider and model ID as its public i
 
 Resource fallback works field by field. Catalog input/output prices take precedence over Artificial Analysis prices, and effective OpenRouter prices take precedence for :score[Value] scoring. Exact-effort Artificial Analysis throughput and latency can fill serving fields only when primary measurements are unavailable. Each refresh recomputes these choices, so primary data takes over when it arrives without a stale override.
 
+OpenRouter serving measurements and effective prices attach through the selected identity's route. When no OpenRouter route matches that identity exactly, the one route that remains after reconciling publisher aliases, version spelling, a repeated publisher prefix, and instruction-tuning labels supplies them; a dated release must also match the route's dated permaslug, so one checkpoint never borrows another's measurements, and a few routes OpenRouter lists under unrelated names are declared explicitly.
+
 Artificial Analysis token prices are USD per million tokens, throughput is output tokens per second, and latency is seconds; total benchmark evaluation costs are never treated as token prices.
 
 Both paths attach benchmark evidence before applying the dashboard inclusion rules described in [Methodology](methodology/leaderboard-rules.md#dashboard-inclusion).
 
 Serving aliases such as fast, free, latest, preview, high-effort, or dated routes do not automatically become separate public models. Aliases that point to the same underlying model share one canonical identity. Explicit reasoning-effort observations remain separate scored variants.
 
-An unlabelled observation represents the source's default effort. If all observations name an effort, the highest reported effort supplies the default. Storage preserves every reported effort. Missing benchmark results can later be estimated from another effort's direct result plus the measured gap on shared benchmarks. These scoring-only estimates preserve exact source observations and never force effort order to be monotonic.
+An unlabelled observation represents the source's default effort. If all observations name an effort, the highest reported effort supplies the default, except that a reasoning-off (`none`) observation never does, because a reasoning model's default configuration thinks. A hybrid model's labelled thinking or reasoning mode is its default configuration rather than an effort, and its no-thinking mode is effort `none`. Storage preserves every reported effort. Missing benchmark results can later be estimated from another effort's direct result plus the measured gap on shared benchmarks. These scoring-only estimates preserve exact source observations and never force effort order to be monotonic.
 
 Expanded views keep exact-effort results. Compact views use the representative with the highest :score[Intelligence] and can fill its missing benchmark fields from the highest available direct effort, while retaining the distinction between a model-level display and an exact-effort observation.

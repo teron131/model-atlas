@@ -427,7 +427,7 @@ assert.ok(
   "Retained rows from an earlier fetch must be reconciled with the current source before fusion",
 );
 
-const official = processTerminalBench4Payload({
+const terminalBench4Payload = (totalCostUsd: number) => ({
   leaderboard: {
     package: "terminal-bench/terminal-bench",
     name: "4-0-0",
@@ -446,14 +446,18 @@ const official = processTerminalBench4Payload({
         accuracy: 50,
         accuracy_ci95_half_width: 2,
         n_trials: 330,
-        total_cost_usd: 660,
+        total_cost_usd: totalCostUsd,
         total_tokens: 33000,
         output_tokens: 6600,
         avg_trial_duration_sec: 120,
       },
     },
   ],
-})[0]!;
+});
+const official = processTerminalBench4Payload(terminalBench4Payload(660))[0]!;
+const unreportedCost = processTerminalBench4Payload(terminalBench4Payload(0))[0];
+assert.equal(unreportedCost?.score, 0.5, "A zero published cost must not drop the score");
+assert.equal(unreportedCost?.cost_per_task_usd, null);
 assert.equal(official.cost_per_task_usd, 2);
 assert.equal(official.tokens_per_task, 100);
 assert.equal(official.output_tokens_per_task, 20);

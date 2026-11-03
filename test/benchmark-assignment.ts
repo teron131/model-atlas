@@ -19,6 +19,10 @@ import type { ModelAtlasCandidate, ModelAtlasModel } from "../src/model-atlas/pi
 import { versionCandidateBenchmarkData } from "../src/model-atlas/pipeline/selection/benchmark-versioning";
 import { buildTaskMetrics } from "../src/model-atlas/pipeline/selection/candidate";
 import { dropStaleReplacementBenchmarks } from "../src/model-atlas/pipeline/selection/version-replacement";
+import {
+  type AgentsLastExamHarnessRow,
+  summarizeAgentsLastExamModelScores,
+} from "../src/model-atlas/sources/agents-last-exam/leaderboard";
 import type { AleBenchModelScoreRow } from "../src/model-atlas/sources/ale-bench/leaderboard";
 import type { ArenaAgentModelScoreRow } from "../src/model-atlas/sources/arena/agent";
 import type { ArtificialAnalysisBenchmarkResourceRow } from "../src/model-atlas/sources/artificial-analysis/benchmark-resources";
@@ -351,17 +355,31 @@ const valsIndexRow = {
   task_label: "Overall",
   model_id: "test/example-model",
   model: "Example Model",
+  base_model: "Example Model",
+  reasoning_effort: "high",
   provider: "Test",
   score: 0.64,
   observed_at: "2026-10-07",
   metadata: { benchmark_version: "2.2", benchmark_count: 8 },
 };
-const indexAssignment = buildDefaultVariantBenchmarks(["Example Model"], {
+const valsIndexLookups = {
   ...lookups,
   valsIndex: { rowsByModelName: buildValsIndexMap([valsIndexRow]) },
-});
+};
+const indexAssignment = buildDefaultVariantBenchmarks(
+  ["Example Model"],
+  valsIndexLookups,
+  {},
+  "high",
+);
 assert.equal(indexAssignment.benchmarks.vals_index, 0.64);
 assert.deepEqual(indexAssignment.scoringSources.vals_index, valsIndexRow);
+assert.equal(
+  buildDefaultVariantBenchmarks(["Example Model"], valsIndexLookups, {}, "max").benchmarks
+    .vals_index,
+  undefined,
+  "A Vals Index run at another effort never fills the default variant",
+);
 
 const arenaHighLookups = {
   ...lookups,
@@ -388,6 +406,50 @@ const arenaHighDefault = buildDefaultVariantBenchmarks(
 assert.deepEqual(buildTaskMetrics(null, arenaHighDefault.scoringSources)?.arena_agent, {
   cost: 1.57,
 });
+const lastExamHarnessRow = (
+  harness: string,
+  harnessVariant: string | null,
+  score: number,
+): AgentsLastExamHarnessRow => ({
+  split: "full/overall",
+  harness,
+  model: "example-org-example-model",
+  harness_variant: harnessVariant,
+  runs: 1,
+  tasks: 10,
+  split_tasks: 10,
+  passes: 5,
+  accuracy: score,
+  score,
+  total_duration_seconds: 100,
+  total_input_tokens: 1_000,
+  total_output_tokens: 100,
+  total_cost_usd: 1,
+  cost_source: null,
+});
+const lastExamLookups = {
+  ...lookups,
+  agentsLastExam: {
+    rowsByModelName: buildBenchmarkModelMap(
+      summarizeAgentsLastExamModelScores([
+        lastExamHarnessRow("codex", "reasoning-max", 0.6),
+        lastExamHarnessRow("claude_code", "thinking-max", 0.5),
+        lastExamHarnessRow("codex", "reasoning-high", 0.4),
+      ]),
+    ),
+  },
+};
+assert.equal(
+  buildDefaultVariantBenchmarks(["example-org/example-model"], lastExamLookups, {}, "max")
+    .benchmarks.agents_last_exam,
+  0.55,
+  "Harnesses run at one effort share that effort's summary",
+);
+assert.equal(
+  buildObservationBenchmarks(["example-org/example-model"], lastExamLookups, {}, "high").benchmarks
+    .agents_last_exam,
+  0.4,
+);
 
 assert.deepEqual(defaultVariantAssignment.benchmarks, {
   arena_agent: 0.14,

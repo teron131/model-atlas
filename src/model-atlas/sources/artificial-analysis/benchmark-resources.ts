@@ -9,6 +9,7 @@ import { ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES as BENCHMARK_RESOURCE_PAGE
 import {
   canonicalReasoningEffort,
   normalizeModelToken,
+  parseSlugEffort,
   reasoningEffortRank,
 } from "../../identity/normalization";
 import {
@@ -33,16 +34,6 @@ const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_CONCURRENCY = 3;
 
 const PAGE_FETCH_ATTEMPTS = 2;
-
-const REASONING_EFFORT_SUFFIXES = [
-  "non-reasoning",
-  "extra-high",
-  "xhigh",
-  "high",
-  "medium",
-  "low",
-  "max",
-] as const;
 
 type JsonPath = readonly string[];
 
@@ -384,7 +375,7 @@ function resourceRow(
   const reasoningEffort =
     canonicalReasoningEffort(asRecord(row.effort).slug) ??
     parseArtificialAnalysisReasoningEffort(sourceModelName, fullModelName) ??
-    reasoningEffortFromSlug(modelSlug);
+    reasoningEffortFromSlug(modelSlug, model);
   const tokenCounts = tokenCountsRecord(row, page);
   const score = scoreValue(row, page);
   const costPerTask = rowCostPerTask(row, tokenCounts, page);
@@ -439,19 +430,15 @@ function creatorNameSlug(creatorName: string | null): string | null {
         .replace(/^-+|-+$/g, "");
 }
 
-function reasoningEffortFromSlug(modelSlug: string | null): string | null {
-  if (modelSlug == null) {
-    return null;
-  }
-  for (const suffix of REASONING_EFFORT_SUFFIXES) {
-    if (modelSlug.endsWith(`-${suffix}`)) {
-      if (suffix === "non-reasoning") {
-        return "none";
-      }
-      return suffix === "extra-high" ? "xhigh" : suffix;
-    }
-  }
-  return null;
+/** A slug suffix that also ends the display name, as "-max" in "Qwen3.7 Max", names the product rather than an effort. */
+/** A slug suffix the display name also ends with names the product, as in Gemini 1.0 Ultra, rather than an effort. */
+function reasoningEffortFromSlug(
+  modelSlug: string | null,
+  modelName: string | null,
+): string | null {
+  const effort = modelSlug == null ? null : parseSlugEffort(modelSlug).reasoningEffort;
+  const product = normalizeModelToken((modelName ?? "").replace(/\s*\([^()]*\)\s*$/, ""));
+  return parseSlugEffort(product).reasoningEffort === effort ? null : effort;
 }
 
 function tokenCountsRecord(
@@ -592,20 +579,10 @@ function resourceRowKeyCandidates(row: ArtificialAnalysisBenchmarkResourceRow): 
 }
 
 function baseModelKeyCandidates(row: ArtificialAnalysisBenchmarkResourceRow): string[] {
+  // A row without an effort keeps its suffix, which names the product.
   return resourceRowKeyCandidates(row)
-    .map(withoutEffortSuffix)
+    .map((key) => (row.reasoning_effort == null ? key : parseSlugEffort(key).baseModel))
     .filter((key, index, keys) => key.length > 0 && keys.indexOf(key) === index);
-}
-
-function withoutEffortSuffix(key: string): string {
-  let base = key;
-  for (const suffix of REASONING_EFFORT_SUFFIXES) {
-    if (base.endsWith(`-${suffix}`)) {
-      base = base.slice(0, -suffix.length - 1);
-      break;
-    }
-  }
-  return base;
 }
 
 function higherEffortResourceRow(

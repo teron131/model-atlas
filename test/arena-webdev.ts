@@ -31,7 +31,6 @@ import {
   insertBenchmarkObservationRows,
   readBenchmarkObservationRawCache,
 } from "../src/model-atlas/sources/observations/cache";
-import { benchmarkObservationSource } from "../src/model-atlas/sources/observations/load";
 import {
   benchmarkObservationRowKey,
   snapshotSourceRows,
@@ -215,7 +214,6 @@ const refreshConfig = {
   nowEpochSeconds: 200,
   rowKey: benchmarkObservationRowKey,
   rowLabel: (row: BenchmarkObservationRow) => row.model,
-  mergeRow: benchmarkObservationSource(binding).mergeRow,
 };
 const updated = await snapshotSourceRows({
   ...refreshConfig,
@@ -312,6 +310,31 @@ test("WebDev fallback keeps precision variants eligible as distinct model identi
   assert.deepEqual(
     parsed.map((row) => row.base_model),
     [baseModel, `${baseModel}-NVFP4`],
+  );
+  assert.ok(parsed.every((row) => row.metadata.assignment_eligible !== false));
+});
+
+test("WebDev fallback lists a hybrid model's thinking mode as its default variant", () => {
+  const dataset = {
+    organization: "DeepSeek",
+    category: "overall",
+    leaderboard_publish_date: "2026-10-23",
+    rank: 1,
+    rating: 1362,
+    vote_count: 80,
+  };
+  const parsed = processArenaWebDevDatasetRows([
+    { ...dataset, model_name: "DeepSeek-V3.2 (Thinking)" },
+    { ...dataset, model_name: "DeepSeek-V3.2", rank: 2, rating: 1325 },
+    { ...dataset, model_name: "Grok 4.1 (Thinking)", organization: "xAI", rank: 3, rating: 1214 },
+  ]);
+  assert.deepEqual(
+    parsed.map((row) => [row.model, row.reasoning_effort]),
+    [
+      ["DeepSeek-V3.2", null],
+      ["DeepSeek-V3.2 (none)", "none"],
+      ["Grok 4.1", null],
+    ],
   );
   assert.ok(parsed.every((row) => row.metadata.assignment_eligible !== false));
 });

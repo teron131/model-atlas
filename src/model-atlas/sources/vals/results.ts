@@ -15,6 +15,15 @@ import { percentToUnitScore } from "../parsing";
 import { getValsBenchmarkView, parseValsBenchmarkView, type ValsBenchmarkView } from "./view";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
+/** Thinking Machines models take a numeric effort, which Vals records verbatim; these are its named presets. */
+const THINKING_MACHINES_EFFORT_PRESETS: Readonly<Record<string, string>> = {
+  "0": "none",
+  "0.1": "minimal",
+  "0.2": "low",
+  "0.7": "medium",
+  "0.9": "high",
+  "0.99": "xhigh",
+};
 
 type ValsBenchmarkDefinition = {
   benchmarkKey: string;
@@ -79,7 +88,7 @@ function scoreRow(
     return null;
   }
   const baseModel = modelId.split("/").at(-1) ?? modelId;
-  const reasoningEffort = canonicalReasoningEffort(value.reasoning_effort ?? value.compute_effort);
+  const reasoningEffort = valsReasoningEffort(modelId, value);
   const metadata: BenchmarkObservationMetadata = { source_result_json: stableJson(value) };
   const costPerTask = asFiniteNumber(value.cost_per_test);
   const secondsPerTask = asFiniteNumber(value.latency);
@@ -110,4 +119,17 @@ function scoreRow(
     observed_at: asNonEmptyString(view.metadata.updated),
     metadata,
   };
+}
+
+/** Vals reports a run's effort as `reasoning_effort`, or `compute_effort` for models that take a compute setting. */
+export function valsReasoningEffort(
+  modelId: string,
+  result: Record<string, unknown>,
+): string | null {
+  const value = result.reasoning_effort ?? result.compute_effort;
+  const preset =
+    modelId.startsWith("thinkingmachines/") && typeof value === "string"
+      ? THINKING_MACHINES_EFFORT_PRESETS[value]
+      : undefined;
+  return preset ?? canonicalReasoningEffort(value);
 }

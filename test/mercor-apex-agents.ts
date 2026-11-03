@@ -1,4 +1,4 @@
-/** Protect Mercor's metric selection and separately published reasoning-effort identities. */
+/** Protect Mercor's metric selection and its separately published effort and product-qualifier identities. */
 
 import assert from "node:assert/strict";
 
@@ -43,11 +43,26 @@ assert.deepEqual(
   ],
 );
 
-const labelled = result("", 50);
-labelled.model.modelName = "Opus 5 (Max + Pro)";
-const proRows = parse(JSON.stringify(labelled));
-assert.equal(proRows[0]?.base_model, "Claude Opus 5 Pro");
-assert.equal(proRows[0]?.model, "Claude Opus 5 (Max + Pro)");
-assert.equal(proRows[0]?.reasoning_effort, "max");
-labelled.model.modelName = "Opus 5 (Thinking)";
-assert.equal(parse(JSON.stringify(labelled))[0]?.base_model, "Claude Opus 5");
+const described = (
+  modelName: string,
+  descriptors: string[] | null,
+  effort: string,
+  score: number,
+) => {
+  const row = result(effort, score);
+  return { ...row, model: { ...row.model, modelName, descriptors } };
+};
+assert.deepEqual(
+  parse(
+    JSON.stringify([
+      described("GPT-5.6 Sol", ["Pro"], "max", 51.5),
+      described("Kimi K2", ["Thinking"], "high", 17.4),
+      described("MiMo V2.6 Pro", null, "auto", 54.4),
+    ]),
+  ).map(({ model, base_model, reasoning_effort }) => ({ model, base_model, reasoning_effort })),
+  [
+    { model: "MiMo V2.6 Pro", base_model: "MiMo V2.6 Pro", reasoning_effort: null },
+    { model: "GPT-5.6 Sol Pro (max)", base_model: "GPT-5.6 Sol Pro", reasoning_effort: "max" },
+    { model: "Kimi K2 Thinking (high)", base_model: "Kimi K2 Thinking", reasoning_effort: "high" },
+  ],
+);

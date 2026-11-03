@@ -26,7 +26,6 @@ import {
   insertBenchmarkObservationRows,
   readBenchmarkObservationRawCache,
 } from "../src/model-atlas/sources/observations/cache";
-import { benchmarkObservationSource } from "../src/model-atlas/sources/observations/load";
 import {
   benchmarkObservationRowKey,
   snapshotSourceRows,
@@ -149,7 +148,6 @@ const refreshConfig = {
   nowEpochSeconds: 200,
   rowKey: benchmarkObservationRowKey,
   rowLabel: (row: BenchmarkObservationRow) => row.model,
-  mergeRow: benchmarkObservationSource(binding).mergeRow,
 };
 const updatedSnapshot = await snapshotSourceRows({
   ...refreshConfig,

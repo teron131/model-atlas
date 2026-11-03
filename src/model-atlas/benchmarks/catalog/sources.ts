@@ -188,7 +188,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
   ebr_bench: {
     group: "epoch",
     id: "epoch",
-    loader: { kind: "epoch_runs", task: "EBR-bench" },
+    loader: { kind: "epoch_runs", task: "EBR-bench", eligibility: { requireStandardError: true } },
     sourceDataKey: "ebrBench",
     sourceRowsKey: "ebrBenchRows",
   },

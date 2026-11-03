@@ -32,19 +32,9 @@ function mergeModelsDevPayload(
   const mergedPayload: ModelsDevPayload = structuredClone(cachedPayload);
   for (const [providerId, fetchedProvider] of Object.entries(fetchedPayload)) {
     const cachedProvider = mergedPayload[providerId];
-    const cachedModels = cachedProvider?.models ?? {};
-    const fetchedModels = fetchedProvider.models ?? {};
-    const mergedModels = { ...cachedModels };
-    for (const [modelId, fetchedModel] of Object.entries(fetchedModels)) {
-      mergedModels[modelId] = {
-        ...cachedModels[modelId],
-        ...fetchedModel,
-      };
-    }
     const mergedProvider: ModelsDevProviderRecord = {
-      ...cachedProvider,
       ...fetchedProvider,
-      models: mergedModels,
+      models: { ...cachedProvider?.models, ...fetchedProvider.models },
     };
     mergedPayload[providerId] = mergedProvider;
   }

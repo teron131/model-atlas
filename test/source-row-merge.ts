@@ -28,6 +28,7 @@ import {
   withoutSupersededVersions,
 } from "../src/model-atlas/sources/snapshots/policy";
 import { snapshotSourceRows } from "../src/model-atlas/sources/snapshots/row-snapshot";
+import { riemannBenchRuntime } from "../src/model-atlas/sources/surge/riemann-runtime";
 
 type ArtificialAnalysisFixtureRow = {
   model_id: string;
@@ -341,10 +342,10 @@ const preservedEffortResources = mergeCachedSourceRows(
 assert.deepEqual(
   preservedEffortResources.map((row) => [row.reasoning_effort, row.seconds_per_task]),
   [
-    ["high", 100],
+    ["high", 90],
     ["low", 50],
   ],
-  "AA resource refreshes should preserve known telemetry and sibling effort rows",
+  "AA resource refreshes adopt current telemetry and keep sibling effort rows",
 );
 
 const activeResourceRows = ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.map((page) => ({
@@ -520,3 +521,32 @@ for (const subsets of [{ main: 100 }, { main: 132, extended: 150 }]) {
     "An artifact with another subset layout yields no rows",
   );
 }
+
+const cachedRiemannRow = {
+  provider: "Anthropic",
+  model: "Claude Opus 5.5 (Adaptive/Max)",
+  score: 0.696,
+  last_updated: null,
+};
+const originalFetch = globalThis.fetch;
+globalThis.fetch = async () =>
+  new Response(
+    '<div role="listitem"><img alt="Anthropic logo"><div class="head-rank-table-brand"><div>Claude</div></div><div class="head-rank-table-name"><div>Opus 5.5 (Adaptive/Max)</div></div><div data-score="">80</div></div>',
+  );
+const rescoredRiemann = await riemannBenchRuntime.snapshot(
+  {
+    rows: [cachedRiemannRow],
+    fetchedAt: 100,
+    sourceUrl: "https://surgehq.ai/leaderboards/riemann-bench",
+  },
+  { cache_hit: false, refreshed: false, last_fetch_epoch_seconds: 100, source_input_count: 1 },
+  {},
+  new Map(),
+  200,
+);
+globalThis.fetch = originalFetch;
+assert.deepEqual(
+  rescoredRiemann.riemannBenchModelScoreRows,
+  [{ ...cachedRiemannRow, score: 0.8 }],
+  "A Riemann-bench re-score replaces the cached result for the same model and effort",
+);

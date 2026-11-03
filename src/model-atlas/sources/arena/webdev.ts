@@ -5,17 +5,26 @@
  * Dataset source: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/viewer/webdev/latest
  */
 
-import type {
-  BenchmarkObservationPayload,
-  BenchmarkObservationRow,
+import {
+  type BenchmarkObservationPayload,
+  type BenchmarkObservationRow,
+  excludeAmbiguousConfigurations,
 } from "../../benchmarks/observation";
-import { normalizeModelToken, parseModelEffort } from "../../identity/normalization";
+import {
+  normalizeModelToken,
+  parseModelEffort,
+  parseSlugEffort,
+} from "../../identity/normalization";
 import { providerIdentityKey } from "../../identity/provider";
-import { hasQwenMaxTier } from "../../identity/qwen";
 import { asFiniteNumber, asNonEmptyString, asRecord, nowEpochSeconds } from "../../runtime";
 import { extractNextFlightCorpus, findObjectEnd, parseFlightJsonObject } from "../parsing";
 import { fetchSource } from "../request-scheduler";
-import { ARENA_WEBDEV_DATASET_URL, arenaDatasetIdentity, fetchArenaDataset } from "./dataset";
+import {
+  ARENA_WEBDEV_DATASET_URL,
+  arenaBoardNames,
+  arenaDatasetIdentity,
+  fetchArenaDataset,
+} from "./dataset";
 
 const SOURCE_URL = "https://arena.ai/leaderboard/code/webdev";
 const PAYLOAD_MARKER = '{"arena":{"slug":"code"';
@@ -66,15 +75,12 @@ export function processArenaWebDevPageHtml(
       const row = webDevRow(entry, sourceUrl, observedAt, cutoff);
       if (row != null) rows.set(String(row.metadata.source_model_id), row);
     }
-    const configurations = new Map<string, BenchmarkObservationRow[]>();
-    for (const row of rows.values()) {
-      const key = `${row.model_creator}|${normalizeModelToken(row.base_model)}|${row.reasoning_effort ?? ""}`;
-      const group = configurations.get(key) ?? [];
-      group.push(row);
-      configurations.set(key, group);
-    }
-    excludeAmbiguousConfigurations(configurations);
-    if (rows.size > 0) return [...rows.values()];
+    if (rows.size > 0)
+      return excludeAmbiguousConfigurations(
+        [...rows.values()],
+        (row) =>
+          `${row.model_creator}|${normalizeModelToken(row.base_model)}|${row.reasoning_effort ?? ""}`,
+      );
   }
   return [];
 }
@@ -109,26 +115,17 @@ function webDevRow(
   const labelledHarness = /\s+\(([^()]+-harness)\)$/i.exec(name);
   const modelName = labelledHarness ? name.slice(0, labelledHarness.index) : name;
   const harness = labelledHarness?.[1] ?? /(?:^|-)([^-]+-harness)(?:-|$)/i.exec(id)?.[1] ?? null;
-  const suffix = /^(.*?)-(none|minimal|low|medium|high|xhigh|max)(-(?:\d{4,8}|\d+k))?$/i.exec(
-    modelName,
-  );
-  const thinkingEffort = /\s+\(thinking-(minimal|low|medium|high|xhigh|max)\)$/i.exec(modelName);
-  const nonThinking = /\s+\(non-thinking\)$/i.exec(modelName);
-  let parsed = parseModelEffort(modelName);
-  if (thinkingEffort) {
-    parsed = {
-      baseModel: modelName.slice(0, thinkingEffort.index),
-      reasoningEffort: thinkingEffort[1]!.toLowerCase(),
-    };
-  } else if (nonThinking) {
-    parsed = { baseModel: modelName.slice(0, nonThinking.index), reasoningEffort: "none" };
-  } else if (suffix && !(suffix[2] === "max" && hasQwenMaxTier(`${suffix[1]}-max`))) {
-    const modelDate = suffix[3]?.endsWith("k") ? "" : (suffix[3] ?? "");
-    parsed = {
-      baseModel: `${suffix[1]}${modelDate}`,
-      reasoningEffort: suffix[2]!.toLowerCase(),
-    };
-  }
+  // A slug's effort may be followed by a release date, which stays in identity, or a thinking budget, which does not.
+  const trailer = /-(?:\d{4,8}|\d+k)$/i.exec(modelName)?.[0] ?? "";
+  const slug = parseSlugEffort(modelName.slice(0, modelName.length - trailer.length));
+  const budget = slug.reasoningEffort != null && /k$/i.test(trailer) ? trailer.slice(1) : null;
+  const parsed =
+    slug.reasoningEffort == null
+      ? parseModelEffort(modelName)
+      : {
+          baseModel: budget == null ? `${slug.baseModel}${trailer}` : slug.baseModel,
+          reasoningEffort: slug.reasoningEffort,
+        };
   return {
     benchmark_key: "arena_webdev",
     source_url: sourceUrl,
@@ -145,7 +142,7 @@ function webDevRow(
       source_model_name: name,
       track: "overall",
       harness,
-      effort_token_budget: suffix?.[3]?.endsWith("k") ? suffix[3].slice(1) : null,
+      effort_token_budget: budget,
       votes,
       rating_lower: asFiniteNumber(entry.ratingLower),
       rating_upper: asFiniteNumber(entry.ratingUpper),
@@ -163,9 +160,9 @@ export function processArenaWebDevDatasetRows(
 ): BenchmarkObservationRow[] {
   const rows: BenchmarkObservationRow[] = [];
   const occurrences = new Map<string, number>();
-  const configurations = new Map<string, BenchmarkObservationRow[]>();
-  for (const value of values) {
-    if (value.category !== "overall") continue;
+  const overall = values.filter((value) => value.category === "overall");
+  const boardNames = arenaBoardNames(overall);
+  for (const value of overall) {
     const name = asNonEmptyString(value.model_name);
     const organization = asNonEmptyString(value.organization);
     const rating = asFiniteNumber(value.rating);
@@ -184,7 +181,7 @@ export function processArenaWebDevDatasetRows(
       !/^\d{4}-\d{2}-\d{2}$/.test(observedAt ?? "")
     )
       throw new Error("Invalid Arena WebDev dataset row");
-    const identity = arenaDatasetIdentity(name);
+    const identity = arenaDatasetIdentity(name, boardNames);
     const sourceIdentity = `${organization ?? ""}:${name}`;
     const occurrence = (occurrences.get(sourceIdentity) ?? 0) + 1;
     occurrences.set(sourceIdentity, occurrence);
@@ -224,24 +221,10 @@ export function processArenaWebDevDatasetRows(
       },
     };
     rows.push(row);
-    const key = `${providerIdentityKey(organization)}|${normalizeModelToken(identity.baseModel)}|${identity.reasoningEffort ?? ""}`;
-    const group = configurations.get(key) ?? [];
-    group.push(row);
-    configurations.set(key, group);
   }
-  excludeAmbiguousConfigurations(configurations);
-  return rows;
-}
-
-/** Keep conflicting source configurations inspectable without choosing one score for a model and effort. */
-function excludeAmbiguousConfigurations(
-  configurations: ReadonlyMap<string, BenchmarkObservationRow[]>,
-): void {
-  for (const group of configurations.values()) {
-    if (group.length < 2) continue;
-    for (const row of group) {
-      row.metadata.assignment_eligible = false;
-      row.metadata.assignment_exclusion = "multiple source configurations for one model and effort";
-    }
-  }
+  return excludeAmbiguousConfigurations(
+    rows,
+    (row) =>
+      `${providerIdentityKey(row.model_creator)}|${normalizeModelToken(row.base_model)}|${row.reasoning_effort ?? ""}`,
+  );
 }

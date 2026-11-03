@@ -10,6 +10,7 @@ import {
   selectOpenRouterRawModelStats,
   summarizeEndpointPerformance,
 } from "../src/model-atlas/sources/openrouter";
+import { resolveOpenRouterPermaslugCandidates } from "../src/model-atlas/sources/openrouter/stats";
 import { SOURCE_URLS } from "../src/model-atlas/sources/registry";
 
 assert.deepEqual(
@@ -245,6 +246,30 @@ assert.deepEqual(
 assert.deepEqual(buildOpenRouterSlugCandidates("xai/grok-4.1-fast", ["x-ai/grok-4.1-fast"]), [
   "x-ai/grok-4.1-fast",
 ]);
+
+const permaslugBySlug = new Map([
+  ["deepseek/deepseek-chat", "deepseek/deepseek-chat-v3"],
+  ["google/gemma-3-12b-it", "google/gemma-3-12b-it"],
+  ["inclusionai/ling-3.1-flash", "inclusionai/ling-3.1-flash-20261002"],
+  ["meta-llama/llama-3-70b-instruct", "meta-llama/llama-3-70b-instruct"],
+  ["mistralai/mistral-medium-3-5", "mistralai/mistral-medium-3.5-20260430"],
+  ["qwen/qwen3.8-max", "qwen/qwen3.8-max-20260803"],
+]);
+const availableSlugs = [...permaslugBySlug.keys()];
+for (const [modelId, permaslugs] of [
+  ["deepseek/deepseek-v3", ["deepseek/deepseek-chat-v3"]],
+  ["google/gemma-3-12b", ["google/gemma-3-12b-it"]],
+  ["inclusionai/ling-3.1-flash-1019", []],
+  ["meta/llama-3-70b", []],
+  ["mistralai/mistral-medium-3.5", ["mistralai/mistral-medium-3.5-20260430"]],
+  ["alibaba/qwen3-8-max-0803", ["qwen/qwen3.8-max-20260803"]],
+] as const) {
+  assert.deepEqual(
+    resolveOpenRouterPermaslugCandidates(modelId, availableSlugs, permaslugBySlug),
+    permaslugs,
+    modelId,
+  );
+}
 
 const selected = selectOpenRouterRawModelStats("provider/model", [
   {

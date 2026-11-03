@@ -32,6 +32,7 @@ const NON_GENERATIVE_MODEL_TOKENS = new Set([
   "embed",
   "embedding",
   "embeddings",
+  "embedqa",
   "rerank",
   "reranker",
 ]);

@@ -5,7 +5,6 @@ import { parseModelEffort } from "../../identity/normalization";
 import type { RawSourceName } from "../registry";
 import type { RawSourceCacheStatus, SourceRefreshOptions, SourceRowState } from "../types";
 import {
-  mergeSourceEvidence,
   snapshotRowsWithStates,
   sourceRowKey,
   type VersionRule,
@@ -109,22 +108,6 @@ export function benchmarkObservationRowKey(
     row.model_creator,
     row.reasoning_effort ?? parsedModel.reasoningEffort,
   );
-}
-
-/** Retain cached evidence while adopting the current source's normalized display identity; a row reported under another harness is a rerun, so it replaces the cached row. */
-export function mergeBenchmarkObservationRow(
-  cachedRow: BenchmarkObservationRow,
-  fetchedRow: BenchmarkObservationRow,
-): BenchmarkObservationRow {
-  if ((cachedRow.metadata.harness ?? null) !== (fetchedRow.metadata.harness ?? null)) {
-    return fetchedRow;
-  }
-  return {
-    ...mergeSourceEvidence(cachedRow, fetchedRow),
-    model: fetchedRow.model,
-    base_model: fetchedRow.base_model,
-    reasoning_effort: fetchedRow.reasoning_effort,
-  };
 }
 
 export function shouldUseFetchedRows(
