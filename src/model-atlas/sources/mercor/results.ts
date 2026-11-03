@@ -9,7 +9,8 @@ import type {
   BenchmarkObservationPayload,
   BenchmarkObservationRow,
 } from "../../benchmarks/observation";
-import { canonicalReasoningEffort, parseModelEffort } from "../../identity/normalization";
+import { withClaudeFamily } from "../../identity/claude";
+import { canonicalReasoningEffort } from "../../identity/normalization";
 import { asFiniteNumber, asNonEmptyString, asRecord, nowEpochSeconds } from "../../runtime";
 import { extractNextFlightCorpus, findObjectEnd, parseFlightJsonObject } from "../parsing";
 import { fetchSource } from "../request-scheduler";
@@ -88,7 +89,7 @@ function parseResult(
   if (source.harness == null && harnessScores.length > 0) return null;
   const score = asFiniteNumber(selected.score);
   if (score == null || score < 0 || score > 100) return null;
-  const identity = mercorIdentity(name, model.effort);
+  const identity = mercorIdentity(name, model.descriptors, model.effort);
   return {
     benchmark_key: benchmarkKey,
     source_url: source.sourceUrl,
@@ -113,25 +114,18 @@ function parseResult(
   };
 }
 
-/** Keep Mercor's labelled Pro configurations distinct while preferring explicit effort fields over display suffixes. */
-function mercorIdentity(name: string, effort: unknown) {
-  const pro = name.toLowerCase().includes("max + pro");
-  const reasoningEffort =
-    canonicalReasoningEffort(effort) ??
-    (pro || name.toLowerCase().includes("(thinking)")
-      ? "max"
-      : parseModelEffort(name).reasoningEffort);
-  const unqualified = name.replace(/\s+\([^)]*\)\s*$/, "").trim();
-  const baseModel = (
-    /^(?:Opus|Sonnet|Fable)\b/.test(unqualified) ? `Claude ${unqualified}` : unqualified
-  ).replace(/^GPT\s+(\d)/, "GPT-$1");
+/** Mercor publishes product qualifiers such as "Pro" or "Thinking" as descriptors beside the display name; effort "auto" lets the model decide, which is its default variant. */
+function mercorIdentity(name: string, descriptors: unknown, effort: unknown) {
+  const qualifiers = Array.isArray(descriptors)
+    ? descriptors.flatMap((value) => asNonEmptyString(value) ?? [])
+    : [];
+  const family = withClaudeFamily(name).replace(/^GPT\s+(\d)/, "GPT-$1");
+  const baseModel = [family, ...qualifiers].join(" ");
+  const label = canonicalReasoningEffort(effort);
+  const reasoningEffort = label === "auto" ? null : label;
   return {
-    model: pro
-      ? `${baseModel} (Max + Pro)`
-      : reasoningEffort == null
-        ? baseModel
-        : `${baseModel} (${reasoningEffort})`,
-    baseModel: pro ? `${baseModel} Pro` : baseModel,
+    model: reasoningEffort == null ? baseModel : `${baseModel} (${reasoningEffort})`,
+    baseModel,
     reasoningEffort,
   };
 }

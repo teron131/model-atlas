@@ -9,6 +9,7 @@ import type { BenchmarkObservationMetadata } from "../../benchmarks/observation"
 import { normalizeModelToken } from "../../identity/normalization";
 import { asNonEmptyString, asRecord, nowEpochSeconds, stableJson } from "../../runtime";
 import { percentToUnitScore } from "../parsing";
+import { valsReasoningEffort } from "./results";
 import { getValsBenchmarkView, parseValsBenchmarkView } from "./view";
 
 export const VALS_INDEX_LEADERBOARD_URL = "https://www.vals.ai/benchmarks/vals_index";
@@ -34,6 +35,8 @@ export type ValsIndexTaskScoreRow = {
   task_label: string;
   model_id: string;
   model: string;
+  base_model: string;
+  reasoning_effort: string | null;
   provider: string | null;
   score: number;
   observed_at: string | null;
@@ -99,6 +102,8 @@ export function processValsIndexView(value: unknown): ValsIndexResults {
         task_label: metadata.task_labels[task] ?? task,
         model_id: modelId,
         model: modelSlug(modelId),
+        base_model: modelSlug(modelId),
+        reasoning_effort: valsReasoningEffort(modelId, row),
         provider: asNonEmptyString(row.provider),
         score,
         observed_at: metadata.updated,
@@ -130,31 +135,16 @@ export function processValsIndexView(value: unknown): ValsIndexResults {
   };
 }
 
+/** Index each row under its names and, where Vals reports one, the same names with its effort, so assignment can require the variant's effort. */
 export function buildValsIndexMap(rows: ValsIndexModelScoreRow[]): ValsIndexRowsByModelName {
   const rowsByModelName: ValsIndexRowsByModelName = new Map();
   for (const row of rows) {
     for (const key of valsIndexKeyCandidates(row)) {
       rowsByModelName.set(key, row);
+      if (row.reasoning_effort != null) rowsByModelName.set(`${key}-${row.reasoning_effort}`, row);
     }
   }
   return rowsByModelName;
-}
-
-/** Return the matched observation intact so scoring retains its version, breadth, and source date. */
-export function findValsIndexRow(
-  candidateNames: unknown[],
-  valsIndexRowsByModelName: ValsIndexRowsByModelName,
-): ValsIndexModelScoreRow | null {
-  for (const candidateName of candidateNames) {
-    if (typeof candidateName !== "string" || candidateName.length === 0) {
-      continue;
-    }
-    const row = valsIndexRowsByModelName.get(normalizeModelToken(candidateName));
-    if (row) {
-      return row;
-    }
-  }
-  return null;
 }
 
 /** Unversioned caches and baskets of another size cannot supply the index or receive its breadth. */

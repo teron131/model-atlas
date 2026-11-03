@@ -11,6 +11,7 @@ const VERSION_FIRST_PATTERN = new RegExp(
 const TIER_FIRST_PATTERN = new RegExp(
   `(?:^|[-/])claude-(${CLAUDE_TIER_PATTERN})-(\\d{1,2})(?:-(\\d{1,2}))?(?:-|$)`,
 );
+const BARE_TIER_PATTERN = new RegExp(`^(?:Anthropic\\s+)?(?=(?:${CLAUDE_TIER_PATTERN})\\b)`, "i");
 
 type ClaudeTier = (typeof CLAUDE_TIERS)[number];
 
@@ -48,6 +49,11 @@ export function parseClaudeIdentity(value: string): ClaudeIdentity | null {
   return tierFirstMatch == null
     ? null
     : buildClaudeIdentity(tierFirstMatch[1], tierFirstMatch[2], tierFirstMatch[3]);
+}
+
+/** Sources that list Claude by tier alone, with or without "Anthropic", get the family name every other source uses: `"Opus 4.6"` and `"Anthropic Opus 4.6"` → `"Claude Opus 4.6"`. */
+export function withClaudeFamily(name: string): string {
+  return name.replace(BARE_TIER_PATTERN, "Claude ");
 }
 
 /** Canonical Claude identity: `{ tier: "sonnet", version: "3.5" }` → `"claude-sonnet-3.5"`. */

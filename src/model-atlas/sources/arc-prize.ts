@@ -12,11 +12,8 @@ import {
   type BenchmarkObservationRow,
   resourcePerTaskRun,
 } from "../benchmarks/observation";
-import {
-  modelNameWithoutCreatorPrefix,
-  normalizeModelToken,
-  parseModelEffort,
-} from "../identity/normalization";
+import { withClaudeFamily } from "../identity/claude";
+import { parseModelEffort } from "../identity/normalization";
 import { asFiniteNumber, asNonEmptyString, asRecord, nowEpochSeconds } from "../runtime";
 import { fetchSource } from "./request-scheduler";
 
@@ -170,13 +167,13 @@ function parseArcPrizeEvaluation(
     harness === "provider_adapter"
       ? model.replace(/\s-\sProvider Adapter(?=\s*(?:\(|$))/i, "")
       : model;
-  const identity = arcModelIdentity(identityModel, creator);
+  const identity = parseModelEffort(identityModel);
   const resource = arcPrizeResource(row, options.datasetId);
 
   return {
     model_id: modelId,
     model,
-    base_model: identity.baseModel,
+    base_model: withClaudeFamily(identity.baseModel),
     reasoning_effort: identity.reasoningEffort,
     model_creator: creator,
     harness,
@@ -204,25 +201,6 @@ function arcPrizeHarness(
   }
   if (!/adapter/i.test(`${modelId} ${model} ${modelGroup}`)) return "standard";
   return null;
-}
-
-/** Normalize ARC's Anthropic shorthand while preserving every displayed configuration in model. */
-function arcModelIdentity(
-  model: string,
-  creator: string,
-): {
-  baseModel: string;
-  reasoningEffort: string | null;
-} {
-  const parsed = parseModelEffort(model);
-  let baseModel = modelNameWithoutCreatorPrefix(parsed.baseModel, creator);
-  if (
-    normalizeModelToken(creator) === "anthropic" &&
-    /^(?:opus|sonnet|haiku|fable)\b/i.test(baseModel)
-  ) {
-    baseModel = `Claude ${baseModel}`;
-  }
-  return { baseModel, reasoningEffort: parsed.reasoningEffort };
 }
 
 /** Normalize ARC-AGI-2's reported task cost and ARC-AGI-3's 55-environment semi-private total into the shared per-task contract. */

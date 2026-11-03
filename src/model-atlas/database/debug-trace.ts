@@ -1,12 +1,7 @@
 /** Debug trace construction and persistence preserve matcher decisions for auditing snapshot joins. */
 
-import {
-  artificialAnalysisMatchSlug,
-  hasVariantConflict,
-  type MatchDiagnosticsPayload,
-  type MatcherConfig,
-} from "../identity";
-import { OPENROUTER_PROVIDER_ID } from "../identity/normalization";
+import { hasVariantConflict, type MatchDiagnosticsPayload, type MatcherConfig } from "../identity";
+import { OPENROUTER_PROVIDER_ID, parseSlugEffort } from "../identity/normalization";
 import { publicOpenRouterModelId } from "../identity/openrouter";
 import { artificialAnalysisModelId } from "../sources/artificial-analysis/leaderboard";
 import type { OpenRouterSourcePayload } from "../sources/openrouter";
@@ -86,7 +81,7 @@ export function buildDebugTraceRows(
 
   for (const model of diagnostics.models) {
     const selectedModelId = model.best_match?.model_id ?? null;
-    const matchSlug = artificialAnalysisMatchSlug(model.artificial_analysis_slug);
+    const matchSlug = parseSlugEffort(model.artificial_analysis_slug).baseModel;
     if (model.candidates.length === 0) {
       rows.push(unmatchedDebugTraceRow(model, artificialAnalysisRowById));
       continue;

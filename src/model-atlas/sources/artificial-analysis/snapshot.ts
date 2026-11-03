@@ -126,7 +126,6 @@ export async function artificialAnalysisBenchmarkResourceSnapshot(
     fetchRows: getArtificialAnalysisBenchmarkResourceStats,
     rowKey: artificialAnalysisBenchmarkResourceRowKey,
     rowLabel: (row) => `${row.benchmark_key}: ${row.model}`,
-    mergeRow: (_cachedRow, fetchedRow) => fetchedRow,
     versions: { versionOf: (row) => row.benchmark_version, seriesOf: (row) => row.benchmark_key },
     seriesOf: (row) => row.benchmark_key,
   });

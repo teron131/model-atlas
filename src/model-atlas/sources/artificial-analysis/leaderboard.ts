@@ -420,7 +420,7 @@ function selectModalities(row: JsonObject, direction: "input" | "output"): strin
   ].filter((value): value is string => value != null);
 }
 
-/** An index value and its per-task telemetry count only when the row lists exactly the recorded constituents: a changed basket alters breadth and overlap, so it waits for review instead of scoring, and rows kept from before constituents were recorded never count. */
+/** Per-task index telemetry counts only when the row lists exactly the recorded constituents; rows kept from before constituents were recorded never count. */
 function hasRecordedIntelligenceIndexComponents(row: JsonObject): boolean {
   const components = row.intelligenceIndexComponents;
   if (!Array.isArray(components)) return false;
@@ -431,9 +431,18 @@ function hasRecordedIntelligenceIndexComponents(row: JsonObject): boolean {
   );
 }
 
+/** An empty constituent list means Artificial Analysis has not attached per-evaluation results yet; any other list must match the recorded one, since a changed basket alters breadth and overlap and waits for review instead of scoring. */
+function hasUnchangedIntelligenceIndexBasket(row: JsonObject): boolean {
+  const components = row.intelligenceIndexComponents;
+  return (
+    Array.isArray(components) &&
+    (components.length === 0 || hasRecordedIntelligenceIndexComponents(row))
+  );
+}
+
 function pickIntelligence(row: JsonObject): JsonObject {
   return {
-    intelligence_index: hasRecordedIntelligenceIndexComponents(row)
+    intelligence_index: hasUnchangedIntelligenceIndexBasket(row)
       ? firstNumber(row, ["intelligenceIndex"])
       : null,
     omniscience_index: firstNumber(row, ["omniscience"]),

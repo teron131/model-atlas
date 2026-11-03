@@ -7,14 +7,17 @@ import {
   type PublicBenchmarkRuntimeKeyFor,
   transformBenchmarkSourceValue,
 } from "../../benchmarks/registry";
-import { canonicalReasoningEffort, parseModelEffort } from "../../identity/normalization";
+import { withClaudeFamily } from "../../identity/claude";
+import {
+  canonicalReasoningEffort,
+  parseModelEffort,
+  parseSlugEffort,
+} from "../../identity/normalization";
 import { asFiniteNumber, asNonEmptyString, asRecord } from "../../runtime";
 import { agentsLastExamBenchmarkScore } from "../../sources/agents-last-exam/leaderboard";
-import { aleBenchModelEffort } from "../../sources/ale-bench/leaderboard";
 import type { ArtificialAnalysisBenchmarkResourceRow } from "../../sources/artificial-analysis/benchmark-resources";
 import type { ModelAtlasSourceData } from "../../sources/assembly";
 import { frontierCodeVersion } from "../../sources/frontier-code/leaderboard";
-import { claudeBaseModelAlias } from "../../sources/terminal-bench-4/leaderboard";
 
 export type BenchmarkSourceRow = {
   id: string | null;
@@ -220,7 +223,10 @@ type StandaloneSourceRowAdapter = (sourceData: ModelAtlasSourceData) => Benchmar
 const STANDALONE_SOURCE_ROW_ADAPTERS = {
   agents_last_exam: (sourceData) =>
     benchmarkRowDrafts("agents_last_exam", sourceData.agentsLastExam.rows, (row) => ({
+      id: row.base_model,
+      identity: row.base_model,
       label: row.model,
+      reasoningEffort: row.reasoning_effort,
       value: agentsLastExamBenchmarkScore(row),
     })),
   ale_bench: (sourceData) => [
@@ -233,7 +239,7 @@ const STANDALONE_SOURCE_ROW_ADAPTERS = {
     })),
     ...sourceData.aleBench.rows.flatMap((row): BenchmarkRowDraft[] => {
       if (!("epoch" in row)) return [];
-      const effort = aleBenchModelEffort(row.model);
+      const effort = parseSlugEffort(row.model);
       return [
         {
           key: "ale_bench",
@@ -271,7 +277,7 @@ const STANDALONE_SOURCE_ROW_ADAPTERS = {
   terminal_bench_4: (sourceData) =>
     benchmarkRowDrafts("terminal_bench_4", sourceData.terminalBench4.rows, (row) => ({
       id: row.base_model,
-      identity: claudeBaseModelAlias(row.base_model) ?? row.base_model,
+      identity: withClaudeFamily(row.base_model),
       label: row.model,
       reasoningEffort: row.reasoning_effort,
       value: row.score,

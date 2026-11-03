@@ -10,7 +10,7 @@ import {
   crosswalkBenchmarkSources,
   type CrosswalkObservation,
 } from "../../benchmarks/sources-crosswalk";
-import { canonicalReasoningEffort, parseModelEffort } from "../../identity/normalization";
+import { parseSlugEffort } from "../../identity/normalization";
 import { asFiniteNumber, asRecord, nowEpochSeconds } from "../../runtime";
 import {
   ALE_BENCH_EPOCH_RESULTS_URL,
@@ -31,9 +31,6 @@ const DEFAULT_SELF_REFINE_COUNT = 1;
 const MAX_CROSSWALK_MEDIAN_ABSOLUTE_ERROR = 0.01;
 
 const SPLITS = ["all", "short", "long"] as const;
-
-const SLUG_EFFORT_SUFFIX_PATTERN =
-  /^(.*)-(ultra|xhigh|extra-high|max|high|medium|low|minimal|none|adaptive)$/;
 
 type AleBenchSummaryStatistics = {
   mean: number;
@@ -130,19 +127,6 @@ export async function getAleBenchStats(): Promise<AleBenchPayload> {
   };
 }
 
-/** Parse ALE-Bench's slug-style effort suffixes without treating model-family tokens as reasoning labels. */
-export function aleBenchModelEffort(model: string) {
-  const slugMatch = SLUG_EFFORT_SUFFIX_PATTERN.exec(model);
-  if (slugMatch != null) {
-    const baseModel = slugMatch[1];
-    const reasoningEffort = canonicalReasoningEffort(slugMatch[2]);
-    if (baseModel != null && baseModel.length > 0 && reasoningEffort != null) {
-      return { baseModel, reasoningEffort };
-    }
-  }
-  return parseModelEffort(model);
-}
-
 export function processAleBenchConfigurationRow(
   model: string,
   detailPath: string,
@@ -228,7 +212,7 @@ export function summarizeAleBenchSourceDefaultRows(
         !("epoch" in row) && row.num_self_refine === DEFAULT_SELF_REFINE_COUNT,
     )
     .map((row) => {
-      const parsedModel = aleBenchModelEffort(row.model);
+      const parsedModel = parseSlugEffort(row.model);
       return {
         ...row,
         base_model: parsedModel.baseModel,
@@ -263,7 +247,7 @@ export function fuseAleBenchRows(rows: readonly AleBenchSourceRow[]): CrosswalkO
   const epochObservations = rows.flatMap((source): CrosswalkObservation[] => {
     if (!("epoch" in source)) return [];
     const row = source.epoch;
-    const parsedModel = aleBenchModelEffort(row.model);
+    const parsedModel = parseSlugEffort(row.model);
     return [
       {
         benchmark_key: "ale_bench",

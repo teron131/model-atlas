@@ -1,6 +1,7 @@
 /** Benchmark observations preserve source evidence while sharing conservative model-effort matching. */
 
 import {
+  defaultConfigurationRank,
   normalizeModelToken,
   parseModelEffort,
   reasoningEffortRank,
@@ -96,6 +97,31 @@ export function isAssignableBenchmarkObservation(
 ): boolean {
   return (
     row.metadata?.observation_role !== "component" && row.metadata?.assignment_eligible !== false
+  );
+}
+
+/** Rows sharing a configuration key are conflicting source configurations: all stay inspectable, none is scored, and a row without a source model id keeps its own stored identity through its source label. */
+export function excludeAmbiguousConfigurations<Row extends BenchmarkObservationRow>(
+  rows: readonly Row[],
+  configurationKey: (row: Row) => string,
+): Row[] {
+  const counts = new Map<string, number>();
+  for (const row of rows) {
+    const key = configurationKey(row);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  return rows.map((row) =>
+    (counts.get(configurationKey(row)) ?? 0) < 2
+      ? row
+      : {
+          ...row,
+          metadata: {
+            ...row.metadata,
+            ...(row.metadata.source_model_id == null ? { source_model: row.model } : {}),
+            assignment_eligible: false,
+            assignment_exclusion: "multiple source configurations for one model and effort",
+          },
+        },
   );
 }
 
@@ -202,15 +228,15 @@ export function buildBenchmarkObservationLookup<Row extends BenchmarkObservation
         rowsByModel.set(exactKey, row);
       }
     }
+    const rank = defaultConfigurationRank(row.reasoning_effort);
+    if (rank == null) continue;
     for (const baseKey of new Set(baseModelNames(row).map(normalizeModelToken))) {
       const currentDefault = defaultByBase.get(baseKey);
+      const currentRank = reasoningEffortRank(currentDefault?.reasoning_effort);
       if (
         currentDefault == null ||
-        reasoningEffortRank(row.reasoning_effort) >
-          reasoningEffortRank(currentDefault.reasoning_effort) ||
-        (reasoningEffortRank(row.reasoning_effort) ===
-          reasoningEffortRank(currentDefault.reasoning_effort) &&
-          isNewer(row, currentDefault))
+        rank > currentRank ||
+        (rank === currentRank && isNewer(row, currentDefault))
       ) {
         defaultByBase.set(baseKey, row);
       }

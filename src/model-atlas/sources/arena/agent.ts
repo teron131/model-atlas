@@ -10,7 +10,12 @@ import { providerIdentityKey } from "../../identity/provider";
 import { asFiniteNumber, asNonEmptyString, asRecord, nowEpochSeconds } from "../../runtime";
 import { extractNextFlightCorpus, findObjectEnd, parseFlightJsonObject } from "../parsing";
 import { fetchSource } from "../request-scheduler";
-import { ARENA_AGENT_DATASET_URL, arenaDatasetIdentity, fetchArenaDataset } from "./dataset";
+import {
+  ARENA_AGENT_DATASET_URL,
+  arenaBoardNames,
+  arenaDatasetIdentity,
+  fetchArenaDataset,
+} from "./dataset";
 
 export const ARENA_AGENT_LEADERBOARD_URL = "https://arena.ai/leaderboard/agent";
 
@@ -143,8 +148,9 @@ export function processArenaAgentDatasetRows(
 ): ArenaAgentModelScoreRow[] {
   const rows: ArenaAgentModelScoreRow[] = [];
   const identities = new Set<string>();
-  for (const value of values) {
-    if (value.category !== "overall") continue;
+  const overall = values.filter((value) => value.category === "overall");
+  const boardNames = arenaBoardNames(overall);
+  for (const value of overall) {
     const model = asNonEmptyString(value.model_name);
     const organization = asNonEmptyString(value.organization);
     const score = asFiniteNumber(value.score);
@@ -159,7 +165,7 @@ export function processArenaAgentDatasetRows(
       !/^\d{4}-\d{2}-\d{2}$/.test(observedAt ?? "")
     )
       throw new Error("Invalid Arena Agent dataset row");
-    const identity = arenaDatasetIdentity(model);
+    const identity = arenaDatasetIdentity(model, boardNames);
     const key = `${providerIdentityKey(organization)}|${normalizeModelToken(identity.baseModel)}|${identity.reasoningEffort ?? ""}`;
     if (identity.unknown || identities.has(key))
       throw new Error("Ambiguous Arena Agent dataset identity");

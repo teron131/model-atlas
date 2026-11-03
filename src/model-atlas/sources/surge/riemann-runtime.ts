@@ -2,11 +2,11 @@
 
 import { SNAPSHOT_TABLES } from "../../database/tables";
 import type { DatabaseWriter } from "../../database/writers/database";
-import { modelNameWithoutCreatorPrefix, parseModelEffort } from "../../identity/normalization";
+import { parseModelEffort } from "../../identity/normalization";
 import { asFiniteNumber, asNonEmptyString } from "../../runtime";
 import { type BenchmarkSnapshotContext, defineBenchmarkRuntime } from "../benchmark-runtime";
 import { type CacheRowSource, firstFetchedAt, sourceCacheRows } from "../cache/rows";
-import { mergeSourceEvidence, sourceRowKey } from "../snapshots/policy";
+import { sourceRowKey } from "../snapshots/policy";
 import { snapshotSourceRows } from "../snapshots/row-snapshot";
 import type {
   RawSourceCacheStatus,
@@ -97,17 +97,9 @@ async function riemannBenchSnapshot(
     fetchRows: getRiemannBenchStats,
     rowKey: (row) => {
       const parsedModel = parseModelEffort(row.model);
-      return sourceRowKey(
-        row.provider,
-        modelNameWithoutCreatorPrefix(parsedModel.baseModel, row.provider),
-        parsedModel.reasoningEffort,
-      );
+      return sourceRowKey(row.provider, parsedModel.baseModel, parsedModel.reasoningEffort);
     },
     rowLabel: (row) => row.model,
-    mergeRow: (cachedRow, fetchedRow) => ({
-      ...mergeSourceEvidence(cachedRow, fetchedRow),
-      model: fetchedRow.model,
-    }),
   });
   if (snapshot.sourceUrl == null) {
     throw new Error("Riemann-bench snapshot is missing its source URL");

@@ -7,12 +7,13 @@ import {
   benchmarkValueLocation,
 } from "../../benchmarks/registry";
 import { type ScoringConfig, selectedBenchmarkKeys } from "../../config/stage";
-import { artificialAnalysisMatchSlug, type MatchDiagnosticsPayload } from "../../identity";
+import type { MatchDiagnosticsPayload } from "../../identity";
 import {
   canonicalReasoningEffort,
   modelSlugFromModelId,
   normalizeModelToken,
   parseModelEffort,
+  parseSlugEffort,
 } from "../../identity/normalization";
 import { asRecord } from "../../runtime";
 import type { ModelAtlasSourceData } from "../../sources/assembly";
@@ -71,7 +72,7 @@ function datedReleaseExtension(baseSlug: string, candidateSlug: string): string 
 
 function artificialAnalysisSourceFamily(modelId: string): string | null {
   const sourceSlug = modelSlugFromModelId(modelId);
-  return sourceSlug == null ? null : artificialAnalysisMatchSlug(normalizeModelToken(sourceSlug));
+  return sourceSlug == null ? null : parseSlugEffort(normalizeModelToken(sourceSlug)).baseModel;
 }
 
 function addVersionEvidence(

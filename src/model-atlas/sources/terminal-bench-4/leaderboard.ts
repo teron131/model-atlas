@@ -7,6 +7,7 @@
 
 import { BENCHMARK_RESOURCE_PROFILES } from "../../benchmarks/catalog/portfolio";
 import { type BenchmarkResourceAggregate, resourcePerTaskRun } from "../../benchmarks/observation";
+import { withClaudeFamily } from "../../identity/claude";
 import {
   type BenchmarkModelRow,
   buildBenchmarkModelMap,
@@ -33,12 +34,14 @@ const DEFAULT_TIMEOUT_MS = 30_000;
 export const TERMINAL_BENCH_4_SOURCE_REVISION = "4_0_0";
 
 export type TerminalBench4ModelHarnessRow = BenchmarkModelRow &
-  Required<BenchmarkResourceAggregate> & {
+  Required<Pick<BenchmarkResourceAggregate, "task_run_count" | "total_tokens">> & {
     revision: typeof TERMINAL_BENCH_4_SOURCE_REVISION;
     harness: string;
     score: number;
     score_ci95_half_width: number;
-    cost_per_task_usd: number;
+    /** Null when the source publishes a zero cost for a run that consumed tokens, which means it reported none. */
+    total_cost_usd: number | null;
+    cost_per_task_usd: number | null;
     tokens_per_task: number;
     seconds_per_task?: number | null;
     output_tokens_per_task?: number | null;
@@ -119,8 +122,8 @@ export function buildTerminalBench4Map(
   const strongestRows = [...strongestByModelEffort.values()];
   const rowsByModelName = buildBenchmarkModelMap(strongestRows);
   for (const row of strongestRows) {
-    const aliasedBaseModel = claudeBaseModelAlias(row.base_model);
-    if (aliasedBaseModel == null) {
+    const aliasedBaseModel = withClaudeFamily(row.base_model);
+    if (aliasedBaseModel === row.base_model) {
       continue;
     }
     const sourceDefault = rowsByModelName.get(normalizeModelToken(row.base_model));
@@ -156,13 +159,14 @@ function modelAgentRow(value: unknown): TerminalBench4ModelHarnessRow | null {
     scoreCi95HalfWidth == null ||
     taskRunCount !== BENCHMARK_RESOURCE_PROFILES.terminal_bench_4.taskRunCount ||
     totalCostUsd == null ||
-    totalCostUsd <= 0 ||
+    totalCostUsd < 0 ||
     totalTokens == null ||
     !Number.isInteger(totalTokens) ||
     totalTokens <= 0
   ) {
     return null;
   }
+  const reportedCostUsd = totalCostUsd > 0 ? totalCostUsd : null;
   return {
     revision: TERMINAL_BENCH_4_SOURCE_REVISION,
     model: modelEffortLabel(baseModel, reasoningEffort),
@@ -172,9 +176,10 @@ function modelAgentRow(value: unknown): TerminalBench4ModelHarnessRow | null {
     score,
     score_ci95_half_width: scoreCi95HalfWidth,
     task_run_count: taskRunCount,
-    total_cost_usd: totalCostUsd,
+    total_cost_usd: reportedCostUsd,
     total_tokens: totalTokens,
-    cost_per_task_usd: resourcePerTaskRun(totalCostUsd, taskRunCount),
+    cost_per_task_usd:
+      reportedCostUsd == null ? null : resourcePerTaskRun(reportedCostUsd, taskRunCount),
     tokens_per_task: resourcePerTaskRun(totalTokens, taskRunCount),
     seconds_per_task: asFiniteNumber(metrics.avg_trial_duration_sec),
     output_tokens_per_task:
@@ -184,9 +189,4 @@ function modelAgentRow(value: unknown): TerminalBench4ModelHarnessRow | null {
 
 function modelEffortLabel(baseModel: string, reasoningEffort: string | null): string {
   return reasoningEffort == null ? baseModel : `${baseModel} (${reasoningEffort})`;
-}
-
-/** Return the provider-qualified alias omitted by Terminal-Bench 4.0 for Claude family labels. */
-export function claudeBaseModelAlias(baseModel: string): string | null {
-  return /^(?:Fable|Opus|Sonnet)\b/.test(baseModel) ? `Claude ${baseModel}` : null;
 }

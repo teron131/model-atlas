@@ -460,6 +460,24 @@ const effortRows = processArtificialAnalysisBenchmarkResourceRows(
         secondsPerTask: 60,
       }),
     },
+    {
+      shortName: "Qwen3.7 Max",
+      slug: "qwen3-7-max",
+      creator: {
+        name: "Alibaba",
+        slug: "alibaba",
+      },
+      hle: 0.25,
+      ...currentResourceTelemetry({
+        resourceKey: "hle",
+        taskCount: 2,
+        input: 100,
+        answer: 140,
+        reasoning: 0,
+        totalCost: 6,
+        secondsPerTask: 60,
+      }),
+    },
   ],
   hlePage,
   null,
@@ -483,6 +501,14 @@ assertDeepEqual(
   findArtificialAnalysisBenchmarkResourceRow("hle", ["openai/gpt-5-2-max"], effortObservationLookup)
     ?.reasoning_effort,
   "max",
+);
+assertDeepEqual(
+  findArtificialAnalysisBenchmarkResourceRow(
+    "hle",
+    ["alibaba/qwen3-7-max"],
+    effortObservationLookup,
+  )?.reasoning_effort,
+  null,
 );
 for (const candidateName of [
   "GPT-5.2",

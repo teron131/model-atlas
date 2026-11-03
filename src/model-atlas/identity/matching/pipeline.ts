@@ -6,16 +6,12 @@ import {
   FALLBACK_PROVIDER_IDS,
   modelSlugFromModelId,
   OPENROUTER_PROVIDER_ID,
+  parseSlugEffort,
 } from "../normalization";
 import { modelProviderIdentity, providerIdentityKey } from "../provider";
 import { isSameRelease, releaseLabelPeriod, versionDate } from "../releases";
 import { modelNameIdentityKey } from "./name-tokens";
-import {
-  artificialAnalysisMatchSlug,
-  compareCandidates,
-  firstVariantCompatibleCandidate,
-  rankMatchCandidates,
-} from "./scoring";
+import { compareCandidates, firstVariantCompatibleCandidate, rankMatchCandidates } from "./scoring";
 import type {
   MatchCandidate,
   MatchDiagnosticsOptions,
@@ -112,8 +108,9 @@ export function runMatcher(
   maxCandidates: number,
   matcherConfig: MatcherConfig,
 ): MatcherRunOutput {
-  const matchSlugs = sourceModels.map((sourceModel) =>
-    artificialAnalysisMatchSlug(sourceModel.matchSlugOverride ?? sourceModel.sourceSlug),
+  const matchSlugs = sourceModels.map(
+    (sourceModel) =>
+      parseSlugEffort(sourceModel.matchSlugOverride ?? sourceModel.sourceSlug).baseModel,
   );
   const models = sourceModels.map((sourceModel, index) => {
     const matchSlug = matchSlugs[index] ?? "";

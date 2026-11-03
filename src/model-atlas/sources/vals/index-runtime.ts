@@ -3,7 +3,7 @@
 import { parseBenchmarkObservationMetadata } from "../../benchmarks/observation";
 import { SNAPSHOT_TABLES } from "../../database/tables";
 import type { DatabaseWriter } from "../../database/writers/database";
-import { asFiniteNumber, asNonEmptyString, stableJson } from "../../runtime";
+import { asFiniteNumber, asNonEmptyString, asRecord, stableJson } from "../../runtime";
 import { type BenchmarkSnapshotContext, defineBenchmarkRuntime } from "../benchmark-runtime";
 import { type CacheRowSource, firstFetchedAt, sourceCacheRows } from "../cache/rows";
 import {
@@ -26,6 +26,7 @@ import {
   type ValsIndexModelScoreRow,
   type ValsIndexTaskScoreRow,
 } from "./index-benchmark";
+import { valsReasoningEffort } from "./results";
 
 type ValsIndexSnapshot = {
   valsIndexTaskScoreRows: ValsIndexTaskScoreRow[];
@@ -73,12 +74,17 @@ function readValsIndexRawCache(cache: CacheRowSource): {
     ) {
       return [];
     }
+    // The cache keeps Vals' raw result, which carries the run's effort.
+    const sourceResult = metadata.source_result_json;
+    const result = typeof sourceResult === "string" ? asRecord(JSON.parse(sourceResult)) : {};
     return [
       {
         task,
         task_label: taskLabel,
         model_id: modelId,
         model,
+        base_model: model,
+        reasoning_effort: valsReasoningEffort(modelId, result),
         provider: asNonEmptyString(row.provider),
         score,
         observed_at: asNonEmptyString(row.observed_at),
@@ -142,8 +148,6 @@ async function valsIndexSnapshot(
     fetched?.fetched_at_epoch_seconds ?? null,
     options,
     (row) => sourceRowKey(row.task, row.model_id),
-    // Vals revises published index scores under the same model identity.
-    (_cached, fetchedRow) => fetchedRow,
   ).filter((row) => !withdrawnModelIds.has(row.model_id));
   const modelScores = rows.filter(isModelScore);
   const fetchedAt = snapshotFetchedAt(

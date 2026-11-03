@@ -5,16 +5,20 @@ import assert from "node:assert/strict";
 import {
   type BenchmarkObservationRow,
   buildBenchmarkObservationLookup,
+  excludeAmbiguousConfigurations,
   findBenchmarkObservation,
 } from "../src/model-atlas/benchmarks/observation";
 import {
   BENCHMARK_OBSERVATION_BINDINGS,
   BENCHMARK_OBSERVATION_RAW_TABLE,
 } from "../src/model-atlas/benchmarks/registry";
-import { parseModelEffort } from "../src/model-atlas/identity/normalization";
+import { parseModelEffort, parseSlugEffort } from "../src/model-atlas/identity/normalization";
 import { processAutomationBenchModule } from "../src/model-atlas/sources/automation-bench";
 import { processEpochCapabilitiesIndexCsv } from "../src/model-atlas/sources/epoch/capabilities-index";
-import { epochBenchmarkObservationRows } from "../src/model-atlas/sources/epoch/results";
+import {
+  epochBenchmarkCacheMatches,
+  epochBenchmarkObservationRows,
+} from "../src/model-atlas/sources/epoch/results";
 import { processEpochWeirdMlCsv } from "../src/model-atlas/sources/epoch/weirdml";
 import {
   insertBenchmarkObservationRows,
@@ -30,7 +34,6 @@ import {
 import {
   benchmarkObservationRowKey,
   benchmarkObservationRowKeyFor,
-  mergeBenchmarkObservationRow,
 } from "../src/model-atlas/sources/snapshots/row-snapshot";
 import {
   processSurgeBenchmarkPageHtml,
@@ -90,6 +93,58 @@ assert.deepEqual(parseModelEffort("claude-opus-4.5 (high, 16k)"), {
   baseModel: "claude-opus-4.5",
   reasoningEffort: "high",
 });
+assert.deepEqual(parseModelEffort("Kimi K2.6 (Thinking on)"), {
+  baseModel: "Kimi K2.6",
+  reasoningEffort: null,
+});
+assert.deepEqual(
+  [
+    "Gemini 3.5 Flash-Lite (Minimal reasoning)",
+    "Claude Opus 4.5 (no thinking)",
+    "GPT 5.4 (No reasoning)",
+    "GPT-6 Luna (non-reasoning)",
+    "GPT-5.1 (Thinking, High)",
+    "MiniMax M3 (thinking)",
+  ].map((name) => parseModelEffort(name)),
+  [
+    { baseModel: "Gemini 3.5 Flash-Lite", reasoningEffort: "minimal" },
+    { baseModel: "Claude Opus 4.5", reasoningEffort: "none" },
+    { baseModel: "GPT 5.4", reasoningEffort: "none" },
+    { baseModel: "GPT-6 Luna", reasoningEffort: "none" },
+    { baseModel: "GPT-5.1", reasoningEffort: "high" },
+    { baseModel: "MiniMax M3", reasoningEffort: null },
+  ],
+);
+assert.deepEqual(
+  ["gpt-5.2-extra-high", "claude-4.8-opus-no-thinking", "qwen3.7-max", "qwen3.8-reasoning-max"].map(
+    (slug) => parseSlugEffort(slug),
+  ),
+  [
+    { baseModel: "gpt-5.2", reasoningEffort: "xhigh" },
+    { baseModel: "claude-4.8-opus", reasoningEffort: "none" },
+    { baseModel: "qwen3.7-max", reasoningEffort: null },
+    { baseModel: "qwen3.8-reasoning", reasoningEffort: "max" },
+  ],
+);
+const reasoningOffLookup = buildBenchmarkObservationLookup([
+  {
+    model_id: null,
+    model: "Claude Opus 4.5 (no thinking)",
+    base_model: "Claude Opus 4.5",
+    reasoning_effort: "none",
+    canonical_value: 0.05,
+    observed_at: null,
+  },
+]);
+assert.equal(
+  findBenchmarkObservation(["Claude Opus 4.5"], null, reasoningOffLookup),
+  null,
+  "A reasoning-off row never stands in for a model's default variant",
+);
+assert.equal(
+  findBenchmarkObservation(["Claude Opus 4.5"], "none", reasoningOffLookup)?.canonical_value,
+  0.05,
+);
 const frontierMath = epochBenchmarkObservationRows(
   epochRuns,
   "frontiermath_tier_4",
@@ -104,6 +159,28 @@ const epochFrontierMathLookup = buildBenchmarkObservationLookup(frontierMath);
 assert.equal(epochFrontierMathLookup.get("gpt-5-6-sol")?.canonical_value, 0.561);
 assert.equal(epochFrontierMathLookup.get("gpt-5-6-sol--max")?.canonical_value, 0.561);
 assert.equal(epochFrontierMathLookup.get("gpt-5-6-sol-pro")?.canonical_value, 0.52);
+
+const ebrRuns = parseCsvRecords(
+  "id_runs,task,Status,stderr,mean_score,Unique display name\n" +
+    "first-version,EBR-bench,Success,,0.14,Gemini 3.1 Pro Preview\n" +
+    "later-version,EBR-bench,Success,0.02,0.4,Claude Fable 5 (max)\n",
+);
+const ebrEligibility = { requireStandardError: true } as const;
+const ebrRows = epochBenchmarkObservationRows(ebrRuns, "ebr_bench", "EBR-bench", ebrEligibility);
+assert.deepEqual(
+  ebrRows.map((row) => row.model),
+  ["Claude Fable 5 (max)"],
+  "Runs without a standard error belong to the incomparable first version",
+);
+assert.equal(epochBenchmarkCacheMatches(ebrRows, "EBR-bench", ebrEligibility), true);
+assert.equal(
+  epochBenchmarkCacheMatches(
+    epochBenchmarkObservationRows(ebrRuns, "ebr_bench", "EBR-bench"),
+    "EBR-bench",
+    ebrEligibility,
+  ),
+  false,
+);
 
 const selectedEpochRuns = parseCsvRecords(
   "id_runs,task,started_at,Status,task version,id_model_version,Display name,Unique display name,Organization,mean_score,original_task_name\n" +
@@ -554,7 +631,6 @@ assert.deepEqual(
 
 for (const binding of BENCHMARK_OBSERVATION_BINDINGS) {
   if (binding.loader.kind !== "vals") continue;
-  const source = benchmarkObservationSource(binding);
   const definition = {
     benchmarkKey: binding.benchmark,
     canonicalTask: binding.loader.canonicalTask,
@@ -579,19 +655,12 @@ for (const binding of BENCHMARK_OBSERVATION_BINDINGS) {
       metadata: { ...current.metadata, source_result_json: '{"accuracy":50,"stderr":1}' },
     };
     assert.deepEqual(
-      snapshotRows(
-        [cached],
-        [current],
-        1_793_000_000,
-        {},
-        benchmarkObservationRowKey,
-        source.mergeRow,
-      ),
+      snapshotRows([cached], [current], 1_793_000_000, {}, benchmarkObservationRowKey),
       [current],
       `${binding.benchmark} must replace a revised observation, including zero scores and missing resources`,
     );
     assert.deepEqual(
-      snapshotRows([cached], [], null, {}, benchmarkObservationRowKey, source.mergeRow),
+      snapshotRows([cached], [], null, {}, benchmarkObservationRowKey),
       [cached],
       `${binding.benchmark} must retain its observation when the source fetch fails`,
     );
@@ -694,20 +763,11 @@ assert.equal(claudeMax.canonical_value, 0.45);
 assert.equal(claudeMax.rank, 1);
 assert.equal(gemini.rank, 3);
 assert.equal(kimiMax.model, "Kimi K3 (Max reasoning)");
-assert.equal(kimiMax.base_model, "K3");
+assert.equal(kimiMax.base_model, "Kimi K3", "A brand that names the model stays in its base model");
 assert.equal(kimiMax.reasoning_effort, "max");
 assert.equal(kimiMax.model_creator, "Kimi");
-assert.equal(
-  benchmarkObservationRowKey({ ...kimiMax, model: "K3 (Max reasoning)" }),
-  benchmarkObservationRowKey(kimiMax),
-  "Adding the source brand should not manufacture a new persisted row identity",
-);
 const surgeLookup = buildBenchmarkObservationLookup(surge);
-assert.equal(
-  findBenchmarkObservation(["Kimi K3"], "max", surgeLookup)?.canonical_value,
-  0.43,
-  "The branded source model remains matchable when its stored base model omits the creator",
-);
+assert.equal(findBenchmarkObservation(["Kimi K3"], "max", surgeLookup)?.canonical_value, 0.43);
 assert.equal(findBenchmarkObservation(["Kimi K3"], "high", surgeLookup), null);
 assert.equal(findBenchmarkObservation(["Kimi K3"], null, surgeLookup)?.canonical_value, 0.43);
 assert.equal(
@@ -809,9 +869,6 @@ const valsScienceRerun = {
   canonical_value: 0.4714,
   metadata: { task: "overall", harness: "Mini-SWE-agent" },
 };
-const terminalScienceSource = benchmarkObservationSource(
-  BENCHMARK_OBSERVATION_BINDINGS.find((binding) => binding.benchmark === "terminal_bench_science")!,
-);
 assert.deepEqual(
   snapshotRows(
     [valsScienceRow],
@@ -819,24 +876,9 @@ assert.deepEqual(
     1_793_000_000,
     {},
     benchmarkObservationRowKeyFor([valsScienceRerun]),
-    terminalScienceSource.mergeRow,
   ),
   [valsScienceRerun],
   "A rerun under another harness must replace the earlier run when the source publishes one harness per model and effort",
-);
-const officialScienceRow = { ...valsScienceRow, source_url: "https://example.com/official" };
-const officialScienceRerun = { ...valsScienceRerun, source_url: "https://example.com/official" };
-assert.deepEqual(
-  snapshotRows(
-    [officialScienceRow],
-    [officialScienceRerun],
-    1_793_000_000,
-    {},
-    benchmarkObservationRowKeyFor([officialScienceRerun]),
-    terminalScienceSource.mergeRow,
-  ),
-  [officialScienceRerun],
-  "A rerun under another harness replaces the cached row even where cached values otherwise persist",
 );
 const multiHarnessRows = [
   { ...valsScienceRow, source_url: "https://example.com/multi-harness" },
@@ -889,21 +931,12 @@ assert.deepEqual(
     1_794_000_000,
     {},
     benchmarkObservationRowKey,
-    healthcareSource.mergeRow,
   ),
   [updatedHealthcare],
 );
-assert.deepEqual(
-  snapshotRows(
-    [cachedHealthcare],
-    [],
-    null,
-    {},
-    benchmarkObservationRowKey,
-    healthcareSource.mergeRow,
-  ),
-  [cachedHealthcare],
-);
+assert.deepEqual(snapshotRows([cachedHealthcare], [], null, {}, benchmarkObservationRowKey), [
+  cachedHealthcare,
+]);
 const handbookBinding = benchmarkObservationBinding("handbookMd");
 if (handbookBinding.loader.kind !== "surge" || !("version" in handbookBinding.loader))
   throw new Error("Expected a version-pinned Surge loader");
@@ -974,6 +1007,30 @@ assert.deepEqual(
 );
 assert.equal(hemingway[0]?.base_model, "Claude Fable 5");
 assert.equal(hemingway[1]?.reasoning_effort, "max");
+const opusConfigurations = processSurgeBenchmarkPageHtml(
+  `
+  <div role="listitem"><img alt="Anthropic Logo"><div class="head-rank-table-brand">Claude</div><div class="head-rank-table-name">Opus 4.8 (Adaptive/Default/High)</div><div data-score="">1044</div></div>
+  <div role="listitem"><img alt="Anthropic Logo"><div class="head-rank-table-brand">Claude</div><div class="head-rank-table-name">Opus 4.8 (High reasoning)</div><div data-score="">1038</div></div>
+  `,
+  "hemingway_bench",
+  "https://surgehq.ai/benchmarks/hemingway-bench",
+  "elo",
+);
+const excludedOpusConfigurations = excludeAmbiguousConfigurations(
+  opusConfigurations,
+  benchmarkObservationRowKeyFor(opusConfigurations),
+);
+assert.deepEqual(
+  excludedOpusConfigurations.map((row) => row.metadata.assignment_eligible),
+  [false, false],
+  "Two source configurations of one model and effort are both kept out of scoring",
+);
+assert.equal(
+  new Set(excludedOpusConfigurations.map(benchmarkObservationRowKeyFor(excludedOpusConfigurations)))
+    .size,
+  2,
+  "Conflicting configurations stay separate stored rows",
+);
 
 const legacySurgeMaxRow = {
   ...gptMax,
@@ -990,21 +1047,9 @@ assert.equal(
   "Source display-label changes should preserve the model-effort cache identity",
 );
 assert.deepEqual(
-  snapshotRows(
-    [legacySurgeMaxRow, currentSurgeMaxRow],
-    [],
-    null,
-    {},
-    benchmarkObservationRowKey,
-    mergeBenchmarkObservationRow,
-  ),
-  [
-    {
-      ...legacySurgeMaxRow,
-      model: "GPT 5.6 Sol (Adaptive/Max)",
-    },
-  ],
-  "Cache hits should reconcile newly equivalent identities without rewriting cached evidence",
+  snapshotRows([legacySurgeMaxRow, currentSurgeMaxRow], [], null, {}, benchmarkObservationRowKey),
+  [currentSurgeMaxRow],
+  "Cache hits collapse newly equivalent identities to the later cached row",
 );
 
 const legacySurgeDefaultRow = {
@@ -1043,16 +1088,6 @@ assert.equal(
   benchmarkObservationRowKey(legacySurgeEffortRow),
   benchmarkObservationRowKey(currentSurgeEffortRow),
   "Renamed effort labels should repair historical base-model identities",
-);
-assert.deepEqual(
-  mergeBenchmarkObservationRow(legacySurgeEffortRow, currentSurgeEffortRow),
-  {
-    ...legacySurgeEffortRow,
-    model: "Inkling (Max reasoning)",
-    base_model: "Inkling",
-    reasoning_effort: "max",
-  },
-  "Reconciled rows should adopt current normalized identity without rewriting cached evidence",
 );
 
 const frontierMathLookup = buildBenchmarkObservationLookup(frontierMath);

@@ -29,6 +29,8 @@ export type BenchmarkSourceAdapter =
 export type EpochRunEligibility = {
   /** Accept only runs in the task's newest published major.minor version, pooling its patch revisions. */
   latestTaskVersion?: true;
+  /** Accept only runs that publish a standard error, which is how Epoch marks results from after a methodology version it calls incomparable with later ones. */
+  requireStandardError?: true;
   originalTaskName?: string;
   excludedModelIds?: readonly string[];
 };

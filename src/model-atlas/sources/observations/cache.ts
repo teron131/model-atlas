@@ -15,11 +15,7 @@ import { normalizeModelToken, parseModelEffort } from "../../identity/normalizat
 import { asFiniteNumber, asNonEmptyString } from "../../runtime";
 import { type CacheRowSource, firstFetchedAt, queryCacheRows } from "../cache/rows";
 import type { RawSourceName } from "../registry";
-import {
-  benchmarkObservationRowKeyFor,
-  mergeBenchmarkObservationRow,
-  snapshotSourceRows,
-} from "../snapshots/row-snapshot";
+import { benchmarkObservationRowKeyFor, snapshotSourceRows } from "../snapshots/row-snapshot";
 import type {
   RawSourceCacheStatus,
   SourceRefreshOptions,
@@ -126,7 +122,7 @@ export function insertBenchmarkObservationRows(
   }
 }
 
-/** Resolve fetch and merge policy from the binding while retaining cached evidence and missing-row tracking. */
+/** Resolve the binding's fetch policy and snapshot its rows with missing-row tracking. */
 async function benchmarkObservationSnapshot(
   binding: BenchmarkObservationBinding,
   cached: { rows: BenchmarkObservationRow[]; fetchedAt: number | null } | null,
@@ -135,12 +131,7 @@ async function benchmarkObservationSnapshot(
   previousMissingSince: ReadonlyMap<string, number>,
   nowEpochSeconds: number,
 ): Promise<BenchmarkObservationSnapshot> {
-  const {
-    fetchRows,
-    acceptsRefresh,
-    replaceRowsOnRefresh,
-    mergeRow = mergeBenchmarkObservationRow,
-  } = benchmarkObservationSource(binding);
+  const { fetchRows, acceptsRefresh, replaceRowsOnRefresh } = benchmarkObservationSource(binding);
   const snapshot = await snapshotSourceRows({
     source: binding.benchmark,
     cached,
@@ -154,7 +145,6 @@ async function benchmarkObservationSnapshot(
     rowKeyFor: benchmarkObservationRowKeyFor,
     rowLabel: (row) => `${row.benchmark_key}: ${row.model}`,
     versions: { versionOf: (row) => row.metadata.benchmark_version },
-    mergeRow,
     seriesOf: (row) => row.source_url,
   });
   return {

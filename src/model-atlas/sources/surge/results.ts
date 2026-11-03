@@ -16,7 +16,7 @@ import type {
   BenchmarkObservationPayload,
   BenchmarkObservationRow,
 } from "../../benchmarks/observation";
-import { modelNameWithoutCreatorPrefix, parseModelEffort } from "../../identity/normalization";
+import { parseModelEffort } from "../../identity/normalization";
 import { nowEpochSeconds } from "../../runtime";
 import { htmlAttribute, percentToUnitScore, providerFromLogoAlt, stripHtmlTags } from "../parsing";
 import { fetchSource } from "../request-scheduler";
@@ -129,7 +129,7 @@ export function processSurgeBenchmarkPageHtml(
       source_url: sourceUrl,
       model_id: null,
       model,
-      base_model: modelNameWithoutCreatorPrefix(parsed.baseModel, row.provider),
+      base_model: parsed.baseModel,
       reasoning_effort: parsed.reasoningEffort,
       model_creator: row.provider,
       rank,
@@ -166,7 +166,7 @@ export function processSurgeIntelligenceIndexPageHtml(
       return {
         provider,
         model,
-        baseModel: modelNameWithoutCreatorPrefix(parsed.baseModel, provider),
+        baseModel: parsed.baseModel,
         reasoningEffort: parsed.reasoningEffort,
         score,
       };

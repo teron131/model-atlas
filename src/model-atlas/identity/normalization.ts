@@ -2,6 +2,7 @@
 
 import { isGptModelIdentity } from "./gpt";
 import { canonicalMuseToken } from "./muse";
+import { hasQwenMaxTier } from "./qwen";
 
 export const OPENROUTER_PROVIDER_ID = "openrouter" as const;
 export const VERCEL_PROVIDER_ID = "vercel" as const;
@@ -24,15 +25,19 @@ const REASONING_EFFORT_RANK = {
 } as const satisfies Readonly<Record<string, number>>;
 const MODEL_CONFIGURATION_LABEL_PATTERN = /\s+\((?:fast|free|online|reasoning|thinking)\)\s*$/i;
 const BENCHMARK_EFFORT_SUFFIX_PATTERN = /^(.*?)(?:\s+\(([^()]*)\)|\s+-\s+([^()]+))\s*$/i;
+const REASONING_MODE_LABELS = new Set(["default", "thinking", "reasoning", "thinking-on"]);
+const SLUG_EFFORT_SUFFIX_PATTERN =
+  /^(.+?)-(none|non?-(?:reasoning|thinking)|minimal|low|medium|high|extra-high|xhigh|adaptive|max|ultra)$/i;
 const BENCHMARK_EFFORT_LABELS = new Set([
-  "xhigh",
-  "extra-high",
-  "max",
-  "high",
-  "medium",
-  "low",
   "none",
+  "minimal",
+  "low",
+  "medium",
+  "high",
+  "extra-high",
+  "xhigh",
   "adaptive",
+  "max",
 ]);
 
 type ParsedModelEffort = {
@@ -97,20 +102,9 @@ export function normalizeModelToken(value: string): string {
   return canonicalMuseToken(token);
 }
 
-/** Remove a repeated creator prefix while retaining the complete source display model elsewhere: `("Google Gemini 2.5 Pro", "Google")` → `"Gemini 2.5 Pro"`. */
-export function modelNameWithoutCreatorPrefix(modelName: string, creator: unknown): string {
-  if (typeof creator !== "string") return modelName;
-  const prefix = creator.trim();
-  if (prefix.length === 0 || !modelName.toLowerCase().startsWith(`${prefix.toLowerCase()} `)) {
-    return modelName;
-  }
-  const unprefixed = modelName.slice(prefix.length).trim();
-  return unprefixed.length > 0 ? unprefixed : modelName;
-}
-
 /**
  * Canonicalize source effort labels while preserving actual null for unknown or unreported values.
- * `"Extra High"` → `"xhigh"`, `"Non-reasoning"` → `"none"`, and `"null"` → `null`.
+ * `"Extra High"` → `"xhigh"`, `"Non-reasoning"` and `"No thinking"` → `"none"`, `"thinking-high"` → `"high"`, and `"null"` → `null`.
  */
 export function canonicalReasoningEffort(value: unknown): string | null {
   if (typeof value !== "string") {
@@ -120,12 +114,15 @@ export function canonicalReasoningEffort(value: unknown): string | null {
   if (normalized.length === 0 || normalized === "null") {
     return null;
   }
-  if (normalized === "extra-high") return "xhigh";
-  return normalized === "non-reasoning" ? "none" : normalized;
+  // A thinking or reasoning mode prefix only qualifies a known effort; budget labels such as "thinking-16k" keep it.
+  const unprefixed = normalized.replace(/^(?:thinking|reasoning)-/, "");
+  const label = Object.hasOwn(REASONING_EFFORT_RANK, unprefixed) ? unprefixed : normalized;
+  if (label === "extra-high") return "xhigh";
+  return /^non?-(?:reasoning|thinking)$/.test(label) ? "none" : label;
 }
 
 /**
- * Strip effort suffixes; GPT product qualifiers beside an effort remain part of GPT identity.
+ * Strip effort suffixes; GPT product qualifiers beside an effort remain part of GPT identity, while thinking or reasoning mode labels do not.
  * `"GPT-5.2 (Pro, xhigh)"` → `{ baseModel: "GPT-5.2 Pro", reasoningEffort: "xhigh" }`, while `"Claude Sonnet 4.5 (Thinking, high)"` → `{ baseModel: "Claude Sonnet 4.5", reasoningEffort: "high" }`.
  */
 export function parseModelEffort(value: string): ParsedModelEffort {
@@ -138,46 +135,60 @@ export function parseModelEffort(value: string): ParsedModelEffort {
     return { baseModel: value, reasoningEffort: null };
   }
   const rawLabel = (match[2] ?? match[3] ?? "").trim();
-  if (rawLabel.toLowerCase() === "default") {
+  if (isReasoningModeLabel(rawLabel)) {
     return { baseModel, reasoningEffort: null };
   }
   const labels = rawLabel
     .split(/[,/+]+/)
     .map((label) => label.trim())
-    .filter((label) => label.length > 0)
-    .map((label) => ({
-      label,
-      efforts: label
-        .toLowerCase()
-        .replace(/\b(?:effort|reasoning)\b/g, "")
-        .replace(/\badaptive\s+max\b/g, "adaptive/max")
-        .split("/")
-        .map((token) => canonicalReasoningEffort(token.trim()))
-        .filter((token): token is string => token != null && BENCHMARK_EFFORT_LABELS.has(token)),
-    }));
-  const reasoningEffort =
-    labels
-      .flatMap(({ efforts }) => efforts)
-      .filter(
-        (effort, _index, efforts) =>
-          effort !== "adaptive" || !efforts.some((candidate) => candidate !== "adaptive"),
-      )
-      .sort((left, right) => reasoningEffortRank(right) - reasoningEffortRank(left))[0] ?? null;
+    .filter((label) => label.length > 0);
+  const reasoningEffort = qualifierReasoningEffort(labels);
   if (reasoningEffort == null) {
     return { baseModel: value, reasoningEffort: null };
   }
   const configuration = isGptModelIdentity(baseModel)
     ? labels
         .filter(
-          ({ label, efforts }) => efforts.length === 0 && normalizeModelToken(label) !== "default",
+          (label) => qualifierReasoningEffort([label]) == null && !isReasoningModeLabel(label),
         )
-        .map(({ label }) => label)
         .join(" ")
     : "";
   return {
     baseModel: configuration.length === 0 ? baseModel : `${baseModel} ${configuration}`,
     reasoningEffort,
   };
+}
+
+/** A bare thinking or reasoning label names a hybrid model's reasoning mode, which Atlas lists as that model's default variant rather than an effort. */
+export function isReasoningModeLabel(label: string): boolean {
+  return REASONING_MODE_LABELS.has(normalizeModelToken(label));
+}
+
+/** The strongest effort a source's qualifiers name, reading labels such as "No thinking" as none; adaptive yields to any explicit effort beside it. */
+export function qualifierReasoningEffort(labels: readonly string[]): string | null {
+  const efforts = labels.flatMap((label) =>
+    label
+      .toLowerCase()
+      .replace(/\bnon?[- ](?:thinking|reasoning)\b/g, "none")
+      .replace(/\b(?:effort|reasoning)\b/g, "")
+      .replace(/\badaptive\s+max\b/g, "adaptive/max")
+      .split("/")
+      .map((token) => canonicalReasoningEffort(token.trim()))
+      .filter((token): token is string => token != null && BENCHMARK_EFFORT_LABELS.has(token)),
+  );
+  return (
+    efforts
+      .filter((effort) => effort !== "adaptive" || efforts.every((other) => other === "adaptive"))
+      .sort((left, right) => reasoningEffortRank(right) - reasoningEffortRank(left))[0] ?? null
+  );
+}
+
+/** Read a slug's trailing effort, as in `"gpt-5-high"` → `{ baseModel: "gpt-5", reasoningEffort: "high" }`; a Qwen Max product tier is not an effort. */
+export function parseSlugEffort(slug: string): ParsedModelEffort {
+  const match = SLUG_EFFORT_SUFFIX_PATTERN.exec(slug);
+  return match?.[1] == null || hasQwenMaxTier(normalizeModelToken(slug))
+    ? { baseModel: slug, reasoningEffort: null }
+    : { baseModel: match[1], reasoningEffort: canonicalReasoningEffort(match[2]) };
 }
 
 /** Index effort-labelled benchmark rows while making the highest effort the base-model default. */
@@ -192,15 +203,12 @@ export function buildBenchmarkModelMap<Row extends BenchmarkModelRow>(
       rowsByModel.set(modelKey, row);
     }
     const baseKey = normalizeModelToken(row.base_model);
-    if (baseKey.length === 0) {
+    const rank = defaultConfigurationRank(row.reasoning_effort);
+    if (baseKey.length === 0 || rank == null) {
       continue;
     }
     const currentDefault = defaultRowsByBaseModel.get(baseKey);
-    if (
-      currentDefault == null ||
-      reasoningEffortRank(row.reasoning_effort) >
-        reasoningEffortRank(currentDefault.reasoning_effort)
-    ) {
+    if (currentDefault == null || rank > reasoningEffortRank(currentDefault.reasoning_effort)) {
       defaultRowsByBaseModel.set(baseKey, row);
     }
   }
@@ -208,6 +216,11 @@ export function buildBenchmarkModelMap<Row extends BenchmarkModelRow>(
     rowsByModel.set(baseKey, row);
   }
   return rowsByModel;
+}
+
+/** A row's claim to stand in for its base model's default configuration: the highest effort wins, and a reasoning-off row never qualifies. */
+export function defaultConfigurationRank(reasoningEffort: string | null): number | null {
+  return reasoningEffort === "none" ? null : reasoningEffortRank(reasoningEffort);
 }
 
 /** Unlabelled rows are the source's default highest-effort configuration. */

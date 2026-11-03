@@ -167,7 +167,10 @@ const bodies = new Map([
     JSON.stringify({
       metadata: { version: "1", updated: "2026-10-08" },
       tasks: {
-        almost: { "openai/gpt-6-astra": { accuracy: 42.3, reasoning_effort: "max", stderr: 2.1 } },
+        almost: {
+          "openai/gpt-6-astra": { accuracy: 42.3, reasoning_effort: "max", stderr: 2.1 },
+          "thinkingmachines/inkling": { accuracy: 8.8, reasoning_effort: "0.99" },
+        },
         strict: { "openai/gpt-6-astra": { accuracy: 3 } },
       },
     }),
@@ -191,9 +194,15 @@ try {
   };
   const generic = await getValsBenchmarkStats(definition);
   assert.notEqual(generic.fetched_at_epoch_seconds, null);
-  assert.equal(generic.data.length, 1);
   assert.equal(generic.data[0]?.canonical_value, 0.423);
-  assert.equal(generic.data[0]?.reasoning_effort, "max");
+  assert.deepEqual(
+    generic.data.map((row) => [row.model, row.reasoning_effort]),
+    [
+      ["gpt-6-astra (max)", "max"],
+      ["inkling (xhigh)", "xhigh"],
+    ],
+    "Inkling's numeric effort maps to its named preset",
+  );
   assert.deepEqual(requests, [genericUrl, genericAsset]);
   const fetchedIndex = await getValsIndexStats();
   assert.notEqual(fetchedIndex.fetched_at_epoch_seconds, null);

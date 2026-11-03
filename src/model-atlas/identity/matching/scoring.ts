@@ -6,7 +6,6 @@ import {
   normalizeModelToken,
   normalizeProviderModelId,
 } from "../normalization";
-import { hasQwenMaxTier } from "../qwen";
 import {
   commonPrefixLength,
   firstParsedNumber,
@@ -47,17 +46,6 @@ const CLAUDE_IDENTITY_EXACT_REWARD = 20;
 const UNVERSIONED_CURRENT_VERSION_REWARD = 6;
 const REQUIRED_IDENTITY_LABELS = ["vl", "coder"] as const;
 const EXCLUSIVE_SIZE_LABELS = ["small", "micro"] as const;
-const ARTIFICIAL_ANALYSIS_EFFORT_SUFFIXES = [
-  "-ultra",
-  "-max",
-  "-adaptive",
-  "-xhigh",
-  "-high",
-  "-medium",
-  "-low",
-  "-minimal",
-  "-non-reasoning",
-] as const;
 const COVERAGE_IGNORED_TOKENS = new Set([
   "preview",
   "ultra",
@@ -70,22 +58,6 @@ const COVERAGE_IGNORED_TOKENS = new Set([
   "minimal",
   "non",
 ]);
-/**
- * Collapse Artificial Analysis effort-specific slugs while retaining Qwen's semantic Max tier.
- * `"gpt-5-1-codex-max"` → `"gpt-5-1-codex"`, but `"qwen3-max"` stays whole.
- */
-export function artificialAnalysisMatchSlug(sourceSlug: string): string {
-  for (const suffix of ARTIFICIAL_ANALYSIS_EFFORT_SUFFIXES) {
-    if (sourceSlug.endsWith(suffix)) {
-      if (suffix === "-max" && hasQwenMaxTier(sourceSlug)) {
-        return sourceSlug;
-      }
-      return sourceSlug.slice(0, -suffix.length);
-    }
-  }
-  return sourceSlug;
-}
-
 /** Variant labels are matched longest-first so compound variants like flash-lite do not double-count flash. */
 function variantLabels(modelId: string, matcherConfig: MatcherConfig): Set<string> {
   const tokens = normalizeProviderModelId(modelId).split(/[-/]/).filter(Boolean);

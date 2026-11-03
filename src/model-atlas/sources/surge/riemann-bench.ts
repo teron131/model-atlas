@@ -6,7 +6,7 @@
  */
 
 import { modelNameIdentityKey } from "../../identity";
-import { modelNameWithoutCreatorPrefix, normalizeModelToken } from "../../identity/normalization";
+import { normalizeModelToken } from "../../identity/normalization";
 import { nowEpochSeconds } from "../../runtime";
 import { fetchSource } from "../request-scheduler";
 import { surgeLeaderboardScoreRows } from "./results";
@@ -61,7 +61,7 @@ export function buildRiemannBenchMap(
 ): RiemannBenchRowsByModelName {
   const rowsByModelName: RiemannBenchRowsByModelName = new Map();
   for (const row of rows) {
-    for (const key of riemannBenchKeyCandidates(row.model, row.provider)) {
+    for (const key of riemannBenchKeyCandidates(row.model)) {
       rowsByModelName.set(key, row);
     }
   }
@@ -93,14 +93,13 @@ export function findRiemannBenchScore(
   return null;
 }
 
-function riemannBenchKeyCandidates(model: string, provider: string | null = null): string[] {
+function riemannBenchKeyCandidates(model: string): string[] {
   const withoutParenthetical = model.replace(/\s*\([^)]*\)/g, "").trim();
-  const withoutCreator = modelNameWithoutCreatorPrefix(withoutParenthetical, provider);
   const slashParts = withoutParenthetical
     .split("/")
     .map((part) => part.trim())
     .filter((part) => part.length > 0);
-  return [model, withoutParenthetical, withoutCreator, ...slashParts]
+  return [model, withoutParenthetical, ...slashParts]
     .map(normalizeModelToken)
     .filter((key, index, keys) => key.length > 0 && keys.indexOf(key) === index);
 }

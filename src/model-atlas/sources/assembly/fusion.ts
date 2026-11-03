@@ -7,6 +7,7 @@ import {
   type CrosswalkObservation,
   crosswalkThreeBenchmarkSources,
 } from "../../benchmarks/sources-crosswalk";
+import { withClaudeFamily } from "../../identity/claude";
 import { parseModelEffort } from "../../identity/normalization";
 import { type AleBenchSourceRow, fuseAleBenchRows } from "../ale-bench/leaderboard";
 import type { ArtificialAnalysisBenchmarkResourceRow } from "../artificial-analysis/benchmark-resources";
@@ -33,8 +34,8 @@ export function fusedBenchmarkObservations({
     benchmark_key: "terminal_bench_4",
     source_url: "https://www.tbench.ai/?version=4.0",
     model_id: null,
-    model: claudeName(row.model),
-    base_model: claudeName(row.base_model),
+    model: withClaudeFamily(row.model),
+    base_model: withClaudeFamily(row.base_model),
     reasoning_effort: row.reasoning_effort,
     model_creator: null,
     rank: null,
@@ -48,8 +49,8 @@ export function fusedBenchmarkObservations({
   }));
   const scienceRows: CrosswalkObservation[] = science.map((row) => ({
     ...row,
-    model: claudeName(row.model),
-    base_model: claudeName(
+    model: withClaudeFamily(row.model),
+    base_model: withClaudeFamily(
       row.metadata.source_series === "vals"
         ? row.base_model
         : parseModelEffort(row.model).baseModel,
@@ -130,8 +131,4 @@ export function fusedBenchmarkObservations({
         metadata: { time_measure: "decode" },
       }));
   }
-}
-
-function claudeName(name: string): string {
-  return /^(?:Fable|Opus|Sonnet)\b/i.test(name) ? `Claude ${name}` : name;
 }

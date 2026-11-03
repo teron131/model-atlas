@@ -49,6 +49,15 @@ const models = [
 
 const textRows = processCaisDashboardModels(models, "textquests", sourceUrl, "fixture");
 assert.equal(textRows.length, 2);
+assert.equal(
+  processCaisDashboardModels(
+    [{ ...models[0], name: "Opus 4.7", id: "opus-4-7-adaptive-64k" }],
+    "textquests",
+    sourceUrl,
+    "fixture",
+  )[0]?.model,
+  "Claude Opus 4.7 (high)",
+);
 assert.equal(textRows[0]?.observed_at, null);
 assert.equal(textRows[0]?.metadata.model_release_date, "2026-09-01");
 assert.deepEqual(

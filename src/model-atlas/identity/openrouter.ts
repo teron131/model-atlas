@@ -4,41 +4,14 @@ import { claudeRouteIdentityKey } from "./claude";
 import {
   modelSlugFromModelId,
   normalizeProviderModelId,
+  parseSlugEffort,
   reasoningEffortRank,
 } from "./normalization";
-import { hasQwenMaxTier } from "./qwen";
 
 const OPENROUTER_FREE_ROUTE_SUFFIX = ":free";
 const MMDD_RELEASE_TOKEN_PATTERN = /^(?:0[1-9]|1[0-2])(?:[0-2]\d|3[01])$/;
 
-const REASONING_EFFORT_BY_SUFFIX = [
-  ["-reasoning-ultra", "ultra"],
-  ["-ultra", "ultra"],
-  ["-reasoning-max", "max"],
-  ["-max", "max"],
-  ["-adaptive", "adaptive"],
-  ["-reasoning-xhigh", "xhigh"],
-  ["-xhigh", "xhigh"],
-  ["-reasoning-high", "high"],
-  ["-high", "high"],
-  ["-reasoning-medium", "medium"],
-  ["-medium", "medium"],
-  ["-reasoning-low", "low"],
-  ["-low", "low"],
-  ["-reasoning-minimal", "minimal"],
-  ["-minimal", "minimal"],
-  ["-reasoning", "minimal"],
-  ["-non-reasoning", "none"],
-] as const;
-const REASONING_EFFORT_SUFFIXES = REASONING_EFFORT_BY_SUFFIX.map(([suffix]) => suffix);
-const CATALOG_ALIAS_SUFFIXES = [
-  "-fast",
-  "-non-reasoning-low-effort",
-  ...REASONING_EFFORT_SUFFIXES,
-] as const;
-const CATALOG_ALIAS_SUFFIXES_LONGEST_FIRST = [...CATALOG_ALIAS_SUFFIXES].sort(
-  (left, right) => right.length - left.length,
-);
+const CATALOG_ALIAS_SUFFIX_PATTERN = /-(?:fast|non-reasoning-low-effort|reasoning)$/;
 const DATED_PREVIEW_ROUTE_PATTERN = /^(.+)-preview-\d{2}-(?:\d{2}|\d{4})$/;
 
 /** Removes dated and preview suffixes from OpenRouter model names: `"gemini-2.5-pro-preview-06-05"` → `"gemini-2.5-pro"`, `"gpt-4o-2024-08-06"` → `"gpt-4o"`. */
@@ -102,17 +75,10 @@ export function isSameOpenRouterModelRoute(targetRoute: string, candidateRoute: 
  * `"anthropic/claude-sonnet-4-5-20250929"` → `"anthropic/claude-sonnet-4-5"` and `"openai/gpt-5-high"` → `"openai/gpt-5"`.
  */
 export function stripCatalogAliasSuffixes(value: string): string {
-  let normalized = value.replace(/-\d{8}$/, "");
-  for (const suffix of CATALOG_ALIAS_SUFFIXES_LONGEST_FIRST) {
-    if (normalized.endsWith(suffix)) {
-      if (suffix === "-max" && hasQwenMaxTier(normalized)) {
-        return normalized;
-      }
-      normalized = normalized.slice(0, -suffix.length);
-      break;
-    }
-  }
-  return normalized;
+  const parsed = parseSlugEffort(value.replace(/-\d{8}$/, ""));
+  return parsed.reasoningEffort == null
+    ? parsed.baseModel.replace(CATALOG_ALIAS_SUFFIX_PATTERN, "")
+    : parsed.baseModel.replace(/-reasoning$/, "");
 }
 
 /** Ranks an effort observation by its reported label, using route suffixes only when the source omits that label. */
@@ -127,29 +93,31 @@ export function reasoningEffortSelectionPriority(
   const normalizedArtificialAnalysisSlug = normalizedEffortRoute(artificialAnalysisSlug);
   const normalizedCanonicalSlug = normalizedEffortRoute(canonicalSlug);
   const exactRoute = normalizedArtificialAnalysisSlug === normalizedCanonicalSlug;
-  const routeIndex = exactRoute
-    ? -1
-    : REASONING_EFFORT_BY_SUFFIX.findIndex(
-        ([suffix]) => normalizedArtificialAnalysisSlug === `${normalizedCanonicalSlug}${suffix}`,
-      );
+  const routeEffort = exactRoute
+    ? null
+    : routeSuffixEffort(normalizedArtificialAnalysisSlug, normalizedCanonicalSlug);
   const reportedRank =
     typeof reasoningEffort === "string" && reasoningEffort.trim().length > 0
       ? reasoningEffortRank(reasoningEffort)
       : -1;
-  const inferredRank = exactRoute
-    ? reasoningEffortRank(null)
-    : routeIndex >= 0
-      ? reasoningEffortRank(REASONING_EFFORT_BY_SUFFIX[routeIndex]?.[1])
-      : -1;
+  const inferredRank = exactRoute || routeEffort != null ? reasoningEffortRank(routeEffort) : -1;
   const effortRank = reportedRank >= 0 ? reportedRank : inferredRank;
   if (effortRank < 0) {
     return 0;
   }
-  const routeTieBreak =
-    exactRoute || routeIndex < 0
-      ? REASONING_EFFORT_BY_SUFFIX.length + 1
-      : REASONING_EFFORT_BY_SUFFIX.length - routeIndex;
-  return (effortRank + 1) * 100 + routeTieBreak;
+  // Rows that report the same effort prefer a route without an effort suffix, then the route whose suffix names the higher effort.
+  return (effortRank + 1) * 100 + reasoningEffortRank(routeEffort);
+}
+
+/** The effort a route's suffix names beyond its canonical route, where a bare `-reasoning` alias names minimal effort. */
+function routeSuffixEffort(route: string, canonicalRoute: string): string | null {
+  if (route === `${canonicalRoute}-reasoning`) {
+    return "minimal";
+  }
+  const parsed = parseSlugEffort(route);
+  return [canonicalRoute, `${canonicalRoute}-reasoning`].includes(parsed.baseModel)
+    ? parsed.reasoningEffort
+    : null;
 }
 
 export function nonFreeOpenRouterModelId(modelId: string): string | null {

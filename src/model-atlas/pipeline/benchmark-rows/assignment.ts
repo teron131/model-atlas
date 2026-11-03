@@ -22,17 +22,13 @@ import {
   reasoningEffortRank,
 } from "../../identity/normalization";
 import { asRecord } from "../../runtime";
-import {
-  agentsLastExamBenchmarkScore,
-  findAgentsLastExamModelScoreRow,
-} from "../../sources/agents-last-exam/leaderboard";
+import { agentsLastExamBenchmarkScore } from "../../sources/agents-last-exam/leaderboard";
 import {
   type ArtificialAnalysisBenchmarkResourceLookup,
   findArtificialAnalysisBenchmarkResourceRow,
 } from "../../sources/artificial-analysis/benchmark-resources";
 import type { ModelAtlasSourceData } from "../../sources/assembly";
 import { findRiemannBenchScore } from "../../sources/surge/riemann-bench";
-import { findValsIndexRow } from "../../sources/vals/index-benchmark";
 import type { ModelAtlasScoringSources, ModelRow } from "../model-types";
 
 type BenchmarkObservationLookups = {
@@ -62,6 +58,7 @@ type AssignedBenchmarks = {
 
 type StandaloneSourceRowResolver = <T extends BenchmarkModelRow>(
   rowsByModelName: ReadonlyMap<string, T>,
+  candidateNames?: unknown[],
 ) => T | null;
 
 type StandaloneBenchmarkContext = {
@@ -262,6 +259,25 @@ const addFrontierCode: StandaloneBenchmarkOperation = ({
   }
 };
 
+/** Agents' Last Exam names some models by their provider-qualified id with "/" written as "-". */
+const addAgentsLastExam: StandaloneBenchmarkOperation = ({
+  assignedBenchmarks,
+  lookups,
+  modelNameCandidates,
+  resolveSourceRow,
+}) => {
+  const row = resolveSourceRow(
+    lookups.agentsLastExam.rowsByModelName,
+    modelNameCandidates.flatMap((name) =>
+      typeof name === "string" && name.includes("/") ? [name, name.replaceAll("/", "-")] : [name],
+    ),
+  );
+  if (row != null) {
+    assignedBenchmarks.benchmarks.agents_last_exam = agentsLastExamBenchmarkScore(row);
+    assignedBenchmarks.scoringSources.agents_last_exam = row;
+  }
+};
+
 /** Adds the strongest agent result for the exact model effort selected by the source projection. */
 const addTerminalBench4: StandaloneBenchmarkOperation = ({
   assignedBenchmarks,
@@ -277,16 +293,8 @@ const addTerminalBench4: StandaloneBenchmarkOperation = ({
 
 const STANDALONE_BENCHMARK_ADAPTERS = {
   agents_last_exam: {
-    defaultVariant: ({ assignedBenchmarks, lookups, modelNameCandidates }) => {
-      const row = findAgentsLastExamModelScoreRow(
-        modelNameCandidates,
-        lookups.agentsLastExam.rowsByModelName,
-      );
-      if (row != null) {
-        assignedBenchmarks.benchmarks.agents_last_exam = agentsLastExamBenchmarkScore(row);
-        assignedBenchmarks.scoringSources.agents_last_exam = row;
-      }
-    },
+    defaultVariant: addAgentsLastExam,
+    observation: addAgentsLastExam,
   },
   ale_bench: {
     defaultVariant: addAleBench,
@@ -389,8 +397,8 @@ export function buildObservationBenchmarks(
     assignedBenchmarks,
     lookups,
     modelNameCandidates,
-    resolveSourceRow: (rowsByModelName) =>
-      findEffortSourceRow(modelNameCandidates, targetReasoningEffort, rowsByModelName),
+    resolveSourceRow: (rowsByModelName, candidateNames = modelNameCandidates) =>
+      findEffortSourceRow(candidateNames, targetReasoningEffort, rowsByModelName),
   });
   assignFusedBenchmarks(assignedBenchmarks, lookups, modelNameCandidates, targetEffort);
   return assignedBenchmarks;
@@ -424,8 +432,8 @@ export function buildDefaultVariantBenchmarks(
     assignedBenchmarks,
     lookups,
     modelNameCandidates,
-    resolveSourceRow: (rowsByModelName) =>
-      findDefaultSourceRow(modelNameCandidates, targetReasoningEffort, rowsByModelName),
+    resolveSourceRow: (rowsByModelName, candidateNames = modelNameCandidates) =>
+      findDefaultSourceRow(candidateNames, targetReasoningEffort, rowsByModelName),
   });
   const riemannBenchScore = findRiemannBenchScore(
     modelNameCandidates,
@@ -434,7 +442,11 @@ export function buildDefaultVariantBenchmarks(
   if (riemannBenchScore != null) {
     benchmarks.riemann_bench = riemannBenchScore;
   }
-  const valsIndexRow = findValsIndexRow(modelNameCandidates, lookups.valsIndex.rowsByModelName);
+  const valsIndexRow = findDefaultSourceRow(
+    modelNameCandidates,
+    targetReasoningEffort,
+    lookups.valsIndex.rowsByModelName,
+  );
   if (valsIndexRow != null) {
     benchmarks.vals_index = valsIndexRow.score;
     scoringSources.vals_index = valsIndexRow;

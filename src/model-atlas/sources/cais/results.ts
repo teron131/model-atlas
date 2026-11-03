@@ -9,7 +9,8 @@ import type {
   BenchmarkObservationPayload,
   BenchmarkObservationRow,
 } from "../../benchmarks/observation";
-import { canonicalReasoningEffort } from "../../identity/normalization";
+import { withClaudeFamily } from "../../identity/claude";
+import { parseSlugEffort } from "../../identity/normalization";
 import { asFiniteNumber, asRecord, nowEpochSeconds } from "../../runtime";
 import { fetchSource } from "../request-scheduler";
 
@@ -194,10 +195,7 @@ function modelIdentity(model: CaisDashboardModel): {
   baseModel: string;
   reasoningEffort: string | null;
 } {
-  const baseModel =
-    model.provider === "anthropic" && /^(?:Fable|Haiku|Opus|Sonnet)\b/.test(model.name)
-      ? `Claude ${model.name}`
-      : model.name;
+  const baseModel = withClaudeFamily(model.name);
   const reasoningEffort = caisReasoningEffort(model.modelId);
   return {
     model: reasoningEffort == null ? baseModel : `${baseModel} (${reasoningEffort})`,
@@ -208,8 +206,9 @@ function modelIdentity(model: CaisDashboardModel): {
 
 function caisReasoningEffort(modelId: string): string | null {
   if (/(?:-|\b)thinking(?:-\d+k)?$/i.test(modelId)) return "max";
-  const match = modelId.match(/-(low|medium|high|xhigh|max)$/i);
-  return match == null ? null : canonicalReasoningEffort(match[1]);
+  // Adaptive-thinking runs set no effort parameter, so the Claude API default of high applies; the token count is the output budget.
+  if (/-adaptive(?:-\d+k)?$/i.test(modelId)) return "high";
+  return parseSlugEffort(modelId).reasoningEffort;
 }
 
 async function fetchCaisDashboardPageOnce(sourceUrl: string): Promise<CaisDashboardPage> {
