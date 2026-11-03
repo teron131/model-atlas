@@ -222,7 +222,7 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
   },
   omniscience_accuracy: {
-    group: "baseline",
+    group: "frontier",
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
