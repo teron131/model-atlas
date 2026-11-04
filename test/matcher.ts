@@ -322,7 +322,7 @@ const tracePayload: OpenRouterSourcePayload = {
       selected_permaslug: "example/other",
       candidate_permaslugs: ["example/other"],
       performance: {},
-      pricing: null,
+      route_prices: [],
     },
     {
       id: "example/example-3",
@@ -332,14 +332,14 @@ const tracePayload: OpenRouterSourcePayload = {
         throughput: { data: [{ y: { first: 80, second: 100 } }] },
         latency: { data: [{ y: { first: 2 } }] },
       },
-      pricing: null,
+      route_prices: [],
     },
     {
       id: "example/example-3-preview",
       selected_permaslug: null,
       candidate_permaslugs: [],
       performance: {},
-      pricing: null,
+      route_prices: [],
     },
   ],
 };

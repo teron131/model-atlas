@@ -429,7 +429,10 @@ function buildCost(row: DbRow): ModelAtlasCost {
   assignNumber(cost, "cache_write", row.cost_cache_write);
   assignNumber(cost, "weighted_input", row.cost_weighted_input);
   assignNumber(cost, "weighted_output", row.cost_weighted_output);
+  assignNumber(cost, "weighted_cache_read", row.cost_weighted_cache_read);
   assignNumber(cost, "blended_price", row.cost_blended_price);
+  assignNumber(cost, "blended_price_long_sessions", row.cost_blended_price_long_sessions);
+  assignNumber(cost, "blended_price_short_tasks", row.cost_blended_price_short_tasks);
   const contextOver200k: Record<string, number> = {};
   assignNumber(contextOver200k, "input", row.context_over_200k_input);
   assignNumber(contextOver200k, "output", row.context_over_200k_output);

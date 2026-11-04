@@ -1,4 +1,4 @@
-/** SQLite writer for OpenRouter directory, route, stat-point, and pricing source rows. */
+/** SQLite writer for OpenRouter directory, route, stat-point, route-price, and model summary source rows. */
 
 import type { DatabaseStatement, DatabaseWriter } from "../../database/writers/database";
 import { asFiniteNumber, asRecord } from "../../runtime";
@@ -22,6 +22,7 @@ type OpenRouterRawRowKind =
   | "endpoint_summary"
   | "permaslug_candidate"
   | "stat_point"
+  | "route_price"
   | "model_stats";
 
 type OpenRouterRawRow = {
@@ -42,11 +43,13 @@ type OpenRouterRawRow = {
   throughput?: number | null;
   latency?: number | null;
   e2eLatency?: number | null;
-  weightedInput?: number | null;
-  weightedOutput?: number | null;
+  inputPrice?: number | null;
+  outputPrice?: number | null;
+  cacheReadPrice?: number | null;
+  cacheWritePrice?: number | null;
 };
 
-/** Insert OpenRouter raw directory rows, candidate rows, stat points, and model summaries in one source table. */
+/** Insert OpenRouter raw directory rows, candidate rows, stat points, route prices, and model summaries in one source table. */
 export function insertOpenRouterRawRows(
   db: DatabaseWriter,
   rawPayload: OpenRouterSourcePayload | null | undefined,
@@ -60,9 +63,9 @@ export function insertOpenRouterRawRows(
 			slug, permaslug, candidate_index, selected_permaslug, metric, x, series,
 			value, series_token_weight,
 			throughput_tokens_per_second_median, latency_seconds_median,
-			e2e_latency_seconds_median, weighted_input_price_per_1m,
-			weighted_output_price_per_1m
-		) VALUES (${Array.from({ length: 19 }, () => "?").join(", ")})
+			e2e_latency_seconds_median, input_price_per_1m, output_price_per_1m,
+			cache_read_price_per_1m, cache_write_price_per_1m
+		) VALUES (${Array.from({ length: 21 }, () => "?").join(", ")})
 	`);
   let rowIndex = insertDirectoryRows(statement, rawPayload, 0);
   for (const model of rawPayload.models) {
@@ -89,7 +92,27 @@ export function insertOpenRouterRawRows(
       rowIndex += 1;
     }
     rowIndex = insertStatPointRows(statement, model, rawPayload.fetched_at_epoch_seconds, rowIndex);
-    const normalizedStats = processOpenRouterModelStats(model.id, model.performance, model.pricing);
+    for (const route of model.route_prices) {
+      insertRawRow(statement, {
+        rowIndex,
+        fetchedAtEpochSeconds: rawPayload.fetched_at_epoch_seconds,
+        url: SOURCE_URLS.openrouter_stats,
+        rowKind: "route_price",
+        modelId: model.id,
+        series: route.endpoint_id,
+        seriesTokenWeight: route.tokens,
+        inputPrice: route.input,
+        outputPrice: route.output,
+        cacheReadPrice: route.cache_read,
+        cacheWritePrice: route.cache_write,
+      });
+      rowIndex += 1;
+    }
+    const normalizedStats = processOpenRouterModelStats(
+      model.id,
+      model.performance,
+      model.route_prices,
+    );
     insertRawRow(statement, {
       rowIndex,
       fetchedAtEpochSeconds: rawPayload.fetched_at_epoch_seconds,
@@ -101,8 +124,6 @@ export function insertOpenRouterRawRows(
       throughput: normalizedStats.performance.throughput_tokens_per_second_median,
       latency: normalizedStats.performance.latency_seconds_median,
       e2eLatency: normalizedStats.performance.e2e_latency_seconds_median,
-      weightedInput: normalizedStats.pricing.weighted_input_price_per_1m,
-      weightedOutput: normalizedStats.pricing.weighted_output_price_per_1m,
     });
     rowIndex += 1;
   }
@@ -146,8 +167,10 @@ function insertRawRow(statement: DatabaseStatement, row: OpenRouterRawRow): void
     row.throughput ?? null,
     row.latency ?? null,
     row.e2eLatency ?? null,
-    row.weightedInput ?? null,
-    row.weightedOutput ?? null,
+    row.inputPrice ?? null,
+    row.outputPrice ?? null,
+    row.cacheReadPrice ?? null,
+    row.cacheWritePrice ?? null,
   );
 }
 

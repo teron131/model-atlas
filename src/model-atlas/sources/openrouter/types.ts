@@ -31,19 +31,32 @@ export type OpenRouterEndpointStatsResponse = {
       p50_throughput?: number | null;
       p50_latency?: number | null;
     } | null;
+    /** Listed USD per token, as decimal strings. */
+    pricing?: {
+      prompt?: string | null;
+      completion?: string | null;
+      input_cache_read?: string | null;
+      input_cache_write?: string | null;
+    } | null;
   }>;
 };
 
+/** One default-tier route's listed prices in USD per million tokens, with the tokens it served as its weight; a null cache price is unlisted. */
+export type OpenRouterRoutePrice = {
+  endpoint_id: string;
+  tokens: number;
+  input: number;
+  output: number;
+  cache_read: number | null;
+  cache_write: number | null;
+};
+
+/** Atlas reads only each endpoint's served tokens from this response; its effective prices mix a model's pricing with how its users cache, so they never become prices. */
 export type OpenRouterEffectivePricingResponse = {
   data?: {
-    // OpenRouter's opaque aggregates are retained in the source response but never become final prices.
-    weightedInputPrice?: number | null;
-    weightedOutputPrice?: number | null;
     providerSummaries?: Array<{
       endpointId?: string | null;
       providerName?: string | null;
-      effectiveInputPrice?: number | null;
-      effectiveOutputPrice?: number | null;
       totalTokens?: number | null;
     }>;
   };
@@ -72,14 +85,14 @@ export type OpenRouterSourceModel = {
   selected_permaslug: string | null;
   candidate_permaslugs: string[];
   performance: OpenRouterPerformance;
-  pricing: OpenRouterEffectivePricingResponse | null;
+  route_prices: OpenRouterRoutePrice[];
 };
 
 export type OpenRouterCandidateStats = {
   permaslug: string;
   weekly_tokens: number | null;
   performance: OpenRouterPerformance;
-  pricing: OpenRouterEffectivePricingResponse | null;
+  route_prices: OpenRouterRoutePrice[];
 };
 
 export type OpenRouterSourcePayload = {

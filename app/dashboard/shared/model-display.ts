@@ -43,7 +43,7 @@ export type GlobalModelFilterScope = {
   rankingModels: readonly ModelAtlasModel[];
 };
 
-export const costFilterOptions: CostFilter[] = ["all", 1, 2, 5, 10, 25];
+export const costFilterOptions: CostFilter[] = ["all", 0.05, 0.1, 0.25, 0.5, 1];
 export const DEFAULT_MODEL_RANK_FILTER: ModelRankFilter = "all";
 export const DEFAULT_RECENCY_FILTER: RecencyFilter = "all";
 export const modelRankFilterOptions: ModelRankFilter[] = [30, 50, 70, "all"];

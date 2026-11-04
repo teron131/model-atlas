@@ -563,7 +563,7 @@ export function GlobalModelControls({
                 label="Max blended cost"
                 options={costFilterOptions}
                 selected={filters["max-cost"]}
-                format={(value) => (value === "all" ? "Any" : `$${value}`)}
+                format={(value) => (value === "all" ? "Any" : `$${value.toFixed(2)}`)}
                 onSelect={(value) => apply({ ...filters, "max-cost": value })}
               />
               <FilterChoices

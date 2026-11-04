@@ -12,6 +12,7 @@ import type {
   OpenRouterPerformance,
   OpenRouterPerformanceSummary,
   OpenRouterPricingSummary,
+  OpenRouterRoutePrice,
   OpenRouterSeriesResponse,
   OpenRouterSourceModel,
 } from "./types";
@@ -32,6 +33,7 @@ const RELEASE_MMDD_PATTERN = /^(?:0[1-9]|1[0-2])(?:[0-2]\d|3[01])$/;
 const INSTRUCTION_TUNING_TOKENS = new Set(["instruct", "it"]);
 
 const SECONDS_PER_MILLISECOND = 0.001;
+const TOKENS_PER_MILLION = 1_000_000;
 
 export function sanitizeOpenRouterModelId(modelId: string): string {
   const normalized = modelId
@@ -121,6 +123,35 @@ export function buildOpenRouterSeriesTokenWeights(
   return weights;
 }
 
+/** Each route's listed prices with the tokens it served as weight; a route without listed input and output prices or served tokens is left out. */
+export function listedRoutePrices(
+  endpointStats: OpenRouterEndpointStatsResponse,
+  pricing: OpenRouterEffectivePricingResponse,
+): OpenRouterRoutePrice[] {
+  const tokensByEndpoint = buildOpenRouterSeriesTokenWeights(pricing);
+  return (endpointStats.data ?? []).flatMap((endpoint) => {
+    const tokens = endpoint.id == null ? undefined : tokensByEndpoint[endpoint.id];
+    const input = pricePerMillion(endpoint.pricing?.prompt);
+    const output = pricePerMillion(endpoint.pricing?.completion);
+    if (endpoint.id == null || tokens == null || input == null || output == null) return [];
+    return [
+      {
+        endpoint_id: endpoint.id,
+        tokens,
+        input,
+        output,
+        cache_read: pricePerMillion(endpoint.pricing?.input_cache_read),
+        cache_write: pricePerMillion(endpoint.pricing?.input_cache_write),
+      },
+    ];
+  });
+}
+
+function pricePerMillion(pricePerToken: string | null | undefined): number | null {
+  const price = asFiniteNumber(pricePerToken);
+  return price == null || price < 0 ? null : price * TOKENS_PER_MILLION;
+}
+
 export function emptyOpenRouterSourceModel(
   modelId: string,
   candidatePermaslugs: string[] = [],
@@ -130,19 +161,19 @@ export function emptyOpenRouterSourceModel(
     selected_permaslug: null,
     candidate_permaslugs: candidatePermaslugs,
     performance: {},
-    pricing: null,
+    route_prices: [],
   };
 }
 
 export function processOpenRouterModelStats(
   modelId: string,
   stats: OpenRouterPerformance,
-  pricing: OpenRouterEffectivePricingResponse | null,
+  routePrices: readonly OpenRouterRoutePrice[],
 ): OpenRouterModelMetrics {
   return {
     id: modelId,
     performance: summarizePerformance(stats),
-    pricing: summarizePricing(pricing),
+    pricing: summarizePricing(routePrices),
   };
 }
 
@@ -204,13 +235,13 @@ export function selectOpenRouterRawModelStats(
     bestCandidateByUsage(candidates, (candidate) =>
       Object.values(summarizePerformance(candidate.performance)).some((value) => value != null),
     ) ??
-    bestCandidateByUsage(candidates, (candidate) => hasWeightedPricing(candidate.pricing)) ??
+    bestCandidateByUsage(candidates, hasRoutePrices) ??
     candidates[0] ??
     null;
   const pricingCandidate = performanceCandidate
-    ? hasWeightedPricing(performanceCandidate.pricing)
+    ? hasRoutePrices(performanceCandidate)
       ? performanceCandidate
-      : bestCandidateByUsage(candidates, (candidate) => hasWeightedPricing(candidate.pricing))
+      : bestCandidateByUsage(candidates, hasRoutePrices)
     : null;
 
   return {
@@ -218,7 +249,7 @@ export function selectOpenRouterRawModelStats(
     selected_permaslug: performanceCandidate?.permaslug ?? null,
     candidate_permaslugs: candidates.map((candidate) => candidate.permaslug),
     performance: performanceCandidate?.performance ?? {},
-    pricing: pricingCandidate?.pricing ?? null,
+    route_prices: pricingCandidate?.route_prices ?? [],
   };
 }
 
@@ -291,43 +322,17 @@ function tokenWeightedMeanValue(
   return totalWeight > 0 ? weightedSum / totalWeight : null;
 }
 
-/** Summarize OpenRouter effective pricing into per-million token prices. */
-function summarizePricing(
-  response: OpenRouterEffectivePricingResponse | null,
-): OpenRouterPricingSummary {
+/** Weight each route's listed input and output prices by the tokens it served. */
+function summarizePricing(routes: readonly OpenRouterRoutePrice[]): OpenRouterPricingSummary {
+  const tokens = routes.reduce((total, route) => total + route.tokens, 0);
+  const weighted = (price: (route: OpenRouterRoutePrice) => number) =>
+    tokens > 0
+      ? routes.reduce((total, route) => total + price(route) * route.tokens, 0) / tokens
+      : null;
   return {
-    weighted_input_price_per_1m: providerWeightedPrice(response, "effectiveInputPrice"),
-    weighted_output_price_per_1m: providerWeightedPrice(response, "effectiveOutputPrice"),
+    weighted_input_price_per_1m: weighted((route) => route.input),
+    weighted_output_price_per_1m: weighted((route) => route.output),
   };
-}
-
-/** Calculate one current effective price directly from the reported provider token mix. */
-function providerWeightedPrice(
-  response: OpenRouterEffectivePricingResponse | null,
-  priceField: "effectiveInputPrice" | "effectiveOutputPrice",
-): number | null {
-  const providerSummaries = response?.data?.providerSummaries ?? [];
-  if (providerSummaries.length === 0) {
-    return null;
-  }
-  let weightedSum = 0;
-  let totalTokens = 0;
-  for (const provider of providerSummaries) {
-    const price = asFiniteNumber(provider[priceField]);
-    const tokens = asFiniteNumber(provider.totalTokens);
-    if (tokens == null || tokens < 0) {
-      return null;
-    }
-    if (tokens === 0) {
-      continue;
-    }
-    if (price == null || price < 0) {
-      return null;
-    }
-    weightedSum += price * tokens;
-    totalTokens += tokens;
-  }
-  return totalTokens > 0 ? weightedSum / totalTokens : null;
 }
 
 function bestCandidateByUsage(
@@ -349,11 +354,8 @@ function bestCandidateByUsage(
   return bestCandidate;
 }
 
-function hasWeightedPricing(pricing: OpenRouterEffectivePricingResponse | null): boolean {
-  const summary = summarizePricing(pricing);
-  return (
-    summary.weighted_input_price_per_1m != null || summary.weighted_output_price_per_1m != null
-  );
+function hasRoutePrices(candidate: OpenRouterCandidateStats): boolean {
+  return candidate.route_prices.length > 0;
 }
 
 /** Last resort for an id with no exact route: each rule must name exactly one route, and a trailing MMDD release only matches a dateless route whose permaslug carries that date, so one checkpoint never borrows another's stats. */

@@ -156,7 +156,7 @@ const communityColumnKeys = new Set<string>(communityMetricColumns.map((column) 
 
 const costMetricColumns = [
   {
-    key: "effectiveInputPrice",
+    key: "inputPrice",
     group: "costs",
     field: "weighted_input",
     direction: "ascending",
@@ -164,12 +164,20 @@ const costMetricColumns = [
     label: "In$",
   },
   {
-    key: "effectiveOutputPrice",
+    key: "outputPrice",
     group: "costs",
     field: "weighted_output",
     direction: "ascending",
     type: "number",
     label: "Out$",
+  },
+  {
+    key: "cacheReadPrice",
+    group: "costs",
+    field: "weighted_cache_read",
+    direction: "ascending",
+    type: "number",
+    label: "Cache$",
   },
 ] as const;
 
@@ -312,8 +320,9 @@ const resourceColumnKeys = new Set<TableColumnKey>([
   "e2eLatency",
   "context",
   "modalities",
-  "effectiveInputPrice",
-  "effectiveOutputPrice",
+  "inputPrice",
+  "outputPrice",
+  "cacheReadPrice",
 ]);
 const profileColumnKeys = new Set<TableColumnKey>(["release", "openWeights"]);
 const benchmarkColumnGroupsByKey = new Map<TableColumnKey, TableColumnGroup>();

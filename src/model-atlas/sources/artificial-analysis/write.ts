@@ -34,9 +34,9 @@ export function insertArtificialAnalysisRawModels(
 			median_time_to_first_token_seconds,
 			median_end_to_end_response_time_seconds, intelligence_index, intelligence_index_version,
 			intelligence_index_components, omniscience_index,
-			price_1m_input_tokens, price_1m_output_tokens,
+			price_1m_input_tokens, price_1m_output_tokens, cache_hit_price, cache_write_price,
 			cost_per_task, seconds_per_task, output_tokens_per_task, logo_url
-		) VALUES (${Array.from({ length: 34 }, () => "?").join(", ")})
+		) VALUES (${Array.from({ length: 36 }, () => "?").join(", ")})
 	`);
   for (const [index, row] of snapshots.artificialAnalysisRawRows.entries()) {
     const selectedRow = selectedRows.get(artificialAnalysisModelId(row) ?? "") ?? {};
@@ -165,6 +165,8 @@ function costAndLogoValues(selectedRow: JsonObject): SqlValue[] {
   return [
     asFiniteNumber(cost.input),
     asFiniteNumber(cost.output),
+    asFiniteNumber(cost.cache_read),
+    asFiniteNumber(cost.cache_write),
     asFiniteNumber(intelligenceIndexCost.cost_per_task),
     asFiniteNumber(intelligenceIndexCost.seconds_per_task),
     asFiniteNumber(intelligenceIndexCost.output_tokens_per_task),

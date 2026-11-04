@@ -55,6 +55,8 @@ const rows = processArtificialAnalysisLeaderboardRows(
       intelligenceIndex: 70,
       price1mInputTokens: 10,
       price1mOutputTokens: 50,
+      cacheHitPrice: 1,
+      cacheWritePrice: 12.5,
       isReasoning: true,
       timescaleData: { medianOutputSpeed: 59, medianTimeToFirstChunk: 94 },
       endToEndResponseTime: { total: 103 },
@@ -76,8 +78,8 @@ const rows = processArtificialAnalysisLeaderboardRows(
 );
 
 assertDeepEqual(rows[0]?.name, "Alpha");
-assertDeepEqual(rows[0]?.cost, { input: 10, output: 50 });
-assertDeepEqual(rows[1]?.cost, { input: null, output: null });
+assertDeepEqual(rows[0]?.cost, { input: 10, output: 50, cache_read: 1, cache_write: 12.5 });
+assertDeepEqual(rows[1]?.cost, { input: null, output: null, cache_read: null, cache_write: null });
 assertDeepEqual(rows[0]?.reasoning, true);
 assertDeepEqual(rows[1]?.reasoning, null);
 assertDeepEqual(rows[0]?.median_speed, 59);

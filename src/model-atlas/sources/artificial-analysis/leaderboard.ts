@@ -369,6 +369,8 @@ function selectedColumnValue(
       return {
         input: firstNumber(row, ["price1mInputTokens"]),
         output: firstNumber(row, ["price1mOutputTokens"]),
+        cache_read: firstNumber(row, ["cacheHitPrice"]),
+        cache_write: firstNumber(row, ["cacheWritePrice"]),
       };
     case "median_speed":
       return firstNumber(asRecord(row.timescaleData), ["medianOutputSpeed"]);

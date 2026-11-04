@@ -25,8 +25,6 @@ const pricing = {
       {
         endpointId,
         providerName: "Provider A (1)",
-        effectiveInputPrice: 10,
-        effectiveOutputPrice: 50,
         totalTokens: 123,
       },
     ],
@@ -85,21 +83,30 @@ try {
             },
             series_token_weights: buildOpenRouterSeriesTokenWeights(pricing),
           },
-          pricing,
+          route_prices: [
+            {
+              endpoint_id: endpointId,
+              tokens: 123,
+              input: 10,
+              output: 50,
+              cache_read: 1,
+              cache_write: null,
+            },
+          ],
         },
         {
           id: "qwen/qwen-plus-2025-07-28:thinking",
           selected_permaslug: null,
           candidate_permaslugs: ["qwen/qwen-plus-2025-07-28"],
           performance: {},
-          pricing: null,
+          route_prices: [],
         },
         {
           id: "xai/grok-4.1-fast",
           selected_permaslug: "x-ai/grok-4.1-fast",
           candidate_permaslugs: ["x-ai/grok-4.1-fast"],
           performance: {},
-          pricing: null,
+          route_prices: [],
         },
       ],
     });
@@ -113,7 +120,7 @@ try {
     );
     const cachedModel = cached.models[0]!;
     assert.equal(
-      processOpenRouterModelStats(cachedModel.id, cachedModel.performance, cachedModel.pricing)
+      processOpenRouterModelStats(cachedModel.id, cachedModel.performance, cachedModel.route_prices)
         .performance.e2e_latency_seconds_median,
       16.22,
       "Endpoint-weighted E2E latency must survive ingestion and a SQLite cache round trip",
@@ -127,10 +134,19 @@ try {
       },
       "OpenRouter cache reads should preserve endpoint aggregate fallback values",
     );
-    assert.equal(
-      cached?.models[0]?.pricing?.data?.providerSummaries?.[0]?.effectiveInputPrice,
-      10,
-      "OpenRouter cache reads should preserve validated provider-weighted pricing",
+    assert.deepEqual(
+      cachedModel.route_prices,
+      [
+        {
+          endpoint_id: endpointId,
+          tokens: 123,
+          input: 10,
+          output: 50,
+          cache_read: 1,
+          cache_write: null,
+        },
+      ],
+      "OpenRouter cache reads should preserve listed route prices, including an unlisted cache write",
     );
     assert.deepEqual(
       cached.models.map((model) => model.id),
@@ -152,6 +168,11 @@ try {
       (row) => row.row_kind !== "endpoint_summary" || row.model_id !== cachedModel.id,
     );
     assert.equal(openRouterCacheHasCurrentShape(withoutSummary), false);
+    assert.equal(
+      openRouterCacheHasCurrentShape(cacheRows.filter((row) => row.row_kind !== "route_price")),
+      false,
+      "Caches holding effective prices without listed route prices predate the blend and must refetch",
+    );
     db.prepare(
       "DELETE FROM openrouter_raw_rows WHERE row_kind = 'endpoint_summary' AND model_id = ?",
     ).run(cachedModel.id);

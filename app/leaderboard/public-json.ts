@@ -136,8 +136,9 @@ type CoreJsonModel = {
   total_token_ratio: number | null;
   blended_price: number | null;
   context_window_tokens: number | null;
-  effective_input_price_per_million_tokens: number | null;
-  effective_output_price_per_million_tokens: number | null;
+  input_price_per_million_tokens: number | null;
+  output_price_per_million_tokens: number | null;
+  cache_read_price_per_million_tokens: number | null;
   throughput_tokens_per_second_median: number | null;
   latency_seconds_median: number | null;
   e2e_latency_seconds_median: number | null;
@@ -163,8 +164,9 @@ const CORE_MODEL_COLUMNS = [
   "total_token_ratio",
   "blended_price",
   "context_window_tokens",
-  "effective_input_price_per_million_tokens",
-  "effective_output_price_per_million_tokens",
+  "input_price_per_million_tokens",
+  "output_price_per_million_tokens",
+  "cache_read_price_per_million_tokens",
   "throughput_tokens_per_second_median",
   "latency_seconds_median",
   "e2e_latency_seconds_median",
@@ -482,8 +484,9 @@ function coreJsonModel(
     total_token_ratio: ratios.tokens.ratio,
     blended_price: model.cost?.blended_price ?? null,
     context_window_tokens: model.context_window?.context ?? null,
-    effective_input_price_per_million_tokens: model.cost?.weighted_input ?? null,
-    effective_output_price_per_million_tokens: model.cost?.weighted_output ?? null,
+    input_price_per_million_tokens: model.cost?.weighted_input ?? null,
+    output_price_per_million_tokens: model.cost?.weighted_output ?? null,
+    cache_read_price_per_million_tokens: model.cost?.weighted_cache_read ?? null,
     throughput_tokens_per_second_median: model.speed.throughput_tokens_per_second_median,
     latency_seconds_median: model.speed.latency_seconds_median,
     e2e_latency_seconds_median: model.speed.e2e_latency_seconds_median,

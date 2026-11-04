@@ -134,7 +134,8 @@ function mergeOpenRouterModel(
       Object.keys(fetchedModel.performance).length > 0
         ? fetchedModel.performance
         : cachedModel.performance,
-    pricing: fetchedModel.pricing ?? cachedModel.pricing,
+    route_prices:
+      fetchedModel.route_prices.length > 0 ? fetchedModel.route_prices : cachedModel.route_prices,
   };
 }
 
@@ -173,7 +174,11 @@ function scopeCachedModels(
 
 /** A cached route is usable only when it can satisfy the leaderboard's required speed profile. */
 function hasUsableOpenRouterSpeed(model: OpenRouterSourceModel): boolean {
-  const speed = processOpenRouterModelStats(model.id, model.performance, model.pricing).performance;
+  const speed = processOpenRouterModelStats(
+    model.id,
+    model.performance,
+    model.route_prices,
+  ).performance;
   return (
     asFiniteNumber(speed.throughput_tokens_per_second_median) != null &&
     (asFiniteNumber(speed.latency_seconds_median) != null ||

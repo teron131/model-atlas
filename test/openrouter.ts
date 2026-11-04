@@ -11,6 +11,7 @@ import {
   summarizeEndpointPerformance,
 } from "../src/model-atlas/sources/openrouter";
 import {
+  listedRoutePrices,
   resolveOpenRouterPermaslugCandidates,
   withDefaultServiceTier,
 } from "../src/model-atlas/sources/openrouter/stats";
@@ -44,39 +45,32 @@ const performanceStats = {
   },
 };
 
-const aggregateOnlyPricingModel = processOpenRouterModelStats("openai/example", performanceStats, {
-  data: {
-    weightedInputPrice: 1.2,
-    weightedOutputPrice: 3.4,
-  },
-});
+const unpricedModel = processOpenRouterModelStats("openai/example", performanceStats, []);
 
-const providerWeightedPriceModel = processOpenRouterModelStats(
-  "openai/provider-weighted-price-example",
+const routeWeightedPriceModel = processOpenRouterModelStats(
+  "openai/route-weighted-price-example",
   {},
-  {
-    data: {
-      weightedInputPrice: 100,
-      weightedOutputPrice: 200,
-      providerSummaries: [
-        {
-          endpointId: "provider-a",
-          effectiveInputPrice: 1,
-          effectiveOutputPrice: 10,
-          totalTokens: 90,
-        },
-        {
-          endpointId: "provider-b",
-          effectiveInputPrice: 3,
-          effectiveOutputPrice: 30,
-          totalTokens: 10,
-        },
-      ],
+  [
+    {
+      endpoint_id: "provider-a",
+      tokens: 90,
+      input: 1,
+      output: 10,
+      cache_read: null,
+      cache_write: null,
     },
-  },
+    {
+      endpoint_id: "provider-b",
+      tokens: 10,
+      input: 3,
+      output: 30,
+      cache_read: 0.3,
+      cache_write: null,
+    },
+  ],
 );
 
-assert.deepEqual(providerWeightedPriceModel.pricing, {
+assert.deepEqual(routeWeightedPriceModel.pricing, {
   weighted_input_price_per_1m: 1.2,
   weighted_output_price_per_1m: 12,
 });
@@ -105,17 +99,32 @@ assert.deepEqual(buildOpenRouterSeriesTokenWeights(null), {});
 const defaultTier = withDefaultServiceTier(
   {
     data: [
-      { id: "standard", service_tier: null, stats: { p50_throughput: 77, p50_latency: 3_000 } },
-      { id: "fast", service_tier: "priority", stats: { p50_throughput: 214, p50_latency: 1_346 } },
-      { id: "flex", service_tier: "flex", stats: { p50_throughput: 27, p50_latency: 9_000 } },
+      {
+        id: "standard",
+        service_tier: null,
+        stats: { p50_throughput: 77, p50_latency: 3_000 },
+        pricing: { prompt: "0.00001", completion: "0.00002" },
+      },
+      {
+        id: "fast",
+        service_tier: "priority",
+        stats: { p50_throughput: 214, p50_latency: 1_346 },
+        pricing: { prompt: "0.00002", completion: "0.00004" },
+      },
+      {
+        id: "flex",
+        service_tier: "flex",
+        stats: { p50_throughput: 27, p50_latency: 9_000 },
+        pricing: { prompt: "0.000003", completion: "0.00001" },
+      },
     ],
   },
   {
     data: {
       providerSummaries: [
-        { endpointId: "standard", effectiveOutputPrice: 20, totalTokens: 90 },
-        { endpointId: "fast", effectiveOutputPrice: 40, totalTokens: 5 },
-        { endpointId: "flex", effectiveOutputPrice: 10, totalTokens: 5 },
+        { endpointId: "standard", totalTokens: 90 },
+        { endpointId: "fast", totalTokens: 5 },
+        { endpointId: "flex", totalTokens: 5 },
       ],
     },
   },
@@ -127,8 +136,11 @@ assert.deepEqual(summarizeEndpointPerformance(defaultTier.endpointStats), {
 });
 assert.deepEqual(buildOpenRouterSeriesTokenWeights(defaultTier.pricing), { standard: 90 });
 assert.equal(
-  processOpenRouterModelStats("anthropic/tiered-example", {}, defaultTier.pricing).pricing
-    .weighted_output_price_per_1m,
+  processOpenRouterModelStats(
+    "anthropic/tiered-example",
+    {},
+    listedRoutePrices(defaultTier.endpointStats, defaultTier.pricing),
+  ).pricing.weighted_output_price_per_1m,
   20,
   "Priority and flex service tiers must not reach speed, latency, or price",
 );
@@ -150,7 +162,7 @@ assert.equal(
       },
       series_token_weights: endpointWeights,
     },
-    null,
+    [],
   ).performance.e2e_latency_seconds_median,
   2,
   "Endpoint IDs must match history directly and only matched positive evidence contributes",
@@ -171,7 +183,7 @@ assert.deepEqual(
   },
 );
 
-assert.deepEqual(aggregateOnlyPricingModel, {
+assert.deepEqual(unpricedModel, {
   id: "openai/example",
   performance: {
     throughput_tokens_per_second_median: 320,
@@ -203,7 +215,7 @@ const sparseModel = processOpenRouterModelStats(
       data: [{ x: "2026-01-01", y: { providerA: null, providerB: 1500 } }],
     },
   },
-  null,
+  [],
 );
 
 assert.deepEqual(sparseModel.performance, {
@@ -225,7 +237,7 @@ const aggregateFallbackModel = processOpenRouterModelStats(
     latency_e2e: { data: [{ x: "2026-01-01", y: { providerA: 11_250 } }] },
     series_token_weights: { providerB: 1 },
   },
-  null,
+  [],
 );
 
 assert.deepEqual(aggregateFallbackModel.performance, {
@@ -248,7 +260,7 @@ const partialWeightedPerformanceModel = processOpenRouterModelStats(
     },
     series_token_weights: { matched: 10 },
   },
-  null,
+  [],
 );
 
 assert.deepEqual(partialWeightedPerformanceModel.performance, {
@@ -312,36 +324,34 @@ const selected = selectOpenRouterRawModelStats("provider/model", [
       throughput: { data: [{ x: "2026-01-01", y: { p50: 25 } }] },
       series_token_weights: { p50: 1 },
     },
-    pricing: {
-      data: {
-        weightedInputPrice: 1,
-        weightedOutputPrice: 2,
-      },
-    },
+    route_prices: [
+      { endpoint_id: "p50", tokens: 1, input: 1, output: 2, cache_read: null, cache_write: null },
+    ],
   },
   {
-    permaslug: "provider/model-high-volume-free-price",
+    permaslug: "provider/model-high-volume",
     weekly_tokens: 1_000_000,
     performance: {
       throughput: { data: [{ x: "2026-01-01", y: { p50: 100 } }] },
       series_token_weights: { p50: 1 },
     },
-    pricing: {
-      data: {
-        weightedInputPrice: 0,
-        weightedOutputPrice: 0,
-      },
-    },
+    route_prices: [],
   },
 ]);
 
-assert.deepEqual(selected, {
-  id: "provider/model",
-  selected_permaslug: "provider/model-high-volume-free-price",
-  candidate_permaslugs: ["provider/model-low-volume", "provider/model-high-volume-free-price"],
-  performance: {
-    throughput: { data: [{ x: "2026-01-01", y: { p50: 100 } }] },
-    series_token_weights: { p50: 1 },
+assert.deepEqual(
+  selected,
+  {
+    id: "provider/model",
+    selected_permaslug: "provider/model-high-volume",
+    candidate_permaslugs: ["provider/model-low-volume", "provider/model-high-volume"],
+    performance: {
+      throughput: { data: [{ x: "2026-01-01", y: { p50: 100 } }] },
+      series_token_weights: { p50: 1 },
+    },
+    route_prices: [
+      { endpoint_id: "p50", tokens: 1, input: 1, output: 2, cache_read: null, cache_write: null },
+    ],
   },
-  pricing: null,
-});
+  "The busiest candidate supplies performance, and prices come from the busiest candidate with priced routes",
+);

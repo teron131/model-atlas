@@ -14,8 +14,9 @@ export function insertModels(db: DatabaseWriter, rows: readonly unknown[]): void
 			input_modalities_json, output_modalities_json,
 			throughput_tokens_per_second_median, latency_seconds_median,
 			e2e_latency_seconds_median, cost_input, cost_output, cost_cache_read,
-			cost_cache_write, cost_weighted_input, cost_weighted_output,
-			cost_blended_price, context_over_200k_input, context_over_200k_output,
+			cost_cache_write, cost_weighted_input, cost_weighted_output, cost_weighted_cache_read,
+			cost_blended_price, cost_blended_price_long_sessions, cost_blended_price_short_tasks,
+			context_over_200k_input, context_over_200k_output,
 			context_over_200k_cache_read, context_over_200k_cache_write,
 			intelligence_index, omniscience_index, omniscience_accuracy,
 			component_intelligence_score, component_agentic_score,
@@ -24,7 +25,7 @@ export function insertModels(db: DatabaseWriter, rows: readonly unknown[]): void
 			value_score,
 			intelligence_confidence, agentic_confidence, speed_confidence, value_confidence,
 			latest_change_json
-		) VALUES (${Array.from({ length: 42 }, () => "?").join(", ")})
+		) VALUES (${Array.from({ length: 45 }, () => "?").join(", ")})
 	`);
   for (const [index, row] of rows.entries()) {
     const model = asRecord(row);
@@ -238,7 +239,10 @@ function modelSpeedAndCostValues(model: JsonObject): SqlValue[] {
     asFiniteNumber(cost.cache_write),
     asFiniteNumber(cost.weighted_input),
     asFiniteNumber(cost.weighted_output),
+    asFiniteNumber(cost.weighted_cache_read),
     asFiniteNumber(cost.blended_price),
+    asFiniteNumber(cost.blended_price_long_sessions),
+    asFiniteNumber(cost.blended_price_short_tasks),
     asFiniteNumber(contextOver200k.input),
     asFiniteNumber(contextOver200k.output),
     asFiniteNumber(contextOver200k.cache_read),

@@ -22,19 +22,20 @@ globalThis.fetch = async (input) => {
       nextEndpointStatus = null;
       return new Response("upstream failure", { status, headers: { "retry-after": "1" } });
     }
-    return Response.json({ data: [{ stats: { p50_throughput: 70, p50_latency: 250 } }] });
+    return Response.json({
+      data: [
+        {
+          id: "provider-a",
+          stats: { p50_throughput: 70, p50_latency: 250 },
+          pricing: { prompt: "0.000002", completion: "0.000008" },
+        },
+      ],
+    });
   }
   if (url.pathname.endsWith("/effective-pricing")) {
     return Response.json({
       data: {
-        providerSummaries: [
-          {
-            endpointId: "provider-a",
-            totalTokens: 100,
-            effectiveInputPrice: 2,
-            effectiveOutputPrice: 8,
-          },
-        ],
+        providerSummaries: [{ endpointId: "provider-a", totalTokens: 100 }],
       },
     });
   }
@@ -79,7 +80,7 @@ try {
     processOpenRouterModelStats(
       concurrent.models[1]!.id,
       concurrent.models[1]!.performance,
-      concurrent.models[1]!.pricing,
+      concurrent.models[1]!.route_prices,
     ),
     {
       id: modelIds[1],

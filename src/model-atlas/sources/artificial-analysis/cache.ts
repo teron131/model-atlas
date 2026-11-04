@@ -116,6 +116,8 @@ function rawRowFromCache(row: CacheDbRow): JsonObject {
   assignIfString(rawRow, "reasoning_effort", cachedReasoningEffort(row));
   assignIfNumber(rawRow, "price1mInputTokens", row.price_1m_input_tokens);
   assignIfNumber(rawRow, "price1mOutputTokens", row.price_1m_output_tokens);
+  assignIfNumber(rawRow, "cacheHitPrice", row.cache_hit_price);
+  assignIfNumber(rawRow, "cacheWritePrice", row.cache_write_price);
   const timescaleData: JsonObject = {};
   assignIfNumber(timescaleData, "medianOutputSpeed", row.median_output_tokens_per_second);
   assignIfNumber(timescaleData, "medianTimeToFirstChunk", row.median_time_to_first_token_seconds);

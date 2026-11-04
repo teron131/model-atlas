@@ -9,7 +9,10 @@ import {
   buildModelVariants,
   collapseModelVariants,
 } from "../src/model-atlas/pipeline/model-catalog";
-import { prepareOpenRouterModelData } from "../src/model-atlas/pipeline/openrouter-data";
+import {
+  lookupOpenRouterBlendPrices,
+  prepareOpenRouterModelData,
+} from "../src/model-atlas/pipeline/openrouter-data";
 
 function assertEqual(actual: unknown, expected: unknown): void {
   if (actual !== expected) {
@@ -352,7 +355,24 @@ const qwenRouteData = prepareOpenRouterModelData(
           throughput: { data: [{ x: "2026-08-09", y: { route: 47 } }] },
           series_token_weights: { route: 1 },
         },
-        pricing: null,
+        route_prices: [
+          {
+            endpoint_id: "listed-cache",
+            tokens: 1,
+            input: 5,
+            output: 25,
+            cache_read: 0.25,
+            cache_write: 6.25,
+          },
+          {
+            endpoint_id: "unlisted-cache",
+            tokens: 1,
+            input: 5,
+            output: 25,
+            cache_read: null,
+            cache_write: null,
+          },
+        ],
       },
     ],
   },
@@ -361,6 +381,11 @@ assertEqual(
   qwenRouteData.speedByModelId.get("qwen/qwen3.7-max")?.throughput_tokens_per_second_median,
   47,
 );
+// Each route resolves its own unlisted cache prices before token weighting: 0.25 and 0.5 cache reads, 6.25 and 5 new input.
+const qwenBlendPrices = lookupOpenRouterBlendPrices(qwenRouteData, "qwen/qwen3.7-max");
+assertEqual(qwenBlendPrices?.cache_read, 0.375);
+assertEqual(qwenBlendPrices?.new_input, 5.625);
+assertEqual(qwenBlendPrices?.output, 25);
 
 const aliasOnlyRows = collapseModelVariants([
   {

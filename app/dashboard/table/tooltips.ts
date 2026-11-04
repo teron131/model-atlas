@@ -169,19 +169,37 @@ const staticTableColumnTooltips = {
     body: "Input types accepted by the selected route: text, images, audio, or video.",
     rows: [["Sort", "more input capabilities sort first"]],
   },
-  effectiveInputPrice: {
-    title: "Effective input price ↓",
-    body: "Estimated input price in USD per million tokens, averaged across routed providers using their estimated token shares.",
+  inputPrice: {
+    title: "Input price ↓",
+    body: "Listed input price in USD per million tokens, averaged across OpenRouter providers by the tokens each served.",
     rows: [
-      ["Source", "OpenRouter"],
+      [
+        "Source",
+        "OpenRouter listed prices; catalog or Artificial Analysis prices where no route served tokens",
+      ],
       ["Provider weighting", "estimated token share"],
     ],
   },
-  effectiveOutputPrice: {
-    title: "Effective output price ↓",
-    body: "Estimated output price in USD per million tokens, averaged across routed providers using their estimated token shares.",
+  outputPrice: {
+    title: "Output price ↓",
+    body: "Listed output price in USD per million tokens, averaged across OpenRouter providers by the tokens each served.",
     rows: [
-      ["Source", "OpenRouter"],
+      [
+        "Source",
+        "OpenRouter listed prices; catalog or Artificial Analysis prices where no route served tokens",
+      ],
+      ["Provider weighting", "estimated token share"],
+    ],
+  },
+  cacheReadPrice: {
+    title: "Cache read price ↓",
+    body: "Price of input already cached, in USD per million tokens, averaged across OpenRouter providers by the tokens each served. A provider that lists no cache-read price counts at a tenth of its input price, as in the blended price.",
+    rows: [
+      [
+        "Source",
+        "OpenRouter listed prices; catalog or Artificial Analysis prices where no route served tokens",
+      ],
+      ["Unlisted price", "a tenth of the input price"],
       ["Provider weighting", "estimated token share"],
     ],
   },

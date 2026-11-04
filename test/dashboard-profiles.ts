@@ -154,4 +154,15 @@ values.set(
   JSON.stringify([{ ...profile, filters: { ...filters, days: "wrong" } }]),
 );
 assert.throws(() => readModelProfiles(storage), /could not be read/);
+
+values.set(
+  MODEL_PROFILES_STORAGE_KEY,
+  JSON.stringify([{ ...profile, filters: { ...filters, "max-cost": 5 } }]),
+);
+assert.equal(readModelProfiles(storage)[0]!.filters["max-cost"], 0.25);
+values.set(
+  MODEL_PROFILES_STORAGE_KEY,
+  JSON.stringify([{ ...profile, filters: { ...filters, "max-cost": 1 } }]),
+);
+assert.equal(readModelProfiles(storage)[0]!.filters["max-cost"], 1);
 console.log("Dashboard profile checks passed.");
