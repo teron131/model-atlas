@@ -4,6 +4,7 @@ export type {
   OpenRouterEffectivePricingResponse,
   OpenRouterFrontendModel,
   OpenRouterPerformance,
+  OpenRouterRoutePrice,
   OpenRouterSourceModel,
   OpenRouterSourcePayload,
   OpenRouterSeriesResponse,

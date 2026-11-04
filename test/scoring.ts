@@ -26,11 +26,12 @@ import {
 } from "../src/model-atlas/math-utils";
 import {
   attachFinalScores,
-  blendedPriceValue,
+  blendedPrices,
   buildBenchmarkImputationByModel,
   buildBenchmarkImputationDiagnosticsByKey,
   buildComponentScoreResult,
   imputedTaskResource,
+  listedBlendPrices,
   logBlendedPrice,
   prepareEffortResourceImputation,
 } from "../src/model-atlas/pipeline/scores";
@@ -98,35 +99,18 @@ assertThrowsWithMessage(
   "Evidence confidence requires finite mass and 0 <= floor < full, received 1, 3, 1",
 );
 
-assertEqual(
-  blendedPriceValue({
-    input: 5,
-    output: 25,
-    cache_read: 0.5,
-    cache_write: 6.25,
-    weighted_input: 1.5,
-    weighted_output: 25,
-  }),
-  13.25,
+const listedBlend = blendedPrices(
+  listedBlendPrices({ input: 4, output: 20, cache_read: 0.2, cache_write: 5 })!,
 );
-
-assertEqual(
-  blendedPriceValue({
-    input: 2.5,
-    output: 7.5,
-    cache_read: 0.5,
-    cache_write: 3.125,
-    weighted_input: 0,
-    weighted_output: 0,
-  }),
-  0,
+assertClose(listedBlend.long_sessions, 0.3794);
+assertClose(listedBlend.short_tasks, 0.737);
+assertClose(listedBlend.middle, 0.5582);
+assert.deepEqual(
+  listedBlendPrices({ input: 2, output: 6 }),
+  { cache_read: 0.2, new_input: 2, output: 6 },
+  "an unlisted cache read costs a tenth of input, and new input without a write price pays input",
 );
-
-assert.equal(
-  blendedPriceValue({ input: 0, output: 0 }),
-  null,
-  "published list pricing should not replace missing provider-weighted pricing",
-);
+assert.equal(listedBlendPrices({ input: 2 }), null);
 
 const sparseQuantileValues = [0, 50, 100];
 assertEqual(quantileFromSorted(sparseQuantileValues, 0), 0);
@@ -1985,7 +1969,7 @@ function modelCandidate(options: {
           output: 1,
           weighted_input: 1,
           weighted_output: 1,
-          blended_price: options.blendedPrice ?? null,
+          blended_price: options.blendedPrice ?? 1,
         },
     context_window: null,
     speed: {

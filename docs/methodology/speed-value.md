@@ -15,19 +15,24 @@ These proportions hold when all components have full evidence. Missing or discou
 
 ### Blended Token Price
 
-Blended price gives equal weight to input and output prices, in USD per million tokens:
+Blended price is the cost of a million tokens of agent work, in USD. An agent resends its whole conversation with every request, so most of the input it pays for is cache reads of context already sent, and a price that ignores caching misstates what agent work costs. The blend prices one fixed workload rather than each model's observed traffic, so models with the same listed prices always share a blended price, however their users happen to cache.
+
+Agent workloads span a range: long sessions re-read more context for each new token than short tasks, so new input and output take smaller shares of their tokens. A workload whose tokens are a share $q^{\text{new}}$ of new input and $q^{\text{out}}$ of output, with every other token a cache read, costs $B$ at cache-read price $P^{\text{read}}$, new-input price $P^{\text{new}}$, and output price $P^{\text{out}}$. The range runs from long sessions, with 2.5% new input and 0.3% output, to short tasks, with 5% and 1.5%, and blended price is its midpoint:
 
 $$
 \begin{aligned}
-\text{blended price}&=0.50\cdot\text{effective input price}+0.50\cdot\text{effective output price}
+B(q^{\text{new}},q^{\text{out}})&=\left(1-q^{\text{new}}-q^{\text{out}}\right)P^{\text{read}}+q^{\text{new}}P^{\text{new}}+q^{\text{out}}P^{\text{out}}\\
+\text{blended price}&=\tfrac{1}{2}\left[B(2.5\%,0.3\%)+B(5\%,1.5\%)\right]=0.9535\,P^{\text{read}}+0.0375\,P^{\text{new}}+0.009\,P^{\text{out}}
 \end{aligned}
 $$
 
-Effective input and output prices are [weighted means](overview.md#weighted-mean) of provider prices, using reported token volumes as weights. The blend is a comparison convention, not a workload bill estimate.
+The shares are a policy choice informed by observed agent token use: long coding sessions re-read nearly all of their context, while shorter evaluation tasks send proportionally more new input and output. Because cost is linear in the shares, the midpoint of the range is the cost of the midpoint workload. :score[Value] scores the blended price alone; the two ends show how strongly a model's price depends on the workload.
 
-Both sides need complete provider-price and token-volume evidence; otherwise the effective blend is missing. OpenRouter's aggregate and historical price series do not determine it, and cache pricing is excluded.
+Every price is a listed rate. New input pays the cache-write price where one is listed, because providers that charge for cache writes bill each new token as one; otherwise it pays the input price. A missing cache-read price counts as a tenth of the input price, the median listed ratio.
 
-Published input, output, and cache prices remain raw route metadata. Listed catalog or Artificial Analysis prices can provide the fallback described in [Model Matching](../matching.md#selected-identity).
+Each OpenRouter route of the default service tier is priced at its own listed rates, resolving missing cache prices from that route's input price, and the routes combine in a [weighted mean](overview.md#weighted-mean) with their reported token volumes as weights, so cheaper hosting counts in proportion to the traffic it serves. Without a route that served tokens, listed catalog prices apply, with Artificial Analysis prices filling missing fields as described in [Model Matching](../matching.md#selected-identity).
+
+The input, output, and cache-read prices reported beside the blend are the same token-weighted listed rates, with missing cache-read prices resolved as above. OpenRouter's effective prices, what its traffic paid after cache discounts, are not used, because those discounts reflect how each model's users cache rather than its pricing.
 
 ### Provider Speed
 

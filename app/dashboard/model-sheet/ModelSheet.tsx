@@ -74,10 +74,15 @@ type Comparison = { lead?: Lead; delta?: string };
 const CARD_COLUMNS = 3;
 const COMPARE_CARD_COLUMNS = 2;
 
-const PRICES: { label: string; value: (model: ModelAtlasModel) => number | null | undefined }[] = [
-  { label: "Blended", value: (model) => model.cost?.blended_price },
+const PRICES: {
+  label: string;
+  value: (model: ModelAtlasModel) => number | null | undefined;
+  range?: (model: ModelAtlasModel) => string;
+}[] = [
+  { label: "Blended", value: (model) => model.cost?.blended_price, range: blendRange },
   { label: "Input", value: (model) => model.cost?.weighted_input },
   { label: "Output", value: (model) => model.cost?.weighted_output },
+  { label: "Cache read", value: (model) => model.cost?.weighted_cache_read },
 ];
 
 /**
@@ -358,16 +363,18 @@ function CloseButton() {
 
 function Fact({
   label,
+  hint,
   values,
   comparisons,
 }: {
   label: string;
+  hint?: string;
   values: ReactNode[];
   comparisons?: Comparison[];
 }) {
   return (
     <div className={styles.fact}>
-      <dt>{label}</dt>
+      <dt title={hint}>{label}</dt>
       {values.map((value, index) => {
         const comparison = comparisons?.[index];
         return (
@@ -573,10 +580,10 @@ function Resources({ entries }: { entries: readonly SheetEntry[] }) {
         <div>
           <h4 className={styles.amountsTitle}>Price per million tokens</h4>
           <dl>
-            {PRICES.map(({ label, value }) => {
+            {PRICES.flatMap(({ label, value, range }) => {
               const prices = models.map(value);
               const texts = prices.map(formatCost);
-              return (
+              const fact = (
                 <Fact
                   key={label}
                   label={label}
@@ -584,6 +591,19 @@ function Resources({ entries }: { entries: readonly SheetEntry[] }) {
                   comparisons={compareValues(prices, texts, "ascending", "proportion")}
                 />
               );
+              return range == null
+                ? [fact]
+                : [
+                    fact,
+                    <Fact
+                      key={`${label} range`}
+                      label="Range"
+                      hint="From long agent sessions to short agent tasks"
+                      values={models.map((model) => (
+                        <span className={styles.priceRange}>{range(model)}</span>
+                      ))}
+                    />,
+                  ];
             })}
           </dl>
         </div>
@@ -725,6 +745,14 @@ function benchmarkResult(
     // A result reported as an amount draws the table's bar from the column median rather than a score track.
     ratio: isDrawableRatio(ratio) ? ratio : null,
   };
+}
+
+function blendRange(model: ModelAtlasModel): string {
+  const longSessions = model.cost?.blended_price_long_sessions;
+  const shortTasks = model.cost?.blended_price_short_tasks;
+  return longSessions == null || shortTasks == null
+    ? "-"
+    : `${formatCost(longSessions)}–${formatCost(shortTasks)}`;
 }
 
 /**

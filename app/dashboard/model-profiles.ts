@@ -2,6 +2,7 @@
 
 import type { ModelAtlasModel } from "../../src/model-atlas/stats/types";
 import {
+  type CostFilter,
   filterByGlobalModelFilters,
   type GlobalModelFilters,
   modelCount,
@@ -11,6 +12,14 @@ import { readGlobalModelFilters } from "./url-state";
 
 export type ModelProfile = { id: string; name: string; filters: GlobalModelFilters };
 export const MODEL_PROFILES_STORAGE_KEY = "model-atlas:model-profiles";
+
+// Profiles saved under the effective-price blend hold max-cost steps on its scale; each moves to the step at its position, which cuts the leaderboard at a similar point. Its $1 step reads the same as today's $1.00, so it stays.
+const LEGACY_COST_FILTERS = new Map<unknown, CostFilter>([
+  [2, 0.1],
+  [5, 0.25],
+  [10, 0.5],
+  [25, 1],
+]);
 
 /** Count visible canonical families matching the full global configuration, including variants that lack plot coordinates. */
 export function matchingProfileModelCount(
@@ -47,7 +56,8 @@ export function readModelProfiles(storage: Pick<Storage, "getItem">): ModelProfi
       typeof filters !== "object"
     )
       throw new Error("Saved profiles could not be read.");
-    const values = filters as Record<string, unknown>;
+    const values = { ...(filters as Record<string, unknown>) };
+    values["max-cost"] = LEGACY_COST_FILTERS.get(values["max-cost"]) ?? values["max-cost"];
     if (
       typeof values.q !== "string" ||
       !Array.isArray(values.provider) ||

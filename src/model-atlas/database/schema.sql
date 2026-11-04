@@ -61,6 +61,8 @@ CREATE TABLE IF NOT EXISTS artificial_analysis_raw_models (
 	omniscience_index REAL,
 	price_1m_input_tokens REAL,
 	price_1m_output_tokens REAL,
+	cache_hit_price REAL,
+	cache_write_price REAL,
 	cost_per_task REAL,
 	seconds_per_task REAL,
 	output_tokens_per_task REAL,
@@ -167,8 +169,10 @@ CREATE TABLE IF NOT EXISTS openrouter_raw_rows (
 	throughput_tokens_per_second_median REAL,
 	latency_seconds_median REAL,
 	e2e_latency_seconds_median REAL,
-	weighted_input_price_per_1m REAL,
-	weighted_output_price_per_1m REAL,
+	input_price_per_1m REAL,
+	output_price_per_1m REAL,
+	cache_read_price_per_1m REAL,
+	cache_write_price_per_1m REAL,
 	PRIMARY KEY (row_index)
 );
 
@@ -384,7 +388,10 @@ CREATE TABLE IF NOT EXISTS models (
 	cost_cache_write REAL,
 	cost_weighted_input REAL,
 	cost_weighted_output REAL,
+	cost_weighted_cache_read REAL,
 	cost_blended_price REAL,
+	cost_blended_price_long_sessions REAL,
+	cost_blended_price_short_tasks REAL,
 	context_over_200k_input REAL,
 	context_over_200k_output REAL,
 	context_over_200k_cache_read REAL,

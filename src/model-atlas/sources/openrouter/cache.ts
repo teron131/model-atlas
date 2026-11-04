@@ -10,9 +10,9 @@ import {
 } from "../cache/rows";
 import { sanitizeOpenRouterModelId } from "./stats";
 import type {
-  OpenRouterEffectivePricingResponse,
   OpenRouterFrontendModel,
   OpenRouterPerformance,
+  OpenRouterRoutePrice,
   OpenRouterSeriesResponse,
   OpenRouterSourceModel,
   OpenRouterSourcePayload,
@@ -58,15 +58,24 @@ export function readOpenRouterRawCache(cache: CacheRowSource): OpenRouterSourceP
   };
 }
 
-/** Validate summary presence and candidate routes without reading unrelated time-series values from SQLite. */
+/** Validate summary presence, route prices, and candidate routes without reading unrelated time-series values from SQLite. */
 export function openRouterCacheHasCurrentShape(cache: CacheRowSource): boolean {
   const cacheRows = sourceCacheRows(
     cache,
     `SELECT row_kind, model_id, selected_permaslug, slug, permaslug
      FROM openrouter_raw_rows
-     WHERE row_kind IN ('directory_model', 'model_stats', 'endpoint_summary', 'permaslug_candidate')
+     WHERE row_kind IN ('directory_model', 'model_stats', 'endpoint_summary', 'permaslug_candidate', 'route_price')
      ORDER BY row_index`,
   );
+  // Caches written before route prices were stored resolved routes without pricing any of them.
+  if (
+    cacheRows.some(
+      (row) => row.row_kind === "model_stats" && asNonEmptyString(row.selected_permaslug) != null,
+    ) &&
+    !cacheRows.some((row) => row.row_kind === "route_price")
+  ) {
+    return false;
+  }
   const summaryModelIds = new Set(
     cacheRows
       .filter((row) => row.row_kind === "endpoint_summary")
@@ -156,7 +165,26 @@ function openRouterSourceModelFromRows(modelId: string, rows: CacheDbRow[]): Ope
       .map((row) => asNonEmptyString(row.permaslug))
       .filter((permaslug): permaslug is string => permaslug != null),
     performance,
-    pricing: cachedProviderWeightedPricing(statsRow),
+    route_prices: rows.flatMap((row) => {
+      const route = row.row_kind === "route_price" ? cachedRoutePrice(row) : null;
+      return route == null ? [] : [route];
+    }),
+  };
+}
+
+function cachedRoutePrice(row: CacheDbRow): OpenRouterRoutePrice | null {
+  const endpointId = asNonEmptyString(row.series);
+  const tokens = asFiniteNumber(row.series_token_weight);
+  const input = asFiniteNumber(row.input_price_per_1m);
+  const output = asFiniteNumber(row.output_price_per_1m);
+  if (endpointId == null || tokens == null || input == null || output == null) return null;
+  return {
+    endpoint_id: endpointId,
+    tokens,
+    input,
+    output,
+    cache_read: asFiniteNumber(row.cache_read_price_per_1m),
+    cache_write: asFiniteNumber(row.cache_write_price_per_1m),
   };
 }
 
@@ -191,29 +219,4 @@ function seriesTokenWeights(statRows: CacheDbRow[]): Record<string, number> {
     }
   }
   return weights;
-}
-
-/** Rehydrate already-weighted cached sides as one normalized unit for source-shape processing. */
-function cachedProviderWeightedPricing(
-  row: CacheDbRow | undefined,
-): OpenRouterEffectivePricingResponse | null {
-  if (row == null) {
-    return null;
-  }
-  const weightedInput = asFiniteNumber(row.weighted_input_price_per_1m);
-  const weightedOutput = asFiniteNumber(row.weighted_output_price_per_1m);
-  if (weightedInput == null && weightedOutput == null) {
-    return null;
-  }
-  return {
-    data: {
-      providerSummaries: [
-        {
-          effectiveInputPrice: weightedInput,
-          effectiveOutputPrice: weightedOutput,
-          totalTokens: 1,
-        },
-      ],
-    },
-  };
 }

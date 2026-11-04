@@ -24,11 +24,12 @@ import type {
   ModelRow,
 } from "../model-types";
 import {
+  lookupOpenRouterBlendPrices,
   lookupOpenRouterPricing,
   lookupOpenRouterSpeed,
   type OpenRouterModelData,
 } from "../openrouter-data";
-import { blendedPriceValue } from "../scores";
+import { blendedPrices, listedBlendPrices } from "../scores";
 
 function hasFields(record: object): boolean {
   return Object.keys(record).length > 0;
@@ -174,13 +175,16 @@ function buildCostTier(value: unknown): ModelAtlasCostTier | null {
   return hasFields(costTier) ? costTier : null;
 }
 
-/** Keep catalog prices and effective OpenRouter prices authoritative, filling only missing fields from Artificial Analysis USD-per-million-token prices. */
+/**
+ * Keep catalog prices authoritative, filling only missing fields from Artificial Analysis USD-per-million-token prices.
+ * OpenRouter's listed route prices, weighted by the tokens each route served, take precedence for the weighted and blended prices.
+ */
 function buildCost(row: ModelRow, openRouterData: OpenRouterModelData): ModelAtlasCost {
   const baseCost = row.cost ?? {};
   const cost: Exclude<ModelAtlasCost, null> = {
     ...buildCostBreakdown(baseCost),
   };
-  for (const key of ["input", "output"] as const) {
+  for (const key of ["input", "output", "cache_read", "cache_write"] as const) {
     const fallback = asFiniteNumber(row.artificial_analysis_cost?.[key]);
     if (cost[key] == null && fallback != null && fallback >= 0) cost[key] = fallback;
   }
@@ -205,9 +209,14 @@ function buildCost(row: ModelRow, openRouterData: OpenRouterModelData): ModelAtl
   if (weightedOutput != null) {
     cost.weighted_output = weightedOutput;
   }
-  const blendedPrice = blendedPriceValue(cost);
-  if (blendedPrice != null) {
-    cost.blended_price = blendedPrice;
+  const blendPrices =
+    lookupOpenRouterBlendPrices(openRouterData, row.id) ?? listedBlendPrices(cost);
+  if (blendPrices != null) {
+    const blend = blendedPrices(blendPrices);
+    cost.weighted_cache_read = blendPrices.cache_read;
+    cost.blended_price = blend.middle;
+    cost.blended_price_long_sessions = blend.long_sessions;
+    cost.blended_price_short_tasks = blend.short_tasks;
   }
   return hasFields(cost) ? cost : null;
 }
@@ -367,7 +376,7 @@ export function buildModelCandidate(
   };
 }
 
-/** Attach OpenRouter speed and effective pricing to an already-scored candidate without recomputing or changing its quality. */
+/** Attach OpenRouter speed and listed route prices to an already-scored candidate without recomputing or changing its quality. */
 export function enrichModelResources(
   candidate: ModelAtlasCandidate,
   row: ModelRow,

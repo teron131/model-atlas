@@ -51,7 +51,7 @@ assert.equal(patchDashboardUrl(base, { rank: "all" }).search, "");
 const selections = patchDashboardUrl(new URL("?campaign=test#leaderboard", base), {
   q: "reason* *max & + test",
   provider: ["openai", "anthropic"],
-  "max-cost": 2,
+  "max-cost": 0.25,
   rank: "all",
   days: 90,
 });
@@ -59,7 +59,7 @@ assert.equal(selections.hash, "#leaderboard");
 assert.equal(selections.searchParams.get("campaign"), "test");
 assert.equal(readUrlValue(selections.searchParams, "q"), "reason* *max & + test");
 assert.deepEqual(readUrlValue(selections.searchParams, "provider"), ["openai", "anthropic"]);
-assert.equal(readUrlValue(selections.searchParams, "max-cost"), 2);
+assert.equal(readUrlValue(selections.searchParams, "max-cost"), 0.25);
 assert.equal(readUrlValue(selections.searchParams, "rank"), "all");
 assert.equal(readUrlValue(selections.searchParams, "days"), 90);
 assert.deepEqual(

@@ -7,9 +7,14 @@ import {
   publicOpenRouterModelId,
 } from "../identity/openrouter";
 import { asFiniteNumber, asRecord, type JsonObject } from "../runtime";
-import { type OpenRouterSourcePayload, processOpenRouterModelStats } from "../sources/openrouter";
+import {
+  type OpenRouterRoutePrice,
+  type OpenRouterSourcePayload,
+  processOpenRouterModelStats,
+} from "../sources/openrouter";
 import { catalogRowRouteId } from "./model-catalog";
 import type { ModelRow } from "./model-types";
+import { type BlendPrices, listedBlendPrices } from "./scores";
 
 export type OpenRouterModelData = {
   speedByModelId: Map<string, JsonObject>;
@@ -45,6 +50,20 @@ export function lookupOpenRouterPricing(
   modelId: string | null,
 ): JsonObject | null {
   return lookupOpenRouterData(data.pricingByModelId, modelId, hasPricingData);
+}
+
+/** Token-weighted across the model's OpenRouter routes; null when no route served tokens at listed prices. */
+export function lookupOpenRouterBlendPrices(
+  data: OpenRouterModelData,
+  modelId: string | null,
+): BlendPrices | null {
+  const prices = asRecord(lookupOpenRouterPricing(data, modelId)?.blend_prices);
+  const cacheRead = asFiniteNumber(prices.cache_read);
+  const newInput = asFiniteNumber(prices.new_input);
+  const output = asFiniteNumber(prices.output);
+  return cacheRead == null || newInput == null || output == null
+    ? null
+    : { cache_read: cacheRead, new_input: newInput, output };
 }
 
 /** Free OpenRouter routes inherit the paid route's base costs so price comparisons keep a realistic fallback. */
@@ -97,10 +116,13 @@ function buildOpenRouterDataById(
       const model = processOpenRouterModelStats(
         rawModel.id,
         rawModel.performance,
-        rawModel.pricing,
+        rawModel.route_prices,
       );
       const speed = normalizeSpeed(model.performance);
-      const pricing = normalizePricing(model.pricing);
+      const pricing = {
+        ...normalizePricing(model.pricing),
+        blend_prices: routeBlendPrices(rawModel.route_prices),
+      };
       indexOpenRouterRouteData(speedById, model.id, speed, hasSpeedData);
       indexOpenRouterRouteData(pricingById, model.id, pricing, hasPricingData);
     }
@@ -158,10 +180,33 @@ function hasSpeedData(speed: JsonObject): boolean {
   );
 }
 
+/** Token-weight each route's own blend prices, so a route's unlisted cache price falls back on that route's input price. */
+function routeBlendPrices(routes: readonly OpenRouterRoutePrice[]): BlendPrices | null {
+  const total = { cache_read: 0, new_input: 0, output: 0 };
+  let tokens = 0;
+  for (const route of routes) {
+    const prices = listedBlendPrices(route);
+    if (prices == null) continue;
+    total.cache_read += prices.cache_read * route.tokens;
+    total.new_input += prices.new_input * route.tokens;
+    total.output += prices.output * route.tokens;
+    tokens += route.tokens;
+  }
+  return tokens > 0
+    ? {
+        cache_read: total.cache_read / tokens,
+        new_input: total.new_input / tokens,
+        output: total.output / tokens,
+      }
+    : null;
+}
+
 function hasPricingData(pricing: JsonObject): boolean {
   const input = asFiniteNumber(pricing.weighted_input);
   const output = asFiniteNumber(pricing.weighted_output);
-  return (input != null && input >= 0) || (output != null && output >= 0);
+  return (
+    (input != null && input >= 0) || (output != null && output >= 0) || pricing.blend_prices != null
+  );
 }
 
 function indexPublicRouteData(

@@ -1,12 +1,12 @@
 /**
- * Model performance, effective pricing, and weekly usage from OpenRouter.
+ * Model performance, listed route prices with each route's served tokens, and weekly usage from OpenRouter.
  *
  * Catalog source: https://openrouter.ai/api/frontend/v1/catalog/models
  * Endpoint stats source: https://openrouter.ai/api/frontend/v1/stats/endpoint
  * Throughput source: https://openrouter.ai/api/frontend/v1/stats/throughput-comparison
  * Latency source: https://openrouter.ai/api/frontend/v1/stats/latency-comparison
  * End-to-end latency source: https://openrouter.ai/api/frontend/v1/stats/latency-e2e-comparison
- * Effective pricing source: https://openrouter.ai/api/frontend/v1/stats/effective-pricing
+ * Route token volume source: https://openrouter.ai/api/frontend/v1/stats/effective-pricing
  * Usage page source: https://openrouter.ai/{provider}/{model}/performance
  */
 
@@ -17,6 +17,7 @@ import { fetchSource, scheduleSourcePage, SourceQueueTimeoutError } from "../req
 import {
   buildOpenRouterSeriesTokenWeights,
   emptyOpenRouterSourceModel,
+  listedRoutePrices,
   parseOpenRouterWeeklyTokens,
   resolveOpenRouterPermaslugCandidates,
   sanitizeOpenRouterModelId,
@@ -187,7 +188,7 @@ async function fetchCandidateStats(
       latency_e2e: latencyE2e,
       series_token_weights: buildOpenRouterSeriesTokenWeights(effectivePricing),
     },
-    pricing: effectivePricing,
+    route_prices: listedRoutePrices(endpointStats, effectivePricing),
   };
 }
 

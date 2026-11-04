@@ -25,7 +25,7 @@ import {
   effectiveTaskSeconds,
   separatedBenchmarkResourceEvidence,
 } from "./resource-metrics";
-import { blendedPriceValue, logBlendedPrice } from "./score-builders";
+import { logBlendedPrice } from "./score-builders";
 
 type WeightedSignal = {
   value: number | null;
@@ -69,7 +69,7 @@ function perComponentWeight(bucketWeight: number, componentCount: number): numbe
 }
 
 function blendedPrice(model: ResourceScoringModel): number | null {
-  return nonnegativeFiniteNumber(model.cost?.blended_price) ?? blendedPriceValue(model.cost);
+  return nonnegativeFiniteNumber(model.cost?.blended_price);
 }
 
 function taskResourceEfficiencyEvidence(

@@ -34,9 +34,15 @@ export type ModelAtlasCostTier = ModelAtlasCostBreakdown & {
 
 export type ModelAtlasCost =
   | (ModelAtlasCostBreakdown & {
+      /** Listed prices weighted by the tokens each OpenRouter route served; catalog or Artificial Analysis prices where no route served tokens. */
       weighted_input?: NumberOrNull;
       weighted_output?: NumberOrNull;
+      /** The cache-read price the blend uses, so a route that lists none counts at a tenth of its input price. */
+      weighted_cache_read?: NumberOrNull;
+      /** The blend at the middle of the agent workload range; the range's ends follow. */
       blended_price?: NumberOrNull;
+      blended_price_long_sessions?: NumberOrNull;
+      blended_price_short_tasks?: NumberOrNull;
       context_over_200k?: ModelAtlasCostBreakdown;
       tiers?: ModelAtlasCostTier[];
     })

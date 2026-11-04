@@ -19,6 +19,7 @@ import { canonicalModelKey } from "../src/model-atlas/identity/normalization";
 import { buildModelCatalogRows } from "../src/model-atlas/pipeline/model-catalog";
 import type { ModelRow } from "../src/model-atlas/pipeline/model-types";
 import type { OpenRouterModelData } from "../src/model-atlas/pipeline/openrouter-data";
+import { blendedPrices, listedBlendPrices } from "../src/model-atlas/pipeline/scores";
 import type { BenchmarkVersioningOptions } from "../src/model-atlas/pipeline/selection/benchmark-versioning";
 import {
   buildFinalModels,
@@ -767,7 +768,8 @@ assert.ok(
       !("preview" in model) &&
       model.cost?.input === 10 &&
       model.cost?.output === 50 &&
-      model.cost?.blended_price === 30,
+      model.cost?.blended_price ===
+        blendedPrices(listedBlendPrices({ input: 10, output: 50 })!).middle,
   ),
 );
 assert.ok(
@@ -801,10 +803,20 @@ assert.deepEqual(primaryModels[0]?.speed, {
   latency_seconds_median: 2,
   e2e_latency_seconds_median: 7,
 });
+const primaryBlend = blendedPrices(listedBlendPrices({ input: 8, output: 40 })!);
 assert.deepEqual(
   primaryModels[0]?.cost,
-  { input: 8, output: 40, weighted_input: 6, weighted_output: 40, blended_price: 23 },
-  "primary catalog and OpenRouter values replace fallback fields independently",
+  {
+    input: 8,
+    output: 40,
+    weighted_input: 6,
+    weighted_output: 40,
+    weighted_cache_read: 0.8,
+    blended_price: primaryBlend.middle,
+    blended_price_long_sessions: primaryBlend.long_sessions,
+    blended_price_short_tasks: primaryBlend.short_tasks,
+  },
+  "primary catalog and OpenRouter values replace fallback fields independently, and the blend prices the listed catalog card",
 );
 
 function duplicateRouteRow(name: string, releaseDate: string, benchmarkValue: number) {
