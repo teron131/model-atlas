@@ -10,7 +10,7 @@ The [fixed anchors](calculation.md#set-index-units-with-fixed-anchors) assign in
 
 ## From Evidence to Index
 
-The framework establishes a fixed reference from an initial snapshot of supported scores, uses retained evidence to place older models, and extends forward as new results arrive. Models measured on overlapping benchmarks connect these generations to the same scale; future models need a supported connection before they can be placed. Published positions and benchmark mappings stay fixed across ordinary refreshes. Newly supported variants are appended; diagnostics and evidence coverage continue to reflect incoming results.
+The framework establishes a fixed reference from an initial snapshot of supported scores, uses retained evidence to place older models, and extends forward as new results arrive. Models measured on overlapping benchmarks connect these generations to the same scale; future models need a supported connection before they can be placed. Benchmark mappings stay fixed across ordinary refreshes. A model on the leaderboard is estimated again at every refresh, so results that arrive or are corrected after its release, or that a newly connected benchmark makes usable, reach its score; a model that leaves the leaderboard keeps its last score.
 
 > [!FLOW]
 >

@@ -1,4 +1,4 @@
-/** Own fixed capability publication: retain the published ruler, and append supported model positions without rewriting earlier scores. */
+/** Own capability publication: retain the published ruler, keep each current model's position at its latest estimate, and keep the last position of a model that left. */
 
 import { createHash } from "node:crypto";
 
@@ -39,6 +39,7 @@ type ModelInput = Pick<
 export type CapabilityPosition = {
   modelId: string;
   coordinates: Partial<Record<TimelineDimension, number>>;
+  /** When the model was first placed; later refreshes can still move its coordinates. */
   publishedAt: string;
   policyId: string;
 };
@@ -64,7 +65,7 @@ export function capabilityModelId(model: Pick<ModelInput, "id" | "reasoning_effo
   );
 }
 
-/** Retain supported archived evidence, discard superseded current-only versions, and never replace a published model/dimension position. */
+/** Retain supported archived evidence and discard superseded current-only versions. */
 export function advanceCapabilityState(
   previous: CapabilityState,
   models: readonly ModelInput[],
@@ -89,7 +90,7 @@ export function advanceCapabilityState(
   );
   const policy = portfolio(evidence.benchmarks);
   const calibration = calibrateTimeline(dataset, "intelligence");
-  const next = appendPositions(
+  const next = updatePositions(
     {
       ...previous,
       dataset,
@@ -262,22 +263,31 @@ function publishedDataset(
   };
 }
 
-function appendPositions(
+/** A model in this refresh takes its latest estimate, so results that arrive or change after its release reach the Timeline; a model that left keeps its last position, and the anchors keep the positions that define the units. */
+function updatePositions(
   state: CapabilityState,
   calibration: HistoricalCalibration,
   observedAt: string,
   policyId: string,
 ): CapabilityState {
+  const current = new Set(
+    state.dataset.models.filter((model) => model.current).map((model) => model.id),
+  );
+  const anchors = new Set(state.anchors.frozenReferences?.map((reference) => reference.modelId));
   const positions = { ...state.positions };
   for (const estimate of calibration.estimates) {
-    if (estimate.value == null || positions[estimate.modelId]?.coordinates.intelligence != null)
-      continue;
     const previous = positions[estimate.modelId];
+    if (
+      estimate.value == null ||
+      (previous?.coordinates.intelligence != null &&
+        (!current.has(estimate.modelId) || anchors.has(estimate.modelId)))
+    )
+      continue;
     positions[estimate.modelId] = {
       modelId: estimate.modelId,
       coordinates: { ...previous?.coordinates, intelligence: estimate.value },
       publishedAt: previous?.publishedAt ?? observedAt,
-      policyId: previous?.policyId ?? policyId,
+      policyId,
     };
   }
   return { ...state, positions };

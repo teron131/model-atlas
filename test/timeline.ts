@@ -132,14 +132,13 @@ assert.equal(
 );
 const original = JSON.stringify(firstRelease.scale);
 const initialScores = calibrateTimeline(firstRelease, "intelligence");
+const rootIds = Object.values(firstRelease.rootBenchmarkIds);
 for (const dimension of ["intelligence", "agentic"] as const) {
   const perturbed = calibrateTimeline(
     {
       ...firstRelease,
       observations: firstRelease.observations.map((row) =>
-        Object.values(firstRelease.rootBenchmarkIds).includes(row.benchmarkId)
-          ? row
-          : { ...row, value: row.value + 100 },
+        rootIds.includes(row.benchmarkId) ? row : { ...row, value: row.value + 100 },
       ),
     },
     dimension,
@@ -147,12 +146,25 @@ for (const dimension of ["intelligence", "agentic"] as const) {
   for (const [index, seed] of seeds.entries()) {
     const estimate = perturbed.estimates.find((row) => row.modelId === seed.id)!;
     assert.equal(estimate.reference, true);
-    assert.equal(
-      estimate.value,
-      current[index]![`${dimension}_score`],
-      "External observations cannot overwrite supported references",
+    assert.ok(
+      estimate.value! > current[index]![`${dimension}_score`],
+      "A supported reference follows its own results once they place it",
     );
   }
+  const unmeasured = calibrateTimeline(
+    {
+      ...firstRelease,
+      observations: firstRelease.observations.filter(
+        (row) => row.modelId !== seeds[0]!.id || rootIds.includes(row.benchmarkId),
+      ),
+    },
+    dimension,
+  ).estimates.find((row) => row.modelId === seeds[0]!.id)!;
+  assert.equal(
+    unmeasured.value,
+    current[0]![`${dimension}_score`],
+    "Without its own results, a supported reference keeps its snapshot score",
+  );
 }
 close(initialScores.estimates.find((e) => e.modelId === firstBridge[11]!.id)!.value!, 85);
 const later: HistoricalSourceRelease = {

@@ -34,7 +34,7 @@ export const DEFAULT_TIMELINE_PARAMETERS: TimelineParameters = {
   maxError: MAX_NORMALIZED_IMPUTATION_ERROR,
 };
 
-/** New observations can revise an estimate, but published benchmark curves and initial reference values remain fixed. */
+/** New observations can revise any estimate, a supported reference's included, while published benchmark curves and the initial reference values that fit them remain fixed. */
 export function calibrateTimeline(
   data: HistoricalDataset,
   dimension: TimelineDimension,
@@ -192,7 +192,10 @@ export function calibrateTimeline(
       );
     }).length;
     const reference = references.get(model.id);
-    if (reference && (reference.referenceConfidence ?? 0) >= scale.minimumReferenceConfidence)
+    const supportedReference =
+      reference != null && (reference.referenceConfidence ?? 0) >= scale.minimumReferenceConfidence;
+    // The snapshot score stands in only when the reference's own results cannot place it, so a model still being measured is not held at its starting score.
+    if (supportedReference && projection.value == null)
       return {
         modelId: model.id,
         value: reference.value,
@@ -216,7 +219,7 @@ export function calibrateTimeline(
       saturated,
       paths: parts.map((p) => p.node.path),
       indexOnly: useIndex,
-      reference: false,
+      reference: supportedReference,
       source: !parts.length
         ? "unplaced"
         : useIndex
@@ -224,7 +227,7 @@ export function calibrateTimeline(
           : indexes.length
             ? "blended"
             : "components",
-      confidence: null,
+      confidence: supportedReference ? (reference.referenceConfidence ?? 0) : null,
       disagreement:
         parts.length > 1
           ? Math.max(...parts.map((p) => p.value)) - Math.min(...parts.map((p) => p.value))
