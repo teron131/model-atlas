@@ -10,6 +10,9 @@ export type ModelSheetSlot = "model" | "compare";
 
 // When a surface last asked for a sheet, so a click that opened or switched it is never mistaken for a click elsewhere.
 let lastOpenedAt = Number.NEGATIVE_INFINITY;
+// A jump to the Changes section waits here until the sheet shows the model it was asked for.
+let changesRequested = false;
+export const MODEL_SHEET_CHANGES_REQUESTED = "model-atlas:sheet-changes";
 
 /**
  * Open the model sheet for a displayed model: a collapsed row opens its collapsed model, and a reasoning variant opens that variant.
@@ -21,6 +24,19 @@ export function openModelSheet(model: ModelSheetModel) {
   const patch = { model: model.id ?? model.name, effort: model.reasoning_effort ?? null };
   if (new URL(window.location.href).searchParams.has("model")) replaceDashboardUrl(patch);
   else updateDashboardUrl(patch);
+}
+
+/** Open the sheet with its Changes section in view, as a link to a heading on a page would. */
+export function openModelSheetChanges(model: ModelSheetModel) {
+  changesRequested = true;
+  openModelSheet(model);
+  window.dispatchEvent(new Event(MODEL_SHEET_CHANGES_REQUESTED));
+}
+
+export function takeModelSheetChangesRequest(): boolean {
+  const requested = changesRequested;
+  changesRequested = false;
+  return requested;
 }
 
 /** Closing the sheet also lets go of a pinned model, so the next sheet opens alone. */

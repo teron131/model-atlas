@@ -171,36 +171,36 @@ const staticTableColumnTooltips = {
   },
   inputPrice: {
     title: "Input price ↓",
-    body: "Listed input price in USD per million tokens, averaged across OpenRouter providers by the tokens each served.",
+    body: "Listed price per million input tokens.",
     rows: [
       [
         "Source",
         "OpenRouter listed prices; catalog or Artificial Analysis prices where no route served tokens",
       ],
-      ["Provider weighting", "estimated token share"],
+      ["Provider weighting", "estimated OpenRouter token share"],
     ],
   },
   outputPrice: {
     title: "Output price ↓",
-    body: "Listed output price in USD per million tokens, averaged across OpenRouter providers by the tokens each served.",
+    body: "Listed price per million output tokens.",
     rows: [
       [
         "Source",
         "OpenRouter listed prices; catalog or Artificial Analysis prices where no route served tokens",
       ],
-      ["Provider weighting", "estimated token share"],
+      ["Provider weighting", "estimated OpenRouter token share"],
     ],
   },
   cacheReadPrice: {
     title: "Cache read price ↓",
-    body: "Price of input already cached, in USD per million tokens, averaged across OpenRouter providers by the tokens each served. A provider that lists no cache-read price counts at a tenth of its input price, as in the blended price.",
+    body: "Listed price per million input tokens read from cache.",
     rows: [
       [
         "Source",
         "OpenRouter listed prices; catalog or Artificial Analysis prices where no route served tokens",
       ],
       ["Unlisted price", "a tenth of the input price"],
-      ["Provider weighting", "estimated token share"],
+      ["Provider weighting", "estimated OpenRouter token share"],
     ],
   },
   throughput: {

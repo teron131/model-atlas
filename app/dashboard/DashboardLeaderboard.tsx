@@ -5,11 +5,7 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 
 import type { ModelAtlasColumnTooltips } from "../../src/model-atlas/config/tooltips";
-import type {
-  ModelAtlasModel,
-  ModelAtlasPayload,
-  ModelAtlasScoreChange,
-} from "../../src/model-atlas/stats/types";
+import type { ModelAtlasPayload } from "../../src/model-atlas/stats/types";
 import { LeaderboardCapture } from "./capture/LeaderboardCapture";
 import { focusModelSearch } from "./GlobalModelControls";
 import { ResearchRegion } from "./ResearchRegions";
@@ -33,8 +29,6 @@ import {
   toggledSort,
 } from "./table/models";
 import { ModelTable } from "./table/ModelTable";
-import type { ScoreChangeHandler } from "./table/Rows";
-import { ScoreChangeDialog } from "./table/ScoreChange";
 import { tableColumnTooltip } from "./table/tooltips";
 import type { DashboardUrlPatch } from "./url-state";
 import { updateDashboardUrl, useUrlState } from "./use-url-state";
@@ -42,11 +36,7 @@ import { updateDashboardUrl, useUrlState } from "./use-url-state";
 const emptyColumnTooltips: ModelAtlasColumnTooltips = {};
 const TOOLTIP_FADE_OUT_MS = 1_000;
 
-type DashboardTooltipState = TooltipState &
-  (
-    | { kind: "column"; key: TableColumnKey }
-    | { kind: "change"; model: ModelAtlasModel; change: ModelAtlasScoreChange }
-  );
+type DashboardTooltipState = TooltipState & { key: TableColumnKey };
 
 /** Isolate leaderboard interactions so slider and sort updates do not re-render dashboard graphs. */
 export function DashboardLeaderboard({
@@ -152,7 +142,7 @@ export function DashboardLeaderboard({
 
   const rowKind = deferredShowVariants ? "variants" : "models";
   const activeTooltipContent =
-    tooltip?.kind !== "column"
+    tooltip == null
       ? undefined
       : tableColumnTooltip(tooltip.key, columnTooltips, {
           models: visibleRows.map((row) => row.model),
@@ -247,7 +237,6 @@ export function DashboardLeaderboard({
       }
       clearTooltipFadeTimeout();
       setTooltip({
-        kind: "column",
         key,
         phase: "visible",
         ...tooltipPositionFromElement(event.currentTarget),
@@ -255,49 +244,6 @@ export function DashboardLeaderboard({
     },
     [columnTooltips, clearTooltipFadeTimeout],
   );
-
-  const showScoreChange = useCallback<ScoreChangeHandler>(
-    (event, model) => {
-      if (model.latest_change == null) {
-        return;
-      }
-      clearTooltipFadeTimeout();
-      setTooltip({
-        kind: "change",
-        model,
-        change: model.latest_change,
-        phase: "visible",
-        ...tooltipPositionFromElement(event.currentTarget),
-      });
-    },
-    [clearTooltipFadeTimeout],
-  );
-
-  useEffect(() => {
-    if (tooltip?.kind !== "change") {
-      return;
-    }
-    const handleKeyDown = (event: globalThis.KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setTooltip(null);
-      }
-    };
-    const handlePointerDown = (event: globalThis.PointerEvent) => {
-      const target = event.target;
-      if (
-        target instanceof Element &&
-        target.closest(".column-tooltip, .score-change-button") == null
-      ) {
-        setTooltip(null);
-      }
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    document.addEventListener("pointerdown", handlePointerDown);
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-      document.removeEventListener("pointerdown", handlePointerDown);
-    };
-  }, [tooltip?.kind]);
 
   useEffect(() => {
     return clearTooltipFadeTimeout;
@@ -349,20 +295,11 @@ export function DashboardLeaderboard({
           isLoading={isLoading}
           isSorting={deferredSortState !== sortState}
           onSort={handleSort}
-          onScoreChange={showScoreChange}
           onTooltip={showTooltip}
           onTooltipEnd={clearTooltip}
         />
       </ResearchRegion>
-      {tooltip?.kind === "change" && (
-        <ScoreChangeDialog
-          model={tooltip.model}
-          change={tooltip.change}
-          left={tooltip.left}
-          top={tooltip.top}
-        />
-      )}
-      {tooltip?.kind === "column" && activeTooltipContent != null && (
+      {tooltip != null && activeTooltipContent != null && (
         <ColumnTooltip
           content={activeTooltipContent}
           phase={tooltip.phase}

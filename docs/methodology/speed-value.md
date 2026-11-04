@@ -32,7 +32,7 @@ Every price is a listed rate. New input pays the cache-write price where one is 
 
 Each OpenRouter route of the default service tier is priced at its own listed rates, resolving missing cache prices from that route's input price, and the routes combine in a [weighted mean](overview.md#weighted-mean) with their reported token volumes as weights, so cheaper hosting counts in proportion to the traffic it serves. Without a route that served tokens, listed catalog prices apply, with Artificial Analysis prices filling missing fields as described in [Model Matching](../matching.md#selected-identity).
 
-The input, output, and cache-read prices reported beside the blend are the same token-weighted listed rates, with missing cache-read prices resolved as above. OpenRouter's effective prices, what its traffic paid after cache discounts, are not used, because those discounts reflect how each model's users cache rather than its pricing.
+The input, cache-read, and output prices reported beside the blend are the same token-weighted listed rates, with missing cache-read prices resolved as above. OpenRouter's effective prices, what its traffic paid after cache discounts, are not used, because those discounts reflect how each model's users cache rather than its pricing.
 
 ### Provider Speed
 

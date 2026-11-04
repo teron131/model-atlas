@@ -58,6 +58,8 @@ const stepDate = new Intl.DateTimeFormat("en-US", {
   timeZone: "UTC",
 });
 
+export const MODEL_SHEET_CHANGES_ID = "model-sheet-change";
+
 /** `effort` names the variant whose changes a collapsed row carries, since its model drops the effort label. */
 export function ChangeHistory({
   model,
@@ -70,8 +72,13 @@ export function ChangeHistory({
 }) {
   const variant = { ...model, reasoning_effort: effort };
   const history = useChangeHistory(variant);
-  const updates =
-    history.status === "ready" && isNonEmpty(history.updates) ? history.updates : null;
+  // While the history loads, the section takes its loaded shape around the latest update with the trails and stepper hidden, so the history fills in without moving anything.
+  const loading = history.status === "loading";
+  const updates: Updates | null = loading
+    ? [change]
+    : history.status === "ready" && isNonEmpty(history.updates)
+      ? history.updates
+      : null;
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const found = updates?.findIndex(({ refresh_id }) => refresh_id === selectedId) ?? -1;
   // The latest update shows until the reader picks another.
@@ -83,10 +90,14 @@ export function ChangeHistory({
     if (updates?.[index] != null) setSelectedId(updates[index].refresh_id);
   };
   return (
-    <section className={styles.section} aria-labelledby="model-sheet-change">
-      <h3 id="model-sheet-change">
+    <section
+      className={styles.section}
+      aria-busy={loading}
+      aria-labelledby={MODEL_SHEET_CHANGES_ID}
+    >
+      <h3 id={MODEL_SHEET_CHANGES_ID}>
         Changes
-        {updates == null ? null : (
+        {updates == null || loading ? null : (
           <small>
             {updates.length} {updates.length === 1 ? "update" : "updates"} in 30 days
           </small>

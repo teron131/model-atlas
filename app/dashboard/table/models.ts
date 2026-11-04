@@ -154,7 +154,15 @@ const communityMetricColumns = COMMUNITY_INDEXES.map(
 );
 const communityColumnKeys = new Set<string>(communityMetricColumns.map((column) => column.key));
 
-const costMetricColumns = [
+export const costMetricColumns = [
+  {
+    key: "blend",
+    group: "costs",
+    field: "blended_price",
+    direction: "ascending",
+    type: "number",
+    label: "Blend$",
+  },
   {
     key: "inputPrice",
     group: "costs",
@@ -164,20 +172,20 @@ const costMetricColumns = [
     label: "In$",
   },
   {
-    key: "outputPrice",
-    group: "costs",
-    field: "weighted_output",
-    direction: "ascending",
-    type: "number",
-    label: "Out$",
-  },
-  {
     key: "cacheReadPrice",
     group: "costs",
     field: "weighted_cache_read",
     direction: "ascending",
     type: "number",
     label: "Cache$",
+  },
+  {
+    key: "outputPrice",
+    group: "costs",
+    field: "weighted_output",
+    direction: "ascending",
+    type: "number",
+    label: "Out$",
   },
 ] as const;
 
@@ -257,7 +265,6 @@ export type SortKey =
   | "taskCostRatio"
   | "totalTokenRatio"
   | "taskTimeRatio"
-  | "blend"
   | "context"
   | ProfileMetricColumn["key"]
   | CommunityMetricColumn["key"]
@@ -289,7 +296,6 @@ const benchmarkColumnGroups = benchmarkMetricColumns.map((column) => ({
 
 export const dashboardMetricColumns: DashboardMetricColumn[] = [
   ...profileMetricColumns.filter((column) => column.key === "modalities"),
-  ...costMetricColumns,
   ...benchmarkColumnGroups
     .filter(({ benchmark }) => isAggregateIndex(benchmark))
     .flatMap(({ columns }) => columns),
@@ -321,8 +327,8 @@ const resourceColumnKeys = new Set<TableColumnKey>([
   "context",
   "modalities",
   "inputPrice",
-  "outputPrice",
   "cacheReadPrice",
+  "outputPrice",
 ]);
 const profileColumnKeys = new Set<TableColumnKey>(["release", "openWeights"]);
 const benchmarkColumnGroupsByKey = new Map<TableColumnKey, TableColumnGroup>();
@@ -439,7 +445,7 @@ type Sorter = {
 };
 
 const dashboardMetricSorters = Object.fromEntries(
-  [...speedMetricColumns, ...dashboardMetricColumns].map((column) => [
+  [...costMetricColumns, ...speedMetricColumns, ...dashboardMetricColumns].map((column) => [
     column.key,
     {
       direction: column.direction,
@@ -498,11 +504,6 @@ export const sorters: Record<SortKey, Sorter> = {
     type: "number",
     get: (row) => row.resourceRatios.time.ratio,
   },
-  blend: {
-    direction: "ascending",
-    type: "number",
-    get: (row) => row.model.cost?.blended_price,
-  },
   context: {
     direction: "descending",
     type: "number",
@@ -544,12 +545,13 @@ export function isAmountColumn(column: DashboardMetricColumn): boolean {
 }
 
 const amountColumns: { key: TableColumnKey; get: (model: ModelAtlasModel) => unknown }[] = [
-  { key: "blend", get: (model) => model.cost?.blended_price },
   { key: "context", get: contextWindowValue },
-  ...[...speedMetricColumns, ...dashboardMetricColumns].filter(isAmountColumn).map((column) => ({
-    key: column.key,
-    get: (model: ModelAtlasModel) => dashboardMetricValue(model, column),
-  })),
+  ...[...costMetricColumns, ...speedMetricColumns, ...dashboardMetricColumns]
+    .filter(isAmountColumn)
+    .map((column) => ({
+      key: column.key,
+      get: (model: ModelAtlasModel) => dashboardMetricValue(model, column),
+    })),
 ];
 
 /** One snapshot's reference medians and the two row displays measured against them, each display shaped when first read. */

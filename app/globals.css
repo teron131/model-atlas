@@ -1794,33 +1794,46 @@ html[data-model-atlas-theme="light"] .score-meter::after {
 }
 
 .change-cell {
+  position: relative;
   min-width: 96px;
   text-align: right;
 }
 
+/* The move reads as a plain value; its button stretches a layer over the whole cell, so the entire cell opens the model sheet at its changes and shows the hover fill and focus ring. */
 .score-change-button {
-  min-width: 68px;
-  padding: 4px 7px;
-  border: 1px solid var(--line-strong);
-  background: rgb(var(--ink-rgb) / 0.055);
+  display: inline-flex;
+  gap: 4px;
+  align-items: baseline;
+  padding: 0;
+  border: 0;
+  background: none;
   color: var(--ink);
-  font-family: var(--font-mono);
-  font-size: var(--mono-label);
+  font: inherit;
   font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.1;
-  text-align: center;
   white-space: nowrap;
+  cursor: pointer;
 }
 
-.score-change-button:hover,
+.score-change-button::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.score-change-button:hover::after {
+  background: var(--hover);
+}
+
 .score-change-button:focus-visible {
-  background: rgb(var(--ink-rgb) / 0.12);
-  border-color: var(--focus-ring);
+  outline: none;
+}
+
+.score-change-button:focus-visible::after {
+  outline: 1px solid var(--focus-ring);
+  outline-offset: -1px;
 }
 
 .score-change-button[data-direction="down"] {
-  background: rgb(var(--ink-rgb) / 0.025);
   color: var(--muted);
 }
 
@@ -1881,11 +1894,6 @@ html[data-model-atlas-theme="light"] .score-meter::after {
   font-variant-numeric: tabular-nums;
   line-height: 1;
   white-space: nowrap;
-}
-
-.column-tooltip.score-change-card {
-  width: min(380px, calc(100vw - 36px));
-  max-height: min(600px, calc(100dvh - 36px));
 }
 
 .score-change {
@@ -2115,7 +2123,7 @@ html[data-model-atlas-theme="light"] .score-change-track::after {
   gap: 4px;
 }
 
-.confidence-dimension {
+.dimension-letter {
   color: var(--muted);
   font-size: 0.85em;
   font-weight: 600;

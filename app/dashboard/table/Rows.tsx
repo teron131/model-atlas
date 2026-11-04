@@ -1,34 +1,22 @@
 /** Leaderboard row rendering applies model display, cell formatting, and interaction rules. */
 
-import {
-  type CSSProperties,
-  memo,
-  type MouseEvent,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { type CSSProperties, memo, useLayoutEffect, useRef, useState } from "react";
 
 import { communityPlaceLabel } from "../../../src/model-atlas/community/catalog";
 import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
-import { openModelSheet } from "../model-sheet/open";
+import { openModelSheet, openModelSheetChanges } from "../model-sheet/open";
 import { ModalityIcons, RatioTrack, scoreMeterStyle } from "../shared/DashboardMarks";
 import { modelName } from "../shared/model-display";
 import { providerBrandColor } from "../shared/provider-theme";
 import { ProviderLogo } from "../shared/ProviderLogo";
 import { formatResourceRatio, isDrawableRatio } from "../shared/resource-ratio-display";
 import { resourceRatioColumns, scoreColumnsByDimension, scoreMetricColumns } from "./Columns";
-import {
-  formatConfidence,
-  formatContext,
-  formatCost,
-  formatDashboardMetric,
-  formatScore,
-} from "./format";
+import { formatConfidence, formatContext, formatDashboardMetric, formatScore } from "./format";
 import {
   benchmarkDisplayValue,
   benchmarkMeterValue,
   contextWindowValue,
+  costMetricColumns,
   type DashboardMetricColumn,
   dashboardMetricColumns,
   dashboardMetricValue,
@@ -59,11 +47,6 @@ const LOADING_ROW_KEYS = [
   "loading-row-11",
   "loading-row-12",
 ] as const;
-
-export type ScoreChangeHandler = (
-  event: MouseEvent<HTMLButtonElement>,
-  model: ModelAtlasModel,
-) => void;
 
 export function EmptyStateRow({ message, columnCount }: { message: string; columnCount: number }) {
   return (
@@ -139,7 +122,6 @@ export const ModelRow = memo(function ModelRow({
   scoreStrip,
   sheetOpen,
   detailed,
-  onScoreChange,
 }: {
   rowData: TableRow;
   visibleColumnKeySet: ReadonlySet<TableColumnKey>;
@@ -147,7 +129,6 @@ export const ModelRow = memo(function ModelRow({
   scoreStrip: boolean;
   sheetOpen: boolean;
   detailed: boolean;
-  onScoreChange: ScoreChangeHandler;
 }) {
   const model = rowData.model;
   const rowRef = useRef<HTMLTableRowElement>(null);
@@ -205,15 +186,7 @@ export const ModelRow = memo(function ModelRow({
                 />
               );
             })}
-          {visibleColumnKeySet.has("blend") ? (
-            <AmountCell
-              rowData={rowData}
-              columnKey="blend"
-              text={formatCost(model.cost?.blended_price)}
-              className={tableCellClassName("blend", ruledColumnKeySet)}
-            />
-          ) : null}
-          {speedMetricColumns
+          {[...costMetricColumns, ...speedMetricColumns]
             .filter((column) => visibleColumnKeySet.has(column.key))
             .map((column) => (
               <DashboardMetricCell
@@ -242,9 +215,7 @@ export const ModelRow = memo(function ModelRow({
               />
             ))}
           {visibleColumnKeySet.has("confidence") ? <ConfidenceCell model={model} /> : null}
-          {visibleColumnKeySet.has("change") ? (
-            <ScoreChangeCell model={model} onScoreChange={onScoreChange} />
-          ) : null}
+          {visibleColumnKeySet.has("change") ? <ScoreChangeCell model={model} /> : null}
         </>
       ) : pendingColumnCount > 0 ? (
         <td colSpan={pendingColumnCount} />
@@ -473,7 +444,7 @@ const ConfidenceCell = memo(function ConfidenceCell({ model }: { model: ModelAtl
       <span aria-hidden="true" className="confidence-values">
         {supports.map(({ column, text }) => (
           <span key={column.key}>
-            <span className="confidence-dimension">{column.name.charAt(0)}</span>
+            <span className="dimension-letter">{column.name.charAt(0)}</span>
             {text}
           </span>
         ))}
@@ -482,13 +453,7 @@ const ConfidenceCell = memo(function ConfidenceCell({ model }: { model: ModelAtl
   );
 });
 
-const ScoreChangeCell = memo(function ScoreChangeCell({
-  model,
-  onScoreChange,
-}: {
-  model: ModelAtlasModel;
-  onScoreChange: ScoreChangeHandler;
-}) {
+const ScoreChangeCell = memo(function ScoreChangeCell({ model }: { model: ModelAtlasModel }) {
   const change = model.latest_change;
   if (change == null) {
     return <td className="data-cell change-cell missing">—</td>;
@@ -505,10 +470,11 @@ const ScoreChangeCell = memo(function ScoreChangeCell({
         aria-label={`${date}: ${dimension} ${move}${otherScores > 0 ? ` and ${otherScores} more ${otherScores === 1 ? "score" : "scores"}` : ""}${marks.length > 1 ? `; ${marks.length} recent updates` : ""}`}
         className="score-change-button"
         data-direction={moveDirection(change)}
-        onClick={(event) => onScoreChange(event, model)}
+        onClick={() => openModelSheetChanges(model)}
         type="button"
       >
-        {`${dimension.slice(0, 1)} ${move}`}
+        <span className="dimension-letter">{dimension.slice(0, 1)}</span>
+        {move}
       </button>
       <span aria-hidden="true" className="score-change-meta">
         {marks.length > 1 ? (
