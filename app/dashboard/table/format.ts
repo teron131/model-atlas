@@ -15,7 +15,7 @@ export const formatCost = (value: number | null | undefined) =>
     ? `$${value.toFixed(value < 1 ? 3 : 2)}`
     : "-";
 
-const formatCompactNumber = (value: number | null | undefined) => {
+export const formatCompactNumber = (value: number | null | undefined) => {
   if (typeof value !== "number" || !Number.isFinite(value)) {
     return "-";
   }

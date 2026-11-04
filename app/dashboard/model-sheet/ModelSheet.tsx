@@ -25,11 +25,7 @@ import { ModalityIcons, RatioTrack, ScoreMeter } from "../shared/DashboardMarks"
 import { providerBrandColor, providerDisplayName } from "../shared/provider-theme";
 import { ProviderLogo } from "../shared/ProviderLogo";
 import { formatResourceRatio, isDrawableRatio } from "../shared/resource-ratio-display";
-import {
-  resourceRatioColumns,
-  scoreColumnsByDimension,
-  scoreMetricColumns,
-} from "../table/Columns";
+import { resourceRatioColumns, scoreMetricColumns } from "../table/Columns";
 import {
   formatConfidence,
   formatContext,
@@ -49,10 +45,10 @@ import {
   TABLE_COLUMN_GROUP_LABELS,
   type TableRow,
 } from "../table/models";
-import { scoreChangeTooltip } from "../table/tooltips";
 import { useUrlState } from "../use-url-state";
+import { ChangeHistory } from "./ChangeHistory";
 import { CompareSearch } from "./CompareSearch";
-import { familyName, type SheetEntry, useSheetEntries } from "./entries";
+import { entryEffort, familyName, type SheetEntry, useSheetEntries } from "./entries";
 import { FrontierInset } from "./FrontierInset";
 import {
   closeModelSheet,
@@ -267,7 +263,12 @@ export function ModelSheet({ payload }: { payload: ModelAtlasPayload | null }) {
         </CardPlotWidth.Provider>
         <BenchmarkEvidence entries={entries} />
         {!comparing && opened.row.model.latest_change ? (
-          <LatestChange model={opened.row.model} change={opened.row.model.latest_change} />
+          <ChangeHistory
+            change={opened.row.model.latest_change}
+            effort={entryEffort(opened)}
+            key={`${opened.row.model.id}\u0000${entryEffort(opened)}`}
+            model={opened.row.model}
+          />
         ) : null}
       </div>
     </aside>
@@ -724,31 +725,6 @@ function benchmarkResult(
     // A result reported as an amount draws the table's bar from the column median rather than a score track.
     ratio: isDrawableRatio(ratio) ? ratio : null,
   };
-}
-
-function LatestChange({
-  model,
-  change,
-}: {
-  model: ModelAtlasModel;
-  change: NonNullable<ModelAtlasModel["latest_change"]>;
-}) {
-  const event = scoreChangeTooltip(model);
-  return (
-    <section className={styles.section} aria-labelledby="model-sheet-change">
-      <h3 id="model-sheet-change">
-        Latest change <small>{scoreColumnsByDimension[change.dimension].name}</small>
-      </h3>
-      <p className={styles.note}>{event.body}</p>
-      {event.rows?.length ? (
-        <dl className={styles.changeRows}>
-          {event.rows.map(([label, value], index) => (
-            <Fact key={`${label}-${index}`} label={label} values={[value]} />
-          ))}
-        </dl>
-      ) : null}
-    </section>
-  );
 }
 
 /**

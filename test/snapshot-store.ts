@@ -8,10 +8,12 @@ import { gunzipSync } from "node:zlib";
 
 import type { Storage } from "@google-cloud/storage";
 
+import { GET as changesGET } from "../app/api/llm-stats/changes/route";
 import { GET } from "../app/api/llm-stats/route";
 import { GET as indexGET } from "../app/api/timeline/route";
 import { publicJsonPayload, serializedPublicJson } from "../app/leaderboard/public-json";
 import {
+  readChangeHistory,
   readDisplayPayload,
   readIntelligenceIndex,
 } from "../src/model-atlas/database/runtime-snapshot";
@@ -33,7 +35,13 @@ import { minimalModelAtlasModel, minimalModelAtlasPayload } from "./model-atlas-
 const snapshotOf = (
   payload: ModelAtlasPayload,
   artifacts: Partial<Omit<SnapshotData, "payload">> = {},
-): SnapshotData => ({ payload, timeline: null, communityRankings: [], ...artifacts });
+): SnapshotData => ({
+  payload,
+  timeline: null,
+  communityRankings: [],
+  changeHistory: [],
+  ...artifacts,
+});
 
 type StoredObject = { bytes: Buffer; generation: string; metadata: Record<string, unknown> };
 const objects = new Map<string, StoredObject>();
@@ -726,6 +734,59 @@ try {
     /checksum/,
   );
   indexObject.bytes = intactIndex;
+
+  const sourceOnly = (await store.current()).manifest!;
+  const changeHistory = [
+    {
+      model_id: "test/model",
+      reasoning_effort: null,
+      updates: [
+        {
+          refresh_id: 800,
+          dimension: "value" as const,
+          score_before: 40,
+          score_after: 42,
+          score_delta: 2,
+          rank_before: 3,
+          rank_after: 2,
+          confidence_before: 80,
+          confidence_after: 80,
+          causes: [],
+          rank_drivers: [],
+          entry: null,
+          methodology_changed: false,
+          scores: [],
+          inputs: [],
+        },
+      ],
+    },
+  ];
+  const historied = await store.publish(
+    checkpoint,
+    { ...indexedSnapshot, payload: { ...payload, fetched_at_epoch_seconds: 800 }, changeHistory },
+    await store.current(),
+  );
+  assert.equal(
+    historied.manifest.data_sha256,
+    sourceOnly.data_sha256,
+    "A change log alone never creates a data version",
+  );
+  assert.deepEqual(
+    (await store.restore(historied.manifest, join(workspace, "history.sqlite"))).changeHistory,
+    changeHistory,
+  );
+  clock += 31_000;
+  assert.deepEqual(await readChangeHistory(), changeHistory);
+  const changesResponse = await changesGET(
+    new Request("http://localhost/api/llm-stats/changes?model=test/model"),
+  );
+  assert.deepEqual((await changesResponse.json()).updates, changeHistory[0]!.updates);
+  const { change_history_sha256: _history, ...beforeChangeHistory } = historied.manifest;
+  assert.equal(
+    parseSnapshotManifest(beforeChangeHistory).change_history_sha256,
+    null,
+    "Manifests published before change history read as having none",
+  );
 
   const ranking = {
     ranked_at: "2026-10-19T05:00:00Z",

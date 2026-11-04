@@ -469,6 +469,15 @@ CREATE TABLE IF NOT EXISTS model_score_changes (
 CREATE INDEX IF NOT EXISTS model_score_changes_model_refresh_idx
 	ON model_score_changes (model_id, reasoning_effort, refresh_id DESC);
 
+CREATE TABLE IF NOT EXISTS model_change_details (
+	refresh_id INTEGER NOT NULL,
+	model_id TEXT NOT NULL,
+	reasoning_effort TEXT NOT NULL,
+	entry TEXT CHECK (entry IN ('model', 'variant')),
+	inputs_json TEXT NOT NULL,
+	PRIMARY KEY (refresh_id, model_id, reasoning_effort)
+);
+
 CREATE TABLE IF NOT EXISTS model_match_debug (
 	row_index INTEGER NOT NULL,
 	artificial_analysis_id TEXT,

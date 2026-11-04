@@ -174,6 +174,25 @@ export function insertModelScoreChanges(db: DatabaseWriter, rows: readonly unkno
   }
 }
 
+/** Appends each material update's entry kind and the variant's own changed inputs. */
+export function insertModelChangeDetails(db: DatabaseWriter, rows: readonly unknown[]): void {
+  const statement = db.prepare(`
+		INSERT OR IGNORE INTO model_change_details (
+			refresh_id, model_id, reasoning_effort, entry, inputs_json
+		) VALUES (?, ?, ?, ?, ?)
+	`);
+  for (const row of rows) {
+    const detail = asRecord(row);
+    statement.run(
+      asFiniteNumber(detail.refresh_id),
+      firstString(detail, ["model_id"]),
+      typeof detail.reasoning_effort === "string" ? detail.reasoning_effort : "",
+      firstString(detail, ["entry"]),
+      JSON.stringify(Array.isArray(detail.inputs) ? detail.inputs : []),
+    );
+  }
+}
+
 function modelIdentityValues(model: JsonObject): SqlValue[] {
   const modelId = firstString(model, ["id"]);
   return [

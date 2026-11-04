@@ -25,6 +25,8 @@ export type OpenRouterPerformance = {
 
 export type OpenRouterEndpointStatsResponse = {
   data?: Array<{
+    id?: string | null;
+    service_tier?: string | null;
     stats?: {
       p50_throughput?: number | null;
       p50_latency?: number | null;

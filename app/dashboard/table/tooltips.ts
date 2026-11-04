@@ -13,10 +13,8 @@ import {
   type BenchmarkMetricModel,
   benchmarkValue,
 } from "../../../src/model-atlas/pipeline/scores/resource-metrics";
-import type { ModelAtlasMetadata, ModelAtlasModel } from "../../../src/model-atlas/stats/types";
+import type { ModelAtlasMetadata } from "../../../src/model-atlas/stats/types";
 import { benchmarkTooltips } from "../shared/constants";
-import { modelDisplayName } from "../shared/model-display";
-import { scoreColumnsByDimension } from "./Columns";
 import {
   benchmarkMetricColumns,
   type SortKey,
@@ -217,7 +215,7 @@ const staticTableColumnTooltips = {
   confidence: EVIDENCE_SUPPORT_TOOLTIP,
   change: {
     title: "Latest material change",
-    body: "The latest material change in score, evidence support, or rank among continuing models. New entrants and removals do not create a cascade of rank-change events. Gaining or losing first place among continuing models still counts. Open a row value for its before-and-after evidence.",
+    body: "The latest update that materially moved a model's score, evidence support, or rank among continuing models, with the date it landed. The value shows the largest move; open it for every score that moved and the model's own results, task costs, prices, and speeds that changed. New entrants do not cascade rank changes onto other models, but gaining or losing first place still counts.",
   },
 } as const satisfies Partial<Record<TableColumnKey, ModelAtlasColumnTooltip>>;
 
@@ -381,74 +379,4 @@ function dimensionWeightLabel(
   const portfolio = scoring.benchmark_portfolio;
   const weight = keys.includes(key) ? benchmarkDimensionWeight(key, dimension, portfolio) : 0;
   return `${Number((weight * 100).toFixed(1))}%`;
-}
-
-export function scoreChangeTooltip(model: ModelAtlasModel): ModelAtlasColumnTooltip {
-  const change = model.latest_change!;
-  const scoreBefore = change.score_before == null ? "New" : change.score_before.toFixed(1);
-  const scoreAfter = change.score_after.toFixed(1);
-  const rank =
-    change.rank_before == null
-      ? change.rank_after == null
-        ? null
-        : `#${change.rank_after}`
-      : change.rank_before === change.rank_after
-        ? null
-        : formatChangePair(change.rank_before, change.rank_after, "#");
-  const rankLabel = change.rank_before == null ? "Entry rank" : "Stable-cohort rank";
-  const support =
-    change.confidence_before === change.confidence_after
-      ? null
-      : formatChangePair(change.confidence_before, change.confidence_after, "", "%");
-  const scoreSummary =
-    change.score_before == null
-      ? `New score ${scoreAfter}.`
-      : change.score_delta === 0
-        ? `Score unchanged at ${scoreAfter}.`
-        : `Score ${scoreBefore} → ${scoreAfter}${change.score_delta == null ? "" : ` (${signedScore(change.score_delta)})`}.`;
-  const rankAlignment =
-    change.rank_drivers.length === 0
-      ? ""
-      : " Spearman ρ describes agreement between benchmark and overall ordering; model balancing limits repeated effort variants.";
-  return {
-    title: `${modelDisplayName(model)} · Material ${scoreColumnsByDimension[change.dimension].name} change`,
-    body: `Latest material event. ${scoreSummary}${rankAlignment}`,
-    rows: [
-      ...(rank == null ? [] : [[rankLabel, rank] as [string, string]]),
-      ...(support == null ? [] : [["Evidence support", support] as [string, string]]),
-      ...change.causes.map(({ label }) => ["Cause", label] as [string, string]),
-    ],
-    sections:
-      change.rank_drivers.length === 0
-        ? undefined
-        : [
-            {
-              title: "Rank-aligned benchmarks",
-              rows: change.rank_drivers.map((driver) => [
-                driver.label,
-                `#${driver.benchmark_rank} of ${driver.benchmark_model_count} · ρ ${signedCorrelation(driver.rank_correlation)}`,
-              ]),
-            },
-          ],
-  };
-}
-
-function signedScore(value: number): string {
-  return `${value > 0 ? "+" : value < 0 ? "−" : ""}${Math.abs(value).toFixed(1)}`;
-}
-
-function signedCorrelation(value: number): string {
-  return `${value >= 0 ? "+" : "−"}${Math.abs(value).toFixed(2)}`;
-}
-
-function formatChangePair(
-  before: number | null,
-  after: number | null,
-  prefix: string,
-  suffix = "",
-): string | null {
-  if (before == null && after == null) {
-    return null;
-  }
-  return `${before == null ? "-" : `${prefix}${before}${suffix}`} → ${after == null ? "-" : `${prefix}${after}${suffix}`}`;
 }

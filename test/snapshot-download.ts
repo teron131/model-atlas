@@ -32,6 +32,7 @@ const manifest = {
   checkpoint_sha256: artifactSha256(compressedCheckpoint),
   intelligence_index_sha256: null,
   community_rankings_sha256: null,
+  change_history_sha256: null,
 };
 const objects = new Map([
   [snapshotObject(manifest.version, "checkpoint"), compressedCheckpoint],
@@ -80,6 +81,7 @@ try {
       payload,
       timeline: null,
       communityRankings: [],
+      changeHistory: [],
     });
     assert.deepEqual(await readFile(destination), checkpoint);
   }

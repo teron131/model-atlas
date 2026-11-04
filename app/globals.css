@@ -1824,6 +1824,286 @@ html[data-model-atlas-theme="light"] .score-meter::after {
   color: var(--muted);
 }
 
+.score-change-meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+/* The variant's most recent updates, oldest first: each bar rises for a gain or drops for a loss by the update's largest move, a dot marks an entry, and the newest is lit. */
+.change-strip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 12px;
+  background: linear-gradient(var(--line), var(--line)) center / 100% 1px no-repeat;
+}
+
+.change-strip > span {
+  position: relative;
+  width: 2px;
+  height: 12px;
+}
+
+.change-strip > span::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 2px;
+  height: calc(1px + var(--move, 0) * 5px);
+  background: rgb(var(--ink-rgb) / 0.55);
+}
+
+.change-strip > [data-direction="up"]::before {
+  bottom: 50%;
+}
+
+.change-strip > [data-direction="down"]::before {
+  top: 50%;
+  background: rgb(var(--ink-rgb) / 0.3);
+}
+
+.change-strip > [data-direction="new"]::before {
+  top: calc(50% - 1px);
+  height: 2px;
+}
+
+.change-strip > :last-child::before {
+  background: var(--ink);
+}
+
+.score-change-date {
+  color: var(--faint);
+  font-family: var(--font-mono);
+  font-size: var(--type-caption-size);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.column-tooltip.score-change-card {
+  width: min(380px, calc(100vw - 36px));
+  max-height: min(600px, calc(100dvh - 36px));
+}
+
+.score-change {
+  margin-top: 14px;
+}
+
+.score-change-moves,
+.score-change-group ul {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.score-change-moves {
+  gap: 16px;
+}
+
+/* Each moved score reads as its dimension and numbers over a 0–100 track, where the ghost dot marks the score before the update and the provider star the score after it. */
+.score-change-move {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 12px;
+  align-items: baseline;
+  font-family: var(--font-mono);
+  font-size: var(--mono-label);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25;
+}
+
+.score-change-dimension {
+  color: var(--muted);
+  font-weight: var(--type-label-weight);
+  text-transform: uppercase;
+}
+
+.score-change-score {
+  color: var(--muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.score-change-score strong {
+  color: var(--ink);
+  font-size: var(--mono-data);
+  font-weight: 700;
+}
+
+.score-change-delta {
+  margin-left: 8px;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.score-change-move[data-direction="down"] .score-change-delta,
+.score-change-move[data-direction="new"] .score-change-delta {
+  color: var(--faint);
+}
+
+.score-change-track {
+  --score-star-size: 7px;
+  --score-star-inset: 3.5px;
+  --low: min(var(--before), var(--after));
+  --high: max(var(--before), var(--after));
+  position: relative;
+  grid-column: 1 / -1;
+  height: 11px;
+}
+
+/* The lit span covers the move itself; a new score has no earlier mark, so its trail rises from zero like the leaderboard meter. */
+.score-change-track::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  height: 1px;
+  background:
+    linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--score-color, var(--ink)) 20%, transparent),
+        var(--score-color, var(--ink))
+      )
+      calc(var(--low) * 1%) 0 / calc((var(--high) - var(--low)) * 1%) 100% no-repeat,
+    var(--score-track);
+  transform: translateY(-50%);
+}
+
+.score-change-move[data-direction="down"] .score-change-track::before {
+  background:
+    linear-gradient(rgb(var(--ink-rgb) / 0.42), rgb(var(--ink-rgb) / 0.42)) calc(var(--low) * 1%) 0
+      / calc((var(--high) - var(--low)) * 1%) 100% no-repeat,
+    var(--score-track);
+}
+
+.score-change-move[data-direction="new"] .score-change-track::before {
+  background:
+    linear-gradient(90deg, transparent, var(--score-color, var(--ink))) 0 0 /
+      calc(var(--after) * 1%) 100% no-repeat,
+    var(--score-track);
+}
+
+.score-change-track::after,
+.score-change-ghost {
+  position: absolute;
+  top: 50%;
+  width: var(--score-star-size);
+  height: var(--score-star-size);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.score-change-track::after {
+  content: "";
+  left: clamp(
+    var(--score-star-inset),
+    calc(var(--after) * 1%),
+    calc(100% - var(--score-star-inset))
+  );
+  z-index: 1;
+  background: color-mix(in srgb, var(--score-color, var(--ink)) 45%, #fff);
+  box-shadow: 0 0 8px 1px color-mix(in srgb, var(--score-color, var(--ink)) 70%, transparent);
+}
+
+html[data-model-atlas-theme="light"] .score-change-track::after {
+  background: color-mix(in srgb, var(--score-color, var(--ink)) 85%, var(--ink));
+}
+
+.score-change-ghost {
+  left: clamp(
+    var(--score-star-inset),
+    calc(var(--before) * 1%),
+    calc(100% - var(--score-star-inset))
+  );
+  border: 1px solid rgb(var(--ink-rgb) / 0.5);
+  background: var(--paper);
+}
+
+.score-change-context {
+  display: flex;
+  flex-wrap: wrap;
+  grid-column: 1 / -1;
+  gap: 4px 14px;
+  color: var(--faint);
+  font-weight: 600;
+}
+
+.score-change-moves + * {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.score-change-note {
+  margin: 0;
+  color: var(--muted);
+  font-family: var(--font-sans);
+  font-size: var(--sans-note);
+  line-height: 1.45;
+}
+
+.score-change-inputs {
+  display: grid;
+  gap: 14px;
+}
+
+.score-change-note + .score-change-note {
+  margin-top: 8px;
+}
+
+.score-change-group {
+  display: grid;
+  gap: 7px;
+}
+
+.score-change-group-title {
+  margin: 0;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: var(--mono-label);
+  font-weight: var(--type-label-weight);
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.score-change-group ul {
+  gap: 6px;
+}
+
+.score-change-input {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: baseline;
+  font-family: var(--font-mono);
+  font-size: var(--mono-label);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.score-change-input-label {
+  min-width: 0;
+  color: var(--muted);
+}
+
+.score-change-input-metric,
+.score-change-status,
+.score-change-before {
+  color: var(--faint);
+}
+
+.score-change-input-values {
+  color: var(--ink);
+  text-align: right;
+  white-space: nowrap;
+}
+
 .confidence-values {
   display: inline-flex;
   gap: 10px;

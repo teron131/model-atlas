@@ -22,6 +22,7 @@ import {
   sanitizeOpenRouterModelId,
   selectOpenRouterRawModelStats,
   summarizeEndpointPerformance,
+  withDefaultServiceTier,
 } from "./stats";
 import type {
   OpenRouterCandidateStats,
@@ -154,7 +155,7 @@ async function fetchCandidateStats(
     permaslug,
     variant: "standard",
   });
-  const [endpointStats, throughput, latency, latencyE2e, effectivePricing, weeklyTokens] =
+  const [allEndpointStats, throughput, latency, latencyE2e, allPricing, weeklyTokens] =
     await scheduleSourcePage(BASE_URL, [
       () =>
         fetchJson<OpenRouterEndpointStatsResponse>(
@@ -171,6 +172,10 @@ async function fetchCandidateStats(
         ),
       () => fetchWeeklyTokens(permaslug, context),
     ]);
+  const { endpointStats, pricing: effectivePricing } = withDefaultServiceTier(
+    allEndpointStats,
+    allPricing,
+  );
 
   return {
     permaslug,

@@ -71,6 +71,40 @@ export function summarizeEndpointPerformance(
   };
 }
 
+/**
+ * OpenRouter lists its priority ("fast"), ultrafast, and flex service tiers as endpoints of a model's standard variant, at their own speed and price.
+ * Atlas measures the default tier, so endpoints with any service tier leave both responses before speed, latency, or price is summarized.
+ */
+export function withDefaultServiceTier(
+  endpointStats: OpenRouterEndpointStatsResponse,
+  pricing: OpenRouterEffectivePricingResponse,
+): { endpointStats: OpenRouterEndpointStatsResponse; pricing: OpenRouterEffectivePricingResponse } {
+  const endpoints = endpointStats.data ?? [];
+  const tieredIds = new Set(
+    endpoints.flatMap((endpoint) =>
+      endpoint.service_tier == null || endpoint.id == null ? [] : [endpoint.id],
+    ),
+  );
+  return {
+    endpointStats: {
+      ...endpointStats,
+      data: endpoints.filter((endpoint) => endpoint.service_tier == null),
+    },
+    pricing:
+      pricing.data?.providerSummaries == null
+        ? pricing
+        : {
+            ...pricing,
+            data: {
+              ...pricing.data,
+              providerSummaries: pricing.data.providerSummaries.filter(
+                (provider) => provider.endpointId == null || !tieredIds.has(provider.endpointId),
+              ),
+            },
+          },
+  };
+}
+
 /** Match reported endpoint token totals directly to history series IDs, independently of provider display names or current endpoint availability. */
 export function buildOpenRouterSeriesTokenWeights(
   pricingResponse: OpenRouterEffectivePricingResponse | null,

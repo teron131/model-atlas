@@ -9,6 +9,7 @@ import { readCommunityRankings } from "./community-rankings";
 import {
   buildPayloadFromRows,
   buildPayloadRows,
+  listedChangeHistory,
   PAYLOAD_ROW_GROUPS,
   type PayloadRowGroup,
   SNAPSHOT_METADATA_SQL,
@@ -21,13 +22,18 @@ export function readDatabasePayload(databasePath = DEFAULT_DATABASE_PATH): Model
   return readCheckpoint(databasePath, readPayload);
 }
 
-/** Read the payload with the Intelligence Index and community history it is published beside. */
+/** Read the payload with the Intelligence Index, community history, and change history it is published beside. */
 export function readDatabaseSnapshot(databasePath = DEFAULT_DATABASE_PATH): SnapshotData {
-  return readCheckpoint(databasePath, (db) => ({
-    payload: readPayload(db),
-    timeline: readCapabilityState(db)?.dataset ?? null,
-    communityRankings: readCommunityRankings(db),
-  }));
+  return readCheckpoint(databasePath, (db) => {
+    const rows = readPayloadRows(db);
+    const payload = buildPayloadFromRows(rows);
+    return {
+      payload,
+      timeline: readCapabilityState(db)?.dataset ?? null,
+      communityRankings: readCommunityRankings(db),
+      changeHistory: listedChangeHistory(rows, payload.models),
+    };
+  });
 }
 
 function readCheckpoint<T>(databasePath: string, read: (db: DatabaseSync) => T): T {
@@ -43,11 +49,13 @@ function readCheckpoint<T>(databasePath: string, read: (db: DatabaseSync) => T):
 }
 
 function readPayload(db: DatabaseSync): ModelAtlasPayload {
-  return buildPayloadFromRows(
-    buildPayloadRows(
-      db.prepare(SNAPSHOT_METADATA_SQL).get(),
-      PAYLOAD_ROW_GROUPS.map((rowGroup) => [rowGroup.key, readPayloadRowGroup(db, rowGroup)]),
-    ),
+  return buildPayloadFromRows(readPayloadRows(db));
+}
+
+function readPayloadRows(db: DatabaseSync) {
+  return buildPayloadRows(
+    db.prepare(SNAPSHOT_METADATA_SQL).get(),
+    PAYLOAD_ROW_GROUPS.map((rowGroup) => [rowGroup.key, readPayloadRowGroup(db, rowGroup)]),
   );
 }
 

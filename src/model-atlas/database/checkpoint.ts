@@ -23,6 +23,7 @@ import type {
 } from "../sources/types";
 import {
   buildRefreshChanges,
+  type ModelChangeDetailRow,
   type ModelScoreChangeRow,
   type RefreshRunRow,
 } from "../stats/payload/changes";
@@ -39,6 +40,7 @@ import type { DatabaseWriter } from "./writers/database";
 import {
   insertBenchmarkVersionLog,
   insertModelBenchmarks,
+  insertModelChangeDetails,
   insertModels,
   insertModelScoreChanges,
   insertModelTaskMetrics,
@@ -67,6 +69,7 @@ type DatabaseSnapshotRows = {
   benchmarkVersionLogRows: readonly BenchmarkVersionLogRow[];
   refreshRunRows: readonly RefreshRunRow[];
   modelScoreChangeRows: readonly ModelScoreChangeRow[];
+  modelChangeDetailRows: readonly ModelChangeDetailRow[];
 };
 
 type OpenRouterLoader = (modelIds: string[]) => Promise<{
@@ -143,6 +146,10 @@ const SNAPSHOT_APPEND_WRITERS = [
   {
     table: SNAPSHOT_TABLES.model_score_changes,
     write: (db, rows) => insertModelScoreChanges(db, rows.modelScoreChangeRows),
+  },
+  {
+    table: SNAPSHOT_TABLES.model_change_details,
+    write: (db, rows) => insertModelChangeDetails(db, rows.modelChangeDetailRows),
   },
 ] satisfies readonly SnapshotWriter[];
 
@@ -234,6 +241,7 @@ export async function deriveDatabaseSnapshot(
     ),
     refreshRunRows: changes.refreshRunRows,
     modelScoreChangeRows: changes.modelScoreChangeRows,
+    modelChangeDetailRows: changes.modelChangeDetailRows,
   };
   return {
     rows,

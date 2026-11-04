@@ -36,13 +36,17 @@ export type {
   ModelAtlasScoredCandidate,
   ModelAtlasScores,
   ModelAtlasBenchmarkRankDriver,
+  ModelAtlasChangeMark,
+  ModelAtlasInputChange,
   ModelAtlasScoreChange,
   ModelAtlasScoreChangeCause,
   ModelAtlasScoreDimension,
+  ModelAtlasScoreMove,
   ModelAtlasScoringSources,
   ModelAtlasSpeed,
   ModelAtlasTaskMetrics,
   ModelAtlasTaskMetricValues,
+  ModelAtlasVariantChanges,
 } from "../pipeline/model-types";
 
 export type ModelAtlasBenchmarkHealthLeader = {

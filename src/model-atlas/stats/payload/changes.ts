@@ -1,4 +1,4 @@
-/** Material change derivation owns the bounded score, rank, cause, and benchmark-alignment trail exposed by the leaderboard. */
+/** Material change derivation owns each update's score moves, the model inputs behind them, the per-score cause and benchmark-alignment trail, and the change history assembled from the stored log. */
 
 import { BENCHMARK_LABELS } from "../../benchmarks/catalog";
 import { pearsonCorrelation } from "../../math-utils";
@@ -6,12 +6,17 @@ import { benchmarkValue } from "../../pipeline/scores/resource-metrics";
 import { stableJson } from "../../runtime";
 import type {
   ModelAtlasBenchmarkRankDriver,
+  ModelAtlasChangeMark,
+  ModelAtlasInputChange,
   ModelAtlasMetadata,
   ModelAtlasModel,
   ModelAtlasPayload,
   ModelAtlasScoreChange,
   ModelAtlasScoreChangeCause,
   ModelAtlasScoreDimension,
+  ModelAtlasScoreMove,
+  ModelAtlasTaskMetricValues,
+  ModelAtlasVariantChanges,
 } from "../types";
 
 export type RefreshRunRow = {
@@ -22,15 +27,43 @@ export type RefreshRunRow = {
   score_change_count: number;
 };
 
-export type ModelScoreChangeRow = ModelAtlasScoreChange & {
+/** One score's material move with that score's own causes and rank drivers, as the change history stores it. */
+type ScoreChange = ModelAtlasScoreMove & {
+  refresh_id: number;
+  causes: ModelAtlasScoreChangeCause[];
+  rank_drivers: ModelAtlasBenchmarkRankDriver[];
+};
+
+export type ModelScoreChangeRow = ScoreChange & {
   model_id: string;
   reasoning_effort: string;
+};
+
+/** The update-level facts of one variant's material update, stored once beside its per-score rows. */
+export type ModelChangeDetailRow = {
+  refresh_id: number;
+  model_id: string;
+  reasoning_effort: string;
+  entry: ModelAtlasScoreChange["entry"];
+  inputs: ModelAtlasInputChange[];
 };
 
 type RefreshChanges = {
   models: ModelAtlasModel[];
   refreshRunRows: readonly RefreshRunRow[];
   modelScoreChangeRows: readonly ModelScoreChangeRow[];
+  modelChangeDetailRows: readonly ModelChangeDetailRow[];
+};
+
+type LoggedRefresh = Pick<
+  RefreshRunRow,
+  "refresh_id" | "previous_refresh_id" | "methodology_changed"
+>;
+
+export type ChangeLog = {
+  refreshRuns: readonly LoggedRefresh[];
+  scoreChanges: readonly ModelScoreChangeRow[];
+  details: readonly ModelChangeDetailRow[];
 };
 
 type DimensionPolicy = {
@@ -56,6 +89,19 @@ const MATERIAL_RELATIVE_RANK_DELTA = 0.25;
 const MATERIAL_SUPPORT_DELTA = 10;
 const MIN_RANK_CORRELATION = 0.3;
 const MIN_RANK_CORRELATION_MODELS = 5;
+/** Inputs are compared at three significant digits, so differences the card cannot show are not reported as changes. */
+const INPUT_SIGNIFICANT_DIGITS = 3;
+const TASK_INPUTS = [
+  { kind: "task_cost", field: "cost" },
+  { kind: "task_time", field: "seconds" },
+  { kind: "task_tokens", field: "tokens" },
+] as const satisfies readonly {
+  kind: ModelAtlasInputChange["kind"];
+  field: keyof ModelAtlasTaskMetricValues;
+}[];
+const RESULT_CHANGE_ORDER = ["added", "revised", "removed"] as const;
+export const CHANGE_HISTORY_SECONDS = 30 * 86_400;
+const RECENT_CHANGE_MARKS = 12;
 
 /** Record only material adjacent changes while retaining the last material event across quiet refreshes. */
 export function buildRefreshChanges(
@@ -98,8 +144,10 @@ export function buildRefreshChanges(
     }),
   );
   const currentRanks = scoreRanks(currentModels);
+  const previousModelIds = new Set(previousModels.map((model) => model.id));
   const modelScoreChangeRows: ModelScoreChangeRow[] = [];
-  const primaryChangeByIdentity = new Map<string, ModelAtlasScoreChange>();
+  const modelChangeDetailRows: ModelChangeDetailRow[] = [];
+  const latestChangeByIdentity = new Map<string, ModelAtlasScoreChange>();
 
   if (previousPayload != null) {
     for (const model of currentModels) {
@@ -132,9 +180,27 @@ export function buildRefreshChanges(
           reasoning_effort: model.reasoning_effort ?? "",
         });
       }
-      const primaryChange = [...changes].sort(compareChangeImpact)[0];
+      const [primaryChange, ...otherChanges] = [...changes].sort(compareChangeImpact);
       if (primaryChange != null) {
-        primaryChangeByIdentity.set(identity, primaryChange);
+        const entry =
+          previousModel != null ? null : previousModelIds.has(model.id) ? "variant" : "model";
+        const inputs =
+          previousModel == null ? [] : inputChanges(model, previousModel, currentScoring);
+        modelChangeDetailRows.push({
+          refresh_id: refreshId,
+          model_id: model.id,
+          reasoning_effort: model.reasoning_effort ?? "",
+          entry,
+          inputs,
+        });
+        latestChangeByIdentity.set(
+          identity,
+          scoreUpdate([primaryChange, ...otherChanges], {
+            entry,
+            methodology_changed: methodologyChanged,
+            inputs,
+          }),
+        );
       }
     }
   }
@@ -146,7 +212,7 @@ export function buildRefreshChanges(
     return {
       ...model,
       latest_change:
-        identity == null ? null : (primaryChangeByIdentity.get(identity) ?? previousChange ?? null),
+        identity == null ? null : (latestChangeByIdentity.get(identity) ?? previousChange ?? null),
     };
   });
   const changedModelCount = new Set(
@@ -166,7 +232,81 @@ export function buildRefreshChanges(
       },
     ],
     modelScoreChangeRows,
+    modelChangeDetailRows,
   };
+}
+
+/**
+ * Assemble each variant's updates from the stored change log, oldest first.
+ * Only refreshes on the newest refresh's chain of predecessors count, so a run that a later run replaced never appears, and the chain stops CHANGE_HISTORY_SECONDS before the newest refresh.
+ * Updates logged before update-level facts were stored carry null entry and inputs.
+ */
+export function buildChangeHistory({
+  refreshRuns,
+  scoreChanges,
+  details,
+}: ChangeLog): ModelAtlasVariantChanges[] {
+  const runs = new Map(refreshRuns.map((run) => [run.refresh_id, run]));
+  const newest = Math.max(...runs.keys());
+  const chain = new Map<number, LoggedRefresh>();
+  for (
+    let run = runs.get(newest);
+    run != null && run.refresh_id >= newest - CHANGE_HISTORY_SECONDS;
+    run = run.previous_refresh_id == null ? undefined : runs.get(run.previous_refresh_id)
+  ) {
+    chain.set(run.refresh_id, run);
+  }
+  const detailByUpdate = new Map(details.map((detail) => [updateKey(detail), detail]));
+  const updates = new Map<
+    string,
+    { run: LoggedRefresh; moves: [ModelScoreChangeRow, ...ModelScoreChangeRow[]] }
+  >();
+  for (const row of scoreChanges) {
+    const run = chain.get(row.refresh_id);
+    if (run != null) {
+      const moves = updates.get(updateKey(row))?.moves;
+      updates.set(updateKey(row), { run, moves: moves == null ? [row] : [...moves, row] });
+    }
+  }
+  const variants = new Map<string, ModelAtlasVariantChanges>();
+  for (const [key, { run, moves }] of updates) {
+    const [{ model_id, reasoning_effort }] = moves;
+    const detail = detailByUpdate.get(key);
+    const variantKey = `${model_id}\u0000${reasoning_effort}`;
+    const variant: ModelAtlasVariantChanges = variants.get(variantKey) ?? {
+      model_id,
+      reasoning_effort: reasoning_effort === "" ? null : reasoning_effort,
+      updates: [],
+    };
+    variant.updates.push(
+      scoreUpdate(moves.sort(compareChangeImpact), {
+        entry: detail?.entry ?? null,
+        methodology_changed: run.methodology_changed,
+        inputs: detail?.inputs ?? null,
+      }),
+    );
+    variants.set(variantKey, variant);
+  }
+  return [...variants.values()].map((variant) => ({
+    ...variant,
+    updates: variant.updates.sort((left, right) => left.refresh_id - right.refresh_id),
+  }));
+}
+
+export function recentChangeMarks(
+  updates: readonly ModelAtlasScoreChange[],
+): ModelAtlasChangeMark[] {
+  return updates
+    .slice(-RECENT_CHANGE_MARKS)
+    .map(({ refresh_id, dimension, score_delta }) => ({ refresh_id, dimension, score_delta }));
+}
+
+function updateKey(row: {
+  refresh_id: number;
+  model_id: string;
+  reasoning_effort: string;
+}): string {
+  return `${row.refresh_id}\u0000${row.model_id}\u0000${row.reasoning_effort}`;
 }
 
 /** Emit a material public score change only when score, stable-cohort rank, or evidence support crosses policy, then attach bounded explanations. */
@@ -180,7 +320,7 @@ function scoreChange(
   scoring: ModelAtlasMetadata["scoring"],
   methodologyChanged: boolean,
   currentModels: readonly ModelAtlasModel[],
-): ModelAtlasScoreChange | null {
+): ScoreChange | null {
   const scoreBefore = visibleScore(previous?.scores[policy.scoreKey]);
   const scoreAfter = visibleScore(current.scores[policy.scoreKey]);
   if (scoreAfter == null) {
@@ -194,7 +334,7 @@ function scoreChange(
   if (!scoreChanged && !rankChanged && confidenceBefore === confidenceAfter) {
     return null;
   }
-  const change: ModelAtlasScoreChange = {
+  const change: ScoreChange = {
     refresh_id: refreshId,
     dimension: policy.dimension,
     score_before: scoreBefore,
@@ -225,7 +365,7 @@ function scoreChange(
   };
 }
 
-function isMaterialChange(change: ModelAtlasScoreChange): boolean {
+function isMaterialChange(change: ModelAtlasScoreMove): boolean {
   if (change.score_before == null) {
     return true;
   }
@@ -487,6 +627,131 @@ function changedEvidenceLabels(
   return [...new Set(labels)];
 }
 
+/** An update as published, built one way for the latest change and the history: the headline move with its causes and rank drivers, then every move in impact order. */
+function scoreUpdate(
+  [headline, ...others]: readonly [ScoreChange, ...ScoreChange[]],
+  facts: Pick<ModelAtlasScoreChange, "entry" | "methodology_changed" | "inputs">,
+): ModelAtlasScoreChange {
+  return {
+    refresh_id: headline.refresh_id,
+    ...scoreMove(headline),
+    causes: headline.causes,
+    rank_drivers: headline.rank_drivers,
+    entry: facts.entry,
+    methodology_changed: facts.methodology_changed,
+    scores: [headline, ...others].map(scoreMove),
+    inputs: facts.inputs,
+  };
+}
+
+function scoreMove(change: ScoreChange): ModelAtlasScoreMove {
+  return {
+    dimension: change.dimension,
+    score_before: change.score_before,
+    score_after: change.score_after,
+    score_delta: change.score_delta,
+    rank_before: change.rank_before,
+    rank_after: change.rank_after,
+    confidence_before: change.confidence_before,
+    confidence_after: change.confidence_after,
+  };
+}
+
+/** List the variant's own scored inputs that changed: benchmark results first, then per-task resources of benchmarks whose result held, then provider price and speed. */
+function inputChanges(
+  current: ModelAtlasModel,
+  previous: ModelAtlasModel,
+  scoring: ModelAtlasMetadata["scoring"],
+): ModelAtlasInputChange[] {
+  const resourceKeys = Object.entries(scoring.benchmark_portfolio).flatMap(([key, entry]) =>
+    entry.resourcePolicy == null ? [] : [key],
+  );
+  const benchmarkKeys = new Set([
+    ...scoring.intelligence_benchmark_keys,
+    ...scoring.agentic_benchmark_keys,
+    ...resourceKeys,
+  ]);
+  const results = [...benchmarkKeys]
+    .flatMap((key) =>
+      changedInput(
+        "result",
+        key,
+        benchmarkLabel(key),
+        benchmarkValue(previous, key),
+        benchmarkValue(current, key),
+      ),
+    )
+    .sort(
+      (left, right) =>
+        RESULT_CHANGE_ORDER.indexOf(resultChange(left)) -
+          RESULT_CHANGE_ORDER.indexOf(resultChange(right)) || left.label.localeCompare(right.label),
+    );
+  const changedResultKeys = new Set(results.map(({ key }) => key));
+  const resources = resourceKeys
+    .filter((key) => !changedResultKeys.has(key))
+    .flatMap((key) =>
+      TASK_INPUTS.flatMap(({ kind, field }) =>
+        changedInput(
+          kind,
+          key,
+          benchmarkLabel(key),
+          finiteNumber(previous.task_metrics?.[key]?.[field]),
+          finiteNumber(current.task_metrics?.[key]?.[field]),
+        ),
+      ),
+    );
+  const provider = [
+    changedInput(
+      "provider_price",
+      "blended_price",
+      "Blended price",
+      finiteNumber(previous.cost?.blended_price),
+      finiteNumber(current.cost?.blended_price),
+    ),
+    changedInput(
+      "provider_speed",
+      "throughput",
+      "Throughput",
+      finiteNumber(previous.speed.throughput_tokens_per_second_median),
+      finiteNumber(current.speed.throughput_tokens_per_second_median),
+    ),
+    changedInput(
+      "provider_latency",
+      "latency",
+      "Latency",
+      finiteNumber(previous.speed.latency_seconds_median),
+      finiteNumber(current.speed.latency_seconds_median),
+    ),
+    changedInput(
+      "provider_latency",
+      "e2e_latency",
+      "End-to-end latency",
+      finiteNumber(previous.speed.e2e_latency_seconds_median),
+      finiteNumber(current.speed.e2e_latency_seconds_median),
+    ),
+  ].flat();
+  return [...results, ...resources, ...provider];
+}
+
+function changedInput(
+  kind: ModelAtlasInputChange["kind"],
+  key: string,
+  label: string,
+  before: number | null,
+  after: number | null,
+): ModelAtlasInputChange[] {
+  const same =
+    before == null || after == null
+      ? before === after
+      : before.toPrecision(INPUT_SIGNIFICANT_DIGITS) ===
+        after.toPrecision(INPUT_SIGNIFICANT_DIGITS);
+  return same ? [] : [{ kind, key, label, before, after }];
+}
+
+function resultChange(input: ModelAtlasInputChange): (typeof RESULT_CHANGE_ORDER)[number] {
+  return input.before == null ? "added" : input.after == null ? "removed" : "revised";
+}
+
 function scoreRanks(models: readonly ModelAtlasModel[]): Map<string, number> {
   const ranks = new Map<string, number>();
   for (const policy of DIMENSIONS) {
@@ -511,7 +776,7 @@ function scoreRanks(models: readonly ModelAtlasModel[]): Map<string, number> {
   return ranks;
 }
 
-function compareChangeImpact(left: ModelAtlasScoreChange, right: ModelAtlasScoreChange): number {
+function compareChangeImpact(left: ModelAtlasScoreMove, right: ModelAtlasScoreMove): number {
   if (left.score_before == null && right.score_before == null) {
     const entryRankImpact =
       (left.rank_after ?? Number.MAX_SAFE_INTEGER) - (right.rank_after ?? Number.MAX_SAFE_INTEGER);
@@ -529,7 +794,7 @@ function compareChangeImpact(left: ModelAtlasScoreChange, right: ModelAtlasScore
     : (DIMENSION_ORDER.get(left.dimension) ?? 0) - (DIMENSION_ORDER.get(right.dimension) ?? 0);
 }
 
-function rankMovementImpact(change: ModelAtlasScoreChange): number {
+function rankMovementImpact(change: ModelAtlasScoreMove): number {
   if (change.rank_after == null) {
     return 0;
   }
