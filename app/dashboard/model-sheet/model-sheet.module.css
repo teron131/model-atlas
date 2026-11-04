@@ -785,10 +785,210 @@
   line-height: 1.5;
 }
 
-.changeRows {
+/* Each score's path across the variant's updates, one column per update: faint drift between updates, a lit jump where an update moved it, and its current value as the provider star at the right edge. */
+.trails {
+  position: relative;
   display: grid;
+  grid-template-columns: var(--sheet-label) minmax(0, 1fr) 40px;
+  column-gap: 12px;
+  margin: 2px 0 6px;
+}
+
+.trailRow {
+  display: contents;
+}
+
+.trailLabel {
+  align-self: center;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: var(--type-caption-size);
+  font-weight: var(--type-label-weight);
+  letter-spacing: var(--type-label-tracking);
+  text-transform: uppercase;
+}
+
+.trail {
+  position: relative;
+  height: 36px;
+}
+
+.trail svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.trailDrift {
+  fill: none;
+  stroke: rgb(var(--ink-rgb) / 0.22);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.trailMove {
+  stroke: var(--score-color, var(--ink));
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.trailMove[data-direction="down"] {
+  stroke: rgb(var(--ink-rgb) / 0.45);
+}
+
+.trailCursor {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 1px;
+  background: rgb(var(--ink-rgb) / 0.3);
+  transform: translateX(-50%);
+}
+
+.trailDot,
+.trailNow {
+  position: absolute;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.trailDot {
+  width: 5px;
+  height: 5px;
+  background: color-mix(in srgb, var(--score-color, var(--ink)) 45%, #fff);
+}
+
+.trailDot[data-direction="down"] {
+  background: rgb(var(--ink-rgb) / 0.55);
+}
+
+.trailNow {
+  left: 100%;
+  width: 6px;
+  height: 6px;
+  background: color-mix(in srgb, var(--score-color, var(--ink)) 45%, #fff);
+  box-shadow: 0 0 7px 1px color-mix(in srgb, var(--score-color, var(--ink)) 70%, transparent);
+}
+
+:global(html[data-model-atlas-theme="light"])
+  :is(.trailDot:not([data-direction="down"]), .trailNow) {
+  background: color-mix(in srgb, var(--score-color, var(--ink)) 85%, var(--ink));
+}
+
+.trailValue {
+  align-self: center;
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: var(--type-data-size);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  text-align: right;
+}
+
+/* Every column picks its update across all four trails, so the target is the column, not the small dot. */
+.trailColumns {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  grid-column: 2;
+  grid-row: 1 / 5;
+}
+
+.trailColumn {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.trailColumn:hover {
+  background: rgb(var(--ink-rgb) / 0.045);
+}
+
+.trailColumn:focus-visible {
+  outline: 1px solid var(--focus-ring);
+  outline-offset: -1px;
+}
+
+.trailAxis {
+  position: relative;
+  display: flex;
+  grid-column: 2;
+  justify-content: space-between;
+  padding-top: 13px;
+  color: var(--faint);
+  font-family: var(--font-mono);
+  font-size: var(--type-caption-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.trailTicks {
+  position: absolute;
+  top: 4px;
+  right: 0;
+  left: 0;
+}
+
+.trailTick {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgb(var(--ink-rgb) / 0.32);
+  transform: translate(-50%, -50%);
+}
+
+.trailTick[data-selected] {
+  width: 5px;
+  height: 5px;
+  background: var(--ink);
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
   gap: 8px;
-  margin: 12px 0 0;
+  margin: 6px 0 12px;
+  font-family: var(--font-mono);
+  font-size: var(--type-caption-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.stepButton {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.stepButton:hover:not(:disabled) {
+  background: var(--hover);
+}
+
+.stepButton:disabled {
+  color: var(--faint);
+  border-color: var(--line);
+  cursor: default;
+}
+
+.stepLabel {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.stepCount {
+  margin-left: auto;
+  color: var(--faint);
 }
 
 /* A comparison narrower than its 880px plane gives the Compare toggle its own row, which link and close share at its right, so the names below keep their places over the value columns and need no room for the actions. */

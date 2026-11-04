@@ -6,6 +6,7 @@ import {
   canonicalModelKey,
   reasoningEffortRank,
 } from "../../../src/model-atlas/identity/normalization";
+import { strongestModelVariants } from "../../../src/model-atlas/stats/model-variants";
 import type {
   BenchmarkPortfolio,
   ModelAtlasModel,
@@ -108,6 +109,13 @@ export function useSheetEntries(
       pinned: entry("compare", compareKey, compareEffort),
     };
   }, [populations, modelKey, effort, compareKey, compareEffort]);
+}
+
+/** The effort a sheet model shows: its own, or for a collapsed row the variant whose headline scores and latest change the row carries. */
+export function entryEffort(entry: SheetEntry): string | null {
+  if (entry.effort != null) return entry.effort;
+  const [strongest] = strongestModelVariants(entry.variants.map((variant) => variant.model));
+  return strongest?.reasoning_effort ?? null;
 }
 
 /** A sheet model's family name, without the effort it shows; the sheet states the effort beside it. */

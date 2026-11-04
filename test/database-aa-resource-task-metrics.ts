@@ -1,4 +1,4 @@
-/** Verifies benchmarks, task resources, and refresh-time benchmark health round-trip through checkpoint tables. */
+/** Verifies benchmarks, task resources, change events and their history, and refresh-time benchmark health round-trip through checkpoint tables. */
 
 import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
@@ -6,12 +6,17 @@ import { DatabaseSync } from "node:sqlite";
 import { STAGE_CONFIG } from "../src/model-atlas/config";
 import { readDatabasePayload } from "../src/model-atlas/database";
 import { openDatabase, removeDatabaseFiles } from "../src/model-atlas/database/schema";
+import { readDatabaseSnapshot } from "../src/model-atlas/database/sqlite-payload";
 import {
   insertModelBenchmarks,
+  insertModelChangeDetails,
   insertModels,
+  insertModelScoreChanges,
   insertModelTaskMetrics,
+  insertRefreshRuns,
 } from "../src/model-atlas/database/writers/models";
 import { finalizeBenchmarkRows } from "../src/model-atlas/pipeline/benchmark-rows/source-rows";
+import { buildRefreshChanges } from "../src/model-atlas/stats/payload/changes";
 import { buildCurrentModelAtlasMetadata } from "../src/model-atlas/stats/payload/metadata";
 import {
   preserveHighSignalSnapshotModels,
@@ -181,6 +186,146 @@ try {
     "database payloads should preserve models without optional resource scores",
   );
   assert.ok(model);
+
+  const changeScoring = {
+    ...payload.metadata.scoring,
+    intelligence_benchmark_keys: ["hle", "agents_last_exam"],
+    agentic_benchmark_keys: ["gdpval_normalized"],
+  };
+  const {
+    models: changedModels,
+    refreshRunRows,
+    modelScoreChangeRows,
+    modelChangeDetailRows,
+  } = buildRefreshChanges(
+    1_800_000_100,
+    1_800_000_001,
+    { ...payload, metadata: { ...payload.metadata, scoring: changeScoring } },
+    [
+      {
+        ...model,
+        benchmarks: { hle: 0.95, agents_last_exam: 0.4 },
+        scores: { ...model.scores, intelligence_score: 93, value_score: 66 },
+      },
+      { ...model, reasoning_effort: "low" },
+      ...payload.models.filter((candidate) => candidate !== model),
+    ],
+    changeScoring,
+  );
+  const [updatedChange, entrantChange] = changedModels.map(({ latest_change }) => latest_change);
+  assert.deepEqual(
+    updatedChange?.scores.map(({ dimension, score_delta }) => [dimension, score_delta]),
+    [
+      ["intelligence", 3],
+      ["value", 1],
+    ],
+    "An update records every score it materially moved, largest first",
+  );
+  assert.deepEqual(
+    updatedChange?.inputs?.map(({ kind, key, before, after }) => [kind, key, before, after]),
+    [
+      ["result", "agents_last_exam", null, 0.4],
+      ["result", "hle", 0.9, 0.95],
+      ["result", "gdpval_normalized", 0.8, null],
+    ],
+    "Changed results list added, revised, then removed, and unchanged task resources stay out",
+  );
+  assert.equal(updatedChange?.entry, null);
+  assert.equal(
+    entrantChange?.entry,
+    "variant",
+    "A new effort of a listed model enters as a variant",
+  );
+  assert.deepEqual(entrantChange?.inputs, []);
+  const changeTable = new DatabaseSync(databasePath);
+  try {
+    const writeChange = changeTable.prepare(
+      "UPDATE models SET latest_change_json = ? WHERE model_id = ?",
+    );
+    writeChange.run(JSON.stringify(updatedChange), model.id);
+    // Events stored before update-level fields carried only their headline move.
+    writeChange.run(
+      JSON.stringify({
+        refresh_id: 1_799_000_000,
+        dimension: "agentic",
+        score_before: 70,
+        score_after: 80,
+        score_delta: 10,
+        rank_before: 2,
+        rank_after: 1,
+        confidence_before: 40,
+        confidence_after: 47,
+        causes: [{ kind: "methodology", label: "Scoring methodology changed" }],
+        rank_drivers: [],
+      }),
+      "example/sparse-resource-model",
+    );
+    // Beside the newest refresh, the log holds an update older than the window, an update logged before details, and a run the newest refresh replaced.
+    const loggedMove = {
+      model_id: model.id,
+      reasoning_effort: "xhigh",
+      dimension: "agentic",
+      score_before: 78,
+      score_after: 80,
+      score_delta: 2,
+      rank_before: 2,
+      rank_after: 1,
+      confidence_before: 47,
+      confidence_after: 47,
+      causes: [],
+      rank_drivers: [],
+    };
+    const loggedRun = { methodology_changed: false, model_change_count: 1, score_change_count: 1 };
+    insertRefreshRuns(changeTable, [
+      { ...loggedRun, refresh_id: 1_797_000_000, previous_refresh_id: null },
+      { ...loggedRun, refresh_id: 1_800_000_001, previous_refresh_id: 1_797_000_000 },
+      { ...loggedRun, refresh_id: 1_800_000_050, previous_refresh_id: 1_800_000_001 },
+      ...refreshRunRows,
+    ]);
+    insertModelScoreChanges(changeTable, [
+      { ...loggedMove, refresh_id: 1_797_000_000 },
+      { ...loggedMove, refresh_id: 1_800_000_001 },
+      { ...loggedMove, refresh_id: 1_800_000_050, dimension: "value" },
+      ...modelScoreChangeRows,
+    ]);
+    insertModelChangeDetails(changeTable, modelChangeDetailRows);
+  } finally {
+    changeTable.close();
+  }
+  const [storedChange, legacyChange] = readDatabasePayload(databasePath).models.map(
+    ({ latest_change }) => latest_change,
+  );
+  assert.deepEqual(storedChange, updatedChange);
+  assert.deepEqual(
+    legacyChange && {
+      scores: legacyChange.scores.map(({ dimension }) => dimension),
+      inputs: legacyChange.inputs,
+      entry: legacyChange.entry,
+      methodology_changed: legacyChange.methodology_changed,
+    },
+    { scores: ["agentic"], inputs: null, entry: null, methodology_changed: true },
+    "A legacy event reads as its headline move with its inputs unrecorded",
+  );
+  assert.deepEqual(
+    readDatabasePayload(databasePath).models.find(({ id }) => id === model.id)?.recent_changes,
+    [
+      { refresh_id: 1_800_000_001, dimension: "agentic", score_delta: 2 },
+      { refresh_id: 1_800_000_100, dimension: "intelligence", score_delta: 3 },
+    ],
+    "Recent changes follow the newest refresh's chain inside the window, leaving out a replaced run and an older update",
+  );
+  const [variantHistory, ...otherHistory] = readDatabaseSnapshot(databasePath).changeHistory;
+  assert.deepEqual(
+    otherHistory.map(({ model_id, reasoning_effort }) => [model_id, reasoning_effort]),
+    [["example/sparse-resource-model", null]],
+    "Only listed variants publish their history, so the unlisted low effort stays out",
+  );
+  assert.equal(variantHistory?.updates[0]?.inputs, null);
+  assert.deepEqual(
+    variantHistory?.updates[1],
+    updatedChange,
+    "The newest logged update reads back as the model's latest change",
+  );
 
   const refreshed = buildCurrentModelAtlasMetadata({
     models: payload.models,

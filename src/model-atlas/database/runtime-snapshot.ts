@@ -9,9 +9,10 @@ import {
   isValidRankedAt,
 } from "../community/rankings";
 import { buildCurrentModelAtlasMetadata } from "../stats/payload/metadata";
-import type { ModelAtlasPayload } from "../stats/types";
+import type { ModelAtlasPayload, ModelAtlasVariantChanges } from "../stats/types";
 import type { HistoricalDataset } from "../timeline/schemas";
 import {
+  decodeChangeHistory,
   decodeCommunityRankings,
   decodeIntelligenceIndex,
   decodeSnapshotPayload,
@@ -38,6 +39,7 @@ type ArtifactReadState = {
   payload: ArtifactCache<ModelAtlasPayload>;
   index: ArtifactCache<HistoricalDataset>;
   rankings: ArtifactCache<CommunityRanking[]>;
+  history: ArtifactCache<ModelAtlasVariantChanges[]>;
 };
 
 const globalCaches = globalThis as typeof globalThis & {
@@ -142,6 +144,18 @@ export async function readIntelligenceIndex(): Promise<HistoricalDataset | null>
   );
 }
 
+/** Only an opened model history pays for the change-history artifact; versions published before it have none. */
+export async function readChangeHistory(): Promise<ModelAtlasVariantChanges[]> {
+  if (process.env.MODEL_ATLAS_LOCAL_DATABASE === "1")
+    return (await readLocalSnapshot()).changeHistory;
+  const state = artifactReadState();
+  const manifest = await readManifest(state);
+  if (!manifest.change_history_sha256) return [];
+  return readArtifact(state, manifest, "change-history", state.history, (bytes) =>
+    decodeChangeHistory(bytes, manifest.change_history_sha256!),
+  );
+}
+
 /** The SQLite checkpoint under the explicit local override, reread only when the file changes. */
 async function readLocalSnapshot(): Promise<SnapshotData> {
   const { readDatabaseSnapshot } = await import("./sqlite-payload");
@@ -181,6 +195,7 @@ function artifactReadState(): ArtifactReadState {
       payload: {},
       index: {},
       rankings: {},
+      history: {},
     };
   }
   return globalCaches.__modelAtlasArtifactReadState;
@@ -217,7 +232,7 @@ async function fetchManifest(state: ArtifactReadState): Promise<SnapshotManifest
 async function readArtifact<T>(
   state: ArtifactReadState,
   manifest: SnapshotManifest,
-  kind: "payload" | "intelligence-index" | "community-rankings",
+  kind: "payload" | "intelligence-index" | "community-rankings" | "change-history",
   cache: ArtifactCache<T>,
   decode: (bytes: Buffer) => Promise<T>,
 ): Promise<T> {
@@ -225,6 +240,7 @@ async function readArtifact<T>(
     payload: manifest.payload_sha256,
     "intelligence-index": manifest.intelligence_index_sha256!,
     "community-rankings": manifest.community_rankings_sha256!,
+    "change-history": manifest.change_history_sha256!,
   }[kind];
   if (cache.hash === hash && cache.value !== undefined) return cache.value;
   if (cache.pending?.hash === hash) return cache.pending.promise;

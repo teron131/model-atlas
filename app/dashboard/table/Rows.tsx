@@ -37,8 +37,11 @@ import {
   type TableColumnKey,
   type TableRow,
 } from "./models";
+import { changeScores, changeShortDate, headlineMove, moveDirection } from "./ScoreChange";
 
 const HIDDEN_MODEL_DISPLAY_TOKENS = new Set(["instruct", "preview"]);
+// A recent-change bar reaches full height at this many score points, on a square-root scale so sub-point moves stay visible.
+const MARK_FULL_DELTA = 4;
 // Every row leads with its rank and model cells, whichever columns are shown.
 const IDENTITY_COLUMN_COUNT = 2;
 const NO_COLUMN_KEYS: ReadonlySet<TableColumnKey> = new Set();
@@ -490,54 +493,46 @@ const ScoreChangeCell = memo(function ScoreChangeCell({
   if (change == null) {
     return <td className="data-cell change-cell missing">—</td>;
   }
-  const direction =
-    change.score_delta == null
-      ? "new"
-      : change.score_delta > 0
-        ? "up"
-        : change.score_delta < 0
-          ? "down"
-          : "rank";
+  const dimension = scoreColumnsByDimension[change.dimension].name;
+  const move = headlineMove(change);
+  const date = changeShortDate(change);
+  const otherScores = changeScores(change).length - 1;
+  const marks = model.recent_changes ?? [];
   return (
     <td className="data-cell change-cell">
       <button
         aria-haspopup="dialog"
-        aria-label={`${scoreColumnsByDimension[change.dimension].name} change: ${scoreChangeButtonText(change)}`}
+        aria-label={`${date}: ${dimension} ${move}${otherScores > 0 ? ` and ${otherScores} more ${otherScores === 1 ? "score" : "scores"}` : ""}${marks.length > 1 ? `; ${marks.length} recent updates` : ""}`}
         className="score-change-button"
-        data-direction={direction}
+        data-direction={moveDirection(change)}
         onClick={(event) => onScoreChange(event, model)}
         type="button"
       >
-        {scoreChangeButtonText(change)}
+        {`${dimension.slice(0, 1)} ${move}`}
       </button>
+      <span aria-hidden="true" className="score-change-meta">
+        {marks.length > 1 ? (
+          <span className="change-strip">
+            {marks.map((mark) => (
+              <span
+                data-direction={moveDirection(mark)}
+                key={mark.refresh_id}
+                style={
+                  {
+                    "--move": String(
+                      Math.sqrt(Math.min(1, Math.abs(mark.score_delta ?? 0) / MARK_FULL_DELTA)),
+                    ),
+                  } as CSSProperties
+                }
+              />
+            ))}
+          </span>
+        ) : null}
+        <span className="score-change-date">{date}</span>
+      </span>
     </td>
   );
 });
-
-function scoreChangeButtonText(change: NonNullable<ModelAtlasModel["latest_change"]>): string {
-  const prefix = scoreColumnsByDimension[change.dimension].name.slice(0, 1);
-  if (change.score_delta == null) {
-    return change.rank_after === 1 ? `${prefix} New #1` : `${prefix} New`;
-  }
-  if (change.score_delta !== 0) {
-    return `${prefix} ${change.score_delta > 0 ? "+" : "−"}${Math.abs(change.score_delta).toFixed(1)}`;
-  }
-  if (
-    change.rank_before != null &&
-    change.rank_after != null &&
-    change.rank_before !== change.rank_after
-  ) {
-    return `${prefix} #${change.rank_before}→#${change.rank_after}`;
-  }
-  if (
-    change.confidence_before != null &&
-    change.confidence_after != null &&
-    change.confidence_before !== change.confidence_after
-  ) {
-    return `${prefix} support`;
-  }
-  return `${prefix} changed`;
-}
 
 function visibleModelName(name: string | null | undefined) {
   if (name == null || name.length === 0) {

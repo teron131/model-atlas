@@ -1,4 +1,4 @@
-/** One manifest binds the leaderboard, Intelligence Index, and community history to their authoritative SQLite checkpoint. */
+/** One manifest binds the leaderboard, Intelligence Index, community history, and change history to their authoritative SQLite checkpoint. */
 
 import { createHash } from "node:crypto";
 import { promisify } from "node:util";
@@ -7,7 +7,7 @@ import { gunzip } from "node:zlib";
 import { type CommunityRanking, parseCommunityRanking } from "../../community/rankings";
 import { asRecord, stableJson } from "../../runtime";
 import { isModelAtlasPayload } from "../../stats/payload/validation";
-import type { ModelAtlasPayload } from "../../stats/types";
+import type { ModelAtlasPayload, ModelAtlasVariantChanges } from "../../stats/types";
 import { type HistoricalDataset, unpackTimelineDataset } from "../../timeline/schemas";
 
 type SnapshotArtifacts = {
@@ -17,16 +17,18 @@ type SnapshotArtifacts = {
   checkpoint_sha256: string;
   intelligence_index_sha256: string | null;
   community_rankings_sha256: string | null;
+  change_history_sha256: string | null;
 };
 
 export type SnapshotVersion = SnapshotArtifacts & { data_sha256: string };
 export type SnapshotManifest = SnapshotVersion & { previous: SnapshotVersion[] };
 
-/** A checkpoint's published data: the leaderboard payload and the Intelligence Index and community history published beside it as separate artifacts. */
+/** A checkpoint's published data: the leaderboard payload and the Intelligence Index, community history, and change history published beside it as separate artifacts. */
 export type SnapshotData = {
   payload: ModelAtlasPayload;
   timeline: HistoricalDataset | null;
   communityRankings: CommunityRanking[];
+  changeHistory: ModelAtlasVariantChanges[];
 };
 
 export const SNAPSHOT_MANIFEST_OBJECT = "current.json";
@@ -43,7 +45,7 @@ export function publicSnapshotBucket(): string {
 
 export function snapshotObject(
   version: string,
-  kind: "payload" | "checkpoint" | "intelligence-index" | "community-rankings",
+  kind: "payload" | "checkpoint" | "intelligence-index" | "community-rankings" | "change-history",
 ): string {
   const name = kind === "checkpoint" ? "database.sqlite.gz" : `${kind}.json.gz`;
   return `snapshots/${version}/${name}`;
@@ -65,7 +67,8 @@ export function parseSnapshotArtifacts(value: unknown): SnapshotArtifacts {
     !isHash(manifest.payload_sha256) ||
     !isHash(manifest.checkpoint_sha256) ||
     (manifest.intelligence_index_sha256 !== null && !isHash(manifest.intelligence_index_sha256)) ||
-    (manifest.community_rankings_sha256 !== null && !isHash(manifest.community_rankings_sha256))
+    (manifest.community_rankings_sha256 !== null && !isHash(manifest.community_rankings_sha256)) ||
+    (manifest.change_history_sha256 != null && !isHash(manifest.change_history_sha256))
   ) {
     throw new Error("GCS contains an invalid snapshot manifest");
   }
@@ -76,6 +79,8 @@ export function parseSnapshotArtifacts(value: unknown): SnapshotArtifacts {
     checkpoint_sha256: manifest.checkpoint_sha256,
     intelligence_index_sha256: manifest.intelligence_index_sha256,
     community_rankings_sha256: manifest.community_rankings_sha256,
+    // Versions published before change history have no such artifact.
+    change_history_sha256: manifest.change_history_sha256 ?? null,
   };
 }
 
@@ -121,10 +126,20 @@ export function retainedSnapshotVersions(
 }
 
 /** Fingerprint benchmark values and ordered community history; benchmark freshness, change logs, artwork, and collection ordering do not create versions. */
-export function snapshotDataHash({ payload, timeline, communityRankings }: SnapshotData): string {
+export function snapshotDataHash({
+  payload,
+  timeline,
+  communityRankings,
+}: Omit<SnapshotData, "changeHistory">): string {
   const data = {
     models: payload.models.map(
-      ({ logo: _logo, latest_change: _change, benchmark_dates: _dates, ...model }) => model,
+      ({
+        logo: _logo,
+        latest_change: _change,
+        recent_changes: _recent,
+        benchmark_dates: _dates,
+        ...model
+      }) => model,
     ),
     benchmark_observations: payload.benchmark_observations ?? {},
     ...(timeline
@@ -201,6 +216,24 @@ export async function decodeIntelligenceIndex(
   )
     throw new Error("GCS contains an invalid Intelligence Index");
   return unpackTimelineDataset(data);
+}
+
+/** Change history is fetched only when a model's history is opened, so it keeps its own verified artifact. */
+export async function decodeChangeHistory(
+  bytes: Buffer,
+  expectedHash: string,
+): Promise<ModelAtlasVariantChanges[]> {
+  const value: unknown = JSON.parse(
+    (await decodeSnapshotBytes(bytes, expectedHash)).toString("utf8"),
+  );
+  if (
+    !Array.isArray(value) ||
+    !value.every(
+      (variant) => typeof variant?.model_id === "string" && Array.isArray(variant.updates),
+    )
+  )
+    throw new Error("GCS contains an invalid change history");
+  return value;
 }
 
 export function parseSnapshotPayload(bytes: Buffer): ModelAtlasPayload {

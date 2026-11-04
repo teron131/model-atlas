@@ -186,8 +186,8 @@ export type ModelAtlasBenchmarkRankDriver = {
   rank_correlation: number;
 };
 
-export type ModelAtlasScoreChange = {
-  refresh_id: number;
+/** One score's material move in an update; ranks are among models present in both updates, except a new entrant's, which is its rank in the whole field. */
+export type ModelAtlasScoreMove = {
   dimension: ModelAtlasScoreDimension;
   score_before: number | null;
   score_after: number;
@@ -196,8 +196,54 @@ export type ModelAtlasScoreChange = {
   rank_after: number | null;
   confidence_before: number | null;
   confidence_after: number | null;
+};
+
+/**
+ * One input of a model variant's scores that changed in an update.
+ * `result` is a benchmark result in that benchmark's own unit; `task_cost`, `task_time`, and `task_tokens` are a benchmark's per-task USD, seconds, and tokens; `provider_price` is the blended USD per million tokens; `provider_speed` is output tokens per second; `provider_latency` is seconds.
+ * `before` is null for a newly added input and `after` is null for a removed one.
+ */
+export type ModelAtlasInputChange = {
+  kind:
+    | "result"
+    | "task_cost"
+    | "task_time"
+    | "task_tokens"
+    | "provider_price"
+    | "provider_speed"
+    | "provider_latency";
+  key: string;
+  label: string;
+  before: number | null;
+  after: number | null;
+};
+
+/** One update that materially moved a model variant: its headline score move with that score's causes, plus every score it moved and the inputs behind them. */
+export type ModelAtlasScoreChange = ModelAtlasScoreMove & {
+  refresh_id: number;
   causes: ModelAtlasScoreChangeCause[];
   rank_drivers: ModelAtlasBenchmarkRankDriver[];
+  /** "model" for a model new to Atlas, "variant" for a new effort of a known model, null for a continuing variant or an update recorded before entries were tracked. */
+  entry: "model" | "variant" | null;
+  methodology_changed: boolean;
+  /** Every material score move of the update, headline first. */
+  scores: ModelAtlasScoreMove[];
+  /** Empty when none of the variant's own inputs changed, so other models' results moved its relative scores; null for updates recorded before inputs were tracked. */
+  inputs: ModelAtlasInputChange[] | null;
+};
+
+/** An update's headline move, as the leaderboard's strip of recent changes draws it. */
+export type ModelAtlasChangeMark = {
+  refresh_id: number;
+  dimension: ModelAtlasScoreDimension;
+  score_delta: number | null;
+};
+
+/** A model variant's updates in the change-history window, oldest first. */
+export type ModelAtlasVariantChanges = {
+  model_id: string;
+  reasoning_effort: string | null;
+  updates: ModelAtlasScoreChange[];
 };
 
 type ModelFields = {
@@ -219,6 +265,8 @@ type ModelFields = {
   benchmark_dates: Record<string, string> | null;
   confidence: ModelAtlasConfidence;
   latest_change?: ModelAtlasScoreChange | null;
+  /** Headline moves of the variant's most recent updates in the change-history window, oldest first. */
+  recent_changes?: ModelAtlasChangeMark[];
   community_indexes?: Partial<Record<CommunityIndexKey, CommunityIndexPlace>>;
 };
 

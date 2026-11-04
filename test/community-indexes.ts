@@ -580,7 +580,12 @@ const now = new Date("2026-10-19T06:00:00Z");
 const initialPayload = minimalModelAtlasPayload({ fetchedAt: 1, models });
 
 class CheckpointStore extends SnapshotStorage {
-  snapshot: SnapshotData = { payload: initialPayload, timeline: null, communityRankings: [] };
+  snapshot: SnapshotData = {
+    payload: initialPayload,
+    timeline: null,
+    communityRankings: [],
+    changeHistory: [],
+  };
   generation = 1;
   beforePublish: (() => Promise<void>) | null = null;
   manifest: SnapshotManifest = {
@@ -590,6 +595,7 @@ class CheckpointStore extends SnapshotStorage {
     checkpoint_sha256: "0".repeat(64),
     intelligence_index_sha256: null,
     community_rankings_sha256: null,
+    change_history_sha256: null,
     data_sha256: "0".repeat(64),
     previous: [],
   };
@@ -662,6 +668,7 @@ try {
       payload: { ...store.snapshot.payload, fetched_at_epoch_seconds: 2 },
       timeline: null,
       communityRankings: storedRecords(),
+      changeHistory: [],
     };
     store.generation += 1;
   };

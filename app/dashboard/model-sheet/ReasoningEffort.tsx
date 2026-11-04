@@ -11,7 +11,6 @@ import {
   useState,
 } from "react";
 
-import { strongestModelVariants } from "../../../src/model-atlas/stats/model-variants";
 import { GraphToggle } from "../graphs/GraphToggle";
 import { HoverCard, type HoverRow, type HoverState, pointHover } from "../graphs/HoverCard";
 import { linearAxisScale } from "../graphs/plot/axis-scale";
@@ -21,7 +20,7 @@ import { starConnectorSegments } from "../graphs/plot/star-marks";
 import { providerChartColor } from "../shared/provider-theme";
 import { formatResourceRatio } from "../shared/resource-ratio-display";
 import { formatScore } from "../table/format";
-import { type EffortPoint, familyName, type SheetEntry } from "./entries";
+import { type EffortPoint, entryEffort, familyName, type SheetEntry } from "./entries";
 import { type ModelSheetSlot, selectModelSheetEffort } from "./open";
 import {
   LABEL_MARGIN,
@@ -117,7 +116,7 @@ function EffortPlot({
   const activeSlot = comparing ? (preview?.slot ?? null) : null;
   // Each family's placed efforts stay together for its connectors, its name at the curve's end, and its pointer reach.
   const series = curves.map(({ entry, points: curve }) => {
-    const chosen = chosenEffort(entry);
+    const chosen = entryEffort(entry);
     const muted = activeSlot != null && entry.slot !== activeSlot;
     const color = providerChartColor(entry.row.model.provider);
     const anchors = curve.map((point, index) => {
@@ -364,16 +363,9 @@ function effortHoverRows(point: EffortPoint, previous: EffortPoint | undefined):
   return rows;
 }
 
-/** The effort a sheet model shows: its own, or for a collapsed row the variant whose headline scores the row carries. */
-function chosenEffort(entry: SheetEntry): string | null {
-  if (entry.effort != null) return entry.effort;
-  const [strongest] = strongestModelVariants(entry.variants.map((variant) => variant.model));
-  return strongest?.reasoning_effort ?? null;
-}
-
 /** Describe the chosen effort's step up from the effort below it; the lowest effort describes the whole ladder instead. */
 function effortStep({ entry, points }: EffortCurve): string {
-  const index = points.findIndex((point) => point.effort === chosenEffort(entry));
+  const index = points.findIndex((point) => point.effort === entryEffort(entry));
   const [from, to] =
     index > 0 ? [points[index - 1]!, points[index]!] : [points[0]!, points.at(-1)!];
   const { gain, cost } = step(from, to);

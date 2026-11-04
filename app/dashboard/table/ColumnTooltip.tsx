@@ -1,6 +1,6 @@
 /** Tooltip layout for dashboard score explanations and formula breakdowns. */
 
-import type { FocusEvent, MouseEvent } from "react";
+import type { FocusEvent, MouseEvent, ReactNode } from "react";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import type {
@@ -35,7 +35,6 @@ export function ColumnTooltip({
   left,
   onMouseEnter,
   onMouseLeave,
-  role,
   top,
 }: {
   content: ModelAtlasColumnTooltip;
@@ -43,11 +42,8 @@ export function ColumnTooltip({
   left: number;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
-  role: "dialog" | "tooltip";
   top: number;
 }) {
-  const tooltipRef = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState({ left, top });
   const hasRows = (content.rows?.length ?? 0) > 0;
   const hasSections = (content.sections?.length ?? 0) > 0;
   const graphLayout = useMemo(
@@ -63,29 +59,15 @@ export function ColumnTooltip({
     availableWidth,
   );
 
-  useLayoutEffect(() => {
-    const rect = tooltipRef.current?.getBoundingClientRect();
-    if (rect == null) {
-      setPosition({ left, top });
-      return;
-    }
-    const nextPosition = clampTooltipPosition(left, top, rect);
-    setPosition((current) =>
-      current.left === nextPosition.left && current.top === nextPosition.top
-        ? current
-        : nextPosition,
-    );
-  }, [left, top]);
-
   return (
-    <div
-      aria-label={role === "dialog" ? content.title : undefined}
+    <TooltipFrame
       className={`column-tooltip visible${phase === "leaving" ? " leaving" : ""}${graphLayout != null ? " has-graph" : ""}`}
+      left={left}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      ref={tooltipRef}
-      role={role}
-      style={{ ...position, width: tooltipWidth }}
+      role="tooltip"
+      top={top}
+      width={tooltipWidth}
     >
       <div className="column-tooltip-title">{content.title}</div>
       <p className="column-tooltip-body">{content.body}</p>
@@ -126,6 +108,60 @@ export function ColumnTooltip({
           )}
         </>
       )}
+    </TooltipFrame>
+  );
+}
+
+/** A fixed card placed at its anchor, then moved back inside the viewport once its rendered size is known. */
+export function TooltipFrame({
+  ariaLabel,
+  children,
+  className,
+  left,
+  onMouseEnter,
+  onMouseLeave,
+  role,
+  top,
+  width,
+}: {
+  ariaLabel?: string;
+  children: ReactNode;
+  className: string;
+  left: number;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
+  role: "dialog" | "tooltip";
+  top: number;
+  width?: number;
+}) {
+  const frameRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState({ left, top });
+
+  useLayoutEffect(() => {
+    const rect = frameRef.current?.getBoundingClientRect();
+    if (rect == null) {
+      setPosition({ left, top });
+      return;
+    }
+    const nextPosition = clampTooltipPosition(left, top, rect);
+    setPosition((current) =>
+      current.left === nextPosition.left && current.top === nextPosition.top
+        ? current
+        : nextPosition,
+    );
+  }, [left, top]);
+
+  return (
+    <div
+      aria-label={ariaLabel}
+      className={className}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      ref={frameRef}
+      role={role}
+      style={{ ...position, width }}
+    >
+      {children}
     </div>
   );
 }

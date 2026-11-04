@@ -10,7 +10,10 @@ import {
   selectOpenRouterRawModelStats,
   summarizeEndpointPerformance,
 } from "../src/model-atlas/sources/openrouter";
-import { resolveOpenRouterPermaslugCandidates } from "../src/model-atlas/sources/openrouter/stats";
+import {
+  resolveOpenRouterPermaslugCandidates,
+  withDefaultServiceTier,
+} from "../src/model-atlas/sources/openrouter/stats";
 import { SOURCE_URLS } from "../src/model-atlas/sources/registry";
 
 assert.deepEqual(
@@ -99,6 +102,36 @@ assert.deepEqual(endpointWeights, {
   "endpoint-b": 20,
 });
 assert.deepEqual(buildOpenRouterSeriesTokenWeights(null), {});
+const defaultTier = withDefaultServiceTier(
+  {
+    data: [
+      { id: "standard", service_tier: null, stats: { p50_throughput: 77, p50_latency: 3_000 } },
+      { id: "fast", service_tier: "priority", stats: { p50_throughput: 214, p50_latency: 1_346 } },
+      { id: "flex", service_tier: "flex", stats: { p50_throughput: 27, p50_latency: 9_000 } },
+    ],
+  },
+  {
+    data: {
+      providerSummaries: [
+        { endpointId: "standard", effectiveOutputPrice: 20, totalTokens: 90 },
+        { endpointId: "fast", effectiveOutputPrice: 40, totalTokens: 5 },
+        { endpointId: "flex", effectiveOutputPrice: 10, totalTokens: 5 },
+      ],
+    },
+  },
+);
+assert.deepEqual(summarizeEndpointPerformance(defaultTier.endpointStats), {
+  throughput_tokens_per_second_median: 77,
+  latency_seconds_median: 3,
+  e2e_latency_seconds_median: null,
+});
+assert.deepEqual(buildOpenRouterSeriesTokenWeights(defaultTier.pricing), { standard: 90 });
+assert.equal(
+  processOpenRouterModelStats("anthropic/tiered-example", {}, defaultTier.pricing).pricing
+    .weighted_output_price_per_1m,
+  20,
+  "Priority and flex service tiers must not reach speed, latency, or price",
+);
 assert.equal(
   processOpenRouterModelStats(
     "openai/endpoint-weighted-example",

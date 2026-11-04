@@ -13,6 +13,7 @@ import { type File, Storage } from "@google-cloud/storage";
 import { packTimelineDataset } from "../../timeline/schemas";
 import {
   artifactSha256,
+  decodeChangeHistory,
   decodeCommunityRankings,
   decodeIntelligenceIndex,
   decodeSnapshotBytes,
@@ -124,7 +125,7 @@ export class SnapshotStorage {
   }
 
   async restore(manifest: SnapshotVersion, databasePath: string): Promise<SnapshotData> {
-    const [checkpoint, leaderboard, index, rankings] = await Promise.all([
+    const [checkpoint, leaderboard, index, rankings, history] = await Promise.all([
       downloadSnapshotObject(
         this.checkpointBucket.file(snapshotObject(manifest.version, "checkpoint")),
       ),
@@ -139,6 +140,11 @@ export class SnapshotStorage {
             this.publicBucket.file(snapshotObject(manifest.version, "community-rankings")),
           )
         : null,
+      manifest.change_history_sha256
+        ? downloadSnapshotObject(
+            this.publicBucket.file(snapshotObject(manifest.version, "change-history")),
+          )
+        : null,
     ]);
     const data: SnapshotData = {
       payload: await decodeSnapshotPayload(leaderboard, manifest),
@@ -147,6 +153,9 @@ export class SnapshotStorage {
         : null,
       communityRankings: rankings
         ? await decodeCommunityRankings(rankings, manifest.community_rankings_sha256!)
+        : [],
+      changeHistory: history
+        ? await decodeChangeHistory(history, manifest.change_history_sha256!)
         : [],
     };
     if (snapshotDataHash(data) !== manifest.data_sha256)
@@ -178,7 +187,7 @@ export class SnapshotStorage {
     bytes_uploaded: number;
     maintenance_warnings: string[];
   }> {
-    const { payload, timeline, communityRankings } = data;
+    const { payload, timeline, communityRankings, changeHistory } = data;
     if (payload.models.length === 0 || !payload.fetched_at_epoch_seconds) {
       throw new Error("Refusing to publish an empty Model Atlas snapshot");
     }
@@ -191,10 +200,11 @@ export class SnapshotStorage {
         cause: error,
       });
     }
-    const [leaderboard, index, rankings] = await Promise.all([
+    const [leaderboard, index, rankings, history] = await Promise.all([
       compress(leaderboardJson),
       timeline ? compress(JSON.stringify(packTimelineDataset(timeline))) : null,
       communityRankings.length ? compress(JSON.stringify(communityRankings)) : null,
+      changeHistory.length ? compress(JSON.stringify(changeHistory)) : null,
     ]);
     const dataHash = snapshotDataHash(data);
     const version = randomUUID();
@@ -217,6 +227,14 @@ export class SnapshotStorage {
             {
               file: this.publicBucket.file(snapshotObject(version, "community-rankings")),
               bytes: rankings,
+            },
+          ]
+        : []),
+      ...(history
+        ? [
+            {
+              file: this.publicBucket.file(snapshotObject(version, "change-history")),
+              bytes: history,
             },
           ]
         : []),
@@ -250,6 +268,7 @@ export class SnapshotStorage {
         checkpoint_sha256: checkpoint.value.sha256,
         intelligence_index_sha256: index ? artifactSha256(index) : null,
         community_rankings_sha256: rankings ? artifactSha256(rankings) : null,
+        change_history_sha256: history ? artifactSha256(history) : null,
         data_sha256: dataHash,
         previous: retainedSnapshotVersions(previous.manifest, dataHash),
       };
@@ -261,6 +280,7 @@ export class SnapshotStorage {
           leaderboard.length +
           (index?.length ?? 0) +
           (rankings?.length ?? 0) +
+          (history?.length ?? 0) +
           manifestBytes.length,
       };
       await this.commitManifest(manifestBytes, previous.generation);
@@ -317,6 +337,13 @@ export class SnapshotStorage {
               ? [
                   this.publicBucket
                     .file(snapshotObject(entry.version, "community-rankings"))
+                    .setMetadata({ customTime: retiredAt }),
+                ]
+              : []),
+            ...(entry.change_history_sha256
+              ? [
+                  this.publicBucket
+                    .file(snapshotObject(entry.version, "change-history"))
                     .setMetadata({ customTime: retiredAt }),
                 ]
               : []),

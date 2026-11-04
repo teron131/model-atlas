@@ -4,11 +4,12 @@
 
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 
+import type { ModelAtlasColumnTooltips } from "../../src/model-atlas/config/tooltips";
 import type {
-  ModelAtlasColumnTooltip,
-  ModelAtlasColumnTooltips,
-} from "../../src/model-atlas/config/tooltips";
-import type { ModelAtlasPayload } from "../../src/model-atlas/stats/types";
+  ModelAtlasModel,
+  ModelAtlasPayload,
+  ModelAtlasScoreChange,
+} from "../../src/model-atlas/stats/types";
 import { LeaderboardCapture } from "./capture/LeaderboardCapture";
 import { focusModelSearch } from "./GlobalModelControls";
 import { ResearchRegion } from "./ResearchRegions";
@@ -33,7 +34,8 @@ import {
 } from "./table/models";
 import { ModelTable } from "./table/ModelTable";
 import type { ScoreChangeHandler } from "./table/Rows";
-import { scoreChangeTooltip, tableColumnTooltip } from "./table/tooltips";
+import { ScoreChangeDialog } from "./table/ScoreChange";
+import { tableColumnTooltip } from "./table/tooltips";
 import type { DashboardUrlPatch } from "./url-state";
 import { updateDashboardUrl, useUrlState } from "./use-url-state";
 
@@ -41,7 +43,10 @@ const emptyColumnTooltips: ModelAtlasColumnTooltips = {};
 const TOOLTIP_FADE_OUT_MS = 1_000;
 
 type DashboardTooltipState = TooltipState &
-  ({ kind: "column"; key: TableColumnKey } | { kind: "change"; content: ModelAtlasColumnTooltip });
+  (
+    | { kind: "column"; key: TableColumnKey }
+    | { kind: "change"; model: ModelAtlasModel; change: ModelAtlasScoreChange }
+  );
 
 /** Isolate leaderboard interactions so slider and sort updates do not re-render dashboard graphs. */
 export function DashboardLeaderboard({
@@ -147,16 +152,14 @@ export function DashboardLeaderboard({
 
   const rowKind = deferredShowVariants ? "variants" : "models";
   const activeTooltipContent =
-    tooltip == null
+    tooltip?.kind !== "column"
       ? undefined
-      : tooltip.kind === "change"
-        ? tooltip.content
-        : tableColumnTooltip(tooltip.key, columnTooltips, {
-            models: visibleRows.map((row) => row.model),
-            scoring: payload?.metadata.scoring,
-            versions: payload?.metadata.benchmark_versions,
-            unit: rowKind,
-          });
+      : tableColumnTooltip(tooltip.key, columnTooltips, {
+          models: visibleRows.map((row) => row.model),
+          scoring: payload?.metadata.scoring,
+          versions: payload?.metadata.benchmark_versions,
+          unit: rowKind,
+        });
   const columnSearchResultLabel = hasSearchQuery(deferredColumnQuery)
     ? `${columnSearchMatchCount} ${columnSearchMatchCount === 1 ? "column" : "columns"}`
     : null;
@@ -261,7 +264,8 @@ export function DashboardLeaderboard({
       clearTooltipFadeTimeout();
       setTooltip({
         kind: "change",
-        content: scoreChangeTooltip(model),
+        model,
+        change: model.latest_change,
         phase: "visible",
         ...tooltipPositionFromElement(event.currentTarget),
       });
@@ -350,14 +354,21 @@ export function DashboardLeaderboard({
           onTooltipEnd={clearTooltip}
         />
       </ResearchRegion>
-      {tooltip != null && activeTooltipContent != null && (
+      {tooltip?.kind === "change" && (
+        <ScoreChangeDialog
+          model={tooltip.model}
+          change={tooltip.change}
+          left={tooltip.left}
+          top={tooltip.top}
+        />
+      )}
+      {tooltip?.kind === "column" && activeTooltipContent != null && (
         <ColumnTooltip
           content={activeTooltipContent}
           phase={tooltip.phase}
           left={tooltip.left}
           onMouseEnter={cancelTooltipFade}
           onMouseLeave={clearTooltip}
-          role={tooltip.kind === "change" ? "dialog" : "tooltip"}
           top={tooltip.top}
         />
       )}
