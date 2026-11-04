@@ -1,4 +1,4 @@
-/** Prove fixed capability publication survives persistence, new configurations, corrections, and portfolio turnover. */
+/** Prove capability publication survives persistence, places new configurations, follows corrected results, and keeps its anchors and mappings through portfolio turnover. */
 
 import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
@@ -293,11 +293,23 @@ const corrected = advanceCapabilityState(
   "2026-09-15T04:00:00.000Z",
   {},
 );
-assert.deepEqual(corrected.positions, extended.positions);
+const futureId = capabilityModelId(future);
+assert.ok(
+  corrected.positions[futureId]!.coordinates.intelligence! >
+    extended.positions[futureId]!.coordinates.intelligence!,
+  "A corrected result moves its current model's position",
+);
+for (const [id, position] of Object.entries(extended.positions))
+  if (id !== futureId) assert.deepEqual(corrected.positions[id], position);
 
+// The upper anchor's own result moves too, so only the anchor rule keeps its position.
 const retired = advanceCapabilityState(
   corrected,
-  models.map((m) => ({ ...m, benchmarks: null })),
+  models.map((m, i) => ({
+    ...m,
+    benchmarks: null,
+    ...(i === 7 ? { intelligence: { intelligence_index: 70 } } : {}),
+  })),
   "2026-09-15T05:00:00.000Z",
   {},
 );
@@ -305,7 +317,12 @@ const task = retired.dataset.benchmarks.find((b) => b.key === "atlas_benchmark_m
 assert.ok(task);
 assert.ok(!retired.dataset.activeBenchmarkIds!.includes(task.id));
 assert.ok(retired.dataset.observations.some((o) => o.benchmarkId === task.id));
-assert.deepEqual(retired.positions, corrected.positions);
+for (const { modelId } of retired.anchors.frozenReferences!)
+  assert.deepEqual(
+    retired.positions[modelId],
+    corrected.positions[modelId],
+    "Anchors keep the positions that define the units",
+  );
 const reweighted = prepareTimelineRelease(
   {
     ...retired.dataset,
@@ -325,7 +342,8 @@ assert.equal(
   timeline.prepared!.calibrations.intelligence.estimates.find(
     (e) => e.modelId === capabilityModelId(models[0]!),
   )!.value,
-  models[0]!.component_scores.intelligence_score,
+  retired.positions[capabilityModelId(models[0]!)]!.coordinates.intelligence,
+  "The Timeline publishes the saved positions",
 );
 
 const revisedKeys = [
@@ -407,7 +425,6 @@ const currentVersions = advanceCapabilityState(
   "2026-10-12T08:00:00.000Z",
   revisedVersions,
 );
-assert.deepEqual(currentVersions.positions, initial.positions);
 assert.deepEqual(currentVersions.anchors, initial.anchors);
 assert.deepEqual(currentVersions.dataset.reference, initial.dataset.reference);
 assert.deepEqual(currentVersions.dataset.rootBenchmarkIds, initial.dataset.rootBenchmarkIds);
@@ -474,5 +491,5 @@ assert.ok(
 );
 db.close();
 console.log(
-  "Capability publication retains coordinates, mappings, and archived evidence while placing new configurations.",
+  "Capability publication keeps anchors, mappings, and archived evidence while current configurations follow their results.",
 );

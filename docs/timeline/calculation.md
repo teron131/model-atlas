@@ -4,7 +4,7 @@ The Intelligence Index connects benchmark generations to a saved scale, combines
 
 ## Freeze the Initial Reference
 
-Relative scores can move as models and benchmarks change. The Intelligence Index therefore establishes its reference once, using saved Model Atlas scores with at least 60% evidence support. Later leaderboard updates do not replace these reference values; older and future models connect through benchmark evidence instead. Less-supported starting scores retain their published positions but do not define the reference. Benchmark identities describe measurements and the versions their sources publish; refresh timestamps, base weights, and resource bookkeeping do not create new identities. Retired benchmarks leave the active scoring portfolio while their evidence remains available for calibration.
+Relative scores can move as models and benchmarks change. The Intelligence Index therefore establishes its reference once, using saved Model Atlas scores with at least 60% evidence support. Later leaderboard updates do not replace these reference values, which fit the benchmark conversions; older and future models connect through those conversions instead. A reference model's own score still comes from its benchmark results, like any other model's, so a model that is still being measured is not held at its starting score; its reference value stands in only while its own results cannot place it. Less-supported starting scores do not define the reference. Benchmark identities describe measurements and the versions their sources publish; refresh timestamps, base weights, and resource bookkeeping do not create new identities. Retired benchmarks leave the active scoring portfolio while their evidence remains available for calibration.
 
 ![Solid points in the initial snapshot define the reference; points at 50% opacity have insufficient coverage, even when their scores fall outside the saved range. Older and future models connect through benchmark evidence without resetting the ruler. Positions are schematic.](../assets/timeline/timeline-reference-extension.svg)
 
@@ -64,21 +64,21 @@ $$
 q_{m,d}=\frac{1.5\sum_b \omega_{b,d}q_{m,b,d}+\sum_k \omega_{k,d}n_{m,k,d}q_{m,k,d}}{1.5\sum_b \omega_{b,d}+\sum_k \omega_{k,d}n_{m,k,d}}.
 $$
 
-Each benchmark or index series contributes only its latest usable observed version. Once a Model Atlas benchmark is observed under a new version, its earlier version stops entering future fits, so new results never pass through the old conversion; models already placed keep their published positions. An external series keeps an earlier version until its replacement has both an observed result and a saved conversion. Overlap deductions reduce represented weight while keeping the published index value intact. ECI uses fixed breadth 8 rather than a model-specific fitted count.
+Each benchmark or index series contributes only its latest usable observed version. Once a Model Atlas benchmark is observed under a new version, its earlier version stops entering future fits, so new results never pass through the old conversion. An external series keeps an earlier version until its replacement has both an observed result and a saved conversion. Overlap deductions reduce represented weight while keeping the published index value intact. ECI uses fixed breadth 8 rather than a model-specific fitted count.
 
 Adding unobserved benchmarks to the retained portfolio does not alter the relative influence of evidence already present. Benchmark coverage remains a diagnostic and support measure; it does not add a separate blend between benchmarks and indexes.
 
-With no usable individual benchmarks, indexes supply the entire estimate. Without a usable index, at least three distinct mapped benchmark series are required; otherwise the model remains unplaced. Imputed results do not satisfy these requirements. Existing published positions remain fixed.
+With no usable individual benchmarks, indexes supply the entire estimate. Without a usable index, at least three distinct mapped benchmark series are required; otherwise the model remains unplaced. Imputed results do not satisfy these requirements. A model on the leaderboard is estimated again from its latest results at every refresh; it keeps its previous score when those results no longer place it, and a model that leaves the leaderboard keeps its last score.
 
 ## Apply the Dated-Successor Assumption
 
-Older model releases often have sparse or uneven benchmark records, which can make a later version appear weaker simply because different evidence is available. To limit these apparent regressions when reconstructing historical scores, a dated successor is kept at least level with its highest-scoring predecessor in the same model and reasoning-effort series. Supported reference scores remain unchanged.
+Older model releases often have sparse or uneven benchmark records, which can make a later version appear weaker simply because different evidence is available. To limit these apparent regressions when reconstructing historical scores, a dated successor is kept at least level with its highest-scoring predecessor in the same model and reasoning-effort series. Supported reference models are not adjusted.
 
 ![The middle release has an evidence-based estimate of 116, below its predecessor's 120, so the assumption raises it to 120. The later estimate of 128 needs no adjustment. These are illustrative releases of the same model at the same reasoning effort.](../assets/timeline/timeline-successor.svg)
 
 This is a historical reconstruction assumption, not evidence that every newer release improves. The rule applies to explicitly dated versions of the same canonical model family, provider and reasoning effort; it has no age cutoff. It can conceal a real decline, but never forces a positive improvement: a successor can tie its predecessor.
 
-Undated names do not establish succession, and releases within the same month are not ordered. Missing estimates stay unplaced and supported reference values remain fixed. Any adjustment is recorded separately from the evidence-based estimate and included in its diagnostic error budget.
+Undated names do not establish succession, and releases within the same month are not ordered. Missing estimates stay unplaced, and supported reference models are not adjusted. Any adjustment is recorded separately from the evidence-based estimate and included in its diagnostic error budget.
 
 ## Set Index Units with Fixed Anchors
 
