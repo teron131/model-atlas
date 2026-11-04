@@ -62,8 +62,8 @@ const costPresetKeys = new Set<TableColumnKey>([
   "totalTokenRatio",
   "blend",
   "inputPrice",
-  "outputPrice",
   "cacheReadPrice",
+  "outputPrice",
   ...dashboardMetricColumns
     .filter((column) => column.group === "tasks" && column.metric === "cost")
     .map((column) => column.key),

@@ -19,7 +19,7 @@ import {
   tableColumnRuns,
   type TableRow,
 } from "./models";
-import { EmptyStateRow, LoadingRows, ModelRow, type ScoreChangeHandler } from "./Rows";
+import { EmptyStateRow, LoadingRows, ModelRow } from "./Rows";
 import { TableScrollRail } from "./TableScrollRail";
 import { useDetailedRowRange, useTableViewport } from "./viewport";
 
@@ -39,7 +39,6 @@ type ModelTableProps = {
   onSort: (key: SortKey) => void;
   onTooltip: HeaderTooltipHandler<TableColumnKey>;
   onTooltipEnd: () => void;
-  onScoreChange: ScoreChangeHandler;
 };
 
 export const ModelTable = memo(function ModelTable({
@@ -53,7 +52,6 @@ export const ModelTable = memo(function ModelTable({
   onSort,
   onTooltip,
   onTooltipEnd,
-  onScoreChange,
 }: ModelTableProps) {
   // On phones the four scores ride under each name rather than in columns, while still sorting the table.
   const scoreStrip = useMediaQuery(SCORE_STRIP_MEDIA_QUERY);
@@ -179,7 +177,6 @@ export const ModelTable = memo(function ModelTable({
                       (pinnedModel != null &&
                         rowShowsModelSheet(rowData.model, pinnedModel, pinnedEffort))
                     }
-                    onScoreChange={onScoreChange}
                   />
                 ))}
                 {visibleRows.length === 0 && (
@@ -239,7 +236,6 @@ const TableHeaderRow = memo(function TableHeaderRow({
   | "isSorting"
   | "visibleColumnKeys"
   | "fitColumnContent"
-  | "onScoreChange"
 > & {
   visibleColumnKeySet: ReadonlySet<TableColumnKey>;
   ruledColumnKeySet: ReadonlySet<TableColumnKey>;

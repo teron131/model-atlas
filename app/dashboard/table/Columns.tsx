@@ -7,7 +7,7 @@ import type {
   ModelAtlasScoreDimension,
 } from "../../../src/model-atlas/stats/types";
 import { SCORE_ICONS } from "../shared/DashboardMarks";
-import { type SortKey, speedMetricColumns } from "./models";
+import { costMetricColumns, type SortKey, speedMetricColumns } from "./models";
 
 type SortableColumnDefinition = {
   key: SortKey;
@@ -76,7 +76,7 @@ export const staticSortableColumns: SortableColumnDefinition[] = [
     label: better == null ? name : `${name} ↓`,
     searchText,
   })),
-  { key: "blend", label: "Blend", searchText: "Blend" },
+  ...costMetricColumns.map(({ key, label }) => ({ key, label, searchText: label })),
   ...speedMetricColumns.map(({ key, label }) => ({ key, label, searchText: label })),
   { key: "context", label: "Context", searchText: "Context" },
 ];

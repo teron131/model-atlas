@@ -46,15 +46,17 @@ import {
   type TableRow,
 } from "../table/models";
 import { useUrlState } from "../use-url-state";
-import { ChangeHistory } from "./ChangeHistory";
+import { ChangeHistory, MODEL_SHEET_CHANGES_ID } from "./ChangeHistory";
 import { CompareSearch } from "./CompareSearch";
 import { entryEffort, familyName, type SheetEntry, useSheetEntries } from "./entries";
 import { FrontierInset } from "./FrontierInset";
 import {
   closeModelSheet,
   dismissModelSheet,
+  MODEL_SHEET_CHANGES_REQUESTED,
   modelSheetOpenedSince,
   pinModelSheet,
+  takeModelSheetChangesRequest,
   unpinModelSheet,
 } from "./open";
 import { ReasoningEffort } from "./ReasoningEffort";
@@ -81,8 +83,8 @@ const PRICES: {
 }[] = [
   { label: "Blended", value: (model) => model.cost?.blended_price, range: blendRange },
   { label: "Input", value: (model) => model.cost?.weighted_input },
-  { label: "Output", value: (model) => model.cost?.weighted_output },
   { label: "Cache read", value: (model) => model.cost?.weighted_cache_read },
+  { label: "Output", value: (model) => model.cost?.weighted_output },
 ];
 
 /**
@@ -113,6 +115,30 @@ export function ModelSheet({ payload }: { payload: ModelAtlasPayload | null }) {
     returnFocusRef.current =
       active instanceof HTMLElement && active !== document.body ? active : null;
     headingRef.current?.focus({ preventScroll: true });
+  }, [target, found]);
+
+  // A Change cell's jump follows the scroll to the top above.
+  useLayoutEffect(() => {
+    if (!found) return;
+    let release = () => {};
+    let frame = 0;
+    const jump = () => {
+      release();
+      if (sheetRef.current) release = holdChangesInView(sheetRef.current);
+    };
+    if (takeModelSheetChangesRequest()) jump();
+    // A request for the model already shown changes no URL, so it arrives as an event; waiting a frame lets a request that switches models reach this effect first.
+    const request = () => {
+      frame = requestAnimationFrame(() => {
+        if (takeModelSheetChangesRequest()) jump();
+      });
+    };
+    window.addEventListener(MODEL_SHEET_CHANGES_REQUESTED, request);
+    return () => {
+      window.removeEventListener(MODEL_SHEET_CHANGES_REQUESTED, request);
+      cancelAnimationFrame(frame);
+      release();
+    };
   }, [target, found]);
 
   // Closing by button, Escape, or Back unmounts the sheet; focus then returns to its opener.
@@ -745,6 +771,42 @@ function benchmarkResult(
     // A result reported as an amount draws the table's bar from the column median rather than a score track.
     ratio: isDrawableRatio(ratio) ? ratio : null,
   };
+}
+
+// The body's top padding, so a section jumped to sits below the pinned identity where the first section does.
+const SECTION_CLEARANCE_PX = 18;
+
+// Input by which the reader takes over the sheet's scrolling from a jump.
+const READER_INPUTS = ["wheel", "touchstart", "pointerdown", "keydown"] as const;
+
+/**
+ * Bring the Changes heading just below the pinned identity, as a link to a page heading would, and keep it there until the reader takes over; returns the hold's release.
+ * A browser holds a page's linked heading the same way while the page settles: here the sheet's plots measure themselves after it opens, which moves the heading.
+ */
+function holdChangesInView(sheet: HTMLElement): () => void {
+  const heading = sheet.querySelector(`#${MODEL_SHEET_CHANGES_ID}`);
+  const head = sheet.querySelector("header");
+  const body = heading?.closest(`.${styles.body}`);
+  // A comparison has no Changes section.
+  if (heading == null || head == null || body == null) return () => {};
+  const place = () =>
+    sheet.scrollTo({
+      top:
+        sheet.scrollTop +
+        heading.getBoundingClientRect().top -
+        sheet.getBoundingClientRect().top -
+        head.offsetHeight -
+        SECTION_CLEARANCE_PX,
+    });
+  const hold = new ResizeObserver(place);
+  const release = () => {
+    hold.disconnect();
+    for (const type of READER_INPUTS) sheet.removeEventListener(type, release);
+  };
+  place();
+  hold.observe(body);
+  for (const type of READER_INPUTS) sheet.addEventListener(type, release, { passive: true });
+  return release;
 }
 
 function blendRange(model: ModelAtlasModel): string {

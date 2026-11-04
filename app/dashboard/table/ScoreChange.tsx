@@ -1,4 +1,4 @@
-/** One update of a model variant, as the leaderboard's change card and the model sheet's history show it: the scores it moved and the variant's own inputs that changed. */
+/** One update of a model variant, as the leaderboard's change cell and the model sheet's history show it: the scores it moved and the variant's own inputs that changed. */
 
 import type { CSSProperties } from "react";
 
@@ -8,10 +8,8 @@ import type {
   ModelAtlasScoreChange,
   ModelAtlasScoreMove,
 } from "../../../src/model-atlas/stats/types";
-import { modelName } from "../shared/model-display";
 import { providerBrandColor } from "../shared/provider-theme";
 import { scoreColumnsByDimension } from "./Columns";
-import { TooltipFrame } from "./ColumnTooltip";
 import { formatCompactNumber, formatCost, formatDashboardMetric, formatScore } from "./format";
 import { benchmarkMetricColumns } from "./models";
 
@@ -94,41 +92,15 @@ export function changeEntry(model: ModelAtlasModel, change: ModelAtlasScoreChang
   return changeScores(change).every(({ score_before }) => score_before == null) ? "Added" : null;
 }
 
-export function ScoreChangeDialog({
-  model,
-  change,
-  left,
-  top,
-}: {
-  model: ModelAtlasModel;
-  change: ModelAtlasScoreChange;
-  left: number;
-  top: number;
-}) {
-  return (
-    <TooltipFrame
-      ariaLabel={`${modelName(model)}: latest change`}
-      className="column-tooltip visible score-change-card"
-      left={left}
-      role="dialog"
-      top={top}
-    >
-      <div className="column-tooltip-title">{modelName(model)}</div>
-      <p className="column-tooltip-body">{scoreChangeSummary(model, change)}</p>
-      <ScoreChangeDetails model={model} change={change} />
-    </TooltipFrame>
-  );
-}
-
 /** `tracks` draws each move on its 0–100 track; a view that already plots the scores over time leaves them out. */
 export function ScoreChangeDetails({
   model,
   change,
-  tracks = true,
+  tracks,
 }: {
   model: ModelAtlasModel;
   change: ModelAtlasScoreChange;
-  tracks?: boolean;
+  tracks: boolean;
 }) {
   return (
     <div

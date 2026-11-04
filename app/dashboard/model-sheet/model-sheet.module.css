@@ -314,7 +314,7 @@
 
 .body {
   display: grid;
-  gap: 26px;
+  gap: 44px;
   padding: 18px var(--sheet-pad) calc(var(--sheet-pad) + 6px);
 }
 
@@ -802,6 +802,10 @@
 
 .trailRow {
   display: contents;
+}
+
+.section[aria-busy="true"] :is(.trails, .stepper) {
+  visibility: hidden;
 }
 
 .trailLabel {

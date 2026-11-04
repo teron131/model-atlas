@@ -420,14 +420,14 @@ export function columnTooltipsForActiveComponents(
     },
     blend: {
       title: "Blended price ↓",
-      body: "The price of a million tokens of agent work, in USD: mostly cache reads of context already sent, plus new input and output. The value is the middle of a range from long agent sessions to short agent tasks.",
+      body: "Price of a million tokens of agent work, mostly cache reads of context already sent. The value is the middle of a range from long agent sessions to short agent tasks.",
       rows: [
         [
           "Source",
-          "OpenRouter listed route prices; catalog or Artificial Analysis prices where no route served tokens",
+          "OpenRouter listed prices; catalog or Artificial Analysis prices where no route served tokens",
         ],
-        ["Middle mix", "95.35% cache read + 3.75% new input + 0.9% output"],
-        ["Range", "2.5–5% new input and 0.3–1.5% output; the rest cache reads"],
+        ["Middle mix", "95.35% cache read, 3.75% new input, 0.9% output"],
+        ["Range", "2.5–5% new input and 0.3–1.5% output, the rest cache reads"],
         ["New input", "cache-write price where listed, otherwise input price"],
         ["Unlisted cache read", "a tenth of the input price"],
         ["Provider weighting", "estimated OpenRouter token share"],
