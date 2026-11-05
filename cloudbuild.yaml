@@ -1,0 +1,18 @@
+# Builds the publisher image with its own BuildKit builder because Cloud Build's default Docker builder cannot write a registry layer cache; with that cache, a release on any build machine rebuilds only its source and test layers.
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    entrypoint: bash
+    # The cache has its own package because the repository's cleanup keeps only each package's newest version, which must stay the deployed image.
+    # Without --provenance=false, buildx pushes an index with an attestation instead of the single image manifest the job and writer deploy.
+    args:
+      - -c
+      - >-
+        docker buildx create --driver=docker-container --use
+        && docker buildx build
+        --cache-from=type=registry,ref=${_IMAGE}/buildcache
+        --cache-to=type=registry,ref=${_IMAGE}/buildcache,mode=max
+        --tag=${_IMAGE}:${_TAG}
+        --provenance=false
+        --push
+        .

@@ -10,6 +10,7 @@ on:
       - .github/workflows/deploy-refresh-job.yaml
       - .dockerignore
       - .gcloudignore
+      - cloudbuild.yaml
       - Dockerfile
       - package.json
       - pnpm-lock.yaml
@@ -55,16 +56,24 @@ jobs:
         uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3
 
       - name: Build publisher image
-        run: gcloud builds submit --quiet --project="$PROJECT_ID" --tag="${REGION}-docker.pkg.dev/${PROJECT_ID}/cloud-run-source-deploy/${JOB_NAME}:$GITHUB_SHA" .
+        run: gcloud builds submit --quiet --project="$PROJECT_ID" --config=cloudbuild.yaml --substitutions="_IMAGE=${REGION}-docker.pkg.dev/${PROJECT_ID}/cloud-run-source-deploy/${JOB_NAME},_TAG=$GITHUB_SHA" .
 
       - name: Deploy publisher image
         run: gcloud run jobs update "$JOB_NAME" --quiet --project="$PROJECT_ID" --region="$REGION" --image="${REGION}-docker.pkg.dev/${PROJECT_ID}/cloud-run-source-deploy/${JOB_NAME}:$GITHUB_SHA" --memory=2Gi --task-timeout=1200s --update-env-vars="MODEL_ATLAS_SNAPSHOT_BUCKET=${PROJECT_ID}-model-atlas-public,MODEL_ATLAS_CHECKPOINT_BUCKET=${PROJECT_ID}-model-atlas-private"
 
       - name: Refresh production snapshot
-        run: gcloud run jobs execute "$JOB_NAME" --quiet --project="$PROJECT_ID" --region="$REGION" --wait
+        run: |
+          echo "REFRESH_STARTED_AT=$(date +%s)" >> "$GITHUB_ENV"
+          gcloud run jobs execute "$JOB_NAME" --quiet --project="$PROJECT_ID" --region="$REGION" --wait
 
+      # The site must serve the snapshot this run published; its API holds the snapshot manifest for 30 seconds, so a fresh publish can take that long to appear.
       - name: Verify public API
-        run: curl --fail --silent --show-error "https://llmstats.vercel.app/api/llm-stats?view=all&verify=$GITHUB_SHA" | jq --exit-status '.fetched_at_epoch_seconds > 0 and (.models | length > 0)'
+        run: |
+          for attempt in 1 2 3 4 5 6; do
+            curl --fail --silent --show-error "https://llmstats.vercel.app/api/llm-stats?view=all&verify=${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${attempt}" | jq --exit-status --argjson since "$REFRESH_STARTED_AT" '.fetched_at_epoch_seconds >= $since and (.models | length > 0)' && exit 0
+            sleep 10
+          done
+          exit 1
 
       - name: Deploy community ranking writer
         run: gcloud run deploy model-atlas-community --quiet --project="$PROJECT_ID" --region="$REGION" --image="${REGION}-docker.pkg.dev/${PROJECT_ID}/cloud-run-source-deploy/${JOB_NAME}:$GITHUB_SHA" --command=pnpm --args=run,community:serve --service-account="model-atlas-refresh@${PROJECT_ID}.iam.gserviceaccount.com" --memory=2Gi --cpu=1 --concurrency=1 --min-instances=0 --max-instances=1 --timeout=300s --allow-unauthenticated --set-env-vars="MODEL_ATLAS_SNAPSHOT_BUCKET=${PROJECT_ID}-model-atlas-public,MODEL_ATLAS_CHECKPOINT_BUCKET=${PROJECT_ID}-model-atlas-private" --set-secrets="MODEL_ATLAS_COMMUNITY_SUBMIT_TOKEN=model-atlas-community-submit-token:latest"
