@@ -2,7 +2,16 @@
 
 /** The overview retains the full time range while pointer capture and keyboard controls edit the chart window. */
 
-import { ChevronLeft, ChevronRight, Minus, Play, Plus, RotateCcw, Square } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Minus,
+  Pause,
+  Play,
+  Plus,
+  RotateCcw,
+  Square,
+} from "lucide-react";
 import { type PointerEvent, useId, useMemo, useRef } from "react";
 
 import { providerChartColor } from "../../shared/provider-theme";
@@ -21,8 +30,7 @@ export function TimelineNavigator({
   onChange,
   preset,
   onPreset,
-  replayAt = null,
-  onReplay,
+  replay,
 }: {
   preset: string;
   onPreset: (value: "all" | "year") => void;
@@ -30,10 +38,16 @@ export function TimelineNavigator({
   bounds: [number, number];
   range: [number, number];
   onChange: (range: [number, number]) => void;
-  /** How far a running replay has reached, on the same normalized scale as `range`; `null` while idle. */
-  replayAt?: number | null;
-  /** Start or stop the frontier replay; absent where the view has no record frontier to replay. */
-  onReplay?: () => void;
+  /** The frontier replay's transport; absent where the view has no record frontier to replay. */
+  replay?: {
+    /** How far the replay has reached, on the same normalized scale as `range`; `null` while idle. */
+    at: number | null;
+    paused: boolean;
+    /** Start the replay, or resume it when paused. */
+    onPlay: () => void;
+    onPause: () => void;
+    onStop: () => void;
+  };
 }) {
   const drag = useRef<{ x: number; width: number; range: [number, number]; mode: string } | null>(
     null,
@@ -52,26 +66,71 @@ export function TimelineNavigator({
         ? [Math.max(0, Math.min(range[1] - minimum, value)), range[1]]
         : [range[0], Math.min(1, Math.max(range[0] + minimum, value))],
     );
-  const replayLabel = replayAt == null ? "Replay the frontier's rise" : "Stop replay";
+  const playing = replay != null && replay.at != null && !replay.paused;
+  const playLabel = playing
+    ? "Pause replay"
+    : replay?.paused
+      ? "Resume replay"
+      : "Replay the frontier's rise";
   const date = (value: number) =>
     new Date(bounds[0] + value * (bounds[1] - bounds[0])).toISOString().slice(0, 10);
-  const low = Math.min(...points.map((p) => p.score));
-  const high = Math.max(...points.map((p) => p.score));
-  const overviewX = (point: TimelinePoint) =>
-    8 + ((Date.parse(point.releaseDate) - bounds[0]) / (bounds[1] - bounds[0])) * 984;
-  const overviewY = (point: TimelinePoint) =>
-    56 - ((point.score - low) / Math.max(1, high - low)) * 48;
   // The overview carries the chart's frontier as a small horizon, so the window frames a stretch of it.
+  // It is drawn once per population, so a replay moving the window redraws only the window.
   const horizonId = useId();
-  const records = useMemo(() => coverageFrontier(points, RECORD_MINIMUM_SUPPORT), [points]);
-  const horizon = records.map((point) => ({
-    x: overviewX(point),
-    y: overviewY(point),
-  }));
-  const horizonPath =
-    horizon.length === 0
-      ? ""
-      : `${horizon.map(({ x, y }, index) => `${index ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`).join("")}L992,${horizon.at(-1)!.y.toFixed(1)}`;
+  const [from, to] = bounds;
+  const overview = useMemo(() => {
+    const low = Math.min(...points.map((p) => p.score));
+    const high = Math.max(...points.map((p) => p.score));
+    const overviewX = (point: TimelinePoint) =>
+      8 + ((Date.parse(point.releaseDate) - from) / (to - from)) * 984;
+    const overviewY = (point: TimelinePoint) =>
+      56 - ((point.score - low) / Math.max(1, high - low)) * 48;
+    const horizon = coverageFrontier(points, RECORD_MINIMUM_SUPPORT).map((point) => ({
+      x: overviewX(point),
+      y: overviewY(point),
+    }));
+    const horizonPath =
+      horizon.length === 0
+        ? ""
+        : `${horizon.map(({ x, y }, index) => `${index ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`).join("")}L992,${horizon.at(-1)!.y.toFixed(1)}`;
+    return (
+      <svg viewBox="0 0 1000 64" preserveAspectRatio="none" aria-hidden="true">
+        <defs>
+          <linearGradient id={`${horizonId}-rim`} x1="0" y1="0" x2="1" y2="0">
+            <HorizonLightStops />
+          </linearGradient>
+          <linearGradient id={`${horizonId}-land`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#8f6bff" stopOpacity="0.22" />
+            <stop offset="1" stopColor="#8f6bff" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {horizon.length > 0 ? (
+          <>
+            <path
+              d={`${horizonPath}L992,64L${horizon[0]!.x.toFixed(1)},64Z`}
+              fill={`url(#${horizonId}-land)`}
+            />
+            <path
+              className={styles.navigatorRim}
+              d={horizonPath}
+              stroke={`url(#${horizonId}-rim)`}
+              vectorEffect="non-scaling-stroke"
+            />
+          </>
+        ) : null}
+        {points.map((p) => (
+          <circle
+            key={p.id}
+            cx={overviewX(p)}
+            cy={overviewY(p)}
+            r="2"
+            fill={providerChartColor(p.provider)}
+            opacity={(0.35 + (p.coverage ?? 0) * 0.65) * 0.75}
+          />
+        ))}
+      </svg>
+    );
+  }, [points, from, to, horizonId]);
 
   /** Measure drag deltas in the overview's full range, even after the pointer leaves a handle. */
   function begin(event: PointerEvent<HTMLDivElement>) {
@@ -115,10 +174,24 @@ export function TimelineNavigator({
       </div>
       <div className={styles.timeTransport}>
         <div>
-          {onReplay == null ? null : (
-            <button aria-label={replayLabel} title={replayLabel} onClick={onReplay}>
-              {replayAt == null ? <Play size={15} /> : <Square size={13} />}
-            </button>
+          {replay == null ? null : (
+            <>
+              <button
+                aria-label={playLabel}
+                title={playLabel}
+                onClick={playing ? replay.onPause : replay.onPlay}
+              >
+                {playing ? <Pause size={15} /> : <Play size={15} />}
+              </button>
+              <button
+                aria-label="Stop replay"
+                title="Stop replay"
+                disabled={replay.at == null}
+                onClick={replay.onStop}
+              >
+                <Square size={13} />
+              </button>
+            </>
           )}
           <button
             aria-label="Pan earlier"
@@ -137,7 +210,7 @@ export function TimelineNavigator({
             <ChevronRight size={16} />
           </button>
           <span>
-            {date(range[0])} — {date(replayAt ?? range[1])}
+            {date(range[0])} — {date(replay?.at ?? range[1])}
           </span>
         </div>
         <div>
@@ -177,41 +250,7 @@ export function TimelineNavigator({
         </div>
       </div>
       <div className={styles.navigator} aria-label="Timeline overview">
-        <svg viewBox="0 0 1000 64" preserveAspectRatio="none" aria-hidden="true">
-          <defs>
-            <linearGradient id={`${horizonId}-rim`} x1="0" y1="0" x2="1" y2="0">
-              <HorizonLightStops />
-            </linearGradient>
-            <linearGradient id={`${horizonId}-land`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stopColor="#8f6bff" stopOpacity="0.22" />
-              <stop offset="1" stopColor="#8f6bff" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          {horizon.length > 0 ? (
-            <>
-              <path
-                d={`${horizonPath}L992,64L${horizon[0]!.x.toFixed(1)},64Z`}
-                fill={`url(#${horizonId}-land)`}
-              />
-              <path
-                className={styles.navigatorRim}
-                d={horizonPath}
-                stroke={`url(#${horizonId}-rim)`}
-                vectorEffect="non-scaling-stroke"
-              />
-            </>
-          ) : null}
-          {points.map((p) => (
-            <circle
-              key={p.id}
-              cx={overviewX(p)}
-              cy={overviewY(p)}
-              r="2"
-              fill={providerChartColor(p.provider)}
-              opacity={(0.35 + (p.coverage ?? 0) * 0.65) * 0.75}
-            />
-          ))}
-        </svg>
+        {overview}
         <div className={styles.rangeShade} style={{ left: 0, width: `${range[0] * 100}%` }} />
         <div className={styles.rangeShade} style={{ left: `${range[1] * 100}%`, right: 0 }} />
         <div

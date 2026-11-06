@@ -1,6 +1,6 @@
 /** Searchable organization selection follows the benchmark picker while keeping historical filters local to Timeline. */
 
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 
 import { providerDisplayName, providerLogo } from "../../shared/provider-theme";
 import { useDismissibleDetails } from "../../shared/use-dismissible-details";
@@ -10,7 +10,7 @@ import styles from "../graphs.module.css";
 import timeline from "./timeline.module.css";
 
 /** Null selects all labs; an empty basket selects none, including when search hides selected rows. */
-export function OrganizationSelect({
+export const OrganizationSelect = memo(function OrganizationSelect({
   points,
   selected,
   onChange,
@@ -134,4 +134,4 @@ export function OrganizationSelect({
       </details>
     </div>
   );
-}
+});

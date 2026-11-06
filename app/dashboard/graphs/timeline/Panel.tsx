@@ -5,8 +5,9 @@
 import { scaleLinear, scaleUtc } from "d3-scale";
 import { ArrowUpRight } from "lucide-react";
 import dynamic from "next/dynamic";
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { type CSSProperties, memo, useCallback, useEffect, useId, useMemo, useState } from "react";
 
+import { clamp01 } from "../../../../src/model-atlas/math-utils";
 import type { ModelAtlasModel } from "../../../../src/model-atlas/stats/types";
 import { positionCatalogId } from "../../../../src/model-atlas/timeline/schemas";
 import { openModelSheet } from "../../model-sheet/open";
@@ -14,10 +15,15 @@ import { ResearchRegion } from "../../ResearchRegions";
 import { providerChartColor, providerDisplayName } from "../../shared/provider-theme";
 import { useUrlState } from "../../use-url-state";
 import { GraphToggle } from "../GraphToggle";
-import { calloutLabelPlacements } from "../plot/label-placement";
+import {
+  calloutLabelPlacements,
+  type PointLabelPlacement,
+  type PointLabelSize,
+} from "../plot/label-placement";
 import {
   AxisTitles,
   FrontierHorizon,
+  type PlotBounds,
   plotBoundsFor,
   PlotFrame,
   SCATTER_CHART_WIDTH,
@@ -32,6 +38,7 @@ import { useChartWidth, useCompactChartLayout } from "../use-chart-layout";
 import { type TimelinePoint, timelinePointLabel, timelineScoreDomain } from "./chart-data";
 import {
   coverageFrontier,
+  frontierTies,
   LAB_MINIMUM_MODELS,
   LEADING_LAB_COUNT,
   leadingLabs,
@@ -39,6 +46,7 @@ import {
 } from "./frontier";
 import { LabsPlot } from "./LabsPlot";
 import { OrganizationSelect } from "./OrganizationSelect";
+import { arrival, easeOut, followReplayPlan, RECORD_RISE_MS, useReplay } from "./replay";
 import { TimelineNavigator } from "./TimelineNavigator";
 
 import styles from "../graphs.module.css";
@@ -47,10 +55,11 @@ import timeline from "./timeline.module.css";
 const TIMELINE_CAPTION =
   "Compare model generations on a fixed Intelligence Index. The glowing frontier rises with each new record. This historical view uses its own filters.";
 
-// A replay sweeps the window in this long, redrawing about this many times, or in a few still steps under reduced motion.
-const REPLAY_MS = 9000;
-const REPLAY_FRAMES = 120;
-const REPLAY_STILL_STEPS = 8;
+const REPLAY_DATE = new Intl.DateTimeFormat("en", {
+  timeZone: "UTC",
+  month: "short",
+  year: "numeric",
+});
 
 const TimelineEvidence = dynamic(
   () => import("./TimelineEvidence").then((module) => module.TimelineEvidence),
@@ -76,8 +85,17 @@ export const TimelinePanel = memo(function TimelinePanel({
     scope: "",
     range: [0, 1],
   });
-  // A running replay reveals models released up to `replay.at` inside the window, which keeps its axis still.
-  const replay = useFrontierReplay();
+  // A running replay reveals models released up to the date it has reached and frames them with its own camera.
+  const replay = useReplay();
+  const frame = replay.frame;
+  const stopReplay = replay.stop;
+  const chooseProviders = useCallback(
+    (keys: string[] | null) => {
+      stopReplay();
+      setProviders(keys);
+    },
+    [stopReplay, setProviders],
+  );
   const scope = `${view}:${period}:${providers?.join(",") ?? "all"}`;
   const compact = useCompactChartLayout();
 
@@ -135,7 +153,7 @@ export const TimelinePanel = memo(function TimelinePanel({
       }),
     [population, start, end],
   );
-  const cutoff = replay.at;
+  const cutoff = frame?.at ?? null;
   const visible = useMemo(
     () =>
       cutoff == null
@@ -143,7 +161,25 @@ export const TimelinePanel = memo(function TimelinePanel({
         : windowed.filter((point) => Date.parse(point.releaseDate) <= cutoff),
     [windowed, cutoff],
   );
-  const frontier = useMemo(() => coverageFrontier(visible, RECORD_MINIMUM_SUPPORT), [visible]);
+  // Records are set against every model in the population, so a window that starts after a record still measures its models against it.
+  const records = useMemo(() => coverageFrontier(population, RECORD_MINIMUM_SUPPORT), [population]);
+  const reached = cutoff ?? end;
+  const prior = records.filter((point) => Date.parse(point.releaseDate) < start).at(-1);
+  const frontier = records.filter((point) => {
+    const date = Date.parse(point.releaseDate);
+    return date >= start && date <= reached;
+  });
+  const ties = useMemo(
+    () => frontierTies(windowed, records, RECORD_MINIMUM_SUPPORT),
+    [windowed, records],
+  );
+  // The models on the frontier curve: its records and the models level with them, in release order.
+  const curve = [
+    ...frontier,
+    ...ties.filter((point) => Date.parse(point.releaseDate) <= reached),
+  ].sort((a, b) => a.releaseDate.localeCompare(b.releaseDate));
+  // Every curve model is labelled, except on a phone's settled chart, which has no room for all of them; a replay's camera frames few enough.
+  const curveLabelled = frame != null || !compact ? curve : [];
   const evidenceModelIds = useMemo(
     () => [...visible].sort((a, b) => b.score - a.score).map((point) => point.id),
     [visible],
@@ -185,29 +221,37 @@ export const TimelinePanel = memo(function TimelinePanel({
     left: compact ? 8 : 72,
   };
   const padding = Math.max((end - start) * 0.025, 14 * 86400000 * (range[1] - range[0]));
+  // The window's scores and the record it opens under set the scale; a running replay frames its own stretch of the window and settles back onto this framing.
+  const [low, high] = timelineScoreDomain(
+    [...windowed, ...(prior ? [prior] : [])].map((point) => point.score),
+  );
+  const windowView = { start: start - padding, end: end + padding, low, high };
+  const camera = frame?.view ?? windowView;
   const x = scaleUtc()
-    .domain([new Date(start - padding), new Date(end + padding)])
+    .domain([new Date(camera.start), new Date(camera.end)])
     .range([margin.left, width - margin.right]);
-  // The window's scores set the scale, so a replay reveals models without rescaling the plot.
-  const scores = windowed.map((point) => point.score);
   const y = scaleLinear()
-    .domain(timelineScoreDomain(scores))
+    .domain([camera.low, camera.high])
     .range([height - margin.bottom, margin.top]);
   const xPoint = (point: TimelinePoint) => x(new Date(point.releaseDate));
+  // A replay brings each model in a little larger and fainter than its mark, settling a moment after it is reached.
+  const arrived = (point: TimelinePoint) => (frame == null ? 1 : arrival(frame.age(point.id)));
   // Stars share the Pareto plot's scale; this field is far denser, so they sit at the small end of it.
   const pointRadius = (point: TimelinePoint) =>
-    chosen?.id === point.id ? 3.6 : frontierIds.has(point.id) ? 2.8 : 2.4;
+    (chosen?.id === point.id ? 3.6 : frontierIds.has(point.id) ? 2.8 : 2.4) *
+    (1.4 - 0.4 * arrived(point));
   // Evidence support dims a star; the chosen model always shines at full strength.
   const pointOpacity = (point: TimelinePoint) =>
-    chosen?.id === point.id ? 1 : 0.35 + 0.65 * (point.coverage ?? 0);
+    (chosen?.id === point.id ? 1 : 0.35 + 0.65 * (point.coverage ?? 0)) * arrived(point);
   const highlights = [...visible].sort((a, b) => b.score - a.score).slice(0, 3);
   const gpt4 = visible.find(
     (point) =>
       point.name === "GPT-4 (Mar 2023)" ||
       (point.name === "GPT-4" && point.releaseDate === "2023-03-14"),
   );
+  // The settled chart also labels its leaders, GPT-4 and the selected model wherever their curve labels are not shown.
   const labeled =
-    view === "labs"
+    view === "labs" || frame != null
       ? []
       : [
           ...new Map(
@@ -215,7 +259,9 @@ export const TimelinePanel = memo(function TimelinePanel({
               ...highlights,
               ...(gpt4 ? [gpt4] : []),
               ...(selected ? visible.filter((point) => point.id === selected) : []),
-            ].map((point) => [point.id, point]),
+            ]
+              .filter((point) => !curveLabelled.includes(point))
+              .map((point) => [point.id, point]),
           ).values(),
         ];
   useEffect(() => {
@@ -240,58 +286,129 @@ export const TimelinePanel = memo(function TimelinePanel({
     }
     return nearest;
   };
-  const { svgRef, labelSizes } = useLabelSizes(labeled.map(timelinePointLabel).join("\0"), compact);
+  const { svgRef, labelSizes } = useLabelSizes(
+    [...curveLabelled, ...labeled].map(timelinePointLabel).join("\0"),
+    compact,
+  );
+  const labelSize = (label: string) =>
+    labelSizes[label] ?? {
+      width: label.length * (compact ? 10.2 : 7.8),
+      ascent: compact ? 15 : 12,
+      descent: 3,
+    };
   const previewName = preview ? timelinePointLabel(preview) : "";
   const previewLabel = `${previewName.slice(0, compact ? 28 : 42)}${previewName.length > (compact ? 28 : 42) ? "…" : ""} · ${preview?.score.toFixed(1) ?? ""}`;
   const previewWidth = previewLabel.length * (compact ? 10.2 : 9.6);
   const previewOnLeft = preview
     ? xPoint(preview) > (width + margin.left - margin.right) / 2
     : false;
-  const layoutKey = JSON.stringify({
-    labels: labeled.map((point) => ({
-      key: point.id,
-      label: timelinePointLabel(point),
+  const plotBounds = plotBoundsFor(width, height, margin);
+  const labelTop = compact ? 28 : 8;
+  const curveLabels = stackCurveLabels(
+    curveLabelled.map((point) => ({
+      point,
       cx: xPoint(point),
       cy: y(point.score),
-      radius: 6,
-      size: labelSizes[timelinePointLabel(point)] ?? {
-        width: timelinePointLabel(point).length * (compact ? 10.2 : 7.8),
-        ascent: compact ? 15 : 12,
-        descent: 3,
-      },
+      size: labelSize(timelinePointLabel(point)),
     })),
-    obstacles: visible.map((point) => ({
-      key: point.id,
-      cx: xPoint(point),
-      cy: y(point.score),
-      radius: 5,
-    })),
-    bounds: {
-      left: margin.left,
-      right: width - margin.right,
-      top: compact ? 28 : 8,
-      bottom: height - margin.bottom - 8,
-    },
-    directions: [
-      [1, -1],
-      [-1, -1],
-      [0, -1],
-    ],
-  });
-  const labelPlacements = useMemo(() => calloutLabelPlacements(JSON.parse(layoutKey)), [layoutKey]);
+    plotBounds,
+    labelTop,
+  );
+  const layoutKey =
+    labeled.length === 0
+      ? null
+      : JSON.stringify({
+          labels: labeled.map((point) => ({
+            key: point.id,
+            label: timelinePointLabel(point),
+            cx: xPoint(point),
+            cy: y(point.score),
+            radius: 6,
+            size: labelSize(timelinePointLabel(point)),
+          })),
+          obstacles: visible.map((point) => ({
+            key: point.id,
+            cx: xPoint(point),
+            cy: y(point.score),
+            radius: 5,
+          })),
+          bounds: {
+            left: margin.left,
+            right: width - margin.right,
+            top: labelTop,
+            bottom: height - margin.bottom - 8,
+          },
+          reservedBoxes: curveLabels.map(({ box }) => box),
+          directions: [
+            [1, -1],
+            [-1, -1],
+            [0, -1],
+          ],
+        });
+  const labelPlacements = useMemo(
+    () =>
+      layoutKey == null
+        ? new Map<string, PointLabelPlacement>()
+        : calloutLabelPlacements(JSON.parse(layoutKey)),
+    [layoutKey],
+  );
   const ticks = x.ticks(compact ? 4 : 7).map(Number);
-  const dateFormat = new Intl.DateTimeFormat("en", {
-    timeZone: "UTC",
-    year: "numeric",
-    ...(period === "year" || range[1] - range[0] < 1 ? { month: "short" as const } : {}),
+  // In a replay the newest record's level climbs from the one it beat, and the reached region ends at the reveal until the camera settles.
+  const levels = [...(prior ? [prior] : []), ...frontier];
+  const horizon = levels.map((point, index) => {
+    const level = y(point.score);
+    const below = y(levels[index - 1]?.score ?? point.score);
+    const age = frame && index === levels.length - 1 ? frame.age(point.id) : null;
+    return {
+      x: point === prior ? x(new Date(start)) : xPoint(point),
+      y: age == null ? level : below + (level - below) * easeOut(age / RECORD_RISE_MS),
+    };
   });
+  const reveal =
+    frame == null
+      ? plotBounds.right
+      : x(new Date(frame.at)) + (plotBounds.right - x(new Date(frame.at))) * frame.settle;
+  // Stars sit at their release day and score, and the camera places them through these four variables, so a frame that only moves the camera re-renders no star.
+  const cameraStyle = {
+    "--tx": `${x(new Date(fullStart))}px`,
+    "--kx": `${x(new Date(fullStart + 86400000)) - x(new Date(fullStart))}px`,
+    "--ty": `${y(0)}px`,
+    "--ky": `${y(1) - y(0)}px`,
+  } as CSSProperties;
+  // A replay draws only the stars its camera frames.
+  const drawn =
+    frame == null
+      ? visible
+      : visible.filter((point) => {
+          const cx = xPoint(point);
+          return cx >= plotBounds.left - 8 && cx <= plotBounds.right + 8;
+        });
+  const cameraClip = useId();
+  // Ticks are labelled at the resolution they are spaced at, so no two read the same.
+  const tickSpacing = (ticks[1] ?? Infinity) - (ticks[0] ?? 0);
+  const dateFormat = new Intl.DateTimeFormat(
+    "en",
+    tickSpacing < 28 * 86400000
+      ? { timeZone: "UTC", month: "short", day: "numeric" }
+      : tickSpacing < 360 * 86400000
+        ? { timeZone: "UTC", month: "short", year: "numeric" }
+        : { timeZone: "UTC", year: "numeric" },
+  );
 
   const navigator =
     population.length > 0 ? (
       <TimelineNavigator
         points={population}
         bounds={bounds}
-        range={range}
+        // The overview's window travels with a replay's camera.
+        range={
+          frame == null
+            ? range
+            : [
+                Math.max(range[0], (frame.view.start - fullStart) / (fullEnd - fullStart)),
+                Math.min(range[1], (frame.view.end - fullStart) / (fullEnd - fullStart)),
+              ]
+        }
         onChange={(range) => {
           replay.stop();
           setWindowState({ scope, range });
@@ -302,11 +419,21 @@ export const TimelinePanel = memo(function TimelinePanel({
           setWindowState({ scope: "", range: [0, 1] });
           setPeriod(value);
         }}
-        replayAt={replay.at == null ? null : (replay.at - fullStart) / (fullEnd - fullStart)}
         // Only the models view has a record frontier to replay.
-        onReplay={
+        replay={
           view === "models"
-            ? () => (replay.at == null ? replay.start(start, end) : replay.stop())
+            ? {
+                at: frame == null ? null : (frame.at - fullStart) / (fullEnd - fullStart),
+                paused: replay.paused,
+                onPlay: () =>
+                  replay.paused
+                    ? replay.resume()
+                    : replay.start(
+                        followReplayPlan(windowed, frontier, prior, start, end, windowView),
+                      ),
+                onPause: replay.pause,
+                onStop: replay.stop,
+              }
             : undefined
         }
       />
@@ -340,7 +467,7 @@ export const TimelinePanel = memo(function TimelinePanel({
               <OrganizationSelect
                 points={points ?? []}
                 selected={providers}
-                onChange={setProviders}
+                onChange={chooseProviders}
               />
             ) : (
               <dl className={timeline.labScope} aria-label="Lab eligibility">
@@ -491,68 +618,73 @@ export const TimelinePanel = memo(function TimelinePanel({
                     y="Intelligence Index"
                     compact={compact}
                   />
-                  {/* Records hold until they are beaten, so the reached region runs on to the chart's present edge. */}
-                  <FrontierHorizon
-                    points={frontier.map((point) => ({ x: xPoint(point), y: y(point.score) }))}
-                    bounds={plotBoundsFor(width, height, margin)}
-                    open="right"
-                  />
-                  {replay.at == null ? null : (
-                    <line
-                      className={timeline.replayLine}
-                      x1={x(new Date(replay.at))}
-                      x2={x(new Date(replay.at))}
-                      y1={margin.top}
-                      y2={height - margin.bottom}
-                    />
+                  {frame == null ? null : (
+                    <>
+                      <defs>
+                        {/* The camera frames part of the window, so what lies beyond it is cut at the plot's sides. */}
+                        <clipPath id={cameraClip}>
+                          <rect
+                            x={plotBounds.left}
+                            y={0}
+                            width={plotBounds.right - plotBounds.left}
+                            height={height}
+                          />
+                        </clipPath>
+                      </defs>
+                      <text
+                        className={timeline.replayDate}
+                        x={margin.left + 18}
+                        y={margin.top + 14}
+                        opacity={1 - frame.settle}
+                      >
+                        {REPLAY_DATE.format(frame.at)}
+                      </text>
+                    </>
                   )}
-                  {/* Only records on the frontier and the selected model glow. */}
-                  <StarGlows
-                    bounds={plotBoundsFor(width, height, margin)}
-                    stars={visible.flatMap((point) =>
-                      chosen?.id === point.id || frontierIds.has(point.id)
-                        ? [
-                            {
-                              key: point.id,
-                              cx: xPoint(point),
-                              cy: y(point.score),
-                              radius: pointRadius(point),
-                              color: providerChartColor(point.provider),
-                              emphasis: chosen?.id === point.id ? "selected" : "frontier",
-                              opacity: pointOpacity(point),
-                            },
-                          ]
-                        : [],
+                  <g clipPath={frame == null ? undefined : `url(#${cameraClip})`}>
+                    {/* Records hold until they are beaten, so the record standing at the window's start enters there, as each lab's line does, and the reached region runs on to the chart's present edge. */}
+                    <FrontierHorizon
+                      points={horizon}
+                      bounds={{ ...plotBounds, right: reveal }}
+                      open="right"
+                    />
+                    {frame == null || !horizon.length ? null : (
+                      <circle
+                        className={timeline.replayTip}
+                        cx={reveal}
+                        cy={horizon.at(-1)!.y}
+                        r={1.8}
+                        opacity={1 - frame.settle}
+                      />
                     )}
-                  />
-                  {visible.map((point) => (
-                    <circle
-                      key={point.id}
-                      cx={xPoint(point)}
-                      cy={y(point.score)}
-                      {...(point.indexOnly
-                        ? {
-                            r: pointRadius(point),
-                            fill: "var(--paper)",
-                            stroke: providerChartColor(point.provider),
-                            strokeWidth: 1.1,
-                            vectorEffect: "non-scaling-stroke",
-                          }
-                        : starCore(pointRadius(point), providerChartColor(point.provider)))}
-                      opacity={pointOpacity(point)}
-                      className={
-                        point.indexOnly ? timeline.point : `${timeline.point} ${styles.starCore}`
-                      }
-                      role="button"
-                      tabIndex={chosen?.id === point.id ? 0 : -1}
-                      aria-pressed={chosen?.id === point.id}
-                      aria-label={`${point.name}, ${point.releaseDate}, Intelligence Index ${point.score.toFixed(1)}`}
-                      onClick={() => setSelected(point.id)}
-                      onFocus={() => {
-                        setSelected(point.id);
-                        setPreview(point);
-                      }}
+                    {/* Only records on the frontier and the selected model glow. */}
+                    <StarGlows
+                      bounds={plotBounds}
+                      stars={drawn.flatMap((point) =>
+                        chosen?.id === point.id || frontierIds.has(point.id)
+                          ? [
+                              {
+                                key: point.id,
+                                cx: xPoint(point),
+                                cy: y(point.score),
+                                radius: pointRadius(point),
+                                color: providerChartColor(point.provider),
+                                emphasis: chosen?.id === point.id ? "selected" : "frontier",
+                                opacity: pointOpacity(point),
+                              },
+                            ]
+                          : [],
+                      )}
+                    />
+                    <g
+                      style={cameraStyle}
                       onKeyDown={(event) => {
+                        const id =
+                          event.target instanceof Element
+                            ? event.target.getAttribute("data-point")
+                            : null;
+                        const point = drawn.find((star) => star.id === id);
+                        if (!point) return;
                         if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
                           event.preventDefault();
                           const index = visible.indexOf(point);
@@ -568,11 +700,9 @@ export const TimelinePanel = memo(function TimelinePanel({
                             ];
                           if (next) {
                             setSelected(next.id);
-                            const circles =
-                              event.currentTarget.parentElement?.querySelectorAll<SVGCircleElement>(
-                                "circle[role=button]",
-                              );
-                            circles?.[visible.indexOf(next)]?.focus();
+                            event.currentTarget
+                              .querySelectorAll<SVGCircleElement>("circle[role=button]")
+                              [drawn.indexOf(next)]?.focus();
                           }
                         }
                         if (event.key === "Enter" || event.key === " ") {
@@ -580,25 +710,41 @@ export const TimelinePanel = memo(function TimelinePanel({
                           setSelected(point.id);
                         }
                       }}
-                    />
-                  ))}
-                  {preview && !labeled.some((point) => point.id === preview.id) && (
-                    <TextPointLabel
-                      label={previewLabel}
-                      placement={{
-                        x: previewOnLeft
-                          ? Math.max(margin.left + previewWidth, xPoint(preview) - 12)
-                          : Math.min(width - margin.right - previewWidth, xPoint(preview) + 12),
-                        y: Math.max(margin.top + 18, y(preview.score) - 14),
-                        textAnchor: previewOnLeft ? "end" : "start",
-                      }}
-                      cx={xPoint(preview)}
-                      cy={y(preview.score) - 8}
-                      width={width}
-                      height={height}
-                      margin={margin}
-                    />
-                  )}
+                    >
+                      {drawn.map((point) => (
+                        <TimelineStar
+                          key={point.id}
+                          point={point}
+                          day={(Date.parse(point.releaseDate) - fullStart) / 86400000}
+                          radius={pointRadius(point)}
+                          opacity={pointOpacity(point)}
+                          color={providerChartColor(point.provider)}
+                          chosen={chosen?.id === point.id}
+                          onSelect={setSelected}
+                          onPreview={setPreview}
+                        />
+                      ))}
+                    </g>
+                  </g>
+                  {preview &&
+                    !labeled.some((point) => point.id === preview.id) &&
+                    !curveLabelled.includes(preview) && (
+                      <TextPointLabel
+                        label={previewLabel}
+                        placement={{
+                          x: previewOnLeft
+                            ? Math.max(margin.left + previewWidth, xPoint(preview) - 12)
+                            : Math.min(width - margin.right - previewWidth, xPoint(preview) + 12),
+                          y: Math.max(margin.top + 18, y(preview.score) - 14),
+                          textAnchor: previewOnLeft ? "end" : "start",
+                        }}
+                        cx={xPoint(preview)}
+                        cy={y(preview.score) - 8}
+                        width={width}
+                        height={height}
+                        margin={margin}
+                      />
+                    )}
                   <g aria-label="Frontier model labels">
                     {labeled.map((point) => (
                       <TextPointLabel
@@ -612,6 +758,32 @@ export const TimelinePanel = memo(function TimelinePanel({
                         placement={labelPlacements.get(point.id)}
                       />
                     ))}
+                    {/* Labels waiting to fade in still render, so their text is measured before it shows. */}
+                    {curveLabels.map(({ point, placement }) => {
+                      const age = frame?.age(point.id);
+                      const cx = xPoint(point);
+                      return (
+                        <g
+                          key={point.id}
+                          // In a replay a label fades in once its model arrives and out as its star leaves the plot.
+                          opacity={
+                            age == null
+                              ? 1
+                              : easeOut((age - 120) / 300) * clamp01((cx - plotBounds.left) / 24)
+                          }
+                        >
+                          <TextPointLabel
+                            label={timelinePointLabel(point)}
+                            cx={cx}
+                            cy={y(point.score)}
+                            width={width}
+                            height={height}
+                            margin={margin}
+                            placement={placement}
+                          />
+                        </g>
+                      );
+                    })}
                   </g>
                 </svg>
               </div>
@@ -662,46 +834,114 @@ export const TimelinePanel = memo(function TimelinePanel({
 });
 
 /**
- * A replay of the record frontier: a reveal cutoff that sweeps from `from` to `to` over a few seconds, redrawing about `REPLAY_FRAMES` times or in a few still steps under reduced motion, then clears itself.
- * Starting again restarts it, the panel stops it on any window, preset, or view change, and it never outlives the panel.
+ * Place curve labels up and left of their stars, in the open sky above the frontier, each moving up a line wherever it would meet an earlier one and sliding right rather than crossing the plot's left edge.
+ * A label that would rise past `top` tries the up-right side instead. The rule depends only on positions, so a replay's labels end exactly where the settled chart's are.
  */
-function useFrontierReplay() {
-  const [at, setAt] = useState<number | null>(null);
-  const frame = useRef<number | null>(null);
-  const stop = () => {
-    if (frame.current != null) cancelAnimationFrame(frame.current);
-    frame.current = null;
-    setAt(null);
-  };
-  const start = (from: number, to: number) => {
-    stop();
-    const steps = window.matchMedia("(prefers-reduced-motion: reduce)").matches
-      ? REPLAY_STILL_STEPS
-      : REPLAY_FRAMES;
-    const began = performance.now();
-    let shown = 0;
-    const tick = (now: number) => {
-      const progress = (now - began) / REPLAY_MS;
-      if (progress >= 1) {
-        frame.current = null;
-        setAt(null);
-        return;
+function stackCurveLabels(
+  stars: { point: TimelinePoint; cx: number; cy: number; size: PointLabelSize }[],
+  plot: PlotBounds,
+  top: number,
+) {
+  const placed: { point: TimelinePoint; placement: PointLabelPlacement; box: PlotBounds }[] = [];
+  for (const { point, cx, cy, size } of stars) {
+    const stack = (left: number) => {
+      let baseline = cy - 8;
+      for (;;) {
+        const blocker = placed.find(
+          ({ box }) =>
+            box.left < left + size.width &&
+            box.right > left &&
+            box.top < baseline + size.descent &&
+            box.bottom > baseline - size.ascent,
+        );
+        if (!blocker) return baseline;
+        baseline = blocker.box.top - size.descent - 2;
       }
-      const step = Math.floor(progress * steps);
-      if (step !== shown) {
-        shown = step;
-        setAt(from + (step / steps) * (to - from));
-      }
-      frame.current = requestAnimationFrame(tick);
     };
-    setAt(from);
-    frame.current = requestAnimationFrame(tick);
-  };
-  useEffect(
-    () => () => {
-      if (frame.current != null) cancelAnimationFrame(frame.current);
-    },
-    [],
-  );
-  return { at, start, stop };
+    let left = Math.max(plot.left + 2, cx - 8 - size.width);
+    let baseline = stack(left);
+    if (baseline - size.ascent < top) {
+      const right = Math.min(plot.right - size.width, cx + 8);
+      const rightBaseline = stack(right);
+      if (rightBaseline > baseline) {
+        left = right;
+        baseline = rightBaseline;
+      }
+    }
+    placed.push({
+      point,
+      placement: {
+        x: left,
+        y: baseline,
+        textAnchor: "start",
+        ...(baseline < cy - 8
+          ? {
+              line: {
+                x1: cx,
+                y1: cy - 3,
+                x2: Math.min(left + size.width - 2, Math.max(left + 2, cx)),
+                y2: baseline + size.descent,
+              },
+            }
+          : {}),
+      },
+      box: {
+        left,
+        right: left + size.width,
+        top: baseline - size.ascent,
+        bottom: baseline + size.descent,
+      },
+    });
+  }
+  return placed;
 }
+
+/** A star placed by its release day and score through the camera variables its group sets, so it re-renders only when its own mark changes. */
+const TimelineStar = memo(function TimelineStar({
+  point,
+  day,
+  radius,
+  opacity,
+  color,
+  chosen,
+  onSelect,
+  onPreview,
+}: {
+  point: TimelinePoint;
+  /** Days since the population's first release. */
+  day: number;
+  radius: number;
+  opacity: number;
+  color: string;
+  chosen: boolean;
+  onSelect: (id: string) => void;
+  onPreview: (point: TimelinePoint) => void;
+}) {
+  const core = point.indexOnly ? null : starCore(radius, color);
+  // An inline position travels with the markup into image exports, which inline only a fixed set of computed styles.
+  const transform = `translate(calc(var(--tx) + ${day} * var(--kx)), calc(var(--ty) + ${point.score} * var(--ky)))`;
+  return (
+    <circle
+      data-point={point.id}
+      {...(core ?? {
+        r: radius,
+        fill: "var(--paper)",
+        stroke: color,
+        strokeWidth: 1.1,
+        vectorEffect: "non-scaling-stroke",
+      })}
+      style={{ ...core?.style, transform }}
+      opacity={opacity}
+      className={core ? `${timeline.point} ${styles.starCore}` : timeline.point}
+      role="button"
+      tabIndex={chosen ? 0 : -1}
+      aria-pressed={chosen}
+      aria-label={`${point.name}, ${point.releaseDate}, Intelligence Index ${point.score.toFixed(1)}`}
+      onClick={() => onSelect(point.id)}
+      onFocus={() => {
+        onSelect(point.id);
+        onPreview(point);
+      }}
+    />
+  );
+});

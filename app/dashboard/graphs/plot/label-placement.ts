@@ -106,7 +106,10 @@ export function calloutLabelPlacements({
   );
 }
 
-/** Candidates anchor the text rectangle's edge near the point; text length never adds an artificial leader offset. */
+/**
+ * Candidates anchor the text rectangle's edge near the point; text length never adds an artificial leader offset.
+ * Positions crossing a reserved box are left out, unless every position does, when they are kept at the cost of overlapping text so the label still has a place.
+ */
 function labelCandidates(
   label: Label,
   bounds: Box,
@@ -123,6 +126,7 @@ function labelCandidates(
   const height = size.ascent + size.descent;
   const padding = LABEL_PADDING;
   const candidates: Candidate[] = [];
+  const blocked: Candidate[] = [];
   for (const [dx, dy] of directions) {
     for (const gap of GAPS) {
       const distance = label.radius + gap + padding;
@@ -149,17 +153,15 @@ function labelCandidates(
         x2,
         y2,
       };
-      if (
-        reservedBoxes.some(
-          (reserved) =>
-            (box.left < reserved.right &&
-              box.right > reserved.left &&
-              box.top < reserved.bottom &&
-              box.bottom > reserved.top) ||
-            segmentHitsBox(connector, reserved),
-        )
-      )
-        continue;
+      const crossesReserved = reservedBoxes.some(
+        (reserved) =>
+          (box.left < reserved.right &&
+            box.right > reserved.left &&
+            box.top < reserved.bottom &&
+            box.bottom > reserved.top) ||
+          segmentHitsBox(connector, reserved),
+      );
+      if (crossesReserved && candidates.length > 0) continue;
       const line = clearance > 10 ? connector : undefined;
       let cost = clearance * 0.5 + clearance * clearance * 0.025;
       for (const point of obstacles) {
@@ -183,7 +185,7 @@ function labelCandidates(
         if (segmentHitsBox(segment, box)) cost += 200;
         if (segmentsCross(connector, segment)) cost += 1_000;
       }
-      candidates.push({
+      const candidate: Candidate = {
         x: left,
         y: top + size.ascent,
         textAnchor: "start",
@@ -191,10 +193,12 @@ function labelCandidates(
         connector,
         line,
         cost,
-      });
+      };
+      if (crossesReserved) blocked.push({ ...candidate, cost: cost + TEXT_CONFLICT_COST });
+      else candidates.push(candidate);
     }
   }
-  return candidates;
+  return candidates.length > 0 ? candidates : blocked;
 }
 
 /** Strict improvements and fixed traversal order keep identical family states stable across pointer movement. */
