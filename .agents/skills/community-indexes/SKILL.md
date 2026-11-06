@@ -39,11 +39,16 @@ Research produces qualitative comparisons, never numerical ratings, distances, c
 
 ## Candidates
 
-`GET /api/community/candidates` returns `{ "as_of": "YYYY-MM-DD", "models": [{ "model_id", "name", "release_date" }] }`.
-Candidates are the unadjusted Intelligence top 15 of the current benchmark snapshot, then only releases from the 60 days ending at `as_of` (today, UTC), with no backfill.
+`GET /api/community/candidates` returns `{ "as_of": "YYYY-MM-DD", "models": [{ "model_id", "name", "release_date" }], "catalog": [{ "model_id", "name", "release_date" }] }`.
+Candidates are the unadjusted Intelligence top 15 of the current benchmark snapshot, using the highest-scored effort per model and the normal display exclusions, then only releases from the 90 days ending at `as_of` (today, UTC), with no backfill.
+`catalog` supplies the full snapshot's distinct model identities, including models outside the candidate pool and null release dates when unknown; it contains no scores or ranking history.
+The [research prompt](research.md) owns the latest-version decision and its recorded reasons; catalog entries outside `models` provide identity context and never expand eligibility.
+The endpoint and submission writer enforce the top-15 and release-date filters; they do not infer model succession from names.
+The research source window remains 60 days.
 A submission is checked against the candidates current when it arrives; if a benchmark refresh or the moving window changed them, the error names the model that no longer qualifies.
 Fetch the candidates again just before submitting.
 Remove only the relationships and nickname of a placed model that no longer qualifies and record them in the run log as withdrawn findings; account for a newly qualifying model as omitted because it entered after research.
+Recheck the latest-version decisions against the refreshed catalog and withdraw a placed version if a newly released successor supersedes it.
 Models are sorted by id, with no scores or earlier index order supplied to the researcher.
 
 ## Ranking contract
@@ -85,7 +90,7 @@ Different directions between the two indexes are allowed because they answer dif
 
 Nicknames keep the header-card graph narrow; its hover, the inequality text, and the table keep full names.
 Give each placed model the shortest name people commonly use for it that no other placed model shares.
-Keep a version where people say it or where it tells two placed models apart, and drop the maker or family when the rest stays unambiguous: `Claude Opus 5.5` becomes `Opus 5.5`, and `GPT-6.1 Sol` beside `GPT-6 Sol` becomes `6.1 Sol` and `6 Sol`.
+Keep versions where people use them or they distinguish placed models; drop provider or family names when the remaining label stays unambiguous.
 
 These three fields are the site's ranking contract; `/api/community` carries the shared record.
 Everything else, such as `as_of`, candidates, `prompt_version`, relationship reasons and sources, unresolved comparisons, and why candidates were omitted, remains in the stored ranking verbatim as the run log.

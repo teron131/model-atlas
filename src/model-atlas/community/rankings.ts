@@ -18,7 +18,7 @@ import {
 
 const CHAIN_RELATIONS = ["=", "≥", ">", "≫"] as const;
 const CANDIDATE_POOL_SIZE = 15;
-const CANDIDATE_RELEASE_DAYS = 60;
+const CANDIDATE_RELEASE_DAYS = 90;
 const PULL = 0.5;
 const MAX_MOVE_POINTS = 5;
 const NICKNAME_MAX_LENGTH = 12;
@@ -396,7 +396,10 @@ function indexTooltip(
     body: `${definition.description} ${definition.label} has a ${definition.weight * 100}% say when the community indexes adjust Intelligence.`,
     rows: [
       ["Source", "Reddit and YouTube users' experiences"],
-      ["Candidates", "Intelligence top 15 released within 60 days"],
+      [
+        "Candidates",
+        `Intelligence top ${CANDIDATE_POOL_SIZE}, released within ${CANDIDATE_RELEASE_DAYS} days; research omits superseded versions`,
+      ],
       [
         "Intelligence",
         `moves ${PULL * 100}% of the way to where the community indexes place each model, at most ${MAX_MOVE_POINTS} points`,
