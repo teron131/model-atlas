@@ -50,7 +50,7 @@ $$
 z_{m,A}=\frac{\sum_{b\in\mathcal{B}_{m,A}}\omega_{b,A}\,z_{m,b,A}}{\sum_{b\in\mathcal{B}_{m,A}}\omega_{b,A}}.
 $$
 
-A missing result drops out instead of counting as zero, and the remaining weights keep their proportions. :score[Intelligence] blends its weighted benchmark mean with the shared-benchmark comparison; it requires an eligible benchmark result or supported effort estimate. Eligible indexes contribute according to their overlap-adjusted breadth, as described later.
+A missing result drops out instead of counting as zero, and the remaining weights keep their proportions. :score[Intelligence] blends its weighted benchmark mean with the shared-benchmark comparison; it requires an eligible benchmark result or supported effort estimate. Both capabilities then blend eligible indexes according to their overlap-adjusted breadth, as described later.
 
 [Benchmark Portfolio](../benchmarks.md#scoring-roles) records eligibility, allocations, and current importance weights. [Imputation across reasoning efforts](imputation.md#imputation-across-reasoning-efforts) explains how supported estimates enter the later benchmark mean.
 
@@ -232,31 +232,27 @@ The mapping expresses a percentile position in ordinary frontier score units. Ob
 
 ### Combining Benchmarks and Aggregate Indexes
 
-Aggregate indexes add evidence from benchmarks a model may lack as standalone results. Eligible observed indexes retain their overlap-adjusted represented breadth, so more represented benchmarks give an index more weight; individual benchmark contributions receive a 1.5 multiplier when calculating the relative benchmark-versus-index share. :score[Intelligence] blends its frontier benchmark score with eligible indexes; :score[Agentic] retains a unified benchmark-and-index mean.
+Aggregate indexes add evidence from benchmarks a model may lack as standalone results. Each index normalizes over its own observed population, which usually reaches back to much older models than the frontier benchmarks do, so a model's normalized index result tends to sit above its frontier benchmark mean. :score[Intelligence] therefore reads each index result off the frontier scale before blending it, while :score[Agentic] blends normalized index results directly.
 
-Use the base weights $\omega_{b,d}$ defined above: importance × dimension allocation. For model $m$, $z_{m,k}$ is the normalized index contribution; for :score[Agentic], benchmark and index contributions $z_{m,b,A}$ and $z_{m,k,A}$ include the token adjustment. Index $k$ has remaining represented breadth $n_{m,k,d}$ after overlap deductions for that model and dimension. Define $D_{m,d}=1.5\sum_b\omega_{b,d}$ over available frontier benchmark contributions and $K_{m,d}=\sum_k\omega_{k,d}n_{m,k,d}$ over eligible indexes. The :score[Intelligence] score uses the frontier score $F_m$ from the preceding section:
-
-$$
-S_{m,I}=\frac{D_{m,I}F_m+\sum_k\omega_{k,I}n_{m,k,I}z_{m,k}}{D_{m,I}+K_{m,I}}.
-$$
-
-The index share depends on its represented breadth and the model's available frontier benchmark evidence. A model without a frontier benchmark contribution has no :score[Intelligence] score; an eligible index alone does not replace that requirement. Baseline observations have no direct contribution, direct evidence support, or direct-overlap deduction in either capability; aggregate indexes retain their own published composite values. :score[Agentic] keeps the unified mean:
+Both capabilities give the benchmark side a fixed weight, so missing results do not hand influence to the indexes. The benchmark mean uses the results available for a variant, but its weight is $D_d=1.5\sum_b\omega_{b,d}$ over all selected frontier benchmarks for dimension $d$, so even one measured benchmark can supply the whole mean. The 1.5 multiplier gives individual benchmarks priority over aggregate indexes; it is a policy preference, not a fitted optimum. Each index $k$ contributes its base weight $\omega_{k,d}$ times its remaining represented breadth $n_{m,k,d}$ for variant $m$, and these weights sum to $K_{m,d}=\sum_k\omega_{k,d}n_{m,k,d}$. [Updated releases](leaderboard-rules.md#evidence-for-updated-releases) use their applicable source weights in these calculations.
 
 $$
-S_{m,A}=\frac{1.5\sum_b\omega_{b,A}z_{m,b,A}+\sum_k\omega_{k,A}n_{m,k,A}z_{m,k,A}}{D_{m,A}+K_{m,A}}.
+S_{m,d}=\frac{D_d T_{m,d}+\sum_k\omega_{k,d}n_{m,k,d}\hat z_{m,k,d}}{D_d+K_{m,d}}.
 $$
 
-The sums include only available contributions with positive weight. Accepted source crosswalks count as individual-benchmark results, including for admission. Estimates from another effort of the same model can contribute individual-benchmark values with the same 1.5 multiplier, but do not become direct observations or satisfy admission. Estimates inferred from other benchmarks affect evidence support only; they do not enter this mean. Effort-labelled variants use only indexes reporting that effort; unlabelled variants use the ordinary index pool.
+For :score[Intelligence], $T_{m,I}$ is the frontier score $F_m$ after the shared-benchmark comparison, and $\hat z_{m,k,I}$ is the index result on the frontier scale described below. For :score[Agentic], $T_{m,A}$ is the token-adjusted benchmark mean $z_{m,A}$, and $\hat z_{m,k,A}$ is the normalized index result with its own token adjustment where supported. With benchmark evidence alone, the blend equals the benchmark score. :score[Intelligence] requires a frontier benchmark contribution; :score[Agentic] can also use indexes alone, in which case the blend is their breadth-weighted mean.
 
-The constituent benchmarks of the AA and CAIS indexes are known. A directly observed constituent with positive active weight in the dimension removes one breadth unit from every eligible index containing it. Otherwise, a constituent shared by multiple eligible indexes contributes an equal fraction of one breadth unit to each. These deductions happen before applying index importance and dimension allocation, and remaining breadth cannot fall below zero. Unmapped constituents retain their assigned breadth because their overlap cannot be established.
+**Read index results off the frontier scale**
 
-![Illustrative overlap deductions for two indexes; shading shows the breadth each index keeps, and the two halves of a shared constituent add up to one unit.](../assets/methodology/index-overlap.svg)
+For :score[Intelligence], an index result counts at the frontier mean held by variants with the same standing on that index, the same rank-to-value reading used in [imputation from other benchmarks](imputation.md#imputation-from-other-observed-benchmarks). Its standing is the [weightedQuantileRank](overview.md#weighted-ranks) of the result among variants with both that index and an ordinary frontier mean $O_m$, using their [reference weights](#sharing-weight-across-variants); [weightedQuantile](overview.md#weighted-median-and-quantiles) then reads the same fraction off those variants' frontier means. An index that orders models as the frontier benchmarks do therefore returns each variant's own frontier mean, however high its own scale reads, so it moves a score mainly where its order disagrees.
 
-These deductions reduce represented weight; they do not remove constituent results from the published index value. Overlap accounting therefore limits duplicate influence without reconstructing an index from its remaining benchmarks. The 1.5 multiplier is a policy preference for selected individual benchmarks, not a fitted optimum or a correction for selective reporting.
+Indexes often report one effort of a model, or the model as a whole on its source-default variant. Efforts of the same model without that index receive the mean offset of the efforts that report it, each measured from its own frontier mean, added to their own frontier mean and [clamped](overview.md#linear-scaling-and-clamping) to 0–100, at the mean index weight. This shares the index adjustment across efforts without copying observations. Carried values count in the blend but not in evidence support or score retention. Final effort order is not guaranteed: measured offsets, clamping, shared-benchmark comparisons, and retention can differ between efforts.
 
-AA, CAIS, Surge, and Vals use their declared or version-specific represented breadth. ECI uses the median fixed-index breadth, currently 8 from the counts 7, 8, 8, and 10.
+Remaining represented breadth sets an index's weight in both blends and in score retention. Each directly observed constituent with positive weight in the dimension removes one unit from every index that contains it. A known constituent shared by several indexes but missing as a direct observation contributes one unit divided equally among those indexes. Remaining breadth cannot fall below zero, and unmapped constituents keep their assigned breadth because their overlap cannot be established. The deductions affect the index's weight without reconstructing its published result from the remaining constituents.
 
-Index-only evidence can supply an :score[Agentic] score; :score[Intelligence] requires a frontier benchmark contribution. Without an eligible index, the 1.5 multiplier cancels out and the score is the benchmark mean alone. The multiplier and represented breadth do not inflate displayed evidence support, admission uses its separate [observed-evidence rules](leaderboard-rules.md#dashboard-inclusion), and no further adjustment depends on reasoning effort.
+![An observed constituent removes one unit from each index that contains it. A shared, unobserved constituent splits one unit across its indexes.](../assets/methodology/index-overlap.svg)
+
+The [benchmark portfolio](../benchmarks.md#indexes) records the breadth policy for each index. Effort-specific results count on the matching effort. A result reported for the model as a whole counts on its single source-default variant. Supported estimates from another effort can fill gaps in the benchmark mean. Validated estimates from other benchmarks affect evidence support and score retention, but do not enter the benchmark mean. Admission uses [observed evidence](leaderboard-rules.md#dashboard-inclusion).
 
 ### Evidence Support and Score Retention
 
@@ -287,7 +283,7 @@ The factor for imputation from other benchmarks falls as validation error grows 
 
 Multiply each benchmark’s base weight by its evidence factor, sum those amounts, and divide by the total base weight of the portfolio. This gives evidence support $c_{m,d}$, separately for dimension $d$ (Intelligence or Agentic).
 
-The set $\mathcal{B}_d$ includes all selected benchmarks and indexes for the dimension, including those the model has not run. Unlike the capability mean, its denominator therefore includes missing results. The weight $\omega_{b,d}$ is each benchmark's base weight for that dimension. An index excluded from an effort-labelled variant contributes no supported weight:
+The set $\mathcal{B}_d$ includes all selected benchmarks and indexes for the dimension, including those the model has not run. Its denominator includes missing results, while the benchmark mean uses only available results. The weight $\omega_{b,d}$ is each benchmark's base weight for that dimension. The same evidence-factor rule applies to aggregate indexes.
 
 $$
 c_{m,d}=\frac{\sum_{b\in\mathcal{B}_d}\omega_{b,d}f_{m,b}}{\sum_{b\in\mathcal{B}_d}\omega_{b,d}}.
@@ -299,7 +295,7 @@ $$
 
 The supported weight $W_{m,d}$ determines retention, so adding benchmarks that a model has not run does not by itself increase the retention penalty. The multiplier $M^{\text{ret}}_{m,d}$ stays at 0.85 through 1.2 units of supported weight and rises along the [smoothstep curve](overview.md#smoothstep) to 1 at 12.
 
-A supported individual benchmark contributes $1.5\omega_{b,d}f_{m,b}$. An eligible observed index contributes $\omega_{k,d}n_{m,k,d}f_{m,k}$, where $n_{m,k,d}$ is its represented breadth after known overlap is deducted. The set $\mathcal{K}_d$ contains the selected indexes for dimension $d$; ineligible indexes have zero evidence factor:
+A supported individual benchmark contributes $1.5\omega_{b,d}f_{m,b}$. An eligible observed index contributes $\omega_{k,d}n_{m,k,d}f_{m,k}$, where $n_{m,k,d}$ is its represented breadth after known overlap is deducted. The set $\mathcal{K}_d$ contains the selected indexes for dimension $d$. Only observed indexes receive represented breadth in the retention calculation.
 
 $$
 W_{m,d}=1.5\sum_{b\notin\mathcal{K}_d}\omega_{b,d}f_{m,b}+\sum_{k\in\mathcal{K}_d}\omega_{k,d}n_{m,k,d}f_{m,k},\qquad M^{\text{ret}}_{m,d}=0.85+0.15\operatorname{smoothstep}\bigl(\operatorname{linearScale}_{1.2}^{12}(W_{m,d})\bigr).

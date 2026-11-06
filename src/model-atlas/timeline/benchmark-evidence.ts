@@ -1,11 +1,9 @@
 /** Prepare diagnostic cells and validate shared-input predictors; inferred values never become calibration observations. */
 
 import { calibrationObservations, distinctModelCount } from "../benchmarks/calibration-population";
-import { excludesVariantIndex } from "../benchmarks/index-policy";
 import { STAGE_CONFIG } from "../config/stage";
 import { prepareBenchmarkImputation } from "../pipeline/scores/imputation/benchmark";
 import {
-  catalogBenchmarkKey,
   hasUnresolvedVersion,
   type HistoricalBenchmark,
   type HistoricalDataset,
@@ -55,11 +53,7 @@ function buildEvidence(data: HistoricalDataset, parameters: TimelineParameters) 
   const byId = new Map(rows.map((row) => [row.id, row]));
   for (const observation of data.observations) {
     const definition = byDefinition.get(observation.benchmarkId);
-    if (
-      definition &&
-      !excludesVariantIndex(byId.get(observation.modelId)!, catalogBenchmarkKey(definition.key)) &&
-      isInformativeValue(definition, observation.value, parameters)
-    )
+    if (definition && isInformativeValue(definition, observation.value, parameters))
       byId.get(observation.modelId)!.benchmarks[definition.id] = observation.value;
   }
   const predictors: TimelinePredictor[] = [];

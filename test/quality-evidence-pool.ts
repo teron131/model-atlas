@@ -1,4 +1,4 @@
-/** Verify that direct benchmarks and breadth-scaled indexes share one deduplicated quality-evidence pool. */
+/** Verify that per-model Intelligence leaves raw index levels out while Agentic blends assigned, deduplicated index breadth against the common task weight. */
 
 import assert from "node:assert/strict";
 
@@ -78,7 +78,7 @@ for (const taskCount of [4, 40]) {
       const test = fixture(taskCount, indexCount, importance);
       const score = test.score(test.model()).componentScores!;
       const expected = expectedScore(taskCount, test.indexes, importance);
-      assert.ok(Math.abs(score.intelligence_score! - expected) < 1e-10);
+      assert.ok(Math.abs(score.intelligence_score! - 60) < 1e-10);
       assert.ok(Math.abs(score.agentic_score! - expected) < 1e-10);
     }
   }
@@ -145,7 +145,7 @@ for (const multiplier of [1.5, 2]) {
     multiplierFixture.model(),
     { ...multiplierFixture.config, directBenchmarkWeightMultiplier: multiplier },
     multiplierFixture.context,
-  ).componentScores!.intelligence_score!;
+  ).componentScores!.agentic_score!;
   assert.ok(
     Math.abs(score - (multiplier * 4 * 60 + aaBreadth * 100) / (multiplier * 4 + aaBreadth)) <
       1e-10,
@@ -153,12 +153,11 @@ for (const multiplier of [1.5, 2]) {
 }
 
 const convergence = fixture(8, 4);
-let previous = 100;
-for (let count = 0; count <= 8; count++) {
-  const score = convergence.score(convergence.model(count, 0)).componentScores!.agentic_score!;
-  assert.ok(score <= previous + 1e-10);
-  previous = score;
-}
+assert.deepEqual(
+  convergence.score(convergence.model(2)).componentScores,
+  convergence.score(convergence.model(8)).componentScores,
+  "Holding task performance and index breadth fixed, reporting fewer tasks preserves both capability blends",
+);
 assert.ok(
   Math.abs(convergence.score(convergence.model(8, 60, [])).componentScores!.agentic_score! - 60) <
     1e-10,
@@ -211,19 +210,23 @@ const sameTasks = {
     surge_intelligence_index: 100,
   },
 };
-assert.equal(
-  variantFixture.score(labelled).componentScores!.intelligence_score,
-  variantFixture.score(sameTasks).componentScores!.intelligence_score,
+assert.ok(
+  variantFixture.score(labelled).componentScores!.agentic_score! <
+    variantFixture.score(sameTasks).componentScores!.agentic_score!,
 );
 const unlabelled = { ...labelled, reasoning_effort: null };
-assert.ok(
-  variantFixture.score(unlabelled).componentScores!.intelligence_score! <
-    variantFixture.score(labelled).componentScores!.intelligence_score!,
+assert.deepEqual(
+  variantFixture.score(unlabelled).componentScores,
+  variantFixture.score(labelled).componentScores,
+  "Labelling the variant preserves its assigned index evidence in both capabilities",
 );
 const noEffortIndex = {
   ...variantFixture.model(8, 60, ["epoch_capabilities_index"]),
   reasoning_effort: "high",
 };
 assert.ok(
-  Math.abs(variantFixture.score(noEffortIndex).componentScores!.intelligence_score! - 60) < 1e-10,
+  Math.abs(
+    variantFixture.score(noEffortIndex).componentScores!.agentic_score! -
+      expectedScore(8, ["epoch_capabilities_index"], 1),
+  ) < 1e-10,
 );

@@ -7,7 +7,6 @@ import {
   residualIndexBreadth,
 } from "../../../../src/model-atlas/benchmarks/index-policy";
 import { BENCHMARK_RESOURCE_SOURCE_LABELS } from "../../../../src/model-atlas/benchmarks/resource-sources";
-import { canonicalReasoningEffort } from "../../../../src/model-atlas/identity/normalization";
 import {
   linearScore,
   minMaxRange,
@@ -119,12 +118,6 @@ export function frontierBenchmarkRows(
     .flatMap((model) =>
       keys.flatMap((key): FrontierBenchmarkRow[] => {
         const policy = indexPolicy(key);
-        if (
-          policy != null &&
-          canonicalReasoningEffort(model.reasoning_effort) != null &&
-          !policy.effortAware
-        )
-          return [];
         const resourcePolicy = policy?.resources?.policy ?? portfolio[key]?.resourcePolicy ?? null;
         const measured =
           byModel.get(model)?.filter((observation) => observation.baseBenchmarkKey === key) ?? [];

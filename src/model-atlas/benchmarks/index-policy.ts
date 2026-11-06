@@ -1,6 +1,5 @@
-/** Aggregate-index policy owns breadth, effort eligibility, component overlap, and resource semantics; consumers supply observed evidence. */
+/** Aggregate-index policy owns breadth, component overlap, and resource semantics; assignment supplies effort-matched observations. */
 
-import { canonicalReasoningEffort } from "../identity/normalization";
 import { medianOfFinite } from "../math-utils";
 import { asFiniteNumber, asRecord } from "../runtime";
 import type { BenchmarkPortfolioEntry, BenchmarkResourcePolicy } from "./factory";
@@ -8,7 +7,6 @@ import type { BenchmarkPortfolioEntry, BenchmarkResourcePolicy } from "./factory
 type IndexPolicy = {
   representedBenchmarks: number;
   version?: string;
-  effortAware: boolean;
   componentBenchmarkKeys: readonly string[] | null;
   resources: {
     key: string;
@@ -46,7 +44,6 @@ export const MINIMUM_REPORTED_INDEX_BREADTH = Math.min(...Object.values(REPORTED
 export const INDEX_POLICIES = {
   aa_intelligence_index: {
     representedBenchmarks: REPORTED_BREADTH.aa_intelligence_index,
-    effortAware: true,
     resources: {
       key: "artificial_analysis",
       policy: {
@@ -60,7 +57,6 @@ export const INDEX_POLICIES = {
   },
   cais_capabilities_index: {
     representedBenchmarks: REPORTED_BREADTH.cais_capabilities_index,
-    effortAware: true,
     resources: null,
     componentBenchmarkKeys: [
       "enigmaeval",
@@ -74,20 +70,17 @@ export const INDEX_POLICIES = {
   },
   epoch_capabilities_index: {
     representedBenchmarks: INDEX_REPRESENTED_BENCHMARK_MEDIAN,
-    effortAware: false,
     resources: null,
     componentBenchmarkKeys: null,
   },
   surge_intelligence_index: {
     representedBenchmarks: REPORTED_BREADTH.surge_intelligence_index,
-    effortAware: false,
     resources: null,
     componentBenchmarkKeys: null,
   },
   vals_index: {
     representedBenchmarks: REPORTED_BREADTH.vals_index,
     version: "2.2",
-    effortAware: false,
     resources: null,
     componentBenchmarkKeys: null,
   },
@@ -124,16 +117,6 @@ export function isAggregateIndex(key: string): key is IndexBenchmarkKey {
 /** Resolve index-only rules without treating ordinary task benchmarks as aggregate evidence. */
 export function indexPolicy(key: string): IndexPolicy | null {
   return isAggregateIndex(key) ? INDEX_POLICIES[key] : null;
-}
-
-/** Unlabelled indexes remain metadata and admission evidence, rather than substitutes for explicitly labelled variant measurements. */
-export function excludesVariantIndex(model: { reasoning_effort?: unknown }, key: string): boolean {
-  const policy = indexPolicy(key);
-  return (
-    canonicalReasoningEffort(model.reasoning_effort) != null &&
-    policy != null &&
-    !policy.effortAware
-  );
 }
 
 /** Read support from the assigned observation, preserving unknown counts instead of borrowing another model's breadth. */

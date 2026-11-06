@@ -29,6 +29,7 @@ import {
 } from "../../sources/artificial-analysis/benchmark-resources";
 import type { ModelAtlasSourceData } from "../../sources/assembly";
 import { findRiemannBenchScore } from "../../sources/surge/riemann-bench";
+import type { ValsIndexModelScoreRow } from "../../sources/vals/index-benchmark";
 import type { ModelAtlasScoringSources, ModelRow } from "../model-types";
 
 type BenchmarkObservationLookups = {
@@ -204,6 +205,12 @@ function matchesExactReasoningEffort<T extends { reasoning_effort?: unknown }>(
   );
 }
 
+function assignValsIndex(assigned: AssignedBenchmarks, row: ValsIndexModelScoreRow | null): void {
+  if (row == null) return;
+  assigned.benchmarks.vals_index = row.score;
+  assigned.scoringSources.vals_index = row;
+}
+
 function buildArtificialAnalysisBenchmarks(
   modelNameCandidates: unknown[],
   resourceLookup: ArtificialAnalysisBenchmarkResourceLookup,
@@ -375,6 +382,12 @@ export function buildObservationBenchmarks(
     canonicalReasoningEffort(targetReasoningEffort),
   );
   const targetEffort = canonicalReasoningEffort(targetReasoningEffort);
+  if (targetEffort != null) {
+    assignValsIndex(
+      assignedBenchmarks,
+      findEffortSourceRow(modelNameCandidates, targetEffort, lookups.valsIndex.rowsByModelName),
+    );
+  }
   for (const { benchmark, sourceDataKey } of BENCHMARK_OBSERVATION_BINDINGS) {
     const row = findBenchmarkObservation(
       modelNameCandidates,
@@ -442,15 +455,14 @@ export function buildDefaultVariantBenchmarks(
   if (riemannBenchScore != null) {
     benchmarks.riemann_bench = riemannBenchScore;
   }
-  const valsIndexRow = findDefaultSourceRow(
-    modelNameCandidates,
-    targetReasoningEffort,
-    lookups.valsIndex.rowsByModelName,
+  assignValsIndex(
+    assignedBenchmarks,
+    findDefaultSourceRow(
+      modelNameCandidates,
+      targetReasoningEffort,
+      lookups.valsIndex.rowsByModelName,
+    ),
   );
-  if (valsIndexRow != null) {
-    benchmarks.vals_index = valsIndexRow.score;
-    scoringSources.vals_index = valsIndexRow;
-  }
 
   assignFusedBenchmarks(
     assignedBenchmarks,

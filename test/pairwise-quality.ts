@@ -116,8 +116,8 @@ const blended = blendPairwiseQualityScores(
   [90, 40, 80].map((score) => ({
     frontier: score,
     baseline: score,
-    indexScore: null,
-    indexShare: 0,
+    taskWeight: 1,
+    indexes: [],
     retention: 1,
   })),
 );
@@ -137,8 +137,8 @@ const penalized = blendPairwiseQualityScores(
   [90, 40, 80].map((score, index) => ({
     frontier: score,
     baseline: score,
-    indexScore: null,
-    indexShare: 0,
+    taskWeight: 1,
+    indexes: [],
     retention: retentions[index]!,
   })),
 );
@@ -178,8 +178,8 @@ assert.equal(
     ...[90, 40, 80].map((score) => ({
       frontier: score,
       baseline: score,
-      indexScore: null,
-      indexShare: 0,
+      taskWeight: 1,
+      indexes: [],
       retention: 1,
     })),
     null,
@@ -187,7 +187,7 @@ assert.equal(
   null,
   "an index-only model has no Intelligence score without both task groups",
 );
-assert.equal(
+assert.deepEqual(
   blendPairwiseQualityScores(withUnsupported, { ...config, pairwiseIntelligenceWeight: 0 }, [
     null,
     null,
@@ -195,6 +195,59 @@ assert.equal(
     null,
   ]),
   withUnsupported,
+);
+const indexOnlyConfig = { ...config, pairwiseIntelligenceWeight: 0 };
+const indexed = (indexValues: readonly number[]) =>
+  blendPairwiseQualityScores(
+    [
+      candidate("test/a", 90, 100, 100),
+      candidate("test/b", 40, 60, 70),
+      candidate("test/c", 80, 10, 20),
+    ],
+    indexOnlyConfig,
+    [90, 40, 80].map((score, index) => ({
+      frontier: score,
+      baseline: score,
+      taskWeight: 1,
+      indexes: [{ key: "aa_intelligence_index", value: indexValues[index]!, weight: 1 }],
+      retention: 1,
+    })),
+  ).map((model) => model.component_scores!.intelligence_score);
+assert.deepEqual(
+  indexed([100, 95, 99]),
+  [90, 40, 80],
+  "An index that orders models like their frontier means adds nothing, however high its own level",
+);
+assert.deepEqual(
+  indexed([95, 100, 99]),
+  [(90 + 40) / 2, (40 + 90) / 2, 80],
+  "An index result counts at the frontier mean of the variant holding the same standing",
+);
+const [measuredEffort, siblingEffort] = blendPairwiseQualityScores(
+  [
+    { ...candidate("test/a", 90, 100, 100), reasoning_effort: "max" },
+    { ...candidate("test/a", 85, 100, 100), reasoning_effort: "xhigh" },
+    candidate("test/b", 40, 60, 70),
+    candidate("test/c", 80, 10, 20),
+  ],
+  indexOnlyConfig,
+  [
+    [90, 95],
+    [85, null],
+    [40, 99],
+    [80, 100],
+  ].map(([score, indexValue]) => ({
+    frontier: score!,
+    baseline: score!,
+    taskWeight: 1,
+    indexes:
+      indexValue == null ? [] : [{ key: "epoch_capabilities_index", value: indexValue, weight: 1 }],
+    retention: 1,
+  })),
+).map((model) => model.component_scores!.intelligence_score!);
+assert.ok(
+  Math.abs(measuredEffort! - siblingEffort! - 5) < 1e-10,
+  "An index held by one effort shifts the model's other efforts equally, keeping their order",
 );
 
 const frontierOnlyConfig = {
@@ -229,8 +282,8 @@ const frontierOnlyBlended = blendPairwiseQualityScores(
   [90, 40, 80].map((score) => ({
     frontier: score,
     baseline: null,
-    indexScore: null,
-    indexShare: 0,
+    taskWeight: 1,
+    indexes: [],
     retention: 1,
   })),
 );

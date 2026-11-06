@@ -54,7 +54,7 @@ The four scores follow two paths from the same observed inputs, and each path en
 >
 >      3. **Combine benchmarks and indexes**
 >
->         :score[Intelligence]: 20% pairwise within its frontier component
+>         :score[Intelligence]: 20% pairwise within its frontier component; indexes read off the frontier scale
 >
 >      4. **Discount thin evidence**
 >

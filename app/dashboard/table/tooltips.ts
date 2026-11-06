@@ -23,6 +23,11 @@ import {
   taskMetricColumns,
 } from "./models";
 
+const limitedEvidenceRow = [
+  "Limited evidence",
+  "The score retains 85% at low coverage, rising to 100% with sufficient support.",
+] as const;
+
 // Summaries explain the score while published metadata remains the authority for every weight.
 const scoreExplanations: Partial<
   Record<TableColumnKey, Pick<ModelAtlasColumnTooltip, "body" | "rows">>
@@ -32,8 +37,12 @@ const scoreExplanations: Partial<
     rows: [
       ["Scale", "Each benchmark spans 0–100 within the reference population."],
       ["Weights", "Benchmark importance × Intelligence loading."],
-      ["Task/index blend", "20/80 → 80/20 as direct task evidence grows."],
-      ["Limited evidence", "Supported estimates fill gaps; sparse high scores move toward 50."],
+      ["Shared comparisons", "20% compares models on the benchmarks they share."],
+      [
+        "Indexes",
+        "Count at the score of models with the same index standing. The full benchmark portfolio sets the benchmarks' weight against them.",
+      ],
+      limitedEvidenceRow,
     ],
   },
   agentic: {
@@ -44,8 +53,11 @@ const scoreExplanations: Partial<
         "Token efficiency",
         "0.85–1.15× before rescaling to 0–100; weak token evidence approaches 1×.",
       ],
-      ["Task/index blend", "20/80 → 80/20 as direct task evidence grows."],
-      ["Limited evidence", "Supported estimates fill gaps; sparse high scores move toward 50."],
+      [
+        "Benchmark/index blend",
+        "Available benchmarks determine the mean. The full benchmark portfolio sets its weight against indexes.",
+      ],
+      limitedEvidenceRow,
     ],
   },
   speed: {

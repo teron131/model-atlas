@@ -3,7 +3,6 @@
 import { modelCalibrationWeights } from "../benchmarks/calibration-population";
 import type { BenchmarkPortfolio } from "../benchmarks/factory";
 import {
-  excludesVariantIndex,
   INDEX_BENCHMARK_KEYS,
   indexPolicy,
   residualIndexBreadth,
@@ -56,13 +55,7 @@ export function resourceRatioObservations(
     for (const key of INDEX_BENCHMARK_KEYS) {
       const policy = indexPolicy(key);
       const quality = benchmarkValue(model, key);
-      if (
-        portfolio[key] == null ||
-        policy?.resources == null ||
-        excludesVariantIndex(model, key) ||
-        quality == null
-      )
-        continue;
+      if (portfolio[key] == null || policy?.resources == null || quality == null) continue;
       const amount = metricAmount(benchmarkTaskMetrics(model, policy.resources.key), kind);
       if (amount != null)
         observations.push({

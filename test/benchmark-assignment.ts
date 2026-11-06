@@ -366,6 +366,11 @@ const valsIndexLookups = {
   ...lookups,
   valsIndex: { rowsByModelName: buildValsIndexMap([valsIndexRow]) },
 };
+assert.equal(
+  buildObservationBenchmarks(["Example Model"], valsIndexLookups, {}, "high").benchmarks.vals_index,
+  valsIndexRow.score,
+  "An explicitly measured Vals effort can score independently of the default variant",
+);
 const indexAssignment = buildDefaultVariantBenchmarks(
   ["Example Model"],
   valsIndexLookups,

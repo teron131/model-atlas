@@ -1000,13 +1000,13 @@ variantIndexes.observations = variantIndexes.observations.filter(
 const variantEstimate = calibrateTimeline(variantIndexes, "intelligence").estimates.find(
   (e) => e.modelId === firstBridge[0]!.id,
 )!;
-close(variantEstimate.value!, 75);
+close(variantEstimate.value!, (8 * 25 + 16 * 75) / 24);
 assert.deepEqual(
   variantEstimate.paths.map((p) => p[0]),
-  ["other-index"],
+  ["other-index", "shared-index"],
 );
 assert.equal(
   variantIndexes.observations.filter((o) => o.modelId === firstBridge[0]!.id).length,
   2,
-  "An ineligible family index remains retained metadata",
+  "Assigned model-level indexes remain usable on an effort-labelled variant",
 );

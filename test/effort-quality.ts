@@ -2,7 +2,6 @@
 
 import assert from "node:assert/strict";
 
-import { INDEX_POLICIES } from "../src/model-atlas/benchmarks/index-policy";
 import { STAGE_CONFIG } from "../src/model-atlas/config/stage";
 import type { ModelAtlasCandidate } from "../src/model-atlas/pipeline/model-types";
 import { prepareEffortQualityScoringContext } from "../src/model-atlas/pipeline/scores/imputation/effort-quality";
@@ -83,10 +82,8 @@ const context = prepareEffortQualityScoringContext(population, config, base);
 const score = (model: typeof broad, ctx = context) => buildComponentScoreResult(model, config, ctx);
 const close = (a: number | null | undefined, b: number) =>
   assert.ok(a != null && Math.abs(a - b) < 1e-9, `${a} != ${b}`);
-// The inferred hard-task zero keeps its configured unit weight in the baseline group beside the AA proxy, which weighs as much as its represented breadth.
-const aaBreadth = INDEX_POLICIES.aa_intelligence_index.representedBenchmarks;
-const expectedPartialTaskScore = 0.8 * 80 + (0.2 * (7 * 80)) / 8;
-const expectedPartialScore = (9 * expectedPartialTaskScore + aaBreadth * 100) / (9 + aaBreadth);
+// The inferred hard-task zero keeps its configured unit weight in the baseline group; the raw AA level stays out of per-model Intelligence.
+const expectedPartialScore = 0.8 * 80 + (0.2 * (7 * 80)) / 8;
 close(score(partial).componentScores?.intelligence_score, expectedPartialScore);
 close(
   score(broad).componentScores?.intelligence_score,
@@ -97,10 +94,7 @@ assert.equal(partial.benchmarks.task_8, undefined);
 // Newly observed evidence takes precedence even if an estimate was already prepared.
 const observed = { ...partial, benchmarks: { ...partial.benchmarks, task_8: 50 } };
 const expectedObservedTaskScore = 0.8 * 80 + (0.2 * (7 * 80 + 50)) / 8;
-close(
-  score(observed).componentScores?.intelligence_score,
-  (9 * expectedObservedTaskScore + aaBreadth * 100) / (9 + aaBreadth),
-);
+close(score(observed).componentScores?.intelligence_score, expectedObservedTaskScore);
 const sparse = {
   ...partial,
   reasoning_effort: "low",

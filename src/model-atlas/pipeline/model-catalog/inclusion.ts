@@ -4,6 +4,7 @@
  */
 
 import {
+  modelSlugFromModelId,
   normalizeProviderId,
   normalizeProviderModelId,
   qualifyModelId,
@@ -12,6 +13,12 @@ import { asRecord } from "../../runtime";
 import type { ModelAtlasSourceData } from "../../sources/assembly";
 import type { ModelsDevFlatModel, ModelsDevModelRecord } from "../../sources/models-dev/catalog";
 import type { ModelRow } from "../model-types";
+
+/** Publisher evidence overrides a source's open-weights flag for these model slugs, whichever source supplied the row. */
+const OPEN_WEIGHTS_MODEL_SLUGS = new Set([
+  // Moonshot publishes the weights: https://huggingface.co/moonshotai/Kimi-K3.1-Pro/tree/main
+  "kimi-k3.1-pro",
+]);
 
 /** The catalog facts a models.dev entry contributes to a model row; the payload is unvalidated, so each field is checked here. */
 export function modelsDevRowFields(
@@ -165,5 +172,10 @@ export function buildModelCatalogRows(
     trackRepresentedRow(row);
     catalogRows.push(row);
   }
-  return catalogRows;
+  return catalogRows.map((row) => {
+    const slug = modelSlugFromModelId(row.id)?.toLowerCase();
+    return slug != null && OPEN_WEIGHTS_MODEL_SLUGS.has(slug)
+      ? { ...row, open_weights: true }
+      : row;
+  });
 }

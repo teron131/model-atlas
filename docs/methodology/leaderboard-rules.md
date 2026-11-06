@@ -92,7 +92,7 @@ The selector includes individual benchmarks with results at several reasoning ef
 
 Each selected index uses its own quality result. Artificial Analysis pairs its Intelligence Index with its reported aggregate cost and runtime per task; its output-only token measurement cannot supply total token consumption. Those resources stay attached to that index. Single-index views show native index points, not percentages.
 
-Cost, Time, and Tokens each require their own paired observations. Tokens require a reported total or complete input/output pair; output-only telemetry cannot supply this axis. Imputed resources affect scoring but do not appear as direct graph measurements. Effort-labelled variants use only indexes reporting that effort, currently AA.
+Cost, Time, and Tokens each require their own paired observations. Tokens require a reported total or complete input/output pair; output-only telemetry cannot supply this axis. Imputed resources affect scoring but do not appear as direct graph measurements. In these graphs, an index result belongs to its measured effort or the single assigned source-default variant and is not copied to other efforts.
 
 Build each model’s comparison independently for cost, time, and tokens:
 

@@ -2,13 +2,11 @@
 
 import { createHash } from "node:crypto";
 
-import { excludesVariantIndex } from "../benchmarks/index-policy";
 import { stableJson } from "../runtime";
 import { isInformativeValue } from "./benchmark-evidence";
 import { extendTimelineGraph, fitTimelineLink, timelineNativeValue } from "./linking";
 import { resolveHistoricalModelIdentities } from "./model-identity";
 import {
-  catalogBenchmarkKey,
   hasUnresolvedVersion,
   type HistoricalDataset,
   type HistoricalObservation,
@@ -119,7 +117,6 @@ export function prepareTimelineRelease(
     return data;
   }
   const byBenchmark = new Map<string, Map<string, number>>();
-  const modelEfforts = new Map(data.models.map((model) => [model.id, model.effort]));
   for (const observation of data.observations) {
     // Retain every checkpoint label for audit; only supported references define units or override an evidence-based estimate.
     if (
@@ -129,13 +126,6 @@ export function prepareTimelineRelease(
       continue;
     const definition = benchmarks.get(observation.benchmarkId);
     if (!definition || !isInformativeValue(definition, observation.value, parameters)) continue;
-    if (
-      excludesVariantIndex(
-        { reasoning_effort: modelEfforts.get(observation.modelId) },
-        catalogBenchmarkKey(definition.key),
-      )
-    )
-      continue;
     const value = timelineNativeValue(definition, observation.value);
     if (value == null) continue;
     const values = byBenchmark.get(definition.id) ?? new Map<string, number>();

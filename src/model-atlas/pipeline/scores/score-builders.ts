@@ -2,7 +2,6 @@
 
 import type { BenchmarkDimension } from "../../benchmarks/factory";
 import {
-  excludesVariantIndex,
   isAggregateIndex,
   qualityIndexBreadths,
   reportedIndexBenchmarkCount,
@@ -25,24 +24,16 @@ type BenchmarkScoreInput = {
   value: number | null;
   evidenceFactor: number;
   observed: boolean;
-  scoreEstimate?: boolean;
-  scoreExcluded?: boolean;
   weight: number;
-  representedBenchmarks?: number | null;
+  representedBenchmarks: number | null;
 };
 
-type QualityScoreResult = {
-  score: number | null;
-  evidenceSupport: number | null;
-  retention: number;
-};
-
-/** Keep task-group and index contributions separate until the population pairwise fit is available. */
+/** Keep task-group and index contributions separate until the population can fit pairwise comparisons and place index results on the frontier scale. */
 export type IntelligenceScoreParts = {
   frontier: number | null;
   baseline: number | null;
-  indexScore: number | null;
-  indexShare: number;
+  taskWeight: number;
+  indexes: { key: string; value: number; weight: number }[];
   retention: number;
 };
 
@@ -52,239 +43,169 @@ type ComponentScoreResult = {
   intelligenceScoreParts: IntelligenceScoreParts | null;
 };
 
+export function buildComponentScoreResult(
+  model: JsonObject,
+  scoringConfig: ScoringConfig,
+  qualityContext: QualityScoringContext,
+  imputedValuesByKey: ReadonlyMap<string, number> = new Map(),
+  imputedFactorsByKey: ReadonlyMap<string, number> = new Map(),
+  benchmarkWeightMultipliersByKey: ReadonlyMap<string, number> = new Map(),
+): ComponentScoreResult {
+  const score = (dimension: BenchmarkDimension) => {
+    const inputs = benchmarkScoreInputs(
+      model,
+      dimension,
+      qualityContext,
+      scoringConfig,
+      imputedValuesByKey,
+      imputedFactorsByKey,
+      benchmarkWeightMultipliersByKey,
+    );
+    return qualityScore(inputs, dimension, scoringConfig);
+  };
+  const intelligence = score("intelligence");
+  const agentic = score("agentic");
+  return {
+    componentScores:
+      intelligence.score == null && agentic.score == null
+        ? null
+        : { intelligence_score: intelligence.score, agentic_score: agentic.score },
+    confidence: {
+      intelligence: intelligence.evidenceSupport,
+      agentic: agentic.evidenceSupport,
+      speed: null,
+      value: null,
+    },
+    intelligenceScoreParts: intelligence.parts,
+  };
+}
+
 /** Count observed benchmarks without allowing imputed values to satisfy admission. */
 export function observedBenchmarkCount(model: unknown, keys: readonly string[]): number {
   const modelRecord = asRecord(model);
   return keys.reduce((count, key) => count + (benchmarkValue(modelRecord, key) != null ? 1 : 0), 0);
 }
 
-function selectedBenchmarkScoreInputs(
+function benchmarkScoreInputs(
   model: JsonObject,
-  keys: readonly string[],
   dimension: BenchmarkDimension,
-  qualityContext: QualityScoringContext,
-  scoringConfig: ScoringConfig,
-  imputedValuesByKey: ReadonlyMap<string, number> = new Map(),
-  imputedFactorsByKey: ReadonlyMap<string, number> = new Map(),
-  benchmarkWeightMultipliersByKey: ReadonlyMap<string, number> = new Map(),
+  context: QualityScoringContext,
+  config: ScoringConfig,
+  imputedValues: ReadonlyMap<string, number>,
+  imputedFactors: ReadonlyMap<string, number>,
+  weightMultipliers: ReadonlyMap<string, number>,
 ): BenchmarkScoreInput[] {
+  const keys =
+    dimension === "intelligence" ? config.intelligenceBenchmarkKeys : config.agenticBenchmarkKeys;
+  const estimates = context.effortQualityEstimates?.get(effortQualityKey(model, dimension));
   const inputs: BenchmarkScoreInput[] = [];
   for (const key of keys) {
-    if (dimension === "intelligence" && !countsTowardIntelligence(key, scoringConfig)) {
-      continue;
-    }
-    const dimensionWeight =
-      benchmarkDimensionWeight(key, dimension, scoringConfig.benchmarkPortfolio) *
-      (benchmarkWeightMultipliersByKey.get(key) ?? 1);
-    if (!(dimensionWeight > 0)) {
-      continue;
-    }
-    inputs.push(
-      benchmarkScoreInput(model, key, dimension, qualityContext, dimensionWeight, {
-        value: imputedValuesByKey.get(key) ?? null,
-        evidenceFactor: imputedFactorsByKey.get(key) ?? 0,
-      }),
-    );
+    if (dimension === "intelligence" && !countsTowardIntelligence(key, config)) continue;
+    const weight =
+      benchmarkDimensionWeight(key, dimension, config.benchmarkPortfolio) *
+      (weightMultipliers.get(key) ?? 1);
+    if (!(weight > 0)) continue;
+
+    const observed = benchmarkValue(model, key);
+    inputs.push({
+      key,
+      value:
+        observed == null
+          ? (estimates?.get(key) ?? null)
+          : normalizedQualityBenchmarkValue(model, key, observed, dimension, context),
+      evidenceFactor:
+        observed != null ? 1 : imputedValues.has(key) ? (imputedFactors.get(key) ?? 0) : 0,
+      observed: observed != null,
+      weight,
+      representedBenchmarks: isAggregateIndex(key) ? reportedIndexBenchmarkCount(model, key) : null,
+    });
   }
   return inputs;
 }
 
-/** Quality scores use observation precedence, scoring-only effort estimates, and variant index exclusions. */
-function benchmarkScoreInput(
-  model: JsonObject,
-  key: string,
-  dimension: BenchmarkDimension,
-  context: QualityScoringContext,
-  weight: number,
-  imputed?: { value: number | null; evidenceFactor: number },
-): BenchmarkScoreInput {
-  const observedValue = benchmarkValue(model, key);
-  const effortEstimate = context.effortQualityEstimates
-    ?.get(effortQualityKey(model, dimension))
-    ?.get(key);
-  const scoreEstimate = observedValue == null && effortEstimate != null;
-  return {
-    key,
-    value: scoreEstimate
-      ? (effortEstimate ?? null)
-      : normalizedQualityBenchmarkValue(
-          model,
-          key,
-          observedValue ?? imputed?.value ?? null,
-          dimension,
-          context,
-        ),
-    evidenceFactor: observedValue != null ? 1 : imputed?.value == null ? 0 : imputed.evidenceFactor,
-    observed: observedValue != null,
-    scoreEstimate,
-    scoreExcluded: excludesVariantIndex(model, key),
-    weight,
-    representedBenchmarks: reportedIndexBenchmarkCount(model, key),
-  };
-}
-
-/** Combine a variant's direct benchmark evidence with breadth-scaled eligible index support. */
-function indexBlendedQualityScore(
-  benchmarkScoreInputs: BenchmarkScoreInput[],
-  directBenchmarkWeightMultiplier: number,
-  breadths: ReadonlyMap<string, number>,
-): number | null {
-  const observed = benchmarkScoreInputs.filter(
-    ({ observed, value, weight, scoreExcluded }) =>
-      !scoreExcluded && observed && value != null && weight > 0,
-  );
-  const benchmarks = benchmarkScoreInputs.filter(
-    ({ key, observed, scoreEstimate, value, weight }) =>
-      !isAggregateIndex(key) && (observed || scoreEstimate) && value != null && weight > 0,
-  );
-  const indexes = observed.filter(({ key }) => isAggregateIndex(key));
-  return weightedMeanOfFinite([
-    ...benchmarks.map((part) => ({
-      ...part,
-      weight: part.weight * directBenchmarkWeightMultiplier,
-    })),
-    ...indexes.map((part) => ({
-      ...part,
-      weight: part.weight * (breadths.get(part.key) ?? 0),
-    })),
-  ]);
-}
-
-/** Score direct evidence and breadth-scaled index support in one pool; estimates enter without advancing direct coverage. */
 function qualityScore(
-  benchmarkScoreInputs: BenchmarkScoreInput[],
-  directBenchmarkWeightMultiplier: number,
-  minimumCoverageRetention: number,
-  retentionThresholds: { floor: number; full: number },
-): QualityScoreResult {
-  const qualityMean = weightedMeanOfFinite(
-    benchmarkScoreInputs.flatMap(({ value, observed, scoreEstimate, scoreExcluded, weight }) =>
-      !scoreExcluded && (observed || scoreEstimate) ? [{ value, weight }] : [],
-    ),
+  inputs: BenchmarkScoreInput[],
+  dimension: BenchmarkDimension,
+  config: ScoringConfig,
+) {
+  const tasks = inputs.filter(({ key }) => !isAggregateIndex(key));
+  const scoredTasks = tasks.filter(({ value }) => value != null);
+  const observedIndexes = inputs.flatMap(
+    ({ key, value, observed, weight, representedBenchmarks }) =>
+      isAggregateIndex(key) && observed && value != null
+        ? [{ key, value, weight, reportedCount: representedBenchmarks }]
+        : [],
   );
-  if (qualityMean == null) {
-    return { score: null, evidenceSupport: null, retention: 1 };
-  }
-  const observedIndexes = benchmarkScoreInputs.filter(
-    ({ key, observed, value, scoreExcluded }) =>
-      isAggregateIndex(key) && observed && value != null && !scoreExcluded,
-  );
-  const observedBenchmarkKeys = benchmarkScoreInputs
-    .filter(({ key, observed, value }) => !isAggregateIndex(key) && observed && value != null)
-    .map(({ key }) => key);
   const breadths = qualityIndexBreadths(
-    observedIndexes.map(({ key, representedBenchmarks }) => ({
-      key,
-      reportedCount: representedBenchmarks,
-    })),
-    observedBenchmarkKeys,
+    observedIndexes,
+    scoredTasks.filter(({ observed }) => observed).map(({ key }) => key),
   );
-  const supportedWeight = benchmarkScoreInputs.reduce(
-    (total, { evidenceFactor, scoreExcluded, weight }) =>
-      total + (scoreExcluded ? 0 : evidenceFactor * weight),
-    0,
-  );
-  const totalWeight = benchmarkScoreInputs.reduce((total, { weight }) => total + weight, 0);
-  const evidenceSupport = totalWeight > 0 ? clamp01(supportedWeight / totalWeight) : null;
-  const weightedEvidence = benchmarkScoreInputs.reduce(
-    (total, { key, evidenceFactor, scoreExcluded, weight }) =>
-      total +
-      (scoreExcluded
-        ? 0
-        : isAggregateIndex(key)
-          ? weight * (breadths.get(key) ?? 0) * evidenceFactor
-          : weight * directBenchmarkWeightMultiplier * evidenceFactor),
-    0,
-  );
-  const qualityScore =
-    observedIndexes.length > 0
-      ? indexBlendedQualityScore(benchmarkScoreInputs, directBenchmarkWeightMultiplier, breadths)
-      : qualityMean;
-  const retention =
-    minimumCoverageRetention +
-    (1 - minimumCoverageRetention) *
-      evidenceRetentionFactor(
-        weightedEvidence,
-        retentionThresholds.floor,
-        retentionThresholds.full,
-      );
+  const indexes = observedIndexes.map(({ key, value, weight }) => ({
+    key,
+    value,
+    weight: weight * (breadths.get(key) ?? 0),
+  }));
+  // The blend uses all selected task weights. Retention counts only the supported part of each weight.
+  const taskWeight =
+    tasks.reduce((sum, task) => sum + task.weight, 0) * config.directBenchmarkWeightMultiplier;
+  const { evidenceSupport, retention } = qualityEvidence(inputs, breadths, config);
+
+  if (dimension === "agentic") {
+    const taskMean = weightedMeanOfFinite(scoredTasks);
+    const mean =
+      indexes.length === 0
+        ? taskMean
+        : weightedMeanOfFinite([{ value: taskMean, weight: taskWeight }, ...indexes]);
+    return { score: mean == null ? null : mean * retention, evidenceSupport, parts: null };
+  }
+
+  // Intelligence blends indexes only in the population step, after reading each result off the frontier scale; until then the score is task-only.
+  const groupMean = (group: "frontier" | "baseline") =>
+    weightedMeanOfFinite(
+      scoredTasks.filter(({ key }) => config.benchmarkPortfolio[key]?.group === group),
+    );
+  const frontier = groupMean("frontier");
+  const baseline = groupMean("baseline");
+  const weights = config.intelligenceGroupWeights;
+  const taskScore =
+    (weights.frontier > 0 && frontier == null) || (weights.baseline > 0 && baseline == null)
+      ? null
+      : weights.frontier * (frontier ?? 0) + weights.baseline * (baseline ?? 0);
   return {
-    score: qualityScore == null ? null : qualityScore * retention,
+    score: taskScore == null ? null : retention * taskScore,
     evidenceSupport,
-    retention,
+    parts: { frontier, baseline, taskWeight, indexes, retention },
   };
 }
 
-/** Hold active task groups at fixed shares while leaving the index union weight and evidence retention unchanged. */
-function intelligenceScore(
+function qualityEvidence(
   inputs: BenchmarkScoreInput[],
-  scoringConfig: ScoringConfig,
-): QualityScoreResult & { parts: IntelligenceScoreParts | null } {
-  const evidence = qualityScore(
-    inputs,
-    scoringConfig.directBenchmarkWeightMultiplier,
-    scoringConfig.qualityCoverageMinimumRetention,
-    scoringConfig.qualityRetention,
-  );
-  const direct = inputs.filter(
-    ({ key, observed, scoreEstimate, value, weight }) =>
-      !isAggregateIndex(key) && (observed || scoreEstimate) && value != null && weight > 0,
-  );
-  const groupScore = (group: "frontier" | "baseline") =>
-    weightedMeanOfFinite(
-      direct.filter(({ key }) => scoringConfig.benchmarkPortfolio[key]?.group === group),
-    );
-  const frontier = groupScore("frontier");
-  const baseline = groupScore("baseline");
-
-  const observedIndexes = inputs.filter(
-    ({ key, observed, value, scoreExcluded }) =>
-      isAggregateIndex(key) && observed && value != null && !scoreExcluded,
-  );
-  const breadths = qualityIndexBreadths(
-    observedIndexes.map(({ key, representedBenchmarks }) => ({
-      key,
-      reportedCount: representedBenchmarks,
-    })),
-    inputs
-      .filter(({ key, observed, value }) => !isAggregateIndex(key) && observed && value != null)
-      .map(({ key }) => key),
-  );
-  const directWeight = direct.reduce((total, { weight }) => total + weight, 0);
-  const indexWeight = observedIndexes.reduce(
-    (total, { key, weight }) => total + weight * (breadths.get(key) ?? 0),
-    0,
-  );
-  const indexScore = weightedMeanOfFinite(
-    observedIndexes.map((input) => ({
-      ...input,
-      weight: input.weight * (breadths.get(input.key) ?? 0),
-    })),
-  );
-  const indexShare =
-    indexScore == null
-      ? 0
-      : indexWeight / (directWeight * scoringConfig.directBenchmarkWeightMultiplier + indexWeight);
-  const parts: IntelligenceScoreParts = {
-    frontier,
-    baseline,
-    indexScore,
-    indexShare,
-    retention: evidence.retention,
-  };
-  const taskScore =
-    (scoringConfig.intelligenceGroupWeights.frontier > 0 && frontier == null) ||
-    (scoringConfig.intelligenceGroupWeights.baseline > 0 && baseline == null)
-      ? null
-      : scoringConfig.intelligenceGroupWeights.frontier * (frontier ?? 0) +
-        scoringConfig.intelligenceGroupWeights.baseline * (baseline ?? 0);
+  breadths: ReadonlyMap<string, number>,
+  config: ScoringConfig,
+) {
+  if (!inputs.some(({ value }) => value != null)) return { evidenceSupport: null, retention: 1 };
+  let totalWeight = 0;
+  let supportedWeight = 0;
+  let retentionWeight = 0;
+  for (const { key, weight, evidenceFactor } of inputs) {
+    totalWeight += weight;
+    supportedWeight += weight * evidenceFactor;
+    const multiplier = isAggregateIndex(key)
+      ? (breadths.get(key) ?? 0)
+      : config.directBenchmarkWeightMultiplier;
+    retentionWeight += weight * multiplier * evidenceFactor;
+  }
+  const minimum = config.qualityCoverageMinimumRetention;
   return {
-    ...evidence,
-    score:
-      taskScore == null
-        ? null
-        : evidence.retention * ((1 - indexShare) * taskScore + indexShare * (indexScore ?? 0)),
-    parts,
+    evidenceSupport: clamp01(supportedWeight / totalWeight),
+    retention:
+      minimum +
+      (1 - minimum) *
+        evidenceRetentionFactor(
+          retentionWeight,
+          config.qualityRetention.floor,
+          config.qualityRetention.full,
+        ),
   };
 }
 
@@ -348,54 +269,4 @@ const MINIMUM_LOG_BLENDED_PRICE = 0.001;
 /** Log blended price so equal price ratios count equally at every price level; free models stay finite and cheapest. */
 export function logBlendedPrice(price: number | null): number | null {
   return price == null ? null : Math.log(Math.max(price, MINIMUM_LOG_BLENDED_PRICE));
-}
-
-export function buildComponentScoreResult(
-  model: JsonObject,
-  scoringConfig: ScoringConfig,
-  qualityContext: QualityScoringContext,
-  imputedValuesByKey: ReadonlyMap<string, number> = new Map(),
-  imputedFactorsByKey: ReadonlyMap<string, number> = new Map(),
-  benchmarkWeightMultipliersByKey: ReadonlyMap<string, number> = new Map(),
-): ComponentScoreResult {
-  const intelligenceBenchmarkInputs = selectedBenchmarkScoreInputs(
-    model,
-    scoringConfig.intelligenceBenchmarkKeys,
-    "intelligence",
-    qualityContext,
-    scoringConfig,
-    imputedValuesByKey,
-    imputedFactorsByKey,
-    benchmarkWeightMultipliersByKey,
-  );
-  const agenticBenchmarkInputs = selectedBenchmarkScoreInputs(
-    model,
-    scoringConfig.agenticBenchmarkKeys,
-    "agentic",
-    qualityContext,
-    scoringConfig,
-    imputedValuesByKey,
-    imputedFactorsByKey,
-    benchmarkWeightMultipliersByKey,
-  );
-  const intelligence = intelligenceScore(intelligenceBenchmarkInputs, scoringConfig);
-  const agentic = qualityScore(
-    agenticBenchmarkInputs,
-    scoringConfig.directBenchmarkWeightMultiplier,
-    scoringConfig.qualityCoverageMinimumRetention,
-    scoringConfig.qualityRetention,
-  );
-  return {
-    componentScores:
-      intelligence.score == null && agentic.score == null
-        ? null
-        : { intelligence_score: intelligence.score, agentic_score: agentic.score },
-    confidence: {
-      intelligence: intelligence.evidenceSupport,
-      agentic: agentic.evidenceSupport,
-      speed: null,
-      value: null,
-    },
-    intelligenceScoreParts: intelligence.parts,
-  };
 }
