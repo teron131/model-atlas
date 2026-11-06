@@ -61,12 +61,12 @@ function chain(entries: [relation: string | null, id: string][]) {
   })) as CommunityRanking["indexes"]["tmb"][number];
 }
 
-// Top fifteen by Intelligence, then releases in the 60 days ending 2026-10-19 (after 2026-08-20), sorted by id.
+// Top fifteen by Intelligence, then releases in the 90 days ending 2026-10-19 (after 2026-07-21), sorted by id.
 const field = [
   model("k", 99, "2026-10-01"),
   model("j", 98, "2026-06-01"),
   ...["a", "b", "c", "d", "e", "f", "g", "h", "i", "l", "m", "n", "o"].map((id, index) =>
-    model(id, 90 - index, index === 3 ? "2026-08-20" : "2026-09-15"),
+    model(id, 90 - index, index === 3 ? "2026-07-21" : "2026-09-15"),
   ),
   model("late", 50, "2026-10-10"),
 ];
@@ -75,6 +75,21 @@ assert.deepEqual(
     (entry) => entry.model_id,
   ),
   ["a", "b", "c", "e", "f", "g", "h", "i", "k", "l", "m", "n", "o"],
+);
+
+const versionNames = [
+  model("openai/gpt-6-sol", 99, "2026-09-22"),
+  model("openai/gpt-6.1-sol", 98, "2026-09-29"),
+  model("google/gemini-4-argon", 97, "2026-10-13"),
+  model("google/gemini-4-carbon", 96, "2026-10-28"),
+];
+// Version selection belongs to research; the mechanical pool retains every qualifying identity.
+assert.deepEqual(
+  communityCandidates(
+    minimalModelAtlasPayload({ fetchedAt: 1, models: versionNames }),
+    "2026-11-06",
+  ).map((entry) => entry.model_id),
+  ["google/gemini-4-argon", "google/gemini-4-carbon", "openai/gpt-6-sol", "openai/gpt-6.1-sol"],
 );
 
 const candidates = ["a", "b", "c"].map((id) => ({
@@ -708,7 +723,7 @@ try {
     ...dualPayload,
     models: dualPayload.models.map((entry) => ({
       ...entry,
-      release_date: submitted.ranked_at.slice(0, 10),
+      release_date: entry.id === "unranked" ? "2020-01-01" : submitted.ranked_at.slice(0, 10),
     })),
   };
   const compressed = gzipSync(JSON.stringify(payload));
@@ -769,13 +784,21 @@ try {
     const candidateBody = await candidateResponse.json();
     assert.deepEqual(
       candidateBody.models.map((entry: { model_id: string }) => entry.model_id),
-      ["a", "b", "c", "unranked"],
+      ["a", "b", "c"],
     );
     assert.ok(
       candidateBody.models.every(
         (entry: object) => !("scores" in entry) && !("community_indexes" in entry),
       ),
     );
+    assert.deepEqual(
+      candidateBody.catalog.map((entry: { model_id: string }) => entry.model_id),
+      ["a", "b", "c", "unranked"],
+    );
+    assert.equal(candidateBody.catalog[3].release_date, "2020-01-01");
+    for (const entry of candidateBody.catalog) {
+      assert.deepEqual(Object.keys(entry).sort(), ["model_id", "name", "release_date"]);
+    }
     delete process.env.MODEL_ATLAS_COMMUNITY_WRITER_URL;
     assert.equal(
       (await rankingPOST(new Request("http://localhost", { method: "POST" }))).status,

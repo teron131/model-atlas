@@ -7,6 +7,16 @@ Start from the candidate response returned by `GET /api/community/candidates`; f
 Do not read Atlas scores, previous TMB or Slop rankings, or an expected answer; each run judges its current field on its own.
 Collect and interpret the evidence first, then judge from that record; do not choose an order and make the evidence fit it.
 
+## Resolve latest versions
+
+Before comparative research, retain only the latest released version within each candidate's provider, model series, and capability tier.
+Use the response's full `catalog` to check for successors even outside `models`; an outside model can supersede a candidate but cannot become a candidate, and omitted versions are not backfilled.
+Resolve succession from model identity and release evidence, keeping distinct capability tiers, parameter sizes, and product variants separate.
+Renamed models require evidence that one replaces the other; different codenames and later release dates alone do not establish succession.
+Only a successor released by `as_of` can exclude a candidate; verify ambiguous identities or record an unresolved omission.
+Record every excluded candidate, its successor, and the reason in the report and ranking log; a superseded version is omitted from both indexes.
+The discovery and evidence requirements below apply to every retained candidate.
+
 ## TMB: overall practical capability
 
 The ranking expresses the informed overall impression people have of these models' practical intelligence after relying on one as their main partner across substantive work: understanding the request, making sound judgments, and carrying it through to a useful outcome.
@@ -69,7 +79,7 @@ Repeated posts, videos, quotes, or agreement about the same person's experience 
 
 ## Discovery
 
-Complete the same discovery pass for every candidate before deciding the order, using these query families within the source window, where `<model>` is the candidate's ordinary name:
+Complete the same discovery pass for every retained candidate before deciding the order, using these query families within the source window, where `<model>` is the candidate's ordinary name:
 
 - `site:reddit.com "<model>"`
 - `site:reddit.com "<model>" (using OR experience OR impressions)`
@@ -98,9 +108,9 @@ Record relevant effort, harness, help supplied, and corrections without inventin
 Prefer assessments grounded in meaningful use, including research, analysis, technical documents, and difficult work beyond coding, and state when coverage is developer-heavy or concentrated in a few people's projects.
 
 Interpret model mentions against the candidate list using the surrounding discussion rather than exact catalog spelling.
-People mix product and model names, abbreviate, omit providers or versions, write 6.0 for 6, and make typing or caption errors: "ChatGPT 6.0 Astra" means candidate GPT-6 Astra, and a typo such as "chatgdp 6.0" can refer to the model the thread establishes, though on its own it does not distinguish Astra from Sol.
-Current shorthand means the current candidate, so Opus means the candidate Opus and Fable the candidate Fable; explicit older versions, conflicting dates or context, and separately named products override that default.
-Wonder Full is not standard Wonder, while Max may be an effort setting on the same model; follow the source's own explanation of such qualifiers.
+Resolve product names, abbreviations, omitted providers or versions, version-format variations, and typing or caption errors from the surrounding discussion; leave identities unresolved when context cannot distinguish candidates.
+Current shorthand means the corresponding current candidate; explicit older versions, conflicting dates or context, and separately named products override that default.
+Distinguish product variants from effort settings using the source's own explanation.
 A clearly identified preview within the window can be useful evidence when its qualification is recorded.
 Keep the source's wording beside your resolved identity when the interpretation matters, and do not discard a useful account because its naming is informal.
 
@@ -142,12 +152,12 @@ Keep supported relationships even when a model's exact position is unclear: if t
 Use several chains only where they express the judgment clearly, not to split a supported complete order into pairs; a model may appear in several chains, chain order means nothing, and all chains within an index express the same judgment.
 Resolve conflicting directions within each graph from the evidence or leave the unsupported relationship unspecified, so neither graph contains a contradiction.
 An opposing preference between TMB and Slop is valid when their different standards explain it.
-Omit a candidate only when no comparative placement is supportable, saying whether discussion was absent, inaccessible, insufficient, or inconclusive; missing evidence is not last place.
+Among retained candidates, omit a model only when no comparative placement is supportable, saying whether discussion was absent, inaccessible, insufficient, or inconclusive; missing evidence is not last place.
 Do not calculate averages, source weights, ratings, or numerical distances; the backend owns every number.
 
 ## Report and log
 
-Lead the report with both sets of inequalities and the overall vibe behind each: the recurring reasons people give, representative experiences, meaningful disagreement, and material coverage gaps.
+Lead the report with both sets of inequalities, the recurring reasons people give, representative experiences, meaningful disagreement, and material coverage gaps.
 For each close or disputed comparison that matters, give the credible view on each side and what tipped the preference, distinguishing what users say from your synthesis and calling a judgment call one.
 Explain when preferences reflect different work or collaboration styles rather than turning them into an intelligence hierarchy, and keep the language proportional to the coverage.
 If access prevents a supportable result, report the missing evidence rather than inventing a ranking.
