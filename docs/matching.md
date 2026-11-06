@@ -118,7 +118,7 @@ The target model's entire family is excluded from the other models used for its 
 
 ## Selected Identity
 
-An accepted catalog match uses the winning provider and model ID as its public identity and attaches catalog metadata from `models.dev`. An unmatched qualified Artificial Analysis identity instead retains only source-reported metadata, leaving genuinely missing prices, limits, and serving measurements unknown.
+An accepted catalog match uses the winning provider and model ID as its public identity and attaches catalog metadata from `models.dev`. When publisher evidence shows a catalog field is wrong, Atlas corrects that field for the specific model and preserves the original source record. An unmatched qualified Artificial Analysis identity instead retains only source-reported metadata, leaving genuinely missing prices, limits, and serving measurements unknown.
 
 Resource fallback works field by field. Catalog input, output, and cache prices take precedence over Artificial Analysis prices, and listed OpenRouter route prices, weighted by the tokens each route served, take precedence for the input, cache-read, output, and blended prices. Exact-effort Artificial Analysis throughput and latency can fill serving fields only when primary measurements are unavailable. Each refresh recomputes these choices, so primary data takes over when it arrives without a stale override.
 

@@ -131,6 +131,22 @@ assert.deepEqual(
   "catalog policy should keep text models while excluding image labels and redundant latest aliases",
 );
 
+const kimiCatalogOnly = catalogModel("provider/kimi-k3.1-pro", "Kimi K3.1 Pro", "kimi");
+kimiCatalogOnly.model.open_weights = false;
+const kimiRows = buildModelCatalogRows(
+  { modelsDev: { rows: [kimiCatalogOnly], byId: new Map() } },
+  [
+    { id: "kimi-k3.1-pro", modalities: { output: ["text"] } },
+    { id: "provider/kimi-k3.1-pro-preview", open_weights: false, modalities: { output: ["text"] } },
+    { id: "provider/other", open_weights: null, modalities: { output: ["text"] } },
+  ],
+);
+assert.deepEqual(
+  kimiRows.map(({ open_weights }) => open_weights),
+  [true, false, null, true],
+);
+assert.equal(kimiCatalogOnly.model.open_weights, false, "The raw catalog keeps its reported flag");
+
 assert.equal(
   canonicalModelKey({ id: "alibaba/qwen3.6-plus", name: "Qwen 3.6 Plus" }),
   canonicalModelKey({ id: "qwen/qwen3.6-plus", name: "Qwen 3.6 Plus" }),

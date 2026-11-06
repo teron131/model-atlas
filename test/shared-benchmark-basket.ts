@@ -159,9 +159,9 @@ assert.equal(
 );
 assert.equal(proxyRows.find((r) => r.benchmarkKey === indexKey)?.cost, 2);
 assert.equal(
-  proxyRows.find((r) => r.benchmarkKey === "epoch_capabilities_index"),
-  undefined,
-  "An index without effort coverage is excluded from variant comparisons",
+  proxyRows.find((r) => r.benchmarkKey === "epoch_capabilities_index")?.score,
+  30,
+  "An assigned model-level index remains available on the source-default effort",
 );
 assert.equal(
   proxyRows.find((r) => r.benchmarkKey === "arc_agi_2")?.cost,
@@ -222,12 +222,7 @@ const restrictedRows = frontierBenchmarkRows(
 );
 assert.deepEqual(
   restrictedRows.map((row) => row.benchmarkKey).sort(),
-  graphKeys
-    .filter(
-      (key) =>
-        !["epoch_capabilities_index", "surge_intelligence_index", "vals_index"].includes(key),
-    )
-    .sort(),
+  graphKeys.sort(),
   "The effort graph includes the approved task benchmarks, standalone AA components, and index proxies",
 );
 

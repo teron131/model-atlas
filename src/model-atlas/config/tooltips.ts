@@ -179,8 +179,8 @@ const qualityBenchmarkRows = (
     [
       "Aggregation",
       dimension === "intelligence"
-        ? "frontier benchmarks supply the benchmark score; indexes enter at their overlap-adjusted evidence share"
-        : "frontier benchmarks and eligible indexes form one evidence pool; direct benchmarks receive a 1.5× multiplier and indexes multiply configured weight by represented breadth",
+        ? "frontier benchmark mean with a 20% shared-benchmark comparison, blended with indexes read off the frontier scale; the full frontier portfolio sets the benchmark weight"
+        : "available frontier results set the benchmark mean; the full frontier portfolio sets its weight against indexes",
     ],
     [
       "Imputed values",
@@ -190,7 +190,7 @@ const qualityBenchmarkRows = (
     ["Coverage regularization", QUALITY_REGULARIZATION_SCALE],
     [
       "Aggregate-index proxy",
-      `known direct and cross-index component overlap counts once; ECI uses fixed breadth ${INDEX_REPRESENTED_BENCHMARK_MEDIAN}; effort-labelled variants use effort-aware AA and CAIS indexes`,
+      `known direct and cross-index component overlap counts once; ECI uses fixed breadth ${INDEX_REPRESENTED_BENCHMARK_MEDIAN}; model-level indexes count as evidence only on the assigned source-default variant`,
     ],
     {
       title: "Frontier benchmarks",
@@ -204,7 +204,6 @@ const qualityBenchmarkRows = (
     },
     {
       title: "Aggregate indexes",
-      // An index has no fixed weight: its share depends on how much of it each model's direct results already cover, so the section states that once and lists the indexes alone.
       weight: "overlap-adjusted share",
       rows: benchmarkRows.indexes,
     },
@@ -298,13 +297,13 @@ export function columnTooltipsForActiveComponents(
   return {
     intelligence: {
       title: "Intelligence Score",
-      body: "Knowledge, perception, understanding, reasoning, and judgment on selected difficult benchmarks. Frontier benchmarks supply the benchmark score; baseline results remain visible without directly contributing to either capability. Every quality benchmark uses the same linear scaling within its observed range in Intelligence and Agentic. Aggregate indexes enter at their overlap-adjusted evidence share. Low supported benchmark weight discounts the entire score.",
+      body: "Knowledge, perception, understanding, reasoning, and judgment on selected difficult benchmarks. Frontier benchmarks supply the benchmark score; baseline results remain visible without directly contributing to either capability. Every quality benchmark uses the same linear scaling within its observed range in Intelligence and Agentic. Aggregate indexes count at the frontier score of models with the same standing on them. Low supported benchmark weight discounts the entire score.",
       rows: [
         ["Benchmark weights", "importance × Intelligence allocation for frontier benchmarks"],
         ["Benchmark normalization", "100 × observed-range position in both capabilities"],
         [
           "Final score",
-          "frontier benchmark score plus eligible indexes, then coverage retention once",
+          "frontier score with shared comparisons, blended with frontier-scaled indexes, then coverage retention once",
         ],
       ],
       sections: [
@@ -339,7 +338,7 @@ export function columnTooltipsForActiveComponents(
         ],
         [
           "Final score",
-          "coverage-regularized unified benchmark/index evidence mean with supported estimates from other efforts",
+          "token-adjusted frontier mean blended with assigned indexes, then discounted for thin evidence",
         ],
       ],
       sections: [

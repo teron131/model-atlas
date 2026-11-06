@@ -2152,48 +2152,14 @@ const undercoveredScore = buildComponentScoreResult(
   undercoveredConfig,
   undercoveredContext,
 ).componentScores?.intelligence_score;
-// The task groups keep their 80/20 budget before the direct and index union weights are combined; each half-importance index weighs half its represented breadth.
-const aaUnionWeight = 0.5 * INDEX_REPRESENTED_BENCHMARK_COUNTS.aa_intelligence_index;
-const valsUnionWeight = 0.5 * INDEX_REPRESENTED_BENCHMARK_COUNTS.vals_index;
-const indexUnionWeight = aaUnionWeight + valsUnionWeight;
-const expectedUndercoveredScore =
-  (80 * 2 + 70 * aaUnionWeight + 30 * valsUnionWeight) / (2 + indexUnionWeight);
-assertClose(undercoveredScore, expectedUndercoveredScore);
-assertClose(
-  buildComponentScoreResult(undercoveredModel, undercoveredConfig, undercoveredContext)
-    .componentScores?.intelligence_score,
-  expectedUndercoveredScore,
-);
-const lowImportanceIndexConfig = {
-  ...undercoveredConfig,
-  benchmarkPortfolio: {
-    ...undercoveredConfig.benchmarkPortfolio,
-    aa_intelligence_index: {
-      group: "baseline",
-      benchmarkImportance: 0.05,
-      dimensionLoadings: { intelligence: 1, agentic: 0 },
-    },
-    vals_index: {
-      group: "baseline",
-      benchmarkImportance: 0.05,
-      dimensionLoadings: { intelligence: 1, agentic: 0 },
-    },
-  },
-} as const;
-assertClose(
-  buildComponentScoreResult(
-    undercoveredModel,
-    lowImportanceIndexConfig,
-    buildQualityScoringContext(undercoveredModels, lowImportanceIndexConfig),
-  ).componentScores?.intelligence_score,
-  (80 * 2 + (70 * aaUnionWeight) / 10 + (30 * valsUnionWeight) / 10) / (2 + indexUnionWeight / 10),
-);
+// Per-model Intelligence leaves raw index levels out, however high AA and Vals report; only the population step adds indexes, read off the frontier scale.
+assertClose(undercoveredScore, 80);
 const coveredScore = buildComponentScoreResult(
   coveredModel,
   undercoveredConfig,
   undercoveredContext,
 ).componentScores?.intelligence_score;
-assertClose(coveredScore, (60 * 8 + 100 * indexUnionWeight) / (8 + indexUnionWeight));
+assertClose(coveredScore, 60);
 
 const nearlyCoveredModel = {
   ...coveredModel,
@@ -2204,11 +2170,7 @@ const nearlyCoveredScore = buildComponentScoreResult(
   undercoveredConfig,
   undercoveredContext,
 ).componentScores?.intelligence_score;
-assertClose(nearlyCoveredScore, (60 * 7 + 100 * indexUnionWeight) / (7 + indexUnionWeight));
-assert.ok(
-  Math.abs(nearlyCoveredScore! - coveredScore!) < 10,
-  "one additional direct benchmark must change only its own evidence weight",
-);
+assertClose(nearlyCoveredScore, coveredScore!);
 const weightedCoverageConfig: ScoringConfig = {
   ...undercoveredConfig,
   benchmarkPortfolio: {
@@ -2238,12 +2200,7 @@ const fourTaskModel = {
 assertClose(
   buildComponentScoreResult(fourTaskModel, undercoveredConfig, undercoveredContext).componentScores
     ?.intelligence_score,
-  (100 * indexUnionWeight + 60 * 4) / (4 + indexUnionWeight),
-);
-assertClose(
-  buildComponentScoreResult(fourTaskModel, undercoveredConfig, undercoveredContext).componentScores
-    ?.intelligence_score,
-  (100 * indexUnionWeight + 60 * 4) / (4 + indexUnionWeight),
+  coveredScore!,
 );
 const noTaskModel = { ...coveredModel, benchmarks: { vals_index: 100 } };
 assertEqual(

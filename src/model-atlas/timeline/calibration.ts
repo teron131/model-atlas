@@ -2,7 +2,6 @@
 
 import { modelCalibrationWeights } from "../benchmarks/calibration-population";
 import {
-  excludesVariantIndex,
   indexPolicy,
   qualityIndexBreadths,
   residualIndexBreadth,
@@ -85,10 +84,6 @@ export function calibrateTimeline(
       const definition = definitions.get(o.benchmarkId);
       return (
         definition &&
-        !excludesVariantIndex(
-          { reasoning_effort: model.effort },
-          catalogBenchmarkKey(definition.key),
-        ) &&
         !isReferenceBenchmark(definition) &&
         definition.weights[dimension] > 0 &&
         nodes.has(definition.id) &&

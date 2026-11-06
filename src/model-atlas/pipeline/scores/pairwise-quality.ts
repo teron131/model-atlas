@@ -1,4 +1,4 @@
-/** Pairwise quality fits normalized benchmark margins through a model-balanced, matrix-free weighted graph Laplacian. */
+/** Pairwise quality fits normalized benchmark margins through a model-balanced, matrix-free weighted graph Laplacian, then finishes Intelligence with index results placed on the frontier scale. */
 
 import { modelCalibrationWeights } from "../../benchmarks/calibration-population";
 import type { BenchmarkDimension, BenchmarkGroup } from "../../benchmarks/factory";
@@ -11,8 +11,10 @@ import {
 } from "../../config/stage";
 import { canonicalModelKey } from "../../identity/normalization";
 import {
+  clamp,
   linearScore,
   type MinMaxRange,
+  weightedMeanOfFinite,
   weightedQuantile,
   weightedQuantileRank,
 } from "../../math-utils";
@@ -134,8 +136,8 @@ export function fitPairwiseQualityScores(
 }
 
 /**
- * Map each group's pairwise percentile through that group's ordinary score distribution.
- * The fixed task-group budget and independent index union share apply after pairwise blending; evidence retention applies once at the end.
+ * Map each group's pairwise percentile through that group's ordinary score distribution, then blend in index results placed on the frontier scale.
+ * The fixed task-group budget applies after pairwise blending; evidence retention applies once at the end.
  * Variants outside a group's comparison graph keep that group's ordinary score.
  */
 export function blendPairwiseQualityScores(
@@ -143,15 +145,16 @@ export function blendPairwiseQualityScores(
   scoringConfig: ScoringConfig,
   intelligenceParts: readonly (IntelligenceScoreParts | null)[],
 ): ModelAtlasCandidate[] {
-  if (!(scoringConfig.pairwiseIntelligenceWeight > 0)) return models;
+  const pairwise = scoringConfig.pairwiseIntelligenceWeight > 0;
   const frontier =
-    scoringConfig.intelligenceGroupWeights.frontier > 0
+    pairwise && scoringConfig.intelligenceGroupWeights.frontier > 0
       ? blendGroupPairwiseScores(models, scoringConfig, intelligenceParts, "frontier")
       : new Map<number, number>();
   const baseline =
-    scoringConfig.intelligenceGroupWeights.baseline > 0
+    pairwise && scoringConfig.intelligenceGroupWeights.baseline > 0
       ? blendGroupPairwiseScores(models, scoringConfig, intelligenceParts, "baseline")
       : new Map<number, number>();
+  const scaledIndexes = frontierScaledIndexes(models, intelligenceParts);
   return models.map((model, modelIndex) => {
     const parts = intelligenceParts[modelIndex];
     if (
@@ -167,13 +170,15 @@ export function blendPairwiseQualityScores(
         (frontier.get(modelIndex) ?? parts.frontier ?? 0) +
       scoringConfig.intelligenceGroupWeights.baseline *
         (baseline.get(modelIndex) ?? parts.baseline ?? 0);
+    const mean = weightedMeanOfFinite([
+      { value: taskScore, weight: parts.taskWeight },
+      ...(scaledIndexes.get(modelIndex) ?? []),
+    ]);
     return {
       ...model,
       component_scores: {
         ...model.component_scores,
-        intelligence_score:
-          parts.retention *
-          ((1 - parts.indexShare) * taskScore + parts.indexShare * (parts.indexScore ?? 0)),
+        intelligence_score: mean == null ? null : parts.retention * mean,
       },
     };
   });
@@ -210,6 +215,73 @@ function blendGroupPairwiseScores(
     );
   }
   return blended;
+}
+
+/**
+ * Read each index result off the frontier scale: its model-balanced standing among variants with both that index and a frontier mean selects their frontier mean at the same standing, as imputation from other benchmarks does.
+ * Efforts without that index share their model's measured offset and index weight without gaining observed evidence.
+ */
+function frontierScaledIndexes(
+  models: readonly ModelAtlasCandidate[],
+  intelligenceParts: readonly (IntelligenceScoreParts | null)[],
+): Map<number, { value: number; weight: number }[]> {
+  const peersByKey = new Map<
+    string,
+    { modelIndex: number; value: number; weight: number; frontier: number }[]
+  >();
+  intelligenceParts.forEach((parts, modelIndex) => {
+    if (parts?.frontier == null) return;
+    for (const { key, value, weight } of parts.indexes) {
+      const peers = peersByKey.get(key) ?? [];
+      peers.push({ modelIndex, value, weight, frontier: parts.frontier });
+      peersByKey.set(key, peers);
+    }
+  });
+  type Offset = { modelIndex: number; offset: number; weight: number };
+  const offsetsByModel = new Map<string, Map<string, Offset[]>>();
+  for (const [key, peers] of peersByKey) {
+    const referenceWeights = referenceWeightsForIndexes(
+      models,
+      peers.map(({ modelIndex }) => modelIndex),
+    );
+    const standings = peers.map(({ modelIndex, value }) => ({
+      value,
+      weight: referenceWeights.get(modelIndex)!,
+    }));
+    const frontierMeans = peers.map(({ modelIndex, frontier }) => ({
+      value: frontier,
+      weight: referenceWeights.get(modelIndex)!,
+    }));
+    for (const { modelIndex, value, weight, frontier } of peers) {
+      const rank = weightedQuantileRank(standings, value);
+      const mapped = rank == null ? null : weightedQuantile(frontierMeans, rank / 100);
+      if (mapped == null) continue;
+      const modelKey = canonicalModelKey(models[modelIndex]!);
+      const offsets = offsetsByModel.get(modelKey) ?? new Map<string, Offset[]>();
+      offsets.set(key, [
+        ...(offsets.get(key) ?? []),
+        { modelIndex, offset: mapped - frontier, weight },
+      ]);
+      offsetsByModel.set(modelKey, offsets);
+    }
+  }
+  const scaled = new Map<number, { value: number; weight: number }[]>();
+  intelligenceParts.forEach((parts, modelIndex) => {
+    const frontier = parts?.frontier;
+    const offsets = offsetsByModel.get(canonicalModelKey(models[modelIndex]!));
+    if (frontier == null || offsets == null) return;
+    scaled.set(
+      modelIndex,
+      [...offsets.values()].map((measured) => {
+        const { offset, weight } = measured.find((entry) => entry.modelIndex === modelIndex) ?? {
+          offset: measured.reduce((sum, entry) => sum + entry.offset, 0) / measured.length,
+          weight: measured.reduce((sum, entry) => sum + entry.weight, 0) / measured.length,
+        };
+        return { value: clamp(frontier + offset, 0, 100), weight };
+      }),
+    );
+  });
+  return scaled;
 }
 
 function referenceWeightsForIndexes(
