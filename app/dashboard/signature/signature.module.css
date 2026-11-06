@@ -200,7 +200,7 @@
   font-size: clamp(64px, min(15.2vw, 26svh), 232px);
   font-weight: 500;
   letter-spacing: -0.058em;
-  /* Just enough leading that descenders in "Mapping" clear the caps below. */
+  /* Just enough leading that descenders on the first line clear the caps below. */
   line-height: 0.98;
 }
 

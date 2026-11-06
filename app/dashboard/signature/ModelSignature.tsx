@@ -103,8 +103,8 @@ export const ModelSignature = memo(function ModelSignature(population: Signature
         }}
       />
       <h2 ref={titleRef} id="model-signature-title" className={styles.title}>
-        <span className={styles.titleStart}>Mapping</span>{" "}
-        <span className={styles.titleEnd}>Frontiers</span>
+        <span className={styles.titleStart}>Sidereal</span>{" "}
+        <span className={styles.titleEnd}>Horizon</span>
       </h2>
       <ol className={styles.register} aria-label="Frontier roles">
         {signatureModelRows.map((model) => (
