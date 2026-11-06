@@ -28,6 +28,23 @@ export function coverageFrontier<T extends Candidate>(ordered: T[], minimumCover
     });
 }
 
+/** Supported models that match the record standing at their release at the readout's one-decimal precision; they sit on the frontier without setting a record. */
+export function frontierTies<T extends Candidate & { id: string }>(
+  points: readonly T[],
+  records: readonly T[],
+  minimumCoverage: number,
+): T[] {
+  const recordIds = new Set(records.map((record) => record.id));
+  return points.filter((point) => {
+    if (recordIds.has(point.id) || point.coverage == null || point.coverage < minimumCoverage)
+      return false;
+    const standing = records
+      .filter((record) => (record.releaseDate ?? "") <= (point.releaseDate ?? ""))
+      .at(-1);
+    return standing != null && standing.score.toFixed(1) === point.score.toFixed(1);
+  });
+}
+
 export type LabFrontier<T extends Candidate & { id: string; provider: string }> = {
   provider: string;
   models: T[];

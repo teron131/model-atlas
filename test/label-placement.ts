@@ -185,3 +185,13 @@ if (cornerPlacement.line) {
     assert.ok(x > corner.right || y > corner.bottom || x < corner.left || y < corner.top);
   }
 }
+
+// A label whose every position crosses reserved space still gets a place instead of failing the layout.
+const boxedLabel = { ...cornerLabel, key: "boxed", cx: 140, cy: 85 };
+const boxedPlacement = calloutLabelPlacements({
+  bounds,
+  labels: [boxedLabel],
+  obstacles: [boxedLabel],
+  reservedBoxes: [bounds],
+}).get("boxed");
+assert.ok(boxedPlacement);

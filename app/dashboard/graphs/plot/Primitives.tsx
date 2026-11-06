@@ -2,7 +2,7 @@
 
 /** Shared SVG drawing, label measurement and plot geometry for Model Atlas charts. */
 
-import { type CSSProperties, useId, useLayoutEffect, useRef, useState } from "react";
+import { type CSSProperties, useCallback, useId, useLayoutEffect, useRef, useState } from "react";
 
 import { clamp } from "../../../../src/model-atlas/math-utils";
 import type { PointLabelPlacement, PointLabelSize } from "./label-placement";
@@ -561,47 +561,65 @@ export function TextPointLabel({
   );
 }
 
-/** Measure rendered label bounds after fonts and viewport changes so text and leaders share exact geometry. */
+/**
+ * Measure rendered label bounds after fonts and viewport changes so text and leaders share exact geometry.
+ * A label's size depends only on its text and the layout's type size, so a changed set of labels measures only text not yet measured at this layout; fonts loading or the chart resizing measures every label again.
+ */
 export function useLabelSizes(textKey: string, compactLayout: boolean) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [labelSizes, setLabelSizes] = useState<Record<string, PointLabelSize>>({});
+  const measuredTexts = useRef(new Set<string>());
+  const measure = useCallback((all: boolean) => {
+    if (!svgRef.current) return;
+    const measured: Record<string, PointLabelSize> = {};
+    for (const text of Array.from(
+      svgRef.current.querySelectorAll<SVGTextElement>(`text.${styles.pointLabel}`),
+    )) {
+      const content = text.textContent ?? "";
+      if (!all && measuredTexts.current.has(content)) continue;
+      const box = text.getBBox();
+      const baseline = text.y.baseVal.getItem(0).value;
+      measured[content] = {
+        width: box.width,
+        ascent: baseline - box.y,
+        descent: box.y + box.height - baseline,
+      };
+      measuredTexts.current.add(content);
+    }
+    if (Object.keys(measured).length === 0) return;
+    setLabelSizes((previous) => {
+      const changed = Object.entries(measured).some(([key, size]) => {
+        const old = previous[key];
+        return (
+          !old ||
+          Math.abs(old.width - size.width) > 0.1 ||
+          Math.abs(old.ascent - size.ascent) > 0.1 ||
+          Math.abs(old.descent - size.descent) > 0.1
+        );
+      });
+      return changed ? { ...previous, ...measured } : previous;
+    });
+  }, []);
   useLayoutEffect(() => {
     let disposed = false;
-    const measure = () => {
-      if (disposed || !svgRef.current) return;
-      const measured: Record<string, PointLabelSize> = {};
-      for (const text of Array.from(
-        svgRef.current.querySelectorAll<SVGTextElement>(`text.${styles.pointLabel}`),
-      )) {
-        const box = text.getBBox();
-        const baseline = text.y.baseVal.getItem(0).value;
-        measured[text.textContent ?? ""] = {
-          width: box.width,
-          ascent: baseline - box.y,
-          descent: box.y + box.height - baseline,
-        };
-      }
-      setLabelSizes((previous) => {
-        const changed = Object.entries(measured).some(([key, size]) => {
-          const old = previous[key];
-          return (
-            !old ||
-            Math.abs(old.width - size.width) > 0.1 ||
-            Math.abs(old.ascent - size.ascent) > 0.1 ||
-            Math.abs(old.descent - size.descent) > 0.1
-          );
-        });
-        return changed ? { ...previous, ...measured } : previous;
-      });
-    };
-    measure();
-    void document.fonts.ready.then(measure);
-    const observer = new ResizeObserver(measure);
-    if (svgRef.current) observer.observe(svgRef.current);
+    measuredTexts.current = new Set();
+    void document.fonts.ready.then(() => {
+      if (!disposed) measure(true);
+    });
     return () => {
       disposed = true;
-      observer.disconnect();
     };
-  }, [textKey, compactLayout]);
+  }, [compactLayout, measure]);
+  useLayoutEffect(() => {
+    measure(false);
+    // An observer reports the chart's current size as soon as it starts watching, which was just measured.
+    let observed = false;
+    const observer = new ResizeObserver(() => {
+      if (observed) measure(true);
+      observed = true;
+    });
+    if (svgRef.current) observer.observe(svgRef.current);
+    return () => observer.disconnect();
+  }, [textKey, compactLayout, measure]);
   return { svgRef, labelSizes };
 }

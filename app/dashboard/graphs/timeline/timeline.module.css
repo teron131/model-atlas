@@ -46,12 +46,20 @@
   max-width: 760px;
   margin-left: auto;
 }
-/* A replay's reveal edge: a faint rule of horizon light at the date the replay has reached. */
-.replayLine {
-  stroke: var(--chart-horizon-core);
-  stroke-width: 1;
-  stroke-dasharray: 3 4;
-  opacity: 0.7;
+/* A replay's date sits faintly behind the plot at display size, readable at a glance without competing with the stars. */
+.replayDate {
+  fill: var(--ink);
+  fill-opacity: 0.14;
+  font-family: var(--font-sans);
+  font-size: clamp(30px, 4vw, 48px);
+  font-weight: var(--type-display-weight);
+  letter-spacing: -0.035em;
+  dominant-baseline: hanging;
+  pointer-events: none;
+}
+/* The reveal's leading point: a crisp spot of the rim's own light, so the eye has one sharp place to follow. */
+.replayTip {
+  fill: var(--chart-horizon-core);
   pointer-events: none;
 }
 .readoutName {
