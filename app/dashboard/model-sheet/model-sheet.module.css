@@ -185,7 +185,7 @@
   padding-right: 108px;
 }
 
-/* The name reads at the readout size shared by the Pareto summary and the Timeline's catalogue entry. */
+/* The name reads at the readout size shared with the Timeline's catalogue entry. */
 .name {
   margin: 0;
   font-size: var(--type-readout-size);
@@ -389,7 +389,7 @@
 
 .scoreCell {
   display: grid;
-  grid-template-columns: 42px minmax(48px, 1fr) 40px 44px;
+  grid-template-columns: 42px minmax(48px, 1fr) 40px 50px;
   align-items: center;
   gap: 10px;
   min-width: 0;
@@ -699,7 +699,7 @@
 
 /* In a comparison each cell gains a margin column after its value: the better value's lead over the other, by points on a score scale or by proportion for amounts. */
 .sheet[data-compare] .scoreCell {
-  grid-template-columns: 42px 44px minmax(40px, 1fr) 40px 44px;
+  grid-template-columns: 42px 44px minmax(40px, 1fr) 40px 50px;
 }
 
 .sheet[data-compare] .ratioCell {
@@ -1073,6 +1073,57 @@
     margin-left: -8px;
   }
 
+  /* A phone's sheet runs to the screen's foot, so no strip of the page shows beneath it, and its last rows clear the home indicator. */
+  .sheet:not([data-capture-layout="artifact"]) {
+    bottom: 0;
+    padding-bottom: env(safe-area-inset-bottom);
+    border-bottom: 0;
+  }
+
+  /* Once the evidence scrolls, the single sheet's head folds to one line of mark, name, and actions; the kicker and slug step aside and Compare waits at the top. The height it gives up stays as margin, so the evidence never jumps, and the sheet skips scroll anchoring, which would otherwise pull the scroll back to the top as the head folds. */
+  .sheet:not([data-compare], [data-capture-layout="artifact"]) {
+    overflow-anchor: none;
+  }
+
+  .sheet:not([data-compare], [data-capture-layout="artifact"]) .head[data-folded] {
+    gap: 6px;
+    margin-bottom: var(--head-fold);
+    padding-block: 8px;
+  }
+
+  .sheet:not([data-compare], [data-capture-layout="artifact"]) .head[data-folded] .headEntry {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .sheet:not([data-compare], [data-capture-layout="artifact"]) .head[data-folded] .actions {
+    order: 0;
+    margin-top: 0;
+  }
+
+  .sheet:not([data-compare], [data-capture-layout="artifact"])
+    .head[data-folded]
+    :is(.compareToggle, .kicker, .slug) {
+    display: none;
+  }
+
+  .sheet:not([data-compare], [data-capture-layout="artifact"]) .head[data-folded] .identity {
+    grid-template-columns: 22px minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .sheet:not([data-compare], [data-capture-layout="artifact"])
+    .head[data-folded]
+    .identity
+    :global(.provider-logo) {
+    width: 22px;
+    height: 22px;
+  }
+
+  .sheet:not([data-compare], [data-capture-layout="artifact"]) .head[data-folded] .name {
+    font-size: 17px;
+  }
+
   /* Score names read at the data rows' size, so the longest keeps to the label column. */
   .scoreLabel {
     gap: 6px;
@@ -1115,7 +1166,7 @@
 
   /* Rank and support keep their headers over them: the support column is as wide as its header. */
   .scoreCell {
-    grid-template-columns: 40px minmax(32px, 1fr) 30px 46px;
+    grid-template-columns: 40px minmax(26px, 1fr) 30px 50px;
     gap: 8px;
   }
 

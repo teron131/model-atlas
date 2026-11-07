@@ -292,6 +292,7 @@
   border-inline: 1px solid var(--muted);
   margin: auto;
 }
+/* The caption names the full range at its ends; between them it teaches the overview's drag, or on a phone gives the window's dates once the window leaves the full range or a replay runs. */
 .navigatorCaption {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
@@ -484,6 +485,9 @@
 .navigatorCaption > :last-child {
   text-align: right;
 }
+.captionWindow {
+  display: none;
+}
 .timeTransport button:hover:not(:disabled) {
   background: var(--hover);
   border-color: var(--line-strong);
@@ -495,29 +499,43 @@
   outline-offset: 2px;
 }
 @media (max-width: 640px) {
+  /* A phone keeps play and stop beside the range presets, wrapping them under the presets where both do not fit, and leaves panning and zooming to the overview's window and edges, so the pan and zoom buttons and the window's dates step aside. */
+  .timeEditor {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 8px;
+  }
+  .timeEditor > :not(.timePresets, .timeTransport) {
+    flex: 0 0 100%;
+  }
+  .timePresets {
+    flex: 1 0 max-content;
+    margin-bottom: 0;
+  }
   .timeTransport {
-    gap: 8px;
+    margin: 0 0 0 auto;
   }
-  .timeTransport > div:first-child {
-    width: 100%;
-  }
+  .timeTransport > div:last-child,
+  .timeTransport .pan,
   .timeTransport > div:first-child > span {
-    margin-left: auto;
-    font-variant-numeric: tabular-nums;
-  }
-  .timeTransport > div:last-child {
-    display: grid;
-    grid-template-columns: 44px minmax(0, 1fr) 44px 44px;
-    width: 100%;
+    display: none;
   }
   .timeTransport button {
     width: 44px;
     height: 44px;
   }
-  .timeTransport input {
-    width: 100%;
-    min-width: 0;
-    margin: 0;
+  /* The overview's edges are a phone's only zoom, so each takes a finger-wide target. */
+  .rangeHandle::before {
+    position: absolute;
+    inset: 0 -14px;
+    content: "";
+  }
+  .navigatorCaption[data-window="part"] .dragHint {
+    display: none;
+  }
+  .navigatorCaption[data-window="part"] .captionWindow {
+    display: inline;
   }
   .navigatorCaption {
     grid-template-columns: 1fr 1fr;
@@ -542,12 +560,9 @@
     grid-template-columns: 14px minmax(0, 1fr) 76px 56px;
   }
 }
-/* The narrowest phones step the entry's figures and the window's dates down once more, so the date clears its neighbour and the transport row keeps to the plane; these follow the rules they override. */
+/* The narrowest phones step the entry's figures down once more, so the date clears its neighbour; this follows the rule it overrides. */
 @media (max-width: 380px) {
   .readout > div:not(:first-child) strong {
     font-size: 18px;
-  }
-  .timeTransport {
-    font-size: var(--type-caption-size);
   }
 }

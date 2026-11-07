@@ -7,13 +7,7 @@ import styles from "../graphs.module.css";
 export const PARETO_CAPTION =
   "Compare model performance and resources. The glowing frontier marks the best visible tradeoffs.";
 
-export function ParetoFigureTop({
-  yAxisControl,
-  summary,
-}: {
-  yAxisControl: ReactNode;
-  summary: ReactNode;
-}) {
+export function ParetoFigureTop({ yAxisControl }: { yAxisControl: ReactNode }) {
   return (
     <div className={styles.figureTop}>
       <div className={styles.axisControl}>
@@ -22,7 +16,6 @@ export function ParetoFigureTop({
         </span>
         {yAxisControl}
       </div>
-      {summary}
     </div>
   );
 }

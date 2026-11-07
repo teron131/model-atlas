@@ -74,6 +74,7 @@ export function TimelineNavigator({
       : "Replay the frontier's rise";
   const date = (value: number) =>
     new Date(bounds[0] + value * (bounds[1] - bounds[0])).toISOString().slice(0, 10);
+  const windowDates = `${date(range[0])} — ${date(replay?.at ?? range[1])}`;
   // The overview carries the chart's frontier as a small horizon, so the window frames a stretch of it.
   // It is drawn once per population, so a replay moving the window redraws only the window.
   const horizonId = useId();
@@ -118,13 +119,15 @@ export function TimelineNavigator({
             />
           </>
         ) : null}
+        {/* The overview stretches to its width, so each dot is a round cap on a screen-sized stroke and stays a circle at any width. */}
         {points.map((p) => (
-          <circle
+          <path
             key={p.id}
-            cx={overviewX(p)}
-            cy={overviewY(p)}
-            r="2"
-            fill={providerChartColor(p.provider)}
+            d={`M${overviewX(p).toFixed(1)},${overviewY(p).toFixed(1)}h0`}
+            stroke={providerChartColor(p.provider)}
+            strokeWidth="4"
+            strokeLinecap="round"
+            vectorEffect="non-scaling-stroke"
             opacity={(0.35 + (p.coverage ?? 0) * 0.65) * 0.75}
           />
         ))}
@@ -194,6 +197,7 @@ export function TimelineNavigator({
             </>
           )}
           <button
+            className={styles.pan}
             aria-label="Pan earlier"
             title="Pan earlier"
             disabled={range[0] <= 0}
@@ -202,6 +206,7 @@ export function TimelineNavigator({
             <ChevronLeft size={16} />
           </button>
           <button
+            className={styles.pan}
             aria-label="Pan later"
             title="Pan later"
             disabled={range[1] >= 1}
@@ -209,9 +214,7 @@ export function TimelineNavigator({
           >
             <ChevronRight size={16} />
           </button>
-          <span>
-            {date(range[0])} — {date(replay?.at ?? range[1])}
-          </span>
+          <span>{windowDates}</span>
         </div>
         <div>
           <button
@@ -293,9 +296,15 @@ export function TimelineNavigator({
           ))}
         </div>
       </div>
-      <div className={styles.navigatorCaption}>
+      <div
+        className={styles.navigatorCaption}
+        data-window={span < 1 || replay?.at != null ? "part" : "full"}
+      >
         <span>{date(0)}</span>
-        <span>Drag window to pan · Drag edges to zoom</span>
+        <span>
+          <span className={styles.dragHint}>Drag window to pan · Drag edges to zoom</span>
+          <span className={styles.captionWindow}>{windowDates}</span>
+        </span>
         <span>{date(1)}</span>
       </div>
     </div>

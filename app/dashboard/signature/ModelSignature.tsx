@@ -24,20 +24,22 @@ const FrontierField = dynamic(
   () => import("./FrontierField").then((module) => module.FrontierField),
   { loading: () => null },
 );
-// The horizon rests under the title: this share of its type size below the title's line box, or this share of the open sky down to the register when a tall hero leaves more.
+// The horizon rests under the title as laid out: this share of its type size below the title's line box, or this share of the open sky down to the register when a tall hero leaves more.
 const HORIZON_GAP = 0.1;
 const HORIZON_SPACE_SHARE = 0.15;
+// Over the live sky the title is drawn lower, until the rim crosses its second line this share of the type size above the line box's foot, so the planet hides about a third of the capitals.
+const TITLE_SET = 0.4;
 
 /**
  * The hero's fixed field layers sit in the dashboard's stacking context, so the hero must not create one of its own.
  *
- * The hero owns where the horizon sits: it measures the title at rest and hands that line to both the CSS atmosphere and the WebGL sky.
+ * The hero owns where the horizon sits: it measures the title at rest and hands that line to both the CSS atmosphere and the WebGL sky, along with how far the title drops to set into the rim.
  */
 export const ModelSignature = memo(function ModelSignature(population: SignaturePopulation) {
   const heroRef = useRef<HTMLElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const [focusKey, setFocusKey] = useState<string | null>(null);
-  const [horizon, setHorizon] = useState<number | null>(null);
+  const [placement, setPlacement] = useState<{ horizon: number; sink: number } | null>(null);
   const signatureModelRows = useMemo(
     () =>
       signatureModels(population).map((model) => ({
@@ -62,16 +64,18 @@ export const ModelSignature = memo(function ModelSignature(population: Signature
     const title = titleRef.current;
     if (hero == null || title == null) return;
     const measure = () => {
-      const bottom = title.getBoundingClientRect().bottom;
+      // Layout offsets rather than the box on screen, which the drop into the rim moves.
+      const bottom = hero.getBoundingClientRect().top + title.offsetTop + title.offsetHeight;
       // The first row shown below the title.
       let next = title.nextElementSibling;
       while (next != null && next.getClientRects().length === 0) next = next.nextElementSibling;
       const open = (next?.getBoundingClientRect().top ?? bottom) - bottom;
-      const gap = Math.max(
-        Number.parseFloat(getComputedStyle(title).fontSize) * HORIZON_GAP,
-        open * HORIZON_SPACE_SHARE,
-      );
-      setHorizon(Math.round(bottom + window.scrollY + gap));
+      const size = Number.parseFloat(getComputedStyle(title).fontSize);
+      const gap = Math.max(size * HORIZON_GAP, open * HORIZON_SPACE_SHARE);
+      setPlacement({
+        horizon: Math.round(bottom + window.scrollY + gap),
+        sink: Math.round(gap + size * TITLE_SET),
+      });
     };
     measure();
     const observer = new ResizeObserver(measure);
@@ -84,7 +88,14 @@ export const ModelSignature = memo(function ModelSignature(population: Signature
     <section
       ref={heroRef}
       className={styles.signature}
-      style={horizon == null ? undefined : ({ "--horizon": `${horizon}px` } as CSSProperties)}
+      style={
+        placement == null
+          ? undefined
+          : ({
+              "--horizon": `${placement.horizon}px`,
+              "--title-sink": `${placement.sink}px`,
+            } as CSSProperties)
+      }
       aria-labelledby="model-signature-title"
       aria-busy={population.referenceModels.length === 0}
     >
@@ -93,7 +104,7 @@ export const ModelSignature = memo(function ModelSignature(population: Signature
       <FrontierField
         stars={stars}
         focusKey={focusKey}
-        horizon={horizon}
+        horizon={placement?.horizon ?? null}
         heroRef={heroRef}
         onSelectStar={(family) => {
           const model = population.models.find(
@@ -110,7 +121,7 @@ export const ModelSignature = memo(function ModelSignature(population: Signature
         {signatureModelRows.map((model) => (
           <li
             className={styles.registerItem}
-            key={model.key}
+            key={model.family}
             style={{ "--provider": model.color } as CSSProperties}
             data-focused={focusKey === model.family}
             onPointerEnter={() => setFocusKey(model.family)}
@@ -136,14 +147,12 @@ export const ModelSignature = memo(function ModelSignature(population: Signature
             <span className={styles.registerMetric}>
               <span className="visually-hidden">{model.metric.accessible}</span>
               <span className={styles.registerMetricVisual} aria-hidden="true">
-                {model.metric.parts.map((part, index) => {
-                  if (part.kind === "text") {
-                    return <span key={`${part.value}-${index}`}>{part.value}</span>;
-                  }
-                  const Icon = SCORE_ICONS[part.kind];
+                {model.metric.scores.map(({ kind, text }) => {
+                  const Icon = SCORE_ICONS[kind];
                   return (
-                    <span className={styles.registerMetricIcon} key={`${part.kind}-${index}`}>
+                    <span className={styles.registerScore} key={kind}>
                       <Icon />
+                      {text}
                     </span>
                   );
                 })}
@@ -161,23 +170,22 @@ export const ModelSignature = memo(function ModelSignature(population: Signature
   );
 });
 
-type SelectionMetricPart =
-  | { kind: "agentic" | "intelligence" | "value" }
-  | { kind: "text"; value: string };
+const METRIC_SCORES = [
+  ["intelligence", "Intelligence"],
+  ["agentic", "Agentic"],
+  ["value", "Value"],
+] as const;
 
 /** Keep the register's visual metric and its accessible label on one score-and-price presentation. */
 function selectionMetricPresentation(metric: SignatureMetric) {
-  const score = metric.score.toFixed(1);
-  const parts: SelectionMetricPart[] = [{ kind: metric.kind }, { kind: "text", value: score }];
-  let accessible = `${metric.kind === "agentic" ? "Agentic" : "Intelligence"} ${score}`;
-  if (metric.value != null) {
-    const value = metric.value.toFixed(1);
-    parts.push({ kind: "value" }, { kind: "text", value });
-    accessible += ` · Value ${value}`;
-  }
+  const scores = METRIC_SCORES.flatMap(([kind, label]) => {
+    const score = metric[kind];
+    return score == null ? [] : [{ kind, label, text: score.toFixed(1) }];
+  });
+  const accessible = scores.map(({ label, text }) => `${label} ${text}`).join(" · ");
   const price = metric.price == null ? undefined : formatCost(metric.price);
   return {
-    parts,
+    scores,
     price,
     accessible:
       price == null ? accessible : `${accessible} · Blended price ${price} per million tokens`,

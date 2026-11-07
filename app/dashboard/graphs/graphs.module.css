@@ -25,12 +25,9 @@
   /* Frontiers are drawn as the sky's horizon; its white-hot core only reads on the dark surface. */
   --chart-horizon-core: rgb(255 255 255 / 0.9);
   --chart-hover-logo-backdrop: rgb(var(--paper-rgb) / 0.9);
-  --whisker-line: rgb(var(--ink-rgb) / 0.34);
-  --whisker-domain-line: rgb(var(--ink-rgb) / 0.12);
-  --whisker-box-fill: rgb(var(--ink-rgb) / 0.16);
-  --whisker-label-strong: rgb(var(--ink-rgb) / 0.76);
-  --whisker-label: rgb(var(--ink-rgb) / 0.58);
-  --whisker-end: rgb(var(--ink-rgb) / 0.52);
+  --whisker-line: rgb(var(--ink-rgb) / 0.52);
+  --whisker-box-edge: rgb(var(--ink-rgb) / 0.84);
+  --whisker-box-fill: rgb(143 107 255 / 0.28);
 }
 
 /* The page owns width, background, and horizontal gutters. */
@@ -63,10 +60,7 @@
   --chart-hover-card-bg: rgb(var(--paper-rgb) / 0.98);
   --chart-hover-card-shadow: 0 18px 54px rgb(var(--ink-rgb) / 0.16);
   --chart-horizon-core: rgb(var(--ink-rgb) / 0.82);
-  --whisker-domain-line: rgb(var(--ink-rgb) / 0.14);
-  --whisker-box-fill: rgb(var(--ink-rgb) / 0.1);
-  --whisker-label-strong: rgb(var(--ink-rgb) / 0.7);
-  --whisker-label: rgb(var(--ink-rgb) / 0.72);
+  --whisker-box-fill: rgb(143 107 255 / 0.2);
 }
 
 .atlas *,
@@ -193,150 +187,6 @@
   line-height: 1.45;
 }
 
-.boxWhiskerSummary {
-  display: grid;
-  gap: 7px;
-  width: min(320px, 100%);
-  max-width: 100%;
-  color: var(--muted);
-  font-family: var(--font-mono);
-  font-size: var(--type-caption-size);
-  font-weight: var(--type-label-weight);
-  letter-spacing: var(--type-label-tracking);
-  text-transform: uppercase;
-}
-
-.boxWhiskerTop {
-  display: grid;
-  min-height: 42px;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 18px;
-  align-items: end;
-}
-
-.boxWhiskerTopMeta {
-  display: grid;
-  min-width: 0;
-  padding-bottom: 2px;
-  gap: 5px;
-}
-
-.boxWhiskerTopMeta span {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--muted);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.boxWhiskerTopMeta b {
-  color: var(--faint);
-  font-size: var(--type-micro-size);
-  font-weight: var(--type-label-weight);
-  letter-spacing: var(--type-label-tracking);
-  white-space: nowrap;
-}
-
-.boxWhiskerMedianReadout {
-  color: var(--ink);
-  font-family: var(--font-sans);
-  font-size: var(--type-readout-size);
-  font-variant-numeric: tabular-nums;
-  font-weight: var(--type-display-weight);
-  letter-spacing: -0.035em;
-  line-height: 0.8;
-}
-
-.boxWhiskerPlot {
-  position: relative;
-  height: 30px;
-}
-
-.boxWhiskerLine {
-  position: absolute;
-  top: 15px;
-  left: var(--whisker-min);
-  width: calc(var(--whisker-max) - var(--whisker-min));
-  height: 1px;
-  background: var(--whisker-line);
-}
-
-.boxWhiskerDomainLine {
-  position: absolute;
-  top: 15px;
-  left: var(--whisker-domain-min);
-  width: calc(var(--whisker-domain-max) - var(--whisker-domain-min));
-  height: 1px;
-  background: var(--whisker-domain-line);
-}
-
-.boxWhiskerBox {
-  position: absolute;
-  top: 7px;
-  bottom: 7px;
-  left: var(--whisker-q1);
-  width: calc(var(--whisker-q3) - var(--whisker-q1));
-  border: 1px solid var(--whisker-end);
-  background: var(--whisker-box-fill);
-}
-
-.boxWhiskerMedian {
-  position: absolute;
-  top: 3px;
-  bottom: 3px;
-  left: var(--whisker-median);
-  width: 2px;
-  background: var(--ink);
-  transform: translateX(-1px);
-}
-
-.boxWhiskerMin,
-.boxWhiskerMax {
-  position: absolute;
-  top: 10px;
-  bottom: 10px;
-  width: 1px;
-  background: var(--whisker-end);
-}
-
-.boxWhiskerMin {
-  left: var(--whisker-min);
-}
-
-.boxWhiskerMax {
-  left: var(--whisker-max);
-  transform: translateX(-1px);
-}
-
-.boxWhiskerStats {
-  display: grid;
-  min-width: 0;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  gap: 10px;
-  color: var(--faint);
-  font-size: var(--type-micro-size);
-  line-height: 1;
-  white-space: nowrap;
-}
-
-.boxWhiskerMinValue {
-  text-align: left;
-}
-
-.boxWhiskerQuartileValues {
-  color: var(--whisker-label-strong);
-  text-align: center;
-}
-
-.boxWhiskerStats b {
-  color: var(--whisker-label);
-  font-weight: 650;
-}
-
-.boxWhiskerMaxValue {
-  text-align: right;
-}
-
 .figureCaption em,
 .note em {
   font-style: italic;
@@ -370,6 +220,22 @@
 .medianAxis {
   stroke: var(--chart-median);
   stroke-width: 1;
+}
+
+.axisRange {
+  stroke: var(--whisker-line);
+  stroke-width: 1.5;
+}
+
+.axisQuartiles {
+  fill: var(--whisker-box-fill);
+  stroke: var(--whisker-box-edge);
+  stroke-width: 1;
+}
+
+.axisMedian {
+  stroke: var(--ink);
+  stroke-width: 2;
 }
 
 .medianLabel {
@@ -1083,15 +949,18 @@
   display: none;
 }
 
+/* The open marker rides on "Details", so the two wrap together on a narrow plane. */
 .commonEvidence > summary span:last-child {
   margin-left: auto;
+  white-space: nowrap;
 }
 
-.commonEvidence > summary::after {
+.commonEvidence > summary span:last-child::after {
+  margin-left: 12px;
   content: "+";
 }
 
-.commonEvidence[open] > summary::after {
+.commonEvidence[open] > summary span:last-child::after {
   content: "−";
 }
 
@@ -1425,10 +1294,6 @@
 
 .section[data-capture-layout="artifact"] .figureTop {
   padding-top: 14px;
-}
-
-.section[data-capture-layout="artifact"] .boxWhiskerSummary {
-  width: min(320px, 100%);
 }
 
 .section[data-capture-layout="artifact"] .chartWrap {

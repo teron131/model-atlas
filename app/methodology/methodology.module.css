@@ -823,7 +823,7 @@
   margin: 30px 0 36px;
 }
 
-/* Transparent SVGs follow the inherited color scheme; small screens scroll the plot to preserve readable labels. */
+/* Transparent SVGs follow the inherited color scheme; a column narrower than the figure scrolls it to keep its labels readable, except on phones, which show it whole. */
 .figureViewport {
   display: block;
   overflow-x: auto;
@@ -932,6 +932,21 @@
 
   .article h3 {
     font-size: 17px;
+  }
+
+  /* A phone pins only the section heading; a subheading scrolls with its text, so a single band of heading stays over the reading. */
+  .article .section > h3 {
+    position: static;
+    box-shadow: none;
+  }
+
+  .article .section > h3::before {
+    display: none;
+  }
+
+  /* A phone shows each figure whole at the column's width instead of scrolling it sideways. */
+  .figure img {
+    min-width: 0;
   }
 
   .subsection {

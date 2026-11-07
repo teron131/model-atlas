@@ -1662,21 +1662,36 @@ html[data-model-atlas-theme="light"] .score-meter::after {
   position: absolute;
 }
 
-/* The scores take their own line under the name and slug, which keep the logo beside them as on wider screens; logo and gap put the name 40px into the cell, so the scores move on to the marks' indent. */
+/* The scores take their own line under the name, which keeps the logo beside it as on wider screens; logo and gap put the name 32px into the cell, so the scores move on to the marks' indent. */
 .model-cell > .score-strip {
   grid-column: 2;
-  margin-left: calc(var(--score-strip-indent) - 40px);
+  margin-left: calc(var(--score-strip-indent) - 32px);
 }
 
-/* A strip row stacks three lines of text, so name, slug, and scores set tighter than the table's line height and the two tiers stay compact. */
-.table-shell[data-score-strip="true"] :is(.model, .id, .score-strip-item) {
+/* A strip row keeps to two lines, the name over its scores: it drops the slug, which the model sheet shows, and sets a logo no taller than the name's line. */
+.table-shell[data-score-strip="true"] .model-cell {
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 0 10px;
+}
+
+.table-shell[data-score-strip="true"] .provider-logo {
+  width: 22px;
+  height: 22px;
+}
+
+.table-shell[data-score-strip="true"] .id {
+  display: none;
+}
+
+/* Name and scores set tighter than the table's line height, so the two tiers stay compact. */
+.table-shell[data-score-strip="true"] :is(.model, .score-strip-item) {
   line-height: 1.25;
 }
 
-/* The rank lines up with the logo, beside the name and slug rather than the middle of the taller row. */
+/* The rank lines up with the logo, beside the name rather than the middle of the taller row. */
 .table-shell[data-score-strip="true"] table tbody td.rank {
   vertical-align: top;
-  padding-top: calc(var(--table-row-padding-y) + var(--score-strip-rank-offset, 8px));
+  padding-top: calc(var(--table-row-padding-y) + 1px);
 }
 
 /* The model header grows a second line of score marks, so every column name keeps to its first line instead of centring against it. */
@@ -2260,6 +2275,13 @@ td.modality-cell {
     width: 26px;
     background: linear-gradient(to left, var(--paper), var(--table-edge-fade));
     pointer-events: none;
+  }
+}
+
+/* Safari zooms the page into any typed field set below 16px as it takes focus and leaves it zoomed, so touch screens set those fields at 16px over each control's own size. */
+@media (pointer: coarse) {
+  input:is(:not([type]), [type="search"], [type="text"], [type="number"]) {
+    font-size: 16px !important;
   }
 }
 

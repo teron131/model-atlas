@@ -15,7 +15,7 @@
   backdrop-filter: blur(14px) saturate(1.25);
 }
 
-/* Region links, the model search that takes the open middle, then profiles and filters (a toggle on phones); on phones the search's suggestions hang from the whole bar. */
+/* Region links, the model search that takes the open middle (an icon on the narrowest phones), then profiles and filters (a toggle on phones); on phones the search's suggestions hang from the whole bar. */
 .bar {
   position: relative;
   display: grid;
@@ -147,9 +147,13 @@
   }
 }
 
-/* Keep the research destinations readable across the full compact rail. */
+/* A phone keeps the research destinations readable across the compact rail and gives them its open middle while the model search waits as an icon; the links hold the first cell explicitly because the opened search spans over it. */
 @media (max-width: 520px) {
+  .bar {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
   .index {
+    grid-area: 1 / 1;
     mask-image: none;
   }
   .index a {

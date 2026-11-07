@@ -204,6 +204,17 @@
   line-height: 0.98;
 }
 
+/* Over the live sky the title sets into the planet: the hero drops it by --title-sink, and the field keeps --rim on the rim it draws, so the planet covers the feet of the second line. */
+.signature:has(> .field[data-sky="webgl"]) > .title {
+  transform: translateY(var(--title-sink));
+  -webkit-mask-image: radial-gradient(
+    var(--rim),
+    transparent calc(100% - 1px),
+    #000 calc(100% + 1px)
+  );
+  mask-image: radial-gradient(var(--rim), transparent calc(100% - 1px), #000 calc(100% + 1px));
+}
+
 /* The two title lines keep one staggered shape at every width and aspect ratio: the second line is indented by a fixed share of the type size, so the pair only scales. */
 .titleStart,
 .titleEnd {
@@ -234,9 +245,11 @@
   }
 }
 
+/* A model holding several roles is one entry, so the row has as many columns as there are entries. */
 .register {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
   margin: 0 0 clamp(22px, 4svh, 40px);
   padding: 0;
   list-style: none;
@@ -249,7 +262,7 @@
   gap: 8px;
   min-width: 0;
   padding: 15px 16px 0 0;
-  border-top: 1px solid var(--scene-line);
+  border-top: 1px solid rgb(222 230 255 / 0.12);
   animation: register-draw 900ms cubic-bezier(0.2, 0.75, 0, 1) both;
 }
 
@@ -280,20 +293,51 @@
   }
 }
 
-/* Provider colour stays attached to each model, as a short mark on the register rule. */
+/* Each entry carries its model's star at the head of its rule, in the provider's colour, and the star lights the rule as it fades into the night. */
 .registerItem::before {
+  position: absolute;
+  top: -10px;
+  left: -2px;
+  width: 19px;
+  height: 19px;
+  background:
+    radial-gradient(
+      circle,
+      #fff 0 0.9px,
+      color-mix(in oklab, var(--provider) 70%, #fff) 1.7px,
+      color-mix(in oklab, var(--provider) 40%, transparent) 3.2px,
+      transparent 6.5px
+    ),
+    linear-gradient(90deg, transparent, color-mix(in oklab, var(--provider) 60%, #fff), transparent)
+      center / 100% 1px no-repeat,
+    linear-gradient(transparent, color-mix(in oklab, var(--provider) 60%, #fff), transparent) center
+      / 1px 72% no-repeat;
+  filter: drop-shadow(0 0 4px var(--provider));
+  content: "";
+  transition: transform 220ms ease;
+}
+
+.registerItem::after {
   position: absolute;
   top: -1px;
   left: 0;
-  width: 28px;
-  height: 2px;
-  background: var(--provider);
+  width: 75%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--provider) 80%, transparent),
+    transparent
+  );
   content: "";
   transition: width 220ms ease;
 }
 
-/* Hovering a role lights its star in the sky; the register answers by extending its provider mark. */
+/* Hovering a role lights its star in the sky; the register answers by brightening its own star and lighting its whole rule. */
 .registerItem[data-focused="true"]::before {
+  transform: scale(1.3);
+}
+
+.registerItem[data-focused="true"]::after {
   width: calc(100% - 16px);
 }
 
@@ -365,33 +409,29 @@
   font-weight: var(--type-label-weight);
 }
 
+/* A score keeps its mark beside it, so a narrow entry wraps between scores, never inside one. */
 .registerMetricVisual {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px 5px;
+  gap: 4px 12px;
 }
 
-.registerMetricIcon {
-  display: grid;
+.registerScore {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.registerScore svg {
   width: 14px;
   height: 14px;
+  flex: none;
   color: var(--scene-muted);
-  place-items: center;
-}
-
-.registerMetricIcon:not(:first-child) {
-  margin-left: 6px;
-}
-
-.registerMetricIcon svg {
-  width: 14px;
-  height: 14px;
   stroke-width: 2.1;
 }
 
 .registerPrice {
-  margin-left: 8px;
   color: var(--scene-muted);
 }
 
@@ -411,8 +451,9 @@
 
 @media (max-width: 1100px) {
   .register {
+    grid-auto-flow: row;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    row-gap: 18px;
+    row-gap: 22px;
   }
 }
 
@@ -429,23 +470,53 @@
   }
 
   .register {
-    grid-template-columns: minmax(0, 1fr);
-    row-gap: 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 18px;
+    row-gap: 24px;
     margin-bottom: 28px;
   }
 
   .registerItem {
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 6px 12px;
-    padding: 12px 0;
+    gap: 7px;
+    padding: 15px 0 0;
   }
 
-  .registerRole {
+  .registerItem[data-focused="true"]::after {
+    width: 100%;
+  }
+
+  /* A long name wraps under its logo rather than losing its end in a half-width column. */
+  .registerModel {
+    align-items: flex-start;
+  }
+
+  .registerModel strong {
+    font-size: 15px;
+    white-space: normal;
+  }
+
+  /* With an odd count the first entry, the Intelligence leader, takes the full width, its scores sharing the name's line while both fit. */
+  .registerItem:first-child:nth-last-child(odd) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
     grid-column: 1 / -1;
+    gap: 7px 12px;
   }
 
-  .registerMetricVisual {
-    justify-content: flex-end;
+  .registerItem:first-child:nth-last-child(odd) .registerRole {
+    flex: 0 0 100%;
+  }
+
+  /* The name grows to push the scores right, rather than the scores taking an auto margin, so scores that wrap start their line at the left. */
+  .registerItem:first-child:nth-last-child(odd) .registerModel {
+    flex: 1 0 auto;
+    align-items: center;
+    max-width: 100%;
+  }
+
+  .registerItem:first-child:nth-last-child(odd) .registerModel strong {
+    font-size: 18px;
   }
 }
 

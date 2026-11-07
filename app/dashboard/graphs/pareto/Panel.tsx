@@ -11,8 +11,7 @@ import { captureFileToken } from "../../capture/png";
 import { ResearchRegion } from "../../ResearchRegions";
 import { modelName, modelVariantKey, shortLabel } from "../../shared/model-display";
 import { updateDashboardUrl, useUrlState } from "../../use-url-state";
-import { BoxWhiskerSummary } from "../BoxWhiskerSummary";
-import { finite, fmtPercentScore, fmtTooltipNumber, fmtTooltipScore } from "../format";
+import { finite, fmtTooltipNumber, fmtTooltipScore } from "../format";
 import { GraphToggle } from "../GraphToggle";
 import { HoverCard, type HoverSetter, type HoverState } from "../HoverCard";
 import { scoreAxisScale } from "../plot/axis-scale";
@@ -162,8 +161,6 @@ const ParetoFigure = memo(function ParetoFigure({
       ? "Normalized Performance"
       : `${selectedLabel} Score`;
   const xLabel = frontierAxisMetricLabel(axisKey, aggregate, rows);
-  const formatScore =
-    publishedPerformance || normalizedScore || indexScore ? fmtTooltipScore : fmtPercentScore;
   const formatScoreTick =
     publishedPerformance || normalizedScore
       ? (value: number) => value.toFixed(0)
@@ -227,18 +224,6 @@ const ParetoFigure = memo(function ParetoFigure({
             performance={{ value: performance, onChange: setPerformance }}
             onChange={(keys) => updateDashboardUrl({ performance: "benchmarks", benchmark: keys })}
           />
-        }
-        summary={
-          rows.length > 0 ? (
-            <BoxWhiskerSummary
-              label={yLabel}
-              values={scoreValues}
-              countLabel={showVariants ? "variants" : "models"}
-              domainMax={Math.max(100, ...scoreValues)}
-              formatValue={formatScore}
-              showDomainEndpoints
-            />
-          ) : null
         }
       />
       {rows.length === 0 ? (

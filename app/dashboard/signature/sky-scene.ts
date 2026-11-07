@@ -114,7 +114,6 @@ const SKY_DEFINES = Object.fromEntries(
     CAMERA_DISTANCE,
     TAN_HALF_FOV,
     PLANET_RADIUS,
-    LIMB_RADIUS,
     STAR_SPRITE,
     FRONTIER_SPRITE,
     GRAVITY_REACH,
@@ -140,14 +139,10 @@ uniform vec2 resolution;
 uniform float aspect;
 uniform float horizon;
 uniform float scope;
-
-// How far scoping has tightened the arc toward the limb: 1 at rest, reaching the limb before the pan carries it below the viewport.
-float planetShrink() {
-  return pow(LIMB_RADIUS / PLANET_RADIUS, 1.0 - pow(1.0 - scope, 2.5));
-}
+uniform float shrink;
 
 // Distance from the rim in viewport heights, positive above it, while the radius is set in widths.
-float rimDistance(vec2 uv, float shrink) {
+float rimDistance(vec2 uv) {
   float radius = PLANET_RADIUS * shrink * aspect;
   vec2 p = vec2((uv.x - 0.5) * aspect, uv.y);
   return length(p - vec2(0.0, horizon - radius)) - radius;
@@ -196,8 +191,7 @@ float clouds(vec2 p) {
 }
 
 void main() {
-  float shrink = planetShrink();
-  float toRim = rimDistance(vUv, shrink);
+  float toRim = rimDistance(vUv);
   float across = vUv.x - 0.5;
   vec2 p = vec2(across * aspect, vUv.y);
   float side = clamp(abs(across) / (0.67 * shrink), 0.0, 1.0);
@@ -384,8 +378,7 @@ void main() {
   float along = clamp(dot(p, vStreak) / max(dot(vStreak, vStreak), 1e-6), -1.0, 1.0);
   float falloff = smoothstep(1.0, 0.1, length(p - vStreak * along) / vRadius);
   // The planet is solid: motes set behind its rim and dim through its atmosphere.
-  float shrink = planetShrink();
-  float clear = smoothstep(0.0, 0.03 * shrink, rimDistance(gl_FragCoord.xy / resolution, shrink));
+  float clear = smoothstep(0.0, 0.03 * shrink, rimDistance(gl_FragCoord.xy / resolution));
   gl_FragColor = vec4(vec3(0.7, 0.78, 1.0) * falloff * vGlow * clear * 0.75, 1.0);
 }
 `;
@@ -412,6 +405,7 @@ export function createSky(scene: THREE.Scene, camera: THREE.PerspectiveCamera) {
     horizon: { value: HORIZON },
     dawn: { value: 1 },
     scope: { value: 0 },
+    shrink: { value: 1 },
     rise: { value: 0 },
   };
   const additive = {
@@ -606,6 +600,13 @@ export function createSky(scene: THREE.Scene, camera: THREE.PerspectiveCamera) {
       );
       layout();
     },
+    /** The planet's rim as last updated, in CSS pixels: its apex below the viewport's top and its radius, centred across the viewport. */
+    rim() {
+      return {
+        top: (1 - uniforms.horizon.value) * height,
+        radius: PLANET_RADIUS * uniforms.shrink.value * width,
+      };
+    },
     /** Where the hero horizon sits, in CSS pixels from the top of the viewport at rest; null keeps the default height. */
     setHorizon(top: number | null) {
       horizonTop = top;
@@ -673,6 +674,8 @@ export function createSky(scene: THREE.Scene, camera: THREE.PerspectiveCamera) {
       uniforms.horizon.value = resting + (SCOPED_HORIZON - resting) * scope ** 1.15;
       uniforms.dawn.value = 1 - scope * 0.85;
       uniforms.scope.value = scope;
+      // How far scoping has tightened the arc toward the limb: 1 at rest, reaching the limb before the pan carries it below the viewport.
+      uniforms.shrink.value = (LIMB_RADIUS / PLANET_RADIUS) ** (1 - (1 - scope) ** 2.5);
       uniforms.rise.value = frame.scroll * frame.unitsPerPixel * 0.35;
       camera.position.z = CAMERA_DISTANCE - scope * 5 - clamp01(frame.flight) * 4.2;
       camera.rotation.x = scope * 0.16;

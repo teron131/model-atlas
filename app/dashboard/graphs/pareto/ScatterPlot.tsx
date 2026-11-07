@@ -2,7 +2,7 @@
 
 /** Frontier benchmark scatter plot owns axes, the Pareto frontier horizon, labels, cursor projections, and effort lines. */
 
-import { median } from "d3-array";
+import { median, quantileSorted } from "d3-array";
 import { scaleLinear, scaleLog } from "d3-scale";
 import {
   type CSSProperties,
@@ -143,7 +143,8 @@ export function FrontierBenchmarkScatterPlot<Row>({
     y: { get: getScore, goal: "maximize" },
   });
   const medianMetric = median(rows.map(metric.get)) ?? xDomain[0];
-  const medianScore = median(rows.map(getScore)) ?? yDomain[0];
+  const scores = rows.map(getScore);
+  const medianScore = median(scores) ?? yDomain[0];
   const frontierRows = new Set(frontier);
   // The reached region continues away from the better side: rightward when lower resources win.
   const horizonOpenSide = metric.xHigherIsBetter ? "left" : "right";
@@ -408,6 +409,13 @@ export function FrontierBenchmarkScatterPlot<Row>({
             }
             yLabel={`MED ${formatScore(medianScore)}`}
           />
+          <AxisDistribution
+            scores={scores}
+            x={plot.left}
+            yPoint={yPoint}
+            label={yAxisLabel}
+            format={formatScore}
+          />
         </g>
         <DirectionArrow
           bounds={plot}
@@ -601,4 +609,50 @@ function labelRect(placement: PointLabelPlacement, size: PointLabelSize, padding
     width: size.width + padding * 2,
     height: size.ascent + size.descent + padding * 2,
   };
+}
+
+/** The y-axis carries the plotted scores' spread: whiskers over their range, a box over the middle half, and a mark at the median the median guide continues. */
+function AxisDistribution({
+  scores,
+  x,
+  yPoint,
+  label,
+  format,
+}: {
+  scores: number[];
+  x: number;
+  yPoint: (value: number) => number;
+  label: string;
+  format: (value: number) => string;
+}) {
+  const sorted = [...scores].sort((left, right) => left - right);
+  const min = sorted[0]!;
+  const max = sorted.at(-1)!;
+  const q1 = quantileSorted(sorted, 0.25)!;
+  const median = quantileSorted(sorted, 0.5)!;
+  const q3 = quantileSorted(sorted, 0.75)!;
+  const across = (value: number, reach: number) => ({
+    x1: x - reach,
+    x2: x + reach,
+    y1: yPoint(value),
+    y2: yPoint(value),
+  });
+  return (
+    <g
+      role="img"
+      aria-label={`${label} distribution from ${format(min)} to ${format(max)}, first quartile ${format(q1)}, median ${format(median)}, and third quartile ${format(q3)}`}
+    >
+      <line className={styles.axisRange} x1={x} x2={x} y1={yPoint(min)} y2={yPoint(max)} />
+      <line className={styles.axisRange} {...across(min, 4)} />
+      <line className={styles.axisRange} {...across(max, 4)} />
+      <rect
+        className={styles.axisQuartiles}
+        x={x - 4}
+        y={yPoint(q3)}
+        width={8}
+        height={yPoint(q1) - yPoint(q3)}
+      />
+      <line className={styles.axisMedian} {...across(median, 5)} />
+    </g>
+  );
 }

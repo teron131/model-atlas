@@ -99,7 +99,8 @@ export function FrontierField({
   useEffect(() => {
     const host = hostRef.current;
     const hero = heroRef.current;
-    if (!host || !hero) return;
+    const title = hero?.querySelector("h2");
+    if (!host || !hero || !title) return;
     let renderer: THREE.WebGLRenderer;
     try {
       renderer = new THREE.WebGLRenderer({ alpha: false, antialias: true });
@@ -145,7 +146,7 @@ export function FrontierField({
     let cardKey: string | null = null;
     let hoveredKey: string | null = null;
     // The title's lines as set, so names keep off the words rather than off their full-width boxes.
-    const titleLines = Array.from(hero.querySelectorAll("h2 > span"), (line) => {
+    const titleLines = Array.from(title.querySelectorAll(":scope > span"), (line) => {
       const range = document.createRange();
       range.selectNodeContents(line);
       return range;
@@ -171,9 +172,18 @@ export function FrontierField({
       frameState.pointer = motion.matches || frameState.progress >= EXPLORE_UNTIL ? null : pointer;
       sky.update(frameState);
       renderer.render(scene, camera);
+      maskTitle();
       placeLabels(sky.labels());
       exploreStars();
       return frameState.intro < 1 || sky.settling();
+    };
+
+    // The title sets into the planet, so its mask follows the rim as scrolling carries the words up and lowers and tightens the arc.
+    const maskTitle = () => {
+      const rim = sky.rim();
+      const box = title.getBoundingClientRect();
+      const shape = `circle ${rim.radius.toFixed(1)}px at ${(frameState.width / 2 - box.left).toFixed(1)}px ${(rim.top + rim.radius - box.top).toFixed(1)}px`;
+      if (title.style.getPropertyValue("--rim") !== shape) title.style.setProperty("--rim", shape);
     };
 
     /**

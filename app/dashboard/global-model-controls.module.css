@@ -1,4 +1,4 @@
-/* The model search always holds the rail's open middle; active filter chips, profiles, and additional filters follow it on wide screens and fold into a second ruled row on phones, while secondary choices use the top layer. */
+/* The model search holds the rail's open middle, folding to an icon on the narrowest phones; active filter chips, profiles, and additional filters follow it on wide screens and fold into a second ruled row on phones, while secondary choices use the top layer. */
 /* Suggestions hang beneath the search on wide screens and span the whole rail on phones, where the search is narrow. */
 .query {
   position: relative;
@@ -281,12 +281,46 @@
   .profileToggle span {
     display: none;
   }
+  /* A phone rail cannot fit the region links and a usable field side by side, so the search folds to its icon, with the field laid unseen over it to take the tap, and opens over the links while it has focus. */
   .search {
+    position: relative;
+    justify-content: center;
     gap: 6px;
-    padding-inline: 8px;
+    min-width: 44px;
+    padding-inline: 14px;
   }
   .search input {
+    position: absolute;
+    inset: 0;
+    padding: 0;
+    color: transparent;
     font-size: 11px;
+  }
+  .search input::placeholder {
+    color: transparent;
+  }
+  .search input::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+  }
+  .query:focus-within {
+    z-index: 1;
+    grid-area: 1 / 1 / 2 / 3;
+    background: rgb(var(--paper-rgb));
+  }
+  .query:focus-within .search {
+    justify-content: flex-start;
+    padding-inline: 12px;
+  }
+  .query:focus-within .search input {
+    position: static;
+    padding: 0 2px;
+    color: var(--ink);
+  }
+  .query:focus-within .search input::placeholder {
+    color: var(--muted);
+  }
+  .query:focus-within .search input::-webkit-search-cancel-button {
+    -webkit-appearance: searchfield-cancel-button;
   }
   .panel:has(.profiles form) .profiles {
     flex: 1;

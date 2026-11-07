@@ -75,6 +75,8 @@ type Comparison = { lead?: Lead; delta?: string };
 // The exported card's benchmark lists take this many columns, for one model and for a comparison.
 const CARD_COLUMNS = 3;
 const COMPARE_CARD_COLUMNS = 2;
+// How far the evidence scrolls before a phone's head folds to one line.
+const HEAD_FOLD_SCROLL = 8;
 
 const PRICES: {
   label: string;
@@ -100,6 +102,7 @@ export function ModelSheet({ payload }: { payload: ModelAtlasPayload | null }) {
   const [compareEffort] = useUrlState("compare-effort");
   const sheetRef = useRef<HTMLElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const headRef = useRef<HTMLElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
   const open = modelKey != null && payload != null;
   const { opened, pinned } = useSheetEntries(payload, modelKey, effort, compareKey, compareEffort);
@@ -239,8 +242,11 @@ export function ModelSheet({ payload }: { payload: ModelAtlasPayload | null }) {
         comparing ? "model-sheet-pinned-title model-sheet-title" : "model-sheet-title"
       }
       style={{ "--sheet-entries": entries.length } as CSSProperties}
+      onScroll={(event) => {
+        if (headRef.current != null) foldHead(headRef.current, event.currentTarget.scrollTop);
+      }}
     >
-      <header className={styles.head}>
+      <header ref={headRef} className={styles.head}>
         {comparing ? (
           <>
             {/* The Compare toggle holds the label column, which stays in the image without it; the other actions keep the single sheet's top-right corner, so each name keeps its column's full width. */}
@@ -310,6 +316,20 @@ export function ModelSheet({ payload }: { payload: ModelAtlasPayload | null }) {
 function clearCopiedLabelColumn(card: HTMLElement) {
   card.style.removeProperty("--sheet-label");
   card.style.removeProperty("--sheet-columns");
+}
+
+/** Marks the head folded once the evidence scrolls; the height a phone's folded head gives up stays as its margin, so the evidence never jumps as it folds or unfolds. */
+function foldHead(head: HTMLElement, scrollTop: number) {
+  const folded = scrollTop > HEAD_FOLD_SCROLL;
+  if (folded === head.hasAttribute("data-folded")) return;
+  if (!folded) {
+    head.removeAttribute("data-folded");
+    head.style.removeProperty("--head-fold");
+    return;
+  }
+  const open = head.offsetHeight;
+  head.setAttribute("data-folded", "");
+  head.style.setProperty("--head-fold", `${open - head.offsetHeight}px`);
 }
 
 function SheetIdentity({

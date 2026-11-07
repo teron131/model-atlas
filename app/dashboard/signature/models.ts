@@ -6,17 +6,13 @@ import { clamp01, medianOfFinite } from "../../../src/model-atlas/math-utils";
 import { type ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 import { paretoFrontier } from "../graphs/plot/pareto-frontier";
 import type { ModelSheetModel } from "../model-sheet/open";
-import {
-  collapsedModels,
-  modelsForVariantDisplay,
-  modelVariantKey,
-  shortLabel,
-} from "../shared/model-display";
+import { collapsedModels, modelsForVariantDisplay, shortLabel } from "../shared/model-display";
 import { providerChartColor, providerDisplayName, providerLogo } from "../shared/provider-theme";
 import type { SkyStar } from "./sky-scene";
 
 // Star tint when a provider's colour is theme-dependent; the sky is dark in both themes.
 const SKY_INK = "#eef2ff";
+const ROLE_LIST = new Intl.ListFormat("en", { style: "short", type: "conjunction" });
 
 export type SignaturePopulation = {
   models: ModelAtlasModel[];
@@ -24,18 +20,20 @@ export type SignaturePopulation = {
   referenceModels: ModelAtlasModel[];
 };
 
-/** The score that earned a frontier role; Pareto roles add the Value score and blended price behind the choice. */
+/** The scores that earned a model its frontier roles; Pareto roles add the Value score and blended price behind the choice. */
 export type SignatureMetric = {
-  kind: "intelligence" | "agentic";
-  score: number;
+  intelligence?: number;
+  agentic?: number;
   value?: number;
   price?: number;
 };
 
 type SignatureModel = {
-  key: string;
   family: string;
-  /** The model the role was chosen from, a reasoning variant when the role compared variants, so its sheet shows the score the register names. */
+  /**
+   * The model the first role was chosen from, a reasoning variant when that role compared variants, so its sheet shows the score the register names.
+   * A model holding several roles opens this one sheet, so a later role's score can come from another effort of the same model.
+   */
   sheet: ModelSheetModel;
   role: string;
   metric: SignatureMetric;
@@ -137,7 +135,7 @@ export function signatureModels({
         label: "Best Agentic",
         allowRepeat: true,
         model: agenticRanking[0],
-        metric: (model) => ({ kind: "agentic", score: Number(model.scores.agentic_score) }),
+        metric: (model) => ({ agentic: Number(model.scores.agentic_score) }),
       },
       {
         label: "Another Lab",
@@ -175,16 +173,42 @@ export function signatureModels({
     ],
     intelligenceRanking.slice(0, 5),
   );
-  return selectedModels.map(({ model, role, metric }) => ({
-    key: `${modelVariantKey(model)}:${role}`,
-    family: canonicalModelKey(model),
+  // A model holding several roles is one entry, named by every role it holds.
+  const entries = new Map<
+    string,
+    { model: ModelAtlasModel; roles: string[]; metric: SignatureMetric }
+  >();
+  for (const { model, role, metric } of selectedModels) {
+    const family = canonicalModelKey(model);
+    const entry = entries.get(family);
+    if (entry == null) {
+      entries.set(family, { model, roles: [role], metric });
+    } else {
+      entry.roles.push(role);
+      entry.metric = { ...metric, ...entry.metric };
+    }
+  }
+  return [...entries].map(([family, { model, roles, metric }]) => ({
+    family,
     sheet: { id: model.id, name: model.name, reasoning_effort: model.reasoning_effort },
-    role,
+    role: roleLabel(roles),
     metric,
     name: shortLabel({ ...model, reasoning_effort: null }),
     logo: providerLogo(model.provider) || model.logo,
     color: providerChartColor(model.provider),
   }));
+}
+
+/** Join a model's roles, dropping the leading word a role shares with the one before it. */
+function roleLabel(roles: string[]) {
+  return ROLE_LIST.format(
+    roles.map((role, index) => {
+      const [lead, ...rest] = role.split(" ");
+      return index > 0 && rest.length > 0 && roles[index - 1]?.split(" ")[0] === lead
+        ? rest.join(" ")
+        : role;
+    }),
+  );
 }
 
 type SignatureRole = {
@@ -257,7 +281,7 @@ function intelligenceScore(model: ModelAtlasModel): number {
 }
 
 function intelligenceMetric(model: ModelAtlasModel): SignatureMetric {
-  return { kind: "intelligence", score: intelligenceScore(model) };
+  return { intelligence: intelligenceScore(model) };
 }
 
 function intelligenceValueMetric(model: ModelAtlasModel): SignatureMetric {
