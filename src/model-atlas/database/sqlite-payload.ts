@@ -5,11 +5,11 @@ import { DatabaseSync } from "node:sqlite";
 import { asRecord } from "../runtime";
 import type { ModelAtlasPayload } from "../stats/types";
 import { readCapabilityState } from "./capability-state";
+import { listedChangeHistory } from "./change-log";
 import { readCommunityRankings } from "./community-rankings";
 import {
   buildPayloadFromRows,
   buildPayloadRows,
-  listedChangeHistory,
   PAYLOAD_ROW_GROUPS,
   type PayloadRowGroup,
   SNAPSHOT_METADATA_SQL,

@@ -546,7 +546,7 @@ const rescoredRiemann = await riemannBenchRuntime.snapshot(
 );
 globalThis.fetch = originalFetch;
 assert.deepEqual(
-  rescoredRiemann.riemannBenchModelScoreRows,
+  rescoredRiemann.rows,
   [{ ...cachedRiemannRow, score: 0.8 }],
   "A Riemann-bench re-score replaces the cached result for the same model and effort",
 );

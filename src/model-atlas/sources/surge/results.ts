@@ -21,8 +21,6 @@ import { nowEpochSeconds } from "../../runtime";
 import { htmlAttribute, percentToUnitScore, providerFromLogoAlt, stripHtmlTags } from "../parsing";
 import { fetchSource } from "../request-scheduler";
 
-const DEFAULT_TIMEOUT_MS = 30_000;
-
 const LIST_ITEM_PATTERN =
   /<div\b[^>]*\brole\s*=\s*["']listitem["'][\s\S]*?(?=<div\b[^>]*\brole\s*=\s*["']listitem["']|<section\b|$)/gi;
 
@@ -45,7 +43,7 @@ export async function getSurgeIntelligenceIndexStats(
   benchmarkKey: string,
   sourceUrl: string,
 ): Promise<BenchmarkObservationPayload> {
-  return fetchSource(sourceUrl, {}, DEFAULT_TIMEOUT_MS, async (response) => {
+  return fetchSource(sourceUrl, {}, async (response) => {
     if (!response.ok) throw new Error(`Surge ${benchmarkKey} scrape failed: ${response.status}`);
     const pageHtml = await response.text();
     return {
@@ -60,7 +58,7 @@ export async function getSurgeLeaderboardStats(
   sourceUrl: string,
   scoreKind: SurgeScoreKind = "percent",
 ): Promise<BenchmarkObservationPayload> {
-  return fetchSource(sourceUrl, {}, DEFAULT_TIMEOUT_MS, async (response) => {
+  return fetchSource(sourceUrl, {}, async (response) => {
     if (!response.ok) throw new Error(`Surge ${benchmarkKey} scrape failed: ${response.status}`);
     const pageHtml = await response.text();
     return {

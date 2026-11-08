@@ -27,7 +27,8 @@ CREATE TABLE IF NOT EXISTS snapshot_metadata (
 	updated_at_epoch_seconds INTEGER NOT NULL,
 	snapshot_preservation_version INTEGER,
 	benchmark_update_health_json TEXT CHECK (benchmark_update_health_json IS NULL OR json_valid(benchmark_update_health_json)),
-	benchmark_versions_json TEXT CHECK (benchmark_versions_json IS NULL OR json_valid(benchmark_versions_json))
+	benchmark_versions_json TEXT CHECK (benchmark_versions_json IS NULL OR json_valid(benchmark_versions_json)),
+	scoring_methodology_json TEXT CHECK (scoring_methodology_json IS NULL OR json_valid(scoring_methodology_json))
 );
 
 CREATE TABLE IF NOT EXISTS artificial_analysis_raw_models (

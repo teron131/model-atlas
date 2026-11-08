@@ -5,6 +5,7 @@ import { createHash } from "node:crypto";
 import { INDEX_REPRESENTED_BENCHMARK_MEDIAN } from "../../src/model-atlas/benchmarks/index-policy";
 import type { BenchmarkObservationEvidenceRow } from "../../src/model-atlas/benchmarks/observation";
 import { applyResourceEvidenceRequirements } from "../../src/model-atlas/pipeline/scores/resource-metrics";
+import { compactModelVariants } from "../../src/model-atlas/stats/model-variants";
 import {
   displayResourceRatios,
   type ResourceRatioKind,
@@ -14,7 +15,6 @@ import {
 } from "../../src/model-atlas/stats/resource-ratios";
 import type { ModelAtlasModel, ModelAtlasPayload } from "../../src/model-atlas/stats/types";
 import { providerLogo } from "../dashboard/shared/provider-theme";
-import { compactModelVariants } from "./model-variants";
 
 const SCORE_SCHEMA = "model_atlas.score";
 const CORE_SCHEMA = "model_atlas.core";

@@ -10,7 +10,7 @@ import type {
   BenchmarkObservationRow,
 } from "../../benchmarks/observation";
 import { withClaudeFamily } from "../../identity/claude";
-import { parseSlugEffort } from "../../identity/normalization";
+import { modelEffortLabel, parseSlugEffort } from "../../identity/normalization";
 import { asFiniteNumber, asRecord, nowEpochSeconds } from "../../runtime";
 import { fetchSource } from "../request-scheduler";
 
@@ -25,7 +25,6 @@ type CaisDashboardModel = {
   scoreNotes: Record<string, unknown>;
 };
 
-const DEFAULT_TIMEOUT_MS = 30_000;
 const DASHBOARD_SCRIPT_MARKER = "JSON.parse('";
 const SOURCE_FAMILY = "cais_dashboard";
 const METRIC = "dashboard_score";
@@ -198,7 +197,7 @@ function modelIdentity(model: CaisDashboardModel): {
   const baseModel = withClaudeFamily(model.name);
   const reasoningEffort = caisReasoningEffort(model.modelId);
   return {
-    model: reasoningEffort == null ? baseModel : `${baseModel} (${reasoningEffort})`,
+    model: modelEffortLabel(baseModel, reasoningEffort),
     baseModel,
     reasoningEffort,
   };
@@ -224,7 +223,7 @@ async function fetchCaisDashboardPageOnce(sourceUrl: string): Promise<CaisDashbo
 }
 
 async function fetchCaisDashboardPage(sourceUrl: string): Promise<CaisDashboardPage> {
-  const html = await fetchSource(sourceUrl, {}, DEFAULT_TIMEOUT_MS, async (response) => {
+  const html = await fetchSource(sourceUrl, {}, async (response) => {
     if (!response.ok) throw new Error(`CAIS dashboard fetch failed: ${response.status}`);
     return response.text();
   });
@@ -237,7 +236,7 @@ async function fetchCaisDashboardPage(sourceUrl: string): Promise<CaisDashboardP
   ];
   const scripts = await Promise.all(
     scriptUrls.map((url) =>
-      fetchSource(url, {}, DEFAULT_TIMEOUT_MS, async (scriptResponse) =>
+      fetchSource(url, {}, async (scriptResponse) =>
         scriptResponse.ok ? scriptResponse.text() : null,
       ).catch(() => null),
     ),

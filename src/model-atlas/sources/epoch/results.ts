@@ -18,8 +18,6 @@ import { fetchSource } from "../request-scheduler";
 
 const EPOCH_BENCHMARKS_CSV_URL = "https://epoch.ai/data/benchmarks.csv";
 
-const DEFAULT_TIMEOUT_MS = 30_000;
-
 let pendingBenchmarkRows: Promise<EpochBenchmarkRowsPayload> | null = null;
 
 type EpochBenchmarkCsvRow = Record<string, string>;
@@ -96,7 +94,7 @@ export async function getEpochExternalBenchmarkStats(
   benchmarkKey: BenchmarkObservationRow["benchmark_key"],
   sourceUrl: string,
 ): Promise<BenchmarkObservationPayload> {
-  return fetchSource(sourceUrl, {}, DEFAULT_TIMEOUT_MS, async (response) => {
+  return fetchSource(sourceUrl, {}, async (response) => {
     if (!response.ok)
       throw new Error(`Epoch external benchmark download failed: ${response.status}`);
     return {
@@ -145,7 +143,7 @@ function fetchEpochBenchmarkRows(): Promise<EpochBenchmarkRowsPayload> {
 }
 
 async function requestEpochBenchmarkRows(): Promise<EpochBenchmarkRowsPayload> {
-  return fetchSource(EPOCH_BENCHMARKS_CSV_URL, {}, DEFAULT_TIMEOUT_MS, async (response) => {
+  return fetchSource(EPOCH_BENCHMARKS_CSV_URL, {}, async (response) => {
     if (!response.ok) throw new Error(`Epoch benchmark scrape failed: ${response.status}`);
     return {
       fetched_at_epoch_seconds: nowEpochSeconds(),

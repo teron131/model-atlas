@@ -159,37 +159,24 @@ const versioning = {
   observedDate: "2026-09-15",
   observedAt: capturedAt,
 };
-const relativeSelection = prepareModelSelection(relativeRows, STAGE_CONFIG.scoring, versioning);
-const indexedSelection = prepareModelSelection(relativeRows, STAGE_CONFIG.scoring, versioning, [], {
-  state: initial,
-  benchmarkVersions: {},
-});
-assert.deepEqual(
-  indexedSelection.candidates.map((m) => m.component_scores),
-  relativeSelection.candidates.map((m) => m.component_scores),
-  "The separate index cannot overwrite relative scores or their resource-comparison coordinates",
-);
+const selection = prepareModelSelection(relativeRows, STAGE_CONFIG.scoring, versioning);
 const resourceInputs = {
   speedByModelId: new Map(),
   pricingByModelId: new Map(),
 };
-const relativeModels = await buildFinalModels(
-  relativeSelection,
-  resourceInputs,
-  null,
-  STAGE_CONFIG.final,
-  STAGE_CONFIG.scoring,
-);
-const indexedModels = await buildFinalModels(
-  indexedSelection,
-  resourceInputs,
-  null,
-  STAGE_CONFIG.final,
-  STAGE_CONFIG.scoring,
+const finalModels = () =>
+  buildFinalModels(selection, resourceInputs, null, STAGE_CONFIG.final, STAGE_CONFIG.scoring);
+const relativeModels = await finalModels();
+const scoredCandidates = structuredClone(selection.candidates);
+advanceCapabilityState(initial, selection.candidates, capturedAt, {});
+assert.deepEqual(
+  selection.candidates,
+  scoredCandidates,
+  "Advancing the separate index cannot overwrite relative scores or their resource-comparison coordinates",
 );
 assert.ok(relativeModels.length > 0);
 assert.deepEqual(
-  indexedModels,
+  await finalModels(),
   relativeModels,
   "Publishing an Intelligence Index cannot change leaderboard scores, resources, or admission",
 );

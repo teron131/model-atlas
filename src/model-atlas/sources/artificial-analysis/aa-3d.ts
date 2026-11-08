@@ -16,13 +16,11 @@ import {
 } from "./model-labels";
 import { getArtificialAnalysisPage } from "./page-data";
 
-const DEFAULT_TIMEOUT_MS = 30_000;
-
 /** The page publishes no dataset manifest, so its rated board comes from the page's own model records. */
 const RATING_KEY = "aa3dElo";
 
 export async function getAa3dStats(sourceUrl: string): Promise<BenchmarkObservationPayload> {
-  const { models } = await getArtificialAnalysisPage(sourceUrl, DEFAULT_TIMEOUT_MS, RATING_KEY);
+  const { models } = await getArtificialAnalysisPage(sourceUrl, RATING_KEY);
   const data = processAa3dRows(models, sourceUrl);
   return { fetched_at_epoch_seconds: data.length === 0 ? null : nowEpochSeconds(), data };
 }

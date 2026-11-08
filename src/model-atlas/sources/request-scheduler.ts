@@ -26,6 +26,7 @@ const PAGE_REQUEST_POLICY = { concurrency: 4, startIntervalMs: 150, startJitterM
 const MAX_QUEUE_WAIT_MS = 60_000;
 const RATE_LIMIT_COOLDOWN_MS = 30_000;
 const UNAVAILABLE_COOLDOWN_MS = 1_000;
+const SOURCE_REQUEST_TIMEOUT_MS = 30_000;
 const hosts = new Map<string, HostQueues>();
 
 /** A congested or cooling host should fall back to cached evidence instead of immediately rejoining its queue. */
@@ -39,10 +40,10 @@ export class SourceQueueTimeoutError extends Error {
 /** Hold a host slot until the caller consumes the body; queue time is bounded separately from the active request timeout. */
 export async function fetchSource<T>(
   input: string | URL,
-  init: RequestInit,
-  timeoutMs: number,
+  init: RequestInit & { timeoutMs?: number },
   consume: (response: Response) => Promise<T>,
 ): Promise<T> {
+  const { timeoutMs = SOURCE_REQUEST_TIMEOUT_MS, ...requestInit } = init;
   return scheduleSourceRequest(
     input,
     async () => {
@@ -52,7 +53,7 @@ export async function fetchSource<T>(
         : controller.signal;
       const timeout = setTimeout(() => controller.abort(), timeoutMs);
       try {
-        const response = await fetch(input, { ...init, signal });
+        const response = await fetch(input, { ...requestInit, signal });
         if (response.status === 429 || response.status === 503) {
           const delay =
             retryAfterMs(response.headers.get("retry-after")) ??

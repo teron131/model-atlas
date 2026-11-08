@@ -10,7 +10,7 @@ import type {
   BenchmarkObservationRow,
 } from "../../benchmarks/observation";
 import { withClaudeFamily } from "../../identity/claude";
-import { canonicalReasoningEffort } from "../../identity/normalization";
+import { canonicalReasoningEffort, modelEffortLabel } from "../../identity/normalization";
 import { asFiniteNumber, asNonEmptyString, asRecord, nowEpochSeconds } from "../../runtime";
 import { extractNextFlightCorpus, findObjectEnd, parseFlightJsonObject } from "../parsing";
 import { fetchSource } from "../request-scheduler";
@@ -25,7 +25,7 @@ export async function getMercorStats(
   benchmarkKey: string,
   source: MercorLoader,
 ): Promise<BenchmarkObservationPayload> {
-  return fetchSource(source.sourceUrl, {}, 30_000, async (response) => {
+  return fetchSource(source.sourceUrl, {}, async (response) => {
     if (!response.ok) throw new Error(`Mercor scrape failed: ${response.status}`);
     const data = processMercorPageHtml(await response.text(), benchmarkKey, source);
     return { fetched_at_epoch_seconds: data.length > 0 ? nowEpochSeconds() : null, data };
@@ -124,7 +124,7 @@ function mercorIdentity(name: string, descriptors: unknown, effort: unknown) {
   const label = canonicalReasoningEffort(effort);
   const reasoningEffort = label === "auto" ? null : label;
   return {
-    model: reasoningEffort == null ? baseModel : `${baseModel} (${reasoningEffort})`,
+    model: modelEffortLabel(baseModel, reasoningEffort),
     baseModel,
     reasoningEffort,
   };

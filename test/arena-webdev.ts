@@ -6,7 +6,7 @@ import { test } from "node:test";
 import {
   benchmarkDisplayValue,
   benchmarkMetricColumns,
-  dedupeDisplayModels,
+  scaledDisplayRows,
 } from "../app/dashboard/table/models";
 import {
   type BenchmarkObservationRow,
@@ -181,7 +181,7 @@ assert.equal(column.label, "WebDev");
 const tableKeys = benchmarkMetricColumns.map((value) => value.benchmark);
 assert.ok(tableKeys.indexOf("arena_webdev") < tableKeys.indexOf("weirdml_v3"));
 assert.ok(tableKeys.indexOf("weirdml_v3") < tableKeys.indexOf("voxelbench"));
-const displayRows = dedupeDisplayModels(
+const displayRows = scaledDisplayRows(
   [1000, 1500, 2000].map((rating, index) => ({
     id: `webdev-example-${index}`,
     name: `WebDev Example ${index}`,

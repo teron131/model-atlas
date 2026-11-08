@@ -1,5 +1,7 @@
 /** Browser profiles persist only global model filters; matching and save validation stay independent of chart coordinates and local table controls. */
 
+import { useEffect, useState } from "react";
+
 import type { ModelAtlasModel } from "../../src/model-atlas/stats/types";
 import {
   type CostFilter,
@@ -20,6 +22,102 @@ const LEGACY_COST_FILTERS = new Map<unknown, CostFilter>([
   [10, 0.5],
   [25, 1],
 ]);
+
+/** Browser profile state for the filter rail: storage is reread when another tab writes it and before every write here, so concurrent edits are retained. */
+export function useModelProfiles(filters: GlobalModelFilters, matchedCount: number) {
+  const [profiles, setProfiles] = useState<ModelProfile[]>([]);
+  const [activeId, setActiveId] = useState("");
+  const [storageReady, setStorageReady] = useState(false);
+  const [storageError, setStorageError] = useState("");
+  const [saveError, setSaveError] = useState("");
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    const read = () => {
+      try {
+        setProfiles(readModelProfiles(window.localStorage));
+        setStorageReady(true);
+        setStorageError("");
+      } catch {
+        setStorageReady(false);
+        setStorageError(
+          "Browser profiles are unavailable. Check that site storage is enabled and saved profiles are valid.",
+        );
+      }
+    };
+    read();
+    const changed = (event: StorageEvent) => {
+      if (event.key === MODEL_PROFILES_STORAGE_KEY || event.key === null) read();
+    };
+    window.addEventListener("storage", changed);
+    return () => window.removeEventListener("storage", changed);
+  }, []);
+
+  const activeProfile = profiles.find((profile) => profile.id === activeId);
+  const canSave = storageReady && matchedCount > 0;
+
+  const clearFeedback = () => {
+    setMessage("");
+    setSaveError("");
+  };
+
+  /** Save the current filters as a new profile named `name`, or as the active profile when updating; returns whether it saved. */
+  const save = (updating: boolean, name: string): boolean => {
+    if (!canSave) return false;
+    setSaveError("");
+    try {
+      const stored = readModelProfiles(window.localStorage);
+      const existing = updating ? stored.find((profile) => profile.id === activeId) : undefined;
+      if (updating && !existing)
+        throw new Error("This profile was removed. Save it with a new name.");
+      const profile: ModelProfile = {
+        id: existing?.id ?? window.crypto.randomUUID(),
+        name: existing?.name ?? name,
+        filters,
+      };
+      setProfiles(saveModelProfile(window.localStorage, stored, profile, matchedCount));
+      setActiveId(profile.id);
+      setMessage(updating ? "Profile updated." : "Profile saved.");
+      return true;
+    } catch (error) {
+      setSaveError(
+        error instanceof Error ? error.message : "The profile could not be saved in this browser.",
+      );
+      return false;
+    }
+  };
+
+  /** Remove the active profile, keeping the current filters; returns whether it removed one. */
+  const remove = (): boolean => {
+    if (!storageReady || activeProfile == null) return false;
+    setSaveError("");
+    try {
+      const stored = readModelProfiles(window.localStorage);
+      setProfiles(removeModelProfile(window.localStorage, stored, activeProfile.id));
+      setActiveId("");
+      setMessage("Profile removed. Current filters kept.");
+      return true;
+    } catch {
+      setSaveError("The profile could not be removed from this browser.");
+      return false;
+    }
+  };
+
+  return {
+    profiles,
+    activeProfile,
+    modified: activeProfile != null && !sameProfileFilters(activeProfile.filters, filters),
+    setActiveId,
+    storageReady,
+    storageError,
+    saveError,
+    message,
+    canSave,
+    clearFeedback,
+    save,
+    remove,
+  };
+}
 
 /** Count visible canonical families matching the full global configuration, including variants that lack plot coordinates. */
 export function matchingProfileModelCount(

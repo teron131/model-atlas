@@ -20,7 +20,7 @@ const MINIMUM_VOTES = 50;
 export async function getVoxelBenchStats(
   sourceUrl = SOURCE_URL,
 ): Promise<BenchmarkObservationPayload> {
-  return fetchSource(sourceUrl, {}, 30_000, async (response) => {
+  return fetchSource(sourceUrl, {}, async (response) => {
     if (!response.ok) throw new Error(`VoxelBench scrape failed: ${response.status}`);
     return {
       fetched_at_epoch_seconds: nowEpochSeconds(),

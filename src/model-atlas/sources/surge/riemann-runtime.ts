@@ -1,6 +1,5 @@
-/** Riemann-bench runtime owns raw-cache reconstruction, snapshot refresh, and raw-row serialization. */
+/** Riemann-bench runtime owns raw-cache reconstruction, snapshot refresh, raw-row serialization, and its source-data lookup. */
 
-import { SNAPSHOT_TABLES } from "../../database/tables";
 import type { DatabaseWriter } from "../../database/writers/database";
 import { parseModelEffort } from "../../identity/normalization";
 import { asFiniteNumber, asNonEmptyString } from "../../runtime";
@@ -8,30 +7,27 @@ import { type BenchmarkSnapshotContext, defineBenchmarkRuntime } from "../benchm
 import { type CacheRowSource, firstFetchedAt, sourceCacheRows } from "../cache/rows";
 import { sourceRowKey } from "../snapshots/policy";
 import { snapshotSourceRows } from "../snapshots/row-snapshot";
-import type {
-  RawSourceCacheStatus,
-  SourceRefreshOptions,
-  SourceSnapshots,
-  SourceSnapshotStatus,
-} from "../types";
-import { getRiemannBenchStats, type RiemannBenchModelScoreRow } from "./riemann-bench";
+import type { RawSourceCacheStatus, SourceRefreshOptions, SourceSnapshotStatus } from "../types";
+import {
+  buildRiemannBenchMap,
+  getRiemannBenchStats,
+  type RiemannBenchModelScoreRow,
+} from "./riemann-bench";
 
 type RiemannBenchSnapshot = {
-  riemannBenchModelScoreRows: RiemannBenchModelScoreRow[];
-  riemannBenchSourceUrl: string;
+  rows: RiemannBenchModelScoreRow[];
+  sourceUrl: string;
   sourceStatus: SourceSnapshotStatus;
 };
 
 export const riemannBenchRuntime = defineBenchmarkRuntime({
-  cacheKey: "riemannBench",
   source: "riemann_bench",
-  table: SNAPSHOT_TABLES.riemann_bench,
+  key: "riemannBench",
+  fetchRows: async () => (await getRiemannBenchStats()).data,
   readCache: readRiemannBenchRawCache,
   snapshot: riemannBenchSnapshot,
   write: insertRiemannBenchRawRows,
-  sourceRowsKey: "riemannBenchRows",
-  fetchSourceRows: async () => (await getRiemannBenchStats()).data,
-  sourceRowsFromSnapshots: (snapshots) => snapshots.riemannBenchModelScoreRows,
+  sourceData: (rows) => ({ rows, rowsByModelName: buildRiemannBenchMap(rows) }),
 });
 
 function readRiemannBenchRawCache(cache: CacheRowSource): {
@@ -105,24 +101,24 @@ async function riemannBenchSnapshot(
     throw new Error("Riemann-bench snapshot is missing its source URL");
   }
   return {
-    riemannBenchModelScoreRows: snapshot.rows,
-    riemannBenchSourceUrl: snapshot.sourceUrl,
+    rows: snapshot.rows,
+    sourceUrl: snapshot.sourceUrl,
     sourceStatus: context.sourceStatus(snapshot),
   };
 }
 
-function insertRiemannBenchRawRows(db: DatabaseWriter, snapshots: SourceSnapshots): void {
+function insertRiemannBenchRawRows(db: DatabaseWriter, snapshot: RiemannBenchSnapshot): void {
   const statement = db.prepare(`
 		INSERT INTO riemann_bench_raw_rows (
 			row_index, fetched_at_epoch_seconds, url, provider,
 			model, score, last_updated
 		) VALUES (?, ?, ?, ?, ?, ?, ?)
 	`);
-  for (const [index, row] of snapshots.riemannBenchModelScoreRows.entries()) {
+  for (const [index, row] of snapshot.rows.entries()) {
     statement.run(
       index,
-      snapshots.fetchedAt.riemannBench,
-      snapshots.riemannBenchSourceUrl,
+      snapshot.sourceStatus.fetchedAt,
+      snapshot.sourceUrl,
       row.provider,
       row.model,
       row.score,

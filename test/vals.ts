@@ -8,7 +8,6 @@ import { BENCHMARK_OBSERVATION_BINDINGS } from "../src/model-atlas/benchmarks/re
 import { loadSchemaSql } from "../src/model-atlas/database/schema";
 import { schemaReconciliationPlan } from "../src/model-atlas/database/schema-reconciliation";
 import { benchmarkObservationSource } from "../src/model-atlas/sources/observations/load";
-import type { SourceSnapshots } from "../src/model-atlas/sources/types";
 import {
   getValsIndexStats,
   processValsIndexView,
@@ -90,9 +89,17 @@ try {
   const schemaSql = await loadSchemaSql();
   db.exec(schemaSql);
   valsIndexRuntime.write(db, {
-    valsIndexTaskScoreRows: index.task_rows,
-    fetchedAt: { valsIndex: 1_791_324_553 },
-  } as SourceSnapshots);
+    vals_index: {
+      rows: index.model_scores,
+      taskRows: index.task_rows,
+      sourceStatus: {
+        source: "vals_index",
+        fetchedAt: 1_791_324_553,
+        sourceInputCount: index.model_scores.length,
+        sourceRowStates: [],
+      },
+    },
+  });
   const cached = valsIndexRuntime.readCache(db);
   assert.ok(cached);
   assert.deepEqual(cached.rows, index.task_rows);

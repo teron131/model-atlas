@@ -10,45 +10,18 @@ import {
   type BenchmarkObservationBinding,
 } from "../../benchmarks/registry";
 import type { CrosswalkObservation } from "../../benchmarks/sources-crosswalk";
-import { buildBenchmarkModelMap } from "../../identity/normalization";
-import type { AgentsLastExamModelScoreRow } from "../agents-last-exam/leaderboard";
-import {
-  type AleBenchModelScoreRow,
-  type AleBenchRowsByModelName,
-  type AleBenchSourceRow,
-  summarizeAleBenchSourceDefaultRows,
-} from "../ale-bench/leaderboard";
-import type { ArenaAgentModelScoreRow, ArenaAgentRowsByModelName } from "../arena/agent";
 import {
   type ArtificialAnalysisBenchmarkResourceLookup,
   type ArtificialAnalysisBenchmarkResourceRow,
   buildArtificialAnalysisResourceLookup,
   buildArtificialAnalysisSourceDefaultResourceLookup,
 } from "../artificial-analysis/benchmark-resources";
-import type {
-  FrontierCodeModelEffortRow,
-  FrontierCodeRowsByModelName,
-} from "../frontier-code/leaderboard";
+import {
+  type BenchmarkSourceData,
+  type BenchmarkSourceRows,
+  buildBenchmarkSourceData,
+} from "../benchmarks";
 import type { ModelsDevFlatModel } from "../models-dev/catalog";
-import {
-  buildRiemannBenchMap,
-  type RiemannBenchModelScoreRow,
-  type RiemannBenchRowsByModelName,
-} from "../surge/riemann-bench";
-import {
-  buildTerminalBench4Map,
-  type TerminalBench4ModelHarnessRow,
-  type TerminalBench4RowsByModelName,
-} from "../terminal-bench-4/leaderboard";
-import {
-  buildValsIndexMap,
-  type ValsIndexModelScoreRow,
-  type ValsIndexRowsByModelName,
-} from "../vals/index-benchmark";
-import type {
-  VendingBench2ModelScoreRow,
-  VendingBench2RowsByModelName,
-} from "../vending-bench-2/leaderboard";
 import { fusedBenchmarkObservations } from "./fusion";
 import { pickPreferredModelsDevRows } from "./policy";
 
@@ -82,65 +55,41 @@ type BenchmarkObservationData = {
   >;
 };
 
-export type ModelAtlasSourceData = BenchmarkObservationData & {
-  fusedBenchmarks: Record<
-    string,
-    IndexedSourceRows<CrosswalkObservation, BenchmarkObservationLookup<CrosswalkObservation>>
-  >;
-  artificialAnalysis: {
-    rows: unknown[];
-    byId: Map<string, ArtificialAnalysisModel>;
+export type ModelAtlasSourceData = BenchmarkObservationData &
+  BenchmarkSourceData & {
+    fusedBenchmarks: Record<
+      string,
+      IndexedSourceRows<CrosswalkObservation, BenchmarkObservationLookup<CrosswalkObservation>>
+    >;
+    artificialAnalysis: {
+      rows: unknown[];
+      byId: Map<string, ArtificialAnalysisModel>;
+    };
+    artificialAnalysisBenchmarkResources: {
+      rows: ArtificialAnalysisBenchmarkResourceRow[];
+      observationLookup: ArtificialAnalysisBenchmarkResourceLookup;
+      sourceDefaultLookup: ArtificialAnalysisBenchmarkResourceLookup;
+    };
+    modelsDev: {
+      rows: ModelsDevFlatModel[];
+      byId: Map<string, ModelsDevFlatModel>;
+    };
   };
-  artificialAnalysisBenchmarkResources: {
-    rows: ArtificialAnalysisBenchmarkResourceRow[];
-    observationLookup: ArtificialAnalysisBenchmarkResourceLookup;
-    sourceDefaultLookup: ArtificialAnalysisBenchmarkResourceLookup;
-  };
-  modelsDev: {
-    rows: ModelsDevFlatModel[];
-    byId: Map<string, ModelsDevFlatModel>;
-  };
-  arenaAgent: IndexedSourceRows<ArenaAgentModelScoreRow, ArenaAgentRowsByModelName>;
-  agentsLastExam: IndexedSourceRows<
-    AgentsLastExamModelScoreRow,
-    Map<string, AgentsLastExamModelScoreRow>
-  >;
-  aleBench: {
-    rows: AleBenchSourceRow[];
-    sourceDefaultRows: AleBenchModelScoreRow[];
-    rowsByModelName: AleBenchRowsByModelName;
-  };
-  frontierCode: IndexedSourceRows<FrontierCodeModelEffortRow, FrontierCodeRowsByModelName>;
-  riemannBench: IndexedSourceRows<RiemannBenchModelScoreRow, RiemannBenchRowsByModelName>;
-  terminalBench4: IndexedSourceRows<TerminalBench4ModelHarnessRow, TerminalBench4RowsByModelName>;
-  valsIndex: IndexedSourceRows<ValsIndexModelScoreRow, ValsIndexRowsByModelName>;
-  vendingBench2: IndexedSourceRows<VendingBench2ModelScoreRow, VendingBench2RowsByModelName>;
-};
 
 type BenchmarkObservationRows = {
   [Binding in BenchmarkObservationBinding as Binding["sourceRowsKey"]]: ModelAtlasSourceData[Binding["sourceDataKey"]]["rows"];
 };
 
-export type ModelAtlasSourceRows = BenchmarkObservationRows & {
-  artificialAnalysisRows: ModelAtlasSourceData["artificialAnalysis"]["rows"];
-  artificialAnalysisBenchmarkResourceRows: ModelAtlasSourceData["artificialAnalysisBenchmarkResources"]["rows"];
-  modelsDevModels: ModelAtlasSourceData["modelsDev"]["rows"];
-  arenaAgentRows: ModelAtlasSourceData["arenaAgent"]["rows"];
-  agentsLastExamRows: ModelAtlasSourceData["agentsLastExam"]["rows"];
-  aleBenchConfigurationRows: AleBenchSourceRow[];
-  frontierCodeRows: ModelAtlasSourceData["frontierCode"]["rows"];
-  riemannBenchRows: ModelAtlasSourceData["riemannBench"]["rows"];
-  terminalBench4Rows: ModelAtlasSourceData["terminalBench4"]["rows"];
-  valsIndexModelScoreRows: ModelAtlasSourceData["valsIndex"]["rows"];
-  vendingBench2Rows: ModelAtlasSourceData["vendingBench2"]["rows"];
-};
+export type ModelAtlasSourceRows = BenchmarkObservationRows &
+  BenchmarkSourceRows & {
+    artificialAnalysisRows: ModelAtlasSourceData["artificialAnalysis"]["rows"];
+    artificialAnalysisBenchmarkResourceRows: ModelAtlasSourceData["artificialAnalysisBenchmarkResources"]["rows"];
+    modelsDevModels: ModelAtlasSourceData["modelsDev"]["rows"];
+  };
 
 /** Both live fetches and persisted snapshots enter matching through this normalized lookup contract. */
 export function buildSourceData(rows: ModelAtlasSourceRows): ModelAtlasSourceData {
   const preferredModelsDevModels = pickPreferredModelsDevRows(rows.modelsDevModels);
-  const aleBenchSourceDefaultRows = summarizeAleBenchSourceDefaultRows(
-    rows.aleBenchConfigurationRows,
-  );
   const benchmarkObservationData = buildBenchmarkObservationData(rows);
   return {
     fusedBenchmarks: Object.fromEntries(
@@ -174,39 +123,7 @@ export function buildSourceData(rows: ModelAtlasSourceRows): ModelAtlasSourceDat
       ),
     },
     ...benchmarkObservationData,
-    arenaAgent: {
-      rows: rows.arenaAgentRows,
-      rowsByModelName: buildBenchmarkModelMap(rows.arenaAgentRows),
-    },
-    agentsLastExam: {
-      rows: rows.agentsLastExamRows,
-      rowsByModelName: buildBenchmarkModelMap(rows.agentsLastExamRows),
-    },
-    aleBench: {
-      rows: rows.aleBenchConfigurationRows,
-      sourceDefaultRows: aleBenchSourceDefaultRows,
-      rowsByModelName: buildBenchmarkModelMap(aleBenchSourceDefaultRows),
-    },
-    frontierCode: {
-      rows: rows.frontierCodeRows,
-      rowsByModelName: buildBenchmarkModelMap(rows.frontierCodeRows),
-    },
-    riemannBench: {
-      rows: rows.riemannBenchRows,
-      rowsByModelName: buildRiemannBenchMap(rows.riemannBenchRows),
-    },
-    terminalBench4: {
-      rows: rows.terminalBench4Rows,
-      rowsByModelName: buildTerminalBench4Map(rows.terminalBench4Rows),
-    },
-    valsIndex: {
-      rows: rows.valsIndexModelScoreRows,
-      rowsByModelName: buildValsIndexMap(rows.valsIndexModelScoreRows),
-    },
-    vendingBench2: {
-      rows: rows.vendingBench2Rows,
-      rowsByModelName: buildBenchmarkModelMap(rows.vendingBench2Rows),
-    },
+    ...buildBenchmarkSourceData(rows),
   };
 }
 

@@ -26,7 +26,6 @@ const TERMINAL_BENCH_SCIENCE_PACKAGE = "terminal-bench-science/terminal-bench-sc
 
 const TERMINAL_BENCH_SCIENCE_NAME = "v0-1-eval";
 
-const DEFAULT_TIMEOUT_MS = 30_000;
 export const TERMINAL_BENCH_SCIENCE_VALS_URL =
   "https://www.vals.ai/benchmarks/terminal-bench-science";
 
@@ -35,7 +34,7 @@ export async function getTerminalBenchScienceStats(
   sourceUrl = TERMINAL_BENCH_SCIENCE_DATA_URL,
 ): Promise<BenchmarkObservationPayload> {
   const [official, vals] = await Promise.all([
-    fetchSource(sourceUrl, {}, DEFAULT_TIMEOUT_MS, async (response) => {
+    fetchSource(sourceUrl, {}, async (response) => {
       if (!response.ok) {
         throw new Error(`Terminal-Bench-Science scrape failed: ${response.status}`);
       }

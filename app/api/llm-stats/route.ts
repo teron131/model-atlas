@@ -2,17 +2,11 @@
 
 import { readDisplayPayload } from "../../../src/model-atlas/database/runtime-snapshot";
 import { publicJsonView, serializedPublicJson } from "../../leaderboard/public-json";
-import { matchesEtag, publicCacheHeaders } from "../cache-headers";
+import { matchesEtag, SNAPSHOT_CACHE_HEADERS } from "../cache-headers";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const runtime = "nodejs";
-
-const SNAPSHOT_CACHE_HEADERS = publicCacheHeaders({
-  browserMaxAgeSeconds: 60,
-  cdnMaxAgeSeconds: 300,
-  staleWhileRevalidateSeconds: 3600,
-});
 
 export async function GET(request: Request) {
   const view = publicJsonView(

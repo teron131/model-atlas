@@ -21,7 +21,7 @@ Find the current files by role before broad edits:
 - Source-data and cache/database loading: where raw source rows become lookup maps or persisted snapshots.
 - Matching and scoring modules: where benchmark rows attach to models, are imputed, and enter intelligence/agentic scores. The shared model contract is `src/model-atlas/pipeline/model-types.ts`; `stats/types.ts` re-exports it. Source combination and its private additive fitter belong together in `src/model-atlas/benchmarks/sources-crosswalk.ts`.
 - Database schema, writers, and payload readers: where raw rows, summarized rows, processed models, and public payloads are stored.
-- Dashboard labels, tooltips, and benchmark display surfaces: where new fields become visible to users. Public JSON projection and compact variant selection live in `app/leaderboard/public-json.ts` and `app/leaderboard/model-variants.ts`.
+- Dashboard labels, tooltips, and benchmark display surfaces: where new fields become visible to users. Public JSON projection and compact variant selection live in `app/leaderboard/public-json.ts` and `src/model-atlas/stats/model-variants.ts`.
 - Public exports and tests: package surface plus focused scraper/matcher/scoring/payload tests.
 - Refresh and publication scripts: derive the current local and production workflow from `package.json` and the database boundary rather than relying on remembered commands.
 

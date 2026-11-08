@@ -17,8 +17,6 @@ import { parseModelEffort } from "../identity/normalization";
 import { asFiniteNumber, asNonEmptyString, asRecord, nowEpochSeconds } from "../runtime";
 import { fetchSource } from "./request-scheduler";
 
-const DEFAULT_TIMEOUT_MS = 30_000;
-
 const SCORE_ELIGIBLE_MODEL_TYPES = new Set(["Base LLM", "CoT"]);
 
 type ArcPrizeHarness = "standard" | "provider_adapter";
@@ -47,7 +45,7 @@ type ParsedArcPrizeRow = {
 export async function getArcPrizeStats(
   options: ArcPrizeLeaderboardOptions,
 ): Promise<BenchmarkObservationPayload> {
-  return fetchSource(options.sourceUrl, {}, DEFAULT_TIMEOUT_MS, async (response) => {
+  return fetchSource(options.sourceUrl, {}, async (response) => {
     if (!response.ok) {
       throw new Error(`ARC Prize ${options.benchmarkKey} scrape failed: ${response.status}`);
     }

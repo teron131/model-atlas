@@ -34,7 +34,7 @@ export async function getArenaWebDevStats(
   sourceUrl = SOURCE_URL,
 ): Promise<BenchmarkObservationPayload> {
   try {
-    return await fetchSource(sourceUrl, {}, 30_000, async (response) => {
+    return await fetchSource(sourceUrl, {}, async (response) => {
       if (!response.ok) throw new Error(`Arena WebDev scrape failed: ${response.status}`);
       const data = processArenaWebDevPageHtml(await response.text(), sourceUrl);
       if (data.length === 0) throw new Error("Arena WebDev website has no usable rows");

@@ -18,13 +18,11 @@ import { fetchSource } from "../request-scheduler";
 const EPOCH_CAPABILITIES_INDEX_CSV_URL = "https://epoch.ai/data/eci_scores.csv";
 const EPOCH_CAPABILITIES_INDEX_BENCHMARKS_CSV_URL = "https://epoch.ai/data/eci_benchmarks.csv";
 
-const DEFAULT_TIMEOUT_MS = 30_000;
-
 export async function getEpochCapabilitiesIndexStats(
   sourceUrl = EPOCH_CAPABILITIES_INDEX_CSV_URL,
 ): Promise<BenchmarkObservationPayload> {
   const read = (url: string) =>
-    fetchSource(url, {}, DEFAULT_TIMEOUT_MS, async (response) => {
+    fetchSource(url, {}, async (response) => {
       if (!response.ok)
         throw new Error(`Epoch Capabilities Index scrape failed: ${response.status}`);
       return response.text();

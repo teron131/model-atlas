@@ -51,10 +51,10 @@ export async function getWeirdMlStats(
   epochSourceUrl: string,
 ): Promise<BenchmarkObservationPayload> {
   const [weirdMlRows, epochRows] = await Promise.all([
-    fetchSource(sourceUrl, {}, 30_000, async (response) =>
+    fetchSource(sourceUrl, {}, async (response) =>
       response.ok ? processWeirdMlPayload(await response.json(), sourceUrl) : [],
     ).catch(() => []),
-    fetchSource(epochSourceUrl, {}, 30_000, async (response) =>
+    fetchSource(epochSourceUrl, {}, async (response) =>
       response.ok ? processEpochWeirdMlCsv(await response.text(), epochSourceUrl) : [],
     ).catch(() => []),
   ]);

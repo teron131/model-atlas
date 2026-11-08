@@ -14,11 +14,8 @@ export type ValsBenchmarkView = {
 };
 
 /** Resolve the current page's JSON asset while keeping both requests inside the shared source scheduler. */
-export async function getValsBenchmarkView(
-  pageUrl: string,
-  timeoutMs: number,
-): Promise<ValsBenchmarkView> {
-  const page = await fetchSource(pageUrl, {}, timeoutMs, async (response) => {
+export async function getValsBenchmarkView(pageUrl: string): Promise<ValsBenchmarkView> {
+  const page = await fetchSource(pageUrl, {}, async (response) => {
     if (!response.ok) throw new Error(`Vals page failed: ${response.status}`);
     return response.text();
   });
@@ -34,7 +31,7 @@ export async function getValsBenchmarkView(
   if (assetUrl.origin !== new URL(pageUrl).origin) {
     throw new Error("Vals benchmark JSON must share the page origin");
   }
-  return fetchSource(assetUrl.href, {}, timeoutMs, async (response) => {
+  return fetchSource(assetUrl.href, {}, async (response) => {
     if (!response.ok) throw new Error(`Vals benchmark JSON failed: ${response.status}`);
     const view = parseValsBenchmarkView(await response.json());
     if (view == null) throw new Error("Vals benchmark JSON has no usable metadata or tasks");

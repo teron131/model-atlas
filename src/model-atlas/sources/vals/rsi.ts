@@ -10,13 +10,12 @@ import type {
   BenchmarkObservationPayload,
   BenchmarkObservationRow,
 } from "../../benchmarks/observation";
-import { canonicalReasoningEffort } from "../../identity/normalization";
+import { canonicalReasoningEffort, modelEffortLabel } from "../../identity/normalization";
 import { nowEpochSeconds } from "../../runtime";
 import { findObjectEnd, htmlAttribute, percentToUnitScore } from "../parsing";
 import { fetchSource } from "../request-scheduler";
 
 const RSI_METRIC = BENCHMARK_STANDARD_SOURCES.rsi_benchmark.revision;
-const DEFAULT_TIMEOUT_MS = 30_000;
 const RSI_TASKS = [
   "overall",
   "compression",
@@ -98,7 +97,7 @@ export function valsRsiCacheMatches(rows: readonly BenchmarkObservationRow[]): b
 
 /** Treat non-success asset responses as fetch failures so a partial source load cannot advance its timestamp. */
 async function fetchText(url: string): Promise<string> {
-  return fetchSource(url, {}, DEFAULT_TIMEOUT_MS, async (response) => {
+  return fetchSource(url, {}, async (response) => {
     if (!response.ok) throw new Error(`Vals RSI source failed: ${response.status}`);
     return response.text();
   });
@@ -172,7 +171,7 @@ function taskObservations(
         benchmark_key: "rsi_benchmark",
         source_url: sourceUrl,
         model_id: modelId,
-        model: reasoningEffort == null ? baseModel : `${baseModel} (${reasoningEffort})`,
+        model: modelEffortLabel(baseModel, reasoningEffort),
         base_model: baseModel,
         reasoning_effort: reasoningEffort,
         model_creator: provider,

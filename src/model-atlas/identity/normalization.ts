@@ -159,6 +159,11 @@ export function parseModelEffort(value: string): ParsedModelEffort {
   };
 }
 
+/** The inverse of `parseModelEffort` for a canonical effort: a model's base name with its effort in parentheses. */
+export function modelEffortLabel(baseModel: string, reasoningEffort: string | null): string {
+  return reasoningEffort == null ? baseModel : `${baseModel} (${reasoningEffort})`;
+}
+
 /** A bare thinking or reasoning label names a hybrid model's reasoning mode, which Atlas lists as that model's default variant rather than an effort. */
 export function isReasoningModeLabel(label: string): boolean {
   return REASONING_MODE_LABELS.has(normalizeModelToken(label));

@@ -5,7 +5,6 @@ import assert from "node:assert/strict";
 import { NextRequest } from "next/server";
 
 import { leaderboardRows } from "../app/dashboard/table/models";
-import { compactModelVariants } from "../app/leaderboard/model-variants";
 import {
   benchmarksJsonPayload,
   coreJsonPayload,
@@ -21,6 +20,7 @@ import {
   publicModelFromCandidate,
   selectReferenceModels,
 } from "../src/model-atlas/pipeline/selection/public-list";
+import { compactModelVariants } from "../src/model-atlas/stats/model-variants";
 import type { ModelAtlasPayload, ModelAtlasScoredCandidate } from "../src/model-atlas/stats/types";
 import { minimalModelAtlasModel, minimalModelAtlasPayload } from "./model-atlas-fixtures";
 

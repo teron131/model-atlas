@@ -6,10 +6,12 @@ import {
   reasoningEffortRank,
 } from "../../../src/model-atlas/identity/normalization";
 import { providerIdentityKey } from "../../../src/model-atlas/identity/provider";
-import { strongestModelVariants } from "../../../src/model-atlas/stats/model-variants";
+import {
+  compactModelVariants,
+  strongestModelVariants,
+} from "../../../src/model-atlas/stats/model-variants";
 import { modelDisplayExclusion } from "../../../src/model-atlas/stats/model-visibility";
 import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
-import { compactModelVariants } from "../../leaderboard/model-variants";
 import { providerChartColor, providerDisplayName, providerLogo } from "./provider-theme";
 import { filterSearchDocuments, type SearchDocument } from "./search";
 
@@ -154,6 +156,7 @@ export function providerOptions(models: ModelAtlasModel[]): ProviderOption[] {
 
   const optionsBySlug = new Map<string, ProviderOptionDraft>();
   for (const model of models) {
+    if (modelDisplayExclusion(model) != null) continue;
     const slug = providerIdentityKey(model.provider);
     const intelligenceScore = finiteNumber(model.scores?.intelligence_score);
     const option = optionsBySlug.get(slug) ?? {
@@ -221,7 +224,7 @@ function filterByReleaseRecency<T>(
   return items.filter((item) => selectedModels.has(canonicalModelKey(getModel(item))));
 }
 
-/** Filter by global Intelligence rank while retaining every variant in an eligible family. */
+/** Filter by global Intelligence rank among the families the dashboard can show, retaining every variant in an eligible family. */
 function filterByIntelligenceRank<T>(
   items: T[],
   getModel: (item: T) => ModelAtlasModel,
@@ -233,6 +236,7 @@ function filterByIntelligenceRank<T>(
   }
   const bestScoreByModel = new Map<string, number>();
   for (const model of rankingModels) {
+    if (modelDisplayExclusion(model) != null) continue;
     const modelKey = canonicalModelKey(model);
     bestScoreByModel.set(
       modelKey,

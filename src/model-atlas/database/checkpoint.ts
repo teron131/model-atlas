@@ -1,9 +1,11 @@
 /** Derive checkpoint rows from cached source evidence and preserve benchmark, refresh, and model-change history. */
 
+import type { DatabaseSync } from "node:sqlite";
+
 import { BENCHMARK_VERSION_BASELINE_DATE, STAGE_CONFIG } from "../config";
 import { deriveModelStats } from "../pipeline/derivation";
 import { taskMetricFingerprint } from "../pipeline/selection/benchmark-versioning";
-import { nowEpochSeconds } from "../runtime";
+import { asNonEmptyString, nowEpochSeconds } from "../runtime";
 import {
   insertArtificialAnalysisBenchmarkResourceRawRows,
   insertArtificialAnalysisRawModels,
@@ -26,6 +28,7 @@ import {
   type ModelChangeDetailRow,
   type ModelScoreChangeRow,
   type RefreshRunRow,
+  scoringMethodologyJson,
 } from "../stats/payload/changes";
 import { buildCurrentModelAtlasMetadata } from "../stats/payload/metadata";
 import {
@@ -34,17 +37,15 @@ import {
 } from "../stats/payload/snapshot-preservation";
 import type { ModelAtlasMetadata, ModelAtlasModel, ModelAtlasPayload } from "../stats/types";
 import type { CapabilityState } from "../timeline/capability";
+import { insertModelChangeDetails, insertModelScoreChanges, insertRefreshRuns } from "./change-log";
 import { buildDebugTraceRows, type DebugTraceRow, insertDebugTraceRows } from "./debug-trace";
 import { SNAPSHOT_TABLES, type SnapshotTableName } from "./tables";
 import type { DatabaseWriter } from "./writers/database";
 import {
   insertBenchmarkVersionLog,
   insertModelBenchmarks,
-  insertModelChangeDetails,
   insertModels,
-  insertModelScoreChanges,
   insertModelTaskMetrics,
-  insertRefreshRuns,
 } from "./writers/models";
 
 type BenchmarkVersionLogRow = {
@@ -66,6 +67,7 @@ type DatabaseSnapshotRows = {
   sourceHealth: ModelAtlasSourceHealth;
   benchmarkUpdateHealth: ModelAtlasMetadata["benchmark_update_health"];
   benchmarkVersions: ModelAtlasMetadata["benchmark_versions"];
+  scoringMethodology: string;
   benchmarkVersionLogRows: readonly BenchmarkVersionLogRow[];
   refreshRunRows: readonly RefreshRunRow[];
   modelScoreChangeRows: readonly ModelScoreChangeRow[];
@@ -156,6 +158,7 @@ const SNAPSHOT_APPEND_WRITERS = [
 type DatabaseSnapshotVersioning = {
   capabilityState?: CapabilityState;
   previousPayload?: ModelAtlasPayload | null;
+  previousScoringMethodology: string | null;
   previousRefreshId: number | null;
   replaceSourceRows?: boolean;
 };
@@ -217,6 +220,7 @@ export async function deriveDatabaseSnapshot(
     startedAtEpochSeconds,
     versioning.previousRefreshId,
     versioning.previousPayload,
+    versioning.previousScoringMethodology,
     preservedModels,
     metadata.scoring,
   );
@@ -233,6 +237,7 @@ export async function deriveDatabaseSnapshot(
     }),
     benchmarkUpdateHealth: metadata.benchmark_update_health,
     benchmarkVersions: metadata.benchmark_versions,
+    scoringMethodology: scoringMethodologyJson(metadata.scoring),
     benchmarkVersionLogRows: buildBenchmarkVersionLogRows(
       previousModels,
       preservedModels,
@@ -255,7 +260,7 @@ function sourceDataFromSnapshots(snapshots: SourceSnapshots): ModelAtlasSourceDa
     artificialAnalysisRows: snapshots.artificialAnalysisSelectedRows,
     artificialAnalysisBenchmarkResourceRows: snapshots.artificialAnalysisBenchmarkResourceRows,
     modelsDevModels: snapshots.modelsDevModels,
-    ...benchmarkSourceRowsFromSnapshots(snapshots),
+    ...benchmarkSourceRowsFromSnapshots(snapshots.benchmarks),
     ...benchmarkObservationRowsFromSnapshots(snapshots),
   });
 }
@@ -270,13 +275,20 @@ export function writeCheckpoint(db: DatabaseWriter, rows: DatabaseSnapshotRows):
     write(db, rows);
   }
   db.prepare(
-    "INSERT INTO snapshot_metadata (updated_at_epoch_seconds, snapshot_preservation_version, benchmark_update_health_json, benchmark_versions_json) VALUES (?, ?, ?, ?)",
+    "INSERT INTO snapshot_metadata (updated_at_epoch_seconds, snapshot_preservation_version, benchmark_update_health_json, benchmark_versions_json, scoring_methodology_json) VALUES (?, ?, ?, ?, ?)",
   ).run(
     nowEpochSeconds(),
     SNAPSHOT_PRESERVATION_VERSION,
     rows.benchmarkUpdateHealth == null ? null : JSON.stringify(rows.benchmarkUpdateHealth),
     rows.benchmarkVersions == null ? null : JSON.stringify(rows.benchmarkVersions),
+    rows.scoringMethodology,
   );
+}
+
+/** The scoring fingerprint the last refresh wrote; null for a new checkpoint or one written before the fingerprint was stored. */
+export function readScoringMethodology(db: DatabaseSync): string | null {
+  const row = db.prepare("SELECT scoring_methodology_json FROM snapshot_metadata LIMIT 1").get();
+  return asNonEmptyString(row?.scoring_methodology_json);
 }
 
 function insertSourceQuarantines(db: DatabaseWriter, snapshots: SourceSnapshots): void {

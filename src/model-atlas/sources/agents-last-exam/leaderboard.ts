@@ -5,7 +5,7 @@
  * JSON source: https://agents-last-exam.org/api/demo/leaderboard
  */
 
-import { canonicalReasoningEffort } from "../../identity/normalization";
+import { canonicalReasoningEffort, modelEffortLabel } from "../../identity/normalization";
 import { meanOfFinite, medianOfFinite } from "../../math-utils";
 import { asFiniteNumber, asRecord, nowEpochSeconds } from "../../runtime";
 import { fetchSource, scheduleSourceRequest, SourceQueueTimeoutError } from "../request-scheduler";
@@ -146,7 +146,7 @@ export function summarizeAgentsLastExamModelScores(
       const outputTokensPerTask = modelRows.map((row) => perTask(row.total_output_tokens, row));
       const costsPerTask = modelRows.map((row) => perTask(row.total_cost_usd, row));
       return {
-        model: reasoningEffort == null ? model : `${model} (${reasoningEffort})`,
+        model: modelEffortLabel(model, reasoningEffort),
         base_model: model,
         reasoning_effort: reasoningEffort,
         split: SCORE_SPLIT,
@@ -196,7 +196,7 @@ export function summarizeAgentsLastExamModelScores(
 }
 
 async function fetchApiRows(): Promise<AgentsLastExamHarnessRow[]> {
-  return await fetchSource(DEFAULT_API_URL, {}, DEFAULT_TIMEOUT_MS, async (response) => {
+  return await fetchSource(DEFAULT_API_URL, {}, async (response) => {
     if (!response.ok) {
       throw new Error(`Agents' Last Exam scrape failed: ${response.status}`);
     }

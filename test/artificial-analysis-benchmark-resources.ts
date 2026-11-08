@@ -578,7 +578,6 @@ try {
   const address = server.address() as AddressInfo;
   const failedPayload = await getArtificialAnalysisBenchmarkResourceStats({
     concurrency: 2,
-    timeoutMs: 1_000,
     methodologyUrl: `http://127.0.0.1:${address.port}/methodology`,
     pages: Array.from({ length: 6 }, (_, index) => ({
       benchmark_key: `test_${index}`,

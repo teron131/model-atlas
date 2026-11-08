@@ -1,7 +1,7 @@
-/** FrontierCode runtime owns raw-cache reconstruction, snapshot refresh, and raw-row serialization. */
+/** FrontierCode runtime owns raw-cache reconstruction, snapshot refresh, raw-row serialization, and its source-data lookup. */
 
-import { SNAPSHOT_TABLES } from "../../database/tables";
 import { type DatabaseWriter, sqliteBooleanValue } from "../../database/writers/database";
+import { buildBenchmarkModelMap } from "../../identity/normalization";
 import { asFiniteNumber, asNonEmptyString } from "../../runtime";
 import { type BenchmarkSnapshotContext, defineBenchmarkRuntime } from "../benchmark-runtime";
 import {
@@ -13,12 +13,7 @@ import {
 } from "../cache/rows";
 import { sourceRowKey } from "../snapshots/policy";
 import { snapshotSourceRows } from "../snapshots/row-snapshot";
-import type {
-  RawSourceCacheStatus,
-  SourceRefreshOptions,
-  SourceSnapshots,
-  SourceSnapshotStatus,
-} from "../types";
+import type { RawSourceCacheStatus, SourceRefreshOptions, SourceSnapshotStatus } from "../types";
 import {
   FRONTIER_CODE_LEADERBOARD_URL,
   type FrontierCodeModelEffortRow,
@@ -28,20 +23,18 @@ import {
 } from "./leaderboard";
 
 type FrontierCodeSnapshot = {
-  frontierCodeRows: FrontierCodeModelEffortRow[];
+  rows: FrontierCodeModelEffortRow[];
   sourceStatus: SourceSnapshotStatus;
 };
 
 export const frontierCodeRuntime = defineBenchmarkRuntime({
-  cacheKey: "frontierCode",
   source: "frontier_code",
-  table: SNAPSHOT_TABLES.frontier_code,
+  key: "frontierCode",
+  fetchRows: async () => (await getFrontierCodeStats()).data,
   readCache: readFrontierCodeRawCache,
   snapshot: frontierCodeSnapshot,
   write: insertFrontierCodeRawRows,
-  sourceRowsKey: "frontierCodeRows",
-  fetchSourceRows: async () => (await getFrontierCodeStats()).data,
-  sourceRowsFromSnapshots: (snapshots) => snapshots.frontierCodeRows,
+  sourceData: (rows) => ({ rows, rowsByModelName: buildBenchmarkModelMap(rows) }),
 });
 
 /** Reconstruct every FrontierCode effort only when all rows share one persisted revision and carry complete Main metrics. */
@@ -140,13 +133,13 @@ async function frontierCodeSnapshot(
     rowLabel: (row) => `${row.model}: ${row.harness}`,
   });
   return {
-    frontierCodeRows: snapshot.rows,
+    rows: snapshot.rows,
     sourceStatus: context.sourceStatus(snapshot),
   };
 }
 
 /** Insert all FrontierCode effort and Main subset evidence while retaining the Main scoring projection. */
-function insertFrontierCodeRawRows(db: DatabaseWriter, snapshots: SourceSnapshots): void {
+function insertFrontierCodeRawRows(db: DatabaseWriter, snapshot: FrontierCodeSnapshot): void {
   const statement = db.prepare(`
 		INSERT INTO frontier_code_raw_rows (
 			row_index, fetched_at_epoch_seconds, url, revision, model, base_model,
@@ -155,10 +148,10 @@ function insertFrontierCodeRawRows(db: DatabaseWriter, snapshots: SourceSnapshot
 			main_cost_per_task_usd, main_tokens_per_task, main_json
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
-  for (const [index, row] of snapshots.frontierCodeRows.entries()) {
+  for (const [index, row] of snapshot.rows.entries()) {
     statement.run(
       index,
-      snapshots.fetchedAt.frontierCode,
+      snapshot.sourceStatus.fetchedAt,
       FRONTIER_CODE_LEADERBOARD_URL,
       row.revision,
       row.model,

@@ -20,14 +20,14 @@ export function fusedBenchmarkObservations({
   artificialAnalysisBenchmarkResourceRows: artificialAnalysisRows,
   terminalBenchScienceRows: science,
   gdpPdfRows: gdpPdf,
-  aleBenchConfigurationRows: ale,
+  aleBenchRows: ale,
   weirdMlRows: weird,
 }: {
   terminalBench4Rows: TerminalBench4ModelHarnessRow[];
   artificialAnalysisBenchmarkResourceRows: ArtificialAnalysisBenchmarkResourceRow[];
   terminalBenchScienceRows: BenchmarkObservationRow[];
   gdpPdfRows: BenchmarkObservationRow[];
-  aleBenchConfigurationRows: AleBenchSourceRow[];
+  aleBenchRows: AleBenchSourceRow[];
   weirdMlRows: BenchmarkObservationRow[];
 }): Record<string, CrosswalkObservation[]> {
   const officialRows: CrosswalkObservation[] = official.map((row) => ({

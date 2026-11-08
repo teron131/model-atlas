@@ -264,7 +264,7 @@ async function requestWithRetries<T>(
   for (let attempt = 0; attempt < context.maxRetries; attempt += 1) {
     let retryable = true;
     try {
-      return await fetchSource(url, {}, context.timeoutMs, async (response) => {
+      return await fetchSource(url, { timeoutMs: context.timeoutMs }, async (response) => {
         if (!response.ok) {
           const status = response.status;
           retryable = status === 408 || status === 429 || status >= 500;

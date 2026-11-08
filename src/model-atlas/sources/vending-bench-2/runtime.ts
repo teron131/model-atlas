@@ -1,18 +1,13 @@
-/** Vending-Bench 2 runtime owns raw-cache reconstruction, snapshot refresh, and raw-row serialization. */
+/** Vending-Bench 2 runtime owns raw-cache reconstruction, snapshot refresh, raw-row serialization, and its source-data lookup. */
 
-import { SNAPSHOT_TABLES } from "../../database/tables";
 import type { DatabaseWriter } from "../../database/writers/database";
+import { buildBenchmarkModelMap } from "../../identity/normalization";
 import { asFiniteNumber, asNonEmptyString } from "../../runtime";
 import { type BenchmarkSnapshotContext, defineBenchmarkRuntime } from "../benchmark-runtime";
 import { type CacheRowSource, firstFetchedAt, sourceCacheRows } from "../cache/rows";
 import { sourceRowKey } from "../snapshots/policy";
 import { snapshotSourceRows } from "../snapshots/row-snapshot";
-import type {
-  RawSourceCacheStatus,
-  SourceRefreshOptions,
-  SourceSnapshots,
-  SourceSnapshotStatus,
-} from "../types";
+import type { RawSourceCacheStatus, SourceRefreshOptions, SourceSnapshotStatus } from "../types";
 import {
   getVendingBench2Stats,
   VENDING_BENCH_2_LEADERBOARD_URL,
@@ -20,21 +15,19 @@ import {
 } from "./leaderboard";
 
 type VendingBench2Snapshot = {
-  vendingBench2ModelScoreRows: VendingBench2ModelScoreRow[];
-  vendingBench2DataUrl: string | null;
+  rows: VendingBench2ModelScoreRow[];
+  dataUrl: string | null;
   sourceStatus: SourceSnapshotStatus;
 };
 
 export const vendingBench2Runtime = defineBenchmarkRuntime({
-  cacheKey: "vendingBench2",
   source: "vending_bench_2",
-  table: SNAPSHOT_TABLES.vending_bench_2,
+  key: "vendingBench2",
+  fetchRows: async () => (await getVendingBench2Stats()).data,
   readCache: readVendingBench2RawCache,
   snapshot: vendingBench2Snapshot,
   write: insertVendingBench2RawRows,
-  sourceRowsKey: "vendingBench2Rows",
-  fetchSourceRows: async () => (await getVendingBench2Stats()).data,
-  sourceRowsFromSnapshots: (snapshots) => snapshots.vendingBench2ModelScoreRows,
+  sourceData: (rows) => ({ rows, rowsByModelName: buildBenchmarkModelMap(rows) }),
 });
 
 function readVendingBench2RawCache(cache: CacheRowSource): {
@@ -126,26 +119,26 @@ async function vendingBench2Snapshot(
     rowLabel: (row) => row.model,
   });
   return {
-    vendingBench2ModelScoreRows: snapshot.rows,
-    vendingBench2DataUrl: snapshot.sourceUrl ?? null,
+    rows: snapshot.rows,
+    dataUrl: snapshot.sourceUrl ?? null,
     sourceStatus: context.sourceStatus(snapshot),
   };
 }
 
 /** Insert Vending-Bench 2 outcomes while retaining the official average daily balance curves. */
-function insertVendingBench2RawRows(db: DatabaseWriter, snapshots: SourceSnapshots): void {
+function insertVendingBench2RawRows(db: DatabaseWriter, snapshot: VendingBench2Snapshot): void {
   const statement = db.prepare(`
 		INSERT INTO vending_bench_2_raw_rows (
 			row_index, fetched_at_epoch_seconds, url, data_url, rank, model,
 			base_model, reasoning_effort, run_count, final_balance_usd, daily_balance_usd_json
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
-  for (const [index, row] of snapshots.vendingBench2ModelScoreRows.entries()) {
+  for (const [index, row] of snapshot.rows.entries()) {
     statement.run(
       index,
-      snapshots.fetchedAt.vendingBench2,
+      snapshot.sourceStatus.fetchedAt,
       VENDING_BENCH_2_LEADERBOARD_URL,
-      snapshots.vendingBench2DataUrl,
+      snapshot.dataUrl,
       row.rank,
       row.model,
       row.base_model,

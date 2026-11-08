@@ -4,12 +4,10 @@
 
 import { useCallback, useDeferredValue, useLayoutEffect, useMemo, useRef, useState } from "react";
 
-import { canonicalModelKey } from "../../src/model-atlas/identity/normalization";
 import type { ModelAtlasModel, ModelAtlasPayload } from "../../src/model-atlas/stats/types";
 import { ModelAtlasHeader } from "../shared/ModelAtlasHeader";
 import { DashboardLeaderboard } from "./DashboardLeaderboard";
 import { GlobalModelControls } from "./GlobalModelControls";
-import { finite } from "./graphs/format";
 import { ParetoPanel } from "./graphs/pareto/Panel";
 import { TimelinePanel } from "./graphs/timeline/Panel";
 import { useLivePayload } from "./live-payload";
@@ -21,6 +19,7 @@ import {
   modelsForVariantDisplay,
   providerOptions,
 } from "./shared/model-display";
+import { signaturePopulation } from "./signature/models";
 import { ModelSignature } from "./signature/ModelSignature";
 import { GRAPH_VARIANTS_COOKIE } from "./url-state";
 import { updateDashboardUrl, useUrlState } from "./use-url-state";
@@ -192,31 +191,15 @@ function useRegionPopulations(
       ),
     [payload, deferredFilters, filterScope],
   );
-  const signatureModels = useMemo(() => {
-    const ranked = models
-      .filter((model) => model.name != null && finite(model.scores?.intelligence_score))
-      .sort(
-        (left, right) =>
-          Number(right.scores.intelligence_score) - Number(left.scores.intelligence_score),
-      );
-    if (showVariants) {
-      return ranked;
-    }
-    const visibleModelKeys = new Set(ranked.map(canonicalModelKey));
-    return reference.filter((model) => visibleModelKeys.has(canonicalModelKey(model)));
-  }, [reference, showVariants, models]);
-  const paretoSignatureModels = useMemo(() => {
-    const candidateModelKeys = new Set(paretoCandidateModels.map(canonicalModelKey));
-    return reference.filter((model) => candidateModelKeys.has(canonicalModelKey(model)));
-  }, [reference, paretoCandidateModels]);
-  return {
-    payload,
-    referenceModels: reference,
-    models,
-    signature: {
-      models: signatureModels,
-      paretoModels: paretoSignatureModels,
-      referenceModels: reference,
-    },
-  };
+  const signature = useMemo(
+    () =>
+      signaturePopulation({
+        shownModels: models,
+        paretoCandidates: paretoCandidateModels,
+        referenceModels: reference,
+        showVariants,
+      }),
+    [models, paretoCandidateModels, reference, showVariants],
+  );
+  return { payload, referenceModels: reference, models, signature };
 }

@@ -29,15 +29,15 @@ test("host slots cover body consumption while independent publishers run in para
     return response.text();
   };
   const requests = [
-    fetchSource("https://shared.test/one", {}, 10_000, read),
-    fetchSource("https://www.shared.test/two", {}, 10_000, read),
+    fetchSource("https://shared.test/one", { timeoutMs: 10_000 }, read),
+    fetchSource("https://www.shared.test/two", { timeoutMs: 10_000 }, read),
     scheduleSourceRequest("https://shared.test/three", async () => {
       starts.push({ host: "shared.test", at: Date.now() });
       await bodies;
       return "complete";
     }),
-    fetchSource("https://shared.test/four", {}, 10_000, read),
-    fetchSource("https://independent.test/one", {}, 10_000, read),
+    fetchSource("https://shared.test/four", { timeoutMs: 10_000 }, read),
+    fetchSource("https://independent.test/one", { timeoutMs: 10_000 }, read),
   ];
   await advance(t, 0);
   assert.equal(starts.length, 2);
@@ -81,8 +81,7 @@ test("OpenRouter starts a page's requests together within the shared twelve-down
         (_, index) => () =>
           fetchSource(
             `https://openrouter.ai/stats/${page}/${index}`,
-            {},
-            10_000,
+            { timeoutMs: 10_000 },
             async (response) => {
               await bodies;
               return response.text();
@@ -154,7 +153,7 @@ test("publisher cooldowns pause new pages and retries within an active page", as
     );
   });
   const url = "https://openrouter.ai/";
-  const read = () => fetchSource(url, {}, 1_000, (response) => response.text());
+  const read = () => fetchSource(url, { timeoutMs: 1_000 }, (response) => response.text());
   const first = scheduleSourcePage(url, [
     async () => {
       pages.push(Date.now());
@@ -191,7 +190,7 @@ test("an idle request queue resumes before a slower page retry reuses it", async
     );
   });
   const url = "https://openrouter.ai/";
-  const read = () => fetchSource(url, {}, 1_000, (response) => response.text());
+  const read = () => fetchSource(url, { timeoutMs: 1_000 }, (response) => response.text());
   const page = scheduleSourcePage(url, [
     async () => {
       await read();
@@ -216,8 +215,12 @@ test("start jitter adds at most 149 ms to the minimum interval", async (t) => {
     starts.push(Date.now());
     return new Response("ok");
   });
-  const first = fetchSource("https://jitter.test/one", {}, 1_000, (response) => response.text());
-  const second = fetchSource("https://jitter.test/two", {}, 1_000, (response) => response.text());
+  const first = fetchSource("https://jitter.test/one", { timeoutMs: 1_000 }, (response) =>
+    response.text(),
+  );
+  const second = fetchSource("https://jitter.test/two", { timeoutMs: 1_000 }, (response) =>
+    response.text(),
+  );
   assert.deepEqual(
     starts,
     [0],
@@ -256,8 +259,8 @@ test("Retry-After pauses requests already queued for that host", async (t) => {
       });
     });
     const url = `https://cooldown-${index}.test/`;
-    const first = fetchSource(url, {}, 1_000, (response) => response.text());
-    const second = fetchSource(url, {}, 1_000, (response) => response.text());
+    const first = fetchSource(url, { timeoutMs: 1_000 }, (response) => response.text());
+    const second = fetchSource(url, { timeoutMs: 1_000 }, (response) => response.text());
     await advance(t, 0);
     await advance(t, delay - 1);
     assert.equal(starts.length, 1, `HTTP ${status} must hold the host queue`);
@@ -276,9 +279,9 @@ test("long cooldowns bound queue waits without issuing requests", async (t) => {
     return new Response("limited", { status: 429, headers: { "retry-after": "120" } });
   });
   const url = "https://long-cooldown.test/";
-  await fetchSource(url, {}, 1_000, (response) => response.text());
+  await fetchSource(url, { timeoutMs: 1_000 }, (response) => response.text());
   const expired = assert.rejects(
-    fetchSource(url, {}, 1_000, (response) => response.text()),
+    fetchSource(url, { timeoutMs: 1_000 }, (response) => response.text()),
     SourceQueueTimeoutError,
   );
   await advance(t, 60_000);
@@ -287,7 +290,7 @@ test("long cooldowns bound queue waits without issuing requests", async (t) => {
   await advance(t, 59_999);
   assert.equal(starts.length, 1);
   await advance(t, 1);
-  await fetchSource(url, {}, 1_000, (response) => response.text());
+  await fetchSource(url, { timeoutMs: 1_000 }, (response) => response.text());
   assert.deepEqual(starts, [0, 120_000]);
   await advance(t, 120_000);
 });
@@ -300,16 +303,22 @@ test("cancelled queued work never reaches the publisher", async (t) => {
     paths.push(new URL(input).pathname);
     return new Response("ok");
   });
-  await fetchSource("https://cancel.test/first", {}, 1_000, (response) => response.text());
+  await fetchSource("https://cancel.test/first", { timeoutMs: 1_000 }, (response) =>
+    response.text(),
+  );
   const controller = new AbortController();
   const reason = new Error("refresh cancelled");
   const cancelled = assert.rejects(
-    fetchSource("https://cancel.test/cancelled", { signal: controller.signal }, 1_000, (response) =>
-      response.text(),
+    fetchSource(
+      "https://cancel.test/cancelled",
+      { signal: controller.signal, timeoutMs: 1_000 },
+      (response) => response.text(),
     ),
     (error) => error === reason,
   );
-  const next = fetchSource("https://cancel.test/next", {}, 1_000, (response) => response.text());
+  const next = fetchSource("https://cancel.test/next", { timeoutMs: 1_000 }, (response) =>
+    response.text(),
+  );
   controller.abort(reason);
   await cancelled;
   await advance(t, 150);
@@ -318,8 +327,7 @@ test("cancelled queued work never reaches the publisher", async (t) => {
   await assert.rejects(
     fetchSource(
       "https://cancel.test/pre-aborted",
-      { signal: controller.signal },
-      1_000,
+      { signal: controller.signal, timeoutMs: 1_000 },
       (response) => response.text(),
     ),
     (error) => error === reason,
@@ -342,21 +350,21 @@ test("native fetch aborts slow bodies and starts request timeouts after the queu
     const url = `http://127.0.0.1:${port}`;
     let receivedHeaders = false;
     const timedOut = assert.rejects(
-      fetchSource(`${url}/slow`, {}, 1_000, async (response) => {
+      fetchSource(`${url}/slow`, { timeoutMs: 1_000 }, async (response) => {
         receivedHeaders = true;
         return response.text();
       }),
       { name: "AbortError" },
     );
     // This timeout is shorter than the host start interval and must not run while queued.
-    const next = fetchSource(`${url}/complete`, {}, 100, (response) => response.text());
+    const next = fetchSource(`${url}/complete`, { timeoutMs: 100 }, (response) => response.text());
     const [, complete] = await Promise.all([timedOut, next]);
     assert.ok(receivedHeaders, "The timeout must remain active after response headers arrive");
     assert.equal(complete, "complete");
 
     const controller = new AbortController();
     await assert.rejects(
-      fetchSource(`${url}/slow`, { signal: controller.signal }, 5_000, (response) => {
+      fetchSource(`${url}/slow`, { signal: controller.signal, timeoutMs: 5_000 }, (response) => {
         const body = response.text();
         controller.abort();
         return body;

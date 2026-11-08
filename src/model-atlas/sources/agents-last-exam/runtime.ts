@@ -1,18 +1,13 @@
-/** Agents' Last Exam runtime owns raw-cache reconstruction, snapshot refresh, and raw-row serialization. */
+/** Agents' Last Exam runtime owns raw-cache reconstruction, snapshot refresh, raw-row serialization, and its source-data lookup. */
 
-import { SNAPSHOT_TABLES } from "../../database/tables";
 import type { DatabaseWriter } from "../../database/writers/database";
+import { buildBenchmarkModelMap } from "../../identity/normalization";
 import { asFiniteNumber, asNonEmptyString } from "../../runtime";
 import { type BenchmarkSnapshotContext, defineBenchmarkRuntime } from "../benchmark-runtime";
 import { type CacheRowSource, firstFetchedAt, sourceCacheRows } from "../cache/rows";
 import { sourceRowKey } from "../snapshots/policy";
 import { snapshotSourceRows } from "../snapshots/row-snapshot";
-import type {
-  RawSourceCacheStatus,
-  SourceRefreshOptions,
-  SourceSnapshots,
-  SourceSnapshotStatus,
-} from "../types";
+import type { RawSourceCacheStatus, SourceRefreshOptions, SourceSnapshotStatus } from "../types";
 import {
   AGENTS_LAST_EXAM_LEADERBOARD_URL,
   type AgentsLastExamHarnessRow,
@@ -23,21 +18,19 @@ import {
 } from "./leaderboard";
 
 type AgentsLastExamSnapshot = {
-  agentsLastExamRows: AgentsLastExamHarnessRow[];
-  agentsLastExamModelScores: AgentsLastExamModelScoreRow[];
+  rows: AgentsLastExamModelScoreRow[];
+  harnessRows: AgentsLastExamHarnessRow[];
   sourceStatus: SourceSnapshotStatus;
 };
 
 export const agentsLastExamRuntime = defineBenchmarkRuntime({
-  cacheKey: "agentsLastExam",
   source: "agents_last_exam",
-  table: SNAPSHOT_TABLES.agents_last_exam,
+  key: "agentsLastExam",
+  fetchRows: async () => (await getAgentsLastExamStats()).data,
   readCache: readAgentsLastExamRawCache,
   snapshot: agentsLastExamSnapshot,
   write: insertAgentsLastExamRawRows,
-  sourceRowsKey: "agentsLastExamRows",
-  fetchSourceRows: async () => (await getAgentsLastExamStats()).data,
-  sourceRowsFromSnapshots: (snapshots) => snapshots.agentsLastExamModelScores,
+  sourceData: (rows) => ({ rows, rowsByModelName: buildBenchmarkModelMap(rows) }),
 });
 
 function readAgentsLastExamRawCache(cache: CacheRowSource): {
@@ -124,14 +117,14 @@ async function agentsLastExamSnapshot(
     rowLabel: (row) => `${row.model} ${row.split}`,
   });
   return {
-    agentsLastExamRows: snapshot.rows,
-    agentsLastExamModelScores: summarizeAgentsLastExamModelScores(snapshot.rows),
+    rows: summarizeAgentsLastExamModelScores(snapshot.rows),
+    harnessRows: snapshot.rows,
     sourceStatus: context.sourceStatus(snapshot),
   };
 }
 
 /** Insert Agents' Last Exam raw harness rows and summarized model rows in one source table. */
-function insertAgentsLastExamRawRows(db: DatabaseWriter, snapshots: SourceSnapshots): void {
+function insertAgentsLastExamRawRows(db: DatabaseWriter, snapshot: AgentsLastExamSnapshot): void {
   const statement = db.prepare(`
 		INSERT INTO agents_last_exam_raw_rows (
 			row_index, fetched_at_epoch_seconds, url, split, harness, model,
@@ -150,10 +143,10 @@ function insertAgentsLastExamRawRows(db: DatabaseWriter, snapshots: SourceSnapsh
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
   let rowIndex = 0;
-  for (const row of snapshots.agentsLastExamRows) {
+  for (const row of snapshot.harnessRows) {
     statement.run(
       rowIndex,
-      snapshots.fetchedAt.agentsLastExam,
+      snapshot.sourceStatus.fetchedAt,
       AGENTS_LAST_EXAM_LEADERBOARD_URL,
       row.split,
       row.harness,
@@ -193,10 +186,10 @@ function insertAgentsLastExamRawRows(db: DatabaseWriter, snapshots: SourceSnapsh
     );
     rowIndex += 1;
   }
-  for (const row of snapshots.agentsLastExamModelScores) {
+  for (const row of snapshot.rows) {
     statement.run(
       rowIndex,
-      snapshots.fetchedAt.agentsLastExam,
+      snapshot.sourceStatus.fetchedAt,
       AGENTS_LAST_EXAM_LEADERBOARD_URL,
       row.split,
       null,

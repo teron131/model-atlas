@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { coverageFrontier, leadingLabs } from "../app/dashboard/graphs/timeline/frontier";
 import { modelRepresentatives } from "../app/dashboard/graphs/timeline/model-representatives";
 import { modelsForVariantDisplay } from "../app/dashboard/shared/model-display";
-import { compactModelVariants } from "../app/leaderboard/model-variants";
+import { compactModelVariants } from "../src/model-atlas/stats/model-variants";
 import { modelDisplayExclusion } from "../src/model-atlas/stats/model-visibility";
 import { historicalSourceModel } from "../src/model-atlas/timeline/model-identity";
 import { minimalModelAtlasModel } from "./model-atlas-fixtures";

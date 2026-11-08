@@ -26,14 +26,27 @@ export function prepareOpenRouterModelData(
   rows: readonly ModelRow[],
   rawPayload: OpenRouterSourcePayload | null,
 ): OpenRouterModelData {
-  const { speedById: speedByModelId, pricingById: pricingByModelId } = buildOpenRouterDataById(
-    rows,
-    rawPayload,
-  );
-  return {
-    speedByModelId,
-    pricingByModelId,
-  };
+  if (rawPayload == null || rows.length === 0) {
+    return { speedByModelId: new Map(), pricingByModelId: new Map() };
+  }
+  const speedById = new Map<string, JsonObject>();
+  const pricingById = new Map<string, JsonObject>();
+  for (const rawModel of rawPayload.models) {
+    const model = processOpenRouterModelStats(
+      rawModel.id,
+      rawModel.performance,
+      rawModel.route_prices,
+    );
+    const speed = normalizeSpeed(model.performance);
+    const pricing = {
+      ...normalizePricing(model.pricing),
+      blend_prices: routeBlendPrices(rawModel.route_prices),
+    };
+    indexOpenRouterRouteData(speedById, model.id, speed, hasSpeedData);
+    indexOpenRouterRouteData(pricingById, model.id, pricing, hasPricingData);
+  }
+  indexPublicRouteData(rows, speedById, pricingById);
+  return { speedByModelId: speedById, pricingByModelId: pricingById };
 }
 
 /** A model's OpenRouter speed telemetry, trying its exact id before its normalized id and preferring whichever entry carries data. */
@@ -97,43 +110,6 @@ export function backfillFreeModelCosts(rows: ModelRow[]): ModelRow[] {
       },
     };
   });
-}
-
-function buildOpenRouterDataById(
-  rows: readonly ModelRow[],
-  rawPayload: OpenRouterSourcePayload | null,
-): {
-  speedById: Map<string, JsonObject>;
-  pricingById: Map<string, JsonObject>;
-} {
-  if (rawPayload == null || rows.length === 0) {
-    return { speedById: new Map(), pricingById: new Map() };
-  }
-  try {
-    const speedById = new Map<string, JsonObject>();
-    const pricingById = new Map<string, JsonObject>();
-    for (const rawModel of rawPayload.models) {
-      const model = processOpenRouterModelStats(
-        rawModel.id,
-        rawModel.performance,
-        rawModel.route_prices,
-      );
-      const speed = normalizeSpeed(model.performance);
-      const pricing = {
-        ...normalizePricing(model.pricing),
-        blend_prices: routeBlendPrices(rawModel.route_prices),
-      };
-      indexOpenRouterRouteData(speedById, model.id, speed, hasSpeedData);
-      indexOpenRouterRouteData(pricingById, model.id, pricing, hasPricingData);
-    }
-    indexPublicRouteData(rows, speedById, pricingById);
-    return { speedById, pricingById };
-  } catch {
-    return {
-      speedById: new Map(),
-      pricingById: new Map(),
-    };
-  }
 }
 
 function hasPositiveCostFields(cost: JsonObject): boolean {

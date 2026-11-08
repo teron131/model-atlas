@@ -18,8 +18,6 @@ const MODELS_DEV_URL = "https://models.dev/api.json";
 
 const VERCEL_AI_GATEWAY_MODELS_URL = "https://vercel.com/ai-gateway/models";
 
-const REQUEST_TIMEOUT_MS = 30_000;
-
 const VERCEL_PROVIDER_NAME = "Vercel AI Gateway";
 
 const OFFICIAL_RELEASE_DATE_BY_MODEL_ID = new Map([
@@ -127,7 +125,7 @@ export function processModelsDevPayload(
 
 async function fetchModelsDev(): Promise<ModelsDevSourcePayload> {
   const [source, liveVercelModels] = await Promise.all([
-    fetchSource(MODELS_DEV_URL, {}, REQUEST_TIMEOUT_MS, async (response) => {
+    fetchSource(MODELS_DEV_URL, {}, async (response) => {
       if (!response.ok) {
         throw new Error(`models.dev request failed: ${response.status}`);
       }
@@ -147,17 +145,12 @@ async function fetchModelsDev(): Promise<ModelsDevSourcePayload> {
 
 async function fetchVercelGatewayModels(): Promise<VercelGatewayModelRecord[]> {
   try {
-    return await fetchSource(
-      VERCEL_AI_GATEWAY_MODELS_URL,
-      {},
-      REQUEST_TIMEOUT_MS,
-      async (response) => {
-        if (!response.ok) {
-          throw new Error(`Vercel AI Gateway request failed: ${response.status}`);
-        }
-        return extractVercelGatewayModels(await response.text());
-      },
-    );
+    return await fetchSource(VERCEL_AI_GATEWAY_MODELS_URL, {}, async (response) => {
+      if (!response.ok) {
+        throw new Error(`Vercel AI Gateway request failed: ${response.status}`);
+      }
+      return extractVercelGatewayModels(await response.text());
+    });
   } catch {
     return [];
   }

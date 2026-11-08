@@ -11,8 +11,6 @@ import { fetchSource } from "../request-scheduler";
 
 export const VENDING_BENCH_2_LEADERBOARD_URL = "https://andonlabs.com/evals/vending-bench-2";
 
-const DEFAULT_TIMEOUT_MS = 30_000;
-
 const ROUTE_NODE_PATTERN = /\/_app\/immutable\/nodes\/[^"'<>\s]+\.js/g;
 
 const CHUNK_IMPORT_PATTERN = /from"(\.\.\/chunks\/[^"']+\.js)"/g;
@@ -28,8 +26,6 @@ export type VendingBench2ModelScoreRow = {
   final_balance_usd: number;
   daily_balance_usd: number[];
 };
-
-export type VendingBench2RowsByModelName = Map<string, VendingBench2ModelScoreRow>;
 
 type VendingBench2Payload = {
   fetched_at_epoch_seconds: number | null;
@@ -94,7 +90,7 @@ function processVendingBench2DataModule(dataModule: string): VendingBench2ModelS
 }
 
 async function fetchText(url: string): Promise<string> {
-  return await fetchSource(url, {}, DEFAULT_TIMEOUT_MS, async (response) => {
+  return await fetchSource(url, {}, async (response) => {
     if (!response.ok) {
       throw new Error(`Vending-Bench 2 asset fetch failed: ${response.status}`);
     }

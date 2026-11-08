@@ -3,7 +3,6 @@
 import type { FinalStageConfig, ScoringConfig } from "../../config/stage";
 import { cacheModelLogos } from "../../logos/cache";
 import { asRecord } from "../../runtime";
-import { advanceCapabilityState, type CapabilityState } from "../../timeline/capability";
 import type { ModelAtlasCandidate, ModelAtlasModel, ModelRow } from "../model-types";
 import { type OpenRouterModelData, prepareOpenRouterModelData } from "../openrouter-data";
 import { attachFinalScores } from "../scores";
@@ -44,7 +43,6 @@ export type ModelSelection = {
   modelRows: ModelRow[];
   candidates: ModelAtlasCandidate[];
   scoringPreparation: BenchmarkScoringPreparation;
-  capabilityState?: CapabilityState;
 };
 
 /** Compute quality once against the complete benchmark population before choosing per-model network work. */
@@ -56,7 +54,6 @@ export function prepareModelSelection(
     observedDate: new Date().toISOString().slice(0, 10),
   },
   previousModels: readonly ModelAtlasModel[] = [],
-  capability?: { state: CapabilityState; benchmarkVersions: Readonly<Record<string, string>> },
 ): ModelSelection {
   const openRouterData = prepareOpenRouterModelData(rows, null);
   const modelRows = dropStaleReplacementBenchmarks(rows, previousModels, scoringConfig);
@@ -114,14 +111,6 @@ export function prepareModelSelection(
     modelRows,
     candidates: qualityScoredCandidates,
     scoringPreparation,
-    capabilityState:
-      capability &&
-      advanceCapabilityState(
-        capability.state,
-        qualityScoredCandidates,
-        versioning.observedAt ?? new Date().toISOString(),
-        capability.benchmarkVersions,
-      ),
   };
 }
 

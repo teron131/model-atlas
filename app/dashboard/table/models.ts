@@ -427,7 +427,6 @@ export type TableRow = {
   model: ModelAtlasModel;
   intelligenceRank: number;
   originalIndex: number;
-  aliasPriority: number;
   benchmarkDisplayScores: Partial<Record<BenchmarkMetricColumn["key"], number | null>>;
   /** Each measured amount (price, speed, context, benchmark resources) relative to its column's median across the incoming population. */
   metricRatios: Partial<Record<TableColumnKey, number | null>>;
@@ -594,7 +593,7 @@ function buildLeaderboardRows(
   showVariants: boolean,
   references: ResourceRatioReferenceSets,
 ): TableRow[] {
-  const rows = dedupeDisplayModels(
+  const rows = scaledDisplayRows(
     modelsForVariantDisplay(payload.models, showVariants, payload.benchmark_observations),
   );
   const ratios = displayResourceRatios(
@@ -605,8 +604,8 @@ function buildLeaderboardRows(
   return rows.map((row, index) => ({ ...row, resourceRatios: ratios[index]! }));
 }
 
-/** Collapse duplicate routes and scale benchmark meters and amount ratios against the full incoming population before filtering or limiting rows. */
-export function dedupeDisplayModels(models: ModelAtlasModel[]): DisplayRow[] {
+/** Scale benchmark meters and amount ratios against the full incoming population before filtering or limiting rows. */
+export function scaledDisplayRows(models: ModelAtlasModel[]): DisplayRow[] {
   const ranges = new Map(
     scaledBenchmarkMetricColumns.map((column) => [
       column.key,
@@ -622,13 +621,10 @@ export function dedupeDisplayModels(models: ModelAtlasModel[]): DisplayRow[] {
       ratios: amounts.map((amount) => (amount == null || !median ? null : amount / median)),
     };
   });
-  const rowsByIdentity = new Map<string, UnrankedTableRow>();
-  for (const [originalIndex, model] of models.entries()) {
-    const key = displayKey(model);
-    const candidate = {
+  return attachIntelligenceRanks(
+    models.map((model, originalIndex) => ({
       model,
       originalIndex,
-      aliasPriority: displayAliasPriority(model),
       benchmarkDisplayScores: Object.fromEntries(
         scaledBenchmarkMetricColumns.map((column) => {
           const value = benchmarkMetricValue(model, column);
@@ -639,14 +635,7 @@ export function dedupeDisplayModels(models: ModelAtlasModel[]): DisplayRow[] {
       metricRatios: Object.fromEntries(
         amountScales.map(({ key, ratios }) => [key, ratios[originalIndex]]),
       ),
-    };
-    const existing = rowsByIdentity.get(key);
-    if (!existing || candidate.aliasPriority < existing.aliasPriority) {
-      rowsByIdentity.set(key, candidate);
-    }
-  }
-  return attachIntelligenceRanks([...rowsByIdentity.values()]).sort(
-    (left, right) => left.originalIndex - right.originalIndex,
+    })),
   );
 }
 
@@ -802,44 +791,4 @@ function compareSortValues(sorter: Sorter, left: unknown, right: unknown) {
     });
   }
   return Number(left) - Number(right);
-}
-
-function displayKey(model: ModelAtlasModel) {
-  const id = typeof model.id === "string" ? model.id : "";
-  const slashIndex = id.indexOf("/");
-  if (slashIndex <= 0) {
-    return `${id.toLowerCase().replace(/\./g, "-").replace(/-+/g, "-")}\u0000${model.reasoning_effort ?? ""}`;
-  }
-  const slug = id
-    .slice(slashIndex + 1)
-    .toLowerCase()
-    .replace(/\./g, "-")
-    .replace(/-+/g, "-")
-    .replace(/-\d{8}$/, "")
-    .replace(/-fast$/, "");
-  const provider = canonicalProviderId(id.slice(0, slashIndex), slug);
-  return `${provider}/${slug}\u0000${model.reasoning_effort ?? ""}`;
-}
-
-function canonicalProviderId(provider: string, slug: string) {
-  const normalizedProvider = provider.toLowerCase().replace(/^~+/, "");
-  const providerWithoutAiSuffix = normalizedProvider.replace(/ai$/, "");
-  const familyToken = slug.split("-", 1)[0] ?? "";
-  return providerWithoutAiSuffix.length > 0 && familyToken === providerWithoutAiSuffix
-    ? providerWithoutAiSuffix
-    : normalizedProvider;
-}
-
-function displayAliasPriority(model: ModelAtlasModel) {
-  const id = typeof model.id === "string" ? model.id.toLowerCase() : "";
-  if (id.includes("latest")) {
-    return 3;
-  }
-  if (id.replace(/\./g, "-").endsWith("-fast")) {
-    return 2;
-  }
-  if (/-\d{8}$/.test(id)) {
-    return 1;
-  }
-  return 0;
 }

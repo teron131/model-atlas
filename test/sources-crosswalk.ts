@@ -2,7 +2,6 @@
 
 import assert from "node:assert/strict";
 
-import { compactModelVariants } from "../app/leaderboard/model-variants";
 import { BENCHMARK_OBSERVATION_BINDINGS } from "../src/model-atlas/benchmarks/registry";
 import {
   crosswalkBenchmarkSources,
@@ -22,6 +21,7 @@ import { processArtificialAnalysisBenchmarkResourceRows } from "../src/model-atl
 import { fusedBenchmarkObservations } from "../src/model-atlas/sources/assembly";
 import { readBenchmarkObservationRawCache } from "../src/model-atlas/sources/observations/cache";
 import { processTerminalBench4Payload } from "../src/model-atlas/sources/terminal-bench-4/leaderboard";
+import { compactModelVariants } from "../src/model-atlas/stats/model-variants";
 import { minimalModelAtlasModel } from "./model-atlas-fixtures";
 
 const pairs = Array.from({ length: 6 }, (_, i) => ({
@@ -359,7 +359,7 @@ const unavailableAa = fusedBenchmarkObservations({
     { ...observation("science", 0.6), metadata: { source_series: "vals" } },
   ],
   gdpPdfRows: [{ ...observation("gdp", 0.4), benchmark_key: "gdp_pdf" }],
-  aleBenchConfigurationRows: [],
+  aleBenchRows: [],
   weirdMlRows: [],
 });
 assert.equal(unavailableAa.gdp_pdf?.length, 0);
@@ -370,7 +370,7 @@ const weirdMlFused = fusedBenchmarkObservations({
   artificialAnalysisBenchmarkResourceRows: [],
   terminalBenchScienceRows: [],
   gdpPdfRows: [],
-  aleBenchConfigurationRows: [],
+  aleBenchRows: [],
   weirdMlRows: [
     ...pairs.flatMap((pair) => [
       {

@@ -14,7 +14,6 @@ import {
 import { selectModelsDevRowsForArtificialAnalysis } from "../assembly/policy";
 import {
   type BenchmarkSnapshotCaches,
-  benchmarkSnapshotRows,
   readBenchmarkSnapshotCaches,
   refreshBenchmarkSnapshots,
 } from "../benchmarks";
@@ -40,7 +39,8 @@ type LoadedSourceSnapshots = {
   sourceCacheStatuses: Record<RawSourceName, RawSourceCacheStatus>;
 };
 
-type SourceSnapshotCaches = BenchmarkSnapshotCaches & {
+type SourceSnapshotCaches = {
+  benchmarks: BenchmarkSnapshotCaches;
   artificialAnalysis: ReturnType<typeof readArtificialAnalysisRawCache>;
   artificialAnalysisBenchmarkResources: ReturnType<
     typeof readArtificialAnalysisBenchmarkResourceRawCache
@@ -106,7 +106,7 @@ async function refreshSourceSnapshots(
       nowEpochSeconds,
     ),
     refreshBenchmarkSnapshots(
-      caches,
+      caches.benchmarks,
       sourceCacheStatuses,
       options,
       previousMissingSince,
@@ -124,7 +124,6 @@ async function refreshSourceSnapshots(
     modelsDev.modelsDevPayload,
     artificialAnalysis.artificialAnalysisSelectedRows,
   );
-  const benchmarkRows = benchmarkSnapshotRows(benchmarks);
   const sourceStatuses: SourceSnapshotStatus[] = [
     artificialAnalysis.sourceStatus,
     artificialAnalysisBenchmarkResources.sourceStatus,
@@ -142,7 +141,7 @@ async function refreshSourceSnapshots(
     modelsDevModels,
     modelsDevFetchedAt: modelsDev.modelsDevFetchedAt,
     modelsDevStatusCode: modelsDev.modelsDevStatusCode,
-    ...benchmarkRows,
+    benchmarks,
     ...benchmarkObservations.rows,
     sourceRowStates: sourceStatuses.flatMap((sourceStatus) => sourceStatus.sourceRowStates),
     fetchedAt: fetchedAtFromStatuses(sourceStatuses),
@@ -161,7 +160,7 @@ function readSqliteSourceCaches(db: DatabaseSync): SourceSnapshotCaches {
     ]),
   );
   return {
-    ...readBenchmarkSnapshotCaches(db),
+    benchmarks: readBenchmarkSnapshotCaches(db),
     artificialAnalysis: readArtificialAnalysisRawCache(db),
     artificialAnalysisBenchmarkResources: readArtificialAnalysisBenchmarkResourceRawCache(db),
     modelsDev: readModelsDevRawCache(db),

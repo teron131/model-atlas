@@ -13,8 +13,6 @@ import { surgeLeaderboardScoreRows } from "./results";
 
 const RIEMANN_BENCH_LEADERBOARD_URL = "https://surgehq.ai/leaderboards/riemann-bench";
 
-const DEFAULT_TIMEOUT_MS = 30_000;
-
 export type RiemannBenchModelScoreRow = {
   provider: string | null;
   model: string;
@@ -32,21 +30,16 @@ type RiemannBenchModelScorePayload = {
 
 export async function getRiemannBenchStats(): Promise<RiemannBenchModelScorePayload> {
   try {
-    return await fetchSource(
-      RIEMANN_BENCH_LEADERBOARD_URL,
-      {},
-      DEFAULT_TIMEOUT_MS,
-      async (response) => {
-        if (!response.ok) {
-          throw new Error(`Riemann-bench scrape failed: ${response.status}`);
-        }
-        return {
-          fetched_at_epoch_seconds: nowEpochSeconds(),
-          source_url: RIEMANN_BENCH_LEADERBOARD_URL,
-          data: surgeLeaderboardScoreRows(await response.text()),
-        };
-      },
-    );
+    return await fetchSource(RIEMANN_BENCH_LEADERBOARD_URL, {}, async (response) => {
+      if (!response.ok) {
+        throw new Error(`Riemann-bench scrape failed: ${response.status}`);
+      }
+      return {
+        fetched_at_epoch_seconds: nowEpochSeconds(),
+        source_url: RIEMANN_BENCH_LEADERBOARD_URL,
+        data: surgeLeaderboardScoreRows(await response.text()),
+      };
+    });
   } catch {
     return {
       fetched_at_epoch_seconds: null,

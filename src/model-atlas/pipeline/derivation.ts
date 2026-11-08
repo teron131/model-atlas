@@ -7,7 +7,7 @@ import { buildMatchDiagnostics, type MatchDiagnosticsPayload } from "../identity
 import { publicOpenRouterModelId } from "../identity/openrouter";
 import type { ModelAtlasSourceData } from "../sources/assembly";
 import type { OpenRouterSourcePayload } from "../sources/openrouter";
-import type { CapabilityState } from "../timeline/capability";
+import { advanceCapabilityState, type CapabilityState } from "../timeline/capability";
 import {
   assignBenchmarksToVariants,
   type BenchmarkRowsByKey,
@@ -81,11 +81,16 @@ export async function deriveModelStats<LoadResult extends OpenRouterLoadResult>(
     STAGE_CONFIG.scoring,
     options.benchmarkVersioning,
     options.benchmarkVersioning?.previousModels,
-    options.capabilityState && {
-      state: options.capabilityState,
-      benchmarkVersions: observedBenchmarkVersions(benchmarkRows),
-    },
   );
+  // The Intelligence Index reads quality scores but returns nothing to selection, so publishing it cannot move leaderboard scores or admission.
+  const capabilityState =
+    options.capabilityState &&
+    advanceCapabilityState(
+      options.capabilityState,
+      selection.candidates,
+      options.benchmarkVersioning?.observedAt ?? new Date().toISOString(),
+      observedBenchmarkVersions(benchmarkRows),
+    );
   const eligibleRows = selectOpenRouterModelRows(
     selection,
     STAGE_CONFIG.final,
@@ -101,7 +106,7 @@ export async function deriveModelStats<LoadResult extends OpenRouterLoadResult>(
     STAGE_CONFIG.scoring,
   );
   return {
-    capabilityState: selection.capabilityState,
+    capabilityState,
     matchDiagnostics,
     modelRows,
     models,

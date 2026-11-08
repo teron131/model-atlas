@@ -1,7 +1,6 @@
-/** Vals Index runtime owns raw-cache reconstruction, snapshot refresh, and raw-row serialization. */
+/** Vals Index runtime owns raw-cache reconstruction, snapshot refresh, raw-row serialization, and its source-data lookup. */
 
 import { parseBenchmarkObservationMetadata } from "../../benchmarks/observation";
-import { SNAPSHOT_TABLES } from "../../database/tables";
 import type { DatabaseWriter } from "../../database/writers/database";
 import { asFiniteNumber, asNonEmptyString, asRecord, stableJson } from "../../runtime";
 import { type BenchmarkSnapshotContext, defineBenchmarkRuntime } from "../benchmark-runtime";
@@ -13,13 +12,9 @@ import {
   withoutSupersededVersions,
 } from "../snapshots/policy";
 import { shouldUseFetchedRows, snapshotFetchedAt } from "../snapshots/row-snapshot";
-import type {
-  RawSourceCacheStatus,
-  SourceRefreshOptions,
-  SourceSnapshots,
-  SourceSnapshotStatus,
-} from "../types";
+import type { RawSourceCacheStatus, SourceRefreshOptions, SourceSnapshotStatus } from "../types";
 import {
+  buildValsIndexMap,
   getValsIndexStats,
   VALS_INDEX_LEADERBOARD_URL,
   valsIndexCacheMatches,
@@ -29,21 +24,19 @@ import {
 import { valsReasoningEffort } from "./results";
 
 type ValsIndexSnapshot = {
-  valsIndexTaskScoreRows: ValsIndexTaskScoreRow[];
-  valsIndexModelScoreRows: ValsIndexModelScoreRow[];
+  rows: ValsIndexModelScoreRow[];
+  taskRows: ValsIndexTaskScoreRow[];
   sourceStatus: SourceSnapshotStatus;
 };
 
 export const valsIndexRuntime = defineBenchmarkRuntime({
-  cacheKey: "valsIndex",
   source: "vals_index",
-  table: SNAPSHOT_TABLES.vals_index,
+  key: "valsIndex",
+  fetchRows: async () => (await getValsIndexStats()).model_scores,
   readCache: readValsIndexRawCache,
   snapshot: valsIndexSnapshot,
   write: insertValsIndexRawRows,
-  sourceRowsKey: "valsIndexModelScoreRows",
-  fetchSourceRows: async () => (await getValsIndexStats()).model_scores,
-  sourceRowsFromSnapshots: (snapshots) => snapshots.valsIndexModelScoreRows,
+  sourceData: (rows) => ({ rows, rowsByModelName: buildValsIndexMap(rows) }),
 });
 
 function readValsIndexRawCache(cache: CacheRowSource): {
@@ -142,22 +135,22 @@ async function valsIndexSnapshot(
   const withdrawnModelIds = new Set(
     cachedModelScores.map((row) => row.model_id).filter((id) => !retainedModelIds.has(id)),
   );
-  const rows = snapshotRows(
+  const taskRows = snapshotRows(
     cachedRows,
     fetchedRows,
     fetched?.fetched_at_epoch_seconds ?? null,
     options,
     (row) => sourceRowKey(row.task, row.model_id),
   ).filter((row) => !withdrawnModelIds.has(row.model_id));
-  const modelScores = rows.filter(isModelScore);
+  const modelScores = taskRows.filter(isModelScore);
   const fetchedAt = snapshotFetchedAt(
     hasUsableFetchedRows,
     cached?.fetchedAt,
     fetched?.fetched_at_epoch_seconds ?? null,
   );
   return {
-    valsIndexTaskScoreRows: rows,
-    valsIndexModelScoreRows: modelScores,
+    rows: modelScores,
+    taskRows,
     sourceStatus: context.sourceStatus({
       rows: modelScores,
       fetchedAt,
@@ -166,17 +159,17 @@ async function valsIndexSnapshot(
   };
 }
 
-function insertValsIndexRawRows(db: DatabaseWriter, snapshots: SourceSnapshots): void {
+function insertValsIndexRawRows(db: DatabaseWriter, snapshot: ValsIndexSnapshot): void {
   const statement = db.prepare(`
 		INSERT INTO vals_index_raw_rows (
 			row_index, fetched_at_epoch_seconds, url, task, task_label,
 			row_kind, model_id, model, provider, score, observed_at, metadata_json
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
-  for (const [index, row] of snapshots.valsIndexTaskScoreRows.entries()) {
+  for (const [index, row] of snapshot.taskRows.entries()) {
     statement.run(
       index,
-      snapshots.fetchedAt.valsIndex,
+      snapshot.sourceStatus.fetchedAt,
       VALS_INDEX_LEADERBOARD_URL,
       row.task,
       row.task_label,

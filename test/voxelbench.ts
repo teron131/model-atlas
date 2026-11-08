@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import {
   benchmarkDisplayValue,
   benchmarkMetricColumns,
-  dedupeDisplayModels,
+  scaledDisplayRows,
 } from "../app/dashboard/table/models";
 import {
   type BenchmarkObservationRow,
@@ -120,7 +120,7 @@ assert.deepEqual(
 );
 const column = benchmarkMetricColumns.find((entry) => entry.benchmark === "voxelbench");
 assert.ok(column);
-const displayRows = dedupeDisplayModels(models as unknown as ModelAtlasModel[]);
+const displayRows = scaledDisplayRows(models as unknown as ModelAtlasModel[]);
 assert.deepEqual(
   displayRows.map((row) => benchmarkDisplayValue(row, column)),
   [0, 50, 100],

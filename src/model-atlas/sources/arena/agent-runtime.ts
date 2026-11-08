@@ -1,18 +1,13 @@
-/** Arena Agent runtime owns raw-cache reconstruction, snapshot refresh, and raw-row serialization. */
+/** Arena Agent runtime owns raw-cache reconstruction, snapshot refresh, raw-row serialization, and its source-data lookup. */
 
-import { SNAPSHOT_TABLES } from "../../database/tables";
 import type { DatabaseWriter } from "../../database/writers/database";
+import { buildBenchmarkModelMap } from "../../identity/normalization";
 import { asFiniteNumber, asNonEmptyString } from "../../runtime";
 import { type BenchmarkSnapshotContext, defineBenchmarkRuntime } from "../benchmark-runtime";
 import { type CacheRowSource, firstFetchedAt, sourceCacheRows } from "../cache/rows";
 import { sourceRowKey } from "../snapshots/policy";
 import { snapshotSourceRows } from "../snapshots/row-snapshot";
-import type {
-  RawSourceCacheStatus,
-  SourceRefreshOptions,
-  SourceSnapshots,
-  SourceSnapshotStatus,
-} from "../types";
+import type { RawSourceCacheStatus, SourceRefreshOptions, SourceSnapshotStatus } from "../types";
 import {
   ARENA_AGENT_LEADERBOARD_URL,
   type ArenaAgentModelScoreRow,
@@ -21,20 +16,18 @@ import {
 import { ARENA_AGENT_DATASET_URL, arenaRefreshIsCurrent } from "./dataset";
 
 type ArenaAgentSnapshot = {
-  arenaAgentModelScoreRows: ArenaAgentModelScoreRow[];
+  rows: ArenaAgentModelScoreRow[];
   sourceStatus: SourceSnapshotStatus;
 };
 
 export const arenaAgentRuntime = defineBenchmarkRuntime({
-  cacheKey: "arenaAgent",
   source: "arena_agent",
-  table: SNAPSHOT_TABLES.arena_agent,
+  key: "arenaAgent",
+  fetchRows: async () => (await getArenaAgentStats()).data,
   readCache: readArenaAgentRawCache,
   snapshot: arenaAgentSnapshot,
   write: insertArenaAgentRawRows,
-  sourceRowsKey: "arenaAgentRows",
-  fetchSourceRows: async () => (await getArenaAgentStats()).data,
-  sourceRowsFromSnapshots: (snapshots) => snapshots.arenaAgentModelScoreRows,
+  sourceData: (rows) => ({ rows, rowsByModelName: buildBenchmarkModelMap(rows) }),
 });
 
 export function readArenaAgentRawCache(cache: CacheRowSource): {
@@ -106,23 +99,23 @@ async function arenaAgentSnapshot(
     rowLabel: (row) => row.model,
   });
   return {
-    arenaAgentModelScoreRows: snapshot.rows,
+    rows: snapshot.rows,
     sourceStatus: context.sourceStatus(snapshot),
   };
 }
 
 /** Persist each row's actual source and publication date without the retired Agent task-cost measurements. */
-function insertArenaAgentRawRows(db: DatabaseWriter, snapshots: SourceSnapshots): void {
+function insertArenaAgentRawRows(db: DatabaseWriter, snapshot: ArenaAgentSnapshot): void {
   const statement = db.prepare(`
 		INSERT INTO arena_agent_raw_rows (
 			row_index, fetched_at_epoch_seconds, url, rank, contender_name,
 			model, base_model, reasoning_effort, organization, score, cost_per_task_usd, observed_at
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
-  for (const [index, row] of snapshots.arenaAgentModelScoreRows.entries()) {
+  for (const [index, row] of snapshot.rows.entries()) {
     statement.run(
       index,
-      snapshots.fetchedAt.arenaAgent,
+      snapshot.sourceStatus.fetchedAt,
       row.source_url,
       row.rank,
       row.contender_name,

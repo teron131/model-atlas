@@ -14,8 +14,6 @@ import { getValsBenchmarkView, parseValsBenchmarkView } from "./view";
 
 export const VALS_INDEX_LEADERBOARD_URL = "https://www.vals.ai/benchmarks/vals_index";
 
-const DEFAULT_TIMEOUT_MS = 30_000;
-
 const OVERALL_TASK_KEY = "overall";
 
 type ValsIndexMetadata = {
@@ -61,7 +59,7 @@ type ValsIndexPayload = ValsIndexResults & {
 
 export async function getValsIndexStats(): Promise<ValsIndexPayload> {
   try {
-    const view = await getValsBenchmarkView(VALS_INDEX_LEADERBOARD_URL, DEFAULT_TIMEOUT_MS);
+    const view = await getValsBenchmarkView(VALS_INDEX_LEADERBOARD_URL);
     const parsed = processValsIndexView(view);
     return {
       fetched_at_epoch_seconds: parsed.model_scores.length > 0 ? nowEpochSeconds() : null,

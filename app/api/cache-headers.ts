@@ -1,33 +1,11 @@
 /** Public API cache headers and conditional-request validators for Model Atlas. */
 
-type PublicCacheHeaderOptions = {
-  browserMaxAgeSeconds: number;
-  cdnMaxAgeSeconds?: number;
-  staleWhileRevalidateSeconds?: number;
-};
-
-export function publicCacheHeaders({
-  browserMaxAgeSeconds,
-  cdnMaxAgeSeconds,
-  staleWhileRevalidateSeconds,
-}: PublicCacheHeaderOptions): HeadersInit {
-  const headers: Record<string, string> = {
-    "Cache-Control": `public, max-age=${browserMaxAgeSeconds}`,
-  };
-  if (cdnMaxAgeSeconds != null) {
-    const cdnCacheControl = [
-      `public, s-maxage=${cdnMaxAgeSeconds}`,
-      staleWhileRevalidateSeconds == null
-        ? null
-        : `stale-while-revalidate=${staleWhileRevalidateSeconds}`,
-    ]
-      .filter((part): part is string => part != null)
-      .join(", ");
-    headers["CDN-Cache-Control"] = cdnCacheControl;
-    headers["Vercel-CDN-Cache-Control"] = cdnCacheControl;
-  }
-  return headers;
-}
+/** The published payload and its change history are replaced together, so both share one freshness policy. */
+export const SNAPSHOT_CACHE_HEADERS = publicCacheHeaders({
+  browserMaxAgeSeconds: 60,
+  cdnMaxAgeSeconds: 300,
+  staleWhileRevalidateSeconds: 3600,
+});
 
 export const LOGO_CACHE_HEADERS = publicCacheHeaders({
   browserMaxAgeSeconds: 3600,
@@ -44,4 +22,21 @@ export function matchesEtag(ifNoneMatch: string | null, etag: string): boolean {
       return candidate === "*" || candidate.replace(/^W\//, "") === value;
     }) ?? false
   );
+}
+
+function publicCacheHeaders({
+  browserMaxAgeSeconds,
+  cdnMaxAgeSeconds,
+  staleWhileRevalidateSeconds,
+}: {
+  browserMaxAgeSeconds: number;
+  cdnMaxAgeSeconds: number;
+  staleWhileRevalidateSeconds: number;
+}): HeadersInit {
+  const cdnCacheControl = `public, s-maxage=${cdnMaxAgeSeconds}, stale-while-revalidate=${staleWhileRevalidateSeconds}`;
+  return {
+    "Cache-Control": `public, max-age=${browserMaxAgeSeconds}`,
+    "CDN-Cache-Control": cdnCacheControl,
+    "Vercel-CDN-Cache-Control": cdnCacheControl,
+  };
 }

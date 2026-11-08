@@ -1,30 +1,29 @@
-/** Bind each custom source's typed cache to its refresh workflow so callers never pair unrelated cache shapes. */
+/** Bind each custom source's cache, snapshot, raw writer, and source-data lookup to its own slice of the shared records, so the registry derives every shared slot from the definition. */
 
-import type { SnapshotTableName } from "../database/tables";
+import type { BenchmarkRuntimeKey } from "../benchmarks/registry";
+import { SNAPSHOT_TABLES } from "../database/tables";
 import type { DatabaseWriter } from "../database/writers/database";
-import type { ModelAtlasSourceRows } from "./assembly/source-data";
 import type { CacheRowSource } from "./cache/rows";
 import type { RawSourceName } from "./registry";
-import type {
-  RawSourceCacheStatus,
-  SourceRefreshOptions,
-  SourceSnapshots,
-  SourceSnapshotStatus,
-} from "./types";
+import type { RawSourceCacheStatus, SourceRefreshOptions, SourceSnapshotStatus } from "./types";
+
+/** `rows` are what matching reads; any other field is raw evidence only the runtime's own writer persists. */
+type BenchmarkSnapshot<Row> = {
+  rows: Row[];
+  sourceStatus: SourceSnapshotStatus;
+};
 
 type BenchmarkRuntime<
-  SourceRowsKey extends keyof ModelAtlasSourceRows,
-  CacheKey extends keyof SourceSnapshots["fetchedAt"],
-  Source extends RawSourceName,
+  Source extends BenchmarkRuntimeKey,
+  Key extends string,
+  Row,
   Cached,
-  Snapshot extends { sourceStatus: SourceSnapshotStatus },
+  Snapshot extends BenchmarkSnapshot<Row>,
+  Data,
 > = {
-  sourceRowsKey: SourceRowsKey;
-  fetchSourceRows: () => Promise<ModelAtlasSourceRows[SourceRowsKey]>;
-  sourceRowsFromSnapshots: (snapshots: SourceSnapshots) => ModelAtlasSourceRows[SourceRowsKey];
-  cacheKey: CacheKey;
   source: Source;
-  table: SnapshotTableName;
+  key: Key;
+  fetchRows: () => Promise<Row[]>;
   readCache: (cache: CacheRowSource) => Cached;
   snapshot: (
     cached: Cached,
@@ -34,7 +33,8 @@ type BenchmarkRuntime<
     nowEpochSeconds: number,
     context: BenchmarkSnapshotContext,
   ) => Promise<Snapshot>;
-  write: (db: DatabaseWriter, snapshots: SourceSnapshots) => void;
+  write: (db: DatabaseWriter, snapshot: Snapshot) => void;
+  sourceData: (rows: Row[]) => Data;
 };
 
 export type BenchmarkSnapshotContext = {
@@ -46,14 +46,16 @@ export type BenchmarkSnapshotContext = {
   }) => SourceSnapshotStatus;
 };
 
-/** Preserve the source descriptor and bind correlated cache access before heterogeneous runtimes enter the registry. */
+/** Lift a runtime's per-source functions to the registry's shared records: caches and snapshots are keyed by source, live and restored rows by `${key}Rows`, source data by `key`. */
 export function defineBenchmarkRuntime<
-  const SourceRowsKey extends keyof ModelAtlasSourceRows,
-  const CacheKey extends keyof SourceSnapshots["fetchedAt"],
-  const Source extends RawSourceName,
+  const Source extends BenchmarkRuntimeKey,
+  const Key extends string,
+  Row,
   Cached,
-  Snapshot extends { sourceStatus: SourceSnapshotStatus },
->(runtime: BenchmarkRuntime<SourceRowsKey, CacheKey, Source, Cached, Snapshot>) {
+  Snapshot extends BenchmarkSnapshot<Row>,
+  Data,
+>(runtime: BenchmarkRuntime<Source, Key, Row, Cached, Snapshot, Data>) {
+  const rowsKey = `${runtime.key}Rows` as const;
   const context: BenchmarkSnapshotContext = {
     source: runtime.source,
     sourceStatus: (snapshot) => ({
@@ -61,7 +63,6 @@ export function defineBenchmarkRuntime<
       fetchedAt: snapshot.fetchedAt,
       sourceInputCount: snapshot.rows.length,
       sourceRowStates: snapshot.sourceRowStates,
-      fetchedAtKey: runtime.cacheKey,
     }),
   };
   const snapshot = (
@@ -72,21 +73,29 @@ export function defineBenchmarkRuntime<
     nowEpochSeconds: number,
   ) => runtime.snapshot(cached, status, options, previousMissingSince, nowEpochSeconds, context);
   return {
-    ...runtime,
+    source: runtime.source,
+    key: runtime.key,
+    rowsKey,
+    table: SNAPSHOT_TABLES[runtime.source],
+    fetchRows: runtime.fetchRows,
+    readCache: runtime.readCache,
     snapshot,
     refresh: (
-      caches: Record<CacheKey, Cached>,
+      caches: Record<Source, Cached>,
       statuses: Record<RawSourceName, RawSourceCacheStatus>,
       options: SourceRefreshOptions,
       previousMissingSince: Record<RawSourceName, ReadonlyMap<string, number>>,
       nowEpochSeconds: number,
     ) =>
       snapshot(
-        caches[runtime.cacheKey],
+        caches[runtime.source],
         statuses[runtime.source],
         options,
         previousMissingSince[runtime.source],
         nowEpochSeconds,
       ),
+    write: (db: DatabaseWriter, snapshots: Record<Source, Snapshot>) =>
+      runtime.write(db, snapshots[runtime.source]),
+    sourceData: (rows: Record<typeof rowsKey, Row[]>) => runtime.sourceData(rows[rowsKey]),
   } as const;
 }

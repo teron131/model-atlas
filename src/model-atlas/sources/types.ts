@@ -3,20 +3,10 @@
 import type { BenchmarkObservationRow } from "../benchmarks/observation";
 import type { BENCHMARK_OBSERVATION_BINDINGS } from "../benchmarks/registry";
 import type { JsonObject } from "../runtime";
-import type {
-  AgentsLastExamHarnessRow,
-  AgentsLastExamModelScoreRow,
-} from "./agents-last-exam/leaderboard";
-import type { AleBenchSourceRow } from "./ale-bench/leaderboard";
-import type { ArenaAgentModelScoreRow } from "./arena/agent";
 import type { ArtificialAnalysisBenchmarkResourceRow } from "./artificial-analysis/benchmark-resources";
-import type { FrontierCodeModelEffortRow } from "./frontier-code/leaderboard";
+import type { BenchmarkSnapshots } from "./benchmarks";
 import type { ModelsDevFlatModel, ModelsDevPayload } from "./models-dev/catalog";
 import type { RawSourceName } from "./registry";
-import type { RiemannBenchModelScoreRow } from "./surge/riemann-bench";
-import type { TerminalBench4ModelHarnessRow } from "./terminal-bench-4/leaderboard";
-import type { ValsIndexModelScoreRow, ValsIndexTaskScoreRow } from "./vals/index-benchmark";
-import type { VendingBench2ModelScoreRow } from "./vending-bench-2/leaderboard";
 
 export type ModelAtlasSourceHealthStatus = "cache_hit" | "fresh" | "using_cached_rows" | "empty";
 
@@ -73,6 +63,11 @@ type BenchmarkObservationFetchedAt = {
     | null;
 };
 
+type SourceFetchedAt = BenchmarkObservationFetchedAt & {
+  artificialAnalysis: number | null;
+  artificialAnalysisBenchmarkResources: number | null;
+};
+
 export type SourceSnapshots = BenchmarkObservationSnapshotRows & {
   artificialAnalysisRawRows: JsonObject[];
   artificialAnalysisSelectedRows: JsonObject[];
@@ -81,31 +76,9 @@ export type SourceSnapshots = BenchmarkObservationSnapshotRows & {
   modelsDevModels: ModelsDevFlatModel[];
   modelsDevFetchedAt: number | null;
   modelsDevStatusCode: number | null;
-  arenaAgentModelScoreRows: ArenaAgentModelScoreRow[];
-  agentsLastExamRows: AgentsLastExamHarnessRow[];
-  agentsLastExamModelScores: AgentsLastExamModelScoreRow[];
-  aleBenchConfigurationRows: AleBenchSourceRow[];
-  frontierCodeRows: FrontierCodeModelEffortRow[];
-  riemannBenchModelScoreRows: RiemannBenchModelScoreRow[];
-  riemannBenchSourceUrl: string;
-  terminalBench4Rows: TerminalBench4ModelHarnessRow[];
-  valsIndexTaskScoreRows: ValsIndexTaskScoreRow[];
-  valsIndexModelScoreRows: ValsIndexModelScoreRow[];
-  vendingBench2ModelScoreRows: VendingBench2ModelScoreRow[];
-  vendingBench2DataUrl: string | null;
+  benchmarks: BenchmarkSnapshots;
   sourceRowStates: SourceRowState[];
-  fetchedAt: BenchmarkObservationFetchedAt & {
-    artificialAnalysis: number | null;
-    artificialAnalysisBenchmarkResources: number | null;
-    arenaAgent: number | null;
-    agentsLastExam: number | null;
-    aleBench: number | null;
-    frontierCode: number | null;
-    riemannBench: number | null;
-    terminalBench4: number | null;
-    valsIndex: number | null;
-    vendingBench2: number | null;
-  };
+  fetchedAt: SourceFetchedAt;
 };
 
 export type SourceSnapshotStatus = {
@@ -113,5 +86,5 @@ export type SourceSnapshotStatus = {
   fetchedAt: number | null;
   sourceInputCount: number;
   sourceRowStates: SourceRowState[];
-  fetchedAtKey?: keyof SourceSnapshots["fetchedAt"];
+  fetchedAtKey?: keyof SourceFetchedAt;
 };

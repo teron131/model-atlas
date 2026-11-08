@@ -24,8 +24,6 @@ const ALE_BENCH_SAKANA_RESULTS_URL =
 
 export const ALE_BENCH_LEADERBOARD_URL = "https://sakanaai.github.io/ALE-Bench-Leaderboard";
 
-const DEFAULT_TIMEOUT_MS = 30_000;
-
 const DEFAULT_SELF_REFINE_COUNT = 1;
 
 const MAX_CROSSWALK_MEDIAN_ABSOLUTE_ERROR = 0.01;
@@ -81,8 +79,6 @@ export type AleBenchModelScoreRow = AleBenchConfigurationRow & {
   output_tokens_per_task: number;
 };
 
-export type AleBenchRowsByModelName = Map<string, AleBenchModelScoreRow>;
-
 export type AleBenchSourceRow =
   | AleBenchConfigurationRow
   | { model: string; epoch: AleBenchEpochRow };
@@ -94,23 +90,15 @@ type AleBenchPayload = {
 
 /** Fetch both observation sources; absent mirror data must not discard a successful Sakana fetch. */
 export async function getAleBenchStats(): Promise<AleBenchPayload> {
-  const epochRequest = fetchSource(
-    ALE_BENCH_EPOCH_RESULTS_URL,
-    {},
-    DEFAULT_TIMEOUT_MS,
-    async (response) => (response.ok ? response.text() : null),
+  const epochRequest = fetchSource(ALE_BENCH_EPOCH_RESULTS_URL, {}, async (response) =>
+    response.ok ? response.text() : null,
   ).catch(() => null);
-  const sakanaPayload = await fetchSource(
-    ALE_BENCH_SAKANA_RESULTS_URL,
-    {},
-    DEFAULT_TIMEOUT_MS,
-    async (response) => {
-      if (!response.ok) {
-        throw new Error(`ALE-Bench Sakana scrape failed: ${response.status}`);
-      }
-      return response.json();
-    },
-  );
+  const sakanaPayload = await fetchSource(ALE_BENCH_SAKANA_RESULTS_URL, {}, async (response) => {
+    if (!response.ok) {
+      throw new Error(`ALE-Bench Sakana scrape failed: ${response.status}`);
+    }
+    return response.json();
+  });
   const data = processAleBenchSakanaPayload(sakanaPayload);
   if (data.length === 0) throw new Error("ALE-Bench Sakana scrape returned no rows");
 

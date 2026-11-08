@@ -19,7 +19,6 @@ import {
   arenaRefreshIsCurrent,
   fetchArenaDataset,
 } from "../src/model-atlas/sources/arena/dataset";
-import type { SourceSnapshots } from "../src/model-atlas/sources/types";
 
 const sourceRow = {
   rank: 1,
@@ -53,9 +52,16 @@ test("website cache retains quality while clearing old task costs and rejecting 
   try {
     db.exec(await loadSchemaSql());
     arenaAgentRuntime.write(db, {
-      arenaAgentModelScoreRows: rows,
-      fetchedAt: { arenaAgent: 1000 },
-    } as unknown as SourceSnapshots);
+      arena_agent: {
+        rows,
+        sourceStatus: {
+          source: "arena_agent",
+          fetchedAt: 1000,
+          sourceInputCount: rows.length,
+          sourceRowStates: [],
+        },
+      },
+    });
     assert.deepEqual(readArenaAgentRawCache(db), { rows, fetchedAt: 1000 });
     db.exec("UPDATE arena_agent_raw_rows SET cost_per_task_usd = 6.19");
     assert.deepEqual(readArenaAgentRawCache(db), { rows, fetchedAt: 1000 });
@@ -90,9 +96,9 @@ test("fresh website scores and ranks replace cached values, but a challenge pres
     new Map(),
     2000,
   );
-  assert.equal(refreshed.arenaAgentModelScoreRows[0]?.score, 0.19);
-  assert.equal(refreshed.arenaAgentModelScoreRows[0]?.rank, 2);
-  assert.equal(refreshed.arenaAgentModelScoreRows[0]?.cost_per_task_usd, null);
+  assert.equal(refreshed.rows[0]?.score, 0.19);
+  assert.equal(refreshed.rows[0]?.rank, 2);
+  assert.equal(refreshed.rows[0]?.cost_per_task_usd, null);
   response = new Response("<title>Just a moment...</title>", {
     status: 403,
     headers: { "cf-mitigated": "challenge" },
@@ -104,7 +110,7 @@ test("fresh website scores and ranks replace cached values, but a challenge pres
     new Map(),
     2000,
   );
-  assert.deepEqual(failed.arenaAgentModelScoreRows, rows);
+  assert.deepEqual(failed.rows, rows);
   assert.equal(failed.sourceStatus.fetchedAt, 1000);
 });
 
@@ -174,7 +180,7 @@ test("Agent tries the website first and labels fallback data with its own public
     new Map(),
     2000,
   );
-  assert.deepEqual(result.arenaAgentModelScoreRows, rows);
+  assert.deepEqual(result.rows, rows);
   assert.equal(result.sourceStatus.fetchedAt, 1000);
   published = "2026-10-20";
   const newer = await arenaAgentRuntime.snapshot(
@@ -184,9 +190,9 @@ test("Agent tries the website first and labels fallback data with its own public
     new Map(),
     2000,
   );
-  assert.equal(newer.arenaAgentModelScoreRows.length, 1);
-  assert.equal(newer.arenaAgentModelScoreRows[0]?.source_url, ARENA_AGENT_DATASET_URL);
-  assert.equal(newer.arenaAgentModelScoreRows[0]?.observed_at, "2026-10-20");
+  assert.equal(newer.rows.length, 1);
+  assert.equal(newer.rows[0]?.source_url, ARENA_AGENT_DATASET_URL);
+  assert.equal(newer.rows[0]?.observed_at, "2026-10-20");
   assert.notEqual(newer.sourceStatus.fetchedAt, 1000);
 });
 
@@ -231,9 +237,16 @@ test("Agent SQLite roundtrip preserves fallback publication and actual URL", asy
     db.exec(await loadSchemaSql());
     const fallbackRows = processArenaAgentDatasetRows([datasetRow]);
     arenaAgentRuntime.write(db, {
-      arenaAgentModelScoreRows: fallbackRows,
-      fetchedAt: { arenaAgent: 2000 },
-    } as unknown as SourceSnapshots);
+      arena_agent: {
+        rows: fallbackRows,
+        sourceStatus: {
+          source: "arena_agent",
+          fetchedAt: 2000,
+          sourceInputCount: fallbackRows.length,
+          sourceRowStates: [],
+        },
+      },
+    });
     assert.deepEqual(readArenaAgentRawCache(db), { rows: fallbackRows, fetchedAt: 2000 });
   } finally {
     db.close();

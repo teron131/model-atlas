@@ -18,15 +18,12 @@ import { getArtificialAnalysisPage } from "./page-data";
 
 const ARTIFICIAL_ANALYSIS_LEADERBOARD_URL = "https://artificialanalysis.ai/leaderboards/models";
 
-const DEFAULT_TIMEOUT_MS = 30_000;
-
 const ROW_DETECTION_KEY = "intelligenceIndex";
 
 const MODEL_SEARCH_BACKTRACK_CHARS = 20_000;
 
 type ArtificialAnalysisLeaderboardOptions = {
   url?: string;
-  timeoutMs?: number;
 };
 
 type ArtificialAnalysisLeaderboardRawPayload = {
@@ -80,9 +77,8 @@ export async function getArtificialAnalysisLeaderboardRawStats(
 ): Promise<ArtificialAnalysisLeaderboardRawPayload> {
   try {
     const url = options.url ?? ARTIFICIAL_ANALYSIS_LEADERBOARD_URL;
-    const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 
-    const pageHtml = await fetchSource(url, {}, timeoutMs, async (response) => {
+    const pageHtml = await fetchSource(url, {}, async (response) => {
       if (!response.ok) {
         throw new Error(`Artificial Analysis scrape failed: ${response.status}`);
       }
@@ -101,7 +97,6 @@ export async function getArtificialAnalysisLeaderboardRawStats(
     // Model pages publish the complete comparison dataset with index resources; the leaderboard preview omits them.
     const { models } = await getArtificialAnalysisPage(
       new URL(`/models/${encodeURIComponent(modelSlug)}`, url).href,
-      timeoutMs,
     );
     return {
       fetched_at_epoch_seconds: nowEpochSeconds(),

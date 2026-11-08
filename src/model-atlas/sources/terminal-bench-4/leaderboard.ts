@@ -12,6 +12,7 @@ import {
   type BenchmarkModelRow,
   buildBenchmarkModelMap,
   canonicalReasoningEffort,
+  modelEffortLabel,
   normalizeModelToken,
 } from "../../identity/normalization";
 import { asFiniteNumber, asNonEmptyString, asRecord, nowEpochSeconds } from "../../runtime";
@@ -28,8 +29,6 @@ const TERMINAL_BENCH_4_NAME = "4-0-0";
 const TERMINAL_BENCH_4_TITLE = "Terminal-Bench 4.0";
 
 export const TERMINAL_BENCH_4_LEADERBOARD_URL = "https://www.tbench.ai/?version=4.0";
-
-const DEFAULT_TIMEOUT_MS = 30_000;
 
 export const TERMINAL_BENCH_4_SOURCE_REVISION = "4_0_0";
 
@@ -63,7 +62,6 @@ export async function getTerminalBench4Stats(): Promise<TerminalBench4Payload> {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ package: TERMINAL_BENCH_4_PACKAGE, name: TERMINAL_BENCH_4_NAME }),
     },
-    DEFAULT_TIMEOUT_MS,
     async (response) => {
       if (!response.ok) {
         throw new Error(`Terminal-Bench 4.0 scrape failed: ${response.status}`);
@@ -185,8 +183,4 @@ function modelAgentRow(value: unknown): TerminalBench4ModelHarnessRow | null {
     output_tokens_per_task:
       outputTokens == null ? null : resourcePerTaskRun(outputTokens, taskRunCount),
   };
-}
-
-function modelEffortLabel(baseModel: string, reasoningEffort: string | null): string {
-  return reasoningEffort == null ? baseModel : `${baseModel} (${reasoningEffort})`;
 }

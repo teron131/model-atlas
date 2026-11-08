@@ -103,19 +103,23 @@ const RESULT_CHANGE_ORDER = ["added", "revised", "removed"] as const;
 export const CHANGE_HISTORY_SECONDS = 30 * 86_400;
 const RECENT_CHANGE_MARKS = 12;
 
-/** Record only material adjacent changes while retaining the last material event across quiet refreshes. */
+/**
+ * Record only material adjacent changes while retaining the last material event across quiet refreshes.
+ * `previousMethodology` is the fingerprint the previous checkpoint stored, because a payload read back from a checkpoint carries the current config's scoring; a checkpoint that predates it falls back to the payload's scoring.
+ */
 export function buildRefreshChanges(
   refreshId: number,
   previousRefreshId: number | null,
   previousPayload: ModelAtlasPayload | null | undefined,
+  previousMethodology: string | null,
   currentModels: readonly ModelAtlasModel[],
   currentScoring: ModelAtlasMetadata["scoring"],
 ): RefreshChanges {
   const previousModels = previousPayload?.models ?? [];
   const methodologyChanged =
     previousPayload != null &&
-    stableJson(scoringMethodology(previousPayload.metadata.scoring)) !==
-      stableJson(scoringMethodology(currentScoring));
+    (previousMethodology ?? scoringMethodologyJson(previousPayload.metadata.scoring)) !==
+      scoringMethodologyJson(currentScoring);
   const previousByIdentity = new Map(
     previousModels.flatMap((model) => {
       const identity = modelIdentity(model);
@@ -216,8 +220,8 @@ export function buildRefreshChanges(
     };
   });
   const changedModelCount = new Set(
-    modelScoreChangeRows.map(
-      ({ model_id, reasoning_effort }) => `${model_id}\u0000${reasoning_effort}`,
+    modelScoreChangeRows.map(({ model_id, reasoning_effort }) =>
+      variantKey(model_id, reasoning_effort),
     ),
   ).size;
   return {
@@ -272,8 +276,8 @@ export function buildChangeHistory({
   for (const [key, { run, moves }] of updates) {
     const [{ model_id, reasoning_effort }] = moves;
     const detail = detailByUpdate.get(key);
-    const variantKey = `${model_id}\u0000${reasoning_effort}`;
-    const variant: ModelAtlasVariantChanges = variants.get(variantKey) ?? {
+    const identity = variantKey(model_id, reasoning_effort);
+    const variant: ModelAtlasVariantChanges = variants.get(identity) ?? {
       model_id,
       reasoning_effort: reasoning_effort === "" ? null : reasoning_effort,
       updates: [],
@@ -285,12 +289,33 @@ export function buildChangeHistory({
         inputs: detail?.inputs ?? null,
       }),
     );
-    variants.set(variantKey, variant);
+    variants.set(identity, variant);
   }
   return [...variants.values()].map((variant) => ({
     ...variant,
     updates: variant.updates.sort((left, right) => left.refresh_id - right.refresh_id),
   }));
+}
+
+/** A variant's identity in the change log, which stores a model without a reasoning effort as "". */
+export function variantKey(modelId: string, reasoningEffort: string | null): string {
+  return `${modelId}\u0000${reasoningEffort ?? ""}`;
+}
+
+/** The scoring settings whose change marks a refresh's moves as methodology-driven, as stable JSON. */
+export function scoringMethodologyJson(scoring: ModelAtlasMetadata["scoring"]): string {
+  const intelligence = scoring.intelligence_scoring;
+  return stableJson({
+    intelligence_scoring: intelligence && {
+      group_weights: intelligence.group_weights,
+      pairwise_weight: intelligence.pairwise_weight,
+    },
+    intelligence_benchmark_keys: scoring.intelligence_benchmark_keys,
+    agentic_benchmark_keys: scoring.agentic_benchmark_keys,
+    benchmark_portfolio: scoring.benchmark_portfolio,
+    agentic_token_modifier_cap: scoring.agentic_token_modifier_cap,
+    snapshot_preservation_version: scoring.snapshot_preservation_version,
+  });
 }
 
 export function recentChangeMarks(
@@ -306,7 +331,7 @@ function updateKey(row: {
   model_id: string;
   reasoning_effort: string;
 }): string {
-  return `${row.refresh_id}\u0000${row.model_id}\u0000${row.reasoning_effort}`;
+  return `${row.refresh_id}\u0000${variantKey(row.model_id, row.reasoning_effort)}`;
 }
 
 /** Emit a material public score change only when score, stable-cohort rank, or evidence support crosses policy, then attach bounded explanations. */
@@ -813,23 +838,8 @@ function rankMovementImpact(change: ModelAtlasScoreMove): number {
   );
 }
 
-function scoringMethodology(scoring: ModelAtlasMetadata["scoring"]): unknown {
-  const intelligence = scoring.intelligence_scoring;
-  return {
-    intelligence_scoring: intelligence && {
-      group_weights: intelligence.group_weights,
-      pairwise_weight: intelligence.pairwise_weight,
-    },
-    intelligence_benchmark_keys: scoring.intelligence_benchmark_keys,
-    agentic_benchmark_keys: scoring.agentic_benchmark_keys,
-    benchmark_portfolio: scoring.benchmark_portfolio,
-    agentic_token_modifier_cap: scoring.agentic_token_modifier_cap,
-    snapshot_preservation_version: scoring.snapshot_preservation_version,
-  };
-}
-
 function modelIdentity(model: ModelAtlasModel): string | null {
-  return model.id == null ? null : `${model.id}\u0000${model.reasoning_effort ?? ""}`;
+  return model.id == null ? null : variantKey(model.id, model.reasoning_effort);
 }
 
 function rankIdentity(identity: string, dimension: ModelAtlasScoreDimension): string {

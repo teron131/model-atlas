@@ -1,20 +1,15 @@
-/** Terminal-Bench 4.0 runtime owns raw model-agent rows, cache reconstruction, and refresh state. */
+/** Terminal-Bench 4.0 runtime owns raw model-agent rows, cache reconstruction, refresh state, and its source-data lookup. */
 
 import { BENCHMARK_RESOURCE_PROFILES } from "../../benchmarks/catalog/portfolio";
-import { SNAPSHOT_TABLES } from "../../database/tables";
 import type { DatabaseWriter } from "../../database/writers/database";
 import { asFiniteNumber, asNonEmptyString } from "../../runtime";
 import { type BenchmarkSnapshotContext, defineBenchmarkRuntime } from "../benchmark-runtime";
 import { type CacheRowSource, firstFetchedAt, sourceCacheRows } from "../cache/rows";
 import { sourceRowKey } from "../snapshots/policy";
 import { harnessDistinguishesRuns, snapshotSourceRows } from "../snapshots/row-snapshot";
-import type {
-  RawSourceCacheStatus,
-  SourceRefreshOptions,
-  SourceSnapshots,
-  SourceSnapshotStatus,
-} from "../types";
+import type { RawSourceCacheStatus, SourceRefreshOptions, SourceSnapshotStatus } from "../types";
 import {
+  buildTerminalBench4Map,
   getTerminalBench4Stats,
   TERMINAL_BENCH_4_LEADERBOARD_URL,
   TERMINAL_BENCH_4_SOURCE_REVISION,
@@ -22,20 +17,18 @@ import {
 } from "./leaderboard";
 
 type TerminalBench4Snapshot = {
-  terminalBench4Rows: TerminalBench4ModelHarnessRow[];
+  rows: TerminalBench4ModelHarnessRow[];
   sourceStatus: SourceSnapshotStatus;
 };
 
 export const terminalBench4Runtime = defineBenchmarkRuntime({
-  cacheKey: "terminalBench4",
   source: "terminal_bench_4",
-  table: SNAPSHOT_TABLES.terminal_bench_4,
+  key: "terminalBench4",
+  fetchRows: async () => (await getTerminalBench4Stats()).data,
   readCache: readTerminalBench4RawCache,
   snapshot: terminalBench4Snapshot,
   write: insertTerminalBench4RawRows,
-  sourceRowsKey: "terminalBench4Rows",
-  fetchSourceRows: async () => (await getTerminalBench4Stats()).data,
-  sourceRowsFromSnapshots: (snapshots) => snapshots.terminalBench4Rows,
+  sourceData: (rows) => ({ rows, rowsByModelName: buildTerminalBench4Map(rows) }),
 });
 
 /** Reconstruct the cache only when every persisted row matches the current source revision. */
@@ -141,12 +134,12 @@ async function terminalBench4Snapshot(
     versions: { versionOf: (row) => row.revision },
   });
   return {
-    terminalBench4Rows: snapshot.rows,
+    rows: snapshot.rows,
     sourceStatus: context.sourceStatus(snapshot),
   };
 }
 
-function insertTerminalBench4RawRows(db: DatabaseWriter, snapshots: SourceSnapshots): void {
+function insertTerminalBench4RawRows(db: DatabaseWriter, snapshot: TerminalBench4Snapshot): void {
   const statement = db.prepare(`
 		INSERT INTO terminal_bench_4_raw_rows (
 			row_index, fetched_at_epoch_seconds, url, revision, model, base_model,
@@ -154,10 +147,10 @@ function insertTerminalBench4RawRows(db: DatabaseWriter, snapshots: SourceSnapsh
 			total_cost_usd, total_tokens, cost_per_task_usd, tokens_per_task, seconds_per_task, output_tokens_per_task
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
-  for (const [index, row] of snapshots.terminalBench4Rows.entries()) {
+  for (const [index, row] of snapshot.rows.entries()) {
     statement.run(
       index,
-      snapshots.fetchedAt.terminalBench4,
+      snapshot.sourceStatus.fetchedAt,
       TERMINAL_BENCH_4_LEADERBOARD_URL,
       row.revision,
       row.model,

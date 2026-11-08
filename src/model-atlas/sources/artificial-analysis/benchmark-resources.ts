@@ -29,8 +29,6 @@ import { getArtificialAnalysisPage } from "./page-data";
 
 const METHODOLOGY_URL = "https://artificialanalysis.ai/methodology/intelligence-benchmarking";
 
-const DEFAULT_TIMEOUT_MS = 30_000;
-
 const DEFAULT_CONCURRENCY = 3;
 
 const PAGE_FETCH_ATTEMPTS = 2;
@@ -73,7 +71,6 @@ type RunCountedPage = Omit<ArtificialAnalysisBenchmarkResourcePage, "methodology
 type ArtificialAnalysisBenchmarkResourceOptions = {
   pages?: readonly ArtificialAnalysisBenchmarkResourcePage[];
   methodologyUrl?: string;
-  timeoutMs?: number;
   concurrency?: number;
 };
 
@@ -124,15 +121,11 @@ export async function getArtificialAnalysisBenchmarkResourceStats(
   options: ArtificialAnalysisBenchmarkResourceOptions = {},
 ): Promise<ArtificialAnalysisBenchmarkResourcePayload> {
   const pages = options.pages ?? ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES;
-  const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const concurrency = options.concurrency ?? DEFAULT_CONCURRENCY;
   if (pages.length === 0) return { fetched_at_epoch_seconds: null, data: [] };
   let runCounts: ReadonlyMap<string, number>;
   try {
-    runCounts = await getArtificialAnalysisRunCounts(
-      options.methodologyUrl ?? METHODOLOGY_URL,
-      timeoutMs,
-    );
+    runCounts = await getArtificialAnalysisRunCounts(options.methodologyUrl ?? METHODOLOGY_URL);
   } catch {
     return { fetched_at_epoch_seconds: null, data: [] };
   }
@@ -141,7 +134,7 @@ export async function getArtificialAnalysisBenchmarkResourceStats(
     const taskRunCount = runCounts.get(evaluationName(page.methodology_name));
     return taskRunCount == null
       ? []
-      : getCompleteBenchmarkResourceRows({ ...page, task_run_count: taskRunCount }, timeoutMs);
+      : getCompleteBenchmarkResourceRows({ ...page, task_run_count: taskRunCount });
   });
   const allPagesComplete =
     pageResults.length === pages.length && pageResults.every((rows) => rows.length > 0);
@@ -305,11 +298,8 @@ export function findArtificialAnalysisBenchmarkResourceRow(
   return null;
 }
 
-async function getArtificialAnalysisRunCounts(
-  url: string,
-  timeoutMs: number,
-): Promise<Map<string, number>> {
-  const html = await fetchSource(url, {}, timeoutMs, async (response) => {
+async function getArtificialAnalysisRunCounts(url: string): Promise<Map<string, number>> {
+  const html = await fetchSource(url, {}, async (response) => {
     if (!response.ok) throw new Error(`Artificial Analysis methodology failed: ${response.status}`);
     return response.text();
   });
@@ -338,11 +328,10 @@ function leadingCount(cell: string | undefined): number | null {
 /** Retry one complete dataset once; a preview or missing dataset never advances source freshness. */
 async function getCompleteBenchmarkResourceRows(
   page: RunCountedPage,
-  timeoutMs: number,
 ): Promise<ArtificialAnalysisBenchmarkResourceRow[]> {
   for (let attempt = 0; attempt < PAGE_FETCH_ATTEMPTS; attempt += 1) {
     try {
-      const { title, models } = await getArtificialAnalysisPage(page.url, timeoutMs);
+      const { title, models } = await getArtificialAnalysisPage(page.url);
       const rows = processArtificialAnalysisBenchmarkResourceRows(
         models,
         page,

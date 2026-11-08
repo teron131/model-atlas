@@ -24,10 +24,9 @@ type ArtificialAnalysisPage = {
  */
 export async function getArtificialAnalysisPage(
   url: string,
-  timeoutMs: number,
   inPageRecordKey?: string,
 ): Promise<ArtificialAnalysisPage> {
-  const html = await fetchSource(url, {}, timeoutMs, async (response) => {
+  const html = await fetchSource(url, {}, async (response) => {
     if (!response.ok) throw new Error(`Artificial Analysis page failed: ${response.status}`);
     return response.text();
   });
@@ -41,7 +40,7 @@ export async function getArtificialAnalysisPage(
     const dataUrl = new URL(path, url);
     if (dataUrl.origin !== new URL(url).origin)
       throw new Error("Unexpected Artificial Analysis page-data origin");
-    const data = await fetchSource(dataUrl, {}, timeoutMs, async (response) => {
+    const data = await fetchSource(dataUrl, {}, async (response) => {
       if (!response.ok) throw new Error(`Artificial Analysis page data failed: ${response.status}`);
       if (typeof manifest.key !== "string") return response.json();
       const encrypted = Buffer.from(await response.arrayBuffer());

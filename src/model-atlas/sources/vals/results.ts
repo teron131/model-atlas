@@ -9,12 +9,11 @@ import type {
   BenchmarkObservationPayload,
   BenchmarkObservationRow,
 } from "../../benchmarks/observation";
-import { canonicalReasoningEffort } from "../../identity/normalization";
+import { canonicalReasoningEffort, modelEffortLabel } from "../../identity/normalization";
 import { asFiniteNumber, asNonEmptyString, nowEpochSeconds, stableJson } from "../../runtime";
 import { percentToUnitScore } from "../parsing";
 import { getValsBenchmarkView, parseValsBenchmarkView, type ValsBenchmarkView } from "./view";
 
-const DEFAULT_TIMEOUT_MS = 30_000;
 /** Thinking Machines models take a numeric effort, which Vals records verbatim; these are its named presets. */
 const THINKING_MACHINES_EFFORT_PRESETS: Readonly<Record<string, string>> = {
   "0": "none",
@@ -37,7 +36,7 @@ type ValsBenchmarkDefinition = {
 export async function getValsBenchmarkStats(
   definition: ValsBenchmarkDefinition,
 ): Promise<BenchmarkObservationPayload> {
-  const view = await getValsBenchmarkView(definition.sourceUrl, DEFAULT_TIMEOUT_MS);
+  const view = await getValsBenchmarkView(definition.sourceUrl);
   const data = processValsBenchmarkView(view, definition);
   return { fetched_at_epoch_seconds: data.length > 0 ? nowEpochSeconds() : null, data };
 }
@@ -109,7 +108,7 @@ function scoreRow(
     benchmark_key: definition.benchmarkKey,
     source_url: definition.sourceUrl,
     model_id: modelId,
-    model: reasoningEffort == null ? baseModel : `${baseModel} (${reasoningEffort})`,
+    model: modelEffortLabel(baseModel, reasoningEffort),
     base_model: baseModel,
     reasoning_effort: reasoningEffort,
     model_creator: asNonEmptyString(value.provider),

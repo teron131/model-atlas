@@ -1,16 +1,10 @@
 /** One model variant's updates in the change-history window, read from the published change-history artifact. */
 
 import { readChangeHistory } from "../../../../src/model-atlas/database/runtime-snapshot";
-import { publicCacheHeaders } from "../../cache-headers";
+import { SNAPSHOT_CACHE_HEADERS } from "../../cache-headers";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-
-const HISTORY_CACHE_HEADERS = publicCacheHeaders({
-  browserMaxAgeSeconds: 60,
-  cdnMaxAgeSeconds: 300,
-  staleWhileRevalidateSeconds: 3600,
-});
 
 /** `model` names the variant's model id and `effort` its reasoning effort, omitted for a model without one; a variant with no updates in the window answers an empty list. */
 export async function GET(request: Request) {
@@ -26,7 +20,7 @@ export async function GET(request: Request) {
     );
     return Response.json(
       { model_id: modelId, reasoning_effort: effort, updates: variant?.updates ?? [] },
-      { headers: HISTORY_CACHE_HEADERS },
+      { headers: SNAPSHOT_CACHE_HEADERS },
     );
   } catch {
     return Response.json(

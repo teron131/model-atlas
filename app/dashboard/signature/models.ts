@@ -20,6 +20,41 @@ export type SignaturePopulation = {
   referenceModels: ModelAtlasModel[];
 };
 
+/** Expanded variants are drawn as filtered, while a collapsed row stands for every variant of its family, so the sky picks each family's strongest variant itself. */
+export function signaturePopulation({
+  shownModels,
+  paretoCandidates,
+  referenceModels,
+  showVariants,
+}: {
+  shownModels: readonly ModelAtlasModel[];
+  paretoCandidates: readonly ModelAtlasModel[];
+  referenceModels: ModelAtlasModel[];
+  showVariants: boolean;
+}): SignaturePopulation {
+  const shown = shownModels
+    .filter(isNamedAndScored)
+    .sort((left, right) => right.scores.intelligence_score - left.scores.intelligence_score);
+  const placeable = referenceModels.filter(isNamedAndScored);
+  return {
+    models: showVariants ? shown : modelsInFamilies(placeable, shown),
+    paretoModels: modelsInFamilies(placeable, paretoCandidates),
+    referenceModels,
+  };
+}
+
+function modelsInFamilies(
+  models: readonly ModelAtlasModel[],
+  members: readonly ModelAtlasModel[],
+): ModelAtlasModel[] {
+  const families = new Set(members.map(canonicalModelKey));
+  return models.filter((model) => families.has(canonicalModelKey(model)));
+}
+
+function isNamedAndScored(model: ModelAtlasModel): boolean {
+  return model.name != null && Number.isFinite(model.scores.intelligence_score);
+}
+
 /** The scores that earned a model its frontier roles; Pareto roles add the Value score and blended price behind the choice. */
 export type SignatureMetric = {
   intelligence?: number;
@@ -80,11 +115,7 @@ export function signatureStars(
 
 /** Model families with an Intelligence score and a dated release, the only models the sky can place. */
 function datedModels(models: ModelAtlasModel[]) {
-  return collapsedModels(
-    models.filter(
-      (model) => model.name != null && Number.isFinite(model.scores.intelligence_score),
-    ),
-  ).flatMap((model) => {
+  return collapsedModels(models.filter(isNamedAndScored)).flatMap((model) => {
     const released = Date.parse(`${model.release_date?.slice(0, 10)}T00:00:00Z`);
     return Number.isFinite(released) ? [{ model, released }] : [];
   });
@@ -96,12 +127,7 @@ export function signatureModels({
   paretoModels,
   referenceModels,
 }: SignaturePopulation): SignatureModel[] {
-  const variants = modelsForVariantDisplay(
-    models.filter(
-      (model) => model.name != null && Number.isFinite(model.scores.intelligence_score),
-    ),
-    true,
-  );
+  const variants = modelsForVariantDisplay(models, true);
   const baseModels = collapsedModels(variants);
   const valueModels = intelligenceValueModels(paretoModels);
   const medianIntelligence = medianOfFinite(
@@ -294,9 +320,7 @@ function intelligenceValueMetric(model: ModelAtlasModel): SignatureMetric {
 }
 
 function intelligenceValueModels(models: ModelAtlasModel[]): ModelAtlasModel[] {
-  return collapsedModels(
-    models.filter(
-      (model) => model.name != null && Number.isFinite(model.scores.intelligence_score),
-    ),
-  ).filter((model) => Number.isFinite(model.scores.value_score));
+  return collapsedModels(models.filter(isNamedAndScored)).filter((model) =>
+    Number.isFinite(model.scores.value_score),
+  );
 }

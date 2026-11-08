@@ -19,8 +19,6 @@ import {
 
 export const ARENA_AGENT_LEADERBOARD_URL = "https://arena.ai/leaderboard/agent";
 
-const DEFAULT_TIMEOUT_MS = 30_000;
-
 const ARENA_AGENT_OBJECT_MARKER = '{"arena":{"slug":"agent"';
 
 export type ArenaAgentModelScoreRow = {
@@ -36,8 +34,6 @@ export type ArenaAgentModelScoreRow = {
   cost_per_task_usd: number | null;
 };
 
-export type ArenaAgentRowsByModelName = Map<string, ArenaAgentModelScoreRow>;
-
 type ArenaAgentPayload = {
   fetched_at_epoch_seconds: number | null;
   data: ArenaAgentModelScoreRow[];
@@ -46,22 +42,17 @@ type ArenaAgentPayload = {
 /** Prefer the live website; fallback rows retain their separate publication date and source URL. */
 export async function getArenaAgentStats(): Promise<ArenaAgentPayload> {
   try {
-    return await fetchSource(
-      ARENA_AGENT_LEADERBOARD_URL,
-      {},
-      DEFAULT_TIMEOUT_MS,
-      async (response) => {
-        if (!response.ok) {
-          throw new Error(`Arena Agent scrape failed: ${response.status}`);
-        }
-        const data = processArenaAgentPageHtml(await response.text());
-        if (data.length === 0) throw new Error("Arena Agent website has no usable rows");
-        return {
-          fetched_at_epoch_seconds: nowEpochSeconds(),
-          data,
-        };
-      },
-    );
+    return await fetchSource(ARENA_AGENT_LEADERBOARD_URL, {}, async (response) => {
+      if (!response.ok) {
+        throw new Error(`Arena Agent scrape failed: ${response.status}`);
+      }
+      const data = processArenaAgentPageHtml(await response.text());
+      if (data.length === 0) throw new Error("Arena Agent website has no usable rows");
+      return {
+        fetched_at_epoch_seconds: nowEpochSeconds(),
+        data,
+      };
+    });
   } catch {
     const data = processArenaAgentDatasetRows(await fetchArenaDataset("agent"));
     return { fetched_at_epoch_seconds: data.length > 0 ? nowEpochSeconds() : null, data };

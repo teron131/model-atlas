@@ -489,14 +489,14 @@ try {
     (projected[1]!.intelligence_index_cost as Record<string, unknown>).cost_per_task,
     0.72,
   );
-  await assert.rejects(getArtificialAnalysisPage(`${origin}/wrong-origin`, 1_000), /origin/);
-  assert.deepEqual(
-    await getArtificialAnalysisPage(`${origin}/evaluations/in-page`, 1_000, "aa3dElo"),
-    { title: null, models: [{ slug: "scene-max", shortName: "Scene (max)", aa3dElo: 1100 }] },
-  );
+  await assert.rejects(getArtificialAnalysisPage(`${origin}/wrong-origin`), /origin/);
+  assert.deepEqual(await getArtificialAnalysisPage(`${origin}/evaluations/in-page`, "aa3dElo"), {
+    title: null,
+    models: [{ slug: "scene-max", shortName: "Scene (max)", aa3dElo: 1100 }],
+  });
   // Elsewhere in-page records are a preview, so a page without a manifest fails unless its caller names the record key.
   await assert.rejects(
-    getArtificialAnalysisPage(`${origin}/evaluations/in-page`, 1_000),
+    getArtificialAnalysisPage(`${origin}/evaluations/in-page`),
     /Missing complete/,
   );
   // Without the index's published version, the refresh fails and the cache stays in place rather than scoring unversioned values.

@@ -5,23 +5,30 @@ import { DatabaseSync } from "node:sqlite";
 
 import { STAGE_CONFIG } from "../src/model-atlas/config";
 import { readDatabasePayload } from "../src/model-atlas/database";
+import {
+  insertModelChangeDetails,
+  insertModelScoreChanges,
+  insertRefreshRuns,
+} from "../src/model-atlas/database/change-log";
 import { openDatabase, removeDatabaseFiles } from "../src/model-atlas/database/schema";
 import { readDatabaseSnapshot } from "../src/model-atlas/database/sqlite-payload";
 import {
   insertModelBenchmarks,
-  insertModelChangeDetails,
   insertModels,
-  insertModelScoreChanges,
   insertModelTaskMetrics,
-  insertRefreshRuns,
 } from "../src/model-atlas/database/writers/models";
 import { finalizeBenchmarkRows } from "../src/model-atlas/pipeline/benchmark-rows/source-rows";
-import { buildRefreshChanges } from "../src/model-atlas/stats/payload/changes";
+import {
+  buildRefreshChanges,
+  scoringMethodologyJson,
+} from "../src/model-atlas/stats/payload/changes";
 import { buildCurrentModelAtlasMetadata } from "../src/model-atlas/stats/payload/metadata";
 import {
   preserveHighSignalSnapshotModels,
   SNAPSHOT_PRESERVATION_VERSION,
 } from "../src/model-atlas/stats/payload/snapshot-preservation";
+import type { ModelAtlasModel } from "../src/model-atlas/stats/types";
+import { minimalModelAtlasModel } from "./model-atlas-fixtures";
 
 const databasePath = ".cache/test-database-aa-resource-task-metrics.sqlite";
 
@@ -33,11 +40,10 @@ try {
     db.prepare("INSERT INTO snapshot_metadata (updated_at_epoch_seconds) VALUES (?)").run(
       1_800_000_001,
     );
-    const finalRows = [
+    const finalRows: ModelAtlasModel[] = [
       {
-        id: "example/aa-resource-model",
+        ...minimalModelAtlasModel({ id: "example/aa-resource-model", name: "AA Resource Model" }),
         provider: "example",
-        name: "AA Resource Model",
         reasoning_effort: "xhigh",
         logo: "https://example.com/logo.svg",
         modalities: { input: ["text", "pdf", "speech"], output: ["text", "image"] },
@@ -85,7 +91,6 @@ try {
         component_scores: {
           intelligence_score: 90,
           agentic_score: 80,
-          speed_score: 70,
         },
         scores: {
           intelligence_score: 90,
@@ -95,14 +100,16 @@ try {
         },
       },
       {
-        id: "example/sparse-resource-model",
+        ...minimalModelAtlasModel({
+          id: "example/sparse-resource-model",
+          name: "Sparse Resource Model",
+        }),
         provider: "example",
-        name: "Sparse Resource Model",
         logo: "https://example.com/logo.svg",
+        confidence: { intelligence: null, agentic: null, speed: null, value: null },
         component_scores: {
           intelligence_score: 90,
           agentic_score: 80,
-          speed_score: null,
         },
         scores: {
           intelligence_score: 90,
@@ -192,6 +199,19 @@ try {
     intelligence_benchmark_keys: ["hle", "agents_last_exam"],
     agentic_benchmark_keys: ["gdpval_normalized"],
   };
+  const previousChangePayload = {
+    ...payload,
+    metadata: { ...payload.metadata, scoring: changeScoring },
+  };
+  const currentChangeModels = [
+    {
+      ...model,
+      benchmarks: { hle: 0.95, agents_last_exam: 0.4 },
+      scores: { ...model.scores, intelligence_score: 93, value_score: 66 },
+    },
+    { ...model, reasoning_effort: "low" },
+    ...payload.models.filter((candidate) => candidate !== model),
+  ];
   const {
     models: changedModels,
     refreshRunRows,
@@ -200,18 +220,28 @@ try {
   } = buildRefreshChanges(
     1_800_000_100,
     1_800_000_001,
-    { ...payload, metadata: { ...payload.metadata, scoring: changeScoring } },
-    [
-      {
-        ...model,
-        benchmarks: { hle: 0.95, agents_last_exam: 0.4 },
-        scores: { ...model.scores, intelligence_score: 93, value_score: 66 },
-      },
-      { ...model, reasoning_effort: "low" },
-      ...payload.models.filter((candidate) => candidate !== model),
-    ],
+    previousChangePayload,
+    scoringMethodologyJson(changeScoring),
+    currentChangeModels,
     changeScoring,
   );
+  // A payload read back from a checkpoint carries the current scoring, so only the stored fingerprint shows a methodology change; a checkpoint without one falls back to the payload.
+  for (const [storedMethodology, changed] of [
+    [scoringMethodologyJson(payload.metadata.scoring), true],
+    [null, false],
+  ] as const) {
+    assert.equal(
+      buildRefreshChanges(
+        1_800_000_100,
+        1_800_000_001,
+        previousChangePayload,
+        storedMethodology,
+        currentChangeModels,
+        changeScoring,
+      ).refreshRunRows[0]?.methodology_changed,
+      changed,
+    );
+  }
   const [updatedChange, entrantChange] = changedModels.map(({ latest_change }) => latest_change);
   assert.deepEqual(
     updatedChange?.scores.map(({ dimension, score_delta }) => [dimension, score_delta]),
@@ -262,9 +292,9 @@ try {
     );
     // Beside the newest refresh, the log holds an update older than the window, an update logged before details, and a run the newest refresh replaced.
     const loggedMove = {
-      model_id: model.id,
+      model_id: "example/aa-resource-model",
       reasoning_effort: "xhigh",
-      dimension: "agentic",
+      dimension: "agentic" as const,
       score_before: 78,
       score_after: 80,
       score_delta: 2,

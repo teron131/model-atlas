@@ -21,15 +21,7 @@ import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react"
 
 import type { ModelAtlasModel } from "../../src/model-atlas/stats/types";
 import { fmtMoney } from "./graphs/format";
-import {
-  matchingProfileModelCount,
-  MODEL_PROFILES_STORAGE_KEY,
-  type ModelProfile,
-  readModelProfiles,
-  removeModelProfile,
-  sameProfileFilters,
-  saveModelProfile,
-} from "./model-profiles";
+import { matchingProfileModelCount, sameProfileFilters, useModelProfiles } from "./model-profiles";
 import { openModelSheet } from "./model-sheet/open";
 import {
   costFilterOptions,
@@ -70,6 +62,26 @@ export function focusModelSearch() {
   input.select();
 }
 
+/** "/" reaches the model search from anywhere except while typing in another field. */
+function useModelSearchShortcut() {
+  useEffect(() => {
+    const focusOnSlash = (event: KeyboardEvent) => {
+      if (event.key !== "/" || event.defaultPrevented || event.metaKey || event.ctrlKey) return;
+      const target = event.target;
+      if (
+        target instanceof HTMLElement &&
+        (target.isContentEditable || target.matches("input, textarea, select"))
+      ) {
+        return;
+      }
+      event.preventDefault();
+      focusModelSearch();
+    };
+    document.addEventListener("keydown", focusOnSlash);
+    return () => document.removeEventListener("keydown", focusOnSlash);
+  }, []);
+}
+
 /** Validate the current full model group before every create/update, even while the charts are rendering a deferred configuration. */
 export function GlobalModelControls({
   filters,
@@ -87,14 +99,8 @@ export function GlobalModelControls({
   onShowReasoningVariantsChange: (show: boolean) => void;
 }) {
   const [tableVariants] = useUrlState("table-variants");
-  const [profiles, setProfiles] = useState<ModelProfile[]>([]);
-  const [activeId, setActiveId] = useState("");
-  const [storageReady, setStorageReady] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
   const [name, setName] = useState("");
-  const [message, setMessage] = useState("");
-  const [saveError, setSaveError] = useState("");
-  const [storageError, setStorageError] = useState("");
   const nameRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const [menuPosition, setMenuPosition] = useState<CSSProperties>({
@@ -118,54 +124,27 @@ export function GlobalModelControls({
   const suggestion = useModelSuggestions(MODEL_SUGGESTIONS_ID, suggestions, (model) =>
     openModelSheet({ ...model, reasoning_effort: null }),
   );
-  const activeProfile = profiles.find((profile) => profile.id === activeId);
+  const {
+    profiles,
+    activeProfile,
+    modified,
+    setActiveId,
+    storageReady,
+    storageError,
+    saveError,
+    message,
+    canSave,
+    clearFeedback,
+    save,
+    remove,
+  } = useModelProfiles(filters, matchedCount);
   const isDefault = sameProfileFilters(filters, DEFAULT_GLOBAL_MODEL_FILTERS);
-  const modified = activeProfile != null && !sameProfileFilters(activeProfile.filters, filters);
-  const canSave = storageReady && matchedCount > 0;
   const chips = filterChips(filters, providerChoices);
-
-  useEffect(() => {
-    const read = () => {
-      try {
-        setProfiles(readModelProfiles(window.localStorage));
-        setStorageReady(true);
-        setStorageError("");
-      } catch {
-        setStorageReady(false);
-        setStorageError(
-          "Browser profiles are unavailable. Check that site storage is enabled and saved profiles are valid.",
-        );
-      }
-    };
-    read();
-    const changed = (event: StorageEvent) => {
-      if (event.key === MODEL_PROFILES_STORAGE_KEY || event.key === null) read();
-    };
-    window.addEventListener("storage", changed);
-    return () => window.removeEventListener("storage", changed);
-  }, []);
+  useModelSearchShortcut();
 
   useEffect(() => {
     if (saveOpen) nameRef.current?.focus();
   }, [saveOpen]);
-
-  // "/" reaches the model search from anywhere except while typing in another field.
-  useEffect(() => {
-    const focusOnSlash = (event: KeyboardEvent) => {
-      if (event.key !== "/" || event.defaultPrevented || event.metaKey || event.ctrlKey) return;
-      const target = event.target;
-      if (
-        target instanceof HTMLElement &&
-        (target.isContentEditable || target.matches("input, textarea, select"))
-      ) {
-        return;
-      }
-      event.preventDefault();
-      focusModelSearch();
-    };
-    document.addEventListener("keydown", focusOnSlash);
-    return () => document.removeEventListener("keydown", focusOnSlash);
-  }, []);
 
   // A fixed popover must close when its toolbar moves, while its own list remains scrollable.
   useEffect(() => {
@@ -198,55 +177,23 @@ export function GlobalModelControls({
 
   const apply = (next: GlobalModelFilters) => {
     updateDashboardUrl(next);
-    setMessage("");
-    setSaveError("");
+    clearFeedback();
   };
 
-  /** Read storage again before writing so another tab's edits are retained. */
-  const save = (updating: boolean) => {
-    if (!canSave) return;
-    setSaveError("");
-    try {
-      const stored = readModelProfiles(window.localStorage);
-      const existing = updating ? stored.find((profile) => profile.id === activeId) : undefined;
-      if (updating && !existing)
-        throw new Error("This profile was removed. Save it with a new name.");
-      const profile: ModelProfile = {
-        id: existing?.id ?? window.crypto.randomUUID(),
-        name: existing?.name ?? name,
-        filters,
-      };
-      const next = saveModelProfile(window.localStorage, stored, profile, matchedCount);
-      setProfiles(next);
-      setActiveId(profile.id);
+  const saveProfile = (updating: boolean) => {
+    if (save(updating, name)) {
       setSaveOpen(false);
       setName("");
-      setMessage(updating ? "Profile updated." : "Profile saved.");
-    } catch (error) {
-      setSaveError(
-        error instanceof Error ? error.message : "The profile could not be saved in this browser.",
-      );
     }
   };
 
-  const remove = () => {
-    if (!storageReady || activeProfile == null) return;
-    setSaveError("");
-    try {
-      const stored = readModelProfiles(window.localStorage);
-      setProfiles(removeModelProfile(window.localStorage, stored, activeProfile.id));
-      setActiveId("");
-      setSaveOpen(false);
-      setMessage("Profile removed. Current filters kept.");
-    } catch {
-      setSaveError("The profile could not be removed from this browser.");
-    }
+  const removeProfile = () => {
+    if (remove()) setSaveOpen(false);
   };
 
   const openSave = () => {
     setSaveOpen(true);
-    setMessage("");
-    setSaveError("");
+    clearFeedback();
   };
 
   const toggleMenu = (button: HTMLButtonElement, next: "profiles" | "filters") => {
@@ -290,8 +237,7 @@ export function GlobalModelControls({
             onChange={(event) => {
               updateDashboardUrl({ q: event.target.value }, true);
               suggestion.show();
-              setMessage("");
-              setSaveError("");
+              clearFeedback();
             }}
           />
           {/* The count stays mounted as a live region; while no filter applies, the "/" keycap takes its place on screen. */}
@@ -365,7 +311,7 @@ export function GlobalModelControls({
             <form
               onSubmit={(event) => {
                 event.preventDefault();
-                save(false);
+                saveProfile(false);
               }}
             >
               <input
@@ -435,7 +381,7 @@ export function GlobalModelControls({
                         : "Save profile as…"
                   }
                   disabled={!canSave}
-                  onClick={() => (modified ? save(true) : openSave())}
+                  onClick={() => (modified ? saveProfile(true) : openSave())}
                 >
                   <Save size={16} aria-hidden="true" />
                 </button>
@@ -516,7 +462,7 @@ export function GlobalModelControls({
                 }}
               >
                 {profile.name}
-                {profile.id === activeId ? (
+                {profile.id === activeProfile?.id ? (
                   <Check className={styles.profileCheck} size={14} aria-hidden="true" />
                 ) : null}
               </button>
@@ -538,7 +484,7 @@ export function GlobalModelControls({
                   type="button"
                   disabled={!storageReady}
                   onClick={() => {
-                    remove();
+                    removeProfile();
                     menuRef.current?.hidePopover();
                   }}
                 >

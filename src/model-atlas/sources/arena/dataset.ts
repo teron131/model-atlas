@@ -57,7 +57,7 @@ export async function fetchArenaDataset(config: "agent" | "webdev") {
       offset: String(rows.length),
       length: String(PAGE_SIZE),
     }).toString();
-    const page = await fetchSource(url, {}, 30_000, async (response) => {
+    const page = await fetchSource(url, {}, async (response) => {
       if (!response.ok) throw new Error(`Arena ${config} dataset failed: ${response.status}`);
       return asRecord(await response.json());
     });

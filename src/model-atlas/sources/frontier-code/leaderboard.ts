@@ -5,7 +5,11 @@
  * JSON source: https://cognition.com/data/frontier-code-2.0/data.json
  */
 
-import { canonicalReasoningEffort, reasoningEffortRank } from "../../identity/normalization";
+import {
+  canonicalReasoningEffort,
+  modelEffortLabel,
+  reasoningEffortRank,
+} from "../../identity/normalization";
 import { asFiniteNumber, asRecord, nowEpochSeconds } from "../../runtime";
 import { fetchSource } from "../request-scheduler";
 
@@ -15,8 +19,6 @@ const FRONTIER_CODE_DATA_URL = "https://cognition.com/data/frontier-code-2.0/dat
 const FRONTIER_CODE_REVISION = "v2_0";
 
 export const FRONTIER_CODE_LEADERBOARD_URL = "https://cognition.com/frontiercode";
-
-const DEFAULT_TIMEOUT_MS = 30_000;
 
 const EXPECTED_MAIN_TASK_COUNT = 132;
 
@@ -47,8 +49,6 @@ export type FrontierCodeModelEffortRow = {
   tokens_per_task: number | null;
 };
 
-export type FrontierCodeRowsByModelName = Map<string, FrontierCodeModelEffortRow>;
-
 type FrontierCodePayload = {
   fetched_at_epoch_seconds: number | null;
   data: FrontierCodeModelEffortRow[];
@@ -61,7 +61,7 @@ type ParsedEffortRow = Omit<
 
 /** Fetch Cognition's versioned structured artifact rather than scraping the rendered leaderboard. */
 export async function getFrontierCodeStats(): Promise<FrontierCodePayload> {
-  return fetchSource(FRONTIER_CODE_DATA_URL, {}, DEFAULT_TIMEOUT_MS, async (response) => {
+  return fetchSource(FRONTIER_CODE_DATA_URL, {}, async (response) => {
     if (!response.ok) {
       throw new Error(`FrontierCode scrape failed: ${response.status}`);
     }
@@ -170,7 +170,7 @@ function processEffortRow(
   }
   const reasoningEffort = frontierCodeReasoningEffort(sourceEffort);
   return {
-    model: reasoningEffort == null ? baseModel : `${baseModel} (${reasoningEffort})`,
+    model: modelEffortLabel(baseModel, reasoningEffort),
     base_model: baseModel,
     source_effort: sourceEffort,
     reasoning_effort: reasoningEffort,

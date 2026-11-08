@@ -1,63 +1,86 @@
 /** Relational writers persist final models, benchmark scores, and task metrics without nested storage. */
 
 import { MODEL_ATLAS_BENCHMARK_KEYS } from "../../benchmarks/registry";
-import { asFiniteNumber, asRecord, type JsonObject } from "../../runtime";
+import { asRecord } from "../../runtime";
+import type { ModelAtlasModel } from "../../stats/types";
 import { type DatabaseWriter, firstString, sqliteBooleanValue, type SqlValue } from "./database";
 
-export function insertModels(db: DatabaseWriter, rows: readonly unknown[]): void {
-  const statement = db.prepare(`
-		INSERT INTO models (
-			row_index, model_id, provider_id, name,
-			reasoning_effort, logo,
-			reasoning, release_date,
-			open_weights, context, context_input, context_output,
-			input_modalities_json, output_modalities_json,
-			throughput_tokens_per_second_median, latency_seconds_median,
-			e2e_latency_seconds_median, cost_input, cost_output, cost_cache_read,
-			cost_cache_write, cost_weighted_input, cost_weighted_output, cost_weighted_cache_read,
-			cost_blended_price, cost_blended_price_long_sessions, cost_blended_price_short_tasks,
-			context_over_200k_input, context_over_200k_output,
-			context_over_200k_cache_read, context_over_200k_cache_write,
-			intelligence_index, omniscience_index, omniscience_accuracy,
-			component_intelligence_score, component_agentic_score,
-			intelligence_score, agentic_score,
-			speed_score,
-			value_score,
-			intelligence_confidence, agentic_confidence, speed_confidence, value_confidence,
-			latest_change_json
-		) VALUES (${Array.from({ length: 45 }, () => "?").join(", ")})
-	`);
-  for (const [index, row] of rows.entries()) {
-    const model = asRecord(row);
-    statement.run(
-      index,
-      ...modelIdentityValues(model),
-      ...modelContextValues(model),
-      ...modelSpeedAndCostValues(model),
-      ...modelIntelligenceValues(model),
-      ...modelScoreValues(model),
-    );
+const MODEL_COLUMNS = [
+  "row_index",
+  "model_id",
+  "provider_id",
+  "name",
+  "reasoning_effort",
+  "logo",
+  "reasoning",
+  "release_date",
+  "open_weights",
+  "context",
+  "context_input",
+  "context_output",
+  "input_modalities_json",
+  "output_modalities_json",
+  "throughput_tokens_per_second_median",
+  "latency_seconds_median",
+  "e2e_latency_seconds_median",
+  "cost_input",
+  "cost_output",
+  "cost_cache_read",
+  "cost_cache_write",
+  "cost_weighted_input",
+  "cost_weighted_output",
+  "cost_weighted_cache_read",
+  "cost_blended_price",
+  "cost_blended_price_long_sessions",
+  "cost_blended_price_short_tasks",
+  "context_over_200k_input",
+  "context_over_200k_output",
+  "context_over_200k_cache_read",
+  "context_over_200k_cache_write",
+  "intelligence_index",
+  "omniscience_index",
+  "omniscience_accuracy",
+  "component_intelligence_score",
+  "component_agentic_score",
+  "intelligence_score",
+  "agentic_score",
+  "speed_score",
+  "value_score",
+  "intelligence_confidence",
+  "agentic_confidence",
+  "speed_confidence",
+  "value_confidence",
+  "latest_change_json",
+] as const;
+
+export function insertModels(db: DatabaseWriter, models: readonly ModelAtlasModel[]): void {
+  const statement = db.prepare(
+    `INSERT INTO models (${MODEL_COLUMNS.join(", ")}) VALUES (${MODEL_COLUMNS.map(() => "?").join(", ")})`,
+  );
+  for (const [index, model] of models.entries()) {
+    const values = modelColumnValues(model, index);
+    statement.run(...MODEL_COLUMNS.map((column) => values[column]));
   }
 }
 
 /** Persists one scalar row per selected benchmark in deterministic portfolio order. */
-export function insertModelBenchmarks(db: DatabaseWriter, rows: readonly unknown[]): void {
+export function insertModelBenchmarks(
+  db: DatabaseWriter,
+  models: readonly ModelAtlasModel[],
+): void {
   const statement = db.prepare(`
 		INSERT INTO model_benchmarks (
 			model_row_index, benchmark_key, value, observed_at
 		) VALUES (?, ?, ?, ?)
 	`);
-  for (const [modelRowIndex, row] of rows.entries()) {
-    const model = asRecord(row);
-    const benchmarks = asRecord(model.benchmarks);
-    const benchmarkDates = asRecord(model.benchmark_dates);
+  for (const [modelRowIndex, model] of models.entries()) {
     for (const benchmarkKey of MODEL_ATLAS_BENCHMARK_KEYS) {
-      const value = asFiniteNumber(benchmarks[benchmarkKey]);
+      const value = model.benchmarks?.[benchmarkKey];
       if (value == null) {
         continue;
       }
       const observedAt = requiredObservationDate(
-        benchmarkDates[benchmarkKey],
+        model.benchmark_dates?.[benchmarkKey],
         `benchmark ${benchmarkKey}`,
       );
       statement.run(modelRowIndex, benchmarkKey, value, observedAt);
@@ -66,39 +89,36 @@ export function insertModelBenchmarks(db: DatabaseWriter, rows: readonly unknown
 }
 
 /** Persists one scalar resource row per task-metric source in deterministic key order. */
-export function insertModelTaskMetrics(db: DatabaseWriter, rows: readonly unknown[]): void {
+export function insertModelTaskMetrics(
+  db: DatabaseWriter,
+  models: readonly ModelAtlasModel[],
+): void {
   const statement = db.prepare(`
 		INSERT INTO model_task_metrics (
 			model_row_index, source_key, quality, cost, observed_cost, seconds, tokens,
 			input_tokens, output_tokens, observed_at, cost_price_ratio
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
-  for (const [modelRowIndex, row] of rows.entries()) {
-    const taskMetrics = asRecord(asRecord(row).task_metrics);
+  for (const [modelRowIndex, model] of models.entries()) {
+    const taskMetrics = model.task_metrics ?? {};
     for (const sourceKey of Object.keys(taskMetrics).sort()) {
-      const sourceMetrics = taskMetrics[sourceKey];
-      if (
-        sourceMetrics == null ||
-        typeof sourceMetrics !== "object" ||
-        Array.isArray(sourceMetrics)
-      ) {
+      const metrics = taskMetrics[sourceKey];
+      if (metrics == null) {
         continue;
       }
-      const metrics = asRecord(sourceMetrics);
       const observedAt = requiredObservationDate(metrics.observed_at, `task metric ${sourceKey}`);
       statement.run(
         modelRowIndex,
         sourceKey,
-        asFiniteNumber(metrics.quality),
-        asFiniteNumber(metrics.cost),
-        asFiniteNumber(metrics.observed_cost) ?? asFiniteNumber(metrics.cost),
-        asFiniteNumber(metrics.seconds),
-        asFiniteNumber(metrics.tokens),
-        asFiniteNumber(metrics.input_tokens),
-        asFiniteNumber(metrics.output_tokens),
+        metrics.quality ?? null,
+        metrics.cost ?? null,
+        metrics.observed_cost ?? metrics.cost ?? null,
+        metrics.seconds ?? null,
+        metrics.tokens ?? null,
+        metrics.input_tokens ?? null,
+        metrics.output_tokens ?? null,
         observedAt,
-        asFiniteNumber(metrics.cost_price_ratio) ??
-          (asFiniteNumber(metrics.cost) == null ? null : 1),
+        metrics.cost_price_ratio ?? (metrics.cost == null ? null : 1),
       );
     }
   }
@@ -126,160 +146,70 @@ export function insertBenchmarkVersionLog(db: DatabaseWriter, rows: readonly unk
   }
 }
 
-/** Appends one bounded summary for each refresh that reached publication. */
-export function insertRefreshRuns(db: DatabaseWriter, rows: readonly unknown[]): void {
-  const statement = db.prepare(`
-		INSERT OR IGNORE INTO refresh_runs (
-			refresh_id, previous_refresh_id, methodology_changed,
-			model_change_count, score_change_count
-		) VALUES (?, ?, ?, ?, ?)
-	`);
-  for (const row of rows) {
-    const refresh = asRecord(row);
-    statement.run(
-      asFiniteNumber(refresh.refresh_id),
-      asFiniteNumber(refresh.previous_refresh_id),
-      sqliteBooleanValue(refresh.methodology_changed),
-      asFiniteNumber(refresh.model_change_count),
-      asFiniteNumber(refresh.score_change_count),
-    );
-  }
-}
-
-/** Appends only material score dimensions together with their bounded cause and rank-alignment evidence. */
-export function insertModelScoreChanges(db: DatabaseWriter, rows: readonly unknown[]): void {
-  const statement = db.prepare(`
-		INSERT OR IGNORE INTO model_score_changes (
-			refresh_id, model_id, reasoning_effort, score_key,
-			score_before, score_after, score_delta, rank_before, rank_after,
-			confidence_before, confidence_after, causes_json, rank_drivers_json
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`);
-  for (const row of rows) {
-    const change = asRecord(row);
-    statement.run(
-      asFiniteNumber(change.refresh_id),
-      firstString(change, ["model_id"]),
-      typeof change.reasoning_effort === "string" ? change.reasoning_effort : "",
-      firstString(change, ["dimension"]),
-      asFiniteNumber(change.score_before),
-      asFiniteNumber(change.score_after),
-      asFiniteNumber(change.score_delta),
-      asFiniteNumber(change.rank_before),
-      asFiniteNumber(change.rank_after),
-      asFiniteNumber(change.confidence_before),
-      asFiniteNumber(change.confidence_after),
-      JSON.stringify(Array.isArray(change.causes) ? change.causes : []),
-      JSON.stringify(Array.isArray(change.rank_drivers) ? change.rank_drivers : []),
-    );
-  }
-}
-
-/** Appends each material update's entry kind and the variant's own changed inputs. */
-export function insertModelChangeDetails(db: DatabaseWriter, rows: readonly unknown[]): void {
-  const statement = db.prepare(`
-		INSERT OR IGNORE INTO model_change_details (
-			refresh_id, model_id, reasoning_effort, entry, inputs_json
-		) VALUES (?, ?, ?, ?, ?)
-	`);
-  for (const row of rows) {
-    const detail = asRecord(row);
-    statement.run(
-      asFiniteNumber(detail.refresh_id),
-      firstString(detail, ["model_id"]),
-      typeof detail.reasoning_effort === "string" ? detail.reasoning_effort : "",
-      firstString(detail, ["entry"]),
-      JSON.stringify(Array.isArray(detail.inputs) ? detail.inputs : []),
-    );
-  }
-}
-
-function modelIdentityValues(model: JsonObject): SqlValue[] {
-  const modelId = firstString(model, ["id"]);
-  return [
-    modelId,
-    firstString(model, ["provider"]) ?? modelId?.split("/")[0] ?? null,
-    firstString(model, ["name"]),
-    firstString(model, ["reasoning_effort"]),
-    firstString(model, ["logo"]),
-    sqliteBooleanValue(model.reasoning),
-    firstString(model, ["release_date"]),
-    sqliteBooleanValue(model.open_weights),
-  ];
-}
-
-function modelContextValues(model: JsonObject): SqlValue[] {
-  const context = asRecord(model.context_window);
-  const modalities = asRecord(model.modalities);
-  return [
-    asFiniteNumber(context.context),
-    asFiniteNumber(context.input),
-    asFiniteNumber(context.output),
-    modalitiesJson(modalities.input),
-    modalitiesJson(modalities.output),
-  ];
+/** Empty identity strings are stored as missing, as the reader expects. */
+function modelColumnValues(
+  model: ModelAtlasModel,
+  rowIndex: number,
+): Record<(typeof MODEL_COLUMNS)[number], SqlValue> {
+  const modelId = model.id || null;
+  const { context_window: context, speed, cost, intelligence, scores, confidence } = model;
+  const contextOver200k = cost?.context_over_200k;
+  return {
+    row_index: rowIndex,
+    model_id: modelId,
+    provider_id: model.provider || (modelId?.split("/")[0] ?? null),
+    name: model.name || null,
+    reasoning_effort: model.reasoning_effort || null,
+    logo: model.logo || null,
+    reasoning: sqliteBooleanValue(model.reasoning),
+    release_date: model.release_date || null,
+    open_weights: sqliteBooleanValue(model.open_weights),
+    context: context?.context ?? null,
+    context_input: context?.input ?? null,
+    context_output: context?.output ?? null,
+    input_modalities_json: modalitiesJson(model.modalities?.input),
+    output_modalities_json: modalitiesJson(model.modalities?.output),
+    throughput_tokens_per_second_median: speed.throughput_tokens_per_second_median,
+    latency_seconds_median: speed.latency_seconds_median,
+    e2e_latency_seconds_median: speed.e2e_latency_seconds_median,
+    cost_input: cost?.input ?? null,
+    cost_output: cost?.output ?? null,
+    cost_cache_read: cost?.cache_read ?? null,
+    cost_cache_write: cost?.cache_write ?? null,
+    cost_weighted_input: cost?.weighted_input ?? null,
+    cost_weighted_output: cost?.weighted_output ?? null,
+    cost_weighted_cache_read: cost?.weighted_cache_read ?? null,
+    cost_blended_price: cost?.blended_price ?? null,
+    cost_blended_price_long_sessions: cost?.blended_price_long_sessions ?? null,
+    cost_blended_price_short_tasks: cost?.blended_price_short_tasks ?? null,
+    context_over_200k_input: contextOver200k?.input ?? null,
+    context_over_200k_output: contextOver200k?.output ?? null,
+    context_over_200k_cache_read: contextOver200k?.cache_read ?? null,
+    context_over_200k_cache_write: contextOver200k?.cache_write ?? null,
+    intelligence_index: intelligence?.intelligence_index ?? null,
+    omniscience_index: intelligence?.omniscience_index ?? null,
+    omniscience_accuracy: intelligence?.omniscience_accuracy ?? null,
+    component_intelligence_score: model.component_scores.intelligence_score,
+    component_agentic_score: model.component_scores.agentic_score,
+    intelligence_score: scores.intelligence_score,
+    agentic_score: scores.agentic_score,
+    speed_score: scores.speed_score,
+    value_score: scores.value_score,
+    intelligence_confidence: confidence.intelligence,
+    agentic_confidence: confidence.agentic,
+    speed_confidence: confidence.speed,
+    value_confidence: confidence.value,
+    latest_change_json: model.latest_change == null ? null : JSON.stringify(model.latest_change),
+  };
 }
 
 /** Store a modality list verbatim, because the processed models mix source vocabularies such as `audio`, `speech`, and `pdf`. */
-function modalitiesJson(values: unknown): string | null {
-  return Array.isArray(values) && values.length > 0 ? JSON.stringify(values) : null;
+function modalitiesJson(values: readonly string[] | undefined): string | null {
+  return values != null && values.length > 0 ? JSON.stringify(values) : null;
 }
 
-function modelSpeedAndCostValues(model: JsonObject): SqlValue[] {
-  const speed = asRecord(model.speed);
-  const cost = asRecord(model.cost);
-  const contextOver200k = asRecord(cost.context_over_200k);
-  return [
-    asFiniteNumber(speed.throughput_tokens_per_second_median),
-    asFiniteNumber(speed.latency_seconds_median),
-    asFiniteNumber(speed.e2e_latency_seconds_median),
-    asFiniteNumber(cost.input),
-    asFiniteNumber(cost.output),
-    asFiniteNumber(cost.cache_read),
-    asFiniteNumber(cost.cache_write),
-    asFiniteNumber(cost.weighted_input),
-    asFiniteNumber(cost.weighted_output),
-    asFiniteNumber(cost.weighted_cache_read),
-    asFiniteNumber(cost.blended_price),
-    asFiniteNumber(cost.blended_price_long_sessions),
-    asFiniteNumber(cost.blended_price_short_tasks),
-    asFiniteNumber(contextOver200k.input),
-    asFiniteNumber(contextOver200k.output),
-    asFiniteNumber(contextOver200k.cache_read),
-    asFiniteNumber(contextOver200k.cache_write),
-  ];
-}
-
-function modelIntelligenceValues(model: JsonObject): SqlValue[] {
-  const intelligence = asRecord(model.intelligence);
-  return [
-    asFiniteNumber(intelligence.intelligence_index),
-    asFiniteNumber(intelligence.omniscience_index),
-    asFiniteNumber(intelligence.omniscience_accuracy),
-  ];
-}
-
-function modelScoreValues(model: JsonObject): SqlValue[] {
-  const componentScores = asRecord(model.component_scores);
-  const scores = asRecord(model.scores);
-  const confidence = asRecord(model.confidence);
-  return [
-    asFiniteNumber(componentScores.intelligence_score),
-    asFiniteNumber(componentScores.agentic_score),
-    asFiniteNumber(scores.intelligence_score),
-    asFiniteNumber(scores.agentic_score),
-    asFiniteNumber(scores.speed_score),
-    asFiniteNumber(scores.value_score),
-    asFiniteNumber(confidence.intelligence),
-    asFiniteNumber(confidence.agentic),
-    asFiniteNumber(confidence.speed),
-    asFiniteNumber(confidence.value),
-    model.latest_change == null ? null : JSON.stringify(model.latest_change),
-  ];
-}
-
-function requiredObservationDate(value: unknown, label: string): string {
-  if (typeof value === "string" && value.length > 0) {
+function requiredObservationDate(value: string | null | undefined, label: string): string {
+  if (value != null && value.length > 0) {
     return value;
   }
   throw new Error(`Missing observation date for ${label}`);

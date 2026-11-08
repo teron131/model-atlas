@@ -1,42 +1,35 @@
-/** ALE-Bench runtime owns raw-cache reconstruction, snapshot refresh, and raw-row serialization. */
+/** ALE-Bench runtime owns raw-cache reconstruction, snapshot refresh, raw-row serialization, and its source-data lookup. */
 
-import { SNAPSHOT_TABLES } from "../../database/tables";
 import type { DatabaseWriter } from "../../database/writers/database";
-import { parseSlugEffort } from "../../identity/normalization";
+import { buildBenchmarkModelMap, parseSlugEffort } from "../../identity/normalization";
 import { asFiniteNumber, asNonEmptyString } from "../../runtime";
 import { type BenchmarkSnapshotContext, defineBenchmarkRuntime } from "../benchmark-runtime";
 import { type CacheRowSource, firstFetchedAt, jsonValue, sourceCacheRows } from "../cache/rows";
 import { ALE_BENCH_EPOCH_RESULTS_URL, type AleBenchEpochRow } from "../epoch/ale-bench";
 import { sourceRowKey } from "../snapshots/policy";
 import { snapshotSourceRows } from "../snapshots/row-snapshot";
-import type {
-  RawSourceCacheStatus,
-  SourceRefreshOptions,
-  SourceSnapshots,
-  SourceSnapshotStatus,
-} from "../types";
+import type { RawSourceCacheStatus, SourceRefreshOptions, SourceSnapshotStatus } from "../types";
 import {
   ALE_BENCH_LEADERBOARD_URL,
   type AleBenchSourceRow,
   getAleBenchStats,
   processAleBenchConfigurationRow,
+  summarizeAleBenchSourceDefaultRows,
 } from "./leaderboard";
 
 type AleBenchSnapshot = {
-  aleBenchConfigurationRows: AleBenchSourceRow[];
+  rows: AleBenchSourceRow[];
   sourceStatus: SourceSnapshotStatus;
 };
 
 export const aleBenchRuntime = defineBenchmarkRuntime({
-  cacheKey: "aleBench",
   source: "ale_bench",
-  table: SNAPSHOT_TABLES.ale_bench,
+  key: "aleBench",
+  fetchRows: async () => (await getAleBenchStats()).data,
   readCache: readAleBenchRawCache,
   snapshot: aleBenchSnapshot,
   write: insertAleBenchRawRows,
-  sourceRowsKey: "aleBenchConfigurationRows",
-  fetchSourceRows: async () => (await getAleBenchStats()).data,
-  sourceRowsFromSnapshots: (snapshots) => snapshots.aleBenchConfigurationRows,
+  sourceData: aleBenchSourceData,
 });
 
 /** Reconstruct every ALE-Bench refinement configuration without accepting a partial raw cache. */
@@ -103,13 +96,19 @@ async function aleBenchSnapshot(
     seriesOf: (row) => ("epoch" in row ? "epoch" : "sakana"),
   });
   return {
-    aleBenchConfigurationRows: snapshot.rows,
+    rows: snapshot.rows,
     sourceStatus: context.sourceStatus(snapshot),
   };
 }
 
+/** Every refinement checkpoint stays as evidence, while matching reads only the source-default rows. */
+function aleBenchSourceData(rows: AleBenchSourceRow[]) {
+  const sourceDefaultRows = summarizeAleBenchSourceDefaultRows(rows);
+  return { rows, sourceDefaultRows, rowsByModelName: buildBenchmarkModelMap(sourceDefaultRows) };
+}
+
 /** Insert every ALE-Bench refinement checkpoint with scalar scoring resources and complete raw evidence. */
-function insertAleBenchRawRows(db: DatabaseWriter, snapshots: SourceSnapshots): void {
+function insertAleBenchRawRows(db: DatabaseWriter, snapshot: AleBenchSnapshot): void {
   const statement = db.prepare(`
 		INSERT INTO ale_bench_raw_rows (
 			row_index, fetched_at_epoch_seconds, url, model, base_model,
@@ -120,12 +119,12 @@ function insertAleBenchRawRows(db: DatabaseWriter, snapshots: SourceSnapshots): 
 			total_tokens_json, cost_json, results_json, epoch_json
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
-  for (const [index, row] of snapshots.aleBenchConfigurationRows.entries()) {
+  for (const [index, row] of snapshot.rows.entries()) {
     const parsedModel = parseSlugEffort(row.model);
     if ("epoch" in row) {
       statement.run(
         index,
-        snapshots.fetchedAt.aleBench,
+        snapshot.sourceStatus.fetchedAt,
         ALE_BENCH_EPOCH_RESULTS_URL,
         row.model,
         parsedModel.baseModel,
@@ -151,7 +150,7 @@ function insertAleBenchRawRows(db: DatabaseWriter, snapshots: SourceSnapshots): 
     }
     statement.run(
       index,
-      snapshots.fetchedAt.aleBench,
+      snapshot.sourceStatus.fetchedAt,
       ALE_BENCH_LEADERBOARD_URL,
       row.model,
       parsedModel.baseModel,

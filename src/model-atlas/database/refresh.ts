@@ -17,7 +17,7 @@ import type {
 import type { ModelAtlasPayload } from "../stats/types";
 import { archiveCheckpoint } from "./archive";
 import { readCapabilityState, writeCapabilityState } from "./capability-state";
-import { deriveDatabaseSnapshot, writeCheckpoint } from "./checkpoint";
+import { deriveDatabaseSnapshot, readScoringMethodology, writeCheckpoint } from "./checkpoint";
 import { DEFAULT_DATABASE_PATH, openDatabase, removeDatabaseFiles } from "./schema";
 import { sqlStringLiteral } from "./schema-reconciliation";
 import { readDatabasePayload } from "./sqlite-payload";
@@ -62,6 +62,7 @@ export async function refreshDatabase(
         ),
       {
         previousPayload,
+        previousScoringMethodology: readScoringMethodology(db),
         previousRefreshId: latestRefreshId(db),
         capabilityState: capabilityState ?? undefined,
         replaceSourceRows: options.replaceSourceRows,

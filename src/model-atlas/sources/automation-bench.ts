@@ -13,8 +13,6 @@ import { nowEpochSeconds } from "../runtime";
 import { htmlAttribute, percentToUnitScore } from "./parsing";
 import { fetchSource } from "./request-scheduler";
 
-const DEFAULT_TIMEOUT_MS = 30_000;
-
 const LEADERBOARD_ROW_PATTERN =
   /\[(\d+),`([^`]*)`,`([0-9]+(?:\.[0-9]+)?)%`,`(\$[0-9]+(?:\.[0-9]+)?[^`]*)`\]/g;
 
@@ -24,7 +22,7 @@ const VERSION_PATTERN = /\b\w+=`(\d+\.\d+\.\d+)`,\w+=\[\[/;
 export async function getAutomationBenchStats(
   sourceUrl: string,
 ): Promise<BenchmarkObservationPayload> {
-  const pageHtml = await fetchSource(sourceUrl, {}, DEFAULT_TIMEOUT_MS, async (response) => {
+  const pageHtml = await fetchSource(sourceUrl, {}, async (response) => {
     if (!response.ok) throw new Error(`Zapier AutomationBench scrape failed: ${response.status}`);
     return response.text();
   });
@@ -91,9 +89,9 @@ export function automationBenchCacheMatches(rows: readonly BenchmarkObservationR
 async function fetchLeaderboardModule(pageHtml: string): Promise<string | null> {
   const modules = await Promise.all(
     modulePreloadUrls(pageHtml).map((url) =>
-      fetchSource(url, {}, DEFAULT_TIMEOUT_MS, async (response) =>
-        response.ok ? response.text() : "",
-      ).catch(() => ""),
+      fetchSource(url, {}, async (response) => (response.ok ? response.text() : "")).catch(
+        () => "",
+      ),
     ),
   );
   return modules.find((source) => source.includes("task_completed_correctly")) ?? null;

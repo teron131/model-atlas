@@ -125,3 +125,29 @@ for (const filters of [
     [],
   );
 }
+
+// A family the dashboard never shows cannot take a Top-N slot from one it does.
+const rankedModels = Array.from({ length: 31 }, (_, index) => ({
+  ...minimalModelAtlasModel({ id: `openai/gpt-${index}`, name: `GPT-${index}` }),
+  provider: "OpenAI",
+  scores: {
+    intelligence_score: 50 - index,
+    agentic_score: 50,
+    speed_score: null,
+    value_score: null,
+  },
+}));
+const hiddenModel = {
+  ...minimalModelAtlasModel({ id: "openai/gpt-6-pro", name: "GPT-6 Pro" }),
+  provider: "OpenAI",
+  scores: { intelligence_score: 99, agentic_score: 99, speed_score: null, value_score: null },
+};
+assert.deepEqual(
+  filterByGlobalModelFilters(
+    rankedModels,
+    (model) => model,
+    { ...DEFAULT_GLOBAL_MODEL_FILTERS, rank: 30 },
+    { observedAtEpochSeconds: null, rankingModels: [hiddenModel, ...rankedModels] },
+  ),
+  rankedModels.slice(0, 30),
+);
