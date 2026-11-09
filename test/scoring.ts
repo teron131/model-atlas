@@ -238,7 +238,7 @@ assert.deepEqual(
   ),
   {
     biomysterybench: {
-      group: "frontier",
+      group: "baseline",
       benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
     },
@@ -249,7 +249,7 @@ assert.deepEqual(
       dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
     },
     emb: {
-      group: "frontier",
+      group: "baseline",
       version: "1.1",
       benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },

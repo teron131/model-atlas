@@ -61,11 +61,12 @@ export function epochBenchmarkObservationRows(
     const scoreRow = epochRunScoreRow(row, benchmarkKey);
     return scoreRow == null ? [] : [scoreRow];
   });
-  if (eligibility.latestTaskVersion !== true) return scoreRows;
-  const version = newestTaskVersion(scoreRows);
+  const granularity = eligibility.latestTaskVersion;
+  if (granularity == null) return scoreRows;
+  const version = newestTaskVersion(scoreRows, granularity);
   if (version == null) return [];
   return scoreRows
-    .filter((row) => majorMinorVersion(row.metadata.task_version)?.label === version)
+    .filter((row) => taskVersion(row.metadata.task_version, granularity)?.label === version)
     .map((row) => ({ ...row, metadata: { ...row.metadata, benchmark_version: version } }));
 }
 
@@ -77,7 +78,8 @@ export function epochBenchmarkCacheMatches(
 ): boolean {
   const excludedModelIds = new Set(eligibility.excludedModelIds ?? []);
   return (
-    (eligibility.latestTaskVersion !== true || holdsOneTaskVersion(rows)) &&
+    (eligibility.latestTaskVersion == null ||
+      holdsOneTaskVersion(rows, eligibility.latestTaskVersion)) &&
     rows.every(
       (row) =>
         row.metadata.task === task &&
@@ -152,21 +154,28 @@ async function requestEpochBenchmarkRows(): Promise<EpochBenchmarkRowsPayload> {
   });
 }
 
-/** The major.minor version of a task version; patch revisions within it stay comparable. */
-function majorMinorVersion(
+type TaskVersionGranularity = NonNullable<EpochRunEligibility["latestTaskVersion"]>;
+
+/** The version label a task version pools under; at `major` granularity `minor` is always 0, so ordering compares majors only. */
+function taskVersion(
   version: unknown,
+  granularity: TaskVersionGranularity,
 ): { label: string; major: number; minor: number } | null {
   const match = typeof version === "string" ? /^(\d+)\.(\d+)(?:\.\d+)?$/.exec(version) : null;
   if (match == null) return null;
   const major = Number(match[1]);
+  if (granularity === "major") return { label: `${major}`, major, minor: 0 };
   const minor = Number(match[2]);
   return { label: `${major}.${minor}`, major, minor };
 }
 
-function newestTaskVersion(rows: readonly BenchmarkObservationRow[]): string | null {
-  let newest: ReturnType<typeof majorMinorVersion> = null;
+function newestTaskVersion(
+  rows: readonly BenchmarkObservationRow[],
+  granularity: TaskVersionGranularity,
+): string | null {
+  let newest: ReturnType<typeof taskVersion> = null;
   for (const row of rows) {
-    const version = majorMinorVersion(row.metadata.task_version);
+    const version = taskVersion(row.metadata.task_version, granularity);
     if (
       version != null &&
       (newest == null ||
@@ -179,12 +188,16 @@ function newestTaskVersion(rows: readonly BenchmarkObservationRow[]): string | n
 }
 
 /** Every row carries the same version label, and that label matches the row's own task version. */
-function holdsOneTaskVersion(rows: readonly BenchmarkObservationRow[]): boolean {
+function holdsOneTaskVersion(
+  rows: readonly BenchmarkObservationRow[],
+  granularity: TaskVersionGranularity,
+): boolean {
   const [version, ...others] = new Set(rows.map((row) => row.metadata.benchmark_version));
   return (
     others.length === 0 &&
     rows.every(
-      (row) => version != null && majorMinorVersion(row.metadata.task_version)?.label === version,
+      (row) =>
+        version != null && taskVersion(row.metadata.task_version, granularity)?.label === version,
     )
   );
 }

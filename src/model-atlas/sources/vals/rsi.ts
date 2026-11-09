@@ -11,7 +11,7 @@ import type {
   BenchmarkObservationRow,
 } from "../../benchmarks/observation";
 import { canonicalReasoningEffort, modelEffortLabel } from "../../identity/normalization";
-import { nowEpochSeconds } from "../../runtime";
+import { asFiniteNumber, asNonEmptyString, asRecord, nowEpochSeconds } from "../../runtime";
 import { findObjectEnd, htmlAttribute, percentToUnitScore } from "../parsing";
 import { fetchSource } from "../request-scheduler";
 
@@ -28,13 +28,13 @@ const RSI_TASKS = [
 export async function getValsRsiStats(sourceUrl: string): Promise<BenchmarkObservationPayload> {
   const page = await fetchText(sourceUrl);
   const islandTag = page.match(
-    /<astro-island\b(?=[^>]*component-url="\/_astro\/RsiBenchmarkView\.[^"]+\.js")[^>]*>/,
+    /<astro-island\b(?=[^>]*component-url="\/_astro\/RsiBenchmarkView\.[^"?]+\.js(?:\?[^"]*)?")[^>]*>/,
   )?.[0];
   const componentUrl = islandTag == null ? null : htmlAttribute(islandTag, "component-url");
   if (componentUrl == null) return { fetched_at_epoch_seconds: null, data: [] };
   const component = await fetchText(new URL(componentUrl, sourceUrl).href);
   const dataModulePath = component.match(
-    /"\.\/(benchmark_view_rsi_index\.[A-Za-z0-9_-]+\.js)"/,
+    /["'`]\.\/(benchmark_view_rsi_index\.[A-Za-z0-9_-]+\.js(?:\?[^"'`]*)?)["'`]/,
   )?.[1];
   if (dataModulePath == null) return { fetched_at_epoch_seconds: null, data: [] };
   const moduleSource = await fetchText(
@@ -44,13 +44,13 @@ export async function getValsRsiStats(sourceUrl: string): Promise<BenchmarkObser
   return { fetched_at_epoch_seconds: data.length > 0 ? nowEpochSeconds() : null, data };
 }
 
-/** Extract declarative leaderboard literals without executing the publisher's JavaScript. Reject the whole refresh unless a declared version, the four-task composition, model counts, and harness assignments form one complete cohort. */
+/** Read the metadata literal and the task results the module passes to `JSON.parse`, without executing the publisher's JavaScript. Reject the whole refresh unless a declared version, the four-task composition, model counts, and harness assignments form one complete cohort. */
 export function processValsRsiModule(
   moduleSource: string,
   componentSource: string,
   sourceUrl: string,
 ): BenchmarkObservationRow[] {
-  const metadataStart = moduleSource.indexOf('{benchmark:"Vals RSI Index"');
+  const metadataStart = moduleSource.search(/\{benchmark:["`]Vals RSI Index["`]/);
   if (metadataStart < 0) return [];
   const metadataEnd = findObjectEnd(moduleSource, metadataStart);
   if (metadataEnd < 0) return [];
@@ -59,7 +59,7 @@ export function processValsRsiModule(
   const updated = stringField(metadata, "updated");
   const modelCount = numberField(metadata, "total_models");
   if (
-    !metadata.includes('benchmark_id:"rsi_index"') ||
+    stringField(metadata, "benchmark_id") !== "rsi_index" ||
     version == null ||
     !hasCurrentTaskComposition(metadata) ||
     updated == null ||
@@ -70,9 +70,10 @@ export function processValsRsiModule(
     return [];
 
   const harnesses = harnessMap(componentSource);
-  if (harnesses == null) return [];
+  const results = taskResults(moduleSource.slice(metadataEnd + 1));
+  if (harnesses == null || results == null) return [];
   const rows = RSI_TASKS.flatMap((task) => {
-    const taskRows = taskObservations(moduleSource, task, version, updated, harnesses, sourceUrl);
+    const taskRows = taskObservations(results[task], task, version, updated, harnesses, sourceUrl);
     return taskRows.length === modelCount ? taskRows : [];
   });
   return rows.length === RSI_TASKS.length * modelCount ? rows : [];
@@ -105,12 +106,16 @@ async function fetchText(url: string): Promise<string> {
 
 /** Read the component's model-to-agent mapping so each score remains attributable to its disclosed scaffold. Accept only a string map containing both Claude Code and Codex to avoid mistaking another source literal for harness evidence. */
 function harnessMap(componentSource: string): Record<string, string> | null {
-  for (const match of componentSource.matchAll(/=\{"[^"]+":"Claude Code"/g)) {
+  for (const match of componentSource.matchAll(/=\{"[^"]+":["`]Claude Code["`]/g)) {
     const start = (match.index ?? 0) + 1;
     const end = findObjectEnd(componentSource, start);
     if (end < 0) continue;
     try {
-      const value: unknown = JSON.parse(componentSource.slice(start, end + 1));
+      const value: unknown = JSON.parse(
+        componentSource
+          .slice(start, end + 1)
+          .replace(/`([^`\\]*)`/g, (_, text: string) => JSON.stringify(text)),
+      );
       if (
         value != null &&
         typeof value === "object" &&
@@ -127,37 +132,35 @@ function harnessMap(componentSource: string): Record<string, string> | null {
   return null;
 }
 
+/** The task results are a JSON document inside the first template literal passed to `JSON.parse` after the metadata; the template's own escapes are undone before parsing. */
+function taskResults(moduleSource: string): Record<string, unknown> | null {
+  const template = moduleSource.match(/JSON\.parse\(`((?:\\[\s\S]|[^`\\])*)`\)/)?.[1];
+  if (template == null) return null;
+  try {
+    return asRecord(JSON.parse(template.replace(/\\([\\`$])/g, "$1")));
+  } catch {
+    return null;
+  }
+}
+
 /** Convert one task's results into model-plus-agent observations. The overall task remains scoring evidence, while the four subtasks are marked diagnostic and the caller rejects an incomplete task cohort. */
 function taskObservations(
-  moduleSource: string,
+  taskResult: unknown,
   task: (typeof RSI_TASKS)[number],
   version: string,
   updated: string,
   harnesses: Readonly<Record<string, string>>,
   sourceUrl: string,
 ): BenchmarkObservationRow[] {
-  const taskPattern = new RegExp(`(?:\\{|,)${task}:\\{(?="[^"]+":\\{)`);
-  const taskStart = taskPattern.exec(moduleSource);
-  if (taskStart == null) return [];
-  const start = taskStart.index + taskStart[0].lastIndexOf("{");
-  const end = findObjectEnd(moduleSource, start);
-  if (end < 0) return [];
-  const taskBlock = moduleSource.slice(start, end + 1);
-  const rows = [...taskBlock.matchAll(/"([^"]+)":\{/g)].flatMap((match) => {
-    const modelId = match[1];
-    if (modelId == null) return [];
-    const rowStart = (match.index ?? 0) + match[0].lastIndexOf("{");
-    const rowEnd = findObjectEnd(taskBlock, rowStart);
-    if (rowEnd < 0) return [];
-    const sourceRow = taskBlock.slice(rowStart, rowEnd + 1);
-    const accuracy = numberField(sourceRow, "accuracy");
-    const score = percentToUnitScore(accuracy);
-    const provider = stringField(sourceRow, "provider");
+  const rows = Object.entries(asRecord(taskResult)).flatMap(([modelId, value]) => {
+    const sourceRow = asRecord(value);
+    const score = percentToUnitScore(asFiniteNumber(sourceRow.accuracy));
+    const provider = asNonEmptyString(sourceRow.provider);
     const harness = harnesses[modelId];
     if (score == null || provider == null || harness == null) return [];
     const baseModel = modelId.split("/").at(-1) ?? modelId;
     const reasoningEffort = canonicalReasoningEffort(
-      stringField(sourceRow, "reasoning_effort") ?? stringField(sourceRow, "compute_effort"),
+      asNonEmptyString(sourceRow.reasoning_effort) ?? asNonEmptyString(sourceRow.compute_effort),
     );
     const metadata: BenchmarkObservationMetadata = {
       task,
@@ -198,14 +201,14 @@ function hasCurrentTaskComposition(metadata: string): boolean {
   const start = fieldStart + "tasks:".length;
   const end = findObjectEnd(metadata, start);
   if (end < 0) return false;
-  const tasks = [...metadata.slice(start, end + 1).matchAll(/(?:^|[,{])([a-z_]+):"/g)].map(
+  const tasks = [...metadata.slice(start, end + 1).matchAll(/(?:^|[,{])([a-z_]+):["`]/g)].map(
     (match) => match[1],
   );
   return tasks.length === RSI_TASKS.length && RSI_TASKS.every((task) => tasks.includes(task));
 }
 
 function stringField(value: string, key: string): string | null {
-  return value.match(new RegExp(`(?:^|[,{])${key}:"([^"]+)"`))?.[1] ?? null;
+  return value.match(new RegExp(`(?:^|[,{])${key}:["\`]([^"\`]+)["\`]`))?.[1] ?? null;
 }
 
 function numberField(value: string, key: string): number | null {

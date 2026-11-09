@@ -149,7 +149,7 @@ const frontierMath = epochBenchmarkObservationRows(
   epochRuns,
   "frontiermath_tier_4",
   "FrontierMath-Tier-4-v2-Private",
-  { latestTaskVersion: true },
+  { latestTaskVersion: "minor" },
 );
 assert.equal(frontierMath.length, 2);
 assert.equal(frontierMath[0]?.canonical_value, 0.561);
@@ -191,7 +191,7 @@ const selectedEpochRuns = parseCsvRecords(
     "simple-prior,SimpleQA Verified,2026-08-01,Success,1.1.0,claude-opus-5,Claude Opus 5,Claude Opus 5,Anthropic,0.6,SimpleQA Verified (anti-abstention)\n",
 );
 const simpleQaEligibility = {
-  latestTaskVersion: true,
+  latestTaskVersion: "minor",
   originalTaskName: "SimpleQA Verified (anti-abstention)",
   excludedModelIds: ["qwen3-max-2025-09-23"],
 } as const;
@@ -677,14 +677,22 @@ for (const binding of BENCHMARK_OBSERVATION_BINDINGS) {
 }
 
 const rsiComponent =
-  'const h={"anthropic/claude-fable-5-1":"Claude Code","openai/gpt-6-astra":"Codex"};';
+  'const B={"anthropic/claude-fable-5-1":`Claude Code`,"openai/gpt-6-astra":`Codex`};';
 const rsiTasks = ["overall", "compression", "lm_training", "harness_engineering", "post_training"];
-const rsiModule = `const m={benchmark:"Vals RSI Index",benchmark_id:"rsi_index",version:"1.1",updated:"2026-10-01",tasks:{${rsiTasks.map((task) => `${task}:"${task}"`).join(",")}},total_models:2},t={${rsiTasks
-  .map(
-    (task) =>
-      `${task}:{"anthropic/claude-fable-5-1":{accuracy:35.03,compute_effort:"max",provider:"Anthropic"},"openai/gpt-6-astra":{accuracy:29.03,reasoning_effort:"max",provider:"OpenAI"}}`,
-  )
-  .join(",")}};`;
+const rsiResults = Object.fromEntries(
+  rsiTasks.map((task) => [
+    task,
+    {
+      "anthropic/claude-fable-5-1": {
+        accuracy: 35.03,
+        compute_effort: "max",
+        provider: "Anthropic",
+      },
+      "openai/gpt-6-astra": { accuracy: 29.03, reasoning_effort: "max", provider: "OpenAI" },
+    },
+  ]),
+);
+const rsiModule = `n={benchmark:\`Vals RSI Index\`,benchmark_id:\`rsi_index\`,version:\`1.1\`,updated:\`2026-10-01\`,tasks:{${rsiTasks.map((task) => `${task}:\`${task}\``).join(",")}},total_models:2},r=JSON.parse(\`${JSON.stringify(rsiResults)}\`);`;
 const rsiBinding = benchmarkObservationBinding("rsiBenchmark");
 assert.equal(rsiBinding.loader.kind, "vals_rsi");
 if (rsiBinding.loader.kind !== "vals_rsi") throw new Error("Expected Vals RSI loader");
@@ -714,7 +722,7 @@ assert.equal(
 );
 assert.deepEqual(
   processValsRsiModule(
-    rsiModule.replace("tasks:{", 'tasks:{parameter_golf:"Parameter Golf",'),
+    rsiModule.replace("tasks:{", "tasks:{parameter_golf:`Parameter Golf`,"),
     rsiComponent,
     rsiBinding.loader.sourceUrl,
   ),
@@ -722,7 +730,7 @@ assert.deepEqual(
   "A five-task publisher declaration cannot be relabelled as a four-task aggregate",
 );
 const rsiNextVersion = processValsRsiModule(
-  rsiModule.replace('version:"1.1"', 'version:"1.2"'),
+  rsiModule.replace("version:`1.1`", "version:`1.2`"),
   rsiComponent,
   rsiBinding.loader.sourceUrl,
 );
@@ -1130,7 +1138,7 @@ const chess = frontierMath.map((row) => ({
     ...row.metadata,
     task: "Chess Puzzles",
     task_version: "2.0.0",
-    benchmark_version: "2.0",
+    benchmark_version: "2",
   },
 }));
 const ebr = frontierMath.map((row) => ({
@@ -1144,10 +1152,14 @@ const handbook = surge.map((row) => ({
   source_url: "https://surgehq.ai/benchmarks/handbook",
   metadata: { ...row.metadata, declared_version: handbookVersion },
 }));
+const complexConstraintsLoader = benchmarkObservationBinding("complexConstraints").loader;
+if (complexConstraintsLoader.kind !== "surge" || !("version" in complexConstraintsLoader))
+  throw new Error("Expected a version-pinned Surge loader");
 const complexConstraints = surge.map((row) => ({
   ...row,
   benchmark_key: "complex_constraints",
   source_url: "https://surgehq.ai/benchmarks/complex-constraints",
+  metadata: { ...row.metadata, declared_version: complexConstraintsLoader.version },
 }));
 const snapshots = {
   ...Object.fromEntries(

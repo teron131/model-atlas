@@ -138,7 +138,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
     loader: {
       kind: "epoch_runs",
       task: "Chess Puzzles",
-      eligibility: { latestTaskVersion: true },
+      eligibility: { latestTaskVersion: "major" },
     },
     sourceDataKey: "chessPuzzles",
     sourceRowsKey: "chessPuzzleRows",
@@ -158,9 +158,11 @@ export const BENCHMARK_STANDARD_SOURCES = {
   complex_constraints: {
     group: "surge",
     id: "surge",
+    revision: "2026-11-02",
     loader: {
       kind: "surge",
       sourceUrl: "https://surgehq.ai/benchmarks/complex-constraints",
+      version: "2026-11-02",
     },
     sourceDataKey: "complexConstraints",
     sourceRowsKey: "complexConstraintsRows",
@@ -253,7 +255,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
     loader: {
       kind: "epoch_runs",
       task: "FrontierMath-Tier-4-v2-Private",
-      eligibility: { latestTaskVersion: true },
+      eligibility: { latestTaskVersion: "minor" },
     },
     sourceDataKey: "frontierMathTier4",
     sourceRowsKey: "frontierMathTier4Rows",
@@ -376,7 +378,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
       kind: "epoch_runs",
       task: "SimpleQA Verified",
       eligibility: {
-        latestTaskVersion: true,
+        latestTaskVersion: "minor",
         originalTaskName: "SimpleQA Verified (anti-abstention)",
         excludedModelIds: ["qwen3-max-2025-09-23"],
       },

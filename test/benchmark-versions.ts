@@ -13,6 +13,7 @@ const changedKeys = [
   "arc_agi_3",
   "chess_puzzles",
   "code_migration",
+  "complex_constraints",
   "critpt",
   "emb",
   "finance_agent_v2",

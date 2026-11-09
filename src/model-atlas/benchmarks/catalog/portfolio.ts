@@ -75,7 +75,7 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     dimensionLoadings: { intelligence: 0, agentic: 1 },
   },
   biomysterybench: {
-    group: "frontier",
+    group: "baseline",
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
   },
@@ -136,7 +136,7 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
   },
   emb: {
-    group: "frontier",
+    group: "baseline",
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
   },

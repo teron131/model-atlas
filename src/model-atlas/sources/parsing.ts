@@ -20,26 +20,26 @@ export function extractNextFlightCorpus(pageHtml: string): string {
     .join("\n");
 }
 
-/** Find one JSON object's closing brace without treating quoted braces as structure. */
+/** Find one JSON or JavaScript object literal's closing brace without treating braces inside double-quoted or template strings as structure. */
 export function findObjectEnd(value: string, startIndex: number): number {
   let depth = 0;
-  let inString = false;
+  let quote: string | null = null;
   let escaping = false;
 
   for (let index = startIndex; index < value.length; index += 1) {
     const char = value[index];
-    if (inString) {
+    if (quote != null) {
       if (escaping) {
         escaping = false;
       } else if (char === "\\") {
         escaping = true;
-      } else if (char === '"') {
-        inString = false;
+      } else if (char === quote) {
+        quote = null;
       }
       continue;
     }
-    if (char === '"') {
-      inString = true;
+    if (char === '"' || char === "`") {
+      quote = char;
       continue;
     }
     if (char === "{") {

@@ -1,4 +1,4 @@
-/** Epoch's newest task version replaces older versions in fresh observations and source caches, while pooling its patch revisions. */
+/** Epoch's newest task version replaces older versions in fresh observations and source caches, pooling its patch versions, and also its minor versions where the catalog declares them comparable. */
 
 import assert from "node:assert/strict";
 
@@ -93,8 +93,8 @@ const chess = epochBenchmarkObservationRows(
 assert.deepEqual(
   chess.map((row) => [row.metadata.task_version, row.metadata.benchmark_version]),
   [
-    ["2.0.0", "2.0"],
-    ["2.0.1", "2.0"],
+    ["2.0.0", "2"],
+    ["2.0.1", "2"],
   ],
 );
 assert.deepEqual(
@@ -104,8 +104,18 @@ assert.deepEqual(
     chessLoader.task,
     chessLoader.eligibility,
   ).map((row) => row.metadata.task_version),
-  ["2.1.0"],
-  "A newer task version replaces the pooled patch revisions of the previous one",
+  ["2.0.0", "2.0.1", "2.1.0"],
+  "A minor version the publisher scores comparably pools with the rest of its major version",
+);
+assert.deepEqual(
+  epochBenchmarkObservationRows(
+    [...chessRuns, { ...chessRuns[0]!, id_runs: "chess-3.0.0", "task version": "3.0.0" }],
+    "chess_puzzles",
+    chessLoader.task,
+    chessLoader.eligibility,
+  ).map((row) => row.metadata.task_version),
+  ["3.0.0"],
+  "A newer major version replaces the pooled versions of the previous one",
 );
 const chessRaw = rawRows.map((row, index) => ({
   ...row,
@@ -114,7 +124,7 @@ const chessRaw = rawRows.map((row, index) => ({
   metadata_json: JSON.stringify(chess[index]!.metadata),
 }));
 assert.equal(readBenchmarkObservationRawCache(chessRaw, chessBinding)?.rows.length, 2);
-for (const task_version of ["1.1.6", "2.1.0", null]) {
+for (const task_version of ["1.1.6", "3.0.0", null]) {
   const incompatible = {
     ...chessRaw[0]!,
     metadata_json: JSON.stringify({ ...chess[0]!.metadata, task_version }),
