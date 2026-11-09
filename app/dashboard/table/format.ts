@@ -2,6 +2,20 @@
 
 import type { DashboardMetricColumn, TaskMetricColumn } from "./models";
 
+// Refresh times are UTC epoch seconds; formatting in UTC keeps server and client renders identical.
+const refreshDates = {
+  long: new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  }),
+  short: new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }),
+};
+
+export const formatRefreshDate = (epochSeconds: number, length: "long" | "short" = "long") =>
+  refreshDates[length].format(epochSeconds * 1000);
+
 export const formatScore = (value: number | null | undefined) =>
   typeof value === "number" && Number.isFinite(value) ? value.toFixed(1) : "-";
 
@@ -87,6 +101,33 @@ function formatBenchmarkMetric(
   }
   const percent = benchmarkPercentValue(value) as number;
   return `${percent.toFixed(1)}%`;
+}
+
+/** A benchmark result in its source's units; a score column's cells rescale results to 0–100, so its source numbers, such as ratings, show as plain numbers. */
+export function formatBenchmarkSourceValue(
+  value: number,
+  format: "percent" | "score" | "number" | "currency" = "percent",
+): string {
+  return format === "score" ? formatSourceNumber(value) : formatBenchmarkMetric(value, format);
+}
+
+/** A gap between results of one benchmark, or their standard error, in its source's units. */
+export function formatBenchmarkSpread(
+  value: number,
+  format: "percent" | "score" | "number" | "currency" = "percent",
+): string {
+  return format === "percent"
+    ? `${(value * 100).toFixed(1)} pts`
+    : formatBenchmarkSourceValue(value, format);
+}
+
+/** Keeps about three significant digits, never dropping whole digits and never more than three decimals. */
+function formatSourceNumber(value: number): string {
+  const decimals = Math.min(3, Math.max(0, 2 - Math.floor(Math.log10(Math.abs(value)))));
+  return value.toLocaleString("en-US", {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  });
 }
 
 export function formatDashboardMetric(

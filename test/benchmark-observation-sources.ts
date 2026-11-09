@@ -172,6 +172,7 @@ assert.deepEqual(
   ["Claude Fable 5 (max)"],
   "Runs without a standard error belong to the incomparable first version",
 );
+assert.equal(ebrRows[0]?.metadata.score_standard_error, 0.02);
 assert.equal(epochBenchmarkCacheMatches(ebrRows, "EBR-bench", ebrEligibility), true);
 assert.equal(
   epochBenchmarkCacheMatches(
@@ -607,6 +608,7 @@ assert.deepEqual(
 );
 assert.equal(bio[0]?.metadata.benchmark_version, "1");
 assert.equal(JSON.parse(String(bio[0]?.metadata.source_result_json)).stderr, 0.98);
+assert.equal(bio[0]?.metadata.score_standard_error, 0.0098);
 
 const mysteryBinding = benchmarkObservationBinding("mysteryMechanism");
 assert.equal(mysteryBinding.loader.kind, "vals");

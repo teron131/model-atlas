@@ -3,7 +3,7 @@
 import { isModelAtlasPayload } from "../../src/model-atlas/stats/payload/validation";
 import type { ModelAtlasPayload } from "../../src/model-atlas/stats/types";
 
-export const DASHBOARD_PAYLOAD_PATH = "/api/llm-stats?view=dashboard";
+export const DASHBOARD_PAYLOAD_PATH = "/api/dashboard";
 const PAYLOAD_CACHE_KEY = "model-atlas:selected-payload";
 const PAYLOAD_DOWNLOAD_TIMEOUT_MS = 30_000;
 

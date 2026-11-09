@@ -23,7 +23,12 @@ import type {
   ModelAtlasMetadata,
   ModelAtlasSourceHealth,
 } from "../types";
-import { buildBenchmarkUpdateHealth, isValidBenchmarkUpdateHealth } from "./health";
+import {
+  benchmarkHealthKeys,
+  type BenchmarkHealthRefresh,
+  buildBenchmarkUpdateHealth,
+  isValidBenchmarkUpdateHealth,
+} from "./health";
 import { SNAPSHOT_PRESERVATION_VERSION } from "./snapshot-preservation";
 
 type BenchmarkHealthModels = Parameters<typeof buildBenchmarkUpdateHealth>[0];
@@ -40,6 +45,7 @@ type CurrentModelAtlasMetadataOptions = {
   benchmarkUpdateHealth?: ModelAtlasBenchmarkUpdateHealth;
   benchmarkVersions?: Readonly<Record<string, string>>;
   sourceRowsByKey?: BenchmarkRowsByKey;
+  healthRefresh?: BenchmarkHealthRefresh;
   matcherConfig?: MatcherConfig;
   availabilitySource?: MetadataAvailabilitySource;
   /** Saved rows retain their build version; null marks checkpoints that did not record one. */
@@ -122,6 +128,7 @@ export function buildCurrentModelAtlasMetadata({
   benchmarkUpdateHealth,
   benchmarkVersions,
   sourceRowsByKey,
+  healthRefresh,
   matcherConfig = STAGE_CONFIG.matcher,
   availabilitySource = "models",
   snapshotPreservationVersion = SNAPSHOT_PRESERVATION_VERSION,
@@ -131,21 +138,25 @@ export function buildCurrentModelAtlasMetadata({
   const availabilityMetrics =
     availabilitySource === "metadata" ? outputAvailableMetrics : modelAvailableMetrics;
   const selectedKeys = sortedUniqueKeys(selectedBenchmarkKeys(scoringConfig));
+  const healthKeys = benchmarkHealthKeys(scoringConfig);
   const resourceComponents = activeResourceComponents(resourceModels, scoringConfig);
-  const hasCompleteStoredBenchmarkHealth =
-    sourceRowsByKey == null &&
-    benchmarkUpdateHealth != null &&
-    selectedKeys.every((key) => isValidBenchmarkUpdateHealth(benchmarkUpdateHealth[key]));
-  const computedBenchmarkUpdateHealth = hasCompleteStoredBenchmarkHealth
+  // A restore keeps each valid stored entry, so one new or invalid entry does not discard the update times the others recorded.
+  const storedBenchmarkUpdateHealth = sourceRowsByKey == null ? benchmarkUpdateHealth : undefined;
+  const storedEntry = (key: string) => {
+    const entry = storedBenchmarkUpdateHealth?.[key];
+    return isValidBenchmarkUpdateHealth(entry) ? entry : undefined;
+  };
+  const computedBenchmarkUpdateHealth = healthKeys.every((key) => storedEntry(key) != null)
     ? {}
-    : buildBenchmarkUpdateHealth(healthModels, scoringConfig, sourceRowsByKey, matcherConfig);
+    : buildBenchmarkUpdateHealth(
+        healthModels,
+        scoringConfig,
+        sourceRowsByKey,
+        matcherConfig,
+        healthRefresh,
+      );
   const currentBenchmarkUpdateHealth = Object.fromEntries(
-    selectedKeys.map((key) => [
-      key,
-      hasCompleteStoredBenchmarkHealth
-        ? benchmarkUpdateHealth![key]!
-        : computedBenchmarkUpdateHealth[key]!,
-    ]),
+    healthKeys.map((key) => [key, storedEntry(key) ?? computedBenchmarkUpdateHealth[key]!]),
   );
   const currentBenchmarkVersions =
     sourceRowsByKey == null ? benchmarkVersions : observedBenchmarkVersions(sourceRowsByKey);

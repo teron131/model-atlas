@@ -255,7 +255,7 @@
   color: #c1a4e4;
 }
 .readoutStatus[data-tone="warning"] {
-  color: #dfa875;
+  color: var(--status-warning);
 }
 
 /* Status text needs darker pigments on paper while preserving each evidence category's hue. */
@@ -267,9 +267,6 @@
 }
 :global(html[data-model-atlas-theme="light"]) .readoutStatus[data-tone="inferred"] {
   color: #755098;
-}
-:global(html[data-model-atlas-theme="light"]) .readoutStatus[data-tone="warning"] {
-  color: #865321;
 }
 .readoutMetrics {
   display: grid;

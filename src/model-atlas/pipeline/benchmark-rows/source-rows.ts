@@ -26,6 +26,8 @@ export type BenchmarkSourceRow = {
   provider: string | null;
   reasoningEffort: string | null;
   value: number;
+  /** The source-published standard error of `value`, in its units; null where the source publishes none. */
+  standardError: number | null;
   /** The source-published version this row belongs to; null where the source publishes none. */
   version: string | null;
 };
@@ -50,6 +52,7 @@ type BenchmarkRowDraft = {
   provider?: string | null;
   reasoningEffort?: unknown;
   value: unknown;
+  standardError?: unknown;
   version?: unknown;
 };
 
@@ -128,6 +131,7 @@ function benchmarkObservationSourceDrafts(sourceData: ModelAtlasSourceData): Ben
           provider: row.model_creator,
           reasoningEffort: row.reasoning_effort,
           value: row.canonical_value,
+          standardError: row.metadata.score_standard_error,
           version: row.metadata.benchmark_version,
         }))
     );
@@ -154,6 +158,7 @@ function addBenchmarkRowDraft(
     provider: draft.provider ?? null,
     reasoningEffort: canonicalReasoningEffort(draft.reasoningEffort),
     value,
+    standardError: asFiniteNumber(draft.standardError),
     version: asNonEmptyString(draft.version),
   });
 }

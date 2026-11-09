@@ -14,7 +14,6 @@ import {
   applyResourceEvidenceRequirements,
   observedResourceEvidenceCounts,
 } from "../src/model-atlas/pipeline/scores/resource-metrics";
-import type { ModelAtlasPayload } from "../src/model-atlas/stats/types";
 import { minimalModelAtlasModel, minimalModelAtlasPayload } from "./model-atlas-fixtures";
 
 const portfolio = STAGE_CONFIG.scoring.benchmarkPortfolio;
@@ -62,7 +61,7 @@ assert.equal(
 
 const payload = minimalModelAtlasPayload({ fetchedAt: 1, models: [sparse, model] });
 payload.metadata.scoring.benchmark_portfolio = portfolio;
-const dashboard = publicJsonPayload(payload, "dashboard") as ModelAtlasPayload;
+const dashboard = publicJsonPayload(payload, { kind: "dashboard" });
 assert.equal(dashboard.models.length, 2, "Both quality-qualified efforts remain table rows");
 assert.equal(dashboard.models[0]?.scores.value_score, null);
 assert.notEqual(dashboard.models[1]?.scores.value_score, null);
@@ -89,7 +88,7 @@ const separatedPairs = {
 assert.deepEqual(observedResourceEvidenceCounts(separatedPairs, portfolio), { cost: 5, time: 3 });
 const separatedPayload = minimalModelAtlasPayload({ fetchedAt: 1, models: [separatedPairs] });
 separatedPayload.metadata.scoring.benchmark_portfolio = portfolio;
-const separatedDashboard = publicJsonPayload(separatedPayload, "dashboard") as ModelAtlasPayload;
+const separatedDashboard = publicJsonPayload(separatedPayload, { kind: "dashboard" });
 assert.equal(separatedDashboard.models[0]?.scores.value_score, 70);
 assert.equal(separatedDashboard.models[0]?.scores.speed_score, null);
 
@@ -129,8 +128,8 @@ assert.equal(
 );
 const timeDashboard = publicJsonPayload(
   minimalModelAtlasPayload({ fetchedAt: 1, models: [missingTime] }),
-  "dashboard",
-) as ModelAtlasPayload;
+  { kind: "dashboard" },
+);
 assert.equal(timeDashboard.models.length, 1);
 assert.equal(timeDashboard.models[0]?.scores.speed_score, null);
 

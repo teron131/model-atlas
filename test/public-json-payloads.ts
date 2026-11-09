@@ -1,4 +1,4 @@
-/** Verify the public model boundary, the JSON projections, and which of them each root route answers with. */
+/** Verify the public model boundary, the JSON slices, and when the site root answers with JSON. */
 
 import assert from "node:assert/strict";
 
@@ -6,15 +6,19 @@ import { NextRequest } from "next/server";
 
 import { leaderboardRows } from "../app/dashboard/table/models";
 import {
-  benchmarksJsonPayload,
+  benchmarkIndexJsonPayload,
+  benchmarkJsonPayload,
   coreJsonPayload,
   dashboardJsonPayload,
-  type FullJsonPayload,
-  fullJsonPayload,
+  modelJsonPayload,
   publicJsonPayload,
   scoreJsonPayload,
 } from "../app/leaderboard/public-json";
 import { proxy } from "../proxy";
+import {
+  BENCHMARK_COLUMNS,
+  BENCHMARK_LABELS,
+} from "../src/model-atlas/benchmarks/catalog/presentation";
 import type { BenchmarkObservationEvidenceRow } from "../src/model-atlas/benchmarks/observation";
 import {
   publicModelFromCandidate,
@@ -254,14 +258,14 @@ logoPayload.metadata = {
   source_health: { generated_at_epoch_seconds: 1, sources: {} },
   benchmark_update_health: {},
 };
-const publicDashboard = publicJsonPayload(logoPayload, "dashboard");
+const publicDashboard = publicJsonPayload(logoPayload, { kind: "dashboard" });
 assert.deepEqual(
   publicDashboard.models.map((model) => model.logo),
   ["/provider-icons/openai.svg", embeddedLogo, ""],
   "The dashboard view names a provider's icon file by URL and keeps the embedded image only where the app serves no icon file",
 );
 assert.deepEqual(
-  publicJsonPayload(logoPayload, "dashboard", "https://atlas.test").models.map(
+  publicJsonPayload(logoPayload, { kind: "dashboard" }, "https://atlas.test").models.map(
     (model) => model.logo,
   ),
   ["https://atlas.test/provider-icons/openai.svg", embeddedLogo, ""],
@@ -274,16 +278,15 @@ assert.equal(
 );
 assert.deepEqual(
   Object.keys(publicDashboard.metadata),
-  ["available_metrics", "scoring", "source_health", "benchmark_update_health"],
-  "The public dashboard view keeps its health diagnostics; callers outside the app may read them",
+  ["available_metrics", "scoring", "benchmark_update_health"],
+  "The dashboard feed keeps the benchmark health its tooltips read and drops source health, which no dashboard view reads",
 );
 assert.deepEqual(
   [
     scoreJsonPayload(reasoningVariantPayload).scores.length,
     coreJsonPayload(reasoningVariantPayload).models.length,
-    benchmarksJsonPayload(reasoningVariantPayload).benchmarks.length,
   ],
-  [1, 1, 1],
+  [1, 1],
   "compact public views should keep one representative variant per model",
 );
 assert.equal(
@@ -291,15 +294,33 @@ assert.equal(
   90,
   "collapsed public views should use the strongest variant for each model",
 );
-assert.deepEqual(benchmarksJsonPayload(reasoningVariantPayload).benchmarks[0]?.benchmarks, {
-  arc_agi_2: 0.904,
-  arc_agi_3: 0.3016,
-});
-const allVariantPayload = publicJsonPayload(reasoningVariantPayload, "all") as FullJsonPayload;
 assert.deepEqual(
-  allVariantPayload.models.map((model) => model.reasoning_effort),
+  ["arc_agi_2", "arc_agi_3"].map(
+    (key) =>
+      benchmarkJsonPayload(withPortfolio(reasoningVariantPayload, ["arc_agi_2", "arc_agi_3"]), key)
+        ?.results[0]?.value,
+  ),
+  [0.904, 0.3016],
+  "A benchmark slice reads the leaderboard row, which fills a field its strongest effort lacks from another effort",
+);
+assert.deepEqual(
+  modelJsonPayload(reasoningVariantPayload, "provider/internal-candidate")?.efforts.map(
+    (model) => model.reasoning_effort,
+  ),
   ["max", "high"],
-  "the all view should expose every reasoning-effort variant",
+  "the model slice should expose every reasoning-effort variant, strongest first",
+);
+assert.deepEqual(
+  scoreJsonPayload(reasoningVariantPayload, "variants").scores.map((row) => [
+    row.id,
+    row.reasoning_effort,
+    row.rank,
+  ]),
+  [
+    ["provider/internal-candidate", "max", 1],
+    ["provider/internal-candidate", "high", 2],
+  ],
+  "The variants display ranks every reasoning effort, as the dashboard's Variants view does",
 );
 const incompleteModel = publicModelFromCandidate({
   ...internalCandidate,
@@ -321,9 +342,8 @@ assert.deepEqual(
   [
     scoreJsonPayload(incompletePayload).scores.length,
     coreJsonPayload(incompletePayload).models.length,
-    benchmarksJsonPayload(incompletePayload).benchmarks.length,
   ],
-  [2, 2, 2],
+  [2, 2],
   "compact public views include models with missing specifications",
 );
 assert.deepEqual(
@@ -342,18 +362,10 @@ assert.deepEqual(
   ],
   "core rows should expose the same rank contract",
 );
-assert.deepEqual(
-  benchmarksJsonPayload(incompletePayload).benchmarks.map((model) => [model.id, model.rank]),
-  [
-    ["provider/recent-preview", 1],
-    ["provider/internal-candidate", 2],
-  ],
-  "benchmark rows should expose the same rank contract",
-);
 assert.equal(
-  "preview" in (publicJsonPayload(incompletePayload, "all") as FullJsonPayload).models[1]!,
+  "preview" in modelJsonPayload(incompletePayload, "provider/recent-preview")!.efforts[0]!,
   false,
-  "the all view does not expose a preview marker",
+  "the model slice does not expose a preview marker",
 );
 const sourceOnlyEffortPayload = minimalModelAtlasPayload({
   fetchedAt: 124,
@@ -381,36 +393,40 @@ const sourceOnlyEffortPayload = minimalModelAtlasPayload({
   },
 });
 assert.equal(
-  benchmarksJsonPayload(sourceOnlyEffortPayload).benchmarks[0]?.benchmarks.arc_agi_3,
+  benchmarkJsonPayload(withPortfolio(sourceOnlyEffortPayload, ["arc_agi_3"]), "arc_agi_3")
+    ?.results[0]?.value,
   0.0152,
-  "compact benchmark views should surface one source-only effort observation",
+  "the benchmark slice should surface one source-only effort observation",
 );
-const sourceOnlyAllPayload = publicJsonPayload(sourceOnlyEffortPayload, "all") as FullJsonPayload;
 assert.equal(
-  "benchmark_observations" in sourceOnlyAllPayload,
-  false,
-  "the all view should omit internal canonical observations",
+  modelJsonPayload(sourceOnlyEffortPayload, "provider/source-only")?.efforts[0]?.benchmarks
+    ?.arc_agi_3,
+  undefined,
+  "the model slice should keep source-only observations out of raw benchmark fields",
 );
-assert.equal(sourceOnlyAllPayload.models[0]?.benchmarks?.arc_agi_3, undefined);
 
-const valsBenchmarkPayload = benchmarksJsonPayload(
-  minimalModelAtlasPayload({
-    fetchedAt: 124,
-    models: [
-      {
-        ...minimalModelAtlasModel({
-          id: "provider/vals-model",
-          name: "Vals Model",
-        }),
-        benchmarks: { public_benefits_bench: 0.62 },
-      },
-    ],
-  }),
+const valsBenchmarkPayload = benchmarkJsonPayload(
+  withPortfolio(
+    minimalModelAtlasPayload({
+      fetchedAt: 124,
+      models: [
+        {
+          ...minimalModelAtlasModel({
+            id: "provider/vals-model",
+            name: "Vals Model",
+          }),
+          benchmarks: { public_benefits_bench: 0.62 },
+        },
+      ],
+    }),
+    ["public_benefits_bench"],
+  ),
+  "public_benefits_bench",
 );
 assert.equal(
-  valsBenchmarkPayload.benchmarks[0]?.benchmarks.public_benefits_bench,
+  valsBenchmarkPayload?.results[0]?.value,
   0.62,
-  "the public benchmarks view should expose admitted Vals benchmark fields",
+  "the benchmark slice should expose admitted Vals benchmark fields",
 );
 
 const fullPayload = minimalModelAtlasPayload({
@@ -475,18 +491,17 @@ const scorePayload = scoreJsonPayload(fullPayload);
 const scoreModel = scorePayload.scores[0];
 const corePayload = coreJsonPayload(fullPayload);
 const coreModel = corePayload.models[0];
-const benchmarksPayload = benchmarksJsonPayload(fullPayload);
-const benchmarksModel = benchmarksPayload.benchmarks[0];
-const fullJson = fullJsonPayload(fullPayload);
-const fullJsonModel = fullJson.models[0];
+const modelPayload = modelJsonPayload(fullPayload, "provider/model")!;
+const fullJsonModel = modelPayload.efforts[0];
 const methodology = scorePayload.methodology;
 assert.ok(typeof methodology === "string" && methodology.length > 0);
 
 assert.equal(
-  "frontier_code" in fullJson,
+  "frontier_code" in modelPayload,
   false,
-  "the full public view should not expose raw FrontierCode source rows",
+  "the model slice should not expose raw FrontierCode source rows",
 );
+assert.equal(modelJsonPayload(fullPayload, "provider/missing"), null);
 assert.equal(scorePayload.schema, "model_atlas.score");
 assert.equal(scorePayload.score_scale, "relative_0_100");
 
@@ -495,6 +510,7 @@ assert.deepEqual(scoreModel, {
   id: "provider/model",
   name: "Model",
   provider: null,
+  reasoning_effort: null,
   score: {
     intelligence: 0,
     agentic: 0,
@@ -515,6 +531,7 @@ assert.deepEqual(corePayload.columns, [
   "id",
   "name",
   "provider",
+  "reasoning_effort",
   "release_date",
   "input_modalities",
   "output_modalities",
@@ -571,23 +588,35 @@ assert.deepEqual(Object.keys(fullJsonModel?.scores ?? {}), [
   "speed_score",
   "value_score",
 ]);
-assert.equal(benchmarksPayload.schema, "model_atlas.benchmarks");
-assert.equal(benchmarksPayload.benchmark_scale, "decimal");
-assert.equal(benchmarksPayload.methodology, methodology);
-assert.deepEqual(benchmarksModel, {
-  rank: 1,
-  id: "provider/model",
-  name: "Model",
-  provider: null,
-  benchmarks: {
-    gpqa: 0.9,
-    frontier_code: 0.6,
-  },
-  benchmark_dates: {
-    gpqa: "2026-07-30",
-    frontier_code: "2026-07-31",
-  },
+assert.deepEqual(
+  benchmarkIndexJsonPayload(fullPayload).benchmarks,
+  [{ key: "frontier_code", name: BENCHMARK_LABELS.frontier_code, class: "frontier" }],
+  "The benchmark index lists the snapshot's portfolio benchmarks that the catalog defines, so the fixture's gpqa entry is left out",
+);
+assert.deepEqual(benchmarkJsonPayload(fullPayload, "frontier_code"), {
+  schema: "model_atlas.benchmark",
+  fetched_at_epoch_seconds: 123,
+  key: "frontier_code",
+  name: BENCHMARK_LABELS.frontier_code,
+  class: "frontier",
+  version: null,
+  format: BENCHMARK_COLUMNS.frontier_code.format,
+  results: [
+    {
+      id: "provider/model",
+      name: "Model",
+      provider: null,
+      value: 0.6,
+      date: "2026-07-31",
+      leaderboard_rank: 1,
+    },
+  ],
 });
+assert.equal(
+  benchmarkJsonPayload(fullPayload, "hle"),
+  null,
+  "A benchmark outside the snapshot's portfolio has no slice",
+);
 
 const tiedPayload = minimalModelAtlasPayload({
   fetchedAt: 123,
@@ -607,11 +636,6 @@ assert.deepEqual(
   coreJsonPayload(tiedPayload).models.map((model) => model.rank),
   [1, 2, 2, 4],
   "core JSON should use tied competition ranks",
-);
-assert.deepEqual(
-  benchmarksJsonPayload(tiedPayload).benchmarks.map((model) => model.rank),
-  [1, 2, 2, 4],
-  "benchmarks JSON should use tied competition ranks",
 );
 
 // The API reports the leaderboard's own resource ratios: each amount over its benchmark's median.
@@ -652,7 +676,7 @@ assert.deepEqual(
   coreRatios,
   "core ratios should match the leaderboard's",
 );
-assert.deepEqual(fullJsonPayload(ratioPayload).models[0]?.resource_ratios, {
+assert.deepEqual(modelJsonPayload(ratioPayload, "provider/frugal")?.efforts[0]?.resource_ratios, {
   cost: { ratio: 0.5, benchmark_count: 1, source_count: 1 },
   time: { ratio: 0.5, benchmark_count: 1, source_count: 1 },
   tokens: { ratio: 0.5, benchmark_count: 1, source_count: 1 },
@@ -660,19 +684,21 @@ assert.deepEqual(fullJsonPayload(ratioPayload).models[0]?.resource_ratios, {
 
 assert.equal(destination("/", { accept: "*/*" }), "/api/llm-stats");
 assert.equal(destination("/", {}), "/api/llm-stats");
-assert.equal(destination("/core", { accept: "application/json" }), "/api/llm-stats?view=core");
+assert.equal(
+  destination("/core", { accept: "application/json" }),
+  "app",
+  "Only the root answers JSON; every slice lives under /api/llm-stats",
+);
 assert.equal(destination("/", { accept: "text/html,application/xhtml+xml,*/*;q=0.8" }), "app");
-assert.equal(destination("/score", { accept: "text/html" }), "redirect /");
 assert.equal(
   destination("/", { accept: "*/*", rsc: "1", "next-url": "/methodology" }),
   "app",
   "The app router's own route fetch must receive the route payload, or returning to the leaderboard reloads the page",
 );
-assert.equal(destination("/score", { accept: "*/*", "next-url": "/methodology" }), "redirect /");
 assert.equal(
-  destination("/core", { accept: "*/*", "sec-fetch-site": "same-origin" }),
-  "/api/llm-stats?view=core",
-  "A script on the site's own origin keeps its JSON view, like any other client",
+  destination("/", { accept: "*/*", "sec-fetch-site": "same-origin" }),
+  "/api/llm-stats",
+  "A script on the site's own origin gets JSON, like any other client",
 );
 assert.equal(destination("/", { accept: "*/*", "sec-fetch-site": "cross-site" }), "/api/llm-stats");
 assert.equal(destination("/methodology", { accept: "*/*" }), "app");
@@ -696,7 +722,7 @@ function resourceModel(id: string, name: string, intelligenceScore: number, amou
   };
 }
 
-/** Name where the proxy sends a request: the rewritten API path, a redirect target, or `app` for the unchanged route. */
+/** Name where the proxy sends a request: the rewritten API path, or `app` for the unchanged route. */
 function destination(path: string, headers: Record<string, string>): string {
   const response = proxy(new NextRequest(`https://model-atlas.test${path}`, { headers }));
   const rewrite = response.headers.get("x-middleware-rewrite");
@@ -704,7 +730,28 @@ function destination(path: string, headers: Record<string, string>): string {
     const url = new URL(rewrite);
     return `${url.pathname}${url.search}`;
   }
-  const redirect = response.headers.get("location");
-  if (redirect != null) return `redirect ${new URL(redirect).pathname}`;
   return response.headers.get("x-middleware-next") === "1" ? "app" : "unknown";
+}
+
+/** Put benchmarks in a fixture's portfolio, which starts empty, so the benchmark slice serves them. */
+function withPortfolio(payload: ModelAtlasPayload, keys: readonly string[]): ModelAtlasPayload {
+  return {
+    ...payload,
+    metadata: {
+      ...payload.metadata,
+      scoring: {
+        ...payload.metadata.scoring,
+        benchmark_portfolio: Object.fromEntries(
+          keys.map((key) => [
+            key,
+            {
+              group: "frontier",
+              benchmarkImportance: 1,
+              dimensionLoadings: { intelligence: 1, agentic: 0 },
+            },
+          ]),
+        ),
+      },
+    },
+  };
 }

@@ -1,5 +1,6 @@
-/** Resolve dashboard table header and row-change tooltips from table policy and payload metadata; a benchmark's header adds its coverage in the current view and its configured weights. */
+/** Resolve dashboard table header and row-change tooltips from table policy and payload metadata; a benchmark's header describes the benchmark with its configured weights, its coverage in the current view, and its leaders, last update, and fetch state from benchmark health. */
 
+import type { BenchmarkGroup } from "../../../src/model-atlas/benchmarks/factory";
 import { benchmarkDimensionWeight } from "../../../src/model-atlas/benchmarks/registry";
 import { COLUMN_TOOLTIPS } from "../../../src/model-atlas/config";
 import {
@@ -13,8 +14,14 @@ import {
   type BenchmarkMetricModel,
   benchmarkValue,
 } from "../../../src/model-atlas/pipeline/scores/resource-metrics";
-import type { ModelAtlasMetadata } from "../../../src/model-atlas/stats/types";
+import type {
+  ModelAtlasBenchmarkUpdateEntry,
+  ModelAtlasMetadata,
+  ModelAtlasModel,
+} from "../../../src/model-atlas/stats/types";
 import { benchmarkTooltips } from "../shared/constants";
+import { providerChartColor } from "../shared/provider-theme";
+import { formatBenchmarkSourceValue, formatBenchmarkSpread, formatRefreshDate } from "./format";
 import {
   benchmarkMetricColumns,
   type SortKey,
@@ -311,7 +318,7 @@ export function tableColumnTooltip(
   if (context != null) {
     const benchmark = benchmarkMetricColumns.find((column) => column.key === key);
     if (benchmark != null) {
-      return benchmarkTooltip(benchmark.benchmark, context);
+      return benchmarkTooltip(benchmark, context);
     }
   }
   const tooltip = fallbackColumnTooltips[key] ?? columnTooltips[key];
@@ -343,49 +350,133 @@ export function tableColumnTooltip(
 }
 
 type BenchmarkTooltipContext = {
-  models: readonly BenchmarkMetricModel[];
+  models: readonly ModelAtlasModel[];
   scoring: ModelAtlasMetadata["scoring"] | undefined;
   versions: ModelAtlasMetadata["benchmark_versions"];
+  health: ModelAtlasMetadata["benchmark_update_health"];
   unit?: "models" | "variants";
 };
 
-/** Enrich a benchmark's explanation without treating missing or estimated results as observed coverage. */
+/** A benchmark header's facts; the dashboard draws them in place of `rows`. */
+export type BenchmarkTooltipFacts = {
+  version: string | null;
+  group: BenchmarkGroup | null;
+  details: readonly ModelAtlasColumnTooltipRow[];
+  weights: { intelligence: number; agentic: number } | null;
+  coverage: { observed: number; total: number; unit: "models" | "variants" };
+  leaders: BenchmarkTooltipLeaders | null;
+  /** When a source couldn't be refreshed, the date of the results shown instead. */
+  cachedSince: string | null;
+};
+
+export type BenchmarkTooltipLeaders = {
+  /** The benchmark's observed range, weakest to strongest result, in source units. */
+  domain: readonly [number, number];
+  domainLabels: readonly [string, string];
+  /** Every direct result in view, drawn faintly against the leaders. */
+  field: readonly number[];
+  stars: readonly { name: string; value: number; valueLabel: string; color: string }[];
+  gapLabel: string | null;
+  standardError: number | null;
+  standardErrorLabel: string | null;
+};
+
+export type DashboardColumnTooltip = ModelAtlasColumnTooltip & {
+  benchmark?: BenchmarkTooltipFacts;
+};
+
+/** Describe a benchmark without treating missing or estimated results as observed coverage. */
 function benchmarkTooltip(
-  key: string,
-  { models, scoring, versions, unit = "models" }: BenchmarkTooltipContext,
-): ModelAtlasColumnTooltip | undefined {
+  column: (typeof benchmarkMetricColumns)[number],
+  { models, scoring, versions, health, unit = "models" }: BenchmarkTooltipContext,
+): DashboardColumnTooltip | undefined {
+  const key = column.benchmark;
   const tooltip = benchmarkTooltips[key];
   if (tooltip == null) {
     return undefined;
   }
-  const coverage = benchmarkCoverage(models, key);
-  const coverageValue =
-    coverage.total === 0
-      ? `No ${unit} in current view`
-      : `${coverage.observed} of ${coverage.total} ${unit} (${benchmarkCoverageLabel(coverage)})`;
-  // The served version replaces the catalog's Version row, so an automatically adopted version shows at once.
-  const version = versions?.[key];
-  const rows: ModelAtlasColumnTooltipRow[] = [
-    ...(version == null ? [] : [["Version", `v${version}`] satisfies ModelAtlasColumnTooltipRow]),
-    ...(tooltip.rows ?? []).filter(
-      ([label]) => label !== "Role" && (version == null || label !== "Version"),
-    ),
-  ];
+  const catalogRows = tooltip.rows ?? [];
+  // The served version replaces the catalog's, so an automatically adopted version shows at once.
+  const version =
+    versions?.[key] ??
+    catalogRows.find(([label]) => label === "Version")?.[1].replace(/^v/, "") ??
+    null;
   const entry = scoring?.benchmark_portfolio[key];
-  if (scoring != null && entry != null) {
-    rows.push(
-      ["Class", entry.group === "frontier" ? "Frontier" : "Baseline"],
-      [
-        "Weights",
-        `I ${dimensionWeightLabel(key, "intelligence", scoring)} · A ${dimensionWeightLabel(key, "agentic", scoring)}`,
-      ],
-    );
-  }
-  rows.push(["Coverage", coverageValue]);
+  const healthEntry = health?.[key];
+  const updatedAt = healthEntry?.rows_updated_at_epoch_seconds;
+  const cachedAt = healthEntry?.cached_rows_fetched_at_epoch_seconds;
   return {
-    ...tooltip,
-    rows,
+    title: titleWithoutVersion(tooltip.title, version),
+    body: tooltip.body,
+    benchmark: {
+      version,
+      group: entry?.group ?? null,
+      details: [
+        ...catalogRows.filter(([label]) => label !== "Role" && label !== "Version"),
+        ...(updatedAt == null ? [] : [["Updated", formatRefreshDate(updatedAt)] as const]),
+      ],
+      weights:
+        scoring == null || entry == null
+          ? null
+          : {
+              intelligence: dimensionWeight(key, "intelligence", scoring),
+              agentic: dimensionWeight(key, "agentic", scoring),
+            },
+      coverage: { ...benchmarkCoverage(models, key), unit },
+      leaders: benchmarkLeaders(column, healthEntry, models),
+      cachedSince: cachedAt == null ? null : formatRefreshDate(cachedAt),
+    },
   };
+}
+
+/** Leaders come from the source's own rows when health has them, so a leader Atlas does not list still appears under its source label. */
+function benchmarkLeaders(
+  column: (typeof benchmarkMetricColumns)[number],
+  entry: ModelAtlasBenchmarkUpdateEntry | undefined,
+  models: readonly ModelAtlasModel[],
+): BenchmarkTooltipLeaders | null {
+  if (entry == null) return null;
+  const leaders = entry.source_leaders.length > 0 ? entry.source_leaders : entry.matched_leaders;
+  const top = leaders[0];
+  const fullRange = entry.spread.full_range;
+  if (top == null || fullRange == null) return null;
+  const modelsById = new Map(
+    models.flatMap((model) => (model.id == null ? [] : [[model.id, model]])),
+  );
+  const { top_range: topRange, top_standard_error: standardError } = entry.spread;
+  const domain = [top.value - fullRange, top.value] as const;
+  const formatValue = (value: number) => formatBenchmarkSourceValue(value, column.format);
+  return {
+    domain,
+    domainLabels: [formatValue(domain[0]), formatValue(domain[1])],
+    field: models.flatMap((model) => {
+      const value = benchmarkValue(model, column.benchmark);
+      return value == null ? [] : [value];
+    }),
+    stars: leaders.map((leader) => {
+      const model = leader.model_id == null ? undefined : modelsById.get(leader.model_id);
+      const provider = model?.provider ?? leader.model_id?.split("/")[0] ?? null;
+      return {
+        name: model?.name ?? leader.label,
+        value: leader.value,
+        valueLabel: formatValue(leader.value),
+        color: provider == null ? "var(--muted)" : providerChartColor(provider),
+      };
+    }),
+    gapLabel: topRange == null ? null : formatBenchmarkSpread(topRange, column.format),
+    standardError,
+    standardErrorLabel:
+      standardError == null ? null : formatBenchmarkSpread(standardError, column.format),
+  };
+}
+
+/** The header sets the version beside the name, so a name that already ends in that version drops it rather than showing it twice. */
+function titleWithoutVersion(title: string, version: string | null): string {
+  const trailing = /\s+v?(\d+(?:\.\d+)*)$/i.exec(title);
+  const comparable = (value: string) => value.replace(/^v/i, "").replace(/(\.0)+$/, "");
+  return version != null && trailing?.[1] != null && comparable(trailing[1]) === comparable(version)
+    ? title.slice(0, trailing.index)
+    : title;
 }
 
 /** Count direct benchmark values, including zero scores, in the supplied display population. */
@@ -396,17 +487,13 @@ function benchmarkCoverage(models: readonly BenchmarkMetricModel[], key: string)
   };
 }
 
-function benchmarkCoverageLabel({ observed, total }: { observed: number; total: number }) {
-  return total === 0 ? "-" : `${Math.round((observed / total) * 100)}%`;
-}
-
-function dimensionWeightLabel(
+function dimensionWeight(
   key: string,
   dimension: "intelligence" | "agentic",
   scoring: ModelAtlasMetadata["scoring"],
-): string {
+): number {
   const keys = scoring[`${dimension}_benchmark_keys`];
-  const portfolio = scoring.benchmark_portfolio;
-  const weight = keys.includes(key) ? benchmarkDimensionWeight(key, dimension, portfolio) : 0;
-  return `${Number((weight * 100).toFixed(1))}%`;
+  return keys.includes(key)
+    ? benchmarkDimensionWeight(key, dimension, scoring.benchmark_portfolio)
+    : 0;
 }

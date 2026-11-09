@@ -95,7 +95,7 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   arena_webdev: {
-    body: "Build interactive web apps judged in human comparisons for functionality, usability, design, and fidelity. A baseline product-construction signal from evaluated model and harness configurations.",
+    body: "Build interactive web apps judged in human comparisons for functionality, usability, design, and fidelity. A product-construction signal from evaluated model and harness configurations.",
     rows: [
       ["Source", "Arena"],
       ["Split", "WebDev Overall"],

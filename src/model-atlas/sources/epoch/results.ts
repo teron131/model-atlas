@@ -85,7 +85,7 @@ export function epochBenchmarkCacheMatches(
         row.metadata.task === task &&
         (eligibility.originalTaskName == null ||
           row.metadata.original_task_name === eligibility.originalTaskName) &&
-        (eligibility.requireStandardError !== true || row.metadata.stderr != null) &&
+        (eligibility.requireStandardError !== true || row.metadata.score_standard_error != null) &&
         (row.model_id == null || !excludedModelIds.has(row.model_id)),
     )
   );
@@ -236,7 +236,7 @@ function cleanMetadata(row: EpochBenchmarkCsvRow): BenchmarkObservationMetadata 
     task: row.task || null,
     task_version: row["task version"] || null,
     scores: row.Scores || null,
-    stderr: asFiniteNumber(row.stderr),
+    score_standard_error: asFiniteNumber(row.stderr),
     best_score: asFiniteNumber(row.best_score),
     original_task_name: row.original_task_name || null,
   };

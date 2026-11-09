@@ -1,16 +1,17 @@
-/** Tooltip layout for dashboard score explanations and formula breakdowns. */
+/** Tooltip layout for dashboard score explanations, formula breakdowns, and benchmark headers. */
 
 import type { FocusEvent, MouseEvent } from "react";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import type {
-  ModelAtlasColumnTooltip,
   ModelAtlasColumnTooltipNestedSection,
   ModelAtlasColumnTooltipRow,
   ModelAtlasColumnTooltipSectionItem,
 } from "../../../src/model-atlas/config/tooltips";
 import { clamp } from "../../../src/model-atlas/math-utils";
+import { BenchmarkTooltipBody } from "./BenchmarkTooltip";
 import { InequalityGraph, layoutInequalityGraph } from "./InequalityGraph";
+import type { DashboardColumnTooltip } from "./tooltips";
 
 const tooltipHorizontalPadding = 18;
 const tooltipMaxWidth = 360;
@@ -37,7 +38,7 @@ export function ColumnTooltip({
   onMouseLeave,
   top,
 }: {
-  content: ModelAtlasColumnTooltip;
+  content: DashboardColumnTooltip;
   phase: TooltipState["phase"];
   left: number;
   onMouseEnter: () => void;
@@ -77,15 +78,21 @@ export function ColumnTooltip({
 
   return (
     <div
-      className={`column-tooltip visible${phase === "leaving" ? " leaving" : ""}${graphLayout != null ? " has-graph" : ""}`}
+      className={`column-tooltip visible${phase === "leaving" ? " leaving" : ""}${graphLayout != null || content.benchmark != null ? " has-graph" : ""}`}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       ref={tooltipRef}
       role="tooltip"
       style={{ ...position, width: tooltipWidth }}
     >
-      <div className="column-tooltip-title">{content.title}</div>
-      <p className="column-tooltip-body">{content.body}</p>
+      {content.benchmark != null ? (
+        <BenchmarkTooltipBody body={content.body} facts={content.benchmark} title={content.title} />
+      ) : (
+        <>
+          <div className="column-tooltip-title">{content.title}</div>
+          <p className="column-tooltip-body">{content.body}</p>
+        </>
+      )}
       {graphLayout != null ? (
         <>
           <InequalityGraph layout={graphLayout} />

@@ -33,7 +33,7 @@ const TOP_ROW_LABS = [
 ];
 
 const [live, liveTimeline]: [ModelAtlasPayload, TimelinePoint[]] = await Promise.all([
-  readJson(`${SITE}/api/llm-stats?view=dashboard`),
+  readJson(`${SITE}/api/dashboard`),
   readJson(`${SITE}/api/timeline?view=chart`),
 ]);
 const drifted = live.models.map(driftScores);
@@ -82,7 +82,7 @@ try {
     reducedMotion: "reduce",
   });
   await page.route(
-    (url) => url.pathname === "/api/llm-stats" && url.searchParams.get("view") === "dashboard",
+    (url) => url.pathname === "/api/dashboard",
     (route) => route.fulfill({ contentType: "application/json", body: dashboardBody }),
   );
   await page.route(

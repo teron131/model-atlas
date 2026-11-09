@@ -58,9 +58,9 @@ export type ModelAtlasBenchmarkHealthLeader = {
   variants: { label: string; value: number; reasoning_effort: string | null }[];
 };
 
-/** Descriptive coverage and spread, separate from source freshness and human portfolio judgments. */
+/** Descriptive coverage, spread, and row updates, separate from human portfolio judgments. */
 export type ModelAtlasBenchmarkUpdateEntry = {
-  schema_version: 2;
+  schema_version: 3;
   status: "missing" | "unmatched" | "partially_matched" | "matched";
   evidence_origin: "source" | "model_observations";
   cohort: "all_available_models";
@@ -77,7 +77,21 @@ export type ModelAtlasBenchmarkUpdateEntry = {
     top_count: number;
     top_range: number | null;
     top_range_without_leader: number | null;
+    /** Mean source-published standard error of the top leaders' representative rows; null unless every one of them publishes one. */
+    top_standard_error: number | null;
   };
+  /** Each model's best result per labelled effort; a pair is inverted when the lower effort's result is above the higher effort's. */
+  efforts: {
+    pair_count: number;
+    inverted_pair_count: number;
+    largest_inversion: number | null;
+  };
+  /** The refresh at which the rows last differed from the previous refresh's in any model, label, effort, value, standard error, or version; null until a refresh sees them change. */
+  rows_updated_at_epoch_seconds: number | null;
+  /** Identifies the rows' content for the next refresh's comparison; null when the entry was built outside a refresh, so it cannot be compared. */
+  rows_fingerprint: string | null;
+  /** When a source feeding this benchmark could not be refreshed and serves cached rows, the earliest time those rows were fetched; null when every source is current. */
+  cached_rows_fetched_at_epoch_seconds: number | null;
 };
 
 export type ModelAtlasBenchmarkUpdateHealth = Record<string, ModelAtlasBenchmarkUpdateEntry>;

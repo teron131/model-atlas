@@ -26,3 +26,16 @@ The [methodology](https://llmstats.vercel.app/methodology) explains how the scor
 ![The Pareto graph of Intelligence against relative task cost, plotting every reasoning-effort variant under the frontier no other model beats on both](.github/assets/pareto.jpg)
 
 ![The Timeline graph of the Intelligence Index by release date, with the frontier across model generations](.github/assets/timeline.jpg)
+
+## Public API
+
+Each endpoint returns one slice of the current data as JSON.
+
+| Endpoint | Returns |
+| --- | --- |
+| `/api/llm-stats` | Each listed model's rank and four scores; add `?efforts=all` for one ranked row per reasoning effort, as in the leaderboard's Variants view |
+| `/api/llm-stats/models` | The ranked table: release date, modalities, prices, context window, speed, scores, and resource ratios; `?efforts=all` works here too |
+| `/api/llm-stats/models/<id>` | One model's every reasoning effort with all its fields, including configurations the leaderboard hides, such as `/api/llm-stats/models/anthropic/claude-opus-5.5` |
+| `/api/llm-stats/benchmarks` | The benchmark portfolio's keys, names, and classes |
+| `/api/llm-stats/benchmarks/<key>` | One benchmark's results, best first, with each model's leaderboard rank |
+| `/api/llm-stats/changes?model=<id>&effort=<effort>` | One reasoning effort's recent score changes |

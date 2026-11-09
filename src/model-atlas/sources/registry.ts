@@ -1,9 +1,11 @@
 /** Stable source identities, locations, cache policy, and persisted table bindings for ingestion. */
 
 import {
+  BENCHMARK_CATALOG,
   BENCHMARK_OBSERVATION_BINDINGS,
   BENCHMARK_OBSERVATION_KEYS,
   BENCHMARK_RUNTIME_KEYS,
+  type BenchmarkKey,
   type BenchmarkObservationKey,
   type BenchmarkRuntimeKey,
 } from "../benchmarks/registry";
@@ -62,9 +64,22 @@ export function rawSourceCacheSeconds(source: RawSourceName): number {
   return source === "openrouter" ? OPENROUTER_CACHE_SECONDS : SCHEDULED_SOURCE_CACHE_SECONDS;
 }
 
+/** The raw sources a benchmark's rows are fetched through; an input without its own loader or adapter arrives through one of these. */
+export function benchmarkRawSources(key: string): RawSourceName[] {
+  const inputs = BENCHMARK_CATALOG[key as BenchmarkKey]?.source.inputs ?? [];
+  const sources = inputs.flatMap((input): RawSourceName[] => {
+    const runtime = BENCHMARK_RUNTIME_KEYS.find((runtimeKey) => runtimeKey === input.runtime?.key);
+    if (runtime != null) return [runtime];
+    if (input.id !== "artificial_analysis") return [];
+    if (input.adapters == null) return ["artificial_analysis"];
+    return input.adapters.some((adapter) => adapter.kind === "artificial_analysis_resource_page")
+      ? ["artificial_analysis_benchmark_resources"]
+      : [];
+  });
+  return isBenchmarkObservationRawSource(key) ? [key, ...sources] : sources;
+}
+
 /** Catalog benchmark-observation sources share one physical table while retaining independent cache partitions. */
-export function isBenchmarkObservationRawSource(
-  source: RawSourceName,
-): source is BenchmarkObservationKey {
+export function isBenchmarkObservationRawSource(source: string): source is BenchmarkObservationKey {
   return (BENCHMARK_OBSERVATION_KEYS as readonly string[]).includes(source);
 }

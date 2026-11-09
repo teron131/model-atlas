@@ -70,7 +70,7 @@ jobs:
       - name: Verify public API
         run: |
           for attempt in 1 2 3 4 5 6; do
-            curl --fail --silent --show-error "https://llmstats.vercel.app/api/llm-stats?view=all&verify=${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${attempt}" | jq --exit-status --argjson since "$REFRESH_STARTED_AT" '.fetched_at_epoch_seconds >= $since and (.models | length > 0)' && exit 0
+            curl --fail --silent --show-error "https://llmstats.vercel.app/api/llm-stats?verify=${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${attempt}" | jq --exit-status --argjson since "$REFRESH_STARTED_AT" '.fetched_at_epoch_seconds >= $since and (.scores | length > 0)' && exit 0
             sleep 10
           done
           exit 1

@@ -8,7 +8,9 @@ import { gunzipSync } from "node:zlib";
 
 import type { Storage } from "@google-cloud/storage";
 
+import { GET as dashboardGET } from "../app/api/dashboard/route";
 import { GET as changesGET } from "../app/api/llm-stats/changes/route";
+import { GET as modelGET } from "../app/api/llm-stats/models/[...id]/route";
 import { GET } from "../app/api/llm-stats/route";
 import { GET as indexGET } from "../app/api/timeline/route";
 import { publicJsonPayload, serializedPublicJson } from "../app/leaderboard/public-json";
@@ -301,13 +303,13 @@ try {
   assert.equal(manifestReads, 1);
 
   delete process.env.VERCEL_PROJECT_PRODUCTION_URL;
-  const url = "http://localhost/api/llm-stats?view=dashboard";
-  const firstResponse = await GET(new Request(url));
+  const url = "http://localhost/api/dashboard";
+  const firstResponse = await dashboardGET(new Request(url));
   assert.equal(firstResponse.status, 200);
   const firstBody = await firstResponse.json();
-  assert.deepEqual(firstBody, publicJsonPayload(read, "dashboard", "http://localhost"));
+  assert.deepEqual(firstBody, publicJsonPayload(read, { kind: "dashboard" }, "http://localhost"));
   assert.equal(firstBody.models[0]?.logo, "http://localhost/provider-icons/openai.svg");
-  const forwardedResponse = await GET(
+  const forwardedResponse = await dashboardGET(
     new Request(url, {
       headers: { "X-Forwarded-Host": "attacker.test", "X-Forwarded-Proto": "https" },
     }),
@@ -318,7 +320,7 @@ try {
     "A client's forwarding headers must not choose the address written into a response that is cached for other callers",
   );
   process.env.VERCEL_PROJECT_PRODUCTION_URL = "atlas.test";
-  const productionResponse = await GET(new Request(url));
+  const productionResponse = await dashboardGET(new Request(url));
   delete process.env.VERCEL_PROJECT_PRODUCTION_URL;
   assert.equal(
     (await productionResponse.json()).models[0].logo,
@@ -328,19 +330,20 @@ try {
   const etag = firstResponse.headers.get("etag")!;
   assert.ok(etag.startsWith('W/"'));
   assert.equal(
-    serializedPublicJson(read, "dashboard").etag,
+    serializedPublicJson(read, { kind: "dashboard" })!.etag,
     etag,
     "The page must start the dashboard's refreshes from the validator the endpoint answers to",
   );
   assert.equal(
-    serializedPublicJson(read, "dashboard", "https://atlas.test").etag,
+    serializedPublicJson(read, { kind: "dashboard" }, "https://atlas.test")!.etag,
     etag,
     "The validator identifies the snapshot's view whichever site address its URLs carry",
   );
-  assert.equal(firstResponse.headers.get("vary"), "x-model-atlas-view");
   assert.equal(firstResponse.headers.get("cache-control"), "public, max-age=60");
   for (const validator of [etag, etag.slice(2), `"other", ${etag}`, "*"]) {
-    const response = await GET(new Request(url, { headers: { "If-None-Match": validator } }));
+    const response = await dashboardGET(
+      new Request(url, { headers: { "If-None-Match": validator } }),
+    );
     assert.equal(response.status, 304);
     assert.equal(await response.text(), "");
     assert.equal(response.headers.get("etag"), etag);
@@ -353,22 +356,19 @@ try {
   assert.equal(
     scoreResponse.status,
     200,
-    "An ETag for a different view must not suppress the body",
+    "An ETag for a different slice must not suppress the body",
   );
-  const scoreEtag = scoreResponse.headers.get("etag")!;
-  const unknownView = await GET(
-    new Request("http://localhost/api/llm-stats?view=unknown", {
-      headers: { "If-None-Match": scoreEtag },
-    }),
+  const modelId = read.models[0]!.id!;
+  const modelResponse = await modelGET(
+    new Request(`http://localhost/api/llm-stats/models/${modelId}`),
+    { params: Promise.resolve({ id: modelId.split("/") }) },
   );
-  assert.equal(unknownView.status, 304, "Unknown views share the default representation");
-  const allResponse = await GET(new Request("http://localhost/api/llm-stats?view=all"));
-  const fullResponse = await GET(
-    new Request("http://localhost/api/llm-stats", {
-      headers: { "x-model-atlas-view": "full", "If-None-Match": allResponse.headers.get("etag")! },
-    }),
-  );
-  assert.equal(fullResponse.status, 304, "Alias and header-selected views use the same validator");
+  assert.equal(modelResponse.status, 200);
+  assert.equal((await modelResponse.json()).id, modelId, "A model id keeps its provider slash");
+  const missingModel = await modelGET(new Request("http://localhost/api/llm-stats/models/x/y"), {
+    params: Promise.resolve({ id: ["x", "y"] }),
+  });
+  assert.equal(missingModel.status, 404);
   assert.equal(manifestReads, 1, "API revalidation reuses the existing snapshot freshness window");
   clock += 31_000;
   await readDisplayPayload();

@@ -148,6 +148,7 @@ export function DashboardLeaderboard({
           models: visibleRows.map((row) => row.model),
           scoring: payload?.metadata.scoring,
           versions: payload?.metadata.benchmark_versions,
+          health: payload?.metadata.benchmark_update_health,
           unit: rowKind,
         });
   const columnSearchResultLabel = hasSearchQuery(deferredColumnQuery)

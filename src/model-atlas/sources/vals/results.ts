@@ -92,8 +92,10 @@ function scoreRow(
   const costPerTask = asFiniteNumber(value.cost_per_test);
   const secondsPerTask = asFiniteNumber(value.latency);
   const outputTokensPerTask = asFiniteNumber(value.avg_output_tokens);
+  const scoreStandardError = percentToUnitScore(value.stderr);
   if (secondsPerTask != null) metadata.seconds_per_task = secondsPerTask;
   if (outputTokensPerTask != null) metadata.output_tokens_per_task = outputTokensPerTask;
+  if (scoreStandardError != null) metadata.score_standard_error = scoreStandardError;
   for (const [key, metadataValue] of [
     ["task", task],
     ["benchmark_version", asNonEmptyString(view.metadata.version)],

@@ -10,7 +10,13 @@ import type {
 } from "../../../src/model-atlas/stats/types";
 import { providerBrandColor } from "../shared/provider-theme";
 import { scoreColumnsByDimension } from "./Columns";
-import { formatCompactNumber, formatCost, formatDashboardMetric, formatScore } from "./format";
+import {
+  formatCompactNumber,
+  formatCost,
+  formatDashboardMetric,
+  formatRefreshDate,
+  formatScore,
+} from "./format";
 import { benchmarkMetricColumns } from "./models";
 
 type InputKind = ModelAtlasInputChange["kind"];
@@ -30,26 +36,13 @@ const TASK_METRIC_NAMES: Partial<Record<InputKind, string>> = {
   task_tokens: "tokens",
 };
 
-// Refresh ids are UTC epoch seconds; formatting in UTC keeps server and client renders identical.
-const longDate = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-  year: "numeric",
-  timeZone: "UTC",
-});
-const shortDate = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-  timeZone: "UTC",
-});
-
 /** Every score the update moved, headline first; payloads published before update-level fields, and browser copies of them, carry the headline move alone. */
 export function changeScores(change: ModelAtlasScoreChange): readonly ModelAtlasScoreMove[] {
   return change.scores ?? [change];
 }
 
 export function changeShortDate(change: ModelAtlasScoreChange): string {
-  return shortDate.format(change.refresh_id * 1000);
+  return formatRefreshDate(change.refresh_id, "short");
 }
 
 /** The headline score's move, or what the update did to it when its score number held. */
@@ -77,7 +70,7 @@ export function moveDirection(move: Pick<ModelAtlasScoreMove, "score_delta">): M
 }
 
 export function scoreChangeSummary(model: ModelAtlasModel, change: ModelAtlasScoreChange): string {
-  return `${changeEntry(model, change) ?? "Updated"} on ${longDate.format(change.refresh_id * 1000)}.`;
+  return `${changeEntry(model, change) ?? "Updated"} on ${formatRefreshDate(change.refresh_id)}.`;
 }
 
 /** How the update added the variant to Atlas, or null for an update to a variant already listed. */

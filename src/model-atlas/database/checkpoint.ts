@@ -210,11 +210,21 @@ export async function deriveDatabaseSnapshot(
     ...sourceCacheStatuses,
     openrouter: openRouterLoad.cacheStatus,
   };
+  const sourceHealth = buildSourceHealth({
+    generatedAtEpochSeconds: startedAtEpochSeconds,
+    sourceCacheStatuses: finalSourceCacheStatuses,
+    sourceRowStates: snapshots.sourceRowStates,
+  });
   // The refresh audit and benchmark health describe the published rows, so both follow snapshot preservation.
   const metadata = buildCurrentModelAtlasMetadata({
     models: preservedModels,
     healthModels: preservedModels,
     sourceRowsByKey: benchmarkRows,
+    healthRefresh: {
+      atEpochSeconds: startedAtEpochSeconds,
+      previous: versioning.previousPayload?.metadata?.benchmark_update_health,
+      sourceHealth,
+    },
   });
   const changes = buildRefreshChanges(
     startedAtEpochSeconds,
@@ -230,11 +240,7 @@ export async function deriveDatabaseSnapshot(
     openRouterRawPayload: openRouterLoad.rawPayload,
     finalModelRows: changes.models,
     debugTraceRows,
-    sourceHealth: buildSourceHealth({
-      generatedAtEpochSeconds: startedAtEpochSeconds,
-      sourceCacheStatuses: finalSourceCacheStatuses,
-      sourceRowStates: snapshots.sourceRowStates,
-    }),
+    sourceHealth,
     benchmarkUpdateHealth: metadata.benchmark_update_health,
     benchmarkVersions: metadata.benchmark_versions,
     scoringMethodology: scoringMethodologyJson(metadata.scoring),

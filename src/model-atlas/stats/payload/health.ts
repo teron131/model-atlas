@@ -1,6 +1,8 @@
-/** Benchmark health reports matching coverage and observed spread, never freshness or capability verdicts from rank agreement. */
+/** Benchmark health reports matching coverage, observed spread, effort inversions, and when rows last changed or could not be refreshed, as numbers, never freshness or capability verdicts from rank agreement. */
 
-import { type ScoringConfig, selectedBenchmarkKeys } from "../../config/stage";
+import { createHash } from "node:crypto";
+
+import type { ScoringConfig } from "../../config/stage";
 import {
   firstVariantCompatibleCandidate,
   type MatchCandidateInput,
@@ -12,14 +14,17 @@ import {
   canonicalReasoningEffort,
   normalizeModelToken,
   parseModelEffort,
+  reasoningEffortRank,
 } from "../../identity/normalization";
 import type { BenchmarkRowsByKey, BenchmarkSourceRow } from "../../pipeline/benchmark-rows";
 import { benchmarkValue } from "../../pipeline/scores/resource-metrics";
+import { benchmarkRawSources } from "../../sources/registry";
 import type {
   ModelAtlasBenchmarkHealthLeader,
   ModelAtlasBenchmarkUpdateEntry,
   ModelAtlasBenchmarkUpdateHealth,
   ModelAtlasModel,
+  ModelAtlasSourceHealth,
 } from "../types";
 
 const TOP_LIMIT = 5;
@@ -28,12 +33,24 @@ type HealthModel = Pick<
   "id" | "name" | "benchmarks" | "intelligence" | "reasoning_effort"
 >;
 
+/** What a refresh adds to its rows: when it ran, the health it replaces, and how each source's fetch went. */
+export type BenchmarkHealthRefresh = {
+  atEpochSeconds: number;
+  previous: ModelAtlasBenchmarkUpdateHealth | undefined;
+  sourceHealth: ModelAtlasSourceHealth;
+};
+
+/** Health covers the whole portfolio, baseline benchmarks included, because reviews revisit every class. */
+export function benchmarkHealthKeys(scoringConfig: ScoringConfig): string[] {
+  return Object.keys(scoringConfig.benchmarkPortfolio).sort();
+}
+
 /** Older rank-overlap summaries must never survive as current descriptive health evidence. */
 export function isValidBenchmarkUpdateHealth(
   entry: ModelAtlasBenchmarkUpdateEntry | undefined,
-): boolean {
+): entry is ModelAtlasBenchmarkUpdateEntry {
   if (
-    entry?.schema_version !== 2 ||
+    entry?.schema_version !== 3 ||
     entry.cohort !== "all_available_models" ||
     entry.representative !== "best_reported_per_model"
   )
@@ -75,13 +92,26 @@ export function isValidBenchmarkUpdateHealth(
     )
       return false;
   }
-  const spread = entry.spread;
+  const { spread, efforts } = entry;
   return (
     spread != null &&
+    efforts != null &&
+    (entry.rows_fingerprint === null || typeof entry.rows_fingerprint === "string") &&
     spread.top_count === Math.min(TOP_LIMIT, entry.distinct_model_count) &&
-    [spread.full_range, spread.leader_gap, spread.top_range, spread.top_range_without_leader].every(
-      (value) => value === null || (Number.isFinite(value) && value >= 0),
-    )
+    [
+      spread.full_range,
+      spread.leader_gap,
+      spread.top_range,
+      spread.top_range_without_leader,
+      spread.top_standard_error,
+      efforts.largest_inversion,
+      entry.rows_updated_at_epoch_seconds,
+      entry.cached_rows_fetched_at_epoch_seconds,
+    ].every((value) => value === null || (Number.isFinite(value) && value >= 0)) &&
+    [efforts.pair_count, efforts.inverted_pair_count].every(
+      (value) => Number.isSafeInteger(value) && value >= 0,
+    ) &&
+    efforts.inverted_pair_count <= efforts.pair_count
   );
 }
 
@@ -100,13 +130,14 @@ export function buildBenchmarkUpdateHealth(
   scoringConfig: ScoringConfig,
   sourceRowsByKey: BenchmarkRowsByKey = {},
   matcherConfig?: MatcherConfig,
+  refresh?: BenchmarkHealthRefresh,
 ): ModelAtlasBenchmarkUpdateHealth {
   const canonicalIds = new Map(
     models
       .filter((model) => model.id != null)
       .map((model) => [model.id!, canonicalModelKey(model)]),
   );
-  const keys = selectedBenchmarkKeys(scoringConfig).sort();
+  const keys = benchmarkHealthKeys(scoringConfig);
   const matchSource = sourceMatcher(models, matcherConfig);
   return Object.fromEntries(
     keys.map((key) => {
@@ -114,7 +145,10 @@ export function buildBenchmarkUpdateHealth(
       const rows = (sourceRows ?? modelObservations(models, key)).filter((row) =>
         Number.isFinite(row.value),
       );
-      const groups = new Map<string, ModelAtlasBenchmarkHealthLeader>();
+      const groups = new Map<
+        string,
+        { leader: ModelAtlasBenchmarkHealthLeader; standardError: number | null }
+      >();
       for (const row of [...rows].sort(
         (a, b) => b.value - a.value || a.label.localeCompare(b.label),
       )) {
@@ -128,7 +162,7 @@ export function buildBenchmarkUpdateHealth(
           value: row.value,
           reasoning_effort: row.reasoningEffort,
         };
-        const existing = groups.get(identity);
+        const existing = groups.get(identity)?.leader;
         if (existing != null) {
           if (
             !existing.variants.some(
@@ -142,17 +176,21 @@ export function buildBenchmarkUpdateHealth(
           continue;
         }
         groups.set(identity, {
-          source_id: row.id ?? row.identity,
-          model_id: modelId,
-          ...variant,
-          variants: [variant],
+          leader: {
+            source_id: row.id ?? row.identity,
+            model_id: modelId,
+            ...variant,
+            variants: [variant],
+          },
+          standardError: row.standardError,
         });
       }
-      const ranked = [...groups.values()];
+      const grouped = [...groups.values()];
+      const ranked = grouped.map((group) => group.leader);
       const matched = ranked.filter((row) => row.model_id != null);
       const leaders = ranked.slice(0, TOP_LIMIT);
       const entry: ModelAtlasBenchmarkUpdateEntry = {
-        schema_version: 2,
+        schema_version: 3,
         status: matchingStatus(ranked.length, matched.length),
         evidence_origin: sourceRows == null ? "model_observations" : "source",
         cohort: "all_available_models",
@@ -169,7 +207,14 @@ export function buildBenchmarkUpdateHealth(
           top_count: leaders.length,
           top_range: range(leaders),
           top_range_without_leader: range(leaders.slice(1)),
+          top_standard_error: meanStandardError(
+            grouped.slice(0, TOP_LIMIT).map((group) => group.standardError),
+          ),
         },
+        efforts: effortInversions(ranked),
+        ...rowUpdates(rows, refresh, key),
+        cached_rows_fetched_at_epoch_seconds:
+          refresh == null ? null : cachedRowsFetchedAt(key, refresh.sourceHealth),
       };
       return [key, entry];
     }),
@@ -178,6 +223,96 @@ export function buildBenchmarkUpdateHealth(
 
 function range(rows: readonly ModelAtlasBenchmarkHealthLeader[]): number | null {
   return rows.length < 2 ? null : rows[0]!.value - rows[rows.length - 1]!.value;
+}
+
+function meanStandardError(values: readonly (number | null)[]): number | null {
+  const published = values.filter((value) => value != null);
+  return values.length === 0 || published.length < values.length
+    ? null
+    : published.reduce((total, value) => total + value, 0) / published.length;
+}
+
+/** Unlabelled rows are left out, because the source's default effort is unknown. */
+function effortInversions(
+  models: readonly ModelAtlasBenchmarkHealthLeader[],
+): ModelAtlasBenchmarkUpdateEntry["efforts"] {
+  let pairCount = 0;
+  let invertedPairCount = 0;
+  let largestInversion: number | null = null;
+  for (const model of models) {
+    const bestByRank = new Map<number, number>();
+    for (const variant of model.variants) {
+      const rank =
+        variant.reasoning_effort == null ? -1 : reasoningEffortRank(variant.reasoning_effort);
+      if (rank < 0) continue;
+      bestByRank.set(rank, Math.max(bestByRank.get(rank) ?? -Infinity, variant.value));
+    }
+    const ordered = [...bestByRank]
+      .sort(([left], [right]) => left - right)
+      .map(([, value]) => value);
+    for (const [lowIndex, low] of ordered.entries()) {
+      for (const high of ordered.slice(lowIndex + 1)) {
+        pairCount += 1;
+        if (low <= high) continue;
+        invertedPairCount += 1;
+        largestInversion = Math.max(largestInversion ?? 0, low - high);
+      }
+    }
+  }
+  return {
+    pair_count: pairCount,
+    inverted_pair_count: invertedPairCount,
+    largest_inversion: largestInversion,
+  };
+}
+
+/** A previous entry built outside a refresh has no fingerprint, so a refresh that cannot compare leaves the update time unknown rather than claiming a change. */
+function rowUpdates(
+  rows: readonly BenchmarkSourceRow[],
+  refresh: BenchmarkHealthRefresh | undefined,
+  key: string,
+): Pick<ModelAtlasBenchmarkUpdateEntry, "rows_fingerprint" | "rows_updated_at_epoch_seconds"> {
+  if (refresh == null) return { rows_fingerprint: null, rows_updated_at_epoch_seconds: null };
+  const fingerprint = rowsFingerprint(rows);
+  const previous = refresh.previous?.[key];
+  if (!isValidBenchmarkUpdateHealth(previous) || previous.rows_fingerprint == null) {
+    return { rows_fingerprint: fingerprint, rows_updated_at_epoch_seconds: null };
+  }
+  return {
+    rows_fingerprint: fingerprint,
+    rows_updated_at_epoch_seconds:
+      previous.rows_fingerprint === fingerprint
+        ? previous.rows_updated_at_epoch_seconds
+        : refresh.atEpochSeconds,
+  };
+}
+
+/** Order-independent, so a source reordering its rows is not an update. */
+function rowsFingerprint(rows: readonly BenchmarkSourceRow[]): string {
+  const lines = rows
+    .map((row) =>
+      JSON.stringify([
+        row.identity,
+        row.label,
+        row.reasoningEffort,
+        row.value,
+        row.standardError,
+        row.version,
+      ]),
+    )
+    .sort();
+  return createHash("sha256").update(lines.join("\n")).digest("hex");
+}
+
+/** A source serving cached rows always has a fetch time, because the rows record when they were fetched. */
+function cachedRowsFetchedAt(key: string, sourceHealth: ModelAtlasSourceHealth): number | null {
+  const fetchedAt = benchmarkRawSources(key).flatMap((source) => {
+    const entry = sourceHealth.sources[source];
+    return entry?.status === "using_cached_rows" && entry.last_fetch_epoch_seconds != null
+      ? [entry.last_fetch_epoch_seconds]
+      : [];
+  });
+  return fetchedAt.length === 0 ? null : Math.min(...fetchedAt);
 }
 
 /** Generation and persisted validation share availability semantics, independent of benchmark merit. */
@@ -200,6 +335,7 @@ function modelObservations(models: readonly HealthModel[], key: string): Benchma
         provider: null,
         reasoningEffort: canonicalReasoningEffort(model.reasoning_effort),
         value,
+        standardError: null,
         version: null,
       },
     ];

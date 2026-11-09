@@ -79,11 +79,11 @@ const metadata = buildCurrentModelAtlasMetadata({
   sourceRowsByKey: source,
   benchmarkUpdateHealth: legacy,
 });
-assert.equal(metadata.benchmark_update_health?.superchem?.schema_version, 2);
+assert.equal(metadata.benchmark_update_health?.superchem?.schema_version, 3);
 assert.equal(metadata.benchmark_update_health?.superchem?.status, "unmatched");
 
 // Broken stored summaries must not bypass recomputation merely by claiming the latest version.
-const broken = { schema_version: 2, status: "matched" } as typeof partial;
+const broken = { schema_version: 3, status: "matched" } as typeof partial;
 assert.equal(isValidBenchmarkUpdateHealth(broken), false);
 assert.equal(isValidBenchmarkUpdateHealth({ ...partial, matched_model_count: -1 }), false);
 assert.equal(isValidBenchmarkUpdateHealth({ ...partial, observed_count: 0 }), false);
@@ -107,13 +107,19 @@ const restored = buildCurrentModelAtlasMetadata({
 assert.equal(restored.benchmark_update_health?.superchem?.status, "missing");
 assert.equal(isValidBenchmarkUpdateHealth(restored.benchmark_update_health?.superchem), true);
 
-const fixture = (identity: string, value: number, reasoningEffort: string | null = null) => ({
+const fixture = (
+  identity: string,
+  value: number,
+  reasoningEffort: string | null = null,
+  standardError: number | null = null,
+) => ({
   id: identity,
   identity,
   label: identity,
   provider: null,
   reasoningEffort,
   value,
+  standardError,
   version: null,
 });
 const summarize = (rows: ReturnType<typeof fixture>[]) =>
@@ -137,6 +143,33 @@ const variants = summarize([fixture("one-model", 0.9, "low"), fixture("one-model
 assert.equal(variants.source_leaders[0]?.reasoning_effort, "low");
 assert.equal(variants.source_leaders[0]?.variants.length, 2);
 assert.equal(variants.distinct_model_count, 1);
+assert.ok(
+  Math.abs(
+    summarize([fixture("a", 0.8, null, 0.02), fixture("b", 0.7, null, 0.04)]).spread
+      .top_standard_error! - 0.03,
+  ) < 1e-9,
+);
+assert.equal(
+  summarize([fixture("a", 0.8, null, 0.02), fixture("b", 0.7)]).spread.top_standard_error,
+  null,
+  "A leader without a published standard error leaves the top five's mean unknown",
+);
+assert.equal(
+  summarize([fixture("one-model", 0.9, "low", 0.01), fixture("one-model", 0.5, "high", 0.05)])
+    .spread.top_standard_error,
+  0.01,
+  "A leader's standard error comes from the row that supplies its value",
+);
+const efforts = summarize([
+  fixture("one-model", 0.8, "low"),
+  fixture("one-model", 0.7, "medium"),
+  fixture("one-model", 0.6, "high"),
+  fixture("unlabelled", 0.9),
+  fixture("unlabelled", 0.5, "low"),
+]).efforts;
+assert.equal(efforts.pair_count, 3, "An unlabelled row has no effort to compare");
+assert.equal(efforts.inverted_pair_count, 3);
+assert.ok(Math.abs(efforts.largest_inversion! - 0.2) < 1e-9);
 const input = [fixture("c", 0.1), fixture("a", 0.5), fixture("b", 0.5)];
 assert.deepEqual(summarize(input), summarize([...input].reverse()));
 assert.equal(input[0]?.identity, "c");
@@ -153,3 +186,74 @@ const outside = buildBenchmarkUpdateHealth(
 assert.ok(outside.source_leaders.every((row) => row.model_id == null));
 assert.equal(outside.matched_leaders[0]?.model_id, "openai/gpt-6-astra");
 assert.equal(outside.status, "partially_matched");
+
+const sourceHealthEntry = (status: "fresh" | "using_cached_rows", lastFetch: number) => ({
+  status,
+  last_fetch_epoch_seconds: lastFetch,
+  source_input_count: 1,
+  active_row_count: 1,
+  quarantined_row_count: 0,
+  quarantined_rows: [],
+});
+const currentSources = { generated_at_epoch_seconds: null, sources: {} };
+const refreshed = (
+  atEpochSeconds: number,
+  previous: ModelAtlasBenchmarkUpdateHealth | undefined,
+  rows: ReturnType<typeof fixture>[],
+) =>
+  buildBenchmarkUpdateHealth([], config, { superchem: rows }, undefined, {
+    atEpochSeconds,
+    previous,
+    sourceHealth: currentSources,
+  });
+const first = refreshed(100, undefined, [fixture("a", 0.7), fixture("b", 0.6)]);
+assert.equal(
+  first.superchem?.rows_updated_at_epoch_seconds,
+  null,
+  "A first refresh has nothing to compare",
+);
+const unchanged = refreshed(200, first, [fixture("b", 0.6), fixture("a", 0.7)]);
+assert.equal(
+  unchanged.superchem?.rows_updated_at_epoch_seconds,
+  null,
+  "Reordered rows are not an update",
+);
+const changed = refreshed(300, unchanged, [fixture("a", 0.71), fixture("b", 0.6)]);
+assert.equal(changed.superchem?.rows_updated_at_epoch_seconds, 300);
+assert.equal(
+  refreshed(400, changed, [fixture("a", 0.71), fixture("b", 0.6)]).superchem
+    ?.rows_updated_at_epoch_seconds,
+  300,
+);
+assert.equal(
+  refreshed(500, { superchem: summarize([fixture("a", 0.71)]) }, [fixture("a", 0.9)]).superchem
+    ?.rows_updated_at_epoch_seconds,
+  null,
+  "An entry built outside a refresh cannot be compared, so no update is claimed",
+);
+const fetches = buildBenchmarkUpdateHealth([], config, {}, undefined, {
+  atEpochSeconds: 100,
+  previous: undefined,
+  sourceHealth: {
+    generated_at_epoch_seconds: 100,
+    sources: {
+      superchem: sourceHealthEntry("fresh", 100),
+      artificial_analysis_benchmark_resources: sourceHealthEntry("using_cached_rows", 40),
+    },
+  },
+});
+assert.equal(fetches.superchem?.cached_rows_fetched_at_epoch_seconds, null);
+assert.equal(
+  fetches.hle?.cached_rows_fetched_at_epoch_seconds,
+  40,
+  "A benchmark read from Artificial Analysis resource pages follows that source's fetch",
+);
+assert.equal(
+  buildCurrentModelAtlasMetadata({
+    models: [],
+    scoringConfig: config,
+    benchmarkUpdateHealth: { ...changed, hle: broken },
+  }).benchmark_update_health?.superchem?.rows_fingerprint,
+  changed.superchem?.rows_fingerprint,
+  "Restoring keeps valid stored entries when another entry is invalid",
+);
