@@ -74,6 +74,8 @@ const DIRECTION_LABEL_HEIGHT = 32;
 // Reserve room above the highest score for full model callouts.
 const PLOT_TOP_GUTTER = 48;
 const MEDIAN_LABEL_CLEARANCE = 64;
+// An axis's spread fills a lane this far either side of its centre line, laid against the axis line on the side away from the tick marks and labels so nothing crosses it.
+const SPREAD_HALF_WIDTH = 4;
 const HOVER_EXIT_DELAY_MS = 150;
 
 export function FrontierBenchmarkScatterPlot<Row>({
@@ -140,7 +142,8 @@ export function FrontierBenchmarkScatterPlot<Row>({
     x: { get: metric.get, goal: metric.xHigherIsBetter ? "maximize" : "minimize" },
     y: { get: getScore, goal: "maximize" },
   });
-  const medianMetric = median(rows.map(metric.get)) ?? xDomain[0];
+  const metricValues = rows.map(metric.get);
+  const medianMetric = median(metricValues) ?? xDomain[0];
   const scores = rows.map(getScore);
   const medianScore = median(scores) ?? yDomain[0];
   const frontierRows = new Set(frontier);
@@ -409,11 +412,21 @@ export function FrontierBenchmarkScatterPlot<Row>({
             yLabel={`MED ${formatScore(medianScore)}`}
           />
           <AxisDistribution
-            scores={scores}
-            x={plot.left}
-            yPoint={yPoint}
+            axis="y"
+            values={scores}
+            // A compact plot sets its score labels just inside without tick marks, so its score spread sits outside instead.
+            at={compact ? plot.left - SPREAD_HALF_WIDTH : plot.left + SPREAD_HALF_WIDTH}
+            point={yPoint}
             label={yAxisLabel}
             format={formatScore}
+          />
+          <AxisDistribution
+            axis="x"
+            values={metricValues}
+            at={plot.bottom - SPREAD_HALF_WIDTH}
+            point={xPoint}
+            label={metric.noun}
+            format={metric.format}
           />
         </g>
         <DirectionArrow
@@ -610,48 +623,63 @@ function labelRect(placement: PointLabelPlacement, size: PointLabelSize, padding
   };
 }
 
-/** The y-axis carries the plotted scores' spread: whiskers over their range, a box over the middle half, and a mark at the median the median guide continues. */
+/** An axis carries its plotted values' spread: a box over the middle half, whiskers from it out to the lowest and highest values, and a mark at the median the median guide continues. */
 function AxisDistribution({
-  scores,
-  x,
-  yPoint,
+  axis,
+  values,
+  at,
+  point,
   label,
   format,
 }: {
-  scores: number[];
-  x: number;
-  yPoint: (value: number) => number;
+  axis: "x" | "y";
+  values: number[];
+  /** The spread's centre line, as a position on the other axis. */
+  at: number;
+  point: (value: number) => number;
   label: string;
   format: (value: number) => string;
 }) {
-  const sorted = [...scores].sort((left, right) => left - right);
+  const sorted = [...values].sort((left, right) => left - right);
   const min = sorted[0]!;
   const max = sorted.at(-1)!;
   const q1 = quantileSorted(sorted, 0.25)!;
   const median = quantileSorted(sorted, 0.5)!;
   const q3 = quantileSorted(sorted, 0.75)!;
-  const across = (value: number, reach: number) => ({
-    x1: x - reach,
-    x2: x + reach,
-    y1: yPoint(value),
-    y2: yPoint(value),
-  });
+  // Marks are laid out along the axis and across it, then set as SVG x and y for the axis's direction.
+  const segment = (from: number, to: number, reach: number) =>
+    axis === "y"
+      ? { x1: at - reach, x2: at + reach, y1: from, y2: to }
+      : { x1: from, x2: to, y1: at - reach, y2: at + reach };
+  const tick = (value: number, reach: number) => segment(point(value), point(value), reach);
+  const boxStart = Math.min(point(q1), point(q3));
+  const boxLength = Math.abs(point(q3) - point(q1));
   return (
     <g
       role="img"
       aria-label={`${label} distribution from ${format(min)} to ${format(max)}, first quartile ${format(q1)}, median ${format(median)}, and third quartile ${format(q3)}`}
     >
-      <line className={styles.axisRange} x1={x} x2={x} y1={yPoint(min)} y2={yPoint(max)} />
-      <line className={styles.axisRange} {...across(min, 4)} />
-      <line className={styles.axisRange} {...across(max, 4)} />
+      <line className={styles.axisRange} {...segment(point(min), point(q1), 0)} />
+      <line className={styles.axisRange} {...segment(point(q3), point(max), 0)} />
+      <line className={styles.axisRange} {...tick(min, SPREAD_HALF_WIDTH)} />
+      <line className={styles.axisRange} {...tick(max, SPREAD_HALF_WIDTH)} />
       <rect
         className={styles.axisQuartiles}
-        x={x - 4}
-        y={yPoint(q3)}
-        width={8}
-        height={yPoint(q1) - yPoint(q3)}
+        {...(axis === "y"
+          ? {
+              x: at - SPREAD_HALF_WIDTH,
+              y: boxStart,
+              width: SPREAD_HALF_WIDTH * 2,
+              height: boxLength,
+            }
+          : {
+              x: boxStart,
+              y: at - SPREAD_HALF_WIDTH,
+              width: boxLength,
+              height: SPREAD_HALF_WIDTH * 2,
+            })}
       />
-      <line className={styles.axisMedian} {...across(median, 5)} />
+      <line className={styles.axisMedian} {...tick(median, SPREAD_HALF_WIDTH)} />
     </g>
   );
 }
