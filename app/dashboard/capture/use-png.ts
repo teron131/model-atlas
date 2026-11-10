@@ -8,12 +8,12 @@ import { downloadElementPng } from "./png";
 
 export type CaptureState = "idle" | "rendering" | "saved" | "error";
 
-/** `onStaged` receives the copy staged at `captureWidth` before it renders. */
+/** `onStaged` receives the copy staged at `captureWidth`, and the element it copies, before it renders. */
 export function usePngCapture(
   targetRef: RefObject<HTMLElement | null>,
   fileName: string,
   captureWidth?: number,
-  onStaged?: (staged: HTMLElement) => void,
+  onStaged?: (staged: HTMLElement, live: HTMLElement) => void,
 ) {
   const [state, setState] = useState<CaptureState>("idle");
   const resetTimeoutRef = useRef<number | null>(null);

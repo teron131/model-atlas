@@ -16,7 +16,6 @@ import { GraphToggle } from "../GraphToggle";
 import { HoverCard, type HoverSetter, type HoverState } from "../HoverCard";
 import { scoreAxisScale } from "../plot/axis-scale";
 import { SCATTER_CHART_MARGIN } from "../plot/Primitives";
-import { useCompactChartLayout } from "../use-chart-layout";
 import {
   automaticResourceKeys,
   FRONTIER_AXIS_KEYS,
@@ -73,7 +72,6 @@ const ParetoFigure = memo(function ParetoFigure({
   onShowVariantsChange,
   setHover,
 }: ParetoPanelProps & { setHover: HoverSetter }) {
-  const compactLayout = useCompactChartLayout();
   const [performance, setPerformance] = useUrlState("performance");
   const [benchmarkKeys] = useUrlState("benchmark");
   const [axisKey, setAxisKey] = useUrlState("axes");
@@ -250,7 +248,6 @@ const ParetoFigure = memo(function ParetoFigure({
           getHoverRows={(row) => frontierBenchmarkHoverRows(row, axisConfig, performance)}
           getLabel={(row) => shortLabel(row.model)}
           connectReasoningVariants={showVariants}
-          compactLayout={compactLayout}
           setHover={setHover}
         />
       )}

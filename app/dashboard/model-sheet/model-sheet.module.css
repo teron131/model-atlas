@@ -1002,29 +1002,28 @@
 }
 
 /* A comparison narrower than its 880px plane gives the Compare toggle its own row, which link and close share at its right, so the names below keep their places over the value columns and need no room for the actions. */
-/* A saved card is staged at its own width whatever the window's, so the comparison rules that follow the window leave it alone. */
 @media (max-width: 900px) {
-  .sheet[data-compare]:not([data-capture-layout="artifact"]) .compareControls {
+  .sheet[data-compare] .compareControls {
     grid-column: 1 / -1;
   }
 
-  .sheet[data-compare]:not([data-capture-layout="artifact"]) .headEntry + .headEntry {
+  .sheet[data-compare] .headEntry + .headEntry {
     padding-right: 0;
   }
 
-  .sheet[data-compare]:not([data-capture-layout="artifact"]) .compareControls + .headEntry {
+  .sheet[data-compare] .compareControls + .headEntry {
     grid-column: 2;
   }
 }
 
 /* Two columns too narrow for the full cells keep each value, its margin, and its rank; support and every meter or bar (each cell's third slot) stay on the single sheet. */
 @media (max-width: 720px) {
-  .sheet[data-compare]:not([data-capture-layout="artifact"]) .scoreCell {
+  .sheet[data-compare] .scoreCell {
     grid-template-columns: 38px minmax(30px, 1fr) 30px;
     gap: 6px;
   }
 
-  .sheet[data-compare]:not([data-capture-layout="artifact"])
+  .sheet[data-compare]
     :is(
       .scoreCell > :nth-child(3),
       .scoreCell > :last-child,
@@ -1039,12 +1038,12 @@
     --benchmark-value: 70px;
   }
 
-  .sheet[data-compare]:not([data-capture-layout="artifact"]) .ratioCell {
+  .sheet[data-compare] .ratioCell {
     grid-template-columns: 44px minmax(0, 1fr);
     gap: 6px;
   }
 
-  .sheet[data-compare]:not([data-capture-layout="artifact"]) .benchmarkCell {
+  .sheet[data-compare] .benchmarkCell {
     grid-template-columns: var(--benchmark-value) minmax(0, 1fr);
     gap: 6px;
   }
@@ -1074,53 +1073,48 @@
   }
 
   /* A phone's sheet runs to the screen's foot, so no strip of the page shows beneath it, and its last rows clear the home indicator. */
-  .sheet:not([data-capture-layout="artifact"]) {
+  .sheet {
     bottom: 0;
     padding-bottom: env(safe-area-inset-bottom);
     border-bottom: 0;
   }
 
   /* Once the evidence scrolls, the single sheet's head folds to one line of mark, name, and actions; the kicker and slug step aside and Compare waits at the top. The height it gives up stays as margin, so the evidence never jumps, and the sheet skips scroll anchoring, which would otherwise pull the scroll back to the top as the head folds. */
-  .sheet:not([data-compare], [data-capture-layout="artifact"]) {
+  .sheet:not([data-compare]) {
     overflow-anchor: none;
   }
 
-  .sheet:not([data-compare], [data-capture-layout="artifact"]) .head[data-folded] {
+  .sheet:not([data-compare]) .head[data-folded] {
     gap: 6px;
     margin-bottom: var(--head-fold);
     padding-block: 8px;
   }
 
-  .sheet:not([data-compare], [data-capture-layout="artifact"]) .head[data-folded] .headEntry {
+  .sheet:not([data-compare]) .head[data-folded] .headEntry {
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
   }
 
-  .sheet:not([data-compare], [data-capture-layout="artifact"]) .head[data-folded] .actions {
+  .sheet:not([data-compare]) .head[data-folded] .actions {
     order: 0;
     margin-top: 0;
   }
 
-  .sheet:not([data-compare], [data-capture-layout="artifact"])
-    .head[data-folded]
-    :is(.compareToggle, .kicker, .slug) {
+  .sheet:not([data-compare]) .head[data-folded] :is(.compareToggle, .kicker, .slug) {
     display: none;
   }
 
-  .sheet:not([data-compare], [data-capture-layout="artifact"]) .head[data-folded] .identity {
+  .sheet:not([data-compare]) .head[data-folded] .identity {
     grid-template-columns: 22px minmax(0, 1fr);
     gap: 10px;
   }
 
-  .sheet:not([data-compare], [data-capture-layout="artifact"])
-    .head[data-folded]
-    .identity
-    :global(.provider-logo) {
+  .sheet:not([data-compare]) .head[data-folded] .identity :global(.provider-logo) {
     width: 22px;
     height: 22px;
   }
 
-  .sheet:not([data-compare], [data-capture-layout="artifact"]) .head[data-folded] .name {
+  .sheet:not([data-compare]) .head[data-folded] .name {
     font-size: 17px;
   }
 
@@ -1130,26 +1124,26 @@
     font-size: 13px;
   }
 
-  .sheet[data-compare]:not([data-capture-layout="artifact"]) {
+  .sheet[data-compare] {
     --sheet-label: 100px;
   }
 
   /* Phone columns keep each name readable: a smaller mark and name, and no slug. */
-  .sheet[data-compare]:not([data-capture-layout="artifact"]) .name {
+  .sheet[data-compare] .name {
     font-size: 16px;
   }
 
-  .sheet[data-compare]:not([data-capture-layout="artifact"]) .identity {
+  .sheet[data-compare] .identity {
     grid-template-columns: 22px minmax(0, 1fr);
     gap: 8px;
   }
 
-  .sheet[data-compare]:not([data-capture-layout="artifact"]) .identity :global(.provider-logo) {
+  .sheet[data-compare] .identity :global(.provider-logo) {
     width: 22px;
     height: 22px;
   }
 
-  .sheet[data-compare]:not([data-capture-layout="artifact"]) .slug {
+  .sheet[data-compare] .slug {
     display: none;
   }
 
@@ -1160,7 +1154,7 @@
   .score,
   .scoreHead,
   .ratios li,
-  .sheet[data-compare]:not([data-capture-layout="artifact"]) :is(.fact, .benchmarks li) {
+  .sheet[data-compare] :is(.fact, .benchmarks li) {
     gap: 8px;
   }
 
@@ -1182,47 +1176,47 @@
 
 /* Phone columns are too narrow for a mark beside a name, so each mark sits above its name, which steps down with its kicker to keep to a line or two. */
 @media (max-width: 480px) {
-  .sheet[data-compare]:not([data-capture-layout="artifact"]) .identity {
+  .sheet[data-compare] .identity {
     grid-template-columns: minmax(0, 1fr);
     gap: 6px;
   }
 
-  .sheet[data-compare]:not([data-capture-layout="artifact"]) .name {
+  .sheet[data-compare] .name {
     font-size: 15px;
   }
 
-  .sheet[data-compare]:not([data-capture-layout="artifact"]) .kicker {
+  .sheet[data-compare] .kicker {
     font-size: var(--type-micro-size);
   }
 }
 
 /* The narrowest phones close up the label column and the cells so value, margin, and rank still fit. */
 @media (max-width: 380px) {
-  .sheet[data-compare]:not([data-capture-layout="artifact"]) {
+  .sheet[data-compare] {
     --sheet-label: 92px;
   }
 
-  .sheet[data-compare]:not([data-capture-layout="artifact"]) .scoreCell {
+  .sheet[data-compare] .scoreCell {
     gap: 4px;
   }
 
-  .sheet[data-compare]:not([data-capture-layout="artifact"]) .benchmarks {
+  .sheet[data-compare] .benchmarks {
     --benchmark-value: 62px;
   }
 }
 
 /* Below 350px two columns hold only each value and its margin, so ranks stay on the single sheet. */
 @media (max-width: 349px) {
-  .sheet[data-compare]:not([data-capture-layout="artifact"])
+  .sheet[data-compare]
     :is(.scoreHead, .scoreCell > :nth-child(4), [aria-labelledby="model-sheet-scores"] h3 small) {
     display: none;
   }
 
-  .sheet[data-compare]:not([data-capture-layout="artifact"]) .scoreCell {
+  .sheet[data-compare] .scoreCell {
     grid-template-columns: 38px minmax(30px, 1fr);
   }
 
-  .sheet[data-compare]:not([data-capture-layout="artifact"]) .benchmarks {
+  .sheet[data-compare] .benchmarks {
     --benchmark-value: 50px;
   }
 }

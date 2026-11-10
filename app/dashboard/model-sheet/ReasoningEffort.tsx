@@ -155,7 +155,7 @@ function EffortPlot({
       : marks.filter((mark) => !mark.muted).map((mark) => ({ ...mark, label: mark.point.effort }));
   const { svgRef, labelSizes } = useLabelSizes(
     labels.map((label) => label.label).join("\0"),
-    false,
+    plot.compact,
   );
   const placements = calloutLabelPlacements({
     labels: labels.map(({ key, label, cx, cy, radius }) => ({
@@ -208,7 +208,11 @@ function EffortPlot({
   };
 
   return (
-    <div ref={plot.chartRef} className={`${graphStyles.chartTokens} ${styles.plot}`}>
+    <div
+      ref={plot.chartRef}
+      className={`${graphStyles.chartTokens} ${styles.plot}`}
+      data-capture-plot
+    >
       <svg
         ref={svgRef}
         viewBox={`0 0 ${plot.width} ${plot.height}`}

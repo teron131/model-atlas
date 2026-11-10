@@ -20,6 +20,7 @@ import type { ModelAtlasModel, ModelAtlasPayload } from "../../../src/model-atla
 import { CaptureButton } from "../capture/CaptureButton";
 import { ARTIFACT_WIDTH, WIDE_ARTIFACT_WIDTH } from "../capture/png";
 import { CopyDashboardLink } from "../CopyDashboardLink";
+import { redrawPlotsForCapture } from "../graphs/use-chart-layout";
 import { benchmarkLabels } from "../shared/constants";
 import { ModalityIcons, RatioTrack, ScoreMeter } from "../shared/DashboardMarks";
 import { providerBrandColor, providerDisplayName } from "../shared/provider-theme";
@@ -60,7 +61,6 @@ import {
   unpinModelSheet,
 } from "./open";
 import { ReasoningEffort } from "./ReasoningEffort";
-import { CardPlotWidth, useCardPlotRedraw } from "./SheetPlot";
 
 import styles from "./model-sheet.module.css";
 
@@ -184,8 +184,6 @@ export function ModelSheet({ payload }: { payload: ModelAtlasPayload | null }) {
     return () => document.removeEventListener("click", dismissOnClickElsewhere);
   }, [open]);
 
-  const cardPlots = useCardPlotRedraw(sheetRef);
-
   if (!open) return null;
   if (opened == null) {
     return (
@@ -225,9 +223,9 @@ export function ModelSheet({ payload }: { payload: ModelAtlasPayload | null }) {
       title={captureTitle}
       kind="sheet"
       captureWidth={comparing ? WIDE_ARTIFACT_WIDTH : ARTIFACT_WIDTH}
-      onStaged={(card) => {
+      onStaged={(card, sheet) => {
         clearCopiedLabelColumn(card);
-        cardPlots.redraw(card);
+        redrawPlotsForCapture(card, sheet);
       }}
     />
   );
@@ -292,12 +290,10 @@ export function ModelSheet({ payload }: { payload: ModelAtlasPayload | null }) {
         <Facts entries={entries} />
         <Scores entries={entries} />
         <Resources entries={entries} />
-        <CardPlotWidth.Provider value={cardPlots.width}>
-          <FrontierInset population={opened.rows} entries={entries} />
-          {entries.some((entry) => entry.variants.length > 1) ? (
-            <ReasoningEffort entries={entries} />
-          ) : null}
-        </CardPlotWidth.Provider>
+        <FrontierInset population={opened.rows} entries={entries} />
+        {entries.some((entry) => entry.variants.length > 1) ? (
+          <ReasoningEffort entries={entries} />
+        ) : null}
         <BenchmarkEvidence entries={entries} />
         {!comparing && opened.row.model.latest_change ? (
           <ChangeHistory

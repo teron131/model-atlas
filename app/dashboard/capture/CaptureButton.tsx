@@ -22,7 +22,7 @@ export function CaptureButton({
   captureWidth: number;
   fileName?: string;
   kind?: string;
-  onStaged?: (staged: HTMLElement) => void;
+  onStaged?: (staged: HTMLElement, live: HTMLElement) => void;
 }) {
   const { capture, state } = usePngCapture(
     targetRef,

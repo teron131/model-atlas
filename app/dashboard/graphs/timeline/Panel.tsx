@@ -34,7 +34,7 @@ import {
   XAxisTicks,
   YAxisTicks,
 } from "../plot/Primitives";
-import { useChartWidth, useCompactChartLayout } from "../use-chart-layout";
+import { useChartLayout } from "../use-chart-layout";
 import { type TimelinePoint, timelinePointLabel, timelineScoreDomain } from "./chart-data";
 import {
   coverageFrontier,
@@ -97,7 +97,7 @@ export const TimelinePanel = memo(function TimelinePanel({
     [stopReplay, setProviders],
   );
   const scope = `${view}:${period}:${providers?.join(",") ?? "all"}`;
-  const compact = useCompactChartLayout();
+  const { chartRef, width, compact } = useChartLayout(SCATTER_CHART_WIDTH);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -212,7 +212,6 @@ export const TimelinePanel = memo(function TimelinePanel({
       ? undefined
       : (currentModelLookup.byId.get(positionCatalogId(chosen.id) ?? "") ??
         currentModelLookup.byName.get(chosen.name));
-  const { chartRef, width } = useChartWidth(SCATTER_CHART_WIDTH);
   const height = compact ? 400 : 520;
   const margin = {
     top: compact ? 64 : 42,
@@ -552,13 +551,16 @@ export const TimelinePanel = memo(function TimelinePanel({
                 labs={labs}
                 start={start}
                 end={end}
-                compact={compact}
                 navigator={navigator}
                 onPreview={setPreview}
                 onSelect={setSelected}
               />
             ) : (
-              <div ref={chartRef} className={`${styles.chartWrap} ${timeline.chart}`}>
+              <div
+                ref={chartRef}
+                className={`${styles.chartWrap} ${timeline.chart}`}
+                data-capture-plot
+              >
                 <svg
                   ref={svgRef}
                   viewBox={`0 0 ${width} ${height}`}

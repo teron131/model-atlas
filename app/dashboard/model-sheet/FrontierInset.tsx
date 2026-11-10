@@ -94,7 +94,7 @@ export function FrontierInset({
     : [];
   const { svgRef, labelSizes } = useLabelSizes(
     labels.map((label) => label.label).join("\0"),
-    false,
+    plot.compact,
   );
   if (points.length < 3) return null;
 
@@ -130,7 +130,11 @@ export function FrontierInset({
       <h3 id="model-sheet-frontier">
         Frontier <small>{comparing ? "Intelligence against cost" : statuses[0]}</small>
       </h3>
-      <div ref={plot.chartRef} className={`${graphStyles.chartTokens} ${styles.plot}`}>
+      <div
+        ref={plot.chartRef}
+        className={`${graphStyles.chartTokens} ${styles.plot}`}
+        data-capture-plot
+      >
         <svg
           ref={svgRef}
           viewBox={`0 0 ${plot.width} ${plot.height}`}

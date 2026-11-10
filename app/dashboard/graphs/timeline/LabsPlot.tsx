@@ -16,7 +16,7 @@ import {
   XAxisTicks,
   YAxisTicks,
 } from "../plot/Primitives";
-import { useChartWidth } from "../use-chart-layout";
+import { useChartLayout } from "../use-chart-layout";
 import { type TimelinePoint, timelinePointLabel, timelineScoreDomain } from "./chart-data";
 import type { LabFrontier } from "./frontier";
 
@@ -27,7 +27,6 @@ export function LabsPlot({
   labs,
   start,
   end,
-  compact,
   onSelect,
   onPreview,
   navigator,
@@ -36,7 +35,6 @@ export function LabsPlot({
   labs: LabFrontier<TimelinePoint>[];
   start: number;
   end: number;
-  compact: boolean;
   onSelect: (id: string) => void;
   onPreview: (point: TimelinePoint | null) => void;
 }) {
@@ -55,7 +53,7 @@ export function LabsPlot({
   }
 
   const highlight = hovered ?? active;
-  const { chartRef, width } = useChartWidth(SCATTER_CHART_WIDTH);
+  const { chartRef, width, compact } = useChartLayout(SCATTER_CHART_WIDTH);
   const height = compact ? 400 : 540;
   const margin = {
     top: compact ? 48 : 28,
@@ -158,7 +156,7 @@ export function LabsPlot({
   });
   return (
     <>
-      <div ref={chartRef} className={`${styles.chartWrap} ${timeline.chart}`}>
+      <div ref={chartRef} className={`${styles.chartWrap} ${timeline.chart}`} data-capture-plot>
         <svg
           ref={svgRef}
           viewBox={`0 0 ${width} ${height}`}

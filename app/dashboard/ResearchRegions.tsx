@@ -15,6 +15,7 @@ import { clamp01 } from "../../src/model-atlas/math-utils";
 import { CaptureButton } from "./capture/CaptureButton";
 import { ARTIFACT_WIDTH } from "./capture/png";
 import { CopyDashboardLink } from "./CopyDashboardLink";
+import { redrawPlotsForCapture } from "./graphs/use-chart-layout";
 import { RESEARCH_REGION_IDS, researchRegion, type ResearchRegionId } from "./research-index";
 import { dashboardUrlSection } from "./url-state";
 
@@ -77,7 +78,7 @@ export function ResearchRail({ children }: { children: ReactNode }) {
 
 /**
  * A region opens with the ordinal and name the rail gives it, then its actions: save an image and copy a link to the region.
- * A figure region's image is its own frame, named by `capture.title`; a region that renders a separate image supplies its own `capture.action`.
+ * A figure region's image is its own frame with its plots redrawn at the image's width, named by `capture.title`; a region that renders a separate image supplies its own `capture.action`.
  */
 export function ResearchRegion({
   id,
@@ -118,6 +119,7 @@ export function ResearchRegion({
               fileName={capture.fileName}
               targetRef={regionRef}
               title={capture.title}
+              onStaged={redrawPlotsForCapture}
             />
           )}
           <CopyDashboardLink sectionId={id} />

@@ -1188,12 +1188,10 @@
     max-width: 100%;
   }
 
-  /* A phone plot is a third of the desktop's width, so its ticks, titles, and model names take the caption size and leave the plot to the stars; labels are measured as rendered, so placement follows. */
-  .axisLabel,
-  .axisTitle,
-  .medianLabel,
-  .pointLabel,
-  .cursorProjectionLabel {
+  /* A phone plot is a third of the desktop's width, so its ticks, titles, and model names take the caption size and leave the plot to the stars; labels are measured as rendered, so placement follows. A plot redrawn for a saved image keeps the desktop sizes the image sets it in. */
+  :is(.axisLabel, .axisTitle, .medianLabel, .pointLabel, .cursorProjectionLabel):not(
+    [data-capture-layout="artifact"] *
+  ) {
     font-size: var(--type-caption-size);
   }
 

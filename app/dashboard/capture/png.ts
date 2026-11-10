@@ -1,4 +1,4 @@
-/** Browser-side PNG renderer for dashboard captures: a research region or the model sheet restaged at the export width, or an export-only surface such as the leaderboard's captured as it is. */
+/** Browser-side PNG renderer for dashboard captures: a research region or the model sheet restaged in an off-screen frame as wide as the export, so a phone saves the same image as a desktop, or an export-only surface such as the leaderboard's captured as it is. */
 
 // Every export shares one width, wider only for a two-model comparison card, and renders at twice its CSS size so text stays sharp when shared or zoomed.
 export const ARTIFACT_WIDTH = 1200;
@@ -46,28 +46,37 @@ export async function downloadElementPng(
   element: HTMLElement,
   fileName: string,
   captureWidth?: number,
-  onStaged?: (staged: HTMLElement) => void,
+  onStaged?: (staged: HTMLElement, live: HTMLElement) => void,
 ): Promise<void> {
   const rendererPromise = import("html-to-image");
   await document.fonts.ready;
-  const stagedCapture = captureWidth == null ? null : stageCapture(element, captureWidth);
+  const stagedCapture = captureWidth == null ? null : await stageCapture(element, captureWidth);
   const captureElement = stagedCapture?.element ?? element;
-  if (stagedCapture != null) onStaged?.(stagedCapture.element);
-  const [{ toBlob }] = await Promise.all([rendererPromise, waitForImages(captureElement)]);
-  const backgroundColor = captureBackgroundColor(captureElement);
-  const restoreSvgStyles = materializeSvgStyles(captureElement);
   let blob: Blob | null;
   try {
-    blob = await toBlob(captureElement, {
-      backgroundColor,
-      cacheBust: true,
-      imagePlaceholder: MISSING_IMAGE,
-      filter: (node) => !(node instanceof Element) || !node.hasAttribute("data-capture-exclude"),
-      pixelRatio: PNG_PIXEL_RATIO,
-      width: captureWidth,
-    });
+    if (stagedCapture != null) onStaged?.(stagedCapture.element, element);
+    // Fonts load as text is laid out, so the frame lays its copy out before waiting on them.
+    captureElement.getBoundingClientRect();
+    const [{ toBlob }] = await Promise.all([
+      rendererPromise,
+      captureElement.ownerDocument.fonts.ready,
+      waitForImages(captureElement),
+    ]);
+    const backgroundColor = captureBackgroundColor(captureElement);
+    const restoreSvgStyles = materializeSvgStyles(captureElement);
+    try {
+      blob = await toBlob(captureElement, {
+        backgroundColor,
+        cacheBust: true,
+        imagePlaceholder: MISSING_IMAGE,
+        filter: (node) => !(node instanceof Element) || !node.hasAttribute("data-capture-exclude"),
+        pixelRatio: PNG_PIXEL_RATIO,
+        width: captureWidth,
+      });
+    } finally {
+      restoreSvgStyles();
+    }
   } finally {
-    restoreSvgStyles();
     stagedCapture?.remove();
   }
   if (blob == null) {
@@ -76,54 +85,102 @@ export async function downloadElementPng(
   downloadBlob(blob, `${fileName}.png`);
 }
 
-function stageCapture(element: HTMLElement, width: number) {
-  const stage = document.createElement("div");
-  stage.style.position = "fixed";
-  stage.style.top = "0";
-  stage.style.left = CAPTURE_STAGE_OFFSET;
-  stage.style.width = `${width}px`;
-  stage.style.pointerEvents = "none";
-  stage.style.zIndex = "-1";
-  const captureElement = element.cloneNode(true) as HTMLElement;
-  copyResolvedCustomProperties(element, captureElement);
-  captureElement.dataset.captureLayout = "artifact";
-  captureElement.style.width = `${width}px`;
-  captureElement.style.maxWidth = "none";
-  captureElement.style.margin = "0";
-  // Parts left out of the image leave the clone before layout, so they leave no gap behind.
-  captureElement.querySelectorAll("[data-capture-exclude]").forEach((node) => {
-    node.remove();
-  });
-  // Lazy images never start loading in an off-screen stage, so the clone asks for every image now.
-  captureElement.querySelectorAll("img").forEach((image) => {
-    image.loading = "eager";
-  });
-  stage.append(captureElement);
-  (
-    element.closest("[data-capture-theme]") ??
-    element.closest(".dashboard-main") ??
-    document.body
-  ).append(stage);
-  return {
-    element: captureElement,
-    remove: () => stage.remove(),
-  };
+/**
+ * Copy `element` into an off-screen frame `width` pixels wide, so media queries answer for the frame rather than the viewer's screen and the copy takes the layout and type sizes a window of that width gives it.
+ * The frame repeats the page's stylesheets and the element's ancestors, shallowly, so every selector and inherited token that reaches the element on the page reaches the copy.
+ */
+async function stageCapture(element: HTMLElement, width: number) {
+  const frame = document.createElement("iframe");
+  frame.setAttribute("aria-hidden", "true");
+  frame.style.position = "fixed";
+  frame.style.top = "0";
+  frame.style.left = CAPTURE_STAGE_OFFSET;
+  frame.style.width = `${width}px`;
+  frame.style.border = "0";
+  frame.srcdoc = "<!doctype html><title>Capture</title>";
+  const frameLoaded = new Promise((resolve) =>
+    frame.addEventListener("load", resolve, { once: true }),
+  );
+  document.body.append(frame);
+  try {
+    await frameLoaded;
+    const frameDocument = frame.contentDocument;
+    if (frameDocument == null) throw new Error("The capture frame has no document.");
+    // The root's attributes carry the theme.
+    for (const { name, value } of Array.from(document.documentElement.attributes)) {
+      frameDocument.documentElement.setAttribute(name, value);
+    }
+    const stylesheetsLoaded = Array.from(
+      document.head.querySelectorAll('link[rel="stylesheet"], style'),
+      (source) => {
+        const sheet = frameDocument.importNode(source, true);
+        const loaded = source instanceof HTMLLinkElement ? stylesheetLoaded(sheet) : null;
+        frameDocument.head.append(sheet);
+        return loaded;
+      },
+    );
+    // The copy joins the frame once its styles apply, so its first style is final instead of a transition from the browser's defaults.
+    await Promise.all(stylesheetsLoaded);
+    let parent: Element = frameDocument.body;
+    for (const ancestor of ancestorsBelowBody(element)) {
+      parent = parent.appendChild(frameDocument.importNode(ancestor, false));
+    }
+    // A fixed stage lets the copy take its own width whatever layout its ancestors set.
+    const stage = frameDocument.createElement("div");
+    stage.style.position = "fixed";
+    stage.style.top = "0";
+    stage.style.left = "0";
+    stage.style.width = `${width}px`;
+    const captureElement = frameDocument.importNode(element, true);
+    captureElement.dataset.captureLayout = "artifact";
+    captureElement.style.width = `${width}px`;
+    captureElement.style.maxWidth = "none";
+    captureElement.style.margin = "0";
+    // Parts left out of the image leave the copy before layout, so they leave no gap behind.
+    captureElement.querySelectorAll("[data-capture-exclude]").forEach((node) => {
+      node.remove();
+    });
+    // Lazy images never start loading in an off-screen frame, so the copy asks for every image now.
+    captureElement.querySelectorAll("img").forEach((image) => {
+      image.loading = "eager";
+    });
+    stage.append(captureElement);
+    parent.append(stage);
+    return {
+      element: captureElement,
+      remove: () => frame.remove(),
+    };
+  } catch (error) {
+    frame.remove();
+    throw error;
+  }
 }
 
-/** Preserve inherited theme tokens when the capture root is moved outside its CSS-module ancestor. */
-function copyResolvedCustomProperties(source: HTMLElement, target: HTMLElement): void {
-  const sourceStyle = window.getComputedStyle(source);
-  for (let index = 0; index < sourceStyle.length; index += 1) {
-    const property = sourceStyle.item(index);
-    if (!property.startsWith("--")) {
-      continue;
-    }
-    target.style.setProperty(
-      property,
-      sourceStyle.getPropertyValue(property),
-      sourceStyle.getPropertyPriority(property),
+function stylesheetLoaded(link: Element): Promise<void> {
+  return new Promise((resolve, reject) => {
+    link.addEventListener("load", () => resolve(), { once: true });
+    link.addEventListener(
+      "error",
+      () =>
+        reject(
+          new Error(`Stylesheet ${link.getAttribute("href")} failed to load for the capture.`),
+        ),
+      { once: true },
     );
+  });
+}
+
+/** The element's ancestors from the one inside `<body>` down to its parent. */
+function ancestorsBelowBody(element: HTMLElement): Element[] {
+  const ancestors: Element[] = [];
+  for (
+    let node = element.parentElement;
+    node != null && node !== document.body;
+    node = node.parentElement
+  ) {
+    ancestors.unshift(node);
   }
+  return ancestors;
 }
 
 /** Inline computed SVG presentation styles because the renderer deep-clones SVG children without decorating them. */

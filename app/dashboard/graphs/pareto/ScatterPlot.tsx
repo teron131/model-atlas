@@ -53,7 +53,7 @@ import {
   YAxisTicks,
 } from "../plot/Primitives";
 import { starConnectorSegments, starMarkRadius } from "../plot/star-marks";
-import { useChartWidth } from "../use-chart-layout";
+import { useChartLayout } from "../use-chart-layout";
 
 import styles from "../graphs.module.css";
 
@@ -94,7 +94,6 @@ export function FrontierBenchmarkScatterPlot<Row>({
   getHoverTitle,
   getLabel,
   connectReasoningVariants = false,
-  compactLayout,
   setHover,
   margin,
 }: {
@@ -115,19 +114,18 @@ export function FrontierBenchmarkScatterPlot<Row>({
   getHoverTitle?: (row: Row) => string;
   getLabel: (row: Row) => string;
   connectReasoningVariants?: boolean;
-  compactLayout: boolean;
   setHover: HoverSetter;
   margin: Margin;
 }) {
-  const { chartRef, width } = useChartWidth(SCATTER_CHART_WIDTH);
-  const height = compactLayout ? Math.min(SCATTER_CHART_HEIGHT, 400) : SCATTER_CHART_HEIGHT;
+  const { chartRef, width, compact } = useChartLayout(SCATTER_CHART_WIDTH);
+  const height = compact ? Math.min(SCATTER_CHART_HEIGHT, 400) : SCATTER_CHART_HEIGHT;
   const [highlightedVariantKey, setHighlightedVariantKey] = useVariantHighlight();
   const guideMaskId = useId();
-  const chartMargin = scatterChartMargin(margin, compactLayout);
+  const chartMargin = scatterChartMargin(margin, compact);
   const { cursorProjection, cursorHandlers, setCursorProjection } = useCursorProjection();
   const plot = plotBoundsFor(width, height, chartMargin);
-  const edgeGutter = compactLayout ? 12 : PLOT_EDGE_GUTTER;
-  const topGutter = compactLayout ? 24 : PLOT_TOP_GUTTER;
+  const edgeGutter = compact ? 12 : PLOT_EDGE_GUTTER;
+  const topGutter = compact ? 24 : PLOT_TOP_GUTTER;
   const x = (metric.logarithmic ? scaleLog().base(10) : scaleLinear())
     .domain(xDomain)
     .range([plot.left + edgeGutter, plot.right - edgeGutter])
@@ -173,7 +171,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
     return `${gain < 0 ? "−" : "+"}${Math.abs(gain).toFixed(1)} at ${change} ${metric.noun}`;
   };
   // A mid-scoring model matches the leaderboard's score star: 6px wide, or 5px on compact layouts.
-  const [minMarkRadius, maxMarkRadius] = compactLayout ? [1.75, 3.25] : [2, 3.75];
+  const [minMarkRadius, maxMarkRadius] = compact ? [1.75, 3.25] : [2, 3.75];
   const markRadius = (row: Row) => starMarkRadius(getModel(row), minMarkRadius, maxMarkRadius);
   const projectionPoints = rows.map((row) => {
     const xValue = metric.get(row);
@@ -201,11 +199,11 @@ export function FrontierBenchmarkScatterPlot<Row>({
   const highlightedRows =
     reasoningGroups.find((group) => group.key === activeReasoningGroup)?.variants ??
     (activeRow == null ? [] : [activeRow]);
-  const persistentLabels = compactLayout
+  const persistentLabels = compact
     ? [...frontier].sort((a, b) => getScore(b) - getScore(a)).slice(0, 3)
     : frontier;
   const labeledRows = [...new Set([...highlightedRows, ...persistentLabels])];
-  const { svgRef, labelSizes } = useLabelSizes(labeledRows.map(getLabel).join("\0"), compactLayout);
+  const { svgRef, labelSizes } = useLabelSizes(labeledRows.map(getLabel).join("\0"), compact);
   const layoutRequest: Parameters<typeof calloutLabelPlacements>[0] = {
     bounds: {
       left: plot.left + LABEL_EDGE_GUTTER,
@@ -322,6 +320,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
     <div
       ref={chartRef}
       className={styles.chartWrap}
+      data-capture-plot
       style={{ "--chart-max-width": `${SCATTER_CHART_WIDTH}px` } as CSSProperties}
       role="group"
       aria-label={`${ariaLabel} viewport`}
@@ -360,7 +359,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
         <PlotFrame width={width} height={height} margin={chartMargin} />
         <CursorCapture bounds={plot} />
         <YAxisTicks
-          insetRight={compactLayout ? plot.right : undefined}
+          insetRight={compact ? plot.right : undefined}
           showGridLines={false}
           ticks={yTicks}
           yPoint={yPoint}
@@ -382,7 +381,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
           margin={chartMargin}
           x={metric.label}
           y={yAxisLabel}
-          compact={compactLayout}
+          compact={compact}
           xTitleOffset={50}
         />
         <g mask={`url(#${guideMaskId})`}>
@@ -560,7 +559,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
                   data-capture-exclude
                   {...labelRect(placement, size, 3)}
                   fill="transparent"
-                  pointerEvents={compactLayout ? "none" : "all"}
+                  pointerEvents={compact ? "none" : "all"}
                   aria-hidden="true"
                 />
               ) : null}
