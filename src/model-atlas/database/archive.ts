@@ -1,10 +1,11 @@
-/** Preserve source evidence and matched model observations outside the checkpoint: every refresh restores the checkpoint into memory, so retained history lives in append-only storage objects and each publication adds only the records it newly observed. */
+/** Preserve source evidence, matched model observations, and the change log outside the checkpoint: every refresh restores the checkpoint into memory, so retained history lives in append-only storage objects and each publication adds only the records it newly observed. */
 
 import { createHash } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
 
 import { BENCHMARK_CATALOG } from "../benchmarks/registry";
 import { type JsonObject, stableJson } from "../runtime";
+import { CHANGE_LOG_TABLES } from "./change-log";
 
 type Evidence = { sourceTable: string; json: string; key: string };
 
@@ -42,6 +43,9 @@ function* checkpointEvidence(databasePath: string): Generator<Evidence> {
         const { row_index: _index, fetched_at_epoch_seconds: _fetched, ...record } = row;
         yield evidence(table, record);
       }
+    }
+    for (const table of CHANGE_LOG_TABLES) {
+      for (const row of db.prepare(`SELECT * FROM ${table}`).iterate()) yield evidence(table, row);
     }
     if (!tables.has("models") || !tables.has("model_benchmarks")) return;
     const benchmarks = modelObservations(db, "model_benchmarks", "benchmark_key");

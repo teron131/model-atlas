@@ -173,6 +173,17 @@ try {
       false,
       "Caches holding effective prices without listed route prices predate the blend and must refetch",
     );
+    assert.equal(
+      openRouterCacheHasCurrentShape(
+        cacheRows
+          .filter((row) => row.row_kind !== "series_weight")
+          .map((row) =>
+            row.row_kind === "stat_point" ? { ...row, series_token_weight: 123 } : row,
+          ),
+      ),
+      false,
+      "Caches that repeat series weights on every stat point predate weight rows and must refetch",
+    );
     db.prepare(
       "DELETE FROM openrouter_raw_rows WHERE row_kind = 'endpoint_summary' AND model_id = ?",
     ).run(cachedModel.id);
@@ -190,6 +201,29 @@ try {
       openRouterCacheHasCurrentShape(db),
       false,
       "Projected shape checks must still reject candidates outside the requested model route",
+    );
+    db.prepare("DELETE FROM openrouter_raw_rows").run();
+    insertOpenRouterRawRows(db, {
+      ...cached,
+      directory: [
+        ...cached.directory,
+        { slug: "deepseek/deepseek-chat", permaslug: "deepseek/deepseek-chat-v3-0324" },
+      ],
+      models: [
+        ...cached.models,
+        {
+          id: "deepseek/deepseek-v3",
+          selected_permaslug: null,
+          candidate_permaslugs: ["deepseek/deepseek-chat-v3-0324"],
+          performance: {},
+          route_prices: [],
+        },
+      ],
+    });
+    assert.equal(
+      openRouterCacheHasCurrentShape(db),
+      true,
+      "A candidate the fetch resolved through a declared alias keeps the cache current",
     );
     db.prepare("DELETE FROM openrouter_raw_rows").run();
     insertOpenRouterRawRows(db, cached);

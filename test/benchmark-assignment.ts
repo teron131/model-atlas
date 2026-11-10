@@ -7,7 +7,6 @@ import {
   buildBenchmarkObservationLookup,
 } from "../src/model-atlas/benchmarks/observation";
 import { STAGE_CONFIG } from "../src/model-atlas/config";
-import { buildBenchmarkVersionLogRows } from "../src/model-atlas/database/checkpoint";
 import { buildBenchmarkModelMap } from "../src/model-atlas/identity/normalization";
 import {
   assignBenchmarksToVariants,
@@ -795,83 +794,6 @@ assert.deepEqual(
   },
   "changed task costs should be dated now and should not be adjusted a second time",
 );
-const lunaVersionLog = buildBenchmarkVersionLogRows(
-  [
-    {
-      id: "openai/gpt-5.6-luna",
-      reasoning_effort: "max",
-      task_metrics: {
-        agents_last_exam: {
-          cost: 4.2,
-          seconds: 300,
-          output_tokens: 12_000,
-        },
-        terminal_bench_science: {
-          cost: 2.1,
-          tokens: 12_345,
-        },
-      },
-      benchmarks: {
-        agents_last_exam: 0.72,
-        vending_bench_2: 4_094.712,
-      },
-      benchmark_dates: null,
-    } as ModelAtlasModel,
-  ],
-  [versionedLuna as unknown as ModelAtlasModel],
-  "2026-07-30",
-  "2026-07-31",
-);
-assert.deepEqual(
-  lunaVersionLog
-    .filter(({ benchmark_key }) => benchmark_key === "vending_bench_2")
-    .map(({ version_date, change_kind, value_json }) => ({
-      version_date,
-      change_kind,
-      value_json,
-    })),
-  [
-    {
-      version_date: "2026-07-30",
-      change_kind: "baseline",
-      value_json: "4094.712",
-    },
-    {
-      version_date: "2026-07-31",
-      change_kind: "removed",
-      value_json: null,
-    },
-  ],
-  "the version log should preserve the baseline and append a dated removal",
-);
-assert.deepEqual(
-  lunaVersionLog
-    .filter(({ benchmark_key }) => benchmark_key === "terminal_bench_science")
-    .map(({ metric_kind, version_date, change_kind }) => ({
-      metric_kind,
-      version_date,
-      change_kind,
-    })),
-  [
-    {
-      metric_kind: "score",
-      version_date: "2026-07-31",
-      change_kind: "added",
-    },
-    {
-      metric_kind: "task",
-      version_date: "2026-07-30",
-      change_kind: "baseline",
-    },
-    {
-      metric_kind: "task",
-      version_date: "2026-07-31",
-      change_kind: "changed",
-    },
-  ],
-  "new identities should be added while changed content on an existing identity is versioned",
-);
-
 const variantAutomationBenchRow = {
   ...automationBenchRow,
   model_id: "test/example-model-medium",

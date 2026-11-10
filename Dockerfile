@@ -24,4 +24,5 @@ RUN pnpm exec playwright install --with-deps chromium
 COPY . .
 RUN pnpm run typecheck && pnpm run test
 
-CMD ["pnpm", "run", "snapshot:publish"]
+# Node runs the script directly because pnpm and the tsx CLI would each keep a resident Node process, about 200 MB beside the job, inside its memory limit.
+CMD ["node", "--import", "tsx", "scripts/publish-snapshot.ts"]

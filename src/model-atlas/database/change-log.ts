@@ -26,6 +26,15 @@ import { type DatabaseWriter, sqliteBooleanValue } from "./writers/database";
 
 type DbRow = Record<string, unknown>;
 
+export const CHANGE_LOG_TABLES = [
+  SNAPSHOT_TABLES.refresh_runs,
+  SNAPSHOT_TABLES.model_score_changes,
+  SNAPSHOT_TABLES.model_change_details,
+] as const;
+
+/** Change history reads only entries from this refresh id onward, measured back from the newest refresh. */
+const CHANGE_HISTORY_START = `(SELECT MAX(refresh_id) FROM ${SNAPSHOT_TABLES.refresh_runs}) - ${CHANGE_HISTORY_SECONDS}`;
+
 export const CHANGE_LOG_ROW_GROUPS = [
   {
     key: "refreshRunRows",
@@ -60,6 +69,13 @@ const INPUT_CHANGE_KINDS = new Set<ModelAtlasInputChange["kind"]>([
   "provider_speed",
   "provider_latency",
 ]);
+
+/** Entries before the change-history window are never read, so each refresh drops them to keep the checkpoint from growing with every run; publication archives each entry as it is added. */
+export function pruneChangeLog(db: DatabaseWriter): void {
+  for (const table of CHANGE_LOG_TABLES) {
+    db.prepare(`DELETE FROM ${table} WHERE refresh_id < ${CHANGE_HISTORY_START}`).run();
+  }
+}
 
 /** Appends one bounded summary for each refresh that reached publication. */
 export function insertRefreshRuns(db: DatabaseWriter, rows: readonly RefreshRunRow[]): void {
@@ -201,7 +217,6 @@ export function scoreChangeFromJson(value: unknown): ModelAtlasScoreChange | nul
   };
 }
 
-/** Change-log rows are read only inside the change-history window before the newest refresh. */
 function windowedRowGroup<Key extends string>(
   key: Key,
   table: SnapshotTableName,
@@ -209,7 +224,7 @@ function windowedRowGroup<Key extends string>(
 ) {
   return {
     key,
-    sql: `SELECT * FROM ${table} WHERE refresh_id >= (SELECT MAX(refresh_id) FROM ${SNAPSHOT_TABLES.refresh_runs}) - ${CHANGE_HISTORY_SECONDS} ORDER BY refresh_id`,
+    sql: `SELECT * FROM ${table} WHERE refresh_id >= ${CHANGE_HISTORY_START} ORDER BY refresh_id`,
     optional,
   };
 }

@@ -1,9 +1,8 @@
 /** Relational writers persist final models, benchmark scores, and task metrics without nested storage. */
 
 import { MODEL_ATLAS_BENCHMARK_KEYS } from "../../benchmarks/registry";
-import { asRecord } from "../../runtime";
 import type { ModelAtlasModel } from "../../stats/types";
-import { type DatabaseWriter, firstString, sqliteBooleanValue, type SqlValue } from "./database";
+import { type DatabaseWriter, sqliteBooleanValue, type SqlValue } from "./database";
 
 const MODEL_COLUMNS = [
   "row_index",
@@ -121,28 +120,6 @@ export function insertModelTaskMetrics(
         metrics.cost_price_ratio ?? (metrics.cost == null ? null : 1),
       );
     }
-  }
-}
-
-/** Appends dated benchmark revisions; the composite key makes refresh retries idempotent. */
-export function insertBenchmarkVersionLog(db: DatabaseWriter, rows: readonly unknown[]): void {
-  const statement = db.prepare(`
-		INSERT OR IGNORE INTO benchmark_version_log (
-			model_id, reasoning_effort, benchmark_key, metric_kind,
-			version_date, change_kind, value_json
-		) VALUES (?, ?, ?, ?, ?, ?, ?)
-	`);
-  for (const row of rows) {
-    const revision = asRecord(row);
-    statement.run(
-      firstString(revision, ["model_id"]),
-      typeof revision.reasoning_effort === "string" ? revision.reasoning_effort : "",
-      firstString(revision, ["benchmark_key"]),
-      firstString(revision, ["metric_kind"]),
-      firstString(revision, ["version_date"]),
-      firstString(revision, ["change_kind"]),
-      typeof revision.value_json === "string" ? revision.value_json : null,
-    );
   }
 }
 

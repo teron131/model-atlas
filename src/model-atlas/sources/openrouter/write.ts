@@ -1,4 +1,4 @@
-/** SQLite writer for OpenRouter directory, route, stat-point, route-price, and model summary source rows. */
+/** SQLite writer for OpenRouter directory, route, stat-point, series-weight, route-price, and model summary source rows. */
 
 import type { DatabaseStatement, DatabaseWriter } from "../../database/writers/database";
 import { asFiniteNumber, asRecord } from "../../runtime";
@@ -14,7 +14,6 @@ type OpenRouterPointRow = {
   x: string | null;
   series: string;
   value: number | null;
-  tokenWeight: number | null;
 };
 
 type OpenRouterRawRowKind =
@@ -22,6 +21,7 @@ type OpenRouterRawRowKind =
   | "endpoint_summary"
   | "permaslug_candidate"
   | "stat_point"
+  | "series_weight"
   | "route_price"
   | "model_stats";
 
@@ -92,6 +92,12 @@ export function insertOpenRouterRawRows(
       rowIndex += 1;
     }
     rowIndex = insertStatPointRows(statement, model, rawPayload.fetched_at_epoch_seconds, rowIndex);
+    rowIndex = insertSeriesWeightRows(
+      statement,
+      model,
+      rawPayload.fetched_at_epoch_seconds,
+      rowIndex,
+    );
     for (const route of model.route_prices) {
       insertRawRow(statement, {
         rowIndex,
@@ -203,10 +209,7 @@ function insertStatPointRows(
   rowIndex: number,
 ): number {
   for (const metric of ["throughput", "latency", "latency_e2e"] as const) {
-    for (const point of statPointRows(
-      model.performance[metric],
-      model.performance.series_token_weights,
-    )) {
+    for (const point of statPointRows(model.performance[metric])) {
       insertRawRow(statement, {
         rowIndex,
         fetchedAtEpochSeconds,
@@ -219,7 +222,6 @@ function insertStatPointRows(
         x: point.x,
         series: point.series,
         value: point.value,
-        seriesTokenWeight: point.tokenWeight,
       });
       rowIndex += 1;
     }
@@ -227,9 +229,32 @@ function insertStatPointRows(
   return rowIndex;
 }
 
+/** Token weights drift with every fetch, so each series stores its weight once rather than on every daily point, which would rewrite the whole series each refresh. */
+function insertSeriesWeightRows(
+  statement: DatabaseStatement,
+  model: OpenRouterSourceModel,
+  fetchedAtEpochSeconds: number,
+  rowIndex: number,
+): number {
+  for (const [series, weight] of Object.entries(model.performance.series_token_weights ?? {})) {
+    const tokens = asFiniteNumber(weight);
+    if (tokens == null) continue;
+    insertRawRow(statement, {
+      rowIndex,
+      fetchedAtEpochSeconds,
+      url: SOURCE_URLS.openrouter_stats,
+      rowKind: "series_weight",
+      modelId: model.id,
+      series,
+      seriesTokenWeight: tokens,
+    });
+    rowIndex += 1;
+  }
+  return rowIndex;
+}
+
 function statPointRows(
   response: OpenRouterSeriesResponse | null | undefined,
-  seriesTokenWeights: Record<string, number | null> | null | undefined,
 ): OpenRouterPointRow[] {
   const rows: OpenRouterPointRow[] = [];
   for (const point of response?.data ?? []) {
@@ -238,7 +263,6 @@ function statPointRows(
         x: typeof point.x === "string" ? point.x : null,
         series,
         value: asFiniteNumber(value),
-        tokenWeight: asFiniteNumber(seriesTokenWeights?.[series]),
       });
     }
   }

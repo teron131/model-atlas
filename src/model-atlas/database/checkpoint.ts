@@ -1,10 +1,9 @@
-/** Derive checkpoint rows from cached source evidence and preserve benchmark, refresh, and model-change history. */
+/** Derive checkpoint rows from cached source evidence, replacing current state and appending to the windowed change log. */
 
 import type { DatabaseSync } from "node:sqlite";
 
 import { BENCHMARK_VERSION_BASELINE_DATE, STAGE_CONFIG } from "../config";
 import { deriveModelStats } from "../pipeline/derivation";
-import { taskMetricFingerprint } from "../pipeline/selection/benchmark-versioning";
 import { asNonEmptyString, nowEpochSeconds } from "../runtime";
 import {
   insertArtificialAnalysisBenchmarkResourceRawRows,
@@ -37,26 +36,16 @@ import {
 } from "../stats/payload/snapshot-preservation";
 import type { ModelAtlasMetadata, ModelAtlasModel, ModelAtlasPayload } from "../stats/types";
 import type { CapabilityState } from "../timeline/capability";
-import { insertModelChangeDetails, insertModelScoreChanges, insertRefreshRuns } from "./change-log";
+import {
+  insertModelChangeDetails,
+  insertModelScoreChanges,
+  insertRefreshRuns,
+  pruneChangeLog,
+} from "./change-log";
 import { buildDebugTraceRows, type DebugTraceRow, insertDebugTraceRows } from "./debug-trace";
 import { SNAPSHOT_TABLES, type SnapshotTableName } from "./tables";
 import type { DatabaseWriter } from "./writers/database";
-import {
-  insertBenchmarkVersionLog,
-  insertModelBenchmarks,
-  insertModels,
-  insertModelTaskMetrics,
-} from "./writers/models";
-
-type BenchmarkVersionLogRow = {
-  model_id: string;
-  reasoning_effort: string;
-  benchmark_key: string;
-  metric_kind: "score" | "task";
-  version_date: string;
-  change_kind: "baseline" | "added" | "changed" | "removed";
-  value_json: string | null;
-};
+import { insertModelBenchmarks, insertModels, insertModelTaskMetrics } from "./writers/models";
 
 type DatabaseSnapshotRows = {
   capabilityState?: CapabilityState;
@@ -68,7 +57,6 @@ type DatabaseSnapshotRows = {
   benchmarkUpdateHealth: ModelAtlasMetadata["benchmark_update_health"];
   benchmarkVersions: ModelAtlasMetadata["benchmark_versions"];
   scoringMethodology: string;
-  benchmarkVersionLogRows: readonly BenchmarkVersionLogRow[];
   refreshRunRows: readonly RefreshRunRow[];
   modelScoreChangeRows: readonly ModelScoreChangeRow[];
   modelChangeDetailRows: readonly ModelChangeDetailRow[];
@@ -136,11 +124,7 @@ const SNAPSHOT_REPLACE_WRITERS = [
   },
 ] satisfies readonly SnapshotWriter[];
 
-const SNAPSHOT_APPEND_WRITERS = [
-  {
-    table: SNAPSHOT_TABLES.benchmark_version_log,
-    write: (db, rows) => insertBenchmarkVersionLog(db, rows.benchmarkVersionLogRows),
-  },
+const CHANGE_LOG_WRITERS = [
   {
     table: SNAPSHOT_TABLES.refresh_runs,
     write: (db, rows) => insertRefreshRuns(db, rows.refreshRunRows),
@@ -162,8 +146,6 @@ type DatabaseSnapshotVersioning = {
   previousRefreshId: number | null;
   replaceSourceRows?: boolean;
 };
-
-type VersionLogEntry = Omit<BenchmarkVersionLogRow, "change_kind">;
 
 /** Derives model stages from normalized source snapshots while the caller owns storage-specific cache loading. */
 export async function deriveDatabaseSnapshot(
@@ -244,12 +226,6 @@ export async function deriveDatabaseSnapshot(
     benchmarkUpdateHealth: metadata.benchmark_update_health,
     benchmarkVersions: metadata.benchmark_versions,
     scoringMethodology: scoringMethodologyJson(metadata.scoring),
-    benchmarkVersionLogRows: buildBenchmarkVersionLogRows(
-      previousModels,
-      preservedModels,
-      BENCHMARK_VERSION_BASELINE_DATE,
-      observedDate,
-    ),
     refreshRunRows: changes.refreshRunRows,
     modelScoreChangeRows: changes.modelScoreChangeRows,
     modelChangeDetailRows: changes.modelChangeDetailRows,
@@ -271,15 +247,16 @@ function sourceDataFromSnapshots(snapshots: SourceSnapshots): ModelAtlasSourceDa
   });
 }
 
-/** Replace current evidence and model rows, append audit history, and update freshness inside the caller's transaction. */
+/** Replace current evidence and model rows, append this refresh to the windowed change log, and update freshness inside the caller's transaction. */
 export function writeCheckpoint(db: DatabaseWriter, rows: DatabaseSnapshotRows): void {
   for (const { table } of SNAPSHOT_REPLACE_WRITERS) {
     db.prepare(`DELETE FROM ${table}`).run();
   }
   db.prepare("DELETE FROM snapshot_metadata").run();
-  for (const { write } of [...SNAPSHOT_REPLACE_WRITERS, ...SNAPSHOT_APPEND_WRITERS]) {
+  for (const { write } of [...SNAPSHOT_REPLACE_WRITERS, ...CHANGE_LOG_WRITERS]) {
     write(db, rows);
   }
+  pruneChangeLog(db);
   db.prepare(
     "INSERT INTO snapshot_metadata (updated_at_epoch_seconds, snapshot_preservation_version, benchmark_update_health_json, benchmark_versions_json, scoring_methodology_json) VALUES (?, ?, ?, ?, ?)",
   ).run(
@@ -335,114 +312,4 @@ function insertSourceHealth(db: DatabaseWriter, sourceHealth: ModelAtlasSourceHe
       row.quarantined_row_count,
     );
   }
-}
-
-/** Build idempotent baseline, changed, and removal records from adjacent public snapshots. */
-export function buildBenchmarkVersionLogRows(
-  previousModels: readonly ModelAtlasModel[],
-  currentModels: readonly ModelAtlasModel[],
-  baselineDate: string,
-  observedDate: string,
-): BenchmarkVersionLogRow[] {
-  const revisions = new Map<string, BenchmarkVersionLogRow>();
-  const addRevision = (revision: BenchmarkVersionLogRow) => {
-    const key = [
-      revision.model_id,
-      revision.reasoning_effort,
-      revision.benchmark_key,
-      revision.metric_kind,
-      revision.version_date,
-    ].join("\u0000");
-    revisions.set(key, revision);
-  };
-  const previousEntries = collectVersionLogEntries(previousModels, baselineDate);
-  const currentEntries = collectVersionLogEntries(currentModels, observedDate);
-  for (const entry of previousEntries.values()) {
-    addRevision({
-      ...entry,
-      change_kind: "baseline",
-    });
-  }
-  for (const [identity, entry] of currentEntries) {
-    const previous = previousEntries.get(identity);
-    if (previous == null) {
-      addRevision({
-        ...entry,
-        change_kind: "added",
-      });
-    } else if (previous.value_json !== entry.value_json) {
-      addRevision({
-        ...entry,
-        change_kind: "changed",
-      });
-    }
-  }
-  for (const [identity, entry] of previousEntries) {
-    if (currentEntries.has(identity)) {
-      continue;
-    }
-    addRevision({
-      ...entry,
-      version_date: observedDate,
-      change_kind: "removed",
-      value_json: null,
-    });
-  }
-  return [...revisions.values()].sort(
-    (left, right) =>
-      left.model_id.localeCompare(right.model_id) ||
-      left.reasoning_effort.localeCompare(right.reasoning_effort) ||
-      left.benchmark_key.localeCompare(right.benchmark_key) ||
-      left.metric_kind.localeCompare(right.metric_kind) ||
-      left.version_date.localeCompare(right.version_date),
-  );
-}
-
-function collectVersionLogEntries(
-  models: readonly ModelAtlasModel[],
-  fallbackDate: string,
-): Map<string, VersionLogEntry> {
-  const entries = new Map<string, VersionLogEntry>();
-  const addEntry = (entry: VersionLogEntry) => {
-    entries.set(benchmarkIdentity(entry), entry);
-  };
-  for (const model of models) {
-    if (model.id == null) {
-      continue;
-    }
-    const reasoningEffort = model.reasoning_effort ?? "";
-    for (const [benchmarkKey, value] of Object.entries(model.benchmarks ?? {})) {
-      if (typeof value !== "number") {
-        continue;
-      }
-      addEntry({
-        model_id: model.id,
-        reasoning_effort: reasoningEffort,
-        benchmark_key: benchmarkKey,
-        metric_kind: "score",
-        version_date: model.benchmark_dates?.[benchmarkKey] ?? fallbackDate,
-        value_json: JSON.stringify(value),
-      });
-    }
-    for (const [benchmarkKey, metrics] of Object.entries(model.task_metrics ?? {})) {
-      if (metrics == null) {
-        continue;
-      }
-      addEntry({
-        model_id: model.id,
-        reasoning_effort: reasoningEffort,
-        benchmark_key: benchmarkKey,
-        metric_kind: "task",
-        version_date: metrics.observed_at ?? fallbackDate,
-        value_json: taskMetricFingerprint(metrics),
-      });
-    }
-  }
-  return entries;
-}
-
-function benchmarkIdentity(entry: VersionLogEntry): string {
-  return [entry.model_id, entry.reasoning_effort, entry.benchmark_key, entry.metric_kind].join(
-    "\u0000",
-  );
 }

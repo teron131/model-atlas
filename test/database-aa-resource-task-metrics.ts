@@ -9,6 +9,7 @@ import {
   insertModelChangeDetails,
   insertModelScoreChanges,
   insertRefreshRuns,
+  pruneChangeLog,
 } from "../src/model-atlas/database/change-log";
 import { openDatabase, removeDatabaseFiles } from "../src/model-atlas/database/schema";
 import { readDatabaseSnapshot } from "../src/model-atlas/database/sqlite-payload";
@@ -344,7 +345,8 @@ try {
     ],
     "Recent changes follow the newest refresh's chain inside the window, leaving out a replaced run and an older update",
   );
-  const [variantHistory, ...otherHistory] = readDatabaseSnapshot(databasePath).changeHistory;
+  const changeHistory = readDatabaseSnapshot(databasePath).changeHistory;
+  const [variantHistory, ...otherHistory] = changeHistory;
   assert.deepEqual(
     otherHistory.map(({ model_id, reasoning_effort }) => [model_id, reasoning_effort]),
     [["example/sparse-resource-model", null]],
@@ -355,6 +357,27 @@ try {
     variantHistory?.updates[1],
     updatedChange,
     "The newest logged update reads back as the model's latest change",
+  );
+  const pruneTable = new DatabaseSync(databasePath);
+  try {
+    pruneChangeLog(pruneTable);
+    assert.deepEqual(
+      pruneTable
+        .prepare(
+          "SELECT refresh_id FROM refresh_runs UNION SELECT refresh_id FROM model_score_changes UNION SELECT refresh_id FROM model_change_details ORDER BY refresh_id",
+        )
+        .all()
+        .map(({ refresh_id }) => refresh_id),
+      [1_800_000_001, 1_800_000_050, 1_800_000_100],
+      "Pruning drops only change-log entries before the change-history window",
+    );
+  } finally {
+    pruneTable.close();
+  }
+  assert.deepEqual(
+    readDatabaseSnapshot(databasePath).changeHistory,
+    changeHistory,
+    "Pruned entries were never read, so the published history is unchanged",
   );
 
   const refreshed = buildCurrentModelAtlasMetadata({

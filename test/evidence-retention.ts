@@ -56,6 +56,17 @@ try {
     [{ source_table: "retained_raw_rows", record: { model: "Source model", value: 0.8 } }],
     "A source correction archives only the corrected record",
   );
+  db.exec(
+    "INSERT INTO refresh_runs (refresh_id, previous_refresh_id, methodology_changed, model_change_count, score_change_count) VALUES (1789001000, NULL, 0, 0, 0)",
+  );
+  assert.deepEqual(
+    parse(newEvidence(path, archived))
+      .slice(1)
+      .filter((line) => line.source_table === "refresh_runs")
+      .map((line) => line.record.refresh_id),
+    [1789001000],
+    "A change-log entry is archived as it is added, before the checkpoint's window drops it",
+  );
 } finally {
   db.close();
   await rm(directory, { recursive: true, force: true });

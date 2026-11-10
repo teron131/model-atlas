@@ -1,6 +1,5 @@
 /** OpenRouter raw-cache reconstruction and scoped route coverage checks. */
 
-import { isSameOpenRouterModelRoute } from "../../identity/openrouter";
 import { asFiniteNumber, asNonEmptyString } from "../../runtime";
 import {
   type CacheDbRow,
@@ -8,7 +7,7 @@ import {
   firstFetchedAt,
   sourceCacheRows,
 } from "../cache/rows";
-import { sanitizeOpenRouterModelId } from "./stats";
+import { resolveOpenRouterPermaslugCandidates } from "./stats";
 import type {
   OpenRouterFrontendModel,
   OpenRouterPerformance,
@@ -58,7 +57,7 @@ export function readOpenRouterRawCache(cache: CacheRowSource): OpenRouterSourceP
   };
 }
 
-/** Validate summary presence, route prices, and candidate routes without reading unrelated time-series values from SQLite. */
+/** Validate summary presence, route prices, series weights, and candidate routes without reading unrelated time-series values from SQLite. */
 export function openRouterCacheHasCurrentShape(cache: CacheRowSource): boolean {
   const cacheRows = sourceCacheRows(
     cache,
@@ -73,6 +72,15 @@ export function openRouterCacheHasCurrentShape(cache: CacheRowSource): boolean {
       (row) => row.row_kind === "model_stats" && asNonEmptyString(row.selected_permaslug) != null,
     ) &&
     !cacheRows.some((row) => row.row_kind === "route_price")
+  ) {
+    return false;
+  }
+  // Caches written before series weights had their own rows repeated each weight on every stat point and hold no weight rows.
+  if (
+    sourceCacheRows(
+      cache,
+      "SELECT row_kind, series_token_weight FROM openrouter_raw_rows WHERE row_kind = 'stat_point' AND series_token_weight IS NOT NULL LIMIT 1",
+    ).some((row) => row.row_kind === "stat_point" && row.series_token_weight != null)
   ) {
     return false;
   }
@@ -92,7 +100,7 @@ export function openRouterCacheHasCurrentShape(cache: CacheRowSource): boolean {
   ) {
     return false;
   }
-  const slugByPermaslug = new Map<string, string>();
+  const permaslugBySlug = new Map<string, string>();
   for (const row of cacheRows) {
     if (row.row_kind !== "directory_model") {
       continue;
@@ -100,22 +108,24 @@ export function openRouterCacheHasCurrentShape(cache: CacheRowSource): boolean {
     const slug = asNonEmptyString(row.slug);
     const permaslug = asNonEmptyString(row.permaslug);
     if (slug != null && permaslug != null) {
-      slugByPermaslug.set(permaslug, slug);
+      permaslugBySlug.set(slug, permaslug);
     }
   }
+  const availableSlugs = [...permaslugBySlug.keys()];
+  const resolvedByModel = new Map<string, Set<string>>();
   const candidateRows = cacheRows.filter((row) => row.row_kind === "permaslug_candidate");
+  // Candidates are checked with the fetch's own resolver, aliases included; one it would not pick now came from an older matcher.
   for (const row of candidateRows) {
     const modelId = asNonEmptyString(row.model_id);
     const permaslug = asNonEmptyString(row.permaslug);
-    const candidateRoute = permaslug == null ? null : (slugByPermaslug.get(permaslug) ?? permaslug);
-    if (
-      modelId == null ||
-      candidateRoute == null ||
-      !isSameOpenRouterModelRoute(
-        sanitizeOpenRouterModelId(modelId),
-        sanitizeOpenRouterModelId(candidateRoute),
-      )
-    ) {
+    if (modelId == null || permaslug == null) {
+      return false;
+    }
+    const resolved =
+      resolvedByModel.get(modelId) ??
+      new Set(resolveOpenRouterPermaslugCandidates(modelId, availableSlugs, permaslugBySlug));
+    resolvedByModel.set(modelId, resolved);
+    if (!resolved.has(permaslug)) {
       return false;
     }
   }
@@ -151,7 +161,9 @@ function openRouterSourceModelFromRows(modelId: string, rows: CacheDbRow[]): Ope
     latency_e2e: openRouterSeriesResponseFromRows(
       statRows.filter((row) => row.metric === "latency_e2e"),
     ),
-    series_token_weights: seriesTokenWeights(statRows),
+    series_token_weights: seriesTokenWeights(
+      rows.filter((row) => row.row_kind === "series_weight"),
+    ),
   };
   return {
     id: modelId,
@@ -209,9 +221,9 @@ function openRouterSeriesResponseFromRows(rowsToConvert: CacheDbRow[]): OpenRout
   };
 }
 
-function seriesTokenWeights(statRows: CacheDbRow[]): Record<string, number> {
+function seriesTokenWeights(weightRows: CacheDbRow[]): Record<string, number> {
   const weights: Record<string, number> = {};
-  for (const row of statRows) {
+  for (const row of weightRows) {
     const series = asNonEmptyString(row.series);
     const weight = asFiniteNumber(row.series_token_weight);
     if (series != null && weight != null && weight > 0) {

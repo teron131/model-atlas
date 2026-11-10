@@ -1,4 +1,4 @@
-/** Snapshot table identities distinguish source evidence from derived models and append-only audit history. */
+/** Snapshot table identities distinguish source evidence from derived models and the windowed change log. */
 
 import { RAW_SOURCE_TABLES } from "../sources/registry";
 
@@ -10,7 +10,6 @@ export const SNAPSHOT_TABLES = {
   models: "models",
   model_benchmarks: "model_benchmarks",
   model_task_metrics: "model_task_metrics",
-  benchmark_version_log: "benchmark_version_log",
   refresh_runs: "refresh_runs",
   model_score_changes: "model_score_changes",
   model_change_details: "model_change_details",
