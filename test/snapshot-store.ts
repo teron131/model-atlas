@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { chmod, mkdir, mkdtemp, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { Readable, Writable } from "node:stream";
-import { gunzipSync } from "node:zlib";
+import { gunzipSync, gzipSync } from "node:zlib";
 
 import type { Storage } from "@google-cloud/storage";
 
@@ -188,7 +188,12 @@ try {
     /ENOENT/,
   );
   assert.equal(objects.size, 0, "Failed streaming reads must not start publication");
-  const first = await store.publish(checkpoint, snapshotOf(payload), empty);
+  const evidence = '{"source_table":"benchmark_catalog","record":{}}\n';
+  const first = await store.publish(checkpoint, snapshotOf(payload), empty, evidence);
+  const evidenceObject = objects.get(
+    `private-bucket/evidence/1970-01-01T00:01:40.000Z-${first.manifest.version}.jsonl.gz`,
+  )!;
+  assert.equal(gunzipSync(evidenceObject.bytes).toString("utf8"), evidence);
   const committed = await store.current();
   assert.equal(committed.manifest?.version, first.manifest.version);
   assert.equal(
@@ -203,6 +208,15 @@ try {
     "Multi-chunk compression restores every byte",
   );
   await assert.rejects(store.restore(first.manifest, restored), /EEXIST/);
+  const checkpointObject = objects.get(
+    `private-bucket/${snapshotObject(first.manifest.version, "checkpoint")}`,
+  )!;
+  const intactCheckpoint = checkpointObject.bytes;
+  checkpointObject.bytes = gzipSync("tampered");
+  const tampered = join(workspace, "tampered.sqlite");
+  await assert.rejects(store.restore(first.manifest, tampered), /checksum/);
+  await assert.rejects(readFile(tampered), { code: "ENOENT" });
+  checkpointObject.bytes = intactCheckpoint;
 
   failUpload = true;
   await assert.rejects(
@@ -243,6 +257,11 @@ try {
   assert.ok(
     objects.get(`private-bucket/${snapshotObject(first.manifest.version, "checkpoint")}`)?.metadata
       .customTime,
+  );
+  assert.equal(
+    evidenceObject.metadata.customTime,
+    undefined,
+    "Retiring a publication keeps its evidence",
   );
   loseCommitResponse = true;
   const recoveredCommit = await store.publish(

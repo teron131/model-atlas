@@ -4,6 +4,7 @@ import { copyFile, mkdir, mkdtemp, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { resourceUsage } from "node:process";
 
+import { evidenceFingerprints, newEvidence } from "../archive";
 import { refreshDatabase } from "../refresh";
 import { readDatabaseSnapshot } from "../sqlite-payload";
 import { SnapshotStorage } from "./gcs";
@@ -22,12 +23,19 @@ export async function publishSnapshot(seedPath?: string) {
   return withCheckpointWorkspace(async (databasePath) => {
     const previous = current.manifest ? await store.restore(current.manifest, databasePath) : null;
     if (!current.manifest && seedPath) await copyFile(resolve(seedPath), databasePath);
+    // A published checkpoint's evidence is already archived; a seed's is not.
+    const archived = previous ? evidenceFingerprints(databasePath) : new Set<string>();
     const refreshed = await refreshDatabase(databasePath, {
       previousPayload: previous?.payload ?? null,
       replaceSourceRows: process.env.MODEL_ATLAS_REPLACE_SOURCE_ROWS === "1",
     });
     const snapshot = readDatabaseSnapshot(databasePath);
-    const publication = await store.publish(databasePath, snapshot, current);
+    const publication = await store.publish(
+      databasePath,
+      snapshot,
+      current,
+      newEvidence(databasePath, archived),
+    );
     return {
       bucket: publicBucket,
       version: publication.manifest.version,

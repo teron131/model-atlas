@@ -506,16 +506,3 @@ CREATE TABLE IF NOT EXISTS model_match_debug (
 	openrouter_model_stats_row_index INTEGER,
 	PRIMARY KEY (row_index)
 );
-
--- Immutable evidence survives source disappearance and current-portfolio replacement.
-CREATE TABLE IF NOT EXISTS historical_evidence (
-  content_hash TEXT NOT NULL,
-  source_table TEXT NOT NULL,
-  captured_at TEXT NOT NULL,
-  record_gzip BLOB NOT NULL,
-  PRIMARY KEY (content_hash)
-);
-
--- Read one retained source in publication order without scanning or sorting the entire archive.
-CREATE INDEX IF NOT EXISTS historical_evidence_source_capture
-ON historical_evidence (source_table, captured_at, content_hash);

@@ -2,11 +2,11 @@
 
 import { createHash, randomUUID } from "node:crypto";
 import type { ReadStream } from "node:fs";
-import { open, writeFile } from "node:fs/promises";
+import { open, rm } from "node:fs/promises";
 import type { IncomingMessage } from "node:http";
 import { pipeline } from "node:stream/promises";
 import { promisify } from "node:util";
-import { createGzip, gzip } from "node:zlib";
+import { createGunzip, createGzip, gzip } from "node:zlib";
 
 import { type File, Storage } from "@google-cloud/storage";
 
@@ -124,11 +124,9 @@ export class SnapshotStorage {
     return manifest;
   }
 
+  /** Verify the published data before the checkpoint is written, so a mismatched manifest never leaves a checkpoint behind. */
   async restore(manifest: SnapshotVersion, databasePath: string): Promise<SnapshotData> {
-    const [checkpoint, leaderboard, index, rankings, history] = await Promise.all([
-      downloadSnapshotObject(
-        this.checkpointBucket.file(snapshotObject(manifest.version, "checkpoint")),
-      ),
+    const [leaderboard, index, rankings, history] = await Promise.all([
       downloadSnapshotObject(this.publicBucket.file(snapshotObject(manifest.version, "payload"))),
       manifest.intelligence_index_sha256
         ? downloadSnapshotObject(
@@ -160,10 +158,10 @@ export class SnapshotStorage {
     };
     if (snapshotDataHash(data) !== manifest.data_sha256)
       throw new Error("GCS snapshot data fingerprint does not match its manifest");
-    await writeFile(
+    await restoreCheckpoint(
+      this.checkpointBucket.file(snapshotObject(manifest.version, "checkpoint")),
+      manifest.checkpoint_sha256,
       databasePath,
-      await decodeSnapshotBytes(checkpoint, manifest.checkpoint_sha256),
-      { flag: "wx", mode: 0o600 },
     );
     return data;
   }
@@ -177,11 +175,12 @@ export class SnapshotStorage {
     return this.publish(databasePath, await this.restore(selected, databasePath), current);
   }
 
-  /** The manifest changes only after every verified upload finishes; stale publishers must rebuild from the new checkpoint. */
+  /** The manifest changes only after every verified upload finishes; stale publishers must rebuild from the new checkpoint. A refresh passes the evidence it newly observed as JSON lines. */
   async publish(
     databasePath: string,
     data: SnapshotData,
     previous: CurrentSnapshot,
+    evidence?: string,
   ): Promise<{
     manifest: SnapshotManifest;
     bytes_uploaded: number;
@@ -200,11 +199,12 @@ export class SnapshotStorage {
         cause: error,
       });
     }
-    const [leaderboard, index, rankings, history] = await Promise.all([
+    const [leaderboard, index, rankings, history, evidenceBytes] = await Promise.all([
       compress(leaderboardJson),
       timeline ? compress(JSON.stringify(packTimelineDataset(timeline))) : null,
       communityRankings.length ? compress(JSON.stringify(communityRankings)) : null,
       changeHistory.length ? compress(JSON.stringify(changeHistory)) : null,
+      evidence ? compress(evidence) : null,
     ]);
     const dataHash = snapshotDataHash(data);
     const version = randomUUID();
@@ -245,19 +245,21 @@ export class SnapshotStorage {
     try {
       const [checkpoint, ...uploads] = await Promise.allSettled([
         uploadCheckpoint(checkpointFile, checkpointSource),
-        ...publicArtifacts.map(({ file, bytes }) => {
-          const resumable = bytes.length > RESUMABLE_UPLOAD_THRESHOLD_BYTES;
-          return file.save(bytes, {
-            resumable,
-            ...(resumable ? { chunkSize: UPLOAD_CHUNK_BYTES } : {}),
-            validation: "crc32c",
-            preconditionOpts: { ifGenerationMatch: 0 },
-            metadata: {
-              contentType: "application/gzip",
-              cacheControl: "public, max-age=31536000, immutable",
-            },
-          });
-        }),
+        ...publicArtifacts.map(({ file, bytes }) =>
+          saveArtifact(file, bytes, "public, max-age=31536000, immutable"),
+        ),
+        // Evidence lands before the commit so a current checkpoint never lacks its history; it is never retired, so a failed publication leaves a copy whose records the next refresh archives again.
+        ...(evidenceBytes
+          ? [
+              saveArtifact(
+                this.checkpointBucket.file(
+                  evidenceObject(payload.fetched_at_epoch_seconds, version),
+                ),
+                evidenceBytes,
+                "private, no-store",
+              ),
+            ]
+          : []),
       ] as const);
       if (checkpoint.status === "rejected") throw checkpoint.reason;
       for (const upload of uploads) if (upload.status === "rejected") throw upload.reason;
@@ -281,6 +283,7 @@ export class SnapshotStorage {
           (index?.length ?? 0) +
           (rankings?.length ?? 0) +
           (history?.length ?? 0) +
+          (evidenceBytes?.length ?? 0) +
           manifestBytes.length,
       };
       await this.commitManifest(manifestBytes, previous.generation);
@@ -373,6 +376,22 @@ export class SnapshotStorage {
   }
 }
 
+function saveArtifact(file: File, bytes: Buffer, cacheControl: string) {
+  const resumable = bytes.length > RESUMABLE_UPLOAD_THRESHOLD_BYTES;
+  return file.save(bytes, {
+    resumable,
+    ...(resumable ? { chunkSize: UPLOAD_CHUNK_BYTES } : {}),
+    validation: "crc32c",
+    preconditionOpts: { ifGenerationMatch: 0 },
+    metadata: { contentType: "application/gzip", cacheControl },
+  });
+}
+
+/** Evidence sits outside `snapshots/`, the only prefix retirement marks and lifecycle deletes, and sorts by capture time. */
+function evidenceObject(capturedAtEpochSeconds: number, version: string): string {
+  return `evidence/${new Date(capturedAtEpochSeconds * 1000).toISOString()}-${version}.jsonl.gz`;
+}
+
 /** Hash compressed bytes as they flow into a bounded resumable upload; only a completed upload can supply a manifest checksum. */
 async function uploadCheckpoint(file: File, checkpoint: ReadStream) {
   const hash = createHash("sha256");
@@ -398,14 +417,44 @@ async function uploadCheckpoint(file: File, checkpoint: ReadStream) {
   return { sha256: hash.digest("hex"), bytes };
 }
 
-/** GCS and teeny-request attach overlapping pipelines to each response; budget their bounded listeners without hiding warnings globally. */
 async function downloadSnapshotObject(file: File): Promise<Buffer> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of snapshotReadStream(file)) chunks.push(chunk);
+  return Buffer.concat(chunks);
+}
+
+/** Stream straight to disk, since buffering would hold the compressed and decompressed checkpoint in memory beside the file, which Cloud Run also keeps in memory. A checkpoint that fails verification is removed. */
+async function restoreCheckpoint(file: File, expectedHash: string, databasePath: string) {
+  const destination = await open(databasePath, "wx", 0o600);
+  const hash = createHash("sha256");
+  try {
+    await pipeline(
+      snapshotReadStream(file),
+      async function* (source) {
+        for await (const chunk of source) {
+          hash.update(chunk);
+          yield chunk;
+        }
+      },
+      createGunzip(),
+      destination.createWriteStream(),
+    );
+    if (hash.digest("hex") !== expectedHash) throw new Error("GCS snapshot checksum mismatch");
+  } catch (error) {
+    await rm(databasePath, { force: true });
+    // Bytes that match the published checksum always decompress, so a decompression failure is a checksum mismatch.
+    if (String((error as { code?: unknown }).code).startsWith("Z_"))
+      throw new Error("GCS snapshot checksum mismatch", { cause: error });
+    throw error;
+  }
+}
+
+/** GCS and teeny-request attach overlapping pipelines to each response; budget their bounded listeners without hiding warnings globally. */
+function snapshotReadStream(file: File) {
   const stream = file.createReadStream();
   stream.on("response", (response: IncomingMessage) => {
     const currentLimit = response.getMaxListeners();
     if (currentLimit > 0 && currentLimit < 16) response.setMaxListeners(16);
   });
-  const chunks: Buffer[] = [];
-  for await (const chunk of stream) chunks.push(chunk);
-  return Buffer.concat(chunks);
+  return stream;
 }

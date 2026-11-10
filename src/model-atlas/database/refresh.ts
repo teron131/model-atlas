@@ -15,7 +15,6 @@ import type {
   SourceRefreshOptions,
 } from "../sources/types";
 import type { ModelAtlasPayload } from "../stats/types";
-import { archiveCheckpoint } from "./archive";
 import { readCapabilityState, writeCapabilityState } from "./capability-state";
 import { deriveDatabaseSnapshot, readScoringMethodology, writeCheckpoint } from "./checkpoint";
 import { DEFAULT_DATABASE_PATH, openDatabase, removeDatabaseFiles } from "./schema";
@@ -74,7 +73,6 @@ export async function refreshDatabase(
       writeCheckpoint(activeDb, derived.rows);
       if (derived.rows.capabilityState)
         writeCapabilityState(activeDb, derived.rows.capabilityState);
-      archiveCheckpoint(activeDb);
     });
     if (activeDb.prepare("PRAGMA integrity_check").get()?.integrity_check !== "ok") {
       throw new Error("Refusing to publish a SQLite checkpoint that failed its integrity check");
