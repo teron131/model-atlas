@@ -34,6 +34,9 @@ export const SCATTER_CHART_WIDTH = 1120;
 
 const SVG_NUMBER_DECIMALS = 3;
 const AXIS_TICK_LENGTH = 7;
+// Inset scale anchors are mono digits at the phone micro size, about 6px wide and 8px above the baseline; their box rounds both up and keeps 3px below.
+const SCALE_ANCHOR_CHAR_WIDTH = 6.5;
+const SCALE_ANCHOR_ASCENT = 9;
 
 /** Keep compact titles above the plot and inset scale labels within its narrow gutters. */
 export function scatterChartMargin(margin: Margin, compact: boolean): Margin {
@@ -369,30 +372,63 @@ export function YAxisTicks({
   showGridLines?: boolean;
 }) {
   const inset = insetRight != null;
+  const anchors = inset ? insetScaleAnchors(ticks, yPoint, x, format) : [];
+  return ticks.map((tick) => {
+    const anchor = anchors.find((candidate) => candidate.tick === tick);
+    return (
+      <g key={`${keyPrefix}-y-${tick}`}>
+        {(!inset || showGridLines) && (
+          <line
+            className={inset ? styles.scaleGrid : styles.axisTick}
+            x1={inset ? x : x - AXIS_TICK_LENGTH}
+            x2={insetRight ?? x}
+            y1={yPoint(tick)}
+            y2={yPoint(tick)}
+          />
+        )}
+        {anchor ? (
+          <text className={styles.scaleAnchor} x={anchor.x} y={anchor.y} textAnchor="start">
+            {format(tick)}
+          </text>
+        ) : inset ? null : (
+          <text className={styles.axisLabel} x={x - 15} y={yPoint(tick) + 4} textAnchor="end">
+            {format(tick)}
+          </text>
+        )}
+      </g>
+    );
+  });
+}
+
+/**
+ * The inset scale anchors a compact plot keeps: the first, middle, and last ticks, the first set above its gridline and the others below.
+ * Each `box` bounds its text at the phone micro size, so labels placed around the anchors can keep clear of them.
+ */
+export function insetScaleAnchors(
+  ticks: number[],
+  yPoint: (value: number) => number,
+  x: number,
+  format: (value: number) => string,
+) {
   const middle = Math.floor((ticks.length - 1) / 2);
-  return ticks.map((tick, index) => (
-    <g key={`${keyPrefix}-y-${tick}`}>
-      {(!inset || showGridLines) && (
-        <line
-          className={inset ? styles.scaleGrid : styles.axisTick}
-          x1={inset ? x : x - AXIS_TICK_LENGTH}
-          x2={insetRight ?? x}
-          y1={yPoint(tick)}
-          y2={yPoint(tick)}
-        />
-      )}
-      {!inset || index === 0 || index === middle || index === ticks.length - 1 ? (
-        <text
-          className={inset ? styles.scaleAnchor : styles.axisLabel}
-          x={inset ? x + 6 : x - 15}
-          y={yPoint(tick) + (inset ? (index === 0 ? -6 : 14) : 4)}
-          textAnchor={inset ? "start" : "end"}
-        >
-          {format(tick)}
-        </text>
-      ) : null}
-    </g>
-  ));
+  return ticks.flatMap((tick, index) => {
+    if (index !== 0 && index !== middle && index !== ticks.length - 1) return [];
+    const anchorX = x + 6;
+    const anchorY = yPoint(tick) + (index === 0 ? -6 : 14);
+    return [
+      {
+        tick,
+        x: anchorX,
+        y: anchorY,
+        box: {
+          left: anchorX,
+          right: anchorX + format(tick).length * SCALE_ANCHOR_CHAR_WIDTH,
+          top: anchorY - SCALE_ANCHOR_ASCENT,
+          bottom: anchorY + 3,
+        },
+      },
+    ];
+  });
 }
 
 /** Keep the frame empty while responsive remeasurement leaves no usable plotting area. */

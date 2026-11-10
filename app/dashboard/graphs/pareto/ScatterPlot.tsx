@@ -36,6 +36,7 @@ import {
   DirectionArrow,
   FrontierHorizon,
   horizonRim,
+  insetScaleAnchors,
   type Margin,
   MedianCross,
   plotBoundsFor,
@@ -202,10 +203,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
   const highlightedRows =
     reasoningGroups.find((group) => group.key === activeReasoningGroup)?.variants ??
     (activeRow == null ? [] : [activeRow]);
-  const persistentLabels = compact
-    ? [...frontier].sort((a, b) => getScore(b) - getScore(a)).slice(0, 3)
-    : frontier;
-  const labeledRows = [...new Set([...highlightedRows, ...persistentLabels])];
+  const labeledRows = [...new Set([...highlightedRows, ...frontier])];
   const { svgRef, labelSizes } = useLabelSizes(labeledRows.map(getLabel).join("\0"), compact);
   const layoutRequest: Parameters<typeof calloutLabelPlacements>[0] = {
     bounds: {
@@ -214,7 +212,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
       top: plot.top + LABEL_EDGE_GUTTER,
       bottom: plot.bottom - LABEL_EDGE_GUTTER,
     },
-    // Protect the corner direction glyph and caption from both text and leaders.
+    // Protect the corner direction glyph and caption, and a compact plot's inset scale anchors, from both text and leaders.
     reservedBoxes: [
       {
         left: metric.xHigherIsBetter ? plot.right - DIRECTION_LABEL_WIDTH : plot.left,
@@ -222,6 +220,9 @@ export function FrontierBenchmarkScatterPlot<Row>({
         top: plot.top,
         bottom: plot.top + DIRECTION_LABEL_HEIGHT,
       },
+      ...(compact
+        ? insetScaleAnchors(yTicks, yPoint, plot.left, formatScore).map(({ box }) => box)
+        : []),
     ],
     obstacles: rows.map((row) => ({
       key: getKey(row),

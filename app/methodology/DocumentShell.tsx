@@ -63,9 +63,14 @@ export function DocumentShell({
     );
   }, []);
 
+  // Wherever the plane fills the window the button covers the ends of text lines, so it shows only while the reader scrolls back up past the first screen.
   useEffect(() => {
-    const updateVisibility = () => setShowBackToTop(window.scrollY > 480);
-    updateVisibility();
+    let lastY = window.scrollY;
+    const updateVisibility = () => {
+      const y = window.scrollY;
+      setShowBackToTop(y > 480 && y < lastY);
+      lastY = y;
+    };
     window.addEventListener("scroll", updateVisibility, { passive: true });
     return () => window.removeEventListener("scroll", updateVisibility);
   }, []);

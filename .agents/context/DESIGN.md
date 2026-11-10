@@ -22,7 +22,7 @@ typography:
     letterSpacing: "-0.058em"
   region:
     fontFamily: '"Avenir Next", "Segoe UI", Helvetica, Arial, sans-serif'
-    fontSize: "clamp(44px, 8.8vw, 136px)"
+    fontSize: "clamp(34px, 8.8vw, 136px)"
     fontWeight: 500
     lineHeight: 0.86
     letterSpacing: "-0.054em"
@@ -152,7 +152,7 @@ Dark is the default: blue-charcoal planes with chalk ink, kept neutral against t
 ### Hierarchy
 
 - **Display** (500, clamp(64px, min(15.2vw, 26svh), 232px), 0.98): the hero title in two lines with the second indented 1.4em, so it keeps one shape at every width and aspect ratio and only scales.
-- **Region** (500, clamp(44px, 8.8vw, 136px), 0.86): research region names on the sky. The methodology title uses the same style scaled to its frame, and image exports set region names at 30px.
+- **Region** (500, clamp(34px, 8.8vw, 136px), 0.86): research region names on the sky. The methodology title uses the same style scaled to its frame, and image exports set region names at 30px.
 - **Readout** (620, 24px, tabular): the headline figure of an analysis, such as the Pareto summary's median and the Timeline catalogue entry, and the model sheet's name at 600. One size keeps the headline numbers in agreement.
 - **Body** (500, 16px, 1.5): factual prose.
 - **Note** (500, 15px): panel copy, figure captions, and tooltip prose.
@@ -165,7 +165,7 @@ Dark is the default: blue-charcoal planes with chalk ink, kept neutral against t
 
 ### Named Rules
 
-**The Shrinking Planes Rule.** A phone plane is about a third of the desktop's width, so type steps down with it rather than holding desktop sizes in less room. At 720px and below the readout drops to 20px, notes to 14px (13px in the model sheet), data to 12px, and model names to 14px, and a phone chart's ticks, axis titles, and plotted names take the caption size.
+**The Shrinking Planes Rule.** A phone plane is about a third of the desktop's width, so type steps down with it rather than holding desktop sizes in less room. At 720px and below the readout drops to 20px, notes to 14px (13px in the model sheet and graph captions), data to 12px, and model names to 14px. At 520px and below a chart's plotted names take the caption size on a 2px outline and its ticks, axis titles, and median and direction labels the micro size, and choice strips set their labels at the caption size on 10px gaps.
 
 ## Layout
 
@@ -250,7 +250,9 @@ Frontiers are drawn as the sky's horizon: a white-hot rim over a horizon-gradien
 
 Chart stars echo the score stars without blooming: a lit centre in a solid ring of the provider colour, crisp enough to separate neighbours in dense clusters. Only frontier models, and the Timeline's chosen model, glow, from one blurred layer beneath the marks, so a chart costs a single filter. Index-only Timeline models are hollow rings, and in the light theme stars are solid with fainter glows. Hover cards set the model name semibold beside a neutral logo frame, and their edge takes a trace of the provider colour.
 
-The Pareto score summary is a box-and-whisker instrument: the median dominates as a readout and an ink line, while the range and quartile box stay hairline.
+Each Pareto axis carries a box-and-whisker spread mark in the axis's own grey, on the side away from its ticks and labels: hairline whiskers to the lowest and highest model, an outlined quartile box, and a stronger median tick that the median guide carries across the plot to its readout.
+
+Charts name their frontier models on phones as on a desktop. The Pareto plot names its whole frontier, and the Timeline names as many curve models as fit: its leaders, GPT-4, and the selected model first, then the newest records, each clear of the inset scale anchors.
 
 The Timeline's selected model reads as a star-catalogue entry on the figure's top edge: its ringed provider star, name, Intelligence Index, release date, and evidence support at the readout size, the name kept to one line so following the pointer never moves the plot. The overview strip carries the same frontier as a small horizon. In the models view a replay control sweeps the window from start to end in nine seconds: models appear as their release dates pass, the record frontier draws itself to the date reached, and the catalogue entry follows each new record. The axes hold still, reduced motion steps through still frames, and changing the window, preset, or view stops it.
 
@@ -268,7 +270,7 @@ The sheet is 496px wide, or 880px when comparing. On phones its actions take the
 
 ### Image exports
 
-Every image export is 1200px wide, or 1440px for a comparison card, rendered at twice that resolution so text stays sharp. A region capture holds its heading and figure without the plane's decorative edge, shadow, border, or rounding; captions, evidence disclosures, actions, and other interactive parts stay out and leave no gap. The model card is laid out wide, with the identity across the top, facts, scores, and resources beside the two plots, and benchmark groups in columns below. Its plots are redrawn at the card's own width as it is saved, so a card saved from a phone matches one saved from a desktop.
+Every image export is 1200px wide, or 1440px for a comparison card, rendered at twice that resolution so text stays sharp. Each is laid out at that width whatever the screen, its plots redrawn to match, so an image saved from a phone matches one saved from a desktop. A region capture holds its heading and figure without the plane's decorative edge, shadow, border, or rounding; captions, evidence disclosures, actions, and other interactive parts stay out and leave no gap. The model card is laid out wide, with the identity across the top, facts, scores, and resources beside the two plots, and benchmark groups in columns below.
 
 ### Hero sky
 
@@ -280,9 +282,11 @@ Frontier role stars carry rays and a small name placed clear of other stars, nam
 
 ### Methodology
 
-The documentation sits under a still CSS sky, sparse stars over the dashboard's night gradient with a faint dawn at the top, in both themes. The title opens on the sky in the region-name style, scaled to the documentation frame and taking the hero's leading below 1100px, where long titles wrap. One opaque plane holds the document strip, the docked navigation, and the Markdown text, so reading stays one surface; the full strip shows at every width, scrolling sideways to keep the current document in view. Document tables read in the body face under measurement-label headers, and prose, tables, and figures share one right edge. The current document is lit by the selection star, and the on-page outline is the rail's flight path turned vertical, with one star gliding with the scroll.
+The documentation sits under a still CSS sky, sparse stars over the dashboard's night gradient with a faint dawn at the top, in both themes. The title opens on the sky in the region-name style, scaled to the documentation frame and taking the hero's leading below 1100px, where long titles wrap. One opaque plane holds the document strip, the docked navigation, and the Markdown text, so reading stays one surface; the full strip shows at every width, scrolling sideways to keep the current document in view. Document tables read in the body face under measurement-label headers, and prose, tables, and figures share one right edge. Inline math is set at 1.1em, matching the text's x-height, and display formulas a step under it so long ones fit. The current document is lit by the selection star, and the on-page outline is the rail's flight path turned vertical, with one star gliding with the scroll.
 
 Navigation has two modes, shown or hidden, switched by an icon toggle at the start of the document strip and remembered across documents. Shown navigation sits beside the text from 720px and stacks above it on phones; it never overlays the page as a drawer. Phones start hidden, since stacked navigation would push the text below the fold. The frame fits the navigation beside one reading column of up to 860px and never changes when the navigation toggles: hidden navigation hands its space to the text, and every extra pixel of window width is sky.
+
+On phones the text under a section heading runs the plane's full width, keeping only the subheadings' rails, and display formulas drop their side padding and step down to 90% so fewer scroll sideways. Figures shrink to the column's width, and a tap opens one full-screen at three quarters of its size, its labels at about the caption size, scrolling sideways; a phone turned sideways shows it whole.
 
 ## Do's and Don'ts
 

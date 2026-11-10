@@ -4,7 +4,6 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import Image from "next/image";
 import { Children, type ReactNode } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import rehypeKatex from "rehype-katex";
@@ -12,6 +11,7 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 
 import { NavigationLink } from "../shared/NavigationLink";
+import { DocumentFigure } from "./DocumentFigure";
 import { DocumentHeading } from "./DocumentHeading";
 import {
   documentAssetPath,
@@ -116,22 +116,13 @@ const MarkdownImage: NonNullable<Components["img"]> = async ({ src = "", alt = "
     imageSource = `/methodology-assets/${asset}?v=${revision}`;
   }
   return (
-    <span className={styles.figure}>
-      <span className={styles.figureViewport} role="region" aria-label="Illustration" tabIndex={0}>
-        <Image
-          src={imageSource}
-          alt={plainScoreText(alt)}
-          width={size.width}
-          height={size.height}
-          loading="eager"
-        />
-      </span>
-      {alt === "" ? null : (
-        <span aria-hidden="true">
-          <ScoreText>{alt}</ScoreText>
-        </span>
-      )}
-    </span>
+    <DocumentFigure
+      src={imageSource}
+      alt={plainScoreText(alt)}
+      width={size.width}
+      height={size.height}
+      caption={alt === "" ? null : <ScoreText>{alt}</ScoreText>}
+    />
   );
 };
 

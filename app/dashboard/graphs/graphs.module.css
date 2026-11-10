@@ -164,7 +164,7 @@
   padding-top: 16px;
   border-top: 1px solid var(--line);
   color: var(--muted);
-  font-size: var(--type-note-size);
+  font-size: var(--sans-note);
   line-height: 1.5;
 }
 
@@ -1186,11 +1186,16 @@
     max-width: 100%;
   }
 
-  /* A phone plot is a third of the desktop's width, so its ticks, titles, and model names take the caption size and leave the plot to the stars; labels are measured as rendered, so placement follows. A plot redrawn for a saved image keeps the desktop sizes the image sets it in. */
-  :is(.axisLabel, .axisTitle, .medianLabel, .pointLabel, .cursorProjectionLabel):not(
+  /* A phone plot is a third of the desktop's width, so its text steps down and leaves the plot to the stars: model names and the cursor readout take the caption size on a 2px outline, the axes' ticks, titles, and marks the micro size. Labels are measured as rendered, so placement follows. A plot redrawn for a saved image keeps the desktop sizes the image sets it in. */
+  :is(.pointLabel, .cursorProjectionLabel):not([data-capture-layout="artifact"] *) {
+    font-size: var(--type-caption-size);
+    stroke-width: 2px;
+  }
+
+  :is(.axisLabel, .axisTitle, .medianLabel, .scaleAnchor, .cornerDirectionLabel):not(
     [data-capture-layout="artifact"] *
   ) {
-    font-size: var(--type-caption-size);
+    font-size: var(--type-micro-size);
   }
 
   .figureTop,
@@ -1199,9 +1204,21 @@
     gap: 16px;
   }
 
-  .metricToggle {
+  /* Choices take the caption size, untracked, on tighter spacing, so a strip shows more of its options before it scrolls. */
+  .metricToggle,
+  .axisControlX .metricToggle {
     width: 100%;
-    gap: 14px;
+    gap: 10px;
+  }
+
+  .metricToggle > button,
+  .metricToggle > .benchmarkSelect > summary {
+    font-size: var(--type-caption-size);
+    letter-spacing: 0;
+  }
+
+  .plotVariants {
+    font-size: var(--type-caption-size);
   }
 
   .metricToggle button {

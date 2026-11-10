@@ -132,6 +132,11 @@ html[data-model-atlas-theme="light"] {
   mask-image: linear-gradient(90deg, transparent, #000 14px, #000 calc(100% - 14px), transparent);
 }
 
+/* A saved image lays a strip out wider than the page that measured its overflow, and nothing in an image scrolls, so it shows no fades. */
+[data-capture-layout="artifact"] .horizontal-choice-strip[data-overflow-end] {
+  mask-image: none;
+}
+
 /* Every chosen option is lit by the selection star beneath its label: a dimmer star previews on hover, and the chosen star blooms. Owners set --selection-star-bottom to seat the star in their control. */
 .selection-choice {
   position: relative;
@@ -523,7 +528,7 @@ html[data-model-atlas-theme="light"] .theme-icon-dark {
   margin: 0;
   color: var(--scene-ink);
   font-family: var(--font-sans);
-  font-size: clamp(44px, 8.8vw, 136px);
+  font-size: clamp(34px, 8.8vw, 136px);
   font-weight: 500;
   letter-spacing: -0.054em;
   line-height: 0.86;

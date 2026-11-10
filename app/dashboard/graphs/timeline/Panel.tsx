@@ -23,6 +23,7 @@ import {
 import {
   AxisTitles,
   FrontierHorizon,
+  insetScaleAnchors,
   type PlotBounds,
   plotBoundsFor,
   PlotFrame,
@@ -178,8 +179,6 @@ export const TimelinePanel = memo(function TimelinePanel({
     ...frontier,
     ...ties.filter((point) => Date.parse(point.releaseDate) <= reached),
   ].sort((a, b) => a.releaseDate.localeCompare(b.releaseDate));
-  // Every curve model is labelled, except on a phone's settled chart, which has no room for all of them; a replay's camera frames few enough.
-  const curveLabelled = frame != null || !compact ? curve : [];
   const evidenceModelIds = useMemo(
     () => [...visible].sort((a, b) => b.score - a.score).map((point) => point.id),
     [visible],
@@ -248,8 +247,8 @@ export const TimelinePanel = memo(function TimelinePanel({
       point.name === "GPT-4 (Mar 2023)" ||
       (point.name === "GPT-4" && point.releaseDate === "2023-03-14"),
   );
-  // The settled chart also labels its leaders, GPT-4 and the selected model wherever their curve labels are not shown.
-  const labeled =
+  // The settled chart always names its leaders, GPT-4, and the selected model: by their curve labels where shown, otherwise by callouts.
+  const alwaysLabelled =
     view === "labs" || frame != null
       ? []
       : [
@@ -258,9 +257,7 @@ export const TimelinePanel = memo(function TimelinePanel({
               ...highlights,
               ...(gpt4 ? [gpt4] : []),
               ...(selected ? visible.filter((point) => point.id === selected) : []),
-            ]
-              .filter((point) => !curveLabelled.includes(point))
-              .map((point) => [point.id, point]),
+            ].map((point) => [point.id, point]),
           ).values(),
         ];
   useEffect(() => {
@@ -286,7 +283,7 @@ export const TimelinePanel = memo(function TimelinePanel({
     return nearest;
   };
   const { svgRef, labelSizes } = useLabelSizes(
-    [...curveLabelled, ...labeled].map(timelinePointLabel).join("\0"),
+    [...curve, ...alwaysLabelled].map(timelinePointLabel).join("\0"),
     compact,
   );
   const labelSize = (label: string) =>
@@ -303,16 +300,24 @@ export const TimelinePanel = memo(function TimelinePanel({
     : false;
   const plotBounds = plotBoundsFor(width, height, margin);
   const labelTop = compact ? 28 : 8;
-  const curveLabels = stackCurveLabels(
-    curveLabelled.map((point) => ({
-      point,
-      cx: xPoint(point),
-      cy: y(point.score),
-      size: labelSize(timelinePointLabel(point)),
-    })),
-    plotBounds,
-    labelTop,
-  );
+  const yTicks = y.ticks(5);
+  const scaleAnchorBoxes = compact
+    ? insetScaleAnchors(yTicks, y, margin.left, String).map(({ box }) => box)
+    : [];
+  const curveStars = curve.map((point) => ({
+    point,
+    cx: xPoint(point),
+    cy: y(point.score),
+    size: labelSize(timelinePointLabel(point)),
+  }));
+  // A wide chart labels every curve model, its top margin taking the tallest stack, and a replay's camera frames few enough; a phone's settled chart labels those that fit.
+  const curveLabels =
+    compact && frame == null
+      ? fitCurveLabels(curveStars, plotBounds, labelTop, alwaysLabelled, scaleAnchorBoxes)
+      : stackCurveLabels(curveStars, plotBounds, labelTop, scaleAnchorBoxes);
+  const curveLabelled = new Set(curveLabels.map(({ point }) => point));
+  const unlabelledCurve = curve.filter((point) => !curveLabelled.has(point));
+  const labeled = alwaysLabelled.filter((point) => !curveLabelled.has(point));
   const layoutKey =
     labeled.length === 0
       ? null
@@ -337,7 +342,7 @@ export const TimelinePanel = memo(function TimelinePanel({
             top: labelTop,
             bottom: height - margin.bottom - 8,
           },
-          reservedBoxes: curveLabels.map(({ box }) => box),
+          reservedBoxes: [...scaleAnchorBoxes, ...curveLabels.map(({ box }) => box)],
           directions: [
             [1, -1],
             [-1, -1],
@@ -606,7 +611,7 @@ export const TimelinePanel = memo(function TimelinePanel({
                   />
                   <YAxisTicks
                     insetRight={compact ? width - margin.right : undefined}
-                    ticks={y.ticks(5)}
+                    ticks={yTicks}
                     yPoint={y}
                     x={margin.left}
                     format={String}
@@ -730,7 +735,7 @@ export const TimelinePanel = memo(function TimelinePanel({
                   </g>
                   {preview &&
                     !labeled.some((point) => point.id === preview.id) &&
-                    !curveLabelled.includes(preview) && (
+                    !curveLabelled.has(preview) && (
                       <TextPointLabel
                         label={previewLabel}
                         placement={{
@@ -759,6 +764,19 @@ export const TimelinePanel = memo(function TimelinePanel({
                         margin={margin}
                         placement={labelPlacements.get(point.id)}
                       />
+                    ))}
+                    {/* Curve labels without room render unseen, so their text is measured for when room opens. */}
+                    {unlabelledCurve.map((point) => (
+                      <g key={point.id} opacity={0} aria-hidden="true">
+                        <TextPointLabel
+                          label={timelinePointLabel(point)}
+                          cx={xPoint(point)}
+                          cy={y(point.score)}
+                          width={width}
+                          height={height}
+                          margin={margin}
+                        />
+                      </g>
                     ))}
                     {/* Labels waiting to fade in still render, so their text is measured before it shows. */}
                     {curveLabels.map(({ point, placement }) => {
@@ -835,29 +853,56 @@ export const TimelinePanel = memo(function TimelinePanel({
   );
 });
 
+/** Label as many curve models as stay below `top` once stacked, choosing the `first` models and then the newest records, so a narrow chart names its key models and the latest frontier instead of stacking labels off its top. */
+function fitCurveLabels(
+  stars: { point: TimelinePoint; cx: number; cy: number; size: PointLabelSize }[],
+  plot: PlotBounds,
+  top: number,
+  first: TimelinePoint[],
+  reserved: PlotBounds[],
+) {
+  const kept = new Set<TimelinePoint>();
+  const stack = () =>
+    stackCurveLabels(
+      stars.filter(({ point }) => kept.has(point)),
+      plot,
+      top,
+      reserved,
+    );
+  const priority = [...stars]
+    .reverse()
+    .sort((a, b) => Number(first.includes(b.point)) - Number(first.includes(a.point)));
+  for (const { point } of priority) {
+    kept.add(point);
+    if (stack().some(({ box }) => box.top < top)) kept.delete(point);
+  }
+  return stack();
+}
+
 /**
- * Place curve labels up and left of their stars, in the open sky above the frontier, each moving up a line wherever it would meet an earlier one and sliding right rather than crossing the plot's left edge.
+ * Place curve labels up and left of their stars, in the open sky above the frontier, each moving up a line wherever it would meet an earlier one or a `reserved` box and sliding right rather than crossing the plot's left edge.
  * A label that would rise past `top` tries the up-right side instead. The rule depends only on positions, so a replay's labels end exactly where the settled chart's are.
  */
 function stackCurveLabels(
   stars: { point: TimelinePoint; cx: number; cy: number; size: PointLabelSize }[],
   plot: PlotBounds,
   top: number,
+  reserved: PlotBounds[],
 ) {
   const placed: { point: TimelinePoint; placement: PointLabelPlacement; box: PlotBounds }[] = [];
   for (const { point, cx, cy, size } of stars) {
     const stack = (left: number) => {
       let baseline = cy - 8;
       for (;;) {
-        const blocker = placed.find(
-          ({ box }) =>
+        const blocker = [...reserved, ...placed.map(({ box }) => box)].find(
+          (box) =>
             box.left < left + size.width &&
             box.right > left &&
             box.top < baseline + size.descent &&
             box.bottom > baseline - size.ascent,
         );
         if (!blocker) return baseline;
-        baseline = blocker.box.top - size.descent - 2;
+        baseline = blocker.top - size.descent - 2;
       }
     };
     let left = Math.max(plot.left + 2, cx - 8 - size.width);

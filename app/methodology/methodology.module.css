@@ -837,7 +837,7 @@
   height: auto;
 }
 
-.figure > span:last-child:not(.figureViewport) {
+.figureCaption {
   display: block;
   margin-top: 12px;
   color: var(--muted);
@@ -845,23 +845,81 @@
   line-height: 1.6;
 }
 
-/* Preserve case-sensitive math symbols inside uppercase labels and table headers. */
+.figureEnlarge {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: zoom-in;
+}
+
+.figureDialog {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: 0 0 max(20px, env(safe-area-inset-bottom));
+  border: 0;
+  background: var(--paper);
+  color: var(--ink);
+  overscroll-behavior: contain;
+}
+
+.figureDialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.figureDialog::backdrop {
+  background: var(--paper);
+}
+
+.figureDialog form {
+  display: flex;
+  justify-content: flex-end;
+  padding: max(12px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) 0 14px;
+}
+
+.figureDialogViewport {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  overflow-x: auto;
+  padding: 0 16px;
+}
+
+.figureDialogViewport img {
+  flex: none;
+  max-width: none;
+  height: auto;
+  margin-inline: auto;
+}
+
+.figureDialog .figureCaption {
+  padding: 0 16px;
+}
+
+/* KaTeX sets math at 1.21em to suit a serif; beside Avenir Next that stands a size above the words, so inline math takes 1.1em, which matches the text's x-height. Case-sensitive symbols stay as written inside uppercase labels and table headers. */
 .article :global(.katex) {
+  font-size: 1.1em;
   text-transform: none;
 }
 
 .article :global(.katex-display) {
-  font-size: 0.86em;
   margin: 20px 0 24px;
   padding: 22px 18px;
   overflow-x: auto;
   text-align: center;
 }
 
+/* Display formulas sit a step under inline math so long ones fit the column. */
 .article :global(.katex-display > .katex) {
   display: block;
   width: max-content;
   min-width: 100%;
+  font-size: 1.04em;
   text-align: center;
 }
 
@@ -951,6 +1009,20 @@
 
   .subsection {
     padding-left: 14px;
+  }
+
+  /* A phone column is a third of the desktop's, so text under a section heading runs its full width, keeping only the subheadings' rails, and display formulas drop their side padding and step down to 90%, leaving fewer to scroll sideways. */
+  .article .section > h2 + .subsection {
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .article :global(.katex-display) {
+    padding-inline: 0;
+  }
+
+  .article :global(.katex-display > .katex) {
+    font-size: calc(1.04em * 0.9);
   }
 
   .documentNav a {
