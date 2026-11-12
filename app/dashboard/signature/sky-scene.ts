@@ -3,13 +3,20 @@
 import * as THREE from "three";
 
 import { clamp01, smoothstep } from "../../../src/model-atlas/math-utils";
+import {
+  FLARE_FRAGMENT,
+  GRAIN_HASH_GLSL,
+  hashUnit,
+  HORIZON_LIGHT_GLSL,
+  skyPixelRatio,
+  STAR_FRAGMENT,
+  TWINKLE_GLSL,
+} from "../shared/sky-light";
 
 // The research content behaves as the z = 0 plane; the hero camera sits this far in front of it.
 export const CAMERA_DISTANCE = 12;
 export const FIELD_OF_VIEW = 30;
 const TAN_HALF_FOV = Math.tan((FIELD_OF_VIEW / 360) * Math.PI);
-// The sky draws at most this many device pixels per CSS pixel, so dense screens keep its frame cost bounded.
-const MAX_PIXEL_RATIO = 1.5;
 // Horizon height until the hero measures where its title ends, as a share of the viewport measured from the bottom.
 const HORIZON = 0.3;
 // Scoping in leaves the planet: its horizon falls to this height, below the viewport.
@@ -163,14 +170,10 @@ void main() {
 const HORIZON_FRAGMENT = /* glsl */ `
 ${SHARED_GLSL}
 ${PLANET_GLSL}
+${GRAIN_HASH_GLSL}
+${HORIZON_LIGHT_GLSL}
 uniform float dawn;
 varying vec2 vUv;
-
-float grainHash(vec2 p) {
-  vec3 p3 = fract(vec3(p.xyx) * 0.1031);
-  p3 += dot(p3, p3.yzx + 33.33);
-  return fract((p3.x + p3.y) * p3.z);
-}
 
 float valueNoise(vec2 p) {
   vec2 i = floor(p);
@@ -195,8 +198,7 @@ void main() {
   float across = vUv.x - 0.5;
   vec2 p = vec2(across * aspect, vUv.y);
   float side = clamp(abs(across) / (0.67 * shrink), 0.0, 1.0);
-  vec3 rim = mix(vec3(0.42, 0.56, 1.0), vec3(0.64, 0.44, 1.0), smoothstep(0.1, 0.6, side));
-  rim = mix(rim, vec3(1.0, 0.56, 0.72), smoothstep(0.55, 1.0, side));
+  vec3 rim = horizonLight(side);
   float breathe = (0.9 + 0.1 * sin(time * 0.4)) * dawn;
   // Between crossings the pulse waits off screen to the right, as it does on a clock frozen at zero under reduced motion.
   float pulse = mod(time - RIM_PULSE_START, RIM_PULSE_PERIOD) / RIM_PULSE_CROSSING;
@@ -204,14 +206,14 @@ void main() {
   float passing = exp(-pulseOffset * pulseOffset);
   float limbLight = 1.0 + exp(-abs(toRim) * 12.0 / shrink) * passing * 0.8;
   float inside = smoothstep(0.003, -0.003, toRim);
-  vec3 sky = mix(vec3(0.05, 0.09, 0.38), vec3(0.006, 0.01, 0.045), smoothstep(horizon - 0.05, 1.0, vUv.y));
+  vec3 sky = mix(SKY_NEAR, SKY_DEEP, smoothstep(horizon - 0.05, 1.0, vUv.y));
   sky += rim * exp(-max(toRim, 0.0) * 4.5 / shrink) * 0.42 * breathe * limbLight;
   // Faint nebulae fill the deep sky once the camera scopes past the horizon.
   float cloud = clouds(p * 1.4 + vec2(time * 0.008, scope * 0.6));
   sky += mix(vec3(0.24, 0.14, 0.56), vec3(0.08, 0.2, 0.62), cloud) * smoothstep(0.45, 0.85, cloud) * (0.07 + scope * 0.2);
   float lit = exp(-max(-toRim, 0.0) * 11.0 / shrink);
   float stipple = step(grainHash(gl_FragCoord.xy), lit * 0.85);
-  vec3 mound = vec3(0.008, 0.01, 0.03) + rim * (0.12 * lit + 0.5 * stipple * lit) * breathe * limbLight;
+  vec3 mound = PLANET_BODY + rim * (0.12 * lit + 0.5 * stipple * lit) * breathe * limbLight;
   vec3 colour = mix(sky, mound, inside) + rim * exp(-abs(toRim) * 70.0) * 0.85 * breathe * limbLight;
   gl_FragColor = vec4(colour, 1.0);
 }
@@ -219,6 +221,7 @@ void main() {
 
 const STAR_VERTEX = /* glsl */ `
 ${SHARED_GLSL}
+${TWINKLE_GLSL}
 attribute vec3 tint;
 attribute float size;
 attribute float seed;
@@ -237,12 +240,10 @@ void main() {
   // Stars keep their hero size at the hero distance and grow as the camera scopes in.
   float approach = (CAMERA_DISTANCE - position.z) / -view.z;
   float lit = intro - ignition;
-  // Two beating rates, so no two stars pulse alike.
-  float twinkle = 0.86 + 0.09 * sin(time * (1.1 + seed * 2.0) + seed * 50.0) + 0.05 * sin(time * (2.7 + seed * 3.1) + seed * 23.0);
   gl_PointSize = size * pixelRatio * approach * mix(STAR_SPRITE, FRONTIER_SPRITE, frontier);
   vTint = tint;
   vSize = gl_PointSize;
-  vGlow = smoothstep(0.0, 0.04, lit) * twinkle;
+  vGlow = smoothstep(0.0, 0.04, lit) * twinkle(seed);
   vFlash = step(0.0, lit) * exp(-max(lit, 0.0) * 16.0);
   vFrontier = frontier;
   vRays = smoothstep(0.01, 0.16, lit);
@@ -250,40 +251,6 @@ void main() {
 }
 `;
 
-// A white-hot core in a corona of the provider's colour; frontier roles add long rays whose tips disperse red beyond blue and along which light runs slowly outward.
-const STAR_FRAGMENT = /* glsl */ `
-uniform float time;
-varying vec3 vTint;
-varying float vSize;
-varying float vGlow;
-varying float vFlash;
-varying float vFrontier;
-varying float vRays;
-varying float vSeed;
-
-vec3 ray(vec2 q) {
-  float along = abs(q.x) / max(vRays, 0.001);
-  vec3 taper = pow(clamp(1.0 - along / vec3(1.0, 0.9, 0.8), 0.0, 1.0), vec3(1.6));
-  float offset = abs(q.y) * vSize * 0.5;
-  return taper * (exp(-offset * (1.5 + 1.5 * along)) + 0.18 * exp(-offset * 0.45));
-}
-
-void main() {
-  vec2 q = (gl_PointCoord - 0.5) * 2.0;
-  // Measure the disc in a plain star's units, so a frontier sprite's extra room goes to its rays.
-  float r = length(q) * mix(1.0, FRONTIER_SPRITE / STAR_SPRITE, vFrontier);
-  float core = exp(-r * r * 60.0);
-  float corona = exp(-r * r * 10.0);
-  float halo = exp(-r * 3.4);
-  vec3 colour = mix(vTint, vec3(1.0), 0.6) * core * 1.5 + vTint * (corona * 0.45 + halo * 0.12);
-  colour += mix(vTint, vec3(1.0), 0.5) * exp(-r * r * 3.0) * vFlash * 0.9;
-  float run = 0.85 + 0.15 * sin(length(q) * 16.0 - time * 1.4 + vSeed * 6.283);
-  colour += mix(vec3(0.9, 0.94, 1.0), vTint, 0.3) * (ray(q) + ray(q.yx)) * run * vFrontier * 0.75;
-  gl_FragColor = vec4(colour * vGlow * smoothstep(1.0, 0.75, length(q)), 1.0);
-}
-`;
-
-// The explored star flares in its provider's light: a wide halo and long tapered rays, never a ring or sight.
 const FLARE_VERTEX = /* glsl */ `
 ${SHARED_GLSL}
 uniform float flare;
@@ -294,19 +261,6 @@ void main() {
   gl_Position = projectionMatrix * view;
   gl_PointSize = flareSize * pixelRatio * (CAMERA_DISTANCE - position.z) / -view.z;
   vGlow = flare;
-}
-`;
-
-const FLARE_FRAGMENT = /* glsl */ `
-uniform vec3 flareTint;
-varying float vGlow;
-void main() {
-  vec2 p = gl_PointCoord - 0.5;
-  float radius = length(p) * 2.0;
-  float halo = exp(-radius * 4.2) * 0.5;
-  float rays = (exp(-abs(p.x) * 150.0) + exp(-abs(p.y) * 150.0)) * pow(max(1.0 - radius, 0.0), 1.6);
-  vec3 light = mix(vec3(0.84, 0.88, 1.0), flareTint, 0.35);
-  gl_FragColor = vec4(light * (halo + rays * 0.8) * smoothstep(1.0, 0.6, radius) * vGlow, 1.0);
 }
 `;
 
@@ -382,11 +336,6 @@ void main() {
   gl_FragColor = vec4(vec3(0.7, 0.78, 1.0) * falloff * vGlow * clear * 0.75, 1.0);
 }
 `;
-
-/** The renderer and the star sprites share this pixel ratio, so sprites keep their size in device pixels. */
-export function skyPixelRatio(): number {
-  return Math.min(window.devicePixelRatio || 1, MAX_PIXEL_RATIO);
-}
 
 /** Scene units one CSS pixel spans at the star plane, for a viewport `height` pixels tall. */
 export function skyUnitsPerPixel(height: number): number {
@@ -738,13 +687,4 @@ export function createSky(scene: THREE.Scene, camera: THREE.PerspectiveCamera) {
       focusMaterial.dispose();
     },
   };
-}
-
-/** Stable depth for a model key, so a star keeps its place across reloads and filter changes. */
-function hashUnit(key: string) {
-  let hash = 2166136261;
-  for (let index = 0; index < key.length; index++) {
-    hash = Math.imul(hash ^ key.charCodeAt(index), 16777619);
-  }
-  return (hash >>> 0) / 4294967296;
 }

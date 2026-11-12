@@ -1,9 +1,8 @@
 /* Historical chart controls and readout extend the dashboard's ruled graph panels. */
+/* The figure's rows lay themselves out by the width the figure has, not the window's. */
 .content {
   min-width: 0;
-}
-.chart {
-  padding-top: 12px;
+  container-type: inline-size;
 }
 .point {
   cursor: pointer;
@@ -17,34 +16,48 @@
   stroke-width: 3;
   outline: none;
 }
-.legend {
-  display: flex;
-  gap: 20px;
-  flex-wrap: wrap;
-  color: var(--muted);
-  font: var(--type-label-weight) var(--type-label-size) var(--font-mono);
-  padding: 0 0 20px;
-}
-/* The legend draws the frontier the way the chart does: a short horizon-lit rim. */
-.frontierKey {
-  display: inline-block;
-  width: 18px;
-  height: 1.5px;
-  margin-right: 7px;
-  vertical-align: middle;
-  background: var(--horizon-gradient);
-  box-shadow: 0 -2px 6px rgb(143 107 255 / 0.45);
-}
-/* The selected model reads as a star-catalogue entry: its name and figures at display size, labels in measurement type. */
-/* The name takes the spare width on one line and each figure keeps its natural width, so following the pointer from star to star never resizes the entry or moves the plot beneath it. */
+/* The picked model reads as one catalogue line in the figure's control type, like Pareto's choices: its logo and name, then its figures as label and value pairs. */
 .readout {
-  display: grid;
-  flex: 1 1 620px;
-  grid-template-columns: minmax(0, 1fr) repeat(3, max-content);
-  align-items: end;
-  gap: 20px clamp(18px, 3vw, 40px);
-  max-width: 760px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 8px 28px;
+  min-width: 0;
   margin-left: auto;
+}
+.readout > strong {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.012em;
+}
+.readout dl {
+  display: flex;
+  gap: 22px;
+  margin: 0;
+}
+.readout dl > div {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  white-space: nowrap;
+}
+.readout dt {
+  color: var(--muted);
+  font: var(--type-label-weight) var(--type-caption-size) var(--font-mono);
+  letter-spacing: var(--type-label-tracking);
+  text-transform: uppercase;
+}
+.readout dd {
+  margin: 0;
+  color: var(--ink);
+  font: var(--type-label-weight) var(--type-data-size) var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 /* A replay's date sits faintly behind the plot at display size, readable at a glance without competing with the stars. */
 .replayDate {
@@ -68,41 +81,6 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.readout > div {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  min-width: 0;
-}
-.readout > div:not(:first-child) {
-  flex-direction: column-reverse;
-}
-/* Only each figure's own label takes measurement type; the name inside the heading keeps the readout size. */
-.readout > div > span {
-  color: var(--muted);
-  font: var(--type-label-weight) var(--type-caption-size) var(--font-mono);
-  text-transform: uppercase;
-}
-.readout strong {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-  color: var(--ink);
-  font-family: var(--font-sans);
-  font-size: var(--type-readout-size);
-  font-variant-numeric: tabular-nums;
-  font-weight: var(--type-display-weight);
-  letter-spacing: -0.035em;
-  line-height: 1.02;
-  overflow-wrap: anywhere;
-}
-.readout > div:not(:first-child) strong {
-  white-space: nowrap;
-}
-.readout > div:first-child > span {
-  padding-left: 26px;
-}
 /* A model in today's snapshot opens its full catalogue entry, the model sheet, from its name. */
 .readoutOpen {
   display: inline-flex;
@@ -120,8 +98,8 @@
 }
 .readoutOpen svg {
   flex: 0 0 auto;
-  width: 18px;
-  height: 18px;
+  width: 15px;
+  height: 15px;
   color: var(--muted);
   transition:
     color 0.18s ease,
@@ -136,17 +114,10 @@
   outline: 2px solid var(--focus-ring);
   outline-offset: 3px;
 }
-/* The same ringed star the chart draws for this model, at catalogue scale. */
-.readoutStar {
+.readoutLogo {
   flex: 0 0 auto;
-  width: 14px;
-  height: 14px;
-  border: 3.5px solid var(--star, var(--ink));
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--star, var(--ink)) 30%, #fff);
-}
-:global(html[data-model-atlas-theme="light"]) .readoutStar {
-  background: var(--star, var(--ink));
+  width: 18px;
+  height: 18px;
 }
 .loading {
   min-height: 360px;
@@ -156,33 +127,14 @@
   gap: 16px;
   color: var(--muted);
 }
-/* Below the compact-chart width the name takes its own line above its figures, so an ordinary name is never cut short beside them. */
-@media (max-width: 820px) {
-  .readout {
-    grid-template-columns: repeat(3, max-content);
-    justify-content: start;
-  }
-  .readout > div:first-child {
-    grid-column: 1 / -1;
-  }
-}
+/* On phones the name takes the row's first line and the figures the next, so a long name is never cut short beside them. */
 @media (max-width: 640px) {
-  /* On phones the three figures share the row's width, the date taking the widest column; their labels wrap under them at the micro size, so the figures keep one top line. */
   .readout {
-    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr) minmax(0, 0.8fr);
-    align-items: start;
-    gap: 16px 12px;
+    justify-content: flex-start;
   }
-  .readout > div:not(:first-child) {
-    gap: 8px;
-  }
-  .readout > div:not(:first-child) > span {
-    font-size: var(--type-micro-size);
-    line-height: 1.3;
-  }
-  .legend {
-    gap: 8px 12px;
-    font-size: var(--type-caption-size);
+  .readout dl {
+    flex-wrap: wrap;
+    gap: 6px 16px;
   }
 }
 
@@ -191,121 +143,42 @@
   max-width: 100%;
 }
 
-/* A persistent overview edits the chart window without losing its historical context. */
+/* Beneath the x-axis the range presets lead one row and the replay's transport ends it, wrapping beneath them where both do not fit. */
 .timeEditor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
   width: calc(100% - 16px);
   max-width: 1120px;
-  margin: 12px auto 20px;
+  margin: 0 auto;
+  padding-bottom: 4px;
 }
-.timeTransport,
-.timeTransport > div {
+.timeTransport {
   display: flex;
   align-items: center;
   gap: 8px;
+  font: var(--type-label-weight) var(--type-label-size) var(--font-mono);
+  color: var(--muted);
 }
 .timeTransport span {
   white-space: nowrap;
 }
-.timeTransport {
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 10px;
-  font: var(--type-label-weight) var(--type-label-size) var(--font-mono);
-  color: var(--muted);
-}
+/* The transport's buttons are bare icons, as the figure's other controls are bare words. */
 .timeTransport button {
   display: grid;
   place-items: center;
   width: 30px;
   height: 30px;
   background: transparent;
-  color: var(--ink);
-  border: 1px solid var(--line);
+  color: var(--muted);
+  border: 0;
   cursor: pointer;
 }
 .timeTransport button:disabled {
   opacity: 0.3;
   cursor: default;
-}
-.timeTransport input {
-  width: 90px;
-  accent-color: var(--ink);
-}
-.navigator {
-  position: relative;
-  height: 64px;
-  background: var(--hover);
-  border: 1px solid var(--line-strong);
-}
-.navigator svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-.navigatorRim {
-  fill: none;
-  stroke-width: 1.5;
-  stroke-linejoin: round;
-}
-.rangeInteraction,
-.rangeShade,
-.rangeWindow {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-}
-.rangeInteraction {
-  inset: 0;
-  cursor: grab;
-  touch-action: none;
-}
-.rangeInteraction:active {
-  cursor: grabbing;
-}
-.rangeShade {
-  background: var(--paper);
-  opacity: 0.75;
-  pointer-events: none;
-}
-.rangeWindow {
-  border: 1px solid var(--ink);
-  background: rgb(var(--ink-rgb) / 0.06);
-  pointer-events: none;
-}
-.rangeHandle {
-  position: absolute;
-  top: -1px;
-  bottom: -1px;
-  width: 16px;
-  transform: translateX(-50%);
-  border: 1px solid var(--ink);
-  background: var(--paper);
-  padding: 0;
-  cursor: ew-resize;
-}
-.rangeHandle::after {
-  content: "";
-  display: block;
-  width: 3px;
-  height: 18px;
-  border-inline: 1px solid var(--muted);
-  margin: auto;
-}
-/* The caption names the full range at its ends; between them it teaches the overview's drag, or on a phone gives the window's dates once the window leaves the full range or a replay runs. */
-.navigatorCaption {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: baseline;
-  margin-top: 8px;
-  color: var(--muted);
-  font: var(--type-label-weight) var(--type-caption-size) var(--font-mono);
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.timePresets {
-  margin-bottom: 12px;
 }
 
 .organizationPicker {
@@ -336,16 +209,16 @@
   font: var(--type-label-weight) var(--type-caption-size) / 1 var(--font-mono);
 }
 
-/* The figure's top edge and legend share the graph's width and edges, like the Pareto figure. */
+/* The figure's top edge and the standings share the graph's width and edges, like the Pareto figure. */
 .top,
-.legend {
+.standings {
   width: min(100%, 1120px);
   margin-inline: auto;
 }
 .top {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 18px 34px;
   padding-block: 24px 4px;
@@ -353,216 +226,140 @@
 .viewControls {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 20px;
   min-width: 0;
 }
 .viewControls .organizationPicker {
   padding: 0;
   border: 0;
 }
-.labScope {
-  display: flex;
-  align-items: center;
-  gap: 22px;
-  margin: 0 0 0 auto;
+
+/* The labs' standings read like the hero's register without its stars: entries in columns under a faint rule, which the lab's colour lights as far as its index reaches among them. */
+.standings {
+  padding-block: 26px 18px;
 }
-.labScope > div {
-  display: grid;
-  gap: 5px;
-  padding-left: 18px;
-  border-left: 1px solid var(--line);
-}
-.labScope dt {
-  color: rgb(var(--ink-rgb) / 0.5);
-  font: var(--type-label-weight) var(--type-label-size) var(--font-mono);
-  letter-spacing: 0.04em;
+.standingsTitle {
+  margin: 0 0 14px;
+  color: var(--muted);
+  font: var(--type-label-weight) var(--type-caption-size) var(--font-mono);
+  letter-spacing: var(--type-label-tracking);
   text-transform: uppercase;
 }
-.labScope dd {
+.standings ol {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 18px 28px;
   margin: 0;
-  color: var(--ink);
-  font: 500 var(--type-data-size) var(--font-mono);
-  line-height: 1.2;
+  padding: 0;
+  list-style: none;
 }
-@media (max-width: 640px) {
-  .labScope {
-    width: 100%;
-    justify-content: space-between;
-    gap: 12px;
-    margin: 0;
-  }
-  .labScope > div {
-    padding-left: 12px;
-  }
-  .labScope > div:first-child {
-    padding-left: 0;
-    border-left: 0;
-  }
-}
-.labEndpoint {
-  cursor: pointer;
-}
-.labEndpoint:focus-visible {
-  outline: none;
-}
-.labEndpoint:focus-visible rect {
-  stroke: var(--ink);
-}
-
-.labList {
+.standings li {
+  position: relative;
+  min-width: 0;
   border-top: 1px solid var(--line);
-  margin-bottom: 16px;
 }
-.labListHead,
-.labListRow {
+.standings li::after {
+  position: absolute;
+  top: -1px;
+  left: 0;
+  width: var(--reach);
+  height: 1px;
+  background: var(--lab);
+  content: "";
+  opacity: 0.55;
+  transition: opacity 180ms ease;
+}
+.standings li[data-focused]::after {
+  opacity: 1;
+}
+/* Each entry is one button: hovering it draws its lab on the chart, and choosing it picks the lab's leading model. */
+/* The lab's name and its index share the entry's first line, and its leading model takes the second whole. */
+.standings button {
   display: grid;
-  grid-template-columns: minmax(160px, 1fr) minmax(0, 1.5fr) 70px;
-  gap: 16px;
-  align-items: center;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 5px 10px;
   width: 100%;
-  padding: 10px 0;
-}
-.labListHead {
-  color: var(--muted);
-  font: var(--type-label-weight) var(--type-label-size) var(--font-mono);
-  text-transform: uppercase;
-}
-.labListHead > :last-child,
-.labListRow > :last-child {
-  text-align: right;
-}
-.labListRow {
-  color: var(--ink);
-  background: transparent;
+  padding: 11px 0 0;
   border: 0;
-  border-top: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
   text-align: left;
-  font: var(--type-data-size) var(--font-mono);
   cursor: pointer;
 }
-.labListRow:hover,
-.labListRow[data-highlighted],
-.labListRow[aria-pressed="true"] {
-  background: var(--hover);
+.standings button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 4px;
 }
-.labIdentity {
+.standingLab {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  min-width: 0;
 }
-.labRank {
-  color: var(--muted);
-  width: 2ch;
-}
-.labModel {
-  color: var(--muted);
-  white-space: nowrap;
+.standingLab strong {
+  min-width: 0;
   overflow: hidden;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.012em;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
-@media (max-width: 640px) {
-  .labListHead,
-  .labListRow {
-    grid-template-columns: minmax(0, 1fr) 60px;
-    gap: 8px;
-  }
-  .labListHead > :nth-child(2) {
-    display: none;
-  }
-  .labListRow .labModel {
-    grid-column: 1;
-    grid-row: 2;
-    padding-left: 56px;
-    font-size: var(--type-caption-size);
-  }
-  .labListRow > strong {
-    grid-column: 2;
-    grid-row: 1;
+.standingRank {
+  color: var(--muted);
+  font: var(--type-caption-size) var(--font-mono);
+}
+.standingLab img {
+  flex: none;
+  object-fit: contain;
+}
+.standingScore {
+  font: var(--type-label-weight) var(--type-data-size) var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.standingModel {
+  grid-column: 1 / -1;
+  overflow: hidden;
+  color: var(--muted);
+  font: var(--type-caption-size) var(--font-mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@container (max-width: 1040px) {
+  .standings ol {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   }
 }
 
-.navigatorCaption > :last-child {
-  text-align: right;
+/* A lab's records are joined the way Pareto joins a model's reasoning efforts: a fine dashed line in the lab's colour. */
+.labLine line {
+  stroke: var(--lab);
+  stroke-width: 1.2;
+  stroke-dasharray: 5 4;
+  opacity: 0.9;
 }
-.captionWindow {
-  display: none;
-}
+
 .timeTransport button:hover:not(:disabled) {
-  background: var(--hover);
-  border-color: var(--line-strong);
+  color: var(--ink);
 }
-.timeTransport button:focus-visible,
-.rangeHandle:focus-visible,
-.labListRow:focus-visible {
+.timeTransport button:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 @media (max-width: 640px) {
-  /* A phone keeps play and stop beside the range presets, wrapping them under the presets where both do not fit, and leaves panning and zooming to the overview's window and edges, so the pan and zoom buttons and the window's dates step aside. */
-  .timeEditor {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 10px 8px;
-  }
-  .timeEditor > :not(.timePresets, .timeTransport) {
-    flex: 0 0 100%;
-  }
-  .timePresets {
-    flex: 1 0 max-content;
-    margin-bottom: 0;
-  }
-  .timeTransport {
-    margin: 0 0 0 auto;
-  }
-  .timeTransport > div:last-child,
-  .timeTransport .pan,
-  .timeTransport > div:first-child > span {
-    display: none;
-  }
+  /* A phone gives the transport finger-wide targets and leaves the window's dates to the chart's axis. */
   .timeTransport button {
     width: 44px;
     height: 44px;
   }
-  /* The overview's edges are a phone's only zoom, so each takes a finger-wide target. */
-  .rangeHandle::before {
-    position: absolute;
-    inset: 0 -14px;
-    content: "";
-  }
-  .navigatorCaption[data-window="part"] .dragHint {
+  .timeTransport span {
     display: none;
-  }
-  .navigatorCaption[data-window="part"] .captionWindow {
-    display: inline;
-  }
-  .navigatorCaption {
-    grid-template-columns: 1fr 1fr;
-    gap: 6px 10px;
-  }
-  .navigatorCaption > :nth-child(2) {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    text-align: center;
-  }
-  .navigatorCaption > :last-child {
-    grid-column: 2;
-    grid-row: 1;
-  }
-  .viewControls {
-    gap: 10px 18px;
   }
   .viewControls .organizationPicker {
     width: 100%;
   }
   .organizationPicker .organizationRow {
     grid-template-columns: 14px minmax(0, 1fr) 76px 56px;
-  }
-}
-/* The narrowest phones step the entry's figures down once more, so the date clears its neighbour; this follows the rule it overrides. */
-@media (max-width: 380px) {
-  .readout > div:not(:first-child) strong {
-    font-size: 18px;
   }
 }

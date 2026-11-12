@@ -126,27 +126,45 @@
   max-width: 100%;
 }
 
-/* Resource choices centre beneath the x-axis, where its title would sit. */
-.axisControlX {
-  flex: 1 1 auto;
-  justify-items: center;
-}
-
-.axisControlHeading {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  width: 100%;
+/* Performance choices follow their row's name on one line above the plot; compact layouts set them on a line of their own beneath it. */
+.figureTop > .axisControl {
+  grid-template-columns: max-content minmax(0, 1fr);
   align-items: center;
-  gap: 16px;
+  column-gap: 24px;
 }
 
-.axisControlHeading .axisControlTitle {
-  grid-column: 2;
+/* Resource choices centre beneath the x-axis on one row between the row's name and the variants switch; compact layouts set the choices on a row of their own beneath both. */
+.axisControlX {
+  grid-template-columns: minmax(max-content, 1fr) minmax(0, max-content) minmax(max-content, 1fr);
+  grid-template-areas: "title choices variants";
+  align-items: center;
+  column-gap: 24px;
 }
 
-.axisControlHeading .plotVariants {
-  grid-column: 3;
+.axisControlX > .axisControlTitle {
+  grid-area: title;
+}
+
+.axisControlX > .metricToggle {
+  grid-area: choices;
+}
+
+.axisControlX > .plotVariants {
+  grid-area: variants;
   justify-self: end;
+}
+
+@media (max-width: 820px) {
+  .figureTop > .axisControl {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .axisControlX {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "title variants"
+      "choices choices";
+  }
 }
 
 .axisControlTitle {
@@ -194,7 +212,7 @@
   --chart-max-width: 1120px;
   width: 100%;
   overflow: hidden;
-  padding: 14px 0 10px;
+  padding: 6px 0 10px;
 }
 
 .chartWrap:focus-visible {
@@ -208,6 +226,36 @@
   height: auto;
   margin-inline: auto;
   overflow: visible;
+}
+
+/* A chart's sky stage stacks its WebGL canvas under the SVG at the SVG's own size. */
+.skyStage {
+  position: relative;
+  width: min(100%, var(--chart-max-width));
+  margin-inline: auto;
+}
+
+.skyStage svg {
+  position: relative;
+}
+
+.skyCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* Where the sky draws, it carries the horizon and the stars; the SVG's marks stay as pointer and focus targets, painted only to show keyboard focus. */
+.skyStage[data-sky] .horizon,
+.skyStage[data-sky] .starGlows {
+  display: none;
+}
+
+.skyStage[data-sky] .starCore:not(:focus-visible) {
+  fill: transparent;
+  stroke: transparent;
 }
 
 .axisTick {
@@ -264,6 +312,16 @@
   stroke-width: 1.5;
 }
 
+/* A reading's backdrop is the plane itself, so the tick label beneath gives way and the reading takes its place on the axis. */
+.cursorReadingBackdrop {
+  fill: var(--paper);
+}
+
+/* While the cursor's readings stand on the axes the scale's labels recede, so a reading over the edge of one never reads as a jumble. */
+svg:has(.cursorProjection) :is(.axisLabel, .scaleAnchor) {
+  opacity: 0.25;
+}
+
 .cursorProjectionLabel {
   fill: var(--projection-color, var(--chart-point-label-soft));
   font-family: var(--font-mono);
@@ -271,7 +329,7 @@
   font-weight: var(--type-label-weight);
   paint-order: stroke;
   stroke: var(--chart-point-label-stroke);
-  stroke-width: 2px;
+  stroke-width: 1px;
 }
 
 .scaleGrid {
@@ -371,7 +429,7 @@
   opacity: 0.3;
 }
 
-/* A frontier step answers the pointer along a band as wide as a Timeline lab line, and its stretch of rim lights while its trade is read. */
+/* A frontier step answers the pointer along a band wider than its rim, and its stretch of rim lights while its trade is read. */
 .frontierStepReach {
   fill: none;
   stroke: transparent;
@@ -495,6 +553,7 @@
   cursor: pointer;
 }
 
+/* Names carry only a hairline outline, enough to part them from a line they cross without boxing them in dark. */
 .pointLabel {
   pointer-events: none;
   fill: var(--chart-point-label);
@@ -503,7 +562,7 @@
   font-weight: var(--type-body-weight);
   paint-order: stroke;
   stroke: var(--chart-point-label-stroke);
-  stroke-width: 3px;
+  stroke-width: 1px;
 }
 
 .pointLabelLine {
@@ -1186,10 +1245,9 @@
     max-width: 100%;
   }
 
-  /* A phone plot is a third of the desktop's width, so its text steps down and leaves the plot to the stars: model names and the cursor readout take the caption size on a 2px outline, the axes' ticks, titles, and marks the micro size. Labels are measured as rendered, so placement follows. A plot redrawn for a saved image keeps the desktop sizes the image sets it in. */
+  /* A phone plot is a third of the desktop's width, so its text steps down and leaves the plot to the stars: model names and the cursor readout take the caption size, the axes' ticks, titles, and marks the micro size. Labels are measured as rendered, so placement follows. A plot redrawn for a saved image keeps the desktop sizes the image sets it in. */
   :is(.pointLabel, .cursorProjectionLabel):not([data-capture-layout="artifact"] *) {
     font-size: var(--type-caption-size);
-    stroke-width: 2px;
   }
 
   :is(.axisLabel, .axisTitle, .medianLabel, .scaleAnchor, .cornerDirectionLabel):not(
@@ -1224,18 +1282,6 @@
   .metricToggle button {
     min-height: 44px;
     flex: 0 0 auto;
-  }
-
-  .axisControlHeading {
-    grid-template-columns: 1fr auto;
-  }
-
-  .axisControlHeading .axisControlTitle {
-    grid-column: 1;
-  }
-
-  .axisControlHeading .plotVariants {
-    grid-column: 2;
   }
 
   .axisControlX {
@@ -1346,7 +1392,7 @@
   fill: var(--chart-point-label);
   font-size: var(--type-data-size);
   stroke: var(--chart-point-label-stroke);
-  stroke-width: 3px;
+  stroke-width: 1px;
 }
 
 .section[data-capture-layout="artifact"] .pointLabelLine {

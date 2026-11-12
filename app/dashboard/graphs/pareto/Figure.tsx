@@ -22,31 +22,31 @@ export function ParetoFigureTop({ yAxisControl }: { yAxisControl: ReactNode }) {
 
 export function ParetoFigureFoot({
   xAxisControl,
+  logarithmic,
   showVariants,
   onShowVariantsChange,
 }: {
   xAxisControl: ReactNode;
+  logarithmic: boolean;
   showVariants: boolean;
   onShowVariantsChange: (show: boolean) => void;
 }) {
   return (
     <div className={styles.figureFoot}>
       <div className={`${styles.axisControl} ${styles.axisControlX}`}>
-        <div className={styles.axisControlHeading}>
-          <span className={styles.axisControlTitle} aria-hidden="true">
-            X · Resources
-          </span>
-          <label className={styles.plotVariants} data-capture-exclude>
-            <input
-              type="checkbox"
-              aria-label="Show graph reasoning variants"
-              checked={showVariants}
-              onChange={(event) => onShowVariantsChange(event.target.checked)}
-            />
-            <span>Variants</span>
-          </label>
-        </div>
+        <span className={styles.axisControlTitle} aria-hidden="true">
+          X · Resources{logarithmic ? " · log₁₀" : ""}
+        </span>
         {xAxisControl}
+        <label className={styles.plotVariants} data-capture-exclude>
+          <input
+            type="checkbox"
+            aria-label="Show graph reasoning variants"
+            checked={showVariants}
+            onChange={(event) => onShowVariantsChange(event.target.checked)}
+          />
+          <span>Variants</span>
+        </label>
       </div>
     </div>
   );

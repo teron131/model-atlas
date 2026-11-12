@@ -9,9 +9,13 @@ import { paretoFrontier } from "../graphs/plot/pareto-frontier";
 import {
   FrontierHorizon,
   horizonRim,
+  horizonTrail,
+  polylineSegments,
   TextPointLabel,
   useLabelSizes,
 } from "../graphs/plot/Primitives";
+import type { SkyPlotScene } from "../graphs/plot/sky-renderer";
+import { SkyPlot } from "../graphs/plot/SkyPlot";
 import { modelName, modelVariantKey, shortLabel } from "../shared/model-display";
 import { providerChartColor } from "../shared/provider-theme";
 import { formatResourceRatio } from "../shared/resource-ratio-display";
@@ -33,6 +37,8 @@ const INSET_HEIGHT = 176;
 const SCORE_DOMAIN = [0, 100] as const;
 const SCORE_TICKS = [0, 50, 100];
 const DUST_RADIUS = 1.5;
+// In the sky the population stays small, and the sky dims it as a crowded field, so only the sheet's own models read as bright stars.
+const DUST_SCALE = 0.6;
 
 type InsetPoint = { row: TableRow; cost: number; intelligence: number };
 
@@ -103,17 +109,47 @@ export function FrontierInset({
     x: plot.x(point.cost),
     y: plot.y(point.intelligence),
   }));
+  const rim = horizonRim(horizon, plot.bounds, "right");
+  const trail = horizonTrail(horizon, plot.bounds, "right");
   const placements = calloutLabelPlacements({
     labels: labels.map((label) => ({ ...label, size: labelSizes[label.label] })),
     obstacles: labels.map(({ key, cx, cy, radius }) => ({ key, cx, cy, radius })),
     bounds: plot.bounds,
     reservedBoxes: plot.reservedBoxes,
-    segments: horizonRim(horizon, plot.bounds, "right").flatMap((point, index, rim) =>
-      index === 0
-        ? []
-        : [{ x1: rim[index - 1]!.x, y1: rim[index - 1]!.y, x2: point.x, y2: point.y }],
-    ),
+    segments: [
+      ...polylineSegments(rim),
+      ...(trail == null ? [] : polylineSegments([trail.from, trail.to])),
+    ],
   });
+  const sky: SkyPlotScene = {
+    width: plot.width,
+    height: plot.height,
+    bounds: plot.bounds,
+    rim,
+    trail,
+    muted: false,
+    stars: [
+      ...points.map((point) => ({
+        key: modelVariantKey(point.row.model),
+        x: plot.x(point.cost),
+        y: plot.y(point.intelligence),
+        color: providerChartColor(point.row.model.provider),
+        role: "star" as const,
+        glow: 1,
+        scale: DUST_SCALE,
+      })),
+      ...stars.map(({ key, cx, cy, color }) => ({
+        key,
+        x: cx,
+        y: cy,
+        color,
+        role: "leader" as const,
+        glow: 1,
+      })),
+    ],
+    flare: null,
+    compact: plot.compact,
+  };
   // The opened model, last in a comparison, owns the population.
   const noun = entries.at(-1)!.effort == null ? "models" : "reasoning variants";
   const description = [
@@ -135,40 +171,42 @@ export function FrontierInset({
         className={`${graphStyles.chartTokens} ${styles.plot}`}
         data-capture-plot
       >
-        <svg
-          ref={svgRef}
-          viewBox={`0 0 ${plot.width} ${plot.height}`}
-          role="img"
-          aria-label={description}
-        >
-          <SheetPlotFrame plot={plot} scoreTicks={SCORE_TICKS} />
-          <FrontierHorizon points={horizon} bounds={plot.bounds} open="right" />
-          <g className={styles.dust} aria-hidden="true">
-            {points.map((point) => (
-              <circle
-                key={modelVariantKey(point.row.model)}
-                cx={plot.x(point.cost)}
-                cy={plot.y(point.intelligence)}
-                r={DUST_RADIUS}
+        <SkyPlot scene={sky}>
+          <svg
+            ref={svgRef}
+            viewBox={`0 0 ${plot.width} ${plot.height}`}
+            role="img"
+            aria-label={description}
+          >
+            <SheetPlotFrame plot={plot} scoreTicks={SCORE_TICKS} />
+            <FrontierHorizon points={horizon} bounds={plot.bounds} open="right" />
+            <g className={styles.dust} aria-hidden="true">
+              {points.map((point) => (
+                <circle
+                  key={modelVariantKey(point.row.model)}
+                  cx={plot.x(point.cost)}
+                  cy={plot.y(point.intelligence)}
+                  r={DUST_RADIUS}
+                />
+              ))}
+            </g>
+            {stars.map(({ key, cx, cy, color }) => (
+              <SheetStar key={key} cx={cx} cy={cy} radius={LIT_STAR_RADIUS} color={color} lit />
+            ))}
+            {labels.map((label) => (
+              <TextPointLabel
+                key={label.key}
+                label={label.label}
+                cx={label.cx}
+                cy={label.cy}
+                width={plot.width}
+                height={plot.height}
+                margin={LABEL_MARGIN}
+                placement={placements.get(label.key)}
               />
             ))}
-          </g>
-          {stars.map(({ key, cx, cy, color }) => (
-            <SheetStar key={key} cx={cx} cy={cy} radius={LIT_STAR_RADIUS} color={color} lit />
-          ))}
-          {labels.map((label) => (
-            <TextPointLabel
-              key={label.key}
-              label={label.label}
-              cx={label.cx}
-              cy={label.cy}
-              width={plot.width}
-              height={plot.height}
-              margin={LABEL_MARGIN}
-              placement={placements.get(label.key)}
-            />
-          ))}
-        </svg>
+          </svg>
+        </SkyPlot>
       </div>
       {comparing ? (
         <dl className={styles.facts}>

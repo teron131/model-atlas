@@ -2,7 +2,7 @@
 
 /** Shared root-theme controls and cross-tab synchronization for Model Atlas pages. */
 
-import { useEffect } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 
 import { MODEL_ATLAS_THEME_STORAGE_KEY } from "./theme-storage";
 
@@ -26,8 +26,25 @@ export function useThemeSynchronization() {
 
 /** Toggle the root theme immediately so route transitions retain the chosen palette. */
 export function toggleModelAtlasTheme(): void {
-  const current = document.documentElement.dataset.modelAtlasTheme === "light" ? "light" : "dark";
-  applyTheme(current === "dark" ? "light" : "dark");
+  applyTheme(readTheme() === "dark" ? "light" : "dark");
+}
+
+/** The root theme, following every change to it; the server renders the dark default. */
+export function useModelAtlasTheme(): ModelAtlasTheme {
+  return useSyncExternalStore(subscribeTheme, readTheme, () => "dark");
+}
+
+function readTheme(): ModelAtlasTheme {
+  return document.documentElement.dataset.modelAtlasTheme === "light" ? "light" : "dark";
+}
+
+function subscribeTheme(listener: () => void) {
+  const observer = new MutationObserver(listener);
+  observer.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["data-model-atlas-theme"],
+  });
+  return () => observer.disconnect();
 }
 
 function applyTheme(theme: ModelAtlasTheme): void {

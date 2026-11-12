@@ -576,6 +576,11 @@
   fill: rgb(var(--ink-rgb) / 0.3);
 }
 
+/* Where the frontier inset's sky draws, it carries the dust and the sheet's stars. */
+[data-sky] :is(.dust, .plotStar) {
+  display: none;
+}
+
 /* The sheet's own models are drawn as the leaderboard's score star, not a chart's ringed mark: a solid core in the provider's light, and for a lit model the score star's soft bloom, so a lone star never reads as a ringed orb. */
 .plotStar {
   fill: color-mix(in srgb, var(--star) 45%, #fff);

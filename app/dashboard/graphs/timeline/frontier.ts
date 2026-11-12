@@ -1,9 +1,9 @@
 /** Require evidence support for every record, independently of release age or current portfolio membership. */
 
 export const TIMELINE_START_DATE = "2023-03-14";
-/** The evidence support a model needs to set a record, in the models view and on each lab's line. */
+/** The evidence support a model needs to set a record, on the field's frontier and on each lab's line. */
 export const RECORD_MINIMUM_SUPPORT = 0.6;
-/** The labs view follows this many labs, each charting more than `LAB_MINIMUM_MODELS` models. */
+/** The lab ranking beneath the Timeline follows this many labs, each charting more than `LAB_MINIMUM_MODELS` models. */
 export const LEADING_LAB_COUNT = 10;
 export const LAB_MINIMUM_MODELS = 5;
 
@@ -45,7 +45,7 @@ export function frontierTies<T extends Candidate & { id: string }>(
   });
 }
 
-export type LabFrontier<T extends Candidate & { id: string; provider: string }> = {
+type LabFrontier<T extends Candidate & { id: string; provider: string }> = {
   provider: string;
   models: T[];
   records: T[];

@@ -24,6 +24,9 @@ export function timelinePointLabel(point: Pick<TimelinePoint, "name">): string {
   return point.name === "GPT-4 (Mar 2023)" ? "GPT-4" : point.name;
 }
 
+/** Gaps between a Timeline name and its star: names sit right beside their stars, so where the field is too crowded a lower-priority name gives way instead of hanging on a long leader. */
+export const TIMELINE_LABEL_GAPS = [5, 12];
+
 /** Both Timeline plots pad their scores out to 20-point gridlines, with a fixed range when a view has no points. */
 export function timelineScoreDomain(scores: readonly number[]): [number, number] {
   if (scores.length === 0) return [60, 200];

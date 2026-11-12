@@ -25,22 +25,23 @@ import {
   PointHitTarget,
   useCursorProjection,
 } from "../plot/Interaction";
-import {
-  calloutLabelPlacements,
-  type PointLabelPlacement,
-  type PointLabelSize,
-} from "../plot/label-placement";
+import { calloutLabelPlacements, type PointLabelPlacement } from "../plot/label-placement";
 import { paretoFrontier } from "../plot/pareto-frontier";
 import {
-  AxisTitles,
   DirectionArrow,
   FrontierHorizon,
   horizonRim,
+  horizonTrail,
   insetScaleAnchors,
+  labelBounds,
+  LabelMask,
+  labelRect,
   type Margin,
   MedianCross,
+  medianReadingBoxes,
   plotBoundsFor,
   PlotFrame,
+  polylineSegments,
   SCATTER_CHART_HEIGHT,
   SCATTER_CHART_WIDTH,
   scatterChartMargin,
@@ -52,14 +53,16 @@ import {
   useLabelSizes,
   XAxisTicks,
   YAxisTicks,
+  YAxisTitle,
 } from "../plot/Primitives";
+import { MUTED_STAR_GLOW, type SkyPlotScene } from "../plot/sky-renderer";
+import { SkyPlot } from "../plot/SkyPlot";
 import { starConnectorSegments, starMarkRadius } from "../plot/star-marks";
 import { useChartLayout } from "../use-chart-layout";
 
 import styles from "../graphs.module.css";
 
 type ScatterMetric<Row> = {
-  label: string;
   /** What the X axis measures, as a frontier step names its trade: `6.3× cost`, `−12.3 Speed Score`. */
   noun: string;
   get: (row: Row) => number;
@@ -69,7 +72,6 @@ type ScatterMetric<Row> = {
 };
 
 const PLOT_EDGE_GUTTER = 20;
-const LABEL_EDGE_GUTTER = 12;
 const DIRECTION_LABEL_WIDTH = 100;
 const DIRECTION_LABEL_HEIGHT = 32;
 // Reserve room above the highest score for full model callouts.
@@ -147,6 +149,8 @@ export function FrontierBenchmarkScatterPlot<Row>({
   const medianMetric = median(metricValues) ?? xDomain[0];
   const scores = rows.map(getScore);
   const medianScore = median(scores) ?? yDomain[0];
+  const medianXLabel = `MED ${metric.format(medianMetric)}`;
+  const medianYLabel = `MED ${formatScore(medianScore)}`;
   const frontierRows = new Set(frontier);
   // The reached region continues away from the better side: rightward when lower resources win.
   const horizonOpenSide = metric.xHigherIsBetter ? "left" : "right";
@@ -154,6 +158,8 @@ export function FrontierBenchmarkScatterPlot<Row>({
     x: xPoint(metric.get(row)),
     y: yPoint(getScore(row)),
   }));
+  const rim = horizonRim(frontierPoints, plot, horizonOpenSide);
+  const trail = horizonTrail(frontierPoints, plot, horizonOpenSide);
   // The frontier step being read, by the position of the model it reaches.
   const [activeStep, setActiveStep] = useState<number | null>(null);
   // A frontier model's card states its step from the frontier model before it in X order, whether read from its star or from the frontier between them.
@@ -206,13 +212,8 @@ export function FrontierBenchmarkScatterPlot<Row>({
   const labeledRows = [...new Set([...highlightedRows, ...frontier])];
   const { svgRef, labelSizes } = useLabelSizes(labeledRows.map(getLabel).join("\0"), compact);
   const layoutRequest: Parameters<typeof calloutLabelPlacements>[0] = {
-    bounds: {
-      left: plot.left + LABEL_EDGE_GUTTER,
-      right: plot.right - LABEL_EDGE_GUTTER,
-      top: plot.top + LABEL_EDGE_GUTTER,
-      bottom: plot.bottom - LABEL_EDGE_GUTTER,
-    },
-    // Protect the corner direction glyph and caption, and a compact plot's inset scale anchors, from both text and leaders.
+    bounds: labelBounds(plot),
+    // Protect the corner direction glyph and caption, the medians' names, and a compact plot's inset scale anchors, from both text and leaders.
     reservedBoxes: [
       {
         left: metric.xHigherIsBetter ? plot.right - DIRECTION_LABEL_WIDTH : plot.left,
@@ -220,6 +221,10 @@ export function FrontierBenchmarkScatterPlot<Row>({
         top: plot.top,
         bottom: plot.top + DIRECTION_LABEL_HEIGHT,
       },
+      ...medianReadingBoxes(xPoint(medianMetric), yPoint(medianScore), plot, [
+        medianXLabel,
+        medianYLabel,
+      ]),
       ...(compact
         ? insetScaleAnchors(yTicks, yPoint, plot.left, formatScore).map(({ box }) => box)
         : []),
@@ -232,20 +237,14 @@ export function FrontierBenchmarkScatterPlot<Row>({
       weight: activeReasoningGroup != null && !highlightedRows.includes(row) ? 0.15 : 1,
     })),
     segments: [
-      horizonRim(frontierPoints, plot, horizonOpenSide),
+      rim,
+      ...(trail == null ? [] : [[trail.from, trail.to]]),
       ...reasoningGroups
         .filter((group) => group.key === activeReasoningGroup)
         .map((group) =>
           group.variants.map((row) => ({ x: xPoint(metric.get(row)), y: yPoint(getScore(row)) })),
         ),
-    ].flatMap((points) =>
-      points.slice(1).map((point, index) => ({
-        x1: points[index]!.x,
-        y1: points[index]!.y,
-        x2: point.x,
-        y2: point.y,
-      })),
-    ),
+    ].flatMap(polylineSegments),
     labels: labeledRows.map((row, index) => ({
       key: getKey(row),
       label: getLabel(row),
@@ -319,6 +318,28 @@ export function FrontierBenchmarkScatterPlot<Row>({
   });
   const activeHighlightColor =
     activeRow == null ? undefined : providerChartColor(getModel(activeRow).provider);
+  const leader = frontier.reduce<Row | undefined>(
+    (best, row) => (best == null || getScore(row) > getScore(best) ? row : best),
+    undefined,
+  );
+  const sky: SkyPlotScene = {
+    width,
+    height,
+    bounds: plot,
+    rim,
+    trail,
+    muted: activeVariantKey != null,
+    stars: rows.map((row) => ({
+      key: getKey(row),
+      x: xPoint(metric.get(row)),
+      y: yPoint(getScore(row)),
+      color: providerChartColor(getModel(row).provider),
+      role: row === leader ? "leader" : frontierRows.has(row) ? "frontier" : "star",
+      glow: activeVariantKey != null && !isHighlighted(row) ? MUTED_STAR_GLOW : 1,
+    })),
+    flare: activeVariantKey,
+    compact,
+  };
 
   return (
     <div
@@ -330,267 +351,244 @@ export function FrontierBenchmarkScatterPlot<Row>({
       aria-label={`${ariaLabel} viewport`}
       tabIndex={0}
     >
-      <svg
-        viewBox={`0 0 ${width} ${height}`}
-        role="img"
-        aria-label={ariaLabel}
-        ref={svgRef}
-        {...projectionHandlers}
-      >
-        <defs>
-          <mask
-            id={guideMaskId}
-            maskUnits="userSpaceOnUse"
-            x={0}
-            y={0}
-            width={width}
-            height={height}
-          >
-            <rect width={width} height={height} fill="white" />
-            {callouts.map(({ key, placement, size }) => {
-              if (!placement || !size) return null;
-              return (
-                <g key={key}>
-                  <rect {...labelRect(placement, size, 4)} fill="black" />
-                  {placement.line ? (
-                    <line {...placement.line} stroke="black" strokeWidth={6} />
-                  ) : null}
-                </g>
-              );
-            })}
-          </mask>
-        </defs>
-        <PlotFrame width={width} height={height} margin={chartMargin} />
-        <CursorCapture bounds={plot} />
-        <YAxisTicks
-          insetRight={compact ? plot.right : undefined}
-          showGridLines={false}
-          ticks={yTicks}
-          yPoint={yPoint}
-          x={plot.left}
-          format={formatScore}
-          keyPrefix={keyPrefix}
-        />
-        <XAxisTicks
-          ticks={xTicks}
-          xPoint={xPoint}
-          y={plot.bottom}
-          format={metric.format}
-          keyPrefix={keyPrefix}
-          labelMinGap={62}
-        />
-        <AxisTitles
-          width={width}
-          height={height}
-          margin={chartMargin}
-          x={metric.label}
-          y={yAxisLabel}
-          compact={compact}
-          xTitleOffset={50}
-        />
-        <g mask={`url(#${guideMaskId})`}>
-          {metric.logarithmic ? (
-            <line
-              className={styles.medianAxis}
-              x1={xPoint(1)}
-              x2={xPoint(1)}
-              y1={plot.top}
-              y2={plot.bottom}
-              strokeDasharray="3 4"
-              aria-label="1× benchmark-median resource use"
-            />
-          ) : null}
-          <MedianCross
-            x={xPoint(medianMetric)}
-            y={yPoint(medianScore)}
-            bounds={plot}
-            xLabel={
-              cursorProjection &&
-              Math.abs(cursorProjection.x - xPoint(medianMetric)) < MEDIAN_LABEL_CLEARANCE
-                ? ""
-                : `MED ${metric.format(medianMetric)}`
-            }
-            yLabel={`MED ${formatScore(medianScore)}`}
-          />
-          <AxisDistribution
-            axis="y"
-            values={scores}
-            // A compact plot sets its score labels just inside without tick marks, so its score spread sits outside instead.
-            at={compact ? plot.left - SPREAD_HALF_WIDTH : plot.left + SPREAD_HALF_WIDTH}
-            point={yPoint}
-            label={yAxisLabel}
+      <SkyPlot scene={sky}>
+        <svg
+          viewBox={`0 0 ${width} ${height}`}
+          role="img"
+          aria-label={ariaLabel}
+          ref={svgRef}
+          {...projectionHandlers}
+        >
+          <defs>
+            <LabelMask id={guideMaskId} width={width} height={height} labels={callouts} />
+          </defs>
+          <PlotFrame width={width} height={height} margin={chartMargin} />
+          <CursorCapture bounds={plot} />
+          <YAxisTicks
+            insetRight={compact ? plot.right : undefined}
+            showGridLines={false}
+            ticks={yTicks}
+            yPoint={yPoint}
+            x={plot.left}
             format={formatScore}
+            keyPrefix={keyPrefix}
           />
-          <AxisDistribution
-            axis="x"
-            values={metricValues}
-            at={plot.bottom - SPREAD_HALF_WIDTH}
-            point={xPoint}
-            label={metric.noun}
+          <XAxisTicks
+            ticks={xTicks}
+            xPoint={xPoint}
+            y={plot.bottom}
             format={metric.format}
+            keyPrefix={keyPrefix}
+            labelMinGap={62}
           />
-        </g>
-        <DirectionArrow
-          bounds={plot}
-          direction={metric.xHigherIsBetter ? "upper-right" : "upper-left"}
-          label="Better"
-        />
-        <g mask={`url(#${guideMaskId})`}>
-          <CursorProjectionLayer
-            projection={cursorProjection}
-            bounds={plot}
-            xLabel={cursorProjection ? metric.format(cursorProjection.xValue) : ""}
-            yLabel={cursorProjection ? formatScore(cursorProjection.yValue) : ""}
-            color={activeHighlightColor}
-          />
-        </g>
-        {reasoningVariantLines.flatMap((line) =>
-          line.segments.map((segment, index) => (
-            <line
-              {...segment}
-              x1={stableSvgNumber(segment.x1)}
-              y1={stableSvgNumber(segment.y1)}
-              x2={stableSvgNumber(segment.x2)}
-              y2={stableSvgNumber(segment.y2)}
-              aria-hidden="true"
-              key={`${line.key}-${index}`}
-              className={[
-                styles.reasoningVariantLine,
-                activeReasoningGroup != null && line.key === activeReasoningGroup
-                  ? styles.reasoningVariantLineActive
-                  : "",
-              ]
-                .filter(Boolean)
-                .join(" ")}
-              style={
-                {
-                  "--line-color": line.color,
-                } as CSSProperties
-              }
-              vectorEffect="non-scaling-stroke"
-            />
-          )),
-        )}
-        <FrontierHorizon
-          points={frontierPoints}
-          bounds={plot}
-          open={horizonOpenSide}
-          muted={activeVariantKey != null}
-        />
-        {/* Each step along the frontier answers the pointer with the trade it makes; the stars' own targets sit above it. */}
-        {frontier.map((row, index) => {
-          if (index === 0) return null;
-          const segment = {
-            x1: frontierPoints[index - 1]!.x,
-            y1: frontierPoints[index - 1]!.y,
-            x2: frontierPoints[index]!.x,
-            y2: frontierPoints[index]!.y,
-          };
-          return (
-            <g key={`step-${getKey(row)}`}>
-              {activeStep === index ? <line className={styles.frontierStep} {...segment} /> : null}
+          <YAxisTitle height={height} margin={chartMargin} title={yAxisLabel} compact={compact} />
+          <g mask={`url(#${guideMaskId})`}>
+            {metric.logarithmic ? (
               <line
-                className={styles.frontierStepReach}
-                data-capture-exclude
+                className={styles.medianAxis}
+                x1={xPoint(1)}
+                x2={xPoint(1)}
+                y1={plot.top}
+                y2={plot.bottom}
+                strokeDasharray="3 4"
+                aria-label="1× benchmark-median resource use"
+              />
+            ) : null}
+            <MedianCross
+              x={xPoint(medianMetric)}
+              y={yPoint(medianScore)}
+              bounds={plot}
+              xLabel={
+                cursorProjection &&
+                Math.abs(cursorProjection.x - xPoint(medianMetric)) < MEDIAN_LABEL_CLEARANCE
+                  ? ""
+                  : medianXLabel
+              }
+              yLabel={medianYLabel}
+            />
+            <AxisDistribution
+              axis="y"
+              values={scores}
+              // A compact plot sets its score labels just inside without tick marks, so its score spread sits outside instead.
+              at={compact ? plot.left - SPREAD_HALF_WIDTH : plot.left + SPREAD_HALF_WIDTH}
+              point={yPoint}
+              label={yAxisLabel}
+              format={formatScore}
+            />
+            <AxisDistribution
+              axis="x"
+              values={metricValues}
+              at={plot.bottom - SPREAD_HALF_WIDTH}
+              point={xPoint}
+              label={metric.noun}
+              format={metric.format}
+            />
+          </g>
+          <DirectionArrow
+            bounds={plot}
+            direction={metric.xHigherIsBetter ? "upper-right" : "upper-left"}
+            label="Better"
+          />
+          <g mask={`url(#${guideMaskId})`}>
+            <CursorProjectionLayer
+              projection={cursorProjection}
+              bounds={plot}
+              xLabel={cursorProjection ? metric.format(cursorProjection.xValue) : ""}
+              yLabel={cursorProjection ? formatScore(cursorProjection.yValue) : ""}
+              color={activeHighlightColor}
+              insetScale={compact}
+            />
+          </g>
+          {reasoningVariantLines.flatMap((line) =>
+            line.segments.map((segment, index) => (
+              <line
                 {...segment}
+                x1={stableSvgNumber(segment.x1)}
+                y1={stableSvgNumber(segment.y1)}
+                x2={stableSvgNumber(segment.x2)}
+                y2={stableSvgNumber(segment.y2)}
+                aria-hidden="true"
+                key={`${line.key}-${index}`}
+                className={[
+                  styles.reasoningVariantLine,
+                  activeReasoningGroup != null && line.key === activeReasoningGroup
+                    ? styles.reasoningVariantLineActive
+                    : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                style={
+                  {
+                    "--line-color": line.color,
+                  } as CSSProperties
+                }
+                vectorEffect="non-scaling-stroke"
+              />
+            )),
+          )}
+          <FrontierHorizon
+            points={frontierPoints}
+            bounds={plot}
+            open={horizonOpenSide}
+            muted={activeVariantKey != null}
+          />
+          {/* Each step along the frontier answers the pointer with the trade it makes; the stars' own targets sit above it. */}
+          {frontier.map((row, index) => {
+            if (index === 0) return null;
+            const segment = {
+              x1: frontierPoints[index - 1]!.x,
+              y1: frontierPoints[index - 1]!.y,
+              x2: frontierPoints[index]!.x,
+              y2: frontierPoints[index]!.y,
+            };
+            return (
+              <g key={`step-${getKey(row)}`}>
+                {activeStep === index ? (
+                  <line className={styles.frontierStep} {...segment} />
+                ) : null}
+                <line
+                  className={styles.frontierStepReach}
+                  data-capture-exclude
+                  {...segment}
+                  onPointerEnter={(event) => {
+                    setActiveStep(index);
+                    setHover(hoverFor(event, row));
+                  }}
+                  onPointerMove={(event) => setHover(hoverFor(event, row))}
+                  onPointerLeave={() => {
+                    setActiveStep(null);
+                    setHover(null);
+                  }}
+                />
+              </g>
+            );
+          })}
+          {/* Only frontier models glow; a muted effort variant loses its glow while another model is hovered. */}
+          <StarGlows
+            bounds={plot}
+            stars={frontier.map((row) => ({
+              key: getKey(row),
+              cx: xPoint(metric.get(row)),
+              cy: yPoint(getScore(row)),
+              radius: markRadius(row),
+              color: providerChartColor(getModel(row).provider),
+              emphasis: "frontier",
+              opacity: activeVariantKey != null && !isHighlighted(row) ? 0 : 1,
+            }))}
+          />
+          {rows.map((row) => {
+            const axisValue = metric.get(row);
+            const score = getScore(row);
+            const cx = xPoint(axisValue);
+            const cy = yPoint(score);
+            const model = getModel(row);
+            const variantKey = getKey(row);
+            return (
+              <g className={variantClass(row)} key={getKey(row)}>
+                <circle
+                  className={`${styles.starCore} ${styles.datavizPoint}`}
+                  cx={cx}
+                  cy={cy}
+                  {...starCore(markRadius(row), providerChartColor(model.provider))}
+                  opacity={frontierRows.has(row) ? 1 : 0.86}
+                />
+                <PointHitTarget
+                  cx={cx}
+                  cy={cy}
+                  model={model}
+                  rows={hoverRows(row)}
+                  setHover={setHover}
+                  hoverTitle={getHoverTitle?.(row)}
+                  snapProjection={{
+                    x: cx,
+                    y: cy,
+                    xValue: axisValue,
+                    yValue: score,
+                  }}
+                  setCursorProjection={setCursorProjection}
+                  onActiveChange={(active) => setHighlightedVariantKey(active ? variantKey : null)}
+                />
+              </g>
+            );
+          })}
+          {callouts.map(({ key, row, label, cx, cy, placement, size }) => {
+            return (
+              <g
+                className={variantClass(row)}
+                key={`label-${key}`}
                 onPointerEnter={(event) => {
-                  setActiveStep(index);
+                  setHighlightedVariantKey(getKey(row));
                   setHover(hoverFor(event, row));
                 }}
-                onPointerMove={(event) => setHover(hoverFor(event, row))}
                 onPointerLeave={() => {
-                  setActiveStep(null);
+                  setHighlightedVariantKey(null);
                   setHover(null);
                 }}
-              />
-            </g>
-          );
-        })}
-        {/* Only frontier models glow; a muted effort variant loses its glow while another model is hovered. */}
-        <StarGlows
-          bounds={plot}
-          stars={frontier.map((row) => ({
-            key: getKey(row),
-            cx: xPoint(metric.get(row)),
-            cy: yPoint(getScore(row)),
-            radius: markRadius(row),
-            color: providerChartColor(getModel(row).provider),
-            emphasis: "frontier",
-            opacity: activeVariantKey != null && !isHighlighted(row) ? 0 : 1,
-          }))}
-        />
-        {rows.map((row) => {
-          const axisValue = metric.get(row);
-          const score = getScore(row);
-          const cx = xPoint(axisValue);
-          const cy = yPoint(score);
-          const model = getModel(row);
-          const variantKey = getKey(row);
-          return (
-            <g className={variantClass(row)} key={getKey(row)}>
-              <circle
-                className={`${styles.starCore} ${styles.datavizPoint}`}
-                cx={cx}
-                cy={cy}
-                {...starCore(markRadius(row), providerChartColor(model.provider))}
-                opacity={frontierRows.has(row) ? 1 : 0.86}
-              />
-              <PointHitTarget
-                cx={cx}
-                cy={cy}
-                model={model}
-                rows={hoverRows(row)}
-                setHover={setHover}
-                hoverTitle={getHoverTitle?.(row)}
-                snapProjection={{
-                  x: cx,
-                  y: cy,
-                  xValue: axisValue,
-                  yValue: score,
-                }}
-                setCursorProjection={setCursorProjection}
-                onActiveChange={(active) => setHighlightedVariantKey(active ? variantKey : null)}
-              />
-            </g>
-          );
-        })}
-        {callouts.map(({ key, row, label, cx, cy, placement, size }) => {
-          return (
-            <g
-              className={variantClass(row)}
-              key={`label-${key}`}
-              onPointerEnter={(event) => {
-                setHighlightedVariantKey(getKey(row));
-                setHover(hoverFor(event, row));
-              }}
-              onPointerLeave={() => {
-                setHighlightedVariantKey(null);
-                setHover(null);
-              }}
-            >
-              {placement && size ? (
-                <rect
-                  data-capture-exclude
-                  {...labelRect(placement, size, 3)}
-                  fill="transparent"
-                  pointerEvents={compact ? "none" : "all"}
-                  aria-hidden="true"
+              >
+                {placement && size ? (
+                  <rect
+                    data-capture-exclude
+                    {...labelRect(placement, size, 3)}
+                    fill="transparent"
+                    pointerEvents={compact ? "none" : "all"}
+                    aria-hidden="true"
+                  />
+                ) : null}
+                <TextPointLabel
+                  label={label}
+                  cx={cx}
+                  cy={cy}
+                  width={width}
+                  margin={chartMargin}
+                  height={height}
+                  xOffset={markRadius(row) + 8}
+                  placement={placement}
                 />
-              ) : null}
-              <TextPointLabel
-                label={label}
-                cx={cx}
-                cy={cy}
-                width={width}
-                margin={chartMargin}
-                height={height}
-                xOffset={markRadius(row) + 8}
-                placement={placement}
-              />
-            </g>
-          );
-        })}
-      </svg>
+              </g>
+            );
+          })}
+        </svg>
+      </SkyPlot>
     </div>
   );
 }
@@ -612,16 +610,6 @@ function useVariantHighlight() {
     else setKey(next);
   };
   return [key, highlight] as const;
-}
-
-/** Hit areas and guide masks must use the same measured text geometry, with their own clearance. */
-function labelRect(placement: PointLabelPlacement, size: PointLabelSize, padding: number) {
-  return {
-    x: placement.x - padding,
-    y: placement.y - size.ascent - padding,
-    width: size.width + padding * 2,
-    height: size.ascent + size.descent + padding * 2,
-  };
 }
 
 /** An axis carries its plotted values' spread: a box over the middle half, whiskers from it out to the lowest and highest values, and a mark at the median the median guide continues. */

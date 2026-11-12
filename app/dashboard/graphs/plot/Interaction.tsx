@@ -2,7 +2,14 @@
 
 /** Pointer projection, cursor overlays, and interactive hit targets for dashboard SVG plots. */
 
-import { type CSSProperties, type PointerEvent as ReactPointerEvent, useState } from "react";
+import {
+  type CSSProperties,
+  type ReactNode,
+  type PointerEvent as ReactPointerEvent,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 
 import type { ModelAtlasModel } from "../../../../src/model-atlas/stats/types";
 import { openModelSheet } from "../../model-sheet/open";
@@ -96,48 +103,83 @@ export function CursorCapture({ bounds }: { bounds: PlotBounds }) {
   );
 }
 
+/** The cursor's guides drop to the axes and its readings sit on them over the tick labels, outside the plot where model names never go. */
 export function CursorProjectionLayer({
   projection,
   bounds,
   xLabel,
   yLabel,
   color,
+  insetScale = false,
 }: {
   projection: CursorProjection | null;
   bounds: PlotBounds;
   xLabel: string;
   yLabel: string;
   color?: string;
+  /** The y scale sits inside the plot, as compact plots' anchors do, so its reading does too, above the guide. */
+  insetScale?: boolean;
 }) {
   if (!projection) {
     return null;
   }
-
   return (
     <g
       className={styles.cursorProjection}
       style={color == null ? undefined : ({ "--projection-color": color } as CSSProperties)}
     >
-      <line x1={projection.x} x2={projection.x} y1={bounds.top} y2={projection.y} />
-      <line x1={projection.x} x2={bounds.right} y1={projection.y} y2={projection.y} />
+      <line x1={projection.x} x2={projection.x} y1={projection.y} y2={bounds.bottom} />
+      <line x1={bounds.left} x2={projection.x} y1={projection.y} y2={projection.y} />
       <circle cx={projection.x} cy={projection.y} r={3} />
-      <text
-        className={styles.cursorProjectionLabel}
-        x={projection.x}
-        y={bounds.top - 8}
-        textAnchor="middle"
-      >
+      <AxisReading x={projection.x} y={bounds.bottom + 24} textAnchor="middle">
         {xLabel}
-      </text>
-      <text
-        className={styles.cursorProjectionLabel}
-        x={bounds.right - 6}
-        y={projection.y + 4}
-        textAnchor="end"
-      >
-        {yLabel}
-      </text>
+      </AxisReading>
+      {insetScale ? (
+        <AxisReading x={bounds.left + 6} y={projection.y - 6} textAnchor="start">
+          {yLabel}
+        </AxisReading>
+      ) : (
+        <AxisReading x={bounds.left - 15} y={projection.y + 4} textAnchor="end">
+          {yLabel}
+        </AxisReading>
+      )}
     </g>
+  );
+}
+
+/** A reading set where the axis labels sit, on a backdrop measured from its text so the tick label beneath gives way. */
+function AxisReading({
+  x,
+  y,
+  textAnchor,
+  children,
+}: {
+  x: number;
+  y: number;
+  textAnchor: "start" | "middle" | "end";
+  children: ReactNode;
+}) {
+  const text = useRef<SVGTextElement>(null);
+  const [box, setBox] = useState<DOMRect | null>(null);
+  useLayoutEffect(() => {
+    setBox(text.current?.getBBox() ?? null);
+  }, [x, y, textAnchor, children]);
+  return (
+    <>
+      {box == null ? null : (
+        <rect
+          className={styles.cursorReadingBackdrop}
+          x={box.x - 5}
+          y={box.y - 2}
+          width={box.width + 10}
+          height={box.height + 4}
+          rx={2}
+        />
+      )}
+      <text ref={text} className={styles.cursorProjectionLabel} x={x} y={y} textAnchor={textAnchor}>
+        {children}
+      </text>
+    </>
   );
 }
 

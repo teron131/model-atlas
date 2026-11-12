@@ -35,7 +35,6 @@ export type DashboardUrlState = {
   /** The reasoning efforts the leaderboard's variant rows keep; `null` keeps every effort. */
   "table-effort": string[] | null;
   "graph-variants": boolean;
-  "timeline-view": "models" | "labs";
   "timeline-period": "all" | "year";
   "timeline-provider": string[] | null;
   performance: PerformanceMetric;
@@ -70,7 +69,6 @@ const dashboardKeys = new Set<DashboardUrlKey>([
   "rank",
   "days",
   "graph-variants",
-  "timeline-view",
   "timeline-period",
   "timeline-provider",
   "model",
@@ -103,9 +101,6 @@ export function readUrlValue<K extends DashboardUrlKey>(
           : { key: "intelligence", direction: "descending" };
       break;
     }
-    case "timeline-view":
-      result = choice(value, ["models", "labs"], "models");
-      break;
     case "timeline-period":
       result = choice(value, ["all", "year"], "all");
       break;

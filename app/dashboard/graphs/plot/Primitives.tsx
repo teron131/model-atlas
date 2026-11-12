@@ -25,12 +25,14 @@ export type PlotBounds = {
 
 export const SCATTER_CHART_HEIGHT = 600;
 export const SCATTER_CHART_MARGIN: Margin = {
-  top: 28,
+  top: 14,
   right: 34,
-  bottom: 70,
+  bottom: 34,
   left: 62,
 };
 export const SCATTER_CHART_WIDTH = 1120;
+// Model callouts keep this far inside the plot's edges.
+const LABEL_EDGE_GUTTER = 12;
 
 const SVG_NUMBER_DECIMALS = 3;
 const AXIS_TICK_LENGTH = 7;
@@ -40,7 +42,7 @@ const SCALE_ANCHOR_ASCENT = 9;
 
 /** Keep compact titles above the plot and inset scale labels within its narrow gutters. */
 export function scatterChartMargin(margin: Margin, compact: boolean): Margin {
-  return compact ? { top: 48, right: 8, bottom: 60, left: 8 } : margin;
+  return compact ? { top: 48, right: 8, bottom: 30, left: 8 } : margin;
 }
 
 /** Rounds so server and client renders serialize identical SVG attributes. */
@@ -132,6 +134,32 @@ type ScreenPoint = { x: number; y: number };
 /** The side where a frontier's reached region continues past its outermost model to the plot edge. */
 type HorizonOpenSide = "left" | "right";
 
+export type HorizonTrail = { from: ScreenPoint; to: ScreenPoint };
+
+export function polylineSegments(points: readonly ScreenPoint[]) {
+  return points.slice(1).map((to, index) => ({
+    x1: points[index]!.x,
+    y1: points[index]!.y,
+    x2: to.x,
+    y2: to.y,
+  }));
+}
+
+/** The area of a plot that model callouts may take, inset from its edges. */
+export function labelBounds(plot: PlotBounds): PlotBounds {
+  return {
+    left: plot.left + LABEL_EDGE_GUTTER,
+    right: plot.right - LABEL_EDGE_GUTTER,
+    top: plot.top + LABEL_EDGE_GUTTER,
+    bottom: plot.bottom - LABEL_EDGE_GUTTER,
+  };
+}
+
+// A trail follows the trend of this many frontier models nearest its end; a fit over the whole frontier would take in the far end's bend.
+const TRAIL_TREND_MODELS = 4;
+// A trail never falls faster than it runs, so it carries the frontier sideways instead of dropping toward the axis.
+const TRAIL_MAX_SLOPE = 1;
+
 // The rim's light rises into the open sky above it: a tight glow over a broad, faint one, so brightness falls away evenly instead of ending as a band.
 const HORIZON_SKY = [
   { width: 4, blur: 4 },
@@ -165,6 +193,32 @@ export function horizonRim(
   return open === "right"
     ? [...points, { x: bounds.right, y: last.y }]
     : [{ x: bounds.left, y: first.y }, ...points];
+}
+
+/**
+ * Guess how a frontier, given in ascending screen x, continues past its closed end, the side away from `open`, where no model lies beyond the outermost one: a line from that model to the plot edge at the least-squares slope of the models nearest it.
+ * Null when that model sits at the edge or beyond it, as when a replay's camera has panned past it.
+ */
+export function horizonTrail(
+  points: readonly ScreenPoint[],
+  bounds: PlotBounds,
+  open: HorizonOpenSide,
+): HorizonTrail | null {
+  const nearest = (open === "right" ? points : [...points].reverse()).slice(0, TRAIL_TREND_MODELS);
+  const from = nearest[0];
+  const edge = open === "right" ? bounds.left : bounds.right;
+  if (from == null || (open === "right" ? from.x - edge : edge - from.x) < 1) return null;
+  const meanX = nearest.reduce((sum, { x }) => sum + x, 0) / nearest.length;
+  const meanY = nearest.reduce((sum, { y }) => sum + y, 0) / nearest.length;
+  let covariance = 0;
+  let variance = 0;
+  for (const { x, y } of nearest) {
+    covariance += (x - meanX) * (y - meanY);
+    variance += (x - meanX) ** 2;
+  }
+  const slope =
+    variance === 0 ? 0 : clamp(covariance / variance, -TRAIL_MAX_SLOPE, TRAIL_MAX_SLOPE);
+  return { from, to: { x: edge, y: from.y + slope * (edge - from.x) } };
 }
 
 /**
@@ -284,6 +338,42 @@ export function FrontierHorizon({
   );
 }
 
+// Room a reading beside a vertical line's top end takes, so near the plot's right edge it turns to the line's left.
+const TOP_READING_ROOM = 96;
+// Readings are mono at the caption size or smaller: under this wide per character and this tall above the baseline.
+const READING_CHAR_WIDTH = 7;
+const READING_ASCENT = 10;
+
+/** Where a reading naming a vertical line sits, inside the plot's top: on the line's right, or on its left near the right edge. */
+function topReading(x: number, bounds: PlotBounds) {
+  const right = x <= bounds.right - TOP_READING_ROOM;
+  return {
+    x: right ? x + 8 : x - 8,
+    y: bounds.top + 16,
+    textAnchor: right ? "start" : "end",
+  } as const;
+}
+
+/** Where a reading naming a horizontal line sits: above it, at the plot's right edge. */
+function rightReading(y: number, bounds: PlotBounds) {
+  return { x: bounds.right - 8, y: y - 7, textAnchor: "end" } as const;
+}
+
+/** The boxes the median names take inside the plot, for callouts to keep clear of. */
+export function medianReadingBoxes(
+  x: number,
+  y: number,
+  bounds: PlotBounds,
+  labels: [string, string],
+) {
+  return [topReading(x, bounds), rightReading(y, bounds)].map((reading, index) => {
+    const width = labels[index]!.length * READING_CHAR_WIDTH;
+    const left = reading.textAnchor === "start" ? reading.x : reading.x - width;
+    return { left, right: left + width, top: reading.y - READING_ASCENT, bottom: reading.y + 3 };
+  });
+}
+
+/** Each median's name sits inside the plot beside its line's far end: the x median's at the top and the y median's above its line at the right. */
 export function MedianCross({
   x,
   y,
@@ -301,10 +391,10 @@ export function MedianCross({
     <>
       <line className={styles.medianAxis} x1={x} x2={x} y1={bounds.top} y2={bounds.bottom} />
       <line className={styles.medianAxis} x1={bounds.left} x2={bounds.right} y1={y} y2={y} />
-      <text className={styles.medianLabel} x={x} y={bounds.top - 8} textAnchor="middle">
+      <text className={styles.medianLabel} {...topReading(x, bounds)}>
         {xLabel}
       </text>
-      <text className={styles.medianLabel} x={bounds.right - 8} y={y + 5} textAnchor="end">
+      <text className={styles.medianLabel} {...rightReading(y, bounds)}>
         {yLabel}
       </text>
     </>
@@ -504,49 +594,30 @@ export function DirectionArrow({
   );
 }
 
-export function AxisTitles({
-  width,
+/** Only the y-axis is titled in the plot: the row of choices beneath each plot names its x-axis. */
+export function YAxisTitle({
   height,
   margin,
-  x,
-  y,
+  title,
   compact = false,
-  xTitleOffset,
 }: {
-  width: number;
   height: number;
   margin: Margin;
-  x: string;
-  y: string;
+  title: string;
   compact?: boolean;
-  xTitleOffset?: number;
 }) {
-  const plotLeft = margin.left;
-  const plotRight = width - margin.right;
-  const plotBottom = height - margin.bottom;
   const plotMiddleY = margin.top + (height - margin.top - margin.bottom) / 2;
-  const yTitleX = compact ? plotLeft : 18;
-  const resolvedXTitleOffset = xTitleOffset ?? (compact ? 48 : 60);
+  const x = compact ? margin.left : 18;
   return (
-    <>
-      <text
-        className={styles.axisTitle}
-        x={plotLeft + (plotRight - plotLeft) / 2}
-        y={plotBottom + resolvedXTitleOffset}
-        textAnchor="middle"
-      >
-        {x}
-      </text>
-      <text
-        className={styles.axisTitle}
-        x={yTitleX}
-        y={compact ? 14 : plotMiddleY}
-        textAnchor={compact ? "start" : "middle"}
-        transform={compact ? undefined : `rotate(-90 ${yTitleX} ${plotMiddleY})`}
-      >
-        {y}
-      </text>
-    </>
+    <text
+      className={styles.axisTitle}
+      x={x}
+      y={compact ? 14 : plotMiddleY}
+      textAnchor={compact ? "start" : "middle"}
+      transform={compact ? undefined : `rotate(-90 ${x} ${plotMiddleY})`}
+    >
+      {title}
+    </text>
   );
 }
 
@@ -594,6 +665,65 @@ export function TextPointLabel({
         {label}
       </text>
     </g>
+  );
+}
+
+/** Hit areas and guide masks must use the same measured text geometry, with their own clearance. */
+export function labelRect(placement: PointLabelPlacement, size: PointLabelSize, padding: number) {
+  return {
+    x: placement.x - padding,
+    y: placement.y - size.ascent - padding,
+    width: size.width + padding * 2,
+    height: size.ascent + size.descent + padding * 2,
+  };
+}
+
+/** Keys of the labels to leave out, in priority order: each placed label whose text meets an earlier kept one's gives way. */
+export function crowdedOutLabels(
+  labels: readonly { key: string; placement?: PointLabelPlacement; size?: PointLabelSize }[],
+): Set<string> {
+  const kept: ReturnType<typeof labelRect>[] = [];
+  const crowded = new Set<string>();
+  for (const { key, placement, size } of labels) {
+    if (placement == null || size == null) continue;
+    const box = labelRect(placement, size, 1);
+    const meets = kept.some(
+      (other) =>
+        box.x < other.x + other.width &&
+        other.x < box.x + box.width &&
+        box.y < other.y + other.height &&
+        other.y < box.y + box.height,
+    );
+    if (meets) crowded.add(key);
+    else kept.push(box);
+  }
+  return crowded;
+}
+
+/** Clear a plot's guides from under its placed labels and their leaders, so no guide runs through a name. */
+export function LabelMask({
+  id,
+  width,
+  height,
+  labels,
+}: {
+  id: string;
+  width: number;
+  height: number;
+  labels: readonly { key: string; placement?: PointLabelPlacement; size?: PointLabelSize }[];
+}) {
+  return (
+    <mask id={id} maskUnits="userSpaceOnUse" x={0} y={0} width={width} height={height}>
+      <rect width={width} height={height} fill="white" />
+      {labels.map(({ key, placement, size }) =>
+        placement && size ? (
+          <g key={key}>
+            <rect {...labelRect(placement, size, 4)} fill="black" />
+            {placement.line ? <line {...placement.line} stroke="black" strokeWidth={6} /> : null}
+          </g>
+        ) : null,
+      )}
+    </mask>
   );
 }
 

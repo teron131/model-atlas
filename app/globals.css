@@ -532,6 +532,8 @@ html[data-model-atlas-theme="light"] .theme-icon-dark {
   font-weight: 500;
   letter-spacing: -0.054em;
   line-height: 0.86;
+  /* Avenir Next kerns T and i so closely that at this tracking the i's dot meets the T's arm, so the name is set unkerned. */
+  font-kerning: none;
 }
 
 /* The ordinal hangs at the name's cap height, so the rail and the page agree on the sequence. */

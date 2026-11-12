@@ -6,13 +6,13 @@ import { type RefObject, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 
 import { clamp01 } from "../../../src/model-atlas/math-utils";
+import { skyPixelRatio } from "../shared/sky-light";
 import {
   CAMERA_DISTANCE,
   createSky,
   FIELD_OF_VIEW,
   type SkyFrame,
   type SkyLabel,
-  skyPixelRatio,
   type SkyStar,
   skyUnitsPerPixel,
 } from "./sky-scene";

@@ -8,10 +8,9 @@ import { paretoFrontier } from "../graphs/plot/pareto-frontier";
 import type { ModelSheetModel } from "../model-sheet/open";
 import { collapsedModels, modelsForVariantDisplay, shortLabel } from "../shared/model-display";
 import { providerChartColor, providerDisplayName, providerLogo } from "../shared/provider-theme";
+import { skyTint } from "../shared/sky-light";
 import type { SkyStar } from "./sky-scene";
 
-// Star tint when a provider's colour is theme-dependent; the sky is dark in both themes.
-const SKY_INK = "#eef2ff";
 const ROLE_LIST = new Intl.ListFormat("en", { style: "short", type: "conjunction" });
 
 export type SignaturePopulation = {
@@ -97,13 +96,12 @@ export function signatureStars(
   const scoreSpan = Math.max(1, Math.max(...scores) - lowestScore);
   return dated.map(({ model, released }) => {
     const family = canonicalModelKey(model);
-    const colour = providerChartColor(model.provider);
     const before = releases.filter((reference) => reference < released).length;
     return {
       key: family,
       across: clamp01(before / Math.max(1, releases.length - 1)),
       altitude: clamp01((intelligenceScore(model) - lowestScore) / scoreSpan),
-      colour: colour.startsWith("#") ? colour : SKY_INK,
+      colour: skyTint(providerChartColor(model.provider)),
       label: frontierNames.get(family) ?? null,
       name: shortLabel({ ...model, reasoning_effort: null }),
       provider: providerDisplayName(model),

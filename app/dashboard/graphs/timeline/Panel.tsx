@@ -12,31 +12,42 @@ import type { ModelAtlasModel } from "../../../../src/model-atlas/stats/types";
 import { positionCatalogId } from "../../../../src/model-atlas/timeline/schemas";
 import { openModelSheet } from "../../model-sheet/open";
 import { ResearchRegion } from "../../ResearchRegions";
-import { providerChartColor, providerDisplayName } from "../../shared/provider-theme";
+import { providerChartColor, providerDisplayName, providerLogo } from "../../shared/provider-theme";
 import { useUrlState } from "../../use-url-state";
-import { GraphToggle } from "../GraphToggle";
+import { HoverCard, type HoverState } from "../HoverCard";
+import { calloutLabelPlacements, type PointLabelPlacement } from "../plot/label-placement";
 import {
-  calloutLabelPlacements,
-  type PointLabelPlacement,
-  type PointLabelSize,
-} from "../plot/label-placement";
-import {
-  AxisTitles,
+  crowdedOutLabels,
   FrontierHorizon,
+  horizonRim,
+  horizonTrail,
   insetScaleAnchors,
-  type PlotBounds,
+  labelBounds,
+  LabelMask,
+  labelRect,
   plotBoundsFor,
   PlotFrame,
+  polylineSegments,
+  SCATTER_CHART_MARGIN,
   SCATTER_CHART_WIDTH,
+  scatterChartMargin,
   starCore,
   StarGlows,
   TextPointLabel,
   useLabelSizes,
   XAxisTicks,
   YAxisTicks,
+  YAxisTitle,
 } from "../plot/Primitives";
+import { MUTED_STAR_GLOW, type SkyPlotScene } from "../plot/sky-renderer";
+import { SkyPlot } from "../plot/SkyPlot";
 import { useChartLayout } from "../use-chart-layout";
-import { type TimelinePoint, timelinePointLabel, timelineScoreDomain } from "./chart-data";
+import {
+  TIMELINE_LABEL_GAPS,
+  type TimelinePoint,
+  timelinePointLabel,
+  timelineScoreDomain,
+} from "./chart-data";
 import {
   coverageFrontier,
   frontierTies,
@@ -45,7 +56,6 @@ import {
   leadingLabs,
   RECORD_MINIMUM_SUPPORT,
 } from "./frontier";
-import { LabsPlot } from "./LabsPlot";
 import { OrganizationSelect } from "./OrganizationSelect";
 import { arrival, easeOut, followReplayPlan, RECORD_RISE_MS, useReplay } from "./replay";
 import { TimelineNavigator } from "./TimelineNavigator";
@@ -53,8 +63,14 @@ import { TimelineNavigator } from "./TimelineNavigator";
 import styles from "../graphs.module.css";
 import timeline from "./timeline.module.css";
 
-const TIMELINE_CAPTION =
-  "Compare model generations on a fixed Intelligence Index. The glowing frontier rises with each new record. This historical view uses its own filters.";
+const TIMELINE_CAPTION = `Compare model generations on a fixed Intelligence Index. The glowing frontier rises with each new record set by a model with at least ${Math.round(RECORD_MINIMUM_SUPPORT * 100)}% evidence support, and pointing at a model draws its lab's own records. This historical view uses its own filters.`;
+
+// While a lab is pointed at, the other labs' names keep this share of their light, enough to stay legible as context.
+const DIMMED_NAME_OPACITY = 0.35;
+// Frontier names sit in the open sky above and before their stars, as Pareto's do: the rim only rises to the right, so it never runs there, and the field of other models below it stays clear; a name with no room there gives way.
+const SKY_SIDE = [[-1, -1]] as const;
+// A constellation stroke stops this far short of each star it joins, as on a star chart.
+const CONSTELLATION_GAP = 6;
 
 const REPLAY_DATE = new Intl.DateTimeFormat("en", {
   timeZone: "UTC",
@@ -76,11 +92,18 @@ export const TimelinePanel = memo(function TimelinePanel({
   const [points, setPoints] = useState<TimelinePoint[] | null>(null);
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
-  const [view, setView] = useUrlState("timeline-view");
   const [period, setPeriod] = useUrlState("timeline-period");
   const [providers, setProviders] = useUrlState("timeline-provider");
   const [preview, setPreview] = useState<TimelinePoint | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
+  const [hover, setHover] = useState<HoverState | null>(null);
+  // A keyboard-focused star picks its model and shows its card where the star sits.
+  const focusStar = useCallback((point: TimelinePoint, target: Element) => {
+    const rect = target.getBoundingClientRect();
+    setSelected(point.id);
+    setPreview(point);
+    setHover(timelineHover(point, rect.left + rect.width / 2, rect.top + rect.height / 2));
+  }, []);
   const [evidenceRequested, setEvidenceRequested] = useState(false);
   const [windowState, setWindowState] = useState<{ scope: string; range: [number, number] }>({
     scope: "",
@@ -97,7 +120,7 @@ export const TimelinePanel = memo(function TimelinePanel({
     },
     [stopReplay, setProviders],
   );
-  const scope = `${view}:${period}:${providers?.join(",") ?? "all"}`;
+  const scope = `${period}:${providers?.join(",") ?? "all"}`;
   const { chartRef, width, compact } = useChartLayout(SCATTER_CHART_WIDTH);
 
   useEffect(() => {
@@ -121,14 +144,9 @@ export const TimelinePanel = memo(function TimelinePanel({
     };
   }, [attempt]);
 
-  const labs = useMemo(() => leadingLabs(points ?? []), [points]);
   const population = useMemo(
-    () =>
-      view === "labs"
-        ? labs.flatMap((lab) => lab.models)
-        : (points?.filter((point) => providers == null || providers.includes(point.provider)) ??
-          []),
-    [points, providers, labs, view],
+    () => points?.filter((point) => providers == null || providers.includes(point.provider)) ?? [],
+    [points, providers],
   );
   const times = population.map((point) => Date.parse(point.releaseDate));
   const fullStart = times.length ? Math.min(...times) : 0;
@@ -179,18 +197,19 @@ export const TimelinePanel = memo(function TimelinePanel({
     ...frontier,
     ...ties.filter((point) => Date.parse(point.releaseDate) <= reached),
   ].sort((a, b) => a.releaseDate.localeCompare(b.releaseDate));
-  const evidenceModelIds = useMemo(
-    () => [...visible].sort((a, b) => b.score - a.score).map((point) => point.id),
-    [visible],
-  );
+  const byScore = useMemo(() => [...visible].sort((a, b) => b.score - a.score), [visible]);
+  const evidenceModelIds = useMemo(() => byScore.map((point) => point.id), [byScore]);
   const frontierIds = new Set(frontier.map((point) => point.id));
+  // The leading labs ranked by the record each holds at the window's end, for the list beneath the chart.
   const labLeaders = useMemo(
     () =>
-      labs.flatMap((lab) => {
-        const leader = lab.records.filter((point) => Date.parse(point.releaseDate) <= end).at(-1);
-        return leader ? [leader] : [];
-      }),
-    [labs, end],
+      leadingLabs(population)
+        .flatMap((lab) => {
+          const leader = lab.records.filter((point) => Date.parse(point.releaseDate) <= end).at(-1);
+          return leader ? [leader] : [];
+        })
+        .sort((a, b) => b.score - a.score),
+    [population, end],
   );
   const currentModelLookup = useMemo(() => {
     const byId = new Map<string, ModelAtlasModel>();
@@ -201,23 +220,30 @@ export const TimelinePanel = memo(function TimelinePanel({
     }
     return { byId, byName };
   }, [currentModels]);
-  const chosen =
-    preview ??
-    (view === "labs"
-      ? (population.find((point) => point.id === selected) ?? labLeaders[0])
-      : (visible.find((point) => point.id === selected) ?? frontier.at(-1) ?? visible.at(-1)));
+  // A lab's leading model can lie outside the window, so a pick is found in the whole population.
+  const picked = population.find((point) => point.id === selected);
+  // The readout follows picks, not the pointer, which the hover card follows, so the entry above the chart holds still while the reader scans the stars.
+  const chosen = picked ?? frontier.at(-1) ?? visible.at(-1);
+  // Only the lab of the model under the pointer, or else of the picked one, draws its records, so its line is read against the field's frontier one lab at a time.
+  const focusLab = (preview ?? picked)?.provider;
+  const labRecords = useMemo(
+    () =>
+      focusLab == null
+        ? []
+        : coverageFrontier(
+            population.filter((point) => point.provider === focusLab),
+            RECORD_MINIMUM_SUPPORT,
+          ),
+    [population, focusLab],
+  );
   const chosenModel =
     chosen == null
       ? undefined
       : (currentModelLookup.byId.get(positionCatalogId(chosen.id) ?? "") ??
         currentModelLookup.byName.get(chosen.name));
+  const chosenLogo = chosen == null ? "" : providerLogo(chosen.provider);
   const height = compact ? 400 : 520;
-  const margin = {
-    top: compact ? 64 : 42,
-    right: compact ? 8 : 30,
-    bottom: compact ? 60 : 76,
-    left: compact ? 8 : 72,
-  };
+  const margin = scatterChartMargin(SCATTER_CHART_MARGIN, compact);
   const padding = Math.max((end - start) * 0.025, 14 * 86400000 * (range[1] - range[0]));
   // The window's scores and the record it opens under set the scale; a running replay frames its own stretch of the window and settles back onto this framing.
   const [low, high] = timelineScoreDomain(
@@ -235,34 +261,46 @@ export const TimelinePanel = memo(function TimelinePanel({
   // A replay brings each model in a little larger and fainter than its mark, settling a moment after it is reached.
   const arrived = (point: TimelinePoint) => (frame == null ? 1 : arrival(frame.age(point.id)));
   // Stars share the Pareto plot's scale; this field is far denser, so they sit at the small end of it.
+  const markRadius = (point: TimelinePoint) => (frontierIds.has(point.id) ? 2.8 : 2.4);
   const pointRadius = (point: TimelinePoint) =>
-    (chosen?.id === point.id ? 3.6 : frontierIds.has(point.id) ? 2.8 : 2.4) *
-    (1.4 - 0.4 * arrived(point));
-  // Evidence support dims a star; the chosen model always shines at full strength.
+    (chosen?.id === point.id ? 3.6 : markRadius(point)) * (1.4 - 0.4 * arrived(point));
+  // While a star is hovered its lab stays lit and the other labs dim, as other models do on Pareto; a replay fades each model in.
+  const dimmed = (point: TimelinePoint) => preview != null && preview.provider !== point.provider;
   const pointOpacity = (point: TimelinePoint) =>
-    (chosen?.id === point.id ? 1 : 0.35 + 0.65 * (point.coverage ?? 0)) * arrived(point);
-  const highlights = [...visible].sort((a, b) => b.score - a.score).slice(0, 3);
+    (dimmed(point) ? MUTED_STAR_GLOW : 1) * arrived(point);
+  const highlights = byScore.slice(0, 3);
   const gpt4 = visible.find(
     (point) =>
       point.name === "GPT-4 (Mar 2023)" ||
       (point.name === "GPT-4" && point.releaseDate === "2023-03-14"),
   );
-  // The settled chart always names its leaders, GPT-4, and the selected model: by their curve labels where shown, otherwise by callouts.
-  const alwaysLabelled =
-    view === "labs" || frame != null
-      ? []
+  const plotBounds = plotBoundsFor(width, height, margin);
+  // A replay draws only the stars its camera frames.
+  const drawn =
+    frame == null
+      ? visible
+      : visible.filter((point) => {
+          const cx = xPoint(point);
+          return cx >= plotBounds.left - 8 && cx <= plotBounds.right + 8;
+        });
+  // The settled chart names its frontier curve, as Pareto names its frontier, and always the picked model, GPT-4, and its leaders, which take priority over the curve's newest models and then its oldest, so a crowded stretch, as on a phone, keeps those names first; a replay names the curve models its camera frames.
+  const labelled =
+    frame != null
+      ? curve.filter((point) => drawn.includes(point))
       : [
           ...new Map(
             [
-              ...highlights,
+              ...(picked && drawn.includes(picked) ? [picked] : []),
               ...(gpt4 ? [gpt4] : []),
-              ...(selected ? visible.filter((point) => point.id === selected) : []),
+              ...highlights,
+              ...[...curve].reverse(),
             ].map((point) => [point.id, point]),
           ).values(),
         ];
   useEffect(() => {
     setPreview(null);
-  }, [view, start, end]);
+    setHover(null);
+  }, [start, end]);
   const nearestPoint = (event: {
     clientX: number;
     clientY: number;
@@ -282,80 +320,23 @@ export const TimelinePanel = memo(function TimelinePanel({
     }
     return nearest;
   };
+  // The focused lab's records within reach, which its strokes join; only its newest is named, where its line ends, since naming every record crowds the field.
+  const labStars = labRecords.filter((point) => {
+    const date = Date.parse(point.releaseDate);
+    return date >= start && date <= reached && drawn.includes(point);
+  });
+  const labStarIds = new Set(labStars.map((point) => point.id));
+  const labNewest = labStars.at(-1);
+  const labNamed =
+    frame == null && labNewest != null && !labelled.includes(labNewest) ? [labNewest] : [];
   const { svgRef, labelSizes } = useLabelSizes(
-    [...curve, ...alwaysLabelled].map(timelinePointLabel).join("\0"),
+    [...labelled, ...labNamed].map(timelinePointLabel).join("\0"),
     compact,
   );
-  const labelSize = (label: string) =>
-    labelSizes[label] ?? {
-      width: label.length * (compact ? 10.2 : 7.8),
-      ascent: compact ? 15 : 12,
-      descent: 3,
-    };
-  const previewName = preview ? timelinePointLabel(preview) : "";
-  const previewLabel = `${previewName.slice(0, compact ? 28 : 42)}${previewName.length > (compact ? 28 : 42) ? "…" : ""} · ${preview?.score.toFixed(1) ?? ""}`;
-  const previewWidth = previewLabel.length * (compact ? 10.2 : 9.6);
-  const previewOnLeft = preview
-    ? xPoint(preview) > (width + margin.left - margin.right) / 2
-    : false;
-  const plotBounds = plotBoundsFor(width, height, margin);
-  const labelTop = compact ? 28 : 8;
   const yTicks = y.ticks(5);
   const scaleAnchorBoxes = compact
     ? insetScaleAnchors(yTicks, y, margin.left, String).map(({ box }) => box)
     : [];
-  const curveStars = curve.map((point) => ({
-    point,
-    cx: xPoint(point),
-    cy: y(point.score),
-    size: labelSize(timelinePointLabel(point)),
-  }));
-  // A wide chart labels every curve model, its top margin taking the tallest stack, and a replay's camera frames few enough; a phone's settled chart labels those that fit.
-  const curveLabels =
-    compact && frame == null
-      ? fitCurveLabels(curveStars, plotBounds, labelTop, alwaysLabelled, scaleAnchorBoxes)
-      : stackCurveLabels(curveStars, plotBounds, labelTop, scaleAnchorBoxes);
-  const curveLabelled = new Set(curveLabels.map(({ point }) => point));
-  const unlabelledCurve = curve.filter((point) => !curveLabelled.has(point));
-  const labeled = alwaysLabelled.filter((point) => !curveLabelled.has(point));
-  const layoutKey =
-    labeled.length === 0
-      ? null
-      : JSON.stringify({
-          labels: labeled.map((point) => ({
-            key: point.id,
-            label: timelinePointLabel(point),
-            cx: xPoint(point),
-            cy: y(point.score),
-            radius: 6,
-            size: labelSize(timelinePointLabel(point)),
-          })),
-          obstacles: visible.map((point) => ({
-            key: point.id,
-            cx: xPoint(point),
-            cy: y(point.score),
-            radius: 5,
-          })),
-          bounds: {
-            left: margin.left,
-            right: width - margin.right,
-            top: labelTop,
-            bottom: height - margin.bottom - 8,
-          },
-          reservedBoxes: [...scaleAnchorBoxes, ...curveLabels.map(({ box }) => box)],
-          directions: [
-            [1, -1],
-            [-1, -1],
-            [0, -1],
-          ],
-        });
-  const labelPlacements = useMemo(
-    () =>
-      layoutKey == null
-        ? new Map<string, PointLabelPlacement>()
-        : calloutLabelPlacements(JSON.parse(layoutKey)),
-    [layoutKey],
-  );
   const ticks = x.ticks(compact ? 4 : 7).map(Number);
   // In a replay the newest record's level climbs from the one it beat, and the reached region ends at the reveal until the camera settles.
   const levels = [...(prior ? [prior] : []), ...frontier];
@@ -372,6 +353,91 @@ export const TimelinePanel = memo(function TimelinePanel({
     frame == null
       ? plotBounds.right
       : x(new Date(frame.at)) + (plotBounds.right - x(new Date(frame.at))) * frame.settle;
+  const rim = horizonRim(horizon, { ...plotBounds, right: reveal }, "right");
+  const trail = horizonTrail(horizon, plotBounds, "right");
+  // The focused lab's records, entering at the window's start as the frontier does and ending at its latest record within reach.
+  const labPrior = labRecords.filter((point) => Date.parse(point.releaseDate) < start).at(-1);
+  const labLine = [
+    ...(labPrior ? [{ x: x(new Date(start)), y: y(labPrior.score) }] : []),
+    ...labStars.map((point) => ({ x: xPoint(point), y: y(point.score) })),
+  ];
+  const labSegments = polylineSegments(labLine);
+  // Names are placed as Pareto's are, clear of every star; a replay's camera moves every frame, too often to search placements, so its labels sit beside their stars until the chart settles.
+  const settled = frame == null && labelled.length > 0;
+  const obstacles = settled
+    ? visible.map((point) => ({
+        key: point.id,
+        cx: xPoint(point),
+        cy: y(point.score),
+        radius: markRadius(point),
+      }))
+    : [];
+  // The frontier's names also keep clear of its rim and trail.
+  const layoutKey = !settled
+    ? null
+    : JSON.stringify({
+        labels: labelled.map((point, index) => ({
+          key: point.id,
+          label: timelinePointLabel(point),
+          cx: xPoint(point),
+          cy: y(point.score),
+          radius: markRadius(point),
+          size: labelSizes[timelinePointLabel(point)],
+          priority: labelled.length - index,
+        })),
+        obstacles,
+        bounds: labelBounds(plotBounds),
+        reservedBoxes: scaleAnchorBoxes,
+        gaps: TIMELINE_LABEL_GAPS,
+        directions: SKY_SIDE,
+        segments: [
+          ...polylineSegments(rim),
+          ...(trail == null ? [] : polylineSegments([trail.from, trail.to])),
+        ],
+      });
+  const labelPlacements = useMemo(() => placeBesideStars(layoutKey), [layoutKey]);
+  const callouts = labelled.map((point) => ({
+    key: point.id,
+    placement: labelPlacements.get(point.id),
+    size: labelSizes[timelinePointLabel(point)],
+  }));
+  const crowded = crowdedOutLabels(callouts);
+  // The focused lab's name is placed around the names already standing, which keep their places as the pointer moves, and gives way where it does not fit.
+  const keptNameBoxes = callouts.flatMap(({ key, placement, size }) => {
+    if (crowded.has(key) || placement == null || size == null) return [];
+    const rect = labelRect(placement, size, 2);
+    return [
+      { left: rect.x, right: rect.x + rect.width, top: rect.y, bottom: rect.y + rect.height },
+    ];
+  });
+  const labLayoutKey =
+    labNamed.length === 0 || !settled
+      ? null
+      : JSON.stringify({
+          labels: labNamed.map((point) => ({
+            key: point.id,
+            label: timelinePointLabel(point),
+            cx: xPoint(point),
+            cy: y(point.score),
+            radius: markRadius(point),
+            size: labelSizes[timelinePointLabel(point)],
+          })),
+          obstacles,
+          bounds: labelBounds(plotBounds),
+          reservedBoxes: [...scaleAnchorBoxes, ...keptNameBoxes],
+          gaps: TIMELINE_LABEL_GAPS,
+          segments: labSegments,
+        });
+  const labPlacements = useMemo(() => placeBesideStars(labLayoutKey), [labLayoutKey]);
+  const labCallouts = labNamed.map((point) => ({
+    key: point.id,
+    placement: labPlacements.get(point.id),
+    size: labelSizes[timelinePointLabel(point)],
+  }));
+  const labCrowded = crowdedOutLabels([
+    ...callouts.filter(({ key }) => !crowded.has(key)),
+    ...labCallouts,
+  ]);
   // Stars sit at their release day and score, and the camera places them through these four variables, so a frame that only moves the camera re-renders no star.
   const cameraStyle = {
     "--tx": `${x(new Date(fullStart))}px`,
@@ -379,14 +445,34 @@ export const TimelinePanel = memo(function TimelinePanel({
     "--ty": `${y(0)}px`,
     "--ky": `${y(1) - y(0)}px`,
   } as CSSProperties;
-  // A replay draws only the stars its camera frames.
-  const drawn =
-    frame == null
-      ? visible
-      : visible.filter((point) => {
-          const cx = xPoint(point);
-          return cx >= plotBounds.left - 8 && cx <= plotBounds.right + 8;
-        });
+  const leader = frontier.at(-1);
+  const sky: SkyPlotScene = {
+    width,
+    height,
+    bounds: plotBounds,
+    rim,
+    trail,
+    muted: preview != null,
+    stars: drawn.map((point) => ({
+      key: point.id,
+      x: xPoint(point),
+      y: y(point.score),
+      color: providerChartColor(point.provider),
+      // The focused lab's records take the record stars' rays, so its line is read star by star.
+      role:
+        point === leader
+          ? "leader"
+          : frontierIds.has(point.id) || labStarIds.has(point.id)
+            ? "frontier"
+            : "star",
+      glow: pointOpacity(point),
+      scale: 1.4 - 0.4 * arrived(point),
+    })),
+    // Only a star the reader hovers or picks flares, as on Pareto; the readout's default leader stays a plain leader star.
+    flare: (preview ?? picked)?.id ?? null,
+    compact,
+  };
+  const guideMask = useId();
   const cameraClip = useId();
   // Ticks are labelled at the resolution they are spaced at, so no two read the same.
   const tickSpacing = (ticks[1] ?? Infinity) - (ticks[0] ?? 0);
@@ -402,9 +488,8 @@ export const TimelinePanel = memo(function TimelinePanel({
   const navigator =
     population.length > 0 ? (
       <TimelineNavigator
-        points={population}
         bounds={bounds}
-        // The overview's window travels with a replay's camera.
+        // The window travels with a replay's camera.
         range={
           frame == null
             ? range
@@ -423,23 +508,16 @@ export const TimelinePanel = memo(function TimelinePanel({
           setWindowState({ scope: "", range: [0, 1] });
           setPeriod(value);
         }}
-        // Only the models view has a record frontier to replay.
-        replay={
-          view === "models"
-            ? {
-                at: frame == null ? null : (frame.at - fullStart) / (fullEnd - fullStart),
-                paused: replay.paused,
-                onPlay: () =>
-                  replay.paused
-                    ? replay.resume()
-                    : replay.start(
-                        followReplayPlan(windowed, frontier, prior, start, end, windowView),
-                      ),
-                onPause: replay.pause,
-                onStop: replay.stop,
-              }
-            : undefined
-        }
+        replay={{
+          at: frame == null ? null : (frame.at - fullStart) / (fullEnd - fullStart),
+          paused: replay.paused,
+          onPlay: () =>
+            replay.paused
+              ? replay.resume()
+              : replay.start(followReplayPlan(windowed, frontier, prior, start, end, windowView)),
+          onPause: replay.pause,
+          onStop: replay.stop,
+        }}
       />
     ) : null;
 
@@ -451,92 +529,70 @@ export const TimelinePanel = memo(function TimelinePanel({
       capture={{ title: "Intelligence over time", fileName: "model-atlas-timeline" }}
     >
       <div className={timeline.content}>
-        {/* The view choices share the figure's top edge with the chosen model's catalogue entry, as Pareto's choices share it with their summary, so reading a star never leaves the plot. */}
+        {/* The organization choice shares the figure's top edge with the picked model's catalogue entry, so reading a star never leaves the plot. */}
         <div className={timeline.top}>
           <div className={timeline.viewControls}>
-            <GraphToggle
-              legend="Timeline view"
-              selectedKey={view}
-              onSelect={(value) => {
-                replay.stop();
-                setSelected(null);
-                setView(value);
-              }}
-              options={[
-                { key: "models", label: "Models" },
-                { key: "labs", label: "Labs" },
-              ]}
+            <OrganizationSelect
+              points={points ?? []}
+              selected={providers}
+              onChange={chooseProviders}
             />
-            {view === "models" ? (
-              <OrganizationSelect
-                points={points ?? []}
-                selected={providers}
-                onChange={chooseProviders}
-              />
-            ) : (
-              <dl className={timeline.labScope} aria-label="Lab eligibility">
-                <div>
-                  <dt>Labs</dt>
-                  <dd>Top {LEADING_LAB_COUNT}</dd>
-                </div>
-                <div>
-                  <dt>Models per lab</dt>
-                  <dd>&gt; {LAB_MINIMUM_MODELS}</dd>
-                </div>
-                <div>
-                  <dt>Frontier support</dt>
-                  <dd>≥ {Math.round(RECORD_MINIMUM_SUPPORT * 100)}%</dd>
-                </div>
-              </dl>
-            )}
           </div>
-          {points && (visible.length > 0 || view === "labs") ? (
-            // The selected star's catalogue entry, ringed in its provider colour like its mark in the chart.
+          {points && visible.length > 0 ? (
+            // The picked star's catalogue entry on one line, set in the figure's control type like Pareto's choices: its lab's logo and the model's name, then its figures.
             <div
               className={timeline.readout}
               aria-live="polite"
               aria-label="Timeline model details"
-              style={
-                chosen == null ? undefined : starCore(6, providerChartColor(chosen.provider)).style
-              }
             >
-              <div>
-                <strong>
-                  <span className={timeline.readoutStar} aria-hidden="true" />
-                  {chosenModel == null ? (
-                    <span className={timeline.readoutName} title={chosen?.name}>
-                      {chosen?.name}
-                    </span>
-                  ) : (
-                    <button
-                      type="button"
-                      className={timeline.readoutOpen}
-                      aria-haspopup="dialog"
-                      aria-label={`Show details for ${chosen?.name}`}
-                      title={chosen?.name}
-                      onClick={() => openModelSheet({ ...chosenModel, reasoning_effort: null })}
-                    >
-                      <span className={timeline.readoutName}>{chosen?.name}</span>
-                      <ArrowUpRight aria-hidden="true" />
-                    </button>
-                  )}
-                </strong>
-                <span>{chosen && providerDisplayName(chosen.provider)}</span>
-              </div>
-              <div>
-                <span>Intelligence Index</span>
-                <strong>{chosen?.score.toFixed(1)}</strong>
-              </div>
-              <div>
-                <span>Released</span>
-                <strong>{chosen?.releaseDate}</strong>
-              </div>
-              <div>
-                <span>Evidence support</span>
-                <strong>
-                  {chosen?.coverage == null ? "Unknown" : `${Math.round(chosen.coverage * 100)}%`}
-                </strong>
-              </div>
+              <strong>
+                {chosenLogo ? (
+                  <img
+                    className={`provider-logo ${timeline.readoutLogo}`}
+                    src={chosenLogo}
+                    alt=""
+                    width={18}
+                    height={18}
+                  />
+                ) : null}
+                {chosenModel == null ? (
+                  <span className={timeline.readoutName} title={chosen?.name}>
+                    {chosen?.name}
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    className={timeline.readoutOpen}
+                    aria-haspopup="dialog"
+                    aria-label={`Show details for ${chosen?.name}`}
+                    title={chosen?.name}
+                    onClick={() => openModelSheet({ ...chosenModel, reasoning_effort: null })}
+                  >
+                    <span className={timeline.readoutName}>{chosen?.name}</span>
+                    <ArrowUpRight aria-hidden="true" />
+                  </button>
+                )}
+              </strong>
+              <dl>
+                <div>
+                  <dt>Lab</dt>
+                  <dd>{chosen && providerDisplayName(chosen.provider)}</dd>
+                </div>
+                <div>
+                  <dt>Index</dt>
+                  <dd>{chosen?.score.toFixed(1)}</dd>
+                </div>
+                <div>
+                  <dt>Released</dt>
+                  <dd>{chosen?.releaseDate}</dd>
+                </div>
+                <div>
+                  <dt>Support</dt>
+                  <dd>
+                    {chosen?.coverage == null ? "Unknown" : `${Math.round(chosen.coverage * 100)}%`}
+                  </dd>
+                </div>
+              </dl>
             </div>
           ) : null}
         </div>
@@ -545,39 +601,36 @@ export const TimelinePanel = memo(function TimelinePanel({
             {error || "Loading Timeline…"}
             {error && <button onClick={() => setAttempt((value) => value + 1)}>Retry</button>}
           </div>
-        ) : !visible.length && view !== "labs" ? (
+        ) : !visible.length ? (
           <div className={timeline.loading} role="status">
             No dated models in this selection.
           </div>
         ) : (
           <>
-            {view === "labs" ? (
-              <LabsPlot
-                labs={labs}
-                start={start}
-                end={end}
-                navigator={navigator}
-                onPreview={setPreview}
-                onSelect={setSelected}
-              />
-            ) : (
-              <div
-                ref={chartRef}
-                className={`${styles.chartWrap} ${timeline.chart}`}
-                data-capture-plot
-              >
+            <div
+              ref={chartRef}
+              className={`${styles.chartWrap} ${timeline.chart}`}
+              data-capture-plot
+            >
+              <SkyPlot scene={sky}>
                 <svg
                   ref={svgRef}
                   viewBox={`0 0 ${width} ${height}`}
                   role="group"
                   aria-label="Timeline: Intelligence Index by release date"
                   onPointerMove={(event) => {
-                    if (event.pointerType !== "touch") {
-                      const point = nearestPoint(event);
-                      setPreview((previous) => (previous?.id === point?.id ? previous : point));
-                    }
+                    if (event.pointerType === "touch") return;
+                    const point = nearestPoint(event);
+                    if (point?.id === preview?.id) return;
+                    setPreview(point);
+                    setHover(
+                      point == null ? null : timelineHover(point, event.clientX, event.clientY),
+                    );
                   }}
-                  onPointerLeave={() => setPreview(null)}
+                  onPointerLeave={() => {
+                    setPreview(null);
+                    setHover(null);
+                  }}
                   onPointerDown={(event) => {
                     if (event.pointerType === "touch") {
                       const point = nearestPoint(event);
@@ -585,22 +638,23 @@ export const TimelinePanel = memo(function TimelinePanel({
                       if (point) setSelected(point.id);
                     }
                   }}
-                  onBlur={() => setPreview(null)}
+                  onBlur={() => {
+                    setPreview(null);
+                    setHover(null);
+                  }}
                 >
+                  <defs>
+                    <LabelMask
+                      id={guideMask}
+                      width={width}
+                      height={height}
+                      labels={[
+                        ...callouts.filter(({ key }) => !crowded.has(key)),
+                        ...labCallouts.filter(({ key }) => !labCrowded.has(key)),
+                      ]}
+                    />
+                  </defs>
                   <PlotFrame width={width} height={height} margin={margin} />
-                  {!compact &&
-                    y
-                      .ticks(5)
-                      .map((tick) => (
-                        <line
-                          key={tick}
-                          x1={margin.left}
-                          x2={width - margin.right}
-                          y1={y(tick)}
-                          y2={y(tick)}
-                          stroke="var(--chart-grid)"
-                        />
-                      ))}
                   <XAxisTicks
                     ticks={ticks}
                     xPoint={(value) => x(new Date(value))}
@@ -611,18 +665,17 @@ export const TimelinePanel = memo(function TimelinePanel({
                   />
                   <YAxisTicks
                     insetRight={compact ? width - margin.right : undefined}
+                    showGridLines={false}
                     ticks={yTicks}
                     yPoint={y}
                     x={margin.left}
                     format={String}
                     keyPrefix="timeline"
                   />
-                  <AxisTitles
-                    width={width}
+                  <YAxisTitle
                     height={height}
                     margin={margin}
-                    x="Release date"
-                    y="Intelligence Index"
+                    title="Intelligence Index"
                     compact={compact}
                   />
                   {frame == null ? null : (
@@ -654,6 +707,7 @@ export const TimelinePanel = memo(function TimelinePanel({
                       points={horizon}
                       bounds={{ ...plotBounds, right: reveal }}
                       open="right"
+                      muted={preview != null}
                     />
                     {frame == null || !horizon.length ? null : (
                       <circle
@@ -663,6 +717,23 @@ export const TimelinePanel = memo(function TimelinePanel({
                         r={1.8}
                         opacity={1 - frame.settle}
                       />
+                    )}
+                    {focusLab == null ? null : (
+                      // The focused lab's records are joined as a constellation, its strokes stopping short of each star and cut around the names.
+                      <g
+                        className={timeline.labLine}
+                        mask={`url(#${guideMask})`}
+                        style={{ "--lab": providerChartColor(focusLab) } as CSSProperties}
+                        aria-hidden="true"
+                      >
+                        {labSegments.flatMap((segment, index) => {
+                          const stroke = constellationStroke(
+                            segment,
+                            index === 0 && labPrior != null,
+                          );
+                          return stroke == null ? [] : [<line key={index} {...stroke} />];
+                        })}
+                      </g>
                     )}
                     {/* Only records on the frontier and the selected model glow. */}
                     <StarGlows
@@ -677,7 +748,7 @@ export const TimelinePanel = memo(function TimelinePanel({
                                 radius: pointRadius(point),
                                 color: providerChartColor(point.provider),
                                 emphasis: chosen?.id === point.id ? "selected" : "frontier",
-                                opacity: pointOpacity(point),
+                                opacity: dimmed(point) ? 0 : arrived(point),
                               },
                             ]
                           : [],
@@ -728,68 +799,42 @@ export const TimelinePanel = memo(function TimelinePanel({
                           color={providerChartColor(point.provider)}
                           chosen={chosen?.id === point.id}
                           onSelect={setSelected}
-                          onPreview={setPreview}
+                          onFocus={focusStar}
                         />
                       ))}
                     </g>
                   </g>
-                  {preview &&
-                    !labeled.some((point) => point.id === preview.id) &&
-                    !curveLabelled.has(preview) && (
-                      <TextPointLabel
-                        label={previewLabel}
-                        placement={{
-                          x: previewOnLeft
-                            ? Math.max(margin.left + previewWidth, xPoint(preview) - 12)
-                            : Math.min(width - margin.right - previewWidth, xPoint(preview) + 12),
-                          y: Math.max(margin.top + 18, y(preview.score) - 14),
-                          textAnchor: previewOnLeft ? "end" : "start",
-                        }}
-                        cx={xPoint(preview)}
-                        cy={y(preview.score) - 8}
-                        width={width}
-                        height={height}
-                        margin={margin}
-                      />
-                    )}
                   <g aria-label="Frontier model labels">
-                    {labeled.map((point) => (
-                      <TextPointLabel
-                        key={point.id}
-                        label={timelinePointLabel(point)}
-                        cx={xPoint(point)}
-                        cy={y(point.score)}
-                        width={width}
-                        height={height}
-                        margin={margin}
-                        placement={labelPlacements.get(point.id)}
-                      />
-                    ))}
-                    {/* Curve labels without room render unseen, so their text is measured for when room opens. */}
-                    {unlabelledCurve.map((point) => (
-                      <g key={point.id} opacity={0} aria-hidden="true">
-                        <TextPointLabel
-                          label={timelinePointLabel(point)}
-                          cx={xPoint(point)}
-                          cy={y(point.score)}
-                          width={width}
-                          height={height}
-                          margin={margin}
-                        />
-                      </g>
-                    ))}
-                    {/* Labels waiting to fade in still render, so their text is measured before it shows. */}
-                    {curveLabels.map(({ point, placement }) => {
-                      const age = frame?.age(point.id);
+                    {labelled.map((point) => {
                       const cx = xPoint(point);
+                      const age = frame?.age(point.id);
+                      // A crowded-out name still renders unseen, so its text stays measured for when room opens.
+                      if (crowded.has(point.id)) {
+                        return (
+                          <g key={point.id} opacity={0} aria-hidden="true">
+                            <TextPointLabel
+                              label={timelinePointLabel(point)}
+                              cx={cx}
+                              cy={y(point.score)}
+                              width={width}
+                              height={height}
+                              margin={margin}
+                            />
+                          </g>
+                        );
+                      }
                       return (
                         <g
                           key={point.id}
-                          // In a replay a label fades in once its model arrives and out as its star leaves the plot.
+                          // In a replay a label fades in once its model arrives, out as its star leaves the plot, and out as the camera settles, when the placed labels take over; while a lab is pointed at, the other labs' names recede with their stars.
                           opacity={
-                            age == null
-                              ? 1
-                              : easeOut((age - 120) / 300) * clamp01((cx - plotBounds.left) / 24)
+                            frame == null || age == null
+                              ? dimmed(point)
+                                ? DIMMED_NAME_OPACITY
+                                : 1
+                              : easeOut((age - 120) / 300) *
+                                clamp01((cx - plotBounds.left) / 24) *
+                                (1 - frame.settle)
                           }
                         >
                           <TextPointLabel
@@ -799,38 +844,90 @@ export const TimelinePanel = memo(function TimelinePanel({
                             width={width}
                             height={height}
                             margin={margin}
-                            placement={placement}
+                            xOffset={markRadius(point) + 8}
+                            placement={labelPlacements.get(point.id)}
                           />
                         </g>
                       );
                     })}
+                    {labNamed.map((point) => (
+                      // A crowded-out name still renders unseen, so its text stays measured for when room opens.
+                      <g key={point.id} opacity={labCrowded.has(point.id) ? 0 : 1}>
+                        <TextPointLabel
+                          label={timelinePointLabel(point)}
+                          cx={xPoint(point)}
+                          cy={y(point.score)}
+                          width={width}
+                          height={height}
+                          margin={margin}
+                          xOffset={markRadius(point) + 8}
+                          placement={labPlacements.get(point.id)}
+                        />
+                      </g>
+                    ))}
                   </g>
                 </svg>
+              </SkyPlot>
+            </div>
+            {navigator}
+            {labLeaders.length > 0 && (
+              // The labs' standings sit beneath the chart they explain; an exported image is the figure alone.
+              <div className={timeline.standings} data-capture-exclude>
+                <p className={timeline.standingsTitle}>
+                  {labLeaders.length === LEADING_LAB_COUNT
+                    ? `Top ${LEADING_LAB_COUNT} labs`
+                    : "Labs"}{" "}
+                  with over {LAB_MINIMUM_MODELS} models
+                </p>
+                <ol aria-label="Lab standings">
+                  {labLeaders.map((leader, index) => (
+                    <li
+                      key={leader.provider}
+                      style={
+                        {
+                          "--lab": providerChartColor(leader.provider),
+                          "--reach": `${Math.round(standingReach(leader.score, labLeaders) * 100)}%`,
+                        } as CSSProperties
+                      }
+                      data-focused={focusLab === leader.provider || undefined}
+                    >
+                      <button
+                        type="button"
+                        aria-pressed={picked?.id === leader.id}
+                        onPointerEnter={() => setPreview(leader)}
+                        onPointerLeave={() => setPreview(null)}
+                        onFocus={() => setPreview(leader)}
+                        onBlur={() => setPreview(null)}
+                        onClick={() => setSelected(picked?.id === leader.id ? null : leader.id)}
+                      >
+                        <span className={timeline.standingLab}>
+                          <span className={timeline.standingRank}>{index + 1}</span>
+                          {providerLogo(leader.provider) ? (
+                            <img
+                              src={providerLogo(leader.provider)}
+                              alt=""
+                              width="18"
+                              height="18"
+                            />
+                          ) : null}
+                          <strong>{providerDisplayName(leader.provider)}</strong>
+                        </span>
+                        <span className={timeline.standingScore}>{leader.score.toFixed(1)}</span>
+                        <span className={timeline.standingModel}>{leader.name}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ol>
               </div>
             )}
-            {view === "models" && navigator}
-            <div className={timeline.legend}>
-              <span>{visible.length} models</span>
-              {view === "models" ? (
-                <>
-                  <span>● Reference / task-supported</span>
-                  <span>○ Index-only</span>
-                  <span>
-                    <i className={timeline.frontierKey} aria-hidden="true" />
-                    Frontier · ≥{Math.round(RECORD_MINIMUM_SUPPORT * 100)}% evidence support
-                  </span>
-                </>
-              ) : (
-                <span>Lines connect each lab’s supported records.</span>
-              )}
-            </div>
           </>
         )}
-        {!visible.length && view === "models" && navigator}
-        {/* The caption and evidence read on the page; an exported image is the figure alone. */}
-        <div className={styles.figureCaption} data-capture-exclude>
-          <p>{TIMELINE_CAPTION}</p>
-        </div>
+        {!visible.length && navigator}
+        {hover ? <HoverCard hover={hover} /> : null}
+      </div>
+      {/* The caption and evidence read on the page; an exported image is the figure alone. */}
+      <div className={styles.figureCaption} data-capture-exclude>
+        <p>{TIMELINE_CAPTION}</p>
       </div>
       <details
         className={styles.commonEvidence}
@@ -853,94 +950,60 @@ export const TimelinePanel = memo(function TimelinePanel({
   );
 });
 
-/** Label as many curve models as stay below `top` once stacked, choosing the `first` models and then the newest records, so a narrow chart names its key models and the latest frontier instead of stacking labels off its top. */
-function fitCurveLabels(
-  stars: { point: TimelinePoint; cx: number; cy: number; size: PointLabelSize }[],
-  plot: PlotBounds,
-  top: number,
-  first: TimelinePoint[],
-  reserved: PlotBounds[],
-) {
-  const kept = new Set<TimelinePoint>();
-  const stack = () =>
-    stackCurveLabels(
-      stars.filter(({ point }) => kept.has(point)),
-      plot,
-      top,
-      reserved,
-    );
-  const priority = [...stars]
-    .reverse()
-    .sort((a, b) => Number(first.includes(b.point)) - Number(first.includes(a.point)));
-  for (const { point } of priority) {
-    kept.add(point);
-    if (stack().some(({ box }) => box.top < top)) kept.delete(point);
-  }
-  return stack();
+/** A name sits at most a short gap from its star, so it takes no leader, whose few dots would read as stray stars beside it. */
+function placeBesideStars(layoutKey: string | null) {
+  if (layoutKey == null) return new Map<string, PointLabelPlacement>();
+  const placements = calloutLabelPlacements(JSON.parse(layoutKey));
+  return new Map(
+    [...placements].map(([key, placement]) => [key, { ...placement, line: undefined }]),
+  );
 }
 
-/**
- * Place curve labels up and left of their stars, in the open sky above the frontier, each moving up a line wherever it would meet an earlier one or a `reserved` box and sliding right rather than crossing the plot's left edge.
- * A label that would rise past `top` tries the up-right side instead. The rule depends only on positions, so a replay's labels end exactly where the settled chart's are.
- */
-function stackCurveLabels(
-  stars: { point: TimelinePoint; cx: number; cy: number; size: PointLabelSize }[],
-  plot: PlotBounds,
-  top: number,
-  reserved: PlotBounds[],
+/** A stroke joining two of a lab's records, stopped short of each star, or `null` where the stars sit too close for one; a stroke entering at the window's edge starts there, where no star stands. */
+function constellationStroke(
+  segment: { x1: number; y1: number; x2: number; y2: number },
+  fromEdge: boolean,
 ) {
-  const placed: { point: TimelinePoint; placement: PointLabelPlacement; box: PlotBounds }[] = [];
-  for (const { point, cx, cy, size } of stars) {
-    const stack = (left: number) => {
-      let baseline = cy - 8;
-      for (;;) {
-        const blocker = [...reserved, ...placed.map(({ box }) => box)].find(
-          (box) =>
-            box.left < left + size.width &&
-            box.right > left &&
-            box.top < baseline + size.descent &&
-            box.bottom > baseline - size.ascent,
-        );
-        if (!blocker) return baseline;
-        baseline = blocker.top - size.descent - 2;
-      }
-    };
-    let left = Math.max(plot.left + 2, cx - 8 - size.width);
-    let baseline = stack(left);
-    if (baseline - size.ascent < top) {
-      const right = Math.min(plot.right - size.width, cx + 8);
-      const rightBaseline = stack(right);
-      if (rightBaseline > baseline) {
-        left = right;
-        baseline = rightBaseline;
-      }
-    }
-    placed.push({
-      point,
-      placement: {
-        x: left,
-        y: baseline,
-        textAnchor: "start",
-        ...(baseline < cy - 8
-          ? {
-              line: {
-                x1: cx,
-                y1: cy - 3,
-                x2: Math.min(left + size.width - 2, Math.max(left + 2, cx)),
-                y2: baseline + size.descent,
-              },
-            }
-          : {}),
-      },
-      box: {
-        left,
-        right: left + size.width,
-        top: baseline - size.ascent,
-        bottom: baseline + size.descent,
-      },
-    });
-  }
-  return placed;
+  const length = Math.hypot(segment.x2 - segment.x1, segment.y2 - segment.y1);
+  const head = fromEdge ? 0 : CONSTELLATION_GAP;
+  if (length <= head + CONSTELLATION_GAP * 2) return null;
+  const ux = (segment.x2 - segment.x1) / length;
+  const uy = (segment.y2 - segment.y1) / length;
+  return {
+    x1: segment.x1 + ux * head,
+    y1: segment.y1 + uy * head,
+    x2: segment.x2 - ux * CONSTELLATION_GAP,
+    y2: segment.y2 - uy * CONSTELLATION_GAP,
+  };
+}
+
+/** How far a lab's rule is lit: across the standings' observed range, from a third of the rule for the lowest index to all of it for the highest. */
+function standingReach(score: number, leaders: readonly TimelinePoint[]) {
+  const scores = leaders.map((leader) => leader.score);
+  const low = Math.min(...scores);
+  const high = Math.max(...scores);
+  return high === low ? 1 : 1 / 3 + ((2 / 3) * (score - low)) / (high - low);
+}
+
+/** Pareto's hover card for a Timeline point, which carries its release and evidence rather than the leaderboard's scores. */
+function timelineHover(point: TimelinePoint, left: number, top: number): HoverState {
+  return {
+    left,
+    top,
+    model: point.name,
+    provider: providerDisplayName(point.provider),
+    color: providerChartColor(point.provider),
+    logo: providerLogo(point.provider),
+    rows: [
+      ["Intelligence Index", point.score.toFixed(1)],
+      ["Released", point.releaseDate],
+      [
+        "Evidence support",
+        point.coverage == null ? "Unknown" : `${Math.round(point.coverage * 100)}%`,
+      ],
+      ["Basis", point.indexOnly ? "Index-only" : "Reference / task-supported"],
+    ],
+  };
 }
 
 /** A star placed by its release day and score through the camera variables its group sets, so it re-renders only when its own mark changes. */
@@ -952,7 +1015,7 @@ const TimelineStar = memo(function TimelineStar({
   color,
   chosen,
   onSelect,
-  onPreview,
+  onFocus,
 }: {
   point: TimelinePoint;
   /** Days since the population's first release. */
@@ -962,33 +1025,24 @@ const TimelineStar = memo(function TimelineStar({
   color: string;
   chosen: boolean;
   onSelect: (id: string) => void;
-  onPreview: (point: TimelinePoint) => void;
+  onFocus: (point: TimelinePoint, target: Element) => void;
 }) {
-  const core = point.indexOnly ? null : starCore(radius, color);
+  const core = starCore(radius, color);
   // An inline position travels with the markup into image exports, which inline only a fixed set of computed styles.
   const transform = `translate(calc(var(--tx) + ${day} * var(--kx)), calc(var(--ty) + ${point.score} * var(--ky)))`;
   return (
     <circle
       data-point={point.id}
-      {...(core ?? {
-        r: radius,
-        fill: "var(--paper)",
-        stroke: color,
-        strokeWidth: 1.1,
-        vectorEffect: "non-scaling-stroke",
-      })}
-      style={{ ...core?.style, transform }}
+      {...core}
+      style={{ ...core.style, transform }}
       opacity={opacity}
-      className={core ? `${timeline.point} ${styles.starCore}` : timeline.point}
+      className={`${timeline.point} ${styles.starCore}`}
       role="button"
       tabIndex={chosen ? 0 : -1}
       aria-pressed={chosen}
       aria-label={`${point.name}, ${point.releaseDate}, Intelligence Index ${point.score.toFixed(1)}`}
       onClick={() => onSelect(point.id)}
-      onFocus={() => {
-        onSelect(point.id);
-        onPreview(point);
-      }}
+      onFocus={(event) => onFocus(point, event.currentTarget)}
     />
   );
 });

@@ -73,8 +73,9 @@ export function HoverCard({ hover }: { hover: HoverState }) {
       }
     >
       <div className={styles.hoverCardHead}>
-        <span className={styles.hoverCardLogo}>
-          {hover.logo ? (
+        {/* A lab without a logo leaves no empty tile; its name leads the card. */}
+        {hover.logo ? (
+          <span className={styles.hoverCardLogo}>
             <img
               src={hover.logo}
               alt=""
@@ -86,8 +87,8 @@ export function HoverCard({ hover }: { hover: HoverState }) {
                 event.currentTarget.hidden = true;
               }}
             />
-          ) : null}
-        </span>
+          </span>
+        ) : null}
         <div>
           <div className={styles.hoverCardTitle}>{hover.model}</div>
           <div className={styles.hoverCardProvider}>{hover.provider}</div>

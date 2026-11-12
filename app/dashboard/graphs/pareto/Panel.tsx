@@ -173,7 +173,6 @@ const ParetoFigure = memo(function ParetoFigure({
       : frontierScoreAxisScale(scoreValues, indexScore);
   const chartMetric = useMemo(
     () => ({
-      label: `${xLabel}${axisConfig.logarithmic ? " · log₁₀" : ""}`,
       // Resource steps read as "6.3× cost"; score axes keep their own names.
       noun: isScoreAxis(axisKey)
         ? axisConfig.shortLabel
@@ -183,7 +182,7 @@ const ParetoFigure = memo(function ParetoFigure({
       xHigherIsBetter: axisConfig.xHigherIsBetter,
       logarithmic: axisConfig.logarithmic,
     }),
-    [xLabel, axisConfig, axisKey],
+    [axisConfig, axisKey],
   );
   const evidenceLabel = publishedPerformance
     ? "automatic"
@@ -201,6 +200,7 @@ const ParetoFigure = memo(function ParetoFigure({
     activeKeys.length === 0 && needsEvidence && !publishedPerformance
       ? "Select an evidence source."
       : `No models have both ${yLabel} and ${axisConfig.shortLabel}. Change the evidence, axis, or filters.`;
+  // Pareto's left margin also holds its score spread beside the tick labels.
   const plotMargin = { ...SCATTER_CHART_MARGIN, left: 96 };
   const note =
     rows.length > 0
@@ -264,6 +264,7 @@ const ParetoFigure = memo(function ParetoFigure({
             onSelect={setAxisKey}
           />
         }
+        logarithmic={axisConfig.logarithmic === true}
         showVariants={showVariants}
         onShowVariantsChange={onShowVariantsChange}
       />

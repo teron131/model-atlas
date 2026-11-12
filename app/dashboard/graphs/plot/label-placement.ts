@@ -52,6 +52,7 @@ export function calloutLabelPlacements({
   segments = [],
   reservedBoxes = [],
   directions = DIRECTIONS,
+  gaps = GAPS,
 }: {
   labels: Label[];
   obstacles: PointObstacle[];
@@ -59,6 +60,8 @@ export function calloutLabelPlacements({
   segments?: Segment[];
   reservedBoxes?: Box[];
   directions?: readonly (readonly [number, number])[];
+  /** Distances from its point a label may sit at; the default reaches far enough that a crowded label can hang on a long leader. */
+  gaps?: readonly number[];
 }): Map<string, PointLabelPlacement> {
   const ordered = labels
     .map((label, order) => ({ ...label, order }))
@@ -66,7 +69,7 @@ export function calloutLabelPlacements({
       (left, right) => (right.priority ?? 0) - (left.priority ?? 0) || left.order - right.order,
     );
   const candidates = ordered.map((label) =>
-    labelCandidates(label, bounds, obstacles, segments, reservedBoxes, directions),
+    labelCandidates(label, bounds, obstacles, segments, reservedBoxes, directions, gaps),
   );
   const pairCost = cachedPairCost(candidates);
   // Keep alternative partial layouts so an early label cannot trap a later leader through text.
@@ -117,6 +120,7 @@ function labelCandidates(
   segments: Segment[],
   reservedBoxes: Box[],
   directions: readonly (readonly [number, number])[],
+  gaps: readonly number[],
 ): Candidate[] {
   const size = label.size ?? {
     width: Math.max(18, label.label.length * 7.8),
@@ -128,7 +132,7 @@ function labelCandidates(
   const candidates: Candidate[] = [];
   const blocked: Candidate[] = [];
   for (const [dx, dy] of directions) {
-    for (const gap of GAPS) {
+    for (const gap of gaps) {
       const distance = label.radius + gap + padding;
       const left = clamp(
         label.cx + dx * distance - (dx < 0 ? size.width : dx === 0 ? size.width / 2 : 0),

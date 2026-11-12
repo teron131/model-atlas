@@ -46,7 +46,7 @@ export function useChartLayout(maxWidth: number) {
 }
 
 /**
- * Redraw the plots of `live` for its copy staged as a saved image, instead of magnifying the page's plots: they draw at the staged plots' width with the full layout for one synchronous render, their marks replace the staged copies, and the page returns to its own layout before the browser paints.
+ * Redraw the plots of `live` for its copy staged as a saved image, instead of magnifying the page's plots: they draw at the staged plots' width with the full layout for one synchronous render, their marks and sky pixels replace the staged copies, and the page returns to its own layout before the browser paints.
  * `live` carries the image's layout mark for that render, so labels are measured at the type sizes the image sets them in.
  */
 export function redrawPlotsForCapture(staged: HTMLElement, live: HTMLElement): void {
@@ -56,10 +56,31 @@ export function redrawPlotsForCapture(staged: HTMLElement, live: HTMLElement): v
   live.dataset.captureLayout = "artifact";
   setCapturePlot({ root: live, width: stagedPlots[0]!.clientWidth });
   stagedPlots.forEach((host, index) => {
-    host.replaceChildren(...Array.from(plots[index]!.children, (mark) => mark.cloneNode(true)));
+    const plot = plots[index]!;
+    host.replaceChildren(...Array.from(plot.children, (mark) => mark.cloneNode(true)));
+    // A cloned canvas comes out blank, so a chart's sky is copied in while its redraw is still in the drawing buffer.
+    const skies = plot.querySelectorAll("canvas");
+    host.querySelectorAll("canvas").forEach((copy, sky) => {
+      const source = skies[sky];
+      const context = copy.getContext("2d");
+      if (source == null || context == null) return;
+      // The sky's light adds onto what lies behind it, which a PNG cannot carry as translucency, so the copy lays it onto that surface first.
+      context.fillStyle = surfaceBehind(source);
+      context.fillRect(0, 0, copy.width, copy.height);
+      context.drawImage(source, 0, 0);
+    });
   });
   delete live.dataset.captureLayout;
   setCapturePlot(null);
+}
+
+/** The background of the nearest ancestor that paints one. */
+function surfaceBehind(element: Element): string {
+  for (let node = element.parentElement; node != null; node = node.parentElement) {
+    const color = window.getComputedStyle(node).backgroundColor;
+    if (color !== "transparent" && color !== "rgba(0, 0, 0, 0)") return color;
+  }
+  return "transparent";
 }
 
 function setCapturePlot(next: typeof capturePlot): void {
