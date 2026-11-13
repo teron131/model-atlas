@@ -6,7 +6,7 @@ import { type RefObject, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 
 import { clamp01 } from "../../../src/model-atlas/math-utils";
-import { skyPixelRatio } from "../shared/sky-light";
+import { readSkyClock, restartSkyClock, skyPixelRatio } from "../shared/sky-light";
 import {
   CAMERA_DISTANCE,
   createSky,
@@ -36,11 +36,13 @@ const EXPLORE_UNTIL = 0.35;
 // Ambient twinkle is slow; past the hero it only needs a low cadence, while scrolling, the opening, and settling transitions render at full rate.
 const HERO_FRAME_INTERVAL = 1000 / 24;
 const FIELD_FRAME_INTERVAL = 1000 / 12;
+// Opaque surfaces hide the sky, so the pointer stops pulling on it while over one; the pull would be unseen there yet keep the field rendering at full rate.
+const SKY_COVER = '.research-plane, [role="dialog"], [popover]';
 
 /**
  * Scroll scopes the camera from the hero horizon into the star field and back; ambient twinkle stops while the page is hidden.
  *
- * In the hero, stars near the pointer lean toward it, pointing near a star identifies its model, clicking it reports its key through `onSelectStar`, and `focusKey` lets the register light a role's star.
+ * Wherever the sky shows, at any scroll depth, stars and motes near the pointer lean toward it. In the hero, pointing near a star identifies its model, clicking it reports its key through `onSelectStar`, and `focusKey` lets the register light a role's star.
  * `horizon` is where the hero places its horizon, in CSS pixels from the top of the viewport at rest.
  * Reduced motion keeps the hero composition still: no camera travel, pointer pull, or twinkle.
  */
@@ -133,7 +135,6 @@ export function FrontierField({
       pointer: null,
     };
     let introStart = performance.now();
-    let lastNow = introStart;
     let lastRender = 0;
     let previousRender = 0;
     let animating = false;
@@ -142,7 +143,8 @@ export function FrontierField({
     let lost = false;
     let compiled = false;
     let opened = false;
-    let pointer: { x: number; y: number } | null = null;
+    // The mouse wherever it is on the page; frames pass it to the sky as `pointer` only while it is over open sky.
+    let mouse: { x: number; y: number } | null = null;
     let cardKey: string | null = null;
     let hoveredKey: string | null = null;
     // The title's lines as set, so names keep off the words rather than off their full-width boxes.
@@ -153,6 +155,8 @@ export function FrontierField({
     });
 
     const ambient = () => !motion.matches && !document.hidden;
+    const showsSky = (element: Element | null) =>
+      element != null && element.closest(SKY_COVER) == null;
 
     /** Draw one frame and report whether the opening or a transition still needs frames. */
     const render = (now: number) => {
@@ -169,7 +173,11 @@ export function FrontierField({
       frameState.flight = motion.matches
         ? 0
         : clamp01((scroll - heroEnd) / Math.max(1, pageRemainder));
-      frameState.pointer = motion.matches || frameState.progress >= EXPLORE_UNTIL ? null : pointer;
+      // Hit-tested each frame rather than on each move, since scrolling carries surfaces under a resting pointer.
+      frameState.pointer =
+        !motion.matches && mouse != null && showsSky(document.elementFromPoint(mouse.x, mouse.y))
+          ? mouse
+          : null;
       sky.update(frameState);
       renderer.render(scene, camera);
       maskTitle();
@@ -256,6 +264,7 @@ export function FrontierField({
     const exploreStars = () => {
       const card = cardRef.current;
       const exploring = frameState.progress < EXPLORE_UNTIL && frameState.intro >= 1;
+      const { pointer } = frameState;
       const hovered =
         exploring && pointer != null ? sky.nearest(pointer.x, pointer.y, STAR_REACH) : null;
       hoveredKey = hovered == null ? null : (sky.stars()[hovered]?.key ?? null);
@@ -289,10 +298,8 @@ export function FrontierField({
     const loop = (now: number) => {
       frame = 0;
       if (document.hidden || lost) return;
-      const elapsed = Math.min(now - lastNow, 80);
-      lastNow = now;
       const moving = ambient();
-      if (moving) frameState.time += elapsed / 1000;
+      if (moving) frameState.time = readSkyClock(now);
       const interval =
         window.scrollY > hero.offsetHeight ? FIELD_FRAME_INTERVAL : HERO_FRAME_INTERVAL;
       if (dirty || animating || (moving && now - lastRender >= interval)) {
@@ -305,7 +312,6 @@ export function FrontierField({
     const invalidate = () => {
       dirty = true;
       if (!compiled || frame !== 0 || document.hidden || lost) return;
-      lastNow = performance.now();
       frame = requestAnimationFrame(loop);
     };
     // The opening plays once, from when the shaders are ready and the stars have arrived, since the page appears only then.
@@ -313,7 +319,8 @@ export function FrontierField({
       if (opened || !compiled || starsRef.current.length === 0) return;
       opened = true;
       introStart = performance.now();
-      // The sky's clock starts with the opening, so the rim's first pulse crosses while the stars light rather than before the page shows.
+      // The sky clock starts with the opening, so every rim's first pulse crosses while the stars light rather than before the page shows.
+      restartSkyClock(introStart);
       frameState.time = 0;
       invalidate();
     };
@@ -328,13 +335,13 @@ export function FrontierField({
     };
     const track = (event: PointerEvent) => {
       if (event.pointerType !== "mouse") return;
-      const heroBox = hero.getBoundingClientRect();
-      const insideHero = event.clientY >= heroBox.top && event.clientY <= heroBox.bottom;
-      pointer = insideHero ? { x: event.clientX, y: event.clientY } : null;
-      invalidate();
+      mouse = { x: event.clientX, y: event.clientY };
+      // Moving over a covering surface needs a frame only on arriving there, to let the pull fade.
+      const target = event.target instanceof Element ? event.target : null;
+      if (frameState.pointer != null || showsSky(target)) invalidate();
     };
     const leave = () => {
-      pointer = null;
+      mouse = null;
       invalidate();
     };
     // Only the star under the pointer is chosen, and never through a control that sits over the sky.

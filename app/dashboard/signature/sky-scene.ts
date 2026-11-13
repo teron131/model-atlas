@@ -8,6 +8,7 @@ import {
   GRAIN_HASH_GLSL,
   hashUnit,
   HORIZON_LIGHT_GLSL,
+  RIM_PULSE_GLSL,
   skyPixelRatio,
   STAR_FRAGMENT,
   TWINKLE_GLSL,
@@ -53,10 +54,6 @@ const STAR_DEPTH = 10;
 // The opening scatters ignition: starting this far into it, each star lights at its own moment within this share of it, so the sky fills in everywhere at once rather than along any direction.
 const IGNITION_START = 0.2;
 const IGNITION_SPREAD = 0.58;
-// A pulse of light runs along the rim from left to right, first this many seconds into the opening as the first stars light, then once every this many seconds, taking this long to cross.
-const RIM_PULSE_START = 0.7;
-const RIM_PULSE_PERIOD = 15;
-const RIM_PULSE_CROSSING = 2.5;
 // Time constant, in seconds, of the explored star's flare.
 const FLARE_EASE = 0.08;
 
@@ -80,7 +77,7 @@ export type SkyStar = {
 export type SkyLabel = { label: string; x: number; y: number; opacity: number };
 
 export type SkyFrame = {
-  /** Seconds of ambient motion; frozen while the page is hidden or under reduced motion. */
+  /** Seconds on the shared sky clock; frozen while the page is hidden or under reduced motion. */
   time: number;
   /** Seconds since the previous rendered frame, which transitions ease over; Infinity for a first frame or under reduced motion, so they snap. */
   elapsed: number;
@@ -94,7 +91,7 @@ export type SkyFrame = {
   unitsPerPixel: number;
   width: number;
   height: number;
-  /** The pointer in CSS pixels while it rests over the hero; null elsewhere or under reduced motion. */
+  /** The pointer in CSS pixels while it rests over open sky; null over a surface that covers the sky, off the page, or under reduced motion. */
   pointer: { x: number; y: number } | null;
 };
 
@@ -128,9 +125,6 @@ const SKY_DEFINES = Object.fromEntries(
     DUST_GRAVITY,
     DUST_WANDER,
     MAX_STREAK,
-    RIM_PULSE_START,
-    RIM_PULSE_PERIOD,
-    RIM_PULSE_CROSSING,
   }).map(([name, value]) => [name, Number.isInteger(value) ? value.toFixed(1) : String(value)]),
 );
 
@@ -158,7 +152,7 @@ float rimDistance(vec2 uv) {
 
 // A dark mound with a stippled, glowing rim under a cobalt sky; the rim shifts from cobalt to violet and rose toward the sides.
 // It renders at full strength from the first frame because the dashboard's fade-in already reveals it.
-// A pulse of light crosses the rim as the stars begin to light and every RIM_PULSE_PERIOD seconds after, on its own path rather than following the igniting stars.
+// The rim pulse runs on its own path rather than following the igniting stars.
 const HORIZON_VERTEX = /* glsl */ `
 varying vec2 vUv;
 void main() {
@@ -172,6 +166,7 @@ ${SHARED_GLSL}
 ${PLANET_GLSL}
 ${GRAIN_HASH_GLSL}
 ${HORIZON_LIGHT_GLSL}
+${RIM_PULSE_GLSL}
 uniform float dawn;
 varying vec2 vUv;
 
@@ -200,9 +195,7 @@ void main() {
   float side = clamp(abs(across) / (0.67 * shrink), 0.0, 1.0);
   vec3 rim = horizonLight(side);
   float breathe = (0.9 + 0.1 * sin(time * 0.4)) * dawn;
-  // Between crossings the pulse waits off screen to the right, as it does on a clock frozen at zero under reduced motion.
-  float pulse = mod(time - RIM_PULSE_START, RIM_PULSE_PERIOD) / RIM_PULSE_CROSSING;
-  float pulseOffset = (vUv.x + 0.05 - pulse * 1.1) * aspect / 0.05;
+  float pulseOffset = (vUv.x + 0.05 - rimPulse() * 1.1) * aspect / 0.05;
   float passing = exp(-pulseOffset * pulseOffset);
   float limbLight = 1.0 + exp(-abs(toRim) * 12.0 / shrink) * passing * 0.8;
   float inside = smoothstep(0.003, -0.003, toRim);
@@ -663,9 +656,12 @@ export function createSky(scene: THREE.Scene, camera: THREE.PerspectiveCamera) {
           STAR_WANDER * (Math.sin(frame.time * star.rateX + star.phaseX) - Math.sin(star.phaseX));
         const wanderY =
           STAR_WANDER * (Math.sin(frame.time * star.rateY + star.phaseY) - Math.sin(star.phaseY));
+        // The pull is measured on screen, so it converts at the star's distance from the camera as it now stands; at the hero camera's distance a scoped-in star would be carried up to three times as far, past the pointer.
+        const depth = -projected.copy(star.rest).applyMatrix4(camera.matrixWorldInverse).z;
+        const pullScale = (frame.unitsPerPixel * depth) / CAMERA_DISTANCE;
         star.world.set(
-          star.rest.x + (wanderX + star.pullX) * star.scale,
-          star.rest.y + (wanderY - star.pullY) * star.scale,
+          star.rest.x + wanderX * star.scale + star.pullX * pullScale,
+          star.rest.y + wanderY * star.scale - star.pullY * pullScale,
           star.rest.z,
         );
         starPositions.setXYZ(index, star.world.x, star.world.y, star.world.z);

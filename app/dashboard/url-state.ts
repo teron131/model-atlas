@@ -171,7 +171,7 @@ export function readGlobalModelFilters(params: URLSearchParams): GlobalModelFilt
   };
 }
 
-/** The global model filters of a URL that selects none: every model in the snapshot. */
+/** The global model filters of a URL that selects none: every model released in the default recency window. */
 export const DEFAULT_GLOBAL_MODEL_FILTERS = readGlobalModelFilters(new URLSearchParams());
 
 /** Keep custom selections shareable while omitting defaults and preserving unrelated URL parameters. */

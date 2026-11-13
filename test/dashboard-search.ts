@@ -2,7 +2,10 @@
 
 import assert from "node:assert/strict";
 
-import { filterByGlobalModelFilters } from "../app/dashboard/shared/model-display";
+import {
+  filterByGlobalModelFilters,
+  type GlobalModelFilters,
+} from "../app/dashboard/shared/model-display";
 import { filterSearchDocuments, hasSearchQuery } from "../app/dashboard/shared/search";
 import {
   ALWAYS_VISIBLE_TABLE_COLUMN_KEYS,
@@ -110,10 +113,12 @@ const models = [
     cost: { blended_price: 1 },
   },
 ];
+// The fixtures carry no release dates, so these checks look across every date.
+const everyDate: GlobalModelFilters = { ...DEFAULT_GLOBAL_MODEL_FILTERS, days: "all" };
 const scope = { observedAtEpochSeconds: null, rankingModels: models };
 for (const filters of [
-  { ...DEFAULT_GLOBAL_MODEL_FILTERS, q: "mini", provider: ["google"] },
-  { ...DEFAULT_GLOBAL_MODEL_FILTERS, q: "mini", "max-cost": 1 },
+  { ...everyDate, q: "mini", provider: ["google"] },
+  { ...everyDate, q: "mini", "max-cost": 1 },
 ]) {
   assert.deepEqual(
     filterByGlobalModelFilters(models, (model) => model, filters, scope),
@@ -146,7 +151,7 @@ assert.deepEqual(
   filterByGlobalModelFilters(
     rankedModels,
     (model) => model,
-    { ...DEFAULT_GLOBAL_MODEL_FILTERS, rank: 30 },
+    { ...everyDate, rank: 30 },
     { observedAtEpochSeconds: null, rankingModels: [hiddenModel, ...rankedModels] },
   ),
   rankedModels.slice(0, 30),

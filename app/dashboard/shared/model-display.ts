@@ -47,7 +47,8 @@ export type GlobalModelFilterScope = {
 
 export const costFilterOptions: CostFilter[] = ["all", 0.05, 0.1, 0.25, 0.5, 1];
 export const DEFAULT_MODEL_RANK_FILTER: ModelRankFilter = "all";
-export const DEFAULT_RECENCY_FILTER: RecencyFilter = "all";
+// Older models are mostly superseded and crowd the sky and charts, while a 90-day window would also drop models still among the leaders.
+export const DEFAULT_RECENCY_FILTER: RecencyFilter = 180;
 export const modelRankFilterOptions: ModelRankFilter[] = [30, 50, 70, "all"];
 export const recencyFilterOptions: RecencyFilter[] = [90, 180, "all"];
 

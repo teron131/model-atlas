@@ -44,7 +44,10 @@ const models = [
 ] as ModelAtlasModel[];
 const fetchedAt = Date.parse("2026-10-01T00:00:00Z") / 1000;
 const filters = { ...DEFAULT_GLOBAL_MODEL_FILTERS, q: "GPT*" };
-assert.equal(matchingProfileModelCount(models, DEFAULT_GLOBAL_MODEL_FILTERS, fetchedAt), 2);
+assert.equal(
+  matchingProfileModelCount(models, { ...DEFAULT_GLOBAL_MODEL_FILTERS, days: "all" }, fetchedAt),
+  2,
+);
 assert.equal(
   matchingProfileModelCount(models, filters, fetchedAt),
   1,

@@ -12,7 +12,6 @@ import {
   modelSuggestions,
   useModelSuggestions,
 } from "../shared/ModelSuggestions";
-import { DEFAULT_GLOBAL_MODEL_FILTERS } from "../url-state";
 import { familyName, type SheetEntry } from "./entries";
 import { openModelSheet } from "./open";
 
@@ -36,9 +35,11 @@ export function CompareSearch({
   const family = canonicalModelKey(pinned.row.model);
   const suggestions = useMemo(
     () =>
-      modelSuggestions(models, { ...DEFAULT_GLOBAL_MODEL_FILTERS, q: query }, null).filter(
-        (model) => canonicalModelKey(model) !== family,
-      ),
+      modelSuggestions(
+        models,
+        { q: query, provider: [], "max-cost": "all", rank: "all", days: "all" },
+        null,
+      ).filter((model) => canonicalModelKey(model) !== family),
     [models, query, family],
   );
   const suggestion = useModelSuggestions(SUGGESTIONS_ID, suggestions, (model) => {

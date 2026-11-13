@@ -5,7 +5,7 @@
 import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { useModelAtlasTheme } from "../../../shared/theme";
-import { skyPixelRatio } from "../../shared/sky-light";
+import { readSkyClock, skyPixelRatio } from "../../shared/sky-light";
 import { useMediaQuery } from "../../shared/use-media-query";
 import { createSkyRenderer, type SkyPlotScene, type SkyRenderer } from "./sky-renderer";
 
@@ -26,7 +26,6 @@ export function SkyPlot({ scene, children }: { scene: SkyPlotScene; children: Re
   const stageRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [renderer, setRenderer] = useState<SkyRenderer | null>(null);
-  const startedAt = useRef(0);
 
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
@@ -35,7 +34,6 @@ export function SkyPlot({ scene, children }: { scene: SkyPlotScene; children: Re
     if (created == null) return;
     const lose = () => setRenderer(null);
     canvas.addEventListener("webglcontextlost", lose);
-    startedAt.current = performance.now();
     setRenderer(created);
     return () => {
       canvas.removeEventListener("webglcontextlost", lose);
@@ -49,7 +47,7 @@ export function SkyPlot({ scene, children }: { scene: SkyPlotScene; children: Re
     if (renderer == null || stage == null) return;
     const capturing = stage.closest('[data-capture-layout="artifact"]') != null;
     renderer.setScene(scene, capturing ? CAPTURE_PIXEL_RATIO : skyPixelRatio());
-    renderer.draw(still ? 0 : (performance.now() - startedAt.current) / 1000, still ? Infinity : 0);
+    renderer.draw(still ? 0 : readSkyClock(performance.now()), still ? Infinity : 0);
   }, [renderer, scene, still]);
 
   useEffect(() => {
@@ -63,7 +61,7 @@ export function SkyPlot({ scene, children }: { scene: SkyPlotScene; children: Re
       frame = 0;
       if (!visible || document.hidden) return;
       if (settling || now - last >= AMBIENT_FRAME_MS) {
-        settling = renderer.draw((now - startedAt.current) / 1000, (now - last) / 1000);
+        settling = renderer.draw(readSkyClock(now), (now - last) / 1000);
         last = now;
       }
       frame = requestAnimationFrame(tick);

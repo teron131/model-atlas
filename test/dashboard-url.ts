@@ -32,7 +32,12 @@ const base = new URL("https://model-atlas.test/");
 assert.equal(patchDashboardUrl(base, {}).href, base.href);
 assert.equal(readUrlValue(base.searchParams, "view"), "all");
 assert.equal(readUrlValue(base.searchParams, "rank"), "all");
-assert.equal(readUrlValue(base.searchParams, "days"), "all");
+assert.equal(readUrlValue(base.searchParams, "days"), 180);
+assert.equal(
+  readUrlValue(patchDashboardUrl(base, { days: "all" }).searchParams, "days"),
+  "all",
+  "Choosing every release date must survive a reload, since the default window is narrower",
+);
 assert.equal(dashboardUrlSection(base), null);
 assert.equal(readUrlValue(base.searchParams, "performance"), "intelligence");
 assert.equal(readUrlValue(base.searchParams, "axes"), "cost");
@@ -89,7 +94,7 @@ for (const query of [
 ]) {
   const params = new URLSearchParams(query);
   assert.equal(readUrlValue(params, "rank"), "all");
-  assert.equal(readUrlValue(params, "days"), "all");
+  assert.equal(readUrlValue(params, "days"), 180);
   assert.equal(readUrlValue(params, "max-cost"), "all");
 }
 const malformed = new URLSearchParams(

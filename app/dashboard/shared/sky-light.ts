@@ -1,4 +1,4 @@
-/** The sky's light, shared by the hero field and the chart skies so a star or a horizon looks the same wherever it is drawn: GLSL for the star, flare, grain and horizon colours, and the stable per-model seed that times each star's twinkle. */
+/** The sky's light, shared by the hero field and the chart skies so a star or a horizon looks the same wherever it is drawn: GLSL for the star, flare, grain, horizon colours and rim pulse, the stable per-model seed that times each star's twinkle, and the one clock every sky on the page runs on. */
 
 // Includes `grainHash`, the per-pixel noise behind the rim's stipple.
 export const GRAIN_HASH_GLSL = /* glsl */ `
@@ -18,6 +18,16 @@ const vec3 PLANET_BODY = vec3(0.008, 0.01, 0.03);
 vec3 horizonLight(float t) {
   vec3 light = mix(vec3(0.42, 0.56, 1.0), vec3(0.64, 0.44, 1.0), smoothstep(0.1, 0.6, t));
   return mix(light, vec3(1.0, 0.56, 0.72), smoothstep(0.55, 1.0, t));
+}
+`;
+
+// Light runs along every rim on the page together: across in `crossing` seconds, whatever the rim's length, then dark for `gap` seconds, which is what sets how often the light reads; the first pass starts `start` seconds into the sky clock as the hero's stars begin to light, and outlasts the hero's 3.6-second opening by about a second.
+const RIM_PULSE = { start: 0.7, crossing: 4, gap: 12 };
+
+// Includes `rimPulse`, how far the pulse has run along a rim: 0 at its start and 1 at its end, and above 1 while it waits past the far end for the next pass, as it does on a clock frozen at zero under reduced motion. Expects a `time` uniform from the sky clock.
+export const RIM_PULSE_GLSL = /* glsl */ `
+float rimPulse() {
+  return mod(time - ${RIM_PULSE.start.toFixed(1)}, ${(RIM_PULSE.crossing + RIM_PULSE.gap).toFixed(1)}) / ${RIM_PULSE.crossing.toFixed(1)};
 }
 `;
 
@@ -75,6 +85,28 @@ void main() {
   gl_FragColor = vec4(light * (halo + rays * 0.8) * smoothstep(1.0, 0.6, radius) * vGlow, 1.0);
 }
 `;
+
+// A gap between frames longer than this, such as a hidden tab, advances the sky clock by this much only, so motion resumes where it stopped instead of jumping ahead.
+const MAX_CLOCK_STEP_MS = 80;
+let clockSeconds = 0;
+let clockAt = 0;
+
+/**
+ * Seconds on the page's one sky clock, which the hero and every chart sky read so their rims pulse together.
+ * `now` is a frame timestamp from `requestAnimationFrame` or `performance.now()`; the first reader at a new timestamp advances the clock, so every sky drawn in one frame reads the same time, and it stands still while no sky reads it.
+ */
+export function readSkyClock(now: number): number {
+  if (now > clockAt) {
+    clockSeconds += Math.min(now - clockAt, MAX_CLOCK_STEP_MS) / 1000;
+    clockAt = now;
+  }
+  return clockSeconds;
+}
+
+export function restartSkyClock(now: number) {
+  clockSeconds = 0;
+  clockAt = now;
+}
 
 // A sky draws at most this many device pixels per CSS pixel, so dense screens keep its frame cost bounded.
 const MAX_PIXEL_RATIO = 1.5;

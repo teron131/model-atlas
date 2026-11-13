@@ -5,6 +5,7 @@ import {
   GRAIN_HASH_GLSL,
   hashUnit,
   HORIZON_LIGHT_GLSL,
+  RIM_PULSE_GLSL,
   skyTint,
   STAR_FRAGMENT,
   TWINKLE_GLSL,
@@ -74,7 +75,6 @@ const SATURATION = 0.75;
 const FLARE_SIZE = { star: 84, frontier: 120 };
 // Time constant, in seconds, of the explored star's flare.
 const FLARE_EASE = 0.08;
-const RIM_PULSE = { start: 0.7, period: 15, crossing: 2.5 };
 // Distance along x, in CSS pixels at the reference plot height, over which a trail's light falls to about a third.
 const TRAIL_FADE = 40;
 
@@ -112,6 +112,7 @@ uniform float reach;
 uniform float rimStrength;
 ${GRAIN_HASH_GLSL}
 ${HORIZON_LIGHT_GLSL}
+${RIM_PULSE_GLSL}
 
 // Share of this device pixel, along one axis, that a span given in CSS pixels covers, so the plot's edges land as crisply as SVG.
 float cover(float from, float to, float at) {
@@ -168,9 +169,7 @@ void main() {
     rimCut.y * max(dot(p - last, normalize(last - beforeLast)), 0.0)
   );
   float begun = exp(-behind * behind / (1600.0 * reach * reach)) * guessed;
-  // Between crossings the pulse waits past the rim's far end, as it does on a clock frozen at zero under reduced motion.
-  float pulse = mod(time - ${RIM_PULSE.start.toFixed(1)}, ${RIM_PULSE.period.toFixed(1)}) / ${RIM_PULSE.crossing.toFixed(1)};
-  float pulseOffset = (along / rimLength + 0.05 - pulse * 1.1) * rimLength / (40.0 * reach);
+  float pulseOffset = (along / rimLength + 0.05 - rimPulse() * 1.1) * rimLength / (40.0 * reach);
   float limbLight = 1.0 + exp(-toRim / (14.0 * reach)) * exp(-pulseOffset * pulseOffset) * 1.1;
   float lit = begun * limbLight * rimStrength;
   // Past a cut end the sky counts as far from the rim, so an empty corner stays deep.
