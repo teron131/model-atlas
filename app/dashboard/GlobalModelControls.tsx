@@ -20,7 +20,7 @@ import {
 import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 
 import type { ModelAtlasModel } from "../../src/model-atlas/stats/types";
-import { fmtMoney } from "./graphs/format";
+import { formatMoney } from "./graphs/format";
 import { matchingProfileModelCount, sameProfileFilters, useModelProfiles } from "./model-profiles";
 import { openModelSheet } from "./model-sheet/open";
 import {
@@ -29,7 +29,7 @@ import {
   modelRankFilterOptions,
   type ProviderOption,
   recencyFilterOptions,
-} from "./shared/model-display";
+} from "./shared/model-filters";
 import {
   ModelSuggestionList,
   modelSuggestions,
@@ -82,7 +82,7 @@ function useModelSearchShortcut() {
   }, []);
 }
 
-/** Validate the current full model group before every create/update, even while the charts are rendering a deferred configuration. */
+/** Takes the live filters and the full model list, not the charts' deferred copies, so a profile save is checked against the configuration it stores. */
 export function GlobalModelControls({
   filters,
   models,
@@ -579,7 +579,7 @@ function filterChips(filters: GlobalModelFilters, providerChoices: ProviderOptio
       ? null
       : {
           key: "max-cost",
-          label: `Cost ≤ ${fmtMoney(filters["max-cost"])}`,
+          label: `Cost ≤ ${formatMoney(filters["max-cost"])}`,
           remove: { ...filters, "max-cost": "all" },
         },
     filters.days === "all"
@@ -592,7 +592,7 @@ function filterChips(filters: GlobalModelFilters, providerChoices: ProviderOptio
   return [...providers, ...choices.filter((chip) => chip != null)];
 }
 
-/** Mixed variant modes have no selected choice. */
+/** A `null` selection marks no choice, as when the charts and the leaderboard show different variant modes. */
 function FilterChoices<T extends string | number | boolean>({
   label,
   options,

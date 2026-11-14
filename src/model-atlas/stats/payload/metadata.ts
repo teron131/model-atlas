@@ -1,6 +1,10 @@
 /** Metadata assembly keeps live, stored, and restored payloads aligned with the current scoring contract. */
 
-import { benchmarkValueLocation } from "../../benchmarks/registry";
+import {
+  type BenchmarkMetricModel,
+  benchmarkValue,
+  benchmarkValueLocation,
+} from "../../benchmarks/registry";
 import { STAGE_CONFIG } from "../../config";
 import { type ScoringConfig, selectedBenchmarkKeys } from "../../config/stage";
 import {
@@ -11,9 +15,7 @@ import type { MatcherConfig } from "../../identity";
 import { positiveFiniteNumber } from "../../math-utils";
 import { type BenchmarkRowsByKey, observedBenchmarkVersions } from "../../pipeline/benchmark-rows";
 import {
-  type BenchmarkMetricModel,
   benchmarkTaskMetrics,
-  benchmarkValue,
   effectiveTaskSeconds,
   type ResourceMetricModel,
 } from "../../pipeline/scores/resource-metrics";

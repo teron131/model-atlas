@@ -1,10 +1,11 @@
-/** Next.js runtime configuration for local development and production builds. */
+/** Next.js configuration: Markdown documents load through the document loader under both Turbopack and webpack, and dev file watching skips tool and build directories. */
 
 import { resolve } from "node:path";
 
 import type { NextConfig } from "next";
 
 const DEV_IGNORED_DIRS = [".git", ".next", ".cache", "node_modules"] as const;
+// Matches a path with one of those directories as a whole segment: `/repo/.cache/plan.md` matches, `/repo/app/.cachex/a.ts` does not.
 const DEV_IGNORED_PATHS = new RegExp(
   `(^|[/\\\\])(${DEV_IGNORED_DIRS.map(escapeRegExp).join("|")})([/\\\\]|$)`,
 );

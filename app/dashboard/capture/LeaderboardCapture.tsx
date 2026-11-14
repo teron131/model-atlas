@@ -1,12 +1,13 @@
-/** Direct PNG capture for the leaderboard's currently visible four-score rows. */
+/** The leaderboard's PNG: on demand it mounts an off-screen table of the visible rows with only the four score columns at the export width, captures it, and unmounts it. */
 
 "use client";
 
 import { useEffect, useRef, useState } from "react";
 
 import { scoreMetricColumns, scoreSortableColumns } from "../table/Columns";
-import type { SortState, TableRow } from "../table/models";
+import type { TableRow } from "../table/leaderboard-rows";
 import { ScoreModelRow } from "../table/Rows";
+import type { SortState } from "../table/sort";
 import { CaptureAction } from "./CaptureButton";
 import { ARTIFACT_WIDTH } from "./png";
 import { usePngCapture } from "./use-png";

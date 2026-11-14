@@ -19,11 +19,8 @@ import { blendPairwiseQualityScores } from "../scores/pairwise-quality";
 import { buildAgenticTokenScoringContext } from "../scores/quality-context";
 import { applyResourceEvidenceRequirements } from "../scores/resource-metrics";
 import { buildComponentScoreResult } from "../scores/score-builders";
-import {
-  type BenchmarkVersioningOptions,
-  versionCandidateBenchmarkData,
-} from "./benchmark-versioning";
 import { buildModelCandidate, enrichModelResources } from "./candidate";
+import { type ObservationUpdateOptions, stampObservationUpdates } from "./observation-updates";
 import {
   hasRequiredBenchmarkEvidence,
   hasRequiredModelIdentity,
@@ -49,7 +46,7 @@ export type ModelSelection = {
 export function prepareModelSelection(
   rows: ModelRow[],
   scoringConfig: ScoringConfig,
-  versioning: BenchmarkVersioningOptions = {
+  updates: ObservationUpdateOptions = {
     baselineDate: new Date().toISOString().slice(0, 10),
     observedDate: new Date().toISOString().slice(0, 10),
   },
@@ -62,7 +59,7 @@ export function prepareModelSelection(
     prepareBenchmarkScoring(modelRows, scoringConfig),
     replacementRows,
   );
-  const candidatesWithRows = buildCandidates(modelRows, openRouterData, previousModels, versioning);
+  const candidatesWithRows = buildCandidates(modelRows, openRouterData, previousModels, updates);
   const candidates = candidatesWithRows.map(({ candidate }) => candidate);
   const imputationCandidates = candidatesWithRows
     .filter(({ row }) => !isVersionReplacementRow(row))
@@ -195,15 +192,15 @@ function buildCandidates(
   rows: ModelRow[],
   openRouterData: OpenRouterModelData,
   previousModels: readonly ModelAtlasModel[],
-  versioning: BenchmarkVersioningOptions,
+  updates: ObservationUpdateOptions,
 ): { row: ModelRow; candidate: ModelAtlasCandidate }[] {
   const previousModelForRow = buildPreviousModelLookup(previousModels);
   return rows.map((row) => ({
     row,
-    candidate: versionCandidateBenchmarkData(
+    candidate: stampObservationUpdates(
       buildModelCandidate(row, openRouterData),
       previousModelForRow(row),
-      versioning,
+      updates,
     ),
   }));
 }

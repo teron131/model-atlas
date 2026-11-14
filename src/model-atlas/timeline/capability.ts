@@ -7,12 +7,11 @@ import {
   indexPolicy,
   reportedIndexBenchmarkCount,
 } from "../benchmarks/index-policy";
-import { BENCHMARK_CATALOG } from "../benchmarks/registry";
+import { BENCHMARK_CATALOG, benchmarkValue } from "../benchmarks/registry";
 import { canonicalReasoningEffort } from "../identity/normalization";
 import { publicOpenRouterModelId } from "../identity/openrouter";
 import { providerIdentityKey } from "../identity/provider";
 import type { ModelAtlasCandidate } from "../pipeline/model-types";
-import { benchmarkValue } from "../pipeline/scores/resource-metrics";
 import { stableJson } from "../runtime";
 import { prepareTimelineBenchmarkEvidence } from "./benchmark-evidence";
 import { calibrateTimeline } from "./calibration";
@@ -65,7 +64,7 @@ export function capabilityModelId(model: Pick<ModelInput, "id" | "reasoning_effo
   );
 }
 
-/** Retain supported archived evidence and discard superseded current-only versions. */
+/** One refresh: retire superseded catalog benchmark versions, extend the published scale with this refresh's observations, and move current models' positions to their new estimates. */
 export function advanceCapabilityState(
   previous: CapabilityState,
   models: readonly ModelInput[],

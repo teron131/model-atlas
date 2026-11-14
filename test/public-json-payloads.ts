@@ -4,7 +4,6 @@ import assert from "node:assert/strict";
 
 import { NextRequest } from "next/server";
 
-import { leaderboardRows } from "../app/dashboard/table/models";
 import {
   benchmarkIndexJsonPayload,
   benchmarkJsonPayload,
@@ -13,7 +12,8 @@ import {
   modelJsonPayload,
   publicJsonPayload,
   scoreJsonPayload,
-} from "../app/leaderboard/public-json";
+} from "../app/api/public-json";
+import { leaderboardRows } from "../app/dashboard/table/leaderboard-rows";
 import { proxy } from "../proxy";
 import {
   BENCHMARK_COLUMNS,

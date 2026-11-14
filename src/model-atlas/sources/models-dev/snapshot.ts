@@ -1,4 +1,4 @@
-/** models.dev source snapshot merge policy and row-state preservation. */
+/** models.dev's snapshot step, apart from the flat-row recipe because the catalog is one nested provider-to-model payload: a refresh merges per model and keeps every model it omits, so those stay quarantined indefinitely instead of being withdrawn after the grace period. */
 
 import { buildModelsDevSourceStates } from "../snapshots/policy";
 import { shouldUseFetchedRows, snapshotFetchedAt } from "../snapshots/row-snapshot";

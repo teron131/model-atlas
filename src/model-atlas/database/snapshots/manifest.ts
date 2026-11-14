@@ -37,6 +37,7 @@ const decompress = promisify(gunzip);
 
 export function publicSnapshotBucket(): string {
   const bucket = process.env.MODEL_ATLAS_SNAPSHOT_BUCKET;
+  // A GCS bucket name in lowercase: model-atlas-snapshots passes, Model_Atlas does not.
   if (!bucket || !/^[a-z0-9][a-z0-9._-]+[a-z0-9]$/.test(bucket)) {
     throw new Error("MODEL_ATLAS_SNAPSHOT_BUCKET must name the public GCS snapshot bucket");
   }
@@ -61,6 +62,7 @@ export function parseSnapshotArtifacts(value: unknown): SnapshotArtifacts {
   if (
     !manifest ||
     typeof manifest.version !== "string" ||
+    // Versions are lowercase UUIDs, such as 0b6f6c1e-5d1a-4c3e-9f7a-2b8d4e6a1c90.
     !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(manifest.version) ||
     !Number.isSafeInteger(manifest.fetched_at_epoch_seconds) ||
     (manifest.fetched_at_epoch_seconds ?? 0) <= 0 ||

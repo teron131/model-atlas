@@ -1,19 +1,14 @@
 /** Table column views own preset membership, canonical order, and full-metadata search matching. */
 
 import type { ModelAtlasColumnTooltips } from "../../../src/model-atlas/config/tooltips";
-import { benchmarkLabels } from "../shared/constants";
+import { benchmarkLabels } from "../shared/benchmark-display";
 import { filterSearchDocuments, hasSearchQuery, type SearchDocument } from "../shared/search";
+import { dashboardMetricColumns, type SortKey, type TableColumnKey } from "./column-registry";
 import { staticSortableColumns } from "./Columns";
-import {
-  dashboardMetricColumns,
-  sorters,
-  type SortKey,
-  type SortState,
-  type TableColumnKey,
-} from "./models";
+import { sorters, type SortState } from "./sort";
 import { tableColumnTooltip } from "./tooltips";
 
-// The default view leads.
+// `all` leads the buttons because it is the default view `url-state.ts` falls back to.
 export const TABLE_COLUMN_PRESETS = [
   { key: "all", label: "All" },
   { key: "scores", label: "Scores" },
@@ -132,7 +127,7 @@ export function visibleSort(
   return { key, direction: sorters[key].direction };
 }
 
-/** Keep sorting visible when a preset or search removes the active sort column. */
+/** A search has no default column of its own, so it falls to the first sortable visible column. */
 function tableColumnSortKey(
   preset: TableColumnPreset,
   query: string,

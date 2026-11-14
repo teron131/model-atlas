@@ -19,7 +19,7 @@ import {
 const SCHEMA_SQL_PATH = resolve(process.cwd(), "src/model-atlas/database/schema.sql");
 
 export const DEFAULT_DATABASE_PATH = ".cache/database.sqlite";
-export const SCHEMA_MIGRATION_VALUES = {
+const SCHEMA_MIGRATION_VALUES = {
   model_benchmarks: {
     observed_at: BENCHMARK_VERSION_BASELINE_DATE,
   },
@@ -42,7 +42,6 @@ export async function loadSchemaSql(): Promise<string> {
   return `${schemaSql.trim()}\n`;
 }
 
-/** Remove a SQLite database file and its sidecar files. */
 export async function removeDatabaseFiles(path: string): Promise<void> {
   await Promise.all([
     rm(path, { force: true }),

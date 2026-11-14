@@ -1,4 +1,4 @@
-/** Scoring policy owns public score bounds, evidence retention, and coverage thresholds above shared numeric normalization. */
+/** Score bounds and evidence ramps: public scores clamp to 0-100, and coverage and evidence credit rise along a smoothstep between a floor and a full threshold. */
 
 import { clamp, linearScale, smoothstep } from "../../math-utils";
 
@@ -14,12 +14,10 @@ export function coverageMultiplier(supportedWeight: number, totalWeight: number)
   if (totalWeight <= 0) {
     return 0;
   }
-  const coverage = supportedWeight / totalWeight;
-  if (coverage >= COVERAGE_MULTIPLIER_FULL) {
-    return 1;
-  }
-  return smoothstep(
-    linearScale({ min: COVERAGE_MULTIPLIER_FLOOR, max: COVERAGE_MULTIPLIER_FULL }, coverage)!,
+  return evidenceRetentionFactor(
+    supportedWeight / totalWeight,
+    COVERAGE_MULTIPLIER_FLOOR,
+    COVERAGE_MULTIPLIER_FULL,
   );
 }
 

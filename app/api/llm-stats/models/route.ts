@@ -1,6 +1,6 @@
 /** The ranked table slice: each listed model's strongest-Intelligence effort with its selection columns, or with `efforts=all` every listed reasoning effort. */
 
-import { leaderboardDisplay, publicJsonResponse } from "../../../leaderboard/public-json";
+import { leaderboardDisplay, publicJsonResponse } from "../../public-json";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;

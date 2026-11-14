@@ -8,38 +8,27 @@
 import { modelNameIdentityKey } from "../../identity";
 import { normalizeModelToken } from "../../identity/normalization";
 import { nowEpochSeconds } from "../../runtime";
-import { fetchSource } from "../request-scheduler";
-import { surgeLeaderboardScoreRows } from "./results";
+import { fetchSourceText } from "../request-scheduler";
+import { type SurgeLeaderboardScoreRow, surgeLeaderboardScoreRows } from "./results";
 
 const RIEMANN_BENCH_LEADERBOARD_URL = "https://surgehq.ai/leaderboards/riemann-bench";
 
-export type RiemannBenchModelScoreRow = {
-  provider: string | null;
-  model: string;
-  score: number;
-  last_updated: string | null;
-};
-
-export type RiemannBenchRowsByModelName = Map<string, RiemannBenchModelScoreRow>;
+type RiemannBenchRowsByModelName = Map<string, SurgeLeaderboardScoreRow>;
 
 type RiemannBenchModelScorePayload = {
   fetched_at_epoch_seconds: number | null;
   source_url: string;
-  data: RiemannBenchModelScoreRow[];
+  data: SurgeLeaderboardScoreRow[];
 };
 
 export async function getRiemannBenchStats(): Promise<RiemannBenchModelScorePayload> {
   try {
-    return await fetchSource(RIEMANN_BENCH_LEADERBOARD_URL, {}, async (response) => {
-      if (!response.ok) {
-        throw new Error(`Riemann-bench scrape failed: ${response.status}`);
-      }
-      return {
-        fetched_at_epoch_seconds: nowEpochSeconds(),
-        source_url: RIEMANN_BENCH_LEADERBOARD_URL,
-        data: surgeLeaderboardScoreRows(await response.text()),
-      };
-    });
+    const pageHtml = await fetchSourceText(RIEMANN_BENCH_LEADERBOARD_URL);
+    return {
+      fetched_at_epoch_seconds: nowEpochSeconds(),
+      source_url: RIEMANN_BENCH_LEADERBOARD_URL,
+      data: surgeLeaderboardScoreRows(pageHtml),
+    };
   } catch {
     return {
       fetched_at_epoch_seconds: null,
@@ -50,7 +39,7 @@ export async function getRiemannBenchStats(): Promise<RiemannBenchModelScorePayl
 }
 
 export function buildRiemannBenchMap(
-  rows: RiemannBenchModelScoreRow[],
+  rows: SurgeLeaderboardScoreRow[],
 ): RiemannBenchRowsByModelName {
   const rowsByModelName: RiemannBenchRowsByModelName = new Map();
   for (const row of rows) {
@@ -86,6 +75,7 @@ export function findRiemannBenchScore(
   return null;
 }
 
+/** Keys for the full label, the label without parentheticals, and each slash-separated part: OpenAI / GPT-5 (high) → openai-/-gpt-5-high, openai-/-gpt-5, openai, gpt-5. */
 function riemannBenchKeyCandidates(model: string): string[] {
   const withoutParenthetical = model.replace(/\s*\([^)]*\)/g, "").trim();
   const slashParts = withoutParenthetical

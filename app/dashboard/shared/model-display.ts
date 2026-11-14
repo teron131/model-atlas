@@ -1,93 +1,14 @@
-/** Dashboard model identity, labels, variants, and shared filtering controls. */
+/** How the dashboard names and marks a model; counts and variant groups key on the canonical model family, so every reasoning effort of one model counts once. */
 
-import type { BenchmarkObservationsByKey } from "../../../src/model-atlas/benchmarks/observation";
 import {
   canonicalModelKey,
   reasoningEffortRank,
 } from "../../../src/model-atlas/identity/normalization";
-import { providerIdentityKey } from "../../../src/model-atlas/identity/provider";
-import {
-  compactModelVariants,
-  strongestModelVariants,
-} from "../../../src/model-atlas/stats/model-variants";
-import { modelDisplayExclusion } from "../../../src/model-atlas/stats/model-visibility";
 import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
-import { providerChartColor, providerDisplayName, providerLogo } from "./provider-theme";
-import { filterSearchDocuments, type SearchDocument } from "./search";
-
-const MILLISECONDS_PER_DAY = 86_400_000;
-const PROVIDER_FILTER_LIMIT = 14;
-const PROVIDER_ORDER_TOP_SCORE_COUNT = 3;
-
-export type ModelRankFilter = 30 | 50 | 70 | "all";
-export type RecencyFilter = 90 | 180 | "all";
-export type CostFilter = "all" | number;
-export type ProviderOption = {
-  slug: string;
-  label: string;
-  count: number;
-  color: string;
-  logo: string;
-};
-
-/** Dashboard-wide model filters, keyed by their URL fields and shared by the sky, Pareto chart, leaderboard, and saved profiles. */
-export type GlobalModelFilters = {
-  q: string;
-  provider: string[];
-  "max-cost": CostFilter;
-  rank: ModelRankFilter;
-  days: RecencyFilter;
-};
-
-/** Release recency is measured from the payload's fetch time; rank compares the full scored population, not the filtered view. */
-export type GlobalModelFilterScope = {
-  observedAtEpochSeconds: number | null;
-  rankingModels: readonly ModelAtlasModel[];
-};
-
-export const costFilterOptions: CostFilter[] = ["all", 0.05, 0.1, 0.25, 0.5, 1];
-export const DEFAULT_MODEL_RANK_FILTER: ModelRankFilter = "all";
-// Older models are mostly superseded and crowd the sky and charts, while a 90-day window would also drop models still among the leaders.
-export const DEFAULT_RECENCY_FILTER: RecencyFilter = 180;
-export const modelRankFilterOptions: ModelRankFilter[] = [30, 50, 70, "all"];
-export const recencyFilterOptions: RecencyFilter[] = [90, 180, "all"];
+import { providerLogo } from "./provider-theme";
 
 export function modelCount(models: ModelAtlasModel[]): number {
   return new Set(models.map(canonicalModelKey)).size;
-}
-
-/** Expand every reasoning variant when requested; otherwise retain the highest-scoring variant per model. */
-export function modelsForVariantDisplay(
-  models: readonly ModelAtlasModel[],
-  showVariants: boolean,
-  benchmarkObservations: BenchmarkObservationsByKey = {},
-): ModelAtlasModel[] {
-  const variantsByIdentity = new Map<string, ModelAtlasModel>();
-  for (const model of models) {
-    if (modelDisplayExclusion(model) != null) continue;
-    const key = modelVariantKey(model);
-    const existing = variantsByIdentity.get(key);
-    if (existing == null || compareIntelligence(model, existing) < 0) {
-      variantsByIdentity.set(key, model);
-    }
-  }
-  const modelVariants = [...variantsByIdentity.values()];
-  if (showVariants) return modelVariants;
-  return compactModelVariants(modelVariants, benchmarkObservations).map((model) => ({
-    ...model,
-    reasoning_effort: null,
-  }));
-}
-
-/**
- * One row per model: its strongest variant, without an effort label.
- * A row carries only that variant's own results, which is all score, identity, and filter readers use; the leaderboard's collapsed rows from `modelsForVariantDisplay` also fill benchmark results from other efforts, at several times the cost.
- */
-export function collapsedModels(models: readonly ModelAtlasModel[]): ModelAtlasModel[] {
-  return strongestModelVariants(modelsForVariantDisplay(models, true)).map((model) => ({
-    ...model,
-    reasoning_effort: null,
-  }));
 }
 
 export function modelDisplayName(
@@ -97,6 +18,7 @@ export function modelDisplayName(
   return model.reasoning_effort == null ? baseName : `${baseName} (${model.reasoning_effort})`;
 }
 
+/** The display name with provider spellings unified: "GPT 6.1 Sol" → "GPT-6.1 Sol", and a bare "Fable 5" → "Claude Fable 5". */
 export function modelName(model: Pick<ModelAtlasModel, "id" | "name" | "reasoning_effort">) {
   return modelDisplayName(model)
     .replace(/\bGPT\s+(?=\d)/g, "GPT-")
@@ -115,178 +37,7 @@ export function modelLogo(model: ModelAtlasModel) {
   return typeof model.logo === "string" ? model.logo : "";
 }
 
-/**
- * Apply the global filters in one order for every view: search, then provider and cost, then release recency, then Intelligence rank.
- * Search relevance is relative to its candidates, so searching first keeps narrower provider or cost filters from promoting weak matches.
- */
-export function filterByGlobalModelFilters<T>(
-  items: readonly T[],
-  getModel: (item: T) => ModelAtlasModel,
-  filters: GlobalModelFilters,
-  scope: GlobalModelFilterScope,
-): T[] {
-  const providerKeys = filters.provider.length === 0 ? null : new Set(filters.provider);
-  const controlled = filterByModelQuery(items, getModel, filters.q).filter((item) =>
-    modelMatchesControls(getModel(item), filters["max-cost"], providerKeys),
-  );
-  const recent = filterByReleaseRecency(
-    controlled,
-    getModel,
-    filters.days,
-    scope.observedAtEpochSeconds,
-  );
-  return filterByIntelligenceRank(recent, getModel, filters.rank, scope.rankingModels);
-}
-
-function filterByModelQuery<T>(
-  items: readonly T[],
-  getModel: (item: T) => ModelAtlasModel,
-  filterQuery: string,
-): T[] {
-  return filterSearchDocuments(
-    filterQuery,
-    items.map((item) => modelSearchDocument(item, getModel(item))),
-  );
-}
-
-export function providerOptions(models: ModelAtlasModel[]): ProviderOption[] {
-  type ProviderOptionDraft = ProviderOption & {
-    modelKeys: Set<string>;
-    bestScoreByModel: Map<string, number>;
-  };
-
-  const optionsBySlug = new Map<string, ProviderOptionDraft>();
-  for (const model of models) {
-    if (modelDisplayExclusion(model) != null) continue;
-    const slug = providerIdentityKey(model.provider);
-    const intelligenceScore = finiteNumber(model.scores?.intelligence_score);
-    const option = optionsBySlug.get(slug) ?? {
-      slug,
-      label: providerDisplayName(model),
-      count: 0,
-      color: providerChartColor(model.provider),
-      logo: modelLogo(model),
-      modelKeys: new Set(),
-      bestScoreByModel: new Map(),
-    };
-    const modelKey = canonicalModelKey(model);
-    option.modelKeys.add(modelKey);
-    if (intelligenceScore != null) {
-      option.bestScoreByModel.set(
-        modelKey,
-        Math.max(
-          option.bestScoreByModel.get(modelKey) ?? Number.NEGATIVE_INFINITY,
-          intelligenceScore,
-        ),
-      );
-    }
-    option.count = option.modelKeys.size;
-    optionsBySlug.set(slug, option);
-  }
-  const providerShortlist = [...optionsBySlug.values()]
-    .sort((left, right) => right.count - left.count || left.label.localeCompare(right.label))
-    .slice(0, PROVIDER_FILTER_LIMIT);
-
-  return providerShortlist
-    .map((option) => ({
-      ...option,
-      orderScore: meanTopProviderScore([...option.bestScoreByModel.values()]),
-    }))
-    .sort(
-      (left, right) =>
-        right.orderScore - left.orderScore ||
-        right.count - left.count ||
-        left.label.localeCompare(right.label),
-    )
-    .map((option) => ({
-      slug: option.slug,
-      label: option.label,
-      count: option.count,
-      color: option.color,
-      logo: option.logo,
-    }));
-}
-
-/** Retain canonical model families released within the selected UTC-day window. */
-function filterByReleaseRecency<T>(
-  items: T[],
-  getModel: (item: T) => ModelAtlasModel,
-  recency: RecencyFilter,
-  observedAtEpochSeconds: number | null,
-) {
-  if (recency === "all") {
-    return items;
-  }
-  const selectedModels = new Set(
-    items
-      .filter((item) => isReleasedWithinDays(getModel(item), observedAtEpochSeconds, recency))
-      .map((item) => canonicalModelKey(getModel(item))),
-  );
-  return items.filter((item) => selectedModels.has(canonicalModelKey(getModel(item))));
-}
-
-/** Filter by global Intelligence rank among the families the dashboard can show, retaining every variant in an eligible family. */
-function filterByIntelligenceRank<T>(
-  items: T[],
-  getModel: (item: T) => ModelAtlasModel,
-  rankFilter: ModelRankFilter,
-  rankingModels: readonly ModelAtlasModel[],
-) {
-  if (rankFilter === "all") {
-    return items;
-  }
-  const bestScoreByModel = new Map<string, number>();
-  for (const model of rankingModels) {
-    if (modelDisplayExclusion(model) != null) continue;
-    const modelKey = canonicalModelKey(model);
-    bestScoreByModel.set(
-      modelKey,
-      Math.max(
-        bestScoreByModel.get(modelKey) ?? Number.NEGATIVE_INFINITY,
-        finiteNumber(model.scores?.intelligence_score) ?? Number.NEGATIVE_INFINITY,
-      ),
-    );
-  }
-  const rankedModels = [...bestScoreByModel].sort((left, right) => right[1] - left[1]);
-  const rankCutoffScore = rankedModels[Math.min(rankFilter, rankedModels.length) - 1]?.[1];
-  const selectedModels = new Set(
-    rankedModels
-      .filter(([, score]) => rankCutoffScore != null && score >= rankCutoffScore)
-      .map(([modelKey]) => modelKey),
-  );
-  return items.filter((item) => {
-    const model = getModel(item);
-    return selectedModels.has(canonicalModelKey(model));
-  });
-}
-
-function isReleasedWithinDays(
-  model: ModelAtlasModel,
-  observedAtEpochSeconds: number | null,
-  maxAgeDays: number,
-): boolean {
-  if (model.release_date == null || observedAtEpochSeconds == null) {
-    return false;
-  }
-  const releaseDay = model.release_date.slice(0, 10);
-  const observedDay = new Date(observedAtEpochSeconds * 1_000).toISOString().slice(0, 10);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(releaseDay)) {
-    return false;
-  }
-  const releaseTimestamp = Date.parse(`${releaseDay}T00:00:00Z`);
-  const observedTimestamp = Date.parse(`${observedDay}T00:00:00Z`);
-  if (!Number.isFinite(releaseTimestamp) || !Number.isFinite(observedTimestamp)) {
-    return false;
-  }
-  const ageDays = (observedTimestamp - releaseTimestamp) / MILLISECONDS_PER_DAY;
-  return ageDays >= 0 && ageDays < maxAgeDays;
-}
-
-export function modelVariantKey(model: ModelAtlasModel): string {
-  return `${canonicalModelKey(model)}\u0000${model.reasoning_effort ?? ""}`;
-}
-
-/** Group visible model variants by family in ascending effort order, including an unlabeled sibling. */
+/** Group items by model family, each group's variants in ascending effort order with an unlabeled sibling included; a family with only one variant forms no group. */
 export function reasoningVariantGroups<T>(
   items: readonly T[],
   getModel: (item: T) => ModelAtlasModel,
@@ -314,65 +65,7 @@ export function reasoningVariantGroups<T>(
     .filter((group) => group.variants.length > 1);
 }
 
-function modelMatchesControls(
-  model: ModelAtlasModel,
-  maxCost: CostFilter,
-  providerKeys: ReadonlySet<string> | null,
-) {
-  if (providerKeys != null && !providerKeys.has(providerIdentityKey(model.provider))) {
-    return false;
-  }
-  if (maxCost === "all") {
-    return true;
-  }
-  const blendedPrice = finiteNumber(model.cost?.blended_price);
-  return blendedPrice != null && blendedPrice <= maxCost;
-}
-
-function meanTopProviderScore(scores: number[]) {
-  const topScores = [...scores]
-    .sort((left, right) => right - left)
-    .slice(0, PROVIDER_ORDER_TOP_SCORE_COUNT);
-  return topScores.length > 0
-    ? topScores.reduce((total, score) => total + score, 0) / topScores.length
-    : Number.NEGATIVE_INFINITY;
-}
-
 function prefixBareFableModelName(match: string, offset: number, name: string) {
   const previousToken = name.slice(Math.max(0, offset - "Claude ".length), offset);
   return previousToken === "Claude " ? match : `Claude ${match}`;
-}
-
-function finiteNumber(value: unknown): number | null {
-  return typeof value === "number" && Number.isFinite(value) ? value : null;
-}
-
-function compareIntelligence(left: ModelAtlasModel, right: ModelAtlasModel): number {
-  const leftScore = finiteNumber(left.scores.intelligence_score);
-  const rightScore = finiteNumber(right.scores.intelligence_score);
-  if (leftScore == null || rightScore == null) {
-    return leftScore == null ? (rightScore == null ? 0 : 1) : -1;
-  }
-  return rightScore - leftScore;
-}
-
-function modelSearchDocument<T>(value: T, model: ModelAtlasModel): SearchDocument<T> {
-  return {
-    value,
-    primary: [
-      modelDisplayName(model),
-      modelName(model),
-      shortLabel(model),
-      model.id,
-      model.provider,
-      providerDisplayName(model),
-    ],
-    context: [
-      model.reasoning === true ? "reasoning" : undefined,
-      model.open_weights === true ? "open weights" : undefined,
-      model.release_date,
-      model.modalities?.input?.map((modality) => `${modality} input`),
-      model.modalities?.output?.map((modality) => `${modality} output`),
-    ],
-  };
 }

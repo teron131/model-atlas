@@ -9,7 +9,7 @@ import { gunzipSync } from "node:zlib";
 
 import { asNonEmptyString, asRecord, type JsonObject } from "../../runtime";
 import { extractNextFlightCorpus, findObjectEnd, parseFlightJsonObject } from "../parsing";
-import { fetchSource } from "../request-scheduler";
+import { fetchSource, fetchSourceText } from "../request-scheduler";
 
 const RECORD_SEARCH_BACKTRACK_CHARS = 70_000;
 
@@ -26,12 +26,10 @@ export async function getArtificialAnalysisPage(
   url: string,
   inPageRecordKey?: string,
 ): Promise<ArtificialAnalysisPage> {
-  const html = await fetchSource(url, {}, async (response) => {
-    if (!response.ok) throw new Error(`Artificial Analysis page failed: ${response.status}`);
-    return response.text();
-  });
+  const html = await fetchSourceText(url);
   const title = /<title>([^<]*)<\/title>/.exec(html)?.[1] ?? null;
   const corpus = extractNextFlightCorpus(html);
+  // A manifest is a flat object: `"manifest":{"path":"/api/data/abc.bin","key":"00ff"}` → `{"path":"/api/data/abc.bin","key":"00ff"}`.
   const manifests = [...corpus.matchAll(/"manifest":(\{[^}]+\})/g)];
   for (const match of manifests) {
     const manifest = asRecord(JSON.parse(match[1]!));
@@ -42,6 +40,7 @@ export async function getArtificialAnalysisPage(
       throw new Error("Unexpected Artificial Analysis page-data origin");
     const data = await fetchSource(dataUrl, {}, async (response) => {
       if (!response.ok) throw new Error(`Artificial Analysis page data failed: ${response.status}`);
+      // A keyed manifest serves gzipped JSON sealed with AES-256-GCM: the hex `key` is the key, the nonce is the first 12 bytes of its SHA-256, and the last 16 bytes of the body are the auth tag.
       if (typeof manifest.key !== "string") return response.json();
       const encrypted = Buffer.from(await response.arrayBuffer());
       const key = Buffer.from(manifest.key, "hex");

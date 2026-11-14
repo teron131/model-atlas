@@ -1,4 +1,4 @@
-/** Benchmark-observation runtime owns cache reconstruction, catalog-driven snapshots, and raw-row serialization. */
+/** Storage side of the benchmark-observation sources, which share one raw table in the SQLite checkpoint: rebuild each catalog binding's cached rows from it, run each binding through the shared snapshot recipe, and write the rows back. */
 
 import {
   type BenchmarkObservationRow,
@@ -10,19 +10,19 @@ import {
   type BenchmarkObservationBinding,
   type BenchmarkObservationRowsKey,
 } from "../../benchmarks/registry";
-import type { DatabaseWriter } from "../../database/writers/database";
 import { normalizeModelToken, parseModelEffort } from "../../identity/normalization";
 import { asFiniteNumber, asNonEmptyString } from "../../runtime";
+import type { DatabaseWriter } from "../../sqlite-utils";
 import { type CacheRowSource, firstFetchedAt, queryCacheRows } from "../cache/rows";
 import type { RawSourceName } from "../registry";
-import { benchmarkObservationRowKeyFor, snapshotSourceRows } from "../snapshots/row-snapshot";
+import { snapshotSourceRows } from "../snapshots/row-snapshot";
 import type {
   RawSourceCacheStatus,
   SourceRefreshOptions,
   SourceSnapshots,
   SourceSnapshotStatus,
 } from "../types";
-import { benchmarkObservationSource } from "./load";
+import { benchmarkObservationRowKeyFor, benchmarkObservationSource } from "./load";
 
 type BenchmarkObservationSnapshot = {
   rows: BenchmarkObservationRow[];
@@ -63,6 +63,7 @@ export async function benchmarkObservationSnapshots(
   };
 }
 
+/** Null when no stored row parses or the source's `acceptsCache` rejects the rows, which makes the snapshot refetch even under a cache hit. */
 export function readBenchmarkObservationRawCache(
   cache: CacheRowSource,
   binding: BenchmarkObservationBinding,
@@ -122,7 +123,6 @@ export function insertBenchmarkObservationRows(
   }
 }
 
-/** Resolve the binding's fetch policy and snapshot its rows with missing-row tracking. */
 async function benchmarkObservationSnapshot(
   binding: BenchmarkObservationBinding,
   cached: { rows: BenchmarkObservationRow[]; fetchedAt: number | null } | null,

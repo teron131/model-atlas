@@ -9,7 +9,7 @@ import {
 } from "./normalization";
 
 const OPENROUTER_FREE_ROUTE_SUFFIX = ":free";
-const MMDD_RELEASE_TOKEN_PATTERN = /^(?:0[1-9]|1[0-2])(?:[0-2]\d|3[01])$/;
+export const MMDD_RELEASE_TOKEN_PATTERN = /^(?:0[1-9]|1[0-2])(?:[0-2]\d|3[01])$/;
 
 const CATALOG_ALIAS_SUFFIX_PATTERN = /-(?:fast|non-reasoning-low-effort|reasoning)$/;
 const DATED_PREVIEW_ROUTE_PATTERN = /^(.+)-preview-\d{2}-(?:\d{2}|\d{4})$/;

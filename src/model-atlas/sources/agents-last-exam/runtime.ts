@@ -1,13 +1,18 @@
-/** Agents' Last Exam runtime owns raw-cache reconstruction, snapshot refresh, raw-row serialization, and its source-data lookup. */
+/** Agents' Last Exam keeps per-harness runs (`harness_score`) beside their summarized model scores (`model_score`) in one raw table; the cache rebuilds from harness rows alone, and model scores are re-summarized from whichever harness rows survive the refresh. */
 
-import type { DatabaseWriter } from "../../database/writers/database";
 import { buildBenchmarkModelMap } from "../../identity/normalization";
 import { asFiniteNumber, asNonEmptyString } from "../../runtime";
-import { type BenchmarkSnapshotContext, defineBenchmarkRuntime } from "../benchmark-runtime";
+import type { DatabaseWriter } from "../../sqlite-utils";
+import { defineBenchmarkRuntime } from "../benchmark-runtime";
 import { type CacheRowSource, firstFetchedAt, sourceCacheRows } from "../cache/rows";
 import { sourceRowKey } from "../snapshots/policy";
-import { snapshotSourceRows } from "../snapshots/row-snapshot";
-import type { RawSourceCacheStatus, SourceRefreshOptions, SourceSnapshotStatus } from "../types";
+import {
+  type RawRowsCache,
+  snapshotSourceRows,
+  type SourceSnapshotRequest,
+  sourceSnapshotStatus,
+} from "../snapshots/row-snapshot";
+import type { SourceSnapshotStatus } from "../types";
 import {
   AGENTS_LAST_EXAM_LEADERBOARD_URL,
   type AgentsLastExamHarnessRow,
@@ -33,10 +38,9 @@ export const agentsLastExamRuntime = defineBenchmarkRuntime({
   sourceData: (rows) => ({ rows, rowsByModelName: buildBenchmarkModelMap(rows) }),
 });
 
-function readAgentsLastExamRawCache(cache: CacheRowSource): {
-  rows: AgentsLastExamHarnessRow[];
-  fetchedAt: number | null;
-} | null {
+function readAgentsLastExamRawCache(
+  cache: CacheRowSource,
+): RawRowsCache<AgentsLastExamHarnessRow> | null {
   const cacheRows = sourceCacheRows(
     cache,
     "SELECT * FROM agents_last_exam_raw_rows WHERE row_kind = 'harness_score' ORDER BY row_index",
@@ -96,22 +100,11 @@ function readAgentsLastExamRawCache(cache: CacheRowSource): {
   };
 }
 
-/** Preserves Agents' Last Exam harness rows while returning summarized model scores. */
 async function agentsLastExamSnapshot(
-  cached: ReturnType<typeof readAgentsLastExamRawCache>,
-  status: RawSourceCacheStatus,
-  options: SourceRefreshOptions,
-  previousMissingSince: ReadonlyMap<string, number>,
-  nowEpochSeconds: number,
-  context: BenchmarkSnapshotContext,
+  request: SourceSnapshotRequest<ReturnType<typeof readAgentsLastExamRawCache>>,
 ): Promise<AgentsLastExamSnapshot> {
   const snapshot = await snapshotSourceRows({
-    source: context.source,
-    cached,
-    status,
-    options,
-    previousMissingSince,
-    nowEpochSeconds,
+    ...request,
     fetchRows: getAgentsLastExamHarnessStats,
     rowKey: (row) => sourceRowKey(row.split, row.harness, row.model, row.harness_variant),
     rowLabel: (row) => `${row.model} ${row.split}`,
@@ -119,11 +112,10 @@ async function agentsLastExamSnapshot(
   return {
     rows: summarizeAgentsLastExamModelScores(snapshot.rows),
     harnessRows: snapshot.rows,
-    sourceStatus: context.sourceStatus(snapshot),
+    sourceStatus: sourceSnapshotStatus(request.source, snapshot),
   };
 }
 
-/** Insert Agents' Last Exam raw harness rows and summarized model rows in one source table. */
 function insertAgentsLastExamRawRows(db: DatabaseWriter, snapshot: AgentsLastExamSnapshot): void {
   const statement = db.prepare(`
 		INSERT INTO agents_last_exam_raw_rows (

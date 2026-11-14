@@ -9,6 +9,7 @@ import { pathToFileURL } from "node:url";
 import { readDisplayPayload } from "../src/model-atlas/database/runtime-snapshot";
 import { modelLogoCacheDir, resizeLogoToPng } from "../src/model-atlas/logos/cache";
 import { providerIconColor } from "../src/model-atlas/logos/color";
+import { providerAssetKey } from "../src/model-atlas/logos/resolve";
 
 type ProviderAsset = {
   logo: string;
@@ -87,7 +88,7 @@ async function readLogoSources() {
   const sources = new Map<string, string>();
   const rank = (logo: string) => (logo.startsWith("data:image/") ? 2 : logo ? 1 : 0);
   for (const model of (await readDisplayPayload()).models) {
-    const provider = providerSlug(model.provider);
+    const provider = providerAssetKey(model.provider);
     if (provider.length === 0) {
       continue;
     }
@@ -110,6 +111,7 @@ async function readLogoBuffer(provider: string, source: string) {
   }
 }
 
+/** The payload after `;base64,` decodes as base64, otherwise the text after the first comma is percent-decoded: `data:image/svg+xml,%3Csvg%2F%3E` → `<svg/>`. */
 function decodeDataUrl(source: string) {
   const base64Marker = ";base64,";
   const base64Index = source.indexOf(base64Marker);
@@ -175,12 +177,4 @@ function renderProviderModule(assets: ProviderAssetMap, kind: "assets" | "icons"
     `} as const satisfies Record<string, ${typeName}>;`,
     "",
   ].join("\n");
-}
-
-function providerSlug(provider: string | null | undefined) {
-  return String(provider ?? "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9._-]+/g, "-")
-    .replace(/^-+|-+$/g, "");
 }

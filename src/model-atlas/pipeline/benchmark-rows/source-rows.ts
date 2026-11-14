@@ -2,7 +2,7 @@
 
 import { isAssignableBenchmarkObservation } from "../../benchmarks/observation";
 import {
-  ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES,
+  ARTIFICIAL_ANALYSIS_RESOURCE_PAGE_ADAPTERS,
   BENCHMARK_OBSERVATION_BINDINGS,
   type PublicBenchmarkRuntimeKeyFor,
   transformBenchmarkSourceValue,
@@ -206,7 +206,7 @@ function artificialAnalysisBenchmarkRowDrafts(
 function artificialAnalysisResourceDrafts(
   rows: readonly ArtificialAnalysisBenchmarkResourceRow[],
 ): BenchmarkRowDraft[] {
-  return ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.flatMap(({ benchmarkKey }) =>
+  return ARTIFICIAL_ANALYSIS_RESOURCE_PAGE_ADAPTERS.flatMap(({ benchmarkKey }) =>
     benchmarkRowDrafts(
       benchmarkKey,
       rows.filter((row) => row.benchmark_key === benchmarkKey),
@@ -296,7 +296,6 @@ const STANDALONE_SOURCE_ROW_ADAPTERS = {
     })),
 } satisfies Record<PublicBenchmarkRuntimeKeyFor<"standalone">, StandaloneSourceRowAdapter>;
 
-/** Scored source data enters benchmark-update health through one draft contract. */
 export function benchmarkRowsFromSourceData(sourceData: ModelAtlasSourceData): BenchmarkRowsByKey {
   return finalizeBenchmarkRows([
     ...benchmarkObservationSourceDrafts(sourceData),

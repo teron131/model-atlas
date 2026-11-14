@@ -1,9 +1,9 @@
-/** Vals Index runtime owns raw-cache reconstruction, snapshot refresh, raw-row serialization, and its source-data lookup. */
+/** Vals Index keeps every component task score per model in one raw table, with the `overall` task as the model score; the cache is accepted only when every row parses and carries a full-size versioned basket, and row presence and health follow the overall rows alone. */
 
 import { parseBenchmarkObservationMetadata } from "../../benchmarks/observation";
-import type { DatabaseWriter } from "../../database/writers/database";
 import { asFiniteNumber, asNonEmptyString, asRecord, stableJson } from "../../runtime";
-import { type BenchmarkSnapshotContext, defineBenchmarkRuntime } from "../benchmark-runtime";
+import type { DatabaseWriter } from "../../sqlite-utils";
+import { defineBenchmarkRuntime } from "../benchmark-runtime";
 import { type CacheRowSource, firstFetchedAt, sourceCacheRows } from "../cache/rows";
 import {
   snapshotRows,
@@ -11,8 +11,14 @@ import {
   sourceRowKey,
   withoutSupersededVersions,
 } from "../snapshots/policy";
-import { shouldUseFetchedRows, snapshotFetchedAt } from "../snapshots/row-snapshot";
-import type { RawSourceCacheStatus, SourceRefreshOptions, SourceSnapshotStatus } from "../types";
+import {
+  type RawRowsCache,
+  shouldUseFetchedRows,
+  snapshotFetchedAt,
+  type SourceSnapshotRequest,
+  sourceSnapshotStatus,
+} from "../snapshots/row-snapshot";
+import type { SourceSnapshotStatus } from "../types";
 import {
   buildValsIndexMap,
   getValsIndexStats,
@@ -39,10 +45,7 @@ export const valsIndexRuntime = defineBenchmarkRuntime({
   sourceData: (rows) => ({ rows, rowsByModelName: buildValsIndexMap(rows) }),
 });
 
-function readValsIndexRawCache(cache: CacheRowSource): {
-  rows: ValsIndexTaskScoreRow[];
-  fetchedAt: number | null;
-} | null {
+function readValsIndexRawCache(cache: CacheRowSource): RawRowsCache<ValsIndexTaskScoreRow> | null {
   const cacheRows = sourceCacheRows(cache, "SELECT * FROM vals_index_raw_rows ORDER BY row_index");
   if (cacheRows.length === 0) {
     return null;
@@ -94,15 +97,10 @@ function readValsIndexRawCache(cache: CacheRowSource): {
   };
 }
 
-/** Loads Vals Index task rows while using only overall rows for scoring health. */
 async function valsIndexSnapshot(
-  cached: ReturnType<typeof readValsIndexRawCache>,
-  status: RawSourceCacheStatus,
-  options: SourceRefreshOptions,
-  previousMissingSince: ReadonlyMap<string, number>,
-  nowEpochSeconds: number,
-  context: BenchmarkSnapshotContext,
+  request: SourceSnapshotRequest<ReturnType<typeof readValsIndexRawCache>>,
 ): Promise<ValsIndexSnapshot> {
+  const { cached, status, options, previousMissingSince, nowEpochSeconds } = request;
   const fetched =
     status.cache_hit && cached != null && options.replaceSourceRows !== true
       ? null
@@ -120,7 +118,7 @@ async function valsIndexSnapshot(
       : cached?.rows;
   const cachedModelScores = cachedRows?.filter(isModelScore) ?? [];
   const modelSnapshot = snapshotRowsWithStates({
-    source: context.source,
+    source: request.source,
     cachedRows: cachedModelScores,
     fetchedRows: fetched?.model_scores ?? [],
     fetchedAtEpochSeconds: fetched?.fetched_at_epoch_seconds ?? null,
@@ -151,7 +149,7 @@ async function valsIndexSnapshot(
   return {
     rows: modelScores,
     taskRows,
-    sourceStatus: context.sourceStatus({
+    sourceStatus: sourceSnapshotStatus(request.source, {
       rows: modelScores,
       fetchedAt,
       sourceRowStates: modelSnapshot.states,

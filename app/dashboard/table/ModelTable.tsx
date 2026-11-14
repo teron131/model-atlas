@@ -1,25 +1,27 @@
-/** Leaderboard table with sticky headers, pinned columns, and mirrored horizontal scroll, navigated by a group rail above its headers. */
+/** Leaderboard table with sticky headers, pinned columns, and mirrored horizontal scroll, navigated by a group rail above its headers; only rows near the viewport draw their full cells. */
 
 import { type CSSProperties, memo, type ReactNode, useMemo } from "react";
 
 import { canonicalModelKey } from "../../../src/model-atlas/identity/normalization";
-import { strongestModelVariants } from "../../../src/model-atlas/stats/model-variants";
+import {
+  modelVariantKey,
+  strongestModelVariants,
+} from "../../../src/model-atlas/stats/model-variants";
+import { useMediaQuery } from "../../shared/use-media-query";
 import { rowShowsModelSheet } from "../model-sheet/open";
-import { modelVariantKey } from "../shared/model-display";
-import { useMediaQuery } from "../shared/use-media-query";
 import { useUrlState } from "../use-url-state";
-import { scoreMetricColumns, staticSortableColumns } from "./Columns";
-import type { HeaderTooltipHandler } from "./ColumnTooltip";
 import {
   dashboardMetricColumns,
   type SortKey,
-  type SortState,
   type TableColumnKey,
   tableColumnRuleKeys,
   tableColumnRuns,
-  type TableRow,
-} from "./models";
+} from "./column-registry";
+import { scoreMetricColumns, staticSortableColumns } from "./Columns";
+import type { HeaderTooltipHandler } from "./ColumnTooltip";
+import { type TableRow } from "./leaderboard-rows";
 import { EmptyStateRow, LoadingRows, ModelRow } from "./Rows";
+import { type SortState } from "./sort";
 import { TableScrollRail } from "./TableScrollRail";
 import { useDetailedRowRange, useTableViewport } from "./viewport";
 
@@ -53,7 +55,6 @@ export const ModelTable = memo(function ModelTable({
   onTooltip,
   onTooltipEnd,
 }: ModelTableProps) {
-  // On phones the four scores ride under each name rather than in columns, while still sorting the table.
   const scoreStrip = useMediaQuery(SCORE_STRIP_MEDIA_QUERY);
   const columnKeys = useMemo(
     () =>

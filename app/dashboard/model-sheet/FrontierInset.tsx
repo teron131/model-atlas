@@ -4,8 +4,9 @@
 
 import { useMemo } from "react";
 
+import { modelVariantKey } from "../../../src/model-atlas/stats/model-variants";
+import { formatResourceRatio } from "../../shared/resource-ratio-display";
 import { calloutLabelPlacements } from "../graphs/plot/label-placement";
-import { paretoFrontier } from "../graphs/plot/pareto-frontier";
 import {
   FrontierHorizon,
   horizonRim,
@@ -16,11 +17,11 @@ import {
 } from "../graphs/plot/Primitives";
 import type { SkyPlotScene } from "../graphs/plot/sky-renderer";
 import { SkyPlot } from "../graphs/plot/SkyPlot";
-import { modelName, modelVariantKey, shortLabel } from "../shared/model-display";
+import { modelName, shortLabel } from "../shared/model-display";
+import { paretoFrontier } from "../shared/pareto-frontier";
 import { providerChartColor } from "../shared/provider-theme";
-import { formatResourceRatio } from "../shared/resource-ratio-display";
 import { formatScore } from "../table/format";
-import type { TableRow } from "../table/models";
+import type { TableRow } from "../table/leaderboard-rows";
 import type { SheetEntry } from "./entries";
 import {
   LABEL_MARGIN,
@@ -166,11 +167,7 @@ export function FrontierInset({
       <h3 id="model-sheet-frontier">
         Frontier <small>{comparing ? "Intelligence against cost" : statuses[0]}</small>
       </h3>
-      <div
-        ref={plot.chartRef}
-        className={`${graphStyles.chartTokens} ${styles.plot}`}
-        data-capture-plot
-      >
+      <div {...plot.plotHost} className={`${graphStyles.chartTokens} ${styles.plot}`}>
         <SkyPlot scene={sky}>
           <svg
             ref={svgRef}
@@ -236,7 +233,7 @@ function insetPoint(row: TableRow): InsetPoint | null {
 
 /**
  * Name where a model stands against the population: on the frontier when nothing matches its Intelligence for less, otherwise how many models score higher at a lower cost.
- * Ties that only match it on one axis still keep it off the frontier.
+ * A model that ties it on one axis and beats it on the other still keeps it off the frontier; an exact tie does not.
  */
 function frontierStatus(point: InsetPoint | null, points: readonly InsetPoint[]): string {
   if (point == null) return "No measured cost";

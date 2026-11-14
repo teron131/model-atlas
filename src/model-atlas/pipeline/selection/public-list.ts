@@ -149,7 +149,7 @@ export function hasRequiredModelIdentity(model: IdentityCandidate): boolean {
   );
 }
 
-/** Project scored candidates onto the public contract before pruning can preserve internal fields. */
+/** Public fields are listed one by one so internal candidate fields such as `scoring_sources` never reach the public contract. */
 function publicModelFields(model: ModelAtlasScoredCandidate) {
   return {
     id: model.id,

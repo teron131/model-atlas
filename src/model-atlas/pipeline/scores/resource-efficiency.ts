@@ -1,4 +1,4 @@
-/** Quality-local and model-balanced resource-efficiency scoring. */
+/** Resource efficiency compares a model's log resource use with what other models of similar quality use, and maps that residual to a 0-100 score or a bounded multiplier. */
 
 import { calibrationObservations } from "../../benchmarks/calibration-population";
 import { canonicalModelKey } from "../../identity/normalization";
@@ -378,6 +378,7 @@ function boundedResidualMultipliers(
           0.5,
         );
   if (cap === 0 || mad == null || mad <= 0) return comparisons.residuals.map(() => 1);
+  // 1.4826 turns the MAD into a standard-deviation estimate for normally distributed values.
   const scale = 1.4826 * mad;
   return comparisons.residuals.map((residual, index) =>
     residual == null

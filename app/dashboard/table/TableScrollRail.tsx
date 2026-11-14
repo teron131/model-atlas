@@ -10,7 +10,7 @@ import {
 } from "react";
 
 import { clamp } from "../../../src/model-atlas/math-utils";
-import { TABLE_COLUMN_GROUP_LABELS, type TableColumnRun } from "./models";
+import { TABLE_COLUMN_GROUP_LABELS, type TableColumnRun } from "./column-registry";
 import { useTableScrollSnapshot } from "./viewport";
 
 const TABLE_SCROLL_KEY_STEP_PX = 80;
@@ -304,7 +304,8 @@ function smoothFlight(knots: readonly FlightKnot[]) {
 
 /**
  * Place each group's name from where its group starts on the rail (`starts`, as fractions of the rail), held inside the rail, returning each name's centre as a fraction of the rail's width.
- * Names first nudge apart, rightward and then back from the rail's end, staying as near their starts as the names before and after them allow; waypoints follow the names, so drift costs only proportion. Only when the rail is too narrow for every name does the group being read keep its name while any other name that would crowd a placed one is hidden until it takes keyboard focus.
+ * Names first nudge apart, rightward and then back from the rail's end, staying as near their starts as the names before and after them allow; waypoints follow the names, so drift costs only proportion.
+ * Only when the rail is too narrow for every name does the group being read keep its name while any other name that would crowd a placed one is hidden until it takes keyboard focus.
  */
 function railLabelPlacements(
   lengths: readonly number[],

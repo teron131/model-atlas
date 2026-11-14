@@ -5,7 +5,7 @@ import {
   distinctModelCount,
 } from "../../../benchmarks/calibration-population";
 import type { BenchmarkDimension } from "../../../benchmarks/factory";
-import { benchmarkDimensionWeight } from "../../../benchmarks/registry";
+import { benchmarkDimensionWeight, benchmarkValue } from "../../../benchmarks/registry";
 import {
   MAX_NORMALIZED_IMPUTATION_ERROR,
   type ScoringConfig,
@@ -29,7 +29,6 @@ import {
   observedRangesByBenchmark,
   type QualityScoringContext,
 } from "../quality-context";
-import { benchmarkValue } from "../resource-metrics";
 
 export type BenchmarkImputationByModel = ReadonlyMap<JsonObject, ReadonlyMap<string, number>>;
 
@@ -90,7 +89,7 @@ export function benchmarkImputationValues(
   );
 }
 
-/** Resolve prepared benchmark evidence factors after candidate and public-model projection replace row identity. */
+/** Looked up like `benchmarkImputationValues`. */
 export function benchmarkImputationFactors(
   scoringPreparation: BenchmarkScoringPreparation,
   model: BenchmarkScoringModelIdentity,
@@ -432,7 +431,7 @@ function imputationDiagnostic(
   };
 }
 
-/** Calibrate selected targets from observed peer evidence with family-held-out validation; an explicit query cohort is projected without changing training ranges or validation. */
+/** Calibrate selected targets from observed peer evidence with model-held-out validation; an explicit query cohort is projected without changing training ranges or validation. */
 export function prepareBenchmarkImputation(
   models: JsonObject[],
   scoringConfig: ScoringConfig,
@@ -519,7 +518,7 @@ export function prepareBenchmarkImputation(
   };
 }
 
-/** Precompute one benchmark-owned imputation from observed evidence only; source fields stay nullable. */
+/** Imputed values live only in the returned map; the models' own benchmark fields stay unfilled. */
 export function buildBenchmarkImputationByModel(
   models: JsonObject[],
   scoringConfig: ScoringConfig,

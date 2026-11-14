@@ -1,4 +1,4 @@
-/** Searchable organization selection follows the benchmark picker while keeping historical filters local to Timeline. */
+/** The Timeline's organization filter: a searchable checklist built on the Pareto benchmark picker's styles, ranking labs by their best charted index, whose selection stays local to the Timeline. */
 
 import { memo, useEffect, useRef, useState } from "react";
 

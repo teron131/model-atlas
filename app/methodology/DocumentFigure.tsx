@@ -7,7 +7,7 @@ import Image from "next/image";
 import { type ReactNode, useState } from "react";
 import { createPortal } from "react-dom";
 
-import { useMediaQuery } from "../dashboard/shared/use-media-query";
+import { useMediaQuery } from "../shared/use-media-query";
 
 import styles from "./methodology.module.css";
 

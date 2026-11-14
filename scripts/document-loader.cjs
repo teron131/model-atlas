@@ -7,6 +7,7 @@ const { dirname, resolve } = require("node:path");
 /** Include artwork in the module revision so SVG-only edits invalidate the rendered document too. */
 module.exports = function documentLoader(markdown) {
   const revision = createHash("sha256").update(markdown);
+  // Local SVG image links under the three document asset folders: `![Arc](../assets/timeline/frontier-arc.svg)` → `../assets/timeline/frontier-arc.svg`.
   const images = new Set(
     [
       ...markdown.matchAll(

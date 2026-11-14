@@ -1,6 +1,6 @@
 "use client";
 
-/** Leaderboard state, filtering, sorting, table rendering, and tooltips for the dashboard. */
+/** The leaderboard region: derives its rows from the URL state and the global filters, and owns the column tooltip's fade; it is kept apart from the graphs so slider, sort, and column-search updates re-render only the table. */
 
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 
@@ -9,8 +9,9 @@ import type { ModelAtlasPayload } from "../../src/model-atlas/stats/types";
 import { LeaderboardCapture } from "./capture/LeaderboardCapture";
 import { focusModelSearch } from "./GlobalModelControls";
 import { ResearchRegion } from "./ResearchRegions";
-import { filterByGlobalModelFilters, type GlobalModelFilters } from "./shared/model-display";
+import { filterByGlobalModelFilters, type GlobalModelFilters } from "./shared/model-filters";
 import { hasSearchQuery } from "./shared/search";
+import { type SortKey, type TableColumnKey } from "./table/column-registry";
 import { type TableColumnPreset, tableColumnView, visibleSort } from "./table/column-views";
 import {
   ColumnTooltip,
@@ -19,16 +20,10 @@ import {
   type TooltipState,
 } from "./table/ColumnTooltip";
 import { type EffortSelection, useDisplayLimit } from "./table/DisplayControls";
+import { effortChoices, leaderboardRows } from "./table/leaderboard-rows";
 import { LeaderboardControls } from "./table/LeaderboardControls";
-import {
-  effortChoices,
-  leaderboardRows,
-  sortedRows,
-  type SortKey,
-  type TableColumnKey,
-  toggledSort,
-} from "./table/models";
 import { ModelTable } from "./table/ModelTable";
+import { sortedRows, toggledSort } from "./table/sort";
 import { tableColumnTooltip } from "./table/tooltips";
 import type { DashboardUrlPatch } from "./url-state";
 import { updateDashboardUrl, useUrlState } from "./use-url-state";
@@ -38,7 +33,6 @@ const TOOLTIP_FADE_OUT_MS = 1_000;
 
 type DashboardTooltipState = TooltipState & { key: TableColumnKey };
 
-/** Isolate leaderboard interactions so slider and sort updates do not re-render dashboard graphs. */
 export function DashboardLeaderboard({
   payload,
   errorMessage,
@@ -58,7 +52,7 @@ export function DashboardLeaderboard({
   const [showVariants] = useUrlState("table-variants");
   const [requestedEfforts] = useUrlState("table-effort");
   const deferredColumnQuery = useDeferredValue(columnQuery);
-  const columnTooltips = payload?.metadata?.scoring?.column_tooltips ?? emptyColumnTooltips;
+  const columnTooltips = payload?.metadata.scoring.column_tooltips ?? emptyColumnTooltips;
   const {
     searchQuery: columnFilterQuery,
     searchMatchCount: columnSearchMatchCount,

@@ -32,6 +32,17 @@ export function asNonEmptyString(value: unknown): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
 }
 
+/** The first of `keys` whose value in `row` is a non-empty string. */
+export function firstString(row: JsonObject, keys: readonly string[]): string | null {
+  for (const key of keys) {
+    const value = row[key];
+    if (typeof value === "string" && value.length > 0) {
+      return value;
+    }
+  }
+  return null;
+}
+
 /** Serialize nested JSON with stable object-key ordering for comparisons and content hashes. */
 export function stableJson(value: unknown): string {
   return JSON.stringify(canonicalize(value)) ?? "null";

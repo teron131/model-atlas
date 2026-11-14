@@ -151,7 +151,7 @@ const markdownComponents: Components = {
       <table>{children}</table>
     </div>
   ),
-  // Flow callouts keep their content in Markdown and render as accessible HTML.
+  // A blockquote opening with `[!FLOW]` renders its remaining blocks as a flowchart; any other blockquote stays a quote.
   blockquote: ({ children }) => {
     const blocks = Children.toArray(children);
     const first = blocks.findIndex((block) => textContent(block).trim() !== "");

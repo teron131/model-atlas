@@ -1,4 +1,4 @@
-/** Shared dashboard display constants keep tooltips and benchmark labels aligned across graphs and tables. */
+/** Benchmark labels, display order, and tooltips derived once from the benchmark catalog, so graphs and tables name and order benchmarks alike. */
 
 import {
   BENCHMARK_DISPLAY_ORDER,

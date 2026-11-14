@@ -6,18 +6,15 @@
  * CSV source: https://epoch.ai/data/external_benchmarks/ale_bench.csv
  */
 
-import {
-  crosswalkBenchmarkSources,
-  type CrosswalkObservation,
-} from "../../benchmarks/sources-crosswalk";
 import { parseSlugEffort } from "../../identity/normalization";
 import { asFiniteNumber, asRecord, nowEpochSeconds } from "../../runtime";
+import { crosswalkBenchmarkSources, type CrosswalkObservation } from "../assembly/crosswalk";
 import {
   ALE_BENCH_EPOCH_RESULTS_URL,
   type AleBenchEpochRow,
   processAleBenchEpochCsv,
 } from "../epoch/ale-bench";
-import { fetchSource } from "../request-scheduler";
+import { fetchSource, fetchSourceJson } from "../request-scheduler";
 
 const ALE_BENCH_SAKANA_RESULTS_URL =
   "https://sakanaai.github.io/ALE-Bench-Leaderboard/data/results_summary.json";
@@ -93,22 +90,12 @@ export async function getAleBenchStats(): Promise<AleBenchPayload> {
   const epochRequest = fetchSource(ALE_BENCH_EPOCH_RESULTS_URL, {}, async (response) =>
     response.ok ? response.text() : null,
   ).catch(() => null);
-  const sakanaPayload = await fetchSource(ALE_BENCH_SAKANA_RESULTS_URL, {}, async (response) => {
-    if (!response.ok) {
-      throw new Error(`ALE-Bench Sakana scrape failed: ${response.status}`);
-    }
-    return response.json();
-  });
+  const sakanaPayload = await fetchSourceJson(ALE_BENCH_SAKANA_RESULTS_URL);
   const data = processAleBenchSakanaPayload(sakanaPayload);
   if (data.length === 0) throw new Error("ALE-Bench Sakana scrape returned no rows");
 
-  let epochRows: AleBenchEpochRow[] = [];
-  try {
-    const epochCsv = await epochRequest;
-    if (epochCsv != null) epochRows = processAleBenchEpochCsv(epochCsv);
-  } catch {
-    // Retain successful Sakana observations when the independent Epoch fetch is unavailable.
-  }
+  const epochCsv = await epochRequest;
+  const epochRows = epochCsv == null ? [] : processAleBenchEpochCsv(epochCsv);
   return {
     fetched_at_epoch_seconds: nowEpochSeconds(),
     data: [...data, ...epochRows.map((epoch) => ({ model: epoch.model, epoch }))],
@@ -214,7 +201,7 @@ export function summarizeAleBenchSourceDefaultRows(
     });
 }
 
-/** Fuse Performance in its native units; no probability clamp or primary-source precedence applies. */
+/** Fuse Performance in its native units, floored at zero instead of the default clamp to [0, 1]. */
 export function fuseAleBenchRows(rows: readonly AleBenchSourceRow[]): CrosswalkObservation[] {
   const sakanaObservations = summarizeAleBenchSourceDefaultRows(rows).map((row) => ({
     benchmark_key: "ale_bench",

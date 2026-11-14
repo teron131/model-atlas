@@ -1,4 +1,4 @@
-/** Variant projections give each canonical model one row for the leaderboard, public JSON, and dashboard: its strongest scored variant, or that variant with results it lacks filled from the model's other efforts. */
+/** Variant projections give each canonical model one row for the leaderboard, public JSON, and dashboard, either its strongest scored variant or that variant with results it lacks filled from the model's other efforts, and rank any listing by Intelligence with tied scores sharing a rank. */
 
 import {
   type BenchmarkObservationEvidenceRow,
@@ -10,6 +10,7 @@ import {
 } from "../benchmarks/observation";
 import {
   BENCHMARK_KEYS,
+  benchmarkValue,
   benchmarkValueLocation,
   transformBenchmarkSourceValue,
 } from "../benchmarks/registry";
@@ -18,7 +19,7 @@ import {
   canonicalReasoningEffort,
   reasoningEffortRank,
 } from "../identity/normalization";
-import { benchmarkValue } from "../pipeline/scores/resource-metrics";
+import { competitionRank } from "../math-utils";
 import { modelDisplayExclusion } from "./model-visibility";
 import type { ModelAtlasModel } from "./types";
 
@@ -45,6 +46,50 @@ export function strongestModelVariants<Model extends IntelligenceScoredModel>(
   return [...strongestByModel.values()];
 }
 
+export function modelVariantKey(model: ModelAtlasModel): string {
+  return `${canonicalModelKey(model)}\u0000${model.reasoning_effort ?? ""}`;
+}
+
+/** Expand every reasoning variant when requested; otherwise one row per model: its strongest variant, without an effort label, with results it lacks filled from the model's other efforts. */
+export function modelsForVariantDisplay(
+  models: readonly ModelAtlasModel[],
+  showVariants: boolean,
+  benchmarkObservations: BenchmarkObservationsByKey = {},
+): ModelAtlasModel[] {
+  const variantsByIdentity = new Map<string, ModelAtlasModel>();
+  for (const model of models) {
+    if (modelDisplayExclusion(model) != null) continue;
+    const key = modelVariantKey(model);
+    const existing = variantsByIdentity.get(key);
+    if (existing == null || model.scores.intelligence_score > existing.scores.intelligence_score) {
+      variantsByIdentity.set(key, model);
+    }
+  }
+  const modelVariants = [...variantsByIdentity.values()];
+  if (showVariants) return modelVariants;
+  return compactModelVariants(modelVariants, benchmarkObservations).map((model) => ({
+    ...model,
+    reasoning_effort: null,
+  }));
+}
+
+/**
+ * One row per model: its strongest variant, without an effort label.
+ * A row carries only that variant's own results, which is all score, identity, and filter readers use; the leaderboard's collapsed rows from `modelsForVariantDisplay` also fill benchmark results from other efforts, at several times the cost.
+ */
+export function collapsedModels(models: readonly ModelAtlasModel[]): ModelAtlasModel[] {
+  return strongestModelVariants(modelsForVariantDisplay(models, true)).map((model) => ({
+    ...model,
+    reasoning_effort: null,
+  }));
+}
+
+/** Competition ranks by Intelligence, aligned with `models`: tied scores share a rank and leave the next ordinal gap. */
+export function intelligenceRanks(models: readonly IntelligenceScoredModel[]): number[] {
+  const scores = models.map((model) => model.scores.intelligence_score);
+  return scores.map((score) => competitionRank(scores, score));
+}
+
 type ObservationLookups = ReadonlyMap<
   string,
   {
@@ -56,6 +101,11 @@ type ObservationLookups = ReadonlyMap<
 // Payload observations are immutable once published, so every projection of one payload shares its lookups.
 const observationLookupsByPayload = new WeakMap<BenchmarkObservationsByKey, ObservationLookups>();
 
+/**
+ * One row per model from its strongest variant, display-excluded families dropped; the effort label is kept.
+ * A benchmark's fused cross-effort observation, when the payload has one, replaces the representative's value.
+ * Otherwise a missing result is filled from the highest-effort source observation, with the matching variant's dates and task metrics, or failing that from the highest-effort variant that has one.
+ */
 export function compactModelVariants(
   models: readonly ModelAtlasModel[],
   benchmarkObservations: BenchmarkObservationsByKey = {},

@@ -1,11 +1,12 @@
 /** The refresh change log's SQLite codec: the rows the change-history window reads, how refresh runs, score moves, and update details are stored, and how stored events decode, including those logged before update-level fields existed. */
 
 import { asFiniteNumber, asNonEmptyString, asRecord } from "../runtime";
-import { jsonValue } from "../sources/cache/rows";
+import { type DatabaseWriter, type DbRow, jsonValue, sqliteBooleanValue } from "../sqlite-utils";
 import {
   buildChangeHistory,
   CHANGE_HISTORY_SECONDS,
   type ChangeLog,
+  DIMENSIONS,
   type ModelChangeDetailRow,
   type ModelScoreChangeRow,
   type RefreshRunRow,
@@ -22,9 +23,6 @@ import type {
   ModelAtlasVariantChanges,
 } from "../stats/types";
 import { SNAPSHOT_TABLES, type SnapshotTableName } from "./tables";
-import { type DatabaseWriter, sqliteBooleanValue } from "./writers/database";
-
-type DbRow = Record<string, unknown>;
 
 export const CHANGE_LOG_TABLES = [
   SNAPSHOT_TABLES.refresh_runs,
@@ -47,12 +45,7 @@ export const CHANGE_LOG_ROW_GROUPS = [
 
 type ChangeLogRows = Record<(typeof CHANGE_LOG_ROW_GROUPS)[number]["key"], DbRow[]>;
 
-const SCORE_CHANGE_DIMENSIONS = new Set<ModelAtlasScoreDimension>([
-  "intelligence",
-  "agentic",
-  "speed",
-  "value",
-]);
+const SCORE_CHANGE_DIMENSIONS = new Set(DIMENSIONS.map(({ dimension }) => dimension));
 const SCORE_CHANGE_CAUSE_KINDS = new Set<ModelAtlasScoreChangeCause["kind"]>([
   "model",
   "evidence",
@@ -77,7 +70,6 @@ export function pruneChangeLog(db: DatabaseWriter): void {
   }
 }
 
-/** Appends one bounded summary for each refresh that reached publication. */
 export function insertRefreshRuns(db: DatabaseWriter, rows: readonly RefreshRunRow[]): void {
   const statement = db.prepare(`
 		INSERT OR IGNORE INTO refresh_runs (
@@ -96,7 +88,6 @@ export function insertRefreshRuns(db: DatabaseWriter, rows: readonly RefreshRunR
   }
 }
 
-/** Appends only material score dimensions together with their bounded cause and rank-alignment evidence. */
 export function insertModelScoreChanges(
   db: DatabaseWriter,
   rows: readonly ModelScoreChangeRow[],
@@ -127,7 +118,6 @@ export function insertModelScoreChanges(
   }
 }
 
-/** Appends each material update's entry kind and the variant's own changed inputs. */
 export function insertModelChangeDetails(
   db: DatabaseWriter,
   rows: readonly ModelChangeDetailRow[],

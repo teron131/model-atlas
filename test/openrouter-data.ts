@@ -5,10 +5,7 @@ import {
   publicOpenRouterModelId,
   publicOpenRouterModelName,
 } from "../src/model-atlas/identity/openrouter";
-import {
-  buildModelVariants,
-  collapseModelVariants,
-} from "../src/model-atlas/pipeline/model-catalog";
+import { buildModelVariants } from "../src/model-atlas/pipeline/model-catalog";
 import {
   lookupOpenRouterBlendPrices,
   prepareOpenRouterModelData,
@@ -20,7 +17,7 @@ function assertEqual(actual: unknown, expected: unknown): void {
   }
 }
 
-const fastAliasRows = collapseModelVariants([
+const fastAliasRows = buildModelVariants([
   {
     id: "anthropic/claude-opus-4.8-fast",
     openrouter_id: "anthropic/claude-opus-4.8-fast",
@@ -67,7 +64,6 @@ const effortObservations = [
   },
 ] as const;
 const preservedEffortObservations = JSON.stringify(effortObservations);
-const collapsedVariantRows = collapseModelVariants([...effortObservations]);
 const expandedVariantRows = buildModelVariants([...effortObservations]);
 assertEqual(expandedVariantRows.length, 2);
 assertEqual(expandedVariantRows[0]?.reasoning_effort, "max");
@@ -200,21 +196,6 @@ const nonReasoningRow = genericReasoningRows.find((row) => row.reasoning_effort 
 assertEqual(genericReasoningRows.length, 2);
 assertEqual((genericReasoningRow?.benchmarks as Record<string, unknown> | undefined)?.hle, 0.4);
 assertEqual((nonReasoningRow?.benchmarks as Record<string, unknown> | undefined)?.hle, 0.2);
-const collapsedVariantRow = collapsedVariantRows[0] as Record<string, unknown>;
-const collapsedVariantBenchmarks = collapsedVariantRow.benchmarks as Record<string, unknown>;
-const collapsedVariantIntelligence = collapsedVariantRow.intelligence as Record<string, unknown>;
-const collapsedVariantIntelligenceCost = collapsedVariantRow.intelligence_index_cost as Record<
-  string,
-  unknown
->;
-assertEqual(collapsedVariantRows.length, 1);
-assertEqual(collapsedVariantRow.artificial_analysis_id, "openai/gpt-5-6-sol");
-assertEqual(collapsedVariantRow.reasoning_effort, undefined);
-assertEqual(collapsedVariantBenchmarks.scicode, 0.56);
-assertEqual(collapsedVariantBenchmarks.terminal_bench_4, 0.88);
-assertEqual(collapsedVariantIntelligence.omniscience_index, 77);
-assertEqual(collapsedVariantIntelligence.intelligence_index, 59);
-assertEqual(collapsedVariantIntelligenceCost.cost_per_task, 12);
 assertEqual(JSON.stringify(effortObservations), preservedEffortObservations);
 
 const versionedReplacementRows = buildModelVariants([
@@ -247,27 +228,6 @@ assertEqual(versionedReplacementRows.length, 1);
 assertEqual(versionedReplacementRows[0]?.name, "DeepSeek V4 Flash");
 assertEqual(versionedReplacementRows[0]?.reasoning_effort, "max");
 
-const separatelyNamedMaxRow = collapseModelVariants([
-  {
-    id: "anthropic/claude-opus-4.6",
-    provider_id: "anthropic",
-    artificial_analysis_id: "anthropic/claude-opus-4-6",
-    artificial_analysis_slug: "claude-opus-4-6",
-    reasoning_effort: "high",
-    intelligence: { intelligence_index: 38 },
-  },
-  {
-    id: "anthropic/claude-opus-4.6",
-    provider_id: "anthropic",
-    artificial_analysis_id: "anthropic/claude-opus-4-6-adaptive",
-    artificial_analysis_slug: "claude-opus-4-6-adaptive",
-    reasoning_effort: "max",
-    intelligence: { intelligence_index: 44 },
-  },
-])[0] as Record<string, unknown>;
-assertEqual(separatelyNamedMaxRow.artificial_analysis_id, "anthropic/claude-opus-4-6-adaptive");
-assertEqual((separatelyNamedMaxRow.intelligence as Record<string, unknown>).intelligence_index, 44);
-
 const unlabeledEffortObservations = [
   {
     id: "anthropic/claude-sonnet-4.5",
@@ -287,12 +247,7 @@ const unlabeledEffortObservations = [
   },
 ] as const;
 const originalUnlabeledEffortJson = JSON.stringify(unlabeledEffortObservations);
-const collapsedUnlabeledRows = collapseModelVariants([...unlabeledEffortObservations]);
-assertEqual(collapsedUnlabeledRows.length, 1);
-const collapsedUnlabeledRow = collapsedUnlabeledRows[0] as Record<string, unknown>;
-assertEqual(collapsedUnlabeledRow.artificial_analysis_id, "anthropic/claude-4-5-sonnet");
-assertEqual((collapsedUnlabeledRow.intelligence as Record<string, unknown>).intelligence_index, 29);
-assertEqual(collapsedUnlabeledRow.reasoning_effort, undefined);
+buildModelVariants([...unlabeledEffortObservations]);
 assertEqual(JSON.stringify(unlabeledEffortObservations), originalUnlabeledEffortJson);
 
 assertEqual(publicOpenRouterModelId("anthropic/claude-opus-4.8-fast"), "anthropic/claude-opus-4.8");
@@ -387,7 +342,7 @@ assertEqual(qwenBlendPrices?.cache_read, 0.375);
 assertEqual(qwenBlendPrices?.new_input, 5.625);
 assertEqual(qwenBlendPrices?.output, 25);
 
-const aliasOnlyRows = collapseModelVariants([
+const aliasOnlyRows = buildModelVariants([
   {
     id: "openai/gpt-5.5-xhigh",
     openrouter_id: "openai/gpt-5.5-xhigh",
@@ -402,7 +357,7 @@ assertEqual(aliasOnlyRows.length, 1);
 assertEqual(aliasOnlyRows[0]?.id, "openai/gpt-5.5");
 assertEqual(aliasOnlyRows[0]?.openrouter_id, "openai/gpt-5.5");
 
-const qualifiedFallbackRows = collapseModelVariants([
+const qualifiedFallbackRows = buildModelVariants([
   {
     id: "openai/gpt-test",
     openrouter_id: "gpt-test",
@@ -413,7 +368,7 @@ const qualifiedFallbackRows = collapseModelVariants([
 assertEqual(qualifiedFallbackRows[0]?.id, "openai/gpt-test");
 assertEqual(qualifiedFallbackRows[0]?.openrouter_id, "openai/gpt-test");
 
-const datedGeminiPreviewRows = collapseModelVariants([
+const datedGeminiPreviewRows = buildModelVariants([
   {
     id: "google/gemini-2.5-flash-preview-09-2025",
     openrouter_id: "google/gemini-2.5-flash-preview-09-2025",

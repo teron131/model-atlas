@@ -1,4 +1,4 @@
-/** Source snapshots share one cache-aware workflow across local builds and production checkpoint refreshes. */
+/** Checkpoint-wide snapshot loading, shared by local builds and production refreshes: here a snapshot is every source's rows for one build, each source reusing its rows in the SQLite checkpoint when they are a cache hit and refetching otherwise, plus each source's updated cache status and row states. OpenRouter is not part of it; `openrouter/snapshot.ts` refreshes it per requested model. */
 
 import type { DatabaseSync } from "node:sqlite";
 
@@ -28,11 +28,10 @@ import { RAW_SOURCE_NAMES, type RawSourceName } from "../registry";
 import type {
   RawSourceCacheStatus,
   SourceRefreshOptions,
-  SourceRowState,
   SourceSnapshots,
   SourceSnapshotStatus,
 } from "../types";
-import { missingSinceBySource, persistedSourceRowStates } from "./policy";
+import { missingSinceBySource, persistedSourceRowStates } from "./health";
 
 type LoadedSourceSnapshots = {
   snapshots: SourceSnapshots;
@@ -51,32 +50,14 @@ type SourceSnapshotCaches = {
   >;
 };
 
-/** Load raw source snapshots from SQLite when fresh, otherwise refresh scheduled source inputs. */
 export async function loadSourceSnapshots(
   db: DatabaseSync,
   nowEpochSeconds: number,
   options: SourceRefreshOptions = {},
 ): Promise<LoadedSourceSnapshots> {
-  return refreshSourceSnapshots(
-    readSqliteSourceCaches(db),
-    readSourceCacheStatuses(db, nowEpochSeconds),
-    persistedSourceRowStates(db),
-    nowEpochSeconds,
-    options,
-  );
-}
-
-async function refreshSourceSnapshots(
-  caches: SourceSnapshotCaches,
-  sourceCacheStatuses: Record<RawSourceName, RawSourceCacheStatus>,
-  previousSourceRowStates: readonly SourceRowState[],
-  nowEpochSeconds: number,
-  options: SourceRefreshOptions = {},
-): Promise<LoadedSourceSnapshots> {
-  for (const source of options.refreshSources ?? []) {
-    sourceCacheStatuses[source] = { ...sourceCacheStatuses[source], cache_hit: false };
-  }
-  const previousMissingSince = missingSinceBySource(previousSourceRowStates);
+  const caches = readSqliteSourceCaches(db);
+  const sourceCacheStatuses = readSourceCacheStatuses(db, nowEpochSeconds);
+  const previousMissingSince = missingSinceBySource(persistedSourceRowStates(db));
   const [
     artificialAnalysis,
     artificialAnalysisBenchmarkResources,

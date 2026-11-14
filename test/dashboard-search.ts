@@ -5,17 +5,14 @@ import assert from "node:assert/strict";
 import {
   filterByGlobalModelFilters,
   type GlobalModelFilters,
-} from "../app/dashboard/shared/model-display";
+} from "../app/dashboard/shared/model-filters";
 import { filterSearchDocuments, hasSearchQuery } from "../app/dashboard/shared/search";
+import { dashboardMetricColumns, tableColumnRuns } from "../app/dashboard/table/column-registry";
 import {
   ALWAYS_VISIBLE_TABLE_COLUMN_KEYS,
   tableColumnView,
 } from "../app/dashboard/table/column-views";
-import {
-  dashboardMetricColumns,
-  dashboardMetricValue,
-  tableColumnRuns,
-} from "../app/dashboard/table/models";
+import { dashboardMetricValue } from "../app/dashboard/table/leaderboard-rows";
 import { DEFAULT_GLOBAL_MODEL_FILTERS } from "../app/dashboard/url-state";
 import { minimalModelAtlasModel } from "./model-atlas-fixtures";
 

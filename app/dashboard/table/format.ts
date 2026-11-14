@@ -1,6 +1,6 @@
-/** Leaderboard table formatting keeps metric values and missing-value glyphs consistent. */
+/** Text formatting for the dashboard's metric values, shared by the table, model sheet, and signature cards: a missing or non-finite value always renders as "-", and benchmark results render in their source's units. */
 
-import type { DashboardMetricColumn, TaskMetricColumn } from "./models";
+import type { DashboardMetricColumn, TaskMetricColumn } from "./column-registry";
 
 // Refresh times are UTC epoch seconds; formatting in UTC keeps server and client renders identical.
 const refreshDates = {

@@ -1,6 +1,7 @@
 "use client";
 
 /** Keep link targets stationary while measuring titles for nested sticky headings. */
+
 import { type ReactNode, useEffect, useRef } from "react";
 
 import styles from "./methodology.module.css";

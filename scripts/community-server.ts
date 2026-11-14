@@ -1,4 +1,4 @@
-/** Cloud Run accepts bearer-authenticated research records and publishes them through the shared SQLite checkpoint. */
+/** Cloud Run accepts bearer-authenticated community ranking submissions and publishes them through the shared SQLite checkpoint. */
 
 import { createHash, timingSafeEqual } from "node:crypto";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";

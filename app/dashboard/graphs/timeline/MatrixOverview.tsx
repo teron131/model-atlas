@@ -1,6 +1,6 @@
 "use client";
 
-/** Dense SVG matrices reserve detail space from deduplicated field alternatives before hover interaction. */
+/** A dense evidence matrix drawn as one SVG square per cell, colored by `status` as an index into `colors`, beside an inspector showing the active cell's readout; pointer, touch, and arrow keys move the active cell. */
 
 import { Crosshair } from "lucide-react";
 import {
@@ -17,7 +17,7 @@ import {
 
 import styles from "./matrices.module.css";
 
-type Axis = { id: string; label: string };
+export type Axis = { id: string; label: string };
 type Position = { row: string; column: string };
 type Readout = {
   title: string;
@@ -67,6 +67,7 @@ export function MatrixOverview({
           const group =
             metrics.get(key) ??
             detail.metrics.map(({ label }) => ({ label, values: new Set<string>() }));
+          // Metric digits use tabular figures, so equal-length digit runs share one sizing alternative.
           detail.metrics.forEach((item, index) =>
             group[index]!.values.add(item.value.replace(/\d/g, "0")),
           );
@@ -89,7 +90,6 @@ export function MatrixOverview({
     }
     return { statuses: [...statuses], metrics: [...metrics.values()], notes: [...notes.values()] };
   }, [rows, columns, cell]);
-  // Metric digits use tabular figures, so equal-length digit runs share one sizing alternative.
   const sizingContent = useMemo(
     () => (
       <div className={styles.readoutSizer} aria-hidden="true">

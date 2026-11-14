@@ -1,4 +1,4 @@
-/** Shared resource-metric rules for benchmark cost, speed, and availability scoring. */
+/** Per-benchmark task resources: which cost, time, and token amounts count as observed, how a fused row whose sources disagree splits back into them, and how much observed resource evidence Speed and Value need to publish. */
 
 import type { BenchmarkPortfolio } from "../../benchmarks/factory";
 import {
@@ -6,7 +6,7 @@ import {
   indexPolicy,
   residualIndexBreadth,
 } from "../../benchmarks/index-policy";
-import { benchmarkValueLocation } from "../../benchmarks/registry";
+import { type BenchmarkMetricModel, benchmarkValue } from "../../benchmarks/registry";
 import {
   type BenchmarkResourceSource,
   resourceSourceMetricKey,
@@ -16,12 +16,6 @@ import { MINIMUM_RESOURCE_BENCHMARKS } from "../../config/stage";
 import { positiveFiniteNumber } from "../../math-utils";
 import { asFiniteNumber, asRecord } from "../../runtime";
 import type { ModelAtlasTaskMetricValues } from "../model-types";
-
-export type BenchmarkMetricModel = {
-  benchmarks?: unknown;
-  intelligence?: unknown;
-  scoring_sources?: unknown;
-};
 
 export type ResourceMetricModel = BenchmarkMetricModel & {
   speed?: unknown;
@@ -169,7 +163,7 @@ export function observedResourceEvidenceCounts(
 }
 
 /** Direct quality-resource pairs drive publication gates; published source-specific task rows replace internal fusion metadata without increasing a benchmark's count. */
-export function observedResourceBenchmarkCounts(
+function observedResourceBenchmarkCounts(
   model: ResourceMetricModel,
   portfolio: BenchmarkPortfolio,
 ): {
@@ -188,7 +182,7 @@ export function observedResourceBenchmarkCounts(
   return counts;
 }
 
-/** Count measured source-specific task rows when publication has dropped internal fusion metadata. */
+/** Published models carry no `scoring_sources`, so their source-suffixed task rows stand in for the fusion metadata. */
 function hasObservedBenchmarkResource(
   model: ResourceMetricModel,
   key: string,
@@ -221,25 +215,6 @@ export function directBenchmarkTokens(
   if (input != null && input >= 0 && output != null && output >= 0)
     return positiveFiniteNumber(input + output);
   return measure === "tokens" ? positiveFiniteNumber(metrics.tokens) : null;
-}
-
-export function benchmarkValue(model: BenchmarkMetricModel, key: string): number | null {
-  const location = benchmarkValueLocation(key);
-  if (location?.kind === "intelligence") {
-    return (
-      asFiniteNumber(asRecord(model.intelligence)[location.field]) ??
-      asFiniteNumber(asRecord(model.benchmarks)[key]) ??
-      null
-    );
-  }
-  if (location == null) {
-    return (
-      asFiniteNumber(asRecord(model.intelligence)[key]) ??
-      asFiniteNumber(asRecord(model.benchmarks)[key]) ??
-      null
-    );
-  }
-  return asFiniteNumber(asRecord(model.benchmarks)[key]) ?? null;
 }
 
 /** Use served throughput as the runtime proxy when a benchmark reports output tokens but not wall time. */

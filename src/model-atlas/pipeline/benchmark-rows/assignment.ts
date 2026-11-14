@@ -5,7 +5,7 @@ import {
   findBenchmarkObservation,
 } from "../../benchmarks/observation";
 import {
-  ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES,
+  ARTIFICIAL_ANALYSIS_RESOURCE_PAGE_ADAPTERS,
   BENCHMARK_OBSERVATION_BINDINGS,
   type BenchmarkObservationDataKey,
   type BenchmarkRuntimeKeyFor,
@@ -229,7 +229,7 @@ function buildArtificialAnalysisBenchmarks(
       scoringSources[key] = resourceRow;
     }
   }
-  for (const { benchmarkKey: key } of ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES) {
+  for (const { benchmarkKey: key } of ARTIFICIAL_ANALYSIS_RESOURCE_PAGE_ADAPTERS) {
     const row = findArtificialAnalysisBenchmarkResourceRow(
       key,
       modelNameCandidates,
@@ -476,7 +476,7 @@ export function buildDefaultVariantBenchmarks(
   };
 }
 
-/** Assigns model-level benchmarks to one default variant without replacing exact variant observations. */
+/** Model-level results go to one default variant per model, preferring an Artificial Analysis match and then the highest effort; exact observations already on that row win. */
 export function assignBenchmarksToVariants(
   rows: ModelRow[],
   lookups: BenchmarkAssignmentLookups,

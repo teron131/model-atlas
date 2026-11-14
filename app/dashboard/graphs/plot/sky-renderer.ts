@@ -1,13 +1,20 @@
-/** Draws a chart's plot as the hero's sky in raw WebGL: open sky above the frontier's rim, the rim lit with its stipple band and pulse, the planet's dark body below it, and every model as a hero star. Geometry arrives in the chart's SVG coordinates: CSS pixels, y down. */
+/**
+ * Draws a chart's plot as the hero's sky in raw WebGL: open sky above the frontier's rim, the rim lit with its stipple band and pulse, the planet's dark body below it, and every model as a hero star.
+ * Geometry arrives in the chart's SVG coordinates: CSS pixels, y down.
+ */
 
 import {
+  FLARE_EASE,
   FLARE_FRAGMENT,
+  FRONTIER_SPRITE,
   GRAIN_HASH_GLSL,
   hashUnit,
   HORIZON_LIGHT_GLSL,
+  REFERENCE_PLOT_HEIGHT,
   RIM_PULSE_GLSL,
   skyTint,
   STAR_FRAGMENT,
+  STAR_SPRITE,
   TWINKLE_GLSL,
 } from "../../shared/sky-light";
 import type { HorizonTrail, PlotBounds } from "./Primitives";
@@ -50,17 +57,13 @@ export type SkyRenderer = ReturnType<typeof createSkyRenderer>;
 /** A star's share of light while another model holds the chart's focus, matching the opacity its SVG mark keeps. */
 export const MUTED_STAR_GLOW = 0.34;
 
-// Light lengths are CSS pixels for a full dashboard plot this tall and shrink with smaller plots, such as the phone layout and the model sheet's inset, so the light never outweighs them.
-const REFERENCE_PLOT_HEIGHT = 480;
 // The open sky's opacity over the panel's charcoal: enough of the hero's cobalt to read as its sky, little enough that the plot still sits on a charcoal panel.
 const SKY_STRENGTH = 0.42;
 // A muted rim keeps this share of its light.
 const MUTED_RIM = 0.4;
 // The shader's room for rim points, about three times today's longest frontier; a longer rim is cut at its far end.
 const MAX_RIM = 64;
-// Sizes in CSS pixels on the hero's scale, where a sprite spans STAR_SPRITE times its size and a frontier sprite FRONTIER_SPRITE times, to hold its rays.
-const STAR_SPRITE = 3;
-const FRONTIER_SPRITE = 7;
+// Sizes in CSS pixels on the hero's scale, where a sprite spans STAR_SPRITE times its size and a frontier sprite FRONTIER_SPRITE times.
 // The lowest stars stay large enough to find and point at, not only to see.
 const STAR_SIZE = { low: 7.6, high: 8.8 };
 const FRONTIER_SIZE = 7.6;
@@ -73,8 +76,6 @@ const CROWD = { spacing: 3000, floor: 0.5 };
 // A chart is read among text and other panels, so its rim and stars keep only this share of their colours' saturation, calmer than the hero's sky.
 const SATURATION = 0.75;
 const FLARE_SIZE = { star: 84, frontier: 120 };
-// Time constant, in seconds, of the explored star's flare.
-const FLARE_EASE = 0.08;
 // Distance along x, in CSS pixels at the reference plot height, over which a trail's light falls to about a third.
 const TRAIL_FADE = 40;
 
@@ -463,6 +464,7 @@ function program(gl: WebGLRenderingContext, vertex: string, fragment: string) {
 }
 
 // The hero's three.js colours treat a hex tint as sRGB and light in linear values, so the chart converts the same way to match its stars, then eases them to the chart's saturation.
+// Before that easing, `#ff8000` → [1.000, 0.216, 0.000].
 function starTint(color: string): [number, number, number] {
   const value = Number.parseInt(skyTint(color).slice(1), 16);
   const linear = (channel: number) => {

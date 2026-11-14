@@ -1,4 +1,4 @@
-/** Pareto choices sit on the chart edges they control: performance above the y-axis and resources beneath the x-axis, with explicit evidence selection. */
+/** Pareto axis choices sit on the chart edges they control: the performance choice above the y-axis, and the resource choice with the variants toggle beneath the x-axis. */
 
 import type { ReactNode } from "react";
 

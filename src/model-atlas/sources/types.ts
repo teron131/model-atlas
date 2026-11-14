@@ -31,11 +31,11 @@ export type ModelAtlasSourceHealth = {
 };
 
 export type SourceRefreshOptions = {
+  /** Skip every cache hit, and let a usable fetch replace the cached rows instead of merging, so rows it omits are dropped rather than quarantined. */
   replaceSourceRows?: boolean;
-  /** Refetch changed adapters while retaining their cached evidence if the fetch fails. */
-  refreshSources?: readonly RawSourceName[];
 };
 
+/** `cache_hit` is read from the stored rows before any snapshot runs; `refreshed` is set from the snapshot's outcome. */
 export type RawSourceCacheStatus = {
   last_fetch_epoch_seconds: number | null;
   source_input_count: number;

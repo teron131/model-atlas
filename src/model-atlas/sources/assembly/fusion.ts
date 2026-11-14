@@ -2,17 +2,20 @@
 
 import type { BenchmarkObservationRow } from "../../benchmarks/observation";
 import { BENCHMARK_RESOURCE_SOURCE_LABELS } from "../../benchmarks/resource-sources";
-import {
-  crosswalkBenchmarkSources,
-  type CrosswalkObservation,
-  crosswalkThreeBenchmarkSources,
-} from "../../benchmarks/sources-crosswalk";
 import { withClaudeFamily } from "../../identity/claude";
 import { parseModelEffort } from "../../identity/normalization";
 import { type AleBenchSourceRow, fuseAleBenchRows } from "../ale-bench/leaderboard";
 import type { ArtificialAnalysisBenchmarkResourceRow } from "../artificial-analysis/benchmark-resources";
-import type { TerminalBench4ModelHarnessRow } from "../terminal-bench-4/leaderboard";
+import {
+  TERMINAL_BENCH_4_LEADERBOARD_URL,
+  type TerminalBench4ModelHarnessRow,
+} from "../terminal-bench-4/leaderboard";
 import { mergeWeirdMlRows } from "../weirdml";
+import {
+  crosswalkBenchmarkSources,
+  type CrosswalkObservation,
+  crosswalkThreeBenchmarkSources,
+} from "./crosswalk";
 
 /** Raw source arrays remain unchanged; only these derived observations enter fused matching and collapsed display. */
 export function fusedBenchmarkObservations({
@@ -32,7 +35,7 @@ export function fusedBenchmarkObservations({
 }): Record<string, CrosswalkObservation[]> {
   const officialRows: CrosswalkObservation[] = official.map((row) => ({
     benchmark_key: "terminal_bench_4",
-    source_url: "https://www.tbench.ai/?version=4.0",
+    source_url: TERMINAL_BENCH_4_LEADERBOARD_URL,
     model_id: null,
     model: withClaudeFamily(row.model),
     base_model: withClaudeFamily(row.base_model),

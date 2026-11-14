@@ -1,4 +1,4 @@
-/** Model catalog variant construction merges route aliases into effort-preserving or collapsed rows. */
+/** Model catalog variant construction merges route aliases into effort-preserving rows. */
 
 import { claudeIdentityKey, parseClaudeIdentity } from "../../identity/claude";
 import {
@@ -28,8 +28,6 @@ const ALIAS_MERGED_OBJECT_FIELDS = [
 ] as const;
 type MergedObjectField = (typeof ALIAS_MERGED_OBJECT_FIELDS)[number];
 
-type VariantShape = "preserve" | "collapse";
-
 function hasIntelligenceIndexCost(row: ModelRow): boolean {
   return asFiniteNumber(row.intelligence_index_cost?.cost_per_task) != null;
 }
@@ -40,7 +38,7 @@ function hasBenchmarkSignal(row: ModelRow): boolean {
   );
 }
 
-/** Duplicate resolution favors benchmark-bearing rows first, then OpenRouter-backed rows with usable public scoring data. */
+/** Each tier outweighs every tier below it: effort alignment with the route's slug, an Artificial Analysis identity, benchmark values, an OpenRouter provider, then Intelligence Index cost. */
 function rowPriority(row: ModelRow, dedupeKey: string): number {
   const artificialAnalysisIdentityBoost = row.artificial_analysis_id != null ? 4_000_000 : 0;
   const openRouterBoost = row.provider_id === OPENROUTER_PROVIDER_ID ? 1_000_000 : 0;
@@ -96,7 +94,7 @@ function versionKeyForRow(row: ModelRow): string | null {
     : claudeIdentityKey(claudeIdentity);
 }
 
-/** Benchmark-version keys keep Artificial Analysis rows attached while provider suffixes collapse into one public route. */
+/** Rows of a benchmarked model version group under that version so its Artificial Analysis effort rows stay together; other rows group by route with alias suffixes stripped. */
 function dedupeKeyForRow(
   row: ModelRow,
   benchmarkedVersionKeys: ReadonlySet<string>,
@@ -188,12 +186,6 @@ function mergeDuplicateRows(
   return merged;
 }
 
-function mergeCollapsedModelRows(winner: ModelRow, group: readonly ModelRow[]): ModelRow {
-  const collapsedRow = mergeDuplicateRows(winner, group, CATALOG_MERGED_OBJECT_FIELDS);
-  delete collapsedRow.reasoning_effort;
-  return collapsedRow;
-}
-
 function isAlignedObservationRow(row: ModelRow, canonicalSlug: string | null): boolean {
   return (
     canonicalSlug != null &&
@@ -264,7 +256,8 @@ function mergeRowsByReasoningEffort(group: readonly ModelRow[], dedupeKey: strin
   });
 }
 
-function buildModelRows(rows: ModelRow[], variantShape: VariantShape): ModelRow[] {
+/** Collapse route aliases while preserving Artificial Analysis reasoning variants as distinct model rows. */
+export function buildModelVariants(rows: ModelRow[]): ModelRow[] {
   const rowsByDedupeKey = new Map<string, ModelRow[]>();
   const passthrough: ModelRow[] = [];
   const benchmarkedVersionKeys = new Set(
@@ -300,11 +293,7 @@ function buildModelRows(rows: ModelRow[], variantShape: VariantShape): ModelRow[
   const dedupedRows: ModelRow[] = [];
   for (const [dedupeKey, group] of rowsByDedupeKey.entries()) {
     if (dedupeKey.startsWith("artificial_analysis:")) {
-      dedupedRows.push(
-        ...(variantShape === "preserve"
-          ? mergeRowsByReasoningEffort(group, dedupeKey)
-          : [mergeCollapsedModelRows(highestPriorityRow(group, dedupeKey), group)]),
-      );
+      dedupedRows.push(...mergeRowsByReasoningEffort(group, dedupeKey));
       continue;
     }
     dedupedRows.push(
@@ -313,14 +302,4 @@ function buildModelRows(rows: ModelRow[], variantShape: VariantShape): ModelRow[
   }
 
   return [...passthrough, ...dedupedRows];
-}
-
-/** Collapse route aliases while preserving Artificial Analysis reasoning variants as distinct model rows. */
-export function buildModelVariants(rows: ModelRow[]): ModelRow[] {
-  return buildModelRows(rows, "preserve");
-}
-
-/** Collapse route aliases and reasoning variants into one representative row per model. */
-export function collapseModelVariants(rows: ModelRow[]): ModelRow[] {
-  return buildModelRows(rows, "collapse");
 }

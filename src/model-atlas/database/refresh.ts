@@ -1,4 +1,4 @@
-/** Refresh the SQLite checkpoint while retaining source caches and append-only audit history. */
+/** Refreshes the local SQLite checkpoint: loads source caches, derives and writes every table in one transaction, checks integrity, then compacts the file in place; publishing it to GCS is the publisher's job. */
 
 import { existsSync } from "node:fs";
 import { rename } from "node:fs/promises";
@@ -9,11 +9,7 @@ import { nowEpochSeconds } from "../runtime";
 import { loadOpenRouterRawPayload } from "../sources/openrouter/snapshot";
 import type { RawSourceName } from "../sources/registry";
 import { loadSourceSnapshots } from "../sources/snapshots/load";
-import type {
-  ModelAtlasSourceHealth,
-  RawSourceCacheStatus,
-  SourceRefreshOptions,
-} from "../sources/types";
+import type { RawSourceCacheStatus, SourceRefreshOptions } from "../sources/types";
 import type { ModelAtlasPayload } from "../stats/types";
 import { readCapabilityState, writeCapabilityState } from "./capability-state";
 import { deriveDatabaseSnapshot, readScoringMethodology, writeCheckpoint } from "./checkpoint";
@@ -25,11 +21,9 @@ export type DatabaseRefreshResult = {
   path: string;
   table_row_counts: Record<string, number>;
   source_cache: Record<RawSourceName, RawSourceCacheStatus>;
-  source_health: ModelAtlasSourceHealth;
   final_model_count: number;
 };
 
-/** Refresh the local checkpoint; the GCS publisher owns making it visible to runtime readers. */
 export async function refreshDatabase(
   outputPath = DEFAULT_DATABASE_PATH,
   options: SourceRefreshOptions & { previousPayload?: ModelAtlasPayload | null } = {},
@@ -81,7 +75,6 @@ export async function refreshDatabase(
       path: outputPath,
       table_row_counts: countTableRows(activeDb),
       source_cache: derived.sourceCacheStatuses,
-      source_health: derived.rows.sourceHealth,
       final_model_count: derived.rows.finalModelRows.length,
     };
     await compactDatabaseFile(activeDb, outputPath);

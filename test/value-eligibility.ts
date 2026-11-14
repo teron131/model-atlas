@@ -2,12 +2,12 @@
 
 import assert from "node:assert/strict";
 
+import { publicJsonPayload } from "../app/api/public-json";
 import { frontierBenchmarkRows } from "../app/dashboard/graphs/pareto/analysis";
 import {
   frontierBenchmarkAxisConfig,
   frontierBenchmarkHoverRows,
 } from "../app/dashboard/graphs/pareto/presentation";
-import { publicJsonPayload } from "../app/leaderboard/public-json";
 import { INDEX_POLICIES } from "../src/model-atlas/benchmarks/index-policy";
 import { STAGE_CONFIG } from "../src/model-atlas/config/stage";
 import {

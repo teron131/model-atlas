@@ -1,7 +1,8 @@
-/** Dashboard provider labels, brand assets, and chart colors. */
+/** How the dashboard names, colours, and finds the logo of a provider, resolving each spelling of a provider through its identity key. */
 
 import { providerIdentityKey } from "../../../src/model-atlas/identity/provider";
 import { providerIcons } from "../../../src/model-atlas/logos/provider-icons.generated";
+import { providerAssetKey } from "../../../src/model-atlas/logos/resolve";
 
 type ProviderLike = { provider?: string | null };
 
@@ -82,20 +83,13 @@ export function providerDisplayName(source: ProviderLike | string | null) {
   return providerLabels[key] ?? provider ?? "Unknown";
 }
 
-function providerAssetKey(provider: string | null | undefined) {
-  return String(provider ?? "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9._-]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
 function providerIcon(provider: string | null | undefined) {
   const key = providerIdentityKey(provider);
   const assetKey = key === "xai" ? "x-ai" : key === "zai" ? "z-ai" : key;
   return providerIcons[assetKey as ProviderIconKey];
 }
 
+/** Always a colour: a provider with no brand colour gets a stable pick from the fallback palette, hashed from its key. */
 export function providerChartColor(provider: string | null | undefined) {
   const key = providerIdentityKey(provider);
   if (providerColorOverrides[key]) {
@@ -112,6 +106,7 @@ export function providerChartColor(provider: string | null | undefined) {
   return fallbackProviderColors[hash % fallbackProviderColors.length] ?? "#ff5a46";
 }
 
+/** The provider's own colour, `undefined` when it has none. */
 export function providerBrandColor(provider: string | null | undefined) {
   return providerColorOverrides[providerAssetKey(provider)] ?? providerIcon(provider)?.color;
 }

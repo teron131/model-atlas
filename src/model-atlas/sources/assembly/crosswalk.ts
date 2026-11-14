@@ -1,11 +1,19 @@
 /** Benchmark source crosswalks combine quality across exact efforts while keeping resource accounting source-specific unless amounts agree. */
 
-import { modelNameIdentityKey } from "../identity";
-import { reasoningEffortRank } from "../identity/normalization";
-import { clamp01, weightedMedianOfFinite } from "../math-utils";
-import { calibrationObservations, distinctModelCount } from "./calibration-population";
-import type { BenchmarkObservationRow } from "./observation";
-import { RESOURCE_SOURCE_AGREEMENT_POLICY } from "./resource-sources";
+import {
+  calibrationObservations,
+  distinctModelCount,
+} from "../../benchmarks/calibration-population";
+import type { BenchmarkObservationRow } from "../../benchmarks/observation";
+import { modelNameIdentityKey } from "../../identity";
+import { reasoningEffortRank } from "../../identity/normalization";
+import { clamp01, weightedMedianOfFinite } from "../../math-utils";
+
+const RESOURCE_SOURCE_AGREEMENT_POLICY = {
+  minimumModels: 10,
+  minimumShare: 0.9,
+  maximumRatio: 1.05,
+} as const;
 
 export type CrosswalkObservation = BenchmarkObservationRow & {
   seconds_per_task?: number | null;

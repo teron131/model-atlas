@@ -6,10 +6,10 @@
 
 import { ARTIFICIAL_ANALYSIS_INDEX_COMPONENTS } from "../../benchmarks/index-policy";
 import { canonicalReasoningEffort } from "../../identity/normalization";
-import { asRecord, type JsonObject, nowEpochSeconds } from "../../runtime";
+import { asRecord, firstString, type JsonObject, nowEpochSeconds } from "../../runtime";
 import { extractNextFlightCorpus, findObjectEnd, parseFlightJsonObject } from "../parsing";
-import { fetchSource } from "../request-scheduler";
-import { artificialAnalysisEvaluationVersion } from "./benchmark-resources";
+import { fetchSourceText } from "../request-scheduler";
+import { artificialAnalysisEvaluationVersion, creatorNameSlug } from "./benchmark-resources";
 import {
   cleanArtificialAnalysisModelName,
   parseArtificialAnalysisReasoningEffort,
@@ -58,7 +58,7 @@ const RECORDED_INDEX_COMPONENTS: ReadonlySet<string> = new Set(
   Object.keys(ARTIFICIAL_ANALYSIS_INDEX_COMPONENTS),
 );
 
-const NO_COLUMN_VALUE = Symbol("no_column_value");
+type LeaderboardColumn = (typeof ARTIFICIAL_ANALYSIS_LEADERBOARD_COLUMNS)[number];
 
 type RowSelectionContext = {
   creator: JsonObject;
@@ -78,12 +78,7 @@ export async function getArtificialAnalysisLeaderboardRawStats(
   try {
     const url = options.url ?? ARTIFICIAL_ANALYSIS_LEADERBOARD_URL;
 
-    const pageHtml = await fetchSource(url, {}, async (response) => {
-      if (!response.ok) {
-        throw new Error(`Artificial Analysis scrape failed: ${response.status}`);
-      }
-      return response.text();
-    });
+    const pageHtml = await fetchSourceText(url);
     const corpus = extractNextFlightCorpus(pageHtml);
     const intelligenceIndexVersion = publishedIntelligenceIndexVersion(corpus);
     if (intelligenceIndexVersion == null)
@@ -122,9 +117,7 @@ export async function getArtificialAnalysisLeaderboardStats(
   const rawPayload = await getArtificialAnalysisLeaderboardRawStats(options);
   return {
     fetched_at_epoch_seconds: rawPayload.fetched_at_epoch_seconds,
-    data: processArtificialAnalysisLeaderboardRows(rawPayload.data, [
-      ...ARTIFICIAL_ANALYSIS_LEADERBOARD_COLUMNS,
-    ]),
+    data: projectArtificialAnalysisLeaderboardRows(rawPayload.data),
   };
 }
 
@@ -144,9 +137,13 @@ export function artificialAnalysisModelId(row: JsonObject): string | null {
   return modelUrlPath ?? modelSlug;
 }
 
+export function projectArtificialAnalysisLeaderboardRows(rows: JsonObject[]): JsonObject[] {
+  return processArtificialAnalysisLeaderboardRows(rows, ARTIFICIAL_ANALYSIS_LEADERBOARD_COLUMNS);
+}
+
 export function processArtificialAnalysisLeaderboardRows(
   rows: JsonObject[],
-  selectedColumns: readonly string[],
+  selectedColumns: readonly LeaderboardColumn[],
 ): JsonObject[] {
   return selectColumns(sortLeaderboardRows(rows), selectedColumns);
 }
@@ -180,16 +177,7 @@ function firstNumber(row: JsonObject, keys: string[]): number | null {
   return null;
 }
 
-function firstString(row: JsonObject, keys: string[]): string | null {
-  for (const key of keys) {
-    if (typeof row[key] === "string" && row[key].length > 0) {
-      return row[key];
-    }
-  }
-  return null;
-}
-
-/** The leaderboard names its index evaluation with the version it currently publishes; null when that name is missing. */
+/** The leaderboard names its index evaluation with the version it currently publishes, `"name":"Artificial Analysis Intelligence Index v4.0"` → `4.0`; null when that name is missing. */
 function publishedIntelligenceIndexVersion(flightCorpus: string): string | null {
   const name = /"slug":"artificial-analysis-intelligence-index","name":"([^"]+)"/.exec(
     flightCorpus,
@@ -273,7 +261,7 @@ function isLeaderboardModelRow(row: JsonObject): boolean {
 
 function buildRowSelectionContext(row: JsonObject): RowSelectionContext {
   const creator = asRecord(row.creator);
-  const providerSlug = creatorNameSlug(creator);
+  const providerSlug = creatorNameSlug(firstString(creator, ["name"]));
   const modelSlug = firstString(row, ["slug"]);
   return {
     creator,
@@ -284,15 +272,7 @@ function buildRowSelectionContext(row: JsonObject): RowSelectionContext {
   };
 }
 
-function creatorNameSlug(creator: JsonObject): string | null {
-  return (
-    firstString(creator, ["name"])
-      ?.toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "") ?? null
-  );
-}
-
+/** The model URL without origin and `/models/` prefix: `https://artificialanalysis.ai/models/openai/gpt-5` → `openai/gpt-5`. */
 function modelUrlPathFromRow(row: JsonObject, fallbackSlug: string | null): string | null {
   if (typeof row.model_url !== "string" || row.model_url.length === 0) {
     return fallbackSlug;
@@ -303,31 +283,24 @@ function modelUrlPathFromRow(row: JsonObject, fallbackSlug: string | null): stri
   return urlPath.length > 0 ? urlPath : fallbackSlug;
 }
 
-function selectColumns(rows: JsonObject[], selectedColumns: readonly string[]): JsonObject[] {
-  const selectedColumnSet = new Set(
-    selectedColumns.filter((column) => typeof column === "string" && column.length > 0),
-  );
-  if (selectedColumnSet.size === 0) {
-    return rows;
-  }
+function selectColumns(
+  rows: JsonObject[],
+  selectedColumns: readonly LeaderboardColumn[],
+): JsonObject[] {
   return rows.map((row) => {
     const projectedRow: JsonObject = {};
     const selectionContext = buildRowSelectionContext(row);
-
-    for (const column of selectedColumnSet) {
-      const projectedValue = selectedColumnValue(column, row, selectionContext);
-      if (projectedValue !== NO_COLUMN_VALUE) {
-        projectedRow[column] = normalizeUndefinedToNull(projectedValue);
-      } else {
-        projectedRow[column] = normalizeUndefinedToNull(row[column] ?? null);
-      }
+    for (const column of selectedColumns) {
+      projectedRow[column] = normalizeUndefinedToNull(
+        selectedColumnValue(column, row, selectionContext),
+      );
     }
     return projectedRow;
   });
 }
 
 function selectedColumnValue(
-  column: string,
+  column: LeaderboardColumn,
   row: JsonObject,
   context: RowSelectionContext,
 ): unknown {
@@ -380,10 +353,12 @@ function selectedColumnValue(
     case "intelligence_index_cost":
       return pickIntelligenceIndexCost(hasRecordedIntelligenceIndexComponents(row) ? row : {});
     default:
-      return NO_COLUMN_VALUE;
+      column satisfies never;
+      throw new Error(`Unhandled Artificial Analysis leaderboard column: ${String(column)}`);
   }
 }
 
+/** A bare file name is a logo under `/img/logos/`; any other relative path resolves against the site: `openai_small.svg` → `https://artificialanalysis.ai/img/logos/openai_small.svg`. */
 function absoluteLogoUrl(value: unknown): string | null {
   if (typeof value !== "string" || value.length === 0) {
     return null;

@@ -12,7 +12,7 @@ import type {
 import { withClaudeFamily } from "../../identity/claude";
 import { modelEffortLabel, parseSlugEffort } from "../../identity/normalization";
 import { asFiniteNumber, asRecord, nowEpochSeconds } from "../../runtime";
-import { fetchSource } from "../request-scheduler";
+import { fetchSource, fetchSourceText } from "../request-scheduler";
 
 type CaisLoader = Omit<Extract<BenchmarkObservationLoader, { kind: "cais_dashboard" }>, "kind">;
 type CaisDashboardModel = {
@@ -37,6 +37,7 @@ const inFlightPages = new Map<string, Promise<CaisDashboardPage>>();
 
 type CaisDashboardPage = {
   models: unknown[];
+  /** The hashed URL of the script that held the model matrix, which changes with each dashboard deployment. */
   revision: string;
   fetchedAt: number;
 };
@@ -72,7 +73,7 @@ export function caisCacheMatches(
   );
 }
 
-/** Convert dashboard model records into one complete benchmark-specific observation series. */
+/** `cais_capabilities_index` is recomputed from the seven component scores, so a model missing any component gets no index row; every other key reads its own component score. */
 export function processCaisDashboardModels(
   models: readonly unknown[],
   benchmarkKey: string,
@@ -203,6 +204,7 @@ function modelIdentity(model: CaisDashboardModel): {
   };
 }
 
+/** claude-opus-4-1-thinking-32k → max; claude-opus-4-6-adaptive-64k → high. */
 function caisReasoningEffort(modelId: string): string | null {
   if (/(?:-|\b)thinking(?:-\d+k)?$/i.test(modelId)) return "max";
   // Adaptive-thinking runs set no effort parameter, so the Claude API default of high applies; the token count is the output budget.
@@ -223,10 +225,7 @@ async function fetchCaisDashboardPageOnce(sourceUrl: string): Promise<CaisDashbo
 }
 
 async function fetchCaisDashboardPage(sourceUrl: string): Promise<CaisDashboardPage> {
-  const html = await fetchSource(sourceUrl, {}, async (response) => {
-    if (!response.ok) throw new Error(`CAIS dashboard fetch failed: ${response.status}`);
-    return response.text();
-  });
+  const html = await fetchSourceText(sourceUrl);
   const scriptUrls = [
     ...new Set(
       [...html.matchAll(/<script[^>]+src="([^"]+)"/g)].map(
@@ -265,7 +264,7 @@ function extractModels(script: string): unknown[] | null {
     const contentEnd = singleQuotedStringEnd(script, contentStart);
     if (contentEnd === -1) return null;
     try {
-      // Decode the JavaScript string layer before parsing the JSON document it contains.
+      // Decode the JavaScript string layer before parsing the JSON document it contains: it\'s \x41\u0042\n → it's AB and a newline.
       const literal = script
         .slice(contentStart, contentEnd)
         .replace(/\\(?:'|"|\\|\/|b|f|n|r|t|v|0|x[\da-f]{2}|u[\da-f]{4})/gi, (escape) => {

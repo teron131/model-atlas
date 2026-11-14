@@ -55,7 +55,7 @@ export function BenchmarkTooltipBody({
       <div className="column-tooltip-rule" />
       {weights != null && (
         <div className="benchmark-tooltip-block">
-          {/* Baseline benchmarks carry no direct score weight, which an empty bar would only obscure. */}
+          {/* A benchmark with no direct score weight says so in words, which an empty bar would only obscure. */}
           {weights.intelligence + weights.agentic === 0 ? (
             <BlockLabel label="Weights" value="none" />
           ) : (

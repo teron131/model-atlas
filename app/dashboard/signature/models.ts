@@ -1,12 +1,16 @@
-/** Select the established frontier roles and translate the displayed models into stars for the frontier sky. */
+/** The hero's populations: which models hold the register's frontier roles, and how the displayed models become stars in the frontier sky. */
 
 import { canonicalModelKey } from "../../../src/model-atlas/identity/normalization";
 import { providerIdentityKey } from "../../../src/model-atlas/identity/provider";
 import { clamp01, medianOfFinite } from "../../../src/model-atlas/math-utils";
+import {
+  collapsedModels,
+  modelsForVariantDisplay,
+} from "../../../src/model-atlas/stats/model-variants";
 import { type ModelAtlasModel } from "../../../src/model-atlas/stats/types";
-import { paretoFrontier } from "../graphs/plot/pareto-frontier";
 import type { ModelSheetModel } from "../model-sheet/open";
-import { collapsedModels, modelsForVariantDisplay, shortLabel } from "../shared/model-display";
+import { shortLabel } from "../shared/model-display";
+import { paretoFrontier } from "../shared/pareto-frontier";
 import { providerChartColor, providerDisplayName, providerLogo } from "../shared/provider-theme";
 import { skyTint } from "../shared/sky-light";
 import type { SkyStar } from "./sky-scene";
@@ -119,7 +123,10 @@ function datedModels(models: ModelAtlasModel[]) {
   });
 }
 
-/** Select visible role leaders and display-limit-independent Pareto choices against a global Intelligence median. */
+/**
+ * Choose the register's role holders: leaders among the shown models, and Pareto picks from candidates the recency and rank filters do not limit, Pareto Value only above the reference population's median Intelligence.
+ * A role with no holder goes to the next unclaimed top-five Intelligence model, except the Pareto roles, which are left out.
+ */
 export function signatureModels({
   models,
   paretoModels,
@@ -223,7 +230,7 @@ export function signatureModels({
   }));
 }
 
-/** Join a model's roles, dropping the leading word a role shares with the one before it. */
+/** Join a model's roles, dropping the leading word a role shares with the one before it: "Best Intelligence", "Best Agentic", "Pareto Value" → "Best Intelligence, Agentic, & Pareto Value". */
 function roleLabel(roles: string[]) {
   return ROLE_LIST.format(
     roles.map((role, index) => {

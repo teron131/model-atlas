@@ -11,7 +11,7 @@ import type {
 } from "../benchmarks/observation";
 import { parseModelEffort } from "../identity/normalization";
 import { asFiniteNumber, asRecord, nowEpochSeconds } from "../runtime";
-import { fetchSource } from "./request-scheduler";
+import { fetchSourceJson } from "./request-scheduler";
 
 const SOURCE_URL = "https://voxelbench.ai/api/leaderboard?limit=100&type=text";
 const MINIMUM_VOTES = 50;
@@ -20,13 +20,11 @@ const MINIMUM_VOTES = 50;
 export async function getVoxelBenchStats(
   sourceUrl = SOURCE_URL,
 ): Promise<BenchmarkObservationPayload> {
-  return fetchSource(sourceUrl, {}, async (response) => {
-    if (!response.ok) throw new Error(`VoxelBench scrape failed: ${response.status}`);
-    return {
-      fetched_at_epoch_seconds: nowEpochSeconds(),
-      data: processVoxelBenchLeaderboard(await response.json(), sourceUrl),
-    };
-  });
+  const payload = await fetchSourceJson(sourceUrl);
+  return {
+    fetched_at_epoch_seconds: nowEpochSeconds(),
+    data: processVoxelBenchLeaderboard(payload, sourceUrl),
+  };
 }
 
 /** Keep native Glicko-2 points and labelled efforts, admitting only text rows meeting the public leaderboard's vote threshold. */
@@ -55,6 +53,7 @@ export function processVoxelBenchLeaderboard(
     )
       continue;
     const parsed = parseModelEffort(model);
+    // A thinking budget becomes the effort: `Claude Sonnet 4 (32k Thinking)` → base `Claude Sonnet 4`, effort `32k-thinking`.
     const budget = /\s+\((\d+k) Thinking\)$/i.exec(model);
     const slug = typeof row.modelSlug === "string" ? row.modelSlug.trim() : "";
     rows.push({

@@ -244,6 +244,7 @@ async function fetchWeeklyTokens(
   context: RequestContext,
 ): Promise<number | null> {
   try {
+    // Encode each segment but keep the slashes: `z-ai/glm 4.6` → `z-ai/glm%204.6`.
     const path = permaslug.split("/").map(encodeURIComponent).join("/");
     return await fetchResponse(`${BASE_URL}/${path}/performance`, context, async (response) =>
       parseOpenRouterWeeklyTokens(await response.text()),

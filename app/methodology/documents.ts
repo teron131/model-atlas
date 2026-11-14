@@ -1,4 +1,4 @@
-/** Document registry, headings, and local link rules for the methodology surface. */
+/** The methodology section's document registry: which docs/ files and illustrations it serves, and how their headings, version markers, and relative links become the served pages' anchors and routes. */
 
 import { BENCHMARK_TOOLTIPS } from "../../src/model-atlas/benchmarks/catalog";
 import { plainScoreText } from "./score-markers";
@@ -212,7 +212,7 @@ export function headingId(label: string): string {
     .replaceAll(/-+/g, "-");
 }
 
-/** Map repository-relative Markdown links onto public document routes. */
+/** Links to a registered document become its public route, others pass through: from `intelligence-agentic`, `../matching.md#cutoff` → `/methodology/matching#cutoff`. */
 export function documentLink(href: string, document: DocumentSlug): string {
   if (href.startsWith("#")) {
     return href;

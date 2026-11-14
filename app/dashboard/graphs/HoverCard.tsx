@@ -30,15 +30,7 @@ export function pointHover(
   rows: HoverRow[],
   displayName = modelName(model),
 ): HoverState {
-  return {
-    left: event.clientX,
-    top: event.clientY,
-    model: displayName,
-    provider: providerDisplayName(model),
-    color: providerChartColor(model.provider),
-    logo: modelLogo(model),
-    rows,
-  };
+  return hoverAt(event.clientX, event.clientY, model, rows, displayName);
 }
 
 export function focusHover(
@@ -48,15 +40,7 @@ export function focusHover(
   displayName = modelName(model),
 ): HoverState {
   const rect = target.getBoundingClientRect();
-  return {
-    left: rect.left + rect.width / 2,
-    top: rect.top + rect.height / 2,
-    model: displayName,
-    provider: providerDisplayName(model),
-    color: providerChartColor(model.provider),
-    logo: modelLogo(model),
-    rows,
-  };
+  return hoverAt(rect.left + rect.width / 2, rect.top + rect.height / 2, model, rows, displayName);
 }
 
 export function HoverCard({ hover }: { hover: HoverState }) {
@@ -104,4 +88,22 @@ export function HoverCard({ hover }: { hover: HoverState }) {
       </div>
     </div>
   );
+}
+
+function hoverAt(
+  left: number,
+  top: number,
+  model: ModelAtlasModel,
+  rows: HoverRow[],
+  displayName: string,
+): HoverState {
+  return {
+    left,
+    top,
+    model: displayName,
+    provider: providerDisplayName(model),
+    color: providerChartColor(model.provider),
+    logo: modelLogo(model),
+    rows,
+  };
 }

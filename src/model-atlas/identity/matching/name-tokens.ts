@@ -34,6 +34,7 @@ function splitMixedAlphaNumericToken(token: string): string[] {
   return token.split(/(?<=\D)(?=\d)|(?<=\d)(?=\D)/g).filter(Boolean);
 }
 
+/** Normalizes date labels and spells out `+` before slugging, then splits letter-digit boundaries and drops tag tokens: `"Claude 3.5 Sonnet+ Preview (June '24)"` → `["claude", "3", "5", "sonnet", "plus", "jun", "2024"]`. */
 export function splitTokens(value: string): string[] {
   return normalizeModelToken(normalizeDateLabel(value).replaceAll("+", " plus "))
     .split("-")

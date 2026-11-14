@@ -9,15 +9,12 @@ export const BENCHMARK_RESOURCE_SOURCE_LABELS = {
   },
 } as const;
 
-export const RESOURCE_SOURCE_AGREEMENT_POLICY = {
-  minimumModels: 10,
-  minimumShare: 0.9,
-  maximumRatio: 1.05,
-} as const;
-
 export type BenchmarkResourceSource = "source_a" | "source_b" | "source_c";
 
-/** Read source slots declared by a fused row, including a source whose score is currently missing. */
+/**
+ * Read source slots declared by a fused row, including a source whose score is currently missing.
+ * A slot is the 8-character prefix of a `source_x_label` or `source_x_score` field: `{ source_b_score, source_a_label, model }` → `["source_a", "source_b"]`.
+ */
 export function resourceSourcesFromMetadata(
   metadata: Record<string, unknown>,
 ): BenchmarkResourceSource[] {

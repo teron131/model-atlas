@@ -9,19 +9,23 @@ import {
   insertArtificialAnalysisBenchmarkResourceRawRows,
   insertArtificialAnalysisRawModels,
 } from "../sources/artificial-analysis/write";
-import { buildSourceData, type ModelAtlasSourceData } from "../sources/assembly";
-import { BENCHMARK_RAW_WRITERS, benchmarkSourceRowsFromSnapshots } from "../sources/benchmarks";
+import { sourceDataFromSnapshots } from "../sources/assembly";
+import { BENCHMARK_RAW_WRITERS } from "../sources/benchmarks";
 import { insertModelsDevRawModels } from "../sources/models-dev/write";
-import { benchmarkObservationRowsFromSnapshots } from "../sources/observations/load";
 import type { OpenRouterSourcePayload } from "../sources/openrouter";
 import { insertOpenRouterRawRows } from "../sources/openrouter/write";
 import type { RawSourceName } from "../sources/registry";
-import { buildSourceHealth } from "../sources/snapshots/policy";
+import {
+  buildSourceHealth,
+  insertSourceHealth,
+  insertSourceQuarantines,
+} from "../sources/snapshots/health";
 import type {
   ModelAtlasSourceHealth,
   RawSourceCacheStatus,
   SourceSnapshots,
 } from "../sources/types";
+import type { DatabaseWriter } from "../sqlite-utils";
 import {
   buildRefreshChanges,
   type ModelChangeDetailRow,
@@ -43,9 +47,8 @@ import {
   pruneChangeLog,
 } from "./change-log";
 import { buildDebugTraceRows, type DebugTraceRow, insertDebugTraceRows } from "./debug-trace";
+import { insertModelBenchmarks, insertModels, insertModelTaskMetrics } from "./model-rows";
 import { SNAPSHOT_TABLES, type SnapshotTableName } from "./tables";
-import type { DatabaseWriter } from "./writers/database";
-import { insertModelBenchmarks, insertModels, insertModelTaskMetrics } from "./writers/models";
 
 type DatabaseSnapshotRows = {
   capabilityState?: CapabilityState;
@@ -167,7 +170,7 @@ export async function deriveDatabaseSnapshot(
   } = await deriveModelStats(sourceData, {
     capabilityState: versioning.capabilityState,
     loadOpenRouter,
-    benchmarkVersioning: {
+    observationUpdates: {
       baselineDate: BENCHMARK_VERSION_BASELINE_DATE,
       observedDate,
       observedAt: new Date(startedAtEpochSeconds * 1000).toISOString(),
@@ -200,7 +203,6 @@ export async function deriveDatabaseSnapshot(
   // The refresh audit and benchmark health describe the published rows, so both follow snapshot preservation.
   const metadata = buildCurrentModelAtlasMetadata({
     models: preservedModels,
-    healthModels: preservedModels,
     sourceRowsByKey: benchmarkRows,
     healthRefresh: {
       atEpochSeconds: startedAtEpochSeconds,
@@ -236,17 +238,6 @@ export async function deriveDatabaseSnapshot(
   };
 }
 
-/** Adapt restored checkpoint rows into normalized source lookups without fetching external pages. */
-function sourceDataFromSnapshots(snapshots: SourceSnapshots): ModelAtlasSourceData {
-  return buildSourceData({
-    artificialAnalysisRows: snapshots.artificialAnalysisSelectedRows,
-    artificialAnalysisBenchmarkResourceRows: snapshots.artificialAnalysisBenchmarkResourceRows,
-    modelsDevModels: snapshots.modelsDevModels,
-    ...benchmarkSourceRowsFromSnapshots(snapshots.benchmarks),
-    ...benchmarkObservationRowsFromSnapshots(snapshots),
-  });
-}
-
 /** Replace current evidence and model rows, append this refresh to the windowed change log, and update freshness inside the caller's transaction. */
 export function writeCheckpoint(db: DatabaseWriter, rows: DatabaseSnapshotRows): void {
   for (const { table } of SNAPSHOT_REPLACE_WRITERS) {
@@ -272,44 +263,4 @@ export function writeCheckpoint(db: DatabaseWriter, rows: DatabaseSnapshotRows):
 export function readScoringMethodology(db: DatabaseSync): string | null {
   const row = db.prepare("SELECT scoring_methodology_json FROM snapshot_metadata LIMIT 1").get();
   return asNonEmptyString(row?.scoring_methodology_json);
-}
-
-function insertSourceQuarantines(db: DatabaseWriter, snapshots: SourceSnapshots): void {
-  const statement = db.prepare(`
-		INSERT INTO source_quarantines (
-			source, row_key, row_label, missing_from_source_since_epoch_seconds
-		) VALUES (?, ?, ?, ?)
-	`);
-  for (const row of snapshots.sourceRowStates) {
-    if (row.status !== "quarantined_missing_from_source") {
-      continue;
-    }
-    statement.run(
-      row.source,
-      row.row_key,
-      row.row_label,
-      row.missing_from_source_since_epoch_seconds,
-    );
-  }
-}
-
-/** Keep source-health row ordering aligned with the checkpoint's source registry. */
-function insertSourceHealth(db: DatabaseWriter, sourceHealth: ModelAtlasSourceHealth): void {
-  const statement = db.prepare(`
-		INSERT INTO source_health (
-			row_index, source, status, last_fetch_epoch_seconds,
-			source_input_count, active_row_count, quarantined_row_count
-		) VALUES (?, ?, ?, ?, ?, ?, ?)
-	`);
-  for (const [index, [source, row]] of Object.entries(sourceHealth.sources).entries()) {
-    statement.run(
-      index,
-      source,
-      row.status,
-      row.last_fetch_epoch_seconds,
-      row.source_input_count,
-      row.active_row_count,
-      row.quarantined_row_count,
-    );
-  }
 }

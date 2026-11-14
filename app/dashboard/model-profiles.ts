@@ -2,20 +2,20 @@
 
 import { useEffect, useState } from "react";
 
+import { modelsForVariantDisplay } from "../../src/model-atlas/stats/model-variants";
 import type { ModelAtlasModel } from "../../src/model-atlas/stats/types";
+import { modelCount } from "./shared/model-display";
 import {
   type CostFilter,
   filterByGlobalModelFilters,
   type GlobalModelFilters,
-  modelCount,
-  modelsForVariantDisplay,
-} from "./shared/model-display";
+} from "./shared/model-filters";
 import { readGlobalModelFilters } from "./url-state";
 
 export type ModelProfile = { id: string; name: string; filters: GlobalModelFilters };
 export const MODEL_PROFILES_STORAGE_KEY = "model-atlas:model-profiles";
 
-// Profiles saved under the effective-price blend hold max-cost steps on its scale; each moves to the step at its position, which cuts the leaderboard at a similar point. Its $1 step reads the same as today's $1.00, so it stays.
+// Profiles saved under the effective-price blend hold max-cost steps on that scale; each maps to the step at the same position, which cuts the leaderboard at a similar point. Its $1 step reads the same as the current $1.00, so it is not remapped.
 const LEGACY_COST_FILTERS = new Map<unknown, CostFilter>([
   [2, 0.1],
   [5, 0.25],

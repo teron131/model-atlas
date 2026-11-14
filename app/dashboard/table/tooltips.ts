@@ -1,7 +1,11 @@
 /** Resolve dashboard table header and row-change tooltips from table policy and payload metadata; a benchmark's header describes the benchmark with its configured weights, its coverage in the current view, and its leaders, last update, and fetch state from benchmark health. */
 
 import type { BenchmarkGroup } from "../../../src/model-atlas/benchmarks/factory";
-import { benchmarkDimensionWeight } from "../../../src/model-atlas/benchmarks/registry";
+import {
+  benchmarkDimensionWeight,
+  type BenchmarkMetricModel,
+  benchmarkValue,
+} from "../../../src/model-atlas/benchmarks/registry";
 import { COLUMN_TOOLTIPS } from "../../../src/model-atlas/config";
 import {
   EVIDENCE_SUPPORT_TOOLTIP,
@@ -10,32 +14,28 @@ import {
   type ModelAtlasColumnTooltipRow,
   type ModelAtlasColumnTooltips,
 } from "../../../src/model-atlas/config/tooltips";
-import {
-  type BenchmarkMetricModel,
-  benchmarkValue,
-} from "../../../src/model-atlas/pipeline/scores/resource-metrics";
 import type {
   ModelAtlasBenchmarkUpdateEntry,
   ModelAtlasMetadata,
   ModelAtlasModel,
 } from "../../../src/model-atlas/stats/types";
-import { benchmarkTooltips } from "../shared/constants";
+import { benchmarkTooltips } from "../shared/benchmark-display";
 import { providerChartColor } from "../shared/provider-theme";
-import { formatBenchmarkSourceValue, formatBenchmarkSpread, formatRefreshDate } from "./format";
 import {
   benchmarkMetricColumns,
   type SortKey,
   type TableColumnKey,
   type TaskMetricColumn,
   taskMetricColumns,
-} from "./models";
+} from "./column-registry";
+import { formatBenchmarkSourceValue, formatBenchmarkSpread, formatRefreshDate } from "./format";
 
 const limitedEvidenceRow = [
   "Limited evidence",
   "The score retains 85% at low coverage, rising to 100% with sufficient support.",
 ] as const;
 
-// Summaries explain the score while published metadata remains the authority for every weight.
+// Each score header keeps the payload tooltip's weight groups and swaps in this body and these interpretation rows, so the payload stays the authority for every weight.
 const scoreExplanations: Partial<
   Record<TableColumnKey, Pick<ModelAtlasColumnTooltip, "body" | "rows">>
 > = {
@@ -256,7 +256,7 @@ const staticTableColumnTooltips = {
   },
 } as const satisfies Partial<Record<TableColumnKey, ModelAtlasColumnTooltip>>;
 
-const fallbackColumnTooltips: Partial<Record<TableColumnKey, ModelAtlasColumnTooltip>> = {
+const appColumnTooltips: Partial<Record<TableColumnKey, ModelAtlasColumnTooltip>> = {
   ...staticTableColumnTooltips,
   ...benchmarkColumnTooltips,
   ...taskMetricColumnTooltips,
@@ -309,7 +309,7 @@ function taskMetricTooltipEntry(
   ];
 }
 
-/** Prefer table-owned tooltip policy, then use payload-provided scoring metadata. */
+/** With a context, a benchmark column gets its live header facts; otherwise table-owned tooltips win over the payload's column tooltips. */
 export function tableColumnTooltip(
   key: TableColumnKey,
   columnTooltips: ModelAtlasColumnTooltips,
@@ -321,7 +321,7 @@ export function tableColumnTooltip(
       return benchmarkTooltip(benchmark, context);
     }
   }
-  const tooltip = fallbackColumnTooltips[key] ?? columnTooltips[key];
+  const tooltip = appColumnTooltips[key] ?? columnTooltips[key];
   const explanation = scoreExplanations[key];
   if (!tooltip || !explanation) return tooltip;
   const weightGroups =
@@ -334,6 +334,7 @@ export function tableColumnTooltip(
     key === "speed" || key === "value"
       ? weightGroups.map((group) => ({
           ...group,
+          // Speed and Value weigh each benchmark's runtime or cost, so the suffix repeats the score's own meaning: "SWE-bench Pro runtime ↓" → "SWE-bench Pro".
           rows: group.rows.map(
             ([label, weight]) => [label.replace(/ (runtime|cost) ↓$/, ""), weight] as const,
           ),
@@ -470,7 +471,10 @@ function benchmarkLeaders(
   };
 }
 
-/** The header sets the version beside the name, so a name that already ends in that version drops it rather than showing it twice. */
+/**
+ * The header sets the version beside the name, so a name that already ends in that version drops it rather than showing it twice.
+ * Trailing `v` and `.0` parts are ignored when comparing: ("Terminal-Bench v2.0", "2") → "Terminal-Bench".
+ */
 function titleWithoutVersion(title: string, version: string | null): string {
   const trailing = /\s+v?(\d+(?:\.\d+)*)$/i.exec(title);
   const comparable = (value: string) => value.replace(/^v/i, "").replace(/(\.0)+$/, "");

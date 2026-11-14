@@ -4,6 +4,7 @@
 
 import { useCallback, useDeferredValue, useLayoutEffect, useMemo, useRef, useState } from "react";
 
+import { modelsForVariantDisplay } from "../../src/model-atlas/stats/model-variants";
 import type { ModelAtlasModel, ModelAtlasPayload } from "../../src/model-atlas/stats/types";
 import { ModelAtlasHeader } from "../shared/ModelAtlasHeader";
 import { DashboardLeaderboard } from "./DashboardLeaderboard";
@@ -16,9 +17,8 @@ import { ResearchRail } from "./ResearchRegions";
 import {
   filterByGlobalModelFilters,
   type GlobalModelFilters,
-  modelsForVariantDisplay,
   providerOptions,
-} from "./shared/model-display";
+} from "./shared/model-filters";
 import { signaturePopulation } from "./signature/models";
 import { ModelSignature } from "./signature/ModelSignature";
 import { GRAPH_VARIANTS_COOKIE } from "./url-state";

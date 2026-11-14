@@ -1,4 +1,4 @@
-/** OpenRouter source snapshots preserve cached coverage while refreshing requested model routes. */
+/** OpenRouter's cache-aware refresh, run for the model ids a build requests rather than as part of the checkpoint-wide snapshot: a fresh cache serves the ids it covers with usable speed, and only the rest are fetched and merged in. */
 
 import type { DatabaseSync } from "node:sqlite";
 
@@ -35,6 +35,7 @@ export async function loadOpenRouterRawPayload(
   );
 }
 
+/** The cache is first narrowed to `modelIds`; a failed fetch returns that narrowed cache under the unchanged status. */
 export async function refreshOpenRouterRawPayload(
   cached: OpenRouterSourcePayload | null,
   status: RawSourceCacheStatus,

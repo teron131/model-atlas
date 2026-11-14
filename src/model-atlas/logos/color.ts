@@ -6,6 +6,7 @@ const DARK_UI_MONOCHROME = "#eeeeea";
 const HUE_BIN_DEGREES = 12;
 const MIN_CHROMA_SHARE = 0.04;
 
+/** `null` when the icon has no visible pixels; the light monochrome when under 4% of visible pixels carry usable color. */
 export async function providerIconColor(imageBuffer: Buffer) {
   const { default: sharp } = await import("sharp");
   const { data: pixels, info } = await sharp(imageBuffer)

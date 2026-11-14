@@ -1,14 +1,14 @@
 /** Bind each custom source's cache, snapshot, raw writer, and source-data lookup to its own slice of the shared records, so the registry derives every shared slot from the definition. */
 
 import type { BenchmarkRuntimeKey } from "../benchmarks/registry";
-import { SNAPSHOT_TABLES } from "../database/tables";
-import type { DatabaseWriter } from "../database/writers/database";
+import type { DatabaseWriter } from "../sqlite-utils";
 import type { CacheRowSource } from "./cache/rows";
-import type { RawSourceName } from "./registry";
+import { RAW_SOURCE_TABLES, type RawSourceName } from "./registry";
+import type { SourceSnapshotRequest } from "./snapshots/row-snapshot";
 import type { RawSourceCacheStatus, SourceRefreshOptions, SourceSnapshotStatus } from "./types";
 
 /** `rows` are what matching reads; any other field is raw evidence only the runtime's own writer persists. */
-type BenchmarkSnapshot<Row> = {
+export type BenchmarkSnapshot<Row> = {
   rows: Row[];
   sourceStatus: SourceSnapshotStatus;
 };
@@ -25,25 +25,9 @@ type BenchmarkRuntime<
   key: Key;
   fetchRows: () => Promise<Row[]>;
   readCache: (cache: CacheRowSource) => Cached;
-  snapshot: (
-    cached: Cached,
-    status: RawSourceCacheStatus,
-    options: SourceRefreshOptions,
-    previousMissingSince: ReadonlyMap<string, number>,
-    nowEpochSeconds: number,
-    context: BenchmarkSnapshotContext,
-  ) => Promise<Snapshot>;
+  snapshot: (request: SourceSnapshotRequest<Cached>) => Promise<Snapshot>;
   write: (db: DatabaseWriter, snapshot: Snapshot) => void;
   sourceData: (rows: Row[]) => Data;
-};
-
-export type BenchmarkSnapshotContext = {
-  source: RawSourceName;
-  sourceStatus: (snapshot: {
-    rows: readonly unknown[];
-    fetchedAt: number | null;
-    sourceRowStates: SourceSnapshotStatus["sourceRowStates"];
-  }) => SourceSnapshotStatus;
 };
 
 /** Lift a runtime's per-source functions to the registry's shared records: caches and snapshots are keyed by source, live and restored rows by `${key}Rows`, source data by `key`. */
@@ -56,27 +40,26 @@ export function defineBenchmarkRuntime<
   Data,
 >(runtime: BenchmarkRuntime<Source, Key, Row, Cached, Snapshot, Data>) {
   const rowsKey = `${runtime.key}Rows` as const;
-  const context: BenchmarkSnapshotContext = {
-    source: runtime.source,
-    sourceStatus: (snapshot) => ({
-      source: runtime.source,
-      fetchedAt: snapshot.fetchedAt,
-      sourceInputCount: snapshot.rows.length,
-      sourceRowStates: snapshot.sourceRowStates,
-    }),
-  };
   const snapshot = (
     cached: Cached,
     status: RawSourceCacheStatus,
     options: SourceRefreshOptions,
     previousMissingSince: ReadonlyMap<string, number>,
     nowEpochSeconds: number,
-  ) => runtime.snapshot(cached, status, options, previousMissingSince, nowEpochSeconds, context);
+  ) =>
+    runtime.snapshot({
+      source: runtime.source,
+      cached,
+      status,
+      options,
+      previousMissingSince,
+      nowEpochSeconds,
+    });
   return {
     source: runtime.source,
     key: runtime.key,
     rowsKey,
-    table: SNAPSHOT_TABLES[runtime.source],
+    table: RAW_SOURCE_TABLES[runtime.source],
     fetchRows: runtime.fetchRows,
     readCache: runtime.readCache,
     snapshot,

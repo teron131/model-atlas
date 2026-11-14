@@ -1,6 +1,6 @@
 "use client";
 
-/** Range presets, pan steps, and the frontier replay's transport edit the chart's time window; a pan keeps the window's span. */
+/** The Timeline's time-window controls: range presets, pan steps that keep the window's span, and the frontier replay's transport. */
 
 import { ChevronLeft, ChevronRight, Pause, Play, Square } from "lucide-react";
 
@@ -21,7 +21,6 @@ export function TimelineNavigator({
   bounds: [number, number];
   range: [number, number];
   onChange: (range: [number, number]) => void;
-  /** The frontier replay's transport. */
   replay: {
     /** How far the replay has reached, on the same normalized scale as `range`; `null` while idle. */
     at: number | null;

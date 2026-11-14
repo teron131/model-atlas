@@ -175,7 +175,10 @@ export class SnapshotStorage {
     return this.publish(databasePath, await this.restore(selected, databasePath), current);
   }
 
-  /** The manifest changes only after every verified upload finishes; stale publishers must rebuild from the new checkpoint. A refresh passes the evidence it newly observed as JSON lines. */
+  /**
+   * The manifest changes only after every verified upload finishes; stale publishers must rebuild from the new checkpoint.
+   * A refresh passes the evidence it newly observed as JSON lines.
+   */
   async publish(
     databasePath: string,
     data: SnapshotData,
@@ -387,7 +390,7 @@ function saveArtifact(file: File, bytes: Buffer, cacheControl: string) {
   });
 }
 
-/** Evidence sits outside `snapshots/`, the only prefix retirement marks and lifecycle deletes, and sorts by capture time. */
+/** Evidence sits outside `snapshots/`, the only prefix retirement marks and lifecycle deletes, and sorts by capture time: evidence/2025-11-15T00:00:00.000Z-0b6f6c1e-5d1a-4c3e-9f7a-2b8d4e6a1c90.jsonl.gz. */
 function evidenceObject(capturedAtEpochSeconds: number, version: string): string {
   return `evidence/${new Date(capturedAtEpochSeconds * 1000).toISOString()}-${version}.jsonl.gz`;
 }
@@ -423,7 +426,10 @@ async function downloadSnapshotObject(file: File): Promise<Buffer> {
   return Buffer.concat(chunks);
 }
 
-/** Stream straight to disk, since buffering would hold the compressed and decompressed checkpoint in memory beside the file, which Cloud Run also keeps in memory. A checkpoint that fails verification is removed. */
+/**
+ * Stream straight to disk, since buffering would hold the compressed and decompressed checkpoint in memory beside the file, which Cloud Run also keeps in memory.
+ * A checkpoint that fails verification is removed.
+ */
 async function restoreCheckpoint(file: File, expectedHash: string, databasePath: string) {
   const destination = await open(databasePath, "wx", 0o600);
   const hash = createHash("sha256");

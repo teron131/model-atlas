@@ -9,11 +9,7 @@ import {
   BENCHMARK_OBSERVATION_BINDINGS,
   type BenchmarkObservationRowsKey,
 } from "../src/model-atlas/benchmarks/registry";
-import type {
-  DatabaseStatement,
-  DatabaseWriter,
-  SqlValue,
-} from "../src/model-atlas/database/writers/database";
+import type { DatabaseStatement, DatabaseWriter, SqlValue } from "../src/model-atlas/sqlite-utils";
 import { SNAPSHOT_PRESERVATION_VERSION } from "../src/model-atlas/stats/payload/snapshot-preservation";
 import type { ModelAtlasModel, ModelAtlasPayload } from "../src/model-atlas/stats/types";
 import { benchmarkVersionId } from "../src/model-atlas/timeline/capability";

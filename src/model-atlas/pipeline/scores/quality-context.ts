@@ -6,18 +6,17 @@ import {
 } from "../../benchmarks/calibration-population";
 import type { BenchmarkDimension } from "../../benchmarks/factory";
 import { indexPolicy } from "../../benchmarks/index-policy";
+import { type BenchmarkMetricModel, benchmarkValue } from "../../benchmarks/registry";
 import { type ScoringConfig, selectedBenchmarkKeys } from "../../config/stage";
 import { canonicalModelKey, canonicalReasoningEffort } from "../../identity/normalization";
-import { clamp, linearScore, minMaxRange, type MinMaxRange } from "../../math-utils";
+import { linearScore, minMaxRange, type MinMaxRange } from "../../math-utils";
 import type { JsonObject } from "../../runtime";
 import type { ModelAtlasCandidate } from "../model-types";
 import { type EffortResourceImputation, imputedTaskResource } from "./imputation/resource-evidence";
 import { clampScore } from "./normalization";
 import { qualityAdjustedResourceMultipliers } from "./resource-efficiency";
 import {
-  type BenchmarkMetricModel,
   type BenchmarkTokenMeasure,
-  benchmarkValue,
   directBenchmarkTokens,
   separatedBenchmarkResourceEvidence,
   type SeparatedBenchmarkResourceEvidence,
@@ -60,7 +59,7 @@ export function normalizedMetricValue(
   return normalized == null ? null : clampScore(normalized);
 }
 
-/** Keep normalization ranges independent of estimates. */
+/** Ranges come from observed values only, so estimates never move normalization anchors. */
 export function observedRangesByBenchmark(
   models: readonly BenchmarkMetricModel[],
   benchmarkKeys: readonly string[],
@@ -270,7 +269,7 @@ export function normalizedQualityBenchmarkValue(
           ),
         ) ?? 1);
   const adjusted = linearScore(adjustment.range, value * multiplier);
-  return adjusted == null ? null : clamp(adjusted, 0, 100);
+  return adjusted == null ? null : clampScore(adjusted);
 }
 
 /** Stable identity lookup survives candidate enrichment and keeps quality dimensions separate. */

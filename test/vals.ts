@@ -13,7 +13,7 @@ import {
   processValsIndexView,
   VALS_INDEX_LEADERBOARD_URL,
 } from "../src/model-atlas/sources/vals/index-benchmark";
-import { valsIndexRuntime } from "../src/model-atlas/sources/vals/index-runtime";
+import { valsIndexRuntime } from "../src/model-atlas/sources/vals/index-benchmark-runtime";
 import { getValsBenchmarkStats } from "../src/model-atlas/sources/vals/results";
 
 const components = [

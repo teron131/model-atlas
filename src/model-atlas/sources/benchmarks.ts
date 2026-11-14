@@ -2,49 +2,32 @@
 
 import type { DatabaseSync } from "node:sqlite";
 
-import {
-  BENCHMARK_OBSERVATION_RAW_TABLE,
-  type BenchmarkRuntimeKey,
-  type BenchmarkRuntimeKeyFor,
-} from "../benchmarks/registry";
-import type { SnapshotTableName } from "../database/tables";
-import type { DatabaseWriter } from "../database/writers/database";
+import { BENCHMARK_OBSERVATION_RAW_TABLE, type BenchmarkRuntimeKey } from "../benchmarks/registry";
+import type { DatabaseWriter } from "../sqlite-utils";
 import { agentsLastExamRuntime } from "./agents-last-exam/runtime";
 import { aleBenchRuntime } from "./ale-bench/runtime";
 import { arenaAgentRuntime } from "./arena/agent-runtime";
 import { frontierCodeRuntime } from "./frontier-code/runtime";
 import { insertBenchmarkObservationRows } from "./observations/cache";
-import type { RawSourceName } from "./registry";
-import { riemannBenchRuntime } from "./surge/riemann-runtime";
+import type { RAW_SOURCE_TABLES, RawSourceName } from "./registry";
+import { riemannBenchRuntime } from "./surge/riemann-bench-runtime";
 import { terminalBench4Runtime } from "./terminal-bench-4/runtime";
 import type { RawSourceCacheStatus, SourceRefreshOptions, SourceSnapshots } from "./types";
-import { valsIndexRuntime } from "./vals/index-runtime";
+import { valsIndexRuntime } from "./vals/index-benchmark-runtime";
 import { vendingBench2Runtime } from "./vending-bench-2/runtime";
 
 type RuntimesBySource<Source extends BenchmarkRuntimeKey> = { [Key in Source]: { source: Key } };
 
-const STANDALONE_BENCHMARK_RUNTIMES = {
+const BENCHMARK_RUNTIMES = {
+  riemann_bench: riemannBenchRuntime,
+  vals_index: valsIndexRuntime,
   agents_last_exam: agentsLastExamRuntime,
   ale_bench: aleBenchRuntime,
   arena_agent: arenaAgentRuntime,
   frontier_code: frontierCodeRuntime,
   terminal_bench_4: terminalBench4Runtime,
   vending_bench_2: vendingBench2Runtime,
-} as const satisfies RuntimesBySource<BenchmarkRuntimeKeyFor<"standalone">>;
-
-const SURGE_BENCHMARK_RUNTIMES = {
-  riemann_bench: riemannBenchRuntime,
-} as const satisfies RuntimesBySource<BenchmarkRuntimeKeyFor<"surge">>;
-
-const VALS_BENCHMARK_RUNTIMES = {
-  vals_index: valsIndexRuntime,
-} as const satisfies RuntimesBySource<BenchmarkRuntimeKeyFor<"vals">>;
-
-const BENCHMARK_RUNTIMES = {
-  ...SURGE_BENCHMARK_RUNTIMES,
-  ...VALS_BENCHMARK_RUNTIMES,
-  ...STANDALONE_BENCHMARK_RUNTIMES,
-} as const;
+} as const satisfies RuntimesBySource<BenchmarkRuntimeKey>;
 
 type BenchmarkRuntimes = typeof BENCHMARK_RUNTIMES;
 
@@ -69,7 +52,7 @@ export type BenchmarkSourceData = {
 };
 
 type BenchmarkRawWriter = {
-  table: SnapshotTableName;
+  table: (typeof RAW_SOURCE_TABLES)[RawSourceName];
   write: (db: DatabaseWriter, snapshots: SourceSnapshots) => void;
 };
 
@@ -90,7 +73,7 @@ export async function fetchBenchmarkSourceRows(): Promise<BenchmarkSourceRows> {
   const entries = await Promise.all(
     Object.values(BENCHMARK_RUNTIMES).map(async (runtime) => [
       runtime.rowsKey,
-      // A runtime whose scraper throws contributes no rows, matching the snapshot path's fallback in snapshotSourceRows.
+      // A runtime whose scraper throws contributes no rows, matching the snapshot path's fallback in fetchRowsOrNone.
       await runtime.fetchRows().catch(() => []),
     ]),
   );

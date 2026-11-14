@@ -1,21 +1,22 @@
-/** Riemann-bench runtime owns raw-cache reconstruction, snapshot refresh, raw-row serialization, and its source-data lookup. */
+/** Riemann-bench keeps its Surge leaderboard rows with the one source URL they came from; a cache whose rows disagree on that URL is rejected, and otherwise keeps whichever rows still parse. */
 
-import type { DatabaseWriter } from "../../database/writers/database";
 import { parseModelEffort } from "../../identity/normalization";
 import { asFiniteNumber, asNonEmptyString } from "../../runtime";
-import { type BenchmarkSnapshotContext, defineBenchmarkRuntime } from "../benchmark-runtime";
+import type { DatabaseWriter } from "../../sqlite-utils";
+import { defineBenchmarkRuntime } from "../benchmark-runtime";
 import { type CacheRowSource, firstFetchedAt, sourceCacheRows } from "../cache/rows";
 import { sourceRowKey } from "../snapshots/policy";
-import { snapshotSourceRows } from "../snapshots/row-snapshot";
-import type { RawSourceCacheStatus, SourceRefreshOptions, SourceSnapshotStatus } from "../types";
 import {
-  buildRiemannBenchMap,
-  getRiemannBenchStats,
-  type RiemannBenchModelScoreRow,
-} from "./riemann-bench";
+  snapshotSourceRows,
+  type SourceSnapshotRequest,
+  sourceSnapshotStatus,
+} from "../snapshots/row-snapshot";
+import type { SourceSnapshotStatus } from "../types";
+import type { SurgeLeaderboardScoreRow } from "./results";
+import { buildRiemannBenchMap, getRiemannBenchStats } from "./riemann-bench";
 
 type RiemannBenchSnapshot = {
-  rows: RiemannBenchModelScoreRow[];
+  rows: SurgeLeaderboardScoreRow[];
   sourceUrl: string;
   sourceStatus: SourceSnapshotStatus;
 };
@@ -31,7 +32,7 @@ export const riemannBenchRuntime = defineBenchmarkRuntime({
 });
 
 function readRiemannBenchRawCache(cache: CacheRowSource): {
-  rows: RiemannBenchModelScoreRow[];
+  rows: SurgeLeaderboardScoreRow[];
   fetchedAt: number | null;
   sourceUrl: string;
 } | null {
@@ -74,22 +75,12 @@ function readRiemannBenchRawCache(cache: CacheRowSource): {
   };
 }
 
-/** Loads Riemann-bench rows using normalized model configuration identity for cache continuity. */
+/** Rows are keyed by provider and the parsed base model and effort, so differently written labels of one model configuration share a cached row. */
 async function riemannBenchSnapshot(
-  cached: ReturnType<typeof readRiemannBenchRawCache>,
-  status: RawSourceCacheStatus,
-  options: SourceRefreshOptions,
-  previousMissingSince: ReadonlyMap<string, number>,
-  nowEpochSeconds: number,
-  context: BenchmarkSnapshotContext,
+  request: SourceSnapshotRequest<ReturnType<typeof readRiemannBenchRawCache>>,
 ): Promise<RiemannBenchSnapshot> {
   const snapshot = await snapshotSourceRows({
-    source: context.source,
-    cached,
-    status,
-    options,
-    previousMissingSince,
-    nowEpochSeconds,
+    ...request,
     fetchRows: getRiemannBenchStats,
     rowKey: (row) => {
       const parsedModel = parseModelEffort(row.model);
@@ -103,7 +94,7 @@ async function riemannBenchSnapshot(
   return {
     rows: snapshot.rows,
     sourceUrl: snapshot.sourceUrl,
-    sourceStatus: context.sourceStatus(snapshot),
+    sourceStatus: sourceSnapshotStatus(request.source, snapshot),
   };
 }
 

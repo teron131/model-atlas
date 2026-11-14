@@ -1,8 +1,8 @@
-/** Snapshot table identities distinguish source evidence from derived models and the windowed change log. */
+/** The checkpoint's table names in one registry, shared by the checkpoint writers, the payload reader, and the change log. */
 
 import { RAW_SOURCE_TABLES } from "../sources/registry";
 
-/** Tables owned by the local snapshot pipeline and rewritten as a completed run. */
+/** Every table a refresh writes: the change-log tables are appended to and pruned to their window, all others are replaced whole. */
 export const SNAPSHOT_TABLES = {
   ...RAW_SOURCE_TABLES,
   source_quarantines: "source_quarantines",

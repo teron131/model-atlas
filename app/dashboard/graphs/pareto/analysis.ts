@@ -6,6 +6,7 @@ import {
   isAggregateIndex,
   residualIndexBreadth,
 } from "../../../../src/model-atlas/benchmarks/index-policy";
+import { benchmarkValue } from "../../../../src/model-atlas/benchmarks/registry";
 import { BENCHMARK_RESOURCE_SOURCE_LABELS } from "../../../../src/model-atlas/benchmarks/resource-sources";
 import {
   linearScore,
@@ -14,10 +15,8 @@ import {
   weightedMeanOfFinite,
 } from "../../../../src/model-atlas/math-utils";
 import { clampScore } from "../../../../src/model-atlas/pipeline/scores/normalization";
-import {
-  benchmarkTaskMetrics,
-  benchmarkValue,
-} from "../../../../src/model-atlas/pipeline/scores/resource-metrics";
+import { benchmarkTaskMetrics } from "../../../../src/model-atlas/pipeline/scores/resource-metrics";
+import { modelVariantKey } from "../../../../src/model-atlas/stats/model-variants";
 import {
   type ResourceRatioObservation,
   resourceRatioObservations,
@@ -29,8 +28,7 @@ import type {
   BenchmarkResourcePolicy,
   ModelAtlasModel,
 } from "../../../../src/model-atlas/stats/types";
-import { benchmarkLabels } from "../../shared/constants";
-import { modelVariantKey } from "../../shared/model-display";
+import { benchmarkLabels } from "../../shared/benchmark-display";
 import { finiteValue, toPercent } from "../format";
 
 export const FRONTIER_AXIS_KEYS = ["cost", "time", "tokens", "speed", "value"] as const;
@@ -129,6 +127,7 @@ export function frontierBenchmarkRows(
             : [{ benchmarkKey: key, quality: nativeScore!, amount: null, weight: 1 }];
         return components.map((observation): FrontierBenchmarkRow => {
           const sourceKey = observation.benchmarkKey;
+          // A per-source key `<benchmark>__<source>` suffixes its label with the source's catalogued name, else its uppercased id: `frontier_code__source_b` without a catalogue entry → ` — SOURCE B`.
           const source = sourceKey.split("__")[1];
           const labels = BENCHMARK_RESOURCE_SOURCE_LABELS[
             key as keyof typeof BENCHMARK_RESOURCE_SOURCE_LABELS
@@ -393,7 +392,6 @@ function benchmarkCorrelation(rows: FrontierBenchmarkRow[]): number | null {
     const intelligenceScore = finiteValue(row.model.scores?.intelligence_score);
     return intelligenceScore == null ? [] : [{ x: row.score, y: intelligenceScore }];
   });
-  // Three measured pairs are required before presenting a benchmark correlation.
   if (points.length < 3) return null;
   return pearsonCorrelation(
     points.map((point) => point.x),

@@ -217,7 +217,7 @@ function prepareImputation(
   };
 }
 
-/** Retain endpoints as measurements, but exclude near-floor and near-ceiling probability scores from exact transfers. */
+/** Near-floor and near-ceiling scores stay measurements but are excluded from exact transfers: probability scores, and values under the archived `aa_intelligence_index` key read as percentages. */
 export function isInformativeValue(
   benchmark: HistoricalBenchmark,
   value: number,

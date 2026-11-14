@@ -2,11 +2,8 @@
 
 import assert from "node:assert/strict";
 
-import {
-  benchmarkDisplayValue,
-  benchmarkMetricColumns,
-  scaledDisplayRows,
-} from "../app/dashboard/table/models";
+import { benchmarkMetricColumns } from "../app/dashboard/table/column-registry";
+import { benchmarkDisplayValue, scaledDisplayRows } from "../app/dashboard/table/leaderboard-rows";
 import {
   type BenchmarkObservationRow,
   buildBenchmarkObservationLookup,
@@ -26,10 +23,8 @@ import {
   insertBenchmarkObservationRows,
   readBenchmarkObservationRawCache,
 } from "../src/model-atlas/sources/observations/cache";
-import {
-  benchmarkObservationRowKey,
-  snapshotSourceRows,
-} from "../src/model-atlas/sources/snapshots/row-snapshot";
+import { benchmarkObservationRowKey } from "../src/model-atlas/sources/observations/load";
+import { snapshotSourceRows } from "../src/model-atlas/sources/snapshots/row-snapshot";
 import type { SourceSnapshots } from "../src/model-atlas/sources/types";
 import { processVoxelBenchLeaderboard } from "../src/model-atlas/sources/voxelbench";
 import type { ModelAtlasModel } from "../src/model-atlas/stats/types";
@@ -120,7 +115,12 @@ assert.deepEqual(
 );
 const column = benchmarkMetricColumns.find((entry) => entry.benchmark === "voxelbench");
 assert.ok(column);
-const displayRows = scaledDisplayRows(models as unknown as ModelAtlasModel[]);
+const displayRows = scaledDisplayRows(
+  models.map((model) => ({
+    ...model,
+    scores: { intelligence_score: 50, agentic_score: 50, speed_score: null, value_score: null },
+  })) as unknown as ModelAtlasModel[],
+);
 assert.deepEqual(
   displayRows.map((row) => benchmarkDisplayValue(row, column)),
   [0, 50, 100],

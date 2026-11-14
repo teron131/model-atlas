@@ -1,6 +1,7 @@
 /** Validated effort resource imputation for cost, time, and token-use scoring. */
 
 import { indexPolicy } from "../../../benchmarks/index-policy";
+import { benchmarkValue } from "../../../benchmarks/registry";
 import { MAX_NORMALIZED_IMPUTATION_ERROR, type ScoringConfig } from "../../../config/stage";
 import {
   canonicalModelKey,
@@ -11,7 +12,6 @@ import {
 import { clamp01, medianOfFinite, positiveFiniteNumber } from "../../../math-utils";
 import type { ModelAtlasCandidate } from "../../model-types";
 import { heldOutResourceScorer } from "../resource-efficiency";
-import { benchmarkValue } from "../resource-metrics";
 import { benchmarkQualityEvidence, type BenchmarkScoringPreparation } from "./benchmark";
 import { prepareBroaderResourceEstimator } from "./broader-resource";
 import {
@@ -48,7 +48,7 @@ type ValidatedEffortRatio = {
   targetIndex: number;
 };
 
-/** Fit validated effort ratios, then fill missing benchmark-specific task costs, runtimes, and token amounts. */
+/** A missing task amount takes the validated ratio from the nearest effort first, then the broader lab and release estimate; observed amounts are never replaced. */
 export function prepareEffortResourceImputation(
   models: readonly ModelAtlasCandidate[],
   scoringConfig: ScoringConfig,

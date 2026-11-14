@@ -1,13 +1,13 @@
 /** Pareto axes, resource units, and hover labels present prepared comparison rows without choosing their evidence or changing scores. */
 
 import { isAggregateIndex } from "../../../../src/model-atlas/benchmarks/index-policy";
-import { formatResourceRatio } from "../../shared/resource-ratio-display";
+import { formatResourceRatio } from "../../../shared/resource-ratio-display";
 import {
-  fmtCompact,
-  fmtDurationShort,
-  fmtMoney,
-  fmtPercentScore,
-  fmtTooltipScore,
+  formatCompact,
+  formatDurationShort,
+  formatMoney,
+  formatPercentScore,
+  formatTooltipScore,
 } from "../format";
 import type { HoverRow } from "../HoverCard";
 import {
@@ -52,7 +52,7 @@ export const frontierBenchmarkAxisConfig: Record<
     label: "Cost ↓",
     shortLabel: "Cost",
     get: (row) => frontierAxisValue(row, "cost"),
-    format: fmtMoney,
+    format: formatMoney,
     detailLabel: (row) => resourceMetricLabel(row, "cost"),
     normalizedLabel: "Cost× ↓",
   },
@@ -60,7 +60,7 @@ export const frontierBenchmarkAxisConfig: Record<
     label: "Time ↓",
     shortLabel: "Time",
     get: (row) => frontierAxisValue(row, "time"),
-    format: fmtDurationShort,
+    format: formatDurationShort,
     detailLabel: (row) => resourceMetricLabel(row, "time"),
     normalizedLabel: "Time× ↓",
   },
@@ -68,7 +68,7 @@ export const frontierBenchmarkAxisConfig: Record<
     label: "Tokens ↓",
     shortLabel: "Tokens",
     get: (row) => frontierAxisValue(row, "tokens"),
-    format: fmtCompact,
+    format: formatCompact,
     detailLabel: (row) => resourceMetricLabel(row, "tokens"),
     normalizedLabel: "Tokens× ↓",
   },
@@ -76,7 +76,7 @@ export const frontierBenchmarkAxisConfig: Record<
     label: "Speed Score",
     shortLabel: "Speed Score",
     get: (row) => frontierAxisValue(row, "speed"),
-    format: fmtTooltipScore,
+    format: formatTooltipScore,
     detailLabel: () => "Speed Score",
     normalizedLabel: "Speed Score",
     xHigherIsBetter: true,
@@ -85,7 +85,7 @@ export const frontierBenchmarkAxisConfig: Record<
     label: "Value Score",
     shortLabel: "Value Score",
     get: (row) => frontierAxisValue(row, "value"),
-    format: fmtTooltipScore,
+    format: formatTooltipScore,
     detailLabel: () => "Value Score",
     normalizedLabel: "Value Score",
     xHigherIsBetter: true,
@@ -202,8 +202,8 @@ export function frontierBenchmarkHoverRows(
       isAggregateIndex(row.benchmarkKey) ||
       row.benchmarkKey === "all" ||
       row.benchmarkKey === "ale_bench"
-        ? fmtTooltipScore(row.score)
-        : fmtPercentScore(row.score),
+        ? formatTooltipScore(row.score)
+        : formatPercentScore(row.score),
     ],
     [axisConfig.detailLabel(row), axisConfig.format(axisConfig.get(row) ?? 0)],
     ...(row.resourceCount == null

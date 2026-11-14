@@ -1,4 +1,4 @@
-/** Source-selection policy keeps benchmark-retained catalog rows and provider preference in one stage boundary. */
+/** Which models.dev catalog rows enter matching: recent rows plus older ones Artificial Analysis still lists, then one row per model id by provider preference. */
 
 import { claudeIdentityKey, parseClaudeIdentity } from "../../identity/claude";
 import {

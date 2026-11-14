@@ -1,4 +1,5 @@
 /** Public scoring entrypoints for the final LLM stats pipeline. */
+
 export type {
   BenchmarkImputationByModel,
   BenchmarkImputationFactorsByModel,
@@ -20,9 +21,9 @@ export { attachFinalScores } from "./final-scoring";
 export {
   type BlendPrices,
   blendedPrices,
-  buildComponentScoreResult,
   listedBlendPrices,
   logBlendedPrice,
-} from "./score-builders";
+} from "./blended-price";
+export { buildComponentScoreResult } from "./score-builders";
 export { buildQualityScoringContext } from "./quality-context";
 export type { QualityScoringContext } from "./quality-context";

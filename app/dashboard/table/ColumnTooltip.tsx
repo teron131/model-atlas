@@ -1,7 +1,13 @@
-/** Tooltip layout for dashboard score explanations, formula breakdowns, and benchmark headers. */
+/** The column header tooltip card: places itself under its trigger inside the viewport, widens for an inequality graph, and hands benchmark headers to their own body. */
 
-import type { FocusEvent, MouseEvent } from "react";
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  type FocusEvent,
+  type MouseEvent,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import type {
   ModelAtlasColumnTooltipNestedSection,

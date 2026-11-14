@@ -1,19 +1,11 @@
-/** Source snapshot policy replaces cached rows with what a source currently publishes, retires rows it stops listing, and reports source health. */
+/**
+ * Row-level refresh policy for one source: how fetched rows merge into the cached rows, which cached rows a new published version supersedes, and how rows a source stops listing are quarantined and, after a grace period, withdrawn.
+ * models.dev is the exception: its rows are quarantined but never withdrawn (see `buildModelsDevSourceStates`).
+ */
 
-import type { DatabaseSync } from "node:sqlite";
-
-import { asNonEmptyString, asRecord } from "../../runtime";
 import type { ModelsDevPayload } from "../models-dev/catalog";
-import { RAW_SOURCE_NAMES, type RawSourceName } from "../registry";
-import type {
-  ModelAtlasSourceHealth,
-  ModelAtlasSourceHealthEntry,
-  ModelAtlasSourceHealthStatus,
-  RawSourceCacheStatus,
-  SourceRefreshOptions,
-  SourceRowState,
-  SourceRowStatus,
-} from "../types";
+import type { RawSourceName } from "../registry";
+import type { SourceRefreshOptions, SourceRowState, SourceRowStatus } from "../types";
 
 type SnapshotRowsConfig<T> = {
   source: RawSourceName;
@@ -85,7 +77,7 @@ export function mergeCachedSourceRows<T>(
   return [...unkeyedCachedRows, ...keyedRows.values(), ...unkeyedFetchedRows];
 }
 
-/** Empty or failed refreshes keep cached rows unless the caller explicitly replaces source state. */
+/** An empty or failed refresh keeps the cached rows even under `replaceSourceRows`; a usable refresh merges into them by key, or replaces them outright under `replaceSourceRows`. */
 export function snapshotRows<T>(
   cachedRows: readonly T[] | undefined,
   fetchedRows: readonly T[],
@@ -208,65 +200,7 @@ function sourceRowState(
   };
 }
 
-export function persistedSourceRowStates(db: DatabaseSync): SourceRowState[] {
-  return sourceRowStatesFromRows(
-    db
-      .prepare(
-        "SELECT source, row_key, row_label, 'quarantined_missing_from_source' AS status, missing_from_source_since_epoch_seconds FROM source_quarantines",
-      )
-      .all(),
-  );
-}
-
-function sourceRowStatesFromRows(rows: readonly Record<string, unknown>[]): SourceRowState[] {
-  return rows.flatMap((stateRow) => {
-    const state = asRecord(stateRow);
-    const source =
-      typeof state.source === "string" && RAW_SOURCE_NAMES.includes(state.source as RawSourceName)
-        ? (state.source as RawSourceName)
-        : null;
-    const rowKeyValue = asNonEmptyString(state.row_key);
-    const status =
-      state.status === "active" || state.status === "quarantined_missing_from_source"
-        ? state.status
-        : null;
-    if (source == null || rowKeyValue == null || status == null) {
-      return [];
-    }
-    return [
-      {
-        source,
-        row_key: rowKeyValue,
-        row_label: asNonEmptyString(state.row_label),
-        status,
-        missing_from_source_since_epoch_seconds:
-          typeof state.missing_from_source_since_epoch_seconds === "number"
-            ? state.missing_from_source_since_epoch_seconds
-            : null,
-      },
-    ];
-  });
-}
-
-/** Missing-since maps keep quarantine age stable across refreshes that still omit the same source rows. */
-export function missingSinceBySource(
-  states: readonly SourceRowState[],
-): Record<RawSourceName, Map<string, number>> {
-  const missingSince = Object.fromEntries(
-    RAW_SOURCE_NAMES.map((source) => [source, new Map<string, number>()]),
-  ) as Record<RawSourceName, Map<string, number>>;
-  for (const state of states) {
-    if (
-      state.status !== "quarantined_missing_from_source" ||
-      state.missing_from_source_since_epoch_seconds == null
-    ) {
-      continue;
-    }
-    missingSince[state.source].set(state.row_key, state.missing_from_source_since_epoch_seconds);
-  }
-  return missingSince;
-}
-
+/** Quarantine states for models.dev models, keyed by provider and model; nothing here withdraws a row after the grace period, and `modelsDevSnapshot` keeps omitted models in the payload. */
 export function buildModelsDevSourceStates(
   payload: ModelsDevPayload,
   fetchedPayload: ModelsDevPayload | null,
@@ -304,75 +238,4 @@ export function buildModelsDevSourceStates(
     }
   }
   return states;
-}
-
-export function buildSourceHealth({
-  generatedAtEpochSeconds,
-  sourceCacheStatuses,
-  sourceRowStates,
-}: {
-  generatedAtEpochSeconds: number | null;
-  sourceCacheStatuses: Record<RawSourceName, RawSourceCacheStatus>;
-  sourceRowStates: readonly SourceRowState[];
-}): ModelAtlasSourceHealth {
-  return {
-    generated_at_epoch_seconds: generatedAtEpochSeconds,
-    sources: Object.fromEntries(
-      RAW_SOURCE_NAMES.map((source): [RawSourceName, ModelAtlasSourceHealthEntry] => {
-        const status = sourceCacheStatuses[source];
-        const counts = rowStateCounts(source, sourceRowStates);
-        return [
-          source,
-          {
-            status: healthStatusFromCache(status),
-            last_fetch_epoch_seconds: status.last_fetch_epoch_seconds,
-            source_input_count: status.source_input_count,
-            active_row_count: counts.active,
-            quarantined_row_count: counts.quarantinedRows.length,
-            quarantined_rows: counts.quarantinedRows,
-          },
-        ];
-      }),
-    ),
-  };
-}
-
-/** Summarizes active rows while retaining actionable quarantine identities and age. */
-function rowStateCounts(source: RawSourceName, sourceRowStates: readonly SourceRowState[]) {
-  let active = 0;
-  const quarantinedRows = [];
-  for (const state of sourceRowStates) {
-    if (state.source !== source) {
-      continue;
-    }
-    if (state.status === "quarantined_missing_from_source") {
-      quarantinedRows.push({
-        row_key: state.row_key,
-        row_label: state.row_label,
-        missing_from_source_since_epoch_seconds: state.missing_from_source_since_epoch_seconds,
-      });
-    } else {
-      active += 1;
-    }
-  }
-  quarantinedRows.sort(
-    (left, right) =>
-      (left.missing_from_source_since_epoch_seconds ?? Number.MAX_SAFE_INTEGER) -
-        (right.missing_from_source_since_epoch_seconds ?? Number.MAX_SAFE_INTEGER) ||
-      left.row_key.localeCompare(right.row_key),
-  );
-  return { active, quarantinedRows };
-}
-
-function healthStatusFromCache(status: RawSourceCacheStatus): ModelAtlasSourceHealthStatus {
-  if (status.source_input_count <= 0) {
-    return "empty";
-  }
-  if (status.refreshed) {
-    return "fresh";
-  }
-  if (status.cache_hit) {
-    return "cache_hit";
-  }
-  return "using_cached_rows";
 }

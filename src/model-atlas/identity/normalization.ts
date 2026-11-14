@@ -92,6 +92,7 @@ export function providerPreferenceRank(providerId: string): number | null {
   return null;
 }
 
+/** Lowercases, turns `.`, `_`, `:`, and whitespace into hyphens, drops other characters outside `a-z0-9/-`, collapses hyphen runs, and trims edge hyphens and slashes: `"Google: Gemini 2.5 Pro (Preview)"` → `"google-gemini-2-5-pro-preview"`. */
 export function normalizeModelToken(value: string): string {
   const token = value
     .toLowerCase()
@@ -251,6 +252,7 @@ export function modelSlugFromModelId(modelId: unknown): string | null {
   return slug && slug.length > 0 ? slug : null;
 }
 
+/** Lowercases the provider and drops its leading `~`, and in the model part turns dots into hyphens and collapses hyphen runs: `"~Google/Gemini-2.5--Pro"` → `"google/gemini-2-5-pro"`. */
 export function normalizeProviderModelId(modelId: string): string {
   const slashIndex = modelId.indexOf("/");
   if (slashIndex <= 0) {
@@ -279,6 +281,7 @@ export function canonicalModelKey(model: { id?: unknown; name?: unknown }): stri
   return "name:";
 }
 
+/** The canonical model key and canonical effort joined by a NUL, which no name or effort contains: `{ id: "openai/gpt-5.1", reasoning_effort: "Extra High" }` → `"openai/gpt-5-1\u0000xhigh"`. */
 export function canonicalVariantKey(model: {
   id?: unknown;
   name?: unknown;

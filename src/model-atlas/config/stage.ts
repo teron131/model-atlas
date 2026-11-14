@@ -1,4 +1,4 @@
-/** Pipeline stage switches for matching, OpenRouter data, public selection, and scoring. */
+/** Tuned values each pipeline stage reads: matcher variant tokens, OpenRouter fetch concurrency, benchmark admission, snapshot preservation, quality and resource scoring, and the price transitions that rebase older task costs. */
 
 import type { BenchmarkDimension, BenchmarkPortfolio } from "../benchmarks/factory";
 import {
@@ -13,7 +13,7 @@ import {
 } from "../benchmarks/registry";
 import type { MatcherConfig } from "../identity";
 
-export type OpenRouterConfig = {
+type OpenRouterConfig = {
   speedConcurrency: number;
 };
 
@@ -23,7 +23,7 @@ export type BenchmarkAdmissionConfig = {
   minimumObservedIndexes: number;
 };
 
-export type QualityCoverageThresholds = Record<
+type QualityCoverageThresholds = Record<
   BenchmarkDimension,
   {
     floor: number;
@@ -44,7 +44,7 @@ export const RESOURCE_SCORE_BUCKET_WEIGHTS = {
 } as const;
 
 /** Absolute evidence thresholds support Timeline envelopes; headline quality uses portfolio coverage. */
-export const QUALITY_COVERAGE = {
+const QUALITY_COVERAGE = {
   intelligence: {
     floor: QUALITY_COVERAGE_FLOOR_WEIGHT,
     full: QUALITY_COVERAGE_FULL_WEIGHT,
@@ -56,7 +56,7 @@ export const QUALITY_COVERAGE = {
 } satisfies QualityCoverageThresholds;
 
 /** Eight units of direct benchmark weight earn full score retention after their 1.5 multiplier. */
-export const QUALITY_RETENTION = {
+const QUALITY_RETENTION = {
   floor: QUALITY_RETENTION_FULL_WEIGHT * 0.1,
   full: QUALITY_RETENTION_FULL_WEIGHT,
 };

@@ -1,4 +1,4 @@
-/** OpenRouter raw-cache reconstruction and scoped route coverage checks. */
+/** Rebuilds an OpenRouter payload from its raw rows in the SQLite checkpoint and decides whether those rows have the current stored shape. */
 
 import { asFiniteNumber, asNonEmptyString } from "../../runtime";
 import {

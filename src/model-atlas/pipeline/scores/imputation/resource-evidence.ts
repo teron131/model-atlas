@@ -46,7 +46,6 @@ export function resourceImputationKeys(config: ScoringConfig, kind: TaskResource
   );
 }
 
-/** Stable lookup survives model projection without merging different reasoning variants. */
 /** Time falls back to the throughput runtime proxy when wall time is missing; token totals and output-only amounts stay separate. */
 export function directTaskResource(
   model: ModelAtlasCandidate,
@@ -63,7 +62,7 @@ export function directTaskResource(
     : effectiveTaskSeconds(model, metrics);
 }
 
-/** Look up a validated scoring-only task resource for a projected model variant. */
+/** Scoring-only: a benchmark fusion estimate wins over effort-ratio imputation, and the variant key keeps reasoning variants apart after model projection. */
 export function imputedTaskResource(
   preparation: EffortResourceImputation,
   model: Pick<ModelAtlasCandidate, "id" | "name" | "reasoning_effort"> &

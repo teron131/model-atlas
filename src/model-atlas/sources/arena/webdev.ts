@@ -11,14 +11,15 @@ import {
   excludeAmbiguousConfigurations,
 } from "../../benchmarks/observation";
 import {
+  modelEffortLabel,
   normalizeModelToken,
   parseModelEffort,
   parseSlugEffort,
 } from "../../identity/normalization";
 import { providerIdentityKey } from "../../identity/provider";
 import { asFiniteNumber, asNonEmptyString, asRecord, nowEpochSeconds } from "../../runtime";
-import { extractNextFlightCorpus, findObjectEnd, parseFlightJsonObject } from "../parsing";
-import { fetchSource } from "../request-scheduler";
+import { extractNextFlightCorpus, flightObjects } from "../parsing";
+import { fetchSourceText } from "../request-scheduler";
 import {
   ARENA_WEBDEV_DATASET_URL,
   arenaBoardNames,
@@ -34,12 +35,9 @@ export async function getArenaWebDevStats(
   sourceUrl = SOURCE_URL,
 ): Promise<BenchmarkObservationPayload> {
   try {
-    return await fetchSource(sourceUrl, {}, async (response) => {
-      if (!response.ok) throw new Error(`Arena WebDev scrape failed: ${response.status}`);
-      const data = processArenaWebDevPageHtml(await response.text(), sourceUrl);
-      if (data.length === 0) throw new Error("Arena WebDev website has no usable rows");
-      return { fetched_at_epoch_seconds: nowEpochSeconds(), data };
-    });
+    const data = processArenaWebDevPageHtml(await fetchSourceText(sourceUrl), sourceUrl);
+    if (data.length === 0) throw new Error("Arena WebDev website has no usable rows");
+    return { fetched_at_epoch_seconds: nowEpochSeconds(), data };
   } catch {
     const data = processArenaWebDevDatasetRows(await fetchArenaDataset("webdev"));
     return { fetched_at_epoch_seconds: data.length > 0 ? nowEpochSeconds() : null, data };
@@ -52,16 +50,9 @@ export function processArenaWebDevPageHtml(
   sourceUrl = SOURCE_URL,
 ): BenchmarkObservationRow[] {
   const corpus = extractNextFlightCorpus(html);
-  for (
-    let start = corpus.indexOf(PAYLOAD_MARKER);
-    start !== -1;
-    start = corpus.indexOf(PAYLOAD_MARKER, start + 1)
-  ) {
-    const end = findObjectEnd(corpus, start);
-    if (end === -1) continue;
-    const payload = parseFlightJsonObject(corpus.slice(start, end + 1));
-    if (asRecord(payload?.arena).routeSlug !== "code/webdev") continue;
-    const leaderboard = asRecord(payload?.leaderboard);
+  for (const payload of flightObjects(corpus, PAYLOAD_MARKER)) {
+    if (asRecord(payload.arena).routeSlug !== "code/webdev") continue;
+    const leaderboard = asRecord(payload.leaderboard);
     if (
       leaderboard.leaderboardSlug !== "overall" ||
       asRecord(leaderboard.params).category !== "overall"
@@ -112,10 +103,11 @@ function webDevRow(
     rank < 1
   )
     return null;
+  // The harness is a trailing `(…-harness)` label or a `-harness` segment of the ID: Claude Opus 4.5 (claude-code-harness) → claude-code-harness; opus-4-5-terminus-harness-v2 → terminus-harness.
   const labelledHarness = /\s+\(([^()]+-harness)\)$/i.exec(name);
   const modelName = labelledHarness ? name.slice(0, labelledHarness.index) : name;
   const harness = labelledHarness?.[1] ?? /(?:^|-)([^-]+-harness)(?:-|$)/i.exec(id)?.[1] ?? null;
-  // A slug's effort may be followed by a release date, which stays in identity, or a thinking budget, which does not.
+  // A slug's effort may be followed by a release date, which stays in identity, or a thinking budget, which does not: gpt-5-high-20250807 and gpt-5-high-32k end in -20250807 and -32k.
   const trailer = /-(?:\d{4,8}|\d+k)$/i.exec(modelName)?.[0] ?? "";
   const slug = parseSlugEffort(modelName.slice(0, modelName.length - trailer.length));
   const budget = slug.reasoningEffort != null && /k$/i.test(trailer) ? trailer.slice(1) : null;
@@ -154,7 +146,7 @@ function webDevRow(
   };
 }
 
-/** Preserve the official fallback's disclosed identity and publication without asserting website configuration equivalence. */
+/** Dataset rows get a name-and-occurrence ID instead of a website `modelKey`, since the dataset does not say which website configuration a name is. */
 export function processArenaWebDevDatasetRows(
   values: Record<string, unknown>[],
 ): BenchmarkObservationRow[] {
@@ -189,10 +181,7 @@ export function processArenaWebDevDatasetRows(
       benchmark_key: "arena_webdev",
       source_url: ARENA_WEBDEV_DATASET_URL,
       model_id: null,
-      model:
-        identity.reasoningEffort == null
-          ? identity.baseModel
-          : `${identity.baseModel} (${identity.reasoningEffort})`,
+      model: modelEffortLabel(identity.baseModel, identity.reasoningEffort),
       base_model: identity.baseModel,
       reasoning_effort: identity.reasoningEffort,
       model_creator: organization,

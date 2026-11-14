@@ -9,7 +9,7 @@ import type { BenchmarkObservationMetadata } from "../../benchmarks/observation"
 import { normalizeModelToken } from "../../identity/normalization";
 import { asNonEmptyString, asRecord, nowEpochSeconds, stableJson } from "../../runtime";
 import { percentToUnitScore } from "../parsing";
-import { valsReasoningEffort } from "./results";
+import { valsModelSlug, valsReasoningEffort } from "./results";
 import { getValsBenchmarkView, parseValsBenchmarkView } from "./view";
 
 export const VALS_INDEX_LEADERBOARD_URL = "https://www.vals.ai/benchmarks/vals_index";
@@ -17,12 +17,9 @@ export const VALS_INDEX_LEADERBOARD_URL = "https://www.vals.ai/benchmarks/vals_i
 const OVERALL_TASK_KEY = "overall";
 
 type ValsIndexMetadata = {
-  benchmark: string | null;
-  slug: string | null;
   version: string | null;
   updated: string | null;
   dataset_type: string | null;
-  industry: string | null;
   task_labels: Record<string, string>;
   runner: string | null;
   mode: string | null;
@@ -45,10 +42,9 @@ export type ValsIndexModelScoreRow = ValsIndexTaskScoreRow & {
   task: "overall";
 };
 
-export type ValsIndexRowsByModelName = Map<string, ValsIndexModelScoreRow>;
+type ValsIndexRowsByModelName = Map<string, ValsIndexModelScoreRow>;
 
 type ValsIndexResults = {
-  metadata: ValsIndexMetadata | null;
   task_rows: ValsIndexTaskScoreRow[];
   model_scores: ValsIndexModelScoreRow[];
 };
@@ -57,6 +53,7 @@ type ValsIndexPayload = ValsIndexResults & {
   fetched_at_epoch_seconds: number | null;
 };
 
+/** Any fetch or parse failure returns empty rows with a null fetch time, which the snapshot treats as a failed refresh. */
 export async function getValsIndexStats(): Promise<ValsIndexPayload> {
   try {
     const view = await getValsBenchmarkView(VALS_INDEX_LEADERBOARD_URL);
@@ -68,17 +65,16 @@ export async function getValsIndexStats(): Promise<ValsIndexPayload> {
   } catch {
     return {
       fetched_at_epoch_seconds: null,
-      metadata: null,
       task_rows: [],
       model_scores: [],
     };
   }
 }
 
-/** Keep the page's current version and all component diagnostics under one persisted source contract; a basket of another size changes the represented breadth, so it yields no rows. */
+/** Emits every component task row with `overall` as the model score; a page without a version, or whose basket size differs from the index policy, yields no rows because another basket changes the breadth the index represents. */
 export function processValsIndexView(value: unknown): ValsIndexResults {
   const view = parseValsBenchmarkView(value);
-  if (view == null) return { metadata: null, task_rows: [], model_scores: [] };
+  if (view == null) return { task_rows: [], model_scores: [] };
   const metadata = valsIndexMetadata(view.metadata);
   const componentTasks = Object.keys(metadata.task_labels).filter(
     (key) => key !== OVERALL_TASK_KEY,
@@ -87,7 +83,7 @@ export function processValsIndexView(value: unknown): ValsIndexResults {
     metadata.version == null ||
     componentTasks.length !== INDEX_POLICIES.vals_index.representedBenchmarks
   ) {
-    return { metadata: null, task_rows: [], model_scores: [] };
+    return { task_rows: [], model_scores: [] };
   }
   const taskLabelsJson = stableJson(metadata.task_labels);
   const taskRows: ValsIndexTaskScoreRow[] = [];
@@ -99,8 +95,8 @@ export function processValsIndexView(value: unknown): ValsIndexResults {
         task,
         task_label: metadata.task_labels[task] ?? task,
         model_id: modelId,
-        model: modelSlug(modelId),
-        base_model: modelSlug(modelId),
+        model: valsModelSlug(modelId),
+        base_model: valsModelSlug(modelId),
         reasoning_effort: valsReasoningEffort(modelId, row),
         provider: asNonEmptyString(row.provider),
         score,
@@ -125,7 +121,6 @@ export function processValsIndexView(value: unknown): ValsIndexResults {
       left.model_id.localeCompare(right.model_id),
   );
   return {
-    metadata,
     task_rows: taskRows,
     model_scores: taskRows.filter(
       (row): row is ValsIndexModelScoreRow => row.task === OVERALL_TASK_KEY,
@@ -159,12 +154,9 @@ export function valsIndexCacheMatches(rows: readonly ValsIndexTaskScoreRow[]): b
 function valsIndexMetadata(value: unknown): ValsIndexMetadata {
   const metadata = asRecord(value);
   return {
-    benchmark: asNonEmptyString(metadata.benchmark),
-    slug: asNonEmptyString(metadata.slug),
     version: asNonEmptyString(metadata.version),
     updated: asNonEmptyString(metadata.updated),
     dataset_type: asNonEmptyString(metadata.dataset_type),
-    industry: asNonEmptyString(metadata.industry),
     task_labels: taskLabelsFromMetadata(metadata.tasks),
     runner: asNonEmptyString(metadata.runner),
     mode: asNonEmptyString(metadata.mode),
@@ -181,12 +173,8 @@ function taskLabelsFromMetadata(metadata: unknown): Record<string, string> {
   return labels;
 }
 
-function modelSlug(modelId: string): string {
-  return modelId.split("/").at(-1) ?? modelId;
-}
-
 function valsIndexKeyCandidates(row: ValsIndexModelScoreRow): string[] {
-  const slug = modelSlug(row.model_id);
+  const slug = valsModelSlug(row.model_id);
   return [row.model_id, row.model, slug]
     .map(normalizeModelToken)
     .filter((key, index, keys) => key.length > 0 && keys.indexOf(key) === index);

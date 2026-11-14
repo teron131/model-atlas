@@ -6,8 +6,8 @@ import dynamic from "next/dynamic";
 import { type CSSProperties, memo, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { canonicalModelKey } from "../../../src/model-atlas/identity/normalization";
+import { SCORE_ICONS } from "../../shared/DashboardMarks";
 import { openModelSheet } from "../model-sheet/open";
-import { SCORE_ICONS } from "../shared/DashboardMarks";
 import { formatCost } from "../table/format";
 import {
   type SignatureMetric,

@@ -1,8 +1,4 @@
-/**
- * Aggregate model indexes and resource measurements from Artificial Analysis.
- *
- * Page source: https://artificialanalysis.ai/leaderboards/models
- */
+/** Snapshot steps for the Artificial Analysis leaderboard and evaluation-page resources: when a stored cache is refetched despite a cache hit, how a refreshed row replaces a cached one, and which series a new version resets. */
 
 import { asFiniteNumber, asNonEmptyString, asRecord, type JsonObject } from "../../runtime";
 import { sourceRowKey } from "../snapshots/policy";
@@ -23,10 +19,10 @@ import type {
   readArtificialAnalysisRawCache,
 } from "./cache";
 import {
-  ARTIFICIAL_ANALYSIS_LEADERBOARD_COLUMNS,
   artificialAnalysisModelId,
   getArtificialAnalysisLeaderboardRawStats,
   processArtificialAnalysisLeaderboardRows,
+  projectArtificialAnalysisLeaderboardRows,
 } from "./leaderboard";
 
 type ArtificialAnalysisSnapshot = {
@@ -85,7 +81,7 @@ export async function artificialAnalysisSnapshot(
   });
   return {
     artificialAnalysisRawRows: snapshot.rows,
-    artificialAnalysisSelectedRows: projectLeaderboardRows(snapshot.rows),
+    artificialAnalysisSelectedRows: projectArtificialAnalysisLeaderboardRows(snapshot.rows),
     sourceStatus: {
       source: "artificial_analysis",
       fetchedAt: snapshot.fetchedAt,
@@ -171,12 +167,4 @@ function signalCount(row: JsonObject): number {
     ...Object.values(asRecord(projected?.intelligence)),
     ...Object.values(asRecord(projected?.intelligence_index_cost)),
   ].filter((value) => asFiniteNumber(value) != null).length;
-}
-
-function projectLeaderboardRows(
-  rows: SourceSnapshots["artificialAnalysisRawRows"],
-): SourceSnapshots["artificialAnalysisSelectedRows"] {
-  return processArtificialAnalysisLeaderboardRows(rows, [
-    ...ARTIFICIAL_ANALYSIS_LEADERBOARD_COLUMNS,
-  ]);
 }

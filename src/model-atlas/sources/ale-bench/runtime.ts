@@ -1,14 +1,18 @@
-/** ALE-Bench runtime owns raw-cache reconstruction, snapshot refresh, raw-row serialization, and its source-data lookup. */
+/** ALE-Bench keeps every self-refinement checkpoint from Sakana's leaderboard and Epoch's ALE-Bench rows in one raw table, told apart by URL; a cache with an unknown URL or any unparseable row is rejected whole, and one without Epoch rows is refetched. */
 
-import type { DatabaseWriter } from "../../database/writers/database";
 import { buildBenchmarkModelMap, parseSlugEffort } from "../../identity/normalization";
 import { asFiniteNumber, asNonEmptyString } from "../../runtime";
-import { type BenchmarkSnapshotContext, defineBenchmarkRuntime } from "../benchmark-runtime";
-import { type CacheRowSource, firstFetchedAt, jsonValue, sourceCacheRows } from "../cache/rows";
+import { type DatabaseWriter, jsonValue } from "../../sqlite-utils";
+import { type BenchmarkSnapshot, defineBenchmarkRuntime } from "../benchmark-runtime";
+import { type CacheRowSource, firstFetchedAt, sourceCacheRows } from "../cache/rows";
 import { ALE_BENCH_EPOCH_RESULTS_URL, type AleBenchEpochRow } from "../epoch/ale-bench";
 import { sourceRowKey } from "../snapshots/policy";
-import { snapshotSourceRows } from "../snapshots/row-snapshot";
-import type { RawSourceCacheStatus, SourceRefreshOptions, SourceSnapshotStatus } from "../types";
+import {
+  type RawRowsCache,
+  snapshotSourceRows,
+  type SourceSnapshotRequest,
+  sourceSnapshotStatus,
+} from "../snapshots/row-snapshot";
 import {
   ALE_BENCH_LEADERBOARD_URL,
   type AleBenchSourceRow,
@@ -17,10 +21,7 @@ import {
   summarizeAleBenchSourceDefaultRows,
 } from "./leaderboard";
 
-type AleBenchSnapshot = {
-  rows: AleBenchSourceRow[];
-  sourceStatus: SourceSnapshotStatus;
-};
+type AleBenchSnapshot = BenchmarkSnapshot<AleBenchSourceRow>;
 
 export const aleBenchRuntime = defineBenchmarkRuntime({
   source: "ale_bench",
@@ -32,11 +33,9 @@ export const aleBenchRuntime = defineBenchmarkRuntime({
   sourceData: aleBenchSourceData,
 });
 
-/** Reconstruct every ALE-Bench refinement configuration without accepting a partial raw cache. */
-export function readAleBenchRawCache(cache: CacheRowSource): {
-  rows: AleBenchSourceRow[];
-  fetchedAt: number | null;
-} | null {
+export function readAleBenchRawCache(
+  cache: CacheRowSource,
+): RawRowsCache<AleBenchSourceRow> | null {
   const cacheRows = sourceCacheRows(cache, "SELECT * FROM ale_bench_raw_rows ORDER BY row_index");
   if (
     cacheRows.length === 0 ||
@@ -73,22 +72,14 @@ export function readAleBenchRawCache(cache: CacheRowSource): {
   return rows.length !== cacheRows.length ? null : { rows, fetchedAt: firstFetchedAt(cacheRows) };
 }
 
-/** Loads all ALE-Bench refinement checkpoints while scoring remains restricted to the source-default row. */
 async function aleBenchSnapshot(
-  cached: ReturnType<typeof readAleBenchRawCache>,
-  status: RawSourceCacheStatus,
-  options: SourceRefreshOptions,
-  previousMissingSince: ReadonlyMap<string, number>,
-  nowEpochSeconds: number,
-  context: BenchmarkSnapshotContext,
+  request: SourceSnapshotRequest<ReturnType<typeof readAleBenchRawCache>>,
 ): Promise<AleBenchSnapshot> {
   const snapshot = await snapshotSourceRows({
-    source: context.source,
-    cached,
-    status: cached?.rows.some((row) => "epoch" in row) ? status : { ...status, cache_hit: false },
-    options,
-    previousMissingSince,
-    nowEpochSeconds,
+    ...request,
+    status: request.cached?.rows.some((row) => "epoch" in row)
+      ? request.status
+      : { ...request.status, cache_hit: false },
     fetchRows: getAleBenchStats,
     rowKey: (row) => sourceRowKey(row.model, "epoch" in row ? "epoch" : row.num_self_refine),
     rowLabel: (row) =>
@@ -97,7 +88,7 @@ async function aleBenchSnapshot(
   });
   return {
     rows: snapshot.rows,
-    sourceStatus: context.sourceStatus(snapshot),
+    sourceStatus: sourceSnapshotStatus(request.source, snapshot),
   };
 }
 
@@ -107,7 +98,6 @@ function aleBenchSourceData(rows: AleBenchSourceRow[]) {
   return { rows, sourceDefaultRows, rowsByModelName: buildBenchmarkModelMap(sourceDefaultRows) };
 }
 
-/** Insert every ALE-Bench refinement checkpoint with scalar scoring resources and complete raw evidence. */
 function insertAleBenchRawRows(db: DatabaseWriter, snapshot: AleBenchSnapshot): void {
   const statement = db.prepare(`
 		INSERT INTO ale_bench_raw_rows (

@@ -1,4 +1,4 @@
-/** Shared dashboard chart axis scales and tick selection. */
+/** Axis domains and ticks for the dashboard's plots: padded linear, stepped, and base-10 log-ratio scales, each dropping ticks whose labels would print the same. */
 
 import { ticks as linearTicks } from "d3-array";
 import { scaleLog } from "d3-scale";
@@ -89,6 +89,7 @@ export function logRatioAxisScale(
   return { domain, ticks };
 }
 
+/** Scores outside 0–100 fall back to a padded linear scale. */
 export function scoreAxisScale(values: number[], options: ScoreAxisOptions = {}): AxisScale {
   if (values.some((value) => Number.isFinite(value) && (value < 0 || value > 100)))
     return linearAxisScale(values, options);

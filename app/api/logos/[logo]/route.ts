@@ -1,6 +1,7 @@
-/** Route for GET /api/logos/[logo], returning one logo as a single-entry dictionary. */
+/** One provider's logo data URL under its normalized provider key; an unknown provider's 404 carries the same day-long cache headers. */
 
 import { providerAssets } from "../../../../src/model-atlas/logos/provider-assets.generated";
+import { providerAssetKey } from "../../../../src/model-atlas/logos/resolve";
 import { LOGO_CACHE_HEADERS } from "../../cache-headers";
 
 export const revalidate = 86400;
@@ -13,7 +14,7 @@ type LogoRouteContext = {
 
 export async function GET(_request: Request, { params }: LogoRouteContext) {
   const { logo } = await params;
-  const requestedLogo = logoSlug(logo);
+  const requestedLogo = providerAssetKey(logo);
   const icon = providerAssets[requestedLogo as keyof typeof providerAssets]?.logo;
   if (icon == null) {
     return Response.json(
@@ -28,12 +29,4 @@ export async function GET(_request: Request, { params }: LogoRouteContext) {
     );
   }
   return Response.json({ [requestedLogo]: icon }, { headers: LOGO_CACHE_HEADERS });
-}
-
-function logoSlug(logo: string | null | undefined) {
-  return String(logo ?? "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9._-]+/g, "-")
-    .replace(/^-+|-+$/g, "");
 }

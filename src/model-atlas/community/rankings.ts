@@ -404,6 +404,7 @@ function indexTooltip(
         "Intelligence",
         `moves ${PULL * 100}% of the way to where the community indexes place each model, at most ${MAX_MOVE_POINTS} points`,
       ],
+      // Minute precision: "2026-10-19T05:00:00Z" → "2026-10-19 05:00".
       ["Ranked", `${ranking.ranked_at.slice(0, 16).replace("T", " ")} UTC`],
     ],
     sections: [{ title: "Inequalities", hideTitle: true, rows: chainSections }],

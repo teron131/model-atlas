@@ -64,7 +64,13 @@ function schemaTableMatches(
   return true;
 }
 
-/** Builds an atomic reconciliation that preserves common columns only when stable primary keys still match. */
+/**
+ * Builds an atomic reconciliation that preserves common columns only when stable primary keys still match.
+ * Objects the manifest lists but the schema no longer defines are dropped.
+ * Missing tables are created, and tables whose shape or SQL changed are rebuilt with their common columns copied.
+ * Indexes that changed, or whose table was rebuilt, are recreated.
+ * The manifest is rewritten when its object list differs from the schema's.
+ */
 export function schemaReconciliationPlan(
   schemaSql: string,
   catalogRows: readonly SchemaCatalogRow[],
@@ -292,6 +298,7 @@ export function catalogTableMatchesSchema(
   );
 }
 
+/** Table name to the text between its parentheses; the closing parenthesis must start its own line, as in schema.sql: `CREATE TABLE IF NOT EXISTS refresh_runs (\n  refresh_id INTEGER NOT NULL\n);` → refresh_runs and its column line. */
 function schemaTableBodies(schemaSql: string): Map<string, string> {
   const tables = new Map<string, string>();
   const tableRegex =
@@ -306,6 +313,7 @@ function schemaTableBodies(schemaSql: string): Map<string, string> {
   return tables;
 }
 
+/** Splits a table body at top-level commas, outside quotes and parentheses: `refresh_id INTEGER NOT NULL, note TEXT DEFAULT 'a,b', PRIMARY KEY (refresh_id)` → three definitions. */
 function schemaTableDefinitions(body: string): string[] {
   const definitions: string[] = [];
   let start = 0;
@@ -390,6 +398,7 @@ export function schemaTableColumns(schemaSql: string): Map<string, [string, stri
   );
 }
 
+/** Strips `--` comment lines and splits at every `;`, so schema.sql must keep semicolons out of literals and triggers: `-- runs\nCREATE TABLE …;\nCREATE INDEX …;` → the two statements. */
 export function schemaStatements(schemaSql: string): string[] {
   return schemaSql
     .replace(/^\s*--.*$/gm, "")
@@ -423,6 +432,7 @@ function primaryKeyColumnNames(columns: Map<string, SchemaColumnShape>): string[
     .map(([column]) => column);
 }
 
+/** Compares SQL regardless of `IF NOT EXISTS`, identifier quotes, whitespace, a trailing `;`, and case: `CREATE TABLE IF NOT EXISTS "Runs" (\n  id INTEGER\n);` → `create table runs ( id integer )`. */
 function normalizeSchemaSql(sql: string): string {
   return sql
     .replace(/\bIF\s+NOT\s+EXISTS\b/gi, "")

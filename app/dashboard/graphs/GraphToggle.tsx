@@ -1,4 +1,4 @@
-/** Segmented control for choosing one option beside a plot: the graph panels' axes and views, and the model sheet's reasoning efforts. */
+/** Segmented control for choosing one option beside a plot: the Pareto x-axis, the Timeline's range presets, and the model sheet's reasoning efforts. */
 
 import { useHorizontalChoice } from "../../shared/use-horizontal-choice";
 
@@ -8,7 +8,6 @@ type GraphToggleOption<TKey extends string> = {
   key: TKey;
   label: string;
   title?: string;
-  disabled?: boolean;
 };
 
 /** `onPreview` reports the option under the pointer or keyboard focus, and `null` when it leaves, so a plot can light the mark an option names. */
@@ -36,7 +35,6 @@ export function GraphToggle<TKey extends string>({
           className="selection-choice"
           aria-pressed={option.key === selectedKey}
           title={option.title}
-          disabled={option.disabled}
           onClick={() => onSelect(option.key)}
           onPointerEnter={() => onPreview?.(option.key)}
           onPointerLeave={() => onPreview?.(null)}

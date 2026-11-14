@@ -11,21 +11,20 @@ import type {
 import { parseModelEffort } from "../identity/normalization";
 import { nowEpochSeconds } from "../runtime";
 import { htmlAttribute, percentToUnitScore } from "./parsing";
-import { fetchSource } from "./request-scheduler";
+import { fetchSource, fetchSourceText } from "./request-scheduler";
 
+// One row of the module's minified leaderboard array, capturing rank, name, percent, and cost label: [1,`GPT-5 (high)§`,`45.2%`,`$1.23 est.`] → `1`, `GPT-5 (high)§`, `45.2`, `$1.23 est.`.
 const LEADERBOARD_ROW_PATTERN =
   /\[(\d+),`([^`]*)`,`([0-9]+(?:\.[0-9]+)?)%`,`(\$[0-9]+(?:\.[0-9]+)?[^`]*)`\]/g;
 
+// The version string the module assigns just before the array of arrays: e=`1.0.3`,t=[[ → `1.0.3`.
 const VERSION_PATTERN = /\b\w+=`(\d+\.\d+\.\d+)`,\w+=\[\[/;
 
 /** Fetch current official Zapier results without treating partial-credit or fallback systems as model scores. */
 export async function getAutomationBenchStats(
   sourceUrl: string,
 ): Promise<BenchmarkObservationPayload> {
-  const pageHtml = await fetchSource(sourceUrl, {}, async (response) => {
-    if (!response.ok) throw new Error(`Zapier AutomationBench scrape failed: ${response.status}`);
-    return response.text();
-  });
+  const pageHtml = await fetchSourceText(sourceUrl);
   const moduleSource = await fetchLeaderboardModule(pageHtml);
   if (moduleSource == null) return { fetched_at_epoch_seconds: null, data: [] };
   const data = processAutomationBenchModule(moduleSource, sourceUrl);
@@ -44,7 +43,7 @@ export function processAutomationBenchModule(
   const rows: BenchmarkObservationRow[] = [];
   for (const match of moduleSource.matchAll(LEADERBOARD_ROW_PATTERN)) {
     const rank = Number(match[1]);
-    // The page strips trailing footnote markers from names, such as § on preliminary results.
+    // Names carry trailing footnote markers, such as § on preliminary results, that are not part of the model name.
     const model = match[2]?.trim().replace(/[*†‡§]+$/, "") ?? "";
     const canonicalValue = percentToUnitScore(match[3]);
     const costLabel = match[4] ?? "";
@@ -97,6 +96,7 @@ async function fetchLeaderboardModule(pageHtml: string): Promise<string | null> 
   return modules.find((source) => source.includes("task_completed_correctly")) ?? null;
 }
 
+/** Framer's own runtime chunks never hold the leaderboard, so they are not fetched: `…/sites/abc/react.B1x9.mjs` is skipped, `…/sites/abc/Leaderboard.Xy12.mjs` kept. */
 function modulePreloadUrls(pageHtml: string): string[] {
   return [...pageHtml.matchAll(/<link\b[^>]*>/gi)]
     .flatMap((tag) => {
@@ -111,6 +111,7 @@ function modulePreloadUrls(pageHtml: string): string[] {
     );
 }
 
+/** Splits a dollar amount from the note after it: `$1.23 est.` → cost `1.23`, annotation `est.`. */
 function parseCostLabel(value: string): { cost: number | null; annotation: string | null } {
   const match = value.match(/^\$([0-9]+(?:\.[0-9]+)?)(.*)$/);
   const cost = Number(match?.[1]);

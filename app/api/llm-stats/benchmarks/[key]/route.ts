@@ -1,6 +1,6 @@
 /** One benchmark's slice: its results for the ranked models, best first, in the source's units. */
 
-import { publicJsonResponse } from "../../../../leaderboard/public-json";
+import { publicJsonResponse } from "../../../public-json";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;

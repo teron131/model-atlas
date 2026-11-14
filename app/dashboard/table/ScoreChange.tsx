@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from "react";
 
+import { clampScore } from "../../../src/model-atlas/pipeline/scores/normalization";
 import type {
   ModelAtlasInputChange,
   ModelAtlasModel,
@@ -9,6 +10,7 @@ import type {
   ModelAtlasScoreMove,
 } from "../../../src/model-atlas/stats/types";
 import { providerBrandColor } from "../shared/provider-theme";
+import { benchmarkMetricColumns } from "./column-registry";
 import { scoreColumnsByDimension } from "./Columns";
 import {
   formatCompactNumber,
@@ -17,7 +19,6 @@ import {
   formatRefreshDate,
   formatScore,
 } from "./format";
-import { benchmarkMetricColumns } from "./models";
 
 type InputKind = ModelAtlasInputChange["kind"];
 
@@ -280,8 +281,4 @@ function formatSignificant(value: number | null): string {
 
 function signedDelta(value: number): string {
   return `${value > 0 ? "+" : value < 0 ? "−" : "±"}${Math.abs(value).toFixed(1)}`;
-}
-
-function clampScore(value: number): number {
-  return Math.max(0, Math.min(100, value));
 }

@@ -13,7 +13,7 @@ import type {
 import { parseModelEffort } from "../../identity/normalization";
 import { asFiniteNumber, nowEpochSeconds } from "../../runtime";
 import { parseCsvRecords } from "../parsing";
-import { fetchSource } from "../request-scheduler";
+import { fetchSourceText } from "../request-scheduler";
 
 const EPOCH_CAPABILITIES_INDEX_CSV_URL = "https://epoch.ai/data/eci_scores.csv";
 const EPOCH_CAPABILITIES_INDEX_BENCHMARKS_CSV_URL = "https://epoch.ai/data/eci_benchmarks.csv";
@@ -21,15 +21,9 @@ const EPOCH_CAPABILITIES_INDEX_BENCHMARKS_CSV_URL = "https://epoch.ai/data/eci_b
 export async function getEpochCapabilitiesIndexStats(
   sourceUrl = EPOCH_CAPABILITIES_INDEX_CSV_URL,
 ): Promise<BenchmarkObservationPayload> {
-  const read = (url: string) =>
-    fetchSource(url, {}, async (response) => {
-      if (!response.ok)
-        throw new Error(`Epoch Capabilities Index scrape failed: ${response.status}`);
-      return response.text();
-    });
   const [scores, benchmarks] = await Promise.all([
-    read(sourceUrl),
-    read(EPOCH_CAPABILITIES_INDEX_BENCHMARKS_CSV_URL),
+    fetchSourceText(sourceUrl),
+    fetchSourceText(EPOCH_CAPABILITIES_INDEX_BENCHMARKS_CSV_URL),
   ]);
   return {
     fetched_at_epoch_seconds: nowEpochSeconds(),

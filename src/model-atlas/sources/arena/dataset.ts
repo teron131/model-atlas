@@ -10,9 +10,10 @@ import {
   qualifierReasoningEffort,
 } from "../../identity/normalization";
 import { asFiniteNumber, asNonEmptyString, asRecord } from "../../runtime";
-import { fetchSource } from "../request-scheduler";
+import { fetchSourceJson } from "../request-scheduler";
 
 const DATASET_URL = "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset";
+/** The datasets-server `rows` endpoint returns at most 100 rows per request. */
 const PAGE_SIZE = 100;
 export const ARENA_AGENT_DATASET_URL = `${DATASET_URL}/viewer/agent/latest`;
 export const ARENA_WEBDEV_DATASET_URL = `${DATASET_URL}/viewer/webdev/latest`;
@@ -57,10 +58,7 @@ export async function fetchArenaDataset(config: "agent" | "webdev") {
       offset: String(rows.length),
       length: String(PAGE_SIZE),
     }).toString();
-    const page = await fetchSource(url, {}, async (response) => {
-      if (!response.ok) throw new Error(`Arena ${config} dataset failed: ${response.status}`);
-      return asRecord(await response.json());
-    });
+    const page = asRecord(await fetchSourceJson(url));
     const count = asFiniteNumber(page.num_rows_total);
     if (
       page.partial !== false ||
@@ -99,8 +97,12 @@ export function arenaBoardNames(rows: readonly Record<string, unknown>[]): Reado
   return new Set(rows.flatMap((row) => asNonEmptyString(row.model_name)?.toLowerCase() ?? []));
 }
 
-/** Release and supported precision qualifiers stay in model identity; unknown labels cannot supply an assignment. A hybrid model's thinking mode is its default variant, so an unqualified name the board also lists in thinking mode is the non-thinking mode. */
+/**
+ * Release and supported precision qualifiers stay in model identity; unknown labels cannot supply an assignment.
+ * A hybrid model's thinking mode is its default variant, so an unqualified name the board also lists in thinking mode is the non-thinking mode.
+ */
 export function arenaDatasetIdentity(name: string, boardNames: ReadonlySet<string>) {
+  // A trailing parenthesized list holds the qualifiers: Claude Opus 4.5 (thinking, 32k) → Claude Opus 4.5 with thinking and 32k.
   const suffix = /^(.*?)\s+\(([^()]+)\)$/.exec(name);
   let baseModel = suffix?.[1] ?? name;
   let reasoningEffort: string | null = null;
@@ -113,8 +115,10 @@ export function arenaDatasetIdentity(name: string, boardNames: ReadonlySet<strin
     else if (/^instant$/i.test(qualifier)) reasoningEffort = "none";
     else if (isReasoningModeLabel(qualifier)) continue;
     else if (/^[\w -]+ harness$/i.test(qualifier))
+      // Terminus 2 harness → terminus-2-harness.
       harness = qualifier.toLowerCase().replace(/\s+/g, "-");
     else if (/^\d+k$/i.test(qualifier)) budget = qualifier.toLowerCase();
+    // Qwen3 235B (2507) → Qwen3 235B-2507.
     else if (/^(?:\d{4,8}|NVFP4)$/i.test(qualifier)) baseModel += `-${qualifier}`;
     else unknown = true;
   }

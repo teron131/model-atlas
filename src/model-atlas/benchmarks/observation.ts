@@ -125,7 +125,7 @@ export function excludeAmbiguousConfigurations<Row extends BenchmarkObservationR
   );
 }
 
-/** Return the final provider or composite-model alias without splitting configuration labels. */
+/** Return the text after the last slash outside parentheses, so configuration labels stay whole: `"anthropic/claude-opus-4 (adaptive/max)"` → `"claude-opus-4 (adaptive/max)"`. */
 function trailingModelAlias(value: string): string | null {
   let parenthesisDepth = 0;
   let slashIndex = -1;

@@ -47,6 +47,7 @@ function normalizedRowProvider(row: ModelRow): string | null {
   return provider == null ? null : normalizeProviderId(provider);
 }
 
+/** Families compare as lowercase slugs with separator runs folded to one hyphen: `Claude Opus_4.5` → `claude-opus-4-5`. */
 function normalizedRowFamily(row: ModelRow): string | null {
   if (row.family == null || row.family.length === 0) {
     return null;
@@ -132,7 +133,7 @@ function modelsDevCatalogRow(modelsDevModel: ModelsDevFlatModel): ModelRow | nul
   };
 }
 
-/** Build a text-model catalog from benchmark-matched rows and nonduplicate models.dev candidates. */
+/** models.dev rows join only under an unrepresented id, concrete ids before aliases, and a `latest` alias never joins a family that already has a concrete row. */
 export function buildModelCatalogRows(
   sourceData: Pick<ModelAtlasSourceData, "modelsDev">,
   matchedRows: ModelRow[],

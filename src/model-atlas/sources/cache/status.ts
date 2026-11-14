@@ -1,4 +1,4 @@
-/** Raw source cache freshness and persisted-shape status policy. */
+/** Per-source cache status: whether a source's rows stored in the SQLite checkpoint can be reused instead of refetched. `cache_hit` judges only the stored table; a snapshot can still refetch when its own check rejects the reconstructed rows. */
 
 import type { DatabaseSync } from "node:sqlite";
 

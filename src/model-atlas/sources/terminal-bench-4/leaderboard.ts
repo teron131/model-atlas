@@ -5,7 +5,7 @@
  * JSON source: https://ofhuhcpkvzjlejydnvyd.supabase.co/functions/v1/leaderboard-read
  */
 
-import { BENCHMARK_RESOURCE_PROFILES } from "../../benchmarks/catalog/portfolio";
+import { BENCHMARK_RESOURCE_PROFILES } from "../../benchmarks/catalog";
 import { type BenchmarkResourceAggregate, resourcePerTaskRun } from "../../benchmarks/observation";
 import { withClaudeFamily } from "../../identity/claude";
 import {
@@ -46,7 +46,7 @@ export type TerminalBench4ModelHarnessRow = BenchmarkModelRow &
     output_tokens_per_task?: number | null;
   };
 
-export type TerminalBench4RowsByModelName = Map<string, TerminalBench4ModelHarnessRow>;
+type TerminalBench4RowsByModelName = Map<string, TerminalBench4ModelHarnessRow>;
 
 type TerminalBench4Payload = {
   fetched_at_epoch_seconds: number | null;

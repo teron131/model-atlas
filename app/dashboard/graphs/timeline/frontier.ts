@@ -1,4 +1,4 @@
-/** Require evidence support for every record, independently of release age or current portfolio membership. */
+/** The Timeline's record rule: a model sets or ties a record, on the field's frontier and on each leading lab's line, only with enough evidence support, whatever its release age or current portfolio membership. */
 
 export const TIMELINE_START_DATE = "2023-03-14";
 /** The evidence support a model needs to set a record, on the field's frontier and on each lab's line. */
@@ -13,10 +13,10 @@ type Candidate = {
   releaseDate: string | null;
 };
 
-/** Coverage is prepared against retained evidence before view filters; neither age nor unknown support bypasses the cutoff. */
-export function coverageFrontier<T extends Candidate>(ordered: T[], minimumCoverage: number): T[] {
+/** Coverage is prepared against retained evidence before view filters; unknown support never passes the cutoff. */
+export function coverageFrontier<T extends Candidate>(ordered: T[]): T[] {
   const eligible = ordered.filter(
-    (point) => point.coverage != null && point.coverage >= minimumCoverage,
+    (point) => point.coverage != null && point.coverage >= RECORD_MINIMUM_SUPPORT,
   );
   let best = -Infinity;
   return [...eligible]
@@ -32,11 +32,14 @@ export function coverageFrontier<T extends Candidate>(ordered: T[], minimumCover
 export function frontierTies<T extends Candidate & { id: string }>(
   points: readonly T[],
   records: readonly T[],
-  minimumCoverage: number,
 ): T[] {
   const recordIds = new Set(records.map((record) => record.id));
   return points.filter((point) => {
-    if (recordIds.has(point.id) || point.coverage == null || point.coverage < minimumCoverage)
+    if (
+      recordIds.has(point.id) ||
+      point.coverage == null ||
+      point.coverage < RECORD_MINIMUM_SUPPORT
+    )
       return false;
     const standing = records
       .filter((record) => (record.releaseDate ?? "") <= (point.releaseDate ?? ""))
@@ -47,7 +50,6 @@ export function frontierTies<T extends Candidate & { id: string }>(
 
 type LabFrontier<T extends Candidate & { id: string; provider: string }> = {
   provider: string;
-  models: T[];
   records: T[];
 };
 
@@ -65,8 +67,8 @@ export function leadingLabs<T extends Candidate & { id: string; provider: string
     .flatMap(([provider, group]) => {
       const models = [...group.values()];
       if (models.length <= LAB_MINIMUM_MODELS) return [];
-      const records = coverageFrontier(models, RECORD_MINIMUM_SUPPORT);
-      return records.length ? [{ provider, models, records }] : [];
+      const records = coverageFrontier(models);
+      return records.length ? [{ provider, records }] : [];
     })
     .sort(
       (a, b) =>

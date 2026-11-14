@@ -8,13 +8,17 @@
 import { canonicalReasoningEffort, modelEffortLabel } from "../../identity/normalization";
 import { meanOfFinite, medianOfFinite } from "../../math-utils";
 import { asFiniteNumber, asRecord, nowEpochSeconds } from "../../runtime";
-import { fetchSource, scheduleSourceRequest, SourceQueueTimeoutError } from "../request-scheduler";
+import {
+  fetchSourceJson,
+  scheduleSourceRequest,
+  SourceQueueTimeoutError,
+} from "../request-scheduler";
 
 export const AGENTS_LAST_EXAM_LEADERBOARD_URL = "https://agents-last-exam.org/leaderboard";
 
-const DEFAULT_API_URL = "https://agents-last-exam.org/api/demo/leaderboard";
+const LEADERBOARD_API_URL = "https://agents-last-exam.org/api/demo/leaderboard";
 
-const DEFAULT_TIMEOUT_MS = 30_000;
+const BROWSER_TIMEOUT_MS = 30_000;
 
 const SCORE_SPLIT = "full/overall";
 
@@ -72,6 +76,7 @@ type AgentsLastExamModelScorePayload = {
   data: AgentsLastExamModelScoreRow[];
 };
 
+/** Any API failure other than a scheduler queue timeout retries through the browser fallback; a queue timeout returns no rows. */
 export async function getAgentsLastExamHarnessStats(): Promise<AgentsLastExamHarnessPayload> {
   try {
     const rows = await fetchApiRows();
@@ -196,13 +201,8 @@ export function summarizeAgentsLastExamModelScores(
 }
 
 async function fetchApiRows(): Promise<AgentsLastExamHarnessRow[]> {
-  return await fetchSource(DEFAULT_API_URL, {}, async (response) => {
-    if (!response.ok) {
-      throw new Error(`Agents' Last Exam scrape failed: ${response.status}`);
-    }
-    const payload = asRecord(await response.json());
-    return Array.isArray(payload.rows) ? processAgentsLastExamLeaderboardRows(payload.rows) : [];
-  });
+  const payload = asRecord(await fetchSourceJson(LEADERBOARD_API_URL));
+  return Array.isArray(payload.rows) ? processAgentsLastExamLeaderboardRows(payload.rows) : [];
 }
 
 /** Browser fallback keeps the source usable when the direct JSON endpoint blocks plain fetches. */
@@ -213,12 +213,12 @@ async function fetchPlaywrightRows(): Promise<AgentsLastExamHarnessRow[]> {
     try {
       const page = await browser.newPage();
       const responsePromise = page.waitForResponse(
-        (response) => response.url() === DEFAULT_API_URL && response.ok(),
-        { timeout: DEFAULT_TIMEOUT_MS },
+        (response) => response.url() === LEADERBOARD_API_URL && response.ok(),
+        { timeout: BROWSER_TIMEOUT_MS },
       );
       await page.goto(AGENTS_LAST_EXAM_LEADERBOARD_URL, {
         waitUntil: "domcontentloaded",
-        timeout: DEFAULT_TIMEOUT_MS,
+        timeout: BROWSER_TIMEOUT_MS,
       });
       const response = await responsePromise;
       const payload = asRecord(await response.json());

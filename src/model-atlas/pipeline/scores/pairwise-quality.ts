@@ -3,7 +3,11 @@
 import { modelCalibrationWeights } from "../../benchmarks/calibration-population";
 import type { BenchmarkDimension, BenchmarkGroup } from "../../benchmarks/factory";
 import { isAggregateIndex } from "../../benchmarks/index-policy";
-import { benchmarkDimensionWeight } from "../../benchmarks/registry";
+import {
+  benchmarkDimensionWeight,
+  type BenchmarkMetricModel,
+  benchmarkValue,
+} from "../../benchmarks/registry";
 import {
   countsTowardIntelligence,
   type ScoringConfig,
@@ -11,7 +15,6 @@ import {
 } from "../../config/stage";
 import { canonicalModelKey } from "../../identity/normalization";
 import {
-  clamp,
   linearScore,
   type MinMaxRange,
   weightedMeanOfFinite,
@@ -19,8 +22,8 @@ import {
   weightedQuantileRank,
 } from "../../math-utils";
 import type { ModelAtlasCandidate } from "../model-types";
+import { clampScore } from "./normalization";
 import { effortQualityKey, observedRangesByBenchmark } from "./quality-context";
-import { type BenchmarkMetricModel, benchmarkValue } from "./resource-metrics";
 import type { IntelligenceScoreParts } from "./score-builders";
 
 type PairwiseQualityModel = BenchmarkMetricModel & {
@@ -277,7 +280,7 @@ function frontierScaledIndexes(
           offset: measured.reduce((sum, entry) => sum + entry.offset, 0) / measured.length,
           weight: measured.reduce((sum, entry) => sum + entry.weight, 0) / measured.length,
         };
-        return { value: clamp(frontier + offset, 0, 100), weight };
+        return { value: clampScore(frontier + offset), weight };
       }),
     );
   });
@@ -349,16 +352,10 @@ function largestConnectedComponent(
 }
 
 /**
- * Fit one scalar rating per model from weighted pairwise score margins.
- *
- * Each edge states that `rating[left] - rating[right]` should approximate its observed `difference`, with disagreement penalized by `weight`.
+ * Each edge asks `rating[left] - rating[right]` to approximate its observed `difference`, with disagreement penalized by `weight`.
  * The weighted least-squares normal equations are `(BᵀWB + εI)θ = BᵀWd`, where `BᵀWB` is the weighted graph Laplacian.
- * The solver applies that Laplacian directly from the edge list and uses conjugate gradient, avoiding allocation of a dense model-by-model matrix.
- * The small ridge term fixes the graph's otherwise arbitrary common offset and gives isolated model slots a zero rating.
- *
- * @param modelCount Number of model slots addressed by edge indexes.
- * @param edges Weighted observed margins in the connected comparison component being fitted.
- * @returns One latent rating per model slot; only relative differences are meaningful before percentile mapping.
+ * Conjugate gradient applies that Laplacian straight from the edge list, so no dense model-by-model matrix is allocated.
+ * The small ridge term fixes the graph's otherwise arbitrary common offset and gives isolated model slots a zero rating; only rating differences are meaningful.
  */
 function fitGraphRatings(modelCount: number, edges: readonly PairwiseEdge[]): number[] {
   const ridge = 1e-8;

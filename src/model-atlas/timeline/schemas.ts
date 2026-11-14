@@ -1,4 +1,4 @@
-/** Shared retained-data schemas and their key conventions, compact persistence, and fit-policy validation for the Intelligence Index. */
+/** Timeline's retained-data shapes for both capability dimensions, their benchmark and position key conventions, the packed form that stores the scale's model, benchmark, and observation collections once, and fit-parameter validation. */
 
 import { MAX_NORMALIZED_IMPUTATION_ERROR } from "../config/stage";
 
@@ -51,6 +51,7 @@ export function catalogPositionId(catalogId: string, effort: string): string {
   return `atlas-model:${catalogId}::${effort}`;
 }
 
+/** Inverse of `catalogPositionId`: `"atlas-model:openai/gpt-5::high"` → `"openai/gpt-5"`; `null` for an archived source identity. */
 export function positionCatalogId(positionId: string): string | null {
   return CATALOG_POSITION_ID.exec(positionId)?.[1] ?? null;
 }

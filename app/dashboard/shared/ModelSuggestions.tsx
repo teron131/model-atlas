@@ -4,16 +4,12 @@
 
 import { type CSSProperties, type KeyboardEvent, useState } from "react";
 
+import { collapsedModels } from "../../../src/model-atlas/stats/model-variants";
 import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
+import { BrainIcon } from "../../shared/DashboardMarks";
 import { formatScore } from "../table/format";
-import { BrainIcon } from "./DashboardMarks";
-import {
-  collapsedModels,
-  filterByGlobalModelFilters,
-  type GlobalModelFilters,
-  modelLogo,
-  modelName,
-} from "./model-display";
+import { modelLogo, modelName } from "./model-display";
+import { filterByGlobalModelFilters, type GlobalModelFilters } from "./model-filters";
 import { providerBrandColor } from "./provider-theme";
 import { hasSearchQuery } from "./search";
 
@@ -41,7 +37,7 @@ export function modelSuggestions(
     .sort(
       (left, right) =>
         Number(exact(right)) - Number(exact(left)) ||
-        (right.scores.intelligence_score ?? -1) - (left.scores.intelligence_score ?? -1),
+        right.scores.intelligence_score - left.scores.intelligence_score,
     )
     .slice(0, MAX_SUGGESTIONS);
 }

@@ -3,15 +3,16 @@
 import { memo, useMemo, useState } from "react";
 
 import { isAggregateIndex } from "../../../../src/model-atlas/benchmarks/index-policy";
+import { modelVariantKey } from "../../../../src/model-atlas/stats/model-variants";
 import {
   type ModelAtlasModel,
   type ModelAtlasPayload,
 } from "../../../../src/model-atlas/stats/types";
 import { captureFileToken } from "../../capture/png";
 import { ResearchRegion } from "../../ResearchRegions";
-import { modelName, modelVariantKey, shortLabel } from "../../shared/model-display";
+import { modelName, shortLabel } from "../../shared/model-display";
 import { updateDashboardUrl, useUrlState } from "../../use-url-state";
-import { finite, fmtTooltipNumber, fmtTooltipScore } from "../format";
+import { finite, formatTooltipNumber, formatTooltipScore } from "../format";
 import { GraphToggle } from "../GraphToggle";
 import { HoverCard, type HoverSetter, type HoverState } from "../HoverCard";
 import { scoreAxisScale } from "../plot/axis-scale";
@@ -29,7 +30,7 @@ import {
   referenceFrontierBenchmarkRows,
 } from "./analysis";
 import { BenchmarkSelect } from "./BenchmarkSelect";
-import { sharedFrontierBenchmarkComparison } from "./common-evidence";
+import { commonBenchmarkComparison } from "./common-evidence";
 import { CommonEvidence } from "./CommonEvidence";
 import { PARETO_CAPTION, ParetoFigureFoot, ParetoFigureTop } from "./Figure";
 import {
@@ -127,7 +128,7 @@ const ParetoFigure = memo(function ParetoFigure({
   const aggregate = activeKeys.length > 1;
   const needsEvidence = resourceAxis || !publishedPerformance;
   const comparison = useMemo(
-    () => sharedFrontierBenchmarkComparison(benchmarkRows, referenceRows, activeKeys, axisKey),
+    () => commonBenchmarkComparison(benchmarkRows, referenceRows, activeKeys, axisKey),
     [benchmarkRows, referenceRows, activeKeys, axisKey],
   );
   const axisConfig = useMemo(
@@ -163,7 +164,7 @@ const ParetoFigure = memo(function ParetoFigure({
     publishedPerformance || normalizedScore
       ? (value: number) => value.toFixed(0)
       : indexScore
-        ? fmtTooltipScore
+        ? formatTooltipScore
         : (value: number) => `${value.toFixed(0)}%`;
   const xAxis = frontierXAxisScale(rows.map(axisConfig.get).filter(finite), axisKey, axisConfig);
   const scoreValues = rows.map((row) => row.score);
@@ -178,7 +179,7 @@ const ParetoFigure = memo(function ParetoFigure({
         ? axisConfig.shortLabel
         : frontierBenchmarkAxisConfig[axisKey].shortLabel.toLowerCase(),
       get: (row: FrontierBenchmarkRow) => axisConfig.get(row)!,
-      format: isScoreAxis(axisKey) ? fmtTooltipNumber : axisConfig.format,
+      format: isScoreAxis(axisKey) ? formatTooltipNumber : axisConfig.format,
       xHigherIsBetter: axisConfig.xHigherIsBetter,
       logarithmic: axisConfig.logarithmic,
     }),

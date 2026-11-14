@@ -1,10 +1,10 @@
-/** Serve the separate cloud-published Intelligence Index; reading never changes leaderboard relative scores or refits calibration. */
+/** Serve the separate cloud-published Intelligence Index, or with `view=chart` only its chart points; reading never changes leaderboard relative scores or refits calibration. */
 
 import { createHash } from "node:crypto";
 import { promisify } from "node:util";
 import { gzip } from "node:zlib";
 
-import { readIntelligenceIndex } from "../../../src/model-atlas/database/runtime-snapshot";
+import { readTimelineDataset } from "../../../src/model-atlas/database/runtime-snapshot";
 import type { HistoricalDataset } from "../../../src/model-atlas/timeline/schemas";
 import { timelineChartPoints } from "../../dashboard/graphs/timeline/chart-data";
 import { matchesEtag } from "../cache-headers";
@@ -19,9 +19,13 @@ const chartResponses = new WeakMap<HistoricalDataset, Promise<{ body: Buffer; et
 
 export async function GET(request: Request) {
   try {
-    const dataset = await readIntelligenceIndex();
-    if (!dataset?.prepared || !dataset.displayAnchors)
-      throw new Error("The published snapshot has no Intelligence Index.");
+    const dataset = await readTimelineDataset();
+    if (!dataset?.prepared || !dataset.displayAnchors) {
+      return Response.json(
+        { error: "The published snapshot has no Intelligence Index." },
+        { status: 503 },
+      );
+    }
     const chartOnly = new URL(request.url).searchParams.get("view") === "chart";
     const cache = chartOnly ? chartResponses : responses;
     let cached = cache.get(dataset);
@@ -48,7 +52,8 @@ export async function GET(request: Request) {
       status: unchanged ? 304 : 200,
       headers,
     });
-  } catch (error) {
-    return Response.json({ error: (error as Error).message }, { status: 503 });
+  } catch {
+    // A read failure's own message names storage configuration and state, so the client gets a fixed one.
+    return Response.json({ error: "Unable to read the Intelligence Index." }, { status: 503 });
   }
 }

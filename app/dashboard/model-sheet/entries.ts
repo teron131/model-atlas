@@ -19,9 +19,9 @@ import {
   performanceComparisonRows,
   referenceFrontierBenchmarkRows,
 } from "../graphs/pareto/analysis";
-import { sharedFrontierBenchmarkComparison } from "../graphs/pareto/common-evidence";
+import { commonBenchmarkComparison } from "../graphs/pareto/common-evidence";
 import { modelName } from "../shared/model-display";
-import { leaderboardRows, type TableRow } from "../table/models";
+import { leaderboardRows, type TableRow } from "../table/leaderboard-rows";
 import { isModelSheetModel, type ModelSheetSlot } from "./open";
 
 /** One reasoning effort on its family's curve: Intelligence against median-relative cost on the family's shared benchmarks. */
@@ -129,7 +129,7 @@ function effortCurve(
   { portfolio, referenceRows, keys }: CostEvidence,
 ): SheetEntry["efforts"] {
   if (models.length < 2) return { points: [], benchmarkCount: 0 };
-  const comparison = sharedFrontierBenchmarkComparison(
+  const comparison = commonBenchmarkComparison(
     frontierBenchmarkRows(models, portfolio, "cost"),
     referenceRows,
     keys,

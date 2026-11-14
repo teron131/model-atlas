@@ -1,6 +1,6 @@
 /** Pure OpenRouter stat normalization, same-version permaslug resolution, and best-candidate selection policy. */
 
-import { isSameOpenRouterModelRoute } from "../../identity/openrouter";
+import { isSameOpenRouterModelRoute, MMDD_RELEASE_TOKEN_PATTERN } from "../../identity/openrouter";
 import { providerIdentityKey } from "../../identity/provider";
 import { meanOfFinite } from "../../math-utils";
 import { asFiniteNumber, asRecord } from "../../runtime";
@@ -29,17 +29,16 @@ const OPENROUTER_ROUTE_ALIASES: Readonly<Record<string, string>> = {
   "reflection/reflection-beam": "reflection/beam-1.0-501b-a23b",
 };
 
-const RELEASE_MMDD_PATTERN = /^(?:0[1-9]|1[0-2])(?:[0-2]\d|3[01])$/;
 const INSTRUCTION_TUNING_TOKENS = new Set(["instruct", "it"]);
 
 const SECONDS_PER_MILLISECOND = 0.001;
 const TOKENS_PER_MILLION = 1_000_000;
 
+/** Lowercase, drop a route suffix such as `:free` or `:exacto`, and map provider aliases: ` xAI/Grok-4:free` → `x-ai/grok-4`. */
 export function sanitizeOpenRouterModelId(modelId: string): string {
   const normalized = modelId
     .trim()
     .toLowerCase()
-    // Normalize OpenRouter route suffixes (e.g. :free, :exacto) to base model id.
     .replace(/:[a-z0-9._-]+$/i, "");
   const slashIndex = normalized.indexOf("/");
   if (slashIndex <= 0) {
@@ -210,6 +209,7 @@ export function resolveOpenRouterPermaslugCandidates(
   return permaslug ? [permaslug] : [];
 }
 
+/** The page streams weekly tokens as a Flight promise: the `$@<id>` reference within 100 characters after `weeklyTokensPromise` names the chunk, and the first digits after `<id>:` are the count, so `"weeklyTokensPromise":"$@5a"]…5a:123456789` → `123456789`. */
 export function parseOpenRouterWeeklyTokens(html: string): number | null {
   const marker = "weeklyTokensPromise";
   const markerStart = html.indexOf(marker);
@@ -381,7 +381,7 @@ function looseOpenRouterSlug(
   const rules: ((route: (typeof routes)[number]) => boolean)[] = [
     ({ key }) => key === targetKey,
     ({ slug, key }) =>
-      RELEASE_MMDD_PATTERN.test(release) &&
+      MMDD_RELEASE_TOKEN_PATTERN.test(release) &&
       key === undatedKey &&
       (permaslugBySlug.get(slug)?.endsWith(release) ?? false),
     // Gemma publishes instruction-tuned routes with an `-it` suffix.
@@ -398,7 +398,7 @@ function looseOpenRouterSlug(
   return null;
 }
 
-/** Tokenize a route so publisher aliases, a repeated publisher prefix, dot or dash versions, a family name fused to its version, and a zero minor version compare equal. */
+/** Tokenize a route so publisher aliases, a repeated publisher prefix, dot or dash versions, a family name fused to its version, and a zero minor version compare equal: `qwen/qwen3.0-235b-a22b-instruct` → provider `alibaba`, tokens `qwen 3 235b a22b instruct`. */
 function openRouterRouteTokens(route: string): { provider: string; tokens: string[] } | null {
   const [publisher, rawName] = route.toLowerCase().split("/", 2);
   if (!publisher || !rawName) {
@@ -421,6 +421,7 @@ function openRouterRouteTokens(route: string): { provider: string; tokens: strin
   return { provider, tokens };
 }
 
+/** Moves instruction-tuning tokens behind a `|` so their position stops mattering while their presence still does: `qwen 3 235b a22b instruct` → `qwen-3-235b-a22b|instruct`. */
 function tuningKey(tokens: string[]): string {
   const tuning = tokens.filter((token) => INSTRUCTION_TUNING_TOKENS.has(token)).sort();
   const rest = tokens.filter((token) => !INSTRUCTION_TUNING_TOKENS.has(token));

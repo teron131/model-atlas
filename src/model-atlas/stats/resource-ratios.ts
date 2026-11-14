@@ -7,6 +7,7 @@ import {
   indexPolicy,
   residualIndexBreadth,
 } from "../benchmarks/index-policy";
+import { benchmarkValue } from "../benchmarks/registry";
 import {
   BENCHMARK_RESOURCE_SOURCE_LABELS,
   resourceSourceMetricKey,
@@ -17,7 +18,6 @@ import { positiveFiniteNumber, weightedMedianOfFinite } from "../math-utils";
 import type { ModelAtlasModel } from "../pipeline/model-types";
 import {
   benchmarkTaskMetrics,
-  benchmarkValue,
   separatedBenchmarkResourceSources,
 } from "../pipeline/scores/resource-metrics";
 import { asFiniteNumber, asRecord } from "../runtime";

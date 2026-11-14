@@ -1,4 +1,4 @@
-/** Benchmark portfolio policy owns scoring weights, imputation, and resource-scoring policy. */
+/** Each scored benchmark's portfolio group, importance, and Intelligence/Agentic loadings, which also define `BenchmarkKey`, plus which benchmarks score Speed and Value from their resources and under what resource policy. */
 
 import type { BenchmarkPortfolioEntry, BenchmarkResourcePolicy } from "../factory";
 import { CAIS_INDEX_SCORING_WEIGHT, INDEX_SCORING_WEIGHT } from "../index-policy";
@@ -316,6 +316,7 @@ export type BenchmarkResourceProfile = {
   taskRunCount: number;
 };
 
+/** Task runs in one complete suite run: source readers accept resource totals only over exactly this many runs, and per-task resources divide by it. */
 export const BENCHMARK_RESOURCE_PROFILES = {
   arc_agi_3: { taskRunCount: 55 },
   terminal_bench_4: { taskRunCount: 330 },

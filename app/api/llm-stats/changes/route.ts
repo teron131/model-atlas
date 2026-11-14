@@ -1,7 +1,7 @@
 /** One model variant's updates in the change-history window, read from the published change-history artifact. */
 
 import { readChangeHistory } from "../../../../src/model-atlas/database/runtime-snapshot";
-import { SNAPSHOT_CACHE_HEADERS } from "../../cache-headers";
+import { NO_STORE_HEADERS, SNAPSHOT_CACHE_HEADERS } from "../../cache-headers";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -25,7 +25,7 @@ export async function GET(request: Request) {
   } catch {
     return Response.json(
       { error: "Unable to read change history" },
-      { status: 503, headers: { "Cache-Control": "no-store" } },
+      { status: 503, headers: NO_STORE_HEADERS },
     );
   }
 }

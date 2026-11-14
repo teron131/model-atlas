@@ -9,7 +9,6 @@ import {
   BENCHMARK_OBSERVATION_BINDINGS,
   type BenchmarkObservationBinding,
 } from "../../benchmarks/registry";
-import type { CrosswalkObservation } from "../../benchmarks/sources-crosswalk";
 import {
   type ArtificialAnalysisBenchmarkResourceLookup,
   type ArtificialAnalysisBenchmarkResourceRow,
@@ -22,6 +21,7 @@ import {
   buildBenchmarkSourceData,
 } from "../benchmarks";
 import type { ModelsDevFlatModel } from "../models-dev/catalog";
+import type { CrosswalkObservation } from "./crosswalk";
 import { fusedBenchmarkObservations } from "./fusion";
 import { pickPreferredModelsDevRows } from "./policy";
 

@@ -134,7 +134,7 @@ function readRankingArtifact(state: ArtifactReadState, manifest: SnapshotManifes
 }
 
 /** Only the historical view pays for the index artifact; its cache is independent of dashboard reads. */
-export async function readIntelligenceIndex(): Promise<HistoricalDataset | null> {
+export async function readTimelineDataset(): Promise<HistoricalDataset | null> {
   if (process.env.MODEL_ATLAS_LOCAL_DATABASE === "1") return (await readLocalSnapshot()).timeline;
   const state = artifactReadState();
   const manifest = await readManifest(state);
@@ -280,7 +280,6 @@ function withCurrentMetadata(payload: ModelAtlasPayload): ModelAtlasPayload {
     ...payload,
     metadata: buildCurrentModelAtlasMetadata({
       models: payload.models,
-      healthModels: payload.models,
       availableMetrics: payload.metadata?.available_metrics,
       sourceHealth: payload.metadata?.source_health,
       benchmarkUpdateHealth: payload.metadata?.benchmark_update_health,

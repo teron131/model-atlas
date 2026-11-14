@@ -1,4 +1,4 @@
-/** Route for GET /api/logos, returning the full provider-logo dictionary. */
+/** Every provider's logo as an embedded data URL keyed by provider, read from the generated asset module and cached for a day. */
 
 import { providerAssets } from "../../../src/model-atlas/logos/provider-assets.generated";
 import { LOGO_CACHE_HEADERS } from "../cache-headers";

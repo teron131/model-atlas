@@ -2,20 +2,22 @@
 
 import { createHash } from "node:crypto";
 
-import type { BenchmarkKey } from "../../src/model-atlas/benchmarks/catalog/portfolio";
 import {
   BENCHMARK_COLUMNS,
   BENCHMARK_DISPLAY_ORDER,
   BENCHMARK_LABELS,
-} from "../../src/model-atlas/benchmarks/catalog/presentation";
+  type BenchmarkKey,
+} from "../../src/model-atlas/benchmarks/catalog";
 import type { BenchmarkGroup } from "../../src/model-atlas/benchmarks/factory";
 import { INDEX_REPRESENTED_BENCHMARK_MEDIAN } from "../../src/model-atlas/benchmarks/index-policy";
 import type { BenchmarkObservationEvidenceRow } from "../../src/model-atlas/benchmarks/observation";
+import { benchmarkValue } from "../../src/model-atlas/benchmarks/registry";
 import { readDisplayPayload } from "../../src/model-atlas/database/runtime-snapshot";
+import { applyResourceEvidenceRequirements } from "../../src/model-atlas/pipeline/scores/resource-metrics";
 import {
-  applyResourceEvidenceRequirements,
-  benchmarkValue,
-} from "../../src/model-atlas/pipeline/scores/resource-metrics";
+  intelligenceRanks,
+  modelsForVariantDisplay,
+} from "../../src/model-atlas/stats/model-variants";
 import {
   displayResourceRatios,
   type ResourceRatioKind,
@@ -24,9 +26,8 @@ import {
   type ResourceRatioSummary,
 } from "../../src/model-atlas/stats/resource-ratios";
 import type { ModelAtlasModel, ModelAtlasPayload } from "../../src/model-atlas/stats/types";
-import { matchesEtag, SNAPSHOT_CACHE_HEADERS } from "../api/cache-headers";
-import { modelsForVariantDisplay } from "../dashboard/shared/model-display";
 import { providerLogo } from "../dashboard/shared/provider-theme";
+import { matchesEtag, NO_STORE_HEADERS, SNAPSHOT_CACHE_HEADERS } from "./cache-headers";
 
 const SCORE_SCHEMA = "model_atlas.score";
 const CORE_SCHEMA = "model_atlas.core";
@@ -248,10 +249,7 @@ export async function publicJsonResponse(
   } catch {
     return new Response("Unable to read stats", {
       status: 500,
-      headers: {
-        "Cache-Control": "no-store",
-        "Content-Type": "text/plain; charset=utf-8",
-      },
+      headers: { ...NO_STORE_HEADERS, "Content-Type": "text/plain; charset=utf-8" },
     });
   }
 }
@@ -575,24 +573,17 @@ function methodologyText(): string {
   return `Model Atlas reports Intelligence, Agentic, Speed, and Value as separate relative 0-100 scores, not task-success probabilities. Each benchmark maps its weakest observed result to 0 and its strongest to 100, with base weight importance × dimension allocation, and each reasoning effort is scored separately. Intelligence and Agentic blend the mean of available frontier benchmark results, weighted at 1.5 times the full portfolio's dimension weight, with assigned aggregate indexes, each weighted by dimension weight times the benchmarks it represents after overlap deductions; ECI counts ${INDEX_REPRESENTED_BENCHMARK_MEDIAN}. Effort-specific indexes count on their effort, model-level indexes on the source-default variant. Intelligence blends a 20% pairwise comparison on shared benchmarks into its frontier mean, reads each index result off the frontier scale at the frontier mean of variants with the same index standing, gives efforts without that index the measured efforts' offset, and takes a bounded Trust Me Bro and Slop correction. Agentic multiplies each benchmark contribution by 0.85-1.15 for token use versus similar-quality peers. A missing benchmark result can be estimated from another effort of the same model plus their weighted gap on at least three shared benchmarks, and enters the benchmark mean; validated estimates from the model's other benchmarks affect evidence support and score retention, but do not enter the benchmark mean. Estimates never fill raw benchmark fields or count toward admission. Scores keep 85% through 1.2 supported benchmark weight, rising smoothly to 100% at 12. Confidence fields report the supported share of portfolio weight, not statistical intervals. Speed and Value compare time and cost per task with nearby-quality models, weighting benchmark task resources 70% and provider speed or price 30%. Speed needs observed time coverage and Value observed cost coverage, each representing four benchmarks at the exact effort; otherwise the score is null. Missing resources use validated same-model effort ratios, then a shrunken global, lab, release-proximity, and model fallback; these estimates are discounted and never satisfy evidence thresholds. Weak peer support pulls a comparison toward 50, and the source-default variant's coverage sets a shared multiplier, zero through 10% and full at 60%. Resource ratios (task_cost_ratio, task_time_ratio, total_token_ratio, and a model's resource_ratios) are descriptive and do not feed Speed or Value: each is the weighted median of observed cost, runtime, or total tokens relative to each benchmark's median, so 1 is typical and lower means less use. Listed models need a qualified, named text-model identity; observed benchmark weight reaching the smallest known index breadth, with each index counting its represented benchmarks and known overlap counted once; observed evidence in both capabilities; two observed indexes or one AA Intelligence or Epoch Capabilities index; and Intelligence and Agentic above 10. Ranked slices rank each model's strongest-Intelligence effort, filling missing benchmark fields from its highest available effort, or with efforts=all rank every reasoning effort separately, and hide OpenAI Pro, Gemini Deep Think, and Claude Mythos configurations; a model's own slice keeps every effort, unranked. Full formulas, examples, and rationales are available at /methodology.`;
 }
 
-/** Take the rows the dashboard table shows in this display, then assign competition ranks: tied Intelligence scores share a rank and leave the next ordinal gap. */
+/** The rows the dashboard table shows in this display, best Intelligence first, each with its competition rank. */
 function rankedRows(payload: ModelAtlasPayload, display: LeaderboardDisplay): LeaderboardRow[] {
   const models = modelsForVariantDisplay(
     payload.models,
     display === "variants",
     payload.benchmark_observations,
   );
-  const rows: LeaderboardRow[] = [];
-  let previousScore: number | null = null;
-  let previousRank = 0;
-  for (const [index, model] of byIntelligence(models).entries()) {
-    const score = model.scores.intelligence_score;
-    const rank = score === previousScore ? previousRank : index + 1;
-    rows.push({ model, rank });
-    previousScore = score;
-    previousRank = rank;
-  }
-  return rows;
+  const ranks = intelligenceRanks(models);
+  return models
+    .map((model, index) => ({ model, rank: ranks[index]! }))
+    .sort((left, right) => left.rank - right.rank);
 }
 
 function byIntelligence(models: readonly ModelAtlasModel[]): ModelAtlasModel[] {

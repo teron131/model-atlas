@@ -32,7 +32,7 @@ type ValsBenchmarkDefinition = {
   version?: string;
 };
 
-/** Fetch one Vals source independently; a page without usable rows yields an empty payload. */
+/** A page without usable rows yields an empty payload; a failed request or a page without its benchmark JSON rejects. */
 export async function getValsBenchmarkStats(
   definition: ValsBenchmarkDefinition,
 ): Promise<BenchmarkObservationPayload> {
@@ -86,7 +86,7 @@ function scoreRow(
   if (canonicalValue == null || modelId.length === 0 || task !== definition.canonicalTask) {
     return null;
   }
-  const baseModel = modelId.split("/").at(-1) ?? modelId;
+  const baseModel = valsModelSlug(modelId);
   const reasoningEffort = valsReasoningEffort(modelId, value);
   const metadata: BenchmarkObservationMetadata = { source_result_json: stableJson(value) };
   const costPerTask = asFiniteNumber(value.cost_per_test);
@@ -133,4 +133,9 @@ export function valsReasoningEffort(
       ? THINKING_MACHINES_EFFORT_PRESETS[value]
       : undefined;
   return preset ?? canonicalReasoningEffort(value);
+}
+
+/** Vals model IDs are provider paths; the last segment names the model. */
+export function valsModelSlug(modelId: string): string {
+  return modelId.split("/").at(-1) ?? modelId;
 }

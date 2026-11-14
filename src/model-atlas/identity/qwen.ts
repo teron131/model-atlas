@@ -2,6 +2,7 @@
 
 const QWEN_MODEL_PATTERN = /^qwen(?:\d|-)/;
 
+/** Closes the space between a leading "Qwen" and its version number: `"Qwen 3.5 Max"` → `"Qwen3.5 Max"`. */
 export function canonicalQwenName(value: string): string {
   return value.replace(/^qwen\s+(?=\d)/i, "Qwen");
 }

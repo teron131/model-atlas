@@ -12,12 +12,12 @@ import { GET as dashboardGET } from "../app/api/dashboard/route";
 import { GET as changesGET } from "../app/api/llm-stats/changes/route";
 import { GET as modelGET } from "../app/api/llm-stats/models/[...id]/route";
 import { GET } from "../app/api/llm-stats/route";
+import { publicJsonPayload, serializedPublicJson } from "../app/api/public-json";
 import { GET as indexGET } from "../app/api/timeline/route";
-import { publicJsonPayload, serializedPublicJson } from "../app/leaderboard/public-json";
 import {
   readChangeHistory,
   readDisplayPayload,
-  readIntelligenceIndex,
+  readTimelineDataset,
 } from "../src/model-atlas/database/runtime-snapshot";
 import { openDatabase } from "../src/model-atlas/database/schema";
 import { SnapshotConflictError, SnapshotStorage } from "../src/model-atlas/database/snapshots/gcs";
@@ -705,8 +705,8 @@ try {
     "Leaderboard reads must fetch only the small dashboard artifact",
   );
   const [indexRead, concurrentIndex] = await Promise.all([
-    readIntelligenceIndex(),
-    readIntelligenceIndex(),
+    readTimelineDataset(),
+    readTimelineDataset(),
   ]);
   assert.equal(indexRead, concurrentIndex);
   assert.deepEqual(indexRead, index);
@@ -737,7 +737,7 @@ try {
   );
   clock += 31_000;
   assert.equal(
-    await readIntelligenceIndex(),
+    await readTimelineDataset(),
     indexRead,
     "A new snapshot with the same index checksum reuses the parsed index",
   );

@@ -127,7 +127,7 @@ type BenchmarkSourceCrosswalkPolicy = { kind: "custom" };
 
 export type BenchmarkProcessingFacet = {
   transform: BenchmarkSourceTransform;
-  /** Frozen labels: nothing branches on `aggregation` or `sourceCrosswalk`, but `benchmarkVersionId` hashes them into persisted timeline version ids, so editing one retires that benchmark's timeline identity and its links; declare real version changes with `source.revision`. */
+  /** Frozen labels: apart from validation requiring several sources for `sourceCrosswalk`, nothing branches on `aggregation` or `sourceCrosswalk`, but `benchmarkVersionId` hashes them into persisted timeline version ids, so editing one retires that benchmark's timeline identity and its links; declare real version changes with `source.revision`. */
   aggregation: BenchmarkAggregationPolicy;
   sourceCrosswalk?: BenchmarkSourceCrosswalkPolicy;
 };
@@ -262,7 +262,6 @@ export function applyBenchmarkTransform(
     : mapped;
 }
 
-/** Reject an invalid scoring portfolio at public configuration boundaries. */
 export function validateBenchmarkPortfolio(portfolio: BenchmarkPortfolio): void {
   for (const [key, entry] of Object.entries(portfolio)) {
     if (entry.group !== "baseline" && entry.group !== "frontier") {

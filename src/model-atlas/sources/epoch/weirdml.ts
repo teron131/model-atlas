@@ -12,7 +12,10 @@ import { canonicalReasoningEffort, parseModelEffort } from "../../identity/norma
 import { asFiniteNumber } from "../../runtime";
 import { parseCsvRecords } from "../parsing";
 
-/** Parse the v3 official score, never v2 accuracy or the separate final-best metric. */
+/**
+ * Parse the v3 official score, never v2 accuracy or the separate final-best metric.
+ * One invalid or duplicate row rejects the whole CSV.
+ */
 export function processEpochWeirdMlCsv(csv: string, sourceUrl: string): BenchmarkObservationRow[] {
   const rows: BenchmarkObservationRow[] = [];
   const ids = new Set<string>();
@@ -22,6 +25,7 @@ export function processEpochWeirdMlCsv(csv: string, sourceUrl: string): Benchmar
     const slug = record["Provider slug"]?.trim();
     const effort = canonicalReasoningEffort(record["Reasoning effort"]);
     const agent = record.Agent?.trim();
+    // `agent:version` pairs split on `;`: opencode:1.2; opencode:1.3 → names opencode, opencode and versions 1.2, 1.3.
     const harnesses = record["Harness version"]
       ?.split(";")
       .map((value) => value.trim())

@@ -8,7 +8,7 @@ import {
   frontierBenchmarkRows,
   performanceComparisonRows,
 } from "../app/dashboard/graphs/pareto/analysis";
-import { sharedFrontierBenchmarkComparison } from "../app/dashboard/graphs/pareto/common-evidence";
+import { commonBenchmarkComparison } from "../app/dashboard/graphs/pareto/common-evidence";
 import {
   frontierBenchmarkAxisConfig,
   frontierBenchmarkAxisConfigFor,
@@ -129,18 +129,18 @@ assert.equal(
 assert.equal(performanceComparisonRows([low], [evidence[0]!], "intelligence", "cost")[0]?.cost, 10);
 assert.equal(performanceComparisonRows([low], [evidence[0]!], "benchmarks", "cost")[0]?.score, 30);
 
-const native = sharedFrontierBenchmarkComparison(evidence, referenceEvidence, ["a"], "cost");
+const native = commonBenchmarkComparison(evidence, referenceEvidence, ["a"], "cost");
 assert.equal(
   native.rows[0]?.cost,
   10,
   "A single source keeps dollars rather than normalized points",
 );
-const combined = sharedFrontierBenchmarkComparison(evidence, referenceEvidence, ["a", "b"], "cost");
+const combined = commonBenchmarkComparison(evidence, referenceEvidence, ["a", "b"], "cost");
 const combinedLow = combined.rows.find((entry) => entry.model.reasoning_effort === "low")!;
 const combinedHigh = combined.rows.find((entry) => entry.model.reasoning_effort === "high")!;
 close(combinedLow.cost, 7 / 12);
 close(combinedHigh.cost, 17 / 12);
-const filtered = sharedFrontierBenchmarkComparison(
+const filtered = commonBenchmarkComparison(
   evidence.filter((entry) => entry.model === low),
   referenceEvidence,
   ["a", "b"],
@@ -151,7 +151,7 @@ assert.equal(
   combinedLow.cost,
   "Filtering models cannot change reference normalization",
 );
-const missingReference = sharedFrontierBenchmarkComparison(
+const missingReference = commonBenchmarkComparison(
   evidence,
   referenceEvidence.filter((entry) => entry.benchmarkKey === "a"),
   ["a", "b"],
@@ -169,12 +169,7 @@ const mixedUnits = evidence.map((entry) =>
     ? { ...entry, resourcePolicy: { ...policy, unit: "total" as const } }
     : entry,
 );
-const unitComparison = sharedFrontierBenchmarkComparison(
-  mixedUnits,
-  referenceEvidence,
-  ["a", "b"],
-  "cost",
-);
+const unitComparison = commonBenchmarkComparison(mixedUnits, referenceEvidence, ["a", "b"], "cost");
 close(unitComparison.rows.find((entry) => entry.model === low)?.cost, 7 / 12);
 close(unitComparison.rows.find((entry) => entry.model === high)?.cost, 17 / 12);
 const mixedTokens = evidence.map((entry) => ({
@@ -198,7 +193,7 @@ const tokenReferences = [
   { ...row(reference, "b", 50, 1500, 30), totalTokens: 2000 },
 ];
 
-const tokenComparison = sharedFrontierBenchmarkComparison(
+const tokenComparison = commonBenchmarkComparison(
   mixedTokens,
   tokenReferences,
   ["a", "b"],
@@ -209,7 +204,7 @@ assert(
   tokenComparison.rows.every((entry) => entry.totalTokens === 1),
   "Each source uses its own median before ratios are combined",
 );
-const filteredTokens = sharedFrontierBenchmarkComparison(
+const filteredTokens = commonBenchmarkComparison(
   mixedTokens.filter((entry) => entry.model === low),
   tokenReferences,
   ["a", "b"],
@@ -217,7 +212,7 @@ const filteredTokens = sharedFrontierBenchmarkComparison(
 );
 assert.equal(filteredTokens.rows[0]?.totalTokens, 1, "Filtering does not redefine source ranges");
 assert.equal(
-  sharedFrontierBenchmarkComparison(mixedTokens, mixedTokens, ["b"], "tokens").rows.find(
+  commonBenchmarkComparison(mixedTokens, mixedTokens, ["b"], "tokens").rows.find(
     (entry) => entry.model === low,
   )?.totalTokens,
   3000,
@@ -238,7 +233,7 @@ assert.equal(
   1,
   "Measured cost comparisons do not require a Value score",
 );
-const qualityBasket = sharedFrontierBenchmarkComparison(
+const qualityBasket = commonBenchmarkComparison(
   [evidence[0]!, evidence[1]!, evidence[2]!],
   referenceEvidence,
   ["a", "b"],
@@ -303,7 +298,7 @@ for (const kind of ["cost", "time", "tokens"] as const) {
   const references = resourceRatioReferences(observations);
   const graphRows = frontierBenchmarkRows([displayedA, displayedB], displayPortfolio, kind);
   const keys = automaticResourceKeys(graphRows, kind);
-  const graph = sharedFrontierBenchmarkComparison(graphRows, graphRows, keys, kind);
+  const graph = commonBenchmarkComparison(graphRows, graphRows, keys, kind);
   const table = summarizeResourceRatios(
     observations.filter((entry) => entry.model === displayedA),
     references,

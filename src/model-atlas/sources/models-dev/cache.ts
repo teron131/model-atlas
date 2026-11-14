@@ -1,4 +1,4 @@
-/** models.dev cache reconstruction from persisted provider and model rows. */
+/** Rebuilds the nested models.dev payload from the flat per-model rows stored in the SQLite checkpoint. */
 
 import type { DatabaseSync } from "node:sqlite";
 

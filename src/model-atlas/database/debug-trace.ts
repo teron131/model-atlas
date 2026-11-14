@@ -6,7 +6,7 @@ import { publicOpenRouterModelId } from "../identity/openrouter";
 import { artificialAnalysisModelId } from "../sources/artificial-analysis/leaderboard";
 import type { OpenRouterSourcePayload } from "../sources/openrouter";
 import type { SourceSnapshots } from "../sources/types";
-import type { DatabaseWriter } from "./writers/database";
+import type { DatabaseWriter } from "../sqlite-utils";
 
 export type DebugTraceRow = {
   artificial_analysis_id: string | null;

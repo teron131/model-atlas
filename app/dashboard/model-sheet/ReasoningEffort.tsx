@@ -11,6 +11,7 @@ import {
   useState,
 } from "react";
 
+import { formatResourceRatio } from "../../shared/resource-ratio-display";
 import { GraphToggle } from "../graphs/GraphToggle";
 import { HoverCard, type HoverRow, type HoverState, pointHover } from "../graphs/HoverCard";
 import { linearAxisScale } from "../graphs/plot/axis-scale";
@@ -18,7 +19,6 @@ import { calloutLabelPlacements } from "../graphs/plot/label-placement";
 import { TextPointLabel, useLabelSizes } from "../graphs/plot/Primitives";
 import { starConnectorSegments } from "../graphs/plot/star-marks";
 import { providerChartColor } from "../shared/provider-theme";
-import { formatResourceRatio } from "../shared/resource-ratio-display";
 import { formatScore } from "../table/format";
 import { type EffortPoint, entryEffort, familyName, type SheetEntry } from "./entries";
 import { type ModelSheetSlot, selectModelSheetEffort } from "./open";
@@ -208,11 +208,7 @@ function EffortPlot({
   };
 
   return (
-    <div
-      ref={plot.chartRef}
-      className={`${graphStyles.chartTokens} ${styles.plot}`}
-      data-capture-plot
-    >
+    <div {...plot.plotHost} className={`${graphStyles.chartTokens} ${styles.plot}`}>
       <svg
         ref={svgRef}
         viewBox={`0 0 ${plot.width} ${plot.height}`}

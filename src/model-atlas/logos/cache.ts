@@ -9,7 +9,7 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import { fetchWithTimeout } from "../runtime";
-import { modelsDevLogoUrl, modelsDevPlaceholderFor } from "./resolve";
+import { modelsDevLogoUrl, modelsDevPlaceholderFor, providerAssetKey } from "./resolve";
 
 const LOGO_MAX_PX = 64;
 const LOGO_FETCH_TIMEOUT_MS = 15_000;
@@ -18,12 +18,7 @@ const pendingLogoRequestByKey = new Map<string, Promise<string>>();
 let modelsDevPlaceholder: Promise<Buffer | null> | null = null;
 
 function safeLogoCacheStem(cacheKey: string | null | undefined): string | null {
-  const normalized = cacheKey
-    ?.trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9._-]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-  return normalized && normalized.length > 0 ? normalized : null;
+  return providerAssetKey(cacheKey) || null;
 }
 
 function logoCachePath(source: string, cacheKey?: string | null): string {
@@ -196,7 +191,7 @@ async function cacheModelLogo(
   return request;
 }
 
-/** Cache remote logos for a model list while preserving the original model rows. */
+/** Returns copies of `models` whose remote `logo` becomes a cached PNG data URL, or `""` when neither the source nor its models.dev fallback can be fetched; the input rows are not mutated. */
 export async function cacheModelLogos<
   TModel extends {
     logo: string;

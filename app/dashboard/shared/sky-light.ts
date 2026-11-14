@@ -1,4 +1,12 @@
-/** The sky's light, shared by the hero field and the chart skies so a star or a horizon looks the same wherever it is drawn: GLSL for the star, flare, grain, horizon colours and rim pulse, the stable per-model seed that times each star's twinkle, and the one clock every sky on the page runs on. */
+/** The sky's light, defined only here for the hero field and every chart sky so a star or a horizon looks the same wherever it is drawn: sprite spans, flare ease, and the chart reference height; the GLSL for the star, flare, grain, horizon colours, and rim pulse; each model's stable seed; and the one clock every sky on the page runs on. */
+
+// A star's sprite spans this many times its size; frontier sprites span more to hold their rays.
+export const STAR_SPRITE = 3;
+export const FRONTIER_SPRITE = 7;
+// Time constant, in seconds, of the explored star's flare.
+export const FLARE_EASE = 0.08;
+// Chart light lengths are CSS pixels for a full dashboard plot this tall and shrink with smaller plots, such as the phone layout and the model sheet's inset, so the light never outweighs them.
+export const REFERENCE_PLOT_HEIGHT = 480;
 
 // Includes `grainHash`, the per-pixel noise behind the rim's stipple.
 export const GRAIN_HASH_GLSL = /* glsl */ `
@@ -39,7 +47,7 @@ float twinkle(float seed) {
 `;
 
 // A white-hot core in a corona of the provider's colour; frontier roles add long rays whose tips disperse red beyond blue and along which light runs slowly outward.
-// Expects STAR_SPRITE and FRONTIER_SPRITE defined, and the vertex stage to fill every varying below.
+// Expects `STAR_SPRITE` and `FRONTIER_SPRITE` defined to the constants above, and the vertex stage to fill every varying below.
 export const STAR_FRAGMENT = /* glsl */ `
 uniform float time;
 varying vec3 vTint;
@@ -116,10 +124,10 @@ export function skyPixelRatio(): number {
   return Math.min(window.devicePixelRatio || 1, MAX_PIXEL_RATIO);
 }
 
-// Star tint when a provider's colour is theme-dependent, such as OpenAI's ink; a sky is dark wherever it draws.
+// Light ink, since a sky is dark wherever it draws.
 const SKY_INK = "#eef2ff";
 
-/** A star's hex tint for a provider chart colour. */
+/** A provider chart colour as a star's hex tint; a theme-dependent colour, such as OpenAI's ink, becomes the sky's ink. */
 export function skyTint(color: string): string {
   return color.startsWith("#") ? color : SKY_INK;
 }

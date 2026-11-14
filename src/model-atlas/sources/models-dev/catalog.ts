@@ -35,6 +35,7 @@ const NON_GENERATIVE_MODEL_TOKENS = new Set([
   "reranker",
 ]);
 
+// Reads one model from the page's escaped Flight JSON, capturing display name, model id, and release date: `\"displayName\":\"GPT-5\",\"creatorOrganization\":\"OpenAI\",\"copyString\":\"openai/gpt-5\",\"tags\":[],\"releaseDate\":\"2025-08-07\"` → `GPT-5`, `openai/gpt-5`, `2025-08-07`.
 const VERCEL_GATEWAY_MODEL_PATTERN =
   /\\"displayName\\":\\"([^\\"]*)\\",\\"creatorOrganization\\":\\"[^\\"]*\\",\\"copyString\\":\\"([^\\"]+)\\",[\s\S]*?\\"releaseDate\\":\\"([^\\"]*)\\"/g;
 
@@ -86,7 +87,6 @@ type ModelsDevSourcePayload = {
   fetched_at_epoch_seconds: number | null;
   status_code: number | null;
   payload: ModelsDevPayload;
-  live_vercel_models: VercelGatewayModelRecord[];
 };
 
 type VercelGatewayModelRecord = {
@@ -96,9 +96,9 @@ type VercelGatewayModelRecord = {
 };
 
 type ProcessModelsDevPayloadOptions = {
-  retainedModelIds?: ReadonlySet<string>;
-  retainedModelNames?: ReadonlySet<string>;
-  retainedClaudeIdentityKeys?: ReadonlySet<string>;
+  retainedModelIds: ReadonlySet<string>;
+  retainedModelNames: ReadonlySet<string>;
+  retainedClaudeIdentityKeys: ReadonlySet<string>;
 };
 
 export async function getModelsDevSourceStats(): Promise<ModelsDevSourcePayload> {
@@ -109,7 +109,6 @@ export async function getModelsDevSourceStats(): Promise<ModelsDevSourcePayload>
       fetched_at_epoch_seconds: null,
       status_code: null,
       payload: {},
-      live_vercel_models: [],
     };
   }
 }
@@ -118,7 +117,7 @@ export async function getModelsDevSourceStats(): Promise<ModelsDevSourcePayload>
 export function processModelsDevPayload(
   payload: ModelsDevPayload,
   cutoffIsoDate: string,
-  options: ProcessModelsDevPayloadOptions = {},
+  options: ProcessModelsDevPayloadOptions,
 ): ModelsDevFlatModel[] {
   return rankRecentModels(flattenModels(payload), cutoffIsoDate, options);
 }
@@ -139,7 +138,6 @@ async function fetchModelsDev(): Promise<ModelsDevSourcePayload> {
     fetched_at_epoch_seconds: nowEpochSeconds(),
     status_code: source.status,
     payload,
-    live_vercel_models: liveVercelModels,
   };
 }
 
@@ -225,7 +223,7 @@ function buildVercelModelRecord(
 function rankRecentModels(
   models: ModelsDevFlatModel[],
   cutoffIsoDate: string,
-  options: ProcessModelsDevPayloadOptions = {},
+  options: ProcessModelsDevPayloadOptions,
 ): ModelsDevFlatModel[] {
   return models
     .filter(isGenerativeModel)
@@ -270,15 +268,12 @@ function shouldRetainModel(
       return false;
     }
     const identity = parseClaudeIdentity(value);
-    return (
-      identity != null &&
-      options.retainedClaudeIdentityKeys?.has(claudeIdentityKey(identity)) === true
-    );
+    return identity != null && options.retainedClaudeIdentityKeys.has(claudeIdentityKey(identity));
   });
   return (
-    options.retainedModelIds?.has(normalizeProviderModelId(row.model_id)) === true ||
+    options.retainedModelIds.has(normalizeProviderModelId(row.model_id)) ||
     (typeof row.model.name === "string" &&
-      options.retainedModelNames?.has(normalizeModelToken(row.model.name)) === true) ||
+      options.retainedModelNames.has(normalizeModelToken(row.model.name))) ||
     matchesRetainedClaudeIdentity
   );
 }

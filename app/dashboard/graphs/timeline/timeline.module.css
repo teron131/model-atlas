@@ -1,4 +1,5 @@
-/* Historical chart controls and readout extend the dashboard's ruled graph panels. */
+/* Styles for the Timeline figure: the picked model's readout, the chart and its replay marks, the time controls, the organization filter, and the lab standings. */
+
 /* The figure's rows lay themselves out by the width the figure has, not the window's. */
 .content {
   min-width: 0;

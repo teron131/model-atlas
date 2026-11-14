@@ -171,6 +171,7 @@ function normalizeSearchText(value: string): string {
   return value.toLocaleLowerCase("en").replaceAll(/\s+/g, " ").trim();
 }
 
+/** `*` matches any run of characters and a match must start at a word start: "gpt*mini" → /(^|[^\p{L}\p{N}])gpt.*mini/iu. */
 function createSearchPattern(value: string): RegExp {
   const source = value.split("*").map(escapeRegExp).join(".*");
   // Require an ending word boundary only when the query itself ends in a letter or number.

@@ -6,7 +6,7 @@
  * ARC-AGI-3 JSON source: https://arcprize.org/media/data/leaderboard/v3.json
  */
 
-import { BENCHMARK_RESOURCE_PROFILES } from "../benchmarks/catalog/portfolio";
+import { BENCHMARK_RESOURCE_PROFILES } from "../benchmarks/catalog";
 import {
   type BenchmarkObservationPayload,
   type BenchmarkObservationRow,
@@ -15,7 +15,8 @@ import {
 import { withClaudeFamily } from "../identity/claude";
 import { parseModelEffort } from "../identity/normalization";
 import { asFiniteNumber, asNonEmptyString, asRecord, nowEpochSeconds } from "../runtime";
-import { fetchSource } from "./request-scheduler";
+import { mapWithCompetitionRank } from "./parsing";
+import { fetchSourceJson } from "./request-scheduler";
 
 const SCORE_ELIGIBLE_MODEL_TYPES = new Set(["Base LLM", "CoT"]);
 
@@ -41,19 +42,14 @@ type ParsedArcPrizeRow = {
   source_index: number;
 };
 
-/** Fetch current official ARC Prize evidence without mutating persisted data. */
 export async function getArcPrizeStats(
   options: ArcPrizeLeaderboardOptions,
 ): Promise<BenchmarkObservationPayload> {
-  return fetchSource(options.sourceUrl, {}, async (response) => {
-    if (!response.ok) {
-      throw new Error(`ARC Prize ${options.benchmarkKey} scrape failed: ${response.status}`);
-    }
-    return {
-      fetched_at_epoch_seconds: nowEpochSeconds(),
-      data: processArcPrizeLeaderboardJson(await response.json(), options),
-    };
-  });
+  const payload = await fetchSourceJson(options.sourceUrl);
+  return {
+    fetched_at_epoch_seconds: nowEpochSeconds(),
+    data: processArcPrizeLeaderboardJson(payload, options),
+  };
 }
 
 /** Parse one official leaderboard and rank displayed model rows by score, retaining ties. ARC-AGI-3 scores only Standard runs: Provider Adapter runs use each provider's own context handling, score far higher for the same model, and stay as unscored provenance. */
@@ -88,14 +84,12 @@ function processArcPrizeLeaderboardJson(
     .sort((left, right) => right.score - left.score || left.source_index - right.source_index);
 
   const scored = rows.filter((row) => row.harness !== "provider_adapter");
-  let rank = 0;
-  let previousScore: number | null = null;
   return [
-    ...scored.map((row, index) => {
-      if (previousScore !== row.score) rank = index + 1;
-      previousScore = row.score;
-      return arcObservationRow(row, options, observedAt, rank);
-    }),
+    ...mapWithCompetitionRank(
+      scored,
+      (row) => row.score,
+      (row, rank) => arcObservationRow(row, options, observedAt, rank),
+    ),
     ...rows
       .filter((row) => row.harness === "provider_adapter")
       .map((row) => arcObservationRow(row, options, observedAt, null)),
@@ -160,7 +154,9 @@ function parseArcPrizeEvaluation(
     return null;
   }
 
+  // Drop trailing superscript footnote digits: `GPT-5.2 (High)²` → `GPT-5.2 (High)`.
   const model = displayName.replace(/\s*[¹²³⁴⁵⁶⁷⁸⁹⁰]+$/u, "").trim();
+  // The adapter label sits before any effort parenthetical: `Claude Opus 4.5 - Provider Adapter (High)` → `Claude Opus 4.5 (High)`.
   const identityModel =
     harness === "provider_adapter"
       ? model.replace(/\s-\sProvider Adapter(?=\s*(?:\(|$))/i, "")

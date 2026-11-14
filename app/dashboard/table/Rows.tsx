@@ -1,30 +1,32 @@
-/** Leaderboard row rendering applies model display, cell formatting, and interaction rules. */
+/** Leaderboard rows and their cells, plus the loading, empty, and image-export rows: a row opens its model sheet on click, draws its full cells only while near the viewport or focused, and hides display-only name tokens such as "preview". */
 
 import { type CSSProperties, memo, useLayoutEffect, useRef, useState } from "react";
 
 import { communityPlaceLabel } from "../../../src/model-atlas/community/catalog";
 import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
+import { ModalityIcons, RatioTrack, scoreMeterStyle } from "../../shared/DashboardMarks";
+import { formatResourceRatio, isDrawableRatio } from "../../shared/resource-ratio-display";
 import { openModelSheet, openModelSheetChanges } from "../model-sheet/open";
-import { ModalityIcons, RatioTrack, scoreMeterStyle } from "../shared/DashboardMarks";
 import { modelName } from "../shared/model-display";
 import { providerBrandColor } from "../shared/provider-theme";
 import { ProviderLogo } from "../shared/ProviderLogo";
-import { formatResourceRatio, isDrawableRatio } from "../shared/resource-ratio-display";
+import {
+  costMetricColumns,
+  type DashboardMetricColumn,
+  dashboardMetricColumns,
+  isAmountColumn,
+  speedMetricColumns,
+  type TableColumnKey,
+} from "./column-registry";
 import { resourceRatioColumns, scoreColumnsByDimension, scoreMetricColumns } from "./Columns";
 import { formatConfidence, formatContext, formatDashboardMetric, formatScore } from "./format";
 import {
   benchmarkDisplayValue,
   benchmarkMeterValue,
   contextWindowValue,
-  costMetricColumns,
-  type DashboardMetricColumn,
-  dashboardMetricColumns,
   dashboardMetricValue,
-  isAmountColumn,
-  speedMetricColumns,
-  type TableColumnKey,
   type TableRow,
-} from "./models";
+} from "./leaderboard-rows";
 import { changeScores, changeShortDate, headlineMove, moveDirection } from "./ScoreChange";
 
 const HIDDEN_MODEL_DISPLAY_TOKENS = new Set(["instruct", "preview"]);
@@ -237,7 +239,10 @@ function rowProviderStyle(provider: string | null | undefined) {
   return { "--row-provider": providerBrandColor(provider) } as CSSProperties;
 }
 
-/** `opensSheet` makes the model name the keyboard path to the model sheet; exported rows stay plain text. `scoreStrip` sets the four scores under the name, for phones, where the caller leaves their columns out. */
+/**
+ * `opensSheet` makes the model name the keyboard path to the model sheet; exported rows stay plain text.
+ * `scoreStrip` sets the four scores under the name, for phones, where the caller leaves their columns out.
+ */
 function ModelScoreCells({
   rowData,
   visibleColumnKeySet,
@@ -515,6 +520,7 @@ function visibleModelSlug(id: string | null | undefined) {
   return stripModelDisplayTokens(slashIndex === -1 ? id : id.slice(slashIndex + 1), "-");
 }
 
+/** Drops hidden tokens and keeps the value whole when every token is hidden: the slug of "google/gemini-3-pro-preview" → "gemini-3-pro". */
 function stripModelDisplayTokens(value: string, separator: " " | "-") {
   const tokens = value.split(separator).filter((token) => token.length > 0);
   const visibleTokens = tokens.filter((token) => !isHiddenDisplayToken(token));

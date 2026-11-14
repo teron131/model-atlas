@@ -1,25 +1,25 @@
 /** Missing benchmark scores use observations from another effort and measured gaps on shared benchmarks; estimates never become reference evidence. */
 
 import { isAggregateIndex } from "../../../benchmarks/index-policy";
-import { benchmarkDimensionWeight } from "../../../benchmarks/registry";
+import { benchmarkDimensionWeight, benchmarkValue } from "../../../benchmarks/registry";
 import { countsTowardIntelligence, type ScoringConfig } from "../../../config/stage";
 import {
   canonicalModelKey,
   canonicalReasoningEffort,
   reasoningEffortRank,
 } from "../../../identity/normalization";
-import { clamp, weightedMeanOfFinite } from "../../../math-utils";
+import { weightedMeanOfFinite } from "../../../math-utils";
 import type { ModelAtlasCandidate } from "../../model-types";
+import { clampScore } from "../normalization";
 import {
   effortQualityKey,
   normalizedQualityBenchmarkValue,
   type QualityScoringContext,
 } from "../quality-context";
-import { benchmarkValue } from "../resource-metrics";
 
 const MIN_SHARED_BENCHMARKS = 3;
 
-/** Prepare missing benchmark estimates from observed results at other efforts before scoring variants. */
+/** Each missing benchmark takes the first reference variant's value plus the measured gap, references ranked by effective shared-benchmark count, then effort distance. */
 export function prepareEffortQualityScoringContext(
   models: readonly ModelAtlasCandidate[],
   scoringConfig: ScoringConfig,
@@ -103,7 +103,7 @@ export function prepareEffortQualityScoringContext(
         for (const referenceVariant of referenceVariants) {
           for (const input of referenceVariant.inputs) {
             if (predicted.has(input.key) || observedKeys.has(input.key)) continue;
-            predicted.set(input.key, clamp(input.value + referenceVariant.gap, 0, 100));
+            predicted.set(input.key, clampScore(input.value + referenceVariant.gap));
           }
         }
         if (predicted.size > 0) estimates.set(effortQualityKey(target.model, dimension), predicted);

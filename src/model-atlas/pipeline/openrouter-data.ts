@@ -57,7 +57,7 @@ export function lookupOpenRouterSpeed(
   return lookupOpenRouterData(data.speedByModelId, modelId, hasSpeedData);
 }
 
-/** A model's effective OpenRouter pricing, looked up like `lookupOpenRouterSpeed`. */
+/** A model's listed OpenRouter route prices weighted by tokens served, looked up like `lookupOpenRouterSpeed`. */
 export function lookupOpenRouterPricing(
   data: OpenRouterModelData,
   modelId: string | null,

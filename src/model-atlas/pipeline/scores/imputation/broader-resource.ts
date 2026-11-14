@@ -1,6 +1,7 @@
 /** Fixed-shrinkage resource fallback narrows global evidence through lab, release proximity, and same-model observations. */
 
 import { indexPolicy } from "../../../benchmarks/index-policy";
+import { benchmarkValue } from "../../../benchmarks/registry";
 import type { ScoringConfig } from "../../../config/stage";
 import { canonicalModelKey, canonicalReasoningEffort } from "../../../identity/normalization";
 import {
@@ -10,7 +11,7 @@ import {
   weightedMedianOfFinite,
 } from "../../../math-utils";
 import type { ModelAtlasCandidate } from "../../model-types";
-import { benchmarkTaskMetrics, benchmarkValue, directBenchmarkTokens } from "../resource-metrics";
+import { benchmarkTaskMetrics, directBenchmarkTokens } from "../resource-metrics";
 import {
   type ImputedTaskResource,
   resourceImputationKeys,

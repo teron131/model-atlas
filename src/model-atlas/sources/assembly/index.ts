@@ -1,7 +1,7 @@
-/** Public source loading and normalization boundary for live stats and cached snapshots. */
+/** Entry for source assembly, which turns either a live fetch of every bulk source or a restored checkpoint snapshot into the normalized lookups matching and scoring read. */
 
 export { fusedBenchmarkObservations } from "./fusion";
-export { fetchSourceData } from "./load";
+export { fetchSourceData, sourceDataFromSnapshots } from "./load";
 export type {
   ArtificialAnalysisModel,
   ModelAtlasSourceData,

@@ -1,17 +1,15 @@
-/** Generic source-row snapshot lifecycle for cache-aware fetched payloads. */
+/** The shared snapshot recipe for a source whose rows are a flat list: reuse the rows cached in the SQLite checkpoint on a cache hit, otherwise fetch, drop cached rows a new version supersedes, merge, and record rows the fetch omitted. */
 
-import type { BenchmarkObservationRow } from "../../benchmarks/observation";
-import { parseModelEffort } from "../../identity/normalization";
 import type { RawSourceName } from "../registry";
-import type { RawSourceCacheStatus, SourceRefreshOptions, SourceRowState } from "../types";
-import {
-  snapshotRowsWithStates,
-  sourceRowKey,
-  type VersionRule,
-  withoutSupersededVersions,
-} from "./policy";
+import type {
+  RawSourceCacheStatus,
+  SourceRefreshOptions,
+  SourceRowState,
+  SourceSnapshotStatus,
+} from "../types";
+import { snapshotRowsWithStates, type VersionRule, withoutSupersededVersions } from "./policy";
 
-type RawRowsCache<Row> = {
+export type RawRowsCache<Row> = {
   rows: Row[];
   fetchedAt: number | null;
   sourceUrl?: string;
@@ -28,22 +26,27 @@ type RowIdentity<Row> =
   /** Builds keys from the rows the source currently publishes: the fetched rows, or the cached rows when nothing usable was fetched. */
   | { rowKeyFor: (currentRows: readonly Row[]) => (row: Row) => string | null };
 
-type SourceRowSnapshotConfig<Row> = RowIdentity<Row> & {
+/** What a refresh hands one source: its cached rows and status plus the lifecycle inputs. */
+export type SourceSnapshotRequest<Cached> = {
   source: RawSourceName;
-  cached: RawRowsCache<Row> | null | undefined;
+  cached: Cached;
   status: RawSourceCacheStatus;
   options: SourceRefreshOptions;
   previousMissingSince: ReadonlyMap<string, number>;
   nowEpochSeconds: number;
-  fetchRows: () => Promise<SourceRowsPayload<Row>>;
-  acceptsRefresh?: (cachedRows: readonly Row[], fetchedRows: readonly Row[]) => boolean;
-  replaceRowsOnRefresh?: boolean;
-  /** Omitted for sources that publish no version. */
-  versions?: VersionRule<Row>;
-  rowLabel: (row: Row) => string | null;
-  mergeRow?: (cachedRow: Row, fetchedRow: Row) => Row;
-  seriesOf?: (row: Row) => string;
 };
+
+type SourceRowSnapshotConfig<Row> = RowIdentity<Row> &
+  SourceSnapshotRequest<RawRowsCache<Row> | null | undefined> & {
+    fetchRows: () => Promise<SourceRowsPayload<Row>>;
+    acceptsRefresh?: (cachedRows: readonly Row[], fetchedRows: readonly Row[]) => boolean;
+    replaceRowsOnRefresh?: boolean;
+    /** Omitted for sources that publish no version. */
+    versions?: VersionRule<Row>;
+    rowLabel: (row: Row) => string | null;
+    mergeRow?: (cachedRow: Row, fetchedRow: Row) => Row;
+    seriesOf?: (row: Row) => string;
+  };
 
 type SourceRowSnapshotResult<Row> = {
   rows: Row[];
@@ -66,48 +69,6 @@ export function harnessDistinguishesRuns<Row>(
     harnessByRun.set(run, harness);
   }
   return false;
-}
-
-/** Applies the harness rule per source series, since one benchmark can combine sources with different harness practices. The rule reads only the current rows, so a partial fetch that omits a multi-harness model merges that model's cached harness rows until a full fetch restores them. */
-export function benchmarkObservationRowKeyFor(
-  rows: readonly BenchmarkObservationRow[],
-): (row: BenchmarkObservationRow) => string {
-  const harnessSeries = new Set(
-    [...new Set(rows.map((row) => row.source_url))].filter((sourceUrl) =>
-      harnessDistinguishesRuns(
-        rows.filter((row) => row.source_url === sourceUrl),
-        (row) => benchmarkObservationRowKey(row, { harness: false }),
-        (row) => row.metadata.harness,
-      ),
-    ),
-  );
-  return (row) => benchmarkObservationRowKey(row, { harness: harnessSeries.has(row.source_url) });
-}
-
-/** Uses stable model identity rather than mutable source labels across benchmark row variants. */
-export function benchmarkObservationRowKey(
-  row: BenchmarkObservationRow,
-  { harness = true }: { harness?: boolean } = {},
-): string {
-  const parsedModel = parseModelEffort(row.model);
-  const baseModel = row.base_model === row.model ? parsedModel.baseModel : row.base_model;
-  const metadataIdentity = (key: string): string | number | null => {
-    const value = row.metadata[key];
-    return typeof value === "string" || typeof value === "number" ? value : null;
-  };
-  return sourceRowKey(
-    row.benchmark_key,
-    metadataIdentity("task"),
-    metadataIdentity("track"),
-    harness ? metadataIdentity("harness") : null,
-    metadataIdentity("source_model_id") ??
-      metadataIdentity("source_model") ??
-      metadataIdentity("internal_model_name"),
-    metadataIdentity("run_id"),
-    row.model_id ?? baseModel,
-    row.model_creator,
-    row.reasoning_effort ?? parsedModel.reasoningEffort,
-  );
 }
 
 export function shouldUseFetchedRows(
@@ -137,7 +98,23 @@ export async function fetchRowsOrNone<Row>(
   }
 }
 
-/** Loads one row source from cache or fetches it while preserving missing-row state. */
+export function sourceSnapshotStatus(
+  source: RawSourceName,
+  snapshot: {
+    rows: readonly unknown[];
+    fetchedAt: number | null;
+    sourceRowStates: SourceSnapshotStatus["sourceRowStates"];
+  },
+): SourceSnapshotStatus {
+  return {
+    source,
+    fetchedAt: snapshot.fetchedAt,
+    sourceInputCount: snapshot.rows.length,
+    sourceRowStates: snapshot.sourceRowStates,
+  };
+}
+
+/** Reuses the cached rows only when `status.cache_hit` holds, a cache was read, and `replaceSourceRows` is unset; a caller forces a refetch by passing a cleared `cache_hit` or no cache. */
 export async function snapshotSourceRows<Row>(
   config: SourceRowSnapshotConfig<Row>,
 ): Promise<SourceRowSnapshotResult<Row>> {

@@ -1,10 +1,6 @@
 /** SQLite writer for models.dev catalog rows, preserving provider, pricing, limit, and modality fields. */
 
-import {
-  type DatabaseWriter,
-  modalityFlagValue,
-  sqliteBooleanValue,
-} from "../../database/writers/database";
+import { type DatabaseWriter, modalityFlagValue, sqliteBooleanValue } from "../../sqlite-utils";
 import { SOURCE_URLS } from "../registry";
 import type { SourceSnapshots } from "../types";
 import type { ModelsDevPayload } from "./catalog";

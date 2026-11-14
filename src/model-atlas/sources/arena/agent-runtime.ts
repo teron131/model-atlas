@@ -1,13 +1,17 @@
-/** Arena Agent runtime owns raw-cache reconstruction, snapshot refresh, raw-row serialization, and its source-data lookup. */
+/** Arena Agent keeps the latest accepted publication in one raw table, each row tagged with the leaderboard page or dataset URL it came from; the cache keeps whichever rows still parse. */
 
-import type { DatabaseWriter } from "../../database/writers/database";
 import { buildBenchmarkModelMap } from "../../identity/normalization";
 import { asFiniteNumber, asNonEmptyString } from "../../runtime";
-import { type BenchmarkSnapshotContext, defineBenchmarkRuntime } from "../benchmark-runtime";
+import type { DatabaseWriter } from "../../sqlite-utils";
+import { type BenchmarkSnapshot, defineBenchmarkRuntime } from "../benchmark-runtime";
 import { type CacheRowSource, firstFetchedAt, sourceCacheRows } from "../cache/rows";
 import { sourceRowKey } from "../snapshots/policy";
-import { snapshotSourceRows } from "../snapshots/row-snapshot";
-import type { RawSourceCacheStatus, SourceRefreshOptions, SourceSnapshotStatus } from "../types";
+import {
+  type RawRowsCache,
+  snapshotSourceRows,
+  type SourceSnapshotRequest,
+  sourceSnapshotStatus,
+} from "../snapshots/row-snapshot";
 import {
   ARENA_AGENT_LEADERBOARD_URL,
   type ArenaAgentModelScoreRow,
@@ -15,10 +19,7 @@ import {
 } from "./agent";
 import { ARENA_AGENT_DATASET_URL, arenaRefreshIsCurrent } from "./dataset";
 
-type ArenaAgentSnapshot = {
-  rows: ArenaAgentModelScoreRow[];
-  sourceStatus: SourceSnapshotStatus;
-};
+type ArenaAgentSnapshot = BenchmarkSnapshot<ArenaAgentModelScoreRow>;
 
 export const arenaAgentRuntime = defineBenchmarkRuntime({
   source: "arena_agent",
@@ -30,10 +31,9 @@ export const arenaAgentRuntime = defineBenchmarkRuntime({
   sourceData: (rows) => ({ rows, rowsByModelName: buildBenchmarkModelMap(rows) }),
 });
 
-export function readArenaAgentRawCache(cache: CacheRowSource): {
-  rows: ArenaAgentModelScoreRow[];
-  fetchedAt: number | null;
-} | null {
+export function readArenaAgentRawCache(
+  cache: CacheRowSource,
+): RawRowsCache<ArenaAgentModelScoreRow> | null {
   const cacheRows = sourceCacheRows(cache, "SELECT * FROM arena_agent_raw_rows ORDER BY row_index");
   if (
     cacheRows.length === 0 ||
@@ -78,20 +78,10 @@ export function readArenaAgentRawCache(cache: CacheRowSource): {
 
 /** Replace accepted Arena publications as a complete row set; failed or older publications retain cached evidence. */
 async function arenaAgentSnapshot(
-  cached: ReturnType<typeof readArenaAgentRawCache>,
-  status: RawSourceCacheStatus,
-  options: SourceRefreshOptions,
-  previousMissingSince: ReadonlyMap<string, number>,
-  nowEpochSeconds: number,
-  context: BenchmarkSnapshotContext,
+  request: SourceSnapshotRequest<ReturnType<typeof readArenaAgentRawCache>>,
 ): Promise<ArenaAgentSnapshot> {
   const snapshot = await snapshotSourceRows({
-    source: context.source,
-    cached,
-    status,
-    options,
-    previousMissingSince,
-    nowEpochSeconds,
+    ...request,
     fetchRows: getArenaAgentStats,
     acceptsRefresh: arenaRefreshIsCurrent,
     replaceRowsOnRefresh: true,
@@ -100,11 +90,11 @@ async function arenaAgentSnapshot(
   });
   return {
     rows: snapshot.rows,
-    sourceStatus: context.sourceStatus(snapshot),
+    sourceStatus: sourceSnapshotStatus(request.source, snapshot),
   };
 }
 
-/** Persist each row's actual source and publication date without the retired Agent task-cost measurements. */
+/** `cost_per_task_usd` stays null because Atlas does not use Agent task costs. */
 function insertArenaAgentRawRows(db: DatabaseWriter, snapshot: ArenaAgentSnapshot): void {
   const statement = db.prepare(`
 		INSERT INTO arena_agent_raw_rows (

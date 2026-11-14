@@ -1,4 +1,4 @@
-/** Live stats coordinates source refresh and scoring, retaining current metadata when a failed refresh yields an empty payload. */
+/** Builds a payload by fetching every source and scoring in-process, with no database or snapshot in between. */
 
 import { STAGE_CONFIG } from "../config";
 import { deriveModelStats } from "../pipeline/derivation";
@@ -8,7 +8,7 @@ import { getOpenRouterStats, type OpenRouterSourcePayload } from "../sources/ope
 import { buildCurrentModelAtlasMetadata } from "./payload/metadata";
 import type { ModelAtlasOptions, ModelAtlasPayload } from "./types";
 
-/** Build live scores and metadata, returning an empty payload with no fetch timestamp if any refresh stage fails. */
+/** Any failure, in fetching or in scoring, returns no models and a null fetch time with metadata built for an empty cohort; the error itself is discarded. */
 export async function getLiveModelAtlasPayload(
   options: ModelAtlasOptions = {},
 ): Promise<ModelAtlasPayload> {

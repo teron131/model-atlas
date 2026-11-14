@@ -1,7 +1,8 @@
 "use client";
 
-/** Load timeline evidence on demand and display observed results, inferred cells, and prediction validation. */
-import { memo, useEffect, useMemo, useState } from "react";
+/** The Timeline's evidence matrices: each charted model's measured and estimated benchmark results, and how well benchmark inputs predict a missing result. */
+
+import { memo, useMemo, useState } from "react";
 
 import type {
   HistoricalCalibration,
@@ -10,12 +11,12 @@ import type {
   TimelineEvidenceCell,
   TimelinePredictor,
 } from "../../../../src/model-atlas/timeline/schemas";
-import { MatrixOverview } from "./MatrixOverview";
-import { timelineModelName } from "./model-display";
+import { timelineModelName } from "./chart-data";
+import { type Axis, MatrixOverview } from "./MatrixOverview";
+import { useTimelineData } from "./use-timeline-data";
 
 import styles from "./matrices.module.css";
 
-type Axis = { id: string; label: string };
 const EVIDENCE_COLORS = ["#51aa91", "#567caa", "#a57bd6"] as const;
 const ERROR_COLORS = Array.from(
   { length: 16 },
@@ -107,15 +108,15 @@ function DiagnosticMatrices({
         </header>
         <div className={styles.matrixLegend}>
           <span>
-            <i style={{ background: "#51aa91" }} />
+            <i style={{ background: EVIDENCE_COLORS[0] }} />
             Used measurement
           </span>
           <span>
-            <i style={{ background: "#567caa" }} />
+            <i style={{ background: EVIDENCE_COLORS[1] }} />
             Other measurement
           </span>
           <span>
-            <i style={{ background: "#a57bd6" }} />
+            <i style={{ background: EVIDENCE_COLORS[2] }} />
             Estimated result
           </span>
           <span>
@@ -281,7 +282,7 @@ function benchmarkLabel(label: string): string {
   return label.replace(/ \(Model Atlas\)$/, "");
 }
 
-/** Fetch detailed evidence only after disclosure; preserve the current chart population and selection. */
+/** Mounting requests the full `/api/timeline` evidence, so the panel mounts this only once its disclosure opens; rows follow `modelIds`, the chart's current population. */
 export const TimelineEvidence = memo(function TimelineEvidence({
   modelIds,
   onSelect,
@@ -289,24 +290,11 @@ export const TimelineEvidence = memo(function TimelineEvidence({
   modelIds: string[];
   onSelect: (id: string) => void;
 }) {
-  const [data, setData] = useState<HistoricalDataset | null>(null);
-  const [error, setError] = useState("");
-  const [attempt, setAttempt] = useState(0);
-  useEffect(() => {
-    const controller = new AbortController();
-    setError("");
-    void fetch("/api/timeline", { signal: controller.signal })
-      .then(async (response) => {
-        const body = await response.json();
-        if (!response.ok) throw new Error(body.error ?? "Unable to load evidence.");
-        if (!body.prepared) throw new Error("Published evidence is unavailable.");
-        if (!controller.signal.aborted) setData(body);
-      })
-      .catch((reason: Error) => {
-        if (!controller.signal.aborted) setError(reason.message);
-      });
-    return () => controller.abort();
-  }, [attempt]);
+  const { data, error, retry } = useTimelineData(
+    "/api/timeline",
+    "Unable to load evidence.",
+    requirePrepared,
+  );
   const models = useMemo(() => {
     const byId = new Map(data?.models.map((model) => [model.id, model]));
     return modelIds.flatMap((id) => {
@@ -319,7 +307,7 @@ export const TimelineEvidence = memo(function TimelineEvidence({
       <p role="status">
         {error || "Loading evidence matrices…"}
         {error && (
-          <button type="button" onClick={() => setAttempt((value) => value + 1)}>
+          <button type="button" onClick={retry}>
             Retry
           </button>
         )}
@@ -337,3 +325,7 @@ export const TimelineEvidence = memo(function TimelineEvidence({
     />
   );
 });
+
+function requirePrepared(body: HistoricalDataset) {
+  if (!body.prepared) throw new Error("Published evidence is unavailable.");
+}

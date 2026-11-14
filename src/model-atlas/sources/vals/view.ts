@@ -6,7 +6,7 @@
 
 import { asNonEmptyString, asRecord } from "../../runtime";
 import { htmlAttribute } from "../parsing";
-import { fetchSource } from "../request-scheduler";
+import { fetchSourceJson, fetchSourceText } from "../request-scheduler";
 
 export type ValsBenchmarkView = {
   metadata: Record<string, unknown>;
@@ -15,15 +15,14 @@ export type ValsBenchmarkView = {
 
 /** Resolve the current page's JSON asset while keeping both requests inside the shared source scheduler. */
 export async function getValsBenchmarkView(pageUrl: string): Promise<ValsBenchmarkView> {
-  const page = await fetchSource(pageUrl, {}, async (response) => {
-    if (!response.ok) throw new Error(`Vals page failed: ${response.status}`);
-    return response.text();
-  });
+  const page = await fetchSourceText(pageUrl);
+  // The Astro island that loads the benchmark view: `<astro-island … component-url="/_astro/BenchmarkViewLoader.CkX1.js" props="{}">` → that whole opening tag.
   const island = page.match(
     /<astro-island\b(?=[^>]*component-url="\/_astro\/BenchmarkViewLoader\.[^"]*")[^>]*>/,
   )?.[0];
   const props = island == null ? null : htmlAttribute(island, "props");
   const reference = props == null ? null : asRecord(JSON.parse(props)).benchmarkViewUrl;
+  // Astro serializes each prop as `[type, value]`, type 0 being a plain value.
   const assetPath =
     Array.isArray(reference) && reference[0] === 0 ? asNonEmptyString(reference[1]) : null;
   if (assetPath == null) throw new Error("Vals page has no benchmark JSON reference");
@@ -31,12 +30,9 @@ export async function getValsBenchmarkView(pageUrl: string): Promise<ValsBenchma
   if (assetUrl.origin !== new URL(pageUrl).origin) {
     throw new Error("Vals benchmark JSON must share the page origin");
   }
-  return fetchSource(assetUrl.href, {}, async (response) => {
-    if (!response.ok) throw new Error(`Vals benchmark JSON failed: ${response.status}`);
-    const view = parseValsBenchmarkView(await response.json());
-    if (view == null) throw new Error("Vals benchmark JSON has no usable metadata or tasks");
-    return view;
-  });
+  const view = parseValsBenchmarkView(await fetchSourceJson(assetUrl.href));
+  if (view == null) throw new Error("Vals benchmark JSON has no usable metadata or tasks");
+  return view;
 }
 
 /** Decode the publisher's plain JSON without executing its frontend or accepting an empty leaderboard. */

@@ -4,13 +4,16 @@ import * as THREE from "three";
 
 import { clamp01, smoothstep } from "../../../src/model-atlas/math-utils";
 import {
+  FLARE_EASE,
   FLARE_FRAGMENT,
+  FRONTIER_SPRITE,
   GRAIN_HASH_GLSL,
   hashUnit,
   HORIZON_LIGHT_GLSL,
   RIM_PULSE_GLSL,
   skyPixelRatio,
   STAR_FRAGMENT,
+  STAR_SPRITE,
   TWINKLE_GLSL,
 } from "../shared/sky-light";
 
@@ -31,9 +34,6 @@ const RELEASE_SPAN = 0.8;
 // Stars fill the sky above the horizon, as shares of its height: the weakest hang just over the glow and the strongest top out below the header.
 const STAR_FLOOR = 0.06;
 const STAR_CEILING = 0.29;
-// A star's sprite spans this many times its size; frontier sprites span more to hold their rays.
-const STAR_SPRITE = 3;
-const FRONTIER_SPRITE = 7;
 // Each star floats on its own slow path, up to twice this many CSS pixels from its place, so the sky never moves as one layer.
 const STAR_WANDER = 2.5;
 // Stars within this many CSS pixels of the pointer lean toward it, by at most 4/27 of GRAVITY pixels a third of the way out; the lean fades to nothing at the pointer itself, so a star under it stays put to be explored.
@@ -54,8 +54,6 @@ const STAR_DEPTH = 10;
 // The opening scatters ignition: starting this far into it, each star lights at its own moment within this share of it, so the sky fills in everywhere at once rather than along any direction.
 const IGNITION_START = 0.2;
 const IGNITION_SPREAD = 0.58;
-// Time constant, in seconds, of the explored star's flare.
-const FLARE_EASE = 0.08;
 
 export type SkyStar = {
   key: string;
@@ -150,9 +148,6 @@ float rimDistance(vec2 uv) {
 }
 `;
 
-// A dark mound with a stippled, glowing rim under a cobalt sky; the rim shifts from cobalt to violet and rose toward the sides.
-// It renders at full strength from the first frame because the dashboard's fade-in already reveals it.
-// The rim pulse runs on its own path rather than following the igniting stars.
 const HORIZON_VERTEX = /* glsl */ `
 varying vec2 vUv;
 void main() {
@@ -161,6 +156,9 @@ void main() {
 }
 `;
 
+// A dark mound with a stippled, glowing rim under a cobalt sky; the rim shifts from cobalt to violet and rose toward the sides.
+// It renders at full strength from the first frame because the dashboard's fade-in already reveals it.
+// The rim pulse runs on its own path rather than following the igniting stars.
 const HORIZON_FRAGMENT = /* glsl */ `
 ${SHARED_GLSL}
 ${PLANET_GLSL}

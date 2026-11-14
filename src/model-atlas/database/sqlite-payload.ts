@@ -1,4 +1,4 @@
-/** Checkpoint tooling reads SQLite rows through the shared payload assembler; application display reads use GCS. */
+/** Reads the SQLite checkpoint back into the public payload inside one read transaction, for the refresh, the publisher, and the local-database display override; deployed display reads come from the published GCS artifacts instead. */
 
 import { DatabaseSync } from "node:sqlite";
 
@@ -19,7 +19,7 @@ import type { SnapshotData } from "./snapshots/manifest";
 
 /** Read a consistent checkpoint payload for derivation and explicit inspection. */
 export function readDatabasePayload(databasePath = DEFAULT_DATABASE_PATH): ModelAtlasPayload {
-  return readCheckpoint(databasePath, readPayload);
+  return readCheckpoint(databasePath, (db) => buildPayloadFromRows(readPayloadRows(db)));
 }
 
 /** Read the payload with the Intelligence Index, community history, and change history it is published beside. */
@@ -48,10 +48,6 @@ function readCheckpoint<T>(databasePath: string, read: (db: DatabaseSync) => T):
   }
 }
 
-function readPayload(db: DatabaseSync): ModelAtlasPayload {
-  return buildPayloadFromRows(readPayloadRows(db));
-}
-
 function readPayloadRows(db: DatabaseSync) {
   return buildPayloadRows(
     db.prepare(SNAPSHOT_METADATA_SQL).get(),
@@ -69,6 +65,7 @@ function readPayloadRowGroup(
       .all()
       .map((row) => asRecord(row));
   } catch (error) {
+    // An optional group reads as empty when its query fails, as for a table an older checkpoint lacks.
     if (rowGroup.optional === true) {
       return [];
     }

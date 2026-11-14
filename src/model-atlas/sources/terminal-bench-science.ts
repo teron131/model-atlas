@@ -6,7 +6,7 @@
  * JSON source: https://www.terminal-bench-science.ai/api/leaderboard?package=terminal-bench-science%2Fterminal-bench-science&name=v0-1-eval
  */
 
-import { BENCHMARK_RESOURCE_PROFILES } from "../benchmarks/catalog/portfolio";
+import { BENCHMARK_RESOURCE_PROFILES } from "../benchmarks/catalog";
 import {
   type BenchmarkObservationPayload,
   type BenchmarkObservationRow,
@@ -16,7 +16,7 @@ import { withClaudeFamily } from "../identity/claude";
 import { canonicalReasoningEffort } from "../identity/normalization";
 import { asFiniteNumber, asNonEmptyString, asRecord, nowEpochSeconds } from "../runtime";
 import { percentToUnitScore } from "./parsing";
-import { fetchSource } from "./request-scheduler";
+import { fetchSourceJson } from "./request-scheduler";
 import { getValsBenchmarkStats } from "./vals/results";
 
 const TERMINAL_BENCH_SCIENCE_DATA_URL =
@@ -34,11 +34,8 @@ export async function getTerminalBenchScienceStats(
   sourceUrl = TERMINAL_BENCH_SCIENCE_DATA_URL,
 ): Promise<BenchmarkObservationPayload> {
   const [official, vals] = await Promise.all([
-    fetchSource(sourceUrl, {}, async (response) => {
-      if (!response.ok) {
-        throw new Error(`Terminal-Bench-Science scrape failed: ${response.status}`);
-      }
-      const data = processTerminalBenchSciencePayload(await response.json(), sourceUrl);
+    fetchSourceJson(sourceUrl).then((payload) => {
+      const data = processTerminalBenchSciencePayload(payload, sourceUrl);
       if (data.length === 0) {
         throw new Error("Terminal-Bench-Science scrape returned no 0.1 rows");
       }

@@ -20,12 +20,12 @@ import { buildModelCatalogRows } from "../src/model-atlas/pipeline/model-catalog
 import type { ModelRow } from "../src/model-atlas/pipeline/model-types";
 import type { OpenRouterModelData } from "../src/model-atlas/pipeline/openrouter-data";
 import { blendedPrices, listedBlendPrices } from "../src/model-atlas/pipeline/scores";
-import type { BenchmarkVersioningOptions } from "../src/model-atlas/pipeline/selection/benchmark-versioning";
 import {
   buildFinalModels,
   prepareModelSelection,
   selectOpenRouterModelRows,
 } from "../src/model-atlas/pipeline/selection/builder";
+import type { ObservationUpdateOptions } from "../src/model-atlas/pipeline/selection/observation-updates";
 import {
   hasRequiredBenchmarkEvidence,
   hasRequiredPublicRelevance,
@@ -886,8 +886,8 @@ function buildTestModels(
   id: string | null | undefined,
   finalConfig: FinalStageConfig,
   scoringConfig: ScoringConfig,
-  versioning?: BenchmarkVersioningOptions,
+  updates?: ObservationUpdateOptions,
 ) {
-  const selection = prepareModelSelection(modelRows, scoringConfig, versioning);
+  const selection = prepareModelSelection(modelRows, scoringConfig, updates);
   return buildFinalModels(selection, openRouterData, id, finalConfig, scoringConfig);
 }

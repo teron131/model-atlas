@@ -3,6 +3,7 @@
 import type { DatabaseSync, SQLInputValue } from "node:sqlite";
 
 import { asFiniteNumber, asNonEmptyString, asRecord, type JsonObject } from "../../runtime";
+import { booleanFromSql } from "../../sqlite-utils";
 
 export type CacheDbRow = JsonObject;
 
@@ -25,33 +26,13 @@ export function sourceCacheRows(cache: CacheRowSource, sql: string): CacheDbRow[
   return Array.isArray(cache) ? cache : queryCacheRows(cache, sql);
 }
 
-/** Source cache freshness follows the persisted fetch timestamp carried by the source row set. */
+/** Every stored row of one source carries the same fetch time, so the first one present stands for the set. */
 export function firstFetchedAt(rowsToScan: readonly CacheDbRow[]): number | null {
   for (const row of rowsToScan) {
     const fetchedAt = asFiniteNumber(row.fetched_at_epoch_seconds);
     if (fetchedAt != null) {
       return fetchedAt;
     }
-  }
-  return null;
-}
-
-/** Decode a JSON text column; an absent or malformed value reads as missing evidence. */
-export function jsonValue(value: unknown): unknown {
-  if (typeof value !== "string") return null;
-  try {
-    return JSON.parse(value) as unknown;
-  } catch {
-    return null;
-  }
-}
-
-export function booleanFromSql(value: unknown): boolean | null {
-  if (value === 1) {
-    return true;
-  }
-  if (value === 0) {
-    return false;
   }
   return null;
 }

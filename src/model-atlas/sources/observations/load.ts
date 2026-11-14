@@ -1,4 +1,4 @@
-/** Bind each catalog loader to its source-owned fetch and cache-acceptance rules. */
+/** Binds each benchmark-observation catalog entry to its source's scraper and cache-acceptance rules, and defines the row key that follows those rows across refreshes; "load" here is fetching, shared by live assembly and the snapshot path. */
 
 import type { BenchmarkObservationLoader } from "../../benchmarks/factory";
 import {
@@ -11,6 +11,7 @@ import {
   type BenchmarkObservationBinding,
   type BenchmarkObservationRowsKey,
 } from "../../benchmarks/registry";
+import { parseModelEffort } from "../../identity/normalization";
 import { arcPrizeCacheMatches, getArcPrizeStats } from "../arc-prize";
 import { ARENA_WEBDEV_DATASET_URL, arenaRefreshIsCurrent } from "../arena/dataset";
 import { getArenaWebDevStats } from "../arena/webdev";
@@ -25,7 +26,8 @@ import {
   getEpochExternalBenchmarkStats,
 } from "../epoch/results";
 import { getMercorStats, mercorCacheMatches } from "../mercor/results";
-import { benchmarkObservationRowKeyFor, fetchRowsOrNone } from "../snapshots/row-snapshot";
+import { sourceRowKey } from "../snapshots/policy";
+import { fetchRowsOrNone, harnessDistinguishesRuns } from "../snapshots/row-snapshot";
 import {
   getSurgeIntelligenceIndexStats,
   getSurgeLeaderboardStats,
@@ -202,4 +204,46 @@ function loaderSource(binding: BenchmarkObservationBinding): ObservationSource {
       loader satisfies never;
       throw new Error(`Missing benchmark-observation fetcher for ${binding.sourceDataKey}`);
   }
+}
+
+/** Applies the harness rule per source series, since one benchmark can combine sources with different harness practices. The rule reads only the current rows, so a partial fetch that omits a multi-harness model merges that model's cached harness rows until a full fetch restores them. */
+export function benchmarkObservationRowKeyFor(
+  rows: readonly BenchmarkObservationRow[],
+): (row: BenchmarkObservationRow) => string {
+  const harnessSeries = new Set(
+    [...new Set(rows.map((row) => row.source_url))].filter((sourceUrl) =>
+      harnessDistinguishesRuns(
+        rows.filter((row) => row.source_url === sourceUrl),
+        (row) => benchmarkObservationRowKey(row, { harness: false }),
+        (row) => row.metadata.harness,
+      ),
+    ),
+  );
+  return (row) => benchmarkObservationRowKey(row, { harness: harnessSeries.has(row.source_url) });
+}
+
+/** Uses stable model identity rather than mutable source labels across benchmark row variants. */
+export function benchmarkObservationRowKey(
+  row: BenchmarkObservationRow,
+  { harness = true }: { harness?: boolean } = {},
+): string {
+  const parsedModel = parseModelEffort(row.model);
+  const baseModel = row.base_model === row.model ? parsedModel.baseModel : row.base_model;
+  const metadataIdentity = (key: string): string | number | null => {
+    const value = row.metadata[key];
+    return typeof value === "string" || typeof value === "number" ? value : null;
+  };
+  return sourceRowKey(
+    row.benchmark_key,
+    metadataIdentity("task"),
+    metadataIdentity("track"),
+    harness ? metadataIdentity("harness") : null,
+    metadataIdentity("source_model_id") ??
+      metadataIdentity("source_model") ??
+      metadataIdentity("internal_model_name"),
+    metadataIdentity("run_id"),
+    row.model_id ?? baseModel,
+    row.model_creator,
+    row.reasoning_effort ?? parsedModel.reasoningEffort,
+  );
 }

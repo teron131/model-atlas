@@ -1,4 +1,4 @@
-/** Viewport measurement and horizontal scroll synchronization for the leaderboard table. */
+/** The leaderboard table's viewport: measures row height and column widths, holds those widths while rows scroll, decides when the rank and model columns pin, mirrors horizontal scroll between the body and the sticky header, and picks the rows near the viewport that draw in full. */
 
 import {
   type RefObject,

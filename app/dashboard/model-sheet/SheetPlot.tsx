@@ -5,10 +5,10 @@
 import { scaleLinear, scaleLog } from "d3-scale";
 import type { CSSProperties } from "react";
 
+import { formatResourceRatio } from "../../shared/resource-ratio-display";
 import { logRatioAxisScale } from "../graphs/plot/axis-scale";
 import { type Margin, plotBoundsFor, stableSvgScale } from "../graphs/plot/Primitives";
 import { useChartLayout } from "../graphs/use-chart-layout";
-import { formatResourceRatio } from "../shared/resource-ratio-display";
 
 import graphStyles from "../graphs/graphs.module.css";
 import styles from "./model-sheet.module.css";
@@ -17,7 +17,7 @@ const PLOT_MAX_WIDTH = 840;
 const PLOT_MARGIN: Margin = { top: 10, right: 10, bottom: 30, left: 30 };
 // Stars keep this clearance from the frame so their glow and labels stay inside it.
 const PLOT_INSET = 10;
-// Cost labels need roughly this much room; a wide range keeps only its powers of ten.
+// Cost labels need roughly this much room.
 const MIN_TICK_GAP = 46;
 // The Intelligence title's box inside the plot's top-left corner, kept clear of point labels.
 const AXIS_TITLE_BOX = { width: 92, height: 18 };
@@ -32,7 +32,7 @@ export function useSheetPlot(
   costs: readonly number[],
   scoreDomain: readonly [number, number],
 ) {
-  const { chartRef, width, compact } = useChartLayout(PLOT_MAX_WIDTH);
+  const { plotHost, width, compact } = useChartLayout(PLOT_MAX_WIDTH);
   const axis = logRatioAxisScale([...costs], formatResourceRatio);
   const bounds = plotBoundsFor(width, height, PLOT_MARGIN);
   const x = stableSvgScale(
@@ -58,7 +58,7 @@ export function useSheetPlot(
     },
   ];
   return {
-    chartRef,
+    plotHost,
     width,
     compact,
     height,

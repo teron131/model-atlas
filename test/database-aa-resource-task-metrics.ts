@@ -11,13 +11,13 @@ import {
   insertRefreshRuns,
   pruneChangeLog,
 } from "../src/model-atlas/database/change-log";
-import { openDatabase, removeDatabaseFiles } from "../src/model-atlas/database/schema";
-import { readDatabaseSnapshot } from "../src/model-atlas/database/sqlite-payload";
 import {
   insertModelBenchmarks,
   insertModels,
   insertModelTaskMetrics,
-} from "../src/model-atlas/database/writers/models";
+} from "../src/model-atlas/database/model-rows";
+import { openDatabase, removeDatabaseFiles } from "../src/model-atlas/database/schema";
+import { readDatabaseSnapshot } from "../src/model-atlas/database/sqlite-payload";
 import { finalizeBenchmarkRows } from "../src/model-atlas/pipeline/benchmark-rows/source-rows";
 import {
   buildRefreshChanges,
@@ -382,7 +382,6 @@ try {
 
   const refreshed = buildCurrentModelAtlasMetadata({
     models: payload.models,
-    healthModels: payload.models,
     sourceRowsByKey: finalizeBenchmarkRows([
       {
         key: "hle",

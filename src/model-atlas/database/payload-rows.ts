@@ -12,37 +12,27 @@ import { asFiniteNumber, asNonEmptyString, asRecord } from "../runtime";
 import { readAleBenchRawCache } from "../sources/ale-bench/runtime";
 import { artificialAnalysisBenchmarkResourceRawCacheFromRows } from "../sources/artificial-analysis/cache";
 import { fusedBenchmarkObservations } from "../sources/assembly";
-import { booleanFromSql, jsonValue } from "../sources/cache/rows";
 import { readTerminalBench4RawCache } from "../sources/terminal-bench-4/runtime";
+import { type DbRow, jsonValue } from "../sqlite-utils";
 import { buildChangeHistory, recentChangeMarks, variantKey } from "../stats/payload/changes";
 import { buildCurrentModelAtlasMetadata } from "../stats/payload/metadata";
 import type {
-  ModelAtlasBenchmarks,
   ModelAtlasBenchmarkUpdateHealth,
-  ModelAtlasContextWindow,
-  ModelAtlasCost,
-  ModelAtlasIntelligence,
-  ModelAtlasModalities,
   ModelAtlasPayload,
-  ModelAtlasScoredCandidate,
   ModelAtlasSourceHealth,
   ModelAtlasSourceQuarantine,
-  ModelAtlasTaskMetrics,
-  ModelAtlasTaskMetricValues,
 } from "../stats/types";
-import { CHANGE_LOG_ROW_GROUPS, changeLogFromRows, scoreChangeFromJson } from "./change-log";
+import { CHANGE_LOG_ROW_GROUPS, changeLogFromRows } from "./change-log";
+import {
+  benchmarkDatesByModelRow,
+  benchmarksByModelRow,
+  scoredCandidateFromRow,
+  taskMetricsByModelRow,
+} from "./model-rows";
 import { sqlStringLiteral } from "./schema-reconciliation";
 import { SNAPSHOT_TABLES, type SnapshotTableName } from "./tables";
 
-type DbRow = Record<string, unknown>;
-
 export const SNAPSHOT_METADATA_SQL = "SELECT * FROM snapshot_metadata LIMIT 1";
-
-const INTELLIGENCE_KEYS = [
-  "intelligence_index",
-  "omniscience_index",
-  "omniscience_accuracy",
-] as const satisfies readonly (keyof ModelAtlasIntelligence)[];
 
 type PayloadRowGroupOptions = {
   columns?: readonly string[];
@@ -131,127 +121,7 @@ type PayloadRows = {
   benchmarkVersions: Readonly<Record<string, string>> | undefined;
 } & Record<PayloadRowKey, DbRow[]>;
 
-function hasFields(record: object): boolean {
-  return Object.keys(record).length > 0;
-}
-
-function assignNumber(target: Record<string, unknown>, key: string, value: unknown): void {
-  const numericValue = asFiniteNumber(value);
-  if (numericValue != null) {
-    target[key] = numericValue;
-  }
-}
-
-function numericObject<T extends object>(row: DbRow, keys: readonly string[]): T | null {
-  const record: Record<string, number> = {};
-  for (const key of keys) {
-    assignNumber(record, key, row[key]);
-  }
-  return hasFields(record) ? (record as T) : null;
-}
-
-function buildModalities(row: DbRow): ModelAtlasModalities | null {
-  const input = modalitiesFromJson(row.input_modalities_json);
-  const output = modalitiesFromJson(row.output_modalities_json);
-  return input == null && output == null
-    ? null
-    : { ...(input == null ? {} : { input }), ...(output == null ? {} : { output }) };
-}
-
-function modalitiesFromJson(value: unknown): string[] | null {
-  if (typeof value !== "string") {
-    return null;
-  }
-  const parsed: unknown = JSON.parse(value);
-  return Array.isArray(parsed) &&
-    parsed.length > 0 &&
-    parsed.every((item) => typeof item === "string")
-    ? parsed
-    : null;
-}
-
-function buildContextWindow(row: DbRow): ModelAtlasContextWindow {
-  const contextWindow: NonNullable<ModelAtlasContextWindow> = {};
-  assignNumber(contextWindow, "context", row.context);
-  assignNumber(contextWindow, "input", row.context_input);
-  assignNumber(contextWindow, "output", row.context_output);
-  return hasFields(contextWindow) ? contextWindow : null;
-}
-
-function buildCost(row: DbRow): ModelAtlasCost {
-  const cost: Record<string, unknown> = {};
-  assignNumber(cost, "input", row.cost_input);
-  assignNumber(cost, "output", row.cost_output);
-  assignNumber(cost, "cache_read", row.cost_cache_read);
-  assignNumber(cost, "cache_write", row.cost_cache_write);
-  assignNumber(cost, "weighted_input", row.cost_weighted_input);
-  assignNumber(cost, "weighted_output", row.cost_weighted_output);
-  assignNumber(cost, "weighted_cache_read", row.cost_weighted_cache_read);
-  assignNumber(cost, "blended_price", row.cost_blended_price);
-  assignNumber(cost, "blended_price_long_sessions", row.cost_blended_price_long_sessions);
-  assignNumber(cost, "blended_price_short_tasks", row.cost_blended_price_short_tasks);
-  const contextOver200k: Record<string, number> = {};
-  assignNumber(contextOver200k, "input", row.context_over_200k_input);
-  assignNumber(contextOver200k, "output", row.context_over_200k_output);
-  assignNumber(contextOver200k, "cache_read", row.context_over_200k_cache_read);
-  assignNumber(contextOver200k, "cache_write", row.context_over_200k_cache_write);
-  if (hasFields(contextOver200k)) {
-    cost.context_over_200k = contextOver200k;
-  }
-  return hasFields(cost) ? (cost as NonNullable<ModelAtlasCost>) : null;
-}
-
-function scoredCandidateFromRow(
-  row: DbRow,
-  benchmarks: ModelAtlasBenchmarks | null,
-  benchmarkDates: Record<string, string> | null,
-  taskMetrics: ModelAtlasTaskMetrics,
-): ModelAtlasScoredCandidate {
-  const modelId = asNonEmptyString(row.model_id);
-  const provider = asNonEmptyString(row.provider_id) ?? modelId?.split("/")[0] ?? null;
-  return {
-    id: modelId,
-    name: asNonEmptyString(row.name),
-    provider,
-    logo: asNonEmptyString(row.logo) ?? "",
-    reasoning: booleanFromSql(row.reasoning),
-    reasoning_effort: canonicalReasoningEffort(row.reasoning_effort),
-    release_date: asNonEmptyString(row.release_date),
-    modalities: buildModalities(row),
-    open_weights: booleanFromSql(row.open_weights),
-    cost: buildCost(row),
-    context_window: buildContextWindow(row),
-    speed: {
-      throughput_tokens_per_second_median:
-        asFiniteNumber(row.throughput_tokens_per_second_median) ?? null,
-      latency_seconds_median: asFiniteNumber(row.latency_seconds_median) ?? null,
-      e2e_latency_seconds_median: asFiniteNumber(row.e2e_latency_seconds_median) ?? null,
-    },
-    intelligence: numericObject<ModelAtlasIntelligence>(row, INTELLIGENCE_KEYS),
-    task_metrics: taskMetrics,
-    benchmarks,
-    benchmark_dates: benchmarkDates,
-    confidence: {
-      intelligence: asFiniteNumber(row.intelligence_confidence) ?? null,
-      agentic: asFiniteNumber(row.agentic_confidence) ?? null,
-      speed: asFiniteNumber(row.speed_confidence) ?? null,
-      value: asFiniteNumber(row.value_confidence) ?? null,
-    },
-    latest_change: scoreChangeFromJson(row.latest_change_json),
-    component_scores: {
-      intelligence_score: asFiniteNumber(row.component_intelligence_score) ?? null,
-      agentic_score: asFiniteNumber(row.component_agentic_score) ?? null,
-    },
-    scores: {
-      intelligence_score: asFiniteNumber(row.intelligence_score) ?? null,
-      agentic_score: asFiniteNumber(row.agentic_score) ?? null,
-      speed_score: asFiniteNumber(row.speed_score) ?? null,
-      value_score: asFiniteNumber(row.value_score) ?? null,
-    },
-  };
-}
-
-/** Keeps every storage adapter aligned on the row groups required by the public payload. */
+/** Row groups missing from `rowGroups` read as empty. */
 export function buildPayloadRows(
   snapshotMetadata: unknown,
   rowGroups: ReadonlyArray<readonly [PayloadRowKey, DbRow[]]>,
@@ -289,38 +159,6 @@ function isStringRecord(value: unknown): value is Readonly<Record<string, string
     !Array.isArray(value) &&
     Object.values(value).every((entry) => typeof entry === "string")
   );
-}
-
-function benchmarksByModelRow(rows: readonly DbRow[]): Map<number, ModelAtlasBenchmarks> {
-  const benchmarksByModel = new Map<number, ModelAtlasBenchmarks>();
-  for (const row of rows) {
-    const modelRowIndex = asFiniteNumber(row.model_row_index);
-    const benchmarkKey = asNonEmptyString(row.benchmark_key);
-    const value = asFiniteNumber(row.value);
-    if (modelRowIndex == null || benchmarkKey == null || value == null) {
-      continue;
-    }
-    const benchmarks = benchmarksByModel.get(modelRowIndex) ?? {};
-    benchmarks[benchmarkKey] = value;
-    benchmarksByModel.set(modelRowIndex, benchmarks);
-  }
-  return benchmarksByModel;
-}
-
-function benchmarkDatesByModelRow(rows: readonly DbRow[]): Map<number, Record<string, string>> {
-  const benchmarkDatesByModel = new Map<number, Record<string, string>>();
-  for (const row of rows) {
-    const modelRowIndex = asFiniteNumber(row.model_row_index);
-    const benchmarkKey = asNonEmptyString(row.benchmark_key);
-    const observedAt = asNonEmptyString(row.observed_at);
-    if (modelRowIndex == null || benchmarkKey == null || observedAt == null) {
-      continue;
-    }
-    const dates = benchmarkDatesByModel.get(modelRowIndex) ?? {};
-    dates[benchmarkKey] = observedAt;
-    benchmarkDatesByModel.set(modelRowIndex, dates);
-  }
-  return benchmarkDatesByModel;
 }
 
 function observationsFromPayloadRows(rows: PayloadRows): BenchmarkObservationsByKey {
@@ -390,36 +228,6 @@ function observationsFromPayloadRows(rows: PayloadRows): BenchmarkObservationsBy
   });
   Object.assign(observations, fused);
   return observations;
-}
-
-function taskMetricsByModelRow(
-  rows: readonly DbRow[],
-): Map<number, NonNullable<ModelAtlasTaskMetrics>> {
-  const taskMetricsByModel = new Map<number, NonNullable<ModelAtlasTaskMetrics>>();
-  for (const row of rows) {
-    const modelRowIndex = asFiniteNumber(row.model_row_index);
-    const sourceKey = asNonEmptyString(row.source_key);
-    if (modelRowIndex == null || sourceKey == null) {
-      continue;
-    }
-    const metrics: ModelAtlasTaskMetricValues = {};
-    assignNumber(metrics, "quality", row.quality);
-    assignNumber(metrics, "cost", row.cost);
-    assignNumber(metrics, "observed_cost", row.observed_cost);
-    assignNumber(metrics, "seconds", row.seconds);
-    assignNumber(metrics, "tokens", row.tokens);
-    assignNumber(metrics, "input_tokens", row.input_tokens);
-    assignNumber(metrics, "output_tokens", row.output_tokens);
-    assignNumber(metrics, "cost_price_ratio", row.cost_price_ratio);
-    const observedAt = asNonEmptyString(row.observed_at);
-    if (observedAt != null) {
-      metrics.observed_at = observedAt;
-    }
-    const taskMetrics = taskMetricsByModel.get(modelRowIndex) ?? {};
-    taskMetrics[sourceKey] = metrics;
-    taskMetricsByModel.set(modelRowIndex, taskMetrics);
-  }
-  return taskMetricsByModel;
 }
 
 function sourceHealthFromRows(
@@ -525,7 +333,6 @@ export function buildPayloadFromRows(rows: PayloadRows): ModelAtlasPayload {
     fetched_at_epoch_seconds: rows.fetchedAt,
     metadata: buildCurrentModelAtlasMetadata({
       models,
-      healthModels: models,
       sourceHealth,
       benchmarkUpdateHealth: rows.benchmarkUpdateHealth,
       benchmarkVersions: rows.benchmarkVersions,

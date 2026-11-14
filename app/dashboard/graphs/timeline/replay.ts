@@ -144,7 +144,8 @@ export function followReplayPlan(
 
 /**
  * Run a replay plan's clock, redrawing every frame or in a few still steps under reduced motion, until it ends or stops; starting again restarts it, and it never outlives its component.
- * A pause keeps the frame it reached with no frames running, and resuming continues from it. `start`, `pause` and `stop` keep their identity across renders.
+ * A pause keeps the frame it reached with no frames running, and resuming continues from it.
+ * `start`, `pause` and `stop` keep their identity across renders.
  */
 export function useReplay() {
   const [state, setState] = useState<{

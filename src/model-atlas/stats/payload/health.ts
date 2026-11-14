@@ -2,6 +2,7 @@
 
 import { createHash } from "node:crypto";
 
+import { benchmarkValue } from "../../benchmarks/registry";
 import type { ScoringConfig } from "../../config/stage";
 import {
   firstVariantCompatibleCandidate,
@@ -17,7 +18,6 @@ import {
   reasoningEffortRank,
 } from "../../identity/normalization";
 import type { BenchmarkRowsByKey, BenchmarkSourceRow } from "../../pipeline/benchmark-rows";
-import { benchmarkValue } from "../../pipeline/scores/resource-metrics";
 import { benchmarkRawSources } from "../../sources/registry";
 import type {
   ModelAtlasBenchmarkHealthLeader,
@@ -45,7 +45,7 @@ export function benchmarkHealthKeys(scoringConfig: ScoringConfig): string[] {
   return Object.keys(scoringConfig.benchmarkPortfolio).sort();
 }
 
-/** Older rank-overlap summaries must never survive as current descriptive health evidence. */
+/** Rejects entries from older schemas, such as rank-overlap summaries, and entries whose counts, leaders, and spread disagree with one another. */
 export function isValidBenchmarkUpdateHealth(
   entry: ModelAtlasBenchmarkUpdateEntry | undefined,
 ): entry is ModelAtlasBenchmarkUpdateEntry {

@@ -1,10 +1,11 @@
 "use client";
 
-/** Shared SVG drawing, label measurement and plot geometry for Model Atlas charts. */
+/** The SVG building blocks the Pareto, Timeline, and model-sheet plots share, in each plot's SVG coordinates: frame, axes, star marks and glows, the frontier horizon, medians, and point labels with their measurement. */
 
 import { type CSSProperties, useCallback, useId, useLayoutEffect, useRef, useState } from "react";
 
 import { clamp } from "../../../../src/model-atlas/math-utils";
+import { REFERENCE_PLOT_HEIGHT } from "../../shared/sky-light";
 import type { PointLabelPlacement, PointLabelSize } from "./label-placement";
 
 import styles from "../graphs.module.css";
@@ -165,13 +166,11 @@ const HORIZON_SKY = [
   { width: 4, blur: 4 },
   { width: 12, blur: 16 },
 ] as const;
-// The sky light is sized for a full dashboard plot this tall and shrinks with smaller plots, such as the phone layout and the model sheet's inset, so it never outweighs them.
-const HORIZON_SKY_PLOT_HEIGHT = 480;
 // A tight halo keeps the rim luminous without widening it.
 const HORIZON_HALO = { width: 3, blur: 2.5 } as const;
 
 /** The horizon's cobalt-to-violet-to-rose light as SVG gradient stops, matching the --horizon-gradient token; literal so PNG exports, which drop stylesheet rules inside SVG, keep the same light. */
-export function HorizonLightStops() {
+function HorizonLightStops() {
   return (
     <>
       <stop offset="0" stopColor="#4a72ff" />
@@ -247,7 +246,7 @@ export function FrontierHorizon({
   const rimPath = rim
     .map(({ x, y }, index) => `${index ? "L" : "M"}${stableSvgNumber(x)},${stableSvgNumber(y)}`)
     .join("");
-  const skyScale = Math.min(1, (bounds.bottom - bounds.top) / HORIZON_SKY_PLOT_HEIGHT);
+  const skyScale = Math.min(1, (bounds.bottom - bounds.top) / REFERENCE_PLOT_HEIGHT);
   const skyLayers = HORIZON_SKY.map(({ width, blur }) => ({
     width: stableSvgNumber(width * skyScale),
     blur: stableSvgNumber(blur * skyScale),

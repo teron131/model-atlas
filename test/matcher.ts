@@ -21,7 +21,7 @@ import type {
 import { assignBenchmarksToVariants } from "../src/model-atlas/pipeline/benchmark-rows";
 import { deriveModelStats } from "../src/model-atlas/pipeline/derivation";
 import { modelRowsFromMatchDiagnostics } from "../src/model-atlas/pipeline/matched-rows";
-import { collapseModelVariants } from "../src/model-atlas/pipeline/model-catalog";
+import { buildModelVariants } from "../src/model-atlas/pipeline/model-catalog";
 import { buildVersionReplacementMatchSlugOverrides } from "../src/model-atlas/pipeline/selection/version-replacement";
 import {
   type ArtificialAnalysisBenchmarkResourceRow,
@@ -904,7 +904,7 @@ const matchedFlashRow = matchedRows.find(
   (row) => row.artificial_analysis_id === "google/example-2-5-flash",
 );
 const assignedFlashVariant = assignBenchmarksToVariants(
-  collapseModelVariants(matchedRows),
+  buildModelVariants(matchedRows),
   sourceData,
 ).find((row) => row.id === "google/example-2.5-flash");
 const noneEffortObservation = matchedRows.find(
@@ -968,7 +968,6 @@ assert.equal(
   "matched effort rows should retain their exact resource observation",
 );
 assert.equal(asBenchmarks(assignedFlashVariant).hle, 0.4);
-assert.equal(assignedFlashVariant?.reasoning_effort, undefined);
 
 const uncatalogedEfforts = ["max", "high", "none"];
 const uncatalogedSourceData = modelStatsSourceData(

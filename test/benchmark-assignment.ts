@@ -15,8 +15,8 @@ import {
   buildObservationBenchmarks,
 } from "../src/model-atlas/pipeline/benchmark-rows";
 import type { ModelAtlasCandidate, ModelAtlasModel } from "../src/model-atlas/pipeline/model-types";
-import { versionCandidateBenchmarkData } from "../src/model-atlas/pipeline/selection/benchmark-versioning";
 import { buildTaskMetrics } from "../src/model-atlas/pipeline/selection/candidate";
+import { stampObservationUpdates } from "../src/model-atlas/pipeline/selection/observation-updates";
 import { dropStaleReplacementBenchmarks } from "../src/model-atlas/pipeline/selection/version-replacement";
 import {
   type AgentsLastExamHarnessRow,
@@ -717,7 +717,7 @@ assert.equal(
   "a later refresh should not reattach ambiguous evidence absent from the accepted replacement",
 );
 
-const versionedLuna = versionCandidateBenchmarkData(
+const versionedLuna = stampObservationUpdates(
   {
     id: "openai/gpt-5.6-luna",
     reasoning_effort: "max",

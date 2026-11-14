@@ -1,13 +1,18 @@
-/** Terminal-Bench 4.0 runtime owns raw model-agent rows, cache reconstruction, refresh state, and its source-data lookup. */
+/** Terminal-Bench 4.0 keeps one raw row per model, effort, and agent harness; the cache is accepted only when every row matches the pinned source version and the resource profile's task-run count, and is refetched while any row lacks seconds or output tokens per task. */
 
-import { BENCHMARK_RESOURCE_PROFILES } from "../../benchmarks/catalog/portfolio";
-import type { DatabaseWriter } from "../../database/writers/database";
+import { BENCHMARK_RESOURCE_PROFILES } from "../../benchmarks/catalog";
 import { asFiniteNumber, asNonEmptyString } from "../../runtime";
-import { type BenchmarkSnapshotContext, defineBenchmarkRuntime } from "../benchmark-runtime";
+import type { DatabaseWriter } from "../../sqlite-utils";
+import { type BenchmarkSnapshot, defineBenchmarkRuntime } from "../benchmark-runtime";
 import { type CacheRowSource, firstFetchedAt, sourceCacheRows } from "../cache/rows";
 import { sourceRowKey } from "../snapshots/policy";
-import { harnessDistinguishesRuns, snapshotSourceRows } from "../snapshots/row-snapshot";
-import type { RawSourceCacheStatus, SourceRefreshOptions, SourceSnapshotStatus } from "../types";
+import {
+  harnessDistinguishesRuns,
+  type RawRowsCache,
+  snapshotSourceRows,
+  type SourceSnapshotRequest,
+  sourceSnapshotStatus,
+} from "../snapshots/row-snapshot";
 import {
   buildTerminalBench4Map,
   getTerminalBench4Stats,
@@ -16,10 +21,7 @@ import {
   type TerminalBench4ModelHarnessRow,
 } from "./leaderboard";
 
-type TerminalBench4Snapshot = {
-  rows: TerminalBench4ModelHarnessRow[];
-  sourceStatus: SourceSnapshotStatus;
-};
+type TerminalBench4Snapshot = BenchmarkSnapshot<TerminalBench4ModelHarnessRow>;
 
 export const terminalBench4Runtime = defineBenchmarkRuntime({
   source: "terminal_bench_4",
@@ -31,11 +33,9 @@ export const terminalBench4Runtime = defineBenchmarkRuntime({
   sourceData: (rows) => ({ rows, rowsByModelName: buildTerminalBench4Map(rows) }),
 });
 
-/** Reconstruct the cache only when every persisted row matches the current source revision. */
-export function readTerminalBench4RawCache(cache: CacheRowSource): {
-  rows: TerminalBench4ModelHarnessRow[];
-  fetchedAt: number | null;
-} | null {
+export function readTerminalBench4RawCache(
+  cache: CacheRowSource,
+): RawRowsCache<TerminalBench4ModelHarnessRow> | null {
   const cacheRows = sourceCacheRows(
     cache,
     "SELECT * FROM terminal_bench_4_raw_rows ORDER BY row_index",
@@ -100,26 +100,17 @@ export function readTerminalBench4RawCache(cache: CacheRowSource): {
   return rows.length === cacheRows.length ? { rows, fetchedAt: firstFetchedAt(cacheRows) } : null;
 }
 
-/** Refresh every model-agent observation, keeping harness in row identity only when the board lists one model and effort under several agents. */
+/** Harness joins the row identity only when the board lists one model and effort under several agents. */
 async function terminalBench4Snapshot(
-  cached: ReturnType<typeof readTerminalBench4RawCache>,
-  status: RawSourceCacheStatus,
-  options: SourceRefreshOptions,
-  previousMissingSince: ReadonlyMap<string, number>,
-  nowEpochSeconds: number,
-  context: BenchmarkSnapshotContext,
+  request: SourceSnapshotRequest<ReturnType<typeof readTerminalBench4RawCache>>,
 ): Promise<TerminalBench4Snapshot> {
   const snapshot = await snapshotSourceRows({
-    source: context.source,
-    cached,
-    status: cached?.rows.some(
+    ...request,
+    status: request.cached?.rows.some(
       (row) => row.seconds_per_task == null || row.output_tokens_per_task == null,
     )
-      ? { ...status, cache_hit: false }
-      : status,
-    options,
-    previousMissingSince,
-    nowEpochSeconds,
+      ? { ...request.status, cache_hit: false }
+      : request.status,
     fetchRows: getTerminalBench4Stats,
     rowKeyFor: (rows) => {
       const harnessIdentity = harnessDistinguishesRuns(
@@ -135,7 +126,7 @@ async function terminalBench4Snapshot(
   });
   return {
     rows: snapshot.rows,
-    sourceStatus: context.sourceStatus(snapshot),
+    sourceStatus: sourceSnapshotStatus(request.source, snapshot),
   };
 }
 

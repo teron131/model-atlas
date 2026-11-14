@@ -5,7 +5,7 @@
 import { useLayoutEffect, useState, useSyncExternalStore } from "react";
 import { flushSync } from "react-dom";
 
-import { useMediaQuery } from "../shared/use-media-query";
+import { useMediaQuery } from "../../shared/use-media-query";
 
 const COMPACT_CHART_MEDIA_QUERY = "(max-width: 820px)";
 const CAPTURE_PLOT_SELECTOR = "[data-capture-plot]";
@@ -16,10 +16,10 @@ const capturePlotListeners = new Set<() => void>();
 
 /**
  * Match SVG coordinates to displayed pixels so resizing reflows the plot without scaling its typography; `compact` follows the shared compact-chart boundary.
- * The element given `chartRef` is the plot's host, marked `data-capture-plot` so a saved image can redraw it.
+ * Spread `plotHost` onto the plot's host element: it carries the measuring ref and the mark a saved image finds the plot by.
  */
 export function useChartLayout(maxWidth: number) {
-  const [host, chartRef] = useState<HTMLDivElement | null>(null);
+  const [host, setHost] = useState<HTMLDivElement | null>(null);
   const [width, setWidth] = useState(maxWidth);
   useLayoutEffect(() => {
     if (!host) return;
@@ -39,7 +39,7 @@ export function useChartLayout(maxWidth: number) {
   );
   const compact = useMediaQuery(COMPACT_CHART_MEDIA_QUERY);
   return {
-    chartRef,
+    plotHost: { ref: setHost, "data-capture-plot": true },
     width: Math.min(maxWidth, captureWidth ?? width),
     compact: compact && captureWidth == null,
   };
@@ -74,7 +74,6 @@ export function redrawPlotsForCapture(staged: HTMLElement, live: HTMLElement): v
   setCapturePlot(null);
 }
 
-/** The background of the nearest ancestor that paints one. */
 function surfaceBehind(element: Element): string {
   for (let node = element.parentElement; node != null; node = node.parentElement) {
     const color = window.getComputedStyle(node).backgroundColor;

@@ -13,6 +13,9 @@ export const LOGO_CACHE_HEADERS = publicCacheHeaders({
   staleWhileRevalidateSeconds: 604800,
 });
 
+/** Responses that must reach the origin every time: error replies and community data that changes on submission. */
+export const NO_STORE_HEADERS = { "Cache-Control": "no-store" };
+
 /** GET validators accept weak tags, lists, and the wildcard without changing the representation's own ETag. */
 export function matchesEtag(ifNoneMatch: string | null, etag: string): boolean {
   const value = etag.replace(/^W\//, "");

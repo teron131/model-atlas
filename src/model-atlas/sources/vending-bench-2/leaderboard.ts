@@ -7,12 +7,14 @@
 import { parseModelEffort } from "../../identity/normalization";
 import { asFiniteNumber, asRecord, nowEpochSeconds } from "../../runtime";
 import { findObjectEnd } from "../parsing";
-import { fetchSource } from "../request-scheduler";
+import { fetchSourceText } from "../request-scheduler";
 
 export const VENDING_BENCH_2_LEADERBOARD_URL = "https://andonlabs.com/evals/vending-bench-2";
 
+/** SvelteKit route modules the page preloads: `<link href="/_app/immutable/nodes/3.Bx9_a.js">` → /_app/immutable/nodes/3.Bx9_a.js. */
 const ROUTE_NODE_PATTERN = /\/_app\/immutable\/nodes\/[^"'<>\s]+\.js/g;
 
+/** Shared chunks a minified route module imports: `import{a}from"../chunks/Dq1z.js"` → ../chunks/Dq1z.js. */
 const CHUNK_IMPORT_PATTERN = /from"(\.\.\/chunks\/[^"']+\.js)"/g;
 
 const VB2_RUNS_MARKER = '"vb2":';
@@ -34,7 +36,7 @@ type VendingBench2Payload = {
 };
 
 export async function getVendingBench2Stats(): Promise<VendingBench2Payload> {
-  const pageHtml = await fetchText(VENDING_BENCH_2_LEADERBOARD_URL);
+  const pageHtml = await fetchSourceText(VENDING_BENCH_2_LEADERBOARD_URL);
   const dataModule = await vendingDataModule(pageHtml, VENDING_BENCH_2_LEADERBOARD_URL);
   const data = dataModule == null ? [] : processVendingBench2DataModule(dataModule.text);
   return {
@@ -89,15 +91,6 @@ function processVendingBench2DataModule(dataModule: string): VendingBench2ModelS
     .map((row, index) => ({ rank: index + 1, ...row }));
 }
 
-async function fetchText(url: string): Promise<string> {
-  return await fetchSource(url, {}, async (response) => {
-    if (!response.ok) {
-      throw new Error(`Vending-Bench 2 asset fetch failed: ${response.status}`);
-    }
-    return response.text();
-  });
-}
-
 async function vendingDataModule(
   pageHtml: string,
   pageUrl: string,
@@ -110,7 +103,7 @@ async function vendingDataModule(
   const routeModules = await Promise.all(
     routeModuleUrls.map(async (url) => ({
       url,
-      text: await fetchText(url),
+      text: await fetchSourceText(url),
     })),
   );
   // Svelte route nodes are listed root-to-leaf, so inspect the leaf first and fall back through shared layouts.
@@ -125,7 +118,7 @@ async function vendingDataModule(
     const chunks = await Promise.all(
       chunkUrls.map(async (url) => ({
         url,
-        text: await fetchText(url),
+        text: await fetchSourceText(url),
       })),
     );
     const dataModule = chunks.find((chunk) => chunk.text.includes(VB2_RUNS_MARKER));

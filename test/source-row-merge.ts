@@ -28,7 +28,7 @@ import {
   withoutSupersededVersions,
 } from "../src/model-atlas/sources/snapshots/policy";
 import { snapshotSourceRows } from "../src/model-atlas/sources/snapshots/row-snapshot";
-import { riemannBenchRuntime } from "../src/model-atlas/sources/surge/riemann-runtime";
+import { riemannBenchRuntime } from "../src/model-atlas/sources/surge/riemann-bench-runtime";
 
 type ArtificialAnalysisFixtureRow = {
   model_id: string;

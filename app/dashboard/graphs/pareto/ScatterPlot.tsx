@@ -15,9 +15,10 @@ import {
 } from "react";
 
 import { type ModelAtlasModel } from "../../../../src/model-atlas/stats/types";
+import { formatResourceRatio } from "../../../shared/resource-ratio-display";
 import { reasoningVariantGroups } from "../../shared/model-display";
+import { paretoFrontier } from "../../shared/pareto-frontier";
 import { providerChartColor } from "../../shared/provider-theme";
-import { formatResourceRatio } from "../../shared/resource-ratio-display";
 import { type HoverRow, type HoverSetter, pointHover } from "../HoverCard";
 import {
   CursorCapture,
@@ -26,7 +27,6 @@ import {
   useCursorProjection,
 } from "../plot/Interaction";
 import { calloutLabelPlacements, type PointLabelPlacement } from "../plot/label-placement";
-import { paretoFrontier } from "../plot/pareto-frontier";
 import {
   DirectionArrow,
   FrontierHorizon,
@@ -98,7 +98,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
   getHoverRows,
   getHoverTitle,
   getLabel,
-  connectReasoningVariants = false,
+  connectReasoningVariants,
   setHover,
   margin,
 }: {
@@ -116,13 +116,13 @@ export function FrontierBenchmarkScatterPlot<Row>({
   getModel: (row: Row) => ModelAtlasModel;
   getKey: (row: Row) => string;
   getHoverRows: (row: Row) => HoverRow[];
-  getHoverTitle?: (row: Row) => string;
+  getHoverTitle: (row: Row) => string;
   getLabel: (row: Row) => string;
-  connectReasoningVariants?: boolean;
+  connectReasoningVariants: boolean;
   setHover: HoverSetter;
   margin: Margin;
 }) {
-  const { chartRef, width, compact } = useChartLayout(SCATTER_CHART_WIDTH);
+  const { plotHost, width, compact } = useChartLayout(SCATTER_CHART_WIDTH);
   const height = compact ? Math.min(SCATTER_CHART_HEIGHT, 400) : SCATTER_CHART_HEIGHT;
   const [highlightedVariantKey, setHighlightedVariantKey] = useVariantHighlight();
   const guideMaskId = useId();
@@ -170,7 +170,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
     return [...getHoverRows(row), [`From ${getLabel(from)}`, stepTrade(from, row)]];
   };
   const hoverFor = (event: PointerEvent<Element>, row: Row) =>
-    pointHover(event, getModel(row), hoverRows(row), getHoverTitle?.(row));
+    pointHover(event, getModel(row), hoverRows(row), getHoverTitle(row));
   /** One step's trade, worded as the sheet's effort steps are: the signed score change at the X change, a multiple on log axes and a signed amount on linear ones. */
   const stepTrade = (from: Row, to: Row) => {
     const gain = getScore(to) - getScore(from);
@@ -343,9 +343,8 @@ export function FrontierBenchmarkScatterPlot<Row>({
 
   return (
     <div
-      ref={chartRef}
+      {...plotHost}
       className={styles.chartWrap}
-      data-capture-plot
       style={{ "--chart-max-width": `${SCATTER_CHART_WIDTH}px` } as CSSProperties}
       role="group"
       aria-label={`${ariaLabel} viewport`}
@@ -538,7 +537,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
                   model={model}
                   rows={hoverRows(row)}
                   setHover={setHover}
-                  hoverTitle={getHoverTitle?.(row)}
+                  hoverTitle={getHoverTitle(row)}
                   snapProjection={{
                     x: cx,
                     y: cy,

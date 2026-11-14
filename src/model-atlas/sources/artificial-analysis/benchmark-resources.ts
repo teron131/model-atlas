@@ -5,7 +5,7 @@
  * Page source: https://artificialanalysis.ai/methodology/intelligence-benchmarking
  */
 
-import { ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES as BENCHMARK_RESOURCE_PAGES } from "../../benchmarks/registry";
+import { ARTIFICIAL_ANALYSIS_RESOURCE_PAGE_ADAPTERS } from "../../benchmarks/registry";
 import {
   canonicalReasoningEffort,
   normalizeModelToken,
@@ -20,7 +20,7 @@ import {
   nowEpochSeconds,
 } from "../../runtime";
 import { stripHtmlTags } from "../parsing";
-import { fetchSource, SourceQueueTimeoutError } from "../request-scheduler";
+import { fetchSourceText, SourceQueueTimeoutError } from "../request-scheduler";
 import {
   cleanArtificialAnalysisModelName,
   parseArtificialAnalysisReasoningEffort,
@@ -105,17 +105,18 @@ export type ArtificialAnalysisBenchmarkResourceLookup = ReadonlyMap<
   ReadonlyMap<string, ArtificialAnalysisBenchmarkResourceRow>
 >;
 
-export const ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES = BENCHMARK_RESOURCE_PAGES.map(
-  (page): ArtificialAnalysisBenchmarkResourcePage => ({
-    benchmark_key: page.benchmarkKey,
-    ...(page.scoreKey == null ? {} : { score_key: page.scoreKey }),
-    ...(page.scorePath == null ? {} : { score_path: page.scorePath }),
-    resource_key: page.resourceKey,
-    url: page.url,
-    methodology_name: page.methodologyName,
-    ...(page.version == null ? {} : { version: page.version }),
-  }),
-);
+export const ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES =
+  ARTIFICIAL_ANALYSIS_RESOURCE_PAGE_ADAPTERS.map(
+    (page): ArtificialAnalysisBenchmarkResourcePage => ({
+      benchmark_key: page.benchmarkKey,
+      ...(page.scoreKey == null ? {} : { score_key: page.scoreKey }),
+      ...(page.scorePath == null ? {} : { score_path: page.scorePath }),
+      resource_key: page.resourceKey,
+      url: page.url,
+      methodology_name: page.methodologyName,
+      ...(page.version == null ? {} : { version: page.version }),
+    }),
+  );
 
 export async function getArtificialAnalysisBenchmarkResourceStats(
   options: ArtificialAnalysisBenchmarkResourceOptions = {},
@@ -125,7 +126,9 @@ export async function getArtificialAnalysisBenchmarkResourceStats(
   if (pages.length === 0) return { fetched_at_epoch_seconds: null, data: [] };
   let runCounts: ReadonlyMap<string, number>;
   try {
-    runCounts = await getArtificialAnalysisRunCounts(options.methodologyUrl ?? METHODOLOGY_URL);
+    runCounts = processArtificialAnalysisRunCounts(
+      await fetchSourceText(options.methodologyUrl ?? METHODOLOGY_URL),
+    );
   } catch {
     return { fetched_at_epoch_seconds: null, data: [] };
   }
@@ -193,7 +196,7 @@ export function processArtificialAnalysisBenchmarkResourceRows(
     );
 }
 
-/** Artificial Analysis titles an evaluation page "<name>[: subtitle] Benchmark | Artificial Analysis"; the version is the name's last word when that word is a dotted number, with or without a leading `v`. */
+/** Artificial Analysis titles an evaluation page "<name>[: subtitle] Benchmark | Artificial Analysis"; the version is the name's last word when that word is a dotted number, with or without a leading `v`: `Terminal-Bench Hard v2.0 Benchmark | Artificial Analysis` → `2.0`. */
 export function artificialAnalysisEvaluationVersion(title: string | null): string | null {
   const name =
     title
@@ -298,15 +301,7 @@ export function findArtificialAnalysisBenchmarkResourceRow(
   return null;
 }
 
-async function getArtificialAnalysisRunCounts(url: string): Promise<Map<string, number>> {
-  const html = await fetchSource(url, {}, async (response) => {
-    if (!response.ok) throw new Error(`Artificial Analysis methodology failed: ${response.status}`);
-    return response.text();
-  });
-  return processArtificialAnalysisRunCounts(html);
-}
-
-/** Version tokens are dropped so a methodology row keeps matching its page across versions. */
+/** Version tokens are dropped so a methodology row keeps matching its page across versions: `Terminal-Bench v2.0 Hard` → `Terminal-Bench Hard`. */
 function evaluationName(name: string): string {
   return name
     .split(/\s+/)
@@ -320,6 +315,7 @@ function tableCells(html: string, tag: "td" | "th"): string[] {
   );
 }
 
+/** A cell's leading whole number with thousands commas, null when the cell opens with anything else such as `~`: `1,198 questions` → `1198`, `~3` → null. */
 function leadingCount(cell: string | undefined): number | null {
   const digits = /^\d[\d,]*/.exec(cell ?? "")?.[0];
   return digits == null ? null : Number(digits.replaceAll(",", ""));
@@ -410,7 +406,8 @@ function resourceRow(
   };
 }
 
-function creatorNameSlug(creatorName: string | null): string | null {
+/** The provider slug Artificial Analysis would give a creator it lists by name only: lowercased, each run of other characters one hyphen, none at the ends, so `"Meta AI (Llama)"` → `"meta-ai-llama"`. */
+export function creatorNameSlug(creatorName: string | null): string | null {
   return creatorName == null
     ? null
     : creatorName
@@ -420,7 +417,6 @@ function creatorNameSlug(creatorName: string | null): string | null {
 }
 
 /** A slug suffix that also ends the display name, as "-max" in "Qwen3.7 Max", names the product rather than an effort. */
-/** A slug suffix the display name also ends with names the product, as in Gemini 1.0 Ultra, rather than an effort. */
 function reasoningEffortFromSlug(
   modelSlug: string | null,
   modelName: string | null,

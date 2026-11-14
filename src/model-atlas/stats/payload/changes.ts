@@ -1,8 +1,8 @@
 /** Material change derivation owns each update's score moves, the model inputs behind them, the per-score cause and benchmark-alignment trail, and the change history assembled from the stored log. */
 
 import { BENCHMARK_LABELS } from "../../benchmarks/catalog";
-import { pearsonCorrelation } from "../../math-utils";
-import { benchmarkValue } from "../../pipeline/scores/resource-metrics";
+import { benchmarkValue } from "../../benchmarks/registry";
+import { competitionRank, pearsonCorrelation } from "../../math-utils";
 import { stableJson } from "../../runtime";
 import type {
   ModelAtlasBenchmarkRankDriver,
@@ -20,6 +20,7 @@ import type {
 } from "../types";
 
 export type RefreshRunRow = {
+  /** The refresh's start time in epoch seconds, which the change-history window is measured against. */
   refresh_id: number;
   previous_refresh_id: number | null;
   methodology_changed: boolean;
@@ -72,7 +73,7 @@ type DimensionPolicy = {
   confidenceKey: keyof ModelAtlasModel["confidence"];
 };
 
-const DIMENSIONS: readonly DimensionPolicy[] = [
+export const DIMENSIONS: readonly DimensionPolicy[] = [
   {
     dimension: "intelligence",
     scoreKey: "intelligence_score",
@@ -105,7 +106,7 @@ const RECENT_CHANGE_MARKS = 12;
 
 /**
  * Record only material adjacent changes while retaining the last material event across quiet refreshes.
- * `previousMethodology` is the fingerprint the previous checkpoint stored, because a payload read back from a checkpoint carries the current config's scoring; a checkpoint that predates it falls back to the payload's scoring.
+ * `previousMethodology` is the fingerprint the previous checkpoint stored, because a payload read back from a checkpoint carries the current config's scoring; when the checkpoint stored none, the payload's scoring stands in.
  */
 export function buildRefreshChanges(
   refreshId: number,
@@ -243,7 +244,7 @@ export function buildRefreshChanges(
 /**
  * Assemble each variant's updates from the stored change log, oldest first.
  * Only refreshes on the newest refresh's chain of predecessors count, so a run that a later run replaced never appears, and the chain stops CHANGE_HISTORY_SECONDS before the newest refresh.
- * Updates logged before update-level facts were stored carry null entry and inputs.
+ * An update with no stored detail row carries null entry and inputs.
  */
 export function buildChangeHistory({
   refreshRuns,
@@ -534,10 +535,6 @@ function averageRanks(values: number[]): number[] {
   return ranks;
 }
 
-function competitionRank(values: number[], target: number): number {
-  return 1 + values.filter((value) => value > target).length;
-}
-
 /** Explain a material score change with bounded rank, methodology, evidence, and coverage causes, falling back to relative peer movement. */
 function changeCauses(
   current: ModelAtlasModel,
@@ -623,9 +620,7 @@ function changedEvidenceLabels(
       .map(benchmarkLabel);
   }
   const labels: string[] = [];
-  const resourceKeys = Object.entries(scoring.benchmark_portfolio).flatMap(([key, entry]) =>
-    entry.resourcePolicy == null ? [] : [key],
-  );
+  const resourceKeys = resourceBenchmarkKeys(scoring);
   const taskFields =
     dimension === "speed"
       ? ["seconds", "tokens", "input_tokens", "output_tokens"]
@@ -650,6 +645,12 @@ function changedEvidenceLabels(
     labels.push("Provider price");
   }
   return [...new Set(labels)];
+}
+
+function resourceBenchmarkKeys(scoring: ModelAtlasMetadata["scoring"]): string[] {
+  return Object.entries(scoring.benchmark_portfolio).flatMap(([key, entry]) =>
+    entry.resourcePolicy == null ? [] : [key],
+  );
 }
 
 /** An update as published, built one way for the latest change and the history: the headline move with its causes and rank drivers, then every move in impact order. */
@@ -688,9 +689,7 @@ function inputChanges(
   previous: ModelAtlasModel,
   scoring: ModelAtlasMetadata["scoring"],
 ): ModelAtlasInputChange[] {
-  const resourceKeys = Object.entries(scoring.benchmark_portfolio).flatMap(([key, entry]) =>
-    entry.resourcePolicy == null ? [] : [key],
-  );
+  const resourceKeys = resourceBenchmarkKeys(scoring);
   const benchmarkKeys = new Set([
     ...scoring.intelligence_benchmark_keys,
     ...scoring.agentic_benchmark_keys,

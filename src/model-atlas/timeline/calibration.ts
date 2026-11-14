@@ -133,6 +133,7 @@ export function calibrateTimeline(
     // Select evidence by availability, never by its value, error budget, or the representation of its calibration path.
     const unique = new Map<string, (typeof candidates)[number]>();
     for (const candidate of candidates) {
+      // `aa_quality_index` is the archived key of Artificial Analysis's index under its earlier name, so both keys count as one index.
       const key =
         candidate.definition.kind === "index"
           ? catalogBenchmarkKey(candidate.definition.key).replace(

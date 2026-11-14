@@ -86,7 +86,7 @@ export const INDEX_POLICIES = {
   },
 } as const satisfies Record<string, IndexPolicy>;
 
-export type IndexBenchmarkKey = keyof typeof INDEX_POLICIES;
+type IndexBenchmarkKey = keyof typeof INDEX_POLICIES;
 
 export const INDEX_BENCHMARK_KEYS = Object.keys(INDEX_POLICIES) as IndexBenchmarkKey[];
 

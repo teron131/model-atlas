@@ -3,11 +3,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import {
-  benchmarkDisplayValue,
-  benchmarkMetricColumns,
-  scaledDisplayRows,
-} from "../app/dashboard/table/models";
+import { benchmarkMetricColumns } from "../app/dashboard/table/column-registry";
+import { benchmarkDisplayValue, scaledDisplayRows } from "../app/dashboard/table/leaderboard-rows";
 import {
   type BenchmarkObservationRow,
   buildBenchmarkObservationLookup,
@@ -31,10 +28,8 @@ import {
   insertBenchmarkObservationRows,
   readBenchmarkObservationRawCache,
 } from "../src/model-atlas/sources/observations/cache";
-import {
-  benchmarkObservationRowKey,
-  snapshotSourceRows,
-} from "../src/model-atlas/sources/snapshots/row-snapshot";
+import { benchmarkObservationRowKey } from "../src/model-atlas/sources/observations/load";
+import { snapshotSourceRows } from "../src/model-atlas/sources/snapshots/row-snapshot";
 import type { SourceSnapshots } from "../src/model-atlas/sources/types";
 import type { ModelAtlasModel } from "../src/model-atlas/stats/types";
 import { SnapshotRowCollector } from "./model-atlas-fixtures";
@@ -186,6 +181,7 @@ const displayRows = scaledDisplayRows(
     id: `webdev-example-${index}`,
     name: `WebDev Example ${index}`,
     benchmarks: { arena_webdev: rating },
+    scores: { intelligence_score: 50, agentic_score: 50, speed_score: null, value_score: null },
   })) as unknown as ModelAtlasModel[],
 );
 assert.deepEqual(

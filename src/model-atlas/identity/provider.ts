@@ -35,7 +35,7 @@ const PROVIDER_ALIASES: Record<string, string> = {
   azure: "microsoft",
 };
 
-/** Map publisher names to one organization without changing model or service-route identities. */
+/** Map publisher names to one organization without changing model or service-route identities: the name is lowercased and slugged before the alias lookup, so `"Mistral AI"` → `"mistral"`. */
 export function providerIdentityKey(provider: string | null | undefined) {
   const key = String(provider ?? "unknown")
     .toLowerCase()

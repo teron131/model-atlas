@@ -1,6 +1,7 @@
 "use client";
 
 /** Shared provider marks keep table icon sizing and failed-image fallback consistent. */
+
 import { useState } from "react";
 
 import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";

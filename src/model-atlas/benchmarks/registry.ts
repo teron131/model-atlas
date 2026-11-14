@@ -1,5 +1,6 @@
 /** Composes Model Atlas benchmark declarations into configured runtime and presentation views. */
 
+import { asFiniteNumber, asRecord } from "../runtime";
 import {
   BENCHMARK_COLUMNS,
   BENCHMARK_DISPLAY_ORDER,
@@ -291,7 +292,7 @@ export type BenchmarkObservationDataKey = BenchmarkObservationBinding["sourceDat
 export type BenchmarkObservationRowsKey = BenchmarkObservationBinding["sourceRowsKey"];
 export type BenchmarkResourceKey = keyof typeof BENCHMARK_RESOURCE_POLICIES;
 
-export const ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES = BENCHMARK_KEYS.flatMap((key) =>
+export const ARTIFICIAL_ANALYSIS_RESOURCE_PAGE_ADAPTERS = BENCHMARK_KEYS.flatMap((key) =>
   BENCHMARK_CATALOG[key].source.inputs.flatMap((input) =>
     (input.adapters ?? []).flatMap((adapter) =>
       adapter.kind === "artificial_analysis_resource_page"
@@ -307,16 +308,40 @@ export const MODEL_ATLAS_BENCHMARK_KEYS = BENCHMARK_KEYS.filter(
 export const benchmarkValueLocation = (key: string) =>
   BENCHMARK_CATALOG[key as BenchmarkKey]?.persistence.location ?? null;
 
+export type BenchmarkMetricModel = {
+  benchmarks?: unknown;
+  intelligence?: unknown;
+  scoring_sources?: unknown;
+};
+
+/** Read a benchmark's finite value from where its catalog persistence stores it, falling back to `benchmarks[key]`; a key outside the catalog is tried under `intelligence` first. */
+export function benchmarkValue(model: BenchmarkMetricModel, key: string): number | null {
+  const location = benchmarkValueLocation(key);
+  if (location?.kind === "intelligence") {
+    return (
+      asFiniteNumber(asRecord(model.intelligence)[location.field]) ??
+      asFiniteNumber(asRecord(model.benchmarks)[key]) ??
+      null
+    );
+  }
+  if (location == null) {
+    return (
+      asFiniteNumber(asRecord(model.intelligence)[key]) ??
+      asFiniteNumber(asRecord(model.benchmarks)[key]) ??
+      null
+    );
+  }
+  return asFiniteNumber(asRecord(model.benchmarks)[key]) ?? null;
+}
+
 export function transformBenchmarkSourceValue(key: BenchmarkKey, value: number): number {
   return applyBenchmarkTransform(value, BENCHMARK_CATALOG[key].processing.transform);
 }
 
 export const benchmarkPortfolioEntry = (key: string) =>
   BENCHMARK_PORTFOLIO[key as BenchmarkKey] ?? null;
-export const benchmarkResourcePolicy = (
-  key: string,
-  portfolio: Readonly<Record<string, BenchmarkPortfolioEntry>> = BENCHMARK_PORTFOLIO,
-) => portfolio[key]?.resourcePolicy ?? null;
+export const benchmarkResourcePolicy = (key: string) =>
+  benchmarkPortfolioEntry(key)?.resourcePolicy ?? null;
 const benchmarkKeysInGroup = (group: BenchmarkGroup) =>
   BENCHMARK_KEYS.filter((key) => BENCHMARK_PORTFOLIO[key].group === group);
 

@@ -1,4 +1,7 @@
-/** Column tooltip copy stays aligned with active scoring weights and benchmark resource policy. */
+/**
+ * Column tooltip copy published with the payload for the score, price, context, and Artificial Analysis per-task columns, plus the evidence-support legend.
+ * Per-benchmark weights and resource rows are computed from the benchmark portfolio and resource bucket weights; the figures inside prose strings (85% retention, 70/30 buckets, 4 resource benchmarks, the 0.85-1.15 token modifier) are typed by hand and must be edited alongside `stage.ts`.
+ */
 
 import { INDEX_REPRESENTED_BENCHMARK_MEDIAN, isAggregateIndex } from "../benchmarks/index-policy";
 import {

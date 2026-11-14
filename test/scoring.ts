@@ -9,6 +9,7 @@ import {
   INDEX_REPRESENTED_BENCHMARK_MEDIAN,
   MINIMUM_REPORTED_INDEX_BREADTH,
 } from "../src/model-atlas/benchmarks/index-policy";
+import { benchmarkValue } from "../src/model-atlas/benchmarks/registry";
 import { STAGE_CONFIG } from "../src/model-atlas/config";
 import type { ScoringConfig } from "../src/model-atlas/config/stage";
 import {
@@ -52,10 +53,7 @@ import {
   qualityAdjustedResourceMultipliers,
   qualityLocalResourceScores,
 } from "../src/model-atlas/pipeline/scores/resource-efficiency";
-import {
-  benchmarkTaskMetrics,
-  benchmarkValue,
-} from "../src/model-atlas/pipeline/scores/resource-metrics";
+import { benchmarkTaskMetrics } from "../src/model-atlas/pipeline/scores/resource-metrics";
 import { buildCurrentModelAtlasMetadata } from "../src/model-atlas/stats/payload/metadata";
 import type { BenchmarkPortfolio, ModelAtlasCandidate } from "../src/model-atlas/stats/types";
 

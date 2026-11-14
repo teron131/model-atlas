@@ -20,7 +20,7 @@ import styles from "./model-sheet.module.css";
 const SUGGESTIONS_ID = "model-sheet-compare-suggestions";
 
 /**
- * Search every model in the snapshot, whatever the dashboard's filters hide, since a comparison may cross them; the pinned model is never offered against itself.
+ * Search every model in the snapshot, whatever the dashboard's filters hide, since a comparison may cross them; no model of the pinned model's family is offered against it.
  * The field takes focus when the Compare toggle just put it on screen, so a keyboard reader can type the partner's name at once.
  */
 export function CompareSearch({

@@ -8,8 +8,8 @@
 import { normalizeModelToken, parseModelEffort } from "../../identity/normalization";
 import { providerIdentityKey } from "../../identity/provider";
 import { asFiniteNumber, asNonEmptyString, asRecord, nowEpochSeconds } from "../../runtime";
-import { extractNextFlightCorpus, findObjectEnd, parseFlightJsonObject } from "../parsing";
-import { fetchSource } from "../request-scheduler";
+import { extractNextFlightCorpus, flightObjects } from "../parsing";
+import { fetchSourceText } from "../request-scheduler";
 import {
   ARENA_AGENT_DATASET_URL,
   arenaBoardNames,
@@ -42,42 +42,26 @@ type ArenaAgentPayload = {
 /** Prefer the live website; fallback rows retain their separate publication date and source URL. */
 export async function getArenaAgentStats(): Promise<ArenaAgentPayload> {
   try {
-    return await fetchSource(ARENA_AGENT_LEADERBOARD_URL, {}, async (response) => {
-      if (!response.ok) {
-        throw new Error(`Arena Agent scrape failed: ${response.status}`);
-      }
-      const data = processArenaAgentPageHtml(await response.text());
-      if (data.length === 0) throw new Error("Arena Agent website has no usable rows");
-      return {
-        fetched_at_epoch_seconds: nowEpochSeconds(),
-        data,
-      };
-    });
+    const data = processArenaAgentPageHtml(await fetchSourceText(ARENA_AGENT_LEADERBOARD_URL));
+    if (data.length === 0) throw new Error("Arena Agent website has no usable rows");
+    return {
+      fetched_at_epoch_seconds: nowEpochSeconds(),
+      data,
+    };
   } catch {
     const data = processArenaAgentDatasetRows(await fetchArenaDataset("agent"));
     return { fetched_at_epoch_seconds: data.length > 0 ? nowEpochSeconds() : null, data };
   }
 }
 
-/** Preserve website contender identities and current quality; task costs are outside the selected contract. */
+/** Rows come from the first agent-board flight object that yields any; task costs stay null because Atlas does not use them. */
 export function processArenaAgentPageHtml(pageHtml: string): ArenaAgentModelScoreRow[] {
   const corpus = extractNextFlightCorpus(pageHtml);
-  for (
-    let startIndex = corpus.indexOf(ARENA_AGENT_OBJECT_MARKER);
-    startIndex !== -1;
-    startIndex = corpus.indexOf(ARENA_AGENT_OBJECT_MARKER, startIndex + 1)
-  ) {
-    const endIndex = findObjectEnd(corpus, startIndex);
-    if (endIndex === -1) {
-      continue;
-    }
-    const payload = parseFlightJsonObject(corpus.slice(startIndex, endIndex + 1));
-    if (payload == null) {
-      continue;
-    }
+  for (const payload of flightObjects(corpus, ARENA_AGENT_OBJECT_MARKER)) {
     const snapshot = asRecord(payload.snapshot);
     const rows = Array.isArray(snapshot.rows) ? snapshot.rows : [];
     const lastUpdated = asNonEmptyString(snapshot.lastUpdated);
+    // The publication date is the date part of an ISO timestamp: 2026-10-03T12:30:00.000Z → 2026-10-03.
     const observedAt =
       lastUpdated && /^\d{4}-\d{2}-\d{2}T/.test(lastUpdated) ? lastUpdated.slice(0, 10) : null;
     const parsedRows = rows.flatMap((row) => {

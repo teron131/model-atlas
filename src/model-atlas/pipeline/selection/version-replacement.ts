@@ -4,6 +4,7 @@ import {
   BENCHMARK_CATALOG,
   BENCHMARK_KEYS,
   type BenchmarkKey,
+  benchmarkValue,
   benchmarkValueLocation,
 } from "../../benchmarks/registry";
 import { type ScoringConfig, selectedBenchmarkKeys } from "../../config/stage";
@@ -18,7 +19,6 @@ import {
 import { asRecord } from "../../runtime";
 import type { ModelAtlasSourceData } from "../../sources/assembly";
 import type { ModelAtlasModel, ModelRow } from "../model-types";
-import { benchmarkValue } from "../scores/resource-metrics";
 
 const FRESHNESS_AUTHORITY_SOURCE_GROUPS = new Set(["artificial_analysis", "vals"]);
 const FRESHNESS_AUTHORITY_HOSTNAMES = ["artificialanalysis.ai", "vals.ai"];
@@ -31,6 +31,7 @@ function isValidCalendarDate(year: number, month: number, day: number): boolean 
   );
 }
 
+/** A dated suffix is one `YYYYMMDD`, `MMDD`, or `YYMM` token, or three `YYYY`, `M`, `D` tokens, and must be a real calendar date: `["20251340"]` → false. */
 function isDatedReleaseSuffix(tokens: readonly string[]): boolean {
   if (tokens.length === 1) {
     const token = tokens[0] as string;
@@ -355,11 +356,8 @@ function omitBenchmarkValues(row: ModelRow, keys: readonly string[]): ModelRow {
 }
 
 /**
- * Retain changed replacement observations.
- * Retain observations identified by the new route or confirmed stable authority alias.
- * Retain observations newly observed for or already accepted for the replacement.
- * Give freshness authorities extra weight after filtering.
- * Authority alone does not make an unnamed observation current-version evidence.
+ * A replacement row keeps a selected benchmark only when its value changed from the previous model, was already published under this id, was observed on or after release and after the previous observation, or its source names the current route.
+ * A freshness authority's source also counts as current when it names the replaced source id or no model at all.
  */
 export function dropStaleReplacementBenchmarks(
   rows: readonly ModelRow[],

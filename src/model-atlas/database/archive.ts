@@ -38,6 +38,7 @@ function* checkpointEvidence(databasePath: string): Generator<Evidence> {
         .map((row) => String(row.name)),
     );
     for (const table of tables) {
+      // Raw source tables end in _raw_rows or _raw_models: vals_index_raw_rows and artificial_analysis_raw_models qualify, model_benchmarks does not.
       if (!/^[a-z][a-z0-9_]*_raw_(rows|models)$/.test(table)) continue;
       for (const row of db.prepare(`SELECT * FROM ${table}`).iterate()) {
         const { row_index: _index, fetched_at_epoch_seconds: _fetched, ...record } = row;

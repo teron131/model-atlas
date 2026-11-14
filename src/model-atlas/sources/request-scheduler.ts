@@ -71,6 +71,22 @@ export async function fetchSource<T>(
   );
 }
 
+/** Read a source body as text; a non-ok status rejects. */
+export async function fetchSourceText(input: string | URL): Promise<string> {
+  return fetchSource(input, {}, async (response) => {
+    throwUnlessOk(input, response);
+    return response.text();
+  });
+}
+
+/** Read a source body as JSON; a non-ok status rejects. */
+export async function fetchSourceJson(input: string | URL): Promise<unknown> {
+  return fetchSource(input, {}, async (response) => {
+    throwUnlessOk(input, response);
+    return response.json();
+  });
+}
+
 /** Pace related page requests as one load, retaining its slot until every request and retry settles, even when one fails. */
 export async function scheduleSourcePage<T extends unknown[]>(
   input: string | URL,
@@ -99,6 +115,11 @@ export async function scheduleSourceRequest<T>(
   const host = sourceHost(input);
   const queues = hostQueuesFor(host);
   return enqueue(host, queues, queues.requests, request, signal);
+}
+
+function throwUnlessOk(input: string | URL, response: Response): void {
+  if (!response.ok)
+    throw new Error(`Source request failed with status ${response.status}: ${input}`);
 }
 
 function sourceHost(input: string | URL): string {

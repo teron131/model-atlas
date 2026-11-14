@@ -1,5 +1,6 @@
-/** Final scoring combines capability, resource efficiency, coverage, and confidence into public model scores. */
+/** Final scoring adds Speed and Value to the quality scores from provider telemetry and quality-adjusted task resources, scaled by coverage, with each score's evidence share as its confidence. */
 
+import { benchmarkValue } from "../../benchmarks/registry";
 import { RESOURCE_SCORE_BUCKET_WEIGHTS, type ScoringConfig } from "../../config/stage";
 import { canonicalModelKey, reasoningEffortRank } from "../../identity/normalization";
 import {
@@ -10,6 +11,7 @@ import {
   weightedMeanOfFinite,
 } from "../../math-utils";
 import type { ModelAtlasCandidate, ModelAtlasScoredCandidate } from "../model-types";
+import { logBlendedPrice } from "./blended-price";
 import {
   benchmarkQualityEvidence,
   type BenchmarkScoringPreparation,
@@ -21,11 +23,9 @@ import { coverageMultiplier } from "./normalization";
 import { modelBalancedMinMaxScores, qualityLocalResourceScores } from "./resource-efficiency";
 import {
   benchmarkTaskMetrics,
-  benchmarkValue,
   effectiveTaskSeconds,
   separatedBenchmarkResourceEvidence,
 } from "./resource-metrics";
-import { logBlendedPrice } from "./score-builders";
 
 type WeightedSignal = {
   value: number | null;
@@ -172,7 +172,7 @@ function evidenceShare(
   return score == null ? null : Math.min(1, finiteSignalWeight(signals) / totalWeight);
 }
 
-/** Use the source-default variant's coverage uniformly across every reasoning effort. */
+/** Every effort of a model takes the coverage of its highest-effort variant, which carries the model-level results. */
 function defaultVariantCoverageMultipliers(
   models: readonly ResourceScoringModel[],
   signalsByModel: readonly WeightedSignal[][],

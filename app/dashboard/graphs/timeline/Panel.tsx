@@ -1,8 +1,7 @@
 "use client";
 
-/** The dashboard's historical view loads only published chart points and owns its independent time window. */
+/** The Timeline panel owns the view's state and interactions (lab filter, time window, pick and pointer, replay) and renders what `scene.ts` derives from them, with the lab standings and the evidence disclosure beneath; it loads only the published chart points, leaving full evidence to `TimelineEvidence`. */
 
-import { scaleLinear, scaleUtc } from "d3-scale";
 import { ArrowUpRight } from "lucide-react";
 import dynamic from "next/dynamic";
 import { type CSSProperties, memo, useCallback, useEffect, useId, useMemo, useState } from "react";
@@ -15,22 +14,11 @@ import { ResearchRegion } from "../../ResearchRegions";
 import { providerChartColor, providerDisplayName, providerLogo } from "../../shared/provider-theme";
 import { useUrlState } from "../../use-url-state";
 import { HoverCard, type HoverState } from "../HoverCard";
-import { calloutLabelPlacements, type PointLabelPlacement } from "../plot/label-placement";
 import {
-  crowdedOutLabels,
   FrontierHorizon,
-  horizonRim,
-  horizonTrail,
-  insetScaleAnchors,
-  labelBounds,
   LabelMask,
-  labelRect,
-  plotBoundsFor,
   PlotFrame,
-  polylineSegments,
-  SCATTER_CHART_MARGIN,
   SCATTER_CHART_WIDTH,
-  scatterChartMargin,
   starCore,
   StarGlows,
   TextPointLabel,
@@ -39,15 +27,9 @@ import {
   YAxisTicks,
   YAxisTitle,
 } from "../plot/Primitives";
-import { MUTED_STAR_GLOW, type SkyPlotScene } from "../plot/sky-renderer";
 import { SkyPlot } from "../plot/SkyPlot";
 import { useChartLayout } from "../use-chart-layout";
-import {
-  TIMELINE_LABEL_GAPS,
-  type TimelinePoint,
-  timelinePointLabel,
-  timelineScoreDomain,
-} from "./chart-data";
+import { type TimelinePoint, timelinePointLabel } from "./chart-data";
 import {
   coverageFrontier,
   frontierTies,
@@ -57,8 +39,18 @@ import {
   RECORD_MINIMUM_SUPPORT,
 } from "./frontier";
 import { OrganizationSelect } from "./OrganizationSelect";
-import { arrival, easeOut, followReplayPlan, RECORD_RISE_MS, useReplay } from "./replay";
+import { easeOut, followReplayPlan, useReplay } from "./replay";
+import {
+  constellationStroke,
+  frontierNameCallouts,
+  frontierNamesKey,
+  labNameCallouts,
+  labNamesKey,
+  placeBesideStars,
+  timelineScene,
+} from "./scene";
 import { TimelineNavigator } from "./TimelineNavigator";
+import { useTimelineData } from "./use-timeline-data";
 
 import styles from "../graphs.module.css";
 import timeline from "./timeline.module.css";
@@ -67,10 +59,6 @@ const TIMELINE_CAPTION = `Compare model generations on a fixed Intelligence Inde
 
 // While a lab is pointed at, the other labs' names keep this share of their light, enough to stay legible as context.
 const DIMMED_NAME_OPACITY = 0.35;
-// Frontier names sit in the open sky above and before their stars, as Pareto's do: the rim only rises to the right, so it never runs there, and the field of other models below it stays clear; a name with no room there gives way.
-const SKY_SIDE = [[-1, -1]] as const;
-// A constellation stroke stops this far short of each star it joins, as on a star chart.
-const CONSTELLATION_GAP = 6;
 
 const REPLAY_DATE = new Intl.DateTimeFormat("en", {
   timeZone: "UTC",
@@ -89,9 +77,6 @@ export const TimelinePanel = memo(function TimelinePanel({
 }: {
   currentModels: readonly ModelAtlasModel[];
 }) {
-  const [points, setPoints] = useState<TimelinePoint[] | null>(null);
-  const [error, setError] = useState("");
-  const [attempt, setAttempt] = useState(0);
   const [period, setPeriod] = useUrlState("timeline-period");
   const [providers, setProviders] = useUrlState("timeline-provider");
   const [preview, setPreview] = useState<TimelinePoint | null>(null);
@@ -121,28 +106,13 @@ export const TimelinePanel = memo(function TimelinePanel({
     [stopReplay, setProviders],
   );
   const scope = `${period}:${providers?.join(",") ?? "all"}`;
-  const { chartRef, width, compact } = useChartLayout(SCATTER_CHART_WIDTH);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    // Warm the small chart payload while readers explore the dashboard; evidence stays on demand.
-    setError("");
-    void fetch("/api/timeline?view=chart", { signal: controller.signal })
-      .then(async (response) => {
-        const body = await response.json();
-        if (!response.ok) throw new Error(body.error ?? "Unable to load Timeline.");
-        return body as TimelinePoint[];
-      })
-      .then((body) => {
-        if (!controller.signal.aborted) setPoints(body);
-      })
-      .catch((reason: Error) => {
-        if (!controller.signal.aborted) setError(reason.message);
-      });
-    return () => {
-      controller.abort();
-    };
-  }, [attempt]);
+  const { plotHost, width, compact } = useChartLayout(SCATTER_CHART_WIDTH);
+  // Warm the small chart payload while readers explore the dashboard; evidence stays on demand.
+  const {
+    data: points,
+    error,
+    retry,
+  } = useTimelineData<TimelinePoint[]>("/api/timeline?view=chart", "Unable to load Timeline.");
 
   const population = useMemo(
     () => points?.filter((point) => providers == null || providers.includes(point.provider)) ?? [],
@@ -181,25 +151,11 @@ export const TimelinePanel = memo(function TimelinePanel({
     [windowed, cutoff],
   );
   // Records are set against every model in the population, so a window that starts after a record still measures its models against it.
-  const records = useMemo(() => coverageFrontier(population, RECORD_MINIMUM_SUPPORT), [population]);
+  const records = useMemo(() => coverageFrontier(population), [population]);
   const reached = cutoff ?? end;
-  const prior = records.filter((point) => Date.parse(point.releaseDate) < start).at(-1);
-  const frontier = records.filter((point) => {
-    const date = Date.parse(point.releaseDate);
-    return date >= start && date <= reached;
-  });
-  const ties = useMemo(
-    () => frontierTies(windowed, records, RECORD_MINIMUM_SUPPORT),
-    [windowed, records],
-  );
-  // The models on the frontier curve: its records and the models level with them, in release order.
-  const curve = [
-    ...frontier,
-    ...ties.filter((point) => Date.parse(point.releaseDate) <= reached),
-  ].sort((a, b) => a.releaseDate.localeCompare(b.releaseDate));
+  const ties = useMemo(() => frontierTies(windowed, records), [windowed, records]);
   const byScore = useMemo(() => [...visible].sort((a, b) => b.score - a.score), [visible]);
   const evidenceModelIds = useMemo(() => byScore.map((point) => point.id), [byScore]);
-  const frontierIds = new Set(frontier.map((point) => point.id));
   // The leading labs ranked by the record each holds at the window's end, for the list beneath the chart.
   const labLeaders = useMemo(
     () =>
@@ -222,81 +178,66 @@ export const TimelinePanel = memo(function TimelinePanel({
   }, [currentModels]);
   // A lab's leading model can lie outside the window, so a pick is found in the whole population.
   const picked = population.find((point) => point.id === selected);
-  // The readout follows picks, not the pointer, which the hover card follows, so the entry above the chart holds still while the reader scans the stars.
-  const chosen = picked ?? frontier.at(-1) ?? visible.at(-1);
   // Only the lab of the model under the pointer, or else of the picked one, draws its records, so its line is read against the field's frontier one lab at a time.
   const focusLab = (preview ?? picked)?.provider;
   const labRecords = useMemo(
     () =>
       focusLab == null
         ? []
-        : coverageFrontier(
-            population.filter((point) => point.provider === focusLab),
-            RECORD_MINIMUM_SUPPORT,
-          ),
+        : coverageFrontier(population.filter((point) => point.provider === focusLab)),
     [population, focusLab],
   );
+  const scene = timelineScene({
+    width,
+    compact,
+    frame,
+    start,
+    end,
+    range,
+    reached,
+    windowed,
+    visible,
+    records,
+    ties,
+    byScore,
+    picked,
+    preview,
+    labRecords,
+  });
+  const {
+    prior,
+    frontier,
+    frontierIds,
+    chosen,
+    height,
+    margin,
+    windowView,
+    x,
+    y,
+    xPoint,
+    arrived,
+    markRadius,
+    pointRadius,
+    dimmed,
+    pointOpacity,
+    plotBounds,
+    drawn,
+    labelled,
+    labNamed,
+    yTicks,
+    ticks,
+    horizon,
+    reveal,
+    labPrior,
+    labSegments,
+    sky,
+  } = scene;
   const chosenModel =
     chosen == null
       ? undefined
       : (currentModelLookup.byId.get(positionCatalogId(chosen.id) ?? "") ??
         currentModelLookup.byName.get(chosen.name));
   const chosenLogo = chosen == null ? "" : providerLogo(chosen.provider);
-  const height = compact ? 400 : 520;
-  const margin = scatterChartMargin(SCATTER_CHART_MARGIN, compact);
-  const padding = Math.max((end - start) * 0.025, 14 * 86400000 * (range[1] - range[0]));
-  // The window's scores and the record it opens under set the scale; a running replay frames its own stretch of the window and settles back onto this framing.
-  const [low, high] = timelineScoreDomain(
-    [...windowed, ...(prior ? [prior] : [])].map((point) => point.score),
-  );
-  const windowView = { start: start - padding, end: end + padding, low, high };
-  const camera = frame?.view ?? windowView;
-  const x = scaleUtc()
-    .domain([new Date(camera.start), new Date(camera.end)])
-    .range([margin.left, width - margin.right]);
-  const y = scaleLinear()
-    .domain([camera.low, camera.high])
-    .range([height - margin.bottom, margin.top]);
-  const xPoint = (point: TimelinePoint) => x(new Date(point.releaseDate));
-  // A replay brings each model in a little larger and fainter than its mark, settling a moment after it is reached.
-  const arrived = (point: TimelinePoint) => (frame == null ? 1 : arrival(frame.age(point.id)));
-  // Stars share the Pareto plot's scale; this field is far denser, so they sit at the small end of it.
-  const markRadius = (point: TimelinePoint) => (frontierIds.has(point.id) ? 2.8 : 2.4);
-  const pointRadius = (point: TimelinePoint) =>
-    (chosen?.id === point.id ? 3.6 : markRadius(point)) * (1.4 - 0.4 * arrived(point));
-  // While a star is hovered its lab stays lit and the other labs dim, as other models do on Pareto; a replay fades each model in.
-  const dimmed = (point: TimelinePoint) => preview != null && preview.provider !== point.provider;
-  const pointOpacity = (point: TimelinePoint) =>
-    (dimmed(point) ? MUTED_STAR_GLOW : 1) * arrived(point);
-  const highlights = byScore.slice(0, 3);
-  const gpt4 = visible.find(
-    (point) =>
-      point.name === "GPT-4 (Mar 2023)" ||
-      (point.name === "GPT-4" && point.releaseDate === "2023-03-14"),
-  );
-  const plotBounds = plotBoundsFor(width, height, margin);
-  // A replay draws only the stars its camera frames.
-  const drawn =
-    frame == null
-      ? visible
-      : visible.filter((point) => {
-          const cx = xPoint(point);
-          return cx >= plotBounds.left - 8 && cx <= plotBounds.right + 8;
-        });
-  // The settled chart names its frontier curve, as Pareto names its frontier, and always the picked model, GPT-4, and its leaders, which take priority over the curve's newest models and then its oldest, so a crowded stretch, as on a phone, keeps those names first; a replay names the curve models its camera frames.
-  const labelled =
-    frame != null
-      ? curve.filter((point) => drawn.includes(point))
-      : [
-          ...new Map(
-            [
-              ...(picked && drawn.includes(picked) ? [picked] : []),
-              ...(gpt4 ? [gpt4] : []),
-              ...highlights,
-              ...[...curve].reverse(),
-            ].map((point) => [point.id, point]),
-          ).values(),
-        ];
   useEffect(() => {
     setPreview(null);
     setHover(null);
@@ -320,124 +261,22 @@ export const TimelinePanel = memo(function TimelinePanel({
     }
     return nearest;
   };
-  // The focused lab's records within reach, which its strokes join; only its newest is named, where its line ends, since naming every record crowds the field.
-  const labStars = labRecords.filter((point) => {
-    const date = Date.parse(point.releaseDate);
-    return date >= start && date <= reached && drawn.includes(point);
-  });
-  const labStarIds = new Set(labStars.map((point) => point.id));
-  const labNewest = labStars.at(-1);
-  const labNamed =
-    frame == null && labNewest != null && !labelled.includes(labNewest) ? [labNewest] : [];
   const { svgRef, labelSizes } = useLabelSizes(
     [...labelled, ...labNamed].map(timelinePointLabel).join("\0"),
     compact,
   );
-  const yTicks = y.ticks(5);
-  const scaleAnchorBoxes = compact
-    ? insetScaleAnchors(yTicks, y, margin.left, String).map(({ box }) => box)
-    : [];
-  const ticks = x.ticks(compact ? 4 : 7).map(Number);
-  // In a replay the newest record's level climbs from the one it beat, and the reached region ends at the reveal until the camera settles.
-  const levels = [...(prior ? [prior] : []), ...frontier];
-  const horizon = levels.map((point, index) => {
-    const level = y(point.score);
-    const below = y(levels[index - 1]?.score ?? point.score);
-    const age = frame && index === levels.length - 1 ? frame.age(point.id) : null;
-    return {
-      x: point === prior ? x(new Date(start)) : xPoint(point),
-      y: age == null ? level : below + (level - below) * easeOut(age / RECORD_RISE_MS),
-    };
-  });
-  const reveal =
-    frame == null
-      ? plotBounds.right
-      : x(new Date(frame.at)) + (plotBounds.right - x(new Date(frame.at))) * frame.settle;
-  const rim = horizonRim(horizon, { ...plotBounds, right: reveal }, "right");
-  const trail = horizonTrail(horizon, plotBounds, "right");
-  // The focused lab's records, entering at the window's start as the frontier does and ending at its latest record within reach.
-  const labPrior = labRecords.filter((point) => Date.parse(point.releaseDate) < start).at(-1);
-  const labLine = [
-    ...(labPrior ? [{ x: x(new Date(start)), y: y(labPrior.score) }] : []),
-    ...labStars.map((point) => ({ x: xPoint(point), y: y(point.score) })),
-  ];
-  const labSegments = polylineSegments(labLine);
-  // Names are placed as Pareto's are, clear of every star; a replay's camera moves every frame, too often to search placements, so its labels sit beside their stars until the chart settles.
-  const settled = frame == null && labelled.length > 0;
-  const obstacles = settled
-    ? visible.map((point) => ({
-        key: point.id,
-        cx: xPoint(point),
-        cy: y(point.score),
-        radius: markRadius(point),
-      }))
-    : [];
-  // The frontier's names also keep clear of its rim and trail.
-  const layoutKey = !settled
-    ? null
-    : JSON.stringify({
-        labels: labelled.map((point, index) => ({
-          key: point.id,
-          label: timelinePointLabel(point),
-          cx: xPoint(point),
-          cy: y(point.score),
-          radius: markRadius(point),
-          size: labelSizes[timelinePointLabel(point)],
-          priority: labelled.length - index,
-        })),
-        obstacles,
-        bounds: labelBounds(plotBounds),
-        reservedBoxes: scaleAnchorBoxes,
-        gaps: TIMELINE_LABEL_GAPS,
-        directions: SKY_SIDE,
-        segments: [
-          ...polylineSegments(rim),
-          ...(trail == null ? [] : polylineSegments([trail.from, trail.to])),
-        ],
-      });
+  const layoutKey = frontierNamesKey(scene, labelSizes);
   const labelPlacements = useMemo(() => placeBesideStars(layoutKey), [layoutKey]);
-  const callouts = labelled.map((point) => ({
-    key: point.id,
-    placement: labelPlacements.get(point.id),
-    size: labelSizes[timelinePointLabel(point)],
-  }));
-  const crowded = crowdedOutLabels(callouts);
-  // The focused lab's name is placed around the names already standing, which keep their places as the pointer moves, and gives way where it does not fit.
-  const keptNameBoxes = callouts.flatMap(({ key, placement, size }) => {
-    if (crowded.has(key) || placement == null || size == null) return [];
-    const rect = labelRect(placement, size, 2);
-    return [
-      { left: rect.x, right: rect.x + rect.width, top: rect.y, bottom: rect.y + rect.height },
-    ];
-  });
-  const labLayoutKey =
-    labNamed.length === 0 || !settled
-      ? null
-      : JSON.stringify({
-          labels: labNamed.map((point) => ({
-            key: point.id,
-            label: timelinePointLabel(point),
-            cx: xPoint(point),
-            cy: y(point.score),
-            radius: markRadius(point),
-            size: labelSizes[timelinePointLabel(point)],
-          })),
-          obstacles,
-          bounds: labelBounds(plotBounds),
-          reservedBoxes: [...scaleAnchorBoxes, ...keptNameBoxes],
-          gaps: TIMELINE_LABEL_GAPS,
-          segments: labSegments,
-        });
+  const frontierNames = frontierNameCallouts(scene, labelSizes, labelPlacements);
+  const { callouts, crowded } = frontierNames;
+  const labLayoutKey = labNamesKey(scene, labelSizes, frontierNames);
   const labPlacements = useMemo(() => placeBesideStars(labLayoutKey), [labLayoutKey]);
-  const labCallouts = labNamed.map((point) => ({
-    key: point.id,
-    placement: labPlacements.get(point.id),
-    size: labelSizes[timelinePointLabel(point)],
-  }));
-  const labCrowded = crowdedOutLabels([
-    ...callouts.filter(({ key }) => !crowded.has(key)),
-    ...labCallouts,
-  ]);
+  const { labCallouts, labCrowded } = labNameCallouts(
+    scene,
+    labelSizes,
+    labPlacements,
+    frontierNames,
+  );
   // Stars sit at their release day and score, and the camera places them through these four variables, so a frame that only moves the camera re-renders no star.
   const cameraStyle = {
     "--tx": `${x(new Date(fullStart))}px`,
@@ -445,33 +284,6 @@ export const TimelinePanel = memo(function TimelinePanel({
     "--ty": `${y(0)}px`,
     "--ky": `${y(1) - y(0)}px`,
   } as CSSProperties;
-  const leader = frontier.at(-1);
-  const sky: SkyPlotScene = {
-    width,
-    height,
-    bounds: plotBounds,
-    rim,
-    trail,
-    muted: preview != null,
-    stars: drawn.map((point) => ({
-      key: point.id,
-      x: xPoint(point),
-      y: y(point.score),
-      color: providerChartColor(point.provider),
-      // The focused lab's records take the record stars' rays, so its line is read star by star.
-      role:
-        point === leader
-          ? "leader"
-          : frontierIds.has(point.id) || labStarIds.has(point.id)
-            ? "frontier"
-            : "star",
-      glow: pointOpacity(point),
-      scale: 1.4 - 0.4 * arrived(point),
-    })),
-    // Only a star the reader hovers or picks flares, as on Pareto; the readout's default leader stays a plain leader star.
-    flare: (preview ?? picked)?.id ?? null,
-    compact,
-  };
   const guideMask = useId();
   const cameraClip = useId();
   // Ticks are labelled at the resolution they are spaced at, so no two read the same.
@@ -599,7 +411,7 @@ export const TimelinePanel = memo(function TimelinePanel({
         {!points ? (
           <div className={timeline.loading} role="status">
             {error || "Loading Timeline…"}
-            {error && <button onClick={() => setAttempt((value) => value + 1)}>Retry</button>}
+            {error && <button onClick={retry}>Retry</button>}
           </div>
         ) : !visible.length ? (
           <div className={timeline.loading} role="status">
@@ -607,11 +419,7 @@ export const TimelinePanel = memo(function TimelinePanel({
           </div>
         ) : (
           <>
-            <div
-              ref={chartRef}
-              className={`${styles.chartWrap} ${timeline.chart}`}
-              data-capture-plot
-            >
+            <div {...plotHost} className={`${styles.chartWrap} ${timeline.chart}`}>
               <SkyPlot scene={sky}>
                 <svg
                   ref={svgRef}
@@ -735,7 +543,6 @@ export const TimelinePanel = memo(function TimelinePanel({
                         })}
                       </g>
                     )}
-                    {/* Only records on the frontier and the selected model glow. */}
                     <StarGlows
                       bounds={plotBounds}
                       stars={drawn.flatMap((point) =>
@@ -950,33 +757,6 @@ export const TimelinePanel = memo(function TimelinePanel({
   );
 });
 
-/** A name sits at most a short gap from its star, so it takes no leader, whose few dots would read as stray stars beside it. */
-function placeBesideStars(layoutKey: string | null) {
-  if (layoutKey == null) return new Map<string, PointLabelPlacement>();
-  const placements = calloutLabelPlacements(JSON.parse(layoutKey));
-  return new Map(
-    [...placements].map(([key, placement]) => [key, { ...placement, line: undefined }]),
-  );
-}
-
-/** A stroke joining two of a lab's records, stopped short of each star, or `null` where the stars sit too close for one; a stroke entering at the window's edge starts there, where no star stands. */
-function constellationStroke(
-  segment: { x1: number; y1: number; x2: number; y2: number },
-  fromEdge: boolean,
-) {
-  const length = Math.hypot(segment.x2 - segment.x1, segment.y2 - segment.y1);
-  const head = fromEdge ? 0 : CONSTELLATION_GAP;
-  if (length <= head + CONSTELLATION_GAP * 2) return null;
-  const ux = (segment.x2 - segment.x1) / length;
-  const uy = (segment.y2 - segment.y1) / length;
-  return {
-    x1: segment.x1 + ux * head,
-    y1: segment.y1 + uy * head,
-    x2: segment.x2 - ux * CONSTELLATION_GAP,
-    y2: segment.y2 - uy * CONSTELLATION_GAP,
-  };
-}
-
 /** How far a lab's rule is lit: across the standings' observed range, from a third of the rule for the lowest index to all of it for the highest. */
 function standingReach(score: number, leaders: readonly TimelinePoint[]) {
   const scores = leaders.map((leader) => leader.score);
@@ -985,7 +765,7 @@ function standingReach(score: number, leaders: readonly TimelinePoint[]) {
   return high === low ? 1 : 1 / 3 + ((2 / 3) * (score - low)) / (high - low);
 }
 
-/** Pareto's hover card for a Timeline point, which carries its release and evidence rather than the leaderboard's scores. */
+/** The shared hover card for a Timeline point, which carries its release and evidence rather than the leaderboard's scores. */
 function timelineHover(point: TimelinePoint, left: number, top: number): HoverState {
   return {
     left,

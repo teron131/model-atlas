@@ -7,7 +7,7 @@ import {
   type FrontierBenchmarkRow,
   frontierBenchmarkRows,
 } from "../app/dashboard/graphs/pareto/analysis";
-import { sharedFrontierBenchmarkComparison } from "../app/dashboard/graphs/pareto/common-evidence";
+import { commonBenchmarkComparison } from "../app/dashboard/graphs/pareto/common-evidence";
 import {
   frontierBenchmarkAxisConfigFor,
   frontierXAxisScale,
@@ -53,7 +53,7 @@ const references = [
   row({ ...low, id: "test/reference", name: "Reference" }, "a", 0, 1, 8),
   row({ ...low, id: "test/reference", name: "Reference" }, "b", 0, 50, 30),
 ];
-const cost = sharedFrontierBenchmarkComparison(observed, references, ["a", "b"], "cost");
+const cost = commonBenchmarkComparison(observed, references, ["a", "b"], "cost");
 assert.deepEqual(cost.benchmarkKeys, ["a"]);
 assert.equal(cost.rows.length, 2);
 assert.ok(
@@ -65,14 +65,14 @@ assert.ok(
     cost.rows.find((r) => r.model.reasoning_effort === "low")!.score,
   "Unpaired quality on another benchmark cannot distort the y-axis",
 );
-const time = sharedFrontierBenchmarkComparison(observed, references, ["a", "b"], "time");
+const time = commonBenchmarkComparison(observed, references, ["a", "b"], "time");
 assert.deepEqual(time.benchmarkKeys, ["b"], "Time uses its own shared observations");
 assert.equal(
   time.rows.find((r) => r.model.reasoning_effort === "low")!.seconds,
   0.4,
   "Runtime is relative to the full reference median, rather than a min–max endpoint",
 );
-const disjoint = sharedFrontierBenchmarkComparison(
+const disjoint = commonBenchmarkComparison(
   [observed[0]!, observed[3]!],
   references,
   ["a", "b"],
@@ -81,11 +81,11 @@ const disjoint = sharedFrontierBenchmarkComparison(
 assert.deepEqual(disjoint.rows, []);
 assert.deepEqual(disjoint.benchmarkKeys, []);
 assert.deepEqual(
-  sharedFrontierBenchmarkComparison(observed, references, ["a"], "cost").rows,
+  commonBenchmarkComparison(observed, references, ["a"], "cost").rows,
   [observed[0], observed[2]],
   "Single-benchmark views retain native values",
 );
-const crossModel = sharedFrontierBenchmarkComparison(
+const crossModel = commonBenchmarkComparison(
   [...observed, row({ ...low, id: "test/another", name: "Another" }, "b", 40, 4)],
   references,
   ["a", "b"],
@@ -114,7 +114,7 @@ const supportedReferences = [
   row({ ...low, name: "Reference", id: "test/reference" }, indexKey, 30, 3, 15),
   row({ ...low, name: "Reference", id: "test/reference" }, "a", 30, 15, 8),
 ];
-const mixed = sharedFrontierBenchmarkComparison(
+const mixed = commonBenchmarkComparison(
   augmented,
   supportedReferences,
   [indexKey, "a", "b"],
@@ -124,7 +124,7 @@ assert.deepEqual(mixed.groups[0]?.benchmarkKeys, [indexKey, "a"]);
 assert.equal(mixed.rows.length, proxies.length + 1);
 assert.equal(mixed.indexVariantCount, 2);
 assert.equal(mixed.excludedVariantCount, 0);
-const indexFallback = sharedFrontierBenchmarkComparison(
+const indexFallback = commonBenchmarkComparison(
   [...proxies, observed[0]!],
   supportedReferences,
   [indexKey, "a"],
@@ -244,7 +244,7 @@ const residualMean = aggregateFrontierBenchmarkRows([
 assert.equal(residualMean.score, ((aaBreadth - 1) * 100) / aaBreadth);
 assert.equal(residualMean.cost, 10);
 assert.equal(residualMean.seconds, 20);
-const incompleteComponent = sharedFrontierBenchmarkComparison(
+const incompleteComponent = commonBenchmarkComparison(
   [
     row(low, "aa_intelligence_index", 40, 2),
     row(high, "aa_intelligence_index", 50, 4),
@@ -282,14 +282,13 @@ for (const axis of ["cost", "time", "tokens"] as const) {
     ...projected,
     { ...projected[0]!, model: { ...low, name: "Reference", id: "test/reference" } },
   ];
-  const result = sharedFrontierBenchmarkComparison(projected, population, [indexKey, "a"], axis);
+  const result = commonBenchmarkComparison(projected, population, [indexKey, "a"], axis);
   assert.equal(result.rows.length, 2, `${axis} preserves observed AA variants`);
   assert.deepEqual(result.benchmarkKeys, [indexKey]);
   for (const other of ["cost", "time", "tokens"] as const)
     if (other !== axis) {
       assert.equal(
-        sharedFrontierBenchmarkComparison(projected, population, [indexKey, "a"], other).rows
-          .length,
+        commonBenchmarkComparison(projected, population, [indexKey, "a"], other).rows.length,
         0,
         `${axis} evidence cannot fill ${other}`,
       );

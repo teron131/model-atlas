@@ -1,7 +1,7 @@
 /** SQLite writer for OpenRouter directory, route, stat-point, series-weight, route-price, and model summary source rows. */
 
-import type { DatabaseStatement, DatabaseWriter } from "../../database/writers/database";
 import { asFiniteNumber, asRecord } from "../../runtime";
+import type { DatabaseStatement, DatabaseWriter } from "../../sqlite-utils";
 import { SOURCE_URLS } from "../registry";
 import { processOpenRouterModelStats } from "./stats";
 import type {
@@ -49,7 +49,6 @@ type OpenRouterRawRow = {
   cacheWritePrice?: number | null;
 };
 
-/** Insert OpenRouter raw directory rows, candidate rows, stat points, route prices, and model summaries in one source table. */
 export function insertOpenRouterRawRows(
   db: DatabaseWriter,
   rawPayload: OpenRouterSourcePayload | null | undefined,

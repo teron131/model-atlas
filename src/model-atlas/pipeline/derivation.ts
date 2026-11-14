@@ -18,12 +18,12 @@ import { modelRowsFromMatchDiagnostics } from "./matched-rows";
 import { buildModelCatalogRows, buildModelVariants } from "./model-catalog";
 import type { ModelAtlasModel, ModelRow } from "./model-types";
 import { backfillFreeModelCosts, prepareOpenRouterModelData } from "./openrouter-data";
-import type { BenchmarkVersioningOptions } from "./selection/benchmark-versioning";
 import {
   buildFinalModels,
   prepareModelSelection,
   selectOpenRouterModelRows,
 } from "./selection/builder";
+import type { ObservationUpdateOptions } from "./selection/observation-updates";
 import {
   buildVersionReplacementMatchSlugOverrides,
   markVersionReplacementRows,
@@ -36,7 +36,7 @@ type OpenRouterLoadResult = {
 type ModelDerivationOptions<LoadResult extends OpenRouterLoadResult> = {
   capabilityState?: CapabilityState;
   modelId?: string | null;
-  benchmarkVersioning?: BenchmarkVersioningOptions & {
+  observationUpdates?: ObservationUpdateOptions & {
     previousModels?: readonly ModelAtlasModel[];
   };
   /** Route telemetry for the eligible cohort, which may be empty; each caller owns its cache and failure policy. */
@@ -79,8 +79,8 @@ export async function deriveModelStats<LoadResult extends OpenRouterLoadResult>(
   const selection = prepareModelSelection(
     modelRows,
     STAGE_CONFIG.scoring,
-    options.benchmarkVersioning,
-    options.benchmarkVersioning?.previousModels,
+    options.observationUpdates,
+    options.observationUpdates?.previousModels,
   );
   // The Intelligence Index reads quality scores but returns nothing to selection, so publishing it cannot move leaderboard scores or admission.
   const capabilityState =
@@ -88,7 +88,7 @@ export async function deriveModelStats<LoadResult extends OpenRouterLoadResult>(
     advanceCapabilityState(
       options.capabilityState,
       selection.candidates,
-      options.benchmarkVersioning?.observedAt ?? new Date().toISOString(),
+      options.observationUpdates?.observedAt ?? new Date().toISOString(),
       observedBenchmarkVersions(benchmarkRows),
     );
   const eligibleRows = selectOpenRouterModelRows(

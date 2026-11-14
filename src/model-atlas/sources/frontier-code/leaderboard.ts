@@ -11,7 +11,7 @@ import {
   reasoningEffortRank,
 } from "../../identity/normalization";
 import { asFiniteNumber, asRecord, nowEpochSeconds } from "../../runtime";
-import { fetchSource } from "../request-scheduler";
+import { fetchSourceJson } from "../request-scheduler";
 
 const FRONTIER_CODE_DATA_URL = "https://cognition.com/data/frontier-code-2.0/data.json";
 
@@ -61,16 +61,11 @@ type ParsedEffortRow = Omit<
 
 /** Fetch Cognition's versioned structured artifact rather than scraping the rendered leaderboard. */
 export async function getFrontierCodeStats(): Promise<FrontierCodePayload> {
-  return fetchSource(FRONTIER_CODE_DATA_URL, {}, async (response) => {
-    if (!response.ok) {
-      throw new Error(`FrontierCode scrape failed: ${response.status}`);
-    }
-    const data = processFrontierCodePayload(await response.json());
-    if (data.length === 0) {
-      throw new Error("FrontierCode scrape returned no rows");
-    }
-    return { fetched_at_epoch_seconds: nowEpochSeconds(), data };
-  });
+  const data = processFrontierCodePayload(await fetchSourceJson(FRONTIER_CODE_DATA_URL));
+  if (data.length === 0) {
+    throw new Error("FrontierCode scrape returned no rows");
+  }
+  return { fetched_at_epoch_seconds: nowEpochSeconds(), data };
 }
 
 /** Parse one subset aggregate while keeping nullable resource fields distinct from required quality metrics. */
@@ -147,7 +142,7 @@ export function processFrontierCodePayload(value: unknown): FrontierCodeModelEff
   }));
 }
 
-/** Revisions read as dotted versions, dropping the `v` prefix and joining parts with dots. */
+/** Revisions read as dotted versions: v2_0 → 2.0. */
 export function frontierCodeVersion(revision: string): string {
   return revision.replace(/^v/, "").replaceAll("_", ".");
 }

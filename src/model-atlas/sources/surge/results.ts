@@ -18,18 +18,27 @@ import type {
 } from "../../benchmarks/observation";
 import { parseModelEffort } from "../../identity/normalization";
 import { nowEpochSeconds } from "../../runtime";
-import { htmlAttribute, percentToUnitScore, providerFromLogoAlt, stripHtmlTags } from "../parsing";
-import { fetchSource } from "../request-scheduler";
+import {
+  escapeRegExp,
+  htmlAttribute,
+  mapWithCompetitionRank,
+  percentToUnitScore,
+  providerFromLogoAlt,
+  stripHtmlTags,
+} from "../parsing";
+import { fetchSourceText } from "../request-scheduler";
 
+/** One leaderboard row is a Webflow `role="listitem"` div up to the next one or a `<section>`: `<div role="listitem">A</div><div role="listitem">B</div><section>` → the A row and the B row. */
 const LIST_ITEM_PATTERN =
   /<div\b[^>]*\brole\s*=\s*["']listitem["'][\s\S]*?(?=<div\b[^>]*\brole\s*=\s*["']listitem["']|<section\b|$)/gi;
 
 const MODEL_RANKINGS_PATTERN = />\s*Model Rankings\s*</i;
 
+/** One Intelligence Index row is a `data-ii-item` div up to the next item or the `data-ii-status` footer, the same split as `LIST_ITEM_PATTERN`. */
 const INTELLIGENCE_INDEX_ITEM_PATTERN =
   /<div\b[^>]*\bdata-ii-item(?:\s*=\s*["'][^"']*["'])?[^>]*>[\s\S]*?(?=<div\b[^>]*\bdata-ii-item|<div\b[^>]*\bdata-ii-status|$)/gi;
 
-type SurgeLeaderboardScoreRow = {
+export type SurgeLeaderboardScoreRow = {
   provider: string | null;
   model: string;
   score: number;
@@ -43,14 +52,11 @@ export async function getSurgeIntelligenceIndexStats(
   benchmarkKey: string,
   sourceUrl: string,
 ): Promise<BenchmarkObservationPayload> {
-  return fetchSource(sourceUrl, {}, async (response) => {
-    if (!response.ok) throw new Error(`Surge ${benchmarkKey} scrape failed: ${response.status}`);
-    const pageHtml = await response.text();
-    return {
-      fetched_at_epoch_seconds: nowEpochSeconds(),
-      data: processSurgeIntelligenceIndexPageHtml(pageHtml, benchmarkKey, sourceUrl),
-    };
-  });
+  const pageHtml = await fetchSourceText(sourceUrl);
+  return {
+    fetched_at_epoch_seconds: nowEpochSeconds(),
+    data: processSurgeIntelligenceIndexPageHtml(pageHtml, benchmarkKey, sourceUrl),
+  };
 }
 
 export async function getSurgeLeaderboardStats(
@@ -58,14 +64,11 @@ export async function getSurgeLeaderboardStats(
   sourceUrl: string,
   scoreKind: SurgeScoreKind = "percent",
 ): Promise<BenchmarkObservationPayload> {
-  return fetchSource(sourceUrl, {}, async (response) => {
-    if (!response.ok) throw new Error(`Surge ${benchmarkKey} scrape failed: ${response.status}`);
-    const pageHtml = await response.text();
-    return {
-      fetched_at_epoch_seconds: nowEpochSeconds(),
-      data: processSurgeBenchmarkPageHtml(pageHtml, benchmarkKey, sourceUrl, scoreKind),
-    };
-  });
+  const pageHtml = await fetchSourceText(sourceUrl);
+  return {
+    fetched_at_epoch_seconds: nowEpochSeconds(),
+    data: processSurgeBenchmarkPageHtml(pageHtml, benchmarkKey, sourceUrl, scoreKind),
+  };
 }
 
 export function withSurgeVersion(
@@ -93,13 +96,7 @@ export function surgeLeaderboardScoreRows(pageHtml: string): SurgeLeaderboardSco
   const lastUpdated = surgeLastUpdated(pageHtml);
   return surgeLeaderboardRowHtml(pageHtml)
     .map((rowHtml) => surgeLeaderboardScoreRow(rowHtml, lastUpdated))
-    .filter((row): row is SurgeLeaderboardScoreRow => row != null)
-    .map((row) => ({
-      provider: row.provider,
-      model: row.model,
-      score: row.score,
-      last_updated: row.last_updated,
-    }));
+    .filter((row): row is SurgeLeaderboardScoreRow => row != null);
 }
 
 export function processSurgeBenchmarkPageHtml(
@@ -112,30 +109,29 @@ export function processSurgeBenchmarkPageHtml(
   const rows = surgeLeaderboardRowHtml(pageHtml)
     .map((rowHtml) => surgeLeaderboardScoreRow(rowHtml, lastUpdated, scoreKind))
     .filter((row): row is SurgeLeaderboardScoreRow => row != null);
-  let rank = 0;
-  let previousScore: number | null = null;
-  return rows.map((row, index): BenchmarkObservationRow => {
-    if (previousScore == null || row.score !== previousScore) {
-      rank = index + 1;
-    }
-    previousScore = row.score;
-    const [suffix, harness] = row.model.match(/\s*\[([^\]]+)\]\s*$/) ?? [];
-    const model = suffix == null ? row.model : row.model.slice(0, -suffix.length).trim();
-    const parsed = parseModelEffort(model);
-    return {
-      benchmark_key: benchmarkKey,
-      source_url: sourceUrl,
-      model_id: null,
-      model,
-      base_model: parsed.baseModel,
-      reasoning_effort: parsed.reasoningEffort,
-      model_creator: row.provider,
-      rank,
-      canonical_value: row.score,
-      observed_at: row.last_updated,
-      metadata: harness == null ? {} : { harness: harness.trim() },
-    };
-  });
+  return mapWithCompetitionRank(
+    rows,
+    (row) => row.score,
+    (row, rank): BenchmarkObservationRow => {
+      // A trailing bracket names the harness: GPT-5 [Codex] → model GPT-5, harness Codex.
+      const [suffix, harness] = row.model.match(/\s*\[([^\]]+)\]\s*$/) ?? [];
+      const model = suffix == null ? row.model : row.model.slice(0, -suffix.length).trim();
+      const parsed = parseModelEffort(model);
+      return {
+        benchmark_key: benchmarkKey,
+        source_url: sourceUrl,
+        model_id: null,
+        model,
+        base_model: parsed.baseModel,
+        reasoning_effort: parsed.reasoningEffort,
+        model_creator: row.provider,
+        rank,
+        canonical_value: row.score,
+        observed_at: row.last_updated,
+        metadata: harness == null ? {} : { harness: harness.trim() },
+      };
+    },
+  );
 }
 
 /** Parse the aggregate Intelligence Index separately from Surge's benchmark leaderboards. */
@@ -170,12 +166,10 @@ export function processSurgeIntelligenceIndexPageHtml(
       };
     })
     .filter((row): row is NonNullable<typeof row> => row != null);
-  let rank = 0;
-  let previousScore: number | null = null;
-  return rows.map((row, index) => {
-    if (previousScore == null || row.score !== previousScore) rank = index + 1;
-    previousScore = row.score;
-    return {
+  return mapWithCompetitionRank(
+    rows,
+    (row) => row.score,
+    (row, rank) => ({
       benchmark_key: benchmarkKey,
       source_url: sourceUrl,
       model_id: null,
@@ -187,8 +181,8 @@ export function processSurgeIntelligenceIndexPageHtml(
       canonical_value: row.score,
       observed_at: null,
       metadata: {},
-    };
-  });
+    }),
+  );
 }
 
 function surgeLastUpdated(pageHtml: string): string | null {
@@ -239,6 +233,7 @@ function surgeModelName(rowHtml: string): string | null {
   );
 }
 
+/** Text of the first element whose class list contains `className`: head-rank-table-brand in `<div class="row head-rank-table-brand x">OpenAI</div>` → OpenAI. */
 function classText(html: string, className: string): string | null {
   const classPattern = escapeRegExp(className);
   const match = html.match(
@@ -249,10 +244,6 @@ function classText(html: string, className: string): string | null {
   );
   const text = match == null ? null : stripHtmlTags(match[1] ?? "");
   return text != null && text.length > 0 ? text : null;
-}
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 /** Combines brand and model text without duplicating a repeated brand. */
@@ -271,6 +262,7 @@ function surgeScoreText(rowHtml: string): string | null {
   if (attributeScore != null && attributeScore.length > 0) {
     return attributeScore;
   }
+  // Without a `data-score` value, the score is the inner HTML of a `data-score` or `fs-list-field="foundational-score"` div: `<div fs-list-field="foundational-score"><b>1432</b></div>` → 1432 once tags are stripped.
   const scoreMatch = rowHtml.match(
     /<div[^>]*(?:data-score|fs-list-field\s*=\s*["']foundational-score["'])[^>]*>([\s\S]*?)<\/div>/i,
   );
@@ -282,6 +274,7 @@ function surgeProvider(rowHtml: string): string | null {
   return providerFromLogoAlt(htmlAttribute(rowHtml, "alt"));
 }
 
+/** Text of the first element carrying `attributeName`, valued or bare: data-ii-model-bound in `<span data-ii-model-bound>Claude Opus 4.5</span>` → Claude Opus 4.5. */
 function attributeElementText(html: string, attributeName: string): string | null {
   const match = html.match(
     new RegExp(

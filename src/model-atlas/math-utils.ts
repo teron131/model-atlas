@@ -311,6 +311,11 @@ export function medianOfFinite(values: ReadonlyArray<number | null | undefined>)
   );
 }
 
+/** Rank of `target` among `values`, highest first: equal values share a rank and the next rank skips past them (1, 2, 2, 4). */
+export function competitionRank(values: readonly number[], target: number): number {
+  return 1 + values.filter((value) => value > target).length;
+}
+
 export function gaussianWeight(leftValue: number, rightValue: number, sigma: number): number {
   return Math.exp(-0.5 * ((leftValue - rightValue) / sigma) ** 2);
 }

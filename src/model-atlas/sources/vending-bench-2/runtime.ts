@@ -1,13 +1,18 @@
-/** Vending-Bench 2 runtime owns raw-cache reconstruction, snapshot refresh, raw-row serialization, and its source-data lookup. */
+/** Vending-Bench 2 keeps each model's final balance and average daily balance curve in one raw table, with the versioned data-module URL the rows came from; the cache keeps whichever rows still parse. */
 
-import type { DatabaseWriter } from "../../database/writers/database";
 import { buildBenchmarkModelMap } from "../../identity/normalization";
 import { asFiniteNumber, asNonEmptyString } from "../../runtime";
-import { type BenchmarkSnapshotContext, defineBenchmarkRuntime } from "../benchmark-runtime";
+import type { DatabaseWriter } from "../../sqlite-utils";
+import { defineBenchmarkRuntime } from "../benchmark-runtime";
 import { type CacheRowSource, firstFetchedAt, sourceCacheRows } from "../cache/rows";
 import { sourceRowKey } from "../snapshots/policy";
-import { snapshotSourceRows } from "../snapshots/row-snapshot";
-import type { RawSourceCacheStatus, SourceRefreshOptions, SourceSnapshotStatus } from "../types";
+import {
+  type RawRowsCache,
+  snapshotSourceRows,
+  type SourceSnapshotRequest,
+  sourceSnapshotStatus,
+} from "../snapshots/row-snapshot";
+import type { SourceSnapshotStatus } from "../types";
 import {
   getVendingBench2Stats,
   VENDING_BENCH_2_LEADERBOARD_URL,
@@ -30,11 +35,9 @@ export const vendingBench2Runtime = defineBenchmarkRuntime({
   sourceData: (rows) => ({ rows, rowsByModelName: buildBenchmarkModelMap(rows) }),
 });
 
-function readVendingBench2RawCache(cache: CacheRowSource): {
-  rows: VendingBench2ModelScoreRow[];
-  fetchedAt: number | null;
-  sourceUrl?: string;
-} | null {
+function readVendingBench2RawCache(
+  cache: CacheRowSource,
+): RawRowsCache<VendingBench2ModelScoreRow> | null {
   const cacheRows = sourceCacheRows(
     cache,
     "SELECT * FROM vending_bench_2_raw_rows ORDER BY row_index",
@@ -98,22 +101,11 @@ function numberArray(value: unknown): number[] | null {
   }
 }
 
-/** Loads Vending-Bench 2 model curves and records the versioned official data-module URL. */
 async function vendingBench2Snapshot(
-  cached: ReturnType<typeof readVendingBench2RawCache>,
-  status: RawSourceCacheStatus,
-  options: SourceRefreshOptions,
-  previousMissingSince: ReadonlyMap<string, number>,
-  nowEpochSeconds: number,
-  context: BenchmarkSnapshotContext,
+  request: SourceSnapshotRequest<ReturnType<typeof readVendingBench2RawCache>>,
 ): Promise<VendingBench2Snapshot> {
   const snapshot = await snapshotSourceRows({
-    source: context.source,
-    cached,
-    status,
-    options,
-    previousMissingSince,
-    nowEpochSeconds,
+    ...request,
     fetchRows: getVendingBench2Stats,
     rowKey: (row) => sourceRowKey(row.model, row.reasoning_effort),
     rowLabel: (row) => row.model,
@@ -121,11 +113,10 @@ async function vendingBench2Snapshot(
   return {
     rows: snapshot.rows,
     dataUrl: snapshot.sourceUrl ?? null,
-    sourceStatus: context.sourceStatus(snapshot),
+    sourceStatus: sourceSnapshotStatus(request.source, snapshot),
   };
 }
 
-/** Insert Vending-Bench 2 outcomes while retaining the official average daily balance curves. */
 function insertVendingBench2RawRows(db: DatabaseWriter, snapshot: VendingBench2Snapshot): void {
   const statement = db.prepare(`
 		INSERT INTO vending_bench_2_raw_rows (

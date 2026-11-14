@@ -24,17 +24,17 @@ import {
   insertBenchmarkObservationRows,
   readBenchmarkObservationRawCache,
 } from "../src/model-atlas/sources/observations/cache";
-import { benchmarkObservationSource } from "../src/model-atlas/sources/observations/load";
+import {
+  benchmarkObservationRowKey,
+  benchmarkObservationRowKeyFor,
+  benchmarkObservationSource,
+} from "../src/model-atlas/sources/observations/load";
 import { parseCsvRecords } from "../src/model-atlas/sources/parsing";
 import {
   mergeCachedSourceRows,
   snapshotRows,
   withoutSupersededVersions,
 } from "../src/model-atlas/sources/snapshots/policy";
-import {
-  benchmarkObservationRowKey,
-  benchmarkObservationRowKeyFor,
-} from "../src/model-atlas/sources/snapshots/row-snapshot";
 import {
   processSurgeBenchmarkPageHtml,
   processSurgeIntelligenceIndexPageHtml,

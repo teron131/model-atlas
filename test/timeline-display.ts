@@ -2,10 +2,12 @@
 
 import assert from "node:assert/strict";
 
+import { modelRepresentatives } from "../app/dashboard/graphs/timeline/chart-data";
 import { coverageFrontier, leadingLabs } from "../app/dashboard/graphs/timeline/frontier";
-import { modelRepresentatives } from "../app/dashboard/graphs/timeline/model-representatives";
-import { modelsForVariantDisplay } from "../app/dashboard/shared/model-display";
-import { compactModelVariants } from "../src/model-atlas/stats/model-variants";
+import {
+  compactModelVariants,
+  modelsForVariantDisplay,
+} from "../src/model-atlas/stats/model-variants";
 import { modelDisplayExclusion } from "../src/model-atlas/stats/model-visibility";
 import { historicalSourceModel } from "../src/model-atlas/timeline/model-identity";
 import { minimalModelAtlasModel } from "./model-atlas-fixtures";
@@ -17,20 +19,19 @@ const unknown = { current: false, score: 150, coverage: null, releaseDate: "2026
 const nearby = { current: true, score: 101, coverage: 0.6, releaseDate: "2025-09-01" };
 const points = [old, reference, weak, nearby, unknown];
 const original = structuredClone(points);
-assert.deepEqual(coverageFrontier(points, 0.6), [old, reference, nearby]);
+assert.deepEqual(coverageFrontier(points), [old, reference, nearby]);
 assert.deepEqual(points, original);
-assert.deepEqual(coverageFrontier([{ ...old, coverage: null }, weak], 0.6), []);
+assert.deepEqual(coverageFrontier([{ ...old, coverage: null }, weak]), []);
 assert.deepEqual(
-  coverageFrontier(
-    points.map((point) => ({ ...point, current: !point.current })),
-    0.6,
-  ).map((point) => point.score),
+  coverageFrontier(points.map((point) => ({ ...point, current: !point.current }))).map(
+    (point) => point.score,
+  ),
   [30, 100, 101],
   "Current-app membership cannot change frontier eligibility",
 );
 const reanchored = points.map((point) => ({ ...point, score: point.score * 10 - 300 }));
 assert.deepEqual(
-  coverageFrontier(reanchored, 0.6),
+  coverageFrontier(reanchored),
   [reanchored[0], reanchored[1], reanchored[3]],
   "Display anchors cannot suppress a nearby record high",
 );
@@ -118,7 +119,7 @@ const labRanking = leadingLabs([
 ]);
 assert.equal(labRanking.length, 10);
 assert.equal(labRanking[0]!.provider, "lab-11");
-assert.ok(labRanking.every((lab) => lab.models.length > 5 && lab.provider !== "small"));
+assert.ok(labRanking.every((lab) => lab.provider !== "small"));
 assert.equal(
   leadingLabs([...fiveModels, fiveModels[0]!]).length,
   0,

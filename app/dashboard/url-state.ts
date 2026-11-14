@@ -18,9 +18,9 @@ import {
   modelRankFilterOptions,
   type RecencyFilter,
   recencyFilterOptions,
-} from "./shared/model-display";
+} from "./shared/model-filters";
 import { TABLE_COLUMN_PRESETS, type TableColumnPreset } from "./table/column-views";
-import { sorters, type SortState } from "./table/models";
+import { sorters, type SortState } from "./table/sort";
 
 export type DashboardUrlState = {
   view: TableColumnPreset;
@@ -78,6 +78,8 @@ const dashboardKeys = new Set<DashboardUrlKey>([
 ]);
 const benchmarkKeys = new Set(Object.keys(BENCHMARK_COLUMNS));
 const tableColumnPresetKeys = TABLE_COLUMN_PRESETS.map((preset) => preset.key);
+const PROVIDER_ID_PATTERN = /^[a-z0-9][a-z0-9._-]*$/;
+const EFFORT_PATTERN = /^[a-z]+$/;
 
 /** Decode one control independently so absent or malformed values retain the owning UI default. */
 export function readUrlValue<K extends DashboardUrlKey>(
@@ -91,6 +93,7 @@ export function readUrlValue<K extends DashboardUrlKey>(
       result = choice(value, tableColumnPresetKeys, "all");
       break;
     case "sort": {
+      // "<key>.<asc|desc>", splitting at the last dot: "intelligence.asc" → key "intelligence", direction "asc".
       const match = /^(.*)\.(asc|desc)$/.exec(value ?? "");
       result =
         match?.[1] && Object.hasOwn(sorters, match[1])
@@ -106,13 +109,11 @@ export function readUrlValue<K extends DashboardUrlKey>(
       break;
     case "timeline-provider":
       result = params.has(key)
-        ? [...new Set(params.getAll(key).filter((item) => /^[a-z0-9][a-z0-9._-]*$/.test(item)))]
+        ? [...new Set(params.getAll(key).filter((item) => PROVIDER_ID_PATTERN.test(item)))]
         : null;
       break;
     case "provider":
-      result = [
-        ...new Set(params.getAll(key).filter((item) => /^[a-z0-9][a-z0-9._-]*$/.test(item))),
-      ];
+      result = [...new Set(params.getAll(key).filter((item) => PROVIDER_ID_PATTERN.test(item)))];
       break;
     case "max-cost":
       result = numericChoice(value, costFilterOptions, "all");
@@ -129,7 +130,7 @@ export function readUrlValue<K extends DashboardUrlKey>(
       break;
     case "table-effort":
       result = params.has(key)
-        ? [...new Set(params.getAll(key).filter((item) => /^[a-z]+$/.test(item)))]
+        ? [...new Set(params.getAll(key).filter((item) => EFFORT_PATTERN.test(item)))]
         : null;
       break;
     case "performance":
@@ -137,6 +138,7 @@ export function readUrlValue<K extends DashboardUrlKey>(
       break;
     case "benchmark": {
       const values = params.getAll(key);
+      // A pick may name one metric source of a benchmark, so its source suffix is dropped before lookup: "gdp_pdf__source_b" → "gdp_pdf".
       const valid = [
         ...new Set(values.filter((item) => benchmarkKeys.has(item.replace(/__source_[abc]$/, "")))),
       ];
@@ -152,7 +154,7 @@ export function readUrlValue<K extends DashboardUrlKey>(
       break;
     case "effort":
     case "compare-effort":
-      result = value != null && /^[a-z]+$/.test(value) ? value : null;
+      result = value != null && EFFORT_PATTERN.test(value) ? value : null;
       break;
     default:
       result = value ?? "";
@@ -177,6 +179,7 @@ export const DEFAULT_GLOBAL_MODEL_FILTERS = readGlobalModelFilters(new URLSearch
 /** Keep custom selections shareable while omitting defaults and preserving unrelated URL parameters. */
 export function patchDashboardUrl(url: URL, patch: DashboardUrlPatch): URL {
   const next = new URL(url);
+  // Shared links may still carry these retired parameters.
   next.searchParams.delete("table-q");
   next.searchParams.delete("column-order");
   const keys = Object.keys(patch) as DashboardUrlKey[];

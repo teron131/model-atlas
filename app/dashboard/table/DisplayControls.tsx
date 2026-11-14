@@ -1,11 +1,11 @@
 "use client";
 
-/** Model tables keep row limits and the efforts their reasoning variants show compact, without restricting the requested count to presets. */
+/** The leaderboard's display controls: a typed row limit that accepts any count within the row total rather than presets, and the effort picker that switches between one row per model and the chosen efforts' reasoning variants. */
 
 import { type SyntheticEvent, useEffect, useRef, useState } from "react";
 
 import { useDismissibleDetails } from "../shared/use-dismissible-details";
-import type { EffortChoice } from "./models";
+import type { EffortChoice } from "./leaderboard-rows";
 
 import basket from "../graphs/graphs.module.css";
 import styles from "./display-controls.module.css";

@@ -1,12 +1,7 @@
 /** SQLite writer for Artificial Analysis leaderboard models and evaluation-page resource rows. */
 
-import {
-  type DatabaseWriter,
-  firstString,
-  sqliteBooleanValue,
-  type SqlValue,
-} from "../../database/writers/database";
-import { asFiniteNumber, asRecord, type JsonObject } from "../../runtime";
+import { asFiniteNumber, asRecord, firstString, type JsonObject } from "../../runtime";
+import { type DatabaseWriter, sqliteBooleanValue, type SqlValue } from "../../sqlite-utils";
 import { SOURCE_URLS } from "../registry";
 import type { SourceSnapshots } from "../types";
 import { artificialAnalysisModelId } from "./leaderboard";

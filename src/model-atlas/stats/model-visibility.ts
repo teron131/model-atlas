@@ -9,6 +9,7 @@ export function modelDisplayExclusion(model: {
   provider: string | null;
 }): "OpenAI Pro" | "Gemini Deep Think" | "Claude Mythos" | null {
   const provider = providerIdentityKey(model.provider);
+  // Matched against the canonical name key: GPT-5.2 Pro → gpt-5-2-pro → OpenAI Pro; Gemini 3 Deep Think → gemini-3-deep-think → Gemini Deep Think.
   const name = canonicalModelKey({ name: model.name ?? "" }).replace(/^name:/, "");
   if (provider === "openai" && /^(?:gpt-\d+(?:-\d+)*|o\d+)-pro(?:-|$)/.test(name))
     return "OpenAI Pro";

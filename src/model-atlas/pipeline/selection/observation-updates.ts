@@ -1,4 +1,4 @@
-/** Benchmark versioning dates each observation against the previous published model and reprices task costs across model-price transitions. */
+/** Observation updates: a benchmark observation unchanged since the previous published model keeps its date, a changed one takes the refresh date, and an unchanged task cost is repriced across model-price transitions. */
 
 import { TASK_COST_PRICE_TRANSITIONS, type TaskCostPriceTransition } from "../../config/stage";
 import { asFiniteNumber, asRecord } from "../../runtime";
@@ -18,7 +18,7 @@ type TaskMetricNumericKey =
 
 const PRICE_RATIO_TOLERANCE = 1e-9;
 
-export type BenchmarkVersioningOptions = {
+export type ObservationUpdateOptions = {
   observedAt?: string;
   baselineDate: string;
   observedDate: string;
@@ -43,7 +43,7 @@ function uniformPriceRatio(transition: TaskCostPriceTransition): number {
 function taskCostPriceRatio(
   modelId: string | null,
   observedAt: string | null,
-  options: BenchmarkVersioningOptions,
+  options: ObservationUpdateOptions,
 ): number {
   if (modelId == null || observedAt == null) {
     return 1;
@@ -75,8 +75,8 @@ function rawTaskMetricValue(
   return asFiniteNumber(metrics[key]);
 }
 
-/** Serialize the normalized source-reported task row used by both change detection and history. */
-export function taskMetricFingerprint(metrics: ModelAtlasTaskMetricValues): string {
+/** Cost reads `observed_cost` first so a row repriced in an earlier refresh still matches its unchanged source value. */
+function taskMetricFingerprint(metrics: ModelAtlasTaskMetricValues): string {
   return JSON.stringify({
     quality: rawTaskMetricValue(metrics, "quality"),
     cost: rawTaskMetricValue(metrics, "cost"),
@@ -94,13 +94,11 @@ function taskMetricContentMatches(
   return previous != null && taskMetricFingerprint(current) === taskMetricFingerprint(previous);
 }
 
-/**
- * Date benchmark observations against the previous published model and reprice only task rows whose complete normalized telemetry remains unchanged across a model-price transition.
- */
-export function versionCandidateBenchmarkData(
+/** An unchanged value with no previous date takes `baselineDate`; fusion-estimated task costs are neither recorded as observed cost nor repriced. */
+export function stampObservationUpdates(
   candidate: ModelAtlasCandidate,
   previous: ModelAtlasModel | null | undefined,
-  options: BenchmarkVersioningOptions,
+  options: ObservationUpdateOptions,
 ): ModelAtlasCandidate {
   const previousBenchmarks = previous?.benchmarks ?? {};
   const previousBenchmarkDates = previous?.benchmark_dates ?? {};

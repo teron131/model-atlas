@@ -12,6 +12,18 @@ const MODELS_DEV_PROVIDER_BY_CREATOR: Record<string, string> = {
   "z-ai": "zai",
 };
 
+/**
+ * The key a provider's logo is cached and published under: the icon generator, the logo cache's file names, `/api/logos/<key>`, and the dashboard's brand colors all resolve a provider through it.
+ * Lowercases, turns each run of characters outside `a-z0-9._-` into one hyphen, and trims hyphens at both ends: `" Meta AI (Llama) "` → `"meta-ai-llama"`.
+ */
+export function providerAssetKey(provider: string | null | undefined): string {
+  return String(provider ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 function nonEmptyString(value: string | null | undefined): string | null {
   if (typeof value !== "string") {
     return null;

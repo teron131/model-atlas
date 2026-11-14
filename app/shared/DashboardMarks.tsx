@@ -1,4 +1,4 @@
-/** Shared dashboard marks render scores, resource ratios, input modalities, and capture controls without depending on table or sheet layout. */
+/** Marks for scores, resource ratios, input modalities, and capture controls, shared by the dashboard and the methodology pages without depending on table or sheet layout. */
 
 import {
   AudioLines,
@@ -13,22 +13,22 @@ import {
 import type { ComponentType, CSSProperties } from "react";
 import { RiRobot3Line } from "react-icons/ri";
 
-import type { ModelAtlasScoreDimension } from "../../../src/model-atlas/stats/types";
+import type { ModelAtlasScoreDimension } from "../../src/model-atlas/stats/types";
 import { ratioTrackStyle } from "./resource-ratio-display";
 
 export function BrainIcon() {
   return <BrainCircuit aria-hidden="true" />;
 }
 
-export function BotIcon() {
+function BotIcon() {
   return <RiRobot3Line aria-hidden="true" style={{ fill: "currentColor", stroke: "none" }} />;
 }
 
-export function LightningIcon() {
+function LightningIcon() {
   return <Zap aria-hidden="true" />;
 }
 
-export function DollarIcon() {
+function DollarIcon() {
   return <CircleDollarSign aria-hidden="true" />;
 }
 

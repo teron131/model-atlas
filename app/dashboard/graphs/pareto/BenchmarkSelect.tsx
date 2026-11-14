@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useHorizontalChoice } from "../../../shared/use-horizontal-choice";
-import { benchmarkTooltips } from "../../shared/constants";
+import { benchmarkTooltips } from "../../shared/benchmark-display";
 import { filterSearchDocuments } from "../../shared/search";
 import { useDismissibleDetails } from "../../shared/use-dismissible-details";
 import { type FrontierBenchmarkOption, type PerformanceMetric } from "./analysis";

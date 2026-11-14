@@ -2,6 +2,7 @@
 
 import { communityCandidates } from "../../../../src/model-atlas/community/rankings";
 import { readPublishedPayload } from "../../../../src/model-atlas/database/runtime-snapshot";
+import { NO_STORE_HEADERS } from "../../cache-headers";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -31,12 +32,12 @@ export async function GET() {
           left.model_id.localeCompare(right.model_id),
         ),
       },
-      { headers: { "Cache-Control": "no-store" } },
+      { headers: NO_STORE_HEADERS },
     );
   } catch {
     return Response.json(
       { errors: ["Unable to read the benchmark snapshot"] },
-      { status: 500, headers: { "Cache-Control": "no-store" } },
+      { status: 500, headers: NO_STORE_HEADERS },
     );
   }
 }

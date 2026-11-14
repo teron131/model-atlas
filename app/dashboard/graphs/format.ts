@@ -16,6 +16,7 @@ const tooltipDecimalFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 1,
 });
 
+/** A value at or below 1 is read as a fraction and scaled to a percentage. */
 export function toPercent(value: unknown) {
   if (!finite(value)) {
     return null;
@@ -23,7 +24,7 @@ export function toPercent(value: unknown) {
   return value <= 1 ? value * 100 : value;
 }
 
-export function fmtPercentScore(value: unknown) {
+export function formatPercentScore(value: unknown) {
   if (!finite(value)) {
     return "--";
   }
@@ -38,11 +39,11 @@ export function fmtPercentScore(value: unknown) {
     : `${roundedToTenth.toFixed(1)}%`;
 }
 
-export function fmtTooltipScore(value: number | null | undefined) {
+export function formatTooltipScore(value: number | null | undefined) {
   return finite(value) ? value.toFixed(1) : "--";
 }
 
-export function fmtMoney(value: number | null | undefined) {
+export function formatMoney(value: number | null | undefined) {
   if (!finite(value)) {
     return "--";
   }
@@ -55,7 +56,7 @@ export function fmtMoney(value: number | null | undefined) {
   return `$${value.toFixed(0)}`;
 }
 
-export function fmtCompact(value: number | null | undefined) {
+export function formatCompact(value: number | null | undefined) {
   if (!finite(value)) {
     return "--";
   }
@@ -71,7 +72,7 @@ export function fmtCompact(value: number | null | undefined) {
   return value.toFixed(value >= 10 ? 0 : 1);
 }
 
-export function fmtTooltipNumber(value: number | null | undefined) {
+export function formatTooltipNumber(value: number | null | undefined) {
   if (!finite(value)) {
     return "--";
   }
@@ -80,19 +81,19 @@ export function fmtTooltipNumber(value: number | null | undefined) {
     : tooltipDecimalFormatter.format(value);
 }
 
-function fmtSeconds(value: number) {
+function formatSeconds(value: number) {
   if (Number.isInteger(value)) {
     return `${value.toFixed(0)}s`;
   }
   return `${value.toFixed(value >= 10 ? 0 : 1)}s`;
 }
 
-export function fmtDurationShort(seconds: number) {
+export function formatDurationShort(seconds: number) {
   if (seconds >= 172_800) {
     return `${Number((seconds / 86_400).toFixed(seconds >= 864_000 ? 0 : 1))}d`;
   }
   if (seconds >= 7_200) {
     return `${Number((seconds / 3_600).toFixed(seconds >= 36_000 ? 0 : 1))}h`;
   }
-  return fmtSeconds(seconds);
+  return formatSeconds(seconds);
 }

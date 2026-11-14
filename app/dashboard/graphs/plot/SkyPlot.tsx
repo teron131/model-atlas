@@ -1,12 +1,15 @@
 "use client";
 
-/** A chart's plot drawn as the hero's sky under the chart's SVG. The stage stacks a WebGL canvas beneath the SVG and carries `data-sky` while the sky draws, so the SVG's own horizon, glows and star paint step aside; the light theme and browsers without WebGL keep the SVG's drawing. */
+/**
+ * A chart's plot drawn as the hero's sky under the chart's SVG.
+ * The stage stacks a WebGL canvas beneath the SVG and carries `data-sky` while the sky draws, so the SVG's own horizon, glows and star paint step aside; the light theme and browsers without WebGL keep the SVG's drawing.
+ */
 
 import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { useModelAtlasTheme } from "../../../shared/theme";
+import { useMediaQuery } from "../../../shared/use-media-query";
 import { readSkyClock, skyPixelRatio } from "../../shared/sky-light";
-import { useMediaQuery } from "../../shared/use-media-query";
 import { createSkyRenderer, type SkyPlotScene, type SkyRenderer } from "./sky-renderer";
 
 import styles from "../graphs.module.css";

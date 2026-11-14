@@ -5,8 +5,8 @@ import {
   residualIndexBreadth,
 } from "../../../../src/model-atlas/benchmarks/index-policy";
 import { canonicalModelKey } from "../../../../src/model-atlas/identity/normalization";
+import { modelVariantKey } from "../../../../src/model-atlas/stats/model-variants";
 import type { ModelAtlasModel } from "../../../../src/model-atlas/stats/types";
-import { modelVariantKey } from "../../shared/model-display";
 import {
   aggregateFrontierBenchmarkRows,
   frontierAxisValue,
@@ -35,7 +35,7 @@ type CommonModelEvidence = {
 };
 
 /** Each model keeps one observed basket across its displayed efforts; unrelated models cannot shrink it. */
-export function sharedFrontierBenchmarkComparison(
+export function commonBenchmarkComparison(
   rows: FrontierBenchmarkRow[],
   referenceRows: FrontierBenchmarkRow[],
   selectedBenchmarkKeys: readonly string[],

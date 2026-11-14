@@ -12,8 +12,8 @@ import type {
 import { withClaudeFamily } from "../../identity/claude";
 import { canonicalReasoningEffort, modelEffortLabel } from "../../identity/normalization";
 import { asFiniteNumber, asNonEmptyString, asRecord, nowEpochSeconds } from "../../runtime";
-import { extractNextFlightCorpus, findObjectEnd, parseFlightJsonObject } from "../parsing";
-import { fetchSource } from "../request-scheduler";
+import { extractNextFlightCorpus, flightObjects } from "../parsing";
+import { fetchSourceText } from "../request-scheduler";
 
 type MercorLoader = Omit<Extract<BenchmarkObservationLoader, { kind: "mercor" }>, "kind">;
 
@@ -25,11 +25,8 @@ export async function getMercorStats(
   benchmarkKey: string,
   source: MercorLoader,
 ): Promise<BenchmarkObservationPayload> {
-  return fetchSource(source.sourceUrl, {}, async (response) => {
-    if (!response.ok) throw new Error(`Mercor scrape failed: ${response.status}`);
-    const data = processMercorPageHtml(await response.text(), benchmarkKey, source);
-    return { fetched_at_epoch_seconds: data.length > 0 ? nowEpochSeconds() : null, data };
-  });
+  const data = processMercorPageHtml(await fetchSourceText(source.sourceUrl), benchmarkKey, source);
+  return { fetched_at_epoch_seconds: data.length > 0 ? nowEpochSeconds() : null, data };
 }
 
 /** Reject cached evidence if the selected metric, source, or harness contract has changed. */
@@ -53,14 +50,7 @@ export function processMercorPageHtml(
 ): BenchmarkObservationRow[] {
   const corpus = `${html}\n${extractNextFlightCorpus(html)}`;
   const rows = new Map<string, BenchmarkObservationRow>();
-  for (
-    let start = corpus.indexOf(RESULT_MARKER);
-    start !== -1;
-    start = corpus.indexOf(RESULT_MARKER, start + 1)
-  ) {
-    const end = findObjectEnd(corpus, start);
-    if (end === -1) continue;
-    const raw = parseFlightJsonObject(corpus.slice(start, end + 1));
+  for (const raw of flightObjects(corpus, RESULT_MARKER)) {
     const row = parseResult(raw, benchmarkKey, source);
     if (row != null) rows.set(`${row.base_model}\u001f${row.reasoning_effort ?? ""}`, row);
   }
@@ -114,7 +104,7 @@ function parseResult(
   };
 }
 
-/** Mercor publishes product qualifiers such as "Pro" or "Thinking" as descriptors beside the display name; effort "auto" lets the model decide, which is its default variant. */
+/** Mercor publishes product qualifiers such as "Pro" or "Thinking" as descriptors beside the display name, joined onto it here (GPT 5.2 with Pro → GPT-5.2 Pro); effort "auto" lets the model decide, which is its default variant. */
 function mercorIdentity(name: string, descriptors: unknown, effort: unknown) {
   const qualifiers = Array.isArray(descriptors)
     ? descriptors.flatMap((value) => asNonEmptyString(value) ?? [])

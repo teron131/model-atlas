@@ -1,15 +1,15 @@
-/** Artificial Analysis cache reconstruction from persisted raw source rows. */
+/** Rebuilds Artificial Analysis leaderboard and evaluation-resource rows from their raw tables in the SQLite checkpoint. */
 
 import type { DatabaseSync } from "node:sqlite";
 
 import { asFiniteNumber, asNonEmptyString, type JsonObject } from "../../runtime";
+import { jsonValue } from "../../sqlite-utils";
 import {
   assignIfBoolean,
   assignIfNumber,
   assignIfString,
   type CacheDbRow,
   firstFetchedAt,
-  jsonValue,
   nonEmptyRecord,
   queryCacheRows,
 } from "../cache/rows";

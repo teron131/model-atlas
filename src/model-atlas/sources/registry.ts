@@ -53,7 +53,6 @@ export const RAW_SOURCE_TABLES = {
 
 export const SOURCE_URLS = {
   artificial_analysis: "https://artificialanalysis.ai/leaderboards/models",
-  artificial_analysis_benchmark_resources: "https://artificialanalysis.ai/evaluations",
   models_dev: "https://models.dev/api.json",
   openrouter_models: OPENROUTER_MODELS_URL,
   openrouter_stats: "https://openrouter.ai/api/frontend/v1/stats/*",

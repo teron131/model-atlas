@@ -14,7 +14,7 @@ import type {
 import { parseModelEffort } from "../../identity/normalization";
 import { asFiniteNumber, nowEpochSeconds } from "../../runtime";
 import { parseCsvRecords } from "../parsing";
-import { fetchSource } from "../request-scheduler";
+import { fetchSourceText } from "../request-scheduler";
 
 const EPOCH_BENCHMARKS_CSV_URL = "https://epoch.ai/data/benchmarks.csv";
 
@@ -96,14 +96,11 @@ export async function getEpochExternalBenchmarkStats(
   benchmarkKey: BenchmarkObservationRow["benchmark_key"],
   sourceUrl: string,
 ): Promise<BenchmarkObservationPayload> {
-  return fetchSource(sourceUrl, {}, async (response) => {
-    if (!response.ok)
-      throw new Error(`Epoch external benchmark download failed: ${response.status}`);
-    return {
-      fetched_at_epoch_seconds: nowEpochSeconds(),
-      data: epochExternalBenchmarkRows(await response.text(), benchmarkKey, sourceUrl),
-    };
-  });
+  const csv = await fetchSourceText(sourceUrl);
+  return {
+    fetched_at_epoch_seconds: nowEpochSeconds(),
+    data: epochExternalBenchmarkRows(csv, benchmarkKey, sourceUrl),
+  };
 }
 
 function epochExternalBenchmarkRows(
@@ -145,18 +142,16 @@ function fetchEpochBenchmarkRows(): Promise<EpochBenchmarkRowsPayload> {
 }
 
 async function requestEpochBenchmarkRows(): Promise<EpochBenchmarkRowsPayload> {
-  return fetchSource(EPOCH_BENCHMARKS_CSV_URL, {}, async (response) => {
-    if (!response.ok) throw new Error(`Epoch benchmark scrape failed: ${response.status}`);
-    return {
-      fetched_at_epoch_seconds: nowEpochSeconds(),
-      data: parseCsvRecords(await response.text()),
-    };
-  });
+  const csv = await fetchSourceText(EPOCH_BENCHMARKS_CSV_URL);
+  return {
+    fetched_at_epoch_seconds: nowEpochSeconds(),
+    data: parseCsvRecords(csv),
+  };
 }
 
 type TaskVersionGranularity = NonNullable<EpochRunEligibility["latestTaskVersion"]>;
 
-/** The version label a task version pools under; at `major` granularity `minor` is always 0, so ordering compares majors only. */
+/** The version label a task version pools under, any patch part dropped (1.2.3 → 1.2, or 1 at `major` granularity); at `major` granularity `minor` is always 0, so ordering compares majors only. */
 function taskVersion(
   version: unknown,
   granularity: TaskVersionGranularity,

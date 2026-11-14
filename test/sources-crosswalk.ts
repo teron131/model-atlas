@@ -2,23 +2,25 @@
 
 import assert from "node:assert/strict";
 
-import { BENCHMARK_OBSERVATION_BINDINGS } from "../src/model-atlas/benchmarks/registry";
 import {
-  crosswalkBenchmarkSources,
-  type CrosswalkObservation,
-  crosswalkThreeBenchmarkSources,
-} from "../src/model-atlas/benchmarks/sources-crosswalk";
+  BENCHMARK_OBSERVATION_BINDINGS,
+  benchmarkValue,
+} from "../src/model-atlas/benchmarks/registry";
 import { benchmarkQualityEvidence } from "../src/model-atlas/pipeline/scores/imputation/benchmark";
 import {
   benchmarkFusionResourceEstimate,
   benchmarkTaskMetrics,
-  benchmarkValue,
   separatedBenchmarkResourceEvidence,
 } from "../src/model-atlas/pipeline/scores/resource-metrics";
 import { observedBenchmarkCount } from "../src/model-atlas/pipeline/scores/score-builders";
 import { buildTaskMetrics } from "../src/model-atlas/pipeline/selection/candidate";
 import { processArtificialAnalysisBenchmarkResourceRows } from "../src/model-atlas/sources/artificial-analysis/benchmark-resources";
 import { fusedBenchmarkObservations } from "../src/model-atlas/sources/assembly";
+import {
+  crosswalkBenchmarkSources,
+  type CrosswalkObservation,
+  crosswalkThreeBenchmarkSources,
+} from "../src/model-atlas/sources/assembly/crosswalk";
 import { readBenchmarkObservationRawCache } from "../src/model-atlas/sources/observations/cache";
 import { processTerminalBench4Payload } from "../src/model-atlas/sources/terminal-bench-4/leaderboard";
 import { compactModelVariants } from "../src/model-atlas/stats/model-variants";
