@@ -7,7 +7,7 @@ import {
   FLARE_EASE,
   FLARE_FRAGMENT,
   FRONTIER_SPRITE,
-  GRAIN_HASH_GLSL,
+  GRAIN_GLSL,
   hashUnit,
   HORIZON_LIGHT_GLSL,
   RIM_PULSE_GLSL,
@@ -162,7 +162,7 @@ void main() {
 const HORIZON_FRAGMENT = /* glsl */ `
 ${SHARED_GLSL}
 ${PLANET_GLSL}
-${GRAIN_HASH_GLSL}
+${GRAIN_GLSL}
 ${HORIZON_LIGHT_GLSL}
 ${RIM_PULSE_GLSL}
 uniform float dawn;
@@ -197,16 +197,17 @@ void main() {
   float passing = exp(-pulseOffset * pulseOffset);
   float limbLight = 1.0 + exp(-abs(toRim) * 12.0 / shrink) * passing * 0.8;
   float inside = smoothstep(0.003, -0.003, toRim);
-  vec3 sky = mix(SKY_NEAR, SKY_DEEP, smoothstep(horizon - 0.05, 1.0, vUv.y));
+  float depth = smoothstep(horizon - 0.05, 1.0, vUv.y);
+  vec3 sky = mix(SKY_NEAR, SKY_DEEP, depth);
   sky += rim * exp(-max(toRim, 0.0) * 4.5 / shrink) * 0.42 * breathe * limbLight;
-  // Faint nebulae fill the deep sky once the camera scopes past the horizon.
-  float cloud = clouds(p * 1.4 + vec2(time * 0.008, scope * 0.6));
-  sky += mix(vec3(0.24, 0.14, 0.56), vec3(0.08, 0.2, 0.62), cloud) * smoothstep(0.45, 0.85, cloud) * (0.07 + scope * 0.2);
+  // Faint nebulae fill the deep sky once the camera scopes past the horizon, fading toward its deepest part: at full strength there their light would be several times the sky's own, and the gaps between clouds would read as dark stains.
+  float cloud = clouds(p * 1.1 + vec2(time * 0.008, scope * 0.6));
+  sky += mix(vec3(0.24, 0.14, 0.56), vec3(0.08, 0.2, 0.62), cloud) * smoothstep(0.3, 0.95, cloud) * (0.07 + scope * 0.2) * mix(0.9, 0.25, depth);
   float lit = exp(-max(-toRim, 0.0) * 11.0 / shrink);
   float stipple = step(grainHash(gl_FragCoord.xy), lit * 0.85);
   vec3 mound = PLANET_BODY + rim * (0.12 * lit + 0.5 * stipple * lit) * breathe * limbLight;
   vec3 colour = mix(sky, mound, inside) + rim * exp(-abs(toRim) * 70.0) * 0.85 * breathe * limbLight;
-  gl_FragColor = vec4(colour, 1.0);
+  gl_FragColor = vec4(colour + dither(gl_FragCoord.xy), 1.0);
 }
 `;
 

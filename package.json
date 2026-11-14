@@ -1,6 +1,6 @@
 {
   "name": "model-atlas",
-  "version": "0.66.15",
+  "version": "0.66.16",
   "private": true,
   "type": "module",
   "engines": {

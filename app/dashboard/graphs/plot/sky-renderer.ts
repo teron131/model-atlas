@@ -7,7 +7,7 @@ import {
   FLARE_EASE,
   FLARE_FRAGMENT,
   FRONTIER_SPRITE,
-  GRAIN_HASH_GLSL,
+  GRAIN_GLSL,
   hashUnit,
   HORIZON_LIGHT_GLSL,
   REFERENCE_PLOT_HEIGHT,
@@ -111,7 +111,7 @@ uniform vec2 rimCut;
 uniform vec2 trail;
 uniform float reach;
 uniform float rimStrength;
-${GRAIN_HASH_GLSL}
+${GRAIN_GLSL}
 ${HORIZON_LIGHT_GLSL}
 ${RIM_PULSE_GLSL}
 
@@ -184,7 +184,7 @@ void main() {
   vec3 colour = mix(sky, mound, body);
   colour += light * exp(-toRim / (5.0 * reach)) * 0.6 * lit;
   colour += mix(light, vec3(1.0), 0.35) * (1.0 - smoothstep(0.25, 1.1, toRim)) * 0.45 * lit;
-  gl_FragColor = vec4(colour, mix(SKY_STRENGTH, 1.0, body)) * inPlot;
+  gl_FragColor = vec4(colour + dither(gl_FragCoord.xy), mix(SKY_STRENGTH, 1.0, body)) * inPlot;
 }
 `;
 

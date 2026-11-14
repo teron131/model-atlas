@@ -8,12 +8,17 @@ export const FLARE_EASE = 0.08;
 // Chart light lengths are CSS pixels for a full dashboard plot this tall and shrink with smaller plots, such as the phone layout and the model sheet's inset, so the light never outweighs them.
 export const REFERENCE_PLOT_HEIGHT = 480;
 
-// Includes `grainHash`, the per-pixel noise behind the rim's stipple.
-export const GRAIN_HASH_GLSL = /* glsl */ `
+// Includes `grainHash`, a per-point hash to [0, 1), and `dither`, which every sky adds to its final colour.
+export const GRAIN_GLSL = /* glsl */ `
 float grainHash(vec2 p) {
   vec3 p3 = fract(vec3(p.xyx) * 0.1031);
   p3 += dot(p3, p3.yzx + 33.33);
   return fract((p3.x + p3.y) * p3.z);
+}
+
+// An 8-bit canvas has only a few dozen levels for a dark sky, so its gradients would step into visible contour bands; noise of up to one level either way breaks the steps up into an even grain.
+float dither(vec2 pixel) {
+  return (grainHash(pixel + 17.0) + grainHash(pixel + 59.0) - 1.0) / 255.0;
 }
 `;
 
