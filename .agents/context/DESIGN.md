@@ -153,7 +153,7 @@ Dark is the default: blue-charcoal planes with chalk ink, kept neutral against t
 
 - **Display** (500, clamp(64px, min(15.2vw, 26svh), 232px), 0.98): the hero title in two lines with the second indented 1.4em, so it keeps one shape at every width and aspect ratio and only scales.
 - **Region** (500, clamp(34px, 8.8vw, 136px), 0.86): research region names on the sky. The methodology title uses the same style scaled to its frame, and image exports set region names at 30px.
-- **Readout** (620, 24px, tabular): the headline figure of an analysis, such as the Pareto summary's median and the Timeline catalogue entry, and the model sheet's name at 600. One size keeps the headline numbers in agreement.
+- **Readout** (620, 24px, tabular): the headline figure of an analysis, such as the Pareto summary's median, and the model sheet's name at 600. One size keeps the headline numbers in agreement.
 - **Body** (500, 16px, 1.5): factual prose.
 - **Note** (500, 15px): panel copy, figure captions, and tooltip prose.
 - **Model name** (600, 15px): leaderboard model names; ranks share the size at 500, and the slug beneath is mono at 11px.
@@ -173,13 +173,12 @@ The dashboard is one column. Header, hero text, research rail, leaderboard, and 
 
 The hero fills the first viewport with only the title and the frontier register; no lede, status line, or controls compete with the sky. The register lists the frontier roles in order (Best Intelligence, Best Agentic, Another Lab, Best Open Weight, Pareto Balance, Pareto Value) in six columns, three at 1100px and below, and one at 720px and below. A role without a distinct model falls back to the next strongest by Intelligence, while the Pareto roles drop out instead.
 
-A sticky research rail follows, linking three numbered regions: Models, Pareto, and Timeline. Each region opens on the sky with its name at display size, the same two-digit ordinal hanging at its cap height, and its capture and link actions at the far edge; one module owns the sequence, so the rail and the region heads cannot disagree. The plane follows directly below its name. One even gap of sky separates the rail from the first region and each plane from the next name, well over the gap between a name and its own plane, so each name reads with the plane it opens.
+A sticky research rail follows, linking three regions: Models, Pareto, and Timeline. Each region opens on the sky with its name at display size and its capture and link actions at the far edge; one module owns the regions' names and order, so the rail and the region heads cannot disagree. The plane follows directly below its name. One even gap of sky separates the rail from the first region and each plane from the next name, well over the gap between a name and its own plane, so each name reads with the plane it opens.
 
 Responsive changes keep the model evidence visible:
 
-- At 820px and below, the Timeline catalogue entry sets its name on its own line above its three figures, so an ordinary name is never cut short.
+- At 640px and below, a chart's readout sets the model's name on its own line above its facts, which break only between facts, so none is cut short.
 - At 760px and below, labels and controls reflow, and the leaderboard folds its four score columns into a strip beneath each model's name: the same numbers over the same star tracks, sorted by four score marks on the model header's line.
-- At 520px and below, the rail drops its ordinals.
 
 ## Elevation & Depth
 
@@ -207,7 +206,7 @@ Research planes are opaque so model and chart contrast never depends on the sky:
 
 ## Shapes
 
-Research planes and everything in them have square corners, controls are square and compact, and provider icons keep a 3px radius. Models are round stars everywhere. In the Pareto chart a star's area tracks the mean of the model's available scores, while hover cards and the leaderboard carry the individual scores.
+Research planes and everything in them have square corners, controls are square and compact, and provider icons keep a 3px radius. Models are round stars everywhere. In the Pareto chart a star's area tracks the mean of the model's available scores, while the leaderboard carries the individual scores.
 
 ## Components
 
@@ -217,21 +216,21 @@ The selected option turns full ink and is lit by a small selection star beneath 
 
 ### Inputs
 
-Fields are transparent. Search fields show focus by brightening their search icon, with no line or ring, in the rail's model search and the leaderboard's column search alike; ruled fields, such as the leaderboard's row count, strengthen their rule.
+Fields are transparent. Search fields show focus by brightening their search icon, with no line or ring, in the rail's model filter and the leaderboard's table search alike; ruled fields, such as the leaderboard's row count, strengthen their rule.
 
-Checklists for benchmarks, organizations, and efforts open from a ruled summary into one shared menu: a bulk checkbox, square marks, and a right-aligned count per option. A press outside or Escape closes them.
+Checklists for benchmarks, organizations, and efforts open from a ruled summary into one shared menu, and the provider list in the filters menu takes the same form: sentence-case options with square marks and a right-aligned count, a search field and sortable column heads on the longer lists, and a first row that restores the full list. A press outside or Escape closes the menus.
 
 ### Navigation
 
 Navigation is a flight path. The research rail draws a hairline track with a waypoint under each region link and a selection star that travels with the scroll; the stretch already flown is lit in horizon light and passed waypoints turn violet. No tab underline, divider, pill, or filled background marks the current region.
 
-The global model search holds the rail's open middle at every width, and / reaches it from anywhere, first bringing the leaderboard up beneath the rail when the reader is still in the hero. Typing filters every view and lists the strongest matching models beneath the search, where arrows choose one and Enter opens its model sheet. Each active filter is a ruled chip after the search that removes only itself, provider chips keeping their provider mark, and on phones the chips, profiles, and additional filters fold behind a toggle. Whether reasoning variants expand is one of those filters, applied to the graphs and the leaderboard together.
+The global model search holds the rail's open middle at every width, and / reaches it from anywhere, first bringing the leaderboard up beneath the rail when the reader is still in the hero. Typing filters every view and lists the strongest matching models beneath the search, where arrows choose one and Enter opens its model sheet. Active filters mark the filters button with a dot and name themselves in its title, and on phones profiles and additional filters fold behind a toggle that carries the same dot. Whether reasoning variants expand is one of those filters, applied to the graphs and the leaderboard together.
 
 The leaderboard's horizontal scrollbar is a second flight path above its headers, drawn as the rail is. Each column group's name sits where the group starts, with its waypoint beneath it, and each group's stretch follows what it counts (benchmarks for benchmark groups, columns otherwise), so its length reads as its size. Names nudge apart to stay legible, a crowded name gives way to the group being read unless it has keyboard focus, a name scrolls its group to just past the pinned columns, and dragging along the track scrolls to the pointer.
 
 ### Leaderboard
 
-The toolbar holds column presets (All first, then Scores, Cost, and Time), a column search that takes the free width and offers a model search when the query names models instead, the row count, and an effort checklist for reasoning-variant rows.
+The toolbar holds column presets (All first, then Scores, Cost, and Time), a table search that takes the free width, where comma-separated parts that name columns pick them and the rest narrow the listed models, the row count, and an effort checklist for reasoning-variant rows.
 
 Rows read as a measurement table:
 
@@ -244,17 +243,19 @@ Rows read as a measurement table:
 
 ### Analytical figures
 
-Each analysis reads as a published figure. The chart leads the plane, and each axis control sits on the axis it controls: Pareto performance above the y-axis beside the score summary, resources beneath the x-axis, and the Timeline's view choices above its plot beside its catalogue entry. Controls, legend, readout, and caption share the graph's own width and edges. The region's description, evidence note, and axis note become a caption beneath the chart, followed by the evidence disclosure.
+Each analysis reads as a published figure. The chart leads the plane, and each axis control sits on the axis it controls: Pareto performance above the y-axis beside the score summary, resources beneath the x-axis, and the Timeline's organization picker and find field above its plot and beneath its time axis its window choices, replay controls, and an overview of the whole span whose window drags to pan and whose edges drag to zoom, as a video editor's timeline does. Each chart's readout runs beneath its top controls. A chart's find field holds each located model as a ruled chip that removes only itself, a single model's chip keeping its lab's mark and a partial name's showing how many models it names. Controls, legend, readout, and caption share the graph's own width and edges. The region's description, evidence note, and axis note become a caption beneath the chart, followed by the evidence disclosure. Each disclosure opens on one plain sentence of its signal before any detail: Pareto's names the benchmarks the whole comparison shares, then a legend for its field of marks, which heads each benchmark with its count of models, sorts by rank or any summary column, lights the pointer's row and column together, and keeps only the models sharing every clicked benchmark until a click elsewhere; the Timeline's names how many models reach the reference scale and through how many benchmarks, then keys its relay, which sets every benchmark and index, across its versions and records, as one thread over the months it measured the charted models, under the reference scale and its months, above each model's typical miss on the same time axis, so pointing reads a star, or anywhere along a thread that thread with the model measured on it nearest the pointer, in the charts' readout lines, one for the thread and one for the model, pinned under the dashboard rail, a focused model's plumb line dots each benchmark it was measured on at its release, and the chart's picked model lights its benchmarks and tables its results, one row per benchmark with its evidence and its path to the scale, sortable like the Pareto field.
 
-Frontiers are drawn as the sky's horizon: a white-hot rim over a horizon-gradient edge with a soft glow above, extended at the outermost model's height to the plot edge on the side the reached region continues, over a faint wash of the region it reaches. Every model the frontier outperforms sits inside the lit region. Each Pareto frontier step answers the pointer: its stretch of rim lights, and the hover card of the model it reaches adds the trade from the frontier model before it. The Timeline's record frontier joins each record directly to the next, a rising ridge rather than a staircase.
+Frontiers are drawn as the sky's horizon: a white-hot rim over a horizon-gradient edge with a soft glow above, extended at the outermost model's height to the plot edge on the side the reached region continues, over a faint wash of the region it reaches. Every model the frontier outperforms sits inside the lit region. Each Pareto frontier step answers the pointer: its stretch of rim lights, and the readout names the model it reaches with the trade from the frontier model before it. The Timeline's record frontier joins each record directly to the next, a rising ridge rather than a staircase.
 
-Chart stars echo the score stars without blooming: a lit centre in a solid ring of the provider colour, crisp enough to separate neighbours in dense clusters. Only frontier models, and the Timeline's chosen model, glow, from one blurred layer beneath the marks, so a chart costs a single filter. Index-only Timeline models are hollow rings, and in the light theme stars are solid with fainter glows. Hover cards set the model name semibold beside a neutral logo frame, and their edge takes a trace of the provider colour.
+A mark that stands for a model is a star; a mark that is one field among a model's many, or a place on the page, is round. Every star is the plots' own star, one shader drawn live in the skies and as a still image wherever HTML needs one, so only its colour, size, and position change. The hero register's role rules carry the frontier star with its rays, and the Timeline's lab standings carry each lab's leader as the frontier star and its next models as plain stars; in the light theme the standings, like the plots, draw solid dots of the provider colour. The leaderboard's and the model sheet's score tracks, the rail's flight path, and a choice strip's selection star are round: a lit core in a glow of their colour at the end of a trail that brightens toward it along a hairline track.
+
+Chart stars echo the score stars without blooming: a lit centre in a solid ring of the provider colour, crisp enough to separate neighbours in dense clusters. Only frontier models, and the Timeline's picked model, glow, from one blurred layer beneath the marks, so a chart costs a single filter. Index-only Timeline models are hollow rings, and in the light theme stars are solid with fainter glows. No floating card covers a chart's stars: the model under the pointer is named in the chart's readout. The model sheet's effort chart keeps a hover card, which sets the model name semibold beside a neutral logo frame, its edge taking a trace of the provider colour.
 
 Each Pareto axis carries a box-and-whisker spread mark in the axis's own grey, on the side away from its ticks and labels: hairline whiskers to the lowest and highest model, an outlined quartile box, and a stronger median tick that the median guide carries across the plot to its readout.
 
 Charts name their frontier models on phones as on a desktop. The Pareto plot names its whole frontier, and the Timeline names as many curve models as fit: its leaders, GPT-4, and the selected model first, then the newest records, each clear of the inset scale anchors.
 
-The Timeline's selected model reads as a star-catalogue entry on the figure's top edge: its ringed provider star, name, Intelligence Index, release date, and evidence support at the readout size, the name kept to one line so following the pointer never moves the plot. The overview strip carries the same frontier as a small horizon. In the models view a replay control sweeps the window from start to end in nine seconds: models appear as their release dates pass, the record frontier draws itself to the date reached, and the catalogue entry follows each new record. The axes hold still, reduced motion steps through still frames, and changing the window, preset, or view stops it.
+Each chart's readout is one quiet line beneath its controls, in their type size, naming the model under the pointer and otherwise the model the chart rests on: its lab's logo and its name, then its facts in plain words, the line's height held so following the pointer never moves the plot. The Timeline's facts are the lab, Intelligence Index, release date, evidence support, and an index-only basis, and it rests on the picked model or else the newest record. Pareto's are the lab, both plotted values, the measured benchmark count, and a frontier model's step from the one before, and it rests on the frontier's best-scoring model. A replay control sweeps the window from start to end in eleven seconds: models appear as their release dates pass, the record frontier draws itself to the date reached, and the readout follows each new record. The axes hold still, reduced motion steps through still frames, and changing the window or preset stops it.
 
 Scores have one model: the backend score contract is the source of truth for Intelligence, Agentic, Speed, and Value, charts translate it only in their star-mark geometry, and the sky maps it through its own adapter.
 

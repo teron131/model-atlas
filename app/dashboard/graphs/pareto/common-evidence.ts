@@ -13,6 +13,7 @@ import {
   type FrontierBenchmarkAxisKey,
   type FrontierBenchmarkRow,
   isScoreAxis,
+  mergedBenchmarkSourceRows,
   normalizedFrontierBenchmarkRows,
   normalizedFrontierBenchmarkScoreRows,
   positiveMetric,
@@ -42,14 +43,15 @@ export function commonBenchmarkComparison(
   axisKey: FrontierBenchmarkAxisKey,
 ): CommonBenchmarkComparison {
   if (selectedBenchmarkKeys.length < 2) {
-    // One benchmark keeps its native units; ALE-Bench alone needs the normalized chart scale.
+    // One benchmark keeps its native units with its sources merged per variant; ALE-Bench alone needs the normalized chart scale.
     const [key] = selectedBenchmarkKeys;
-    const selectedRows = key == null ? [] : rows.filter((row) => row.benchmarkKey === key);
+    const selectedRows = key == null ? [] : rows.filter((row) => row.baseBenchmarkKey === key);
     return {
-      rows:
+      rows: mergedBenchmarkSourceRows(
         key === "ale_bench"
           ? normalizedFrontierBenchmarkScoreRows(selectedRows, referenceRows)
           : selectedRows,
+      ),
       benchmarkKeys: selectedBenchmarkKeys,
       indexVariantCount: 0,
       excludedVariantCount: 0,
@@ -59,7 +61,8 @@ export function commonBenchmarkComparison(
   const selected = new Set(selectedBenchmarkKeys);
   const metric = (row: FrontierBenchmarkRow) => frontierAxisValue(row, axisKey);
   const observed = rows.filter(
-    (row) => selected.has(row.benchmarkKey) && positiveMetric(metric(row), isScoreAxis(axisKey)),
+    (row) =>
+      selected.has(row.baseBenchmarkKey) && positiveMetric(metric(row), isScoreAxis(axisKey)),
   );
   // Uncalibrated or unpaired observations cannot enter a normalized basket or its disclosure.
   const normalized = normalizedFrontierBenchmarkRows(observed, referenceRows).filter((row) =>
@@ -76,7 +79,11 @@ export function commonBenchmarkComparison(
     group.push(row);
     rowsByModel.set(key, group);
   }
-  for (const [modelKey, modelRows] of rowsByModel) {
+  // Models follow the leaderboard: each by its strongest listed variant's Intelligence Score, ties in arrival order.
+  const strongest = (modelRows: FrontierBenchmarkRow[]) =>
+    Math.max(...modelRows.map((row) => row.model.scores.intelligence_score));
+  const ranked = [...rowsByModel].sort(([, left], [, right]) => strongest(right) - strongest(left));
+  for (const [modelKey, modelRows] of ranked) {
     const rowsByVariant = new Map<string, FrontierBenchmarkRow[]>();
     for (const row of modelRows) {
       const key = modelVariantKey(row.model);
@@ -91,19 +98,26 @@ export function commonBenchmarkComparison(
     const variants = indexVariants.length > 0 ? indexVariants : allVariants;
     const compared = new Set(variants.map((variant) => modelVariantKey(variant[0]!.model)));
     const benchmarkKeys = selectedBenchmarkKeys.filter((key) =>
-      variants.every((variant) => variant.some((row) => row.benchmarkKey === key)),
+      variants.every((variant) => variant.some((row) => row.baseBenchmarkKey === key)),
     );
     const shared = new Set(benchmarkKeys);
     const commonRows = modelRows.filter(
-      (row) => shared.has(row.benchmarkKey) && compared.has(modelVariantKey(row.model)),
+      (row) => shared.has(row.baseBenchmarkKey) && compared.has(modelVariantKey(row.model)),
     );
     const plotted = aggregateFrontierBenchmarkRows(commonRows);
     result.push(...plotted);
     indexVariantCount += indexVariants.length;
     excludedVariantCount += allVariants.length - variants.length;
+    // Each benchmark contributes all of its sources from the first variant that measured it, so their shared weight counts once.
     const components = benchmarkKeys.flatMap((key) => {
-      const row = modelRows.find((candidate) => candidate.benchmarkKey === key);
-      return row == null ? [] : [row];
+      const row = modelRows.find((candidate) => candidate.baseBenchmarkKey === key);
+      return row == null
+        ? []
+        : modelRows.filter(
+            (candidate) =>
+              candidate.baseBenchmarkKey === key &&
+              modelVariantKey(candidate.model) === modelVariantKey(row.model),
+          );
     });
     const includedBaseKeys = [...new Set(components.map((row) => row.baseBenchmarkKey))];
     const totalWeight = components.reduce(

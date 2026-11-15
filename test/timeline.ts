@@ -1,4 +1,4 @@
-/** Prove benchmark turnover, permanent units, separate dimensions, and transfer uncertainty using observed bridge configurations. */
+/** Prove benchmark turnover, permanent units, separate dimensions, and typical misses using observed bridge configurations. */
 
 import assert from "node:assert/strict";
 
@@ -6,7 +6,6 @@ import {
   anchorTimeline,
   calibrateTimeline,
   DEFAULT_TIMELINE_PARAMETERS,
-  timelineTransferError,
 } from "../src/model-atlas/timeline/calibration";
 import {
   extendTimelineGraph,
@@ -211,7 +210,6 @@ assert.equal(
 const intelligence = calibrateTimeline(release, "intelligence");
 const result = intelligence.estimates.find((e) => e.modelId === future.id)!;
 close(result.value!, 150);
-assert.equal(result.uncertainty!.steps, 3);
 assert.equal(
   calibrateTimeline(release, "intelligence", {
     ...DEFAULT_TIMELINE_PARAMETERS,
@@ -233,9 +231,9 @@ assert.equal(
   "One measured benchmark remains one observation across three calibration links",
 );
 assert.equal(
-  result.uncertainty!.outsideOverlap,
-  true,
-  "Extending beyond bridge support stays visible in backend uncertainty",
+  result.uncertainty,
+  null,
+  "A position no benchmark checked against reference scores places carries no typical miss",
 );
 assert.equal(intelligence.estimates.find((e) => e.modelId === disconnected.id)!.value, null);
 const saturatedScore = intelligence.estimates.find((e) => e.modelId === saturated.id)!;
@@ -692,42 +690,6 @@ assert.ok(
   inconsistent.some((n) => n.disagreement > 0.1),
   "Conflicting overlap routes must remain visible in the error budget",
 );
-const node = {
-  benchmarkId: "b",
-  slope: 1,
-  offset: 0,
-  path: ["b", "a"],
-  disagreement: 0,
-  errors: [
-    {
-      linkId: link.id,
-      center: link.rightMean,
-      deviation: link.rightDeviation,
-      min: link.rightMin,
-      max: link.rightMax,
-      error: link.rightError,
-      models: link.models,
-      normalizedError: link.error,
-    },
-  ],
-};
-const central = timelineTransferError(node, link.rightMean).error;
-assert.ok(
-  timelineTransferError(node, link.rightMax + 30).error > central,
-  "Distance beyond the shared range increases transfer uncertainty",
-);
-assert.ok(
-  timelineTransferError(
-    { ...node, errors: node.errors.map((e) => ({ ...e, models: 4 })) },
-    link.rightMean,
-  ).error > central,
-  "Less independent overlap increases uncertainty at equal residual error",
-);
-assert.ok(
-  timelineTransferError({ ...node, errors: [...node.errors, ...node.errors] }, link.rightMean)
-    .error > central,
-  "Longer routes retain accumulated error rather than treating links as independent votes",
-);
 
 const display = anchorTimeline(
   intelligence,
@@ -885,6 +847,81 @@ const reconnectedEstimate = calibrateTimeline(reconnected, "intelligence").estim
 close(reconnectedEstimate.value!, 85);
 assert.ok(reconnectedEstimate.paths.some((path) => path.includes("old")));
 assert.ok(reconnected.scale!.dimensions.intelligence.nodes.find((n) => n.benchmarkId === "middle"));
+
+// Leaving each benchmark out of its models' positions sets a position's typical miss: more checked benchmarks narrow it, the index and the task disagreeing more toward the ends of their checked values widens a position beyond them, and indexes compared only with each other check nothing.
+const scored = Array.from({ length: 10 }, (_, i) => model("Scored " + i, "2025-01-01"));
+const scoredQuality = (i: number) => 20 + 5 * i;
+const oneNoise = [9, -6, -4, 2, -1, 1, -2, 4, -6, 8];
+const twoNoise = [-8, 6, 3, -2, 1, -1, 2, -3, 5, -9];
+const both = model("Both", "2025-06-01");
+const single = model("Single", "2025-06-01");
+const distant = model("Distant", "2025-06-01");
+const twins = Array.from({ length: 5 }, (_, i) => model("Twin " + i, "2025-06-01"));
+const checkedFixture = (indexOnly: HistoricalModel[]) =>
+  calibrateTimeline(
+    prepareTimelineRelease(
+      historicalDatasetFromReleases(
+        [
+          {
+            id: "checked-era",
+            capturedAt: "2025-06-01",
+            artifacts: [],
+            portfolios: [],
+            models: [...scored, both, single, distant, ...indexOnly],
+            benchmarks: [
+              { ...benchmark("one", "linear"), kind: "index" },
+              benchmark("two", "linear"),
+              { ...benchmark("three", "linear"), kind: "index" },
+            ],
+            observations: [
+              ...scored.flatMap((m, i) => [
+                observe(m, "one", scoredQuality(i) + oneNoise[i]!),
+                observe(m, "two", (scoredQuality(i) + twoNoise[i]!) / 2),
+              ]),
+              observe(both, "one", 40),
+              observe(both, "two", 20),
+              observe(single, "one", 40),
+              observe(distant, "one", 140),
+              ...indexOnly.flatMap((m, i) => [
+                observe(m, "one", 30 + 8 * i),
+                observe(m, "three", 15 + 4 * i),
+              ]),
+            ],
+          },
+        ],
+        scored.map((m, i) => ({
+          model_id: m.id,
+          name: m.name,
+          provider_id: m.provider,
+          release_date: m.releaseDate,
+          intelligence_score: scoredQuality(i),
+          agentic_score: scoredQuality(i),
+          intelligence_confidence: 0.8,
+          agentic_confidence: 0.8,
+        })),
+        0,
+        "2025-06-01",
+      ),
+      DEFAULT_TIMELINE_PARAMETERS,
+    ),
+    "intelligence",
+  ).estimates;
+const checkedEstimates = checkedFixture([]);
+const checked = (m: HistoricalModel) => checkedEstimates.find((e) => e.modelId === m.id)!;
+assert.ok(
+  checked(both).uncertainty!.typicalMiss < checked(single).uncertainty!.typicalMiss,
+  "A second checked benchmark narrows a position's typical miss",
+);
+assert.equal(checked(single).uncertainty!.beyondChecked, 0);
+assert.ok(
+  checked(distant).uncertainty!.beyondChecked > 0 &&
+    checked(distant).uncertainty!.typicalMiss > 2 * checked(single).uncertainty!.typicalMiss,
+  "A position far beyond where its benchmark was checked widens its typical miss",
+);
+close(
+  checkedFixture(twins).find((e) => e.modelId === single.id)!.uncertainty!.typicalMiss,
+  checked(single).uncertainty!.typicalMiss,
+);
 console.log(
   "Permanent cross-era turnover, dimension, uncertainty, bridge admission, and continuation checks passed.",
 );

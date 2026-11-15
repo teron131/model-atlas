@@ -7,7 +7,7 @@ import { providerAssetKey } from "../../../src/model-atlas/logos/resolve";
 type ProviderLike = { provider?: string | null };
 
 type ProviderColorMap = Record<string, string>;
-type ProviderIconKey = keyof typeof providerIcons;
+type ProviderIcon = (typeof providerIcons)[keyof typeof providerIcons];
 
 // Artificial Analysis's creator colours, so a provider reads the same here as on its charts; OpenAI's near-black follows the theme's ink instead, and providers missing here take their icon's colour.
 const providerColorOverrides: ProviderColorMap = {
@@ -83,10 +83,18 @@ export function providerDisplayName(source: ProviderLike | string | null) {
   return providerLabels[key] ?? provider ?? "Unknown";
 }
 
+// Icons sit under each source's spelling, which an alias may fold to another key (`kwaipilot` → `kwaikat`), so they are found by identity key; the spelling equal to the key wins, and xAI keeps its `x-ai` mark over the SpaceX one under `xai` and `spacexai`.
+const preferredIconKeys: Record<string, string> = { xai: "x-ai" };
+const iconsByIdentity = new Map<string, ProviderIcon>();
+for (const [assetKey, icon] of Object.entries(providerIcons)) {
+  const key = providerIdentityKey(assetKey);
+  if (!iconsByIdentity.has(key) || assetKey === (preferredIconKeys[key] ?? key)) {
+    iconsByIdentity.set(key, icon);
+  }
+}
+
 function providerIcon(provider: string | null | undefined) {
-  const key = providerIdentityKey(provider);
-  const assetKey = key === "xai" ? "x-ai" : key === "zai" ? "z-ai" : key;
-  return providerIcons[assetKey as ProviderIconKey];
+  return iconsByIdentity.get(providerIdentityKey(provider));
 }
 
 /** Always a colour: a provider with no brand colour gets a stable pick from the fallback palette, hashed from its key. */

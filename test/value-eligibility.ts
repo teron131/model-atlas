@@ -6,7 +6,7 @@ import { publicJsonPayload } from "../app/api/public-json";
 import { frontierBenchmarkRows } from "../app/dashboard/graphs/pareto/analysis";
 import {
   frontierBenchmarkAxisConfig,
-  frontierBenchmarkHoverRows,
+  frontierBenchmarkReadoutFacts,
 } from "../app/dashboard/graphs/pareto/presentation";
 import { INDEX_POLICIES } from "../src/model-atlas/benchmarks/index-policy";
 import { STAGE_CONFIG } from "../src/model-atlas/config/stage";
@@ -142,9 +142,12 @@ assert.equal(
   "Missing Speed does not erase independently available Value",
 );
 assert.ok(
-  frontierBenchmarkHoverRows(missingSpeedRow, frontierBenchmarkAxisConfig.cost).every(
-    ([label]) => label !== "Speed and Value Scores",
-  ),
+  frontierBenchmarkReadoutFacts(
+    missingSpeedRow,
+    frontierBenchmarkAxisConfig.cost,
+    "cost",
+    "benchmarks",
+  ).every((fact) => !JSON.stringify(fact).includes("Speed and Value Scores")),
 );
 const zeroResourceRow = {
   ...missingSpeedRow,

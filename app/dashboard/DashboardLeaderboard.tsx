@@ -1,18 +1,26 @@
 "use client";
 
-/** The leaderboard region: derives its rows from the URL state and the global filters, and owns the column tooltip's fade; it is kept apart from the graphs so slider, sort, and column-search updates re-render only the table. */
+/** The leaderboard region: derives its rows from the URL state, the global filters, and the table search, and owns the column tooltip's fade; it is kept apart from the graphs so slider, sort, and table-search updates re-render only the table. */
 
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 
 import type { ModelAtlasColumnTooltips } from "../../src/model-atlas/config/tooltips";
 import type { ModelAtlasPayload } from "../../src/model-atlas/stats/types";
 import { LeaderboardCapture } from "./capture/LeaderboardCapture";
-import { focusModelSearch } from "./GlobalModelControls";
 import { ResearchRegion } from "./ResearchRegions";
-import { filterByGlobalModelFilters, type GlobalModelFilters } from "./shared/model-filters";
-import { hasSearchQuery } from "./shared/search";
+import {
+  filterByGlobalModelFilters,
+  type GlobalModelFilters,
+  modelSearchDocument,
+} from "./shared/model-filters";
+import { filterSearchDocuments, hasSearchQuery } from "./shared/search";
 import { type SortKey, type TableColumnKey } from "./table/column-registry";
-import { type TableColumnPreset, tableColumnView, visibleSort } from "./table/column-views";
+import {
+  splitTableSearch,
+  type TableColumnPreset,
+  tableColumnView,
+  visibleSort,
+} from "./table/column-views";
 import {
   ColumnTooltip,
   type HeaderTooltipHandler,
@@ -46,30 +54,16 @@ export function DashboardLeaderboard({
 }) {
   const tooltipFadeTimeoutRef = useRef<number | null>(null);
   const [requestedSort, setSortState] = useUrlState("sort");
-  const [columnQuery] = useUrlState("column-q");
+  const [tableQuery] = useUrlState("table-q");
   const [columnPreset] = useUrlState("view");
   const [tooltip, setTooltip] = useState<DashboardTooltipState | null>(null);
   const [showVariants] = useUrlState("table-variants");
   const [requestedEfforts] = useUrlState("table-effort");
-  const deferredColumnQuery = useDeferredValue(columnQuery);
+  const deferredTableQuery = useDeferredValue(tableQuery);
   const columnTooltips = payload?.metadata.scoring.column_tooltips ?? emptyColumnTooltips;
-  const {
-    searchQuery: columnFilterQuery,
-    searchMatchCount: columnSearchMatchCount,
-    keys: visibleColumnKeys,
-  } = useMemo(
-    () => tableColumnView(columnPreset, deferredColumnQuery, columnTooltips),
-    [columnPreset, deferredColumnQuery, columnTooltips],
-  );
-  const sortState = useMemo(
-    () => visibleSort(requestedSort, columnPreset, columnFilterQuery, visibleColumnKeys),
-    [requestedSort, columnPreset, columnFilterQuery, visibleColumnKeys],
-  );
   const deferredShowVariants = useDeferredValue(showVariants);
   const deferredEfforts = useDeferredValue(requestedEfforts);
   const deferredFilters = useDeferredValue(filters);
-  // URL subscriptions update synchronously; defer the row reorder so the chosen header can paint first.
-  const deferredSortState = useDeferredValue(sortState);
   const tableRows = useMemo(
     () => leaderboardRows(payload, deferredShowVariants),
     [deferredShowVariants, payload],
@@ -82,10 +76,38 @@ export function DashboardLeaderboard({
     }),
     [payload],
   );
-  const filteredRows = useMemo(
+  const admittedRows = useMemo(
     () => filterByGlobalModelFilters(tableRows, (row) => row.model, deferredFilters, filterScope),
     [tableRows, deferredFilters, filterScope],
   );
+  const rowDocuments = useMemo(
+    () => admittedRows.map((row) => modelSearchDocument(row, row.model)),
+    [admittedRows],
+  );
+  // The table search's parts that name columns pick the columns, and the rest narrow the rows the global filters admit.
+  const { columnQuery, modelQuery } = useMemo(
+    () => splitTableSearch(deferredTableQuery, columnTooltips, rowDocuments),
+    [deferredTableQuery, columnTooltips, rowDocuments],
+  );
+  const filteredRows = useMemo(
+    () =>
+      hasSearchQuery(modelQuery) ? filterSearchDocuments(modelQuery, rowDocuments) : admittedRows,
+    [modelQuery, rowDocuments, admittedRows],
+  );
+  const {
+    searchQuery: columnFilterQuery,
+    searchMatchCount: columnSearchMatchCount,
+    keys: visibleColumnKeys,
+  } = useMemo(
+    () => tableColumnView(columnPreset, columnQuery, columnTooltips),
+    [columnPreset, columnQuery, columnTooltips],
+  );
+  const sortState = useMemo(
+    () => visibleSort(requestedSort, columnPreset, columnFilterQuery, visibleColumnKeys),
+    [requestedSort, columnPreset, columnFilterQuery, visibleColumnKeys],
+  );
+  // URL subscriptions update synchronously; defer the row reorder so the chosen header can paint first.
+  const deferredSortState = useDeferredValue(sortState);
   // Variant rows keep the chosen efforts, every effort when `null`; a model without an effort label shows only in the default view.
   const scopedRows = useMemo(
     () =>
@@ -98,17 +120,21 @@ export function DashboardLeaderboard({
         : filteredRows,
     [filteredRows, deferredShowVariants, deferredEfforts],
   );
-  // The effort menu counts both views the global filters admit, whichever one the table shows.
-  const otherViewRows = useMemo(
-    () =>
-      filterByGlobalModelFilters(
-        leaderboardRows(payload, !deferredShowVariants),
-        (row) => row.model,
-        deferredFilters,
-        filterScope,
-      ),
-    [payload, deferredShowVariants, deferredFilters, filterScope],
-  );
+  // The effort menu counts both views the global filters and the table search admit, whichever one the table shows.
+  const otherViewRows = useMemo(() => {
+    const rows = filterByGlobalModelFilters(
+      leaderboardRows(payload, !deferredShowVariants),
+      (row) => row.model,
+      deferredFilters,
+      filterScope,
+    );
+    return hasSearchQuery(modelQuery)
+      ? filterSearchDocuments(
+          modelQuery,
+          rows.map((row) => modelSearchDocument(row, row.model)),
+        )
+      : rows;
+  }, [payload, deferredShowVariants, deferredFilters, filterScope, modelQuery]);
   const effortOptions = useMemo(
     () => effortChoices(deferredShowVariants ? filteredRows : otherViewRows),
     [deferredShowVariants, filteredRows, otherViewRows],
@@ -145,22 +171,15 @@ export function DashboardLeaderboard({
           health: payload?.metadata.benchmark_update_health,
           unit: rowKind,
         });
-  const columnSearchResultLabel = hasSearchQuery(deferredColumnQuery)
-    ? `${columnSearchMatchCount} ${columnSearchMatchCount === 1 ? "column" : "columns"}`
-    : null;
-  // A model name typed into the column search finds no columns; count the models it would find as a model search instead.
-  const modelMatchCount = useMemo(
-    () =>
-      hasSearchQuery(deferredColumnQuery) && columnSearchMatchCount === 0
-        ? filterByGlobalModelFilters(
-            tableRows,
-            (row) => row.model,
-            { ...deferredFilters, q: deferredColumnQuery },
-            filterScope,
-          ).length
-        : 0,
-    [columnSearchMatchCount, deferredColumnQuery, deferredFilters, filterScope, tableRows],
-  );
+  const searchResultLabel =
+    [
+      hasSearchQuery(columnQuery)
+        ? `${columnSearchMatchCount} ${columnSearchMatchCount === 1 ? "column" : "columns"}`
+        : null,
+      hasSearchQuery(modelQuery) ? `${modelCount} ${modelCount === 1 ? "model" : "models"}` : null,
+    ]
+      .filter((part) => part != null)
+      .join(" · ") || null;
   const emptyMessage = errorMessage ?? (payload == null ? "Loading stats" : "No models");
 
   useEffect(() => {
@@ -173,32 +192,37 @@ export function DashboardLeaderboard({
   );
 
   const changeColumnView = useCallback(
-    (patch: Pick<DashboardUrlPatch, "view" | "column-q">) => {
+    (patch: Pick<DashboardUrlPatch, "view" | "table-q">) => {
       const preset = patch.view ?? columnPreset;
-      const searchQuery = patch["column-q"] ?? columnQuery;
-      const { searchQuery: query, keys } = tableColumnView(preset, searchQuery, columnTooltips);
+      const search = splitTableSearch(patch["table-q"] ?? tableQuery, columnTooltips, rowDocuments);
+      const { searchQuery: query, keys } = tableColumnView(
+        preset,
+        search.columnQuery,
+        columnTooltips,
+      );
       const sort = visibleSort(sortState, preset, query, keys);
       updateDashboardUrl(
         { ...patch, ...(sort.key !== requestedSort.key ? { sort } : {}) },
         patch.view == null,
       );
     },
-    [columnPreset, columnQuery, columnTooltips, sortState, requestedSort],
+    [columnPreset, tableQuery, columnTooltips, rowDocuments, sortState, requestedSort],
   );
+  // A preset replaces the columns a search picked, so choosing one drops the search's column parts and keeps the parts that narrow the rows.
   const handleColumnPresetChange = useCallback(
     (preset: TableColumnPreset) => {
-      changeColumnView({ view: preset, ...(columnQuery ? { "column-q": "" } : {}) });
+      const search = splitTableSearch(tableQuery, columnTooltips, rowDocuments);
+      changeColumnView({
+        view: preset,
+        ...(hasSearchQuery(search.columnQuery) ? { "table-q": search.modelQuery.trim() } : {}),
+      });
     },
-    [changeColumnView, columnQuery],
+    [changeColumnView, tableQuery, columnTooltips, rowDocuments],
   );
-  const handleColumnQueryChange = useCallback(
-    (query: string) => changeColumnView({ "column-q": query }),
+  const handleTableQueryChange = useCallback(
+    (query: string) => changeColumnView({ "table-q": query }),
     [changeColumnView],
   );
-  const searchModelsInstead = useCallback(() => {
-    updateDashboardUrl({ q: columnQuery.trim(), "column-q": "" });
-    focusModelSearch();
-  }, [columnQuery]);
 
   const clearTooltipFadeTimeout = useCallback(() => {
     if (tooltipFadeTimeoutRef.current != null) {
@@ -261,9 +285,8 @@ export function DashboardLeaderboard({
       >
         <LeaderboardControls
           preset={columnPreset}
-          columnQuery={columnQuery}
-          columnSearchResultLabel={columnSearchResultLabel}
-          modelMatchCount={modelMatchCount}
+          query={tableQuery}
+          resultLabel={searchResultLabel}
           isColumnSearch={hasSearchQuery(columnFilterQuery)}
           display={{
             itemKind: rowKind,
@@ -273,13 +296,12 @@ export function DashboardLeaderboard({
             efforts: {
               options: effortOptions,
               modelCount,
-              selected: showVariants ? requestedEfforts : "default",
+              selected: showVariants ? requestedEfforts : "collapsed",
               onChange: chooseEfforts,
             },
           }}
           onPresetChange={handleColumnPresetChange}
-          onColumnQueryChange={handleColumnQueryChange}
-          onSearchModels={searchModelsInstead}
+          onQueryChange={handleTableQueryChange}
         />
         <ModelTable
           sortState={sortState}
@@ -311,7 +333,7 @@ export function DashboardLeaderboard({
 // Choosing efforts asks for reasoning-variant rows, so a collapsed table expands to show them.
 function chooseEfforts(selection: EffortSelection) {
   updateDashboardUrl(
-    selection === "default"
+    selection === "collapsed"
       ? { "table-variants": false }
       : { "table-variants": true, "table-effort": selection },
   );

@@ -510,7 +510,7 @@ html[data-model-atlas-theme="light"] .theme-icon-dark {
   scroll-margin-top: calc(var(--dashboard-rail-height, 48px) + 8px);
 }
 
-/* Each research region opens on the sky the way the hero does: its name at display size, the rail's ordinal, and its actions. */
+/* Each research region opens on the sky the way the hero does: its name at display size and its actions. */
 .dashboard-section-head {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -523,7 +523,6 @@ html[data-model-atlas-theme="light"] .theme-icon-dark {
 .dashboard-section-title {
   display: flex;
   align-items: flex-start;
-  gap: clamp(10px, 1.3vw, 20px);
   min-width: 0;
   margin: 0;
   color: var(--scene-ink);
@@ -534,18 +533,6 @@ html[data-model-atlas-theme="light"] .theme-icon-dark {
   line-height: 0.86;
   /* Avenir Next kerns T and i so closely that at this tracking the i's dot meets the T's arm, so the name is set unkerned. */
   font-kerning: none;
-}
-
-/* The ordinal hangs at the name's cap height, so the rail and the page agree on the sequence. */
-.dashboard-section-title b {
-  padding-top: 0.55em;
-  color: var(--scene-faint);
-  font-family: var(--font-mono);
-  font-size: max(11px, 0.1em);
-  font-variant-numeric: tabular-nums;
-  font-weight: var(--type-label-weight);
-  letter-spacing: var(--type-label-tracking);
-  line-height: 1;
 }
 
 .dashboard-section-actions {
@@ -730,7 +717,7 @@ html[data-model-atlas-theme="light"] .theme-icon-dark {
   cursor: pointer;
 }
 
-/* A group's benchmark count reads as the research rail's ordinals do. */
+/* A group's benchmark count is a quiet tabular figure beside its name. */
 .table-scrollbar-label b {
   color: var(--faint);
   font: inherit;

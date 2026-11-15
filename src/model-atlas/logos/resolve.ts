@@ -5,9 +5,16 @@ const MODELS_DEV_LOGO_BASE_URL = "https://models.dev/logos";
 
 // Model creators whose models.dev provider id differs from their own slug.
 const MODELS_DEV_PROVIDER_BY_CREATOR: Record<string, string> = {
+  "agnes-ai": "agnes",
+  "ai21-labs": "ai21",
+  // models.dev lists Amazon's own models under their Nova brand.
+  amazon: "nova",
+  fireworks: "fireworks-ai",
   "meta-llama": "meta",
+  "microsoft-azure": "azure",
   mistralai: "mistral",
   qwen: "alibaba",
+  snowflake: "snowflake-cortex",
   "x-ai": "xai",
   "z-ai": "zai",
 };

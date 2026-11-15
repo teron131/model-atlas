@@ -39,6 +39,13 @@ export function catalogBenchmarkKey(key: string): string {
     : key;
 }
 
+/** The identity under which a model counts a result once: an index's versions and its records from different pipelines share its catalog key, and `aa_quality_index`, the archived key of Artificial Analysis's index under its earlier name, joins `aa_intelligence_index`. */
+export function measureKey(benchmark: Pick<HistoricalBenchmark, "key" | "kind">): string {
+  return benchmark.kind === "index"
+    ? catalogBenchmarkKey(benchmark.key).replace(/^aa_quality_index$/, "aa_intelligence_index")
+    : benchmark.key;
+}
+
 /** Model Atlas's own archived score series serve as each dimension's root benchmark, not as task or index evidence. */
 export function isReferenceBenchmark(benchmark: Pick<HistoricalBenchmark, "key">): boolean {
   return benchmark.key.startsWith("model_atlas_");
@@ -162,11 +169,12 @@ export type HistoricalEstimate = {
   source: "current" | "index" | "blended" | "components" | "unplaced";
   confidence: number | null;
   disagreement: number | null;
+  /** `null` for a position its own reference score sets and for one no checked benchmark places. */
   uncertainty?: {
-    transferError: number;
-    steps: number;
-    weakestModels: number;
-    outsideOverlap: boolean;
+    /** Reference-scale points within which the position typically lies of where more benchmarks would settle it, plus any version adjustment. */
+    typicalMiss: number;
+    /** Reference-scale points between the position and the nearest range a placing benchmark was checked at; 0 inside one. */
+    beyondChecked: number;
   } | null;
   versionAdjustment?: { kind: "successor"; modelIds: string[]; unadjustedValue: number };
   benchmarkSupport: {

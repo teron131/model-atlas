@@ -55,7 +55,7 @@ The chart shows evidence support alongside capability so a sparsely supported es
 
 The benchmark coverage used for blending and the support used for frontier eligibility are different measures. Frontier support takes the strongest available support from saved reference evidence, direct benchmarks or eligible index breadth; overlapping sources are not added together to inflate it.
 
-Each model family uses one representative variant. Selection prefers current variants ranked by their saved main-leaderboard :score[Intelligence] scores; historical-only families use their strongest available Intelligence Index estimate. Every variant retains its own measurements and score. The default chart starts with GPT-4's March 2023 release and hides scores below 70.
+Each model family uses one representative variant. Selection takes the variant the main leaderboard rates strongest on :score[Intelligence] among those it lists, so both views name the same effort and a sparsely measured effort the leaderboard does not list cannot stand for the model; families with no listed variant use their strongest Intelligence Index estimate, preferring current variants. Every variant retains its own measurements and score. The default chart starts with GPT-4's March 2023 release and hides scores below 70.
 
 The default view emphasizes broadly impactful model progress. It excludes OpenAI Pro, Gemini Deep Think and Claude Mythos models because of their specialized resourcing, operating policies or assets. Ordinary Gemini Pro models and other high-reasoning variants remain eligible. Visibility rules, search, dates and lab filters apply after scoring: hiding a model changes neither its score nor the calibration of other models.
 
@@ -78,8 +78,8 @@ Fixed anchors preserve the numerical scale, not the accuracy of every estimate. 
 | --- | --- |
 | Evidence support | How much usable evidence backs the estimate. |
 | Predictor acceptance | Whether withheld-result predictions pass the error and baseline checks. |
-| Transfer-error budget | An estimate's accumulated transfer errors and disagreement between routes. |
+| [Typical miss](calculation.md#estimate-the-typical-miss) | How far a position typically lies from where more benchmarks would settle it, checked by leaving each benchmark out; more benchmarks narrow it, and sitting far from where they were checked widens it. |
 
 Benchmark prediction error and final model-score error answer different questions. The first tests a conversion between benchmarks; the second tests the combined estimate against a withheld model reference. Their units and evaluation populations must be stated before the numbers can be compared. Agreement with a saved reference or publisher index does not establish true capability.
 
-Evidence support is not a probability that a score is correct, and transfer-error budgets are not statistical confidence intervals. Multiple paths can share the same observations, so they do not create independent evidence. Small score differences may therefore be inconclusive even when the relevant connections pass validation. Models without a supported connection remain unplaced.
+Evidence support is not a probability that a score is correct, and a typical miss is a checked median, not a confidence interval. Leaving a benchmark out shows only how a model's benchmarks disagree, so an error they all share, such as one conversion carrying a whole era, does not widen it. Small score differences may therefore be inconclusive even when the relevant connections pass validation. Models without a supported connection remain unplaced.

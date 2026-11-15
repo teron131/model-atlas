@@ -200,7 +200,7 @@ export function ModelSheet({ payload }: { payload: ModelAtlasPayload | null }) {
       <header ref={headRef} className={styles.head}>
         {comparing ? (
           <>
-            {/* The Compare toggle holds the label column, which stays in the image without it; the other actions keep the single sheet's top-right corner, so each name keeps its column's full width. */}
+            {/* The Compare toggle takes a row of its own, which the other actions share in the single sheet's top-right corner, so each name keeps its column's full width; the image leaves both out. */}
             <div className={styles.compareControls}>
               <CompareToggle entry={opened} comparing />
             </div>
@@ -293,11 +293,12 @@ function SheetIdentity({
   actions?: ReactNode;
 }) {
   const model = entry.row.model;
+  // A no-break space holds the separator to the publisher, so a narrow column wraps after it rather than leaving it alone on a line.
   const view =
     entry.effort != null
-      ? ` · ${entry.effort} effort`
+      ? `\u00a0· ${entry.effort} effort`
       : entry.variants.length > 1
-        ? " · Collapsed"
+        ? "\u00a0· Collapsed"
         : "";
   return (
     <div className={styles.headEntry}>

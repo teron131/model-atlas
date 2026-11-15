@@ -1,6 +1,7 @@
 /**
  * Draws a chart's plot as the hero's sky in raw WebGL: open sky above the frontier's rim, the rim lit with its stipple band and pulse, the planet's dark body below it, and every model as a hero star.
  * Geometry arrives in the chart's SVG coordinates: CSS pixels, y down.
+ * It also renders a plotted star alone as a still image, the one star every HTML mark for a model outside the plots shows.
  */
 
 import {
@@ -12,6 +13,7 @@ import {
   HORIZON_LIGHT_GLSL,
   REFERENCE_PLOT_HEIGHT,
   RIM_PULSE_GLSL,
+  skyPixelRatio,
   skyTint,
   STAR_FRAGMENT,
   STAR_SPRITE,
@@ -19,7 +21,7 @@ import {
 } from "../../shared/sky-light";
 import type { HorizonTrail, PlotBounds } from "./Primitives";
 
-type SkyStarRole = "star" | "frontier" | "leader";
+export type SkyStarRole = "star" | "frontier" | "leader";
 
 type SkyPlotStar = {
   key: string;
@@ -48,6 +50,8 @@ export type SkyPlotScene = {
   stars: readonly SkyPlotStar[];
   /** Key of the star being explored, which flares. */
   flare: string | null;
+  /** Stars a chart's find field located, each with the `performance.now()` it was located at, from which it flares out once and fades. */
+  found: readonly { key: string; at: number }[];
   /** Phone plots draw stars and flares smaller. */
   compact: boolean;
 };
@@ -75,7 +79,12 @@ const STAR_GLOW = { low: 0.9, high: 1, frontier: 1.05, leader: 1.3 };
 const CROWD = { spacing: 3000, floor: 0.5 };
 // A chart is read among text and other panels, so its rim and stars keep only this share of their colours' saturation, calmer than the hero's sky.
 const SATURATION = 0.75;
-const FLARE_SIZE = { star: 84, frontier: 120 };
+// A chart's frontier rays end at this share of their sprite, shorter than the hero's, so a frontier star reads as one without its rays crossing its neighbours and their names.
+const RAY_REACH = 0.55;
+// An explored star's flare, whatever the star's role, spans as far as a frontier star's own rays, so pointing at a star never reaches further across its neighbours and their names than the frontier already does.
+const FLARE_SPAN = FRONTIER_SIZE * FRONTIER_SPRITE * RAY_REACH;
+// A located star's flare opens at `1 + reach` times an explored flare's size and `1 + light` times its light, fading out over `ms`: long enough to catch the eye in a dense field, short enough to be over before the reader starts reading.
+const FOUND_FLARE = { reach: 2.4, light: 0.6, ms: 900 };
 // Distance along x, in CSS pixels at the reference plot height, over which a trail's light falls to about a third.
 const TRAIL_FADE = 40;
 
@@ -214,7 +223,7 @@ void main() {
   vGlow = glow * twinkle(seed);
   vFlash = 0.0;
   vFrontier = frontier;
-  vRays = 1.0;
+  vRays = ${RAY_REACH.toFixed(2)};
   vSeed = seed;
 }
 `;
@@ -273,6 +282,7 @@ export function createSkyRenderer(canvas: HTMLCanvasElement) {
     trail: { x: 0, direction: 0 },
   };
   const flare = { value: 0, target: null as SkyPlotStar | null, shown: null as SkyPlotStar | null };
+  let found: { star: SkyPlotStar; at: number }[] = [];
 
   return {
     setScene(next: SkyPlotScene, nextPixelRatio: number) {
@@ -346,6 +356,10 @@ export function createSkyRenderer(canvas: HTMLCanvasElement) {
       flare.target =
         next.flare == null ? null : (next.stars.find((star) => star.key === next.flare) ?? null);
       if (flare.target != null) flare.shown = flare.target;
+      found = next.found.flatMap(({ key, at }) => {
+        const star = next.stars.find((candidate) => candidate.key === key);
+        return star == null ? [] : [{ star, at }];
+      });
     },
     draw(time: number, elapsed: number): boolean {
       if (scene == null) return false;
@@ -389,38 +403,35 @@ export function createSkyRenderer(canvas: HTMLCanvasElement) {
       gl.uniform1f(s("pixelRatio"), pixelRatio);
       gl.uniform1f(s("time"), time);
       gl.bindBuffer(gl.ARRAY_BUFFER, starBuffer);
-      const enabled: number[] = [];
-      let offset = 0;
-      for (const [name, count] of STAR_ATTRIBUTES) {
-        const location = gl.getAttribLocation(stars.program, name);
-        gl.enableVertexAttribArray(location);
-        gl.vertexAttribPointer(location, count, gl.FLOAT, false, STAR_STRIDE * 4, offset * 4);
-        enabled.push(location);
-        offset += count;
-      }
+      const enabled = enableStarAttributes(gl, stars.program);
       gl.drawArrays(gl.POINTS, 0, starCount);
       for (const location of enabled) gl.disableVertexAttribArray(location);
 
+      gl.useProgram(flares.program);
+      const f = flares.uniform;
+      gl.uniform2f(f("viewport"), width, height);
+      gl.uniform1f(f("pixelRatio"), pixelRatio);
+      const drawFlare = (star: SkyPlotStar, swell: number, light: number) => {
+        gl.uniform2f(f("focus"), star.x, star.y);
+        gl.uniform1f(f("flareSize"), FLARE_SPAN * (compact ? COMPACT_SIZE : 1) * swell);
+        gl.uniform3f(f("flareTint"), ...starTint(star.color));
+        gl.uniform1f(f("flare"), light);
+        gl.drawArrays(gl.POINTS, 0, 1);
+      };
       // The flare eases toward its star and fades out where that star last stood.
       flare.value +=
         ((flare.target == null ? 0 : 1) - flare.value) * (1 - Math.exp(-elapsed / FLARE_EASE));
-      const shown = flare.shown;
-      if (shown != null && flare.value > 0.002) {
-        gl.useProgram(flares.program);
-        const f = flares.uniform;
-        gl.uniform2f(f("viewport"), width, height);
-        gl.uniform1f(f("pixelRatio"), pixelRatio);
-        gl.uniform2f(f("focus"), shown.x, shown.y);
-        gl.uniform1f(
-          f("flareSize"),
-          (shown.role === "star" ? FLARE_SIZE.star : FLARE_SIZE.frontier) *
-            (compact ? COMPACT_SIZE : 1),
-        );
-        gl.uniform3f(f("flareTint"), ...starTint(shown.color));
-        gl.uniform1f(f("flare"), flare.value);
-        gl.drawArrays(gl.POINTS, 0, 1);
+      if (flare.shown != null && flare.value > 0.002) drawFlare(flare.shown, 1, flare.value);
+      // A snapped frame, as under reduced motion, skips the located stars' flares.
+      const now = performance.now();
+      let bursting = false;
+      for (const { star, at } of elapsed === Infinity ? [] : found) {
+        const burst = Math.max(0, 1 - (now - at) / FOUND_FLARE.ms) ** 2;
+        if (burst <= 0) continue;
+        bursting = true;
+        drawFlare(star, 1 + FOUND_FLARE.reach * burst, (1 + FOUND_FLARE.light) * burst);
       }
-      return Math.abs((flare.target == null ? 0 : 1) - flare.value) > 0.002;
+      return Math.abs((flare.target == null ? 0 : 1) - flare.value) > 0.002 || bursting;
     },
     dispose() {
       gl.deleteBuffer(triangle);
@@ -428,6 +439,118 @@ export function createSkyRenderer(canvas: HTMLCanvasElement) {
       for (const { program: linked } of [horizon, stars, flares]) gl.deleteProgram(linked);
     },
   };
+}
+
+// A role's star drawn alone as a still image, at the light it has in a plot: a plain star as the plot's highest, frontier stars and the leader as plotted.
+const STILL_STAR: Record<SkyStarRole, { size: number; glow: number }> = {
+  star: { size: STAR_SIZE.high, glow: STAR_GLOW.high },
+  frontier: { size: FRONTIER_SIZE, glow: STAR_GLOW.frontier },
+  leader: { size: LEADER_SIZE, glow: STAR_GLOW.leader },
+};
+const stillImages = new Map<string, string | null>();
+let still:
+  | { gl: WebGLRenderingContext; stars: ReturnType<typeof program>; buffer: WebGLBuffer }
+  | null
+  | undefined;
+
+/** CSS pixels a still star image spans, its rays included. */
+export function stillStarSpan(role: SkyStarRole): number {
+  return STILL_STAR[role].size * (role === "star" ? STAR_SPRITE : FRONTIER_SPRITE);
+}
+
+/**
+ * A plotted star as a still image, for an HTML mark that stands for a model outside the plots, so the mark is the plots' own star: their shader, tint, size, and light.
+ * The sky adds a star's light to what lies beneath, while the image carries that light as colour over transparency, which looks the same on the dark surfaces these marks sit on.
+ * Images are cached by role and colour; null where WebGL cannot run.
+ */
+export function stillStarImage(color: string, role: SkyStarRole): string | null {
+  const key = `${role} ${color}`;
+  const cached = stillImages.get(key);
+  if (cached !== undefined) return cached;
+  if (still === undefined) {
+    const gl = document
+      .createElement("canvas")
+      .getContext("webgl", { alpha: false, antialias: false, preserveDrawingBuffer: true });
+    still =
+      gl == null
+        ? null
+        : { gl, stars: program(gl, STAR_VERTEX, STAR_FRAGMENT), buffer: gl.createBuffer()! };
+  }
+  if (still == null) {
+    stillImages.set(key, null);
+    return null;
+  }
+  const { gl, stars, buffer } = still;
+  const span = stillStarSpan(role);
+  const pixelRatio = skyPixelRatio();
+  const pixels = Math.ceil(span * pixelRatio);
+  gl.canvas.width = pixels;
+  gl.canvas.height = pixels;
+  gl.viewport(0, 0, pixels, pixels);
+  gl.clearColor(0, 0, 0, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.ONE, gl.ONE);
+  gl.useProgram(stars.program);
+  gl.uniform2f(stars.uniform("viewport"), span, span);
+  gl.uniform1f(stars.uniform("pixelRatio"), pixelRatio);
+  gl.uniform1f(stars.uniform("time"), 0);
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+  const { size, glow } = STILL_STAR[role];
+  gl.bufferData(
+    gl.ARRAY_BUFFER,
+    new Float32Array([
+      span / 2,
+      span / 2,
+      ...starTint(color),
+      size,
+      0,
+      role === "star" ? 0 : 1,
+      glow,
+    ]),
+    gl.STATIC_DRAW,
+  );
+  const enabled = enableStarAttributes(gl, stars.program);
+  gl.drawArrays(gl.POINTS, 0, 1);
+  for (const location of enabled) gl.disableVertexAttribArray(location);
+  const light = new Uint8Array(pixels * pixels * 4);
+  gl.readPixels(0, 0, pixels, pixels, gl.RGBA, gl.UNSIGNED_BYTE, light);
+  // Light added to black becomes colour over transparency: the brightest channel is the pixel's opacity and the colour is the light divided by it, so light (64, 32, 0) → colour (255, 128, 0) at opacity 64. WebGL reads rows bottom up, so they are flipped.
+  const sheet = document.createElement("canvas");
+  sheet.width = pixels;
+  sheet.height = pixels;
+  const context = sheet.getContext("2d")!;
+  const image = context.createImageData(pixels, pixels);
+  for (let row = 0; row < pixels; row++) {
+    for (let column = 0; column < pixels; column++) {
+      const from = ((pixels - 1 - row) * pixels + column) * 4;
+      const to = (row * pixels + column) * 4;
+      const alpha = Math.max(light[from]!, light[from + 1]!, light[from + 2]!);
+      for (let channel = 0; channel < 3; channel++) {
+        image.data[to + channel] =
+          alpha === 0 ? 0 : Math.round((light[from + channel]! * 255) / alpha);
+      }
+      image.data[to + 3] = alpha;
+    }
+  }
+  context.putImageData(image, 0, 0);
+  const url = sheet.toDataURL();
+  stillImages.set(key, url);
+  return url;
+}
+
+/** Point the star program's attributes at the bound buffer's interleaved stars, returning the locations to disable after drawing. */
+function enableStarAttributes(gl: WebGLRenderingContext, linked: WebGLProgram): number[] {
+  const enabled: number[] = [];
+  let offset = 0;
+  for (const [name, count] of STAR_ATTRIBUTES) {
+    const location = gl.getAttribLocation(linked, name);
+    gl.enableVertexAttribArray(location);
+    gl.vertexAttribPointer(location, count, gl.FLOAT, false, STAR_STRIDE * 4, offset * 4);
+    enabled.push(location);
+    offset += count;
+  }
+  return enabled;
 }
 
 /** The share of light a scene's plain stars keep for how crowded its plot is. */

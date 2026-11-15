@@ -1,8 +1,8 @@
 "use client";
 
-/** Chart hover cards: the card a plot shows for the model under the pointer or in focus, and the state that places and fills it. */
+/** Chart hover cards: the floating card a plot shows for the model under the pointer, and the state that places and fills it. The Pareto and Timeline charts name their model in a `ChartReadout` instead, so no card covers their stars. */
 
-import { type CSSProperties, type Dispatch, type PointerEvent, type SetStateAction } from "react";
+import { type CSSProperties, type PointerEvent } from "react";
 
 import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 import { modelLogo, modelName } from "../shared/model-display";
@@ -22,8 +22,6 @@ export type HoverState = {
   rows: HoverRow[];
 };
 
-export type HoverSetter = Dispatch<SetStateAction<HoverState | null>>;
-
 export function pointHover(
   event: PointerEvent<Element>,
   model: ModelAtlasModel,
@@ -31,16 +29,6 @@ export function pointHover(
   displayName = modelName(model),
 ): HoverState {
   return hoverAt(event.clientX, event.clientY, model, rows, displayName);
-}
-
-export function focusHover(
-  target: Element,
-  model: ModelAtlasModel,
-  rows: HoverRow[],
-  displayName = modelName(model),
-): HoverState {
-  const rect = target.getBoundingClientRect();
-  return hoverAt(rect.left + rect.width / 2, rect.top + rect.height / 2, model, rows, displayName);
 }
 
 export function HoverCard({ hover }: { hover: HoverState }) {

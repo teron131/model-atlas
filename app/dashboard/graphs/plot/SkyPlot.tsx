@@ -3,14 +3,29 @@
 /**
  * A chart's plot drawn as the hero's sky under the chart's SVG.
  * The stage stacks a WebGL canvas beneath the SVG and carries `data-sky` while the sky draws, so the SVG's own horizon, glows and star paint step aside; the light theme and browsers without WebGL keep the SVG's drawing.
+ * `SkyStar` carries the same star to HTML marks that stand for a model outside the plots.
  */
 
-import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  type ReactNode,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 
 import { useModelAtlasTheme } from "../../../shared/theme";
 import { useMediaQuery } from "../../../shared/use-media-query";
 import { readSkyClock, skyPixelRatio } from "../../shared/sky-light";
-import { createSkyRenderer, type SkyPlotScene, type SkyRenderer } from "./sky-renderer";
+import {
+  createSkyRenderer,
+  type SkyPlotScene,
+  type SkyRenderer,
+  type SkyStarRole,
+  stillStarImage,
+  stillStarSpan,
+} from "./sky-renderer";
 
 import styles from "../graphs.module.css";
 
@@ -90,5 +105,40 @@ export function SkyPlot({ scene, children }: { scene: SkyPlotScene; children: Re
       {dark ? <canvas ref={canvasRef} className={styles.skyCanvas} aria-hidden="true" /> : null}
       {children}
     </div>
+  );
+}
+
+/**
+ * A model's star outside the plots, as the hero register and the Timeline's lab standings draw one: the plots' own star for `role` as a still image, centred where `className` places it.
+ * It stays empty until the client has drawn the image, and where WebGL cannot run.
+ */
+export function SkyStar({
+  color,
+  role,
+  className,
+  style,
+}: {
+  color: string;
+  role: SkyStarRole;
+  /** Places the star; a CSS module's class may be missing from its typed map. */
+  className: string | undefined;
+  style?: CSSProperties;
+}) {
+  const [image, setImage] = useState<string | null>(null);
+  useEffect(() => setImage(stillStarImage(color, role)), [color, role]);
+  const span = stillStarSpan(role);
+  return (
+    <span
+      aria-hidden="true"
+      className={className == null ? styles.skyStar : `${styles.skyStar} ${className}`}
+      style={
+        {
+          ...style,
+          width: span,
+          height: span,
+          "--sky-star": image == null ? "none" : `url(${image})`,
+        } as CSSProperties
+      }
+    />
   );
 }

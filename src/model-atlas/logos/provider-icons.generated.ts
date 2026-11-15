@@ -6,6 +6,14 @@ type ProviderIcon = {
 };
 
 export const providerIcons = {
+  "agnes-ai": {
+    color: "#374ebe",
+    logo: "/provider-icons/agnes-ai.svg",
+  },
+  "ai21-labs": {
+    color: "#eeeeea",
+    logo: "/provider-icons/ai21-labs.svg",
+  },
   ai9star: {
     color: "#9371d4",
     logo: "/provider-icons/ai9star.svg",
@@ -13,6 +21,10 @@ export const providerIcons = {
   alibaba: {
     color: "#e86217",
     logo: "/provider-icons/alibaba.svg",
+  },
+  amazon: {
+    color: "#eeeeea",
+    logo: "/provider-icons/amazon.svg",
   },
   anthropic: {
     color: "#eeeeea",
@@ -26,13 +38,33 @@ export const providerIcons = {
     color: "#16dfdf",
     logo: "/provider-icons/arcee-ai.svg",
   },
+  "china-mobile": {
+    color: "#16b4df",
+    logo: "/provider-icons/china-mobile.svg",
+  },
+  cohere: {
+    color: "#eeeeea",
+    logo: "/provider-icons/cohere.svg",
+  },
+  databricks: {
+    color: "#eeeeea",
+    logo: "/provider-icons/databricks.svg",
+  },
   deepseek: {
     color: "#5c76ef",
     logo: "/provider-icons/deepseek.svg",
   },
+  fireworks: {
+    color: "#eeeeea",
+    logo: "/provider-icons/fireworks.svg",
+  },
   google: {
     color: "#4987ed",
     logo: "/provider-icons/google.svg",
+  },
+  ifm: {
+    color: "#163ddf",
+    logo: "/provider-icons/ifm.svg",
   },
   inception: {
     color: "#3085c5",
@@ -58,6 +90,10 @@ export const providerIcons = {
     color: "#1782e4",
     logo: "/provider-icons/meta-llama.svg",
   },
+  "microsoft-azure": {
+    color: "#eeeeea",
+    logo: "/provider-icons/microsoft-azure.svg",
+  },
   minimax: {
     color: "#ec4062",
     logo: "/provider-icons/minimax.svg",
@@ -74,6 +110,10 @@ export const providerIcons = {
     color: "#eeeeea",
     logo: "/provider-icons/moonshotai.svg",
   },
+  nanbeige: {
+    color: "#38aebc",
+    logo: "/provider-icons/nanbeige.svg",
+  },
   "nex-agi": {
     color: "#eeeeea",
     logo: "/provider-icons/nex-agi.svg",
@@ -86,6 +126,18 @@ export const providerIcons = {
     color: "#eeeeea",
     logo: "/provider-icons/openai.svg",
   },
+  openrouter: {
+    color: "#eeeeea",
+    logo: "/provider-icons/openrouter.svg",
+  },
+  perplexity: {
+    color: "#eeeeea",
+    logo: "/provider-icons/perplexity.svg",
+  },
+  poolside: {
+    color: "#eeeeea",
+    logo: "/provider-icons/poolside.svg",
+  },
   "prime-intellect": {
     color: "#eeeeea",
     logo: "/provider-icons/prime-intellect.svg",
@@ -93,6 +145,14 @@ export const providerIcons = {
   qwen: {
     color: "#e86117",
     logo: "/provider-icons/qwen.svg",
+  },
+  reflection: {
+    color: "#eeeeea",
+    logo: "/provider-icons/reflection.svg",
+  },
+  snowflake: {
+    color: "#eeeeea",
+    logo: "/provider-icons/snowflake.svg",
   },
   spacexai: {
     color: "#eeeeea",

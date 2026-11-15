@@ -1,4 +1,4 @@
-/* Styles for the Timeline figure: the picked model's readout, the chart and its replay marks, the time controls, the organization filter, and the lab standings. */
+/* Styles for the Timeline figure: the chart and its replay marks, the time controls, the organization filter, and the lab standings. */
 
 /* The figure's rows lay themselves out by the width the figure has, not the window's. */
 .content {
@@ -11,54 +11,10 @@
 .point:hover {
   opacity: 1;
 }
+/* A focused star shows as its flare, its name, and the readout, never a ring around it. */
 .point:focus-visible {
   opacity: 1;
-  stroke: var(--ink);
-  stroke-width: 3;
   outline: none;
-}
-/* The picked model reads as one catalogue line in the figure's control type, like Pareto's choices: its logo and name, then its figures as label and value pairs. */
-.readout {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: flex-end;
-  gap: 8px 28px;
-  min-width: 0;
-  margin-left: auto;
-}
-.readout > strong {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  min-width: 0;
-  color: var(--ink);
-  font-size: 16px;
-  font-weight: 600;
-  letter-spacing: -0.012em;
-}
-.readout dl {
-  display: flex;
-  gap: 22px;
-  margin: 0;
-}
-.readout dl > div {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  white-space: nowrap;
-}
-.readout dt {
-  color: var(--muted);
-  font: var(--type-label-weight) var(--type-caption-size) var(--font-mono);
-  letter-spacing: var(--type-label-tracking);
-  text-transform: uppercase;
-}
-.readout dd {
-  margin: 0;
-  color: var(--ink);
-  font: var(--type-label-weight) var(--type-data-size) var(--font-mono);
-  font-variant-numeric: tabular-nums;
 }
 /* A replay's date sits faintly behind the plot at display size, readable at a glance without competing with the stars. */
 .replayDate {
@@ -76,50 +32,6 @@
   fill: var(--chart-horizon-core);
   pointer-events: none;
 }
-.readoutName {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-/* A model in today's snapshot opens its full catalogue entry, the model sheet, from its name. */
-.readoutOpen {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  letter-spacing: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-.readoutOpen svg {
-  flex: 0 0 auto;
-  width: 15px;
-  height: 15px;
-  color: var(--muted);
-  transition:
-    color 0.18s ease,
-    transform 0.18s ease;
-}
-.readoutOpen:hover svg,
-.readoutOpen:focus-visible svg {
-  color: var(--ink);
-  transform: translate(1px, -1px);
-}
-.readoutOpen:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 3px;
-}
-.readoutLogo {
-  flex: 0 0 auto;
-  width: 18px;
-  height: 18px;
-}
 .loading {
   min-height: 360px;
   display: flex;
@@ -128,23 +40,12 @@
   gap: 16px;
   color: var(--muted);
 }
-/* On phones the name takes the row's first line and the figures the next, so a long name is never cut short beside them. */
-@media (max-width: 640px) {
-  .readout {
-    justify-content: flex-start;
-  }
-  .readout dl {
-    flex-wrap: wrap;
-    gap: 6px 16px;
-  }
-}
-
 .chart.chart svg {
   width: min(100%, 1120px);
   max-width: 100%;
 }
 
-/* Beneath the x-axis the range presets lead one row and the replay's transport ends it, wrapping beneath them where both do not fit. */
+/* Beneath the x-axis the range presets lead one row and the replay's transport ends it, wrapping beneath them where both do not fit; the overview and its caption span the rows below. */
 .timeEditor {
   display: flex;
   flex-wrap: wrap;
@@ -181,6 +82,87 @@
   opacity: 0.3;
   cursor: default;
 }
+/* The overview keeps the full span in view while its window edits the chart's; the shades dim the stretches the chart leaves out. */
+.navigator,
+.navigatorCaption {
+  flex: 0 0 100%;
+}
+.navigator {
+  position: relative;
+  height: 64px;
+  background: var(--hover);
+  border: 1px solid var(--line-strong);
+}
+.navigator svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.navigatorRim {
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+.rangeInteraction,
+.rangeShade,
+.rangeWindow {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+.rangeInteraction {
+  inset: 0;
+  cursor: grab;
+  touch-action: none;
+}
+.rangeInteraction:active {
+  cursor: grabbing;
+}
+.rangeShade {
+  background: var(--paper);
+  opacity: 0.75;
+  pointer-events: none;
+}
+.rangeWindow {
+  border: 1px solid var(--ink);
+  background: rgb(var(--ink-rgb) / 0.06);
+  pointer-events: none;
+}
+.rangeHandle {
+  position: absolute;
+  top: -1px;
+  bottom: -1px;
+  width: 16px;
+  padding: 0;
+  transform: translateX(-50%);
+  border: 1px solid var(--ink);
+  background: var(--paper);
+  cursor: ew-resize;
+}
+.rangeHandle::after {
+  display: block;
+  width: 3px;
+  height: 18px;
+  margin: auto;
+  border-inline: 1px solid var(--muted);
+  content: "";
+}
+/* The caption names the full span at its ends; between them a phone, whose transport drops its dates, gives the window's dates once the window leaves the full span or a replay runs. */
+.navigatorCaption {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--muted);
+  font: var(--type-label-weight) var(--type-caption-size) var(--font-mono);
+}
+.navigatorCaption > :last-child {
+  text-align: right;
+}
+/* Wide screens read the window's dates in the transport, so the middle keeps only its place between the ends. */
+.navigatorCaption .captionWindow {
+  visibility: hidden;
+}
 
 .organizationPicker {
   position: relative;
@@ -188,35 +170,15 @@
   padding: 12px 0;
   border-bottom: 1px solid var(--line);
 }
-.organizationPicker .organizationRow {
-  grid-template-columns: 18px minmax(0, 1fr) 90px 65px;
-}
-/* Each organization carries its provider icon, as in the global provider filter. */
-.organizationName {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-.organizationLogo {
-  display: grid;
-  flex: 0 0 auto;
-  width: 18px;
-  height: 18px;
-  place-items: center;
-  border-radius: 3px;
-  object-fit: contain;
-  color: var(--muted);
-  font: var(--type-label-weight) var(--type-caption-size) / 1 var(--font-mono);
-}
-
 /* The figure's top edge and the standings share the graph's width and edges, like the Pareto figure. */
 .top,
 .standings {
   width: min(100%, 1120px);
   margin-inline: auto;
 }
+/* The organization menu hangs from this whole row rather than from the picker's short summary, so on phones it spans the row as Pareto's benchmark menu spans its strip. */
 .top {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -224,31 +186,43 @@
   gap: 18px 34px;
   padding-block: 24px 4px;
 }
-.viewControls {
-  display: flex;
-  align-items: center;
-  min-width: 0;
-}
-.viewControls .organizationPicker {
+/* The picker keeps its own width and drops the choice strip's room for a lit mark beneath, so the find field shares and centres on its line. */
+.top > .organizationPicker {
+  position: static;
+  width: auto;
+  margin: 0;
   padding: 0;
   border: 0;
 }
 
-/* The labs' standings read like the hero's register without its stars: entries in columns under a faint rule, which the lab's colour lights as far as its index reaches among them. */
+/* The labs' standings are a ranked table whose rows rest on one index scale: each row's rule is a number line from the table's edge, where the lab's top models are the plots' stars in its colour and the strongest ends a trail, so the rules compare as the chart's y-axis would laid flat. */
 .standings {
+  --standing-columns: 20px minmax(0, 240px) 64px minmax(0, 1fr);
   padding-block: 26px 18px;
 }
-.standingsTitle {
-  margin: 0 0 14px;
+.standingsHead,
+.standings button {
+  display: grid;
+  grid-template-columns: var(--standing-columns);
+  align-items: center;
+  column-gap: 16px;
+}
+/* The table's title heads its rank and lab columns. */
+.standingsHead {
+  margin: 0 0 8px;
   color: var(--muted);
   font: var(--type-label-weight) var(--type-caption-size) var(--font-mono);
   letter-spacing: var(--type-label-tracking);
   text-transform: uppercase;
 }
+.standingsHead span:first-child {
+  grid-column: 1 / 3;
+}
+.standingsHead span:nth-child(2),
+.standingScore {
+  text-align: right;
+}
 .standings ol {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 18px 28px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -256,31 +230,62 @@
 .standings li {
   position: relative;
   min-width: 0;
-  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
 }
 .standings li::after {
   position: absolute;
-  top: -1px;
+  bottom: -1px;
   left: 0;
   width: var(--reach);
   height: 1px;
-  background: var(--lab);
+  background: linear-gradient(90deg, transparent, var(--lab));
   content: "";
-  opacity: 0.55;
+  opacity: 0.75;
   transition: opacity 180ms ease;
 }
 .standings li[data-focused]::after {
   opacity: 1;
 }
-/* Each entry is one button: hovering it draws its lab on the chart, and choosing it picks the lab's leading model. */
-/* The lab's name and its index share the entry's first line, and its leading model takes the second whole. */
+/* The stars lie over the trail, which the row draws after them. */
+.standingStars {
+  position: absolute;
+  z-index: 1;
+  inset: auto 0 -1px;
+  height: 1px;
+  pointer-events: none;
+}
+/* Every model on a lab's rule is the plots' star: the leader the frontier star at the end of the trail, drawn over the rest, which are plain stars. */
+.standingStar {
+  top: 50%;
+}
+.standingLeader {
+  z-index: 2;
+  transition: transform 180ms ease;
+}
+.standings li[data-focused] .standingLeader {
+  transform: translate(-50%, -50%) scale(1.3);
+}
+/* On paper the plots draw stars as solid dots of the provider colour with a faint glow, and so does the rule. */
+:global(html[data-model-atlas-theme="light"]) .standingStar {
+  background: radial-gradient(
+    circle,
+    var(--lab) 0 2.5px,
+    color-mix(in srgb, var(--lab) 22%, transparent) 3.2px,
+    transparent 5px
+  );
+}
+:global(html[data-model-atlas-theme="light"]) .standingLeader {
+  background: radial-gradient(
+    circle,
+    var(--lab) 0 3.2px,
+    color-mix(in srgb, var(--lab) 22%, transparent) 4px,
+    transparent 6px
+  );
+}
+/* Each row is one button: hovering it draws its lab on the chart, and choosing it picks the lab's leading model. */
 .standings button {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: baseline;
-  gap: 5px 10px;
   width: 100%;
-  padding: 11px 0 0;
+  padding: 9px 0;
   border: 0;
   background: transparent;
   color: var(--ink);
@@ -319,17 +324,49 @@
   font: var(--type-label-weight) var(--type-data-size) var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
+/* The lab's record holder, which the row picks. */
 .standingModel {
-  grid-column: 1 / -1;
+  min-width: 0;
   overflow: hidden;
-  color: var(--muted);
+  color: var(--ink);
   font: var(--type-caption-size) var(--font-mono);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-@container (max-width: 1040px) {
-  .standings ol {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+/* The rules' shared scale reads beneath the last one, each value under its place on them. */
+.standingAxis {
+  position: relative;
+  height: 1.6em;
+  margin-top: 8px;
+  color: var(--faint);
+  font: var(--type-label-weight) var(--type-caption-size) var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.standingAxis span {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+}
+.standingAxis span:first-child {
+  transform: none;
+}
+.standingAxis span:last-child {
+  transform: translateX(-100%);
+}
+/* Narrow tables set each lab's best model under its name, so the name and index keep the line's width. */
+@container (max-width: 560px) {
+  .standings {
+    --standing-columns: 18px minmax(0, 1fr) auto;
+  }
+  .standings button {
+    column-gap: 10px;
+    row-gap: 3px;
+  }
+  .standingModel {
+    grid-column: 2 / -1;
+  }
+  .standingsHead span:last-child {
+    display: none;
   }
 }
 
@@ -344,12 +381,13 @@
 .timeTransport button:hover:not(:disabled) {
   color: var(--ink);
 }
-.timeTransport button:focus-visible {
+.timeTransport button:focus-visible,
+.rangeHandle:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 @media (max-width: 640px) {
-  /* A phone gives the transport finger-wide targets and leaves the window's dates to the chart's axis. */
+  /* A phone gives the transport finger-wide targets and leaves the window's dates to the overview's caption. */
   .timeTransport button {
     width: 44px;
     height: 44px;
@@ -357,10 +395,34 @@
   .timeTransport span {
     display: none;
   }
-  .viewControls .organizationPicker {
-    width: 100%;
+  /* The overview's edges are a phone's only zoom, so each takes a finger-wide target. */
+  .rangeHandle::before {
+    position: absolute;
+    inset: 0 -14px;
+    content: "";
   }
-  .organizationPicker .organizationRow {
-    grid-template-columns: 14px minmax(0, 1fr) 76px 56px;
+  .navigatorCaption {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 10px;
+  }
+  .navigatorCaption > :nth-child(2) {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    text-align: center;
+  }
+  .navigatorCaption > :last-child {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .navigatorCaption .captionWindow {
+    display: none;
+  }
+  .navigatorCaption[data-window="part"] .captionWindow {
+    display: inline;
+    visibility: visible;
+  }
+  /* The organization picker and the find field share one line, as Pareto's top edge does. */
+  .top {
+    column-gap: 16px;
   }
 }

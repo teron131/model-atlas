@@ -7,7 +7,6 @@ import {
   residualIndexBreadth,
 } from "../../../../src/model-atlas/benchmarks/index-policy";
 import { benchmarkValue } from "../../../../src/model-atlas/benchmarks/registry";
-import { BENCHMARK_RESOURCE_SOURCE_LABELS } from "../../../../src/model-atlas/benchmarks/resource-sources";
 import {
   linearScore,
   minMaxRange,
@@ -127,15 +126,6 @@ export function frontierBenchmarkRows(
             : [{ benchmarkKey: key, quality: nativeScore!, amount: null, weight: 1 }];
         return components.map((observation): FrontierBenchmarkRow => {
           const sourceKey = observation.benchmarkKey;
-          // A per-source key `<benchmark>__<source>` suffixes its label with the source's catalogued name, else its uppercased id: `frontier_code__source_b` without a catalogue entry → ` — SOURCE B`.
-          const source = sourceKey.split("__")[1];
-          const labels = BENCHMARK_RESOURCE_SOURCE_LABELS[
-            key as keyof typeof BENCHMARK_RESOURCE_SOURCE_LABELS
-          ] as Partial<Record<string, string>> | undefined;
-          const sourceLabel =
-            source == null
-              ? ""
-              : ` — ${labels?.[source] ?? source.replace("source_", "Source ").toUpperCase()}`;
           const resourceKey = policy?.resources?.key ?? sourceKey;
           const task = benchmarkTaskMetrics(model, resourceKey);
           const inputTokens = finiteValue(task?.input_tokens);
@@ -147,7 +137,8 @@ export function frontierBenchmarkRows(
           return {
             benchmarkKey: policy == null ? sourceKey : key,
             baseBenchmarkKey: key,
-            benchmarkLabel: `${benchmarkLabels[key] ?? key}${policy != null ? " (index)" : ""}${sourceLabel}`,
+            // A benchmark's sources are one benchmark to the reader, so a source row keeps the benchmark's name; its key stays per source for per-source cost references.
+            benchmarkLabel: `${benchmarkLabels[key] ?? key}${policy != null ? " (index)" : ""}`,
             weight: observation.weight,
             resourcePolicy,
             model,
@@ -194,6 +185,27 @@ export function aggregateFrontierBenchmarkRows(
     .sort((left, right) => right.score - left.score);
 }
 
+/** One benchmark in its native units: each model variant's source rows become one, quality a source-weighted mean and each resource a source-weighted median, as the aggregate combines them. */
+export function mergedBenchmarkSourceRows(rows: FrontierBenchmarkRow[]): FrontierBenchmarkRow[] {
+  return [...groupBy(rows, (row) => modelVariantKey(row.model)).values()].map(
+    (sources): FrontierBenchmarkRow => {
+      const first = sources[0]!;
+      if (sources.length === 1) return { ...first, benchmarkKey: first.baseBenchmarkKey };
+      return {
+        ...first,
+        benchmarkKey: first.baseBenchmarkKey,
+        weight: sources.reduce((sum, row) => sum + row.weight, 0),
+        score: meanMetric(sources, (row) => row.score)!,
+        cost: medianMetric(sources, (row) => row.cost),
+        seconds: medianMetric(sources, (row) => row.seconds),
+        inputTokens: medianMetric(sources, (row) => row.inputTokens),
+        outputTokens: medianMetric(sources, (row) => row.outputTokens),
+        totalTokens: medianMetric(sources, (row) => row.totalTokens),
+      };
+    },
+  );
+}
+
 /** Fixed full-population source medians define resource ratios; quality keeps its min–max reference. */
 export function normalizedFrontierBenchmarkRows(
   rows: FrontierBenchmarkRow[],
@@ -231,18 +243,16 @@ export function normalizedFrontierBenchmarkScoreRows(
   });
 }
 
+/** One option per benchmark whatever its sources, counting the model variants any source measured. */
 export function frontierBenchmarkOptions(rows: FrontierBenchmarkRow[]): FrontierBenchmarkOption[] {
-  const options = new Map<string, FrontierBenchmarkOption>();
-  for (const row of rows) {
-    const option = options.get(row.benchmarkKey) ?? {
-      key: row.benchmarkKey,
-      label: row.benchmarkLabel,
-      count: 0,
-    };
-    option.count += 1;
-    options.set(row.benchmarkKey, option);
-  }
-  return [...options.values()].sort(
+  const options = [...groupBy(rows, (row) => row.baseBenchmarkKey)].map(
+    ([key, benchmarkRows]): FrontierBenchmarkOption => ({
+      key,
+      label: benchmarkRows[0]!.benchmarkLabel,
+      count: new Set(benchmarkRows.map((row) => modelVariantKey(row.model))).size,
+    }),
+  );
+  return options.sort(
     (left, right) =>
       left.label.localeCompare(right.label, undefined, { numeric: true }) ||
       right.count - left.count,
@@ -253,7 +263,7 @@ export function frontierBenchmarkCorrelationByBenchmark(
   benchmarkRows: FrontierBenchmarkRow[],
 ): Map<string, number | null> {
   const correlations = new Map<string, number | null>();
-  for (const [benchmarkKey, rows] of groupBy(benchmarkRows, (row) => row.benchmarkKey)) {
+  for (const [benchmarkKey, rows] of groupBy(benchmarkRows, (row) => row.baseBenchmarkKey)) {
     correlations.set(benchmarkKey, benchmarkCorrelation(rows));
   }
   return correlations;
@@ -323,7 +333,9 @@ export function automaticResourceKeys(
   if (isScoreAxis(axisKey)) return [];
   const metric = (row: FrontierBenchmarkRow) => frontierAxisValue(row, axisKey);
   return [
-    ...new Set(rows.filter((row) => positiveMetric(metric(row))).map((row) => row.benchmarkKey)),
+    ...new Set(
+      rows.filter((row) => positiveMetric(metric(row))).map((row) => row.baseBenchmarkKey),
+    ),
   ];
 }
 

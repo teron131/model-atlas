@@ -70,6 +70,30 @@ Adding unobserved benchmarks to the retained portfolio does not alter the relati
 
 With no usable individual benchmarks, indexes supply the entire estimate. Without a usable index, at least three distinct mapped benchmark series are required; otherwise the model remains unplaced. Imputed results do not satisfy these requirements. A model on the leaderboard is estimated again from its latest results at every refresh; it keeps its previous score when those results no longer place it, and a model that leaves the leaderboard keeps its last score.
 
+## Estimate the Typical Miss
+
+Each placed model carries a typical miss: the distance on the reference scale within which its position typically lies of where more benchmarks would settle it. It narrows as more benchmarks place a model and widens as the model sits far from the values its benchmarks were checked at, so sparse or far-reaching evidence reads as less certain without a separate rule for age.
+
+The check needs no reference score, since reference scores exist only for recent models and cannot test older placements. Each benchmark is instead left out in turn. For a model placed by two or more benchmarks, dropping the dimension $d$, the held-out residual $\Delta_{m,b}=q_{m,b}-\hat q_{m,-b}$ compares the benchmark's calibrated value $q_{m,b}$ with the weighted mean $\hat q_{m,-b}$ of the model's other calibrated values. The benchmark's typical miss $\tilde e_b$ is the median of $|\Delta_{m,b}|$ with equal total weight per family, and $\bar q_b$ and $s_b$ are the mean and standard deviation of the values it was checked at. A benchmark held out in fewer than the four families a connection needs stays unchecked, and a model placed only through unchecked benchmarks has no typical miss.
+
+Every version of an index, and every record of it from a different source, shares one check, because each places the model through the same measure. An index is checked only where the model's other benchmarks include a task: indexes that average overlapping benchmarks agree partly by construction, so comparing one index with others alone would make index-placed models look more certain than their tasks show.
+
+Held-out residuals grow as a benchmark's value leaves the values it was checked at, so each benchmark's miss widens with that distance at a growth rate $\beta$:
+
+$$
+e_{m,b}=\tilde e_b\sqrt{1+\beta\frac{(q_{m,b}-\bar q_b)^2}{s_b^2}}.
+$$
+
+The rate $\beta$ is the one that best explains all held-out residuals together, each treated as Laplace-distributed around its predicted size with one shared scale. A residual's predicted size combines its own benchmark's miss with the miss of the weighted mean it is compared with.
+
+A model's benchmarks and indexes are averaged with the weights $w_{m,b}$ they carry in its estimate, and their misses shrink as independent ones. The multiplier $M$ sizes the result so that half of the held-out residuals, with equal total weight per family, land within their predicted size:
+
+$$
+e_m=M\,\frac{\sqrt{\sum_b w_{m,b}^2e_{m,b}^2}}{\sum_b w_{m,b}}.
+$$
+
+Leaving a benchmark out shows only how a model's benchmarks disagree. An error they all share, such as a drift in the one conversion that carries an era, never appears, so the typical miss understates it. A model placed by one benchmark takes that benchmark's typical miss from the models it was checked on. It is a checked median, not a confidence interval.
+
 ## Apply the Dated-Successor Assumption
 
 Older model releases often have sparse or uneven benchmark records, which can make a later version appear weaker simply because different evidence is available. To limit these apparent regressions when reconstructing historical scores, a dated successor is kept at least level with its highest-scoring predecessor in the same model and reasoning-effort series. Supported reference models are not adjusted.
@@ -78,7 +102,7 @@ Older model releases often have sparse or uneven benchmark records, which can ma
 
 This is a historical reconstruction assumption, not evidence that every newer release improves. The rule applies to explicitly dated versions of the same canonical model family, provider and reasoning effort; it has no age cutoff. It can conceal a real decline, but never forces a positive improvement: a successor can tie its predecessor.
 
-Undated names do not establish succession, and releases within the same month are not ordered. Missing estimates stay unplaced, and supported reference models are not adjusted. Any adjustment is recorded separately from the evidence-based estimate and included in its diagnostic error budget.
+Undated names do not establish succession, and releases within the same month are not ordered. Missing estimates stay unplaced, and supported reference models are not adjusted. Any adjustment is recorded separately from the evidence-based estimate and added to its typical miss.
 
 ## Set Index Units with Fixed Anchors
 

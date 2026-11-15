@@ -1,25 +1,20 @@
 "use client";
 
-/** Frontier benchmark scatter plot owns axes, the Pareto frontier horizon, labels, cursor projections, and effort lines. */
+/** Frontier benchmark scatter plot owns axes, the Pareto frontier horizon, labels, cursor projections, effort lines, and the readout above the plot. */
 
-import { median, quantileSorted } from "d3-array";
+import { greatest, median, quantileSorted } from "d3-array";
 import { scaleLinear, scaleLog } from "d3-scale";
-import {
-  type CSSProperties,
-  type PointerEvent,
-  useEffect,
-  useId,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { type CSSProperties, useEffect, useId, useMemo, useRef, useState } from "react";
 
+import { canonicalModelKey } from "../../../../src/model-atlas/identity/normalization";
 import { type ModelAtlasModel } from "../../../../src/model-atlas/stats/types";
 import { formatResourceRatio } from "../../../shared/resource-ratio-display";
-import { reasoningVariantGroups } from "../../shared/model-display";
+import { openModelSheet } from "../../model-sheet/open";
+import { modelLogo, modelName, reasoningVariantGroups } from "../../shared/model-display";
 import { paretoFrontier } from "../../shared/pareto-frontier";
-import { providerChartColor } from "../../shared/provider-theme";
-import { type HoverRow, type HoverSetter, pointHover } from "../HoverCard";
+import { providerChartColor, providerDisplayName } from "../../shared/provider-theme";
+import type { ChartFindState } from "../ChartFind";
+import { ChartReadout, type ReadoutEntry, type ReadoutFact } from "../ChartReadout";
 import {
   CursorCapture,
   CursorProjectionLayer,
@@ -77,7 +72,7 @@ const DIRECTION_LABEL_HEIGHT = 32;
 // Reserve room above the highest score for full model callouts.
 const PLOT_TOP_GUTTER = 48;
 const MEDIAN_LABEL_CLEARANCE = 64;
-// An axis's spread fills a lane this far either side of its centre line, laid against the axis line on the side away from the tick marks and labels so nothing crosses it.
+// An axis's spread straddles the plot's edge this far either side, so its whisker is the axis line; the axis's tick marks and inset scale labels take it as their `tickGap` so none crosses the box.
 const SPREAD_HALF_WIDTH = 4;
 const HOVER_EXIT_DELAY_MS = 150;
 
@@ -95,12 +90,12 @@ export function FrontierBenchmarkScatterPlot<Row>({
   getScore,
   getModel,
   getKey,
-  getHoverRows,
-  getHoverTitle,
+  getFacts,
   getLabel,
   connectReasoningVariants,
-  setHover,
   margin,
+  matches,
+  located,
 }: {
   rows: Row[];
   metric: ScatterMetric<Row>;
@@ -115,12 +110,14 @@ export function FrontierBenchmarkScatterPlot<Row>({
   getScore: (row: Row) => number;
   getModel: (row: Row) => ModelAtlasModel;
   getKey: (row: Row) => string;
-  getHoverRows: (row: Row) => HoverRow[];
-  getHoverTitle: (row: Row) => string;
+  /** The readout's facts about a model beyond its lab, which leads them, and its frontier step, which ends them. */
+  getFacts: (row: Row) => ReadoutFact[];
   getLabel: (row: Row) => string;
   connectReasoningVariants: boolean;
-  setHover: HoverSetter;
   margin: Margin;
+  /** The model families, by `canonicalModelKey`, that the find field's query matches, or `null` while it holds none. */
+  matches: ReadonlySet<string> | null;
+  located: ChartFindState["located"];
 }) {
   const { plotHost, width, compact } = useChartLayout(SCATTER_CHART_WIDTH);
   const height = compact ? Math.min(SCATTER_CHART_HEIGHT, 400) : SCATTER_CHART_HEIGHT;
@@ -162,15 +159,22 @@ export function FrontierBenchmarkScatterPlot<Row>({
   const trail = horizonTrail(frontierPoints, plot, horizonOpenSide);
   // The frontier step being read, by the position of the model it reaches.
   const [activeStep, setActiveStep] = useState<number | null>(null);
-  // A frontier model's card states its step from the frontier model before it in X order, whether read from its star or from the frontier between them.
-  const hoverRows = (row: Row): HoverRow[] => {
+  // A frontier model's readout ends with its step from the frontier model before it in X order, whether read from its star or from the frontier between them.
+  const readoutEntry = (row: Row): ReadoutEntry => {
+    const model = getModel(row);
     const index = frontier.indexOf(row);
-    if (index < 1) return getHoverRows(row);
-    const from = frontier[index - 1]!;
-    return [...getHoverRows(row), [`From ${getLabel(from)}`, stepTrade(from, row)]];
+    const from = index > 0 ? frontier[index - 1]! : null;
+    return {
+      name: modelName(model),
+      logo: modelLogo(model),
+      facts: [
+        providerDisplayName(model),
+        ...getFacts(row),
+        ...(from == null ? [] : [`${stepTrade(from, row)} over ${getLabel(from)}`]),
+      ],
+      open: () => openModelSheet(model),
+    };
   };
-  const hoverFor = (event: PointerEvent<Element>, row: Row) =>
-    pointHover(event, getModel(row), hoverRows(row), getHoverTitle(row));
   /** One step's trade, worded as the sheet's effort steps are: the signed score change at the X change, a multiple on log axes and a signed amount on linear ones. */
   const stepTrade = (from: Row, to: Row) => {
     const gain = getScore(to) - getScore(from);
@@ -201,15 +205,30 @@ export function FrontierBenchmarkScatterPlot<Row>({
   const reasoningGroupByRow = new Map(
     reasoningGroups.flatMap((group) => group.variants.map((row) => [row, group.key] as const)),
   );
+  const family = (row: Row) => canonicalModelKey(getModel(row));
+  // Each located family is named and flared at its highest-scoring row.
+  const locatedRows = new Map<string, Row>();
+  for (const row of rows) {
+    const key = family(row);
+    const held = locatedRows.get(key);
+    if (located.has(key) && (held == null || getScore(row) > getScore(held)))
+      locatedRows.set(key, row);
+  }
   const activeRow = rows.find((row) => getKey(row) === highlightedVariantKey);
-  const activeVariantKey = activeRow == null ? null : highlightedVariantKey;
+  const activeVariantKey = activeRow == null ? null : getKey(activeRow);
   const activeReasoningGroup =
     activeRow == null ? null : (reasoningGroupByRow.get(activeRow) ?? null);
   // Place the hovered family's labels first so every connected effort remains identifiable.
   const highlightedRows =
     reasoningGroups.find((group) => group.key === activeReasoningGroup)?.variants ??
     (activeRow == null ? [] : [activeRow]);
-  const labeledRows = [...new Set([...highlightedRows, ...frontier])];
+  const labeledRows = [
+    ...new Set([
+      ...highlightedRows,
+      ...[...located.keys()].flatMap((key) => locatedRows.get(key) ?? []),
+      ...frontier,
+    ]),
+  ];
   const { svgRef, labelSizes } = useLabelSizes(labeledRows.map(getLabel).join("\0"), compact);
   const layoutRequest: Parameters<typeof calloutLabelPlacements>[0] = {
     bounds: labelBounds(plot),
@@ -226,7 +245,13 @@ export function FrontierBenchmarkScatterPlot<Row>({
         medianYLabel,
       ]),
       ...(compact
-        ? insetScaleAnchors(yTicks, yPoint, plot.left, formatScore).map(({ box }) => box)
+        ? insetScaleAnchors(
+            yTicks,
+            yPoint,
+            plot.left + SPREAD_HALF_WIDTH,
+            plot.bottom,
+            formatScore,
+          ).map(({ box }) => box)
         : []),
     ],
     obstacles: rows.map((row) => ({
@@ -285,14 +310,19 @@ export function FrontierBenchmarkScatterPlot<Row>({
     activeReasoningGroup == null
       ? getKey(row) === activeVariantKey
       : reasoningGroupByRow.get(row) === activeReasoningGroup;
+  // A focused model dims every other one; while the find field holds a query, the families it matches stay lit and the rest dim.
+  const dimmed = (row: Row) =>
+    activeVariantKey != null ? !isHighlighted(row) : matches != null && !matches.has(family(row));
+  const matched = (row: Row) => activeVariantKey == null && matches?.has(family(row)) === true;
+  const muted = activeVariantKey != null || matches != null;
   const variantClass = (row: Row) =>
     [
       styles.reasoningVariantPoint,
-      activeVariantKey == null
-        ? ""
-        : isHighlighted(row)
-          ? styles.reasoningVariantPointActive
-          : styles.reasoningVariantPointMuted,
+      dimmed(row)
+        ? styles.reasoningVariantPointMuted
+        : activeVariantKey == null
+          ? ""
+          : styles.reasoningVariantPointActive,
       getKey(row) === activeVariantKey ? styles.reasoningVariantPointSelected : "",
     ]
       .filter(Boolean)
@@ -328,267 +358,272 @@ export function FrontierBenchmarkScatterPlot<Row>({
     bounds: plot,
     rim,
     trail,
-    muted: activeVariantKey != null,
+    muted,
     stars: rows.map((row) => ({
       key: getKey(row),
       x: xPoint(metric.get(row)),
       y: yPoint(getScore(row)),
       color: providerChartColor(getModel(row).provider),
-      role: row === leader ? "leader" : frontierRows.has(row) ? "frontier" : "star",
-      glow: activeVariantKey != null && !isHighlighted(row) ? MUTED_STAR_GLOW : 1,
+      // A star a find query matches takes the frontier's rays, so it stands out of the dimmed field.
+      role: row === leader ? "leader" : frontierRows.has(row) || matched(row) ? "frontier" : "star",
+      glow: dimmed(row) ? MUTED_STAR_GLOW : 1,
     })),
     flare: activeVariantKey,
+    found: [...located].flatMap(([key, at]) => {
+      const row = locatedRows.get(key);
+      return row == null ? [] : [{ key: getKey(row), at }];
+    }),
     compact,
   };
+  // The readout names the frontier step or star under the pointer, and rests on the frontier's best-scoring model.
+  const readoutRow =
+    (activeStep == null ? undefined : frontier[activeStep]) ??
+    activeRow ??
+    greatest(frontier, getScore);
 
   return (
-    <div
-      {...plotHost}
-      className={styles.chartWrap}
-      style={{ "--chart-max-width": `${SCATTER_CHART_WIDTH}px` } as CSSProperties}
-      role="group"
-      aria-label={`${ariaLabel} viewport`}
-      tabIndex={0}
-    >
-      <SkyPlot scene={sky}>
-        <svg
-          viewBox={`0 0 ${width} ${height}`}
-          role="img"
-          aria-label={ariaLabel}
-          ref={svgRef}
-          {...projectionHandlers}
-        >
-          <defs>
-            <LabelMask id={guideMaskId} width={width} height={height} labels={callouts} />
-          </defs>
-          <PlotFrame width={width} height={height} margin={chartMargin} />
-          <CursorCapture bounds={plot} />
-          <YAxisTicks
-            insetRight={compact ? plot.right : undefined}
-            showGridLines={false}
-            ticks={yTicks}
-            yPoint={yPoint}
-            x={plot.left}
-            format={formatScore}
-            keyPrefix={keyPrefix}
-          />
-          <XAxisTicks
-            ticks={xTicks}
-            xPoint={xPoint}
-            y={plot.bottom}
-            format={metric.format}
-            keyPrefix={keyPrefix}
-            labelMinGap={62}
-          />
-          <YAxisTitle height={height} margin={chartMargin} title={yAxisLabel} compact={compact} />
-          <g mask={`url(#${guideMaskId})`}>
-            {metric.logarithmic ? (
-              <line
-                className={styles.medianAxis}
-                x1={xPoint(1)}
-                x2={xPoint(1)}
-                y1={plot.top}
-                y2={plot.bottom}
-                strokeDasharray="3 4"
-                aria-label="1× benchmark-median resource use"
-              />
-            ) : null}
-            <MedianCross
-              x={xPoint(medianMetric)}
-              y={yPoint(medianScore)}
-              bounds={plot}
-              xLabel={
-                cursorProjection &&
-                Math.abs(cursorProjection.x - xPoint(medianMetric)) < MEDIAN_LABEL_CLEARANCE
-                  ? ""
-                  : medianXLabel
-              }
-              yLabel={medianYLabel}
-            />
-            <AxisDistribution
-              axis="y"
-              values={scores}
-              // A compact plot sets its score labels just inside without tick marks, so its score spread sits outside instead.
-              at={compact ? plot.left - SPREAD_HALF_WIDTH : plot.left + SPREAD_HALF_WIDTH}
-              point={yPoint}
-              label={yAxisLabel}
+    <>
+      <ChartReadout
+        label="Pareto model details"
+        // A frontier model's facts end with its step, which takes a row of its own on phones.
+        factRows={2}
+        entry={readoutRow == null ? null : readoutEntry(readoutRow)}
+      />
+      <div
+        {...plotHost}
+        className={styles.chartWrap}
+        style={{ "--chart-max-width": `${SCATTER_CHART_WIDTH}px` } as CSSProperties}
+        role="group"
+        aria-label={`${ariaLabel} viewport`}
+        tabIndex={0}
+      >
+        <SkyPlot scene={sky}>
+          <svg
+            viewBox={`0 0 ${width} ${height}`}
+            role="img"
+            aria-label={ariaLabel}
+            ref={svgRef}
+            {...projectionHandlers}
+          >
+            <defs>
+              <LabelMask id={guideMaskId} width={width} height={height} labels={callouts} />
+            </defs>
+            <PlotFrame width={width} height={height} margin={chartMargin} />
+            <CursorCapture bounds={plot} />
+            <YAxisTicks
+              inset={compact ? plot : undefined}
+              showGridLines={false}
+              ticks={yTicks}
+              yPoint={yPoint}
+              x={plot.left}
               format={formatScore}
+              keyPrefix={keyPrefix}
+              tickGap={SPREAD_HALF_WIDTH}
             />
-            <AxisDistribution
-              axis="x"
-              values={metricValues}
-              at={plot.bottom - SPREAD_HALF_WIDTH}
-              point={xPoint}
-              label={metric.noun}
+            <XAxisTicks
+              ticks={xTicks}
+              xPoint={xPoint}
+              y={plot.bottom}
               format={metric.format}
+              keyPrefix={keyPrefix}
+              labelMinGap={62}
+              tickGap={SPREAD_HALF_WIDTH}
             />
-          </g>
-          <DirectionArrow
-            bounds={plot}
-            direction={metric.xHigherIsBetter ? "upper-right" : "upper-left"}
-            label="Better"
-          />
-          <g mask={`url(#${guideMaskId})`}>
-            <CursorProjectionLayer
-              projection={cursorProjection}
-              bounds={plot}
-              xLabel={cursorProjection ? metric.format(cursorProjection.xValue) : ""}
-              yLabel={cursorProjection ? formatScore(cursorProjection.yValue) : ""}
-              color={activeHighlightColor}
-              insetScale={compact}
-            />
-          </g>
-          {reasoningVariantLines.flatMap((line) =>
-            line.segments.map((segment, index) => (
-              <line
-                {...segment}
-                x1={stableSvgNumber(segment.x1)}
-                y1={stableSvgNumber(segment.y1)}
-                x2={stableSvgNumber(segment.x2)}
-                y2={stableSvgNumber(segment.y2)}
-                aria-hidden="true"
-                key={`${line.key}-${index}`}
-                className={[
-                  styles.reasoningVariantLine,
-                  activeReasoningGroup != null && line.key === activeReasoningGroup
-                    ? styles.reasoningVariantLineActive
-                    : "",
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
-                style={
-                  {
-                    "--line-color": line.color,
-                  } as CSSProperties
-                }
-                vectorEffect="non-scaling-stroke"
-              />
-            )),
-          )}
-          <FrontierHorizon
-            points={frontierPoints}
-            bounds={plot}
-            open={horizonOpenSide}
-            muted={activeVariantKey != null}
-          />
-          {/* Each step along the frontier answers the pointer with the trade it makes; the stars' own targets sit above it. */}
-          {frontier.map((row, index) => {
-            if (index === 0) return null;
-            const segment = {
-              x1: frontierPoints[index - 1]!.x,
-              y1: frontierPoints[index - 1]!.y,
-              x2: frontierPoints[index]!.x,
-              y2: frontierPoints[index]!.y,
-            };
-            return (
-              <g key={`step-${getKey(row)}`}>
-                {activeStep === index ? (
-                  <line className={styles.frontierStep} {...segment} />
-                ) : null}
+            <YAxisTitle height={height} margin={chartMargin} title={yAxisLabel} compact={compact} />
+            <g mask={`url(#${guideMaskId})`}>
+              {metric.logarithmic ? (
                 <line
-                  className={styles.frontierStepReach}
-                  data-capture-exclude
+                  className={styles.medianAxis}
+                  x1={xPoint(1)}
+                  x2={xPoint(1)}
+                  y1={plot.top}
+                  y2={plot.bottom}
+                  strokeDasharray="3 4"
+                  aria-label="1× benchmark-median resource use"
+                />
+              ) : null}
+              <MedianCross
+                x={xPoint(medianMetric)}
+                y={yPoint(medianScore)}
+                bounds={plot}
+                xLabel={
+                  cursorProjection &&
+                  Math.abs(cursorProjection.x - xPoint(medianMetric)) < MEDIAN_LABEL_CLEARANCE
+                    ? ""
+                    : medianXLabel
+                }
+                yLabel={medianYLabel}
+              />
+              <AxisDistribution
+                axis="y"
+                values={scores}
+                edge={plot.left}
+                point={yPoint}
+                label={yAxisLabel}
+                format={formatScore}
+              />
+              <AxisDistribution
+                axis="x"
+                values={metricValues}
+                edge={plot.bottom}
+                point={xPoint}
+                label={metric.noun}
+                format={metric.format}
+              />
+            </g>
+            <DirectionArrow
+              bounds={plot}
+              direction={metric.xHigherIsBetter ? "upper-right" : "upper-left"}
+              label="Better"
+            />
+            <g mask={`url(#${guideMaskId})`}>
+              <CursorProjectionLayer
+                projection={cursorProjection}
+                bounds={plot}
+                xLabel={cursorProjection ? metric.format(cursorProjection.xValue) : ""}
+                yLabel={cursorProjection ? formatScore(cursorProjection.yValue) : ""}
+                color={activeHighlightColor}
+                insetScale={compact ? plot.left + SPREAD_HALF_WIDTH : undefined}
+              />
+            </g>
+            {reasoningVariantLines.flatMap((line) =>
+              line.segments.map((segment, index) => (
+                <line
                   {...segment}
-                  onPointerEnter={(event) => {
-                    setActiveStep(index);
-                    setHover(hoverFor(event, row));
-                  }}
-                  onPointerMove={(event) => setHover(hoverFor(event, row))}
-                  onPointerLeave={() => {
-                    setActiveStep(null);
-                    setHover(null);
-                  }}
+                  x1={stableSvgNumber(segment.x1)}
+                  y1={stableSvgNumber(segment.y1)}
+                  x2={stableSvgNumber(segment.x2)}
+                  y2={stableSvgNumber(segment.y2)}
+                  aria-hidden="true"
+                  key={`${line.key}-${index}`}
+                  className={[
+                    styles.reasoningVariantLine,
+                    activeReasoningGroup != null && line.key === activeReasoningGroup
+                      ? styles.reasoningVariantLineActive
+                      : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                  style={
+                    {
+                      "--line-color": line.color,
+                    } as CSSProperties
+                  }
+                  vectorEffect="non-scaling-stroke"
                 />
-              </g>
-            );
-          })}
-          {/* Only frontier models glow; a muted effort variant loses its glow while another model is hovered. */}
-          <StarGlows
-            bounds={plot}
-            stars={frontier.map((row) => ({
-              key: getKey(row),
-              cx: xPoint(metric.get(row)),
-              cy: yPoint(getScore(row)),
-              radius: markRadius(row),
-              color: providerChartColor(getModel(row).provider),
-              emphasis: "frontier",
-              opacity: activeVariantKey != null && !isHighlighted(row) ? 0 : 1,
-            }))}
-          />
-          {rows.map((row) => {
-            const axisValue = metric.get(row);
-            const score = getScore(row);
-            const cx = xPoint(axisValue);
-            const cy = yPoint(score);
-            const model = getModel(row);
-            const variantKey = getKey(row);
-            return (
-              <g className={variantClass(row)} key={getKey(row)}>
-                <circle
-                  className={`${styles.starCore} ${styles.datavizPoint}`}
-                  cx={cx}
-                  cy={cy}
-                  {...starCore(markRadius(row), providerChartColor(model.provider))}
-                  opacity={frontierRows.has(row) ? 1 : 0.86}
-                />
-                <PointHitTarget
-                  cx={cx}
-                  cy={cy}
-                  model={model}
-                  rows={hoverRows(row)}
-                  setHover={setHover}
-                  hoverTitle={getHoverTitle(row)}
-                  snapProjection={{
-                    x: cx,
-                    y: cy,
-                    xValue: axisValue,
-                    yValue: score,
-                  }}
-                  setCursorProjection={setCursorProjection}
-                  onActiveChange={(active) => setHighlightedVariantKey(active ? variantKey : null)}
-                />
-              </g>
-            );
-          })}
-          {callouts.map(({ key, row, label, cx, cy, placement, size }) => {
-            return (
-              <g
-                className={variantClass(row)}
-                key={`label-${key}`}
-                onPointerEnter={(event) => {
-                  setHighlightedVariantKey(getKey(row));
-                  setHover(hoverFor(event, row));
-                }}
-                onPointerLeave={() => {
-                  setHighlightedVariantKey(null);
-                  setHover(null);
-                }}
-              >
-                {placement && size ? (
-                  <rect
+              )),
+            )}
+            <FrontierHorizon
+              points={frontierPoints}
+              bounds={plot}
+              open={horizonOpenSide}
+              muted={muted}
+            />
+            {/* Each step along the frontier answers the pointer with the trade it makes; the stars' own targets sit above it. */}
+            {frontier.map((row, index) => {
+              if (index === 0) return null;
+              const segment = {
+                x1: frontierPoints[index - 1]!.x,
+                y1: frontierPoints[index - 1]!.y,
+                x2: frontierPoints[index]!.x,
+                y2: frontierPoints[index]!.y,
+              };
+              return (
+                <g key={`step-${getKey(row)}`}>
+                  {activeStep === index ? (
+                    <line className={styles.frontierStep} {...segment} />
+                  ) : null}
+                  <line
+                    className={styles.frontierStepReach}
                     data-capture-exclude
-                    {...labelRect(placement, size, 3)}
-                    fill="transparent"
-                    pointerEvents={compact ? "none" : "all"}
-                    aria-hidden="true"
+                    {...segment}
+                    onPointerEnter={() => setActiveStep(index)}
+                    onPointerLeave={() => setActiveStep(null)}
                   />
-                ) : null}
-                <TextPointLabel
-                  label={label}
-                  cx={cx}
-                  cy={cy}
-                  width={width}
-                  margin={chartMargin}
-                  height={height}
-                  xOffset={markRadius(row) + 8}
-                  placement={placement}
-                />
-              </g>
-            );
-          })}
-        </svg>
-      </SkyPlot>
-    </div>
+                </g>
+              );
+            })}
+            {/* Only frontier models glow; a muted effort variant loses its glow while another model is hovered. */}
+            <StarGlows
+              bounds={plot}
+              stars={frontier.map((row) => ({
+                key: getKey(row),
+                cx: xPoint(metric.get(row)),
+                cy: yPoint(getScore(row)),
+                radius: markRadius(row),
+                color: providerChartColor(getModel(row).provider),
+                emphasis: "frontier",
+                opacity: dimmed(row) ? 0 : 1,
+              }))}
+            />
+            {rows.map((row) => {
+              const axisValue = metric.get(row);
+              const score = getScore(row);
+              const cx = xPoint(axisValue);
+              const cy = yPoint(score);
+              const model = getModel(row);
+              const variantKey = getKey(row);
+              return (
+                <g className={variantClass(row)} key={getKey(row)}>
+                  <circle
+                    className={`${styles.starCore} ${styles.datavizPoint}`}
+                    cx={cx}
+                    cy={cy}
+                    {...starCore(markRadius(row), providerChartColor(model.provider))}
+                    opacity={frontierRows.has(row) ? 1 : 0.86}
+                  />
+                  <PointHitTarget
+                    cx={cx}
+                    cy={cy}
+                    model={model}
+                    snapProjection={{
+                      x: cx,
+                      y: cy,
+                      xValue: axisValue,
+                      yValue: score,
+                    }}
+                    setCursorProjection={setCursorProjection}
+                    onActiveChange={(active) =>
+                      setHighlightedVariantKey(active ? variantKey : null)
+                    }
+                  />
+                </g>
+              );
+            })}
+            {callouts.map(({ key, row, label, cx, cy, placement, size }) => {
+              return (
+                <g
+                  className={variantClass(row)}
+                  key={`label-${key}`}
+                  onPointerEnter={() => setHighlightedVariantKey(getKey(row))}
+                  onPointerLeave={() => setHighlightedVariantKey(null)}
+                >
+                  {placement && size ? (
+                    <rect
+                      data-capture-exclude
+                      {...labelRect(placement, size, 3)}
+                      fill="transparent"
+                      pointerEvents={compact ? "none" : "all"}
+                      aria-hidden="true"
+                    />
+                  ) : null}
+                  <TextPointLabel
+                    label={label}
+                    cx={cx}
+                    cy={cy}
+                    width={width}
+                    margin={chartMargin}
+                    height={height}
+                    xOffset={markRadius(row) + 8}
+                    placement={placement}
+                  />
+                </g>
+              );
+            })}
+          </svg>
+        </SkyPlot>
+      </div>
+    </>
   );
 }
 
@@ -615,15 +650,15 @@ function useVariantHighlight() {
 function AxisDistribution({
   axis,
   values,
-  at,
+  edge,
   point,
   label,
   format,
 }: {
   axis: "x" | "y";
-  values: number[];
-  /** The spread's centre line, as a position on the other axis. */
-  at: number;
+  values: readonly number[];
+  /** The plot edge the axis runs along: its left for `y`, its bottom for `x`. */
+  edge: number;
   point: (value: number) => number;
   label: string;
   format: (value: number) => string;
@@ -637,8 +672,8 @@ function AxisDistribution({
   // Marks are laid out along the axis and across it, then set as SVG x and y for the axis's direction.
   const segment = (from: number, to: number, reach: number) =>
     axis === "y"
-      ? { x1: at - reach, x2: at + reach, y1: from, y2: to }
-      : { x1: from, x2: to, y1: at - reach, y2: at + reach };
+      ? { x1: edge - reach, x2: edge + reach, y1: from, y2: to }
+      : { x1: from, x2: to, y1: edge - reach, y2: edge + reach };
   const tick = (value: number, reach: number) => segment(point(value), point(value), reach);
   const boxStart = Math.min(point(q1), point(q3));
   const boxLength = Math.abs(point(q3) - point(q1));
@@ -655,14 +690,14 @@ function AxisDistribution({
         className={styles.axisQuartiles}
         {...(axis === "y"
           ? {
-              x: at - SPREAD_HALF_WIDTH,
+              x: edge - SPREAD_HALF_WIDTH,
               y: boxStart,
               width: SPREAD_HALF_WIDTH * 2,
               height: boxLength,
             }
           : {
               x: boxStart,
-              y: at - SPREAD_HALF_WIDTH,
+              y: edge - SPREAD_HALF_WIDTH,
               width: boxLength,
               height: SPREAD_HALF_WIDTH * 2,
             })}

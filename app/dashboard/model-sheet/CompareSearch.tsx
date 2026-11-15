@@ -9,6 +9,7 @@ import { canonicalModelKey } from "../../../src/model-atlas/identity/normalizati
 import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 import {
   ModelSuggestionList,
+  modelSuggestionRow,
   modelSuggestions,
   useModelSuggestions,
 } from "../shared/ModelSuggestions";
@@ -72,7 +73,9 @@ export function CompareSearch({
             }}
           />
         </label>
-        {suggestion.listOpen ? <ModelSuggestionList {...suggestion.listProps} /> : null}
+        {suggestion.listOpen ? (
+          <ModelSuggestionList {...suggestion.listProps} describe={modelSuggestionRow} />
+        ) : null}
       </div>
       <p className={styles.pinNote}>Or open another model from any row, star, or role.</p>
     </div>

@@ -115,6 +115,29 @@ export function tableColumnView(
   return { searchQuery, searchMatchCount, keys };
 }
 
+/**
+ * Splits the table search's comma-separated parts between columns and models: a part naming a column picks columns, then one naming a model narrows the rows, then one a column's description matches picks columns.
+ * A part that matches nothing narrows the rows, so the table says no model matches.
+ */
+export function splitTableSearch(
+  query: string,
+  columnTooltips: ModelAtlasColumnTooltips,
+  rows: readonly SearchDocument<unknown>[],
+): { columnQuery: string; modelQuery: string } {
+  const columns = ALL_TABLE_COLUMN_KEYS.map((key) => columnSearchDocument(key, columnTooltips));
+  const named = columns.map(({ value, primary }) => ({ value, primary }));
+  const finds = (part: string, documents: readonly SearchDocument<unknown>[]) =>
+    filterSearchDocuments(part, documents).length > 0;
+  const columnParts: string[] = [];
+  const modelParts: string[] = [];
+  for (const part of query.split(",")) {
+    if (!part.trim()) continue;
+    const column = finds(part, named) || (!finds(part, rows) && finds(part, columns));
+    (column ? columnParts : modelParts).push(part);
+  }
+  return { columnQuery: columnParts.join(","), modelQuery: modelParts.join(",") };
+}
+
 /** The sort a view shows: the requested one while its column is visible, otherwise the view's default column in that column's own direction. */
 export function visibleSort(
   requested: SortState,

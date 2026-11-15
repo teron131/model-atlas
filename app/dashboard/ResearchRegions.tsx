@@ -1,6 +1,6 @@
 "use client";
 
-/** The dashboard's research regions: the pinned rail that indexes them and follows the reader, and the frame each region opens with, its index ordinal and name on the sky over one opaque plane. */
+/** The dashboard's research regions: the pinned rail that indexes them and follows the reader, and the frame each region opens with, its name on the sky over one opaque plane. */
 
 import {
   type ReactNode,
@@ -16,7 +16,7 @@ import { CaptureButton } from "./capture/CaptureButton";
 import { ARTIFACT_WIDTH } from "./capture/png";
 import { CopyDashboardLink } from "./CopyDashboardLink";
 import { redrawPlotsForCapture } from "./graphs/use-chart-layout";
-import { RESEARCH_REGION_IDS, researchRegion, type ResearchRegionId } from "./research-index";
+import { RESEARCH_REGION_IDS, type ResearchRegionId, researchRegionLabel } from "./research-index";
 import { dashboardUrlSection } from "./url-state";
 
 import styles from "./research-regions.module.css";
@@ -56,19 +56,15 @@ export function ResearchRail({ children }: { children: ReactNode }) {
       <div className={styles.bar}>
         <nav ref={indexRef} className={styles.index} aria-label="Dashboard sections">
           <span className={styles.journeyStar} aria-hidden="true" />
-          {RESEARCH_REGION_IDS.map((id) => {
-            const { label, ordinal } = researchRegion(id);
-            return (
-              <a
-                href={`#${id}`}
-                key={id}
-                aria-current={id === currentRegion ? "location" : undefined}
-              >
-                <b aria-hidden="true">{ordinal}</b>
-                {label}
-              </a>
-            );
-          })}
+          {RESEARCH_REGION_IDS.map((id) => (
+            <a
+              href={`#${id}`}
+              key={id}
+              aria-current={id === currentRegion ? "location" : undefined}
+            >
+              {researchRegionLabel(id)}
+            </a>
+          ))}
         </nav>
         {children}
       </div>
@@ -77,7 +73,7 @@ export function ResearchRail({ children }: { children: ReactNode }) {
 }
 
 /**
- * A region opens with the ordinal and name the rail gives it, then its actions: save an image and copy a link to the region.
+ * A region opens with the name the rail gives it, then its actions: save an image and copy a link to the region.
  * A figure region's image is its own frame with its plots redrawn at the image's width, named by `capture.title`; a region that renders a separate image supplies its own `capture.action`.
  */
 export function ResearchRegion({
@@ -95,7 +91,7 @@ export function ResearchRegion({
 }) {
   const regionRef = useRef<HTMLElement>(null);
   const titleId = `${id}-title`;
-  const { label, ordinal } = researchRegion(id);
+  const label = researchRegionLabel(id);
   return (
     <section
       id={id}
@@ -107,7 +103,6 @@ export function ResearchRegion({
     >
       <header className="dashboard-section-head">
         <h2 id={titleId} className="dashboard-section-title">
-          <b aria-hidden="true">{ordinal}</b>
           <span>{label}</span>
         </h2>
         <div className="dashboard-section-actions" data-capture-exclude>

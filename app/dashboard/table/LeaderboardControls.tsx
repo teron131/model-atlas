@@ -1,35 +1,30 @@
 "use client";
 
-/** The table toolbar owns column presets, column search, and how rows display (their limit and the efforts variant rows keep); which models appear belongs to the global filters. */
+/** The table toolbar owns column presets, the table search, and how rows display (their limit and the efforts variant rows keep); the table search narrows the rows the global filters admit. */
 
-import { ArrowRight, Columns3, Search } from "lucide-react";
+import { Columns3, Search } from "lucide-react";
 
 import { TABLE_COLUMN_PRESETS, type TableColumnPreset } from "./column-views";
 import { DisplayControls, type DisplayControlsProps } from "./DisplayControls";
 
 import styles from "./leaderboard-controls.module.css";
 
-/** `modelMatchCount` counts the models a column query would find as a model search; above zero, the toolbar offers that search. */
 export function LeaderboardControls({
   preset,
-  columnQuery,
-  columnSearchResultLabel,
-  modelMatchCount,
+  query,
+  resultLabel,
   isColumnSearch,
   display,
   onPresetChange,
-  onColumnQueryChange,
-  onSearchModels,
+  onQueryChange,
 }: {
   preset: TableColumnPreset;
-  columnQuery: string;
-  columnSearchResultLabel: string | null;
-  modelMatchCount: number;
+  query: string;
+  resultLabel: string | null;
   isColumnSearch: boolean;
   display: DisplayControlsProps;
   onPresetChange: (preset: TableColumnPreset) => void;
-  onColumnQueryChange: (query: string) => void;
-  onSearchModels: () => void;
+  onQueryChange: (query: string) => void;
 }) {
   return (
     <section className={styles.controls} aria-label="Leaderboard controls" data-capture-exclude>
@@ -54,27 +49,17 @@ export function LeaderboardControls({
             type="search"
             autoComplete="off"
             spellCheck={false}
-            aria-label="Find columns"
-            placeholder="Find columns…"
-            value={columnQuery}
-            onChange={(event) => onColumnQueryChange(event.currentTarget.value)}
+            aria-label="Search table"
+            placeholder="Search table …"
+            title="Name columns to show them and models to list only them; separate parts with commas and use * as a wildcard."
+            value={query}
+            onChange={(event) => onQueryChange(event.currentTarget.value)}
           />
         </label>
-        {columnSearchResultLabel ? (
+        {resultLabel ? (
           <output className={styles.result} aria-live="polite">
-            {columnSearchResultLabel}
+            {resultLabel}
           </output>
-        ) : null}
-        {modelMatchCount > 0 ? (
-          <button
-            type="button"
-            className={styles.modelSearch}
-            aria-label={`Search models for “${columnQuery.trim()}”: ${modelMatchCount} ${modelMatchCount === 1 ? "match" : "matches"}`}
-            onClick={onSearchModels}
-          >
-            Search models · {modelMatchCount}
-            <ArrowRight size={13} aria-hidden="true" />
-          </button>
         ) : null}
         <div className={styles.display}>
           <DisplayControls {...display} />

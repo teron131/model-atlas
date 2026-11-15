@@ -267,13 +267,18 @@ export function normalizeProviderModelId(modelId: string): string {
   return `${provider}/${baseModelId}`;
 }
 
+/** A model name without its trailing configuration label, which names how a model is served rather than a different model: `GPT-6 Sol (Fast)` → `GPT-6 Sol`. */
+export function withoutConfigurationLabel(name: string): string {
+  return name.replace(MODEL_CONFIGURATION_LABEL_PATTERN, "");
+}
+
 /**
  * Group reasoning-effort variants under one canonical model identity, preferring the name over the id.
  * `{ name: "Claude 4.5 Sonnet (Reasoning)" }` → `"name:claude-4-5-sonnet"` and `{ id: "openai/gpt-5.1" }` → `"openai/gpt-5-1"`.
  */
 export function canonicalModelKey(model: { id?: unknown; name?: unknown }): string {
   if (typeof model.name === "string" && model.name.length > 0) {
-    return `name:${normalizeModelToken(model.name.replace(MODEL_CONFIGURATION_LABEL_PATTERN, ""))}`;
+    return `name:${normalizeModelToken(withoutConfigurationLabel(model.name))}`;
   }
   if (typeof model.id === "string" && model.id.length > 0) {
     return normalizeProviderModelId(model.id);

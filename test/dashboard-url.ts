@@ -11,7 +11,7 @@ import { DashboardUrlProvider, useUrlState } from "../app/dashboard/use-url-stat
 /** Both table and graph controls must use the request URL before browser hydration. */
 function InitialSelections() {
   const [providers] = useUrlState("provider");
-  const [query] = useUrlState("column-q");
+  const [query] = useUrlState("table-q");
   const [variants] = useUrlState("graph-variants");
   const [rank] = useUrlState("rank");
   return createElement("output", null, `${providers.join(",")}|${query}|${variants}|${rank}`);
@@ -20,7 +20,7 @@ function InitialSelections() {
 assert.equal(
   renderToStaticMarkup(
     createElement(DashboardUrlProvider, {
-      search: "provider=openai&provider=xai&column-q=Grok&graph-variants=1&rank=30",
+      search: "provider=openai&provider=xai&table-q=Grok&graph-variants=1&rank=30",
       children: createElement(InitialSelections),
     }),
   ),
@@ -120,8 +120,8 @@ assert.deepEqual(
     ),
     "benchmark",
   ),
-  ["gdp_pdf__source_b", "terminal_bench_science__source_c"],
-  "Source-labelled measurements remain selectable and shareable without accepting unknown source slots",
+  ["gdp_pdf", "terminal_bench_science"],
+  "An older source pick selects its whole benchmark without accepting unknown source slots",
 );
 
 assert.deepEqual(
@@ -196,13 +196,13 @@ assert.equal(patchDashboardUrl(stacked, { performance: "intelligence" }).search,
 assert.equal(patchDashboardUrl(base, { "timeline-period": "all" }).href, `${base.href}#timeline`);
 assert.equal(patchDashboardUrl(base, { "graph-variants": false }).search, "?graph-variants=0");
 
-const columnQuery = patchDashboardUrl(base, { "column-q": "cost", q: "GPT*" });
-assert.equal(readUrlValue(columnQuery.searchParams, "column-q"), "cost");
-assert.equal(readUrlValue(columnQuery.searchParams, "q"), "GPT*");
-assert.equal(columnQuery.hash, "#leaderboard");
+const tableQuery = patchDashboardUrl(base, { "table-q": "cost", q: "GPT*" });
+assert.equal(readUrlValue(tableQuery.searchParams, "table-q"), "cost");
+assert.equal(readUrlValue(tableQuery.searchParams, "q"), "GPT*");
+assert.equal(tableQuery.hash, "#leaderboard");
 
 const retiredTableOptions = patchDashboardUrl(
-  new URL("?table-q=missing&column-order=coverage&q=GPT*&campaign=test", base),
+  new URL("?column-q=missing&column-order=coverage&q=GPT*&campaign=test", base),
   {},
 );
 assert.equal(

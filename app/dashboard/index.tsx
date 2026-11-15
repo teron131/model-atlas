@@ -100,6 +100,7 @@ export function Dashboard({
           <ParetoPanel
             payload={regions.payload}
             models={regions.models}
+            variantModels={regions.variantModels}
             referenceModels={regions.referenceModels}
             showVariants={showReasoningVariants}
             onShowVariantsChange={setShowReasoningVariants}
@@ -180,6 +181,19 @@ function useRegionPopulations(
       ),
     [payload, deferredFilters, filterScope],
   );
+  // Pareto's evidence lists every reasoning variant whatever the display shows, through the same filters.
+  const variantModels = useMemo(
+    () =>
+      showVariants
+        ? models
+        : filterByGlobalModelFilters(
+            modelsForVariantDisplay(reference, true),
+            (model) => model,
+            deferredFilters,
+            filterScope,
+          ),
+    [showVariants, models, reference, deferredFilters, filterScope],
+  );
   // Pareto picks ignore the recency and rank filters, which only limit which models are shown.
   const paretoCandidateModels = useMemo(
     () =>
@@ -201,5 +215,5 @@ function useRegionPopulations(
       }),
     [models, paretoCandidateModels, reference, showVariants],
   );
-  return { payload, referenceModels: reference, models, signature };
+  return { payload, referenceModels: reference, models, variantModels, signature };
 }

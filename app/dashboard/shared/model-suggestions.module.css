@@ -61,6 +61,13 @@
   height: 13px;
 }
 
+/* A query that offers nothing says why in the list's place, on the same surface. */
+.status {
+  padding: 10px 12px;
+  color: var(--muted);
+  font: 500 12px / 1.5 var(--font-mono);
+}
+
 @media (max-width: 760px) {
   .suggestions {
     right: 0;

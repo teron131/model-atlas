@@ -3,7 +3,8 @@
 import { memo, useMemo, useState } from "react";
 
 import { isAggregateIndex } from "../../../../src/model-atlas/benchmarks/index-policy";
-import { modelVariantKey } from "../../../../src/model-atlas/stats/model-variants";
+import { canonicalModelKey } from "../../../../src/model-atlas/identity/normalization";
+import { collapsedModels, modelVariantKey } from "../../../../src/model-atlas/stats/model-variants";
 import {
   type ModelAtlasModel,
   type ModelAtlasPayload,
@@ -11,10 +12,18 @@ import {
 import { captureFileToken } from "../../capture/png";
 import { ResearchRegion } from "../../ResearchRegions";
 import { modelName, shortLabel } from "../../shared/model-display";
+import { modelSearchDocument } from "../../shared/model-filters";
+import { modelSuggestionRow } from "../../shared/ModelSuggestions";
 import { updateDashboardUrl, useUrlState } from "../../use-url-state";
+import {
+  ChartFind,
+  type ChartFindState,
+  chartFindTargets,
+  EMPTY_CHART_FIND,
+  termTargets,
+} from "../ChartFind";
 import { finite, formatTooltipNumber, formatTooltipScore } from "../format";
 import { GraphToggle } from "../GraphToggle";
-import { HoverCard, type HoverSetter, type HoverState } from "../HoverCard";
 import { scoreAxisScale } from "../plot/axis-scale";
 import { SCATTER_CHART_MARGIN } from "../plot/Primitives";
 import {
@@ -38,7 +47,7 @@ import {
   frontierAxisMetricLabel,
   frontierBenchmarkAxisConfig,
   frontierBenchmarkAxisConfigFor,
-  frontierBenchmarkHoverRows,
+  frontierBenchmarkReadoutFacts,
   frontierScoreAxisScale,
   frontierXAxisScale,
 } from "./presentation";
@@ -49,30 +58,21 @@ import styles from "../graphs.module.css";
 type ParetoPanelProps = {
   payload: ModelAtlasPayload;
   models: ModelAtlasModel[];
+  /** Every reasoning variant through the dashboard filters, for the evidence; `models` itself while the plot shows variants. */
+  variantModels: ModelAtlasModel[];
   referenceModels: ModelAtlasModel[];
   showVariants: boolean;
   onShowVariantsChange: (show: boolean) => void;
 };
 
-/** The hover card sits beside the figure, so a pointer move redraws only the card. */
-export const ParetoPanel = memo(function ParetoPanel(props: ParetoPanelProps) {
-  const [hover, setHover] = useState<HoverState | null>(null);
-  return (
-    <>
-      <ParetoFigure {...props} setHover={setHover} />
-      {hover ? <HoverCard hover={hover} /> : null}
-    </>
-  );
-});
-
-const ParetoFigure = memo(function ParetoFigure({
+export const ParetoPanel = memo(function ParetoPanel({
   payload,
   models,
+  variantModels,
   referenceModels,
   showVariants,
   onShowVariantsChange,
-  setHover,
-}: ParetoPanelProps & { setHover: HoverSetter }) {
+}: ParetoPanelProps) {
   const [performance, setPerformance] = useUrlState("performance");
   const [benchmarkKeys] = useUrlState("benchmark");
   const [axisKey, setAxisKey] = useUrlState("axes");
@@ -95,7 +95,7 @@ const ParetoFigure = memo(function ParetoFigure({
         if (isScoreAxis(axisKey)) return option;
         const measured = benchmarkRows.find(
           (row) =>
-            row.benchmarkKey === option.key &&
+            row.baseBenchmarkKey === option.key &&
             positiveMetric(frontierBenchmarkAxisConfig[axisKey].get(row)),
         );
         const unit = measured?.resourcePolicy?.unit === "total" ? "full run" : "per task";
@@ -142,6 +142,60 @@ const ParetoFigure = memo(function ParetoFigure({
       ),
     [models, comparison.rows, performance, axisKey, axisConfig, aggregate, resourceAxis],
   );
+  // The evidence lists every reasoning variant even while the plot shows one star per model, so each model's row counts and compares all its efforts.
+  const evidence = useMemo(() => {
+    if (variantModels === models) return { ...comparison, rows };
+    const variantComparison = commonBenchmarkComparison(
+      frontierBenchmarkRows(variantModels, payload.metadata.scoring.benchmark_portfolio, axisKey),
+      referenceRows,
+      activeKeys,
+      axisKey,
+    );
+    return {
+      ...variantComparison,
+      rows: performanceComparisonRows(
+        variantModels,
+        variantComparison.rows,
+        performance,
+        axisKey,
+      ).filter((row) => positiveMetric(axisConfig.get(row), aggregate || !resourceAxis)),
+    };
+  }, [
+    variantModels,
+    models,
+    comparison,
+    rows,
+    payload.metadata.scoring.benchmark_portfolio,
+    axisKey,
+    referenceRows,
+    activeKeys,
+    performance,
+    axisConfig,
+    aggregate,
+    resourceAxis,
+  ]);
+  const [find, setFind] = useState<ChartFindState>(EMPTY_CHART_FIND);
+  const findDocuments = useMemo(
+    () => plottedFamilies(rows).map((model) => modelSearchDocument(model, model)),
+    [rows],
+  );
+  const matches = useMemo(() => {
+    const targets = chartFindTargets(find, findDocuments, modelSuggestionRow);
+    return targets == null ? null : new Set(targets.map(canonicalModelKey));
+  }, [find, findDocuments]);
+  const snapshotDocuments = useMemo(
+    () => collapsedModels(referenceModels).map((model) => modelSearchDocument(model, model)),
+    [referenceModels],
+  );
+  // A part that names no plotted model names the snapshot's best match and why the chart leaves it out.
+  const nothingFound = (part: string) => {
+    const missing = termTargets(part, snapshotDocuments, modelSuggestionRow)[0];
+    if (missing == null) return "No model matches.";
+    const family = canonicalModelKey(missing);
+    return models.some((model) => canonicalModelKey(model) === family)
+      ? `${modelName(missing)} has no data for these axes.`
+      : `${modelName(missing)} is hidden by the dashboard filters.`;
+  };
   const singleKey = activeKeys[0];
   const indexScore = !aggregate && isAggregateIndex(singleKey ?? "");
   const normalizedScore = !publishedPerformance && (aggregate || singleKey === "ale_bench");
@@ -153,7 +207,7 @@ const ParetoFigure = memo(function ParetoFigure({
           .filter((option) => activeKeys.includes(option.key))
           .map((option) => option.label)
           .join(", ")
-      : `${activeKeys.length} benchmark and index sources`;
+      : `${activeKeys.length} benchmarks and indexes`;
   const yLabel = publishedPerformance
     ? `${performance === "intelligence" ? "Intelligence" : "Agentic"} Score`
     : normalizedScore
@@ -191,12 +245,11 @@ const ParetoFigure = memo(function ParetoFigure({
       ? "all"
       : activeKeys.join("-") || "none";
   const captureFileName = `model-atlas-pareto-${performance}-${axisKey}${needsEvidence ? `-${captureFileToken(evidenceLabel)}` : ""}`;
-  const explanation =
-    publishedPerformance && resourceAxis
-      ? `Published ${yLabel} vs. ${aggregate ? "median-relative" : "measured"} resources from ${evidenceSummary || "selected evidence"}.`
-      : normalizedScore
-        ? `${evidenceSummary}: performance normalized to the full reference population, with index overlap removed.`
-        : null;
+  const explanation = publishedPerformance
+    ? `Published ${yLabel}, which includes supported estimates and coverage adjustments${resourceAxis ? `, vs. ${aggregate ? "median-relative" : "measured"} resources from ${evidenceSummary || "selected evidence"}` : ""}.`
+    : normalizedScore
+      ? `${evidenceSummary}: performance normalized to the full reference population, with index overlap removed.`
+      : null;
   const emptyMessage =
     activeKeys.length === 0 && needsEvidence && !publishedPerformance
       ? "Select an evidence source."
@@ -224,6 +277,18 @@ const ParetoFigure = memo(function ParetoFigure({
             onChange={(keys) => updateDashboardUrl({ performance: "benchmarks", benchmark: keys })}
           />
         }
+        find={
+          rows.length === 0 ? null : (
+            <ChartFind
+              label="Locate models on the Pareto chart"
+              find={find}
+              documents={findDocuments}
+              describe={modelSuggestionRow}
+              onChange={setFind}
+              nothingFound={nothingFound}
+            />
+          )
+        }
       />
       {rows.length === 0 ? (
         <p className={styles.emptyComparison} role="status">
@@ -245,11 +310,13 @@ const ParetoFigure = memo(function ParetoFigure({
           getScore={(row) => row.score}
           getModel={(row) => row.model}
           getKey={(row) => `${row.benchmarkKey}-${modelVariantKey(row.model)}`}
-          getHoverTitle={(row) => modelName(row.model)}
-          getHoverRows={(row) => frontierBenchmarkHoverRows(row, axisConfig, performance)}
+          getFacts={(row) =>
+            frontierBenchmarkReadoutFacts(row, axisConfig, chartMetric.noun, performance)
+          }
           getLabel={(row) => shortLabel(row.model)}
           connectReasoningVariants={showVariants}
-          setHover={setHover}
+          matches={matches}
+          located={find.located}
         />
       )}
       <ParetoFigureFoot
@@ -265,7 +332,6 @@ const ParetoFigure = memo(function ParetoFigure({
             onSelect={setAxisKey}
           />
         }
-        logarithmic={axisConfig.logarithmic === true}
         showVariants={showVariants}
         onShowVariantsChange={onShowVariantsChange}
       />
@@ -279,14 +345,24 @@ const ParetoFigure = memo(function ParetoFigure({
       </div>
       {rows.length > 0 && needsEvidence && aggregate ? (
         <CommonEvidence
-          comparison={{ ...comparison, rows }}
+          comparison={evidence}
           benchmarkOptions={benchmarkOptions}
           activeBenchmarkKeys={activeKeys}
           axisKey={axisKey}
           publishedPerformance={publishedPerformance}
-          showVariants={showVariants}
         />
       ) : null}
     </ResearchRegion>
   );
 });
+
+/** One model per plotted family, from its highest-scoring row and without an effort, as the find field offers and names it. */
+function plottedFamilies(rows: readonly FrontierBenchmarkRow[]): ModelAtlasModel[] {
+  const strongest = new Map<string, FrontierBenchmarkRow>();
+  for (const row of rows) {
+    const family = canonicalModelKey(row.model);
+    const held = strongest.get(family);
+    if (held == null || row.score > held.score) strongest.set(family, row);
+  }
+  return [...strongest.values()].map((row) => ({ ...row.model, reasoning_effort: null }));
+}

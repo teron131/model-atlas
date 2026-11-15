@@ -12,7 +12,7 @@ import { commonBenchmarkComparison } from "../app/dashboard/graphs/pareto/common
 import {
   frontierBenchmarkAxisConfig,
   frontierBenchmarkAxisConfigFor,
-  frontierBenchmarkHoverRows,
+  frontierBenchmarkReadoutFacts,
   frontierXAxisScale,
 } from "../app/dashboard/graphs/pareto/presentation";
 import {
@@ -218,14 +218,15 @@ assert.equal(
   3000,
   "Single-source views retain native token values",
 );
-const hover = frontierBenchmarkHoverRows(
+const readout = frontierBenchmarkReadoutFacts(
   { ...combinedLow, score: 80 },
   frontierBenchmarkAxisConfigFor("cost", true),
+  "cost",
   "intelligence",
 );
-assert.equal(hover[0]?.[0], "Intelligence Score");
-assert.match(hover[1]?.[0] as string, /Cost×/);
-assert.ok(hover.every(([label]) => label !== "Speed and Value Scores"));
+assert.deepEqual(readout[0], { label: "Intelligence Score", value: "80.0" });
+assert.match(readout[1] as string, /× cost$/);
+assert.ok(readout.every((fact) => !JSON.stringify(fact).includes("Speed and Value Scores")));
 const missingValue = { ...low, scores: { ...low.scores, value_score: null } };
 const missingValueRow = { ...evidence[0]!, model: missingValue };
 assert.equal(

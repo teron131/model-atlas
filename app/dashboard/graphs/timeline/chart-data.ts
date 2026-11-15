@@ -1,6 +1,9 @@
 /** The Timeline's chart points come from the published historical dataset: each model family contributes one representative, named by its reconciled family label, at its published anchored score; nothing is refit here. */
 
-import { canonicalModelKey } from "../../../../src/model-atlas/identity/normalization";
+import {
+  canonicalModelKey,
+  withoutConfigurationLabel,
+} from "../../../../src/model-atlas/identity/normalization";
 import { providerIdentityKey } from "../../../../src/model-atlas/identity/provider";
 import { strongestModelVariants } from "../../../../src/model-atlas/stats/model-variants";
 import { modelDisplayExclusion } from "../../../../src/model-atlas/stats/model-visibility";
@@ -41,17 +44,20 @@ export function timelineScoreDomain(scores: readonly number[]): [number, number]
   ];
 }
 
-/** Models scoring under 70, released before the Timeline's start, or hidden from display are left out. */
-export function timelineChartPoints(data: HistoricalDataset): TimelinePoint[] {
+/** Models scoring under 70, released before the Timeline's start, or hidden from display are left out; `listed` maps the Timeline id of each configuration the leaderboard lists to its leaderboard Intelligence score. */
+export function timelineChartPoints(
+  data: HistoricalDataset,
+  listed: ReadonlyMap<string, number>,
+): TimelinePoint[] {
   const calibration = data.prepared?.calibrations.intelligence;
   if (!calibration || !data.displayAnchors) throw new Error("Missing published calibration.");
   const scores = anchorTimeline(calibration, data, data.displayAnchors, "intelligence");
   const coverage = timelineCoverage(data, "intelligence", calibration.estimates);
   const estimates = new Map(calibration.estimates.map((estimate) => [estimate.modelId, estimate]));
-  // Representatives are ranked by their published Timeline estimate, so the chosen variant is the one whose coordinate is plotted.
   return modelRepresentatives(
     data.models.map((model) => ({
       ...model,
+      listedScore: listed.get(model.id) ?? null,
       representativeScore: estimates.get(model.id)?.value ?? null,
     })),
   )
@@ -83,10 +89,13 @@ export function timelineChartPoints(data: HistoricalDataset): TimelinePoint[] {
 }
 
 type Candidate = HistoricalModel & {
+  /** The configuration's leaderboard Intelligence score, `null` when the leaderboard does not list it. */
+  listedScore: number | null;
+  /** The configuration's Timeline estimate, `null` when the Timeline cannot place it. */
   representativeScore: number | null;
 };
 
-/** Prefer current configurations when present, then select the strongest supported Timeline estimate. */
+/** A family the leaderboard lists is represented by the placed configuration the leaderboard rates strongest, so both views name the same effort and an unlisted, sparsely measured one cannot stand for the model; any other family takes its strongest Timeline estimate, current configurations first. */
 export function modelRepresentatives<T extends Candidate>(models: T[]): T[] {
   const families = new Map<string, T[]>();
   for (const model of models) {
@@ -95,21 +104,29 @@ export function modelRepresentatives<T extends Candidate>(models: T[]): T[] {
     families.set(model.family, variants);
   }
   return [...families.values()].map((variants) => {
-    const current = variants.filter((model) => model.current && model.representativeScore != null);
-    const candidates = current.length ? current : variants;
+    const scored = variants.filter((model) => model.representativeScore != null);
+    const listed = scored.filter((model) => model.listedScore != null);
+    const current = scored.filter((model) => model.current);
+    const candidates = listed.length ? listed : current.length ? current : variants;
     return strongestModelVariants(
       candidates.map((model) => ({
         id: model.id,
         name: model.name,
         model,
-        scores: { intelligence_score: model.representativeScore ?? -Infinity },
+        scores: {
+          intelligence_score: listed.length
+            ? model.listedScore!
+            : (model.representativeScore ?? -Infinity),
+        },
       })),
     )[0]!.model;
   });
 }
 
+/** A point stands for its whole family, so it drops a configuration label as the leaderboard's public names do: `GPT-6 Sol (Fast)` → `GPT-6 Sol`. */
 export function timelineModelName(model: HistoricalModel): string {
-  return modelName({ id: model.id, name: displayName(model), reasoning_effort: null });
+  const name = withoutConfigurationLabel(displayName(model));
+  return modelName({ id: model.id, name, reasoning_effort: null });
 }
 
 /**

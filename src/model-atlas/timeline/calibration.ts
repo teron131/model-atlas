@@ -7,20 +7,21 @@ import {
   residualIndexBreadth,
 } from "../benchmarks/index-policy";
 import { MAX_NORMALIZED_IMPUTATION_ERROR, STAGE_CONFIG } from "../config/stage";
-import { effectiveCount, weightedMeanOfFinite } from "../math-utils";
+import { effectiveCount, weightedMeanOfFinite, weightedMedianOfFinite } from "../math-utils";
 import { isInformativeValue } from "./benchmark-evidence";
 import { MINIMUM_TIMELINE_TASKS } from "./coverage";
 import { timelineInformation, timelineNativeValue } from "./linking";
 import { historicalVersionSeries } from "./model-identity";
 import {
   catalogBenchmarkKey,
+  type HistoricalBenchmark,
   type HistoricalCalibration,
   type HistoricalDataset,
   type HistoricalEstimate,
   type HistoricalModel,
   isReferenceBenchmark,
+  measureKey,
   type TimelineAnchors,
-  type TimelineBenchmarkCalibration,
   type TimelineDimension,
   type TimelineParameters,
   validateTimelineParameters,
@@ -77,7 +78,7 @@ export function calibrateTimeline(
         Math.max(taskWeights.get(definition.key) ?? 0, definition.weights[dimension]),
       );
   const possibleWeight = [...taskWeights.values()].reduce((a, b) => a + b, 0);
-  const estimates = data.models.map((model): HistoricalEstimate => {
+  const placements = data.models.map((model) => {
     const observed = byModel.get(model.id) ?? [];
     // Model presentation chooses a representative after scoring; it cannot turn sibling observations into this configuration's measurements.
     const usable = observed.filter((o) => {
@@ -120,7 +121,6 @@ export function calibrateTimeline(
                     (indexPolicy(indexKey) ? null : definition.componentIds?.length),
                 ),
                 information: timelineInformation(definition, o.value),
-                uncertainty: timelineTransferError(node, value),
               },
             ]
           : [];
@@ -130,17 +130,10 @@ export function calibrateTimeline(
           b.observedAt.localeCompare(a.observedAt) ||
           a.definition.id.localeCompare(b.definition.id),
       );
-    // Select evidence by availability, never by its value, error budget, or the representation of its calibration path.
+    // Select evidence by availability, never by its value, typical miss, or the representation of its calibration path.
     const unique = new Map<string, (typeof candidates)[number]>();
     for (const candidate of candidates) {
-      // `aa_quality_index` is the archived key of Artificial Analysis's index under its earlier name, so both keys count as one index.
-      const key =
-        candidate.definition.kind === "index"
-          ? catalogBenchmarkKey(candidate.definition.key).replace(
-              /^aa_quality_index$/,
-              "aa_intelligence_index",
-            )
-          : candidate.definition.key;
+      const key = measureKey(candidate.definition);
       if (!unique.has(key)) unique.set(key, candidate);
     }
     const tasks = [...unique.values()].filter((p) => p.definition.kind === "task");
@@ -170,7 +163,8 @@ export function calibrateTimeline(
       })),
       ...indexes,
     ];
-    const projection = summarizeParts(parts, weightedMeanOfFinite(parts));
+    // Fixed positive weights keep a better result from ever lowering the position.
+    const value = weightedMeanOfFinite(parts);
     const supportRamp = taskCount / (taskCount + MINIMUM_TIMELINE_TASKS);
     const effective =
       possibleWeight > 0
@@ -191,24 +185,25 @@ export function calibrateTimeline(
     const supportedReference =
       reference != null && (reference.referenceConfidence ?? 0) >= scale.minimumReferenceConfidence;
     // The snapshot score stands in only when the reference's own results cannot place it, so a model still being measured is not held at its starting score.
-    if (supportedReference && projection.value == null)
+    if (supportedReference && value == null)
       return {
-        modelId: model.id,
-        value: reference.value,
-        evidence: 1,
-        saturated,
-        paths: [[root]],
-        indexOnly: false,
-        reference: true,
-        source: "current",
-        confidence: reference.referenceConfidence ?? 0,
-        disagreement: null,
-        uncertainty: null,
-        benchmarkSupport,
+        candidates,
+        parts,
+        estimate: {
+          modelId: model.id,
+          value: reference.value,
+          evidence: 1,
+          saturated,
+          paths: [[root]],
+          indexOnly: false,
+          reference: true,
+          source: "current",
+          confidence: reference.referenceConfidence ?? 0,
+          disagreement: null,
+          benchmarkSupport,
+        } satisfies Omit<HistoricalEstimate, "uncertainty">,
       };
-    const value = projection.value;
-    const errors = parts.flatMap((p) => p.node.errors);
-    return {
+    const estimate = {
       modelId: model.id,
       value,
       evidence: parts.length,
@@ -228,18 +223,32 @@ export function calibrateTimeline(
         parts.length > 1
           ? Math.max(...parts.map((p) => p.value)) - Math.min(...parts.map((p) => p.value))
           : null,
-      uncertainty:
-        value == null
-          ? null
-          : {
-              transferError: projection.transferError!,
-              steps: Math.max(...parts.map((p) => p.node.errors.length)),
-              weakestModels: Math.min(...errors.map((e) => e.models)),
-              outsideOverlap: parts.some((p) => p.uncertainty.outsideOverlap),
-            },
       benchmarkSupport,
-    };
+    } satisfies Omit<HistoricalEstimate, "uncertainty">;
+    return { candidates, parts, estimate };
   });
+  // Each measure is checked by leaving it out of its model's position, so the check needs no reference score and reaches every era where models were measured on two benchmarks.
+  const placedParts = placements.map(({ parts }) => parts);
+  const families = data.models.map((model) => model.family);
+  const checks = benchmarkChecks(placedParts, families, parameters.minModels);
+  const pairs = heldOutPairs(placedParts, families, checks);
+  const growth = missGrowth(pairs);
+  // Sized so that half of the held-out benchmarks land within the range predicted for them: the reading "typically within" promises.
+  const sizing = weightedMedianOfFinite(
+    pairs.map((pair) => ({
+      value: Math.abs(pair.residual) / predictedMiss(pair, growth),
+      weight: pair.weight,
+    })),
+  );
+  const estimates = placements.map(
+    ({ estimate, parts }): HistoricalEstimate => ({
+      ...estimate,
+      uncertainty:
+        estimate.source === "current" || estimate.value == null || sizing == null
+          ? null
+          : typicalMiss(parts, checks, growth, sizing),
+    }),
+  );
   return {
     estimates: reconcileVersions(data.models, estimates),
     predictors: graph.links.map((link) => ({
@@ -254,6 +263,186 @@ export function calibrateTimeline(
     })),
     connectedBenchmarks: Math.max(0, nodes.size - 1),
     scaleId: scale.id,
+  };
+}
+
+/** A benchmark result as placed on the reference scale, with its weight in the position. */
+type PlacedPart = {
+  definition: Pick<HistoricalBenchmark, "key" | "kind">;
+  value: number;
+  weight: number;
+};
+
+/** How one measure agrees with the models it measured once it is left out of their positions: its typical distance from the position their other benchmarks give, and the center, spread, and range of the values it was checked at. All records and versions of an index share one check. */
+type BenchmarkCheck = {
+  typicalMiss: number;
+  center: number;
+  deviation: number;
+  min: number;
+  max: number;
+};
+
+/** Each part's held-out residual: how far it lands from the weighted mean of the model's other parts. A model placed by one part has none, and an index compared only with other indexes gives none, because indexes averaging overlapping benchmarks agree partly by construction. */
+function heldOut(
+  parts: readonly PlacedPart[],
+): { part: PlacedPart; residual: number; rest: PlacedPart[] }[] {
+  if (parts.length < 2) return [];
+  return parts.flatMap((part) => {
+    const rest = parts.filter((other) => other !== part);
+    if (
+      part.definition.kind === "index" &&
+      rest.every((other) => other.definition.kind === "index")
+    )
+      return [];
+    const restWeight = rest.reduce((sum, other) => sum + other.weight, 0);
+    const restValue = rest.reduce((sum, other) => sum + other.weight * other.value, 0) / restWeight;
+    return [{ part, residual: part.value - restValue, rest }];
+  });
+}
+
+/** Check every measure against the other benchmarks of the models it measured, each model family counting once; one held out in fewer than `minModels` families stays unchecked. */
+function benchmarkChecks(
+  models: readonly (readonly PlacedPart[])[],
+  families: readonly string[],
+  minModels: number,
+): Map<string, BenchmarkCheck> {
+  const held = new Map<string, { residual: number; value: number; family: string }[]>();
+  models.forEach((parts, index) => {
+    for (const { part, residual } of heldOut(parts)) {
+      const measure = measureKey(part.definition);
+      const rows = held.get(measure) ?? [];
+      rows.push({ residual, value: part.value, family: families[index]! });
+      held.set(measure, rows);
+    }
+  });
+  return new Map(
+    [...held].flatMap(([measure, rows]) => {
+      if (new Set(rows.map((row) => row.family)).size < minModels) return [];
+      const weights = modelCalibrationWeights(rows.map((row) => row.family));
+      const values = rows.map((row) => row.value);
+      const center = values.reduce((sum, value) => sum + value, 0) / values.length;
+      const variance =
+        values.reduce((sum, value) => sum + (value - center) ** 2, 0) / (values.length - 1);
+      return [
+        [
+          measure,
+          {
+            typicalMiss: weightedMedianOfFinite(
+              rows.map((row, i) => ({ value: Math.abs(row.residual), weight: weights[i]! })),
+            )!,
+            center,
+            deviation: Math.sqrt(variance),
+            min: Math.min(...values),
+            max: Math.max(...values),
+          },
+        ] as const,
+      ];
+    }),
+  );
+}
+
+/** A checked benchmark held out of one model's position, with the model's other checked benchmarks; `weight` counts each model family once across all pairs. */
+type HeldOutPair = {
+  part: PlacedPart;
+  check: BenchmarkCheck;
+  residual: number;
+  rest: { part: PlacedPart; check: BenchmarkCheck }[];
+  weight: number;
+};
+
+/** Hold out each checked benchmark of every model placed by two or more of them, as `heldOut` admits it. */
+function heldOutPairs(
+  models: readonly (readonly PlacedPart[])[],
+  families: readonly string[],
+  checks: ReadonlyMap<string, BenchmarkCheck>,
+): HeldOutPair[] {
+  const pairs = models.flatMap((parts, index) => {
+    const checked = parts.filter((part) => checks.has(measureKey(part.definition)));
+    return heldOut(checked).map(({ part, residual, rest }) => ({
+      family: families[index]!,
+      pair: {
+        part,
+        check: checks.get(measureKey(part.definition))!,
+        residual,
+        rest: rest.map((other) => ({
+          part: other,
+          check: checks.get(measureKey(other.definition))!,
+        })),
+      },
+    }));
+  });
+  const weights = modelCalibrationWeights(pairs.map(({ family }) => family));
+  return pairs.map(({ pair }, i) => ({ ...pair, weight: weights[i]! }));
+}
+
+/** A part's typical miss before sizing: its benchmark's, widened as its value leaves the values the benchmark was checked at, at `growth` per squared standard deviation. */
+function partMiss(part: PlacedPart, check: BenchmarkCheck, growth: number): number {
+  return (
+    check.typicalMiss * Math.sqrt(1 + growth * ((part.value - check.center) / check.deviation) ** 2)
+  );
+}
+
+/** A held-out residual's typical size before sizing: it carries its own benchmark's miss and the miss of the mean it is compared with. */
+function predictedMiss(pair: HeldOutPair, growth: number): number {
+  const restWeight = pair.rest.reduce((sum, { part }) => sum + part.weight, 0);
+  const restMiss = pair.rest.reduce(
+    (sum, { part, check }) => sum + (part.weight * partMiss(part, check, growth)) ** 2,
+    0,
+  );
+  return Math.sqrt(partMiss(pair.part, pair.check, growth) ** 2 + restMiss / restWeight ** 2);
+}
+
+/** How fast a benchmark's misses grow with distance from the values it was checked at: the rate that best explains the held-out residuals, each read as Laplace-distributed around its predicted size with one shared scale. Searched between none and `MAXIMUM_MISS_GROWTH`. */
+function missGrowth(pairs: readonly HeldOutPair[]): number {
+  const total = pairs.reduce((sum, pair) => sum + pair.weight, 0);
+  const fit = (growth: number) => {
+    const sizes = pairs.map((pair) => predictedMiss(pair, growth));
+    const scale =
+      pairs.reduce((sum, pair, i) => sum + (pair.weight * Math.abs(pair.residual)) / sizes[i]!, 0) /
+      total;
+    return (
+      -pairs.reduce((sum, pair, i) => sum + pair.weight * Math.log(sizes[i]!), 0) -
+      total * Math.log(scale)
+    );
+  };
+  let [low, high] = [0, MAXIMUM_MISS_GROWTH];
+  for (let step = 0; step < 40; step++) {
+    const left = high - GOLDEN_SECTION * (high - low);
+    const right = low + GOLDEN_SECTION * (high - low);
+    if (fit(left) < fit(right)) low = left;
+    else high = right;
+  }
+  return (low + high) / 2;
+}
+
+// Past this rate a benchmark one standard deviation from its checked values would already miss by over three times its typical miss, far beyond what the held-out residuals show.
+const MAXIMUM_MISS_GROWTH = 10;
+const GOLDEN_SECTION = (Math.sqrt(5) - 1) / 2;
+
+/** A position's typical miss and how far it lies beyond every range its benchmarks were checked at; `null` when no checked benchmark places it. Averaging benchmarks shrinks their misses as independent ones: an error every benchmark of a model shares never shows when one is left out. */
+function typicalMiss(
+  parts: readonly PlacedPart[],
+  checks: ReadonlyMap<string, BenchmarkCheck>,
+  growth: number,
+  sizing: number,
+): NonNullable<HistoricalEstimate["uncertainty"]> | null {
+  const checked = parts.flatMap((part) => {
+    const check = checks.get(measureKey(part.definition));
+    return check ? [{ part, check }] : [];
+  });
+  if (!checked.length) return null;
+  const total = checked.reduce((sum, { part }) => sum + part.weight, 0);
+  const spread = checked.reduce(
+    (sum, { part, check }) => sum + (part.weight * partMiss(part, check, growth)) ** 2,
+    0,
+  );
+  return {
+    typicalMiss: (sizing * Math.sqrt(spread)) / total,
+    beyondChecked: Math.min(
+      ...checked.map(({ part, check }) =>
+        Math.max(0, check.min - part.value, part.value - check.max),
+      ),
+    ),
   };
 }
 
@@ -299,7 +488,7 @@ function reconcileVersions(
             uncertainty: estimate.uncertainty
               ? {
                   ...estimate.uncertainty,
-                  transferError: estimate.uncertainty.transferError + adjustment,
+                  typicalMiss: estimate.uncertainty.typicalMiss + adjustment,
                 }
               : estimate.uncertainty,
           });
@@ -312,42 +501,6 @@ function reconcileVersions(
     }
   }
   return estimates.map((e) => result.get(e.modelId)!);
-}
-
-/** Fixed positive weights preserve monotonicity; disagreement enlarges the reported budget without changing the point estimate. */
-function summarizeParts(
-  parts: { value: number; weight: number; uncertainty: { error: number } }[],
-  value: number | null,
-) {
-  if (value == null) return { value, transferError: null };
-  const spread = Math.sqrt(
-    weightedMeanOfFinite(parts.map((p) => ({ value: (p.value - value) ** 2, weight: p.weight })))!,
-  );
-  const transferError =
-    weightedMeanOfFinite(parts.map((p) => ({ value: p.uncertainty.error, weight: p.weight })))! +
-    spread;
-  return { value, transferError };
-}
-
-/** Add bridge errors without an independence discount; leverage increases when overlap is narrow, sparse, or far from the query. */
-export function timelineTransferError(
-  node: TimelineBenchmarkCalibration,
-  score: number,
-): { error: number; outsideOverlap: boolean } {
-  return {
-    error:
-      node.disagreement +
-      node.errors.reduce(
-        (sum, step) =>
-          sum +
-          step.error *
-            Math.sqrt(
-              1 + 1 / step.models + ((score - step.center) / step.deviation) ** 2 / step.models,
-            ),
-        0,
-      ),
-    outsideOverlap: node.errors.some((step) => score < step.min || score > step.max),
-  };
 }
 
 /** Re-express the permanent coordinate using frozen reference scores or an explicitly saved historical estimate; neither trains benchmark links. */

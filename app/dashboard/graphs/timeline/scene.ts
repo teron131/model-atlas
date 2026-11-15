@@ -1,8 +1,9 @@
-/** The Timeline chart's drawn scene, derived as plain values from the windowed models, the plot's size, the replay frame, and the reader's pick and pointer. */
+/** The Timeline chart's drawn scene, derived as plain values from the windowed models, the plot's size, the replay frame, and the reader's pick, pointer, and find query. */
 
 import { scaleLinear, scaleUtc } from "d3-scale";
 
 import { providerChartColor } from "../../shared/provider-theme";
+import type { ChartFindState } from "../ChartFind";
 import {
   calloutLabelPlacements,
   type PointLabelPlacement,
@@ -57,7 +58,10 @@ export function timelineScene({
   byScore,
   picked,
   preview,
+  standingLab,
   labRecords,
+  matches,
+  located,
 }: {
   width: number;
   compact: boolean;
@@ -73,7 +77,12 @@ export function timelineScene({
   byScore: readonly TimelinePoint[];
   picked: TimelinePoint | undefined;
   preview: TimelinePoint | null;
+  /** The lab a standings row points at, whose stars stay lit while the other labs dim. */
+  standingLab: string | null;
   labRecords: readonly TimelinePoint[];
+  /** The ids the find field's query matches, or `null` while it holds none. */
+  matches: ReadonlySet<string> | null;
+  located: ChartFindState["located"];
 }) {
   const prior = records.filter((point) => Date.parse(point.releaseDate) < start).at(-1);
   const frontier = records.filter((point) => {
@@ -86,7 +95,7 @@ export function timelineScene({
     ...ties.filter((point) => Date.parse(point.releaseDate) <= reached),
   ].sort((a, b) => a.releaseDate.localeCompare(b.releaseDate));
   const frontierIds = new Set(frontier.map((point) => point.id));
-  // The readout follows picks, not the pointer, which the hover card follows, so the entry above the chart holds still while the reader scans the stars.
+  // The picked model, or the frontier's newest record when none is picked: the readout rests on it while no star is pointed at, and it is the chart's one tab stop.
   const chosen = picked ?? frontier.at(-1) ?? visible.at(-1);
   const height = compact ? 400 : 520;
   const margin = scatterChartMargin(SCATTER_CHART_MARGIN, compact);
@@ -109,9 +118,14 @@ export function timelineScene({
   // Stars share the Pareto plot's scale; this field is far denser, so they sit at the small end of it.
   const markRadius = (point: TimelinePoint) => (frontierIds.has(point.id) ? 2.8 : 2.4);
   const pointRadius = (point: TimelinePoint) =>
-    (chosen?.id === point.id ? 3.6 : markRadius(point)) * (1.4 - 0.4 * arrived(point));
-  // While a star is hovered its lab stays lit and the other labs dim, as other models do on Pareto; a replay fades each model in.
-  const dimmed = (point: TimelinePoint) => preview != null && preview.provider !== point.provider;
+    (picked?.id === point.id ? 3.6 : markRadius(point)) * (1.4 - 0.4 * arrived(point));
+  // A standings row keeps its lab lit while the other labs dim; while the field holds a query, only the stars it matches stay lit; the star under the pointer never dims. A replay fades each model in.
+  const dimmed = (point: TimelinePoint) =>
+    point.id !== preview?.id &&
+    (standingLab != null
+      ? standingLab !== point.provider
+      : matches != null && !matches.has(point.id));
+  const matched = (point: TimelinePoint) => standingLab == null && matches?.has(point.id) === true;
   const pointOpacity = (point: TimelinePoint) =>
     (dimmed(point) ? MUTED_STAR_GLOW : 1) * arrived(point);
   const highlights = byScore.slice(0, 3);
@@ -129,7 +143,7 @@ export function timelineScene({
           const cx = xPoint(point);
           return cx >= plotBounds.left - 8 && cx <= plotBounds.right + 8;
         });
-  // The settled chart names its frontier curve, as Pareto names its frontier, and always the picked model, GPT-4, and its leaders, which take priority over the curve's newest models and then its oldest, so a crowded stretch, as on a phone, keeps those names first; a replay names the curve models its camera frames.
+  // The settled chart names its frontier curve, as Pareto names its frontier, and always the picked model, the located ones in their pills' order, GPT-4, and its leaders, which take priority over the curve's newest models and then its oldest, so a crowded stretch, as on a phone, keeps those names first; a replay names the curve models its camera frames.
   const labelled =
     frame != null
       ? curve.filter((point) => drawn.includes(point))
@@ -137,6 +151,7 @@ export function timelineScene({
           ...new Map(
             [
               ...(picked && drawn.includes(picked) ? [picked] : []),
+              ...[...located.keys()].flatMap((id) => drawn.filter((point) => point.id === id)),
               ...(gpt4 ? [gpt4] : []),
               ...highlights,
               ...[...curve].reverse(),
@@ -154,7 +169,7 @@ export function timelineScene({
     frame == null && labNewest != null && !labelled.includes(labNewest) ? [labNewest] : [];
   const yTicks = y.ticks(5);
   const scaleAnchorBoxes = compact
-    ? insetScaleAnchors(yTicks, y, margin.left, String).map(({ box }) => box)
+    ? insetScaleAnchors(yTicks, y, margin.left, plotBounds.bottom, String).map(({ box }) => box)
     : [];
   const ticks = x.ticks(compact ? 4 : 7).map(Number);
   // In a replay the newest record's level climbs from the one it beat, and the reached region ends at the reveal until the camera settles.
@@ -198,17 +213,17 @@ export function timelineScene({
     bounds: plotBounds,
     rim,
     trail,
-    muted: preview != null,
+    muted: standingLab != null || matches != null,
     stars: drawn.map((point) => ({
       key: point.id,
       x: xPoint(point),
       y: y(point.score),
       color: providerChartColor(point.provider),
-      // The focused lab's records take the record stars' rays, so its line is read star by star.
+      // The focused lab's records take the record stars' rays, so its line is read star by star, and so do the stars a find query matches, so they stand out of the dimmed field.
       role:
         point === leader
           ? "leader"
-          : frontierIds.has(point.id) || labStarIds.has(point.id)
+          : frontierIds.has(point.id) || labStarIds.has(point.id) || matched(point)
             ? "frontier"
             : "star",
       glow: pointOpacity(point),
@@ -216,6 +231,7 @@ export function timelineScene({
     })),
     // Only a star the reader hovers or picks flares, as on Pareto; the readout's default leader stays a plain leader star.
     flare: (preview ?? picked)?.id ?? null,
+    found: [...located].map(([key, at]) => ({ key, at })),
     compact,
   };
   return {

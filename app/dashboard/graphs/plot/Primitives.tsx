@@ -40,6 +40,7 @@ const AXIS_TICK_LENGTH = 7;
 // Inset scale anchors are mono digits at the phone micro size, about 6px wide and 8px above the baseline; their box rounds both up and keeps 3px below.
 const SCALE_ANCHOR_CHAR_WIDTH = 6.5;
 const SCALE_ANCHOR_ASCENT = 9;
+const SCALE_ANCHOR_DESCENT = 3;
 
 /** Keep compact titles above the plot and inset scale labels within its narrow gutters. */
 export function scatterChartMargin(margin: Margin, compact: boolean): Margin {
@@ -170,7 +171,7 @@ const HORIZON_SKY = [
 const HORIZON_HALO = { width: 3, blur: 2.5 } as const;
 
 /** The horizon's cobalt-to-violet-to-rose light as SVG gradient stops, matching the --horizon-gradient token; literal so PNG exports, which drop stylesheet rules inside SVG, keep the same light. */
-function HorizonLightStops() {
+export function HorizonLightStops() {
   return (
     <>
       <stop offset="0" stopColor="#4a72ff" />
@@ -407,6 +408,7 @@ export function XAxisTicks({
   format,
   keyPrefix,
   labelMinGap = 0,
+  tickGap = 0,
 }: {
   ticks: number[];
   xPoint: (value: number) => number;
@@ -414,6 +416,8 @@ export function XAxisTicks({
   format: (value: number) => string;
   keyPrefix: string;
   labelMinGap?: number;
+  /** Tick marks begin this far below the plot's edge, clearing a mark that straddles it; labels keep their place, where cursor readings also sit. */
+  tickGap?: number;
 }) {
   let lastLabelX = Number.NEGATIVE_INFINITY;
   const labelVisibility = ticks.map((tick) => {
@@ -430,8 +434,8 @@ export function XAxisTicks({
         className={styles.axisTick}
         x1={xPoint(tick)}
         x2={xPoint(tick)}
-        y1={y}
-        y2={y + AXIS_TICK_LENGTH}
+        y1={y + tickGap}
+        y2={y + tickGap + AXIS_TICK_LENGTH}
       />
       {labelVisibility[index] ? (
         <text className={styles.axisLabel} x={xPoint(tick)} y={y + 24} textAnchor="middle">
@@ -449,19 +453,22 @@ export function YAxisTicks({
   x,
   format,
   keyPrefix,
-  insetRight,
+  inset,
   showGridLines = true,
+  tickGap = 0,
 }: {
   ticks: number[];
   yPoint: (value: number) => number;
   x: number;
   format: (value: number) => string;
   keyPrefix: string;
-  insetRight?: number;
+  /** The plot's right and bottom edges, given only to compact plots, whose scale labels sit inside the plot. */
+  inset?: { right: number; bottom: number };
   showGridLines?: boolean;
+  /** Tick marks begin this far left of the plot's edge, and inset scale labels this much further inside, clearing a mark that straddles it; outside labels keep their place, where cursor readings also sit. */
+  tickGap?: number;
 }) {
-  const inset = insetRight != null;
-  const anchors = inset ? insetScaleAnchors(ticks, yPoint, x, format) : [];
+  const anchors = inset ? insetScaleAnchors(ticks, yPoint, x + tickGap, inset.bottom, format) : [];
   return ticks.map((tick) => {
     const anchor = anchors.find((candidate) => candidate.tick === tick);
     return (
@@ -469,8 +476,8 @@ export function YAxisTicks({
         {(!inset || showGridLines) && (
           <line
             className={inset ? styles.scaleGrid : styles.axisTick}
-            x1={inset ? x : x - AXIS_TICK_LENGTH}
-            x2={insetRight ?? x}
+            x1={inset ? x : x - tickGap - AXIS_TICK_LENGTH}
+            x2={inset?.right ?? x - tickGap}
             y1={yPoint(tick)}
             y2={yPoint(tick)}
           />
@@ -490,20 +497,22 @@ export function YAxisTicks({
 }
 
 /**
- * The inset scale anchors a compact plot keeps: the first, middle, and last ticks, the first set above its gridline and the others below.
+ * The inset scale anchors a compact plot keeps: the first, middle, and last ticks, each set below its gridline unless that would leave the plot above `bottom`, when it sits above.
  * Each `box` bounds its text at the phone micro size, so labels placed around the anchors can keep clear of them.
  */
 export function insetScaleAnchors(
   ticks: number[],
   yPoint: (value: number) => number,
   x: number,
+  bottom: number,
   format: (value: number) => string,
 ) {
   const middle = Math.floor((ticks.length - 1) / 2);
   return ticks.flatMap((tick, index) => {
     if (index !== 0 && index !== middle && index !== ticks.length - 1) return [];
     const anchorX = x + 6;
-    const anchorY = yPoint(tick) + (index === 0 ? -6 : 14);
+    const below = yPoint(tick) + 14;
+    const anchorY = below + SCALE_ANCHOR_DESCENT <= bottom ? below : yPoint(tick) - 6;
     return [
       {
         tick,
@@ -513,7 +522,7 @@ export function insetScaleAnchors(
           left: anchorX,
           right: anchorX + format(tick).length * SCALE_ANCHOR_CHAR_WIDTH,
           top: anchorY - SCALE_ANCHOR_ASCENT,
-          bottom: anchorY + 3,
+          bottom: anchorY + SCALE_ANCHOR_DESCENT,
         },
       },
     ];

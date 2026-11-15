@@ -2,6 +2,7 @@
 
 import { isAggregateIndex } from "../../../../src/model-atlas/benchmarks/index-policy";
 import { formatResourceRatio } from "../../../shared/resource-ratio-display";
+import type { ReadoutFact } from "../ChartReadout";
 import {
   formatCompact,
   formatDurationShort,
@@ -9,7 +10,6 @@ import {
   formatPercentScore,
   formatTooltipScore,
 } from "../format";
-import type { HoverRow } from "../HoverCard";
 import {
   type AxisScale,
   linearAxisScale,
@@ -26,8 +26,6 @@ import {
   positiveMetric,
 } from "./analysis";
 
-type FrontierBenchmarkResourceMetric = Exclude<FrontierBenchmarkAxisKey, "speed" | "value">;
-
 export const PERFORMANCE_SCORES = [
   { key: "intelligence", label: "Intelligence" },
   { key: "agentic", label: "Agentic" },
@@ -38,7 +36,6 @@ type FrontierBenchmarkAxisConfig = {
   shortLabel: string;
   get: (row: FrontierBenchmarkRow) => number | null;
   format: (value: number) => string;
-  detailLabel: (row: FrontierBenchmarkRow) => string;
   normalizedLabel: string;
   xHigherIsBetter?: boolean;
   logarithmic?: boolean;
@@ -53,7 +50,6 @@ export const frontierBenchmarkAxisConfig: Record<
     shortLabel: "Cost",
     get: (row) => frontierAxisValue(row, "cost"),
     format: formatMoney,
-    detailLabel: (row) => resourceMetricLabel(row, "cost"),
     normalizedLabel: "Cost× ↓",
   },
   time: {
@@ -61,7 +57,6 @@ export const frontierBenchmarkAxisConfig: Record<
     shortLabel: "Time",
     get: (row) => frontierAxisValue(row, "time"),
     format: formatDurationShort,
-    detailLabel: (row) => resourceMetricLabel(row, "time"),
     normalizedLabel: "Time× ↓",
   },
   tokens: {
@@ -69,7 +64,6 @@ export const frontierBenchmarkAxisConfig: Record<
     shortLabel: "Tokens",
     get: (row) => frontierAxisValue(row, "tokens"),
     format: formatCompact,
-    detailLabel: (row) => resourceMetricLabel(row, "tokens"),
     normalizedLabel: "Tokens× ↓",
   },
   speed: {
@@ -77,7 +71,6 @@ export const frontierBenchmarkAxisConfig: Record<
     shortLabel: "Speed Score",
     get: (row) => frontierAxisValue(row, "speed"),
     format: formatTooltipScore,
-    detailLabel: () => "Speed Score",
     normalizedLabel: "Speed Score",
     xHigherIsBetter: true,
   },
@@ -86,7 +79,6 @@ export const frontierBenchmarkAxisConfig: Record<
     shortLabel: "Value Score",
     get: (row) => frontierAxisValue(row, "value"),
     format: formatTooltipScore,
-    detailLabel: () => "Value Score",
     normalizedLabel: "Value Score",
     xHigherIsBetter: true,
   },
@@ -111,7 +103,6 @@ export function frontierBenchmarkAxisConfigFor(
     label: axisConfig.normalizedLabel,
     shortLabel: `${axisConfig.shortLabel}×`,
     format: formatResourceRatio,
-    detailLabel: () => axisConfig.normalizedLabel,
     logarithmic: true,
   };
 }
@@ -181,12 +172,16 @@ export function frontierXAxisScale(
   });
 }
 
-/** Describe exactly the two plotted coordinates, retaining native units and published-score identity. */
-export function frontierBenchmarkHoverRows(
+/**
+ * The readout's facts for both plotted coordinates in their native units, then how many benchmarks the resource was measured on.
+ * `noun` names the X measure as a frontier step does, such as `cost` or `Speed Score`.
+ */
+export function frontierBenchmarkReadoutFacts(
   row: FrontierBenchmarkRow,
   axisConfig: FrontierBenchmarkAxisConfig,
-  performance: PerformanceMetric = "benchmarks",
-): HoverRow[] {
+  noun: string,
+  performance: PerformanceMetric,
+): ReadoutFact[] {
   const publishedScore = performance !== "benchmarks";
   const label = publishedScore
     ? `${performance === "intelligence" ? "Intelligence" : "Agentic"} Score`
@@ -195,59 +190,23 @@ export function frontierBenchmarkHoverRows(
       : row.benchmarkKey === "ale_bench"
         ? "Normalized ALE-Bench Score"
         : `${row.benchmarkLabel} Score`;
+  const count = row.resourceCount;
   return [
-    [
+    {
       label,
-      publishedScore ||
-      isAggregateIndex(row.benchmarkKey) ||
-      row.benchmarkKey === "all" ||
-      row.benchmarkKey === "ale_bench"
-        ? formatTooltipScore(row.score)
-        : formatPercentScore(row.score),
-    ],
-    [axisConfig.detailLabel(row), axisConfig.format(axisConfig.get(row) ?? 0)],
-    ...(row.resourceCount == null
-      ? []
-      : [["Measured benchmarks", String(row.resourceCount)] as HoverRow]),
-    ...(publishedScore
-      ? [
-          [
-            "Performance basis",
-            "Published; includes supported estimates and coverage adjustments",
-          ] as HoverRow,
-        ]
-      : []),
+      value:
+        publishedScore ||
+        isAggregateIndex(row.benchmarkKey) ||
+        row.benchmarkKey === "all" ||
+        row.benchmarkKey === "ale_bench"
+          ? formatTooltipScore(row.score)
+          : formatPercentScore(row.score),
+    },
+    `${axisConfig.format(axisConfig.get(row) ?? 0)} ${noun}`,
+    ...(count == null ? [] : [`${count} measured ${count === 1 ? "benchmark" : "benchmarks"}`]),
   ];
-}
-
-function resourceMetricLabel(
-  row: FrontierBenchmarkRow,
-  metric: FrontierBenchmarkResourceMetric,
-): string {
-  if (row.benchmarkKey === "all") {
-    return `Normalized ${resourceMetricName(metric)}`;
-  }
-  const policy = row.resourcePolicy;
-  if (policy == null) {
-    return `${row.benchmarkLabel} ${resourceMetricName(metric)}`;
-  }
-  const metricName = resourceMetricName(metric);
-  if (policy.unit === "total") {
-    return `${row.benchmarkLabel} total ${metricName}`;
-  }
-  return `${row.benchmarkLabel} ${metricName} per task`;
 }
 
 function resourceUnitPhrase(row?: FrontierBenchmarkRow): string {
   return row?.resourcePolicy?.unit === "total" ? "for the full run" : "per task";
-}
-
-function resourceMetricName(metric: FrontierBenchmarkResourceMetric): string {
-  if (metric === "time") {
-    return "time";
-  }
-  if (metric === "cost") {
-    return "cost";
-  }
-  return "total tokens";
 }

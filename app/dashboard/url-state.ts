@@ -30,7 +30,7 @@ export type DashboardUrlState = {
   "max-cost": CostFilter;
   rank: ModelRankFilter;
   days: RecencyFilter;
-  "column-q": string;
+  "table-q": string;
   "table-variants": boolean;
   /** The reasoning efforts the leaderboard's variant rows keep; `null` keeps every effort. */
   "table-effort": string[] | null;
@@ -55,7 +55,7 @@ export const GRAPH_VARIANTS_COOKIE = "model-atlas-graph-variants";
 const tableKeys = new Set<DashboardUrlKey>([
   "view",
   "sort",
-  "column-q",
+  "table-q",
   "table-variants",
   "table-effort",
 ]);
@@ -138,9 +138,13 @@ export function readUrlValue<K extends DashboardUrlKey>(
       break;
     case "benchmark": {
       const values = params.getAll(key);
-      // A pick may name one metric source of a benchmark, so its source suffix is dropped before lookup: "gdp_pdf__source_b" → "gdp_pdf".
+      // An older link may name one source of a benchmark, which picks the whole benchmark: "gdp_pdf__source_b" → "gdp_pdf".
       const valid = [
-        ...new Set(values.filter((item) => benchmarkKeys.has(item.replace(/__source_[abc]$/, "")))),
+        ...new Set(
+          values
+            .map((item) => item.replace(/__source_[abc]$/, ""))
+            .filter((item) => benchmarkKeys.has(item)),
+        ),
       ];
       result = values.includes("none") ? [] : valid.length > 0 ? valid : null;
       break;
@@ -180,7 +184,7 @@ export const DEFAULT_GLOBAL_MODEL_FILTERS = readGlobalModelFilters(new URLSearch
 export function patchDashboardUrl(url: URL, patch: DashboardUrlPatch): URL {
   const next = new URL(url);
   // Shared links may still carry these retired parameters.
-  next.searchParams.delete("table-q");
+  next.searchParams.delete("column-q");
   next.searchParams.delete("column-order");
   const keys = Object.keys(patch) as DashboardUrlKey[];
   for (const key of keys) {

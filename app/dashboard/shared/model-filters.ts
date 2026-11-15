@@ -12,8 +12,13 @@ const MILLISECONDS_PER_DAY = 86_400_000;
 const PROVIDER_FILTER_LIMIT = 14;
 const PROVIDER_ORDER_TOP_SCORE_COUNT = 3;
 
-export type ModelRankFilter = 30 | 50 | 70 | "all";
-export type RecencyFilter = 90 | 180 | "all";
+// Each filter's steps run from its strictest limit to none, the order the filter menu lays them along a track; every step admits a usefully larger share of today's models.
+export const modelRankFilterOptions = [10, 20, 30, 50, 70, "all"] as const;
+export const recencyFilterOptions = [30, 60, 90, 180, 365, "all"] as const;
+export const costFilterOptions: readonly CostFilter[] = [0.02, 0.05, 0.1, 0.25, 0.5, 1, "all"];
+
+export type ModelRankFilter = (typeof modelRankFilterOptions)[number];
+export type RecencyFilter = (typeof recencyFilterOptions)[number];
 export type CostFilter = "all" | number;
 export type ProviderOption = {
   slug: string;
@@ -36,12 +41,9 @@ type GlobalModelFilterScope = {
   rankingModels: readonly ModelAtlasModel[];
 };
 
-export const costFilterOptions: CostFilter[] = ["all", 0.05, 0.1, 0.25, 0.5, 1];
 export const DEFAULT_MODEL_RANK_FILTER: ModelRankFilter = "all";
 // Older models are mostly superseded and crowd the sky and charts, while a 90-day window would also drop models still among the leaders.
 export const DEFAULT_RECENCY_FILTER: RecencyFilter = 180;
-export const modelRankFilterOptions: ModelRankFilter[] = [30, 50, 70, "all"];
-export const recencyFilterOptions: RecencyFilter[] = [90, 180, "all"];
 
 /**
  * Apply the global filters in one order for every view: search, then provider and cost, then release recency, then Intelligence rank.
@@ -232,7 +234,7 @@ function finiteNumber(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
-function modelSearchDocument<T>(value: T, model: ModelAtlasModel): SearchDocument<T> {
+export function modelSearchDocument<T>(value: T, model: ModelAtlasModel): SearchDocument<T> {
   return {
     value,
     primary: [

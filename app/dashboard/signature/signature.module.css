@@ -256,6 +256,7 @@
 }
 
 .registerItem {
+  --rule-gutter: 16px;
   position: relative;
   display: grid;
   align-content: start;
@@ -293,27 +294,10 @@
   }
 }
 
-/* Each entry carries its model's star at the head of its rule, in the provider's colour, and the star lights the rule as it fades into the night. */
-.registerItem::before {
-  position: absolute;
-  top: -10px;
-  left: -2px;
-  width: 19px;
-  height: 19px;
-  background:
-    radial-gradient(
-      circle,
-      #fff 0 0.9px,
-      color-mix(in oklab, var(--provider) 70%, #fff) 1.7px,
-      color-mix(in oklab, var(--provider) 40%, transparent) 3.2px,
-      transparent 6.5px
-    ),
-    linear-gradient(90deg, transparent, color-mix(in oklab, var(--provider) 60%, #fff), transparent)
-      center / 100% 1px no-repeat,
-    linear-gradient(transparent, color-mix(in oklab, var(--provider) 60%, #fff), transparent) center
-      / 1px 72% no-repeat;
-  filter: drop-shadow(0 0 4px var(--provider));
-  content: "";
+/* Each rule is its role's score track: the model's star, the plots' frontier star, sits at the score the entry reads first, out of 100, over a trail that brightens toward it in the provider's colour, drawn as the leaderboard's score trails are, and the track ends where the column's gutter begins. */
+.registerStar {
+  top: -0.5px;
+  left: calc((100% - var(--rule-gutter)) * var(--score, 0) / 100);
   transition: transform 220ms ease;
 }
 
@@ -321,24 +305,15 @@
   position: absolute;
   top: -1px;
   left: 0;
-  width: 75%;
+  width: calc((100% - var(--rule-gutter)) * var(--score, 0) / 100);
   height: 1px;
-  background: linear-gradient(
-    90deg,
-    color-mix(in oklab, var(--provider) 80%, transparent),
-    transparent
-  );
+  background: linear-gradient(90deg, transparent, var(--provider));
   content: "";
-  transition: width 220ms ease;
 }
 
-/* Hovering a role lights its star in the sky; the register answers by brightening its own star and lighting its whole rule. */
-.registerItem[data-focused="true"]::before {
-  transform: scale(1.3);
-}
-
-.registerItem[data-focused="true"]::after {
-  width: calc(100% - 16px);
+/* Hovering a role lights its star in the sky; the register answers by enlarging its own star. */
+.registerItem[data-focused="true"] .registerStar {
+  transform: translate(-50%, -50%) scale(1.3);
 }
 
 /* Each role opens its model sheet through a button laid over the whole entry, so the register keeps its layout and halo. */
@@ -477,12 +452,9 @@
   }
 
   .registerItem {
+    --rule-gutter: 0px;
     gap: 7px;
     padding: 15px 0 0;
-  }
-
-  .registerItem[data-focused="true"]::after {
-    width: 100%;
   }
 
   /* A long name wraps under its logo rather than losing its end in a half-width column. */

@@ -2,12 +2,12 @@
 
 /** The leaderboard's display controls: a typed row limit that accepts any count within the row total rather than presets, and the effort picker that switches between one row per model and the chosen efforts' reasoning variants. */
 
-import { type SyntheticEvent, useEffect, useRef, useState } from "react";
+import { type CSSProperties, type SyntheticEvent, useEffect, useRef, useState } from "react";
 
 import { useDismissibleDetails } from "../shared/use-dismissible-details";
 import type { EffortChoice } from "./leaderboard-rows";
 
-import basket from "../graphs/graphs.module.css";
+import checklist from "../shared/checklist.module.css";
 import styles from "./display-controls.module.css";
 
 const MINIMUM_DISPLAY_ITEMS = 3;
@@ -32,8 +32,8 @@ export type DisplayControlsProps = {
   efforts: EffortSelectProps;
 };
 
-/** `default` shows one row per model; otherwise the rows are the chosen efforts' reasoning variants, `null` choosing every effort. */
-export type EffortSelection = "default" | string[] | null;
+/** `collapsed` shows one row per model; otherwise the rows are the chosen efforts' reasoning variants, `null` choosing every effort. */
+export type EffortSelection = "collapsed" | string[] | null;
 
 type EffortSelectProps = {
   options: readonly EffortChoice[];
@@ -42,10 +42,10 @@ type EffortSelectProps = {
   onChange: (selection: EffortSelection) => void;
 };
 
-const DEFAULT_TITLE =
+const COLLAPSED_TITLE =
   "One row per model: its strongest effort, with other efforts' direct results filling its gaps";
 
-/** Commit a typed count on Enter or blur so editing a multi-digit value does not prematurely clamp its first digit. */
+/** Commit a typed count on Enter or blur so editing a multi-digit value does not prematurely clamp its first digit; committing a cleared field restores the default count. */
 export function DisplayControls({
   itemKind,
   maximum,
@@ -58,7 +58,10 @@ export function DisplayControls({
   useEffect(() => setDraft(String(value)), [value]);
   const commit = (event: SyntheticEvent<HTMLInputElement>) => {
     const requested = event.currentTarget.valueAsNumber;
-    const next = Number.isFinite(requested) ? clampDisplayLimit(requested, maximum) : value;
+    const next = clampDisplayLimit(
+      Number.isFinite(requested) ? requested : DEFAULT_DISPLAY_ITEMS,
+      maximum,
+    );
     setDraft(String(next));
     if (next !== value) onValueChange(next);
   };
@@ -93,7 +96,7 @@ export function DisplayControls({
 }
 
 /**
- * `default` above an effort checklist, the two exclusive: ticking an effort leaves default, and unticking the last returns to it.
+ * `Collapsed` above the expanded efforts' checklist, the two exclusive: ticking an effort expands the rows, and unticking the last collapses them again.
  * Choosing every effort reports `null`, so efforts that later enter the options stay chosen.
  */
 function EffortSelect({ options, modelCount, selected, onChange }: EffortSelectProps) {
@@ -101,47 +104,48 @@ function EffortSelect({ options, modelCount, selected, onChange }: EffortSelectP
   const bulkRef = useRef<HTMLInputElement>(null);
   useDismissibleDetails(rootRef);
   const keys = options.map((option) => option.key);
-  const active = new Set(selected === "default" ? [] : (selected ?? keys));
+  const active = new Set(selected === "collapsed" ? [] : (selected ?? keys));
   const all = keys.length > 0 && keys.every((key) => active.has(key));
   const some = keys.some((key) => active.has(key));
   useEffect(() => {
     if (bulkRef.current) bulkRef.current.indeterminate = !all && some;
   }, [all, some]);
   const choose = (chosen: string[]) =>
-    onChange(chosen.length === 0 ? "default" : chosen.length === keys.length ? null : chosen);
+    onChange(chosen.length === 0 ? "collapsed" : chosen.length === keys.length ? null : chosen);
   const summary =
-    selected === "default"
-      ? "default"
+    selected === "collapsed"
+      ? "Collapsed"
       : selected == null
         ? "All"
         : selected.length === 1
           ? selected[0]
           : String(selected.length);
   return (
-    <details ref={rootRef} className={`${basket.benchmarkSelect} ${styles.effort}`}>
+    <details ref={rootRef} className={`${checklist.picker} ${styles.effort}`}>
       <summary
-        aria-label={`Reasoning efforts: ${selected === "default" ? "default, one row per model" : selected == null ? "all" : selected.join(", ") || "none"}`}
+        aria-label={`Reasoning efforts: ${selected === "collapsed" ? "collapsed, one row per model" : selected == null ? "all" : selected.join(", ") || "none"}`}
       >
         Effort · {summary}
       </summary>
-      <div className={`${basket.benchmarkSelectMenu} ${styles.effortMenu}`}>
+      <div className={`${checklist.menu} ${styles.effortMenu}`}>
         <label
-          className={`${basket.benchmarkSelectOption} ${styles.effortRow} ${styles.defaultRow}`}
-          title={DEFAULT_TITLE}
+          className={`${checklist.row} ${checklist.all} ${styles.effortRow} ${styles.collapsedRow}`}
+          title={COLLAPSED_TITLE}
         >
           <input
             type="radio"
-            aria-label="default: one row per model"
-            checked={selected === "default"}
-            onChange={() => onChange("default")}
+            aria-label="Collapsed: one row per model"
+            checked={selected === "collapsed"}
+            onChange={() => onChange("collapsed")}
           />
-          <span className={basket.benchmarkSelectOptionMark} aria-hidden="true" />
-          <span className={basket.benchmarkSelectOptionLabel}>default</span>
-          <span className={basket.benchmarkSelectOptionCoverage}>{modelCount} models</span>
+          <span className={checklist.mark} aria-hidden="true" />
+          <span className={checklist.label}>Collapsed</span>
+          <span className={checklist.figure}>{modelCount} models</span>
         </label>
-        <div className={basket.benchmarkSelectOptions}>
-          <div className={`${basket.benchmarkSelectHeader} ${styles.effortRow}`}>
-            <label className={basket.benchmarkSelectBulk}>
+        {/* One figure column, each effort's variant count. */}
+        <div className={checklist.options} style={{ "--figures": 1 } as CSSProperties}>
+          <div className={`${checklist.header} ${styles.effortRow}`}>
+            <label className={checklist.bulk}>
               <input
                 ref={bulkRef}
                 type="checkbox"
@@ -149,16 +153,13 @@ function EffortSelect({ options, modelCount, selected, onChange }: EffortSelectP
                 checked={all}
                 onChange={() => choose(all ? [] : keys)}
               />
-              <span className={basket.benchmarkSelectBulkMark} aria-hidden="true" />
+              <span className={checklist.mark} aria-hidden="true" />
             </label>
-            <span>Effort</span>
-            <span className={basket.benchmarkSelectOptionCoverage}>#Variants</span>
+            <span className={`${checklist.label} ${styles.expandedLabel}`}>Expanded</span>
+            <span className={checklist.figure}>#Variants</span>
           </div>
           {options.map((option) => (
-            <label
-              key={option.key}
-              className={`${basket.benchmarkSelectOption} ${styles.effortRow}`}
-            >
+            <label key={option.key} className={`${checklist.row} ${styles.effortRow}`}>
               <input
                 type="checkbox"
                 aria-label={option.key}
@@ -171,9 +172,9 @@ function EffortSelect({ options, modelCount, selected, onChange }: EffortSelectP
                   )
                 }
               />
-              <span className={basket.benchmarkSelectOptionMark} aria-hidden="true" />
-              <span className={basket.benchmarkSelectOptionLabel}>{option.key}</span>
-              <span className={basket.benchmarkSelectOptionCoverage}>{option.count}</span>
+              <span className={checklist.mark} aria-hidden="true" />
+              <span className={checklist.label}>{option.key}</span>
+              <span className={checklist.figure}>{option.count}</span>
             </label>
           ))}
         </div>

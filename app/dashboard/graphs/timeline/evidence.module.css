@@ -1,0 +1,233 @@
+/* Styles for the Timeline's evidence relay: its key, the readout pinned above the relay plot of benchmark threads over typical miss, and the picked model's results table. */
+
+.relay {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  margin-top: 20px;
+}
+
+/* The relay's key: a thread for a benchmark and for an index, and the dot a focused model's line sets on each benchmark it was measured on. */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+}
+
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend i {
+  width: 16px;
+  height: 1.6px;
+  border-radius: 1px;
+  background: rgb(var(--ink-rgb) / 0.7);
+}
+
+.legend i[data-index] {
+  background: var(--horizon-violet);
+}
+
+.legend i[data-measured] {
+  width: 4.4px;
+  height: 4.4px;
+  border-radius: 50%;
+  background: var(--selection-star);
+}
+
+.plot {
+  min-width: 0;
+}
+
+.plot svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  cursor: crosshair;
+  touch-action: pan-y;
+}
+
+.plot svg:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+.caption {
+  fill: var(--faint);
+  font: 500 var(--type-caption-size) var(--font-mono);
+}
+
+/* Below the micro size, since every thread's name shares the field on a row of its own. */
+.label {
+  fill: var(--muted);
+  font: 500 8px var(--font-mono);
+}
+
+/* A name that starts at the plot's left edge covers its own thread's start, so each is backed by the panel's paper. */
+.labelBack {
+  fill: var(--paper);
+}
+
+.tick {
+  fill: var(--faint);
+  font: 500 var(--type-caption-size) var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.grid {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+/* Task benchmarks are starlight and indexes the horizon's violet, so the eras the indexes carry read apart from the tasks that took over. */
+.thread {
+  stroke: rgb(var(--ink-rgb));
+  stroke-linecap: round;
+}
+
+.thread[data-index] {
+  stroke: var(--horizon-violet);
+}
+
+.thread[data-lit] {
+  stroke: var(--selection-star);
+}
+
+/* The thread under the pointer reads in ink among the lit threads of the model it points at. */
+.thread[data-focus] {
+  stroke: rgb(var(--ink-rgb));
+  stroke-opacity: 1;
+}
+
+[data-focus] > .label {
+  fill: var(--ink);
+}
+
+.star {
+  fill: rgb(var(--ink-rgb) / 0.8);
+}
+
+.star[data-strip] {
+  fill: rgb(var(--ink-rgb) / 0.4);
+}
+
+.star[data-lit] {
+  fill: var(--selection-star);
+}
+
+.median {
+  fill: none;
+  stroke: var(--selection-star);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+/* A focused model's plumb line rises from its star to the scale, with a dot where it crosses each thread it was measured on at its release. */
+.plumb {
+  stroke: var(--selection-star);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+  opacity: 0.7;
+}
+
+.crossing {
+  fill: var(--selection-star);
+}
+
+/* The readout holds two of the charts' readout lines, each 20px under an 8px margin, whatever it names, so moving across the relay on a wide screen never shifts the page; a phone wraps their facts onto more rows. It stays pinned under the dashboard rail, so whatever the pointer reads in the tall relay stays in view. */
+.readout {
+  position: sticky;
+  z-index: 1;
+  top: var(--dashboard-rail-height, 48px);
+  display: flow-root;
+  min-width: 0;
+  min-height: calc(2 * (8px + 20px) + 6px);
+  padding-bottom: 6px;
+  background: var(--paper);
+}
+
+.hint {
+  margin: 8px 0 0;
+  color: var(--faint);
+  font: 500 var(--type-caption-size) / 1.5 var(--font-mono);
+}
+
+/* The picked model's results: a sentence on how it is measured and placed, then one row per benchmark under a header of fixed height. */
+.results {
+  --evidence-head: 30px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.results > p {
+  margin: 0;
+  color: var(--muted);
+  font: 500 var(--type-caption-size) / 1.5 var(--font-mono);
+}
+
+.results strong {
+  color: var(--ink);
+  font-weight: var(--type-label-weight);
+}
+
+/* Wide enough that a phone scrolls the table sideways under its pinned benchmark names rather than crushing the path column. */
+.resultsTable {
+  width: 100%;
+  min-width: 560px;
+}
+
+.resultsTable th,
+.resultsTable td {
+  padding: 0 16px 0 0;
+  color: var(--muted);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.resultsTable thead th {
+  height: var(--evidence-head);
+  padding-bottom: 6px;
+  color: var(--faint);
+  font-size: var(--type-micro-size);
+  line-height: 12px;
+}
+
+/* The cell's padding and the sort mark's 12px line set every label on one baseline, the plain Result label included. */
+.resultsTable thead button {
+  padding-block: 0;
+}
+
+.resultsTable :is(th, td):nth-child(2) {
+  padding-right: 28px;
+  text-align: right;
+}
+
+.resultsTable tbody th {
+  font-size: var(--type-caption-size);
+  font-weight: 500;
+}
+
+.resultsTable td:nth-child(2) {
+  color: var(--ink);
+}
+
+/* An estimate reads quieter than a measurement in every column. */
+.resultsTable tr[data-estimated] > * {
+  color: var(--muted);
+}
+
+.resultsTable em {
+  color: var(--faint);
+  font-style: normal;
+}
+
+/* The path column takes the remaining width and ends a long chain in an ellipsis. */
+.resultsTable td:last-child {
+  width: 100%;
+  max-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

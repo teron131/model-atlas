@@ -1,0 +1,356 @@
+/* Styles for the dashboard's checklists: the disclosure a picker opens from, the checklist inside it with its search, All row, sortable columns, and ticked rows, and the sort control the evidence tables share with them. */
+
+/* Only the closed control reads as a label in its toolbar's type; inside, names keep their own case and regular weight. */
+.picker {
+  flex: 0 0 auto;
+  min-width: 0;
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+}
+
+.picker summary {
+  display: flex;
+  min-height: 30px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 0 2px;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  white-space: nowrap;
+  cursor: pointer;
+  list-style: none;
+}
+
+.picker summary::after {
+  min-width: 12px;
+  color: var(--faint);
+  content: "▾";
+  text-align: right;
+}
+
+.picker[open] summary::after {
+  color: var(--ink);
+  content: "▴";
+}
+
+.picker summary::-webkit-details-marker {
+  display: none;
+}
+
+.picker summary[aria-current="true"],
+.picker summary:hover {
+  color: var(--ink);
+}
+
+.picker summary:focus-visible,
+.search input:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.menu {
+  position: absolute;
+  z-index: 8;
+  top: calc(100% + 8px);
+  left: 0;
+  width: min(420px, calc(100vw - (var(--page-gutter) * 2)));
+  border: 1px solid var(--line-strong);
+  background: var(--paper);
+  box-shadow: var(--tooltip-shadow);
+  font-weight: 500;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+/* A menu that must escape a scrolling choice strip sits in the top layer, keeping the surface theme. */
+.menu[popover] {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  padding: 0;
+  width: min(420px, calc(100vw - 24px));
+  overflow-y: auto;
+}
+
+.checklist {
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: var(--type-label-size);
+  font-weight: 500;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.search {
+  display: block;
+  padding: 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.search input {
+  width: 100%;
+  min-height: 34px;
+  padding: 0 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--type-caption-size);
+}
+
+.search input::placeholder {
+  color: var(--faint);
+}
+
+.note {
+  margin: 0;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: var(--type-micro-size);
+}
+
+/* The header and rows share the list's columns: the mark, the name, then one column per figure, as wide as its widest entry, so every figure lines up down the list. The rows' 10px inset falls inside a subgrid's edge columns, so the mark's column is its 14px plus that inset. */
+.options {
+  display: grid;
+  grid-template-columns: calc(14px + 10px) minmax(0, 1fr) repeat(
+      var(--figures),
+      minmax(48px, max-content)
+    );
+  column-gap: 9px;
+  max-height: 320px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.header,
+.options > .row {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+}
+
+.header,
+.row {
+  padding: 0 10px;
+}
+
+.header {
+  position: sticky;
+  z-index: 1;
+  top: 0;
+  min-height: 30px;
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--faint);
+  font-size: var(--type-micro-size);
+}
+
+.sortHeader {
+  display: flex;
+  min-width: 0;
+}
+
+.sortHeader:nth-child(n + 3) {
+  justify-content: flex-end;
+}
+
+.sortButton {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.sortButton:hover,
+.sortButton:focus-visible {
+  color: var(--ink);
+  outline: 0;
+}
+
+.sortButton:focus-visible {
+  box-shadow: 0 0 0 2px var(--focus-ring);
+}
+
+.sortIndicator {
+  display: inline-grid;
+  width: 7px;
+  height: 12px;
+  grid-template-rows: 1fr 1fr;
+  align-items: center;
+  justify-items: center;
+  gap: 2px;
+}
+
+.sortIndicator::before,
+.sortIndicator::after {
+  width: 0;
+  height: 0;
+  border-right: 3px solid transparent;
+  border-left: 3px solid transparent;
+  content: "";
+  opacity: 0.28;
+}
+
+.sortIndicator::before {
+  border-bottom: 4px solid currentColor;
+}
+
+.sortIndicator::after {
+  border-top: 4px solid currentColor;
+}
+
+.sortButton[data-sort-state="ascending"] .sortIndicator::before,
+.sortButton[data-sort-state="descending"] .sortIndicator::after {
+  color: var(--ink);
+  opacity: 1;
+}
+
+.row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr);
+  column-gap: 9px;
+  min-height: 42px;
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+}
+
+.row:last-child {
+  border-bottom: 0;
+}
+
+.row:hover {
+  background: var(--hover);
+}
+
+/* Every choice it rules out sits below it, so a stronger rule sets the All row apart from the list. */
+.all {
+  border-bottom-color: var(--line-strong);
+}
+
+.row input,
+.bulk input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mark {
+  display: grid;
+  width: 12px;
+  height: 12px;
+  place-items: center;
+  border: 1px solid var(--muted);
+}
+
+:is(.row, .bulk) input:focus-visible + .mark {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+:is(.row, .bulk) input:checked + .mark {
+  border-color: var(--ink);
+  background: var(--ink);
+  box-shadow: inset 0 0 0 2px var(--paper);
+}
+
+:is(.row, .bulk) input:indeterminate + .mark::after {
+  width: 6px;
+  height: 2px;
+  background: var(--ink);
+  content: "";
+}
+
+/* A bulk tick in a header row, for a list whose All is a heading rather than a row of its own. */
+.bulk {
+  display: grid;
+  width: 14px;
+  height: 30px;
+  align-items: center;
+  justify-items: center;
+  cursor: pointer;
+}
+
+.name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.label {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detail {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: var(--type-micro-size);
+}
+
+.logo {
+  display: grid;
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  border-radius: 3px;
+  object-fit: contain;
+  color: var(--muted);
+  font: var(--type-label-weight) var(--type-caption-size) / 1 var(--font-mono);
+}
+
+.figure {
+  color: var(--muted);
+  font-size: var(--type-micro-size);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.empty {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 18px 10px;
+  color: var(--muted);
+  font-size: var(--type-caption-size);
+}
+
+@media (max-width: 520px) {
+  .search input {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .picker summary,
+  .row,
+  .header .sortButton {
+    min-height: 44px;
+  }
+
+  .menu {
+    width: 100%;
+    box-shadow: none;
+  }
+}

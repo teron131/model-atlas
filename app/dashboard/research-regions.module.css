@@ -81,7 +81,6 @@
   min-height: 46px;
   flex: 0 0 auto;
   align-items: center;
-  gap: 7px;
   padding: 0 13px;
   color: var(--muted);
   font-family: var(--font-mono);
@@ -111,24 +110,10 @@
   background: var(--flight-passed);
 }
 
-/* The same ordinal the region heads carry, so the index and the page agree on the sequence. */
-.index a b {
-  color: var(--faint);
-  font: inherit;
-  font-size: var(--type-caption-size);
-  font-variant-numeric: tabular-nums;
-}
-
 .index a:hover,
 .index a:focus-visible,
 .index a[aria-current="location"] {
   color: var(--ink);
-}
-
-.index a:hover b,
-.index a:focus-visible b,
-.index a[aria-current="location"] b {
-  color: var(--muted);
 }
 
 .index a:focus-visible {
@@ -158,10 +143,6 @@
   }
   .index a {
     padding-inline: 7px;
-    gap: 4px;
     font-size: 11px;
-  }
-  .index a b {
-    display: none;
   }
 }

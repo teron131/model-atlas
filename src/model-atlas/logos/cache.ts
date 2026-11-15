@@ -12,6 +12,7 @@ import { fetchWithTimeout } from "../runtime";
 import { modelsDevLogoUrl, modelsDevPlaceholderFor, providerAssetKey } from "./resolve";
 
 const LOGO_MAX_PX = 64;
+const MODELS_DEV_GLYPH_PX = 40;
 const LOGO_FETCH_TIMEOUT_MS = 15_000;
 
 const pendingLogoRequestByKey = new Map<string, Promise<string>>();
@@ -122,9 +123,30 @@ async function buildCachedLogoDataUrl(source: string, cacheKey?: string | null):
   if (placeholderUrl != null && (await isModelsDevPlaceholder(placeholderUrl, imageBuffer))) {
     throw new Error(`Models.dev does not list this provider: ${source}`);
   }
-  const resizedLogoBuffer = await resizeLogoToPng(imageBuffer);
+  const resizedLogoBuffer =
+    placeholderUrl == null ? await resizeLogoToPng(imageBuffer) : await modelsDevTile(imageBuffer);
   await saveCachedLogoBuffer(cachePath, resizedLogoBuffer);
   return pngDataUrl(resizedLogoBuffer);
+}
+
+/** models.dev draws bare `currentColor` glyphs, which rasterize black and vanish on the dark sky, so each is set white on a black tile like the Artificial Analysis creator logos, filling 40 of the tile's 64 px. */
+async function modelsDevTile(svg: Buffer): Promise<Buffer> {
+  const { default: sharp } = await import("sharp");
+  const glyph = await sharp(Buffer.from(svg.toString("utf8").replaceAll("currentColor", "#fff")), {
+    density: 300,
+  })
+    .resize(MODELS_DEV_GLYPH_PX, MODELS_DEV_GLYPH_PX, {
+      fit: "contain",
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    })
+    .png()
+    .toBuffer();
+  return sharp({
+    create: { width: LOGO_MAX_PX, height: LOGO_MAX_PX, channels: 4, background: "#000" },
+  })
+    .composite([{ input: glyph, gravity: "center" }])
+    .png()
+    .toBuffer();
 }
 
 /** models.dev serves one placeholder for every provider it does not list; fetch it once per process to recognize it. */

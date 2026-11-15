@@ -5,7 +5,6 @@
 import {
   AlertCircle,
   Bookmark,
-  Boxes,
   Check,
   ChevronDown,
   CopyPlus,
@@ -17,12 +16,12 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
+import { type CSSProperties, useEffect, useId, useMemo, useRef, useState } from "react";
 
 import type { ModelAtlasModel } from "../../src/model-atlas/stats/types";
-import { formatMoney } from "./graphs/format";
 import { matchingProfileModelCount, sameProfileFilters, useModelProfiles } from "./model-profiles";
 import { openModelSheet } from "./model-sheet/open";
+import { Checklist } from "./shared/Checklist";
 import {
   costFilterOptions,
   type GlobalModelFilters,
@@ -32,6 +31,7 @@ import {
 } from "./shared/model-filters";
 import {
   ModelSuggestionList,
+  modelSuggestionRow,
   modelSuggestions,
   useModelSuggestions,
 } from "./shared/ModelSuggestions";
@@ -43,16 +43,17 @@ import styles from "./global-model-controls.module.css";
 
 const MODEL_SEARCH_ID = "global-model-search";
 const MODEL_SUGGESTIONS_ID = "global-model-suggestions";
+// Wide enough for the filter tracks' stop labels, such as "$0.02", to stand apart at the 12px label size.
+const MENU_WIDTH = 380;
+const MENU_GUTTER = 8;
 // A pinned rail keeps its search this close to the viewport top; anywhere lower, the rail has not reached the top yet.
 const PINNED_SEARCH_TOP = 64;
-
-type FilterChip = { key: string; label: string; logo?: string; remove: GlobalModelFilters };
 
 /**
  * Focus the rail's model search from anywhere, selecting any current query so typing replaces it.
  * Until the rail is pinned, as in the hero, the leaderboard scrolls up beneath it first, so results are in view while typing.
  */
-export function focusModelSearch() {
+function focusModelSearch() {
   const input = document.getElementById(MODEL_SEARCH_ID);
   if (!(input instanceof HTMLInputElement)) return;
   if (input.getBoundingClientRect().top > PINNED_SEARCH_TOP) {
@@ -103,11 +104,7 @@ export function GlobalModelControls({
   const [name, setName] = useState("");
   const nameRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const [menuPosition, setMenuPosition] = useState<CSSProperties>({
-    left: 0,
-    top: 0,
-    maxHeight: 440,
-  });
+  const [menuPosition, setMenuPosition] = useState<CSSProperties>({ left: 0, top: 0 });
   const [menuOpen, setMenuOpen] = useState(false);
   const [menu, setMenu] = useState<"profiles" | "filters">("profiles");
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -139,7 +136,7 @@ export function GlobalModelControls({
     remove,
   } = useModelProfiles(filters, matchedCount);
   const isDefault = sameProfileFilters(filters, DEFAULT_GLOBAL_MODEL_FILTERS);
-  const chips = filterChips(filters, providerChoices);
+  const activeFilters = activeFilterLabels(filters, providerChoices);
   useModelSearchShortcut();
 
   useEffect(() => {
@@ -205,12 +202,15 @@ export function GlobalModelControls({
     const below = window.innerHeight - box.bottom - 8;
     const above = box.top - 8;
     const opensAbove = below < 200 && above > below;
-    const maxHeight = Math.max(
-      0,
-      Math.min(440, window.innerHeight * 0.6, opensAbove ? above : below),
-    );
+    // The menu runs to the viewport's edge on the side it opens, so the provider list shows as many rows as the window allows.
+    const maxHeight = Math.max(0, opensAbove ? above : below);
+    const width = Math.min(MENU_WIDTH, window.innerWidth - MENU_GUTTER * 2);
     setMenuPosition({
-      left: Math.max(8, Math.min(box.right - 300, window.innerWidth - 308)),
+      width,
+      left: Math.max(
+        MENU_GUTTER,
+        Math.min(box.right - width, window.innerWidth - width - MENU_GUTTER),
+      ),
       top: opensAbove ? undefined : box.bottom,
       bottom: opensAbove ? window.innerHeight - box.top : undefined,
       maxHeight,
@@ -228,10 +228,10 @@ export function GlobalModelControls({
           <input
             id={MODEL_SEARCH_ID}
             type="search"
-            aria-label="Global model search"
+            aria-label="Filter models"
             aria-keyshortcuts="/"
-            placeholder="Search models…"
-            title="Use * as a wildcard; separate alternatives with commas. Press / to search from anywhere."
+            placeholder="Filter models …"
+            title="Use * as a wildcard; separate alternatives with commas. Press / to filter from anywhere."
             {...suggestion.inputProps}
             value={filters.q}
             onChange={(event) => {
@@ -255,7 +255,9 @@ export function GlobalModelControls({
             </kbd>
           ) : null}
         </label>
-        {suggestion.listOpen ? <ModelSuggestionList {...suggestion.listProps} /> : null}
+        {suggestion.listOpen ? (
+          <ModelSuggestionList {...suggestion.listProps} describe={modelSuggestionRow} />
+        ) : null}
       </div>
       <button
         ref={triggerRef}
@@ -271,7 +273,9 @@ export function GlobalModelControls({
         }}
       >
         <Ellipsis size={18} aria-hidden="true" />
-        {activeProfile != null || chips.length ? <span className={styles.activeDot} /> : null}
+        {activeProfile != null || activeFilters.length ? (
+          <span className={styles.activeDot} />
+        ) : null}
       </button>
       <div
         id="global-model-filters"
@@ -280,32 +284,6 @@ export function GlobalModelControls({
         role="group"
         aria-label="Profiles and filters"
       >
-        {chips.length ? (
-          <div className={styles.chips} role="group" aria-label="Active filters">
-            {chips.map((chip) => (
-              <button
-                key={chip.key}
-                type="button"
-                className={styles.chip}
-                aria-label={`Remove filter: ${chip.label}`}
-                title={`Remove ${chip.label}`}
-                onClick={() => apply(chip.remove)}
-              >
-                {chip.logo ? (
-                  <img
-                    className={styles.providerLogo}
-                    src={chip.logo}
-                    alt=""
-                    width={14}
-                    height={14}
-                  />
-                ) : null}
-                <span>{chip.label}</span>
-                <X size={12} aria-hidden="true" />
-              </button>
-            ))}
-          </div>
-        ) : null}
         <div className={styles.profiles}>
           {saveOpen ? (
             <form
@@ -407,11 +385,7 @@ export function GlobalModelControls({
           type="button"
           className={styles.iconButton}
           aria-label="Additional filters"
-          title={
-            chips.length
-              ? chips.map((chip) => chip.label).join(" / ")
-              : "Provider, cost, date and rank"
-          }
+          title={activeFilters.length ? activeFilters.join(" / ") : "Provider, cost, date and rank"}
           aria-expanded={menuOpen && menu === "filters"}
           aria-controls="global-filter-menu"
           popoverTarget="global-filter-menu"
@@ -421,7 +395,7 @@ export function GlobalModelControls({
           }}
         >
           <SlidersHorizontal size={16} aria-hidden="true" />
-          {chips.length ? <span className={styles.activeDot} /> : null}
+          {activeFilters.length ? <span className={styles.activeDot} /> : null}
         </button>
         {!isDefault ? (
           <button
@@ -496,7 +470,6 @@ export function GlobalModelControls({
           </>
         ) : (
           <>
-            <div className={styles.menuHeading}>Additional filters</div>
             <div className={styles.filterOptions}>
               <FilterChoices
                 label="Reasoning variants"
@@ -505,61 +478,66 @@ export function GlobalModelControls({
                 format={(value) => (value ? "Expanded" : "Collapsed")}
                 onSelect={onShowReasoningVariantsChange}
               />
-              <FilterChoices
-                label="Max blended cost"
+              <FilterTrack
+                label="Max blended cost ($)"
                 options={costFilterOptions}
                 selected={filters["max-cost"]}
-                format={(value) => (value === "all" ? "Any" : `$${value.toFixed(2)}`)}
+                format={(value) => (value === "all" ? "Any" : value.toFixed(2))}
                 onSelect={(value) => apply({ ...filters, "max-cost": value })}
               />
-              <FilterChoices
-                label="Release recency"
+              <FilterTrack
+                label="Release recency (days)"
                 options={recencyFilterOptions}
                 selected={filters.days}
-                format={(value) => (value === "all" ? "All dates" : `${value}d`)}
+                format={(value) => (value === "all" ? "All" : String(value))}
                 onSelect={(value) => apply({ ...filters, days: value })}
               />
-              <FilterChoices
-                label="Model rank"
+              <FilterTrack
+                label="Model rank (top)"
                 options={modelRankFilterOptions}
                 selected={filters.rank}
-                format={(value) => (value === "all" ? "All ranks" : `Top ${value}`)}
+                format={(value) => (value === "all" ? "All" : String(value))}
                 onSelect={(value) => apply({ ...filters, rank: value })}
               />
             </div>
-            <button type="button" onClick={() => apply({ ...filters, provider: [] })}>
-              <Boxes size={16} aria-hidden="true" />
-              All providers
-              {!filters.provider.length ? <Check size={14} aria-hidden="true" /> : null}
-            </button>
-            {providerChoices.map((provider) => {
-              const logo = providerLogo(provider.slug);
-              return (
-                <label key={provider.slug}>
-                  <input
-                    type="checkbox"
-                    checked={filters.provider.includes(provider.slug)}
-                    onChange={() =>
-                      apply({
-                        ...filters,
-                        provider: filters.provider.includes(provider.slug)
-                          ? filters.provider.filter((slug) => slug !== provider.slug)
-                          : [...filters.provider, provider.slug],
-                      })
-                    }
-                  />
-                  {logo ? (
-                    <img className={styles.providerLogo} src={logo} alt="" width={16} height={16} />
-                  ) : (
-                    <span className={styles.providerLogo} aria-hidden="true">
-                      {provider.label.slice(0, 1)}
-                    </span>
-                  )}
-                  <span>{provider.label}</span>
-                  <small>{provider.count}</small>
-                </label>
-              );
-            })}
+            <div className={styles.providers}>
+              <Checklist
+                items={providerChoices}
+                itemKey={(provider) => provider.slug}
+                name={{
+                  label: "Provider",
+                  sort: "ascending",
+                  text: (provider) => provider.label,
+                  logo: (provider) => providerLogo(provider.slug),
+                }}
+                columns={[
+                  {
+                    key: "models",
+                    label: "#Models",
+                    sort: "descending",
+                    value: (provider) => provider.count,
+                    text: (provider) => String(provider.count),
+                  },
+                ]}
+                initialSort={{ key: "models", direction: "descending" }}
+                search={{ label: "Search providers", placeholder: "Search providers" }}
+                all={{
+                  label: "All providers",
+                  checked: !filters.provider.length,
+                  onSelect: () => apply({ ...filters, provider: [] }),
+                }}
+                empty="No matching providers"
+                checked={(provider) => filters.provider.includes(provider.slug)}
+                onToggle={(provider) =>
+                  apply({
+                    ...filters,
+                    provider: filters.provider.includes(provider.slug)
+                      ? filters.provider.filter((slug) => slug !== provider.slug)
+                      : [...filters.provider, provider.slug],
+                  })
+                }
+              />
+            </div>
           </>
         )}
       </div>
@@ -567,29 +545,81 @@ export function GlobalModelControls({
   );
 }
 
-function filterChips(filters: GlobalModelFilters, providerChoices: ProviderOption[]): FilterChip[] {
-  const providers = filters.provider.map((slug) => ({
-    key: `provider-${slug}`,
-    label: providerChoices.find((provider) => provider.slug === slug)?.label ?? slug,
-    logo: providerLogo(slug) || undefined,
-    remove: { ...filters, provider: filters.provider.filter((other) => other !== slug) },
-  }));
-  const choices: (FilterChip | null)[] = [
-    filters["max-cost"] === "all"
-      ? null
-      : {
-          key: "max-cost",
-          label: `Cost ≤ ${formatMoney(filters["max-cost"])}`,
-          remove: { ...filters, "max-cost": "all" },
-        },
-    filters.days === "all"
-      ? null
-      : { key: "days", label: `Last ${filters.days} days`, remove: { ...filters, days: "all" } },
-    filters.rank === "all"
-      ? null
-      : { key: "rank", label: `Top ${filters.rank}`, remove: { ...filters, rank: "all" } },
+function activeFilterLabels(filters: GlobalModelFilters, providerChoices: ProviderOption[]) {
+  const providers = filters.provider.map(
+    (slug) => providerChoices.find((provider) => provider.slug === slug)?.label ?? slug,
+  );
+  const cost = filters["max-cost"];
+  const { days, rank } = filters;
+  return [
+    ...providers,
+    ...(cost === "all" ? [] : [`Cost ≤ $${cost.toFixed(2)}`]),
+    ...(days === "all" ? [] : [days === 365 ? "1y" : `${days}d`]),
+    ...(rank === "all" ? [] : [`Top ${rank}`]),
   ];
-  return [...providers, ...choices.filter((chip) => chip != null)];
+}
+
+/**
+ * A threshold filter as a stepped track: one stop per option, strictest first, lit from the start up to the chosen stop.
+ * A native range input takes pointer, touch, and arrow-key input and snaps to the stops; each stop's label also picks it.
+ */
+function FilterTrack<T extends number | "all">({
+  label,
+  options,
+  selected,
+  format,
+  onSelect,
+}: {
+  label: string;
+  options: readonly T[];
+  selected: T;
+  format: (value: T) => string;
+  onSelect: (value: T) => void;
+}) {
+  const id = useId();
+  const chosen = options.indexOf(selected);
+  const at = (index: number) => ({ "--stop": index / (options.length - 1) }) as CSSProperties;
+  return (
+    <div
+      className={styles.track}
+      style={{ "--reach": chosen / (options.length - 1) } as CSSProperties}
+    >
+      <label htmlFor={id}>{label}</label>
+      <div className={styles.trackRail}>
+        <input
+          id={id}
+          type="range"
+          min={0}
+          max={options.length - 1}
+          step={1}
+          value={chosen}
+          aria-valuetext={format(selected)}
+          onChange={(event) => onSelect(options[Number(event.target.value)]!)}
+        />
+        {options.map((value, index) => (
+          <span
+            key={String(value)}
+            className={styles.trackStop}
+            style={at(index)}
+            data-reached={index <= chosen || undefined}
+            aria-hidden="true"
+          />
+        ))}
+      </div>
+      <div className={styles.trackLabels} aria-hidden="true">
+        {options.map((value, index) => (
+          <span
+            key={String(value)}
+            style={at(index)}
+            data-chosen={index === chosen || undefined}
+            onClick={() => onSelect(value)}
+          >
+            {format(value)}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 /** A `null` selection marks no choice, as when the charts and the leaderboard show different variant modes. */

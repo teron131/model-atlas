@@ -137,9 +137,11 @@ Token imputation and its evidence factor use the same [validated effort ratios](
 If an observed token-adjusted score $z'_{m,b}$ falls outside 0–100, rescale the benchmark’s scores rather than clipping away the excess: clipping would erase the difference between strong results pushed past 100, while rescaling keeps it. Otherwise, no further rescaling is needed. The bounds $L_{b,A}$ and $U_{b,A}$ use observed reference variants $j$, not imputed token counts:
 
 $$
-z'_{m,b}=z_{m,b}M^{\text{tok}}_{m,b},\qquad
-L_{b,A}=\min(0,\min_jz'_{j,b}),\qquad U_{b,A}=\max(100,\max_jz'_{j,b}),\qquad
-z_{m,b,A}=100\operatorname{linearScale}_{L_{b,A}}^{U_{b,A}}(z'_{m,b}).
+\begin{aligned}
+z'_{m,b}&=z_{m,b}M^{\text{tok}}_{m,b},\\
+L_{b,A}&=\min(0,\min_jz'_{j,b}),\qquad U_{b,A}=\max(100,\max_jz'_{j,b}),\\
+z_{m,b,A}&=100\operatorname{linearScale}_{L_{b,A}}^{U_{b,A}}(z'_{m,b}).
+\end{aligned}
 $$
 
 The resulting contribution $z_{m,b,A}$ enters the :score[Agentic] mean, index blend, and effort comparisons. The ±15% cap does not bound the final score change: rescaling can also move scores with a neutral multiplier of 1.

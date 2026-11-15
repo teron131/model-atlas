@@ -149,6 +149,7 @@ export function FrontierInset({
       })),
     ],
     flare: null,
+    found: [],
     compact: plot.compact,
   };
   // The opened model, last in a comparison, owns the population.

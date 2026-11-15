@@ -40,6 +40,7 @@ const variant = (name: string, effort: string | null, score: number | null) => (
   ...historicalSourceModel(name, "Lab", effort, "2026-01-01"),
   score,
   coverage: 0.8,
+  listedScore: null,
   representativeScore: score,
 });
 const models = [
@@ -62,6 +63,16 @@ for (const current of [false, true]) {
     "Agentic values and coverage cannot replace the strongest-Intelligence representative",
   );
 }
+const efforts = [
+  { ...variant("Model", "medium", 66), current: true },
+  { ...variant("Model", "high", 62), current: true, listedScore: 50 },
+  { ...variant("Model", "xhigh", 64), current: true, listedScore: 49 },
+];
+assert.deepEqual(
+  modelRepresentatives(efforts),
+  [efforts[1]],
+  "The leaderboard's strongest listed effort represents the model, whatever the Timeline estimates of other efforts",
+);
 
 for (const [name, provider, excluded] of [
   ["GPT-5 Pro", "OpenAI", "OpenAI Pro"],

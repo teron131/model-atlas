@@ -4,8 +4,10 @@ import assert from "node:assert/strict";
 
 import {
   frontierBenchmarkCorrelationByBenchmark,
+  frontierBenchmarkOptions,
   frontierBenchmarkRows,
 } from "../app/dashboard/graphs/pareto/analysis";
+import { commonBenchmarkComparison } from "../app/dashboard/graphs/pareto/common-evidence";
 import { STAGE_CONFIG } from "../src/model-atlas/config/stage";
 import {
   pearsonCorrelation,
@@ -174,7 +176,29 @@ const sourceLabelledRows = frontierBenchmarkRows(
 assert.deepEqual(
   sourceLabelledRows.map((row) => [row.benchmarkLabel, row.score, row.cost, row.weight]),
   [
-    ["Terminal-Bench 4.0 — Artificial Analysis", 90, 20, 0.5],
-    ["Terminal-Bench 4.0 — Official", 60, 10, 0.5],
+    ["Terminal-Bench 4.0", 90, 20, 0.5],
+    ["Terminal-Bench 4.0", 60, 10, 0.5],
   ],
 );
+assert.deepEqual(
+  frontierBenchmarkOptions(sourceLabelledRows).map((option) => [
+    option.key,
+    option.label,
+    option.count,
+  ]),
+  [["terminal_bench_4", "Terminal-Bench 4.0", 1]],
+  "A benchmark's sources are one picker option",
+);
+const [mergedSources, ...extraSources] = commonBenchmarkComparison(
+  sourceLabelledRows,
+  sourceLabelledRows,
+  ["terminal_bench_4"],
+  "cost",
+).rows;
+assert.equal(
+  extraSources.length,
+  0,
+  "One benchmark plots one point per variant across its sources",
+);
+assert.equal(mergedSources!.score, 75);
+assert.ok(mergedSources!.cost! >= 10 && mergedSources!.cost! <= 20);

@@ -1,30 +1,18 @@
-/** Horizontal performance choices keep published scores immediate and custom benchmark selection in one disclosure. */
+/** Horizontal performance choices keep published scores immediate and custom benchmark selection in one disclosure, whose menu sits in the top layer so the scrolling choice strip cannot clip it. */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 import { useHorizontalChoice } from "../../../shared/use-horizontal-choice";
 import { benchmarkTooltips } from "../../shared/benchmark-display";
-import { filterSearchDocuments } from "../../shared/search";
+import { Checklist } from "../../shared/Checklist";
 import { useDismissibleDetails } from "../../shared/use-dismissible-details";
 import { type FrontierBenchmarkOption, type PerformanceMetric } from "./analysis";
 import { PERFORMANCE_SCORES } from "./presentation";
 
+import checklist from "../../shared/checklist.module.css";
 import styles from "../graphs.module.css";
 
-type BenchmarkSortKey = "benchmark" | "correlation" | "items";
-type BenchmarkSortDirection = "ascending" | "descending";
-type BenchmarkSortState = {
-  key: BenchmarkSortKey;
-  direction: BenchmarkSortDirection;
-};
-
-const DEFAULT_SORT_DIRECTION: Record<BenchmarkSortKey, BenchmarkSortDirection> = {
-  benchmark: "ascending",
-  correlation: "descending",
-  items: "descending",
-};
-
-/** Switching to benchmarks selects all sources; activating the selected choice opens its editable basket. */
+/** Switching to benchmarks selects every benchmark and index; activating the selected choice opens its editable basket. */
 export function BenchmarkSelect({
   options,
   selectedKeys,
@@ -41,39 +29,15 @@ export function BenchmarkSelect({
   const rootRef = useRef<HTMLDetailsElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const stripRef = useHorizontalChoice<HTMLFieldSetElement>(performance.value);
-  const selectAllRef = useRef<HTMLInputElement>(null);
-  const [query, setQuery] = useState("");
-  const [sortState, setSortState] = useState<BenchmarkSortState>({
-    key: "benchmark",
-    direction: "ascending",
-  });
   const optionKeys = options.map((option) => option.key);
   const selectsEvidence = performance.value === "benchmarks";
   const selectedKeySet = useMemo(
     () => new Set(selectsEvidence ? selectedKeys : []),
     [selectedKeys, selectsEvidence],
   );
-  const visibleOptions = sortBenchmarkOptions(
-    filterSearchDocuments(
-      query,
-      options.map((option) => ({
-        value: option,
-        primary: [option.label, option.key],
-        context: benchmarkTooltips[option.key],
-      })),
-    ),
-    correlationByBenchmark,
-    sortState,
-  );
   const allSelected = optionKeys.length > 0 && selectedKeySet.size === optionKeys.length;
   const partiallySelected = selectedKeySet.size > 0 && !allSelected;
   const summaryLabel = `Benchmarks · ${selectsEvidence ? selectedKeySet.size : options.length}`;
-
-  useEffect(() => {
-    if (selectAllRef.current != null) {
-      selectAllRef.current.indeterminate = partiallySelected;
-    }
-  }, [partiallySelected]);
 
   useDismissibleDetails(rootRef);
   // The menu sits in the top layer at a fixed position, so it closes when the page under it moves.
@@ -118,18 +82,6 @@ export function BenchmarkSelect({
     onChange(orderedKeys.length === optionKeys.length ? null : orderedKeys);
   }
 
-  function sortBy(key: BenchmarkSortKey) {
-    setSortState((current) => ({
-      key,
-      direction:
-        current.key === key
-          ? current.direction === "ascending"
-            ? "descending"
-            : "ascending"
-          : DEFAULT_SORT_DIRECTION[key],
-    }));
-  }
-
   return (
     <fieldset
       className={`${styles.metricToggle} ${styles.performanceToggle} horizontal-choice-strip`}
@@ -151,7 +103,7 @@ export function BenchmarkSelect({
         </button>
       ))}
       <details
-        className={styles.benchmarkSelect}
+        className={checklist.picker}
         ref={rootRef}
         aria-label="Benchmarks"
         onToggle={positionMenu}
@@ -169,83 +121,49 @@ export function BenchmarkSelect({
         >
           <span>{summaryLabel}</span>
         </summary>
-        <div className={styles.benchmarkSelectMenu} ref={menuRef} popover="manual">
-          <label className={styles.benchmarkSelectSearch}>
-            <span className="visually-hidden">
-              Filter benchmarks and indexes by name or description
-            </span>
-            <input
-              type="search"
-              value={query}
-              placeholder="Filter benchmarks or indexes"
-              onChange={(event) => setQuery(event.target.value)}
-            />
-          </label>
-          <p className={styles.benchmarkSelectExplainer}>
-            {
-              "One source: native units. Multiple: normalized performance. CORR: correlation with Intelligence."
-            }
-          </p>
-          <div className={styles.benchmarkSelectOptions}>
-            <div className={styles.benchmarkSelectHeader} role="row">
-              <span role="columnheader">
-                <label className={styles.benchmarkSelectBulk}>
-                  <input
-                    ref={selectAllRef}
-                    type="checkbox"
-                    checked={allSelected}
-                    onChange={() => onChange(allSelected ? [] : null)}
-                  />
-                  <span className={styles.benchmarkSelectBulkMark} aria-hidden="true" />
-                  <span className="visually-hidden">All benchmarks and indexes</span>
-                </label>
-              </span>
-              <BenchmarkSortHeader
-                label="Benchmark"
-                sortKey="benchmark"
-                sortState={sortState}
-                onSort={sortBy}
-              />
-              <BenchmarkSortHeader
-                label="Corr"
-                sortKey="correlation"
-                sortState={sortState}
-                onSort={sortBy}
-              />
-              <BenchmarkSortHeader
-                label="#Items"
-                sortKey="items"
-                sortState={sortState}
-                onSort={sortBy}
-              />
-            </div>
-            {visibleOptions.map((option) => {
-              const selected = selectedKeySet.has(option.key);
-              return (
-                <label className={styles.benchmarkSelectOption} key={option.key}>
-                  <input
-                    type="checkbox"
-                    checked={selected}
-                    onChange={(event) => toggleBenchmark(option.key, event.target.checked)}
-                  />
-                  <span className={styles.benchmarkSelectOptionMark} aria-hidden="true" />
-                  <span className={styles.benchmarkSelectOptionLabel}>
-                    {option.label}
-                    {option.detail ? (
-                      <small className={styles.evidenceUnit}>{option.detail}</small>
-                    ) : null}
-                  </span>
-                  <span className={styles.benchmarkSelectOptionCorrelation}>
-                    {formatCorrelation(correlationByBenchmark.get(option.key) ?? null)}
-                  </span>
-                  <span className={styles.benchmarkSelectOptionCoverage}>{option.count}</span>
-                </label>
-              );
-            })}
-            {visibleOptions.length === 0 ? (
-              <p className={styles.benchmarkSelectEmpty}>No matching benchmarks</p>
-            ) : null}
-          </div>
+        <div className={checklist.menu} ref={menuRef} popover="manual">
+          <Checklist
+            items={options}
+            itemKey={(option) => option.key}
+            name={{
+              label: "Benchmark",
+              sort: "ascending",
+              text: (option) => option.label,
+              detail: (option) => option.detail,
+            }}
+            columns={[
+              {
+                key: "correlation",
+                label: "Corr",
+                sort: "descending",
+                value: (option) => correlationByBenchmark.get(option.key) ?? null,
+                text: (option) => formatCorrelation(correlationByBenchmark.get(option.key) ?? null),
+              },
+              {
+                key: "items",
+                label: "#Items",
+                sort: "descending",
+                value: (option) => option.count,
+                text: (option) => String(option.count),
+              },
+            ]}
+            initialSort={{ key: "name", direction: "ascending" }}
+            search={{
+              label: "Search benchmarks and indexes by name or description",
+              placeholder: "Search benchmarks or indexes",
+              context: (option) => benchmarkTooltips[option.key],
+            }}
+            note="One benchmark: native units. Several: normalized performance. Corr: correlation with Intelligence."
+            all={{
+              label: "All benchmarks and indexes",
+              checked: allSelected,
+              mixed: partiallySelected,
+              onSelect: () => onChange(allSelected ? [] : null),
+            }}
+            empty="No matching benchmarks"
+            checked={(option) => selectedKeySet.has(option.key)}
+            onToggle={(option, selected) => toggleBenchmark(option.key, selected)}
+          />
         </div>
       </details>
     </fieldset>
@@ -254,66 +172,4 @@ export function BenchmarkSelect({
 
 function formatCorrelation(correlation: number | null): string {
   return correlation == null ? "--" : `${correlation >= 0 ? "+" : ""}${correlation.toFixed(2)}`;
-}
-
-function BenchmarkSortHeader({
-  label,
-  sortKey,
-  sortState,
-  onSort,
-}: {
-  label: string;
-  sortKey: BenchmarkSortKey;
-  sortState: BenchmarkSortState;
-  onSort: (key: BenchmarkSortKey) => void;
-}) {
-  const active = sortState.key === sortKey;
-  return (
-    <span
-      className={styles.benchmarkSelectSortHeader}
-      role="columnheader"
-      aria-sort={active ? sortState.direction : "none"}
-    >
-      <button
-        type="button"
-        data-sort-state={active ? sortState.direction : "none"}
-        onClick={() => onSort(sortKey)}
-      >
-        {label}
-        <span className={styles.benchmarkSelectSortIndicator} aria-hidden="true" />
-      </button>
-    </span>
-  );
-}
-
-function sortBenchmarkOptions(
-  options: FrontierBenchmarkOption[],
-  correlationByBenchmark: ReadonlyMap<string, number | null>,
-  sortState: BenchmarkSortState,
-): FrontierBenchmarkOption[] {
-  return [...options].sort((left, right) => {
-    let comparison = 0;
-    if (sortState.key === "benchmark") {
-      comparison = left.label.localeCompare(right.label, undefined, { numeric: true });
-    } else if (sortState.key === "items") {
-      comparison = left.count - right.count;
-    } else {
-      const leftCorrelation = correlationByBenchmark.get(left.key) ?? null;
-      const rightCorrelation = correlationByBenchmark.get(right.key) ?? null;
-      if (leftCorrelation == null || rightCorrelation == null) {
-        if (leftCorrelation == null && rightCorrelation != null) {
-          return 1;
-        }
-        if (leftCorrelation != null && rightCorrelation == null) {
-          return -1;
-        }
-      } else {
-        comparison = leftCorrelation - rightCorrelation;
-      }
-    }
-    const directedComparison = sortState.direction === "ascending" ? comparison : -comparison;
-    return (
-      directedComparison || left.label.localeCompare(right.label, undefined, { numeric: true })
-    );
-  });
 }

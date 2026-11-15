@@ -71,9 +71,12 @@
   letter-spacing: var(--type-label-tracking);
 }
 
-.metricToggle button:focus-visible,
-.pointButton:focus-visible {
+.metricToggle > button:focus-visible {
   box-shadow: 0 0 0 2px var(--focus-ring);
+  outline: 0;
+}
+/* A focused chart star shows as its flare, its name, and the readout, never a ring around it. */
+.pointButton:focus-visible {
   outline: 0;
 }
 
@@ -82,9 +85,10 @@
   min-width: 0;
 }
 
+/* Clip rather than hidden: the plane trims its contents the same way without becoming a scroll container, so the Timeline evidence readout can stay pinned under the rail. */
 .panel {
   min-width: 0;
-  overflow: hidden;
+  overflow: clip;
   padding: 0 var(--research-inset) 20px;
 }
 
@@ -118,6 +122,95 @@
   padding-bottom: 4px;
 }
 
+/* The readout is one quiet line beneath the controls, in their type size: the lab's logo and the model's name, then its facts in plain words. */
+.readout {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(100%, var(--chart-max-width, 1120px));
+  min-height: 20px;
+  margin: 8px auto 0;
+  color: var(--muted);
+  font: 500 var(--type-label-size) / 1.4 var(--font-mono);
+}
+/* The facts take only the room the name leaves, so a long list of them ends in an ellipsis instead of cutting the name short. */
+.readoutFacts {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.readoutName {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink);
+  font-weight: var(--type-label-weight);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* A model in today's snapshot opens its full catalogue entry, the model sheet, from its name. */
+.readoutOpen {
+  display: inline-flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.readoutOpen svg {
+  flex: 0 0 auto;
+  width: 13px;
+  height: 13px;
+  color: var(--muted);
+  transition:
+    color 0.18s ease,
+    transform 0.18s ease;
+}
+.readoutOpen:hover svg,
+.readoutOpen:focus-visible svg {
+  color: var(--ink);
+  transform: translate(1px, -1px);
+}
+.readoutOpen:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+.readoutLogo {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+}
+/* On phones the name takes the line's first row and the facts the rows after, breaking only between facts, so none is cut short; the rows a chart's facts can take, `--readout-fact-rows` and one more on the narrowest phones, are always held, so the plot beneath never moves. */
+@media (max-width: 640px) {
+  .readout {
+    flex-wrap: wrap;
+    align-content: flex-start;
+    row-gap: 4px;
+    min-height: calc((1 + var(--readout-fact-rows)) * 1.4em + 4px);
+  }
+  .readoutFacts {
+    flex-basis: 100%;
+    white-space: normal;
+  }
+  .readoutFacts > span {
+    white-space: nowrap;
+  }
+}
+@media (max-width: 430px) {
+  .readout {
+    min-height: calc((2 + var(--readout-fact-rows)) * 1.4em + 4px);
+  }
+}
+
 /* A definite column keeps a switch within the row, so its segments wrap instead of overflowing narrow screens. */
 .axisControl {
   display: grid;
@@ -129,55 +222,234 @@
   max-width: 100%;
 }
 
-/* Performance choices follow their row's name on one line above the plot; compact layouts set them on a line of their own beneath it. */
+/* Each Pareto row leads with its axis choices from the figure's left edge, their text in line with it, and ends with one control: the find field above the plot, the variants switch beneath it. The plot names its own axes, so the rows carry no names. On the narrowest phones a strip scrolls. */
 .figureTop > .axisControl {
-  grid-template-columns: max-content minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "choices find";
   align-items: center;
   column-gap: 24px;
 }
 
-/* Resource choices centre beneath the x-axis on one row between the row's name and the variants switch; compact layouts set the choices on a row of their own beneath both. */
-.axisControlX {
-  grid-template-columns: minmax(max-content, 1fr) minmax(0, max-content) minmax(max-content, 1fr);
-  grid-template-areas: "title choices variants";
-  align-items: center;
-  column-gap: 24px;
-}
-
-.axisControlX > .axisControlTitle {
-  grid-area: title;
-}
-
-.axisControlX > .metricToggle {
+.figureTop > .axisControl > .metricToggle {
   grid-area: choices;
 }
 
-.axisControlX > .plotVariants {
-  grid-area: variants;
-  justify-self: end;
+.figureTop > .axisControl > .chartFind {
+  grid-area: find;
 }
 
+/* The variants switch wraps beneath the choices where both do not fit. */
+.axisControlX {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 24px;
+}
+
+.figureTop > .axisControl > .metricToggle,
+.axisControlX > .metricToggle {
+  margin-left: -6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.axisControlX > .metricToggle {
+  flex: 0 0 auto;
+  max-width: 100%;
+}
+
+/* The find icon's tap box already pads its glyph, so the column gap before it narrows. */
 @media (max-width: 820px) {
   .figureTop > .axisControl {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .axisControlX {
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas:
-      "title variants"
-      "choices choices";
+    column-gap: 8px;
   }
 }
 
-.axisControlTitle {
+/* A chart's find field ends its top edge as a bare icon and field in the edge's control type; its pills sit between them, widening the field to its cap before they wrap, and its suggestions hang beneath it. */
+.chartFind {
+  position: relative;
+  flex: 0 1 auto;
+  min-width: 260px;
+  max-width: min(560px, 50vw);
+}
+
+.chartFindField {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  min-height: 30px;
+  color: var(--muted);
+}
+
+.chartFindField > label {
+  display: flex;
+  flex: 0 0 auto;
+  cursor: text;
+}
+
+.chartFindField:focus-within > label {
   color: var(--ink);
-  font-family: var(--font-mono);
-  font-size: var(--type-micro-size);
-  font-weight: var(--type-label-weight);
-  letter-spacing: 0.09em;
-  line-height: 1;
-  text-transform: uppercase;
+}
+
+/* Each pill is a ruled chip, as the dashboard's filter chips are: the lab's mark when it names one model, else how many it names, and a click removes only itself. */
+.chartFindTerm {
+  display: flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  height: 26px;
+  padding: 0 7px 0 8px;
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--ink);
+  font: var(--type-label-weight) var(--type-label-size) / 1 var(--font-mono);
+  letter-spacing: var(--type-label-tracking);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.chartFindTerm img {
+  flex: 0 0 auto;
+  border-radius: 3px;
+  object-fit: contain;
+}
+
+.chartFindTerm span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chartFindTerm small {
+  color: var(--muted);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.chartFindTerm svg {
+  flex: 0 0 auto;
+  color: var(--muted);
+}
+
+.chartFindTerm:hover svg,
+.chartFindTerm:focus-visible svg {
+  color: var(--ink);
+}
+
+.chartFindTerm:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--focus-ring);
+}
+
+/* The folded field's mark, as the rail's filters button marks active filters; open fields show the pills themselves. */
+.chartFindMark {
+  display: none;
+}
+
+.chartFindField input {
+  flex: 1 0 120px;
+  width: 120px;
+  min-width: 0;
+  min-height: 30px;
+  padding: 0 2px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  font: var(--type-label-weight) var(--type-label-size) / 1.4 var(--font-mono);
+  letter-spacing: var(--type-label-tracking);
+  text-overflow: ellipsis;
+}
+
+/* The placeholder is set as the rail's model search sets its own, so the two fields read alike. */
+.chartFindField input::placeholder {
+  color: var(--faint);
+  opacity: 1;
+  font-weight: 500;
+  letter-spacing: normal;
+}
+
+/* Focus matches the rail's model search: the icon brightens and no line is drawn. */
+.chartFindField input:focus-visible {
+  outline: none;
+}
+
+/* A compact chart folds the field to its icon, marked while it holds pills, with the field laid unseen over it to take the tap; while it has focus it opens to a short field with its pills. */
+@media (max-width: 820px) {
+  .chartFind {
+    width: 44px;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .chartFind:not(:focus-within) .chartFindTerm {
+    display: none;
+  }
+
+  .chartFind:not(:focus-within) .chartFindMark {
+    display: block;
+    position: absolute;
+    top: 10px;
+    right: 8px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--ink);
+  }
+
+  .chartFindField {
+    position: relative;
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  .chartFindField input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    color: transparent;
+  }
+
+  .chartFindField input::placeholder {
+    color: transparent;
+  }
+
+  .chartFindField input::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+  }
+
+  .chartFind:focus-within {
+    flex: 1 1 auto;
+    width: 240px;
+  }
+
+  /* The suggestions outgrow the short field, hanging from its right edge, where the field always sits on a compact chart. */
+  .chartFind > [role="listbox"],
+  .chartFind > [role="status"] {
+    left: auto;
+    right: 0;
+    width: min(320px, calc(100vw - 32px));
+  }
+
+  .chartFind:focus-within .chartFindField {
+    justify-content: flex-start;
+  }
+
+  .chartFind:focus-within .chartFindField input {
+    position: static;
+    color: var(--ink);
+  }
+
+  .chartFind:focus-within .chartFindField input::placeholder {
+    color: var(--faint);
+  }
+
+  .chartFind:focus-within .chartFindField input::-webkit-search-cancel-button {
+    -webkit-appearance: searchfield-cancel-button;
+  }
 }
 
 .figureCaption {
@@ -248,6 +520,15 @@
   width: 100%;
   height: 100%;
   pointer-events: none;
+}
+
+/* A model's star outside the plots, centred on the point its caller's class sets and laid over the rule it sits on. */
+.skyStar {
+  position: absolute;
+  z-index: 1;
+  background: var(--sky-star) center / 100% 100% no-repeat;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
 }
 
 /* Where the sky draws, it carries the horizon and the stars; the SVG's marks stay as pointer and focus targets, painted only to show keyboard focus. */
@@ -576,31 +857,70 @@ svg:has(.cursorProjection) :is(.axisLabel, .scaleAnchor) {
 }
 
 @media (max-width: 760px) {
-  .metricToggle button {
+  .metricToggle > button {
     min-height: 44px;
   }
 }
 
-/* The local variant toggle stays beside the axes; the global filter still controls both views. */
+/* The local variant toggle ends the resource row in the choices' type, the global filter still controlling both views; its switch is the filter menu's track with two stops, the selection star lit at the far stop when on. */
 .plotVariants {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 10px;
   margin-left: auto;
   min-height: var(--axis-control-height);
+  padding: 0 2px;
+  border: 0;
+  background: transparent;
   color: var(--muted);
-  font: 500 var(--type-label-size) / 1.4 var(--font-mono);
+  font: var(--type-label-weight) var(--type-label-size) / 1.4 var(--font-mono);
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
   cursor: pointer;
+  transition: color 0.16s ease;
 }
-.plotVariants input {
-  width: 16px;
-  height: 16px;
-  margin: 0;
-  accent-color: var(--ink);
+.plotVariants:hover,
+.plotVariants[aria-checked="true"] {
+  color: var(--ink);
 }
-.plotVariants input:focus-visible {
+.plotVariants:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
+}
+.variantsSwitch {
+  position: relative;
+  width: 20px;
+  height: 1px;
+  background: var(--line-strong);
+}
+.variantsSwitch::before,
+.variantsSwitch::after {
+  position: absolute;
+  content: "";
+  transition: 0.18s ease;
+  transition-property: width, left, background, box-shadow;
+}
+.variantsSwitch::before {
+  inset: 0 auto 0 0;
+  width: 0;
+  background: var(--horizon-violet);
+}
+.variantsSwitch::after {
+  top: 50%;
+  left: 0;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--muted);
+  transform: translate(-50%, -50%);
+}
+.plotVariants[aria-checked="true"] .variantsSwitch::before {
+  width: 100%;
+}
+.plotVariants[aria-checked="true"] .variantsSwitch::after {
+  left: 100%;
+  background: var(--selection-star);
+  box-shadow: var(--selection-glow), var(--selection-bloom);
 }
 
 .emptyComparison {
@@ -625,7 +945,7 @@ svg:has(.cursorProjection) :is(.axisLabel, .scaleAnchor) {
   background: transparent;
 }
 
-.metricToggle button {
+.metricToggle > button {
   min-height: 30px;
   flex: 0 0 auto;
   margin: 0;
@@ -647,22 +967,21 @@ svg:has(.cursorProjection) :is(.axisLabel, .scaleAnchor) {
     color 0.16s ease;
 }
 
-.metricToggle button[aria-pressed="true"],
-.metricToggle button:hover {
+.metricToggle > button[aria-pressed="true"],
+.metricToggle > button:hover {
   color: var(--ink);
 }
 
-.metricToggle button:disabled {
+.metricToggle > button:disabled {
   cursor: not-allowed;
   opacity: 0.42;
 }
 
-.metricToggle button:disabled:hover {
+.metricToggle > button:disabled:hover {
   color: var(--muted);
 }
 
 .axisControlX .metricToggle {
-  justify-content: safe center;
   gap: 8px 14px;
 }
 
@@ -670,312 +989,16 @@ svg:has(.cursorProjection) :is(.axisLabel, .scaleAnchor) {
   position: relative;
 }
 
-.benchmarkSelect {
-  flex: 0 0 auto;
-  min-width: 0;
-  color: var(--ink);
-  font-family: var(--font-mono);
-  font-size: var(--type-label-size);
-  font-weight: var(--type-label-weight);
-  letter-spacing: 0.025em;
-  text-transform: uppercase;
-}
-
-.benchmarkSelect summary {
-  display: flex;
-  min-height: 30px;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  padding: 0 2px;
-  border-bottom: 2px solid transparent;
-  color: var(--muted);
-  white-space: nowrap;
-  cursor: pointer;
-  list-style: none;
-}
-
-.benchmarkSelect summary::after {
-  min-width: 12px;
-  color: var(--faint);
-  content: "▾";
-  text-align: right;
-}
-
-.benchmarkSelect[open] summary::after {
-  color: var(--ink);
-  content: "▴";
-}
-
-.benchmarkSelect summary::-webkit-details-marker {
-  display: none;
-}
-
-.benchmarkSelect summary[aria-current="true"],
-.benchmarkSelect summary:hover {
-  color: var(--ink);
-}
-
-.benchmarkSelect summary:focus-visible,
-.benchmarkSelectMenu button:focus-visible,
-.benchmarkSelectSearch input:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 2px;
-}
-
-.benchmarkSelectMenu {
-  position: absolute;
-  z-index: 8;
-  top: calc(100% + 8px);
-  left: 0;
-  width: min(420px, calc(100vw - (var(--page-gutter) * 2)));
-  border: 1px solid var(--line-strong);
-  background: var(--paper);
-  box-shadow: var(--tooltip-shadow);
-}
-
-/* A benchmark disclosure stays above its scrolling choice strip, retaining the surface theme in the top layer. */
-.benchmarkSelectMenu[popover] {
-  position: fixed;
-  inset: auto;
-  margin: 0;
-  padding: 0;
-  width: min(420px, calc(100vw - 24px));
-  overflow-y: auto;
-}
-
-.benchmarkSelectBulk {
-  display: grid;
-  width: 14px;
-  height: 30px;
-  align-items: center;
-  justify-items: center;
-  cursor: pointer;
-}
-
-.benchmarkSelectBulk input {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.benchmarkSelectBulkMark,
-.benchmarkSelectOptionMark {
-  width: 12px;
-  height: 12px;
-  border: 1px solid var(--muted);
-}
-
-.benchmarkSelectBulkMark {
-  display: grid;
-  place-items: center;
-}
-
-.benchmarkSelectBulk input:focus-visible + .benchmarkSelectBulkMark,
-.benchmarkSelectOption input:focus-visible + .benchmarkSelectOptionMark {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 2px;
-}
-
-.benchmarkSelectBulk input:checked + .benchmarkSelectBulkMark,
-.benchmarkSelectOption input:checked + .benchmarkSelectOptionMark {
-  border-color: var(--ink);
-  background: var(--ink);
-  box-shadow: inset 0 0 0 2px var(--paper);
-}
-
-.benchmarkSelectBulk input:indeterminate + .benchmarkSelectBulkMark::after {
-  width: 6px;
-  height: 2px;
-  background: var(--ink);
-  content: "";
-}
-
-.benchmarkSelectSearch {
-  display: block;
-  padding: 10px;
-  border-bottom: 1px solid var(--line);
-}
-
-.benchmarkSelectSearch input {
-  width: 100%;
-  min-height: 34px;
-  padding: 0 8px;
-  border: 1px solid var(--line-strong);
-  border-radius: 0;
-  background: transparent;
-  color: var(--ink);
-  font: inherit;
-  font-size: var(--type-caption-size);
-  text-transform: none;
-}
-
-.benchmarkSelectSearch input::placeholder {
-  color: var(--faint);
-}
-
-.benchmarkSelectOptions {
-  max-height: 320px;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
-
-.benchmarkSelectHeader,
-.benchmarkSelectOption {
-  display: grid;
-  grid-template-columns: 14px minmax(0, 1fr) 72px 48px;
-  gap: 9px;
-  padding: 0 10px;
-}
-
-.benchmarkSelectHeader {
-  position: sticky;
-  z-index: 1;
-  top: 0;
-  min-height: 30px;
-  align-items: center;
-  border-bottom: 1px solid var(--line);
-  background: var(--paper);
-  color: var(--faint);
-  font-size: var(--type-micro-size);
-}
-
-.benchmarkSelectSortHeader {
-  display: flex;
-  min-width: 0;
-}
-
-.benchmarkSelectSortHeader:nth-child(n + 3) {
-  justify-content: flex-end;
-}
-
-.benchmarkSelectSortHeader button {
-  display: inline-flex;
-  min-width: 0;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 0;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  text-transform: inherit;
-  cursor: pointer;
-}
-
-.benchmarkSelectSortHeader button:hover,
-.benchmarkSelectSortHeader button:focus-visible {
+/* A benchmark's header in the evidence field is a toggle, focused as the sort controls beside it are. */
+.evidenceHead:focus-visible {
   color: var(--ink);
   outline: 0;
-}
-
-.benchmarkSelectSortHeader button:focus-visible {
   box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
-.benchmarkSelectSortIndicator {
-  display: inline-grid;
-  width: 7px;
-  height: 12px;
-  grid-template-rows: 1fr 1fr;
-  align-items: center;
-  justify-items: center;
-  gap: 2px;
-}
-
-.benchmarkSelectSortIndicator::before,
-.benchmarkSelectSortIndicator::after {
-  width: 0;
-  height: 0;
-  border-right: 3px solid transparent;
-  border-left: 3px solid transparent;
-  content: "";
-  opacity: 0.28;
-}
-
-.benchmarkSelectSortIndicator::before {
-  border-bottom: 4px solid currentColor;
-}
-
-.benchmarkSelectSortIndicator::after {
-  border-top: 4px solid currentColor;
-}
-
-.benchmarkSelectSortHeader
-  button[data-sort-state="ascending"]
-  .benchmarkSelectSortIndicator::before,
-.benchmarkSelectSortHeader
-  button[data-sort-state="descending"]
-  .benchmarkSelectSortIndicator::after {
-  color: var(--ink);
-  opacity: 1;
-}
-
-.benchmarkSelectOption {
-  position: relative;
-  min-height: 42px;
-  align-items: center;
-  border-bottom: 1px solid var(--line);
-  cursor: pointer;
-}
-
-.benchmarkSelectOption:last-child {
-  border-bottom: 0;
-}
-
-.benchmarkSelectOption:hover {
-  background: var(--hover);
-}
-
-.benchmarkSelectOption input {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.benchmarkSelectOptionLabel {
-  overflow: hidden;
-  color: var(--ink);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.evidenceUnit {
-  display: block;
-  margin-top: 4px;
-  color: var(--muted);
-  font-size: var(--type-micro-size);
-  font-weight: 500;
-  text-transform: none;
-}
-
-.benchmarkSelectOptionCorrelation,
-.benchmarkSelectOptionCoverage {
-  color: var(--muted);
-  font-size: var(--type-micro-size);
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-  white-space: nowrap;
-}
-
-.benchmarkSelectEmpty {
-  margin: 0;
-  padding: 18px 10px;
-  color: var(--muted);
-  font-size: var(--type-caption-size);
-}
-
-.benchmarkSelectExplainer {
-  margin: 0;
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--line);
-  color: var(--muted);
-  font-size: var(--type-micro-size);
-}
-
-.figureTop .metricToggle button,
-.figureFoot .metricToggle button,
-.figureTop .benchmarkSelect summary {
+.figureTop .metricToggle > button,
+.figureFoot .metricToggle > button,
+.figureTop .metricToggle > details > summary {
   min-height: var(--axis-control-height);
 }
 
@@ -1033,46 +1056,251 @@ svg:has(.cursorProjection) :is(.axisLabel, .scaleAnchor) {
   margin: 0 0 8px;
 }
 
+/* Ten full rows and half the next, the half row showing that the list scrolls; the component measures the sticky header into --evidence-head. */
 .evidenceTableWrap {
-  max-height: 420px;
+  --evidence-row: 26px;
+  max-height: calc(var(--evidence-head, 0px) + 10.5 * var(--evidence-row));
   overflow: auto;
   margin-top: 12px;
 }
 
+/* The evidence tables' shared frame: caption-size figures in the monospace under a header pinned to the paper, row names pinned at the left while a phone scrolls the table sideways, and row states of their own. */
 .evidenceTable {
-  width: 100%;
-  min-width: 660px;
   border-collapse: collapse;
-  font-size: var(--type-caption-size);
-  font-weight: 500;
-  line-height: 1.5;
+  font: 500 var(--type-caption-size) var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
 .evidenceTable th,
 .evidenceTable td {
-  height: auto;
-  padding: 10px 12px;
-  vertical-align: top;
-  text-align: left;
+  height: var(--evidence-row);
+  border-bottom: 0;
 }
 
+/* Header text does not select, so repeated clicks on its sort buttons, toggles, and blank space leave no highlight. */
 .evidenceTable thead th {
-  border-bottom: 1px solid var(--line);
   position: sticky;
+  z-index: 1;
   top: 0;
   background: var(--paper);
+  vertical-align: bottom;
+  user-select: none;
+}
+
+.evidenceTable thead th:first-child {
+  left: 0;
+  z-index: 2;
+}
+
+.evidenceTable tbody th {
+  position: sticky;
+  left: 0;
+  background: var(--paper);
+  color: var(--ink);
+  letter-spacing: normal;
+  text-align: left;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+/* The leaderboard's zebra and provider-tinted hover would stripe the rows and leave the pinned names a different shade from them. */
+.evidenceTable tbody tr:nth-child(n),
+.evidenceTable tbody tr:nth-child(n):hover {
+  background: none;
+}
+
+/* A layer rather than a colour, so the pinned name keeps its opaque paper and a crossing with a lit column reads brighter. */
+.evidenceTable tbody tr:hover > * {
+  background-image: linear-gradient(var(--hover), var(--hover));
+}
+
+/* Row rules sit inside each cell rather than between cells, so the row and column lights run unbroken across them. */
+.evidenceTable tbody :is(th, td) {
+  box-shadow: inset 0 -1px var(--line);
+}
+
+/* Each model's row of marks: a lit star where the benchmark is common to every shown variant, a faint point where it is not, so sparse benchmarks read as empty columns and thin models as empty rows. */
+.evidenceField {
+  min-width: 0;
+}
+
+.evidenceField th,
+.evidenceField td {
+  padding: 0;
+}
+
+.evidenceField thead th {
+  padding: 0 0 10px;
+  text-align: center;
+}
+
+/* Benchmark names and summary labels stand upright over their columns, reading upward, so a column is only as wide as its figures; bottom-aligned so no line box leaves a gap beneath them. */
+.evidenceUpright {
+  display: inline-block;
+  vertical-align: bottom;
+  max-block-size: 132px;
+  overflow: hidden;
+  color: var(--faint);
+  font-size: var(--type-micro-size);
+  letter-spacing: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+/* Half the names' 10px, since each sort button adds its own 5px, so every header label ends on one line. */
+.evidenceField thead th:first-child,
+.evidenceField thead .evidenceSummary {
+  padding-bottom: 5px;
+  color: var(--faint);
   font-size: var(--type-micro-size);
   text-transform: uppercase;
 }
 
-.evidenceTable tbody th {
-  font-size: inherit;
-  letter-spacing: inherit;
+.evidenceField thead th:first-child {
+  padding-right: 14px;
+  text-align: left;
+}
+
+/* Each upright label stands over what runs along the rank label's line: a benchmark's count of models sharing it, the figure the core sentence summarizes, or a summary column's sort mark. */
+.evidenceHead,
+.evidenceField thead .evidenceSummary .evidenceSort {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+/* A benchmark's header is a toggle that keeps only the models sharing it. */
+.evidenceHead {
+  width: 100%;
+  padding: 0;
+  border: 0;
   background: transparent;
-  border-bottom-color: var(--line);
-  color: var(--ink);
+  color: inherit;
+  font: inherit;
+  text-transform: none;
+  cursor: pointer;
+}
+
+/* A button shrinks to its content even as a block, so it is stretched to center its label over the figures. */
+.evidenceField thead .evidenceSummary .evidenceSort {
+  width: 100%;
+}
+
+.evidenceCount,
+.evidenceSharing {
+  color: var(--faint);
+  font-size: var(--type-micro-size);
+  font-weight: 500;
+}
+
+/* The rank header's line ends by naming the counts that continue it. */
+.evidenceRankHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.evidenceSharing {
   text-transform: none;
   white-space: nowrap;
+}
+
+/* Block-level, so no line box leaves a gap beneath the label either. */
+.evidenceField .evidenceSort {
+  display: flex;
+}
+
+/* The pointer's column lights only in the body; its header label turns ink and bold instead, so a tall header over a short label stays dark. */
+.evidenceField col[data-hover],
+.evidenceField col[data-picked] {
+  background: var(--hover);
+}
+
+/* A picked benchmark keeps the hovered look, so the column the rows are filtered by stays named. */
+.evidenceField thead th:is([data-hover], [data-picked]),
+.evidenceField thead th:is([data-hover], [data-picked]) .evidenceUpright,
+.evidenceField thead th:is([data-hover], [data-picked]) .evidenceCount {
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.evidenceField tbody th {
+  padding-right: 14px;
+  font-family: var(--font-sans);
+  font-size: var(--type-data-size);
+  font-weight: var(--type-heading-weight);
+}
+
+/* A row outside the picked benchmarks collapses rather than leaving the table, so its name still sets the column widths and the header stays put under the pointer. */
+.evidenceField tbody tr[data-out] {
+  visibility: collapse;
+}
+
+.evidenceField td {
+  width: 20px;
+  min-width: 20px;
+  text-align: center;
+}
+
+.evidenceField td i,
+.evidenceLegend i {
+  display: inline-block;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgb(var(--ink-rgb) / 0.22);
+  vertical-align: middle;
+}
+
+.evidenceField td[data-common] i,
+.evidenceLegend i[data-common] {
+  width: 5px;
+  height: 5px;
+  background: var(--ink);
+  box-shadow: 0 0 6px 1px var(--lab);
+}
+
+/* On paper the marks are solid with a tighter glow, as chart stars are, so they read crisp rather than smudged. */
+:global(html[data-model-atlas-theme="light"]) .evidenceField td[data-common] i,
+:global(html[data-model-atlas-theme="light"]) .evidenceLegend i[data-common] {
+  box-shadow: 0 0 2px var(--lab);
+}
+
+/* The legend's lit mark glows in a neutral tone, since each row's own glow is its lab's colour. */
+.evidenceLegend {
+  --lab: var(--muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+}
+
+.evidenceLegend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.evidenceLegend .evidenceFilter {
+  color: var(--ink);
+}
+
+/* Even side padding, so a lit summary column frames its figures instead of ending flush on them. */
+.evidenceField .evidenceSummary {
+  width: auto;
+  min-width: 0;
+  padding-inline: 6px;
+  color: var(--muted);
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* The summary columns stand apart from the field as one group. */
+.evidenceField .evidenceSummary[data-column="common"] {
+  padding-left: 16px;
 }
 
 .evidenceModel {
@@ -1087,26 +1315,19 @@ svg:has(.cursorProjection) :is(.axisLabel, .scaleAnchor) {
   flex-shrink: 0;
 }
 
-.evidenceTable td:not(:last-child) {
-  white-space: nowrap;
+/* Wide enough for the longest rank, so every logo and name starts on one line. */
+.evidenceRank {
+  min-width: calc(var(--rank-digits) * 1ch);
+  color: var(--faint);
+  font-family: var(--font-mono);
+  font-size: var(--type-micro-size);
+  font-weight: 500;
   text-align: right;
 }
 
-.evidenceTable td:last-child {
-  width: 100%;
-}
-
-.missingEvidence {
-  margin-top: 4px;
-  font-size: var(--type-micro-size);
-}
-
-.missingEvidence summary {
-  cursor: pointer;
-}
-
-.missingEvidence p {
-  margin-top: 6px;
+/* The shared core's sentence leads the note in ink, ahead of the method's caveats. */
+.note .evidenceCore {
+  color: var(--ink);
 }
 
 .note {
@@ -1269,7 +1490,7 @@ svg:has(.cursorProjection) :is(.axisLabel, .scaleAnchor) {
     gap: 16px;
   }
 
-  /* Choices take the caption size, untracked, on tighter spacing, so a strip shows more of its options before it scrolls. */
+  /* Choices, and the find field beside them, take the caption size, untracked, on tighter spacing, so a strip shows more of its options before it scrolls. */
   .metricToggle,
   .axisControlX .metricToggle {
     width: 100%;
@@ -1277,16 +1498,18 @@ svg:has(.cursorProjection) :is(.axisLabel, .scaleAnchor) {
   }
 
   .metricToggle > button,
-  .metricToggle > .benchmarkSelect > summary {
+  .metricToggle > details > summary,
+  .chartFindField input {
     font-size: var(--type-caption-size);
     letter-spacing: 0;
   }
 
   .plotVariants {
     font-size: var(--type-caption-size);
+    letter-spacing: 0;
   }
 
-  .metricToggle button {
+  .metricToggle > button {
     min-height: 44px;
     flex: 0 0 auto;
   }
@@ -1294,25 +1517,14 @@ svg:has(.cursorProjection) :is(.axisLabel, .scaleAnchor) {
   .axisControlX {
     gap: 2px;
   }
-  .benchmarkSelectSearch input {
-    min-height: 44px;
-    font-size: 16px;
-  }
-
-  .benchmarkSelect summary,
-  .benchmarkSelectOption {
-    min-height: 44px;
-  }
-
-  .benchmarkSelectMenu {
-    width: 100%;
-    box-shadow: none;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .metricToggle button,
-  .pointButton {
+  .metricToggle > button,
+  .pointButton,
+  .plotVariants,
+  .variantsSwitch::before,
+  .variantsSwitch::after {
     transition: none;
   }
 }
@@ -1337,12 +1549,6 @@ svg:has(.cursorProjection) :is(.axisLabel, .scaleAnchor) {
   letter-spacing: -0.03em;
   line-height: 1;
   overflow-wrap: normal;
-}
-
-.section[data-capture-layout="artifact"] :global(.dashboard-section-title) b {
-  padding-top: 3px;
-  color: var(--faint);
-  font-size: var(--type-caption-size);
 }
 
 .section[data-capture-layout="artifact"] .panel {

@@ -38,7 +38,7 @@
   -webkit-appearance: none;
   margin: 0;
 }
-/* The effort checklist borrows the benchmark picker's menu but reads in this toolbar's case and size, opens leftward from the toolbar's end, and is only as wide and tall as its one-word rows need. */
+/* The effort checklist borrows the dashboard checklist's menu but reads in this toolbar's case and size, opens leftward from the toolbar's end, and is only as wide and tall as its one-word rows need. */
 .controls .effort {
   position: relative;
   margin-left: 6px;
@@ -61,15 +61,18 @@
   max-height: none;
 }
 .controls .effortRow {
-  grid-template-columns: 14px minmax(0, 1fr) auto;
   min-height: 34px;
+}
+/* Collapsed sits above the efforts' list rather than in it, so it sets the list's three columns itself. */
+.controls .collapsedRow {
+  grid-template-columns: 14px minmax(0, 1fr) auto;
 }
 .controls .effortRow > :last-child {
   padding-left: 16px;
 }
-/* Default excludes every effort below it, so a stronger rule sets it apart from the checklist. */
-.controls .defaultRow {
-  border-bottom-color: var(--line-strong);
+/* Expanded is the second choice beside Collapsed, so it reads at the options' size rather than as the column heading whose row it shares. */
+.controls .expandedLabel {
+  font-size: var(--type-label-size);
 }
 .limit input:focus-visible {
   outline: none;

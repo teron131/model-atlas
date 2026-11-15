@@ -1,15 +1,19 @@
-/** Materialize provider logo modules and public SVGs from the current display snapshot (the published one, or the local checkpoint with MODEL_ATLAS_LOCAL_DATABASE=1) and the logo cache. */
+/** Materialize provider logo modules and public SVGs for every provider in the current snapshot (the published one, or the local checkpoint with MODEL_ATLAS_LOCAL_DATABASE=1): display models bring their logos, labs only the Timeline knows take their models.dev logo, and remote logos go through the logo cache. */
 
 import { existsSync } from "node:fs";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { loadEnvFile } from "node:process";
 import { pathToFileURL } from "node:url";
 
-import { readDisplayPayload } from "../src/model-atlas/database/runtime-snapshot";
-import { modelLogoCacheDir, resizeLogoToPng } from "../src/model-atlas/logos/cache";
+import {
+  readDisplayPayload,
+  readTimelineDataset,
+} from "../src/model-atlas/database/runtime-snapshot";
+import { providerIdentityKey } from "../src/model-atlas/identity/provider";
+import { cacheModelLogos, resizeLogoToPng } from "../src/model-atlas/logos/cache";
 import { providerIconColor } from "../src/model-atlas/logos/color";
-import { providerAssetKey } from "../src/model-atlas/logos/resolve";
+import { modelsDevLogoUrl, providerAssetKey } from "../src/model-atlas/logos/resolve";
 
 type ProviderAsset = {
   logo: string;
@@ -30,7 +34,7 @@ if (existsSync(".env")) {
 }
 
 const existingAssets = force ? {} : await readExistingAssets();
-const logoSources = await readLogoSources();
+const logoSources = await readLogoSources(Object.keys(existingAssets));
 const nextAssets: ProviderAssetMap = { ...existingAssets };
 
 for (const [provider, source] of [...logoSources].sort()) {
@@ -83,8 +87,8 @@ async function readExistingAssets(): Promise<ProviderAssetMap> {
   }
 }
 
-/** One logo per provider, preferring a logo the snapshot already embeds over a remote link, which may have gone dead. */
-async function readLogoSources() {
+/** One logo per provider, preferring a logo the snapshot already embeds over a remote link, which may have gone dead; a Timeline lab is added only when no spelling of it has a logo yet, since its models.dev logo would otherwise outrank that one wherever icons resolve by identity. */
+async function readLogoSources(generated: readonly string[]) {
   const sources = new Map<string, string>();
   const rank = (logo: string) => (logo.startsWith("data:image/") ? 2 : logo ? 1 : 0);
   for (const model of (await readDisplayPayload()).models) {
@@ -97,18 +101,23 @@ async function readLogoSources() {
       sources.set(provider, logo);
     }
   }
+  const covered = new Set([...generated, ...sources.keys()].map(providerIdentityKey));
+  // The Timeline names a lab by its identity key; the archive's own spelling can be another company's models.dev id (`liquid`).
+  for (const model of (await readTimelineDataset())?.models ?? []) {
+    const provider = providerIdentityKey(model.provider);
+    const logo = modelsDevLogoUrl(provider);
+    if (logo != null && !covered.has(provider)) {
+      sources.set(provider, logo);
+      covered.add(provider);
+    }
+  }
   return sources;
 }
 
+/** `null` when neither the source nor the provider's models.dev logo can be fetched; models.dev's placeholder for providers it does not list counts as no logo. */
 async function readLogoBuffer(provider: string, source: string) {
-  if (source.startsWith("data:image/")) {
-    return decodeDataUrl(source);
-  }
-  try {
-    return await readFile(resolve(modelLogoCacheDir(), `${provider}.png`));
-  } catch {
-    return null;
-  }
+  const [cached] = await cacheModelLogos([{ logo: source, provider }], () => provider);
+  return cached?.logo ? decodeDataUrl(cached.logo) : null;
 }
 
 /** The payload after `;base64,` decodes as base64, otherwise the text after the first comma is percent-decoded: `data:image/svg+xml,%3Csvg%2F%3E` → `<svg/>`. */

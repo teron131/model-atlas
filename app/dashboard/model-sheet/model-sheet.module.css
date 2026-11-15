@@ -94,9 +94,9 @@
   grid-template-columns: var(--benchmark-value) 52px 52px;
 }
 
-/* The card leaves the actions out, so a comparison's second name takes their room. */
-.sheet[data-compare][data-capture-layout="artifact"] .headEntry + .headEntry {
-  padding-right: 0;
+/* The card leaves the toggle and the actions out, so their row folds into the empty label cell beside the names. */
+.sheet[data-compare][data-capture-layout="artifact"] .compareControls {
+  grid-column: auto;
 }
 
 @keyframes sheet-enter {
@@ -174,15 +174,19 @@
   min-width: 0;
 }
 
-/* In a comparison, link and close keep the single sheet's top-right corner, and the opened model's name leaves room for them. */
+/* A comparison gives the Compare toggle a row of its own, which the other actions share in the single sheet's top-right corner, so the names below keep their places over the value columns and their columns' full width. */
+.sheet[data-compare] .compareControls {
+  grid-column: 1 / -1;
+}
+
+.sheet[data-compare] .compareControls + .headEntry {
+  grid-column: 2;
+}
+
 .compareActions {
   position: absolute;
   top: var(--sheet-pad);
   right: var(--sheet-pad);
-}
-
-.sheet[data-compare] .headEntry + .headEntry {
-  padding-right: 108px;
 }
 
 /* The name reads at the readout size shared with the Timeline's catalogue entry. */
@@ -1006,21 +1010,6 @@
   color: var(--faint);
 }
 
-/* A comparison narrower than its 880px plane gives the Compare toggle its own row, which link and close share at its right, so the names below keep their places over the value columns and need no room for the actions. */
-@media (max-width: 900px) {
-  .sheet[data-compare] .compareControls {
-    grid-column: 1 / -1;
-  }
-
-  .sheet[data-compare] .headEntry + .headEntry {
-    padding-right: 0;
-  }
-
-  .sheet[data-compare] .compareControls + .headEntry {
-    grid-column: 2;
-  }
-}
-
 /* Two columns too narrow for the full cells keep each value, its margin, and its rank; support and every meter or bar (each cell's third slot) stay on the single sheet. */
 @media (max-width: 720px) {
   .sheet[data-compare] .scoreCell {
@@ -1221,7 +1210,13 @@
     grid-template-columns: 38px minmax(30px, 1fr);
   }
 
-  .sheet[data-compare] .benchmarks {
-    --benchmark-value: 50px;
+  /* A dollar balance and its margin outgrow a column this narrow side by side, so each margin sits beneath its value. */
+  .sheet[data-compare] .benchmarkCell {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 0;
+  }
+
+  .sheet[data-compare] .benchmarkCell .delta {
+    justify-self: end;
   }
 }

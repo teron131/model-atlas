@@ -14,7 +14,6 @@ import {
 import type { ModelAtlasModel } from "../../../../src/model-atlas/stats/types";
 import { openModelSheet } from "../../model-sheet/open";
 import { modelName } from "../../shared/model-display";
-import { focusHover, type HoverRow, type HoverSetter, pointHover } from "../HoverCard";
 import type { PlotBounds } from "./Primitives";
 
 import styles from "../graphs.module.css";
@@ -110,15 +109,15 @@ export function CursorProjectionLayer({
   xLabel,
   yLabel,
   color,
-  insetScale = false,
+  insetScale,
 }: {
   projection: CursorProjection | null;
   bounds: PlotBounds;
   xLabel: string;
   yLabel: string;
   color?: string;
-  /** The y scale sits inside the plot, as compact plots' anchors do, so its reading does too, above the guide. */
-  insetScale?: boolean;
+  /** Where the y scale sits inside the plot, as compact plots' anchors do: the x its labels are set from, so its reading sits with them, above the guide. */
+  insetScale?: number;
 }) {
   if (!projection) {
     return null;
@@ -134,8 +133,8 @@ export function CursorProjectionLayer({
       <AxisReading x={projection.x} y={bounds.bottom + 24} textAnchor="middle">
         {xLabel}
       </AxisReading>
-      {insetScale ? (
-        <AxisReading x={bounds.left + 6} y={projection.y - 6} textAnchor="start">
+      {insetScale != null ? (
+        <AxisReading x={insetScale + 6} y={projection.y - 6} textAnchor="start">
           {yLabel}
         </AxisReading>
       ) : (
@@ -187,9 +186,6 @@ export function PointHitTarget({
   cx,
   cy,
   model,
-  rows,
-  setHover,
-  hoverTitle,
   snapProjection,
   setCursorProjection,
   onActiveChange,
@@ -197,15 +193,11 @@ export function PointHitTarget({
   cx: number;
   cy: number;
   model: ModelAtlasModel;
-  rows: HoverRow[];
-  setHover: HoverSetter;
-  hoverTitle?: string;
   snapProjection?: CursorProjection;
   setCursorProjection?: (projection: CursorProjection | null) => void;
   onActiveChange?: (active: boolean) => void;
 }) {
   const size = 28;
-  const displayName = hoverTitle ?? modelName(model);
   const setActive = (active: boolean) => {
     onActiveChange?.(active);
     if (snapProjection) {
@@ -223,45 +215,21 @@ export function PointHitTarget({
       <button
         type="button"
         className={styles.pointButton}
-        aria-label={`Show details for ${displayName}`}
+        aria-label={`Show details for ${modelName(model)}`}
         aria-haspopup="dialog"
         onPointerEnter={(event) => {
           if (event.pointerType === "touch") return;
           setActive(true);
-          setHover(pointHover(event, model, rows, displayName));
         }}
-        onFocus={(event) => {
-          setActive(true);
-          setHover(focusHover(event.currentTarget, model, rows, displayName));
-        }}
-        onPointerMove={(event) => {
-          if (event.pointerType === "touch") return;
-          setHover((hover) =>
-            hover == null ||
-            (Math.abs(hover.left - event.clientX) < 6 && Math.abs(hover.top - event.clientY) < 6)
-              ? hover
-              : {
-                  ...hover,
-                  left: event.clientX,
-                  top: event.clientY,
-                },
-          );
-        }}
+        onFocus={() => setActive(true)}
         // Hover and focus preview a star; choosing it opens the model's full sheet.
-        onClick={() => {
-          setHover(null);
-          openModelSheet(model);
-        }}
+        onClick={() => openModelSheet(model)}
         onPointerLeave={(event) => {
           if (event.pointerType === "touch" || event.currentTarget === document.activeElement)
             return;
           setActive(false);
-          setHover(null);
         }}
-        onBlur={() => {
-          setActive(false);
-          setHover(null);
-        }}
+        onBlur={() => setActive(false)}
       />
     </foreignObject>
   );

@@ -7,6 +7,7 @@ import { type CSSProperties, memo, useLayoutEffect, useMemo, useRef, useState } 
 
 import { canonicalModelKey } from "../../../src/model-atlas/identity/normalization";
 import { SCORE_ICONS } from "../../shared/DashboardMarks";
+import { SkyStar } from "../graphs/plot/SkyPlot";
 import { openModelSheet } from "../model-sheet/open";
 import { formatCost } from "../table/format";
 import {
@@ -122,11 +123,17 @@ export const ModelSignature = memo(function ModelSignature(population: Signature
           <li
             className={styles.registerItem}
             key={model.family}
-            style={{ "--provider": model.color } as CSSProperties}
+            style={
+              {
+                "--provider": model.color,
+                "--score": model.metric.scores[0]?.value,
+              } as CSSProperties
+            }
             data-focused={focusKey === model.family}
             onPointerEnter={() => setFocusKey(model.family)}
             onPointerLeave={() => setFocusKey(null)}
           >
+            <SkyStar color={model.color} role="frontier" className={styles.registerStar} />
             {/* The whole role opens its model sheet; focus lights the role's star like hovering does. */}
             <button
               type="button"
@@ -180,7 +187,7 @@ const METRIC_SCORES = [
 function selectionMetricPresentation(metric: SignatureMetric) {
   const scores = METRIC_SCORES.flatMap(([kind, label]) => {
     const score = metric[kind];
-    return score == null ? [] : [{ kind, label, text: score.toFixed(1) }];
+    return score == null ? [] : [{ kind, label, value: score, text: score.toFixed(1) }];
   });
   const accessible = scores.map(({ label, text }) => `${label} ${text}`).join(" · ");
   const price = metric.price == null ? undefined : formatCost(metric.price);
