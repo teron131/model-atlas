@@ -916,7 +916,7 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
       metric: "cost",
       metricSource: "terminal_bench_4__source_a",
       direction: "ascending",
-      label: "TB4$ Off",
+      label: "TB$ Off",
       tooltip: {
         title: "Terminal-Bench 4.1 cost ↓",
         body: "Cost per task attempt; lower is better.",
@@ -931,7 +931,7 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
       metric: "cost",
       metricSource: "terminal_bench_4__source_b",
       direction: "ascending",
-      label: "TB4$ AA",
+      label: "TB$ AA",
       tooltip: {
         title: "Terminal-Bench 4.1 cost ↓",
         body: "Cost per task attempt; lower is better.",
@@ -946,7 +946,7 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
       metric: "tokens",
       metricSource: "terminal_bench_4__source_a",
       direction: "ascending",
-      label: "TB4 Tok Off",
+      label: "TB Tok Off",
       tooltip: {
         title: "Terminal-Bench 4.1 tokens ↓",
         body: "Total tokens per task attempt; lower is better.",
@@ -961,7 +961,7 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
       metric: "tokens",
       metricSource: "terminal_bench_4__source_b",
       direction: "ascending",
-      label: "TB4 Tok AA",
+      label: "TB Tok AA",
       tooltip: {
         title: "Terminal-Bench 4.1 tokens ↓",
         body: "Total tokens per task attempt; lower is better.",
@@ -1339,7 +1339,7 @@ export const BENCHMARK_COLUMNS = {
   },
   terminal_bench_4: {
     key: "terminalBench4",
-    label: "TB4",
+    label: "TB",
     format: "percent",
   },
   terminal_bench_science: {

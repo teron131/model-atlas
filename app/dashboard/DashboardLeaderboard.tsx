@@ -1,8 +1,8 @@
 "use client";
 
-/** The leaderboard region: derives its rows from the URL state, the global filters, and the table search, and owns the column tooltip's fade; it is kept apart from the graphs so slider, sort, and table-search updates re-render only the table. */
+/** The leaderboard region: derives its rows from the URL state, the global filters, and the table search, and hosts the column tooltip; it is kept apart from the graphs so slider, sort, and table-search updates re-render only the table. */
 
-import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo } from "react";
 
 import type { ModelAtlasColumnTooltips } from "../../src/model-atlas/config/tooltips";
 import type { ModelAtlasPayload } from "../../src/model-atlas/stats/types";
@@ -21,12 +21,7 @@ import {
   tableColumnView,
   visibleSort,
 } from "./table/column-views";
-import {
-  ColumnTooltip,
-  type HeaderTooltipHandler,
-  tooltipPositionFromElement,
-  type TooltipState,
-} from "./table/ColumnTooltip";
+import { ColumnTooltip, useColumnTooltip } from "./table/ColumnTooltip";
 import { type EffortSelection, useDisplayLimit } from "./table/DisplayControls";
 import { effortChoices, leaderboardRows } from "./table/leaderboard-rows";
 import { LeaderboardControls } from "./table/LeaderboardControls";
@@ -37,9 +32,6 @@ import type { DashboardUrlPatch } from "./url-state";
 import { updateDashboardUrl, useUrlState } from "./use-url-state";
 
 const emptyColumnTooltips: ModelAtlasColumnTooltips = {};
-const TOOLTIP_FADE_OUT_MS = 1_000;
-
-type DashboardTooltipState = TooltipState & { key: TableColumnKey };
 
 export function DashboardLeaderboard({
   payload,
@@ -52,15 +44,24 @@ export function DashboardLeaderboard({
   isLoading: boolean;
   filters: GlobalModelFilters;
 }) {
-  const tooltipFadeTimeoutRef = useRef<number | null>(null);
   const [requestedSort, setSortState] = useUrlState("sort");
   const [tableQuery] = useUrlState("table-q");
   const [columnPreset] = useUrlState("view");
-  const [tooltip, setTooltip] = useState<DashboardTooltipState | null>(null);
   const [showVariants] = useUrlState("table-variants");
   const [requestedEfforts] = useUrlState("table-effort");
   const deferredTableQuery = useDeferredValue(tableQuery);
   const columnTooltips = payload?.metadata.scoring.column_tooltips ?? emptyColumnTooltips;
+  const hasTooltip = useCallback(
+    (key: TableColumnKey) => tableColumnTooltip(key, columnTooltips) != null,
+    [columnTooltips],
+  );
+  const {
+    tooltip,
+    show: showTooltip,
+    end: endTooltip,
+    hold: holdTooltip,
+    closeOnSort,
+  } = useColumnTooltip(hasTooltip);
   const deferredShowVariants = useDeferredValue(showVariants);
   const deferredEfforts = useDeferredValue(requestedEfforts);
   const deferredFilters = useDeferredValue(filters);
@@ -187,8 +188,11 @@ export function DashboardLeaderboard({
   }, [scopedRows.length, setLimit]);
 
   const handleSort = useCallback(
-    (key: SortKey) => setSortState(toggledSort(sortState, key)),
-    [sortState, setSortState],
+    (key: SortKey) => {
+      closeOnSort();
+      setSortState(toggledSort(sortState, key));
+    },
+    [closeOnSort, sortState, setSortState],
   );
 
   const changeColumnView = useCallback(
@@ -223,50 +227,6 @@ export function DashboardLeaderboard({
     (query: string) => changeColumnView({ "table-q": query }),
     [changeColumnView],
   );
-
-  const clearTooltipFadeTimeout = useCallback(() => {
-    if (tooltipFadeTimeoutRef.current != null) {
-      window.clearTimeout(tooltipFadeTimeoutRef.current);
-      tooltipFadeTimeoutRef.current = null;
-    }
-  }, []);
-
-  const cancelTooltipFade = useCallback(() => {
-    clearTooltipFadeTimeout();
-    setTooltip((current) =>
-      current == null || current.phase === "visible" ? current : { ...current, phase: "visible" },
-    );
-  }, [clearTooltipFadeTimeout]);
-
-  const clearTooltip = useCallback(() => {
-    setTooltip((current) =>
-      current == null || current.phase === "leaving" ? current : { ...current, phase: "leaving" },
-    );
-    clearTooltipFadeTimeout();
-    tooltipFadeTimeoutRef.current = window.setTimeout(() => {
-      setTooltip((current) => (current?.phase === "leaving" ? null : current));
-      tooltipFadeTimeoutRef.current = null;
-    }, TOOLTIP_FADE_OUT_MS);
-  }, [clearTooltipFadeTimeout]);
-
-  const showTooltip = useCallback<HeaderTooltipHandler<TableColumnKey>>(
-    (event, key) => {
-      if (!tableColumnTooltip(key, columnTooltips)) {
-        return;
-      }
-      clearTooltipFadeTimeout();
-      setTooltip({
-        key,
-        phase: "visible",
-        ...tooltipPositionFromElement(event.currentTarget),
-      });
-    },
-    [columnTooltips, clearTooltipFadeTimeout],
-  );
-
-  useEffect(() => {
-    return clearTooltipFadeTimeout;
-  }, [clearTooltipFadeTimeout]);
 
   return (
     <>
@@ -313,17 +273,16 @@ export function DashboardLeaderboard({
           isSorting={deferredSortState !== sortState}
           onSort={handleSort}
           onTooltip={showTooltip}
-          onTooltipEnd={clearTooltip}
+          onTooltipEnd={endTooltip}
         />
       </ResearchRegion>
       {tooltip != null && activeTooltipContent != null && (
         <ColumnTooltip
           content={activeTooltipContent}
+          anchor={tooltip.anchor}
           phase={tooltip.phase}
-          left={tooltip.left}
-          onMouseEnter={cancelTooltipFade}
-          onMouseLeave={clearTooltip}
-          top={tooltip.top}
+          onMouseEnter={holdTooltip}
+          onMouseLeave={endTooltip}
         />
       )}
     </>

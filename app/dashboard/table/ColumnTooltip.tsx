@@ -1,8 +1,11 @@
-/** The column header tooltip card: places itself under its trigger inside the viewport, widens for an inequality graph or a score's weights map, and hands benchmark headers to their own body. */
+/** Column header tooltips: when a header's card opens and closes, and the card itself, placed under its header or above it so it never covers the header row, widened for an inequality graph or a score's weights map, with benchmark headers handed to their own body. */
 
 import {
   type FocusEvent,
   type MouseEvent,
+  type RefObject,
+  useCallback,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -20,42 +23,110 @@ import { InequalityGraph, layoutInequalityGraph } from "./InequalityGraph";
 import { ScoreWeightsMap } from "./ScoreWeightsMap";
 import type { DashboardColumnTooltip } from "./tooltips";
 
-const tooltipHorizontalPadding = 18;
+const viewportMargin = 18;
 const tooltipMaxWidth = 360;
 // The card's 13px side padding and 1px border on each side.
 const tooltipInset = 28;
-const tooltipOffsetTop = 12;
+const headerGap = 12;
 // A score's weights map takes a card this wide where the screen leaves room for it.
 const scoreWeightsWidth = 520;
+// The pointer rests this long on a header before its card opens, so crossing headers on the way to a click opens none.
+const openDelayMs = 800;
+// A card stays live this long after its header loses the pointer, enough for the pointer to cross the gap into it.
+const leaveGraceMs = 100;
+// The `.leaving` fade in globals.css.
+const fadeOutMs = 400;
 
-export type TooltipState = {
-  left: number;
-  top: number;
-  phase: "visible" | "leaving";
-};
+/** Where a card of the usual width starts when centred under its header, and that header's top and bottom edges. */
+type HeaderAnchor = { left: number; top: number; bottom: number };
+
+/** `maxHeight` is set only when the card is taller than the room on its side. */
+type Placement = { left: number; top: number; maxHeight: number | undefined };
+
+type Phase = "visible" | "leaving";
 
 export type HeaderTooltipHandler<TKey extends string = string> = (
   event: MouseEvent<HTMLButtonElement> | FocusEvent<HTMLButtonElement>,
   key: TKey,
 ) => void;
 
+/** Times a header's card: it opens once the pointer rests on its header, at once for keyboard focus, a touch screen's tap, or while another card is showing, and on leaving stays live briefly so the pointer can move into it before it fades. */
+export function useColumnTooltip<TKey extends string>(hasTooltip: (key: TKey) => boolean) {
+  const [tooltip, setTooltip] = useState<{ key: TKey; anchor: HeaderAnchor; phase: Phase } | null>(
+    null,
+  );
+  const showing = useRef(false);
+  const timer = useRef<number | null>(null);
+
+  useLayoutEffect(() => {
+    showing.current = tooltip != null;
+  }, [tooltip]);
+  useEffect(() => () => cancel(timer), []);
+
+  const show = useCallback<HeaderTooltipHandler<TKey>>(
+    (event, key) => {
+      const header = event.currentTarget;
+      const isFocus = event.type === "focus";
+      // A mouse click focuses its button too, so focus opens a card only when it came from the keyboard.
+      if (!hasTooltip(key) || (isFocus && !header.matches(":focus-visible"))) {
+        return;
+      }
+      const open = () => setTooltip({ key, phase: "visible", anchor: headerAnchor(header) });
+      if (isFocus || showing.current || !canHover()) {
+        cancel(timer);
+        open();
+      } else {
+        schedule(timer, openDelayMs, open);
+      }
+    },
+    [hasTooltip],
+  );
+
+  const end = useCallback(() => {
+    if (!showing.current) {
+      cancel(timer);
+      return;
+    }
+    schedule(timer, leaveGraceMs, () => {
+      setTooltip((current) => current && { ...current, phase: "leaving" });
+      schedule(timer, fadeOutMs, () => setTooltip(null));
+    });
+  }, []);
+
+  // A leaving card ignores the pointer, so only a live one can be held.
+  const hold = useCallback(() => cancel(timer), []);
+
+  /** Closes the card at once when its header sorts, except on a touch screen, where the tap that sorts is also the only way to open it. */
+  const closeOnSort = useCallback(() => {
+    if (canHover()) {
+      cancel(timer);
+      setTooltip(null);
+    }
+  }, []);
+
+  return { tooltip, show, end, hold, closeOnSort };
+}
+
 export function ColumnTooltip({
   content,
+  anchor,
   phase,
-  left,
   onMouseEnter,
   onMouseLeave,
-  top,
 }: {
   content: DashboardColumnTooltip;
-  phase: TooltipState["phase"];
-  left: number;
+  anchor: HeaderAnchor;
+  phase: Phase;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
-  top: number;
 }) {
   const tooltipRef = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState({ left, top });
+  const [placement, setPlacement] = useState<(Placement & { anchor: HeaderAnchor }) | null>(null);
+  // Until it is placed for this header, the card renders unconstrained below it so the effect measures its full height.
+  const position: Placement =
+    placement?.anchor === anchor
+      ? placement
+      : { left: anchor.left, top: anchor.bottom + headerGap, maxHeight: undefined };
   const hasRows = (content.rows?.length ?? 0) > 0;
   const hasSections = (content.sections?.length ?? 0) > 0;
   const graphLayout = useMemo(
@@ -63,9 +134,7 @@ export function ColumnTooltip({
     [content.graph],
   );
   const availableWidth =
-    typeof window === "undefined"
-      ? tooltipMaxWidth
-      : window.innerWidth - tooltipHorizontalPadding * 2;
+    typeof window === "undefined" ? tooltipMaxWidth : window.innerWidth - viewportMargin * 2;
   const tooltipWidth = Math.min(
     Math.max(
       tooltipMaxWidth,
@@ -76,18 +145,11 @@ export function ColumnTooltip({
   );
 
   useLayoutEffect(() => {
-    const rect = tooltipRef.current?.getBoundingClientRect();
-    if (rect == null) {
-      setPosition({ left, top });
-      return;
+    const card = tooltipRef.current;
+    if (card != null) {
+      setPlacement({ anchor, ...placeCard(anchor, card.offsetWidth, card.offsetHeight) });
     }
-    const nextPosition = clampTooltipPosition(left, top, rect);
-    setPosition((current) =>
-      current.left === nextPosition.left && current.top === nextPosition.top
-        ? current
-        : nextPosition,
-    );
-  }, [left, top]);
+  }, [anchor]);
 
   return (
     <div
@@ -96,7 +158,12 @@ export function ColumnTooltip({
       onMouseLeave={onMouseLeave}
       ref={tooltipRef}
       role="tooltip"
-      style={{ ...position, width: tooltipWidth }}
+      style={{
+        left: position.left,
+        top: position.top,
+        maxHeight: position.maxHeight,
+        width: tooltipWidth,
+      }}
     >
       {content.benchmark != null ? (
         <BenchmarkTooltipBody body={content.body} facts={content.benchmark} title={content.title} />
@@ -153,20 +220,44 @@ export function ColumnTooltip({
   );
 }
 
-/** Anchor a tooltip under the hovered trigger while keeping it inside the viewport. */
-export function tooltipPositionFromElement(element: HTMLElement) {
-  const rect = element.getBoundingClientRect();
-  const width = Math.min(tooltipMaxWidth, window.innerWidth - tooltipHorizontalPadding * 2);
-  const left = Math.max(
-    tooltipHorizontalPadding,
-    Math.min(
-      rect.left + rect.width / 2 - width / 2,
-      window.innerWidth - width - tooltipHorizontalPadding,
-    ),
-  );
+function canHover() {
+  return window.matchMedia("(hover: hover)").matches;
+}
+
+function schedule(timer: RefObject<number | null>, delayMs: number, run: () => void) {
+  cancel(timer);
+  timer.current = window.setTimeout(() => {
+    timer.current = null;
+    run();
+  }, delayMs);
+}
+
+function cancel(timer: RefObject<number | null>) {
+  if (timer.current != null) {
+    window.clearTimeout(timer.current);
+    timer.current = null;
+  }
+}
+
+function headerAnchor(header: HTMLElement): HeaderAnchor {
+  const rect = header.getBoundingClientRect();
+  const width = Math.min(tooltipMaxWidth, window.innerWidth - viewportMargin * 2);
+  return { left: rect.left + rect.width / 2 - width / 2, top: rect.top, bottom: rect.bottom };
+}
+
+/** The card goes under its header, or above it when it doesn't fit below and more of it fits above, so it never covers the header row; a card taller than its side's room scrolls. */
+function placeCard(anchor: HeaderAnchor, width: number, height: number): Placement {
+  const left = clamp(anchor.left, viewportMargin, window.innerWidth - width - viewportMargin);
+  const below = anchor.bottom + headerGap;
+  const roomBelow = window.innerHeight - viewportMargin - below;
+  const roomAbove = anchor.top - headerGap - viewportMargin;
+  if (height <= roomBelow || roomBelow >= roomAbove) {
+    return { left, top: below, maxHeight: height > roomBelow ? roomBelow : undefined };
+  }
   return {
     left,
-    top: rect.bottom + tooltipOffsetTop,
+    top: anchor.top - headerGap - Math.min(height, roomAbove),
+    maxHeight: height > roomAbove ? roomAbove : undefined,
   };
 }
 
@@ -213,19 +304,4 @@ function TooltipRow({ label, value }: { label: string; value: string }) {
       <span className="column-tooltip-value">{value}</span>
     </div>
   );
-}
-
-function clampTooltipPosition(left: number, top: number, rect: DOMRect) {
-  return {
-    left: clamp(
-      left,
-      tooltipHorizontalPadding,
-      window.innerWidth - rect.width - tooltipHorizontalPadding,
-    ),
-    top: clamp(
-      top,
-      tooltipHorizontalPadding,
-      window.innerHeight - rect.height - tooltipHorizontalPadding,
-    ),
-  };
 }
