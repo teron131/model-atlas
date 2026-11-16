@@ -763,7 +763,8 @@ export const BENCHMARK_EXTENDED_SOURCES = {
             methodologyName: "Terminal-Bench",
             scoreKey: "terminalBench40",
             resourceKey: "terminalBench40",
-            version: "4.0",
+            // Artificial Analysis still runs 4.0, so this page supplies no rows until it reports the official board's version.
+            version: "4.1",
           },
         ],
       },

@@ -96,6 +96,8 @@ export function fusedBenchmarkObservations({
           a: BENCHMARK_RESOURCE_SOURCE_LABELS.terminal_bench_4.source_a,
           b: BENCHMARK_RESOURCE_SOURCE_LABELS.terminal_bench_4.source_b,
         },
+        // The official board is the publisher's own, so it scores alone while Artificial Analysis has no rows on its version.
+        aAloneWithoutB: true,
       },
     ),
     terminal_bench_science: crosswalkThreeBenchmarkSources(

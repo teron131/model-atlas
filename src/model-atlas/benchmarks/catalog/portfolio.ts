@@ -237,7 +237,7 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
   },
   riemann_bench: {
-    group: "frontier",
+    group: "baseline",
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
   },

@@ -1,7 +1,7 @@
 /**
- * Terminal-Bench 4.0 leaderboard results from its official structured source.
+ * Terminal-Bench 4.1 leaderboard results from its official structured source.
  *
- * Page source: https://www.tbench.ai/?version=4.0
+ * Page source: https://www.tbench.ai/?version=4.1
  * JSON source: https://ofhuhcpkvzjlejydnvyd.supabase.co/functions/v1/leaderboard-read
  */
 
@@ -24,13 +24,13 @@ const TERMINAL_BENCH_4_DATA_URL =
 
 const TERMINAL_BENCH_4_PACKAGE = "terminal-bench/terminal-bench";
 
-const TERMINAL_BENCH_4_NAME = "4-0-0";
+const TERMINAL_BENCH_4_NAME = "4-1-0";
 
-const TERMINAL_BENCH_4_TITLE = "Terminal-Bench 4.0";
+const TERMINAL_BENCH_4_TITLE = "Terminal-Bench 4.1";
 
-export const TERMINAL_BENCH_4_LEADERBOARD_URL = "https://www.tbench.ai/?version=4.0";
+export const TERMINAL_BENCH_4_LEADERBOARD_URL = "https://www.tbench.ai/?version=4.1";
 
-export const TERMINAL_BENCH_4_SOURCE_REVISION = "4_0_0";
+export const TERMINAL_BENCH_4_SOURCE_REVISION = "4_1_0";
 
 export type TerminalBench4ModelHarnessRow = BenchmarkModelRow &
   Required<Pick<BenchmarkResourceAggregate, "task_run_count" | "total_tokens">> & {
@@ -53,7 +53,7 @@ type TerminalBench4Payload = {
   data: TerminalBench4ModelHarnessRow[];
 };
 
-/** Fetch the structured public source used by the official Terminal-Bench 4.0 leaderboard. */
+/** Fetch the structured public source used by the official Terminal-Bench 4.1 leaderboard. */
 export async function getTerminalBench4Stats(): Promise<TerminalBench4Payload> {
   return fetchSource(
     TERMINAL_BENCH_4_DATA_URL,
@@ -64,18 +64,18 @@ export async function getTerminalBench4Stats(): Promise<TerminalBench4Payload> {
     },
     async (response) => {
       if (!response.ok) {
-        throw new Error(`Terminal-Bench 4.0 scrape failed: ${response.status}`);
+        throw new Error(`Terminal-Bench 4.1 scrape failed: ${response.status}`);
       }
       const data = processTerminalBench4Payload(await response.json());
       if (data.length === 0) {
-        throw new Error("Terminal-Bench 4.0 scrape returned no 4.0 rows");
+        throw new Error("Terminal-Bench 4.1 scrape returned no 4.1 rows");
       }
       return { fetched_at_epoch_seconds: nowEpochSeconds(), data };
     },
   );
 }
 
-/** Parse every displayed Terminal-Bench 4.0 row without collapsing model, effort, or agent configurations. */
+/** Parse every displayed Terminal-Bench 4.1 row without collapsing model, effort, or agent configurations. */
 export function processTerminalBench4Payload(value: unknown): TerminalBench4ModelHarnessRow[] {
   const root = asRecord(value);
   const leaderboard = asRecord(root.leaderboard);

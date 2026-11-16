@@ -89,7 +89,7 @@ const frontierCodeRow: FrontierCodeModelEffortRow = {
   tokens_per_task: 4_500,
 };
 const terminalBench4Row: TerminalBench4ModelHarnessRow = {
-  revision: "4_0_0",
+  revision: "4_1_0",
   model: "Example Model (high)",
   base_model: "Example Model",
   reasoning_effort: "high",

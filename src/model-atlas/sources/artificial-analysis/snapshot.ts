@@ -40,6 +40,12 @@ const ACTIVE_BENCHMARK_RESOURCE_PAGE_URLS = new Map(
   ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.map((page) => [page.benchmark_key, page.url]),
 );
 
+const PINNED_BENCHMARK_RESOURCE_VERSIONS = new Map(
+  ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.flatMap((page) =>
+    page.version == null ? [] : [[page.benchmark_key, page.version] as const],
+  ),
+);
+
 /** Replace available Artificial Analysis rows as one current score/resource observation; retain stronger evidence only for unavailable shells. */
 export function mergeArtificialAnalysisRow(
   cachedRow: JsonObject,
@@ -101,12 +107,15 @@ export async function artificialAnalysisBenchmarkResourceSnapshot(
   nowEpochSeconds: number,
 ): Promise<ArtificialAnalysisBenchmarkResourceSnapshot> {
   // A benchmark that moved to another evaluation page is a new series; rows from its earlier page cannot be retained beside it.
+  // A page that reports another version than its pin fetches no rows, so the version rule never sees a successor: rows cached under an earlier pin are dropped here instead.
   const current = cached && {
     ...cached,
     rows: cached.rows.filter(
       (row) =>
         (ACTIVE_BENCHMARK_RESOURCE_PAGE_URLS.get(row.benchmark_key) ?? row.source_url) ===
-        row.source_url,
+          row.source_url &&
+        (PINNED_BENCHMARK_RESOURCE_VERSIONS.get(row.benchmark_key) ?? row.benchmark_version) ===
+          row.benchmark_version,
     ),
   };
   const requiredPagesPresent = ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.every((page) =>

@@ -118,7 +118,7 @@ for (const [benchmarkKey, scoreKey, resourceKey, url, methodologyName, version] 
     "terminalBench40",
     "https://artificialanalysis.ai/evaluations/terminalbench-4-0",
     "Terminal-Bench",
-    "4.0",
+    "4.1",
   ],
   [
     "terminal_bench_science",

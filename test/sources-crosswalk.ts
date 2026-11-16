@@ -432,8 +432,8 @@ assert.ok(
 const terminalBench4Payload = (totalCostUsd: number) => ({
   leaderboard: {
     package: "terminal-bench/terminal-bench",
-    name: "4-0-0",
-    title: "Terminal-Bench 4.0",
+    name: "4-1-0",
+    title: "Terminal-Bench 4.1",
     dataset_version_ids: ["v4"],
   },
   rows: [
@@ -464,6 +464,25 @@ assert.equal(official.cost_per_task_usd, 2);
 assert.equal(official.tokens_per_task, 100);
 assert.equal(official.output_tokens_per_task, 20);
 assert.equal(official.seconds_per_task, 120, "average duration must not be divided again");
+assert.deepEqual(
+  fusedBenchmarkObservations({
+    terminalBench4Rows: [official],
+    artificialAnalysisBenchmarkResourceRows: [],
+    terminalBenchScienceRows: [],
+    gdpPdfRows: [],
+    aleBenchRows: [],
+    weirdMlRows: [],
+  }).terminal_bench_4?.map((row) => [
+    row.reasoning_effort,
+    row.canonical_value,
+    row.metadata.fusion_crosswalk_applied,
+  ]),
+  [
+    ["max", 0.5, false],
+    [null, 0.5, false],
+  ],
+  "The official board scores alone while Artificial Analysis has no rows on its version",
+);
 
 const sparse = processArtificialAnalysisBenchmarkResourceRows(
   [

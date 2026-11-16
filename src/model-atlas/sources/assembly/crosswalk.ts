@@ -63,13 +63,17 @@ export function crosswalkBenchmarkSources(
     maximumScoreError = MAXIMUM_SCORE_ERROR,
     normalizeScore = clamp01,
     sourceLabels = { a: "Source A", b: "Source B" },
+    aAloneWithoutB = false,
   }: {
     maximumScoreError?: number;
     normalizeScore?: (value: number) => number;
     sourceLabels?: SourceLabels;
+    /** While source B has no rows at all, source A's results stand unchanged as the benchmark's results instead of waiting for a crosswalk that cannot be fitted. */
+    aAloneWithoutB?: boolean;
   } = {},
 ): CrosswalkObservation[] {
   const pairs = pairObservations(a, b);
+  const singleSource = aAloneWithoutB && b.length === 0;
   const quality = fitAdditiveSourceCrosswalk(
     pairs,
     (row) => row.canonical_value,
@@ -112,12 +116,14 @@ export function crosswalkBenchmarkSources(
   function crosswalkPair(pair: Pair, collapsed: boolean): CrosswalkObservation[] {
     const template = pair.a ?? pair.b;
     if (template == null) return [];
-    const both = pair.a != null && pair.b != null;
+    const measured = singleSource || (pair.a != null && pair.b != null);
     const { delta } = quality.diagnostic;
-    const score = quality.project(pair.a?.canonical_value ?? null, pair.b?.canonical_value ?? null);
+    const score = singleSource
+      ? template.canonical_value
+      : quality.project(pair.a?.canonical_value ?? null, pair.b?.canonical_value ?? null);
     if (score == null) return [];
     const extrapolated =
-      !both &&
+      !measured &&
       (["a", "b"] as const).some((side) => {
         const value = pair[side]?.canonical_value;
         if (value == null) return false;
@@ -127,9 +133,9 @@ export function crosswalkBenchmarkSources(
     const metadata = {
       fusion: true,
       fusion_collapsed: collapsed,
-      fusion_crosswalk_applied: !both,
+      fusion_crosswalk_applied: !measured,
       fusion_extrapolated: extrapolated,
-      fusion_confidence: both ? 1 : extrapolated ? 0.5 : 0.5 + 0.5 * (quality.confidence ?? 0),
+      fusion_confidence: measured ? 1 : extrapolated ? 0.5 : 0.5 + 0.5 * (quality.confidence ?? 0),
       source_a_url: pair.a?.source_url ?? null,
       source_b_url: pair.b?.source_url ?? null,
       source_a_label: sourceLabels.a,

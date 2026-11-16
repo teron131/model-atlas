@@ -392,7 +392,7 @@ export const BENCHMARK_TOOLTIPS = {
     body: "Solve private research-level mathematics problems.",
     rows: [
       ["Source", "Surge AI"],
-      ["Role", "frontier math reasoning"],
+      ["Role", "research-level math reasoning"],
     ],
   },
   rsi_benchmark: {
@@ -457,10 +457,10 @@ export const BENCHMARK_TOOLTIPS = {
     ],
   },
   terminal_bench_4: {
-    version: "4.0",
+    version: "4.1",
     body: "Complete difficult software, infrastructure, data, and technical tasks in containerized terminals.",
     rows: [
-      ["Sources", "Official + Artificial Analysis (50/50)"],
+      ["Source", "Official"],
       ["Metric", "task accuracy"],
       ["Role", "terminal workflow execution"],
     ],
@@ -589,7 +589,7 @@ export const BENCHMARK_LABELS = {
   sudo_l7: "sudo L7",
   superchem: "SUPERChem",
   surge_intelligence_index: "Surge Intelligence Index",
-  terminal_bench_4: "Terminal-Bench 4.0",
+  terminal_bench_4: "Terminal-Bench 4.1",
   terminal_bench_science: "Terminal-Bench-Science 0.1",
   textquests: "TextQuests",
   vals_index: "Vals Index",
@@ -918,7 +918,7 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
       direction: "ascending",
       label: "TB4$ Off",
       tooltip: {
-        title: "Terminal-Bench 4.0 cost ↓",
+        title: "Terminal-Bench 4.1 cost ↓",
         body: "Cost per task attempt; lower is better.",
         details: [
           ["Source", "Official"],
@@ -933,7 +933,7 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
       direction: "ascending",
       label: "TB4$ AA",
       tooltip: {
-        title: "Terminal-Bench 4.0 cost ↓",
+        title: "Terminal-Bench 4.1 cost ↓",
         body: "Cost per task attempt; lower is better.",
         details: [
           ["Source", "Artificial Analysis"],
@@ -948,7 +948,7 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
       direction: "ascending",
       label: "TB4 Tok Off",
       tooltip: {
-        title: "Terminal-Bench 4.0 tokens ↓",
+        title: "Terminal-Bench 4.1 tokens ↓",
         body: "Total tokens per task attempt; lower is better.",
         details: [
           ["Source", "Official"],
@@ -963,7 +963,7 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
       direction: "ascending",
       label: "TB4 Tok AA",
       tooltip: {
-        title: "Terminal-Bench 4.0 tokens ↓",
+        title: "Terminal-Bench 4.1 tokens ↓",
         body: "Total tokens per task attempt; lower is better.",
         details: [
           ["Source", "Artificial Analysis"],

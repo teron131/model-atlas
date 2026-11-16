@@ -352,6 +352,7 @@ const activeResourceRows = ARTIFICIAL_ANALYSIS_BENCHMARK_RESOURCE_PAGES.map((pag
   ...effortResourceRow("high", 100),
   benchmark_key: page.benchmark_key,
   source_url: page.url,
+  benchmark_version: page.version ?? null,
 }));
 const retiredResourceRow = { ...effortResourceRow("high", 100), benchmark_key: "tau_banking" };
 const cachedResourceRows = [...activeResourceRows, retiredResourceRow];
@@ -360,10 +361,15 @@ const previousPageRow = {
   reasoning_effort: "low",
   source_url: `${activeResourceRows[0]!.source_url}-previous-version`,
 };
+const earlierPinRow = {
+  ...activeResourceRows.find((row) => row.benchmark_version != null)!,
+  reasoning_effort: "low",
+  benchmark_version: "0.0",
+};
 const activeResourceKey = artificialAnalysisBenchmarkResourceRowKey(activeResourceRows[0]!);
 const retiredResourceKey = artificialAnalysisBenchmarkResourceRowKey(retiredResourceRow);
 const resourceSnapshot = await artificialAnalysisBenchmarkResourceSnapshot(
-  { rows: [...cachedResourceRows, previousPageRow], fetchedAt: 1_800_000_000 },
+  { rows: [...cachedResourceRows, previousPageRow, earlierPinRow], fetchedAt: 1_800_000_000 },
   {
     last_fetch_epoch_seconds: 1_800_000_000,
     source_input_count: cachedResourceRows.length,
@@ -380,7 +386,7 @@ const resourceSnapshot = await artificialAnalysisBenchmarkResourceSnapshot(
 assert.deepEqual(
   resourceSnapshot.artificialAnalysisBenchmarkResourceRows,
   cachedResourceRows,
-  "Rows from a benchmark's earlier evaluation page leave the cache when its page changes",
+  "Rows from a benchmark's earlier evaluation page or earlier pinned version leave the cache",
 );
 assert.equal(resourceSnapshot.sourceStatus.sourceInputCount, activeResourceRows.length);
 assert.deepEqual(

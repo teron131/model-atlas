@@ -1,4 +1,4 @@
-/** Terminal-Bench 4.0 keeps one raw row per model, effort, and agent harness; the cache is accepted only when every row matches the pinned source version and the resource profile's task-run count, and is refetched while any row lacks seconds or output tokens per task. */
+/** Terminal-Bench 4.1 keeps one raw row per model, effort, and agent harness; the cache is accepted only when every row matches the pinned source version and the resource profile's task-run count, and is refetched while any row lacks seconds or output tokens per task. */
 
 import { BENCHMARK_RESOURCE_PROFILES } from "../../benchmarks/catalog";
 import { asFiniteNumber, asNonEmptyString } from "../../runtime";
