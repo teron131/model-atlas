@@ -2,6 +2,7 @@
 
 import type { BenchmarkGroup } from "../../../src/model-atlas/benchmarks/factory";
 import {
+  BENCHMARK_CATALOG,
   benchmarkDimensionWeight,
   type BenchmarkMetricModel,
   benchmarkValue,
@@ -35,9 +36,12 @@ const limitedEvidenceRow = [
   "The score retains 85% at low coverage, rising to 100% with sufficient support.",
 ] as const;
 
-// Each score header keeps the payload tooltip's weight groups and swaps in this body and these interpretation rows, so the payload stays the authority for every weight.
-const scoreExplanations: Partial<
-  Record<TableColumnKey, Pick<ModelAtlasColumnTooltip, "body" | "rows">>
+type ScoreKey = "intelligence" | "agentic" | "speed" | "value";
+
+// Each score header reads its weights from the payload tooltip's weight groups and swaps in this body and these interpretation rows, so the payload stays the authority for every weight.
+const scoreExplanations: Record<
+  ScoreKey,
+  { body: string; rows: readonly ModelAtlasColumnTooltipRow[] }
 > = {
   intelligence: {
     body: "Reasoning, knowledge, and judgment across selected benchmarks.",
@@ -322,31 +326,76 @@ export function tableColumnTooltip(
     }
   }
   const tooltip = appColumnTooltips[key] ?? columnTooltips[key];
+  if (!tooltip || !isScoreKey(key)) return tooltip;
   const explanation = scoreExplanations[key];
-  if (!tooltip || !explanation) return tooltip;
-  const weightGroups =
+  const payloadGroups =
     tooltip.sections?.flatMap((section) =>
       section.rows.filter(
         (item): item is ModelAtlasColumnTooltipNestedSection => !Array.isArray(item),
       ),
     ) ?? [];
-  const displayGroups =
-    key === "speed" || key === "value"
-      ? weightGroups.map((group) => ({
-          ...group,
-          // Speed and Value weigh each benchmark's runtime or cost, so the suffix repeats the score's own meaning: "SWE-bench Pro runtime ↓" → "SWE-bench Pro".
-          rows: group.rows.map(
-            ([label, weight]) => [label.replace(/ (runtime|cost) ↓$/, ""), weight] as const,
-          ),
-        }))
-      : weightGroups;
   return {
     title: tooltip.title,
     body: explanation.body,
-    sections: [
-      { title: "Weights", hideTitle: true, rows: displayGroups },
-      { title: "Interpretation", rows: explanation.rows ?? [] },
-    ],
+    weights: scoreWeights(key, payloadGroups),
+    rows: explanation.rows,
+  };
+}
+
+function isScoreKey(key: TableColumnKey): key is ScoreKey {
+  return key in scoreExplanations;
+}
+
+// The payload names benchmarks as they score; the treemap labels each with its table column's short name.
+const columnLabels = new Map(
+  Object.values(BENCHMARK_CATALOG).map(({ presentation }) => [
+    presentation.scoringLabel ?? presentation.label,
+    presentation.column.label,
+  ]),
+);
+
+// A payload share in percent: "1.25%" → 1.25; any other text, such as "display only", is no share.
+const PERCENT = /^(\d+(?:\.\d+)?)%$/;
+
+/** Read a score's payload weight groups into numbers: one group whose members weigh differently splits into tiers of equal weight, while several groups keep their own titles; groups without shares are listed apart. */
+function scoreWeights(
+  dimension: ScoreKey,
+  payloadGroups: readonly ModelAtlasColumnTooltipNestedSection[],
+): ScoreWeights {
+  const members = (group: ModelAtlasColumnTooltipNestedSection) =>
+    group.rows.flatMap(([label, value]) => {
+      const share = PERCENT.exec(value)?.[1];
+      // Speed and Value weigh each benchmark's runtime or cost, so the suffix repeats the score's own meaning: "SWE-bench Pro runtime ↓" → "SWE-bench Pro".
+      const name = label.replace(/ (runtime|cost) ↓$/, "");
+      return share == null
+        ? []
+        : [{ name, label: columnLabels.get(name) ?? name, share: Number(share) }];
+    });
+  const parsed = payloadGroups.map((group) => ({ group, items: members(group) }));
+  const weighted = parsed.flatMap(({ group, items }) =>
+    items.length > 0 ? [{ title: group.title, items }] : [],
+  );
+  const total = (group: ScoreWeightGroup) => group.items.reduce((sum, item) => sum + item.share, 0);
+  const only = weighted.length === 1 ? weighted[0]! : null;
+  return {
+    dimension,
+    caption: only?.title ?? "Inputs",
+    groups:
+      only == null
+        ? [...weighted].sort((a, b) => total(b) - total(a))
+        : [...new Set(only.items.map((item) => item.share))]
+            .sort((a, b) => b - a)
+            .map((share) => ({
+              title: null,
+              items: only.items.filter((item) => item.share === share),
+            })),
+    unweighted: parsed
+      .filter(({ items }) => items.length === 0)
+      .map(({ group }) => ({
+        title: group.title,
+        note: group.weight,
+        names: group.rows.map(([label]) => label),
+      })),
   };
 }
 
@@ -384,6 +433,33 @@ export type BenchmarkTooltipLeaders = {
 
 export type DashboardColumnTooltip = ModelAtlasColumnTooltip & {
   benchmark?: BenchmarkTooltipFacts;
+  weights?: ScoreWeights;
+};
+
+/** A score header's weights, which the dashboard draws in place of the payload's weight groups. */
+export type ScoreWeights = {
+  dimension: ScoreKey;
+  /** What the shares divide: the one weighted payload group's title, such as "Frontier benchmarks", or "Inputs" when several groups split the score. */
+  caption: string;
+  /** Heaviest first: tiers of equal weight when one payload group's members weigh differently, otherwise the payload's groups by their total share. */
+  groups: readonly ScoreWeightGroup[];
+  /** Payload groups listed without a share, such as baseline benchmarks, with the payload's note on how they count. */
+  unweighted: readonly { title: string; note?: string; names: readonly string[] }[];
+};
+
+export type ScoreWeightGroup = {
+  /** The payload group's title, or null for a tier of one group whose members weigh differently. */
+  title: string | null;
+  /** All weigh the same: a tier by construction, and a payload group because the payload splits its share equally among its members. */
+  items: readonly ScoreWeightItem[];
+};
+
+export type ScoreWeightItem = {
+  name: string;
+  /** A benchmark's table column name, such as "HLE" for HLE-Diamond, or the name itself for other inputs. */
+  label: string;
+  /** Share of the score in percent. */
+  share: number;
 };
 
 /** Describe a benchmark without treating missing or estimated results as observed coverage. */

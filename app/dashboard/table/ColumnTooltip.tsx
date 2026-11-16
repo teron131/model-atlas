@@ -1,4 +1,4 @@
-/** The column header tooltip card: places itself under its trigger inside the viewport, widens for an inequality graph, and hands benchmark headers to their own body. */
+/** The column header tooltip card: places itself under its trigger inside the viewport, widens for an inequality graph or a score's weights map, and hands benchmark headers to their own body. */
 
 import {
   type FocusEvent,
@@ -17,6 +17,7 @@ import type {
 import { clamp } from "../../../src/model-atlas/math-utils";
 import { BenchmarkTooltipBody } from "./BenchmarkTooltip";
 import { InequalityGraph, layoutInequalityGraph } from "./InequalityGraph";
+import { ScoreWeightsMap } from "./ScoreWeightsMap";
 import type { DashboardColumnTooltip } from "./tooltips";
 
 const tooltipHorizontalPadding = 18;
@@ -24,6 +25,8 @@ const tooltipMaxWidth = 360;
 // The card's 13px side padding and 1px border on each side.
 const tooltipInset = 28;
 const tooltipOffsetTop = 12;
+// A score's weights map takes a card this wide where the screen leaves room for it.
+const scoreWeightsWidth = 520;
 
 export type TooltipState = {
   left: number;
@@ -64,7 +67,11 @@ export function ColumnTooltip({
       ? tooltipMaxWidth
       : window.innerWidth - tooltipHorizontalPadding * 2;
   const tooltipWidth = Math.min(
-    Math.max(tooltipMaxWidth, (graphLayout?.width ?? 0) + tooltipInset),
+    Math.max(
+      tooltipMaxWidth,
+      (graphLayout?.width ?? 0) + tooltipInset,
+      content.weights == null ? 0 : scoreWeightsWidth,
+    ),
     availableWidth,
   );
 
@@ -84,7 +91,7 @@ export function ColumnTooltip({
 
   return (
     <div
-      className={`column-tooltip visible${phase === "leaving" ? " leaving" : ""}${graphLayout != null || content.benchmark != null ? " has-graph" : ""}`}
+      className={`column-tooltip visible${phase === "leaving" ? " leaving" : ""}${graphLayout != null || content.benchmark != null || content.weights != null ? " has-graph" : ""}`}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       ref={tooltipRef}
@@ -97,6 +104,12 @@ export function ColumnTooltip({
         <>
           <div className="column-tooltip-title">{content.title}</div>
           <p className="column-tooltip-body">{content.body}</p>
+        </>
+      )}
+      {content.weights != null && (
+        <>
+          <div className="column-tooltip-rule" />
+          <ScoreWeightsMap weights={content.weights} width={tooltipWidth - tooltipInset} />
         </>
       )}
       {graphLayout != null ? (

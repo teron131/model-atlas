@@ -263,7 +263,12 @@ const TableHeaderRow = memo(function TableHeaderRow({
             onTooltipEnd={onTooltipEnd}
           >
             {scoreStrip && column.key === "model" ? (
-              <ScoreSortStrip sortState={sortState} onSort={onSort} />
+              <ScoreSortStrip
+                sortState={sortState}
+                onSort={onSort}
+                onTooltip={onTooltip}
+                onTooltipEnd={onTooltipEnd}
+              />
             ) : null}
           </SortableHeader>
         ))}
@@ -363,13 +368,17 @@ function SortableHeader({
   );
 }
 
-/** On phones the model header also sorts by each score, with the score marks the strip beneath each name lines up under; the marks carry spoken names instead of column tooltips, whose phone layer would catch the tap. */
+/** On narrow screens the model header also sorts by each score, with the score marks the strip beneath each name lines up under; the marks open their column tooltips for a mouse only, since on a phone the tooltip's layer would catch the next tap, so touch relies on their spoken names. */
 function ScoreSortStrip({
   sortState,
   onSort,
+  onTooltip,
+  onTooltipEnd,
 }: {
   sortState: SortState;
   onSort: (key: SortKey) => void;
+  onTooltip: HeaderTooltipHandler<TableColumnKey>;
+  onTooltipEnd: () => void;
 }) {
   return (
     <span className="score-strip score-strip-head" role="group" aria-label="Sort by score">
@@ -384,6 +393,12 @@ function ScoreSortStrip({
             aria-pressed={direction !== "none"}
             data-sort-state={direction}
             onClick={() => onSort(column.key)}
+            onPointerEnter={(event) => {
+              if (event.pointerType === "mouse") onTooltip(event, column.key);
+            }}
+            onPointerLeave={(event) => {
+              if (event.pointerType === "mouse") onTooltipEnd();
+            }}
           >
             {column.icon}
             <span className="sort-indicator" />
