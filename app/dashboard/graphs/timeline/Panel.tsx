@@ -17,9 +17,11 @@ import type { SearchDocument } from "../../shared/search";
 import { useUrlState } from "../../use-url-state";
 import { ChartFind, type ChartFindState, chartFindTargets, EMPTY_CHART_FIND } from "../ChartFind";
 import { ChartReadout, type ReadoutEntry } from "../ChartReadout";
+import { placeBesideStars } from "../plot/label-placement";
 import {
   FrontierHorizon,
   LabelMask,
+  NameMask,
   PlotFrame,
   SCATTER_CHART_WIDTH,
   starCore,
@@ -49,7 +51,7 @@ import {
   frontierNamesKey,
   labNameCallouts,
   labNamesKey,
-  placeBesideStars,
+  placeFrontierNames,
   timelineScene,
 } from "./scene";
 import { TimelineNavigator } from "./TimelineNavigator";
@@ -361,21 +363,31 @@ export const TimelinePanel = memo(function TimelinePanel({
     return nearest;
   };
   const { svgRef, labelSizes } = useLabelSizes(
-    [...labelled, ...labNamed].map(timelinePointLabel).join("\0"),
+    [...labelled, ...labNamed].map((point) => timelinePointLabel(point, compact)).join("\0"),
     compact,
   );
   const layoutKey = frontierNamesKey(scene, labelSizes);
-  const labelPlacements = useMemo(() => placeBesideStars(layoutKey), [layoutKey]);
+  const labelPlacements = useMemo(
+    () => placeFrontierNames(layoutKey, compact),
+    [layoutKey, compact],
+  );
   const frontierNames = frontierNameCallouts(scene, labelSizes, labelPlacements);
   const { callouts, crowded } = frontierNames;
   const labLayoutKey = labNamesKey(scene, labelSizes, frontierNames);
-  const labPlacements = useMemo(() => placeBesideStars(labLayoutKey), [labLayoutKey]);
+  const labPlacements = useMemo(
+    () => placeBesideStars(labLayoutKey, compact),
+    [labLayoutKey, compact],
+  );
   const { labCallouts, labCrowded } = labNameCallouts(
     scene,
     labelSizes,
     labPlacements,
     frontierNames,
   );
+  const shownCallouts = [
+    ...callouts.filter(({ key }) => !crowded.has(key)),
+    ...labCallouts.filter(({ key }) => !labCrowded.has(key)),
+  ];
   // Stars sit at their release day and score, and the camera places them through these four variables, so a frame that only moves the camera re-renders no star.
   const cameraStyle = {
     "--tx": `${x(new Date(fullStart))}px`,
@@ -384,6 +396,7 @@ export const TimelinePanel = memo(function TimelinePanel({
     "--ky": `${y(1) - y(0)}px`,
   } as CSSProperties;
   const guideMask = useId();
+  const leaderMask = useId();
   const cameraClip = useId();
   // Ticks are labelled at the resolution they are spaced at, so no two read the same.
   const tickSpacing = (ticks[1] ?? Infinity) - (ticks[0] ?? 0);
@@ -499,10 +512,13 @@ export const TimelinePanel = memo(function TimelinePanel({
                       id={guideMask}
                       width={width}
                       height={height}
-                      labels={[
-                        ...callouts.filter(({ key }) => !crowded.has(key)),
-                        ...labCallouts.filter(({ key }) => !labCrowded.has(key)),
-                      ]}
+                      labels={shownCallouts}
+                    />
+                    <NameMask
+                      id={leaderMask}
+                      width={width}
+                      height={height}
+                      labels={shownCallouts}
                     />
                   </defs>
                   <PlotFrame width={width} height={height} margin={margin} />
@@ -515,8 +531,6 @@ export const TimelinePanel = memo(function TimelinePanel({
                     labelMinGap={65}
                   />
                   <YAxisTicks
-                    inset={compact ? plotBounds : undefined}
-                    showGridLines={false}
                     ticks={yTicks}
                     yPoint={y}
                     x={margin.left}
@@ -664,7 +678,7 @@ export const TimelinePanel = memo(function TimelinePanel({
                         return (
                           <g key={point.id} opacity={0} aria-hidden="true">
                             <TextPointLabel
-                              label={timelinePointLabel(point)}
+                              label={timelinePointLabel(point, compact)}
                               cx={cx}
                               cy={y(point.score)}
                               width={width}
@@ -689,7 +703,7 @@ export const TimelinePanel = memo(function TimelinePanel({
                           }
                         >
                           <TextPointLabel
-                            label={timelinePointLabel(point)}
+                            label={timelinePointLabel(point, compact)}
                             cx={cx}
                             cy={y(point.score)}
                             width={width}
@@ -697,6 +711,7 @@ export const TimelinePanel = memo(function TimelinePanel({
                             margin={margin}
                             xOffset={markRadius(point) + 8}
                             placement={labelPlacements.get(point.id)}
+                            leaderMask={leaderMask}
                           />
                         </g>
                       );
@@ -705,7 +720,7 @@ export const TimelinePanel = memo(function TimelinePanel({
                       // A crowded-out name still renders unseen, so its text stays measured for when room opens.
                       <g key={point.id} opacity={labCrowded.has(point.id) ? 0 : 1}>
                         <TextPointLabel
-                          label={timelinePointLabel(point)}
+                          label={timelinePointLabel(point, compact)}
                           cx={xPoint(point)}
                           cy={y(point.score)}
                           width={width}
@@ -713,6 +728,7 @@ export const TimelinePanel = memo(function TimelinePanel({
                           margin={margin}
                           xOffset={markRadius(point) + 8}
                           placement={labPlacements.get(point.id)}
+                          leaderMask={leaderMask}
                         />
                       </g>
                     ))}

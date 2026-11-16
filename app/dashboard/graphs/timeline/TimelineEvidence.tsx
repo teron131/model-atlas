@@ -73,13 +73,11 @@ const DAY = 86_400_000;
 // The running median gathers the models released within this many days either side of each sample, wide enough to smooth a quiet quarter.
 const MEDIAN_WINDOW = 75 * DAY;
 const POINTER_REACH = 14;
-// Thread names are set at 8px in the monospace, whose advance is about 0.6 of its size.
-const LABEL_CHARACTER_WIDTH = 4.8;
 // The scale's caption and a month label, both in the 11px caption monospace: "Reference scale" is 15 characters and "Jan 2024" 8, each 6.6px plus 8px of clearance.
 const CAPTION_WIDTH = 15 * 6.6 + 8;
 const TICK_HALF_WIDTH = (8 * 6.6) / 2;
-// Each thread's row is one 8px name tall with a pixel to spare, so every thread is named on its own row and no two names meet.
-const ROW_PITCH = 9;
+// Each thread is named on a row of its own, one name tall with a pixel to spare, so no two names meet: 8px names on wide plots, and on phones the micro size, below which a name held in the hand is too small to read.
+const THREAD_NAME_SIZE = { compact: 10, wide: 8 } as const;
 
 function EvidenceRelay({
   data,
@@ -103,7 +101,8 @@ function EvidenceRelay({
   const gradientId = useId();
   const { threads, placements, signal, details } = relay;
 
-  const pitch = ROW_PITCH;
+  const nameSize = THREAD_NAME_SIZE[compact ? "compact" : "wide"];
+  const pitch = nameSize + 1;
   const threadsBottom = THREADS_TOP + threads.length * pitch;
   const missTop = threadsBottom + BAND_GAP;
   const missBottom = missTop + MISS_HEIGHT;
@@ -121,7 +120,7 @@ function EvidenceRelay({
   const y = scaleLinear().domain([0, missMax]).range([missBottom, missTop]);
   const starY = (placement: Placement) => (placement.miss == null ? stripY : y(placement.miss));
   const busiest = Math.max(...threads.map((thread) => thread.models.size));
-  const labels = threadLabels(threads, x, rowY);
+  const labels = threadLabels(threads, x, rowY, nameSize);
 
   const pinned = selectedId != null && relay.placementById.has(selectedId) ? selectedId : null;
   const focus = hover ?? (pinned == null ? null : { kind: "model" as const, id: pinned });
@@ -297,7 +296,7 @@ function EvidenceRelay({
               />
             );
           })}
-          {labels.map(({ thread, left, width: labelWidth, y: labelY }) => (
+          {labels.map(({ thread, left, width: labelWidth, y: labelY }, row) => (
             <g
               key={thread.id}
               data-focus={(focus?.kind === "thread" && focus.id === thread.id) || undefined}
@@ -306,11 +305,11 @@ function EvidenceRelay({
               <rect
                 className={styles.labelBack}
                 x={left - 3}
-                y={labelY - 6.5}
+                y={rowY(row) - pitch / 2}
                 width={labelWidth + 6}
-                height={ROW_PITCH}
+                height={pitch}
               />
-              <text className={styles.label} x={left} y={labelY}>
+              <text className={styles.label} x={left} y={labelY} fontSize={nameSize}>
                 {thread.label}
               </text>
             </g>
@@ -794,14 +793,16 @@ function threadLabels(
   threads: Thread[],
   x: (date: number) => number,
   rowY: (row: number) => number,
+  size: number,
 ) {
   return threads.map((thread, row) => {
-    const width = thread.label.length * LABEL_CHARACTER_WIDTH;
+    // The monospace's advance is about 0.6 of its size, and a baseline 0.3 of its size below the row's middle centres its lowercase there.
+    const width = thread.label.length * size * 0.6;
     return {
       thread,
       left: Math.max(MARGIN.left, x(thread.start) - 5 - width),
       width,
-      y: rowY(row) + 2.5,
+      y: rowY(row) + size * 0.3,
     };
   });
 }

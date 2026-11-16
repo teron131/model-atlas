@@ -6,7 +6,7 @@ import { type CSSProperties, useCallback, useId, useLayoutEffect, useRef, useSta
 
 import { clamp } from "../../../../src/model-atlas/math-utils";
 import { REFERENCE_PLOT_HEIGHT } from "../../shared/sky-light";
-import type { PointLabelPlacement, PointLabelSize } from "./label-placement";
+import { NAME_CLEARANCE, type PointLabelPlacement, type PointLabelSize } from "./label-placement";
 
 import styles from "../graphs.module.css";
 
@@ -37,14 +37,10 @@ const LABEL_EDGE_GUTTER = 12;
 
 const SVG_NUMBER_DECIMALS = 3;
 const AXIS_TICK_LENGTH = 7;
-// Inset scale anchors are mono digits at the phone micro size, about 6px wide and 8px above the baseline; their box rounds both up and keeps 3px below.
-const SCALE_ANCHOR_CHAR_WIDTH = 6.5;
-const SCALE_ANCHOR_ASCENT = 9;
-const SCALE_ANCHOR_DESCENT = 3;
 
-/** Keep compact titles above the plot and inset scale labels within its narrow gutters. */
+/** A compact plot sets its title above the plot and keeps a left gutter just wide enough for a three-digit y scale label at the phone micro size. */
 export function scatterChartMargin(margin: Margin, compact: boolean): Margin {
-  return compact ? { top: 48, right: 8, bottom: 30, left: 8 } : margin;
+  return compact ? { top: 28, right: 8, bottom: 30, left: 36 } : margin;
 }
 
 /** Rounds so server and client renders serialize identical SVG attributes. */
@@ -446,15 +442,12 @@ export function XAxisTicks({
   ));
 }
 
-/** Compact plots retain three inset scale anchors even when their gridlines are omitted. */
 export function YAxisTicks({
   ticks,
   yPoint,
   x,
   format,
   keyPrefix,
-  inset,
-  showGridLines = true,
   tickGap = 0,
 }: {
   ticks: number[];
@@ -462,71 +455,23 @@ export function YAxisTicks({
   x: number;
   format: (value: number) => string;
   keyPrefix: string;
-  /** The plot's right and bottom edges, given only to compact plots, whose scale labels sit inside the plot. */
-  inset?: { right: number; bottom: number };
-  showGridLines?: boolean;
-  /** Tick marks begin this far left of the plot's edge, and inset scale labels this much further inside, clearing a mark that straddles it; outside labels keep their place, where cursor readings also sit. */
+  /** Tick marks begin this far left of the plot's edge, clearing a mark that straddles it; labels keep their place, where cursor readings also sit. */
   tickGap?: number;
 }) {
-  const anchors = inset ? insetScaleAnchors(ticks, yPoint, x + tickGap, inset.bottom, format) : [];
-  return ticks.map((tick) => {
-    const anchor = anchors.find((candidate) => candidate.tick === tick);
-    return (
-      <g key={`${keyPrefix}-y-${tick}`}>
-        {(!inset || showGridLines) && (
-          <line
-            className={inset ? styles.scaleGrid : styles.axisTick}
-            x1={inset ? x : x - tickGap - AXIS_TICK_LENGTH}
-            x2={inset?.right ?? x - tickGap}
-            y1={yPoint(tick)}
-            y2={yPoint(tick)}
-          />
-        )}
-        {anchor ? (
-          <text className={styles.scaleAnchor} x={anchor.x} y={anchor.y} textAnchor="start">
-            {format(tick)}
-          </text>
-        ) : inset ? null : (
-          <text className={styles.axisLabel} x={x - 15} y={yPoint(tick) + 4} textAnchor="end">
-            {format(tick)}
-          </text>
-        )}
-      </g>
-    );
-  });
-}
-
-/**
- * The inset scale anchors a compact plot keeps: the first, middle, and last ticks, each set below its gridline unless that would leave the plot above `bottom`, when it sits above.
- * Each `box` bounds its text at the phone micro size, so labels placed around the anchors can keep clear of them.
- */
-export function insetScaleAnchors(
-  ticks: number[],
-  yPoint: (value: number) => number,
-  x: number,
-  bottom: number,
-  format: (value: number) => string,
-) {
-  const middle = Math.floor((ticks.length - 1) / 2);
-  return ticks.flatMap((tick, index) => {
-    if (index !== 0 && index !== middle && index !== ticks.length - 1) return [];
-    const anchorX = x + 6;
-    const below = yPoint(tick) + 14;
-    const anchorY = below + SCALE_ANCHOR_DESCENT <= bottom ? below : yPoint(tick) - 6;
-    return [
-      {
-        tick,
-        x: anchorX,
-        y: anchorY,
-        box: {
-          left: anchorX,
-          right: anchorX + format(tick).length * SCALE_ANCHOR_CHAR_WIDTH,
-          top: anchorY - SCALE_ANCHOR_ASCENT,
-          bottom: anchorY + SCALE_ANCHOR_DESCENT,
-        },
-      },
-    ];
-  });
+  return ticks.map((tick) => (
+    <g key={`${keyPrefix}-y-${tick}`}>
+      <line
+        className={styles.axisTick}
+        x1={x - tickGap - AXIS_TICK_LENGTH}
+        x2={x - tickGap}
+        y1={yPoint(tick)}
+        y2={yPoint(tick)}
+      />
+      <text className={styles.axisLabel} x={x - 15} y={yPoint(tick) + 4} textAnchor="end">
+        {format(tick)}
+      </text>
+    </g>
+  ));
 }
 
 /** Keep the frame empty while responsive remeasurement leaves no usable plotting area. */
@@ -615,7 +560,8 @@ export function YAxisTitle({
   compact?: boolean;
 }) {
   const plotMiddleY = margin.top + (height - margin.top - margin.bottom) / 2;
-  const x = compact ? margin.left : 18;
+  // Above a compact plot the title starts over its scale's labels, in line with the panel's text.
+  const x = compact ? 8 : 18;
   return (
     <text
       className={styles.axisTitle}
@@ -638,6 +584,7 @@ export function TextPointLabel({
   height,
   xOffset = 10,
   placement,
+  leaderMask,
 }: {
   label: string;
   cx: number;
@@ -647,6 +594,8 @@ export function TextPointLabel({
   height: number;
   xOffset?: number;
   placement?: PointLabelPlacement;
+  /** Id of a `NameMask` that hides this label's leader where it passes under other names. */
+  leaderMask?: string;
 }) {
   const labelOnLeft = cx > width - margin.right - 135;
   const y = clamp(cy - 8, margin.top + 12, height - margin.bottom - 6);
@@ -662,6 +611,7 @@ export function TextPointLabel({
           y1={stableSvgNumber(placement.line.y1)}
           x2={stableSvgNumber(placement.line.x2)}
           y2={stableSvgNumber(placement.line.y2)}
+          mask={leaderMask ? `url(#${leaderMask})` : undefined}
         />
       ) : null}
       <text
@@ -686,21 +636,29 @@ export function labelRect(placement: PointLabelPlacement, size: PointLabelSize, 
   };
 }
 
-/** Keys of the labels to leave out, in priority order: each placed label whose text meets an earlier kept one's gives way. */
+/** Keys of the labels to leave out, in priority order: each placed label whose text comes within the name clearance of a reserved box, such as a median's name, or of an earlier kept label's text gives way. */
 export function crowdedOutLabels(
   labels: readonly { key: string; placement?: PointLabelPlacement; size?: PointLabelSize }[],
+  reserved: readonly PlotBounds[],
+  compact: boolean,
 ): Set<string> {
-  const kept: ReturnType<typeof labelRect>[] = [];
+  const clearance = NAME_CLEARANCE[compact ? "compact" : "wide"];
+  const kept = reserved.map((box) => ({
+    x: box.left,
+    y: box.top,
+    width: box.right - box.left,
+    height: box.bottom - box.top,
+  }));
   const crowded = new Set<string>();
   for (const { key, placement, size } of labels) {
     if (placement == null || size == null) continue;
-    const box = labelRect(placement, size, 1);
+    const box = labelRect(placement, size, 0);
     const meets = kept.some(
       (other) =>
-        box.x < other.x + other.width &&
-        other.x < box.x + box.width &&
-        box.y < other.y + other.height &&
-        other.y < box.y + box.height,
+        box.x < other.x + other.width + clearance.x &&
+        other.x < box.x + box.width + clearance.x &&
+        box.y < other.y + other.height + clearance.y &&
+        other.y < box.y + box.height + clearance.y,
     );
     if (meets) crowded.add(key);
     else kept.push(box);
@@ -729,6 +687,30 @@ export function LabelMask({
             <rect {...labelRect(placement, size, 4)} fill="black" />
             {placement.line ? <line {...placement.line} stroke="black" strokeWidth={6} /> : null}
           </g>
+        ) : null,
+      )}
+    </mask>
+  );
+}
+
+/** Hide leaders where they pass under a name, so a leader that a crowded plot must run across a name passes behind it instead of striking it through. */
+export function NameMask({
+  id,
+  width,
+  height,
+  labels,
+}: {
+  id: string;
+  width: number;
+  height: number;
+  labels: readonly { key: string; placement?: PointLabelPlacement; size?: PointLabelSize }[];
+}) {
+  return (
+    <mask id={id} maskUnits="userSpaceOnUse" x={0} y={0} width={width} height={height}>
+      <rect width={width} height={height} fill="white" />
+      {labels.map(({ key, placement, size }) =>
+        placement && size ? (
+          <rect key={key} {...labelRect(placement, size, 2)} fill="black" />
         ) : null,
       )}
     </mask>

@@ -1,11 +1,11 @@
 "use client";
 
-/** Pointer projection, cursor overlays, and interactive hit targets for dashboard SVG plots. */
+/** Pointer picking, cursor overlays, and interactive hit targets for dashboard SVG plots. */
 
 import {
   type CSSProperties,
+  type MouseEvent as ReactMouseEvent,
   type ReactNode,
-  type PointerEvent as ReactPointerEvent,
   useLayoutEffect,
   useRef,
   useState,
@@ -18,7 +18,7 @@ import type { PlotBounds } from "./Primitives";
 
 import styles from "../graphs.module.css";
 
-// A cursor projection snaps to the nearest point within this many plot units, and to none farther away.
+// The pointer picks the nearest point within this many plot units, and none farther away.
 const SNAP_DISTANCE = 24;
 
 type CursorProjection = {
@@ -28,66 +28,36 @@ type CursorProjection = {
   yValue: number;
 };
 
-type ProjectionConfig = {
-  event: ReactPointerEvent<SVGSVGElement>;
-  bounds: PlotBounds;
-  points: CursorProjection[];
-};
+type PlotPoint = { x: number; y: number };
 
-type ProjectionTarget = Omit<ProjectionConfig, "event">;
-
-function projectCursor({ event, bounds: plot, points }: ProjectionConfig): CursorProjection | null {
+/** The pointer's position in the SVG's viewBox units. */
+export function pointerPosition(event: ReactMouseEvent<SVGSVGElement>): PlotPoint {
   const svg = event.currentTarget;
   const bounds = svg.getBoundingClientRect();
   const viewBox = svg.viewBox.baseVal;
-  const pointerX = ((event.clientX - bounds.left) / bounds.width) * viewBox.width;
-  const pointerY = ((event.clientY - bounds.top) / bounds.height) * viewBox.height;
-
-  if (
-    pointerX < plot.left ||
-    pointerX > plot.right ||
-    pointerY < plot.top ||
-    pointerY > plot.bottom
-  ) {
-    return null;
-  }
-
-  let nearestPoint: CursorProjection | null = null;
-  let nearestDistance = Infinity;
-  for (const point of points) {
-    const dx = point.x - pointerX;
-    const dy = point.y - pointerY;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    if (distance < nearestDistance) {
-      nearestDistance = distance;
-      nearestPoint = point;
-    }
-  }
-
-  return nearestPoint && nearestDistance <= SNAP_DISTANCE ? nearestPoint : null;
+  return {
+    x: ((event.clientX - bounds.left) / bounds.width) * viewBox.width,
+    y: ((event.clientY - bounds.top) / bounds.height) * viewBox.height,
+  };
 }
 
-export function useCursorProjection() {
-  const [cursorProjection, setCursorProjection] = useState<CursorProjection | null>(null);
-
-  return {
-    cursorProjection,
-    cursorHandlers: ({ bounds, points }: ProjectionTarget) => ({
-      onPointerMove: (event: ReactPointerEvent<SVGSVGElement>) => {
-        const next = projectCursor({ event, bounds, points });
-        setCursorProjection((previous) =>
-          previous?.x === next?.x &&
-          previous?.y === next?.y &&
-          previous?.xValue === next?.xValue &&
-          previous?.yValue === next?.yValue
-            ? previous
-            : next,
-        );
-      },
-      onPointerLeave: () => setCursorProjection(null),
-    }),
-    setCursorProjection,
-  };
+/** The point nearest `at` within `SNAP_DISTANCE`, or none when `at` lies outside the plot or no point is that near. */
+export function nearestPoint<Point extends PlotPoint>(
+  at: PlotPoint,
+  plot: PlotBounds,
+  points: readonly Point[],
+): Point | null {
+  if (at.x < plot.left || at.x > plot.right || at.y < plot.top || at.y > plot.bottom) return null;
+  let nearest: Point | null = null;
+  let nearestDistance = Infinity;
+  for (const point of points) {
+    const distance = Math.hypot(point.x - at.x, point.y - at.y);
+    if (distance < nearestDistance) {
+      nearestDistance = distance;
+      nearest = point;
+    }
+  }
+  return nearestDistance <= SNAP_DISTANCE ? nearest : null;
 }
 
 export function CursorCapture({ bounds }: { bounds: PlotBounds }) {
@@ -109,15 +79,12 @@ export function CursorProjectionLayer({
   xLabel,
   yLabel,
   color,
-  insetScale,
 }: {
   projection: CursorProjection | null;
   bounds: PlotBounds;
   xLabel: string;
   yLabel: string;
   color?: string;
-  /** Where the y scale sits inside the plot, as compact plots' anchors do: the x its labels are set from, so its reading sits with them, above the guide. */
-  insetScale?: number;
 }) {
   if (!projection) {
     return null;
@@ -133,15 +100,9 @@ export function CursorProjectionLayer({
       <AxisReading x={projection.x} y={bounds.bottom + 24} textAnchor="middle">
         {xLabel}
       </AxisReading>
-      {insetScale != null ? (
-        <AxisReading x={insetScale + 6} y={projection.y - 6} textAnchor="start">
-          {yLabel}
-        </AxisReading>
-      ) : (
-        <AxisReading x={bounds.left - 15} y={projection.y + 4} textAnchor="end">
-          {yLabel}
-        </AxisReading>
-      )}
+      <AxisReading x={bounds.left - 15} y={projection.y + 4} textAnchor="end">
+        {yLabel}
+      </AxisReading>
     </g>
   );
 }
@@ -186,24 +147,14 @@ export function PointHitTarget({
   cx,
   cy,
   model,
-  snapProjection,
-  setCursorProjection,
   onActiveChange,
 }: {
   cx: number;
   cy: number;
   model: ModelAtlasModel;
-  snapProjection?: CursorProjection;
-  setCursorProjection?: (projection: CursorProjection | null) => void;
-  onActiveChange?: (active: boolean) => void;
+  onActiveChange: (active: boolean) => void;
 }) {
   const size = 28;
-  const setActive = (active: boolean) => {
-    onActiveChange?.(active);
-    if (snapProjection) {
-      setCursorProjection?.(active ? snapProjection : null);
-    }
-  };
   return (
     <foreignObject
       data-capture-exclude
@@ -217,19 +168,10 @@ export function PointHitTarget({
         className={styles.pointButton}
         aria-label={`Show details for ${modelName(model)}`}
         aria-haspopup="dialog"
-        onPointerEnter={(event) => {
-          if (event.pointerType === "touch") return;
-          setActive(true);
-        }}
-        onFocus={() => setActive(true)}
-        // Hover and focus preview a star; choosing it opens the model's full sheet.
+        // The keyboard previews a star by focusing it and opens the model's full sheet by choosing it; pointers pick stars through the plot, since the button takes no pointer events.
+        onFocus={() => onActiveChange(true)}
         onClick={() => openModelSheet(model)}
-        onPointerLeave={(event) => {
-          if (event.pointerType === "touch" || event.currentTarget === document.activeElement)
-            return;
-          setActive(false);
-        }}
-        onBlur={() => setActive(false)}
+        onBlur={() => onActiveChange(false)}
       />
     </foreignObject>
   );

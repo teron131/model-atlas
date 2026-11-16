@@ -60,10 +60,11 @@
   font: 500 var(--type-caption-size) var(--font-mono);
 }
 
-/* Below the micro size, since every thread's name shares the field on a row of its own. */
+/* Its size comes with its row's height from the relay, which sets each thread's name on a row of its own. */
 .label {
   fill: var(--muted);
-  font: 500 8px var(--font-mono);
+  font-family: var(--font-mono);
+  font-weight: 500;
 }
 
 /* A name that starts at the plot's left edge covers its own thread's start, so each is backed by the panel's paper. */

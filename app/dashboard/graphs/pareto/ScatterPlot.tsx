@@ -1,10 +1,18 @@
 "use client";
 
-/** Frontier benchmark scatter plot owns axes, the Pareto frontier horizon, labels, cursor projections, effort lines, and the readout above the plot. */
+/** Frontier benchmark scatter plot owns axes, the Pareto frontier horizon, labels, the pointed star and its guides, effort lines, and the readout above the plot. */
 
 import { greatest, median, quantileSorted } from "d3-array";
 import { scaleLinear, scaleLog } from "d3-scale";
-import { type CSSProperties, useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  type MouseEvent as ReactMouseEvent,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { canonicalModelKey } from "../../../../src/model-atlas/identity/normalization";
 import { type ModelAtlasModel } from "../../../../src/model-atlas/stats/types";
@@ -18,22 +26,27 @@ import { ChartReadout, type ReadoutEntry, type ReadoutFact } from "../ChartReado
 import {
   CursorCapture,
   CursorProjectionLayer,
+  nearestPoint,
+  pointerPosition,
   PointHitTarget,
-  useCursorProjection,
 } from "../plot/Interaction";
-import { calloutLabelPlacements, type PointLabelPlacement } from "../plot/label-placement";
+import {
+  calloutLabelPlacements,
+  NAME_CLEARANCE,
+  type PointLabelPlacement,
+} from "../plot/label-placement";
 import {
   DirectionArrow,
   FrontierHorizon,
   horizonRim,
   horizonTrail,
-  insetScaleAnchors,
   labelBounds,
   LabelMask,
   labelRect,
   type Margin,
   MedianCross,
   medianReadingBoxes,
+  NameMask,
   plotBoundsFor,
   PlotFrame,
   polylineSegments,
@@ -122,9 +135,11 @@ export function FrontierBenchmarkScatterPlot<Row>({
   const { plotHost, width, compact } = useChartLayout(SCATTER_CHART_WIDTH);
   const height = compact ? Math.min(SCATTER_CHART_HEIGHT, 400) : SCATTER_CHART_HEIGHT;
   const [highlightedVariantKey, setHighlightedVariantKey] = useVariantHighlight();
+  // The star a click or tap picked, which stays lit while the pointer is elsewhere; a hovered or focused star shows over it.
+  const [pinnedKey, setPinnedKey] = useState<string | null>(null);
   const guideMaskId = useId();
+  const leaderMaskId = useId();
   const chartMargin = scatterChartMargin(margin, compact);
-  const { cursorProjection, cursorHandlers, setCursorProjection } = useCursorProjection();
   const plot = plotBoundsFor(width, height, chartMargin);
   const edgeGutter = compact ? 12 : PLOT_EDGE_GUTTER;
   const topGutter = compact ? 24 : PLOT_TOP_GUTTER;
@@ -187,20 +202,6 @@ export function FrontierBenchmarkScatterPlot<Row>({
   // A mid-scoring model matches the leaderboard's score star: 6px wide, or 5px on compact layouts.
   const [minMarkRadius, maxMarkRadius] = compact ? [1.75, 3.25] : [2, 3.75];
   const markRadius = (row: Row) => starMarkRadius(getModel(row), minMarkRadius, maxMarkRadius);
-  const projectionPoints = rows.map((row) => {
-    const xValue = metric.get(row);
-    const yValue = getScore(row);
-    return {
-      x: xPoint(xValue),
-      y: yPoint(yValue),
-      xValue,
-      yValue,
-    };
-  });
-  const projectionHandlers = cursorHandlers({
-    bounds: plot,
-    points: projectionPoints,
-  });
   const reasoningGroups = connectReasoningVariants ? reasoningVariantGroups(rows, getModel) : [];
   const reasoningGroupByRow = new Map(
     reasoningGroups.flatMap((group) => group.variants.map((row) => [row, group.key] as const)),
@@ -214,8 +215,18 @@ export function FrontierBenchmarkScatterPlot<Row>({
     if (located.has(key) && (held == null || getScore(row) > getScore(held)))
       locatedRows.set(key, row);
   }
-  const activeRow = rows.find((row) => getKey(row) === highlightedVariantKey);
+  const activeRow = rows.find((row) => getKey(row) === (highlightedVariantKey ?? pinnedKey));
   const activeVariantKey = activeRow == null ? null : getKey(activeRow);
+  // The pointer's guides drop from the pointed star, so they always meet the star whose name is lit.
+  const projection =
+    activeRow == null
+      ? null
+      : {
+          x: xPoint(metric.get(activeRow)),
+          y: yPoint(getScore(activeRow)),
+          xValue: metric.get(activeRow),
+          yValue: getScore(activeRow),
+        };
   const activeReasoningGroup =
     activeRow == null ? null : (reasoningGroupByRow.get(activeRow) ?? null);
   // Place the hovered family's labels first so every connected effort remains identifiable.
@@ -230,9 +241,11 @@ export function FrontierBenchmarkScatterPlot<Row>({
     ]),
   ];
   const { svgRef, labelSizes } = useLabelSizes(labeledRows.map(getLabel).join("\0"), compact);
+  // On a phone every frontier model is still named, in the open sky beside the frontier, toward the better side or above its star, on a leader where it cannot sit close and never within the name clearance of another.
+  const skySide = metric.xHigherIsBetter ? 1 : -1;
   const layoutRequest: Parameters<typeof calloutLabelPlacements>[0] = {
     bounds: labelBounds(plot),
-    // Protect the corner direction glyph and caption, the medians' names, and a compact plot's inset scale anchors, from both text and leaders.
+    // Protect the corner direction glyph and caption and the medians' names from both text and leaders.
     reservedBoxes: [
       {
         left: metric.xHigherIsBetter ? plot.right - DIRECTION_LABEL_WIDTH : plot.left,
@@ -244,15 +257,6 @@ export function FrontierBenchmarkScatterPlot<Row>({
         medianXLabel,
         medianYLabel,
       ]),
-      ...(compact
-        ? insetScaleAnchors(
-            yTicks,
-            yPoint,
-            plot.left + SPREAD_HALF_WIDTH,
-            plot.bottom,
-            formatScore,
-          ).map(({ box }) => box)
-        : []),
     ],
     obstacles: rows.map((row) => ({
       key: getKey(row),
@@ -270,15 +274,44 @@ export function FrontierBenchmarkScatterPlot<Row>({
           group.variants.map((row) => ({ x: xPoint(metric.get(row)), y: yPoint(getScore(row)) })),
         ),
     ].flatMap(polylineSegments),
-    labels: labeledRows.map((row, index) => ({
-      key: getKey(row),
-      label: getLabel(row),
-      size: labelSizes[getLabel(row)],
-      cx: xPoint(metric.get(row)),
-      cy: yPoint(getScore(row)),
-      radius: markRadius(row),
-      priority: labeledRows.length - index,
-    })),
+    labels: labeledRows.map((row, index) => {
+      const cx = xPoint(metric.get(row));
+      const cy = yPoint(getScore(row));
+      return {
+        key: getKey(row),
+        label: getLabel(row),
+        size: labelSizes[getLabel(row)],
+        cx,
+        cy,
+        radius: markRadius(row),
+        priority: labeledRows.length - index,
+        // The pointer's guides run unbroken from its star to both axes, so that star's own name keeps off them; other stars' names may still sit on them, and the guides pass beneath those.
+        ...(getKey(row) === activeVariantKey
+          ? {
+              pointerGuides: polylineSegments([
+                { x: plot.left, y: cy },
+                { x: cx, y: cy },
+                { x: cx, y: plot.bottom },
+              ]),
+            }
+          : {}),
+      };
+    }),
+    ...(compact
+      ? {
+          directions: [
+            [skySide, 0.5],
+            [skySide, 0.25],
+            [skySide, 0],
+            [skySide, -0.25],
+            [skySide, -0.5],
+            [skySide, -1],
+            [skySide / 2, -1],
+            [0, -1],
+          ] as const,
+          clearance: NAME_CLEARANCE.compact,
+        }
+      : {}),
   };
   // Pointer projections rerender this chart; only changed label geometry should run the search.
   const layoutKey = JSON.stringify(layoutRequest);
@@ -306,6 +339,39 @@ export function FrontierBenchmarkScatterPlot<Row>({
       size: labelSizes[label],
     };
   });
+  // The pointer picks one star at a time, so its guides, colour, and name always agree: on wider plots a name under the pointer picks its own star, and otherwise the nearest star within reach is picked.
+  const starAt = (event: ReactMouseEvent<SVGSVGElement>) => {
+    const at = pointerPosition(event);
+    const named = compact
+      ? undefined
+      : callouts.find(({ placement, size }) => {
+          if (!placement || !size) return false;
+          const box = labelRect(placement, size, 3);
+          return (
+            at.x >= box.x &&
+            at.x <= box.x + box.width &&
+            at.y >= box.y &&
+            at.y <= box.y + box.height
+          );
+        });
+    const star = nearestPoint(
+      at,
+      plot,
+      rows.map((row) => ({
+        key: getKey(row),
+        x: xPoint(metric.get(row)),
+        y: yPoint(getScore(row)),
+      })),
+    );
+    return named?.key ?? star?.key ?? null;
+  };
+  // A click or tap pins the star it picks, the same on desktop and phones; picking the pinned star again opens its sheet, and picking empty sky lets the pin go.
+  const pin = (event: ReactMouseEvent<SVGSVGElement>) => {
+    const key = starAt(event);
+    const row = rows.find((candidate) => getKey(candidate) === key);
+    if (row != null && key === pinnedKey) openModelSheet(getModel(row));
+    else setPinnedKey(key);
+  };
   const isHighlighted = (row: Row) =>
     activeReasoningGroup == null
       ? getKey(row) === activeVariantKey
@@ -403,16 +469,22 @@ export function FrontierBenchmarkScatterPlot<Row>({
             role="img"
             aria-label={ariaLabel}
             ref={svgRef}
-            {...projectionHandlers}
+            style={highlightedVariantKey == null ? undefined : { cursor: "pointer" }}
+            onPointerMove={(event) => {
+              if (event.pointerType !== "touch") setHighlightedVariantKey(starAt(event));
+            }}
+            onPointerLeave={(event) => {
+              if (event.pointerType !== "touch") setHighlightedVariantKey(null);
+            }}
+            onClick={pin}
           >
             <defs>
               <LabelMask id={guideMaskId} width={width} height={height} labels={callouts} />
+              <NameMask id={leaderMaskId} width={width} height={height} labels={callouts} />
             </defs>
             <PlotFrame width={width} height={height} margin={chartMargin} />
             <CursorCapture bounds={plot} />
             <YAxisTicks
-              inset={compact ? plot : undefined}
-              showGridLines={false}
               ticks={yTicks}
               yPoint={yPoint}
               x={plot.left}
@@ -447,8 +519,8 @@ export function FrontierBenchmarkScatterPlot<Row>({
                 y={yPoint(medianScore)}
                 bounds={plot}
                 xLabel={
-                  cursorProjection &&
-                  Math.abs(cursorProjection.x - xPoint(medianMetric)) < MEDIAN_LABEL_CLEARANCE
+                  projection &&
+                  Math.abs(projection.x - xPoint(medianMetric)) < MEDIAN_LABEL_CLEARANCE
                     ? ""
                     : medianXLabel
                 }
@@ -476,16 +548,13 @@ export function FrontierBenchmarkScatterPlot<Row>({
               direction={metric.xHigherIsBetter ? "upper-right" : "upper-left"}
               label="Better"
             />
-            <g mask={`url(#${guideMaskId})`}>
-              <CursorProjectionLayer
-                projection={cursorProjection}
-                bounds={plot}
-                xLabel={cursorProjection ? metric.format(cursorProjection.xValue) : ""}
-                yLabel={cursorProjection ? formatScore(cursorProjection.yValue) : ""}
-                color={activeHighlightColor}
-                insetScale={compact ? plot.left + SPREAD_HALF_WIDTH : undefined}
-              />
-            </g>
+            <CursorProjectionLayer
+              projection={projection}
+              bounds={plot}
+              xLabel={projection ? metric.format(projection.xValue) : ""}
+              yLabel={projection ? formatScore(projection.yValue) : ""}
+              color={activeHighlightColor}
+            />
             {reasoningVariantLines.flatMap((line) =>
               line.segments.map((segment, index) => (
                 <line
@@ -557,10 +626,8 @@ export function FrontierBenchmarkScatterPlot<Row>({
               }))}
             />
             {rows.map((row) => {
-              const axisValue = metric.get(row);
-              const score = getScore(row);
-              const cx = xPoint(axisValue);
-              const cy = yPoint(score);
+              const cx = xPoint(metric.get(row));
+              const cy = yPoint(getScore(row));
               const model = getModel(row);
               const variantKey = getKey(row);
               return (
@@ -576,13 +643,6 @@ export function FrontierBenchmarkScatterPlot<Row>({
                     cx={cx}
                     cy={cy}
                     model={model}
-                    snapProjection={{
-                      x: cx,
-                      y: cy,
-                      xValue: axisValue,
-                      yValue: score,
-                    }}
-                    setCursorProjection={setCursorProjection}
                     onActiveChange={(active) =>
                       setHighlightedVariantKey(active ? variantKey : null)
                     }
@@ -590,23 +650,17 @@ export function FrontierBenchmarkScatterPlot<Row>({
                 </g>
               );
             })}
-            {callouts.map(({ key, row, label, cx, cy, placement, size }) => {
+            {callouts.map(({ key, row, label, cx, cy, placement }) => {
               return (
                 <g
                   className={variantClass(row)}
                   key={`label-${key}`}
-                  onPointerEnter={() => setHighlightedVariantKey(getKey(row))}
-                  onPointerLeave={() => setHighlightedVariantKey(null)}
+                  style={
+                    key === activeVariantKey
+                      ? ({ "--projection-color": activeHighlightColor } as CSSProperties)
+                      : undefined
+                  }
                 >
-                  {placement && size ? (
-                    <rect
-                      data-capture-exclude
-                      {...labelRect(placement, size, 3)}
-                      fill="transparent"
-                      pointerEvents={compact ? "none" : "all"}
-                      aria-hidden="true"
-                    />
-                  ) : null}
                   <TextPointLabel
                     label={label}
                     cx={cx}
@@ -616,6 +670,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
                     height={height}
                     xOffset={markRadius(row) + 8}
                     placement={placement}
+                    leaderMask={leaderMaskId}
                   />
                 </g>
               );

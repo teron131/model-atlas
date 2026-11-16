@@ -27,13 +27,14 @@ export type TimelinePoint = {
   indexOnly: boolean;
 };
 
-/** A point's chart label: GPT-4, the Timeline's landmark, goes by its short name. */
-export function timelinePointLabel(point: Pick<TimelinePoint, "name">): string {
-  return point.name === "GPT-4 (Mar 2023)" ? "GPT-4" : point.name;
-}
+// A trailing release month in brackets: "GPT-4 Turbo (Jan 2024)" → "GPT-4 Turbo".
+const RELEASE_MONTH = / \((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{4}\)$/;
 
-/** Gaps between a Timeline name and its star: names sit right beside their stars, so where the field is too crowded a lower-priority name gives way instead of hanging on a long leader. */
-export const TIMELINE_LABEL_GAPS = [5, 12];
+/** A point's chart label: GPT-4, the Timeline's landmark, goes by its short name, and a compact plot drops a bracketed release month, which the star's place on the time axis already shows. */
+export function timelinePointLabel(point: Pick<TimelinePoint, "name">, compact: boolean): string {
+  const name = point.name === "GPT-4 (Mar 2023)" ? "GPT-4" : point.name;
+  return compact ? name.replace(RELEASE_MONTH, "") : name;
+}
 
 /** The Timeline plot pads its scores out to 20-point gridlines, with a fixed range when no points are shown. */
 export function timelineScoreDomain(scores: readonly number[]): [number, number] {

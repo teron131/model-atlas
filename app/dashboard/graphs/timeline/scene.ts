@@ -5,7 +5,9 @@ import { scaleLinear, scaleUtc } from "d3-scale";
 import { providerChartColor } from "../../shared/provider-theme";
 import type { ChartFindState } from "../ChartFind";
 import {
-  calloutLabelPlacements,
+  NAME_CLEARANCE,
+  placeBesideStars,
+  placeInSky,
   type PointLabelPlacement,
   type PointLabelSize,
 } from "../plot/label-placement";
@@ -13,7 +15,6 @@ import {
   crowdedOutLabels,
   horizonRim,
   horizonTrail,
-  insetScaleAnchors,
   labelBounds,
   labelRect,
   plotBoundsFor,
@@ -22,12 +23,7 @@ import {
   scatterChartMargin,
 } from "../plot/Primitives";
 import { MUTED_STAR_GLOW, type SkyPlotScene } from "../plot/sky-renderer";
-import {
-  TIMELINE_LABEL_GAPS,
-  type TimelinePoint,
-  timelinePointLabel,
-  timelineScoreDomain,
-} from "./chart-data";
+import { type TimelinePoint, timelinePointLabel, timelineScoreDomain } from "./chart-data";
 import { arrival, easeOut, RECORD_RISE_MS, type ReplayFrame } from "./replay";
 
 // Frontier names sit in the open sky above and before their stars, as Pareto's do: the rim only rises to the right, so it never runs there, and the field of other models below it stays clear; a name with no room there gives way.
@@ -97,7 +93,8 @@ export function timelineScene({
   const frontierIds = new Set(frontier.map((point) => point.id));
   // The picked model, or the frontier's newest record when none is picked: the readout rests on it while no star is pointed at, and it is the chart's one tab stop.
   const chosen = picked ?? frontier.at(-1) ?? visible.at(-1);
-  const height = compact ? 400 : 520;
+  // A phone keeps the full height: it names every curve model, and a shorter plot leaves their names no room above the rim.
+  const height = 520;
   const margin = scatterChartMargin(SCATTER_CHART_MARGIN, compact);
   const padding = Math.max((end - start) * 0.025, 14 * 86400000 * (range[1] - range[0]));
   // The window's scores and the record it opens under set the scale; a running replay frames its own stretch of the window and settles back onto this framing.
@@ -168,9 +165,6 @@ export function timelineScene({
   const labNamed =
     frame == null && labNewest != null && !labelled.includes(labNewest) ? [labNewest] : [];
   const yTicks = y.ticks(5);
-  const scaleAnchorBoxes = compact
-    ? insetScaleAnchors(yTicks, y, margin.left, plotBounds.bottom, String).map(({ box }) => box)
-    : [];
   const ticks = x.ticks(compact ? 4 : 7).map(Number);
   // In a replay the newest record's level climbs from the one it beat, and the reached region ends at the reveal until the camera settles.
   const levels = [...(prior ? [prior] : []), ...frontier];
@@ -235,6 +229,7 @@ export function timelineScene({
     compact,
   };
   return {
+    compact,
     prior,
     frontier,
     frontierIds,
@@ -255,7 +250,6 @@ export function timelineScene({
     labelled,
     labNamed,
     yTicks,
-    scaleAnchorBoxes,
     ticks,
     horizon,
     reveal,
@@ -271,35 +265,22 @@ export function timelineScene({
 
 /** The settled frontier names' placement problem as a string, so placements are searched again only when it changes; `null` while nothing is to be placed. */
 export function frontierNamesKey(scene: TimelineScene, labelSizes: LabelSizes) {
-  const {
-    labelled,
-    settled,
-    xPoint,
-    y,
-    markRadius,
-    obstacles,
-    plotBounds,
-    scaleAnchorBoxes,
-    rim,
-    trail,
-  } = scene;
+  const { labelled, settled, xPoint, y, markRadius, obstacles, plotBounds, rim, trail } = scene;
   // The frontier's names also keep clear of its rim and trail.
   return !settled
     ? null
     : JSON.stringify({
         labels: labelled.map((point, index) => ({
           key: point.id,
-          label: timelinePointLabel(point),
+          label: timelinePointLabel(point, scene.compact),
           cx: xPoint(point),
           cy: y(point.score),
           radius: markRadius(point),
-          size: labelSizes[timelinePointLabel(point)],
+          size: labelSizes[timelinePointLabel(point, scene.compact)],
           priority: labelled.length - index,
         })),
         obstacles,
         bounds: labelBounds(plotBounds),
-        reservedBoxes: scaleAnchorBoxes,
-        gaps: TIMELINE_LABEL_GAPS,
         directions: SKY_SIDE,
         segments: [
           ...polylineSegments(rim),
@@ -308,7 +289,15 @@ export function frontierNamesKey(scene: TimelineScene, labelSizes: LabelSizes) {
       });
 }
 
-/** The frontier names as placed, and which of them are crowded out. */
+/** Placements for the frontier names that `frontierNamesKey` states: a phone names every curve model, in the sky above the rim and trail wherever there is room, on a leader where it cannot sit close; wider plots set names beside their stars. */
+export function placeFrontierNames(layoutKey: string | null, compact: boolean) {
+  if (layoutKey == null) return new Map<string, PointLabelPlacement>();
+  if (!compact) return placeBesideStars(layoutKey, false);
+  const { labels, bounds, segments } = JSON.parse(layoutKey);
+  return placeInSky({ labels, bounds, segments, clearance: NAME_CLEARANCE.compact });
+}
+
+/** The frontier names as placed, and which of them are crowded out: on a phone, where every curve model is named, none is. */
 export function frontierNameCallouts(
   scene: TimelineScene,
   labelSizes: LabelSizes,
@@ -317,9 +306,12 @@ export function frontierNameCallouts(
   const callouts = scene.labelled.map((point) => ({
     key: point.id,
     placement: labelPlacements.get(point.id),
-    size: labelSizes[timelinePointLabel(point)],
+    size: labelSizes[timelinePointLabel(point, scene.compact)],
   }));
-  return { callouts, crowded: crowdedOutLabels(callouts) };
+  return {
+    callouts,
+    crowded: scene.compact ? new Set<string>() : crowdedOutLabels(callouts, [], false),
+  };
 }
 
 type FrontierNames = ReturnType<typeof frontierNameCallouts>;
@@ -330,17 +322,7 @@ export function labNamesKey(
   labelSizes: LabelSizes,
   { callouts, crowded }: FrontierNames,
 ) {
-  const {
-    labNamed,
-    settled,
-    xPoint,
-    y,
-    markRadius,
-    obstacles,
-    plotBounds,
-    scaleAnchorBoxes,
-    labSegments,
-  } = scene;
+  const { labNamed, settled, xPoint, y, markRadius, obstacles, plotBounds, labSegments } = scene;
   // The focused lab's name is placed around the names already standing, which keep their places as the pointer moves, and gives way where it does not fit.
   const keptNameBoxes = callouts.flatMap(({ key, placement, size }) => {
     if (crowded.has(key) || placement == null || size == null) return [];
@@ -354,16 +336,15 @@ export function labNamesKey(
     : JSON.stringify({
         labels: labNamed.map((point) => ({
           key: point.id,
-          label: timelinePointLabel(point),
+          label: timelinePointLabel(point, scene.compact),
           cx: xPoint(point),
           cy: y(point.score),
           radius: markRadius(point),
-          size: labelSizes[timelinePointLabel(point)],
+          size: labelSizes[timelinePointLabel(point, scene.compact)],
         })),
         obstacles,
         bounds: labelBounds(plotBounds),
-        reservedBoxes: [...scaleAnchorBoxes, ...keptNameBoxes],
-        gaps: TIMELINE_LABEL_GAPS,
+        reservedBoxes: keptNameBoxes,
         segments: labSegments,
       });
 }
@@ -378,22 +359,14 @@ export function labNameCallouts(
   const labCallouts = scene.labNamed.map((point) => ({
     key: point.id,
     placement: labPlacements.get(point.id),
-    size: labelSizes[timelinePointLabel(point)],
+    size: labelSizes[timelinePointLabel(point, scene.compact)],
   }));
-  const labCrowded = crowdedOutLabels([
-    ...callouts.filter(({ key }) => !crowded.has(key)),
-    ...labCallouts,
-  ]);
-  return { labCallouts, labCrowded };
-}
-
-/** A name sits at most a short gap from its star, so it takes no leader, whose few dots would read as stray stars beside it. */
-export function placeBesideStars(layoutKey: string | null) {
-  if (layoutKey == null) return new Map<string, PointLabelPlacement>();
-  const placements = calloutLabelPlacements(JSON.parse(layoutKey));
-  return new Map(
-    [...placements].map(([key, placement]) => [key, { ...placement, line: undefined }]),
+  const labCrowded = crowdedOutLabels(
+    [...callouts.filter(({ key }) => !crowded.has(key)), ...labCallouts],
+    [],
+    scene.compact,
   );
+  return { labCallouts, labCrowded };
 }
 
 /** A stroke joining two of a lab's records, stopped short of each star, or `null` where the stars sit too close for one; a stroke entering at the window's edge starts there, where no star stands. */
