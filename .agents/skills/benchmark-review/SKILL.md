@@ -23,8 +23,6 @@ For review, audit, or report requests:
 - Do not create missing evidence by running scrapers or refresh jobs unless the user explicitly requests that follow-up.
 - Stop at recommendations. Move into scraper, scoring, or portfolio implementation only after the user asks for the change.
 
-The weekly review's record is the one file a review writes; see Run The Weekly Review.
-
 ## Establish The Current Contract
 
 Read current files before naming benchmarks, sources, groups, weights, or rank semantics:
@@ -172,15 +170,11 @@ Judge the class separately from these health verdicts, recommending exactly `fro
 
 ## Run The Weekly Review
 
-The weekly review audits every portfolio benchmark, baseline included, and continues from the previous review rather than starting over.
+The weekly review audits every portfolio benchmark, baseline included, and reports in the conversation. It writes no file, so each review stands on the current evidence.
 
-1. Read the newest record in `.agents/context/benchmark-reviews/`, when one exists, for its numbers, verdicts, open questions, and the decisions added since.
-2. Establish the current contract, artifact revision, and dashboard rank semantics once, then read stored health and source health for every benchmark.
-3. Screen every benchmark against the record: version, leaders, spread, standard error, coverage, last update, fetch state, and quarantined rows. Without a record, say that no trend can be established yet.
-4. Investigate in depth only the benchmarks that changed, sit near saturation or were retained despite weak separation, carry an open item, or remain materially uncertain. Reuse still-applicable methodology evidence with its date and source, and re-inspect tasks and grading when a change or doubt could affect the decision.
-5. Save the report as `.agents/context/benchmark-reviews/<YYYY-MM-DD>.md`. Its table is next week's baseline, so give every benchmark the numbers the screen compares.
-
-When the user later settles a decision the review raised, the session that carries it out adds the decision and its date to that review's record.
+1. Establish the current contract, artifact revision, and dashboard rank semantics once, then read stored health and source health for every benchmark.
+2. Screen every benchmark: version, leaders, spread, standard error, coverage, last update, fetch state, and quarantined rows.
+3. Investigate in depth only the benchmarks that stored health shows as changed, sit near saturation or were retained despite weak separation, or remain materially uncertain. Reuse still-applicable methodology evidence with its date and source, and re-inspect tasks and grading when a change or doubt could affect the decision.
 
 Delegate read-only evidence gathering when independent source families can be inspected in parallel: two or three subagents, not one per benchmark, each owning every benchmark that shares its loader, parser, or persistence policy. Give each the shared contract and evidence revision, source links, the read-only boundary, and a concrete evidence deliverable. Subagents report evidence, provenance, calculations, and uncertainties; the reviewer verifies material findings and owns every verdict and recommendation. While they run, advance a separate part of the review, then integrate their evidence without repeating their inspection. Avoid recursive delegation, other sessions, worktrees, duplicate downloads, and repeated polling.
 
