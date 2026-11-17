@@ -251,7 +251,7 @@ export const BENCHMARK_TOOLTIPS = {
       ["Role", "embodied visual reasoning"],
     ],
   },
-  finance_agent_v2: {
+  finance_agent: {
     version: "2.1",
     body: "Analyze public-company filings using research, calculation, and retrieval tools.",
     rows: [
@@ -456,7 +456,7 @@ export const BENCHMARK_TOOLTIPS = {
       ["Role", "broad capability index"],
     ],
   },
-  terminal_bench_4: {
+  terminal_bench: {
     version: "4.1",
     body: "Complete difficult software, infrastructure, data, and technical tasks in containerized terminals.",
     rows: [
@@ -514,7 +514,7 @@ export const BENCHMARK_TOOLTIPS = {
       ["Role", "spatial reasoning and construction"],
     ],
   },
-  weirdml_v3: {
+  weirdml: {
     version: "3",
     body: "Discover hidden structure in unfamiliar scientific data and build working solutions with coding agents. The score rewards earlier progress within a fixed token budget.",
     rows: [
@@ -564,7 +564,7 @@ export const BENCHMARK_LABELS = {
   enigmaeval: "EnigmaEval",
   epoch_capabilities_index: "Epoch Capabilities Index",
   erqa: "ERQA",
-  finance_agent_v2: "Finance Agent V2",
+  finance_agent: "Finance Agent",
   frontier_code: "FrontierCode",
   frontiermath_tier_4: "FrontierMath Tier 4",
   gdp_pdf: "GDP.pdf",
@@ -589,14 +589,14 @@ export const BENCHMARK_LABELS = {
   sudo_l7: "sudo L7",
   superchem: "SUPERChem",
   surge_intelligence_index: "Surge Intelligence Index",
-  terminal_bench_4: "Terminal-Bench 4.1",
-  terminal_bench_science: "Terminal-Bench-Science 0.1",
+  terminal_bench: "Terminal-Bench",
+  terminal_bench_science: "Terminal-Bench-Science",
   textquests: "TextQuests",
   vals_index: "Vals Index",
   vending_bench_2: "Vending-Bench 2",
   vibe_code: "Vibe Code",
   voxelbench: "VoxelBench",
-  weirdml_v3: "WeirdML v3",
+  weirdml: "WeirdML",
 } as const satisfies Readonly<Record<BenchmarkKey, string>>;
 
 export const BENCHMARK_SCORING_LABELS: Partial<Record<BenchmarkKey, string>> = {
@@ -910,15 +910,15 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
       label: "Omni Tok",
     },
   ],
-  terminal_bench_4: [
+  terminal_bench: [
     {
-      key: "terminalBench4OfficialCost",
+      key: "terminalBenchOfficialCost",
       metric: "cost",
-      metricSource: "terminal_bench_4__source_a",
+      metricSource: "terminal_bench__source_a",
       direction: "ascending",
       label: "TB$ Off",
       tooltip: {
-        title: "Terminal-Bench 4.1 cost ↓",
+        title: "Terminal-Bench cost ↓",
         body: "Cost per task attempt; lower is better.",
         details: [
           ["Source", "Official"],
@@ -927,13 +927,13 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
       },
     },
     {
-      key: "terminalBench4ArtificialAnalysisCost",
+      key: "terminalBenchArtificialAnalysisCost",
       metric: "cost",
-      metricSource: "terminal_bench_4__source_b",
+      metricSource: "terminal_bench__source_b",
       direction: "ascending",
       label: "TB$ AA",
       tooltip: {
-        title: "Terminal-Bench 4.1 cost ↓",
+        title: "Terminal-Bench cost ↓",
         body: "Cost per task attempt; lower is better.",
         details: [
           ["Source", "Artificial Analysis"],
@@ -942,13 +942,13 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
       },
     },
     {
-      key: "terminalBench4OfficialTokens",
+      key: "terminalBenchOfficialTokens",
       metric: "tokens",
-      metricSource: "terminal_bench_4__source_a",
+      metricSource: "terminal_bench__source_a",
       direction: "ascending",
       label: "TB Tok Off",
       tooltip: {
-        title: "Terminal-Bench 4.1 tokens ↓",
+        title: "Terminal-Bench tokens ↓",
         body: "Total tokens per task attempt; lower is better.",
         details: [
           ["Source", "Official"],
@@ -957,13 +957,13 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
       },
     },
     {
-      key: "terminalBench4ArtificialAnalysisTokens",
+      key: "terminalBenchArtificialAnalysisTokens",
       metric: "tokens",
-      metricSource: "terminal_bench_4__source_b",
+      metricSource: "terminal_bench__source_b",
       direction: "ascending",
       label: "TB Tok AA",
       tooltip: {
-        title: "Terminal-Bench 4.1 tokens ↓",
+        title: "Terminal-Bench tokens ↓",
         body: "Total tokens per task attempt; lower is better.",
         details: [
           ["Source", "Artificial Analysis"],
@@ -1212,8 +1212,8 @@ export const BENCHMARK_COLUMNS = {
     label: "ERQA",
     format: "percent",
   },
-  finance_agent_v2: {
-    key: "financeAgentV2",
+  finance_agent: {
+    key: "financeAgent",
     label: "Finance",
     format: "percent",
   },
@@ -1337,8 +1337,8 @@ export const BENCHMARK_COLUMNS = {
     label: "Surge",
     format: "percent",
   },
-  terminal_bench_4: {
-    key: "terminalBench4",
+  terminal_bench: {
+    key: "terminalBench",
     label: "TB",
     format: "percent",
   },
@@ -1372,9 +1372,9 @@ export const BENCHMARK_COLUMNS = {
     label: "VoxelBench",
     format: "score",
   },
-  weirdml_v3: {
+  weirdml: {
     key: "weirdMl",
-    label: "WeirdML v3",
+    label: "WeirdML",
     format: "percent",
   },
 } as const satisfies Readonly<Record<BenchmarkKey, BenchmarkColumnFacet>>;

@@ -214,7 +214,7 @@ assert.deepEqual(
     "hle",
     "mlcr_aa",
     "omniscience_accuracy",
-    "terminal_bench_4",
+    "terminal_bench",
     "terminal_bench_science",
   ],
 );
@@ -225,7 +225,7 @@ assert.deepEqual(
         "biomysterybench",
         "code_migration",
         "emb",
-        "finance_agent_v2",
+        "finance_agent",
         "mysterymechanism",
         "programbench",
         "public_benefits_bench",
@@ -252,7 +252,7 @@ assert.deepEqual(
       benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
     },
-    finance_agent_v2: {
+    finance_agent: {
       group: "baseline",
       version: "2.1",
       benchmarkImportance: 1,

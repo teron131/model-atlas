@@ -12,7 +12,7 @@ import { asFiniteNumber, asNonEmptyString, asRecord } from "../runtime";
 import { readAleBenchRawCache } from "../sources/ale-bench/runtime";
 import { artificialAnalysisBenchmarkResourceRawCacheFromRows } from "../sources/artificial-analysis/cache";
 import { fusedBenchmarkObservations } from "../sources/assembly";
-import { readTerminalBench4RawCache } from "../sources/terminal-bench-4/runtime";
+import { readTerminalBenchRawCache } from "../sources/terminal-bench/runtime";
 import { type DbRow, jsonValue } from "../sqlite-utils";
 import { buildChangeHistory, recentChangeMarks, variantKey } from "../stats/payload/changes";
 import { buildCurrentModelAtlasMetadata } from "../stats/payload/metadata";
@@ -99,7 +99,7 @@ export const PAYLOAD_ROW_GROUPS = [
   }),
   // Fusion rebuilds these benchmarks' observations from their complete raw rows.
   payloadRowGroup("aleBenchRows", SNAPSHOT_TABLES.ale_bench, "row_index", { optional: true }),
-  payloadRowGroup("terminalBench4Rows", SNAPSHOT_TABLES.terminal_bench_4, "row_index", {
+  payloadRowGroup("terminalBenchRows", SNAPSHOT_TABLES.terminal_bench, "row_index", {
     optional: true,
   }),
   ...BENCHMARK_OBSERVATION_BINDINGS.map((binding) =>
@@ -216,7 +216,7 @@ function observationsFromPayloadRows(rows: PayloadRows): BenchmarkObservationsBy
       metadata: parseBenchmarkObservationMetadata(row.metadata_json) ?? {},
     }));
   const fused = fusedBenchmarkObservations({
-    terminalBench4Rows: readTerminalBench4RawCache(rows.terminalBench4Rows)?.rows ?? [],
+    terminalBenchRows: readTerminalBenchRawCache(rows.terminalBenchRows)?.rows ?? [],
     artificialAnalysisBenchmarkResourceRows:
       artificialAnalysisBenchmarkResourceRawCacheFromRows(
         rows.artificialAnalysisBenchmarkResourceRows,
@@ -224,7 +224,7 @@ function observationsFromPayloadRows(rows: PayloadRows): BenchmarkObservationsBy
     terminalBenchScienceRows: sourceRows("terminal_bench_science", rows.terminalBenchScienceRows),
     gdpPdfRows: sourceRows("gdp_pdf", rows.gdpPdfRows),
     aleBenchRows: readAleBenchRawCache(rows.aleBenchRows)?.rows ?? [],
-    weirdMlRows: sourceRows("weirdml_v3", rows.weirdMlRows),
+    weirdMlRows: sourceRows("weirdml", rows.weirdMlRows),
   });
   Object.assign(observations, fused);
   return observations;

@@ -151,7 +151,7 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
-  finance_agent_v2: {
+  finance_agent: {
     group: "baseline",
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
@@ -272,7 +272,7 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
   surge_intelligence_index: INDEX_SCORING_WEIGHT,
-  terminal_bench_4: {
+  terminal_bench: {
     group: "frontier",
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
@@ -303,7 +303,7 @@ export const BENCHMARK_SCORING_WEIGHTS = {
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
   },
-  weirdml_v3: {
+  weirdml: {
     group: "frontier",
     benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
@@ -319,7 +319,7 @@ export type BenchmarkResourceProfile = {
 /** Task runs in one complete suite run: source readers accept resource totals only over exactly this many runs, and per-task resources divide by it. */
 export const BENCHMARK_RESOURCE_PROFILES = {
   arc_agi_3: { taskRunCount: 55 },
-  terminal_bench_4: { taskRunCount: 330 },
+  terminal_bench: { taskRunCount: 330 },
   terminal_bench_science: { taskRunCount: 210 },
 } as const satisfies Partial<Record<BenchmarkKey, BenchmarkResourceProfile>>;
 
@@ -339,6 +339,6 @@ export const BENCHMARK_RESOURCE_POLICIES = {
   hle: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
   mlcr_aa: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
   omniscience_accuracy: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
-  terminal_bench_4: BENCHMARK_PER_TASK_RESOURCE,
+  terminal_bench: BENCHMARK_PER_TASK_RESOURCE,
   terminal_bench_science: BENCHMARK_PER_TASK_RESOURCE,
 } as const satisfies Partial<Record<BenchmarkKey, BenchmarkResourcePolicy>>;

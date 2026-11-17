@@ -255,7 +255,7 @@ assert.equal(automationBenchRows[1]?.metadata.cost_annotation, "†");
 
 const conflictingModelIdLookup = buildBenchmarkObservationLookup([
   {
-    benchmark_key: "weirdml_v3",
+    benchmark_key: "weirdml",
     source_url: "https://htihle.github.io/assets/data/weirdml_v3.json",
     model_id: "gpt-5.6-sol",
     model: "GPT-5.6 Sol (max)",
@@ -268,7 +268,7 @@ const conflictingModelIdLookup = buildBenchmarkObservationLookup([
     metadata: {},
   },
   {
-    benchmark_key: "weirdml_v3",
+    benchmark_key: "weirdml",
     source_url: "https://htihle.github.io/assets/data/weirdml_v3.json",
     model_id: "gpt-5.6-sol",
     model: "GPT-5.6 Sol Pro (max)",
@@ -358,7 +358,7 @@ const weirdMlPayload = {
 };
 const weirdMl = processWeirdMlPayload(weirdMlPayload, weirdMlUrl);
 assert.equal(weirdMl.length, 1);
-assert.equal(weirdMl[0]?.benchmark_key, "weirdml_v3");
+assert.equal(weirdMl[0]?.benchmark_key, "weirdml");
 assert.equal(weirdMl[0]?.reasoning_effort, "xhigh");
 assert.equal(
   weirdMl[0]?.canonical_value,
@@ -395,7 +395,7 @@ assert.ok(!weirdMlCacheMatches([], weirdMlUrl));
 assert.ok(!weirdMlCacheMatches(weirdMl, "https://htihle.github.io/data/weirdml_data.csv"));
 assert.ok(
   !weirdMlCacheMatches(
-    weirdMl.map((row) => ({ ...row, benchmark_key: "weirdml" })),
+    weirdMl.map((row) => ({ ...row, benchmark_key: "hle" })),
     weirdMlUrl,
   ),
 );

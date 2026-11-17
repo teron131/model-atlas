@@ -26,7 +26,7 @@ import type { AleBenchModelScoreRow } from "../src/model-atlas/sources/ale-bench
 import type { ArenaAgentModelScoreRow } from "../src/model-atlas/sources/arena/agent";
 import type { ArtificialAnalysisBenchmarkResourceRow } from "../src/model-atlas/sources/artificial-analysis/benchmark-resources";
 import type { FrontierCodeModelEffortRow } from "../src/model-atlas/sources/frontier-code/leaderboard";
-import type { TerminalBench4ModelHarnessRow } from "../src/model-atlas/sources/terminal-bench-4/leaderboard";
+import type { TerminalBenchModelHarnessRow } from "../src/model-atlas/sources/terminal-bench/leaderboard";
 import { buildValsIndexMap } from "../src/model-atlas/sources/vals/index-benchmark";
 import type { VendingBench2ModelScoreRow } from "../src/model-atlas/sources/vending-bench-2/leaderboard";
 
@@ -88,7 +88,7 @@ const frontierCodeRow: FrontierCodeModelEffortRow = {
   cost_per_task_usd: 0.75,
   tokens_per_task: 4_500,
 };
-const terminalBench4Row: TerminalBench4ModelHarnessRow = {
+const terminalBenchRow: TerminalBenchModelHarnessRow = {
   revision: "4_1_0",
   model: "Example Model (high)",
   base_model: "Example Model",
@@ -264,7 +264,7 @@ const lookups = {
   enigmaeval: { rowsByModelName: emptyLookup() },
   epochCapabilitiesIndex: { rowsByModelName: new Map() },
   erqa: { rowsByModelName: emptyLookup() },
-  financeAgentV2: { rowsByModelName: emptyLookup() },
+  financeAgent: { rowsByModelName: emptyLookup() },
   frontierCode: {
     rowsByModelName: buildBenchmarkModelMap([frontierCodeRow]),
   },
@@ -291,8 +291,8 @@ const lookups = {
   sudoL7: { rowsByModelName: emptyLookup() },
   superchem: { rowsByModelName: emptyLookup() },
   surgeIntelligenceIndex: { rowsByModelName: emptyLookup() },
-  terminalBench4: {
-    rowsByModelName: buildBenchmarkModelMap([terminalBench4Row]),
+  terminalBench: {
+    rowsByModelName: buildBenchmarkModelMap([terminalBenchRow]),
   },
   terminalBenchScience: { rowsByModelName: emptyLookup() },
   textquests: { rowsByModelName: emptyLookup() },
@@ -318,7 +318,7 @@ assert.deepEqual(observationAssignment.benchmarks, {
   briefcase: 0.5,
   frontier_code: 0.535,
   hle: 0.4,
-  terminal_bench_4: 0.4353,
+  terminal_bench: 0.4353,
   vending_bench_2: 9_000,
 });
 assert.equal((observationAssignment.benchmarks as Record<string, unknown>).arc_agi_3, undefined);
@@ -466,7 +466,7 @@ assert.deepEqual(defaultVariantAssignment.benchmarks, {
   chartography: 0.47,
   frontier_code: 0.535,
   hle: 0.4,
-  terminal_bench_4: 0.4353,
+  terminal_bench: 0.4353,
   vending_bench_2: 9_000,
 });
 assert.deepEqual(defaultVariantAssignment.scoringSources, {
@@ -480,7 +480,7 @@ assert.deepEqual(defaultVariantAssignment.scoringSources, {
   chartography: chartographyRow,
   frontier_code: frontierCodeRow,
   hle: artificialAnalysisHleResourceRow,
-  terminal_bench_4: terminalBench4Row,
+  terminal_bench: terminalBenchRow,
   vending_bench_2: vendingBench2Row,
 });
 const effortQualifiedDefault = buildDefaultVariantBenchmarks(
@@ -561,7 +561,7 @@ assert.deepEqual(buildTaskMetrics(null, defaultVariantAssignment.scoringSources)
     input_tokens: 23,
     output_tokens: 100,
   },
-  terminal_bench_4: {
+  terminal_bench: {
     cost: 1,
     tokens: 1_000,
   },

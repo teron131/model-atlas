@@ -74,14 +74,14 @@ const separatedPairs = {
     automation_bench: 0.5,
     frontier_code: 0.5,
     gdp_pdf: 0.5,
-    terminal_bench_4: 0.5,
+    terminal_bench: 0.5,
     terminal_bench_science: 0.5,
   },
   task_metrics: {
     automation_bench: { cost: 1 },
     frontier_code: { cost: 1 },
     gdp_pdf__source_b: { quality: 0.5, cost: 1, seconds: 100 },
-    terminal_bench_4__source_b: { quality: 0.5, cost: 1, seconds: 100 },
+    terminal_bench__source_b: { quality: 0.5, cost: 1, seconds: 100 },
     terminal_bench_science__source_c: { quality: 0.5, cost: 1, seconds: 100 },
   },
 };

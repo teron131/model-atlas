@@ -279,8 +279,8 @@ const STANDALONE_SOURCE_ROW_ADAPTERS = {
         version: frontierCodeVersion(row.revision),
       }),
     ),
-  terminal_bench_4: (sourceData) =>
-    benchmarkRowDrafts("terminal_bench_4", sourceData.terminalBench4.rows, (row) => ({
+  terminal_bench: (sourceData) =>
+    benchmarkRowDrafts("terminal_bench", sourceData.terminalBench.rows, (row) => ({
       id: row.base_model,
       identity: withClaudeFamily(row.base_model),
       label: row.model,

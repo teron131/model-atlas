@@ -22,7 +22,7 @@ import {
   crosswalkThreeBenchmarkSources,
 } from "../src/model-atlas/sources/assembly/crosswalk";
 import { readBenchmarkObservationRawCache } from "../src/model-atlas/sources/observations/cache";
-import { processTerminalBench4Payload } from "../src/model-atlas/sources/terminal-bench-4/leaderboard";
+import { processTerminalBenchPayload } from "../src/model-atlas/sources/terminal-bench/leaderboard";
 import { compactModelVariants } from "../src/model-atlas/stats/model-variants";
 import { minimalModelAtlasModel } from "./model-atlas-fixtures";
 
@@ -354,7 +354,7 @@ assert.equal(
 );
 
 const unavailableAa = fusedBenchmarkObservations({
-  terminalBench4Rows: [],
+  terminalBenchRows: [],
   artificialAnalysisBenchmarkResourceRows: [],
   terminalBenchScienceRows: [
     { ...observation("science", 0.4), metadata: { source_series: "official" } },
@@ -368,7 +368,7 @@ assert.equal(unavailableAa.gdp_pdf?.length, 0);
 assert.equal(unavailableAa.terminal_bench_science?.length, 0);
 
 const weirdMlFused = fusedBenchmarkObservations({
-  terminalBench4Rows: [],
+  terminalBenchRows: [],
   artificialAnalysisBenchmarkResourceRows: [],
   terminalBenchScienceRows: [],
   gdpPdfRows: [],
@@ -377,28 +377,28 @@ const weirdMlFused = fusedBenchmarkObservations({
     ...pairs.flatMap((pair) => [
       {
         ...observation(pair.name, pair.a),
-        benchmark_key: "weirdml_v3",
+        benchmark_key: "weirdml",
         metadata: { source_series: "creator" },
       },
       {
         ...observation(pair.name, pair.b),
-        benchmark_key: "weirdml_v3",
+        benchmark_key: "weirdml",
         metadata: { source_series: "epoch" },
       },
     ]),
     {
       ...observation("creator-only", 0.4),
-      benchmark_key: "weirdml_v3",
+      benchmark_key: "weirdml",
       metadata: { source_series: "creator" },
     },
     {
       ...observation("ambiguous-agent", 0.8),
-      benchmark_key: "weirdml_v3",
+      benchmark_key: "weirdml",
       metadata: { source_series: "epoch", assignment_eligible: false },
     },
     ...["creator", "epoch"].map((source_series) => ({
       ...observation("retained-agent-mismatch", 0.5),
-      benchmark_key: "weirdml_v3",
+      benchmark_key: "weirdml",
       metadata: {
         source_series,
         agent: source_series === "creator" ? "claude_code" : "opencode",
@@ -406,7 +406,7 @@ const weirdMlFused = fusedBenchmarkObservations({
       },
     })),
   ].map((row) => ({ ...row, model_id: row.base_model })),
-}).weirdml_v3!;
+}).weirdml!;
 assert.ok(
   Math.abs(weirdMlFused.find((row) => row.base_model === "model-0")!.canonical_value - 0.25) <
     1e-12,
@@ -429,7 +429,7 @@ assert.ok(
   "Retained rows from an earlier fetch must be reconciled with the current source before fusion",
 );
 
-const terminalBench4Payload = (totalCostUsd: number) => ({
+const terminalBenchPayload = (totalCostUsd: number) => ({
   leaderboard: {
     package: "terminal-bench/terminal-bench",
     name: "4-1-0",
@@ -456,8 +456,8 @@ const terminalBench4Payload = (totalCostUsd: number) => ({
     },
   ],
 });
-const official = processTerminalBench4Payload(terminalBench4Payload(660))[0]!;
-const unreportedCost = processTerminalBench4Payload(terminalBench4Payload(0))[0];
+const official = processTerminalBenchPayload(terminalBenchPayload(660))[0]!;
+const unreportedCost = processTerminalBenchPayload(terminalBenchPayload(0))[0];
 assert.equal(unreportedCost?.score, 0.5, "A zero published cost must not drop the score");
 assert.equal(unreportedCost?.cost_per_task_usd, null);
 assert.equal(official.cost_per_task_usd, 2);
@@ -466,13 +466,13 @@ assert.equal(official.output_tokens_per_task, 20);
 assert.equal(official.seconds_per_task, 120, "average duration must not be divided again");
 assert.deepEqual(
   fusedBenchmarkObservations({
-    terminalBench4Rows: [official],
+    terminalBenchRows: [official],
     artificialAnalysisBenchmarkResourceRows: [],
     terminalBenchScienceRows: [],
     gdpPdfRows: [],
     aleBenchRows: [],
     weirdMlRows: [],
-  }).terminal_bench_4?.map((row) => [
+  }).terminal_bench?.map((row) => [
     row.reasoning_effort,
     row.canonical_value,
     row.metadata.fusion_crosswalk_applied,
@@ -494,7 +494,7 @@ const sparse = processArtificialAnalysisBenchmarkResourceRows(
     },
   ],
   {
-    benchmark_key: "terminal_bench_4",
+    benchmark_key: "terminal_bench",
     score_key: "terminalbenchV40",
     resource_key: "terminalbenchV40",
     url: "https://artificialanalysis.ai/evaluations/terminalbench-v4-0",

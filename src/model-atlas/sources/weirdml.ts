@@ -212,7 +212,7 @@ export function processWeirdMlPayload(
     if (runs !== model.runs) return [];
     ids.add(id);
     rows.push({
-      benchmark_key: "weirdml_v3",
+      benchmark_key: "weirdml",
       source_url: sourceUrl,
       model_id: slug,
       model: name,
@@ -260,7 +260,7 @@ export function weirdMlCacheMatches(
     rows.every((row) => {
       const metadata = row.metadata;
       return (
-        row.benchmark_key === "weirdml_v3" &&
+        row.benchmark_key === "weirdml" &&
         row.source_url === sourceUrl &&
         metadata.benchmark_version === VERSION &&
         metadata.metric === METRIC &&

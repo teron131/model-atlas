@@ -11,7 +11,7 @@ import { frontierCodeRuntime } from "./frontier-code/runtime";
 import { insertBenchmarkObservationRows } from "./observations/cache";
 import type { RAW_SOURCE_TABLES, RawSourceName } from "./registry";
 import { riemannBenchRuntime } from "./surge/riemann-bench-runtime";
-import { terminalBench4Runtime } from "./terminal-bench-4/runtime";
+import { terminalBenchRuntime } from "./terminal-bench/runtime";
 import type { RawSourceCacheStatus, SourceRefreshOptions, SourceSnapshots } from "./types";
 import { valsIndexRuntime } from "./vals/index-benchmark-runtime";
 import { vendingBench2Runtime } from "./vending-bench-2/runtime";
@@ -25,7 +25,7 @@ const BENCHMARK_RUNTIMES = {
   ale_bench: aleBenchRuntime,
   arena_agent: arenaAgentRuntime,
   frontier_code: frontierCodeRuntime,
-  terminal_bench_4: terminalBench4Runtime,
+  terminal_bench: terminalBenchRuntime,
   vending_bench_2: vendingBench2Runtime,
 } as const satisfies RuntimesBySource<BenchmarkRuntimeKey>;
 

@@ -64,7 +64,7 @@ const EFFORT_BENCHMARK_KEYS = new Set([
   "frontier_code",
   "automation_bench",
   "arc_agi_3",
-  "terminal_bench_4",
+  "terminal_bench",
   "terminal_bench_science",
 ]);
 

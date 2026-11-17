@@ -61,7 +61,7 @@ export function processEpochWeirdMlCsv(csv: string, sourceUrl: string): Benchmar
       return [];
     ids.add(id);
     rows.push({
-      benchmark_key: "weirdml_v3",
+      benchmark_key: "weirdml",
       source_url: sourceUrl,
       model_id: slug,
       model,
@@ -105,7 +105,7 @@ export function weirdMlEpochCacheMatches(
   return rows.every(
     (row) =>
       row.source_url === sourceUrl &&
-      row.benchmark_key === "weirdml_v3" &&
+      row.benchmark_key === "weirdml" &&
       row.metadata.benchmark_version === "3" &&
       row.metadata.metric === "score" &&
       row.metadata.source_series === "epoch" &&

@@ -7,9 +7,9 @@ import { parseModelEffort } from "../../identity/normalization";
 import { type AleBenchSourceRow, fuseAleBenchRows } from "../ale-bench/leaderboard";
 import type { ArtificialAnalysisBenchmarkResourceRow } from "../artificial-analysis/benchmark-resources";
 import {
-  TERMINAL_BENCH_4_LEADERBOARD_URL,
-  type TerminalBench4ModelHarnessRow,
-} from "../terminal-bench-4/leaderboard";
+  TERMINAL_BENCH_LEADERBOARD_URL,
+  type TerminalBenchModelHarnessRow,
+} from "../terminal-bench/leaderboard";
 import { mergeWeirdMlRows } from "../weirdml";
 import {
   crosswalkBenchmarkSources,
@@ -19,14 +19,14 @@ import {
 
 /** Raw source arrays remain unchanged; only these derived observations enter fused matching and collapsed display. */
 export function fusedBenchmarkObservations({
-  terminalBench4Rows: official,
+  terminalBenchRows: official,
   artificialAnalysisBenchmarkResourceRows: artificialAnalysisRows,
   terminalBenchScienceRows: science,
   gdpPdfRows: gdpPdf,
   aleBenchRows: ale,
   weirdMlRows: weird,
 }: {
-  terminalBench4Rows: TerminalBench4ModelHarnessRow[];
+  terminalBenchRows: TerminalBenchModelHarnessRow[];
   artificialAnalysisBenchmarkResourceRows: ArtificialAnalysisBenchmarkResourceRow[];
   terminalBenchScienceRows: BenchmarkObservationRow[];
   gdpPdfRows: BenchmarkObservationRow[];
@@ -34,8 +34,8 @@ export function fusedBenchmarkObservations({
   weirdMlRows: BenchmarkObservationRow[];
 }): Record<string, CrosswalkObservation[]> {
   const officialRows: CrosswalkObservation[] = official.map((row) => ({
-    benchmark_key: "terminal_bench_4",
-    source_url: TERMINAL_BENCH_4_LEADERBOARD_URL,
+    benchmark_key: "terminal_bench",
+    source_url: TERMINAL_BENCH_LEADERBOARD_URL,
     model_id: null,
     model: withClaudeFamily(row.model),
     base_model: withClaudeFamily(row.base_model),
@@ -74,7 +74,7 @@ export function fusedBenchmarkObservations({
   );
   return {
     ale_bench: fuseAleBenchRows(ale),
-    weirdml_v3: crosswalkBenchmarkSources(
+    weirdml: crosswalkBenchmarkSources(
       weirdRows.filter(
         (row) =>
           row.metadata.source_series === "creator" && row.metadata.assignment_eligible !== false,
@@ -88,13 +88,13 @@ export function fusedBenchmarkObservations({
     gdp_pdf: crosswalkBenchmarkSources(gdpPdf, artificialAnalysisObservations("gdp_pdf"), {
       sourceLabels: { a: "Surge", b: "Artificial Analysis" },
     }),
-    terminal_bench_4: crosswalkBenchmarkSources(
+    terminal_bench: crosswalkBenchmarkSources(
       officialRows,
-      artificialAnalysisObservations("terminal_bench_4"),
+      artificialAnalysisObservations("terminal_bench"),
       {
         sourceLabels: {
-          a: BENCHMARK_RESOURCE_SOURCE_LABELS.terminal_bench_4.source_a,
-          b: BENCHMARK_RESOURCE_SOURCE_LABELS.terminal_bench_4.source_b,
+          a: BENCHMARK_RESOURCE_SOURCE_LABELS.terminal_bench.source_a,
+          b: BENCHMARK_RESOURCE_SOURCE_LABELS.terminal_bench.source_b,
         },
         // The official board is the publisher's own, so it scores alone while Artificial Analysis has no rows on its version.
         aAloneWithoutB: true,

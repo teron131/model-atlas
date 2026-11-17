@@ -302,7 +302,7 @@ const scoringRows = [
     benchmarks: {
       gdpval_normalized: 0.4,
       scicode: 0.4,
-      terminal_bench_4: 0.4,
+      terminal_bench: 0.4,
       apex_agents: 0.1,
     },
   },
@@ -311,7 +311,7 @@ const scoringRows = [
       apex_agents: 0.3,
       gdpval_normalized: 0.6,
       scicode: 0.6,
-      terminal_bench_4: 0.6,
+      terminal_bench: 0.6,
     },
   },
   {
@@ -319,14 +319,14 @@ const scoringRows = [
       apex_agents: 0.5,
       gdpval_normalized: 0.8,
       scicode: 0.8,
-      terminal_bench_4: 0.8,
+      terminal_bench: 0.8,
     },
   },
   {
     benchmarks: {
       gdpval_normalized: 0.7,
       scicode: 0.7,
-      terminal_bench_4: 0.7,
+      terminal_bench: 0.7,
     },
   },
 ];
@@ -334,8 +334,8 @@ const scoringConfig = {
   agenticTokenModifierCap: 0.15,
   intelligenceBenchmarkKeys: [],
   intelligenceBenchmarkDisplayKeys: [],
-  agenticBenchmarkKeys: ["apex_agents", "gdpval_normalized", "scicode", "terminal_bench_4"],
-  agenticBenchmarkDisplayKeys: ["apex_agents", "gdpval_normalized", "scicode", "terminal_bench_4"],
+  agenticBenchmarkKeys: ["apex_agents", "gdpval_normalized", "scicode", "terminal_bench"],
+  agenticBenchmarkDisplayKeys: ["apex_agents", "gdpval_normalized", "scicode", "terminal_bench"],
   previewAdditionalIntelligenceBenchmarkKeys: [],
   benchmarkPortfolio: {
     scicode: {
@@ -343,7 +343,7 @@ const scoringConfig = {
       benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 0.8, agentic: 0.2 },
     },
-    terminal_bench_4: {
+    terminal_bench: {
       group: "frontier",
       benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 0, agentic: 1 },

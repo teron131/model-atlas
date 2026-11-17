@@ -108,10 +108,10 @@ assert.equal(readUrlValue(malformed, "benchmark"), null);
 assert.deepEqual(readUrlValue(new URLSearchParams("benchmark=none"), "benchmark"), []);
 assert.deepEqual(
   readUrlValue(
-    new URLSearchParams("benchmark=terminal_bench_4&benchmark=unknown&benchmark=terminal_bench_4"),
+    new URLSearchParams("benchmark=terminal_bench&benchmark=unknown&benchmark=terminal_bench"),
     "benchmark",
   ),
-  ["terminal_bench_4"],
+  ["terminal_bench"],
 );
 assert.deepEqual(
   readUrlValue(

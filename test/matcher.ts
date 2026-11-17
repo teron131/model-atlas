@@ -36,7 +36,7 @@ import {
   buildRiemannBenchMap,
   findRiemannBenchScore,
 } from "../src/model-atlas/sources/surge/riemann-bench";
-import { buildTerminalBench4Map } from "../src/model-atlas/sources/terminal-bench-4/leaderboard";
+import { buildTerminalBenchMap } from "../src/model-atlas/sources/terminal-bench/leaderboard";
 import type { SourceSnapshots } from "../src/model-atlas/sources/types";
 import {
   buildValsIndexMap,
@@ -1247,7 +1247,7 @@ function modelStatsSourceData(
     enigmaeval: { rows: [], rowsByModelName: new Map() },
     epochCapabilitiesIndex: { rows: [], rowsByModelName: new Map() },
     erqa: { rows: [], rowsByModelName: new Map() },
-    financeAgentV2: { rows: [], rowsByModelName: new Map() },
+    financeAgent: { rows: [], rowsByModelName: new Map() },
     frontierCode: { rows: [], rowsByModelName: new Map() },
     frontierMathTier4: { rows: [], rowsByModelName: new Map() },
     gdpPdf: {
@@ -1274,9 +1274,9 @@ function modelStatsSourceData(
     sudoL7: { rows: [], rowsByModelName: new Map() },
     superchem: { rows: [], rowsByModelName: new Map() },
     surgeIntelligenceIndex: { rows: [], rowsByModelName: new Map() },
-    terminalBench4: {
+    terminalBench: {
       rows: [],
-      rowsByModelName: buildTerminalBench4Map([]),
+      rowsByModelName: buildTerminalBenchMap([]),
     },
     terminalBenchScience: { rows: [], rowsByModelName: new Map() },
     textquests: { rows: [], rowsByModelName: new Map() },

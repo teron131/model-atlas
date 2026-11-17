@@ -236,7 +236,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
     sourceDataKey: "erqa",
     sourceRowsKey: "erqaRows",
   },
-  finance_agent_v2: {
+  finance_agent: {
     group: "vals",
     id: "vals",
     revision: "2.1",
@@ -245,8 +245,8 @@ export const BENCHMARK_STANDARD_SOURCES = {
       canonicalTask: "all_pass",
       sourceUrl: "https://www.vals.ai/benchmarks/fabv2-1",
     },
-    sourceDataKey: "financeAgentV2",
-    sourceRowsKey: "financeAgentV2Rows",
+    sourceDataKey: "financeAgent",
+    sourceRowsKey: "financeAgentRows",
   },
   frontiermath_tier_4: {
     group: "epoch",
@@ -482,9 +482,9 @@ export const BENCHMARK_STANDARD_SOURCES = {
     sourceDataKey: "voxelBench",
     sourceRowsKey: "voxelBenchRows",
   },
-  weirdml_v3: {
+  weirdml: {
     group: "standalone",
-    id: "weirdml_v3",
+    id: "weirdml",
     loader: {
       kind: "weirdml",
       sourceUrl: "https://htihle.github.io/assets/data/weirdml_v3.json",
@@ -750,7 +750,7 @@ export const BENCHMARK_EXTENDED_SOURCES = {
       },
     ],
   },
-  terminal_bench_4: {
+  terminal_bench: {
     inputs: [
       {
         group: "artificial_analysis",
@@ -770,9 +770,9 @@ export const BENCHMARK_EXTENDED_SOURCES = {
       },
       {
         group: "standalone",
-        id: "terminal_bench_4",
+        id: "terminal_bench",
         roles: ["observation", "resource"],
-        runtime: { key: "terminal_bench_4", publicRows: true },
+        runtime: { key: "terminal_bench", publicRows: true },
       },
     ],
   },
@@ -829,17 +829,17 @@ export const BENCHMARK_EXTENDED_SOURCES = {
       },
     ],
   },
-  weirdml_v3: {
+  weirdml: {
     inputs: [
       {
-        group: BENCHMARK_STANDARD_SOURCES.weirdml_v3.group,
-        id: BENCHMARK_STANDARD_SOURCES.weirdml_v3.id,
+        group: BENCHMARK_STANDARD_SOURCES.weirdml.group,
+        id: BENCHMARK_STANDARD_SOURCES.weirdml.id,
         roles: ["observation"],
         adapters: [
           {
             kind: "benchmark_observation",
-            sourceDataKey: BENCHMARK_STANDARD_SOURCES.weirdml_v3.sourceDataKey,
-            sourceRowsKey: BENCHMARK_STANDARD_SOURCES.weirdml_v3.sourceRowsKey,
+            sourceDataKey: BENCHMARK_STANDARD_SOURCES.weirdml.sourceDataKey,
+            sourceRowsKey: BENCHMARK_STANDARD_SOURCES.weirdml.sourceRowsKey,
           },
         ],
       },
@@ -874,7 +874,7 @@ export const BENCHMARK_PROCESSING_OVERRIDES = {
       clamp: true,
     },
   },
-  terminal_bench_4: {
+  terminal_bench: {
     aggregation: { kind: "custom" },
     sourceCrosswalk: { kind: "custom" },
   },
@@ -882,7 +882,7 @@ export const BENCHMARK_PROCESSING_OVERRIDES = {
     aggregation: { kind: "custom" },
     sourceCrosswalk: { kind: "custom" },
   },
-  weirdml_v3: { sourceCrosswalk: { kind: "custom" } },
+  weirdml: { sourceCrosswalk: { kind: "custom" } },
 } as const satisfies Partial<Record<BenchmarkKey, Partial<BenchmarkProcessingFacet>>>;
 
 export const BENCHMARK_PERSISTENCE_OVERRIDES = {

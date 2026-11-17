@@ -16,7 +16,7 @@ const changedKeys = [
   "complex_constraints",
   "critpt",
   "emb",
-  "finance_agent_v2",
+  "finance_agent",
   "frontier_code",
   "frontiermath_tier_4",
   "handbook_md",

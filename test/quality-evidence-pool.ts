@@ -177,7 +177,7 @@ assert.ok(imputed.confidence.agentic! > direct.confidence.agentic!);
 
 assert.equal(residualIndexBreadth("epoch_capabilities_index", [], 4), 8);
 assert.equal(residualIndexBreadth("epoch_capabilities_index", [], 40), 8);
-assert.equal(residualIndexBreadth("aa_intelligence_index", ["terminal_bench_4"]), aaBreadth - 1);
+assert.equal(residualIndexBreadth("aa_intelligence_index", ["terminal_bench"]), aaBreadth - 1);
 const sharedIndexBreadths = qualityIndexBreadths([
   { key: "aa_intelligence_index" },
   { key: "cais_capabilities_index" },

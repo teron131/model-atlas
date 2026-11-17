@@ -233,7 +233,7 @@ assert.equal(
   "Each separately included component reduces AA breadth once",
 );
 assert.equal(
-  residualIndexBreadth("aa_intelligence_index", ["arc_agi_2", "terminal_bench_4"]),
+  residualIndexBreadth("aa_intelligence_index", ["arc_agi_2", "terminal_bench"]),
   aaBreadth - 1,
   "Only the exact current Terminal-Bench component reduces AA breadth",
 );

@@ -25,7 +25,7 @@ export const ARTIFICIAL_ANALYSIS_INDEX_COMPONENTS = {
   "hle-diamond": "hle",
   omniscience: "omniscience_accuracy",
   "terminal-bench-science": "terminal_bench_science",
-  "terminalbench-4-0": "terminal_bench_4",
+  "terminalbench-4-0": "terminal_bench",
 } as const satisfies Record<string, string>;
 
 const REPORTED_BREADTH = {

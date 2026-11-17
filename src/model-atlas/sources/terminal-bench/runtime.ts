@@ -14,43 +14,43 @@ import {
   sourceSnapshotStatus,
 } from "../snapshots/row-snapshot";
 import {
-  buildTerminalBench4Map,
-  getTerminalBench4Stats,
-  TERMINAL_BENCH_4_LEADERBOARD_URL,
-  TERMINAL_BENCH_4_SOURCE_REVISION,
-  type TerminalBench4ModelHarnessRow,
+  buildTerminalBenchMap,
+  getTerminalBenchStats,
+  TERMINAL_BENCH_LEADERBOARD_URL,
+  TERMINAL_BENCH_SOURCE_REVISION,
+  type TerminalBenchModelHarnessRow,
 } from "./leaderboard";
 
-type TerminalBench4Snapshot = BenchmarkSnapshot<TerminalBench4ModelHarnessRow>;
+type TerminalBenchSnapshot = BenchmarkSnapshot<TerminalBenchModelHarnessRow>;
 
-export const terminalBench4Runtime = defineBenchmarkRuntime({
-  source: "terminal_bench_4",
-  key: "terminalBench4",
-  fetchRows: async () => (await getTerminalBench4Stats()).data,
-  readCache: readTerminalBench4RawCache,
-  snapshot: terminalBench4Snapshot,
-  write: insertTerminalBench4RawRows,
-  sourceData: (rows) => ({ rows, rowsByModelName: buildTerminalBench4Map(rows) }),
+export const terminalBenchRuntime = defineBenchmarkRuntime({
+  source: "terminal_bench",
+  key: "terminalBench",
+  fetchRows: async () => (await getTerminalBenchStats()).data,
+  readCache: readTerminalBenchRawCache,
+  snapshot: terminalBenchSnapshot,
+  write: insertTerminalBenchRawRows,
+  sourceData: (rows) => ({ rows, rowsByModelName: buildTerminalBenchMap(rows) }),
 });
 
-export function readTerminalBench4RawCache(
+export function readTerminalBenchRawCache(
   cache: CacheRowSource,
-): RawRowsCache<TerminalBench4ModelHarnessRow> | null {
+): RawRowsCache<TerminalBenchModelHarnessRow> | null {
   const cacheRows = sourceCacheRows(
     cache,
-    "SELECT * FROM terminal_bench_4_raw_rows ORDER BY row_index",
+    "SELECT * FROM terminal_bench_raw_rows ORDER BY row_index",
   );
   if (
     cacheRows.length === 0 ||
     cacheRows.some(
       (row) =>
-        asNonEmptyString(row.url) !== TERMINAL_BENCH_4_LEADERBOARD_URL ||
-        asNonEmptyString(row.revision) !== TERMINAL_BENCH_4_SOURCE_REVISION,
+        asNonEmptyString(row.url) !== TERMINAL_BENCH_LEADERBOARD_URL ||
+        asNonEmptyString(row.revision) !== TERMINAL_BENCH_SOURCE_REVISION,
     )
   ) {
     return null;
   }
-  const rows = cacheRows.flatMap<TerminalBench4ModelHarnessRow>((row) => {
+  const rows = cacheRows.flatMap<TerminalBenchModelHarnessRow>((row) => {
     const model = asNonEmptyString(row.model);
     const baseModel = asNonEmptyString(row.base_model);
     const harness = asNonEmptyString(row.harness);
@@ -67,7 +67,7 @@ export function readTerminalBench4RawCache(
       harness == null ||
       score == null ||
       scoreCi95HalfWidth == null ||
-      taskRunCount !== BENCHMARK_RESOURCE_PROFILES.terminal_bench_4.taskRunCount ||
+      taskRunCount !== BENCHMARK_RESOURCE_PROFILES.terminal_bench.taskRunCount ||
       (totalCostUsd == null) !== (costPerTaskUsd == null) ||
       (totalCostUsd != null && totalCostUsd <= 0) ||
       (costPerTaskUsd != null && costPerTaskUsd <= 0) ||
@@ -80,7 +80,7 @@ export function readTerminalBench4RawCache(
     }
     return [
       {
-        revision: TERMINAL_BENCH_4_SOURCE_REVISION,
+        revision: TERMINAL_BENCH_SOURCE_REVISION,
         model,
         base_model: baseModel,
         reasoning_effort: asNonEmptyString(row.reasoning_effort),
@@ -101,9 +101,9 @@ export function readTerminalBench4RawCache(
 }
 
 /** Harness joins the row identity only when the board lists one model and effort under several agents. */
-async function terminalBench4Snapshot(
-  request: SourceSnapshotRequest<ReturnType<typeof readTerminalBench4RawCache>>,
-): Promise<TerminalBench4Snapshot> {
+async function terminalBenchSnapshot(
+  request: SourceSnapshotRequest<ReturnType<typeof readTerminalBenchRawCache>>,
+): Promise<TerminalBenchSnapshot> {
   const snapshot = await snapshotSourceRows({
     ...request,
     status: request.cached?.rows.some(
@@ -111,7 +111,7 @@ async function terminalBench4Snapshot(
     )
       ? { ...request.status, cache_hit: false }
       : request.status,
-    fetchRows: getTerminalBench4Stats,
+    fetchRows: getTerminalBenchStats,
     rowKeyFor: (rows) => {
       const harnessIdentity = harnessDistinguishesRuns(
         rows,
@@ -130,9 +130,9 @@ async function terminalBench4Snapshot(
   };
 }
 
-function insertTerminalBench4RawRows(db: DatabaseWriter, snapshot: TerminalBench4Snapshot): void {
+function insertTerminalBenchRawRows(db: DatabaseWriter, snapshot: TerminalBenchSnapshot): void {
   const statement = db.prepare(`
-		INSERT INTO terminal_bench_4_raw_rows (
+		INSERT INTO terminal_bench_raw_rows (
 			row_index, fetched_at_epoch_seconds, url, revision, model, base_model,
 			reasoning_effort, harness, score, score_ci95_half_width, task_run_count,
 			total_cost_usd, total_tokens, cost_per_task_usd, tokens_per_task, seconds_per_task, output_tokens_per_task
@@ -142,7 +142,7 @@ function insertTerminalBench4RawRows(db: DatabaseWriter, snapshot: TerminalBench
     statement.run(
       index,
       snapshot.sourceStatus.fetchedAt,
-      TERMINAL_BENCH_4_LEADERBOARD_URL,
+      TERMINAL_BENCH_LEADERBOARD_URL,
       row.revision,
       row.model,
       row.base_model,

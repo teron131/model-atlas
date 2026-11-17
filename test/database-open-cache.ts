@@ -18,7 +18,7 @@ import {
 } from "../src/model-atlas/database/schema-reconciliation";
 import { readDatabasePayload } from "../src/model-atlas/database/sqlite-payload";
 import { readRawSourceCacheStatus } from "../src/model-atlas/sources/cache/status";
-import { readTerminalBench4RawCache } from "../src/model-atlas/sources/terminal-bench-4/runtime";
+import { readTerminalBenchRawCache } from "../src/model-atlas/sources/terminal-bench/runtime";
 
 const databasePath = ".cache/test-database-open-cache.sqlite";
 
@@ -170,11 +170,11 @@ try {
       "cost_per_task_usd",
       "tokens_per_task",
     ]) {
-      firstDb.prepare(`ALTER TABLE terminal_bench_4_raw_rows DROP COLUMN ${column}`).run();
+      firstDb.prepare(`ALTER TABLE terminal_bench_raw_rows DROP COLUMN ${column}`).run();
     }
     firstDb
       .prepare(`
-				INSERT INTO terminal_bench_4_raw_rows (
+				INSERT INTO terminal_bench_raw_rows (
 					row_index, fetched_at_epoch_seconds, url, revision, model, base_model,
 					reasoning_effort, harness, score, score_ci95_half_width
 				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -272,7 +272,7 @@ try {
       "Reintroduced nullable source columns should start empty",
     );
     assert.equal(
-      readTerminalBench4RawCache(reopenedDb),
+      readTerminalBenchRawCache(reopenedDb),
       null,
       "TB4 rows from the old schema should be invalidated so the source refresh rewrites them",
     );
@@ -356,7 +356,7 @@ try {
     );
 
     const payload = readDatabasePayload(databasePath);
-    reopenedDb.exec("DROP TABLE terminal_bench_4_raw_rows");
+    reopenedDb.exec("DROP TABLE terminal_bench_raw_rows");
     assert.deepEqual(
       readDatabasePayload(databasePath),
       payload,

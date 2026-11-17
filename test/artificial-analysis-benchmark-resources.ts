@@ -91,7 +91,7 @@ assertDeepEqual(
     "hle",
     "mlcr_aa",
     "omniscience_accuracy",
-    "terminal_bench_4",
+    "terminal_bench",
     "terminal_bench_science",
   ],
 );
@@ -113,7 +113,7 @@ for (const [benchmarkKey, scoreKey, resourceKey, url, methodologyName, version] 
     null,
   ],
   [
-    "terminal_bench_4",
+    "terminal_bench",
     "terminalBench40",
     "terminalBench40",
     "https://artificialanalysis.ai/evaluations/terminalbench-4-0",

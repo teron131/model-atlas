@@ -47,7 +47,7 @@ export type BenchmarkAssignmentLookups = BenchmarkObservationLookups & {
   aleBench: Pick<ModelAtlasSourceData["aleBench"], "rowsByModelName">;
   frontierCode: Pick<ModelAtlasSourceData["frontierCode"], "rowsByModelName">;
   riemannBench: Pick<ModelAtlasSourceData["riemannBench"], "rowsByModelName">;
-  terminalBench4: Pick<ModelAtlasSourceData["terminalBench4"], "rowsByModelName">;
+  terminalBench: Pick<ModelAtlasSourceData["terminalBench"], "rowsByModelName">;
   valsIndex: Pick<ModelAtlasSourceData["valsIndex"], "rowsByModelName">;
   vendingBench2: Pick<ModelAtlasSourceData["vendingBench2"], "rowsByModelName">;
 };
@@ -286,15 +286,15 @@ const addAgentsLastExam: StandaloneBenchmarkOperation = ({
 };
 
 /** Adds the strongest agent result for the exact model effort selected by the source projection. */
-const addTerminalBench4: StandaloneBenchmarkOperation = ({
+const addTerminalBench: StandaloneBenchmarkOperation = ({
   assignedBenchmarks,
   lookups,
   ...context
 }) => {
-  const row = context.resolveSourceRow(lookups.terminalBench4.rowsByModelName);
+  const row = context.resolveSourceRow(lookups.terminalBench.rowsByModelName);
   if (row != null) {
-    assignedBenchmarks.benchmarks.terminal_bench_4 = row.score;
-    assignedBenchmarks.scoringSources.terminal_bench_4 = row;
+    assignedBenchmarks.benchmarks.terminal_bench = row.score;
+    assignedBenchmarks.scoringSources.terminal_bench = row;
   }
 };
 
@@ -332,9 +332,9 @@ const STANDALONE_BENCHMARK_ADAPTERS = {
     defaultVariant: addFrontierCode,
     observation: addFrontierCode,
   },
-  terminal_bench_4: {
-    defaultVariant: addTerminalBench4,
-    observation: addTerminalBench4,
+  terminal_bench: {
+    defaultVariant: addTerminalBench,
+    observation: addTerminalBench,
   },
   vending_bench_2: {
     defaultVariant: ({ assignedBenchmarks, lookups, modelNameCandidates }) => {

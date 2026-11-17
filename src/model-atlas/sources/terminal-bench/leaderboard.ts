@@ -19,22 +19,22 @@ import { asFiniteNumber, asNonEmptyString, asRecord, nowEpochSeconds } from "../
 import { percentToUnitScore } from "../parsing";
 import { fetchSource } from "../request-scheduler";
 
-const TERMINAL_BENCH_4_DATA_URL =
+const TERMINAL_BENCH_DATA_URL =
   "https://ofhuhcpkvzjlejydnvyd.supabase.co/functions/v1/leaderboard-read";
 
-const TERMINAL_BENCH_4_PACKAGE = "terminal-bench/terminal-bench";
+const TERMINAL_BENCH_PACKAGE = "terminal-bench/terminal-bench";
 
-const TERMINAL_BENCH_4_NAME = "4-1-0";
+const TERMINAL_BENCH_NAME = "4-1-0";
 
-const TERMINAL_BENCH_4_TITLE = "Terminal-Bench 4.1";
+const TERMINAL_BENCH_TITLE = "Terminal-Bench 4.1";
 
-export const TERMINAL_BENCH_4_LEADERBOARD_URL = "https://www.tbench.ai/?version=4.1";
+export const TERMINAL_BENCH_LEADERBOARD_URL = "https://www.tbench.ai/?version=4.1";
 
-export const TERMINAL_BENCH_4_SOURCE_REVISION = "4_1_0";
+export const TERMINAL_BENCH_SOURCE_REVISION = "4_1_0";
 
-export type TerminalBench4ModelHarnessRow = BenchmarkModelRow &
+export type TerminalBenchModelHarnessRow = BenchmarkModelRow &
   Required<Pick<BenchmarkResourceAggregate, "task_run_count" | "total_tokens">> & {
-    revision: typeof TERMINAL_BENCH_4_SOURCE_REVISION;
+    revision: typeof TERMINAL_BENCH_SOURCE_REVISION;
     harness: string;
     score: number;
     score_ci95_half_width: number;
@@ -46,27 +46,27 @@ export type TerminalBench4ModelHarnessRow = BenchmarkModelRow &
     output_tokens_per_task?: number | null;
   };
 
-type TerminalBench4RowsByModelName = Map<string, TerminalBench4ModelHarnessRow>;
+type TerminalBenchRowsByModelName = Map<string, TerminalBenchModelHarnessRow>;
 
-type TerminalBench4Payload = {
+type TerminalBenchPayload = {
   fetched_at_epoch_seconds: number | null;
-  data: TerminalBench4ModelHarnessRow[];
+  data: TerminalBenchModelHarnessRow[];
 };
 
 /** Fetch the structured public source used by the official Terminal-Bench 4.1 leaderboard. */
-export async function getTerminalBench4Stats(): Promise<TerminalBench4Payload> {
+export async function getTerminalBenchStats(): Promise<TerminalBenchPayload> {
   return fetchSource(
-    TERMINAL_BENCH_4_DATA_URL,
+    TERMINAL_BENCH_DATA_URL,
     {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ package: TERMINAL_BENCH_4_PACKAGE, name: TERMINAL_BENCH_4_NAME }),
+      body: JSON.stringify({ package: TERMINAL_BENCH_PACKAGE, name: TERMINAL_BENCH_NAME }),
     },
     async (response) => {
       if (!response.ok) {
         throw new Error(`Terminal-Bench 4.1 scrape failed: ${response.status}`);
       }
-      const data = processTerminalBench4Payload(await response.json());
+      const data = processTerminalBenchPayload(await response.json());
       if (data.length === 0) {
         throw new Error("Terminal-Bench 4.1 scrape returned no 4.1 rows");
       }
@@ -76,14 +76,14 @@ export async function getTerminalBench4Stats(): Promise<TerminalBench4Payload> {
 }
 
 /** Parse every displayed Terminal-Bench 4.1 row without collapsing model, effort, or agent configurations. */
-export function processTerminalBench4Payload(value: unknown): TerminalBench4ModelHarnessRow[] {
+export function processTerminalBenchPayload(value: unknown): TerminalBenchModelHarnessRow[] {
   const root = asRecord(value);
   const leaderboard = asRecord(root.leaderboard);
   const datasetVersionIds = leaderboard.dataset_version_ids;
   if (
-    leaderboard.package !== TERMINAL_BENCH_4_PACKAGE ||
-    leaderboard.name !== TERMINAL_BENCH_4_NAME ||
-    leaderboard.title !== TERMINAL_BENCH_4_TITLE ||
+    leaderboard.package !== TERMINAL_BENCH_PACKAGE ||
+    leaderboard.name !== TERMINAL_BENCH_NAME ||
+    leaderboard.title !== TERMINAL_BENCH_TITLE ||
     !Array.isArray(datasetVersionIds) ||
     datasetVersionIds.length === 0 ||
     datasetVersionIds.some((id) => asNonEmptyString(id) == null)
@@ -102,10 +102,10 @@ export function processTerminalBench4Payload(value: unknown): TerminalBench4Mode
  *
  * Raw persistence retains every model-agent row; this projection only settles scoring when the source later publishes more than one agent for the same model and effort.
  */
-export function buildTerminalBench4Map(
-  rows: readonly TerminalBench4ModelHarnessRow[],
-): TerminalBench4RowsByModelName {
-  const strongestByModelEffort = new Map<string, TerminalBench4ModelHarnessRow>();
+export function buildTerminalBenchMap(
+  rows: readonly TerminalBenchModelHarnessRow[],
+): TerminalBenchRowsByModelName {
+  const strongestByModelEffort = new Map<string, TerminalBenchModelHarnessRow>();
   for (const row of rows) {
     const key = normalizeModelToken(row.model);
     const current = strongestByModelEffort.get(key);
@@ -134,7 +134,7 @@ export function buildTerminalBench4Map(
   return rowsByModelName;
 }
 
-function modelAgentRow(value: unknown): TerminalBench4ModelHarnessRow | null {
+function modelAgentRow(value: unknown): TerminalBenchModelHarnessRow | null {
   const row = asRecord(value);
   if (row.status !== "display") {
     return null;
@@ -155,7 +155,7 @@ function modelAgentRow(value: unknown): TerminalBench4ModelHarnessRow | null {
     harness == null ||
     score == null ||
     scoreCi95HalfWidth == null ||
-    taskRunCount !== BENCHMARK_RESOURCE_PROFILES.terminal_bench_4.taskRunCount ||
+    taskRunCount !== BENCHMARK_RESOURCE_PROFILES.terminal_bench.taskRunCount ||
     totalCostUsd == null ||
     totalCostUsd < 0 ||
     totalTokens == null ||
@@ -166,7 +166,7 @@ function modelAgentRow(value: unknown): TerminalBench4ModelHarnessRow | null {
   }
   const reportedCostUsd = totalCostUsd > 0 ? totalCostUsd : null;
   return {
-    revision: TERMINAL_BENCH_4_SOURCE_REVISION,
+    revision: TERMINAL_BENCH_SOURCE_REVISION,
     model: modelEffortLabel(baseModel, reasoningEffort),
     base_model: baseModel,
     reasoning_effort: reasoningEffort,

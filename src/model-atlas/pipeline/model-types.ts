@@ -10,7 +10,7 @@ import type { AleBenchModelScoreRow } from "../sources/ale-bench/leaderboard";
 import type { ArenaAgentModelScoreRow } from "../sources/arena/agent";
 import type { ArtificialAnalysisBenchmarkResourceRow } from "../sources/artificial-analysis/benchmark-resources";
 import type { FrontierCodeModelEffortRow } from "../sources/frontier-code/leaderboard";
-import type { TerminalBench4ModelHarnessRow } from "../sources/terminal-bench-4/leaderboard";
+import type { TerminalBenchModelHarnessRow } from "../sources/terminal-bench/leaderboard";
 import type { VendingBench2ModelScoreRow } from "../sources/vending-bench-2/leaderboard";
 
 export type ModelAtlasModalities = {
@@ -100,7 +100,7 @@ type ScoringSourceRow =
   | AleBenchModelScoreRow
   | BenchmarkObservationRow
   | FrontierCodeModelEffortRow
-  | TerminalBench4ModelHarnessRow
+  | TerminalBenchModelHarnessRow
   | VendingBench2ModelScoreRow;
 
 export type ModelAtlasScoringSources =
@@ -111,7 +111,7 @@ export type ModelAtlasScoringSources =
       apex_agents?: BenchmarkObservationRow | null;
       automation_bench?: BenchmarkObservationRow | null;
       frontier_code?: FrontierCodeModelEffortRow | null;
-      terminal_bench_4?: TerminalBench4ModelHarnessRow | null;
+      terminal_bench?: TerminalBenchModelHarnessRow | null;
       vending_bench_2?: VendingBench2ModelScoreRow | null;
     })
   | null;

@@ -293,7 +293,7 @@ CREATE TABLE IF NOT EXISTS riemann_bench_raw_rows (
 	PRIMARY KEY (row_index)
 );
 
-CREATE TABLE IF NOT EXISTS terminal_bench_4_raw_rows (
+CREATE TABLE IF NOT EXISTS terminal_bench_raw_rows (
 	row_index INTEGER NOT NULL,
 	fetched_at_epoch_seconds INTEGER,
 	url TEXT NOT NULL,

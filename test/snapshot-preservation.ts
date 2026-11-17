@@ -22,7 +22,7 @@ const preservedFable = {
   benchmarks: {
     gpqa: 0.92,
     hle: 0.53,
-    terminal_bench_4: 0.84,
+    terminal_bench: 0.84,
   },
   scores: {
     intelligence_score: 97.4,

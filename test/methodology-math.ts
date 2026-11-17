@@ -163,21 +163,21 @@ assert.equal(missingCostPoint?.outputTokens, null);
 const sourceLabelledModel = {
   ...minimalModelAtlasModel({ id: "test/source-labelled", name: "Source Labelled" }),
   reasoning_effort: "max",
-  benchmarks: { terminal_bench_4: 0.8 },
+  benchmarks: { terminal_bench: 0.8 },
   task_metrics: {
-    terminal_bench_4__source_a: { quality: 0.6, cost: 10 },
-    terminal_bench_4__source_b: { quality: 0.9, cost: 20 },
+    terminal_bench__source_a: { quality: 0.6, cost: 10 },
+    terminal_bench__source_b: { quality: 0.9, cost: 20 },
   },
 };
 const sourceLabelledRows = frontierBenchmarkRows(
   [sourceLabelledModel],
   STAGE_CONFIG.scoring.benchmarkPortfolio,
-).filter((row) => row.baseBenchmarkKey === "terminal_bench_4");
+).filter((row) => row.baseBenchmarkKey === "terminal_bench");
 assert.deepEqual(
   sourceLabelledRows.map((row) => [row.benchmarkLabel, row.score, row.cost, row.weight]),
   [
-    ["Terminal-Bench 4.1", 90, 20, 0.5],
-    ["Terminal-Bench 4.1", 60, 10, 0.5],
+    ["Terminal-Bench", 90, 20, 0.5],
+    ["Terminal-Bench", 60, 10, 0.5],
   ],
 );
 assert.deepEqual(
@@ -186,13 +186,13 @@ assert.deepEqual(
     option.label,
     option.count,
   ]),
-  [["terminal_bench_4", "Terminal-Bench 4.1", 1]],
+  [["terminal_bench", "Terminal-Bench", 1]],
   "A benchmark's sources are one picker option",
 );
 const [mergedSources, ...extraSources] = commonBenchmarkComparison(
   sourceLabelledRows,
   sourceLabelledRows,
-  ["terminal_bench_4"],
+  ["terminal_bench"],
   "cost",
 ).rows;
 assert.equal(
