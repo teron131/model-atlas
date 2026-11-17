@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 296" role="img" aria-labelledby="title desc">
 <title id="title">Quantile rank and percentile rank</title>
-<desc id="desc">Total weight is laid out in sorted order: weight below value v, weight tied at v, and weight above v. The quantile rank counts the weight below v plus half the tied weight, ending in the middle of the tied block. The percentile rank counts the weight below v plus all of the tied weight, ending at the tied block's right edge.</desc>
+<desc id="desc">Total weight is laid out in sorted order: weight below value x, weight tied at x, and weight above x. The quantile rank counts the weight below x plus half the tied weight, ending in the middle of the tied block. The percentile rank counts the weight below x plus all of the tied weight, ending at the tied block's right edge.</desc>
 <style>
 text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:15px;fill:#202724}
 .num{font-family:"SFMono-Regular","SF Mono",Menlo,Consolas,monospace;font-size:14px}

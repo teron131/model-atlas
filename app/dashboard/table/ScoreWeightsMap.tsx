@@ -39,7 +39,7 @@ export function ScoreWeightsMap({ weights, width }: { weights: ScoreWeights; wid
   const [pointed, setPointed] = useState<ScoreWeightItem | null>(null);
   const { height, blocks } = useMemo(() => mapLayout(weights.groups, width), [weights, width]);
   return (
-    <div className="score-weights" data-dimension={weights.dimension}>
+    <div className="score-weights" data-dimension={weights.score}>
       <div className="score-weights-caption">
         <span>{pointed?.name ?? weights.caption}</span>
         <span>

@@ -18,8 +18,8 @@ import {
   speedMetricColumns,
   type TableColumnKey,
 } from "./column-registry";
-import { resourceRatioColumns, scoreColumnsByDimension, scoreMetricColumns } from "./Columns";
-import { formatConfidence, formatContext, formatDashboardMetric, formatScore } from "./format";
+import { resourceRatioColumns, scoreColumnsByKey, scoreMetricColumns } from "./Columns";
+import { formatContext, formatDashboardMetric, formatEvidenceSupport, formatScore } from "./format";
 import {
   benchmarkDisplayValue,
   benchmarkMeterValue,
@@ -216,7 +216,9 @@ export const ModelRow = memo(function ModelRow({
                 hasRuleAfter={ruledColumnKeySet.has(column.key)}
               />
             ))}
-          {visibleColumnKeySet.has("confidence") ? <ConfidenceCell model={model} /> : null}
+          {visibleColumnKeySet.has("evidenceSupport") ? (
+            <EvidenceSupportCell model={model} />
+          ) : null}
           {visibleColumnKeySet.has("change") ? <ScoreChangeCell model={model} /> : null}
         </>
       ) : pendingColumnCount > 0 ? (
@@ -434,10 +436,14 @@ function ModalityInputCell({
   );
 }
 
-const ConfidenceCell = memo(function ConfidenceCell({ model }: { model: ModelAtlasModel }) {
+const EvidenceSupportCell = memo(function EvidenceSupportCell({
+  model,
+}: {
+  model: ModelAtlasModel;
+}) {
   const supports = scoreMetricColumns.map((column) => ({
     column,
-    text: formatConfidence(column.support(model)),
+    text: formatEvidenceSupport(column.support(model)),
   }));
   return (
     <td
@@ -463,7 +469,7 @@ const ScoreChangeCell = memo(function ScoreChangeCell({ model }: { model: ModelA
   if (change == null) {
     return <td className="data-cell change-cell missing">—</td>;
   }
-  const dimension = scoreColumnsByDimension[change.dimension].name;
+  const scoreName = scoreColumnsByKey[change.dimension].name;
   const move = headlineMove(change);
   const date = changeShortDate(change);
   const otherScores = changeScores(change).length - 1;
@@ -472,13 +478,13 @@ const ScoreChangeCell = memo(function ScoreChangeCell({ model }: { model: ModelA
     <td className="data-cell change-cell">
       <button
         aria-haspopup="dialog"
-        aria-label={`${date}: ${dimension} ${move}${otherScores > 0 ? ` and ${otherScores} more ${otherScores === 1 ? "score" : "scores"}` : ""}${marks.length > 1 ? `; ${marks.length} recent updates` : ""}`}
+        aria-label={`${date}: ${scoreName} ${move}${otherScores > 0 ? ` and ${otherScores} more ${otherScores === 1 ? "score" : "scores"}` : ""}${marks.length > 1 ? `; ${marks.length} recent updates` : ""}`}
         className="score-change-button"
         data-direction={moveDirection(change)}
         onClick={() => openModelSheetChanges(model)}
         type="button"
       >
-        <span className="dimension-letter">{dimension.slice(0, 1)}</span>
+        <span className="dimension-letter">{scoreName.slice(0, 1)}</span>
         {move}
       </button>
       <span aria-hidden="true" className="score-change-meta">

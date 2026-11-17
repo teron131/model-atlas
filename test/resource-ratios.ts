@@ -1,4 +1,4 @@
-/** Checks descriptive resource normalization against effort duplication, sparse source slots, costly tails, and incomplete or estimated telemetry. */
+/** Checks descriptive resource normalization against effort duplication, sparse source slots, costly tails, and incomplete telemetry. */
 
 import assert from "node:assert/strict";
 
@@ -66,7 +66,7 @@ const preferred = resourceRatioObservations(
 assert.equal(preferred.length, 1);
 assert.equal(preferred[0]?.benchmarkKey, "hle");
 
-// Expenditure estimates never enter observed ratios, and generated tokens alone are not total tokens.
+// Generated tokens alone are not total tokens.
 const incomplete = model("Incomplete", {
   hle: { output_tokens: 50 },
   gdp_pdf: { input_tokens: 0, output_tokens: 70 },
@@ -77,24 +77,6 @@ assert.deepEqual(
   tokens.map((row) => row.amount),
   [70, 90],
 );
-const estimated = model(
-  "Estimated",
-  { hle: { cost: 9, tokens: 100, input_tokens: 20, output_tokens: 80 } },
-  undefined,
-  {
-    scoring_sources: {
-      hle: {
-        metadata: {
-          fusion_cost_estimated: true,
-          fusion_tokens_per_task_estimated: true,
-          fusion_output_tokens_per_task_estimated: true,
-        },
-      },
-    },
-  },
-);
-assert.equal(resourceRatioObservations([estimated], portfolio, "cost").length, 0);
-assert.equal(resourceRatioObservations([estimated], portfolio, "tokens").length, 0);
 const timed = model("Timed", { hle: { output_tokens: 50 }, gdp_pdf: { seconds: 3 } }, undefined, {
   speed: { throughput_tokens_per_second_median: 10 },
 });

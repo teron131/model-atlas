@@ -11,7 +11,7 @@ import {
   type HistoricalDataset,
   type HistoricalObservation,
   isReferenceBenchmark,
-  type TimelineDimension,
+  type TimelineCapability,
   type TimelineLink,
   type TimelineParameters,
   type TimelineScale,
@@ -19,7 +19,7 @@ import {
 } from "./schemas";
 
 // Reference evidence support is an admission rule for fitting, not a probability or a multiplier on capability.
-const MINIMUM_REFERENCE_CONFIDENCE = 0.6;
+const MINIMUM_REFERENCE_EVIDENCE_SUPPORT = 0.6;
 
 /** Reuse published seed scores and calibration nodes, retaining retired observations so a later benchmark can connect through intermediate generations. */
 export function prepareTimelineRelease(
@@ -30,7 +30,7 @@ export function prepareTimelineRelease(
   validateTimelineParameters(parameters);
   if (
     previous &&
-    (previous.minimumReferenceConfidence !== MINIMUM_REFERENCE_CONFIDENCE ||
+    (previous.minimumReferenceConfidence !== MINIMUM_REFERENCE_EVIDENCE_SUPPORT ||
       stableJson(previous.parameters) !== stableJson(parameters))
   )
     throw new Error(
@@ -84,7 +84,7 @@ export function prepareTimelineRelease(
   for (const root of roots)
     if (![...observations.values()].some((o) => o.benchmarkId === root))
       throw new Error(
-        "Each capability dimension needs observed initial reference scores before its unit can be frozen.",
+        "Each capability needs observed initial reference scores before its unit can be frozen.",
       );
   const resolved = resolveHistoricalModelIdentities(
     [...models.values()],
@@ -121,7 +121,7 @@ export function prepareTimelineRelease(
     // Retain every checkpoint label for audit; only supported references define units or override an evidence-based estimate.
     if (
       roots.has(observation.benchmarkId) &&
-      !((observation.referenceConfidence ?? 0) >= MINIMUM_REFERENCE_CONFIDENCE)
+      !((observation.referenceConfidence ?? 0) >= MINIMUM_REFERENCE_EVIDENCE_SUPPORT)
     )
       continue;
     const definition = benchmarks.get(observation.benchmarkId);
@@ -133,15 +133,15 @@ export function prepareTimelineRelease(
     byBenchmark.set(definition.id, values);
   }
   const fitted = new Map<string, TimelineLink | null>();
-  const fitDimension = (dimension: TimelineDimension) => {
+  const fitCapability = (capability: TimelineCapability) => {
     const definitions = data.benchmarks.filter(
       (b) =>
-        b.weights[dimension] > 0 &&
+        b.weights[capability] > 0 &&
         !hasUnresolvedVersion(b) &&
-        (!isReferenceBenchmark(b) || b.id === rootBenchmarkIds[dimension]),
+        (!isReferenceBenchmark(b) || b.id === rootBenchmarkIds[capability]),
     );
     const links = new Map(
-      (previous?.dimensions[dimension].links ?? []).map((link) => [link.id, link]),
+      (previous?.dimensions[capability].links ?? []).map((link) => [link.id, link]),
     );
     for (let i = 0; i < definitions.length; i++) {
       const left = definitions[i]!;
@@ -170,12 +170,12 @@ export function prepareTimelineRelease(
     const nodes = [
       ...extendTimelineGraph(
         orderedLinks,
-        previous?.dimensions[dimension].nodes ?? [
+        previous?.dimensions[capability].nodes ?? [
           {
-            benchmarkId: rootBenchmarkIds[dimension],
+            benchmarkId: rootBenchmarkIds[capability],
             slope: 1,
             offset: 0,
-            path: [rootBenchmarkIds[dimension]],
+            path: [rootBenchmarkIds[capability]],
             errors: [],
             disagreement: 0,
           },
@@ -189,13 +189,13 @@ export function prepareTimelineRelease(
     id: "",
     parentId: previous?.id ?? null,
     parameters,
-    minimumReferenceConfidence: MINIMUM_REFERENCE_CONFIDENCE,
+    minimumReferenceConfidence: MINIMUM_REFERENCE_EVIDENCE_SUPPORT,
     reference,
     rootBenchmarkIds,
     models: data.models,
     benchmarks: data.benchmarks,
     observations: data.observations,
-    dimensions: { intelligence: fitDimension("intelligence"), agentic: fitDimension("agentic") },
+    dimensions: { intelligence: fitCapability("intelligence"), agentic: fitCapability("agentic") },
   };
   scale.id = createHash("sha256")
     .update(

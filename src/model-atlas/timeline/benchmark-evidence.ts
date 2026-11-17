@@ -22,7 +22,7 @@ type TimelineRow = {
 
 const cache = new WeakMap<HistoricalDataset, Map<string, ReturnType<typeof buildEvidence>>>();
 
-/** Both dimensions share diagnostic cells; immutable releases and parameter sets define the cache boundary. */
+/** Both capabilities share diagnostic cells; immutable releases and parameter sets define the cache boundary. */
 export function prepareTimelineBenchmarkEvidence(
   data: HistoricalDataset,
   parameters: TimelineParameters,
@@ -114,7 +114,7 @@ function buildEvidence(data: HistoricalDataset, parameters: TimelineParameters) 
         (a, b) =>
           Number(a.predictor.details.kind === "index") -
             Number(b.predictor.details.kind === "index") ||
-          b.confidence - a.confidence ||
+          b.evidenceFactor - a.evidenceFactor ||
           a.predictor.details.id.localeCompare(b.predictor.details.id),
       )[0];
       if (best)
@@ -123,7 +123,7 @@ function buildEvidence(data: HistoricalDataset, parameters: TimelineParameters) 
           benchmarkId: task.id,
           value: best.value,
           observed: false,
-          confidence: best.confidence,
+          confidence: best.evidenceFactor,
           informative: true,
           inputs: best.predictor.details.inputs,
           viaIndex: best.predictor.details.kind === "index",
@@ -210,8 +210,10 @@ function prepareImputation(
       )
         return null;
       const value = result?.imputationByModel.get(row)?.get(target.id);
-      const confidence = result?.imputationFactorsByModel.get(row)?.get(target.id);
-      return value == null || confidence == null || confidence <= 0 ? null : { value, confidence };
+      const evidenceFactor = result?.imputationFactorsByModel.get(row)?.get(target.id);
+      return value == null || evidenceFactor == null || evidenceFactor <= 0
+        ? null
+        : { value, evidenceFactor };
     },
   };
 }

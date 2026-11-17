@@ -1,121 +1,154 @@
 # Timeline Calculation
 
-The Intelligence Index connects benchmark generations to a saved scale, combines the available evidence, and converts the result into fixed display units. See the [Timeline overview](overview.md) for chart interpretation and limitations.
+The Intelligence Index converts benchmark results to a saved reference scale, combines each variant's converted results into one position, and expresses that position in fixed index units. The [Timeline overview](overview.md) covers the chart and the method's limits.
 
 ## Freeze the Initial Reference
 
-Relative scores can move as models and benchmarks change. The Intelligence Index therefore establishes its reference once, using saved Model Atlas scores with at least 60% evidence support. Later leaderboard updates do not replace these reference values, which fit the benchmark conversions; older and future models connect through those conversions instead. A reference model's own score still comes from its benchmark results, like any other model's, so a model that is still being measured is not held at its starting score; its reference value stands in only while its own results cannot place it. Less-supported starting scores do not define the reference. Benchmark identities describe measurements and the versions their sources publish; refresh timestamps, base weights, and resource bookkeeping do not create new identities. Retired benchmarks leave the active scoring portfolio while their evidence remains available for calibration.
+Leaderboard scores are relative to the models observed at each refresh, so they move as models and benchmarks change and cannot serve as a scale across years. The reference scale is therefore taken once, from a saved snapshot of :score[Intelligence] scores, and later leaderboard scores never replace it. Each snapshot score was saved with the leaderboard's [evidence support](../methodology/intelligence-agentic.md#evidence-support), the share of the leaderboard's benchmark portfolio that evidence backed for that variant. Only snapshot scores with at least 60% of it define the reference, and their models are the reference models; less-supported scores stay on record and fit nothing. The [Timeline's evidence support](overview.md#evidence-support) that the chart reads out is a different quantity.
 
-![Solid points in the initial snapshot define the reference; points at 50% opacity have insufficient coverage, even when their scores fall outside the saved range. Older and future models connect through benchmark evidence without resetting the ruler. Positions are schematic.](../assets/timeline/timeline-reference-extension.svg)
+The snapshot scores enter the calculation as one more benchmark. A model's result on it is its snapshot score, which is already in reference-scale points, so its conversion to the reference scale changes nothing. Every chain of [connections](#connect-benchmark-generations) starts here: a benchmark observed on enough snapshot models connects to the snapshot scores directly, by the same fit and validation as any other pair of benchmarks.
+
+The snapshot scores only fix the scale that benchmark conversions are fitted against; they never count as a result in a position. A reference model's position comes from its own observed results, like any other model's, and its snapshot score stands in only while those results cannot place it.
+
+![Solid points in the initial snapshot define the reference; points at 50% opacity have too little evidence support, even when their scores fall outside the saved range. Older and future models join through benchmark evidence without rescaling the reference. Positions are schematic.](../assets/timeline/timeline-reference-extension.svg)
 
 ## Connect Benchmark Generations
 
-Models measured on shared benchmarks connect different benchmark generations, even when their units and difficulty levels differ.
+Two benchmarks observed on the same models can be converted into each other even when their units and difficulty differ, and a chain of such connections carries a benchmark of any generation to the reference scale.
 
-All benchmark results use linear coordinates in their reported units. Equal metric improvements have equal distance, including at the endpoints; probability results remain valid from 0 through 1 without endpoint clipping. Benchmark links standardize each source using its own reference mean and spread, so unit conversions or subtracting a benchmark minimum do not change the linked result.
-
-When fitting connections, probability results at or beyond the existing 2–98% saturation thresholds remain excluded from shared-model overlap. This is a fitting admission rule, not a nonlinear score transformation. Results inside those thresholds keep equal weight across the range.
-
-The mapping sets the standard score (z-score) on benchmark A equal to the standard score on benchmark B. Given $x_B$, it finds the corresponding $x_A$, or vice versa, by matching how many standard deviations each result lies above or below its benchmark's mean. If A is already connected to the reference scale, this lets results from B use the same ruler:
+Every result stays in its reported units. No transform stretches one part of a benchmark's range relative to another, so equal improvements cover equal distance anywhere in the range. A connection treats equal standard scores as equal results: the result a given number of standard deviations above benchmark A's mean corresponds to the result the same number of standard deviations above benchmark B's mean.
 
 $$
 \frac{x_A-\bar x_A}{\sigma_A}=\frac{x_B-\bar x_B}{\sigma_B}.
 $$
 
-Here, $\bar x_A,\bar x_B$ are the means and $\sigma_A,\sigma_B$ the standard deviations of reported results from models tested on both benchmarks. Each base model contributes one unit of [reference weight](../methodology/intelligence-agentic.md#sharing-weight-across-variants) across its variants, so extra efforts do not give it extra influence. The translated value estimates a corresponding position on the other scale; it is not an observed benchmark result.
+Here $x_A$ and $x_B$ are results on the two benchmarks, and $\bar x_A,\bar x_B$ and $\sigma_A,\sigma_B$ are the means and standard deviations of the results from variants observed on both. Both are model-balanced: each base model carries a total [reference weight](../methodology/overview.md#reference-weight) of 1 across its variants, so reporting more reasoning efforts gives a model no more influence. Because each benchmark is standardized by its own mean and spread, rescaling its units leaves the connection unchanged. A converted value is a corresponding position on the other benchmark's scale, not an observed result.
 
-![Each highlighted result lies one standard deviation above its benchmark's mean, so both have z-score +1 even though B's results spread more widely. The distribution shapes are illustrative; the mapping does not require bell-shaped results.](../assets/timeline/timeline-standard-scores.svg)
+![Each highlighted result lies one standard deviation above its benchmark's mean, so the two correspond even though B's results spread more widely. The bell shapes are illustrative; the method does not assume them.](../assets/timeline/timeline-standard-scores.svg)
 
-### Validate the Benchmark Connection
+A percentage result outside 0% to 100% is not used at all. Percentage results at or below 2% or at or above 98% are left out of the fit, so results pinned near a floor or ceiling do not shape a connection; they still place their models.
 
-Matching means and standard deviations produces a linear conversion between reported results; individual model results need not lie on that line. Leave-one-family-out cross-validation checks whether the approximation predicts accurately enough: leave out one family, fit on the others, then compare its predicted result with its actual result. All variants of the withheld family stay together, so related variants cannot supply the answer indirectly.
+### Validate the Connection
 
-![In this illustrative round, benchmark A result 65 predicts benchmark B result 75, while the withheld result is 80. The absolute error of 5 is 10% of the training B range, 30–80. Each round withholds a different family, including all its variants; the plot shows one result per family.](../assets/timeline/timeline-validation.svg)
+Matching means and standard deviations always yields a line, whether or not models fall near it, so each connection is checked on base models it was not fitted on. One base model is left out with all its variants, so another reasoning effort of the same model cannot give the answer away. The connection is fitted on the rest, the training results, and each left-out result is predicted from that variant's result on the other benchmark. The check repeats for every base model and in both directions.
 
-A connection needs at least four independent model families, positive correlation and nonzero spread. Validation repeats the holdout for every family and tests both directions, A → B and B → A. Each absolute prediction error is divided by the training results' range on the predicted benchmark and multiplied by 100. This makes errors comparable across benchmark units. The errors are summarized by a [weighted median](../methodology/overview.md#weighted-median-and-quantiles) for each direction, with equal total weight per family; they are normalized error points, not final index points.
+![In one round, the conversion fitted on the training base models predicts the left-out model's benchmark B result from its benchmark A result, and the error is measured as a share of the training range of B. Each round leaves out a different base model with all its variants; the plot shows one result per base model.](../assets/timeline/timeline-validation.svg)
 
-The translation must be accurate enough and better than a simple guess. The baseline always predicts the weighted median result of the training models, with equal total weight per family. The larger of the two translation errors must be no more than 25 normalized error points and smaller than both baseline errors.
+Each absolute prediction error is divided by the range of the training results on the predicted benchmark and multiplied by 100, which makes errors comparable across units. The errors in each direction are summarized by a model-balanced [weighted median](../methodology/operations.md#weighted-median-and-quantiles).
 
-### Extend the Shared Scale
+A connection is accepted when all of these hold:
 
-Accepted connections make comparison across eras possible. Suppose benchmark A already has a conversion to the fixed reference scale, and a new benchmark B shares tested models with A. A result from B can be translated to A's scale, then to the reference scale. If a later benchmark C overlaps B, the same chain connects C to the original ruler—even if no model was tested on both A and C. This works for older benchmarks too.
+- At least four base models were observed on both benchmarks.
+- The paired results are positively correlated and vary on both benchmarks, in the full fit and in every round.
+- The larger of the two directions' median errors is at most 25.
+- That error is smaller, in both directions, than the median error of a guess that always predicts the model-balanced median of the training results.
 
-![Shared model results connect old, middle and new benchmarks to the same ruler. A future model's result maps onto the ruler once its benchmark is connected, without results on every earlier benchmark; placing the model still needs enough mapped evidence. Estimated results never establish these connections.](../assets/timeline/timeline-benchmark-links.svg)
+An accepted connection is saved and never fitted again. A pair without one is tried again when the retained results change.
 
-The accepted connections determine a saved conversion from each benchmark's own units to the shared reference units. Here, $x$ is a reported benchmark result and $q$ is its position on the shared reference scale, before results are combined and the final index anchors are applied. For model $m$, benchmark $b$ and capability dimension $d$, the conversion multiplies $x_{m,b}$ by a slope $\beta_{b,d}$ and adds an intercept $\alpha_{b,d}$:
+### Extend the Reference Scale
 
-$$
-q_{m,b,d}=\beta_{b,d}x_{m,b}+\alpha_{b,d},\qquad \beta_{b,d}>0.
-$$
+Accepted connections chain from the [snapshot scores](#freeze-the-initial-reference). Benchmark A, connected to them directly, has a conversion to the reference scale. If benchmark B shares models with A, a result on B converts to A's units and from there to the reference scale. A later benchmark C that overlaps B reaches the scale the same way, even if no model was observed on both A and C, and the same chaining reaches older benchmarks.
 
-![The triangles show slope as rise divided by run: 10/20 = 0.5 on the left and 20/20 = 1 on the right. The y-intercepts, 10 and 30, are the outputs when the B result is zero. The right plot combines the B-to-A conversion with the illustrative saved A-to-reference conversion shown beside its equation.](../assets/timeline/timeline-saved-conversion.svg)
+![Shared model results connect old, middle and new benchmarks to the same scale. A future model's result reaches the scale once its benchmark is connected, without results on every earlier benchmark.](../assets/timeline/timeline-benchmark-links.svg)
 
-Once saved, this conversion lets any model with a usable result on that benchmark reach the shared scale. Established conversions remain fixed as new benchmarks are added, preventing later generations from resetting the ruler. If no supported chain reaches the reference, the model remains unplaced; its release date cannot supply the missing evidence.
-
-New slopes and intercepts are fitted jointly across the connected network using weighted least squares, while saved conversions stay fixed. Each connection is weighted by its independent model count multiplied by squared correlation, giving greater weight to broader, more closely related overlaps. Multiple routes constrain one saved conversion; they are not separate scoring votes. Disagreement between routes contributes to its diagnostic error.
-
-## Weight the Evidence by Coverage
-
-Individual benchmarks and published indexes enter one [weighted mean](../methodology/overview.md#weighted-mean) on the shared historical scale. Each individual benchmark contributes 1.5 times its base weight. Each index contributes its base weight multiplied by represented benchmark breadth after known overlap deductions.
-
-For model $m$ and dimension $d$, $q_{m,b,d}$ and $q_{m,k,d}$ are the calibrated individual-benchmark and index values. The base weight $\omega_{b,d}$ or $\omega_{k,d}$ is the dimension allocation. Remaining index breadth $n_{m,k,d}$ follows the [overlap rules used by headline scores](../methodology/intelligence-agentic.md#combining-benchmarks-and-aggregate-indexes). The estimate is:
+Each chain is stored as one line per benchmark. For variant $m$ on benchmark $b$, the converted result $q_{m,b}$ on the reference scale is the reported result $x_{m,b}$ multiplied by a slope $\beta_b$, plus an intercept $\alpha_b$:
 
 $$
-q_{m,d}=\frac{1.5\sum_b \omega_{b,d}q_{m,b,d}+\sum_k \omega_{k,d}n_{m,k,d}q_{m,k,d}}{1.5\sum_b \omega_{b,d}+\sum_k \omega_{k,d}n_{m,k,d}}.
+q_{m,b}=\beta_b x_{m,b}+\alpha_b,\qquad \beta_b>0.
 $$
 
-Each benchmark or index series contributes only its latest usable observed version. Once a Model Atlas benchmark is observed under a new version, its earlier version stops entering future fits, so new results never pass through the old conversion. An external series keeps an earlier version until its replacement has both an observed result and a saved conversion. Overlap deductions reduce represented weight while keeping the published index value intact. ECI uses fixed breadth 8 rather than a model-specific fitted count.
+Chaining is the idea; the computation does not follow one chain at a time, because a benchmark often has accepted connections to several benchmarks already on the scale. All new conversions are instead solved together in two weighted least-squares steps, while saved conversions stay fixed. A benchmark with a single connection gets exactly the chained conversion, and a benchmark with several gets the one line that fits them best.
 
-Adding unobserved benchmarks to the retained portfolio does not alter the relative influence of evidence already present. Benchmark coverage remains a diagnostic and support measure; it does not add a separate blend between benchmarks and indexes.
+Slopes come first, in logarithms so that each stays positive: every connection asks its two benchmarks' standard deviations to span the same distance on the reference scale, $\beta_A \sigma_A=\beta_B \sigma_B$. Intercepts follow: every connection asks the two means to land on the same position, $\beta_A\bar x_A+\alpha_A=\beta_B\bar x_B+\alpha_B$. A connection's weight is its number of base models multiplied by its squared correlation, so broader and closer overlaps count more. For each benchmark, the largest departure of its solved line from any of its connections is its disagreement, and the conversion records the sum of these along its route. That sum feeds one choice: the route [listed with a model's result](overview.md#evidence-panel) is the one with the least accumulated prediction error and disagreement.
 
-With no usable individual benchmarks, indexes supply the entire estimate. Without a usable index, at least three distinct mapped benchmark series are required; otherwise the model remains unplaced. Imputed results do not satisfy these requirements. A model on the leaderboard is estimated again from its latest results at every refresh; it keeps its previous score when those results no longer place it, and a model that leaves the leaderboard keeps its last score.
+A saved conversion does not change when benchmarks are added, so later generations cannot rescale the reference. A model observed only on benchmarks with no chain to the reference stays unplaced. Estimated results never establish a connection.
+
+### Retire Replaced Versions
+
+A benchmark's identity on the Timeline is its measurement: its source, its processing rules, its reporting format, the version its source publishes, and, for the Artificial Analysis Intelligence Index, its represented breadth. A change to any of them makes a different benchmark, which needs its own connection. Refresh timestamps, base weights, and resource bookkeeping are not part of the identity.
+
+Each benchmark in the [portfolio](../benchmarks.md) has one live identity. When a result is observed under a new identity, the earlier identity is deleted together with its results, connections, and conversion, so no new result passes through an outdated conversion. A benchmark removed from the portfolio is deleted the same way. A portfolio benchmark with no observed result in a refresh keeps its saved results and conversion, which still help fit other benchmarks' connections, but it places no model in that refresh.
+
+Deletion applies to portfolio benchmarks only. A benchmark kept from archived source records outside the portfolio retains every version with its results and conversion. Its older version only [stops counting](#combine-the-evidence) for a variant that has a result on the replacement.
+
+## Combine the Evidence
+
+A variant's position is one [weighted mean](../methodology/operations.md#weighted-mean) of its converted results. A benchmark counts at 1.5 times its base weight $\omega_b$, which is its Intelligence allocation. As [on the leaderboard](../methodology/intelligence-agentic.md#combining-benchmarks-and-aggregate-indexes), the 1.5 multiplier gives a specific benchmark result more say than one unit of an index's breadth. An aggregate index counts at its base weight $\omega_k$ multiplied by its remaining represented breadth $n_{m,k}$. That breadth is the number of benchmarks the index stands for, less those already counted through the variant's observed benchmarks or another index, under the [overlap rules of the leaderboard scores](../methodology/intelligence-agentic.md#combining-benchmarks-and-aggregate-indexes). With $q_{m,b}$ and $q_{m,k}$ as the converted benchmark and index results of variant $m$, its position is:
+
+$$
+q_m=\frac{1.5\sum_b \omega_b q_{m,b}+\sum_k \omega_k n_{m,k}q_{m,k}}{1.5\sum_b \omega_b+\sum_k \omega_k n_{m,k}}.
+$$
+
+The sums run over the results the variant has: a benchmark it was not observed on enters neither sum, so adding benchmarks to the portfolio leaves existing positions where they are. Because the weights do not depend on the results, a better result never lowers a position.
+
+Baseline benchmarks count like any other benchmark, at 1.5 times their full base weight, although they carry no weight in the leaderboard's :score[Intelligence], so a benchmark that no longer separates current leaders still places the models it measured. An observed baseline benchmark that is a component of an index also reduces that index's breadth, like any other component.
+
+Only a variant's own observed results count; an estimate or a result from another reasoning effort never does. A result needs a saved conversion and a positive Intelligence base weight. Each benchmark and each index counts once per variant, through its most recently observed result. All versions and sources of one index count as a single index, and an older version of a benchmark outside the portfolio, which is [kept rather than deleted](#retire-replaced-versions), stops counting once the variant has a usable result on its replacement.
+
+A variant with a usable index is placed by that index and whatever benchmarks it has. Without an index, a variant needs at least three benchmarks to be placed. A variant that was placed before and can no longer be placed keeps its last position; a reference model takes its snapshot score instead.
 
 ## Estimate the Typical Miss
 
-Each placed model carries a typical miss: the distance on the reference scale within which its position typically lies of where more benchmarks would settle it. It narrows as more benchmarks place a model and widens as the model sits far from the values its benchmarks were checked at, so sparse or far-reaching evidence reads as less certain without a separate rule for age.
+Each placed variant carries a typical miss: the distance, in reference-scale points, within which its position typically lies from where more benchmarks would put it. It narrows as more benchmarks place the variant and widens when its results lie far from the values those benchmarks were checked at, so sparse or far-reaching evidence reads as less certain without a rule about age.
 
-The check needs no reference score, since reference scores exist only for recent models and cannot test older placements. Each benchmark is instead left out in turn. For a model placed by two or more benchmarks, dropping the dimension $d$, the held-out residual $\Delta_{m,b}=q_{m,b}-\hat q_{m,-b}$ compares the benchmark's calibrated value $q_{m,b}$ with the weighted mean $\hat q_{m,-b}$ of the model's other calibrated values. The benchmark's typical miss $\tilde e_b$ is the median of $|\Delta_{m,b}|$ with equal total weight per family, and $\bar q_b$ and $s_b$ are the mean and standard deviation of the values it was checked at. A benchmark held out in fewer than the four families a connection needs stays unchecked, and a model placed only through unchecked benchmarks has no typical miss.
+The check uses no reference score, because reference scores exist only for recent models and cannot test older positions. Each benchmark or index is left out in turn instead, and $b$ stands for either in this section. For a variant placed by two or more results, the residual $\Delta_{m,b}$ is one converted result $q_{m,b}$ minus the weighted mean of the variant's other results, with the weights of the position. A benchmark's typical miss $e_b$ is the model-balanced [weighted median](../methodology/operations.md#weighted-median-and-quantiles) of $|\Delta_{m,b}|$ over the variants it measured. A benchmark with residuals from fewer than four base models stays unchecked.
 
-Every version of an index, and every record of it from a different source, shares one check, because each places the model through the same measure. An index is checked only where the model's other benchmarks include a task: indexes that average overlapping benchmarks agree partly by construction, so comparing one index with others alone would make index-placed models look more certain than their tasks show.
+All versions and sources of one index share a single check. An index is left out only where the variant's other results include an individual benchmark. Indexes that average overlapping benchmarks agree partly by construction, so comparing indexes only with each other would make index-placed variants look more certain than their benchmarks show.
 
-Held-out residuals grow as a benchmark's value leaves the values it was checked at, so each benchmark's miss widens with that distance at a growth rate $\beta$:
+Residuals grow as a result moves away from the values its benchmark was checked at. Each result's miss $e_{m,b}$ therefore widens with that distance, measured against the mean $\bar q_b$ and standard deviation $\sigma_b$ of the checked values, at a growth rate $\gamma$:
 
 $$
-e_{m,b}=\tilde e_b\sqrt{1+\beta\frac{(q_{m,b}-\bar q_b)^2}{s_b^2}}.
+e_{m,b}=e_b\sqrt{1+\gamma\frac{(q_{m,b}-\bar q_b)^2}{\sigma_b^2}}.
 $$
 
-The rate $\beta$ is the one that best explains all held-out residuals together, each treated as Laplace-distributed around its predicted size with one shared scale. A residual's predicted size combines its own benchmark's miss with the miss of the weighted mean it is compared with.
+![A result’s miss is smallest at the mean of the checked values and widens with its distance from them, measured in their standard deviations.](../assets/timeline/timeline-typical-miss.svg)
 
-A model's benchmarks and indexes are averaged with the weights $w_{m,b}$ they carry in its estimate, and their misses shrink as independent ones. The multiplier $M$ sizes the result so that half of the held-out residuals, with equal total weight per family, land within their predicted size:
+One rate serves every benchmark: the value between 0 and 10 under which the predicted sizes best match the residuals. For the rate and for the multiplier $M$ below, each residual is taken against the variant's other checked results only. A residual has two sources of error, the result left out and the weighted mean it is compared with. Its predicted size is the square root of the sum of their squared misses, with the mean's miss combined as in the equation below but without its multiplier $M$, which is set after the rate is fitted. The fit treats each residual as Laplace-distributed around zero, with a scale proportional to its predicted size and one factor shared by all residuals, which judges a residual by its absolute size relative to its predicted size. A rate fits well when large residuals fall where it predicts large ones, without predicting large ones everywhere.
+
+A variant's results are averaged with the weights $w_{m,b}$ they carry in its position, and their misses shrink as independent errors do:
 
 $$
 e_m=M\,\frac{\sqrt{\sum_b w_{m,b}^2e_{m,b}^2}}{\sum_b w_{m,b}}.
 $$
 
-Leaving a benchmark out shows only how a model's benchmarks disagree. An error they all share, such as a drift in the one conversion that carries an era, never appears, so the typical miss understates it. A model placed by one benchmark takes that benchmark's typical miss from the models it was checked on. It is a checked median, not a confidence interval.
+The sums run over the variant's checked benchmarks and indexes only, so a variant placed only by unchecked ones has no typical miss. The multiplier $M$ is set so that half of the residuals, model-balanced, fall within their predicted size. A variant placed by one checked benchmark has the typical miss $M e_{m,b}$. A reference model held at its snapshot score has no typical miss. The overview lists [what the check cannot show](overview.md#uncertainty-and-limitations).
 
 ## Apply the Dated-Successor Assumption
 
-Older model releases often have sparse or uneven benchmark records, which can make a later version appear weaker simply because different evidence is available. To limit these apparent regressions when reconstructing historical scores, a dated successor is kept at least level with its highest-scoring predecessor in the same model and reasoning-effort series. Supported reference models are not adjusted.
+Older releases often have sparse or uneven benchmark records, so a later release can appear weaker only because different evidence survives for it. Where releases of one model can be put in order, a later release is therefore kept at least level with the highest-scoring earlier one.
 
-![The middle release has an evidence-based estimate of 116, below its predecessor's 120, so the assumption raises it to 120. The later estimate of 128 needs no adjustment. These are illustrative releases of the same model at the same reasoning effort.](../assets/timeline/timeline-successor.svg)
+![The middle release's evidence-based estimate lies below its predecessor's, so the assumption raises it to the predecessor's level. The later release, estimated above both, needs no adjustment. These are illustrative releases of the same model at the same reasoning effort.](../assets/timeline/timeline-successor.svg)
 
-This is a historical reconstruction assumption, not evidence that every newer release improves. The rule applies to explicitly dated versions of the same canonical model family, provider and reasoning effort; it has no age cutoff. It can conceal a real decline, but never forces a positive improvement: a successor can tie its predecessor.
+Order comes only from a month and year in the model's name, such as “Jun 2025”. Releases form one series when they share a lab, a name apart from that label, and a reasoning effort. Releases named for the same month are not ordered against each other, and a name without a month takes no part, whatever release date is recorded for it.
 
-Undated names do not establish succession, and releases within the same month are not ordered. Missing estimates stay unplaced, and supported reference models are not adjusted. Any adjustment is recorded separately from the evidence-based estimate and added to its typical miss.
+The assumption reconstructs history; it is not evidence that every newer release improves, and it can hide a real decline. A [reference model](#freeze-the-initial-reference) is never raised, and an unplaced release stays unplaced. The amount raised is recorded beside the evidence-based estimate and added to the release's typical miss.
 
 ## Set Index Units with Fixed Anchors
 
-The anchor values 100 and 150 are chosen for readability. Keeping them and their saved capability positions fixed preserves the same index unit as new models arrive. This final conversion changes the displayed numbers without changing model order or adding evidence.
+Reference-scale points are an internal unit, so two anchor models set the displayed one: the saved position $q_L$ of GPT-4 (March 2023) reads 100, and the saved position $q_H$ of Claude Opus 4.5 reads 150. The values are chosen for readability. The [linearScale operation](../methodology/operations.md#linear-scaling-and-clamping) gives a variant's place between the anchors, and the index score $S_m$ spreads that place over the 50 points between them:
+
+$$
+S_m=100+(150-100)\operatorname{linearScale}_{q_L}^{q_H}(q_m).
+$$
 
 ![Changing the illustrative anchors from 20/80 to 100/150 shifts the origin and shrinks every score gap by the same proportion: the 60-point anchor gap becomes 50. Model order and evidence stay unchanged. Curves trace record highs, and scores below 0 carry no meaning.](../assets/timeline/timeline-anchors.svg)
 
-The saved positions $q_{L,d}$ for GPT-4 (March 2023) and $q_{H,d}$ for Claude Opus 4.5 map to index scores of 100 and 150. The [linearScale operation](../methodology/overview.md#linear-scaling-and-clamping) finds the model's relative position between these anchors; multiplication by $150-100$ and addition of 100 express it in index units:
+Nothing is clamped, so scores run below 100 and above 150 without limit. The conversion is a positive linear rescaling: it changes the numbers but not the order of models or the ratios between score gaps.
 
-$$
-S_{m,d}=100+(150-100)\operatorname{linearScale}_{q_{L,d}}^{q_{H,d}}(q_{m,d}).
-$$
+Later results never move the two anchor models' saved positions, because moving either one would rescale every score. Only the readings 100 and 150 are provisional: changing them would relabel every score and leave the saved positions, which are in reference-scale points, where they are.
 
-Here, $q_{m,d}$ is the capability estimate and $S_{m,d}$ is the displayed index score. The scale extends beyond the anchors without an upper limit; its values are not percentages or ratios of capability.
+## Parameter Choices
 
-The saved anchor positions remain fixed; updating them would rescale every model. Positive linear rescaling preserves ordering and ratios of score differences. The stored capability coordinate is independent of the provisional display units. Anchors set the published units; they do not add evidence or refit benchmark connections.
+These values are policy choices, not fitted claims about model behavior.
+
+| Parameter | Value | Why it exists |
+| --- | ---: | --- |
+| Evidence support for a reference model | 60% | Lets only well-measured snapshot scores define the reference scale. |
+| Percentage results that shape a connection | Above 2% and below 98% | Keeps results pinned near a floor or ceiling out of the fit. |
+| Base models shared by a connection | 4 | Requires a conversion to be tested on more than a minimal overlap. |
+| Maximum validation error | 25% of the training range | Refuses a connection whose held-out predictions miss by too much. |
+| Benchmark weight | 1.5 times base weight | Keeps the leaderboard's balance between benchmarks and indexes. |
+| Benchmarks that place a variant without an index | 3 | Keeps one or two results from placing a model. |
+| Base models behind a benchmark's typical miss | 4 | Leaves a benchmark unchecked rather than judging it from too few models. |
+| Growth rate of the typical miss | 0 to 10 | Bounds how fast a miss can widen away from the checked values. |
+| Anchor readings | 100 and 150 | Chosen for readability; they set the unit and change no order. |

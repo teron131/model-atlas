@@ -134,7 +134,7 @@ function observationsFromSourceData(sourceData: ModelAtlasSourceData): Benchmark
       observed_at: row.observed_at,
     }));
   }
-  for (const [key, source] of Object.entries(sourceData.fusedBenchmarks)) {
+  for (const [key, source] of Object.entries(sourceData.combinedBenchmarks)) {
     observations[key] = source.rows;
   }
   return observations;

@@ -20,23 +20,15 @@ export type CrosswalkObservation = BenchmarkObservationRow & {
   output_tokens_per_task?: number | null;
 };
 
-type Pair = {
+/** One model at one effort, holding each source's row in source order; `null` where a source has none. */
+type SourceGroup = {
   name: string;
   effort: string | null;
-  a: CrosswalkObservation | null;
-  b: CrosswalkObservation | null;
+  rows: (CrosswalkObservation | null)[];
 };
 
-type Triple = {
-  name: string;
-  effort: string | null;
-  rows: [CrosswalkObservation | null, CrosswalkObservation | null, CrosswalkObservation | null];
-};
-
-type SourceLabels = {
-  a: string;
-  b: string;
-};
+/** Two source indexes, lower first; the pair's offset is the higher source's score minus the lower's. */
+type SourcePair = readonly [number, number];
 
 type ResourceAgreement = {
   accountingCompatible: boolean;
@@ -55,275 +47,129 @@ const RESOURCE_KEYS = [
   "output_tokens_per_task",
 ] as const;
 
-/** Fit on exact-effort overlap only; collapsed summaries select each source's highest reported effort without donating it to another variant. */
+/**
+ * Combine comparable quality series at equal weight.
+ * Offsets are fitted on exact-effort overlap only, a missing source is filled only through validated pairwise crosswalks, and collapsed summaries select each source's highest reported effort without donating it to another variant.
+ * Resources are compared between exactly two sources; with more, each keeps its source identity.
+ */
 export function crosswalkBenchmarkSources(
-  a: readonly CrosswalkObservation[],
-  b: readonly CrosswalkObservation[],
+  inputs: readonly (readonly CrosswalkObservation[])[],
   {
     maximumScoreError = MAXIMUM_SCORE_ERROR,
     normalizeScore = clamp01,
-    sourceLabels = { a: "Source A", b: "Source B" },
-    aAloneWithoutB = false,
+    sourceLabels = inputs.map((_, source) => `Source ${sourceLetter(source).toUpperCase()}`),
+    firstAloneWithoutOthers = false,
   }: {
     maximumScoreError?: number;
     normalizeScore?: (value: number) => number;
-    sourceLabels?: SourceLabels;
-    /** While source B has no rows at all, source A's results stand unchanged as the benchmark's results instead of waiting for a crosswalk that cannot be fitted. */
-    aAloneWithoutB?: boolean;
+    /** One label per source, in source order. */
+    sourceLabels?: readonly string[];
+    /** While every other source has no rows at all, the first source's results stand unchanged as the benchmark's results instead of waiting for a crosswalk that cannot be fitted. */
+    firstAloneWithoutOthers?: boolean;
   } = {},
 ): CrosswalkObservation[] {
-  const pairs = pairObservations(a, b);
-  const singleSource = aAloneWithoutB && b.length === 0;
-  const quality = fitAdditiveSourceCrosswalk(
+  const sources = inputs.map(scoredConfigurations);
+  const letters = sources.map((_, source) => sourceLetter(source));
+  const pairs = sources.flatMap((_, lower) =>
+    sources.slice(lower + 1).map((_, step): SourcePair => [lower, lower + 1 + step]),
+  );
+  // A single pair keeps the unqualified names: `crosswalk_offset` for two sources, `crosswalk_ab_offset` for the first pair of three.
+  const pairNames = pairs.map(([lower, higher]) =>
+    pairs.length === 1 ? "" : `${letters[lower]}${letters[higher]}_`,
+  );
+  const groups = groupObservations(sources);
+  const firstAlone = firstAloneWithoutOthers && sources.slice(1).every((rows) => rows.length === 0);
+  const fits = pairs.map((pair) => fitSourceOffset(groups, pair, maximumScoreError));
+  const offsets = fits.map((fit) => (fit.accepted ? fit.offset : null));
+  const observedRanges = pairs.map((pair) =>
+    pair.map((source) => {
+      const values = groups.flatMap((group) =>
+        pair.every((member) => group.rows[member] != null)
+          ? [group.rows[source]!.canonical_value]
+          : [],
+      );
+      return { min: Math.min(...values), max: Math.max(...values) };
+    }),
+  );
+  const validatedPatterns = validatedMissingPatterns(
+    groups,
+    sources.length,
     pairs,
-    (row) => row.canonical_value,
+    fits.map((fit) => fit.accepted),
     maximumScoreError,
   );
-  const overlap = pairs.filter((pair) => pair.a != null && pair.b != null);
-  const observedRanges = {
-    a: {
-      min: Math.min(...overlap.map((pair) => pair.a!.canonical_value)),
-      max: Math.max(...overlap.map((pair) => pair.a!.canonical_value)),
-    },
-    b: {
-      min: Math.min(...overlap.map((pair) => pair.b!.canonical_value)),
-      max: Math.max(...overlap.map((pair) => pair.b!.canonical_value)),
-    },
-  };
-  const resources = new Map(
-    RESOURCE_KEYS.map((key) => [
-      key,
-      fitAdditiveSourceCrosswalk(
-        pairs,
-        (row) => {
-          const value = row[key];
-          return value != null && value > 0 ? Math.log(value) : null;
-        },
-        Math.log(2),
-        0,
-      ),
-    ]),
-  );
-  const resourceAgreements = new Map(
-    RESOURCE_KEYS.map((key) => [key, resourceAgreement(pairs, key)]),
-  );
-  const defaults = pairObservations(sourceDefaults(a), sourceDefaults(b));
+  const resourceAgreements =
+    sources.length === 2
+      ? new Map(RESOURCE_KEYS.map((key) => [key, resourceAgreement(groups, key)]))
+      : null;
+  const defaults = groupObservations(sources.map(sourceDefaults));
   return [
-    ...pairs.flatMap((pair) => crosswalkPair(pair, false)),
-    ...defaults.flatMap((pair) => crosswalkPair(pair, true)),
+    ...groups.flatMap((group) => combineGroup(group, false)),
+    ...defaults.flatMap((group) => combineGroup(group, true)),
   ];
 
-  function crosswalkPair(pair: Pair, collapsed: boolean): CrosswalkObservation[] {
-    const template = pair.a ?? pair.b;
+  function combineGroup(group: SourceGroup, collapsed: boolean): CrosswalkObservation[] {
+    const template = group.rows.find((row) => row != null);
     if (template == null) return [];
-    const measured = singleSource || (pair.a != null && pair.b != null);
-    const { delta } = quality.diagnostic;
-    const score = singleSource
-      ? template.canonical_value
-      : quality.project(pair.a?.canonical_value ?? null, pair.b?.canonical_value ?? null);
-    if (score == null) return [];
+    const observed = group.rows.map((row) => row?.canonical_value ?? null);
+    const crosswalkApplied = !firstAlone && observed.some((score) => score == null);
+    const pattern = observed.reduce<number>(
+      (mask, score, source) => mask | (score == null ? 0 : 1 << source),
+      0,
+    );
+    if (crosswalkApplied && !validatedPatterns.has(pattern)) return [];
+    const projection = firstAlone
+      ? { projected: [template.canonical_value], predictors: [] }
+      : projectScores(observed, offsets, pairs);
+    if (projection == null) return [];
+    const { projected, predictors } = projection;
+    const score = projected.reduce((sum, value) => sum + value, 0) / projected.length;
+    if (!Number.isFinite(score)) return [];
     const extrapolated =
-      !measured &&
-      (["a", "b"] as const).some((side) => {
-        const value = pair[side]?.canonical_value;
-        if (value == null) return false;
-        const range = observedRanges[side];
+      crosswalkApplied &&
+      predictors.some(({ pair, source, value }) => {
+        const range = observedRanges[pair]![pairs[pair]!.indexOf(source)]!;
         return value < range.min || value > range.max;
       });
-    const metadata = {
+    const metadata: CrosswalkObservation["metadata"] = {
       fusion: true,
       fusion_collapsed: collapsed,
-      fusion_crosswalk_applied: !measured,
+      fusion_crosswalk_applied: crosswalkApplied,
       fusion_extrapolated: extrapolated,
-      fusion_confidence: measured ? 1 : extrapolated ? 0.5 : 0.5 + 0.5 * (quality.confidence ?? 0),
-      source_a_url: pair.a?.source_url ?? null,
-      source_b_url: pair.b?.source_url ?? null,
-      source_a_label: sourceLabels.a,
-      source_b_label: sourceLabels.b,
-      source_a_score: pair.a?.canonical_value ?? null,
-      source_b_score: pair.b?.canonical_value ?? null,
-      source_a_effort: pair.a?.metadata.source_effort ?? pair.a?.reasoning_effort ?? null,
-      source_b_effort: pair.b?.metadata.source_effort ?? pair.b?.reasoning_effort ?? null,
-      crosswalk_offset: delta,
-      crosswalk_error: quality.diagnostic.validationMedianAbsoluteError,
+      fusion_confidence: !crosswalkApplied
+        ? 1
+        : extrapolated
+          ? 0.5
+          : 0.5 + 0.5 * Math.min(...predictors.map(({ pair }) => fits[pair]!.confidence ?? 0)),
     };
-    const fused: CrosswalkObservation = {
+    // Separate loops keep each field's keys together, which is the saved record's key order.
+    for (const [source, letter] of letters.entries())
+      metadata[`source_${letter}_url`] = group.rows[source]?.source_url ?? null;
+    for (const [source, letter] of letters.entries())
+      metadata[`source_${letter}_label`] = sourceLabels[source] ?? null;
+    for (const [source, letter] of letters.entries())
+      metadata[`source_${letter}_score`] = observed[source] ?? null;
+    for (const [source, letter] of letters.entries()) {
+      const row = group.rows[source];
+      metadata[`source_${letter}_effort`] =
+        row?.metadata.source_effort ?? row?.reasoning_effort ?? null;
+    }
+    for (const [pair, name] of pairNames.entries())
+      metadata[`crosswalk_${name}offset`] = fits[pair]!.offset;
+    for (const [pair, name] of pairNames.entries())
+      metadata[`crosswalk_${name}error`] = fits[pair]!.validationMedianAbsoluteError;
+    const combined: CrosswalkObservation = {
       benchmark_key: template.benchmark_key,
       source_url: template.source_url,
       model_id: null,
       model: collapsed ? template.base_model : template.model,
       base_model: template.base_model,
-      reasoning_effort: collapsed ? null : pair.effort,
+      reasoning_effort: collapsed ? null : group.effort,
       model_creator: template.model_creator,
       rank: null,
       canonical_value: normalizeScore(score),
       observed_at:
-        [pair.a?.observed_at, pair.b?.observed_at]
-          .filter((v): v is string => v != null)
-          .sort()
-          .at(-1) ?? null,
-      metadata,
-    };
-    for (const key of RESOURCE_KEYS) {
-      const av = pair.a?.[key] ?? null;
-      const bv = pair.b?.[key] ?? null;
-      const fit = resources.get(key)!;
-      const agreement = resourceAgreements.get(key)!;
-      const timeCompatible =
-        key !== "seconds_per_task" ||
-        (pair.a?.metadata.time_measure === pair.b?.metadata.time_measure &&
-          pair.a?.metadata.time_measure != null);
-      let value: number | null = null;
-      let estimated = false;
-      if (agreement.comparable && timeCompatible && av != null && bv != null) value = (av + bv) / 2;
-      else if (
-        agreement.comparable &&
-        key !== "seconds_per_task" &&
-        fit.diagnostic.imputationAllowed &&
-        fit.diagnostic.delta != null
-      ) {
-        const ratio = Math.exp(fit.diagnostic.delta);
-        if (av != null) value = (av + av * ratio) / 2;
-        else if (bv != null) value = (bv / ratio + bv) / 2;
-        estimated = value != null;
-      }
-      fused[key] = value;
-      fused.metadata[key] = value;
-      fused.metadata[`source_a_${key}`] = av;
-      fused.metadata[`source_b_${key}`] = bv;
-      fused.metadata[`fusion_${key}_accounting_compatible`] = agreement.accountingCompatible;
-      fused.metadata[`fusion_${key}_comparable`] = agreement.comparable;
-      fused.metadata[`fusion_${key}_paired_models`] = agreement.modelCount;
-      fused.metadata[`fusion_${key}_within_5_percent_share`] = agreement.withinToleranceShare;
-      fused.metadata[`fusion_${key}_estimated`] = estimated;
-      fused.metadata[`fusion_${key}_confidence`] = estimated
-        ? 0.5 + 0.5 * (fit.confidence ?? 0)
-        : value == null
-          ? 0
-          : 1;
-    }
-    return [fused];
-  }
-}
-
-/** Combine three comparable quality series at equal weight; missing counterparts require validated exact-effort pairwise crosswalks, and resources retain their source identity. */
-export function crosswalkThreeBenchmarkSources(
-  a: readonly CrosswalkObservation[],
-  b: readonly CrosswalkObservation[],
-  c: readonly CrosswalkObservation[],
-  {
-    maximumScoreError = MAXIMUM_SCORE_ERROR,
-    normalizeScore = clamp01,
-    sourceLabels = { a: "Source A", b: "Source B", c: "Source C" },
-  }: {
-    maximumScoreError?: number;
-    normalizeScore?: (value: number) => number;
-    sourceLabels?: SourceLabels & { c: string };
-  } = {},
-): CrosswalkObservation[] {
-  const sources = [a, b, c] as const;
-  const pairs: [number, number][] = [
-    [0, 1],
-    [0, 2],
-    [1, 2],
-  ];
-  const fits = pairs.map(([left, right]) =>
-    fitAdditiveSourceCrosswalk(
-      pairObservations(sources[left]!, sources[right]!),
-      (row) => row.canonical_value,
-      maximumScoreError,
-    ),
-  );
-  const acceptedPairs = fits.map((fit) => fit.diagnostic.imputationAllowed);
-  const offsets = fits.map((fit, index) => (acceptedPairs[index] ? fit.diagnostic.delta : null));
-  const strict = tripleObservations(a, b, c);
-  const observedRanges = pairs.map(([left, right]) =>
-    [left, right].map((side) => {
-      const values = strict.flatMap((triple) => {
-        const value = triple.rows[side]?.canonical_value;
-        return value != null && triple.rows[left] != null && triple.rows[right] != null
-          ? [value]
-          : [];
-      });
-      return { min: Math.min(...values), max: Math.max(...values) };
-    }),
-  );
-  const validatedPatterns = validateThreeSourceCrosswalk(
-    strict,
-    pairs,
-    acceptedPairs,
-    maximumScoreError,
-  );
-  const defaults = tripleObservations(sourceDefaults(a), sourceDefaults(b), sourceDefaults(c));
-  return [
-    ...strict.flatMap((triple) => crosswalkTriple(triple, false)),
-    ...defaults.flatMap((triple) => crosswalkTriple(triple, true)),
-  ];
-
-  function crosswalkTriple(triple: Triple, collapsed: boolean): CrosswalkObservation[] {
-    const template = triple.rows.find((row) => row != null);
-    if (template == null) return [];
-    const observed = triple.rows.map((row) => row?.canonical_value ?? null);
-    const estimated = observed.some((value) => value == null);
-    const pattern = observed.reduce<number>(
-      (mask, score, side) => mask | (score == null ? 0 : 1 << side),
-      0,
-    );
-    if (estimated && !validatedPatterns.has(pattern)) return [];
-    const projection = projectThreeScores(observed, offsets, pairs);
-    if (projection == null) return [];
-    const { projected, predictors } = projection;
-    const extrapolated =
-      estimated &&
-      predictors.some(({ pair, side, value }) => {
-        const [left] = pairs[pair]!;
-        const range = observedRanges[pair]![side === left ? 0 : 1]!;
-        return value < range.min || value > range.max;
-      });
-    const value = normalizeScore(projected.reduce((sum, score) => sum + score, 0) / 3);
-    if (!Number.isFinite(value)) return [];
-    const [sourceA, sourceB, sourceC] = triple.rows;
-    const metadata: CrosswalkObservation["metadata"] = {
-      fusion: true,
-      fusion_collapsed: collapsed,
-      fusion_crosswalk_applied: estimated,
-      fusion_extrapolated: extrapolated,
-      fusion_confidence: estimated
-        ? extrapolated
-          ? 0.5
-          : 0.5 + 0.5 * Math.min(...predictors.map(({ pair }) => fits[pair]!.confidence ?? 0))
-        : 1,
-      source_a_url: sourceA?.source_url ?? null,
-      source_b_url: sourceB?.source_url ?? null,
-      source_c_url: sourceC?.source_url ?? null,
-      source_a_label: sourceLabels.a,
-      source_b_label: sourceLabels.b,
-      source_c_label: sourceLabels.c,
-      source_a_score: observed[0] ?? null,
-      source_b_score: observed[1] ?? null,
-      source_c_score: observed[2] ?? null,
-      source_a_effort: sourceA?.metadata.source_effort ?? sourceA?.reasoning_effort ?? null,
-      source_b_effort: sourceB?.metadata.source_effort ?? sourceB?.reasoning_effort ?? null,
-      source_c_effort: sourceC?.metadata.source_effort ?? sourceC?.reasoning_effort ?? null,
-      crosswalk_ab_offset: fits[0]!.diagnostic.delta,
-      crosswalk_ac_offset: fits[1]!.diagnostic.delta,
-      crosswalk_bc_offset: fits[2]!.diagnostic.delta,
-      crosswalk_ab_error: fits[0]!.diagnostic.validationMedianAbsoluteError,
-      crosswalk_ac_error: fits[1]!.diagnostic.validationMedianAbsoluteError,
-      crosswalk_bc_error: fits[2]!.diagnostic.validationMedianAbsoluteError,
-    };
-    const fused: CrosswalkObservation = {
-      benchmark_key: template.benchmark_key,
-      source_url: template.source_url,
-      model_id: null,
-      model: collapsed ? template.base_model : template.model,
-      base_model: template.base_model,
-      reasoning_effort: collapsed ? null : triple.effort,
-      model_creator: template.model_creator,
-      rank: null,
-      canonical_value: value,
-      observed_at:
-        triple.rows
+        group.rows
           .map((row) => row?.observed_at)
           .filter((date): date is string => date != null)
           .sort()
@@ -331,85 +177,115 @@ export function crosswalkThreeBenchmarkSources(
       metadata,
     };
     for (const key of RESOURCE_KEYS) {
-      fused[key] = null;
-      metadata[key] = null;
-      metadata[`source_a_${key}`] = sourceA?.[key] ?? null;
-      metadata[`source_b_${key}`] = sourceB?.[key] ?? null;
-      metadata[`source_c_${key}`] = sourceC?.[key] ?? null;
-      metadata[`fusion_${key}_comparable`] = false;
-      metadata[`fusion_${key}_estimated`] = false;
-      metadata[`fusion_${key}_confidence`] = 0;
+      const amounts = group.rows.map((row) => row?.[key] ?? null);
+      const agreement = resourceAgreements?.get(key);
+      // Sources that agree share one scale, so an amount only one of them reports stands as observed; a runtime still needs both, to confirm they time the same thing.
+      let value: number | null = null;
+      if (agreement?.comparable) {
+        const [first, second] = amounts;
+        if (first != null && second != null) {
+          const [firstMeasure, secondMeasure] = group.rows.map((row) => row?.metadata.time_measure);
+          if (
+            key !== "seconds_per_task" ||
+            (firstMeasure != null && firstMeasure === secondMeasure)
+          )
+            value = (first + second) / 2;
+        } else if (key !== "seconds_per_task") value = first ?? second ?? null;
+      }
+      combined[key] = value;
+      metadata[key] = value;
+      for (const [source, letter] of letters.entries())
+        metadata[`source_${letter}_${key}`] = amounts[source] ?? null;
+      if (agreement == null) {
+        metadata[`fusion_${key}_comparable`] = false;
+        continue;
+      }
+      metadata[`fusion_${key}_accounting_compatible`] = agreement.accountingCompatible;
+      metadata[`fusion_${key}_comparable`] = agreement.comparable;
+      metadata[`fusion_${key}_paired_models`] = agreement.modelCount;
+      metadata[`fusion_${key}_within_5_percent_share`] = agreement.withinToleranceShare;
     }
-    return [fused];
+    return [combined];
   }
 }
 
-/** Check the final equal-thirds score under every supported missing-source pattern using only accepted routes and model-family-held-out offsets. */
-function validateThreeSourceCrosswalk(
-  triples: readonly Triple[],
-  pairs: readonly [number, number][],
+/** Source names in saved records are letters in source order: `0` → `"a"`, `2` → `"c"`. */
+function sourceLetter(source: number): string {
+  return String.fromCharCode(97 + source);
+}
+
+/**
+ * The patterns of observed sources, as bit masks, from which the missing sources may be filled.
+ * A pattern passes when the final equal-weight score, rebuilt from only those sources through accepted pairs with model-held-out offsets, stays within the error limit.
+ * With a single pair, that pair's own held-out check is this same check, so it is not repeated.
+ */
+function validatedMissingPatterns(
+  groups: readonly SourceGroup[],
+  sourceCount: number,
+  pairs: readonly SourcePair[],
   acceptedPairs: readonly boolean[],
   maximumScoreError: number,
 ): ReadonlySet<number> {
+  const everySource = (1 << sourceCount) - 1;
+  const patterns = Array.from({ length: everySource - 1 }, (_, index) => index + 1);
+  if (pairs.length === 1) return new Set(acceptedPairs[0] ? patterns : []);
   const validated = new Set<number>();
-  const complete = triples.filter((triple) => triple.rows.every((row) => row != null));
+  const complete = groups.filter((group) => group.rows.every((row) => row != null));
   if (distinctModelCount(calibrationObservations(complete, () => 0)) < MINIMUM_MODELS)
     return validated;
-  for (const observedSides of [[0], [1], [2], [0, 1], [0, 2], [1, 2]]) {
+  for (const pattern of patterns) {
     const errors = calibrationObservations(complete, (heldOut) => {
-      const training = triples.filter((triple) => triple.name !== heldOut.name);
-      const offsets = pairs.map(([left, right], index) =>
+      const training = groups.filter((group) => group.name !== heldOut.name);
+      const offsets = pairs.map(([lower, higher], index) =>
         acceptedPairs[index]
           ? weightedMedianOfFinite(
-              calibrationObservations(training, (triple) => {
-                const a = triple.rows[left]?.canonical_value;
-                const b = triple.rows[right]?.canonical_value;
-                return a == null || b == null ? null : b - a;
+              calibrationObservations(training, (group) => {
+                const lowerScore = group.rows[lower]?.canonical_value;
+                const higherScore = group.rows[higher]?.canonical_value;
+                return lowerScore == null || higherScore == null ? null : higherScore - lowerScore;
               }),
             )
           : null,
       );
-      const observed = heldOut.rows.map((row, side) =>
-        observedSides.includes(side) ? row!.canonical_value : null,
+      const observed = heldOut.rows.map((row, source) =>
+        pattern & (1 << source) ? row!.canonical_value : null,
       );
-      const projection = projectThreeScores(observed, offsets, pairs);
+      const projection = projectScores(observed, offsets, pairs);
       if (projection == null) return null;
-      const measured = heldOut.rows.reduce((sum, row) => sum + row!.canonical_value, 0) / 3;
-      const predicted = projection.projected.reduce((sum, score) => sum + score, 0) / 3;
+      const measured =
+        heldOut.rows.reduce((sum, row) => sum + row!.canonical_value, 0) / sourceCount;
+      const predicted = projection.projected.reduce((sum, score) => sum + score, 0) / sourceCount;
       return Math.abs(predicted - measured);
     });
     if (distinctModelCount(errors) < MINIMUM_MODELS) continue;
     const medianError = weightedMedianOfFinite(errors);
-    if (medianError != null && medianError <= maximumScoreError)
-      validated.add(observedSides.reduce((mask, side) => mask | (1 << side), 0));
+    if (medianError != null && medianError <= maximumScoreError) validated.add(pattern);
   }
   return validated;
 }
 
 /** Predict only missing sources from directly observed counterparts so a projected source never becomes its own evidence. */
-function projectThreeScores(
+function projectScores(
   observed: readonly (number | null)[],
   offsets: readonly (number | null)[],
-  pairs: readonly [number, number][],
-): { projected: number[]; predictors: { pair: number; side: number; value: number }[] } | null {
+  pairs: readonly SourcePair[],
+): { projected: number[]; predictors: { pair: number; source: number; value: number }[] } | null {
   const projected: number[] = [];
-  const predictors: { pair: number; side: number; value: number }[] = [];
-  for (let target = 0; target < 3; target += 1) {
-    const direct = observed[target];
+  const predictors: { pair: number; source: number; value: number }[] = [];
+  for (const [target, direct] of observed.entries()) {
     if (direct != null) {
       projected.push(direct);
       continue;
     }
     const predictions: number[] = [];
-    for (let pair = 0; pair < pairs.length; pair += 1) {
-      const [left, right] = pairs[pair]!;
+    for (const [pair, [lower, higher]] of pairs.entries()) {
       const offset = offsets[pair];
       if (offset == null) continue;
-      const side = target === left ? right : target === right ? left : null;
-      if (side == null || observed[side] == null) continue;
-      const value = observed[side]!;
-      predictions.push(value + (target === right ? offset : -offset));
-      predictors.push({ pair, side, value });
+      const source = target === lower ? higher : target === higher ? lower : null;
+      if (source == null || observed[source] == null) continue;
+      const value = observed[source]!;
+      predictions.push(value + (target === higher ? offset : -offset));
+      predictors.push({ pair, source, value });
     }
     if (predictions.length === 0) return null;
     projected.push(
@@ -419,64 +295,39 @@ function projectThreeScores(
   return { projected, predictors };
 }
 
-function tripleObservations(
-  a: readonly CrosswalkObservation[],
-  b: readonly CrosswalkObservation[],
-  c: readonly CrosswalkObservation[],
-): Triple[] {
-  const triples = new Map<string, Triple>();
-  for (const [side, rows] of [
-    [0, a],
-    [1, b],
-    [2, c],
-  ] as const) {
-    for (const row of rows) {
-      const name = modelNameIdentityKey(row.base_model);
-      const key = `${name}/${row.reasoning_effort ?? ""}`;
-      const triple = triples.get(key) ?? {
-        name,
-        effort: row.reasoning_effort,
-        rows: [null, null, null],
-      };
-      const current = triple.rows[side];
-      if (current == null || row.canonical_value > current.canonical_value) triple.rows[side] = row;
-      triples.set(key, triple);
-    }
-  }
-  return [...triples.values()];
-}
-
-/** Raw resources can share a scale only when model-balanced matched amounts agree before fitting or rescaling. */
+/** Raw resources can share a scale only when model-balanced matched amounts of the two sources agree before fitting or rescaling. */
 function resourceAgreement(
-  pairs: readonly Pair[],
+  groups: readonly SourceGroup[],
   key: (typeof RESOURCE_KEYS)[number],
 ): ResourceAgreement {
-  const positiveOverlap = pairs.filter((pair) => {
-    const av = pair.a?.[key];
-    const bv = pair.b?.[key];
-    return av != null && av > 0 && bv != null && bv > 0;
-  });
+  const positiveOverlap = groups.filter((group) =>
+    group.rows.every((row) => {
+      const amount = row?.[key];
+      return amount != null && amount > 0;
+    }),
+  );
   const accountingCompatible =
     key !== "seconds_per_task" ||
-    positiveOverlap.every(
-      (pair) =>
-        pair.a?.metadata.time_measure != null &&
-        pair.a.metadata.time_measure === pair.b?.metadata.time_measure,
-    );
-  const byModel = new Map<string, Pair[]>();
-  for (const pair of positiveOverlap) {
-    const rows = byModel.get(pair.name) ?? [];
-    rows.push(pair);
-    byModel.set(pair.name, rows);
+    positiveOverlap.every(({ rows: [first, second] }) => {
+      const measure = first?.metadata.time_measure;
+      return measure != null && measure === second?.metadata.time_measure;
+    });
+  const byModel = new Map<string, SourceGroup[]>();
+  for (const group of positiveOverlap) {
+    const modelGroups = byModel.get(group.name) ?? [];
+    modelGroups.push(group);
+    byModel.set(group.name, modelGroups);
   }
   let agreeingWeight = 0;
-  for (const rows of byModel.values()) {
-    const pairWeight = 1 / rows.length;
-    for (const pair of rows) {
-      const av = pair.a![key]!;
-      const bv = pair.b![key]!;
-      if (Math.max(av, bv) / Math.min(av, bv) <= RESOURCE_SOURCE_AGREEMENT_POLICY.maximumRatio) {
-        agreeingWeight += pairWeight;
+  for (const modelGroups of byModel.values()) {
+    const groupWeight = 1 / modelGroups.length;
+    for (const { rows } of modelGroups) {
+      const amounts = rows.map((row) => row![key]!);
+      if (
+        Math.max(...amounts) / Math.min(...amounts) <=
+        RESOURCE_SOURCE_AGREEMENT_POLICY.maximumRatio
+      ) {
+        agreeingWeight += groupWeight;
       }
     }
   }
@@ -493,99 +344,75 @@ function resourceAgreement(
   };
 }
 
-/** Fit a model-held-out additive crosswalk; paired observations need no prediction, and missing-source projections require validation. */
-function fitAdditiveSourceCrosswalk(
-  pairs: Pair[],
-  value: (row: CrosswalkObservation) => number | null,
+/** Fit one pair's model-held-out additive offset; filling either source from the other moves the two-source mean by half the offset's error, which is what the limit bounds. */
+function fitSourceOffset(
+  groups: readonly SourceGroup[],
+  [lower, higher]: SourcePair,
   maximumMedianAbsoluteError: number,
-  sourceBWeight = 0.5,
 ) {
-  if (!Number.isFinite(sourceBWeight) || sourceBWeight < 0 || sourceBWeight > 1)
-    throw new Error("Crosswalk source B weight must be between zero and one");
-  const offsets = calibrationObservations(pairs, (pair) => {
-    const sourceB = pair.b == null ? null : value(pair.b);
-    const sourceA = pair.a == null ? null : value(pair.a);
-    return sourceB == null || sourceA == null ? null : sourceB - sourceA;
+  const differences = calibrationObservations(groups, (group) => {
+    const lowerScore = group.rows[lower]?.canonical_value;
+    const higherScore = group.rows[higher]?.canonical_value;
+    return lowerScore == null || higherScore == null ? null : higherScore - lowerScore;
   });
-  const overlapModelCount = distinctModelCount(offsets);
-  const delta = weightedMedianOfFinite(offsets);
-  const validationErrorByItem = new Map<Pair, number>();
-  for (const offset of offsets) {
+  const overlapModelCount = distinctModelCount(differences);
+  const offset = weightedMedianOfFinite(differences);
+  const validationErrorByGroup = new Map<SourceGroup, number>();
+  for (const difference of differences) {
     const heldOutOffset = weightedMedianOfFinite(
-      offsets.filter((candidate) => candidate.modelKey !== offset.modelKey),
+      differences.filter((candidate) => candidate.modelKey !== difference.modelKey),
     );
     if (heldOutOffset != null) {
-      validationErrorByItem.set(
-        offset.item,
-        Math.abs(offset.value - heldOutOffset) * Math.max(sourceBWeight, 1 - sourceBWeight),
-      );
+      validationErrorByGroup.set(difference.item, Math.abs(difference.value - heldOutOffset) / 2);
     }
   }
   const validationErrors = calibrationObservations(
-    pairs,
-    (pair) => validationErrorByItem.get(pair) ?? null,
+    groups,
+    (group) => validationErrorByGroup.get(group) ?? null,
   );
   const validationModelCount = distinctModelCount(validationErrors);
   const validationMedianAbsoluteError = weightedMedianOfFinite(validationErrors);
-  const imputationAllowed =
+  const accepted =
     maximumMedianAbsoluteError > 0 &&
     overlapModelCount >= MINIMUM_MODELS &&
     validationModelCount >= MINIMUM_MODELS &&
-    delta != null &&
+    offset != null &&
     validationMedianAbsoluteError != null &&
     validationMedianAbsoluteError <= maximumMedianAbsoluteError;
-  const confidence = imputationAllowed
-    ? clamp01(1 - (validationMedianAbsoluteError ?? 0) / maximumMedianAbsoluteError)
-    : null;
   return {
-    project,
-    confidence,
-    diagnostic: {
-      delta,
-      validationMedianAbsoluteError,
-      imputationAllowed,
-    },
+    offset,
+    validationMedianAbsoluteError,
+    accepted,
+    confidence: accepted
+      ? clamp01(1 - (validationMedianAbsoluteError ?? 0) / maximumMedianAbsoluteError)
+      : null,
   };
+}
 
-  /** Apply this fitted target to another pair, including source-default summaries that were not calibration observations. */
-  function project(sourceA: number | null, sourceB: number | null): number | null {
-    // A single-source target needs no imputation when that source is observed.
-    let projection: number;
-    if (sourceBWeight === 0 && sourceA != null) projection = sourceA;
-    else if (sourceBWeight === 1 && sourceB != null) projection = sourceB;
-    else {
-      if (sourceA == null && sourceB == null) return null;
-      if (sourceA == null || sourceB == null) {
-        if (!imputationAllowed || delta == null) return null;
-        if (sourceA == null) sourceA = sourceB! - delta;
-        else sourceB = sourceA + delta;
-      }
-      projection = (1 - sourceBWeight) * sourceA! + sourceBWeight * sourceB!;
-    }
-    return Number.isFinite(projection) ? projection : null;
-  }
+/** Conflicting configurations of one model and effort are not scored, so none may be picked as that model's result or shape a fit. */
+function scoredConfigurations(rows: readonly CrosswalkObservation[]): CrosswalkObservation[] {
+  return rows.filter((row) => row.metadata.assignment_eligible !== false);
 }
 
 /** Model names reconcile through the shared provider-neutral identity vocabulary; efforts remain separate keys. */
-function pairObservations(
-  a: readonly CrosswalkObservation[],
-  b: readonly CrosswalkObservation[],
-): Pair[] {
-  const pairs = new Map<string, Pair>();
-  for (const [side, rows] of [
-    ["a", a],
-    ["b", b],
-  ] as const) {
+function groupObservations(sources: readonly (readonly CrosswalkObservation[])[]): SourceGroup[] {
+  const groups = new Map<string, SourceGroup>();
+  for (const [source, rows] of sources.entries()) {
     for (const row of rows) {
       const name = modelNameIdentityKey(row.base_model);
       const key = `${name}/${row.reasoning_effort ?? ""}`;
-      const pair = pairs.get(key) ?? { name, effort: row.reasoning_effort, a: null, b: null };
-      const current = pair[side];
-      if (current == null || row.canonical_value > current.canonical_value) pair[side] = row;
-      pairs.set(key, pair);
+      const group = groups.get(key) ?? {
+        name,
+        effort: row.reasoning_effort,
+        rows: sources.map(() => null),
+      };
+      const current = group.rows[source];
+      if (current == null || row.canonical_value > current.canonical_value)
+        group.rows[source] = row;
+      groups.set(key, group);
     }
   }
-  return [...pairs.values()];
+  return [...groups.values()];
 }
 
 function sourceDefaults(rows: readonly CrosswalkObservation[]): CrosswalkObservation[] {

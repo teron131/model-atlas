@@ -13,7 +13,7 @@ import {
 import type { ComponentType, CSSProperties } from "react";
 import { RiRobot3Line } from "react-icons/ri";
 
-import type { ModelAtlasScoreDimension } from "../../src/model-atlas/stats/types";
+import type { ModelAtlasScoreKey } from "../../src/model-atlas/stats/types";
 import { ratioTrackStyle } from "./resource-ratio-display";
 
 export function BrainIcon() {
@@ -38,7 +38,7 @@ export const SCORE_ICONS = {
   agentic: BotIcon,
   speed: LightningIcon,
   value: DollarIcon,
-} as const satisfies Record<ModelAtlasScoreDimension, ComponentType>;
+} as const satisfies Record<ModelAtlasScoreKey, ComponentType>;
 
 export function ScreenshotIcon() {
   return <Camera aria-hidden="true" />;

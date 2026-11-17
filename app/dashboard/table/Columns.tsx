@@ -2,10 +2,7 @@
 
 import type { ReactNode } from "react";
 
-import type {
-  ModelAtlasModel,
-  ModelAtlasScoreDimension,
-} from "../../../src/model-atlas/stats/types";
+import type { ModelAtlasModel, ModelAtlasScoreKey } from "../../../src/model-atlas/stats/types";
 import { SCORE_ICONS } from "../../shared/DashboardMarks";
 import { costMetricColumns, type SortKey, speedMetricColumns } from "./column-registry";
 
@@ -18,22 +15,22 @@ type SortableColumnDefinition = {
 
 /** A score column also carries its mark, its full name, and its score and evidence-support readers, which the phone score strip, the evidence column, and the model sheet share. */
 type ScoreColumnDefinition = SortableColumnDefinition & {
-  key: ModelAtlasScoreDimension;
+  key: ModelAtlasScoreKey;
   name: string;
   icon: ReactNode;
   score: (model: ModelAtlasModel) => number | null;
   support: (model: ModelAtlasModel) => number | null;
 };
 
-export const scoreColumnsByDimension = {
+export const scoreColumnsByKey = {
   intelligence: scoreColumn("intelligence", "Intelligence", "Intel"),
   agentic: scoreColumn("agentic", "Agentic", "Agent"),
   speed: scoreColumn("speed", "Speed", "Speed"),
   value: scoreColumn("value", "Value", "Value"),
-} satisfies Record<ModelAtlasScoreDimension, ScoreColumnDefinition>;
+} satisfies Record<ModelAtlasScoreKey, ScoreColumnDefinition>;
 
 /** The four scores in column order. */
-export const scoreMetricColumns: ScoreColumnDefinition[] = Object.values(scoreColumnsByDimension);
+export const scoreMetricColumns: ScoreColumnDefinition[] = Object.values(scoreColumnsByKey);
 
 export const scoreSortableColumns: SortableColumnDefinition[] = [
   { key: "rank", label: "#", searchText: "Rank", className: "rank" },
@@ -81,11 +78,7 @@ export const staticSortableColumns: SortableColumnDefinition[] = [
   { key: "context", label: "Context", searchText: "Context" },
 ];
 
-function scoreColumn(
-  key: ModelAtlasScoreDimension,
-  name: string,
-  header: string,
-): ScoreColumnDefinition {
+function scoreColumn(key: ModelAtlasScoreKey, name: string, header: string): ScoreColumnDefinition {
   const Icon = SCORE_ICONS[key];
   return {
     key,

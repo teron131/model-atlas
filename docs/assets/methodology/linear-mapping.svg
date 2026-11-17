@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 340" role="img" aria-labelledby="title desc">
 <title id="title">Linear scaling with clamping</title>
-<desc id="desc">The minimum maps to zero and the maximum b maps to one, or to one hundred on the score scale. Values between them follow a straight line; values below the minimum or above the maximum are clamped to the nearest end.</desc>
+<desc id="desc">The minimum maps to zero and the maximum maps to one, or to one hundred on the score scale. Values between them follow a straight line; values below the minimum or above the maximum are clamped to the nearest end.</desc>
 <style>
 text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:15px;fill:#202724}
 .num{font-family:"SFMono-Regular","SF Mono",Menlo,Consolas,monospace;font-size:14px}

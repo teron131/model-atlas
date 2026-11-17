@@ -1,10 +1,10 @@
 /** Pairwise quality fits normalized benchmark margins through a model-balanced, matrix-free weighted graph Laplacian, then finishes Intelligence with index results placed on the frontier scale. */
 
 import { modelCalibrationWeights } from "../../benchmarks/calibration-population";
-import type { BenchmarkDimension, BenchmarkGroup } from "../../benchmarks/factory";
+import type { BenchmarkCapability, BenchmarkGroup } from "../../benchmarks/factory";
 import { isAggregateIndex } from "../../benchmarks/index-policy";
 import {
-  benchmarkDimensionWeight,
+  benchmarkAllocation,
   type BenchmarkMetricModel,
   benchmarkValue,
 } from "../../benchmarks/registry";
@@ -59,11 +59,11 @@ export type PairwiseQualityResult = {
  * Fit observed cross-model benchmark differences for the largest connected component of exact variants.
  * Aggregate indexes and estimated observations are excluded; benchmark ranges come only from observed values.
  * Returns latent ratings and 0–100 percentile scores, with variants outside the component omitted.
- * The dimension selects benchmark weights only; this fit does not apply Agentic token adjustments.
+ * The capability selects benchmark weights only; this fit does not apply Agentic token adjustments.
  */
 export function fitPairwiseQualityScores(
   models: readonly PairwiseQualityModel[],
-  dimension: BenchmarkDimension,
+  capability: BenchmarkCapability,
   scoringConfig: ScoringConfig,
   group?: BenchmarkGroup,
 ): PairwiseQualityResult {
@@ -71,22 +71,18 @@ export function fitPairwiseQualityScores(
   const edges: PairwiseEdge[] = [];
   let benchmarkCount = 0;
   const keys = (
-    dimension === "intelligence"
+    capability === "intelligence"
       ? scoringConfig.intelligenceBenchmarkKeys
       : scoringConfig.agenticBenchmarkKeys
   ).filter(
     (key) =>
       !isAggregateIndex(key) &&
-      (dimension !== "intelligence" || countsTowardIntelligence(key, scoringConfig)) &&
+      (capability !== "intelligence" || countsTowardIntelligence(key, scoringConfig)) &&
       (group == null || scoringConfig.benchmarkPortfolio[key]?.group === group),
   );
 
   for (const key of keys) {
-    const benchmarkWeight = benchmarkDimensionWeight(
-      key,
-      dimension,
-      scoringConfig.benchmarkPortfolio,
-    );
+    const benchmarkWeight = benchmarkAllocation(key, capability, scoringConfig.benchmarkPortfolio);
     if (!(benchmarkWeight > 0)) continue;
     const observations = pairwiseObservationsForKey(models, key, ranges.get(key) ?? null);
     const baseModelCount = new Set(observations.map(({ modelKey }) => modelKey)).size;
@@ -121,7 +117,7 @@ export function fitPairwiseQualityScores(
   const scoresByVariant = new Map<string, number>();
   const ratingsByVariant = new Map<string, number>();
   for (const modelIndex of component) {
-    const key = effortQualityKey(models[modelIndex]!, dimension);
+    const key = effortQualityKey(models[modelIndex]!, capability);
     ratingsByVariant.set(key, ratings[modelIndex]!);
     const score = weightedQuantileRank(ratingDistribution, ratings[modelIndex]!);
     if (score != null) {

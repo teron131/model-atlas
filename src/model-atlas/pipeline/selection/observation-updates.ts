@@ -1,7 +1,7 @@
 /** Observation updates: a benchmark observation unchanged since the previous published model keeps its date, a changed one takes the refresh date, and an unchanged task cost is repriced across model-price transitions. */
 
 import { TASK_COST_PRICE_TRANSITIONS, type TaskCostPriceTransition } from "../../config/stage";
-import { asFiniteNumber, asRecord } from "../../runtime";
+import { asFiniteNumber } from "../../runtime";
 import type {
   ModelAtlasCandidate,
   ModelAtlasModel,
@@ -94,7 +94,7 @@ function taskMetricContentMatches(
   return previous != null && taskMetricFingerprint(current) === taskMetricFingerprint(previous);
 }
 
-/** An unchanged value with no previous date takes `baselineDate`; fusion-estimated task costs are neither recorded as observed cost nor repriced. */
+/** An unchanged value with no previous date takes `baselineDate`. */
 export function stampObservationUpdates(
   candidate: ModelAtlasCandidate,
   previous: ModelAtlasModel | null | undefined,
@@ -130,9 +130,7 @@ export function stampObservationUpdates(
       const observedAt = rowUnchanged
         ? (previousMetrics?.observed_at ?? options.baselineDate)
         : options.observedDate;
-      const sourceMetadata = asRecord(asRecord(asRecord(candidate.scoring_sources)[key]).metadata);
-      const observedCost =
-        sourceMetadata.fusion_cost_estimated === true ? null : rawTaskMetricValue(metrics, "cost");
+      const observedCost = rawTaskMetricValue(metrics, "cost");
       const costPriceRatio = rowUnchanged
         ? taskCostPriceRatio(candidate.id, observedAt, options)
         : 1;

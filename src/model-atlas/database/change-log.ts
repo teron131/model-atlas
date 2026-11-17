@@ -6,10 +6,10 @@ import {
   buildChangeHistory,
   CHANGE_HISTORY_SECONDS,
   type ChangeLog,
-  DIMENSIONS,
   type ModelChangeDetailRow,
   type ModelScoreChangeRow,
   type RefreshRunRow,
+  SCORE_POLICIES,
   variantKey,
 } from "../stats/payload/changes";
 import type {
@@ -18,7 +18,7 @@ import type {
   ModelAtlasModel,
   ModelAtlasScoreChange,
   ModelAtlasScoreChangeCause,
-  ModelAtlasScoreDimension,
+  ModelAtlasScoreKey,
   ModelAtlasScoreMove,
   ModelAtlasVariantChanges,
 } from "../stats/types";
@@ -45,7 +45,7 @@ export const CHANGE_LOG_ROW_GROUPS = [
 
 type ChangeLogRows = Record<(typeof CHANGE_LOG_ROW_GROUPS)[number]["key"], DbRow[]>;
 
-const SCORE_CHANGE_DIMENSIONS = new Set(DIMENSIONS.map(({ dimension }) => dimension));
+const SCORE_CHANGE_KEYS = new Set(SCORE_POLICIES.map(({ scoreKey }) => scoreKey));
 const SCORE_CHANGE_CAUSE_KINDS = new Set<ModelAtlasScoreChangeCause["kind"]>([
   "model",
   "evidence",
@@ -304,13 +304,13 @@ function entryFromJson(value: unknown): ModelAtlasScoreChange["entry"] {
 }
 
 function scoreMoveFromJson(move: DbRow): ModelAtlasScoreMove | null {
-  const dimension = asNonEmptyString(move.dimension) as ModelAtlasScoreDimension | null;
+  const scoreKey = asNonEmptyString(move.dimension) as ModelAtlasScoreKey | null;
   const scoreAfter = asFiniteNumber(move.score_after);
-  if (dimension == null || !SCORE_CHANGE_DIMENSIONS.has(dimension) || scoreAfter == null) {
+  if (scoreKey == null || !SCORE_CHANGE_KEYS.has(scoreKey) || scoreAfter == null) {
     return null;
   }
   return {
-    dimension,
+    dimension: scoreKey,
     score_before: asFiniteNumber(move.score_before),
     score_after: scoreAfter,
     score_delta: asFiniteNumber(move.score_delta),

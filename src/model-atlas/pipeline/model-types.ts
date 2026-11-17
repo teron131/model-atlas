@@ -124,6 +124,8 @@ export type ModelRow = {
   openrouter_id?: string | null;
   artificial_analysis_id?: string | null;
   artificial_analysis_slug?: string | null;
+  /** Set on the one variant per base model that receives results reported for the model as a whole. */
+  source_default?: boolean;
   reasoning_effort?: string | null;
   family?: string | null;
   logo?: string | null;
@@ -156,7 +158,7 @@ export type ModelAtlasComponentScores = {
   agentic_score: number;
 };
 
-export type ModelAtlasConfidence = {
+export type ModelAtlasEvidenceSupport = {
   intelligence: NumberOrNull;
   agentic: NumberOrNull;
   speed: NumberOrNull;
@@ -177,7 +179,7 @@ export type ModelAtlasScores = {
   value_score: NumberOrNull;
 };
 
-export type ModelAtlasScoreDimension = "intelligence" | "agentic" | "speed" | "value";
+export type ModelAtlasScoreKey = "intelligence" | "agentic" | "speed" | "value";
 
 export type ModelAtlasScoreChangeCause = {
   kind: "model" | "evidence" | "coverage" | "methodology" | "relative";
@@ -194,7 +196,7 @@ export type ModelAtlasBenchmarkRankDriver = {
 
 /** One score's material move in an update; ranks are among models present in both updates, except a new entrant's, which is its rank in the whole field. */
 export type ModelAtlasScoreMove = {
-  dimension: ModelAtlasScoreDimension;
+  dimension: ModelAtlasScoreKey;
   score_before: number | null;
   score_after: number;
   score_delta: number | null;
@@ -241,7 +243,7 @@ export type ModelAtlasScoreChange = ModelAtlasScoreMove & {
 /** An update's headline move, as the leaderboard's strip of recent changes draws it. */
 export type ModelAtlasChangeMark = {
   refresh_id: number;
-  dimension: ModelAtlasScoreDimension;
+  dimension: ModelAtlasScoreKey;
   score_delta: number | null;
 };
 
@@ -269,7 +271,7 @@ type ModelFields = {
   task_metrics: ModelAtlasTaskMetrics;
   benchmarks: ModelAtlasBenchmarks | null;
   benchmark_dates: Record<string, string> | null;
-  confidence: ModelAtlasConfidence;
+  confidence: ModelAtlasEvidenceSupport;
   latest_change?: ModelAtlasScoreChange | null;
   /** Headline moves of the variant's most recent updates in the change-history window, oldest first. */
   recent_changes?: ModelAtlasChangeMark[];
@@ -277,12 +279,15 @@ type ModelFields = {
 };
 
 export type ModelAtlasCandidate = ModelFields & {
+  /** Carried from the model row; absent on every other variant of the base model. */
+  source_default?: boolean;
   scoring_sources?: ModelAtlasScoringSources;
   component_scores: ModelAtlasCandidateComponentScores | null;
   scores: null;
 };
 
 export type ModelAtlasScoredCandidate = ModelFields & {
+  source_default?: boolean;
   scoring_sources?: ModelAtlasScoringSources;
   component_scores: ModelAtlasCandidateComponentScores | null;
   scores: ModelAtlasCandidateScores;

@@ -27,8 +27,8 @@ import {
   isCatalogBenchmark,
   isReferenceBenchmark,
   type TimelineAnchors,
+  type TimelineCapability,
   timelineCatalogKey,
-  type TimelineDimension,
 } from "./schemas";
 
 type ModelInput = Pick<
@@ -37,7 +37,7 @@ type ModelInput = Pick<
 >;
 export type CapabilityPosition = {
   modelId: string;
-  coordinates: Partial<Record<TimelineDimension, number>>;
+  coordinates: Partial<Record<TimelineCapability, number>>;
   /** When the model was first placed; later refreshes can still move its coordinates. */
   publishedAt: string;
   policyId: string;
@@ -147,12 +147,12 @@ function retainCurrentVersions(
   dataset.releaseId = historicalReleaseId(dataset);
   if (state.dataset.scale) {
     const previous = state.dataset.scale;
-    const retainDimension = (dimension: TimelineDimension) => {
-      const links = previous.dimensions[dimension].links.filter(
+    const retainCapability = (capability: TimelineCapability) => {
+      const links = previous.dimensions[capability].links.filter(
         (link) => !removed.has(link.left) && !removed.has(link.right),
       );
       const retainedLinks = new Set(links.map((link) => link.id));
-      const nodes = previous.dimensions[dimension].nodes
+      const nodes = previous.dimensions[capability].nodes
         .filter((node) => !removed.has(node.benchmarkId))
         .map((node) => ({
           ...node,
@@ -161,9 +161,9 @@ function retainCurrentVersions(
         }));
       return { links, nodes };
     };
-    const dimensions = {
-      intelligence: retainDimension("intelligence"),
-      agentic: retainDimension("agentic"),
+    const graphs = {
+      intelligence: retainCapability("intelligence"),
+      agentic: retainCapability("agentic"),
     };
     dataset.scale = {
       ...previous,
@@ -174,14 +174,14 @@ function retainCurrentVersions(
             qualityTransform: previous.qualityTransform,
             minimumReferenceConfidence: previous.minimumReferenceConfidence,
             releaseId: dataset.releaseId,
-            dimensions,
+            dimensions: graphs,
           }),
         )
         .digest("hex"),
       parentId: previous.id,
       benchmarks,
       observations: dataset.observations,
-      dimensions,
+      dimensions: graphs,
     };
   }
   return {

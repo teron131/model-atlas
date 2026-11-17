@@ -23,18 +23,18 @@ import {
 } from "../src/model-atlas/timeline/capability";
 import { historicalSourceModel } from "../src/model-atlas/timeline/model-identity";
 import { prepareTimelineRelease } from "../src/model-atlas/timeline/scale";
-import type { TimelineAnchors, TimelineDimension } from "../src/model-atlas/timeline/schemas";
+import type { TimelineAnchors, TimelineCapability } from "../src/model-atlas/timeline/schemas";
 import { historicalDatasetFromReleases, minimalModelAtlasModel } from "./model-atlas-fixtures";
 
 /** Published units for a fixed coordinate: the frozen anchor references map linearly onto the anchor scores. */
 function capabilityIndex(
   value: number | null | undefined,
-  dimension: TimelineDimension,
+  capability: TimelineCapability,
   anchors: TimelineAnchors,
 ): number | null {
   if (value == null || !Number.isFinite(value)) return null;
   const reference = (modelId: string) =>
-    anchors.frozenReferences!.find((row) => row.modelId === modelId)!.values[dimension];
+    anchors.frozenReferences!.find((row) => row.modelId === modelId)!.values[capability];
   const low = reference(anchors.lowModelId);
   const high = reference(anchors.highModelId);
   return anchors.lowScore + ((anchors.highScore - anchors.lowScore) * (value - low)) / (high - low);
@@ -249,10 +249,10 @@ assert.deepEqual(
 );
 assert.deepEqual(next.positions, initial.positions);
 assert.equal(next.dataset.benchmarks.length, initial.dataset.benchmarks.length);
-for (const dimension of ["intelligence", "agentic"] as const)
+for (const capability of ["intelligence", "agentic"] as const)
   assert.deepEqual(
-    next.dataset.scale!.dimensions[dimension].nodes,
-    initial.dataset.scale!.dimensions[dimension].nodes,
+    next.dataset.scale!.dimensions[capability].nodes,
+    initial.dataset.scale!.dimensions[capability].nodes,
   );
 
 const future = {
@@ -432,8 +432,8 @@ for (const dataset of [liveDataset, liveDataset.scale!]) {
   assert.ok(dataset.observations.every((observation) => !oldIds.has(observation.benchmarkId)));
   assert.ok(dataset.observations.some((observation) => observation.benchmarkId === "external"));
 }
-for (const dimension of ["intelligence", "agentic"] as const) {
-  const graph = liveDataset.scale!.dimensions[dimension];
+for (const capability of ["intelligence", "agentic"] as const) {
+  const graph = liveDataset.scale!.dimensions[capability];
   assert.ok(graph.links.every((link) => !oldIds.has(link.left) && !oldIds.has(link.right)));
   assert.ok(
     graph.nodes.every(
@@ -442,7 +442,7 @@ for (const dimension of ["intelligence", "agentic"] as const) {
   );
   const linkIds = new Set(graph.links.map((link) => link.id));
   assert.ok(graph.nodes.every((node) => node.errors.every((error) => linkIds.has(error.linkId))));
-  for (const node of priorVersionDataset.scale!.dimensions[dimension].nodes) {
+  for (const node of priorVersionDataset.scale!.dimensions[capability].nodes) {
     if (oldIds.has(node.benchmarkId)) continue;
     const retainedNode = graph.nodes.find(
       (candidate) => candidate.benchmarkId === node.benchmarkId,

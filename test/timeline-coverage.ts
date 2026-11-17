@@ -96,7 +96,7 @@ assert.equal(
 assert.equal(
   timelineCoverage(data, "intelligence", []).get(broad.id)!.fraction,
   0.1,
-  "Coverage stays dimension-specific",
+  "Coverage stays capability-specific",
 );
 assert.deepEqual(
   timelineCoverage({ ...data, models: [broad] }, "agentic", []).get(broad.id),

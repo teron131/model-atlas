@@ -11,7 +11,7 @@ Judge any benchmark on its merits from the current repository contract and prima
 
 - For a new or untracked candidate, start from the official benchmark evidence and decide whether it meets the repository standard. Do not require local rows, Model Atlas coverage, or an existing scraper before judging admission.
 - For a rejected or previously reviewed benchmark, reassess the current evidence rather than inheriting the old verdict.
-- For a selected benchmark, test whether it still earns its class and ranking space; add portfolio drift evidence when local artifacts exist.
+- For a selected benchmark, test whether it still earns its place as a frontier or baseline benchmark and its ranking space; add portfolio drift evidence when local artifacts exist.
 - For a portfolio audit, derive the portfolio from the repository and apply the same standard to every selected benchmark.
 
 ## Keep Reviews Read-Only
@@ -28,11 +28,11 @@ For review, audit, or report requests:
 Read current files before naming benchmarks, sources, groups, weights, or rank semantics:
 
 1. Read `docs/standards.md` for admission, retention, and rejection criteria.
-2. Read `docs/benchmarks.md` for portfolio decisions, source precedence, metric selection, reconciliation, benchmark-specific resource policy, classification, and Intelligence/Agentic loadings.
-3. Start with `docs/methodology/overview.md`, then read the relevant `intelligence-agentic.md`, `imputation.md`, `speed-value.md`, and `leaderboard-rules.md` pages in that directory for the current scoring and display contracts.
-4. When the benchmark is selected or comparison with the portfolio matters, derive the selected portfolio, `frontier` or `baseline` group, and Intelligence/Agentic loadings from `src/model-atlas/benchmarks/catalog/portfolio.ts`. Compare those definitions with the served payload metadata when auditing a deployed result; distinguish a deployment mismatch from a portfolio decision.
+2. Read `docs/benchmarks.md` for portfolio decisions, each benchmark's source and metric choices, benchmark-specific resource policy, classification, and Intelligence/Agentic allocations.
+3. Start with `docs/methodology/overview.md`, which defines the terms every page uses, then read the relevant pages in that directory for the current scoring and display contracts: `intelligence-agentic.md`, `speed-value.md`, `imputation.md`, `leaderboard-rules.md`, and `sources.md` for how sources combine, crosswalks, version changes, and updated releases.
+4. When the benchmark is selected or comparison with the portfolio matters, derive the selected portfolio, `frontier` or `baseline` group, and Intelligence/Agentic allocations (`dimensionLoadings`) from `src/model-atlas/benchmarks/catalog/portfolio.ts`. Compare those definitions with the served payload metadata when auditing a deployed result; distinguish a deployment mismatch from a portfolio decision.
 5. For a registered benchmark, derive raw source names, loaders, and URLs from `src/model-atlas/benchmarks/catalog/sources.ts` and `src/model-atlas/benchmarks/registry.ts`. For a new candidate, use its official primary sources and do not expect a local registry entry.
-6. When rank agreement matters, inspect `app/dashboard/table/leaderboard-rows.ts`, `app/dashboard/table/sort.ts`, `src/model-atlas/pipeline/selection/public-list.ts`, `app/api/public-json.ts`, and `src/model-atlas/stats/model-variants.ts` before reconstructing the displayed rank. Follow the app's current default rank and variant-collapse semantics; do not substitute another aggregate.
+6. When rank agreement matters, inspect `app/dashboard/table/leaderboard-rows.ts`, `app/dashboard/table/sort.ts`, `src/model-atlas/pipeline/selection/public-list.ts`, `app/api/public-json.ts`, and `src/model-atlas/stats/model-variants.ts` before reconstructing the displayed rank. Follow the app's current default rank and its choice of the variant a Collapsed row shows; do not substitute another aggregate.
 7. For selected benchmark values, follow `benchmarkValue` in `src/model-atlas/pipeline/scores/resource-metrics.ts`, which reads `model.benchmarks` and the supported `model.intelligence` fields. The shared model contract lives in `src/model-atlas/pipeline/model-types.ts` and is re-exported by `src/model-atlas/stats/types.ts`.
 
 Never rely on a benchmark list, source URL, prior verdict, database run number, or model rank remembered from an earlier audit.
@@ -86,14 +86,14 @@ Judge:
 - redundancy with selected benchmarks and uniqueness of the capability signal; compare with the current portfolio even when the candidate is new
 - whether structured, current results are available well enough to support ongoing audit and ingestion
 
-Recommend exactly `frontier`, `baseline`, or `rejected` when the evidence supports a decision, matching `docs/standards.md`. If essential evidence is unavailable, state what blocks classification instead of inventing a fourth class. Explain the capability and evidence behind the decision. Keep benchmark merit separate from ingestion readiness: difficult access or an unimplemented scraper can block adoption without making the underlying benchmark low quality.
+Recommend exactly `frontier`, `baseline`, or `rejected` when the evidence supports a decision, matching `docs/standards.md`. If essential evidence is unavailable, state what blocks classification instead of inventing a fourth one. Explain the capability and evidence behind the decision. Keep benchmark merit separate from ingestion readiness: difficult access or an unimplemented scraper can block adoption without making the underlying benchmark low quality.
 
 When the user asks to settle portfolio policy:
 
-- Apply the current class semantics from `docs/benchmarks.md` and the scoring owners: frontier task results contribute directly to capability scores, while baseline results remain visible without direct capability contributions. Aggregate indexes have separate eligibility and breadth rules; do not treat changing class as a label-only edit.
+- Apply what frontier and baseline mean in `docs/benchmarks.md` and the scoring owners: frontier benchmark results carry weight in capability scores, while baseline results stay visible and carry none. Aggregate indexes have separate eligibility and represented-breadth rules; do not treat a move between frontier and baseline as a label-only edit.
 - Read aggregate-index represented-breadth rules from the current catalog and `src/model-atlas/benchmarks/index-policy.ts`.
-- Default coding benchmarks primarily to Agentic. Add substantial Intelligence loading only when algorithmic, mathematical, scientific, or research reasoning materially determines success.
-- Distinguish accepted source crosswalks, estimates from other benchmarks, and estimates across reasoning efforts using `docs/methodology/imputation.md`. Crosswalks supply accepted benchmark results; cross-benchmark estimates supply discounted evidence and resource-comparison inputs; supported sibling-effort estimates can fill missing capability contributions without adding direct evidence. No imputation satisfies direct-evidence admission requirements.
+- Default coding benchmarks primarily to Agentic. Add a substantial Intelligence allocation only when algorithmic, mathematical, scientific, or research reasoning materially determines success.
+- Distinguish accepted source crosswalks, estimates from other benchmarks, and estimates across reasoning efforts using `docs/methodology/sources.md` and `docs/methodology/imputation.md`. Crosswalks supply accepted benchmark results; estimates from other benchmarks supply discounted evidence and resource-comparison inputs; supported estimates from another effort of the same model can fill missing capability contributions without counting as observed. No estimate satisfies the observed-evidence requirements for dashboard inclusion.
 
 An unexpected winner is a reason to inspect task fit, grading, configuration, and harness effects, not evidence of bad methodology by itself.
 
@@ -116,17 +116,17 @@ Prioritize source vitality and leader quality over final-table coverage. A bench
 
 Inspect source leaderboard leaders before judging only the subset that survives final-model selection. Treat a current top-tier excluded row as evidence that the source remains active, and state why it is excluded before interpreting matched-rank agreement.
 
-Judge headroom and separation by the Difficulty and Separation section of `docs/standards.md`, on a stated cohort of serious current systems. Count models near a ceiling only within a band the benchmark's task granularity or uncertainty justifies, stating the band and the denominator; where no meaningful ceiling exists, do not infer saturation from a normalized scale. Never derive confidence intervals from aggregate leaderboard scores or read decimal precision as resolution. Compare earlier evidence only within one version, metric, and protocol, and where possible on a fixed matched cohort, so new entrants, effort or harness changes, regrading, and identity churn do not read as a trend. Revisit every benchmark retained despite approaching saturation or weak separation: state the original rationale from `docs/benchmarks.md`, whether it still holds, and what evidence would change it. Source activity alone does not justify frontier status.
+Judge headroom and separation by the Difficulty and Separation section of `docs/standards.md`, on a stated group of serious current models. Count models near a ceiling only within a band the benchmark's task granularity or uncertainty justifies, stating the band and the denominator; where no meaningful ceiling exists, do not infer saturation from a normalized scale. Never derive confidence intervals from aggregate leaderboard scores or read decimal precision as resolution. Compare earlier evidence only within one version, metric, and protocol, and where possible on a fixed matched cohort, so new entrants, effort or harness changes, regrading, and identity churn do not read as a trend. Revisit every benchmark retained despite approaching saturation or weak separation: state the original rationale from `docs/benchmarks.md`, whether it still holds, and what evidence would change it. Source activity alone does not justify frontier status.
 
 ## Check Versions
 
 The standing policy is to use each benchmark's newest published version and never pool two versions. The refresh pipeline already adopts a new version published at the address Atlas reads when the structure is unchanged: a refresh that shares no version with the cached rows replaces them (`withoutSupersededVersions` in `src/model-atlas/sources/snapshots/policy.ts`). A version fixed by the address never changes, so the rule never fires there. Sort each selected benchmark's version state, and report maintenance separately from decisions:
 
 - **Adopted automatically.** The observed version (served `metadata.benchmark_versions`, or the rows' version in the checkpoint) is newer than the one prior evidence recorded. Scores, displayed versions, and the timeline already follow it, because a version the rows report starts its own timeline identity; nothing needs maintenance. The catalog in `src/model-atlas/benchmarks/catalog/sources.ts` declares only versions the rows do not report.
-- **Successor at a new address.** A version selector, a superseded or replaced-by notice, a new artifact URL, or a new evaluation page means the newest version moved. Switching the catalog address is maintenance under the newest-version policy; escalate only class or loading questions the new version raises, such as changed tasks, tools, harness, or grading.
-- **Rejected for structure.** A new version with a different component basket, subset layout, or task set yields no rows, so source health shows cached rows. Report the structural change and the breadth, metric, or loading decision it needs.
+- **Successor at a new address.** A version selector, a superseded or replaced-by notice, a new artifact URL, or a new evaluation page means the newest version moved. Switching the catalog address is maintenance under the newest-version policy; escalate only classification or allocation questions the new version raises, such as changed tasks, tools, harness, or grading.
+- **Rejected for structure.** A new version with a different component basket, subset layout, or task set yields no rows, so source health shows cached rows. Report the structural change and the breadth, metric, or allocation decision it needs.
 - **No published version.** For sources that publish none, such as Surge or an Artificial Analysis page whose title carries no version, look for silent reruns: shared rows moving together, a changed score granularity, or a cohort reset. Treat a confirmed rerun as a new version and declare it in the catalog.
-- **Deliberate pin.** A version pinned so a fused source matches another source's suite, such as Terminal-Bench-Science's Vals series, is not stale while that suite is unchanged.
+- **Deliberate pin.** A version pinned so a source combined with another matches that source's suite, such as Terminal-Bench-Science's Vals series, is not stale while that suite is unchanged.
 - **Pooled minor versions.** Where the publisher's own leaderboard pools minor versions it scores comparably, Atlas pools them too, through Epoch's `latestTaskVersion: "major"` as Chess Puzzles does. That is one version under policy, not gap filling.
 - **Gap filling across versions.** A rule that fills models missing from the newest version with an older version's rows pools two versions. Report it as a scoring defect, not as coverage.
 
@@ -166,7 +166,7 @@ Different disclosed agents or harnesses are not themselves a watch signal; inter
 
 Treat dates as context rather than strict equality checks. Separate benchmark merit from pipeline persistence or observability problems. Be more tolerant of rank disagreement for narrow agentic workflows and unique capabilities than for broad frontier Intelligence claims.
 
-Judge the class separately from these health verdicts, recommending exactly `frontier`, `baseline`, or `rejected`. Retain frontier while credible, demanding tasks still separate current serious systems with meaningful headroom. Recommend baseline when frontier separation has weakened but reliable evidence still adds important breadth or stability; baseline is not the automatic destination for a saturated benchmark. Recommend rejection when saturation or clustering leaves no important baseline value, or when the standards establish a material compromise; an active source can still merit removal. A `keep` verdict can sit beside a baseline or removal recommendation, so state both.
+Judge the classification separately from these health verdicts, recommending exactly `frontier`, `baseline`, or `rejected`. Retain frontier while credible, demanding tasks still separate current serious systems with meaningful headroom. Recommend baseline when frontier separation has weakened but reliable evidence still adds important breadth or stability; baseline is not the automatic destination for a saturated benchmark. Recommend rejection when saturation or clustering leaves no important baseline value, or when the standards establish a material compromise; an active source can still merit removal. A `keep` verdict can sit beside a baseline or removal recommendation, so state both.
 
 ## Run The Weekly Review
 
@@ -193,15 +193,15 @@ Lead with the verdict and the strongest evidence. For individual reviews, use th
 1. keep/watch/review counts and the decisions the audit needs
 2. maintenance, listed on its own
 3. each decision, as described below
-4. a compact table with one row per benchmark: class and loadings, version, source leader and whether it is current, matched-rank context, coverage, gap, top-five range, top standard error, last update, fetch state, verdict, and recommended class
+4. a compact table with one row per benchmark: classification and allocation, version, source leader and whether it is current, matched-rank context, coverage, gap, top-five range, top standard error, last update, fetch state, verdict, and recommended classification
 5. attention notes for watch and review items and for benchmarks retained despite weak separation, holding the detailed calculations
 6. non-code next actions
 
-Separate maintenance from decisions. Maintenance needs no user decision under standing policy: version catch-ups, switching to a newer version's address, and fixing a pipeline defect whose cause has been reproduced. Decisions are class, loading, breadth, metric, and removal choices.
+Separate maintenance from decisions. Maintenance needs no user decision under standing policy: version catch-ups, switching to a newer version's address, and fixing a pipeline defect whose cause has been reproduced. Decisions are classification, allocation, breadth, metric, and removal choices.
 
 Keep the report short enough to act on, so maintenance can proceed without waiting for a decision. Give each decision as its own question with the recommended option first, the evidence behind it, and links to the source pages; add a screenshot or small chart when it shows the evidence faster than prose.
 
-Do not leave a decision blocked when read-only evidence can settle it. For a revised or successor version, collect the successor's distribution on the same current cohort, how much of the task set and protocol changed, and whether the source still evaluates new models on the old version; then recommend a class with its main risk. Reserve a blocked verdict for evidence that cannot be obtained, and name what would unblock it.
+Do not leave a decision blocked when read-only evidence can settle it. For a revised or successor version, collect the successor's distribution on the same current cohort, how much of the task set and protocol changed, and whether the source still evaluates new models on the old version; then recommend a classification with its main risk. Reserve a blocked verdict for evidence that cannot be obtained, and name what would unblock it.
 
 For every watch or review item, report the observed symptom, the best-supported cause, whether the cause affects benchmark merit or only ingestion/identity/observability, and why that effect is material enough for the verdict. Do not leave the user to infer significance from dates, counts, provenance labels, or health statuses.
 

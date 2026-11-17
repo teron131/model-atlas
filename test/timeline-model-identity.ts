@@ -118,7 +118,7 @@ assert.notEqual(
       weights: { intelligence: 0.25, agentic: 0.75 },
     })),
   }),
-  "Changed dimension weights invalidate the evidence release",
+  "Changed capability weights invalidate the evidence release",
 );
 assert.equal(
   selected.reference.id,

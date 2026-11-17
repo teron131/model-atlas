@@ -239,16 +239,7 @@ export function buildTaskMetrics(
   const taskMetrics: NonNullable<ModelAtlasTaskMetrics> = {};
   for (const [key, source] of Object.entries(scoringSources ?? {})) {
     const sourceTaskMetrics = buildSourceMetrics(source);
-    if (sourceTaskMetrics != null) {
-      const metadata = asRecord(asRecord(source).metadata);
-      const comparableMetrics = { ...sourceTaskMetrics };
-      if (metadata.fusion_cost_comparable === false) delete comparableMetrics.cost;
-      if (metadata.fusion_seconds_per_task_comparable === false) delete comparableMetrics.seconds;
-      if (metadata.fusion_tokens_per_task_comparable === false) delete comparableMetrics.tokens;
-      if (metadata.fusion_output_tokens_per_task_comparable === false)
-        delete comparableMetrics.output_tokens;
-      if (hasFields(comparableMetrics)) taskMetrics[key] = comparableMetrics;
-    }
+    if (sourceTaskMetrics != null) taskMetrics[key] = sourceTaskMetrics;
     for (const [sourceKey, metrics] of buildSeparatedSourceMetrics(key, source)) {
       taskMetrics[sourceKey] = metrics;
     }
@@ -370,6 +361,7 @@ export function buildModelCandidate(
     benchmarks: qualityValues.benchmarks,
     benchmark_dates: null,
     confidence: { intelligence: null, agentic: null, speed: null, value: null },
+    ...(row.source_default ? { source_default: true } : {}),
     scoring_sources: scoringSources,
     component_scores: null,
     scores: null,

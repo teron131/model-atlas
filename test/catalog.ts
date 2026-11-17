@@ -75,16 +75,16 @@ for (const key of ARTIFICIAL_ANALYSIS_INDEX_COMPONENT_BENCHMARK_KEYS) {
   assert.ok(key in BENCHMARK_CATALOG, `${key} must name a catalog benchmark to deduct overlap`);
 }
 const selectedIndexKeys = new Set<string>(INDEX_BENCHMARK_KEYS);
-for (const dimension of ["intelligence", "agentic"] as const) {
-  for (const key of STAGE_CONFIG.scoring[`${dimension}BenchmarkKeys`]) {
+for (const capability of ["intelligence", "agentic"] as const) {
+  for (const key of STAGE_CONFIG.scoring[`${capability}BenchmarkKeys`]) {
     assert.ok(
       selectedIndexKeys.has(key) ||
         STAGE_CONFIG.scoring.benchmarkPortfolio[key]?.group === "frontier",
-      `${dimension} must exclude direct baseline contributions`,
+      `${capability} must exclude direct baseline contributions`,
     );
   }
   assert.ok(
-    STAGE_CONFIG.scoring[`${dimension}BenchmarkDisplayKeys`].some(
+    STAGE_CONFIG.scoring[`${capability}BenchmarkDisplayKeys`].some(
       (key) =>
         !selectedIndexKeys.has(key) &&
         STAGE_CONFIG.scoring.benchmarkPortfolio[key]?.group === "baseline",
@@ -238,7 +238,7 @@ const evidenceScoringConfig = {
 } satisfies ScoringConfig;
 const benchmarkAdmissionConfig = {
   minimumObservedWeight: 2,
-  minimumObservedPerDimension: 1,
+  minimumObservedPerCapability: 1,
   minimumObservedIndexes: 0,
 } as const;
 const minimumEvidenceModel = {
@@ -252,7 +252,7 @@ const minimumEvidenceModel = {
 function admitsWeight(benchmarks: Record<string, number>, minimumObservedWeight: number): boolean {
   return hasRequiredBenchmarkEvidence({ intelligence: null, benchmarks }, STAGE_CONFIG.scoring, {
     minimumObservedWeight,
-    minimumObservedPerDimension: 0,
+    minimumObservedPerCapability: 0,
     minimumObservedIndexes: 0,
   });
 }
@@ -353,7 +353,7 @@ assert.equal(
     minimumObservedWeight: 3,
   }),
   false,
-  "dimension coverage should not replace the minimum benchmark count",
+  "capability coverage should not replace the minimum benchmark count",
 );
 assert.equal(
   hasRequiredBenchmarkEvidence(

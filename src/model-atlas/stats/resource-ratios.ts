@@ -171,14 +171,7 @@ function benchmarkObservations(
   kind: ResourceRatioKind,
   slots: number,
 ): ResourceRatioObservation[] {
-  const metadata = asRecord(asRecord(asRecord(asRecord(model).scoring_sources)[key]).metadata);
-  const field =
-    kind === "cost" ? "cost" : kind === "time" ? "seconds_per_task" : `${kind}_per_task`;
-  const direct =
-    metadata[`fusion_${field}_estimated`] === true ||
-    metadata[`fusion_${field}_comparable`] === false
-      ? null
-      : metricAmount(benchmarkTaskMetrics(model, key), kind);
+  const direct = metricAmount(benchmarkTaskMetrics(model, key), kind);
   const quality = benchmarkValue(model, key);
   if (direct != null && quality != null)
     return [

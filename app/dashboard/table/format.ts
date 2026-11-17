@@ -19,7 +19,7 @@ export const formatRefreshDate = (epochSeconds: number, length: "long" | "short"
 export const formatScore = (value: number | null | undefined) =>
   typeof value === "number" && Number.isFinite(value) ? value.toFixed(1) : "-";
 
-export const formatConfidence = (value: number | null | undefined) =>
+export const formatEvidenceSupport = (value: number | null | undefined) =>
   typeof value === "number" && Number.isFinite(value)
     ? `${Math.round(Math.max(0, Math.min(1, value)) * 100)}%`
     : "-";

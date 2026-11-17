@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 380" role="img" aria-labelledby="title desc">
 <title id="title">Freeze the current reference, then extend across generations</title>
-<desc id="desc">A schematic plot with release generations across and a fixed index scale up the side. Solid points in the initial snapshot have at least 60 percent evidence support and set the saved range. Three points at 50 percent opacity have lower coverage and do not define that range, including points above and below it. Numbered steps run in order: freeze the reference, look back through retained evidence to older models on the left, and extend forward through new evidence to future models on the right, all on the same fixed ruler.</desc>
+<desc id="desc">A schematic plot with release generations across and a fixed index scale up the side. Solid points in the initial snapshot have at least 60 percent evidence support and set the saved range. Three points at 50 percent opacity have less evidence support and do not define that range, including points above and below it. Numbered steps run in order: freeze the reference, look back through retained evidence to older models on the left, and extend forward through new evidence to future models on the right, all on the same fixed ruler.</desc>
 <style>
 text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:15px;fill:#202724}
 .num{font-family:"SFMono-Regular","SF Mono",Menlo,Consolas,monospace;font-size:14px}

@@ -1,6 +1,6 @@
 /** Tuned values each pipeline stage reads: matcher variant tokens, OpenRouter fetch concurrency, benchmark admission, snapshot preservation, quality and resource scoring, and the price transitions that rebase older task costs. */
 
-import type { BenchmarkDimension, BenchmarkPortfolio } from "../benchmarks/factory";
+import type { BenchmarkCapability, BenchmarkPortfolio } from "../benchmarks/factory";
 import {
   INDEX_REPRESENTED_BENCHMARK_MEDIAN,
   isAggregateIndex,
@@ -19,12 +19,12 @@ type OpenRouterConfig = {
 
 export type BenchmarkAdmissionConfig = {
   minimumObservedWeight: number;
-  minimumObservedPerDimension: number;
+  minimumObservedPerCapability: number;
   minimumObservedIndexes: number;
 };
 
 type QualityCoverageThresholds = Record<
-  BenchmarkDimension,
+  BenchmarkCapability,
   {
     floor: number;
     full: number;
@@ -158,7 +158,7 @@ export const STAGE_CONFIG = {
   final: {
     benchmarkAdmission: {
       minimumObservedWeight: MINIMUM_REPORTED_INDEX_BREADTH,
-      minimumObservedPerDimension: 1,
+      minimumObservedPerCapability: 1,
       minimumObservedIndexes: 2,
     },
   },
@@ -195,7 +195,7 @@ export function countsTowardIntelligence(
   );
 }
 
-/** Benchmarks that score either quality dimension, each once, Intelligence keys first. */
+/** Benchmarks that score either capability, each once, Intelligence keys first. */
 export function selectedBenchmarkKeys(
   scoringConfig: Pick<ScoringConfig, "intelligenceBenchmarkKeys" | "agenticBenchmarkKeys">,
 ): string[] {

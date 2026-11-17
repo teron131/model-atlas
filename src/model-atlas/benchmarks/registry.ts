@@ -19,8 +19,8 @@ import {
 import {
   applyBenchmarkTransform,
   type BenchmarkAggregationPolicy,
+  type BenchmarkCapability,
   type BenchmarkDefinition,
-  type BenchmarkDimension,
   type BenchmarkGroup,
   type BenchmarkPersistenceFacet,
   type BenchmarkPortfolio,
@@ -345,19 +345,19 @@ export const benchmarkResourcePolicy = (key: string) =>
 const benchmarkKeysInGroup = (group: BenchmarkGroup) =>
   BENCHMARK_KEYS.filter((key) => BENCHMARK_PORTFOLIO[key].group === group);
 
-/** A benchmark's loading on `dimension`; a benchmark outside the portfolio weighs zero. */
-export const benchmarkDimensionWeight = (
+/** A benchmark's allocation to `capability`; a benchmark outside the portfolio weighs zero. */
+export const benchmarkAllocation = (
   key: string,
-  dimension: BenchmarkDimension,
+  capability: BenchmarkCapability,
   portfolio: BenchmarkPortfolio = BENCHMARK_PORTFOLIO,
 ) => {
   const entry = portfolio[key];
-  return entry == null ? 0 : entry.dimensionLoadings[dimension];
+  return entry == null ? 0 : entry.dimensionLoadings[capability];
 };
-const selectedBenchmarksForDimension = (dimension: BenchmarkDimension) =>
-  BENCHMARK_KEYS.filter((key) => benchmarkDimensionWeight(key, dimension) > 0);
+const selectedBenchmarksForCapability = (capability: BenchmarkCapability) =>
+  BENCHMARK_KEYS.filter((key) => benchmarkAllocation(key, capability) > 0);
 
 export const BASELINE_BENCHMARKS = benchmarkKeysInGroup("baseline");
 export const FRONTIER_BENCHMARKS = benchmarkKeysInGroup("frontier");
-export const SELECTED_INTELLIGENCE_BENCHMARKS = selectedBenchmarksForDimension("intelligence");
-export const SELECTED_AGENTIC_BENCHMARKS = selectedBenchmarksForDimension("agentic");
+export const SELECTED_INTELLIGENCE_BENCHMARKS = selectedBenchmarksForCapability("intelligence");
+export const SELECTED_AGENTIC_BENCHMARKS = selectedBenchmarksForCapability("agentic");

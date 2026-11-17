@@ -88,7 +88,7 @@ close(
   score(broad).componentScores?.intelligence_score,
   score(broad, base).componentScores!.intelligence_score!,
 );
-assert.deepEqual(score(partial).confidence, score(partial, base).confidence);
+assert.deepEqual(score(partial).evidenceSupport, score(partial, base).evidenceSupport);
 assert.equal(partial.benchmarks.task_8, undefined);
 // Newly observed evidence takes precedence even if an estimate was already prepared.
 const observed = { ...partial, benchmarks: { ...partial.benchmarks, task_8: 50 } };
@@ -105,7 +105,7 @@ const sparseContext = prepareEffortQualityScoringContext(
   base,
 );
 close(score(sparse, sparseContext).componentScores?.intelligence_score, expectedPartialScore);
-assert.deepEqual(score(sparse, sparseContext).confidence, score(sparse, base).confidence);
+assert.deepEqual(score(sparse, sparseContext).evidenceSupport, score(sparse, base).evidenceSupport);
 // Two shared tasks cannot create an estimate, and estimates cannot serve as observations on a second pass.
 const insufficient = {
   ...sparse,

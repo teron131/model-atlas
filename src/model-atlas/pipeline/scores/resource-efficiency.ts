@@ -4,7 +4,6 @@ import { calibrationObservations } from "../../benchmarks/calibration-population
 import { canonicalModelKey } from "../../identity/normalization";
 import {
   clamp,
-  effectiveCount,
   gaussianWeight,
   meanOfFinite,
   smoothstep,
@@ -253,7 +252,8 @@ function localResidual(
   fullSupport: number,
 ): LocalResidual {
   const coordinate = coordinateOf(quality);
-  const comparisons = new Map<string, { resourceTotal: number; weight: number }>();
+  let totalWeight = 0;
+  let resourceTotal = 0;
   let distanceTotal = 0;
   let distanceSquares = 0;
   let distanceResourceTotal = 0;
@@ -273,21 +273,13 @@ function localResidual(
     maximumCoordinate = Math.max(maximumCoordinate, peer.coordinate);
     minimumResource = Math.min(minimumResource, peer.resource);
     maximumResource = Math.max(maximumResource, peer.resource);
-    const comparison = comparisons.get(peer.modelKey) ?? { resourceTotal: 0, weight: 0 };
-    comparison.resourceTotal += weight * peer.resource;
-    comparison.weight += weight;
-    comparisons.set(peer.modelKey, comparison);
+    totalWeight += weight;
+    resourceTotal += weight * peer.resource;
   }
-  const peerModels = [...comparisons.values()];
-  const totalWeight = peerModels.reduce((sum, peerModel) => sum + peerModel.weight, 0);
   if (totalWeight <= 0) return { residual: 0, peerSupport: 0 };
-  const resourceTotal = peerModels.reduce((sum, peerModel) => sum + peerModel.resourceTotal, 0);
   let expectedSignal = resourceTotal / totalWeight;
-  const supportedModelCount = Math.min(
-    totalWeight,
-    effectiveCount(peerModels.map((peerModel) => peerModel.weight)),
-  );
-  const peerSupport = smoothstep((supportedModelCount - 1) / (fullSupport - 1));
+  // Each base model carries at most one unit of peer weight, so the total counts the models that support the comparison.
+  const peerSupport = smoothstep((totalWeight - 1) / (fullSupport - 1));
   const determinant = totalWeight * distanceSquares - distanceTotal ** 2;
   const stableSlope = determinant > Number.EPSILON * totalWeight * distanceSquares * 32;
   if (stableSlope && peerSupport > 0) {

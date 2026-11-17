@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 280" role="img" aria-labelledby="title desc">
-<title id="title">linearScale maps L to 0 and U to 100 once a token-adjusted score passes 100</title>
-<desc id="desc">Two rulers on the same scale. Above, token-adjusted scores: two with a neutral multiplier, M equals 1, and one whose multiplier above 1 lifts it past 100 to the upper bound U. Below, the rescaled scores: 100 times linearScale maps the lower bound L, here 0, to 0 and U to 100. The shaded range narrows and every score moves, including those with a neutral multiplier.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 296" role="img" aria-labelledby="title desc">
+<title id="title">Clamping would tie scores pushed past 100; rescaling keeps them apart</title>
+<desc id="desc">Three rulers on one scale. In the middle, token-adjusted scores: two with a neutral multiplier, M equals 1, and two that multipliers above 1 push past 100 by different amounts, the larger reaching the upper bound U. Above, what clamping would do: both land on 100 and tie. Below, the rescaled scores: 100 times linearScale maps the lower bound L to 0 and U to 100, so the two stay apart and every score moves, including those with a neutral multiplier.</desc>
 <style>
 text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:15px;fill:#202724}
 .num{font-family:"SFMono-Regular","SF Mono",Menlo,Consolas,monospace;font-size:14px}
@@ -32,12 +32,29 @@ text{fill:#f2f3ed}.muted{fill-opacity:.58}
 }
 </style>
 <defs><filter id="glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="3"/></filter><marker id="tip-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="ink" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-violet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="violet" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="rose" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="amber" d="M0 0L10 5L0 10Z"/></marker></defs>
-<text x="40" y="117">Token-adjusted score</text><text x="40" y="237">Rescaled score</text>
-<path class="ink-wash" d="M240 112H677L640 232H240Z"/>
-<path class="axis" d="M240 112L640 112"/><path class="guide" d="M640 112L677 112" stroke-dasharray="4 4"/><path class="axis" d="M640 112L640 118"/>
-<text class="num muted" x="240" y="136" text-anchor="middle"><tspan class="m"><tspan class="mi">L</tspan></tspan></text><text class="num muted" x="640" y="136" text-anchor="middle">100</text><text class="num muted" x="687" y="136"><tspan class="m"><tspan class="mi">U</tspan></tspan></text>
-<path class="axis" d="M240 232L640 232"/><text class="num muted" x="240" y="258" text-anchor="middle">0</text><text class="num muted" x="640" y="258" text-anchor="middle">100</text>
-<path class="ink-line" d="M380 112L368.1 232" stroke-width="1.5" stroke-dasharray="0.5 4" stroke-linecap="round" stroke-opacity=".55"/><path class="ink-line" d="M520 112L496.3 232" stroke-width="1.5" stroke-dasharray="0.5 4" stroke-linecap="round" stroke-opacity=".55"/><path class="ink-line" d="M677 112L640 232" stroke-width="1.5" stroke-dasharray="0.5 4" stroke-linecap="round" stroke-opacity=".55"/>
-<g><circle class="ink halo" cx="380" cy="112" r="8" filter="url(#glow)"/><circle class="ink ring" cx="380" cy="112" r="6"/></g><text class="num small muted" x="380" y="90" text-anchor="middle"><tspan class="m"><tspan class="mi">M</tspan><tspan class="mr"> = 1</tspan></tspan></text><g><circle class="ink halo" cx="520" cy="112" r="8" filter="url(#glow)"/><circle class="ink ring" cx="520" cy="112" r="6"/></g><text class="num small muted" x="520" y="90" text-anchor="middle"><tspan class="m"><tspan class="mi">M</tspan><tspan class="mr"> = 1</tspan></tspan></text><path class="ink ring" d="M620 106L626 112L620 118L614 112Z"/><path class="ink-line" d="M629 112L667 112" stroke-width="1.5" stroke-opacity=".6" marker-end="url(#tip-ink)"/><g><circle class="ink halo" cx="677" cy="112" r="8" filter="url(#glow)"/><circle class="ink ring" cx="677" cy="112" r="6"/></g><text class="num small muted" x="677" y="90" text-anchor="middle"><tspan class="m"><tspan class="mi">M</tspan><tspan class="mr"> > 1</tspan></tspan></text>
-<g><circle class="violet halo" cx="368.1" cy="232" r="8" filter="url(#glow)"/><circle class="violet ring" cx="368.1" cy="232" r="6"/></g><g><circle class="violet halo" cx="496.3" cy="232" r="8" filter="url(#glow)"/><circle class="violet ring" cx="496.3" cy="232" r="6"/></g><g><circle class="violet halo" cx="640" cy="232" r="8" filter="url(#glow)"/><circle class="violet ring" cx="640" cy="232" r="6"/></g>
+<text class="muted" x="40" y="75">If clamped</text><text x="40" y="165">Token-adjusted score</text><text x="40" y="255">Rescaled score</text><text class="num small muted" x="40" y="274">linearScale</text>
+<path class="axis" d="M250 70L690.0 70"/><path class="axis" d="M250 160L690.0 160"/><path class="axis" d="M250 250L690.0 250"/>
+<path class="axis" d="M610.0 154L610.0 166"/><text x="250" y="186" text-anchor="middle"><tspan class="m"><tspan class="mi">L</tspan></tspan></text><text x="676.0" y="186"><tspan class="m"><tspan class="mi">U</tspan></tspan></text>
+<text class="small muted" x="448.0" y="144" text-anchor="middle"><tspan class="m"><tspan class="mi">M</tspan></tspan><tspan class="m"><tspan class="mr"> = 1</tspan></tspan></text><text class="small muted" x="680.0" y="146"><tspan class="m"><tspan class="mi">M</tspan></tspan><tspan class="m"><tspan class="mr"> &gt; 1</tspan></tspan></text>
+<path class="axis" d="M250 64L250 70"/><text class="num muted" x="250" y="56" text-anchor="middle">0</text><text class="small muted" x="610.0" y="54" text-anchor="middle">Tie at 100</text>
+<path class="axis" d="M250 250L250 256"/><path class="axis" d="M610.0 250L610.0 256"/><text class="num muted" x="250" y="276" text-anchor="middle">0</text><text class="num muted" x="610.0" y="276" text-anchor="middle">100</text>
+<path class="guide" d="M394 160L394 70"/>
+<path class="guide" d="M394 160L375.217 250"/>
+<path class="guide" d="M502 160L502 70"/>
+<path class="guide" d="M502 160L469.13 250"/>
+<path class="guide" d="M628 160L610 70"/>
+<path class="violet-line" d="M628 160L578.696 250" stroke-width="1.5" stroke-opacity=".75"/>
+<path class="guide" d="M664 160L610 70"/>
+<path class="violet-line" d="M664 160L610 250" stroke-width="1.5" stroke-opacity=".75"/>
+<g><circle class="ink halo" cx="394" cy="160" r="7.5" filter="url(#glow)"/><circle class="ink ring" cx="394" cy="160" r="5.5"/></g>
+<g><circle class="violet halo" cx="375.217" cy="250" r="7.5" filter="url(#glow)"/><circle class="violet ring" cx="375.217" cy="250" r="5.5"/></g>
+<g><circle class="ink halo" cx="394" cy="70" r="7" filter="url(#glow)"/><circle class="ink ring" cx="394" cy="70" r="5"/></g>
+<g><circle class="ink halo" cx="502" cy="160" r="7.5" filter="url(#glow)"/><circle class="ink ring" cx="502" cy="160" r="5.5"/></g>
+<g><circle class="violet halo" cx="469.13" cy="250" r="7.5" filter="url(#glow)"/><circle class="violet ring" cx="469.13" cy="250" r="5.5"/></g>
+<g><circle class="ink halo" cx="502" cy="70" r="7" filter="url(#glow)"/><circle class="ink ring" cx="502" cy="70" r="5"/></g>
+<g><circle class="ink halo" cx="628" cy="160" r="7.5" filter="url(#glow)"/><circle class="ink ring" cx="628" cy="160" r="5.5"/></g>
+<g><circle class="violet halo" cx="578.696" cy="250" r="7.5" filter="url(#glow)"/><circle class="violet ring" cx="578.696" cy="250" r="5.5"/></g>
+<g><circle class="ink halo" cx="664" cy="160" r="7.5" filter="url(#glow)"/><circle class="ink ring" cx="664" cy="160" r="5.5"/></g>
+<g><circle class="violet halo" cx="610" cy="250" r="7.5" filter="url(#glow)"/><circle class="violet ring" cx="610" cy="250" r="5.5"/></g>
+<g><circle class="ink halo" cx="610" cy="70" r="7" filter="url(#glow)"/><circle class="ink ring" cx="610" cy="70" r="5"/></g>
 </svg>

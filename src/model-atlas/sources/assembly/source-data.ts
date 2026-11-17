@@ -21,8 +21,8 @@ import {
   buildBenchmarkSourceData,
 } from "../benchmarks";
 import type { ModelsDevFlatModel } from "../models-dev/catalog";
+import { combinedBenchmarkObservations } from "./combined-sources";
 import type { CrosswalkObservation } from "./crosswalk";
-import { fusedBenchmarkObservations } from "./fusion";
 import { pickPreferredModelsDevRows } from "./policy";
 
 export type ArtificialAnalysisModel = {
@@ -57,7 +57,7 @@ type BenchmarkObservationData = {
 
 export type ModelAtlasSourceData = BenchmarkObservationData &
   BenchmarkSourceData & {
-    fusedBenchmarks: Record<
+    combinedBenchmarks: Record<
       string,
       IndexedSourceRows<CrosswalkObservation, BenchmarkObservationLookup<CrosswalkObservation>>
     >;
@@ -92,8 +92,8 @@ export function buildSourceData(rows: ModelAtlasSourceRows): ModelAtlasSourceDat
   const preferredModelsDevModels = pickPreferredModelsDevRows(rows.modelsDevModels);
   const benchmarkObservationData = buildBenchmarkObservationData(rows);
   return {
-    fusedBenchmarks: Object.fromEntries(
-      Object.entries(fusedBenchmarkObservations(rows)).map(([key, observations]) => [
+    combinedBenchmarks: Object.fromEntries(
+      Object.entries(combinedBenchmarkObservations(rows)).map(([key, observations]) => [
         key,
         {
           rows: observations,

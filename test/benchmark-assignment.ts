@@ -859,6 +859,13 @@ assert.equal(
   "model-level benchmarks should belong to the selected default variant",
 );
 assert.ok(unassignedFastRoute, "expected the catalog-only fast route");
+assert.deepEqual(
+  [assignedObservation, assignedDefaultVariant, unassignedFastRoute].map(
+    (row) => row.source_default,
+  ),
+  [undefined, true, undefined],
+  "only the variant that receives the model-level results is marked as the source default",
+);
 assert.equal(
   (unassignedFastRoute.benchmarks as Record<string, unknown>).chartography,
   undefined,

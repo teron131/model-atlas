@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 288" role="img" aria-labelledby="title desc">
+<title id="title">Two paths from observed results to four scores, with capability feeding the resource path twice</title>
+<desc id="desc">Observed results split into two tracks that run left to right. The upper track has four steps, normalize, adjust for tokens, combine and discount, and ends in Intelligence and Agentic. The lower track has four steps, find peers, compare, score, and combine and discount, and ends in Speed and Value. Two arrows run from the upper track down to the lower one: from the first step, where benchmark results set each model's similar-quality peers, and from the last step, where final capability scores set the price reading. Both tracks pass an inclusion line before the four scores.</desc>
+<style>
+text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:15px;fill:#202724}
+.num{font-family:"SFMono-Regular","SF Mono",Menlo,Consolas,monospace;font-size:14px}
+.small{font-size:12.5px}.big{font-size:18px}.strong{font-weight:600}
+.muted{fill-opacity:.62}.faint{opacity:.4}.half{opacity:.5}
+.grid{fill:none;stroke:#202724;stroke-opacity:.09}
+.guide{fill:none;stroke:#202724;stroke-opacity:.22}
+.axis{fill:none;stroke:#202724;stroke-opacity:.34}
+.ink{fill:#202724}.ink-line{fill:none;stroke:#202724}.ink-wash{fill:#202724;fill-opacity:.08}
+.ring{stroke:#f2f4f2;stroke-width:2;paint-order:stroke}.gap{stroke:#f2f4f2;stroke-width:2}
+.violet{fill:#6b47e0}.violet-line{fill:none;stroke:#6b47e0}.violet-wash{fill:#6b47e0;fill-opacity:.14}
+.rose{fill:#c93f78}.rose-line{fill:none;stroke:#c93f78}.rose-wash{fill:#c93f78;fill-opacity:.14}
+.amber{fill:#a8740c}.amber-line{fill:none;stroke:#a8740c}.amber-wash{fill:#a8740c;fill-opacity:.16}
+.h0{stop-color:#3557e6}.h1{stop-color:#6b47e0}.h2{stop-color:#d9467f}
+.land0{stop-color:#6b47e0;stop-opacity:.12}.land1{stop-color:#6b47e0;stop-opacity:.01}
+.halo{opacity:0}
+.m{font-size:1.12em}.mr,.mi,.mb{font-family:"KaTeX_Main","Latin Modern Roman","STIX Two Text","Cambria","Times New Roman",serif;font-style:normal;font-weight:400}.mb{font-weight:700}.mi{font-family:"KaTeX_Math","Latin Modern Math","STIX Two Text","Cambria Math","Times New Roman",serif;font-style:italic}
+@media (prefers-color-scheme:dark){
+text{fill:#f2f3ed}.muted{fill-opacity:.58}
+.grid{stroke:#f2f3ed;stroke-opacity:.08}.guide{stroke:#f2f3ed;stroke-opacity:.2}.axis{stroke:#f2f3ed;stroke-opacity:.3}
+.ink{fill:#f2f3ed}.ink-line{stroke:#f2f3ed}.ink-wash{fill:#f2f3ed;fill-opacity:.1}
+.ring{stroke:#0b1016}.gap{stroke:#0b1016}
+.violet{fill:#8f6bff}.violet-line{stroke:#8f6bff}.violet-wash{fill:#8f6bff;fill-opacity:.22}
+.rose{fill:#e06296}.rose-line{stroke:#e06296}.rose-wash{fill:#e06296;fill-opacity:.2}
+.amber{fill:#b98b24}.amber-line{stroke:#b98b24}.amber-wash{fill:#b98b24;fill-opacity:.22}
+.h0{stop-color:#4a72ff}.h1{stop-color:#8f6bff}.h2{stop-color:#ff92bd}
+.land0{stop-color:#6f8cff;stop-opacity:.16}.land1{stop-color:#6f8cff;stop-opacity:.02}
+.halo{opacity:.55}
+}
+</style>
+<defs><filter id="glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="3"/></filter><marker id="tip-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="ink" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-violet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="violet" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="rose" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="amber" d="M0 0L10 5L0 10Z"/></marker></defs>
+<path class="guide" d="M596 62L596 244" stroke-dasharray="4 4"/>
+<path class="ink-line" d="M124 160C168 160 158 96 202 96L574 96" stroke-width="1.5"/>
+<path class="ink-line" d="M574 96C594 96 598 78 618 78" stroke-width="1.5" marker-end="url(#tip-ink)"/>
+<path class="ink-line" d="M574 96C594 96 598 114 618 114" stroke-width="1.5" marker-end="url(#tip-ink)"/>
+<path class="ink-line" d="M124 160C168 160 158 224 202 224L574 224" stroke-width="1.5"/>
+<path class="ink-line" d="M574 224C594 224 598 206 618 206" stroke-width="1.5" marker-end="url(#tip-ink)"/>
+<path class="ink-line" d="M574 224C594 224 598 242 618 242" stroke-width="1.5" marker-end="url(#tip-ink)"/>
+<path class="violet-line" d="M214 96L214 215" stroke-width="2.5" marker-end="url(#tip-violet)"/><path class="violet-line" d="M544 96L544 215" stroke-width="2.5" marker-end="url(#tip-violet)"/>
+<g><circle class="ink halo" cx="124" cy="160" r="7.5" filter="url(#glow)"/><circle class="ink ring" cx="124" cy="160" r="5.5"/></g>
+<g><circle class="violet halo" cx="628" cy="78" r="8.5" filter="url(#glow)"/><circle class="violet ring" cx="628" cy="78" r="6.5"/></g>
+<g><circle class="violet halo" cx="628" cy="114" r="8.5" filter="url(#glow)"/><circle class="violet ring" cx="628" cy="114" r="6.5"/></g>
+<g><circle class="ink halo" cx="214" cy="96" r="7.5" filter="url(#glow)"/><circle class="ink ring" cx="214" cy="96" r="5.5"/></g>
+<g><circle class="ink halo" cx="324" cy="96" r="7.5" filter="url(#glow)"/><circle class="ink ring" cx="324" cy="96" r="5.5"/></g>
+<g><circle class="ink halo" cx="434" cy="96" r="7.5" filter="url(#glow)"/><circle class="ink ring" cx="434" cy="96" r="5.5"/></g>
+<g><circle class="ink halo" cx="544" cy="96" r="7.5" filter="url(#glow)"/><circle class="ink ring" cx="544" cy="96" r="5.5"/></g>
+<g><circle class="violet halo" cx="628" cy="206" r="8.5" filter="url(#glow)"/><circle class="violet ring" cx="628" cy="206" r="6.5"/></g>
+<g><circle class="violet halo" cx="628" cy="242" r="8.5" filter="url(#glow)"/><circle class="violet ring" cx="628" cy="242" r="6.5"/></g>
+<g><circle class="ink halo" cx="214" cy="224" r="7.5" filter="url(#glow)"/><circle class="ink ring" cx="214" cy="224" r="5.5"/></g>
+<g><circle class="ink halo" cx="324" cy="224" r="7.5" filter="url(#glow)"/><circle class="ink ring" cx="324" cy="224" r="5.5"/></g>
+<g><circle class="ink halo" cx="434" cy="224" r="7.5" filter="url(#glow)"/><circle class="ink ring" cx="434" cy="224" r="5.5"/></g>
+<g><circle class="ink halo" cx="544" cy="224" r="7.5" filter="url(#glow)"/><circle class="ink ring" cx="544" cy="224" r="5.5"/></g>
+<text x="642" y="83">Intelligence</text>
+<text x="642" y="119">Agentic</text>
+<text x="214" y="74" text-anchor="middle">Normalize</text>
+<text x="324" y="74" text-anchor="middle">Adjust for tokens</text>
+<text x="434" y="74" text-anchor="middle">Combine</text>
+<text x="544" y="74" text-anchor="middle">Discount</text>
+<text x="642" y="211">Speed</text>
+<text x="642" y="247">Value</text>
+<text x="214" y="262" text-anchor="middle">Find peers</text>
+<text x="324" y="262" text-anchor="middle">Compare</text>
+<text x="434" y="262" text-anchor="middle">Score</text>
+<text x="544" y="262" text-anchor="middle">Combine, discount</text>
+<text x="108" y="156" text-anchor="end">Observed</text><text x="108" y="175" text-anchor="end">results</text>
+<text x="227" y="165">Results set peers</text>
+<text x="531" y="165" text-anchor="end">Scores set price</text>
+<text class="small muted" x="596" y="50" text-anchor="middle">Inclusion</text>
+</svg>

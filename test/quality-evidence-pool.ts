@@ -112,7 +112,8 @@ for (const [observedTasks, multiplier] of [
       assert.ok(Math.abs(result.componentScores!.intelligence_score! - value * multiplier) < 1e-10);
     }
     assert.ok(
-      Math.abs(result.confidence.intelligence! - (observedTasks * 0.5 + 0.025) / 9.525) < 1e-10,
+      Math.abs(result.evidenceSupport.intelligence! - (observedTasks * 0.5 + 0.025) / 9.525) <
+        1e-10,
     );
   }
 }
@@ -124,7 +125,7 @@ const fullDirectCoverage = buildComponentScoreResult(
   directCoverage.context,
 );
 assert.ok(Math.abs(fullDirectCoverage.componentScores!.intelligence_score! - 60) < 1e-10);
-assert.ok(fullDirectCoverage.confidence.intelligence! < 0.6);
+assert.ok(fullDirectCoverage.evidenceSupport.intelligence! < 0.6);
 const sparseDirectCoverage = buildComponentScoreResult(
   directCoverage.model(15, 60, []),
   { ...directCoverage.config, qualityCoverageMinimumRetention: 0.85 },
@@ -139,7 +140,7 @@ const fullIndexCoverage = buildComponentScoreResult(
   indexCoverage.context,
 );
 assert.equal(fullIndexCoverage.componentScores!.intelligence_score, null);
-assert.ok(fullIndexCoverage.confidence.intelligence! < 0.1);
+assert.ok(fullIndexCoverage.evidenceSupport.intelligence! < 0.1);
 
 for (const multiplier of [1.5, 2]) {
   const score = buildComponentScoreResult(
@@ -174,7 +175,7 @@ const imputed = buildComponentScoreResult(
   new Map(convergence.tasks.slice(3).map((key) => [key, 1])),
 );
 assert.equal(imputed.componentScores!.agentic_score, direct.componentScores!.agentic_score);
-assert.ok(imputed.confidence.agentic! > direct.confidence.agentic!);
+assert.ok(imputed.evidenceSupport.agentic! > direct.evidenceSupport.agentic!);
 
 assert.equal(residualIndexBreadth("epoch_capabilities_index", [], 4), 8);
 assert.equal(residualIndexBreadth("epoch_capabilities_index", [], 40), 8);

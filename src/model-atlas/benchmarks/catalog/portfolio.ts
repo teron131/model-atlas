@@ -1,4 +1,4 @@
-/** Each scored benchmark's portfolio group and Intelligence/Agentic loadings, which also define `BenchmarkKey`, plus which benchmarks score Speed and Value from their resources and under what resource policy. */
+/** Each scored benchmark's portfolio group and Intelligence/Agentic allocations, which also define `BenchmarkKey`, plus which benchmarks score Speed and Value from their resources and under what resource policy. */
 
 import type { BenchmarkPortfolioEntry, BenchmarkResourcePolicy } from "../factory";
 import { CAIS_INDEX_SCORING_WEIGHT, INDEX_SCORING_WEIGHT } from "../index-policy";

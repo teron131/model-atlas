@@ -4,8 +4,8 @@ import {
   calibrationObservations,
   distinctModelCount,
 } from "../../../benchmarks/calibration-population";
-import type { BenchmarkDimension } from "../../../benchmarks/factory";
-import { benchmarkDimensionWeight, benchmarkValue } from "../../../benchmarks/registry";
+import type { BenchmarkCapability } from "../../../benchmarks/factory";
+import { benchmarkAllocation, benchmarkValue } from "../../../benchmarks/registry";
 import {
   MAX_NORMALIZED_IMPUTATION_ERROR,
   type ScoringConfig,
@@ -76,7 +76,7 @@ type ImputationPreparation = MutableImputationMaps & {
 const MIN_IMPUTATION_EVIDENCE_VALUES = 3;
 const MIN_IMPUTATION_REFERENCE_MODELS = 3;
 const MIN_IMPUTATION_VALIDATION_MODELS = 4;
-const IMPUTATION_DIMENSIONS = ["intelligence", "agentic"] as const;
+const IMPUTATION_CAPABILITIES = ["intelligence", "agentic"] as const;
 
 /** Resolve prepared benchmark values after candidate and public-model projection replace row identity. */
 export function benchmarkImputationValues(
@@ -143,7 +143,7 @@ export function benchmarkQualityEvidence(
     : { evidenceFactor: clamp01(evidenceFactor), value };
 }
 
-type DimensionBenchmarkContext = {
+type CapabilityBenchmarkContext = {
   benchmarkKeys: readonly string[];
   benchmarkWeights: ReadonlyMap<string, number>;
 };
@@ -191,17 +191,17 @@ function observedNormalizedEvidenceScore(
     : null;
 }
 
-/** Keep displayed predictors available in both dimensions independently of their direct scoring participation. */
-function dimensionBenchmarkContext(
-  dimension: BenchmarkDimension,
+/** Keep displayed predictors available in both capabilities independently of their direct scoring participation. */
+function capabilityBenchmarkContext(
+  capability: BenchmarkCapability,
   scoringConfig: ScoringConfig,
-): DimensionBenchmarkContext {
+): CapabilityBenchmarkContext {
   const selectedKeys =
-    dimension === "intelligence"
+    capability === "intelligence"
       ? scoringConfig.intelligenceBenchmarkKeys
       : scoringConfig.agenticBenchmarkKeys;
   const displayKeys =
-    dimension === "intelligence"
+    capability === "intelligence"
       ? scoringConfig.intelligenceBenchmarkDisplayKeys
       : scoringConfig.agenticBenchmarkDisplayKeys;
   const benchmarkKeys = [...new Set([...displayKeys, ...selectedKeys])];
@@ -210,10 +210,7 @@ function dimensionBenchmarkContext(
     benchmarkWeights: new Map(
       benchmarkKeys.map(
         (key) =>
-          [
-            key,
-            benchmarkDimensionWeight(key, dimension, scoringConfig.benchmarkPortfolio),
-          ] as const,
+          [key, benchmarkAllocation(key, capability, scoringConfig.benchmarkPortfolio)] as const,
       ),
     ),
   };
@@ -232,16 +229,16 @@ type ContextualPrediction = {
   value: number;
 };
 
-/** Build one dimension-specific predictor from observed context and target values only. */
-function buildDimensionPredictor(
+/** Build one capability-specific predictor from observed context and target values only. */
+function buildCapabilityPredictor(
   models: JsonObject[],
   targetBenchmarkKey: string,
-  dimension: BenchmarkDimension,
+  capability: BenchmarkCapability,
   scoringConfig: ScoringConfig,
   rangesByKey: ReadonlyMap<string, MinMaxRange | null>,
   minimumEvidenceValues: number,
 ): ((model: JsonObject) => ContextualPrediction | null) | null {
-  const { benchmarkKeys, benchmarkWeights } = dimensionBenchmarkContext(dimension, scoringConfig);
+  const { benchmarkKeys, benchmarkWeights } = capabilityBenchmarkContext(capability, scoringConfig);
   const referenceContextScores = calibrationObservations(models, (model) => {
     if (benchmarkValue(model, targetBenchmarkKey) == null) {
       return null;
@@ -312,19 +309,19 @@ function buildWeightedPredictors(
   if (portfolioEntry == null) {
     return [];
   }
-  return IMPUTATION_DIMENSIONS.map((dimension) => ({
+  return IMPUTATION_CAPABILITIES.map((capability) => ({
     predict:
-      portfolioEntry.dimensionLoadings[dimension] > 0
-        ? buildDimensionPredictor(
+      portfolioEntry.dimensionLoadings[capability] > 0
+        ? buildCapabilityPredictor(
             models,
             targetBenchmarkKey,
-            dimension,
+            capability,
             scoringConfig,
             rangesByKey,
             minimumEvidenceValues,
           )
         : null,
-    weight: portfolioEntry.dimensionLoadings[dimension],
+    weight: portfolioEntry.dimensionLoadings[capability],
   }));
 }
 

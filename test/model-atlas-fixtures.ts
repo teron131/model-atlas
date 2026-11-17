@@ -302,24 +302,24 @@ export function historicalDatasetFromReleases(
     intelligence: `atlas:intelligence:${referenceId}`,
     agentic: `atlas:agentic:${referenceId}`,
   };
-  for (const dimension of ["intelligence", "agentic"] as const) {
-    const rootId = rootBenchmarkIds[dimension];
+  for (const capability of ["intelligence", "agentic"] as const) {
+    const rootId = rootBenchmarkIds[capability];
     benchmarks.set(rootId, {
       id: rootId,
-      key: `model_atlas_${dimension}`,
-      label: `Model Atlas ${dimension} reference`,
+      key: `model_atlas_${capability}`,
+      label: `Model Atlas ${capability} reference`,
       kind: "index",
       scale: "linear",
       weights: {
-        intelligence: dimension === "intelligence" ? 1 : 0,
-        agentic: dimension === "agentic" ? 1 : 0,
+        intelligence: capability === "intelligence" ? 1 : 0,
+        agentic: capability === "agentic" ? 1 : 0,
       },
       componentIds: [...benchmarks.values()]
-        .filter((b) => b.primary && b.weights[dimension] > 0)
+        .filter((b) => b.primary && b.weights[capability] > 0)
         .map((b) => b.id),
     });
     for (const row of referenceRows) {
-      const value = row[dimension];
+      const value = row[capability];
       const existing = models.get(row.model.id);
       models.set(row.model.id, {
         ...row.model,
@@ -330,14 +330,14 @@ export function historicalDatasetFromReleases(
       const key = `${row.model.id}\0${rootId}`;
       const previous = observations.get(key);
       if (previous && previous.value !== value)
-        throw new Error(`Conflicting current reference for ${row.model.name} (${dimension})`);
+        throw new Error(`Conflicting current reference for ${row.model.name} (${capability})`);
       observations.set(key, {
         modelId: row.model.id,
         benchmarkId: rootId,
         value,
         observedAt: referenceCapturedAt,
         source: "Model Atlas frozen checkpoint",
-        referenceConfidence: row.confidence[dimension],
+        referenceConfidence: row.confidence[capability],
       });
     }
   }

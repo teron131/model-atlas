@@ -22,7 +22,7 @@ import {
   isReferenceBenchmark,
   measureKey,
   type TimelineAnchors,
-  type TimelineDimension,
+  type TimelineCapability,
   type TimelineParameters,
   validateTimelineParameters,
 } from "./schemas";
@@ -37,15 +37,15 @@ export const DEFAULT_TIMELINE_PARAMETERS: TimelineParameters = {
 /** New observations can revise any estimate, a supported reference's included, while published benchmark curves and the initial reference values that fit them remain fixed. */
 export function calibrateTimeline(
   data: HistoricalDataset,
-  dimension: TimelineDimension,
+  capability: TimelineCapability,
   parameters = DEFAULT_TIMELINE_PARAMETERS,
 ): HistoricalCalibration {
   validateTimelineParameters(parameters);
   const scale = data.scale;
   if (!scale || scale.qualityTransform !== "linear")
     throw new Error("Prepare the linear Timeline calibration before projecting scores.");
-  const root = scale.rootBenchmarkIds[dimension];
-  const graph = scale.dimensions[dimension];
+  const root = scale.rootBenchmarkIds[capability];
+  const graph = scale.dimensions[capability];
   const active = data.activeBenchmarkIds ? new Set(data.activeBenchmarkIds) : null;
   const definitions = new Map(
     data.benchmarks
@@ -75,7 +75,7 @@ export function calibrateTimeline(
     if (definition.kind === "task" && nodes.has(definition.id))
       taskWeights.set(
         definition.key,
-        Math.max(taskWeights.get(definition.key) ?? 0, definition.weights[dimension]),
+        Math.max(taskWeights.get(definition.key) ?? 0, definition.weights[capability]),
       );
   const possibleWeight = [...taskWeights.values()].reduce((a, b) => a + b, 0);
   const placements = data.models.map((model) => {
@@ -86,7 +86,7 @@ export function calibrateTimeline(
       return (
         definition &&
         !isReferenceBenchmark(definition) &&
-        definition.weights[dimension] > 0 &&
+        definition.weights[capability] > 0 &&
         nodes.has(definition.id) &&
         timelineNativeValue(definition, o.value) != null
       );
@@ -112,7 +112,7 @@ export function calibrateTimeline(
                 node,
                 value,
                 observedAt: o.observedAt,
-                weight: definition.weights[dimension],
+                weight: definition.weights[capability],
                 breadth: residualIndexBreadth(
                   indexKey,
                   [],
@@ -176,7 +176,7 @@ export function calibrateTimeline(
       const definition = definitions.get(o.benchmarkId);
       return (
         definition &&
-        definition.weights[dimension] > 0 &&
+        definition.weights[capability] > 0 &&
         !isReferenceBenchmark(definition) &&
         !isInformativeValue(definition, o.value, parameters)
       );
@@ -508,7 +508,7 @@ export function anchorTimeline(
   calibration: HistoricalCalibration,
   data: HistoricalDataset,
   anchors: TimelineAnchors,
-  dimension: TimelineDimension,
+  capability: TimelineCapability,
 ): Map<string, number> {
   const estimates = new Map(
     calibration.estimates.map((estimate) => [estimate.modelId, estimate.value]),
@@ -524,11 +524,11 @@ export function anchorTimeline(
       anchors.lowModelId === frozen.modelId ||
       (anchors.mode === "models" && anchors.highModelId === frozen.modelId)
     ) {
-      if (frozen.referenceId !== data.reference.id || !Number.isFinite(frozen.values[dimension]))
+      if (frozen.referenceId !== data.reference.id || !Number.isFinite(frozen.values[capability]))
         throw new Error(
-          "The saved display reference belongs to a different coordinate or lacks this dimension.",
+          "The saved display reference belongs to a different coordinate or lacks this capability.",
         );
-      estimates.set(frozen.modelId, frozen.values[dimension]);
+      estimates.set(frozen.modelId, frozen.values[capability]);
       anchorIds.add(frozen.modelId);
     }
   }

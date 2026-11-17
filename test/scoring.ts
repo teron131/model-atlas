@@ -94,7 +94,7 @@ assertClose(evidenceRetentionFactor(2, 1, 3), 0.5);
 assertClose(evidenceRetentionFactor(3, 1, 3), 1);
 assertThrowsWithMessage(
   () => evidenceRetentionFactor(1, 3, 1),
-  "Evidence confidence requires finite mass and 0 <= floor < full, received 1, 3, 1",
+  "Evidence support requires finite mass and 0 <= floor < full, received 1, 3, 1",
 );
 
 const listedBlend = blendedPrices(
@@ -751,11 +751,11 @@ assertClose(frontierOnlyObserved.componentScores?.intelligence_score, 100);
 assertClose(frontierOnlyBaselineChanged.componentScores?.intelligence_score, 100);
 assertClose(frontierOnlyMissingBaseline.componentScores?.intelligence_score, 100);
 assertEqual(
-  frontierOnlyMissingBaseline.confidence.intelligence,
-  frontierOnlyObserved.confidence.intelligence,
+  frontierOnlyMissingBaseline.evidenceSupport.intelligence,
+  frontierOnlyObserved.evidenceSupport.intelligence,
 );
 
-const imputationConfidenceConfig = {
+const imputationEvidenceSupportConfig = {
   ...unequalWeightConfig,
   qualityCoverageMinimumRetention: 1,
   qualityCoverage: {
@@ -763,15 +763,15 @@ const imputationConfidenceConfig = {
     agentic: { floor: 0, full: 0.1 },
   },
 } as const;
-const imputationConfidenceResult = buildComponentScoreResult(
-  { id: "imputation-confidence", benchmarks: { baseline_metric: 100 } },
-  imputationConfidenceConfig,
+const imputationEvidenceSupportResult = buildComponentScoreResult(
+  { id: "imputation-evidence-support", benchmarks: { baseline_metric: 100 } },
+  imputationEvidenceSupportConfig,
   unequalWeightContext,
   new Map([["frontier_metric", 0]]),
   new Map([["frontier_metric", 0.2]]),
 );
-assertEqual(imputationConfidenceResult.componentScores?.intelligence_score ?? null, null);
-assertClose(imputationConfidenceResult.confidence.intelligence, 0.4);
+assertEqual(imputationEvidenceSupportResult.componentScores?.intelligence_score ?? null, null);
+assertClose(imputationEvidenceSupportResult.evidenceSupport.intelligence, 0.4);
 
 const sparseBenchmarkKeys = Array.from({ length: 12 }, (_, index) => `quality_${index}`);
 const sparseEvidenceBenchmarkPortfolio = Object.fromEntries(
@@ -825,7 +825,7 @@ assertClose(
   sparseEvidenceComponentScores?.intelligence_score,
   100 * (0.85 + 0.15 * evidenceRetentionFactor(3, 1.5, 12)),
 );
-assertClose(sparseEvidenceResult.confidence.intelligence, 2 / 12);
+assertClose(sparseEvidenceResult.evidenceSupport.intelligence, 2 / 12);
 const sparseLowEvidenceResult = buildComponentScoreResult(
   { id: "sparse-low", benchmarks: { quality_0: 0, quality_1: 0 } },
   sparseEvidenceConfig,
@@ -1310,6 +1310,15 @@ assertEqual((sparseDefaultCoverageScores[0]?.scores.speed_score ?? 100) < 5, tru
 assertEqual((sparseDefaultCoverageScores[1]?.scores.speed_score ?? 100) < 5, true);
 assertEqual((sparseDefaultCoverageScores[0]?.scores.value_score ?? 100) < 5, true);
 assertEqual((sparseDefaultCoverageScores[1]?.scores.value_score ?? 100) < 5, true);
+// The variant that holds the model-wide results sets the shared coverage, even below a sibling's effort.
+const markedDefaultCoverageScores = attachFinalScores(
+  sparseDefaultCoverageModels.map((model, index) =>
+    index === 1 ? { ...model, source_default: true } : model,
+  ),
+  siblingCostConfig,
+);
+assertEqual((markedDefaultCoverageScores[0]?.scores.value_score ?? 0) > 40, true);
+assertEqual((markedDefaultCoverageScores[1]?.scores.value_score ?? 0) > 40, true);
 
 const resourceModelVariants = [resourceModel("b", 2, "low"), resourceModel("b", 4, "high")];
 const resourceComparisonModel = resourceModel("c", 3);
@@ -1353,14 +1362,14 @@ const normalizedContextModels = [
 const normalizedContextBenchmarkKeys = ["target", "wide", "narrow", "steady"] as const;
 const normalizedContextBenchmarkPortfolio = Object.fromEntries(
   normalizedContextBenchmarkKeys.map((key) => {
-    const intelligenceLoading = key === "wide" ? 0.8 : key === "target" ? 1 : 0.1;
+    const intelligenceAllocation = key === "wide" ? 0.8 : key === "target" ? 1 : 0.1;
     return [
       key,
       {
         group: "baseline",
         dimensionLoadings: {
-          intelligence: intelligenceLoading,
-          agentic: 1 - intelligenceLoading,
+          intelligence: intelligenceAllocation,
+          agentic: 1 - intelligenceAllocation,
         },
       },
     ] as const;
@@ -1404,7 +1413,10 @@ for (const baseline of [0, 1]) {
     withBaseline.componentScores?.agentic_score,
     agenticWithoutBaseline.componentScores?.agentic_score,
   );
-  assert.equal(withBaseline.confidence.agentic, agenticWithoutBaseline.confidence.agentic);
+  assert.equal(
+    withBaseline.evidenceSupport.agentic,
+    agenticWithoutBaseline.evidenceSupport.agentic,
+  );
 }
 
 const repeatedModelVariants = [
@@ -2027,8 +2039,8 @@ const siblingScore = (model: (typeof siblingCalibrationModels)[number], context 
 assertClose(siblingScore(siblingCalibrationModels[0]!).componentScores?.intelligence_score, 50);
 assertClose(siblingScore(siblingCalibrationModels[1]!).componentScores?.intelligence_score, 40);
 assertClose(siblingScore(siblingCalibrationModels[2]!).componentScores?.intelligence_score, 60);
-assertClose(siblingScore(siblingCalibrationModels[1]!).confidence.intelligence, 0.75);
-assertClose(siblingScore(siblingCalibrationModels[2]!).confidence.intelligence, 0.75);
+assertClose(siblingScore(siblingCalibrationModels[1]!).evidenceSupport.intelligence, 0.75);
+assertClose(siblingScore(siblingCalibrationModels[2]!).evidenceSupport.intelligence, 0.75);
 assert.equal("b4" in siblingCalibrationModels[1]!.benchmarks, false);
 const sparseSiblings = siblingCalibrationModels.map((model, index) =>
   index === 1 ? { ...model, benchmarks: { b1: 40, b2: 40 } } : model,
@@ -2047,7 +2059,7 @@ assertClose(
   siblingScore(
     sparseSiblings[1] as (typeof siblingCalibrationModels)[number],
     insufficientSiblingContext,
-  ).confidence.intelligence,
+  ).evidenceSupport.intelligence,
   0.5,
 );
 
@@ -2360,7 +2372,7 @@ for (const model of tokenModels) {
     adjusted.componentScores?.intelligence_score,
     original.componentScores?.intelligence_score,
   );
-  assert.deepEqual(adjusted.confidence, original.confidence);
+  assert.deepEqual(adjusted.evidenceSupport, original.evidenceSupport);
   assert(
     adjusted.componentScores!.agentic_score! >= 0 &&
       adjusted.componentScores!.agentic_score! <= 100,
@@ -2520,7 +2532,7 @@ for (const m of tokenModels)
     buildComponentScoreResult(m, tokenConfig, noTokenEstimate).componentScores!.agentic_score,
   );
 assert.deepEqual(
-  buildComponentScoreResult(tokenEstimateTarget, tokenConfig, fullTokenEstimate).confidence,
-  buildComponentScoreResult(tokenEstimateTarget, tokenConfig, noTokenEstimate).confidence,
+  buildComponentScoreResult(tokenEstimateTarget, tokenConfig, fullTokenEstimate).evidenceSupport,
+  buildComponentScoreResult(tokenEstimateTarget, tokenConfig, noTokenEstimate).evidenceSupport,
 );
 assert.equal(tokenEstimateTarget.task_metrics, null);

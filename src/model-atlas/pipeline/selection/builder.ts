@@ -94,7 +94,7 @@ export function prepareModelSelection(
       candidate: {
         ...candidate,
         component_scores: result.componentScores,
-        confidence: result.confidence,
+        confidence: result.evidenceSupport,
       },
       intelligenceParts: result.intelligenceScoreParts,
     };

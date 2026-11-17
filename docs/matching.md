@@ -1,135 +1,131 @@
 # Model Matching
 
-The same model can appear under different names on benchmark pages, catalogs, and serving platforms. Model Atlas joins those records so its scores, specifications, prices, and speed measurements describe the same underlying model and reasoning effort.
+The same model appears under different names on benchmark pages, catalogs, and serving platforms. Model Atlas joins those records so that results, specifications, prices, and speed measurements describe the same [base model and variant](methodology/overview.md#key-terms).
 
-A mistaken join can give one model another model's evidence. The matcher therefore leaves uncertain associations unmatched. A rejected catalog match does not erase a separately identified benchmark model; it leaves catalog metadata unavailable.
+A mistaken join gives one model another model's evidence. The matcher therefore leaves an uncertain association unmatched.
 
-![An accepted catalog match supplies the public identity and catalog metadata while preserving the source’s variant observations. A qualified source identity can survive without an accepted catalog match, keeping only its own reported metadata.](assets/matching/matching-boundary.svg)
+![An accepted catalog match supplies the public identity and catalog metadata while the source keeps its variants and observed results. Without one, a qualified source identity keeps only what its source reported.](assets/matching/matching-boundary.svg)
 
 ## Identity Sources
 
-A benchmark identity can exist before a public catalog entry. A qualified Artificial Analysis provider/model ID, a nonempty name, and confirmed text output can keep that model in the pipeline even when no catalog candidate is accepted. It retains only source-reported metadata, and other benchmark results can attach through the same identity and effort checks.
+Records join in two ways. Each Artificial Analysis model goes through the scored match on this page, which pairs it with a catalog entry. For the leaderboard, Artificial Analysis is the only source matched this way, so its model list and the catalog together define the identities. Results from every other benchmark source then attach to those models by name, without a score.
 
-Keeping the identity does not guarantee dashboard inclusion. Models meeting the observed-benchmark and quality requirements receive numeric ranks even with incomplete metadata; missing specifications remain null.
+The catalog is `models.dev`, limited to its OpenRouter, Vercel, OpenAI, Google, and Anthropic listings and to entries released in the last 365 days, plus older entries for models Artificial Analysis still lists. A listing is one provider's section of the catalog, and an entry is one model in a listing. Where several listings carry an entry with the same model ID, one entry is kept: OpenRouter's, then Vercel's, then the lab's own. This order settles identical IDs only, and gives no listing an advantage when entries with different IDs are [ranked](#candidate-pool).
 
-An OpenRouter route is the preferred public identity when it wins the match, because route IDs connect directly to pricing and serving measurements. `models.dev` supplies candidate pools and catalog metadata. Trusted direct OpenAI, Google, Anthropic, and Vercel identities can win when they provide a stronger exact match.
+Matching reads names: the source's model slug, which is the Artificial Analysis ID without its publisher prefix, and each candidate's model ID and display name. Publisher and release only decide which candidates are [eligible](#candidate-pool). Benchmark results and prices never influence a match, nor does a source's general launch date, which does not say which snapshot was evaluated.
 
-Candidate scoring uses only identity-bearing fields:
+A row from another benchmark source attaches when its model name normalizes to one of the model's IDs or names, or reduces to the same [tokens](#normalization), at the variant's reasoning effort or as its [source default](methodology/sources.md#the-source-default-variant).
 
-- the source model slug
-- candidate provider and model IDs
-- candidate provider and display names
-
-Benchmark scores and prices do not influence matching. Publisher identity and explicit release labels constrain which candidates are eligible before name scoring. A generic model launch date does not identify the evaluated snapshot or authorize replacing it with a later version.
+A benchmark model can exist before any catalog lists it. An Artificial Analysis model without an accepted catalog match is kept when its ID has the form `publisher/model` and it has a name. Every kept model, matched or not, must list text output and have no `image` in its ID, OpenRouter ID, name, or catalog family. Keeping an identity does not place it on the dashboard: [dashboard inclusion](methodology/leaderboard-rules.md#dashboard-inclusion) is decided from observed results.
 
 ## Normalization
 
-Normalization removes spelling differences so equivalent names can be compared without erasing version or size distinctions. Names are lowercased and hyphenated: dots, spaces, colons, and underscores become separators, unusual characters are removed, repeated separators collapse, and leading or trailing separators are trimmed.
+Normalization removes spelling differences without erasing version or size distinctions. Names are lowercased; dots, underscores, colons, and spaces become hyphens; a `+` becomes the word `plus`; other punctuation is dropped; and repeated hyphens collapse.
 
-The normalized name is then split into tokens. Mixed alphanumeric pieces are separated so versions and parameter scales can be compared directly. Route and serving labels that usually do not define the underlying model are ignored: `free`, `extended`, `exacto`, `instruct`, `thinking`, `reasoning`, `preview`, `online`, and `nitro`. Preview spelling alone does not establish a separate identity, but conflicting releases and model versions remain distinct. Full and abbreviated month labels normalize together, while `+` is preserved as `plus`.
+The normalized name is split into tokens at hyphens and wherever a letter meets a digit, so `qwen3` and `qwen-3` compare equal. Parameter scales such as `70b` and active-parameter scales such as `a22b` stay whole, and a full or abbreviated month label followed by a year becomes the same tokens. Labels that describe how a model is served or configured are dropped: `free`, `extended`, `exacto`, `instruct`, `thinking`, `reasoning`, `preview`, `online`, and `nitro`.
 
-Three token classes receive special treatment:
-
-- plain versions such as `3` or `5`
-- parameter scales such as `70b`
-- active-parameter scales such as `a22b`
-
-Versions and parameter scales can identify different models even when the surrounding name is nearly identical. A conflict in these fields can therefore reject a candidate outright.
+A reasoning effort at the end of the source slug, from `none` to `max` and `ultra`, is removed before matching, because it names a variant and not a model. The words `max` and `ultra` are removed even when a product uses one as a tier name, so such a product is matched without it. The one exception is Qwen's Max tier, which stays part of the name.
 
 ## Candidate Pool
 
-Candidate eligibility is checked before name similarity, so a convincing name cannot override a conflicting publisher or release. For each source slug, the matcher collects candidates from the preferred `models.dev` provider pools. OpenRouter routes and trusted direct-provider identities enter the same ranked pool, allowing an exact direct identity to beat a weak OpenRouter alias.
+Eligibility is settled before names are compared, so a convincing name cannot override a conflicting publisher or release.
 
-Qualified source and catalog IDs establish publisher ownership, with organization aliases such as Alibaba/Qwen reconciled first. A conflicting publisher excludes the candidate even if its name closely resembles the source; a serving platform name alone does not establish model ownership.
+The source's publisher is the namespace of its ID. A candidate's publisher is the namespace of its model ID, or the listing it came from when the ID has none. OpenRouter and Vercel are gateways, so neither names a publisher, and organization aliases are reconciled first, so Qwen counts as Alibaba. A candidate is excluded when both publishers are known and differ; when either is unknown, the check passes.
 
-An explicit year-bearing version or named release month must agree with the candidate’s dated version, release label, or catalog release metadata. An undated catalog alias cannot establish a specifically dated source release. Month labels compare at month precision, while daily dates allow the adjacent calendar date used by some sources for the same launch. These checks run before candidate ranking and truncation, and the Intelligence Index uses the same release and publisher rules.
+A source names a release when its slug carries a full date with a year, or when its display name carries a month and year. The candidate must then carry the same release in its model ID, in its display name, or, failing both, in the catalog's release date; a candidate with none of these is excluded. A month compares at month precision, and two full dates may differ by one day, because sources sometimes report adjacent dates for one launch. A suffix without a year, such as `0528`, names no release, and a source that names none skips this check. An undated Artificial Analysis slug is matched under a dated name when the catalog and a second source agree on one dated release, as [Updated Releases](methodology/sources.md#updated-releases) describes.
 
-The first token is an early family guardrail. A source and candidate that begin with different model-family tokens are not compared further.
+A candidate is also dropped unless its model ID, after any namespace, or its display name starts with the source's first token, since a different first token usually means a different family.
+
+The remaining candidates from every listing are ranked together by [candidate score](#candidate-score), with ties broken alphabetically by model ID, and only the five highest are kept. The [Intelligence Index](timeline/overview.md) joins model names across its sources with the same rules.
 
 ## Candidate Score
 
-The match score orders plausible identity candidates. It is a heuristic, not the probability that a match is correct: agreement raises it, while missing or conflicting identity information lowers it.
+The score orders eligible candidates. It is a heuristic sum of agreements and conflicts between names, not a probability that a match is correct.
 
-The strongest rewards are:
+Some conflicts reject a candidate outright, whatever else agrees:
 
-- matching token prefixes, weighted toward earlier tokens
-- exact numeric and version agreement
-- small numeric distance when an exact version is unavailable
-- matching family or edition suffixes
-- complete source-token coverage
-- exact parameter-scale and active-parameter-scale agreement
-- normalized character-prefix similarity
+- a Claude tier or version that differs from the source's, as [Claude Identity](#claude-identity) explains
+- `vl` or `coder` on one side only, or `small` on one side and `micro` on the other
+- a number in the candidate's model ID that differs from the source's number at the same position, counting numbers in order of appearance, unless the display name carries numbers that agree at every shared position
+- numbers in the model ID that are only the leading part of the source's, or the reverse, so `3` does not match `3.5`, unless the display name carries exactly the source's numbers
+- no shared leading characters
+- a parameter scale in the source that the candidate lacks or contradicts
+- a total score of zero or less
 
-The strongest penalties are:
+The remaining candidates collect points from every row of the table that applies:
 
-- source tokens missing from the candidate
-- conflicting parameter scales
-- a source scale that is absent from the candidate
-- conflicting active-parameter scales
-- a large difference in normalized name length
+| Comparison | Points |
+| --- | --- |
+| Leading tokens equal, in order, up to the first difference | 10, 8, 6, 4, and 2 for the first to the fifth token, added together |
+| Claude tier and version equal | +20 |
+| The source has at least two tokens and no number, and the candidate is the source's name followed only by numbers | +6 |
+| The candidate has exactly the source's set of tokens | +4 |
+| Source tokens missing from the candidate | −2 for one missing token, and −1 more for each further one |
+| Parameter scale equal | +3 |
+| Active-parameter scale equal, or different | +2, or −2 |
+| First number at a shared token position equal | +2 |
+| Last token equal, when it is not a number | +2 |
 
-A candidate is rejected when it has no normalized character-prefix overlap, conflicts on a hard parameter scale, conflicts on a leading numeric identity, receives a non-positive score, or fails the first-token family guardrail. Version-prefix conflicts are also hard failures: a source version `3` does not match `3.5`, and `3.5` does not match `3`.
+Three smaller terms separate close candidates: 0.03 points per shared leading character, up to 0.2 points for how closely the numbers agree, and a penalty of 0.005 points per character of difference in length. Token comparisons take the better of the candidate's model ID and display name, a scale is read from the model ID first, and the number and length terms read the model ID only.
 
 ## Variant Guardrail
 
-Similar names can identify different product variants, such as `flash` and `flash-lite`. These are distinct model identities, whereas effort variants are settings of one base model. After ranking and before the batch cutoff, the matcher checks distinguishing labels, including `flash-lite`, `flash`, `pro`, `nano`, `mini`, `lite`, `max`, `image`, `vl`, `coder`, `small`, `micro`, `codex`, `omni`, `multi-agent`, and `latest`.
+Similar names can identify different products, such as `flash` and `flash-lite`. These product variants are separate models, unlike the reasoning-effort variants of one base model. The guardrail compares a fixed set of product labels: `flash-lite`, `flash`, `pro`, `nano`, `mini`, `lite`, `max`, `image`, `vl`, `coder`, `small`, `micro`, `codex`, `omni`, `multi-agent`, and `latest`. A candidate is rejected when any label appears on one side only. Compound labels are read first, so `flash-lite` does not count as `flash`. Labels are read from the source slug and the candidate's model ID, never from a display name.
 
-If the source has one of these labels and the candidate does not, or the candidate has one and the source does not, the candidate is rejected. Multi-token labels remain distinct, so `flash-lite` does not count as plain `flash`.
+The check runs down the five kept candidates in score order and takes the first that passes. When none of the five passes, the source row is unmatched, even if a compatible candidate ranked lower.
 
-Reasoning-effort suffixes are removed before this product-variant check. The matcher tries ranked candidates until one survives. This keeps product distinctions from being erased by a superficially similar name.
+The guardrail repeats some labels from the outright rejections in [Candidate Score](#candidate-score) but is stricter. Those rejections read a candidate's model ID and display name together and reject only `small` against `micro`. The guardrail requires a `vl` or `coder` label in the model ID itself, and rejects `small` or `micro` on one side only.
 
-Benchmark-update health uses the same ranking and variant boundary with stricter full-token coverage. A source row therefore remains explicitly unrepresented when only a weak family-prefix candidate exists.
+The source slug reaches the guardrail with its trailing reasoning effort already [removed](#normalization), so a `max` at its end is not read as a product label, and a candidate whose model ID carries `max` is rejected for that source. Qwen's Max tier keeps its `max` and is compared as a label.
 
 ## Relative Cutoff
 
-The best candidate can still be a poor match. After selecting a compatible winner for each source row, the matcher rejects unusually weak winners relative to the batch. Its minimum and maximum winning scores set the cutoff:
+The best candidate can still be a poor match. Once each source row has its winner, the matcher rejects winners that score low relative to the batch. A batch is every Artificial Analysis model matched in one refresh. With $S_{\min}$ and $S_{\max}$ as the lowest and highest winning scores in the batch, the cutoff is
 
 $$
-S_{\text{cutoff}}=S_{\min}+0.35(S_{\max}-S_{\min}).
+S^{\text{cut}}=S_{\min}+0.35\,(S_{\max}-S_{\min}).
 $$
 
-The factor $0.35$ places the cutoff 35% of the way from the lowest winning score to the highest. It is a fixed heuristic, not a confidence level or a rule to reject 35% of rows. Exact normalized identities are exempt; rows without a compatible winner do not enter the range.
+A winner below $S^{\text{cut}}$ is rejected unless it is an exact identity: the source slug and the candidate's model ID or display name reduce to the same tokens. The factor $0.35$ is a fixed policy choice: it is not a confidence level, and it does not reject 35% of rows. Rows without a winner do not enter the range, and the cutoff moves when the batch of sources or the catalog changes.
 
-The illustration uses a historical replay recorded before the publisher and release eligibility checks were added. It demonstrates the cutoff, not the current matcher's accuracy.
+The illustration shows one batch scored without the publisher and release checks, which isolates the cutoff. It does not measure the matcher's accuracy.
 
-![Historical replay before publisher and release guards: the minimum and maximum winning scores set the cutoff; an exact identity survives below it, and a reordered identity survives above it.](assets/matching/matching-relative-cutoff.svg)
+![The lowest and highest winning scores set the cutoff; an exact identity is kept below it.](assets/matching/matching-relative-cutoff.svg)
 
-The shared `gpt` prefix does not establish identity. The Sonnet examples agree on family, tier, and version, including when the name reorders those parts; `thinking` describes the configuration.
+The lowest winner shares only the `gpt` prefix with its candidate and is rejected. The reordered Sonnet name is not an exact identity, so it is kept only because its score clears the cutoff.
 
-Only rows with a compatible winner set the range. The cutoff removes the weakest winners, while an exact identity survives even below it; the graph's examples do not determine the bounds.
+## Benchmark-Update Health
 
-Changing the source batch or catalog can change the range and cutoff. Recognizing a structural alias is different from establishing an exact normalized identity, so not every alias receives the exemption. An accepted match still depends on the quality of the identity evidence.
+Benchmark-update health is a separate check that reports, for each benchmark source row, whether a published model represents it. It reuses the [candidate score](#candidate-score) and the [variant guardrail](#variant-guardrail). It requires every source token to appear together in the candidate's model ID or in its display name, except `preview`, `ultra`, `adaptive`, `non`, and the effort words `max`, `xhigh`, `high`, `medium`, `low`, and `minimal`. It applies no publisher or release check, no five-candidate limit, and no relative cutoff.
 
 ## Claude Identity
 
-Claude tier and version are structural identity fields even though Anthropic has changed their order over time. Historical forms such as `Claude 3 Opus` and `claude-3-opus` normalize with `Claude Opus 3`, while the compact `claude-35-sonnet` form resolves to Claude Sonnet 3.5. Current route names can also match reordered dated permaslugs when the tier and version agree.
+Anthropic has changed the order of tier and version in Claude names, so the matcher reads them as a pair wherever they sit. `Claude 3 Opus`, `claude-3-opus`, and `Claude Opus 3` name one identity, and `claude-35-sonnet` reads as Sonnet 3.5. The tiers are `haiku`, `sonnet`, `opus`, and `fable`.
 
-The tiers `haiku`, `sonnet`, `opus`, and `fable` are mutually exclusive. When the correct tier is unavailable, the source row remains unmatched rather than borrowing another Claude tier.
-
-Reordered names still have to satisfy the publisher, release, and variant checks. Reasoning efforts retain separate observations. A missing source `reasoning_effort` stays null; the matcher does not infer an effort from a display name or select an unlabelled observation by benchmark score.
-
-## Release Proximity for Resource Estimation
-
-Release proximity helps estimate missing resources; it does not establish model identity. The [tiered resource fallback](methodology/imputation.md#resource-imputation-from-broader-evidence) starts with broad evidence, then applies supported corrections from the same lab, nearby releases, and the target model's own effort measurements. Sparse local evidence retains the broader estimate instead of defining an unstable correction.
-
-Release proximity uses a Gaussian weight centered on the target model's release date, with a standard deviation of 60 days. Both earlier and later releases can contribute; the weight depends on their distance from the target date, not their age today. There is no hard date cutoff or model-name classification. Missing or invalid dates leave the broader lab correction intact. Missing lab identity prevents both lab and release-neighborhood corrections.
-
-The target model's entire family is excluded from the other models used for its estimate. Exact model and reasoning-effort identity still determine which measurements form an effort ratio; release proximity does not relax those matching requirements.
+When both the source and a candidate name a tier and version, the pair must be equal. An equal pair earns the largest single reward and waives the number conflict rules, which a dated name or the `35` spelling would otherwise trip. A different pair rejects the candidate, so a source row whose tier has no candidate stays unmatched instead of borrowing another tier. A candidate that names no tier and version is scored by the ordinary rules.
 
 ## Selected Identity
 
-An accepted catalog match uses the winning provider and model ID as its public identity and attaches catalog metadata from `models.dev`. When publisher evidence shows a catalog field is wrong, Atlas corrects that field for the specific model and preserves the original source record. An unmatched qualified Artificial Analysis identity instead retains only source-reported metadata, leaving genuinely missing prices, limits, and serving measurements unknown.
+An accepted match takes the winning candidate's model ID as its identity and that entry's `models.dev` record as its metadata: name, release date, reasoning flag, open-weights flag, modalities, token prices, and limits. An unmatched Artificial Analysis identity keeps only what Artificial Analysis reported, which is its release date, modalities, reasoning flag, token prices, throughput, and latency, so its context and output limits stay unknown. A per-model correction overrides the open-weights flag where the publisher's own release contradicts the source.
 
-Resource fallback works field by field. Catalog input, output, and cache prices take precedence over Artificial Analysis prices, and listed OpenRouter route prices, weighted by the tokens each route served, take precedence for the input, cache-read, output, and blended prices. Exact-effort Artificial Analysis throughput and latency can fill serving fields only when primary measurements are unavailable. Each refresh recomputes these choices, so primary data takes over when it arrives without a stale override.
+### Dated Releases
 
-OpenRouter serving measurements and prices attach through the selected identity's route. When no OpenRouter route matches that identity exactly, the one route that remains after reconciling publisher aliases, version spelling, a repeated publisher prefix, and instruction-tuning labels supplies them; a dated release must also match the route's dated permaslug, so one checkpoint never borrows another's measurements, and a few routes OpenRouter lists under unrelated names are declared explicitly.
+A lab can update a model under an unchanged name, and Artificial Analysis then keeps listing it under its undated ID. The matcher then looks for the dated release instead of the undated name when two kinds of evidence name the same release. First, the catalog lists exactly one model ID that is the undated ID followed by a date, with or without a year. Second, either Artificial Analysis's display name for the model or a Vals model ID names that same dated release. If the catalog lists several dated IDs for the name, or the Artificial Analysis and Vals evidence names more than one, the undated ID is left as it is. A model matched this way keeps the dated ID as its identity even when its display name shows no date. Only a date counts here: a new version number makes a separate model, not an update of the old one. [Updated Releases](methodology/sources.md#updated-releases) explains which benchmark results such a model keeps.
 
-Artificial Analysis token prices are USD per million tokens, throughput is output tokens per second, and latency is seconds; total benchmark evaluation costs are never treated as token prices.
+### OpenRouter Routes
 
-Both paths attach benchmark evidence before applying the dashboard inclusion rules described in [Methodology](methodology/leaderboard-rules.md#dashboard-inclusion).
+A route is one OpenRouter model ID, written `publisher/model`, and one model can have several, such as a dated route, a preview route, and a `:free` route. Routes that serve the same model share one identity, and each identity has one public ID. It identifies the model in the table and the API, and OpenRouter speed measurements and listed route prices attach through it, for matched and unmatched identities alike.
 
-Serving aliases such as fast, free, latest, preview, high-effort, or dated routes do not automatically become separate public models. Aliases that point to the same underlying model share one canonical identity. Explicit reasoning-effort observations remain separate scored variants.
+The public ID is the model ID with these parts removed: the `:free` marker, a `fast`, `reasoning`, or `non-reasoning-low-effort` alias, an eight-digit date, a dated preview suffix, and a reasoning-effort suffix. A single-digit version written `4-5` becomes `4.5`. When the catalog entries sharing an identity include one from the OpenRouter listing, that entry's ID, rewritten the same way, supplies the public ID. An unmatched identity's public ID is derived from its Artificial Analysis ID by the same rewriting.
 
-An unlabelled observation represents the source's default effort. If all observations name an effort, the highest reported effort supplies the default, except that a reasoning-off (`none`) observation never does, because a reasoning model's default configuration thinks. A hybrid model's labelled thinking or reasoning mode is its default configuration rather than an effort, and its no-thinking mode is effort `none`. Storage preserves every reported effort. Missing benchmark results can later be estimated from another effort's direct result plus the measured gap on shared benchmarks. These scoring-only estimates preserve exact source observations and never force effort order to be monotonic.
+An identity's candidate routes are the route with exactly its public ID and up to eight others from the same publisher that name the same model. Another route names the same model when its name differs only by a dated, preview, beta, or experimental suffix or, for Claude, names the same tier and version. Where more than eight qualify, the first eight in alphabetical order are taken. Among candidates with speed measurements, the one with the most weekly tokens supplies speed, and prices come from it or, when it lists none, from the most-used candidate that does.
 
-Expanded views keep exact-effort results. Compact views use the representative with the highest :score[Intelligence] and can fill its missing benchmark fields from the highest available direct effort, while retaining the distinction between a model-level display and an exact-effort observation.
+When none of those routes exists, a few declared aliases cover routes that OpenRouter names differently. Otherwise the names are reconciled for publisher aliases, a repeated publisher prefix, version spelling, and instruction-tuning labels, and a route is taken only when exactly one remains. OpenRouter also gives each route a permanent ID, which can carry the route's release date. In this step, a model ID that ends in a month and day, such as `0528`, matches an undated route only when that route's permanent ID ends with the same month and day.
+
+### Resource Fields
+
+Each resource field is filled separately. Catalog token prices come first, and Artificial Analysis prices fill only the fields the catalog lacks. The prices listed by each provider endpoint of the selected OpenRouter route, weighted by the tokens that endpoint served, are stored as separate weighted prices that feed the [blended token price](methodology/speed-value.md#blended-token-price); they never overwrite the catalog prices. Throughput and latency come from OpenRouter, and Artificial Analysis measurements for the same variant fill only the fields OpenRouter lacks. Artificial Analysis's cost of running a benchmark is never read as a token price.
+
+### Reasoning Efforts
+
+Each reasoning effort a source reports stays a separate variant under the shared identity. The effort comes from the source's effort field where the source has one. Artificial Analysis falls back to an effort label in the model's name when that field is empty, and sources without an effort field read the label from the name. A row with neither has no reasoning effort. [The Source-Default Variant](methodology/sources.md#the-source-default-variant) explains which observation represents a model whose source names no reasoning effort, and [Collapsed and Expanded Rows](methodology/leaderboard-rules.md#collapsed-and-expanded-rows) explains how the table shows a base model's variants.

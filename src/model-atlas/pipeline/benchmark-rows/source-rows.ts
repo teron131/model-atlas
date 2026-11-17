@@ -116,7 +116,7 @@ function benchmarkObservationSourceDrafts(sourceData: ModelAtlasSourceData): Ben
     }
     return (
       source.rows
-        // Fused benchmarks publish component rows; those from the benchmark's own publishers still describe its source.
+        // Combined benchmarks publish component rows; those from the benchmark's own publishers still describe its source.
         .filter(
           (row) =>
             isAssignableBenchmarkObservation(row) ||

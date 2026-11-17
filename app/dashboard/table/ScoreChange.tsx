@@ -11,7 +11,7 @@ import type {
 } from "../../../src/model-atlas/stats/types";
 import { providerBrandColor } from "../shared/provider-theme";
 import { benchmarkMetricColumns } from "./column-registry";
-import { scoreColumnsByDimension } from "./Columns";
+import { scoreColumnsByKey } from "./Columns";
 import {
   formatCompactNumber,
   formatCost,
@@ -129,7 +129,7 @@ function ScoreMove({ move, track }: { move: ModelAtlasScoreMove; track: boolean 
         : `Support ${move.confidence_before}% → ${move.confidence_after}%`;
   return (
     <li className="score-change-move" data-direction={direction}>
-      <span className="score-change-dimension">{scoreColumnsByDimension[move.dimension].name}</span>
+      <span className="score-change-dimension">{scoreColumnsByKey[move.dimension].name}</span>
       <span className="score-change-score">
         {move.score_before == null ? null : (
           <span className="score-change-before">{formatScore(move.score_before)} → </span>

@@ -22,7 +22,7 @@ export type BenchmarkSourceAdapter =
       scoreKey?: string;
       scorePath?: BenchmarkJsonPath;
       resourceKey: string;
-      /** Pin a series fused with another source to that source's suite version. */
+      /** Pin a series combined with another source to that source's suite version. */
       version?: string;
     };
 
@@ -101,9 +101,9 @@ export type BenchmarkSourceDeclarationFacet = {
 export type BenchmarkGroup = "baseline" | "frontier";
 type BenchmarkMetricFormat = "percent" | "score" | "number" | "currency";
 type BenchmarkSortDirection = "ascending" | "descending";
-export type BenchmarkDimension = "intelligence" | "agentic";
+export type BenchmarkCapability = "intelligence" | "agentic";
 
-type BenchmarkDimensionLoadings = Readonly<Record<BenchmarkDimension, number>>;
+type BenchmarkAllocation = Readonly<Record<BenchmarkCapability, number>>;
 
 export type BenchmarkResourcePolicy = {
   /** Source classification only; resources must still belong to the named benchmark. */
@@ -134,7 +134,7 @@ export type BenchmarkProcessingFacet = {
 
 export type BenchmarkScoringFacet = {
   group: BenchmarkGroup;
-  dimensionLoadings: BenchmarkDimensionLoadings;
+  dimensionLoadings: BenchmarkAllocation;
 };
 
 type BenchmarkValueLocation = { kind: "benchmark" } | { kind: "intelligence"; field: string };
@@ -205,7 +205,7 @@ type BenchmarkFactory<TDefinitions extends BenchmarkDefinitions> = {
   portfolio: BenchmarkPortfolio;
 };
 
-const DIMENSION_LOADING_SUM_TOLERANCE = 1e-9;
+const ALLOCATION_SUM_TOLERANCE = 1e-9;
 
 /** Validate definitions and derive every commonly consumed benchmark view. */
 export function defineBenchmarks<const TDefinitions extends BenchmarkDefinitions>(
@@ -472,8 +472,8 @@ function validateBenchmarkWeight(
     !Number.isFinite(agentic) ||
     intelligence < 0 ||
     agentic < 0 ||
-    Math.abs(intelligence + agentic - 1) > DIMENSION_LOADING_SUM_TOLERANCE
+    Math.abs(intelligence + agentic - 1) > ALLOCATION_SUM_TOLERANCE
   ) {
-    throw new Error(`Dimension loadings must be finite, non-negative, and sum to one for ${key}`);
+    throw new Error(`Allocations must be finite, non-negative, and sum to one for ${key}`);
   }
 }

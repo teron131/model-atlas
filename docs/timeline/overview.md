@@ -2,84 +2,96 @@
 
 ## Introduction
 
-Inspired by the [Epoch Capabilities Index (ECI)](https://epoch.ai/eci), the Intelligence Index combines retained benchmark results and published indexes to estimate Intelligence across model generations. Its scores support comparisons between models, but are neither benchmark success rates nor ratios of capability.
+The Intelligence Index places models from different generations on one fixed scale, so a model released years ago can be compared with one released today even though no benchmark measured both. It combines observed benchmark results with published aggregate indexes, an approach taken from the [Epoch Capabilities Index (ECI)](https://epoch.ai/eci). It is Model Atlas's own index: the Artificial Analysis Intelligence Index is one of the aggregate indexes it reads, and the leaderboard's :score[Intelligence] is a separate score. Its scores order models and size the gaps between them; they are neither benchmark success rates nor ratios of capability.
 
-The index is separate from the leaderboard’s [relative scores](../methodology/overview.md) and is currently shown on the Timeline chart. Its display units remain provisional.
+The index reads the observed results behind the leaderboard's [relative scores](../methodology/overview.md), together with archived source records, and returns nothing, so it changes no leaderboard score or [dashboard inclusion](../methodology/leaderboard-rules.md#dashboard-inclusion) decision. Only Intelligence has an index; :score[Agentic] exists only as a relative leaderboard score.
 
-The [fixed anchors](calculation.md#set-index-units-with-fixed-anchors) assign index scores of 100 and 150 to the saved positions of GPT-4 (March 2023) and Claude Opus 4.5, respectively.
+The fixed scale is the reference scale. It is defined by the leaderboard's :score[Intelligence] scores as they stood at one refresh, saved once and never updated. Benchmark results are converted to that scale, which is how a model the saved scores never included still receives a position on it.
+
+Reference-scale points are an internal unit. Two [fixed anchors](calculation.md#set-index-units-with-fixed-anchors) set the displayed units: the saved reference-scale positions of GPT-4 (March 2023) and Claude Opus 4.5 read 100 and 150.
 
 ## From Evidence to Index
 
-The framework establishes a fixed reference from an initial snapshot of supported scores, uses retained evidence to place older models, and extends forward as new results arrive. Models measured on overlapping benchmarks connect these generations to the same scale; future models need a supported connection before they can be placed. Benchmark mappings stay fixed across ordinary refreshes. A model on the leaderboard is estimated again at every refresh, so results that arrive or are corrected after its release, or that a newly connected benchmark makes usable, reach its score; a model that leaves the leaderboard keeps its last score.
+A benchmark joins the reference scale through a conversion, a line from its reported units to reference-scale points, fitted on the models it shares with benchmarks already on the scale. Overlapping benchmarks therefore chain older and newer generations to the same scale, and a benchmark with no chain to it places no model.
+
+A model's position on the reference scale is calculated again at every refresh in which the model appears, from its own observed results, so a result that arrives or is corrected after release reaches its score. A model absent from a refresh keeps its last position, and the two anchor models always keep the positions that define the units. Each variant is placed separately; base model, variant, observed result, estimate, and aggregate index have the meanings given in the methodology's [Key Terms](../methodology/overview.md#key-terms).
 
 > [!FLOW]
 >
-> 1. **Preprocess the data**
+> 1. **Match the records**
 >
->    Reconcile source names and match records without merging distinct model releases, reasoning settings or benchmark versions.
+>    Assign each source record to its model release, reasoning effort, and benchmark version, keeping distinct ones apart.
 >
 > 2. **[Freeze the initial reference](calculation.md#freeze-the-initial-reference)**
 >
->    Establish the reference once from a saved snapshot of supported scores, then reuse it instead of later relative leaderboard scores.
+>    Take the reference scale from the saved leaderboard scores that had at least 60% of the leaderboard's [evidence support](../methodology/intelligence-agentic.md#evidence-support).
 >
 > 3. **[Connect benchmark generations](calculation.md#connect-benchmark-generations)**
 >
->    Link older and newly introduced benchmarks through shared model results, placing past and future models on the same scale while keeping published mappings fixed.
+>    Convert each benchmark's results to the reference scale through the models it shares with benchmarks already connected, and keep every saved conversion fixed at later refreshes.
 >
-> 4. **[Weight the evidence by coverage](calculation.md#weight-the-evidence-by-coverage)**
+> 4. **[Combine the evidence](calculation.md#combine-the-evidence)**
 >
->    Combine individual benchmark results and published indexes in one [weighted mean](../methodology/overview.md#weighted-mean), with index weights reflecting represented benchmark breadth.
+>    Place each variant at one [weighted mean](../methodology/operations.md#weighted-mean) of its converted benchmark and index results, with each index weighted by its remaining [represented breadth](../methodology/intelligence-agentic.md#represented-breadth-and-overlap), the number of benchmarks it stands for less those already counted.
 >
 > 5. **[Apply the dated-successor assumption](calculation.md#apply-the-dated-successor-assumption)**
 >
->    Limit apparent regressions when reconstructing older releases from uneven evidence by keeping dated successors at least level with earlier versions in the same model and effort series.
+>    Keep a later dated release at least level with earlier releases of the same model at the same reasoning effort.
 >
 > 6. **[Set index units with fixed anchors](calculation.md#set-index-units-with-fixed-anchors)**
 >
->    Assign the saved GPT-4 (March 2023) and Claude Opus 4.5 positions values of 100 and 150, preserving the unit as new models arrive.
+>    Read the two saved anchor positions as 100 and 150.
 
-The published index uses the Intelligence base weights. :score[Agentic] remains a relative leaderboard score.
+Most placed variants also carry a [typical miss](calculation.md#estimate-the-typical-miss), a checked measure of how far a position may lie from where more benchmarks would put it. [Calculation](calculation.md) gives the equations, the connection checks, and the rules for which results count.
 
-Read [Calculation](calculation.md) for the equations, benchmark connection checks, and evidence-weighting rules.
+## Reading the Chart
 
-## Coverage and Visibility
+The chart plots Intelligence Index scores against release dates, one point per base model. A point's look does not show its evidence support or whether indexes alone place it. A pointed model's readout line gives its score, release date, and [Timeline evidence support](#evidence-support), and says “index only” when aggregate indexes alone place it.
 
-The chart shows evidence support alongside capability so a sparsely supported estimate does not appear as reliable as a well-supported one. Point opacity shows that support, and the frontier requires at least 60% support in the selected dimension:
+The chart always starts at GPT-4's March 2023 release. It always leaves out scores below 70, models without a release date, and OpenAI Pro, Gemini Deep Think, and Claude Mythos models, the groups the leaderboard also [hides](../methodology/leaderboard-rules.md#hidden-model-groups). Leaving a model off the chart changes neither its score nor any other model's.
 
-| Chart feature | Meaning |
-| --- | --- |
-| Filled point | A supported reference or benchmark-supported estimate. |
-| Outlined point | An index-only estimate. |
-| Fainter point | Less evidence support. |
-| Frontier | Successive record-high scores with at least 60% support in the selected dimension. |
+### Evidence Support
 
-The benchmark coverage used for blending and the support used for frontier eligibility are different measures. Frontier support takes the strongest available support from saved reference evidence, direct benchmarks or eligible index breadth; overlapping sources are not added together to inflate it.
+The Timeline's evidence support says how much evidence backs a position and decides which models can set a frontier record. It is not the leaderboard's [evidence support](../methodology/intelligence-agentic.md#evidence-support), which is a share of the leaderboard's benchmark portfolio. The Timeline's quantity is the largest of up to four shares, never their sum:
 
-Each model family uses one representative variant. Selection takes the variant the main leaderboard rates strongest on :score[Intelligence] among those it lists, so both views name the same effort and a sparsely measured effort the leaderboard does not list cannot stand for the model; families with no listed variant use their strongest Intelligence Index estimate, preferring current variants. Every variant retains its own measurements and score. The default chart starts with GPT-4's March 2023 release and hides scores below 70.
+- The leaderboard evidence support saved with the model's reference score, when the model has one.
+- A share from the benchmarks that place the model, counted by their [effective count](../methodology/operations.md#effective-count): the number of equally weighted benchmarks that would spread influence as widely.
+- A share from the [represented breadth](../methodology/intelligence-agentic.md#represented-breadth-and-overlap) of one index that places the model.
+- For an index the model was observed on whose components are known, the share of those components' base weight that the model itself has results on. This applies when the model has results on at least three of them.
 
-The default view emphasizes broadly impactful model progress. It excludes OpenAI Pro, Gemini Deep Think and Claude Mythos models because of their specialized resourcing, operating policies or assets. Ordinary Gemini Pro models and other high-reasoning variants remain eligible. Visibility rules, search, dates and lab filters apply after scoring: hiding a model changes neither its score nor the calibration of other models.
+A count or breadth becomes a share along the [smoothstep curve](../methodology/operations.md#smoothstep): zero up to 0.8 benchmarks, rising to 100% at eight. The Timeline's evidence support takes no part in the position itself.
 
-## Evidence and Validation Maps
+The frontier is the run of record-high scores in release order. Only a model with at least 60% Timeline evidence support can set a record, and a supported model that equals the standing record at the readout's one-decimal precision also sits on the frontier.
 
-The evidence map shows what supports each model's estimate. The validation map shows whether other benchmark results can predict a missing result accurately enough to be useful.
+### Representative Variant
 
-| Map | Rows | Columns | What the colors show |
-| --- | --- | --- | --- |
-| Evidence | Models | Benchmark versions | Results used in the estimate, other observations, inferred results or missing evidence. |
-| Validation | Target benchmarks | Input combinations | Normalized prediction error; brighter means higher error, and empty cells have no validation result. |
+One representative variant stands for each base model, chosen by the first rule that applies:
 
-Read prediction error together with baseline error and the number of validation models: a small error is more useful when it improves on a simple guess and is supported by several independent models. “Accepted” means the predictor passed those checks. Inferred cells remain estimates; they do not become observations or establish benchmark connections.
+1. When the leaderboard lists any placed variant of the base model, the representative is the listed variant with the highest :score[Intelligence]. The chart and the table then name the same reasoning effort, and a sparsely measured effort the leaderboard leaves out cannot stand for the model.
+2. Otherwise, when any placed variant appears in the latest refresh, it is the one of those with the highest Intelligence Index score.
+3. Otherwise it is the placed variant with the highest Intelligence Index score.
+
+### Evidence Panel
+
+Below the chart, the evidence panel draws one thread per benchmark or index across the release dates of the charted models it measured; all versions of one benchmark or index share a thread. A pointed thread's readout counts the predictions of that benchmark from other benchmarks and indexes that were tested on held-out models and how many were accepted, and it gives the smallest accepted error beside the error of a guess at the median, both on the [validation](calculation.md#validate-the-connection) scale. Beneath the threads, a second plot marks each model at its release date and, on the vertical axis, its typical miss in reference-scale points. Models without a typical miss sit in a row of their own below it. A picked model also gets a table of its results. Observed results are listed with the benchmarks each passes through to reach the reference scale. Estimated results are listed too, though they never place a model or connect benchmarks.
 
 ## Uncertainty and Limitations
 
-Fixed anchors preserve the numerical scale, not the accuracy of every estimate. Errors can accumulate along benchmark chains, and predictions beyond the observed overlap are less reliable. A new benchmark may test abilities absent from the connecting models, so past validation cannot establish how well that connection will transfer.
+Fixed anchors preserve the units, not the accuracy of every position. Errors can add up along a chain of conversions, and a conversion is less reliable beyond the range of results it was fitted on. A new benchmark may also test abilities the connecting models never showed, so passing validation on shared models does not establish how well the connection carries over to later ones.
 
-| Diagnostic | What it measures |
-| --- | --- |
-| Evidence support | How much usable evidence backs the estimate. |
-| Predictor acceptance | Whether withheld-result predictions pass the error and baseline checks. |
-| [Typical miss](calculation.md#estimate-the-typical-miss) | How far a position typically lies from where more benchmarks would settle it, checked by leaving each benchmark out; more benchmarks narrow it, and sitting far from where they were checked widens it. |
+The Timeline's evidence support is not a probability that a score is correct. A typical miss is a checked median, not a confidence interval: half of the results held out in its check fall within it. The check leaves out each benchmark in turn, which shows only how a model's benchmarks disagree with each other. An error they all share, such as a drift in the one conversion that carries a whole era, never appears, so the typical miss understates it. Small score differences can therefore be inconclusive even when every connection involved passed validation.
 
-Benchmark prediction error and final model-score error answer different questions. The first tests a conversion between benchmarks; the second tests the combined estimate against a withheld model reference. Their units and evaluation populations must be stated before the numbers can be compared. Agreement with a saved reference or publisher index does not establish true capability.
+A connection's [validation error](calculation.md#validate-the-connection) and a model's typical miss are different quantities. The first is a percentage of the predicted benchmark's range among the training models and tests a single conversion; the second is in reference-scale points and tests a combined position. Neither measures distance from true capability, and agreement with a publisher's index does not establish it.
 
-Evidence support is not a probability that a score is correct, and a typical miss is a checked median, not a confidence interval. Leaving a benchmark out shows only how a model's benchmarks disagree, so an error they all share, such as one conversion carrying a whole era, does not widen it. Small score differences may therefore be inconclusive even when the relevant connections pass validation. Models without a supported connection remain unplaced.
+The [dated-successor assumption](calculation.md#apply-the-dated-successor-assumption) can hide a real decline between releases.
+
+## Parameter Choices
+
+These values are policy choices, not fitted claims about model behavior. [Calculation](calculation.md#parameter-choices) lists the ones behind a position.
+
+| Parameter | Value | Why it exists |
+| --- | ---: | --- |
+| Count or breadth for Timeline evidence support | 0.8 to 8 benchmarks | Gives less than one benchmark's worth of evidence no support and treats eight as full support. |
+| Observed components for an index's component share | 3 | Keeps one or two components from standing for an index. |
+| Timeline evidence support to set a record | 60% | Keeps a thinly measured model from setting the frontier. |
+| Lowest score on the chart | 70 | Starts the chart below the first anchor's 100 without drawing scores far under it. |

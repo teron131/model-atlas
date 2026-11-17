@@ -1,7 +1,7 @@
 /** Missing benchmark scores use observations from another effort and measured gaps on shared benchmarks; estimates never become reference evidence. */
 
 import { isAggregateIndex } from "../../../benchmarks/index-policy";
-import { benchmarkDimensionWeight, benchmarkValue } from "../../../benchmarks/registry";
+import { benchmarkAllocation, benchmarkValue } from "../../../benchmarks/registry";
 import { countsTowardIntelligence, type ScoringConfig } from "../../../config/stage";
 import {
   canonicalModelKey,
@@ -36,18 +36,18 @@ export function prepareEffortQualityScoringContext(
   const estimates = new Map<string, ReadonlyMap<string, number>>();
   for (const group of groups.values()) {
     if (group.length < 2) continue;
-    for (const dimension of ["intelligence", "agentic"] as const) {
+    for (const capability of ["intelligence", "agentic"] as const) {
       const keys =
-        dimension === "intelligence"
+        capability === "intelligence"
           ? scoringConfig.intelligenceBenchmarkKeys
           : scoringConfig.agenticBenchmarkKeys;
       const variantInputs = group.map((model) => ({
         model,
         inputs: keys.flatMap((key) => {
-          if (dimension === "intelligence" && !countsTowardIntelligence(key, scoringConfig)) {
+          if (capability === "intelligence" && !countsTowardIntelligence(key, scoringConfig)) {
             return [];
           }
-          const weight = benchmarkDimensionWeight(key, dimension, scoringConfig.benchmarkPortfolio);
+          const weight = benchmarkAllocation(key, capability, scoringConfig.benchmarkPortfolio);
           if (!(weight > 0) || isAggregateIndex(key)) return [];
           const rawValue = benchmarkValue(model, key);
           if (rawValue == null) return [];
@@ -55,7 +55,7 @@ export function prepareEffortQualityScoringContext(
             model,
             key,
             rawValue,
-            dimension,
+            capability,
             qualityContext,
           );
           return value == null ? [] : [{ key, value, weight }];
@@ -106,7 +106,8 @@ export function prepareEffortQualityScoringContext(
             predicted.set(input.key, clampScore(input.value + referenceVariant.gap));
           }
         }
-        if (predicted.size > 0) estimates.set(effortQualityKey(target.model, dimension), predicted);
+        if (predicted.size > 0)
+          estimates.set(effortQualityKey(target.model, capability), predicted);
       }
     }
   }

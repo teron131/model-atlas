@@ -1,210 +1,118 @@
-# Missing Data and Imputation
+# Imputation
 
-## Benchmark Results and Imputation
+Benchmark and resource coverage is uneven: sources report different models, and labs publish some reasoning efforts but not others. Imputation estimates a missing value from observed ones, so that a gap in coverage does not decide a score by itself. An estimate is never treated as an observation.
 
-Benchmark and resource coverage is uneven: sources report different models, and labs publish some reasoning efforts but not others. Supported estimates help reduce the effect of those gaps, but each estimation method has a different role. Estimates never satisfy direct-evidence requirements for dashboard inclusion or resource score availability.
+## What Estimates Can and Cannot Do
 
-Validated source crosswalks are different: they put measured results from comparable sources onto one benchmark scale and produce accepted benchmark results.
+Four kinds of estimate fill a missing benchmark result or resource amount, and each is allowed a different role. An index result reported for a model as a whole reaches its other efforts by a separate rule, [Indexes Across Reasoning Efforts](intelligence-agentic.md#indexes-across-reasoning-efforts). The roles refer to separate parts of a score. For :score[Intelligence] and :score[Agentic], the [benchmark mean](intelligence-agentic.md#weights-and-the-benchmark-mean) is the weighted mean of a variant's benchmark scores and is the basis of the score, [evidence support](intelligence-agentic.md#evidence-support) is the share of the benchmark portfolio that the variant's results back, and [score retention](intelligence-agentic.md#score-retention) is the discount on a score backed by little benchmark weight. For :score[Speed] and :score[Value], a discounted resource input counts at less than its full weight, by an [evidence factor](speed-value.md#evidence-factors) below 1.
 
-| Evidence path | Role in scoring |
-| --- | --- |
-| Validated source crosswalk | Supplies one accepted benchmark result for normalization, scoring, pairwise comparison, and benchmark evidence support. |
-| From other observed benchmarks | Supplies quality estimates for resource comparisons and discounted evidence support; does not enter the capability mean. |
-| Across reasoning efforts | Fills missing benchmark contributions in the capability mean; adds no evidence support by itself. |
-| Cost, time, or tokens | Supplies resource estimates with evidence discounts; does not enter the reference population. |
-
-**Why estimates affect scores and support differently**
-
-An estimate transferred across efforts starts from the same model's observed result on the missing benchmark, adjusted by the measured gap between efforts. It can therefore supply a benchmark contribution to the capability mean. Predictions from other benchmarks instead derive the missing value from the model's performance elsewhere. Keeping those predictions out of the mean avoids feeding that same performance back into the score as additional benchmark values.
-
-Held-out validation of predictions from other benchmarks supplies a separate measure of how predictable the missing evidence is. The policy gives this partial credit toward evidence support and score retention, discounted for prediction error and the amount of observed evidence. Transferring a value across efforts does not itself earn that credit. Both methods reuse observations; neither creates a new measurement. Their different roles are scoring-policy choices, not a conclusion that follows from validation alone.
-
-Crosswalk fitting and predictions from other benchmarks each require held-out validation, and predictions from other benchmarks require at least three distinct observed benchmarks. The final capability mean uses at most one contribution per benchmark, with observed results and accepted source crosswalks taking precedence over estimates from another effort. Higher effort is not assumed to perform better.
-
-Each method's support and validation rules are described below.
-
-### Source Crosswalks
-
-Sources can report the same benchmark with different methodologies and model coverage. For sources selected for quality fusion, Model Atlas takes the [equally weighted mean](overview.md#weighted-mean) of their quality scores, without assuming either is better.
-
-A **crosswalk** learns their typical score difference from shared models and maps an available source result onto the combined benchmark scale. This keeps every model on the same combined scale even when one source lacks it. The accepted combined result is benchmark evidence; the mapped counterpart is not a newly measured source observation and never trains another source crosswalk.
-
-**Fit the offset**
-
-Use results paired by model and reasoning effort:
-
-| Symbol | Meaning and purpose |
-| --- | --- |
-| $A_i$, $B_i$ | Source A and B results for the same variant $i$. |
-| $w^{\text{ref}}_i$ | Reference weight: each base model shares one unit across its paired efforts, so reporting more efforts gives it no extra influence. |
-| $\delta$ | Typical difference $B-A$: positive when B scores higher, negative when A scores higher. |
-
-$$
-\delta=\operatorname{weightedMedian}_i(B_i-A_i;w^{\text{ref}}_i).
-$$
-
-The [weighted median](overview.md#weighted-median-and-quantiles) limits the influence of outliers.
-
-**Validate on withheld models**
-
-For each paired result $i$, fit $\delta^{\text{others}}_i$ using other models, excluding every effort of its base model. Use that offset to predict the withheld source result and compare it with the observation. This prevents a model’s own results from helping predict it.
-
-The absolute prediction error is $|B_i-A_i-\delta^{\text{others}}_i|$. Only half the two-source mean uses the mapping, so its error is half as large before clipping. The weighted median gives validation error $e$ in the benchmark’s score units:
-
-$$
-e=\operatorname{weightedMedian}_i\left(\frac{\left|B_i-A_i-\delta^{\text{others}}_i\right|}{2};w^{\text{ref}}_i\right).
-$$
-
-**Accept the source mapping**
-
-Accept the crosswalk only if both the paired observations and usable validation predictions cover the required number of independent models, currently six, and $e\le e_{\max}$, the configured error limit. If it fails, try imputation from other observed benchmarks; without a supported prediction, leave the combined result missing. For sources selected for quality fusion, two observed quality scores can be averaged without a crosswalk.
-
-For an accepted crosswalk, use $\delta$ fitted from all paired observations. A hat marks a mapped counterpart:
-
-| Available results | Missing result | Combined result |
+| Estimate | What it is built from | Role in scoring |
 | --- | --- | --- |
-| Both sources | None | $(A+B)/2$ |
-| A only | $\hat B=A+\delta$ | $(A+\hat B)/2$ |
-| B only | $\hat A=B-\delta$ | $(\hat A+B)/2$ |
+| Benchmark result across reasoning efforts | The same model's observed result on that benchmark at another effort | Fills the missing contribution to the benchmark mean. Adds no evidence support of its own; an estimate from other benchmarks for the same benchmark still supplies its evidence factor. |
+| Benchmark result from other benchmarks | The variant's standing on its other benchmarks | Supplies quality for resource comparisons and discounted evidence support. Does not enter the benchmark mean. |
+| Resource across reasoning efforts | The same model's observed resource at another effort | Supplies a discounted resource input. |
+| Resource from broader evidence | How other models' resources change between the same two efforts | Supplies a discounted resource input, only when no ratio from the model's own measurements is accepted. |
 
-Apply [clamp](overview.md#linear-scaling-and-clamping) to the combined value using the benchmark’s permitted score range. Raw source results remain separate.
+The first two differ for a reason. An estimate carried across efforts starts from the same model's observed result on the missing benchmark, so it brings new information about that benchmark and can stand in the benchmark mean. It adds no evidence support, so filling a gap this way changes the score without making the variant count as better covered. An estimate from other benchmarks is derived from the variant's performance elsewhere; putting it in the mean would count the same performance twice. Its held-out validation does show how predictable the missing result is, and that earns partial evidence support. These roles are scoring-policy choices; validation alone does not dictate them.
 
-![Paired models set the offset δ and its held-out error e, which must stay within the limit before single-source models borrow δ. Crosswalked means carry a band of typical prediction error, not a confidence interval.](../assets/methodology/source-crosswalk.svg)
+Every estimate obeys the same limits. It never sets a reference scale, a peer population, or a score limit, and never counts toward [dashboard inclusion](leaderboard-rules.md#dashboard-inclusion) or [resource score availability](leaderboard-rules.md#resource-score-availability). An observed result or an accepted [source crosswalk](sources.md#source-crosswalks) always takes precedence, and a benchmark contributes at most once to a variant's benchmark mean.
 
-**Three sources**
+A source crosswalk is not imputation. It combines observed results from comparable sources of one benchmark and counts as a benchmark result in full.
 
-Three sources of one benchmark combine at equal weight. Each source pair fits and accepts its own offset as above. A missing source is predicted from every observed counterpart whose pair crosswalk was accepted, using the mean of those predictions, and the combined result is the mean of the three values. Each combination of observed and missing sources is validated separately: withhold each result observed in all three sources, predict its three-source mean from that combination alone, and accept the combination only when at least six models yield predictions with model-balanced median absolute error within the limit.
+## Benchmark Results Across Reasoning Efforts
 
-**Keep result status and provenance separate**
+A missing benchmark score is estimated from the same model's observed score at another reasoning effort, shifted by how far apart the two efforts are on the benchmarks both have. The effort with the gap is the target effort; the effort that supplies the observed result is the reference effort. The estimate assumes the gap measured on shared benchmarks carries over to the missing one. It does not assume that a higher effort performs better: the direction follows the observations.
 
-An accepted crosswalk contributes one benchmark result with evidence factor 1. It participates in normalization, pairwise comparison, capability scoring, admission, and downstream benchmark-quality calculations. The source slots retain which results were measured, which counterparts were mapped, validation error, and extrapolation diagnostics. These diagnostics do not classify the accepted quality result as effort or missing-benchmark imputation.
+The calculation runs separately for :score[Intelligence] and for [token-adjusted :score[Agentic]](intelligence-agentic.md#agentic-token-efficiency). It uses frontier benchmarks only, each as one score however many questions it contains, with $\omega_b$ the benchmark's [base weight](intelligence-agentic.md#weights-and-the-benchmark-mean) in the capability being calculated. Aggregate indexes, baseline benchmarks, and other estimates take no part, and gaps are measured before any missing result is filled. A variant without a named reasoning effort neither receives nor supplies these estimates, and an [updated release](sources.md#updated-releases) receives none.
 
-Source mappings are fitted only from actual paired source measurements. Accepted combined values cannot be recycled into source-pair calibration. Resource measurements retain their own comparability and estimation rules.
+### Choosing the Reference Effort
 
-**Quality and resources are assessed separately**
+A reference effort must have an observed result for the missing benchmark and at least three benchmarks observed at both efforts. Among several candidates, the one whose shared benchmarks have the largest [effective count](operations.md#effective-count) by base weight is chosen, so the gap rests on broad overlap instead of one heavily weighted benchmark.
 
-An accepted source crosswalk for quality does not establish comparable cost, runtime, or token use. Each resource must independently pass the [absolute resource agreement rule](speed-value.md#resource-comparability-across-sources) before the mean of its raw amounts can be calculated. Similar quality scores or a predictable score offset do not satisfy that rule.
+Ties go to the reasoning effort closest to the target, then to a fixed label order. Without a qualifying effort, the result stays missing.
 
-When resource amounts are not comparable, each source is scored against its own quality observations and reference population. Each retains half of the benchmark’s resource base weight, even when the other source is missing. Quality scores can still be combined, but resources cannot be imputed across those sources. [Resource Comparability Across Sources](speed-value.md#resource-comparability-across-sources) gives the resource calculations; two sources still count as one benchmark for direct-evidence requirements.
+### Estimating the Score
 
-**Source comparison diagnostics**
-
-Compare the same observed models across sources to see how their score distributions differ and how fusion changes them. Look for a horizontal shift, suggesting an offset, or different spreads, peaks, and tails that one offset may not capture. The fusion curve shows how taking the mean reshapes the distribution.
-
-**Jensen–Shannon divergence (JSD)** measures overall distribution difference, treating both sources equally: A–B equals B–A. Use it to compare source disagreement and how far the fused distribution sits from each source.
-
-**Kullback–Leibler divergence (KL)** measures mismatch in a chosen direction. A → B is large when A places substantial weight in score regions where B places little; B → A checks the reverse. Unequal values reveal this asymmetry, not which source is better.
-
-For both metrics, zero means identical distributions and smaller values mean greater similarity. Use the same models and smoothing settings when comparing values. Neither metric checks whether individual models agree; held-out prediction error still determines crosswalk acceptance.
-
-![Illustrative score distributions for the same paired models: source A, source B, and their equal-weight fusion. Gaussian smoothing with bandwidth 0.08 makes their shapes easier to compare.](../assets/methodology/source-fusion-divergence.svg)
-
-### Imputation from Other Observed Benchmarks
-
-Use a model’s performance on other observed benchmarks to impute a missing result: calculate its weighted mean, find its percentile among peers, then read the target benchmark’s value at that percentile. Repeat separately for Intelligence and Agentic.
-
-![The example uses ten models with one eligible variant each, so all reference weights are 1. A weighted mean of 70 maps to rank 45%, then to target value 0.58.](../assets/methodology/quantile-imputation.svg)
-
-**Calculate the weighted mean**
-
-The [weighted mean](overview.md#weighted-mean) summarizes the same variant’s measured performance for comparison with peers. Each benchmark contributes according to its existing allocation to Intelligence or Agentic.
-
-Reuse the [benchmark normalization and base weights](intelligence-agentic.md#benchmark-scores-and-dimension-weights), separately for Intelligence and Agentic. Direct scoring in both capabilities uses frontier benchmarks. This prediction may also use observed baseline results to estimate a missing frontier result, subject to its validation and discounted evidence factor; the baseline result itself receives no direct capability weight. For each other observed benchmark $b$ with positive predictive weight, $z_b$ is its normalized score and $\omega_b$ its weight:
+For each shared benchmark $b'$, $z^{\text{target}}_{b'}$ and $z^{\text{ref}}_{b'}$ are the two efforts' benchmark scores. The gap $\Delta$ is the [weighted mean](operations.md#weighted-mean) of their differences. Adding it to the reference effort's score on the missing benchmark $b$, $z^{\text{ref}}_b$, gives the estimate, [clamped](operations.md#linear-scaling-and-clamping) to 0–100:
 
 $$
-\bar z=\frac{\sum_b\omega_b\,z_b}{\sum_b\omega_b}.
+\begin{aligned}
+\Delta&=\frac{\sum_{b'}\omega_{b'}\,(z^{\text{target}}_{b'}-z^{\text{ref}}_{b'})}{\sum_{b'}\omega_{b'}},\\
+\hat z^{\text{target}}_b&=\operatorname{clamp}_{0}^{100}(z^{\text{ref}}_b+\Delta).
+\end{aligned}
 $$
 
-The missing benchmark and all imputed values are excluded. At least three other observed benchmarks are required. This policy prevents one or two results from determining the prediction.
+![Illustrative imputation from medium effort to high effort for the same model.](../assets/methodology/effort-imputation.svg)
 
-**weightedQuantileRank(): value → percentile**
+A result can be filled even when the variant already has enough evidence for full score retention.
 
-Convert the weighted mean into a percentile so its relative standing can be used on a benchmark with different score units. Use peers with both an observed target result and a weighted mean calculated the same way, covering at least three distinct base models. These peers also supply the target distribution in the next step.
+## Benchmark Results from Other Benchmarks
 
-An ordinary rank counts every variant equally, so five eligible efforts give a model five times the influence of one. The weighted rank gives each base model equal total influence by dividing its weight of 1 across its eligible variants.
+This estimate finds the variant's standing on its other benchmarks among variants that have the missing benchmark, then reads the missing benchmark's value at the same standing. The assumption is that relative standing on other benchmarks predicts standing on the missing one, and it is tested before any estimate is used.
 
-Each peer variant $j$ has weighted mean $\bar z_j$ and reference weight $w^{\text{ref}}_j>0$. Apply [weightedQuantileRank](overview.md#weighted-ranks) to this weighted reference distribution, counting half the tied weight. Divide its 0–100 result by 100 to obtain fraction $r$:
+![Dots are the reference variants: their means on the other benchmarks on the left, their results on the missing benchmark on the right. A share r of their weight lies below the variant with the gap, and its estimate is the result with the same share r below it.](../assets/methodology/quantile-imputation.svg)
+
+Its targets are the frontier benchmarks and aggregate indexes a variant lacks. The estimate is made separately for Intelligence and Agentic, because each capability has its own set of other benchmarks and its own weights. A benchmark allocated to both capabilities therefore gets two estimates, which combine into one value as a weighted mean by the benchmark's allocation. When only one capability yields an estimate, that estimate stands alone. The steps below describe the calculation within one capability.
+
+### Mean of the Other Benchmarks
+
+The variant's other observed results are summarized by their [weighted mean](operations.md#weighted-mean) $\bar z^{\text{other}}$. Each benchmark's score $z_b$ is its [normalized result](intelligence-agentic.md#benchmark-scores), without the token adjustment, and its weight $\omega_b$ is its allocation to the capability. For a frontier benchmark or an index this is its [base weight](intelligence-agentic.md#weights-and-the-benchmark-mean); a baseline benchmark has an allocation as well and is weighted by it here:
 
 $$
-r=\operatorname{weightedQuantileRank}(\bar z)/100.
+\bar z^{\text{other}}=\frac{\sum_b\omega_b\,z_b}{\sum_b\omega_b}.
 $$
 
-![Three lower means count fully; three tied means count half. The resulting rank is 45%, or r = 0.45.](../assets/methodology/weighted-quantile-rank.svg)
+The mean draws on frontier benchmarks, baseline benchmarks, and aggregate indexes alike, each index counting as one entry, so baseline results help predict a missing frontier result even though they carry no weight in a capability score. The missing benchmark and every estimate are left out, and at least three other observed benchmarks are required.
 
-**weightedQuantile(): percentile → value**
+### Standing Among Reference Variants
 
-Convert the percentile back into a score using the target benchmark’s observed distribution. Using the same peers and reference weights on both sides keeps the comparison population consistent.
+The reference variants are those with an observed result on the missing benchmark and a mean of other benchmarks calculated the same way. They must cover at least three base models. Each reference variant carries its [reference weight](overview.md#reference-weight), so a base model with five eligible efforts has no more say than a model with one.
 
-Apply [weightedQuantile](overview.md#weighted-median-and-quantiles) to those peers’ observed target results, retaining the same reference weights. The estimate $\hat x$ is the value at fraction $r$:
+The variant's standing $r$ is the [weightedQuantileRank](operations.md#weighted-ranks) of its mean among the reference variants' means, as a fraction:
+
+$$
+r=\operatorname{weightedQuantileRank}(\bar z^{\text{other}})/100.
+$$
+
+### Value at That Standing
+
+The estimate $\hat x$ is the [weightedQuantile](operations.md#weighted-median-and-quantiles) at fraction $r$ of the same reference variants' observed results on the missing benchmark, with the same reference weights:
 
 $$
 \hat x=\operatorname{weightedQuantile}(r).
 $$
 
-**Combine and validate**
+### Validation
 
-If both capability dimensions produce predictions, take their weighted mean using the benchmark’s dimension allocations. If only one predicts, use that prediction.
+Each base model is withheld in turn, with all its efforts, and its observed results on the benchmark are predicted from the rest. The method is accepted for a benchmark only when at least four withheld base models yield predictions and their model-balanced median absolute error is at most 25 points on the normalized scale.
 
-The key assumption is that relative standing on other benchmarks predicts standing on the missing one. Test this by withholding every effort of one base model at a time and comparing predictions with its observed target results.
+An accepted estimate's [evidence factor](intelligence-agentic.md#evidence-support-and-score-retention) is set by its prediction error and by the share of the variant's other benchmarks that are observed. For a benchmark, the factor counts toward evidence support and score retention, and it discounts the resource comparisons that use the estimate as quality. An estimated aggregate index adds evidence support but no weight toward retention: [score retention](intelligence-agentic.md#score-retention) counts an index by the number of benchmarks it stands for, and only an observed index has that count.
 
-Accept the method only when at least four distinct held-out models yield valid predictions and their model-balanced median absolute error is at most 25 points on the normalized target scale. Accepted predictions remain separate from the observed capability mean; prediction error and the share of other benchmarks observed set their [evidence factor](intelligence-agentic.md#evidence-support-and-score-retention) for score retention and resource scoring.
+## Resources Across Reasoning Efforts
 
-### Imputation Across Reasoning Efforts
+A missing cost, runtime, or token amount is estimated from the same model's observed amount at another reasoning effort, multiplied by the typical ratio between the two efforts on the benchmarks where both are measured. The estimate assumes that ratio is stable across benchmarks. Held-out validation checks whether the model's own measurements support the assumption.
 
-Fill a missing benchmark score using an observed result from another reasoning effort of the same model. The **target effort** has the missing result; the **reference effort** supplies the observed result. Their performance gap on shared benchmarks adjusts the estimate. Run the calculation separately for :score[Intelligence] and [token-adjusted :score[Agentic]](intelligence-agentic.md#agentic-token-efficiency). A missing result can be filled even when the effort already has enough evidence for full score retention.
+Cost, runtime, total tokens, and output tokens each have their own ratios. Cost and runtime per task feed :score[Value] and :score[Speed]. Total and output tokens feed the [token-efficiency adjustment](intelligence-agentic.md#agentic-token-efficiency) of :score[Agentic]. Output tokens, divided by served throughput, also give a runtime where a benchmark reports none, as in [Resources per Task](speed-value.md#resources-per-task), and runtime here includes that derived time.
 
-Each benchmark’s overall score is one input, regardless of how many questions or test cases it contains. Aggregate indexes are excluded. Throughout this section, $\omega_b$ is benchmark $b$’s [base weight](intelligence-agentic.md#benchmark-scores-and-dimension-weights): its allocation to the capability being calculated. Gaps are measured on observed frontier results before any missing result is filled. Baseline results do not enter gap comparisons; their role in imputation from other benchmarks is described above. Only positive weights participate.
+The amounts are those of individual benchmarks. An aggregate index's cost and runtime are averages across its benchmarks, so they are excluded. The one index amount that takes part is the Artificial Analysis Intelligence Index's tokens per task, which count as one paired entry among the token ratios. Variants without a named reasoning effort take no part.
 
-**Choose the reference effort**
+### Estimating the Effort Ratio
 
-For each missing benchmark, consider other efforts with an observed result for it and at least three benchmarks observed at both the target and reference efforts. Imputed results cannot establish this overlap. If several efforts qualify, choose the one with the largest **effective benchmark count** $n^{\text{eff}}$. This selects the reference for that estimate; it does not change the base weights. Ties prefer the reasoning setting closest to the target, then a stable label order. If none qualifies, leave the result missing.
+The reference effort is another effort of the same model that has the amount on the missing benchmark and a ratio that passes the check in the next section. Among several, the effort nearest the target is preferred, and the higher evidence factor breaks ties.
 
-Apply the shared [effective count](overview.md#effective-count) to the weights of the shared benchmarks. Equal weights give each benchmark an equal say; concentrating weight on one benchmark lowers the count:
-
-$$
-n^{\text{eff}}=\operatorname{effectiveCount}_b(\omega_b).
-$$
-
-**Estimate the missing score**
-
-Measure the target’s performance relative to the chosen reference on their shared benchmarks. For each shared benchmark $b$, $z^{\text{target}}_b$ and $z^{\text{ref}}_b$ are the normalized target and reference scores. Their [weighted mean](overview.md#weighted-mean) difference is the gap $\Delta$. For the missing benchmark, add this gap to its observed reference score $z^{\text{ref}}$, then [clamp](overview.md#linear-scaling-and-clamping) the estimate $\hat z^{\text{target}}$ to 0–100:
+For a resource observed on benchmark $b'$ at both efforts, $\rho_{b'}=R^{\text{target}}_{b'}/R^{\text{ref}}_{b'}$ is the ratio of the target effort's amount to the reference effort's. At least three benchmarks with both amounts are required. The ratio applied is the [median](operations.md#weighted-median-and-quantiles) across all of them, taken in logarithms. The estimate for the missing benchmark $b$ multiplies the reference effort's observed amount there, $R^{\text{ref}}_b$, by that ratio:
 
 $$
-\begin{aligned}
-\Delta&=\frac{\sum_b\omega_b\,(z^{\text{target}}_b-z^{\text{ref}}_b)}{\sum_b\omega_b},\\
-\hat z^{\text{target}}&=\operatorname{clamp}_{0}^{100}(z^{\text{ref}}+\Delta).
-\end{aligned}
+\hat R^{\text{target}}_b=R^{\text{ref}}_b\exp\bigl(\operatorname{median}_{b'\ne b}\ln\rho_{b'}\bigr).
 $$
 
-A positive gap raises the estimate; a negative gap lowers it. The direction follows observed performance, without assuming that higher effort performs better. The estimate assumes the measured gap transfers to the missing benchmark.
+![Illustrative cost per task at medium and high effort; the median ratio across benchmarks with paired measurements fills the missing high-effort cost.](../assets/methodology/resource-effort-ratio.svg)
 
-![Illustrative imputation from medium effort to high effort for the same model.](../assets/methodology/effort-imputation.svg)
+### Checking the Errors
 
-These estimates change the benchmark contribution, not its evidence support, following the [separate roles of estimates and support](#benchmark-results-and-imputation) above. Any evidence factor from separately validated predictions using other benchmarks is retained. Updated-release replacement rows are excluded from this imputation path.
+A ratio is applied only after it predicts the model's own measurements well enough. Each benchmark with both amounts is withheld in turn and takes the place of $b$ in the formula above, so its target amount is predicted from the median log ratio of the others.
 
-## Resource Imputation Across Reasoning Efforts
-
-Impute a missing resource amount from another effort of the same model using a ratio learned from shared benchmarks. This assumes the resource ratio between the two efforts is sufficiently stable across benchmarks. Held-out validation checks whether the available measurements support that assumption; it does not guarantee accuracy on the missing benchmark.
-
-Cost, runtime, total tokens, and output tokens each have separate ratios. Exclude unlabelled rows representing the source’s default effort and means reported across benchmarks; benchmark-specific measurements remain eligible.
-
-**Estimate the effort ratio**
-
-For a resource measured on benchmark $b$ at both efforts, $R^{\text{target}}_b$ and $R^{\text{ref}}_b$ are the observed amounts at the target and reference efforts. Their log difference $\ell_b$ represents the target-to-reference ratio:
-
-$$
-\ell_b=\ln R^{\text{target}}_b-\ln R^{\text{ref}}_b.
-$$
-
-At least three benchmarks with paired measurements are required. To validate the ratio, withhold benchmark $b$ and calculate the [median](overview.md#weighted-median-and-quantiles) log difference $\hat\ell_{-b}$ from the other benchmarks; the subscript $-b$ means benchmark $b$ is excluded. Exponentiating that difference gives the ratio used to predict the withheld target amount:
-
-$$
-\hat R^{\text{target}}_b=R^{\text{ref}}_b\exp(\hat\ell_{-b}).
-$$
-
-**Check prediction and score errors**
-
-Validation measures both the resource error and its effect on the component score. For the withheld target, $R^{\text{target}}_b$ is the observed amount and $\hat R^{\text{target}}_b$ its prediction; $S^{\text{res}}_b$ and $\hat S^{\text{res}}_b$ are their resource scores. Their median absolute errors are:
+Validation measures both the error in the amount and its effect on the score. For each withheld benchmark, $S^{\text{res}}_b$ and $\hat S^{\text{res}}_b$ are the [resource efficiency scores](speed-value.md#resource-efficiency-score) of the observed and predicted amounts. The two median absolute errors are:
 
 $$
 e^{\text{log}}=\operatorname{median}_b\left|\ln\frac{\hat R^{\text{target}}_b}{R^{\text{target}}_b}\right|,
@@ -212,69 +120,86 @@ e^{\text{log}}=\operatorname{median}_b\left|\ln\frac{\hat R^{\text{target}}_b}{R
 e^{\text{score}}=\operatorname{median}_b\left|\hat S^{\text{res}}_b-S^{\text{res}}_b\right|.
 $$
 
-Reject the ratio if log error reaches $\ln 2$ (a factor of two), score error reaches 25 points, or fewer than three held-out score comparisons are usable. Otherwise, the evidence factor $f^{\text{res}}$ uses the lower of the two error discounts:
+The ratio is rejected if the log error reaches $\ln 2$, a factor of two, if the score error reaches 25 points, or if fewer than three withheld scores can be compared. Otherwise the evidence factor $f^{\text{res}}$ is the smaller of the two discounts, each clamped to 0–1:
 
 $$
-f^{\text{res}}=\min\left(1-\frac{e^{\text{log}}}{\ln2},1-\frac{e^{\text{score}}}{25}\right).
+f^{\text{res}}=\min\left(1-\frac{e^{\text{log}}}{\ln2},\ 1-\frac{e^{\text{score}}}{25}\right).
 $$
 
-Both terms are clipped to $[0,1]$. The final ratio uses the median log difference across all benchmarks with paired measurements. If several efforts of the same model can fill the gap, the nearest effort is preferred, with validation quality breaking ties.
+When the quality the resource is compared at is also an estimate, that estimate's [evidence factor](intelligence-agentic.md#evidence-factors) multiplies $f^{\text{res}}$.
 
-![Illustrative cost per task at medium and high effort; the median ratio across benchmarks with paired measurements fills the missing high-effort cost.](../assets/methodology/resource-effort-ratio.svg)
+## Resources from Broader Evidence
 
-If target quality is also imputed, its evidence factor multiplies the resource evidence factor: $f^{\text{quality}}f^{\text{res}}$. Imputed values remain outside reference peers, reference score limits, stored observations, and direct-evidence counts.
+When a model's own measurements cannot support a ratio, the estimate starts from other models that make the same change of reasoning effort on the same benchmark. It is then moved, one step at a time, toward what is known about the model's lab, its neighbors in release date, and the model itself. Evidence closer to the model is more relevant but scarcer, so each step moves only as far as its evidence supports.
 
-## Resource Imputation from Broader Evidence
+Cost, runtime, total tokens, and output tokens each use their own observations and ratios, and an aggregate index's token estimate starts from other models' tokens on that same index. Runtime from broader evidence requires reported seconds paired with observed quality; time derived from throughput cannot supply it.
 
-When paired measurements cannot support a ratio for the target model, the fallback uses other models making the same effort change on the same benchmark. It then adjusts this broader estimate using observations from the same lab, nearby releases, and the target model:
+### Chain of Steps
+
+Everything is measured in log ratios of the target effort's amount to the reference effort's. For benchmark $b$, $\tilde\rho_b$ is the median ratio across the other base models that have the amount at both efforts, taken in logarithms. A deviation says how far a model's ratios sit from those medians. Each other base model $j$ has one deviation $\Delta_j$: the median, across the benchmarks it measures at both efforts, of its log ratio minus the median log ratio of the remaining models on that benchmark, counting only benchmarks that at least two remaining models measure at both efforts. Each step starts from the value the previous step produced:
 
 > [!FLOW]
 >
 > 1. **Other models**
 >
->    Start with the median log resource ratio for the exact benchmark and effort transition across at least two other base models. Exclude every effort of the target model.
+>    The median ratio $\tilde\rho_b$ for the missing benchmark, across at least two other base models. Every effort of the target model is excluded. The deviation starts at zero.
 >
 > 2. **Same lab**
 >
->    Adjust for how models from this lab differ from the ratios across other models. Use their median deviations, excluding each model from the reference used to calculate its deviation.
+>    The deviation moves toward $\tilde\Delta^{\text{lab}}$, the median of the deviations $\Delta_j$ of the lab's other models.
 >
 > 3. **Nearby releases in that lab**
 >
->    Give more weight to those deviations when release dates are closer to the target model’s. Use $\exp[-\tfrac12(\Delta t/60)^2]$, where $\Delta t$ is the release-date difference in days.
+>    The deviation moves toward $\tilde\Delta^{\text{near}}$, the weighted median of the same deviations with more weight on models released close to the target model.
 >
 > 4. **Target model**
 >
->    Adjust using this model’s effort ratios on other benchmarks with paired measurements, after subtracting the corresponding ratios across other models.
+>    The deviation moves toward $\tilde\Delta^{\text{own}}$, the median of the target model's own log ratio minus $\ln\tilde\rho_{b'}$ across its other benchmarks $b'$.
 
-Date weighting and correction limits are policy choices; release proximity alone does not establish predictive accuracy.
+Each step covers a fraction $r=n/(n+n_{50})$ of the distance to its target, where $n$ is the amount of evidence behind the step and $n_{50}$ the amount at which the step covers half the distance. The last deviation gives the ratio $\hat\rho_b$ applied to the reference effort's observed amount:
 
-[Release proximity](../matching.md#release-proximity-for-resource-estimation) uses dates, not product-name categories. Missing dates retain the lab correction; missing lab identity prevents both lab and release corrections.
+$$
+\begin{aligned}
+\Delta^{\text{lab}}&=r^{\text{lab}}\,\tilde\Delta^{\text{lab}},\\
+\Delta^{\text{near}}&=\Delta^{\text{lab}}+r^{\text{near}}\,(\tilde\Delta^{\text{near}}-\Delta^{\text{lab}}),\\
+\Delta^{\text{own}}&=\Delta^{\text{near}}+r^{\text{own}}\,(\tilde\Delta^{\text{own}}-\Delta^{\text{near}}),\\
+\ln\hat\rho_b&=\ln\tilde\rho_b+\Delta^{\text{own}},\qquad \hat R^{\text{target}}_b=R^{\text{ref}}_b\,\hat\rho_b.
+\end{aligned}
+$$
 
-Multiply each correction by $n/(n+n_{50})$, where $n$ is its supporting observation count or weight and $n_{50}$ is the amount needed to apply half the correction. With little evidence, the estimate stays close to the broader result; this is called shrinkage:
+![Each level is closer to the model and holds less evidence. A step starts where the previous one ended and moves toward the median of its own level’s evidence, further when that evidence is larger.](../assets/methodology/resource-evidence-chain.svg)
 
-| Scope | Supporting observations $n$ | Half-correction threshold $n_{50}$ |
+### Evidence Behind Each Step
+
+With little evidence the estimate stays close to the result from other models:
+
+| Step | Evidence $n$ | Half-distance amount $n_{50}$ |
 | --- | --- | --- |
-| Same lab | Number of distinct other models from the lab | 16 |
-| Nearby releases | Sum of the release-date weights above; correction uses the weighted median deviation | 4 |
-| Target model | Number of other benchmarks measured at both efforts | 4 |
+| Same lab | Number of other base models from the lab that have a deviation | 16 |
+| Nearby releases | Sum of the release-date weights of those models | 4 |
+| Target model | Number of its other benchmarks measured at both efforts that at least two other base models also measure at both | 4 |
 
-![With supporting observations n = 4, the correction weight is 50% for nearby releases or the target model, and 20% for the same lab.](../assets/methodology/resource-tier-shrinkage.svg)
+![With little evidence a step covers a small fraction of the distance; the same-lab step needs more evidence than the other two to cover as much.](../assets/methodology/resource-tier-shrinkage.svg)
 
-Without supporting observations, apply no correction. Parameters are fixed, not fitted per model. Only observations for the same effort transition are used, such as low to high.
-
-Apply the ratio to the observed amount at the closest effort for which that transition can be estimated. Use the same benchmark and resource. Direct measurements and validated same-model ratios take precedence.
-
-The evidence factor $f_b$ increases with the number of independent other models $n^{\text{models}}_b$ and decreases with disagreement $s_b$, the median absolute difference between their log ratios and the final estimated log ratio:
+Release proximity uses a Gaussian weight on the difference in release dates $\Delta t$, in days, with a width of 60 days:
 
 $$
-f_b=\frac{n^{\text{models}}_b}{n^{\text{models}}_b+4}\max\left(0,1-\frac{s_b}{\ln 2}\right).
+\exp\left[-\tfrac12\left(\frac{\Delta t}{60}\right)^2\right].
 $$
 
-This factor measures support and agreement, not the probability of an accurate prediction. A zero factor or a non-finite amount leaves the value missing.
+Earlier and later releases both contribute, and there is no cutoff.
 
-Broader-evidence imputation affects scoring only, with the existing discount for imputed target quality. It cannot supply evidence for further imputation, overwrite measurements, or satisfy resource availability requirements.
+A step without evidence leaves the deviation where the previous step put it. A model without a release date therefore keeps the lab step's value, and a model without a known lab skips both the lab and the release step. The reference effort is the closest effort of the same model that has the amount on the missing benchmark and for which the chain can be computed. A validated ratio from the model's own measurements always takes precedence.
 
-Cost, runtime, total tokens, and output tokens each use their own observations and ratios. Aggregate-index tokens stay attached to their own index. Runtime imputation requires reported seconds paired with observed quality; cost and throughput-derived time cannot supply that evidence.
+### Evidence Factor
+
+The evidence factor $f^{\text{res}}$ grows with the number $n_b$ of other base models behind the estimate and falls with their disagreement $s_b$, the median absolute difference between their log ratios on the benchmark and the final estimated log ratio $\ln\hat\rho_b$:
+
+$$
+f^{\text{res}}=\frac{n_b}{n_b+4}\max\left(0,\ 1-\frac{s_b}{\ln 2}\right).
+$$
+
+A zero factor or a non-finite amount leaves the value missing.
 
 ## Parameter Choices
 
@@ -282,16 +207,16 @@ These values are scoring-policy choices, not fitted claims about model behavior.
 
 | Parameter | Value | Why it exists |
 | --- | ---: | --- |
-| Source crosswalk models | 6 | Requires paired and held-out evidence from several independent models before mapping a missing source. |
-| Source crosswalk error limit | Set per benchmark in its own score units | Keeps mapped counterparts close to measured results; [Benchmarks](../benchmarks.md#benchmark-source-policies) lists each limit. |
-| Other observed benchmarks required | 3 | Requires a broader basis than one or two benchmark results. |
-| Held-out models for imputation from other benchmarks | 4 | Requires independent evidence beyond the minimum calibration set. |
-| Maximum normalized imputation error | 25 points | Refuses predictors whose typical held-out error is too large to be useful; the evidence factor falls to zero at this boundary. |
-| Quality imputation across efforts: shared benchmarks | 3 | Requires directly shared benchmarks from the same base model; indexes and estimates do not count. |
-| Broader resource evidence: minimum other models | 2 base models | Requires same-benchmark effort ratios from more than one model outside the target. |
-| Broader resource evidence: release width | 60 days | Gives nearby releases more influence without a hard date cutoff. |
-| Broader resource evidence: lab shrinkage | 16 | Limits the influence of a noisy lab correction. |
-| Broader resource evidence: release/model shrinkage | 4 | Discounts sparse corrections without per-model tuning. |
-| Resource ratios across efforts: benchmarks with paired measurements | 3 | Prevents ratios from one or two benchmarks from defining an effort conversion. |
-| Resource ratios across efforts: log-error ceiling | $\ln 2$ | Rejects ratios when typical held-out multiplicative error reaches a factor of two. |
-| Resource ratios across efforts: score-error ceiling | 25 points | Rejects ratios with large typical errors in resource component scores. |
+| Shared benchmarks for an estimate across efforts | 3 | Requires benchmarks observed at both efforts of the same base model; indexes and estimates do not count. |
+| Other observed benchmarks required | 3 | Requires a broader basis than one or two results. |
+| Reference base models for an estimate from other benchmarks | 3 | Requires the standing to be read against more than one or two models. |
+| Withheld base models for estimates from other benchmarks | 4 | Requires independent evidence beyond the minimum reference set. |
+| Maximum normalized error | 25 points | Refuses a predictor whose typical held-out error is too large to be useful; the evidence factor reaches zero at this boundary. |
+| Paired benchmarks for a resource ratio across efforts | 3 | Prevents one or two benchmarks from defining a ratio between efforts. |
+| Resource ratio log-error ceiling | $\ln 2$ | Rejects a ratio whose typical held-out error reaches a factor of two. |
+| Resource ratio score-error ceiling | 25 points | Rejects a ratio with large typical errors in resource efficiency scores. |
+| Broader evidence: other base models | 2 | Requires the same change of effort on the same benchmark from more than one other model. |
+| Broader evidence: release width | 60 days | Gives nearby releases more influence without a hard date cutoff. |
+| Broader evidence: evidence-factor half amount | 4 other base models | Counts an estimate backed by few other models at less than half weight. |
+| Broader evidence: disagreement ceiling | $\ln 2$ | Gives no evidence once the other models' ratios typically differ from the estimate by a factor of two. |
+| Broader evidence: half-distance amounts | 16 for the lab; 4 for nearby releases and the target model | Limits a noisy lab adjustment and discounts sparse ones without tuning per model. |

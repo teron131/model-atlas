@@ -30,7 +30,7 @@ export const ALWAYS_VISIBLE_TABLE_COLUMN_KEYS = [
 const ALL_TABLE_COLUMN_KEYS: readonly TableColumnKey[] = [
   ...staticSortableColumns.map((column) => column.key),
   ...dashboardMetricColumns.map((column) => column.key),
-  "confidence",
+  "evidenceSupport",
   "change",
 ] satisfies readonly TableColumnKey[];
 
@@ -163,7 +163,7 @@ function tableColumnSortKey(
   return (
     visibleColumnKeys.find(
       (key): key is SortKey =>
-        key !== "rank" && key !== "model" && key !== "confidence" && key !== "change",
+        key !== "rank" && key !== "model" && key !== "evidenceSupport" && key !== "change",
     ) ?? "rank"
   );
 }

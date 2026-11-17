@@ -36,6 +36,7 @@ const internalCandidate = {
   scoring_sources: {
     regression_probe: { raw_score: 0.8 },
   },
+  source_default: true,
   internal_probe: "must not be public",
   component_scores: {
     intelligence_score: 80,
@@ -49,6 +50,11 @@ const internalCandidate = {
   },
 } satisfies ModelAtlasScoredCandidate & { internal_probe: string };
 const [referenceModel] = selectReferenceModels([internalCandidate], null);
+assert.equal(
+  referenceModel?.source_default,
+  true,
+  "the source-default mark must reach the final scoring pass, which reads it for the shared coverage multiplier",
+);
 const projectedPublicModel = publicModelFromCandidate(referenceModel!);
 assert.deepEqual(
   Object.keys(projectedPublicModel ?? {}).sort(),
@@ -151,7 +157,7 @@ const reasoningVariantPayload = minimalModelAtlasPayload({
   fetchedAt: 123,
   models: reasoningEffortModels,
 });
-const fusedObservation = {
+const combinedObservation = {
   model_id: internalCandidate.id,
   model: internalCandidate.name!,
   base_model: internalCandidate.name!,
@@ -168,9 +174,9 @@ const fusedObservation = {
     fusion_output_tokens_per_task_accounting_compatible: true,
   },
 } satisfies BenchmarkObservationEvidenceRow;
-// Fused rows reach the payload as whole crosswalk rows carrying bookkeeping outside the evidence row type.
+// Combined rows reach the payload as whole crosswalk rows carrying bookkeeping outside the evidence row type.
 const crosswalkObservation = {
-  ...fusedObservation,
+  ...combinedObservation,
   benchmark_key: "arc_agi_2",
   source_url: "https://example.com/leaderboard",
   model_creator: "Provider",
@@ -184,7 +190,7 @@ const observationPayload: ModelAtlasPayload = {
     arc_agi_2: [
       crosswalkObservation,
       {
-        ...fusedObservation,
+        ...combinedObservation,
         reasoning_effort: "max",
         canonical_value: 1,
         observed_at: "2026-10-01",
@@ -198,7 +204,7 @@ assert.deepEqual(dashboardProjection.models, observationPayload.models);
 assert.deepEqual(
   compactModelVariants(dashboardProjection.models, dashboardProjection.benchmark_observations),
   compactModelVariants(observationPayload.models, observationPayload.benchmark_observations),
-  "Removing ingestion diagnostics must preserve collapsed fusion, resources, dates, and component exclusions",
+  "Removing ingestion diagnostics must preserve collapsed combined rows, resources, dates, and component exclusions",
 );
 assert.deepEqual(
   dashboardProjection.benchmark_observations!.arc_agi_2!.map((row) => row.metadata),
@@ -229,7 +235,7 @@ assert.deepEqual(
   "Dashboard rows publish only declared evidence fields",
 );
 assert.equal(
-  fusedObservation.metadata.source_a_url,
+  combinedObservation.metadata.source_a_url,
   "https://example.com/ingestion-only",
   "Dashboard projection must not mutate the source observation",
 );

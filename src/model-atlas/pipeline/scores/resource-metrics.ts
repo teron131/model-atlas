@@ -1,4 +1,4 @@
-/** Per-benchmark task resources: which cost, time, and token amounts count as observed, how a fused row whose sources disagree splits back into them, and how much observed resource evidence Speed and Value need to publish. */
+/** Per-benchmark task resources: which cost, time, and token amounts count as observed, how a combined row whose sources disagree splits back into them, and how much observed resource evidence Speed and Value need to publish. */
 
 import type { BenchmarkPortfolio } from "../../benchmarks/factory";
 import {
@@ -42,7 +42,7 @@ export type SeparatedBenchmarkResourceSource = {
   allocation: number;
 };
 
-/** Expose original source measurements when a fused row fails absolute resource agreement. */
+/** Expose original source measurements when a combined row fails absolute resource agreement. */
 export function separatedBenchmarkResourceSources(
   model: ResourceMetricModel,
   key: string,
@@ -162,7 +162,7 @@ export function observedResourceEvidenceCounts(
   return counts;
 }
 
-/** Direct quality-resource pairs drive publication gates; published source-specific task rows replace internal fusion metadata without increasing a benchmark's count. */
+/** Direct quality-resource pairs drive publication gates; published source-specific task rows replace the combined row's metadata without increasing a benchmark's count. */
 function observedResourceBenchmarkCounts(
   model: ResourceMetricModel,
   portfolio: BenchmarkPortfolio,
@@ -182,7 +182,7 @@ function observedResourceBenchmarkCounts(
   return counts;
 }
 
-/** Published models carry no `scoring_sources`, so their source-suffixed task rows stand in for the fusion metadata. */
+/** Published models carry no `scoring_sources`, so their source-suffixed task rows stand in for the combined row's metadata. */
 function hasObservedBenchmarkResource(
   model: ResourceMetricModel,
   key: string,
@@ -237,27 +237,11 @@ export function benchmarkTaskMetrics(
   key: string,
 ): ModelAtlasTaskMetricValues | null {
   const record = asRecord(asRecord(model.task_metrics)[key]);
-  const metadata = asRecord(asRecord(asRecord(model.scoring_sources)[key]).metadata);
-  const cost =
-    metadata.fusion_cost_estimated === true || metadata.fusion_cost_comparable === false
-      ? null
-      : asFiniteNumber(record.cost);
-  const seconds =
-    metadata.fusion_seconds_per_task_estimated === true ||
-    metadata.fusion_seconds_per_task_comparable === false
-      ? null
-      : asFiniteNumber(record.seconds);
-  const tokens =
-    metadata.fusion_tokens_per_task_estimated === true ||
-    metadata.fusion_tokens_per_task_comparable === false
-      ? null
-      : asFiniteNumber(record.tokens);
+  const cost = asFiniteNumber(record.cost);
+  const seconds = asFiniteNumber(record.seconds);
+  const tokens = asFiniteNumber(record.tokens);
   const inputTokens = asFiniteNumber(record.input_tokens);
-  const outputTokens =
-    metadata.fusion_output_tokens_per_task_estimated === true ||
-    metadata.fusion_output_tokens_per_task_comparable === false
-      ? null
-      : asFiniteNumber(record.output_tokens);
+  const outputTokens = asFiniteNumber(record.output_tokens);
   const metrics = {
     ...(cost == null ? {} : { cost }),
     ...(seconds == null ? {} : { seconds }),
@@ -266,33 +250,4 @@ export function benchmarkTaskMetrics(
     ...(outputTokens == null ? {} : { output_tokens: outputTokens }),
   };
   return Object.keys(metrics).length === 0 ? null : metrics;
-}
-
-/** Validated fusion resource estimates enter scoring with their own evidence factor, never the observed reference population. */
-export function benchmarkFusionResourceEstimate(
-  model: ResourceMetricModel,
-  key: string,
-  kind: "cost" | "time" | "tokens" | "output_tokens",
-): { amount: number; evidenceFactor: number } | null {
-  const metadata = asRecord(asRecord(asRecord(model.scoring_sources)[key]).metadata);
-  const field =
-    kind === "time" ? "seconds_per_task" : kind === "cost" ? "cost" : `${kind}_per_task`;
-  const metrics = asRecord(asRecord(model.task_metrics)[key]);
-  if (metadata[`fusion_${field}_estimated`] === true) {
-    const amount = positiveFiniteNumber(metrics[kind === "time" ? "seconds" : kind]);
-    if (amount != null)
-      return {
-        amount,
-        evidenceFactor: asFiniteNumber(metadata[`fusion_${field}_confidence`]) ?? 0.5,
-      };
-  }
-  if (kind === "time" && metadata.fusion_output_tokens_per_task_estimated === true) {
-    const amount = effectiveTaskSeconds(model, { output_tokens: metrics.output_tokens });
-    if (amount != null)
-      return {
-        amount,
-        evidenceFactor: asFiniteNumber(metadata.fusion_output_tokens_per_task_confidence) ?? 0.5,
-      };
-  }
-  return null;
 }

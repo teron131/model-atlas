@@ -1,4 +1,4 @@
-/** Verify symmetric crosswalk targets, held-out gating, effort isolation, and per-task resource fusion. */
+/** Verify symmetric crosswalk targets, held-out gating, effort isolation, and per-task resource combining. */
 
 import assert from "node:assert/strict";
 
@@ -8,18 +8,16 @@ import {
 } from "../src/model-atlas/benchmarks/registry";
 import { benchmarkQualityEvidence } from "../src/model-atlas/pipeline/scores/imputation/benchmark";
 import {
-  benchmarkFusionResourceEstimate,
   benchmarkTaskMetrics,
   separatedBenchmarkResourceEvidence,
 } from "../src/model-atlas/pipeline/scores/resource-metrics";
 import { observedBenchmarkCount } from "../src/model-atlas/pipeline/scores/score-builders";
 import { buildTaskMetrics } from "../src/model-atlas/pipeline/selection/candidate";
 import { processArtificialAnalysisBenchmarkResourceRows } from "../src/model-atlas/sources/artificial-analysis/benchmark-resources";
-import { fusedBenchmarkObservations } from "../src/model-atlas/sources/assembly";
+import { combinedBenchmarkObservations } from "../src/model-atlas/sources/assembly";
 import {
   crosswalkBenchmarkSources,
   type CrosswalkObservation,
-  crosswalkThreeBenchmarkSources,
 } from "../src/model-atlas/sources/assembly/crosswalk";
 import { readBenchmarkObservationRawCache } from "../src/model-atlas/sources/observations/cache";
 import { processTerminalBenchPayload } from "../src/model-atlas/sources/terminal-bench/leaderboard";
@@ -50,20 +48,24 @@ function observation(name: string, value: number, effort = "max", cost = 2): Cro
 }
 const a = pairs.map((r) => observation(r.name, r.a));
 const b = pairs.map((r) => observation(r.name, r.b, "max", 4));
-const fused = crosswalkBenchmarkSources(
+const combined = crosswalkBenchmarkSources([
   [...a, observation("Grok", 0.4, "xhigh"), observation("Primary only", 0.6)],
   [...b, observation("Grok", 0.2, "high", 4), observation("Missing", 0.7)],
-);
-const direct = fused.find((r) => r.base_model === "model-0" && !r.metadata.fusion_collapsed)!;
+]);
+const direct = combined.find((r) => r.base_model === "model-0" && !r.metadata.fusion_collapsed)!;
 assert.equal(direct.canonical_value, 0.25);
 assert.equal(direct.cost, null, "six models cannot establish absolute resource comparability");
 assert.equal(direct.seconds_per_task, null);
 assert.equal(direct.metadata.fusion_cost_comparable, false);
-assert.equal(direct.total_cost_usd, undefined, "fusion must not manufacture pooled totals");
-const swappedRows = crosswalkBenchmarkSources(
+assert.equal(
+  direct.total_cost_usd,
+  undefined,
+  "combining sources must not manufacture pooled totals",
+);
+const swappedRows = crosswalkBenchmarkSources([
   [...b, observation("Missing", 0.7)],
   [...a, observation("Primary only", 0.6)],
-);
+]);
 const swapped = swappedRows.find(
   (r) => r.base_model === "model-0" && !r.metadata.fusion_collapsed,
 )!;
@@ -76,22 +78,36 @@ assert.equal(swapped.cost, direct.cost);
 assert.ok(Math.abs(Number(direct.metadata.crosswalk_offset) - 0.1) < 1e-10);
 assert.ok(Math.abs(Number(swapped.metadata.crosswalk_offset) + 0.1) < 1e-10);
 for (const name of ["Missing", "Primary only"]) {
-  for (const rows of [fused, swappedRows]) {
+  for (const rows of [combined, swappedRows]) {
     const row = rows.find((row) => row.base_model === name && !row.metadata.fusion_collapsed)!;
     assert.ok(Math.abs(row.canonical_value - 0.65) < 1e-10);
     assert.equal(row.metadata.fusion_crosswalk_applied, true);
   }
 }
-assert.deepEqual(crosswalkBenchmarkSources([], []), []);
-const collapsed = fused.find((r) => r.base_model === "Grok" && r.metadata.fusion_collapsed)!;
+assert.deepEqual(crosswalkBenchmarkSources([[], []]), []);
+const conflicting = (value: number): CrosswalkObservation => ({
+  ...observation("Conflicted", value),
+  metadata: { time_measure: "wall", assignment_eligible: false },
+});
+const conflictedRow = crosswalkBenchmarkSources([
+  [...a, conflicting(0.4), conflicting(0.6)],
+  [...b, observation("Conflicted", 0.5, "max", 4)],
+]).find((row) => row.base_model === "Conflicted" && !row.metadata.fusion_collapsed)!;
+assert.ok(
+  Math.abs(conflictedRow.canonical_value - 0.45) < 1e-10,
+  "conflicting configurations of one model and effort are not scored, so only the other source's result counts",
+);
+const collapsed = combined.find((r) => r.base_model === "Grok" && r.metadata.fusion_collapsed)!;
 assert.ok(Math.abs(collapsed.canonical_value - 0.3) < 1e-10);
 assert.equal(collapsed.metadata.source_a_effort, "xhigh");
 assert.equal(collapsed.metadata.source_b_effort, "high");
 assert.equal(
-  fused.filter((r) => r.base_model === "Grok" && !r.metadata.fusion_collapsed).length,
+  combined.filter((r) => r.base_model === "Grok" && !r.metadata.fusion_collapsed).length,
   2,
 );
-const crosswalked = fused.find((r) => r.base_model === "Missing" && !r.metadata.fusion_collapsed)!;
+const crosswalked = combined.find(
+  (r) => r.base_model === "Missing" && !r.metadata.fusion_collapsed,
+)!;
 const candidate = {
   benchmarks: { terminal_bench_science: crosswalked.canonical_value },
   scoring_sources: { terminal_bench_science: crosswalked },
@@ -105,9 +121,9 @@ assert.deepEqual(benchmarkQualityEvidence(candidate, "terminal_bench_science"), 
   evidenceFactor: 1,
   value: crosswalked.canonical_value,
 });
-const unvalidated = crosswalkBenchmarkSources(a.slice(0, 5), [
-  ...b.slice(0, 5),
-  observation("unvalidated", 0.7),
+const unvalidated = crosswalkBenchmarkSources([
+  a.slice(0, 5),
+  [...b.slice(0, 5), observation("unvalidated", 0.7)],
 ]);
 assert.equal(
   unvalidated.some((row) => row.base_model === "unvalidated"),
@@ -122,9 +138,9 @@ assert.equal(
 );
 const robustA = Array.from({ length: 10 }, (_, index) => observation(`robust-${index}`, 0));
 const robustB = robustA.map((row, index) => ({ ...row, canonical_value: index === 9 ? 1 : 0 }));
-const robustEstimate = crosswalkBenchmarkSources(robustA, [
-  ...robustB,
-  observation("robust-missing", 0),
+const robustEstimate = crosswalkBenchmarkSources([
+  robustA,
+  [...robustB, observation("robust-missing", 0)],
 ]).find((row) => row.base_model === "robust-missing" && !row.metadata.fusion_collapsed)!;
 assert.equal(robustEstimate.metadata.crosswalk_offset, 0);
 assert.equal(robustEstimate.metadata.crosswalk_error, 0);
@@ -135,11 +151,6 @@ const resourceCandidate = {
   task_metrics: { terminal_bench_science: { cost: crosswalked.cost } },
 };
 assert.equal(benchmarkTaskMetrics(resourceCandidate, "terminal_bench_science"), null);
-assert.equal(
-  benchmarkFusionResourceEstimate(resourceCandidate, "terminal_bench_science", "cost"),
-  null,
-  "an incompatible source cannot fill another source's missing resource",
-);
 assert.equal(
   separatedBenchmarkResourceEvidence(resourceCandidate, "terminal_bench_science", "cost")?.[0]
     ?.amount,
@@ -162,8 +173,8 @@ const agreementB = agreementA.map((row, index) => ({
   canonical_value: row.canonical_value + 0.01,
   cost: index === 9 ? 106 : 104,
 }));
-const acceptedAgreement = crosswalkBenchmarkSources(agreementA, agreementB, {
-  sourceLabels: { a: "Official", b: "Publisher" },
+const acceptedAgreement = crosswalkBenchmarkSources([agreementA, agreementB], {
+  sourceLabels: ["Official", "Publisher"],
 });
 const acceptedResource = acceptedAgreement.find(
   (row) => row.base_model === "agreement-0" && row.metadata.fusion_collapsed === false,
@@ -173,7 +184,7 @@ assert.equal(acceptedResource.metadata.fusion_cost_paired_models, 10);
 assert.equal(acceptedResource.metadata.fusion_cost_within_5_percent_share, 0.9);
 assert.equal(acceptedResource.metadata.fusion_cost_comparable, true);
 assert.equal(acceptedResource.metadata.source_b_label, "Publisher");
-const missingResourceRows = crosswalkBenchmarkSources(
+const missingResourceRows = crosswalkBenchmarkSources([
   [
     ...agreementA,
     { ...observation("missing-a-cost", 0.4), cost: null },
@@ -184,24 +195,30 @@ const missingResourceRows = crosswalkBenchmarkSources(
     observation("missing-a-cost", 0.41, "max", 104),
     { ...observation("missing-b-cost", 0.41), cost: null },
   ],
-);
-for (const name of ["missing-a-cost", "missing-b-cost"]) {
+]);
+for (const [name, reportedCost] of [
+  ["missing-a-cost", 104],
+  ["missing-b-cost", 100],
+] as const) {
   const row = missingResourceRows.find(
     (row) => row.base_model === name && row.metadata.fusion_collapsed === false,
   )!;
-  assert.ok(Math.abs(row.cost! - 102) < 1e-10);
-  assert.equal(row.metadata.fusion_cost_estimated, true);
+  assert.equal(
+    row.cost,
+    reportedCost,
+    "agreeing sources share one scale, so the one reported cost stands and nothing is projected",
+  );
 }
-const rejectedAgreement = crosswalkBenchmarkSources(
+const rejectedAgreement = crosswalkBenchmarkSources([
   agreementA,
   agreementB.map((row, index) => (index >= 8 ? { ...row, cost: 106 } : row)),
-);
+]);
 assert.equal(
   rejectedAgreement.find(
     (row) => row.base_model === "agreement-0" && row.metadata.fusion_collapsed === false,
   )?.cost,
   null,
-  "more than 10% of model-balanced pairs outside 5% must block raw fusion",
+  "more than 10% of model-balanced pairs outside 5% must block averaging raw amounts",
 );
 const display = compactModelVariants(
   [
@@ -211,7 +228,7 @@ const display = compactModelVariants(
       benchmarks: { terminal_bench_science: 0.4 },
     },
   ],
-  { terminal_bench_science: fused },
+  { terminal_bench_science: combined },
 );
 assert.ok(Math.abs(display[0]!.benchmarks!.terminal_bench_science! - 0.3) < 1e-10);
 assert.equal(a[0]!.canonical_value, 0.2, "raw observations stay unchanged");
@@ -219,11 +236,13 @@ assert.equal(a[0]!.canonical_value, 0.2, "raw observations stay unchanged");
 const scienceA = pairs.map((row) => observation(row.name, row.a, "max", 2));
 const scienceB = pairs.map((row) => observation(row.name, row.a + 0.1, "max", 4));
 const scienceC = pairs.map((row) => observation(row.name, row.a + 0.2, "max", 6));
-const threeSource = crosswalkThreeBenchmarkSources(
-  [...scienceA, observation("official-only", 0.4)],
-  [...scienceB, observation("two-source", 0.5)],
-  [...scienceC, observation("two-source", 0.6)],
-  { sourceLabels: { a: "Official", b: "Vals", c: "Artificial Analysis" } },
+const threeSource = crosswalkBenchmarkSources(
+  [
+    [...scienceA, observation("official-only", 0.4)],
+    [...scienceB, observation("two-source", 0.5)],
+    [...scienceC, observation("two-source", 0.6)],
+  ],
+  { sourceLabels: ["Official", "Vals", "Artificial Analysis"] },
 );
 const measuredThree = threeSource.find(
   (row) => row.base_model === "model-0" && !row.metadata.fusion_collapsed,
@@ -242,18 +261,28 @@ assert.ok(Math.abs(oneObserved.canonical_value - 0.5) < 1e-10);
 assert.equal(oneObserved.metadata.fusion_crosswalk_applied, true);
 assert.equal(oneObserved.metadata.source_b_score, null);
 assert.equal(oneObserved.metadata.source_c_score, null);
-const extrapolatedThree = crosswalkThreeBenchmarkSources(
+const conflictedThree = crosswalkBenchmarkSources([
+  [...scienceA, conflicting(0.2), conflicting(0.7)],
+  [...scienceB, observation("Conflicted", 0.5)],
+  [...scienceC, observation("Conflicted", 0.6)],
+]).find((row) => row.base_model === "Conflicted" && !row.metadata.fusion_collapsed)!;
+assert.equal(conflictedThree.metadata.source_a_score, null);
+assert.ok(
+  Math.abs(conflictedThree.canonical_value - 0.5) < 1e-10,
+  "conflicting configurations in one of three sources are not scored either",
+);
+const extrapolatedThree = crosswalkBenchmarkSources([
   [...scienceA, observation("outside-overlap", 0.9)],
   scienceB,
   scienceC,
-).find((row) => row.base_model === "outside-overlap" && !row.metadata.fusion_collapsed)!;
+]).find((row) => row.base_model === "outside-overlap" && !row.metadata.fusion_collapsed)!;
 assert.equal(extrapolatedThree.metadata.fusion_extrapolated, true);
 assert.equal(extrapolatedThree.metadata.fusion_confidence, 0.5);
-const pairSpecificRange = crosswalkThreeBenchmarkSources(
+const pairSpecificRange = crosswalkBenchmarkSources([
   [...scienceA, observation("ab-only", 0.05), observation("within-union-outside-pair", 0.1)],
   [...scienceB, observation("ab-only", 0.15), observation("within-union-outside-pair", 0.2)],
   scienceC,
-).find((row) => row.base_model === "within-union-outside-pair" && !row.metadata.fusion_collapsed)!;
+]).find((row) => row.base_model === "within-union-outside-pair" && !row.metadata.fusion_collapsed)!;
 assert.equal(
   pairSpecificRange.metadata.fusion_extrapolated,
   true,
@@ -265,11 +294,11 @@ const twoObserved = threeSource.find(
 assert.ok(Math.abs(twoObserved.canonical_value - 0.5) < 1e-10);
 assert.equal(twoObserved.metadata.source_a_score, null);
 assert.equal(twoObserved.metadata.fusion_crosswalk_applied, true);
-const insufficientThird = crosswalkThreeBenchmarkSources(
+const insufficientThird = crosswalkBenchmarkSources([
   [...scienceA, observation("missing-third", 0.4)],
   scienceB,
   scienceC.slice(0, 5),
-);
+]);
 assert.equal(
   insufficientThird.some((row) => row.base_model === "missing-third"),
   false,
@@ -282,11 +311,11 @@ const unstableB = pairs.map((row, index) =>
 const unstableC = pairs.map((row, index) =>
   observation(row.name, row.a + 0.2 + (index < 3 ? -0.02 : 0.02)),
 );
-const unstableThree = crosswalkThreeBenchmarkSources(
+const unstableThree = crosswalkBenchmarkSources([
   [...unstableA, observation("unstable-only", 0.4)],
   [...unstableB, observation("unstable-two-observed", 0.5)],
   [...unstableC, observation("unstable-two-observed", 0.6)],
-);
+]);
 assert.equal(
   unstableThree.some((row) => row.base_model === "unstable-only"),
   false,
@@ -322,7 +351,7 @@ const routeC = [
   ),
   ...Array.from({ length: 29 }, (_, index) => observation(`bc-only-${index}`, 0.34)),
 ];
-const maskedRoute = crosswalkThreeBenchmarkSources(routeA, routeB, routeC);
+const maskedRoute = crosswalkBenchmarkSources([routeA, routeB, routeC]);
 assert.equal(
   maskedRoute.some((row) => row.base_model === "masked-offset-only"),
   false,
@@ -334,11 +363,11 @@ assert.equal(
   0.32,
   "direct three-source results remain available",
 );
-const differentThirdEffort = crosswalkThreeBenchmarkSources(
+const differentThirdEffort = crosswalkBenchmarkSources([
   [...scienceA, observation("different-effort", 0.4, "xhigh")],
   scienceB,
   [...scienceC, observation("different-effort", 0.6, "high")],
-);
+]);
 assert.equal(
   differentThirdEffort.find(
     (row) => row.base_model === "different-effort" && row.reasoning_effort === "xhigh",
@@ -353,7 +382,7 @@ assert.equal(
   "high",
 );
 
-const unavailableAa = fusedBenchmarkObservations({
+const unavailableAa = combinedBenchmarkObservations({
   terminalBenchRows: [],
   artificialAnalysisBenchmarkResourceRows: [],
   terminalBenchScienceRows: [
@@ -367,7 +396,7 @@ const unavailableAa = fusedBenchmarkObservations({
 assert.equal(unavailableAa.gdp_pdf?.length, 0);
 assert.equal(unavailableAa.terminal_bench_science?.length, 0);
 
-const weirdMlFused = fusedBenchmarkObservations({
+const weirdMlCombined = combinedBenchmarkObservations({
   terminalBenchRows: [],
   artificialAnalysisBenchmarkResourceRows: [],
   terminalBenchScienceRows: [],
@@ -408,25 +437,27 @@ const weirdMlFused = fusedBenchmarkObservations({
   ].map((row) => ({ ...row, model_id: row.base_model })),
 }).weirdml!;
 assert.ok(
-  Math.abs(weirdMlFused.find((row) => row.base_model === "model-0")!.canonical_value - 0.25) <
+  Math.abs(weirdMlCombined.find((row) => row.base_model === "model-0")!.canonical_value - 0.25) <
     1e-12,
 );
 assert.ok(
-  Math.abs(weirdMlFused.find((row) => row.base_model === "creator-only")!.canonical_value - 0.45) <
-    1e-12,
+  Math.abs(
+    weirdMlCombined.find((row) => row.base_model === "creator-only")!.canonical_value - 0.45,
+  ) < 1e-12,
 );
 assert.equal(
-  weirdMlFused.find((row) => row.base_model === "creator-only")?.metadata.fusion_crosswalk_applied,
+  weirdMlCombined.find((row) => row.base_model === "creator-only")?.metadata
+    .fusion_crosswalk_applied,
   true,
 );
 assert.equal(
-  weirdMlFused.find((row) => row.base_model === "creator-only")?.metadata.source_b_label,
+  weirdMlCombined.find((row) => row.base_model === "creator-only")?.metadata.source_b_label,
   "Epoch",
 );
-assert.ok(!weirdMlFused.some((row) => row.base_model === "ambiguous-agent"));
+assert.ok(!weirdMlCombined.some((row) => row.base_model === "ambiguous-agent"));
 assert.ok(
-  !weirdMlFused.some((row) => row.base_model === "retained-agent-mismatch"),
-  "Retained rows from an earlier fetch must be reconciled with the current source before fusion",
+  !weirdMlCombined.some((row) => row.base_model === "retained-agent-mismatch"),
+  "Retained rows from an earlier fetch must be reconciled with the current source before the sources combine",
 );
 
 const terminalBenchPayload = (totalCostUsd: number) => ({
@@ -465,7 +496,7 @@ assert.equal(official.tokens_per_task, 100);
 assert.equal(official.output_tokens_per_task, 20);
 assert.equal(official.seconds_per_task, 120, "average duration must not be divided again");
 assert.deepEqual(
-  fusedBenchmarkObservations({
+  combinedBenchmarkObservations({
     terminalBenchRows: [official],
     artificialAnalysisBenchmarkResourceRows: [],
     terminalBenchScienceRows: [],
@@ -544,8 +575,10 @@ const cached = readBenchmarkObservationRawCache(
 assert.equal(cached?.rows.length, 2, "cache reconstruction must retain both source URLs");
 
 const native = crosswalkBenchmarkSources(
-  [{ ...observation("ALE model", 1400), benchmark_key: "ale_bench" }],
-  [{ ...observation("ALE model", 1600), benchmark_key: "ale_bench" }],
+  [
+    [{ ...observation("ALE model", 1400), benchmark_key: "ale_bench" }],
+    [{ ...observation("ALE model", 1600), benchmark_key: "ale_bench" }],
+  ],
   { maximumScoreError: 0.01, normalizeScore: (value) => Math.max(0, value) },
 );
 assert.equal(native[0]?.canonical_value, 1500, "Performance must not be clamped to a probability");
@@ -568,9 +601,9 @@ const aleCache = readAleBenchRawCache([
   },
 ]);
 assert.deepEqual(aleCache?.rows, [{ model: mirror.model, epoch: mirror }]);
-const { fuseAleBenchRows } = await import("../src/model-atlas/sources/ale-bench/leaderboard");
+const { combineAleBenchRows } = await import("../src/model-atlas/sources/ale-bench/leaderboard");
 assert.deepEqual(
-  fuseAleBenchRows(aleCache!.rows),
+  combineAleBenchRows(aleCache!.rows),
   [],
-  "one source without calibration cannot manufacture a fused score",
+  "one source without calibration cannot manufacture a combined score",
 );

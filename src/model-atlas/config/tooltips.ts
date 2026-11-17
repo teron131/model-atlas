@@ -7,7 +7,7 @@ import { INDEX_REPRESENTED_BENCHMARK_MEDIAN, isAggregateIndex } from "../benchma
 import {
   BENCHMARK_CATALOG,
   BENCHMARK_KEYS,
-  benchmarkDimensionWeight,
+  benchmarkAllocation,
   type BenchmarkKey,
   benchmarkPortfolioEntry,
   benchmarkResourcePolicy,
@@ -86,7 +86,7 @@ function percent(value: number, fractionDigits = 0): string {
 const benchmarkContributionPercent = (
   keys: readonly BenchmarkKey[],
   key: BenchmarkKey,
-  dimension: "intelligence" | "agentic",
+  capability: "intelligence" | "agentic",
 ) => {
   const group = benchmarkPortfolioEntry(key)?.group;
   if (group === "baseline") return "display only";
@@ -94,14 +94,14 @@ const benchmarkContributionPercent = (
     (sum, benchmarkKey) =>
       sum +
       (!isAggregateIndex(benchmarkKey) && benchmarkPortfolioEntry(benchmarkKey)?.group === group
-        ? benchmarkDimensionWeight(benchmarkKey, dimension)
+        ? benchmarkAllocation(benchmarkKey, capability)
         : 0),
     0,
   );
   return totalWeight > 0
     ? percent(
-        benchmarkDimensionWeight(key, dimension) / totalWeight,
-        dimension === "intelligence" ? 2 : 1,
+        benchmarkAllocation(key, capability) / totalWeight,
+        capability === "intelligence" ? 2 : 1,
       )
     : "-";
 };
@@ -170,18 +170,18 @@ const qualityBenchmarkRows = (
     frontier: readonly ModelAtlasColumnTooltipRow[];
     indexes: readonly ModelAtlasColumnTooltipRow[];
   }>,
-  dimension: "intelligence" | "agentic",
+  capability: "intelligence" | "agentic",
 ) =>
   [
     [
       "Effective weight",
-      dimension === "intelligence"
+      capability === "intelligence"
         ? "Intelligence allocation of each frontier benchmark"
         : "Agentic allocation of each frontier benchmark",
     ],
     [
       "Aggregation",
-      dimension === "intelligence"
+      capability === "intelligence"
         ? "frontier benchmark mean with a 20% shared-benchmark comparison, blended with indexes read off the frontier scale; the full frontier portfolio sets the benchmark weight"
         : "available frontier results set the benchmark mean; the full frontier portfolio sets its weight against indexes",
     ],
@@ -214,7 +214,7 @@ const qualityBenchmarkRows = (
 
 const benchmarkRowsByGroup = (
   keys: readonly BenchmarkKey[],
-  dimension: "intelligence" | "agentic",
+  capability: "intelligence" | "agentic",
 ) => ({
   baseline: keys
     .filter((key) => benchmarkPortfolioEntry(key)?.group === "baseline" && !isAggregateIndex(key))
@@ -222,7 +222,7 @@ const benchmarkRowsByGroup = (
       (key) =>
         [
           BENCHMARK_CATALOG[key].presentation.scoringLabel,
-          benchmarkContributionPercent(keys, key, dimension),
+          benchmarkContributionPercent(keys, key, capability),
         ] as const,
     ),
   frontier: keys
@@ -231,7 +231,7 @@ const benchmarkRowsByGroup = (
       (key) =>
         [
           BENCHMARK_CATALOG[key].presentation.scoringLabel,
-          benchmarkContributionPercent(keys, key, dimension),
+          benchmarkContributionPercent(keys, key, capability),
         ] as const,
     ),
   indexes: keys

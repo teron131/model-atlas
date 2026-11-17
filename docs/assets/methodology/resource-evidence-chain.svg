@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 444" role="img" aria-labelledby="title desc">
+<title id="title">Each level is closer to the model with less evidence; each step moves part of the way to that level's median</title>
+<desc id="desc">Four levels of evidence on one axis of deviation from the other models' median log ratio, each closer to the target model and with less evidence than the one above. The top level holds the deviations of many other models that make the same change of effort, with a bracket over the ones from the target model's lab; the deviation starts at zero, their median ratio on the missing benchmark. The second level holds the lab's other models, six of those above; the deviation moves a fraction r lab of the way to their median. The third level holds the same six weighted by closeness in release date, drawn by point area; the deviation moves a fraction r near of the way to their weighted median. The last level holds the target model's own deviations on its other benchmarks; the deviation moves a fraction r own of the way to their median, which lies on the other side, so it moves back. A dotted line marks the distance each step leaves uncovered, and the last deviation drops to the axis as delta own.</desc>
+<style>
+text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:15px;fill:#202724}
+.num{font-family:"SFMono-Regular","SF Mono",Menlo,Consolas,monospace;font-size:14px}
+.small{font-size:12.5px}.big{font-size:18px}.strong{font-weight:600}
+.muted{fill-opacity:.62}.faint{opacity:.4}.half{opacity:.5}
+.grid{fill:none;stroke:#202724;stroke-opacity:.09}
+.guide{fill:none;stroke:#202724;stroke-opacity:.22}
+.axis{fill:none;stroke:#202724;stroke-opacity:.34}
+.ink{fill:#202724}.ink-line{fill:none;stroke:#202724}.ink-wash{fill:#202724;fill-opacity:.08}
+.ring{stroke:#f2f4f2;stroke-width:2;paint-order:stroke}.gap{stroke:#f2f4f2;stroke-width:2}
+.violet{fill:#6b47e0}.violet-line{fill:none;stroke:#6b47e0}.violet-wash{fill:#6b47e0;fill-opacity:.14}
+.rose{fill:#c93f78}.rose-line{fill:none;stroke:#c93f78}.rose-wash{fill:#c93f78;fill-opacity:.14}
+.amber{fill:#a8740c}.amber-line{fill:none;stroke:#a8740c}.amber-wash{fill:#a8740c;fill-opacity:.16}
+.h0{stop-color:#3557e6}.h1{stop-color:#6b47e0}.h2{stop-color:#d9467f}
+.land0{stop-color:#6b47e0;stop-opacity:.12}.land1{stop-color:#6b47e0;stop-opacity:.01}
+.halo{opacity:0}
+.m{font-size:1.12em}.mr,.mi,.mb{font-family:"KaTeX_Main","Latin Modern Roman","STIX Two Text","Cambria","Times New Roman",serif;font-style:normal;font-weight:400}.mb{font-weight:700}.mi{font-family:"KaTeX_Math","Latin Modern Math","STIX Two Text","Cambria Math","Times New Roman",serif;font-style:italic}
+@media (prefers-color-scheme:dark){
+text{fill:#f2f3ed}.muted{fill-opacity:.58}
+.grid{stroke:#f2f3ed;stroke-opacity:.08}.guide{stroke:#f2f3ed;stroke-opacity:.2}.axis{stroke:#f2f3ed;stroke-opacity:.3}
+.ink{fill:#f2f3ed}.ink-line{stroke:#f2f3ed}.ink-wash{fill:#f2f3ed;fill-opacity:.1}
+.ring{stroke:#0b1016}.gap{stroke:#0b1016}
+.violet{fill:#8f6bff}.violet-line{stroke:#8f6bff}.violet-wash{fill:#8f6bff;fill-opacity:.22}
+.rose{fill:#e06296}.rose-line{stroke:#e06296}.rose-wash{fill:#e06296;fill-opacity:.2}
+.amber{fill:#b98b24}.amber-line{stroke:#b98b24}.amber-wash{fill:#b98b24;fill-opacity:.22}
+.h0{stop-color:#4a72ff}.h1{stop-color:#8f6bff}.h2{stop-color:#ff92bd}
+.land0{stop-color:#6f8cff;stop-opacity:.16}.land1{stop-color:#6f8cff;stop-opacity:.02}
+.halo{opacity:.55}
+}
+</style>
+<defs><filter id="glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="3"/></filter><marker id="tip-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="ink" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-violet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="violet" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="rose" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="amber" d="M0 0L10 5L0 10Z"/></marker></defs>
+<circle class="ink-line" cx="46" cy="30" r="5" stroke-width="2"/><text class="muted" x="60" y="35">Median of a level’s evidence</text><g><circle class="violet halo" cx="290" cy="30" r="7.5" filter="url(#glow)"/><circle class="violet ring" cx="290" cy="30" r="5.5"/></g><text class="muted" x="304" y="35">Deviation after the step</text><text class="small muted" x="700" y="35" text-anchor="end">Point area = weight</text>
+<path class="guide" d="M420 78L420 372"/><path class="axis" d="M200 372L700 372"/>
+<text x="40" y="117">Other models</text><text class="small muted" x="40" y="136">Same change of effort</text>
+<path class="grid" d="M200 112L700 112"/>
+<text class="small muted" x="40" y="396">Closer to the model ↓</text>
+<path class="axis" d="M448.2 85v-6H635v6"/><text class="small muted" x="541.6" y="72" text-anchor="middle">Its lab</text>
+<text x="54" y="187">Same lab</text><text class="small muted" x="54" y="206">Its lab’s other models</text>
+<path class="grid" d="M200 182L700 182"/><path class="violet-line" stroke-width="1.5" stroke-opacity=".6" d="M420 112L420 182"/><path class="guide" d="M525.6 164L525.6 176"/>
+<path class="ink-line" d="M448.8 182L520.6 182" stroke-width="1.5" stroke-dasharray="0.5 4" stroke-linecap="round" stroke-opacity=".55"/>
+<path class="violet-line" d="M420 182L439.8 182" stroke-width="2.75" marker-end="url(#tip-violet)"/>
+<circle class="ink-line" cx="525.6" cy="182" r="5" stroke-width="2"/>
+<text class="small" x="412" y="204" text-anchor="end"><tspan class="m"><tspan class="mi">r</tspan><tspan dy="-6" font-size="0.72em"><tspan class="mr">lab</tspan></tspan><tspan dy="6">​</tspan></tspan></text>
+<text x="68" y="257">Nearby releases</text><text class="small muted" x="68" y="276">The same models, by release date</text>
+<path class="grid" d="M200 252L700 252"/><path class="violet-line" stroke-width="1.5" stroke-opacity=".6" d="M448.8 182L448.8 252"/><path class="guide" d="M509.6 234L509.6 246"/>
+<path class="ink-line" d="M474.354 252L504.6 252" stroke-width="1.5" stroke-dasharray="0.5 4" stroke-linecap="round" stroke-opacity=".55"/>
+<path class="violet-line" d="M448.8 252L465.354 252" stroke-width="2.75" marker-end="url(#tip-violet)"/>
+<circle class="ink-line" cx="509.6" cy="252" r="5" stroke-width="2"/>
+<text class="small" x="462.354" y="274" text-anchor="end"><tspan class="m"><tspan class="mi">r</tspan><tspan dy="-6" font-size="0.72em"><tspan class="mr">near</tspan></tspan><tspan dy="6">​</tspan></tspan></text>
+<text x="82" y="327">Target model</text><text class="small muted" x="82" y="346">Its own other benchmarks</text>
+<path class="grid" d="M200 322L700 322"/><path class="violet-line" stroke-width="1.5" stroke-opacity=".6" d="M474.354 252L474.354 322"/><path class="guide" d="M415 304L415 316"/>
+<path class="ink-line" d="M444.677 322L420 322" stroke-width="1.5" stroke-dasharray="0.5 4" stroke-linecap="round" stroke-opacity=".55"/>
+<path class="violet-line" d="M474.354 322L453.677 322" stroke-width="2.75" marker-end="url(#tip-violet)"/>
+<circle class="ink-line" cx="415" cy="322" r="5" stroke-width="2"/>
+<text class="small" x="456.677" y="344" text-anchor="start"><tspan class="m"><tspan class="mi">r</tspan><tspan dy="-6" font-size="0.72em"><tspan class="mr">own</tspan></tspan><tspan dy="6">​</tspan></tspan></text>
+<path class="violet-line" stroke-width="1.5" stroke-opacity=".6" d="M444.677 322L444.677 372"/><path class="axis" d="M444.677 372L444.677 378"/><path class="axis" d="M420 372L420 378"/>
+<circle class="ink" fill-opacity=".38" cx="212" cy="94" r="3.5"/><circle class="ink" fill-opacity=".38" cx="260" cy="94" r="3.5"/><circle class="ink" fill-opacity=".38" cx="298.4" cy="94" r="3.5"/><circle class="ink" fill-opacity=".38" cx="330.4" cy="94" r="3.5"/><circle class="ink" fill-opacity=".38" cx="359.2" cy="94" r="3.5"/><circle class="ink" fill-opacity=".38" cx="384.8" cy="94" r="3.5"/><circle class="ink" fill-opacity=".38" cx="407.2" cy="94" r="3.5"/><circle class="ink" fill-opacity=".38" cx="432.8" cy="94" r="3.5"/><circle class="ink" fill-opacity=".38" cx="455.2" cy="94" r="3.5"/><circle class="ink" fill-opacity=".38" cx="480.8" cy="94" r="3.5"/><circle class="ink" fill-opacity=".38" cx="509.6" cy="94" r="3.5"/><circle class="ink" fill-opacity=".38" cx="541.6" cy="94" r="3.5"/><circle class="ink" fill-opacity=".38" cx="580" cy="94" r="3.5"/><circle class="ink" fill-opacity=".38" cx="628" cy="94" r="3.5"/>
+<g><circle class="violet halo" cx="420" cy="112" r="8.5" filter="url(#glow)"/><circle class="violet ring" cx="420" cy="112" r="6.5"/></g>
+<circle class="ink" fill-opacity=".38" cx="455.2" cy="164" r="3.5"/><circle class="ink" fill-opacity=".38" cx="480.8" cy="164" r="3.5"/><circle class="ink" fill-opacity=".38" cx="509.6" cy="164" r="3.5"/><circle class="ink" fill-opacity=".38" cx="541.6" cy="164" r="3.5"/><circle class="ink" fill-opacity=".38" cx="580" cy="164" r="3.5"/><circle class="ink" fill-opacity=".38" cx="628" cy="164" r="3.5"/>
+<g><circle class="violet halo" cx="448.8" cy="182" r="8.5" filter="url(#glow)"/><circle class="violet ring" cx="448.8" cy="182" r="6.5"/></g>
+<circle class="ink" fill-opacity=".38" cx="455.2" cy="234" r="2.2"/><circle class="ink" fill-opacity=".38" cx="480.8" cy="234" r="3.5"/><circle class="ink" fill-opacity=".38" cx="509.6" cy="234" r="3.3"/><circle class="ink" fill-opacity=".38" cx="541.6" cy="234" r="2.2"/><circle class="ink" fill-opacity=".38" cx="580" cy="234" r="2.2"/><circle class="ink" fill-opacity=".38" cx="628" cy="234" r="2.2"/>
+<g><circle class="violet halo" cx="474.354" cy="252" r="8.5" filter="url(#glow)"/><circle class="violet ring" cx="474.354" cy="252" r="6.5"/></g>
+<circle class="ink" fill-opacity=".38" cx="360" cy="304" r="3.5"/><circle class="ink" fill-opacity=".38" cx="400" cy="304" r="3.5"/><circle class="ink" fill-opacity=".38" cx="430" cy="304" r="3.5"/><circle class="ink" fill-opacity=".38" cx="490" cy="304" r="3.5"/>
+<g><circle class="violet halo" cx="444.677" cy="322" r="8.5" filter="url(#glow)"/><circle class="violet ring" cx="444.677" cy="322" r="6.5"/></g>
+<text class="num muted" x="412" y="396" text-anchor="end">0</text><text x="452.677" y="396" text-anchor="start"><tspan class="m"><tspan class="mi">Δ</tspan><tspan dy="-6" font-size="0.72em"><tspan class="mr">own</tspan></tspan><tspan dy="6">​</tspan></tspan></text>
+<text x="450" y="426" text-anchor="middle">Deviation from the other models’ median ratio · log scale</text>
+</svg>

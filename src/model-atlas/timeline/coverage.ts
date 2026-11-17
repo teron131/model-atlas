@@ -10,7 +10,7 @@ import {
   type HistoricalDataset,
   type HistoricalEstimate,
   isReferenceBenchmark,
-  type TimelineDimension,
+  type TimelineCapability,
 } from "./schemas";
 
 export const MINIMUM_TIMELINE_TASKS = 3;
@@ -18,7 +18,7 @@ export const MINIMUM_TIMELINE_TASKS = 3;
 /** Envelope support includes the breadth of selected observed indexes without creating direct tasks or adding overlapping portfolios together. */
 export function timelineCoverage(
   data: HistoricalDataset,
-  dimension: TimelineDimension,
+  capability: TimelineCapability,
   estimates: readonly Pick<HistoricalEstimate, "modelId" | "value" | "paths">[],
 ) {
   const definitions = new Map(data.benchmarks.map((b) => [b.id, b]));
@@ -35,7 +35,7 @@ export function timelineCoverage(
       ...new Map(
         index.componentIds.flatMap((id) => {
           const b = definitions.get(id);
-          return b?.kind === "task" && b.weights[dimension] > 0 && !hasUnresolvedVersion(b)
+          return b?.kind === "task" && b.weights[capability] > 0 && !hasUnresolvedVersion(b)
             ? [[b.key, b] as const]
             : [];
         }),
@@ -47,13 +47,13 @@ export function timelineCoverage(
           {
             id: index.id,
             components,
-            weight: components.reduce((sum, b) => sum + b.weights[dimension], 0),
+            weight: components.reduce((sum, b) => sum + b.weights[capability], 0),
           },
         ];
   });
   const observed = new Map<string, Set<string>>();
   const coverage = new Map<string, { fraction: number; source: string | null }>();
-  const root = data.rootBenchmarkIds[dimension];
+  const root = data.rootBenchmarkIds[capability];
   for (const observation of data.observations) {
     const definition = definitions.get(observation.benchmarkId);
     if (
@@ -72,7 +72,7 @@ export function timelineCoverage(
       });
   }
   const observations = new Map(data.observations.map((o) => [`${o.modelId}|${o.benchmarkId}`, o]));
-  const thresholds = STAGE_CONFIG.scoring.qualityCoverage[dimension];
+  const thresholds = STAGE_CONFIG.scoring.qualityCoverage[capability];
   for (const estimate of estimates) {
     if (estimate.value == null) continue;
     let best = coverage.get(estimate.modelId) ?? { fraction: 0, source: null };
@@ -81,10 +81,10 @@ export function timelineCoverage(
       const definition = definitions.get(path[0]!);
       if (
         definition?.kind === "task" &&
-        definition.weights[dimension] > 0 &&
+        definition.weights[capability] > 0 &&
         observed.get(estimate.modelId)?.has(definition.id)
       )
-        directTasks.set(definition.key, definition.weights[dimension]);
+        directTasks.set(definition.key, definition.weights[capability]);
     }
     const directSupport = evidenceRetentionFactor(
       effectiveCount([...directTasks.values()]),
@@ -100,7 +100,7 @@ export function timelineCoverage(
         !definition ||
         definition.kind !== "index" ||
         isReferenceBenchmark(definition) ||
-        definition.weights[dimension] <= 0 ||
+        definition.weights[capability] <= 0 ||
         !observation ||
         !observed.get(estimate.modelId)?.has(id)
       )
@@ -110,7 +110,7 @@ export function timelineCoverage(
         [],
         observation.benchmarkCount ?? definition.representedBenchmarks,
       );
-      if (dimension === "agentic") {
+      if (capability === "agentic") {
         // General capability remains a scoring proxy; only identified Agentic constituents establish Agentic-specific envelope support.
         const members = [
           ...(definition.componentIds ?? []).flatMap((id) => definitions.get(id) ?? []),
@@ -136,7 +136,7 @@ export function timelineCoverage(
       const measured = portfolio.components.filter((b) => ids.has(b.id));
       if (measured.length < MINIMUM_TIMELINE_TASKS) continue;
       const fraction =
-        measured.reduce((sum, b) => sum + b.weights[dimension], 0) / portfolio.weight;
+        measured.reduce((sum, b) => sum + b.weights[capability], 0) / portfolio.weight;
       if (fraction > best.fraction) best = { fraction, source: portfolio.id };
     }
     coverage.set(model.id, best);

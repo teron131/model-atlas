@@ -132,7 +132,7 @@ assert.equal(
 const original = JSON.stringify(firstRelease.scale);
 const initialScores = calibrateTimeline(firstRelease, "intelligence");
 const rootIds = Object.values(firstRelease.rootBenchmarkIds);
-for (const dimension of ["intelligence", "agentic"] as const) {
+for (const capability of ["intelligence", "agentic"] as const) {
   const perturbed = calibrateTimeline(
     {
       ...firstRelease,
@@ -140,13 +140,13 @@ for (const dimension of ["intelligence", "agentic"] as const) {
         rootIds.includes(row.benchmarkId) ? row : { ...row, value: row.value + 100 },
       ),
     },
-    dimension,
+    capability,
   );
   for (const [index, seed] of seeds.entries()) {
     const estimate = perturbed.estimates.find((row) => row.modelId === seed.id)!;
     assert.equal(estimate.reference, true);
     assert.ok(
-      estimate.value! > current[index]![`${dimension}_score`],
+      estimate.value! > current[index]![`${capability}_score`],
       "A supported reference follows its own results once they place it",
     );
   }
@@ -157,11 +157,11 @@ for (const dimension of ["intelligence", "agentic"] as const) {
         (row) => row.modelId !== seeds[0]!.id || rootIds.includes(row.benchmarkId),
       ),
     },
-    dimension,
+    capability,
   ).estimates.find((row) => row.modelId === seeds[0]!.id)!;
   assert.equal(
     unmeasured.value,
-    current[0]![`${dimension}_score`],
+    current[0]![`${capability}_score`],
     "Without its own results, a supported reference keeps its snapshot score",
   );
 }
@@ -249,10 +249,10 @@ for (const estimate of initialScores.estimates)
     intelligence.estimates.find((e) => e.modelId === estimate.modelId)!.value!,
     estimate.value!,
   );
-for (const dimension of ["intelligence", "agentic"] as const)
-  for (const node of firstRelease.scale!.dimensions[dimension].nodes)
+for (const capability of ["intelligence", "agentic"] as const)
+  for (const node of firstRelease.scale!.dimensions[capability].nodes)
     assert.deepEqual(
-      release.scale!.dimensions[dimension].nodes.find((n) => n.benchmarkId === node.benchmarkId),
+      release.scale!.dimensions[capability].nodes.find((n) => n.benchmarkId === node.benchmarkId),
       node,
     );
 assert.equal(
@@ -448,7 +448,7 @@ const unequal = calibrateTimeline(unequalWeights, "intelligence").estimates.find
 close(unequal.value!, (1.5 * 80 * 1.02 + 25) / (1.5 * 1.02 + 1));
 assert.ok(
   unequal.benchmarkSupport.effective < supportedTasks.benchmarkSupport.effective,
-  "Two tiny dimension weights cannot supply two full units of effective support",
+  "Two tiny capability weights cannot supply two full units of effective support",
 );
 close(timelineInformation({ scale: "probability" }, 0.5), 1);
 close(timelineInformation({ scale: "probability" }, 0), 1);
@@ -587,13 +587,13 @@ assert.equal(
   "A weak label without usable evidence must remain unplaced",
 );
 assert.equal(supported.scale!.minimumReferenceConfidence, 0.6);
-for (const dimension of ["intelligence", "agentic"] as const) {
-  const root = supported.rootBenchmarkIds[dimension];
-  const rootLinks = supported.scale!.dimensions[dimension].links.filter(
+for (const capability of ["intelligence", "agentic"] as const) {
+  const root = supported.rootBenchmarkIds[capability];
+  const rootLinks = supported.scale!.dimensions[capability].links.filter(
     (link) => link.left === root || link.right === root,
   );
   assert.ok(rootLinks.length > 0);
-  assert.ok(rootLinks.every((link) => link.models === (dimension === "intelligence" ? 4 : 8)));
+  assert.ok(rootLinks.every((link) => link.models === (capability === "intelligence" ? 4 : 8)));
 }
 const insufficient = prepareTimelineRelease(
   {
@@ -923,7 +923,7 @@ close(
   checked(single).uncertainty!.typicalMiss,
 );
 console.log(
-  "Permanent cross-era turnover, dimension, uncertainty, bridge admission, and continuation checks passed.",
+  "Permanent cross-era turnover, capability, uncertainty, bridge admission, and continuation checks passed.",
 );
 
 // Reconcile supported family versions without manufacturing measurements or crossing effort/provider boundaries.

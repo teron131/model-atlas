@@ -570,7 +570,7 @@ function PickedResults({
           ? `, ${carriers} of which ${carriers === 1 ? "carries" : "carry"} it to the reference scale`
           : ", none of which carries it to the reference scale"}
         {estimated.length
-          ? `, and estimated on ${estimated.length}, each counting at its evidence factor`
+          ? `, and estimated on ${estimated.length}; estimates show their evidence factor and never place a model`
           : ""}
         .
       </p>

@@ -11,7 +11,7 @@ import { publicModelFromCandidate } from "../pipeline/selection/public-list";
 import { asFiniteNumber, asNonEmptyString, asRecord } from "../runtime";
 import { readAleBenchRawCache } from "../sources/ale-bench/runtime";
 import { artificialAnalysisBenchmarkResourceRawCacheFromRows } from "../sources/artificial-analysis/cache";
-import { fusedBenchmarkObservations } from "../sources/assembly";
+import { combinedBenchmarkObservations } from "../sources/assembly";
 import { readTerminalBenchRawCache } from "../sources/terminal-bench/runtime";
 import { type DbRow, jsonValue } from "../sqlite-utils";
 import { buildChangeHistory, recentChangeMarks, variantKey } from "../stats/payload/changes";
@@ -97,7 +97,7 @@ export const PAYLOAD_ROW_GROUPS = [
   payloadRowGroup("sourceQuarantineRows", SNAPSHOT_TABLES.source_quarantines, "source, row_key", {
     columns: ["source", "row_key", "row_label", "missing_from_source_since_epoch_seconds"],
   }),
-  // Fusion rebuilds these benchmarks' observations from their complete raw rows.
+  // Combining sources rebuilds these benchmarks' observations from their complete raw rows.
   payloadRowGroup("aleBenchRows", SNAPSHOT_TABLES.ale_bench, "row_index", { optional: true }),
   payloadRowGroup("terminalBenchRows", SNAPSHOT_TABLES.terminal_bench, "row_index", {
     optional: true,
@@ -215,7 +215,7 @@ function observationsFromPayloadRows(rows: PayloadRows): BenchmarkObservationsBy
       observed_at: asNonEmptyString(row.observed_at),
       metadata: parseBenchmarkObservationMetadata(row.metadata_json) ?? {},
     }));
-  const fused = fusedBenchmarkObservations({
+  const combined = combinedBenchmarkObservations({
     terminalBenchRows: readTerminalBenchRawCache(rows.terminalBenchRows)?.rows ?? [],
     artificialAnalysisBenchmarkResourceRows:
       artificialAnalysisBenchmarkResourceRawCacheFromRows(
@@ -226,7 +226,7 @@ function observationsFromPayloadRows(rows: PayloadRows): BenchmarkObservationsBy
     aleBenchRows: readAleBenchRawCache(rows.aleBenchRows)?.rows ?? [],
     weirdMlRows: sourceRows("weirdml", rows.weirdMlRows),
   });
-  Object.assign(observations, fused);
+  Object.assign(observations, combined);
   return observations;
 }
 

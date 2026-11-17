@@ -15,6 +15,7 @@
 - Match the format of existing scrapers.
 - Keep only fields that are actually useful.
 - Name benchmarks without the provider. Add the provider only when two sources would otherwise conflict.
+- Name benchmarks without a version number, in keys, files, tables, and display names. The version is row data.
 - Use a provider-specific helper when benchmarks from that provider share the same row shape.
-- Sort benchmark-related code alphabetically in most places. In UI and documentation that group benchmarks by missing-data class, put `frontier` before `baseline` and sort alphabetically within each group. Keep another order only when it has semantic meaning.
+- Sort benchmark-related code alphabetically in most places. In UI and documentation that group benchmarks into frontier and baseline, put `frontier` before `baseline` and sort alphabetically within each group. Keep another order only when it has semantic meaning.
 - Prefer optional chaining when it expresses the same check directly.

@@ -21,10 +21,10 @@ import {
 } from "../table/column-registry";
 import { resourceRatioColumns, scoreMetricColumns } from "../table/Columns";
 import {
-  formatConfidence,
   formatContext,
   formatCost,
   formatDashboardMetric,
+  formatEvidenceSupport,
   formatScore,
 } from "../table/format";
 import {
@@ -209,7 +209,7 @@ export function Scores({ entries }: { entries: readonly SheetEntry[] }) {
                         <span className="visually-hidden"> of {rank.total}</span>
                       )}
                     </span>
-                    <span className={styles.support}>{formatConfidence(support(model))}</span>
+                    <span className={styles.support}>{formatEvidenceSupport(support(model))}</span>
                   </span>
                 );
               })}

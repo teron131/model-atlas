@@ -4,7 +4,7 @@ import {
   calibrationObservations,
   distinctModelCount,
 } from "../../benchmarks/calibration-population";
-import type { BenchmarkDimension } from "../../benchmarks/factory";
+import type { BenchmarkCapability } from "../../benchmarks/factory";
 import { indexPolicy } from "../../benchmarks/index-policy";
 import { type BenchmarkMetricModel, benchmarkValue } from "../../benchmarks/registry";
 import { type ScoringConfig, selectedBenchmarkKeys } from "../../config/stage";
@@ -250,12 +250,12 @@ export function normalizedQualityBenchmarkValue(
   },
   key: string,
   rawValue: number | null,
-  dimension: BenchmarkDimension,
+  capability: BenchmarkCapability,
   context: QualityScoringContext,
 ): number | null {
   const ranges = context.benchmarkRangesByKey;
   const value = normalizedMetricValue(ranges, key, rawValue);
-  const adjustment = dimension === "agentic" ? context.agenticTokenAdjustments?.get(key) : null;
+  const adjustment = capability === "agentic" ? context.agenticTokenAdjustments?.get(key) : null;
   if (value == null || adjustment == null) return value;
   const observed = benchmarkValue(model, key);
   const multiplier =
@@ -272,14 +272,14 @@ export function normalizedQualityBenchmarkValue(
   return adjusted == null ? null : clampScore(adjusted);
 }
 
-/** Stable identity lookup survives candidate enrichment and keeps quality dimensions separate. */
+/** Stable identity lookup survives candidate enrichment and keeps capabilities separate. */
 export function effortQualityKey(
   model: { id?: unknown; name?: unknown; reasoning_effort?: unknown },
-  dimension: BenchmarkDimension,
+  capability: BenchmarkCapability,
 ): string {
   return JSON.stringify([
     canonicalModelKey(model),
     canonicalReasoningEffort(model.reasoning_effort),
-    dimension,
+    capability,
   ]);
 }

@@ -1,144 +1,125 @@
 # Leaderboard Rules
 
+These rules decide what the dashboard shows from the calculated scores: which models are listed, which scores appear, and how rows and charts present a model's reasoning efforts. They are applied after scoring and recalculate no score. One rule, [Preserved Rows](#preserved-rows), can show a model's scores from an earlier refresh.
+
 ## Dashboard Inclusion
 
-The dashboard lists only models with enough direct evidence to compare: a score built on a handful of benchmarks can land almost anywhere, and estimates cannot stand in for measurements. A model appears only when it meets all of these requirements:
+The dashboard lists only models with enough observed evidence to compare. A score built on a handful of benchmarks can land almost anywhere, and estimates cannot stand in for observations. A variant is listed when it meets all of these requirements:
 
-- A qualified model identity, a name, and confirmed text output.
-- An observed benchmark count reaching the inclusion threshold, currently seven, as counted below.
-- At least one observed benchmark or index in each of Intelligence and Agentic.
-- At least two distinct observed eligible indexes, or one observed Artificial Analysis Intelligence Index or Epoch Capabilities Index.
-- Finite relative :score[Intelligence] and :score[Agentic] scores strictly greater than 10 each.
+- An [identified model](../matching.md), a name, and confirmed text output.
+- An observed benchmark count of at least seven, counted as described below.
+- At least one observed frontier benchmark or aggregate index in each of Intelligence and Agentic. A benchmark or an index belongs to a capability when its [allocation](../benchmarks.md#reading-the-portfolio) there is above zero.
+- At least two observed aggregate indexes, or one observed Artificial Analysis Intelligence Index or Epoch Capabilities Index.
+- Finite :score[Intelligence] and :score[Agentic] scores above 10 each.
 
-**Count observed benchmarks**
+The eligible indexes are the Artificial Analysis Intelligence Index, CAIS Capabilities Index, Epoch Capabilities Index, Surge Intelligence Index, and Vals Index. No particular publisher, release age, or earlier listing is required, and a model that public catalogs do not list yet is included when its results qualify. Specifications such as the context window, release date, and token prices are not required either, and a missing one is shown as empty.
 
-Each standalone benchmark counts once across both dimensions. An observed aggregate index contributes its represented benchmark count.
+Inclusion counts observations matched to the exact variant, including observed zeros. It is separate from [score retention](intelligence-agentic.md#evidence-support-and-score-retention), which discounts thin evidence inside the score.
 
-Count each known component once across indexes and standalone observations. Add each index’s remaining count of unnamed benchmarks separately. This avoids double counting known overlap.
+### Counting Observed Benchmarks
 
-AA’s main Intelligence Index represents nine benchmarks. Its separate Omniscience Index does not increase the benchmark count used for inclusion. Only observed results count, including observed zeros.
+The count is the number of different benchmarks that a variant's observed results stand for. An observed frontier benchmark counts one, whatever its allocation. An observed aggregate index counts its [represented breadth](intelligence-agentic.md#represented-breadth-and-overlap), the number of benchmarks the index stands for. A baseline benchmark observed as a separate result adds nothing.
 
-ECI uses fixed represented breadth 8, the [median](overview.md#weighted-median-and-quantiles) of the fixed index baskets. Its component overlap is unknown, so this breadth is added alongside standalone evidence. Inclusion uses observations matched to the exact variant; imputation supplies no direct evidence.
+No benchmark counts twice. Where an index's components are known by name, each one counts once, even when it is also observed directly or is a component of a second observed index. A named component counts through its index whether it is a frontier benchmark, a baseline benchmark, or not in the portfolio at all. The rest of an index's breadth cannot be matched to named benchmarks, so it is added in full. That covers an index whose components are not mapped to benchmarks, and the Epoch Capabilities Index, which publishes no list of components and has a fixed breadth of 8.
 
-The required benchmark count is the smallest known count represented by an index among AA, CAIS, Surge, and Vals, currently seven. ECI’s publication minimum is excluded because it is not a fixed benchmark basket.
+The threshold is the smallest breadth among the indexes that publish how many benchmarks they contain, currently seven. One sufficiently broad index can therefore satisfy the count by itself.
 
-| Inclusion rule | Detail |
-| --- | --- |
-| Eligible indexes | AA’s main Intelligence Index, CAIS, ECI, Surge, and Vals. Secondary AA indexes and imputed results do not count. |
-| Single-index exception | One observed AA main index or ECI satisfies the index-count rule only. Benchmark-count, dimension, and quality requirements still apply. |
-| Benchmark count versus index count | Standalone results can increase the benchmark count but cannot replace the index requirement. ECI's fixed breadth exceeds the seven-benchmark threshold and remains an explicit single-index exception. |
-| Timing and source | No specific index, release age, or prior publication is required. |
+### Hidden Model Groups
 
-Inclusion counts observed benchmarks separately from [score retention](intelligence-agentic.md#evidence-support-and-score-retention), which discounts thin evidence inside the score itself.
+OpenAI Pro, Gemini Deep Think, and Claude Mythos models are never shown in the table, the frontier roles, or the charts, because of their specialized resourcing, operating policies, or assets. Ordinary Gemini Pro models and other high-reasoning variants are shown. Hiding a model changes neither its scores nor the reference population other models are scored against, and the API's page for a single model still returns it.
 
-**Apply display rules**
+## Preserved Rows
 
-The default leaderboard follows the Timeline chart's display policy: OpenAI Pro, Gemini Deep Think, and Claude Mythos models are hidden because of their specialized resourcing, operating policies, or assets. Ordinary Gemini Pro and other high-reasoning variants remain eligible. This display filter leaves source evidence, scores, and the scoring reference population unchanged.
+A refresh can lose a source for a while, and a leading model's score would then fall for a reason that has nothing to do with the model. Each refresh therefore compares every listed variant's new row with its row in the previous refresh, and shows the previous row instead when three conditions hold: its previous :score[Intelligence] was at least 90, its new :score[Intelligence] is at least 10 points lower, and the previous row carries more values than the new one, counting its observed frontier benchmark and index results, its :score[Speed], and its three provider speed measurements (throughput, latency, and end-to-end latency). A variant that no longer qualifies for the list is not preserved.
 
-All included models receive numeric ranks in compact views. Missing specifications remain null; :score[Speed] and :score[Value] have separate resource requirements. The exact-variant `all` JSON view has no rank field.
+The preserved row is shown unchanged, with all four scores and its benchmark results. Those scores were calculated against the earlier population, so they are not strictly relative to the models currently observed.
 
-Benchmark results can be published before a model appears in public catalogs. Catalog absence alone does not invalidate sufficiently evidenced results. A model below the required observed benchmark count is excluded, regardless of release age.
+Preservation has no time limit: the preserved row becomes the previous row for the next refresh, so it stays until a refresh no longer meets the three conditions. A change to the scoring method also ends it.
 
-Apply these requirements after scoring. Excluding a model from the dashboard leaves the population used to calculate scores unchanged.
+## Ranks
 
-### Resource Score Availability
+Every row has a rank by :score[Intelligence], and rows with equal scores share a rank. With the table [Collapsed](#collapsed-and-expanded-rows), each base model is ranked once, at its shown variant. With the table Expanded, every reasoning effort is ranked as its own row. The API offers the same two rankings: its default lists rank base models, and its `efforts=all` option ranks every reasoning effort. The API's page for a single model lists all of that model's efforts without ranks.
 
-A listed token price or serving speed alone does not show the resources needed to complete useful work. :score[Value] and :score[Speed] therefore require observed quality paired with resource measurements per task before those scores can be displayed, with cost and time qualifying independently.
+## Resource Score Availability
 
-A dashboard variant needs observed quality-and-resource coverage representing at least four distinct benchmarks to display :score[Value] or :score[Speed]. Each selected individual benchmark contributes one when it has observed quality paired with positive cost or directly reported seconds.
+A listed token price or serving speed does not show what it takes to complete useful work. :score[Speed] and :score[Value] are therefore shown only for a variant with observed quality paired with observed resources per task on at least four benchmarks. Time qualifies :score[Speed] and cost qualifies :score[Value], independently.
 
-The selected Artificial Analysis Intelligence Index contributes its catalogued benchmark count, currently 9, when its observed score is paired with its own positive aggregate cost or runtime. Deduct separately counted AA components for each resource so overlapping evidence counts once. AA cost coverage does not establish runtime coverage.
+Each benchmark counts one when the variant has observed quality paired with a positive cost, or with directly reported seconds. The Artificial Analysis Intelligence Index counts its represented breadth when its observed result is paired with its own cost or runtime per task, less the components already counted as benchmarks for that resource. Its cost does not establish runtime coverage, and its measurements never fill in for a benchmark's own.
 
-Imputed quality, estimated resources, output-token runtime proxies, provider token prices, throughput, and latency do not satisfy this threshold. AA resource measurements remain attached to that index and never fill missing measurements for individual benchmarks.
+Estimated quality, estimated resources, runtime derived from output tokens, token prices, throughput, and latency do not count.
 
 ![In this illustration without index support, four direct cost pairs permit :score[Value]; three time pairs leave :score[Speed] unavailable. Estimates sit outside the four required slots and do not count toward either threshold.](../assets/methodology/resource-publication-gate.svg)
 
-A variant that qualifies on quality remains in the table with unavailable resource scores left blank. Raw prices and provider speed measurements remain available. Insufficient observed runtime measurements leave :score[Speed] blank even when :score[Value] is available.
+A variant that qualifies on quality stays in the table with an unavailable resource score left blank, and its prices and provider speed remain visible. Charts show a variant wherever its plotted values exist and never replace a missing score with zero. Every model's observations remain in the scoring reference population whether or not its scores are shown.
 
-Graphs show a variant wherever its plotted values exist and omit it where they are missing; unavailable scores are never replaced with zero.
+## Collapsed and Expanded Rows
 
-These requirements control which scores are displayed. All model observations remain in scoring calibration, and qualifying :score[Speed] and :score[Value] scores keep the calculation described above.
+The table's Effort picker switches every model between two modes. Collapsed shows one row per base model: the variant with the highest :score[Intelligence], with all of that variant's scores. Expanded shows a row for each selected reasoning effort.
 
-## Dashboard Comparisons
+A collapsed row's benchmark cells can show results from other efforts of the same model, in two cases. Where the shown variant has no result for a benchmark, the cell displays the result observed at the highest reasoning effort that has one. Where a benchmark's [sources are combined](sources.md#combining-sources), the cell shows the combination of each source's result at the highest effort that source reports for the model, wherever that combination exists. This is the only case where a cell overrides a result the shown variant has. Neither case changes the row's scores or whose scores are shown, but a filled-in result brings its cost, time, and tokens into the row's [relative task resources](#relative-task-resources).
 
-The dashboard uses the calculated scores to highlight trade-offs and compare reasoning efforts. These display rules do not change the headline scoring method.
+## Frontier Roles
 
-### Selecting Highlighted Models
-
-Highlighted models represent different trade-offs between :score[Intelligence] and :score[Value]. Intelligence and Pareto roles use the variant with the highest :score[Intelligence]; Best Agentic searches all efforts of visible models. Labels omit effort suffixes, but scores remain those of the selected variant.
-
-The Pareto frontier contains models for which no other candidate is at least as good in both :score[Intelligence] and :score[Value] and strictly better in one. Its two highlighted roles apply explicit selection rules:
+The dashboard's opening view names a few models by role. Each role is filled from the listed models:
 
 | Role | Selection rule |
 | --- | --- |
-| Pareto Balance | Largest :score[Intelligence] × :score[Value] product on the frontier, equivalent to the largest equal-weight geometric mean. This favors strength in both scores. Ties prefer higher :score[Intelligence]. |
-| Pareto Value | Highest :score[Value] on the frontier among models strictly above the full published population’s median :score[Intelligence]. This focuses the role on more capable candidates. Ties prefer higher :score[Intelligence]. |
+| Best Intelligence | Highest :score[Intelligence], taking each base model at its strongest variant. |
+| Best Agentic | Highest :score[Agentic] across every listed reasoning effort. |
+| Another Lab | Highest :score[Intelligence] from a lab other than those holding the two roles above. |
+| Best Open Weight | Highest :score[Intelligence] among open-weight models. |
+| Pareto Balance | Largest :score[Intelligence] × :score[Value] product on the Pareto frontier, which favors strength in both. Ties prefer higher :score[Intelligence]. |
+| Pareto Value | Highest :score[Value] on the Pareto frontier among models strictly above the median :score[Intelligence]. Ties prefer higher :score[Intelligence]. |
 
-The [median](overview.md#weighted-median-and-quantiles) counts each base model with finite :score[Intelligence] and :score[Value] once, before dashboard filters. A model exactly at the median does not qualify for Pareto Value.
+The Pareto frontier holds the models that no other model matches or beats in both :score[Intelligence] and :score[Value] while beating it in one. The roles follow the dashboard's filters, except that the Pareto roles ignore the release-date and rank filters. The Pareto roles take each base model at its strongest variant and need that variant to have a :score[Value]. The median counts each such base model once, before any filter, and a model exactly at the median does not qualify for Pareto Value.
 
 ![Illustrative frontier: Pareto Balance touches the highest curve of equal :score[Intelligence] × :score[Value], and Pareto Value has the highest :score[Value] among frontier models above the median :score[Intelligence].](../assets/methodology/pareto-highlights.svg)
 
-Pareto candidates follow model, provider, and price filters before rank and release-recency limits. The other highlighted roles use the displayed population.
+A model that wins several roles appears once, under all of its role names joined together. When no model qualifies for a role, a Pareto role is left out, and any other role is replaced by the highest model among the top five by :score[Intelligence] that holds no role yet, labelled with its place in the top five, such as Intelligence #3. Labels omit the reasoning effort, but the scores shown are those of the selected variant.
 
-Pareto Balance has no :score[Intelligence] cutoff. Token price does not select either Pareto role or represent measured cost per task. A model may fill multiple roles; a role is omitted if no candidate qualifies.
+## Pareto Chart
 
-### Comparing Reasoning-Effort Curves
+The Pareto chart plots quality against resources. Quality is :score[Intelligence], :score[Agentic], or a selection of benchmarks. Resources are cost, time, or tokens as relative task resources, or the :score[Speed] or :score[Value] score. Each base model appears once, as its collapsed row, unless Variants is on, in which case every reasoning effort is its own point. The frontier line joins the points that no other point beats on both axes.
 
-Compare reasoning efforts using measurements shared by the selected variants of each model. Build separate common benchmark sets for cost, time, and tokens so differences in which benchmarks were measured do not appear to be differences caused by reasoning effort.
+### Relative Task Resources
+
+Relative cost, time, and tokens answer a descriptive question: how much does a model use compared with a typical model on the same benchmarks, whatever it achieved? Raw amounts cannot be compared across benchmarks because tasks differ in size, so each amount is divided by its benchmark's median, which makes 1× typical everywhere.
+
+For amount $R_{m,b}$ of variant $m$ on benchmark $b$, the benchmark median $\tilde R_b$ is the [weighted median](operations.md#weighted-median-and-quantiles) of the positive observed amounts $R_{j,b}$ of every variant $j$ paired with observed quality, weighted by [reference weight](overview.md#reference-weight) $w^{\text{ref}}_{j,b}$. A variant's ratios across benchmarks are summarized by their weighted median $\rho_m$:
+
+$$
+\tilde R_b=\operatorname{weightedMedian}_j\left(R_{j,b};w^{\text{ref}}_{j,b}\right),\qquad \rho_{m,b}=\frac{R_{m,b}}{\tilde R_b},\qquad \rho_m=\operatorname{weightedMedian}_b(\rho_{m,b};w_b).
+$$
+
+Each benchmark has weight $w_b=1$. Where a benchmark's sources keep their resources [separate](sources.md#resources-across-sources), each source has its own ratio and the benchmark's weight of 1 is split equally among its sources, whether or not the variant has each one. An index has its [represented breadth](intelligence-agentic.md#represented-breadth-and-overlap) less the components already counted as benchmarks. A benchmark observed for fewer than two base models has no median. The medians come from the full model population, whichever models a chart shows.
+
+Cost uses observed cost per task and time uses reported seconds. Tokens require an input and output count or a reported total; output tokens alone never stand in for the total. Derived runtime and estimates are not included.
+
+These ratios ignore quality, so they feed neither :score[Speed] nor :score[Value]. A model's summarized ratio need not center on 1× even though every benchmark's median does, because models run different benchmarks.
+
+### Common Evidence
+
+Comparing a model's reasoning efforts is fair only on measurements all of them share: otherwise a difference in which benchmarks were measured would look like a difference caused by effort. Each model's variants are therefore compared on their common set of benchmarks, built separately for cost, time, and tokens.
+
+The common set applies whenever the chart combines two or more benchmarks: when the quality axis is a selection of benchmarks, and when the resource axis is relative cost, time, or tokens. With :score[Intelligence] or :score[Agentic] on the quality axis, only the resource axis is built on the common set, and quality stays the published score. With Variants off, each model is a single point, so its set is simply the benchmarks that point has.
 
 ![A benchmark missing a paired observation for one displayed variant is excluded from that model’s common benchmark set. Another model builds its own benchmark set independently.](../assets/methodology/common-variant-basket.svg)
 
-The selector includes individual benchmarks with results at several reasoning efforts, selected standalone AA components, and aggregate indexes labelled as comparison inputs. This selection does not change the scoring portfolio or remove other benchmarks from the table.
+A benchmark enters a model's common set only when every variant of that model has both its quality and the resource observed. Quality on the set keeps its observed-range scaling and weighted mean, and resources are relative task resources over the same set. Each benchmark has weight 1, and a selected index has its represented breadth less one for each component included as a benchmark.
 
-Each selected index uses its own quality result. Artificial Analysis pairs its Intelligence Index with its reported aggregate cost and runtime per task; its output-only token measurement cannot supply total token consumption. Those resources stay attached to that index. Single-index views show native index points, not percentages.
+An aggregate index in the set, whether selected or included automatically, narrows the comparison: when at least one of a model's variants has such an index with both quality and the resource observed, only the variants that have one are compared, and the model's other variants are left out of the chart. The Common evidence details under the chart report how many were left out.
 
-Cost, Time, and Tokens each require their own paired observations. Tokens require a reported total or complete input/output pair; output-only telemetry cannot supply this axis. Imputed resources affect scoring but do not appear as direct graph measurements. In these graphs, an index result belongs to its measured effort or the single assigned source-default variant and is not copied to other efforts.
-
-Build each model’s comparison independently for cost, time, and tokens:
-
-| Step | Rule |
-| --- | --- |
-| Baseline | Use selected indexes with paired quality and resource observations. |
-| Benchmark inclusion | Include a benchmark only when every selected variant of that model has both its quality and resource measurement. |
-| Axis calculation | Quality keeps its min–max scaling and weighted mean. Cost, Time, and Tokens divide by model-balanced source medians and take a weighted median, using the same observed basket as quality. |
-| Weights | One per individual benchmark; represented benchmark count per index, currently ten for AA. |
-| Overlap | Subtract one from AA’s weight for each matching component actually included as an individual benchmark. Excluded components and unrelated benchmarks do not reduce it. |
-| No common benchmarks | Retain common index evidence alone; sparse benchmark observations cannot remove variants from the index baseline. |
-
-The remaining index weights apply to both axes and the displayed index share; the index values stay unchanged. Headline capability scores combine benchmarks and indexes separately, as described in [Combining Benchmarks and Aggregate Indexes](intelligence-agentic.md#combining-benchmarks-and-aggregate-indexes).
-
-Variants missing the selected index resource evidence are counted in the legend and can be compared by deselecting the indexes. Without an index that has both quality and the selected resource measurement, the graph uses common benchmarks across that model’s variants with selected resource observations. If no evidence is common, the comparison is empty.
-
-Explicitly selecting one entry retains native units. A single common entry within a multi-entry selection stays on its aggregate scale: ratios for Cost, Time, and Tokens, min–max points for quality. The default resource baskets include all active observed measurements, whichever quality score is selected. Collapsed graphs retain the Pareto envelope on every axis.
-
-**Common within model** summarizes variant coverage and index-weight ranges. **Details** lists each model’s variants, common/selected counts, index share, included evidence, and excluded observations.
-
-Each model has its own benchmark set, so distances between models are not comparisons on identical benchmarks. Changing models or selections can change these sets, but not normalization references. Overlapping benchmarks and indexes are not independent evidence; adding benchmarks does not guarantee better estimates.
-
-The graphs preserve ties, decreases, and direction changes in the observations. They do not smooth results or force scores to rise with effort. Resource availability thresholds remain independent of common-benchmark counts. An observed index paired with its own resource measurement can satisfy the resource threshold through its represented benchmark count after deducting overlap. Graph selection does not change leaderboard scores.
-
-Expanded graphs connect consecutive displayed efforts within each model, even when an axis reverses direction. The separate Pareto frontier line appears only in collapsed mode.
-
-## Reference Notes
-
-### Evidence for Updated Releases
-
-A dated model replacement needs fresh evidence before results from the previous identity can be reused. An undated Artificial Analysis identity can resolve to a dated route when the catalog identifies one dated extension and either an explicit Artificial Analysis display label or Vals identifies that same extension. Conflicting dated evidence or multiple catalog extensions prevent the override. The published identity retains the dated route even when its display name omits the date. Semantic versions remain separate identities.
-
-Retain an observation only when at least one condition holds:
-
-- Its value changed.
-- Its source identifies the new release.
-- Its observation date is newer than the previous result and no earlier than release.
-- An earlier refresh already accepted it for the replacement.
-
-A missing old value or a reputable source alone does not establish freshness. Replacement rows use accepted direct evidence without imputation from other benchmarks. Retained Artificial Analysis and Vals observations receive twice their ordinary weight, giving the sources that establish freshness more influence during the transition. Later refreshes apply the same checks.
+A single selected benchmark is plotted in its own units, except ALE-Bench, which is shown on the normalized 0–100 scale. Each model has its own common set, so the distance between two models is not a comparison on identical benchmarks. The chart never smooths results or forces quality to rise with effort.
 
 ## Parameter Choices
 
-These values are scoring-policy choices, not fitted claims about model behavior.
+These values are display-policy choices, not fitted claims about model behavior.
 
 | Parameter | Value | Why it exists |
 | --- | ---: | --- |
-| Dashboard inclusion benchmark count | Minimum known index benchmark count, excluding Epoch | Allows sufficient standalone or aggregate evidence to qualify, deducting known overlap without requiring a particular publisher. |
-| Dashboard :score[Intelligence] and :score[Agentic] floor | Greater than 10 each | Excludes models whose quality scores are too low to be decision-relevant even when resource scores are high. |
+| Inclusion benchmark count | 7, the smallest breadth among indexes with published baskets | Lets benchmark results or a broad index qualify a model without requiring a particular publisher. |
+| Inclusion index requirement | Two indexes, or the Artificial Analysis Intelligence Index or Epoch Capabilities Index alone | Requires broad evidence beyond individual benchmarks. |
+| Capability score floor | Above 10 for both :score[Intelligence] and :score[Agentic] | Leaves out models too weak to be relevant even when their resource scores are high. |
+| Resource score availability | 4 benchmarks with observed quality and resource | Requires :score[Speed] and :score[Value] to rest on measured work. |
+| Preserved row | Previous :score[Intelligence] at least 90, drop of at least 10, less evidence than before | Keeps a lost source from knocking down a leading model. |
+| Pareto Value cutoff | Above the median :score[Intelligence] | Keeps the role for capable models. |

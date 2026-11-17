@@ -291,13 +291,13 @@ const TableHeaderRow = memo(function TableHeaderRow({
             onTooltipEnd={onTooltipEnd}
           />
         ))}
-      {visibleColumnKeySet.has("confidence") ? (
-        <th className="confidence-cell" data-column-key="confidence" scope="col">
+      {visibleColumnKeySet.has("evidenceSupport") ? (
+        <th className="confidence-cell" data-column-key="evidenceSupport" scope="col">
           <button
             className="header-button"
             type="button"
-            onMouseEnter={(event) => onTooltip(event, "confidence")}
-            onFocus={(event) => onTooltip(event, "confidence")}
+            onMouseEnter={(event) => onTooltip(event, "evidenceSupport")}
+            onFocus={(event) => onTooltip(event, "evidenceSupport")}
             onMouseLeave={onTooltipEnd}
             onBlur={onTooltipEnd}
           >

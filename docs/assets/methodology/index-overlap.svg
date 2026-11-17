@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 238" role="img" aria-labelledby="title desc">
 <title id="title">Overlap deductions leave each index its remaining represented breadth</title>
-<desc id="desc">Each cell is one unit of an index's represented breadth; shading shows the units the index keeps. Constituent A is also observed directly, so it removes one unit from every index containing it. Constituent B is shared by both indexes without a direct observation, so each keeps half a unit; the two halves tile one cell, keeping one unit in total. Constituent C and the unmapped constituents keep their full units.</desc>
+<desc id="desc">Each cell is one unit of an index's represented breadth; shading shows the units the index keeps. Component A is also observed directly, so it removes one unit from every index containing it. Component B is shared by both indexes without a direct observation, so each keeps half a unit; the two halves tile one cell, keeping one unit in total. Component C and the unmapped components keep their full units.</desc>
 <style>
 text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:15px;fill:#202724}
 .num{font-family:"SFMono-Regular","SF Mono",Menlo,Consolas,monospace;font-size:14px}

@@ -170,7 +170,7 @@ assertDeepEqual(
   ),
   ["0.1"],
 );
-// The fused series stays on the official suite's version, so a page that moved to another one supplies nothing.
+// The combined series stays on the official suite's version, so a page that moved to another one supplies nothing.
 assertDeepEqual(
   processArtificialAnalysisBenchmarkResourceRows(scienceRows, sciencePage, "0.2"),
   [],

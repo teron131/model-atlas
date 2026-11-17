@@ -74,7 +74,7 @@ export function hasRequiredQualityScores(
   return REQUIRED_QUALITY_SCORE_KEYS.every((key) => asFiniteNumber(scores[key]) != null);
 }
 
-/** Require observed breadth and both dimensions, plus two indexes or one trusted Artificial Analysis or Epoch index; estimates cannot satisfy admission. */
+/** Require observed breadth and both capabilities, plus two indexes or one trusted Artificial Analysis or Epoch index; estimates cannot satisfy admission. */
 export function hasRequiredBenchmarkEvidence(
   model: BenchmarkEvidenceCandidate,
   scoringConfig: ScoringConfig,
@@ -95,8 +95,8 @@ export function hasRequiredBenchmarkEvidence(
   );
   return (
     observedWeight >= admissionConfig.minimumObservedWeight &&
-    observedIntelligenceCount >= admissionConfig.minimumObservedPerDimension &&
-    observedAgenticCount >= admissionConfig.minimumObservedPerDimension &&
+    observedIntelligenceCount >= admissionConfig.minimumObservedPerCapability &&
+    observedAgenticCount >= admissionConfig.minimumObservedPerCapability &&
     (observedIndexCount >= admissionConfig.minimumObservedIndexes || hasTrustedIndex)
   );
 }
@@ -236,14 +236,22 @@ function normalizedModelsForId<Model extends ModelAtlasModel>(
     : normalizedModels.filter((model) => publicOpenRouterModelId(model.id) === normalizedId);
 }
 
-/** Select public-facing rows while retaining each winning route's provenance for final scoring and admission. */
+/** Select public-facing rows while retaining what final scoring and admission read beyond the public fields: each winning route's provenance and its source-default mark. */
 export function selectReferenceModels(
   scoredCandidates: ModelAtlasScoredCandidate[],
   modelId: string | null | undefined,
-): (ModelAtlasModel & Pick<ModelAtlasScoredCandidate, "scoring_sources">)[] {
+): (ModelAtlasModel & Pick<ModelAtlasScoredCandidate, "scoring_sources" | "source_default">)[] {
   const signalModels = scoredCandidates.flatMap((model) => {
     const publicModel = publicModelFromCandidate(model);
-    return publicModel == null ? [] : [{ ...publicModel, scoring_sources: model.scoring_sources }];
+    return publicModel == null
+      ? []
+      : [
+          {
+            ...publicModel,
+            scoring_sources: model.scoring_sources,
+            source_default: model.source_default,
+          },
+        ];
   });
   return normalizedModelsForId(sortByIntelligenceScore(signalModels), modelId);
 }

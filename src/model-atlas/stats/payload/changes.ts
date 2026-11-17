@@ -13,7 +13,7 @@ import type {
   ModelAtlasPayload,
   ModelAtlasScoreChange,
   ModelAtlasScoreChangeCause,
-  ModelAtlasScoreDimension,
+  ModelAtlasScoreKey,
   ModelAtlasScoreMove,
   ModelAtlasTaskMetricValues,
   ModelAtlasVariantChanges,
@@ -67,24 +67,19 @@ export type ChangeLog = {
   details: readonly ModelChangeDetailRow[];
 };
 
-type DimensionPolicy = {
-  dimension: ModelAtlasScoreDimension;
-  scoreKey: keyof ModelAtlasModel["scores"];
-  confidenceKey: keyof ModelAtlasModel["confidence"];
+type ScorePolicy = {
+  scoreKey: ModelAtlasScoreKey;
+  scoreField: keyof ModelAtlasModel["scores"];
 };
 
-export const DIMENSIONS: readonly DimensionPolicy[] = [
-  {
-    dimension: "intelligence",
-    scoreKey: "intelligence_score",
-    confidenceKey: "intelligence",
-  },
-  { dimension: "agentic", scoreKey: "agentic_score", confidenceKey: "agentic" },
-  { dimension: "speed", scoreKey: "speed_score", confidenceKey: "speed" },
-  { dimension: "value", scoreKey: "value_score", confidenceKey: "value" },
+export const SCORE_POLICIES: readonly ScorePolicy[] = [
+  { scoreKey: "intelligence", scoreField: "intelligence_score" },
+  { scoreKey: "agentic", scoreField: "agentic_score" },
+  { scoreKey: "speed", scoreField: "speed_score" },
+  { scoreKey: "value", scoreField: "value_score" },
 ];
 
-const DIMENSION_ORDER = new Map(DIMENSIONS.map(({ dimension }, index) => [dimension, index]));
+const SCORE_ORDER = new Map(SCORE_POLICIES.map(({ scoreKey }, index) => [scoreKey, index]));
 const MATERIAL_SCORE_DELTA = 0.5;
 const MATERIAL_RELATIVE_RANK_DELTA = 0.25;
 const MATERIAL_SUPPORT_DELTA = 10;
@@ -161,8 +156,8 @@ export function buildRefreshChanges(
         continue;
       }
       const previousModel = previousByIdentity.get(identity);
-      const changes = DIMENSIONS.flatMap((policy) => {
-        const rankKey = rankIdentity(identity, policy.dimension);
+      const changes = SCORE_POLICIES.flatMap((policy) => {
+        const rankKey = rankIdentity(identity, policy.scoreKey);
         const change = scoreChange(
           refreshId,
           model,
@@ -340,36 +335,36 @@ function scoreChange(
   refreshId: number,
   current: ModelAtlasModel,
   previous: ModelAtlasModel | undefined,
-  policy: DimensionPolicy,
+  policy: ScorePolicy,
   rankBefore: number | null,
   rankAfter: number | null,
   scoring: ModelAtlasMetadata["scoring"],
   methodologyChanged: boolean,
   currentModels: readonly ModelAtlasModel[],
 ): ScoreChange | null {
-  const scoreBefore = visibleScore(previous?.scores[policy.scoreKey]);
-  const scoreAfter = visibleScore(current.scores[policy.scoreKey]);
+  const scoreBefore = visibleScore(previous?.scores[policy.scoreField]);
+  const scoreAfter = visibleScore(current.scores[policy.scoreField]);
   if (scoreAfter == null) {
     return null;
   }
   const scoreDelta = scoreBefore == null ? null : visibleScore(scoreAfter - scoreBefore);
   const scoreChanged = scoreBefore == null || scoreBefore !== scoreAfter;
   const rankChanged = rankBefore !== rankAfter;
-  const confidenceBefore = visibleConfidence(previous?.confidence[policy.confidenceKey]);
-  const confidenceAfter = visibleConfidence(current.confidence[policy.confidenceKey]);
-  if (!scoreChanged && !rankChanged && confidenceBefore === confidenceAfter) {
+  const evidenceSupportBefore = visibleEvidenceSupport(previous?.confidence[policy.scoreKey]);
+  const evidenceSupportAfter = visibleEvidenceSupport(current.confidence[policy.scoreKey]);
+  if (!scoreChanged && !rankChanged && evidenceSupportBefore === evidenceSupportAfter) {
     return null;
   }
   const change: ScoreChange = {
     refresh_id: refreshId,
-    dimension: policy.dimension,
+    dimension: policy.scoreKey,
     score_before: scoreBefore,
     score_after: scoreAfter,
     score_delta: scoreDelta,
     rank_before: rankBefore,
     rank_after: rankAfter,
-    confidence_before: confidenceBefore,
-    confidence_after: confidenceAfter,
+    confidence_before: evidenceSupportBefore,
+    confidence_after: evidenceSupportAfter,
     causes: [],
     rank_drivers: [],
   };
@@ -420,28 +415,25 @@ function isMaterialChange(change: ModelAtlasScoreMove): boolean {
   );
 }
 
-/** Identify up to three benchmarks whose population rank tracks the current dimension, using one strongest effort variant per model. */
+/** Identify up to three benchmarks whose population rank tracks the current score, using one strongest effort variant per model. */
 function rankDriversForModel(
   current: ModelAtlasModel,
   currentModels: readonly ModelAtlasModel[],
-  policy: DimensionPolicy,
+  policy: ScorePolicy,
   scoring: ModelAtlasMetadata["scoring"],
 ): ModelAtlasBenchmarkRankDriver[] {
-  if (
-    current.id == null ||
-    (policy.dimension !== "intelligence" && policy.dimension !== "agentic")
-  ) {
+  if (current.id == null || (policy.scoreKey !== "intelligence" && policy.scoreKey !== "agentic")) {
     return [];
   }
   const keys =
-    policy.dimension === "intelligence"
+    policy.scoreKey === "intelligence"
       ? scoring.intelligence_benchmark_keys
       : scoring.agentic_benchmark_keys;
-  const population = oneVariantPerModelPopulation(currentModels, current, policy.scoreKey);
+  const population = oneVariantPerModelPopulation(currentModels, current, policy.scoreField);
   return keys
     .flatMap((benchmarkKey) => {
       const observations = population.flatMap((model) => {
-        const score = finiteNumber(model.scores[policy.scoreKey]);
+        const score = finiteNumber(model.scores[policy.scoreField]);
         const benchmark = benchmarkValue(model, benchmarkKey);
         return model.id == null || score == null || benchmark == null
           ? []
@@ -539,7 +531,7 @@ function averageRanks(values: number[]): number[] {
 function changeCauses(
   current: ModelAtlasModel,
   previous: ModelAtlasModel | undefined,
-  policy: DimensionPolicy,
+  policy: ScorePolicy,
   rankBefore: number | null,
   rankAfter: number | null,
   scoring: ModelAtlasMetadata["scoring"],
@@ -562,7 +554,7 @@ function changeCauses(
   if (methodologyChanged) {
     causes.push({ kind: "methodology", label: "Scoring methodology changed" });
   }
-  const evidenceLabels = changedEvidenceLabels(current, previous, policy.dimension, scoring);
+  const evidenceLabels = changedEvidenceLabels(current, previous, policy.scoreKey, scoring);
   if (evidenceLabels.length > 0) {
     const visibleLabels = evidenceLabels.slice(0, 2);
     const remainder = evidenceLabels.length - visibleLabels.length;
@@ -571,8 +563,8 @@ function changeCauses(
       label: `Evidence: ${visibleLabels.join(", ")}${remainder > 0 ? ` +${remainder}` : ""}`,
     });
   }
-  const beforeSupport = visibleConfidence(previous.confidence[policy.confidenceKey]);
-  const afterSupport = visibleConfidence(current.confidence[policy.confidenceKey]);
+  const beforeSupport = visibleEvidenceSupport(previous.confidence[policy.scoreKey]);
+  const afterSupport = visibleEvidenceSupport(current.confidence[policy.scoreKey]);
   if (beforeSupport !== afterSupport) {
     causes.push({
       kind: "coverage",
@@ -607,12 +599,12 @@ function stableRankCause(
 function changedEvidenceLabels(
   current: ModelAtlasModel,
   previous: ModelAtlasModel,
-  dimension: ModelAtlasScoreDimension,
+  scoreKey: ModelAtlasScoreKey,
   scoring: ModelAtlasMetadata["scoring"],
 ): string[] {
-  if (dimension === "intelligence" || dimension === "agentic") {
+  if (scoreKey === "intelligence" || scoreKey === "agentic") {
     const keys =
-      dimension === "intelligence"
+      scoreKey === "intelligence"
         ? scoring.intelligence_benchmark_keys
         : scoring.agentic_benchmark_keys;
     return keys
@@ -622,7 +614,7 @@ function changedEvidenceLabels(
   const labels: string[] = [];
   const resourceKeys = resourceBenchmarkKeys(scoring);
   const taskFields =
-    dimension === "speed"
+    scoreKey === "speed"
       ? ["seconds", "tokens", "input_tokens", "output_tokens"]
       : ["cost", "observed_cost", "cost_price_ratio"];
   for (const key of resourceKeys) {
@@ -638,10 +630,10 @@ function changedEvidenceLabels(
       labels.push(benchmarkLabel(key));
     }
   }
-  if (dimension === "speed" && stableJson(current.speed) !== stableJson(previous.speed)) {
+  if (scoreKey === "speed" && stableJson(current.speed) !== stableJson(previous.speed)) {
     labels.push("Provider speed");
   }
-  if (dimension === "value" && stableJson(current.cost) !== stableJson(previous.cost)) {
+  if (scoreKey === "value" && stableJson(current.cost) !== stableJson(previous.cost)) {
     labels.push("Provider price");
   }
   return [...new Set(labels)];
@@ -778,11 +770,11 @@ function resultChange(input: ModelAtlasInputChange): (typeof RESULT_CHANGE_ORDER
 
 function scoreRanks(models: readonly ModelAtlasModel[]): Map<string, number> {
   const ranks = new Map<string, number>();
-  for (const policy of DIMENSIONS) {
+  for (const policy of SCORE_POLICIES) {
     const ranked = models
       .flatMap((model) => {
         const identity = modelIdentity(model);
-        const score = finiteNumber(model.scores[policy.scoreKey]);
+        const score = finiteNumber(model.scores[policy.scoreField]);
         return identity == null || score == null ? [] : [{ identity, score }];
       })
       .sort(
@@ -792,7 +784,7 @@ function scoreRanks(models: readonly ModelAtlasModel[]): Map<string, number> {
     let previousRank = 0;
     for (const [index, row] of ranked.entries()) {
       const rank = row.score === previousScore ? previousRank : index + 1;
-      ranks.set(rankIdentity(row.identity, policy.dimension), rank);
+      ranks.set(rankIdentity(row.identity, policy.scoreKey), rank);
       previousScore = row.score;
       previousRank = rank;
     }
@@ -815,7 +807,7 @@ function compareChangeImpact(left: ModelAtlasScoreMove, right: ModelAtlasScoreMo
   const rankImpact = rankMovementImpact(right) - rankMovementImpact(left);
   return rankImpact !== 0
     ? rankImpact
-    : (DIMENSION_ORDER.get(left.dimension) ?? 0) - (DIMENSION_ORDER.get(right.dimension) ?? 0);
+    : (SCORE_ORDER.get(left.dimension) ?? 0) - (SCORE_ORDER.get(right.dimension) ?? 0);
 }
 
 function rankMovementImpact(change: ModelAtlasScoreMove): number {
@@ -841,8 +833,8 @@ function modelIdentity(model: ModelAtlasModel): string | null {
   return model.id == null ? null : variantKey(model.id, model.reasoning_effort);
 }
 
-function rankIdentity(identity: string, dimension: ModelAtlasScoreDimension): string {
-  return `${identity}\u0000${dimension}`;
+function rankIdentity(identity: string, scoreKey: ModelAtlasScoreKey): string {
+  return `${identity}\u0000${scoreKey}`;
 }
 
 function benchmarkLabel(key: string): string {
@@ -854,7 +846,7 @@ function visibleScore(value: unknown): number | null {
   return number == null ? null : Math.round(number * 10) / 10;
 }
 
-function visibleConfidence(value: unknown): number | null {
+function visibleEvidenceSupport(value: unknown): number | null {
   const number = finiteNumber(value);
   return number == null ? null : Math.round(number * 100);
 }

@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 230" role="img" aria-labelledby="title desc">
-<title id="title">Weighted mean as a balance point</title>
-<desc id="desc">Four values sit on a beam; point area shows each weight. The weighted mean is the point where the beam balances, pulled toward the heavily weighted value. The ordinary mean, which gives every value the same weight, sits further left.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 356" role="img" aria-labelledby="title desc">
+<title id="title">A weighted mean is the ordinary mean after each point is counted by its weight</title>
+<desc id="desc">Two rows over one value axis. The upper row has three light points and one heavy point drawn with five times their area; its ordinary mean, which ignores the weights, sits near the light points, and its weighted mean sits closer to the heavy point. The lower row keeps the three light points and replaces the heavy point with a stack of five equal points at the same value. The ordinary mean of the lower row falls at the same value as the weighted mean of the upper row.</desc>
 <style>
 text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:15px;fill:#202724}
 .num{font-family:"SFMono-Regular","SF Mono",Menlo,Consolas,monospace;font-size:14px}
@@ -32,11 +32,15 @@ text{fill:#f2f3ed}.muted{fill-opacity:.58}
 }
 </style>
 <defs><filter id="glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="3"/></filter><marker id="tip-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="ink" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-violet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="violet" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="rose" d="M0 0L10 5L0 10Z"/></marker><marker id="tip-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="amber" d="M0 0L10 5L0 10Z"/></marker></defs>
-<text class="small muted" x="690" y="40" text-anchor="end">Point area = weight</text>
-<path class="axis" d="M90 132L690 132"/>
-<g><circle class="ink halo" cx="166" cy="126" r="8" filter="url(#glow)"/><circle class="ink ring" cx="166" cy="126" r="6"/></g><g><circle class="ink halo" cx="250" cy="126" r="8" filter="url(#glow)"/><circle class="ink ring" cx="250" cy="126" r="6"/></g><g><circle class="ink halo" cx="334" cy="126" r="8" filter="url(#glow)"/><circle class="ink ring" cx="334" cy="126" r="6"/></g><g><circle class="ink halo" cx="586" cy="118.6" r="15.416407864998739" filter="url(#glow)"/><circle class="ink ring" cx="586" cy="118.6" r="13.416407864998739"/></g>
-<path class="ink-line" d="M334 133L334 154" stroke-width="1.5" stroke-dasharray="0.5 4" stroke-linecap="round" stroke-opacity=".55"/>
-<path class="violet" d="M460 133L472 154L448 154Z"/>
-<text class="muted" x="334" y="178" text-anchor="middle">Ordinary mean</text><text x="460" y="178" text-anchor="middle">Weighted mean</text>
-<text x="390" y="218" text-anchor="middle">Value <tspan class="m"><tspan class="mi">x</tspan></tspan></text>
+<text class="small muted" x="720" y="40" text-anchor="end">Point area = weight</text>
+<text x="40" y="120">Weighted points</text><text x="40" y="272">Equal points</text><text class="small muted" x="40" y="291">One per unit of weight</text>
+<path class="axis" d="M190 122L720 122M190 274L720 274"/>
+<path class="guide" d="M536.875 144L536.875 274"/>
+<path class="ink-line" d="M676 126L676 207" stroke-width="1.5" stroke-dasharray="0.5 4" stroke-linecap="round" stroke-opacity=".55"/>
+<g><circle class="ink halo" cx="250" cy="116" r="8" filter="url(#glow)"/><circle class="ink ring" cx="250" cy="116" r="6"/></g><g><circle class="ink halo" cx="250" cy="268" r="8" filter="url(#glow)"/><circle class="ink ring" cx="250" cy="268" r="6"/></g><g><circle class="ink halo" cx="305" cy="116" r="8" filter="url(#glow)"/><circle class="ink ring" cx="305" cy="116" r="6"/></g><g><circle class="ink halo" cx="305" cy="268" r="8" filter="url(#glow)"/><circle class="ink ring" cx="305" cy="268" r="6"/></g><g><circle class="ink halo" cx="360" cy="116" r="8" filter="url(#glow)"/><circle class="ink ring" cx="360" cy="116" r="6"/></g><g><circle class="ink halo" cx="360" cy="268" r="8" filter="url(#glow)"/><circle class="ink ring" cx="360" cy="268" r="6"/></g>
+<g><circle class="ink halo" cx="676" cy="108.584" r="15.4164" filter="url(#glow)"/><circle class="ink ring" cx="676" cy="108.584" r="13.4164"/></g><g><circle class="ink halo" cx="676" cy="268" r="8" filter="url(#glow)"/><circle class="ink ring" cx="676" cy="268" r="6"/></g><g><circle class="ink halo" cx="676" cy="255" r="8" filter="url(#glow)"/><circle class="ink ring" cx="676" cy="255" r="6"/></g><g><circle class="ink halo" cx="676" cy="242" r="8" filter="url(#glow)"/><circle class="ink ring" cx="676" cy="242" r="6"/></g><g><circle class="ink halo" cx="676" cy="229" r="8" filter="url(#glow)"/><circle class="ink ring" cx="676" cy="229" r="6"/></g><g><circle class="ink halo" cx="676" cy="216" r="8" filter="url(#glow)"/><circle class="ink ring" cx="676" cy="216" r="6"/></g>
+<path class="ink-line" d="M397.75 124l11 19.5h-22Z" stroke-width="1.5" stroke-opacity=".5"/><text class="muted" x="397.75" y="168" text-anchor="middle">Ordinary mean</text>
+<path class="violet" d="M536.875 123l12 21h-24Z"/><text x="554.875" y="141">Weighted mean</text>
+<path class="violet" d="M536.875 275l12 21h-24Z"/><text x="554.875" y="293">Ordinary mean</text>
+<text x="455" y="336" text-anchor="middle">Value <tspan class="m"><tspan class="mi">x</tspan></tspan></text>
 </svg>

@@ -5,10 +5,10 @@ import { type CSSProperties, type KeyboardEvent, useEffect, useState } from "rea
 import type {
   ModelAtlasModel,
   ModelAtlasScoreChange,
-  ModelAtlasScoreDimension,
+  ModelAtlasScoreKey,
 } from "../../../src/model-atlas/stats/types";
 import { providerBrandColor } from "../shared/provider-theme";
-import { scoreColumnsByDimension } from "../table/Columns";
+import { scoreColumnsByKey } from "../table/Columns";
 import { formatScore } from "../table/format";
 import {
   changeEntry,
@@ -30,22 +30,19 @@ type Updates = readonly [ModelAtlasScoreChange, ...ModelAtlasScoreChange[]];
 
 type Point = { x: number; value: number };
 type Trail = {
-  dimension: ModelAtlasScoreDimension;
+  scoreKey: ModelAtlasScoreKey;
   current: number | null;
   drift: Point[][];
   moves: { x: number; before: number | null; after: number; direction: MoveDirection }[];
   values: number[];
 };
 
-const DIMENSIONS = [
+const SCORE_FIELDS = [
   ["intelligence", "intelligence_score"],
   ["agentic", "agentic_score"],
   ["speed", "speed_score"],
   ["value", "value_score"],
-] as const satisfies readonly (readonly [
-  ModelAtlasScoreDimension,
-  keyof ModelAtlasModel["scores"],
-])[];
+] as const satisfies readonly (readonly [ModelAtlasScoreKey, keyof ModelAtlasModel["scores"]])[];
 // Every trail shares one vertical scale so a row's rise reads against the others; a quiet history still spans this many points.
 const MIN_TRAIL_SPAN = 4;
 
@@ -192,8 +189,8 @@ function Trails({
   const [first, ...later] = updates;
   const last = later.at(-1) ?? first;
   const x = (index: number) => ((index + 0.5) / updates.length) * 100;
-  const trails = DIMENSIONS.map(([dimension, scoreKey]) =>
-    trailOf(dimension, model.scores[scoreKey], updates, x),
+  const trails = SCORE_FIELDS.map(([scoreKey, scoreField]) =>
+    trailOf(scoreKey, model.scores[scoreField], updates, x),
   );
   const span =
     Math.max(
@@ -222,10 +219,8 @@ function Trails({
         const center = (Math.max(...values) + Math.min(...values)) / 2;
         const y = (value: number) => 50 - ((value - center) / span) * 100;
         return (
-          <div className={styles.trailRow} key={trail.dimension}>
-            <span className={styles.trailLabel}>
-              {scoreColumnsByDimension[trail.dimension].name}
-            </span>
+          <div className={styles.trailRow} key={trail.scoreKey}>
+            <span className={styles.trailLabel}>{scoreColumnsByKey[trail.scoreKey].name}</span>
             <span className={styles.trail} aria-hidden="true">
               <svg viewBox="0 0 100 100" preserveAspectRatio="none">
                 {trail.drift.map((points, index) => (
@@ -305,13 +300,13 @@ function Trails({
  * A score no update moved is a flat line at its current value.
  */
 function trailOf(
-  dimension: ModelAtlasScoreDimension,
+  scoreKey: ModelAtlasScoreKey,
   current: number | null,
   updates: Updates,
   x: (index: number) => number,
 ): Trail {
   const moves = updates.flatMap((update, index) => {
-    const move = changeScores(update).find((score) => score.dimension === dimension);
+    const move = changeScores(update).find((scoreMove) => scoreMove.dimension === scoreKey);
     return move == null
       ? []
       : [
@@ -332,7 +327,7 @@ function trailOf(
   }
   if (current != null) drift.push([from ?? { x: 0, value: current }, { x: 100, value: current }]);
   return {
-    dimension,
+    scoreKey,
     current,
     drift,
     moves,

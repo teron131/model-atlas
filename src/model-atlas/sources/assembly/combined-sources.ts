@@ -1,24 +1,20 @@
-/** Fuse declared benchmark sources into derived observations for both live assembly and restored payloads, leaving raw evidence unchanged. */
+/** Combine declared benchmark sources into derived observations for both live assembly and restored payloads, leaving raw evidence unchanged. */
 
 import type { BenchmarkObservationRow } from "../../benchmarks/observation";
 import { BENCHMARK_RESOURCE_SOURCE_LABELS } from "../../benchmarks/resource-sources";
 import { withClaudeFamily } from "../../identity/claude";
 import { parseModelEffort } from "../../identity/normalization";
-import { type AleBenchSourceRow, fuseAleBenchRows } from "../ale-bench/leaderboard";
+import { type AleBenchSourceRow, combineAleBenchRows } from "../ale-bench/leaderboard";
 import type { ArtificialAnalysisBenchmarkResourceRow } from "../artificial-analysis/benchmark-resources";
 import {
   TERMINAL_BENCH_LEADERBOARD_URL,
   type TerminalBenchModelHarnessRow,
 } from "../terminal-bench/leaderboard";
 import { mergeWeirdMlRows } from "../weirdml";
-import {
-  crosswalkBenchmarkSources,
-  type CrosswalkObservation,
-  crosswalkThreeBenchmarkSources,
-} from "./crosswalk";
+import { crosswalkBenchmarkSources, type CrosswalkObservation } from "./crosswalk";
 
-/** Raw source arrays remain unchanged; only these derived observations enter fused matching and collapsed display. */
-export function fusedBenchmarkObservations({
+/** Only these derived observations enter combined matching and collapsed display. */
+export function combinedBenchmarkObservations({
   terminalBenchRows: official,
   artificialAnalysisBenchmarkResourceRows: artificialAnalysisRows,
   terminalBenchScienceRows: science,
@@ -67,50 +63,38 @@ export function fusedBenchmarkObservations({
   }));
   const officialScienceRows = scienceRows.filter((row) => row.metadata.source_series !== "vals");
   const valsScienceRows = scienceRows.filter((row) => row.metadata.source_series === "vals");
-  // Retention can combine observations from separate fetches, so reconcile the complete evidence before fusion.
+  // Retention can merge observations from separate fetches, so reconcile the complete evidence before the crosswalk.
   const weirdRows = mergeWeirdMlRows(
     weird.filter((row) => row.metadata.source_series === "creator"),
     weird.filter((row) => row.metadata.source_series === "epoch"),
   );
   return {
-    ale_bench: fuseAleBenchRows(ale),
+    ale_bench: combineAleBenchRows(ale),
     weirdml: crosswalkBenchmarkSources(
-      weirdRows.filter(
-        (row) =>
-          row.metadata.source_series === "creator" && row.metadata.assignment_eligible !== false,
-      ),
-      weirdRows.filter(
-        (row) =>
-          row.metadata.source_series === "epoch" && row.metadata.assignment_eligible !== false,
-      ),
-      { sourceLabels: { a: "Creator", b: "Epoch" } },
+      [
+        weirdRows.filter((row) => row.metadata.source_series === "creator"),
+        weirdRows.filter((row) => row.metadata.source_series === "epoch"),
+      ],
+      { sourceLabels: ["Creator", "Epoch"] },
     ),
-    gdp_pdf: crosswalkBenchmarkSources(gdpPdf, artificialAnalysisObservations("gdp_pdf"), {
-      sourceLabels: { a: "Surge", b: "Artificial Analysis" },
+    gdp_pdf: crosswalkBenchmarkSources([gdpPdf, artificialAnalysisObservations("gdp_pdf")], {
+      sourceLabels: ["Surge", "Artificial Analysis"],
     }),
     terminal_bench: crosswalkBenchmarkSources(
-      officialRows,
-      artificialAnalysisObservations("terminal_bench"),
+      [officialRows, artificialAnalysisObservations("terminal_bench")],
       {
-        sourceLabels: {
-          a: BENCHMARK_RESOURCE_SOURCE_LABELS.terminal_bench.source_a,
-          b: BENCHMARK_RESOURCE_SOURCE_LABELS.terminal_bench.source_b,
-        },
+        sourceLabels: Object.values(BENCHMARK_RESOURCE_SOURCE_LABELS.terminal_bench),
         // The official board is the publisher's own, so it scores alone while Artificial Analysis has no rows on its version.
-        aAloneWithoutB: true,
+        firstAloneWithoutOthers: true,
       },
     ),
-    terminal_bench_science: crosswalkThreeBenchmarkSources(
-      officialScienceRows,
-      valsScienceRows,
-      artificialAnalysisObservations("terminal_bench_science"),
-      {
-        sourceLabels: {
-          a: BENCHMARK_RESOURCE_SOURCE_LABELS.terminal_bench_science.source_a,
-          b: BENCHMARK_RESOURCE_SOURCE_LABELS.terminal_bench_science.source_b,
-          c: BENCHMARK_RESOURCE_SOURCE_LABELS.terminal_bench_science.source_c,
-        },
-      },
+    terminal_bench_science: crosswalkBenchmarkSources(
+      [
+        officialScienceRows,
+        valsScienceRows,
+        artificialAnalysisObservations("terminal_bench_science"),
+      ],
+      { sourceLabels: Object.values(BENCHMARK_RESOURCE_SOURCE_LABELS.terminal_bench_science) },
     ),
   };
 

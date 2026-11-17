@@ -1,6 +1,6 @@
 /** Entry for source assembly, which turns either a live fetch of every bulk source or a restored checkpoint snapshot into the normalized lookups matching and scoring read. */
 
-export { fusedBenchmarkObservations } from "./fusion";
+export { combinedBenchmarkObservations } from "./combined-sources";
 export { fetchSourceData, sourceDataFromSnapshots } from "./load";
 export type {
   ArtificialAnalysisModel,

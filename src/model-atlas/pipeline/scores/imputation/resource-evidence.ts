@@ -6,7 +6,6 @@ import { canonicalVariantKey } from "../../../identity/normalization";
 import { positiveFiniteNumber } from "../../../math-utils";
 import type { ModelAtlasCandidate } from "../../model-types";
 import {
-  benchmarkFusionResourceEstimate,
   benchmarkTaskMetrics,
   directBenchmarkTokens,
   effectiveTaskSeconds,
@@ -62,17 +61,12 @@ export function directTaskResource(
     : effectiveTaskSeconds(model, metrics);
 }
 
-/** Scoring-only: a benchmark fusion estimate wins over effort-ratio imputation, and the variant key keeps reasoning variants apart after model projection. */
+/** The variant key keeps reasoning variants apart after model projection. */
 export function imputedTaskResource(
   preparation: EffortResourceImputation,
-  model: Pick<ModelAtlasCandidate, "id" | "name" | "reasoning_effort"> &
-    Partial<Pick<ModelAtlasCandidate, "scoring_sources" | "task_metrics" | "speed">>,
+  model: Pick<ModelAtlasCandidate, "id" | "name" | "reasoning_effort">,
   key: string,
   kind: TaskResourceKind,
 ): ImputedTaskResource | null {
-  return (
-    benchmarkFusionResourceEstimate(model, key, kind) ??
-    preparation.byVariant.get(canonicalVariantKey(model))?.get(key)?.[kind] ??
-    null
-  );
+  return preparation.byVariant.get(canonicalVariantKey(model))?.get(key)?.[kind] ?? null;
 }

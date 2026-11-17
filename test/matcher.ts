@@ -1191,7 +1191,7 @@ function modelStatsSourceData(
   }
 
   return {
-    fusedBenchmarks: {},
+    combinedBenchmarks: {},
     artificialAnalysis: {
       rows: artificialAnalysisRows,
       byId: artificialAnalysisById,

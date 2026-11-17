@@ -8,7 +8,9 @@ import matching from "../../docs/matching.md";
 import imputation from "../../docs/methodology/imputation.md";
 import intelligenceAgentic from "../../docs/methodology/intelligence-agentic.md";
 import leaderboardRules from "../../docs/methodology/leaderboard-rules.md";
+import operations from "../../docs/methodology/operations.md";
 import methodologyOverview from "../../docs/methodology/overview.md";
+import sources from "../../docs/methodology/sources.md";
 import speedValue from "../../docs/methodology/speed-value.md";
 import standards from "../../docs/standards.md";
 import timelineCalculation from "../../docs/timeline/calculation.md";
@@ -45,6 +47,8 @@ const DOCUMENT_CONTENT = {
   imputation,
   "speed-value": speedValue,
   "leaderboard-rules": leaderboardRules,
+  operations,
+  sources,
 };
 
 const documentTitles = Object.fromEntries(

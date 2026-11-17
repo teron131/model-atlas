@@ -3,7 +3,7 @@
 import type { BenchmarkGroup } from "../../../src/model-atlas/benchmarks/factory";
 import {
   BENCHMARK_CATALOG,
-  benchmarkDimensionWeight,
+  benchmarkAllocation,
   type BenchmarkMetricModel,
   benchmarkValue,
 } from "../../../src/model-atlas/benchmarks/registry";
@@ -19,6 +19,7 @@ import type {
   ModelAtlasBenchmarkUpdateEntry,
   ModelAtlasMetadata,
   ModelAtlasModel,
+  ModelAtlasScoreKey,
 } from "../../../src/model-atlas/stats/types";
 import { benchmarkTooltips } from "../shared/benchmark-display";
 import { providerChartColor } from "../shared/provider-theme";
@@ -36,11 +37,9 @@ const limitedEvidenceRow = [
   "The score retains 85% at low coverage, rising to 100% with sufficient support.",
 ] as const;
 
-type ScoreKey = "intelligence" | "agentic" | "speed" | "value";
-
 // Each score header reads its weights from the payload tooltip's weight groups and swaps in this body and these interpretation rows, so the payload stays the authority for every weight.
 const scoreExplanations: Record<
-  ScoreKey,
+  ModelAtlasScoreKey,
   { body: string; rows: readonly ModelAtlasColumnTooltipRow[] }
 > = {
   intelligence: {
@@ -253,7 +252,7 @@ const staticTableColumnTooltips = {
       ["Provider weighting", "estimated OpenRouter token share"],
     ],
   },
-  confidence: EVIDENCE_SUPPORT_TOOLTIP,
+  evidenceSupport: EVIDENCE_SUPPORT_TOOLTIP,
   change: {
     title: "Latest material change",
     body: "The latest update that materially moved a model's score, evidence support, or rank among continuing models, with the date it landed. The value shows the largest move; open it for every score that moved and the model's own results, task costs, prices, and speeds that changed. New entrants do not cascade rank changes onto other models, but gaining or losing first place still counts.",
@@ -342,7 +341,7 @@ export function tableColumnTooltip(
   };
 }
 
-function isScoreKey(key: TableColumnKey): key is ScoreKey {
+function isScoreKey(key: TableColumnKey): key is ModelAtlasScoreKey {
   return key in scoreExplanations;
 }
 
@@ -359,7 +358,7 @@ const PERCENT = /^(\d+(?:\.\d+)?)%$/;
 
 /** Read a score's payload weight groups into numbers: one group whose members weigh differently splits into tiers of equal weight, while several groups keep their own titles; groups without shares are listed apart. */
 function scoreWeights(
-  dimension: ScoreKey,
+  score: ModelAtlasScoreKey,
   payloadGroups: readonly ModelAtlasColumnTooltipNestedSection[],
 ): ScoreWeights {
   const members = (group: ModelAtlasColumnTooltipNestedSection) =>
@@ -378,7 +377,7 @@ function scoreWeights(
   const total = (group: ScoreWeightGroup) => group.items.reduce((sum, item) => sum + item.share, 0);
   const only = weighted.length === 1 ? weighted[0]! : null;
   return {
-    dimension,
+    score,
     caption: only?.title ?? "Inputs",
     groups:
       only == null
@@ -438,7 +437,7 @@ export type DashboardColumnTooltip = ModelAtlasColumnTooltip & {
 
 /** A score header's weights, which the dashboard draws in place of the payload's weight groups. */
 export type ScoreWeights = {
-  dimension: ScoreKey;
+  score: ModelAtlasScoreKey;
   /** What the shares divide: the one weighted payload group's title, such as "Frontier benchmarks", or "Inputs" when several groups split the score. */
   caption: string;
   /** Heaviest first: tiers of equal weight when one payload group's members weigh differently, otherwise the payload's groups by their total share. */
@@ -496,8 +495,8 @@ function benchmarkTooltip(
         scoring == null || entry == null
           ? null
           : {
-              intelligence: dimensionWeight(key, "intelligence", scoring),
-              agentic: dimensionWeight(key, "agentic", scoring),
+              intelligence: capabilityAllocation(key, "intelligence", scoring),
+              agentic: capabilityAllocation(key, "agentic", scoring),
             },
       coverage: { ...benchmarkCoverage(models, key), unit },
       leaders: benchmarkLeaders(column, healthEntry, models),
@@ -567,13 +566,11 @@ function benchmarkCoverage(models: readonly BenchmarkMetricModel[], key: string)
   };
 }
 
-function dimensionWeight(
+function capabilityAllocation(
   key: string,
-  dimension: "intelligence" | "agentic",
+  capability: "intelligence" | "agentic",
   scoring: ModelAtlasMetadata["scoring"],
 ): number {
-  const keys = scoring[`${dimension}_benchmark_keys`];
-  return keys.includes(key)
-    ? benchmarkDimensionWeight(key, dimension, scoring.benchmark_portfolio)
-    : 0;
+  const keys = scoring[`${capability}_benchmark_keys`];
+  return keys.includes(key) ? benchmarkAllocation(key, capability, scoring.benchmark_portfolio) : 0;
 }

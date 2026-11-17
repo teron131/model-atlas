@@ -16,12 +16,12 @@ Separate benchmark merit, source parsing, and scoring policy. Once implementatio
 Find the current files by role before broad edits:
 
 - Benchmark standards, portfolio/source policy, methodology, and matching docs: inclusion rules, selected benchmark decisions, scoring intent, and model identity policy.
-- Benchmark config: selected benchmark keys, baseline/frontier groupings, dimension portions, and score weights.
+- Benchmark config: selected benchmark keys, each one's `frontier` or `baseline` group, and its Intelligence/Agentic allocation.
 - Scraper modules: existing leaderboard/API/PDF scrapers and their focused tests.
 - Source-data and cache/database loading: where raw source rows become lookup maps or persisted snapshots.
 - Matching and scoring modules: where benchmark rows attach to models, are imputed, and enter intelligence/agentic scores. The shared model contract is `src/model-atlas/pipeline/model-types.ts`; `stats/types.ts` re-exports it. Source combination and its private additive fitter belong together in `src/model-atlas/sources/assembly/crosswalk.ts`.
 - Database schema, writers, and payload readers: where raw rows, summarized rows, processed models, and public payloads are stored.
-- Dashboard labels, tooltips, and benchmark display surfaces: where new fields become visible to users. Public JSON projection and compact variant selection live in `app/api/public-json.ts` and `src/model-atlas/stats/model-variants.ts`.
+- Dashboard labels, tooltips, and benchmark display surfaces: where new fields become visible to users. Public JSON projection and the choice of the variant a Collapsed row shows live in `app/api/public-json.ts` and `src/model-atlas/stats/model-variants.ts`.
 - Public exports and tests: package surface plus focused scraper/matcher/scoring/payload tests.
 - Refresh and publication scripts: derive the current local and production workflow from `package.json` and the database boundary rather than relying on remembered commands.
 
@@ -70,12 +70,13 @@ After field selection:
 - Preserve raw leaderboard rows separately from summarized model rows.
 - Keep benchmark-specific metadata such as split, domain, harness, effort, tie, and source provenance.
 - Preserve multiple reasoning-effort or budget rows when available; higher-effort regressions are review signals, not parser noise.
-- Record the version the source publishes on every row, wherever the source shows it, page titles included: `metadata.benchmark_version` for benchmark observations, or a version column for a runtime table, declared through the `versions` option of `snapshotSourceRows`. Benchmark observations get the version rule automatically, and a source that builds its own snapshot calls `withoutSupersededVersions` directly, as Vals Index does. When one source table holds several benchmarks, also give `seriesOf`, as Artificial Analysis's evaluation pages do, so each benchmark's version is compared on its own. Do not pin the version: the shared refresh adopts a new version and replaces the old rows, and a version fixed by the URL simply never changes. Pin only when a fused source must stay on another source's suite.
+- Record the version the source publishes on every row, wherever the source shows it, page titles included: `metadata.benchmark_version` for benchmark observations, or a version column for a runtime table, declared through the `versions` option of `snapshotSourceRows`. Benchmark observations get the version rule automatically, and a source that builds its own snapshot calls `withoutSupersededVersions` directly, as Vals Index does. When one source table holds several benchmarks, also give `seriesOf`, as Artificial Analysis's evaluation pages do, so each benchmark's version is compared on its own. Do not pin the version: the shared refresh adopts a new version and replaces the old rows, and a version fixed by the URL simply never changes. Pin only when a source combined with another must stay on that source's suite.
 - Guard structure rather than version: a payload whose task key, component basket, or subset layout changed should yield no rows, so the cache remains until a decision is made. Let request failures throw rather than catching them into an empty result; the shared snapshot step keeps the cached rows.
 - For per-run versions, select the newest major.minor version with Epoch's `latestTaskVersion: "minor"`. Use `"major"` only when the publisher's own leaderboard pools minor versions it scores comparably, as Chess Puzzles does. If the source publishes no version and can rerun silently, give the rerun an Atlas-declared version label, as Surge's `version` does.
 - Record a standard error the source publishes on each row as `metadata.score_standard_error`, on the same scale as the value; Vals publishes percentages, so convert with `percentToUnitScore`. Never derive one the source does not publish: benchmark health averages it across the top five only when every leader has one.
 - Choose the row merge deliberately. The default keeps populated cached values, which freezes a source that revises published results; such a source needs `mergeRow` to return the fetched row, as Vals does.
 - When a defect shows in one source, check whether a shared step causes it before fixing that source alone. Vals result corrections froze because of the shared merge, and the same freeze affected every versioned source until the version rule moved into the shared snapshot policy.
+- Name the benchmark without a version number in its key, source files, tables, and display name; the version is the row data recorded above, and the dashboard and docs show it from there.
 - Match model names conservatively: exact first, narrow aliases second, no broad fuzzy matching without review.
 - Keep unmatched rows inspectable.
 - Add focused fixture tests that cover the weird cases found in the real leaderboard.
@@ -88,13 +89,13 @@ After the scraper works:
 - Show the fetched row shape and representative parsed output.
 - Apply settled scoring decisions directly; discuss only unresolved choices that would change Model Atlas scores.
 - Keep parsing truth separate from scoring policy.
-- Apply the accepted class (`baseline` or `frontier`) and Intelligence/Agentic split. The two dimension portions must sum to 100%. Follow `docs/benchmarks.md`: frontier task results contribute directly to capability scores, while baseline results remain visible without direct capability contributions; aggregate indexes follow their own eligibility and breadth policy.
+- Apply the accepted classification (`frontier` or `baseline`) and Intelligence/Agentic allocation. The two shares must sum to 100%. Follow `docs/benchmarks.md`: frontier benchmark results carry weight in capability scores, while baseline results stay visible and carry none; aggregate indexes follow their own eligibility and represented-breadth rules.
 - Read aggregate-index represented-breadth rules from the current catalog and `src/model-atlas/benchmarks/index-policy.ts`.
-- Default coding benchmarks primarily to Agentic. Add substantial Intelligence loading only when algorithmic, mathematical, scientific, or research reasoning materially determines success.
+- Default coding benchmarks primarily to Agentic. Add a substantial Intelligence allocation only when algorithmic, mathematical, scientific, or research reasoning materially determines success.
 - Check effort sensitivity before scoring. If the same model regresses at higher reasoning effort, explain whether this looks like real overthinking, timeout pressure, brittle formatting, harness mismatch, or another benchmark artifact.
-- Explain a benchmark's impact through its class and dimension loadings.
+- Explain a benchmark's impact through whether it is frontier or baseline and through its allocation.
 - Decide whether any non-quality data contributes to speed, value, bonus-only display, or raw display only.
-- Preserve extra dimensions even if the initial scoring uses only one summary.
+- Preserve extra breakdowns such as domains or splits even if the initial scoring uses only one summary.
 
 Do not bury bonus, median, max, domain-lead, effort, or harness aggregation choices inside parser code.
 
@@ -104,6 +105,7 @@ After scoring policy is agreed:
 
 - Wire the benchmark through source data, model matching, score inputs, database schema/writers, payload reading, public exports, dashboard labels, and tooltips as needed.
 - If the rows arrive through a new kind of input, one that is not a runtime, a benchmark observation, or an Artificial Analysis evaluation page, add it to `benchmarkRawSources` in `src/model-atlas/sources/registry.ts`, so benchmark health can report when that source fails to refresh.
+- A renamed or removed benchmark key also lives in stored state: cached rows, the previous payload, and the Intelligence Index's saved state. Migrate that state once as part of the change, and leave no code that names the old key.
 - When moving to a successor published at a new address, update the catalog address and any version the catalog declares together; docs and tooltips take the observed version from the snapshot through `:version[key]` markers and `metadata.benchmark_versions`.
 - Add or update tests for scraper, matching, scoring, and payload behavior.
 - Run focused tests first, then checks scaled to the touched surface: `pnpm run typecheck` for any TypeScript change, the full test suite for shared snapshot policy or payload contracts, and `pnpm run build` for docs or UI.

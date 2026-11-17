@@ -103,7 +103,7 @@ const observationLookupsByPayload = new WeakMap<BenchmarkObservationsByKey, Obse
 
 /**
  * One row per model from its strongest variant, display-excluded families dropped; the effort label is kept.
- * A benchmark's fused cross-effort observation, when the payload has one, replaces the representative's value.
+ * A benchmark's combined cross-effort observation, when the payload has one, replaces the representative's value.
  * Otherwise a missing result is filled from the highest-effort source observation, with the matching variant's dates and task metrics, or failing that from the highest-effort variant that has one.
  */
 export function compactModelVariants(
@@ -134,10 +134,10 @@ export function compactModelVariants(
 
     for (const key of BENCHMARK_KEYS) {
       const lookups = observationLookups.get(key)!;
-      const fused = findBenchmarkObservations(candidateKeys, lookups.collapsed)[0];
-      if (fused != null) {
-        benchmarks[key] = fused.canonical_value;
-        const metadata = fused.metadata!;
+      const combined = findBenchmarkObservations(candidateKeys, lookups.collapsed)[0];
+      if (combined != null) {
+        benchmarks[key] = combined.canonical_value;
+        const metadata = combined.metadata!;
         taskMetrics[key] = {
           cost: typeof metadata.cost === "number" ? metadata.cost : null,
           seconds: typeof metadata.seconds_per_task === "number" ? metadata.seconds_per_task : null,
@@ -146,9 +146,9 @@ export function compactModelVariants(
             typeof metadata.output_tokens_per_task === "number"
               ? metadata.output_tokens_per_task
               : null,
-          observed_at: fused.observed_at,
+          observed_at: combined.observed_at,
         };
-        if (fused.observed_at != null) benchmarkDates[key] = fused.observed_at;
+        if (combined.observed_at != null) benchmarkDates[key] = combined.observed_at;
         hasAddedBenchmarks = true;
         continue;
       }

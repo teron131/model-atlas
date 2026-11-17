@@ -1,4 +1,4 @@
-/** Final scoring adds Speed and Value to the quality scores from provider telemetry and quality-adjusted task resources, scaled by coverage, with each score's evidence share as its confidence. */
+/** Final scoring adds Speed and Value to the quality scores from provider telemetry and quality-adjusted task resources, scaled by coverage, with each score's evidence share as its evidence support. */
 
 import { benchmarkValue } from "../../benchmarks/registry";
 import { RESOURCE_SCORE_BUCKET_WEIGHTS, type ScoringConfig } from "../../config/stage";
@@ -172,7 +172,7 @@ function evidenceShare(
   return score == null ? null : Math.min(1, finiteSignalWeight(signals) / totalWeight);
 }
 
-/** Every effort of a model takes the coverage of its highest-effort variant, which carries the model-level results. */
+/** Every effort of a base model takes the coverage of its source-default variant, which carries the model-level results; a population without that variant falls back to its highest-effort variant. */
 function defaultVariantCoverageMultipliers(
   models: readonly ResourceScoringModel[],
   signalsByModel: readonly WeightedSignal[][],
@@ -185,12 +185,14 @@ function defaultVariantCoverageMultipliers(
   }
   const multipliers = models.map(() => 0);
   for (const indexes of indexesByModel.values()) {
-    const defaultIndex = indexes.reduce((selectedIndex, index) =>
-      reasoningEffortRank(models[index]?.reasoning_effort) >
-      reasoningEffortRank(models[selectedIndex]?.reasoning_effort)
-        ? index
-        : selectedIndex,
-    );
+    const defaultIndex =
+      indexes.find((index) => models[index]?.source_default) ??
+      indexes.reduce((selectedIndex, index) =>
+        reasoningEffortRank(models[index]?.reasoning_effort) >
+        reasoningEffortRank(models[selectedIndex]?.reasoning_effort)
+          ? index
+          : selectedIndex,
+      );
     const multiplier = coverageMultiplier(
       finiteSignalWeight(signalsByModel[defaultIndex] ?? []),
       totalWeight,
@@ -202,7 +204,7 @@ function defaultVariantCoverageMultipliers(
   return multipliers;
 }
 
-function scoreResourceDimension(
+function resourceScores(
   models: readonly ResourceScoringModel[],
   nonBenchmarkScores: readonly (readonly (number | null)[])[],
   benchmarkEvidence: WeightedResourceEfficiencyEvidence,
@@ -316,12 +318,12 @@ export function attachFinalScores(
     scoringPreparation,
     resourceImputation,
   );
-  const speed = scoreResourceDimension(
+  const speed = resourceScores(
     models,
     inputs.providerSpeedScores,
     inputs.taskTimeComponentEvidence,
   );
-  const value = scoreResourceDimension(
+  const value = resourceScores(
     models,
     inputs.priceComponentScores,
     inputs.taskCostComponentEvidence,

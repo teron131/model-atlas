@@ -201,8 +201,8 @@ export function summarizeAleBenchSourceDefaultRows(
     });
 }
 
-/** Fuse Performance in its native units, floored at zero instead of the default clamp to [0, 1]. */
-export function fuseAleBenchRows(rows: readonly AleBenchSourceRow[]): CrosswalkObservation[] {
+/** Combine Performance in its native units, floored at zero instead of the default clamp to [0, 1]. */
+export function combineAleBenchRows(rows: readonly AleBenchSourceRow[]): CrosswalkObservation[] {
   const sakanaObservations = summarizeAleBenchSourceDefaultRows(rows).map((row) => ({
     benchmark_key: "ale_bench",
     source_url: ALE_BENCH_LEADERBOARD_URL,
@@ -242,10 +242,10 @@ export function fuseAleBenchRows(rows: readonly AleBenchSourceRow[]): CrosswalkO
       },
     ];
   });
-  return crosswalkBenchmarkSources(sakanaObservations, epochObservations, {
+  return crosswalkBenchmarkSources([sakanaObservations, epochObservations], {
     maximumScoreError: MAX_CROSSWALK_MEDIAN_ABSOLUTE_ERROR,
     normalizeScore: (score) => Math.max(0, score),
-    sourceLabels: { a: "Sakana AI", b: "Epoch" },
+    sourceLabels: ["Sakana AI", "Epoch"],
   });
 }
 

@@ -244,7 +244,7 @@ export type SortKey =
   | TaskMetricColumn["key"]
   | BenchmarkMetricColumn["key"];
 
-export type TableColumnKey = SortKey | "confidence" | "change";
+export type TableColumnKey = SortKey | "evidenceSupport" | "change";
 
 const taskMetricColumnsByBenchmark = new Map<string, TaskMetricColumn[]>([
   ["aa_intelligence_index", [...artificialAnalysisTaskMetricColumns]],
@@ -278,7 +278,7 @@ type TableColumnGroup =
   | "resources"
   | BenchmarkDisplayGroup
   | "profile"
-  | "confidence"
+  | "evidenceSupport"
   | "change";
 
 const scoreColumnKeys = new Set<TableColumnKey>(["intelligence", "agentic", "speed", "value"]);
@@ -333,7 +333,8 @@ export function tableColumnRuns(visibleColumnKeys: readonly TableColumnKey[]): T
   visibleColumnKeys.forEach((key, index) => {
     const own = tableColumnGroup(key);
     if (own === "fixed") return;
-    const group = own === "profile" || own === "confidence" || own === "change" ? "details" : own;
+    const group =
+      own === "profile" || own === "evidenceSupport" || own === "change" ? "details" : own;
     let run = runs.at(-1);
     if (run?.group !== group) {
       run = { group, first: index, benchmarkKeys: new Set() };
@@ -377,8 +378,8 @@ function tableColumnGroup(key: TableColumnKey): TableColumnGroup {
   if (profileColumnKeys.has(key)) {
     return "profile";
   }
-  if (key === "confidence") {
-    return "confidence";
+  if (key === "evidenceSupport") {
+    return "evidenceSupport";
   }
   if (key === "change") {
     return "change";

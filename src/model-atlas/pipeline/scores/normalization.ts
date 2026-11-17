@@ -35,7 +35,7 @@ export function evidenceRetentionFactor(
     full <= floor
   ) {
     throw new RangeError(
-      `Evidence confidence requires finite mass and 0 <= floor < full, received ${supportedWeight}, ${floor}, ${full}`,
+      `Evidence support requires finite mass and 0 <= floor < full, received ${supportedWeight}, ${floor}, ${full}`,
     );
   }
   if (supportedWeight >= full) {

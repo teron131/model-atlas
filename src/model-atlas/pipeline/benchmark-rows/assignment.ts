@@ -37,7 +37,7 @@ type BenchmarkObservationLookups = {
 };
 
 export type BenchmarkAssignmentLookups = BenchmarkObservationLookups & {
-  fusedBenchmarks?: ModelAtlasSourceData["fusedBenchmarks"];
+  combinedBenchmarks?: ModelAtlasSourceData["combinedBenchmarks"];
   artificialAnalysisBenchmarkResources: Pick<
     ModelAtlasSourceData["artificialAnalysisBenchmarkResources"],
     "observationLookup" | "sourceDefaultLookup"
@@ -413,7 +413,7 @@ export function buildObservationBenchmarks(
     resolveSourceRow: (rowsByModelName, candidateNames = modelNameCandidates) =>
       findEffortSourceRow(candidateNames, targetReasoningEffort, rowsByModelName),
   });
-  assignFusedBenchmarks(assignedBenchmarks, lookups, modelNameCandidates, targetEffort);
+  assignCombinedBenchmarks(assignedBenchmarks, lookups, modelNameCandidates, targetEffort);
   return assignedBenchmarks;
 }
 
@@ -464,7 +464,7 @@ export function buildDefaultVariantBenchmarks(
     ),
   );
 
-  assignFusedBenchmarks(
+  assignCombinedBenchmarks(
     assignedBenchmarks,
     lookups,
     modelNameCandidates,
@@ -521,21 +521,22 @@ export function assignBenchmarksToVariants(
     );
     return {
       ...row,
+      source_default: true,
       ...(Object.keys(benchmarks).length === 0 ? {} : { benchmarks }),
       ...(Object.keys(scoringSources).length === 0 ? {} : { scoring_sources: scoringSources }),
     };
   });
 }
 
-/** Fusion replaces the selected multi-source benchmark inputs; raw observations remain in their source stores. */
-function assignFusedBenchmarks(
+/** Combining sources replaces the selected multi-source benchmark inputs; raw observations remain in their source stores. */
+function assignCombinedBenchmarks(
   assigned: AssignedBenchmarks,
   lookups: BenchmarkAssignmentLookups,
   names: unknown[],
   effort: string | null,
 ): void {
-  if (lookups.fusedBenchmarks == null) return;
-  for (const [key, source] of Object.entries(lookups.fusedBenchmarks)) {
+  if (lookups.combinedBenchmarks == null) return;
+  for (const [key, source] of Object.entries(lookups.combinedBenchmarks)) {
     const row = findBenchmarkObservation(names, effort, source.rowsByModelName);
     delete assigned.benchmarks[key];
     delete assigned.scoringSources[key];

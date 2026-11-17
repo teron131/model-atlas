@@ -4,8 +4,6 @@
 
 Model Atlas turns benchmark results, token use, prices, and runtimes into four separate 0–100 scores. :score[Intelligence] and :score[Agentic] describe capability; :score[Speed] and :score[Value] describe resource efficiency, responsiveness, and affordability.
 
-**A benchmark** is an upstream evaluation with its own methodology and scoring rules. **A task** is one unit of work within a benchmark, and resources **per task** are the cost, time, or tokens for that unit, in the source’s reported task unit. **An aggregate index** combines results from several benchmarks into one published score.
-
 | Score | What it measures |
 | --- | --- |
 | **:score[Intelligence]** | Solving difficult problems using knowledge, perception, understanding, abstract reasoning, and judgment. |
@@ -13,178 +11,69 @@ Model Atlas turns benchmark results, token use, prices, and runtimes into four s
 | **:score[Speed]** | Completing work quickly at comparable quality, with fast token generation, low first-token latency, and short total response times. |
 | **:score[Value]** | Delivering comparable-quality work at lower cost, combining cost per task with token prices assessed for affordability and efficiency at comparable capability. |
 
-- **Capability can overlap.** Implementing a specification is primarily Agentic; deriving a difficult algorithm or scientific solution can also contribute to Intelligence.
+- **One benchmark can count toward both capabilities.** Its allocation splits its weight between Intelligence and Agentic according to what success on it requires. Implementing a specification is mainly Agentic, while deriving a difficult algorithm or scientific solution also counts toward Intelligence.
 - **Efficiency accounts for quality.** :score[Speed] and :score[Value] compare resource use at similar quality, so a cheaper but much less capable model does not automatically score well on :score[Value].
-- **Resource effects are limited.** :score[Agentic] includes a bounded token-efficiency adjustment. Price and latency do not affect either capability score.
-- **Community judgment is bounded.** The [Trust Me Bro and Slop Indexes](intelligence-agentic.md#trust-me-bro-and-slop-indexes) share one :score[Intelligence] correction, blending overall practical experience with judgments of visual output quality.
+- **Resources barely touch capability.** :score[Agentic] includes a bounded adjustment for token efficiency. Price and latency affect neither capability score.
+- **Community judgment is bounded.** The [Trust Me Bro and Slop Indexes](intelligence-agentic.md#trust-me-bro-and-slop-indexes) move :score[Intelligence] by a limited amount where people's experience of overall practical work and of visual output contradicts the benchmark order.
 
-## How to Read the Scores
+## Key Terms
 
-Scores are relative to the current benchmark population, so they can change when that population changes. On each benchmark, the weakest observed result maps to 0 and the strongest to 100, so equal improvements within the observed range give equal score changes. A benchmark score of 100 means the strongest observed result, not perfect task completion. A final capability score is not an accuracy percentage, and twice the score does not mean twice the capability.
-
-Capability scores use frontier benchmarks, chosen because they separate current leading models, and eligible aggregate indexes. Baseline benchmarks stay visible in the table without direct score weight, but their results can help estimate missing frontier results. The separate [Intelligence Index](../timeline/overview.md) keeps a saved scale for historical comparison and does not affect leaderboard scores or inclusion.
-
-[Relative resource amounts](speed-value.md#relative-task-resources) compare observed cost, runtime, and total tokens with benchmark medians. Lower ratios mean less resource use, regardless of achieved quality. :score[Speed] and :score[Value] compare resources at similar quality and add provider speed or token prices, so their ordering can differ from these ratios.
-
-### Collapsed and Expanded Models
+| Term | Meaning |
+| --- | --- |
+| Benchmark | An upstream evaluation with its own methodology and scoring rules. |
+| Task | One unit of work within a benchmark. Resources per task are the cost, time, or tokens for that unit, in the source's reported task unit. |
+| Aggregate index | One published score that combines several benchmarks, called its components. |
+| Frontier and baseline benchmarks | Frontier benchmarks still separate current leading models, and only they carry weight in capability scores. Baseline benchmarks stay visible in the table and can help estimate a missing frontier result. |
+| Source | One publisher's results for a benchmark. A benchmark can have several sources. |
+| Base model and variant | A base model is one released model. A variant is that model at one reasoning effort, and every variant is scored separately. |
+| Observed result and estimate | An observed result is one a source published for that exact variant. An estimate fills a gap from other observed results; the method is called imputation. |
+| Quality and resources | Quality is how well a variant did on a benchmark, its result. Resources are what the run consumed: cost, time, and tokens. |
 
 Reasoning-effort labels include `none`, `low`, `medium`, `high`, `xhigh`, and `max`. An unspecified effort is stored as `null`, which is distinct from an explicit `none`. Available settings depend on the model and source.
 
-Each reasoning-effort variant has its own scores. The collapsed leaderboard shows the variant with the **highest :score[Intelligence] score** and all of that variant's headline scores; it neither takes the mean across efforts nor picks a separate maximum for each score. Expanding a model reveals every variant. In the collapsed view, a benchmark cell the shown variant lacks can display another effort's direct result; these display fills do not change the headline scores.
+## How to Read the Scores
 
-## Calculation Overview
+Scores are relative to the models currently observed, so they can change when a new model or result arrives. On each benchmark, the weakest observed result maps to 0 and the strongest to 100, so equal improvements within the observed range give equal score changes. A benchmark score of 100 means the strongest observed result, not perfect task completion. A final capability score is not an accuracy percentage, and twice the score does not mean twice the capability.
 
-The four scores follow two paths from the same observed inputs, and each path ends by discounting thin evidence. Resource comparisons use quality as their reference: benchmark results decide which models count as similar-quality peers, and final capability scores do the same for token prices. Dashboard inclusion filters are applied after scoring, so hiding a row does not change the scale used to score the others.
+Each variant has its own four scores, and a model's scores are never averaged across its reasoning efforts into one.
 
-> [!FLOW]
->
-> 1. **Observed inputs**
->
->    Match observed benchmark results and resource measurements to the correct model and reasoning-effort variant.
->
-> 2. - **:score[Intelligence] and :score[Agentic]**
->
->      1. **Normalize each benchmark**
->
->         Observed minimum → 0, maximum → 100
->
->      2. **Adjust :score[Agentic] for token efficiency**
->
->         Up to ±15% before benchmark rescaling
->
->      3. **Combine benchmarks and indexes**
->
->         :score[Intelligence]: 20% pairwise within its frontier component; indexes read off the frontier scale
->
->      4. **Discount thin evidence**
->
->         Keep 85–100% by supported benchmark weight
->
->    - **:score[Speed] and :score[Value]**
->
->      1. **Find similar-quality peers**
->
->         Other models on each benchmark
->
->      2. **Compare with expected use**
->
->         Time and cost per task at that quality
->
->      3. **Score resource efficiency**
->
->         Weak peer support moves the score toward 50
->
->      4. **Combine components and apply coverage**
->
->         At full evidence: 70% per task, 30% provider speed or price
->
-> 3. **Dashboard inclusion and score availability**
->
->    Apply inclusion and direct-evidence checks after scoring, preserving the reference population.
+The separate [Intelligence Index](../timeline/overview.md) keeps a saved scale for historical comparison and does not affect leaderboard scores or inclusion.
 
-Benchmark, reasoning-effort, and resource coverage is uneven. **Imputation** fills supported gaps from relationships among observed results. **Imputed values help estimate scores; they never count as direct evidence.** Observations alone set reference scales and satisfy inclusion and resource-availability requirements. Validated [source crosswalks](imputation.md#source-crosswalks) differ: they combine comparable sources of one benchmark into an accepted benchmark result without assuming either source is better. [Benchmark imputation](imputation.md#benchmark-results-and-imputation) and [resource imputation](imputation.md#resource-imputation-across-reasoning-efforts) explain how estimates enter scoring and how their support is assessed.
+[Relative task resources](leaderboard-rules.md#relative-task-resources), shown in the table and the Pareto chart, are not scores. They compare the cost, runtime, and total tokens a model used with the median for the same benchmarks. Lower ratios mean less resource use, whatever quality was achieved. :score[Speed] and :score[Value] compare resources at similar quality and add provider speed or token prices, so their order can differ from these ratios.
+
+## How the Scores Are Calculated
+
+The four scores follow two paths from the same observed results, and each path ends by discounting thin evidence. On each benchmark, a model's time and cost are compared with those of models that scored similarly on it. Token prices are compared among models with similar final capability scores.
+
+![Both paths start from the same observed results and end at the inclusion rules. Benchmark results decide each model's similar-quality peers, and final capability scores decide the price reading at comparable capability.](../assets/methodology/calculation-overview.svg)
+
+For :score[Intelligence] and :score[Agentic], each benchmark is [normalized](intelligence-agentic.md#normalization) so that its observed minimum maps to 0 and its maximum to 100. :score[Agentic] benchmark scores are then [adjusted for token efficiency](intelligence-agentic.md#agentic-token-efficiency) by up to ±15% and rescaled. [Benchmarks and indexes are combined](intelligence-agentic.md#combining-benchmarks-and-aggregate-indexes), with the benchmark part of :score[Intelligence] taking 20% from how models compare on the benchmarks they share. Thin evidence is [discounted](intelligence-agentic.md#evidence-support-and-score-retention): a score keeps 85–100%, more as more benchmark weight is backed by evidence.
+
+For :score[Speed] and :score[Value], each benchmark's [similar-quality peers](speed-value.md#similar-quality-peers) are the other models that scored close to the variant on it. The variant's time and cost per task are compared with the [expected use](speed-value.md#expected-resource-use) at that quality and [scored](speed-value.md#resource-efficiency-score), with few similar-quality peers pulling the score toward 50. The inputs are then [combined](speed-value.md#combining-the-inputs) and thin evidence discounted; at full evidence, benchmark resources carry 70% and provider speed or token price 30%.
+
+[Dashboard inclusion](leaderboard-rules.md#dashboard-inclusion) and [resource score availability](leaderboard-rules.md#resource-score-availability) then decide which models are listed and which scores are shown. Inclusion is decided after scoring, so leaving a model off the dashboard does not change the benchmark scales the others are scored on. :score[Speed] and :score[Value] are scored among the models that have both capability scores.
+
+Benchmark, reasoning-effort, and resource coverage is uneven. Imputation fills supported gaps from relationships among observed results. **Estimates help calculate scores; they never count as direct evidence.** Only observed results set reference scales and satisfy the inclusion and resource score availability requirements. A validated [source crosswalk](sources.md#source-crosswalks) is not an estimate of this kind: it converts results between the sources of one benchmark so that they combine on a shared scale, and the combined result counts as an observed benchmark result. [Imputation](imputation.md#what-estimates-can-and-cannot-do) explains how each kind of estimate enters scoring and how its support is assessed.
 
 ![Imputation fills a gap from an observed result at another effort of the same model, or from the model’s other benchmarks; a gap without enough evidence stays missing.](../assets/methodology/imputation-overview.svg)
 
-## Shared Mathematical Operations
+## Reference Weight
 
-The operations below are a reference for the detailed calculations. Continue to [Intelligence and Agentic](intelligence-agentic.md) for the scoring method, and return here as needed. Each calculation states its own inputs, reference population, and weights.
+Labs report different numbers of reasoning efforts, and a model with five reported variants would otherwise count five times wherever models are compared. Every base model therefore carries a total reference weight of 1, shared equally among its variants that have the observations a calculation needs. With $n$ such variants, each has weight $1/n$, and a variant without them has none. A calculation that uses these weights is called model-balanced.
 
-### Linear Scaling and Clamping
+![One model’s reference weight, split among observed variants.](../assets/methodology/reference-balance.svg)
 
-Linear scaling places a value on a ruler from a chosen minimum to a chosen maximum: the minimum becomes 0, the maximum becomes 1, and halfway becomes 0.5. Clamping then holds values that fall outside the ruler at its nearest end. For lower bound $L$, upper bound $U>L$, and input $x$:
+Reference weights set how much each variant counts in a reference population: in medians and ranks, among similar-quality peers, in comparisons on shared benchmarks, in imputation, and in source crosswalks. They are never used to average a model's variants into one score.
 
-$$
-\operatorname{linearScale}_{L}^{U}(x)=\frac{x-L}{U-L},\qquad
-\operatorname{clamp}_{L}^{U}(x)=\min\bigl(U,\max(L,x)\bigr).
-$$
+## Where the Details Are
 
-The subscript is the lower bound and the superscript the upper bound. Scaling alone can return values below 0 or above 1; clamping to 0–1 removes them, and multiplying by 100 gives a 0–100 score. Each calculation states whether its bounds are observed values or chosen endpoints and whether it clamps. Missing inputs stay missing. When the bounds are equal, every value scales to 1, so a benchmark on which all models tie gives each of them 100.
+| Page | What it explains |
+| --- | --- |
+| [Intelligence and Agentic](intelligence-agentic.md) | Benchmark scores and weights, token efficiency, comparisons on shared benchmarks, aggregate indexes, and the discount for thin evidence. |
+| [Speed and Value](speed-value.md) | Resource use at similar quality, provider speed, token prices, and how they combine. |
+| [Imputation](imputation.md) | How gaps are estimated and what estimates may count toward. |
+| [Sources](sources.md) | How results from several sources become one result per benchmark and variant, and how version changes, withdrawn results, and updated releases are handled. |
+| [Leaderboard Rules](leaderboard-rules.md) | Which models are listed, which scores are shown, and what the table and Pareto chart present. |
+| [Shared Operations](operations.md) | The scaling, weighted means, medians, ranks, and curves the other pages reuse. |
 
-![Linear scaling with clamping to 0–1 or 0–100.](../assets/methodology/linear-mapping.svg)
-
-### Weighted Mean
-
-The weighted mean gives each value influence in proportion to its weight, so a benchmark or model counts as much as policy intends rather than as often as it appears in the data:
-
-$$
-\operatorname{weightedMean}_i(x_i;w_i)=\frac{\sum_i w_ix_i}{\sum_i w_i}.
-$$
-
-The subscript $i$ marks what the mean runs over, and the weight follows the semicolon; the operations below use the same convention. With equal weights, this is the ordinary mean: the sum of the values divided by their count.
-
-![The weighted mean is the balance point of the values, pulled toward heavier points; the ordinary mean weights every point equally.](../assets/methodology/weighted-mean.svg)
-
-Weighted means, medians, quantiles, and ranks use only finite values with positive finite weights. Missing values and zero, negative, or invalid weights are skipped; if nothing usable remains, these operations return missing rather than zero. Effective count has a separate empty-input rule below.
-
-### Weighted Median and Quantiles
-
-A weighted quantile at fraction $r$ is the value reached when the running total of weight first covers $r$ of the total weight. The weighted median is the quantile at $r=0.5$: half the weight lies at or below it. Medians resist extreme values, so they are used wherever one unusual model should not move a reference.
-
-Merge the weights of equal values, sort the distinct values as $x_1<\cdots<x_n$, and compute the share $r_i$ of total weight held by the first $i$ values:
-
-$$
-r_i=\frac{w_1+\cdots+w_i}{w_1+\cdots+w_n}.
-$$
-
-For $0<r<1$, find the first $i$ with $r_i\ge r$. If the running total lands exactly on $r$, the boundary falls between two values, so take their mean:
-
-$$
-\operatorname{weightedQuantile}(r)=
-\begin{cases}
-\dfrac{x_i+x_{i+1}}{2}, & r=r_i\text{ and }i<n,\\[6pt]
-x_i, & \text{otherwise}.
-\end{cases}
-$$
-
-![Each step rises by one value’s weight share. A line at r that crosses a rise returns that value; a line exactly on a step top runs along the flat and returns the mean of its two neighbors.](../assets/methodology/weighted-quantile-steps.svg)
-
-At $r=0$ or $r=1$, return the smallest or largest value. The weighted median is $\operatorname{weightedMedian}_i(x_i;w_i)=\operatorname{weightedQuantile}(0.5)$. The ordinary median $\operatorname{median}_i(x_i)$ uses equal weights, so an even number of values gives the mean of the two middle values. Taking the mean at an exact boundary is the convention used here; other weighted-quantile definitions exist.
-
-### Weighted Ranks
-
-A weighted rank is the reverse of a quantile: it reports what share of the weight lies below a value $x$. The two rank operations differ only in how they count weight tied at $x$. The quantile rank counts half of it, placing tied values at the middle of their shared range:
-
-$$
-\operatorname{weightedQuantileRank}(x)=100\frac{\sum_{x_i<x}w_i+\tfrac12\sum_{x_i=x}w_i}{\sum_iw_i}.
-$$
-
-The percentile rank counts all of it:
-
-$$
-\operatorname{weightedPercentileRank}(x)=100\frac{\sum_{x_i\le x}w_i}{\sum_iw_i}.
-$$
-
-![Both ranks count all weight below x; the quantile rank adds half the weight tied at x, the percentile rank adds all of it.](../assets/methodology/weighted-ranks.svg)
-
-Both return 0–100; divide by 100 when a calculation needs a 0–1 fraction. Benchmark imputation uses the quantile rank, and resource-efficiency scores use the percentile rank.
-
-### Effective Count
-
-Effective count measures how broadly influence is shared. Equal weights across $n$ inputs give $n$; as one weight dominates, the count falls toward 1. It is used where support should come from several inputs rather than one dominant one:
-
-$$
-\operatorname{effectiveCount}_i(w_i)=\frac{(\sum_iw_i)^2}{\sum_iw_i^2}.
-$$
-
-Only the proportions matter: scaling every weight by the same factor leaves the count unchanged. Invalid or nonpositive weights are excluded; with none remaining, the count is 0. Effective count describes the distribution of influence, not prediction accuracy or independence between inputs.
-
-![As the largest input’s share grows, the maximum count falls from n toward 1. The curve shares the rest of the weight equally; with the same largest share, an uneven rest gives a lower count.](../assets/methodology/effective-count-curve.svg)
-
-### Smoothstep
-
-Smoothstep rises from 0 to 1 along an S-curve, easing in at the start and out at the end. It makes an adjustment change gradually near its thresholds, without the sharp corners of clamped linear scaling. Its input is clamped to 0–1, so the output stays at 0 below the interval and at 1 above it:
-
-$$
-\operatorname{smoothstep}(x)=u^2(3-2u),\qquad u=\operatorname{clamp}_{0}^{1}(x).
-$$
-
-![Smoothstep leaves 0 and reaches 1 with flat ends, where clamped linear scaling has sharp corners.](../assets/methodology/smoothstep.svg)
-
-It sets [score retention](intelligence-agentic.md#evidence-support-and-score-retention), [peer support](speed-value.md#peer-support), and the [shared coverage multiplier](speed-value.md#combining-speed-and-value-components), each with its own thresholds.
-
-The coefficients are not tuned: $3u^2-2u^3$ is the simplest polynomial that starts at 0, ends at 1, and is flat at both ends, since its slope $6u(1-u)$ is zero at $u=0$ and $u=1$ and positive between them.
-
-## Parameter Choices
-
-Scoring-policy parameters are listed with the calculations they control: [capability scores](intelligence-agentic.md#parameter-choices), [imputation](imputation.md#parameter-choices), [resource scores](speed-value.md#parameter-choices), and [leaderboard inclusion](leaderboard-rules.md#parameter-choices).
+Policy parameters are listed with the calculations they control: [capability scores](intelligence-agentic.md#parameter-choices), [imputation](imputation.md#parameter-choices), [resource scores](speed-value.md#parameter-choices), [sources](sources.md#parameter-choices), and [leaderboard rules](leaderboard-rules.md#parameter-choices).

@@ -1,8 +1,8 @@
-/** Timeline's retained-data shapes for both capability dimensions, their benchmark and position key conventions, the packed form that stores the scale's model, benchmark, and observation collections once, and fit-parameter validation. */
+/** Timeline's retained-data shapes for both capabilities, their benchmark and position key conventions, the packed form that stores the scale's model, benchmark, and observation collections once, and fit-parameter validation. */
 
 import { MAX_NORMALIZED_IMPUTATION_ERROR } from "../config/stage";
 
-export type TimelineDimension = "intelligence" | "agentic";
+export type TimelineCapability = "intelligence" | "agentic";
 
 export type HistoricalBenchmark = {
   id: string;
@@ -10,7 +10,7 @@ export type HistoricalBenchmark = {
   label: string;
   kind: "task" | "index";
   scale: "probability" | "linear";
-  weights: Record<TimelineDimension, number>;
+  weights: Record<TimelineCapability, number>;
   releaseDate?: string | null;
   normalization?: string;
   supersededBy?: string;
@@ -46,7 +46,7 @@ export function measureKey(benchmark: Pick<HistoricalBenchmark, "key" | "kind">)
     : benchmark.key;
 }
 
-/** Model Atlas's own archived score series serve as each dimension's root benchmark, not as task or index evidence. */
+/** Model Atlas's own archived score series serve as each capability's root benchmark, not as task or index evidence. */
 export function isReferenceBenchmark(benchmark: Pick<HistoricalBenchmark, "key">): boolean {
   return benchmark.key.startsWith("model_atlas_");
 }
@@ -106,7 +106,7 @@ export type HistoricalPortfolio = {
 export type HistoricalDataset = {
   releaseId: string;
   capturedAt: string;
-  rootBenchmarkIds: Record<TimelineDimension, string>;
+  rootBenchmarkIds: Record<TimelineCapability, string>;
   reference: { id: string; capturedAt: string; models: number };
   models: HistoricalModel[];
   benchmarks: HistoricalBenchmark[];
@@ -242,12 +242,12 @@ export type TimelineScale = {
   parameters: TimelineParameters;
   minimumReferenceConfidence: number;
   reference: HistoricalDataset["reference"];
-  rootBenchmarkIds: Record<TimelineDimension, string>;
+  rootBenchmarkIds: Record<TimelineCapability, string>;
   models: HistoricalModel[];
   benchmarks: HistoricalBenchmark[];
   observations: HistoricalObservation[];
   dimensions: Record<
-    TimelineDimension,
+    TimelineCapability,
     {
       nodes: TimelineBenchmarkCalibration[];
       links: TimelineLink[];
@@ -267,7 +267,7 @@ export type TimelineAnchors = {
     modelId: string;
     referenceId: string;
     scaleId: string;
-    values: Record<TimelineDimension, number>;
+    values: Record<TimelineCapability, number>;
   }[];
 };
 

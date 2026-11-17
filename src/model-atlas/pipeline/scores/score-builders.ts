@@ -1,16 +1,16 @@
 /** Per-model score assembly: Intelligence and Agentic component scores with their evidence support and retention. */
 
-import type { BenchmarkDimension } from "../../benchmarks/factory";
+import type { BenchmarkCapability } from "../../benchmarks/factory";
 import {
   isAggregateIndex,
   qualityIndexBreadths,
   reportedIndexBenchmarkCount,
 } from "../../benchmarks/index-policy";
-import { benchmarkDimensionWeight, benchmarkValue } from "../../benchmarks/registry";
+import { benchmarkAllocation, benchmarkValue } from "../../benchmarks/registry";
 import { countsTowardIntelligence, type ScoringConfig } from "../../config/stage";
 import { clamp01, weightedMeanOfFinite } from "../../math-utils";
 import { asRecord, type JsonObject } from "../../runtime";
-import type { ModelAtlasCandidateComponentScores, ModelAtlasConfidence } from "../model-types";
+import type { ModelAtlasCandidateComponentScores, ModelAtlasEvidenceSupport } from "../model-types";
 import { evidenceRetentionFactor } from "./normalization";
 import {
   effortQualityKey,
@@ -38,7 +38,7 @@ export type IntelligenceScoreParts = {
 
 type ComponentScoreResult = {
   componentScores: ModelAtlasCandidateComponentScores | null;
-  confidence: ModelAtlasConfidence;
+  evidenceSupport: ModelAtlasEvidenceSupport;
   intelligenceScoreParts: IntelligenceScoreParts | null;
 };
 
@@ -50,17 +50,17 @@ export function buildComponentScoreResult(
   imputedFactorsByKey: ReadonlyMap<string, number> = new Map(),
   benchmarkWeightMultipliersByKey: ReadonlyMap<string, number> = new Map(),
 ): ComponentScoreResult {
-  const score = (dimension: BenchmarkDimension) => {
+  const score = (capability: BenchmarkCapability) => {
     const inputs = benchmarkScoreInputs(
       model,
-      dimension,
+      capability,
       qualityContext,
       scoringConfig,
       imputedValuesByKey,
       imputedFactorsByKey,
       benchmarkWeightMultipliersByKey,
     );
-    return qualityScore(inputs, dimension, scoringConfig);
+    return qualityScore(inputs, capability, scoringConfig);
   };
   const intelligence = score("intelligence");
   const agentic = score("agentic");
@@ -69,7 +69,7 @@ export function buildComponentScoreResult(
       intelligence.score == null && agentic.score == null
         ? null
         : { intelligence_score: intelligence.score, agentic_score: agentic.score },
-    confidence: {
+    evidenceSupport: {
       intelligence: intelligence.evidenceSupport,
       agentic: agentic.evidenceSupport,
       speed: null,
@@ -87,7 +87,7 @@ export function observedBenchmarkCount(model: unknown, keys: readonly string[]):
 
 function benchmarkScoreInputs(
   model: JsonObject,
-  dimension: BenchmarkDimension,
+  capability: BenchmarkCapability,
   context: QualityScoringContext,
   config: ScoringConfig,
   imputedValues: ReadonlyMap<string, number>,
@@ -95,13 +95,13 @@ function benchmarkScoreInputs(
   weightMultipliers: ReadonlyMap<string, number>,
 ): BenchmarkScoreInput[] {
   const keys =
-    dimension === "intelligence" ? config.intelligenceBenchmarkKeys : config.agenticBenchmarkKeys;
-  const estimates = context.effortQualityEstimates?.get(effortQualityKey(model, dimension));
+    capability === "intelligence" ? config.intelligenceBenchmarkKeys : config.agenticBenchmarkKeys;
+  const estimates = context.effortQualityEstimates?.get(effortQualityKey(model, capability));
   const inputs: BenchmarkScoreInput[] = [];
   for (const key of keys) {
-    if (dimension === "intelligence" && !countsTowardIntelligence(key, config)) continue;
+    if (capability === "intelligence" && !countsTowardIntelligence(key, config)) continue;
     const weight =
-      benchmarkDimensionWeight(key, dimension, config.benchmarkPortfolio) *
+      benchmarkAllocation(key, capability, config.benchmarkPortfolio) *
       (weightMultipliers.get(key) ?? 1);
     if (!(weight > 0)) continue;
 
@@ -111,7 +111,7 @@ function benchmarkScoreInputs(
       value:
         observed == null
           ? (estimates?.get(key) ?? null)
-          : normalizedQualityBenchmarkValue(model, key, observed, dimension, context),
+          : normalizedQualityBenchmarkValue(model, key, observed, capability, context),
       evidenceFactor:
         observed != null ? 1 : imputedValues.has(key) ? (imputedFactors.get(key) ?? 0) : 0,
       observed: observed != null,
@@ -124,7 +124,7 @@ function benchmarkScoreInputs(
 
 function qualityScore(
   inputs: BenchmarkScoreInput[],
-  dimension: BenchmarkDimension,
+  capability: BenchmarkCapability,
   config: ScoringConfig,
 ) {
   const tasks = inputs.filter(({ key }) => !isAggregateIndex(key));
@@ -149,7 +149,7 @@ function qualityScore(
     tasks.reduce((sum, task) => sum + task.weight, 0) * config.directBenchmarkWeightMultiplier;
   const { evidenceSupport, retention } = qualityEvidence(inputs, breadths, config);
 
-  if (dimension === "agentic") {
+  if (capability === "agentic") {
     const taskMean = weightedMeanOfFinite(scoredTasks);
     const mean =
       indexes.length === 0
