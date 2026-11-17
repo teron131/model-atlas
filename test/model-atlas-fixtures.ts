@@ -285,10 +285,7 @@ export function historicalDatasetFromReleases(
         label: `${definition.presentation.label} (Model Atlas)`,
         kind: (INDEX_BENCHMARK_KEYS as readonly string[]).includes(key) ? "index" : "task",
         scale: definition.presentation.column.format === "percent" ? "probability" : "linear",
-        weights: {
-          intelligence: weights.intelligence * definition.scoring.benchmarkImportance,
-          agentic: weights.agentic * definition.scoring.benchmarkImportance,
-        },
+        weights: { ...weights },
         primary: true,
         representedBenchmarks: indexPolicy(key)?.representedBenchmarks,
       });

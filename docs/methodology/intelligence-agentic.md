@@ -6,7 +6,7 @@
 
 ### Benchmark Scores and Dimension Weights
 
-Benchmarks report results in different units and difficulty ranges, so each one is rescaled to 0–100 across the results actually observed: the weakest current result becomes 0 and the strongest 100. This keeps every benchmark spread across the full scale for current models before results are combined. Importance and dimension allocation then set each benchmark's weight within a capability; the portfolio lists the eligible benchmarks, aggregate indexes, and their weights.
+Benchmarks report results in different units and difficulty ranges, so each one is rescaled to 0–100 across the results actually observed: the weakest current result becomes 0 and the strongest 100. This keeps every benchmark spread across the full scale for current models before results are combined. Dimension allocation then sets each benchmark's weight within a capability; the portfolio lists the eligible benchmarks, aggregate indexes, and their weights.
 
 **Reported scores**
 
@@ -40,9 +40,8 @@ The chosen endpoints 500 and 2500 are adopted from Artificial Analysis as a sour
 
 | Setting | Role |
 | --- | --- |
-| Importance | Standard policy: 1 for individual benchmarks and aggregate indexes; represented breadth supplies the index multiplier. |
 | Allocation | Intelligence/Agentic split: 100/0, 75/25, 50/50, 25/75, or 0/100. |
-| Base weight $\omega_{b,d}$ | Importance × allocation to dimension $d$, expressed as a fraction. |
+| Base weight $\omega_{b,d}$ | Allocation to dimension $d$, expressed as a fraction. |
 
 For :score[Agentic], the model's benchmark score $z_{m,A}$ is the [weighted mean](overview.md#weighted-mean) of its benchmark contributions $z_{m,b,A}$: the normalized results after the [token adjustment](#agentic-token-efficiency) below. Every model uses the same weights $\omega_{b,A}$, but each sums only over $\mathcal{B}_{m,A}$, the benchmarks with positive Agentic weight where it has a result:
 
@@ -52,7 +51,7 @@ $$
 
 A missing result drops out instead of counting as zero, and the remaining weights keep their proportions. :score[Intelligence] blends its weighted benchmark mean with the shared-benchmark comparison; it requires an eligible benchmark result or supported effort estimate. Both capabilities then blend eligible indexes according to their overlap-adjusted breadth, as described later.
 
-[Benchmark Portfolio](../benchmarks.md#scoring-roles) records eligibility, allocations, and current importance weights. [Imputation across reasoning efforts](imputation.md#imputation-across-reasoning-efforts) explains how supported estimates enter the later benchmark mean.
+[Benchmark Portfolio](../benchmarks.md#scoring-roles) records eligibility and allocations. [Imputation across reasoning efforts](imputation.md#imputation-across-reasoning-efforts) explains how supported estimates enter the later benchmark mean.
 
 ### Sharing Weight Across Variants
 

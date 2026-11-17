@@ -1,4 +1,4 @@
-/** Each scored benchmark's portfolio group, importance, and Intelligence/Agentic loadings, which also define `BenchmarkKey`, plus which benchmarks score Speed and Value from their resources and under what resource policy. */
+/** Each scored benchmark's portfolio group and Intelligence/Agentic loadings, which also define `BenchmarkKey`, plus which benchmarks score Speed and Value from their resources and under what resource policy. */
 
 import type { BenchmarkPortfolioEntry, BenchmarkResourcePolicy } from "../factory";
 import { CAIS_INDEX_SCORING_WEIGHT, INDEX_SCORING_WEIGHT } from "../index-policy";
@@ -20,292 +20,235 @@ const BENCHMARK_PER_TASK_RESOURCE = {
 export const BENCHMARK_SCORING_WEIGHTS = {
   aa_3d: {
     group: "frontier",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
   },
   aa_intelligence_index: INDEX_SCORING_WEIGHT,
   agents_last_exam: {
     group: "frontier",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
   },
   ale_bench: {
     group: "frontier",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
   },
   analyst_agent: {
     group: "frontier",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
   },
   apex_agents: {
     group: "frontier",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
   },
   apex_swe: {
     group: "baseline",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0, agentic: 1 },
   },
   arc_agi_2: {
     group: "baseline",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
   arc_agi_3: {
     group: "frontier",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
   },
   arena_agent: {
     group: "frontier",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0, agentic: 1 },
   },
   arena_webdev: {
     group: "frontier",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0, agentic: 1 },
   },
   automation_bench: {
     group: "frontier",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0, agentic: 1 },
   },
   biomysterybench: {
     group: "baseline",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
   },
   blueprint_bench_2: {
     group: "frontier",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
   briefcase: {
     group: "frontier",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
   },
   cais_capabilities_index: CAIS_INDEX_SCORING_WEIGHT,
   chartography: {
     group: "frontier",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
   chess_puzzles: {
     group: "baseline",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
   code2video_aa: {
     group: "baseline",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0, agentic: 1 },
   },
   code_migration: {
     group: "frontier",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
   },
   complex_constraints: {
     group: "frontier",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
   },
   critpt: {
     group: "frontier",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
   dayjob_finance: {
     group: "frontier",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
   },
   dayjob_healthcare: {
     group: "frontier",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
   },
   ebr_bench: {
     group: "frontier",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
   },
   emb: {
     group: "baseline",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
   },
   enigmaeval: {
     group: "frontier",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
   epoch_capabilities_index: INDEX_SCORING_WEIGHT,
   erqa: {
     group: "baseline",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
   finance_agent: {
     group: "baseline",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
   },
   frontier_code: {
     group: "frontier",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
   },
   frontiermath_tier_4: {
     group: "baseline",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
   gdp_pdf: {
     group: "frontier",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
   gdp_xlsx: {
     group: "frontier",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
   },
   gdpval_normalized: {
     group: "frontier",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
   },
   handbook_md: {
     group: "frontier",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
   },
   hemingway_bench: {
     group: "baseline",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
   },
   hle: {
     group: "frontier",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
   intphys2: {
     group: "baseline",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
   mindcube: {
     group: "baseline",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
   mirrorcode: {
     group: "frontier",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
   },
   mlcr_aa: {
     group: "baseline",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
   mysterymechanism: {
     group: "frontier",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
   },
   omniscience_accuracy: {
     group: "frontier",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
   programbench: {
     group: "frontier",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
   },
   public_benefits_bench: {
     group: "baseline",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
   },
   riemann_bench: {
     group: "baseline",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
   rsi_benchmark: {
     group: "frontier",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
   },
   simpleqa_verified: {
     group: "baseline",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
   spatialviz: {
     group: "frontier",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
   sre_bench: {
     group: "frontier",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
   },
   sudo_l7: {
     group: "frontier",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0, agentic: 1 },
   },
   superchem: {
     group: "frontier",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
   surge_intelligence_index: INDEX_SCORING_WEIGHT,
   terminal_bench: {
     group: "frontier",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
   },
   terminal_bench_science: {
     group: "frontier",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
   },
   textquests: {
     group: "frontier",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
   },
   vals_index: INDEX_SCORING_WEIGHT,
   vending_bench_2: {
     group: "baseline",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
   },
   vibe_code: {
     group: "baseline",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0, agentic: 1 },
   },
   voxelbench: {
     group: "baseline",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
   },
   weirdml: {
     group: "frontier",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
   },
 } as const satisfies Readonly<Record<string, BenchmarkScoringWeight>>;

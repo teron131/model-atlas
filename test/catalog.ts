@@ -215,22 +215,18 @@ assert.equal(
 const evidencePortfolio = {
   intelligence_observed: {
     group: "baseline",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
   intelligence_missing: {
     group: "baseline",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
   agentic_observed: {
     group: "baseline",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0, agentic: 1 },
   },
   agentic_missing: {
     group: "baseline",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0, agentic: 1 },
   },
 } satisfies BenchmarkPortfolio;
@@ -253,12 +249,8 @@ const minimumEvidenceModel = {
   },
 };
 /** Pin evidence totals independently of score normalization and model metadata. */
-function admitsWeight(
-  benchmarks: Record<string, number>,
-  minimumObservedWeight: number,
-  scoring = STAGE_CONFIG.scoring,
-): boolean {
-  return hasRequiredBenchmarkEvidence({ intelligence: null, benchmarks }, scoring, {
+function admitsWeight(benchmarks: Record<string, number>, minimumObservedWeight: number): boolean {
+  return hasRequiredBenchmarkEvidence({ intelligence: null, benchmarks }, STAGE_CONFIG.scoring, {
     minimumObservedWeight,
     minimumObservedPerDimension: 0,
     minimumObservedIndexes: 0,
@@ -294,19 +286,6 @@ assert.equal(
   admitsWeight({ aa_intelligence_index: 50, cais_capabilities_index: 50, hle: 0.5 }, 15.5),
   false,
   "HLE counts once across both indexes and standalone evidence",
-);
-const halfImportanceScoring = {
-  ...STAGE_CONFIG.scoring,
-  benchmarkPortfolio: {
-    ...STAGE_CONFIG.scoring.benchmarkPortfolio,
-    critpt: { ...STAGE_CONFIG.scoring.benchmarkPortfolio.critpt!, benchmarkImportance: 0.5 },
-  },
-};
-assert.equal(admitsWeight({ critpt: 0.5 }, 0.5, halfImportanceScoring), true);
-assert.equal(
-  admitsWeight({ critpt: 0.5 }, 1, halfImportanceScoring),
-  false,
-  "half-importance standalone evidence contributes half a unit",
 );
 assert.equal(admitsWeight({ omniscience_index: 80 }, 1), false);
 assert.equal(

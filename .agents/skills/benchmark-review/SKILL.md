@@ -28,9 +28,9 @@ For review, audit, or report requests:
 Read current files before naming benchmarks, sources, groups, weights, or rank semantics:
 
 1. Read `docs/standards.md` for admission, retention, and rejection criteria.
-2. Read `docs/benchmarks.md` for portfolio decisions, source precedence, metric selection, reconciliation, benchmark-specific resource policy, classification, importance, and Intelligence/Agentic loadings.
+2. Read `docs/benchmarks.md` for portfolio decisions, source precedence, metric selection, reconciliation, benchmark-specific resource policy, classification, and Intelligence/Agentic loadings.
 3. Start with `docs/methodology/overview.md`, then read the relevant `intelligence-agentic.md`, `imputation.md`, `speed-value.md`, and `leaderboard-rules.md` pages in that directory for the current scoring and display contracts.
-4. When the benchmark is selected or comparison with the portfolio matters, derive the selected portfolio, `frontier` or `baseline` group, benchmark importance, and Intelligence/Agentic loadings from `src/model-atlas/benchmarks/catalog/portfolio.ts`. Compare those definitions with the served payload metadata when auditing a deployed result; distinguish a deployment mismatch from a portfolio decision.
+4. When the benchmark is selected or comparison with the portfolio matters, derive the selected portfolio, `frontier` or `baseline` group, and Intelligence/Agentic loadings from `src/model-atlas/benchmarks/catalog/portfolio.ts`. Compare those definitions with the served payload metadata when auditing a deployed result; distinguish a deployment mismatch from a portfolio decision.
 5. For a registered benchmark, derive raw source names, loaders, and URLs from `src/model-atlas/benchmarks/catalog/sources.ts` and `src/model-atlas/benchmarks/registry.ts`. For a new candidate, use its official primary sources and do not expect a local registry entry.
 6. When rank agreement matters, inspect `app/dashboard/table/leaderboard-rows.ts`, `app/dashboard/table/sort.ts`, `src/model-atlas/pipeline/selection/public-list.ts`, `app/api/public-json.ts`, and `src/model-atlas/stats/model-variants.ts` before reconstructing the displayed rank. Follow the app's current default rank and variant-collapse semantics; do not substitute another aggregate.
 7. For selected benchmark values, follow `benchmarkValue` in `src/model-atlas/pipeline/scores/resource-metrics.ts`, which reads `model.benchmarks` and the supported `model.intelligence` fields. The shared model contract lives in `src/model-atlas/pipeline/model-types.ts` and is re-exported by `src/model-atlas/stats/types.ts`.
@@ -91,7 +91,7 @@ Recommend exactly `frontier`, `baseline`, or `rejected` when the evidence suppor
 When the user asks to settle portfolio policy:
 
 - Apply the current class semantics from `docs/benchmarks.md` and the scoring owners: frontier task results contribute directly to capability scores, while baseline results remain visible without direct capability contributions. Aggregate indexes have separate eligibility and breadth rules; do not treat changing class as a label-only edit.
-- Default task-level benchmark importance to `1`, preserving documented benchmark-specific exceptions. Read aggregate-index importance and represented-breadth rules from the current catalog and `src/model-atlas/benchmarks/index-policy.ts`; do not assume an index receives half importance.
+- Read aggregate-index represented-breadth rules from the current catalog and `src/model-atlas/benchmarks/index-policy.ts`.
 - Default coding benchmarks primarily to Agentic. Add substantial Intelligence loading only when algorithmic, mathematical, scientific, or research reasoning materially determines success.
 - Distinguish accepted source crosswalks, estimates from other benchmarks, and estimates across reasoning efforts using `docs/methodology/imputation.md`. Crosswalks supply accepted benchmark results; cross-benchmark estimates supply discounted evidence and resource-comparison inputs; supported sibling-effort estimates can fill missing capability contributions without adding direct evidence. No imputation satisfies direct-evidence admission requirements.
 
@@ -197,7 +197,7 @@ Lead with the verdict and the strongest evidence. For individual reviews, use th
 5. attention notes for watch and review items and for benchmarks retained despite weak separation, holding the detailed calculations
 6. non-code next actions
 
-Separate maintenance from decisions. Maintenance needs no user decision under standing policy: version catch-ups, switching to a newer version's address, and fixing a pipeline defect whose cause has been reproduced. Decisions are class, loading, importance, breadth, metric, and removal choices.
+Separate maintenance from decisions. Maintenance needs no user decision under standing policy: version catch-ups, switching to a newer version's address, and fixing a pipeline defect whose cause has been reproduced. Decisions are class, loading, breadth, metric, and removal choices.
 
 Keep the report short enough to act on, so maintenance can proceed without waiting for a decision. Give each decision as its own question with the recommended option first, the evidence behind it, and links to the source pages; add a screenshot or small chart when it shows the evidence faster than prose.
 

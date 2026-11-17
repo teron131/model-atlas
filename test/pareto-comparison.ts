@@ -250,13 +250,11 @@ assert.equal(frontierBenchmarkAxisConfig.value.get(qualityBasket.rows[0]!), 55);
 const automaticPortfolio = {
   a: {
     group: "frontier",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
     resourcePolicy: policy,
   },
   b: {
     group: "frontier",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0, agentic: 1 },
     resourcePolicy: policy,
   },

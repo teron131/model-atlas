@@ -47,7 +47,7 @@ const scoreExplanations: Record<
     body: "Reasoning, knowledge, and judgment across selected benchmarks.",
     rows: [
       ["Scale", "Each benchmark spans 0–100 within the reference population."],
-      ["Weights", "Benchmark importance × Intelligence loading."],
+      ["Weights", "Each benchmark's Intelligence allocation."],
       ["Shared comparisons", "20% compares models on the benchmarks they share."],
       [
         "Indexes",
@@ -59,7 +59,7 @@ const scoreExplanations: Record<
   agentic: {
     body: "Reliability in coding, tool use, and completing goals.",
     rows: [
-      ["Weights", "Benchmark importance × Agentic loading."],
+      ["Weights", "Each benchmark's Agentic allocation."],
       [
         "Token efficiency",
         "0.85–1.15× before rescaling to 0–100; weak token evidence approaches 1×.",

@@ -18,12 +18,10 @@ const config = {
   benchmarkPortfolio: {
     left: {
       group: "frontier",
-      benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 1, agentic: 0 },
     },
     right: {
       group: "baseline",
-      benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 1, agentic: 0 },
     },
   },

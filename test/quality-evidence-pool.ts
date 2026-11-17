@@ -19,7 +19,7 @@ const indexKeys = [
   "vals_index",
 ];
 
-function fixture(taskCount: number, indexCount: number, indexImportance = 1) {
+function fixture(taskCount: number, indexCount: number, indexWeight = 1) {
   const tasks = Array.from({ length: taskCount }, (_, index) => `task_${index}`);
   const indexes = indexKeys.slice(0, indexCount);
   const keys = [...tasks, ...indexes];
@@ -34,8 +34,9 @@ function fixture(taskCount: number, indexCount: number, indexImportance = 1) {
         key,
         {
           group: indexes.includes(key) || index % 2 === 1 ? "baseline" : "frontier",
-          benchmarkImportance: indexes.includes(key) ? indexImportance : 1,
-          dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
+          dimensionLoadings: indexes.includes(key)
+            ? { intelligence: 0.5 * indexWeight, agentic: 0.5 * indexWeight }
+            : { intelligence: 0.5, agentic: 0.5 },
         },
       ]),
     ),
@@ -59,7 +60,7 @@ function fixture(taskCount: number, indexCount: number, indexImportance = 1) {
 function expectedScore(
   taskCount: number,
   indexKeys: readonly string[],
-  indexImportance: number,
+  indexWeight: number,
   directBenchmarkWeightMultiplier = STAGE_CONFIG.scoring.directBenchmarkWeightMultiplier,
 ) {
   const indexBreadth = [...qualityIndexBreadths(indexKeys.map((key) => ({ key }))).values()].reduce(
@@ -67,17 +68,17 @@ function expectedScore(
     0,
   );
   return (
-    (directBenchmarkWeightMultiplier * taskCount * 60 + indexImportance * indexBreadth * 100) /
-    (directBenchmarkWeightMultiplier * taskCount + indexImportance * indexBreadth)
+    (directBenchmarkWeightMultiplier * taskCount * 60 + indexWeight * indexBreadth * 100) /
+    (directBenchmarkWeightMultiplier * taskCount + indexWeight * indexBreadth)
   );
 }
 
 for (const taskCount of [4, 40]) {
   for (const indexCount of [1, 4]) {
-    for (const importance of [0.05, 0.5, 1, 5]) {
-      const test = fixture(taskCount, indexCount, importance);
+    for (const indexWeight of [0.05, 0.5, 1, 5]) {
+      const test = fixture(taskCount, indexCount, indexWeight);
       const score = test.score(test.model()).componentScores!;
-      const expected = expectedScore(taskCount, test.indexes, importance);
+      const expected = expectedScore(taskCount, test.indexes, indexWeight);
       assert.ok(Math.abs(score.intelligence_score! - 60) < 1e-10);
       assert.ok(Math.abs(score.agentic_score! - expected) < 1e-10);
     }

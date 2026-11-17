@@ -340,22 +340,18 @@ const scoringConfig = {
   benchmarkPortfolio: {
     scicode: {
       group: "baseline",
-      benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 0.8, agentic: 0.2 },
     },
     terminal_bench: {
       group: "frontier",
-      benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 0, agentic: 1 },
     },
     gdpval_normalized: {
       group: "frontier",
-      benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 0.6, agentic: 0.4 },
     },
     apex_agents: {
       group: "frontier",
-      benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 0.45, agentic: 0.55 },
     },
   },

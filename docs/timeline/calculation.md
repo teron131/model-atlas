@@ -58,7 +58,7 @@ New slopes and intercepts are fitted jointly across the connected network using 
 
 Individual benchmarks and published indexes enter one [weighted mean](../methodology/overview.md#weighted-mean) on the shared historical scale. Each individual benchmark contributes 1.5 times its base weight. Each index contributes its base weight multiplied by represented benchmark breadth after known overlap deductions.
 
-For model $m$ and dimension $d$, $q_{m,b,d}$ and $q_{m,k,d}$ are the calibrated individual-benchmark and index values. The base weight $\omega_{b,d}$ or $\omega_{k,d}$ combines importance and dimension allocation. Remaining index breadth $n_{m,k,d}$ follows the [overlap rules used by headline scores](../methodology/intelligence-agentic.md#combining-benchmarks-and-aggregate-indexes). The estimate is:
+For model $m$ and dimension $d$, $q_{m,b,d}$ and $q_{m,k,d}$ are the calibrated individual-benchmark and index values. The base weight $\omega_{b,d}$ or $\omega_{k,d}$ is the dimension allocation. Remaining index breadth $n_{m,k,d}$ follows the [overlap rules used by headline scores](../methodology/intelligence-agentic.md#combining-benchmarks-and-aggregate-indexes). The estimate is:
 
 $$
 q_{m,d}=\frac{1.5\sum_b \omega_{b,d}q_{m,b,d}+\sum_k \omega_{k,d}n_{m,k,d}q_{m,k,d}}{1.5\sum_b \omega_{b,d}+\sum_k \omega_{k,d}n_{m,k,d}}.

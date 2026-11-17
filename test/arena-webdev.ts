@@ -165,7 +165,6 @@ assert.equal(identityRows[2]?.reasoning_effort, "minimal");
 
 const definition = BENCHMARK_CATALOG.arena_webdev;
 assert.equal(definition.scoring.group, "frontier");
-assert.equal(definition.scoring.benchmarkImportance, 1);
 assert.deepEqual(definition.scoring.dimensionLoadings, { intelligence: 0, agentic: 1 });
 assert.equal("resources" in definition, false);
 assert.ok(STAGE_CONFIG.scoring.agenticBenchmarkKeys.includes("arena_webdev"));

@@ -13,7 +13,6 @@ import {
 
 const entry = {
   group: "frontier",
-  benchmarkImportance: 1,
   dimensionLoadings: { intelligence: 1, agentic: 0 },
   resourcePolicy: { source: "benchmark", unit: "per_task", tokenMeasure: "tokens" },
 } as const;

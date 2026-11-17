@@ -176,8 +176,8 @@ const qualityBenchmarkRows = (
     [
       "Effective weight",
       dimension === "intelligence"
-        ? "importance × Intelligence allocation for frontier benchmarks"
-        : "importance × Agentic allocation for frontier benchmarks",
+        ? "Intelligence allocation of each frontier benchmark"
+        : "Agentic allocation of each frontier benchmark",
     ],
     [
       "Aggregation",
@@ -302,7 +302,7 @@ export function columnTooltipsForActiveComponents(
       title: "Intelligence Score",
       body: "Knowledge, perception, understanding, reasoning, and judgment on selected difficult benchmarks. Frontier benchmarks supply the benchmark score; baseline results remain visible without directly contributing to either capability. Every quality benchmark uses the same linear scaling within its observed range in Intelligence and Agentic. Aggregate indexes count at the frontier score of models with the same standing on them. Low supported benchmark weight discounts the entire score.",
       rows: [
-        ["Benchmark weights", "importance × Intelligence allocation for frontier benchmarks"],
+        ["Benchmark weights", "Intelligence allocation of each frontier benchmark"],
         ["Benchmark normalization", "100 × observed-range position in both capabilities"],
         [
           "Final score",
@@ -319,9 +319,9 @@ export function columnTooltipsForActiveComponents(
     },
     agentic: {
       title: "Agentic Score",
-      body: "How reliably the model turns goals into working results through coding, instruction following, tool use, verification, and recovery. Every quality benchmark uses the same linear scaling within its observed range as Intelligence. Frontier benchmark contributions are weighted by importance × Agentic loading; baseline results remain visible without direct score weight. Direct token use can adjust a contribution before it is remapped to 0-100, using independent models at similar benchmark quality as the comparison.",
+      body: "How reliably the model turns goals into working results through coding, instruction following, tool use, verification, and recovery. Every quality benchmark uses the same linear scaling within its observed range as Intelligence. Frontier benchmark contributions are weighted by their Agentic allocation; baseline results remain visible without direct score weight. Direct token use can adjust a contribution before it is remapped to 0-100, using independent models at similar benchmark quality as the comparison.",
       rows: [
-        ["Observed benchmark weight", "importance × Agentic loading"],
+        ["Observed benchmark weight", "Agentic allocation"],
         [
           "Benchmark quality",
           "same normalized benchmark score in Intelligence and Agentic before the Agentic token modifier",

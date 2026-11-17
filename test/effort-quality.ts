@@ -49,7 +49,6 @@ const config = {
       key,
       {
         group: index === 0 ? ("frontier" as const) : ("baseline" as const),
-        benchmarkImportance: 1,
         dimensionLoadings: { intelligence: 1, agentic: 0 },
       },
     ]),

@@ -158,9 +158,6 @@ assertEqual((winsorizedScores[1] ?? 0) > (winsorizedScores[2] ?? 0), true);
 assertEqual(medianOfFinite([100, null, 0, 50]), 50);
 
 validateBenchmarkPortfolio(STAGE_CONFIG.scoring.benchmarkPortfolio);
-for (const key of INDEX_BENCHMARK_KEYS) {
-  assert.equal(STAGE_CONFIG.scoring.benchmarkPortfolio[key]?.benchmarkImportance, 1);
-}
 assert.equal(INDEX_REPRESENTED_BENCHMARK_COUNTS.aa_intelligence_index, 9);
 assert.equal(INDEX_REPRESENTED_BENCHMARK_COUNTS.cais_capabilities_index, 7);
 assert.equal(INDEX_REPRESENTED_BENCHMARK_COUNTS.surge_intelligence_index, 8);
@@ -237,51 +234,42 @@ assert.deepEqual(
   {
     biomysterybench: {
       group: "baseline",
-      benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
     },
     code_migration: {
       group: "frontier",
       version: "1.1",
-      benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
     },
     emb: {
       group: "baseline",
       version: "1.1",
-      benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
     },
     finance_agent: {
       group: "baseline",
       version: "2.1",
-      benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
     },
     mysterymechanism: {
       group: "frontier",
-      benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
     },
     programbench: {
       group: "frontier",
-      benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
     },
     public_benefits_bench: {
       group: "baseline",
-      benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
     },
     rsi_benchmark: {
       group: "frontier",
       version: "1.1",
-      benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
     },
     vibe_code: {
       group: "baseline",
-      benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 0, agentic: 1 },
     },
   },
@@ -332,19 +320,7 @@ assertThrowsWithMessage(
   () =>
     validateBenchmarkPortfolio({
       test: {
-        group: "frontier",
-        benchmarkImportance: 0,
-        dimensionLoadings: { intelligence: 1, agentic: 0 },
-      },
-    }),
-  "Benchmark importance must be finite and positive for test",
-);
-assertThrowsWithMessage(
-  () =>
-    validateBenchmarkPortfolio({
-      test: {
         group: "invalid",
-        benchmarkImportance: 1,
         dimensionLoadings: { intelligence: 1, agentic: 0 },
       },
     } as unknown as BenchmarkPortfolio),
@@ -659,12 +635,10 @@ const fractionalBenchmarkConfig = {
   benchmarkPortfolio: {
     baseline_metric: {
       group: "baseline",
-      benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 0.8, agentic: 0.2 },
     },
     frontier_metric: {
       group: "frontier",
-      benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 0.2, agentic: 0.8 },
     },
   },
@@ -699,48 +673,46 @@ const priorityWeightedComponentScores = buildComponentScoreResult(
 ).componentScores;
 assertClose(priorityWeightedComponentScores?.intelligence_score, 80);
 
-const importanceWeightedConfig = {
+const unequalWeightConfig = {
   ...fractionalBenchmarkConfig,
   benchmarkPortfolio: {
     baseline_metric: {
       group: "baseline",
-      benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
     },
     frontier_metric: {
       group: "frontier",
-      benchmarkImportance: 3,
-      dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
+      dimensionLoadings: { intelligence: 1.5, agentic: 1.5 },
     },
   },
 } as const;
-const importanceWeightedContext = buildQualityScoringContext(
+const unequalWeightContext = buildQualityScoringContext(
   fractionalBenchmarkModels,
-  importanceWeightedConfig,
+  unequalWeightConfig,
 );
-const importanceWeightedScores = buildComponentScoreResult(
+const unequalWeightScores = buildComponentScoreResult(
   fractionalBenchmarkModels[2] ?? {},
-  importanceWeightedConfig,
-  importanceWeightedContext,
+  unequalWeightConfig,
+  unequalWeightContext,
 ).componentScores;
-assertClose(importanceWeightedScores?.intelligence_score, 80);
+assertClose(unequalWeightScores?.intelligence_score, 80);
 
 const groupFlippedScores = buildComponentScoreResult(
   fractionalBenchmarkModels[2] ?? {},
   {
-    ...importanceWeightedConfig,
+    ...unequalWeightConfig,
     benchmarkPortfolio: {
       baseline_metric: {
-        ...importanceWeightedConfig.benchmarkPortfolio.baseline_metric,
+        ...unequalWeightConfig.benchmarkPortfolio.baseline_metric,
         group: "frontier",
       },
       frontier_metric: {
-        ...importanceWeightedConfig.benchmarkPortfolio.frontier_metric,
+        ...unequalWeightConfig.benchmarkPortfolio.frontier_metric,
         group: "baseline",
       },
     },
   },
-  importanceWeightedContext,
+  unequalWeightContext,
 ).componentScores;
 assertClose(groupFlippedScores?.intelligence_score, 20);
 
@@ -784,7 +756,7 @@ assertEqual(
 );
 
 const imputationConfidenceConfig = {
-  ...importanceWeightedConfig,
+  ...unequalWeightConfig,
   qualityCoverageMinimumRetention: 1,
   qualityCoverage: {
     intelligence: { floor: 0, full: 0.1 },
@@ -794,7 +766,7 @@ const imputationConfidenceConfig = {
 const imputationConfidenceResult = buildComponentScoreResult(
   { id: "imputation-confidence", benchmarks: { baseline_metric: 100 } },
   imputationConfidenceConfig,
-  importanceWeightedContext,
+  unequalWeightContext,
   new Map([["frontier_metric", 0]]),
   new Map([["frontier_metric", 0.2]]),
 );
@@ -807,7 +779,6 @@ const sparseEvidenceBenchmarkPortfolio = Object.fromEntries(
     key,
     {
       group: index === 1 ? "baseline" : "frontier",
-      benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 1, agentic: 0 },
     },
   ]),
@@ -815,7 +786,6 @@ const sparseEvidenceBenchmarkPortfolio = Object.fromEntries(
   string,
   {
     group: "frontier" | "baseline";
-    benchmarkImportance: 1;
     dimensionLoadings: { intelligence: 1; agentic: 0 };
   }
 >;
@@ -904,7 +874,6 @@ const separatedResourceConfig = {
   benchmarkPortfolio: {
     source_split: {
       group: "frontier",
-      benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 0, agentic: 1 },
       resourcePolicy: {
         source: "benchmark",
@@ -1087,7 +1056,6 @@ const scaleNormalizedResourceConfig = {
   benchmarkPortfolio: {
     cheap_frontier: {
       group: "frontier",
-      benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 0, agentic: 1 },
       resourcePolicy: {
         source: "benchmark",
@@ -1097,7 +1065,6 @@ const scaleNormalizedResourceConfig = {
     },
     expensive_frontier: {
       group: "frontier",
-      benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 0, agentic: 1 },
       resourcePolicy: {
         source: "benchmark",
@@ -1189,7 +1156,6 @@ const siblingCostConfig: ScoringConfig = {
       key,
       {
         group: "frontier",
-        benchmarkImportance: 1,
         dimensionLoadings: { intelligence: 1, agentic: 0 },
         resourcePolicy: {
           source: "benchmark",
@@ -1392,7 +1358,6 @@ const normalizedContextBenchmarkPortfolio = Object.fromEntries(
       key,
       {
         group: "baseline",
-        benchmarkImportance: 1,
         dimensionLoadings: {
           intelligence: intelligenceLoading,
           agentic: 1 - intelligenceLoading,
@@ -1599,7 +1564,6 @@ const sharedTargetConfig = {
   benchmarkPortfolio: {
     shared_target: {
       group: "baseline",
-      benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
     },
     i1: intelligenceBenchmarkEntry(),
@@ -1746,12 +1710,10 @@ const nonRecursiveImputations = buildBenchmarkImputationByModel(
       target: intelligenceBenchmarkEntry(),
       bridge: {
         group: "baseline",
-        benchmarkImportance: 1,
         dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
       },
       bridge2: {
         group: "baseline",
-        benchmarkImportance: 1,
         dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
       },
       i1: intelligenceBenchmarkEntry(),
@@ -2105,13 +2067,11 @@ const undercoveredConfig: ScoringConfig = {
   benchmarkPortfolio: {
     aa_intelligence_index: {
       group: "baseline",
-      benchmarkImportance: 0.5,
-      dimensionLoadings: { intelligence: 1, agentic: 0 },
+      dimensionLoadings: { intelligence: 0.5, agentic: 0 },
     },
     vals_index: {
       group: "baseline",
-      benchmarkImportance: 0.5,
-      dimensionLoadings: { intelligence: 1, agentic: 0 },
+      dimensionLoadings: { intelligence: 0.5, agentic: 0 },
     },
     ...Object.fromEntries(
       undercoveredBenchmarkKeys.map((key, index) => [
@@ -2173,7 +2133,10 @@ const weightedCoverageConfig: ScoringConfig = {
   ...undercoveredConfig,
   benchmarkPortfolio: {
     ...undercoveredConfig.benchmarkPortfolio,
-    b8: { ...intelligenceBenchmarkEntry(), benchmarkImportance: 1e-6 },
+    b8: {
+      ...intelligenceBenchmarkEntry(),
+      dimensionLoadings: { intelligence: 1e-6, agentic: 0 },
+    },
   },
 };
 const beforeLastTask = buildComponentScoreResult(
@@ -2326,7 +2289,6 @@ function contextualImputationModels(modelCount: number) {
 function intelligenceBenchmarkEntry() {
   return {
     group: "baseline",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
   } as const;
 }
@@ -2334,7 +2296,6 @@ function intelligenceBenchmarkEntry() {
 function agenticBenchmarkEntry() {
   return {
     group: "baseline",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0, agentic: 1 },
   } as const;
 }
@@ -2457,7 +2418,6 @@ const separatedTokenConfig: ScoringConfig = {
   benchmarkPortfolio: {
     source_split: {
       group: "baseline",
-      benchmarkImportance: 1,
       dimensionLoadings: { intelligence: 0, agentic: 1 },
       resourcePolicy: {
         source: "benchmark",

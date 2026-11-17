@@ -100,13 +100,11 @@ export const ARTIFICIAL_ANALYSIS_INDEX_COMPONENT_BENCHMARK_KEYS: ReadonlySet<str
 
 export const INDEX_SCORING_WEIGHT = {
   group: "baseline",
-  benchmarkImportance: 1,
   dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
 } as const satisfies Omit<BenchmarkPortfolioEntry, "resourcePolicy">;
 
 export const CAIS_INDEX_SCORING_WEIGHT = {
   group: "baseline",
-  benchmarkImportance: 1,
   dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
 } as const satisfies Omit<BenchmarkPortfolioEntry, "resourcePolicy">;
 

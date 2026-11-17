@@ -58,7 +58,7 @@ Retain harness provenance. For coding benchmarks, separate harness rows remain d
 
 ## Classification
 
-Classification describes why a benchmark belongs in the portfolio. Importance separately determines its numerical weight; class does not change how missing evidence is treated.
+Classification describes why a benchmark belongs in the portfolio. Class does not change how missing evidence is treated.
 
 | Class | Requirement |
 | --- | --- |

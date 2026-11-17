@@ -478,12 +478,10 @@ fullPayload.metadata.scoring.selected_benchmark_keys = ["gpqa", "frontier_code"]
 fullPayload.metadata.scoring.benchmark_portfolio = {
   gpqa: {
     group: "baseline",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
   frontier_code: {
     group: "frontier",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 0, agentic: 1 },
   },
 };
@@ -650,7 +648,6 @@ const ratioPayload = minimalModelAtlasPayload({
 ratioPayload.metadata.scoring.benchmark_portfolio = {
   hle: {
     group: "frontier",
-    benchmarkImportance: 1,
     dimensionLoadings: { intelligence: 1, agentic: 0 },
     resourcePolicy: { source: "benchmark", unit: "per_task", tokenMeasure: "tokens" },
   },
@@ -746,7 +743,6 @@ function withPortfolio(payload: ModelAtlasPayload, keys: readonly string[]): Mod
             key,
             {
               group: "frontier",
-              benchmarkImportance: 1,
               dimensionLoadings: { intelligence: 1, agentic: 0 },
             },
           ]),

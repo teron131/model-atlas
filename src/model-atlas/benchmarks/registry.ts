@@ -345,14 +345,14 @@ export const benchmarkResourcePolicy = (key: string) =>
 const benchmarkKeysInGroup = (group: BenchmarkGroup) =>
   BENCHMARK_KEYS.filter((key) => BENCHMARK_PORTFOLIO[key].group === group);
 
-/** Benchmark importance multiplied by its loading on `dimension`; a benchmark outside the portfolio weighs zero. */
+/** A benchmark's loading on `dimension`; a benchmark outside the portfolio weighs zero. */
 export const benchmarkDimensionWeight = (
   key: string,
   dimension: BenchmarkDimension,
   portfolio: BenchmarkPortfolio = BENCHMARK_PORTFOLIO,
 ) => {
   const entry = portfolio[key];
-  return entry == null ? 0 : entry.benchmarkImportance * entry.dimensionLoadings[dimension];
+  return entry == null ? 0 : entry.dimensionLoadings[dimension];
 };
 const selectedBenchmarksForDimension = (dimension: BenchmarkDimension) =>
   BENCHMARK_KEYS.filter((key) => benchmarkDimensionWeight(key, dimension) > 0);

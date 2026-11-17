@@ -12,9 +12,9 @@ The dashboard lists only models with enough direct evidence to compare: a score 
 
 **Count observed benchmarks**
 
-Standalone benchmarks contribute their configured importance once across both dimensions. An observed aggregate index contributes its represented benchmark count.
+Each standalone benchmark counts once across both dimensions. An observed aggregate index contributes its represented benchmark count.
 
-Count each known component once across indexes and standalone observations, using the larger of its standalone importance and the one unit represented within an observed index. Add each index’s remaining count of unnamed benchmarks separately. This avoids double counting known overlap and prevents a lower-importance standalone observation from reducing existing index coverage.
+Count each known component once across indexes and standalone observations. Add each index’s remaining count of unnamed benchmarks separately. This avoids double counting known overlap.
 
 AA’s main Intelligence Index represents nine benchmarks. Its separate Omniscience Index does not increase the benchmark count used for inclusion. Only observed results count, including observed zeros.
 

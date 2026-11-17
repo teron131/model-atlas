@@ -101,7 +101,6 @@ assert.equal(findBenchmarkObservation(["gpt-6-astra"], "low", lookup), null);
 const definition = BENCHMARK_CATALOG.voxelbench;
 assert.equal(definition.scoring.group, "baseline");
 assert.deepEqual(definition.scoring.dimensionLoadings, { intelligence: 0.5, agentic: 0.5 });
-assert.equal(definition.scoring.benchmarkImportance, 1);
 assert.equal(transformBenchmarkSourceValue("voxelbench", 2687), 2687);
 const models = [1000, 2000, 3000].map((rating, index) => ({
   id: `voxel-example-${index}`,

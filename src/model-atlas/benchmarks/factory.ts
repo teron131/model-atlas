@@ -134,7 +134,6 @@ export type BenchmarkProcessingFacet = {
 
 export type BenchmarkScoringFacet = {
   group: BenchmarkGroup;
-  benchmarkImportance: number;
   dimensionLoadings: BenchmarkDimensionLoadings;
 };
 
@@ -193,10 +192,7 @@ type BenchmarkPolicyFacets = Pick<
   "source" | "processing" | "persistence" | "scoring"
 >;
 
-export type BenchmarkPortfolioEntry = Pick<
-  BenchmarkScoringFacet,
-  "group" | "benchmarkImportance" | "dimensionLoadings"
-> & {
+export type BenchmarkPortfolioEntry = BenchmarkScoringFacet & {
   version?: string;
   resourcePolicy?: BenchmarkResourcePolicy;
 };
@@ -229,7 +225,6 @@ export function defineBenchmarks<const TDefinitions extends BenchmarkDefinitions
       {
         group: definition.scoring.group,
         ...(definition.version == null ? {} : { version: definition.version }),
-        benchmarkImportance: definition.scoring.benchmarkImportance,
         dimensionLoadings: definition.scoring.dimensionLoadings,
         ...(definition.resources == null ? {} : { resourcePolicy: definition.resources }),
       },
@@ -469,11 +464,8 @@ function validateProcessing(
 
 function validateBenchmarkWeight(
   key: string,
-  scoring: Pick<BenchmarkScoringFacet, "benchmarkImportance" | "dimensionLoadings">,
+  scoring: Pick<BenchmarkScoringFacet, "dimensionLoadings">,
 ): void {
-  if (!Number.isFinite(scoring.benchmarkImportance) || scoring.benchmarkImportance <= 0) {
-    throw new Error(`Benchmark importance must be finite and positive for ${key}`);
-  }
   const { intelligence, agentic } = scoring.dimensionLoadings;
   if (
     !Number.isFinite(intelligence) ||

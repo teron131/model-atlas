@@ -106,7 +106,7 @@ function observedBenchmarkWeight(
   model: BenchmarkEvidenceCandidate,
   scoringConfig: ScoringConfig,
 ): number {
-  const namedWeights = new Map<string, number>();
+  const namedBenchmarks = new Set<string>();
   let opaqueWeight = 0;
   for (const key of selectedBenchmarkKeys(scoringConfig)) {
     if (observedBenchmarkCount(model, [key]) === 0) continue;
@@ -117,15 +117,12 @@ function observedBenchmarkWeight(
         0,
         residualIndexBreadth(key, [], reportedIndexBenchmarkCount(model, key)) - components.size,
       );
-      for (const component of components) {
-        namedWeights.set(component, Math.max(namedWeights.get(component) ?? 0, 1));
-      }
+      for (const component of components) namedBenchmarks.add(component);
     } else {
-      const importance = scoringConfig.benchmarkPortfolio[key]?.benchmarkImportance ?? 0;
-      namedWeights.set(key, Math.max(namedWeights.get(key) ?? 0, importance));
+      namedBenchmarks.add(key);
     }
   }
-  return opaqueWeight + [...namedWeights.values()].reduce((sum, weight) => sum + weight, 0);
+  return opaqueWeight + namedBenchmarks.size;
 }
 
 /** Relative Intelligence and Agentic must both exceed 10; release age remains a dashboard filter. */

@@ -144,7 +144,6 @@ const proxyModel = {
 };
 const policy = {
   group: "baseline",
-  benchmarkImportance: 0.5,
   dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
 } as const;
 const proxyRows = frontierBenchmarkRows([proxyModel], {

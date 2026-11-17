@@ -336,13 +336,7 @@ function currentEvidence(
       label: definition.presentation.label,
       kind: (INDEX_BENCHMARK_KEYS as readonly string[]).includes(key) ? "index" : "task",
       scale: definition.presentation.column.format === "percent" ? "probability" : "linear",
-      weights: {
-        intelligence:
-          definition.scoring.benchmarkImportance *
-          definition.scoring.dimensionLoadings.intelligence,
-        agentic:
-          definition.scoring.benchmarkImportance * definition.scoring.dimensionLoadings.agentic,
-      },
+      weights: { ...definition.scoring.dimensionLoadings },
       representedBenchmarks: indexPolicy(key)?.representedBenchmarks,
       primary: true,
     };

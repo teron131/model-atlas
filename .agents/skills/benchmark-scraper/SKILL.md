@@ -88,11 +88,11 @@ After the scraper works:
 - Show the fetched row shape and representative parsed output.
 - Apply settled scoring decisions directly; discuss only unresolved choices that would change Model Atlas scores.
 - Keep parsing truth separate from scoring policy.
-- Apply the accepted class (`baseline` or `frontier`), positive benchmark importance, and Intelligence/Agentic split. The two dimension portions must sum to 100%. Follow `docs/benchmarks.md`: frontier task results contribute directly to capability scores, while baseline results remain visible without direct capability contributions; aggregate indexes follow their own eligibility and breadth policy.
-- Default task-level benchmark importance to `1`, preserving documented exceptions. Read aggregate-index importance and represented-breadth rules from the current catalog and `src/model-atlas/benchmarks/index-policy.ts`; do not assign half importance by assumption.
+- Apply the accepted class (`baseline` or `frontier`) and Intelligence/Agentic split. The two dimension portions must sum to 100%. Follow `docs/benchmarks.md`: frontier task results contribute directly to capability scores, while baseline results remain visible without direct capability contributions; aggregate indexes follow their own eligibility and breadth policy.
+- Read aggregate-index represented-breadth rules from the current catalog and `src/model-atlas/benchmarks/index-policy.ts`.
 - Default coding benchmarks primarily to Agentic. Add substantial Intelligence loading only when algorithmic, mathematical, scientific, or research reasoning materially determines success.
 - Check effort sensitivity before scoring. If the same model regresses at higher reasoning effort, explain whether this looks like real overthinking, timeout pressure, brittle formatting, harness mismatch, or another benchmark artifact.
-- Choose benchmark importance deliberately rather than deriving it from class. Explain its impact through importance and dimension loadings.
+- Explain a benchmark's impact through its class and dimension loadings.
 - Decide whether any non-quality data contributes to speed, value, bonus-only display, or raw display only.
 - Preserve extra dimensions even if the initial scoring uses only one summary.
 

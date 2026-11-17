@@ -107,7 +107,7 @@ Use a model’s performance on other observed benchmarks to impute a missing res
 
 **Calculate the weighted mean**
 
-The [weighted mean](overview.md#weighted-mean) summarizes the same variant’s measured performance for comparison with peers. Each benchmark contributes according to its existing importance and allocation to Intelligence or Agentic.
+The [weighted mean](overview.md#weighted-mean) summarizes the same variant’s measured performance for comparison with peers. Each benchmark contributes according to its existing allocation to Intelligence or Agentic.
 
 Reuse the [benchmark normalization and base weights](intelligence-agentic.md#benchmark-scores-and-dimension-weights), separately for Intelligence and Agentic. Direct scoring in both capabilities uses frontier benchmarks. This prediction may also use observed baseline results to estimate a missing frontier result, subject to its validation and discounted evidence factor; the baseline result itself receives no direct capability weight. For each other observed benchmark $b$ with positive predictive weight, $z_b$ is its normalized score and $\omega_b$ its weight:
 
@@ -153,7 +153,7 @@ Accept the method only when at least four distinct held-out models yield valid p
 
 Fill a missing benchmark score using an observed result from another reasoning effort of the same model. The **target effort** has the missing result; the **reference effort** supplies the observed result. Their performance gap on shared benchmarks adjusts the estimate. Run the calculation separately for :score[Intelligence] and [token-adjusted :score[Agentic]](intelligence-agentic.md#agentic-token-efficiency). A missing result can be filled even when the effort already has enough evidence for full score retention.
 
-Each benchmark’s overall score is one input, regardless of how many questions or test cases it contains. Aggregate indexes are excluded. Throughout this section, $\omega_b$ is benchmark $b$’s [base weight](intelligence-agentic.md#benchmark-scores-and-dimension-weights): importance × allocation to the capability being calculated. Gaps are measured on observed frontier results before any missing result is filled. Baseline results do not enter gap comparisons; their role in imputation from other benchmarks is described above. Only positive weights participate.
+Each benchmark’s overall score is one input, regardless of how many questions or test cases it contains. Aggregate indexes are excluded. Throughout this section, $\omega_b$ is benchmark $b$’s [base weight](intelligence-agentic.md#benchmark-scores-and-dimension-weights): its allocation to the capability being calculated. Gaps are measured on observed frontier results before any missing result is filled. Baseline results do not enter gap comparisons; their role in imputation from other benchmarks is described above. Only positive weights participate.
 
 **Choose the reference effort**
 

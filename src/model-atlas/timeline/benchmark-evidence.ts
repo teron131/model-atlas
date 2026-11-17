@@ -171,7 +171,6 @@ function prepareImputation(
         b.id,
         {
           group: "frontier" as const,
-          benchmarkImportance: 1,
           dimensionLoadings: b.weights,
         },
       ]),
