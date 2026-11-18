@@ -601,3 +601,48 @@ try {
     });
   });
 }
+
+// A complete page still publishing another version than its pinned one supplies no rows yet leaves the source fresh.
+const pinnedServer = createServer((request, response) => {
+  if (request.url === "/methodology") {
+    response.end(methodologyHtml);
+  } else if (request.url === "/page") {
+    response.end(
+      `<title>CritPt v1.0 Benchmark | Artificial Analysis</title><script>self.__next_f.push([1,${JSON.stringify(JSON.stringify({ manifest: { path: "/data" } }))}])</script>`,
+    );
+  } else if (request.url === "/data") {
+    response.end(
+      JSON.stringify({
+        models: [{ slug: "example-model", name: "Example Model", creator: { name: "OpenAI" } }],
+      }),
+    );
+  } else {
+    response.writeHead(404);
+    response.end();
+  }
+});
+await new Promise<void>((resolve) => {
+  pinnedServer.listen(0, "127.0.0.1", resolve);
+});
+try {
+  const origin = `http://127.0.0.1:${(pinnedServer.address() as AddressInfo).port}`;
+  const pinnedPayload = await getArtificialAnalysisBenchmarkResourceStats({
+    methodologyUrl: `${origin}/methodology`,
+    pages: [
+      {
+        benchmark_key: "critpt",
+        score_key: "critpt",
+        resource_key: "critpt",
+        url: `${origin}/page`,
+        methodology_name: "CritPt (Hard Subset)",
+        version: "2.0",
+      },
+    ],
+  });
+  if (pinnedPayload.fetched_at_epoch_seconds == null) throw new Error("Expected a fresh source");
+  assertDeepEqual(pinnedPayload.data, []);
+} finally {
+  await new Promise<void>((resolve) => {
+    pinnedServer.close(() => resolve());
+  });
+}

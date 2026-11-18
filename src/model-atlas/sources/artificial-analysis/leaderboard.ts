@@ -83,12 +83,11 @@ export async function getArtificialAnalysisLeaderboardRawStats(
     const intelligenceIndexVersion = publishedIntelligenceIndexVersion(corpus);
     if (intelligenceIndexVersion == null)
       throw new Error("Missing Artificial Analysis Intelligence Index version");
-    const preview = sortLeaderboardRows(
-      extractLeaderboardRowsFromCorpus(corpus).filter(isLeaderboardModelRow),
-    );
-    const modelSlug = preview.find((row) => row.deprecated !== true)?.slug;
-    if (typeof modelSlug !== "string" || modelSlug.length === 0)
-      throw new Error("Missing Artificial Analysis model-detail link");
+    const modelSlug = sortLeaderboardRows(extractLeaderboardRowsFromCorpus(corpus))
+      .filter((row) => row.deprecated !== true)
+      .map((row) => firstString(asRecord(row.release), ["slug"]))
+      .find((slug) => slug != null);
+    if (modelSlug == null) throw new Error("Missing Artificial Analysis model-detail link");
     // Model pages publish the complete comparison dataset with index resources; the leaderboard preview omits them.
     const { models } = await getArtificialAnalysisPage(
       new URL(`/models/${encodeURIComponent(modelSlug)}`, url).href,
@@ -186,7 +185,7 @@ function publishedIntelligenceIndexVersion(flightCorpus: string): string | null 
 }
 
 function intelligenceIndexComponentSlugs(row: JsonObject): string[] {
-  const evaluations = row.intelligenceIndexEvaluations;
+  const evaluations = asRecord(row.intelligenceIndexCostPerTask).evaluations;
   return Array.isArray(evaluations)
     ? evaluations.flatMap((evaluation) => {
         const slug = asRecord(evaluation).slug;

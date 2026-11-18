@@ -136,13 +136,13 @@ export async function getArtificialAnalysisBenchmarkResourceStats(
   const pageResults = await mapWithConcurrency(pages, concurrency, async (page) => {
     const taskRunCount = runCounts.get(evaluationName(page.methodology_name));
     return taskRunCount == null
-      ? []
+      ? null
       : getCompleteBenchmarkResourceRows({ ...page, task_run_count: taskRunCount });
   });
   const allPagesComplete =
-    pageResults.length === pages.length && pageResults.every((rows) => rows.length > 0);
+    pageResults.length === pages.length && pageResults.every((rows) => rows != null);
   const resourceRows = pageResults
-    .flat()
+    .flatMap((rows) => rows ?? [])
     .sort((left, right) =>
       `${left.benchmark_key}/${left.model_id}`.localeCompare(
         `${right.benchmark_key}/${right.model_id}`,
@@ -185,7 +185,7 @@ export function processArtificialAnalysisBenchmarkResourceRows(
   page: RunCountedPage,
   version: string | null,
 ): ArtificialAnalysisBenchmarkResourceRow[] {
-  if (page.version != null && version !== page.version) return [];
+  if (!scoresVersion(page, version)) return [];
   return rows
     .map((row) => resourceRow(row, page, version))
     .filter((row): row is ArtificialAnalysisBenchmarkResourceRow => row != null)
@@ -321,26 +321,27 @@ function leadingCount(cell: string | undefined): number | null {
   return digits == null ? null : Number(digits.replaceAll(",", ""));
 }
 
-/** Retry one complete dataset once; a preview or missing dataset never advances source freshness. */
+/** Retry one complete dataset once; a preview or missing dataset is null, which keeps the whole source from advancing freshness, while a complete page on a version other than the scored one completes with no rows. */
 async function getCompleteBenchmarkResourceRows(
   page: RunCountedPage,
-): Promise<ArtificialAnalysisBenchmarkResourceRow[]> {
+): Promise<ArtificialAnalysisBenchmarkResourceRow[] | null> {
   for (let attempt = 0; attempt < PAGE_FETCH_ATTEMPTS; attempt += 1) {
     try {
       const { title, models } = await getArtificialAnalysisPage(page.url);
-      const rows = processArtificialAnalysisBenchmarkResourceRows(
-        models,
-        page,
-        artificialAnalysisEvaluationVersion(title),
-      );
-      if (rows.length > 0) {
+      const version = artificialAnalysisEvaluationVersion(title);
+      const rows = processArtificialAnalysisBenchmarkResourceRows(models, page, version);
+      if (rows.length > 0 || !scoresVersion(page, version)) {
         return rows;
       }
     } catch (error) {
       if (error instanceof SourceQueueTimeoutError) break;
     }
   }
-  return [];
+  return null;
+}
+
+function scoresVersion(page: Pick<RunCountedPage, "version">, version: string | null) {
+  return page.version == null || version === page.version;
 }
 
 function resourceRow(

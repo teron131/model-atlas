@@ -387,8 +387,10 @@ const richModels = [
     name: "Example (max)",
     creator: { name: "Example Lab", slug: "example-lab" },
     intelligenceIndex: 50,
-    intelligenceIndexEvaluations: recordedComponents.map((slug) => ({ slug })),
-    intelligenceIndexCostPerTask: { cost: { total: 5.98 } },
+    intelligenceIndexCostPerTask: {
+      cost: { total: 5.98 },
+      evaluations: recordedComponents.map((slug) => ({ slug })),
+    },
     intelligenceIndexTimePerTask: 799,
     intelligenceIndexOutputTokensPerTask: { output: 119_166 },
   },
@@ -398,8 +400,10 @@ const richModels = [
     creator: { name: "Example Lab", slug: "example-lab" },
     deprecated: true,
     intelligenceIndex: 30,
-    intelligenceIndexEvaluations: recordedComponents.map((slug) => ({ slug })),
-    intelligenceIndexCostPerTask: { cost: { total: 0.72 } },
+    intelligenceIndexCostPerTask: {
+      cost: { total: 0.72 },
+      evaluations: recordedComponents.map((slug) => ({ slug })),
+    },
   },
 ];
 const flight = (value: unknown) =>
@@ -429,6 +433,9 @@ const modelServer = createServer((request, response) => {
         models: [
           {
             ...richModels[0],
+            id: "0b7c5e1a",
+            slug: undefined,
+            release: { slug: "example-max", name: "Example" },
             intelligenceIndexCostPerTask: 5.98,
             intelligenceIndexTimePerTask: undefined,
             intelligenceIndexOutputTokensPerTask: undefined,
