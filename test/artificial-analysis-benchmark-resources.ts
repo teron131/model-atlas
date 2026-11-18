@@ -55,7 +55,7 @@ function currentResourceTelemetry({
     cacheHitPrice: null,
     cacheWritePrice: null,
     cacheHitRate: null,
-    medianCanonicalAnswerOutputSpeed: output / taskCount / secondsPerTask,
+    outputSpeed: output / taskCount / secondsPerTask,
   };
 }
 
@@ -297,7 +297,7 @@ const [cachedInputRow] = processArtificialAnalysisBenchmarkResourceRows(
       cacheHitPrice: 1,
       cacheWritePrice: 12,
       cacheHitRate: 0.5,
-      medianCanonicalAnswerOutputSpeed: 25,
+      outputSpeed: 25,
     },
   ],
   hlePage,
@@ -322,7 +322,7 @@ const partialResources = processArtificialAnalysisBenchmarkResourceRows(
       creator: { name: "Test", slug: "test" },
       hle: 0.4,
       canonicalEvalTokenCounts: { hle: { input: 100, answer: 20, reasoning: 30 } },
-      medianCanonicalAnswerOutputSpeed: 25,
+      outputSpeed: 25,
     },
   ],
   hlePage,

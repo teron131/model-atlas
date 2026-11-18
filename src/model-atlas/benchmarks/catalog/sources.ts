@@ -93,6 +93,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
   biomysterybench: {
     group: "vals",
     id: "vals",
+    roles: ["observation", "resource"],
     loader: {
       kind: "vals",
       canonicalTask: "overall",
@@ -146,6 +147,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
   code_migration: {
     group: "vals",
     id: "vals",
+    roles: ["observation", "resource"],
     revision: "1.1",
     loader: {
       kind: "vals",
@@ -197,6 +199,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
   emb: {
     group: "vals",
     id: "vals",
+    roles: ["observation", "resource"],
     revision: "1.1",
     loader: {
       kind: "vals",
@@ -239,6 +242,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
   finance_agent: {
     group: "vals",
     id: "vals",
+    roles: ["observation", "resource"],
     revision: "2.1",
     loader: {
       kind: "vals",
@@ -333,6 +337,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
   mysterymechanism: {
     group: "vals",
     id: "vals",
+    roles: ["observation", "resource"],
     loader: {
       kind: "vals",
       canonicalTask: "overall",
@@ -344,6 +349,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
   programbench: {
     group: "vals",
     id: "vals",
+    roles: ["observation", "resource"],
     loader: {
       kind: "vals",
       canonicalTask: "almost",
@@ -355,6 +361,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
   public_benefits_bench: {
     group: "vals",
     id: "vals",
+    roles: ["observation", "resource"],
     loader: {
       kind: "vals",
       canonicalTask: "overall",
@@ -399,6 +406,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
   sre_bench: {
     group: "vals",
     id: "vals",
+    roles: ["observation", "resource"],
     loader: {
       kind: "vals",
       canonicalTask: "partial",
@@ -464,6 +472,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
   vibe_code: {
     group: "vals",
     id: "vals",
+    roles: ["observation", "resource"],
     loader: {
       kind: "vals",
       canonicalTask: "overall",

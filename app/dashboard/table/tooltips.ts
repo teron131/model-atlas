@@ -199,7 +199,7 @@ const staticTableColumnTooltips = {
         "Source",
         "OpenRouter listed prices; catalog or Artificial Analysis prices where no route served tokens",
       ],
-      ["Provider weighting", "estimated OpenRouter token share"],
+      ["Across providers", "the price most OpenRouter tokens pay"],
     ],
   },
   outputPrice: {
@@ -210,7 +210,7 @@ const staticTableColumnTooltips = {
         "Source",
         "OpenRouter listed prices; catalog or Artificial Analysis prices where no route served tokens",
       ],
-      ["Provider weighting", "estimated OpenRouter token share"],
+      ["Across providers", "the price most OpenRouter tokens pay"],
     ],
   },
   cacheReadPrice: {
@@ -222,7 +222,7 @@ const staticTableColumnTooltips = {
         "OpenRouter listed prices; catalog or Artificial Analysis prices where no route served tokens",
       ],
       ["Unlisted price", "a tenth of the input price"],
-      ["Provider weighting", "estimated OpenRouter token share"],
+      ["Across providers", "the price most OpenRouter tokens pay"],
     ],
   },
   throughput: {

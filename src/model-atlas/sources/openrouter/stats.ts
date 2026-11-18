@@ -2,7 +2,7 @@
 
 import { isSameOpenRouterModelRoute, MMDD_RELEASE_TOKEN_PATTERN } from "../../identity/openrouter";
 import { providerIdentityKey } from "../../identity/provider";
-import { meanOfFinite } from "../../math-utils";
+import { meanOfFinite, weightedMedianOfFinite } from "../../math-utils";
 import { asFiniteNumber, asRecord } from "../../runtime";
 import type {
   OpenRouterCandidateStats,
@@ -322,16 +322,13 @@ function tokenWeightedMeanValue(
   return totalWeight > 0 ? weightedSum / totalWeight : null;
 }
 
-/** Weight each route's listed input and output prices by the tokens it served. */
+/** The input and output prices most of a model's tokens pay: each route's listed price weighted by the tokens it served, as a median, so a dearer route carrying a sliver of the traffic leaves the price the rest pay as it is. */
 function summarizePricing(routes: readonly OpenRouterRoutePrice[]): OpenRouterPricingSummary {
-  const tokens = routes.reduce((total, route) => total + route.tokens, 0);
-  const weighted = (price: (route: OpenRouterRoutePrice) => number) =>
-    tokens > 0
-      ? routes.reduce((total, route) => total + price(route) * route.tokens, 0) / tokens
-      : null;
+  const median = (price: (route: OpenRouterRoutePrice) => number) =>
+    weightedMedianOfFinite(routes.map((route) => ({ value: price(route), weight: route.tokens })));
   return {
-    weighted_input_price_per_1m: weighted((route) => route.input),
-    weighted_output_price_per_1m: weighted((route) => route.output),
+    weighted_input_price_per_1m: median((route) => route.input),
+    weighted_output_price_per_1m: median((route) => route.output),
   };
 }
 

@@ -71,8 +71,8 @@ const routeWeightedPriceModel = processOpenRouterModelStats(
 );
 
 assert.deepEqual(routeWeightedPriceModel.pricing, {
-  weighted_input_price_per_1m: 1.2,
-  weighted_output_price_per_1m: 12,
+  weighted_input_price_per_1m: 1,
+  weighted_output_price_per_1m: 10,
 });
 
 const endpointWeights = buildOpenRouterSeriesTokenWeights({

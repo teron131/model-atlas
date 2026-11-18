@@ -98,6 +98,7 @@ function rowNameCandidates(row: ModelRow): unknown[] {
         row.name,
         row.artificial_analysis_id,
         row.artificial_analysis_slug,
+        row.artificial_analysis_alias,
       ]
     : [row.name];
 }

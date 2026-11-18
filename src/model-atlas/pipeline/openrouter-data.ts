@@ -6,6 +6,7 @@ import {
   nonFreeOpenRouterModelId,
   publicOpenRouterModelId,
 } from "../identity/openrouter";
+import { weightedMedianOfFinite } from "../math-utils";
 import { asFiniteNumber, asRecord, type JsonObject } from "../runtime";
 import {
   type OpenRouterRoutePrice,
@@ -57,7 +58,7 @@ export function lookupOpenRouterSpeed(
   return lookupOpenRouterData(data.speedByModelId, modelId, hasSpeedData);
 }
 
-/** A model's listed OpenRouter route prices weighted by tokens served, looked up like `lookupOpenRouterSpeed`. */
+/** The listed OpenRouter route prices most of a model's tokens pay, looked up like `lookupOpenRouterSpeed`. */
 export function lookupOpenRouterPricing(
   data: OpenRouterModelData,
   modelId: string | null,
@@ -65,7 +66,7 @@ export function lookupOpenRouterPricing(
   return lookupOpenRouterData(data.pricingByModelId, modelId, hasPricingData);
 }
 
-/** Token-weighted across the model's OpenRouter routes; null when no route served tokens at listed prices. */
+/** The blend prices most of the model's OpenRouter route tokens pay; null when no route served tokens at listed prices. */
 export function lookupOpenRouterBlendPrices(
   data: OpenRouterModelData,
   modelId: string | null,
@@ -112,7 +113,7 @@ export function backfillFreeModelCosts(rows: ModelRow[]): ModelRow[] {
   });
 }
 
-function hasPositiveCostFields(cost: JsonObject): boolean {
+export function hasPositiveCostFields(cost: JsonObject): boolean {
   const input = asFiniteNumber(cost.input);
   const output = asFiniteNumber(cost.output);
   return input != null && input > 0 && output != null && output > 0;
@@ -156,25 +157,22 @@ function hasSpeedData(speed: JsonObject): boolean {
   );
 }
 
-/** Token-weight each route's own blend prices, so a route's unlisted cache price falls back on that route's input price. */
+/** Each blend price is the one most of the routes' tokens pay, a token-weighted median of each route's own blend prices, so a route's unlisted cache price falls back on that route's input price and a dearer route with a sliver of the traffic moves nothing. */
 function routeBlendPrices(routes: readonly OpenRouterRoutePrice[]): BlendPrices | null {
-  const total = { cache_read: 0, new_input: 0, output: 0 };
-  let tokens = 0;
-  for (const route of routes) {
+  const priced = routes.flatMap((route) => {
     const prices = listedBlendPrices(route);
-    if (prices == null) continue;
-    total.cache_read += prices.cache_read * route.tokens;
-    total.new_input += prices.new_input * route.tokens;
-    total.output += prices.output * route.tokens;
-    tokens += route.tokens;
-  }
-  return tokens > 0
-    ? {
-        cache_read: total.cache_read / tokens,
-        new_input: total.new_input / tokens,
-        output: total.output / tokens,
-      }
-    : null;
+    return prices == null ? [] : [{ prices, tokens: route.tokens }];
+  });
+  const median = (part: keyof BlendPrices) =>
+    weightedMedianOfFinite(
+      priced.map(({ prices, tokens }) => ({ value: prices[part], weight: tokens })),
+    );
+  const cacheRead = median("cache_read");
+  const newInput = median("new_input");
+  const output = median("output");
+  return cacheRead == null || newInput == null || output == null
+    ? null
+    : { cache_read: cacheRead, new_input: newInput, output };
 }
 
 function hasPricingData(pricing: JsonObject): boolean {

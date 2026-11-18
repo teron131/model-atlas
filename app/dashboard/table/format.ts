@@ -24,10 +24,19 @@ export const formatEvidenceSupport = (value: number | null | undefined) =>
     ? `${Math.round(Math.max(0, Math.min(1, value)) * 100)}%`
     : "-";
 
-export const formatCost = (value: number | null | undefined) =>
-  typeof value === "number" && Number.isFinite(value)
-    ? `$${value.toFixed(value < 1 ? 3 : 2)}`
-    : "-";
+/** Three significant figures, with whole cents kept below $100 and no zeros past them: `0.07125` → `$0.0713`, `0.1` → `$0.10`, `41.0781` → `$41.08`, `152.37` → `$152`. */
+export const formatCost = (value: number | null | undefined) => {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return "-";
+  }
+  const magnitude = Math.abs(value);
+  const decimals = magnitude >= 100 ? 0 : Math.max(2, 2 - Math.floor(Math.log10(magnitude || 1)));
+  const amount = magnitude.toLocaleString("en-US", {
+    minimumFractionDigits: Math.min(2, decimals),
+    maximumFractionDigits: decimals,
+  });
+  return `${value < 0 ? "-" : ""}$${amount}`;
+};
 
 export const formatCompactNumber = (value: number | null | undefined) => {
   if (typeof value !== "number" || !Number.isFinite(value)) {
@@ -53,6 +62,9 @@ const formatSeconds = (value: number | null | undefined) =>
 const formatDuration = (value: number | null | undefined) => {
   if (typeof value !== "number" || !Number.isFinite(value)) {
     return "-";
+  }
+  if (value < 60) {
+    return formatSeconds(value);
   }
   const totalMinutes = Math.round(value / 60);
   const hours = Math.floor(totalMinutes / 60);

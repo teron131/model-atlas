@@ -118,10 +118,10 @@ function rawRowFromCache(row: CacheDbRow): JsonObject {
   assignIfNumber(rawRow, "price1mOutputTokens", row.price_1m_output_tokens);
   assignIfNumber(rawRow, "cacheHitPrice", row.cache_hit_price);
   assignIfNumber(rawRow, "cacheWritePrice", row.cache_write_price);
-  const timescaleData: JsonObject = {};
-  assignIfNumber(timescaleData, "medianOutputSpeed", row.median_output_tokens_per_second);
-  assignIfNumber(timescaleData, "medianTimeToFirstChunk", row.median_time_to_first_token_seconds);
-  if (nonEmptyRecord(timescaleData) != null) rawRow.timescaleData = timescaleData;
+  const headline: JsonObject = {};
+  assignIfNumber(headline, "outputSpeed", row.median_output_tokens_per_second);
+  assignIfNumber(headline, "timeToFirstToken", row.median_time_to_first_token_seconds);
+  if (nonEmptyRecord(headline) != null) rawRow.headline = headline;
   const endToEndResponseTime: JsonObject = {};
   assignIfNumber(endToEndResponseTime, "total", row.median_end_to_end_response_time_seconds);
   if (nonEmptyRecord(endToEndResponseTime) != null) {

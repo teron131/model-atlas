@@ -58,7 +58,7 @@ const rows = processArtificialAnalysisLeaderboardRows(
       cacheHitPrice: 1,
       cacheWritePrice: 12.5,
       isReasoning: true,
-      timescaleData: { medianOutputSpeed: 59, medianTimeToFirstChunk: 94 },
+      headline: { outputSpeed: 59, timeToFirstToken: 94 },
       endToEndResponseTime: { total: 103 },
     },
     {

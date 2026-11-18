@@ -551,7 +551,7 @@ function rowSecondsPerTask(
   row: Record<string, unknown>,
   outputTokensPerTask: number | null,
 ): number | null {
-  const outputSpeed = asFiniteNumber(row.medianCanonicalAnswerOutputSpeed);
+  const outputSpeed = asFiniteNumber(row.outputSpeed);
   if (outputTokensPerTask == null || outputSpeed == null || outputSpeed <= 0) {
     return null;
   }

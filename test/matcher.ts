@@ -83,6 +83,24 @@ assert.deepEqual(
   "publisher namespaces must block base/fine-tune substitutions while retaining known organization aliases",
 );
 
+const providerPrefixMatches = buildMatchDiagnostics({
+  artificialAnalysisRows: [
+    { model_id: "tencent/tencent-hy4", name: "Tencent Hy4" },
+    { model_id: "deepseek/deepseek-v3", name: "DeepSeek V3" },
+  ],
+  modelsDevModels: [
+    model("openrouter", "tencent/hy4", "Hy4"),
+    model("openrouter", "tencent/hy4-preview", "Hy4 preview"),
+    model("openrouter", "deepseek/deepseek-v3", "DeepSeek V3"),
+  ],
+  matcherConfig: STAGE_CONFIG.matcher,
+});
+assert.deepEqual(
+  providerPrefixMatches.models.map((row) => row.best_match?.model_id ?? null),
+  ["tencent/hy4", "deepseek/deepseek-v3"],
+  "a source name led by its own provider's name matches the catalog's plain name, while a provider word the catalog also carries stays part of the name",
+);
+
 const turboReleases = [
   {
     ...model("openrouter", "openai/gpt-4-turbo", "GPT-4 Turbo"),
@@ -900,6 +918,37 @@ for (const rows of [sharedSlugSources, [...sharedSlugSources].reverse()]) {
     "Each match must keep its exact source observation when provider aliases share a slug, regardless of cache ordering",
   );
 }
+const aliasSources = [
+  { model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b", name: "Nemotron 3 Ultra" },
+  { model_id: "google/gemini-3-1-flash-lite-preview", name: "Gemini 3.1 Flash-Lite" },
+];
+const aliasRows = modelRowsFromMatchDiagnostics(
+  {
+    ...sourceData,
+    artificialAnalysis: {
+      rows: aliasSources,
+      byId: new Map(aliasSources.map((row) => [row.model_id, row])),
+    },
+  },
+  buildMatchDiagnostics({
+    matcherConfig: STAGE_CONFIG.matcher,
+    artificialAnalysisRows: aliasSources,
+    modelsDevModels: [
+      model("openrouter", "nvidia/nemotron-3-ultra-550b-a55b", "Nemotron 3 Ultra 550B A55B"),
+      model("openrouter", "nvidia/nemotron-3-ultra-550b-a55b:free", "Nemotron 3 Ultra (free)"),
+      model("openrouter", "google/gemini-3.1-flash-lite-preview", "Gemini 3.1 Flash Lite Preview"),
+      model("openrouter", "google/gemini-3.1-flash-lite", "Gemini 3.1 Flash Lite"),
+    ],
+  }),
+);
+assert.deepEqual(
+  aliasRows.map((row) => [row.artificial_analysis_id, row.artificial_analysis_alias]),
+  [
+    ["nvidia/nvidia-nemotron-3-ultra-550b-a55b", "Nemotron 3 Ultra"],
+    ["google/gemini-3-1-flash-lite-preview", null],
+  ],
+  "a matched model keeps Artificial Analysis's name for other sources' results unless the matcher passed over a different model by that name, while a free route of the same model is no rival",
+);
 const matchedFlashRow = matchedRows.find(
   (row) => row.artificial_analysis_id === "google/example-2-5-flash",
 );

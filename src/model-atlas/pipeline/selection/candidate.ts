@@ -24,6 +24,7 @@ import type {
   ModelRow,
 } from "../model-types";
 import {
+  hasPositiveCostFields,
   lookupOpenRouterBlendPrices,
   lookupOpenRouterPricing,
   lookupOpenRouterSpeed,
@@ -177,10 +178,15 @@ function buildCostTier(value: unknown): ModelAtlasCostTier | null {
 
 /**
  * Keep catalog prices authoritative, filling only missing fields from Artificial Analysis USD-per-million-token prices.
- * OpenRouter's listed route prices, weighted by the tokens each route served, take precedence for the weighted and blended prices.
+ * A catalog listing at $0 for both input and output is a free route rather than the model's price, so Artificial Analysis's paid price replaces it when there is one.
+ * OpenRouter's listed route prices, at the price most of the routes' served tokens pay, take precedence for the weighted and blended prices.
  */
 function buildCost(row: ModelRow, openRouterData: OpenRouterModelData): ModelAtlasCost {
-  const baseCost = row.cost ?? {};
+  const listedCost = row.cost ?? {};
+  const isFreeListing =
+    asFiniteNumber(listedCost.input) === 0 && asFiniteNumber(listedCost.output) === 0;
+  const baseCost =
+    isFreeListing && hasPositiveCostFields(row.artificial_analysis_cost ?? {}) ? {} : listedCost;
   const cost: Exclude<ModelAtlasCost, null> = {
     ...buildCostBreakdown(baseCost),
   };
@@ -274,20 +280,26 @@ function minimumFiniteNumber(...values: unknown[]): number | null {
 
 function buildSourceMetrics(source: unknown): ModelAtlasTaskMetricValues | null {
   const row = asRecord(source);
+  // A benchmark observation stores cost and total tokens as columns and its runtime and per-kind tokens in its metadata; a combined observation repeats its amounts in both.
+  const metadata = asRecord(row.metadata);
   const cost =
     firstFiniteNumber(row.cost, row.cost_per_task, row.cost_per_task_usd) ??
     minimumFiniteNumber(row.median_cost_usd_per_task, row.mean_cost_usd_per_task);
   const seconds =
-    firstFiniteNumber(row.seconds_per_task, row.duration_seconds_per_task) ??
+    firstFiniteNumber(
+      row.seconds_per_task,
+      row.duration_seconds_per_task,
+      metadata.seconds_per_task,
+    ) ??
     minimumFiniteNumber(row.median_duration_seconds_per_task, row.mean_duration_seconds_per_task);
   const tokens =
     firstFiniteNumber(row.tokens_per_task) ??
     minimumFiniteNumber(row.median_tokens_per_task, row.mean_tokens_per_task);
   const inputTokens =
-    firstFiniteNumber(row.input_tokens_per_task) ??
+    firstFiniteNumber(row.input_tokens_per_task, metadata.input_tokens_per_task) ??
     minimumFiniteNumber(row.median_input_tokens_per_task, row.mean_input_tokens_per_task);
   const outputTokens =
-    firstFiniteNumber(row.output_tokens_per_task) ??
+    firstFiniteNumber(row.output_tokens_per_task, metadata.output_tokens_per_task) ??
     minimumFiniteNumber(row.median_output_tokens_per_task, row.mean_output_tokens_per_task);
   const taskMetrics: ModelAtlasTaskMetricValues = {
     ...(cost != null && cost >= 0 ? { cost } : {}),

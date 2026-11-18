@@ -340,9 +340,9 @@ function selectedColumnValue(
         cache_write: firstNumber(row, ["cacheWritePrice"]),
       };
     case "median_speed":
-      return firstNumber(asRecord(row.timescaleData), ["medianOutputSpeed"]);
+      return firstNumber(asRecord(row.headline), ["outputSpeed"]);
     case "median_time":
-      return firstNumber(asRecord(row.timescaleData), ["medianTimeToFirstChunk"]);
+      return firstNumber(asRecord(row.headline), ["timeToFirstToken"]);
     case "median_end_to_end_response_time":
       return firstNumber(asRecord(row.endToEndResponseTime), ["total"]);
     case "intelligence":

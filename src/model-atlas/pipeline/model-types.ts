@@ -124,6 +124,8 @@ export type ModelRow = {
   openrouter_id?: string | null;
   artificial_analysis_id?: string | null;
   artificial_analysis_slug?: string | null;
+  /** Artificial Analysis's name for a catalog-matched model, which other sources often use instead of the catalog's `name`; null on an unmatched row, which already goes by it, and when a different model goes by it. */
+  artificial_analysis_alias?: string | null;
   /** Set on the one variant per base model that receives results reported for the model as a whole. */
   source_default?: boolean;
   reasoning_effort?: string | null;

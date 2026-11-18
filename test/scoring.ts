@@ -202,17 +202,26 @@ assert.deepEqual(
     "arc_agi_2",
     "arc_agi_3",
     "automation_bench",
+    "biomysterybench",
     "briefcase",
     "code2video_aa",
+    "code_migration",
     "critpt",
+    "emb",
+    "finance_agent",
     "frontier_code",
     "gdp_pdf",
     "gdpval_normalized",
     "hle",
     "mlcr_aa",
+    "mysterymechanism",
     "omniscience_accuracy",
+    "programbench",
+    "public_benefits_bench",
+    "sre_bench",
     "terminal_bench",
     "terminal_bench_science",
+    "vibe_code",
   ],
 );
 assert.deepEqual(
@@ -235,33 +244,40 @@ assert.deepEqual(
     biomysterybench: {
       group: "baseline",
       dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
+      resourcePolicy: { source: "benchmark", unit: "per_task", tokenMeasure: "tokens" },
     },
     code_migration: {
       group: "frontier",
       version: "1.1",
       dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
+      resourcePolicy: { source: "benchmark", unit: "per_task", tokenMeasure: "tokens" },
     },
     emb: {
       group: "baseline",
       version: "1.1",
       dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
+      resourcePolicy: { source: "benchmark", unit: "per_task", tokenMeasure: "tokens" },
     },
     finance_agent: {
       group: "baseline",
       version: "2.1",
       dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
+      resourcePolicy: { source: "benchmark", unit: "per_task", tokenMeasure: "tokens" },
     },
     mysterymechanism: {
       group: "frontier",
       dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
+      resourcePolicy: { source: "benchmark", unit: "per_task", tokenMeasure: "tokens" },
     },
     programbench: {
       group: "frontier",
       dimensionLoadings: { intelligence: 0.25, agentic: 0.75 },
+      resourcePolicy: { source: "benchmark", unit: "per_task", tokenMeasure: "tokens" },
     },
     public_benefits_bench: {
       group: "baseline",
       dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
+      resourcePolicy: { source: "benchmark", unit: "per_task", tokenMeasure: "tokens" },
     },
     rsi_benchmark: {
       group: "frontier",
@@ -271,6 +287,7 @@ assert.deepEqual(
     vibe_code: {
       group: "baseline",
       dimensionLoadings: { intelligence: 0, agentic: 1 },
+      resourcePolicy: { source: "benchmark", unit: "per_task", tokenMeasure: "tokens" },
     },
   },
 );

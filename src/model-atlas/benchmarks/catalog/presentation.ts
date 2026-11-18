@@ -753,6 +753,48 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
       },
     },
   ],
+  biomysterybench: [
+    {
+      key: "bioMysteryBenchCost",
+      metric: "cost",
+      direction: "ascending",
+      label: "BioMystery$",
+    },
+    {
+      key: "bioMysteryBenchSeconds",
+      metric: "seconds",
+      direction: "ascending",
+      label: "BioMystery Sec",
+      format: "duration",
+    },
+    {
+      key: "bioMysteryBenchTokens",
+      metric: "tokens",
+      direction: "ascending",
+      label: "BioMystery Tok",
+    },
+  ],
+  briefcase: [
+    {
+      key: "briefcaseCost",
+      metric: "cost",
+      direction: "ascending",
+      label: "Briefcase$",
+    },
+    {
+      key: "briefcaseSeconds",
+      metric: "seconds",
+      direction: "ascending",
+      label: "Briefcase Sec",
+      format: "duration",
+    },
+    {
+      key: "briefcaseTokens",
+      metric: "tokens",
+      direction: "ascending",
+      label: "Briefcase Tok",
+    },
+  ],
   code2video_aa: [
     {
       key: "code2videoAaCost",
@@ -773,6 +815,27 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
       label: "C2V Tok",
     },
   ],
+  code_migration: [
+    {
+      key: "codeMigrationCost",
+      metric: "cost",
+      direction: "ascending",
+      label: "Migration$",
+    },
+    {
+      key: "codeMigrationSeconds",
+      metric: "seconds",
+      direction: "ascending",
+      label: "Migration Sec",
+      format: "duration",
+    },
+    {
+      key: "codeMigrationTokens",
+      metric: "tokens",
+      direction: "ascending",
+      label: "Migration Tok",
+    },
+  ],
   critpt: [
     {
       key: "critptCost",
@@ -791,6 +854,48 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
       metric: "tokens",
       direction: "ascending",
       label: "Crit Tok",
+    },
+  ],
+  emb: [
+    {
+      key: "embCost",
+      metric: "cost",
+      direction: "ascending",
+      label: "EMB$",
+    },
+    {
+      key: "embSeconds",
+      metric: "seconds",
+      direction: "ascending",
+      label: "EMB Sec",
+      format: "duration",
+    },
+    {
+      key: "embTokens",
+      metric: "tokens",
+      direction: "ascending",
+      label: "EMB Tok",
+    },
+  ],
+  finance_agent: [
+    {
+      key: "financeAgentCost",
+      metric: "cost",
+      direction: "ascending",
+      label: "Finance$",
+    },
+    {
+      key: "financeAgentSeconds",
+      metric: "seconds",
+      direction: "ascending",
+      label: "Finance Sec",
+      format: "duration",
+    },
+    {
+      key: "financeAgentTokens",
+      metric: "tokens",
+      direction: "ascending",
+      label: "Finance Tok",
     },
   ],
   frontier_code: [
@@ -890,6 +995,27 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
       label: "MLCR Tok",
     },
   ],
+  mysterymechanism: [
+    {
+      key: "mysteryMechanismCost",
+      metric: "cost",
+      direction: "ascending",
+      label: "Mystery$",
+    },
+    {
+      key: "mysteryMechanismSeconds",
+      metric: "seconds",
+      direction: "ascending",
+      label: "Mystery Sec",
+      format: "duration",
+    },
+    {
+      key: "mysteryMechanismTokens",
+      metric: "tokens",
+      direction: "ascending",
+      label: "Mystery Tok",
+    },
+  ],
   omniscience_accuracy: [
     {
       key: "omniscienceCost",
@@ -908,6 +1034,69 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
       metric: "tokens",
       direction: "ascending",
       label: "Omni Tok",
+    },
+  ],
+  programbench: [
+    {
+      key: "programBenchCost",
+      metric: "cost",
+      direction: "ascending",
+      label: "Program$",
+    },
+    {
+      key: "programBenchSeconds",
+      metric: "seconds",
+      direction: "ascending",
+      label: "Program Sec",
+      format: "duration",
+    },
+    {
+      key: "programBenchTokens",
+      metric: "tokens",
+      direction: "ascending",
+      label: "Program Tok",
+    },
+  ],
+  public_benefits_bench: [
+    {
+      key: "publicBenefitsBenchCost",
+      metric: "cost",
+      direction: "ascending",
+      label: "Benefits$",
+    },
+    {
+      key: "publicBenefitsBenchSeconds",
+      metric: "seconds",
+      direction: "ascending",
+      label: "Benefits Sec",
+      format: "duration",
+    },
+    {
+      key: "publicBenefitsBenchTokens",
+      metric: "tokens",
+      direction: "ascending",
+      label: "Benefits Tok",
+    },
+  ],
+  sre_bench: [
+    {
+      key: "sreBenchCost",
+      metric: "cost",
+      direction: "ascending",
+      label: "SRE$",
+    },
+    {
+      key: "sreBenchSeconds",
+      metric: "seconds",
+      direction: "ascending",
+      label: "SRE Sec",
+      format: "duration",
+    },
+    {
+      key: "sreBenchTokens",
+      metric: "tokens",
+      direction: "ascending",
+      label: "SRE Tok",
     },
   ],
   terminal_bench: [
@@ -968,6 +1157,22 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
         details: [
           ["Source", "Artificial Analysis"],
           ["Metric", "total tokens per task attempt"],
+        ],
+      },
+    },
+    {
+      key: "terminalBenchOfficialSeconds",
+      metric: "seconds",
+      metricSource: "terminal_bench__source_a",
+      direction: "ascending",
+      label: "TB Sec Off",
+      format: "duration",
+      tooltip: {
+        title: "Terminal-Bench runtime ↓",
+        body: "Runtime per task attempt; lower is better.",
+        details: [
+          ["Source", "Official"],
+          ["Metric", "runtime per task attempt"],
         ],
       },
     },
@@ -1062,6 +1267,58 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
           ["Metric", "decode time per task attempt"],
         ],
       },
+    },
+    {
+      key: "terminalBenchScienceValsSeconds",
+      metric: "seconds",
+      metricSource: "terminal_bench_science__source_b",
+      direction: "ascending",
+      label: "TBS Sec Vals",
+      format: "duration",
+      tooltip: {
+        title: "Terminal-Bench-Science runtime ↓",
+        body: "Runtime per task attempt; lower is better.",
+        details: [
+          ["Source", "Vals"],
+          ["Metric", "runtime per task attempt"],
+        ],
+      },
+    },
+    {
+      key: "terminalBenchScienceValsTokens",
+      metric: "tokens",
+      metricSource: "terminal_bench_science__source_b",
+      direction: "ascending",
+      label: "TBS Tok Vals",
+      tooltip: {
+        title: "Terminal-Bench-Science tokens ↓",
+        body: "Total tokens per task attempt; lower is better.",
+        details: [
+          ["Source", "Vals"],
+          ["Metric", "total tokens per task attempt"],
+        ],
+      },
+    },
+  ],
+  vibe_code: [
+    {
+      key: "vibeCodeCost",
+      metric: "cost",
+      direction: "ascending",
+      label: "Vibe$",
+    },
+    {
+      key: "vibeCodeSeconds",
+      metric: "seconds",
+      direction: "ascending",
+      label: "Vibe Sec",
+      format: "duration",
+    },
+    {
+      key: "vibeCodeTokens",
+      metric: "tokens",
+      direction: "ascending",
+      label: "Vibe Tok",
     },
   ],
 } as const satisfies Partial<Record<BenchmarkKey, readonly BenchmarkTaskMetricColumnFacet[]>>;

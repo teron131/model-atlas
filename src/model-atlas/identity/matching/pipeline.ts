@@ -27,15 +27,71 @@ import type {
 const DEFAULT_MAX_CANDIDATES = 5;
 const VOID_THRESHOLD_RANGE_RATIO = 0.35;
 
+function sourceProviderIdentity(source: MatcherSourceModel): string | null {
+  return source.sourceProvider
+    ? providerIdentityKey(source.sourceProvider)
+    : modelProviderIdentity(source.sourceId ?? "");
+}
+
+/**
+ * The slug without a leading word naming its own provider, as Tencent's `"tencent-hy4"` → `"hy4"`; null when there is no such word or nothing would remain.
+ * Callers try it only after the full slug finds no candidate, so a name whose catalog id also carries the provider word (`deepseek-v3`, `mistral-large`) never reaches it.
+ */
+function withoutProviderPrefix(slug: string, provider: string | null): string | null {
+  const [first, ...rest] = slug.split("-");
+  return provider != null && rest.length > 0 && providerIdentityKey(first) === provider
+    ? rest.join("-")
+    : null;
+}
+
+/** The source's candidates under its own slug or, when that finds none, under the slug without a leading word naming its provider, with the slug they were found under. */
+function sourceCandidates(
+  source: MatcherSourceModel,
+  providerPools: PreferredProviderPools,
+  maxCandidates: number,
+): { matchSlug: string; candidates: MatchCandidate[] } {
+  const slug = parseSlugEffort(source.matchSlugOverride ?? source.sourceSlug).baseModel;
+  const candidates = rankedCandidates(slug, source, providerPools, maxCandidates);
+  const unprefixed =
+    candidates.length === 0 ? withoutProviderPrefix(slug, sourceProviderIdentity(source)) : null;
+  return unprefixed == null
+    ? { matchSlug: slug, candidates }
+    : {
+        matchSlug: unprefixed,
+        candidates: rankedCandidates(unprefixed, source, providerPools, maxCandidates),
+      };
+}
+
+function rankedCandidates(
+  matchSlug: string,
+  source: MatcherSourceModel,
+  providerPools: PreferredProviderPools,
+  maxCandidates: number,
+): MatchCandidate[] {
+  const openRouterCandidates = collectCandidatesForSourceSlug(
+    matchSlug,
+    source,
+    providerPools.openRouter,
+  );
+  const fallbackCandidates = collectCandidatesForSourceSlug(
+    matchSlug,
+    source,
+    providerPools.fallback,
+  );
+  return (
+    openRouterCandidates.length === 0
+      ? fallbackCandidates
+      : [...openRouterCandidates, ...fallbackCandidates].sort(compareCandidates)
+  ).slice(0, maxCandidates);
+}
+
 /** Resolve source identity once per pool, excluding publisher and release conflicts before ranking candidates. */
 function collectCandidatesForSourceSlug(
   sourceSlug: string,
   source: MatcherSourceModel,
   modelsDevModels: ModelsDevModel[],
 ): MatchCandidate[] {
-  const sourceProvider = source.sourceProvider
-    ? providerIdentityKey(source.sourceProvider)
-    : modelProviderIdentity(source.sourceId ?? "");
+  const sourceProvider = sourceProviderIdentity(source);
   // Generic launch dates do not identify an evaluated snapshot.
   const sourcePeriod =
     versionDate(source.matchSlugOverride ?? source.sourceSlug) ??
@@ -108,40 +164,28 @@ export function runMatcher(
   maxCandidates: number,
   matcherConfig: MatcherConfig,
 ): MatcherRunOutput {
-  const matchSlugs = sourceModels.map(
-    (sourceModel) =>
-      parseSlugEffort(sourceModel.matchSlugOverride ?? sourceModel.sourceSlug).baseModel,
-  );
-  const models = sourceModels.map((sourceModel, index) => {
-    const matchSlug = matchSlugs[index] ?? "";
-    const openRouterCandidates = collectCandidatesForSourceSlug(
-      matchSlug,
-      sourceModel,
-      providerPools.openRouter,
-    );
-    const fallbackCandidates = collectCandidatesForSourceSlug(
-      matchSlug,
-      sourceModel,
-      providerPools.fallback,
-    );
-    const candidates = (
-      openRouterCandidates.length === 0
-        ? fallbackCandidates
-        : [...openRouterCandidates, ...fallbackCandidates].sort(compareCandidates)
-    ).slice(0, maxCandidates);
+  const matched = sourceModels.map((sourceModel) => {
+    const { matchSlug, candidates } = sourceCandidates(sourceModel, providerPools, maxCandidates);
     return {
-      artificial_analysis_id: sourceModel.sourceId,
-      artificial_analysis_slug: sourceModel.sourceSlug,
-      artificial_analysis_name: sourceModel.sourceName,
-      artificial_analysis_release_date: sourceModel.sourceReleaseDate,
-      best_match: firstVariantCompatibleCandidate(matchSlug, candidates, matcherConfig),
-      candidates,
+      matchSlug,
+      model: {
+        artificial_analysis_id: sourceModel.sourceId,
+        artificial_analysis_slug: sourceModel.sourceSlug,
+        artificial_analysis_name: sourceModel.sourceName,
+        artificial_analysis_release_date: sourceModel.sourceReleaseDate,
+        best_match: firstVariantCompatibleCandidate(matchSlug, candidates, matcherConfig),
+        candidates,
+      },
     };
   });
+  const models = matched.map(({ model }) => model);
 
   const preVoidMatchedCount = models.filter((model) => model.best_match != null).length;
   const preVoidUnmatchedCount = models.length - preVoidMatchedCount;
-  const voidStats = applyMaxMinRangeVoid(models, matchSlugs);
+  const voidStats = applyMaxMinRangeVoid(
+    models,
+    matched.map(({ matchSlug }) => matchSlug),
+  );
   const matchedCount = models.filter((model) => model.best_match != null).length;
   const unmatchedCount = models.length - matchedCount;
 

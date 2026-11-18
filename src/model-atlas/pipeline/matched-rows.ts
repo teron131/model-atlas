@@ -2,8 +2,10 @@
 
 import type { MatchDiagnosticsPayload } from "../identity";
 import {
+  canonicalModelKey,
   canonicalReasoningEffort,
   modelSlugFromModelId,
+  normalizeProviderModelId,
   parseModelEffort,
   qualifyModelId,
 } from "../identity/normalization";
@@ -16,24 +18,31 @@ import type { ModelRow } from "./model-types";
 
 type MatchedRowLookups = Pick<ModelAtlasSourceData, "modelsDev"> & BenchmarkAssignmentLookups;
 
+type ModelMatch = MatchDiagnosticsPayload["models"][number];
+
 /** Keep the source's exact-effort observations separate from its accepted catalog metadata and shared display identity. */
 function buildMatchedRow(
   artificialAnalysisModel: ArtificialAnalysisModel,
-  matchedModelId: string | null,
+  match: ModelMatch,
   lookups: MatchedRowLookups,
 ): ModelRow {
+  const matchedModelId = match.best_match?.model_id ?? null;
   const artificialAnalysisId =
     typeof artificialAnalysisModel.model_id === "string" ? artificialAnalysisModel.model_id : null;
   const artificialAnalysisSlug = modelSlugFromModelId(artificialAnalysisId);
   const matchedModelsDev =
     matchedModelId == null ? null : (lookups.modelsDev.byId.get(matchedModelId) ?? null);
+  const sourceName =
+    typeof artificialAnalysisModel.name === "string"
+      ? parseModelEffort(
+          artificialAnalysisModel.name.replace(/\s+\((?:non[- ]reasoning|no reasoning)\)\s*$/i, ""),
+        ).baseModel
+      : null;
   let name = artificialAnalysisId;
   if (typeof matchedModelsDev?.model?.name === "string") {
     name = matchedModelsDev.model.name;
-  } else if (matchedModelId == null && typeof artificialAnalysisModel.name === "string") {
-    name = parseModelEffort(
-      artificialAnalysisModel.name.replace(/\s+\((?:non[- ]reasoning|no reasoning)\)\s*$/i, ""),
-    ).baseModel;
+  } else if (matchedModelId == null && sourceName != null) {
+    name = sourceName;
   }
   const observationNameCandidates = [
     artificialAnalysisId,
@@ -63,6 +72,7 @@ function buildMatchedRow(
     name,
     artificial_analysis_id: artificialAnalysisId,
     artificial_analysis_slug: artificialAnalysisSlug,
+    artificial_analysis_alias: artificialAnalysisAlias(sourceName, match),
     provider_id: typeof providerId === "string" ? providerId : null,
     openrouter_id: canonicalId,
     reasoning_effort: canonicalReasoningEffort(artificialAnalysisModel.reasoning_effort),
@@ -126,6 +136,30 @@ export function modelRowsFromMatchDiagnostics(
     ) {
       return [];
     }
-    return [buildMatchedRow(artificialAnalysisModel, matchedModelId, sourceData)];
+    return [buildMatchedRow(artificialAnalysisModel, match, sourceData)];
   });
+}
+
+/** Artificial Analysis's name stands in for its catalog match unless the matcher passed over a different catalog model by that name, as it passes over a release when Artificial Analysis gives the preview the release's name. */
+function artificialAnalysisAlias(sourceName: string | null, match: ModelMatch): string | null {
+  const selected = match.best_match;
+  if (sourceName == null || selected == null) {
+    return null;
+  }
+  const nameKey = canonicalModelKey({ name: sourceName });
+  const selectedSlug = publicModelSlug(selected.model_id);
+  const passedOver = match.candidates.some(
+    (candidate) =>
+      candidate.model_name != null &&
+      canonicalModelKey({ name: candidate.model_name }) === nameKey &&
+      publicModelSlug(candidate.model_id) !== selectedSlug,
+  );
+  return passedOver ? null : sourceName;
+}
+
+/** Another host's listing or a free route of the selected model is not a different model: `"nvidia/nemotron-3-ultra-550b-a55b:free"` → `"nemotron-3-ultra-550b-a55b"`. */
+function publicModelSlug(modelId: string): string | null {
+  return modelSlugFromModelId(
+    normalizeProviderModelId(publicOpenRouterModelId(modelId) ?? modelId),
+  );
 }

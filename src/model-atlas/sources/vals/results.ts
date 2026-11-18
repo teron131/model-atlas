@@ -10,7 +10,13 @@ import type {
   BenchmarkObservationRow,
 } from "../../benchmarks/observation";
 import { canonicalReasoningEffort, modelEffortLabel } from "../../identity/normalization";
-import { asFiniteNumber, asNonEmptyString, nowEpochSeconds, stableJson } from "../../runtime";
+import {
+  asFiniteNumber,
+  asNonEmptyString,
+  asRecord,
+  nowEpochSeconds,
+  stableJson,
+} from "../../runtime";
 import { percentToUnitScore } from "../parsing";
 import { getValsBenchmarkView, parseValsBenchmarkView, type ValsBenchmarkView } from "./view";
 
@@ -91,10 +97,11 @@ function scoreRow(
   const metadata: BenchmarkObservationMetadata = { source_result_json: stableJson(value) };
   const costPerTask = asFiniteNumber(value.cost_per_test);
   const secondsPerTask = asFiniteNumber(value.latency);
-  const outputTokensPerTask = asFiniteNumber(value.avg_output_tokens);
+  const tokens = valsTokensPerTask(value);
   const scoreStandardError = percentToUnitScore(value.stderr);
   if (secondsPerTask != null) metadata.seconds_per_task = secondsPerTask;
-  if (outputTokensPerTask != null) metadata.output_tokens_per_task = outputTokensPerTask;
+  if (tokens.input != null) metadata.input_tokens_per_task = tokens.input;
+  if (tokens.output != null) metadata.output_tokens_per_task = tokens.output;
   if (scoreStandardError != null) metadata.score_standard_error = scoreStandardError;
   for (const [key, metadataValue] of [
     ["task", task],
@@ -117,9 +124,32 @@ function scoreRow(
     rank: null,
     canonical_value: canonicalValue,
     ...(costPerTask == null ? {} : { cost: costPerTask }),
+    ...(tokens.input == null || tokens.output == null
+      ? {}
+      : { tokens_per_task: tokens.input + tokens.output }),
     observed_at: asNonEmptyString(view.metadata.updated),
     metadata,
   };
+}
+
+/** Vals totals a run's tokens over the tasks it measured, input counting cache reads and writes and output counting reasoning; older rows give per-task averages instead. */
+function valsTokensPerTask(value: Record<string, unknown>): {
+  input: number | null;
+  output: number | null;
+} {
+  const measured = asFiniteNumber(value.token_tasks_measured);
+  if (measured == null || measured <= 0) {
+    return {
+      input: asFiniteNumber(value.avg_input_tokens),
+      output: asFiniteNumber(value.avg_output_tokens),
+    };
+  }
+  const totals = asRecord(value.token_totals);
+  const perTask = (total: unknown) => {
+    const amount = asFiniteNumber(total);
+    return amount == null ? null : amount / measured;
+  };
+  return { input: perTask(totals.input_tokens), output: perTask(totals.output_tokens) };
 }
 
 /** Vals reports a run's effort as `reasoning_effort`, or `compute_effort` for models that take a compute setting. */
