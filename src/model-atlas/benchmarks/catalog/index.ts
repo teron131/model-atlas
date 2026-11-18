@@ -7,6 +7,7 @@ export {
   type BenchmarkKey,
   type BenchmarkResourceProfile,
 } from "./portfolio";
+export { BENCHMARK_DOMAINS, type BenchmarkDomain, benchmarkDomainShares } from "./domains";
 export {
   BENCHMARK_COLUMNS,
   BENCHMARK_DISPLAY_GROUPS,

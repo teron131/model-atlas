@@ -1,6 +1,15 @@
 /** Resolve dashboard table header and row-change tooltips from table policy and payload metadata; a benchmark's header describes the benchmark with its configured weights, its coverage in the current view, and its leaders, last update, and fetch state from benchmark health. */
 
-import type { BenchmarkGroup } from "../../../src/model-atlas/benchmarks/factory";
+import {
+  BENCHMARK_DOMAINS,
+  type BenchmarkDomain,
+  benchmarkDomainShares,
+} from "../../../src/model-atlas/benchmarks/catalog";
+import type {
+  BenchmarkGroup,
+  BenchmarkPortfolio,
+} from "../../../src/model-atlas/benchmarks/factory";
+import { indexPolicy } from "../../../src/model-atlas/benchmarks/index-policy";
 import {
   BENCHMARK_CATALOG,
   benchmarkAllocation,
@@ -15,6 +24,11 @@ import {
   type ModelAtlasColumnTooltipRow,
   type ModelAtlasColumnTooltips,
 } from "../../../src/model-atlas/config/tooltips";
+import { MIDDLE_BLEND_MIX } from "../../../src/model-atlas/pipeline/scores/blended-price";
+import {
+  resourceRatioBenchmarks,
+  type ResourceRatioKind,
+} from "../../../src/model-atlas/stats/resource-ratios";
 import type {
   ModelAtlasBenchmarkUpdateEntry,
   ModelAtlasMetadata,
@@ -143,7 +157,7 @@ const staticTableColumnTooltips = {
     title: "Relative task cost ↓",
     body: "Weighted median of measured cost divided by each benchmark/source’s model-balanced median. 1× is benchmark-median expenditure; lower is cheaper. Quality is not adjusted.",
     rows: [
-      ["Reference", "Each base model shares one vote across its observed efforts."],
+      ["Reference", "Each base model counts once, split across its observed efforts."],
       [
         "Weights",
         "One per benchmark, shared across separate sources; index breadth excludes measured constituents.",
@@ -156,14 +170,14 @@ const staticTableColumnTooltips = {
     body: "Weighted median of total-token ratios against benchmark/source medians. Total tokens require a complete input/output pair or a reported total; output-only measurements stay missing.",
     rows: [
       ["Scale", "1× is benchmark-median use; lower uses fewer tokens."],
-      ["Reference", "Each base model shares one vote across its observed efforts."],
+      ["Reference", "Each base model counts once, split across its observed efforts."],
     ],
   },
   taskTimeRatio: {
     title: "Relative task time ↓",
     body: "Weighted median of observed runtime divided by each benchmark/source’s model-balanced median. 1× is benchmark-median runtime; lower is faster. Only reported runtime contributes.",
     rows: [
-      ["Reference", "Each base model shares one vote across its observed efforts."],
+      ["Reference", "Each base model counts once, split across its observed efforts."],
       ["Coverage", "Available measured benchmarks only; cell tooltip shows the count."],
     ],
   },
@@ -312,12 +326,12 @@ function taskMetricTooltipEntry(
   ];
 }
 
-/** With a context, a benchmark column gets its live header facts; otherwise table-owned tooltips win over the payload's column tooltips. */
+/** With a context, a benchmark column gets its live header facts and a resource ratio the benchmarks it counts; otherwise table-owned tooltips win over the payload's column tooltips. */
 export function tableColumnTooltip(
   key: TableColumnKey,
   columnTooltips: ModelAtlasColumnTooltips,
   context?: BenchmarkTooltipContext,
-) {
+): DashboardColumnTooltip | undefined {
   if (context != null) {
     const benchmark = benchmarkMetricColumns.find((column) => column.key === key);
     if (benchmark != null) {
@@ -325,7 +339,25 @@ export function tableColumnTooltip(
     }
   }
   const tooltip = appColumnTooltips[key] ?? columnTooltips[key];
-  if (!tooltip || !isScoreKey(key)) return tooltip;
+  if (!tooltip) return tooltip;
+  const ratio = ratioKinds[key];
+  if (ratio != null) {
+    return context?.scoring == null
+      ? tooltip
+      : {
+          ...tooltip,
+          weights: ratioBenchmarks(ratio, context.population, context.scoring.benchmark_portfolio),
+        };
+  }
+  if (key === "blend") {
+    // The card's bar draws the middle mix, so its row would repeat it.
+    return {
+      ...tooltip,
+      mix: MIDDLE_BLEND_MIX,
+      rows: tooltip.rows?.filter(([label]) => label !== "Middle mix"),
+    };
+  }
+  if (!isScoreKey(key)) return tooltip;
   const explanation = scoreExplanations[key];
   const payloadGroups =
     tooltip.sections?.flatMap((section) =>
@@ -336,7 +368,7 @@ export function tableColumnTooltip(
   return {
     title: tooltip.title,
     body: explanation.body,
-    weights: scoreWeights(key, payloadGroups),
+    weights: scoreWeights(payloadGroups),
     rows: explanation.rows,
   };
 }
@@ -345,22 +377,32 @@ function isScoreKey(key: TableColumnKey): key is ModelAtlasScoreKey {
   return key in scoreExplanations;
 }
 
-// The payload names benchmarks as they score; the treemap labels each with its table column's short name.
-const columnLabels = new Map(
-  Object.values(BENCHMARK_CATALOG).map(({ presentation }) => [
-    presentation.scoringLabel ?? presentation.label,
-    presentation.column.label,
-  ]),
-);
+// A weights map labels each benchmark with its table column's short name and files it under its primary domain; a score's payload names benchmarks as they score.
+const catalogBenchmarks = Object.entries(BENCHMARK_CATALOG).map(([key, { presentation }]) => ({
+  key,
+  name: presentation.scoringLabel ?? presentation.label,
+  label: presentation.column.label,
+  domains: domainShares(key),
+}));
+
+/** A benchmark's domain shares heaviest first, a tie keeping the catalog's domain order, so the first is its primary domain; empty for an index, which mixes every domain. */
+function domainShares(key: string): DomainShare[] {
+  const shares = benchmarkDomainShares(key) ?? {};
+  return BENCHMARK_DOMAINS.flatMap(({ key: domain, name }) => {
+    const share = shares[domain];
+    return share == null ? [] : [{ domain, name, share }];
+  }).sort((a, b) => b.share - a.share);
+}
+const benchmarksByName = new Map(catalogBenchmarks.map((benchmark) => [benchmark.name, benchmark]));
+const benchmarksByKey = new Map(catalogBenchmarks.map((benchmark) => [benchmark.key, benchmark]));
 
 // A payload share in percent: "1.25%" → 1.25; any other text, such as "display only", is no share.
 const PERCENT = /^(\d+(?:\.\d+)?)%$/;
 
-/** Read a score's payload weight groups into numbers: one group whose members weigh differently splits into tiers of equal weight, while several groups keep their own titles; groups without shares are listed apart. */
+/** Read a score's payload weight groups into numbers: a group of benchmarks splits into blocks by their primary domains, while a group of other inputs, such as Speed's provider speed, stays one block under its own title; groups without shares are listed apart. */
 function scoreWeights(
-  score: ModelAtlasScoreKey,
   payloadGroups: readonly ModelAtlasColumnTooltipNestedSection[],
-): ScoreWeights {
+): ColumnWeights {
   const members = (group: ModelAtlasColumnTooltipNestedSection) =>
     group.rows.flatMap(([label, value]) => {
       const share = PERCENT.exec(value)?.[1];
@@ -368,26 +410,27 @@ function scoreWeights(
       const name = label.replace(/ (runtime|cost) ↓$/, "");
       return share == null
         ? []
-        : [{ name, label: columnLabels.get(name) ?? name, share: Number(share) }];
+        : [
+            {
+              name,
+              label: benchmarksByName.get(name)?.label ?? name,
+              share: Number(share),
+              domains: benchmarksByName.get(name)?.domains ?? [],
+            },
+          ];
     });
   const parsed = payloadGroups.map((group) => ({ group, items: members(group) }));
-  const weighted = parsed.flatMap(({ group, items }) =>
-    items.length > 0 ? [{ title: group.title, items }] : [],
-  );
-  const total = (group: ScoreWeightGroup) => group.items.reduce((sum, item) => sum + item.share, 0);
-  const only = weighted.length === 1 ? weighted[0]! : null;
+  const weighted = parsed.filter(({ items }) => items.length > 0);
   return {
-    score,
-    caption: only?.title ?? "Inputs",
-    groups:
-      only == null
-        ? [...weighted].sort((a, b) => total(b) - total(a))
-        : [...new Set(only.items.map((item) => item.share))]
-            .sort((a, b) => b - a)
-            .map((share) => ({
-              title: null,
-              items: only.items.filter((item) => item.share === share),
-            })),
+    unit: "percent",
+    caption: weighted.length === 1 ? weighted[0]!.group.title : "Inputs",
+    groups: weighted
+      .flatMap(({ group, items }): ColumnWeightGroup[] =>
+        items.some((item) => benchmarksByName.has(item.name))
+          ? domainBlocks(items, group.title)
+          : [{ title: group.title, domain: null, items }],
+      )
+      .sort(heaviestFirst),
     unweighted: parsed
       .filter(({ items }) => items.length === 0)
       .map(({ group }) => ({
@@ -398,8 +441,67 @@ function scoreWeights(
   };
 }
 
+const ratioKinds: Partial<Record<TableColumnKey, ResourceRatioKind>> = {
+  taskCostRatio: "cost",
+  totalTokenRatio: "tokens",
+  taskTimeRatio: "time",
+};
+
+/** A resource ratio's benchmarks across the population in blocks by primary domain, each counting once; an index counts only for the parts a model has no measurement of their own, so it is listed apart. */
+function ratioBenchmarks(
+  kind: ResourceRatioKind,
+  population: readonly ModelAtlasModel[],
+  portfolio: BenchmarkPortfolio,
+): ColumnWeights {
+  const benchmarks = resourceRatioBenchmarks(population, portfolio, kind).map((key) =>
+    benchmarksByKey.get(key)!,
+  );
+  const measured = benchmarks.filter(({ key }) => indexPolicy(key) == null);
+  const indexes = benchmarks.filter(({ key }) => indexPolicy(key) != null);
+  return {
+    unit: "count",
+    caption: `${measured.length} benchmarks`,
+    groups: domainBlocks(
+      measured.map(({ name, label, domains }) => ({ name, label, share: 1, domains })),
+      "Benchmarks",
+    ).sort(heaviestFirst),
+    unweighted:
+      indexes.length === 0
+        ? []
+        : [
+            {
+              title: "Indexes",
+              note: "count only for parts not measured alone",
+              names: indexes.map(({ name }) => name),
+            },
+          ],
+  };
+}
+
+// A benchmark the catalog files under no domain goes in a block titled `title`.
+function domainBlocks(items: readonly ColumnWeightItem[], title: string): ColumnWeightGroup[] {
+  const blocks = new Map<BenchmarkDomain | null, ColumnWeightItem[]>();
+  for (const item of items) {
+    const domain = item.domains[0]?.domain ?? null;
+    blocks.set(domain, [...(blocks.get(domain) ?? []), item]);
+  }
+  return [...blocks].map(([domain, items]) => ({
+    title: domain == null ? title : BENCHMARK_DOMAINS.find(({ key }) => key === domain)!.name,
+    domain,
+    items: items.sort((a, b) => b.share - a.share),
+  }));
+}
+
+function heaviestFirst(a: ColumnWeightGroup, b: ColumnWeightGroup) {
+  const total = (group: ColumnWeightGroup) =>
+    group.items.reduce((sum, item) => sum + item.share, 0);
+  return total(b) - total(a);
+}
+
 type BenchmarkTooltipContext = {
   models: readonly ModelAtlasModel[];
+  /** Every published variant, which a resource ratio's medians are taken over, whatever the view shows. */
+  population: readonly ModelAtlasModel[];
   scoring: ModelAtlasMetadata["scoring"] | undefined;
   versions: ModelAtlasMetadata["benchmark_versions"];
   health: ModelAtlasMetadata["benchmark_update_health"];
@@ -412,6 +514,7 @@ export type BenchmarkTooltipFacts = {
   group: BenchmarkGroup | null;
   details: readonly ModelAtlasColumnTooltipRow[];
   weights: { intelligence: number; agentic: number } | null;
+  domains: readonly DomainShare[];
   coverage: { observed: number; total: number; unit: "models" | "variants" };
   leaders: BenchmarkTooltipLeaders | null;
   /** When a source couldn't be refreshed, the date of the results shown instead. */
@@ -432,34 +535,44 @@ export type BenchmarkTooltipLeaders = {
 
 export type DashboardColumnTooltip = ModelAtlasColumnTooltip & {
   benchmark?: BenchmarkTooltipFacts;
-  weights?: ScoreWeights;
+  weights?: ColumnWeights;
+  /** Shares of new input and output tokens in the mix a blended price is set at; every other token is a cache read. */
+  mix?: { new_input: number; output: number };
 };
 
-/** A score header's weights, which the dashboard draws in place of the payload's weight groups. */
-export type ScoreWeights = {
-  score: ModelAtlasScoreKey;
-  /** What the shares divide: the one weighted payload group's title, such as "Frontier benchmarks", or "Inputs" when several groups split the score. */
+/** A score header's weights, drawn in place of the payload's weight groups, or the benchmarks a resource ratio header counts. */
+export type ColumnWeights = {
+  /** A score's shares are percentages of it; a ratio's benchmarks each count once, so they carry no figure. */
+  unit: "percent" | "count";
+  /** What the shares divide: the one weighted payload group's title, such as "Frontier benchmarks", "Inputs" when several groups split the score, or how many benchmarks a ratio counts. */
   caption: string;
-  /** Heaviest first: tiers of equal weight when one payload group's members weigh differently, otherwise the payload's groups by their total share. */
-  groups: readonly ScoreWeightGroup[];
-  /** Payload groups listed without a share, such as baseline benchmarks, with the payload's note on how they count. */
+  /** Heaviest first by total share: benchmarks in blocks by primary domain, or a score's several payload groups. */
+  groups: readonly ColumnWeightGroup[];
+  /** Groups listed without a share, such as a score's baseline benchmarks or a ratio's indexes, with a note on how they count. */
   unweighted: readonly { title: string; note?: string; names: readonly string[] }[];
 };
 
-export type ScoreWeightGroup = {
-  /** The payload group's title, or null for a tier of one group whose members weigh differently. */
-  title: string | null;
-  /** All weigh the same: a tier by construction, and a payload group because the payload splits its share equally among its members. */
-  items: readonly ScoreWeightItem[];
+export type ColumnWeightGroup = {
+  /** The payload group's title, or the name of the primary domain a block's benchmarks share. */
+  title: string;
+  /** The primary domain a block's benchmarks share, whose icon marks the block; null for a payload group or benchmarks filed under no domain. */
+  domain: BenchmarkDomain | null;
+  /** Heaviest first; a payload group's all weigh the same, since the payload splits its share equally among its members. */
+  items: readonly ColumnWeightItem[];
 };
 
-export type ScoreWeightItem = {
+export type ColumnWeightItem = {
   name: string;
   /** A benchmark's table column name, such as "HLE" for HLE-Diamond, or the name itself for other inputs. */
   label: string;
-  /** Share of the score in percent. */
+  /** A percent of the score, or 1 for a counted benchmark. */
   share: number;
+  /** Empty for an index or an input other than a benchmark; the first is the block the item is filed under. */
+  domains: readonly DomainShare[];
 };
+
+/** One domain's part of a benchmark, in percent of the benchmark; a benchmark's shares sum to 100. */
+export type DomainShare = { domain: BenchmarkDomain; name: string; share: number };
 
 /** Describe a benchmark without treating missing or estimated results as observed coverage. */
 function benchmarkTooltip(
@@ -498,6 +611,7 @@ function benchmarkTooltip(
               intelligence: capabilityAllocation(key, "intelligence", scoring),
               agentic: capabilityAllocation(key, "agentic", scoring),
             },
+      domains: domainShares(key),
       coverage: { ...benchmarkCoverage(models, key), unit },
       leaders: benchmarkLeaders(column, healthEntry, models),
       cachedSince: cachedAt == null ? null : formatRefreshDate(cachedAt),

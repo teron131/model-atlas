@@ -40,6 +40,23 @@
   /* Intelligence and Agentic as data, in the methodology figures' violet and rose. */
   --dimension-intelligence: #8f6bff;
   --dimension-agentic: #e06296;
+  /* Each benchmark label keeps one colour wherever it appears: fifteen hues around the circle in three lightness steps, so neighbouring hues differ in lightness too, with paper ink over light fills on dark paper and deep fills on light paper. Fifteen colours cannot all stay apart for every colour vision, so a label's icon travels with its colour. */
+  --domain-ink: var(--paper);
+  --domain-tone-games: #f08f87;
+  --domain-tone-healthcare: #ffcfb6;
+  --domain-tone-tool_use: #f3b867;
+  --domain-tone-finance: #c3ae4c;
+  --domain-tone-knowledge: #cfe78b;
+  --domain-tone-research: #91d993;
+  --domain-tone-science: #50c6a1;
+  --domain-tone-math: #69f4f0;
+  --domain-tone-coding: #56d7f7;
+  --domain-tone-legal: #61b7f3;
+  --domain-tone-documents: #cadbfe;
+  --domain-tone-writing: #c2baff;
+  --domain-tone-vision: #c897e4;
+  --domain-tone-design: #ffc7ef;
+  --domain-tone-puzzles: #ffa6c0;
 
   /* Hairline dividers and stronger region frames share one rule vocabulary. */
   --line: rgb(var(--ink-rgb) / 0.085);
@@ -94,6 +111,21 @@ html[data-model-atlas-theme="light"] {
   --status-warning: #865321;
   --dimension-intelligence: #6b47e0;
   --dimension-agentic: #c93f78;
+  --domain-tone-games: #a75c56;
+  --domain-tone-healthcare: #6b2e02;
+  --domain-tone-tool_use: #7c5000;
+  --domain-tone-finance: #857424;
+  --domain-tone-knowledge: #3b4900;
+  --domain-tone-research: #326935;
+  --domain-tone-science: #24876a;
+  --domain-tone-math: #034d4c;
+  --domain-tone-coding: #006679;
+  --domain-tone-legal: #367ba9;
+  --domain-tone-documents: #283f77;
+  --domain-tone-writing: #5a508f;
+  --domain-tone-vision: #89629e;
+  --domain-tone-design: #622a55;
+  --domain-tone-puzzles: #874057;
 }
 
 * {
@@ -1385,74 +1417,26 @@ th[data-sort-state="descending"] .sort-indicator::after {
   margin-left: 0;
 }
 
-/* Each score's tiers step along one ramp ordered by lightness, the heaviest per member at the end that stands out most from the paper, with the hue drifting along it so neighbouring tiers differ in colour too. The values are hand-picked to keep adjacent steps at least 0.06 OKLCH lightness apart and the faintest at 2:1 against the paper, and each tier's label is whichever of ink and paper reads better on it. */
-.score-weights {
+/* A block of inputs other than benchmarks, such as Speed's provider speed, takes a grey that no label uses, so a colour on the map always names a label. */
+.column-weights {
   min-width: 0;
-  --weight-ink-1: var(--paper);
-  --weight-ink-2: var(--paper);
-  --weight-ink-3: var(--ink);
-  --weight-ink-4: var(--ink);
+  --input-tone: color-mix(in srgb, var(--ink) 72%, var(--paper));
+  --input-ink: var(--paper);
 }
 
-.score-weights[data-dimension="intelligence"] {
-  --weight-tone-1: #f4b2e5;
-  --weight-tone-2: #c88ef1;
-  --weight-tone-3: #6e55cf;
-  --weight-tone-4: #334190;
+/* The blend bar's new input and output tones: a light and a deep amber on dark paper, swapped on light paper so the first stands out most from either. */
+.blend-mix {
+  --blend-input-tone: #eed780;
+  --blend-output-tone: #a66b29;
 }
 
-.score-weights[data-dimension="agentic"] {
-  --weight-tone-1: #ffc298;
-  --weight-tone-2: #fa8789;
-  --weight-tone-3: #ba4374;
-  --weight-tone-4: #782c5c;
+html[data-model-atlas-theme="light"] .blend-mix {
+  --blend-input-tone: #824c11;
+  --blend-output-tone: #caa647;
 }
 
-.score-weights:is([data-dimension="speed"], [data-dimension="value"]) {
-  --weight-ink-2: var(--ink);
-}
-
-.score-weights[data-dimension="speed"] {
-  --weight-tone-1: #85ddf3;
-  --weight-tone-2: #3e6dc8;
-}
-
-.score-weights[data-dimension="value"] {
-  --weight-tone-1: #eed780;
-  --weight-tone-2: #a66b29;
-}
-
-/* On light paper the ramp's anchor flips, so the heaviest tier takes the deep end. */
-html[data-model-atlas-theme="light"] .score-weights {
-  --weight-ink-3: var(--paper);
-}
-
-html[data-model-atlas-theme="light"] .score-weights[data-dimension="intelligence"] {
-  --weight-tone-1: #313e8c;
-  --weight-tone-2: #654cc5;
-  --weight-tone-3: #a56ccc;
-  --weight-tone-4: #d696c7;
-}
-
-html[data-model-atlas-theme="light"] .score-weights[data-dimension="agentic"] {
-  --weight-tone-1: #752a59;
-  --weight-tone-2: #ac3668;
-  --weight-tone-3: #d06265;
-  --weight-tone-4: #db9f76;
-}
-
-html[data-model-atlas-theme="light"] .score-weights[data-dimension="speed"] {
-  --weight-tone-1: #224fa7;
-  --weight-tone-2: #51b8cf;
-}
-
-html[data-model-atlas-theme="light"] .score-weights[data-dimension="value"] {
-  --weight-tone-1: #824c11;
-  --weight-tone-2: #caa647;
-}
-
-.score-weights-caption,
-.score-weights-heading {
+.column-weights-caption,
+.column-weights-heading {
   display: flex;
   justify-content: space-between;
   gap: 10px;
@@ -1462,17 +1446,17 @@ html[data-model-atlas-theme="light"] .score-weights[data-dimension="value"] {
   line-height: 1.3;
 }
 
-.score-weights-caption {
+.column-weights-caption {
   margin-bottom: 4px;
   color: var(--muted);
 }
 
-.score-weights-caption > :last-child {
+.column-weights-caption > :last-child {
   color: var(--ink);
   white-space: nowrap;
 }
 
-.score-weights-legend {
+.column-weights-legend {
   display: flex;
   flex-wrap: wrap;
   gap: 3px 14px;
@@ -1485,7 +1469,7 @@ html[data-model-atlas-theme="light"] .score-weights[data-dimension="value"] {
   list-style: none;
 }
 
-.score-weights-legend li {
+.column-weights-legend li {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1493,23 +1477,73 @@ html[data-model-atlas-theme="light"] .score-weights[data-dimension="value"] {
   white-space: nowrap;
 }
 
-.score-weights-legend li::before {
+.column-weights-legend li::before {
   width: 8px;
   height: 8px;
   border-radius: 2px;
-  background: var(--weight-tone);
+  background: var(--tile-tone);
   content: "";
 }
 
-.score-weights-legend li > :last-child {
+.column-weights-legend li > :last-child {
   color: var(--faint);
 }
 
-.score-weights-map {
+/* A pointed benchmark's domain bar and the legend share one place, only one of them visible. */
+.column-weights-key {
+  display: grid;
+}
+
+.column-weights-key > * {
+  grid-area: 1 / 1;
+}
+
+.column-weights-key > [data-shown="false"] {
+  visibility: hidden;
+}
+
+/* A benchmark's domain bar is the benchmark card's Weights bar in domain colours, with its domains named beneath as the legend names blocks. */
+.domain-shares .column-weights-legend {
+  margin-top: 7px;
+}
+
+.benchmark-tooltip-block .domain-shares .column-weights-legend {
+  margin-bottom: 0;
+}
+
+/* A domain block's legend entry is a small tile of its own: the label's colour carrying its icon. */
+.column-weights-legend li[data-domain]::before {
+  content: none;
+}
+
+.column-weights-chip {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 2px;
+  background: var(--tile-tone);
+  color: var(--tile-ink);
+}
+
+.column-weights-chip .column-weights-icon {
+  width: 10px;
+  height: 10px;
+}
+
+.column-weights-label .column-weights-icon {
+  width: 1em;
+  height: 1em;
+  margin-right: 0.25em;
+  vertical-align: -0.125em;
+}
+
+.column-weights-map {
   position: relative;
 }
 
-.score-weights-tile {
+.column-weights-tile {
   position: absolute;
   display: flex;
   flex-direction: column;
@@ -1518,22 +1552,22 @@ html[data-model-atlas-theme="light"] .score-weights[data-dimension="value"] {
   padding: 0 3px;
   overflow: hidden;
   border-radius: 2px;
-  background: var(--weight-tone);
+  background: var(--tile-tone);
   text-align: center;
 }
 
-.score-weights-tile:hover {
-  outline: 1px solid var(--weight-ink);
+.column-weights-tile:hover {
+  outline: 1px solid var(--tile-ink);
   outline-offset: -1px;
 }
 
-.score-weights-label {
+.column-weights-label {
   display: -webkit-box;
   max-width: 100%;
   overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
-  color: var(--weight-ink);
+  color: var(--tile-ink);
   font-family: var(--font-mono);
   font-size: var(--label-size);
   font-weight: var(--type-label-weight);
@@ -1541,16 +1575,16 @@ html[data-model-atlas-theme="light"] .score-weights[data-dimension="value"] {
   overflow-wrap: anywhere;
 }
 
-.score-weights-share {
+.column-weights-share {
   margin-top: 2px;
-  color: color-mix(in srgb, var(--weight-ink) 80%, transparent);
+  color: color-mix(in srgb, var(--tile-ink) 80%, transparent);
   font-family: var(--font-mono);
   font-size: min(var(--type-micro-size), var(--label-size));
   font-weight: 600;
   line-height: 1.2;
 }
 
-.score-weights-tile[data-share="beside"] {
+.column-weights-tile[data-share="beside"] {
   flex-direction: row;
   justify-content: space-between;
   gap: 4px;
@@ -1558,38 +1592,104 @@ html[data-model-atlas-theme="light"] .score-weights[data-dimension="value"] {
   text-align: left;
 }
 
-.score-weights-tile[data-share="beside"] .score-weights-share {
+.column-weights-tile[data-share="beside"] .column-weights-share {
   margin-top: 0;
 }
 
-.score-weights-heading {
+.column-weights-heading {
   margin-bottom: 2px;
   color: var(--faint);
 }
 
-.score-weights-unweighted {
+.column-weights-unweighted {
   margin-top: 11px;
   padding-top: 10px;
   border-top: 1px solid var(--line);
 }
 
-.score-weights-unweighted + .score-weights-unweighted {
+.column-weights-unweighted + .column-weights-unweighted {
   margin-top: 9px;
   padding-top: 0;
   border-top: 0;
 }
 
-.score-weights-count {
+.column-weights-count {
   color: var(--muted);
 }
 
-.score-weights-names {
+.column-weights-names {
   margin: 2px 0 0;
   color: var(--faint);
   font-family: var(--font-sans);
   font-size: var(--type-label-size);
   font-weight: var(--type-body-weight);
   line-height: 1.4;
+}
+
+/* A blended price's token mix, new input and output in their own tones: a thin bar of every token over a faint wedge that opens its remainder into a fuller bar beneath. */
+.blend-mix-legend {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: var(--type-caption-size);
+  font-weight: var(--type-label-weight);
+  line-height: 1.3;
+}
+
+.blend-mix-value {
+  color: var(--ink);
+}
+
+.blend-mix-bar {
+  display: flex;
+  gap: 1px;
+  height: 6px;
+  margin-top: 5px;
+}
+
+.blend-mix-bar > span {
+  border-radius: 1px;
+}
+
+.blend-mix-cache {
+  background: rgb(var(--ink-rgb) / 0.2);
+}
+
+.blend-mix-input,
+.blend-mix-input-key::before {
+  background: var(--blend-input-tone);
+}
+
+.blend-mix-output,
+.blend-mix-output-key::before {
+  background: var(--blend-output-tone);
+}
+
+.blend-mix-zoom {
+  display: block;
+  width: 100%;
+  height: 18px;
+  fill: color-mix(in srgb, var(--blend-input-tone) 13%, transparent);
+}
+
+.blend-mix-rest {
+  height: 12px;
+  margin: 0 0 6px;
+}
+
+.blend-mix-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.blend-mix-key::before {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  content: "";
 }
 
 .benchmark-tooltip-head {

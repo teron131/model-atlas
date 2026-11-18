@@ -142,6 +142,23 @@ export function resourceRatioReferenceSets(
   );
 }
 
+/** The benchmarks a ratio can count across the population: those with a reference on at least one of their sources. */
+export function resourceRatioBenchmarks(
+  models: readonly ModelAtlasModel[],
+  portfolio: BenchmarkPortfolio,
+  kind: ResourceRatioKind,
+): string[] {
+  const observations = resourceRatioObservations(models, portfolio, kind);
+  const references = resourceRatioReferences(observations);
+  return [
+    ...new Set(
+      observations
+        .filter((observation) => references.has(observation.benchmarkKey))
+        .map((observation) => observation.baseBenchmarkKey),
+    ),
+  ];
+}
+
 /** Ratios for each model of one display, in `models` order; source shares are reserved across the whole display first, so the leaderboard, the model sheet, and the API read identical numbers for the same rows. */
 export function displayResourceRatios(
   models: readonly ModelAtlasModel[],

@@ -167,6 +167,7 @@ export function DashboardLeaderboard({
       ? undefined
       : tableColumnTooltip(tooltip.key, columnTooltips, {
           models: visibleRows.map((row) => row.model),
+          population: payload?.models ?? [],
           scoring: payload?.metadata.scoring,
           versions: payload?.metadata.benchmark_versions,
           health: payload?.metadata.benchmark_update_health,

@@ -1,7 +1,8 @@
-/** Draws a benchmark column's header tooltip: the benchmark, its Atlas weights and coverage in view, and its leaders as stars on a scale zoomed from the whole field. */
+/** Draws a benchmark column's header tooltip: the benchmark, its Atlas weights, its domain shares, its coverage in view, and its leaders as stars on a scale zoomed from the whole field. */
 
 import { type CSSProperties, useId } from "react";
 
+import { DomainShareBar } from "./ColumnWeightsMap";
 import type { BenchmarkTooltipFacts, BenchmarkTooltipLeaders } from "./tooltips";
 
 const insetWidth = 332;
@@ -22,7 +23,7 @@ export function BenchmarkTooltipBody({
   body: string;
   facts: BenchmarkTooltipFacts;
 }) {
-  const { version, group, details, weights, coverage, leaders, cachedSince } = facts;
+  const { version, group, details, weights, domains, coverage, leaders, cachedSince } = facts;
   return (
     <>
       <div className="benchmark-tooltip-head">
@@ -73,6 +74,12 @@ export function BenchmarkTooltipBody({
               </div>
             </>
           )}
+        </div>
+      )}
+      {domains.length > 0 && (
+        <div className="benchmark-tooltip-block">
+          <BlockLabel label="Domains" />
+          <DomainShareBar domains={domains} />
         </div>
       )}
       <div className="benchmark-tooltip-block">

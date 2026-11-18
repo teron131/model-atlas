@@ -12,6 +12,12 @@ const BLEND_MIXES = {
   short_tasks: { new_input: 0.05, output: 0.015 },
 } as const;
 
+/** The mix whose blend is the blended price: a blend is linear in its shares, so the midpoint of the two ends' blends is the blend at their midpoint mix. */
+export const MIDDLE_BLEND_MIX = {
+  new_input: (BLEND_MIXES.long_sessions.new_input + BLEND_MIXES.short_tasks.new_input) / 2,
+  output: (BLEND_MIXES.long_sessions.output + BLEND_MIXES.short_tasks.output) / 2,
+};
+
 /**
  * Resolve one listed price card into blend prices.
  * New input pays the cache-write price where one is listed, since providers that bill writes bill every new token as one; an unlisted cache read costs a tenth of input, the median listed ratio.

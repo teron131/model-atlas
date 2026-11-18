@@ -1,4 +1,4 @@
-/** Column header tooltips: when a header's card opens and closes, and the card itself, placed under its header or above it so it never covers the header row, widened for an inequality graph or a score's weights map, with benchmark headers handed to their own body. */
+/** Column header tooltips: when a header's card opens and closes, and the card itself, placed under its header or above it so it never covers the header row, widened for an inequality graph or a weights map, with benchmark headers handed to their own body and a blended price's token mix drawn as a bar. */
 
 import {
   type FocusEvent,
@@ -19,8 +19,8 @@ import type {
 } from "../../../src/model-atlas/config/tooltips";
 import { clamp } from "../../../src/model-atlas/math-utils";
 import { BenchmarkTooltipBody } from "./BenchmarkTooltip";
+import { ColumnWeightsMap } from "./ColumnWeightsMap";
 import { InequalityGraph, layoutInequalityGraph } from "./InequalityGraph";
-import { ScoreWeightsMap } from "./ScoreWeightsMap";
 import type { DashboardColumnTooltip } from "./tooltips";
 
 const viewportMargin = 18;
@@ -28,8 +28,8 @@ const tooltipMaxWidth = 360;
 // The card's 13px side padding and 1px border on each side.
 const tooltipInset = 28;
 const headerGap = 12;
-// A score's weights map takes a card this wide where the screen leaves room for it.
-const scoreWeightsWidth = 520;
+// A weights map takes a card this wide where the screen leaves room for it.
+const weightsWidth = 520;
 // The pointer rests this long on a header before its card opens, so crossing headers on the way to a click opens none.
 const openDelayMs = 800;
 // A card stays live this long after its header loses the pointer, enough for the pointer to cross the gap into it.
@@ -46,7 +46,7 @@ type Placement = { left: number; top: number; maxHeight: number | undefined };
 type Phase = "visible" | "leaving";
 
 export type HeaderTooltipHandler<TKey extends string = string> = (
-  event: MouseEvent<HTMLButtonElement> | FocusEvent<HTMLButtonElement>,
+  event: MouseEvent<Element> | FocusEvent<Element>,
   key: TKey,
 ) => void;
 
@@ -139,7 +139,7 @@ export function ColumnTooltip({
     Math.max(
       tooltipMaxWidth,
       (graphLayout?.width ?? 0) + tooltipInset,
-      content.weights == null ? 0 : scoreWeightsWidth,
+      content.weights == null ? 0 : weightsWidth,
     ),
     availableWidth,
   );
@@ -176,7 +176,13 @@ export function ColumnTooltip({
       {content.weights != null && (
         <>
           <div className="column-tooltip-rule" />
-          <ScoreWeightsMap weights={content.weights} width={tooltipWidth - tooltipInset} />
+          <ColumnWeightsMap weights={content.weights} width={tooltipWidth - tooltipInset} />
+        </>
+      )}
+      {content.mix != null && (
+        <>
+          <div className="column-tooltip-rule" />
+          <BlendMixBar mix={content.mix} />
         </>
       )}
       {graphLayout != null ? (
@@ -220,6 +226,44 @@ export function ColumnTooltip({
   );
 }
 
+const mixFormat = new Intl.NumberFormat("en", { style: "percent", maximumFractionDigits: 2 });
+
+/** Every token of the mix in one bar, nearly all cache reads, with the small remainder drawn out to full width beneath so new input and output read at a legible size. */
+function BlendMixBar({ mix }: { mix: NonNullable<DashboardColumnTooltip["mix"]> }) {
+  const rest = mix.new_input + mix.output;
+  return (
+    <div className="blend-mix">
+      <div className="blend-mix-legend">
+        <span>
+          Cache read <span className="blend-mix-value">{mixFormat.format(1 - rest)}</span>
+        </span>
+        <span className="blend-mix-value">{mixFormat.format(rest)}</span>
+      </div>
+      <div className="blend-mix-bar" aria-hidden>
+        <span className="blend-mix-cache" style={{ flexGrow: 1 - rest }} />
+        <span className="blend-mix-input" style={{ flexGrow: mix.new_input }} />
+        <span className="blend-mix-output" style={{ flexGrow: mix.output }} />
+      </div>
+      <svg className="blend-mix-zoom" viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden>
+        <polygon points={`${(1 - rest) * 100},0 100,0 100,10 0,10`} />
+      </svg>
+      {/* Grow factors summing below 1 hand out only that fraction of the free space, so the remainder's shares are scaled to fill the bar. */}
+      <div className="blend-mix-bar blend-mix-rest" aria-hidden>
+        <span className="blend-mix-input" style={{ flexGrow: mix.new_input / rest }} />
+        <span className="blend-mix-output" style={{ flexGrow: mix.output / rest }} />
+      </div>
+      <div className="blend-mix-legend">
+        <span className="blend-mix-key blend-mix-input-key">
+          New input <span className="blend-mix-value">{mixFormat.format(mix.new_input)}</span>
+        </span>
+        <span className="blend-mix-key blend-mix-output-key">
+          Output <span className="blend-mix-value">{mixFormat.format(mix.output)}</span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function canHover() {
   return window.matchMedia("(hover: hover)").matches;
 }
@@ -239,7 +283,7 @@ function cancel(timer: RefObject<number | null>) {
   }
 }
 
-function headerAnchor(header: HTMLElement): HeaderAnchor {
+function headerAnchor(header: Element): HeaderAnchor {
   const rect = header.getBoundingClientRect();
   const width = Math.min(tooltipMaxWidth, window.innerWidth - viewportMargin * 2);
   return { left: rect.left + rect.width / 2 - width / 2, top: rect.top, bottom: rect.bottom };
