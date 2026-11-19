@@ -1,6 +1,7 @@
 /** Every dashboard surface opens and closes the model sheet through the URL, so a sheet, or a comparison of two, is shareable and Back leaves it. */
 
 import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
+import { modelLinkId } from "../url-state";
 import { replaceDashboardUrl, updateDashboardUrl } from "../use-url-state";
 
 export type ModelSheetModel = Pick<ModelAtlasModel, "id" | "name" | "reasoning_effort">;
@@ -21,7 +22,7 @@ export const MODEL_SHEET_CHANGES_REQUESTED = "model-atlas:sheet-changes";
  */
 export function openModelSheet(model: ModelSheetModel) {
   lastOpenedAt = performance.now();
-  const patch = { model: model.id ?? model.name, effort: model.reasoning_effort ?? null };
+  const patch = { model: sheetKey(model), effort: model.reasoning_effort ?? null };
   if (new URL(window.location.href).searchParams.has("model")) replaceDashboardUrl(patch);
   else updateDashboardUrl(patch);
 }
@@ -60,8 +61,8 @@ export function selectModelSheetEffort(slot: ModelSheetSlot, effort: string | nu
 }
 
 /** Pin the sheet's model so the next model opened from any surface appears beside it for comparison. */
-export function pinModelSheet(key: string, effort: string | null) {
-  replaceDashboardUrl({ compare: key, "compare-effort": effort });
+export function pinModelSheet(model: ModelSheetModel, effort: string | null) {
+  replaceDashboardUrl({ compare: sheetKey(model), "compare-effort": effort });
 }
 
 export function unpinModelSheet() {
@@ -70,16 +71,17 @@ export function unpinModelSheet() {
 
 /** Whether a displayed model is the one a sheet URL names; without an effort, any variant's collapsed row matches. */
 export function isModelSheetModel(model: ModelSheetModel, key: string, effort: string | null) {
-  return (
-    (model.id === key || model.name === key) &&
-    (effort == null || model.reasoning_effort === effort)
-  );
+  return sheetKey(model) === key && (effort == null || model.reasoning_effort === effort);
 }
 
 /** Whether a leaderboard row belongs to the open sheet: a collapsed row stands for every variant of its model, a variant row only for itself. */
 export function rowShowsModelSheet(model: ModelSheetModel, key: string, effort: string | null) {
   return (
-    (model.id === key || model.name === key) &&
-    (model.reasoning_effort == null || model.reasoning_effort === effort)
+    sheetKey(model) === key && (model.reasoning_effort == null || model.reasoning_effort === effort)
   );
+}
+
+// A sheet link names its model by the model's short id, `claude-opus-5.5`, or by name for a model without an id.
+function sheetKey(model: ModelSheetModel): string | null {
+  return model.id == null ? model.name : modelLinkId(model.id);
 }

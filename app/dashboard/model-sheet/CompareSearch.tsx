@@ -77,7 +77,6 @@ export function CompareSearch({
           <ModelSuggestionList {...suggestion.listProps} describe={modelSuggestionRow} />
         ) : null}
       </div>
-      <p className={styles.pinNote}>Or open another model from any row, star, or role.</p>
     </div>
   );
 }

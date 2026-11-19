@@ -23,7 +23,7 @@ import type { HorizonTrail, PlotBounds } from "./Primitives";
 
 export type SkyStarRole = "star" | "frontier" | "leader";
 
-type SkyPlotStar = {
+export type SkyPlotStar = {
   key: string;
   x: number;
   y: number;
@@ -41,6 +41,8 @@ export type SkyPlotScene = {
   width: number;
   height: number;
   bounds: PlotBounds;
+  /** Paints `bounds` as sky, with the horizon where a rim is given, and lets plain stars grow and brighten with height in it; without it the stars alone light the bare panel, all alike, for a chart whose rows are a table's rather than heights. */
+  sky: boolean;
   /** The frontier's rim in ascending x, already extended to the plot edge on its open side; with fewer than two points no planet is drawn. */
   rim: readonly { x: number; y: number }[];
   /** The rim's guessed continuation past the frontier's closed end, along which the planet continues and the rim's light fades out. */
@@ -321,10 +323,9 @@ export function createSkyRenderer(canvas: HTMLCanvasElement) {
       [...next.stars]
         .sort((left, right) => Number(left.role !== "star") - Number(right.role !== "star"))
         .forEach((star, index) => {
-          const altitude = Math.min(
-            1,
-            Math.max(0, (bounds.bottom - star.y) / (bounds.bottom - bounds.top)),
-          );
+          const altitude = next.sky
+            ? Math.min(1, Math.max(0, (bounds.bottom - star.y) / (bounds.bottom - bounds.top)))
+            : 1;
           const size =
             star.role === "leader"
               ? LEADER_SIZE
@@ -368,31 +369,33 @@ export function createSkyRenderer(canvas: HTMLCanvasElement) {
       gl.clearColor(0, 0, 0, 0);
       gl.clear(gl.COLOR_BUFFER_BIT);
 
-      gl.disable(gl.BLEND);
-      gl.useProgram(horizon.program);
-      const h = horizon.uniform;
-      gl.uniform2f(h("resolution"), canvas.width, canvas.height);
-      gl.uniform1f(h("pixelRatio"), pixelRatio);
-      gl.uniform1f(h("time"), time);
-      gl.uniform4f(h("plot"), bounds.left, bounds.top, bounds.right, bounds.bottom);
-      gl.uniform2fv(h("rim"), rim.points);
-      gl.uniform1fv(h("rimArc"), rim.arc);
-      gl.uniform1i(h("rimCount"), rim.count);
-      gl.uniform1f(h("rimLength"), rim.length);
-      gl.uniform2f(
-        h("rimCut"),
-        rim.count > 0 && rim.points[0]! > bounds.left + 0.5 ? 1 : 0,
-        rim.count > 0 && rim.points[(rim.count - 1) * 2]! < bounds.right - 0.5 ? 1 : 0,
-      );
-      gl.uniform2f(h("trail"), rim.trail.x, rim.trail.direction);
-      gl.uniform1f(h("reach"), Math.min(1, (bounds.bottom - bounds.top) / REFERENCE_PLOT_HEIGHT));
-      gl.uniform1f(h("rimStrength"), muted ? MUTED_RIM : 1);
-      gl.bindBuffer(gl.ARRAY_BUFFER, triangle);
-      const corner = gl.getAttribLocation(horizon.program, "corner");
-      gl.enableVertexAttribArray(corner);
-      gl.vertexAttribPointer(corner, 2, gl.FLOAT, false, 0, 0);
-      gl.drawArrays(gl.TRIANGLES, 0, 3);
-      gl.disableVertexAttribArray(corner);
+      if (scene.sky) {
+        gl.disable(gl.BLEND);
+        gl.useProgram(horizon.program);
+        const h = horizon.uniform;
+        gl.uniform2f(h("resolution"), canvas.width, canvas.height);
+        gl.uniform1f(h("pixelRatio"), pixelRatio);
+        gl.uniform1f(h("time"), time);
+        gl.uniform4f(h("plot"), bounds.left, bounds.top, bounds.right, bounds.bottom);
+        gl.uniform2fv(h("rim"), rim.points);
+        gl.uniform1fv(h("rimArc"), rim.arc);
+        gl.uniform1i(h("rimCount"), rim.count);
+        gl.uniform1f(h("rimLength"), rim.length);
+        gl.uniform2f(
+          h("rimCut"),
+          rim.count > 0 && rim.points[0]! > bounds.left + 0.5 ? 1 : 0,
+          rim.count > 0 && rim.points[(rim.count - 1) * 2]! < bounds.right - 0.5 ? 1 : 0,
+        );
+        gl.uniform2f(h("trail"), rim.trail.x, rim.trail.direction);
+        gl.uniform1f(h("reach"), Math.min(1, (bounds.bottom - bounds.top) / REFERENCE_PLOT_HEIGHT));
+        gl.uniform1f(h("rimStrength"), muted ? MUTED_RIM : 1);
+        gl.bindBuffer(gl.ARRAY_BUFFER, triangle);
+        const corner = gl.getAttribLocation(horizon.program, "corner");
+        gl.enableVertexAttribArray(corner);
+        gl.vertexAttribPointer(corner, 2, gl.FLOAT, false, 0, 0);
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+        gl.disableVertexAttribArray(corner);
+      }
 
       // Light adds: onto the opaque sky inside the plot, and past its edge onto the panel, keeping the sky's alpha.
       gl.enable(gl.BLEND);

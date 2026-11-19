@@ -205,6 +205,7 @@ export function timelineScene({
     width,
     height,
     bounds: plotBounds,
+    sky: true,
     rim,
     trail,
     muted: standingLab != null || matches != null,

@@ -24,8 +24,8 @@ const tileAspect = 1.6;
 const tileShape = { minAspect: 0.5, maxAspect: 4, spread: 2.25 };
 // Each tile is drawn half this inside its cell on every side, so neighbouring tiles stand this far apart.
 const tileGap = 2;
-// Blocks stand this much further apart than the tiles, so they read as blocks without headings.
-const blockGutter = 4;
+// Blocks stand this much further apart than the tiles, so they read as blocks without headings; where two blocks share a colour, only the gutter sets them apart, so every block stands the wider distance.
+const blockGutter = { distinct: 4, shared: 14 };
 // Re-weighing blocks for their gutters stops once every block's drawn area per share is within `spread` of every other's, or after `passes`, keeping the most even pass; each pass lays out every tile again.
 const blockEvenness = { spread: 1.005, passes: 6 };
 // Every label of one share takes one size, one of these half-pixel steps, and wraps to at most three lines; where no step fits, labels take the smallest and clip. Heavier tiles have room for larger steps, so type size follows weight.
@@ -81,20 +81,13 @@ export function ColumnWeightsMap({ weights, width }: { weights: ColumnWeights; w
       {/* A pointed benchmark's domain bar takes the legend's place; every bar holds that place hidden, so it keeps the tallest one's height and the map never moves. */}
       <div className="column-weights-key">
         <ul className="column-weights-legend" data-shown={shown == null}>
-          {blocks.map(({ group, tone, total }) => {
-            const Icon = group.domain == null ? null : domainIcons[group.domain];
-            return (
-              <li key={group.title} data-domain={group.domain ?? undefined} style={tone}>
-                {Icon != null && (
-                  <span className="column-weights-chip">
-                    <Icon className="column-weights-icon" aria-hidden />
-                  </span>
-                )}
-                <span>{group.title}</span>
-                <span>{shareText(total, weights.unit, totalFormat) ?? group.items.length}</span>
-              </li>
-            );
-          })}
+          {blocks.map(({ group, tone, total }) => (
+            <li key={group.title} data-domain={group.domain ?? undefined} style={tone}>
+              {group.domain != null && <DomainChip domain={group.domain} />}
+              <span>{group.title}</span>
+              <span>{shareText(total, weights.unit, totalFormat) ?? group.items.length}</span>
+            </li>
+          ))}
         </ul>
         {labelled.map((item) => (
           <div key={item.name} data-shown={item.name === shown}>
@@ -166,20 +159,25 @@ export function DomainShareBar({ domains }: { domains: readonly DomainShare[] })
         ))}
       </div>
       <ul className="column-weights-legend">
-        {domains.map(({ domain, name, share }) => {
-          const Icon = domainIcons[domain];
-          return (
-            <li key={domain} data-domain={domain} style={domainTone(domain)}>
-              <span className="column-weights-chip">
-                <Icon className="column-weights-icon" aria-hidden />
-              </span>
-              <span>{name}</span>
-              <span>{share}%</span>
-            </li>
-          );
-        })}
+        {domains.map(({ domain, name, share }) => (
+          <li key={domain} data-domain={domain}>
+            <DomainChip domain={domain} />
+            <span>{name}</span>
+            <span>{share}%</span>
+          </li>
+        ))}
       </ul>
     </div>
+  );
+}
+
+/** A label's icon on a small tile of its colour, as the legend marks a block and a card's title its label. */
+export function DomainChip({ domain }: { domain: BenchmarkDomain }) {
+  const Icon = domainIcons[domain];
+  return (
+    <span className="column-weights-chip" style={domainTone(domain)}>
+      <Icon className="column-weights-icon" aria-hidden />
+    </span>
   );
 }
 
@@ -266,7 +264,11 @@ function mapLayout(
    * A gutter takes a larger part of a small block than of a large one, so the blocks are re-weighed until each one's drawn tile area per unit of share matches the map's, keeping the most even pass.
    */
   function layBlocks(height: number) {
-    const half = blockGutter / 2;
+    const gutter =
+      new Set(blocks.map((block) => block.group.domain)).size < blocks.length
+        ? blockGutter.shared
+        : blockGutter.distinct;
+    const half = gutter / 2;
     let values = blocks.map((block) => block.total);
     let best = { laid: [] as ReturnType<typeof placeBlocks>, spread: Infinity };
     for (let pass = 0; pass < blockEvenness.passes; pass++) {
@@ -285,8 +287,8 @@ function mapLayout(
       const rects = squarify(blockValues, {
         x: -half,
         y: -half,
-        width: width + blockGutter,
-        height: height + blockGutter,
+        width: width + gutter,
+        height: height + gutter,
       });
       return blocks.map((block, index) => {
         const rect = rects[index]!;
@@ -295,8 +297,8 @@ function mapLayout(
           tiles: blockTiles(block.members, tierCount, {
             x: rect.x + half,
             y: rect.y + half,
-            width: rect.width - blockGutter,
-            height: rect.height - blockGutter,
+            width: rect.width - gutter,
+            height: rect.height - gutter,
           }),
         };
       });

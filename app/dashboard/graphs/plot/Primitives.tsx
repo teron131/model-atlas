@@ -1,10 +1,13 @@
 "use client";
 
-/** The SVG building blocks the Pareto, Timeline, and model-sheet plots share, in each plot's SVG coordinates: frame, axes, star marks and glows, the frontier horizon, medians, and point labels with their measurement. */
+/** The SVG building blocks the dashboard's plots share, in each plot's SVG coordinates: frame, axes, star marks and glows, row labels and domain chips, the frontier horizon, medians, and point labels with their measurement. */
 
 import { type CSSProperties, useCallback, useId, useLayoutEffect, useRef, useState } from "react";
 
+import type { BenchmarkDomain } from "../../../../src/model-atlas/benchmarks/catalog";
 import { clamp } from "../../../../src/model-atlas/math-utils";
+import { domainIcons } from "../../shared/benchmark-display";
+import { providerChartColor, providerLogo } from "../../shared/provider-theme";
 import { REFERENCE_PLOT_HEIGHT } from "../../shared/sky-light";
 import { NAME_CLEARANCE, type PointLabelPlacement, type PointLabelSize } from "./label-placement";
 
@@ -115,6 +118,90 @@ export function StarGlows({ stars, bounds }: { stars: readonly StarLight[]; boun
         ))}
       </g>
     </g>
+  );
+}
+
+/** The SVG's own star for a model, painted only where the sky cannot draw it. */
+export function StarMark({
+  cx,
+  cy,
+  provider,
+  radius = 3,
+}: {
+  cx: number;
+  cy: number;
+  provider: string;
+  radius?: number;
+}) {
+  return (
+    <circle
+      className={styles.starCore}
+      cx={cx}
+      cy={cy}
+      {...starCore(radius, providerChartColor(provider))}
+      pointerEvents="none"
+    />
+  );
+}
+
+/** A plot row's model: its lab's logo, then its name, vertically centred on `y`. */
+export function RowLabel({
+  y,
+  name,
+  provider,
+  dimmed = false,
+}: {
+  y: number;
+  name: string;
+  provider: string;
+  dimmed?: boolean;
+}) {
+  const logo = providerLogo(provider);
+  return (
+    <g opacity={dimmed ? 0.4 : 1}>
+      {logo ? <image href={logo} x={0} y={y - 7} width={14} height={14} /> : null}
+      <text className={styles.rowName} x={22} y={y} dy="0.34em">
+        {name}
+      </text>
+    </g>
+  );
+}
+
+// A domain's chip in a plot matches the weights map's legend: a 14px tile in the label's colour carrying its icon 2px in.
+export const DOMAIN_TILE = { size: 14, inset: 2 };
+
+/** A domain's icon on its label-coloured tile, its top left corner at `x`, `y`; a tile smaller than the legend's, for rows set closer, keeps the icon's inset. */
+export function DomainTile({
+  domain,
+  x,
+  y,
+  size = DOMAIN_TILE.size,
+}: {
+  domain: BenchmarkDomain;
+  x: number;
+  y: number;
+  size?: number;
+}) {
+  const Icon = domainIcons[domain];
+  return (
+    <>
+      <rect
+        x={x}
+        y={y}
+        width={size}
+        height={size}
+        rx={2}
+        style={{ fill: `var(--domain-tone-${domain})` }}
+      />
+      <Icon
+        className={styles.domainIcon}
+        x={x + DOMAIN_TILE.inset}
+        y={y + DOMAIN_TILE.inset}
+        size={size - DOMAIN_TILE.inset * 2}
+        strokeWidth={2}
+        aria-hidden
+      />
+    </>
   );
 }
 

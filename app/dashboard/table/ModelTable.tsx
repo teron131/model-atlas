@@ -9,6 +9,7 @@ import {
 } from "../../../src/model-atlas/stats/model-variants";
 import { useMediaQuery } from "../../shared/use-media-query";
 import { rowShowsModelSheet } from "../model-sheet/open";
+import { useDragPan } from "../shared/use-drag-pan";
 import { useUrlState } from "../use-url-state";
 import {
   dashboardMetricColumns,
@@ -84,6 +85,15 @@ export const ModelTable = memo(function ModelTable({
     rows: visibleRows,
     onTooltipEnd,
   });
+  // A mouse pans the columns from any cell or header, as the rail does from its track.
+  const pan = useDragPan({
+    accepts: () => {
+      const view = tableScrollRef.current!;
+      return view.scrollWidth > view.clientWidth;
+    },
+    scrollLeft: () => tableScrollRef.current!.scrollLeft,
+    scrollTo: scrollTableTo,
+  });
   const isStickyHeaderReady = columnWidths.length === columnKeys.length;
   const detailedRows = useDetailedRowRange(tableScrollRef, rowHeight);
   const rowKeys = useMemo(() => stableModelRowKeys(visibleRows), [visibleRows]);
@@ -121,7 +131,7 @@ export const ModelTable = memo(function ModelTable({
         columnWidths={columnWidths}
         pinnedWidth={pinnedColumnsEnabled ? (columnWidths[0] ?? 0) + (columnWidths[1] ?? 0) : 0}
       />
-      <div className="table-sticky-head" ref={headerScrollRef} onScroll={handleScroll}>
+      <div className="table-sticky-head" ref={headerScrollRef} onScroll={handleScroll} {...pan}>
         <table className="sticky-header-table" style={stickyHeaderTableStyle}>
           <ColumnGroup widths={columnWidths} columnKeys={columnKeys} />
           <thead>
@@ -143,6 +153,7 @@ export const ModelTable = memo(function ModelTable({
         aria-busy={isLoading || isSorting}
         ref={tableScrollRef}
         onScroll={handleScroll}
+        {...pan}
       >
         <table ref={tableRef}>
           {columnWidthsHeld && isStickyHeaderReady ? (

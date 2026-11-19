@@ -1,6 +1,6 @@
 /** One comparison surface owns its shareable performance, evidence, and resource selections, plotting published scores or selected benchmarks against measured resources or published resource scores. */
 
-import { memo, useMemo, useState } from "react";
+import { memo, useMemo } from "react";
 
 import { isAggregateIndex } from "../../../../src/model-atlas/benchmarks/index-policy";
 import { canonicalModelKey } from "../../../../src/model-atlas/identity/normalization";
@@ -15,13 +15,7 @@ import { modelName, shortLabel } from "../../shared/model-display";
 import { modelSearchDocument } from "../../shared/model-filters";
 import { modelSuggestionRow } from "../../shared/ModelSuggestions";
 import { updateDashboardUrl, useUrlState } from "../../use-url-state";
-import {
-  ChartFind,
-  type ChartFindState,
-  chartFindTargets,
-  EMPTY_CHART_FIND,
-  termTargets,
-} from "../ChartFind";
+import { ChartFind, chartFindTargets, termTargets, useChartFind } from "../ChartFind";
 import { finite, formatTooltipNumber, formatTooltipScore } from "../format";
 import { GraphToggle } from "../GraphToggle";
 import { scoreAxisScale } from "../plot/axis-scale";
@@ -41,7 +35,7 @@ import {
 import { BenchmarkSelect } from "./BenchmarkSelect";
 import { commonBenchmarkComparison } from "./common-evidence";
 import { CommonEvidence } from "./CommonEvidence";
-import { PARETO_CAPTION, ParetoFigureFoot, ParetoFigureTop } from "./Figure";
+import { ParetoFigureFoot, ParetoFigureTop } from "./Figure";
 import {
   frontierAxisDescription,
   frontierAxisMetricLabel,
@@ -174,11 +168,11 @@ export const ParetoPanel = memo(function ParetoPanel({
     aggregate,
     resourceAxis,
   ]);
-  const [find, setFind] = useState<ChartFindState>(EMPTY_CHART_FIND);
   const findDocuments = useMemo(
     () => plottedFamilies(rows).map((model) => modelSearchDocument(model, model)),
     [rows],
   );
+  const [find, setFind] = useChartFind("pareto-find", findDocuments, modelSuggestionRow, modelId);
   const matches = useMemo(() => {
     const targets = chartFindTargets(find, findDocuments, modelSuggestionRow);
     return targets == null ? null : new Set(targets.map(canonicalModelKey));
@@ -256,13 +250,10 @@ export const ParetoPanel = memo(function ParetoPanel({
       : `No models have both ${yLabel} and ${axisConfig.shortLabel}. Change the evidence, axis, or filters.`;
   // Pareto's left margin also holds its score spread beside the tick labels.
   const plotMargin = { ...SCATTER_CHART_MARGIN, left: 96 };
-  const note =
-    rows.length > 0
-      ? `${frontierAxisDescription(axisKey, aggregate, rows[0])}${showVariants ? " Hover a point or label to connect its model's variants in reasoning-effort order." : ""}`
-      : null;
+  const note = rows.length > 0 ? frontierAxisDescription(axisKey, aggregate, rows[0]) : null;
   return (
     <ResearchRegion
-      id="pareto-analysis"
+      id="pareto"
       className={styles.section}
       plane={styles.panel}
       capture={{ title: "Performance tradeoffs", fileName: captureFileName }}
@@ -337,10 +328,7 @@ export const ParetoPanel = memo(function ParetoPanel({
       />
       {/* The caption and evidence read on the page; an exported image is the figure alone. */}
       <div className={styles.figureCaption} data-capture-exclude>
-        <p>
-          {PARETO_CAPTION}
-          {rows.length > 0 && explanation ? ` ${explanation}` : ""}
-        </p>
+        {rows.length > 0 && explanation != null ? <p>{explanation}</p> : null}
         {note == null ? null : <p className={styles.captionNote}>{note}</p>}
       </div>
       {rows.length > 0 && needsEvidence && aggregate ? (
@@ -355,6 +343,11 @@ export const ParetoPanel = memo(function ParetoPanel({
     </ResearchRegion>
   );
 });
+
+// The id the model sheet's link names a model by.
+function modelId(model: ModelAtlasModel): string | null {
+  return model.id ?? model.name;
+}
 
 /** One model per plotted family, from its highest-scoring row and without an effort, as the find field offers and names it. */
 function plottedFamilies(rows: readonly FrontierBenchmarkRow[]): ModelAtlasModel[] {

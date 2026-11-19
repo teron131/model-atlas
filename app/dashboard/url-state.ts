@@ -1,4 +1,4 @@
-/** Dashboard URL contract validates explicit selections without materializing absent defaults. */
+/** The dashboard's URL contract: every control's state under its own name, validated so an absent or malformed value keeps its default, and the address that state is shown at, a section's path carrying that section's controls under short names beside the page-wide ones. */
 
 import { BENCHMARK_COLUMNS } from "../../src/model-atlas/benchmarks/catalog";
 import {
@@ -7,7 +7,14 @@ import {
   PERFORMANCE_METRICS,
   type PerformanceMetric,
 } from "./graphs/pareto/analysis";
-import { RESEARCH_REGION_IDS, type ResearchRegionId } from "./research-index";
+import {
+  isStackedRegion,
+  REGION_CHARTS,
+  type RegionChartKey,
+  RESEARCH_REGION_IDS,
+  type ResearchRegionId,
+  type StackedRegionId,
+} from "./research-index";
 import {
   type CostFilter,
   costFilterOptions,
@@ -40,41 +47,89 @@ export type DashboardUrlState = {
   performance: PerformanceMetric;
   benchmark: string[] | null;
   axes: FrontierBenchmarkAxisKey;
-  /** The model sheet's model, by published id; with `effort`, one reasoning variant, otherwise the collapsed model. */
+  /** The model sheet's model, by short id, `claude-opus-5.5`; with `effort`, one reasoning variant, otherwise the collapsed model. */
   model: string | null;
   effort: string | null;
   /** A model pinned beside the sheet's model for comparison, named the same way as `model` and `effort`. */
   compare: string | null;
   "compare-effort": string | null;
+  /** A chart's find pills, each a model's short id where the pill names one model, otherwise as typed. */
+  "spectra-find": string[];
+  "duels-find": string[];
+  "pareto-find": string[];
+  "timeline-find": string[];
+  /** The chart each stacked region shows; an address carries it as its path, never as a key. */
+  "leaderboard-chart": RegionChartKey<"leaderboard">;
 };
 
 export type DashboardUrlKey = keyof DashboardUrlState;
 export type DashboardUrlPatch = Partial<DashboardUrlState>;
 export const GRAPH_VARIANTS_COOKIE = "model-atlas-graph-variants";
 
-const tableKeys = new Set<DashboardUrlKey>([
-  "view",
-  "sort",
-  "table-q",
-  "table-variants",
-  "table-effort",
+/** Where a link opens: a region, or a stacked region's chart, named by its path, `/duels`; the page's top has none. */
+export type DashboardSection = ResearchRegionId | RegionChartKey<StackedRegionId>;
+
+/** Every control's value under its own name, and the section the address shows. */
+export type DashboardState = { params: URLSearchParams; section: DashboardSection | null };
+
+const SECTION_REGIONS = new Map<DashboardSection, ResearchRegionId>([
+  ...RESEARCH_REGION_IDS.map((id) => [id, id] as const),
+  ...RESEARCH_REGION_IDS.filter(isStackedRegion).flatMap((region) =>
+    REGION_CHARTS[region].map((chart) => [chart.key, region] as const),
+  ),
 ]);
-const paretoKeys = new Set<DashboardUrlKey>(["performance", "benchmark", "axes"]);
-const dashboardKeys = new Set<DashboardUrlKey>([
-  ...tableKeys,
-  ...paretoKeys,
+// Each section's own controls under the short names its address uses: `/duels?find=gemini-3.7-flash` holds the Duels find pill kept as "duels-find".
+const SECTION_KEYS: Record<DashboardSection, Readonly<Record<string, DashboardUrlKey>>> = {
+  leaderboard: {
+    view: "view",
+    sort: "sort",
+    search: "table-q",
+    variants: "table-variants",
+    efforts: "table-effort",
+  },
+  spectra: { find: "spectra-find" },
+  duels: { find: "duels-find" },
+  pareto: { performance: "performance", benchmark: "benchmark", axes: "axes", find: "pareto-find" },
+  timeline: { period: "timeline-period", lab: "timeline-provider", find: "timeline-find" },
+};
+// Controls that act across the page keep their names on every address.
+const PAGE_KEYS = [
   "q",
   "provider",
   "max-cost",
   "rank",
   "days",
   "graph-variants",
-  "timeline-period",
-  "timeline-provider",
   "model",
   "effort",
   "compare",
   "compare-effort",
+] as const satisfies readonly DashboardUrlKey[];
+// Controls holding several values, which an address joins with commas, `find=gemini-4-argon,muse-wonder-full`; none of their values can hold a comma, which a find field takes as the end of a pill, while the free-text searches can and stay whole.
+const LIST_KEYS = new Set<DashboardUrlKey>([
+  "provider",
+  "timeline-provider",
+  "table-effort",
+  "benchmark",
+  "spectra-find",
+  "duels-find",
+  "pareto-find",
+  "timeline-find",
+]);
+const KEY_SECTIONS = new Map<DashboardUrlKey, DashboardSection>(
+  [...SECTION_REGIONS.keys()].flatMap((section) =>
+    Object.values(SECTION_KEYS[section]).map((key) => [key, section] as const),
+  ),
+);
+const dashboardKeys = new Set<DashboardUrlKey>([
+  ...PAGE_KEYS,
+  ...KEY_SECTIONS.keys(),
+  "leaderboard-chart",
+]);
+// Every name an address gives a control, which it never keeps as someone else's parameter.
+const DASHBOARD_NAMES = new Set<string>([
+  ...PAGE_KEYS,
+  ...Object.values(SECTION_KEYS).flatMap((names) => Object.keys(names)),
 ]);
 const benchmarkKeys = new Set(Object.keys(BENCHMARK_COLUMNS));
 const tableColumnPresetKeys = TABLE_COLUMN_PRESETS.map((preset) => preset.key);
@@ -138,14 +193,7 @@ export function readUrlValue<K extends DashboardUrlKey>(
       break;
     case "benchmark": {
       const values = params.getAll(key);
-      // An older link may name one source of a benchmark, which picks the whole benchmark: "gdp_pdf__source_b" → "gdp_pdf".
-      const valid = [
-        ...new Set(
-          values
-            .map((item) => item.replace(/__source_[abc]$/, ""))
-            .filter((item) => benchmarkKeys.has(item)),
-        ),
-      ];
+      const valid = [...new Set(values.filter((item) => benchmarkKeys.has(item)))];
       result = values.includes("none") ? [] : valid.length > 0 ? valid : null;
       break;
     }
@@ -160,6 +208,21 @@ export function readUrlValue<K extends DashboardUrlKey>(
     case "compare-effort":
       result = value != null && EFFORT_PATTERN.test(value) ? value : null;
       break;
+    case "spectra-find":
+    case "duels-find":
+    case "pareto-find":
+    case "timeline-find":
+      result = [...new Set(params.getAll(key).map((item) => item.trim()))].filter(Boolean);
+      break;
+    case "leaderboard-chart": {
+      const charts = REGION_CHARTS.leaderboard;
+      result = choice(
+        value,
+        charts.map((chart) => chart.key),
+        charts[0].key,
+      );
+      break;
+    }
     default:
       result = value ?? "";
   }
@@ -180,55 +243,123 @@ export function readGlobalModelFilters(params: URLSearchParams): GlobalModelFilt
 /** The global model filters of a URL that selects none: every model released in the default recency window. */
 export const DEFAULT_GLOBAL_MODEL_FILTERS = readGlobalModelFilters(new URLSearchParams());
 
-/** Keep custom selections shareable while omitting defaults and preserving unrelated URL parameters. */
-export function patchDashboardUrl(url: URL, patch: DashboardUrlPatch): URL {
-  const next = new URL(url);
-  // Shared links may still carry these retired parameters.
-  next.searchParams.delete("column-q");
-  next.searchParams.delete("column-order");
+/** `state` with `patch` applied and defaults dropped, its section moved to the one that owns a patched control: a chart choice to the chart, and a section's control to its section; a page-wide control leaves it. */
+export function patchDashboardState(
+  state: DashboardState,
+  patch: DashboardUrlPatch,
+): DashboardState {
+  const params = new URLSearchParams(state.params);
   const keys = Object.keys(patch) as DashboardUrlKey[];
   for (const key of keys) {
     const value = patch[key];
-    next.searchParams.delete(key);
+    params.delete(key);
     if (key === "sort") {
       const sort = value as SortState;
-      next.searchParams.set(key, `${sort.key}.${sort.direction === "ascending" ? "asc" : "desc"}`);
+      params.set(key, `${sort.key}.${sort.direction === "ascending" ? "asc" : "desc"}`);
     } else if (Array.isArray(value)) {
-      for (const item of value) next.searchParams.append(key, item);
-      if (value.length === 0) next.searchParams.set(key, key === "benchmark" ? "none" : "");
+      for (const item of value) params.append(key, item);
+      if (value.length === 0) params.set(key, key === "benchmark" ? "none" : "");
     } else if (typeof value === "boolean") {
-      next.searchParams.set(key, value ? "1" : "0");
+      params.set(key, value ? "1" : "0");
     } else if (key === "benchmark" && value === null) {
-      next.searchParams.set(key, "all");
+      params.set(key, "all");
     } else if (value != null) {
-      next.searchParams.set(key, String(value));
+      params.set(key, String(value));
     }
   }
   // An effort choice filters reasoning-variant rows, so it leaves with them.
-  if (next.searchParams.get("table-variants") !== "1") next.searchParams.delete("table-effort");
+  if (params.get("table-variants") !== "1") params.delete("table-effort");
   const defaults = new URLSearchParams();
   for (const key of dashboardKeys) {
     // An explicit graph-variant value can override the saved cookie preference.
-    if (key === "graph-variants" || !next.searchParams.has(key)) continue;
-    if (
-      JSON.stringify(readUrlValue(next.searchParams, key)) ===
-      JSON.stringify(readUrlValue(defaults, key))
-    )
-      next.searchParams.delete(key);
+    if (key === "graph-variants" || !params.has(key)) continue;
+    if (JSON.stringify(readUrlValue(params, key)) === JSON.stringify(readUrlValue(defaults, key)))
+      params.delete(key);
   }
-  if (keys.some((key) => key.startsWith("timeline-"))) next.hash = "timeline";
-  else if (keys.some((key) => tableKeys.has(key))) next.hash = "leaderboard";
-  else if (keys.some((key) => paretoKeys.has(key))) next.hash = "pareto-analysis";
-  return next;
+  const moved = keys
+    .map((key) => (key === "leaderboard-chart" ? patch[key] : KEY_SECTIONS.get(key)))
+    .find((section) => section != null);
+  return { params, section: moved ?? state.section };
 }
 
-/** Explicit section anchors win; otherwise panel-specific selections identify the deep-link destination. */
-export function dashboardUrlSection(url: URL): ResearchRegionId | null {
-  const hash = url.hash.slice(1);
-  if (RESEARCH_REGION_IDS.some((id) => id === hash)) return hash as ResearchRegionId;
-  if ([...paretoKeys].some((key) => url.searchParams.has(key))) return "pareto-analysis";
-  if ([...tableKeys].some((key) => url.searchParams.has(key))) return "leaderboard";
-  return null;
+/** A link's state: its path's section and that section's controls, and the page-wide controls; a stacked chart's path also shows that chart in its region. */
+export function readDashboardUrl(url: URL): DashboardState {
+  const path = url.pathname.slice(1);
+  const section = isDashboardSection(path) ? path : null;
+  const params = new URLSearchParams();
+  for (const [name, key] of addressNames(section)) {
+    const value = url.searchParams.get(name);
+    if (value == null) continue;
+    for (const item of LIST_KEYS.has(key) ? value.split(",") : [value]) params.append(key, item);
+  }
+  if (section != null) {
+    const region = sectionRegion(section);
+    if (isStackedRegion(region)) params.set(`${region}-chart`, section);
+  }
+  return patchDashboardState({ params, section }, {});
+}
+
+/** The address `state` is shown at from `base`: its section's path, that section's controls under their short names, the page-wide controls, then `base`'s parameters the dashboard does not own; other sections' controls stay off it, so a link carries only what it points at. */
+export function dashboardUrl({ params, section }: DashboardState, base: URL): URL {
+  const url = new URL(section == null ? "/" : `/${section}`, base);
+  const search = new URLSearchParams();
+  for (const [name, key] of addressNames(section)) {
+    const values = params.getAll(key);
+    if (LIST_KEYS.has(key) && values.length > 0) search.append(name, values.join(","));
+    else for (const value of values) search.append(name, value);
+  }
+  for (const [name, value] of base.searchParams) {
+    if (!DASHBOARD_NAMES.has(name)) search.append(name, value);
+  }
+  url.search = readableSearch(search);
+  return url;
+}
+
+export function isDashboardSection(value: string): value is DashboardSection {
+  return SECTION_REGIONS.has(value as DashboardSection);
+}
+
+/** The region a section lies in: a stacked chart's region, or the region itself. */
+export function sectionRegion(section: DashboardSection): ResearchRegionId {
+  return SECTION_REGIONS.get(section)!;
+}
+
+/** The state a history entry saved, which holds every section's controls where its address holds one section's; `null` for an entry the dashboard did not write. */
+export function savedDashboardState(entry: unknown): DashboardState | null {
+  if (typeof entry !== "object" || entry == null || !("dashboard" in entry)) return null;
+  const saved = entry.dashboard;
+  if (typeof saved !== "object" || saved == null || !("search" in saved) || !("section" in saved))
+    return null;
+  const { search, section } = saved;
+  if (typeof search !== "string") return null;
+  if (section !== null && (typeof section !== "string" || !isDashboardSection(section)))
+    return null;
+  return { params: new URLSearchParams(search), section };
+}
+
+export function dashboardHistoryEntry({ params, section }: DashboardState) {
+  return { search: params.toString(), section };
+}
+
+/** A model's name in a link, its published id without the lab, which no two labs' models share: "google/gemini-3.7-flash" → "gemini-3.7-flash". */
+export function modelLinkId(id: string): string {
+  return id.slice(id.indexOf("/") + 1);
+}
+
+// The names an address at `section` carries, each with the control it holds: the section's own first, then the page-wide ones.
+function addressNames(section: DashboardSection | null): [string, DashboardUrlKey][] {
+  return [
+    ...(section == null ? [] : Object.entries(SECTION_KEYS[section])),
+    ...PAGE_KEYS.map((key): [string, DashboardUrlKey] => [key, key]),
+  ];
+}
+
+// Ids, names, and lists keep their slashes, colons, brackets, and commas, which a query value may carry as they are: "find=google%2Fgemini-4-argon%2Cmuse-wonder-full" → "find=google/gemini-4-argon,muse-wonder-full".
+function readableSearch(params: URLSearchParams): string {
+  const search = params
+    .toString()
+    .replace(/%2F|%3A|%28|%29|%2C/g, (escaped) => decodeURIComponent(escaped));
+  return search === "" ? "" : `?${search}`;
 }
 
 function choice<T extends string>(value: string | null, values: readonly T[], fallback: T): T {

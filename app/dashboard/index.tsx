@@ -1,19 +1,30 @@
 "use client";
 
-/** Client dashboard composition: the hero sky, the research rail, the leaderboard, Pareto, and Timeline regions in index order, and the model sheet over them. */
+/** Client dashboard composition: the hero sky, the research rail, the Leaderboard, Pareto, and Timeline regions in index order, and the model sheet over them. */
 
-import { useCallback, useDeferredValue, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  type ComponentProps,
+  useCallback,
+  useDeferredValue,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { modelsForVariantDisplay } from "../../src/model-atlas/stats/model-variants";
 import type { ModelAtlasModel, ModelAtlasPayload } from "../../src/model-atlas/stats/types";
 import { ModelAtlasHeader } from "../shared/ModelAtlasHeader";
 import { DashboardLeaderboard } from "./DashboardLeaderboard";
 import { GlobalModelControls } from "./GlobalModelControls";
+import { type ChartData, chartData } from "./graphs/chart-data";
+import { DuelsPanel } from "./graphs/duels/Panel";
 import { ParetoPanel } from "./graphs/pareto/Panel";
+import { SpectraPanel } from "./graphs/spectra/Panel";
 import { TimelinePanel } from "./graphs/timeline/Panel";
 import { useLivePayload } from "./live-payload";
 import { ModelSheet } from "./model-sheet/ModelSheet";
-import { ResearchRail } from "./ResearchRegions";
+import { ResearchRail, useRegionChart } from "./ResearchRegions";
 import {
   filterByGlobalModelFilters,
   type GlobalModelFilters,
@@ -69,6 +80,12 @@ export function Dashboard({
     filters,
     showReasoningVariants,
   );
+  // The charts read results from the leaderboard's rows, which are shaped once per snapshot, so they take the snapshot itself rather than its variant display.
+  const charts = useMemo(
+    () =>
+      payload == null || regions.payload == null ? null : chartData(payload, regions.modelRows),
+    [payload, regions.payload, regions.modelRows],
+  );
 
   // The hero and the leaderboard keep their places while the payload arrives, so neither remounts when the rail and the analyses join them.
   return (
@@ -90,7 +107,8 @@ export function Dashboard({
         ) : errorMessage != null ? (
           <div className={graphStyles.error}>Unable to load the Model Atlas snapshot.</div>
         ) : null}
-        <DashboardLeaderboard
+        <LeaderboardRegion
+          charts={charts}
           payload={payload}
           errorMessage={errorMessage}
           isLoading={isInitialLoading}
@@ -194,6 +212,26 @@ function useRegionPopulations(
           ),
     [showVariants, models, reference, deferredFilters, filterScope],
   );
+  // Spectra and Duels plot one row per model whatever the display shows, as the leaderboard does with variants collapsed.
+  const modelRows = useMemo(
+    () =>
+      showVariants
+        ? filterByGlobalModelFilters(
+            modelsForVariantDisplay(reference, false, payload?.benchmark_observations),
+            (model) => model,
+            deferredFilters,
+            filterScope,
+          )
+        : models,
+    [
+      showVariants,
+      models,
+      reference,
+      payload?.benchmark_observations,
+      deferredFilters,
+      filterScope,
+    ],
+  );
   // Pareto picks ignore the recency and rank filters, which only limit which models are shown.
   const paretoCandidateModels = useMemo(
     () =>
@@ -215,5 +253,24 @@ function useRegionPopulations(
       }),
     [models, paretoCandidateModels, reference, showVariants],
   );
-  return { payload, referenceModels: reference, models, variantModels, signature };
+  return { payload, referenceModels: reference, models, modelRows, variantModels, signature };
+}
+
+/** The table holds the Leaderboard region until the charts' data arrives, whichever chart is chosen. */
+function LeaderboardRegion({
+  charts,
+  ...table
+}: ComponentProps<typeof DashboardLeaderboard> & { charts: ChartData | null }) {
+  const { chosen } = useRegionChart("leaderboard");
+  if (charts == null) return <DashboardLeaderboard {...table} />;
+  switch (chosen) {
+    case "leaderboard":
+      return <DashboardLeaderboard {...table} />;
+    case "spectra":
+      return <SpectraPanel data={charts} />;
+    case "duels":
+      return <DuelsPanel data={charts} />;
+    default:
+      return chosen satisfies never;
+  }
 }

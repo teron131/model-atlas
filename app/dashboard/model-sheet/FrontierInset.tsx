@@ -126,6 +126,7 @@ export function FrontierInset({
     width: plot.width,
     height: plot.height,
     bounds: plot.bounds,
+    sky: true,
     rim,
     trail,
     muted: false,

@@ -567,6 +567,68 @@ html[data-model-atlas-theme="light"] .theme-icon-dark {
   font-kerning: none;
 }
 
+/* A stacked region's title shares its line with the index of its charts, the index's last name on the title's baseline at every title size, and the index drops beneath the title where both do not fit. */
+.dashboard-section-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: last baseline;
+  gap: 12px clamp(18px, 2.8vw, 40px);
+  min-width: 0;
+}
+
+/* A stacked region's chart names, in its title and its rail link, share one place with only the shown one visible. */
+.chart-names {
+  display: grid;
+}
+
+.chart-names > span {
+  grid-area: 1 / 1;
+}
+
+.chart-names > span[data-shown="false"] {
+  visibility: hidden;
+}
+
+/* The index is a plain column of names: the shown chart's glows in horizon violet and the others stay faint until pointed at, so the glow alone says which chart is up. */
+.dashboard-section-index {
+  display: grid;
+  justify-items: start;
+  gap: 11px;
+  padding: 4px 0;
+}
+
+.dashboard-section-index button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--scene-faint);
+  font: var(--type-label-weight) var(--type-label-size) / 1 var(--font-mono);
+  letter-spacing: var(--type-label-tracking);
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    color 0.18s ease,
+    text-shadow 0.18s ease;
+}
+
+.dashboard-section-index button:is(:hover, :focus-visible) {
+  color: var(--scene-ink);
+}
+
+.dashboard-section-index button[aria-pressed="true"] {
+  color: #fff;
+  text-shadow:
+    0 0 8px rgb(176 150 255 / 0.95),
+    0 0 22px rgb(143 107 255 / 0.75),
+    0 0 46px rgb(143 107 255 / 0.5);
+  cursor: default;
+}
+
+.dashboard-section-index button:focus-visible {
+  outline: 2px solid rgb(238 242 255 / 0.6);
+  outline-offset: 4px;
+}
+
 .dashboard-section-actions {
   --ink: var(--scene-ink);
   --muted: var(--scene-muted);
@@ -1525,6 +1587,11 @@ html[data-model-atlas-theme="light"] .blend-mix {
   border-radius: 2px;
   background: var(--tile-tone);
   color: var(--tile-ink);
+}
+
+.column-tooltip-title .column-weights-chip {
+  margin-right: 7px;
+  vertical-align: -2px;
 }
 
 .column-weights-chip .column-weights-icon {

@@ -325,8 +325,6 @@ function SheetIdentity({
 }
 
 function CompareToggle({ entry, comparing }: { entry: SheetEntry; comparing: boolean }) {
-  const key = entry.row.model.id ?? entry.row.model.name;
-  if (key == null) return null;
   return (
     <button
       type="button"
@@ -335,7 +333,7 @@ function CompareToggle({ entry, comparing }: { entry: SheetEntry; comparing: boo
       data-capture-exclude
       aria-pressed={comparing}
       title={comparing ? "Stop comparing" : "Keep this model here and open another to compare"}
-      onClick={() => (comparing ? unpinModelSheet() : pinModelSheet(key, entry.effort))}
+      onClick={() => (comparing ? unpinModelSheet() : pinModelSheet(entry.row.model, entry.effort))}
     >
       <Columns2 aria-hidden="true" />
       Compare

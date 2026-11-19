@@ -60,7 +60,6 @@ const scoreExplanations: Record<
     body: "Reasoning, knowledge, and judgment across selected benchmarks.",
     rows: [
       ["Scale", "Each benchmark spans 0–100 within the reference population."],
-      ["Weights", "Each benchmark's Intelligence allocation."],
       ["Shared comparisons", "20% compares models on the benchmarks they share."],
       [
         "Indexes",
@@ -72,7 +71,6 @@ const scoreExplanations: Record<
   agentic: {
     body: "Reliability in coding, tool use, and completing goals.",
     rows: [
-      ["Weights", "Each benchmark's Agentic allocation."],
       [
         "Token efficiency",
         "0.85–1.15× before rescaling to 0–100; weak token evidence approaches 1×.",
@@ -117,34 +115,28 @@ const benchmarkColumnTooltips = Object.fromEntries(
 type TaskMetricTooltipText = {
   title: string;
   body: string;
-  row: string;
 };
 
 const defaultTaskMetricText: Record<string, TaskMetricTooltipText> = {
   cost: {
     title: "cost per task",
     body: "Reported cost to complete one task",
-    row: "cost per task",
   },
   seconds: {
     title: "seconds per task",
     body: "Reported runtime to complete one task",
-    row: "runtime per task",
   },
   tokens: {
     title: "tokens per task",
     body: "Reported total token use for one task",
-    row: "tokens per task",
   },
   input_tokens: {
     title: "input tokens per task",
     body: "Reported input token use for one task",
-    row: "input tokens per task",
   },
   output_tokens: {
     title: "output tokens per task",
     body: "Reported output token use for one task",
-    row: "output tokens per task",
   },
 };
 
@@ -155,7 +147,7 @@ const taskMetricColumnTooltips = Object.fromEntries(
 const staticTableColumnTooltips = {
   taskCostRatio: {
     title: "Relative task cost ↓",
-    body: "Weighted median of measured cost divided by each benchmark/source’s model-balanced median. 1× is benchmark-median expenditure; lower is cheaper. Quality is not adjusted.",
+    body: "Weighted median of measured cost divided by each benchmark/source’s model-balanced median. 1× is benchmark-median expenditure. Quality is not adjusted.",
     rows: [
       ["Reference", "Each base model counts once, split across its observed efforts."],
       [
@@ -169,13 +161,13 @@ const staticTableColumnTooltips = {
     title: "Relative total tokens ↓",
     body: "Weighted median of total-token ratios against benchmark/source medians. Total tokens require a complete input/output pair or a reported total; output-only measurements stay missing.",
     rows: [
-      ["Scale", "1× is benchmark-median use; lower uses fewer tokens."],
+      ["Scale", "1× is benchmark-median use."],
       ["Reference", "Each base model counts once, split across its observed efforts."],
     ],
   },
   taskTimeRatio: {
     title: "Relative task time ↓",
-    body: "Weighted median of observed runtime divided by each benchmark/source’s model-balanced median. 1× is benchmark-median runtime; lower is faster. Only reported runtime contributes.",
+    body: "Weighted median of observed runtime divided by each benchmark/source’s model-balanced median. 1× is benchmark-median runtime. Only reported runtime contributes.",
     rows: [
       ["Reference", "Each base model counts once, split across its observed efforts."],
       ["Coverage", "Available measured benchmarks only; cell tooltip shows the count."],
@@ -188,22 +180,18 @@ const staticTableColumnTooltips = {
   model: {
     title: "Model",
     body: "The model's display name and canonical provider/model route ID. Reasoning-effort configurations keep their own results.",
-    rows: [["Sort", "alphabetical by model name"]],
   },
   release: {
     title: "Release date",
     body: "The reported release date of the selected model variant.",
-    rows: [["Sort", "newer releases sort first"]],
   },
   openWeights: {
     title: "Open weights",
     body: "Whether the selected metadata reports downloadable model weights. This field describes weight availability, not a licensing guarantee.",
-    rows: [["Sort", "open-weight models sort first"]],
   },
   modalities: {
     title: "Input modalities",
     body: "Input types accepted by the selected route: text, images, audio, or video.",
-    rows: [["Sort", "more input capabilities sort first"]],
   },
   inputPrice: {
     title: "Input price ↓",
@@ -241,19 +229,17 @@ const staticTableColumnTooltips = {
   },
   throughput: {
     title: "Output throughput",
-    body: "How quickly output tokens arrive once generation is underway, in tokens per second. OpenRouter estimates are combined using routed-provider token shares.",
+    body: "How quickly output tokens arrive once generation is underway, in tokens per second.",
     rows: [
       ["Source", "OpenRouter"],
-      ["Metric", "output tokens per second"],
       ["Provider weighting", "estimated OpenRouter token share"],
     ],
   },
   latency: {
     title: "Latency ↓",
-    body: "How long the model takes to produce its first output token, in seconds. Lower values mean a shorter initial wait.",
+    body: "How long the model takes to produce its first output token, in seconds.",
     rows: [
       ["Source", "OpenRouter"],
-      ["Metric", "time to first token"],
       ["Provider weighting", "estimated OpenRouter token share"],
     ],
   },
@@ -262,14 +248,13 @@ const staticTableColumnTooltips = {
     body: "The measured time for the whole response, in seconds. It includes the initial wait and subsequent generation, so response length affects it.",
     rows: [
       ["Source", "OpenRouter"],
-      ["Metric", "end-to-end response time"],
       ["Provider weighting", "estimated OpenRouter token share"],
     ],
   },
   evidenceSupport: EVIDENCE_SUPPORT_TOOLTIP,
   change: {
     title: "Latest material change",
-    body: "The latest update that materially moved a model's score, evidence support, or rank among continuing models, with the date it landed. The value shows the largest move; open it for every score that moved and the model's own results, task costs, prices, and speeds that changed. New entrants do not cascade rank changes onto other models, but gaining or losing first place still counts.",
+    body: "The latest update that materially moved a model's score, evidence support, or rank among continuing models, with the date it landed. The value shows the largest move. New entrants do not cascade rank changes onto other models, but gaining or losing first place still counts.",
   },
 } as const satisfies Partial<Record<TableColumnKey, ModelAtlasColumnTooltip>>;
 
@@ -319,7 +304,6 @@ function taskMetricTooltipEntry(
             "Source",
             sourceTooltip.rows?.find(([label]) => label === "Source")?.[1] ?? sourceTooltip.title,
           ],
-          ["Metric", metricTooltip.row],
         ],
       },
     ],
@@ -386,7 +370,7 @@ const catalogBenchmarks = Object.entries(BENCHMARK_CATALOG).map(([key, { present
 }));
 
 /** A benchmark's domain shares heaviest first, a tie keeping the catalog's domain order, so the first is its primary domain; empty for an index, which mixes every domain. */
-function domainShares(key: string): DomainShare[] {
+export function domainShares(key: string): DomainShare[] {
   const shares = benchmarkDomainShares(key) ?? {};
   return BENCHMARK_DOMAINS.flatMap(({ key: domain, name }) => {
     const share = shares[domain];
@@ -534,6 +518,8 @@ export type BenchmarkTooltipLeaders = {
 };
 
 export type DashboardColumnTooltip = ModelAtlasColumnTooltip & {
+  /** The label a card is about, whose chip leads its title. */
+  domain?: BenchmarkDomain;
   benchmark?: BenchmarkTooltipFacts;
   weights?: ColumnWeights;
   /** Shares of new input and output tokens in the mix a blended price is set at; every other token is a cache read. */

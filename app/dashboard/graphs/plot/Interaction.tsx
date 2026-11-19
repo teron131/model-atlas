@@ -6,6 +6,7 @@ import {
   type CSSProperties,
   type MouseEvent as ReactMouseEvent,
   type ReactNode,
+  useEffect,
   useLayoutEffect,
   useRef,
   useState,
@@ -175,4 +176,19 @@ export function PointHitTarget({
       />
     </foreignObject>
   );
+}
+
+/** A mark a click holds until a click lands anywhere but a mark tagged `data-keeps-pick`; hovering another shows that one only while the pointer rests on it. */
+export function usePick<T>(): [T | null, (pick: T) => void] {
+  const [picked, setPicked] = useState<T | null>(null);
+  useEffect(() => {
+    if (picked == null) return;
+    const release = (event: MouseEvent) => {
+      if (!(event.target instanceof Element && event.target.closest("[data-keeps-pick]")))
+        setPicked(null);
+    };
+    document.addEventListener("click", release);
+    return () => document.removeEventListener("click", release);
+  }, [picked]);
+  return [picked, setPicked];
 }

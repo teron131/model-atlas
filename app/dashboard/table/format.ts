@@ -142,6 +142,11 @@ function formatSourceNumber(value: number): string {
   });
 }
 
+/** A printed value read back as its number, so a gap between two printed values matches what their cells show: `"72.4%"` → `72.4`, `"-$1,234.5"` → `-1234.5`. */
+export function displayedNumber(text: string): number {
+  return Number(text.replace(/[^\d.-]/g, ""));
+}
+
 export function formatDashboardMetric(
   value: number | string | null | undefined,
   column: DashboardMetricColumn,

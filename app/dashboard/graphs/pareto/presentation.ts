@@ -113,22 +113,22 @@ export function frontierAxisDescription(
   row?: FrontierBenchmarkRow,
 ): string {
   if (isScoreAxis(axisKey)) {
-    return `Published ${frontierBenchmarkAxisConfig[axisKey].label}; unchanged by evidence selection. Higher is better.`;
+    return `Published ${frontierBenchmarkAxisConfig[axisKey].label}; unchanged by evidence selection.`;
   }
   if (axisKey === "cost") {
     return isAggregateView
-      ? "Cost: weighted median of benchmark/source cost ratios. 1× is the model-balanced reference median; lower is cheaper."
-      : `Observed cost in dollars ${resourceUnitPhrase(row)}. Lower is better.`;
+      ? "Cost: weighted median of benchmark/source cost ratios. 1× is the model-balanced reference median."
+      : `Observed cost in dollars ${resourceUnitPhrase(row)}.`;
   }
   if (axisKey === "time") {
     return isAggregateView
-      ? "Time: weighted median of benchmark/source runtime ratios. 1× is the model-balanced reference median; lower is faster."
-      : `Observed runtime ${resourceUnitPhrase(row)}. Lower is better.`;
+      ? "Time: weighted median of benchmark/source runtime ratios. 1× is the model-balanced reference median."
+      : `Observed runtime ${resourceUnitPhrase(row)}.`;
   }
   if (isAggregateView) {
-    return "Tokens: weighted median of benchmark/source total-token ratios. 1× is the model-balanced reference median; lower uses fewer tokens.";
+    return "Tokens: weighted median of benchmark/source total-token ratios. 1× is the model-balanced reference median.";
   }
-  return `Observed total token use ${resourceUnitPhrase(row)}. Lower is better.`;
+  return `Observed total token use ${resourceUnitPhrase(row)}.`;
 }
 
 export function frontierAxisMetricLabel(

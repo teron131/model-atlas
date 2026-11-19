@@ -1,11 +1,22 @@
-/** Verify shareable dashboard selections, sparse defaults, malformed links, and section precedence. */
+/** Verify shareable dashboard selections: section paths with short names, sparse defaults, malformed links, and state kept off a link but in its history entry. */
 
 import assert from "node:assert/strict";
 
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { dashboardUrlSection, patchDashboardUrl, readUrlValue } from "../app/dashboard/url-state";
+import {
+  dashboardHistoryEntry,
+  type DashboardState,
+  dashboardUrl,
+  type DashboardUrlPatch,
+  modelLinkId,
+  patchDashboardState,
+  readDashboardUrl,
+  readUrlValue,
+  savedDashboardState,
+  sectionRegion,
+} from "../app/dashboard/url-state";
 import { DashboardUrlProvider, useUrlState } from "../app/dashboard/use-url-state";
 
 /** Both table and graph controls must use the request URL before browser hydration. */
@@ -20,7 +31,7 @@ function InitialSelections() {
 assert.equal(
   renderToStaticMarkup(
     createElement(DashboardUrlProvider, {
-      search: "provider=openai&provider=xai&table-q=Grok&graph-variants=1&rank=30",
+      url: "/leaderboard?search=Grok&provider=openai,xai&graph-variants=1&rank=30",
       children: createElement(InitialSelections),
     }),
   ),
@@ -29,59 +40,65 @@ assert.equal(
 );
 
 const base = new URL("https://model-atlas.test/");
-assert.equal(patchDashboardUrl(base, {}).href, base.href);
-assert.equal(readUrlValue(base.searchParams, "view"), "all");
-assert.equal(readUrlValue(base.searchParams, "rank"), "all");
-assert.equal(readUrlValue(base.searchParams, "days"), 180);
+const empty = readDashboardUrl(base);
+const at = (href: string) => readDashboardUrl(new URL(href, base));
+const patched = (patch: DashboardUrlPatch, from: DashboardState = empty) =>
+  patchDashboardState(from, patch);
+const address = (state: DashboardState, from = base) => {
+  const url = dashboardUrl(state, from);
+  return `${url.pathname}${url.search}`;
+};
+
+assert.equal(address(empty), "/");
+assert.equal(empty.section, null);
+assert.equal(readUrlValue(empty.params, "view"), "all");
+assert.equal(readUrlValue(empty.params, "rank"), "all");
+assert.equal(readUrlValue(empty.params, "days"), 180);
 assert.equal(
-  readUrlValue(patchDashboardUrl(base, { days: "all" }).searchParams, "days"),
+  readUrlValue(patched({ days: "all" }).params, "days"),
   "all",
   "Choosing every release date must survive a reload, since the default window is narrower",
 );
-assert.equal(dashboardUrlSection(base), null);
-assert.equal(readUrlValue(base.searchParams, "performance"), "intelligence");
-assert.equal(readUrlValue(base.searchParams, "axes"), "cost");
+assert.equal(readUrlValue(empty.params, "performance"), "intelligence");
+assert.equal(readUrlValue(empty.params, "axes"), "cost");
 for (const axis of ["cost", "time", "tokens", "speed", "value"] as const) {
-  assert.equal(readUrlValue(patchDashboardUrl(base, { axes: axis }).searchParams, "axes"), axis);
+  assert.equal(readUrlValue(patched({ axes: axis }).params, "axes"), axis);
 }
 assert.equal(readUrlValue(new URLSearchParams("axes=speedValue"), "axes"), "cost");
 
-const cost = patchDashboardUrl(base, { view: "cost" });
-assert.equal(cost.search, "?view=cost");
-assert.equal(cost.hash, "#leaderboard");
-assert.equal(patchDashboardUrl(base, { view: "all" }).search, "");
-assert.equal(patchDashboardUrl(base, { "table-variants": false }).search, "");
-assert.equal(patchDashboardUrl(base, { rank: "all" }).search, "");
-
-const selections = patchDashboardUrl(new URL("?campaign=test#leaderboard", base), {
-  q: "reason* *max & + test",
-  provider: ["openai", "anthropic"],
-  "max-cost": 0.25,
-  rank: "all",
-  days: 90,
-});
-assert.equal(selections.hash, "#leaderboard");
-assert.equal(selections.searchParams.get("campaign"), "test");
-assert.equal(readUrlValue(selections.searchParams, "q"), "reason* *max & + test");
-assert.deepEqual(readUrlValue(selections.searchParams, "provider"), ["openai", "anthropic"]);
-assert.equal(readUrlValue(selections.searchParams, "max-cost"), 0.25);
-assert.equal(readUrlValue(selections.searchParams, "rank"), "all");
-assert.equal(readUrlValue(selections.searchParams, "days"), 90);
-assert.deepEqual(
-  readUrlValue(patchDashboardUrl(selections, { provider: [] }).searchParams, "provider"),
-  [],
+const cost = patched({ view: "cost" });
+assert.equal(
+  address(cost),
+  "/leaderboard?view=cost",
+  "A table control moves the link to the table",
 );
+assert.equal(address(patched({ view: "all" })), "/leaderboard");
+assert.equal(address(patched({ "table-variants": false })), "/leaderboard");
+assert.equal(address(patched({ rank: "all" })), "/", "A page-wide control leaves the section");
 
-const table = patchDashboardUrl(cost, {
-  view: "time",
-  sort: { key: "speed", direction: "descending" },
-});
-assert.equal(readUrlValue(table.searchParams, "view"), "time");
-assert.deepEqual(readUrlValue(table.searchParams, "sort"), {
-  key: "speed",
-  direction: "descending",
-});
-assert.equal(table.searchParams.get("sort"), "speed.desc");
+const campaign = new URL("/leaderboard?campaign=test", base);
+const selections = patched(
+  {
+    q: "reason* *max & + test",
+    provider: ["openai", "anthropic"],
+    "max-cost": 0.25,
+    rank: "all",
+    days: 90,
+  },
+  readDashboardUrl(campaign),
+);
+assert.equal(selections.section, "leaderboard");
+assert.equal(dashboardUrl(selections, campaign).searchParams.get("campaign"), "test");
+assert.equal(readUrlValue(selections.params, "q"), "reason* *max & + test");
+assert.deepEqual(readUrlValue(selections.params, "provider"), ["openai", "anthropic"]);
+assert.equal(readUrlValue(selections.params, "max-cost"), 0.25);
+assert.equal(readUrlValue(selections.params, "rank"), "all");
+assert.equal(readUrlValue(selections.params, "days"), 90);
+assert.deepEqual(readUrlValue(patched({ provider: [] }, selections).params, "provider"), []);
+
+const table = patched({ view: "time", sort: { key: "speed", direction: "descending" } }, cost);
+assert.equal(address(table), "/leaderboard?view=time&sort=speed.desc");
+assert.deepEqual(readUrlValue(table.params, "sort"), { key: "speed", direction: "descending" });
 assert.deepEqual(readUrlValue(new URLSearchParams("sort=value.asc"), "sort"), {
   key: "value",
   direction: "ascending",
@@ -98,7 +115,7 @@ for (const query of [
   assert.equal(readUrlValue(params, "max-cost"), "all");
 }
 const malformed = new URLSearchParams(
-  "view=bad&sort=__proto__.asc&performance=unknown&axes=bad&column-order=bad&benchmark=unknown",
+  "view=bad&sort=__proto__.asc&performance=unknown&axes=bad&benchmark=unknown",
 );
 assert.equal(readUrlValue(malformed, "view"), "all");
 assert.deepEqual(readUrlValue(malformed, "sort"), { key: "intelligence", direction: "descending" });
@@ -113,42 +130,27 @@ assert.deepEqual(
   ),
   ["terminal_bench"],
 );
-assert.deepEqual(
-  readUrlValue(
-    new URLSearchParams(
-      "benchmark=gdp_pdf__source_b&benchmark=terminal_bench_science__source_c&benchmark=hle__source_z",
-    ),
-    "benchmark",
-  ),
-  ["gdp_pdf", "terminal_bench_science"],
-  "An older source pick selects its whole benchmark without accepting unknown source slots",
-);
+assert.deepEqual(readUrlValue(patched({ benchmark: [] }).params, "benchmark"), []);
+assert.equal(readUrlValue(patched({ benchmark: null }).params, "benchmark"), null);
 
-assert.deepEqual(
-  readUrlValue(patchDashboardUrl(base, { benchmark: [] }).searchParams, "benchmark"),
-  [],
-);
+const pareto = at("/pareto?performance=benchmarks&axes=cost&find=claude-opus-5.5");
+assert.equal(pareto.section, "pareto");
+assert.equal(readUrlValue(pareto.params, "performance"), "benchmarks");
+assert.deepEqual(readUrlValue(pareto.params, "pareto-find"), ["claude-opus-5.5"]);
+assert.equal(address(pareto), "/pareto?performance=benchmarks&find=claude-opus-5.5");
 assert.equal(
-  readUrlValue(patchDashboardUrl(base, { benchmark: null }).searchParams, "benchmark"),
-  null,
+  readUrlValue(at("/?view=cost").params, "view"),
+  "all",
+  "A section's control counts only on its section's path",
 );
-assert.equal(dashboardUrlSection(new URL("?view=cost", base)), "leaderboard");
-assert.equal(
-  dashboardUrlSection(new URL("?performance=benchmarks&axes=cost", base)),
-  "pareto-analysis",
-);
-assert.equal(
-  dashboardUrlSection(new URL("?view=cost&performance=benchmarks#leaderboard", base)),
-  "leaderboard",
-);
-assert.equal(patchDashboardUrl(base, { benchmark: null }).searchParams.get("benchmark"), null);
-const timelineLink = patchDashboardUrl(base, {
+assert.equal(at("/nowhere?find=x").section, null);
+
+const timelineLink = patched({
   "timeline-period": "year",
   "timeline-provider": ["openai", "anthropic"],
 });
-assert.equal(dashboardUrlSection(timelineLink), "timeline");
-assert.equal(readUrlValue(timelineLink.searchParams, "timeline-period"), "year");
-assert.deepEqual(readUrlValue(timelineLink.searchParams, "timeline-provider"), [
+assert.equal(address(timelineLink), "/timeline?period=year&lab=openai,anthropic");
+assert.deepEqual(readUrlValue(at(address(timelineLink)).params, "timeline-provider"), [
   "openai",
   "anthropic",
 ]);
@@ -156,59 +158,108 @@ assert.equal(
   readUrlValue(new URLSearchParams("timeline-period=invalid"), "timeline-period"),
   "all",
 );
-
 assert.deepEqual(
-  readUrlValue(
-    patchDashboardUrl(base, { "timeline-provider": [] }).searchParams,
-    "timeline-provider",
-  ),
+  readUrlValue(patched({ "timeline-provider": [] }).params, "timeline-provider"),
   [],
 );
 assert.equal(
-  readUrlValue(
-    patchDashboardUrl(base, { "timeline-provider": null }).searchParams,
-    "timeline-provider",
-  ),
+  readUrlValue(patched({ "timeline-provider": null }).params, "timeline-provider"),
   null,
 );
 
-const effortLink = patchDashboardUrl(base, { "table-variants": true, "table-effort": ["max"] });
-assert.equal(dashboardUrlSection(effortLink), "leaderboard");
-assert.deepEqual(readUrlValue(effortLink.searchParams, "table-effort"), ["max"]);
-assert.equal(readUrlValue(base.searchParams, "table-effort"), null);
+const duels = at("/duels?find=gemini-3.7-flash");
+assert.equal(duels.section, "duels");
+assert.equal(sectionRegion("duels"), "leaderboard");
+assert.equal(
+  readUrlValue(duels.params, "leaderboard-chart"),
+  "duels",
+  "A chart's path shows the chart",
+);
+assert.deepEqual(readUrlValue(duels.params, "duels-find"), ["gemini-3.7-flash"]);
+assert.equal(address(duels), "/duels?find=gemini-3.7-flash");
+const spectra = patched({ "leaderboard-chart": "spectra" }, duels);
+assert.equal(address(spectra), "/spectra", "Another chart's controls stay off the link");
 assert.deepEqual(
-  readUrlValue(patchDashboardUrl(effortLink, { "table-effort": [] }).searchParams, "table-effort"),
+  readUrlValue(spectra.params, "duels-find"),
+  ["gemini-3.7-flash"],
+  "A hidden chart keeps its controls, so showing it again restores them",
+);
+assert.equal(address(patched({ "leaderboard-chart": "leaderboard" }, spectra)), "/leaderboard");
+assert.equal(
+  address(patched({ model: "claude-opus-5.5", effort: "high" }, duels)),
+  "/duels?find=gemini-3.7-flash&model=claude-opus-5.5&effort=high",
+  "The model sheet stays open on any section",
+);
+assert.deepEqual(readUrlValue(at("/duels?find=x,+x+,").params, "duels-find"), ["x"]);
+assert.equal(address(patched({ "duels-find": [] }, duels)), "/duels");
+
+assert.equal(
+  address(patched({ "timeline-find": ["openai/gpt-6.2-astra", "GPT-4 (Mar 2023)"] })),
+  "/timeline?find=openai/gpt-6.2-astra,GPT-4+(Mar+2023)",
+  "Ids and names keep their slashes and brackets in a link",
+);
+
+const lists = at("/spectra?find=gemini-4-argon,muse-wonder-full");
+assert.deepEqual(readUrlValue(lists.params, "spectra-find"), [
+  "gemini-4-argon",
+  "muse-wonder-full",
+]);
+assert.equal(
+  address(lists),
+  "/spectra?find=gemini-4-argon,muse-wonder-full",
+  "A list joins its values with commas",
+);
+assert.equal(
+  address(patched({ provider: ["openai", "anthropic"] })),
+  "/?provider=openai,anthropic",
+);
+assert.equal(
+  address(patched({ benchmark: ["terminal_bench", "gdp_pdf"] })),
+  "/pareto?benchmark=terminal_bench,gdp_pdf",
+);
+assert.equal(address(patched({ q: "claude, gpt" })), "/?q=claude,+gpt");
+assert.equal(
+  readUrlValue(at("/?q=claude,+gpt").params, "q"),
+  "claude, gpt",
+  "A free-text search keeps its commas",
+);
+
+assert.equal(modelLinkId("google/gemini-3.7-flash"), "gemini-3.7-flash");
+
+const saved = savedDashboardState({ __NA: true, dashboard: dashboardHistoryEntry(spectra) });
+assert.equal(saved?.section, "spectra");
+assert.equal(saved?.params.toString(), spectra.params.toString());
+assert.equal(savedDashboardState(null), null);
+assert.equal(savedDashboardState({ dashboard: { search: "", section: "nowhere" } }), null);
+
+const effortLink = patched({ "table-variants": true, "table-effort": ["max"] });
+assert.equal(address(effortLink), "/leaderboard?variants=1&efforts=max");
+assert.deepEqual(readUrlValue(effortLink.params, "table-effort"), ["max"]);
+assert.equal(readUrlValue(empty.params, "table-effort"), null);
+assert.deepEqual(
+  readUrlValue(patched({ "table-effort": [] }, effortLink).params, "table-effort"),
   [],
   "An emptied effort basket keeps no variant rows rather than every one",
 );
 assert.equal(
-  patchDashboardUrl(effortLink, { "table-variants": false }).searchParams.has("table-effort"),
+  patched({ "table-variants": false }, effortLink).params.has("table-effort"),
   false,
   "An effort choice leaves with the variant rows it filters",
 );
 
-const stacked = new URL(
-  "?timeline-period=all&performance=benchmarks&benchmark=all&rank=all&campaign=test#timeline",
+const withDefaults = new URL(
+  "/pareto?performance=benchmarks&benchmark=all&rank=all&campaign=test",
   base,
 );
-assert.equal(patchDashboardUrl(stacked, {}).search, "?performance=benchmarks&campaign=test");
-assert.equal(patchDashboardUrl(stacked, { performance: "intelligence" }).search, "?campaign=test");
-assert.equal(patchDashboardUrl(base, { "timeline-period": "all" }).href, `${base.href}#timeline`);
-assert.equal(patchDashboardUrl(base, { "graph-variants": false }).search, "?graph-variants=0");
-
-const tableQuery = patchDashboardUrl(base, { "table-q": "cost", q: "GPT*" });
-assert.equal(readUrlValue(tableQuery.searchParams, "table-q"), "cost");
-assert.equal(readUrlValue(tableQuery.searchParams, "q"), "GPT*");
-assert.equal(tableQuery.hash, "#leaderboard");
-
-const retiredTableOptions = patchDashboardUrl(
-  new URL("?column-q=missing&column-order=coverage&q=GPT*&campaign=test", base),
-  {},
+assert.equal(
+  address(readDashboardUrl(withDefaults), withDefaults),
+  "/pareto?performance=benchmarks&campaign=test",
 );
 assert.equal(
-  retiredTableOptions.search,
-  "?q=GPT*&campaign=test",
-  "Removed table options must not survive in shared links",
+  address(patched({ performance: "intelligence" }, readDashboardUrl(withDefaults)), withDefaults),
+  "/pareto?campaign=test",
 );
+assert.equal(address(patched({ "graph-variants": false })), "/?graph-variants=0");
+assert.equal(address(patched({ "table-q": "cost", q: "GPT*" })), "/leaderboard?search=cost&q=GPT*");
 
 console.log("Dashboard URL contract checks passed.");

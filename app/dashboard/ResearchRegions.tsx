@@ -1,10 +1,11 @@
 "use client";
 
-/** The dashboard's research regions: the pinned rail that indexes them and follows the reader, and the frame each region opens with, its name on the sky over one opaque plane. */
+/** The dashboard's research regions: the pinned rail that indexes them and follows the reader, the frame each region opens with, its name on the sky over one opaque plane, and the chart a stacked region shows. */
 
 import {
   type ReactNode,
   type RefObject,
+  useCallback,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -16,11 +17,29 @@ import { CaptureButton } from "./capture/CaptureButton";
 import { ARTIFACT_WIDTH } from "./capture/png";
 import { CopyDashboardLink } from "./CopyDashboardLink";
 import { redrawPlotsForCapture } from "./graphs/use-chart-layout";
-import { RESEARCH_REGION_IDS, type ResearchRegionId, researchRegionLabel } from "./research-index";
-import { dashboardUrlSection } from "./url-state";
+import {
+  isStackedRegion,
+  REGION_CHARTS,
+  type RegionChartKey,
+  regionElement,
+  RESEARCH_REGION_IDS,
+  type ResearchRegionId,
+  researchRegionLabel,
+  type StackedRegionId,
+} from "./research-index";
+import {
+  type DashboardSection,
+  type DashboardUrlPatch,
+  type DashboardUrlState,
+  readDashboardUrl,
+  sectionRegion,
+} from "./url-state";
+import { replaceDashboardUrl, showDashboardSection, useUrlState } from "./use-url-state";
 
 import styles from "./research-regions.module.css";
 
+// How long a switched chart may keep changing height as its plots measure themselves and its rows render.
+const SWITCH_SETTLE_MS = 600;
 // The journey track starts and ends this far inside the first and last region links.
 const JOURNEY_INSET = 13;
 
@@ -31,7 +50,7 @@ const JOURNEY_INSET = 13;
 export function ResearchRail({ children }: { children: ReactNode }) {
   const railRef = useRef<HTMLElement>(null);
   const indexRef = useRef<HTMLElement>(null);
-  const currentRegion = useCurrentResearchRegion(indexRef);
+  const [currentRegion, placeAgain] = useCurrentResearchRegion(indexRef);
 
   useLayoutEffect(() => {
     const rail = railRef.current;
@@ -57,13 +76,7 @@ export function ResearchRail({ children }: { children: ReactNode }) {
         <nav ref={indexRef} className={styles.index} aria-label="Dashboard sections">
           <span className={styles.journeyStar} aria-hidden="true" />
           {RESEARCH_REGION_IDS.map((id) => (
-            <a
-              href={`#${id}`}
-              key={id}
-              aria-current={id === currentRegion ? "location" : undefined}
-            >
-              {researchRegionLabel(id)}
-            </a>
+            <RailLink key={id} id={id} current={id === currentRegion} onChange={placeAgain} />
           ))}
         </nav>
         {children}
@@ -72,8 +85,150 @@ export function ResearchRail({ children }: { children: ReactNode }) {
   );
 }
 
+// A region's section: a stacked region's is its shown chart, a link to it reading `/duels`, and every other region's is its id.
+function useRegionSection(id: ResearchRegionId): DashboardSection {
+  const [leaderboard] = useUrlState("leaderboard-chart");
+  return id === "leaderboard" ? leaderboard : id;
+}
+
+/** The chart a stacked region shows. Choosing one moves the address to it in place, without a history entry, so Back leaves the region as a whole rather than stepping through its charts. */
+export function useRegionChart<Id extends StackedRegionId>(id: Id) {
+  const charts: readonly { key: RegionChartKey<Id>; label: string }[] = REGION_CHARTS[id];
+  const key: `${Id}-chart` = `${id}-chart`;
+  const [chosen] = useUrlState(key);
+  const choose = (chart: DashboardUrlState[typeof key]) => {
+    const patch: DashboardUrlPatch = {};
+    patch[key] = chart;
+    replaceDashboardUrl(patch);
+  };
+  return { charts, chosen, choose };
+}
+
+/** A region's rail link, to its section's path; a stacked region's names its shown chart. A plain click stays on the page, moving the address and scrolling to the region, while opening the link elsewhere loads it. */
+function RailLink({
+  id,
+  current,
+  onChange,
+}: {
+  id: ResearchRegionId;
+  current: boolean;
+  onChange: () => void;
+}) {
+  const section = useRegionSection(id);
+  return (
+    <a
+      href={`/${section}`}
+      aria-current={current ? "location" : undefined}
+      title={
+        isStackedRegion(id) ? REGION_CHARTS[id].map((chart) => chart.label).join(" · ") : undefined
+      }
+      onClick={(event) => {
+        if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
+          return;
+        event.preventDefault();
+        showDashboardSection(section);
+        regionElement(id)?.scrollIntoView({ block: "start" });
+      }}
+    >
+      {isStackedRegion(id) ? <StackedEntry id={id} onChange={onChange} /> : researchRegionLabel(id)}
+    </a>
+  );
+}
+
+/** A stacked region's rail entry names the chart it shows, then draws one dot per chart with the shown chart's filled. */
+function StackedEntry({ id, onChange }: { id: StackedRegionId; onChange: () => void }) {
+  const { charts, chosen } = useRegionChart(id);
+  // The region's height follows the chosen chart, so the journey is placed again.
+  useLayoutEffect(onChange, [chosen, onChange]);
+  return (
+    <>
+      <ChartNames id={id} />
+      <span className={styles.stack} aria-hidden="true">
+        {charts.map((chart) => (
+          <i key={chart.key} data-shown={chart.key === chosen} />
+        ))}
+      </span>
+    </>
+  );
+}
+
+/** Every chart's name holds one place and only the shown one is visible, so the place keeps its longest name's width and what stands beside it, the rail's other links or the title's chart index, never moves. */
+function ChartNames({ id }: { id: StackedRegionId }) {
+  const { charts, chosen } = useRegionChart(id);
+  return (
+    <span className="chart-names">
+      {charts.map((chart) => (
+        <span key={chart.key} data-shown={chart.key === chosen}>
+          {chart.label}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 /**
- * A region opens with the name the rail gives it, then its actions: save an image and copy a link to the region.
+ * A stacked region's charts listed beside its title in one fixed order; the shown chart's name glows, and pressing another name shows that chart.
+ */
+function ChartIndex({ id }: { id: StackedRegionId }) {
+  const { charts, chosen, choose } = useRegionChart(id);
+  const indexRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (pressedIndex !== id) return;
+    pressedIndex = null;
+    indexRef.current
+      ?.querySelector<HTMLButtonElement>('[aria-pressed="true"]')
+      ?.focus({ preventScroll: true });
+  }, [id, chosen]);
+  return (
+    <div
+      ref={indexRef}
+      className="dashboard-section-index"
+      role="group"
+      aria-label={`${researchRegionLabel(id)} charts`}
+      data-capture-exclude
+    >
+      {charts.map((chart) => (
+        <button
+          key={chart.key}
+          type="button"
+          aria-pressed={chart.key === chosen}
+          onClick={() => {
+            if (chart.key === chosen) return;
+            pressedIndex = id;
+            holdPage();
+            choose(chart.key);
+          }}
+        >
+          {chart.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// A chart switch replaces the whole region, its index included, so a pressed name leaves its region here for the index that replaces it to take the focus.
+let pressedIndex: StackedRegionId | null = null;
+
+let settling: number | undefined;
+
+/**
+ * Keeps a region's title where it is through a chart switch, so only what lies beneath it changes; the browser would move it in two ways while the new chart is laid out.
+ * Scroll anchoring holds the region below in place and moves this title by the charts' difference in height, so it is off until the chart's late layout passes are done.
+ * A chart that mounts short and then grows, as the Timeline does, would shorten the page and pull the scroll position up at the page's end, so the page keeps its height from before the switch for the same time.
+ */
+function holdPage() {
+  const page = document.documentElement;
+  page.style.overflowAnchor = "none";
+  document.body.style.minHeight = `${page.scrollHeight}px`;
+  window.clearTimeout(settling);
+  settling = window.setTimeout(() => {
+    page.style.removeProperty("overflow-anchor");
+    document.body.style.removeProperty("min-height");
+  }, SWITCH_SETTLE_MS);
+}
+
+/**
+ * A region opens with the name the rail gives it, a stacked region with its shown chart's name, then its actions: save an image and copy a link to the region; a stacked region lists its charts beside its title.
  * A figure region's image is its own frame with its plots redrawn at the image's width, named by `capture.title`; a region that renders a separate image supplies its own `capture.action`.
  */
 export function ResearchRegion({
@@ -91,10 +246,11 @@ export function ResearchRegion({
 }) {
   const regionRef = useRef<HTMLElement>(null);
   const titleId = `${id}-title`;
-  const label = researchRegionLabel(id);
+  const section = useRegionSection(id);
   return (
     <section
-      id={id}
+      id={section}
+      data-region={id}
       ref={regionRef}
       className={
         className == null ? "dashboard-research-section" : `dashboard-research-section ${className}`
@@ -102,9 +258,18 @@ export function ResearchRegion({
       aria-labelledby={titleId}
     >
       <header className="dashboard-section-head">
-        <h2 id={titleId} className="dashboard-section-title">
-          <span>{label}</span>
-        </h2>
+        {isStackedRegion(id) ? (
+          <div className="dashboard-section-name">
+            <h2 id={titleId} className="dashboard-section-title">
+              <ChartNames id={id} />
+            </h2>
+            <ChartIndex id={id} />
+          </div>
+        ) : (
+          <h2 id={titleId} className="dashboard-section-title">
+            <span>{researchRegionLabel(id)}</span>
+          </h2>
+        )}
         <div className="dashboard-section-actions" data-capture-exclude>
           {"action" in capture ? (
             capture.action
@@ -117,7 +282,7 @@ export function ResearchRegion({
               onStaged={redrawPlotsForCapture}
             />
           )}
-          <CopyDashboardLink sectionId={id} />
+          <CopyDashboardLink section={section} />
         </div>
       </header>
       <div className={plane == null ? "research-plane" : `research-plane ${plane}`}>{children}</div>
@@ -129,21 +294,22 @@ export function ResearchRegion({
  * Align deep links once the regions are on the page and report the region entering the upper viewport band.
  *
  * The same scroll frame moves the rail's journey star between the region links, written as CSS variables so scrolling never re-renders the rail.
+ * The returned callback places the journey again after a change that moves the links or the regions without a scroll.
  */
 function useCurrentResearchRegion(indexRef: RefObject<HTMLElement | null>) {
   const [currentRegion, setCurrentRegion] = useState<ResearchRegionId | null>(null);
+  const scheduleRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    const regions = RESEARCH_REGION_IDS.flatMap((id) => {
-      const element = document.getElementById(id);
-      return element == null ? [] : [{ element, id }];
-    });
-    if (regions.length === 0) {
-      return;
-    }
     let updateFrame: number | null = null;
     const updateCurrentRegion = () => {
       updateFrame = null;
+      // Found on every frame: a stacked region's element is replaced when its chart changes.
+      const regions = RESEARCH_REGION_IDS.flatMap((id) => {
+        const element = regionElement(id);
+        return element == null ? [] : [{ element, id }];
+      });
+      if (regions.length === 0) return;
       const activationLine = window.innerHeight * 0.45;
       const offsets = regions.map(
         (region) => region.element.getBoundingClientRect().top - activationLine,
@@ -167,22 +333,23 @@ function useCurrentResearchRegion(indexRef: RefObject<HTMLElement | null>) {
       alignmentFrame = window.requestAnimationFrame(() => {
         alignmentFrame = window.requestAnimationFrame(() => {
           alignmentFrame = null;
-          const region = dashboardUrlSection(new URL(window.location.href));
-          if (region != null) document.getElementById(region)?.scrollIntoView({ block: "start" });
+          const { section } = readDashboardUrl(new URL(window.location.href));
+          if (section != null)
+            regionElement(sectionRegion(section))?.scrollIntoView({ block: "start" });
           scheduleUpdate();
         });
       });
     };
+    scheduleRef.current = scheduleUpdate;
     alignRegion();
     window.addEventListener("popstate", alignRegion);
-    window.addEventListener("hashchange", alignRegion);
     window.addEventListener("resize", scheduleUpdate);
     window.addEventListener("scroll", scheduleUpdate, { passive: true });
     scheduleUpdate();
     return () => {
+      scheduleRef.current = null;
       if (alignmentFrame != null) window.cancelAnimationFrame(alignmentFrame);
       window.removeEventListener("popstate", alignRegion);
-      window.removeEventListener("hashchange", alignRegion);
       if (updateFrame != null) {
         window.cancelAnimationFrame(updateFrame);
       }
@@ -191,7 +358,8 @@ function useCurrentResearchRegion(indexRef: RefObject<HTMLElement | null>) {
     };
   }, [indexRef]);
 
-  return currentRegion;
+  const placeAgain = useCallback(() => scheduleRef.current?.(), []);
+  return [currentRegion, placeAgain] as const;
 }
 
 /**

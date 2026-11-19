@@ -21,6 +21,7 @@ import { type CSSProperties, useEffect, useId, useMemo, useRef, useState } from 
 import type { ModelAtlasModel } from "../../src/model-atlas/stats/types";
 import { matchingProfileModelCount, sameProfileFilters, useModelProfiles } from "./model-profiles";
 import { openModelSheet } from "./model-sheet/open";
+import { regionElement } from "./research-index";
 import { Checklist } from "./shared/Checklist";
 import {
   costFilterOptions,
@@ -57,7 +58,7 @@ function focusModelSearch() {
   const input = document.getElementById(MODEL_SEARCH_ID);
   if (!(input instanceof HTMLInputElement)) return;
   if (input.getBoundingClientRect().top > PINNED_SEARCH_TOP) {
-    document.getElementById("leaderboard")?.scrollIntoView({ block: "start" });
+    regionElement("leaderboard")?.scrollIntoView({ block: "start" });
   }
   input.focus({ preventScroll: true });
   input.select();

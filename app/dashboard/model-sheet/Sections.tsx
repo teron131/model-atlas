@@ -21,6 +21,7 @@ import {
 } from "../table/column-registry";
 import { resourceRatioColumns, scoreMetricColumns } from "../table/Columns";
 import {
+  displayedNumber,
   formatContext,
   formatCost,
   formatDashboardMetric,
@@ -479,6 +480,7 @@ function compareValues(
   }
   const betterIndex = (direction === "descending" ? first > second : first < second) ? 0 : 1;
   const [better, worse] = betterIndex === 0 ? [first, second] : [second, first];
+  // A points margin is read from the displayed numbers, so it always matches the values on screen whatever scale the source reports.
   const delta =
     difference === "points"
       ? `+${Math.abs(displayedNumber(texts[betterIndex]!) - displayedNumber(texts[1 - betterIndex]!)).toFixed(1)}`
@@ -486,11 +488,6 @@ function compareValues(
   return values.map((_, index) =>
     index === betterIndex ? { lead: "better", delta } : { lead: "worse" },
   );
-}
-
-/** A points margin is read from the displayed numbers, so it always matches the values on screen whatever scale the source reports. */
-function displayedNumber(text: string): number {
-  return Number(text.replace(/[^\d.-]/g, ""));
 }
 
 /** An amount's margin as a share of the other value: how much less it spends or takes, or how much more it delivers, as a multiple once it doubles. */

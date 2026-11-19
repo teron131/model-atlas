@@ -438,38 +438,19 @@ export function columnTooltipsForActiveComponents(
     context: {
       title: "Context",
       body: "The maximum context window reported for the selected model route, in tokens.",
-      rows: [
-        ["Definition", "maximum context window"],
-        ["Unit", "tokens"],
-        ["Source", "selected model metadata"],
-      ],
+      rows: [["Source", "selected model metadata"]],
     },
     artificialAnalysisCost: {
       title: "Artificial Analysis Cost per Task ↓",
       body: "Artificial Analysis's reported cost to complete one Intelligence Index task. This is a task cost, separate from a price per million tokens.",
-      rows: [
-        ["Source", "Artificial Analysis"],
-        ["Metric", "reported cost per Intelligence task"],
-        ["Method", "direct Artificial Analysis per-task field"],
-      ],
     },
     artificialAnalysisSeconds: {
       title: "Artificial Analysis Seconds per Task ↓",
       body: "Artificial Analysis's reported time to complete one Intelligence Index task, in seconds.",
-      rows: [
-        ["Source", "Artificial Analysis"],
-        ["Metric", "reported time per Intelligence task"],
-        ["Method", "direct Artificial Analysis per-task field"],
-      ],
     },
     artificialAnalysisTokens: {
       title: "Artificial Analysis Output Tokens per Task",
       body: "Artificial Analysis's reported output tokens per Intelligence Index task. These tokens describe the index evaluation, not each constituent benchmark.",
-      rows: [
-        ["Source", "Artificial Analysis"],
-        ["Metric", "reported output tokens per Intelligence task"],
-        ["Method", "direct Artificial Analysis per-task field"],
-      ],
     },
   };
 }

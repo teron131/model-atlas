@@ -19,7 +19,7 @@ import type {
 } from "../../../src/model-atlas/config/tooltips";
 import { clamp } from "../../../src/model-atlas/math-utils";
 import { BenchmarkTooltipBody } from "./BenchmarkTooltip";
-import { ColumnWeightsMap } from "./ColumnWeightsMap";
+import { ColumnWeightsMap, DomainChip } from "./ColumnWeightsMap";
 import { InequalityGraph, layoutInequalityGraph } from "./InequalityGraph";
 import type { DashboardColumnTooltip } from "./tooltips";
 
@@ -169,7 +169,10 @@ export function ColumnTooltip({
         <BenchmarkTooltipBody body={content.body} facts={content.benchmark} title={content.title} />
       ) : (
         <>
-          <div className="column-tooltip-title">{content.title}</div>
+          <div className="column-tooltip-title">
+            {content.domain != null && <DomainChip domain={content.domain} />}
+            {content.title}
+          </div>
           <p className="column-tooltip-body">{content.body}</p>
         </>
       )}

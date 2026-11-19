@@ -422,6 +422,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
     width,
     height,
     bounds: plot,
+    sky: true,
     rim,
     trail,
     muted,

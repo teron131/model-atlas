@@ -20,6 +20,8 @@ import {
 import styles from "./signature.module.css";
 
 const INTRO_DURATION = 3600;
+// The scroll past the hero, in CSS pixels, over which the camera's flight into the sky completes: a fixed distance and not the page's length, so the sky follows the scroll position alone and a region changing height never moves it.
+const FLIGHT_SCROLL = 5600;
 // Half the space a named star's rays occupy on screen, and the gap between those rays and its name.
 const STAR_CLEARANCE = 12;
 const LABEL_GAP = 5;
@@ -165,14 +167,11 @@ export function FrontierField({
       previousRender = now;
       const scroll = Math.max(0, window.scrollY);
       const heroEnd = Math.max(1, (hero.getBoundingClientRect().bottom + scroll) * 0.85);
-      const pageRemainder = document.documentElement.scrollHeight - heroEnd - frameState.height;
       frameState.intro = motion.matches ? 1 : clamp01((now - introStart) / INTRO_DURATION);
       frameState.scroll = scroll;
       frameState.unitsPerPixel = skyUnitsPerPixel(frameState.height);
       frameState.progress = motion.matches ? 0 : clamp01(scroll / heroEnd);
-      frameState.flight = motion.matches
-        ? 0
-        : clamp01((scroll - heroEnd) / Math.max(1, pageRemainder));
+      frameState.flight = motion.matches ? 0 : clamp01((scroll - heroEnd) / FLIGHT_SCROLL);
       // Hit-tested each frame rather than on each move, since scrolling carries surfaces under a resting pointer.
       frameState.pointer =
         !motion.matches && mouse != null && showsSky(document.elementFromPoint(mouse.x, mouse.y))

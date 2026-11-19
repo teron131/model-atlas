@@ -3,10 +3,11 @@
 /**
  * A chart's find field locates models without filtering any out. Each pill names one model by its exact name, or every model a partial name or `*` wildcard matches; the text being typed lights its matches, and choosing a suggestion, Enter, or a comma turns it into a pill, whose models the chart flares once and names.
  * A pill removes only itself, as Backspace in the empty field removes the last one. The chart owns which models are searchable, what locating does, and why typed text finds nothing; on compact charts the field folds to its icon, marked while it holds pills, until it takes focus.
+ * `useChartFind` keeps a chart's pills in the URL, so a link carries them.
  */
 
 import { Search, X } from "lucide-react";
-import { type ReactNode, useId, useRef } from "react";
+import { type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 
 import {
   MAX_SUGGESTIONS,
@@ -16,6 +17,8 @@ import {
   useModelSuggestions,
 } from "../shared/ModelSuggestions";
 import { filterSearchDocuments, hasSearchQuery, type SearchDocument } from "../shared/search";
+import { type DashboardUrlKey, modelLinkId } from "../url-state";
+import { replaceDashboardUrl, useUrlState } from "../use-url-state";
 
 import styles from "./graphs.module.css";
 
@@ -30,6 +33,62 @@ export type ChartFindState = {
 
 export const EMPTY_CHART_FIND: ChartFindState = { terms: [], draft: "", located: new Map() };
 
+/**
+ * A chart's find state with its pills in the URL under `key`: a pill naming one model is stored as its short id, `gemini-3.7-flash`, from the published id `identify` gives, so the link survives a rename; any other pill, or one whose model has no id, is stored as typed.
+ * The text being typed stays on the page, and a model a link located flares once it is first on the chart; adding or removing a pill rewrites the current history entry, so Back leaves the page rather than stepping through pills.
+ */
+export function useChartFind<T>(
+  key: Extract<DashboardUrlKey, `${string}-find`>,
+  documents: readonly SearchDocument<T>[],
+  describe: (item: T) => ModelSuggestionRow,
+  identify: (item: T) => string | null,
+): [ChartFindState, (next: ChartFindState) => void] {
+  const [stored] = useUrlState(key);
+  const [draft, setDraft] = useState("");
+  const [times, setTimes] = useState<ChartFindState["located"]>(new Map());
+  const find = useMemo((): ChartFindState => {
+    const terms = stored.map((value) => {
+      const model = documents.find((document) => {
+        const id = identify(document.value);
+        return id != null && modelLinkId(id) === value;
+      });
+      return model == null ? value : describe(model.value).name;
+    });
+    // A model the effect below has not stamped yet holds its flare until it is on the chart.
+    const located = new Map(
+      namedTargets(terms, documents, describe).map((item) => {
+        const model = describe(item).key;
+        return [model, times.get(model) ?? Number.NEGATIVE_INFINITY] as const;
+      }),
+    );
+    return { terms, draft, located };
+  }, [stored, documents, describe, identify, draft, times]);
+  // Each pill's models are stamped a microsecond after the previous pill's, so the model found last is the last pill's first, as when the pills were added one by one.
+  useEffect(() => {
+    const at = performance.now();
+    const stamps = new Map<string, number>();
+    find.terms.forEach((term, index) => {
+      for (const item of termTargets(term, documents, describe)) {
+        const model = describe(item).key;
+        if (!times.has(model) && !stamps.has(model)) stamps.set(model, at + index / 1000);
+      }
+    });
+    if (stamps.size > 0) setTimes(new Map([...times, ...stamps]));
+  }, [find, times, documents, describe]);
+  const setFind = (next: ChartFindState) => {
+    setDraft(next.draft);
+    setTimes(next.located);
+    replaceDashboardUrl({
+      [key]: next.terms.map((term) => {
+        const targets = termTargets(term, documents, describe);
+        const id = targets.length === 1 ? identify(targets[0]!) : null;
+        return id == null ? term : modelLinkId(id);
+      }),
+    });
+  };
+  return [find, setFind];
+}
+
 /** Every item the pills and the typed text name, the pills' first; `null` while the field holds neither. */
 export function chartFindTargets<T>(
   find: ChartFindState,
@@ -38,6 +97,13 @@ export function chartFindTargets<T>(
 ): T[] | null {
   const terms = [...find.terms, find.draft];
   return terms.some(hasSearchQuery) ? namedTargets(terms, documents, describe) : null;
+}
+
+/** The model the latest pill located, which a chart shows while nothing is pointed: a pill naming several takes its first, the strongest by Intelligence. */
+export function lastLocated(located: ChartFindState["located"]): string | null {
+  let last: [string, number] | null = null;
+  for (const entry of located) if (last == null || entry[1] > last[1]) last = entry;
+  return last?.[0] ?? null;
 }
 
 /** The items one term names: a model whose name it spells exactly, or else every match, the highest Intelligence first. */

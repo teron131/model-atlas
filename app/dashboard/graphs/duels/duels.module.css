@@ -1,0 +1,41 @@
+/* Duels' own marks; frames, controls, readouts, stars, and shared marks come from the dashboard's chart styles. */
+
+/* The pointed duel's row and column, lit and ruled as the evidence table's rows are. */
+.row {
+  fill: var(--hover);
+}
+
+.rule {
+  stroke: var(--line);
+}
+
+/* A lost duel is an unlit ring, a drawn one keeps a point at its centre, and the pointed one's ring takes the ink. */
+.loss {
+  fill: none;
+  stroke: rgb(var(--ink-rgb) / 0.32);
+}
+
+.loss[data-pointed] {
+  stroke: var(--ink);
+}
+
+.draw {
+  fill: rgb(var(--ink-rgb) / 0.5);
+}
+
+/* An opponent's name over its dot column turns ink and bold while one of its duels is shown, as a hovered benchmark's header does in the evidence table. */
+.column[data-pointed] {
+  fill: var(--ink);
+  font-weight: 800;
+}
+
+/* A model's move from its Intelligence place: a rise in ink and a fall muted, as the leaderboard's score changes read. */
+.shift {
+  fill: var(--ink);
+  font: var(--type-label-weight) var(--type-caption-size) var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.shift[data-direction="down"] {
+  fill: var(--muted);
+}

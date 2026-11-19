@@ -244,11 +244,8 @@
   }
 }
 
-@media (max-width: 520px) {
-  .profileToggle span {
-    display: none;
-  }
-  /* A phone rail cannot fit the region links and a usable field side by side, so the search folds to its icon, with the field laid unseen over it to take the tap, and opens over the links while it has focus. */
+/* Below 940px the rail cannot fit its 420px of region links and a field wide enough for its placeholder side by side, so the search folds to its icon, with the field laid unseen over it to take the tap, and opens over the links while it has focus. */
+@media (max-width: 940px) {
   .search {
     position: relative;
     justify-content: center;
@@ -269,6 +266,9 @@
   .search input::-webkit-search-cancel-button {
     -webkit-appearance: none;
   }
+  .shortcut {
+    display: none;
+  }
   .query:focus-within {
     z-index: 1;
     grid-area: 1 / 1 / 2 / 3;
@@ -288,6 +288,12 @@
   }
   .query:focus-within .search input::-webkit-search-cancel-button {
     -webkit-appearance: searchfield-cancel-button;
+  }
+}
+
+@media (max-width: 520px) {
+  .profileToggle span {
+    display: none;
   }
   .panel:has(.profiles form) .profiles {
     flex: 1;

@@ -110,6 +110,27 @@
   background: var(--flight-passed);
 }
 
+/* A stacked region's name is followed by a column of dots, one per chart in the order of the column of names beside the region's title, the shown chart's lit in the name's own colour, so the rail says that more charts wait there and which one is up without widening the entry. */
+.stack {
+  display: flex;
+  flex-direction: column;
+  margin-left: 7px;
+  gap: 2px;
+}
+
+.stack i {
+  width: 4px;
+  height: 4px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  opacity: 0.55;
+}
+
+.stack i[data-shown="true"] {
+  background: currentColor;
+  opacity: 1;
+}
+
 .index a:hover,
 .index a:focus-visible,
 .index a[aria-current="location"] {
@@ -132,13 +153,19 @@
   }
 }
 
-/* A phone keeps the research destinations readable across the compact rail and gives them its open middle while the model search waits as an icon; the links hold the first cell explicitly because the opened search spans over it. */
-@media (max-width: 520px) {
+/* Where the model search waits as an icon, the links take the rail's open middle and hold its first cell explicitly, because the opened search spans over it. */
+@media (max-width: 940px) {
   .bar {
     grid-template-columns: minmax(0, 1fr) auto auto;
   }
   .index {
     grid-area: 1 / 1;
+  }
+}
+
+/* A phone keeps the research destinations readable across the compact rail. */
+@media (max-width: 520px) {
+  .index {
     mask-image: none;
   }
   .index a {

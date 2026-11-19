@@ -15,7 +15,7 @@ import type { ModelSuggestionRow } from "../../shared/ModelSuggestions";
 import { providerChartColor, providerDisplayName, providerLogo } from "../../shared/provider-theme";
 import type { SearchDocument } from "../../shared/search";
 import { useUrlState } from "../../use-url-state";
-import { ChartFind, type ChartFindState, chartFindTargets, EMPTY_CHART_FIND } from "../ChartFind";
+import { ChartFind, type ChartFindState, chartFindTargets, useChartFind } from "../ChartFind";
 import { ChartReadout, type ReadoutEntry } from "../ChartReadout";
 import { placeBesideStars } from "../plot/label-placement";
 import {
@@ -62,7 +62,7 @@ import timeline from "./timeline.module.css";
 
 // Each lab's rule shows its strongest few models, enough to read the depth behind its leader without reaching back through its history.
 const STANDING_MODEL_COUNT = 5;
-const TIMELINE_CAPTION = `Compare model generations on a fixed Intelligence Index. The glowing frontier rises with each new record set by a model with at least ${Math.round(RECORD_MINIMUM_SUPPORT * 100)}% evidence support, and picking a model draws its lab's own records. This historical view uses its own filters.`;
+const TIMELINE_CAPTION = `A model sets a record only with at least ${Math.round(RECORD_MINIMUM_SUPPORT * 100)}% evidence support. This historical view uses its own filters.`;
 
 // While a lab is pointed at, the other labs' names keep this share of their light, enough to stay legible as context.
 const DIMMED_NAME_OPACITY = 0.35;
@@ -97,7 +97,6 @@ export const TimelinePanel = memo(function TimelinePanel({
   // The lab a standings row points at, the one hover that lights a lab; a star the pointer passes over only flares and fills the readout.
   const [standingLab, setStandingLab] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
-  const [find, setFind] = useState<ChartFindState>(EMPTY_CHART_FIND);
   const pointStanding = (leader: TimelinePoint | null) => {
     setPreview(leader);
     setStandingLab(leader?.provider ?? null);
@@ -229,6 +228,12 @@ export const TimelinePanel = memo(function TimelinePanel({
   const picked = population.find((point) => point.id === selected);
   // The field searches every lab and date.
   const findDocuments = useMemo(() => (points ?? []).map(timelineSearchDocument), [points]);
+  const [find, setFind] = useChartFind(
+    "timeline-find",
+    findDocuments,
+    timelineSuggestionRow,
+    pointModelId,
+  );
   const matches = useMemo(() => {
     const targets = chartFindTargets(find, findDocuments, timelineSuggestionRow);
     return targets == null ? null : new Set(targets.map((point) => point.id));
@@ -852,6 +857,11 @@ function timelineSearchDocument(point: TimelinePoint): SearchDocument<TimelinePo
     value: point,
     primary: [point.name, point.provider, providerDisplayName(point.provider)],
   };
+}
+
+// A point's published model id; an archived model has none, so a pill naming it stays as typed.
+function pointModelId(point: TimelinePoint): string | null {
+  return positionCatalogId(point.id);
 }
 
 /** A Timeline suggestion carries the Timeline's own Intelligence Index, the scale its y-axis reads. */

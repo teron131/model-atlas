@@ -83,7 +83,7 @@ export type SkyFrame = {
   intro: number;
   /** Hero progress from 0 (at rest) to 1 (scrolled away); always 0 under reduced motion. */
   progress: number;
-  /** Share of the page below the hero that has been scrolled; always 0 under reduced motion. */
+  /** Progress of the flight past the hero from 0 to 1, over a fixed scroll distance; always 0 under reduced motion. */
   flight: number;
   scroll: number;
   unitsPerPixel: number;
