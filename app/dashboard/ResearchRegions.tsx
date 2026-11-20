@@ -87,8 +87,11 @@ export function ResearchRail({ children }: { children: ReactNode }) {
 
 // A region's section: a stacked region's is its shown chart, a link to it reading `/duels`, and every other region's is its id.
 function useRegionSection(id: ResearchRegionId): DashboardSection {
-  const [leaderboard] = useUrlState("leaderboard-chart");
-  return id === "leaderboard" ? leaderboard : id;
+  const shown: Record<StackedRegionId, DashboardSection> = {
+    leaderboard: useUrlState("leaderboard-chart")[0],
+    pareto: useUrlState("pareto-chart")[0],
+  };
+  return isStackedRegion(id) ? shown[id] : id;
 }
 
 /** The chart a stacked region shows. Choosing one moves the address to it in place, without a history entry, so Back leaves the region as a whole rather than stepping through its charts. */

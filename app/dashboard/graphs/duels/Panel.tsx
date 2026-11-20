@@ -17,7 +17,13 @@ import {
   NOTHING_FOUND,
   topByIntelligence,
 } from "../chart-data";
-import { ChartFind, chartFindTargets, lastLocated, useChartFind } from "../ChartFind";
+import {
+  ChartFind,
+  chartFindTargets,
+  foundModelsPhrase,
+  lastLocated,
+  useChartFind,
+} from "../ChartFind";
 import { ChartReadout, type ReadoutEntry } from "../ChartReadout";
 import { FigureRegion } from "../FigureRegion";
 import { usePick } from "../plot/Interaction";
@@ -97,6 +103,7 @@ export function DuelsPanel({ data }: { data: ChartData }) {
   const standings = duelStandings(data, find.located);
   const count = standings.length;
   const added = count - Math.min(MODELS, data.rows.length);
+  const found = foundModelsPhrase(added);
   const targets = chartFindTargets(find, documents, findSuggestion);
   const matches = targets == null ? null : new Set(targets.map((row) => row.key));
   const duels = standings.flatMap((standing) => [...standing.duels.values()]);
@@ -283,7 +290,7 @@ export function DuelsPanel({ data }: { data: ChartData }) {
       caption={
         <>
           <p>
-            {`Top ${count - added} models by Intelligence${added === 0 ? "" : added === 1 ? ", with the model you found," : `, with the ${added} models you found,`} ranked by their duels with each other. A duel goes to the model that leads on more of the Intelligence benchmarks both report; pairs sharing fewer than ${MIN_SHARED} have none. A lead is the gap between the two results, as Compare in the model sheet shows it.`}
+            {`Top ${count - added} models by Intelligence${found == null ? "" : `, ${found},`} ranked by their duels with each other. A duel goes to the model that leads on more of the Intelligence benchmarks both report; pairs sharing fewer than ${MIN_SHARED} have none. A lead is the gap between the two results, as Compare in the model sheet shows it.`}
           </p>
           <p className={graphs.captionNote}>
             Each model appears once, as the leaderboard shows it with reasoning variants collapsed.

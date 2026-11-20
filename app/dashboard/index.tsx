@@ -19,6 +19,7 @@ import { DashboardLeaderboard } from "./DashboardLeaderboard";
 import { GlobalModelControls } from "./GlobalModelControls";
 import { type ChartData, chartData } from "./graphs/chart-data";
 import { DuelsPanel } from "./graphs/duels/Panel";
+import { EffortPanel } from "./graphs/effort/Panel";
 import { ParetoPanel } from "./graphs/pareto/Panel";
 import { SpectraPanel } from "./graphs/spectra/Panel";
 import { TimelinePanel } from "./graphs/timeline/Panel";
@@ -83,8 +84,10 @@ export function Dashboard({
   // The charts read results from the leaderboard's rows, which are shaped once per snapshot, so they take the snapshot itself rather than its variant display.
   const charts = useMemo(
     () =>
-      payload == null || regions.payload == null ? null : chartData(payload, regions.modelRows),
-    [payload, regions.payload, regions.modelRows],
+      payload == null || regions.payload == null
+        ? null
+        : chartData(payload, regions.modelRows, regions.variantModels),
+    [payload, regions.payload, regions.modelRows, regions.variantModels],
   );
 
   // The hero and the leaderboard keep their places while the payload arrives, so neither remounts when the rail and the analyses join them.
@@ -114,8 +117,9 @@ export function Dashboard({
           isLoading={isInitialLoading}
           filters={filters}
         />
-        {regions.payload != null ? (
-          <ParetoPanel
+        {regions.payload != null && charts != null ? (
+          <ParetoRegion
+            charts={charts}
             payload={regions.payload}
             models={regions.models}
             variantModels={regions.variantModels}
@@ -199,7 +203,7 @@ function useRegionPopulations(
       ),
     [payload, deferredFilters, filterScope],
   );
-  // Pareto's evidence lists every reasoning variant whatever the display shows, through the same filters.
+  // Pareto's evidence and Effort list every reasoning variant whatever the display shows, through the same filters.
   const variantModels = useMemo(
     () =>
       showVariants
@@ -270,6 +274,21 @@ function LeaderboardRegion({
       return <SpectraPanel data={charts} />;
     case "duels":
       return <DuelsPanel data={charts} />;
+    default:
+      return chosen satisfies never;
+  }
+}
+
+function ParetoRegion({
+  charts,
+  ...pareto
+}: ComponentProps<typeof ParetoPanel> & { charts: ChartData }) {
+  const { chosen } = useRegionChart("pareto");
+  switch (chosen) {
+    case "pareto":
+      return <ParetoPanel {...pareto} />;
+    case "effort":
+      return <EffortPanel data={charts} />;
     default:
       return chosen satisfies never;
   }

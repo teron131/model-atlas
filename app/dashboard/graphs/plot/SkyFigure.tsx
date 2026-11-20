@@ -5,7 +5,7 @@
  * A plot drawn wider than its host scrolls sideways inside it, as the leaderboard's table does, instead of squeezing; a mouse, which has no sideways scroll, pans it by dragging any mark tagged `data-pans`.
  */
 
-import { type CSSProperties, type ReactNode, useRef } from "react";
+import { type CSSProperties, type ReactNode, useLayoutEffect, useRef } from "react";
 
 import { useDragPan } from "../../shared/use-drag-pan";
 import type { useChartLayout } from "../use-chart-layout";
@@ -27,6 +27,7 @@ export function SkyFigure({
   sky = true,
   horizon = false,
   label,
+  reveal,
   onLeave,
   children,
 }: {
@@ -47,6 +48,8 @@ export function SkyFigure({
   /** Stars of the models the find field located, which flare out once from when they were located. */
   found?: SkyPlotScene["found"];
   label: string;
+  /** An x in the plot's coordinates that a plot wider than its host scrolls into view, centred, whenever it changes and lies outside the view; a reader's own scroll stands until then. */
+  reveal?: number;
   onLeave: () => void;
   children: ReactNode;
 }) {
@@ -60,6 +63,15 @@ export function SkyFigure({
       scrollerRef.current!.scrollLeft = left;
     },
   });
+  const pinnedWidth = pinned?.width ?? 0;
+  useLayoutEffect(() => {
+    if (reveal == null || !scrolls) return;
+    const scroller = scrollerRef.current!;
+    const { scrollLeft, clientWidth } = scroller;
+    // The pinned strip covers the view's left edge, so a point under it is out of view too.
+    if (reveal >= scrollLeft + pinnedWidth && reveal <= scrollLeft + clientWidth) return;
+    scroller.scrollLeft = reveal - (pinnedWidth + clientWidth) / 2;
+  }, [reveal, scrolls, pinnedWidth]);
   const scene: SkyPlotScene = {
     width,
     height,
@@ -83,7 +95,8 @@ export function SkyFigure({
     <div
       {...plotHost}
       className={styles.chartWrap}
-      style={{ "--chart-max-width": `${SCATTER_CHART_WIDTH}px` } as CSSProperties}
+      // The cap fits a plot to its host; a plot drawn wider than the cap keeps its own width and scrolls rather than shrinking into it.
+      style={{ "--chart-max-width": `${Math.max(width, SCATTER_CHART_WIDTH)}px` } as CSSProperties}
     >
       <div
         className={styles.scroller}

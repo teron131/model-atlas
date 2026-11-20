@@ -1,4 +1,4 @@
-/** The data of the charts that read the leaderboard model by model, such as Spectra and Duels: the dashboard's filtered models reduced to what they draw, their results as the leaderboard prints them, each benchmark's model-assigned shares across the domains it is labelled with and its range across the whole leaderboard, and the find field's search over those rows. */
+/** The data of the charts that read the leaderboard model by model or variant by variant, such as Spectra, Duels, and Effort: the dashboard's filtered models and reasoning variants reduced to what they draw, their results and resource ratios as the leaderboard prints them, each benchmark's model-assigned shares across the domains it is labelled with and its range across the whole leaderboard, and the find field's search over those rows. */
 
 import {
   BENCHMARK_DOMAINS,
@@ -7,7 +7,9 @@ import {
 } from "../../../src/model-atlas/benchmarks/catalog";
 import type { BenchmarkGroup } from "../../../src/model-atlas/benchmarks/factory";
 import { BASELINE_BENCHMARKS } from "../../../src/model-atlas/benchmarks/registry";
+import { reasoningEffortRank } from "../../../src/model-atlas/identity/normalization";
 import { type MinMaxRange, minMaxRange } from "../../../src/model-atlas/math-utils";
+import type { ResourceRatioKind } from "../../../src/model-atlas/stats/resource-ratios";
 import type { ModelAtlasModel, ModelAtlasPayload } from "../../../src/model-atlas/stats/types";
 import { benchmarkLabels, compareBenchmarkDisplayKeys } from "../shared/benchmark-display";
 import { shortLabel } from "../shared/model-display";
@@ -18,16 +20,22 @@ import { type BenchmarkMetricColumn, benchmarkMetricColumns } from "../table/col
 import { displayedNumber, formatDashboardMetric } from "../table/format";
 import { benchmarkDisplayValue, leaderboardRows, type TableRow } from "../table/leaderboard-rows";
 
-/** One leaderboard row per model, with each benchmark result as the leaderboard prints it, so two models' results differ as the model sheet's Compare shows. */
-export type ChartRow = {
-  /** The variant the row shows: its family's id and its effort. */
+type ChartModel = {
+  /** One reasoning variant: its family's id and its effort. */
   key: string;
   family: string;
   name: string;
   provider: string;
+  effort: string | null;
   intelligence: number;
-  benchmarks: Record<string, number>;
+  agentic: number;
 };
+
+/** One reasoning variant with its Cost×, Time×, and Tokens× as the leaderboard shows them: its resource use against the benchmark medians, null where unmeasured. */
+export type ChartVariant = ChartModel & { ratios: Record<ResourceRatioKind, number | null> };
+
+/** One leaderboard row per model, with each benchmark result as the leaderboard prints it, so two models' results differ as the model sheet's Compare shows. */
+export type ChartRow = ChartModel & { benchmarks: Record<string, number> };
 
 export type ChartBenchmark = {
   key: string;
@@ -46,6 +54,7 @@ export type ChartBenchmark = {
 export type ChartDomain = { key: BenchmarkDomain; name: string; definition: string };
 
 export type ChartData = {
+  variants: ChartVariant[];
   rows: ChartRow[];
   /** Scored and baseline benchmarks that carry label shares, composite indexes left out. */
   benchmarks: ChartBenchmark[];
@@ -53,10 +62,13 @@ export type ChartData = {
   domains: ChartDomain[];
 };
 
-/** `payload` is the whole snapshot, whose leaderboard gives each result and range; `models` holds one row per model, already through the dashboard's filters. */
+const NO_RATIOS = { cost: null, time: null, tokens: null };
+
+/** `payload` is the whole snapshot, whose leaderboard gives each result and range; `models` holds one row per model and `variantModels` every reasoning variant, both already through the dashboard's filters. */
 export function chartData(
   payload: ModelAtlasPayload,
   models: readonly ModelAtlasModel[],
+  variantModels: readonly ModelAtlasModel[],
 ): ChartData {
   const { intelligence_benchmark_keys } = payload.metadata.scoring;
   const baseline = new Set<string>(BASELINE_BENCHMARKS);
@@ -105,19 +117,38 @@ export function chartData(
   const domains = BENCHMARK_DOMAINS.filter((domain) => held(domain.key) > 0)
     .sort((a, b) => held(b.key) - held(a.key))
     .map(({ key, name, definition }) => ({ key, name, definition }));
+  // The leaderboard's variant rows carry every variant's ratios, measured across the whole snapshot.
+  const ratios = new Map(
+    leaderboardRows(payload, true).map(({ model, resourceRatios }) => [
+      variantKey(model),
+      {
+        cost: resourceRatios.cost.ratio,
+        time: resourceRatios.time.ratio,
+        tokens: resourceRatios.tokens.ratio,
+      },
+    ]),
+  );
   return {
+    // While a new snapshot's filtered variants catch up with it, a variant it dropped has no ratios.
+    variants: variantModels
+      .map(
+        (model): ChartVariant => ({
+          ...chartModel(model),
+          ratios: ratios.get(variantKey(model)) ?? NO_RATIOS,
+        }),
+      )
+      .sort(
+        (a, b) =>
+          a.family.localeCompare(b.family) ||
+          reasoningEffortRank(a.effort) - reasoningEffortRank(b.effort),
+      ),
     // While a new snapshot's filtered models catch up with it, a model it dropped has no results.
-    rows: models.map((model): ChartRow => {
-      const family = familyOf(model);
-      return {
-        key: `${family}::${model.reasoning_effort ?? ""}`,
-        family,
-        name: shortLabel({ ...model, reasoning_effort: null }),
-        provider: model.provider ?? "",
-        intelligence: model.scores.intelligence_score,
-        benchmarks: results.get(family) ?? {},
-      };
-    }),
+    rows: models.map(
+      (model): ChartRow => ({
+        ...chartModel(model),
+        benchmarks: results.get(familyOf(model)) ?? {},
+      }),
+    ),
     benchmarks,
     domains,
   };
@@ -131,8 +162,24 @@ function printedResult(row: TableRow, column: BenchmarkMetricColumn): number | n
     : null;
 }
 
+function chartModel(model: ModelAtlasModel): ChartModel {
+  return {
+    key: variantKey(model),
+    family: familyOf(model),
+    name: shortLabel({ ...model, reasoning_effort: null }),
+    provider: model.provider ?? "",
+    effort: model.reasoning_effort,
+    intelligence: model.scores.intelligence_score,
+    agentic: model.scores.agentic_score,
+  };
+}
+
 function familyOf(model: ModelAtlasModel): string {
   return model.id ?? model.name ?? "";
+}
+
+function variantKey(model: ModelAtlasModel): string {
+  return `${familyOf(model)}::${model.reasoning_effort ?? ""}`;
 }
 
 export function topByIntelligence<T extends { intelligence: number }>(

@@ -19,6 +19,10 @@ export const REGION_CHARTS = {
     { key: "spectra", label: "Spectra" },
     { key: "duels", label: "Duels" },
   ],
+  pareto: [
+    { key: "pareto", label: "Pareto" },
+    { key: "effort", label: "Effort" },
+  ],
 } as const satisfies Partial<Record<ResearchRegionId, readonly { key: string; label: string }[]>>;
 
 export type StackedRegionId = keyof typeof REGION_CHARTS;

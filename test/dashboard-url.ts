@@ -193,6 +193,11 @@ assert.equal(
 assert.deepEqual(readUrlValue(at("/duels?find=x,+x+,").params, "duels-find"), ["x"]);
 assert.equal(address(patched({ "duels-find": [] }, duels)), "/duels");
 
+assert.equal(address(patched({ "effort-measure": "time" })), "/effort?measure=time");
+assert.equal(
+  address(patched({ "effort-measure": "time", "effort-find": ["grok-5"] })),
+  "/effort?measure=time&find=grok-5",
+);
 assert.equal(
   address(patched({ "timeline-find": ["openai/gpt-6.2-astra", "GPT-4 (Mar 2023)"] })),
   "/timeline?find=openai/gpt-6.2-astra,GPT-4+(Mar+2023)",

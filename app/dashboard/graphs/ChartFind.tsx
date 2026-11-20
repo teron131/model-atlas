@@ -106,6 +106,12 @@ export function lastLocated(located: ChartFindState["located"]): string | null {
   return last?.[0] ?? null;
 }
 
+/** A caption's words for the models a find field brought in beyond the chart's own, null when it brought none: `with the model you found`, `with the 3 models you found`. */
+export function foundModelsPhrase(count: number): string | null {
+  if (count === 0) return null;
+  return count === 1 ? "with the model you found" : `with the ${count} models you found`;
+}
+
 /** The items one term names: a model whose name it spells exactly, or else every match, the highest Intelligence first. */
 export function termTargets<T>(
   term: string,

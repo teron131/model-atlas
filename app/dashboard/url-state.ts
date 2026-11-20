@@ -57,9 +57,12 @@ export type DashboardUrlState = {
   "spectra-find": string[];
   "duels-find": string[];
   "pareto-find": string[];
+  "effort-find": string[];
   "timeline-find": string[];
+  "effort-measure": "intelligence" | "agentic" | "cost" | "time" | "tokens";
   /** The chart each stacked region shows; an address carries it as its path, never as a key. */
   "leaderboard-chart": RegionChartKey<"leaderboard">;
+  "pareto-chart": RegionChartKey<"pareto">;
 };
 
 export type DashboardUrlKey = keyof DashboardUrlState;
@@ -90,6 +93,7 @@ const SECTION_KEYS: Record<DashboardSection, Readonly<Record<string, DashboardUr
   spectra: { find: "spectra-find" },
   duels: { find: "duels-find" },
   pareto: { performance: "performance", benchmark: "benchmark", axes: "axes", find: "pareto-find" },
+  effort: { measure: "effort-measure", find: "effort-find" },
   timeline: { period: "timeline-period", lab: "timeline-provider", find: "timeline-find" },
 };
 // Controls that act across the page keep their names on every address.
@@ -114,6 +118,7 @@ const LIST_KEYS = new Set<DashboardUrlKey>([
   "spectra-find",
   "duels-find",
   "pareto-find",
+  "effort-find",
   "timeline-find",
 ]);
 const KEY_SECTIONS = new Map<DashboardUrlKey, DashboardSection>(
@@ -125,7 +130,13 @@ const dashboardKeys = new Set<DashboardUrlKey>([
   ...PAGE_KEYS,
   ...KEY_SECTIONS.keys(),
   "leaderboard-chart",
+  "pareto-chart",
 ]);
+// The region whose shown chart each chart key holds.
+const CHART_KEY_REGIONS = {
+  "leaderboard-chart": "leaderboard",
+  "pareto-chart": "pareto",
+} as const satisfies Record<`${StackedRegionId}-chart`, StackedRegionId>;
 // Every name an address gives a control, which it never keeps as someone else's parameter.
 const DASHBOARD_NAMES = new Set<string>([
   ...PAGE_KEYS,
@@ -211,18 +222,17 @@ export function readUrlValue<K extends DashboardUrlKey>(
     case "spectra-find":
     case "duels-find":
     case "pareto-find":
+    case "effort-find":
     case "timeline-find":
       result = [...new Set(params.getAll(key).map((item) => item.trim()))].filter(Boolean);
       break;
-    case "leaderboard-chart": {
-      const charts = REGION_CHARTS.leaderboard;
-      result = choice(
-        value,
-        charts.map((chart) => chart.key),
-        charts[0].key,
-      );
+    case "effort-measure":
+      result = choice(value, ["intelligence", "agentic", "cost", "time", "tokens"], "cost");
       break;
-    }
+    case "leaderboard-chart":
+    case "pareto-chart":
+      result = chartChoice(value, key);
+      break;
     default:
       result = value ?? "";
   }
@@ -277,7 +287,7 @@ export function patchDashboardState(
       params.delete(key);
   }
   const moved = keys
-    .map((key) => (key === "leaderboard-chart" ? patch[key] : KEY_SECTIONS.get(key)))
+    .map((key) => (isChartKey(key) ? patch[key] : KEY_SECTIONS.get(key)))
     .find((section) => section != null);
   return { params, section: moved ?? state.section };
 }
@@ -360,6 +370,20 @@ function readableSearch(params: URLSearchParams): string {
     .toString()
     .replace(/%2F|%3A|%28|%29|%2C/g, (escaped) => decodeURIComponent(escaped));
   return search === "" ? "" : `?${search}`;
+}
+
+function isChartKey(key: DashboardUrlKey): key is keyof typeof CHART_KEY_REGIONS {
+  return Object.hasOwn(CHART_KEY_REGIONS, key);
+}
+
+// A stacked region's shown chart, its first chart unless the value names another.
+function chartChoice(value: string | null, key: keyof typeof CHART_KEY_REGIONS) {
+  const charts = REGION_CHARTS[CHART_KEY_REGIONS[key]];
+  return choice(
+    value,
+    charts.map((chart) => chart.key),
+    charts[0].key,
+  );
 }
 
 function choice<T extends string>(value: string | null, values: readonly T[], fallback: T): T {
