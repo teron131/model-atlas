@@ -437,6 +437,22 @@ CREATE TABLE IF NOT EXISTS model_task_metrics (
 	PRIMARY KEY (model_row_index, source_key)
 );
 
+CREATE TABLE IF NOT EXISTS model_task_estimates (
+	model_row_index INTEGER NOT NULL,
+	benchmark_key TEXT NOT NULL,
+	metric TEXT NOT NULL CHECK (metric IN ('cost', 'seconds', 'tokens', 'output_tokens')),
+	amount REAL NOT NULL,
+	evidence_factor REAL NOT NULL,
+	PRIMARY KEY (model_row_index, benchmark_key, metric)
+);
+
+CREATE TABLE IF NOT EXISTS model_benchmark_estimates (
+	model_row_index INTEGER NOT NULL,
+	benchmark_key TEXT NOT NULL,
+	value REAL NOT NULL,
+	PRIMARY KEY (model_row_index, benchmark_key)
+);
+
 CREATE TABLE IF NOT EXISTS refresh_runs (
 	refresh_id INTEGER NOT NULL,
 	previous_refresh_id INTEGER,

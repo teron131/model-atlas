@@ -2333,6 +2333,19 @@ html[data-model-atlas-theme="light"] .score-meter::after {
   min-width: 76px;
 }
 
+/* A result or amount scoring estimated rather than measured reads in italic, its meter or bar unchanged. */
+.estimated-cell {
+  font-style: italic;
+}
+
+/* The legend beneath the table takes the type of the analyses' caption notes. */
+.table-legend {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font: var(--type-label-weight) var(--mono-chip) / 1.45 var(--font-mono);
+  letter-spacing: 0.01em;
+}
+
 /* Ratios read as a bar rather than a star: from the 1× median tick a solid bar in the score trail's provider colour grows toward the model's ratio, so the columns never echo the score stars. The track runs a little longer than the score tracks so overspends of 6× and 11× still draw apart while small savings stay visible. */
 .ratio-track {
   position: relative;

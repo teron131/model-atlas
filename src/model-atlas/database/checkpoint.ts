@@ -47,7 +47,13 @@ import {
   pruneChangeLog,
 } from "./change-log";
 import { buildDebugTraceRows, type DebugTraceRow, insertDebugTraceRows } from "./debug-trace";
-import { insertModelBenchmarks, insertModels, insertModelTaskMetrics } from "./model-rows";
+import {
+  insertModelBenchmarkEstimates,
+  insertModelBenchmarks,
+  insertModels,
+  insertModelTaskEstimates,
+  insertModelTaskMetrics,
+} from "./model-rows";
 import { SNAPSHOT_TABLES, type SnapshotTableName } from "./tables";
 
 type DatabaseSnapshotRows = {
@@ -120,6 +126,14 @@ const SNAPSHOT_REPLACE_WRITERS = [
   {
     table: SNAPSHOT_TABLES.model_task_metrics,
     write: (db, rows) => insertModelTaskMetrics(db, rows.finalModelRows),
+  },
+  {
+    table: SNAPSHOT_TABLES.model_task_estimates,
+    write: (db, rows) => insertModelTaskEstimates(db, rows.finalModelRows),
+  },
+  {
+    table: SNAPSHOT_TABLES.model_benchmark_estimates,
+    write: (db, rows) => insertModelBenchmarkEstimates(db, rows.finalModelRows),
   },
   {
     table: SNAPSHOT_TABLES.model_match_debug,

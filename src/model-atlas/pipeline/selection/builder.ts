@@ -1,6 +1,7 @@
 /** Model selection prepares quality scores before route enrichment, then finalizes resource scores, admission, and logo hydration. */
 
 import type { FinalStageConfig, ScoringConfig } from "../../config/stage";
+import { canonicalVariantKey } from "../../identity/normalization";
 import { cacheModelLogos } from "../../logos/cache";
 import { asRecord } from "../../runtime";
 import type { ModelAtlasCandidate, ModelAtlasModel, ModelRow } from "../model-types";
@@ -10,11 +11,16 @@ import {
   benchmarkImputationFactors,
   benchmarkImputationValues,
   type BenchmarkScoringPreparation,
+  type EffortResourceImputation,
   prepareBenchmarkScoring,
   prepareEffortResourceImputation,
+  taskResourceEstimates,
   withoutBenchmarkImputationForModels,
 } from "../scores/imputation";
-import { prepareEffortQualityScoringContext } from "../scores/imputation/effort-quality";
+import {
+  prepareEffortQualityScoringContext,
+  publishedEffortResults,
+} from "../scores/imputation/effort-quality";
 import { blendPairwiseQualityScores } from "../scores/pairwise-quality";
 import { buildAgenticTokenScoringContext } from "../scores/quality-context";
 import { applyResourceEvidenceRequirements } from "../scores/resource-metrics";
@@ -40,6 +46,10 @@ export type ModelSelection = {
   modelRows: ModelRow[];
   candidates: ModelAtlasCandidate[];
   scoringPreparation: BenchmarkScoringPreparation;
+  /** Total and output token estimates behind Agentic, kept so published models carry them. */
+  tokenImputation: EffortResourceImputation;
+  /** Across-effort benchmark results that pass the held-out check, by `canonicalVariantKey`, kept so published models carry them. */
+  benchmarkEstimates: ReadonlyMap<string, Record<string, number>>;
 };
 
 /** Compute quality once against the complete benchmark population before choosing per-model network work. */
@@ -81,6 +91,11 @@ export function prepareModelSelection(
     scoringConfig,
     scoringPreparation.qualityContext,
   );
+  const benchmarkEstimates = publishedEffortResults(
+    imputationCandidates,
+    scoringConfig,
+    scoringPreparation.qualityContext,
+  );
   const scored = candidatesWithRows.map(({ row, candidate }) => {
     const result = buildComponentScoreResult(
       asRecord(candidate),
@@ -108,6 +123,8 @@ export function prepareModelSelection(
     modelRows,
     candidates: qualityScoredCandidates,
     scoringPreparation,
+    tokenImputation,
+    benchmarkEstimates,
   };
 }
 
@@ -144,7 +161,8 @@ export async function buildFinalModels(
   finalConfig: FinalStageConfig,
   scoringConfig: ScoringConfig,
 ): Promise<ModelAtlasModel[]> {
-  const { modelRows, candidates, scoringPreparation } = selection;
+  const { modelRows, candidates, scoringPreparation, tokenImputation, benchmarkEstimates } =
+    selection;
   const enrichedCandidates = candidates.map((candidate, index) =>
     enrichModelResources(candidate, modelRows[index]!, openRouterData),
   );
@@ -179,11 +197,20 @@ export async function buildFinalModels(
     .filter(hasRequiredQualityScores)
     .filter(hasRequiredPublicRelevance);
   return cacheModelLogos(
-    admittedPublicModels.map((model) =>
-      publicModelFromCandidate(
-        applyResourceEvidenceRequirements(model, scoringConfig.benchmarkPortfolio),
-      )!,
-    ),
+    admittedPublicModels.map((model) => {
+      const taskEstimates = taskResourceEstimates([resourceImputation, tokenImputation], model);
+      const results = benchmarkEstimates.get(canonicalVariantKey(model));
+      return publicModelFromCandidate(
+        applyResourceEvidenceRequirements(
+          {
+            ...model,
+            ...(taskEstimates == null ? {} : { estimated_task_metrics: taskEstimates }),
+            ...(results == null ? {} : { estimated_benchmarks: results }),
+          },
+          scoringConfig.benchmarkPortfolio,
+        ),
+      )!;
+    }),
     (model) => model.provider ?? model.id,
   );
 }

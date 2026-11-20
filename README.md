@@ -35,7 +35,7 @@ Each endpoint returns one slice of the current data as JSON.
 | --- | --- |
 | `/api/llm-stats` | Each listed model's rank and four scores; add `?efforts=all` for one ranked row per reasoning effort, as in the leaderboard's Expanded mode |
 | `/api/llm-stats/models` | The ranked table: release date, modalities, prices, context window, speed, scores, and resource ratios; `?efforts=all` works here too |
-| `/api/llm-stats/models/<id>` | One model's every reasoning effort with all its fields, including configurations the leaderboard hides, such as `/api/llm-stats/models/anthropic/claude-opus-5.5` |
+| `/api/llm-stats/models/<id>` | One model's every reasoning effort, including configurations the leaderboard hides, with all its fields and scoring's estimates of its missing results and per-task amounts, such as `/api/llm-stats/models/anthropic/claude-opus-5.5` |
 | `/api/llm-stats/benchmarks` | The benchmark portfolio's keys, names, and classes |
 | `/api/llm-stats/benchmarks/<key>` | One benchmark's results, best first, with each model's leaderboard rank |
 | `/api/llm-stats/changes?model=<id>&effort=<effort>` | One reasoning effort's recent score changes |

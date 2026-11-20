@@ -1,4 +1,4 @@
-/** Verifies benchmarks, task resources, change events and their history, and refresh-time benchmark health round-trip through checkpoint tables. */
+/** Verifies benchmarks, task resources, scoring's estimates of both, change events and their history, and refresh-time benchmark health round-trip through checkpoint tables. */
 
 import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
@@ -12,8 +12,10 @@ import {
   pruneChangeLog,
 } from "../src/model-atlas/database/change-log";
 import {
+  insertModelBenchmarkEstimates,
   insertModelBenchmarks,
   insertModels,
+  insertModelTaskEstimates,
   insertModelTaskMetrics,
 } from "../src/model-atlas/database/model-rows";
 import { openDatabase, removeDatabaseFiles } from "../src/model-atlas/database/schema";
@@ -49,6 +51,7 @@ try {
         logo: "https://example.com/logo.svg",
         modalities: { input: ["text", "pdf", "speech"], output: ["text", "image"] },
         benchmarks: { hle: 0.9, gdpval_normalized: 0.8 },
+        estimated_benchmarks: { arc_agi_3: 0.41 },
         benchmark_dates: { hle: "2026-07-30", gdpval_normalized: "2026-07-30" },
         task_metrics: {
           artificial_analysis: {
@@ -81,6 +84,14 @@ try {
             quality: 0.62,
             cost: 8.63,
             observed_at: "2026-07-30",
+          },
+        },
+        estimated_task_metrics: {
+          aa_intelligence_index: { seconds: { amount: 120, evidence_factor: 0.6 } },
+          hle: { output_tokens: { amount: 75, evidence_factor: 0.9 } },
+          critpt: {
+            cost: { amount: 0.3, evidence_factor: 0.5 },
+            seconds: { amount: 30, evidence_factor: 0.4 },
           },
         },
         confidence: {
@@ -123,6 +134,8 @@ try {
     insertModels(db, finalRows);
     insertModelBenchmarks(db, finalRows);
     insertModelTaskMetrics(db, finalRows);
+    insertModelTaskEstimates(db, finalRows);
+    insertModelBenchmarkEstimates(db, finalRows);
     assert.equal(
       db.prepare("SELECT reasoning_effort FROM models").get()?.reasoning_effort,
       "xhigh",
@@ -177,6 +190,24 @@ try {
     observed_at: "2026-07-30",
     cost_price_ratio: 1,
   });
+  assert.deepEqual(model?.estimated_task_metrics, {
+    aa_intelligence_index: { seconds: { amount: 120, evidence_factor: 0.6 } },
+    hle: { output_tokens: { amount: 75, evidence_factor: 0.9 } },
+    critpt: {
+      cost: { amount: 0.3, evidence_factor: 0.5 },
+      seconds: { amount: 30, evidence_factor: 0.4 },
+    },
+  });
+  assert.deepEqual(model?.estimated_benchmarks, { arc_agi_3: 0.41 });
+  const sparseModel = payload.models.find(
+    (candidate) => candidate.id === "example/sparse-resource-model",
+  );
+  assert.ok(
+    sparseModel != null &&
+      !("estimated_task_metrics" in sparseModel) &&
+      !("estimated_benchmarks" in sparseModel),
+    "A model scoring estimated nothing for carries no estimate fields",
+  );
   assert.deepEqual(model?.confidence, {
     intelligence: 0.83,
     agentic: 0.47,

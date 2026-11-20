@@ -82,6 +82,17 @@ export type ModelAtlasTaskMetricValues = {
   cost_price_ratio?: NumberOrNull;
 };
 
+/** A per-task amount scoring estimated because the variant did not measure it, and the share of full weight it counts at. */
+export type ModelAtlasTaskEstimate = { amount: number; evidence_factor: number };
+
+export type ModelAtlasTaskEstimateMetric = "cost" | "seconds" | "tokens" | "output_tokens";
+
+/** By benchmark key; an index's amount sits under the index key. Seconds may rest on runtime derived from output tokens at another effort. */
+export type ModelAtlasTaskEstimates = Record<
+  string,
+  Partial<Record<ModelAtlasTaskEstimateMetric, ModelAtlasTaskEstimate>>
+>;
+
 export type ModelAtlasTaskMetrics =
   | (Record<string, ModelAtlasTaskMetricValues | null | undefined> &
       Partial<Record<BenchmarkResourceKey, ModelAtlasTaskMetricValues | null>> & {
@@ -271,7 +282,11 @@ type ModelFields = {
   speed: ModelAtlasSpeed;
   intelligence: ModelAtlasIntelligence | null;
   task_metrics: ModelAtlasTaskMetrics;
+  /** Absent when scoring estimated nothing for the variant, and on snapshots published before estimates were kept. */
+  estimated_task_metrics?: ModelAtlasTaskEstimates;
   benchmarks: ModelAtlasBenchmarks | null;
+  /** Results scoring estimated from the variant's other efforts, in each benchmark's own units, kept only where held-out estimates miss little; absent when there are none, and on snapshots published before estimates were kept. */
+  estimated_benchmarks?: Record<string, number>;
   benchmark_dates: Record<string, string> | null;
   confidence: ModelAtlasEvidenceSupport;
   latest_change?: ModelAtlasScoreChange | null;

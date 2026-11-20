@@ -18,6 +18,8 @@ import type {
   ModelAtlasModalities,
   ModelAtlasModel,
   ModelAtlasScoredCandidate,
+  ModelAtlasTaskEstimateMetric,
+  ModelAtlasTaskEstimates,
   ModelAtlasTaskMetrics,
   ModelAtlasTaskMetricValues,
 } from "../stats/types";
@@ -138,6 +140,44 @@ export function insertModelTaskMetrics(
         observedAt,
         metrics.cost_price_ratio ?? (metrics.cost == null ? null : 1),
       );
+    }
+  }
+}
+
+export function insertModelTaskEstimates(
+  db: DatabaseWriter,
+  models: readonly ModelAtlasModel[],
+): void {
+  const statement = db.prepare(`
+		INSERT INTO model_task_estimates (
+			model_row_index, benchmark_key, metric, amount, evidence_factor
+		) VALUES (?, ?, ?, ?, ?)
+	`);
+  for (const [modelRowIndex, model] of models.entries()) {
+    for (const [benchmarkKey, metrics] of Object.entries(model.estimated_task_metrics ?? {})) {
+      for (const [metric, estimate] of Object.entries(metrics)) {
+        statement.run(
+          modelRowIndex,
+          benchmarkKey,
+          metric,
+          estimate.amount,
+          estimate.evidence_factor,
+        );
+      }
+    }
+  }
+}
+
+export function insertModelBenchmarkEstimates(
+  db: DatabaseWriter,
+  models: readonly ModelAtlasModel[],
+): void {
+  const statement = db.prepare(`
+		INSERT INTO model_benchmark_estimates (model_row_index, benchmark_key, value) VALUES (?, ?, ?)
+	`);
+  for (const [modelRowIndex, model] of models.entries()) {
+    for (const [benchmarkKey, value] of Object.entries(model.estimated_benchmarks ?? {})) {
+      statement.run(modelRowIndex, benchmarkKey, value);
     }
   }
 }
@@ -292,6 +332,8 @@ export function scoredCandidateFromRow(
   benchmarks: ModelAtlasBenchmarks | null,
   benchmarkDates: Record<string, string> | null,
   taskMetrics: ModelAtlasTaskMetrics,
+  taskEstimates: ModelAtlasTaskEstimates | null,
+  benchmarkEstimates: Record<string, number> | null,
 ): ModelAtlasScoredCandidate {
   const modelId = asNonEmptyString(row.model_id);
   const provider = asNonEmptyString(row.provider_id) ?? modelId?.split("/")[0] ?? null;
@@ -315,7 +357,9 @@ export function scoredCandidateFromRow(
     },
     intelligence: numericObject<ModelAtlasIntelligence>(row, INTELLIGENCE_KEYS),
     task_metrics: taskMetrics,
+    ...(taskEstimates == null ? {} : { estimated_task_metrics: taskEstimates }),
     benchmarks,
+    ...(benchmarkEstimates == null ? {} : { estimated_benchmarks: benchmarkEstimates }),
     benchmark_dates: benchmarkDates,
     confidence: {
       intelligence: asFiniteNumber(row.intelligence_confidence) ?? null,
@@ -337,8 +381,9 @@ export function scoredCandidateFromRow(
   };
 }
 
-export function benchmarksByModelRow(rows: readonly DbRow[]): Map<number, ModelAtlasBenchmarks> {
-  const benchmarksByModel = new Map<number, ModelAtlasBenchmarks>();
+/** Reads observed results and estimated results alike: both tables store one value per model row and benchmark. */
+export function benchmarksByModelRow(rows: readonly DbRow[]): Map<number, Record<string, number>> {
+  const benchmarksByModel = new Map<number, Record<string, number>>();
   for (const row of rows) {
     const modelRowIndex = asFiniteNumber(row.model_row_index);
     const benchmarkKey = asNonEmptyString(row.benchmark_key);
@@ -369,6 +414,42 @@ export function benchmarkDatesByModelRow(
     benchmarkDatesByModel.set(modelRowIndex, dates);
   }
   return benchmarkDatesByModel;
+}
+
+const TASK_ESTIMATE_METRICS: readonly ModelAtlasTaskEstimateMetric[] = [
+  "cost",
+  "seconds",
+  "tokens",
+  "output_tokens",
+];
+
+export function taskEstimatesByModelRow(
+  rows: readonly DbRow[],
+): Map<number, ModelAtlasTaskEstimates> {
+  const estimatesByModel = new Map<number, ModelAtlasTaskEstimates>();
+  for (const row of rows) {
+    const modelRowIndex = asFiniteNumber(row.model_row_index);
+    const benchmarkKey = asNonEmptyString(row.benchmark_key);
+    const metric = TASK_ESTIMATE_METRICS.find((name) => name === row.metric);
+    const amount = asFiniteNumber(row.amount);
+    const evidenceFactor = asFiniteNumber(row.evidence_factor);
+    if (
+      modelRowIndex == null ||
+      benchmarkKey == null ||
+      metric == null ||
+      amount == null ||
+      evidenceFactor == null
+    ) {
+      continue;
+    }
+    const estimates = estimatesByModel.get(modelRowIndex) ?? {};
+    estimates[benchmarkKey] = {
+      ...estimates[benchmarkKey],
+      [metric]: { amount, evidence_factor: evidenceFactor },
+    };
+    estimatesByModel.set(modelRowIndex, estimates);
+  }
+  return estimatesByModel;
 }
 
 export function taskMetricsByModelRow(

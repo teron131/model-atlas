@@ -1,4 +1,4 @@
-/** Descriptive resource use compares observed amounts with model-balanced benchmark medians, independently of achieved quality. */
+/** Descriptive resource use compares observed amounts, with the gaps scoring estimated, against model-balanced benchmark medians, independently of achieved quality. */
 
 import { modelCalibrationWeights } from "../benchmarks/calibration-population";
 import type { BenchmarkPortfolio } from "../benchmarks/factory";
@@ -15,7 +15,7 @@ import {
 } from "../benchmarks/resource-sources";
 import { canonicalModelKey } from "../identity/normalization";
 import { positiveFiniteNumber, weightedMedianOfFinite } from "../math-utils";
-import type { ModelAtlasModel } from "../pipeline/model-types";
+import type { ModelAtlasModel, ModelAtlasTaskEstimateMetric } from "../pipeline/model-types";
 import {
   benchmarkTaskMetrics,
   separatedBenchmarkResourceSources,
@@ -23,13 +23,16 @@ import {
 import { asFiniteNumber, asRecord } from "../runtime";
 
 export type ResourceRatioKind = "cost" | "time" | "tokens";
-export type ResourceRatioObservation = {
-  model: ModelAtlasModel;
+/** An amount on one benchmark source or index, measured or estimated, with its share of a summary's weight. */
+type ResourceRatioAmount = {
   benchmarkKey: string;
   baseBenchmarkKey: string;
   amount: number;
-  quality: number;
   weight: number;
+};
+export type ResourceRatioObservation = ResourceRatioAmount & {
+  model: ModelAtlasModel;
+  quality: number;
 };
 export type ResourceRatioSummary = {
   ratio: number | null;
@@ -102,33 +105,39 @@ export function resourceRatioReferences(
   return references;
 }
 
-/** Summarize one model's measured basket against fixed population references, allocating index breadth only after reference-supported components are selected. */
+/** Summarize one variant's basket against fixed population references, allocating index breadth only after reference-supported components are selected; estimates join the median but not the counts, which report measured evidence only. */
 export function summarizeResourceRatios(
-  observations: readonly ResourceRatioObservation[],
+  observations: readonly ResourceRatioAmount[],
   references: ReadonlyMap<string, number>,
+  estimates: readonly ResourceRatioAmount[] = [],
 ): ResourceRatioSummary {
-  const supported = observations.filter(
-    (observation) =>
-      positiveFiniteNumber(references.get(observation.benchmarkKey)) != null &&
-      positiveFiniteNumber(observation.amount) != null &&
-      positiveFiniteNumber(observation.weight) != null,
-  );
-  const includedKeys = supported.map((observation) => observation.baseBenchmarkKey);
-  const allocated = supported
-    .map((observation) => ({
-      ...observation,
-      weight: observation.weight * residualIndexBreadth(observation.baseBenchmarkKey, includedKeys),
-    }))
-    .filter((observation) => observation.weight > 0);
+  const supported = (amounts: readonly ResourceRatioAmount[]) =>
+    amounts.filter(
+      (amount) =>
+        positiveFiniteNumber(references.get(amount.benchmarkKey)) != null &&
+        positiveFiniteNumber(amount.amount) != null &&
+        positiveFiniteNumber(amount.weight) != null,
+    );
+  const measured = supported(observations);
+  const estimated = supported(estimates);
+  const includedKeys = [...measured, ...estimated].map((amount) => amount.baseBenchmarkKey);
+  const allocated = (amounts: readonly ResourceRatioAmount[]) =>
+    amounts
+      .map((amount) => ({
+        ...amount,
+        weight: amount.weight * residualIndexBreadth(amount.baseBenchmarkKey, includedKeys),
+      }))
+      .filter((amount) => amount.weight > 0);
+  const counted = allocated(measured);
   return {
     ratio: weightedMedianOfFinite(
-      allocated.map((observation) => ({
-        value: observation.amount / references.get(observation.benchmarkKey)!,
-        weight: observation.weight,
+      [...counted, ...allocated(estimated)].map((amount) => ({
+        value: amount.amount / references.get(amount.benchmarkKey)!,
+        weight: amount.weight,
       })),
     ),
-    benchmarkCount: new Set(allocated.map((observation) => observation.baseBenchmarkKey)).size,
-    sourceCount: new Set(allocated.map((observation) => observation.benchmarkKey)).size,
+    benchmarkCount: new Set(counted.map((amount) => amount.baseBenchmarkKey)).size,
+    sourceCount: new Set(counted.map((amount) => amount.benchmarkKey)).size,
   };
 }
 
@@ -175,10 +184,43 @@ export function displayResourceRatios(
     return byModel;
   });
   return models.map((model) =>
-    byKind((kind) =>
-      summarizeResourceRatios(observations[kind].get(model) ?? [], references[kind]),
-    ),
+    byKind((kind) => {
+      const measured = observations[kind].get(model) ?? [];
+      return summarizeResourceRatios(
+        measured,
+        references[kind],
+        estimatedAmounts(model, kind, measured),
+      );
+    }),
   );
+}
+
+const ESTIMATE_METRICS = {
+  cost: "cost",
+  time: "seconds",
+  tokens: "tokens",
+} as const satisfies Record<ResourceRatioKind, ModelAtlasTaskEstimateMetric>;
+
+/** The model's scoring estimates as ratio amounts keyed like its observations, an index's under its resource source; a benchmark the row measured in any form takes none, since a collapsed row can hold results its shown variant lacked. */
+function estimatedAmounts(
+  model: ModelAtlasModel,
+  kind: ResourceRatioKind,
+  observations: readonly ResourceRatioObservation[],
+): ResourceRatioAmount[] {
+  const measured = new Set(observations.map((observation) => observation.baseBenchmarkKey));
+  return Object.entries(model.estimated_task_metrics ?? {}).flatMap(([key, metrics]) => {
+    const estimate = metrics[ESTIMATE_METRICS[kind]];
+    return estimate == null || measured.has(key)
+      ? []
+      : [
+          {
+            benchmarkKey: indexPolicy(key)?.resources?.key ?? key,
+            baseBenchmarkKey: key,
+            amount: estimate.amount,
+            weight: estimate.evidence_factor,
+          },
+        ];
+  });
 }
 
 /** Prefer compatible direct telemetry; otherwise preserve each observed source’s paired quality and reserved weight. */

@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 350" role="img" aria-labelledby="title desc">
-<title id="title">Correction weight grows with supporting observations</title>
-<desc id="desc">Each correction is multiplied by n divided by n plus n50. Nearby-release and target-model corrections use n50 = 4, so four supporting observations apply 50 percent of the correction. Same-lab corrections use n50 = 16, so four distinct models apply 20 percent, and sixteen reach 50 percent.</desc>
+<title id="title">A step covers more of the distance as its evidence grows</title>
+<desc id="desc">Each step covers a fraction r, n divided by n plus n50, of the distance to its target, and reaches half the distance when its evidence n equals n50. The nearby-release and target-model steps use n50 = 4 and the same-lab step uses n50 = 16, so the same-lab curve rises more slowly.</desc>
 <style>
 text{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:15px;fill:#202724}
 .num{font-family:"SFMono-Regular","SF Mono",Menlo,Consolas,monospace;font-size:14px}

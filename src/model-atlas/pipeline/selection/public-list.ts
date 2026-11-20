@@ -163,7 +163,13 @@ function publicModelFields(model: ModelAtlasScoredCandidate) {
     speed: model.speed,
     intelligence: model.intelligence,
     task_metrics: model.task_metrics,
+    ...(model.estimated_task_metrics == null
+      ? {}
+      : { estimated_task_metrics: model.estimated_task_metrics }),
     benchmarks: model.benchmarks,
+    ...(model.estimated_benchmarks == null
+      ? {}
+      : { estimated_benchmarks: model.estimated_benchmarks }),
     benchmark_dates: model.benchmark_dates,
     confidence: { ...model.confidence },
   };

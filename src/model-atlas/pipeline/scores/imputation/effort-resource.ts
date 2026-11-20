@@ -1,4 +1,4 @@
-/** Validated effort resource imputation for cost, time, and token-use scoring. */
+/** Validated resource ratios between a model's efforts, and the imputation that applies them to cost, time, and token-use scoring. */
 
 import { indexPolicy } from "../../../benchmarks/index-policy";
 import { benchmarkValue } from "../../../benchmarks/registry";
@@ -18,6 +18,7 @@ import {
   directTaskResource,
   type EffortResourceImputation,
   type ImputedTaskResource,
+  MIN_RESOURCE_EVIDENCE_FACTOR,
   resourceImputationKeys,
   TASK_RESOURCE_KINDS,
   type TaskResourceKind,
@@ -48,7 +49,7 @@ type ValidatedEffortRatio = {
   targetIndex: number;
 };
 
-/** A missing task amount takes the validated ratio from the nearest effort first, then the broader lab and release estimate; observed amounts are never replaced. */
+/** A missing task amount takes the broader estimate built on other models' ratio for the same benchmark first, then the validated ratio from the model's nearest effort; observed amounts are never replaced. */
 export function prepareEffortResourceImputation(
   models: readonly ModelAtlasCandidate[],
   scoringConfig: ScoringConfig,
@@ -98,47 +99,31 @@ export function prepareEffortResourceImputation(
           benchmarkQualityEvidence(target, key, scoringPreparation) != null,
       )
       .map(([key]) => key);
-    for (const key of targetKeys) {
-      for (const kind of kinds) {
-        if (directTaskResource(target, key, scoringConfig, kind) != null) {
-          continue;
-        }
-        for (const ratio of targetRatios) {
-          if (ratio.kind !== kind) {
-            continue;
-          }
-          const sourceAmount = directTaskResource(ratio.source.model, key, scoringConfig, kind);
-          const amount =
-            sourceAmount == null
-              ? null
-              : positiveFiniteNumber(sourceAmount * Math.exp(ratio.logRatio));
-          if (amount == null) {
-            continue;
-          }
-          estimates.set(key, {
-            ...estimates.get(key),
-            [kind]: {
-              amount,
-              evidenceFactor: ratio.evidenceFactor,
-            },
-          });
-          break;
-        }
+    const broaderEstimate = (key: string, kind: TaskResourceKind) => {
+      for (const reference of references) {
+        const estimate = broaderEstimators.get(kind)!(target, reference.model, key);
+        if (estimate != null) return estimate;
       }
-    }
+      return null;
+    };
+    const ownRatioEstimate = (key: string, kind: TaskResourceKind): ImputedTaskResource | null => {
+      for (const ratio of targetRatios) {
+        if (ratio.kind !== kind) continue;
+        const sourceAmount = directTaskResource(ratio.source.model, key, scoringConfig, kind);
+        const amount =
+          sourceAmount == null
+            ? null
+            : positiveFiniteNumber(sourceAmount * Math.exp(ratio.logRatio));
+        if (amount != null) return { amount, evidenceFactor: ratio.evidenceFactor };
+      }
+      return null;
+    };
     for (const key of targetKeys) {
       for (const kind of kinds) {
-        if (
-          estimates.get(key)?.[kind] != null ||
-          directTaskResource(target, key, scoringConfig, kind) != null
-        )
-          continue;
-        for (const reference of references) {
-          const estimate = broaderEstimators.get(kind)!(target, reference.model, key);
-          if (estimate == null) continue;
-          estimates.set(key, { ...estimates.get(key), [kind]: estimate });
-          break;
-        }
+        if (directTaskResource(target, key, scoringConfig, kind) != null) continue;
+        // Other models' ratio comes first: how much more a higher effort uses depends more on the benchmark than on the model, and its last step still moves toward the model's own ratios; held-out amounts and Speed and Value both come out closer this way.
+        const estimate = broaderEstimate(key, kind) ?? ownRatioEstimate(key, kind);
+        if (estimate != null) estimates.set(key, { ...estimates.get(key), [kind]: estimate });
       }
     }
     if (estimates.size > 0) {
@@ -215,50 +200,37 @@ function validatedEffortRatio(
   paired: readonly PairedBenchmark[],
   scoreTarget: (population: ResourcePopulation, amount: number) => number | null,
 ): Pick<ValidatedEffortRatio, "evidenceFactor" | "logRatio"> | null {
-  if (paired.length < MIN_PAIRED_BENCHMARKS) {
-    return null;
-  }
+  if (paired.length < MIN_PAIRED_BENCHMARKS) return null;
+  // Amounts are positive, so every log ratio is finite and each held-out median has at least two values.
   const logRatios = paired.map(({ targetAmount, sourceAmount }) =>
     Math.log(targetAmount / sourceAmount),
   );
-  const rawErrors: number[] = [];
-  const scoreErrors: number[] = [];
-  for (const [heldOutIndex, { population, targetAmount, sourceAmount }] of paired.entries()) {
-    const logRatio = medianOfFinite(
-      logRatios.filter((_, ratioIndex) => ratioIndex !== heldOutIndex),
-    );
-    if (logRatio == null) {
-      continue;
-    }
-    const predictedAmount = sourceAmount * Math.exp(logRatio);
-    rawErrors.push(Math.abs(Math.log(predictedAmount / targetAmount)));
-    const actualScore = scoreTarget(population, targetAmount);
-    const predictedScore = scoreTarget(population, predictedAmount);
-    if (actualScore != null && predictedScore != null) {
-      scoreErrors.push(Math.abs(predictedScore - actualScore));
-    }
-  }
-  const medianLogError = medianOfFinite(rawErrors);
-  const medianScoreError = medianOfFinite(scoreErrors);
-  if (
-    rawErrors.length < MIN_PAIRED_BENCHMARKS ||
-    scoreErrors.length < MIN_PAIRED_BENCHMARKS ||
-    medianLogError == null ||
-    medianScoreError == null ||
-    medianLogError >= MAX_MEDIAN_LOG_RESOURCE_ERROR ||
-    medianScoreError >= MAX_NORMALIZED_IMPUTATION_ERROR
-  ) {
-    return null;
-  }
-  const logRatio = medianOfFinite(logRatios);
-  if (logRatio == null) {
-    return null;
-  }
-  return {
-    evidenceFactor: Math.min(
-      clamp01(1 - medianLogError / MAX_MEDIAN_LOG_RESOURCE_ERROR),
-      clamp01(1 - medianScoreError / MAX_NORMALIZED_IMPUTATION_ERROR),
+  const predictedAmounts = paired.map(
+    ({ sourceAmount }, heldOut) =>
+      sourceAmount * Math.exp(medianOfFinite(logRatios.filter((_, index) => index !== heldOut))!),
+  );
+  const medianLogError = medianOfFinite(
+    paired.map(({ targetAmount }, index) =>
+      Math.abs(Math.log(predictedAmounts[index]! / targetAmount)),
     ),
-    logRatio,
-  };
+  )!;
+  const logFactor = clamp01(1 - medianLogError / MAX_MEDIAN_LOG_RESOURCE_ERROR);
+  // Scoring held-out amounts is the costly check, so it runs only for a ratio whose amounts already pass.
+  if (logFactor < MIN_RESOURCE_EVIDENCE_FACTOR) return null;
+  const scoreErrors = paired.flatMap(({ population, targetAmount }, index) => {
+    const actualScore = scoreTarget(population, targetAmount);
+    const predictedScore = scoreTarget(population, predictedAmounts[index]!);
+    return actualScore == null || predictedScore == null
+      ? []
+      : [Math.abs(predictedScore - actualScore)];
+  });
+  const medianScoreError = medianOfFinite(scoreErrors);
+  if (scoreErrors.length < MIN_PAIRED_BENCHMARKS || medianScoreError == null) return null;
+  const evidenceFactor = Math.min(
+    logFactor,
+    clamp01(1 - medianScoreError / MAX_NORMALIZED_IMPUTATION_ERROR),
+  );
+  return evidenceFactor < MIN_RESOURCE_EVIDENCE_FACTOR
+    ? null
+    : { evidenceFactor, logRatio: medianOfFinite(logRatios)! };
 }

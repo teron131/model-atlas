@@ -27,6 +27,7 @@ import {
   benchmarkDatesByModelRow,
   benchmarksByModelRow,
   scoredCandidateFromRow,
+  taskEstimatesByModelRow,
   taskMetricsByModelRow,
 } from "./model-rows";
 import { sqlStringLiteral } from "./schema-reconciliation";
@@ -90,6 +91,19 @@ export const PAYLOAD_ROW_GROUPS = [
     "modelTaskMetricRows",
     SNAPSHOT_TABLES.model_task_metrics,
     "model_row_index, source_key",
+  ),
+  // Checkpoints written before estimates were kept have neither estimate table until their next refresh.
+  payloadRowGroup(
+    "modelTaskEstimateRows",
+    SNAPSHOT_TABLES.model_task_estimates,
+    "model_row_index, benchmark_key, metric",
+    { optional: true },
+  ),
+  payloadRowGroup(
+    "modelBenchmarkEstimateRows",
+    SNAPSHOT_TABLES.model_benchmark_estimates,
+    "model_row_index, benchmark_key",
+    { optional: true },
   ),
   payloadRowGroup("sourceHealthRows", SNAPSHOT_TABLES.source_health, "row_index", {
     optional: true,
@@ -306,6 +320,8 @@ export function buildPayloadFromRows(rows: PayloadRows): ModelAtlasPayload {
   const benchmarksByModel = benchmarksByModelRow(rows.modelBenchmarkRows);
   const benchmarkDatesByModel = benchmarkDatesByModelRow(rows.modelBenchmarkRows);
   const taskMetricsByModel = taskMetricsByModelRow(rows.modelTaskMetricRows);
+  const taskEstimatesByModel = taskEstimatesByModelRow(rows.modelTaskEstimateRows);
+  const benchmarkEstimatesByModel = benchmarksByModelRow(rows.modelBenchmarkEstimateRows);
   const models = rows.modelRows.flatMap((row) => {
     const modelRowIndex = asFiniteNumber(row.row_index);
     const candidate = scoredCandidateFromRow(
@@ -313,6 +329,8 @@ export function buildPayloadFromRows(rows: PayloadRows): ModelAtlasPayload {
       modelRowIndex == null ? null : (benchmarksByModel.get(modelRowIndex) ?? null),
       modelRowIndex == null ? null : (benchmarkDatesByModel.get(modelRowIndex) ?? null),
       modelRowIndex == null ? null : (taskMetricsByModel.get(modelRowIndex) ?? null),
+      modelRowIndex == null ? null : (taskEstimatesByModel.get(modelRowIndex) ?? null),
+      modelRowIndex == null ? null : (benchmarkEstimatesByModel.get(modelRowIndex) ?? null),
     );
     const model = publicModelFromCandidate(candidate);
     if (model == null) {

@@ -1,10 +1,14 @@
-/** Verify that missing hard tasks do not reward a variant, while estimates preserve observations and direct-evidence gates. */
+/** Verify that missing hard tasks do not reward a variant, while estimates preserve observations and direct-evidence gates, and that only held-out-checked estimates are published as results. */
 
 import assert from "node:assert/strict";
 
 import { STAGE_CONFIG } from "../src/model-atlas/config/stage";
+import { canonicalVariantKey } from "../src/model-atlas/identity/normalization";
 import type { ModelAtlasCandidate } from "../src/model-atlas/pipeline/model-types";
-import { prepareEffortQualityScoringContext } from "../src/model-atlas/pipeline/scores/imputation/effort-quality";
+import {
+  prepareEffortQualityScoringContext,
+  publishedEffortResults,
+} from "../src/model-atlas/pipeline/scores/imputation/effort-quality";
 import { buildQualityScoringContext } from "../src/model-atlas/pipeline/scores/quality-context";
 import { buildComponentScoreResult } from "../src/model-atlas/pipeline/scores/score-builders";
 function modelCandidate({ id, name = id }: { id: string; name?: string }): ModelAtlasCandidate {
@@ -128,3 +132,58 @@ close(
   score(partial, reversed).componentScores?.intelligence_score,
   score(partial).componentScores!.intelligence_score!,
 );
+
+// Published results need held-out predictions for eight base models within five points, and come back in the benchmark's own units.
+const frontierConfig = {
+  ...config,
+  intelligenceBenchmarkKeys: tasks,
+  intelligenceGroupWeights: { frontier: 1, baseline: 0 },
+  benchmarkPortfolio: Object.fromEntries(
+    tasks.map((key) => [
+      key,
+      { group: "frontier" as const, dimensionLoadings: { intelligence: 1, agentic: 0 } },
+    ]),
+  ),
+};
+const bounds = [0, 100].map((v, i) => ({
+  ...modelCandidate({ id: `test/bound-${i}` }),
+  benchmarks: Object.fromEntries(tasks.map((key) => [key, v])),
+}));
+// Every effort pair is 10 apart, except task_8, whose gap is 16 or 4, so its estimates miss by 6.
+const efforts = (baseCount: number) =>
+  Array.from({ length: baseCount }, (_, i) => {
+    const model = modelCandidate({ id: `test/base-${i}`, name: `Base ${i}` });
+    const low = 20 + 5 * i;
+    return [
+      {
+        ...model,
+        reasoning_effort: "low",
+        benchmarks: Object.fromEntries(
+          tasks
+            .filter((key) => i > 0 || !["task_7", "task_8"].includes(key))
+            .map((key) => [key, low]),
+        ),
+      },
+      {
+        ...model,
+        reasoning_effort: "high",
+        benchmarks: Object.fromEntries(
+          tasks.map((key) => [key, low + (key !== "task_8" ? 10 : i % 2 === 0 ? 16 : 4)]),
+        ),
+      },
+    ];
+  }).flat();
+const published = (baseCount: number) => {
+  const models = [...bounds, ...efforts(baseCount)];
+  return publishedEffortResults(
+    models,
+    frontierConfig,
+    buildQualityScoringContext(models, frontierConfig),
+  );
+};
+const target = canonicalVariantKey({ id: "test/base-0", name: "Base 0", reasoning_effort: "low" });
+const checked = published(9).get(target);
+close(checked?.task_7, 20);
+assert.equal(checked?.task_8, undefined);
+// Base 0 lacks task_7, so eight base models leave seven to check it.
+assert.equal(published(8).get(target), undefined);

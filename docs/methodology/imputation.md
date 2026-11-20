@@ -10,8 +10,8 @@ Four kinds of estimate fill a missing benchmark result or resource amount, and e
 | --- | --- | --- |
 | Benchmark result across reasoning efforts | The same model's observed result on that benchmark at another effort | Fills the missing contribution to the benchmark mean. Adds no evidence support of its own; an estimate from other benchmarks for the same benchmark still supplies its evidence factor. |
 | Benchmark result from other benchmarks | The variant's standing on its other benchmarks | Supplies quality for resource comparisons and discounted evidence support. Does not enter the benchmark mean. |
-| Resource across reasoning efforts | The same model's observed resource at another effort | Supplies a discounted resource input. |
-| Resource from broader evidence | How other models' resources change between the same two efforts | Supplies a discounted resource input, only when no ratio from the model's own measurements is accepted. |
+| Resource across reasoning efforts | The same model's observed resource at another effort | Supplies a discounted resource input, only when broader evidence gives no estimate. |
+| Resource from broader evidence | How other models' resources change between the same two efforts | Supplies a discounted resource input. |
 
 The first two differ for a reason. An estimate carried across efforts starts from the same model's observed result on the missing benchmark, so it brings new information about that benchmark and can stand in the benchmark mean. It adds no evidence support, so filling a gap this way changes the score without making the variant count as better covered. An estimate from other benchmarks is derived from the variant's performance elsewhere; putting it in the mean would count the same performance twice. Its held-out validation does show how predictable the missing result is, and that earns partial evidence support. These roles are scoring-policy choices; validation alone does not dictate them.
 
@@ -27,9 +27,9 @@ The calculation runs separately for :score[Intelligence] and for [token-adjusted
 
 ### Choosing the Reference Effort
 
-A reference effort must have an observed result for the missing benchmark and at least three benchmarks observed at both efforts. Among several candidates, the one whose shared benchmarks have the largest [effective count](operations.md#effective-count) by base weight is chosen, so the gap rests on broad overlap instead of one heavily weighted benchmark.
+A reference effort must have an observed result for the missing benchmark and at least three benchmarks observed at both efforts. Among several candidates, the reasoning effort closest to the target is chosen: in held-out checks, estimates from the nearest effort miss less, while a broader overlap of shared benchmarks barely changes the miss.
 
-Ties go to the reasoning effort closest to the target, then to a fixed label order. Without a qualifying effort, the result stays missing.
+Ties go to the effort whose shared benchmarks have the largest [effective count](operations.md#effective-count) by base weight, then to a fixed label order. Without a qualifying effort, the result stays missing.
 
 ### Estimating the Score
 
@@ -45,6 +45,14 @@ $$
 ![Illustrative imputation from medium effort to high effort for the same model.](../assets/methodology/effort-imputation.svg)
 
 A result can be filled even when the variant already has enough evidence for full score retention.
+
+### Shown on the Leaderboard
+
+Scoring uses every such estimate, but the leaderboard table shows one as a result only on benchmarks where these estimates predict observed results closely, and prints it in italic. An observed result always takes precedence, including one a [Collapsed row](leaderboard-rules.md#collapsed-and-expanded-rows) takes from another effort.
+
+The shown value reverses the benchmark's [observed-range scaling](intelligence-agentic.md#benchmark-scores), so it is in the benchmark's own units. A benchmark that counts toward both capabilities has two estimates, and the table shows the :score[Intelligence] one. A benchmark that only :score[Agentic] uses shows its Agentic estimate when it has no [token-efficiency adjustment](intelligence-agentic.md#agentic-token-efficiency), because only a score without that adjustment converts back to the benchmark's units.
+
+The check runs on the capability whose estimate would be shown. Each observed score of a variant that has another effort is withheld in turn and predicted from the remaining scores by the rule above. A benchmark's estimates are shown when predictions exist for at least eight base models and their model-balanced median absolute error is at most 5 points on the benchmark's 0–100 score. That is about how far neighbouring efforts of one model typically differ, so a looser limit would show estimates that miss by more than the difference between adjacent efforts. Few models report several efforts on most benchmarks, and a median over fewer base models can rest on one or two of them.
 
 ## Benchmark Results from Other Benchmarks
 
@@ -90,7 +98,7 @@ An accepted estimate's [evidence factor](intelligence-agentic.md#evidence-suppor
 
 ## Resources Across Reasoning Efforts
 
-A missing cost, runtime, or token amount is estimated from the same model's observed amount at another reasoning effort, multiplied by the typical ratio between the two efforts on the benchmarks where both are measured. The estimate assumes that ratio is stable across benchmarks. Held-out validation checks whether the model's own measurements support the assumption.
+A missing cost, runtime, or token amount is estimated from the same model's observed amount at another reasoning effort, multiplied by the typical ratio between the two efforts on the benchmarks where both are measured. The estimate assumes that ratio is stable across benchmarks. Held-out validation checks whether the model's own measurements support the assumption. It fills a gap only where the estimate from [broader evidence](#resources-from-broader-evidence) is missing or rejected.
 
 Cost, runtime, total tokens, and output tokens each have their own ratios. Cost and runtime per task feed :score[Value] and :score[Speed]. Total and output tokens feed the [token-efficiency adjustment](intelligence-agentic.md#agentic-token-efficiency) of :score[Agentic]. Output tokens, divided by served throughput, also give a runtime where a benchmark reports none, as in [Resources per Task](speed-value.md#resources-per-task), and runtime here includes that derived time.
 
@@ -120,17 +128,25 @@ e^{\text{log}}=\operatorname{median}_b\left|\ln\frac{\hat R^{\text{target}}_b}{R
 e^{\text{score}}=\operatorname{median}_b\left|\hat S^{\text{res}}_b-S^{\text{res}}_b\right|.
 $$
 
-The ratio is rejected if the log error reaches $\ln 2$, a factor of two, if the score error reaches 25 points, or if fewer than three withheld scores can be compared. Otherwise the evidence factor $f^{\text{res}}$ is the smaller of the two discounts, each clamped to 0–1:
+The evidence factor $f^{\text{res}}$ is the smaller of two discounts, each clamped to 0–1, which reach zero at a log error of $\ln 2$, a factor of two, and at a score error of 25 points:
 
 $$
 f^{\text{res}}=\min\left(1-\frac{e^{\text{log}}}{\ln2},\ 1-\frac{e^{\text{score}}}{25}\right).
 $$
 
+The ratio is rejected when $f^{\text{res}}$ is below 0.2 or when fewer than three withheld scores can be compared. A lower floor admits estimates that pull :score[Speed] and :score[Value] away from what the measured amounts would give, and a higher one leaves too many gaps unfilled.
+
 When the quality the resource is compared at is also an estimate, that estimate's [evidence factor](intelligence-agentic.md#evidence-factors) multiplies $f^{\text{res}}$.
+
+### In Relative Task Resources
+
+[Relative task resources](leaderboard-rules.md#relative-task-resources) describe resource use without scoring it, and they fill a variant's missing amounts with the estimates scoring makes: the cost and runtime behind :score[Speed] and :score[Value] and the total tokens behind :score[Agentic], whether from the model's own ratio or from [broader evidence](#resources-from-broader-evidence). A model's efforts are often measured on different benchmarks, so these estimates let its efforts be summarized over more of the same benchmarks.
+
+Scoring estimates an amount only where it compares the variant's resource at a quality, so a benchmark receives an estimate only where the variant has an observed or estimated result on it. An estimate counts in the variant's weighted median with the weight a measured amount would have, multiplied by its evidence factor $f^{\text{res}}$, and never on a benchmark where the row has a measured amount. The table prints estimated amounts in italic, and a Collapsed row takes the estimates of the variant it shows.
 
 ## Resources from Broader Evidence
 
-When a model's own measurements cannot support a ratio, the estimate starts from other models that make the same change of reasoning effort on the same benchmark. It is then moved, one step at a time, toward what is known about the model's lab, its neighbors in release date, and the model itself. Evidence closer to the model is more relevant but scarcer, so each step moves only as far as its evidence supports.
+A missing amount is estimated first from other models that make the same change of reasoning effort on the same benchmark. In held-out checks, how much more a higher effort uses depends more on the benchmark than on the model, so this estimate predicts withheld amounts and the :score[Speed] and :score[Value] built on them more closely than a ratio from the model's own measurements. The estimate is then moved, one step at a time, toward what the same lab, the lab's nearby releases, and the target model's other benchmarks show. Evidence closer to the model is more relevant but scarcer, so each step moves only as far as its evidence supports.
 
 Cost, runtime, total tokens, and output tokens each use their own observations and ratios, and an aggregate index's token estimate starts from other models' tokens on that same index. Runtime from broader evidence requires reported seconds paired with observed quality; time derived from throughput cannot supply it.
 
@@ -148,9 +164,9 @@ Everything is measured in log ratios of the target effort's amount to the refere
 >
 >    The deviation moves toward $\tilde\Delta^{\text{lab}}$, the median of the deviations $\Delta_j$ of the lab's other models.
 >
-> 3. **Nearby releases in that lab**
+> 3. **Nearby releases**
 >
->    The deviation moves toward $\tilde\Delta^{\text{near}}$, the weighted median of the same deviations with more weight on models released close to the target model.
+>    The deviation moves toward $\tilde\Delta^{\text{near}}$, the weighted median of the lab's deviations, with more weight on models released close to the target model.
 >
 > 4. **Target model**
 >
@@ -167,7 +183,7 @@ $$
 \end{aligned}
 $$
 
-![Each level is closer to the model and holds less evidence. A step starts where the previous one ended and moves toward the median of its own level’s evidence, further when that evidence is larger.](../assets/methodology/resource-evidence-chain.svg)
+![Each step draws on evidence closer to the model but smaller in amount. It starts where the previous step ended and moves toward the median of its own evidence, further when that evidence is larger.](../assets/methodology/resource-evidence-chain.svg)
 
 ### Evidence Behind Each Step
 
@@ -181,7 +197,7 @@ With little evidence the estimate stays close to the result from other models:
 
 ![With little evidence a step covers a small fraction of the distance; the same-lab step needs more evidence than the other two to cover as much.](../assets/methodology/resource-tier-shrinkage.svg)
 
-Release proximity uses a Gaussian weight on the difference in release dates $\Delta t$, in days, with a width of 60 days:
+A model's release-date weight is a Gaussian of the difference in release dates $\Delta t$, in days, with a width of 60 days:
 
 $$
 \exp\left[-\tfrac12\left(\frac{\Delta t}{60}\right)^2\right].
@@ -189,17 +205,17 @@ $$
 
 Earlier and later releases both contribute, and there is no cutoff.
 
-A step without evidence leaves the deviation where the previous step put it. A model without a release date therefore keeps the lab step's value, and a model without a known lab skips both the lab and the release step. The reference effort is the closest effort of the same model that has the amount on the missing benchmark and for which the chain can be computed. A validated ratio from the model's own measurements always takes precedence.
+A step without evidence leaves the deviation where the previous step put it. A model without a release date therefore keeps the same-lab step's value, and a model without a known lab skips both the same-lab and nearby-release steps. The reference effort is the closest effort of the same model that has the amount on the missing benchmark and for which the chain can be computed.
 
 ### Evidence Factor
 
-The evidence factor $f^{\text{res}}$ grows with the number $n_b$ of other base models behind the estimate and falls with their disagreement $s_b$, the median absolute difference between their log ratios on the benchmark and the final estimated log ratio $\ln\hat\rho_b$:
+The evidence factor $f^{\text{res}}$ falls with the disagreement $s_b$ of the other base models behind the estimate, the median absolute difference between their log ratios on the benchmark and the final estimated log ratio $\ln\hat\rho_b$:
 
 $$
-f^{\text{res}}=\frac{n_b}{n_b+4}\max\left(0,\ 1-\frac{s_b}{\ln 2}\right).
+f^{\text{res}}=\max\left(0,\ 1-\frac{s_b}{\ln 2}\right).
 $$
 
-A zero factor or a non-finite amount leaves the value missing.
+The number of other base models adds no further discount, because discounting estimates behind few models moves :score[Speed] and :score[Value] further from what the measured amounts would give. A factor below 0.2, the same floor as for ratios from the model's own measurements, or a non-finite amount leaves the value missing.
 
 ## Parameter Choices
 
@@ -213,10 +229,12 @@ These values are scoring-policy choices, not fitted claims about model behavior.
 | Withheld base models for estimates from other benchmarks | 4 | Requires independent evidence beyond the minimum reference set. |
 | Maximum normalized error | 25 points | Refuses a predictor whose typical held-out error is too large to be useful; the evidence factor reaches zero at this boundary. |
 | Paired benchmarks for a resource ratio across efforts | 3 | Prevents one or two benchmarks from defining a ratio between efforts. |
-| Resource ratio log-error ceiling | $\ln 2$ | Rejects a ratio whose typical held-out error reaches a factor of two. |
-| Resource ratio score-error ceiling | 25 points | Rejects a ratio with large typical errors in resource efficiency scores. |
+| Resource ratio log-error scale | $\ln 2$ | The evidence factor reaches zero at a typical held-out miss of a factor of two. |
+| Resource ratio score-error scale | 25 points | The evidence factor reaches zero at a typical resource efficiency score error of 25 points. |
+| Base models checked for a shown estimate across efforts | 8 | Keeps the typical miss of a shown estimate from resting on one or two models. |
+| Largest typical miss for a shown estimate across efforts | 5 points | Shows an estimate as a result only where held-out estimates typically miss by less than neighbouring efforts differ; scoring still uses every estimate. |
+| Minimum resource evidence factor | 0.2 | Leaves out estimates whose held-out checks or agreement among other models are weak; a higher floor leaves too many gaps unfilled. |
 | Broader evidence: other base models | 2 | Requires the same change of effort on the same benchmark from more than one other model. |
 | Broader evidence: release width | 60 days | Gives nearby releases more influence without a hard date cutoff. |
-| Broader evidence: evidence-factor half amount | 4 other base models | Counts an estimate backed by few other models at less than half weight. |
 | Broader evidence: disagreement ceiling | $\ln 2$ | Gives no evidence once the other models' ratios typically differ from the estimate by a factor of two. |
-| Broader evidence: half-distance amounts | 16 for the lab; 4 for nearby releases and the target model | Limits a noisy lab adjustment and discounts sparse ones without tuning per model. |
+| Broader evidence: half-distance amounts | 16 for the same lab; 4 for nearby releases and the target model | Limits a noisy same-lab step and discounts sparse steps without tuning per model. |

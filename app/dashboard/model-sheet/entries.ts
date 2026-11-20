@@ -43,7 +43,7 @@ export type SheetEntry = {
   variants: readonly TableRow[];
   /**
    * Its efforts placed as the Pareto chart places variants: every effort's cost comes from the benchmarks all compared efforts share, so a step between efforts compares like with like.
-   * A variant's own Cost× covers whichever benchmarks measured that effort, so its ratios can reverse between efforts that were measured on different benchmarks.
+   * A variant's own Cost× also counts scoring's estimates for benchmarks it did not measure, so the two can differ.
    */
   efforts: { points: readonly EffortPoint[]; benchmarkCount: number };
 };

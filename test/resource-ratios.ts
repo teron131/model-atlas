@@ -1,4 +1,4 @@
-/** Checks descriptive resource normalization against effort duplication, sparse source slots, costly tails, and incomplete telemetry. */
+/** Checks descriptive resource normalization against effort duplication, sparse source slots, costly tails, incomplete telemetry, and scoring's estimates of missing amounts. */
 
 import assert from "node:assert/strict";
 
@@ -6,8 +6,10 @@ import type { BenchmarkPortfolio } from "../src/model-atlas/benchmarks/factory";
 import { INDEX_POLICIES } from "../src/model-atlas/benchmarks/index-policy";
 import type { ModelAtlasModel } from "../src/model-atlas/pipeline/model-types";
 import {
+  displayResourceRatios,
   resourceRatioObservations,
   resourceRatioReferences,
+  resourceRatioReferenceSets,
   summarizeResourceRatios,
 } from "../src/model-atlas/stats/resource-ratios";
 
@@ -168,5 +170,34 @@ assert.equal(
   summarizeResourceRatios(completeRows, completeReferences).sourceCount,
   components.length,
 );
+
+// Scoring's estimates join a variant's median at their evidence weight, never on a benchmark the row measured, and never in the counts.
+const effortKeys = ["hle", "gdp_pdf", "terminal_bench_science", "mlcr_aa", "critpt"];
+const effortPortfolio: BenchmarkPortfolio = Object.fromEntries(
+  effortKeys.map((key) => [key, entry]),
+);
+const amounts = (values: readonly number[]) =>
+  Object.fromEntries(values.map((cost, index) => [effortKeys[index]!, { cost }]));
+const qualities = Object.fromEntries(effortKeys.map((key) => [key, 0.5]));
+const estimated = model("Estimated", amounts([1, 2, 4]), qualities, {
+  estimated_task_metrics: {
+    hle: { cost: { amount: 100, evidence_factor: 1 } },
+    mlcr_aa: { cost: { amount: 8, evidence_factor: 0.5 } },
+    critpt: { cost: { amount: 16, evidence_factor: 0.5 } },
+  },
+});
+// Two other models at 1 hold every benchmark median at 1, so each ratio equals its amount.
+const effortModels = [
+  estimated,
+  model("Other A", amounts([1, 1, 1, 1, 1]), qualities),
+  model("Other B", amounts([1, 1, 1, 1, 1]), qualities),
+];
+const [withEstimates] = displayResourceRatios(
+  effortModels,
+  effortPortfolio,
+  resourceRatioReferenceSets(effortModels, effortPortfolio),
+);
+// Weights 1, 1, 1, 0.5, 0.5 on ratios 1, 2, 4, 8, 16 put the middle between 2 and 4.
+assert.deepEqual(withEstimates?.cost, { ratio: 3, benchmarkCount: 3, sourceCount: 3 });
 
 console.log("Resource ratio checks passed");

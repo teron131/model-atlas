@@ -276,6 +276,12 @@ export function DashboardLeaderboard({
           onTooltip={showTooltip}
           onTooltipEnd={endTooltip}
         />
+        <p className="table-legend">
+          <em>Italic</em>
+          {
+            " values are estimated by adjusting the model's value at another effort for how other models, its lab, its lab's nearby releases, and its other benchmarks change between efforts, weighted by evidence."
+          }
+        </p>
       </ResearchRegion>
       {tooltip != null && activeTooltipContent != null && (
         <ColumnTooltip

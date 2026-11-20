@@ -1,4 +1,4 @@
-/** Protect independent-donor resource fallback, fixed shrinkage, and scoring-only integration. */
+/** Protect independent-donor broader resource estimates, fixed shrinkage, agreement-only evidence with its floor, and scoring-only integration. */
 
 import assert from "node:assert/strict";
 
@@ -37,8 +37,21 @@ assert.ok(
   Math.abs(estimate.amount - 5 * Math.pow(0.5, 1 / 5)) < 1e-9,
   "One paired task receives 20% residual influence",
 );
-assert.ok(estimate.evidenceFactor > 0 && estimate.evidenceFactor < 0.5);
+assert.ok(
+  Math.abs(estimate.evidenceFactor - 0.8) < 1e-9,
+  "Agreement alone sets the weight: every donor ratio sits 0.2 ln 2 from the estimate",
+);
 assert.deepEqual(models, before);
+const outlier = model("test/target", "low", { mlcr_aa: 10 * 2 ** -5.5 });
+assert.equal(
+  prepareBroaderResourceEstimator([outlier, source, ...donors], config, "cost")(
+    outlier,
+    source,
+    "hle",
+  ),
+  null,
+  "An estimate 0.9 ln 2 from every donor ratio has evidence 0.1, under the floor",
+);
 assert.equal(
   prepareBroaderResourceEstimator([target, source, ...donors.slice(0, 2)], config, "cost")(
     target,

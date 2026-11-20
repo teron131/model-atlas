@@ -8,7 +8,12 @@ import {
   type SortKey,
   speedMetricColumns,
 } from "./column-registry";
-import { contextWindowValue, dashboardMetricValue, type TableRow } from "./leaderboard-rows";
+import {
+  contextWindowValue,
+  dashboardMetricValue,
+  estimatedMetricValue,
+  type TableRow,
+} from "./leaderboard-rows";
 
 export type SortDirection = "ascending" | "descending";
 
@@ -29,7 +34,9 @@ const dashboardMetricSorters = Object.fromEntries(
     {
       direction: column.direction,
       type: column.type,
-      get: (row: TableRow) => dashboardMetricValue(row.model, column),
+      // Estimated amounts and results sort among measured ones, as the column prints them.
+      get: (row: TableRow) =>
+        dashboardMetricValue(row.model, column) ?? estimatedMetricValue(row.model, column),
     },
   ]),
 ) as Record<DashboardMetricColumn["key"], Sorter>;

@@ -4,7 +4,11 @@ import { indexPolicy } from "../../../benchmarks/index-policy";
 import type { ScoringConfig } from "../../../config/stage";
 import { canonicalVariantKey } from "../../../identity/normalization";
 import { positiveFiniteNumber } from "../../../math-utils";
-import type { ModelAtlasCandidate } from "../../model-types";
+import type {
+  ModelAtlasCandidate,
+  ModelAtlasTaskEstimateMetric,
+  ModelAtlasTaskEstimates,
+} from "../../model-types";
 import {
   benchmarkTaskMetrics,
   directBenchmarkTokens,
@@ -19,6 +23,9 @@ export type ImputedTaskResource = {
   amount: number;
   evidenceFactor: number;
 };
+
+/** Estimates below this evidence factor are left out: a lower floor admits estimates that pull Speed and Value away from what measured amounts give, and a higher one leaves too many gaps unfilled. */
+export const MIN_RESOURCE_EVIDENCE_FACTOR = 0.2;
 
 export type EffortResourceImputation = {
   byVariant: ReadonlyMap<
@@ -69,4 +76,35 @@ export function imputedTaskResource(
   kind: TaskResourceKind,
 ): ImputedTaskResource | null {
   return preparation.byVariant.get(canonicalVariantKey(model))?.get(key)?.[kind] ?? null;
+}
+
+const PAYLOAD_METRICS = {
+  cost: "cost",
+  time: "seconds",
+  tokens: "tokens",
+  output_tokens: "output_tokens",
+} as const satisfies Record<TaskResourceKind, ModelAtlasTaskEstimateMetric>;
+
+/** One variant's estimates from every preparation, named as the payload names measured amounts; null when there are none. */
+export function taskResourceEstimates(
+  preparations: readonly EffortResourceImputation[],
+  model: Pick<ModelAtlasCandidate, "id" | "name" | "reasoning_effort">,
+): ModelAtlasTaskEstimates | null {
+  const estimates: ModelAtlasTaskEstimates = {};
+  for (const preparation of preparations) {
+    for (const [key, resources] of preparation.byVariant.get(canonicalVariantKey(model)) ?? []) {
+      for (const kind of TASK_RESOURCE_KINDS) {
+        const estimate = resources[kind];
+        if (estimate == null) continue;
+        estimates[key] = {
+          ...estimates[key],
+          [PAYLOAD_METRICS[kind]]: {
+            amount: estimate.amount,
+            evidence_factor: estimate.evidenceFactor,
+          },
+        };
+      }
+    }
+  }
+  return Object.keys(estimates).length === 0 ? null : estimates;
 }

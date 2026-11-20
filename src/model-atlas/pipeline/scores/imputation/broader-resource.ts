@@ -1,4 +1,4 @@
-/** Fixed-shrinkage resource fallback narrows global evidence through lab, release proximity, and same-model observations. */
+/** Resource estimates from broader evidence: other models' median ratio for the same change of effort, moved by fixed shrinkage toward the same lab, the lab's nearby releases, and the target model's other benchmarks. */
 
 import { indexPolicy } from "../../../benchmarks/index-policy";
 import { benchmarkValue } from "../../../benchmarks/registry";
@@ -14,6 +14,7 @@ import type { ModelAtlasCandidate } from "../../model-types";
 import { benchmarkTaskMetrics, directBenchmarkTokens } from "../resource-metrics";
 import {
   type ImputedTaskResource,
+  MIN_RESOURCE_EVIDENCE_FACTOR,
   resourceImputationKeys,
   type TaskResourceKind,
 } from "./resource-evidence";
@@ -120,13 +121,12 @@ export function prepareBroaderResourceEstimator(
       return ratio == null ? [] : [ratio];
     });
     const disagreement = medianOfFinite(ratios.map((ratio) => Math.abs(ratio - logRatio)));
-    const evidenceFactor =
-      disagreement == null
-        ? 0
-        : (ratios.length / (ratios.length + LOCAL_SHRINKAGE)) *
-          clamp01(1 - disagreement / Math.LN2);
+    // Agreement alone sets the weight: discounting estimates backed by few other models moves Speed and Value further from what measured amounts give.
+    const evidenceFactor = disagreement == null ? 0 : clamp01(1 - disagreement / Math.LN2);
     const amount = positiveFiniteNumber(sourceAmount * Math.exp(logRatio));
-    return amount == null || evidenceFactor <= 0 ? null : { amount, evidenceFactor };
+    return amount == null || evidenceFactor < MIN_RESOURCE_EVIDENCE_FACTOR
+      ? null
+      : { amount, evidenceFactor };
   };
 }
 

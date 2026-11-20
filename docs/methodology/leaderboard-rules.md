@@ -56,7 +56,7 @@ A variant that qualifies on quality stays in the table with an unavailable resou
 
 The table's Effort picker switches every model between two modes. Collapsed shows one row per base model: the variant with the highest :score[Intelligence], with all of that variant's scores. Expanded shows a row for each selected reasoning effort.
 
-A collapsed row's benchmark cells can show results from other efforts of the same model, in two cases. Where the shown variant has no result for a benchmark, the cell displays the result observed at the highest reasoning effort that has one. Where a benchmark's [sources are combined](sources.md#combining-sources), the cell shows the combination of each source's result at the highest effort that source reports for the model, wherever that combination exists. This is the only case where a cell overrides a result the shown variant has. Neither case changes the row's scores or whose scores are shown, but a filled-in result brings its cost, time, and tokens into the row's [relative task resources](#relative-task-resources).
+A collapsed row's benchmark cells can show results from other efforts of the same model, in two cases. Where the shown variant has no result for a benchmark, the cell displays the result observed at the highest reasoning effort that has one. Where a benchmark's [sources are combined](sources.md#combining-sources), the cell shows the combination of each source's result at the highest effort that source reports for the model, wherever that combination exists. This is the only case where a cell overrides a result the shown variant has. Neither case changes the row's scores or whose scores are shown, but a filled-in result brings its cost, time, and tokens into the row's [relative task resources](#relative-task-resources). A collapsed row's [estimates](imputation.md#shown-on-the-leaderboard) are those of its shown variant, and a result or amount observed at another effort takes precedence over them.
 
 ## Frontier Roles
 
@@ -93,7 +93,9 @@ $$
 
 Each benchmark has weight $w_b=1$. Where a benchmark's sources keep their resources [separate](sources.md#resources-across-sources), each source has its own ratio and the benchmark's weight of 1 is split equally among its sources, whether or not the variant has each one. An index has its [represented breadth](intelligence-agentic.md#represented-breadth-and-overlap) less the components already counted as benchmarks. A benchmark observed for fewer than two base models has no median. The medians come from the full model population, whichever models a chart shows.
 
-Cost uses observed cost per task and time uses reported seconds. Tokens require an input and output count or a reported total; output tokens alone never stand in for the total. Derived runtime and estimates are not included.
+Cost uses observed cost per task and time uses reported seconds. Tokens require an input and output count or a reported total; output tokens alone never stand in for the total. Derived runtime is not included.
+
+A model's reasoning efforts are often measured on different benchmarks, so summarizing each effort over only its own would let a higher effort read lower purely because its benchmarks differ. Where scoring [estimated an amount](imputation.md#in-relative-task-resources) the variant lacks, the variant's weighted median $\rho_m$ also includes that estimate, at a reduced weight. Estimates never enter the benchmark medians $\tilde R_b$, and the count of measured benchmarks shown with a ratio leaves them out.
 
 These ratios ignore quality, so they feed neither :score[Speed] nor :score[Value]. A model's summarized ratio need not center on 1× even though every benchmark's median does, because models run different benchmarks.
 

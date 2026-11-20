@@ -21,10 +21,10 @@ import {
 import { resourceRatioColumns, scoreColumnsByKey, scoreMetricColumns } from "./Columns";
 import { formatContext, formatDashboardMetric, formatEvidenceSupport, formatScore } from "./format";
 import {
-  benchmarkDisplayValue,
-  benchmarkMeterValue,
+  benchmarkCellResult,
   contextWindowValue,
   dashboardMetricValue,
+  estimatedMetricValue,
   type TableRow,
 } from "./leaderboard-rows";
 import { changeScores, changeShortDate, headlineMove, moveDirection } from "./ScoreChange";
@@ -303,6 +303,8 @@ function ModelScoreCells({
   );
 }
 
+const ESTIMATED_TITLE = "Estimated, not measured at this effort";
+
 const DashboardMetricCell = memo(function DashboardMetricCell({
   rowData,
   column,
@@ -316,17 +318,16 @@ const DashboardMetricCell = memo(function DashboardMetricCell({
   if (column.group === "profile" && column.field === "modalities") {
     return <ModalityInputCell inputs={model.modalities?.input} hasRuleAfter={hasRuleAfter} />;
   }
-  const value =
-    "benchmark" in column
-      ? benchmarkDisplayValue(rowData, column)
-      : dashboardMetricValue(model, column);
+  const value = dashboardMetricValue(model, column);
   const className = `data-cell${hasRuleAfter ? " column-group-end" : ""}`;
   if (isAmountColumn(column)) {
+    const estimate = estimatedMetricValue(model, column);
     return (
       <AmountCell
         rowData={rowData}
         columnKey={column.key}
-        text={formatDashboardMetric(value, column)}
+        text={formatDashboardMetric(value ?? estimate, column)}
+        estimated={estimate != null}
         className={className}
       />
     );
@@ -343,10 +344,12 @@ const DashboardMetricCell = memo(function DashboardMetricCell({
     );
   }
   if ("benchmark" in column) {
+    const result = benchmarkCellResult(rowData, column);
     return (
       <BenchmarkMetricCell
-        meterPercent={benchmarkMeterValue(rowData, column)}
-        text={formatDashboardMetric(value, column)}
+        meterPercent={result?.meter ?? null}
+        text={formatDashboardMetric(result?.value, column)}
+        estimated={result?.estimated === true}
         provider={model.provider}
         className={className}
       />
@@ -362,7 +365,9 @@ function metricCellPropsEqual(
   if (
     left.column !== right.column ||
     left.hasRuleAfter !== right.hasRuleAfter ||
-    left.rowData.model.provider !== right.rowData.model.provider
+    left.rowData.model.provider !== right.rowData.model.provider ||
+    estimatedMetricValue(left.rowData.model, left.column) !==
+      estimatedMetricValue(right.rowData.model, right.column)
   ) {
     return false;
   }
@@ -386,28 +391,33 @@ function metricCellValue(rowData: TableRow, column: DashboardMetricColumn) {
     return place == null ? null : communityPlaceLabel(place);
   }
   return "benchmark" in column
-    ? benchmarkDisplayValue(rowData, column)
-    : dashboardMetricValue(rowData.model, column);
+    ? benchmarkCellResult(rowData, column)?.value
+    : (dashboardMetricValue(rowData.model, column) ?? estimatedMetricValue(rowData.model, column));
 }
 
 function metricCellMeterValue(rowData: TableRow, column: DashboardMetricColumn) {
   if (isAmountColumn(column)) return rowData.metricRatios[column.key] ?? null;
-  return "benchmark" in column ? benchmarkMeterValue(rowData, column) : null;
+  if (!("benchmark" in column)) return null;
+  return benchmarkCellResult(rowData, column)?.meter ?? null;
 }
 
 function BenchmarkMetricCell({
   meterPercent,
   text,
+  estimated,
   provider,
   className,
 }: {
   meterPercent: number | null;
   text: string;
+  estimated: boolean;
   provider: string | null | undefined;
   className: string;
 }) {
+  const cellClassName = `${className} benchmark-cell${estimated ? " estimated-cell" : ""}`;
+  const title = estimated ? ESTIMATED_TITLE : undefined;
   if (meterPercent == null) {
-    return <TableCell text={text} className={`${className} benchmark-cell`} />;
+    return <TableCell text={text} className={cellClassName} title={title} />;
   }
   const displayColor = providerBrandColor(provider);
   const style = {
@@ -415,7 +425,7 @@ function BenchmarkMetricCell({
     "--score-color": displayColor,
   } as CSSProperties;
   return (
-    <td className={`${className} benchmark-cell`} style={style}>
+    <td className={cellClassName} style={style} title={title}>
       <span className="score-value">{text}</span>
       <span className="score-meter benchmark-meter" />
     </td>
@@ -558,20 +568,25 @@ function AmountCell({
   rowData,
   columnKey,
   text,
+  estimated,
   className,
 }: {
   rowData: TableRow;
   columnKey: TableColumnKey;
   text: string;
+  estimated?: boolean;
   className: string;
 }) {
   const ratio = rowData.metricRatios[columnKey];
+  const median = ratio == null ? null : `${formatResourceRatio(ratio)} the column median`;
   return (
     <RatioCell
       ratio={ratio}
       text={text}
-      className={className}
-      title={ratio == null ? undefined : `${formatResourceRatio(ratio)} the column median`}
+      className={estimated ? `${className} estimated-cell` : className}
+      title={
+        estimated ? [ESTIMATED_TITLE, median].filter(Boolean).join(" · ") : (median ?? undefined)
+      }
     />
   );
 }
