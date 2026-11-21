@@ -58,11 +58,7 @@ try {
           selected_permaslug: "anthropic/claude-5-fable-20260609",
           candidate_permaslugs: ["anthropic/claude-5-fable-20260609"],
           performance: {
-            summary: {
-              throughput_tokens_per_second_median: 53,
-              latency_seconds_median: 3.73,
-              e2e_latency_seconds_median: null,
-            },
+            summary: { latency_seconds_median: 3.73 },
             throughput: {
               data: [
                 {
@@ -71,6 +67,7 @@ try {
                 },
               ],
             },
+            latency: { data: [{ x: "2026-06-17", y: { [endpointId]: 3_730 } }] },
             latency_e2e: {
               data: [
                 {
@@ -127,11 +124,7 @@ try {
     );
     assert.deepEqual(
       cached?.models[0]?.performance.summary,
-      {
-        throughput_tokens_per_second_median: 53,
-        latency_seconds_median: 3.73,
-        e2e_latency_seconds_median: null,
-      },
+      { latency_seconds_median: 3.73 },
       "OpenRouter cache reads should preserve endpoint aggregate fallback values",
     );
     assert.deepEqual(

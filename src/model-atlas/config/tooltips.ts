@@ -362,7 +362,7 @@ export function columnTooltipsForActiveComponents(
         ],
         [
           "Runtime estimates",
-          "output tokens divided by output throughput; total tokens are not substituted",
+          "output tokens divided by throughput; total tokens are not substituted",
         ],
         [
           "Provider metrics",

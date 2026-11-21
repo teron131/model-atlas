@@ -228,11 +228,19 @@ const staticTableColumnTooltips = {
     ],
   },
   throughput: {
-    title: "Output throughput",
-    body: "How quickly output tokens arrive once generation is underway, in tokens per second.",
+    title: "Throughput",
+    body: "How many output tokens, reasoning included, the model writes per second once its first token arrives.",
     rows: [
       ["Source", "OpenRouter"],
+      [
+        "First-token wait",
+        "removed from each provider's whole-request throughput using its first-token and end-to-end latency",
+      ],
       ["Provider weighting", "estimated OpenRouter token share"],
+      [
+        "Known tradeoff",
+        "likely overstated for models that stream only a summary of their reasoning, such as OpenAI's GPT models, since part of it comes before the first token",
+      ],
     ],
   },
   latency: {

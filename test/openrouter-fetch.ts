@@ -85,7 +85,7 @@ try {
     {
       id: modelIds[1],
       performance: {
-        throughput_tokens_per_second_median: 90,
+        throughput_tokens_per_second_median: 108,
         latency_seconds_median: 0.2,
         e2e_latency_seconds_median: 1.2,
       },

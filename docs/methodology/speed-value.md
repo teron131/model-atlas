@@ -19,7 +19,7 @@ A benchmark resource is an amount per task: $R_{m,b}$ is the time in seconds or 
 
 Amounts come from the same benchmark and reasoning effort as the quality they are compared at. A source's totals are divided by the number of task executions they cover, with repeated runs counted as separate executions, so amounts from sources with different run counts stay comparable.
 
-When a benchmark reports no time per task, it is derived from its output tokens divided by the provider's served throughput; total tokens cannot stand in for output tokens. A derived time is scored like a reported one, although it does not count toward resource score availability. Other gaps can be filled by [resource imputation](imputation.md#resources-across-reasoning-efforts). A source-wide average never replaces a benchmark's own measurement, and an aggregate index's cost and runtime do not enter these scores.
+When a benchmark reports no time per task, it is derived as the time to write its output tokens at the provider's served [throughput](#provider-speed), without the waits before first tokens; total tokens cannot stand in for output tokens. A derived time is scored like a reported one, although it does not count toward resource score availability. Other gaps can be filled by [resource imputation](imputation.md#resources-across-reasoning-efforts). A source-wide average never replaces a benchmark's own measurement, and an aggregate index's cost and runtime do not enter these scores.
 
 A cost per task reflects the token prices in force when the benchmark ran. A model's price change is recorded with its effective date and its input and output prices before and after, and only a change that moves both prices by one ratio is accepted, because a cost per task does not record how it divides between input and output. A benchmark result first recorded on or before that date, and unchanged since in quality, cost, time, and tokens, has its cost multiplied by the ratio, so the model's task costs and its token price describe the same prices. A result that has changed since is taken as reported.
 
@@ -167,13 +167,23 @@ If every reference value is equal, each receives 100, as in [benchmark normaliza
 
 ## Provider Speed
 
-Provider speed is how fast a model is served, apart from how much work a task takes. Its three measurements are throughput, first-token latency, and end-to-end response time. Each is [scaled](#input-scaling) between the smallest and largest reference value of its own measurement, throughput with $S_{\uparrow}$ and the two latencies with $S_{\downarrow}$.
+Provider speed is how fast a model is served, apart from how much work a task takes. Its three measurements are throughput, first-token latency, and end-to-end latency. Throughput is how many output tokens, reasoning included, a model writes per second once its first token arrives, so the wait before that token counts only in the two latencies. Each is [scaled](#input-scaling) between the smallest and largest reference value of its own measurement, throughput with $S_{\uparrow}$ and the two latencies with $S_{\downarrow}$.
 
 The measurements come from OpenRouter, which reports them for a model and not for a reasoning effort, so every effort of a model shares them. [Model Matching](../matching.md#openrouter-routes) explains which OpenRouter listing supplies a model's measurements.
 
 OpenRouter serves a model through endpoints, each one provider's hosting of it. Each endpoint's recent history is averaged. The endpoints of the default service tier are then combined in a [weighted mean](operations.md#weighted-mean) with the tokens each served as weights, so a fast host that serves little traffic counts little. An endpoint without recorded volume is left out.
 
-When no endpoint has both history and volume, throughput falls back to the highest endpoint median and first-token latency to the lowest, as OpenRouter's own model page summarizes them. End-to-end latency has no such summary. Where OpenRouter still lacks a measurement, Artificial Analysis's measurement of the same variant fills it, so a model's efforts can differ on a filled measurement.
+OpenRouter reports whole-request throughput instead: a request's output tokens divided by the whole request time, the wait before the first token included. It understates how fast a model writes, most of all for short replies after a long wait, so each endpoint's whole-request throughput is converted to throughput before the weighted mean. With $v$ its mean whole-request throughput, $t^{\text{first}}$ its mean first-token latency, and $t^{\text{e2e}}$ its mean end-to-end latency, $v\,t^{\text{e2e}}$ estimates the tokens a request writes and $t^{\text{e2e}}-t^{\text{first}}$ the time spent writing them:
+
+$$
+v'=\frac{v\,t^{\text{e2e}}}{t^{\text{e2e}}-t^{\text{first}}}
+$$
+
+An endpoint whose history lacks either latency, or whose end-to-end latency does not exceed its first-token latency, gives no throughput.
+
+The conversion assumes that a model starts writing when its first token arrives. A model whose API streams only a summary of its reasoning, such as OpenAI's GPT models, likely writes part of that reasoning before its first token, so its first-token latency includes writing time and the conversion overstates its throughput. Artificial Analysis's output speed is a whole-request throughput that keeps such reasoning in both its token count and its time. Against it, the throughput of such models runs about a quarter high and their whole-request throughput about 30% low, while other models' throughput typically lies within a tenth of it. Atlas accepts this as a known tradeoff: the conversion brings most models' throughput close to that measurement and still misses these models by less than their whole-request throughput does, although within :score[Speed] it ranks them slightly high on throughput.
+
+When no endpoint has both history and volume, first-token latency falls back to the lowest endpoint median, as OpenRouter's own model page summarizes it. Throughput has no such fallback, because the page shows only whole-request throughput and no end-to-end latency to convert it with. Where OpenRouter still lacks a measurement, Artificial Analysis's measurement of the same variant fills it, so a model's efforts can differ on a filled measurement. Artificial Analysis's output speed fills throughput unchanged: its benchmark requests are likely long enough that the wait is a small share of each, so it tracks throughput rather than OpenRouter's whole-request throughput.
 
 ## Token Price
 

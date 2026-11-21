@@ -146,13 +146,7 @@ function openRouterSourceModelFromRows(modelId: string, rows: CacheDbRow[]): Ope
     ...(summaryRow == null
       ? {}
       : {
-          summary: {
-            throughput_tokens_per_second_median: asFiniteNumber(
-              summaryRow.throughput_tokens_per_second_median,
-            ),
-            latency_seconds_median: asFiniteNumber(summaryRow.latency_seconds_median),
-            e2e_latency_seconds_median: asFiniteNumber(summaryRow.e2e_latency_seconds_median),
-          },
+          summary: { latency_seconds_median: asFiniteNumber(summaryRow.latency_seconds_median) },
         }),
     throughput: openRouterSeriesResponseFromRows(
       statRows.filter((row) => row.metric === "throughput"),

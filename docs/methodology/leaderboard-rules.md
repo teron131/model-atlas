@@ -30,7 +30,7 @@ OpenAI Pro, Gemini Deep Think, and Claude Mythos models are never shown in the t
 
 ## Preserved Rows
 
-A refresh can lose a source for a while, and a leading model's score would then fall for a reason that has nothing to do with the model. Each refresh therefore compares every listed variant's new row with its row in the previous refresh, and shows the previous row instead when three conditions hold: its previous :score[Intelligence] was at least 90, its new :score[Intelligence] is at least 10 points lower, and the previous row carries more values than the new one, counting its observed frontier benchmark and index results, its :score[Speed], and its three provider speed measurements (throughput, latency, and end-to-end latency). A variant that no longer qualifies for the list is not preserved.
+A refresh can lose a source for a while, and a leading model's score would then fall for a reason that has nothing to do with the model. Each refresh therefore compares every listed variant's new row with its row in the previous refresh, and shows the previous row instead when three conditions hold: its previous :score[Intelligence] was at least 90, its new :score[Intelligence] is at least 10 points lower, and the previous row carries more values than the new one, counting its observed frontier benchmark and index results, its :score[Speed], and its three provider speed measurements (throughput, first-token latency, and end-to-end latency). A variant that no longer qualifies for the list is not preserved.
 
 The preserved row is shown unchanged, with all four scores and its benchmark results. Those scores were calculated against the earlier population, so they are not strictly relative to the models currently observed.
 

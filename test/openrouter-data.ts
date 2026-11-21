@@ -308,6 +308,8 @@ const qwenRouteData = prepareOpenRouterModelData(
         candidate_permaslugs: ["qwen/qwen3.7-max-20260520"],
         performance: {
           throughput: { data: [{ x: "2026-08-09", y: { route: 47 } }] },
+          latency: { data: [{ x: "2026-08-09", y: { route: 1_000 } }] },
+          latency_e2e: { data: [{ x: "2026-08-09", y: { route: 5_000 } }] },
           series_token_weights: { route: 1 },
         },
         route_prices: [
@@ -334,7 +336,7 @@ const qwenRouteData = prepareOpenRouterModelData(
 );
 assertEqual(
   qwenRouteData.speedByModelId.get("qwen/qwen3.7-max")?.throughput_tokens_per_second_median,
-  47,
+  58.75,
 );
 // Each route resolves its own unlisted cache prices before token weighting: 0.25 and 0.5 cache reads, 6.25 and 5 new input.
 const qwenBlendPrices = lookupOpenRouterBlendPrices(qwenRouteData, "qwen/qwen3.7-max");

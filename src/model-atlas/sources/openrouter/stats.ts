@@ -2,12 +2,13 @@
 
 import { isSameOpenRouterModelRoute, MMDD_RELEASE_TOKEN_PATTERN } from "../../identity/openrouter";
 import { providerIdentityKey } from "../../identity/provider";
-import { meanOfFinite, weightedMedianOfFinite } from "../../math-utils";
+import { weightedMedianOfFinite } from "../../math-utils";
 import { asFiniteNumber, asRecord } from "../../runtime";
 import type {
   OpenRouterCandidateStats,
   OpenRouterEffectivePricingResponse,
   OpenRouterEndpointStatsResponse,
+  OpenRouterEndpointSummary,
   OpenRouterModelMetrics,
   OpenRouterPerformance,
   OpenRouterPerformanceSummary,
@@ -48,27 +49,20 @@ export function sanitizeOpenRouterModelId(modelId: string): string {
   return `${OPENROUTER_PROVIDER_ALIASES[provider] ?? provider}${normalized.slice(slashIndex)}`;
 }
 
-/** Match OpenRouter's cards: fastest endpoint P50 throughput and lowest endpoint P50 latency. */
+/** Match OpenRouter's card: the lowest endpoint P50 latency. */
 export function summarizeEndpointPerformance(
   response: OpenRouterEndpointStatsResponse | null,
-): OpenRouterPerformanceSummary {
-  let highestThroughput: number | null = null;
+): OpenRouterEndpointSummary {
   let lowestLatencyMs: number | null = null;
   for (const endpoint of response?.data ?? []) {
-    const throughput = asFiniteNumber(endpoint.stats?.p50_throughput);
     const latencyMs = asFiniteNumber(endpoint.stats?.p50_latency);
-    if (throughput != null && (highestThroughput == null || throughput > highestThroughput)) {
-      highestThroughput = throughput;
-    }
     if (latencyMs != null && (lowestLatencyMs == null || latencyMs < lowestLatencyMs)) {
       lowestLatencyMs = latencyMs;
     }
   }
   return {
-    throughput_tokens_per_second_median: highestThroughput,
     latency_seconds_median:
       lowestLatencyMs == null ? null : lowestLatencyMs * SECONDS_PER_MILLISECOND,
-    e2e_latency_seconds_median: null,
   };
 }
 
@@ -253,70 +247,68 @@ export function selectOpenRouterRawModelStats(
   };
 }
 
-/** Prefer matched token-weighted history and otherwise use OpenRouter's provider aggregate. */
+/**
+ * Prefer matched token-weighted history and otherwise use OpenRouter's card latency.
+ * OpenRouter reports whole-request throughput, a request's output tokens over its whole time with the wait before the first token included, so each endpoint's becomes throughput, taken over the time after its first token, before the weighting: 78 tokens a second over an 8.7 s request that waited 3.2 s is about 680 tokens at 123 a second.
+ */
 function summarizePerformance(stats: OpenRouterPerformance): OpenRouterPerformanceSummary {
-  const weightedThroughput = tokenWeightedMeanValue(
-    stats.throughput ?? null,
-    stats.series_token_weights,
-    1,
-  );
-  const weightedLatency = tokenWeightedMeanValue(
-    stats.latency ?? null,
-    stats.series_token_weights,
-    SECONDS_PER_MILLISECOND,
-  );
-  const weightedE2eLatency = tokenWeightedMeanValue(
-    stats.latency_e2e ?? null,
-    stats.series_token_weights,
-    SECONDS_PER_MILLISECOND,
-  );
+  const wholeRequestThroughput = endpointMeans(stats.throughput, 1);
+  const latency = endpointMeans(stats.latency, SECONDS_PER_MILLISECOND);
+  const e2eLatency = endpointMeans(stats.latency_e2e, SECONDS_PER_MILLISECOND);
+  const throughput = new Map<string, number>();
+  for (const [endpoint, wholeRequest] of wholeRequestThroughput) {
+    const firstToken = latency.get(endpoint);
+    const e2e = e2eLatency.get(endpoint);
+    if (firstToken != null && e2e != null && e2e > firstToken) {
+      throughput.set(endpoint, (wholeRequest * e2e) / (e2e - firstToken));
+    }
+  }
+  const weights = stats.series_token_weights ?? {};
   return {
-    throughput_tokens_per_second_median:
-      weightedThroughput ?? stats.summary?.throughput_tokens_per_second_median ?? null,
-    latency_seconds_median: weightedLatency ?? stats.summary?.latency_seconds_median ?? null,
-    e2e_latency_seconds_median:
-      weightedE2eLatency ?? stats.summary?.e2e_latency_seconds_median ?? null,
+    throughput_tokens_per_second_median: tokenWeightedMean(throughput, weights),
+    latency_seconds_median:
+      tokenWeightedMean(latency, weights) ?? stats.summary?.latency_seconds_median ?? null,
+    e2e_latency_seconds_median: tokenWeightedMean(e2eLatency, weights),
   };
 }
 
-/** Weight every available standard endpoint series that has matching positive token evidence. */
-function tokenWeightedMeanValue(
-  response: OpenRouterSeriesResponse | null,
-  seriesTokenWeights: Record<string, number | null> | null | undefined,
-  valueScale: number,
-): number | null {
-  if (!response || !Array.isArray(response.data) || seriesTokenWeights == null) {
-    return null;
-  }
-  const valuesBySeries = new Map<string, number[]>();
-  for (const point of response.data) {
-    for (const [series, value] of Object.entries(asRecord(point.y))) {
-      const numericValue = asFiniteNumber(value);
-      if (numericValue == null) {
-        continue;
+function endpointMeans(
+  response: OpenRouterSeriesResponse | null | undefined,
+  scale: number,
+): Map<string, number> {
+  const values = new Map<string, number[]>();
+  for (const point of Array.isArray(response?.data) ? response.data : []) {
+    for (const [endpoint, value] of Object.entries(asRecord(point.y))) {
+      const number = asFiniteNumber(value);
+      if (number != null) {
+        const list = values.get(endpoint) ?? [];
+        list.push(number * scale);
+        values.set(endpoint, list);
       }
-      const values = valuesBySeries.get(series) ?? [];
-      values.push(numericValue * valueScale);
-      valuesBySeries.set(series, values);
     }
   }
-  if (valuesBySeries.size === 0) {
-    return null;
-  }
-  const weightedSeries = Object.entries(seriesTokenWeights)
-    .map(([series, value]) => [series, asFiniteNumber(value)] as const)
-    .filter((entry): entry is readonly [string, number] => entry[1] != null && entry[1] > 0);
-  if (weightedSeries.length === 0) {
-    return null;
-  }
+  return new Map(
+    [...values].map(([endpoint, list]) => [
+      endpoint,
+      list.reduce((sum, value) => sum + value, 0) / list.length,
+    ]),
+  );
+}
+
+/** Endpoints count by the tokens they served; one without positive served tokens is left out. */
+function tokenWeightedMean(
+  values: ReadonlyMap<string, number>,
+  weights: Record<string, number | null>,
+): number | null {
   let weightedSum = 0;
   let totalWeight = 0;
-  for (const [series, weight] of weightedSeries) {
-    const seriesMean = meanOfFinite(valuesBySeries.get(series) ?? []);
-    if (seriesMean == null) {
+  for (const [endpoint, rawWeight] of Object.entries(weights)) {
+    const weight = asFiniteNumber(rawWeight);
+    const value = values.get(endpoint);
+    if (weight == null || weight <= 0 || value == null) {
       continue;
     }
-    weightedSum += seriesMean * weight;
+    weightedSum += value * weight;
     totalWeight += weight;
   }
   return totalWeight > 0 ? weightedSum / totalWeight : null;

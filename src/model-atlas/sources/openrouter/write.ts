@@ -84,9 +84,7 @@ export function insertOpenRouterRawRows(
         modelId: model.id,
         permaslug: model.selected_permaslug,
         selectedPermaslug: model.selected_permaslug,
-        throughput: endpointSummary?.throughput_tokens_per_second_median,
         latency: endpointSummary?.latency_seconds_median,
-        e2eLatency: endpointSummary?.e2e_latency_seconds_median,
       });
       rowIndex += 1;
     }

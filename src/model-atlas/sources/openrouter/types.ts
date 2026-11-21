@@ -14,9 +14,9 @@ export type OpenRouterSeriesResponse = {
   data?: OpenRouterSeriesPoint[];
 };
 
-/** History retains upstream units: tokens per second for throughput and milliseconds for latency; summary latency is already in seconds. */
+/** History retains upstream units: tokens per second for whole-request throughput and milliseconds for latency; summary latency is already in seconds. */
 export type OpenRouterPerformance = {
-  summary?: OpenRouterPerformanceSummary | null;
+  summary?: OpenRouterEndpointSummary | null;
   throughput?: OpenRouterSeriesResponse | null;
   latency?: OpenRouterSeriesResponse | null;
   latency_e2e?: OpenRouterSeriesResponse | null;
@@ -62,6 +62,12 @@ export type OpenRouterEffectivePricingResponse = {
   };
 };
 
+/** OpenRouter's model card, the fallback when no endpoint has both history and served tokens. Its whole-request throughput is left out: the card has no end-to-end time to convert it to throughput with. */
+export type OpenRouterEndpointSummary = {
+  latency_seconds_median: number | null;
+};
+
+/** `throughput_tokens_per_second_median` is throughput, not OpenRouter's whole-request throughput: the wait before the first token is left out. */
 export type OpenRouterPerformanceSummary = {
   throughput_tokens_per_second_median: number | null;
   latency_seconds_median: number | null;

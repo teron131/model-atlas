@@ -37,7 +37,7 @@ const performanceStats = {
     ],
   },
   latency_e2e: {
-    data: [{ x: "2026-01-01", y: { p50: 1500, p90: 1500 } }],
+    data: [{ x: "2026-01-01", y: { p50: 6000, p90: 4000 } }],
   },
   series_token_weights: {
     p50: 9,
@@ -130,9 +130,7 @@ const defaultTier = withDefaultServiceTier(
   },
 );
 assert.deepEqual(summarizeEndpointPerformance(defaultTier.endpointStats), {
-  throughput_tokens_per_second_median: 77,
   latency_seconds_median: 3,
-  e2e_latency_seconds_median: null,
 });
 assert.deepEqual(buildOpenRouterSeriesTokenWeights(defaultTier.pricing), { standard: 90 });
 assert.equal(
@@ -176,19 +174,16 @@ assert.deepEqual(
       { stats: { p50_throughput: null, p50_latency: null } },
     ],
   }),
-  {
-    throughput_tokens_per_second_median: 53,
-    latency_seconds_median: 3.73,
-    e2e_latency_seconds_median: null,
-  },
+  { latency_seconds_median: 3.73 },
 );
 
+// Each endpoint's whole-request throughput becomes throughput before the token weighting: 300 tokens a second over a 6 s request that waited 2 s is 450, and 500 over 4 s after a 2 s wait is 1,000.
 assert.deepEqual(unpricedModel, {
   id: "openai/example",
   performance: {
-    throughput_tokens_per_second_median: 320,
+    throughput_tokens_per_second_median: 505,
     latency_seconds_median: 2,
-    e2e_latency_seconds_median: 1.5,
+    e2e_latency_seconds_median: 5.8,
   },
   pricing: {
     weighted_input_price_per_1m: null,
@@ -227,11 +222,7 @@ assert.deepEqual(sparseModel.performance, {
 const aggregateFallbackModel = processOpenRouterModelStats(
   "anthropic/aggregate-fallback-example",
   {
-    summary: {
-      throughput_tokens_per_second_median: 53,
-      latency_seconds_median: 3.73,
-      e2e_latency_seconds_median: null,
-    },
+    summary: { latency_seconds_median: 3.73 },
     throughput: { data: [{ x: "2026-01-01", y: { providerA: 40 } }] },
     latency: { data: [{ x: "2026-01-01", y: { providerA: 5_360 } }] },
     latency_e2e: { data: [{ x: "2026-01-01", y: { providerA: 11_250 } }] },
@@ -240,17 +231,21 @@ const aggregateFallbackModel = processOpenRouterModelStats(
   [],
 );
 
-assert.deepEqual(aggregateFallbackModel.performance, {
-  throughput_tokens_per_second_median: 53,
-  latency_seconds_median: 3.73,
-  e2e_latency_seconds_median: null,
-});
+assert.deepEqual(
+  aggregateFallbackModel.performance,
+  {
+    throughput_tokens_per_second_median: null,
+    latency_seconds_median: 3.73,
+    e2e_latency_seconds_median: null,
+  },
+  "The card fills only latency: its whole-request throughput has no end-to-end time to convert it with",
+);
 
 const partialWeightedPerformanceModel = processOpenRouterModelStats(
   "openai/partial-weighted-performance-example",
   {
     throughput: {
-      data: [{ x: "2026-01-01", y: { matched: 50, unweighted: 100 } }],
+      data: [{ x: "2026-01-01", y: { matched: 60, unweighted: 100 } }],
     },
     latency: {
       data: [{ x: "2026-01-01", y: { matched: 2_000, unweighted: 1_000 } }],
@@ -264,7 +259,7 @@ const partialWeightedPerformanceModel = processOpenRouterModelStats(
 );
 
 assert.deepEqual(partialWeightedPerformanceModel.performance, {
-  throughput_tokens_per_second_median: 50,
+  throughput_tokens_per_second_median: 80,
   latency_seconds_median: 2,
   e2e_latency_seconds_median: 8,
 });
@@ -322,6 +317,8 @@ const selected = selectOpenRouterRawModelStats("provider/model", [
     weekly_tokens: 10_000,
     performance: {
       throughput: { data: [{ x: "2026-01-01", y: { p50: 25 } }] },
+      latency: { data: [{ x: "2026-01-01", y: { p50: 1_000 } }] },
+      latency_e2e: { data: [{ x: "2026-01-01", y: { p50: 5_000 } }] },
       series_token_weights: { p50: 1 },
     },
     route_prices: [
@@ -333,6 +330,8 @@ const selected = selectOpenRouterRawModelStats("provider/model", [
     weekly_tokens: 1_000_000,
     performance: {
       throughput: { data: [{ x: "2026-01-01", y: { p50: 100 } }] },
+      latency: { data: [{ x: "2026-01-01", y: { p50: 1_000 } }] },
+      latency_e2e: { data: [{ x: "2026-01-01", y: { p50: 5_000 } }] },
       series_token_weights: { p50: 1 },
     },
     route_prices: [],
@@ -347,6 +346,8 @@ assert.deepEqual(
     candidate_permaslugs: ["provider/model-low-volume", "provider/model-high-volume"],
     performance: {
       throughput: { data: [{ x: "2026-01-01", y: { p50: 100 } }] },
+      latency: { data: [{ x: "2026-01-01", y: { p50: 1_000 } }] },
+      latency_e2e: { data: [{ x: "2026-01-01", y: { p50: 5_000 } }] },
       series_token_weights: { p50: 1 },
     },
     route_prices: [

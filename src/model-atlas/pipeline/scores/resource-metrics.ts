@@ -217,7 +217,7 @@ export function directBenchmarkTokens(
   return measure === "tokens" ? positiveFiniteNumber(metrics.tokens) : null;
 }
 
-/** Use served throughput as the runtime proxy when a benchmark reports output tokens but not wall time. */
+/** When a benchmark reports output tokens but not wall time, its runtime is the time to write them at the served throughput, the waits before first tokens left out. */
 export function effectiveTaskSeconds(model: ResourceMetricModel, task: unknown): number | null {
   const taskRecord = asRecord(task);
   const explicitSeconds = positiveFiniteNumber(taskRecord.seconds);
