@@ -232,7 +232,7 @@ export const TimelinePanel = memo(function TimelinePanel({
     "timeline-find",
     findDocuments,
     timelineSuggestionRow,
-    pointModelId,
+    timelinePointModelId,
   );
   const matches = useMemo(() => {
     const targets = chartFindTargets(find, findDocuments, timelineSuggestionRow);
@@ -852,7 +852,7 @@ export const TimelinePanel = memo(function TimelinePanel({
   );
 });
 
-function timelineSearchDocument(point: TimelinePoint): SearchDocument<TimelinePoint> {
+export function timelineSearchDocument(point: TimelinePoint): SearchDocument<TimelinePoint> {
   return {
     value: point,
     primary: [point.name, point.provider, providerDisplayName(point.provider)],
@@ -860,12 +860,12 @@ function timelineSearchDocument(point: TimelinePoint): SearchDocument<TimelinePo
 }
 
 // A point's published model id; an archived model has none, so a pill naming it stays as typed.
-function pointModelId(point: TimelinePoint): string | null {
+export function timelinePointModelId(point: TimelinePoint): string | null {
   return positionCatalogId(point.id);
 }
 
 /** A Timeline suggestion carries the Timeline's own Intelligence Index, the scale its y-axis reads. */
-function timelineSuggestionRow(point: TimelinePoint): ModelSuggestionRow {
+export function timelineSuggestionRow(point: TimelinePoint): ModelSuggestionRow {
   return {
     key: point.id,
     name: point.name,

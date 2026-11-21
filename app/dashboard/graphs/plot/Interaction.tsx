@@ -109,7 +109,7 @@ export function CursorProjectionLayer({
 }
 
 /** A reading set where the axis labels sit, on a backdrop measured from its text so the tick label beneath gives way. */
-function AxisReading({
+export function AxisReading({
   x,
   y,
   textAnchor,

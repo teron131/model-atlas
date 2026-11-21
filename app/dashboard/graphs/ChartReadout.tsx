@@ -7,11 +7,14 @@ import { type CSSProperties, Fragment } from "react";
 
 import styles from "./graphs.module.css";
 
-/** A fact in plain words; a labelled fact shows only its value, and screen readers hear the label before it; a versus fact sets another model against the readout's own, as a score between the two names with the opponent weighted like the readout's model, and its detail goes on in plain words after the opponent. */
+/** A fact in plain words; a labelled fact shows only its value, and screen readers hear the label before it; a versus fact sets another model against the readout's own, as a score between the two names with the opponent weighted like the readout's model, and its detail goes on in plain words after the opponent; a model fact names another model with its logo among plain words. */
 export type ReadoutFact =
   | string
   | { label: string; value: string }
-  | { score: string; opponent: { name: string; logo: string }; detail: string };
+  | { score: string; opponent: ReadoutModel; detail: string }
+  | { before: string; model: ReadoutModel; after: string };
+
+type ReadoutModel = { name: string; logo: string };
 
 export type ReadoutEntry = {
   name: string;
@@ -25,16 +28,18 @@ export function ChartReadout({
   label,
   entry,
   factRows = 1,
+  sentence = false,
 }: {
   label: string;
   entry: ReadoutEntry | null;
   /** The most rows the chart's facts wrap to on a phone, one more on the narrowest, all held so the plot never moves. */
   factRows?: number;
+  /** The facts read on from the name as one sentence, wrapping between words, rather than as a list. */
+  sentence?: boolean;
 }) {
-  const isSentence = entry?.facts.some((fact) => typeof fact === "object" && "opponent" in fact);
   return (
     <div
-      className={isSentence ? `${styles.readout} ${styles.readoutSentence}` : styles.readout}
+      className={sentence ? `${styles.readout} ${styles.readoutSentence}` : styles.readout}
       style={{ "--readout-fact-rows": factRows } as CSSProperties}
       aria-live="polite"
       aria-label={label}
@@ -77,19 +82,11 @@ export function ChartReadout({
                   ) : "opponent" in fact ? (
                     <>
                       <span className={styles.readoutScore}>{fact.score}</span>{" "}
-                      <span className={styles.readoutOpponent}>
-                        {fact.opponent.logo ? (
-                          <img
-                            className={`provider-logo ${styles.readoutLogo} ${styles.readoutFactLogo}`}
-                            src={fact.opponent.logo}
-                            alt=""
-                            width={14}
-                            height={14}
-                          />
-                        ) : null}
-                        <strong>{fact.opponent.name}</strong>
-                      </span>{" "}
-                      {fact.detail}
+                      <FactModel model={fact.opponent} /> {fact.detail}
+                    </>
+                  ) : "model" in fact ? (
+                    <>
+                      {fact.before} <FactModel model={fact.model} /> {fact.after}
                     </>
                   ) : (
                     <>
@@ -105,5 +102,23 @@ export function ChartReadout({
         </>
       )}
     </div>
+  );
+}
+
+/** Another model named inside a fact: its logo and name kept whole on one line, weighted like the readout's own model. */
+function FactModel({ model }: { model: ReadoutModel }) {
+  return (
+    <span className={styles.readoutModel}>
+      {model.logo ? (
+        <img
+          className={`provider-logo ${styles.readoutLogo} ${styles.readoutFactLogo}`}
+          src={model.logo}
+          alt=""
+          width={14}
+          height={14}
+        />
+      ) : null}
+      <strong>{model.name}</strong>
+    </span>
   );
 }

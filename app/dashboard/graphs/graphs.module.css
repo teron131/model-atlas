@@ -189,7 +189,7 @@
   width: 14px;
   height: 14px;
 }
-/* A versus fact reads as a scoreline: the score in the surface's ink between the two models, the opponent's logo and name set like the readout's own and kept whole on its line. */
+/* A versus fact reads as a scoreline, the score in the surface's ink between the two models; any other model a fact names, the opponent included, has its logo and name set like the readout's own and kept whole on its line. */
 .readoutScore {
   margin-right: 5px;
   color: var(--ink);
@@ -198,14 +198,14 @@
   margin-right: 10px;
   vertical-align: -2px;
 }
-.readoutOpponent {
+.readoutModel {
   white-space: nowrap;
 }
-.readoutOpponent strong {
+.readoutModel strong {
   color: var(--ink);
   font-weight: var(--type-label-weight);
 }
-/* A versus fact makes the readout one sentence, so it flows as text and wraps between words back to the line's start, the name never set apart in a row or column of its own. */
+/* A sentence readout flows as text and wraps between words back to the line's start, the name never set apart in a row or column of its own. */
 .readoutSentence {
   display: block;
 }

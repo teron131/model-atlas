@@ -17,6 +17,7 @@ import {
   findId,
   findSuggestion,
   NOTHING_FOUND,
+  TOP_MODELS,
 } from "../chart-data";
 import {
   ChartFind,
@@ -81,7 +82,6 @@ const TOKENS: Metric = {
 };
 const METRICS = [INTELLIGENCE, AGENTIC, COST, TIME, TOKENS];
 
-const MODELS = 10;
 const HEIGHT = 448;
 // The bottom margin holds each model's logo and two-line name.
 const MARGIN: Margin = { top: 12, right: 12, bottom: 64, left: 56 };
@@ -128,7 +128,7 @@ export function EffortPanel({ data }: { data: ChartData }) {
     .sort((a, b) => strongest(b) - strongest(a))
     .map((family) => family.filter((variant) => metric.read(variant) != null))
     .filter((family) => family.length > 0);
-  const strongestFamilies = measured.slice(0, MODELS);
+  const strongestFamilies = measured.slice(0, TOP_MODELS);
   const foundFamilies = measured.filter(
     (family) => found.has(family[0]!.family) && !strongestFamilies.includes(family),
   );

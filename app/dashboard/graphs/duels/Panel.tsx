@@ -15,6 +15,7 @@ import {
   findId,
   findSuggestion,
   NOTHING_FOUND,
+  TOP_MODELS,
   topByIntelligence,
 } from "../chart-data";
 import {
@@ -35,7 +36,6 @@ import { useChartLayout } from "../use-chart-layout";
 import graphs from "../graphs.module.css";
 import styles from "./duels.module.css";
 
-const MODELS = 10;
 // Two models sharing fewer benchmarks than this have too little in common to call a winner.
 const MIN_SHARED = 5;
 // The notes over the bout, and the least room over the standings.
@@ -57,12 +57,14 @@ const RECORD = { width: 48, gap: 14 };
 // Each opponent's dot holds a slot in the standings' order, so a slot is the same opponent in every row and the model's own, left empty, falls on the diagonal. Side by side the slots take what the bout leaves them, from the least up to full, and below the least the bout stacks under the standings; stacked, they share the row's width up to the widest.
 const SLOT = { least: 24, full: 30, widest: 32 };
 // Side by side, every bout spans the standings' full height, so the plot holds still from one duel to the next and ends level with the standings; stacked, a bout opened under its row takes only its rows' height, up to this. Either way a row of the bout takes up to `BOUT_ROW`, and a long duel's rows sit closer.
-const BOUT_BOX = MODELS * ROW.full;
+const BOUT_BOX = TOP_MODELS * ROW.full;
 const BOUT_ROW = 30;
 // A bar's thickness, a share of its row up to the most.
 const BAR = { share: 0.4, most: 10 };
 // A bout's benchmark names sit against its centre with the bars beyond them: the gaps from the centre to the chip, the chip to the name, and the name to the bar, and a generous mean width of the names' monospaced characters.
 const LABEL = { axisGap: 6, chipGap: 5, perChar: 6.8, barGap: 8 };
+// A bar's own model's result reads between its benchmark's name and the bar, in the caption's mono about this wide per character, this far from the bar; where that would leave the longest bar shorter than `least`, as on a phone, it reads under the name instead.
+const RESULT = { perChar: 6.6, gap: 6, least: 40 };
 // Room past a bar's end for its lead, up to "−100.0".
 const LEAD_ROOM = 44;
 const GUTTER = 48;
@@ -70,7 +72,8 @@ const GUTTER = 48;
 const LEAST_BOUT = 360;
 const INLINE_GAP = 8;
 
-type Lead = { benchmark: ChartBenchmark; points: number };
+/** A benchmark both models report: the row's model's result, its opponent's, and the gap between them. */
+type Lead = { benchmark: ChartBenchmark; own: number; theirs: number; points: number };
 type Duel = {
   row: ChartRow;
   opponent: ChartRow;
@@ -102,7 +105,7 @@ export function DuelsPanel({ data }: { data: ChartData }) {
   const { width, compact } = layout;
   const standings = duelStandings(data, find.located);
   const count = standings.length;
-  const added = count - Math.min(MODELS, data.rows.length);
+  const added = count - Math.min(TOP_MODELS, data.rows.length);
   const found = foundModelsPhrase(added);
   const targets = chartFindTargets(find, documents, findSuggestion);
   const matches = targets == null ? null : new Set(targets.map((row) => row.key));
@@ -301,6 +304,7 @@ export function DuelsPanel({ data }: { data: ChartData }) {
       <ChartReadout
         label="Duel details"
         factRows={2}
+        sentence
         entry={pointed == null ? null : duelEntry(pointed)}
       />
       <SkyFigure
@@ -492,7 +496,7 @@ export function DuelsPanel({ data }: { data: ChartData }) {
   );
 }
 
-/** The pointed duel as two lists meeting at the centre, each model's leads on its own side, largest first, so each side's length is its score: a benchmark's chip and name against the centre, then a bar as long as the lead. The duel is scaled to its own longest lead, so its bars fill the bout whichever duel is pointed; past each bar its lead reads as that side's margin, as Compare marks the better result, and carries the values from one duel to the next. */
+/** The pointed duel as two lists meeting at the centre, each model's leads on its own side under its logo and name, largest first, so each side's length is its score: a benchmark's chip and name against the centre, then a bar as long as the lead. The duel is scaled to its own longest lead, so its bars fill the bout whichever duel is pointed; beside each name that side's model's result reads as Compare prints it, and past each bar its lead reads as that side's margin. */
 function Bout({
   duel,
   left,
@@ -509,65 +513,97 @@ function Bout({
   box: number;
   names: number;
 }) {
-  const own = providerChartColor(duel.row.provider);
-  const other = providerChartColor(duel.opponent.provider);
   const { ahead, behind } = sides(duel);
   const spine = left + width / 2;
   const longest = Math.max(1, ...duel.leads.map(({ points }) => Math.abs(points)));
-  const perPoint = (width / 2 - names - LEAD_ROOM) / longest;
+  const resultRoom =
+    RESULT.gap +
+    Math.max(
+      ...duel.leads
+        .flatMap((lead) => [lead.own, lead.theirs])
+        .map((value) => value.toFixed(1).length),
+    ) *
+      RESULT.perChar;
+  const inline = width / 2 - names - resultRoom - LEAD_ROOM >= RESULT.least;
+  const perPoint = Math.max(0, width / 2 - names - (inline ? resultRoom : 0) - LEAD_ROOM) / longest;
   const { rows, step } = boutRows(duel, box);
   const tile = Math.min(DOMAIN_TILE.size, step - 2);
   const thickness = Math.min(BAR.most, step * BAR.share);
   const rowY = (index: number) => top + HEAD + (index + 0.5) * step;
-  const side = (leads: Lead[], right: boolean, fill: string) =>
-    leads.map(({ benchmark, points }, index) => {
-      const y = rowY(index);
-      const length = Math.abs(points) * perPoint;
-      const chip = right ? spine + LABEL.axisGap : spine - LABEL.axisGap - tile;
-      const base = right ? spine + names : spine - names;
-      return (
-        <g key={benchmark.key}>
-          <DomainTile domain={topDomain(benchmark)} x={chip} y={y - tile / 2} size={tile} />
-          <text
-            className={graphs.axisLabel}
-            x={right ? chip + tile + LABEL.chipGap : chip - LABEL.chipGap}
-            y={y}
-            dy="0.34em"
-            textAnchor={right ? "start" : "end"}
-          >
-            {benchmark.columnLabel}
-          </text>
-          <rect
-            x={right ? base : base - length}
-            y={y - thickness / 2}
-            width={length}
-            height={thickness}
-            rx={1}
-            style={{ fill }}
-          />
-          <text
-            className={graphs.plotValue}
-            x={right ? base + length + 6 : base - length - 6}
-            y={y}
-            dy="0.34em"
-            textAnchor={right ? "start" : "end"}
-          >
-            {formatLead(Math.abs(points))}
-          </text>
-        </g>
-      );
-    });
+  const side = (model: ChartRow, leads: Lead[], right: boolean, result: (lead: Lead) => number) => {
+    const fill = providerChartColor(model.provider);
+    const logo = providerLogo(model.provider);
+    const anchor = right ? "start" : "end";
+    const chip = right ? spine + LABEL.axisGap : spine - LABEL.axisGap - tile;
+    const name = right ? chip + tile + LABEL.chipGap : chip - LABEL.chipGap;
+    // Inline, the results' column starts where the names end and the bar where that column ends; otherwise the bar starts where the names end.
+    const column = right ? spine + names : spine - names;
+    const base = !inline ? column : right ? column + resultRoom : column - resultRoom;
+    return (
+      <g>
+        {/* The model heads its list against the centre, its logo where its benchmarks' chips sit and its name where theirs do. */}
+        {logo ? (
+          <image href={logo} x={chip} y={top + 12 - tile / 2 - 3} width={tile} height={tile} />
+        ) : null}
+        <text className={graphs.plotNote} x={name} y={top + 12} textAnchor={anchor}>
+          {model.name}
+        </text>
+        {leads.map((lead, index) => {
+          const y = rowY(index);
+          const length = Math.abs(lead.points) * perPoint;
+          return (
+            <g key={lead.benchmark.key}>
+              <DomainTile
+                domain={topDomain(lead.benchmark)}
+                x={chip}
+                y={y - tile / 2}
+                size={tile}
+              />
+              <text
+                className={graphs.axisLabel}
+                x={name}
+                y={inline ? y : y - 6}
+                dy="0.34em"
+                textAnchor={anchor}
+              >
+                {lead.benchmark.columnLabel}
+              </text>
+              <text
+                className={graphs.plotValue}
+                x={inline ? column : name}
+                y={inline ? y : y + 8}
+                dy="0.34em"
+                textAnchor={anchor}
+              >
+                {result(lead).toFixed(1)}
+              </text>
+              <rect
+                x={right ? base : base - length}
+                y={y - thickness / 2}
+                width={length}
+                height={thickness}
+                rx={1}
+                style={{ fill }}
+              />
+              <text
+                className={graphs.plotValue}
+                x={right ? base + length + 6 : base - length - 6}
+                y={y}
+                dy="0.34em"
+                textAnchor={anchor}
+              >
+                {formatLead(Math.abs(lead.points))}
+              </text>
+            </g>
+          );
+        })}
+      </g>
+    );
+  };
   return (
     <g>
       {/* The duel's whole area keeps the pick, so a click between its bars is not a click elsewhere. */}
       <rect x={left} y={top} width={width} height={HEAD + rows * step} fill="transparent" />
-      {/* Each side's name heads its list against the centre, where its benchmarks' names sit. */}
-      <text className={graphs.plotNote} x={spine - LABEL.axisGap} y={top + 12} textAnchor="end">
-        {`${duel.opponent.name} ahead`}
-      </text>
-      <text className={graphs.plotNote} x={spine + LABEL.axisGap} y={top + 12}>
-        {`${duel.row.name} ahead`}
-      </text>
       <line
         className={graphs.rowRule}
         x1={spine}
@@ -575,16 +611,17 @@ function Bout({
         y1={top + HEAD}
         y2={top + HEAD + rows * step}
       />
-      {side(behind, false, other)}
-      {side(ahead, true, own)}
+      {/* The row's model takes the left, as the readout names it first, and its opponent the right, each beside its own results. */}
+      {side(duel.row, ahead, false, ({ own }) => own)}
+      {side(duel.opponent, behind, true, ({ theirs }) => theirs)}
     </g>
   );
 }
 
-// A duel's leads on each side of the bout, largest first: the row's model's, with any level result, and then its opponent's.
+// A duel's leads on each side of the bout, largest first: the row's model's, then its opponent's; a tied result decides nothing, so the bout leaves it out.
 function sides({ leads }: Duel): { ahead: Lead[]; behind: Lead[] } {
   return {
-    ahead: leads.filter(({ points }) => points >= 0),
+    ahead: leads.filter(({ points }) => points > 0),
     behind: leads.filter(({ points }) => points < 0).reverse(),
   };
 }
@@ -604,7 +641,7 @@ function boutHeight(duel: Duel): number {
 
 /** The strongest models by Intelligence and those `found` names, each with its duels against the others, most wins first, a drawn duel counting half, and Intelligence settling ties. */
 function duelStandings(data: ChartData, found: ReadonlyMap<string, number>): Standing[] {
-  const strongest = topByIntelligence(data.rows, MODELS);
+  const strongest = topByIntelligence(data.rows, TOP_MODELS);
   const models = [
     ...strongest,
     ...data.rows.filter((row) => found.has(row.key) && !strongest.includes(row)),
@@ -615,7 +652,9 @@ function duelStandings(data: ChartData, found: ReadonlyMap<string, number>): Sta
       .flatMap((benchmark) => {
         const own = row.benchmarks[benchmark.key];
         const theirs = opponent.benchmarks[benchmark.key];
-        return own == null || theirs == null ? [] : [{ benchmark, points: own - theirs }];
+        return own == null || theirs == null
+          ? []
+          : [{ benchmark, own, theirs, points: own - theirs }];
       })
       .sort((a, b) => b.points - a.points);
     if (leads.length < MIN_SHARED) return null;
@@ -678,15 +717,10 @@ function formatLead(points: number): string {
 /** The duel as one sentence from the row's model's side: its result and the benchmarks each model leads on, worded so the score never runs into a name's version number, then how many they share and the row's model's median lead. */
 function duelEntry(duel: Duel): ReadoutEntry {
   const { row, opponent, leads, ahead, behind } = duel;
-  const level = leads.length - ahead - behind;
   // No-break spaces keep the score and the median lead whole when the sentence wraps: "8 – 6", "+6.2 points".
   const score = `${ahead} – ${behind}`;
   // A duel has at least `MIN_SHARED` leads, so the median exists.
   const middle = medianOfFinite(leads.map(({ points }) => points))!;
-  const shared =
-    level > 0
-      ? `${leads.length} shared benchmarks, ${level} level,`
-      : `${leads.length} shared benchmarks`;
   return {
     name: row.name,
     logo: providerLogo(row.provider),
@@ -698,7 +732,7 @@ function duelEntry(duel: Duel): ReadoutEntry {
           drawn: `draws ${score} with`,
         }[outcome(duel)],
         opponent: { name: opponent.name, logo: providerLogo(opponent.provider) },
-        detail: `in ${shared} with median ${formatLead(middle)} points`,
+        detail: `in ${leads.length} shared benchmarks with median ${formatLead(middle)} points`,
       },
     ],
   };

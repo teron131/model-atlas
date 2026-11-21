@@ -144,6 +144,11 @@ export function StarMark({
   );
 }
 
+/** A row chart's margin: room for each RowLabel on the left, the row's value set flush with the far right edge, and an axis beneath. */
+export function rowChartMargin(compact: boolean): Margin {
+  return { top: 8, right: compact ? 60 : 76, bottom: 30, left: compact ? 140 : 204 };
+}
+
 /** A plot row's model: its lab's logo, then its name, vertically centred on `y`. */
 export function RowLabel({
   y,

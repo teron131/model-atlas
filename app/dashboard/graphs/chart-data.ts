@@ -182,6 +182,9 @@ function variantKey(model: ModelAtlasModel): string {
   return `${familyOf(model)}::${model.reasoning_effort ?? ""}`;
 }
 
+// A ranked chart shows this many of the strongest models at every width; the find field brings in any others.
+export const TOP_MODELS = 10;
+
 export function topByIntelligence<T extends { intelligence: number }>(
   models: readonly T[],
   count: number,

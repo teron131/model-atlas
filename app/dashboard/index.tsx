@@ -20,6 +20,7 @@ import { GlobalModelControls } from "./GlobalModelControls";
 import { type ChartData, chartData } from "./graphs/chart-data";
 import { DuelsPanel } from "./graphs/duels/Panel";
 import { EffortPanel } from "./graphs/effort/Panel";
+import { LookbackPanel } from "./graphs/lookback/Panel";
 import { ParetoPanel } from "./graphs/pareto/Panel";
 import { SpectraPanel } from "./graphs/spectra/Panel";
 import { TimelinePanel } from "./graphs/timeline/Panel";
@@ -128,7 +129,9 @@ export function Dashboard({
             onShowVariantsChange={setShowReasoningVariants}
           />
         ) : null}
-        {regions.payload != null ? <TimelinePanel currentModels={regions.referenceModels} /> : null}
+        {regions.payload != null ? (
+          <TimelineRegion currentModels={regions.referenceModels} />
+        ) : null}
       </div>
       <ModelSheet payload={payload} />
     </main>
@@ -289,6 +292,18 @@ function ParetoRegion({
       return <ParetoPanel {...pareto} />;
     case "effort":
       return <EffortPanel data={charts} />;
+    default:
+      return chosen satisfies never;
+  }
+}
+
+function TimelineRegion({ currentModels }: { currentModels: readonly ModelAtlasModel[] }) {
+  const { chosen } = useRegionChart("timeline");
+  switch (chosen) {
+    case "timeline":
+      return <TimelinePanel currentModels={currentModels} />;
+    case "lookback":
+      return <LookbackPanel />;
     default:
       return chosen satisfies never;
   }

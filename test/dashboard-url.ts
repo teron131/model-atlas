@@ -193,6 +193,12 @@ assert.equal(
 assert.deepEqual(readUrlValue(at("/duels?find=x,+x+,").params, "duels-find"), ["x"]);
 assert.equal(address(patched({ "duels-find": [] }, duels)), "/duels");
 
+assert.equal(
+  address(patched({ "lookback-find": ["kimi-k3.1-pro"] })),
+  "/lookback?find=kimi-k3.1-pro",
+);
+assert.equal(readUrlValue(at("/lookback").params, "timeline-chart"), "lookback");
+
 assert.equal(address(patched({ "effort-measure": "time" })), "/effort?measure=time");
 assert.equal(
   address(patched({ "effort-measure": "time", "effort-find": ["grok-5"] })),
