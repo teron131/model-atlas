@@ -73,9 +73,10 @@ const DAY = 86_400_000;
 // The running median gathers the models released within this many days either side of each sample, wide enough to smooth a quiet quarter.
 const MEDIAN_WINDOW = 75 * DAY;
 const POINTER_REACH = 14;
-// The scale's caption and a month label, both in the 11px caption monospace: "Reference scale" is 15 characters and "Jan 2024" 8, each 6.6px plus 8px of clearance.
-const CAPTION_WIDTH = 15 * 6.6 + 8;
-const TICK_HALF_WIDTH = (8 * 6.6) / 2;
+// The 11px caption monospace advances about this far a character; the scale's caption, "Reference scale", is 15 characters plus 8px of clearance, and a month label such as "Jan 2024" is 8.
+const CAPTION_CHAR_WIDTH = 6.6;
+const CAPTION_WIDTH = 15 * CAPTION_CHAR_WIDTH + 8;
+const TICK_HALF_WIDTH = (8 * CAPTION_CHAR_WIDTH) / 2;
 // Each thread is named on a row of its own, one name tall with a pixel to spare, so no two names meet: 8px names on wide plots, and on phones the micro size, below which a name held in the hand is too small to read.
 const THREAD_NAME_SIZE = { compact: 10, wide: 8 } as const;
 
@@ -109,15 +110,21 @@ function EvidenceRelay({
   const stripY = missBottom + 34;
   const height = stripY + 12;
   const rowY = (row: number) => THREADS_TOP + row * pitch + pitch / 2;
-  const dates = placements.map((placement) => placement.date);
-  const x = scaleUtc()
-    .domain([new Date(Math.min(...dates) - 10 * DAY), new Date(Math.max(...dates) + 10 * DAY)])
-    .range([MARGIN.left, width - MARGIN.right]);
   const missMax = Math.max(
     20,
     Math.ceil(Math.max(...placements.map((placement) => placement.miss ?? 0)) / 10) * 10,
   );
   const y = scaleLinear().domain([0, missMax]).range([missBottom, missTop]);
+  const missTicks = y.ticks(4);
+  // The miss axis's numbers stand at the plot's left edge, so the dates start past the widest of them and the earliest star never lands on one.
+  const datesLeft =
+    MARGIN.left +
+    Math.max(...missTicks.map((tick) => String(tick).length)) * CAPTION_CHAR_WIDTH +
+    6;
+  const dates = placements.map((placement) => placement.date);
+  const x = scaleUtc()
+    .domain([new Date(Math.min(...dates) - 10 * DAY), new Date(Math.max(...dates) + 10 * DAY)])
+    .range([datesLeft, width - MARGIN.right]);
   const starY = (placement: Placement) => (placement.miss == null ? stripY : y(placement.miss));
   const busiest = Math.max(...threads.map((thread) => thread.models.size));
   const labels = threadLabels(threads, x, rowY, nameSize);
@@ -180,7 +187,6 @@ function EvidenceRelay({
       ([date, value], index) => `${index ? "L" : "M"}${x(date).toFixed(1)},${y(value).toFixed(1)}`,
     )
     .join("");
-  const missTicks = y.ticks(4);
   const timeTicks = x.ticks(compact ? 4 : 7);
   const focusPlacement =
     focus == null

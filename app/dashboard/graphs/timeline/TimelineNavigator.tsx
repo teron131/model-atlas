@@ -165,24 +165,14 @@ export function TimelineNavigator({
         ]}
       />
       <div className={styles.timeTransport}>
-        <button
-          aria-label={playLabel}
-          title={playLabel}
-          onClick={playing ? replay.onPause : replay.onPlay}
-        >
+        <button aria-label={playLabel} onClick={playing ? replay.onPause : replay.onPlay}>
           {playing ? <Pause size={15} /> : <Play size={15} />}
         </button>
-        <button
-          aria-label="Stop replay"
-          title="Stop replay"
-          disabled={replay.at == null}
-          onClick={replay.onStop}
-        >
+        <button aria-label="Stop replay" disabled={replay.at == null} onClick={replay.onStop}>
           <Square size={13} />
         </button>
         <button
           aria-label="Pan earlier"
-          title="Pan earlier"
           disabled={range[0] <= 0}
           onClick={() => move(range[0] - span / 3)}
         >
@@ -190,7 +180,6 @@ export function TimelineNavigator({
         </button>
         <button
           aria-label="Pan later"
-          title="Pan later"
           disabled={range[1] >= 1}
           onClick={() => move(range[0] + span / 3)}
         >
