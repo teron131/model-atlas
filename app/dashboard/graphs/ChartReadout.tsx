@@ -34,9 +34,27 @@ export function ChartReadout({
   entry: ReadoutEntry | null;
   /** The most rows the chart's facts wrap to on a phone, one more on the narrowest, all held so the plot never moves. */
   factRows?: number;
-  /** The facts read on from the name as one sentence, wrapping between words, rather than as a list. */
-  sentence?: boolean;
+  /** The facts read on from the name as one sentence, wrapping between words, rather than as a list. Given `holds`, every entry the readout can name, it is exactly as tall as the longest of them at the width it has, instead of holding the rows its breakpoints allow for. */
+  sentence?: boolean | { holds: readonly ReadoutEntry[] };
 }) {
+  if (typeof sentence === "object") {
+    return (
+      <div
+        className={`${styles.readout} ${styles.readoutHeld}`}
+        aria-live="polite"
+        aria-label={label}
+      >
+        <div className={styles.readoutSentence}>
+          {entry == null ? null : <ReadoutLine entry={entry} />}
+        </div>
+        {sentence.holds.map((held, index) => (
+          <div key={index} className={styles.readoutSentence} aria-hidden="true">
+            <ReadoutLine entry={held} />
+          </div>
+        ))}
+      </div>
+    );
+  }
   return (
     <div
       className={sentence ? `${styles.readout} ${styles.readoutSentence}` : styles.readout}
@@ -44,64 +62,68 @@ export function ChartReadout({
       aria-live="polite"
       aria-label={label}
     >
-      {entry == null ? null : (
-        <>
-          {entry.logo ? (
-            <img
-              className={`provider-logo ${styles.readoutLogo}`}
-              src={entry.logo}
-              alt=""
-              width={14}
-              height={14}
-            />
-          ) : null}
-          {entry.open == null ? (
-            <strong className={styles.readoutName} title={entry.name}>
-              {entry.name}
-            </strong>
-          ) : (
-            <button
-              type="button"
-              className={styles.readoutOpen}
-              aria-haspopup="dialog"
-              aria-label={`Show details for ${entry.name}`}
-              title={entry.name}
-              onClick={entry.open}
-            >
-              <strong className={styles.readoutName}>{entry.name}</strong>
-              <ArrowUpRight aria-hidden="true" />
-            </button>
-          )}
-          <span className={styles.readoutFacts}>
-            {entry.facts.map((fact, index) => (
-              <Fragment key={index}>
-                {index > 0 ? " " : null}
-                <span>
-                  {typeof fact === "string" ? (
-                    fact
-                  ) : "opponent" in fact ? (
-                    <>
-                      <span className={styles.readoutScore}>{fact.score}</span>{" "}
-                      <FactModel model={fact.opponent} /> {fact.detail}
-                    </>
-                  ) : "model" in fact ? (
-                    <>
-                      {fact.before} <FactModel model={fact.model} /> {fact.after}
-                    </>
-                  ) : (
-                    <>
-                      <span className="visually-hidden">{fact.label} </span>
-                      {fact.value}
-                    </>
-                  )}
-                  {index < entry.facts.length - 1 ? " ·" : null}
-                </span>
-              </Fragment>
-            ))}
-          </span>
-        </>
-      )}
+      {entry == null ? null : <ReadoutLine entry={entry} />}
     </div>
+  );
+}
+
+function ReadoutLine({ entry }: { entry: ReadoutEntry }) {
+  return (
+    <>
+      {entry.logo ? (
+        <img
+          className={`provider-logo ${styles.readoutLogo}`}
+          src={entry.logo}
+          alt=""
+          width={14}
+          height={14}
+        />
+      ) : null}
+      {entry.open == null ? (
+        <strong className={styles.readoutName} title={entry.name}>
+          {entry.name}
+        </strong>
+      ) : (
+        <button
+          type="button"
+          className={styles.readoutOpen}
+          aria-haspopup="dialog"
+          aria-label={`Show details for ${entry.name}`}
+          title={entry.name}
+          onClick={entry.open}
+        >
+          <strong className={styles.readoutName}>{entry.name}</strong>
+          <ArrowUpRight aria-hidden="true" />
+        </button>
+      )}
+      <span className={styles.readoutFacts}>
+        {entry.facts.map((fact, index) => (
+          <Fragment key={index}>
+            {index > 0 ? " " : null}
+            <span>
+              {typeof fact === "string" ? (
+                fact
+              ) : "opponent" in fact ? (
+                <>
+                  <span className={styles.readoutScore}>{fact.score}</span>{" "}
+                  <FactModel model={fact.opponent} /> {fact.detail}
+                </>
+              ) : "model" in fact ? (
+                <>
+                  {fact.before} <FactModel model={fact.model} /> {fact.after}
+                </>
+              ) : (
+                <>
+                  <span className="visually-hidden">{fact.label} </span>
+                  {fact.value}
+                </>
+              )}
+              {index < entry.facts.length - 1 ? " ·" : null}
+            </span>
+          </Fragment>
+        ))}
+      </span>
+    </>
   );
 }
 

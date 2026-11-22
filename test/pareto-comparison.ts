@@ -371,14 +371,14 @@ for (const kind of ["cost", "time", "tokens"] as const) {
   assert.ok(position(7.89) > 0.94 && position(7.89) < 1);
   assert.equal(frontierBenchmarkAxisConfigFor(kind, false).logarithmic, undefined);
 }
-assert.deepEqual(logRatioAxisScale([0, -1, NaN], String), {
+assert.deepEqual(logRatioAxisScale([0, -1, NaN]), {
   domain: [0.1, 10],
   ticks: [0.1, 1, 10],
 });
-const flatRatio = logRatioAxisScale([1], (value) => value.toFixed(2));
+const flatRatio = logRatioAxisScale([1]);
 assert.ok(flatRatio.domain[0] > 0 && flatRatio.domain[0] < 1 && flatRatio.domain[1] > 1);
 assert.ok(flatRatio.ticks.includes(1));
-assert.ok(logRatioAxisScale([1.0001, 1.0002], (value) => value.toFixed(2)).ticks.includes(1));
+assert.ok(logRatioAxisScale([1.0001, 1.0002]).ticks.includes(1));
 assert.equal(frontierBenchmarkAxisConfigFor("value", true).logarithmic, undefined);
 
 console.log("Unified Pareto comparison checks passed.");

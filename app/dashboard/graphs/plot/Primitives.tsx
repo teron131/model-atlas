@@ -145,9 +145,9 @@ export function StarMark({
   );
 }
 
-/** A row chart's margin: room for each RowLabel on the left, the row's value set flush with the far right edge, and an axis beneath. */
+/** A row chart's margin: just enough above for the first row's note to clear the plot's edge, so the rows sit close under their head, room for each RowLabel on the left, the row's value set flush with the far right edge, and an axis beneath. */
 export function rowChartMargin(compact: boolean): Margin {
-  return { top: 8, right: compact ? 60 : 76, bottom: 30, left: compact ? 140 : 204 };
+  return { top: 2, right: compact ? 60 : 76, bottom: 30, left: compact ? 140 : 204 };
 }
 
 // Where names and values beside the plot would leave it narrower than `leastPlot`, as on a phone, a row takes two lines: its name and value, then its marks across the full width. These are the two lines' centres within the row, its height, and the plot's side margins.

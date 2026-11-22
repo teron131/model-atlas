@@ -16,7 +16,7 @@ import {
 
 import { canonicalModelKey } from "../../../../src/model-atlas/identity/normalization";
 import { type ModelAtlasModel } from "../../../../src/model-atlas/stats/types";
-import { formatResourceRatio } from "../../../shared/resource-ratio-display";
+import { formatRatioTick, formatResourceRatio } from "../../../shared/resource-ratio-display";
 import { openModelSheet } from "../../model-sheet/open";
 import { modelLogo, modelName, reasoningVariantGroups } from "../../shared/model-display";
 import { paretoFrontier } from "../../shared/pareto-frontier";
@@ -76,6 +76,7 @@ type ScatterMetric<Row> = {
   get: (row: Row) => number;
   format: (value: number) => string;
   xHigherIsBetter?: boolean;
+  /** Only a ratio axis is logarithmic, so its ticks print as exact steps (`1×`) while readings keep `format`. */
   logarithmic?: boolean;
 };
 
@@ -498,7 +499,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
               ticks={xTicks}
               xPoint={xPoint}
               y={plot.bottom}
-              format={metric.format}
+              format={metric.logarithmic ? formatRatioTick : metric.format}
               keyPrefix={keyPrefix}
               labelMinGap={62}
               tickGap={SPREAD_HALF_WIDTH}

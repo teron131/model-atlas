@@ -165,7 +165,7 @@ export function frontierXAxisScale(
       formatTick: axisConfig.format,
     });
   }
-  if (axisConfig.logarithmic) return logRatioAxisScale(values, axisConfig.format);
+  if (axisConfig.logarithmic) return logRatioAxisScale(values);
   return linearAxisScale(values, {
     formatTick: axisConfig.format,
     min: 0,

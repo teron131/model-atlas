@@ -1,4 +1,4 @@
-/** Resource ratios share one multiplier notation and one median-relative bar geometry across leaderboard cells, the model sheet, axes, and hover details. */
+/** Resource ratios share one multiplier notation and one median-relative bar geometry across leaderboard cells, the model sheet, axes, and hover details; only an axis tick, an exact step, prints without padding zeros. */
 
 import type { CSSProperties } from "react";
 
@@ -12,6 +12,11 @@ export function formatResourceRatio(value: number | null | undefined): string {
   if (value == null || !Number.isFinite(value)) return "-";
   if (value === 0) return "0×";
   return `${value >= 10 ? value.toFixed(0) : value.toPrecision(2)}×`;
+}
+
+/** An axis tick sits on an exact step, so it drops the zeros that two significant figures pad a measured ratio with: 0.5 → "0.5×", 1 → "1×", 20 → "20×". */
+export function formatRatioTick(value: number): string {
+  return `${Number(value.toPrecision(2))}×`;
 }
 
 /** Zero or missing amounts have no place on a ratio's log track, so only a positive finite ratio draws a bar. */

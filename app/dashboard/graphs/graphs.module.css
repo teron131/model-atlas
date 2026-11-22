@@ -246,6 +246,19 @@
     min-height: calc(2 * 1.4em);
   }
 }
+/* A held readout stacks every entry it can name in one cell, all but the named one hidden, so the longest sets its height in place of the rows held above. */
+.readout.readoutHeld {
+  display: grid;
+  align-items: start;
+  min-height: 0;
+}
+.readoutHeld > .readoutSentence {
+  grid-area: 1 / 1;
+  min-height: 0;
+}
+.readoutHeld > [aria-hidden] {
+  visibility: hidden;
+}
 
 /* A definite column keeps a switch within the row, so its segments wrap instead of overflowing narrow screens. */
 .axisControl {

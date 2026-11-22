@@ -1,6 +1,6 @@
 "use client";
 
-/** Lookback, beneath the Timeline's lab standings: for the strongest models of the labs the Timeline shows, and any its find field locates, the newest frontier record each one surpasses and how long before its release that record was set, drawn from the record's release to the model's own; rows that surpass the same record share one stem at its release, which names the record once. */
+/** Lookback, beneath Labs under the Timeline: for the strongest models of the labs the Timeline shows, and any its find field locates, the newest frontier record each one surpasses and how long before its release that record was set, drawn from the record's release to the model's own; rows that surpass the same record share one stem at its release, which names the record once. */
 
 import { scaleUtc } from "d3-scale";
 import { useState } from "react";
@@ -41,7 +41,7 @@ type Lookback = {
   days: number;
 };
 type Anchor = "start" | "middle" | "end";
-/** Consecutive rows that surpass the same record, by row index; `own` when the record's own row stands directly beneath them, so the stem ends on that row's star and the row names it. */
+/** Consecutive rows that surpass the same record, by row index; `own` when the record's own row stands directly beneath them, so the stem ends on that row's star. */
 type Run = { record: TimelinePoint; first: number; last: number; own: boolean };
 
 /** `points` are the Timeline's population, its organization filter applied; `located` and `matches` are its find field's located models and the models its query names, `null` without a query. */
@@ -104,17 +104,20 @@ export function TimelineLookback({
   // A stem and its head stay lit while any of the stem's rows is.
   const runQuiet = (run: Run) =>
     lookbacks.slice(run.first, run.last + 1).every(({ point }) => dimmed(point.id));
-  // A record with no row of its own under its run is named once, at the head of its stem; on a plot too narrow for one of those names, every head gives its record's score alone and the readout names it.
-  const heads = runs.filter((run) => !run.own);
-  const naming = heads.every(
+  // Every stem names its record once, at its head; on a plot too narrow for one of those names, a head gives its record's score alone and the readout names it, and a stem ending on its record's own row, whose star already reads that score, goes without.
+  const naming = runs.every(
     (run) => noteStart(at(run.record), recordNote(run.record, true)) != null,
   );
   const headNotes = new Map(
-    heads.map((run) => {
-      const text = recordNote(run.record, naming);
-      return [run.first, { text, x: noteStart(at(run.record), text) ?? bounds.left }];
-    }),
+    runs
+      .filter((run) => naming || !run.own)
+      .map((run) => {
+        const text = recordNote(run.record, naming);
+        return [run.first, { text, x: noteStart(at(run.record), text) ?? bounds.left }];
+      }),
   );
+  // A record with no row of its own beneath its run sets its star at the stem's head, and the rows under it start at the stem.
+  const headStars = new Set(runs.filter((run) => !run.own).map((run) => run.first));
   // Plain stars keep their bare-panel size, so a model's star never outsizes a frontier setter's rayed one.
   const stars: SkyPlotStar[] = lookbacks.flatMap(({ point, matched }, index) => {
     const own: SkyPlotStar = {
@@ -126,8 +129,7 @@ export function TimelineLookback({
       role: matched === point ? "frontier" : "star",
       glow: dimmed(point.id) ? MUTED_STAR_GLOW : 1,
     };
-    // Only a stem's head carries the record's star; the rows under it start at the stem.
-    if (!headNotes.has(index)) return [own];
+    if (!headStars.has(index)) return [own];
     return [
       {
         key: `${point.id}:matched`,
@@ -209,16 +211,19 @@ export function TimelineLookback({
     ...[...headNotes].map(([row, head]) => noteBox(head.x, markY(row) - 6, head.text, "start")),
   ];
 
-  // Like the lab standings it sits under, the list reads on the page and an exported image is the figure alone.
+  // Like Labs, which it sits under, the list reads on the page and an exported image is the figure alone.
   return (
     <div className={timeline.rowChart} data-capture-exclude>
       <p className={timeline.rowChartHead}>
-        <span>{`Top ${strongest.length} models${foundPhrase == null ? "" : ` ${foundPhrase}`} and the record each passes`}</span>
+        <span>
+          <span className={timeline.rowChartName}>Lookback</span>
+          {`Top ${strongest.length} models${foundPhrase == null ? "" : ` ${foundPhrase}`} and the record each passes`}
+        </span>
         <span aria-hidden="true">Days after</span>
       </p>
       <ChartReadout
         label="Lookback details"
-        sentence
+        sentence={{ holds: lookbacks.map(lookbackEntry) }}
         entry={readout == null ? null : lookbackEntry(readout)}
       />
       <SkyFigure
@@ -305,7 +310,13 @@ export function TimelineLookback({
               className={graphs.partedText}
               opacity={runQuiet(run) ? 0.35 : 1}
             >
-              <StarMark cx={at(run.record)} cy={markY(run.first)} provider={run.record.provider} />
+              {run.own ? null : (
+                <StarMark
+                  cx={at(run.record)}
+                  cy={markY(run.first)}
+                  provider={run.record.provider}
+                />
+              )}
               <text className={graphs.plotNote} x={head.x} y={markY(run.first) - 6}>
                 {head.text}
               </text>

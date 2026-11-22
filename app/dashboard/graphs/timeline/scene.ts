@@ -52,7 +52,7 @@ export function timelineScene({
   byScore,
   picked,
   preview,
-  standingLab,
+  rowLab,
   labRecords,
   matches,
   located,
@@ -71,8 +71,8 @@ export function timelineScene({
   byScore: readonly TimelinePoint[];
   picked: TimelinePoint | undefined;
   preview: TimelinePoint | null;
-  /** The lab a standings row points at, whose stars stay lit while the other labs dim. */
-  standingLab: string | null;
+  /** The lab a Labs row points at, whose stars stay lit while the other labs dim. */
+  rowLab: string | null;
   labRecords: readonly TimelinePoint[];
   /** The ids the find field's query matches, or `null` while it holds none. */
   matches: ReadonlySet<string> | null;
@@ -114,13 +114,11 @@ export function timelineScene({
   const markRadius = (point: TimelinePoint) => (frontierIds.has(point.id) ? 2.8 : 2.4);
   const pointRadius = (point: TimelinePoint) =>
     (picked?.id === point.id ? 3.6 : markRadius(point)) * (1.4 - 0.4 * arrived(point));
-  // A standings row keeps its lab lit while the other labs dim; while the field holds a query, only the stars it matches stay lit; the star under the pointer never dims. A replay fades each model in.
+  // A Labs row keeps its lab lit while the other labs dim; while the field holds a query, only the stars it matches stay lit; the star under the pointer never dims. A replay fades each model in.
   const dimmed = (point: TimelinePoint) =>
     point.id !== preview?.id &&
-    (standingLab != null
-      ? standingLab !== point.provider
-      : matches != null && !matches.has(point.id));
-  const matched = (point: TimelinePoint) => standingLab == null && matches?.has(point.id) === true;
+    (rowLab != null ? rowLab !== point.provider : matches != null && !matches.has(point.id));
+  const matched = (point: TimelinePoint) => rowLab == null && matches?.has(point.id) === true;
   const pointOpacity = (point: TimelinePoint) =>
     (dimmed(point) ? MUTED_STAR_GLOW : 1) * arrived(point);
   const highlights = byScore.slice(0, 3);
@@ -206,7 +204,7 @@ export function timelineScene({
     sky: true,
     rim,
     trail,
-    muted: standingLab != null || matches != null,
+    muted: rowLab != null || matches != null,
     stars: drawn.map((point) => ({
       key: point.id,
       x: xPoint(point),

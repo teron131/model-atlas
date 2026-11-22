@@ -3,6 +3,8 @@
 import { ticks as linearTicks } from "d3-array";
 import { scaleLog } from "d3-scale";
 
+import { formatRatioTick } from "../../../shared/resource-ratio-display";
+
 export type AxisScale = {
   domain: [number, number];
   ticks: number[];
@@ -58,10 +60,7 @@ export function linearAxisScale(values: number[], options: LinearAxisOptions = {
 }
 
 /** Fit positive ratios and the 1× reference in base-10 log space without expanding to a round endpoint. */
-export function logRatioAxisScale(
-  values: number[],
-  formatTick: (value: number) => string,
-): AxisScale {
+export function logRatioAxisScale(values: number[]): AxisScale {
   const logs = values.filter((value) => Number.isFinite(value) && value > 0).map(Math.log10);
   if (logs.length === 0) return { domain: [0.1, 10], ticks: [0.1, 1, 10] };
   const low = Math.min(0, ...logs);
@@ -85,7 +84,9 @@ export function logRatioAxisScale(
         if (tick >= domain[0] && tick <= domain[1]) candidates.push(tick);
       }
   }
-  const ticks = ticksWithUniqueLabels(candidates, formatTick).sort((left, right) => left - right);
+  const ticks = ticksWithUniqueLabels(candidates, formatRatioTick).sort(
+    (left, right) => left - right,
+  );
   return { domain, ticks };
 }
 

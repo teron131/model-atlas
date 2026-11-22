@@ -6,7 +6,7 @@ import { group } from "d3-array";
 import { scaleLinear, scaleSqrt } from "d3-scale";
 import { type CSSProperties, useState } from "react";
 
-import { formatResourceRatio } from "../../../shared/resource-ratio-display";
+import { formatRatioTick, formatResourceRatio } from "../../../shared/resource-ratio-display";
 import { providerChartColor, providerLogo } from "../../shared/provider-theme";
 import type { DashboardUrlState } from "../../url-state";
 import { useUrlState } from "../../use-url-state";
@@ -83,15 +83,15 @@ const TOKENS: Metric = {
 const METRICS = [INTELLIGENCE, AGENTIC, COST, TIME, TOKENS];
 
 const HEIGHT = 448;
-// The bottom margin holds each model's logo and two-line name, and the left one the axis labels up to the median's "MED 1.0×".
+// The bottom margin holds each model's logo and two-line name, and the left one the axis labels, the median's "MED 1×" among them.
 const MARGIN: Margin = { top: 12, right: 12, bottom: 64, left: 72 };
 // The tallest bar stops this far under the plot's top, leaving room for its value.
 const VALUE_ROOM = 26;
 // A model's band never gets narrower than this, room for its name's longer line and five bars; a narrower host scrolls the plot sideways instead.
 const MODEL_ROOM = 96;
 const BAR = { most: 14, gap: 3 };
-// A ratio axis steps 1, 2, 5 through each decade from 0.1× up, and keeps this much height between two tick labels, since the steps crowd toward zero.
-const RATIO_STEPS = [0.1, 1, 10, 100].flatMap((decade) => [decade, 2 * decade, 5 * decade]);
+// A ratio axis steps 1, 2, 5 through each decade from 1× up, with 0.5× its only step beneath, since the square root packs smaller steps against zero; two tick labels keep this much height between them.
+const RATIO_STEPS = [0.5, ...[1, 10, 100].flatMap((decade) => [decade, 2 * decade, 5 * decade])];
 const TICK_ROOM = 20;
 // A ratio of 1× is the benchmark median the leaderboard's ratios measure from, where Pareto draws its dashed guide too.
 const MEDIAN_RATIO = 1;
@@ -444,8 +444,8 @@ function measureAxis(metric: Metric, values: number[], range: [number, number]) 
       y,
       ticks: ticks.map((tick) =>
         tick === MEDIAN_RATIO
-          ? { tick, label: `MED ${formatResourceRatio(tick)}`, median: true }
-          : { tick, label: formatResourceRatio(tick), median: false },
+          ? { tick, label: `MED ${formatRatioTick(tick)}`, median: true }
+          : { tick, label: formatRatioTick(tick), median: false },
       ),
     };
   }

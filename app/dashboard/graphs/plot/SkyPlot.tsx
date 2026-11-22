@@ -127,7 +127,7 @@ export function SkyPlot({
 }
 
 /**
- * A model's star outside the plots, as the hero register and the Timeline's lab standings draw one: the plots' own star for `role` as a still image, centred where `className` places it.
+ * A model's star outside the plots, as the hero register draws one: the plots' own star for `role` as a still image, centred where `className` places it.
  * It stays empty until the client has drawn the image, and where WebGL cannot run.
  */
 export function SkyStar({

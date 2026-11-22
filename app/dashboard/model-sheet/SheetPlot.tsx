@@ -5,7 +5,7 @@
 import { scaleLinear, scaleLog } from "d3-scale";
 import type { CSSProperties } from "react";
 
-import { formatResourceRatio } from "../../shared/resource-ratio-display";
+import { formatRatioTick } from "../../shared/resource-ratio-display";
 import { logRatioAxisScale } from "../graphs/plot/axis-scale";
 import { type Margin, plotBoundsFor, stableSvgScale } from "../graphs/plot/Primitives";
 import { useChartLayout } from "../graphs/use-chart-layout";
@@ -33,7 +33,7 @@ export function useSheetPlot(
   scoreDomain: readonly [number, number],
 ) {
   const { plotHost, width, compact } = useChartLayout(PLOT_MAX_WIDTH);
-  const axis = logRatioAxisScale([...costs], formatResourceRatio);
+  const axis = logRatioAxisScale([...costs]);
   const bounds = plotBoundsFor(width, height, PLOT_MARGIN);
   const x = stableSvgScale(
     scaleLog()
@@ -140,7 +140,7 @@ export function SheetPlotFrame({
           y={bounds.bottom + 14}
           textAnchor="middle"
         >
-          {formatResourceRatio(tick)}
+          {formatRatioTick(tick)}
         </text>
       ))}
       <line

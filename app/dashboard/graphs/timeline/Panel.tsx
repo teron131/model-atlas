@@ -1,6 +1,6 @@
 "use client";
 
-/** The Timeline panel owns the view's state and interactions (lab filter, find field, time window, pick and pointer, replay) and renders what `scene.ts` derives from them, with the lab standings, Lookback, and the evidence disclosure beneath; it loads only the published chart points, leaving full evidence to `TimelineEvidence`. */
+/** The Timeline panel owns the view's state and interactions (lab filter, find field, time window, pick and pointer, replay) and renders what `scene.ts` derives from them, with Labs, Lookback, and the evidence disclosure beneath; it loads only the published chart points, leaving full evidence to `TimelineEvidence`. */
 
 import dynamic from "next/dynamic";
 import { type CSSProperties, memo, useCallback, useEffect, useId, useMemo, useState } from "react";
@@ -36,6 +36,7 @@ import { SkyPlot } from "../plot/SkyPlot";
 import { useChartLayout } from "../use-chart-layout";
 import { type TimelinePoint, timelinePointLabel } from "./chart-data";
 import { coverageFrontier, frontierTies, RECORD_MINIMUM_SUPPORT } from "./frontier";
+import { TimelineLabs } from "./Labs";
 import { TimelineLookback } from "./Lookback";
 import { OrganizationSelect } from "./OrganizationSelect";
 import { easeOut, followReplayPlan, useReplay } from "./replay";
@@ -48,7 +49,6 @@ import {
   placeFrontierNames,
   timelineScene,
 } from "./scene";
-import { TimelineStandings } from "./Standings";
 import { TimelineNavigator } from "./TimelineNavigator";
 import { useTimelineData } from "./use-timeline-data";
 
@@ -87,12 +87,12 @@ export const TimelinePanel = memo(function TimelinePanel({
   const [period, setPeriod] = useUrlState("timeline-period");
   const [providers, setProviders] = useUrlState("timeline-provider");
   const [preview, setPreview] = useState<TimelinePoint | null>(null);
-  // The lab a standings row points at, the one hover that lights a lab; a star the pointer passes over only flares and fills the readout.
-  const [standingLab, setStandingLab] = useState<string | null>(null);
+  // The lab a Labs row points at, the one hover that lights a lab; a star the pointer passes over only flares and fills the readout.
+  const [rowLab, setRowLab] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
-  const pointStanding = (model: TimelinePoint | null) => {
+  const pointLabRow = (model: TimelinePoint | null) => {
     setPreview(model);
-    setStandingLab(model?.provider ?? null);
+    setRowLab(model?.provider ?? null);
   };
   // A keyboard-focused star picks its model.
   const focusStar = useCallback((point: TimelinePoint) => {
@@ -204,8 +204,8 @@ export const TimelinePanel = memo(function TimelinePanel({
     const targets = chartFindTargets(find, findDocuments, timelineSuggestionRow);
     return targets == null ? null : new Set(targets.map((point) => point.id));
   }, [find, findDocuments]);
-  // Only the lab a standings row points at, or else the picked model's, draws its records, so its line is read against the field's frontier one lab at a time.
-  const focusLab = standingLab ?? picked?.provider;
+  // Only the lab a Labs row points at, or else the picked model's, draws its records, so its line is read against the field's frontier one lab at a time.
+  const focusLab = rowLab ?? picked?.provider;
   const labRecords = useMemo(
     () =>
       focusLab == null
@@ -228,7 +228,7 @@ export const TimelinePanel = memo(function TimelinePanel({
     byScore,
     picked,
     preview,
-    standingLab,
+    rowLab,
     labRecords,
     matches,
     located: find.located,
@@ -742,12 +742,12 @@ export const TimelinePanel = memo(function TimelinePanel({
               </SkyPlot>
             </div>
             {navigator}
-            <TimelineStandings
+            <TimelineLabs
               points={population}
               end={end}
               focusLab={focusLab ?? null}
               pickedId={picked?.id ?? null}
-              onPoint={pointStanding}
+              onPoint={pointLabRow}
               onPick={(model) => setSelected(picked?.id === model.id ? null : model.id)}
             />
             <TimelineLookback points={population} located={find.located} matches={matches} />
