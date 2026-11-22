@@ -90,7 +90,6 @@ function useRegionSection(id: ResearchRegionId): DashboardSection {
   const shown: Record<StackedRegionId, DashboardSection> = {
     leaderboard: useUrlState("leaderboard-chart")[0],
     pareto: useUrlState("pareto-chart")[0],
-    timeline: useUrlState("timeline-chart")[0],
   };
   return isStackedRegion(id) ? shown[id] : id;
 }

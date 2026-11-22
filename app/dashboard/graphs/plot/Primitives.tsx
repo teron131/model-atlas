@@ -10,6 +10,7 @@ import { domainIcons } from "../../shared/benchmark-display";
 import { providerChartColor, providerLogo } from "../../shared/provider-theme";
 import { REFERENCE_PLOT_HEIGHT } from "../../shared/sky-light";
 import { NAME_CLEARANCE, type PointLabelPlacement, type PointLabelSize } from "./label-placement";
+import { MUTED_STAR_GLOW } from "./sky-renderer";
 
 import styles from "../graphs.module.css";
 
@@ -149,6 +150,86 @@ export function rowChartMargin(compact: boolean): Margin {
   return { top: 8, right: compact ? 60 : 76, bottom: 30, left: compact ? 140 : 204 };
 }
 
+// Where names and values beside the plot would leave it narrower than `leastPlot`, as on a phone, a row takes two lines: its name and value, then its marks across the full width. These are the two lines' centres within the row, its height, and the plot's side margins.
+const TWO_LINE_ROW = { leastPlot: 240, text: 10, marks: 34, height: 46, side: 8 };
+
+/** A row chart's rows at `width`: one line `rowHeight` tall, or two lines where the plot beside the names would be too narrow; `markY` centres a row's marks and `textY` its name and value. */
+export function rowChartRows(width: number, compact: boolean, rowHeight: number) {
+  const oneLine = rowChartMargin(compact);
+  const twoLine = width - oneLine.left - oneLine.right < TWO_LINE_ROW.leastPlot;
+  const margin = twoLine
+    ? { ...oneLine, left: TWO_LINE_ROW.side, right: TWO_LINE_ROW.side }
+    : oneLine;
+  const height = twoLine ? TWO_LINE_ROW.height : rowHeight;
+  const rowTop = (index: number) => margin.top + index * height;
+  return {
+    margin,
+    rowHeight: height,
+    rowTop,
+    markY: (index: number) => rowTop(index) + (twoLine ? TWO_LINE_ROW.marks : height / 2),
+    textY: (index: number) => rowTop(index) + (twoLine ? TWO_LINE_ROW.text : height / 2),
+  };
+}
+
+// The plots' mono type sizes in CSS pixels, as globals.css sets --type-micro-size and --type-caption-size, and the share of its size a mono character advances; with them a chart guesses where text will sit before it renders.
+const MONO_SIZE = { micro: 10, caption: 11 };
+const MONO_ADVANCE = 0.6;
+
+/** About how wide `text` sets in the plots' mono type: `micro` for notes, `caption` for values, tick labels, and readings. */
+export function monoWidth(text: string, size: keyof typeof MONO_SIZE): number {
+  return text.length * MONO_SIZE[size] * MONO_ADVANCE;
+}
+
+// A row's name starts this far right of its logo's left edge.
+const ROW_NAME_X = 22;
+// A row name's 12.5px semibold sans runs about this wide per character.
+const ROW_NAME_CHAR_WIDTH = 7.2;
+
+/** The box a plot note covers, set at `x` as SVG anchors it with its baseline at `y`, for guides that pass behind it. */
+export function noteBox(
+  x: number,
+  y: number,
+  text: string,
+  anchor: "start" | "middle" | "end",
+): PlotBounds {
+  const width = monoWidth(text, "micro");
+  const left = anchor === "start" ? x : anchor === "end" ? x - width : x - width / 2;
+  // The 10px type rises about 8px above its baseline and drops 3px below it.
+  return { left, right: left + width, top: y - 8, bottom: y + 3 };
+}
+
+/** The boxes a row's `RowLabel` centred on `y` and its value set flush with the right edge at `width` cover, for guides that pass behind them. */
+export function rowTextBoxes(y: number, name: string, value: string, width: number): PlotBounds[] {
+  return [
+    { left: 0, right: ROW_NAME_X + name.length * ROW_NAME_CHAR_WIDTH, top: y - 8, bottom: y + 8 },
+    { left: width - monoWidth(value, "caption"), right: width, top: y - 7, bottom: y + 7 },
+  ];
+}
+
+/** The dashboard's trail: a hairline along `y` brightening from a dimmed star's light at `from` into `color` at its star at `to`. A plot draws it beneath its stars, so their light lies over it. */
+export function Trail({
+  from,
+  to,
+  y,
+  color,
+}: {
+  from: number;
+  to: number;
+  y: number;
+  color: string;
+}) {
+  const id = useId();
+  return (
+    <>
+      <linearGradient id={id} gradientUnits="userSpaceOnUse" x1={from} x2={to} y1={y} y2={y}>
+        <stop offset={0} stopColor={color} stopOpacity={MUTED_STAR_GLOW} />
+        <stop offset={1} stopColor={color} />
+      </linearGradient>
+      <line stroke={`url(#${id})`} x1={from} x2={to} y1={y} y2={y} />
+    </>
+  );
+}
+
 /** A plot row's model: its lab's logo, then its name, vertically centred on `y`. */
 export function RowLabel({
   y,
@@ -165,7 +246,7 @@ export function RowLabel({
   return (
     <g opacity={dimmed ? 0.4 : 1}>
       {logo ? <image href={logo} x={0} y={y - 7} width={14} height={14} /> : null}
-      <text className={styles.rowName} x={22} y={y} dy="0.34em">
+      <text className={styles.rowName} x={ROW_NAME_X} y={y} dy="0.34em">
         {name}
       </text>
     </g>
@@ -428,8 +509,7 @@ export function FrontierHorizon({
 
 // Room a reading beside a vertical line's top end takes, so near the plot's right edge it turns to the line's left.
 const TOP_READING_ROOM = 96;
-// Readings are mono at the caption size or smaller: under this wide per character and this tall above the baseline.
-const READING_CHAR_WIDTH = 7;
+// Readings are mono at the caption size or smaller, about this tall above the baseline.
 const READING_ASCENT = 10;
 
 /** Where a reading naming a vertical line sits, inside the plot's top: on the line's right, or on its left near the right edge. */
@@ -455,7 +535,7 @@ export function medianReadingBoxes(
   labels: [string, string],
 ) {
   return [topReading(x, bounds), rightReading(y, bounds)].map((reading, index) => {
-    const width = labels[index]!.length * READING_CHAR_WIDTH;
+    const width = monoWidth(labels[index]!, "caption");
     const left = reading.textAnchor === "start" ? reading.x : reading.x - width;
     return { left, right: left + width, top: reading.y - READING_ASCENT, bottom: reading.y + 3 };
   });
@@ -489,6 +569,25 @@ export function MedianCross({
   );
 }
 
+// A reading on the y-axis covers a tick label whose line is closer than this.
+const AXIS_LINE_HEIGHT = 14;
+
+/** A pointer's value read on the x-axis at `x`, anchored as SVG anchors its text. */
+export type AxisReadingAt = { x: number; text: string; anchor: "start" | "middle" | "end" };
+
+/** Whether two texts on the x-axis would overlap, with room for a reading's backdrop either side of each. */
+export function axisTextsOverlap(text: AxisReadingAt, other: AxisReadingAt): boolean {
+  const [left, right] = axisSpan(text);
+  const [otherLeft, otherRight] = axisSpan(other);
+  return left < otherRight && otherLeft < right;
+}
+
+function axisSpan({ x, text, anchor }: AxisReadingAt): [number, number] {
+  const width = monoWidth(text, "caption");
+  const left = anchor === "start" ? x : anchor === "end" ? x - width : x - width / 2;
+  return [left - 6, left + width + 6];
+}
+
 export function XAxisTicks({
   ticks,
   xPoint,
@@ -497,6 +596,7 @@ export function XAxisTicks({
   keyPrefix,
   labelMinGap = 0,
   tickGap = 0,
+  readings = [],
 }: {
   ticks: number[];
   xPoint: (value: number) => number;
@@ -506,6 +606,8 @@ export function XAxisTicks({
   labelMinGap?: number;
   /** Tick marks begin this far below the plot's edge, clearing a mark that straddles it; labels keep their place, where cursor readings also sit. */
   tickGap?: number;
+  /** Pointer readings on the axis; a tick label one would overlap gives way to it rather than peeking out around its backdrop. */
+  readings?: readonly AxisReadingAt[];
 }) {
   let lastLabelX = Number.NEGATIVE_INFINITY;
   const labelVisibility = ticks.map((tick) => {
@@ -525,7 +627,10 @@ export function XAxisTicks({
         y1={y + tickGap}
         y2={y + tickGap + AXIS_TICK_LENGTH}
       />
-      {labelVisibility[index] ? (
+      {labelVisibility[index] &&
+      !readings.some((reading) =>
+        axisTextsOverlap(reading, { x: xPoint(tick), text: format(tick), anchor: "middle" }),
+      ) ? (
         <text className={styles.axisLabel} x={xPoint(tick)} y={y + 24} textAnchor="middle">
           {format(tick)}
         </text>
@@ -541,6 +646,7 @@ export function YAxisTicks({
   format,
   keyPrefix,
   tickGap = 0,
+  reading,
 }: {
   ticks: number[];
   yPoint: (value: number) => number;
@@ -549,6 +655,8 @@ export function YAxisTicks({
   keyPrefix: string;
   /** Tick marks begin this far left of the plot's edge, clearing a mark that straddles it; labels keep their place, where cursor readings also sit. */
   tickGap?: number;
+  /** The y of a pointer's reading on the axis; a tick label it would overlap gives way to it. */
+  reading?: number;
 }) {
   return ticks.map((tick) => (
     <g key={`${keyPrefix}-y-${tick}`}>
@@ -559,9 +667,11 @@ export function YAxisTicks({
         y1={yPoint(tick)}
         y2={yPoint(tick)}
       />
-      <text className={styles.axisLabel} x={x - 15} y={yPoint(tick) + 4} textAnchor="end">
-        {format(tick)}
-      </text>
+      {reading != null && Math.abs(yPoint(tick) - reading) < AXIS_LINE_HEIGHT ? null : (
+        <text className={styles.axisLabel} x={x - 15} y={yPoint(tick) + 4} textAnchor="end">
+          {format(tick)}
+        </text>
+      )}
     </g>
   ));
 }

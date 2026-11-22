@@ -22,14 +22,12 @@ import {
   SCATTER_CHART_MARGIN,
   scatterChartMargin,
 } from "../plot/Primitives";
-import { MUTED_STAR_GLOW, type SkyPlotScene } from "../plot/sky-renderer";
+import { MUTED_STAR_GLOW, type SkyPlotScene, starBody } from "../plot/sky-renderer";
 import { type TimelinePoint, timelinePointLabel, timelineScoreDomain } from "./chart-data";
 import { arrival, easeOut, RECORD_RISE_MS, type ReplayFrame } from "./replay";
 
 // Frontier names sit in the open sky above and before their stars, as Pareto's do: the rim only rises to the right, so it never runs there, and the field of other models below it stays clear; a name with no room there gives way.
 const SKY_SIDE = [[-1, -1]] as const;
-// A constellation stroke stops this far short of each star it joins, as on a star chart.
-const CONSTELLATION_GAP = 6;
 
 type TimelineScene = ReturnType<typeof timelineScene>;
 type LabelSizes = Record<string, PointLabelSize>;
@@ -370,20 +368,23 @@ export function labNameCallouts(
   return { labCallouts, labCrowded };
 }
 
+// A focused lab's records carry rays at full light, so its strokes stop at a frontier star's body.
+const RECORD_BODY = starBody({ role: "frontier", glow: 1 }, false);
+
 /** A stroke joining two of a lab's records, stopped short of each star, or `null` where the stars sit too close for one; a stroke entering at the window's edge starts there, where no star stands. */
 export function constellationStroke(
   segment: { x1: number; y1: number; x2: number; y2: number },
   fromEdge: boolean,
 ) {
   const length = Math.hypot(segment.x2 - segment.x1, segment.y2 - segment.y1);
-  const head = fromEdge ? 0 : CONSTELLATION_GAP;
-  if (length <= head + CONSTELLATION_GAP * 2) return null;
+  const head = fromEdge ? 0 : RECORD_BODY;
+  if (length <= head + RECORD_BODY * 2) return null;
   const ux = (segment.x2 - segment.x1) / length;
   const uy = (segment.y2 - segment.y1) / length;
   return {
     x1: segment.x1 + ux * head,
     y1: segment.y1 + uy * head,
-    x2: segment.x2 - ux * CONSTELLATION_GAP,
-    y2: segment.y2 - uy * CONSTELLATION_GAP,
+    x2: segment.x2 - ux * RECORD_BODY,
+    y2: segment.y2 - uy * RECORD_BODY,
   };
 }

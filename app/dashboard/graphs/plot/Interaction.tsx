@@ -15,7 +15,8 @@ import {
 import type { ModelAtlasModel } from "../../../../src/model-atlas/stats/types";
 import { openModelSheet } from "../../model-sheet/open";
 import { modelName } from "../../shared/model-display";
-import type { PlotBounds } from "./Primitives";
+import type { AxisReadingAt, PlotBounds } from "./Primitives";
+import { lineBehind, type LineStar } from "./star-marks";
 
 import styles from "../graphs.module.css";
 
@@ -31,9 +32,10 @@ type CursorProjection = {
 
 type PlotPoint = { x: number; y: number };
 
-/** The pointer's position in the SVG's viewBox units. */
-export function pointerPosition(event: ReactMouseEvent<SVGSVGElement>): PlotPoint {
-  const svg = event.currentTarget;
+/** The pointer's position in the SVG's viewBox units, for an event on the SVG or on a mark inside it. */
+export function pointerPosition(event: ReactMouseEvent<SVGElement>): PlotPoint {
+  const target = event.currentTarget;
+  const svg = target instanceof SVGSVGElement ? target : target.ownerSVGElement!;
   const bounds = svg.getBoundingClientRect();
   const viewBox = svg.viewBox.baseVal;
   return {
@@ -73,16 +75,18 @@ export function CursorCapture({ bounds }: { bounds: PlotBounds }) {
   );
 }
 
-/** The cursor's guides drop to the axes and its readings sit on them over the tick labels, outside the plot where model names never go. */
+/** The cursor's guides drop from the pointed star to the axes, behind every star in `stars`, and its readings sit on the axes over the tick labels, outside the plot where model names never go. */
 export function CursorProjectionLayer({
   projection,
   bounds,
+  stars,
   xLabel,
   yLabel,
   color,
 }: {
   projection: CursorProjection | null;
   bounds: PlotBounds;
+  stars: readonly LineStar[];
   xLabel: string;
   yLabel: string;
   color?: string;
@@ -95,9 +99,13 @@ export function CursorProjectionLayer({
       className={styles.cursorProjection}
       style={color == null ? undefined : ({ "--projection-color": color } as CSSProperties)}
     >
-      <line x1={projection.x} x2={projection.x} y1={projection.y} y2={bounds.bottom} />
-      <line x1={bounds.left} x2={projection.x} y1={projection.y} y2={projection.y} />
-      <circle cx={projection.x} cy={projection.y} r={3} />
+      <Guide
+        from={projection}
+        to={{ x: projection.x, y: bounds.bottom }}
+        stars={stars}
+        boxes={[]}
+      />
+      <Guide from={projection} to={{ x: bounds.left, y: projection.y }} stars={stars} boxes={[]} />
       <AxisReading x={projection.x} y={bounds.bottom + 24} textAnchor="middle">
         {xLabel}
       </AxisReading>
@@ -106,6 +114,51 @@ export function CursorProjectionLayer({
       </AxisReading>
     </g>
   );
+}
+
+/** Pareto's pointer for a row chart: dashed guides in `color` from stars straight down to the x-axis at `bottom`, behind every star in `stars` and text in `boxes`, each reading its value there over the tick labels, which `XAxisTicks` clears when given the same readings. */
+export function XAxisGuides({
+  color,
+  bottom,
+  stars,
+  boxes,
+  guides,
+}: {
+  color: string;
+  bottom: number;
+  stars: readonly LineStar[];
+  boxes: readonly PlotBounds[];
+  guides: readonly { x: number; y: number; reading: AxisReadingAt }[];
+}) {
+  return (
+    <g className={styles.cursorProjection} style={{ "--projection-color": color } as CSSProperties}>
+      {guides.map(({ x, y, reading }) => (
+        <g key={reading.x}>
+          <Guide from={{ x, y }} to={{ x, y: bottom }} stars={stars} boxes={boxes} />
+          <AxisReading x={reading.x} y={bottom + 24} textAnchor={reading.anchor}>
+            {reading.text}
+          </AxisReading>
+        </g>
+      ))}
+    </g>
+  );
+}
+
+/** A dashed guide straight from the pointed star at `from` to `to`, meeting the pointed star's flaring body and running behind every other star in `stars` and text in `boxes`. */
+function Guide({
+  from,
+  to,
+  stars,
+  boxes,
+}: {
+  from: PlotPoint;
+  to: PlotPoint;
+  stars: readonly LineStar[];
+  boxes: readonly PlotBounds[];
+}) {
+  return lineBehind(from, to, stars, boxes, from).map((piece) => (
+    <line key={`${piece.x1},${piece.y1}`} {...piece} />
+  ));
 }
 
 /** A reading set where the axis labels sit, on a backdrop measured from its text so the tick label beneath gives way. */

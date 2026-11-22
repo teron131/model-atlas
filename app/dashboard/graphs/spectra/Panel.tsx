@@ -29,6 +29,7 @@ import { usePick } from "../plot/Interaction";
 import { DomainTile, StarMark } from "../plot/Primitives";
 import { MUTED_STAR_GLOW, type SkyPlotStar } from "../plot/sky-renderer";
 import { SkyFigure } from "../plot/SkyFigure";
+import { lineBehind } from "../plot/star-marks";
 import { useChartLayout } from "../use-chart-layout";
 
 import graphs from "../graphs.module.css";
@@ -80,8 +81,8 @@ const THIRD_ORDERS = [
   [2, 0, 1],
   [2, 1, 0],
 ] as const;
-// A star below the podium: its light and its size where the SVG paints it.
-const FIELD_GLOW = 0.66;
+// A star below the podium: its light and its size where the SVG paints it. A column packs dozens of these, so the sky renderer already dims them to its crowding floor; much below this they fade out of the middle of the plot.
+const FIELD_GLOW = 0.85;
 const FIELD_RADIUS = 2.2;
 // Two traced scores in one column closer than this sit on opposite sides of their stars.
 const SCORE_HEIGHT = 14;
@@ -192,27 +193,29 @@ export function SpectraPanel({ data }: { data: ChartData }) {
         id="leaderboard"
         capture={{ title: "Benchmark spectra", fileName: "model-atlas-spectra" }}
         top={
-          <ChartFind
-            label="Locate models on Spectra"
-            find={find}
-            documents={documents}
-            describe={findSuggestion}
-            onChange={setFind}
-            nothingFound={() => NOTHING_FOUND}
-          />
+          <>
+            <ChartReadout
+              label="Model details"
+              factRows={2}
+              entry={
+                tracedRow != null
+                  ? modelEntry(domains, tracedRow, pointedDomain ?? null)
+                  : leader == null
+                    ? null
+                    : modelEntry(domains, leader, null)
+              }
+            />
+            <ChartFind
+              label="Locate models on Spectra"
+              find={find}
+              documents={documents}
+              describe={findSuggestion}
+              onChange={setFind}
+              nothingFound={() => NOTHING_FOUND}
+            />
+          </>
         }
       >
-        <ChartReadout
-          label="Model details"
-          factRows={2}
-          entry={
-            tracedRow != null
-              ? modelEntry(domains, tracedRow, pointedDomain ?? null)
-              : leader == null
-                ? null
-                : modelEntry(domains, leader, null)
-          }
-        />
         <SkyFigure
           layout={layout}
           width={width}
@@ -325,18 +328,23 @@ export function SpectraPanel({ data }: { data: ChartData }) {
               </g>
             );
           })}
-          {lines.map((line) =>
-            line.length < 2 ? null : (
-              <polyline
-                key={line[0]!.standing.row.key}
-                className={graphs.traceLine}
-                points={line.map((mark) => `${mark.x},${mark.y}`).join(" ")}
-                fill="none"
-                style={{ stroke: providerChartColor(line[0]!.standing.row.provider) }}
-                pointerEvents="none"
-              />
-            ),
-          )}
+          {/* A trace meets each star it joins and runs behind it. */}
+          {lines.flatMap((line) => {
+            const lineStars = stars.filter((star) => line.some(({ key }) => key === star.key));
+            return line
+              .slice(1)
+              .flatMap((mark, index) =>
+                lineBehind(line[index]!, mark, lineStars).map((piece) => (
+                  <line
+                    key={`${mark.key}:${piece.x1}`}
+                    className={graphs.traceLine}
+                    style={{ stroke: providerChartColor(mark.standing.row.provider) }}
+                    pointerEvents="none"
+                    {...piece}
+                  />
+                )),
+              );
+          })}
           {scores.map(({ mark: { key, standing, x, y }, right }) => (
             <text
               key={key}

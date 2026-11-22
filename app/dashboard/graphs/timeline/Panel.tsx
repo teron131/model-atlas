@@ -1,8 +1,7 @@
 "use client";
 
-/** The Timeline panel owns the view's state and interactions (lab filter, find field, time window, pick and pointer, replay) and renders what `scene.ts` derives from them, with the lab standings and the evidence disclosure beneath; it loads only the published chart points, leaving full evidence to `TimelineEvidence`. */
+/** The Timeline panel owns the view's state and interactions (lab filter, find field, time window, pick and pointer, replay) and renders what `scene.ts` derives from them, with the lab standings, Lookback, and the evidence disclosure beneath; it loads only the published chart points, leaving full evidence to `TimelineEvidence`. */
 
-import { scaleLinear } from "d3-scale";
 import dynamic from "next/dynamic";
 import { type CSSProperties, memo, useCallback, useEffect, useId, useMemo, useState } from "react";
 
@@ -17,6 +16,7 @@ import type { SearchDocument } from "../../shared/search";
 import { useUrlState } from "../../use-url-state";
 import { ChartFind, type ChartFindState, chartFindTargets, useChartFind } from "../ChartFind";
 import { ChartReadout, type ReadoutEntry } from "../ChartReadout";
+import { CursorProjectionLayer } from "../plot/Interaction";
 import { placeBesideStars } from "../plot/label-placement";
 import {
   FrontierHorizon,
@@ -32,17 +32,11 @@ import {
   YAxisTicks,
   YAxisTitle,
 } from "../plot/Primitives";
-import { SkyPlot, SkyStar } from "../plot/SkyPlot";
+import { SkyPlot } from "../plot/SkyPlot";
 import { useChartLayout } from "../use-chart-layout";
 import { type TimelinePoint, timelinePointLabel } from "./chart-data";
-import {
-  coverageFrontier,
-  frontierTies,
-  LAB_MINIMUM_MODELS,
-  LEADING_LAB_COUNT,
-  leadingLabs,
-  RECORD_MINIMUM_SUPPORT,
-} from "./frontier";
+import { coverageFrontier, frontierTies, RECORD_MINIMUM_SUPPORT } from "./frontier";
+import { TimelineLookback } from "./Lookback";
 import { OrganizationSelect } from "./OrganizationSelect";
 import { easeOut, followReplayPlan, useReplay } from "./replay";
 import {
@@ -54,14 +48,13 @@ import {
   placeFrontierNames,
   timelineScene,
 } from "./scene";
+import { TimelineStandings } from "./Standings";
 import { TimelineNavigator } from "./TimelineNavigator";
 import { useTimelineData } from "./use-timeline-data";
 
 import styles from "../graphs.module.css";
 import timeline from "./timeline.module.css";
 
-// Each lab's rule shows its strongest few models, enough to read the depth behind its leader without reaching back through its history.
-const STANDING_MODEL_COUNT = 5;
 const TIMELINE_CAPTION = `A model sets a record only with at least ${Math.round(RECORD_MINIMUM_SUPPORT * 100)}% evidence support. This historical view uses its own filters.`;
 
 // While a lab is pointed at, the other labs' names keep this share of their light, enough to stay legible as context.
@@ -97,9 +90,9 @@ export const TimelinePanel = memo(function TimelinePanel({
   // The lab a standings row points at, the one hover that lights a lab; a star the pointer passes over only flares and fills the readout.
   const [standingLab, setStandingLab] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
-  const pointStanding = (leader: TimelinePoint | null) => {
-    setPreview(leader);
-    setStandingLab(leader?.provider ?? null);
+  const pointStanding = (model: TimelinePoint | null) => {
+    setPreview(model);
+    setStandingLab(model?.provider ?? null);
   };
   // A keyboard-focused star picks its model.
   const focusStar = useCallback((point: TimelinePoint) => {
@@ -188,33 +181,6 @@ export const TimelinePanel = memo(function TimelinePanel({
   const ties = useMemo(() => frontierTies(windowed, records), [windowed, records]);
   const byScore = useMemo(() => [...visible].sort((a, b) => b.score - a.score), [visible]);
   const evidenceModelIds = useMemo(() => byScore.map((point) => point.id), [byScore]);
-  // The leading labs ranked by the record each holds at the window's end, each with its strongest supported models released by then, for the list beneath the chart.
-  const labStandings = useMemo(() => {
-    const supported = population
-      .filter(
-        (point) =>
-          Date.parse(point.releaseDate) <= end &&
-          point.coverage != null &&
-          point.coverage >= RECORD_MINIMUM_SUPPORT,
-      )
-      .sort((a, b) => b.score - a.score || a.releaseDate.localeCompare(b.releaseDate));
-    return leadingLabs(population)
-      .flatMap((lab) => {
-        const models = supported
-          .filter((point) => point.provider === lab.provider)
-          .slice(0, STANDING_MODEL_COUNT);
-        return models.length ? [{ leader: models[0]!, models }] : [];
-      })
-      .sort((a, b) => b.leader.score - a.leader.score);
-  }, [population, end]);
-  // Every lab's rule reads one index scale, spanning the listed labs' top models, so the rules compare as the chart's y-axis does.
-  const standingScale = useMemo(() => {
-    const scores = labStandings.flatMap(({ models }) => models.map((model) => model.score));
-    return scaleLinear()
-      .domain([Math.min(...scores), Math.max(...scores)])
-      .nice()
-      .range([0, 100]);
-  }, [labStandings]);
   const currentModelLookup = useMemo(() => {
     const byId = new Map<string, ModelAtlasModel>();
     const byName = new Map<string, ModelAtlasModel>();
@@ -297,6 +263,17 @@ export const TimelinePanel = memo(function TimelinePanel({
   } = scene;
   // The readout names the star under the pointer, or else the picked model, or else the frontier's newest record.
   const shown = preview ?? chosen;
+  // Pareto's pointer guides drop from the pointed or picked star, never from the readout's resting record, and only while that star is on the plot.
+  const guided = preview ?? picked;
+  const projection =
+    guided == null || !visible.includes(guided)
+      ? null
+      : {
+          x: xPoint(guided),
+          y: y(guided.score),
+          xValue: Date.parse(guided.releaseDate),
+          yValue: guided.score,
+        };
   const shownModel =
     shown == null
       ? undefined
@@ -534,6 +511,17 @@ export const TimelinePanel = memo(function TimelinePanel({
                     format={(value) => dateFormat.format(value)}
                     keyPrefix="timeline"
                     labelMinGap={65}
+                    readings={
+                      projection == null
+                        ? []
+                        : [
+                            {
+                              x: projection.x,
+                              text: READOUT_DATE.format(projection.xValue),
+                              anchor: "middle",
+                            },
+                          ]
+                    }
                   />
                   <YAxisTicks
                     ticks={yTicks}
@@ -541,6 +529,7 @@ export const TimelinePanel = memo(function TimelinePanel({
                     x={margin.left}
                     format={String}
                     keyPrefix="timeline"
+                    reading={projection?.y}
                   />
                   <YAxisTitle
                     height={height}
@@ -548,6 +537,17 @@ export const TimelinePanel = memo(function TimelinePanel({
                     title="Intelligence Index"
                     compact={compact}
                   />
+                  {/* The guides pass behind model names, as the lab line does. */}
+                  <g mask={`url(#${guideMask})`}>
+                    <CursorProjectionLayer
+                      projection={projection}
+                      bounds={plotBounds}
+                      stars={sky.stars}
+                      xLabel={projection == null ? "" : READOUT_DATE.format(projection.xValue)}
+                      yLabel={projection == null ? "" : projection.yValue.toFixed(1)}
+                      color={guided == null ? undefined : providerChartColor(guided.provider)}
+                    />
+                  </g>
                   {frame == null ? null : (
                     <>
                       <defs>
@@ -742,82 +742,15 @@ export const TimelinePanel = memo(function TimelinePanel({
               </SkyPlot>
             </div>
             {navigator}
-            {labStandings.length > 0 && (
-              // The labs' standings sit beneath the chart they explain; an exported image is the figure alone.
-              <div className={timeline.standings} data-capture-exclude>
-                <p className={timeline.standingsHead}>
-                  <span>
-                    {labStandings.length === LEADING_LAB_COUNT
-                      ? `Top ${LEADING_LAB_COUNT} labs`
-                      : "Labs"}{" "}
-                    with over {LAB_MINIMUM_MODELS} models
-                  </span>
-                  <span aria-hidden="true">Index</span>
-                  <span aria-hidden="true">Best model</span>
-                </p>
-                <ol aria-label="Lab standings">
-                  {labStandings.map(({ leader, models }, index) => (
-                    <li
-                      key={leader.provider}
-                      style={
-                        {
-                          "--lab": providerChartColor(leader.provider),
-                          "--reach": `${standingScale(leader.score)}%`,
-                        } as CSSProperties
-                      }
-                      data-focused={focusLab === leader.provider || undefined}
-                    >
-                      <button
-                        type="button"
-                        aria-pressed={picked?.id === leader.id}
-                        onPointerEnter={() => pointStanding(leader)}
-                        onPointerLeave={() => pointStanding(null)}
-                        onFocus={() => pointStanding(leader)}
-                        onBlur={() => pointStanding(null)}
-                        onClick={() => setSelected(picked?.id === leader.id ? null : leader.id)}
-                      >
-                        <span className={timeline.standingRank}>{index + 1}</span>
-                        <span className={timeline.standingLab}>
-                          {providerLogo(leader.provider) ? (
-                            <img
-                              src={providerLogo(leader.provider)}
-                              alt=""
-                              width="18"
-                              height="18"
-                            />
-                          ) : null}
-                          <strong>{providerDisplayName(leader.provider)}</strong>
-                        </span>
-                        <span className={timeline.standingScore}>{leader.score.toFixed(1)}</span>
-                        <span className={timeline.standingModel}>{leader.name}</span>
-                      </button>
-                      <span className={timeline.standingStars} aria-hidden="true">
-                        {models.map((model) => (
-                          <SkyStar
-                            key={model.id}
-                            color={providerChartColor(model.provider)}
-                            role={model === leader ? "frontier" : "star"}
-                            className={
-                              model === leader
-                                ? `${timeline.standingStar} ${timeline.standingLeader}`
-                                : timeline.standingStar
-                            }
-                            style={{ left: `${standingScale(model.score)}%` }}
-                          />
-                        ))}
-                      </span>
-                    </li>
-                  ))}
-                </ol>
-                <p className={timeline.standingAxis} aria-hidden="true">
-                  {standingScale.ticks(4).map((tick) => (
-                    <span key={tick} style={{ left: `${standingScale(tick)}%` }}>
-                      {tick}
-                    </span>
-                  ))}
-                </p>
-              </div>
-            )}
+            <TimelineStandings
+              points={population}
+              end={end}
+              focusLab={focusLab ?? null}
+              pickedId={picked?.id ?? null}
+              onPoint={pointStanding}
+              onPick={(model) => setSelected(picked?.id === model.id ? null : model.id)}
+            />
+            <TimelineLookback points={population} located={find.located} matches={matches} />
           </>
         )}
         {!visible.length && navigator}

@@ -1,6 +1,6 @@
 "use client";
 
-/** A chart's readout: one quiet line between its controls and its plot that names the model under the pointer, or else the model the chart rests on, in place of a floating card that would cover the stars. Its height holds whichever model it names, so the plot beneath never moves. */
+/** A chart's readout: one quiet line between its controls and its plot, or beside its find field where that is the only control, that names the model under the pointer, or else the model the chart rests on, in place of a floating card that would cover the stars. Its height holds whichever model it names, so the plot beneath never moves. */
 
 import { ArrowUpRight } from "lucide-react";
 import { type CSSProperties, Fragment } from "react";

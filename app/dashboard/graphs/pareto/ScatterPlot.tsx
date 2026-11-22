@@ -492,6 +492,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
               format={formatScore}
               keyPrefix={keyPrefix}
               tickGap={SPREAD_HALF_WIDTH}
+              reading={projection?.y}
             />
             <XAxisTicks
               ticks={xTicks}
@@ -501,6 +502,17 @@ export function FrontierBenchmarkScatterPlot<Row>({
               keyPrefix={keyPrefix}
               labelMinGap={62}
               tickGap={SPREAD_HALF_WIDTH}
+              readings={
+                projection == null
+                  ? []
+                  : [
+                      {
+                        x: projection.x,
+                        text: metric.format(projection.xValue),
+                        anchor: "middle",
+                      },
+                    ]
+              }
             />
             <YAxisTitle height={height} margin={chartMargin} title={yAxisLabel} compact={compact} />
             <g mask={`url(#${guideMaskId})`}>
@@ -549,13 +561,17 @@ export function FrontierBenchmarkScatterPlot<Row>({
               direction={metric.xHigherIsBetter ? "upper-right" : "upper-left"}
               label="Better"
             />
-            <CursorProjectionLayer
-              projection={projection}
-              bounds={plot}
-              xLabel={projection ? metric.format(projection.xValue) : ""}
-              yLabel={projection ? formatScore(projection.yValue) : ""}
-              color={activeHighlightColor}
-            />
+            {/* The guides pass behind model names, as the median guides do. */}
+            <g mask={`url(#${guideMaskId})`}>
+              <CursorProjectionLayer
+                projection={projection}
+                bounds={plot}
+                stars={sky.stars}
+                xLabel={projection ? metric.format(projection.xValue) : ""}
+                yLabel={projection ? formatScore(projection.yValue) : ""}
+                color={activeHighlightColor}
+              />
+            </g>
             {reasoningVariantLines.flatMap((line) =>
               line.segments.map((segment, index) => (
                 <line

@@ -71,6 +71,13 @@ const GUTTER = 48;
 // The least width the bout keeps beside the standings, and how far a stacked duel opened under its row sits from the rows around it.
 const LEAST_BOUT = 360;
 const INLINE_GAP = 8;
+// A win's star shows its margin, the benchmarks won less those lost over all decided: a narrow win is small and faint, though still clearly a star beside an empty lost slot, and from `rays` up a rout carries a frontier star's rays at its own size, so plain stars stop at `scale.most` and never outsize it. The SVG core grows across the whole range.
+const MARGIN = {
+  rays: 0.7,
+  glow: 0.5,
+  scale: { least: 0.7, most: 1 },
+  core: { least: 2.5, most: 4 },
+};
 
 /** A benchmark both models report: the row's model's result, its opponent's, and the gap between them. */
 type Lead = { benchmark: ChartBenchmark; own: number; theirs: number; points: number };
@@ -246,7 +253,6 @@ export function DuelsPanel({ data }: { data: ChartData }) {
 
   const textY = (index: number) => rowY(index) + (twoLine ? TWO_LINE.text : rowHeight / 2);
   const dotY = (index: number) => rowY(index) + (twoLine ? TWO_LINE.dots : rowHeight / 2);
-  const isPointed = (duel: Duel) => duel === pointed || duel === openDuel;
   // The lit column runs down the rows, broken where the open duel lies across it.
   const columnRuns: { top: number; bottom: number }[] = [];
   let runTop = top;
@@ -262,15 +268,23 @@ export function DuelsPanel({ data }: { data: ChartData }) {
   const stars: SkyPlotStar[] = standings.flatMap((standing, index) =>
     [...standing.duels.values()].flatMap((duel) => {
       if (outcome(duel) !== "won") return [];
+      const decisive = margin(duel);
+      const rout = decisive >= MARGIN.rays;
+      // How far a plain star has grown toward a rout's.
+      const growth = Math.min(1, decisive / MARGIN.rays);
       return [
         {
           key: duelKey(duel),
           x: columnX(duel.opponent),
           y: dotY(index),
           color: providerChartColor(standing.row.provider),
-          role: "star" as const,
-          glow: dimmed(standing) ? MUTED_STAR_GLOW : 1,
-          scale: 1.5,
+          role: rout ? ("frontier" as const) : ("star" as const),
+          glow:
+            (dimmed(standing) ? MUTED_STAR_GLOW : 1) *
+            (rout ? 1 : MARGIN.glow + (1 - MARGIN.glow) * growth),
+          scale: rout
+            ? undefined
+            : MARGIN.scale.least + (MARGIN.scale.most - MARGIN.scale.least) * growth,
         },
       ];
     }),
@@ -281,32 +295,29 @@ export function DuelsPanel({ data }: { data: ChartData }) {
       id="leaderboard"
       capture={{ title: "Head to head", fileName: "model-atlas-duels" }}
       top={
-        <ChartFind
-          label="Bring models into the duels"
-          find={find}
-          documents={documents}
-          describe={findSuggestion}
-          onChange={setFind}
-          nothingFound={() => NOTHING_FOUND}
-        />
-      }
-      caption={
         <>
-          <p>
-            {`Top ${count - added} models by Intelligence${found == null ? "" : `, ${found},`} ranked by their duels with each other. A duel goes to the model that leads on more of the Intelligence benchmarks both report; pairs sharing fewer than ${MIN_SHARED} have none. A lead is the gap between the two results, as Compare in the model sheet shows it.`}
-          </p>
-          <p className={graphs.captionNote}>
-            Each model appears once, as the leaderboard shows it with reasoning variants collapsed.
-          </p>
+          <ChartReadout
+            label="Duel details"
+            factRows={2}
+            sentence
+            entry={pointed == null ? null : duelEntry(pointed)}
+          />
+          <ChartFind
+            label="Bring models into the duels"
+            find={find}
+            documents={documents}
+            describe={findSuggestion}
+            onChange={setFind}
+            nothingFound={() => NOTHING_FOUND}
+          />
         </>
       }
+      caption={
+        <p>
+          {`Compare the top ${count - added} models by Intelligence${found == null ? "" : `, ${found},`} head to head: a duel goes to the model that leads on more of the Intelligence benchmarks both report; pairs sharing fewer than ${MIN_SHARED} have none.`}
+        </p>
+      }
     >
-      <ChartReadout
-        label="Duel details"
-        factRows={2}
-        sentence
-        entry={pointed == null ? null : duelEntry(pointed)}
-      />
       <SkyFigure
         layout={layout}
         height={height}
@@ -420,31 +431,36 @@ export function DuelsPanel({ data }: { data: ChartData }) {
                 </text>
               )}
               <g opacity={dimmed(standing) ? 0.4 : 1}>
+                {/* A lost duel leaves its slot empty, since the winner's row already holds its star. */}
                 {[...standing.duels.values()].map((duel) => {
                   const x = columnX(duel.opponent);
-                  const result = outcome(duel);
-                  return result === "won" ? (
-                    <StarMark
-                      key={duelKey(duel)}
-                      cx={x}
-                      cy={dots}
-                      provider={standing.row.provider}
-                      radius={3.5}
-                    />
-                  ) : (
-                    <g key={duelKey(duel)}>
-                      <circle
-                        className={styles.loss}
-                        data-pointed={isPointed(duel) || undefined}
-                        cx={x}
-                        cy={dots}
-                        r={4}
-                      />
-                      {result === "drawn" ? (
-                        <circle className={styles.draw} cx={x} cy={dots} r={1.5} />
-                      ) : null}
-                    </g>
-                  );
+                  switch (outcome(duel)) {
+                    case "won":
+                      return (
+                        <StarMark
+                          key={duelKey(duel)}
+                          cx={x}
+                          cy={dots}
+                          provider={standing.row.provider}
+                          radius={
+                            MARGIN.core.least +
+                            (MARGIN.core.most - MARGIN.core.least) * margin(duel)
+                          }
+                        />
+                      );
+                    case "drawn":
+                      return (
+                        <circle
+                          key={duelKey(duel)}
+                          className={styles.draw}
+                          cx={x}
+                          cy={dots}
+                          r={1.5}
+                        />
+                      );
+                    case "lost":
+                      return null;
+                  }
                 })}
               </g>
             </g>
@@ -689,6 +705,11 @@ function duelStandings(data: ChartData, found: ReadonlyMap<string, number>): Sta
 
 function outcome({ ahead, behind }: Duel): Outcome {
   return ahead > behind ? "won" : ahead < behind ? "lost" : "drawn";
+}
+
+// How decisive a duel was, from −1 to 1: benchmarks won less those lost, over all decided.
+function margin({ ahead, behind }: Duel): number {
+  return (ahead - behind) / (ahead + behind);
 }
 
 function firstDuel(standing: Standing, standings: readonly Standing[]): Duel | undefined {

@@ -1,6 +1,6 @@
 "use client";
 
-/** A chart's dashboard region laid out as a figure: optional controls over the chart, an optional foot, and a caption the page shows but an exported image leaves out. */
+/** A chart's dashboard region laid out as a figure: optional controls over the chart, an optional foot, and a caption the page shows but an exported image leaves out. A chart whose only control is its find field passes its readout before the field, and the two share the row. */
 
 import type { ReactNode } from "react";
 
@@ -26,7 +26,7 @@ export function FigureRegion({
 }) {
   return (
     <ResearchRegion id={id} className={styles.section} plane={styles.panel} capture={capture}>
-      {/* A chart without controls keeps the row for the space it sets above the readout. */}
+      {/* A chart with nothing to put here yet keeps the row for the space it sets above the plot. */}
       <div className={styles.figureTop}>
         {top == null ? null : <div className={styles.axisControl}>{top}</div>}
       </div>

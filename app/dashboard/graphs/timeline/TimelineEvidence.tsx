@@ -25,7 +25,7 @@ import {
 } from "../../shared/Checklist";
 import { providerLogo } from "../../shared/provider-theme";
 import { ChartReadout, type ReadoutEntry } from "../ChartReadout";
-import { HorizonLightStops } from "../plot/Primitives";
+import { HorizonLightStops, monoWidth } from "../plot/Primitives";
 import { useChartLayout } from "../use-chart-layout";
 import { timelineModelName } from "./chart-data";
 import { useTimelineData } from "./use-timeline-data";
@@ -73,10 +73,9 @@ const DAY = 86_400_000;
 // The running median gathers the models released within this many days either side of each sample, wide enough to smooth a quiet quarter.
 const MEDIAN_WINDOW = 75 * DAY;
 const POINTER_REACH = 14;
-// The 11px caption monospace advances about this far a character; the scale's caption, "Reference scale", is 15 characters plus 8px of clearance, and a month label such as "Jan 2024" is 8.
-const CAPTION_CHAR_WIDTH = 6.6;
-const CAPTION_WIDTH = 15 * CAPTION_CHAR_WIDTH + 8;
-const TICK_HALF_WIDTH = (8 * CAPTION_CHAR_WIDTH) / 2;
+// The scale's caption and its 8px of clearance, and half a month label as long as "Jan 2024".
+const CAPTION_WIDTH = monoWidth("Reference scale", "caption") + 8;
+const TICK_HALF_WIDTH = monoWidth("Jan 2024", "caption") / 2;
 // Each thread is named on a row of its own, one name tall with a pixel to spare, so no two names meet: 8px names on wide plots, and on phones the micro size, below which a name held in the hand is too small to read.
 const THREAD_NAME_SIZE = { compact: 10, wide: 8 } as const;
 
@@ -118,9 +117,7 @@ function EvidenceRelay({
   const missTicks = y.ticks(4);
   // The miss axis's numbers stand at the plot's left edge, so the dates start past the widest of them and the earliest star never lands on one.
   const datesLeft =
-    MARGIN.left +
-    Math.max(...missTicks.map((tick) => String(tick).length)) * CAPTION_CHAR_WIDTH +
-    6;
+    MARGIN.left + Math.max(...missTicks.map((tick) => monoWidth(String(tick), "caption"))) + 6;
   const dates = placements.map((placement) => placement.date);
   const x = scaleUtc()
     .domain([new Date(Math.min(...dates) - 10 * DAY), new Date(Math.max(...dates) + 10 * DAY)])

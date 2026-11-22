@@ -9,16 +9,7 @@
   stroke: var(--line);
 }
 
-/* A lost duel is an unlit ring, a drawn one keeps a point at its centre, and the pointed one's ring takes the ink. */
-.loss {
-  fill: none;
-  stroke: rgb(var(--ink-rgb) / 0.32);
-}
-
-.loss[data-pointed] {
-  stroke: var(--ink);
-}
-
+/* A drawn duel is an unlit point, in both models' rows. */
 .draw {
   fill: rgb(var(--ink-rgb) / 0.5);
 }

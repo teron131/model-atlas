@@ -37,6 +37,17 @@ export type SkyPlotStar = {
   scale?: number;
 };
 
+/** How far from a plotted star's centre its visible body reaches, where a line drawn over the stars stops so it meets the star without crossing it. */
+export function starBody(
+  { role, glow, scale = 1 }: Pick<SkyPlotStar, "role" | "glow" | "scale">,
+  flaring: boolean,
+): number {
+  const size =
+    role === "leader" ? LEADER_SIZE : role === "frontier" ? FRONTIER_SIZE : STAR_SIZE.high;
+  const light = 0.6 + 0.4 * Math.min(1, glow);
+  return size * STAR_SPRITE * BODY_REACH * light * scale * (flaring ? FLARE_BODY : 1);
+}
+
 export type SkyPlotScene = {
   width: number;
   height: number;
@@ -71,9 +82,9 @@ const MUTED_RIM = 0.4;
 const MAX_RIM = 64;
 // Sizes in CSS pixels on the hero's scale, where a sprite spans STAR_SPRITE times its size and a frontier sprite FRONTIER_SPRITE times.
 // The lowest stars stay large enough to find and point at, not only to see.
-const STAR_SIZE = { low: 7.6, high: 8.8 };
-const FRONTIER_SIZE = 7.6;
-const LEADER_SIZE = 9.6;
+const STAR_SIZE = { low: 9.2, high: 10.6 };
+const FRONTIER_SIZE = 9.2;
+const LEADER_SIZE = 11.6;
 const COMPACT_SIZE = 0.8;
 // Plain stars brighten with height; frontier stars and the leader outshine the rim they sit on.
 const STAR_GLOW = { low: 0.9, high: 1, frontier: 1.05, leader: 1.3 };
@@ -85,6 +96,9 @@ const SATURATION = 0.75;
 const RAY_REACH = 0.55;
 // An explored star's flare, whatever the star's role, spans as far as a frontier star's own rays, so pointing at a star never reaches further across its neighbours and their names than the frontier already does.
 const FLARE_SPAN = FRONTIER_SIZE * FRONTIER_SPRITE * RAY_REACH;
+// A star's visible body, its core and the bright inside of its corona, reaches about this share of its sprite from its centre at full light, where the shader's falloff fades it into the halo; a dimmed star's body is smaller, and a flaring one reads this much wider.
+const BODY_REACH = 0.125;
+const FLARE_BODY = 1.25;
 // A located star's flare opens at `1 + reach` times an explored flare's size and `1 + light` times its light, fading out over `ms`: long enough to catch the eye in a dense field, short enough to be over before the reader starts reading.
 const FOUND_FLARE = { reach: 2.4, light: 0.6, ms: 900 };
 // Distance along x, in CSS pixels at the reference plot height, over which a trail's light falls to about a third.

@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * A plot on the dashboard's sky: `stars` are drawn by the sky where it runs, and the SVG in `children` carries everything else at the same coordinates.
+ * A plot on the dashboard's sky: `stars` are drawn by the sky where it runs, lines in `underlay` lie beneath them, and the SVG in `children` carries everything else at the same coordinates over them.
  * A plot drawn wider than its host scrolls sideways inside it, as the leaderboard's table does, instead of squeezing; a mouse, which has no sideways scroll, pans it by dragging any mark tagged `data-pans`.
  */
 
@@ -27,6 +27,8 @@ export function SkyFigure({
   sky = true,
   horizon = false,
   label,
+  underlay,
+  role = "img",
   reveal,
   onLeave,
   children,
@@ -48,6 +50,10 @@ export function SkyFigure({
   /** Stars of the models the find field located, which flare out once from when they were located. */
   found?: SkyPlotScene["found"];
   label: string;
+  /** Lines beneath the stars, whose light lies over them, as `SkyPlot` draws them; only a plot without sky takes them. */
+  underlay?: ReactNode;
+  /** `group` when the figure's marks are buttons, so assistive technology reaches them, as it does the Timeline's stars. */
+  role?: "img" | "group";
   /** An x in the plot's coordinates that a plot wider than its host scrolls into view, centred, whenever it changes and lies outside the view; a reader's own scroll stands until then. */
   reveal?: number;
   onLeave: () => void;
@@ -105,10 +111,10 @@ export function SkyFigure({
         {...pan}
       >
         <div className={styles.scrollStage} style={{ width }}>
-          <SkyPlot scene={scene}>
+          <SkyPlot scene={scene} underlay={underlay}>
             <svg
               viewBox={`0 0 ${width} ${height}`}
-              role="img"
+              role={role}
               aria-label={label}
               onPointerLeave={onLeave}
             >

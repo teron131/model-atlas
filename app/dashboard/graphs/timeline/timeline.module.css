@@ -170,9 +170,9 @@
   padding: 12px 0;
   border-bottom: 1px solid var(--line);
 }
-/* The figure's top edge and the standings share the graph's width and edges, like the Pareto figure. */
+/* The figure's top edge and the row charts beneath share the graph's width and edges, like the Pareto figure. */
 .top,
-.standings {
+.rowChart {
   width: min(100%, 1120px);
   margin-inline: auto;
 }
@@ -195,179 +195,23 @@
   border: 0;
 }
 
-/* The labs' standings are a ranked table whose rows rest on one index scale: each row's rule is a number line from the table's edge, where the lab's top models are the plots' stars in its colour and the strongest ends a trail, so the rules compare as the chart's y-axis would laid flat. */
-.standings {
-  --standing-columns: 20px minmax(0, 240px) 64px minmax(0, 1fr);
-  padding-block: 26px 18px;
+/* The lab standings and Lookback beneath the chart are row charts on one grid, each under a head naming its rows on the left and its value column on the right. */
+.rowChart {
+  padding-top: 22px;
 }
-.standingsHead,
-.standings button {
-  display: grid;
-  grid-template-columns: var(--standing-columns);
-  align-items: center;
-  column-gap: 16px;
-}
-/* The table's title heads its rank and lab columns. */
-.standingsHead {
+.rowChartHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
   margin: 0 0 8px;
   color: var(--muted);
   font: var(--type-label-weight) var(--type-caption-size) var(--font-mono);
   letter-spacing: var(--type-label-tracking);
   text-transform: uppercase;
 }
-.standingsHead span:first-child {
-  grid-column: 1 / 3;
-}
-.standingsHead span:nth-child(2),
-.standingScore {
-  text-align: right;
-}
-.standings ol {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.standings li {
-  position: relative;
-  min-width: 0;
-  border-bottom: 1px solid var(--line);
-}
-.standings li::after {
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  width: var(--reach);
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--lab));
-  content: "";
-  opacity: 0.75;
-  transition: opacity 180ms ease;
-}
-.standings li[data-focused]::after {
-  opacity: 1;
-}
-/* The stars lie over the trail, which the row draws after them. */
-.standingStars {
-  position: absolute;
-  z-index: 1;
-  inset: auto 0 -1px;
-  height: 1px;
-  pointer-events: none;
-}
-/* Every model on a lab's rule is the plots' star: the leader the frontier star at the end of the trail, drawn over the rest, which are plain stars. */
-.standingStar {
-  top: 50%;
-}
-.standingLeader {
-  z-index: 2;
-  transition: transform 180ms ease;
-}
-.standings li[data-focused] .standingLeader {
-  transform: translate(-50%, -50%) scale(1.3);
-}
-/* On paper the plots draw stars as solid dots of the provider colour with a faint glow, and so does the rule. */
-:global(html[data-model-atlas-theme="light"]) .standingStar {
-  background: radial-gradient(
-    circle,
-    var(--lab) 0 2.5px,
-    color-mix(in srgb, var(--lab) 22%, transparent) 3.2px,
-    transparent 5px
-  );
-}
-:global(html[data-model-atlas-theme="light"]) .standingLeader {
-  background: radial-gradient(
-    circle,
-    var(--lab) 0 3.2px,
-    color-mix(in srgb, var(--lab) 22%, transparent) 4px,
-    transparent 6px
-  );
-}
-/* Each row is one button: hovering it draws its lab on the chart, and choosing it picks the lab's leading model. */
-.standings button {
-  width: 100%;
-  padding: 9px 0;
-  border: 0;
-  background: transparent;
-  color: var(--ink);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-.standings button:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 4px;
-}
-.standingLab {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-.standingLab strong {
-  min-width: 0;
-  overflow: hidden;
-  font-size: 14px;
-  font-weight: 600;
-  letter-spacing: -0.012em;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.standingRank {
-  color: var(--muted);
-  font: var(--type-caption-size) var(--font-mono);
-}
-.standingLab img {
-  flex: none;
-  object-fit: contain;
-}
-.standingScore {
-  font: var(--type-label-weight) var(--type-data-size) var(--font-mono);
-  font-variant-numeric: tabular-nums;
-}
-/* The lab's record holder, which the row picks. */
-.standingModel {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--ink);
-  font: var(--type-caption-size) var(--font-mono);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-/* The rules' shared scale reads beneath the last one, each value under its place on them. */
-.standingAxis {
-  position: relative;
-  height: 1.6em;
-  margin-top: 8px;
-  color: var(--faint);
-  font: var(--type-label-weight) var(--type-caption-size) var(--font-mono);
-  font-variant-numeric: tabular-nums;
-}
-.standingAxis span {
-  position: absolute;
-  top: 0;
-  transform: translateX(-50%);
-}
-.standingAxis span:first-child {
-  transform: none;
-}
-.standingAxis span:last-child {
-  transform: translateX(-100%);
-}
-/* Narrow tables set each lab's best model under its name, so the name and index keep the line's width. */
-@container (max-width: 560px) {
-  .standings {
-    --standing-columns: 18px minmax(0, 1fr) auto;
-  }
-  .standings button {
-    column-gap: 10px;
-    row-gap: 3px;
-  }
-  .standingModel {
-    grid-column: 2 / -1;
-  }
-  .standingsHead span:last-child {
-    display: none;
-  }
+/* A focused standings row shows as its lab drawn, its pointed star's guide, and the other rows quieted, never a ring around it, as a focused Timeline star does. */
+.standingRow:focus {
+  outline: none;
 }
 
 /* A lab's records are joined the way Pareto joins a model's reasoning efforts: a fine dashed line in the lab's colour. */

@@ -38,7 +38,16 @@ const AMBIENT_FRAME_MS = 1000 / 30;
  * Draws `scene` synchronously whenever it changes, so a saved image's redraw can copy the canvas in the same task.
  * Ambient motion runs only while the stage is on screen and the page is visible, and stops under reduced motion, where the sky holds still at time zero.
  */
-export function SkyPlot({ scene, children }: { scene: SkyPlotScene; children: ReactNode }) {
+export function SkyPlot({
+  scene,
+  underlay,
+  children,
+}: {
+  scene: SkyPlotScene;
+  /** SVG marks at the scene's coordinates drawn beneath the stars, whose light lies over them; an open sky would cover them, so only a scene without sky takes them. */
+  underlay?: ReactNode;
+  children: ReactNode;
+}) {
   const dark = useModelAtlasTheme() === "dark";
   const still = useMediaQuery("(prefers-reduced-motion: reduce)");
   const stageRef = useRef<HTMLDivElement>(null);
@@ -102,6 +111,15 @@ export function SkyPlot({ scene, children }: { scene: SkyPlotScene; children: Re
 
   return (
     <div ref={stageRef} className={styles.skyStage} data-sky={renderer == null ? undefined : ""}>
+      {underlay == null ? null : (
+        <svg
+          className={styles.skyUnderlay}
+          viewBox={`0 0 ${scene.width} ${scene.height}`}
+          aria-hidden="true"
+        >
+          {underlay}
+        </svg>
+      )}
       {dark ? <canvas ref={canvasRef} className={styles.skyCanvas} aria-hidden="true" /> : null}
       {children}
     </div>

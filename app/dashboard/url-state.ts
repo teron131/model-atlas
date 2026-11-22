@@ -59,12 +59,10 @@ export type DashboardUrlState = {
   "pareto-find": string[];
   "effort-find": string[];
   "timeline-find": string[];
-  "lookback-find": string[];
   "effort-measure": "intelligence" | "agentic" | "cost" | "time" | "tokens";
   /** The chart each stacked region shows; an address carries it as its path, never as a key. */
   "leaderboard-chart": RegionChartKey<"leaderboard">;
   "pareto-chart": RegionChartKey<"pareto">;
-  "timeline-chart": RegionChartKey<"timeline">;
 };
 
 export type DashboardUrlKey = keyof DashboardUrlState;
@@ -97,7 +95,6 @@ const SECTION_KEYS: Record<DashboardSection, Readonly<Record<string, DashboardUr
   pareto: { performance: "performance", benchmark: "benchmark", axes: "axes", find: "pareto-find" },
   effort: { measure: "effort-measure", find: "effort-find" },
   timeline: { period: "timeline-period", lab: "timeline-provider", find: "timeline-find" },
-  lookback: { find: "lookback-find" },
 };
 // Controls that act across the page keep their names on every address.
 const PAGE_KEYS = [
@@ -123,7 +120,6 @@ const LIST_KEYS = new Set<DashboardUrlKey>([
   "pareto-find",
   "effort-find",
   "timeline-find",
-  "lookback-find",
 ]);
 const KEY_SECTIONS = new Map<DashboardUrlKey, DashboardSection>(
   [...SECTION_REGIONS.keys()].flatMap((section) =>
@@ -135,13 +131,11 @@ const dashboardKeys = new Set<DashboardUrlKey>([
   ...KEY_SECTIONS.keys(),
   "leaderboard-chart",
   "pareto-chart",
-  "timeline-chart",
 ]);
 // The region whose shown chart each chart key holds.
 const CHART_KEY_REGIONS = {
   "leaderboard-chart": "leaderboard",
   "pareto-chart": "pareto",
-  "timeline-chart": "timeline",
 } as const satisfies Record<`${StackedRegionId}-chart`, StackedRegionId>;
 // Every name an address gives a control, which it never keeps as someone else's parameter.
 const DASHBOARD_NAMES = new Set<string>([
@@ -230,7 +224,6 @@ export function readUrlValue<K extends DashboardUrlKey>(
     case "pareto-find":
     case "effort-find":
     case "timeline-find":
-    case "lookback-find":
       result = [...new Set(params.getAll(key).map((item) => item.trim()))].filter(Boolean);
       break;
     case "effort-measure":
@@ -238,7 +231,6 @@ export function readUrlValue<K extends DashboardUrlKey>(
       break;
     case "leaderboard-chart":
     case "pareto-chart":
-    case "timeline-chart":
       result = chartChoice(value, key);
       break;
     default:
