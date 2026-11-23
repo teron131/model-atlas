@@ -406,23 +406,25 @@ export function FrontierField({
 
   // Frontier names are decorative here; the register below carries the same roles accessibly.
   return (
-    <div className={styles.field} ref={hostRef} data-sky={mode} aria-hidden="true">
-      {labels.map((label) => (
-        <span
-          key={label}
-          className={styles.starLabel}
-          ref={(element) => {
-            if (element == null) return;
-            labelElements.current.set(label, element);
-            return () => {
-              labelElements.current.delete(label);
-            };
-          }}
-        >
-          {label}
-        </span>
-      ))}
-      <div className={styles.starCard} ref={cardRef} data-visible="false">
+    <>
+      <div className={styles.field} ref={hostRef} data-sky={mode} aria-hidden="true">
+        {labels.map((label) => (
+          <span
+            key={label}
+            className={styles.starLabel}
+            ref={(element) => {
+              if (element == null) return;
+              labelElements.current.set(label, element);
+              return () => {
+                labelElements.current.delete(label);
+              };
+            }}
+          >
+            {label}
+          </span>
+        ))}
+      </div>
+      <div className={styles.starCard} ref={cardRef} data-visible="false" aria-hidden="true">
         <strong data-field="name" />
         <span data-field="provider" />
         <dl>
@@ -432,6 +434,6 @@ export function FrontierField({
           <dd data-field="released" />
         </dl>
       </div>
-    </div>
+    </>
   );
 }

@@ -107,12 +107,12 @@
   height: 100%;
 }
 
-/* Identification for the star being explored; position and text are written by the field. */
+/* Identification for the star being explored; position and text are written by the field. It sits outside the field's layer, fixed to the viewport like the field, so it draws over the title rather than under it. */
 .starCard {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
-  z-index: 2;
+  z-index: 1;
   display: grid;
   gap: 3px;
   min-width: 168px;
@@ -200,11 +200,14 @@
   font-size: clamp(64px, min(15.2vw, 26svh), 232px);
   font-weight: 500;
   letter-spacing: -0.058em;
-  /* Just enough leading that descenders on the first line clear the caps below. */
   line-height: 0.98;
+  /* Centred over the planet's apex; set from the left, the lone word leaves the composition lopsided. */
+  text-align: center;
+  /* The word keeps a two-line title's box, one empty line above it, because the horizon is measured from the title's foot and the sky was tuned with the planet that low. */
+  padding-top: 0.98em;
 }
 
-/* Over the live sky the title sets into the planet: the hero drops it by --title-sink, and the field keeps --rim on the rim it draws, so the planet covers the feet of the second line. */
+/* Over the live sky the title sets into the planet: the hero drops it by --title-sink, and the field keeps --rim on the rim it draws, so the planet covers the word's feet. */
 .signature:has(> .field[data-sky="webgl"]) > .title {
   transform: translateY(var(--title-sink));
   -webkit-mask-image: radial-gradient(
@@ -215,20 +218,10 @@
   mask-image: radial-gradient(var(--rim), transparent calc(100% - 1px), #000 calc(100% + 1px));
 }
 
-/* The two title lines keep one staggered shape at every width and aspect ratio: the second line is indented by a fixed share of the type size, so the pair only scales. */
-.titleStart,
-.titleEnd {
+/* The word rises on its own span because the title's transform is the sink into the planet. */
+.titleWord {
   display: block;
   animation: title-rise 1100ms cubic-bezier(0.2, 0.75, 0, 1) both;
-}
-
-.titleStart {
-  margin-left: -0.045em;
-}
-
-.titleEnd {
-  margin-left: 1.4em;
-  animation-delay: 140ms;
 }
 
 /* Tall heroes run the lit horizon behind the register, so its text keeps a tight night edge: enough to hold over the rim, too small to cloud the open sky. */
@@ -411,8 +404,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .titleStart,
-  .titleEnd,
+  .titleWord,
   .registerItem {
     animation: none;
   }

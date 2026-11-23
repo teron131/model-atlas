@@ -28,7 +28,7 @@ const FrontierField = dynamic(
 // The horizon rests under the title as laid out: this share of its type size below the title's line box, or this share of the open sky down to the register when a tall hero leaves more.
 const HORIZON_GAP = 0.1;
 const HORIZON_SPACE_SHARE = 0.15;
-// Over the live sky the title is drawn lower, until the rim crosses its second line this share of the type size above the line box's foot, so the planet hides about a third of the capitals.
+// Over the live sky the title is drawn lower, until the rim crosses it this share of the type size above the line box's foot, so the planet hides about a third of the capitals.
 const TITLE_SET = 0.4;
 
 /**
@@ -115,8 +115,7 @@ export const ModelSignature = memo(function ModelSignature(population: Signature
         }}
       />
       <h2 ref={titleRef} id="model-signature-title" className={styles.title}>
-        <span className={styles.titleStart}>Sidereal</span>{" "}
-        <span className={styles.titleEnd}>Horizon</span>
+        <span className={styles.titleWord}>Horizon</span>
       </h2>
       <ol className={styles.register} aria-label="Frontier roles">
         {signatureModelRows.map((model) => (
