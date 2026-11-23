@@ -73,19 +73,17 @@ const separatedPairs = {
   benchmarks: {
     automation_bench: 0.5,
     frontier_code: 0.5,
-    gdp_pdf: 0.5,
     terminal_bench: 0.5,
     terminal_bench_science: 0.5,
   },
   task_metrics: {
     automation_bench: { cost: 1 },
     frontier_code: { cost: 1 },
-    gdp_pdf__source_b: { quality: 0.5, cost: 1, seconds: 100 },
     terminal_bench__source_b: { quality: 0.5, cost: 1, seconds: 100 },
     terminal_bench_science__source_c: { quality: 0.5, cost: 1, seconds: 100 },
   },
 };
-assert.deepEqual(observedResourceEvidenceCounts(separatedPairs, portfolio), { cost: 5, time: 3 });
+assert.deepEqual(observedResourceEvidenceCounts(separatedPairs, portfolio), { cost: 4, time: 2 });
 const separatedPayload = minimalModelAtlasPayload({ fetchedAt: 1, models: [separatedPairs] });
 separatedPayload.metadata.scoring.benchmark_portfolio = portfolio;
 const separatedDashboard = publicJsonPayload(separatedPayload, { kind: "dashboard" });

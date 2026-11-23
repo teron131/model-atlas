@@ -1037,7 +1037,7 @@ variantIndexes.observations = variantIndexes.observations.filter(
 const variantEstimate = calibrateTimeline(variantIndexes, "intelligence").estimates.find(
   (e) => e.modelId === firstBridge[0]!.id,
 )!;
-close(variantEstimate.value!, (8 * 25 + 16 * 75) / 24);
+close(variantEstimate.value!, (8.5 * 25 + 16 * 75) / 24.5);
 assert.deepEqual(
   variantEstimate.paths.map((p) => p[0]),
   ["other-index", "shared-index"],

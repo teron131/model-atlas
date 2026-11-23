@@ -160,9 +160,9 @@ assertEqual(medianOfFinite([100, null, 0, 50]), 50);
 validateBenchmarkPortfolio(STAGE_CONFIG.scoring.benchmarkPortfolio);
 assert.equal(INDEX_REPRESENTED_BENCHMARK_COUNTS.aa_intelligence_index, 9);
 assert.equal(INDEX_REPRESENTED_BENCHMARK_COUNTS.cais_capabilities_index, 7);
-assert.equal(INDEX_REPRESENTED_BENCHMARK_COUNTS.surge_intelligence_index, 8);
+assert.equal(INDEX_REPRESENTED_BENCHMARK_COUNTS.surge_intelligence_index, 14);
 assert.equal(INDEX_REPRESENTED_BENCHMARK_COUNTS.vals_index, 8);
-assert.equal(INDEX_REPRESENTED_BENCHMARK_COUNTS.epoch_capabilities_index, 8);
+assert.equal(INDEX_REPRESENTED_BENCHMARK_COUNTS.epoch_capabilities_index, 8.5);
 assert.equal(
   INDEX_REPRESENTED_BENCHMARK_MEDIAN,
   medianOfFinite(
@@ -210,7 +210,6 @@ assert.deepEqual(
     "emb",
     "finance_agent",
     "frontier_code",
-    "gdp_pdf",
     "gdpval_normalized",
     "hle",
     "mlcr_aa",

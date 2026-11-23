@@ -31,7 +31,7 @@ export const ARTIFICIAL_ANALYSIS_INDEX_COMPONENTS = {
 const REPORTED_BREADTH = {
   aa_intelligence_index: Object.keys(ARTIFICIAL_ANALYSIS_INDEX_COMPONENTS).length,
   cais_capabilities_index: 7,
-  surge_intelligence_index: 8,
+  surge_intelligence_index: 14,
   vals_index: 8,
 } as const;
 
@@ -76,7 +76,19 @@ export const INDEX_POLICIES = {
   surge_intelligence_index: {
     representedBenchmarks: REPORTED_BREADTH.surge_intelligence_index,
     resources: null,
-    componentBenchmarkKeys: null,
+    // The index page lists 14 boards; Antidote, CoreCraft, DAYJOB: Law, and DAYJOB: Tax are the four Atlas does not score.
+    componentBenchmarkKeys: [
+      "chartography",
+      "complex_constraints",
+      "dayjob_finance",
+      "dayjob_healthcare",
+      "gdp_pdf",
+      "gdp_xlsx",
+      "handbook_md",
+      "hemingway_bench",
+      "riemann_bench",
+      "sudo_l7",
+    ],
   },
   vals_index: {
     representedBenchmarks: REPORTED_BREADTH.vals_index,

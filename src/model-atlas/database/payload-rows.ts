@@ -236,7 +236,6 @@ function observationsFromPayloadRows(rows: PayloadRows): BenchmarkObservationsBy
         rows.artificialAnalysisBenchmarkResourceRows,
       )?.rows ?? [],
     terminalBenchScienceRows: sourceRows("terminal_bench_science", rows.terminalBenchScienceRows),
-    gdpPdfRows: sourceRows("gdp_pdf", rows.gdpPdfRows),
     aleBenchRows: readAleBenchRawCache(rows.aleBenchRows)?.rows ?? [],
     weirdMlRows: sourceRows("weirdml", rows.weirdMlRows),
   });

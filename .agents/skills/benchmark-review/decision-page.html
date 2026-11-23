@@ -1,0 +1,535 @@
+<!-- Decision page for the weekly benchmark review: one plate per open decision, showing the question, the recommended change, at most two notes, the source leaderboards, and a ballot. It is a local file: the page renders entirely from REVIEW and DECISIONS, picks persist in this browser's localStorage, and Copy answers puts them on the clipboard for the user to paste into the chat. -->
+<title>Atlas Benchmark Decisions</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --paper: #0b1016;
+    --plane: #15171b;
+    --plane-raised: #1c1f24;
+    --ink: #f2f3ed;
+    --muted: #bbc1b7;
+    --faint: #969f93;
+    --line: rgb(242 243 237 / 0.09);
+    --line-strong: rgb(242 243 237 / 0.2);
+    --cobalt: #4a72ff;
+    --violet: #8f6bff;
+    --rose: #ff92bd;
+    --amber: #dfa875;
+    --star: #fff6e0;
+    --horizon: linear-gradient(90deg, var(--cobalt), var(--violet) 48%, var(--rose));
+    --font-sans: "Avenir Next", "Segoe UI", Helvetica, Arial, sans-serif;
+    --font-mono: "SFMono-Regular", "SF Mono", Menlo, Consolas, monospace;
+  }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font: 500 15px/1.55 var(--font-sans);
+  }
+  .page {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding-block: 36px 64px;
+    padding-inline: 16px;
+    display: grid;
+    gap: 32px;
+  }
+  a {
+    color: var(--ink);
+    text-decoration-color: rgb(242 243 237 / 0.35);
+    text-underline-offset: 3px;
+  }
+  a:hover {
+    text-decoration-color: var(--rose);
+  }
+  :focus-visible {
+    outline: 2px solid var(--violet);
+    outline-offset: 2px;
+  }
+  .label {
+    font: 650 11px/1.2 var(--font-mono);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+  button {
+    font: 600 13px/1 var(--font-sans);
+    color: var(--ink);
+    background: var(--plane-raised);
+    border: 1px solid var(--line-strong);
+    border-radius: 7px;
+    padding: 9px 13px;
+    cursor: pointer;
+  }
+  button:hover {
+    border-color: var(--violet);
+  }
+
+  header.top {
+    display: grid;
+    gap: 12px;
+  }
+  header.top h1 {
+    margin: 0;
+    font-size: clamp(30px, 4.4vw, 46px);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+    text-wrap: balance;
+  }
+  .horizon {
+    height: 2px;
+    background: var(--horizon);
+    border-radius: 2px;
+    box-shadow: 0 0 18px rgb(143 107 255 / 0.55);
+  }
+  .bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 18px;
+    align-items: center;
+    color: var(--faint);
+    font-size: 13px;
+  }
+  #answered {
+    color: var(--star);
+    font-weight: 600;
+  }
+
+  #decisions {
+    display: grid;
+    gap: 28px;
+  }
+  section.decision {
+    background: var(--plane);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .head {
+    padding: 24px 24px 0;
+    display: grid;
+    gap: 10px;
+  }
+  .head h2 {
+    margin: 0;
+    font-size: clamp(21px, 2.5vw, 28px);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+    text-wrap: balance;
+  }
+  .rec {
+    margin: 0;
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    color: var(--muted);
+    max-width: 82ch;
+  }
+  .rec .label {
+    color: var(--rose);
+    flex: none;
+  }
+  .rec strong {
+    color: var(--ink);
+    font-weight: 600;
+  }
+  .notes {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 6px;
+    max-width: 82ch;
+  }
+  .notes li {
+    padding-left: 16px;
+    position: relative;
+    color: var(--muted);
+  }
+  .notes li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.62em;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--faint);
+  }
+  .notes b,
+  .notes q {
+    color: var(--ink);
+    font-weight: 600;
+  }
+  .boards {
+    display: grid;
+    gap: 18px;
+    padding: 20px 24px 24px;
+  }
+  .board {
+    margin: 0;
+    display: grid;
+    gap: 7px;
+  }
+  .board button {
+    padding: 0;
+    border-radius: 9px;
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid var(--line-strong);
+    cursor: zoom-in;
+  }
+  .board img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .board figcaption {
+    font-size: 13px;
+    color: var(--faint);
+  }
+
+  .ballot {
+    border-top: 1px solid var(--line);
+    background: var(--plane-raised);
+    padding: 18px 24px 22px;
+    display: grid;
+    gap: 12px;
+  }
+  .ballot fieldset {
+    border: 0;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 10px;
+  }
+  .ballot legend {
+    padding: 0;
+    margin-bottom: 10px;
+  }
+  .option {
+    position: relative;
+    display: grid;
+    gap: 5px;
+    align-content: start;
+    padding: 12px 14px;
+    border: 1px solid var(--line-strong);
+    border-radius: 10px;
+    cursor: pointer;
+    background: var(--plane);
+  }
+  .option:hover {
+    border-color: rgb(143 107 255 / 0.6);
+  }
+  .option input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .option:has(input:focus-visible) {
+    outline: 2px solid var(--violet);
+    outline-offset: 2px;
+  }
+  .option:has(input:checked) {
+    border-color: var(--star);
+    box-shadow:
+      0 0 0 1px var(--star),
+      0 0 22px rgb(255 246 224 / 0.12);
+  }
+  .option .name {
+    font-weight: 600;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .option .tag {
+    font: 650 10px/1 var(--font-mono);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--rose);
+    border: 1px solid rgb(255 146 189 / 0.45);
+    border-radius: 4px;
+    padding: 3px 5px;
+  }
+  .option .diff {
+    font: 500 12px/1.4 var(--font-mono);
+    color: var(--ink);
+  }
+  .option .desc {
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.45;
+  }
+  .ballot-foot {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 14px;
+    align-items: center;
+  }
+  .ballot textarea {
+    flex: 1 1 320px;
+    min-width: 0;
+    min-height: 42px;
+    resize: vertical;
+    font: 500 14px/1.4 var(--font-sans);
+    color: var(--ink);
+    background: var(--plane);
+    border: 1px solid var(--line-strong);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .state {
+    font-size: 13px;
+    color: var(--faint);
+    min-width: 12ch;
+  }
+  .state.saved {
+    color: var(--star);
+  }
+
+  dialog#lightbox {
+    padding: 0;
+    border: 1px solid var(--line-strong);
+    border-radius: 12px;
+    background: var(--plane);
+    color: var(--ink);
+    max-width: min(1440px, 96vw);
+    width: 100%;
+  }
+  dialog#lightbox::backdrop {
+    background: rgb(5 8 12 / 0.82);
+  }
+  dialog#lightbox img {
+    display: block;
+    width: 100%;
+    height: auto;
+    background: #fff;
+  }
+  dialog#lightbox .lb-foot {
+    display: flex;
+    gap: 14px;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--muted);
+    flex-wrap: wrap;
+  }
+</style>
+
+<div class="page">
+  <header class="top">
+    <span class="label" id="kicker"></span>
+    <h1 id="title"></h1>
+    <div class="horizon" aria-hidden="true"></div>
+    <div class="bar">
+      <span id="answered"></span>
+      <span>Blank means either is fine.</span>
+      <span>Copy answers, then paste them into the chat.</span>
+      <button type="button" id="copy">Copy answers</button>
+    </div>
+  </header>
+  <main id="decisions"></main>
+</div>
+
+<dialog id="lightbox" aria-label="Leaderboard capture">
+  <img id="lb-img" alt="" />
+  <div class="lb-foot">
+    <a id="lb-src" href="#" target="_blank" rel="noopener">Open the leaderboard</a
+    ><button type="button" id="lb-close">Close</button>
+  </div>
+</dialog>
+
+<script>
+  const REVIEW = {
+    kicker: "Model Atlas · weekly benchmark review · <date>",
+    title: "<N> benchmark decisions",
+  };
+  // One entry per open decision. `notes` (inline HTML, at most two) carry only what the leaderboards don't show; `boards` are leaderboard screenshots, one per source; `recommended` names an option id.
+  const DECISIONS = [
+    // {
+    //   id: "ebr-bench",
+    //   subject: "EBR-Bench · Epoch AI",
+    //   question: "Move EBR-Bench from frontier to baseline?",
+    //   recommended: "baseline",
+    //   reason: "The leader is at the top human participant's 100%.",
+    //   notes: ["Atlas's docs justify frontier status with <q>far below expert human performance</q>."],
+    //   boards: [{ src: "shots/ebr-bench.png", source: "Epoch AI", url: "https://epoch.ai/benchmarks/ebr-bench" }],
+    //   options: [
+    //     { id: "baseline", name: "Baseline", diff: "frontier → baseline" },
+    //     { id: "wait", name: "Keep frontier", diff: "no change", desc: "Recheck at the next review." },
+    //   ],
+    // },
+  ];
+  const LOCAL_KEY = "atlas-benchmark-decisions";
+  const answers = JSON.parse(localStorage.getItem(LOCAL_KEY) || "{}");
+
+  function node(tag, className, text) {
+    const element = document.createElement(tag);
+    if (className) element.className = className;
+    if (text != null) element.textContent = text;
+    return element;
+  }
+
+  function build() {
+    document.getElementById("kicker").textContent = REVIEW.kicker;
+    document.getElementById("title").textContent = REVIEW.title;
+    const host = document.getElementById("decisions");
+    for (const decision of DECISIONS) {
+      const section = node("section", "decision");
+      section.id = decision.id;
+      const head = node("div", "head");
+      const recommended = decision.options.find((option) => option.id === decision.recommended);
+      const rec = node("p", "rec");
+      rec.append(node("span", "label", "Recommended"), node("span"));
+      rec.lastChild.append(node("strong", null, `${recommended.name}. `), decision.reason);
+      const notes = node("ul", "notes");
+      for (const note of decision.notes) notes.appendChild(node("li")).innerHTML = note;
+      head.append(
+        node("span", "label", decision.subject),
+        node("h2", null, decision.question),
+        rec,
+        notes,
+      );
+
+      const boards = node("div", "boards");
+      for (const board of decision.boards) {
+        const figure = node("figure", "board");
+        const open = node("button");
+        open.type = "button";
+        open.dataset.shot = board.src;
+        open.dataset.url = board.url;
+        open.setAttribute("aria-label", `Enlarge ${board.source}'s leaderboard`);
+        const image = node("img");
+        image.src = board.src;
+        image.alt = `${board.source}'s ${decision.subject.split(" · ")[0]} leaderboard`;
+        image.loading = "lazy";
+        open.appendChild(image);
+        const caption = node("figcaption");
+        const link = node("a", null, `${board.source} leaderboard ↗`);
+        link.href = board.url;
+        link.target = "_blank";
+        link.rel = "noopener";
+        caption.appendChild(link);
+        figure.append(open, caption);
+        boards.appendChild(figure);
+      }
+
+      const ballot = node("div", "ballot");
+      const fieldset = node("fieldset");
+      fieldset.appendChild(node("legend", "label", "Your call"));
+      for (const option of decision.options) {
+        const label = node("label", "option");
+        const input = node("input");
+        input.type = "radio";
+        input.name = `decision-${decision.id}`;
+        input.value = option.id;
+        input.addEventListener("change", () => save(decision.id));
+        const name = node("span", "name", option.name);
+        if (option.id === decision.recommended)
+          name.appendChild(node("span", "tag", "Recommended"));
+        label.append(input, name, node("span", "diff", option.diff));
+        if (option.desc) label.appendChild(node("span", "desc", option.desc));
+        fieldset.appendChild(label);
+      }
+      const foot = node("div", "ballot-foot");
+      const note = node("textarea");
+      note.id = `note-${decision.id}`;
+      note.rows = 1;
+      note.placeholder = "Note or follow-up (optional)";
+      note.setAttribute("aria-label", `Note on ${decision.subject}`);
+      note.addEventListener("input", () => save(decision.id));
+      const clearButton = node("button", null, "Clear");
+      clearButton.type = "button";
+      clearButton.addEventListener("click", () => clear(decision.id));
+      const state = node("span", "state");
+      state.id = `state-${decision.id}`;
+      foot.append(note, clearButton, state);
+      ballot.append(fieldset, foot);
+
+      section.append(head, boards, ballot);
+      host.appendChild(section);
+    }
+  }
+
+  function render() {
+    for (const { id } of DECISIONS) {
+      const answer = answers[id];
+      for (const input of document.querySelectorAll(`input[name="decision-${id}"]`))
+        input.checked = answer?.choice === input.value;
+      const note = document.getElementById(`note-${id}`);
+      if (document.activeElement !== note) note.value = answer?.note || "";
+      const saved = Boolean(answer?.choice || answer?.note);
+      const state = document.getElementById(`state-${id}`);
+      state.className = `state${saved ? " saved" : ""}`;
+      state.textContent = saved ? "Saved" : "";
+    }
+    const count = DECISIONS.filter(({ id }) => answers[id]?.choice).length;
+    document.getElementById("answered").textContent = `${count} of ${DECISIONS.length} answered`;
+  }
+
+  function save(id) {
+    const decision = DECISIONS.find((entry) => entry.id === id);
+    const choice = document.querySelector(`input[name="decision-${id}"]:checked`)?.value || null;
+    answers[id] = {
+      choice,
+      choiceName: decision.options.find((option) => option.id === choice)?.name || null,
+      note: document.getElementById(`note-${id}`).value.trim(),
+    };
+    store();
+  }
+
+  function clear(id) {
+    delete answers[id];
+    store();
+  }
+
+  function store() {
+    localStorage.setItem(LOCAL_KEY, JSON.stringify(answers));
+    render();
+  }
+
+  document.getElementById("copy").addEventListener("click", async (event) => {
+    const text = DECISIONS.map(({ id, subject }) => {
+      const answer = answers[id];
+      return `${subject}: ${answer?.choiceName || "either is fine"}${answer?.note ? ` (${answer.note})` : ""}`;
+    }).join("\n");
+    const button = event.currentTarget;
+    try {
+      await navigator.clipboard.writeText(text);
+      button.textContent = "Copied";
+    } catch (error) {
+      const area = node("textarea");
+      area.value = text;
+      area.readOnly = true;
+      area.style.cssText = "position: fixed; opacity: 0";
+      document.body.appendChild(area);
+      area.select();
+      button.textContent = "Selected: press Copy";
+      setTimeout(() => area.remove(), 4000);
+    }
+    setTimeout(() => {
+      button.textContent = "Copy answers";
+    }, 2200);
+  });
+
+  const lightbox = document.getElementById("lightbox");
+  document.addEventListener("click", (event) => {
+    const trigger = event.target.closest("[data-shot]");
+    if (!trigger) return;
+    document.getElementById("lb-img").src = trigger.dataset.shot;
+    document.getElementById("lb-img").alt = trigger.querySelector("img").alt;
+    document.getElementById("lb-src").href = trigger.dataset.url;
+    lightbox.showModal();
+  });
+  document.getElementById("lb-close").addEventListener("click", () => lightbox.close());
+  lightbox.addEventListener("click", (event) => {
+    if (event.target === lightbox) lightbox.close();
+  });
+
+  build();
+  render();
+</script>

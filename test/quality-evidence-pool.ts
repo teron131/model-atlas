@@ -177,8 +177,8 @@ const imputed = buildComponentScoreResult(
 assert.equal(imputed.componentScores!.agentic_score, direct.componentScores!.agentic_score);
 assert.ok(imputed.evidenceSupport.agentic! > direct.evidenceSupport.agentic!);
 
-assert.equal(residualIndexBreadth("epoch_capabilities_index", [], 4), 8);
-assert.equal(residualIndexBreadth("epoch_capabilities_index", [], 40), 8);
+assert.equal(residualIndexBreadth("epoch_capabilities_index", [], 4), 8.5);
+assert.equal(residualIndexBreadth("epoch_capabilities_index", [], 40), 8.5);
 assert.equal(residualIndexBreadth("aa_intelligence_index", ["terminal_bench"]), aaBreadth - 1);
 const sharedIndexBreadths = qualityIndexBreadths([
   { key: "aa_intelligence_index" },

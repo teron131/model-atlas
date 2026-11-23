@@ -630,36 +630,6 @@ export const BENCHMARK_EXTENDED_SOURCES = {
       },
     ],
   },
-  gdp_pdf: {
-    inputs: [
-      {
-        group: BENCHMARK_STANDARD_SOURCES.gdp_pdf.group,
-        id: BENCHMARK_STANDARD_SOURCES.gdp_pdf.id,
-        roles: ["observation"],
-        adapters: [
-          {
-            kind: "benchmark_observation",
-            sourceDataKey: BENCHMARK_STANDARD_SOURCES.gdp_pdf.sourceDataKey,
-            sourceRowsKey: BENCHMARK_STANDARD_SOURCES.gdp_pdf.sourceRowsKey,
-          },
-        ],
-      },
-      {
-        group: "artificial_analysis",
-        id: "artificial_analysis",
-        roles: ["observation", "resource"],
-        adapters: [
-          {
-            kind: "artificial_analysis_resource_page",
-            scoreKey: "gdpPdfAllPass",
-            resourceKey: "gdpPdf",
-            url: "https://artificialanalysis.ai/evaluations/gdp-pdf",
-            methodologyName: "GDP.pdf",
-          },
-        ],
-      },
-    ],
-  },
   gdpval_normalized: {
     inputs: [
       {
@@ -852,10 +822,6 @@ export const BENCHMARK_PROCESSING_OVERRIDES = {
       output: [0, 1],
       clamp: true,
     },
-  },
-  gdp_pdf: {
-    aggregation: { kind: "custom" },
-    sourceCrosswalk: { kind: "custom" },
   },
   gdpval_normalized: {
     transform: {

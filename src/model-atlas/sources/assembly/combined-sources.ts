@@ -18,14 +18,12 @@ export function combinedBenchmarkObservations({
   terminalBenchRows: official,
   artificialAnalysisBenchmarkResourceRows: artificialAnalysisRows,
   terminalBenchScienceRows: science,
-  gdpPdfRows: gdpPdf,
   aleBenchRows: ale,
   weirdMlRows: weird,
 }: {
   terminalBenchRows: TerminalBenchModelHarnessRow[];
   artificialAnalysisBenchmarkResourceRows: ArtificialAnalysisBenchmarkResourceRow[];
   terminalBenchScienceRows: BenchmarkObservationRow[];
-  gdpPdfRows: BenchmarkObservationRow[];
   aleBenchRows: AleBenchSourceRow[];
   weirdMlRows: BenchmarkObservationRow[];
 }): Record<string, CrosswalkObservation[]> {
@@ -77,9 +75,6 @@ export function combinedBenchmarkObservations({
       ],
       { sourceLabels: ["Creator", "Epoch"] },
     ),
-    gdp_pdf: crosswalkBenchmarkSources([gdpPdf, artificialAnalysisObservations("gdp_pdf")], {
-      sourceLabels: ["Surge", "Artificial Analysis"],
-    }),
     terminal_bench: crosswalkBenchmarkSources(
       [officialRows, artificialAnalysisObservations("terminal_bench")],
       {

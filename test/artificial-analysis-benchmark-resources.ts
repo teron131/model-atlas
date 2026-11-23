@@ -86,7 +86,6 @@ assertDeepEqual(
     "briefcase",
     "code2video_aa",
     "critpt",
-    "gdp_pdf",
     "gdpval_normalized",
     "hle",
     "mlcr_aa",
@@ -96,14 +95,6 @@ assertDeepEqual(
   ],
 );
 for (const [benchmarkKey, scoreKey, resourceKey, url, methodologyName, version] of [
-  [
-    "gdp_pdf",
-    "gdpPdfAllPass",
-    "gdpPdf",
-    "https://artificialanalysis.ai/evaluations/gdp-pdf",
-    "GDP.pdf",
-    null,
-  ],
   [
     "mlcr_aa",
     "mlcrOverall",

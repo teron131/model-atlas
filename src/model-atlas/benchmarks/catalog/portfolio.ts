@@ -81,7 +81,7 @@ export const BENCHMARK_SCORING_WEIGHTS = {
   },
   cais_capabilities_index: CAIS_INDEX_SCORING_WEIGHT,
   chartography: {
-    group: "frontier",
+    group: "baseline",
     dimensionLoadings: { intelligence: 1, agentic: 0 },
   },
   chess_puzzles: {
@@ -287,7 +287,6 @@ export const BENCHMARK_RESOURCE_POLICIES = {
   emb: BENCHMARK_PER_TASK_RESOURCE,
   finance_agent: BENCHMARK_PER_TASK_RESOURCE,
   frontier_code: BENCHMARK_PER_TASK_RESOURCE,
-  gdp_pdf: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
   gdpval_normalized: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
   hle: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
   mlcr_aa: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,

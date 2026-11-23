@@ -389,18 +389,15 @@ const unavailableAa = combinedBenchmarkObservations({
     { ...observation("science", 0.4), metadata: { source_series: "official" } },
     { ...observation("science", 0.6), metadata: { source_series: "vals" } },
   ],
-  gdpPdfRows: [{ ...observation("gdp", 0.4), benchmark_key: "gdp_pdf" }],
   aleBenchRows: [],
   weirdMlRows: [],
 });
-assert.equal(unavailableAa.gdp_pdf?.length, 0);
 assert.equal(unavailableAa.terminal_bench_science?.length, 0);
 
 const weirdMlCombined = combinedBenchmarkObservations({
   terminalBenchRows: [],
   artificialAnalysisBenchmarkResourceRows: [],
   terminalBenchScienceRows: [],
-  gdpPdfRows: [],
   aleBenchRows: [],
   weirdMlRows: [
     ...pairs.flatMap((pair) => [
@@ -500,7 +497,6 @@ assert.deepEqual(
     terminalBenchRows: [official],
     artificialAnalysisBenchmarkResourceRows: [],
     terminalBenchScienceRows: [],
-    gdpPdfRows: [],
     aleBenchRows: [],
     weirdMlRows: [],
   }).terminal_bench?.map((row) => [

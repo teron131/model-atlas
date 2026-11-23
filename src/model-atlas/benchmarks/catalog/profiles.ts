@@ -205,17 +205,19 @@ export const BENCHMARK_PROFILES: Record<TaskBenchmarkKey, BenchmarkProfile> = {
   },
   chartography: {
     given:
-      "one real chart image from professional or academic sources plus an expert-written question about it.",
-    produces: "a single text answer.",
+      "one real chart image from professional or academic sources, placed in the agent's workspace, plus an expert-written question about it.",
+    produces: "a single answer saved to a file, with no explanation.",
     taskMix:
       "100 chart-question pairs across 12 domains in STEM (including five engineering subfields), finance/investing, manufacturing/supply chain, and healthcare; chart types include Kaplan-Meier curves, candlestick charts, contour maps, Sankey diagrams, and Bode plots. Per-domain counts not published.",
-    environment: "no tools; one response per question.",
+    environment:
+      "since v1.1, an agent run in Surge's Harbor container harness: up to 30 minutes in an offline Linux container with Python and image, OCR, PDF, and numerical libraries (Pillow, NumPy, SciPy, OpenCV, Tesseract OCR, PyMuPDF) for reading, measuring, and interpolating chart values.",
     gradedBy:
-      "a model judge compares the response with the golden answer, which carries an expert-set acceptable range based on the chart's readable precision; the judge does not see the chart; score is the fraction judged correct.",
+      "a Gemini 3.5 Flash judge compares the saved answer with the golden answer, which carries an expert-set acceptable range based on the chart's readable precision; the judge does not see the chart; score is the fraction judged correct.",
     sources: [
       "https://surgehq.ai/benchmarks/chartography",
       "https://raw.githubusercontent.com/surge-ai/chartography/main/README.md",
       "https://huggingface.co/datasets/surgeai/chartography",
+      "https://huggingface.co/datasets/surgeai/Chartography-harbor",
       "https://arxiv.org/pdf/2608.10677",
     ],
   },
@@ -407,17 +409,18 @@ export const BENCHMARK_PROFILES: Record<TaskBenchmarkKey, BenchmarkProfile> = {
   },
   gdp_pdf: {
     given:
-      "a task instruction plus the text of a long real-world professional PDF (parsed with LiteParse), and rendered page images for models that accept images; PDFs contain diagrams, tables, forms, and technical content.",
+      "a task instruction plus a long real-world professional PDF containing diagrams, tables, forms, and technical content.",
     produces: "a written response answering the task's instructions.",
     taskMix:
       "100 tasks across ten professional domains (named examples: business, finance, legal, medical, science, healthcare), drawing on 4,592 source pages; per-domain counts not published here.",
     environment:
-      "no tools, browsing, or code execution; one response per attempt, five independent attempts per task.",
+      "since v1.1, an agent run in Surge's Harbor-format container harness; Surge has not published the harness's tools or time limits.",
     gradedBy:
-      "1,275 atomic expert-written criteria, each scored independently by an LLM judge; headline all-pass score is the share of attempts passing every criterion, with mean criterion pass rate also reported; errors score zero.",
+      "1,275 atomic expert-written criteria, with ambiguous ones revised in v1.1, each scored independently by an LLM judge; the headline score is the share of runs passing every criterion.",
     sources: [
-      "https://artificialanalysis.ai/evaluations/gdp-pdf",
+      "https://surgehq.ai/leaderboards/gdp-pdf",
       "https://surgehq.ai/blog/gdp-pdf-can-100b-ai-models-master-the-documents-that-run-the-world",
+      "https://github.com/surge-ai/gdp-pdf",
     ],
   },
   gdp_xlsx: {

@@ -910,29 +910,6 @@ export const BENCHMARK_TASK_METRIC_COLUMNS = {
       label: "FC Tok",
     },
   ],
-  gdp_pdf: [
-    {
-      key: "gdpPdfArtificialAnalysisCost",
-      metric: "cost",
-      metricSource: "gdp_pdf__source_b",
-      direction: "ascending",
-      label: "GDP.pdf$ AA",
-    },
-    {
-      key: "gdpPdfArtificialAnalysisSeconds",
-      metric: "seconds",
-      metricSource: "gdp_pdf__source_b",
-      direction: "ascending",
-      label: "GDP.pdf Sec AA",
-    },
-    {
-      key: "gdpPdfArtificialAnalysisTokens",
-      metric: "tokens",
-      metricSource: "gdp_pdf__source_b",
-      direction: "ascending",
-      label: "GDP.pdf Tok AA",
-    },
-  ],
   gdpval_normalized: [
     {
       key: "gdpvalCost",

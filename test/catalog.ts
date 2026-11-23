@@ -257,8 +257,8 @@ function admitsWeight(benchmarks: Record<string, number>, minimumObservedWeight:
   });
 }
 assert.equal(admitsWeight({ aa_intelligence_index: 0 }, 9), true);
-assert.equal(admitsWeight({ epoch_capabilities_index: 100 }, 8), true);
-assert.equal(admitsWeight({ epoch_capabilities_index: 100 }, 8.000001), false);
+assert.equal(admitsWeight({ epoch_capabilities_index: 100 }, 8.5), true);
+assert.equal(admitsWeight({ epoch_capabilities_index: 100 }, 8.500001), false);
 for (const count of [4, 7, 40]) {
   assert.equal(
     hasRequiredBenchmarkEvidence(
