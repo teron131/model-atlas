@@ -39,7 +39,6 @@ import {
 import {
   processSurgeBenchmarkPageHtml,
   processSurgeIntelligenceIndexPageHtml,
-  withSurgeVersion,
 } from "../src/model-atlas/sources/surge/results";
 import { TERMINAL_BENCH_SCIENCE_VALS_URL } from "../src/model-atlas/sources/terminal-bench-science";
 import type { SourceSnapshots } from "../src/model-atlas/sources/types";
@@ -984,22 +983,24 @@ assert.deepEqual(
 assert.deepEqual(snapshotRows([cachedHealthcare], [], null, {}, benchmarkObservationRowKey), [
   cachedHealthcare,
 ]);
-const handbookBinding = benchmarkObservationBinding("handbookMd");
-if (handbookBinding.loader.kind !== "surge" || !("version" in handbookBinding.loader))
-  throw new Error("Expected a version-pinned Surge loader");
-const handbookVersion = handbookBinding.loader.version;
-const handbookSource = benchmarkObservationSource(handbookBinding);
-const handbookRow = { ...updatedHealthcare, benchmark_key: "handbook_md" };
-assert.equal(
-  handbookSource.acceptsCache?.([handbookRow]),
-  false,
-  "Rows from before the HANDBOOK.md rerun cannot rejoin the current version",
+// Surge labels a board's version beside its title through a page script, and every row on the board carries it.
+const versionedSurge = processSurgeBenchmarkPageHtml(
+  `
+	<script>h1.appendChild(el('<span class="v2-chip">v1.1</span>'));</script>
+	<div>Model Rankings</div>
+	<div role="listitem" data-score="45"><div data-leaderboard-rank>1</div><img alt="OpenAI Logo"><div class="head-rank-table-brand">GPT</div><div class="head-rank-table-name">5.6 Sol (Max reasoning)</div></div>
+	<section></section>
+`,
+  "handbook_md",
+  "https://surgehq.ai/benchmarks/handbook",
 );
-assert.equal(
-  handbookSource.acceptsCache?.(
-    withSurgeVersion({ fetched_at_epoch_seconds: 1, data: [handbookRow] }, handbookVersion).data,
-  ),
-  true,
+assert.deepEqual(
+  versionedSurge.map((row) => row.metadata.benchmark_version),
+  ["1.1"],
+);
+assert.ok(
+  surge.every((row) => !("benchmark_version" in row.metadata)),
+  "A board without a version label reports no version",
 );
 assert.equal(healthcareSource.acceptsCache, undefined);
 
@@ -1189,16 +1190,11 @@ const handbook = surge.map((row) => ({
   ...row,
   benchmark_key: "handbook_md",
   source_url: "https://surgehq.ai/benchmarks/handbook",
-  metadata: { ...row.metadata, declared_version: handbookVersion },
 }));
-const complexConstraintsLoader = benchmarkObservationBinding("complexConstraints").loader;
-if (complexConstraintsLoader.kind !== "surge" || !("version" in complexConstraintsLoader))
-  throw new Error("Expected a version-pinned Surge loader");
 const complexConstraints = surge.map((row) => ({
   ...row,
   benchmark_key: "complex_constraints",
   source_url: "https://surgehq.ai/benchmarks/complex-constraints",
-  metadata: { ...row.metadata, declared_version: complexConstraintsLoader.version },
 }));
 const snapshots = {
   ...Object.fromEntries(

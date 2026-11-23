@@ -61,6 +61,7 @@ function readRiemannBenchRawCache(cache: CacheRowSource): {
             model,
             score,
             last_updated: asNonEmptyString(row.last_updated),
+            version: asNonEmptyString(row.version),
           },
         ]
       : [];
@@ -87,6 +88,7 @@ async function riemannBenchSnapshot(
       return sourceRowKey(row.provider, parsedModel.baseModel, parsedModel.reasoningEffort);
     },
     rowLabel: (row) => row.model,
+    versions: { versionOf: (row) => row.version },
   });
   if (snapshot.sourceUrl == null) {
     throw new Error("Riemann-bench snapshot is missing its source URL");
@@ -102,8 +104,8 @@ function insertRiemannBenchRawRows(db: DatabaseWriter, snapshot: RiemannBenchSna
   const statement = db.prepare(`
 		INSERT INTO riemann_bench_raw_rows (
 			row_index, fetched_at_epoch_seconds, url, provider,
-			model, score, last_updated
-		) VALUES (?, ?, ?, ?, ?, ?, ?)
+			model, score, last_updated, version
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 	`);
   for (const [index, row] of snapshot.rows.entries()) {
     statement.run(
@@ -114,6 +116,7 @@ function insertRiemannBenchRawRows(db: DatabaseWriter, snapshot: RiemannBenchSna
       row.model,
       row.score,
       row.last_updated,
+      row.version,
     );
   }
 }

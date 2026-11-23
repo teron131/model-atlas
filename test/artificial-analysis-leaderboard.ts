@@ -424,12 +424,16 @@ const modelServer = createServer((request, response) => {
   if (request.url === "/leaderboards/models") {
     response.end(
       flight({
-        evaluations: {
-          intelligenceIndex: {
-            slug: "artificial-analysis-intelligence-index",
+        headlineIndexes: [
+          { index: "intelligence", href: "/evaluations/artificial-analysis-intelligence-index" },
+        ],
+        generalEvaluations: [
+          {
             name: "Artificial Analysis Intelligence Index v5.0",
+            shortName: "Artificial Analysis Intelligence Index",
+            href: "/evaluations/artificial-analysis-intelligence-index",
           },
-        },
+        ],
         models: [
           {
             ...richModels[0],

@@ -1,4 +1,4 @@
-/** Changed measurement contracts and source-published versions receive distinct timeline versions, while resource bookkeeping and unrelated benchmarks keep theirs. */
+/** Source-published versions receive distinct timeline versions, while resource bookkeeping leaves a benchmark's timeline version unchanged. */
 
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
@@ -8,37 +8,12 @@ import { BENCHMARK_CATALOG } from "../src/model-atlas/benchmarks/registry";
 import { stableJson } from "../src/model-atlas/runtime";
 import { benchmarkVersionId } from "../src/model-atlas/timeline/capability";
 
-const changedKeys = [
-  "aa_intelligence_index",
-  "arc_agi_3",
-  "chess_puzzles",
-  "code_migration",
-  "complex_constraints",
-  "critpt",
-  "emb",
-  "finance_agent",
-  "frontier_code",
-  "frontiermath_tier_4",
-  "handbook_md",
-  "hle",
-  "rsi_benchmark",
-  "vals_index",
-];
-assert.deepEqual(
-  Object.entries(BENCHMARK_CATALOG)
-    .filter(([, definition]) => definition.source.version != null)
-    .map(([key]) => key)
-    .sort(),
-  [...changedKeys].sort(),
-);
-
 for (const [key, definition] of Object.entries(BENCHMARK_CATALOG)) {
-  const { version: _version, ...unversionedSource } = definition.source;
-  const previousContract = {
+  const contract = {
     key,
     source: {
-      ...unversionedSource,
-      inputs: unversionedSource.inputs.map((input) => ({
+      ...definition.source,
+      inputs: definition.source.inputs.map((input) => ({
         ...input,
         adapters: input.adapters?.map((adapter) => {
           if (adapter.kind !== "artificial_analysis_resource_page") return adapter;
@@ -57,21 +32,15 @@ for (const [key, definition] of Object.entries(BENCHMARK_CATALOG)) {
     indexBreadth:
       key === "aa_intelligence_index" ? indexPolicy(key)?.representedBenchmarks : undefined,
   };
-  const previousId = `atlas:benchmark:${key}:${createHash("sha256").update(stableJson(previousContract)).digest("hex").slice(0, 20)}`;
-  if (changedKeys.includes(key)) {
-    assert.notEqual(benchmarkVersionId(key), previousId, `${key} needs a new measurement version`);
-  } else {
-    assert.equal(benchmarkVersionId(key), previousId, `${key} retains its existing version`);
-  }
+  assert.equal(
+    benchmarkVersionId(key),
+    `atlas:benchmark:${key}:${createHash("sha256").update(stableJson(contract)).digest("hex").slice(0, 20)}`,
+    `${key} keeps its timeline version`,
+  );
 }
 
 assert.equal(benchmarkVersionId("vals_index", undefined), benchmarkVersionId("vals_index"));
 assert.notEqual(benchmarkVersionId("vals_index", "2.2"), benchmarkVersionId("vals_index"));
 assert.notEqual(benchmarkVersionId("vals_index", "2.3"), benchmarkVersionId("vals_index", "2.2"));
 
-assert.equal(BENCHMARK_CATALOG.frontiermath_tier_4.source.version, "2.1.0");
-assert.equal(BENCHMARK_CATALOG.chess_puzzles.source.version, "2");
 assert.equal(BENCHMARK_CATALOG.chess_puzzles.version, "2");
-assert.equal(BENCHMARK_CATALOG.rsi_benchmark.source.version, "four_task_reference_mean");
-assert.equal(BENCHMARK_CATALOG.vals_index.source.version, indexPolicy("vals_index")?.version);
-assert.equal(BENCHMARK_CATALOG.aa_intelligence_index.source.version, "5.0");

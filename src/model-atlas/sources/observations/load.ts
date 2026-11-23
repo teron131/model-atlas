@@ -28,12 +28,7 @@ import {
 import { getMercorStats, mercorCacheMatches } from "../mercor/results";
 import { sourceRowKey } from "../snapshots/policy";
 import { fetchRowsOrNone, harnessDistinguishesRuns } from "../snapshots/row-snapshot";
-import {
-  getSurgeIntelligenceIndexStats,
-  getSurgeLeaderboardStats,
-  surgeCacheMatches,
-  withSurgeVersion,
-} from "../surge/results";
+import { getSurgeIntelligenceIndexStats, getSurgeLeaderboardStats } from "../surge/results";
 import {
   getTerminalBenchScienceStats,
   TERMINAL_BENCH_SCIENCE_VALS_URL,
@@ -158,17 +153,11 @@ function loaderSource(binding: BenchmarkObservationBinding): ObservationSource {
         acceptsCache: (rows) => mercorCacheMatches(rows, loader),
       };
     case "surge": {
-      const { version } = loader;
       const fetchRows =
         loader.view === "index"
           ? () => getSurgeIntelligenceIndexStats(binding.benchmark, loader.sourceUrl)
           : () => getSurgeLeaderboardStats(binding.benchmark, loader.sourceUrl, loader.scoreKind);
-      return version == null
-        ? { fetchRows }
-        : {
-            fetchRows: async () => withSurgeVersion(await fetchRows(), version),
-            acceptsCache: (rows) => surgeCacheMatches(rows, version),
-          };
+      return { fetchRows };
     }
     case "terminal_bench_science":
       return {

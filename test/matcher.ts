@@ -994,7 +994,13 @@ assert.equal(
   findRiemannBenchScore(
     ["Qwen3.7 Max"],
     buildRiemannBenchMap([
-      { provider: "Qwen", model: "Qwen 3.7 Max (Thinking on)", score: 0.152, last_updated: null },
+      {
+        provider: "Qwen",
+        model: "Qwen 3.7 Max (Thinking on)",
+        score: 0.152,
+        last_updated: null,
+        version: null,
+      },
     ]),
   ),
   0.152,
@@ -1168,6 +1174,7 @@ function modelStatsSourceData(
       model: "Example 2.5 Flash (High reasoning)",
       score: 0.31,
       last_updated: "05/27/2026",
+      version: null,
     },
   ];
   const valsIndexModelScoreRows: ValsIndexModelScoreRow[] = [

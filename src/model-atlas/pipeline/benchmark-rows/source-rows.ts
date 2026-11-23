@@ -96,6 +96,7 @@ function riemannBenchmarkDraft(row: {
   model: string;
   provider: string | null;
   score: unknown;
+  version: string | null;
 }): BenchmarkRowDraft {
   const parsed = parseModelEffort(row.model);
   return {
@@ -105,6 +106,7 @@ function riemannBenchmarkDraft(row: {
     provider: row.provider,
     reasoningEffort: parsed.reasoningEffort,
     value: row.score,
+    version: row.version,
   };
 }
 

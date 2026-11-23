@@ -290,6 +290,7 @@ CREATE TABLE IF NOT EXISTS riemann_bench_raw_rows (
 	model TEXT NOT NULL,
 	score REAL NOT NULL,
 	last_updated TEXT,
+	version TEXT,
 	PRIMARY KEY (row_index)
 );
 

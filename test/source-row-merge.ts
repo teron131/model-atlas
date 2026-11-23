@@ -533,6 +533,7 @@ const cachedRiemannRow = {
   model: "Claude Opus 5.5 (Adaptive/Max)",
   score: 0.696,
   last_updated: null,
+  version: null,
 };
 const originalFetch = globalThis.fetch;
 globalThis.fetch = async () =>

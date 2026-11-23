@@ -4,7 +4,6 @@
  * Page source: https://www.vals.ai/benchmarks/rsi_index
  */
 
-import { BENCHMARK_STANDARD_SOURCES } from "../../benchmarks/catalog";
 import type {
   BenchmarkObservationMetadata,
   BenchmarkObservationPayload,
@@ -16,7 +15,7 @@ import { findObjectEnd, htmlAttribute, percentToUnitScore } from "../parsing";
 import { fetchSourceText } from "../request-scheduler";
 import { valsModelSlug } from "./results";
 
-const RSI_METRIC = BENCHMARK_STANDARD_SOURCES.rsi_benchmark.version;
+const RSI_METRIC = "four_task_reference_mean";
 const RSI_TASKS = [
   "overall",
   "compression",

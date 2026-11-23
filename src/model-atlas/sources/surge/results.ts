@@ -43,6 +43,7 @@ export type SurgeLeaderboardScoreRow = {
   model: string;
   score: number;
   last_updated: string | null;
+  version: string | null;
 };
 
 type SurgeScoreKind = "percent" | "elo";
@@ -71,31 +72,10 @@ export async function getSurgeLeaderboardStats(
   };
 }
 
-export function withSurgeVersion(
-  payload: BenchmarkObservationPayload,
-  version: string,
-): BenchmarkObservationPayload {
-  return {
-    ...payload,
-    data: payload.data.map((row) => ({
-      ...row,
-      metadata: { ...row.metadata, declared_version: version },
-    })),
-  };
-}
-
-/** Only rows stamped with the declared version can serve as cache, so rows from before an unannounced rerun never rejoin it. */
-export function surgeCacheMatches(
-  rows: readonly BenchmarkObservationRow[],
-  version: string,
-): boolean {
-  return rows.every((row) => row.metadata.declared_version === version);
-}
-
 export function surgeLeaderboardScoreRows(pageHtml: string): SurgeLeaderboardScoreRow[] {
-  const lastUpdated = surgeLastUpdated(pageHtml);
+  const page = surgePageFields(pageHtml);
   return surgeLeaderboardRowHtml(pageHtml)
-    .map((rowHtml) => surgeLeaderboardScoreRow(rowHtml, lastUpdated))
+    .map((rowHtml) => surgeLeaderboardScoreRow(rowHtml, page))
     .filter((row): row is SurgeLeaderboardScoreRow => row != null);
 }
 
@@ -105,9 +85,9 @@ export function processSurgeBenchmarkPageHtml(
   sourceUrl: string,
   scoreKind: SurgeScoreKind = "percent",
 ): BenchmarkObservationRow[] {
-  const lastUpdated = surgeLastUpdated(pageHtml);
+  const page = surgePageFields(pageHtml);
   const rows = surgeLeaderboardRowHtml(pageHtml)
-    .map((rowHtml) => surgeLeaderboardScoreRow(rowHtml, lastUpdated, scoreKind))
+    .map((rowHtml) => surgeLeaderboardScoreRow(rowHtml, page, scoreKind))
     .filter((row): row is SurgeLeaderboardScoreRow => row != null);
   return mapWithCompetitionRank(
     rows,
@@ -128,7 +108,10 @@ export function processSurgeBenchmarkPageHtml(
         rank,
         canonical_value: row.score,
         observed_at: row.last_updated,
-        metadata: harness == null ? {} : { harness: harness.trim() },
+        metadata: {
+          ...(harness == null ? {} : { harness: harness.trim() }),
+          ...(row.version == null ? {} : { benchmark_version: row.version }),
+        },
       };
     },
   );
@@ -185,9 +168,21 @@ export function processSurgeIntelligenceIndexPageHtml(
   );
 }
 
+/** What the page states once for every row on its board. */
+function surgePageFields(
+  pageHtml: string,
+): Pick<SurgeLeaderboardScoreRow, "last_updated" | "version"> {
+  return { last_updated: surgeLastUpdated(pageHtml), version: surgeVersion(pageHtml) };
+}
+
 function surgeLastUpdated(pageHtml: string): string | null {
   const match = stripHtmlTags(pageHtml).match(/Last updated\s+(\d{2}\/\d{2}\/\d{4})/i);
   return match?.[1] ?? null;
+}
+
+/** The version label a page script sets beside the board's title, `<span class="v2-chip">v1.1</span>` → `1.1`; null when the board shows none. */
+function surgeVersion(pageHtml: string): string | null {
+  return pageHtml.match(/class="v2-chip">v(\d+(?:\.\d+)*)</)?.[1] ?? null;
 }
 
 function surgeLeaderboardRowHtml(pageHtml: string): string[] {
@@ -209,7 +204,7 @@ function surgeLeaderboardSegment(pageHtml: string): string {
 
 function surgeLeaderboardScoreRow(
   rowHtml: string,
-  lastUpdated: string | null,
+  page: Pick<SurgeLeaderboardScoreRow, "last_updated" | "version">,
   scoreKind: SurgeScoreKind = "percent",
 ): SurgeLeaderboardScoreRow | null {
   const model = surgeModelName(rowHtml);
@@ -222,7 +217,7 @@ function surgeLeaderboardScoreRow(
     provider: surgeProvider(rowHtml),
     model,
     score: canonicalValue,
-    last_updated: lastUpdated,
+    ...page,
   };
 }
 

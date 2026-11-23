@@ -20,6 +20,8 @@ const ARTIFICIAL_ANALYSIS_LEADERBOARD_URL = "https://artificialanalysis.ai/leade
 
 const ROW_DETECTION_KEY = "intelligenceIndex";
 
+const INTELLIGENCE_INDEX_HREF = "/evaluations/artificial-analysis-intelligence-index";
+
 const MODEL_SEARCH_BACKTRACK_CHARS = 20_000;
 
 type ArtificialAnalysisLeaderboardOptions = {
@@ -176,12 +178,30 @@ function firstNumber(row: JsonObject, keys: string[]): number | null {
   return null;
 }
 
-/** The leaderboard names its index evaluation with the version it currently publishes, `"name":"Artificial Analysis Intelligence Index v4.0"` → `4.0`; null when that name is missing. */
+/** The leaderboard names its index evaluation with the version it currently publishes, `{"name":"Artificial Analysis Intelligence Index v5.0.1",…,"href":"/evaluations/artificial-analysis-intelligence-index"}` → `5.0.1`; other records linking that page carry no name and are skipped, and null means none does. */
 function publishedIntelligenceIndexVersion(flightCorpus: string): string | null {
-  const name = /"slug":"artificial-analysis-intelligence-index","name":"([^"]+)"/.exec(
-    flightCorpus,
-  )?.[1];
-  return name == null ? null : artificialAnalysisEvaluationVersion(name);
+  const hrefText = `"href":"${INTELLIGENCE_INDEX_HREF}"`;
+  for (
+    let hitIndex = flightCorpus.indexOf(hrefText);
+    hitIndex !== -1;
+    hitIndex = flightCorpus.indexOf(hrefText, hitIndex + 1)
+  ) {
+    const name = enclosingRecord(flightCorpus, hitIndex)?.name;
+    if (typeof name === "string") return artificialAnalysisEvaluationVersion(name);
+  }
+  return null;
+}
+
+/** The innermost object around `index`: the nearest opening brace before it whose object extends past it. */
+function enclosingRecord(flightCorpus: string, index: number): JsonObject | null {
+  const searchStart = Math.max(0, index - MODEL_SEARCH_BACKTRACK_CHARS);
+  for (let backIndex = index; backIndex >= searchStart; backIndex -= 1) {
+    if (flightCorpus[backIndex] !== "{") continue;
+    const endIndex = findObjectEnd(flightCorpus, backIndex);
+    if (endIndex >= index)
+      return parseFlightJsonObject(flightCorpus.slice(backIndex, endIndex + 1));
+  }
+  return null;
 }
 
 function intelligenceIndexComponentSlugs(row: JsonObject): string[] {

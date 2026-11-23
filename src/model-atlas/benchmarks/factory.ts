@@ -62,8 +62,6 @@ export type BenchmarkObservationLoader =
       sourceUrl: string;
       scoreKind?: "elo";
       view?: "index";
-      /** Surge publishes no versions, so an Atlas-declared version marks rows from an unannounced rerun. */
-      version?: string;
     }
   | { kind: "terminal_bench_science"; sourceUrl: string }
   | {
@@ -87,15 +85,12 @@ export type BenchmarkSourceInput = {
   runtime?: BenchmarkSourceRuntime;
 };
 export type BenchmarkSourceFacet = {
-  /** Declares a measurement version the source rows do not report; a version they report reaches the timeline identity on its own. */
-  version?: string;
   inputs: readonly [BenchmarkSourceInput, ...BenchmarkSourceInput[]];
 };
 type BenchmarkSourceInputDeclaration = Omit<BenchmarkSourceInput, "adapters"> & {
   adapters?: readonly BenchmarkSourceAdapter[];
 };
 export type BenchmarkSourceDeclarationFacet = {
-  version?: string;
   inputs: readonly [BenchmarkSourceInputDeclaration, ...BenchmarkSourceInputDeclaration[]];
 };
 export type BenchmarkGroup = "baseline" | "frontier";
@@ -127,7 +122,7 @@ type BenchmarkSourceCrosswalkPolicy = { kind: "custom" };
 
 export type BenchmarkProcessingFacet = {
   transform: BenchmarkSourceTransform;
-  /** Frozen labels: apart from validation requiring several sources for `sourceCrosswalk`, nothing branches on `aggregation` or `sourceCrosswalk`, but `benchmarkVersionId` hashes them into persisted timeline version ids, so editing one retires that benchmark's timeline identity and its links; declare real version changes with `source.version`. */
+  /** Frozen labels: apart from validation requiring several sources for `sourceCrosswalk`, nothing branches on `aggregation` or `sourceCrosswalk`, but `benchmarkVersionId` hashes them into persisted timeline version ids, so editing one retires that benchmark's timeline identity and its links. */
   aggregation: BenchmarkAggregationPolicy;
   sourceCrosswalk?: BenchmarkSourceCrosswalkPolicy;
 };

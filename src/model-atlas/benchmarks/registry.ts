@@ -60,7 +60,6 @@ function resolveBenchmarkProcessing(
 export type BenchmarkObservationKey = keyof typeof BENCHMARK_STANDARD_SOURCES;
 
 type StandardBenchmarkSourceFacet<Key extends BenchmarkObservationKey> = {
-  version?: string;
   inputs: readonly [
     {
       group: (typeof BENCHMARK_STANDARD_SOURCES)[Key]["group"];
@@ -109,7 +108,6 @@ type ResolvedBenchmarkSourceInputs<Inputs extends BenchmarkSourceDeclarationFace
     : never;
 
 type ResolvedBenchmarkSourceFacet<Facet extends BenchmarkSourceDeclarationFacet> = {
-  version?: string;
   inputs: ResolvedBenchmarkSourceInputs<Facet["inputs"]>;
 };
 
@@ -135,7 +133,6 @@ function composeBenchmarkSources(): BenchmarkSources {
       return [
         benchmarkKey,
         {
-          ...("version" in source ? { version: source.version } : {}),
           inputs: [
             {
               group: source.group,
