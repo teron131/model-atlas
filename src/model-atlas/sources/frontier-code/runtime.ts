@@ -1,4 +1,4 @@
-/** FrontierCode keeps one raw row per model and source effort with its Main subset evidence; the cache is accepted only when every row shares one source version (`revision`) and parses completely. */
+/** FrontierCode keeps one raw row per model and source effort with its Main subset evidence; the cache is accepted only when every row shares one source version and parses completely. */
 
 import { buildBenchmarkModelMap } from "../../identity/normalization";
 import { asFiniteNumber, asNonEmptyString } from "../../runtime";
@@ -44,13 +44,13 @@ function readFrontierCodeRawCache(
     cache,
     "SELECT * FROM frontier_code_raw_rows ORDER BY row_index",
   );
-  const revision = asNonEmptyString(cacheRows[0]?.revision);
+  const version = asNonEmptyString(cacheRows[0]?.version);
   if (
-    revision == null ||
+    version == null ||
     cacheRows.some(
       (row) =>
         asNonEmptyString(row.url) !== FRONTIER_CODE_LEADERBOARD_URL ||
-        asNonEmptyString(row.revision) !== revision,
+        asNonEmptyString(row.version) !== version,
     )
   ) {
     return null;
@@ -78,7 +78,7 @@ function readFrontierCodeRawCache(
     }
     return [
       {
-        revision,
+        version,
         model,
         base_model: baseModel,
         source_effort: sourceEffort,
@@ -115,7 +115,7 @@ async function frontierCodeSnapshot(
   const snapshot = await snapshotSourceRows({
     ...request,
     fetchRows: getFrontierCodeStats,
-    versions: { versionOf: (row) => row.revision },
+    versions: { versionOf: (row) => row.version },
     rowKey: (row) => sourceRowKey(row.base_model, row.source_effort),
     rowLabel: (row) => `${row.model}: ${row.harness}`,
   });
@@ -128,7 +128,7 @@ async function frontierCodeSnapshot(
 function insertFrontierCodeRawRows(db: DatabaseWriter, snapshot: FrontierCodeSnapshot): void {
   const statement = db.prepare(`
 		INSERT INTO frontier_code_raw_rows (
-			row_index, fetched_at_epoch_seconds, url, revision, model, base_model,
+			row_index, fetched_at_epoch_seconds, url, version, model, base_model,
 			source_effort, reasoning_effort, harness, score_eligible,
 			official_rank, official_best_effort, main_score, main_pass_rate,
 			main_cost_per_task_usd, main_tokens_per_task, main_json
@@ -139,7 +139,7 @@ function insertFrontierCodeRawRows(db: DatabaseWriter, snapshot: FrontierCodeSna
       index,
       snapshot.sourceStatus.fetchedAt,
       FRONTIER_CODE_LEADERBOARD_URL,
-      row.revision,
+      row.version,
       row.model,
       row.base_model,
       row.source_effort,

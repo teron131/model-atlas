@@ -17,7 +17,7 @@ import {
   buildTerminalBenchMap,
   getTerminalBenchStats,
   TERMINAL_BENCH_LEADERBOARD_URL,
-  TERMINAL_BENCH_SOURCE_REVISION,
+  TERMINAL_BENCH_SOURCE_VERSION,
   type TerminalBenchModelHarnessRow,
 } from "./leaderboard";
 
@@ -45,7 +45,7 @@ export function readTerminalBenchRawCache(
     cacheRows.some(
       (row) =>
         asNonEmptyString(row.url) !== TERMINAL_BENCH_LEADERBOARD_URL ||
-        asNonEmptyString(row.revision) !== TERMINAL_BENCH_SOURCE_REVISION,
+        asNonEmptyString(row.version) !== TERMINAL_BENCH_SOURCE_VERSION,
     )
   ) {
     return null;
@@ -80,7 +80,7 @@ export function readTerminalBenchRawCache(
     }
     return [
       {
-        revision: TERMINAL_BENCH_SOURCE_REVISION,
+        version: TERMINAL_BENCH_SOURCE_VERSION,
         model,
         base_model: baseModel,
         reasoning_effort: asNonEmptyString(row.reasoning_effort),
@@ -122,7 +122,7 @@ async function terminalBenchSnapshot(
         sourceRowKey(row.base_model, row.reasoning_effort, harnessIdentity ? row.harness : null);
     },
     rowLabel: (row) => `${row.model}: ${row.harness}`,
-    versions: { versionOf: (row) => row.revision },
+    versions: { versionOf: (row) => row.version },
   });
   return {
     rows: snapshot.rows,
@@ -133,7 +133,7 @@ async function terminalBenchSnapshot(
 function insertTerminalBenchRawRows(db: DatabaseWriter, snapshot: TerminalBenchSnapshot): void {
   const statement = db.prepare(`
 		INSERT INTO terminal_bench_raw_rows (
-			row_index, fetched_at_epoch_seconds, url, revision, model, base_model,
+			row_index, fetched_at_epoch_seconds, url, version, model, base_model,
 			reasoning_effort, harness, score, score_ci95_half_width, task_run_count,
 			total_cost_usd, total_tokens, cost_per_task_usd, tokens_per_task, seconds_per_task, output_tokens_per_task
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -143,7 +143,7 @@ function insertTerminalBenchRawRows(db: DatabaseWriter, snapshot: TerminalBenchS
       index,
       snapshot.sourceStatus.fetchedAt,
       TERMINAL_BENCH_LEADERBOARD_URL,
-      row.revision,
+      row.version,
       row.model,
       row.base_model,
       row.reasoning_effort,

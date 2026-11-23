@@ -26,14 +26,14 @@ const changedKeys = [
 ];
 assert.deepEqual(
   Object.entries(BENCHMARK_CATALOG)
-    .filter(([, definition]) => definition.source.revision != null)
+    .filter(([, definition]) => definition.source.version != null)
     .map(([key]) => key)
     .sort(),
   [...changedKeys].sort(),
 );
 
 for (const [key, definition] of Object.entries(BENCHMARK_CATALOG)) {
-  const { revision: _revision, ...unversionedSource } = definition.source;
+  const { version: _version, ...unversionedSource } = definition.source;
   const previousContract = {
     key,
     source: {
@@ -69,9 +69,9 @@ assert.equal(benchmarkVersionId("vals_index", undefined), benchmarkVersionId("va
 assert.notEqual(benchmarkVersionId("vals_index", "2.2"), benchmarkVersionId("vals_index"));
 assert.notEqual(benchmarkVersionId("vals_index", "2.3"), benchmarkVersionId("vals_index", "2.2"));
 
-assert.equal(BENCHMARK_CATALOG.frontiermath_tier_4.source.revision, "2.1.0");
-assert.equal(BENCHMARK_CATALOG.chess_puzzles.source.revision, "2");
+assert.equal(BENCHMARK_CATALOG.frontiermath_tier_4.source.version, "2.1.0");
+assert.equal(BENCHMARK_CATALOG.chess_puzzles.source.version, "2");
 assert.equal(BENCHMARK_CATALOG.chess_puzzles.version, "2");
-assert.equal(BENCHMARK_CATALOG.rsi_benchmark.source.revision, "four_task_reference_mean");
-assert.equal(BENCHMARK_CATALOG.vals_index.source.revision, indexPolicy("vals_index")?.version);
-assert.equal(BENCHMARK_CATALOG.aa_intelligence_index.source.revision, "5.0");
+assert.equal(BENCHMARK_CATALOG.rsi_benchmark.source.version, "four_task_reference_mean");
+assert.equal(BENCHMARK_CATALOG.vals_index.source.version, indexPolicy("vals_index")?.version);
+assert.equal(BENCHMARK_CATALOG.aa_intelligence_index.source.version, "5.0");

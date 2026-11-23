@@ -38,7 +38,7 @@ const inFlightPages = new Map<string, Promise<CaisDashboardPage>>();
 type CaisDashboardPage = {
   models: unknown[];
   /** The hashed URL of the script that held the model matrix, which changes with each dashboard deployment. */
-  revision: string;
+  version: string;
   fetchedAt: number;
 };
 
@@ -52,7 +52,7 @@ export async function getCaisDashboardStats(
     page.models,
     benchmarkKey,
     source.sourceUrl,
-    page.revision,
+    page.version,
   );
   return {
     fetched_at_epoch_seconds: data.length > 0 ? page.fetchedAt : null,
@@ -78,13 +78,13 @@ export function processCaisDashboardModels(
   models: readonly unknown[],
   benchmarkKey: string,
   sourceUrl: string,
-  revision: string,
+  version: string,
 ): BenchmarkObservationRow[] {
   const parsedModels = models.flatMap(parseModel);
   const rows =
     benchmarkKey === "cais_capabilities_index"
-      ? parsedModels.flatMap((model) => aggregateRow(model, benchmarkKey, sourceUrl, revision))
-      : parsedModels.flatMap((model) => componentRow(model, benchmarkKey, sourceUrl, revision));
+      ? parsedModels.flatMap((model) => aggregateRow(model, benchmarkKey, sourceUrl, version))
+      : parsedModels.flatMap((model) => componentRow(model, benchmarkKey, sourceUrl, version));
   return rows
     .sort(
       (left, right) =>
@@ -116,19 +116,19 @@ function componentRow(
   model: CaisDashboardModel,
   benchmarkKey: string,
   sourceUrl: string,
-  revision: string,
+  version: string,
 ): BenchmarkObservationRow[] {
   if (!(COMPONENTS as readonly string[]).includes(benchmarkKey)) return [];
   const score = asFiniteNumber(model.scores[benchmarkKey]);
   if (score == null || score < 0 || score > 100) return [];
-  return [buildRow(model, benchmarkKey, score, sourceUrl, revision, "component")];
+  return [buildRow(model, benchmarkKey, score, sourceUrl, version, "component")];
 }
 
 function aggregateRow(
   model: CaisDashboardModel,
   benchmarkKey: string,
   sourceUrl: string,
-  revision: string,
+  version: string,
 ): BenchmarkObservationRow[] {
   const scores = Object.fromEntries(
     COMPONENTS.map((component) => [component, asFiniteNumber(model.scores[component])]),
@@ -142,7 +142,7 @@ function aggregateRow(
     VISION_COMPONENTS.length;
   const score = (2 * textScore + 5 * visionScore) / 7;
   return [
-    buildRow(model, benchmarkKey, score, sourceUrl, revision, "aggregate", {
+    buildRow(model, benchmarkKey, score, sourceUrl, version, "aggregate", {
       component_count: COMPONENTS.length,
       component_scores_json: JSON.stringify(scores),
       index_formula:
@@ -158,7 +158,7 @@ function buildRow(
   benchmarkKey: string,
   score: number,
   sourceUrl: string,
-  revision: string,
+  version: string,
   observationKind: "aggregate" | "component",
   extraMetadata: Record<string, string | number> = {},
 ): BenchmarkObservationRow {
@@ -179,7 +179,7 @@ function buildRow(
       source_family: SOURCE_FAMILY,
       source_model: model.name,
       source_model_id: model.modelId,
-      source_revision: revision,
+      source_version: version,
       metric: METRIC,
       observation_kind: observationKind,
       model_release_date: model.releaseDate,
@@ -247,7 +247,7 @@ async function fetchCaisDashboardPage(sourceUrl: string): Promise<CaisDashboardP
     if (models != null && models.length > 0) {
       return {
         models,
-        revision: scriptUrls[index]!,
+        version: scriptUrls[index]!,
         fetchedAt: nowEpochSeconds(),
       };
     }

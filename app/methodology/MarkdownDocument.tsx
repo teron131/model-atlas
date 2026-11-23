@@ -112,8 +112,8 @@ const MarkdownImage: NonNullable<Components["img"]> = async ({ src = "", alt = "
   let imageSource = src;
   if (asset != null) {
     const source = await readFile(join(process.cwd(), "docs", documentAssetPath(asset)));
-    const revision = createHash("sha256").update(source).digest("hex").slice(0, 16);
-    imageSource = `/methodology-assets/${asset}?v=${revision}`;
+    const hash = createHash("sha256").update(source).digest("hex").slice(0, 16);
+    imageSource = `/methodology-assets/${asset}?v=${hash}`;
   }
   return (
     <DocumentFigure

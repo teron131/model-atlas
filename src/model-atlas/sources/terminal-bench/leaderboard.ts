@@ -30,11 +30,11 @@ const TERMINAL_BENCH_TITLE = "Terminal-Bench 4.1";
 
 export const TERMINAL_BENCH_LEADERBOARD_URL = "https://www.tbench.ai/?version=4.1";
 
-export const TERMINAL_BENCH_SOURCE_REVISION = "4_1_0";
+export const TERMINAL_BENCH_SOURCE_VERSION = "4_1_0";
 
 export type TerminalBenchModelHarnessRow = BenchmarkModelRow &
   Required<Pick<BenchmarkResourceAggregate, "task_run_count" | "total_tokens">> & {
-    revision: typeof TERMINAL_BENCH_SOURCE_REVISION;
+    version: typeof TERMINAL_BENCH_SOURCE_VERSION;
     harness: string;
     score: number;
     score_ci95_half_width: number;
@@ -166,7 +166,7 @@ function modelAgentRow(value: unknown): TerminalBenchModelHarnessRow | null {
   }
   const reportedCostUsd = totalCostUsd > 0 ? totalCostUsd : null;
   return {
-    revision: TERMINAL_BENCH_SOURCE_REVISION,
+    version: TERMINAL_BENCH_SOURCE_VERSION,
     model: modelEffortLabel(baseModel, reasoningEffort),
     base_model: baseModel,
     reasoning_effort: reasoningEffort,

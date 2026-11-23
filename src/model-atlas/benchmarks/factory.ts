@@ -88,14 +88,14 @@ export type BenchmarkSourceInput = {
 };
 export type BenchmarkSourceFacet = {
   /** Declares a measurement version the source rows do not report; a version they report reaches the timeline identity on its own. */
-  revision?: string;
+  version?: string;
   inputs: readonly [BenchmarkSourceInput, ...BenchmarkSourceInput[]];
 };
 type BenchmarkSourceInputDeclaration = Omit<BenchmarkSourceInput, "adapters"> & {
   adapters?: readonly BenchmarkSourceAdapter[];
 };
 export type BenchmarkSourceDeclarationFacet = {
-  revision?: string;
+  version?: string;
   inputs: readonly [BenchmarkSourceInputDeclaration, ...BenchmarkSourceInputDeclaration[]];
 };
 export type BenchmarkGroup = "baseline" | "frontier";
@@ -127,7 +127,7 @@ type BenchmarkSourceCrosswalkPolicy = { kind: "custom" };
 
 export type BenchmarkProcessingFacet = {
   transform: BenchmarkSourceTransform;
-  /** Frozen labels: apart from validation requiring several sources for `sourceCrosswalk`, nothing branches on `aggregation` or `sourceCrosswalk`, but `benchmarkVersionId` hashes them into persisted timeline version ids, so editing one retires that benchmark's timeline identity and its links; declare real version changes with `source.revision`. */
+  /** Frozen labels: apart from validation requiring several sources for `sourceCrosswalk`, nothing branches on `aggregation` or `sourceCrosswalk`, but `benchmarkVersionId` hashes them into persisted timeline version ids, so editing one retires that benchmark's timeline identity and its links; declare real version changes with `source.version`. */
   aggregation: BenchmarkAggregationPolicy;
   sourceCrosswalk?: BenchmarkSourceCrosswalkPolicy;
 };

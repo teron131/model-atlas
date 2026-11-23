@@ -26,6 +26,13 @@ const SCHEMA_MIGRATION_VALUES = {
   model_task_metrics: {
     observed_at: BENCHMARK_VERSION_BASELINE_DATE,
   },
+  // Checkpoints from before these version columns hold only rows of the one version each cache accepts.
+  frontier_code_raw_rows: {
+    version: "v2_0",
+  },
+  terminal_bench_raw_rows: {
+    version: "4_1_0",
+  },
 } as const satisfies SchemaMigrationValues;
 
 /** Schema loading prefers the source tree but falls back to the module URL for packaged CLIs. */

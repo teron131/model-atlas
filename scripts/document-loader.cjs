@@ -4,9 +4,9 @@ const { createHash } = require("node:crypto");
 const { readFileSync } = require("node:fs");
 const { dirname, resolve } = require("node:path");
 
-/** Include artwork in the module revision so SVG-only edits invalidate the rendered document too. */
+/** Include artwork in the module hash so SVG-only edits invalidate the rendered document too. */
 module.exports = function documentLoader(markdown) {
-  const revision = createHash("sha256").update(markdown);
+  const hash = createHash("sha256").update(markdown);
   // Local SVG image links under the three document asset folders: `![Arc](../assets/timeline/frontier-arc.svg)` → `../assets/timeline/frontier-arc.svg`.
   const images = new Set(
     [
@@ -18,7 +18,7 @@ module.exports = function documentLoader(markdown) {
   for (const image of images) {
     const path = resolve(dirname(this.resourcePath), image);
     this.addDependency(path);
-    revision.update(readFileSync(path));
+    hash.update(readFileSync(path));
   }
-  return `export default ${JSON.stringify({ markdown, revision: revision.digest("hex").slice(0, 16) })};`;
+  return `export default ${JSON.stringify({ markdown, hash: hash.digest("hex").slice(0, 16) })};`;
 };

@@ -93,7 +93,7 @@ function processTerminalBenchSciencePayload(
   });
 }
 
-/** Reject cached task resources from another source revision or an incomplete aggregate resource contract. */
+/** Reject cached task resources from another source version or an incomplete aggregate resource contract. */
 export function terminalBenchScienceCacheMatches(
   rows: readonly BenchmarkObservationRow[],
 ): boolean {
@@ -103,7 +103,7 @@ export function terminalBenchScienceCacheMatches(
       (row) =>
         row.metadata.source_series === "vals" ||
         (row.metadata.source_series === "official" &&
-          row.metadata.source_revision === TERMINAL_BENCH_SCIENCE_NAME &&
+          row.metadata.source_version === TERMINAL_BENCH_SCIENCE_NAME &&
           row.cost != null &&
           row.cost >= 0 &&
           row.tokens_per_task != null &&
@@ -174,7 +174,7 @@ function terminalBenchScienceObservation(
     observed_at: asNonEmptyString(row.updated_at),
     metadata: {
       source_series: "official",
-      source_revision: TERMINAL_BENCH_SCIENCE_NAME,
+      source_version: TERMINAL_BENCH_SCIENCE_NAME,
       harness,
       score_standard_error: scoreStandardError,
     },

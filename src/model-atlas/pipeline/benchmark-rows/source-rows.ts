@@ -276,7 +276,7 @@ const STANDALONE_SOURCE_ROW_ADAPTERS = {
         label: row.model,
         reasoningEffort: row.reasoning_effort,
         value: row.score,
-        version: frontierCodeVersion(row.revision),
+        version: frontierCodeVersion(row.version),
       }),
     ),
   terminal_bench: (sourceData) =>

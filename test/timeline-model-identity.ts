@@ -439,53 +439,56 @@ assert.deepEqual(
 );
 
 // An older AA result cannot migrate into a newer current snapshot merely because its publisher reused the base name and slug.
-const currentRevision = {
+const currentVersion = {
   ...historicalSourceModel("Versioned Model", "Lab", "max", "2026-07-31"),
   current: true,
 };
-const publishedRevision = historicalSourceModel("Versioned Model 0731", "Lab", "max", null);
-const revisionRows = [
+const publishedVersion = historicalSourceModel("Versioned Model 0731", "Lab", "max", null);
+const versionRows = [
   {
-    ...observation(currentRevision.id, "aa:early", 40, "versioned-model"),
+    ...observation(currentVersion.id, "aa:early", 40, "versioned-model"),
     observedAt: "2026-07-01",
     sourceReleaseDate: "2026-04-24",
   },
   {
-    ...observation(currentRevision.id, "aa:latest", 25, "versioned-model-0420"),
+    ...observation(currentVersion.id, "aa:latest", 25, "versioned-model-0420"),
     observedAt: "2026-09-01",
     sourceReleaseDate: "2026-04-24",
   },
   {
-    ...observation(publishedRevision.id, "aa:latest", 35, "versioned-model"),
+    ...observation(publishedVersion.id, "aa:latest", 35, "versioned-model"),
     observedAt: "2026-09-01",
   },
   {
-    ...observation(currentRevision.id, "reference", 60, "reference", "frozen checkpoint"),
+    ...observation(currentVersion.id, "reference", 60, "reference", "frozen checkpoint"),
     observedAt: "2026-09-10",
     referenceConfidence: 0.8,
   },
 ];
-const revisions = resolveHistoricalModelIdentities(
-  [currentRevision, publishedRevision],
-  revisionRows,
+const datedVersions = resolveHistoricalModelIdentities(
+  [currentVersion, publishedVersion],
+  versionRows,
 );
-const earlierRevision = revisions.models.find((m) => m.releaseDate === "2026-04-24")!;
-assert.ok(earlierRevision && !earlierRevision.current);
-assert.equal(revisions.models.find((m) => m.id === currentRevision.id)!.releaseDate, "2026-07-31");
+const earlierVersion = datedVersions.models.find((m) => m.releaseDate === "2026-04-24")!;
+assert.ok(earlierVersion && !earlierVersion.current);
 assert.equal(
-  revisions.observations.find(
-    (o) => o.modelId === currentRevision.id && o.benchmarkId === "aa:latest",
+  datedVersions.models.find((m) => m.id === currentVersion.id)!.releaseDate,
+  "2026-07-31",
+);
+assert.equal(
+  datedVersions.observations.find(
+    (o) => o.modelId === currentVersion.id && o.benchmarkId === "aa:latest",
   )!.value,
   35,
 );
 assert.equal(
-  revisions.observations.find(
-    (o) => o.modelId === earlierRevision.id && o.benchmarkId === "aa:latest",
+  datedVersions.observations.find(
+    (o) => o.modelId === earlierVersion.id && o.benchmarkId === "aa:latest",
   )!.value,
   25,
 );
-assert.equal(revisions.observations.length, revisionRows.length);
+assert.equal(datedVersions.observations.length, versionRows.length);
 assert.deepEqual(
-  resolveHistoricalModelIdentities(revisions.models, revisions.observations),
-  revisions,
+  resolveHistoricalModelIdentities(datedVersions.models, datedVersions.observations),
+  datedVersions,
 );

@@ -67,7 +67,7 @@ const aleBenchRow: AleBenchModelScoreRow = {
   output_tokens_per_task: 2_000,
 };
 const frontierCodeRow: FrontierCodeModelEffortRow = {
-  revision: "v2_0",
+  version: "v2_0",
   model: "Example Model (high)",
   base_model: "Example Model",
   source_effort: "high",
@@ -89,7 +89,7 @@ const frontierCodeRow: FrontierCodeModelEffortRow = {
   tokens_per_task: 4_500,
 };
 const terminalBenchRow: TerminalBenchModelHarnessRow = {
-  revision: "4_1_0",
+  version: "4_1_0",
   model: "Example Model (high)",
   base_model: "Example Model",
   reasoning_effort: "high",

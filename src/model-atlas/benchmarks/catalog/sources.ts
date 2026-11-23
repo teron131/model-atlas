@@ -59,7 +59,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
   arc_agi_3: {
     group: "standalone",
     id: "arc_prize",
-    revision: "standard",
+    version: "standard",
     roles: ["observation", "resource"],
     loader: {
       kind: "arc_prize",
@@ -135,7 +135,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
   chess_puzzles: {
     group: "epoch",
     id: "epoch",
-    revision: "2",
+    version: "2",
     loader: {
       kind: "epoch_runs",
       task: "Chess Puzzles",
@@ -148,7 +148,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
     group: "vals",
     id: "vals",
     roles: ["observation", "resource"],
-    revision: "1.1",
+    version: "1.1",
     loader: {
       kind: "vals",
       canonicalTask: "overall",
@@ -160,7 +160,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
   complex_constraints: {
     group: "surge",
     id: "surge",
-    revision: "2026-11-02",
+    version: "2026-11-02",
     loader: {
       kind: "surge",
       sourceUrl: "https://surgehq.ai/benchmarks/complex-constraints",
@@ -200,7 +200,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
     group: "vals",
     id: "vals",
     roles: ["observation", "resource"],
-    revision: "1.1",
+    version: "1.1",
     loader: {
       kind: "vals",
       canonicalTask: "overall",
@@ -243,7 +243,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
     group: "vals",
     id: "vals",
     roles: ["observation", "resource"],
-    revision: "2.1",
+    version: "2.1",
     loader: {
       kind: "vals",
       canonicalTask: "all_pass",
@@ -255,7 +255,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
   frontiermath_tier_4: {
     group: "epoch",
     id: "epoch",
-    revision: "2.1.0",
+    version: "2.1.0",
     loader: {
       kind: "epoch_runs",
       task: "FrontierMath-Tier-4-v2-Private",
@@ -287,7 +287,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
   handbook_md: {
     group: "surge",
     id: "surge",
-    revision: "2026-10-19",
+    version: "2026-10-19",
     loader: {
       kind: "surge",
       sourceUrl: "https://surgehq.ai/benchmarks/handbook",
@@ -373,7 +373,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
   rsi_benchmark: {
     group: "vals",
     id: "vals",
-    revision: "four_task_reference_mean",
+    version: "four_task_reference_mean",
     loader: { kind: "vals_rsi", sourceUrl: "https://www.vals.ai/benchmarks/rsi_index" },
     sourceDataKey: "rsiBenchmark",
     sourceRowsKey: "rsiBenchmarkRows",
@@ -509,7 +509,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
       {
         group: BenchmarkSourceFamily;
         id: string;
-        revision?: string;
+        version?: string;
         roles?: readonly ["observation"] | readonly ["observation", "resource"];
         loader: BenchmarkObservationLoader;
         sourceDataKey: string;
@@ -522,7 +522,7 @@ export const BENCHMARK_STANDARD_SOURCES = {
 /** Extended sources declare complete source facets when the standard contract is insufficient. */
 export const BENCHMARK_EXTENDED_SOURCES = {
   aa_intelligence_index: {
-    revision: "5.0",
+    version: "5.0",
     inputs: [
       {
         group: "artificial_analysis",
@@ -617,7 +617,7 @@ export const BENCHMARK_EXTENDED_SOURCES = {
     ],
   },
   critpt: {
-    revision: "2-hard",
+    version: "2-hard",
     inputs: [
       {
         group: "artificial_analysis",
@@ -636,7 +636,7 @@ export const BENCHMARK_EXTENDED_SOURCES = {
     ],
   },
   frontier_code: {
-    revision: "2.0",
+    version: "2.0",
     inputs: [
       {
         group: "standalone",
@@ -695,7 +695,7 @@ export const BENCHMARK_EXTENDED_SOURCES = {
     ],
   },
   hle: {
-    revision: "diamond",
+    version: "diamond",
     inputs: [
       {
         group: "artificial_analysis",
@@ -818,7 +818,7 @@ export const BENCHMARK_EXTENDED_SOURCES = {
     ],
   },
   vals_index: {
-    revision: INDEX_POLICIES.vals_index.version,
+    version: INDEX_POLICIES.vals_index.version,
     inputs: [
       {
         group: "vals",

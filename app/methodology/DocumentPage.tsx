@@ -59,7 +59,7 @@ const documentTitles = Object.fromEntries(
 ) as Record<DocumentSlug, string>;
 
 export async function DocumentPage({ document }: { document: DocumentSlug }) {
-  const { markdown, revision } = DOCUMENT_CONTENT[document];
+  const { markdown, hash } = DOCUMENT_CONTENT[document];
   const versions = { ...CATALOG_VERSIONS, ...(await servedVersions()) };
   const outline = tableOfContents(markdown);
   const parent = documentGroup(document);
@@ -70,7 +70,7 @@ export async function DocumentPage({ document }: { document: DocumentSlug }) {
 
   return (
     <DocumentShell activeDocument={document} outline={outline} titles={documentTitles}>
-      <article className={styles.article} data-document-revision={revision}>
+      <article className={styles.article} data-document-hash={hash}>
         <MarkdownDocument markdown={fillVersionMarkers(markdown, versions)} document={document} />
         {previous || next ? (
           <nav className={styles.pageSequence} aria-label="Reading order">

@@ -505,7 +505,7 @@ const frontierCodeArtifact = {
 };
 assert.deepEqual(
   processFrontierCodePayload(frontierCodeArtifact).map((row) => [
-    frontierCodeVersion(row.revision),
+    frontierCodeVersion(row.version),
     row.model,
     row.score,
     row.cost_per_task_usd,

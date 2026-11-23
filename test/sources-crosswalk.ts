@@ -566,7 +566,7 @@ const cached = readBenchmarkObservationRawCache(
     total_tokens: 21000,
     metadata_json: JSON.stringify({
       source_series: series,
-      source_revision: "v0-1-eval",
+      source_version: "v0-1-eval",
       observation_role: series === "vals" ? "component" : null,
     }),
   })),

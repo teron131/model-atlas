@@ -273,7 +273,7 @@ export const BENCHMARK_TOOLTIPS = {
     body: "Solve original, expert-written research-level mathematics problems.",
     rows: [
       ["Source", "Epoch AI"],
-      ["Task revision", BENCHMARK_STANDARD_SOURCES.frontiermath_tier_4.revision],
+      ["Task version", BENCHMARK_STANDARD_SOURCES.frontiermath_tier_4.version],
       ["Role", "research-level mathematics"],
     ],
   },

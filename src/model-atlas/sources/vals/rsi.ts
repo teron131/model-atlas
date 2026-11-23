@@ -16,7 +16,7 @@ import { findObjectEnd, htmlAttribute, percentToUnitScore } from "../parsing";
 import { fetchSourceText } from "../request-scheduler";
 import { valsModelSlug } from "./results";
 
-const RSI_METRIC = BENCHMARK_STANDARD_SOURCES.rsi_benchmark.revision;
+const RSI_METRIC = BENCHMARK_STANDARD_SOURCES.rsi_benchmark.version;
 const RSI_TASKS = [
   "overall",
   "compression",

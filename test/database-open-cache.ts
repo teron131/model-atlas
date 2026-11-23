@@ -175,7 +175,7 @@ try {
     firstDb
       .prepare(`
 				INSERT INTO terminal_bench_raw_rows (
-					row_index, fetched_at_epoch_seconds, url, revision, model, base_model,
+					row_index, fetched_at_epoch_seconds, url, version, model, base_model,
 					reasoning_effort, harness, score, score_ci95_half_width
 				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 			`)

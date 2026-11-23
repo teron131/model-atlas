@@ -587,7 +587,7 @@ function separateHistoricalReleases(
   return { models: [...byId.values()], observations };
 }
 
-/** A month/day suffix identifies a dated revision only when it agrees with an independently known release date: `{ name: "Gemini 2.5 Pro 0605", releaseDate: "2025-06-05" }` → the name key of `"Gemini 2.5 Pro"`. */
+/** A month/day suffix identifies a dated version only when it agrees with an independently known release date: `{ name: "Gemini 2.5 Pro 0605", releaseDate: "2025-06-05" }` → the name key of `"Gemini 2.5 Pro"`. */
 function shortVersionBase(model: HistoricalModel): string | null {
   const match = /[ -](\d{2})(\d{2})$/.exec(model.name);
   return match && model.releaseDate?.slice(5).replace("-", "") === match[1]! + match[2]!

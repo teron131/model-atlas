@@ -1,6 +1,6 @@
-/** Markdown modules include a content revision covering their referenced local artwork. */
+/** Markdown modules include a content hash covering their referenced local artwork. */
 
 declare module "*.md" {
-  const document: { markdown: string; revision: string };
+  const document: { markdown: string; hash: string };
   export default document;
 }

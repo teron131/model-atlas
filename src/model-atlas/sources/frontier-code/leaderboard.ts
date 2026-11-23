@@ -15,8 +15,8 @@ import { fetchSourceJson } from "../request-scheduler";
 
 const FRONTIER_CODE_DATA_URL = "https://cognition.com/data/frontier-code-2.0/data.json";
 
-/** The 2.0 artifact carries no revision key, so this keeps the `v<major>_<minor>` form of the 1.x artifact's keys that persisted rows and `frontierCodeVersion` read. */
-const FRONTIER_CODE_REVISION = "v2_0";
+/** The 2.0 artifact carries no version key, so this keeps the `v<major>_<minor>` form of the 1.x artifact's keys that persisted rows and `frontierCodeVersion` read. */
+const FRONTIER_CODE_VERSION = "v2_0";
 
 export const FRONTIER_CODE_LEADERBOARD_URL = "https://cognition.com/frontiercode";
 
@@ -34,7 +34,7 @@ export type FrontierCodeSubsetMetrics = {
 };
 
 export type FrontierCodeModelEffortRow = {
-  revision: string;
+  version: string;
   model: string;
   base_model: string;
   source_effort: string;
@@ -56,7 +56,7 @@ type FrontierCodePayload = {
 
 type ParsedEffortRow = Omit<
   FrontierCodeModelEffortRow,
-  "revision" | "official_rank" | "official_best_effort"
+  "version" | "official_rank" | "official_best_effort"
 >;
 
 /** Fetch Cognition's versioned structured artifact rather than scraping the rendered leaderboard. */
@@ -135,16 +135,16 @@ export function processFrontierCodePayload(value: unknown): FrontierCodeModelEff
       .map((row, index) => [row.base_model, index + 1]),
   );
   return parsedRows.map((row) => ({
-    revision: FRONTIER_CODE_REVISION,
+    version: FRONTIER_CODE_VERSION,
     ...row,
     official_rank: officialRankByModel.get(row.base_model) as number,
     official_best_effort: bestRowByModel.get(row.base_model) === row,
   }));
 }
 
-/** Revisions read as dotted versions: v2_0 → 2.0. */
-export function frontierCodeVersion(revision: string): string {
-  return revision.replace(/^v/, "").replaceAll("_", ".");
+/** The stored `v<major>_<minor>` form as a dotted version: v2_0 → 2.0. */
+export function frontierCodeVersion(version: string): string {
+  return version.replace(/^v/, "").replaceAll("_", ".");
 }
 
 function optionalNonNegativeNumber(value: unknown): number | null {

@@ -208,7 +208,7 @@ assert.deepEqual(
     ["gemini-3-1-pro", "1.2"],
     ["gpt-6-astra", "1.2"],
   ],
-  "The newest major.minor version pools its patch revisions and excludes earlier versions",
+  "The newest major.minor version pools its patch versions and excludes earlier versions",
 );
 assert.deepEqual(
   epochBenchmarkObservationRows(
