@@ -31,8 +31,10 @@ import {
   PointHitTarget,
 } from "../plot/Interaction";
 import {
+  boxesMeet,
   calloutLabelPlacements,
   NAME_CLEARANCE,
+  placeInSky,
   type PointLabelPlacement,
 } from "../plot/label-placement";
 import {
@@ -140,6 +142,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
   const [pinnedKey, setPinnedKey] = useState<string | null>(null);
   const guideMaskId = useId();
   const leaderMaskId = useId();
+  const litNameMaskId = useId();
   const chartMargin = scatterChartMargin(margin, compact);
   const plot = plotBoundsFor(width, height, chartMargin);
   const edgeGutter = compact ? 12 : PLOT_EDGE_GUTTER;
@@ -241,93 +244,39 @@ export function FrontierBenchmarkScatterPlot<Row>({
       ...frontier,
     ]),
   ];
+  const isHighlighted = (row: Row) =>
+    activeReasoningGroup == null
+      ? getKey(row) === activeVariantKey
+      : reasoningGroupByRow.get(row) === activeReasoningGroup;
+  // A focused model dims every other one; while the find field holds a query, the families it matches stay lit and the rest dim.
+  const dimmed = (row: Row) =>
+    activeVariantKey != null ? !isHighlighted(row) : matches != null && !matches.has(family(row));
   const { svgRef, labelSizes } = useLabelSizes(labeledRows.map(getLabel).join("\0"), compact);
-  // On a phone every frontier model is still named, in the open sky beside the frontier, toward the better side or above its star, on a leader where it cannot sit close and never within the name clearance of another.
-  const skySide = metric.xHigherIsBetter ? 1 : -1;
-  const layoutRequest: Parameters<typeof calloutLabelPlacements>[0] = {
-    bounds: labelBounds(plot),
-    // Protect the corner direction glyph and caption and the medians' names from both text and leaders.
-    reservedBoxes: [
-      {
-        left: metric.xHigherIsBetter ? plot.right - DIRECTION_LABEL_WIDTH : plot.left,
-        right: metric.xHigherIsBetter ? plot.right : plot.left + DIRECTION_LABEL_WIDTH,
-        top: plot.top,
-        bottom: plot.top + DIRECTION_LABEL_HEIGHT,
-      },
-      ...medianReadingBoxes(xPoint(medianMetric), yPoint(medianScore), plot, [
-        medianXLabel,
-        medianYLabel,
-      ]),
-    ],
-    obstacles: rows.map((row) => ({
-      key: getKey(row),
-      cx: xPoint(metric.get(row)),
-      cy: yPoint(getScore(row)),
-      radius: markRadius(row),
-      weight: activeReasoningGroup != null && !highlightedRows.includes(row) ? 0.15 : 1,
-    })),
-    segments: [
-      rim,
-      ...(trail == null ? [] : [[trail.from, trail.to]]),
-      ...reasoningGroups
-        .filter((group) => group.key === activeReasoningGroup)
-        .map((group) =>
-          group.variants.map((row) => ({ x: xPoint(metric.get(row)), y: yPoint(getScore(row)) })),
-        ),
-    ].flatMap(polylineSegments),
-    labels: labeledRows.map((row, index) => {
-      const cx = xPoint(metric.get(row));
-      const cy = yPoint(getScore(row));
-      return {
-        key: getKey(row),
-        label: getLabel(row),
-        size: labelSizes[getLabel(row)],
-        cx,
-        cy,
-        radius: markRadius(row),
-        priority: labeledRows.length - index,
-        // The pointer's guides run unbroken from its star to both axes, so that star's own name keeps off them; other stars' names may still sit on them, and the guides pass beneath those.
-        ...(getKey(row) === activeVariantKey
-          ? {
-              pointerGuides: polylineSegments([
-                { x: plot.left, y: cy },
-                { x: cx, y: cy },
-                { x: cx, y: plot.bottom },
-              ]),
-            }
-          : {}),
-      };
-    }),
-    ...(compact
-      ? {
-          directions: [
-            [skySide, 0.5],
-            [skySide, 0.25],
-            [skySide, 0],
-            [skySide, -0.25],
-            [skySide, -0.5],
-            [skySide, -1],
-            [skySide / 2, -1],
-            [0, -1],
-          ] as const,
-          clearance: NAME_CLEARANCE.compact,
-        }
-      : {}),
-  };
-  // Pointer projections rerender this chart; only changed label geometry should run the search.
-  const layoutKey = JSON.stringify(layoutRequest);
-  const placementCache = useRef(new Map<string, Map<string, PointLabelPlacement>>());
-  const labelPlacements = useMemo(() => {
-    const cache = placementCache.current;
-    const cached = cache.get(layoutKey);
-    if (cached) return cached;
-    const placements = calloutLabelPlacements(JSON.parse(layoutKey));
-    // Retain at most one layout per displayed point plus the resting view; geometry changes use new keys.
-    while (cache.size >= rows.length + 1) cache.delete(cache.keys().next().value!);
-    cache.set(layoutKey, placements);
-    return placements;
-  }, [layoutKey, rows.length]);
-  const callouts = labeledRows.map((row) => {
+  const nameRequest = (row: Row) => ({
+    key: getKey(row),
+    label: getLabel(row),
+    size: labelSizes[getLabel(row)],
+    cx: xPoint(metric.get(row)),
+    cy: yPoint(getScore(row)),
+    radius: markRadius(row),
+  });
+  // Protect the corner direction glyph and caption and the medians' names from both text and leaders.
+  const reservedBoxes = [
+    {
+      left: metric.xHigherIsBetter ? plot.right - DIRECTION_LABEL_WIDTH : plot.left,
+      right: metric.xHigherIsBetter ? plot.right : plot.left + DIRECTION_LABEL_WIDTH,
+      top: plot.top,
+      bottom: plot.top + DIRECTION_LABEL_HEIGHT,
+    },
+    ...medianReadingBoxes(xPoint(medianMetric), yPoint(medianScore), plot, [
+      medianXLabel,
+      medianYLabel,
+    ]),
+  ];
+  const horizonSegments = [rim, ...(trail == null ? [] : [[trail.from, trail.to]])].flatMap(
+    polylineSegments,
+  );
+  const callout = (row: Row, placements: ReadonlyMap<string, PointLabelPlacement>) => {
     const key = getKey(row);
     const label = getLabel(row);
     return {
@@ -336,25 +285,124 @@ export function FrontierBenchmarkScatterPlot<Row>({
       label,
       cx: xPoint(metric.get(row)),
       cy: yPoint(getScore(row)),
-      placement: labelPlacements.get(key),
+      placement: placements.get(key),
       size: labelSizes[label],
     };
-  });
-  // The pointer picks one star at a time, so its guides, colour, and name always agree: on wider plots a name under the pointer picks its own star, and otherwise the nearest star within reach is picked.
+  };
+  // The text boxes of the names that are measured and placed.
+  const textBoxes = (names: readonly ReturnType<typeof callout>[]) =>
+    names.flatMap(({ placement, size }) => {
+      if (placement == null || size == null) return [];
+      const { x, y, width, height } = labelRect(placement, size, 0);
+      return [{ left: x, right: x + width, top: y, bottom: y + height }];
+    });
+  const rises: "left" | "right" = metric.xHigherIsBetter ? "left" : "right";
+  const skyNames = {
+    bounds: labelBounds(plot),
+    segments: horizonSegments,
+    rises,
+    clearance: NAME_CLEARANCE.compact,
+  };
+  // On a phone every frontier model is named as the Timeline names its curve: in the open sky beside the frontier, or under it where the sky has no room, on a leader where it cannot sit close and never within the name clearance of another.
+  const skyKey = compact
+    ? JSON.stringify({
+        ...skyNames,
+        labels: frontier.map(nameRequest),
+        reserved: reservedBoxes,
+      } satisfies Parameters<typeof placeInSky>[0])
+    : null;
+  const skyPlacements = useMemo(
+    () =>
+      skyKey == null ? new Map<string, PointLabelPlacement>() : placeInSky(JSON.parse(skyKey)),
+    [skyKey],
+  );
+  // A phone's frontier names keep their sky places even while pointed, since a name that moved away would leave the finger or cursor that picked it, which would then pick another.
+  const skyNamed = compact ? frontier : [];
+  const skyCallouts = skyNamed.map((row) => callout(row, skyPlacements));
+  const searchedRows = labeledRows.filter((row) => !skyNamed.includes(row));
+  // Pointer projections rerender this chart; only changed label geometry should run the search.
+  // On a phone the names left to place, a lit model's other efforts and found models, go beside their own stars and keep clear only of lit names, since a dimmed name in their way gives way to them. Wider plots search for every name.
+  const layoutKey = compact
+    ? JSON.stringify({
+        ...skyNames,
+        labels: searchedRows.map(nameRequest),
+        reserved: [...reservedBoxes, ...textBoxes(skyCallouts.filter(({ row }) => !dimmed(row)))],
+      } satisfies Parameters<typeof placeInSky>[0])
+    : JSON.stringify({
+        bounds: labelBounds(plot),
+        reservedBoxes,
+        obstacles: rows.map((row) => ({
+          key: getKey(row),
+          cx: xPoint(metric.get(row)),
+          cy: yPoint(getScore(row)),
+          radius: markRadius(row),
+          weight: activeReasoningGroup != null && !highlightedRows.includes(row) ? 0.15 : 1,
+        })),
+        segments: [
+          ...horizonSegments,
+          ...reasoningGroups
+            .filter((group) => group.key === activeReasoningGroup)
+            .flatMap((group) =>
+              polylineSegments(
+                group.variants.map((row) => ({
+                  x: xPoint(metric.get(row)),
+                  y: yPoint(getScore(row)),
+                })),
+              ),
+            ),
+        ],
+        labels: labeledRows.map((row, index) => {
+          const name = nameRequest(row);
+          return {
+            ...name,
+            priority: labeledRows.length - index,
+            // The pointer's guides run from its star to both axes, so that star's own name keeps off them; other names may still sit on them.
+            ...(getKey(row) === activeVariantKey
+              ? {
+                  pointerGuides: polylineSegments([
+                    { x: plot.left, y: name.cy },
+                    { x: name.cx, y: name.cy },
+                    { x: name.cx, y: plot.bottom },
+                  ]),
+                }
+              : {}),
+          };
+        }),
+      } satisfies Parameters<typeof calloutLabelPlacements>[0]);
+  const placementCache = useRef(new Map<string, Map<string, PointLabelPlacement>>());
+  const labelPlacements = useMemo(() => {
+    const cache = placementCache.current;
+    const cached = cache.get(layoutKey);
+    if (cached) return cached;
+    const placements = compact
+      ? placeInSky(JSON.parse(layoutKey))
+      : calloutLabelPlacements(JSON.parse(layoutKey));
+    // Retain at most one layout per displayed point plus the resting view; geometry changes use new keys.
+    while (cache.size >= rows.length + 1) cache.delete(cache.keys().next().value!);
+    cache.set(layoutKey, placements);
+    return placements;
+  }, [layoutKey, rows.length, compact]);
+  const searchedCallouts = searchedRows.map((row) => callout(row, labelPlacements));
+  const litBoxes = textBoxes(searchedCallouts.filter(({ row }) => !dimmed(row)));
+  // A dimmed sky name under a lit name gives way while the light lasts, rather than show through it.
+  const callouts = [
+    ...searchedCallouts,
+    ...skyCallouts.filter(
+      (name) =>
+        !dimmed(name.row) ||
+        !textBoxes([name]).some((box) => litBoxes.some((lit) => boxesMeet(box, lit))),
+    ),
+  ];
+  // The pointer picks one star at a time, so its guides, colour, and name always agree: a name under the pointer or a tap picks its own star, so a name far from its star is read back to it without following the leader, and elsewhere the nearest star within reach is picked.
   const starAt = (event: ReactMouseEvent<SVGSVGElement>) => {
     const at = pointerPosition(event);
-    const named = compact
-      ? undefined
-      : callouts.find(({ placement, size }) => {
-          if (!placement || !size) return false;
-          const box = labelRect(placement, size, 3);
-          return (
-            at.x >= box.x &&
-            at.x <= box.x + box.width &&
-            at.y >= box.y &&
-            at.y <= box.y + box.height
-          );
-        });
+    const named = callouts.find(({ placement, size }) => {
+      if (!placement || !size) return false;
+      const box = labelRect(placement, size, 3);
+      return (
+        at.x >= box.x && at.x <= box.x + box.width && at.y >= box.y && at.y <= box.y + box.height
+      );
+    });
     const star = nearestPoint(
       at,
       plot,
@@ -373,13 +421,6 @@ export function FrontierBenchmarkScatterPlot<Row>({
     if (row != null && key === pinnedKey) openModelSheet(getModel(row));
     else setPinnedKey(key);
   };
-  const isHighlighted = (row: Row) =>
-    activeReasoningGroup == null
-      ? getKey(row) === activeVariantKey
-      : reasoningGroupByRow.get(row) === activeReasoningGroup;
-  // A focused model dims every other one; while the find field holds a query, the families it matches stay lit and the rest dim.
-  const dimmed = (row: Row) =>
-    activeVariantKey != null ? !isHighlighted(row) : matches != null && !matches.has(family(row));
   const matched = (row: Row) => activeVariantKey == null && matches?.has(family(row)) === true;
   const muted = activeVariantKey != null || matches != null;
   const variantClass = (row: Row) =>
@@ -483,6 +524,12 @@ export function FrontierBenchmarkScatterPlot<Row>({
             <defs>
               <LabelMask id={guideMaskId} width={width} height={height} labels={callouts} />
               <NameMask id={leaderMaskId} width={width} height={height} labels={callouts} />
+              <NameMask
+                id={litNameMaskId}
+                width={width}
+                height={height}
+                labels={callouts.filter(({ row }) => !dimmed(row))}
+              />
             </defs>
             <PlotFrame width={width} height={height} margin={chartMargin} />
             <CursorCapture bounds={plot} />
@@ -562,8 +609,8 @@ export function FrontierBenchmarkScatterPlot<Row>({
               direction={metric.xHigherIsBetter ? "upper-right" : "upper-left"}
               label="Better"
             />
-            {/* The guides pass behind model names, as the median guides do. */}
-            <g mask={`url(#${guideMaskId})`}>
+            {/* The pointer's guides run unbroken through dimmed names to both axes, and pass behind the lit names, whose colour they share. */}
+            <g mask={`url(#${litNameMaskId})`}>
               <CursorProjectionLayer
                 projection={projection}
                 bounds={plot}
@@ -674,7 +721,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
                   className={variantClass(row)}
                   key={`label-${key}`}
                   style={
-                    key === activeVariantKey
+                    isHighlighted(row)
                       ? ({ "--projection-color": activeHighlightColor } as CSSProperties)
                       : undefined
                   }

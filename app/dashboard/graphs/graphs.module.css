@@ -857,12 +857,12 @@ svg:has(.cursorProjection) .axisLabel {
   opacity: 0.65;
 }
 
-/* A picked star's name and leader take the colour its pointer guides and readings take. */
-.reasoningVariantPointSelected .pointLabel {
+/* A picked star's name and leader, and those of the efforts lit with it, take the colour its pointer guides and readings take, so each lit name is followed to its own star. */
+:is(.reasoningVariantPointSelected, .reasoningVariantPointActive) .pointLabel {
   fill: var(--projection-color, var(--chart-point-label));
 }
 
-.reasoningVariantPointSelected .pointLabelLine {
+:is(.reasoningVariantPointSelected, .reasoningVariantPointActive) .pointLabelLine {
   stroke: var(--projection-color, var(--chart-point-label));
   stroke-width: 1px;
   opacity: 1;
@@ -1551,18 +1551,18 @@ svg:has(.cursorProjection) .axisLabel {
   }
 
   /*
-   * A phone plot is a third of the desktop's width, so its text steps down and leaves the plot to the stars: model names, which name every frontier model, and the axes' ticks, titles, and marks take the micro size.
+   * A phone plot is a third of the desktop's width, so its text steps down and leaves the plot to the stars: the axes' ticks, titles, and marks take the micro size, and model names, which name every frontier model, a pixel under it, so a field of names reads smaller than the axes it sits between.
    * Names there drop to regular weight and lose their outline, so a field of them stays light.
    * Labels are measured as rendered, so placement follows.
    * A plot redrawn for a saved image keeps the desktop sizes the image sets it in.
    */
   .pointLabel:not([data-capture-layout="artifact"] *) {
-    font-size: var(--type-micro-size);
+    font-size: calc(var(--type-micro-size) - 1px);
     font-weight: 400;
     stroke: none;
   }
 
-  /* Every name on a phone plot can hang on a guide line, so the lines stay dotted but take the axis labels' tone to be followed at a glance; a picked variant's line takes its star's colour and a muted one still recedes. */
+  /* Every name on a phone plot can hang on a guide line, so the lines stay dotted but take the axis labels' tone to be followed at a glance; a picked variant's line and those of its lit efforts take its star's colour, and a muted one still recedes. */
   .pointLabelLine:not([data-capture-layout="artifact"] *) {
     stroke: var(--chart-label-fill);
     stroke-width: 1px;
@@ -1570,7 +1570,8 @@ svg:has(.cursorProjection) .axisLabel {
     opacity: 1;
   }
 
-  .reasoningVariantPointSelected .pointLabelLine:not([data-capture-layout="artifact"] *) {
+  :is(.reasoningVariantPointSelected, .reasoningVariantPointActive)
+    .pointLabelLine:not([data-capture-layout="artifact"] *) {
     stroke: var(--projection-color, var(--chart-point-label));
   }
 

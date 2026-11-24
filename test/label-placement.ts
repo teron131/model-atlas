@@ -2,7 +2,12 @@
 
 import assert from "node:assert/strict";
 
-import { calloutLabelPlacements } from "../app/dashboard/graphs/plot/label-placement";
+import {
+  boxesMeet,
+  calloutLabelPlacements,
+  NAME_CLEARANCE,
+  placeInSky,
+} from "../app/dashboard/graphs/plot/label-placement";
 
 const labels = [
   { key: "low", label: "Low", cx: 25, cy: 130, radius: 5 },
@@ -195,3 +200,64 @@ const boxedPlacement = calloutLabelPlacements({
   reservedBoxes: [bounds],
 }).get("boxed");
 assert.ok(boxedPlacement);
+
+// Names set around a frontier keep the name clearance from reserved text, and a frontier that rises to the left is named as the mirror image of one that rises to the right.
+const sky = { left: 0, right: 300, top: 0, bottom: 200 };
+const skySize = { width: 80, ascent: 8, descent: 2 };
+const skyStars = [
+  { key: "early", cx: 60, cy: 150 },
+  { key: "middle", cx: 150, cy: 100 },
+  { key: "late", cx: 240, cy: 50 },
+].map((star) => ({ ...star, label: star.key, size: skySize, radius: 2 }));
+const horizon = skyStars.slice(1).map((star, index) => ({
+  x1: skyStars[index]!.cx,
+  y1: skyStars[index]!.cy,
+  x2: star.cx,
+  y2: star.cy,
+}));
+const clearance = NAME_CLEARANCE.compact;
+const skyRequest = { labels: skyStars, bounds: sky, segments: horizon, clearance };
+const textBox = ({ x, y }: { x: number; y: number }) => ({
+  left: x,
+  right: x + skySize.width,
+  top: y - skySize.ascent,
+  bottom: y + skySize.descent,
+});
+const unreserved = placeInSky({ ...skyRequest, rises: "right" });
+const reservedText = textBox(unreserved.get("middle")!);
+const nearReserved = (placements: ReturnType<typeof placeInSky>) =>
+  [...placements.values()].filter((placement) => {
+    const { left, right, top, bottom } = textBox(placement);
+    return boxesMeet(
+      {
+        left: left - clearance.x,
+        right: right + clearance.x,
+        top: top - clearance.y,
+        bottom: bottom + clearance.y,
+      },
+      reservedText,
+    );
+  });
+const risingRight = placeInSky({ ...skyRequest, reserved: [reservedText], rises: "right" });
+assert.equal(risingRight.size, skyStars.length, "Every frontier star must keep its name");
+assert.deepEqual(nearReserved(risingRight), [], "Names must keep clear of reserved text");
+const mirror = (x: number) => sky.left + sky.right - x;
+const risingLeft = placeInSky({
+  ...skyRequest,
+  labels: skyStars.map((star) => ({ ...star, cx: mirror(star.cx) })),
+  segments: horizon.map((segment) => ({
+    ...segment,
+    x1: mirror(segment.x1),
+    x2: mirror(segment.x2),
+  })),
+  reserved: [
+    { ...reservedText, left: mirror(reservedText.right), right: mirror(reservedText.left) },
+  ],
+  rises: "left",
+});
+for (const { key } of skyStars) {
+  const right = risingRight.get(key)!;
+  const left = risingLeft.get(key)!;
+  assert.equal(left.x, mirror(right.x + skySize.width), `${key} must mirror across the plot`);
+  assert.equal(left.y, right.y, `${key} must keep its height when mirrored`);
+}

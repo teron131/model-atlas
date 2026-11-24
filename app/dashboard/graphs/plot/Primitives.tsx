@@ -895,7 +895,7 @@ export function LabelMask({
   );
 }
 
-/** Hide leaders where they pass under a name, so a leader that a crowded plot must run across a name passes behind it instead of striking it through. */
+/** Hide lines where they pass under one of these names, so a leader or guide that a crowded plot must run across a name passes behind it instead of striking it through. */
 export function NameMask({
   id,
   width,

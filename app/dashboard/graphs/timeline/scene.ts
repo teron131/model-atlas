@@ -291,7 +291,13 @@ export function placeFrontierNames(layoutKey: string | null, compact: boolean) {
   if (layoutKey == null) return new Map<string, PointLabelPlacement>();
   if (!compact) return placeBesideStars(layoutKey, false);
   const { labels, bounds, segments } = JSON.parse(layoutKey);
-  return placeInSky({ labels, bounds, segments, clearance: NAME_CLEARANCE.compact });
+  return placeInSky({
+    labels,
+    bounds,
+    segments,
+    rises: "right",
+    clearance: NAME_CLEARANCE.compact,
+  });
 }
 
 /** The frontier names as placed, and which of them are crowded out: on a phone, where every curve model is named, none is. */

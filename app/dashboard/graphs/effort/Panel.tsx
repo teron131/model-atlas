@@ -1,6 +1,6 @@
 "use client";
 
-/** Effort: the strongest models' reasoning efforts, and those of any model the find field brings in, as bars rising from zero on one shared scale, for a score or the leaderboard's Cost×, Time×, or Tokens×; each effort keeps one solid shade of its lab's colour, from faint at low to full at max, so a model's bars read in effort order without labels. */
+/** Effort: the strongest models' reasoning efforts, and those of any model the find field brings in, as bars rising from zero on one shared scale, for a score or the leaderboard's Cost×, Time×, or Tokens×; each effort keeps one solid shade of its lab's colour, from faint at low to full at max, and every bar carries its value upright above it and its effort's letter beneath. */
 
 import { group } from "d3-array";
 import { scaleLinear, scaleSqrt } from "d3-scale";
@@ -31,7 +31,7 @@ import { FigureRegion } from "../FigureRegion";
 import { formatTooltipScore } from "../format";
 import { GraphToggle } from "../GraphToggle";
 import { usePick } from "../plot/Interaction";
-import { type Margin, plotBoundsFor } from "../plot/Primitives";
+import { type Margin, monoWidth, plotBoundsFor } from "../plot/Primitives";
 import { SkyFigure } from "../plot/SkyFigure";
 import { useChartLayout } from "../use-chart-layout";
 
@@ -82,11 +82,12 @@ const TOKENS: Metric = {
 };
 const METRICS = [INTELLIGENCE, AGENTIC, COST, TIME, TOKENS];
 
-const HEIGHT = 448;
-// The bottom margin holds each model's logo and two-line name, and the left one the axis labels, the median's "MED 1×" among them.
-const MARGIN: Margin = { top: 12, right: 12, bottom: 64, left: 72 };
-// The tallest bar stops this far under the plot's top, leaving room for its value.
-const VALUE_ROOM = 26;
+const HEIGHT = 474;
+// The bottom margin holds each bar's effort letter, then its model's logo and two-line name, and the left one the axis labels, the median's "MED 1×" among them.
+const MARGIN: Margin = { top: 12, right: 12, bottom: 76, left: 72 };
+// A value stands upright this far above its bar, and the tallest bar stops far enough under the plot's top for the longest value and its halo, five characters such as `0.54×` or `100.0`.
+const VALUE_GAP = 6;
+const VALUE_ROOM = VALUE_GAP + monoWidth("0.54×", "caption") + 2;
 // A model's band never gets narrower than this, room for its name's longer line and five bars; a narrower host scrolls the plot sideways instead.
 const MODEL_ROOM = 96;
 const BAR = { most: 14, gap: 3 };
@@ -106,6 +107,16 @@ const EFFORT_SHADES: Record<string, number> = {
   max: 0.95,
 };
 const DEFAULT_SHADE = EFFORT_SHADES.high!;
+// Each effort's letter beneath its bar; a model's only, default effort carries none, and neither does an effort outside this list, which the readout still names.
+const EFFORT_LETTERS: Record<string, string> = {
+  none: "N",
+  minimal: "Mn",
+  low: "L",
+  medium: "M",
+  high: "H",
+  xhigh: "X",
+  max: "Mx",
+};
 const LEGEND = ["low", "medium", "high", "xhigh", "max"] as const;
 // A paper outline around a reading, so a guide or grid line behind it never runs through its digits.
 const HALO = {
@@ -148,7 +159,6 @@ export function EffortPanel({ data }: { data: ChartData }) {
     [bounds.bottom, bounds.top + VALUE_ROOM],
   );
   const band = (bounds.right - bounds.left) / Math.max(1, families.length);
-  // Each model's bars centred in its band; a model's value names its tallest bar, and a pointed bar names its own value instead, above it.
   const columns = families.map((family, index) => {
     const centre = bounds.left + index * band + band / 2;
     const barWidth = Math.min(BAR.most, (band - 24) / family.length - BAR.gap);
@@ -158,10 +168,9 @@ export function EffortPanel({ data }: { data: ChartData }) {
       x: start + column * (barWidth + BAR.gap),
       width: barWidth,
       top: y(metric.read(variant)!),
+      value: formatValue(metric, metric.read(variant)!),
     }));
-    const tallest = bars.reduce((held, bar) => (bar.top < held.top ? bar : held));
-    const label = formatValue(metric, metric.read(tallest.variant)!);
-    return { id: family[0]!.family, model: family[0]!, family, centre, bars, tallest, label };
+    return { id: family[0]!.family, model: family[0]!, family, centre, bars };
   });
   const bars = columns.flatMap((column) => column.bars);
   // The bar under the pointer, else the one a click holds.
@@ -175,7 +184,7 @@ export function EffortPanel({ data }: { data: ChartData }) {
   const foundLast = lastLocated(find.located);
   const restingId = foundLast == null ? undefined : familyByRow.get(foundLast);
   const resting = columns.find((column) => column.id === restingId) ?? columns.at(-1);
-  // With nothing pointed, a query in the find field quiets the models it does not name, as in Duels; a pointed bar quiets every other bar and every model's value instead.
+  // With nothing pointed, a query in the find field quiets the models it does not name, as in Duels; a pointed bar quiets every other bar and value instead.
   const outsideFind = (id: string) => pointed == null && matches != null && !matches.has(id);
   const foundPhrase = foundModelsPhrase(foundFamilies.length);
 
@@ -328,13 +337,24 @@ export function EffortPanel({ data }: { data: ChartData }) {
                 />
               ))}
               <g opacity={outsideFind(id) ? 0.4 : 1}>
+                {modelBars.map((bar) => (
+                  <text
+                    key={bar.variant.key}
+                    className={graphs.plotNote}
+                    x={bar.x + bar.width / 2}
+                    y={bounds.bottom + 14}
+                    textAnchor="middle"
+                  >
+                    {bar.variant.effort == null ? null : EFFORT_LETTERS[bar.variant.effort]}
+                  </text>
+                ))}
                 {logo ? (
-                  <image href={logo} x={centre - 7} y={bounds.bottom + 12} width={14} height={14} />
+                  <image href={logo} x={centre - 7} y={bounds.bottom + 24} width={14} height={14} />
                 ) : null}
                 <text
                   className={graphs.rowName}
                   x={centre}
-                  y={bounds.bottom + 42}
+                  y={bounds.bottom + 54}
                   textAnchor="middle"
                 >
                   <tspan x={centre}>{line1}</tspan>
@@ -354,33 +374,23 @@ export function EffortPanel({ data }: { data: ChartData }) {
             <line x1={bounds.left} x2={bounds.right} y1={pointed.top} y2={pointed.top} />
           </g>
         )}
-        {columns.map(({ id, bars: modelBars, tallest, label }) =>
-          pointed != null && modelBars.includes(pointed) ? null : (
+        {/* Upright, so every value fits over its own bar however close its neighbours stand; the pointed one takes its guide's colour. */}
+        {columns.flatMap(({ id, bars: modelBars }) =>
+          modelBars.map((bar) => (
             <text
-              key={id}
-              className={graphs.plotValue}
-              x={tallest.x + tallest.width / 2}
-              y={tallest.top - 11}
-              textAnchor="middle"
-              fillOpacity={pointed != null || outsideFind(id) ? 0.4 : 1}
+              key={bar.variant.key}
+              className={bar === pointed ? graphs.cursorProjectionLabel : graphs.plotValue}
+              transform={`translate(${bar.x + bar.width / 2} ${bar.top - VALUE_GAP}) rotate(-90)`}
+              dy="0.35em"
+              fillOpacity={
+                (pointed != null && bar !== pointed) || outsideFind(id) ? 0.4 : undefined
+              }
               pointerEvents="none"
-              style={HALO}
+              style={bar === pointed ? { ...projection, ...HALO } : HALO}
             >
-              {label}
+              {bar.value}
             </text>
-          ),
-        )}
-        {pointed == null ? null : (
-          <text
-            className={graphs.cursorProjectionLabel}
-            x={pointed.x + pointed.width / 2}
-            y={pointed.top - 10}
-            textAnchor="middle"
-            pointerEvents="none"
-            style={{ ...projection, ...HALO }}
-          >
-            {formatValue(metric, metric.read(pointed.variant)!)}
-          </text>
+          )),
         )}
       </SkyFigure>
     </FigureRegion>

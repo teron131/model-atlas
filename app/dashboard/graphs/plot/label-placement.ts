@@ -108,8 +108,8 @@ const LEADER_MARGIN = 3;
 const LEADER_CONFLICT_COST = 70;
 
 /**
- * Placements for every name along a frontier that rises to the right, as a phone needs, which names every star of the frontier: each in the open sky above the horizon drawn by `segments` wherever it finds room near its star.
- * Each name starts just above and before its star, or lower than that nowhere the horizon reaches; one that comes within `clearance` of a name already placed moves below it, sliding left as far as the horizon needs, or above it, and a name away from its star reaches back on a leader.
+ * Placements for the names a phone sets around a frontier, which names every star of the frontier and any star picked or found: each in the open sky above the horizon drawn by `segments` wherever it finds room near its star.
+ * Along a frontier that rises to the right, each name starts just above and before its star, or lower than that nowhere the horizon reaches; one that comes within `clearance` of a name already placed or of `reserved` text moves below it, sliding left as far as the horizon needs, or above it, and a name away from its star reaches back on a leader. A frontier that rises to the left is placed as the mirror image of one that rises to the right.
  * Where the sky has no free spot near its star, a name drops just beneath the horizon, beside and below its star, under any name already there; of these spots it takes the one with the shortest leader that keeps clear of other names.
  * A leader meets its name at the middle of its nearer end when the star lies more beside the name than below or above it, and otherwise at the point along its facing edge that runs into the fewest other names.
  */
@@ -117,13 +117,43 @@ export function placeInSky({
   labels,
   bounds,
   segments,
+  reserved = [],
+  rises,
   clearance,
 }: {
   labels: Label[];
   bounds: Box;
   segments: Segment[];
+  reserved?: Box[];
+  rises: "left" | "right";
   clearance: Clearance;
 }): Map<string, PointLabelPlacement> {
+  if (rises === "left") {
+    const flip = (x: number) => bounds.left + bounds.right - x;
+    const widths = new Map(labels.map((label) => [label.key, labelSize(label).width]));
+    const mirrored = placeInSky({
+      labels: labels.map((label) => ({ ...label, cx: flip(label.cx) })),
+      bounds,
+      segments: segments.map((segment) => ({
+        ...segment,
+        x1: flip(segment.x1),
+        x2: flip(segment.x2),
+      })),
+      reserved: reserved.map((box) => ({ ...box, left: flip(box.right), right: flip(box.left) })),
+      rises: "right",
+      clearance,
+    });
+    return new Map(
+      [...mirrored].map(([key, { x, line, ...placement }]) => [
+        key,
+        {
+          ...placement,
+          x: flip(x + widths.get(key)!),
+          line: line && { ...line, x1: flip(line.x1), x2: flip(line.x2) },
+        },
+      ]),
+    );
+  }
   // The horizon's heights at the ends of its pieces over a stretch of x widened by the margin on each side, so a name keeps its margin from a steep horizon beside it as well as below it; none past the horizon's ends.
   const horizonHeights = (left: number, right: number) =>
     segments.flatMap(({ x1, y1, x2, y2 }) => {
@@ -173,7 +203,7 @@ export function placeInSky({
   // The cheapest spot for a name among the other names of `layout`.
   const place = (name: Name, layout: ReadonlyMap<Name, Spot>): Spot => {
     const others = [...layout].flatMap(([other, spot]) => (other === name ? [] : [spot]));
-    const placed = others.map(({ box }) => box);
+    const placed = [...reserved, ...others.map(({ box }) => box)];
     const leaders = others.flatMap(({ leader }) => (leader ? [leader] : []));
     const met = (box: Box) => placed.filter((other) => boxesMeet(spacing(box), spacing(other)));
     const { cx, cy, radius } = name.label;
@@ -258,7 +288,7 @@ export function placeInSky({
     );
     return { box, handicap, leader: leaderTo(box) };
   };
-  // A whole layout's cost: each name's leader length, or its gap to a star close enough to need none, its handicap, and the price of every name each leader runs into.
+  // A whole layout's cost: each name's leader length, or its gap to a star close enough to need none, its handicap, and the price of every name or reserved text each leader runs into.
   const layoutCost = (layout: ReadonlyMap<Name, Spot>) =>
     [...layout].reduce(
       (sum, [name, { box, handicap, leader }]) =>
@@ -266,8 +296,10 @@ export function placeInSky({
         handicap +
         (leader
           ? Math.hypot(leader.x2 - leader.x1, leader.y2 - leader.y1) +
-            [...layout].filter(([other, spot]) => other !== name && runsInto(leader, spot.box))
-              .length *
+            [
+              ...reserved,
+              ...[...layout].flatMap(([other, spot]) => (other === name ? [] : [spot.box])),
+            ].filter((other) => runsInto(leader, other)).length *
               LEADER_CONFLICT_COST
           : distanceToBox(name.label.cx, name.label.cy, box)),
       0,
@@ -643,7 +675,8 @@ function labelSize(label: Label): PointLabelSize {
   return label.size ?? { width: Math.max(18, label.label.length * 7.8), ascent: 12, descent: 3 };
 }
 
-function boxesMeet(a: Box, b: Box): boolean {
+/** Whether two boxes share any area; boxes that only touch along an edge do not. */
+export function boxesMeet(a: Box, b: Box): boolean {
   return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
 }
 
