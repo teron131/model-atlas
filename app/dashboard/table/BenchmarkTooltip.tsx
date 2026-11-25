@@ -2,7 +2,7 @@
 
 import { type CSSProperties, useId } from "react";
 
-import { DomainShareBar } from "./ColumnWeightsMap";
+import { DomainShareBar } from "../../shared/DomainShares";
 import type { BenchmarkTooltipFacts, BenchmarkTooltipLeaders } from "./tooltips";
 
 const insetWidth = 332;

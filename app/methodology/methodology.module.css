@@ -739,6 +739,7 @@
 }
 
 .tableViewport {
+  container-type: inline-size;
   margin: 22px 0 30px;
   overflow-x: auto;
   overscroll-behavior-x: contain;
@@ -788,6 +789,68 @@
 
 .article tbody tr:last-child td {
   border-bottom: 0;
+}
+
+/* Domain tables name a domain or benchmark on one line beside its chip, and a benchmark's share bar takes the rest of the row, level with the name's text. */
+.domainName {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.article td.domainBenchmark {
+  white-space: nowrap;
+}
+
+.article td.domainSharesCell {
+  width: 100%;
+  padding-top: 19px;
+}
+
+/* The share legend is the dashboard card's, set a step larger beside body text and free of the article's list indents. */
+.article td.domainSharesCell ul {
+  margin: 7px 0 0;
+  padding: 0;
+  font-size: 12px;
+}
+
+.article td.domainSharesCell li {
+  margin: 0;
+  padding: 0;
+}
+
+/* Beside a name, a share bar narrower than its legend wraps one domain per line, so a narrow share table stacks each benchmark's name above a full-width bar. */
+@container (max-width: 480px) {
+  .article table.domainSharesTable,
+  .article table.domainSharesTable tbody,
+  .article table.domainSharesTable tr,
+  .article table.domainSharesTable td {
+    display: block;
+  }
+
+  .article table.domainSharesTable thead {
+    display: none;
+  }
+
+  .article table.domainSharesTable tr {
+    padding: 11px 0 12px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .article table.domainSharesTable tr:last-child {
+    border-bottom: 0;
+  }
+
+  .article table.domainSharesTable td {
+    min-width: 0;
+    padding: 0;
+    border-bottom: 0;
+  }
+
+  .article table.domainSharesTable td.domainSharesCell {
+    padding-top: 8px;
+  }
 }
 
 .article code {

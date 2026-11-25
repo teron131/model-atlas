@@ -1,29 +1,9 @@
-/** Benchmark labels, display order, tooltips, and domain icons derived once from the benchmark catalog, so graphs and tables name, order, and mark benchmarks alike. */
-
-import {
-  BookOpen,
-  CodeXml,
-  Eye,
-  Feather,
-  FileText,
-  FlaskConical,
-  Gamepad2,
-  Landmark,
-  type LucideIcon,
-  PenTool,
-  Puzzle,
-  Scale,
-  Sigma,
-  Stethoscope,
-  Telescope,
-  Wrench,
-} from "lucide-react";
+/** Benchmark labels, display order, and tooltips derived once from the benchmark catalog, so graphs and tables name, order, and mark benchmarks alike. */
 
 import {
   BENCHMARK_DISPLAY_ORDER,
   BENCHMARK_LABELS,
   BENCHMARK_TOOLTIPS,
-  type BenchmarkDomain,
 } from "../../../src/model-atlas/benchmarks/catalog";
 import type { ModelAtlasColumnTooltip } from "../../../src/model-atlas/config/tooltips";
 
@@ -61,21 +41,3 @@ export const benchmarkTooltips: Readonly<Record<string, ModelAtlasColumnTooltip>
       ];
     }),
   );
-
-export const domainIcons: Readonly<Record<BenchmarkDomain, LucideIcon>> = {
-  coding: CodeXml,
-  documents: FileText,
-  writing: Feather,
-  design: PenTool,
-  vision: Eye,
-  tool_use: Wrench,
-  research: Telescope,
-  games: Gamepad2,
-  puzzles: Puzzle,
-  math: Sigma,
-  science: FlaskConical,
-  finance: Landmark,
-  healthcare: Stethoscope,
-  legal: Scale,
-  knowledge: BookOpen,
-};

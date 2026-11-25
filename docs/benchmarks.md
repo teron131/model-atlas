@@ -1,6 +1,6 @@
 # Benchmark Portfolio
 
-A benchmark earns its place by adding credible information about model capability. This page lists the selected benchmarks, their weights, why each is included, and the source choices that keep results comparable. [Standards](standards.md) explains the selection criteria; [Methodology](methodology/overview.md) explains how the results become scores.
+A benchmark earns its place by adding credible information about model capability. This page lists the selected benchmarks, their weights, why each is included, the domains each tests, and the source choices that keep results comparable. [Standards](standards.md) explains the selection criteria; [Methodology](methodology/overview.md) explains how the results become scores.
 
 ## Reading the Portfolio
 
@@ -113,6 +113,90 @@ These benchmarks add useful capability breadth or stability without separating l
 | Vending-Bench&nbsp;2 | 25% | 75% | Year-long simulated business operation measures sustained tool use, state management, negotiation, and coherence over thousands of messages. Business judgment is secondary. Small run counts and stochastic outcomes keep it baseline. |
 | Vibe Code | 0% | 100% | Building working applications from specifications measures coding execution, service integration, state management, testing, recovery, and completion. The tasks show no separate, exceptional demand for algorithmic or scientific reasoning, so ordinary application construction is fully Agentic. |
 | VoxelBench | 50% | 50% | Text-to-voxel construction combines real spatial reasoning with reliable execution of scene requirements. Community preferences add distinctive construction and design evidence, but undocumented generation and voting procedures keep it baseline with a measurement caveat. |
+
+## Domains
+
+Domains name what a benchmark tests, such as coding, mathematics, or work with office documents. Each task benchmark divides 100% among the domains that decide its results; an aggregate index has none, because it mixes every domain. The dashboard uses the shares to group benchmarks and to compare models within a domain. They carry no weight in :score[Intelligence], :score[Agentic], :score[Speed], or :score[Value].
+
+A decision model rates how much each domain decides a model's result on a benchmark, on a scale from 0, irrelevant, to 4, dominant. It judges what separates high and low scorers rather than what merely appears in the tasks, reading a fixed profile of the benchmark: what each task gives the model, what the model must produce, the task mix, the environment, and how results are graded. A domain rated below 1.5, halfway between minor and moderate, gets no share. The remaining ratings are squared and scaled to sum to 100%, so a domain that mainly decides the result outweighs several that matter a little. Each definition states what its domain does not cover, because without that boundary the rater attaches a domain to neighbouring work, such as Design to spatial reasoning.
+
+| Domain | Definition |
+| --- | --- |
+| Coding | Writing, fixing, porting, or reverse-engineering software, or building, configuring, and debugging the systems it runs on, graded on whether the result works. Not code that is only a means to an answer judged in another label's subject, such as a scientific analysis or a mathematical result. |
+| Documents | Reading or producing office files such as PDFs, spreadsheets, and slides, where handling the file's content and structure is the task. Not plain text passages or web pages. |
+| Writing | Prose quality, style, and editing, where the text itself is what gets graded. Not notes, reports, or answers written along the way. |
+| Design | Producing visual or interface designs, 3D scenes, or layouts, graded on how the result looks and works for a viewer. Not perceiving or reasoning about shapes, space, or images. |
+| Vision | Understanding images, charts, diagrams, or video given as input, including the spatial relations in them. Not producing visuals. |
+| Tool Use | Driving tools, browsers, terminals, or APIs across many steps as an agent, where choosing and ordering actions and recovering from errors decides the result. Not interaction that only submits answers or moves. When the tasks belong to another label's subject, such as code, science, or finance, that label is the main measure and Tool use ranks below it, whatever interface, such as a terminal or browser, the work is done in. |
+| Research | Finding, reading, and combining information from many outside sources over many steps, such as web or literature research. Not reasoning over material already supplied with the task, and not running experiments. |
+| Games | Playing games, from single positions to long sessions, or operating inside a simulated world or business whose state changes over many turns, graded on the outcome reached. Not ordinary workplace tasks done with files and tools. |
+| Puzzles | Abstract reasoning on novel puzzles and hidden patterns, where little outside knowledge helps. Not mathematics or science problems that rest on domain knowledge. |
+| Math | Mathematical knowledge and problem solving, from calculation-heavy reasoning to proofs. Not the everyday arithmetic any task involves. |
+| Science | Natural sciences such as physics, chemistry, and biology as the subject matter. Not general-knowledge questions that happen to include science, and not medicine. |
+| Finance | Finance, accounting, and economics as the subject matter, such as valuation, filings, and financial models. |
+| Healthcare | Medicine and patient care as the subject matter. Not biological research. |
+| Legal | Law, regulation, public policy, and contracts as the subject matter. |
+| Knowledge | Answering from memory across many subjects at once: factual recall, calibration, and expert questions drawn from many fields with no single field dominant. Not work spread over several professional fields whose answers come from supplied files, images, or data, not the background knowledge any expert task assumes, and not a benchmark set in one field. |
+
+| Benchmark | Domain Shares |
+| --- | --- |
+| AA-3D | Coding 36%, Design 35%, Tool Use 16%, Vision 13% |
+| Agents' Last Exam | Tool Use 60%, Documents 22%, Coding 18% |
+| ALE-Bench | Coding 50%, Tool Use 20%, Math 16%, Puzzles 14% |
+| AnalystAgent | Documents 36%, Tool Use 26%, Finance 14%, Coding 13%, Math 11% |
+| APEX Agents | Tool Use 36%, Documents 23%, Finance 21%, Legal 20% |
+| APEX-SWE | Coding 70%, Tool Use 30% |
+| ARC-AGI-2 | Puzzles 80%, Vision 20% |
+| ARC-AGI-3 | Games 48%, Puzzles 35%, Vision 17% |
+| Arena Agent | Tool Use 53%, Coding 24%, Documents 12%, Research 11% |
+| Arena WebDev | Coding 57%, Design 31%, Tool Use 12% |
+| AutomationBench | Tool Use 100% |
+| BioMysteryBench | Science 63%, Tool Use 37% |
+| Blueprint-Bench 2 | Vision 84%, Tool Use 16% |
+| Briefcase | Documents 58%, Tool Use 42% |
+| Chartography | Vision 69%, Tool Use 18%, Coding 13% |
+| Chess Puzzles | Games 86%, Puzzles 14% |
+| Code Migration | Coding 80%, Tool Use 20% |
+| Code2Video-AA | Design 55%, Coding 45% |
+| ComplexConstraints | Writing 100% |
+| CritPt | Science 59%, Math 31%, Tool Use 10% |
+| DAYJOB: Finance | Finance 55%, Documents 26%, Tool Use 19% |
+| DAYJOB: Healthcare | Healthcare 43%, Tool Use 32%, Documents 25% |
+| EBR-Bench | Games 68%, Tool Use 32% |
+| EMB | Finance 53%, Documents 32%, Tool Use 15% |
+| EnigmaEval | Puzzles 77%, Vision 23% |
+| ERQA | Vision 100% |
+| Finance Agent | Finance 46%, Tool Use 27%, Research 27% |
+| FrontierCode | Coding 79%, Tool Use 21% |
+| FrontierMath Tier 4 | Math 100% |
+| GDP.pdf | Documents 69%, Vision 31% |
+| GDP.xlsx | Documents 64%, Tool Use 24%, Finance 12% |
+| GDPval-AA | Documents 44%, Tool Use 26%, Writing 17%, Research 13% |
+| HANDBOOK.md | Tool Use 100% |
+| Hemingway-bench | Writing 100% |
+| HLE-Diamond | Knowledge 36%, Math 25%, Science 22%, Vision 17% |
+| IntPhys 2 | Vision 62%, Science 38% |
+| MindCube Tiny | Vision 100% |
+| MirrorCode | Coding 75%, Tool Use 25% |
+| MLCR-AA | Healthcare 100% |
+| MysteryMechanism | Math 43%, Puzzles 29%, Tool Use 28% |
+| Omniscience | Knowledge 100% |
+| ProgramBench | Coding 79%, Tool Use 21% |
+| Public Benefits Bench | Legal 65%, Research 20%, Tool Use 15% |
+| Riemann-bench | Math 100% |
+| RSI | Coding 78%, Tool Use 22% |
+| SimpleQA Verified | Knowledge 100% |
+| SpatialViz-Bench | Vision 72%, Puzzles 28% |
+| SRE Bench | Coding 65%, Tool Use 35% |
+| sudo L7 | Coding 77%, Tool Use 23% |
+| SUPERChem | Science 70%, Vision 17%, Math 13% |
+| Terminal-Bench | Coding 54%, Tool Use 32%, Science 14% |
+| Terminal-Bench-Science | Science 40%, Math 28%, Tool Use 17%, Coding 15% |
+| TextQuests | Games 87%, Puzzles 13% |
+| Vending-Bench 2 | Games 38%, Tool Use 35%, Finance 16%, Research 11% |
+| Vibe Code | Coding 73%, Tool Use 27% |
+| VoxelBench | Design 100% |
+| WeirdML | Coding 66%, Tool Use 34% |
 
 ## Watchlist
 

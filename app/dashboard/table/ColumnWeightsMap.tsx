@@ -1,10 +1,9 @@
-/** Draws a score header's weights, or the benchmarks a resource ratio header counts, as a treemap sized to its card: blocks of benchmarks sharing a primary domain, each in that domain's colour, or groups of other inputs in a neutral grey, each member a tile sized and type-sized by its share with its label fitted to it, and the inputs that carry no share listed beneath. Also draws one benchmark's domain shares as a bar, which a pointed tile shows in place of the legend and a benchmark header's card shows outright. */
+/** Draws a score header's weights, or the benchmarks a resource ratio header counts, as a treemap sized to its card: blocks of benchmarks sharing a primary domain, each in that domain's colour, or groups of other inputs in a neutral grey, each member a tile sized and type-sized by its share with its label fitted to it, and the inputs that carry no share listed beneath. A pointed tile shows its benchmark's domain shares in place of the legend. */
 
 import { type CSSProperties, useMemo, useState } from "react";
 
-import type { BenchmarkDomain } from "../../../src/model-atlas/benchmarks/catalog";
-import { domainIcons } from "../shared/benchmark-display";
-import type { ColumnWeightGroup, ColumnWeightItem, ColumnWeights, DomainShare } from "./tooltips";
+import { DomainChip, domainIcons, DomainShareBar, domainTone } from "../../shared/DomainShares";
+import type { ColumnWeightGroup, ColumnWeightItem, ColumnWeights } from "./tooltips";
 
 // A score's tile shares read to two decimals and its block totals to one; a counted benchmark carries no figure and its block shows how many it holds.
 const shareFormat = new Intl.NumberFormat("en", { maximumFractionDigits: 2 });
@@ -144,49 +143,6 @@ export function ColumnWeightsMap({ weights, width }: { weights: ColumnWeights; w
       ))}
     </div>
   );
-}
-
-/** A benchmark's domain shares as one bar of their colours, heaviest first, each then named with its icon and percent as the map's legend names a block. */
-export function DomainShareBar({ domains }: { domains: readonly DomainShare[] }) {
-  return (
-    <div className="domain-shares">
-      <div className="benchmark-tooltip-bar" aria-hidden>
-        {domains.map(({ domain, share }) => (
-          <span
-            key={domain}
-            style={{ flexGrow: share, background: `var(--domain-tone-${domain})` }}
-          />
-        ))}
-      </div>
-      <ul className="column-weights-legend">
-        {domains.map(({ domain, name, share }) => (
-          <li key={domain} data-domain={domain}>
-            <DomainChip domain={domain} />
-            <span>{name}</span>
-            <span>{share}%</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-/** A label's icon on a small tile of its colour, as the legend marks a block and a card's title its label. */
-export function DomainChip({ domain }: { domain: BenchmarkDomain }) {
-  const Icon = domainIcons[domain];
-  return (
-    <span className="column-weights-chip" style={domainTone(domain)}>
-      <Icon className="column-weights-icon" aria-hidden />
-    </span>
-  );
-}
-
-function domainTone(domain: BenchmarkDomain | null) {
-  return (
-    domain == null
-      ? { "--tile-tone": "var(--input-tone)", "--tile-ink": "var(--input-ink)" }
-      : { "--tile-tone": `var(--domain-tone-${domain})`, "--tile-ink": "var(--domain-ink)" }
-  ) as CSSProperties;
 }
 
 /** The map's height, its blocks largest first with their tone, their tiles' layout and where each tile sets its share, and each tier's label size; a tier is the rank of a share among the score's distinct shares. */

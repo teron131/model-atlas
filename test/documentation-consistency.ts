@@ -1,4 +1,4 @@
-/** Check published Markdown formulas, heading links to local or deployed documents, version markers, and registered figure dimensions; editorial choices and mathematical meaning require contextual review. */
+/** Check published Markdown formulas, heading links to local or deployed documents, version markers, the Domains tables against the catalog, and registered figure dimensions; editorial choices and mathematical meaning require contextual review. */
 
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
@@ -12,10 +12,13 @@ import {
   documentHref,
   documentImageSize,
   DOCUMENTS,
+  DOMAIN_COLUMNS,
   fillVersionMarkers,
   headingId,
   METHODOLOGY_ASSET_NAMES,
 } from "../app/methodology/documents";
+import { domainShares } from "../app/shared/DomainShares";
+import { BENCHMARK_DOMAINS, BENCHMARK_LABELS } from "../src/model-atlas/benchmarks/catalog";
 
 const DOCS_DIR = "docs";
 const SITE = "https://llmstats.vercel.app";
@@ -79,7 +82,46 @@ for (const asset of METHODOLOGY_ASSET_NAMES) {
     problems.push(`${asset} is registered but no document shows it`);
 }
 
+// The Domains tables on the Benchmarks page restate the catalog, so every definition and every task benchmark's shares must match it row for row.
+const benchmarksPage = read(join(DOCS_DIR, "benchmarks.md"));
+const definitionRows = tableRows(benchmarksPage, `| ${DOMAIN_COLUMNS.domain} | Definition |`);
+for (const { name, definition } of BENCHMARK_DOMAINS) {
+  if (definitionRows.get(name) !== definition)
+    problems.push(`benchmarks.md: the ${name} definition should read: ${definition}`);
+  definitionRows.delete(name);
+}
+for (const name of definitionRows.keys())
+  problems.push(`benchmarks.md: ${name} is not a catalog domain`);
+const shareRows = tableRows(benchmarksPage, `| Benchmark | ${DOMAIN_COLUMNS.shares} |`);
+for (const [key, name] of Object.entries(BENCHMARK_LABELS)) {
+  const domains = domainShares(key);
+  if (domains.length === 0) continue;
+  const expected = domains.map((domain) => `${domain.name} ${domain.share}%`).join(", ");
+  if (shareRows.get(name) !== expected)
+    problems.push(`benchmarks.md: ${name}'s domain shares should read ${expected}`);
+  shareRows.delete(name);
+}
+for (const name of shareRows.keys())
+  problems.push(`benchmarks.md: ${name} lists domain shares the catalog does not have`);
+
 assert.deepEqual(problems, [], `Documentation problems:\n${problems.join("\n")}`);
+
+/** A two-column Markdown table's rows below the given header line, from first cell to second: "| AA-3D | Coding 36% |" → AA-3D → Coding 36%. */
+function tableRows(markdown: string, header: string): Map<string, string> {
+  const lines = markdown.split("\n");
+  const start = lines.indexOf(header);
+  const rows = new Map<string, string>();
+  if (start === -1) return rows;
+  for (const line of lines.slice(start + 2)) {
+    if (!line.startsWith("|")) break;
+    const [first = "", second = ""] = line
+      .slice(1, -1)
+      .split(" | ")
+      .map((cell) => cell.trim());
+    rows.set(first, second);
+  }
+  return rows;
+}
 
 function read(file: string): string {
   return readFileSync(file, "utf8");

@@ -6,7 +6,7 @@ import { type CSSProperties, useCallback, useId, useLayoutEffect, useRef, useSta
 
 import type { BenchmarkDomain } from "../../../../src/model-atlas/benchmarks/catalog";
 import { clamp } from "../../../../src/model-atlas/math-utils";
-import { domainIcons } from "../../shared/benchmark-display";
+import { domainIcons } from "../../../shared/DomainShares";
 import { providerChartColor, providerLogo } from "../../shared/provider-theme";
 import { REFERENCE_PLOT_HEIGHT } from "../../shared/sky-light";
 import { NAME_CLEARANCE, type PointLabelPlacement, type PointLabelSize } from "./label-placement";

@@ -1,6 +1,11 @@
-/** The methodology section's document registry: which docs/ files and illustrations it serves, and how their headings, version markers, and relative links become the served pages' anchors and routes. */
+/** The methodology section's document registry: which docs/ files and illustrations it serves, how their headings and relative links become the served pages' anchors and routes, the markers that fill in catalog versions, and the table columns drawn from the catalog's domains. */
 
-import { BENCHMARK_TOOLTIPS } from "../../src/model-atlas/benchmarks/catalog";
+import {
+  BENCHMARK_DOMAINS,
+  BENCHMARK_TOOLTIPS,
+  type BenchmarkDomain,
+} from "../../src/model-atlas/benchmarks/catalog";
+import type { DomainShare } from "../shared/DomainShares";
 import { plainScoreText } from "./score-markers";
 
 const VERSION_MARKER = /:version\[([a-z0-9_]+)\]/g;
@@ -21,6 +26,29 @@ export function fillVersionMarkers(
     const version = versions[key];
     if (version == null) throw new Error(`No version for documentation marker :version[${key}]`);
     return version;
+  });
+}
+
+/** Table columns the renderer draws from the benchmark catalog: a Domain cell names one domain, and a Domain Shares cell lists a benchmark's shares. */
+export const DOMAIN_COLUMNS = { domain: "Domain", shares: "Domain Shares" } as const;
+
+/** The catalog domain a Domain cell names by its display name, such as "Tool Use"; any other name is an authoring error. */
+export function namedDomain(name: string): BenchmarkDomain {
+  const domain = BENCHMARK_DOMAINS.find((entry) => entry.name === name);
+  if (domain == null)
+    throw new Error(`No domain named "${name}" in a ${DOMAIN_COLUMNS.domain} column`);
+  return domain.key;
+}
+
+/** The shares a Domain Shares cell lists in the order written, each a domain name and a whole percent joined by commas: "Coding 80%, Tool Use 20%" → Coding 80, Tool Use 20; a cell in any other form is an authoring error. */
+export function domainShareList(text: string): DomainShare[] {
+  return text.split(", ").map((entry) => {
+    const [, name, share] = /^(.+) (\d+)%$/.exec(entry.trim()) ?? [];
+    if (name == null || share == null)
+      throw new Error(
+        `"${entry}" in a ${DOMAIN_COLUMNS.shares} column is not a domain and a percent`,
+      );
+    return { domain: namedDomain(name), name, share: Number(share) };
   });
 }
 

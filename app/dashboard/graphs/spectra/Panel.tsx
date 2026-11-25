@@ -4,14 +4,11 @@
 
 import { useState } from "react";
 
+import { domainShares } from "../../../shared/DomainShares";
 import { providerChartColor, providerLogo } from "../../shared/provider-theme";
 import { hashUnit } from "../../shared/sky-light";
 import { ColumnTooltip, useColumnTooltip } from "../../table/ColumnTooltip";
-import {
-  type ColumnWeightGroup,
-  type DashboardColumnTooltip,
-  domainShares,
-} from "../../table/tooltips";
+import { type ColumnWeightGroup, type DashboardColumnTooltip } from "../../table/tooltips";
 import {
   type ChartBenchmark,
   type ChartData,

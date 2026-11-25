@@ -18,8 +18,9 @@ import type {
   ModelAtlasColumnTooltipSectionItem,
 } from "../../../src/model-atlas/config/tooltips";
 import { clamp } from "../../../src/model-atlas/math-utils";
+import { DomainChip } from "../../shared/DomainShares";
 import { BenchmarkTooltipBody } from "./BenchmarkTooltip";
-import { ColumnWeightsMap, DomainChip } from "./ColumnWeightsMap";
+import { ColumnWeightsMap } from "./ColumnWeightsMap";
 import { InequalityGraph, layoutInequalityGraph } from "./InequalityGraph";
 import type { DashboardColumnTooltip } from "./tooltips";
 

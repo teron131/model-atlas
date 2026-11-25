@@ -3,7 +3,6 @@
 import {
   BENCHMARK_DOMAINS,
   type BenchmarkDomain,
-  benchmarkDomainShares,
 } from "../../../src/model-atlas/benchmarks/catalog";
 import type {
   BenchmarkGroup,
@@ -35,6 +34,7 @@ import type {
   ModelAtlasModel,
   ModelAtlasScoreKey,
 } from "../../../src/model-atlas/stats/types";
+import { type DomainShare, domainShares } from "../../shared/DomainShares";
 import { benchmarkTooltips } from "../shared/benchmark-display";
 import { providerChartColor } from "../shared/provider-theme";
 import {
@@ -377,14 +377,6 @@ const catalogBenchmarks = Object.entries(BENCHMARK_CATALOG).map(([key, { present
   domains: domainShares(key),
 }));
 
-/** A benchmark's domain shares heaviest first, a tie keeping the catalog's domain order, so the first is its primary domain; empty for an index, which mixes every domain. */
-export function domainShares(key: string): DomainShare[] {
-  const shares = benchmarkDomainShares(key) ?? {};
-  return BENCHMARK_DOMAINS.flatMap(({ key: domain, name }) => {
-    const share = shares[domain];
-    return share == null ? [] : [{ domain, name, share }];
-  }).sort((a, b) => b.share - a.share);
-}
 const benchmarksByName = new Map(catalogBenchmarks.map((benchmark) => [benchmark.name, benchmark]));
 const benchmarksByKey = new Map(catalogBenchmarks.map((benchmark) => [benchmark.key, benchmark]));
 
@@ -564,9 +556,6 @@ export type ColumnWeightItem = {
   /** Empty for an index or an input other than a benchmark; the first is the block the item is filed under. */
   domains: readonly DomainShare[];
 };
-
-/** One domain's part of a benchmark, in percent of the benchmark; a benchmark's shares sum to 100. */
-export type DomainShare = { domain: BenchmarkDomain; name: string; share: number };
 
 /** Describe a benchmark without treating missing or estimated results as observed coverage. */
 function benchmarkTooltip(
