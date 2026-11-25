@@ -92,15 +92,27 @@ export function providerPreferenceRank(providerId: string): number | null {
   return null;
 }
 
+/** Normalized tokens by input: scoring normalizes the same few thousand names and slugs on every calibration pass. */
+const normalizedTokens = new Map<string, string>();
+const MAX_NORMALIZED_TOKENS = 50_000;
+
 /** Lowercases, turns `.`, `_`, `:`, and whitespace into hyphens, drops other characters outside `a-z0-9/-`, collapses hyphen runs, and trims edge hyphens and slashes: `"Google: Gemini 2.5 Pro (Preview)"` → `"google-gemini-2-5-pro-preview"`. */
 export function normalizeModelToken(value: string): string {
-  const token = value
-    .toLowerCase()
-    .replace(/[._:\s]+/g, "-")
-    .replace(/[^a-z0-9/-]+/g, "")
-    .replace(/-+/g, "-")
-    .replace(/^[-/]+|[-/]+$/g, "");
-  return canonicalMuseToken(token);
+  let token = normalizedTokens.get(value);
+  if (token == null) {
+    token = canonicalMuseToken(
+      value
+        .toLowerCase()
+        .replace(/[._:\s]+/g, "-")
+        .replace(/[^a-z0-9/-]+/g, "")
+        .replace(/-+/g, "-")
+        .replace(/^[-/]+|[-/]+$/g, ""),
+    );
+    // Request handlers can normalize caller-supplied names, so the memo restarts rather than grow without bound.
+    if (normalizedTokens.size >= MAX_NORMALIZED_TOKENS) normalizedTokens.clear();
+    normalizedTokens.set(value, token);
+  }
+  return token;
 }
 
 /**

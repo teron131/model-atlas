@@ -235,7 +235,7 @@ export async function publicJsonResponse(
     if (serialized == null) {
       return Response.json(
         { error: missingSliceMessage(slice) },
-        { status: 404, headers: SNAPSHOT_CACHE_HEADERS },
+        { status: 404, headers: NO_STORE_HEADERS },
       );
     }
     const headers = new Headers(SNAPSHOT_CACHE_HEADERS);

@@ -230,27 +230,36 @@ export function weightedPercentileRanker(
 
 /** Invert cumulative weight without spreading tied mass across gaps; average adjacent values only at an exact mass boundary. */
 export function weightedQuantile(parts: readonly WeightedValue[], quantile: number): number | null {
+  return weightedQuantileFunction(parts)(quantile);
+}
+
+/** `weightedQuantile` for many quantiles of one distribution, aggregating and sorting it once. */
+export function weightedQuantileFunction(
+  parts: readonly WeightedValue[],
+): (quantile: number) => number | null {
   const observations = aggregateWeightedValues(parts).sort(
     (left, right) => left.value - right.value,
   );
-  if (observations.length === 0) {
-    return null;
-  }
-  if (quantile <= 0) return observations[0]!.value;
-  if (quantile >= 1) return observations.at(-1)!.value;
   const totalWeight = observations.reduce((sum, observation) => sum + observation.weight, 0);
-  const targetWeight = clamp01(quantile) * totalWeight;
   const tolerance = Number.EPSILON * totalWeight * 8;
-  let cumulativeWeight = 0;
-  for (const [index, observation] of observations.entries()) {
-    cumulativeWeight += observation.weight;
-    if (targetWeight < cumulativeWeight - tolerance) return observation.value;
-    if (Math.abs(targetWeight - cumulativeWeight) <= tolerance) {
-      const next = observations[index + 1];
-      return next == null ? observation.value : (observation.value + next.value) / 2;
+  return (quantile) => {
+    if (observations.length === 0) {
+      return null;
     }
-  }
-  return observations.at(-1)!.value;
+    if (quantile <= 0) return observations[0]!.value;
+    if (quantile >= 1) return observations.at(-1)!.value;
+    const targetWeight = clamp01(quantile) * totalWeight;
+    let cumulativeWeight = 0;
+    for (const [index, observation] of observations.entries()) {
+      cumulativeWeight += observation.weight;
+      if (targetWeight < cumulativeWeight - tolerance) return observation.value;
+      if (Math.abs(targetWeight - cumulativeWeight) <= tolerance) {
+        const next = observations[index + 1];
+        return next == null ? observation.value : (observation.value + next.value) / 2;
+      }
+    }
+    return observations.at(-1)!.value;
+  };
 }
 
 /** Locate observed values at the middle of their cumulative mass; values in a gap share its cumulative boundary. */
@@ -258,23 +267,32 @@ export function weightedQuantileRank(
   parts: readonly WeightedValue[],
   value: number | null,
 ): number | null {
-  if (value == null || !Number.isFinite(value)) {
-    return null;
-  }
+  return weightedQuantileRanker(parts)(value);
+}
+
+/** `weightedQuantileRank` for many values against one distribution, aggregating it once. */
+export function weightedQuantileRanker(
+  parts: readonly WeightedValue[],
+): (value: number | null) => number | null {
   const observations = aggregateWeightedValues(parts);
   const totalWeight = observations.reduce((sum, observation) => sum + observation.weight, 0);
-  if (totalWeight <= 0) return null;
-  const rankWeight = observations.reduce(
-    (sum, observation) =>
-      sum +
-      (observation.value < value
-        ? observation.weight
-        : observation.value === value
-          ? observation.weight / 2
-          : 0),
-    0,
-  );
-  return (100 * rankWeight) / totalWeight;
+  return (value) => {
+    if (value == null || !Number.isFinite(value)) {
+      return null;
+    }
+    if (totalWeight <= 0) return null;
+    const rankWeight = observations.reduce(
+      (sum, observation) =>
+        sum +
+        (observation.value < value
+          ? observation.weight
+          : observation.value === value
+            ? observation.weight / 2
+            : 0),
+      0,
+    );
+    return (100 * rankWeight) / totalWeight;
+  };
 }
 
 export function weightedMedianOfFinite(parts: readonly WeightedValue[]): number | null {

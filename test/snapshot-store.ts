@@ -388,6 +388,11 @@ try {
     params: Promise.resolve({ id: ["x", "y"] }),
   });
   assert.equal(missingModel.status, 404);
+  assert.equal(
+    missingModel.headers.get("cache-control"),
+    "no-store",
+    "A missing model is never cached, so it answers as soon as a snapshot adds it",
+  );
   assert.equal(manifestReads, 1, "API revalidation reuses the existing snapshot freshness window");
   clock += 31_000;
   await readDisplayPayload();

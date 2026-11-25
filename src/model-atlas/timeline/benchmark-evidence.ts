@@ -69,6 +69,17 @@ function buildEvidence(data: HistoricalDataset, parameters: TimelineParameters) 
       )
       .sort((a, b) => a.id.localeCompare(b.id));
     const contexts = new Map<string, ReturnType<typeof prepareImputation>>();
+    const relatedInputs = (row: TimelineRow) => related.filter((b) => row.benchmarks[b.id] != null);
+    const basketKey = (inputs: readonly HistoricalBenchmark[]) => inputs.map((b) => b.id).join("|");
+    // Only rows missing the target ask a predictor, and a task-context predictor only serves rows with its exact input basket.
+    const queryRows = rows.filter((row) => !raw.has(row.id + "|" + task.id));
+    const queryRowsByBasket = new Map<string, TimelineRow[]>();
+    for (const row of queryRows) {
+      const key = basketKey(relatedInputs(row));
+      const basketRows = queryRowsByBasket.get(key);
+      if (basketRows) basketRows.push(row);
+      else queryRowsByBasket.set(key, [row]);
+    }
     const indexContexts = indexes
       .filter(
         (index) =>
@@ -76,7 +87,7 @@ function buildEvidence(data: HistoricalDataset, parameters: TimelineParameters) 
           index.weights.agentic * task.weights.agentic > 0,
       )
       .map((index) => {
-        const predictor = prepareImputation(rows, task, [index], parameters, "index");
+        const predictor = prepareImputation(rows, task, [index], parameters, "index", queryRows);
         predictors.push(predictor.details);
         return predictor;
       });
@@ -95,11 +106,18 @@ function buildEvidence(data: HistoricalDataset, parameters: TimelineParameters) 
         });
         continue;
       }
-      const inputs = related.filter((b) => row.benchmarks[b.id] != null);
-      const key = inputs.map((b) => b.id).join("|");
+      const inputs = relatedInputs(row);
+      const key = basketKey(inputs);
       let context = contexts.get(key);
       if (!context && inputs.length >= 3) {
-        context = prepareImputation(rows, task, inputs, parameters, "components");
+        context = prepareImputation(
+          rows,
+          task,
+          inputs,
+          parameters,
+          "components",
+          queryRowsByBasket.get(key)!,
+        );
         contexts.set(key, context);
         if (context.details.models > 0) predictors.push(context.details);
       }
@@ -133,13 +151,14 @@ function buildEvidence(data: HistoricalDataset, parameters: TimelineParameters) 
   return { cells, predictors };
 }
 
-/** Each donor observes the target and every requested input; unavailable versions never silently change its basket. */
+/** Each donor observes the target and every requested input; unavailable versions never silently change its basket. Only `queryRows` are projected, so `predict` answers null for any other row. */
 function prepareImputation(
   rows: TimelineRow[],
   target: HistoricalBenchmark,
   inputs: HistoricalBenchmark[],
   parameters: TimelineParameters,
   kind: TimelinePredictor["kind"],
+  queryRows: TimelineRow[],
 ) {
   const definitions = [target, ...inputs];
   const donors = rows.filter((row) =>
@@ -177,7 +196,7 @@ function prepareImputation(
     ),
   };
   const result = usable
-    ? prepareBenchmarkImputation(donors, config, [target.id], kind === "index" ? 1 : 3, rows)
+    ? prepareBenchmarkImputation(donors, config, [target.id], kind === "index" ? 1 : 3, queryRows)
     : null;
   const diagnostic = result?.imputationDiagnosticsByKey.get(target.id);
   const details: TimelinePredictor = {

@@ -16,11 +16,12 @@ import {
   clamp01,
   linearScore,
   type MinMaxRange,
+  minMaxRange,
   weightedFinitePartCount,
   weightedMeanOfFinite,
   weightedMedianOfFinite,
-  weightedQuantile,
-  weightedQuantileRank,
+  weightedQuantileFunction,
+  weightedQuantileRanker,
 } from "../../../math-utils";
 import type { JsonObject } from "../../../runtime";
 import {
@@ -77,6 +78,8 @@ const MIN_IMPUTATION_EVIDENCE_VALUES = 3;
 const MIN_IMPUTATION_REFERENCE_MODELS = 3;
 const MIN_IMPUTATION_VALIDATION_MODELS = 4;
 const IMPUTATION_CAPABILITIES = ["intelligence", "agentic"] as const;
+
+type ImputationCapability = (typeof IMPUTATION_CAPABILITIES)[number];
 
 /** Resolve prepared benchmark values after candidate and public-model projection replace row identity. */
 export function benchmarkImputationValues(
@@ -147,6 +150,8 @@ type CapabilityBenchmarkContext = {
   benchmarkKeys: readonly string[];
   benchmarkWeights: ReadonlyMap<string, number>;
 };
+
+type CapabilityContexts = Record<ImputationCapability, CapabilityBenchmarkContext>;
 
 function observedEvidenceSupport(
   model: JsonObject,
@@ -231,27 +236,16 @@ type ContextualPrediction = {
 
 /** Build one capability-specific predictor from observed context and target values only. */
 function buildCapabilityPredictor(
-  models: JsonObject[],
+  population: TrainingPopulation,
   targetBenchmarkKey: string,
-  capability: BenchmarkCapability,
-  scoringConfig: ScoringConfig,
-  rangesByKey: ReadonlyMap<string, MinMaxRange | null>,
-  minimumEvidenceValues: number,
+  capability: ImputationCapability,
+  { benchmarkKeys, benchmarkWeights }: CapabilityBenchmarkContext,
 ): ((model: JsonObject) => ContextualPrediction | null) | null {
-  const { benchmarkKeys, benchmarkWeights } = capabilityBenchmarkContext(capability, scoringConfig);
-  const referenceContextScores = calibrationObservations(models, (model) => {
-    if (benchmarkValue(model, targetBenchmarkKey) == null) {
-      return null;
-    }
-    return observedNormalizedEvidenceScore(
-      model,
-      benchmarkKeys,
-      benchmarkWeights,
-      targetBenchmarkKey,
-      rangesByKey,
-      minimumEvidenceValues,
-    );
-  });
+  const referenceContextScores = calibrationObservations(population.models, (model) =>
+    benchmarkValue(model, targetBenchmarkKey) == null
+      ? null
+      : population.contextScore(model, capability, targetBenchmarkKey),
+  );
   const targetObservations = referenceContextScores.map((observation) => ({
     ...observation,
     value: benchmarkValue(observation.item, targetBenchmarkKey) as number,
@@ -259,21 +253,15 @@ function buildCapabilityPredictor(
   if (distinctModelCount(referenceContextScores) < MIN_IMPUTATION_REFERENCE_MODELS) {
     return null;
   }
+  const contextRank = weightedQuantileRanker(referenceContextScores);
+  const targetQuantile = weightedQuantileFunction(targetObservations);
   return (model) => {
-    const contextScore = observedNormalizedEvidenceScore(
-      model,
-      benchmarkKeys,
-      benchmarkWeights,
-      targetBenchmarkKey,
-      rangesByKey,
-      minimumEvidenceValues,
-    );
+    const contextScore = population.contextScore(model, capability, targetBenchmarkKey);
     if (contextScore == null) {
       return null;
     }
-    const percentile = weightedQuantileRank(referenceContextScores, contextScore);
-    const value =
-      percentile == null ? null : weightedQuantile(targetObservations, percentile / 100);
+    const percentile = contextRank(contextScore);
+    const value = percentile == null ? null : targetQuantile(percentile / 100);
     return value == null
       ? null
       : {
@@ -293,17 +281,24 @@ type WeightedBenchmarkPredictor = {
   weight: number;
 };
 
+type ContextScore = (
+  model: JsonObject,
+  capability: ImputationCapability,
+  targetBenchmarkKey: string,
+) => number | null;
+
+/** Training models with their normalization anchors and the context score each model takes against them. */
 type TrainingPopulation = {
   models: JsonObject[];
   rangesByKey: ReadonlyMap<string, MinMaxRange | null>;
+  contextScore: ContextScore;
 };
 
 function buildWeightedPredictors(
-  models: JsonObject[],
+  population: TrainingPopulation,
   targetBenchmarkKey: string,
   scoringConfig: ScoringConfig,
-  rangesByKey: ReadonlyMap<string, MinMaxRange | null>,
-  minimumEvidenceValues: number,
+  capabilityContexts: CapabilityContexts,
 ): WeightedBenchmarkPredictor[] {
   const portfolioEntry = scoringConfig.benchmarkPortfolio[targetBenchmarkKey];
   if (portfolioEntry == null) {
@@ -313,12 +308,10 @@ function buildWeightedPredictors(
     predict:
       portfolioEntry.dimensionLoadings[capability] > 0
         ? buildCapabilityPredictor(
-            models,
+            population,
             targetBenchmarkKey,
             capability,
-            scoringConfig,
-            rangesByKey,
-            minimumEvidenceValues,
+            capabilityContexts[capability],
           )
         : null,
     weight: portfolioEntry.dimensionLoadings[capability],
@@ -353,7 +346,7 @@ function imputationDiagnostic(
   models: JsonObject[],
   targetBenchmarkKey: string,
   scoringConfig: ScoringConfig,
-  minimumEvidenceValues: number,
+  capabilityContexts: CapabilityContexts,
   modelKeyByModel: ReadonlyMap<JsonObject, string>,
   trainingPopulationForModel: (modelKey: string) => TrainingPopulation,
 ): BenchmarkImputationDiagnostic {
@@ -375,19 +368,17 @@ function imputationDiagnostic(
     const heldOutModelKey = modelKeyByModel.get(heldOutModel)!;
     let calibration = calibrationByHeldOutModel.get(heldOutModelKey);
     if (calibration == null) {
-      const { models: trainingModels, rangesByKey: trainingRangesByKey } =
-        trainingPopulationForModel(heldOutModelKey);
+      const training = trainingPopulationForModel(heldOutModelKey);
       calibration = {
         predictors: buildWeightedPredictors(
-          trainingModels,
+          training,
           targetBenchmarkKey,
           scoringConfig,
-          trainingRangesByKey,
-          minimumEvidenceValues,
+          capabilityContexts,
         ),
-        targetRange: trainingRangesByKey.get(targetBenchmarkKey) ?? null,
+        targetRange: training.rangesByKey.get(targetBenchmarkKey) ?? null,
         baseline: weightedMedianOfFinite(
-          calibrationObservations(trainingModels, (model) =>
+          calibrationObservations(training.models, (model) =>
             benchmarkValue(model, targetBenchmarkKey),
           ),
         ),
@@ -447,7 +438,28 @@ export function prepareBenchmarkImputation(
   const imputationByModel = new Map<JsonObject, Map<string, number>>();
   const imputationFactorsByModel = new Map<JsonObject, Map<string, number>>();
   const diagnosticsByKey = new Map<string, BenchmarkImputationDiagnostic>();
+  const capabilityContexts: CapabilityContexts = {
+    intelligence: capabilityBenchmarkContext("intelligence", scoringConfig),
+    agentic: capabilityBenchmarkContext("agentic", scoringConfig),
+  };
+  const contextScorer =
+    (rangesByKey: ReadonlyMap<string, MinMaxRange | null>): ContextScore =>
+    (model, capability, targetBenchmarkKey) =>
+      observedNormalizedEvidenceScore(
+        model,
+        capabilityContexts[capability].benchmarkKeys,
+        capabilityContexts[capability].benchmarkWeights,
+        targetBenchmarkKey,
+        rangesByKey,
+        minimumEvidenceValues,
+      );
   const rangesByKey = observedRangesByBenchmark(models, benchmarkKeys);
+  // Most held-out populations keep every full-population anchor, so they share its memoized context scores.
+  const population: TrainingPopulation = {
+    models,
+    rangesByKey,
+    contextScore: memoizedContextScore(contextScorer(rangesByKey)),
+  };
   const modelKeyByModel = new Map(
     models.map((model) => [model, canonicalModelKey(model)] as const),
   );
@@ -456,11 +468,20 @@ export function prepareBenchmarkImputation(
   const trainingPopulationForModel = (modelKey: string): TrainingPopulation => {
     let training = trainingByHeldOutModel.get(modelKey);
     if (training == null) {
-      const trainingModels = models.filter((model) => modelKeyByModel.get(model) !== modelKey);
-      training = {
-        models: trainingModels,
-        rangesByKey: observedRangesByBenchmark(trainingModels, benchmarkKeys),
-      };
+      const heldOutModels: JsonObject[] = [];
+      const trainingModels: JsonObject[] = [];
+      for (const model of models) {
+        (modelKeyByModel.get(model) === modelKey ? heldOutModels : trainingModels).push(model);
+      }
+      const trainingRanges = rangesWithout(rangesByKey, heldOutModels, trainingModels);
+      training =
+        trainingRanges === rangesByKey
+          ? { ...population, models: trainingModels }
+          : {
+              models: trainingModels,
+              rangesByKey: trainingRanges,
+              contextScore: contextScorer(trainingRanges),
+            };
       trainingByHeldOutModel.set(modelKey, training);
     }
     return training;
@@ -474,7 +495,7 @@ export function prepareBenchmarkImputation(
       models,
       key,
       scoringConfig,
-      minimumEvidenceValues,
+      capabilityContexts,
       modelKeyByModel,
       trainingPopulationForModel,
     );
@@ -482,13 +503,7 @@ export function prepareBenchmarkImputation(
     if (!diagnostic.imputationAllowed) {
       continue;
     }
-    const predictors = buildWeightedPredictors(
-      models,
-      key,
-      scoringConfig,
-      rangesByKey,
-      minimumEvidenceValues,
-    );
+    const predictors = buildWeightedPredictors(population, key, scoringConfig, capabilityContexts);
     for (const model of queryModels) {
       if (benchmarkValue(model, key) != null || imputationByModel.get(model)?.has(key)) {
         continue;
@@ -512,6 +527,49 @@ export function prepareBenchmarkImputation(
     imputationByModel,
     imputationFactorsByModel,
     imputationDiagnosticsByKey: diagnosticsByKey,
+  };
+}
+
+/** The observed ranges without the held-out models: a range moves only when a held-out value sits on one of its bounds, so when none does the full ranges come back as the same map. */
+function rangesWithout(
+  rangesByKey: ReadonlyMap<string, MinMaxRange | null>,
+  heldOutModels: readonly JsonObject[],
+  trainingModels: readonly JsonObject[],
+): ReadonlyMap<string, MinMaxRange | null> {
+  let trainingRanges: Map<string, MinMaxRange | null> | null = null;
+  for (const [key, range] of rangesByKey) {
+    if (
+      range != null &&
+      heldOutModels.some((model) => {
+        const value = benchmarkValue(model, key);
+        return value === range.min || value === range.max;
+      })
+    ) {
+      trainingRanges ??= new Map(rangesByKey);
+      trainingRanges.set(
+        key,
+        minMaxRange(trainingModels.map((model) => benchmarkValue(model, key))),
+      );
+    }
+  }
+  return trainingRanges ?? rangesByKey;
+}
+
+function memoizedContextScore(contextScore: ContextScore): ContextScore {
+  const scoresByTarget = new Map<string, Map<JsonObject, number | null>>();
+  return (model, capability, targetBenchmarkKey) => {
+    const key = `${capability}\u0000${targetBenchmarkKey}`;
+    let scores = scoresByTarget.get(key);
+    if (scores == null) {
+      scores = new Map();
+      scoresByTarget.set(key, scores);
+    }
+    let score = scores.get(model);
+    if (score === undefined) {
+      score = contextScore(model, capability, targetBenchmarkKey);
+      scores.set(model, score);
+    }
+    return score;
   };
 }
 
