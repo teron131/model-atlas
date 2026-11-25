@@ -68,13 +68,10 @@ export async function artificialAnalysisSnapshot(
   previousMissingSince: ReadonlyMap<string, number>,
   nowEpochSeconds: number,
 ): Promise<ArtificialAnalysisSnapshot> {
-  // Rows saved before index constituents were recorded can never score their index, so such a cache is refetched instead of reused.
-  const recordsIndexComponents =
-    cached?.rows.some((row) => Array.isArray(row.intelligenceIndexComponents)) ?? false;
   const snapshot = await snapshotSourceRows({
     source: "artificial_analysis",
     cached,
-    status: recordsIndexComponents ? status : { ...status, cache_hit: false },
+    status,
     options,
     previousMissingSince,
     nowEpochSeconds,

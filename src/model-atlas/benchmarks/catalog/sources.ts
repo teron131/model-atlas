@@ -721,11 +721,11 @@ export const BENCHMARK_EXTENDED_SOURCES = {
         adapters: [
           {
             kind: "artificial_analysis_resource_page",
-            url: "https://artificialanalysis.ai/evaluations/terminalbench-4-0",
+            url: "https://artificialanalysis.ai/evaluations/terminalbench-4-1",
             methodologyName: "Terminal-Bench",
-            scoreKey: "terminalBench40",
-            resourceKey: "terminalBench40",
-            // Artificial Analysis still runs 4.0, so this page supplies no rows until it reports the official board's version.
+            scoreKey: "terminalBench41",
+            resourceKey: "terminalBench41",
+            // Combining with the official board assumes its tasks, so this page supplies rows only while it reports the official board's version.
             version: "4.1",
           },
         ],

@@ -12,7 +12,6 @@ import {
   buildComponentScoreResult,
 } from "../src/model-atlas/pipeline/scores";
 import { buildQualityScoringContext } from "../src/model-atlas/pipeline/scores/quality-context";
-import { asRecord } from "../src/model-atlas/runtime";
 import { processAa3dRows } from "../src/model-atlas/sources/artificial-analysis/aa-3d";
 import {
   ARTIFICIAL_ANALYSIS_LEADERBOARD_COLUMNS,
@@ -188,42 +187,32 @@ const indexedRow = {
     output: 42_000,
   },
 };
-// A changed basket or a row kept from before baskets were recorded keeps none of its index score or telemetry; an empty basket keeps the score only.
-for (const [intelligenceIndexComponents, intelligenceIndex] of [
-  [[...recordedComponents.slice(1), "scicode"], null],
-  [[], 64.9],
-  [undefined, null],
-] as const) {
-  const [row] = processArtificialAnalysisLeaderboardRows(
-    [{ ...indexedRow, intelligenceIndexComponents }],
-    ["intelligence", "intelligence_index_cost"],
-  );
-  assertDeepEqual(asRecord(row?.intelligence).intelligence_index, intelligenceIndex);
+// A row listing another basket than the recorded one still scores its index and per-task resources.
+for (const intelligenceIndexComponents of [
+  recordedComponents,
+  [...recordedComponents.slice(1), "scicode"],
+]) {
   assertDeepEqual(
-    Object.values(asRecord(row?.intelligence_index_cost)).every((value) => value == null),
-    true,
+    processArtificialAnalysisLeaderboardRows(
+      [{ ...indexedRow, intelligenceIndexComponents }],
+      ["model_id", "intelligence", "intelligence_index_cost"],
+    ),
+    [
+      {
+        model_id: "anthropic/claude-fable-5",
+        intelligence: {
+          intelligence_index: 64.9,
+          omniscience_index: null,
+        },
+        intelligence_index_cost: {
+          cost_per_task: 1.5,
+          seconds_per_task: 120,
+          output_tokens_per_task: 42000,
+        },
+      },
+    ],
   );
 }
-assertDeepEqual(
-  processArtificialAnalysisLeaderboardRows(
-    [indexedRow],
-    ["model_id", "intelligence", "intelligence_index_cost"],
-  ),
-  [
-    {
-      model_id: "anthropic/claude-fable-5",
-      intelligence: {
-        intelligence_index: 64.9,
-        omniscience_index: null,
-      },
-      intelligence_index_cost: {
-        cost_per_task: 1.5,
-        seconds_per_task: 120,
-        output_tokens_per_task: 42000,
-      },
-    },
-  ],
-);
 assertDeepEqual(
   cleanArtificialAnalysisModelName(
     "Claude Fable 5 (Adaptive Reasoning, Max Effort, Opus 4.8 Fallback)",

@@ -15,7 +15,7 @@ type IndexPolicy = {
   } | null;
 };
 
-/** Artificial Analysis lists its index constituents by evaluation slug; this basket sets the index's represented breadth and the overlap Atlas deducts. */
+/** Artificial Analysis lists its index constituents by evaluation slug; this basket sets the index's represented breadth and the overlap Atlas deducts. A row listing another basket still scores at this breadth: blanking the index would delist every model it alone admits, and rejecting the rows would freeze every other Artificial Analysis field they carry; the weekly benchmark review compares the stored `intelligence_index_components` with this basket. */
 export const ARTIFICIAL_ANALYSIS_INDEX_COMPONENTS = {
   "aa-briefcase": "briefcase",
   "automationbench-aa": "automation_bench",
@@ -25,7 +25,7 @@ export const ARTIFICIAL_ANALYSIS_INDEX_COMPONENTS = {
   "hle-diamond": "hle",
   omniscience: "omniscience_accuracy",
   "terminal-bench-science": "terminal_bench_science",
-  "terminalbench-4-0": "terminal_bench",
+  "terminalbench-4-1": "terminal_bench",
 } as const satisfies Record<string, string>;
 
 const REPORTED_BREADTH = {

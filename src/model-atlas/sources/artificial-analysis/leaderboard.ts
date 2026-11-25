@@ -4,7 +4,6 @@
  * Page source: https://artificialanalysis.ai/leaderboards/models
  */
 
-import { ARTIFICIAL_ANALYSIS_INDEX_COMPONENTS } from "../../benchmarks/index-policy";
 import { canonicalReasoningEffort } from "../../identity/normalization";
 import { asRecord, firstString, type JsonObject, nowEpochSeconds } from "../../runtime";
 import { extractNextFlightCorpus, findObjectEnd, parseFlightJsonObject } from "../parsing";
@@ -55,10 +54,6 @@ export const ARTIFICIAL_ANALYSIS_LEADERBOARD_COLUMNS = [
   "intelligence_index_version",
   "intelligence_index_cost",
 ] as const;
-
-const RECORDED_INDEX_COMPONENTS: ReadonlySet<string> = new Set(
-  Object.keys(ARTIFICIAL_ANALYSIS_INDEX_COMPONENTS),
-);
 
 type LeaderboardColumn = (typeof ARTIFICIAL_ANALYSIS_LEADERBOARD_COLUMNS)[number];
 
@@ -370,7 +365,7 @@ function selectedColumnValue(
     case "intelligence_index_version":
       return firstString(row, ["intelligenceIndexVersion"]);
     case "intelligence_index_cost":
-      return pickIntelligenceIndexCost(hasRecordedIntelligenceIndexComponents(row) ? row : {});
+      return pickIntelligenceIndexCost(row);
     default:
       column satisfies never;
       throw new Error(`Unhandled Artificial Analysis leaderboard column: ${String(column)}`);
@@ -411,31 +406,9 @@ function selectModalities(row: JsonObject, direction: "input" | "output"): strin
   ].filter((value): value is string => value != null);
 }
 
-/** Per-task index telemetry counts only when the row lists exactly the recorded constituents; rows kept from before constituents were recorded never count. */
-function hasRecordedIntelligenceIndexComponents(row: JsonObject): boolean {
-  const components = row.intelligenceIndexComponents;
-  if (!Array.isArray(components)) return false;
-  const slugs = new Set(components);
-  return (
-    slugs.size === RECORDED_INDEX_COMPONENTS.size &&
-    [...slugs].every((slug) => typeof slug === "string" && RECORDED_INDEX_COMPONENTS.has(slug))
-  );
-}
-
-/** An empty constituent list means Artificial Analysis has not attached per-evaluation results yet; any other list must match the recorded one, since a changed basket alters breadth and overlap and waits for review instead of scoring. */
-function hasUnchangedIntelligenceIndexBasket(row: JsonObject): boolean {
-  const components = row.intelligenceIndexComponents;
-  return (
-    Array.isArray(components) &&
-    (components.length === 0 || hasRecordedIntelligenceIndexComponents(row))
-  );
-}
-
 function pickIntelligence(row: JsonObject): JsonObject {
   return {
-    intelligence_index: hasUnchangedIntelligenceIndexBasket(row)
-      ? firstNumber(row, ["intelligenceIndex"])
-      : null,
+    intelligence_index: firstNumber(row, ["intelligenceIndex"]),
     omniscience_index: firstNumber(row, ["omniscience"]),
   };
 }
