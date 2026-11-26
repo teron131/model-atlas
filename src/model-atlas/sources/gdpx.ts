@@ -17,7 +17,8 @@ import { fetchSourceText } from "./request-scheduler";
 const DOMAIN_PATTERN = /\{slug:"([a-z0-9-]+)",name:"[^"]+",shortName:/g;
 
 // A partner registration call, whatever the minifier names its function: a("aria","Aria","chip-design","/partners/aria.png") → `aria`, `chip-design`.
-const PARTNER_PATTERN = /[\w$]+\("([a-z0-9-]+)","[^"]+","([a-z0-9-]+)"/g;
+// The name must start where an identifier starts, or a megabyte-long run of identifier characters would be retried from every position in it.
+const PARTNER_PATTERN = /(?<![\w$])[\w$]+\("([a-z0-9-]+)","[^"]+","([a-z0-9-]+)"/g;
 
 // A JSON module inlined as a single-quoted string, escapes included: JSON.parse('{"a":"it\'s"}') → `{"a":"it\'s"}`.
 const JSON_MODULE_PATTERN = /JSON\.parse\('((?:[^'\\]|\\.)*)'\)/g;
@@ -129,7 +130,7 @@ function scriptUrls(pageHtml: string, sourceUrl: string): string[] {
   });
 }
 
-/** The inlined JSON module holding the models and their per-partner results, with JavaScript's quote and backslash escapes undone before JSON parsing. */
+/** The inlined JSON module holding the models and their per-partner results, with JavaScript's quote and backslash escapes undone before JSON parsing: `{"a":"it\'s","b":"x\\y"}` → `{"a":"it's","b":"x\y"}`. */
 function resultsModule(
   bundle: string,
 ): { models: unknown[]; results: unknown[]; overall: Record<string, unknown> } | null {

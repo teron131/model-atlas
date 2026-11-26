@@ -330,7 +330,7 @@ assert.equal(
 assert.equal(effortTraceRows[0]?.artificial_analysis_id, "example/example-3-max");
 assert.equal(effortTraceRows[0]?.artificial_analysis_name, "Example 3 Max Effort");
 
-// Debug pointers must follow the writer's cumulative offsets, including optional endpoint summaries.
+// Debug pointers must follow the writer's cumulative offsets, including optional endpoint summaries, series weights, and route prices.
 const tracePayload: OpenRouterSourcePayload = {
   fetched_at_epoch_seconds: 1_800_000_000,
   directory: [{ slug: "example/example-3", permaslug: "example/example-3" }],
@@ -339,8 +339,17 @@ const tracePayload: OpenRouterSourcePayload = {
       id: "example/other",
       selected_permaslug: "example/other",
       candidate_permaslugs: ["example/other"],
-      performance: {},
-      route_prices: [],
+      performance: { series_token_weights: { first: 10 } },
+      route_prices: [
+        {
+          endpoint_id: "first",
+          tokens: 10,
+          input: 1,
+          output: 2,
+          cache_read: null,
+          cache_write: null,
+        },
+      ],
     },
     {
       id: "example/example-3",

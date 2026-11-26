@@ -145,8 +145,7 @@ try {
   const catalog = db
     .prepare("SELECT type, name, sql FROM sqlite_master WHERE type IN ('table', 'index')")
     .all();
-  const migration = schemaReconciliationPlan(schemaSql, catalog, []);
-  for (const statement of migration.statements) db.exec(statement);
+  for (const statement of schemaReconciliationPlan(schemaSql, catalog, [])) db.exec(statement);
   const migrated = db.prepare("SELECT score, metadata_json FROM vals_index_raw_rows").get();
   assert.equal(migrated?.score, 0.64, "Schema migration preserves the historical raw fact");
   assert.equal(

@@ -28,6 +28,7 @@ import type {
   ModelAtlasModel,
 } from "../../../../src/model-atlas/stats/types";
 import { benchmarkLabels } from "../../shared/benchmark-display";
+import { benchmarkMetricColumns } from "../../table/column-registry";
 import { finiteValue, toPercent } from "../format";
 
 export const FRONTIER_AXIS_KEYS = ["cost", "time", "tokens", "speed", "value"] as const;
@@ -160,11 +161,8 @@ export function aggregateFrontierBenchmarkRows(
   rows: FrontierBenchmarkRow[],
 ): FrontierBenchmarkRow[] {
   return [...groupBy(rows, (row) => modelVariantKey(row.model)).values()]
-    .map((modelRows): FrontierBenchmarkRow | null => {
-      const first = modelRows[0];
-      if (first == null) {
-        return null;
-      }
+    .map((modelRows): FrontierBenchmarkRow => {
+      const first = modelRows[0]!;
       return {
         benchmarkKey: "all",
         baseBenchmarkKey: "all",
@@ -181,7 +179,6 @@ export function aggregateFrontierBenchmarkRows(
         resourceCount: new Set(modelRows.map((row) => row.baseBenchmarkKey)).size,
       };
     })
-    .filter((row): row is FrontierBenchmarkRow => row != null)
     .sort((left, right) => right.score - left.score);
 }
 
@@ -241,6 +238,22 @@ export function normalizedFrontierBenchmarkScoreRows(
     const normalizedScore = linearScore(rangesByBenchmark.get(row.benchmarkKey) ?? null, row.score);
     return normalizedScore == null ? [] : [{ ...row, score: clampScore(normalizedScore) }];
   });
+}
+
+/** Whether a benchmark charted alone takes the normalized chart scale instead of its native units, as ALE-Bench does. */
+export function isNormalizedAlone(benchmarkKey: string | undefined): boolean {
+  return benchmarkKey === "ale_bench";
+}
+
+const BENCHMARK_FORMATS = new Map<string, string>(
+  benchmarkMetricColumns.map((column) => [column.benchmark, column.format]),
+);
+
+/** Whether a benchmark's results read as points on their own scale rather than as percentages: every aggregate index, and each benchmark the leaderboard prints as a number, a rating, or an amount. */
+export function readsAsPoints(benchmarkKey: string | undefined): boolean {
+  if (benchmarkKey == null) return false;
+  const format = BENCHMARK_FORMATS.get(benchmarkKey);
+  return isAggregateIndex(benchmarkKey) || (format != null && format !== "percent");
 }
 
 /** One option per benchmark whatever its sources, counting the model variants any source measured. */
@@ -388,7 +401,7 @@ function meanMetric(
   );
 }
 
-function groupBy<T, TKey>(values: T[], getKey: (value: T) => TKey): Map<TKey, T[]> {
+export function groupBy<T, TKey>(values: T[], getKey: (value: T) => TKey): Map<TKey, T[]> {
   const groups = new Map<TKey, T[]>();
   for (const value of values) {
     const key = getKey(value);

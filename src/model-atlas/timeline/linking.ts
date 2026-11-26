@@ -21,12 +21,9 @@ export function timelineNativeValue(
   return value >= 0 && value <= 1 ? value : null;
 }
 
-/** Valid measurements receive equal information weight on the shared linear policy. */
-export function timelineInformation(
-  benchmark: Pick<HistoricalBenchmark, "scale">,
-  value: number,
-): number {
-  return timelineNativeValue(benchmark, value) == null ? 0 : 1;
+/** A link's id is its benchmark pair in fitting order; stored links are looked up by it. */
+export function timelineLinkId(left: string, right: string): string {
+  return JSON.stringify([left, right]);
 }
 
 /** Symmetric mean/standard-deviation equating is reversible and unit-equivariant; both directions must beat a held-out median baseline. */
@@ -89,7 +86,7 @@ export function fitTimelineLink(
   const baselineError = Math.min(median("baselineLeft"), median("baselineRight"));
   if (error > parameters.maxError || error >= baselineError - 1e-9) return null;
   return {
-    id: JSON.stringify([left, right]),
+    id: timelineLinkId(left, right),
     left,
     right,
     models: families.length,

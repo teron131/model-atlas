@@ -5,6 +5,8 @@ import { scaleLinear, scaleUtc } from "d3-scale";
 import { providerChartColor } from "../../shared/provider-theme";
 import type { ChartFindState } from "../ChartFind";
 import {
+  crowdedOutLabels,
+  labelBox,
   NAME_CLEARANCE,
   placeBesideStars,
   placeInSky,
@@ -12,18 +14,17 @@ import {
   type PointLabelSize,
 } from "../plot/label-placement";
 import {
-  crowdedOutLabels,
   horizonRim,
+  horizonSegments,
   horizonTrail,
   labelBounds,
-  labelRect,
   plotBoundsFor,
   polylineSegments,
   SCATTER_CHART_MARGIN,
   scatterChartMargin,
 } from "../plot/Primitives";
 import { MUTED_STAR_GLOW, type SkyPlotScene, starBody } from "../plot/sky-renderer";
-import { type TimelinePoint, timelinePointLabel, timelineScoreDomain } from "./chart-data";
+import { DAY_MS, type TimelinePoint, timelinePointLabel, timelineScoreDomain } from "./chart-data";
 import { arrival, easeOut, RECORD_RISE_MS, type ReplayFrame } from "./replay";
 
 // Frontier names sit in the open sky above and before their stars, as Pareto's do: the rim only rises to the right, so it never runs there, and the field of other models below it stays clear; a name with no room there gives way.
@@ -94,7 +95,7 @@ export function timelineScene({
   // A phone keeps the full height: it names every curve model, and a shorter plot leaves their names no room above the rim.
   const height = 520;
   const margin = scatterChartMargin(SCATTER_CHART_MARGIN, compact);
-  const padding = Math.max((end - start) * 0.025, 14 * 86400000 * (range[1] - range[0]));
+  const padding = Math.max((end - start) * 0.025, 14 * DAY_MS * (range[1] - range[0]));
   // The window's scores and the record it opens under set the scale; a running replay frames its own stretch of the window and settles back onto this framing.
   const [low, high] = timelineScoreDomain(
     [...windowed, ...(prior ? [prior] : [])].map((point) => point.score),
@@ -279,10 +280,7 @@ export function frontierNamesKey(scene: TimelineScene, labelSizes: LabelSizes) {
         obstacles,
         bounds: labelBounds(plotBounds),
         directions: SKY_SIDE,
-        segments: [
-          ...polylineSegments(rim),
-          ...(trail == null ? [] : polylineSegments([trail.from, trail.to])),
-        ],
+        segments: horizonSegments(rim, trail),
       });
 }
 
@@ -313,7 +311,7 @@ export function frontierNameCallouts(
   }));
   return {
     callouts,
-    crowded: scene.compact ? new Set<string>() : crowdedOutLabels(callouts, [], false),
+    crowded: scene.compact ? new Set<string>() : crowdedOutLabels(callouts, false),
   };
 }
 
@@ -329,10 +327,7 @@ export function labNamesKey(
   // The focused lab's name is placed around the names already standing, which keep their places as the pointer moves, and gives way where it does not fit.
   const keptNameBoxes = callouts.flatMap(({ key, placement, size }) => {
     if (crowded.has(key) || placement == null || size == null) return [];
-    const rect = labelRect(placement, size, 2);
-    return [
-      { left: rect.x, right: rect.x + rect.width, top: rect.y, bottom: rect.y + rect.height },
-    ];
+    return [labelBox(placement, size, 2)];
   });
   return labNamed.length === 0 || !settled
     ? null
@@ -366,7 +361,6 @@ export function labNameCallouts(
   }));
   const labCrowded = crowdedOutLabels(
     [...callouts.filter(({ key }) => !crowded.has(key)), ...labCallouts],
-    [],
     scene.compact,
   );
   return { labCallouts, labCrowded };

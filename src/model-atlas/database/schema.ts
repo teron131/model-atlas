@@ -5,9 +5,9 @@ import { dirname, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
 import { BENCHMARK_VERSION_BASELINE_DATE } from "../config";
+import { quoteIdentifier } from "../sqlite-utils";
 import {
   catalogTableMatchesSchema,
-  quoteIdentifier,
   SCHEMA_MANIFEST_TABLE,
   type SchemaCatalogRow,
   type SchemaManifestRow,
@@ -66,27 +66,35 @@ export async function openDatabase(outputPath: string): Promise<DatabaseSync> {
     for (const statement of schemaStatements(schemaSql).filter((sql) => /^PRAGMA\b/i.test(sql))) {
       db.exec(statement);
     }
-    db.exec("BEGIN");
-    try {
+    runInTransaction(db, () => {
       const catalogRows = db
         .prepare("SELECT type, name, sql FROM sqlite_master WHERE type IN ('table', 'index')")
         .all() as SchemaCatalogRow[];
       const manifestRows = readLocalSchemaManifest(db, schemaSql, catalogRows);
-      const plan = schemaReconciliationPlan(
+      for (const statement of schemaReconciliationPlan(
         schemaSql,
         catalogRows,
         manifestRows,
         SCHEMA_MIGRATION_VALUES,
-      );
-      for (const statement of plan.statements) db.exec(statement);
-      db.exec("COMMIT");
-    } catch (error) {
-      db.exec("ROLLBACK");
-      throw error;
-    }
+      ))
+        db.exec(statement);
+    });
     return db;
   } catch (error) {
     db.close();
+    throw error;
+  }
+}
+
+/** Commit `write`'s synchronous statements together, rolling all of them back when any throws. */
+export function runInTransaction<T>(db: DatabaseSync, write: () => T): T {
+  db.exec("BEGIN");
+  try {
+    const result = write();
+    db.exec("COMMIT");
+    return result;
+  } catch (error) {
+    db.exec("ROLLBACK");
     throw error;
   }
 }

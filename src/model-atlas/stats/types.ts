@@ -1,4 +1,4 @@
-/** Public model and payload contracts for the Model Atlas stats surface. */
+/** The model and payload contracts the stats surface serves, with the pipeline's candidate shapes re-exported beside the published ones. */
 
 import type { BenchmarkPortfolio } from "../benchmarks/factory";
 import type { BenchmarkObservationsByKey } from "../benchmarks/observation";

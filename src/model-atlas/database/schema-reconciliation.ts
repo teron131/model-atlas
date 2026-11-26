@@ -1,5 +1,7 @@
 /** Pure schema parsing and reconciliation preserves compatible SQLite checkpoint tables. */
 
+import { quoteIdentifier, sqlStringLiteral } from "../sqlite-utils";
+
 export const SCHEMA_MANIFEST_TABLE = "model_atlas_schema_manifest";
 
 type SchemaColumnShape = {
@@ -19,14 +21,6 @@ export type SchemaManifestRow = {
   object_name?: unknown;
 };
 
-export type SchemaReconciliationPlan = {
-  statements: string[];
-  changedTables: string[];
-  removedTables: string[];
-  changedIndexes: string[];
-  removedIndexes: string[];
-};
-
 export type SchemaMigrationValues = Readonly<
   Record<string, Readonly<Record<string, string | number>>>
 >;
@@ -35,13 +29,6 @@ type SchemaIndexDefinition = {
   table: string;
   sql: string;
 };
-
-export function quoteIdentifier(value: string): string {
-  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(value)) {
-    throw new Error(`Unsafe SQL identifier: ${value}`);
-  }
-  return `"${value}"`;
-}
 
 function schemaTableMatches(
   existingColumns: Map<string, SchemaColumnShape>,
@@ -70,13 +57,14 @@ function schemaTableMatches(
  * Missing tables are created, and tables whose shape or SQL changed are rebuilt with their common columns copied.
  * Indexes that changed, or whose table was rebuilt, are recreated.
  * The manifest is rewritten when its object list differs from the schema's.
+ * Returns the SQL statements in execution order.
  */
 export function schemaReconciliationPlan(
   schemaSql: string,
   catalogRows: readonly SchemaCatalogRow[],
   manifestRows: readonly SchemaManifestRow[],
   migrationValues: SchemaMigrationValues = {},
-): SchemaReconciliationPlan {
+): string[] {
   const expectedTableBodies = schemaTableBodies(schemaSql);
   if (!expectedTableBodies.has(SCHEMA_MANIFEST_TABLE)) {
     throw new Error(`Checked-in schema must define ${SCHEMA_MANIFEST_TABLE}`);
@@ -92,11 +80,7 @@ export function schemaReconciliationPlan(
     ...[...expectedTableBodies.keys()].map((name) => objectKey("table", name)),
     ...[...expectedIndexes.keys()].map((name) => objectKey("index", name)),
   ]);
-  const changedTables: string[] = [];
-  const changedTableNames = new Set<string>();
-  const removedTables: string[] = [];
-  const changedIndexes: string[] = [];
-  const removedIndexes: string[] = [];
+  const changedTables = new Set<string>();
   const statements: string[] = [];
 
   for (const managedObject of managedObjects) {
@@ -104,13 +88,9 @@ export function schemaReconciliationPlan(
       continue;
     }
     const [type, name] = splitObjectKey(managedObject);
-    if (type === "index") {
-      statements.push(`DROP INDEX IF EXISTS ${quoteIdentifier(name)}`);
-      removedIndexes.push(name);
-    } else {
-      statements.push(`DROP TABLE IF EXISTS ${quoteIdentifier(name)}`);
-      removedTables.push(name);
-    }
+    statements.push(
+      `DROP ${type === "index" ? "INDEX" : "TABLE"} IF EXISTS ${quoteIdentifier(name)}`,
+    );
   }
 
   for (const [table, body] of expectedTableBodies) {
@@ -118,8 +98,7 @@ export function schemaReconciliationPlan(
     const existingShape = currentTables.get(table);
     if (existingShape == null) {
       statements.push(createTableSql(table, body));
-      changedTables.push(table);
-      changedTableNames.add(table);
+      changedTables.add(table);
       continue;
     }
     if (
@@ -139,14 +118,13 @@ export function schemaReconciliationPlan(
         migrationValues[table] ?? {},
       ),
     );
-    changedTables.push(table);
-    changedTableNames.add(table);
+    changedTables.add(table);
   }
 
   for (const [name, expected] of expectedIndexes) {
     const currentSql = currentIndexes.get(name);
     if (
-      !changedTableNames.has(expected.table) &&
+      !changedTables.has(expected.table) &&
       currentSql != null &&
       normalizeSchemaSql(currentSql) === normalizeSchemaSql(expected.sql)
     ) {
@@ -154,7 +132,6 @@ export function schemaReconciliationPlan(
     }
     statements.push(`DROP INDEX IF EXISTS ${quoteIdentifier(name)}`);
     statements.push(expected.sql);
-    changedIndexes.push(name);
   }
 
   if (
@@ -176,13 +153,7 @@ export function schemaReconciliationPlan(
     }
   }
 
-  return {
-    statements,
-    changedTables,
-    removedTables,
-    changedIndexes,
-    removedIndexes,
-  };
+  return statements;
 }
 
 function rebuildTableStatements(
@@ -466,10 +437,6 @@ function splitObjectKey(key: string): ["index" | "table", string] {
     throw new Error(`Invalid managed schema object: ${key}`);
   }
   return [type, name];
-}
-
-export function sqlStringLiteral(value: string): string {
-  return `'${value.replaceAll("'", "''")}'`;
 }
 
 function arraysEqual(left: readonly string[], right: readonly string[]): boolean {

@@ -9,7 +9,6 @@ import { type OpenRouterModelData, prepareOpenRouterModelData } from "../openrou
 import { attachFinalScores } from "../scores";
 import {
   benchmarkImputationFactors,
-  benchmarkImputationValues,
   type BenchmarkScoringPreparation,
   type EffortResourceImputation,
   prepareBenchmarkScoring,
@@ -22,7 +21,10 @@ import {
   publishedEffortResults,
 } from "../scores/imputation/effort-quality";
 import { blendPairwiseQualityScores } from "../scores/pairwise-quality";
-import { buildAgenticTokenScoringContext } from "../scores/quality-context";
+import {
+  buildAgenticTokenScoringContext,
+  buildQualityScoringContext,
+} from "../scores/quality-context";
 import { applyResourceEvidenceRequirements } from "../scores/resource-metrics";
 import { buildComponentScoreResult } from "../scores/score-builders";
 import { buildModelCandidate, enrichModelResources } from "./candidate";
@@ -80,28 +82,26 @@ export function prepareModelSelection(
     scoringPreparation,
     ["tokens", "output_tokens"],
   );
-  scoringPreparation.qualityContext = buildAgenticTokenScoringContext(
-    candidates,
-    scoringConfig,
-    scoringPreparation.qualityContext,
-    tokenImputation,
-  );
-  scoringPreparation.qualityContext = prepareEffortQualityScoringContext(
+  const qualityContext = prepareEffortQualityScoringContext(
     imputationCandidates,
     scoringConfig,
-    scoringPreparation.qualityContext,
+    buildAgenticTokenScoringContext(
+      candidates,
+      scoringConfig,
+      buildQualityScoringContext(modelRows, scoringConfig),
+      tokenImputation,
+    ),
   );
   const benchmarkEstimates = publishedEffortResults(
     imputationCandidates,
     scoringConfig,
-    scoringPreparation.qualityContext,
+    qualityContext,
   );
   const scored = candidatesWithRows.map(({ row, candidate }) => {
     const result = buildComponentScoreResult(
       asRecord(candidate),
       scoringConfig,
-      scoringPreparation.qualityContext,
-      benchmarkImputationValues(scoringPreparation, row),
+      qualityContext,
       benchmarkImputationFactors(scoringPreparation, row),
       versionReplacementBenchmarkWeights(row, scoringConfig),
     );

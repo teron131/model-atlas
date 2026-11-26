@@ -16,7 +16,7 @@ import { stableJson } from "../runtime";
 import { prepareTimelineBenchmarkEvidence } from "./benchmark-evidence";
 import { calibrateTimeline } from "./calibration";
 import { historicalNameKey, historicalSourceModel } from "./model-identity";
-import { historicalReleaseId, prepareTimelineRelease } from "./scale";
+import { historicalReleaseId, prepareTimelineRelease, timelineScaleId } from "./scale";
 import {
   catalogPositionId,
   type HistoricalBenchmark,
@@ -167,17 +167,7 @@ function retainCurrentVersions(
     };
     dataset.scale = {
       ...previous,
-      id: createHash("sha256")
-        .update(
-          stableJson({
-            parameters: previous.parameters,
-            qualityTransform: previous.qualityTransform,
-            minimumReferenceConfidence: previous.minimumReferenceConfidence,
-            releaseId: dataset.releaseId,
-            dimensions: graphs,
-          }),
-        )
-        .digest("hex"),
+      id: timelineScaleId({ ...previous, dimensions: graphs }, dataset.releaseId),
       parentId: previous.id,
       benchmarks,
       observations: dataset.observations,

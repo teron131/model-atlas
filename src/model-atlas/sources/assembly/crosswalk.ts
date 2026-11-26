@@ -5,6 +5,10 @@ import {
   distinctModelCount,
 } from "../../benchmarks/calibration-population";
 import type { BenchmarkObservationRow } from "../../benchmarks/observation";
+import {
+  COMBINED_RESOURCE_FIELDS,
+  type CombinedResourceField,
+} from "../../benchmarks/resource-sources";
 import { modelNameIdentityKey } from "../../identity";
 import { reasoningEffortRank } from "../../identity/normalization";
 import { clamp01, weightedMedianOfFinite } from "../../math-utils";
@@ -37,15 +41,10 @@ type ResourceAgreement = {
   withinToleranceShare: number;
 };
 
-// These gates apply to the combined score's held-out prediction error on the unit score scale.
+// An offset is accepted only when this many distinct models overlap and as many validate it held out.
 const MINIMUM_MODELS = 6;
+// The limit on the combined score's median held-out prediction error, on the unit score scale.
 const MAXIMUM_SCORE_ERROR = 0.025;
-const RESOURCE_KEYS = [
-  "cost",
-  "seconds_per_task",
-  "tokens_per_task",
-  "output_tokens_per_task",
-] as const;
 
 /**
  * Combine comparable quality series at equal weight.
@@ -100,7 +99,7 @@ export function crosswalkBenchmarkSources(
   );
   const resourceAgreements =
     sources.length === 2
-      ? new Map(RESOURCE_KEYS.map((key) => [key, resourceAgreement(groups, key)]))
+      ? new Map(COMBINED_RESOURCE_FIELDS.map((key) => [key, resourceAgreement(groups, key)]))
       : null;
   const defaults = groupObservations(sources.map(sourceDefaults));
   return [
@@ -140,7 +139,7 @@ export function crosswalkBenchmarkSources(
         ? 1
         : extrapolated
           ? 0.5
-          : 0.5 + 0.5 * Math.min(...predictors.map(({ pair }) => fits[pair]!.confidence ?? 0)),
+          : 0.5 + 0.5 * Math.min(...predictors.map(({ pair }) => fits[pair]!.confidence)),
     };
     // Separate loops keep each field's keys together, which is the saved record's key order.
     for (const [source, letter] of letters.entries())
@@ -176,22 +175,10 @@ export function crosswalkBenchmarkSources(
           .at(-1) ?? null,
       metadata,
     };
-    for (const key of RESOURCE_KEYS) {
+    for (const key of COMBINED_RESOURCE_FIELDS) {
       const amounts = group.rows.map((row) => row?.[key] ?? null);
       const agreement = resourceAgreements?.get(key);
-      // Sources that agree share one scale, so an amount only one of them reports stands as observed; a runtime still needs both, to confirm they time the same thing.
-      let value: number | null = null;
-      if (agreement?.comparable) {
-        const [first, second] = amounts;
-        if (first != null && second != null) {
-          const [firstMeasure, secondMeasure] = group.rows.map((row) => row?.metadata.time_measure);
-          if (
-            key !== "seconds_per_task" ||
-            (firstMeasure != null && firstMeasure === secondMeasure)
-          )
-            value = (first + second) / 2;
-        } else if (key !== "seconds_per_task") value = first ?? second ?? null;
-      }
+      const value = agreement?.comparable ? agreedAmount(key, group.rows) : null;
       combined[key] = value;
       metadata[key] = value;
       for (const [source, letter] of letters.entries())
@@ -207,6 +194,21 @@ export function crosswalkBenchmarkSources(
     }
     return [combined];
   }
+}
+
+/** Sources that agree share one scale, so an amount only one of them reports stands as observed; a runtime still needs both, to confirm they time the same thing. */
+function agreedAmount(
+  key: CombinedResourceField,
+  [first, second]: readonly (CrosswalkObservation | null)[],
+): number | null {
+  const firstAmount = first?.[key] ?? null;
+  const secondAmount = second?.[key] ?? null;
+  if (firstAmount == null || secondAmount == null)
+    return key === "seconds_per_task" ? null : (firstAmount ?? secondAmount);
+  const measure = first?.metadata.time_measure;
+  if (key === "seconds_per_task" && (measure == null || measure !== second?.metadata.time_measure))
+    return null;
+  return (firstAmount + secondAmount) / 2;
 }
 
 /** Source names in saved records are letters in source order: `0` → `"a"`, `2` → `"c"`. */
@@ -236,14 +238,10 @@ function validatedMissingPatterns(
   for (const pattern of patterns) {
     const errors = calibrationObservations(complete, (heldOut) => {
       const training = groups.filter((group) => group.name !== heldOut.name);
-      const offsets = pairs.map(([lower, higher], index) =>
+      const offsets = pairs.map((pair, index) =>
         acceptedPairs[index]
           ? weightedMedianOfFinite(
-              calibrationObservations(training, (group) => {
-                const lowerScore = group.rows[lower]?.canonical_value;
-                const higherScore = group.rows[higher]?.canonical_value;
-                return lowerScore == null || higherScore == null ? null : higherScore - lowerScore;
-              }),
+              calibrationObservations(training, (group) => pairDifference(group, pair)),
             )
           : null,
       );
@@ -298,7 +296,7 @@ function projectScores(
 /** Raw resources can share a scale only when model-balanced matched amounts of the two sources agree before fitting or rescaling. */
 function resourceAgreement(
   groups: readonly SourceGroup[],
-  key: (typeof RESOURCE_KEYS)[number],
+  key: CombinedResourceField,
 ): ResourceAgreement {
   const positiveOverlap = groups.filter((group) =>
     group.rows.every((row) => {
@@ -347,14 +345,10 @@ function resourceAgreement(
 /** Fit one pair's model-held-out additive offset; filling either source from the other moves the two-source mean by half the offset's error, which is what the limit bounds. */
 function fitSourceOffset(
   groups: readonly SourceGroup[],
-  [lower, higher]: SourcePair,
+  pair: SourcePair,
   maximumMedianAbsoluteError: number,
 ) {
-  const differences = calibrationObservations(groups, (group) => {
-    const lowerScore = group.rows[lower]?.canonical_value;
-    const higherScore = group.rows[higher]?.canonical_value;
-    return lowerScore == null || higherScore == null ? null : higherScore - lowerScore;
-  });
+  const differences = calibrationObservations(groups, (group) => pairDifference(group, pair));
   const overlapModelCount = distinctModelCount(differences);
   const offset = weightedMedianOfFinite(differences);
   const validationErrorByGroup = new Map<SourceGroup, number>();
@@ -384,9 +378,15 @@ function fitSourceOffset(
     validationMedianAbsoluteError,
     accepted,
     confidence: accepted
-      ? clamp01(1 - (validationMedianAbsoluteError ?? 0) / maximumMedianAbsoluteError)
-      : null,
+      ? clamp01(1 - validationMedianAbsoluteError / maximumMedianAbsoluteError)
+      : 0,
   };
+}
+
+function pairDifference(group: SourceGroup, [lower, higher]: SourcePair): number | null {
+  const lowerScore = group.rows[lower]?.canonical_value;
+  const higherScore = group.rows[higher]?.canonical_value;
+  return lowerScore == null || higherScore == null ? null : higherScore - lowerScore;
 }
 
 /** Conflicting configurations of one model and effort are not scored, so none may be picked as that model's result or shape a fit. */

@@ -5,7 +5,6 @@ export {
   BENCHMARK_RESOURCE_POLICIES,
   BENCHMARK_SCORING_WEIGHTS,
   type BenchmarkKey,
-  type BenchmarkResourceProfile,
   type TaskBenchmarkKey,
 } from "./portfolio";
 export { BENCHMARK_DOMAINS, type BenchmarkDomain, benchmarkDomainShares } from "./domains";

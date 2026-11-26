@@ -1,6 +1,5 @@
 /** Resolves where a model's logo comes from: the creator logo Artificial Analysis publishes, else the models.dev logo of the model's provider; caching drops a source that cannot be fetched. */
 
-const ARTIFICIAL_ANALYSIS_LOGO_BASE_URL = "https://artificialanalysis.ai/img/logos";
 const MODELS_DEV_LOGO_BASE_URL = "https://models.dev/logos";
 
 // Model creators whose models.dev provider id differs from their own slug.
@@ -52,31 +51,12 @@ function normalizeProvider(provider: string | null | undefined): string | null {
   return normalizedProvider.length > 0 ? normalizedProvider : null;
 }
 
-function absoluteLogoUrl(logoUrl: string | null | undefined): string | null {
-  const logoValue = nonEmptyString(logoUrl);
-  if (!logoValue) {
-    return null;
-  }
-  if (logoValue.startsWith("http://") || logoValue.startsWith("https://")) {
-    return logoValue;
-  }
-  if (logoValue.startsWith("/")) {
-    return `https://artificialanalysis.ai${logoValue}`;
-  }
-  if (logoValue.includes("/")) {
-    return `https://artificialanalysis.ai/${logoValue}`;
-  }
-  return `${ARTIFICIAL_ANALYSIS_LOGO_BASE_URL}/${logoValue}`;
-}
-
-/** The logo a model shows before caching: its Artificial Analysis creator logo, else its provider's models.dev logo, else none. */
+/** The logo a model shows before caching: its Artificial Analysis creator logo, which the scraper stores as an absolute URL, else its provider's models.dev logo, else none. */
 export function resolveModelLogo(options: {
   provider?: string | null;
   artificialAnalysisLogo?: string | null;
 }): string {
-  return (
-    absoluteLogoUrl(options.artificialAnalysisLogo) ?? modelsDevLogoUrl(options.provider) ?? ""
-  );
+  return nonEmptyString(options.artificialAnalysisLogo) ?? modelsDevLogoUrl(options.provider) ?? "";
 }
 
 /** models.dev answers any provider id it does not list with one shared placeholder, so the cache compares fetched logos against `modelsDevPlaceholderFor()` rather than trusting a successful response. */

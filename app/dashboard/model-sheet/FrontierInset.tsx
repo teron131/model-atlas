@@ -10,8 +10,8 @@ import { calloutLabelPlacements } from "../graphs/plot/label-placement";
 import {
   FrontierHorizon,
   horizonRim,
+  horizonSegments,
   horizonTrail,
-  polylineSegments,
   TextPointLabel,
   useLabelSizes,
 } from "../graphs/plot/Primitives";
@@ -117,10 +117,7 @@ export function FrontierInset({
     obstacles: labels.map(({ key, cx, cy, radius }) => ({ key, cx, cy, radius })),
     bounds: plot.bounds,
     reservedBoxes: plot.reservedBoxes,
-    segments: [
-      ...polylineSegments(rim),
-      ...(trail == null ? [] : polylineSegments([trail.from, trail.to])),
-    ],
+    segments: horizonSegments(rim, trail),
   });
   const sky: SkyPlotScene = {
     width: plot.width,

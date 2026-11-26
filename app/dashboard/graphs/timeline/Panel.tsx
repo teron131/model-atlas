@@ -14,16 +14,16 @@ import type { ModelSuggestionRow } from "../../shared/ModelSuggestions";
 import { providerChartColor, providerDisplayName, providerLogo } from "../../shared/provider-theme";
 import type { SearchDocument } from "../../shared/search";
 import { useUrlState } from "../../use-url-state";
-import { ChartFind, type ChartFindState, chartFindTargets, useChartFind } from "../ChartFind";
+import { ChartFind, chartFindMatches, type ChartFindState, useChartFind } from "../ChartFind";
 import { ChartReadout, type ReadoutEntry } from "../ChartReadout";
 import { CursorProjectionLayer } from "../plot/Interaction";
 import { placeBesideStars } from "../plot/label-placement";
 import {
+  CHART_WIDTH,
   FrontierHorizon,
   LabelMask,
   NameMask,
   PlotFrame,
-  SCATTER_CHART_WIDTH,
   starCore,
   StarGlows,
   TextPointLabel,
@@ -34,7 +34,13 @@ import {
 } from "../plot/Primitives";
 import { SkyPlot } from "../plot/SkyPlot";
 import { useChartLayout } from "../use-chart-layout";
-import { type TimelinePoint, timelinePointLabel } from "./chart-data";
+import {
+  DATE_FORMAT,
+  DAY_MS,
+  MONTH_FORMAT,
+  type TimelinePoint,
+  timelinePointLabel,
+} from "./chart-data";
 import { coverageFrontier, frontierTies, RECORD_MINIMUM_SUPPORT } from "./frontier";
 import { TimelineLabs } from "./Labs";
 import { TimelineLookback } from "./Lookback";
@@ -60,22 +66,9 @@ const TIMELINE_CAPTION = `A model sets a record only with at least ${Math.round(
 // While a lab is pointed at, the other labs' names keep this share of their light, enough to stay legible as context.
 const DIMMED_NAME_OPACITY = 0.35;
 
-const READOUT_DATE = new Intl.DateTimeFormat("en", {
-  timeZone: "UTC",
-  month: "short",
-  day: "numeric",
-  year: "numeric",
-});
-
-const REPLAY_DATE = new Intl.DateTimeFormat("en", {
-  timeZone: "UTC",
-  month: "short",
-  year: "numeric",
-});
-
 const TimelineEvidence = dynamic(
   () => import("./TimelineEvidence").then((module) => module.TimelineEvidence),
-  { loading: () => <p role="status">Loading evidence matrices…</p> },
+  { loading: () => <p role="status">Loading evidence…</p> },
 );
 
 /** Keep the historical population independent from present-day price, rank and recency filters; `currentModels` only links a selected model to its sheet when today's snapshot has it. */
@@ -90,10 +83,10 @@ export const TimelinePanel = memo(function TimelinePanel({
   // The lab a Labs row points at, the one hover that lights a lab; a star the pointer passes over only flares and fills the readout.
   const [rowLab, setRowLab] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
-  const pointLabRow = (model: TimelinePoint | null) => {
+  const pointLabRow = useCallback((model: TimelinePoint | null) => {
     setPreview(model);
     setRowLab(model?.provider ?? null);
-  };
+  }, []);
   // A keyboard-focused star picks its model.
   const focusStar = useCallback((point: TimelinePoint) => {
     setSelected(point.id);
@@ -131,7 +124,7 @@ export const TimelinePanel = memo(function TimelinePanel({
     [stopReplay, setProviders],
   );
   const scope = `${period}:${providers?.join(",") ?? "all"}`;
-  const { plotHost, width, compact } = useChartLayout(SCATTER_CHART_WIDTH);
+  const { plotHost, width, compact } = useChartLayout(CHART_WIDTH);
   // Warm the small chart payload while readers explore the dashboard; evidence stays on demand.
   const {
     data: points,
@@ -143,11 +136,14 @@ export const TimelinePanel = memo(function TimelinePanel({
     () => points?.filter((point) => providers == null || providers.includes(point.provider)) ?? [],
     [points, providers],
   );
-  const times = population.map((point) => Date.parse(point.releaseDate));
+  const times = useMemo(
+    () => population.map((point) => Date.parse(point.releaseDate)),
+    [population],
+  );
   const fullStart = times.length ? Math.min(...times) : 0;
-  const fullEnd = times.length ? Math.max(fullStart + 86400000, ...times) : 86400000;
+  const fullEnd = times.length ? Math.max(fullStart + DAY_MS, ...times) : DAY_MS;
   const bounds: [number, number] = [fullStart, fullEnd];
-  const yearStart = Math.max(0, 1 - (365 * 86400000) / (fullEnd - fullStart));
+  const yearStart = Math.max(0, 1 - (365 * DAY_MS) / (fullEnd - fullStart));
   const range: [number, number] =
     windowState.scope === scope ? windowState.range : [period === "year" ? yearStart : 0, 1];
   const preset =
@@ -192,6 +188,10 @@ export const TimelinePanel = memo(function TimelinePanel({
   }, [currentModels]);
   // A lab's leading model can lie outside the window, so a pick is found in the whole population.
   const picked = population.find((point) => point.id === selected);
+  const pickLabRow = useCallback(
+    (model: TimelinePoint) => setSelected(picked?.id === model.id ? null : model.id),
+    [picked?.id],
+  );
   // The field searches every lab and date.
   const findDocuments = useMemo(() => (points ?? []).map(timelineSearchDocument), [points]);
   const [find, setFind] = useChartFind(
@@ -200,10 +200,10 @@ export const TimelinePanel = memo(function TimelinePanel({
     timelineSuggestionRow,
     timelinePointModelId,
   );
-  const matches = useMemo(() => {
-    const targets = chartFindTargets(find, findDocuments, timelineSuggestionRow);
-    return targets == null ? null : new Set(targets.map((point) => point.id));
-  }, [find, findDocuments]);
+  const matches = useMemo(
+    () => chartFindMatches(find, findDocuments, timelineSuggestionRow, (point) => point.id),
+    [find, findDocuments],
+  );
   // Only the lab a Labs row points at, or else the picked model's, draws its records, so its line is read against the field's frontier one lab at a time.
   const focusLab = rowLab ?? picked?.provider;
   const labRecords = useMemo(
@@ -288,7 +288,7 @@ export const TimelinePanel = memo(function TimelinePanel({
           facts: [
             providerDisplayName(shown.provider),
             { label: "Intelligence Index", value: shown.score.toFixed(1) },
-            READOUT_DATE.format(Date.parse(shown.releaseDate)),
+            DATE_FORMAT.format(Date.parse(shown.releaseDate)),
             shown.coverage == null
               ? "support unknown"
               : `${Math.round(shown.coverage * 100)}% support`,
@@ -373,7 +373,7 @@ export const TimelinePanel = memo(function TimelinePanel({
   // Stars sit at their release day and score, and the camera places them through these four variables, so a frame that only moves the camera re-renders no star.
   const cameraStyle = {
     "--tx": `${x(new Date(fullStart))}px`,
-    "--kx": `${x(new Date(fullStart + 86400000)) - x(new Date(fullStart))}px`,
+    "--kx": `${x(new Date(fullStart + DAY_MS)) - x(new Date(fullStart))}px`,
     "--ty": `${y(0)}px`,
     "--ky": `${y(1) - y(0)}px`,
   } as CSSProperties;
@@ -384,9 +384,9 @@ export const TimelinePanel = memo(function TimelinePanel({
   const tickSpacing = (ticks[1] ?? Infinity) - (ticks[0] ?? 0);
   const dateFormat = new Intl.DateTimeFormat(
     "en",
-    tickSpacing < 28 * 86400000
+    tickSpacing < 28 * DAY_MS
       ? { timeZone: "UTC", month: "short", day: "numeric" }
-      : tickSpacing < 360 * 86400000
+      : tickSpacing < 360 * DAY_MS
         ? { timeZone: "UTC", month: "short", year: "numeric" }
         : { timeZone: "UTC", year: "numeric" },
   );
@@ -517,7 +517,7 @@ export const TimelinePanel = memo(function TimelinePanel({
                         : [
                             {
                               x: projection.x,
-                              text: READOUT_DATE.format(projection.xValue),
+                              text: DATE_FORMAT.format(projection.xValue),
                               anchor: "middle",
                             },
                           ]
@@ -543,7 +543,7 @@ export const TimelinePanel = memo(function TimelinePanel({
                       projection={projection}
                       bounds={plotBounds}
                       stars={sky.stars}
-                      xLabel={projection == null ? "" : READOUT_DATE.format(projection.xValue)}
+                      xLabel={projection == null ? "" : DATE_FORMAT.format(projection.xValue)}
                       yLabel={projection == null ? "" : projection.yValue.toFixed(1)}
                       color={guided == null ? undefined : providerChartColor(guided.provider)}
                     />
@@ -567,7 +567,7 @@ export const TimelinePanel = memo(function TimelinePanel({
                         y={margin.top + 14}
                         opacity={1 - frame.settle}
                       >
-                        {REPLAY_DATE.format(frame.at)}
+                        {MONTH_FORMAT.format(frame.at)}
                       </text>
                     </>
                   )}
@@ -662,7 +662,7 @@ export const TimelinePanel = memo(function TimelinePanel({
                         <TimelineStar
                           key={point.id}
                           point={point}
-                          day={(Date.parse(point.releaseDate) - fullStart) / 86400000}
+                          day={(Date.parse(point.releaseDate) - fullStart) / DAY_MS}
                           radius={pointRadius(point)}
                           opacity={pointOpacity(point)}
                           color={providerChartColor(point.provider)}
@@ -748,7 +748,7 @@ export const TimelinePanel = memo(function TimelinePanel({
               focusLab={focusLab ?? null}
               pickedId={picked?.id ?? null}
               onPoint={pointLabRow}
-              onPick={(model) => setSelected(picked?.id === model.id ? null : model.id)}
+              onPick={pickLabRow}
             />
             <TimelineLookback points={population} located={find.located} matches={matches} />
           </>
@@ -785,7 +785,7 @@ export const TimelinePanel = memo(function TimelinePanel({
   );
 });
 
-export function timelineSearchDocument(point: TimelinePoint): SearchDocument<TimelinePoint> {
+function timelineSearchDocument(point: TimelinePoint): SearchDocument<TimelinePoint> {
   return {
     value: point,
     primary: [point.name, point.provider, providerDisplayName(point.provider)],
@@ -793,12 +793,12 @@ export function timelineSearchDocument(point: TimelinePoint): SearchDocument<Tim
 }
 
 // A point's published model id; an archived model has none, so a pill naming it stays as typed.
-export function timelinePointModelId(point: TimelinePoint): string | null {
+function timelinePointModelId(point: TimelinePoint): string | null {
   return positionCatalogId(point.id);
 }
 
 /** A Timeline suggestion carries the Timeline's own Intelligence Index, the scale its y-axis reads. */
-export function timelineSuggestionRow(point: TimelinePoint): ModelSuggestionRow {
+function timelineSuggestionRow(point: TimelinePoint): ModelSuggestionRow {
   return {
     key: point.id,
     name: point.name,

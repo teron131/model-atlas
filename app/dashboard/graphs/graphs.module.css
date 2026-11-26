@@ -1,4 +1,4 @@
-/* Styles for the analytical charts: the Pareto and Timeline regions, their shared plot kit, and the chart tokens other plots borrow. */
+/* Styles the dashboard's charts share: the research regions' frame, controls, readout, and find field, the sky stage and plot kit, Pareto's evidence tables, and the chart tokens other plots borrow. */
 
 /* Chart typography and pigments inherit the page theme while giving dense plots a readable scale; `chartTokens` lends the same pigments to plots outside the dashboard regions, such as the model sheet's. */
 .atlas,
@@ -19,11 +19,8 @@
   --chart-range-fill: rgb(var(--ink-rgb) / 0.015);
   --chart-corner-shadow: drop-shadow(0 0 4px rgb(var(--ink-rgb) / 0.1));
   --chart-corner-fill: rgb(var(--ink-rgb) / 0.46);
-  --chart-hover-card-bg: rgb(var(--paper-rgb) / 0.96);
-  --chart-hover-card-shadow: 0 18px 54px rgb(0 2 14 / 0.6);
   /* Frontiers are drawn as the sky's horizon; its white-hot core only reads on the dark surface. */
   --chart-horizon-core: rgb(255 255 255 / 0.9);
-  --chart-hover-logo-backdrop: rgb(var(--paper-rgb) / 0.9);
   --whisker-line: rgb(var(--ink-rgb) / 0.3);
   --whisker-median: rgb(var(--ink-rgb) / 0.72);
 }
@@ -54,8 +51,6 @@
   --chart-range-fill: rgb(var(--ink-rgb) / 0.018);
   --chart-corner-shadow: none;
   --chart-corner-fill: rgb(var(--ink-rgb) / 0.38);
-  --chart-hover-card-bg: rgb(var(--paper-rgb) / 0.98);
-  --chart-hover-card-shadow: 0 18px 54px rgb(var(--ink-rgb) / 0.16);
   --chart-horizon-core: rgb(var(--ink-rgb) / 0.82);
 }
 
@@ -1003,7 +998,7 @@ svg:has(.cursorProjection) .axisLabel {
   box-shadow: var(--selection-glow), var(--selection-bloom);
 }
 
-.emptyComparison {
+.emptyChart {
   margin: 18px 0 0;
   padding: 24px 0;
   border-block: 1px solid var(--line);
@@ -1425,84 +1420,6 @@ svg:has(.cursorProjection) .axisLabel {
   color: var(--ink);
 }
 
-.hoverCard {
-  position: fixed;
-  z-index: 40;
-  top: 0;
-  left: 0;
-  width: min(270px, calc(100vw - 28px));
-  padding: 12px;
-  border: 1px solid color-mix(in srgb, var(--hover-color) 52%, var(--line));
-  background:
-    var(--horizon-gradient) top / 100% 1px no-repeat,
-    var(--chart-hover-card-bg);
-  box-shadow: var(--chart-hover-card-shadow);
-  pointer-events: none;
-}
-
-.hoverCardHead {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--line);
-}
-
-.hoverCardLogo {
-  display: grid;
-  flex: 0 0 28px;
-  width: 28px;
-  height: 28px;
-  place-items: center;
-  border: 1px solid var(--line-strong);
-  border-radius: 3px;
-  background: var(--chart-hover-logo-backdrop);
-}
-
-.hoverCardLogo img {
-  width: 22px;
-  height: 22px;
-  object-fit: contain;
-  filter: saturate(0.96) contrast(1.08);
-}
-
-.hoverCardTitle {
-  color: var(--ink);
-  font-size: 15px;
-  font-weight: var(--type-heading-weight);
-  line-height: 1.2;
-}
-
-.hoverCardProvider {
-  margin-top: 3px;
-  color: var(--muted);
-  font-family: var(--font-mono);
-  font-size: var(--type-label-size);
-  font-weight: var(--type-label-weight);
-  text-transform: uppercase;
-}
-
-.hoverCardRows {
-  display: grid;
-  gap: 7px;
-  padding-top: 10px;
-}
-
-.hoverCardRow {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  color: var(--muted);
-  font-family: var(--font-mono);
-  font-size: var(--type-label-size);
-  font-weight: var(--type-label-weight);
-}
-
-.hoverCardRow span:last-child {
-  color: var(--ink);
-  text-align: right;
-}
-
 .error {
   margin: 40px 0 0;
   padding: 22px 0 24px;
@@ -1797,19 +1714,4 @@ svg:has(.cursorProjection) .axisLabel {
   stroke: var(--paper);
   stroke-width: 4px;
   stroke-linejoin: round;
-}
-
-/* A record's dotted stem in its lab's colour, joining the Lookback rows that surpass it. */
-.recordStem {
-  stroke-width: 1;
-  stroke-dasharray: 1 4;
-  stroke-linecap: round;
-  pointer-events: none;
-}
-
-/* A model's dashed line in its lab's colour, such as Spectra's trace of a pointed model across domains. */
-.traceLine {
-  stroke-width: 1.1;
-  stroke-dasharray: 5 4;
-  opacity: 0.85;
 }

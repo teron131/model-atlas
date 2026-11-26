@@ -9,6 +9,7 @@ import {
 } from "./normalization";
 
 const OPENROUTER_FREE_ROUTE_SUFFIX = ":free";
+const FREE_LABEL_PATTERN = /\s+\(free\)\s*$/i;
 export const MMDD_RELEASE_TOKEN_PATTERN = /^(?:0[1-9]|1[0-2])(?:[0-2]\d|3[01])$/;
 
 const CATALOG_ALIAS_SUFFIX_PATTERN = /-(?:fast|non-reasoning-low-effort|reasoning)$/;
@@ -144,7 +145,7 @@ export function isOpenRouterFreeRouteId(modelId: string | null | undefined): boo
 }
 
 export function hasPublicFreeRouteLabel(modelName: string | null | undefined): boolean {
-  return /\s+\(free\)\s*$/i.test(modelName ?? "");
+  return FREE_LABEL_PATTERN.test(modelName ?? "");
 }
 
 /**
@@ -162,7 +163,7 @@ export function publicOpenRouterModelName(
   let publicName = modelName
     .replace(/^Gemini (.+?) Preview(?: \d{2}-\d{2}|\s+\d{2}-\d{4})?$/i, "Gemini $1")
     .replace(/\s+(?:\(latest\)|latest)\s*$/i, "")
-    .replace(/\s+\(free\)\s*$/i, "")
+    .replace(FREE_LABEL_PATTERN, "")
     .trim();
   if (hasPlainLatestSuffix && !/\d/.test(publicName)) {
     const version = modelSlugFromModelId(modelId)?.match(/(?:^|-)(\d+(?:\.\d+)+)$/)?.[1];

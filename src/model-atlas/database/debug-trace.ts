@@ -5,6 +5,7 @@ import { OPENROUTER_PROVIDER_ID, parseSlugEffort } from "../identity/normalizati
 import { publicOpenRouterModelId } from "../identity/openrouter";
 import { artificialAnalysisModelId } from "../sources/artificial-analysis/leaderboard";
 import type { OpenRouterSourcePayload } from "../sources/openrouter";
+import { openRouterModelStatsRowIndexes } from "../sources/openrouter/write";
 import type { SourceSnapshots } from "../sources/types";
 import type { DatabaseWriter } from "../sqlite-utils";
 
@@ -76,7 +77,10 @@ export function buildDebugTraceRows(
 ): DebugTraceRow[] {
   const artificialAnalysisRowById = artificialAnalysisRowIndexById(snapshots);
   const modelsDevRowByKey = modelsDevRowIndexByKey(snapshots);
-  const openRouterStatsRowIndexes = openRouterStatsRowIndexById(openRouterRawPayload);
+  const openRouterStatsRowIndexes =
+    openRouterRawPayload == null
+      ? new Map<string, number>()
+      : openRouterModelStatsRowIndexes(openRouterRawPayload);
   const rows: DebugTraceRow[] = [];
 
   for (const model of diagnostics.models) {
@@ -145,35 +149,6 @@ function modelsDevRowIndexByKey(snapshots: SourceSnapshots): Map<string, number>
     }
   }
   return byKey;
-}
-
-/** Follow the raw writer's directory, candidate, optional endpoint-summary, stat-point, and model-stats order. */
-function openRouterStatsRowIndexById(
-  rawPayload: OpenRouterSourcePayload | null | undefined,
-): Map<string, number> {
-  const byModelId = new Map<string, number>();
-  if (rawPayload == null) {
-    return byModelId;
-  }
-  let rowIndex = rawPayload.directory.length;
-  for (const model of rawPayload.models) {
-    rowIndex += model.candidate_permaslugs.length;
-    if (model.selected_permaslug != null) rowIndex += 1;
-    rowIndex += statsPointCount(model);
-    byModelId.set(model.id, rowIndex);
-    rowIndex += 1;
-  }
-  return byModelId;
-}
-
-function statsPointCount(model: OpenRouterSourcePayload["models"][number]): number {
-  let count = 0;
-  for (const metric of ["throughput", "latency", "latency_e2e"] as const) {
-    for (const point of model.performance[metric]?.data ?? []) {
-      count += Object.keys(point.y ?? {}).length;
-    }
-  }
-  return count;
 }
 
 function unmatchedDebugTraceRow(

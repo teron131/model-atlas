@@ -11,7 +11,13 @@ import { SnapshotStorage } from "./gcs";
 import { publicSnapshotBucket } from "./manifest";
 
 /** An explicit seed is accepted only for an empty store; normal runs always restore the current checkpoint. */
-export async function publishSnapshot(seedPath?: string) {
+export async function publishSnapshot({
+  seedPath,
+  replaceSourceRows,
+}: {
+  seedPath?: string;
+  replaceSourceRows: boolean;
+}) {
   const publicBucket = publicSnapshotBucket();
   const store = configuredSnapshotStorage(publicBucket);
   const current = await store.current();
@@ -27,7 +33,7 @@ export async function publishSnapshot(seedPath?: string) {
     const archived = previous ? evidenceFingerprints(databasePath) : new Set<string>();
     const refreshed = await refreshDatabase(databasePath, {
       previousPayload: previous?.payload ?? null,
-      replaceSourceRows: process.env.MODEL_ATLAS_REPLACE_SOURCE_ROWS === "1",
+      replaceSourceRows,
     });
     const snapshot = readDatabaseSnapshot(databasePath);
     const publication = await store.publish(

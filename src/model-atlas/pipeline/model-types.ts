@@ -34,7 +34,7 @@ export type ModelAtlasCostTier = ModelAtlasCostBreakdown & {
 
 export type ModelAtlasCost =
   | (ModelAtlasCostBreakdown & {
-      /** Listed prices weighted by the tokens each OpenRouter route served; catalog or Artificial Analysis prices where no route served tokens. */
+      /** The listed price most of the tokens OpenRouter's routes served pay, a token-weighted median; catalog or Artificial Analysis prices where no route served tokens. */
       weighted_input?: NumberOrNull;
       weighted_output?: NumberOrNull;
       /** The cache-read price the blend uses, so a route that lists none counts at a tenth of its input price. */

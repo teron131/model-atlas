@@ -1,4 +1,4 @@
-/** Validated resource ratios between a model's efforts, and the imputation that applies them to cost, time, and token-use scoring. */
+/** Estimates a variant's missing per-task cost, time, and token amounts for scoring: the broader estimate built on other models' ratios for the same benchmark first, else a validated ratio between the model's own efforts. */
 
 import { indexPolicy } from "../../../benchmarks/index-policy";
 import { benchmarkValue } from "../../../benchmarks/registry";

@@ -31,6 +31,14 @@ assert.deepEqual(filterSearchDocuments("gpt*xy", documents), []);
 assert.deepEqual(filterSearchDocuments("gpt-", documents), ["sol", "solar"]);
 assert.deepEqual(filterSearchDocuments("gpt-6", documents), ["sol", "solar"]);
 assert.deepEqual(filterSearchDocuments("pt-", documents), []);
+assert.deepEqual(filterSearchDocuments("gpt**so*", documents), ["sol", "solar"]);
+// A query of many `*` stays quick on a text that almost matches; as chained `.*` it retried every split and took seconds.
+const manyWildcardsStart = performance.now();
+assert.deepEqual(
+  filterSearchDocuments(`c${"*".repeat(8)}#`, [{ value: "run", primary: ["c".repeat(40)] }]),
+  [],
+);
+assert.ok(performance.now() - manyWildcardsStart < 200);
 
 assert.equal(hasSearchQuery(" , \n , "), false);
 assert.equal(hasSearchQuery(" , gpt- , "), true);

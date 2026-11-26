@@ -19,5 +19,9 @@ export type {
   ImputedTaskResource,
   TaskResourceKind,
 } from "./resource-evidence";
-export { imputedTaskResource, taskResourceEstimates } from "./resource-evidence";
+export {
+  directTaskResource,
+  imputedTaskResource,
+  taskResourceEstimates,
+} from "./resource-evidence";
 export { prepareEffortResourceImputation } from "./effort-resource";

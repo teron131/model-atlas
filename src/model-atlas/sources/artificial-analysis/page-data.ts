@@ -8,7 +8,7 @@ import { createDecipheriv, createHash } from "node:crypto";
 import { gunzipSync } from "node:zlib";
 
 import { asNonEmptyString, asRecord, type JsonObject } from "../../runtime";
-import { extractNextFlightCorpus, findObjectEnd, parseFlightJsonObject } from "../parsing";
+import { enclosingFlightObjects, extractNextFlightCorpus } from "../parsing";
 import { fetchSource, fetchSourceText } from "../request-scheduler";
 
 const RECORD_SEARCH_BACKTRACK_CHARS = 70_000;
@@ -71,13 +71,8 @@ function inPageRecords(corpus: string, key: string): JsonObject[] {
     const hit = corpus.indexOf(`"${key}":`, cursor);
     if (hit === -1) break;
     cursor = hit + 1;
-    const searchStart = Math.max(0, hit - RECORD_SEARCH_BACKTRACK_CHARS);
-    for (let start = hit; start >= searchStart; start -= 1) {
-      if (corpus[start] !== "{") continue;
-      const end = findObjectEnd(corpus, start);
-      if (end < hit) continue;
-      const record = parseFlightJsonObject(corpus.slice(start, end + 1));
-      if (typeof record?.slug === "string" && record[key] != null) {
+    for (const record of enclosingFlightObjects(corpus, hit, RECORD_SEARCH_BACKTRACK_CHARS)) {
+      if (typeof record.slug === "string" && record[key] != null) {
         records.set(record.slug, record);
         break;
       }

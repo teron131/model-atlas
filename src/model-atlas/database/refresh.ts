@@ -1,4 +1,4 @@
-/** Refreshes the local SQLite checkpoint: loads source caches, derives and writes every table in one transaction, checks integrity, then compacts the file in place; publishing it to GCS is the publisher's job. */
+/** Refreshes the local SQLite checkpoint: loads source caches, derives and writes every table in one transaction, checks integrity, then compacts it into a replacement file that takes its place; publishing it to GCS is the publisher's job. */
 
 import { existsSync } from "node:fs";
 import { rename } from "node:fs/promises";
@@ -10,11 +10,16 @@ import { loadOpenRouterRawPayload } from "../sources/openrouter/snapshot";
 import type { RawSourceName } from "../sources/registry";
 import { loadSourceSnapshots } from "../sources/snapshots/load";
 import type { RawSourceCacheStatus, SourceRefreshOptions } from "../sources/types";
+import { sqlStringLiteral } from "../sqlite-utils";
 import type { ModelAtlasPayload } from "../stats/types";
 import { readCapabilityState, writeCapabilityState } from "./capability-state";
 import { deriveDatabaseSnapshot, readScoringMethodology, writeCheckpoint } from "./checkpoint";
-import { DEFAULT_DATABASE_PATH, openDatabase, removeDatabaseFiles } from "./schema";
-import { sqlStringLiteral } from "./schema-reconciliation";
+import {
+  DEFAULT_DATABASE_PATH,
+  openDatabase,
+  removeDatabaseFiles,
+  runInTransaction,
+} from "./schema";
 import { readDatabasePayload } from "./sqlite-payload";
 
 export type DatabaseRefreshResult = {
@@ -89,19 +94,6 @@ export async function refreshDatabase(
 function latestRefreshId(db: DatabaseSync): number | null {
   const row = db.prepare("SELECT MAX(refresh_id) AS refresh_id FROM refresh_runs").get();
   return typeof row?.refresh_id === "number" ? row.refresh_id : null;
-}
-
-/** Wrap the synchronous checkpoint writes so a partial refresh rolls back together on failure. */
-function runInTransaction<T>(db: DatabaseSync, write: () => T): T {
-  db.exec("BEGIN");
-  try {
-    const result = write();
-    db.exec("COMMIT");
-    return result;
-  } catch (error) {
-    db.exec("ROLLBACK");
-    throw error;
-  }
 }
 
 function countTableRows(db: DatabaseSync): Record<string, number> {

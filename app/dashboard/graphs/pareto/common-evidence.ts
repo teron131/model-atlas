@@ -12,6 +12,8 @@ import {
   frontierAxisValue,
   type FrontierBenchmarkAxisKey,
   type FrontierBenchmarkRow,
+  groupBy,
+  isNormalizedAlone,
   isScoreAxis,
   mergedBenchmarkSourceRows,
   normalizedFrontierBenchmarkRows,
@@ -48,7 +50,7 @@ export function commonBenchmarkComparison(
     const selectedRows = key == null ? [] : rows.filter((row) => row.baseBenchmarkKey === key);
     return {
       rows: mergedBenchmarkSourceRows(
-        key === "ale_bench"
+        isNormalizedAlone(key)
           ? normalizedFrontierBenchmarkScoreRows(selectedRows, referenceRows)
           : selectedRows,
       ),
@@ -72,25 +74,13 @@ export function commonBenchmarkComparison(
   const groups: CommonModelEvidence[] = [];
   let indexVariantCount = 0;
   let excludedVariantCount = 0;
-  const rowsByModel = new Map<string, FrontierBenchmarkRow[]>();
-  for (const row of normalized) {
-    const key = canonicalModelKey(row.model);
-    const group = rowsByModel.get(key) ?? [];
-    group.push(row);
-    rowsByModel.set(key, group);
-  }
+  const rowsByModel = groupBy(normalized, (row) => canonicalModelKey(row.model));
   // Models follow the leaderboard: each by its strongest listed variant's Intelligence Score, ties in arrival order.
   const strongest = (modelRows: FrontierBenchmarkRow[]) =>
     Math.max(...modelRows.map((row) => row.model.scores.intelligence_score));
   const ranked = [...rowsByModel].sort(([, left], [, right]) => strongest(right) - strongest(left));
   for (const [modelKey, modelRows] of ranked) {
-    const rowsByVariant = new Map<string, FrontierBenchmarkRow[]>();
-    for (const row of modelRows) {
-      const key = modelVariantKey(row.model);
-      const group = rowsByVariant.get(key) ?? [];
-      group.push(row);
-      rowsByVariant.set(key, group);
-    }
+    const rowsByVariant = groupBy(modelRows, (row) => modelVariantKey(row.model));
     const allVariants = [...rowsByVariant.values()];
     const indexVariants = allVariants.filter((variant) =>
       variant.some((row) => isAggregateIndex(row.baseBenchmarkKey)),

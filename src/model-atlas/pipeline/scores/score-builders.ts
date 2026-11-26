@@ -46,7 +46,6 @@ export function buildComponentScoreResult(
   model: JsonObject,
   scoringConfig: ScoringConfig,
   qualityContext: QualityScoringContext,
-  imputedValuesByKey: ReadonlyMap<string, number> = new Map(),
   imputedFactorsByKey: ReadonlyMap<string, number> = new Map(),
   benchmarkWeightMultipliersByKey: ReadonlyMap<string, number> = new Map(),
 ): ComponentScoreResult {
@@ -56,7 +55,6 @@ export function buildComponentScoreResult(
       capability,
       qualityContext,
       scoringConfig,
-      imputedValuesByKey,
       imputedFactorsByKey,
       benchmarkWeightMultipliersByKey,
     );
@@ -90,7 +88,6 @@ function benchmarkScoreInputs(
   capability: BenchmarkCapability,
   context: QualityScoringContext,
   config: ScoringConfig,
-  imputedValues: ReadonlyMap<string, number>,
   imputedFactors: ReadonlyMap<string, number>,
   weightMultipliers: ReadonlyMap<string, number>,
 ): BenchmarkScoreInput[] {
@@ -112,8 +109,7 @@ function benchmarkScoreInputs(
         observed == null
           ? (estimates?.get(key) ?? null)
           : normalizedQualityBenchmarkValue(model, key, observed, capability, context),
-      evidenceFactor:
-        observed != null ? 1 : imputedValues.has(key) ? (imputedFactors.get(key) ?? 0) : 0,
+      evidenceFactor: observed != null ? 1 : (imputedFactors.get(key) ?? 0),
       observed: observed != null,
       weight,
       representedBenchmarks: isAggregateIndex(key) ? reportedIndexBenchmarkCount(model, key) : null,

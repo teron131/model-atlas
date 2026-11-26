@@ -2,7 +2,6 @@
 
 import { memo, useMemo } from "react";
 
-import { isAggregateIndex } from "../../../../src/model-atlas/benchmarks/index-policy";
 import { canonicalModelKey } from "../../../../src/model-atlas/identity/normalization";
 import { collapsedModels, modelVariantKey } from "../../../../src/model-atlas/stats/model-variants";
 import {
@@ -15,7 +14,7 @@ import { modelName, shortLabel } from "../../shared/model-display";
 import { modelSearchDocument } from "../../shared/model-filters";
 import { modelSuggestionRow } from "../../shared/ModelSuggestions";
 import { updateDashboardUrl, useUrlState } from "../../use-url-state";
-import { ChartFind, chartFindTargets, termTargets, useChartFind } from "../ChartFind";
+import { ChartFind, chartFindMatches, termTargets, useChartFind } from "../ChartFind";
 import { finite, formatTooltipNumber, formatTooltipScore } from "../format";
 import { GraphToggle } from "../GraphToggle";
 import { scoreAxisScale } from "../plot/axis-scale";
@@ -27,9 +26,11 @@ import {
   frontierBenchmarkOptions,
   type FrontierBenchmarkRow,
   frontierBenchmarkRows,
+  isNormalizedAlone,
   isScoreAxis,
   performanceComparisonRows,
   positiveMetric,
+  readsAsPoints,
   referenceFrontierBenchmarkRows,
 } from "./analysis";
 import { BenchmarkSelect } from "./BenchmarkSelect";
@@ -173,10 +174,10 @@ export const ParetoPanel = memo(function ParetoPanel({
     [rows],
   );
   const [find, setFind] = useChartFind("pareto-find", findDocuments, modelSuggestionRow, modelId);
-  const matches = useMemo(() => {
-    const targets = chartFindTargets(find, findDocuments, modelSuggestionRow);
-    return targets == null ? null : new Set(targets.map(canonicalModelKey));
-  }, [find, findDocuments]);
+  const matches = useMemo(
+    () => chartFindMatches(find, findDocuments, modelSuggestionRow, canonicalModelKey),
+    [find, findDocuments],
+  );
   const snapshotDocuments = useMemo(
     () => collapsedModels(referenceModels).map((model) => modelSearchDocument(model, model)),
     [referenceModels],
@@ -191,8 +192,8 @@ export const ParetoPanel = memo(function ParetoPanel({
       : `${modelName(missing)} is hidden by the dashboard filters.`;
   };
   const singleKey = activeKeys[0];
-  const indexScore = !aggregate && isAggregateIndex(singleKey ?? "");
-  const normalizedScore = !publishedPerformance && (aggregate || singleKey === "ale_bench");
+  const pointScore = !aggregate && readsAsPoints(singleKey);
+  const normalizedScore = !publishedPerformance && (aggregate || isNormalizedAlone(singleKey));
   const selectedLabel =
     benchmarkOptions.find((option) => option.key === singleKey)?.label ?? "Benchmark";
   const evidenceSummary =
@@ -211,7 +212,7 @@ export const ParetoPanel = memo(function ParetoPanel({
   const formatScoreTick =
     publishedPerformance || normalizedScore
       ? (value: number) => value.toFixed(0)
-      : indexScore
+      : pointScore
         ? formatTooltipScore
         : (value: number) => `${value.toFixed(0)}%`;
   const xAxis = frontierXAxisScale(rows.map(axisConfig.get).filter(finite), axisKey, axisConfig);
@@ -219,7 +220,7 @@ export const ParetoPanel = memo(function ParetoPanel({
   const yAxis =
     publishedPerformance || normalizedScore
       ? scoreAxisScale(scoreValues, { formatTick: (value) => value.toFixed(0) })
-      : frontierScoreAxisScale(scoreValues, indexScore);
+      : frontierScoreAxisScale(scoreValues, pointScore);
   const chartMetric = useMemo(
     () => ({
       // Resource steps read as "6.3× cost"; score axes keep their own names.
@@ -282,7 +283,7 @@ export const ParetoPanel = memo(function ParetoPanel({
         }
       />
       {rows.length === 0 ? (
-        <p className={styles.emptyComparison} role="status">
+        <p className={styles.emptyChart} role="status">
           {emptyMessage}
         </p>
       ) : (

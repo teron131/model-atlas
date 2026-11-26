@@ -1,6 +1,5 @@
-/** Pareto axes, resource units, and hover labels present prepared comparison rows without choosing their evidence or changing scores. */
+/** Pareto axes, resource units, and readout facts present prepared comparison rows without choosing their evidence or changing scores. */
 
-import { isAggregateIndex } from "../../../../src/model-atlas/benchmarks/index-policy";
 import { formatResourceRatio } from "../../../shared/resource-ratio-display";
 import type { ReadoutFact } from "../ChartReadout";
 import {
@@ -21,9 +20,11 @@ import {
   frontierAxisValue,
   type FrontierBenchmarkAxisKey,
   type FrontierBenchmarkRow,
+  isNormalizedAlone,
   isScoreAxis,
   type PerformanceMetric,
   positiveMetric,
+  readsAsPoints,
 } from "./analysis";
 
 export const PERFORMANCE_SCORES = [
@@ -148,9 +149,9 @@ export function frontierAxisMetricLabel(
   return `Tokens / ${unit}`;
 }
 
-/** Native benchmark percentages and index points retain their distinct tick scales. */
-export function frontierScoreAxisScale(values: number[], indexProxy: boolean): AxisScale {
-  return indexProxy
+/** Native benchmark percentages and results that read as points retain their distinct tick scales. */
+export function frontierScoreAxisScale(values: number[], points: boolean): AxisScale {
+  return points
     ? linearAxisScale(values, { formatTick: (value) => value.toFixed(0) })
     : steppedLinearAxisScale(values, BENCHMARK_SCORE_AXIS_OPTIONS);
 }
@@ -187,7 +188,7 @@ export function frontierBenchmarkReadoutFacts(
     ? `${performance === "intelligence" ? "Intelligence" : "Agentic"} Score`
     : row.benchmarkKey === "all"
       ? "Normalized Performance"
-      : row.benchmarkKey === "ale_bench"
+      : isNormalizedAlone(row.benchmarkKey)
         ? "Normalized ALE-Bench Score"
         : `${row.benchmarkLabel} Score`;
   const count = row.resourceCount;
@@ -196,9 +197,9 @@ export function frontierBenchmarkReadoutFacts(
       label,
       value:
         publishedScore ||
-        isAggregateIndex(row.benchmarkKey) ||
         row.benchmarkKey === "all" ||
-        row.benchmarkKey === "ale_bench"
+        isNormalizedAlone(row.benchmarkKey) ||
+        readsAsPoints(row.baseBenchmarkKey)
           ? formatTooltipScore(row.score)
           : formatPercentScore(row.score),
     },

@@ -8,12 +8,14 @@ import katex from "katex";
 
 import {
   CATALOG_VERSIONS,
+  DOMAIN_COLUMNS,
+  fillVersionMarkers,
+} from "../app/methodology/catalog-markers";
+import {
   documentAssetPath,
   documentHref,
   documentImageSize,
   DOCUMENTS,
-  DOMAIN_COLUMNS,
-  fillVersionMarkers,
   headingId,
   METHODOLOGY_ASSET_NAMES,
 } from "../app/methodology/documents";

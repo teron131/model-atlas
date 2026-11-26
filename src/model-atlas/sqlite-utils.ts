@@ -13,6 +13,17 @@ export type DatabaseWriter = {
   prepare: (sql: string) => DatabaseStatement;
 };
 
+export function quoteIdentifier(value: string): string {
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(value)) {
+    throw new Error(`Unsafe SQL identifier: ${value}`);
+  }
+  return `"${value}"`;
+}
+
+export function sqlStringLiteral(value: string): string {
+  return `'${value.replaceAll("'", "''")}'`;
+}
+
 export function sqliteBooleanValue(value: unknown): number | null {
   return typeof value === "boolean" ? (value ? 1 : 0) : null;
 }

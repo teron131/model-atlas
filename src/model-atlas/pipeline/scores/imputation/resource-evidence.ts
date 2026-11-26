@@ -1,4 +1,4 @@
-/** Resource evidence owns benchmark eligibility, measurement semantics, and estimate lookup shared by effort ratios, broader evidence, and scoring projections. */
+/** Which benchmarks may have a resource amount imputed, how a directly measured amount is read, and the lookup of a variant's estimates, shared by effort ratios and final scoring; broader evidence shares the benchmark keys and evidence floor and reads observed amounts its own way. */
 
 import { indexPolicy } from "../../../benchmarks/index-policy";
 import type { ScoringConfig } from "../../../config/stage";
@@ -13,6 +13,7 @@ import {
   benchmarkTaskMetrics,
   directBenchmarkTokens,
   effectiveTaskSeconds,
+  type ResourceMetricModel,
 } from "../resource-metrics";
 
 export const TASK_RESOURCE_KINDS = ["cost", "time", "tokens", "output_tokens"] as const;
@@ -54,7 +55,7 @@ export function resourceImputationKeys(config: ScoringConfig, kind: TaskResource
 
 /** Time falls back to the throughput runtime proxy when wall time is missing; token totals and output-only amounts stay separate. */
 export function directTaskResource(
-  model: ModelAtlasCandidate,
+  model: ResourceMetricModel,
   key: string,
   scoringConfig: ScoringConfig,
   kind: TaskResourceKind,

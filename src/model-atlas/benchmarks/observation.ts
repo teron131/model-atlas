@@ -1,5 +1,6 @@
 /** Benchmark observations preserve source evidence while sharing conservative model-effort matching. */
 
+import { canonicalDeepSeekName } from "../identity/deepseek";
 import {
   defaultConfigurationRank,
   normalizeModelToken,
@@ -154,7 +155,7 @@ function modelIdConflictsWithBaseModel(row: BenchmarkObservationEvidenceRow): bo
   );
 }
 
-/** A source's zero minor version also answers to the bare major release, as "Claude Fable 5.0" for "Claude Fable 5"; catalog names keep theirs, as "Beam 1.0". A DeepSeek version written without its V also answers to DeepSeek's own spelling, as "DeepSeek 4 Pro" for "DeepSeek V4 Pro", since DeepSeek names every numbered release that way. */
+/** A source's zero minor version also answers to the bare major release, as "Claude Fable 5.0" for "Claude Fable 5"; catalog names keep theirs, as "Beam 1.0". */
 function baseModelNames(row: BenchmarkObservationEvidenceRow): string[] {
   const model = parseModelEffort(row.model).baseModel;
   return [
@@ -162,7 +163,7 @@ function baseModelNames(row: BenchmarkObservationEvidenceRow): string[] {
     model,
     canonicalQwenName(model),
     model.replace(/(\d)\.0(?!\d)/g, "$1"),
-    model.replace(/^deepseek\s+(?=\d)/i, "DeepSeek V"),
+    canonicalDeepSeekName(model),
   ];
 }
 

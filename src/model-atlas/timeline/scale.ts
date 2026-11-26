@@ -4,7 +4,12 @@ import { createHash } from "node:crypto";
 
 import { stableJson } from "../runtime";
 import { isInformativeValue } from "./benchmark-evidence";
-import { extendTimelineGraph, fitTimelineLink, timelineNativeValue } from "./linking";
+import {
+  extendTimelineGraph,
+  fitTimelineLink,
+  timelineLinkId,
+  timelineNativeValue,
+} from "./linking";
 import { resolveHistoricalModelIdentities } from "./model-identity";
 import {
   hasUnresolvedVersion,
@@ -148,7 +153,7 @@ export function prepareTimelineRelease(
       const leftValues = byBenchmark.get(left.id);
       if (!leftValues) continue;
       for (const right of definitions.slice(i + 1)) {
-        const id = JSON.stringify([left.id, right.id]);
+        const id = timelineLinkId(left.id, right.id);
         if (links.has(id)) continue;
         if (!fitted.has(id)) {
           const rightValues = byBenchmark.get(right.id);
@@ -197,19 +202,30 @@ export function prepareTimelineRelease(
     observations: data.observations,
     dimensions: { intelligence: fitCapability("intelligence"), agentic: fitCapability("agentic") },
   };
-  scale.id = createHash("sha256")
+  scale.id = timelineScaleId(scale, data.releaseId);
+  data.scale = previous?.id === scale.id ? previous : scale;
+  return data;
+}
+
+/** Fingerprint what fixes a scale's positions: its fit parameters, quality transform, reference floor, measured release, and fitted graphs. */
+export function timelineScaleId(
+  scale: Pick<
+    TimelineScale,
+    "parameters" | "qualityTransform" | "minimumReferenceConfidence" | "dimensions"
+  >,
+  releaseId: string,
+): string {
+  return createHash("sha256")
     .update(
       stableJson({
-        parameters,
+        parameters: scale.parameters,
         qualityTransform: scale.qualityTransform,
         minimumReferenceConfidence: scale.minimumReferenceConfidence,
-        releaseId: data.releaseId,
+        releaseId,
         dimensions: scale.dimensions,
       }),
     )
     .digest("hex");
-  data.scale = previous?.id === scale.id ? previous : scale;
-  return data;
 }
 
 /** Fingerprint the measured release and its method, excluding query parameters, display anchors, and reconstructed cells. */

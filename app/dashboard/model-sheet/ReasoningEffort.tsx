@@ -13,7 +13,6 @@ import {
 
 import { formatResourceRatio } from "../../shared/resource-ratio-display";
 import { GraphToggle } from "../graphs/GraphToggle";
-import { HoverCard, type HoverRow, type HoverState, pointHover } from "../graphs/HoverCard";
 import { linearAxisScale } from "../graphs/plot/axis-scale";
 import { calloutLabelPlacements } from "../graphs/plot/label-placement";
 import { TextPointLabel, useLabelSizes } from "../graphs/plot/Primitives";
@@ -21,6 +20,7 @@ import { starConnectorSegments } from "../graphs/plot/star-marks";
 import { providerChartColor } from "../shared/provider-theme";
 import { formatScore } from "../table/format";
 import { type EffortPoint, entryEffort, familyName, type SheetEntry } from "./entries";
+import { HoverCard, type HoverRow, type HoverState, pointHover } from "./HoverCard";
 import { type ModelSheetSlot, selectModelSheetEffort } from "./open";
 import {
   LABEL_MARGIN,

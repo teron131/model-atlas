@@ -1,6 +1,6 @@
 "use client";
 
-/** Chart hover cards: the floating card a plot shows for the model under the pointer, and the state that places and fills it. The Pareto and Timeline charts name their model in a `ChartReadout` instead, so no card covers their stars. */
+/** The reasoning-effort plot's hover card: the floating card it shows for the model under the pointer, and the state that places and fills it. */
 
 import { type CSSProperties, type PointerEvent } from "react";
 
@@ -8,7 +8,7 @@ import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 import { modelLogo, modelName } from "../shared/model-display";
 import { providerChartColor, providerDisplayName } from "../shared/provider-theme";
 
-import styles from "./graphs.module.css";
+import styles from "./model-sheet.module.css";
 
 export type HoverRow = readonly [string, string];
 
@@ -26,9 +26,16 @@ export function pointHover(
   event: PointerEvent<Element>,
   model: ModelAtlasModel,
   rows: HoverRow[],
-  displayName = modelName(model),
 ): HoverState {
-  return hoverAt(event.clientX, event.clientY, model, rows, displayName);
+  return {
+    left: event.clientX,
+    top: event.clientY,
+    model: modelName(model),
+    provider: providerDisplayName(model),
+    color: providerChartColor(model.provider),
+    logo: modelLogo(model),
+    rows,
+  };
 }
 
 export function HoverCard({ hover }: { hover: HoverState }) {
@@ -76,22 +83,4 @@ export function HoverCard({ hover }: { hover: HoverState }) {
       </div>
     </div>
   );
-}
-
-function hoverAt(
-  left: number,
-  top: number,
-  model: ModelAtlasModel,
-  rows: HoverRow[],
-  displayName: string,
-): HoverState {
-  return {
-    left,
-    top,
-    model: displayName,
-    provider: providerDisplayName(model),
-    color: providerChartColor(model.provider),
-    logo: modelLogo(model),
-    rows,
-  };
 }

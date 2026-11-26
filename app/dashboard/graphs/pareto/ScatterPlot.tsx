@@ -33,18 +33,20 @@ import {
 import {
   boxesMeet,
   calloutLabelPlacements,
+  labelBox,
   NAME_CLEARANCE,
   placeInSky,
   type PointLabelPlacement,
 } from "../plot/label-placement";
 import {
+  CHART_WIDTH,
   DirectionArrow,
   FrontierHorizon,
   horizonRim,
+  horizonSegments,
   horizonTrail,
   labelBounds,
   LabelMask,
-  labelRect,
   type Margin,
   MedianCross,
   medianReadingBoxes,
@@ -53,7 +55,6 @@ import {
   PlotFrame,
   polylineSegments,
   SCATTER_CHART_HEIGHT,
-  SCATTER_CHART_WIDTH,
   scatterChartMargin,
   stableSvgNumber,
   stableSvgScale,
@@ -135,7 +136,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
   matches: ReadonlySet<string> | null;
   located: ChartFindState["located"];
 }) {
-  const { plotHost, width, compact } = useChartLayout(SCATTER_CHART_WIDTH);
+  const { plotHost, width, compact } = useChartLayout(CHART_WIDTH);
   const height = compact ? Math.min(SCATTER_CHART_HEIGHT, 400) : SCATTER_CHART_HEIGHT;
   const [highlightedVariantKey, setHighlightedVariantKey] = useVariantHighlight();
   // The star a click or tap picked, which stays lit while the pointer is elsewhere; a hovered or focused star shows over it.
@@ -273,9 +274,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
       medianYLabel,
     ]),
   ];
-  const horizonSegments = [rim, ...(trail == null ? [] : [[trail.from, trail.to]])].flatMap(
-    polylineSegments,
-  );
+  const horizon = horizonSegments(rim, trail);
   const callout = (row: Row, placements: ReadonlyMap<string, PointLabelPlacement>) => {
     const key = getKey(row);
     const label = getLabel(row);
@@ -291,15 +290,13 @@ export function FrontierBenchmarkScatterPlot<Row>({
   };
   // The text boxes of the names that are measured and placed.
   const textBoxes = (names: readonly ReturnType<typeof callout>[]) =>
-    names.flatMap(({ placement, size }) => {
-      if (placement == null || size == null) return [];
-      const { x, y, width, height } = labelRect(placement, size, 0);
-      return [{ left: x, right: x + width, top: y, bottom: y + height }];
-    });
+    names.flatMap(({ placement, size }) =>
+      placement == null || size == null ? [] : [labelBox(placement, size, 0)],
+    );
   const rises: "left" | "right" = metric.xHigherIsBetter ? "left" : "right";
   const skyNames = {
     bounds: labelBounds(plot),
-    segments: horizonSegments,
+    segments: horizon,
     rises,
     clearance: NAME_CLEARANCE.compact,
   };
@@ -339,7 +336,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
           weight: activeReasoningGroup != null && !highlightedRows.includes(row) ? 0.15 : 1,
         })),
         segments: [
-          ...horizonSegments,
+          ...horizon,
           ...reasoningGroups
             .filter((group) => group.key === activeReasoningGroup)
             .flatMap((group) =>
@@ -398,10 +395,8 @@ export function FrontierBenchmarkScatterPlot<Row>({
     const at = pointerPosition(event);
     const named = callouts.find(({ placement, size }) => {
       if (!placement || !size) return false;
-      const box = labelRect(placement, size, 3);
-      return (
-        at.x >= box.x && at.x <= box.x + box.width && at.y >= box.y && at.y <= box.y + box.height
-      );
+      const box = labelBox(placement, size, 3);
+      return at.x >= box.left && at.x <= box.right && at.y >= box.top && at.y <= box.bottom;
     });
     const star = nearestPoint(
       at,
@@ -435,25 +430,17 @@ export function FrontierBenchmarkScatterPlot<Row>({
     ]
       .filter(Boolean)
       .join(" ");
-  const reasoningVariantLines = reasoningGroups.flatMap((group) => {
-    const first = group.variants[0];
-    if (first == null) {
-      return [];
-    }
-    return [
-      {
-        key: group.key,
-        color: providerChartColor(getModel(first).provider),
-        segments: starConnectorSegments(
-          group.variants.map((row) => ({
-            cx: xPoint(metric.get(row)),
-            cy: yPoint(getScore(row)),
-            radius: markRadius(row),
-          })),
-        ),
-      },
-    ];
-  });
+  const reasoningVariantLines = reasoningGroups.map((group) => ({
+    key: group.key,
+    color: providerChartColor(getModel(group.variants[0]!).provider),
+    segments: starConnectorSegments(
+      group.variants.map((row) => ({
+        cx: xPoint(metric.get(row)),
+        cy: yPoint(getScore(row)),
+        radius: markRadius(row),
+      })),
+    ),
+  }));
   const activeHighlightColor =
     activeRow == null ? undefined : providerChartColor(getModel(activeRow).provider);
   const leader = frontier.reduce<Row | undefined>(
@@ -501,7 +488,7 @@ export function FrontierBenchmarkScatterPlot<Row>({
       <div
         {...plotHost}
         className={styles.chartWrap}
-        style={{ "--chart-max-width": `${SCATTER_CHART_WIDTH}px` } as CSSProperties}
+        style={{ "--chart-max-width": `${CHART_WIDTH}px` } as CSSProperties}
         role="group"
         aria-label={`${ariaLabel} viewport`}
         tabIndex={0}

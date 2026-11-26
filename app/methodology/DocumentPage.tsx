@@ -17,14 +17,13 @@ import timelineCalculation from "../../docs/timeline/calculation.md";
 import timeline from "../../docs/timeline/overview.md";
 import { readRevalidatedPayload } from "../../src/model-atlas/database/runtime-snapshot";
 import { NavigationLink } from "../shared/NavigationLink";
+import { CATALOG_VERSIONS, fillVersionMarkers } from "./catalog-markers";
 import {
-  CATALOG_VERSIONS,
   documentGroup,
   documentHref,
   DOCUMENTS,
   type DocumentSlug,
   documentTitle,
-  fillVersionMarkers,
   tableOfContents,
 } from "./documents";
 import { DocumentShell } from "./DocumentShell";

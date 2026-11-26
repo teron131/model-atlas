@@ -1,4 +1,4 @@
-/** Segmented control for choosing one option beside a plot: the Pareto x-axis, the Timeline's range presets, and the model sheet's reasoning efforts. */
+/** Segmented control for choosing one option beside a plot, such as an axis measure or a range preset. */
 
 import { useHorizontalChoice } from "../../shared/use-horizontal-choice";
 

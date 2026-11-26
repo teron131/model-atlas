@@ -404,7 +404,7 @@ export function createSkyRenderer(canvas: HTMLCanvasElement) {
         gl.uniform1f(h("reach"), Math.min(1, (bounds.bottom - bounds.top) / REFERENCE_PLOT_HEIGHT));
         gl.uniform1f(h("rimStrength"), muted ? MUTED_RIM : 1);
         gl.bindBuffer(gl.ARRAY_BUFFER, triangle);
-        const corner = gl.getAttribLocation(horizon.program, "corner");
+        const corner = horizon.attribute("corner");
         gl.enableVertexAttribArray(corner);
         gl.vertexAttribPointer(corner, 2, gl.FLOAT, false, 0, 0);
         gl.drawArrays(gl.TRIANGLES, 0, 3);
@@ -420,7 +420,7 @@ export function createSkyRenderer(canvas: HTMLCanvasElement) {
       gl.uniform1f(s("pixelRatio"), pixelRatio);
       gl.uniform1f(s("time"), time);
       gl.bindBuffer(gl.ARRAY_BUFFER, starBuffer);
-      const enabled = enableStarAttributes(gl, stars.program);
+      const enabled = enableStarAttributes(gl, stars);
       gl.drawArrays(gl.POINTS, 0, starCount);
       for (const location of enabled) gl.disableVertexAttribArray(location);
 
@@ -527,7 +527,7 @@ export function stillStarImage(color: string, role: SkyStarRole): string | null 
     ]),
     gl.STATIC_DRAW,
   );
-  const enabled = enableStarAttributes(gl, stars.program);
+  const enabled = enableStarAttributes(gl, stars);
   gl.drawArrays(gl.POINTS, 0, 1);
   for (const location of enabled) gl.disableVertexAttribArray(location);
   const light = new Uint8Array(pixels * pixels * 4);
@@ -557,11 +557,14 @@ export function stillStarImage(color: string, role: SkyStarRole): string | null 
 }
 
 /** Point the star program's attributes at the bound buffer's interleaved stars, returning the locations to disable after drawing. */
-function enableStarAttributes(gl: WebGLRenderingContext, linked: WebGLProgram): number[] {
+function enableStarAttributes(
+  gl: WebGLRenderingContext,
+  linked: ReturnType<typeof program>,
+): number[] {
   const enabled: number[] = [];
   let offset = 0;
   for (const [name, count] of STAR_ATTRIBUTES) {
-    const location = gl.getAttribLocation(linked, name);
+    const location = linked.attribute(name);
     gl.enableVertexAttribArray(location);
     gl.vertexAttribPointer(location, count, gl.FLOAT, false, STAR_STRIDE * 4, offset * 4);
     enabled.push(location);
@@ -600,7 +603,12 @@ function program(gl: WebGLRenderingContext, vertex: string, fragment: string) {
     if (!locations.has(name)) locations.set(name, gl.getUniformLocation(linked, name));
     return locations.get(name) ?? null;
   };
-  return { program: linked, uniform };
+  const attributes = new Map<string, number>();
+  const attribute = (name: string) => {
+    if (!attributes.has(name)) attributes.set(name, gl.getAttribLocation(linked, name));
+    return attributes.get(name)!;
+  };
+  return { program: linked, uniform, attribute };
 }
 
 // The hero's three.js colours treat a hex tint as sRGB and light in linear values, so the chart converts the same way to match its stars, then eases them to the chart's saturation.

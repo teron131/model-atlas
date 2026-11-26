@@ -1,16 +1,13 @@
 "use client";
 
-/** The SVG building blocks the dashboard's plots share, in each plot's SVG coordinates: frame, axes, star marks and glows, row labels and domain chips, the frontier horizon, medians, and point labels with their measurement. */
+/** The SVG building blocks the dashboard's plots share, in each plot's SVG coordinates: frame, axes, star marks and glows, the frontier horizon, medians, and point labels with their measurement. */
 
 import { type CSSProperties, useCallback, useId, useLayoutEffect, useRef, useState } from "react";
 
-import type { BenchmarkDomain } from "../../../../src/model-atlas/benchmarks/catalog";
 import { clamp } from "../../../../src/model-atlas/math-utils";
-import { domainIcons } from "../../../shared/DomainShares";
-import { providerChartColor, providerLogo } from "../../shared/provider-theme";
+import { providerChartColor } from "../../shared/provider-theme";
 import { REFERENCE_PLOT_HEIGHT } from "../../shared/sky-light";
-import { NAME_CLEARANCE, type PointLabelPlacement, type PointLabelSize } from "./label-placement";
-import { MUTED_STAR_GLOW } from "./sky-renderer";
+import { labelRect, type PointLabelPlacement, type PointLabelSize } from "./label-placement";
 
 import styles from "../graphs.module.css";
 
@@ -35,7 +32,7 @@ export const SCATTER_CHART_MARGIN: Margin = {
   bottom: 34,
   left: 62,
 };
-export const SCATTER_CHART_WIDTH = 1120;
+export const CHART_WIDTH = 1120;
 // Model callouts keep this far inside the plot's edges.
 const LABEL_EDGE_GUTTER = 12;
 
@@ -145,32 +142,6 @@ export function StarMark({
   );
 }
 
-/** A row chart's margin: just enough above for the first row's note to clear the plot's edge, so the rows sit close under their head, room for each RowLabel on the left, the row's value set flush with the far right edge, and an axis beneath. */
-export function rowChartMargin(compact: boolean): Margin {
-  return { top: 2, right: compact ? 60 : 76, bottom: 30, left: compact ? 140 : 204 };
-}
-
-// Where names and values beside the plot would leave it narrower than `leastPlot`, as on a phone, a row takes two lines: its name and value, then its marks across the full width. These are the two lines' centres within the row, its height, and the plot's side margins.
-const TWO_LINE_ROW = { leastPlot: 240, text: 10, marks: 34, height: 46, side: 8 };
-
-/** A row chart's rows at `width`: one line `rowHeight` tall, or two lines where the plot beside the names would be too narrow; `markY` centres a row's marks and `textY` its name and value. */
-export function rowChartRows(width: number, compact: boolean, rowHeight: number) {
-  const oneLine = rowChartMargin(compact);
-  const twoLine = width - oneLine.left - oneLine.right < TWO_LINE_ROW.leastPlot;
-  const margin = twoLine
-    ? { ...oneLine, left: TWO_LINE_ROW.side, right: TWO_LINE_ROW.side }
-    : oneLine;
-  const height = twoLine ? TWO_LINE_ROW.height : rowHeight;
-  const rowTop = (index: number) => margin.top + index * height;
-  return {
-    margin,
-    rowHeight: height,
-    rowTop,
-    markY: (index: number) => rowTop(index) + (twoLine ? TWO_LINE_ROW.marks : height / 2),
-    textY: (index: number) => rowTop(index) + (twoLine ? TWO_LINE_ROW.text : height / 2),
-  };
-}
-
 // The plots' mono type sizes in CSS pixels, as globals.css sets --type-micro-size and --type-caption-size, and the share of its size a mono character advances; with them a chart guesses where text will sit before it renders.
 const MONO_SIZE = { micro: 10, caption: 11 };
 const MONO_ADVANCE = 0.6;
@@ -178,117 +149,6 @@ const MONO_ADVANCE = 0.6;
 /** About how wide `text` sets in the plots' mono type: `micro` for notes, `caption` for values, tick labels, and readings. */
 export function monoWidth(text: string, size: keyof typeof MONO_SIZE): number {
   return text.length * MONO_SIZE[size] * MONO_ADVANCE;
-}
-
-// A row's name starts this far right of its logo's left edge.
-const ROW_NAME_X = 22;
-// A row name's 12.5px semibold sans runs about this wide per character.
-const ROW_NAME_CHAR_WIDTH = 7.2;
-
-/** The box a plot note covers, set at `x` as SVG anchors it with its baseline at `y`, for guides that pass behind it. */
-export function noteBox(
-  x: number,
-  y: number,
-  text: string,
-  anchor: "start" | "middle" | "end",
-): PlotBounds {
-  const width = monoWidth(text, "micro");
-  const left = anchor === "start" ? x : anchor === "end" ? x - width : x - width / 2;
-  // The 10px type rises about 8px above its baseline and drops 3px below it.
-  return { left, right: left + width, top: y - 8, bottom: y + 3 };
-}
-
-/** The boxes a row's `RowLabel` centred on `y` and its value set flush with the right edge at `width` cover, for guides that pass behind them. */
-export function rowTextBoxes(y: number, name: string, value: string, width: number): PlotBounds[] {
-  return [
-    { left: 0, right: ROW_NAME_X + name.length * ROW_NAME_CHAR_WIDTH, top: y - 8, bottom: y + 8 },
-    { left: width - monoWidth(value, "caption"), right: width, top: y - 7, bottom: y + 7 },
-  ];
-}
-
-/** The dashboard's trail: a hairline along `y` brightening from a dimmed star's light at `from` into `color` at its star at `to`. A plot draws it beneath its stars, so their light lies over it. */
-export function Trail({
-  from,
-  to,
-  y,
-  color,
-}: {
-  from: number;
-  to: number;
-  y: number;
-  color: string;
-}) {
-  const id = useId();
-  return (
-    <>
-      <linearGradient id={id} gradientUnits="userSpaceOnUse" x1={from} x2={to} y1={y} y2={y}>
-        <stop offset={0} stopColor={color} stopOpacity={MUTED_STAR_GLOW} />
-        <stop offset={1} stopColor={color} />
-      </linearGradient>
-      <line stroke={`url(#${id})`} x1={from} x2={to} y1={y} y2={y} />
-    </>
-  );
-}
-
-/** A plot row's model: its lab's logo, then its name, vertically centred on `y`. */
-export function RowLabel({
-  y,
-  name,
-  provider,
-  dimmed = false,
-}: {
-  y: number;
-  name: string;
-  provider: string;
-  dimmed?: boolean;
-}) {
-  const logo = providerLogo(provider);
-  return (
-    <g opacity={dimmed ? 0.4 : 1}>
-      {logo ? <image href={logo} x={0} y={y - 7} width={14} height={14} /> : null}
-      <text className={styles.rowName} x={ROW_NAME_X} y={y} dy="0.34em">
-        {name}
-      </text>
-    </g>
-  );
-}
-
-// A domain's chip in a plot matches the weights map's legend: a 14px tile in the label's colour carrying its icon 2px in.
-export const DOMAIN_TILE = { size: 14, inset: 2 };
-
-/** A domain's icon on its label-coloured tile, its top left corner at `x`, `y`; a tile smaller than the legend's, for rows set closer, keeps the icon's inset. */
-export function DomainTile({
-  domain,
-  x,
-  y,
-  size = DOMAIN_TILE.size,
-}: {
-  domain: BenchmarkDomain;
-  x: number;
-  y: number;
-  size?: number;
-}) {
-  const Icon = domainIcons[domain];
-  return (
-    <>
-      <rect
-        x={x}
-        y={y}
-        width={size}
-        height={size}
-        rx={2}
-        style={{ fill: `var(--domain-tone-${domain})` }}
-      />
-      <Icon
-        className={styles.domainIcon}
-        x={x + DOMAIN_TILE.inset}
-        y={y + DOMAIN_TILE.inset}
-        size={size - DOMAIN_TILE.inset * 2}
-        strokeWidth={2}
-        aria-hidden
-      />
-    </>
-  );
 }
 
 export function plotBoundsFor(width: number, height: number, margin: Margin): PlotBounds {
@@ -388,6 +248,13 @@ export function horizonTrail(
   const slope =
     variance === 0 ? 0 : clamp(covariance / variance, -TRAIL_MAX_SLOPE, TRAIL_MAX_SLOPE);
   return { from, to: { x: edge, y: from.y + slope * (edge - from.x) } };
+}
+
+export function horizonSegments(rim: readonly ScreenPoint[], trail: HorizonTrail | null) {
+  return [
+    ...polylineSegments(rim),
+    ...(trail == null ? [] : polylineSegments([trail.from, trail.to])),
+  ];
 }
 
 /**
@@ -826,46 +693,6 @@ export function TextPointLabel({
       </text>
     </g>
   );
-}
-
-/** Hit areas and guide masks must use the same measured text geometry, with their own clearance. */
-export function labelRect(placement: PointLabelPlacement, size: PointLabelSize, padding: number) {
-  return {
-    x: placement.x - padding,
-    y: placement.y - size.ascent - padding,
-    width: size.width + padding * 2,
-    height: size.ascent + size.descent + padding * 2,
-  };
-}
-
-/** Keys of the labels to leave out, in priority order: each placed label whose text comes within the name clearance of a reserved box, such as a median's name, or of an earlier kept label's text gives way. */
-export function crowdedOutLabels(
-  labels: readonly { key: string; placement?: PointLabelPlacement; size?: PointLabelSize }[],
-  reserved: readonly PlotBounds[],
-  compact: boolean,
-): Set<string> {
-  const clearance = NAME_CLEARANCE[compact ? "compact" : "wide"];
-  const kept = reserved.map((box) => ({
-    x: box.left,
-    y: box.top,
-    width: box.right - box.left,
-    height: box.bottom - box.top,
-  }));
-  const crowded = new Set<string>();
-  for (const { key, placement, size } of labels) {
-    if (placement == null || size == null) continue;
-    const box = labelRect(placement, size, 0);
-    const meets = kept.some(
-      (other) =>
-        box.x < other.x + other.width + clearance.x &&
-        other.x < box.x + box.width + clearance.x &&
-        box.y < other.y + other.height + clearance.y &&
-        other.y < box.y + box.height + clearance.y,
-    );
-    if (meets) crowded.add(key);
-    else kept.push(box);
-  }
-  return crowded;
 }
 
 /** Clear a plot's guides from under its placed labels and their leaders, so no guide runs through a name. */

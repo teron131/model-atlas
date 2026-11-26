@@ -148,7 +148,7 @@ function useReasoningVariantDisplay(initialShowReasoningVariants: boolean) {
         if (saved != null) {
           const expanded = saved === "true";
           setShowReasoningVariants(expanded);
-          document.cookie = `${GRAPH_VARIANTS_COOKIE}=${expanded ? "1" : "0"}; Path=/; Max-Age=31536000; SameSite=Lax`;
+          writeVariantsCookie(expanded);
         }
       } catch {}
       return;
@@ -156,7 +156,7 @@ function useReasoningVariantDisplay(initialShowReasoningVariants: boolean) {
     try {
       window.localStorage.setItem(REASONING_VARIANT_STORAGE_KEY, String(showReasoningVariants));
     } catch {}
-    document.cookie = `${GRAPH_VARIANTS_COOKIE}=${showReasoningVariants ? "1" : "0"}; Path=/; Max-Age=31536000; SameSite=Lax`;
+    writeVariantsCookie(showReasoningVariants);
   }, [showReasoningVariants]);
 
   const [urlVariants] = useUrlState("graph-variants", showReasoningVariants);
@@ -169,6 +169,10 @@ function useReasoningVariantDisplay(initialShowReasoningVariants: boolean) {
     );
   }, []);
   return [urlVariants, setVariants] as const;
+}
+
+function writeVariantsCookie(expanded: boolean) {
+  document.cookie = `${GRAPH_VARIANTS_COOKIE}=${expanded ? "1" : "0"}; Path=/; Max-Age=31536000; SameSite=Lax`;
 }
 
 /**

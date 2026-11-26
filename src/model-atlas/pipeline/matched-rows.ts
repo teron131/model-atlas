@@ -32,6 +32,7 @@ function buildMatchedRow(
   const artificialAnalysisSlug = modelSlugFromModelId(artificialAnalysisId);
   const matchedModelsDev =
     matchedModelId == null ? null : (lookups.modelsDev.byId.get(matchedModelId) ?? null);
+  // Artificial Analysis marks a non-reasoning configuration with a trailing label, dropped before the effort is parsed: "Claude 4 Sonnet (Non-reasoning)" → "Claude 4 Sonnet".
   const sourceName =
     typeof artificialAnalysisModel.name === "string"
       ? parseModelEffort(

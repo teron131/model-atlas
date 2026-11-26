@@ -2,6 +2,7 @@
 
 import { benchmarkValueLocation } from "../../benchmarks/registry";
 import {
+  hasSeparatedResources,
   resourceSourceMetricKey,
   resourceSourcesFromMetadata,
 } from "../../benchmarks/resource-sources";
@@ -318,10 +319,7 @@ function buildSeparatedSourceMetrics(
 ): Array<[string, ModelAtlasTaskMetricValues]> {
   const row = asRecord(source);
   const metadata = asRecord(row.metadata);
-  const separated = ["cost", "seconds_per_task", "tokens_per_task", "output_tokens_per_task"].some(
-    (field) => metadata[`fusion_${field}_comparable`] === false,
-  );
-  if (!separated) return [];
+  if (!hasSeparatedResources(metadata)) return [];
   return resourceSourcesFromMetadata(metadata).flatMap((side) => {
     const quality = asFiniteNumber(metadata[`${side}_score`]);
     if (quality == null) return [];

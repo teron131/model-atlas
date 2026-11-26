@@ -478,7 +478,7 @@ function rankDriversForModel(
 function oneVariantPerModelPopulation(
   models: readonly ModelAtlasModel[],
   target: ModelAtlasModel,
-  scoreKey: keyof ModelAtlasModel["scores"],
+  scoreField: keyof ModelAtlasModel["scores"],
 ): ModelAtlasModel[] {
   const byModelId = new Map<string, ModelAtlasModel>();
   for (const model of models) {
@@ -490,8 +490,8 @@ function oneVariantPerModelPopulation(
       model === target ||
       selected == null ||
       (selected !== target &&
-        (finiteNumber(model.scores[scoreKey]) ?? Number.NEGATIVE_INFINITY) >
-          (finiteNumber(selected.scores[scoreKey]) ?? Number.NEGATIVE_INFINITY))
+        (finiteNumber(model.scores[scoreField]) ?? Number.NEGATIVE_INFINITY) >
+          (finiteNumber(selected.scores[scoreField]) ?? Number.NEGATIVE_INFINITY))
     ) {
       byModelId.set(model.id, model);
     }

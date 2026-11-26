@@ -29,6 +29,17 @@ import {
 import { TABLE_COLUMN_PRESETS, type TableColumnPreset } from "./table/column-views";
 import { sorters, type SortState } from "./table/sort";
 
+const EFFORT_MEASURES = ["intelligence", "agentic", "cost", "time", "tokens"] as const;
+// The sections whose chart has find pills, each kept as "<section>-find" and named `find` on the section's address: `/duels?find=gemini-3.7-flash` holds the Duels find pill kept as "duels-find".
+const FIND_SECTIONS = [
+  "spectra",
+  "duels",
+  "pareto",
+  "effort",
+  "timeline",
+] as const satisfies readonly DashboardSection[];
+type FindSection = (typeof FIND_SECTIONS)[number];
+
 export type DashboardUrlState = {
   view: TableColumnPreset;
   sort: SortState;
@@ -53,16 +64,13 @@ export type DashboardUrlState = {
   /** A model pinned beside the sheet's model for comparison, named the same way as `model` and `effort`. */
   compare: string | null;
   "compare-effort": string | null;
+  "effort-measure": (typeof EFFORT_MEASURES)[number];
+} & {
   /** A chart's find pills, each a model's short id where the pill names one model, otherwise as typed. */
-  "spectra-find": string[];
-  "duels-find": string[];
-  "pareto-find": string[];
-  "effort-find": string[];
-  "timeline-find": string[];
-  "effort-measure": "intelligence" | "agentic" | "cost" | "time" | "tokens";
+  [Section in FindSection as `${Section}-find`]: string[];
+} & {
   /** The chart each stacked region shows; an address carries it as its path, never as a key. */
-  "leaderboard-chart": RegionChartKey<"leaderboard">;
-  "pareto-chart": RegionChartKey<"pareto">;
+  [Region in StackedRegionId as `${Region}-chart`]: RegionChartKey<Region>;
 };
 
 export type DashboardUrlKey = keyof DashboardUrlState;
@@ -75,13 +83,14 @@ export type DashboardSection = ResearchRegionId | RegionChartKey<StackedRegionId
 /** Every control's value under its own name, and the section the address shows. */
 export type DashboardState = { params: URLSearchParams; section: DashboardSection | null };
 
+const STACKED_REGIONS = RESEARCH_REGION_IDS.filter(isStackedRegion);
 const SECTION_REGIONS = new Map<DashboardSection, ResearchRegionId>([
   ...RESEARCH_REGION_IDS.map((id) => [id, id] as const),
-  ...RESEARCH_REGION_IDS.filter(isStackedRegion).flatMap((region) =>
+  ...STACKED_REGIONS.flatMap((region) =>
     REGION_CHARTS[region].map((chart) => [chart.key, region] as const),
   ),
 ]);
-// Each section's own controls under the short names its address uses: `/duels?find=gemini-3.7-flash` holds the Duels find pill kept as "duels-find".
+// Each section's own controls under the short names its address uses, besides the find pills of `FIND_SECTIONS`.
 const SECTION_KEYS: Record<DashboardSection, Readonly<Record<string, DashboardUrlKey>>> = {
   leaderboard: {
     view: "view",
@@ -90,11 +99,11 @@ const SECTION_KEYS: Record<DashboardSection, Readonly<Record<string, DashboardUr
     variants: "table-variants",
     efforts: "table-effort",
   },
-  spectra: { find: "spectra-find" },
-  duels: { find: "duels-find" },
-  pareto: { performance: "performance", benchmark: "benchmark", axes: "axes", find: "pareto-find" },
-  effort: { measure: "effort-measure", find: "effort-find" },
-  timeline: { period: "timeline-period", lab: "timeline-provider", find: "timeline-find" },
+  spectra: {},
+  duels: {},
+  pareto: { performance: "performance", benchmark: "benchmark", axes: "axes" },
+  effort: { measure: "effort-measure" },
+  timeline: { period: "timeline-period", lab: "timeline-provider" },
 };
 // Controls that act across the page keep their names on every address.
 const PAGE_KEYS = [
@@ -115,128 +124,112 @@ const LIST_KEYS = new Set<DashboardUrlKey>([
   "timeline-provider",
   "table-effort",
   "benchmark",
-  "spectra-find",
-  "duels-find",
-  "pareto-find",
-  "effort-find",
-  "timeline-find",
+  ...FIND_SECTIONS.map((section) => `${section}-find` as const),
 ]);
 const KEY_SECTIONS = new Map<DashboardUrlKey, DashboardSection>(
   [...SECTION_REGIONS.keys()].flatMap((section) =>
-    Object.values(SECTION_KEYS[section]).map((key) => [key, section] as const),
+    sectionNames(section).map(([, key]) => [key, section] as const),
   ),
+);
+// The keys holding the chart each stacked region shows.
+const CHART_KEYS = new Set<DashboardUrlKey>(
+  STACKED_REGIONS.map((region) => `${region}-chart` as const),
 );
 const dashboardKeys = new Set<DashboardUrlKey>([
   ...PAGE_KEYS,
   ...KEY_SECTIONS.keys(),
-  "leaderboard-chart",
-  "pareto-chart",
+  ...CHART_KEYS,
 ]);
-// The region whose shown chart each chart key holds.
-const CHART_KEY_REGIONS = {
-  "leaderboard-chart": "leaderboard",
-  "pareto-chart": "pareto",
-} as const satisfies Record<`${StackedRegionId}-chart`, StackedRegionId>;
 // Every name an address gives a control, which it never keeps as someone else's parameter.
 const DASHBOARD_NAMES = new Set<string>([
   ...PAGE_KEYS,
-  ...Object.values(SECTION_KEYS).flatMap((names) => Object.keys(names)),
+  ...[...SECTION_REGIONS.keys()].flatMap((section) => sectionNames(section).map(([name]) => name)),
 ]);
 const benchmarkKeys = new Set(Object.keys(BENCHMARK_COLUMNS));
 const tableColumnPresetKeys = TABLE_COLUMN_PRESETS.map((preset) => preset.key);
 const PROVIDER_ID_PATTERN = /^[a-z0-9][a-z0-9._-]*$/;
 const EFFORT_PATTERN = /^[a-z]+$/;
 
+// How a control's values decode, `values` holding every value a URL gives its key, none when the key is absent; `write` encodes a value only where `defaultWrite` does not, an empty list leaving the key absent.
+type UrlCodec<T> = { read(values: string[]): T; write?(value: T): string[] };
+
+const textCodec: UrlCodec<string> = { read: ([value]) => value ?? "" };
+const flagCodec: UrlCodec<boolean> = { read: ([value]) => value === "1" };
+const modelCodec: UrlCodec<string | null> = { read: ([value]) => value?.trim() || null };
+const effortCodec: UrlCodec<string | null> = {
+  read: ([value]) => (value != null && EFFORT_PATTERN.test(value) ? value : null),
+};
+const findCodec: UrlCodec<string[]> = {
+  read: (values) => [...new Set(values.map((item) => item.trim()))].filter(Boolean),
+};
+const CODECS: { [K in DashboardUrlKey]: UrlCodec<DashboardUrlState[K]> } = {
+  view: { read: ([value]) => choice(value, tableColumnPresetKeys, "all") },
+  sort: {
+    // "<key>.<asc|desc>", splitting at the last dot: "intelligence.asc" → key "intelligence", direction "asc".
+    read: ([value]) => {
+      const match = /^(.*)\.(asc|desc)$/.exec(value ?? "");
+      return match?.[1] && Object.hasOwn(sorters, match[1])
+        ? {
+            key: match[1] as SortState["key"],
+            direction: match[2] === "asc" ? "ascending" : "descending",
+          }
+        : { key: "intelligence", direction: "descending" };
+    },
+    write: ({ key, direction }) => [`${key}.${direction === "ascending" ? "asc" : "desc"}`],
+  },
+  q: textCodec,
+  provider: {
+    read: (values) => [...new Set(values.filter((item) => PROVIDER_ID_PATTERN.test(item)))],
+  },
+  "max-cost": { read: ([value]) => numericChoice(value, costFilterOptions, "all") },
+  rank: {
+    read: ([value]) => numericChoice(value, modelRankFilterOptions, DEFAULT_MODEL_RANK_FILTER),
+  },
+  days: { read: ([value]) => numericChoice(value, recencyFilterOptions, DEFAULT_RECENCY_FILTER) },
+  "table-q": textCodec,
+  "table-variants": flagCodec,
+  "table-effort": {
+    read: (values) =>
+      values.length > 0 ? [...new Set(values.filter((item) => EFFORT_PATTERN.test(item)))] : null,
+  },
+  "graph-variants": flagCodec,
+  "timeline-period": { read: ([value]) => choice(value, ["all", "year"], "all") },
+  "timeline-provider": {
+    read: (values) =>
+      values.length > 0
+        ? [...new Set(values.filter((item) => PROVIDER_ID_PATTERN.test(item)))]
+        : null,
+  },
+  performance: { read: ([value]) => choice(value, PERFORMANCE_METRICS, "intelligence") },
+  // Every benchmark, `null`, is written "all" and also read from an absent or unknown value; no benchmark, `[]`, is written "none".
+  benchmark: {
+    read: (values) => {
+      const valid = [...new Set(values.filter((item) => benchmarkKeys.has(item)))];
+      return values.includes("none") ? [] : valid.length > 0 ? valid : null;
+    },
+    write: (value) => (value == null ? ["all"] : value.length === 0 ? ["none"] : value),
+  },
+  axes: { read: ([value]) => choice(value, FRONTIER_AXIS_KEYS, "cost") },
+  model: modelCodec,
+  effort: effortCodec,
+  compare: modelCodec,
+  "compare-effort": effortCodec,
+  "effort-measure": { read: ([value]) => choice(value, EFFORT_MEASURES, "cost") },
+  "spectra-find": findCodec,
+  "duels-find": findCodec,
+  "pareto-find": findCodec,
+  "effort-find": findCodec,
+  "timeline-find": findCodec,
+  "leaderboard-chart": chartCodec(REGION_CHARTS.leaderboard),
+  "pareto-chart": chartCodec(REGION_CHARTS.pareto),
+};
+
 /** Decode one control independently so absent or malformed values retain the owning UI default. */
 export function readUrlValue<K extends DashboardUrlKey>(
   params: URLSearchParams,
   key: K,
 ): DashboardUrlState[K] {
-  const value = params.get(key);
-  let result: DashboardUrlState[DashboardUrlKey];
-  switch (key) {
-    case "view":
-      result = choice(value, tableColumnPresetKeys, "all");
-      break;
-    case "sort": {
-      // "<key>.<asc|desc>", splitting at the last dot: "intelligence.asc" → key "intelligence", direction "asc".
-      const match = /^(.*)\.(asc|desc)$/.exec(value ?? "");
-      result =
-        match?.[1] && Object.hasOwn(sorters, match[1])
-          ? {
-              key: match[1] as SortState["key"],
-              direction: match[2] === "asc" ? "ascending" : "descending",
-            }
-          : { key: "intelligence", direction: "descending" };
-      break;
-    }
-    case "timeline-period":
-      result = choice(value, ["all", "year"], "all");
-      break;
-    case "timeline-provider":
-      result = params.has(key)
-        ? [...new Set(params.getAll(key).filter((item) => PROVIDER_ID_PATTERN.test(item)))]
-        : null;
-      break;
-    case "provider":
-      result = [...new Set(params.getAll(key).filter((item) => PROVIDER_ID_PATTERN.test(item)))];
-      break;
-    case "max-cost":
-      result = numericChoice(value, costFilterOptions, "all");
-      break;
-    case "rank":
-      result = numericChoice(value, modelRankFilterOptions, DEFAULT_MODEL_RANK_FILTER);
-      break;
-    case "days":
-      result = numericChoice(value, recencyFilterOptions, DEFAULT_RECENCY_FILTER);
-      break;
-    case "table-variants":
-    case "graph-variants":
-      result = value === "1";
-      break;
-    case "table-effort":
-      result = params.has(key)
-        ? [...new Set(params.getAll(key).filter((item) => EFFORT_PATTERN.test(item)))]
-        : null;
-      break;
-    case "performance":
-      result = choice(value, PERFORMANCE_METRICS, "intelligence");
-      break;
-    case "benchmark": {
-      const values = params.getAll(key);
-      const valid = [...new Set(values.filter((item) => benchmarkKeys.has(item)))];
-      result = values.includes("none") ? [] : valid.length > 0 ? valid : null;
-      break;
-    }
-    case "axes":
-      result = choice(value, FRONTIER_AXIS_KEYS, "cost");
-      break;
-    case "model":
-    case "compare":
-      result = value?.trim() || null;
-      break;
-    case "effort":
-    case "compare-effort":
-      result = value != null && EFFORT_PATTERN.test(value) ? value : null;
-      break;
-    case "spectra-find":
-    case "duels-find":
-    case "pareto-find":
-    case "effort-find":
-    case "timeline-find":
-      result = [...new Set(params.getAll(key).map((item) => item.trim()))].filter(Boolean);
-      break;
-    case "effort-measure":
-      result = choice(value, ["intelligence", "agentic", "cost", "time", "tokens"], "cost");
-      break;
-    case "leaderboard-chart":
-    case "pareto-chart":
-      result = chartChoice(value, key);
-      break;
-    default:
-      result = value ?? "";
-  }
-  return result as DashboardUrlState[K];
+  return CODECS[key].read(params.getAll(key));
 }
 
 /** The dashboard-wide model filters a URL selects, each absent or malformed field at its default. */
@@ -260,23 +253,7 @@ export function patchDashboardState(
 ): DashboardState {
   const params = new URLSearchParams(state.params);
   const keys = Object.keys(patch) as DashboardUrlKey[];
-  for (const key of keys) {
-    const value = patch[key];
-    params.delete(key);
-    if (key === "sort") {
-      const sort = value as SortState;
-      params.set(key, `${sort.key}.${sort.direction === "ascending" ? "asc" : "desc"}`);
-    } else if (Array.isArray(value)) {
-      for (const item of value) params.append(key, item);
-      if (value.length === 0) params.set(key, key === "benchmark" ? "none" : "");
-    } else if (typeof value === "boolean") {
-      params.set(key, value ? "1" : "0");
-    } else if (key === "benchmark" && value === null) {
-      params.set(key, "all");
-    } else if (value != null) {
-      params.set(key, String(value));
-    }
-  }
+  for (const key of keys) writeUrlValue(params, key, patch[key]);
   // An effort choice filters reasoning-variant rows, so it leaves with them.
   if (params.get("table-variants") !== "1") params.delete("table-effort");
   const defaults = new URLSearchParams();
@@ -356,10 +333,18 @@ export function modelLinkId(id: string): string {
   return id.slice(id.indexOf("/") + 1);
 }
 
+// A section's own names, each with the control it holds, a find section's `find` last.
+function sectionNames(section: DashboardSection): [string, DashboardUrlKey][] {
+  const names: [string, DashboardUrlKey][] = Object.entries(SECTION_KEYS[section]);
+  const find = FIND_SECTIONS.find((candidate) => candidate === section);
+  if (find != null) names.push(["find", `${find}-find` as const]);
+  return names;
+}
+
 // The names an address at `section` carries, each with the control it holds: the section's own first, then the page-wide ones.
 function addressNames(section: DashboardSection | null): [string, DashboardUrlKey][] {
   return [
-    ...(section == null ? [] : Object.entries(SECTION_KEYS[section])),
+    ...(section == null ? [] : sectionNames(section)),
     ...PAGE_KEYS.map((key): [string, DashboardUrlKey] => [key, key]),
   ];
 }
@@ -372,26 +357,42 @@ function readableSearch(params: URLSearchParams): string {
   return search === "" ? "" : `?${search}`;
 }
 
-function isChartKey(key: DashboardUrlKey): key is keyof typeof CHART_KEY_REGIONS {
-  return Object.hasOwn(CHART_KEY_REGIONS, key);
+// A key patched to `undefined` is only removed.
+function writeUrlValue<K extends DashboardUrlKey>(
+  params: URLSearchParams,
+  key: K,
+  value: DashboardUrlState[K] | undefined,
+) {
+  params.delete(key);
+  if (value === undefined) return;
+  const codec = CODECS[key];
+  const values = codec.write ? codec.write(value) : defaultWrite(value);
+  for (const item of values) params.append(key, item);
+}
+
+// A list one value per item, an empty list as one empty value so it stays apart from an absent one; a flag as "1" or "0"; `null` as no value.
+function defaultWrite(value: DashboardUrlState[DashboardUrlKey]): string[] {
+  if (Array.isArray(value)) return value.length === 0 ? [""] : value;
+  if (typeof value === "boolean") return [value ? "1" : "0"];
+  return value == null ? [] : [String(value)];
+}
+
+function isChartKey(key: DashboardUrlKey): key is `${StackedRegionId}-chart` {
+  return CHART_KEYS.has(key);
 }
 
 // A stacked region's shown chart, its first chart unless the value names another.
-function chartChoice(value: string | null, key: keyof typeof CHART_KEY_REGIONS) {
-  const charts = REGION_CHARTS[CHART_KEY_REGIONS[key]];
-  return choice(
-    value,
-    charts.map((chart) => chart.key),
-    charts[0].key,
-  );
+function chartCodec<K extends string>(charts: readonly [{ key: K }, ...{ key: K }[]]): UrlCodec<K> {
+  const keys = charts.map((chart) => chart.key);
+  return { read: ([value]) => choice(value, keys, charts[0].key) };
 }
 
-function choice<T extends string>(value: string | null, values: readonly T[], fallback: T): T {
+function choice<T extends string>(value: string | undefined, values: readonly T[], fallback: T): T {
   return values.includes(value as T) ? (value as T) : fallback;
 }
 
 function numericChoice<T extends number | "all">(
-  value: string | null,
+  value: string | undefined,
   values: readonly T[],
   fallback: T,
 ): T {

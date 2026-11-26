@@ -84,8 +84,7 @@ export function chartData(
       const percents = Object.entries(benchmarkDomainShares(key) ?? {});
       const column = columns.get(key);
       if (percents.length === 0 || column == null) return [];
-      const total = percents.reduce((sum, [, percent]) => sum + percent, 0);
-      return [{ key, column, percents, total }];
+      return [{ key, column, percents }];
     });
   // The leaderboard's rows hold every model whatever the filters, with variants collapsed as these charts show them.
   const results = new Map(
@@ -99,7 +98,7 @@ export function chartData(
       ),
     ]),
   );
-  const benchmarks = charted.map(({ key, column, percents, total }): ChartBenchmark => {
+  const benchmarks = charted.map(({ key, column, percents }): ChartBenchmark => {
     const range = minMaxRange([...results.values()].map((row) => row[key] ?? null));
     return {
       key,
@@ -107,7 +106,7 @@ export function chartData(
       columnLabel: column.label,
       // The scored keys are the frontier benchmarks once the indexes, which carry no shares, are gone.
       group: baseline.has(key) ? "baseline" : "frontier",
-      shares: Object.fromEntries(percents.map(([domain, percent]) => [domain, percent / total])),
+      shares: Object.fromEntries(percents.map(([domain, percent]) => [domain, percent / 100])),
       intelligence: intelligence_benchmark_keys.includes(key),
       range: range != null && range.max > range.min ? range : null,
     };
@@ -185,11 +184,12 @@ function variantKey(model: ModelAtlasModel): string {
 // A ranked chart shows this many of the strongest models at every width; the find field brings in any others.
 export const TOP_MODELS = 10;
 
-export function topByIntelligence<T extends { intelligence: number }>(
-  models: readonly T[],
-  count: number,
-): T[] {
-  return [...models].sort((a, b) => b.intelligence - a.intelligence).slice(0, count);
+/** The first `TOP_MODELS` of `ranked`, and those after them that `isFound` names, each in `ranked`'s order. */
+export function topAndFound<T>(
+  ranked: readonly T[],
+  isFound: (model: T) => boolean,
+): { top: T[]; found: T[] } {
+  return { top: ranked.slice(0, TOP_MODELS), found: ranked.slice(TOP_MODELS).filter(isFound) };
 }
 
 /** The rows a find field searches, by name, model id, and lab. */

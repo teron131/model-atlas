@@ -7,11 +7,7 @@ import {
   calibrateTimeline,
   DEFAULT_TIMELINE_PARAMETERS,
 } from "../src/model-atlas/timeline/calibration";
-import {
-  extendTimelineGraph,
-  fitTimelineLink,
-  timelineInformation,
-} from "../src/model-atlas/timeline/linking";
+import { extendTimelineGraph, fitTimelineLink } from "../src/model-atlas/timeline/linking";
 import { historicalSourceModel } from "../src/model-atlas/timeline/model-identity";
 import { prepareTimelineRelease } from "../src/model-atlas/timeline/scale";
 import type {
@@ -449,13 +445,6 @@ close(unequal.value!, (1.5 * 80 * 1.02 + 25) / (1.5 * 1.02 + 1));
 assert.ok(
   unequal.benchmarkSupport.effective < supportedTasks.benchmarkSupport.effective,
   "Two tiny capability weights cannot supply two full units of effective support",
-);
-close(timelineInformation({ scale: "probability" }, 0.5), 1);
-close(timelineInformation({ scale: "probability" }, 0), 1);
-close(timelineInformation({ scale: "probability" }, 1), 1);
-close(
-  timelineInformation({ scale: "probability" }, 0.02),
-  timelineInformation({ scale: "probability" }, 0.98),
 );
 const nearCeiling = (value: number) =>
   calibrateTimeline(

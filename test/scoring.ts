@@ -685,7 +685,6 @@ const priorityWeightedComponentScores = buildComponentScoreResult(
   fractionalBenchmarkConfig,
   buildQualityScoringContext(fractionalBenchmarkModels, fractionalBenchmarkConfig),
   new Map(),
-  new Map(),
   new Map([["frontier_metric", 2]]),
 ).componentScores;
 assertClose(priorityWeightedComponentScores?.intelligence_score, 80);
@@ -784,7 +783,6 @@ const imputationEvidenceSupportResult = buildComponentScoreResult(
   { id: "imputation-evidence-support", benchmarks: { baseline_metric: 100 } },
   imputationEvidenceSupportConfig,
   unequalWeightContext,
-  new Map([["frontier_metric", 0]]),
   new Map([["frontier_metric", 0.2]]),
 );
 assertEqual(imputationEvidenceSupportResult.componentScores?.intelligence_score ?? null, null);
@@ -1880,10 +1878,6 @@ const imputationEvidenceTarget = {
   id: "imputation-evidence-target",
   benchmarks: { c1: 100, c3: 100 },
 };
-const imputedHighValues = new Map([
-  ["target", 100],
-  ["c2", 100],
-]);
 const imputationEvidenceConfig = {
   ...contextualImputationConfig,
   qualityRetention: { floor: 0, full: 3.75 },
@@ -1892,13 +1886,11 @@ const untrustedImputationScores = buildComponentScoreResult(
   imputationEvidenceTarget,
   imputationEvidenceConfig,
   imputationEvidenceContext,
-  imputedHighValues,
 ).componentScores;
 const validatedImputationScores = buildComponentScoreResult(
   imputationEvidenceTarget,
   imputationEvidenceConfig,
   imputationEvidenceContext,
-  imputedHighValues,
   new Map([
     ["target", 0.5],
     ["c2", 0.5],
@@ -2206,7 +2198,6 @@ assertClose(
     undercoveredModel,
     undercoveredConfig,
     undercoveredContext,
-    fakeTaskEstimates,
     new Map([...fakeTaskEstimates.keys()].map((k) => [k, 1])),
   ).componentScores?.intelligence_score,
   undercoveredScore!,

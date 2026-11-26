@@ -13,7 +13,7 @@ import { readAleBenchRawCache } from "../sources/ale-bench/runtime";
 import { artificialAnalysisBenchmarkResourceRawCacheFromRows } from "../sources/artificial-analysis/cache";
 import { combinedBenchmarkObservations } from "../sources/assembly";
 import { readTerminalBenchRawCache } from "../sources/terminal-bench/runtime";
-import { type DbRow, jsonValue } from "../sqlite-utils";
+import { type DbRow, jsonValue, sqlStringLiteral } from "../sqlite-utils";
 import { buildChangeHistory, recentChangeMarks, variantKey } from "../stats/payload/changes";
 import { buildCurrentModelAtlasMetadata } from "../stats/payload/metadata";
 import type {
@@ -30,7 +30,6 @@ import {
   taskEstimatesByModelRow,
   taskMetricsByModelRow,
 } from "./model-rows";
-import { sqlStringLiteral } from "./schema-reconciliation";
 import { SNAPSHOT_TABLES, type SnapshotTableName } from "./tables";
 
 export const SNAPSHOT_METADATA_SQL = "SELECT * FROM snapshot_metadata LIMIT 1";
@@ -92,7 +91,7 @@ export const PAYLOAD_ROW_GROUPS = [
     SNAPSHOT_TABLES.model_task_metrics,
     "model_row_index, source_key",
   ),
-  // Checkpoints written before estimates were kept have neither estimate table until their next refresh.
+  // An older checkpoint, such as one a rollback restores, has neither estimate table.
   payloadRowGroup(
     "modelTaskEstimateRows",
     SNAPSHOT_TABLES.model_task_estimates,

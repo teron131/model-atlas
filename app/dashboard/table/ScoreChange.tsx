@@ -129,7 +129,7 @@ function ScoreMove({ move, track }: { move: ModelAtlasScoreMove; track: boolean 
         : `Support ${move.confidence_before}% → ${move.confidence_after}%`;
   return (
     <li className="score-change-move" data-direction={direction}>
-      <span className="score-change-dimension">{scoreColumnsByKey[move.dimension].name}</span>
+      <span className="score-change-name">{scoreColumnsByKey[move.dimension].name}</span>
       <span className="score-change-score">
         {move.score_before == null ? null : (
           <span className="score-change-before">{formatScore(move.score_before)} → </span>

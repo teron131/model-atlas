@@ -13,11 +13,14 @@ type Candidate = {
   releaseDate: string | null;
 };
 
-/** Coverage is prepared against retained evidence before view filters; unknown support never passes the cutoff. */
+/** Whether a model has the evidence support a record needs; unknown support never does. */
+export function hasRecordSupport({ coverage }: Pick<Candidate, "coverage">): boolean {
+  return coverage != null && coverage >= RECORD_MINIMUM_SUPPORT;
+}
+
+/** Coverage is prepared against retained evidence before view filters. */
 export function coverageFrontier<T extends Candidate>(ordered: T[]): T[] {
-  const eligible = ordered.filter(
-    (point) => point.coverage != null && point.coverage >= RECORD_MINIMUM_SUPPORT,
-  );
+  const eligible = ordered.filter(hasRecordSupport);
   let best = -Infinity;
   return [...eligible]
     .sort((a, b) => (a.releaseDate ?? "").localeCompare(b.releaseDate ?? "") || b.score - a.score)
@@ -35,12 +38,7 @@ export function frontierTies<T extends Candidate & { id: string }>(
 ): T[] {
   const recordIds = new Set(records.map((record) => record.id));
   return points.filter((point) => {
-    if (
-      recordIds.has(point.id) ||
-      point.coverage == null ||
-      point.coverage < RECORD_MINIMUM_SUPPORT
-    )
-      return false;
+    if (recordIds.has(point.id) || !hasRecordSupport(point)) return false;
     const standing = records
       .filter((record) => (record.releaseDate ?? "") <= (point.releaseDate ?? ""))
       .at(-1);

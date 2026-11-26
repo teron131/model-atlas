@@ -171,7 +171,6 @@ const imputed = buildComponentScoreResult(
   partial,
   convergence.config,
   convergence.context,
-  new Map(convergence.tasks.slice(3).map((key) => [key, 100])),
   new Map(convergence.tasks.slice(3).map((key) => [key, 1])),
 );
 assert.equal(imputed.componentScores!.agentic_score, direct.componentScores!.agentic_score);

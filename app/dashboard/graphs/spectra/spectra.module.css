@@ -1,4 +1,4 @@
-/* Spectra's own type and hit targets; frames, controls, readouts, stars, and shared marks come from the dashboard's chart styles. */
+/* Spectra's own type, hit targets, and trace line; frames, controls, readouts, stars, and shared marks come from the dashboard's chart styles. */
 
 /* A domain's header, which opens its benchmarks card; the card is its focus mark, so the browser's ring around the header is dropped. */
 .headerHit {
@@ -21,4 +21,11 @@
 .domainCount {
   fill: var(--muted);
   font: 500 10.5px var(--font-sans);
+}
+
+/* A pointed model's trace across domains: a dashed line in its lab's colour. */
+.traceLine {
+  stroke-width: 1.1;
+  stroke-dasharray: 5 4;
+  opacity: 0.85;
 }

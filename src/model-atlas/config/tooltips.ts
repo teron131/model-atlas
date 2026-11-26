@@ -3,6 +3,7 @@
  * Per-benchmark weights and resource rows are computed from the benchmark portfolio and resource bucket weights; the figures inside prose strings (85% retention, 70/30 buckets, 4 resource benchmarks, the 0.85-1.15 token modifier) are typed by hand and must be edited alongside `stage.ts`.
  */
 
+import type { BenchmarkCapability } from "../benchmarks/factory";
 import { INDEX_REPRESENTED_BENCHMARK_MEDIAN, isAggregateIndex } from "../benchmarks/index-policy";
 import {
   BENCHMARK_CATALOG,
@@ -86,7 +87,7 @@ function percent(value: number, fractionDigits = 0): string {
 const benchmarkContributionPercent = (
   keys: readonly BenchmarkKey[],
   key: BenchmarkKey,
-  capability: "intelligence" | "agentic",
+  capability: BenchmarkCapability,
 ) => {
   const group = benchmarkPortfolioEntry(key)?.group;
   if (group === "baseline") return "display only";
@@ -170,7 +171,7 @@ const qualityBenchmarkRows = (
     frontier: readonly ModelAtlasColumnTooltipRow[];
     indexes: readonly ModelAtlasColumnTooltipRow[];
   }>,
-  capability: "intelligence" | "agentic",
+  capability: BenchmarkCapability,
 ) =>
   [
     [
@@ -212,10 +213,7 @@ const qualityBenchmarkRows = (
     },
   ] as const;
 
-const benchmarkRowsByGroup = (
-  keys: readonly BenchmarkKey[],
-  capability: "intelligence" | "agentic",
-) => ({
+const benchmarkRowsByGroup = (keys: readonly BenchmarkKey[], capability: BenchmarkCapability) => ({
   baseline: keys
     .filter((key) => benchmarkPortfolioEntry(key)?.group === "baseline" && !isAggregateIndex(key))
     .map(

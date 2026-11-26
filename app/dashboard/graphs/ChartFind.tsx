@@ -31,8 +31,6 @@ export type ChartFindState = {
   located: ReadonlyMap<string, number>;
 };
 
-export const EMPTY_CHART_FIND: ChartFindState = { terms: [], draft: "", located: new Map() };
-
 /**
  * A chart's find state with its pills in the URL under `key`: a pill naming one model is stored as its short id, `gemini-3.7-flash`, from the published id `identify` gives, so the link survives a rename; any other pill, or one whose model has no id, is stored as typed.
  * The text being typed stays on the page, and a model a link located flares once it is first on the chart; adding or removing a pill rewrites the current history entry, so Back leaves the page rather than stepping through pills.
@@ -89,14 +87,17 @@ export function useChartFind<T>(
   return [find, setFind];
 }
 
-/** Every item the pills and the typed text name, the pills' first; `null` while the field holds neither. */
-export function chartFindTargets<T>(
+/** The keys, as `key` gives them, of every item the pills and the typed text name; `null` while the field holds neither. */
+export function chartFindMatches<T>(
   find: ChartFindState,
   documents: readonly SearchDocument<T>[],
   describe: (item: T) => ModelSuggestionRow,
-): T[] | null {
+  key: (item: T) => string,
+): ReadonlySet<string> | null {
   const terms = [...find.terms, find.draft];
-  return terms.some(hasSearchQuery) ? namedTargets(terms, documents, describe) : null;
+  return terms.some(hasSearchQuery)
+    ? new Set(namedTargets(terms, documents, describe).map(key))
+    : null;
 }
 
 /** The model the latest pill located, which a chart shows while nothing is pointed: a pill naming several takes its first, the strongest by Intelligence. */
@@ -147,7 +148,14 @@ export function ChartFind<T>({
 }) {
   const id = useId();
   const input = useRef<HTMLInputElement>(null);
-  const typed = termTargets(find.draft, documents, describe);
+  const typed = useMemo(
+    () => termTargets(find.draft, documents, describe),
+    [find.draft, documents, describe],
+  );
+  const pills = useMemo(
+    () => find.terms.map((term) => termTargets(term, documents, describe)),
+    [find.terms, documents, describe],
+  );
   const suggestions = typed
     .filter((item) => !find.located.has(describe(item).key))
     .slice(0, MAX_SUGGESTIONS);
@@ -195,7 +203,7 @@ export function ChartFind<T>({
         </label>
         {find.terms.length ? <span className={styles.chartFindMark} aria-hidden="true" /> : null}
         {find.terms.map((term, index) => {
-          const targets = termTargets(term, documents, describe);
+          const targets = pills[index]!;
           const model = targets.length === 1 ? describe(targets[0]!) : null;
           const name = model?.name ?? term;
           return (
@@ -242,6 +250,7 @@ export function ChartFind<T>({
           value={find.draft}
           onChange={(event) => {
             const value = event.target.value;
+            // Text up to its last comma is entered and the rest stays typed: `gpt, cla` enters `gpt` and leaves `cla`.
             const comma = value.lastIndexOf(",");
             if (comma < 0) change(find.terms, value);
             else enter(value.slice(0, comma), value.slice(comma + 1));

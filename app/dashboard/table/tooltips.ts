@@ -1,10 +1,8 @@
-/** Resolve dashboard table header and row-change tooltips from table policy and payload metadata; a benchmark's header describes the benchmark with its configured weights, its coverage in the current view, and its leaders, last update, and fetch state from benchmark health. */
+/** Resolve each dashboard table header's tooltip from table policy and payload metadata: a score or resource-ratio header adds the map of the benchmark weights behind its column, and a benchmark's header describes the benchmark with its configured weights, its coverage in the current view, and its leaders, last update, and fetch state from benchmark health. */
 
-import {
-  BENCHMARK_DOMAINS,
-  type BenchmarkDomain,
-} from "../../../src/model-atlas/benchmarks/catalog";
+import type { BenchmarkDomain } from "../../../src/model-atlas/benchmarks/catalog";
 import type {
+  BenchmarkCapability,
   BenchmarkGroup,
   BenchmarkPortfolio,
 } from "../../../src/model-atlas/benchmarks/factory";
@@ -470,7 +468,7 @@ function domainBlocks(items: readonly ColumnWeightItem[], title: string): Column
     blocks.set(domain, [...(blocks.get(domain) ?? []), item]);
   }
   return [...blocks].map(([domain, items]) => ({
-    title: domain == null ? title : BENCHMARK_DOMAINS.find(({ key }) => key === domain)!.name,
+    title: items[0]!.domains[0]?.name ?? title,
     domain,
     items: items.sort((a, b) => b.share - a.share),
   }));
@@ -507,8 +505,8 @@ export type BenchmarkTooltipFacts = {
 
 export type BenchmarkTooltipLeaders = {
   /** The benchmark's observed range, weakest to strongest result, in source units. */
-  domain: readonly [number, number];
-  domainLabels: readonly [string, string];
+  range: readonly [number, number];
+  rangeLabels: readonly [string, string];
   /** Every direct result in view, drawn faintly against the leaders. */
   field: readonly number[];
   stars: readonly { name: string; value: number; valueLabel: string; color: string }[];
@@ -569,10 +567,7 @@ function benchmarkTooltip(
   }
   const catalogRows = tooltip.rows ?? [];
   // The served version replaces the catalog's, so an automatically adopted version shows at once.
-  const version =
-    versions?.[key] ??
-    catalogRows.find(([label]) => label === "Version")?.[1].replace(/^v/, "") ??
-    null;
+  const version = versions?.[key] ?? BENCHMARK_CATALOG[key].version ?? null;
   const entry = scoring?.benchmark_portfolio[key];
   const healthEntry = health?.[key];
   const updatedAt = healthEntry?.rows_updated_at_epoch_seconds;
@@ -617,11 +612,11 @@ function benchmarkLeaders(
     models.flatMap((model) => (model.id == null ? [] : [[model.id, model]])),
   );
   const { top_range: topRange, top_standard_error: standardError } = entry.spread;
-  const domain = [top.value - fullRange, top.value] as const;
+  const range = [top.value - fullRange, top.value] as const;
   const formatValue = (value: number) => formatBenchmarkSourceValue(value, column.format);
   return {
-    domain,
-    domainLabels: [formatValue(domain[0]), formatValue(domain[1])],
+    range,
+    rangeLabels: [formatValue(range[0]), formatValue(range[1])],
     field: models.flatMap((model) => {
       const value = benchmarkValue(model, column.benchmark);
       return value == null ? [] : [value];
@@ -665,7 +660,7 @@ function benchmarkCoverage(models: readonly BenchmarkMetricModel[], key: string)
 
 function capabilityAllocation(
   key: string,
-  capability: "intelligence" | "agentic",
+  capability: BenchmarkCapability,
   scoring: ModelAtlasMetadata["scoring"],
 ): number {
   const keys = scoring[`${capability}_benchmark_keys`];

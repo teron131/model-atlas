@@ -2,7 +2,7 @@
 
 /** Spectra: one column per domain with every leaderboard model as a star placed up it by its standing on the domain's benchmarks, each domain's three best named above it, a pointed model or every found one traced across every domain, and a domain's benchmarks and their weights as a map in a card over its header. */
 
-import { useState } from "react";
+import { memo, useMemo, useState } from "react";
 
 import { domainShares } from "../../../shared/DomainShares";
 import { providerChartColor, providerLogo } from "../../shared/provider-theme";
@@ -19,11 +19,12 @@ import {
   findSuggestion,
   NOTHING_FOUND,
 } from "../chart-data";
-import { ChartFind, chartFindTargets, lastLocated, useChartFind } from "../ChartFind";
+import { ChartFind, chartFindMatches, lastLocated, useChartFind } from "../ChartFind";
 import { ChartReadout, type ReadoutEntry } from "../ChartReadout";
 import { FigureRegion } from "../FigureRegion";
 import { usePick } from "../plot/Interaction";
-import { DomainTile, StarMark } from "../plot/Primitives";
+import { CHART_WIDTH, StarMark } from "../plot/Primitives";
+import { DomainTile } from "../plot/RowChart";
 import { MUTED_STAR_GLOW, type SkyPlotStar } from "../plot/sky-renderer";
 import { SkyFigure } from "../plot/SkyFigure";
 import { lineBehind } from "../plot/star-marks";
@@ -51,6 +52,7 @@ type DomainStandings = ChartDomain & {
   byRow: Map<string, Standing>;
 };
 
+const CAPTURE = { title: "Benchmark spectra", fileName: "model-atlas-spectra" };
 // The strip left of the columns, pinned while a narrow plot scrolls: the benchmark count's row name, the podium's place names, and the two ends of the scale. Its longest name, "Benchmarks" at 59px, keeps a clear gap before the first column's count, and with fifteen columns at their narrowest it fills the widest panel exactly.
 const LEFT = 70;
 // A column never gets narrower than this, the room the longest domain name or a podium name broken over two lines needs, which also fits all fifteen domains in the widest panel; a narrower host scrolls the plot sideways instead.
@@ -87,20 +89,24 @@ const SCORE_HEIGHT = 14;
 const UNRANKED_LIGHT = 0.45;
 const everyDomainHasCard = () => true;
 
-export function SpectraPanel({ data }: { data: ChartData }) {
+export const SpectraPanel = memo(function SpectraPanel({ data }: { data: ChartData }) {
   const [hovered, setHovered] = useState<Pointed | null>(null);
   // A clicked star or name holds its model.
   const [picked, setPicked] = usePick<Pointed>();
   const pointed = hovered ?? picked;
   const card = useColumnTooltip<string>(everyDomainHasCard);
-  const layout = useChartLayout(1120);
-  const domains = domainStandings(data);
-  const documents = findDocuments(
-    data.rows.filter((row) => domains.some((domain) => domain.byRow.has(row.key))),
+  const layout = useChartLayout(CHART_WIDTH);
+  const domains = useMemo(() => domainStandings(data), [data]);
+  const documents = useMemo(
+    () =>
+      findDocuments(data.rows.filter((row) => domains.some((domain) => domain.byRow.has(row.key)))),
+    [data.rows, domains],
   );
   const [find, setFind] = useChartFind("spectra-find", documents, findSuggestion, findId);
-  const targets = chartFindTargets(find, documents, findSuggestion);
-  const matches = targets == null ? null : new Set(targets.map((row) => row.key));
+  const matches = useMemo(
+    () => chartFindMatches(find, documents, findSuggestion, (row) => row.key),
+    [find, documents],
+  );
   const column = Math.max(MIN_COLUMN, (layout.width - LEFT) / domains.length);
   const width = LEFT + domains.length * column;
   const plot = layout.compact ? PLOT.compact : PLOT.full;
@@ -109,24 +115,28 @@ export function SpectraPanel({ data }: { data: ChartData }) {
   const plotBottom = plotTop + plot;
   const height = plotBottom + 8;
   const bounds = { left: LEFT, right: width, top: plotTop, bottom: plotBottom };
-  const marks = domains.flatMap((domain, index) => {
-    const order = THIRD_ORDERS[Math.floor(hashUnit(domain.key) * THIRD_ORDERS.length)]!;
-    return domain.standings.map((standing, position) => {
-      const key = `${domain.key}|${standing.row.key}`;
-      const place = podiumPlace(standing);
-      const offset =
-        place == null
-          ? spread(position + 1, key) * 0.42
-          : PODIUM_THIRDS[order[place]!]! + (hashUnit(key) * 2 - 1) * 0.08;
-      return {
-        key,
-        domain,
-        standing,
-        x: LEFT + (index + 0.5 + offset) * column,
-        y: plotTop + 10 + (1 - standing.score) * (plot - 20),
-      };
-    });
-  });
+  const marks = useMemo(
+    () =>
+      domains.flatMap((domain, index) => {
+        const order = THIRD_ORDERS[Math.floor(hashUnit(domain.key) * THIRD_ORDERS.length)]!;
+        return domain.standings.map((standing, position) => {
+          const key = `${domain.key}|${standing.row.key}`;
+          const place = podiumPlace(standing);
+          const offset =
+            place == null
+              ? spread(position + 1, key) * 0.42
+              : PODIUM_THIRDS[order[place]!]! + (hashUnit(key) * 2 - 1) * 0.08;
+          return {
+            key,
+            domain,
+            standing,
+            x: LEFT + (index + 0.5 + offset) * column,
+            y: plotTop + 10 + (1 - standing.score) * (plot - 20),
+          };
+        });
+      }),
+    [domains, column, plotTop, plot],
+  );
   // A pointed model is traced alone, and with nothing pointed every found one is, the readout naming the one found last; while a model is pointed or the find field holds a query, the models outside them dim.
   const traced = new Set(pointed == null ? find.located.keys() : [pointed.row]);
   const shown = pointed?.row ?? lastLocated(find.located);
@@ -178,17 +188,27 @@ export function SpectraPanel({ data }: { data: ChartData }) {
   );
   const point = (row: string, domain: string) => ({
     "data-keeps-pick": true,
-    onPointerMove: () => setHovered({ row, domain }),
+    // Keeping the held object while the pointer stays on one star lets React skip the render.
+    onPointerMove: () =>
+      setHovered((held) => (held?.row === row && held.domain === domain ? held : { row, domain })),
     onClick: () => setPicked({ row, domain }),
   });
 
   const carded = domains.find((domain) => domain.key === card.tooltip?.key);
 
+  if (data.rows.length === 0)
+    return (
+      <FigureRegion id="leaderboard" capture={CAPTURE}>
+        <p className={graphs.emptyChart} role="status">
+          {NOTHING_FOUND}
+        </p>
+      </FigureRegion>
+    );
   return (
     <>
       <FigureRegion
         id="leaderboard"
-        capture={{ title: "Benchmark spectra", fileName: "model-atlas-spectra" }}
+        capture={CAPTURE}
         top={
           <>
             <ChartReadout
@@ -334,7 +354,7 @@ export function SpectraPanel({ data }: { data: ChartData }) {
                 lineBehind(line[index]!, mark, lineStars).map((piece) => (
                   <line
                     key={`${mark.key}:${piece.x1}`}
-                    className={graphs.traceLine}
+                    className={styles.traceLine}
                     style={{ stroke: providerChartColor(mark.standing.row.provider) }}
                     pointerEvents="none"
                     {...piece}
@@ -390,7 +410,7 @@ export function SpectraPanel({ data }: { data: ChartData }) {
       )}
     </>
   );
-}
+});
 
 /** Each domain's models, best first: a benchmark counts toward every domain it is labelled with, weighted by its share there, and a model's score is the weighted mean of its places in the observed range of the domain's benchmarks it reports, across every leaderboard row; only models reporting at least half the domain's weight are ranked. */
 function domainStandings(data: ChartData): DomainStandings[] {

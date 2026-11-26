@@ -675,6 +675,49 @@ function labelSize(label: Label): PointLabelSize {
   return label.size ?? { width: Math.max(18, label.label.length * 7.8), ascent: 12, descent: 3 };
 }
 
+/** Hit areas and guide masks must use the same measured text geometry, with their own clearance. */
+export function labelRect(placement: PointLabelPlacement, size: PointLabelSize, padding: number) {
+  return {
+    x: placement.x - padding,
+    y: placement.y - size.ascent - padding,
+    width: size.width + padding * 2,
+    height: size.ascent + size.descent + padding * 2,
+  };
+}
+
+export function labelBox(
+  placement: PointLabelPlacement,
+  size: PointLabelSize,
+  padding: number,
+): Box {
+  const { x, y, width, height } = labelRect(placement, size, padding);
+  return { left: x, right: x + width, top: y, bottom: y + height };
+}
+
+/** Keys of the labels to leave out, in priority order: each placed label whose text comes within the name clearance of an earlier kept label's text gives way. */
+export function crowdedOutLabels(
+  labels: readonly { key: string; placement?: PointLabelPlacement; size?: PointLabelSize }[],
+  compact: boolean,
+): Set<string> {
+  const clearance = NAME_CLEARANCE[compact ? "compact" : "wide"];
+  const kept: Box[] = [];
+  const crowded = new Set<string>();
+  for (const { key, placement, size } of labels) {
+    if (placement == null || size == null) continue;
+    const box = labelBox(placement, size, 0);
+    const meets = kept.some(
+      (other) =>
+        box.left < other.right + clearance.x &&
+        other.left < box.right + clearance.x &&
+        box.top < other.bottom + clearance.y &&
+        other.top < box.bottom + clearance.y,
+    );
+    if (meets) crowded.add(key);
+    else kept.push(box);
+  }
+  return crowded;
+}
+
 /** Whether two boxes share any area; boxes that only touch along an edge do not. */
 export function boxesMeet(a: Box, b: Box): boolean {
   return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;

@@ -3,15 +3,22 @@
 import type { BenchmarkObservationRow } from "../../benchmarks/observation";
 import { BENCHMARK_RESOURCE_SOURCE_LABELS } from "../../benchmarks/resource-sources";
 import { withClaudeFamily } from "../../identity/claude";
-import { parseModelEffort } from "../../identity/normalization";
-import { type AleBenchSourceRow, combineAleBenchRows } from "../ale-bench/leaderboard";
+import { parseModelEffort, parseSlugEffort } from "../../identity/normalization";
+import {
+  ALE_BENCH_LEADERBOARD_URL,
+  type AleBenchSourceRow,
+  summarizeAleBenchSourceDefaultRows,
+} from "../ale-bench/leaderboard";
 import type { ArtificialAnalysisBenchmarkResourceRow } from "../artificial-analysis/benchmark-resources";
+import { ALE_BENCH_EPOCH_RESULTS_URL } from "../epoch/ale-bench";
 import {
   TERMINAL_BENCH_LEADERBOARD_URL,
   type TerminalBenchModelHarnessRow,
 } from "../terminal-bench/leaderboard";
 import { mergeWeirdMlRows } from "../weirdml";
 import { crosswalkBenchmarkSources, type CrosswalkObservation } from "./crosswalk";
+
+const ALE_BENCH_MAXIMUM_SCORE_ERROR = 0.01;
 
 /** Only these derived observations enter combined matching and collapsed display. */
 export function combinedBenchmarkObservations({
@@ -66,8 +73,52 @@ export function combinedBenchmarkObservations({
     weird.filter((row) => row.metadata.source_series === "creator"),
     weird.filter((row) => row.metadata.source_series === "epoch"),
   );
+  const sakanaRows: CrosswalkObservation[] = summarizeAleBenchSourceDefaultRows(ale).map((row) => ({
+    benchmark_key: "ale_bench",
+    source_url: ALE_BENCH_LEADERBOARD_URL,
+    model_id: null,
+    model: row.model,
+    base_model: row.base_model,
+    reasoning_effort: row.reasoning_effort,
+    model_creator: null,
+    rank: null,
+    canonical_value: row.score,
+    cost: row.cost_per_task_usd,
+    tokens_per_task: row.tokens_per_task,
+    output_tokens_per_task: row.output_tokens_per_task,
+    observed_at: null,
+    metadata: {},
+  }));
+  const epochRows = ale.flatMap((source): CrosswalkObservation[] => {
+    if (!("epoch" in source)) return [];
+    const row = source.epoch;
+    const parsedModel = parseSlugEffort(row.model);
+    return [
+      {
+        benchmark_key: "ale_bench",
+        source_url: ALE_BENCH_EPOCH_RESULTS_URL,
+        model_id: null,
+        model: row.model,
+        base_model: parsedModel.baseModel,
+        reasoning_effort: parsedModel.reasoningEffort,
+        model_creator: null,
+        rank: null,
+        canonical_value: row.performance,
+        cost: row.cost,
+        tokens_per_task: row.total_tokens,
+        output_tokens_per_task: row.output_tokens,
+        observed_at: null,
+        metadata: {},
+      },
+    ];
+  });
   return {
-    ale_bench: combineAleBenchRows(ale),
+    ale_bench: crosswalkBenchmarkSources([sakanaRows, epochRows], {
+      maximumScoreError: ALE_BENCH_MAXIMUM_SCORE_ERROR,
+      // Performance stays in its native units, floored at zero instead of the default clamp to [0, 1].
+      normalizeScore: (score) => Math.max(0, score),
+      sourceLabels: ["Sakana AI", "Epoch"],
+    }),
     weirdml: crosswalkBenchmarkSources(
       [
         weirdRows.filter((row) => row.metadata.source_series === "creator"),

@@ -20,11 +20,12 @@ import {
 } from "lucide-react";
 import type { CSSProperties } from "react";
 
+// The domains file is read directly: the catalog's entry also carries every benchmark's presentation and sources, which the documentation pages' browser bundle would otherwise ship.
 import {
   BENCHMARK_DOMAINS,
   type BenchmarkDomain,
   benchmarkDomainShares,
-} from "../../src/model-atlas/benchmarks/catalog";
+} from "../../src/model-atlas/benchmarks/catalog/domains";
 
 /** One domain's part of a benchmark, in percent of the benchmark; a benchmark's shares sum to 100. */
 export type DomainShare = { domain: BenchmarkDomain; name: string; share: number };

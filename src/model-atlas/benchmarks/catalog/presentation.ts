@@ -1,4 +1,4 @@
-/** Benchmark presentation policy owns labels, tooltips, columns, and ordering. */
+/** Benchmark presentation policy owns labels, tooltips, columns, and ordering; a tooltip entry also declares its benchmark's version, which the registry composes into the catalog. */
 
 import type {
   BenchmarkColumnFacet,

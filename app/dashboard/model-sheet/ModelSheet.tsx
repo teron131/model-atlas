@@ -5,6 +5,7 @@
 import { Columns2, X } from "lucide-react";
 import {
   type CSSProperties,
+  memo,
   type ReactNode,
   type RefObject,
   useEffect,
@@ -48,7 +49,11 @@ const HEAD_FOLD_SCROLL = 8;
  * Opening from elsewhere moves focus to its heading; closing returns focus to whatever opened it.
  * A pinned model takes the left column and the opened model the right, so choosing other models keeps comparing against the pin.
  */
-export function ModelSheet({ payload }: { payload: ModelAtlasPayload | null }) {
+export const ModelSheet = memo(function ModelSheet({
+  payload,
+}: {
+  payload: ModelAtlasPayload | null;
+}) {
   const [modelKey] = useUrlState("model");
   const [effort] = useUrlState("effort");
   const [compareKey] = useUrlState("compare");
@@ -259,7 +264,7 @@ export function ModelSheet({ payload }: { payload: ModelAtlasPayload | null }) {
       </div>
     </aside>
   );
-}
+});
 
 /** Staging copies the sheet's resolved custom properties onto the card, a phone's narrower label column among them; the card drops that column to take its own, so a phone-saved image keeps a desktop one's labels whole. */
 function clearCopiedLabelColumn(card: HTMLElement) {

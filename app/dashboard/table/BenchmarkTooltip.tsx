@@ -81,13 +81,13 @@ export function BenchmarkTooltipBody({
   );
 }
 
-const dimensions = [
+const capabilities = [
   { key: "intelligence", name: "Intelligence" },
   { key: "agentic", name: "Agentic" },
 ] as const;
 
 function WeightsBlock({ weights }: { weights: NonNullable<BenchmarkTooltipFacts["weights"]> }) {
-  const pointable = usePointedShare<(typeof dimensions)[number]["key"]>();
+  const pointable = usePointedShare<(typeof capabilities)[number]["key"]>();
   return (
     <div className="benchmark-tooltip-block">
       {/* A benchmark with no direct score weight says so in words, which an empty bar would only obscure. */}
@@ -97,18 +97,18 @@ function WeightsBlock({ weights }: { weights: NonNullable<BenchmarkTooltipFacts[
         <>
           <BlockLabel label="Weights" />
           <div className="benchmark-tooltip-bar">
-            {dimensions.map(({ key }) => (
+            {capabilities.map(({ key }) => (
               <span
                 key={key}
-                data-dimension={key}
+                data-capability={key}
                 style={{ flexGrow: weights[key] }}
                 {...pointable(key)}
               />
             ))}
           </div>
           <div className="benchmark-tooltip-bar-labels">
-            {dimensions.map(({ key, name }) => (
-              <span key={key} data-dimension={key} {...pointable(key)}>
+            {capabilities.map(({ key, name }) => (
+              <span key={key} data-capability={key} {...pointable(key)}>
                 {name} {percent(weights[key])}
               </span>
             ))}
@@ -133,14 +133,13 @@ function BlockLabel({ label, value }: { label: string; value?: string }) {
  * Beneath the rows, the field strip shares their scale, marking every result in view as a faint tick with the leaders lit among them, so each leader's star stands straight above its tick.
  */
 function LeadersInset({ leaders }: { leaders: BenchmarkTooltipLeaders }) {
-  const { domain, domainLabels, field, stars, gapLabel, standardError, standardErrorLabel } =
-    leaders;
-  // An SVG id must be unique on the page and usable inside url().
+  const { range, rangeLabels, field, stars, gapLabel, standardError, standardErrorLabel } = leaders;
+  // An SVG id must be unique on the page and usable inside url(), so every character outside letters, digits, `_`, and `-` is dropped: `:r3:` → `r3`.
   const trailId = useId().replace(/[^\w-]/g, "");
   // A standard error of padding at each end keeps every error bar on the track.
   const padding = standardError ?? 0;
   const trackRight = insetWidth - valueWidth;
-  const x = scale(domain[0] - padding, domain[1] + padding, trackLeft, trackRight);
+  const x = scale(range[0] - padding, range[1] + padding, trackLeft, trackRight);
   const fieldY = rowTop + (stars.length - 1) * rowStep + 24;
   const height = fieldY + 20;
   const summary = [
@@ -215,11 +214,11 @@ function LeadersInset({ leaders }: { leaders: BenchmarkTooltipLeaders }) {
             style={{ "--star": star.color } as CSSProperties}
           />
         ))}
-        <text className="leaders-tick" x={x(domain[0])} y={fieldY + 19}>
-          {domainLabels[0]}
+        <text className="leaders-tick" x={x(range[0])} y={fieldY + 19}>
+          {rangeLabels[0]}
         </text>
-        <text className="leaders-tick" x={x(domain[1])} y={fieldY + 19} textAnchor="end">
-          {domainLabels[1]}
+        <text className="leaders-tick" x={x(range[1])} y={fieldY + 19} textAnchor="end">
+          {rangeLabels[1]}
         </text>
       </svg>
     </div>

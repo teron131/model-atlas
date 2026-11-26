@@ -4,7 +4,7 @@
 
 import { group } from "d3-array";
 import { scaleLinear, scaleSqrt } from "d3-scale";
-import { type CSSProperties, useState } from "react";
+import { type CSSProperties, memo, useMemo, useState } from "react";
 
 import { formatRatioTick, formatResourceRatio } from "../../../shared/resource-ratio-display";
 import { providerChartColor, providerLogo } from "../../shared/provider-theme";
@@ -17,11 +17,11 @@ import {
   findId,
   findSuggestion,
   NOTHING_FOUND,
-  TOP_MODELS,
+  topAndFound,
 } from "../chart-data";
 import {
   ChartFind,
-  chartFindTargets,
+  chartFindMatches,
   foundModelsPhrase,
   lastLocated,
   useChartFind,
@@ -31,7 +31,7 @@ import { FigureRegion } from "../FigureRegion";
 import { formatTooltipScore } from "../format";
 import { GraphToggle } from "../GraphToggle";
 import { usePick } from "../plot/Interaction";
-import { type Margin, monoWidth, plotBoundsFor } from "../plot/Primitives";
+import { CHART_WIDTH, type Margin, monoWidth, plotBoundsFor } from "../plot/Primitives";
 import { SkyFigure } from "../plot/SkyFigure";
 import { useChartLayout } from "../use-chart-layout";
 
@@ -104,7 +104,9 @@ const EFFORT_SHADES: Record<string, number> = {
   medium: 0.48,
   high: 0.62,
   xhigh: 0.78,
+  adaptive: 0.86,
   max: 0.95,
+  ultra: 1,
 };
 const DEFAULT_SHADE = EFFORT_SHADES.high!;
 // Each effort's letter beneath its bar; a model's only, default effort carries none, and neither does an effort outside this list, which the readout still names.
@@ -126,27 +128,35 @@ const HALO = {
   paintOrder: "stroke",
 } as const satisfies CSSProperties;
 
-export function EffortPanel({ data }: { data: ChartData }) {
+export const EffortPanel = memo(function EffortPanel({ data }: { data: ChartData }) {
   const [measure, setMeasure] = useUrlState("effort-measure");
-  const documents = findDocuments(data.rows);
+  const documents = useMemo(() => findDocuments(data.rows), [data.rows]);
   const [find, setFind] = useChartFind("effort-find", documents, findSuggestion, findId);
   // The find field locates leaderboard rows; the chart groups a model's efforts by the row's family.
-  const familyByRow = new Map(data.rows.map((row) => [row.key, row.family]));
+  const familyByRow = useMemo(
+    () => new Map(data.rows.map((row) => [row.key, row.family])),
+    [data.rows],
+  );
   const found = new Set([...find.located.keys()].map((key) => familyByRow.get(key)));
-  const targets = chartFindTargets(find, documents, findSuggestion);
-  const matches = targets == null ? null : new Set(targets.map((row) => row.family));
+  const matches = useMemo(
+    () => chartFindMatches(find, documents, findSuggestion, (row) => row.family),
+    [find, documents],
+  );
   const metric = METRICS.find((each) => each.key === measure)!;
   const [hovered, setHovered] = useState<string | null>(null);
   const [picked, setPicked] = usePick<string>();
-  const layout = useChartLayout(1120);
+  const layout = useChartLayout(CHART_WIDTH);
   // Each model's efforts the measure covers, strongest model first; a model the measure covers at none has no bars, so it gives its place to the next and a find naming it adds nothing until another measure is chosen.
-  const measured = [...group(data.variants, (variant) => variant.family).values()]
-    .sort((a, b) => strongest(b) - strongest(a))
-    .map((family) => family.filter((variant) => metric.read(variant) != null))
-    .filter((family) => family.length > 0);
-  const strongestFamilies = measured.slice(0, TOP_MODELS);
-  const foundFamilies = measured.filter(
-    (family) => found.has(family[0]!.family) && !strongestFamilies.includes(family),
+  const measured = useMemo(
+    () =>
+      [...group(data.variants, (variant) => variant.family).values()]
+        .sort((a, b) => strongest(b) - strongest(a))
+        .map((family) => family.filter((variant) => metric.read(variant) != null))
+        .filter((family) => family.length > 0),
+    [data.variants, metric],
+  );
+  const { top: strongestFamilies, found: foundFamilies } = topAndFound(measured, (family) =>
+    found.has(family[0]!.family),
   );
   const families = [...strongestFamilies, ...foundFamilies].sort(
     (a, b) => peak(a, metric) - peak(b, metric),
@@ -395,7 +405,7 @@ export function EffortPanel({ data }: { data: ChartData }) {
       </SkyFigure>
     </FigureRegion>
   );
-}
+});
 
 /** The efforts' shades in neutral ink, named at their ends, so the shades read the same whatever a lab's colour; it sits beneath the plot rather than in it, so a plot that scrolls never takes it out of view. */
 function ShadeLegend() {

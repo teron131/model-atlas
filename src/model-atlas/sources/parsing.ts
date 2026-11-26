@@ -70,6 +70,22 @@ export function* flightObjects(corpus: string, marker: string): Generator<JsonOb
   }
 }
 
+/** Yield each parseable object literal that contains `index`, innermost first, looking back at most `maxBacktrack` characters for its opening brace. */
+export function* enclosingFlightObjects(
+  corpus: string,
+  index: number,
+  maxBacktrack: number,
+): Generator<JsonObject> {
+  const searchStart = Math.max(0, index - maxBacktrack);
+  for (let start = index; start >= searchStart; start -= 1) {
+    if (corpus[start] !== "{") continue;
+    const end = findObjectEnd(corpus, start);
+    if (end < index) continue;
+    const object = parseFlightJsonObject(corpus.slice(start, end + 1));
+    if (object != null) yield object;
+  }
+}
+
 /** Parse a candidate Flight object without letting malformed page fragments abort a scrape. */
 export function parseFlightJsonObject(value: string): JsonObject | null {
   try {

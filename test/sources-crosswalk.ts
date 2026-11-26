@@ -597,9 +597,14 @@ const aleCache = readAleBenchRawCache([
   },
 ]);
 assert.deepEqual(aleCache?.rows, [{ model: mirror.model, epoch: mirror }]);
-const { combineAleBenchRows } = await import("../src/model-atlas/sources/ale-bench/leaderboard");
 assert.deepEqual(
-  combineAleBenchRows(aleCache!.rows),
+  combinedBenchmarkObservations({
+    terminalBenchRows: [],
+    artificialAnalysisBenchmarkResourceRows: [],
+    terminalBenchScienceRows: [],
+    aleBenchRows: aleCache!.rows,
+    weirdMlRows: [],
+  }).ale_bench,
   [],
   "one source without calibration cannot manufacture a combined score",
 );

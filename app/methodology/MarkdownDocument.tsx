@@ -13,6 +13,7 @@ import remarkMath from "remark-math";
 import { DomainChip, isBenchmarkDomain } from "../shared/DomainShares";
 import { NavigationLink } from "../shared/NavigationLink";
 import { DomainShareBar } from "../shared/ShareBar";
+import { DOMAIN_COLUMNS, domainShareList, namedDomain } from "./catalog-markers";
 import { DocumentFigure } from "./DocumentFigure";
 import { DocumentHeading } from "./DocumentHeading";
 import {
@@ -20,11 +21,8 @@ import {
   documentImageSize,
   documentLink,
   type DocumentSlug,
-  DOMAIN_COLUMNS,
-  domainShareList,
   headingId,
   methodologyAsset,
-  namedDomain,
 } from "./documents";
 import { plainScoreText, scoreMentions, type ScoreName } from "./score-markers";
 import { ScoreLabel, ScoreText } from "./ScoreText";

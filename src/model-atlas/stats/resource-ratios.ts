@@ -10,16 +10,13 @@ import {
 import { benchmarkValue } from "../benchmarks/registry";
 import {
   BENCHMARK_RESOURCE_SOURCE_LABELS,
+  BENCHMARK_RESOURCE_SOURCES,
   resourceSourceMetricKey,
-  resourceSourcesFromMetadata,
 } from "../benchmarks/resource-sources";
 import { canonicalModelKey } from "../identity/normalization";
 import { positiveFiniteNumber, weightedMedianOfFinite } from "../math-utils";
 import type { ModelAtlasModel, ModelAtlasTaskEstimateMetric } from "../pipeline/model-types";
-import {
-  benchmarkTaskMetrics,
-  separatedBenchmarkResourceSources,
-} from "../pipeline/scores/resource-metrics";
+import { benchmarkTaskMetrics, directBenchmarkTokens } from "../pipeline/scores/resource-metrics";
 import { asFiniteNumber, asRecord } from "../runtime";
 
 export type ResourceRatioKind = "cost" | "time" | "tokens";
@@ -59,7 +56,7 @@ export function resourceRatioObservations(
       const policy = indexPolicy(key);
       const quality = benchmarkValue(model, key);
       if (portfolio[key] == null || policy?.resources == null || quality == null) continue;
-      const amount = metricAmount(benchmarkTaskMetrics(model, policy.resources.key), kind);
+      const amount = metricAmount(model, policy.resources.key, kind);
       if (amount != null)
         observations.push({
           model,
@@ -230,7 +227,7 @@ function benchmarkObservations(
   kind: ResourceRatioKind,
   slots: number,
 ): ResourceRatioObservation[] {
-  const direct = metricAmount(benchmarkTaskMetrics(model, key), kind);
+  const direct = metricAmount(model, key, kind);
   const quality = benchmarkValue(model, key);
   if (direct != null && quality != null)
     return [
@@ -243,44 +240,33 @@ function benchmarkObservations(
         weight: 1,
       },
     ];
-  const separated = separatedBenchmarkResourceSources(model, key);
   const observations: ResourceRatioObservation[] = [];
-  for (const source of ["source_a", "source_b", "source_c"] as const) {
+  for (const source of BENCHMARK_RESOURCE_SOURCES) {
     const benchmarkKey = resourceSourceMetricKey(key, source);
-    const task = asRecord(asRecord(model.task_metrics)[benchmarkKey]);
-    const sourceAmount = asFiniteNumber(task.quality) != null ? metricAmount(task, kind) : null;
-    const original = separated.find((candidate) => candidate.source === source);
-    const amount =
-      sourceAmount ??
-      (original == null
-        ? null
-        : kind === "cost"
-          ? original.cost
-          : kind === "time"
-            ? original.reportedSeconds
-            : original.tokens);
-    if (amount != null && amount > 0)
+    const sourceQuality = asFiniteNumber(
+      asRecord(asRecord(model.task_metrics)[benchmarkKey]).quality,
+    );
+    if (sourceQuality == null) continue;
+    const amount = metricAmount(model, benchmarkKey, kind);
+    if (amount != null)
       observations.push({
         model,
         benchmarkKey,
         baseBenchmarkKey: key,
         amount,
-        quality: sourceAmount != null ? asFiniteNumber(task.quality)! : original!.quality,
+        quality: sourceQuality,
         weight: 1 / Math.max(2, slots),
       });
   }
   return observations;
 }
 
-/** Total consumption requires a complete input/output pair or an explicitly reported total; output-only telemetry never becomes total tokens. */
-function metricAmount(task: unknown, kind: ResourceRatioKind): number | null {
-  const metrics = asRecord(task);
-  if (kind !== "tokens") return positiveFiniteNumber(metrics[kind === "time" ? "seconds" : kind]);
-  const input = asFiniteNumber(metrics.input_tokens);
-  const output = asFiniteNumber(metrics.output_tokens);
-  return input != null && input >= 0 && output != null && output >= 0
-    ? positiveFiniteNumber(input + output)
-    : positiveFiniteNumber(metrics.tokens);
+/** Reported amounts only: time never falls back to the throughput runtime proxy, and output-only telemetry never becomes total tokens. */
+function metricAmount(model: ModelAtlasModel, key: string, kind: ResourceRatioKind): number | null {
+  if (kind === "tokens") return directBenchmarkTokens(model, key, "tokens");
+  return positiveFiniteNumber(
+    benchmarkTaskMetrics(model, key)?.[kind === "time" ? "seconds" : kind],
+  );
 }
 
 /** Catalogue declarations and observed source slots reserve missing source shares before any model is summarized. */
@@ -293,11 +279,7 @@ function sourceAllocations(
       const declared = asRecord(asRecord(BENCHMARK_RESOURCE_SOURCE_LABELS)[key]);
       const slots = new Set(Object.keys(declared));
       for (const model of models) {
-        const metadata = asRecord(
-          asRecord(asRecord(asRecord(model).scoring_sources)[key]).metadata,
-        );
-        for (const source of resourceSourcesFromMetadata(metadata)) slots.add(source);
-        for (const source of ["source_a", "source_b", "source_c"] as const)
+        for (const source of BENCHMARK_RESOURCE_SOURCES)
           if (Object.hasOwn(asRecord(model.task_metrics), resourceSourceMetricKey(key, source)))
             slots.add(source);
       }

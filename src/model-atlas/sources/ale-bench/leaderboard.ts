@@ -8,7 +8,6 @@
 
 import { parseSlugEffort } from "../../identity/normalization";
 import { asFiniteNumber, asRecord, nowEpochSeconds } from "../../runtime";
-import { crosswalkBenchmarkSources, type CrosswalkObservation } from "../assembly/crosswalk";
 import {
   ALE_BENCH_EPOCH_RESULTS_URL,
   type AleBenchEpochRow,
@@ -22,8 +21,6 @@ const ALE_BENCH_SAKANA_RESULTS_URL =
 export const ALE_BENCH_LEADERBOARD_URL = "https://sakanaai.github.io/ALE-Bench-Leaderboard";
 
 const DEFAULT_SELF_REFINE_COUNT = 1;
-
-const MAX_CROSSWALK_MEDIAN_ABSOLUTE_ERROR = 0.01;
 
 const SPLITS = ["all", "short", "long"] as const;
 
@@ -199,54 +196,6 @@ export function summarizeAleBenchSourceDefaultRows(
         output_tokens_per_task: row.output_tokens.all.mean,
       };
     });
-}
-
-/** Combine Performance in its native units, floored at zero instead of the default clamp to [0, 1]. */
-export function combineAleBenchRows(rows: readonly AleBenchSourceRow[]): CrosswalkObservation[] {
-  const sakanaObservations = summarizeAleBenchSourceDefaultRows(rows).map((row) => ({
-    benchmark_key: "ale_bench",
-    source_url: ALE_BENCH_LEADERBOARD_URL,
-    model_id: null,
-    model: row.model,
-    base_model: row.base_model,
-    reasoning_effort: row.reasoning_effort,
-    model_creator: null,
-    rank: null,
-    canonical_value: row.score,
-    cost: row.cost_per_task_usd,
-    tokens_per_task: row.tokens_per_task,
-    output_tokens_per_task: row.output_tokens_per_task,
-    observed_at: null,
-    metadata: {},
-  }));
-  const epochObservations = rows.flatMap((source): CrosswalkObservation[] => {
-    if (!("epoch" in source)) return [];
-    const row = source.epoch;
-    const parsedModel = parseSlugEffort(row.model);
-    return [
-      {
-        benchmark_key: "ale_bench",
-        source_url: ALE_BENCH_EPOCH_RESULTS_URL,
-        model_id: null,
-        model: row.model,
-        base_model: parsedModel.baseModel,
-        reasoning_effort: parsedModel.reasoningEffort,
-        model_creator: null,
-        rank: null,
-        canonical_value: row.performance,
-        cost: row.cost,
-        tokens_per_task: row.total_tokens,
-        output_tokens_per_task: row.output_tokens,
-        observed_at: null,
-        metadata: {},
-      },
-    ];
-  });
-  return crosswalkBenchmarkSources([sakanaObservations, epochObservations], {
-    maximumScoreError: MAX_CROSSWALK_MEDIAN_ABSOLUTE_ERROR,
-    normalizeScore: (score) => Math.max(0, score),
-    sourceLabels: ["Sakana AI", "Epoch"],
-  });
 }
 
 function splitStatistics(value: unknown): AleBenchSplitStatistics | null {

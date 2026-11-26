@@ -11,6 +11,7 @@ import {
 } from "react";
 
 import { type ChecklistSort, SortButton, useChecklistSort } from "../../shared/Checklist";
+import { modelName } from "../../shared/model-display";
 import { providerChartColor } from "../../shared/provider-theme";
 import { ProviderLogo } from "../../shared/ProviderLogo";
 import {
@@ -284,7 +285,7 @@ export function CommonEvidence({
                           <div className={styles.evidenceModel}>
                             <span className={styles.evidenceRank}>{rank + 1}</span>
                             <ProviderLogo model={group.model} />
-                            <span>{group.model.name ?? group.model.id ?? "Unknown model"}</span>
+                            <span>{modelName({ ...group.model, reasoning_effort: null })}</span>
                           </div>
                         </th>
                         {columns.map((key) => {

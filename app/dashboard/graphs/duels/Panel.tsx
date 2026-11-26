@@ -2,7 +2,7 @@
 
 /** Duels: the strongest models, and any the find field brings in, ranked by their duels with each other, where a duel goes to the model that leads on more of the Intelligence benchmarks both report, each with its move from its Intelligence place; beside them the pointed duel, or the first of the model found last or else of the top model, benchmark by benchmark as the lead the model sheet's Compare shows. */
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import type { BenchmarkDomain } from "../../../../src/model-atlas/benchmarks/catalog";
 import { medianOfFinite } from "../../../../src/model-atlas/math-utils";
@@ -16,11 +16,11 @@ import {
   findSuggestion,
   NOTHING_FOUND,
   TOP_MODELS,
-  topByIntelligence,
+  topAndFound,
 } from "../chart-data";
 import {
   ChartFind,
-  chartFindTargets,
+  chartFindMatches,
   foundModelsPhrase,
   lastLocated,
   useChartFind,
@@ -28,16 +28,27 @@ import {
 import { ChartReadout, type ReadoutEntry } from "../ChartReadout";
 import { FigureRegion } from "../FigureRegion";
 import { usePick } from "../plot/Interaction";
-import { DOMAIN_TILE, DomainTile, RowLabel, StarMark } from "../plot/Primitives";
+import { CHART_WIDTH, StarMark } from "../plot/Primitives";
+import { DOMAIN_TILE, DomainTile, RowLabel } from "../plot/RowChart";
 import { MUTED_STAR_GLOW, type SkyPlotStar } from "../plot/sky-renderer";
 import { SkyFigure } from "../plot/SkyFigure";
 import { useChartLayout } from "../use-chart-layout";
+import {
+  type Duel,
+  duelKey,
+  duelStandings,
+  firstDuel,
+  type Lead,
+  margin,
+  MIN_SHARED,
+  outcome,
+  type Standing,
+} from "./standings";
 
 import graphs from "../graphs.module.css";
 import styles from "./duels.module.css";
 
-// Two models sharing fewer benchmarks than this have too little in common to call a winner.
-const MIN_SHARED = 5;
+const CAPTURE = { title: "Head to head", fileName: "model-atlas-duels" };
 // The notes over the bout, and the least room over the standings.
 const HEAD = 24;
 // Each opponent's lab logo stands over its dot column with its name read upward above it, and the move column's heading beside them starts level with the names: a generous mean width of the names' characters, the gap under the logos, the logo's size at most, as a row's, and the gap between logo and name.
@@ -79,43 +90,34 @@ const MARGIN = {
   core: { least: 2.5, most: 4 },
 };
 
-/** A benchmark both models report: the row's model's result, its opponent's, and the gap between them. */
-type Lead = { benchmark: ChartBenchmark; own: number; theirs: number; points: number };
-type Duel = {
-  row: ChartRow;
-  opponent: ChartRow;
-  /** The row's model's lead on each benchmark both report, the gap between their results as the leaderboard prints them, largest first; negative where the opponent leads and zero where they read the same. */
-  leads: Lead[];
-  ahead: number;
-  behind: number;
-};
-type Outcome = "won" | "lost" | "drawn";
-type Standing = {
-  row: ChartRow;
-  /** The model's place by Intelligence, from 0. */
-  place: number;
-  /** Duels with each opponent sharing enough benchmarks, by the opponent's key. */
-  duels: Map<string, Duel>;
-  wins: number;
-  losses: number;
-  draws: number;
-};
 type Pointed = { row: string; opponent: string };
-/** Where the stacked rows sat at the last render, so the next can hold the rows in view still. */
+/** Where the stacked rows sit at a render, which the next compares to hold the rows in view still. */
 type Placement = { open: string | null; order: string; rowHeight: number; tops: number[] };
 
-export function DuelsPanel({ data }: { data: ChartData }) {
+export const DuelsPanel = memo(function DuelsPanel({ data }: { data: ChartData }) {
   const [hovered, setHovered] = useState<Pointed | null>(null);
-  const documents = findDocuments(data.rows);
+  const documents = useMemo(() => findDocuments(data.rows), [data.rows]);
   const [find, setFind] = useChartFind("duels-find", documents, findSuggestion, findId);
-  const layout = useChartLayout(1120);
+  const layout = useChartLayout(CHART_WIDTH);
   const { width, compact } = layout;
-  const standings = duelStandings(data, find.located);
+  const ranked = useMemo(
+    () => [...data.rows].sort((a, b) => b.intelligence - a.intelligence),
+    [data.rows],
+  );
+  const { top: strongest, found } = useMemo(
+    () => topAndFound(ranked, (row) => find.located.has(row.key)),
+    [ranked, find.located],
+  );
+  const standings = useMemo(
+    () => duelStandings([...strongest, ...found], data.benchmarks),
+    [strongest, found, data.benchmarks],
+  );
   const count = standings.length;
-  const added = count - Math.min(TOP_MODELS, data.rows.length);
-  const found = foundModelsPhrase(added);
-  const targets = chartFindTargets(find, documents, findSuggestion);
-  const matches = targets == null ? null : new Set(targets.map((row) => row.key));
+  const foundPhrase = foundModelsPhrase(found.length);
+  const matches = useMemo(
+    () => chartFindMatches(find, documents, findSuggestion, (row) => row.key),
+    [find, documents],
+  );
   const duels = standings.flatMap((standing) => [...standing.duels.values()]);
 
   const nameEnd =
@@ -188,33 +190,11 @@ export function DuelsPanel({ data }: { data: ChartData }) {
   );
   const rowY = (index: number) => rowTops[index]!;
   const standingsBottom = count === 0 ? top : rowY(count - 1) + rowHeight + below(count - 1);
-  // Stacked, the open duel's room moves every row beneath it, so when another opens the page scrolls as far as the rows in view would move and they hold still: the tapped row, else the first row on screen; with every row above the screen, the browser's scroll anchoring already holds the page beneath.
-  const hits = useRef<SVGGElement>(null);
-  const tapped = useRef<number | null>(null);
-  const placed = useRef<Placement | null>(null);
-  useLayoutEffect(() => {
-    const before = placed.current;
-    const now: Placement = {
-      open: openDuel == null ? null : duelKey(openDuel),
-      order: standings.map((standing) => standing.row.key).join(),
-      rowHeight,
-      tops: rowTops,
-    };
-    placed.current = now;
-    const row = tapped.current;
-    tapped.current = null;
-    const screen = hits.current?.getScreenCTM();
-    if (
-      before == null ||
-      screen == null ||
-      before.open === now.open ||
-      before.order !== now.order ||
-      before.rowHeight !== now.rowHeight
-    )
-      return;
-    const anchor = row ?? before.tops.findIndex((rowTop) => screen.f + screen.d * rowTop >= 0);
-    const shift = anchor < 0 ? 0 : now.tops[anchor]! - before.tops[anchor]!;
-    if (shift !== 0) window.scrollBy({ top: screen.d * shift, behavior: "instant" });
+  const held = useHeldRows({
+    open: openDuel == null ? null : duelKey(openDuel),
+    order: standings.map((standing) => standing.row.key).join(),
+    rowHeight,
+    tops: rowTops,
   });
   const bouts = stacked
     ? openDuel == null
@@ -290,10 +270,18 @@ export function DuelsPanel({ data }: { data: ChartData }) {
     }),
   );
 
+  if (data.rows.length === 0)
+    return (
+      <FigureRegion id="leaderboard" capture={CAPTURE}>
+        <p className={graphs.emptyChart} role="status">
+          {NOTHING_FOUND}
+        </p>
+      </FigureRegion>
+    );
   return (
     <FigureRegion
       id="leaderboard"
-      capture={{ title: "Head to head", fileName: "model-atlas-duels" }}
+      capture={CAPTURE}
       top={
         <>
           <ChartReadout
@@ -314,7 +302,7 @@ export function DuelsPanel({ data }: { data: ChartData }) {
       }
       caption={
         <p>
-          {`Compare the top ${count - added} models by Intelligence${found == null ? "" : `, ${found},`} head to head: a duel goes to the model that leads on more of the Intelligence benchmarks both report; pairs sharing fewer than ${MIN_SHARED} have none.`}
+          {`Compare the top ${strongest.length} models by Intelligence${foundPhrase == null ? "" : `, ${foundPhrase},`} head to head: a duel goes to the model that leads on more of the Intelligence benchmarks both report; pairs sharing fewer than ${MIN_SHARED} have none.`}
         </p>
       }
     >
@@ -467,7 +455,7 @@ export function DuelsPanel({ data }: { data: ChartData }) {
           );
         })}
         {/* Every slot holds a hit, its own and unplayed ones inert, so the pointer crosses the dots without a gap and leaving them returns the bout to the held or resting duel. */}
-        <g ref={hits} onPointerLeave={() => setHovered(null)}>
+        <g ref={held.hits} onPointerLeave={() => setHovered(null)}>
           {standings.map((standing, index) =>
             standings.map((opponent, column) => {
               const duel = standing.duels.get(opponent.row.key);
@@ -494,7 +482,7 @@ export function DuelsPanel({ data }: { data: ChartData }) {
                   data-keeps-pick
                   onPointerEnter={() => setHovered(point)}
                   onClick={() => {
-                    if (stacked) tapped.current = index;
+                    if (stacked) held.tap(index);
                     setPicked(point);
                   }}
                 />
@@ -510,6 +498,37 @@ export function DuelsPanel({ data }: { data: ChartData }) {
       </SkyFigure>
     </FigureRegion>
   );
+});
+
+/** Stacked, the open duel's room moves every row beneath it, so when another opens the page scrolls as far as the rows in view would move and they hold still: the tapped row, else the first row on screen; with every row above the screen, the browser's scroll anchoring already holds the page beneath. `hits` goes on the rows' hit group, whose place on screen finds the rows in view, and `tap` names the row a tap opens. */
+function useHeldRows(now: Placement) {
+  const hits = useRef<SVGGElement>(null);
+  const tapped = useRef<number | null>(null);
+  const placed = useRef<Placement | null>(null);
+  useLayoutEffect(() => {
+    const before = placed.current;
+    placed.current = now;
+    const row = tapped.current;
+    tapped.current = null;
+    const screen = hits.current?.getScreenCTM();
+    if (
+      before == null ||
+      screen == null ||
+      before.open === now.open ||
+      before.order !== now.order ||
+      before.rowHeight !== now.rowHeight
+    )
+      return;
+    const anchor = row ?? before.tops.findIndex((rowTop) => screen.f + screen.d * rowTop >= 0);
+    const shift = anchor < 0 ? 0 : now.tops[anchor]! - before.tops[anchor]!;
+    if (shift !== 0) window.scrollBy({ top: screen.d * shift, behavior: "instant" });
+  });
+  return {
+    hits,
+    tap: (row: number) => {
+      tapped.current = row;
+    },
+  };
 }
 
 /** The pointed duel as two lists meeting at the centre, each model's leads on its own side under its logo and name, largest first, so each side's length is its score: a benchmark's chip and name against the centre, then a bar as long as the lead. The duel is scaled to its own longest lead, so its bars fill the bout whichever duel is pointed; beside each name that side's model's result reads as Compare prints it, and past each bar its lead reads as that side's margin. */
@@ -529,7 +548,6 @@ function Bout({
   box: number;
   names: number;
 }) {
-  const { ahead, behind } = sides(duel);
   const spine = left + width / 2;
   const longest = Math.max(1, ...duel.leads.map(({ points }) => Math.abs(points)));
   const resultRoom =
@@ -628,23 +646,14 @@ function Bout({
         y2={top + HEAD + rows * step}
       />
       {/* The row's model takes the left, as the readout names it first, and its opponent the right, each beside its own results. */}
-      {side(duel.row, ahead, false, ({ own }) => own)}
-      {side(duel.opponent, behind, true, ({ theirs }) => theirs)}
+      {side(duel.row, duel.ahead, false, ({ own }) => own)}
+      {side(duel.opponent, duel.behind, true, ({ theirs }) => theirs)}
     </g>
   );
 }
 
-// A duel's leads on each side of the bout, largest first: the row's model's, then its opponent's; a tied result decides nothing, so the bout leaves it out.
-function sides({ leads }: Duel): { ahead: Lead[]; behind: Lead[] } {
-  return {
-    ahead: leads.filter(({ points }) => points > 0),
-    behind: leads.filter(({ points }) => points < 0).reverse(),
-  };
-}
-
 // A bout's rows, as many as the longer side's leads, each up to `BOUT_ROW` tall and closer in a long duel, so the rows stay within `box`.
-function boutRows(duel: Duel, box: number): { rows: number; step: number } {
-  const { ahead, behind } = sides(duel);
+function boutRows({ ahead, behind }: Duel, box: number): { rows: number; step: number } {
   const rows = Math.max(1, ahead.length, behind.length);
   return { rows, step: Math.min(BOUT_ROW, box / rows) };
 }
@@ -653,74 +662,6 @@ function boutRows(duel: Duel, box: number): { rows: number; step: number } {
 function boutHeight(duel: Duel): number {
   const { rows, step } = boutRows(duel, BOUT_BOX);
   return HEAD + rows * step;
-}
-
-/** The strongest models by Intelligence and those `found` names, each with its duels against the others, most wins first, a drawn duel counting half, and Intelligence settling ties. */
-function duelStandings(data: ChartData, found: ReadonlyMap<string, number>): Standing[] {
-  const strongest = topByIntelligence(data.rows, TOP_MODELS);
-  const models = [
-    ...strongest,
-    ...data.rows.filter((row) => found.has(row.key) && !strongest.includes(row)),
-  ].sort((a, b) => b.intelligence - a.intelligence);
-  const intelligence = data.benchmarks.filter((benchmark) => benchmark.intelligence);
-  const duel = (row: ChartRow, opponent: ChartRow): Duel | null => {
-    const leads = intelligence
-      .flatMap((benchmark) => {
-        const own = row.benchmarks[benchmark.key];
-        const theirs = opponent.benchmarks[benchmark.key];
-        return own == null || theirs == null
-          ? []
-          : [{ benchmark, own, theirs, points: own - theirs }];
-      })
-      .sort((a, b) => b.points - a.points);
-    if (leads.length < MIN_SHARED) return null;
-    return {
-      row,
-      opponent,
-      leads,
-      ahead: leads.filter(({ points }) => points > 0).length,
-      behind: leads.filter(({ points }) => points < 0).length,
-    };
-  };
-  return models
-    .map((row, place): Standing => {
-      const duels = new Map(
-        models.flatMap((opponent) => {
-          const result = opponent === row ? null : duel(row, opponent);
-          return result == null ? [] : [[opponent.key, result] as const];
-        }),
-      );
-      const outcomes = [...duels.values()].map(outcome);
-      return {
-        row,
-        place,
-        duels,
-        wins: outcomes.filter((each) => each === "won").length,
-        losses: outcomes.filter((each) => each === "lost").length,
-        draws: outcomes.filter((each) => each === "drawn").length,
-      };
-    })
-    .sort((a, b) => b.wins + b.draws / 2 - (a.wins + a.draws / 2) || a.place - b.place);
-}
-
-function outcome({ ahead, behind }: Duel): Outcome {
-  return ahead > behind ? "won" : ahead < behind ? "lost" : "drawn";
-}
-
-// How decisive a duel was, from −1 to 1: benchmarks won less those lost, over all decided.
-function margin({ ahead, behind }: Duel): number {
-  return (ahead - behind) / (ahead + behind);
-}
-
-function firstDuel(standing: Standing, standings: readonly Standing[]): Duel | undefined {
-  return [...standings]
-    .sort((a, b) => a.place - b.place)
-    .map((opponent) => standing.duels.get(opponent.row.key))
-    .find((duel) => duel != null);
-}
-
-function duelKey(duel: Duel): string {
-  return `${duel.row.key}|${duel.opponent.key}`;
 }
 
 // A benchmark labelled with several domains shows the one holding its largest share.
@@ -739,7 +680,7 @@ function formatLead(points: number): string {
 function duelEntry(duel: Duel): ReadoutEntry {
   const { row, opponent, leads, ahead, behind } = duel;
   // No-break spaces keep the score and the median lead whole when the sentence wraps: "8 – 6", "+6.2 points".
-  const score = `${ahead} – ${behind}`;
+  const score = `${ahead.length} – ${behind.length}`;
   // A duel has at least `MIN_SHARED` leads, so the median exists.
   const middle = medianOfFinite(leads.map(({ points }) => points))!;
   return {

@@ -18,12 +18,22 @@ export function splitBaseModelTokens(modelId: string): string[] {
   return splitTokens(modelSlugFromModelId(modelId) ?? modelId);
 }
 
+/** Identity keys by input: benchmark assignment asks for every source row's key again for each model it places, and the memo restarts at its cap rather than grow without bound. */
+const identityKeys = new Map<string, string>();
+const MAX_IDENTITY_KEYS = 50_000;
+
 /**
  * Produces a strict model identity key after removing matcher-owned non-identity labels.
  * `"qwen/qwen3-235b-a22b-thinking-2507"` → `"qwen-3-235b-a22b-2507"`.
  */
 export function modelNameIdentityKey(value: string): string {
-  return splitBaseModelTokens(value).join("-");
+  let key = identityKeys.get(value);
+  if (key == null) {
+    key = splitBaseModelTokens(value).join("-");
+    if (identityKeys.size >= MAX_IDENTITY_KEYS) identityKeys.clear();
+    identityKeys.set(value, key);
+  }
+  return key;
 }
 
 /** Split mixed alpha-numeric variants while preserving parameter-scale tokens: `"qwen3"` → `["qwen", "3"]`, but `"235b"` and `"a22b"` stay whole. */

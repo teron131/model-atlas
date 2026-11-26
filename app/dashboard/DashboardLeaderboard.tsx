@@ -1,6 +1,6 @@
 "use client";
 
-/** The leaderboard region: derives its rows from the URL state, the global filters, and the table search, and hosts the column tooltip; it is kept apart from the graphs so slider, sort, and table-search updates re-render only the table. */
+/** The leaderboard region: derives its rows from the URL state, the global filters, and the table search, and hosts the column tooltip; it is kept apart from the graphs so row-limit, sort, and table-search updates re-render only the table. */
 
 import { useCallback, useDeferredValue, useEffect, useMemo } from "react";
 
@@ -162,17 +162,21 @@ export function DashboardLeaderboard({
   );
 
   const rowKind = deferredShowVariants ? "variants" : "models";
-  const activeTooltipContent =
-    tooltip == null
-      ? undefined
-      : tableColumnTooltip(tooltip.key, columnTooltips, {
-          models: visibleRows.map((row) => row.model),
-          population: payload?.models ?? [],
-          scoring: payload?.metadata.scoring,
-          versions: payload?.metadata.benchmark_versions,
-          health: payload?.metadata.benchmark_update_health,
-          unit: rowKind,
-        });
+  const tooltipKey = tooltip?.key;
+  const activeTooltipContent = useMemo(
+    () =>
+      tooltipKey == null
+        ? undefined
+        : tableColumnTooltip(tooltipKey, columnTooltips, {
+            models: visibleRows.map((row) => row.model),
+            population: payload?.models ?? [],
+            scoring: payload?.metadata.scoring,
+            versions: payload?.metadata.benchmark_versions,
+            health: payload?.metadata.benchmark_update_health,
+            unit: rowKind,
+          }),
+    [tooltipKey, columnTooltips, visibleRows, payload, rowKind],
+  );
   const searchResultLabel =
     [
       hasSearchQuery(columnQuery)

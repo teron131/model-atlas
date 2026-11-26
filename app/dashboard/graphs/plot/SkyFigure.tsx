@@ -9,7 +9,7 @@ import { type CSSProperties, type ReactNode, useLayoutEffect, useRef } from "rea
 
 import { useDragPan } from "../../shared/use-drag-pan";
 import type { useChartLayout } from "../use-chart-layout";
-import { type PlotBounds, SCATTER_CHART_WIDTH } from "./Primitives";
+import { CHART_WIDTH, type PlotBounds } from "./Primitives";
 import type { SkyPlotScene, SkyPlotStar } from "./sky-renderer";
 import { SkyPlot } from "./SkyPlot";
 
@@ -102,7 +102,7 @@ export function SkyFigure({
       {...plotHost}
       className={styles.chartWrap}
       // The cap fits a plot to its host; a plot drawn wider than the cap keeps its own width and scrolls rather than shrinking into it.
-      style={{ "--chart-max-width": `${Math.max(width, SCATTER_CHART_WIDTH)}px` } as CSSProperties}
+      style={{ "--chart-max-width": `${Math.max(width, CHART_WIDTH)}px` } as CSSProperties}
     >
       <div
         className={styles.scroller}

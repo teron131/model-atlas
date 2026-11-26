@@ -27,6 +27,21 @@ export type TimelinePoint = {
   indexOnly: boolean;
 };
 
+export const DAY_MS = 86_400_000;
+
+// Release dates in UTC, as they are recorded: "Mar 14, 2023" and "Mar 2023".
+export const DATE_FORMAT = new Intl.DateTimeFormat("en", {
+  timeZone: "UTC",
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+});
+export const MONTH_FORMAT = new Intl.DateTimeFormat("en", {
+  timeZone: "UTC",
+  month: "short",
+  year: "numeric",
+});
+
 // A trailing release month in brackets: "GPT-4 Turbo (Jan 2024)" → "GPT-4 Turbo".
 const RELEASE_MONTH = / \((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{4}\)$/;
 

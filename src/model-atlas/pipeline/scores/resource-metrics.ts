@@ -8,7 +8,9 @@ import {
 } from "../../benchmarks/index-policy";
 import { type BenchmarkMetricModel, benchmarkValue } from "../../benchmarks/registry";
 import {
+  BENCHMARK_RESOURCE_SOURCES,
   type BenchmarkResourceSource,
+  hasSeparatedResources,
   resourceSourceMetricKey,
   resourceSourcesFromMetadata,
 } from "../../benchmarks/resource-sources";
@@ -30,7 +32,7 @@ export type SeparatedBenchmarkResourceEvidence = {
   allocation: number;
 };
 
-export type SeparatedBenchmarkResourceSource = {
+type SeparatedBenchmarkResourceSource = {
   source: BenchmarkResourceSource;
   label: string;
   quality: number;
@@ -43,15 +45,12 @@ export type SeparatedBenchmarkResourceSource = {
 };
 
 /** Expose original source measurements when a combined row fails absolute resource agreement. */
-export function separatedBenchmarkResourceSources(
+function separatedBenchmarkResourceSources(
   model: ResourceMetricModel,
   key: string,
 ): SeparatedBenchmarkResourceSource[] {
   const metadata = asRecord(asRecord(asRecord(model.scoring_sources)[key]).metadata);
-  const separated = ["cost", "seconds_per_task", "tokens_per_task", "output_tokens_per_task"].some(
-    (field) => metadata[`fusion_${field}_comparable`] === false,
-  );
-  if (!separated) return [];
+  if (!hasSeparatedResources(metadata)) return [];
   const throughput = positiveFiniteNumber(
     asRecord(model.speed).throughput_tokens_per_second_median,
   );
@@ -194,7 +193,7 @@ function hasObservedBenchmarkResource(
   if (separated.some((source) => (kind === "cost" ? source.cost : source.reportedSeconds) != null))
     return true;
   if (model.scoring_sources != null) return false;
-  return (["source_a", "source_b", "source_c"] as const).some((source) => {
+  return BENCHMARK_RESOURCE_SOURCES.some((source) => {
     const metrics = asRecord(asRecord(model.task_metrics)[resourceSourceMetricKey(key, source)]);
     return asFiniteNumber(metrics.quality) != null && positiveFiniteNumber(metrics[field]) != null;
   });

@@ -169,7 +169,7 @@ export type HistoricalEstimate = {
   source: "current" | "index" | "blended" | "components" | "unplaced";
   confidence: number | null;
   disagreement: number | null;
-  /** `null` for a position its own reference score sets and for one no checked benchmark places. */
+  /** `null` for a position its own reference score sets and for one no checked benchmark places; a stored estimate without the field reads the same. */
   uncertainty?: {
     /** Reference-scale points within which the position typically lies of where more benchmarks would settle it, plus any version adjustment. */
     typicalMiss: number;

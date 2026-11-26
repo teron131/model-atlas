@@ -15,17 +15,14 @@ import { logBlendedPrice } from "./blended-price";
 import {
   benchmarkQualityEvidence,
   type BenchmarkScoringPreparation,
+  directTaskResource,
   type EffortResourceImputation,
   imputedTaskResource,
   type TaskResourceKind,
 } from "./imputation";
 import { coverageMultiplier } from "./normalization";
 import { modelBalancedMinMaxScores, qualityLocalResourceScores } from "./resource-efficiency";
-import {
-  benchmarkTaskMetrics,
-  effectiveTaskSeconds,
-  separatedBenchmarkResourceEvidence,
-} from "./resource-metrics";
+import { separatedBenchmarkResourceEvidence } from "./resource-metrics";
 
 type WeightedSignal = {
   value: number | null;
@@ -118,11 +115,7 @@ function taskResourceEfficiencyEvidence(
       if (quality == null) {
         return null;
       }
-      const taskMetrics = benchmarkTaskMetrics(model, key);
-      const directAmount =
-        kind === "cost"
-          ? positiveFiniteNumber(taskMetrics?.cost)
-          : effectiveTaskSeconds(model, taskMetrics);
+      const directAmount = directTaskResource(model, key, scoringConfig, kind);
       if (directAmount != null) {
         return {
           calibration: benchmarkValue(model, key) != null,

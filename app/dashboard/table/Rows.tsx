@@ -460,12 +460,12 @@ const EvidenceSupportCell = memo(function EvidenceSupportCell({
       aria-label={supports
         .map(({ column, text }) => `${column.name} evidence support ${text}`)
         .join("; ")}
-      className={`data-cell confidence-cell${supports.every(({ text }) => text === "-") ? " missing" : ""}`}
+      className={`data-cell evidence-support-cell${supports.every(({ text }) => text === "-") ? " missing" : ""}`}
     >
-      <span aria-hidden="true" className="confidence-values">
+      <span aria-hidden="true" className="evidence-support-values">
         {supports.map(({ column, text }) => (
           <span key={column.key}>
-            <span className="dimension-letter">{column.name.charAt(0)}</span>
+            <span className="score-letter">{column.name.charAt(0)}</span>
             {text}
           </span>
         ))}
@@ -494,7 +494,7 @@ const ScoreChangeCell = memo(function ScoreChangeCell({ model }: { model: ModelA
         onClick={() => openModelSheetChanges(model)}
         type="button"
       >
-        <span className="dimension-letter">{scoreName.slice(0, 1)}</span>
+        <span className="score-letter">{scoreName.slice(0, 1)}</span>
         {move}
       </button>
       <span aria-hidden="true" className="score-change-meta">

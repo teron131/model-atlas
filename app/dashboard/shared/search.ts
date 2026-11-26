@@ -5,6 +5,7 @@ import Fuse from "fuse.js";
 const MIN_QUERY_TERM_COVERAGE = 0.6;
 const MIN_RELATIVE_SEARCH_SCORE = 0.2;
 
+/** `primary` and `context` are read once per array or object: one passed again is searched as it was first read, so a caller must not change it in place. */
 export type SearchDocument<T> = {
   value: T;
   primary: unknown;
@@ -96,9 +97,16 @@ function buildSearchQuery(query: string): SearchQuery | null {
     : null;
 }
 
-/** Normalize each field once per filter call; fuzzy indexes are created only when exact and prefix matching fail. */
+const preparedTexts = new WeakMap<object, SearchText>();
+
+/** Normalize a field once per field object, kept for later calls with its fuzzy index, which is created only when exact and prefix matching fail. */
 function prepareSearchText(value: unknown): SearchText {
-  return { values: collectTextValues(value).map(normalizeSearchText).filter(Boolean) };
+  const key = typeof value === "object" && value != null ? value : null;
+  const prepared = key == null ? undefined : preparedTexts.get(key);
+  if (prepared != null) return prepared;
+  const text = { values: collectTextValues(value).map(normalizeSearchText).filter(Boolean) };
+  if (key != null) preparedTexts.set(key, text);
+  return text;
 }
 
 function scoreSearchDocument<T>(
@@ -171,9 +179,13 @@ function normalizeSearchText(value: string): string {
   return value.toLocaleLowerCase("en").replaceAll(/\s+/g, " ").trim();
 }
 
-/** `*` matches any run of characters and a match must start at a word start: "gpt*mini" → /(^|[^\p{L}\p{N}])gpt.*mini/iu. */
+/**
+ * `*` matches any run of characters and a match must start at a word start: "gpt*mini" → /(^|[^\p{L}\p{N}])gpt(?=(.*?mini))\2/iu, which matches what `gpt.*mini` would.
+ * Each `*` takes the nearest later occurrence of the text after it inside a lookahead, which the engine never re-enters, because chained `.*` retries every split and a query of many `*` in a shared link would freeze the page.
+ */
 function createSearchPattern(value: string): RegExp {
-  const source = value.split("*").map(escapeRegExp).join(".*");
+  const [first, ...rest] = value.split("*").map(escapeRegExp);
+  const source = first + rest.map((part, index) => `(?=(.*?${part}))\\${index + 2}`).join("");
   // Require an ending word boundary only when the query itself ends in a letter or number.
   const endBoundary =
     !value.includes("*") && /[\p{L}\p{N}]$/u.test(value) ? "($|[^\\p{L}\\p{N}])" : "";

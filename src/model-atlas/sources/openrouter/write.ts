@@ -1,14 +1,10 @@
-/** SQLite writer for OpenRouter directory, route, stat-point, series-weight, route-price, and model summary source rows. */
+/** SQLite writer for OpenRouter directory, route, stat-point, series-weight, route-price, and model summary source rows; it alone decides each row's `row_index`, which the match debug trace points at. */
 
 import { asFiniteNumber, asRecord } from "../../runtime";
-import type { DatabaseStatement, DatabaseWriter } from "../../sqlite-utils";
+import type { DatabaseWriter } from "../../sqlite-utils";
 import { SOURCE_URLS } from "../registry";
 import { processOpenRouterModelStats } from "./stats";
-import type {
-  OpenRouterSeriesResponse,
-  OpenRouterSourceModel,
-  OpenRouterSourcePayload,
-} from "./types";
+import type { OpenRouterSeriesResponse, OpenRouterSourcePayload } from "./types";
 
 type OpenRouterPointRow = {
   x: string | null;
@@ -26,7 +22,6 @@ type OpenRouterRawRowKind =
   | "model_stats";
 
 type OpenRouterRawRow = {
-  rowIndex: number;
   fetchedAtEpochSeconds: number | null;
   url: string;
   rowKind: OpenRouterRawRowKind;
@@ -66,188 +61,131 @@ export function insertOpenRouterRawRows(
 			cache_read_price_per_1m, cache_write_price_per_1m
 		) VALUES (${Array.from({ length: 21 }, () => "?").join(", ")})
 	`);
-  let rowIndex = insertDirectoryRows(statement, rawPayload, 0);
-  for (const model of rawPayload.models) {
-    rowIndex = insertPermaslugCandidateRows(
-      statement,
-      model,
-      rawPayload.fetched_at_epoch_seconds,
+  let rowIndex = 0;
+  for (const row of rawRows(rawPayload)) {
+    statement.run(
       rowIndex,
+      row.fetchedAtEpochSeconds,
+      row.url,
+      row.rowKind,
+      row.modelId ?? null,
+      row.slug ?? null,
+      row.permaslug ?? null,
+      row.candidateIndex ?? null,
+      row.selectedPermaslug ?? null,
+      row.metric ?? null,
+      row.x ?? null,
+      row.series ?? null,
+      row.value ?? null,
+      row.seriesTokenWeight ?? null,
+      row.throughput ?? null,
+      row.latency ?? null,
+      row.e2eLatency ?? null,
+      row.inputPrice ?? null,
+      row.outputPrice ?? null,
+      row.cacheReadPrice ?? null,
+      row.cacheWritePrice ?? null,
     );
-    const endpointSummary = model.performance.summary;
+    rowIndex += 1;
+  }
+}
+
+/** The `row_index` the writer gives each model's `model_stats` row, by model id. */
+export function openRouterModelStatsRowIndexes(
+  rawPayload: OpenRouterSourcePayload,
+): Map<string, number> {
+  const indexes = new Map<string, number>();
+  let rowIndex = 0;
+  for (const row of rawRows(rawPayload)) {
+    if (row.rowKind === "model_stats" && row.modelId != null) indexes.set(row.modelId, rowIndex);
+    rowIndex += 1;
+  }
+  return indexes;
+}
+
+/** Every stored row in `row_index` order: the directory, then each model's candidates, endpoint summary, stat points, series weights, route prices, and last its `model_stats` row. */
+function* rawRows(rawPayload: OpenRouterSourcePayload): Generator<OpenRouterRawRow> {
+  const fetchedAtEpochSeconds = rawPayload.fetched_at_epoch_seconds;
+  for (const model of rawPayload.directory) {
+    yield {
+      fetchedAtEpochSeconds,
+      url: SOURCE_URLS.openrouter_models,
+      rowKind: "directory_model",
+      slug: model.slug ?? null,
+      permaslug: model.permaslug ?? null,
+    };
+  }
+  for (const model of rawPayload.models) {
+    const modelRow = {
+      fetchedAtEpochSeconds,
+      url: SOURCE_URLS.openrouter_stats,
+      modelId: model.id,
+    };
+    for (const [candidateIndex, permaslug] of model.candidate_permaslugs.entries()) {
+      yield {
+        ...modelRow,
+        rowKind: "permaslug_candidate",
+        permaslug,
+        candidateIndex,
+        selectedPermaslug: model.selected_permaslug,
+      };
+    }
     if (model.selected_permaslug != null) {
-      insertRawRow(statement, {
-        rowIndex,
-        fetchedAtEpochSeconds: rawPayload.fetched_at_epoch_seconds,
-        url: SOURCE_URLS.openrouter_stats,
+      yield {
+        ...modelRow,
         rowKind: "endpoint_summary",
-        modelId: model.id,
         permaslug: model.selected_permaslug,
         selectedPermaslug: model.selected_permaslug,
-        latency: endpointSummary?.latency_seconds_median,
-      });
-      rowIndex += 1;
+        latency: model.performance.summary?.latency_seconds_median,
+      };
     }
-    rowIndex = insertStatPointRows(statement, model, rawPayload.fetched_at_epoch_seconds, rowIndex);
-    rowIndex = insertSeriesWeightRows(
-      statement,
-      model,
-      rawPayload.fetched_at_epoch_seconds,
-      rowIndex,
-    );
+    for (const metric of ["throughput", "latency", "latency_e2e"] as const) {
+      for (const point of statPointRows(model.performance[metric])) {
+        yield {
+          ...modelRow,
+          rowKind: "stat_point",
+          permaslug: model.selected_permaslug,
+          selectedPermaslug: model.selected_permaslug,
+          metric,
+          x: point.x,
+          series: point.series,
+          value: point.value,
+        };
+      }
+    }
+    // Token weights drift with every fetch, so each series stores its weight once rather than on every daily point, which would rewrite the whole series each refresh.
+    for (const [series, weight] of Object.entries(model.performance.series_token_weights ?? {})) {
+      const tokens = asFiniteNumber(weight);
+      if (tokens == null) continue;
+      yield { ...modelRow, rowKind: "series_weight", series, seriesTokenWeight: tokens };
+    }
     for (const route of model.route_prices) {
-      insertRawRow(statement, {
-        rowIndex,
-        fetchedAtEpochSeconds: rawPayload.fetched_at_epoch_seconds,
-        url: SOURCE_URLS.openrouter_stats,
+      yield {
+        ...modelRow,
         rowKind: "route_price",
-        modelId: model.id,
         series: route.endpoint_id,
         seriesTokenWeight: route.tokens,
         inputPrice: route.input,
         outputPrice: route.output,
         cacheReadPrice: route.cache_read,
         cacheWritePrice: route.cache_write,
-      });
-      rowIndex += 1;
+      };
     }
-    const normalizedStats = processOpenRouterModelStats(
+    const { performance } = processOpenRouterModelStats(
       model.id,
       model.performance,
       model.route_prices,
     );
-    insertRawRow(statement, {
-      rowIndex,
-      fetchedAtEpochSeconds: rawPayload.fetched_at_epoch_seconds,
-      url: SOURCE_URLS.openrouter_stats,
+    yield {
+      ...modelRow,
       rowKind: "model_stats",
-      modelId: model.id,
       permaslug: model.selected_permaslug,
       selectedPermaslug: model.selected_permaslug,
-      throughput: normalizedStats.performance.throughput_tokens_per_second_median,
-      latency: normalizedStats.performance.latency_seconds_median,
-      e2eLatency: normalizedStats.performance.e2e_latency_seconds_median,
-    });
-    rowIndex += 1;
+      throughput: performance.throughput_tokens_per_second_median,
+      latency: performance.latency_seconds_median,
+      e2eLatency: performance.e2e_latency_seconds_median,
+    };
   }
-}
-
-function insertDirectoryRows(
-  statement: DatabaseStatement,
-  rawPayload: OpenRouterSourcePayload,
-  rowIndex: number,
-): number {
-  for (const model of rawPayload.directory) {
-    insertRawRow(statement, {
-      rowIndex,
-      fetchedAtEpochSeconds: rawPayload.fetched_at_epoch_seconds,
-      url: SOURCE_URLS.openrouter_models,
-      rowKind: "directory_model",
-      slug: model.slug ?? null,
-      permaslug: model.permaslug ?? null,
-    });
-    rowIndex += 1;
-  }
-  return rowIndex;
-}
-
-function insertRawRow(statement: DatabaseStatement, row: OpenRouterRawRow): void {
-  statement.run(
-    row.rowIndex,
-    row.fetchedAtEpochSeconds,
-    row.url,
-    row.rowKind,
-    row.modelId ?? null,
-    row.slug ?? null,
-    row.permaslug ?? null,
-    row.candidateIndex ?? null,
-    row.selectedPermaslug ?? null,
-    row.metric ?? null,
-    row.x ?? null,
-    row.series ?? null,
-    row.value ?? null,
-    row.seriesTokenWeight ?? null,
-    row.throughput ?? null,
-    row.latency ?? null,
-    row.e2eLatency ?? null,
-    row.inputPrice ?? null,
-    row.outputPrice ?? null,
-    row.cacheReadPrice ?? null,
-    row.cacheWritePrice ?? null,
-  );
-}
-
-function insertPermaslugCandidateRows(
-  statement: DatabaseStatement,
-  model: OpenRouterSourceModel,
-  fetchedAtEpochSeconds: number,
-  rowIndex: number,
-): number {
-  for (const [candidateIndex, permaslug] of model.candidate_permaslugs.entries()) {
-    insertRawRow(statement, {
-      rowIndex,
-      fetchedAtEpochSeconds,
-      url: SOURCE_URLS.openrouter_stats,
-      rowKind: "permaslug_candidate",
-      modelId: model.id,
-      permaslug,
-      candidateIndex,
-      selectedPermaslug: model.selected_permaslug,
-    });
-    rowIndex += 1;
-  }
-  return rowIndex;
-}
-
-function insertStatPointRows(
-  statement: DatabaseStatement,
-  model: OpenRouterSourceModel,
-  fetchedAtEpochSeconds: number,
-  rowIndex: number,
-): number {
-  for (const metric of ["throughput", "latency", "latency_e2e"] as const) {
-    for (const point of statPointRows(model.performance[metric])) {
-      insertRawRow(statement, {
-        rowIndex,
-        fetchedAtEpochSeconds,
-        url: SOURCE_URLS.openrouter_stats,
-        rowKind: "stat_point",
-        modelId: model.id,
-        permaslug: model.selected_permaslug,
-        selectedPermaslug: model.selected_permaslug,
-        metric,
-        x: point.x,
-        series: point.series,
-        value: point.value,
-      });
-      rowIndex += 1;
-    }
-  }
-  return rowIndex;
-}
-
-/** Token weights drift with every fetch, so each series stores its weight once rather than on every daily point, which would rewrite the whole series each refresh. */
-function insertSeriesWeightRows(
-  statement: DatabaseStatement,
-  model: OpenRouterSourceModel,
-  fetchedAtEpochSeconds: number,
-  rowIndex: number,
-): number {
-  for (const [series, weight] of Object.entries(model.performance.series_token_weights ?? {})) {
-    const tokens = asFiniteNumber(weight);
-    if (tokens == null) continue;
-    insertRawRow(statement, {
-      rowIndex,
-      fetchedAtEpochSeconds,
-      url: SOURCE_URLS.openrouter_stats,
-      rowKind: "series_weight",
-      modelId: model.id,
-      series,
-      seriesTokenWeight: tokens,
-    });
-    rowIndex += 1;
-  }
-  return rowIndex;
 }
 
 function statPointRows(

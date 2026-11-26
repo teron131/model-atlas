@@ -303,7 +303,7 @@ const TableHeaderRow = memo(function TableHeaderRow({
           />
         ))}
       {visibleColumnKeySet.has("evidenceSupport") ? (
-        <th className="confidence-cell" data-column-key="evidenceSupport" scope="col">
+        <th className="evidence-support-cell" data-column-key="evidenceSupport" scope="col">
           <button
             className="header-button"
             type="button"

@@ -6,7 +6,7 @@
 
 import { canonicalReasoningEffort } from "../../identity/normalization";
 import { asRecord, firstString, type JsonObject, nowEpochSeconds } from "../../runtime";
-import { extractNextFlightCorpus, findObjectEnd, parseFlightJsonObject } from "../parsing";
+import { enclosingFlightObjects, extractNextFlightCorpus } from "../parsing";
 import { fetchSourceText } from "../request-scheduler";
 import { artificialAnalysisEvaluationVersion, creatorNameSlug } from "./benchmark-resources";
 import {
@@ -181,20 +181,8 @@ function publishedIntelligenceIndexVersion(flightCorpus: string): string | null 
     hitIndex !== -1;
     hitIndex = flightCorpus.indexOf(hrefText, hitIndex + 1)
   ) {
-    const name = enclosingRecord(flightCorpus, hitIndex)?.name;
-    if (typeof name === "string") return artificialAnalysisEvaluationVersion(name);
-  }
-  return null;
-}
-
-/** The innermost object around `index`: the nearest opening brace before it whose object extends past it. */
-function enclosingRecord(flightCorpus: string, index: number): JsonObject | null {
-  const searchStart = Math.max(0, index - MODEL_SEARCH_BACKTRACK_CHARS);
-  for (let backIndex = index; backIndex >= searchStart; backIndex -= 1) {
-    if (flightCorpus[backIndex] !== "{") continue;
-    const endIndex = findObjectEnd(flightCorpus, backIndex);
-    if (endIndex >= index)
-      return parseFlightJsonObject(flightCorpus.slice(backIndex, endIndex + 1));
+    const [record] = enclosingFlightObjects(flightCorpus, hitIndex, MODEL_SEARCH_BACKTRACK_CHARS);
+    if (typeof record?.name === "string") return artificialAnalysisEvaluationVersion(record.name);
   }
   return null;
 }
@@ -220,20 +208,11 @@ function extractLeaderboardRowsFromCorpus(flightCorpus: string): JsonObject[] {
     }
     cursor = hitIndex + 1;
 
-    const searchStart = Math.max(0, hitIndex - MODEL_SEARCH_BACKTRACK_CHARS);
-    for (let backIndex = hitIndex; backIndex >= searchStart; backIndex -= 1) {
-      if (flightCorpus[backIndex] !== "{") {
-        continue;
-      }
-      const endIndex = findObjectEnd(flightCorpus, backIndex);
-      if (endIndex === -1 || endIndex < hitIndex) {
-        continue;
-      }
-      const candidateRowText = flightCorpus.slice(backIndex, endIndex + 1);
-      const candidateRow = parseFlightJsonObject(candidateRowText);
-      if (!candidateRow) {
-        continue;
-      }
+    for (const candidateRow of enclosingFlightObjects(
+      flightCorpus,
+      hitIndex,
+      MODEL_SEARCH_BACKTRACK_CHARS,
+    )) {
       if (!(ROW_DETECTION_KEY in candidateRow)) {
         continue;
       }

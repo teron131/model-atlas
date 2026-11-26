@@ -234,23 +234,33 @@ function finiteNumber(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
+const searchFields = new WeakMap<
+  ModelAtlasModel,
+  Pick<SearchDocument<unknown>, "primary" | "context">
+>();
+
+/** A model's search fields are built once per model object, so every filter pass and keystroke searches the same prepared text. */
 export function modelSearchDocument<T>(value: T, model: ModelAtlasModel): SearchDocument<T> {
-  return {
-    value,
-    primary: [
-      modelDisplayName(model),
-      modelName(model),
-      shortLabel(model),
-      model.id,
-      model.provider,
-      providerDisplayName(model),
-    ],
-    context: [
-      model.reasoning === true ? "reasoning" : undefined,
-      model.open_weights === true ? "open weights" : undefined,
-      model.release_date,
-      model.modalities?.input?.map((modality) => `${modality} input`),
-      model.modalities?.output?.map((modality) => `${modality} output`),
-    ],
-  };
+  let fields = searchFields.get(model);
+  if (fields == null) {
+    fields = {
+      primary: [
+        modelDisplayName(model),
+        modelName(model),
+        shortLabel(model),
+        model.id,
+        model.provider,
+        providerDisplayName(model),
+      ],
+      context: [
+        model.reasoning === true ? "reasoning" : undefined,
+        model.open_weights === true ? "open weights" : undefined,
+        model.release_date,
+        model.modalities?.input?.map((modality) => `${modality} input`),
+        model.modalities?.output?.map((modality) => `${modality} output`),
+      ],
+    };
+    searchFields.set(model, fields);
+  }
+  return { value, ...fields };
 }

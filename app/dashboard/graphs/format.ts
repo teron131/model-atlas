@@ -1,4 +1,4 @@
-/** Graph formatting keeps axes compact while preserving more precise hover values. */
+/** Graph formatting keeps axes compact while a chart's readout shows more precise values. */
 
 export function finite(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);

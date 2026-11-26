@@ -24,8 +24,8 @@ type StarConnectorSegment = {
  */
 export function starMarkRadius(
   model: Pick<ModelAtlasModel, "scores">,
-  minRadius = 3,
-  maxRadius = 10,
+  minRadius: number,
+  maxRadius: number,
 ): number {
   const mean = meanOfFinite([
     model.scores.intelligence_score,

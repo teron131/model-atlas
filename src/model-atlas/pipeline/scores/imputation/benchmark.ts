@@ -24,12 +24,7 @@ import {
   weightedQuantileRanker,
 } from "../../../math-utils";
 import type { JsonObject } from "../../../runtime";
-import {
-  buildQualityScoringContext,
-  normalizedMetricValue,
-  observedRangesByBenchmark,
-  type QualityScoringContext,
-} from "../quality-context";
+import { normalizedMetricValue, observedRangesByBenchmark } from "../quality-context";
 
 export type BenchmarkImputationByModel = ReadonlyMap<JsonObject, ReadonlyMap<string, number>>;
 
@@ -62,7 +57,6 @@ export type BenchmarkScoringPreparation = {
   imputationFactorsByModel: BenchmarkImputationFactorsByModel;
   imputationByVariant: ReadonlyMap<string, ReadonlyMap<string, number>>;
   imputationFactorsByVariant: ReadonlyMap<string, ReadonlyMap<string, number>>;
-  qualityContext: QualityScoringContext;
 };
 
 type MutableImputationMaps = {
@@ -127,6 +121,7 @@ export function withoutBenchmarkImputationForModels(
   };
 }
 
+/** A direct result counts in full; otherwise the imputed value counts at its evidence factor. Null without a preparation, where only direct results count, and for an imputed value whose factor is not positive. */
 export function benchmarkQualityEvidence(
   model: BenchmarkScoringModel,
   key: string,
@@ -597,7 +592,6 @@ export function prepareBenchmarkScoring(
     models,
     scoringConfig,
   );
-  const qualityContext = buildQualityScoringContext(models, scoringConfig);
   const imputationByVariant = new Map<string, ReadonlyMap<string, number>>();
   const imputationFactorsByVariant = new Map<string, ReadonlyMap<string, number>>();
   for (const model of models) {
@@ -616,6 +610,5 @@ export function prepareBenchmarkScoring(
     imputationFactorsByModel,
     imputationByVariant,
     imputationFactorsByVariant,
-    qualityContext,
   };
 }

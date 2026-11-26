@@ -10,7 +10,7 @@ import { MAX_NORMALIZED_IMPUTATION_ERROR, STAGE_CONFIG } from "../config/stage";
 import { effectiveCount, weightedMeanOfFinite, weightedMedianOfFinite } from "../math-utils";
 import { isInformativeValue } from "./benchmark-evidence";
 import { MINIMUM_TIMELINE_TASKS } from "./coverage";
-import { timelineInformation, timelineNativeValue } from "./linking";
+import { timelineNativeValue } from "./linking";
 import { historicalVersionSeries } from "./model-identity";
 import {
   catalogBenchmarkKey,
@@ -120,7 +120,6 @@ export function calibrateTimeline(
                     definition.representedBenchmarks ??
                     (indexPolicy(indexKey) ? null : definition.componentIds?.length),
                 ),
-                information: timelineInformation(definition, o.value),
               },
             ]
           : [];
@@ -166,11 +165,7 @@ export function calibrateTimeline(
     // Fixed positive weights keep a better result from ever lowering the position.
     const value = weightedMeanOfFinite(parts);
     const supportRamp = taskCount / (taskCount + MINIMUM_TIMELINE_TASKS);
-    const effective =
-      possibleWeight > 0
-        ? (supportRamp * tasks.reduce((sum, p) => sum + p.weight * p.information, 0)) /
-          possibleWeight
-        : 0;
+    const effective = possibleWeight > 0 ? (supportRamp * observedWeight) / possibleWeight : 0;
     const benchmarkSupport = { observed: tasks.length, inferred: 0, direct, effective };
     const saturated = observed.filter((o) => {
       const definition = definitions.get(o.benchmarkId);

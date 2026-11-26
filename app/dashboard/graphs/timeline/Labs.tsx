@@ -1,46 +1,37 @@
 "use client";
 
-/** Labs, beneath the Timeline, set on Lookback's row grid: the leading labs ranked by their strongest supported model released by the window's end, each row the lab's strongest models as stars on one Intelligence Index scale, the leader named at its star. Rows also steer the Timeline: the pointer points at a row's nearest star, which drops a dashed guide reading its index on the axis and is named with its score, while the chart draws its lab and its readout follows; pressing picks that model, and a focused row points at its leader. */
+/** Labs, beneath the Timeline, set on the row grid it shares with Lookback: the leading labs ranked by their strongest supported model released by the window's end, each row the lab's strongest models as stars on one Intelligence Index scale, the leader named at its star. Rows also steer the Timeline: the pointer points at a row's nearest star, which drops a dashed guide reading its index on the axis and is named with its score, while the chart draws its lab and its readout follows; pressing picks that model, and a focused row points at its leader. */
 
 import { scaleLinear } from "d3-scale";
-import { type MouseEvent, useMemo, useState } from "react";
+import { memo, type MouseEvent, useMemo, useState } from "react";
 
 import { providerChartColor, providerDisplayName } from "../../shared/provider-theme";
 import { pointerPosition, XAxisGuides } from "../plot/Interaction";
 import {
   type AxisReadingAt,
+  CHART_WIDTH,
   monoWidth,
-  noteBox,
   plotBoundsFor,
-  rowChartRows,
-  RowLabel,
-  rowTextBoxes,
   StarMark,
-  Trail,
   XAxisTicks,
 } from "../plot/Primitives";
+import { noteBox, rowChartRows, RowLabel, rowTextBoxes, Trail } from "../plot/RowChart";
 import { MUTED_STAR_GLOW, type SkyPlotStar } from "../plot/sky-renderer";
 import { SkyFigure } from "../plot/SkyFigure";
 import { useChartLayout } from "../use-chart-layout";
 import type { TimelinePoint } from "./chart-data";
-import {
-  LAB_MINIMUM_MODELS,
-  LEADING_LAB_COUNT,
-  leadingLabs,
-  RECORD_MINIMUM_SUPPORT,
-} from "./frontier";
+import { hasRecordSupport, LAB_MINIMUM_MODELS, LEADING_LAB_COUNT, leadingLabs } from "./frontier";
 
 import graphs from "../graphs.module.css";
 import timeline from "./timeline.module.css";
 
 // Each lab's row shows its strongest few models, enough to read the depth behind its leader without reaching back through its history.
 const MODELS_PER_LAB = 5;
-const ROW_HEIGHT = 28;
 
 type LabRow = { leader: TimelinePoint; models: TimelinePoint[] };
 
 /** `points` are the Timeline's population, its organization filter applied, and `end` its window's end in epoch ms; `focusLab` is the lab the chart draws, whose row stays lit while the others quiet; `pickedId` is the Timeline's picked model, which a row holds pointed while it lists it. */
-export function TimelineLabs({
+export const TimelineLabs = memo(function TimelineLabs({
   points,
   end,
   focusLab,
@@ -55,14 +46,14 @@ export function TimelineLabs({
   onPoint: (model: TimelinePoint | null) => void;
   onPick: (model: TimelinePoint) => void;
 }) {
-  const layout = useChartLayout(1120);
+  const layout = useChartLayout(CHART_WIDTH);
   const [hovered, setHovered] = useState<string | null>(null);
   const [focusedRow, setFocusedRow] = useState<number | null>(null);
   const labRows = useMemo(() => rankLabs(points, end), [points, end]);
   if (labRows.length === 0) return null;
 
   const { width, compact } = layout;
-  const { margin, rowHeight, rowTop, markY, textY } = rowChartRows(width, compact, ROW_HEIGHT);
+  const { margin, rowHeight, rowTop, markY, textY } = rowChartRows(width, compact);
   const height = margin.top + labRows.length * rowHeight + margin.bottom;
   const bounds = plotBoundsFor(width, height, margin);
   // Every row reads one index scale, spanning the listed labs' models, so the rows compare as the chart's y-axis does.
@@ -257,17 +248,12 @@ export function TimelineLabs({
       </SkyFigure>
     </div>
   );
-}
+});
 
 /** The leading labs ranked by their strongest model released by `end` with the evidence support a record needs, each with its strongest such models, strongest first. */
 function rankLabs(points: TimelinePoint[], end: number): LabRow[] {
   const supported = points
-    .filter(
-      (point) =>
-        Date.parse(point.releaseDate) <= end &&
-        point.coverage != null &&
-        point.coverage >= RECORD_MINIMUM_SUPPORT,
-    )
+    .filter((point) => Date.parse(point.releaseDate) <= end && hasRecordSupport(point))
     .sort((a, b) => b.score - a.score || a.releaseDate.localeCompare(b.releaseDate));
   return leadingLabs(points)
     .flatMap((lab) => {

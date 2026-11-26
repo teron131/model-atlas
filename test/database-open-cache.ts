@@ -292,7 +292,7 @@ try {
       .prepare(`SELECT object_type, object_name FROM ${SCHEMA_MANIFEST_TABLE}`)
       .all() as SchemaManifestRow[];
     assert.deepEqual(
-      schemaReconciliationPlan(schemaSql, reconciledCatalog, reconciledManifest).statements,
+      schemaReconciliationPlan(schemaSql, reconciledCatalog, reconciledManifest),
       [],
       "A reconciled schema should not produce repeated DDL operations",
     );

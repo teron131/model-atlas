@@ -9,19 +9,36 @@ export const BENCHMARK_RESOURCE_SOURCE_LABELS = {
   },
 } as const;
 
-export type BenchmarkResourceSource = "source_a" | "source_b" | "source_c";
+export const BENCHMARK_RESOURCE_SOURCES = ["source_a", "source_b", "source_c"] as const;
+
+export type BenchmarkResourceSource = (typeof BENCHMARK_RESOURCE_SOURCES)[number];
+
+/** The per-task amounts a combined row carries, each with a `fusion_<field>_comparable` flag in the row's metadata. */
+export const COMBINED_RESOURCE_FIELDS = [
+  "cost",
+  "seconds_per_task",
+  "tokens_per_task",
+  "output_tokens_per_task",
+] as const;
+
+export type CombinedResourceField = (typeof COMBINED_RESOURCE_FIELDS)[number];
 
 /**
  * Read source slots declared by a combined row, including a source whose score is currently missing.
- * A slot is the 8-character prefix of a `source_x_label` or `source_x_score` field: `{ source_b_score, source_a_label, model }` → `["source_a", "source_b"]`.
+ * A slot counts when its `_label` or `_score` field exists, in slot order: `{ source_b_score, source_a_label, model }` → `["source_a", "source_b"]`.
  */
 export function resourceSourcesFromMetadata(
   metadata: Record<string, unknown>,
 ): BenchmarkResourceSource[] {
-  const sources = Object.keys(metadata)
-    .filter((field) => /^(source_a|source_b|source_c)_(label|score)$/.test(field))
-    .map((field) => field.slice(0, 8) as BenchmarkResourceSource);
-  return [...new Set(sources)].sort();
+  return BENCHMARK_RESOURCE_SOURCES.filter(
+    (source) =>
+      Object.hasOwn(metadata, `${source}_label`) || Object.hasOwn(metadata, `${source}_score`),
+  );
+}
+
+/** A combined row splits back into its sources when any of its resource amounts is marked not comparable across them. */
+export function hasSeparatedResources(metadata: Record<string, unknown>): boolean {
+  return COMBINED_RESOURCE_FIELDS.some((field) => metadata[`fusion_${field}_comparable`] === false);
 }
 
 export function resourceSourceMetricKey(key: string, source: BenchmarkResourceSource): string {

@@ -271,7 +271,7 @@ export type BenchmarkKey = keyof typeof BENCHMARK_SCORING_WEIGHTS & string;
 
 export type TaskBenchmarkKey = Exclude<BenchmarkKey, (typeof INDEX_BENCHMARK_KEYS)[number]>;
 
-export type BenchmarkResourceProfile = {
+type BenchmarkResourceProfile = {
   taskRunCount: number;
 };
 

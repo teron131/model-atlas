@@ -3,36 +3,30 @@
 /** Lookback, beneath Labs under the Timeline: for the strongest models of the labs the Timeline shows, and any its find field locates, the newest frontier record each one surpasses and how long before its release that record was set, drawn from the record's release to the model's own; rows that surpass the same record share one stem at its release, which names the record once. */
 
 import { scaleUtc } from "d3-scale";
-import { useState } from "react";
+import { memo, useMemo, useState } from "react";
 
 import { providerChartColor, providerLogo } from "../../shared/provider-theme";
-import { TOP_MODELS } from "../chart-data";
+import { topAndFound } from "../chart-data";
 import { foundModelsPhrase, lastLocated } from "../ChartFind";
 import { ChartReadout, type ReadoutEntry } from "../ChartReadout";
 import { usePick, XAxisGuides } from "../plot/Interaction";
 import {
   axisTextsOverlap,
+  CHART_WIDTH,
   monoWidth,
-  noteBox,
   plotBoundsFor,
-  rowChartRows,
-  RowLabel,
-  rowTextBoxes,
   StarMark,
-  Trail,
   XAxisTicks,
 } from "../plot/Primitives";
+import { noteBox, rowChartRows, RowLabel, rowTextBoxes, Trail } from "../plot/RowChart";
 import { MUTED_STAR_GLOW, type SkyPlotStar } from "../plot/sky-renderer";
 import { SkyFigure } from "../plot/SkyFigure";
 import { useChartLayout } from "../use-chart-layout";
-import type { TimelinePoint } from "./chart-data";
+import { DATE_FORMAT, DAY_MS, type TimelinePoint } from "./chart-data";
 import { coverageFrontier } from "./frontier";
 
 import graphs from "../graphs.module.css";
 import timeline from "./timeline.module.css";
-
-const DAY_MS = 86_400_000;
-const ROW_HEIGHT = 28;
 
 type Lookback = {
   point: TimelinePoint;
@@ -45,7 +39,7 @@ type Anchor = "start" | "middle" | "end";
 type Run = { record: TimelinePoint; first: number; last: number; own: boolean };
 
 /** `points` are the Timeline's population, its organization filter applied; `located` and `matches` are its find field's located models and the models its query names, `null` without a query. */
-export function TimelineLookback({
+export const TimelineLookback = memo(function TimelineLookback({
   points,
   located,
   matches,
@@ -56,28 +50,31 @@ export function TimelineLookback({
 }) {
   const [hovered, setHovered] = useState<string | null>(null);
   const [picked, setPicked] = usePick<string>();
-  const layout = useChartLayout(1120);
+  const layout = useChartLayout(CHART_WIDTH);
   const { width, compact } = layout;
-  // Records need the Timeline's evidence support, so they are the Timeline's own frontier.
-  const records = coverageFrontier(points);
-  const matchedRecord = (point: TimelinePoint) =>
-    records
-      .filter((record) => record.releaseDate <= point.releaseDate && record.score <= point.score)
-      .at(-1);
-  // A model under the first record surpasses none, so it has no place here even when the find field locates it.
-  const placeable = points.filter((point) => matchedRecord(point) != null);
-  const strongest = [...placeable].sort((a, b) => b.score - a.score).slice(0, TOP_MODELS);
-  const found = placeable.filter((point) => located.has(point.id) && !strongest.includes(point));
-  const lookbacks: Lookback[] = [...strongest, ...found]
-    .sort((a, b) => b.score - a.score)
-    .map((point) => {
+  const { strongest, found, lookbacks } = useMemo(() => {
+    // Records need the Timeline's evidence support, so they are the Timeline's own frontier.
+    const records = coverageFrontier(points);
+    const matchedRecord = (point: TimelinePoint) =>
+      records
+        .filter((record) => record.releaseDate <= point.releaseDate && record.score <= point.score)
+        .at(-1);
+    // A model under the first record surpasses none, so it has no place here even when the find field locates it.
+    const placeable = points.filter((point) => matchedRecord(point) != null);
+    const { top: strongest, found } = topAndFound(
+      [...placeable].sort((a, b) => b.score - a.score),
+      (point) => located.has(point.id),
+    );
+    const lookbacks: Lookback[] = [...strongest, ...found].map((point) => {
       const matched = matchedRecord(point)!;
       return { point, matched, days: Math.round((released(point) - released(matched)) / DAY_MS) };
     });
+    return { strongest, found, lookbacks };
+  }, [points, located]);
   if (lookbacks.length === 0) return null;
   const foundPhrase = foundModelsPhrase(found.length);
 
-  const { margin, rowHeight, rowTop, markY, textY } = rowChartRows(width, compact, ROW_HEIGHT);
+  const { margin, rowHeight, rowTop, markY, textY } = rowChartRows(width, compact);
   const height = margin.top + lookbacks.length * rowHeight + margin.bottom;
   const bounds = plotBoundsFor(width, height, margin);
   const first = Math.min(...lookbacks.map(({ matched }) => released(matched)));
@@ -248,7 +245,7 @@ export function TimelineLookback({
               return foot === run.first ? null : (
                 <line
                   key={`${run.record.id}:${run.first}`}
-                  className={graphs.recordStem}
+                  className={timeline.recordStem}
                   stroke={providerChartColor(run.record.provider)}
                   opacity={runQuiet(run) ? 0.35 : 1}
                   x1={at(run.record)}
@@ -371,7 +368,7 @@ export function TimelineLookback({
       </SkyFigure>
     </div>
   );
-}
+});
 
 function released(point: TimelinePoint): number {
   return Date.parse(point.releaseDate);
@@ -434,7 +431,7 @@ function lookbackEntry({ point, matched, days }: Lookback): ReadoutEntry {
     // One sentence from the name: "GPT-6.2 Sol 194.8 was released 77 days after Claude Fable 5.1 192.5".
     facts: [
       matched === point
-        ? `${point.score.toFixed(1)} set the frontier on ${formatDate(point.releaseDate)}`
+        ? `${point.score.toFixed(1)} set the frontier on ${DATE_FORMAT.format(new Date(point.releaseDate))}`
         : {
             before: `${point.score.toFixed(1)} was released ${dayCount(days)} after`,
             model: { name: matched.name, logo: providerLogo(matched.provider) },
@@ -451,13 +448,4 @@ function daysAfter({ point, matched, days }: Lookback): string {
 
 function dayCount(days: number): string {
   return days === 1 ? "1 day" : `${days} days`;
-}
-
-function formatDate(date: string): string {
-  return new Date(date).toLocaleDateString("en", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    timeZone: "UTC",
-  });
 }

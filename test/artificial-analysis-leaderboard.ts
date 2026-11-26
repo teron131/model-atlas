@@ -7,10 +7,7 @@ import type { AddressInfo } from "node:net";
 import { gzipSync } from "node:zlib";
 
 import { ARTIFICIAL_ANALYSIS_INDEX_COMPONENTS } from "../src/model-atlas/benchmarks/index-policy";
-import {
-  buildBenchmarkImputationByModel,
-  buildComponentScoreResult,
-} from "../src/model-atlas/pipeline/scores";
+import { buildComponentScoreResult } from "../src/model-atlas/pipeline/scores";
 import { buildQualityScoringContext } from "../src/model-atlas/pipeline/scores/quality-context";
 import { processAa3dRows } from "../src/model-atlas/sources/artificial-analysis/aa-3d";
 import {
@@ -354,13 +351,11 @@ const scoringConfig = {
   pairwiseIntelligenceWeight: 0,
   intelligenceGroupWeights: { frontier: 0.8, baseline: 0.2 },
 } as const;
-const imputationByModel = buildBenchmarkImputationByModel(scoringRows, scoringConfig);
 const qualityScoringContext = buildQualityScoringContext(scoringRows, scoringConfig);
 const componentScoresWithMissingApex = buildComponentScoreResult(
   scoringRows[3] ?? {},
   scoringConfig,
   qualityScoringContext,
-  imputationByModel.get(scoringRows[3] ?? {}),
 ).componentScores;
 assert.ok(
   componentScoresWithMissingApex?.agentic_score != null &&
