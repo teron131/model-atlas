@@ -21,6 +21,12 @@ const BENCHMARK_PER_TASK_RESOURCE = {
   tokenMeasure: "tokens",
 } as const satisfies BenchmarkResourcePolicy;
 
+const BENCHMARK_OUTPUT_PER_TASK_RESOURCE = {
+  source: "benchmark",
+  unit: "per_task",
+  tokenMeasure: "output_tokens",
+} as const satisfies BenchmarkResourcePolicy;
+
 export const BENCHMARK_SCORING_WEIGHTS = {
   aa_3d: {
     group: "frontier",
@@ -152,6 +158,10 @@ export const BENCHMARK_SCORING_WEIGHTS = {
   gdpval_normalized: {
     group: "frontier",
     dimensionLoadings: { intelligence: 0.75, agentic: 0.25 },
+  },
+  gdpx: {
+    group: "frontier",
+    dimensionLoadings: { intelligence: 0.5, agentic: 0.5 },
   },
   handbook_md: {
     group: "frontier",
@@ -288,6 +298,7 @@ export const BENCHMARK_RESOURCE_POLICIES = {
   finance_agent: BENCHMARK_PER_TASK_RESOURCE,
   frontier_code: BENCHMARK_PER_TASK_RESOURCE,
   gdpval_normalized: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
+  gdpx: BENCHMARK_OUTPUT_PER_TASK_RESOURCE,
   hle: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
   mlcr_aa: ARTIFICIAL_ANALYSIS_OUTPUT_PER_TASK_RESOURCE,
   mysterymechanism: BENCHMARK_PER_TASK_RESOURCE,

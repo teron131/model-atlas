@@ -300,6 +300,16 @@ export const BENCHMARK_TOOLTIPS = {
       ["Role", "real work completion"],
     ],
   },
+  gdpx: {
+    version: "1.0",
+    body: "Complete long expert tasks in real professional software across 11 domains, from chip design and CAD to deal modeling and live security systems.",
+    rows: [
+      ["Source", "SemiAnalysis"],
+      ["Metric", "mean of 11 equally weighted domains; three attempts per task"],
+      ["Harness", "each lab's own agent; model-plus-agent evidence"],
+      ["Role", "long-horizon expert work"],
+    ],
+  },
   handbook_md: {
     body: "Follow long company handbooks to complete enterprise tasks using internal tools and external MCP servers.",
     rows: [
@@ -568,6 +578,7 @@ export const BENCHMARK_LABELS = {
   gdp_pdf: "GDP.pdf",
   gdp_xlsx: "GDP.xlsx",
   gdpval_normalized: "GDPval-AA",
+  gdpx: "GDPx",
   handbook_md: "HANDBOOK.md",
   hemingway_bench: "Hemingway-bench",
   hle: "HLE-Diamond",
@@ -1472,6 +1483,11 @@ export const BENCHMARK_COLUMNS = {
   gdpval_normalized: {
     key: "gdpval",
     label: "GDPval",
+    format: "percent",
+  },
+  gdpx: {
+    key: "gdpx",
+    label: "GDPx",
     format: "percent",
   },
   handbook_md: {

@@ -25,6 +25,7 @@ import {
   getEpochBenchmarkStats,
   getEpochExternalBenchmarkStats,
 } from "../epoch/results";
+import { getGdpxStats } from "../gdpx";
 import { getMercorStats, mercorCacheMatches } from "../mercor/results";
 import { sourceRowKey } from "../snapshots/policy";
 import { fetchRowsOrNone, harnessDistinguishesRuns } from "../snapshots/row-snapshot";
@@ -147,6 +148,8 @@ function loaderSource(binding: BenchmarkObservationBinding): ObservationSource {
         fetchRows: () => getEpochBenchmarkStats(binding.benchmark, loader.task, loader.eligibility),
         acceptsCache: (rows) => epochBenchmarkCacheMatches(rows, loader.task, loader.eligibility),
       };
+    case "gdpx":
+      return { fetchRows: () => getGdpxStats(loader.sourceUrl) };
     case "mercor":
       return {
         fetchRows: () => getMercorStats(binding.benchmark, loader),

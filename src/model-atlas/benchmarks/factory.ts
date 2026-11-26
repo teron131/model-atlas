@@ -52,6 +52,7 @@ export type BenchmarkObservationLoader =
       task: string;
       eligibility?: EpochRunEligibility;
     }
+  | { kind: "gdpx"; sourceUrl: string }
   | {
       kind: "mercor";
       sourceUrl: string;

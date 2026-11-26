@@ -275,6 +275,17 @@ export const BENCHMARK_STANDARD_SOURCES = {
     sourceDataKey: "gdpXlsx",
     sourceRowsKey: "gdpXlsxRows",
   },
+  gdpx: {
+    group: "standalone",
+    id: "semianalysis",
+    roles: ["observation", "resource"],
+    loader: {
+      kind: "gdpx",
+      sourceUrl: "https://gdpx.semianalysis.com",
+    },
+    sourceDataKey: "gdpx",
+    sourceRowsKey: "gdpxRows",
+  },
   handbook_md: {
     group: "surge",
     id: "surge",

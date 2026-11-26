@@ -273,6 +273,7 @@ const lookups = {
     rowsByModelName: emptyLookup(),
   },
   gdpXlsx: { rowsByModelName: emptyLookup() },
+  gdpx: { rowsByModelName: emptyLookup() },
   handbookMd: { rowsByModelName: new Map() },
   hemingwayBench: { rowsByModelName: emptyLookup() },
   intphys2: { rowsByModelName: emptyLookup() },

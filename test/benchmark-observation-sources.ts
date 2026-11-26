@@ -21,6 +21,7 @@ import {
   epochBenchmarkObservationRows,
 } from "../src/model-atlas/sources/epoch/results";
 import { processEpochWeirdMlCsv } from "../src/model-atlas/sources/epoch/weirdml";
+import { processGdpxBundle } from "../src/model-atlas/sources/gdpx";
 import {
   insertBenchmarkObservationRows,
   readBenchmarkObservationRawCache,
@@ -252,6 +253,121 @@ assert.equal(
 );
 assert.equal(automationBenchRows[0]?.metadata.benchmark_version, "1.0.6");
 assert.equal(automationBenchRows[1]?.metadata.cost_annotation, "†");
+
+const gdpxResult = (modelId: string, partnerId: string, score: number, tasksScored = 10) => ({
+  modelId,
+  partnerId,
+  tasksScored,
+  score,
+});
+const gdpxModule = {
+  models: [
+    {
+      id: "gpt-6-2-astra",
+      name: "GPT 6.2 Astra",
+      lab: "OpenAI",
+      harness: "Codex",
+      reasoning: "Max",
+    },
+    {
+      id: "deepseek-4-1-flash",
+      name: "DeepSeek 4.1 Flash 1017",
+      lab: "DeepSeek",
+      harness: "DeepSeek's Harness",
+      reasoning: "Highest",
+    },
+    {
+      id: "ho1",
+      name: "HO1",
+      lab: "Hinoki",
+      harness: "Claude Code",
+      reasoning: "Default",
+      specialist: "legal",
+    },
+    { id: "glm-5-3", name: "GLM 5.3", lab: "Z.ai", harness: "ZCode", reasoning: "Max" },
+  ],
+  overall: {
+    "gpt-6-2-astra": { costPerTask: 46.76, tokensPerTask: 315697 },
+    "deepseek-4-1-flash": { costPerTask: null, tokensPerTask: 254486 },
+  },
+  results: [
+    gdpxResult("gpt-6-2-astra", "aria", 30),
+    gdpxResult("gpt-6-2-astra", "arcverex", 10),
+    gdpxResult("gpt-6-2-astra", "chakra", 40),
+    gdpxResult("deepseek-4-1-flash", "aria", 10),
+    gdpxResult("deepseek-4-1-flash", "arcverex", 99, 0),
+    gdpxResult("deepseek-4-1-flash", "chakra", 4),
+    gdpxResult("ho1", "chakra", 50),
+    gdpxResult("glm-5-3", "chakra", 50),
+  ],
+};
+const gdpxBundle = (module: object) =>
+  [
+    'let t=[{slug:"chip-design",name:"Chip Design",shortName:"Chip",summary:"RTL"},{slug:"legal",name:"Legal",shortName:"Legal",summary:"Redlines"}];',
+    'o=[q("aria","Aria","chip-design","/partners/aria.png"),q("arcverex","Arcverex","chip-design"),q("chakra","Chakra","legal")];',
+    `t.exports=JSON.parse('${JSON.stringify(module).replaceAll("'", "\\'")}')`,
+  ].join("");
+const gdpxRows = processGdpxBundle(gdpxBundle(gdpxModule), "1.0", "https://gdpx.semianalysis.com");
+assert.deepEqual(
+  gdpxRows.map(({ model, reasoning_effort, rank, canonical_value, cost, metadata }) => ({
+    model,
+    reasoning_effort,
+    rank,
+    canonical_value,
+    cost,
+    metadata,
+  })),
+  [
+    {
+      model: "GPT 6.2 Astra (max)",
+      reasoning_effort: "max",
+      rank: 1,
+      canonical_value: 0.3,
+      cost: 46.76,
+      metadata: { benchmark_version: "1.0", harness: "Codex", output_tokens_per_task: 315697 },
+    },
+    {
+      model: "DeepSeek 4.1 Flash 1017",
+      reasoning_effort: null,
+      rank: 2,
+      canonical_value: 0.07,
+      cost: undefined,
+      metadata: {
+        benchmark_version: "1.0",
+        harness: "DeepSeek's Harness",
+        output_tokens_per_task: 254486,
+      },
+    },
+  ],
+  "Partners average within their domain and domains count equally; unscored results, domain specialists, and models missing a domain are left out",
+);
+assert.equal(
+  findBenchmarkObservation(["GPT-6.2 Astra"], "max", buildBenchmarkObservationLookup(gdpxRows))
+    ?.canonical_value,
+  0.3,
+  "A space where Atlas has a hyphen still names the same model",
+);
+assert.equal(
+  findBenchmarkObservation(
+    ["DeepSeek V4.1 Flash", "deepseek/deepseek-v4.1-flash-1017"],
+    "max",
+    buildBenchmarkObservationLookup(gdpxRows),
+  )?.canonical_value,
+  0.07,
+  "A DeepSeek version without its V names the same release, and a Highest row stands for the model's top effort",
+);
+assert.deepEqual(
+  processGdpxBundle(
+    gdpxBundle({
+      ...gdpxModule,
+      results: [...gdpxModule.results, gdpxResult("gpt-6-2-astra", "fleet", 80)],
+    }),
+    "1.0",
+    "https://gdpx.semianalysis.com",
+  ),
+  [],
+  "A partner outside the domain list changes the basket, so the bundle yields no rows",
+);
 
 const conflictingModelIdLookup = buildBenchmarkObservationLookup([
   {

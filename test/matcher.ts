@@ -1311,6 +1311,7 @@ function modelStatsSourceData(
       rowsByModelName: buildBenchmarkObservationLookup(gdpPdfRows),
     },
     gdpXlsx: { rows: [], rowsByModelName: new Map() },
+    gdpx: { rows: [], rowsByModelName: new Map() },
     handbookMd: { rows: [], rowsByModelName: new Map() },
     hemingwayBench: { rows: [], rowsByModelName: new Map() },
     intphys2: { rows: [], rowsByModelName: new Map() },

@@ -454,6 +454,23 @@ export const BENCHMARK_PROFILES: Record<TaskBenchmarkKey, BenchmarkProfile> = {
       "https://arxiv.org/abs/2510.04374v1",
     ],
   },
+  gdpx: {
+    given:
+      "a task brief and working folder from one of 14 specialist partners, e.g. a colleague's half-finished quality-of-earnings workbook inside a 4,000-file deal data room, a routed RISC-V core whose timing must improve with at most 104 cells changed, a live enterprise system reached from a low-privilege account, or raw binding assays on twelve antibody variants.",
+    produces:
+      "the domain's deliverable: marked-up workbooks, slides, and memos; RTL, testbenches, and engineering change orders; CAD assemblies, toolpaths, and PCB layouts; exploits, reports, and fixes; contract redlines; code patches; trading strategies; or analyses of experimental data.",
+    taskMix:
+      "206 tasks across 11 domains: chip design (34 tasks from three partners), cybersecurity (18), biology (13), finance (24), legal (20), quant trading (10), ML research engineering (10), hardware design (21), materials science (23 from two partners), alignment (18), and software engineering (15); one public task per partner, the rest private.",
+    environment:
+      "a sandbox with the domain's software, such as OpenROAD and Cadence flows, SolidWorks, Siemens NX, KiCad, Vivado, simulated lab instruments, or live multi-service systems; each model runs in its lab's own agent (Claude Code, Codex, Antigravity, and others; OpenCode otherwise) at one reasoning effort; up to 8 hours of wall-clock time per task.",
+    gradedBy:
+      "each domain's own checks: outcomes verified in live systems, simulation, synthesis and sign-off, held-out trading P&L, and test suites, with LLM judges against expert rubrics in finance, legal, and parts of hardware; binary or partial credit as each task intends; the mean of three attempts per task, averaged within each partner, then each domain, then across domains with equal weight.",
+    sources: [
+      "https://gdpx.semianalysis.com",
+      "https://gdpx.semianalysis.com/rollouts",
+      "https://newsletter.semianalysis.com/p/gdpx-measuring-frontier-model-capabilities",
+    ],
+  },
   handbook_md: {
     given:
       "a company rulebook of 20 to 124 pages (Markdown handbook) and a task inside a self-contained simulated company workspace.",

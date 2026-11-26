@@ -36,6 +36,7 @@ export const BENCHMARK_DOMAIN_SHARES = {
   gdp_pdf: { documents: 69, vision: 31 },
   gdp_xlsx: { documents: 64, tool_use: 24, finance: 12 },
   gdpval_normalized: { documents: 44, tool_use: 26, writing: 17, research: 13 },
+  gdpx: { coding: 26, tool_use: 24, finance: 15, science: 14, legal: 11, documents: 10 },
   handbook_md: { tool_use: 100 },
   hemingway_bench: { writing: 100 },
   hle: { knowledge: 36, math: 25, science: 22, vision: 17 },

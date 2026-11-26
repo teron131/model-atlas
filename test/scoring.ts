@@ -211,6 +211,7 @@ assert.deepEqual(
     "finance_agent",
     "frontier_code",
     "gdpval_normalized",
+    "gdpx",
     "hle",
     "mlcr_aa",
     "mysterymechanism",
