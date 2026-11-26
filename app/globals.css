@@ -1888,6 +1888,30 @@ html[data-model-atlas-theme="light"] .blend-mix {
   vertical-align: 1px;
 }
 
+/* Pointing a share's segment or its legend entry lights the pair and dims the rest, as the graphs dim what is not pointed; a segment answers the pointer a few pixels above and below its thin bar. */
+.benchmark-tooltip-bar > span {
+  position: relative;
+}
+
+.benchmark-tooltip-bar > span::before {
+  position: absolute;
+  inset: -5px 0;
+  content: "";
+}
+
+:is(.benchmark-tooltip-bar, .benchmark-tooltip-bar-labels, .column-weights-legend) > * {
+  transition: opacity 160ms ease;
+}
+
+:is(.benchmark-tooltip-bar, .benchmark-tooltip-bar-labels, .column-weights-legend)
+  > [data-state="dim"] {
+  opacity: 0.22;
+}
+
+.column-weights-legend > [data-state="lit"] > :not(.column-weights-chip) {
+  color: var(--ink);
+}
+
 .benchmark-tooltip-leaders {
   padding-top: 12px;
   border-top: 1px solid var(--line);

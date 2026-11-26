@@ -1,8 +1,8 @@
-/** Draws a benchmark column's header tooltip: the benchmark, its Atlas weights, its domain shares, its coverage in view, and its leaders as stars on a scale zoomed from the whole field. */
+/** Draws a benchmark column's header tooltip: the benchmark, its Atlas weights, its domain shares, its coverage in view, and its leaders as stars on the benchmark's whole observed range above every result in view. */
 
 import { type CSSProperties, useId } from "react";
 
-import { DomainShareBar } from "../../shared/DomainShares";
+import { DomainShareBar, usePointedShare } from "../../shared/ShareBar";
 import type { BenchmarkTooltipFacts, BenchmarkTooltipLeaders } from "./tooltips";
 
 const insetWidth = 332;
@@ -54,28 +54,7 @@ export function BenchmarkTooltipBody({
         </p>
       )}
       <div className="column-tooltip-rule" />
-      {weights != null && (
-        <div className="benchmark-tooltip-block">
-          {/* A benchmark with no direct score weight says so in words, which an empty bar would only obscure. */}
-          {weights.intelligence + weights.agentic === 0 ? (
-            <BlockLabel label="Weights" value="none" />
-          ) : (
-            <>
-              <BlockLabel label="Weights" />
-              <div className="benchmark-tooltip-bar">
-                <span data-dimension="intelligence" style={{ flexGrow: weights.intelligence }} />
-                <span data-dimension="agentic" style={{ flexGrow: weights.agentic }} />
-              </div>
-              <div className="benchmark-tooltip-bar-labels">
-                <span data-dimension="intelligence">
-                  Intelligence {percent(weights.intelligence)}
-                </span>
-                <span data-dimension="agentic">Agentic {percent(weights.agentic)}</span>
-              </div>
-            </>
-          )}
-        </div>
-      )}
+      {weights != null && <WeightsBlock weights={weights} />}
       {domains.length > 0 && (
         <div className="benchmark-tooltip-block">
           <BlockLabel label="Domains" />
@@ -102,6 +81,44 @@ export function BenchmarkTooltipBody({
   );
 }
 
+const dimensions = [
+  { key: "intelligence", name: "Intelligence" },
+  { key: "agentic", name: "Agentic" },
+] as const;
+
+function WeightsBlock({ weights }: { weights: NonNullable<BenchmarkTooltipFacts["weights"]> }) {
+  const pointable = usePointedShare<(typeof dimensions)[number]["key"]>();
+  return (
+    <div className="benchmark-tooltip-block">
+      {/* A benchmark with no direct score weight says so in words, which an empty bar would only obscure. */}
+      {weights.intelligence + weights.agentic === 0 ? (
+        <BlockLabel label="Weights" value="none" />
+      ) : (
+        <>
+          <BlockLabel label="Weights" />
+          <div className="benchmark-tooltip-bar">
+            {dimensions.map(({ key }) => (
+              <span
+                key={key}
+                data-dimension={key}
+                style={{ flexGrow: weights[key] }}
+                {...pointable(key)}
+              />
+            ))}
+          </div>
+          <div className="benchmark-tooltip-bar-labels">
+            {dimensions.map(({ key, name }) => (
+              <span key={key} data-dimension={key} {...pointable(key)}>
+                {name} {percent(weights[key])}
+              </span>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function BlockLabel({ label, value }: { label: string; value?: string }) {
   return (
     <div className="benchmark-tooltip-block-label">
@@ -112,26 +129,18 @@ function BlockLabel({ label, value }: { label: string; value?: string }) {
 }
 
 /**
- * Each leader takes its own row, strongest first, drawn as the table's score star on one scale zoomed to the leaders, with a ±1 standard error bar where the source publishes one.
- * Beneath the rows, the field strip spans the observed range with every result in view as a faint tick and the leaders lit among them.
+ * Each leader takes its own row, strongest first, drawn as the table's score star on the benchmark's observed range, with a ±1 standard error bar where the source publishes one.
+ * Beneath the rows, the field strip shares their scale, marking every result in view as a faint tick with the leaders lit among them, so each leader's star stands straight above its tick.
  */
 function LeadersInset({ leaders }: { leaders: BenchmarkTooltipLeaders }) {
   const { domain, domainLabels, field, stars, gapLabel, standardError, standardErrorLabel } =
     leaders;
   // An SVG id must be unique on the page and usable inside url().
   const trailId = useId().replace(/[^\w-]/g, "");
-  const values = stars.map((star) => star.value);
-  const zoneLow = Math.min(...values);
-  const zoneHigh = Math.max(...values);
-  // Padding at least one standard error keeps every error bar on the track.
-  const padding = Math.max(
-    standardError ?? 0,
-    (zoneHigh - zoneLow) * 0.12,
-    (domain[1] - domain[0]) * 0.01,
-  );
+  // A standard error of padding at each end keeps every error bar on the track.
+  const padding = standardError ?? 0;
   const trackRight = insetWidth - valueWidth;
-  const zoomX = scale(zoneLow - padding, zoneHigh + padding, trackLeft, trackRight);
-  const fieldX = scale(domain[0], domain[1], 0, insetWidth);
+  const x = scale(domain[0] - padding, domain[1] + padding, trackLeft, trackRight);
   const fieldY = rowTop + (stars.length - 1) * rowStep + 24;
   const height = fieldY + 20;
   const summary = [
@@ -152,14 +161,14 @@ function LeadersInset({ leaders }: { leaders: BenchmarkTooltipLeaders }) {
       >
         {stars.map((star, index) => {
           const y = rowTop + index * rowStep;
-          const x = zoomX(star.value);
+          const starX = x(star.value);
           return (
             <g key={star.name} style={{ "--star": star.color } as CSSProperties}>
               <linearGradient
                 gradientUnits="userSpaceOnUse"
                 id={`${trailId}-${index}`}
                 x1={trackLeft}
-                x2={x}
+                x2={starX}
                 y1={y}
                 y2={y}
               >
@@ -170,27 +179,27 @@ function LeadersInset({ leaders }: { leaders: BenchmarkTooltipLeaders }) {
                 {truncate(star.name, Math.floor(nameWidth / characterWidth))}
               </text>
               <line className="leaders-track" x1={trackLeft} x2={trackRight} y1={y} y2={y} />
-              <line stroke={`url(#${trailId}-${index})`} x1={trackLeft} x2={x} y1={y} y2={y} />
+              <line stroke={`url(#${trailId}-${index})`} x1={trackLeft} x2={starX} y1={y} y2={y} />
               {standardError != null && (
                 <path
                   className="leaders-error"
-                  d={`M${zoomX(star.value - standardError)},${y - 3}v6m0,-3H${zoomX(star.value + standardError)}m0,-3v6`}
+                  d={`M${x(star.value - standardError)},${y - 3}v6m0,-3H${x(star.value + standardError)}m0,-3v6`}
                 />
               )}
-              <circle className="leaders-star" cx={x} cy={y} r={3} />
+              <circle className="leaders-star" cx={starX} cy={y} r={3} />
               <text className="leaders-value" x={insetWidth} y={y + 4} textAnchor="end">
                 {star.valueLabel}
               </text>
             </g>
           );
         })}
-        <line className="leaders-axis" x1={0} x2={insetWidth} y1={fieldY} y2={fieldY} />
+        <line className="leaders-axis" x1={trackLeft} x2={trackRight} y1={fieldY} y2={fieldY} />
         {field.map((value, index) => (
           <line
             className="leaders-field"
             key={index}
-            x1={fieldX(value)}
-            x2={fieldX(value)}
+            x1={x(value)}
+            x2={x(value)}
             y1={fieldY - 4}
             y2={fieldY + 4}
           />
@@ -199,17 +208,17 @@ function LeadersInset({ leaders }: { leaders: BenchmarkTooltipLeaders }) {
         {[...stars].reverse().map((star) => (
           <circle
             className="leaders-star"
-            cx={fieldX(star.value)}
+            cx={x(star.value)}
             cy={fieldY}
             key={star.name}
             r={2.25}
             style={{ "--star": star.color } as CSSProperties}
           />
         ))}
-        <text className="leaders-tick" x={0} y={fieldY + 19}>
+        <text className="leaders-tick" x={x(domain[0])} y={fieldY + 19}>
           {domainLabels[0]}
         </text>
-        <text className="leaders-tick" x={insetWidth} y={fieldY + 19} textAnchor="end">
+        <text className="leaders-tick" x={x(domain[1])} y={fieldY + 19} textAnchor="end">
           {domainLabels[1]}
         </text>
       </svg>

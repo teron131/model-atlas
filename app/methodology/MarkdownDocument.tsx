@@ -10,8 +10,9 @@ import rehypeKatex from "rehype-katex";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 
-import { DomainChip, DomainShareBar, isBenchmarkDomain } from "../shared/DomainShares";
+import { DomainChip, isBenchmarkDomain } from "../shared/DomainShares";
 import { NavigationLink } from "../shared/NavigationLink";
+import { DomainShareBar } from "../shared/ShareBar";
 import { DocumentFigure } from "./DocumentFigure";
 import { DocumentHeading } from "./DocumentHeading";
 import {

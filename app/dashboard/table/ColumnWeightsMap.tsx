@@ -2,7 +2,8 @@
 
 import { type CSSProperties, useMemo, useState } from "react";
 
-import { DomainChip, domainIcons, DomainShareBar, domainTone } from "../../shared/DomainShares";
+import { DomainChip, domainIcons, domainTone } from "../../shared/DomainShares";
+import { DomainShareBar } from "../../shared/ShareBar";
 import type { ColumnWeightGroup, ColumnWeightItem, ColumnWeights } from "./tooltips";
 
 // A score's tile shares read to two decimals and its block totals to one; a counted benchmark carries no figure and its block shows how many it holds.

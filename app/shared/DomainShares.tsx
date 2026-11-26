@@ -1,4 +1,4 @@
-/** A benchmark's domains as the dashboard and the documentation mark them: each domain's icon on a tile of its colour, and a benchmark's shares as a bar in those colours with the domains named beneath. It uses no hooks, so server-rendered documentation and client charts share it. */
+/** A benchmark's domains as the dashboard and the documentation mark them: each domain's icon on a tile of its colour, and a benchmark's shares heaviest first. It uses no hooks, so server-rendered documentation calls it directly; the share bar, which answers the pointer, lives in ShareBar. */
 
 import {
   BookOpen,
@@ -58,31 +58,6 @@ export function domainShares(key: string): DomainShare[] {
     const share = shares[domain];
     return share == null ? [] : [{ domain, name, share }];
   }).sort((a, b) => b.share - a.share);
-}
-
-/** A benchmark's domain shares as one bar of their colours, heaviest first, each then named with its icon and percent as the map's legend names a block. */
-export function DomainShareBar({ domains }: { domains: readonly DomainShare[] }) {
-  return (
-    <div className="domain-shares">
-      <div className="benchmark-tooltip-bar" aria-hidden>
-        {domains.map(({ domain, share }) => (
-          <span
-            key={domain}
-            style={{ flexGrow: share, background: `var(--domain-tone-${domain})` }}
-          />
-        ))}
-      </div>
-      <ul className="column-weights-legend">
-        {domains.map(({ domain, name, share }) => (
-          <li key={domain} data-domain={domain}>
-            <DomainChip domain={domain} />
-            <span>{name}</span>
-            <span>{share}%</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
 }
 
 /** A label's icon on a small tile of its colour, as the legend marks a block and a card's title its label. */
