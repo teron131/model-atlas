@@ -14,7 +14,7 @@ import type {
   BenchmarkObservationRow,
 } from "../benchmarks/observation";
 import { canonicalReasoningEffort, parseModelEffort } from "../identity/normalization";
-import { asRecord, nowEpochSeconds } from "../runtime";
+import { asRecord, groupBy, nowEpochSeconds } from "../runtime";
 import { processEpochWeirdMlCsv, weirdMlEpochCacheMatches } from "./epoch/weirdml";
 import { fetchSource } from "./request-scheduler";
 
@@ -225,13 +225,7 @@ export function processWeirdMlPayload(
       metadata,
     });
   }
-  const groups = new Map<string, BenchmarkObservationRow[]>();
-  for (const row of rows) {
-    const key = `${row.model_id}|${row.reasoning_effort}`;
-    const group = groups.get(key) ?? [];
-    group.push(row);
-    groups.set(key, group);
-  }
+  const groups = configurationsByModelEffort(rows);
   for (const group of groups.values()) {
     if (group.length < 2) continue;
     for (const row of group) {
@@ -335,13 +329,7 @@ export function mergeWeirdMlRows(
     ...row,
     metadata: { ...row.metadata },
   }));
-  const groups = new Map<string, BenchmarkObservationRow[]>();
-  for (const row of rows) {
-    const key = `${row.model_id}|${row.reasoning_effort}`;
-    const group = groups.get(key) ?? [];
-    group.push(row);
-    groups.set(key, group);
-  }
+  const groups = configurationsByModelEffort(rows);
   for (const group of groups.values()) {
     const configurations = new Set(
       group.map((row) =>
@@ -386,4 +374,8 @@ function isUnitScore(value: unknown): value is number {
 
 function isPositiveInteger(value: unknown): value is number {
   return isNonNegativeNumber(value) && Number.isInteger(value) && value > 0;
+}
+
+function configurationsByModelEffort(rows: readonly BenchmarkObservationRow[]) {
+  return groupBy(rows, (row) => `${row.model_id}|${row.reasoning_effort}`);
 }

@@ -2,7 +2,6 @@
 
 import type { DatabaseSync } from "node:sqlite";
 
-import { BENCHMARK_OBSERVATION_BINDINGS } from "../../benchmarks/registry";
 import {
   readArtificialAnalysisBenchmarkResourceRawCache,
   readArtificialAnalysisRawCache,
@@ -12,17 +11,13 @@ import {
   artificialAnalysisSnapshot,
 } from "../artificial-analysis/snapshot";
 import { selectModelsDevRowsForArtificialAnalysis } from "../assembly/policy";
-import {
-  type BenchmarkSnapshotCaches,
-  readBenchmarkSnapshotCaches,
-  refreshBenchmarkSnapshots,
-} from "../benchmarks";
+import { readBenchmarkSnapshotCaches, refreshBenchmarkSnapshots } from "../benchmarks";
 import { readRawSourceCacheStatus } from "../cache/status";
 import { readModelsDevRawCache } from "../models-dev/cache";
 import { modelsDevSnapshot } from "../models-dev/snapshot";
 import {
   benchmarkObservationSnapshots,
-  readBenchmarkObservationRawCache,
+  readBenchmarkObservationCaches,
 } from "../observations/cache";
 import { RAW_SOURCE_NAMES, type RawSourceName } from "../registry";
 import type {
@@ -36,18 +31,6 @@ import { missingSinceBySource, persistedSourceRowStates } from "./health";
 type LoadedSourceSnapshots = {
   snapshots: SourceSnapshots;
   sourceCacheStatuses: Record<RawSourceName, RawSourceCacheStatus>;
-};
-
-type SourceSnapshotCaches = {
-  benchmarks: BenchmarkSnapshotCaches;
-  artificialAnalysis: ReturnType<typeof readArtificialAnalysisRawCache>;
-  artificialAnalysisBenchmarkResources: ReturnType<
-    typeof readArtificialAnalysisBenchmarkResourceRawCache
-  >;
-  modelsDev: ReturnType<typeof readModelsDevRawCache>;
-  benchmarkObservations: Readonly<
-    Record<string, ReturnType<typeof readBenchmarkObservationRawCache> | undefined>
-  >;
 };
 
 export async function loadSourceSnapshots(
@@ -133,13 +116,8 @@ export async function loadSourceSnapshots(
   };
 }
 
-function readSqliteSourceCaches(db: DatabaseSync): SourceSnapshotCaches {
-  const benchmarkObservations = Object.fromEntries(
-    BENCHMARK_OBSERVATION_BINDINGS.map((binding) => [
-      binding.sourceDataKey,
-      readBenchmarkObservationRawCache(db, binding),
-    ]),
-  );
+function readSqliteSourceCaches(db: DatabaseSync) {
+  const benchmarkObservations = readBenchmarkObservationCaches(db);
   return {
     benchmarks: readBenchmarkSnapshotCaches(db),
     artificialAnalysis: readArtificialAnalysisRawCache(db),

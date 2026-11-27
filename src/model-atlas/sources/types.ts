@@ -1,7 +1,10 @@
 /** Ingest contracts for raw caches, source snapshots, and the handoff into storage writers and payload readers. */
 
 import type { BenchmarkObservationRow } from "../benchmarks/observation";
-import type { BENCHMARK_OBSERVATION_BINDINGS } from "../benchmarks/registry";
+import type {
+  BenchmarkObservationDataKey,
+  BenchmarkObservationRowsKey,
+} from "../benchmarks/registry";
 import type { JsonObject } from "../runtime";
 import type { ArtificialAnalysisBenchmarkResourceRow } from "./artificial-analysis/benchmark-resources";
 import type { BenchmarkSnapshots } from "./benchmarks";
@@ -53,22 +56,17 @@ export type SourceRowState = {
   missing_from_source_since_epoch_seconds: number | null;
 };
 
-type BenchmarkObservationSnapshotRows = {
-  [Binding in (typeof BENCHMARK_OBSERVATION_BINDINGS)[number] as Binding["sourceRowsKey"]]: BenchmarkObservationRow[];
-};
+export type BenchmarkObservationRows = Record<
+  BenchmarkObservationRowsKey,
+  BenchmarkObservationRow[]
+>;
 
-type BenchmarkObservationFetchedAt = {
-  [Binding in (typeof BENCHMARK_OBSERVATION_BINDINGS)[number] as Binding["sourceDataKey"]]:
-    | number
-    | null;
-};
-
-type SourceFetchedAt = BenchmarkObservationFetchedAt & {
+type SourceFetchedAt = Record<BenchmarkObservationDataKey, number | null> & {
   artificialAnalysis: number | null;
   artificialAnalysisBenchmarkResources: number | null;
 };
 
-export type SourceSnapshots = BenchmarkObservationSnapshotRows & {
+export type SourceSnapshots = BenchmarkObservationRows & {
   artificialAnalysisRawRows: JsonObject[];
   artificialAnalysisSelectedRows: JsonObject[];
   artificialAnalysisBenchmarkResourceRows: ArtificialAnalysisBenchmarkResourceRow[];

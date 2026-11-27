@@ -17,7 +17,8 @@ import { canonicalModelKey } from "../identity/normalization";
 import { positiveFiniteNumber, weightedMedianOfFinite } from "../math-utils";
 import type { ModelAtlasModel, ModelAtlasTaskEstimateMetric } from "../pipeline/model-types";
 import { benchmarkTaskMetrics, directBenchmarkTokens } from "../pipeline/scores/resource-metrics";
-import { asFiniteNumber, asRecord } from "../runtime";
+import { asFiniteNumber, asRecord, groupBy } from "../runtime";
+import type { ModelAtlasPayload } from "./types";
 
 export type ResourceRatioKind = "cost" | "time" | "tokens";
 /** An amount on one benchmark source or index, measured or estimated, with its share of a summary's weight. */
@@ -37,7 +38,6 @@ export type ResourceRatioSummary = {
   sourceCount: number;
 };
 export type ResourceRatios = Record<ResourceRatioKind, ResourceRatioSummary>;
-export type ResourceRatioReferenceSets = Record<ResourceRatioKind, ReadonlyMap<string, number>>;
 
 /** Keep observed quality-resource pairs only, reserving missing source shares; index breadth is allocated after a caller selects its supported basket. */
 export function resourceRatioObservations(
@@ -46,11 +46,10 @@ export function resourceRatioObservations(
   kind: ResourceRatioKind,
 ): ResourceRatioObservation[] {
   const observations: ResourceRatioObservation[] = [];
-  const allocations = sourceAllocations(models, Object.keys(portfolio));
+  const allocations = sourceAllocations(models, portfolio);
   for (const model of models) {
-    for (const [key, entry] of Object.entries(portfolio)) {
-      if (entry.resourcePolicy == null || indexPolicy(key) != null) continue;
-      observations.push(...benchmarkObservations(model, key, kind, allocations.get(key) ?? 1));
+    for (const [key, slots] of allocations) {
+      observations.push(...benchmarkObservations(model, key, kind, slots));
     }
     for (const key of INDEX_BENCHMARK_KEYS) {
       const policy = indexPolicy(key);
@@ -138,16 +137,6 @@ export function summarizeResourceRatios(
   };
 }
 
-/** Medians come from every published variant, so every display of one snapshot measures against the same population. */
-export function resourceRatioReferenceSets(
-  models: readonly ModelAtlasModel[],
-  portfolio: BenchmarkPortfolio,
-): ResourceRatioReferenceSets {
-  return byKind((kind) =>
-    resourceRatioReferences(resourceRatioObservations(models, portfolio, kind)),
-  );
-}
-
 /** The benchmarks a ratio can count across the population: those with a reference on at least one of their sources. */
 export function resourceRatioBenchmarks(
   models: readonly ModelAtlasModel[],
@@ -165,31 +154,27 @@ export function resourceRatioBenchmarks(
   ];
 }
 
-/** Ratios for each model of one display, in `models` order; source shares are reserved across the whole display first, so the leaderboard, the model sheet, and the API read identical numbers for the same rows. */
-export function displayResourceRatios(
-  models: readonly ModelAtlasModel[],
-  portfolio: BenchmarkPortfolio,
-  references: ResourceRatioReferenceSets,
-): ResourceRatios[] {
-  const observations = byKind((kind) => {
-    const byModel = new Map<ModelAtlasModel, ResourceRatioObservation[]>();
-    for (const observation of resourceRatioObservations(models, portfolio, kind)) {
-      const group = byModel.get(observation.model) ?? [];
-      group.push(observation);
-      byModel.set(observation.model, group);
-    }
-    return byModel;
-  });
-  return models.map((model) =>
-    byKind((kind) => {
-      const measured = observations[kind].get(model) ?? [];
-      return summarizeResourceRatios(
-        measured,
-        references[kind],
-        estimatedAmounts(model, kind, measured),
-      );
-    }),
+/** Prepare the benchmark medians from every variant in the snapshot. Each call then reserves source shares across the displayed models and returns their ratios in display order. */
+export function prepareDisplayResourceRatios(payload: ModelAtlasPayload) {
+  const portfolio = payload.metadata.scoring.benchmark_portfolio;
+  const references = byKind((kind) =>
+    resourceRatioReferences(resourceRatioObservations(payload.models, portfolio, kind)),
   );
+  return (models: readonly ModelAtlasModel[]): ResourceRatios[] => {
+    const observations = byKind((kind) =>
+      groupBy(resourceRatioObservations(models, portfolio, kind), (row) => row.model),
+    );
+    return models.map((model) =>
+      byKind((kind) => {
+        const measured = observations[kind].get(model) ?? [];
+        return summarizeResourceRatios(
+          measured,
+          references[kind],
+          estimatedAmounts(model, kind, measured),
+        );
+      }),
+    );
+  };
 }
 
 const ESTIMATE_METRICS = {
@@ -272,20 +257,24 @@ function metricAmount(model: ModelAtlasModel, key: string, kind: ResourceRatioKi
 /** Catalogue declarations and observed source slots reserve missing source shares before any model is summarized. */
 function sourceAllocations(
   models: readonly ModelAtlasModel[],
-  keys: readonly string[],
+  portfolio: BenchmarkPortfolio,
 ): Map<string, number> {
-  return new Map(
-    keys.map((key) => {
-      const declared = asRecord(asRecord(BENCHMARK_RESOURCE_SOURCE_LABELS)[key]);
-      const slots = new Set(Object.keys(declared));
-      for (const model of models) {
-        for (const source of BENCHMARK_RESOURCE_SOURCES)
-          if (Object.hasOwn(asRecord(model.task_metrics), resourceSourceMetricKey(key, source)))
-            slots.add(source);
-      }
-      return [key, slots.size];
-    }),
-  );
+  const allocations = new Map<string, number>();
+  for (const [key, entry] of Object.entries(portfolio)) {
+    if (entry.resourcePolicy == null || indexPolicy(key) != null) continue;
+    const declared = asRecord(asRecord(BENCHMARK_RESOURCE_SOURCE_LABELS)[key]);
+    const slots = new Set(Object.keys(declared));
+    for (const source of BENCHMARK_RESOURCE_SOURCES) {
+      const metric = resourceSourceMetricKey(key, source);
+      if (
+        !slots.has(source) &&
+        models.some((model) => Object.hasOwn(asRecord(model.task_metrics), metric))
+      )
+        slots.add(source);
+    }
+    allocations.set(key, slots.size);
+  }
+  return allocations;
 }
 
 function byKind<T>(read: (kind: ResourceRatioKind) => T): Record<ResourceRatioKind, T> {

@@ -5,6 +5,7 @@ import {
   residualIndexBreadth,
 } from "../../../../src/model-atlas/benchmarks/index-policy";
 import { canonicalModelKey } from "../../../../src/model-atlas/identity/normalization";
+import { groupBy } from "../../../../src/model-atlas/runtime";
 import { modelVariantKey } from "../../../../src/model-atlas/stats/model-variants";
 import type { ModelAtlasModel } from "../../../../src/model-atlas/stats/types";
 import {
@@ -12,7 +13,6 @@ import {
   frontierAxisValue,
   type FrontierBenchmarkAxisKey,
   type FrontierBenchmarkRow,
-  groupBy,
   isNormalizedAlone,
   isScoreAxis,
   mergedBenchmarkSourceRows,

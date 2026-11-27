@@ -182,7 +182,6 @@ export function calibrateTimeline(
     // The snapshot score stands in only when the reference's own results cannot place it, so a model still being measured is not held at its starting score.
     if (supportedReference && value == null)
       return {
-        candidates,
         parts,
         estimate: {
           modelId: model.id,
@@ -220,7 +219,7 @@ export function calibrateTimeline(
           : null,
       benchmarkSupport,
     } satisfies Omit<HistoricalEstimate, "uncertainty">;
-    return { candidates, parts, estimate };
+    return { parts, estimate };
   });
   // Each measure is checked by leaving it out of its model's position, so the check needs no reference score and reaches every era where models were measured on two benchmarks.
   const placedParts = placements.map(({ parts }) => parts);
@@ -278,20 +277,19 @@ type BenchmarkCheck = {
 };
 
 /** Each part's held-out residual: how far it lands from the weighted mean of the model's other parts. A model placed by one part has none, and an index compared only with other indexes gives none, because indexes averaging overlapping benchmarks agree partly by construction. */
-function heldOut(
-  parts: readonly PlacedPart[],
-): { part: PlacedPart; residual: number; rest: PlacedPart[] }[] {
-  if (parts.length < 2) return [];
-  return parts.flatMap((part) => {
-    const rest = parts.filter((other) => other !== part);
-    if (
-      part.definition.kind === "index" &&
-      rest.every((other) => other.definition.kind === "index")
-    )
-      return [];
-    const restWeight = rest.reduce((sum, other) => sum + other.weight, 0);
-    const restValue = rest.reduce((sum, other) => sum + other.weight * other.value, 0) / restWeight;
-    return [{ part, residual: part.value - restValue, rest }];
+function heldOut<T extends PlacedPart>(
+  parts: readonly T[],
+): { part: T; residual: number; restWeight: number }[] {
+  if (parts.length < 2 || parts.every((part) => part.definition.kind === "index")) return [];
+  return parts.map((part) => {
+    let restWeight = 0;
+    let weightedValue = 0;
+    for (const other of parts) {
+      if (other === part) continue;
+      restWeight += other.weight;
+      weightedValue += other.weight * other.value;
+    }
+    return { part, residual: part.value - weightedValue / restWeight, restWeight };
   });
 }
 
@@ -336,12 +334,14 @@ function benchmarkChecks(
   );
 }
 
-/** A checked benchmark held out of one model's position, with the model's other checked benchmarks; `weight` counts each model family once across all pairs. */
+type CheckedPart = PlacedPart & { check: BenchmarkCheck };
+
+/** All pairs for one model share the same checked parts. Its held-out part is excluded from the comparison mean. */
 type HeldOutPair = {
-  part: PlacedPart;
-  check: BenchmarkCheck;
+  part: CheckedPart;
+  checked: readonly CheckedPart[];
+  restWeight: number;
   residual: number;
-  rest: { part: PlacedPart; check: BenchmarkCheck }[];
   weight: number;
 };
 
@@ -352,18 +352,13 @@ function heldOutPairs(
   checks: ReadonlyMap<string, BenchmarkCheck>,
 ): HeldOutPair[] {
   const pairs = models.flatMap((parts, index) => {
-    const checked = parts.filter((part) => checks.has(measureKey(part.definition)));
-    return heldOut(checked).map(({ part, residual, rest }) => ({
+    const checked = parts.flatMap((part) => {
+      const check = checks.get(measureKey(part.definition));
+      return check ? [{ ...part, check }] : [];
+    });
+    return heldOut(checked).map((pair) => ({
       family: families[index]!,
-      pair: {
-        part,
-        check: checks.get(measureKey(part.definition))!,
-        residual,
-        rest: rest.map((other) => ({
-          part: other,
-          check: checks.get(measureKey(other.definition))!,
-        })),
-      },
+      pair: { ...pair, checked },
     }));
   });
   const weights = modelCalibrationWeights(pairs.map(({ family }) => family));
@@ -379,26 +374,27 @@ function partMiss(part: PlacedPart, check: BenchmarkCheck, growth: number): numb
 
 /** A held-out residual's typical size before sizing: it carries its own benchmark's miss and the miss of the mean it is compared with. */
 function predictedMiss(pair: HeldOutPair, growth: number): number {
-  const restWeight = pair.rest.reduce((sum, { part }) => sum + part.weight, 0);
-  const restMiss = pair.rest.reduce(
-    (sum, { part, check }) => sum + (part.weight * partMiss(part, check, growth)) ** 2,
-    0,
+  let restMiss = 0;
+  for (const part of pair.checked) {
+    if (part !== pair.part) restMiss += (part.weight * partMiss(part, part.check, growth)) ** 2;
+  }
+  return Math.sqrt(
+    partMiss(pair.part, pair.part.check, growth) ** 2 + restMiss / pair.restWeight ** 2,
   );
-  return Math.sqrt(partMiss(pair.part, pair.check, growth) ** 2 + restMiss / restWeight ** 2);
 }
 
 /** How fast a benchmark's misses grow with distance from the values it was checked at: the rate that best explains the held-out residuals, each read as Laplace-distributed around its predicted size with one shared scale. Searched between none and `MAXIMUM_MISS_GROWTH`. */
 function missGrowth(pairs: readonly HeldOutPair[]): number {
   const total = pairs.reduce((sum, pair) => sum + pair.weight, 0);
   const fit = (growth: number) => {
-    const sizes = pairs.map((pair) => predictedMiss(pair, growth));
-    const scale =
-      pairs.reduce((sum, pair, i) => sum + (pair.weight * Math.abs(pair.residual)) / sizes[i]!, 0) /
-      total;
-    return (
-      -pairs.reduce((sum, pair, i) => sum + pair.weight * Math.log(sizes[i]!), 0) -
-      total * Math.log(scale)
-    );
+    let scaledResiduals = 0;
+    let logSizes = 0;
+    for (const pair of pairs) {
+      const size = predictedMiss(pair, growth);
+      scaledResiduals += (pair.weight * Math.abs(pair.residual)) / size;
+      logSizes += pair.weight * Math.log(size);
+    }
+    return -logSizes - total * Math.log(scaledResiduals / total);
   };
   let [low, high] = [0, MAXIMUM_MISS_GROWTH];
   for (let step = 0; step < 40; step++) {

@@ -78,7 +78,10 @@ function listEnvs(): ListedEnv[] {
 for (const [key, value] of entries) {
   for (const target of targets) {
     console.log(`sync ${key} ${target.join("/")}`);
-    runVercel(["env", "add", key, ...target, "--value", value, "--yes", "--force"], {
+    // Empty stdin prompts for a value, so only the empty string goes in argv.
+    const emptyValue = value === "" ? ["--value", ""] : [];
+    runVercel(["env", "add", key, ...target, ...emptyValue, "--yes", "--force"], {
+      input: value,
       secret: value,
     });
   }

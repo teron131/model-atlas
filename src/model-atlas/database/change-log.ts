@@ -5,7 +5,6 @@ import { type DatabaseWriter, type DbRow, jsonValue, sqliteBooleanValue } from "
 import {
   buildChangeHistory,
   CHANGE_HISTORY_SECONDS,
-  type ChangeLog,
   type ModelChangeDetailRow,
   type ModelScoreChangeRow,
   type RefreshRunRow,
@@ -138,8 +137,8 @@ export function insertModelChangeDetails(
   }
 }
 
-export function changeLogFromRows(rows: ChangeLogRows): ChangeLog {
-  return {
+export function changeHistoryFromRows(rows: ChangeLogRows): ModelAtlasVariantChanges[] {
+  return buildChangeHistory({
     refreshRuns: rows.refreshRunRows.flatMap((row) => {
       const refreshId = asFiniteNumber(row.refresh_id);
       return refreshId == null
@@ -154,12 +153,12 @@ export function changeLogFromRows(rows: ChangeLogRows): ChangeLog {
     }),
     scoreChanges: rows.scoreChangeRows.flatMap(scoreChangeRowFromDb),
     details: rows.changeDetailRows.flatMap(changeDetailRowFromDb),
-  };
+  });
 }
 
 /** The change history of the variants a payload lists, as published beside it. */
 export function listedChangeHistory(
-  rows: ChangeLogRows,
+  history: readonly ModelAtlasVariantChanges[],
   models: readonly ModelAtlasModel[],
 ): ModelAtlasVariantChanges[] {
   const listed = new Set(
@@ -167,7 +166,7 @@ export function listedChangeHistory(
       id == null ? [] : [variantKey(id, reasoning_effort)],
     ),
   );
-  return buildChangeHistory(changeLogFromRows(rows)).filter(({ model_id, reasoning_effort }) =>
+  return history.filter(({ model_id, reasoning_effort }) =>
     listed.has(variantKey(model_id, reasoning_effort)),
   );
 }

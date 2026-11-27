@@ -4,6 +4,7 @@ import {
   canonicalModelKey,
   reasoningEffortRank,
 } from "../../../src/model-atlas/identity/normalization";
+import { groupBy } from "../../../src/model-atlas/runtime";
 import type { ModelAtlasModel } from "../../../src/model-atlas/stats/types";
 import { providerLogo } from "./provider-theme";
 
@@ -42,14 +43,7 @@ export function reasoningVariantGroups<T>(
   items: readonly T[],
   getModel: (item: T) => ModelAtlasModel,
 ) {
-  const variantsByModel = new Map<string, T[]>();
-  for (const item of items) {
-    const model = getModel(item);
-    const key = canonicalModelKey(model);
-    const variants = variantsByModel.get(key) ?? [];
-    variants.push(item);
-    variantsByModel.set(key, variants);
-  }
+  const variantsByModel = groupBy(items, (item) => canonicalModelKey(getModel(item)));
   return [...variantsByModel]
     .map(([key, variants]) => ({
       key,

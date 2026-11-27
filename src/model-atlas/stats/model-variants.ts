@@ -10,6 +10,7 @@ import {
 } from "../benchmarks/observation";
 import {
   BENCHMARK_KEYS,
+  type BenchmarkKey,
   benchmarkValue,
   benchmarkValueLocation,
   transformBenchmarkSourceValue,
@@ -90,7 +91,7 @@ export function intelligenceRanks(models: readonly IntelligenceScoredModel[]): n
   return scores.map((score) => competitionRank(scores, score));
 }
 
-type ObservationLookups = ReadonlyMap<
+type ObservationLookups = Map<
   string,
   {
     variants: BenchmarkObservationGroupLookup<BenchmarkObservationEvidenceRow>;
@@ -103,15 +104,17 @@ const observationLookupsByPayload = new WeakMap<BenchmarkObservationsByKey, Obse
 
 /**
  * One row per model from its strongest variant, display-excluded families dropped; the effort label is kept.
+ * Only the requested benchmarks are filled, so a single-column response can project its own evidence.
  * A benchmark's combined cross-effort observation, when the payload has one, replaces the representative's value.
  * Otherwise a missing result is filled from the highest-effort source observation, with the matching variant's dates and task metrics, or failing that from the highest-effort variant that has one.
  */
 export function compactModelVariants(
   models: readonly ModelAtlasModel[],
   benchmarkObservations: BenchmarkObservationsByKey = {},
+  keys: readonly BenchmarkKey[] = BENCHMARK_KEYS,
 ): ModelAtlasModel[] {
   const variantsByModel = new Map<string, ModelAtlasModel[]>();
-  const observationLookups = benchmarkObservationLookups(benchmarkObservations);
+  const observationLookups = benchmarkObservationLookups(benchmarkObservations, keys);
   for (const model of models) {
     if (modelDisplayExclusion(model) != null) continue;
     const key = canonicalModelKey(model);
@@ -132,7 +135,7 @@ export function compactModelVariants(
     const taskMetrics = { ...representative.task_metrics };
     let hasAddedBenchmarks = false;
 
-    for (const key of BENCHMARK_KEYS) {
+    for (const key of keys) {
       const lookups = observationLookups.get(key)!;
       const combined = findBenchmarkObservations(candidateKeys, lookups.collapsed)[0];
       if (combined != null) {
@@ -232,23 +235,22 @@ export function compactModelVariants(
 
 function benchmarkObservationLookups(
   benchmarkObservations: BenchmarkObservationsByKey,
+  keys: readonly BenchmarkKey[],
 ): ObservationLookups {
-  const cached = observationLookupsByPayload.get(benchmarkObservations);
-  if (cached != null) return cached;
-  const lookups: ObservationLookups = new Map(
-    BENCHMARK_KEYS.map((key) => {
-      const rows = benchmarkObservations[key] ?? [];
-      return [
-        key,
-        {
-          variants: buildBenchmarkObservationGroupLookup(rows),
-          collapsed: buildBenchmarkObservationGroupLookup(
-            rows.filter((row) => row.metadata?.fusion_collapsed === true),
-          ),
-        },
-      ];
-    }),
-  );
-  observationLookupsByPayload.set(benchmarkObservations, lookups);
+  let lookups = observationLookupsByPayload.get(benchmarkObservations);
+  if (!lookups) {
+    lookups = new Map();
+    observationLookupsByPayload.set(benchmarkObservations, lookups);
+  }
+  for (const key of keys) {
+    if (lookups.has(key)) continue;
+    const rows = benchmarkObservations[key] ?? [];
+    lookups.set(key, {
+      variants: buildBenchmarkObservationGroupLookup(rows),
+      collapsed: buildBenchmarkObservationGroupLookup(
+        rows.filter((row) => row.metadata?.fusion_collapsed === true),
+      ),
+    });
+  }
   return lookups;
 }

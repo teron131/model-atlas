@@ -1,4 +1,4 @@
-/** Package-wide runtime policies for coercing source values, deterministic serialization, and bounded async work. */
+/** Package-wide runtime policies for coercing source values, grouping records, deterministic serialization, and bounded async work. */
 
 import type { NumberOrNull } from "./math-utils";
 
@@ -77,6 +77,17 @@ export async function fetchWithTimeout(
   } finally {
     clearTimeout(timeout);
   }
+}
+
+export function groupBy<T, TKey>(values: readonly T[], getKey: (value: T) => TKey): Map<TKey, T[]> {
+  const groups = new Map<TKey, T[]>();
+  for (const value of values) {
+    const key = getKey(value);
+    const group = groups.get(key) ?? [];
+    group.push(value);
+    groups.set(key, group);
+  }
+  return groups;
 }
 
 export async function mapWithConcurrency<T, R>(

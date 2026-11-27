@@ -128,6 +128,7 @@ export function excludeAmbiguousConfigurations<Row extends BenchmarkObservationR
 
 /** Return the text after the last slash outside parentheses, so configuration labels stay whole: `"anthropic/claude-opus-4 (adaptive/max)"` → `"claude-opus-4 (adaptive/max)"`. */
 function trailingModelAlias(value: string): string | null {
+  if (!value.includes("/")) return null;
   let parenthesisDepth = 0;
   let slashIndex = -1;
   for (let index = 0; index < value.length; index += 1) {
@@ -167,16 +168,20 @@ function baseModelNames(row: BenchmarkObservationEvidenceRow): string[] {
   ];
 }
 
-function modelKeys(row: BenchmarkObservationEvidenceRow): string[] {
+function modelKeys(
+  row: BenchmarkObservationEvidenceRow,
+  baseNames = baseModelNames(row),
+): Set<string> {
   const modelId = modelIdConflictsWithBaseModel(row) ? null : row.model_id;
-  return [modelId, row.model, ...baseModelNames(row)]
-    .flatMap((value) => {
-      if (value == null) return [];
-      return [value, trailingModelAlias(value)];
-    })
-    .filter((value): value is string => value != null)
-    .map(normalizeModelToken)
-    .filter((key, index, keys) => key.length > 0 && keys.indexOf(key) === index);
+  const keys = new Set<string>();
+  for (const name of new Set([modelId, row.model, ...baseNames])) {
+    if (name == null) continue;
+    keys.add(normalizeModelToken(name));
+    const alias = trailingModelAlias(name);
+    if (alias != null) keys.add(normalizeModelToken(alias));
+  }
+  keys.delete("");
+  return keys;
 }
 
 /** Normalize a model's names once so lookups across every benchmark reuse the same keys. */
@@ -227,7 +232,8 @@ export function buildBenchmarkObservationLookup<Row extends BenchmarkObservation
   const defaultByBase = new Map<string, Row>();
   for (const row of rows) {
     if (!isAssignableBenchmarkObservation(row)) continue;
-    for (const key of modelKeys(row)) {
+    const baseNames = baseModelNames(row);
+    for (const key of modelKeys(row, baseNames)) {
       const exactKey =
         row.reasoning_effort == null ? key : `${key}--${normalizeModelToken(row.reasoning_effort)}`;
       const current = rowsByModel.get(exactKey);
@@ -237,7 +243,7 @@ export function buildBenchmarkObservationLookup<Row extends BenchmarkObservation
     }
     const rank = defaultConfigurationRank(row.reasoning_effort);
     if (rank == null) continue;
-    for (const baseKey of new Set(baseModelNames(row).map(normalizeModelToken))) {
+    for (const baseKey of new Set(baseNames.map(normalizeModelToken))) {
       const currentDefault = defaultByBase.get(baseKey);
       const currentRank = reasoningEffortRank(currentDefault?.reasoning_effort);
       if (

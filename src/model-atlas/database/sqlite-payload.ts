@@ -31,7 +31,7 @@ export function readDatabaseSnapshot(databasePath = DEFAULT_DATABASE_PATH): Snap
       payload,
       timeline: readCapabilityState(db)?.dataset ?? null,
       communityRankings: readCommunityRankings(db),
-      changeHistory: listedChangeHistory(rows, payload.models),
+      changeHistory: listedChangeHistory(rows.changeHistory, payload.models),
     };
   });
 }

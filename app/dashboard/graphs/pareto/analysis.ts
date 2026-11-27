@@ -15,6 +15,7 @@ import {
 } from "../../../../src/model-atlas/math-utils";
 import { clampScore } from "../../../../src/model-atlas/pipeline/scores/normalization";
 import { benchmarkTaskMetrics } from "../../../../src/model-atlas/pipeline/scores/resource-metrics";
+import { groupBy } from "../../../../src/model-atlas/runtime";
 import { modelVariantKey } from "../../../../src/model-atlas/stats/model-variants";
 import {
   type ResourceRatioObservation,
@@ -399,17 +400,6 @@ function meanMetric(
       weight: row.weight * residualIndexBreadth(row.baseBenchmarkKey, includedKeys),
     })),
   );
-}
-
-export function groupBy<T, TKey>(values: T[], getKey: (value: T) => TKey): Map<TKey, T[]> {
-  const groups = new Map<TKey, T[]>();
-  for (const value of values) {
-    const key = getKey(value);
-    const group = groups.get(key) ?? [];
-    group.push(value);
-    groups.set(key, group);
-  }
-  return groups;
 }
 
 function benchmarkCorrelation(rows: FrontierBenchmarkRow[]): number | null {

@@ -12,6 +12,7 @@ import {
 import { modelNameIdentityKey } from "../../identity";
 import { reasoningEffortRank } from "../../identity/normalization";
 import { clamp01, weightedMedianOfFinite } from "../../math-utils";
+import { groupBy } from "../../runtime";
 
 const RESOURCE_SOURCE_AGREEMENT_POLICY = {
   minimumModels: 10,
@@ -310,12 +311,7 @@ function resourceAgreement(
       const measure = first?.metadata.time_measure;
       return measure != null && measure === second?.metadata.time_measure;
     });
-  const byModel = new Map<string, SourceGroup[]>();
-  for (const group of positiveOverlap) {
-    const modelGroups = byModel.get(group.name) ?? [];
-    modelGroups.push(group);
-    byModel.set(group.name, modelGroups);
-  }
+  const byModel = groupBy(positiveOverlap, (group) => group.name);
   let agreeingWeight = 0;
   for (const modelGroups of byModel.values()) {
     const groupWeight = 1 / modelGroups.length;

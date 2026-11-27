@@ -9,14 +9,12 @@ import {
 import {
   BENCHMARK_OBSERVATION_BINDINGS,
   type BenchmarkObservationBinding,
-  type BenchmarkObservationRowsKey,
 } from "../../benchmarks/registry";
 import { parseModelEffort } from "../../identity/normalization";
 import { arcPrizeCacheMatches, getArcPrizeStats } from "../arc-prize";
 import { ARENA_WEBDEV_DATASET_URL, arenaRefreshIsCurrent } from "../arena/dataset";
 import { getArenaWebDevStats } from "../arena/webdev";
 import { getAa3dStats } from "../artificial-analysis/aa-3d";
-import type { ModelAtlasSourceRows } from "../assembly/source-data";
 import { automationBenchCacheMatches, getAutomationBenchStats } from "../automation-bench";
 import { caisCacheMatches, getCaisDashboardStats } from "../cais/results";
 import { getEpochCapabilitiesIndexStats } from "../epoch/capabilities-index";
@@ -35,7 +33,7 @@ import {
   TERMINAL_BENCH_SCIENCE_VALS_URL,
   terminalBenchScienceCacheMatches,
 } from "../terminal-bench-science";
-import type { SourceSnapshots } from "../types";
+import type { BenchmarkObservationRows } from "../types";
 import { getValsBenchmarkStats, valsBenchmarkCacheMatches } from "../vals/results";
 import { getValsRsiStats, valsRsiCacheMatches } from "../vals/rsi";
 import { getVoxelBenchStats } from "../voxelbench";
@@ -52,8 +50,6 @@ type ObservationSource = {
   replaceRowsOnRefresh?: boolean;
 };
 
-type BenchmarkObservationRows = Pick<ModelAtlasSourceRows, BenchmarkObservationRowsKey>;
-
 export async function fetchBenchmarkObservationRows(): Promise<BenchmarkObservationRows> {
   const entries = await Promise.all(
     BENCHMARK_OBSERVATION_BINDINGS.map(async (binding) => [
@@ -64,17 +60,6 @@ export async function fetchBenchmarkObservationRows(): Promise<BenchmarkObservat
   return Object.fromEntries(entries) as BenchmarkObservationRows;
 }
 
-export function benchmarkObservationRowsFromSnapshots(
-  snapshots: Pick<SourceSnapshots, BenchmarkObservationRowsKey>,
-): BenchmarkObservationRows {
-  return Object.fromEntries(
-    BENCHMARK_OBSERVATION_BINDINGS.map((binding) => [
-      binding.sourceRowsKey,
-      snapshots[binding.sourceRowsKey],
-    ]),
-  ) as BenchmarkObservationRows;
-}
-
 /** Resolve live and cached evidence through the same catalog binding without teaching shared persistence about source formats. */
 export function benchmarkObservationSource(
   binding: BenchmarkObservationBinding,
@@ -82,6 +67,8 @@ export function benchmarkObservationSource(
   const source = loaderSource(binding);
   return {
     ...source,
+    sourceUrls:
+      source.sourceUrls ?? ("sourceUrl" in binding.loader ? [binding.loader.sourceUrl] : undefined),
     fetchRows: async () => {
       const payload = await fetchRowsOrNone(source.fetchRows);
       // Rows a source publishes under one stored identity are separate configurations of one model and effort.

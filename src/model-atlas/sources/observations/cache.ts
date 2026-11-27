@@ -1,5 +1,7 @@
 /** Storage side of the benchmark-observation sources, which share one raw table in the SQLite checkpoint: rebuild each catalog binding's cached rows from it, run each binding through the shared snapshot recipe, and write the rows back. */
 
+import type { DatabaseSync } from "node:sqlite";
+
 import {
   type BenchmarkObservationRow,
   parseBenchmarkObservationMetadata,
@@ -8,15 +10,15 @@ import {
   BENCHMARK_OBSERVATION_BINDINGS,
   BENCHMARK_OBSERVATION_RAW_TABLE,
   type BenchmarkObservationBinding,
-  type BenchmarkObservationRowsKey,
 } from "../../benchmarks/registry";
 import { normalizeModelToken, parseModelEffort } from "../../identity/normalization";
 import { asFiniteNumber, asNonEmptyString } from "../../runtime";
 import type { DatabaseWriter } from "../../sqlite-utils";
 import { type CacheRowSource, firstFetchedAt, queryCacheRows } from "../cache/rows";
 import type { RawSourceName } from "../registry";
-import { snapshotSourceRows } from "../snapshots/row-snapshot";
+import { snapshotSourceRows, sourceSnapshotStatus } from "../snapshots/row-snapshot";
 import type {
+  BenchmarkObservationRows,
   RawSourceCacheStatus,
   SourceRefreshOptions,
   SourceSnapshots,
@@ -24,62 +26,58 @@ import type {
 } from "../types";
 import { benchmarkObservationRowKeyFor, benchmarkObservationSource } from "./load";
 
-type BenchmarkObservationSnapshot = {
-  rows: BenchmarkObservationRow[];
-  sourceStatus: SourceSnapshotStatus;
-};
+export function readBenchmarkObservationCaches(db: DatabaseSync) {
+  return BENCHMARK_OBSERVATION_BINDINGS.map((binding) => ({
+    binding,
+    cached: readBenchmarkObservationRawCache(db, binding),
+  }));
+}
 
 export async function benchmarkObservationSnapshots(
-  caches: Readonly<Record<string, ReturnType<typeof readBenchmarkObservationRawCache> | undefined>>,
+  caches: ReturnType<typeof readBenchmarkObservationCaches>,
   statuses: Record<RawSourceName, RawSourceCacheStatus>,
   options: SourceRefreshOptions,
   previousMissingSince: Record<RawSourceName, ReadonlyMap<string, number>>,
   nowEpochSeconds: number,
 ): Promise<{
-  rows: Pick<SourceSnapshots, BenchmarkObservationRowsKey>;
+  rows: BenchmarkObservationRows;
   sourceStatuses: SourceSnapshotStatus[];
 }> {
   const snapshots = await Promise.all(
-    BENCHMARK_OBSERVATION_BINDINGS.map(async (binding) => {
-      const benchmarkKey = binding.benchmark;
+    caches.map(async ({ binding, cached }) => {
+      const { fetchRows, acceptsRefresh, replaceRowsOnRefresh } =
+        benchmarkObservationSource(binding);
+      const snapshot = await snapshotSourceRows({
+        source: binding.benchmark,
+        cached,
+        status: statuses[binding.benchmark],
+        options,
+        previousMissingSince: previousMissingSince[binding.benchmark],
+        nowEpochSeconds,
+        fetchRows,
+        acceptsRefresh,
+        replaceRowsOnRefresh,
+        rowKeyFor: benchmarkObservationRowKeyFor,
+        rowLabel: (row) => `${row.benchmark_key}: ${row.model}`,
+        versions: { versionOf: (row) => row.metadata.benchmark_version },
+        seriesOf: (row) => row.source_url,
+      });
       return {
         sourceRowsKey: binding.sourceRowsKey,
-        snapshot: await benchmarkObservationSnapshot(
-          binding,
-          caches[binding.sourceDataKey] ?? null,
-          statuses[benchmarkKey],
-          options,
-          previousMissingSince[benchmarkKey],
-          nowEpochSeconds,
-        ),
+        rows: snapshot.rows,
+        sourceStatus: {
+          ...sourceSnapshotStatus(binding.benchmark, snapshot),
+          fetchedAtKey: binding.sourceDataKey,
+        },
       };
     }),
   );
   return {
     rows: Object.fromEntries(
-      snapshots.map(({ sourceRowsKey, snapshot }) => [sourceRowsKey, snapshot.rows]),
-    ) as Pick<SourceSnapshots, BenchmarkObservationRowsKey>,
-    sourceStatuses: snapshots.map(({ snapshot }) => snapshot.sourceStatus),
+      snapshots.map(({ sourceRowsKey, rows }) => [sourceRowsKey, rows]),
+    ) as BenchmarkObservationRows,
+    sourceStatuses: snapshots.map(({ sourceStatus }) => sourceStatus),
   };
-}
-
-/** Null when no stored row parses or the source's `acceptsCache` rejects the rows, which makes the snapshot refetch even under a cache hit. */
-export function readBenchmarkObservationRawCache(
-  cache: CacheRowSource,
-  binding: BenchmarkObservationBinding,
-) {
-  const source = benchmarkObservationSource(binding);
-  const expectedUrls =
-    source.sourceUrls ?? ("sourceUrl" in binding.loader ? [binding.loader.sourceUrl] : undefined);
-  const cached = readBenchmarkObservationRows(
-    cache,
-    binding.rawTable,
-    binding.benchmark,
-    expectedUrls,
-  );
-  if (cached == null) return null;
-  if (source.acceptsCache?.(cached.rows) === false) return null;
-  return cached;
 }
 
 export function insertBenchmarkObservationRows(
@@ -95,7 +93,7 @@ export function insertBenchmarkObservationRows(
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
   for (const binding of BENCHMARK_OBSERVATION_BINDINGS) {
-    const rows = snapshots[binding.sourceRowsKey] as readonly BenchmarkObservationRow[];
+    const rows = snapshots[binding.sourceRowsKey];
     const fetchedAt = snapshots.fetchedAt[binding.sourceDataKey];
     for (const [index, row] of rows.entries()) {
       statement.run(
@@ -123,58 +121,19 @@ export function insertBenchmarkObservationRows(
   }
 }
 
-async function benchmarkObservationSnapshot(
-  binding: BenchmarkObservationBinding,
-  cached: { rows: BenchmarkObservationRow[]; fetchedAt: number | null } | null,
-  status: RawSourceCacheStatus,
-  options: SourceRefreshOptions,
-  previousMissingSince: ReadonlyMap<string, number>,
-  nowEpochSeconds: number,
-): Promise<BenchmarkObservationSnapshot> {
-  const { fetchRows, acceptsRefresh, replaceRowsOnRefresh } = benchmarkObservationSource(binding);
-  const snapshot = await snapshotSourceRows({
-    source: binding.benchmark,
-    cached,
-    status,
-    options,
-    previousMissingSince,
-    nowEpochSeconds,
-    fetchRows,
-    acceptsRefresh,
-    replaceRowsOnRefresh,
-    rowKeyFor: benchmarkObservationRowKeyFor,
-    rowLabel: (row) => `${row.benchmark_key}: ${row.model}`,
-    versions: { versionOf: (row) => row.metadata.benchmark_version },
-    seriesOf: (row) => row.source_url,
-  });
-  return {
-    rows: snapshot.rows,
-    sourceStatus: {
-      source: binding.benchmark,
-      fetchedAt: snapshot.fetchedAt,
-      sourceInputCount: snapshot.rows.length,
-      sourceRowStates: snapshot.sourceRowStates,
-      fetchedAtKey: binding.sourceDataKey,
-    },
-  };
-}
-
-function readBenchmarkObservationRows(
+/** Null when no stored row parses or the source's `acceptsCache` rejects the rows, which makes the snapshot refetch even under a cache hit. */
+export function readBenchmarkObservationRawCache(
   cache: CacheRowSource,
-  table: string,
-  benchmarkKey: string,
-  expectedUrls?: readonly string[],
-): {
-  rows: BenchmarkObservationRow[];
-  fetchedAt: number | null;
-} | null {
+  binding: BenchmarkObservationBinding,
+) {
+  const { sourceUrls, acceptsCache } = benchmarkObservationSource(binding);
+  const { benchmark: benchmarkKey, rawTable } = binding;
   const cacheRows = Array.isArray(cache)
     ? cache.filter((row) => asNonEmptyString(row.source_key) === benchmarkKey)
-    : queryCacheRows(cache, `SELECT * FROM ${table} WHERE source_key = ? ORDER BY row_index`, [
+    : queryCacheRows(cache, `SELECT * FROM ${rawTable} WHERE source_key = ? ORDER BY row_index`, [
         benchmarkKey,
       ]);
-  if (cacheRows.length === 0) return null;
-  const rows = cacheRows.flatMap((row) => {
+  const rows = cacheRows.flatMap((row): BenchmarkObservationRow[] => {
     const rowBenchmarkKey = asNonEmptyString(row.benchmark_key);
     const sourceUrl = asNonEmptyString(row.url);
     const model = asNonEmptyString(row.model);
@@ -190,7 +149,7 @@ function readBenchmarkObservationRows(
     if (
       rowBenchmarkKey !== benchmarkKey ||
       sourceUrl == null ||
-      (expectedUrls != null && !expectedUrls.includes(sourceUrl)) ||
+      (sourceUrls != null && !sourceUrls.includes(sourceUrl)) ||
       model == null ||
       baseModel == null ||
       canonicalValue == null ||
@@ -238,5 +197,6 @@ function readBenchmarkObservationRows(
       },
     ];
   });
-  return rows.length === 0 ? null : { rows, fetchedAt: firstFetchedAt(cacheRows) };
+  if (rows.length === 0 || acceptsCache?.(rows) === false) return null;
+  return { rows, fetchedAt: firstFetchedAt(cacheRows) };
 }

@@ -6,12 +6,12 @@ import type { BenchmarkPortfolio } from "../src/model-atlas/benchmarks/factory";
 import { INDEX_POLICIES } from "../src/model-atlas/benchmarks/index-policy";
 import type { ModelAtlasModel } from "../src/model-atlas/pipeline/model-types";
 import {
-  displayResourceRatios,
+  prepareDisplayResourceRatios,
   resourceRatioObservations,
   resourceRatioReferences,
-  resourceRatioReferenceSets,
   summarizeResourceRatios,
 } from "../src/model-atlas/stats/resource-ratios";
+import { minimalModelAtlasPayload } from "./model-atlas-fixtures";
 
 const entry = {
   group: "frontier",
@@ -192,11 +192,9 @@ const effortModels = [
   model("Other A", amounts([1, 1, 1, 1, 1]), qualities),
   model("Other B", amounts([1, 1, 1, 1, 1]), qualities),
 ];
-const [withEstimates] = displayResourceRatios(
-  effortModels,
-  effortPortfolio,
-  resourceRatioReferenceSets(effortModels, effortPortfolio),
-);
+const payload = minimalModelAtlasPayload({ fetchedAt: 123, models: effortModels });
+payload.metadata.scoring.benchmark_portfolio = effortPortfolio;
+const [withEstimates] = prepareDisplayResourceRatios(payload)(effortModels);
 // Weights 1, 1, 1, 0.5, 0.5 on ratios 1, 2, 4, 8, 16 put the middle between 2 and 4.
 assert.deepEqual(withEstimates?.cost, { ratio: 3, benchmarkCount: 3, sourceCount: 3 });
 

@@ -4,17 +4,13 @@ import { getArtificialAnalysisBenchmarkResourceStats } from "../artificial-analy
 import { getArtificialAnalysisLeaderboardStats } from "../artificial-analysis/leaderboard";
 import { benchmarkSourceRowsFromSnapshots, fetchBenchmarkSourceRows } from "../benchmarks";
 import { getModelsDevSourceStats } from "../models-dev/catalog";
-import {
-  benchmarkObservationRowsFromSnapshots,
-  fetchBenchmarkObservationRows,
-} from "../observations/load";
+import { fetchBenchmarkObservationRows } from "../observations/load";
 import type { SourceSnapshots } from "../types";
 import { selectModelsDevRowsForArtificialAnalysis } from "./policy";
 import { buildSourceData, type ModelAtlasSourceData } from "./source-data";
 
 /** Fetch and normalize shared benchmark and catalog sources; OpenRouter route requests wait for derived quality scores. */
 export async function fetchSourceData(): Promise<ModelAtlasSourceData> {
-  // Independent bulk feeds run in parallel because model filtering requires their combined evidence.
   const [
     artificialAnalysisStats,
     artificialAnalysisBenchmarkResourceStats,
@@ -46,10 +42,8 @@ export async function fetchSourceData(): Promise<ModelAtlasSourceData> {
 /** Adapt restored checkpoint rows into normalized source lookups without fetching external pages. */
 export function sourceDataFromSnapshots(snapshots: SourceSnapshots): ModelAtlasSourceData {
   return buildSourceData({
+    ...snapshots,
     artificialAnalysisRows: snapshots.artificialAnalysisSelectedRows,
-    artificialAnalysisBenchmarkResourceRows: snapshots.artificialAnalysisBenchmarkResourceRows,
-    modelsDevModels: snapshots.modelsDevModels,
     ...benchmarkSourceRowsFromSnapshots(snapshots.benchmarks),
-    ...benchmarkObservationRowsFromSnapshots(snapshots),
   });
 }

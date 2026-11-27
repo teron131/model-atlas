@@ -18,9 +18,7 @@ import {
   modelsForVariantDisplay,
 } from "../../../src/model-atlas/stats/model-variants";
 import {
-  displayResourceRatios,
-  type ResourceRatioReferenceSets,
-  resourceRatioReferenceSets,
+  prepareDisplayResourceRatios,
   type ResourceRatios,
 } from "../../../src/model-atlas/stats/resource-ratios";
 import {
@@ -91,7 +89,7 @@ const indexKeyByResourceSource = new Map(
 
 /** One snapshot's reference medians and the two row displays measured against them, each display shaped when first read. */
 type RowDisplays = {
-  references: ResourceRatioReferenceSets;
+  ratiosFor: ReturnType<typeof prepareDisplayResourceRatios>;
   models?: TableRow[];
   variants?: TableRow[];
 };
@@ -112,31 +110,24 @@ export function leaderboardRows(
   let displays = rowDisplaysByPayload.get(payload);
   if (displays == null) {
     displays = {
-      references: resourceRatioReferenceSets(
-        payload.models,
-        payload.metadata.scoring.benchmark_portfolio,
-      ),
+      ratiosFor: prepareDisplayResourceRatios(payload),
     };
     rowDisplaysByPayload.set(payload, displays);
   }
   const display = showVariants ? "variants" : "models";
-  displays[display] ??= buildLeaderboardRows(payload, showVariants, displays.references);
+  displays[display] ??= buildLeaderboardRows(payload, showVariants, displays.ratiosFor);
   return displays[display];
 }
 
 function buildLeaderboardRows(
   payload: ModelAtlasPayload,
   showVariants: boolean,
-  references: ResourceRatioReferenceSets,
+  ratiosFor: ReturnType<typeof prepareDisplayResourceRatios>,
 ): TableRow[] {
   const rows = scaledDisplayRows(
     modelsForVariantDisplay(payload.models, showVariants, payload.benchmark_observations),
   );
-  const ratios = displayResourceRatios(
-    rows.map((row) => row.model),
-    payload.metadata.scoring.benchmark_portfolio,
-    references,
-  );
+  const ratios = ratiosFor(rows.map((row) => row.model));
   return rows.map((row, index) => ({ ...row, resourceRatios: ratios[index]! }));
 }
 

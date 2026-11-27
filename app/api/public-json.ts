@@ -15,13 +15,14 @@ import { benchmarkValue } from "../../src/model-atlas/benchmarks/registry";
 import { readDisplayPayload } from "../../src/model-atlas/database/runtime-snapshot";
 import { applyResourceEvidenceRequirements } from "../../src/model-atlas/pipeline/scores/resource-metrics";
 import {
+  collapsedModels,
+  compactModelVariants,
   intelligenceRanks,
   modelsForVariantDisplay,
 } from "../../src/model-atlas/stats/model-variants";
 import {
-  displayResourceRatios,
+  prepareDisplayResourceRatios,
   type ResourceRatioKind,
-  resourceRatioReferenceSets,
   type ResourceRatios,
   type ResourceRatioSummary,
 } from "../../src/model-atlas/stats/resource-ratios";
@@ -309,10 +310,14 @@ export function publicJsonPayload(
   slice: PublicJsonSlice,
   siteOrigin = "",
 ): PublicJsonPayload | null {
+  if (slice.kind === "benchmarks") return benchmarkIndexJsonPayload(payload);
+  if (slice.kind === "benchmark") return benchmarkJsonPayload(payload, slice.key);
   payload = {
     ...payload,
     models: payload.models.map((model) =>
-      applyResourceEvidenceRequirements(model, payload.metadata.scoring.benchmark_portfolio),
+      slice.kind === "model" && model.id !== slice.id
+        ? model
+        : applyResourceEvidenceRequirements(model, payload.metadata.scoring.benchmark_portfolio),
     ),
   };
   switch (slice.kind) {
@@ -322,10 +327,6 @@ export function publicJsonPayload(
       return coreJsonPayload(payload, slice.display);
     case "model":
       return modelJsonPayload(payload, slice.id);
-    case "benchmarks":
-      return benchmarkIndexJsonPayload(payload);
-    case "benchmark":
-      return benchmarkJsonPayload(payload, slice.key);
     case "dashboard":
       return dashboardJsonPayload(payload, siteOrigin);
   }
@@ -369,7 +370,11 @@ export function scoreJsonPayload(
   payload: ModelAtlasPayload,
   display: LeaderboardDisplay = "models",
 ): ScoreJsonPayload {
-  const rows = rankedRows(payload, display);
+  const rows = rankRows(
+    display === "models"
+      ? collapsedModels(payload.models)
+      : modelsForVariantDisplay(payload.models, true),
+  );
   return {
     schema: SCORE_SCHEMA,
     fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
@@ -391,11 +396,10 @@ export function coreJsonPayload(
   payload: ModelAtlasPayload,
   display: LeaderboardDisplay = "models",
 ): CoreJsonPayload {
-  const rows = rankedRows(payload, display);
-  const ratios = resourceRatios(
-    payload,
-    rows.map(({ model }) => model),
+  const rows = rankRows(
+    modelsForVariantDisplay(payload.models, display === "variants", payload.benchmark_observations),
   );
+  const ratios = prepareDisplayResourceRatios(payload)(rows.map(({ model }) => model));
   return {
     schema: CORE_SCHEMA,
     fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
@@ -410,7 +414,7 @@ export function coreJsonPayload(
 export function modelJsonPayload(payload: ModelAtlasPayload, id: string): ModelJsonPayload | null {
   const variants = byIntelligence(payload.models.filter((model) => model.id === id));
   if (variants.length === 0) return null;
-  const ratios = resourceRatios(payload, variants);
+  const ratios = prepareDisplayResourceRatios(payload)(variants);
   return {
     schema: MODEL_SCHEMA,
     fetched_at_epoch_seconds: payload.fetched_at_epoch_seconds,
@@ -454,7 +458,9 @@ export function benchmarkJsonPayload(
   const benchmark = portfolioBenchmarks(payload).find(({ key }) => key === requestedKey);
   if (benchmark == null) return null;
   const { key } = benchmark;
-  const results = rankedRows(payload, "models").flatMap(({ model, rank }) => {
+  const variants = modelsForVariantDisplay(payload.models, true);
+  const models = compactModelVariants(variants, payload.benchmark_observations, [key]);
+  const results = rankRows(models).flatMap(({ model, rank }) => {
     const value = benchmarkValue(model, key);
     return value == null
       ? []
@@ -506,19 +512,6 @@ function missingSliceMessage(slice: PublicJsonSlice): string {
     return `No portfolio benchmark has the key "${slice.key}"; /api/llm-stats/benchmarks lists every key.`;
   }
   throw new Error(`The ${slice.kind} slice exists in every snapshot`);
-}
-
-/** Measure a slice's rows against medians from every published variant, as the leaderboard does. */
-function resourceRatios(
-  payload: ModelAtlasPayload,
-  models: readonly ModelAtlasModel[],
-): ResourceRatios[] {
-  const portfolio = payload.metadata.scoring.benchmark_portfolio;
-  return displayResourceRatios(
-    models,
-    portfolio,
-    resourceRatioReferenceSets(payload.models, portfolio),
-  );
 }
 
 function publicResourceRatio({
@@ -573,13 +566,7 @@ function methodologyText(): string {
   return `Model Atlas reports Intelligence, Agentic, Speed, and Value as separate relative 0-100 scores, not task-success probabilities. Each benchmark maps its weakest observed result to 0 and its strongest to 100, weighted by its capability allocation, and each reasoning effort is scored separately. Intelligence and Agentic blend the mean of available frontier benchmark results, weighted at 1.5 times the full portfolio's base weight, with assigned aggregate indexes, each weighted by its base weight times the benchmarks it represents after overlap deductions; ECI counts ${INDEX_REPRESENTED_BENCHMARK_MEDIAN}. Effort-specific indexes count on their effort, model-level indexes on the source-default variant. Intelligence blends a 20% pairwise comparison on shared benchmarks into its frontier mean, reads each index result off the frontier scale at the frontier mean of variants with the same index standing, gives efforts without that index the measured efforts' offset, and takes a bounded Trust Me Bro and Slop correction. Agentic multiplies each benchmark contribution by 0.85-1.15 for token use versus similar-quality peers. A missing benchmark result can be estimated from another effort of the same model plus their weighted gap on at least three shared benchmarks, and enters the benchmark mean; validated estimates from the model's other benchmarks affect evidence support and score retention, but do not enter the benchmark mean. Estimates never fill raw benchmark fields or count toward admission. Scores keep 85% through 1.2 supported benchmark weight, rising smoothly to 100% at 12. Confidence fields report the supported share of portfolio weight, not statistical intervals. Speed and Value compare time and cost per task with nearby-quality models, weighting benchmark task resources 70% and provider speed or price 30%. Speed needs observed time coverage and Value observed cost coverage, each representing four benchmarks at the exact effort; otherwise the score is null. Missing resources use validated same-model effort ratios, then a shrunken global, lab, release-proximity, and model fallback; these estimates are discounted and never satisfy evidence thresholds. Weak peer support pulls a comparison toward 50, and the source-default variant's coverage sets a shared multiplier, zero through 10% and full at 60%. Resource ratios (task_cost_ratio, task_time_ratio, total_token_ratio, and a model's resource_ratios) are descriptive and do not feed Speed or Value: each is the weighted median of observed cost, runtime, or total tokens relative to each benchmark's median, so 1 is typical and lower means less use. Listed models need a qualified, named text-model identity; observed benchmark weight reaching the smallest known index breadth, with each index counting its represented benchmarks and known overlap counted once; observed evidence in both capabilities; two observed indexes or one AA Intelligence or Epoch Capabilities index; and Intelligence and Agentic above 10. Ranked slices rank each model's strongest-Intelligence effort, filling missing benchmark fields from its highest available effort, or with efforts=all rank every reasoning effort separately, and hide OpenAI Pro, Gemini Deep Think, and Claude Mythos configurations; a model's own slice keeps every effort, unranked. Full formulas, examples, and rationales are available at /methodology.`;
 }
 
-/** The rows the dashboard table shows in this display, best Intelligence first, each with its competition rank. */
-function rankedRows(payload: ModelAtlasPayload, display: LeaderboardDisplay): LeaderboardRow[] {
-  const models = modelsForVariantDisplay(
-    payload.models,
-    display === "variants",
-    payload.benchmark_observations,
-  );
+function rankRows(models: ModelAtlasModel[]): LeaderboardRow[] {
   const ranks = intelligenceRanks(models);
   return models
     .map((model, index) => ({ model, rank: ranks[index]! }))

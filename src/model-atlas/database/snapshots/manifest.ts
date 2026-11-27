@@ -152,22 +152,21 @@ export function snapshotDataHash({
       : {}),
   };
   return createHash("sha256")
-    .update(stableJson(canonicalSnapshotData(data)))
+    .update(JSON.stringify(canonicalSnapshotData(data)))
     .update(communityRankings.length ? stableJson(communityRankings) : "")
     .digest("hex");
 }
 
+/** The persisted fingerprint sorts object keys and treats each array as a sorted list of JSON strings, including nested arrays. */
 function canonicalSnapshotData(value: unknown): unknown {
   if (Array.isArray(value)) {
-    return value
-      .map(canonicalSnapshotData)
-      .map((entry) => stableJson(entry))
-      .sort();
+    return value.map((entry) => JSON.stringify(canonicalSnapshotData(entry)) ?? "null").sort();
   }
   if (value != null && typeof value === "object") {
     return Object.fromEntries(
       Object.entries(value)
         .filter(([key]) => key !== "observed_at")
+        .sort(([left], [right]) => left.localeCompare(right))
         .map(([key, entry]) => [key, canonicalSnapshotData(entry)]),
     );
   }

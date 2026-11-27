@@ -14,15 +14,16 @@ import { artificialAnalysisBenchmarkResourceRawCacheFromRows } from "../sources/
 import { combinedBenchmarkObservations } from "../sources/assembly";
 import { readTerminalBenchRawCache } from "../sources/terminal-bench/runtime";
 import { type DbRow, jsonValue, sqlStringLiteral } from "../sqlite-utils";
-import { buildChangeHistory, recentChangeMarks, variantKey } from "../stats/payload/changes";
+import { recentChangeMarks, variantKey } from "../stats/payload/changes";
 import { buildCurrentModelAtlasMetadata } from "../stats/payload/metadata";
 import type {
   ModelAtlasBenchmarkUpdateHealth,
   ModelAtlasPayload,
   ModelAtlasSourceHealth,
   ModelAtlasSourceQuarantine,
+  ModelAtlasVariantChanges,
 } from "../stats/types";
-import { CHANGE_LOG_ROW_GROUPS, changeLogFromRows } from "./change-log";
+import { CHANGE_LOG_ROW_GROUPS, changeHistoryFromRows } from "./change-log";
 import {
   benchmarkDatesByModelRow,
   benchmarksByModelRow,
@@ -128,6 +129,7 @@ export const PAYLOAD_ROW_GROUPS = [
 export type PayloadRowGroup = (typeof PAYLOAD_ROW_GROUPS)[number];
 type PayloadRowKey = PayloadRowGroup["key"];
 type PayloadRows = {
+  changeHistory: ModelAtlasVariantChanges[];
   fetchedAt: number | null;
   snapshotPreservationVersion: number | null;
   benchmarkUpdateHealth: ModelAtlasBenchmarkUpdateHealth | undefined;
@@ -147,6 +149,7 @@ export function buildPayloadRows(
   const benchmarkUpdateHealth = jsonValue(metadata.benchmark_update_health_json);
   const benchmarkVersions = jsonValue(metadata.benchmark_versions_json);
   return {
+    changeHistory: changeHistoryFromRows(rows),
     fetchedAt: asFiniteNumber(metadata.updated_at_epoch_seconds),
     snapshotPreservationVersion: asFiniteNumber(metadata.snapshot_preservation_version),
     benchmarkUpdateHealth: isEntryRecord(benchmarkUpdateHealth) ? benchmarkUpdateHealth : undefined,
@@ -310,7 +313,7 @@ function sourceHealthFromRows(
 
 export function buildPayloadFromRows(rows: PayloadRows): ModelAtlasPayload {
   const updatesByVariant = new Map(
-    buildChangeHistory(changeLogFromRows(rows)).map(({ model_id, reasoning_effort, updates }) => [
+    rows.changeHistory.map(({ model_id, reasoning_effort, updates }) => [
       variantKey(model_id, reasoning_effort),
       updates,
     ]),

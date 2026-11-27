@@ -5,6 +5,7 @@ import {
   withoutConfigurationLabel,
 } from "../../../../src/model-atlas/identity/normalization";
 import { providerIdentityKey } from "../../../../src/model-atlas/identity/provider";
+import { groupBy } from "../../../../src/model-atlas/runtime";
 import { strongestModelVariants } from "../../../../src/model-atlas/stats/model-variants";
 import { modelDisplayExclusion } from "../../../../src/model-atlas/stats/model-visibility";
 import { anchorTimeline } from "../../../../src/model-atlas/timeline/calibration";
@@ -113,12 +114,7 @@ type Candidate = HistoricalModel & {
 
 /** A family the leaderboard lists is represented by the placed configuration the leaderboard rates strongest, so both views name the same effort and an unlisted, sparsely measured one cannot stand for the model; any other family takes its strongest Timeline estimate, current configurations first. */
 export function modelRepresentatives<T extends Candidate>(models: T[]): T[] {
-  const families = new Map<string, T[]>();
-  for (const model of models) {
-    const variants = families.get(model.family) ?? [];
-    variants.push(model);
-    families.set(model.family, variants);
-  }
+  const families = groupBy(models, (model) => model.family);
   return [...families.values()].map((variants) => {
     const scored = variants.filter((model) => model.representativeScore != null);
     const listed = scored.filter((model) => model.listedScore != null);

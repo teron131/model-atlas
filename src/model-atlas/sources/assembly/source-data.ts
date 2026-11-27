@@ -21,6 +21,7 @@ import {
   buildBenchmarkSourceData,
 } from "../benchmarks";
 import type { ModelsDevFlatModel } from "../models-dev/catalog";
+import type { BenchmarkObservationRows } from "../types";
 import { combinedBenchmarkObservations } from "./combined-sources";
 import type { CrosswalkObservation } from "./crosswalk";
 import { pickPreferredModelsDevRows } from "./policy";
@@ -75,10 +76,6 @@ export type ModelAtlasSourceData = BenchmarkObservationData &
       byId: Map<string, ModelsDevFlatModel>;
     };
   };
-
-type BenchmarkObservationRows = {
-  [Binding in BenchmarkObservationBinding as Binding["sourceRowsKey"]]: ModelAtlasSourceData[Binding["sourceDataKey"]]["rows"];
-};
 
 export type ModelAtlasSourceRows = BenchmarkObservationRows &
   BenchmarkSourceRows & {

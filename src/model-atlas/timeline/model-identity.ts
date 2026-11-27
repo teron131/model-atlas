@@ -15,6 +15,7 @@ import {
   releaseLabelPeriod,
   versionDate,
 } from "../identity/releases";
+import { groupBy } from "../runtime";
 import type { HistoricalDataset, HistoricalModel, HistoricalObservation } from "./schemas";
 
 /** Construct a source identity from its base name, effort, and date before Artificial Analysis reconciliation. */
@@ -244,13 +245,7 @@ class IdentityJoins {
   }
 
   groups(): HistoricalModel[][] {
-    const groups = new Map<string, HistoricalModel[]>();
-    for (const model of this.models) {
-      const id = this.root(model.id);
-      const group = groups.get(id) ?? [];
-      group.push(model);
-      groups.set(id, group);
-    }
+    const groups = groupBy(this.models, (model) => this.root(model.id));
     return [...groups.values()];
   }
 
@@ -726,12 +721,7 @@ function exactArtificialAnalysisAliases(
   models: HistoricalModel[],
   observations: HistoricalObservation[],
 ) {
-  const rows = new Map<string, HistoricalObservation[]>();
-  for (const observation of observations) {
-    const existing = rows.get(observation.modelId) ?? [];
-    existing.push(observation);
-    rows.set(observation.modelId, existing);
-  }
+  const rows = groupBy(observations, (row) => row.modelId);
   const groups = new Map<string, HistoricalModel[]>();
   for (const model of models) {
     const measured = rows.get(model.id) ?? [];
